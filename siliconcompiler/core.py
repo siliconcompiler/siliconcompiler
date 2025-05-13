@@ -1347,7 +1347,6 @@ class Chip:
             dependencies = [dependencies[list_index]]
 
         paths = self.__convert_paths_to_posix(paths)
-        dependencies = self.__convert_paths_to_posix(dependencies)
 
         result = []
 
