@@ -15,12 +15,6 @@ from siliconcompiler.tools.netgen import lvs
 
 from siliconcompiler.tools.builtin import nop
 from siliconcompiler.tools.builtin import join
-from siliconcompiler.tools.builtin import minimum
-
-from core.tools.fake import fake_in
-from core.tools.fake import fake_out
-
-from siliconcompiler.targets import freepdk45_demo
 
 
 def test_graph():

@@ -583,7 +583,7 @@ class RuntimeFlowgraph:
 
     def get_nodes(self):
         '''
-        Returns the nodes availeble in this graph
+        Returns the nodes available in this graph
         '''
         return self.__nodes
 

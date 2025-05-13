@@ -92,7 +92,8 @@ def send(chip, msg_type, step, index):
                     msg.attach(img_attach)
 
             nodes, errors, metrics, metrics_unit, metrics_to_show, _ = \
-                report_utils._collect_data(chip, flow=flow, flowgraph_nodes=nodes_to_execute(chip, flow))
+                report_utils._collect_data(chip, flow=flow,
+                                           flowgraph_nodes=nodes_to_execute(chip, flow))
 
             text_msg = get_file_template('email/summary.j2').render(
                 design=chip.design,

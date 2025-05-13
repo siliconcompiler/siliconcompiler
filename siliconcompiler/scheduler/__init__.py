@@ -2111,7 +2111,8 @@ def clean_build_dir(chip):
         for step, index in nodes_to_execute(chip):
             clean_node_dir(chip, step, index)
 
-    all_nodes = set(chip.schema.get("flowgraph", chip.get('option', 'flow'), field="schema").get_nodes())
+    all_nodes = set(chip.schema.get("flowgraph", chip.get('option', 'flow'),
+                                    field="schema").get_nodes())
     old_nodes = __collect_nodes_in_workdir(chip)
     node_mismatch = old_nodes.difference(all_nodes)
     if node_mismatch:
