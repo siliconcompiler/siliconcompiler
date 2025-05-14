@@ -144,12 +144,18 @@ class BaseSchema:
                  *keypath,
                  insert_defaults=False,
                  use_default=False,
-                 require_leaf=True):
+                 require_leaf=True,
+                 complete_path=None):
         if len(keypath) == 0:
             if require_leaf:
                 raise KeyError
             else:
                 return self
+
+        if complete_path is None:
+            complete_path = []
+        complete_path.append(keypath[0])
+
         if keypath[0] == "default":
             key_param = self.__default
         else:
@@ -158,7 +164,7 @@ class BaseSchema:
             if insert_defaults and self.__default:
                 if isinstance(self.__default, Parameter) and self.__default.get(field='lock'):
                     raise KeyError
-                key_param = self.__default.copy()
+                key_param = self.__default.copy(key=complete_path)
                 self.__manifest[keypath[0]] = key_param
             elif use_default and self.__default:
                 key_param = self.__default
@@ -173,7 +179,8 @@ class BaseSchema:
             return key_param.__search(*keypath[1:],
                                       insert_defaults=insert_defaults,
                                       use_default=use_default,
-                                      require_leaf=require_leaf)
+                                      require_leaf=require_leaf,
+                                      complete_path=complete_path)
         return key_param
 
     def get(self, *keypath, field='value', step=None, index=None):
@@ -478,9 +485,12 @@ class BaseSchema:
         return manifest
 
     # Utility functions
-    def copy(self):
+    def copy(self, key=None):
         """
         Returns a copy of this schema.
+
+        Args:
+            key (list of str): keypath to this schema
         """
 
         return copy.deepcopy(self)

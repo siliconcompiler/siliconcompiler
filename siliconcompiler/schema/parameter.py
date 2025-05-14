@@ -578,9 +578,12 @@ class Parameter:
 
         return vals
 
-    def copy(self):
+    def copy(self, key=None):
         """
         Returns a copy of this parameter.
+
+        Args:
+            key (list of str): keypath to this schema
         """
 
         return copy.deepcopy(self)
