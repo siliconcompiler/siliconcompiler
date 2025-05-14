@@ -31,3 +31,11 @@ class NamedSchema(BaseSchema):
             self.__name = keypath[-1]
 
         return super()._from_dict(manifest, keypath, version=version)
+
+    def copy(self, key=None):
+        copy = super().copy(key=key)
+
+        if not self.__name and key and key[-1] != "default":
+            copy.__name = key[-1]
+
+        return copy
