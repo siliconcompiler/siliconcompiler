@@ -128,7 +128,7 @@ def test_record_version(monkeypatch):
     (RecordTool.PATH, "/thispath/tool", "/thispath/tool"),
     (RecordTool.ARGS,
      ["-exit", "/thisscript.py", "compound argument"],
-     "-exit /thisscript.py \"compound argument\""),
+     "-exit /thisscript.py 'compound argument'"),
 ])
 def test_record_tool(type, value, expect):
     schema = RecordSchema()
