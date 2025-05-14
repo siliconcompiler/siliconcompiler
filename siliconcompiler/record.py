@@ -4,6 +4,7 @@ import distro
 import getpass
 import platform
 import psutil
+import shlex
 import socket
 
 from datetime import datetime, timezone
@@ -281,7 +282,7 @@ class RecordSchema(BaseSchema):
             type (:class:`RecordTool`): type of tool information being recorded
         '''
         if type == RecordTool.ARGS:
-            info = ' '.join(f'"{arg}"' if ' ' in arg else arg for arg in info)
+            info = shlex.join(info)
         self.set(type.value, info, step=step, index=index)
 
 
