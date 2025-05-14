@@ -117,6 +117,26 @@ def test_set_key_prefix():
     assert schema.get("test0", "test1") == "hello"
 
 
+def test_set_key_prefix_with_child():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("test0", "test1", Parameter("str"))
+    schema = JournalingSchema(schema, keyprefix=["this", "prefix"])
+    schema.start_journal()
+    chip_schema = schema.get("test0", field="schema")
+
+    chip_schema.set("test1", "hello")
+    assert schema.get_journal() == [{
+        "type": "set",
+        "key": ("this", "prefix", "test0", "test1"),
+        "value": "hello",
+        "field": "value",
+        "step": None,
+        "index": None
+    }]
+    assert schema.get("test0", "test1") == "hello"
+
+
 def test_set_multiple():
     schema = BaseSchema()
     edit = EditableSchema(schema)
