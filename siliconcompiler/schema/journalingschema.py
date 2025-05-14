@@ -49,7 +49,7 @@ class JournalingSchema(BaseSchema):
         get_ret = super().get(*keypath, field=field, step=step, index=index)
         self.__record_journal("get", keypath, field=field, step=step, index=index)
         if field == 'schema':
-            child = JournalingSchema(get_ret, keyprefix=keypath)
+            child = JournalingSchema(get_ret, keyprefix=[*self.__keyprefix, *keypath])
             child.__parent = self.__parent
             return child
 
