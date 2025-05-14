@@ -83,13 +83,13 @@ def runtime_options(chip):
     # Library directories
     #####################
     for value in opts['ydir']:
-        cmdlist.append('-y ' + value)
+        cmdlist.extend(['-y', value])
 
     #####################
     # Library files
     #####################
     for value in opts['vlib']:
-        cmdlist.append('-v ' + value)
+        cmdlist.extend(['-v', value])
 
     #####################
     # Include paths
@@ -107,7 +107,7 @@ def runtime_options(chip):
     # Command files
     #######################
     for value in get_input_files(chip, 'input', 'cmdfile', 'f'):
-        cmdlist.append('-f ' + value)
+        cmdlist.extend(['-f', + value])
 
     #######################
     # Sources
@@ -120,7 +120,7 @@ def runtime_options(chip):
     #######################
     # Top Module
     #######################
-    cmdlist.append(f'-top {chip.top(step, index)}')
+    cmdlist.extend(['-top', chip.top(step, index)])
 
     ###############################
     # Parameters (top module only)

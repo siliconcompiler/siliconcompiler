@@ -41,9 +41,9 @@ def runtime_options(chip):
     blif = f"inputs/{design}.blif"
     options.append(blif)
 
-    options.append(f'--net_file inputs/{design}.net')
-    options.append(f'--place_file inputs/{design}.place')
-    options.append(f'--route_file inputs/{design}.route')
+    options.extend(['--net_file', f'inputs/{design}.net'])
+    options.extend(['--place_file', f'inputs/{design}.place'])
+    options.extend(['--route_file', f'inputs/{design}.route'])
 
     return options
 

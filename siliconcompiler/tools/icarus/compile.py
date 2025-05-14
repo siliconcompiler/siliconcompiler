@@ -68,9 +68,9 @@ def runtime_options(chip):
 
     # source files
     for value in opts['ydir']:
-        cmdlist.append('-y ' + value)
+        cmdlist.extend(['-y', value])
     for value in opts['vlib']:
-        cmdlist.append('-v ' + value)
+        cmdlist.extend(['-v', value])
     for value in opts['idir']:
         cmdlist.append('-I' + value)
     for value in opts['define']:
@@ -80,7 +80,7 @@ def runtime_options(chip):
     cmdlist.append(f"-DSILICONCOMPILER_TRACE_FILE=\\\"reports/{design}.vcd\\\"")
 
     for value in get_input_files(chip, 'input', 'cmdfile', 'f'):
-        cmdlist.append('-f ' + value)
+        cmdlist.extend(['-f', value])
     for value in get_input_files(chip, 'input', 'rtl', 'netlist'):
         cmdlist.append(value)
     for value in get_input_files(chip, 'input', 'rtl', 'verilog'):

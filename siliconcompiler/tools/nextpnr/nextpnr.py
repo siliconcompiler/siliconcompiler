@@ -33,14 +33,14 @@ def runtime_options(chip):
 
     options = []
 
-    options.append('--json inputs/' + topmodule + '.netlist.json')
-    options.append('--asc outputs/' + topmodule + '.asc')
+    options.extend(['--json', 'inputs/' + topmodule + '.netlist.json'])
+    options.extend(['--asc', 'outputs/' + topmodule + '.asc'])
 
     if partname == 'ice40up5k-sg48':
-        options.append('--up5k --package sg48')
+        options.extend(['--up5k', '--package sg48'])
 
     for constraint_file in chip.find_files('input', 'constraint', 'pcf', step=step, index=index):
-        options.append('--pcf ' + constraint_file)
+        options.extend(['--pcf', constraint_file])
 
     return options
 

@@ -64,14 +64,14 @@ def generic_show_options(chip):
         raise SiliconCompilerError("Blif file does not exist", chip=chip)
 
     if os.path.exists(net_file):
-        options.append(f'--net_file {net_file}')
+        options.extend(['--net_file', net_file])
     else:
         raise SiliconCompilerError("Net file does not exist", chip=chip)
 
     if os.path.exists(route_file) and os.path.exists(place_file):
         options.append('--analysis')
-        options.append(f'--place_file {place_file}')
-        options.append(f'--route_file {route_file}')
+        options.append(['--place_file', place_file])
+        options.append(['--route_file', route_file])
     elif os.path.exists(place_file):
         # NOTE: This is a workaround to display the VPR GUI on the output of the place step.
         # VPR GUI can be invoked during the place, route or analysis steps - not after they are run.
@@ -81,8 +81,8 @@ def generic_show_options(chip):
         # the placed design. Setting max_router_iterations to 0 avoids running routing iterations
         # and provides a fast way to invoke VPR GUI on the placed design.
         options.append('--route')
-        options.append('--max_router_iterations 0')
-        options.append(f'--place_file {place_file}')
+        options.extend(['--max_router_iterations', 0])
+        options.extend(['--place_file', place_file])
     else:
         raise SiliconCompilerError("Place file does not exist", chip=chip)
 

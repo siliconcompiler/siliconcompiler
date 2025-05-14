@@ -49,6 +49,6 @@ def runtime_options(chip):
         raise SiliconCompilerError(f"Incorrect file type {show_type}", chip=chip)
 
     options.append("--graphics_commands")
-    options.append(f"\"{screenshot_command_str}\"")
+    options.append(screenshot_command_str)
 
     return options
