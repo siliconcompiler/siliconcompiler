@@ -345,9 +345,6 @@ class BaseSchema:
         except KeyError:
             raise KeyError(f"[{','.join(keypath)}] is not a valid keypath")
 
-        if not key_param:
-            return
-
         if removal_key not in key_param.__manifest:
             return
 
