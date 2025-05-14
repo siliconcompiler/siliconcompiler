@@ -411,12 +411,19 @@ proc sc_psm_check_nets { } {
 # Save an image
 ###########################
 
-proc sc_save_image { title path { pixels 1000 } } {
+proc sc_save_image { title path { gif false } { pixels 1000 } } {
     utl::info FLW 1 "Saving \"$title\" to $path"
 
     save_image -resolution [sc_image_resolution $pixels] \
         -area [sc_image_area] \
         $path
+
+    if { $gif } {
+        save_animated_gif -add \
+            -resolution [sc_image_resolution $pixels] \
+            -area [sc_image_area] \
+            -delay 100
+    }
 }
 
 ###########################
@@ -480,6 +487,9 @@ proc sc_image_setup_default { } {
     gui::set_display_controls "Misc/Scale bar" visible true
     gui::set_display_controls "Misc/Highlight selected" visible true
     gui::set_display_controls "Misc/Detailed view" visible true
+    if { [sc_check_version 21574] } {
+        gui::set_display_controls "Misc/Labels" visible true
+    }
 }
 
 ###########################
