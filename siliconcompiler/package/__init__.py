@@ -84,7 +84,6 @@ def _path(chip, package, fetch):
     data = {}
     data['path'] = chip.get('package', 'source', package, 'path')
     data['ref'] = chip.get('package', 'source', package, 'ref')
-    print(package, data)
     if not data['path']:
         if package.startswith("key://"):
             data['path'] = package
