@@ -63,7 +63,7 @@ def _get_pruned_node_inputs(chip, flow, node):
     flow_schema = chip.schema.get("flowgraph", flow, field="schema")
     runtime = RuntimeFlowgraph(
         flow_schema,
-        from_steps=flow_schema.get_entry_nodes(),
+        from_steps=set([step for step, _ in flow_schema.get_entry_nodes()]),
         prune_nodes=chip.get('option', 'prune'))
 
     return runtime.get_node_inputs(*node, record=chip.schema.get("record", field="schema"))
