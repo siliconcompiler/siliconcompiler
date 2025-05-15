@@ -58,6 +58,11 @@ Metrics Classes
     :show-inheritance:
     :inherited-members:
 
+.. autoclass:: siliconcompiler.ChecklistSchema
+    :members:
+    :show-inheritance:
+    :inherited-members:
+
 .. autoclass:: siliconcompiler.ToolSchema
     :members:
     :show-inheritance:
