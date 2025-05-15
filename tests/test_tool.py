@@ -444,6 +444,7 @@ def test_get_runtime_environmental_variables(running_chip, monkeypatch):
     tool.set_runtime(running_chip)
 
     monkeypatch.setenv("PATH", "this:path")
+    monkeypatch.delenv("LD_LIBRARY_PATH", raising=False)
 
     assert tool.get_runtime_environmental_variables() == {'PATH': 'this:path'}
 
@@ -455,6 +456,7 @@ def test_get_runtime_environmental_variables_no_path(running_chip, monkeypatch):
     tool.set_runtime(running_chip)
 
     monkeypatch.setenv("PATH", "this:path")
+    monkeypatch.delenv("LD_LIBRARY_PATH", raising=False)
 
     assert tool.get_runtime_environmental_variables(include_path=False) == {}
 
@@ -501,6 +503,7 @@ def test_get_runtime_environmental_variables_tool_path(running_chip, monkeypatch
     tool.set('path', './testpath')
 
     monkeypatch.setenv("PATH", "this:path")
+    monkeypatch.delenv("LD_LIBRARY_PATH", raising=False)
 
     expect_path = os.path.abspath('./testpath') + ":" + "this:path"
 
