@@ -2,6 +2,7 @@ import pytest
 import logging
 
 from siliconcompiler import FlowgraphSchema
+from siliconcompiler import RecordSchema, NodeStatus
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 from siliconcompiler.schema import BaseSchema
 from siliconcompiler.tools.builtin import nop, join
@@ -834,3 +835,31 @@ def test_nodes_to_execute_disjoint_graph_from_to():
         ('B', '0'),
         ('C', '0')
     )
+
+
+def test_get_node_inputs_no_record(large_flow):
+    runtime = RuntimeFlowgraph(large_flow, prune_nodes=[
+        ("stepone", "0"), ("steptwo", "1"), ("stepthree", "2")])
+    assert runtime.get_node_inputs("stepone", "1") == []
+    assert runtime.get_node_inputs("joinone", "0") == [('stepone', '1'), ('stepone', '2')]
+    assert runtime.get_node_inputs("steptwo", "0") == [('joinone', '0')]
+
+
+def test_get_node_inputs_record_skipped(large_flow):
+    runtime = RuntimeFlowgraph(large_flow, prune_nodes=[
+        ("stepone", "0"), ("steptwo", "1"), ("stepthree", "2")])
+
+    record = RecordSchema()
+    record.set("status", NodeStatus.SKIPPED, step="stepone", index="1")
+
+    assert runtime.get_node_inputs("stepone", "1", record=record) == []
+    assert runtime.get_node_inputs("joinone", "0", record=record) == [('stepone', '2')]
+    assert runtime.get_node_inputs("steptwo", "0", record=record) == [('joinone', '0')]
+
+
+def test_get_node_inputs_invalid(large_flow):
+    runtime = RuntimeFlowgraph(large_flow, prune_nodes=[
+        ("stepone", "0"), ("steptwo", "1"), ("stepthree", "2")])
+
+    with pytest.raises(ValueError, match="stepone0 is not a valid node"):
+        runtime.get_node_inputs("stepone", "0")
