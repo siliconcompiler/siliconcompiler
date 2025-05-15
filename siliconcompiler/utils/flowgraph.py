@@ -59,10 +59,11 @@ def _get_flowgraph_node_inputs(chip, flow, node):
 
 
 def _get_pruned_node_inputs(chip, flow, node):
+    # Ignore option from/to, we want reachable nodes of the whole flowgraph
+    flow_schema = chip.schema.get("flowgraph", flow, field="schema")
     runtime = RuntimeFlowgraph(
-        chip.schema.get("flowgraph", flow, field="schema"),
-        from_steps=chip.get('option', 'from'),
-        to_steps=chip.get('option', 'to'),
+        flow_schema,
+        from_steps=flow_schema.get_entry_nodes(),
         prune_nodes=chip.get('option', 'prune'))
 
     return runtime.get_node_inputs(*node, record=chip.schema.get("record", field="schema"))
