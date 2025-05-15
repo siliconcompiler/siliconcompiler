@@ -31,11 +31,11 @@ def setup(chip):
     chip.set('tool', tool, 'format', 'tcl')
 
     # exit automatically in batch mode and not breakpoint
-    option = ''
+    option = ['-no_init']
     if exit and not chip.get('option', 'breakpoint', step=step, index=index):
-        option += " -exit"
+        option.append("-exit")
 
-    option += " -metrics reports/metrics.json"
+    option.extend(["-metrics", "reports/metrics.json"])
     chip.set('tool', tool, 'task', task, 'option', option, step=step, index=index)
 
     # Input/Output requirements for default asicflow steps

@@ -161,12 +161,12 @@ def runtime_options(chip):
 
     if c_flags:
         cflags_str = ' '.join(c_flags)
-        cmdlist.extend(['-CFLAGS', f'"{cflags_str}"'])
+        cmdlist.extend(['-CFLAGS', cflags_str])
 
     ld_flags = chip.get('tool', tool, 'task', task, 'var', 'ldflags', step=step, index=index)
     if ld_flags:
         ldflags_str = ' '.join(ld_flags)
-        cmdlist.extend(['-LDFLAGS', f'"{ldflags_str}"'])
+        cmdlist.extend(['-LDFLAGS', ldflags_str])
 
     for value in get_input_files(chip, 'input', 'hll', 'c'):
         cmdlist.append(value)
