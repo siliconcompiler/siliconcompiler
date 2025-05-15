@@ -70,38 +70,38 @@ def common_runtime_options(chip):
                                  'param'])
 
     if opts['libext']:
-        options.append(f'--libext {",".join(opts["libext"])}')
+        options.extend(['--libext', f'{",".join(opts["libext"])}'])
 
     #####################
     # Library directories
     #####################
     if opts['ydir']:
-        options.append(f'-y {",".join(opts["ydir"])}')
+        options.extend(['-y', f'{",".join(opts["ydir"])}'])
 
     #####################
     # Library files
     #####################
     if opts['vlib']:
-        options.append(f'-libfile {",".join(opts["vlib"])}')
+        options.extend(['-libfile', f'{",".join(opts["vlib"])}'])
 
     #####################
     # Include paths
     #####################
     if opts['idir']:
-        options.append(f'--include-directory {",".join(opts["idir"])}')
+        options.extend(['--include-directory', f'{",".join(opts["idir"])}'])
 
     #######################
     # Variable Definitions
     #######################
     for value in opts['define']:
-        options.append('-D ' + value)
+        options.extend(['-D', value])
 
     #######################
     # Command files
     #######################
     cmdfiles = get_input_files(chip, 'input', 'cmdfile', 'f')
     if cmdfiles:
-        options.append(f'-F {",".join(cmdfiles)}')
+        options.extend(['-F', f'{",".join(cmdfiles)}'])
 
     #######################
     # Sources
@@ -114,7 +114,7 @@ def common_runtime_options(chip):
     #######################
     # Top Module
     #######################
-    options.append('--top ' + chip.top(step, index))
+    options.extend(['--top', chip.top(step, index)])
 
     ###############################
     # Parameters (top module only)
@@ -122,7 +122,7 @@ def common_runtime_options(chip):
     # Set up user-provided parameters to ensure we elaborate the correct modules
     for param, value in opts['param']:
         value = value.replace('"', '\\"')
-        options.append(f'-G {param}={value}')
+        options.extend(['-G', f'{param}={value}'])
 
     return options
 

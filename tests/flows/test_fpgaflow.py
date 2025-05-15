@@ -435,7 +435,8 @@ def test_vpr_max_router_iterations():
 
     chip.set('arg', 'step', 'route')
     chip.set('arg', 'index', '0')
-    assert '--max_router_iterations 300' in route.runtime_options(chip)
+    assert '--max_router_iterations' in route.runtime_options(chip)
+    assert '300' in route.runtime_options(chip)
 
 
 @pytest.mark.eda

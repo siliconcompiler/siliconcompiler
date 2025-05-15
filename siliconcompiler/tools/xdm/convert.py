@@ -24,9 +24,9 @@ def setup(chip):
 
     chip.add('tool', tool, 'task', task, 'option', '--auto',
              step=step, index=index)
-    chip.add('tool', tool, 'task', task, 'option', '--source_file_format hspice',
+    chip.add('tool', tool, 'task', task, 'option', ['--source_file_format', 'hspice'],
              step=step, index=index)
-    chip.add('tool', tool, 'task', task, 'option', f'--dir_out outputs/{design}.xyce',
+    chip.add('tool', tool, 'task', task, 'option', ['--dir_out', f'outputs/{design}.xyce'],
              step=step, index=index)
 
     chip.set('tool', 'xdm', 'task', 'convert', 'var', 'rename', 'true',

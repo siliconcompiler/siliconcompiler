@@ -120,15 +120,15 @@ def runtime_options(chip):
                                     step=step, index=index))
         runMain.append("--")
 
-        runMain.append("--target-dir chisel-output")
+        runMain.extend(["--target-dir", "chisel-output"])
     else:
         # Use built in driver
         runMain.append("SCDriver")
-        runMain.append(f"--module {chip.top(step=step, index=index)}")
+        runMain.extend(["--module", chip.top(step=step, index=index)])
 
-        runMain.append(f"--output-file ../outputs/{design}.v")
+        runMain.extend(["--output-file", f"../outputs/{design}.v"])
 
-    return [f'"{" ".join(runMain)}"']
+    return [" ".join(runMain)]
 
 
 def post_process(chip):

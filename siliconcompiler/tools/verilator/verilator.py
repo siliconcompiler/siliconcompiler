@@ -144,9 +144,9 @@ def runtime_options(chip):
         cmdlist.append(f'inputs/{design}.v')
     else:
         for value in frontend_opts['ydir']:
-            cmdlist.append(f'-y {value}')
+            cmdlist.extend(['-y', value])
         for value in frontend_opts['vlib']:
-            cmdlist.append(f'-v {value}')
+            cmdlist.extend(['-v', value])
         for value in frontend_opts['idir']:
             cmdlist.append(f'-I{value}')
         for value in frontend_opts['define']:
@@ -160,7 +160,7 @@ def runtime_options(chip):
             cmdlist.append(value)
 
     for value in get_input_files(chip, 'input', 'cmdfile', 'f'):
-        cmdlist.append(f'-f {value}')
+        cmdlist.extend(['-f', value])
 
     return cmdlist
 

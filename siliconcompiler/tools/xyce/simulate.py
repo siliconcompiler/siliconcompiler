@@ -48,7 +48,7 @@ def setup(chip):
                 step=step, index=index) == ['true']:
         chip.add('tool', tool, 'task', task, 'output', f'{design}.raw',
                  step=step, index=index)
-        chip.add('tool', tool, 'task', task, 'option', f'-r outputs/{design}.raw',
+        chip.add('tool', tool, 'task', task, 'option', ['-r', f'outputs/{design}.raw'],
                  step=step, index=index)
 
 

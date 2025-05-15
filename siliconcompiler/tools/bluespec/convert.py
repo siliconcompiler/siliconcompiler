@@ -70,24 +70,24 @@ def runtime_options(chip):
     opts = get_frontend_options(chip, ['idir', 'ydir', 'define'])
 
     cmdlist.append('-verilog')
-    cmdlist.append(f'-vdir {VLOG_DIR}')
-    cmdlist.append(f'-bdir {BSC_DIR}')
-    cmdlist.append('-info-dir reports')
+    cmdlist.extend(['-vdir', VLOG_DIR])
+    cmdlist.extend(['-bdir', BSC_DIR])
+    cmdlist.extend(['-info-dir', 'reports'])
     cmdlist.append('-u')
     cmdlist.append('-v')
 
     cmdlist.append('-show-module-use')
     cmdlist.append('-sched-dot')
 
-    cmdlist.append(f'-g {chip.top(step, index)}')
+    cmdlist.extend(['-g', chip.top(step, index)])
 
     bsc_path = ':'.join(opts['ydir'] + ['%/Libraries'])
-    cmdlist.append('-p ' + bsc_path)
+    cmdlist.extend(['-p', bsc_path])
 
     for value in opts['idir']:
-        cmdlist.append('-I ' + value)
+        cmdlist.extend(['-I', value])
     for value in opts['define']:
-        cmdlist.append('-D ' + value)
+        cmdlist.extend(['-D', value])
 
     sources = get_input_files(chip, 'input', 'hll', 'bsv', add_library_files=False)
     if len(sources) != 1:

@@ -62,8 +62,8 @@ def runtime_options(chip):
 
     options.append('--route')
     # To run only the routing step we need to pass in the placement files
-    options.append(f'--net_file inputs/{design}.net')
-    options.append(f'--place_file inputs/{design}.place')
+    options.extend(['--net_file', f'inputs/{design}.net'])
+    options.extend(['--place_file', f'inputs/{design}.place'])
 
     enable_images = chip.get('tool', tool, 'task', task, 'var', 'enable_images',
                              step=step, index=index)[0]
@@ -72,7 +72,7 @@ def runtime_options(chip):
                                 step=step, index=index)
 
     if (len(route_iterations) > 0):
-        options.append(f'--max_router_iterations {route_iterations[0]}')
+        options.extend(['--max_router_iterations', route_iterations[0]])
 
     if enable_images == 'true':
         design = chip.top()
@@ -102,7 +102,7 @@ def runtime_options(chip):
         graphics_command_str = " ".join(graphics_commands)
 
         options.append("--graphics_commands")
-        options.append(f"\"{graphics_command_str}\"")
+        options.append(graphics_command_str)
 
     return options
 

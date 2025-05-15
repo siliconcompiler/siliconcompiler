@@ -103,15 +103,15 @@ def runtime_options(chip):
 
     device_code = chip.get('fpga', part_name, 'var', 'vpr_device_code')
 
-    options.append(f"--device {device_code[0]}")
+    options.extend(["--device", device_code[0]])
 
     # Medium-term solution:  VPR performs hash digest checks that
     # fail if file paths are changed between steps.  We wish to
     # disable the digest checks to work around this
-    options.append("--verify_file_digests off")
+    options.extend(["--verify_file_digests", "off"])
 
-    options.append(f"--write_block_usage {__block_file}")
-    options.append("--outfile_prefix outputs/")
+    options.extend(["--write_block_usage", __block_file])
+    options.extend(["--outfile_prefix", "outputs/"])
 
     if chip.valid('fpga', part_name, 'file', 'archfile') and \
        chip.get('fpga', part_name, 'file', 'archfile'):
@@ -133,25 +133,25 @@ def runtime_options(chip):
             "Only one architecture XML file can be passed to VPR", chip=chip)
 
     threads = chip.get('tool', tool, 'task', task, 'threads', step=step, index=index)
-    options.append(f"--num_workers {threads}")
+    options.extend(["--num_workers", threads])
 
     # For most architectures, constant nets need to be routed
     # like regular nets to be functionally correct (however inefficient
     # that might be...); these two options help control that
-    options.append('--constant_net_method route')
-    options.append('--const_gen_inference none')
+    options.extend(['--constant_net_method', 'route'])
+    options.extend(['--const_gen_inference', 'none'])
 
     # If we allow VPR to sweep dangling primary I/Os and logic blocks
     # it can interfere with circuit debugging; so disable that
-    options.append('--sweep_dangling_primary_ios off')
+    options.extend(['--sweep_dangling_primary_ios', 'off'])
     # If you don't sweep dangling primary I/Os, but sweeping nets
     # VPR can crash:
-    options.append('--sweep_dangling_nets off')
+    options.extend(['--sweep_dangling_nets', 'off'])
     # If you don't sweep dangling nets then the timing engine requires
     # you to set an option allowing dangling nodes
-    options.append('--allow_dangling_combinational_nodes on')
-    options.append('--sweep_constant_primary_outputs off')
-    options.append('--sweep_dangling_blocks off')
+    options.extend(['--allow_dangling_combinational_nodes', 'on'])
+    options.extend(['--sweep_constant_primary_outputs', 'off'])
+    options.extend(['--sweep_dangling_blocks', 'off'])
 
     # Explicitly specify the clock modeling type in the part driver
     # to avoid ambiguity and future-proof against new VPR clock models
@@ -163,11 +163,11 @@ def runtime_options(chip):
         # When dedicated networks are used, tell VPR to use the two-stage router,
         # otherwise not.
         if (selected_clock_model == 'ideal'):
-            options.append(f'--clock_modeling {selected_clock_model}')
+            options.extend(['--clock_modeling', selected_clock_model])
         elif (selected_clock_model == 'route'):
-            options.append(f'--clock_modeling {selected_clock_model}')
+            options.extend(['--clock_modeling', selected_clock_model])
         elif (selected_clock_model == 'dedicated_network'):
-            options.append(f'--clock_modeling {selected_clock_model}')
+            options.extend(['--clock_modeling', selected_clock_model])
             options.append('--two_stage_clock_routing')
         else:
             raise SiliconCompilerError(
@@ -181,24 +181,24 @@ def runtime_options(chip):
                                     file_not_found_msg="SDC file not found")
 
     if sdc_file:
-        sdc_arg = f"--sdc_file {sdc_file}"
-        options.append(sdc_arg)
+        options.append("--sdc_file")
+        options.append(sdc_file)
 
         report_type = chip.get('tool', tool, 'task', task, 'var', 'timing_report_type',
                                step=step, index=index)[0]
-        options.append(f'--timing_report_detail {report_type}')
+        options.extend(['--timing_report_detail', report_type])
         report_paths = chip.get('tool', tool, 'task', task, 'var', 'timing_paths',
                                 step=step, index=index)[0]
-        options.append(f'--timing_report_npaths {report_paths}')
+        options.extend(['--timing_report_npaths', report_paths])
     else:
-        options.append("--timing_analysis off")
+        options.extend(["--timing_analysis", "off"])
 
     # Per the scheme implemented in the placement pre-process step,
     # if a constraints file exists it will always be in the auto_constraints()
     # location:
     if (os.path.isfile(auto_constraints())):
-        pin_constraint_arg = f"--read_vpr_constraints {auto_constraints()}"
-        options.append(pin_constraint_arg)
+        options.append("--read_vpr_constraints")
+        options.append(auto_constraints())
 
     # Routing graph XML:
     rr_graph = find_single_file(chip, 'fpga', part_name, 'file', 'graphfile',
@@ -208,7 +208,7 @@ def runtime_options(chip):
         chip.logger.info("No VPR RR graph file specified")
         chip.logger.info("Routing architecture will come from architecture XML file")
     else:
-        options.append("--read_rr_graph " + rr_graph)
+        options.extend(["--read_rr_graph", rr_graph])
 
     # ***NOTE: For real FPGA chips you need to specify the routing channel
     #          width explicitly.  VPR requires an explicit routing channel
@@ -222,7 +222,7 @@ def runtime_options(chip):
     if (len(num_routing_channels) == 0):
         raise SiliconCompilerError("Number of routing channels not specified", chip=chip)
     elif (len(num_routing_channels) == 1):
-        options.append("--route_chan_width " + num_routing_channels[0])
+        options.extend(["--route_chan_width", num_routing_channels[0]])
     elif (len(num_routing_channels) > 1):
         raise SiliconCompilerError(
             "Only one routing channel width argument can be passed to VPR", chip=chip)

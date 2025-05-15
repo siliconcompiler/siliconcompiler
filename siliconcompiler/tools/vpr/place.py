@@ -62,7 +62,7 @@ def runtime_options(chip):
         graphics_command_str = " ".join(graphics_commands)
 
         options.append("--graphics_commands")
-        options.append(f"\"{graphics_command_str}\"")
+        options.append(graphics_command_str)
 
     return options
 

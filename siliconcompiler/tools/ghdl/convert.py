@@ -25,7 +25,7 @@ def setup(chip):
 
     chip.set('tool', tool, 'task', task, 'threads', utils.get_cores(chip),
              step=step, index=index, clobber=clobber)
-    chip.set('tool', tool, 'task', task, 'option', '',
+    chip.set('tool', tool, 'task', task, 'option', [],
              step=step, index=index, clobber=clobber)
     chip.set('tool', tool, 'task', task, 'stdout', 'destination', 'output',
              step=step, index=index)
