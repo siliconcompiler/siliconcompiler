@@ -34,7 +34,7 @@ def test_check_tool_version_failed_error_code(caplogger):
     with pytest.raises(SystemExit):
         _check_tool_version(chip, 'test', '0')
 
-    assert "Tool 'tool.sh' found with version 'VERSION FAILED' in directory" in log()
+    assert "Tool 'tool.sh' responded with: VERSION FAILED" in log()
 
 
 @pytest.mark.skipif(sys.platform == 'win32', reason='Bash not available')
