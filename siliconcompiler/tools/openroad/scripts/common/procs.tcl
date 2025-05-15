@@ -421,8 +421,7 @@ proc sc_save_image { title path { gif false } { pixels 1000 } } {
     if { $gif } {
         save_animated_gif -add \
             -resolution [sc_image_resolution $pixels] \
-            -area [sc_image_area] \
-            -delay 100
+            -area [sc_image_area]
     }
 }
 
