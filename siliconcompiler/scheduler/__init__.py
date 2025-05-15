@@ -244,7 +244,13 @@ def _local_process(chip, flow):
                                                           step=next_step, index=next_index)
 
     # Check if nodes have been modified from previous data
-    for layer_nodes in _get_flowgraph_execution_order(chip, flow):
+    runtimeflow = RuntimeFlowgraph(
+        chip.schema.get("flowgraph", flow, field="schema"),
+        from_steps=chip.get('option', 'from'),
+        to_steps=chip.get('option', 'to'),
+        prune_nodes=chip.get('option', 'prune'))
+
+    for layer_nodes in runtimeflow.get_execution_order():
         for step, index in layer_nodes:
             # Only look at successful nodes
             if chip.get('record', 'status', step=step, index=index) not in \

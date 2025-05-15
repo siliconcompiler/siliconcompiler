@@ -65,7 +65,7 @@ def _get_pruned_node_inputs(chip, flow, node):
         to_steps=chip.get('option', 'to'),
         prune_nodes=chip.get('option', 'prune'))
 
-    return runtime.get_node_inputs(*node, record=chip.scheme.get("record", field="schema"))
+    return runtime.get_node_inputs(*node, record=chip.schema.get("record", field="schema"))
 
 
 #######################################
