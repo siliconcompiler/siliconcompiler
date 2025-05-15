@@ -44,7 +44,7 @@ class TaskTerminate(Exception):
 
 class TaskTimeout(TaskTerminate):
     '''
-    Error indicates a timeout hass occurred
+    Error indicates a timeout has occurred
 
     Args:
         timeout (float): execution time at timeout
@@ -527,7 +527,7 @@ class ToolSchema(NamedSchema):
 
         Args:
             workdir (path): path to the run work directory
-            remove_exist (bool): if True, removes the exisiting directory
+            remove_exist (bool): if True, removes the existing directory
         '''
 
         # Delete existing directory

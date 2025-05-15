@@ -308,7 +308,8 @@ def test_check_exe_version_value_compound(running_chip, caplog):
     tool.set('version', ['>=1.0.0,!=2.0.0'])
     assert tool.check_exe_version('2.0.0') is False
     assert "Version check failed for testtool. Check installation." in caplog.text
-    assert "Found version 2.0.0, did not satisfy any version specifier set >=1.0.0,!=2.0.0" in caplog.text
+    assert "Found version 2.0.0, did not satisfy any version specifier set >=1.0.0,!=2.0.0" \
+        in caplog.text
 
 
 def test_check_exe_version_value_multiple_fail(running_chip, caplog):
@@ -319,7 +320,8 @@ def test_check_exe_version_value_multiple_fail(running_chip, caplog):
     tool.set('version', ['>=1.0.0,<2.0.0', '>3.0.0'])
     assert tool.check_exe_version('2.0.0') is False
     assert "Version check failed for testtool. Check installation." in caplog.text
-    assert "Found version 2.0.0, did not satisfy any version specifier set >=1.0.0,<2.0.0; >3.0.0" in caplog.text
+    assert "Found version 2.0.0, did not satisfy any version specifier set >=1.0.0,<2.0.0; >3.0.0" \
+        in caplog.text
 
 
 def test_check_exe_version_value_multiple_pass(running_chip, caplog):
