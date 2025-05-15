@@ -962,7 +962,6 @@ def _run_executable_or_builtin(chip, step, index, version, toolpath, workdir, ru
                     if nice:
                         preexec_fn = set_nice
 
-                cmd_start_time = time.time()
                 proc = subprocess.Popen(cmdlist,
                                         stdin=subprocess.DEVNULL,
                                         stdout=stdout_writer,
@@ -1004,7 +1003,7 @@ def _run_executable_or_builtin(chip, step, index, version, toolpath, workdir, ru
                                            is_stdout_log, stdout_reader, stdout_print,
                                            is_stderr_log, stderr_reader, stderr_print)
 
-                        if timeout is not None and time.time() - cmd_start_time > timeout:
+                        if timeout is not None and time.time() - cpu_start > timeout:
                             chip.logger.error(f'Step timed out after {timeout} seconds')
                             utils.terminate_process(proc.pid)
                             raise SiliconCompilerTimeout(f'{step}{index} timeout')
