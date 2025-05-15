@@ -2,6 +2,8 @@ from siliconcompiler.schema import BaseSchema
 from siliconcompiler.schema import EditableSchema, Parameter, PerNode, Scope
 from siliconcompiler.schema.utils import trim
 
+from siliconcompiler.utils.units import convert
+
 
 class MetricSchema(BaseSchema):
     def __init__(self):
@@ -15,10 +17,31 @@ class MetricSchema(BaseSchema):
 
         Args:
             step (str): Step name to clear.
-            index (str): Index name to clear.
+            index (str/int): Index name to clear.
         '''
         for metric in self.getkeys():
-            self.unset(metric, step=step, index=index)
+            self.unset(metric, step=step, index=str(index))
+
+    def record(self, step, index, metric, value, unit=None):
+        """
+        Record a metric
+
+        Args:
+            step (str): step to record
+            index (str/int): index to record
+            metric (str): name of metric
+            value (int/float): value to record
+            unit (str): unit associated with value
+        """
+        metric_unit = self.get(metric, field='unit')
+
+        if not metric_unit and unit:
+            raise ValueError(f"{metric} does not have a unit, but {unit} was supplied")
+
+        if metric_unit:
+            value = convert(value, from_unit=unit, to_unit=metric_unit)
+
+        return self.set(metric, value, step=step, index=str(index))
 
 
 ###########################################################################
