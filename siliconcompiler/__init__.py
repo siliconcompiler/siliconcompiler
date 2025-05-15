@@ -7,6 +7,7 @@ from siliconcompiler.record import RecordSchema
 from siliconcompiler.metric import MetricSchema
 from siliconcompiler.pdk import PDKSchema
 from siliconcompiler.flowgraph import FlowgraphSchema
+from siliconcompiler.tool import ToolSchema
 
 from siliconcompiler.core import Chip
 
@@ -29,5 +30,6 @@ __all__ = [
     "RecordSchema",
     "MetricSchema",
     "PDKSchema",
-    "FlowgraphSchema"
+    "FlowgraphSchema",
+    "ToolSchema"
 ]

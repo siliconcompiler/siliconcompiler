@@ -20,6 +20,7 @@ def test_check_tool_version_failed_error_code(caplogger):
     chip.set('tool', 'fake', 'exe', os.path.abspath('tool.sh'))
     chip.set('tool', 'fake', 'vswitch', '-ver')
     chip.set('tool', 'fake', 'version', '>=1.0.0')
+    chip.set('tool', 'fake', 'task', 'fake_out', 'option', [])
     log = caplogger(chip)
 
     def parse_version(stdout):
@@ -27,6 +28,8 @@ def test_check_tool_version_failed_error_code(caplogger):
     setattr(fake, 'parse_version', parse_version)
 
     chip.set('option', 'flow', 'test')
+    chip.set('arg', 'step', 'test')
+    chip.set('arg', 'index', '0')
 
     with pytest.raises(SystemExit):
         _check_tool_version(chip, 'test', '0')
@@ -48,6 +51,7 @@ def test_check_tool_version_failed(caplogger):
     chip.set('tool', 'fake', 'exe', os.path.abspath('tool.sh'))
     chip.set('tool', 'fake', 'vswitch', '-ver')
     chip.set('tool', 'fake', 'version', '>=1.0.0')
+    chip.set('tool', 'fake', 'task', 'fake_out', 'option', [])
     log = caplogger(chip)
 
     def parse_version(stdout):
@@ -55,6 +59,8 @@ def test_check_tool_version_failed(caplogger):
     setattr(fake, 'parse_version', parse_version)
 
     chip.set('option', 'flow', 'test')
+    chip.set('arg', 'step', 'test')
+    chip.set('arg', 'index', '0')
 
     with pytest.raises(SystemExit):
         _check_tool_version(chip, 'test', '0')

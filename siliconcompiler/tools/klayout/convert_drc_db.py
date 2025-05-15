@@ -1,6 +1,7 @@
 from siliconcompiler.tools._common import input_provides, input_file_node_name, get_tool_task
 
 from siliconcompiler.tools.klayout.klayout import setup as setup_tool
+from siliconcompiler.tools.klayout.klayout import runtime_options as tool_runtime_options
 
 
 def make_docs(chip):
@@ -58,3 +59,7 @@ def setup(chip):
 
     chip.set('tool', tool, 'task', task, 'output', f'{design}.json',
              step=step, index=index)
+
+
+def runtime_options(chip):
+    return tool_runtime_options(chip)
