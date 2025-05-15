@@ -477,7 +477,7 @@ class RuntimeFlowgraph:
         prune_nodes (list of nodes): nodes to remove from execution
     '''
     def __init__(self, base, args=None, from_steps=None, to_steps=None, prune_nodes=None):
-        if not isinstance(base, FlowgraphSchema):
+        if not all([hasattr(base, attr) for attr in dir(FlowgraphSchema)]):
             raise ValueError(f"base must a FlowgraphSchema, not: {type(base)}")
 
         self.__base = base
