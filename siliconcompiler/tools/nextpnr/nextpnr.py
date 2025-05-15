@@ -37,7 +37,7 @@ def runtime_options(chip):
     options.extend(['--asc', 'outputs/' + topmodule + '.asc'])
 
     if partname == 'ice40up5k-sg48':
-        options.extend(['--up5k', '--package sg48'])
+        options.extend(['--up5k', '--package', 'sg48'])
 
     for constraint_file in chip.find_files('input', 'constraint', 'pcf', step=step, index=index):
         options.extend(['--pcf', constraint_file])

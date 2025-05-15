@@ -70,8 +70,8 @@ def generic_show_options(chip):
 
     if os.path.exists(route_file) and os.path.exists(place_file):
         options.append('--analysis')
-        options.append(['--place_file', place_file])
-        options.append(['--route_file', route_file])
+        options.extend(['--place_file', place_file])
+        options.extend(['--route_file', route_file])
     elif os.path.exists(place_file):
         # NOTE: This is a workaround to display the VPR GUI on the output of the place step.
         # VPR GUI can be invoked during the place, route or analysis steps - not after they are run.
