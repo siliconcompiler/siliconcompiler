@@ -1,6 +1,6 @@
 # Adopted from https://github.com/The-OpenROAD-Project/OpenROAD-flow-scripts/blob/3f9740e6b3643835e918d78ae1d377d65af0f0fb/flow/scripts/save_images.tcl
 
-proc sc_image_heatmap { name ident image_name title { allow_bin_adjust 1 } } {
+proc sc_image_heatmap { name ident image_name title { gif false } { allow_bin_adjust 1 } } {
     set ord_heatmap_bins_x [lindex [sc_cfg_tool_task_get var ord_heatmap_bins_x] 0]
     set ord_heatmap_bins_y [lindex [sc_cfg_tool_task_get var ord_heatmap_bins_y] 0]
 
@@ -49,7 +49,7 @@ proc sc_image_heatmap { name ident image_name title { allow_bin_adjust 1 } } {
 
     gui::set_display_controls "Heat Maps/${name}" visible true
 
-    sc_save_image "$title heatmap" reports/images/heatmap/${image_name}
+    sc_save_image "$title heatmap" reports/images/heatmap/${image_name} $gif
 
     gui::set_display_controls "Heat Maps/${name}" visible false
 }
@@ -125,6 +125,13 @@ proc sc_image_irdrop { net corner } {
         return
     }
 
+    set gif false
+    if { [sc_check_version 21574] } {
+        set gif true
+    }
+    if { $gif } {
+        save_animated_gif -start "reports/images/heatmap/irdrop/${net}.${corner}.gif"
+    }
     foreach layer [[ord::get_db_tech] getLayers] {
         if { [$layer getRoutingLevel] == 0 } {
             continue
@@ -136,10 +143,26 @@ proc sc_image_irdrop { net corner } {
         gui::set_heatmap IRDrop Layer $layer_name
         gui::set_heatmap IRDrop rebuild
 
+        set label ""
+        if { [sc_check_version 21574] } {
+            set box [[ord::get_db_block] getDieArea]
+            set x [ord::dbu_to_microns [$box xMax]]
+            set y [ord::dbu_to_microns [$box yMin]]
+            set label [add_label -position "$x $y" -anchor "bottom right" -color white $layer_name]
+        }
+
         sc_image_heatmap "IR Drop" \
             "IRDrop" \
             "irdrop/${net}.${corner}.${layer_name}.png" \
-            "IR drop for $net on $layer_name for $corner"
+            "IR drop for $net on $layer_name for $corner" \
+            $gif
+
+        if { $label != "" } {
+            gui::delete_label $label
+        }
+    }
+    if { $gif } {
+        save_animated_gif -end
     }
 }
 
@@ -154,6 +177,7 @@ proc sc_image_routing_congestion { } {
         "Routing" \
         "routing_congestion.png" \
         "routing congestion" \
+        0 \
         0
 }
 
@@ -170,6 +194,7 @@ proc sc_image_estimated_routing_congestion { } {
             "RUDY" \
             "estimated_routing_congestion.png" \
             "estimated routing congestion" \
+            0 \
             0
     } err
     unsuppress_message GRT 10

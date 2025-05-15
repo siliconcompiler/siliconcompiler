@@ -5,7 +5,7 @@ set sc_resolution \
 
 sc_image_setup_default
 
-sc_save_image "screenshot" "outputs/${sc_design}.png" $sc_resolution
+sc_save_image "screenshot" "outputs/${sc_design}.png" false $sc_resolution
 
 gui::restore_display_controls
 
