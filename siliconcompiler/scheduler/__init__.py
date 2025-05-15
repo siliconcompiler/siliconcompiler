@@ -250,14 +250,15 @@ def _local_process(chip, flow):
         to_steps=chip.get('option', 'to'),
         prune_nodes=chip.get('option', 'prune'))
 
-    for layer_nodes in runtimeflow.get_execution_order():
+    for layer_nodes in _get_flowgraph_execution_order(chip, flow):
         for step, index in layer_nodes:
             # Only look at successful nodes
             if chip.get('record', 'status', step=step, index=index) not in \
                     (NodeStatus.SUCCESS, NodeStatus.SKIPPED):
                 continue
 
-            if not check_node_inputs(chip, step, index):
+            if (step, index) in runtimeflow.get_nodes() and \
+                    not check_node_inputs(chip, step, index):
                 # change failing nodes to pending
                 mark_pending(step, index)
             elif (step, index) in extra_setup_nodes:
