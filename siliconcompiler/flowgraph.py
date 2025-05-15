@@ -5,6 +5,8 @@ from siliconcompiler.schema import BaseSchema, NamedSchema
 from siliconcompiler.schema import EditableSchema, Parameter, Scope
 from siliconcompiler.schema.utils import trim
 
+from siliconcompiler import NodeStatus
+
 
 class FlowgraphSchema(NamedSchema):
     def __init__(self, name=None):
@@ -475,7 +477,7 @@ class RuntimeFlowgraph:
         prune_nodes (list of nodes): nodes to remove from execution
     '''
     def __init__(self, base, args=None, from_steps=None, to_steps=None, prune_nodes=None):
-        if not isinstance(base, FlowgraphSchema):
+        if not all([hasattr(base, attr) for attr in dir(FlowgraphSchema)]):
             raise ValueError(f"base must a FlowgraphSchema, not: {type(base)}")
 
         self.__base = base
@@ -619,6 +621,29 @@ class RuntimeFlowgraph:
             raise ValueError(f"{step}{index} is not a valid node")
 
         return tuple(sorted(self.__walk_graph((step, str(index)), reverse=False)))
+
+    def get_node_inputs(self, step, index, record=None):
+        if (step, index) not in self.get_nodes():
+            raise ValueError(f"{step}{index} is not a valid node")
+
+        if record is None:
+            inputs = set()
+            for in_step, in_index in self.__base.get(step, index, "input"):
+                if (in_step, in_index) not in self.get_nodes():
+                    continue
+                inputs.add((in_step, in_index))
+            return sorted(inputs)
+
+        inputs = set()
+        for in_step, in_index in self.__base.get(step, index, "input"):
+            if (in_step, in_index) not in self.get_nodes():
+                continue
+
+            if record.get("status", step=in_step, index=in_index) == NodeStatus.SKIPPED:
+                inputs.update(self.get_node_inputs(in_step, in_index, record=record))
+            else:
+                inputs.add((in_step, in_index))
+        return sorted(inputs)
 
 
 class FlowgraphNodeSchema(BaseSchema):

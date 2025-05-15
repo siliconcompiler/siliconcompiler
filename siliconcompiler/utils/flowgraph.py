@@ -58,17 +58,15 @@ def _get_flowgraph_node_inputs(chip, flow, node):
     return list(inputs)
 
 
-def _get_pruned_flowgraph_nodes(chip, flow, prune_nodes):
-    # Ignore option from/to, we want reachable nodes of the whole flowgraph
-    from_nodes = set(chip.schema.get("flowgraph", flow, field="schema").get_entry_nodes())
-    return _reachable_flowgraph_nodes(chip, flow, from_nodes, prune_nodes=prune_nodes)
-
-
 def _get_pruned_node_inputs(chip, flow, node):
-    prune_nodes = chip.get('option', 'prune')
-    pruned_flowgraph_nodes = _get_pruned_flowgraph_nodes(chip, flow, prune_nodes)
-    return list(filter(lambda node: node in pruned_flowgraph_nodes,
-                       _get_flowgraph_node_inputs(chip, flow, node)))
+    # Ignore option from/to, we want reachable nodes of the whole flowgraph
+    flow_schema = chip.schema.get("flowgraph", flow, field="schema")
+    runtime = RuntimeFlowgraph(
+        flow_schema,
+        from_steps=set([step for step, _ in flow_schema.get_entry_nodes()]),
+        prune_nodes=chip.get('option', 'prune'))
+
+    return runtime.get_node_inputs(*node, record=chip.schema.get("record", field="schema"))
 
 
 #######################################
