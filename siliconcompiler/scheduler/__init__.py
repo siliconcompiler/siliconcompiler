@@ -25,7 +25,6 @@ from siliconcompiler.scheduler import docker_runner
 from siliconcompiler import NodeStatus, SiliconCompilerError
 from siliconcompiler.utils.flowgraph import _get_flowgraph_execution_order, \
     _get_pruned_node_inputs, \
-    _unreachable_steps_to_execute, \
     get_nodes_from, nodes_to_execute, _check_flowgraph
 from siliconcompiler.utils.logging import SCBlankLoggerFormatter
 from siliconcompiler.tools._common import input_file_node_name
@@ -1740,14 +1739,25 @@ def _process_completed_nodes(chip, processes, running_nodes):
 
 
 def _check_nodes_status(chip, flow):
-    def success(node):
-        return chip.get('record', 'status', step=node[0], index=node[1]) in \
-            (NodeStatus.SUCCESS, NodeStatus.SKIPPED)
+    flowgraph = chip.schema.get("flowgraph", flow, field="schema")
+    runtime = RuntimeFlowgraph(
+        flowgraph,
+        from_steps=chip.get('option', 'from'),
+        to_steps=chip.get('option', 'to'),
+        prune_nodes=chip.get('option', 'prune'))
+    runtime_no_prune = RuntimeFlowgraph(
+        flowgraph,
+        from_steps=chip.get('option', 'from'),
+        to_steps=chip.get('option', 'to'))
 
-    unreachable_steps = _unreachable_steps_to_execute(chip, flow, cond=success)
-    if unreachable_steps:
+    all_steps = [step for step, index in runtime_no_prune.get_exit_nodes() if (step, index) not in chip.get('option', 'prune')]
+    complete_steps = [step for step, _ in runtime.get_completed_nodes(record=chip.schema.get("record", field='schema'))]
+
+    unreached = set(all_steps).difference(complete_steps)
+
+    if unreached:
         raise SiliconCompilerError(
-            f'These final steps could not be reached: {list(unreachable_steps)}', chip=chip)
+            f'These final steps could not be reached: {",".join(sorted(unreached))}', chip=chip)
 
 
 def print_traceback(chip, exception):

@@ -837,6 +837,25 @@ def test_nodes_to_execute_disjoint_graph_from_to():
     )
 
 
+def test_nodes_to_execute_cut_middle():
+    '''
+    Check to ensure nodes_to_execute properly handles pruning the middle node
+    {A} -- {X} --C -- [D]
+    '''
+    flow = FlowgraphSchema('test')
+
+    prev = None
+    for n in ('A', 'B', 'C', 'D'):
+        flow.node(n, nop)
+
+        if prev:
+            flow.edge(prev, n)
+
+        prev = n
+
+    assert RuntimeFlowgraph(flow, prune_nodes=[("B", "0")]).get_nodes() == tuple()
+
+
 def test_get_node_inputs_no_record(large_flow):
     runtime = RuntimeFlowgraph(large_flow, prune_nodes=[
         ("stepone", "0"), ("steptwo", "1"), ("stepthree", "2")])
@@ -863,3 +882,70 @@ def test_get_node_inputs_invalid(large_flow):
 
     with pytest.raises(ValueError, match="stepone0 is not a valid node"):
         runtime.get_node_inputs("stepone", "0")
+
+
+def test_runtime_get_completed_nodes_no_record(large_flow):
+    assert RuntimeFlowgraph(large_flow).get_completed_nodes() == []
+
+
+def test_runtime_get_completed_nodes_with_record(large_flow):
+    record = RecordSchema()
+    record.set("status", NodeStatus.SKIPPED, step="stepone", index="1")
+    record.set("status", NodeStatus.SUCCESS, step="stepone", index="0")
+
+    assert RuntimeFlowgraph(large_flow).get_completed_nodes(record=record) == [
+        ('stepone', '0'), ('stepone', '1')]
+
+
+def test_runtime_validate_nothing(large_flow):
+    assert RuntimeFlowgraph.validate(large_flow) is True
+
+
+def test_runtime_validate_invalid_steps(large_flow, caplog):
+    assert RuntimeFlowgraph.validate(
+        large_flow,
+        from_steps=["nothere"],
+        to_steps=["notthere"], logger=logging.getLogger()) is False
+
+    assert "From nothere is not defined in the testflow flowgraph" in caplog.text
+    assert "To notthere is not defined in the testflow flowgraph" in caplog.text
+
+
+def test_runtime_validate_invalid_node(large_flow, caplog):
+    assert RuntimeFlowgraph.validate(
+        large_flow,
+        prune_nodes=[("notthis", "0")], logger=logging.getLogger()) is False
+
+    assert "notthis0 is not defined in the testflow flowgraph" in caplog.text
+
+
+def test_runtime_validate_prune_exits(large_flow, caplog):
+    assert RuntimeFlowgraph.validate(
+        large_flow,
+        prune_nodes=[("jointhree", "0")], logger=logging.getLogger()) is False
+
+    assert "pruning removed all exit nodes for jointhree in the testflow flowgraph" in caplog.text
+
+
+def test_runtime_validate_prune_entry(large_flow, caplog):
+    assert RuntimeFlowgraph.validate(
+        large_flow,
+        prune_nodes=[("stepone", "0"), ("stepone", "1"), ("stepone", "2")],
+        logger=logging.getLogger()) is False
+
+    assert "pruning removed all entry nodes for stepone in the testflow flowgraph" in caplog.text
+
+
+def test_runtime_validate_prune_entry_valid(large_flow, caplog):
+    assert RuntimeFlowgraph.validate(
+        large_flow,
+        prune_nodes=[("stepone", "0"), ("stepone", "1")], logger=logging.getLogger()) is True
+
+
+def test_runtime_validate_prune_path(large_flow, caplog):
+    assert RuntimeFlowgraph.validate(
+        large_flow,
+        prune_nodes=[("joinone", "0"), ("stepone", "2")], logger=logging.getLogger()) is False
+
+    assert "no path from stepone0 to jointhree0 in the testflow flowgraph" in caplog.text
+    assert "no path from stepone1 to jointhree0 in the testflow flowgraph" in caplog.text
