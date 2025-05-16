@@ -554,7 +554,7 @@ class ToolSchema(NamedSchema):
                                       'seconds. Terminating...')
                 terminate_process(proc.pid, timeout=TERMINATE_TIMEOUT)
 
-    def run_task(self, workdir, quiet, loglevel, breakpoint, nice, timeout, run_func):
+    def run_task(self, workdir, quiet, loglevel, breakpoint, nice, timeout):
         '''
         Run the task.
 
@@ -570,7 +570,6 @@ class ToolSchema(NamedSchema):
             breakpoint (bool): if True, will attempt to execute with a breakpoint
             nice (int): POSIX nice level to use in execution
             timeout (int): timeout to use for execution
-            run_func (method): python method to call...
 
         Returns:
             return code from the execution
@@ -607,8 +606,11 @@ class ToolSchema(NamedSchema):
                 for line in stderr_reader.readlines():
                     stderr_print(line.rstrip())
 
+        exe = self.get_exe()
+
         retcode = 0
-        if run_func:
+        if not exe:
+            # No executable, so must call run()
             try:
                 with open(stdout_file, 'w') as stdout_writer, \
                         open(stderr_file, 'w') as stderr_writer:
@@ -618,7 +620,7 @@ class ToolSchema(NamedSchema):
 
                     with contextlib.redirect_stderr(stderr_writer), \
                             contextlib.redirect_stdout(stdout_writer):
-                        retcode = run_func(self.__chip)
+                        retcode = self.run()
             except Exception as e:
                 self.__logger.error(f'Failed in run() for {self.name()}/{self.__task}: {e}')
                 retcode = 1  # default to non-zero
@@ -645,8 +647,6 @@ class ToolSchema(NamedSchema):
             self.schema("record").record_tool(
                 self.__step, self.__index,
                 cmdlist, RecordTool.ARGS)
-
-            exe = self.get_exe()
 
             self.__logger.info(shlex.join([os.path.basename(exe), *cmdlist]))
 
@@ -688,11 +688,14 @@ class ToolSchema(NamedSchema):
                             os.nice(nice)
                         preexec_fn = set_task_nice
 
-                    proc = subprocess.Popen([exe, *cmdlist],
-                                            stdin=subprocess.DEVNULL,
-                                            stdout=stdout_writer,
-                                            stderr=stderr_writer,
-                                            preexec_fn=preexec_fn)
+                    try:
+                        proc = subprocess.Popen([exe, *cmdlist],
+                                                stdin=subprocess.DEVNULL,
+                                                stdout=stdout_writer,
+                                                stderr=stderr_writer,
+                                                preexec_fn=preexec_fn)
+                    except Exception as e:
+                        raise TaskError(f"Unable to start {exe}: {str(e)}")
 
                     # How long to wait for proc to quit on ctrl-c before force
                     # terminating.
@@ -793,7 +796,7 @@ class ToolSchema(NamedSchema):
         return []
 
     def run(self):
-        raise NotImplementedError
+        raise NotImplementedError("must be implemented by the implementation class")
 
     def post_process(self):
         pass

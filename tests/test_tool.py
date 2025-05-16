@@ -9,7 +9,7 @@ import os.path
 from siliconcompiler import ToolSchema
 from siliconcompiler import RecordSchema, MetricSchema
 from siliconcompiler.schema import EditableSchema
-from siliconcompiler.tool import TaskSchema, TaskExecutableNotFound, TaskTimeout
+from siliconcompiler.tool import TaskSchema, TaskExecutableNotFound, TaskError, TaskTimeout
 from siliconcompiler import Chip
 
 from siliconcompiler import Flow
@@ -17,6 +17,7 @@ from siliconcompiler.tools.builtin import nop
 
 from siliconcompiler.tool import shutil as imported_shutil
 from siliconcompiler.tool import subprocess as imported_subprocess
+from siliconcompiler.tool import os as imported_os
 
 
 @pytest.fixture
@@ -746,3 +747,81 @@ def test_write_task_manifest_without_backup(running_chip):
     assert os.listdir() == ['sc_manifest.json']
     tool.write_task_manifest('.', backup=False)
     assert os.listdir() == ['sc_manifest.json']
+
+
+def test_run_task(running_chip, monkeypatch):
+    tool = ToolSchema()
+    # Insert empty task to provide access
+    EditableSchema(tool).insert('task', 'nop', TaskSchema())
+    tool.set_runtime(running_chip)
+    assert tool.set("format", "json")
+
+    def dummy_popen(*args, **kwargs):
+        assert args == (["found/exe"],)
+        assert kwargs["preexec_fn"] is None
+
+        class Popen:
+            returncode = 0
+
+            def poll(self):
+                return self.returncode
+        return Popen()
+    monkeypatch.setattr(imported_subprocess, 'Popen', dummy_popen)
+
+    def dummy_get_exe(*args, **kwargs):
+        return "found/exe"
+    monkeypatch.setattr(tool, 'get_exe', dummy_get_exe)
+
+    assert tool.run_task('.', False, "info", False, None, None) == 0
+
+
+def test_run_task_failed_popen(running_chip, monkeypatch):
+    tool = ToolSchema()
+    # Insert empty task to provide access
+    EditableSchema(tool).insert('task', 'nop', TaskSchema())
+    tool.set_runtime(running_chip)
+    assert tool.set("format", "json")
+
+    def dummy_popen(*args, **kwargs):
+        raise RuntimeError("something bad happened")
+    monkeypatch.setattr(imported_subprocess, 'Popen', dummy_popen)
+
+    def dummy_get_exe(*args, **kwargs):
+        return "found/exe"
+    monkeypatch.setattr(tool, 'get_exe', dummy_get_exe)
+
+    with pytest.raises(TaskError, match="Unable to start found/exe: something bad happened"):
+        tool.run_task('.', False, "info", False, None, None)
+
+
+@pytest.mark.parametrize("nice", [-5, 0, 5])
+def test_run_task_nice(running_chip, nice, monkeypatch):
+    tool = ToolSchema()
+    # Insert empty task to provide access
+    EditableSchema(tool).insert('task', 'nop', TaskSchema())
+    tool.set_runtime(running_chip)
+    assert tool.set("format", "json")
+
+    def dummy_nice(level):
+        assert level == nice
+    monkeypatch.setattr(imported_os, 'nice', dummy_nice)
+
+    def dummy_popen(*args, **kwargs):
+        assert args == (["found/exe"],)
+        assert kwargs["preexec_fn"] is not None
+
+        kwargs["preexec_fn"]()
+
+        class Popen:
+            returncode = 0
+
+            def poll(self):
+                return self.returncode
+        return Popen()
+    monkeypatch.setattr(imported_subprocess, 'Popen', dummy_popen)
+
+    def dummy_get_exe(*args, **kwargs):
+        return "found/exe"
+    monkeypatch.setattr(tool, 'get_exe', dummy_get_exe)
+
+    assert tool.run_task('.', False, "info", False, nice, None) == 0
