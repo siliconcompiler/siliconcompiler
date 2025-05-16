@@ -1750,8 +1750,10 @@ def _check_nodes_status(chip, flow):
         from_steps=chip.get('option', 'from'),
         to_steps=chip.get('option', 'to'))
 
-    all_steps = [step for step, index in runtime_no_prune.get_exit_nodes() if (step, index) not in chip.get('option', 'prune')]
-    complete_steps = [step for step, _ in runtime.get_completed_nodes(record=chip.schema.get("record", field='schema'))]
+    all_steps = [step for step, index in runtime_no_prune.get_exit_nodes()
+                 if (step, index) not in chip.get('option', 'prune')]
+    complete_steps = [step for step, _ in runtime.get_completed_nodes(
+        record=chip.schema.get("record", field='schema'))]
 
     unreached = set(all_steps).difference(complete_steps)
 
