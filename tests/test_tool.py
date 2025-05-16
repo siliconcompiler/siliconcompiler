@@ -1,4 +1,5 @@
 import copy
+import hashlib
 import logging
 import pytest
 import os
@@ -8,7 +9,7 @@ import os.path
 from siliconcompiler import ToolSchema
 from siliconcompiler import RecordSchema, MetricSchema
 from siliconcompiler.schema import EditableSchema
-from siliconcompiler.tool import TaskSchema, TaskExecutableNotFound
+from siliconcompiler.tool import TaskSchema, TaskExecutableNotFound, TaskTimeout
 from siliconcompiler import Chip
 
 from siliconcompiler import Flow
@@ -28,6 +29,12 @@ def running_chip():
     chip.set('arg', 'step', "running")
     chip.set('arg', 'index', "0")
     return chip
+
+
+def test_tasktimeout_init():
+    timeout = TaskTimeout("somemsg", timeout=5.5)
+    assert timeout.timeout == 5.5
+    assert timeout.args == ("somemsg",)
 
 
 def test_init():
@@ -241,7 +248,6 @@ def test_get_exe_version_internal_error(running_chip, monkeypatch, caplog):
     EditableSchema(tool).insert('task', 'nop', TaskSchema())
     running_chip.logger = logging.getLogger()
     tool.set_runtime(running_chip)
-    assert tool.set('vswitch', 'testexe')
     assert tool.set('vswitch', '-version')
 
     def dummy_get_exe(*args, **kwargs):
@@ -513,20 +519,16 @@ def test_get_runtime_environmental_variables_tool_path(running_chip, monkeypatch
     }
 
 
-def test_get_runtime_command(running_chip, monkeypatch):
+def test_get_runtime_arguments(running_chip):
     tool = ToolSchema()
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', 'nop', TaskSchema())
     tool.set_runtime(running_chip)
 
-    def dummy_get_exe(*args, **kwargs):
-        return "found/exe"
-    monkeypatch.setattr(tool, 'get_exe', dummy_get_exe)
-
-    assert tool.get_runtime_command() == ['found/exe']
+    assert tool.get_runtime_arguments() == []
 
 
-def test_get_runtime_command_all(running_chip, monkeypatch):
+def test_get_runtime_arguments_all(running_chip):
     class TestTool(ToolSchema):
         def runtime_options(self):
             return ['--arg3']
@@ -541,19 +543,14 @@ def test_get_runtime_command_all(running_chip, monkeypatch):
     tool.set('task', tool.task(), 'option', ['--arg0', '--arg1'])
     running_chip.set('tool', 'builtin', 'task', tool.task(), 'script', 'arg2.run')
 
-    def dummy_get_exe(*args, **kwargs):
-        return "found/exe"
-    monkeypatch.setattr(tool, 'get_exe', dummy_get_exe)
-
-    assert tool.get_runtime_command() == [
-        'found/exe',
+    assert tool.get_runtime_arguments() == [
         '--arg0',
         '--arg1',
         os.path.abspath("arg2.run"),
         '--arg3']
 
 
-def test_get_runtime_command_error(running_chip, monkeypatch, caplog):
+def test_get_runtime_arguments_error(running_chip, caplog):
     class TestTool(ToolSchema):
         def runtime_options(self):
             raise ValueError("match this error")
@@ -564,12 +561,8 @@ def test_get_runtime_command_error(running_chip, monkeypatch, caplog):
     running_chip.logger.setLevel(logging.INFO)
     tool.set_runtime(running_chip)
 
-    def dummy_get_exe(*args, **kwargs):
-        return "found/exe"
-    monkeypatch.setattr(tool, 'get_exe', dummy_get_exe)
-
     with pytest.raises(ValueError, match="match this error"):
-        tool.get_runtime_command()
+        tool.get_runtime_arguments()
 
     assert "Failed to get runtime options for builtin/nop" in caplog.text
 
@@ -599,3 +592,157 @@ def test_resetting_state_in_copy(running_chip):
 
     tool = copy.deepcopy(tool)
     assert tool.schema() is None
+
+
+def test_generate_replay_script(running_chip, monkeypatch):
+    tool = ToolSchema("builtin")
+    # Insert empty task to provide access
+    EditableSchema(tool).insert('task', 'nop', TaskSchema())
+    tool.set_runtime(running_chip)
+
+    assert tool.set('exe', 'testexe')
+    assert tool.set('vswitch', '-version')
+    tool.set('task', tool.task(), 'option', [
+        '--arg0', '--arg1', 'arg2', '--arg3', 'arg4', 'arg5',
+        '/filehere', 'arg6'])
+
+    monkeypatch.setenv("PATH", "this:path")
+    monkeypatch.delenv("LD_LIBRARY_PATH", raising=False)
+
+    tool.generate_replay_script('replay.sh', './')
+    assert os.path.exists('replay.sh')
+    assert os.access('replay.sh', os.X_OK)
+
+    with open('replay.sh', 'r') as replay:
+        replay_text = "\n".join(replay.read().splitlines())
+    replay_hash = hashlib.md5(replay_text.encode()).hexdigest()
+
+    assert replay_hash == "6b93815de8247bcc11a9d0c102bc61fc"
+
+
+def test_generate_replay_script_no_path(running_chip, monkeypatch):
+    tool = ToolSchema("builtin")
+    # Insert empty task to provide access
+    EditableSchema(tool).insert('task', 'nop', TaskSchema())
+    tool.set_runtime(running_chip)
+
+    assert tool.set('exe', 'testexe')
+    assert tool.set('vswitch', '-version')
+    tool.set('task', tool.task(), 'option', [
+        '--arg0', '--arg1', 'arg2', '--arg3', 'arg4', 'arg5',
+        '/filehere', 'arg6'])
+
+    monkeypatch.setenv("PATH", "this:path")
+    monkeypatch.delenv("LD_LIBRARY_PATH", raising=False)
+
+    tool.generate_replay_script('replay.sh', './', include_path=False)
+    assert os.path.exists('replay.sh')
+    assert os.access('replay.sh', os.X_OK)
+
+    with open('replay.sh', 'r') as replay:
+        replay_text = "\n".join(replay.read().splitlines())
+    replay_hash = hashlib.md5(replay_text.encode()).hexdigest()
+
+    assert replay_hash == "de125830f9267465ded0e4c6541d7d50"
+
+
+def test_setup_work_directory():
+    tool = ToolSchema("builtin")
+
+    os.makedirs("testwork", exist_ok=True)
+
+    assert os.path.isdir("testwork")
+    assert os.listdir("testwork") == []
+
+    tool.setup_work_directory("testwork")
+
+    assert os.path.isdir("testwork/inputs")
+    assert os.path.isdir("testwork/outputs")
+    assert os.path.isdir("testwork/reports")
+    assert set(os.listdir("testwork")) == set(["inputs", "outputs", "reports"])
+
+
+def test_setup_work_directory_ensure_clean():
+    tool = ToolSchema("builtin")
+
+    os.makedirs("testwork", exist_ok=True)
+
+    with open("testwork/dummyfile", 'w') as f:
+        f.write("test")
+
+    assert os.path.isdir("testwork")
+    assert os.listdir("testwork") == ["dummyfile"]
+
+    tool.setup_work_directory("testwork")
+
+    assert os.path.isdir("testwork/inputs")
+    assert os.path.isdir("testwork/outputs")
+    assert os.path.isdir("testwork/reports")
+    assert set(os.listdir("testwork")) == set(["inputs", "outputs", "reports"])
+
+
+def test_setup_work_directory_ensure_keep():
+    tool = ToolSchema("builtin")
+
+    os.makedirs("testwork", exist_ok=True)
+
+    with open("testwork/dummyfile", 'w') as f:
+        f.write("test")
+
+    assert os.path.isdir("testwork")
+    assert os.listdir("testwork") == ["dummyfile"]
+
+    tool.setup_work_directory("testwork", remove_exist=False)
+
+    assert os.path.isdir("testwork/inputs")
+    assert os.path.isdir("testwork/outputs")
+    assert os.path.isdir("testwork/reports")
+    assert set(os.listdir("testwork")) == set(["inputs", "outputs", "reports", "dummyfile"])
+
+
+def test_write_task_manifest_none(running_chip):
+    tool = ToolSchema()
+    # Insert empty task to provide access
+    EditableSchema(tool).insert('task', 'nop', TaskSchema())
+    tool.set_runtime(running_chip)
+
+    tool.write_task_manifest('.')
+    assert os.listdir() == []
+
+
+@pytest.mark.parametrize("suffix", ("tcl", "json", "yaml"))
+def test_write_task_manifest(running_chip, suffix):
+    tool = ToolSchema()
+    # Insert empty task to provide access
+    EditableSchema(tool).insert('task', 'nop', TaskSchema())
+    tool.set_runtime(running_chip)
+    tool.set("format", suffix)
+
+    tool.write_task_manifest('.')
+    assert os.listdir() == [f'sc_manifest.{suffix}']
+
+
+def test_write_task_manifest_with_backup(running_chip):
+    tool = ToolSchema()
+    # Insert empty task to provide access
+    EditableSchema(tool).insert('task', 'nop', TaskSchema())
+    tool.set_runtime(running_chip)
+    tool.set("format", "json")
+
+    tool.write_task_manifest('.')
+    assert os.listdir() == ['sc_manifest.json']
+    tool.write_task_manifest('.')
+    assert set(os.listdir()) == set(['sc_manifest.json', 'sc_manifest.json.bak'])
+
+
+def test_write_task_manifest_without_backup(running_chip):
+    tool = ToolSchema()
+    # Insert empty task to provide access
+    EditableSchema(tool).insert('task', 'nop', TaskSchema())
+    tool.set_runtime(running_chip)
+    tool.set("format", "json")
+
+    tool.write_task_manifest('.')
+    assert os.listdir() == ['sc_manifest.json']
+    tool.write_task_manifest('.', backup=False)
+    assert os.listdir() == ['sc_manifest.json']
