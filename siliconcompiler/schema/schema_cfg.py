@@ -3,7 +3,7 @@
 from . import EditableSchema, Parameter, Scope, PerNode
 from .utils import trim
 
-SCHEMA_VERSION = '0.51.2'
+SCHEMA_VERSION = '0.51.3'
 
 
 #############################################################################
@@ -140,10 +140,10 @@ def schema_cfg(schema):
 ###############################################################################
 # SCHEMATIC
 ###############################################################################
-def schema_schematic(cfg, name='default'):
+def schema_schematic(cfg):
     ''' Schematic
     '''
-
+    name = 'default'
     scparam(cfg, ['schematic', 'component', name, 'partname'],
             sctype='str',
             shorthelp="Schematic: component model",
@@ -202,69 +202,15 @@ def schema_schematic(cfg, name='default'):
 # FPGA
 ###############################################################################
 def schema_fpga(cfg):
-    ''' FPGA configuration
-    '''
-
-    partname = 'default'
-    key = 'default'
-
-    scparam(cfg, ['fpga', 'partname'],
-            sctype='str',
-            shorthelp="FPGA: part name",
-            switch="-fpga_partname <str>",
-            example=["cli: -fpga_partname fpga64k",
-                     "api: chip.set('fpga', 'partname', 'fpga64k')"],
-            schelp="""
-            Complete part name used as a device target by the FPGA compilation
-            tool. The part name must be an exact string match to the partname
-            hard coded within the FPGA EDA tool.""")
-
-    scparam(cfg, ['fpga', partname, 'vendor'],
-            sctype='str',
-            shorthelp="FPGA: vendor name",
-            switch="-fpga_vendor 'partname <str>'",
-            example=["cli: -fpga_vendor 'fpga64k acme'",
-                     "api: chip.set('fpga', 'fpga64k', 'vendor', 'acme')"],
-            schelp="""
-            Name of the FPGA vendor for the FPGA partname.""")
-
-    scparam(cfg, ['fpga', partname, 'lutsize'],
-            sctype='int',
-            shorthelp="FPGA: lutsize",
-            switch="-fpga_lutsize 'partname <int>'",
-            example=["cli: -fpga_lutsize 'fpga64k 4'",
-                     "api: chip.set('fpga', 'fpga64k', 'lutsize', '4')"],
-            schelp="""
-            Specify the number of inputs in each lookup table (LUT) for the
-            FPGA partname.  For architectures with fracturable LUTs, this is
-            the number of inputs of the unfractured LUT.""")
-
-    scparam(cfg, ['fpga', partname, 'file', key],
-            sctype='[file]',
-            scope=Scope.GLOBAL,
-            shorthelp="FPGA: file",
-            switch="-fpga_file 'partname key <file>'",
-            example=["cli: -fpga_file 'fpga64k archfile my_arch.xml'",
-                     "api: chip.set('fpga', 'fpga64k', 'file', 'archfile', 'my_arch.xml')"],
-            schelp="""
-            Specify a file for the FPGA partname.""")
-
-    scparam(cfg, ['fpga', partname, 'var', key],
-            sctype='[str]',
-            shorthelp="FPGA: var",
-            switch="-fpga_var 'partname key <str>'",
-            example=["cli: -fpga_var 'fpga64k channelwidth 100'",
-                     "api: chip.set('fpga', 'fpga64k', 'var', 'channelwidth', '100')"],
-            schelp="""
-            Specify a variable value for the FPGA partname.""")
-
+    from siliconcompiler.fpga import FPGASchema
+    cfg.insert("fpga", FPGASchema())
     return cfg
 
 
 ###############################################################################
 # PDK
 ###############################################################################
-def schema_pdk(cfg, stackup='default'):
+def schema_pdk(cfg):
     from siliconcompiler.pdk import PDKSchema
     cfg.insert("pdk", "default", PDKSchema())
     return cfg
@@ -273,7 +219,10 @@ def schema_pdk(cfg, stackup='default'):
 ###############################################################################
 # Datasheet ("specification/contract")
 ###############################################################################
-def schema_datasheet(cfg, partname='default', mode='default'):
+def schema_datasheet(cfg):
+
+    partname = 'default'
+    mode = 'default'
 
     ds_type = ['digital', 'analog', 'ams', 'passive',
                'soc', 'fpga',
@@ -1065,7 +1014,7 @@ def schema_datasheet(cfg, partname='default', mode='default'):
 ###############################################################################
 # Flow Configuration
 ###############################################################################
-def schema_flowgraph(cfg, flow='default', step='default', index='default'):
+def schema_flowgraph(cfg):
     from siliconcompiler.flowgraph import FlowgraphSchema
     cfg.insert("flowgraph", "default", FlowgraphSchema())
     return cfg
@@ -1981,99 +1930,8 @@ def schema_checklist(cfg):
 # ASIC Setup
 ###########################
 def schema_asic(cfg):
-    '''ASIC Automated Place and Route Parameters'''
-
-    scparam(cfg, ['asic', 'logiclib'],
-            sctype='[str]',
-            scope=Scope.JOB,
-            pernode=PerNode.OPTIONAL,
-            shorthelp="ASIC: logic libraries",
-            switch="-asic_logiclib <str>",
-            example=["cli: -asic_logiclib nangate45",
-                     "api: chip.set('asic', 'logiclib', 'nangate45')"],
-            schelp="""List of all selected logic libraries libraries
-            to use for optimization for a given library architecture
-            (9T, 11T, etc).""")
-
-    scparam(cfg, ['asic', 'macrolib'],
-            sctype='[str]',
-            scope=Scope.JOB,
-            pernode=PerNode.OPTIONAL,
-            shorthelp="ASIC: macro libraries",
-            switch="-asic_macrolib <str>",
-            example=["cli: -asic_macrolib sram64x1024",
-                     "api: chip.set('asic', 'macrolib', 'sram64x1024')"],
-            schelp="""
-            List of macro libraries to be linked in during synthesis and place
-            and route. Macro libraries are used for resolving instances but are
-            not used as targets for logic synthesis.""")
-
-    scparam(cfg, ['asic', 'delaymodel'],
-            sctype='str',
-            scope=Scope.JOB,
-            pernode=PerNode.OPTIONAL,
-            shorthelp="ASIC: delay model",
-            switch="-asic_delaymodel <str>",
-            example=["cli: -asic_delaymodel ccs",
-                     "api: chip.set('asic', 'delaymodel', 'ccs')"],
-            schelp="""
-            Delay model to use for the target libs. Commonly supported values
-            are nldm and ccs.""")
-
-    # TODO: Expand on the exact definitions of these types of cells.
-    # minimize typing
-    names = ['decap',
-             'tie',
-             'hold',
-             'clkbuf',
-             'clkgate',
-             'clklogic',
-             'dontuse',
-             'filler',
-             'tap',
-             'endcap',
-             'antenna']
-
-    for item in names:
-        scparam(cfg, ['asic', 'cells', item],
-                sctype='[str]',
-                pernode=PerNode.OPTIONAL,
-                shorthelp=f"ASIC: {item} cell list",
-                switch=f"-asic_cells_{item} '<str>'",
-                example=[
-                    f"cli: -asic_cells_{item} '*eco*'",
-                    f"api: chip.set('asic', 'cells', '{item}', '*eco*')"],
-                schelp="""
-                List of cells grouped by a property that can be accessed
-                directly by the designer and tools. The example below shows how
-                all cells containing the string 'eco' could be marked as dont use
-                for the tool.""")
-
-    scparam(cfg, ['asic', 'libarch'],
-            sctype='str',
-            pernode=PerNode.OPTIONAL,
-            shorthelp="ASIC: library architecture",
-            switch="-asic_libarch '<str>'",
-            example=[
-                "cli: -asic_libarch '12track'",
-                "api: chip.set('asic', 'libarch', '12track')"],
-            schelp="""
-            The library architecture (e.g. library height) used to build the
-            design. For example a PDK with support for 9 and 12 track libraries
-            might have 'libarchs' called 9t and 12t.""")
-
-    libarch = 'default'
-    scparam(cfg, ['asic', 'site', libarch],
-            sctype='[str]',
-            pernode=PerNode.OPTIONAL,
-            shorthelp="ASIC: library sites",
-            switch="-asic_site 'libarch <str>'",
-            example=[
-                "cli: -asic_site '12track Site_12T'",
-                "api: chip.set('asic', 'site', '12track', 'Site_12T')"],
-            schelp="""
-            Site names for a given library architecture.""")
-
+    from siliconcompiler.asic import ASICSchema
+    cfg.insert("asic", ASICSchema())
     return cfg
 
 

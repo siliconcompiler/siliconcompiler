@@ -68,6 +68,16 @@ Metrics Classes
     :show-inheritance:
     :inherited-members:
 
+.. autoclass:: siliconcompiler.ASICSchema
+    :members:
+    :show-inheritance:
+    :inherited-members:
+
+.. autoclass:: siliconcompiler.FPGASchema
+    :members:
+    :show-inheritance:
+    :inherited-members:
+
 Full API
 ========
 

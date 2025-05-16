@@ -9,6 +9,8 @@ from siliconcompiler.pdk import PDKSchema
 from siliconcompiler.flowgraph import FlowgraphSchema
 from siliconcompiler.tool import ToolSchema
 from siliconcompiler.checklist import ChecklistSchema
+from siliconcompiler.asic import ASICSchema
+from siliconcompiler.fpga import FPGASchema
 
 from siliconcompiler.core import Chip
 
@@ -33,5 +35,7 @@ __all__ = [
     "PDKSchema",
     "FlowgraphSchema",
     "ToolSchema",
-    "ChecklistSchema"
+    "ChecklistSchema",
+    "ASICSchema",
+    "FPGASchema"
 ]
