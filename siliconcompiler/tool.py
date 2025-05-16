@@ -36,13 +36,13 @@ from siliconcompiler.record import RecordTool
 from siliconcompiler.scheduler import print_traceback
 
 
-class TaskTerminate(Exception):
+class TaskError(Exception):
     '''
     Error indicates execution cannot continue and should be terminated
     '''
 
 
-class TaskTimeout(TaskTerminate):
+class TaskTimeout(TaskError):
     '''
     Error indicates a timeout has occurred
 
@@ -54,7 +54,7 @@ class TaskTimeout(TaskTerminate):
         self.timeout = timeout
 
 
-class TaskExecutableNotFound(TaskTerminate):
+class TaskExecutableNotFound(TaskError):
     '''
     Executable not found.
     '''
@@ -558,6 +558,11 @@ class ToolSchema(NamedSchema):
         '''
         Run the task.
 
+        Raises:
+            :class:`TaskError`: raised if the task failed to complete and
+                should not be considered complete.
+            :class:`TaskTimeout`: raised if the task reaches a timeout
+
         Args:
             workdir (path): path to the run work directory
             quiet (bool): if True, execution output is suppressed
@@ -730,7 +735,7 @@ class ToolSchema(NamedSchema):
                     except KeyboardInterrupt:
                         self.__logger.info("Received ctrl-c.")
                         self.__terminate_exe(proc)
-                        raise TaskTerminate
+                        raise TaskError
                     except TaskTimeout as e:
                         self.__logger.error(f'Task timed out after {e.timeout} seconds')
                         self.__terminate_exe(proc)
