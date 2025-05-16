@@ -156,7 +156,7 @@
   },
   "yosys-parmys": {
     "git-url": "https://github.com/verilog-to-routing/vtr-verilog-to-routing.git",
-    "git-commit": "2a4e92181280a235315621253d1dc9eb8826bc53",
+    "git-commit": "c606a21d9ab5db53fb382a7dd79a0703c887108c",
     "docker-depends": [
       "yosys",
       "vpr"
