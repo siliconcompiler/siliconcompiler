@@ -370,18 +370,13 @@ class ToolSchema(NamedSchema):
 
         return envvars
 
-    def get_runtime_command(self):
+    def get_runtime_arguments(self):
         '''
-        Constructs a subprocess run command based on tool setup.
-
-        Raises:
-            :class:`TaskExecutableNotFound`: if executable not found.
+        Constructs the arguments needed to run the task.
 
         Returns:
             command (list)
         '''
-
-        fullexe = self.get_exe()
 
         cmdargs = []
         cmdargs.extend(self.get('task', self.__task, 'option',
@@ -402,7 +397,7 @@ class ToolSchema(NamedSchema):
         # Cleanup args
         cmdargs = [str(arg).strip() for arg in cmdargs]
 
-        return [fullexe, *cmdargs]
+        return cmdargs
 
     def generate_replay_script(self, filepath, workdir, include_path=True):
         '''
@@ -423,8 +418,6 @@ class ToolSchema(NamedSchema):
         if vswitch:
             replay_opts["version_flag"] = shlex.join(vswitch)
 
-        cmdlist = self.get_runtime_command()
-
         # detect arguments
         arg_test = re.compile(r'^[-+]')
 
@@ -433,7 +426,7 @@ class ToolSchema(NamedSchema):
 
         format_cmd = [replay_opts["executable"]]
 
-        for cmdarg in cmdlist[1:]:
+        for cmdarg in self.get_runtime_arguments():
             add_new_line = len(format_cmd) == 1
 
             if arg_test.match(cmdarg) or file_test.match(cmdarg):
@@ -456,6 +449,46 @@ class ToolSchema(NamedSchema):
             f.write("\n")
 
         os.chmod(filepath, 0o755)
+
+    def setup_work_directory(self, workdir, remove_exist=True):
+        '''
+        Create the runtime directories needed to execute a task.
+
+        Args:
+            workdir (path): path to the run work directory
+            remove_exist (bool): if True, removes the existing directory
+        '''
+
+        # Delete existing directory
+        if os.path.isdir(workdir) and remove_exist:
+            shutil.rmtree(workdir)
+
+        # Create directories
+        os.makedirs(workdir, exist_ok=True)
+        os.makedirs(os.path.join(workdir, 'inputs'), exist_ok=True)
+        os.makedirs(os.path.join(workdir, 'outputs'), exist_ok=True)
+        os.makedirs(os.path.join(workdir, 'reports'), exist_ok=True)
+
+    def write_task_manifest(self, directory, backup=True):
+        '''
+        Write the manifest needed for the task
+
+        Args:
+            directory (path): directory to write the manifest into.
+            backup (bool): if True and an existing manifest is found a backup is kept.
+        '''
+
+        suffix = self.get('format')
+        if not suffix:
+            return
+
+        manifest_path = os.path.join(directory, f"sc_manifest.{suffix}")
+
+        if backup and os.path.exists(manifest_path):
+            shutil.copyfile(manifest_path, f'{manifest_path}.bak')
+
+        # TODO: pull in TCL/yaml here
+        self.__chip.write_manifest(manifest_path, abspath=True)
 
     def __get_io_file(self, io_type):
         '''
@@ -520,46 +553,6 @@ class ToolSchema(NamedSchema):
                 self.__logger.warning(f'{self.name()} did not exit within {TERMINATE_TIMEOUT} '
                                       'seconds. Terminating...')
                 terminate_process(proc.pid, timeout=TERMINATE_TIMEOUT)
-
-    def setup_work_directory(self, workdir, remove_exist=True):
-        '''
-        Create the runtime directories needed to execute a task.
-
-        Args:
-            workdir (path): path to the run work directory
-            remove_exist (bool): if True, removes the existing directory
-        '''
-
-        # Delete existing directory
-        if os.path.isdir(workdir) and remove_exist:
-            shutil.rmtree(workdir)
-
-        # Create directories
-        os.makedirs(workdir, exist_ok=True)
-        os.makedirs(os.path.join(workdir, 'inputs'), exist_ok=True)
-        os.makedirs(os.path.join(workdir, 'outputs'), exist_ok=True)
-        os.makedirs(os.path.join(workdir, 'reports'), exist_ok=True)
-
-    def write_task_manifest(self, directory, backup=True):
-        '''
-        Write the manifest needed for the task
-
-        Args:
-            directory (path): directory to write the manifest into.
-            backup (bool): if True and an existing manifest is found a backup is kept.
-        '''
-
-        suffix = self.get('format')
-        if not suffix:
-            return
-
-        manifest_path = os.path.join(directory, f"sc_manifest.{suffix}")
-
-        if backup and os.path.exists(manifest_path):
-            shutil.copyfile(manifest_path, f'{manifest_path}.bak')
-
-        # TODO: pull in TCL/yaml here
-        self.__chip.write_manifest(manifest_path, abspath=True)
 
     def run_task(self, workdir, quiet, loglevel, breakpoint, nice, timeout, run_func):
         '''
@@ -641,14 +634,16 @@ class ToolSchema(NamedSchema):
                 except (OSError, ValueError, PermissionError):
                     pass
         else:
-            cmdlist = self.get_runtime_command()
+            cmdlist = self.get_runtime_arguments()
 
             # Make record of tool options
             self.schema("record").record_tool(
                 self.__step, self.__index,
-                cmdlist[1:], RecordTool.ARGS)
+                cmdlist, RecordTool.ARGS)
 
-            self.__logger.info(shlex.join([os.path.basename(cmdlist[0]), *cmdlist[1:]]))
+            exe = self.get_exe()
+
+            self.__logger.info(shlex.join([os.path.basename(exe), *cmdlist]))
 
             if not pty and breakpoint:
                 # pty not available
@@ -688,7 +683,7 @@ class ToolSchema(NamedSchema):
                             os.nice(nice)
                         preexec_fn = set_task_nice
 
-                    proc = subprocess.Popen(cmdlist,
+                    proc = subprocess.Popen([exe, *cmdlist],
                                             stdin=subprocess.DEVNULL,
                                             stdout=stdout_writer,
                                             stderr=stderr_writer,
