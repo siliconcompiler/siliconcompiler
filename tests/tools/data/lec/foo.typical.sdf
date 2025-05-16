@@ -1,0 +1,77 @@
+(DELAYFILE
+    (SDFVERSION "2.1")
+    (DESIGN "foo")
+    (DIVIDER /)
+    (TIMESCALE 1 ps)
+
+    (CELL
+        (CELLTYPE "XOR2_X1")
+        (INSTANCE _06_)
+        (DELAY
+            (ABSOLUTE
+                (IOPATH A Z (174:204.5:235) (174:204.5:235))
+                (IOPATH B Z (174:204.5:235) (174:204.5:235))
+            )
+        )
+    )
+
+    (CELL
+        (CELLTYPE "BUF_X1")
+        (INSTANCE _07_)
+        (DELAY
+            (ABSOLUTE
+                (IOPATH A Z (174:204.5:235) (174:204.5:235))
+            )
+        )
+    )
+
+    (CELL
+        (CELLTYPE "BUF_X1")
+        (INSTANCE _08_)
+        (DELAY
+            (ABSOLUTE
+                (IOPATH A Z (174:204.5:235) (174:204.5:235))
+            )
+        )
+    )
+
+    (CELL
+        (CELLTYPE "BUF_X1")
+        (INSTANCE _09_)
+        (DELAY
+            (ABSOLUTE
+                (IOPATH A Z (174:204.5:235) (174:204.5:235))
+            )
+        )
+    )
+
+    (CELL
+        (CELLTYPE "DFF_X1")
+        (INSTANCE _10_)
+        (DELAY
+            (ABSOLUTE
+                 (IOPATH (posedge CK) Q (60:92:124) (60:92:124))
+                 (IOPATH (posedge CK) QN (60:92:124) (60:92:124))
+            )
+        )
+        (TIMINGCHECK
+            (SETUP D (posedge CK) (66:66:66))
+            (HOLD D (posedge CK) (37:37:37))
+        )
+    )
+
+    (CELL
+        (CELLTYPE "DFF_X1")
+        (INSTANCE _11_)
+        (DELAY
+            (ABSOLUTE
+                 (IOPATH (posedge CK) Q (60:92:124) (60:92:124))
+                 (IOPATH (posedge CK) QN (60:92:124) (60:92:124))
+            )
+        )
+        (TIMINGCHECK
+            (SETUP D (posedge CK) (66:66:66))
+            (HOLD D (posedge CK) (37:37:37))
+        )
+    )
+)
