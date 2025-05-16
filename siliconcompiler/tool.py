@@ -545,6 +545,8 @@ class ToolSchema(NamedSchema):
                 p.kill()
 
         TERMINATE_TIMEOUT = 5
+
+        terminate_process(proc.pid, timeout=TERMINATE_TIMEOUT)
         self.__logger.info(f'Waiting for {self.name()} to exit...')
         try:
             proc.wait(timeout=TERMINATE_TIMEOUT)
@@ -714,7 +716,8 @@ class ToolSchema(NamedSchema):
                                 memory_usage = psutil.virtual_memory()
                                 if memory_usage.percent > MEMORY_WARN_LIMIT:
                                     self.__logger.warn(
-                                        f'Current system memory usage is {memory_usage.percent}%')
+                                        'Current system memory usage is '
+                                        f'{memory_usage.percent:.1f}%')
 
                                     # increase limit warning
                                     MEMORY_WARN_LIMIT = int(memory_usage.percent + 1)
@@ -740,7 +743,7 @@ class ToolSchema(NamedSchema):
                         self.__terminate_exe(proc)
                         raise TaskError
                     except TaskTimeout as e:
-                        self.__logger.error(f'Task timed out after {e.timeout} seconds')
+                        self.__logger.error(f'Task timed out after {e.timeout:.1f} seconds')
                         self.__terminate_exe(proc)
                         raise e from None
 

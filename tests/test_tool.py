@@ -3,6 +3,7 @@ import hashlib
 import logging
 import pytest
 import os
+import time
 
 import os.path
 
@@ -18,6 +19,47 @@ from siliconcompiler.tools.builtin import nop
 from siliconcompiler.tool import shutil as imported_shutil
 from siliconcompiler.tool import subprocess as imported_subprocess
 from siliconcompiler.tool import os as imported_os
+from siliconcompiler.tool import psutil as imported_psutil
+
+
+@pytest.fixture
+def patch_psutil(monkeypatch):
+    class Process:
+        def __init__(*args, **kwargs):
+            pass
+
+        def memory_full_info(self):
+            class Memory:
+                uss = 2
+            return Memory
+
+        def children(*args, **kwargs):
+            return [Process()]
+
+        def terminate(*args, **kwargs):
+            pass
+
+        def kill(*args, **kwargs):
+            pass
+
+        def wait(*args, **kwargs):
+            pass
+
+    monkeypatch.setattr(imported_psutil, 'Process', Process)
+
+    def drummy_wait_procs(*args, **kwargs):
+        return None, [Process()]
+
+    monkeypatch.setattr(imported_psutil, 'wait_procs', drummy_wait_procs)
+
+    def drummy_virtual_memory():
+        class Memory:
+            percent = 91.21
+        return Memory
+
+    monkeypatch.setattr(imported_psutil, 'virtual_memory', drummy_virtual_memory)
+
+    yield
 
 
 @pytest.fixture
@@ -749,7 +791,8 @@ def test_write_task_manifest_without_backup(running_chip):
     assert os.listdir() == ['sc_manifest.json']
 
 
-def test_run_task(running_chip, monkeypatch):
+@pytest.mark.parametrize("exitcode", [0, 1])
+def test_run_task(running_chip, exitcode, monkeypatch):
     tool = ToolSchema()
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', 'nop', TaskSchema())
@@ -761,7 +804,7 @@ def test_run_task(running_chip, monkeypatch):
         assert kwargs["preexec_fn"] is None
 
         class Popen:
-            returncode = 0
+            returncode = exitcode
 
             def poll(self):
                 return self.returncode
@@ -772,7 +815,17 @@ def test_run_task(running_chip, monkeypatch):
         return "found/exe"
     monkeypatch.setattr(tool, 'get_exe', dummy_get_exe)
 
-    assert tool.run_task('.', False, "info", False, None, None) == 0
+    assert running_chip.get("record", "toolargs", step="running", index="0") is None
+    assert running_chip.get("record", "toolexitcode", step="running", index="0") is None
+    assert running_chip.get("metric", "exetime", step="running", index="0") is None
+    assert running_chip.get("metric", "memory", step="running", index="0") is None
+
+    assert tool.run_task('.', False, "info", False, None, None) == exitcode
+
+    assert running_chip.get("record", "toolargs", step="running", index="0") == ""
+    assert running_chip.get("record", "toolexitcode", step="running", index="0") == exitcode
+    assert running_chip.get("metric", "exetime", step="running", index="0") >= 0
+    assert running_chip.get("metric", "memory", step="running", index="0") >= 0
 
 
 def test_run_task_failed_popen(running_chip, monkeypatch):
@@ -825,3 +878,155 @@ def test_run_task_nice(running_chip, nice, monkeypatch):
     monkeypatch.setattr(tool, 'get_exe', dummy_get_exe)
 
     assert tool.run_task('.', False, "info", False, nice, None) == 0
+
+
+def test_run_task_timeout(running_chip, monkeypatch, patch_psutil):
+    tool = ToolSchema()
+    # Insert empty task to provide access
+    EditableSchema(tool).insert('task', 'nop', TaskSchema())
+    tool.set_runtime(running_chip)
+    assert tool.set("format", "json")
+
+    def dummy_popen(*args, **kwargs):
+        assert args == (["found/exe"],)
+        assert kwargs["preexec_fn"] is None
+
+        class Popen:
+            pid = 1
+
+            def poll(self):
+                time.sleep(5)
+                return None
+
+            def wait(*args, **kwargs):
+                pass
+
+        return Popen()
+    monkeypatch.setattr(imported_subprocess, 'Popen', dummy_popen)
+
+    def dummy_get_exe(*args, **kwargs):
+        return "found/exe"
+    monkeypatch.setattr(tool, 'get_exe', dummy_get_exe)
+
+    with pytest.raises(TaskTimeout, match="^$"):
+        tool.run_task('.', False, "info", False, None, 2)
+
+
+def test_run_task_memory_limit(running_chip, monkeypatch, patch_psutil, caplog):
+    tool = ToolSchema()
+    # Insert empty task to provide access
+    EditableSchema(tool).insert('task', 'nop', TaskSchema())
+    running_chip.logger = logging.getLogger()
+    running_chip.logger.setLevel(logging.INFO)
+    tool.set_runtime(running_chip)
+    assert tool.set("format", "json")
+
+    def dummy_popen(*args, **kwargs):
+        assert args == (["found/exe"],)
+        assert kwargs["preexec_fn"] is None
+
+        class Popen:
+            returncode = 0
+            pid = 1
+
+            call_count = 0
+
+            def poll(self):
+                self.call_count += 1
+                if self.call_count > 2:
+                    return self.returncode
+                return None
+
+        return Popen()
+    monkeypatch.setattr(imported_subprocess, 'Popen', dummy_popen)
+
+    def dummy_get_exe(*args, **kwargs):
+        return "found/exe"
+    monkeypatch.setattr(tool, 'get_exe', dummy_get_exe)
+
+    assert tool.run_task('.', False, "info", False, None, None) == 0
+
+    assert "Current system memory usage is 91.2%" in caplog.text
+
+
+@pytest.mark.parametrize("error", [PermissionError, imported_psutil.Error])
+def test_run_task_exceptions_loop(running_chip, monkeypatch, patch_psutil, error):
+    tool = ToolSchema()
+    # Insert empty task to provide access
+    EditableSchema(tool).insert('task', 'nop', TaskSchema())
+    tool.set_runtime(running_chip)
+    assert tool.set("format", "json")
+
+    def dummy_popen(*args, **kwargs):
+        assert args == (["found/exe"],)
+        assert kwargs["preexec_fn"] is None
+
+        class Popen:
+            returncode = 0
+            pid = 1
+
+            call_count = 0
+
+            def poll(self):
+                self.call_count += 1
+                if self.call_count > 2:
+                    return self.returncode
+                return None
+
+        return Popen()
+    monkeypatch.setattr(imported_subprocess, 'Popen', dummy_popen)
+
+    def dummy_virtual_memory():
+        raise error
+    monkeypatch.setattr(imported_psutil, 'virtual_memory', dummy_virtual_memory)
+
+    def dummy_get_exe(*args, **kwargs):
+        return "found/exe"
+    monkeypatch.setattr(tool, 'get_exe', dummy_get_exe)
+
+    assert tool.run_task('.', False, "info", False, None, None) == 0
+
+
+def test_run_task_contl_c(running_chip, monkeypatch, patch_psutil, caplog):
+    tool = ToolSchema()
+    # Insert empty task to provide access
+    EditableSchema(tool).insert('task', 'nop', TaskSchema())
+    running_chip.logger = logging.getLogger()
+    running_chip.logger.setLevel(logging.INFO)
+    tool.set_runtime(running_chip)
+    assert tool.set("format", "json")
+
+    def dummy_popen(*args, **kwargs):
+        assert args == (["found/exe"],)
+        assert kwargs["preexec_fn"] is None
+
+        class Popen:
+            returncode = 0
+            pid = 1
+
+            call_count = 0
+
+            def poll(self):
+                self.call_count += 1
+                if self.call_count > 2:
+                    return self.returncode
+                return None
+
+            def wait(*args, **kwargs):
+                pass
+
+        return Popen()
+    monkeypatch.setattr(imported_subprocess, 'Popen', dummy_popen)
+
+    def dummy_virtual_memory():
+        raise KeyboardInterrupt
+    monkeypatch.setattr(imported_psutil, 'virtual_memory', dummy_virtual_memory)
+
+    def dummy_get_exe(*args, **kwargs):
+        return "found/exe"
+    monkeypatch.setattr(tool, 'get_exe', dummy_get_exe)
+
+    with pytest.raises(TaskError, match="^$"):
+        tool.run_task('.', False, "info", False, None, None)
+
+    assert "Received ctrl-c." in caplog.text
