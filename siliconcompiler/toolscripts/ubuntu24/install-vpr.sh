@@ -17,8 +17,6 @@ git submodule update --init --recursive
 
 ./install_apt_packages.sh
 
-sudo apt-get install -y libtbb-dev
-
 args=
 if [ ! -z ${PREFIX} ]; then
     args="-DCMAKE_INSTALL_PREFIX=$PREFIX"
