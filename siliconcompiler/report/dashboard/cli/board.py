@@ -20,8 +20,7 @@ from rich.padding import Padding
 
 from siliconcompiler import SiliconCompilerError, NodeStatus
 from siliconcompiler.utils.logging import SCColorLoggerFormatter
-from siliconcompiler.utils.flowgraph import nodes_to_execute, _get_flowgraph_execution_order, \
-    _get_flowgraph_node_inputs
+from siliconcompiler.flowgraph import RuntimeFlowgraph
 
 
 class LogBufferHandler(logging.Handler):
@@ -745,9 +744,17 @@ class Board(metaclass=BoardSingleton):
             flow = chip.get("option", "flow")
             if not flow:
                 raise SiliconCompilerError("dummy error")
-            execnodes = nodes_to_execute(chip)
+
+            runtime_flow = RuntimeFlowgraph(
+                chip.schema.get("flowgraph", flow, field='schema'),
+                args=(chip.get('arg', 'step'), chip.get('arg', 'index')),
+                to_steps=chip.get('option', 'to'),
+                prune_nodes=chip.get('option', 'prune'))
+            record = chip.schema.get("record", field='schema')
+
+            execnodes = runtime_flow.get_nodes()
             lowest_priority = 3 * len(execnodes)  # 2x + 1 is lowest computed, so 3x will be lower
-            for n, nodeset in enumerate(_get_flowgraph_execution_order(chip, flow)):
+            for n, nodeset in enumerate(runtime_flow.get_execution_order()):
                 for m, node in enumerate(nodeset):
                     if node not in execnodes:
                         continue
@@ -761,7 +768,7 @@ class Board(metaclass=BoardSingleton):
                     nodestatus[node] = status
                     nodeorder[node] = (n, m)
 
-                    node_inputs[node] = _get_flowgraph_node_inputs(chip, flow, node)
+                    node_inputs[node] = runtime_flow.get_node_inputs(*node, record=record)
                     for in_node in chip.get('flowgraph', flow, node[0], node[1], 'input'):
                         node_outputs.setdefault(in_node, set()).add(node)
 

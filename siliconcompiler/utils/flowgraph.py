@@ -6,18 +6,6 @@ from siliconcompiler.tools._common import input_file_node_name, get_tool_task
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 
 
-def _get_flowgraph_node_inputs(chip, flow, node):
-    step, index = node
-    inputs = set()
-    for in_node in chip.get('flowgraph', flow, step, index, 'input'):
-        if chip.get('record', 'status', step=in_node[0], index=in_node[1]) == \
-                NodeStatus.SKIPPED:
-            inputs.update(_get_flowgraph_node_inputs(chip, flow, in_node))
-        else:
-            inputs.add(in_node)
-    return list(inputs)
-
-
 def _get_pruned_node_inputs(chip, flow, node):
     # Ignore option from/to, we want reachable nodes of the whole flowgraph
     flow_schema = chip.schema.get("flowgraph", flow, field="schema")
@@ -107,8 +95,22 @@ def _check_flowgraph_io(chip, nodes=None):
     Returns True if valid, False otherwise.
     '''
     flow = chip.get('option', 'flow')
+
+    runtime_full = RuntimeFlowgraph(
+        chip.schema.get("flowgraph", flow, field='schema'),
+        args=(chip.get('arg', 'step'), chip.get('arg', 'index')),
+        to_steps=chip.get('option', 'to'),
+        prune_nodes=chip.get('option', 'prune'))
+    runtime_flow = RuntimeFlowgraph(
+        chip.schema.get("flowgraph", flow, field='schema'),
+        args=(chip.get('arg', 'step'), chip.get('arg', 'index')),
+        from_steps=chip.get('option', 'from'),
+        to_steps=chip.get('option', 'to'),
+        prune_nodes=chip.get('option', 'prune'))
+    record = chip.schema.get("record", field='schema')
+
     if not nodes:
-        nodes = nodes_to_execute(chip)
+        nodes = runtime_flow.get_nodes()
     for (step, index) in nodes:
         # For each task, check input requirements.
         tool, task = get_tool_task(chip, step, index, flow=flow)
@@ -120,7 +122,7 @@ def _check_flowgraph_io(chip, nodes=None):
             continue
 
         # Get files we receive from input nodes.
-        in_nodes = _get_flowgraph_node_inputs(chip, flow, (step, index))
+        in_nodes = runtime_full.get_node_inputs(step, index, record=record)
         all_inputs = set()
         requirements = chip.get('tool', tool, 'task', task, 'input', step=step, index=index)
         for in_step, in_index in in_nodes:
@@ -230,6 +232,10 @@ def _get_flowgraph_information(chip, flow, io=True):
     all_nodes = [(step, index) for step, index in sorted(
                     chip.schema.get("flowgraph", flow, field="schema").get_nodes())
                  if chip.get('record', 'status', step=step, index=index) != NodeStatus.SKIPPED]
+
+    runtime_flow = RuntimeFlowgraph(chip.schema.get("flowgraph", flow, field='schema'))
+    record = chip.schema.get("record", field='schema')
+
     for step, index in all_nodes:
         tool, task = get_tool_task(chip, step, index, flow=flow)
 
@@ -261,7 +267,7 @@ def _get_flowgraph_information(chip, flow, io=True):
             nodes[node]["task"] = None
 
         rank_diff = {}
-        for in_step, in_index in _get_flowgraph_node_inputs(chip, flow, (step, index)):
+        for in_step, in_index in runtime_flow.get_node_inputs(step, index, record=record):
             rank_diff[f'{in_step}{in_index}'] = node_rank[node] - node_rank[f'{in_step}{in_index}']
         nodes[node]["rank_diff"] = rank_diff
 
