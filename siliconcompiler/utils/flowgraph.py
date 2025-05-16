@@ -6,46 +6,6 @@ from siliconcompiler.tools._common import input_file_node_name, get_tool_task
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 
 
-def _unreachable_steps_to_execute(chip, flow, cond=lambda _: True):
-    runtime = RuntimeFlowgraph(
-        chip.schema.get("flowgraph", flow, field='schema'),
-        args=(chip.get('arg', 'step'), chip.get('arg', 'index')),
-        from_steps=chip.get('option', 'from'),
-        to_steps=chip.get('option', 'to'),
-        prune_nodes=chip.get('option', 'prune'))
-    from_nodes = set(runtime.get_entry_nodes())
-    to_nodes = set(runtime.get_exit_nodes())
-    prune_nodes = chip.get('option', 'prune')
-    reachable_nodes = set(_reachable_flowgraph_nodes(chip, flow, from_nodes, cond=cond,
-                                                     prune_nodes=prune_nodes))
-    unreachable_nodes = to_nodes.difference(reachable_nodes)
-    unreachable_steps = set()
-    for unreachable_node in unreachable_nodes:
-        if not any(filter(lambda node: node[0] == unreachable_node[0], reachable_nodes)):
-            unreachable_steps.add(unreachable_node[0])
-    return unreachable_steps
-
-
-def _reachable_flowgraph_nodes(chip, flow, from_nodes, cond=lambda _: True, prune_nodes=[]):
-    visited_nodes = set()
-    current_nodes = from_nodes.copy()
-    while current_nodes:
-        current_nodes_copy = current_nodes.copy()
-        for current_node in current_nodes_copy:
-            if current_node in prune_nodes:
-                current_nodes.remove(current_node)
-                continue
-            if cond(current_node):
-                visited_nodes.add(current_node)
-                current_nodes.remove(current_node)
-                outputs = chip.schema.get("flowgraph", flow,
-                                          field='schema').get_node_outputs(*current_node)
-                current_nodes.update(outputs)
-        if current_nodes == current_nodes_copy:
-            break
-    return visited_nodes
-
-
 def _get_flowgraph_node_inputs(chip, flow, node):
     step, index = node
     inputs = set()
@@ -129,53 +89,13 @@ def _check_flowgraph(chip, flow=None):
         flow = chip.get('option', 'flow')
 
     error = not chip.schema.get("flowgraph", flow, field="schema").validate(logger=chip.logger)
-
-    for step in chip.get('option', 'from'):
-        if step not in chip.getkeys('flowgraph', flow):
-            chip.logger.error(f'{step} is not defined in the {flow} flowgraph')
-            error = True
-
-    for step in chip.get('option', 'to'):
-        if step not in chip.getkeys('flowgraph', flow):
-            chip.logger.error(f'{step} is not defined in the {flow} flowgraph')
-            error = True
-
-    for step, index in chip.get('option', 'prune'):
-        if step not in chip.getkeys('flowgraph', flow):
-            chip.logger.error(f'{step} is not defined in the {flow} flowgraph')
-            error = True
-        elif str(index) not in chip.getkeys('flowgraph', flow, step):
-            chip.logger.error(f'{step}{index} is not defined in the {flow} flowgraph')
-            error = True
-
     if not error:
-        runtime = RuntimeFlowgraph(chip.schema.get("flowgraph", flow, field="schema"),
-                                   from_steps=chip.get('option', 'from'),
-                                   to_steps=chip.get('option', 'to'),
-                                   prune_nodes=chip.get('option', 'prune'))
-        unpruned = RuntimeFlowgraph(chip.schema.get("flowgraph", flow, field="schema"),
-                                    from_steps=chip.get('option', 'from'),
-                                    to_steps=chip.get('option', 'to'))
-        unpruned_exits = [step for step, _ in unpruned.get_exit_nodes()]
-        runtime_exits = [step for step, _ in runtime.get_exit_nodes()]
-        for step in unpruned_exits:
-            if step not in runtime_exits:
-                chip.logger.error(f'pruning removed all exit nodes for {step} in the {flow} '
-                                  'flowgraph')
-                error = True
-        unpruned_entry = [step for step, _ in unpruned.get_entry_nodes()]
-        runtime_entry = [step for step, _ in runtime.get_entry_nodes()]
-        for step in unpruned_entry:
-            if step not in runtime_entry:
-                chip.logger.error(f'pruning removed all entry nodes for {step} in the {flow} '
-                                  'flowgraph')
-                error = True
-
-    unreachable_steps = _unreachable_steps_to_execute(chip, flow)
-    if unreachable_steps:
-        chip.logger.error(f'These final steps in {flow} can not be reached: '
-                          f'{list(unreachable_steps)}')
-        error = True
+        error = not RuntimeFlowgraph.validate(
+            chip.schema.get("flowgraph", flow, field="schema"),
+            from_steps=chip.get('option', 'from'),
+            to_steps=chip.get('option', 'to'),
+            prune_nodes=chip.get('option', 'prune'),
+            logger=chip.logger)
 
     return not error
 

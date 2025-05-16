@@ -645,6 +645,107 @@ class RuntimeFlowgraph:
                 inputs.add((in_step, in_index))
         return sorted(inputs)
 
+    def get_completed_nodes(self, record=None):
+        if not record:
+            return []
+
+        nodes = set()
+        for step, index in self.get_nodes():
+            if NodeStatus.is_success(record.get("status", step=step, index=index)):
+                nodes.add((step, index))
+
+        return sorted(nodes)
+
+    @staticmethod
+    def validate(flow, from_steps=None, to_steps=None, prune_nodes=None, logger=None):
+        all_steps = set([step for step, _ in flow.get_nodes()])
+
+        if from_steps:
+            from_steps = set(from_steps)
+        else:
+            from_steps = set()
+
+        if to_steps:
+            to_steps = set(to_steps)
+        else:
+            to_steps = set()
+
+        if prune_nodes:
+            prune_nodes = set(prune_nodes)
+        else:
+            prune_nodes = set()
+
+        error = False
+
+        # Check for undefined steps
+        for step in sorted(from_steps.difference(all_steps)):
+            if logger:
+                logger.error(f'From {step} is not defined in the {flow.name()} flowgraph')
+            error = True
+
+        for step in sorted(to_steps.difference(all_steps)):
+            if logger:
+                logger.error(f'To {step} is not defined in the {flow.name()} flowgraph')
+            error = True
+
+        # Check for undefined prunes
+        for step, index in sorted(prune_nodes.difference(flow.get_nodes())):
+            if logger:
+                logger.error(f'{step}{index} is not defined in the {flow.name()} flowgraph')
+            error = True
+
+        if not error:
+            runtime = RuntimeFlowgraph(
+                flow,
+                from_steps=from_steps,
+                to_steps=to_steps,
+                prune_nodes=prune_nodes)
+            unpruned = RuntimeFlowgraph(
+                flow,
+                from_steps=from_steps,
+                to_steps=to_steps)
+
+            # Check for missing entry or exit steps
+            unpruned_exits = set([step for step, _ in unpruned.get_exit_nodes()])
+            runtime_exits = set([step for step, _ in runtime.get_exit_nodes()])
+            for step in unpruned_exits.difference(runtime_exits):
+                if logger:
+                    logger.error(f'pruning removed all exit nodes for {step} in the {flow.name()} '
+                                 'flowgraph')
+                error = True
+
+            unpruned_entry = set([step for step, _ in unpruned.get_entry_nodes()])
+            runtime_entry = set([step for step, _ in runtime.get_entry_nodes()])
+            for step in unpruned_entry.difference(runtime_entry):
+                if logger:
+                    logger.error(f'pruning removed all entry nodes for {step} in the {flow.name()} '
+                                 'flowgraph')
+                error = True
+
+            if not error:
+                # Check for missing paths
+                missing = []
+                found_any = False
+                for entrynode in runtime.get_entry_nodes():
+                    found = False
+                    for exitnode in runtime.get_exit_nodes():
+                        if entrynode in runtime.__walk_graph(exitnode):
+                            found = True
+                    if not found:
+                        exits = ",".join([f"{step}{index}"
+                                          for step, index in runtime.get_exit_nodes()])
+                        missing.append(f'no path from {entrynode[0]}{entrynode[1]} to {exits} '
+                                       f'in the {flow.name()} flowgraph')
+                    if found:
+                        found_any = True
+                if not found_any:
+                    error = True
+                    if logger:
+                        for msg in missing:
+                            logger.error(msg)
+
+        return not error
+
 
 class FlowgraphNodeSchema(BaseSchema):
     def __init__(self):
