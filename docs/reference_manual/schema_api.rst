@@ -162,7 +162,7 @@ Full API
     :show-inheritance:
     :inherited-members:
 
-.. autoclass:: siliconcompiler.tool.TaskTerminate
+.. autoclass:: siliconcompiler.tool.TaskError
     :members:
     :show-inheritance:
     :inherited-members:
