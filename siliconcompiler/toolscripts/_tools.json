@@ -1,7 +1,7 @@
 {
   "openroad": {
     "git-url": "https://github.com/The-OpenROAD-Project/OpenROAD.git",
-    "git-commit": "e3de189294a55f1ee93a617633c142a115318b94",
+    "git-commit": "c0820b70f61da45ce474c47e46c646657e5553a1",
     "docker-cmds": [
       "# Remove OR-Tools files",
       "RUN rm -f $SC_PREFIX/Makefile $SC_PREFIX/README.md",
@@ -144,7 +144,7 @@
   },
   "yosys-slang": {
     "git-url": "https://github.com/povik/yosys-slang.git",
-    "git-commit": "ec996db9efcc35659449ddf6de9216f8b60e5523",
+    "git-commit": "81d0a79ba5e918d5890a9b850a574e51662f4604",
     "docker-depends": "yosys",
     "auto-update": true
   },
