@@ -685,7 +685,7 @@ class ToolSchema(NamedSchema):
                         stderr_writer = subprocess.STDOUT
 
                     preexec_fn = None
-                    if nice is not None and sys.platform in ('darwin', 'linux'):
+                    if nice is not None and hasattr(os, 'nice'):
                         def set_task_nice():
                             os.nice(nice)
                         preexec_fn = set_task_nice

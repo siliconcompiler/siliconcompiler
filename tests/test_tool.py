@@ -857,13 +857,16 @@ def test_run_task_nice(running_chip, nice, monkeypatch):
 
     def dummy_nice(level):
         assert level == nice
-    monkeypatch.setattr(imported_os, 'nice', dummy_nice)
+    if hasattr(imported_os, 'nice'):
+        monkeypatch.setattr(imported_os, 'nice', dummy_nice)
 
     def dummy_popen(*args, **kwargs):
         assert args == (["found/exe"],)
-        assert kwargs["preexec_fn"] is not None
-
-        kwargs["preexec_fn"]()
+        if hasattr(imported_os, 'nice'):
+            assert kwargs["preexec_fn"] is not None
+            kwargs["preexec_fn"]()
+        else:
+            assert kwargs["preexec_fn"] is None
 
         class Popen:
             returncode = 0
