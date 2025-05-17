@@ -36,6 +36,8 @@ def setup(chip):
     # Input/output requirements.
     if f'{design}.v' in input_provides(chip, step, index):
         chip.set('tool', tool, 'task', task, 'input', design + '.v', step=step, index=index)
+    elif f'{design}.sv' in input_provides(chip, step, index):
+        chip.set('tool', tool, 'task', task, 'input', design + '.sv', step=step, index=index)
     else:
         added = False
         added |= add_require_input(chip, 'input', 'rtl', 'systemverilog',
