@@ -32,18 +32,83 @@ set sc_pdk [sc_cfg_get option pdk]
 
 source "$sc_refdir/procs.tcl"
 
+####################
+# DESIGNER's CHOICE
+####################
+
+set sc_logiclibs [sc_get_asic_libraries logic]
+set sc_macrolibs [sc_get_asic_libraries macro]
+
+set sc_libraries [sc_cfg_tool_task_get {file} synthesis_libraries]
+if { [sc_cfg_tool_task_exists {file} synthesis_libraries_macros] } {
+    set sc_macro_libraries \
+        [sc_cfg_tool_task_get {file} synthesis_libraries_macros]
+} else {
+    set sc_macro_libraries []
+}
+set sc_mainlib [lindex $sc_logiclibs 0]
+
+set sc_abc_constraints \
+    [lindex [sc_cfg_tool_task_get {file} abc_constraint_file] 0]
+
+set sc_blackboxes []
+foreach lib $sc_macrolibs {
+    if { [sc_cfg_exists library $lib output blackbox verilog] } {
+        foreach lib_f [sc_cfg_get library $lib output blackbox verilog] {
+            lappend sc_blackboxes $lib_f
+        }
+    }
+}
+
+set sc_memory_libmap_files ""
+if { [sc_cfg_tool_task_exists file memory_libmap] } {
+    set sc_memory_libmap_files [sc_cfg_tool_task_get file memory_libmap]
+}
+
+set sc_memory_techmap_files ""
+if { [sc_cfg_tool_task_exists file memory_techmap] } {
+    set sc_memory_techmap_files [sc_cfg_tool_task_get file memory_techmap]
+}
+
+########################################################
+# Read Libraries
+########################################################
+
+foreach lib_file "$sc_libraries $sc_macro_libraries" {
+    yosys read_liberty -setattr liberty_cell -lib $lib_file
+}
+foreach bb_file $sc_blackboxes {
+    yosys log "Reading blackbox model file: $bb_file"
+    yosys read_verilog -setattr blackbox -sv $bb_file
+}
+
+# Before working on the design, we mask out any module supplied via
+# `blackbox_modules`. This allows synthesis of parts of the design without having
+# to modify the input RTL.
+if { [sc_cfg_tool_task_exists var blackbox_modules] } {
+    foreach bb [sc_cfg_tool_task_get var blackbox_modules] {
+        foreach module [get_modules $bb] {
+            yosys log "Blackboxing module: $module"
+            yosys blackbox $module
+        }
+    }
+}
+
 ########################################################
 # Design Inputs
 ########################################################
 
 set input_verilog "inputs/$sc_design.v"
 if { ![file exists $input_verilog] } {
-    set input_verilog []
-    if { [sc_cfg_exists input rtl systemverilog] } {
-        lappend input_verilog {*}[sc_cfg_get input rtl systemverilog]
-    }
-    if { [sc_cfg_exists input rtl verilog] } {
-        lappend input_verilog {*}[sc_cfg_get input rtl verilog]
+    set input_verilog "inputs/$sc_design.sv"
+    if { ![file exists $input_verilog] } {
+        set input_verilog []
+        if { [sc_cfg_exists input rtl systemverilog] } {
+            lappend input_verilog {*}[sc_cfg_get input rtl systemverilog]
+        }
+        if { [sc_cfg_exists input rtl verilog] } {
+            lappend input_verilog {*}[sc_cfg_get input rtl verilog]
+        }
     }
 }
 
@@ -63,9 +128,12 @@ if { [lindex [sc_cfg_tool_task_get var use_slang] 0] == "true" && [sc_load_plugi
     yosys read_slang \
         -D SYNTHESIS \
         --keep-hierarchy \
+        --ignore-assertions \
+        --allow-use-before-declare \
         --top $sc_design \
         {*}$slang_params \
         {*}$input_verilog
+    yosys setattr -unset init
 } else {
     # Use -noblackbox to correctly interpret empty modules as empty,
     # actual black boxes are read in later
@@ -117,44 +185,6 @@ proc get_modules { { find "*" } } {
         yosys log "Warning: Unable to find modules matching: $find"
     }
     return [lsort $modules]
-}
-
-####################
-# DESIGNER's CHOICE
-####################
-
-set sc_logiclibs [sc_get_asic_libraries logic]
-set sc_macrolibs [sc_get_asic_libraries macro]
-
-set sc_libraries [sc_cfg_tool_task_get {file} synthesis_libraries]
-if { [sc_cfg_tool_task_exists {file} synthesis_libraries_macros] } {
-    set sc_macro_libraries \
-        [sc_cfg_tool_task_get {file} synthesis_libraries_macros]
-} else {
-    set sc_macro_libraries []
-}
-set sc_mainlib [lindex $sc_logiclibs 0]
-
-set sc_abc_constraints \
-    [lindex [sc_cfg_tool_task_get {file} abc_constraint_file] 0]
-
-set sc_blackboxes []
-foreach lib $sc_macrolibs {
-    if { [sc_cfg_exists library $lib output blackbox verilog] } {
-        foreach lib_f [sc_cfg_get library $lib output blackbox verilog] {
-            lappend sc_blackboxes $lib_f
-        }
-    }
-}
-
-set sc_memory_libmap_files ""
-if { [sc_cfg_tool_task_exists file memory_libmap] } {
-    set sc_memory_libmap_files [sc_cfg_tool_task_get file memory_libmap]
-}
-
-set sc_memory_techmap_files ""
-if { [sc_cfg_tool_task_exists file memory_techmap] } {
-    set sc_memory_techmap_files [sc_cfg_tool_task_get file memory_techmap]
 }
 
 #########################
@@ -210,32 +240,8 @@ proc get_buffer_cell { } {
 }
 
 ########################################################
-# Read Libraries
-########################################################
-
-foreach lib_file "$sc_libraries $sc_macro_libraries" {
-    yosys read_liberty -setattr liberty_cell -lib $lib_file
-}
-foreach bb_file $sc_blackboxes {
-    yosys log "Reading blackbox model file: $bb_file"
-    yosys read_verilog -setattr blackbox -sv $bb_file
-}
-
-########################################################
 # Synthesis
 ########################################################
-
-# Before working on the design, we mask out any module supplied via
-# `blackbox_modules`. This allows synthesis of parts of the design without having
-# to modify the input RTL.
-if { [sc_cfg_tool_task_exists var blackbox_modules] } {
-    foreach bb [sc_cfg_tool_task_get var blackbox_modules] {
-        foreach module [get_modules $bb] {
-            yosys log "Blackboxing module: $module"
-            yosys blackbox $module
-        }
-    }
-}
 
 # Although the `synth` command also runs `hierarchy`, we run it here without the
 # `-check` flag first in order to resolve parameters before looking for missing

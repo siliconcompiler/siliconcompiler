@@ -801,6 +801,10 @@ def define_sta_params(chip):
     set_tool_task_var(chip, param_key='sta_top_n_paths',
                       default_value='10',
                       schelp='number of paths to report timing for')
+    set_tool_task_var(chip, param_key='sta_define_path_groups',
+                      default_value=True,
+                      skip=['pdk', 'lib'],
+                      schelp='true/false, if true will generate path groups for timing reporting')
     set_tool_task_var(chip, param_key='sta_unique_path_groups_per_clock',
                       default_value=False,
                       skip=['pdk', 'lib'],

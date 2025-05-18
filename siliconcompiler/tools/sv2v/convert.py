@@ -23,6 +23,26 @@ def setup(chip):
     chip.set('tool', tool, 'vswitch', '--numeric-version')
     chip.set('tool', tool, 'version', '>=0.0.9', clobber=False)
 
+    chip.add('tool', tool, 'task', task, 'require',
+             ",".join(['tool', tool, 'task', task, 'var', 'skip_convert']), step=step, index=index)
+    chip.set('tool', tool, 'task', task, 'var', 'skip_convert',
+             'true/false, if true will skip converting system verilog to verilog', field='help')
+    skip = chip.get('tool', tool, 'task', task, 'var', 'skip_convert', step=step, index=index)
+    if skip:
+        skip = skip[0] == "true"
+    else:
+        skip = False
+    chip.set('tool', tool, 'task', task, 'var', 'skip_convert', skip,
+             step=step, index=index, clobber=False)
+
+    chip.set('tool', tool, 'task', task, 'input', f'{topmodule}.sv', step=step, index=index)
+
+    if skip:
+        chip.set('tool', tool, 'task', task, 'output', f'{topmodule}.sv', step=step, index=index)
+        return "passing system verilog along"
+
+    chip.set('tool', tool, 'task', task, 'output', f'{topmodule}.v', step=step, index=index)
+
     chip.set('tool', tool, 'task', task, 'threads', utils.get_cores(chip),
              step=step, index=index, clobber=False)
 
@@ -41,6 +61,3 @@ def setup(chip):
              step=step, index=index)
     chip.add('tool', tool, 'task', task, 'option', "--write=outputs/" + topmodule + ".v",
              step=step, index=index)
-
-    chip.set('tool', tool, 'task', task, 'input', f'{topmodule}.sv', step=step, index=index)
-    chip.set('tool', tool, 'task', task, 'output', f'{topmodule}.v', step=step, index=index)

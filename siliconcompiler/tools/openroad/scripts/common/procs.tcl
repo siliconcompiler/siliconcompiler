@@ -635,7 +635,10 @@ proc sc_setup_sta { } {
     }
 
     # Create path groups
-    if { [llength [sta::path_group_names]] == 0 } {
+    if {
+        [lindex [sc_cfg_tool_task_get var sta_define_path_groups] 0] == "true" &&
+        [llength [sta::path_group_names]] == 0
+    } {
         sc_path_group -name in2out -from [all_inputs -no_clocks] -to [all_outputs]
 
         if {
