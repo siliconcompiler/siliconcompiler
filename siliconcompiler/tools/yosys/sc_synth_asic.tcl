@@ -128,9 +128,12 @@ if { [lindex [sc_cfg_tool_task_get var use_slang] 0] == "true" && [sc_load_plugi
     yosys read_slang \
         -D SYNTHESIS \
         --keep-hierarchy \
+        --ignore-assertions \
+        --allow-use-before-declare \
         --top $sc_design \
         {*}$slang_params \
         {*}$input_verilog
+    yosys setattr -unset init
 } else {
     # Use -noblackbox to correctly interpret empty modules as empty,
     # actual black boxes are read in later
