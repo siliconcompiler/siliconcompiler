@@ -611,10 +611,13 @@ def test_cancel(monkeypatch, gcd_chip):
                                      '-cancel',
                                      '-cfg', 'test.json'])
 
-    with patch("siliconcompiler.remote.client.Client.cancel_job",
-               autospec=True) as mock:
-        assert sc_remote.main() == 0
-        assert mock.called
+    with patch("siliconcompiler.remote.client.Client.check",
+               autospec=True) as mock_check:
+        with patch("siliconcompiler.remote.client.Client.cancel_job",
+                   autospec=True) as mock:
+            assert sc_remote.main() == 0
+            assert mock_check.called
+            assert mock.called
 
 
 def test_delete(monkeypatch, gcd_chip):
@@ -623,10 +626,13 @@ def test_delete(monkeypatch, gcd_chip):
                                      '-delete',
                                      '-cfg', 'test.json'])
 
-    with patch("siliconcompiler.remote.client.Client.delete_job",
-               autospec=True) as mock:
-        assert sc_remote.main() == 0
-        assert mock.called
+    with patch("siliconcompiler.remote.client.Client.check",
+               autospec=True) as mock_check:
+        with patch("siliconcompiler.remote.client.Client.delete_job",
+                   autospec=True) as mock:
+            assert sc_remote.main() == 0
+            assert mock_check.called
+            assert mock.called
 
 
 def test_empty_call(monkeypatch, gcd_chip):
@@ -634,10 +640,13 @@ def test_empty_call(monkeypatch, gcd_chip):
     monkeypatch.setattr('sys.argv', ['sc-remote',
                                      '-cfg', 'test.json'])
 
-    with patch("siliconcompiler.remote.client.Client.check_job_status",
-               autospec=True) as mock0:
-        with patch("siliconcompiler.remote.client.Client._report_job_status",
-                   autospec=True) as mock1:
-            assert sc_remote.main() == 0
-            assert mock0.called
-            assert mock1.called
+    with patch("siliconcompiler.remote.client.Client.check",
+               autospec=True) as mock_check:
+        with patch("siliconcompiler.remote.client.Client.check_job_status",
+                   autospec=True) as mock0:
+            with patch("siliconcompiler.remote.client.Client._report_job_status",
+                       autospec=True) as mock1:
+                assert sc_remote.main() == 0
+                assert mock_check.called
+                assert mock0.called
+                assert mock1.called
