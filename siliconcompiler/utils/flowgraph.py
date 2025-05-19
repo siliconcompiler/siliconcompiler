@@ -7,31 +7,6 @@ from siliconcompiler.flowgraph import RuntimeFlowgraph
 
 
 ###########################################################################
-def nodes_to_execute(chip, flow=None):
-    '''
-    Returns an ordered list of flowgraph nodes which will be executed.
-    This takes the from/to options into account if flow is the current flow or None.
-
-    Returns:
-        A list of nodes that will get executed during run() (or a specific flow).
-
-    Example:
-        >>> nodes = nodes_to_execute()
-    '''
-    if flow is None:
-        flow = chip.get('option', 'flow')
-
-    runtime = RuntimeFlowgraph(
-        chip.schema.get("flowgraph", flow, field='schema'),
-        args=(chip.get('arg', 'step'), chip.get('arg', 'index')),
-        from_steps=chip.get('option', 'from'),
-        to_steps=chip.get('option', 'to'),
-        prune_nodes=chip.get('option', 'prune'))
-
-    return runtime.get_nodes()
-
-
-###########################################################################
 def _check_flowgraph(chip, flow=None):
     '''
     Check if flowgraph is valid.

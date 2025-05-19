@@ -1,6 +1,5 @@
 from siliconcompiler import NodeStatus
 from siliconcompiler.utils import units
-from siliconcompiler.utils.flowgraph import nodes_to_execute
 from siliconcompiler.tools._common import get_tool_task
 
 from siliconcompiler.flowgraph import RuntimeFlowgraph
@@ -45,7 +44,13 @@ def _collect_data(chip, flow=None, flowgraph_nodes=None, format_as_string=True):
         return [], {}, {}, {}, [], {}
 
     if not flowgraph_nodes:
-        flowgraph_nodes = list(nodes_to_execute(chip))
+        runtime = RuntimeFlowgraph(
+            chip.schema.get("flowgraph", flow, field='schema'),
+            from_steps=chip.get('option', 'from'),
+            to_steps=chip.get('option', 'to'),
+            prune_nodes=chip.get('option', 'prune'))
+
+        flowgraph_nodes = list(runtime.get_nodes())
         # only report tool based steps functions
         for (step, index) in list(flowgraph_nodes):
             tool, task = get_tool_task(chip, step, '0', flow=flow)

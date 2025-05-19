@@ -13,9 +13,9 @@ import multiprocessing
 from siliconcompiler import utils, SiliconCompilerError, NodeStatus
 from siliconcompiler import NodeStatus as SCNodeStatus
 from siliconcompiler._metadata import default_server
-from siliconcompiler.utils.flowgraph import nodes_to_execute
 from siliconcompiler.remote import JobStatus
 from siliconcompiler.report.dashboard import DashboardType
+from siliconcompiler.flowgraph import RuntimeFlowgraph
 
 # Step name to use while logging
 remote_step_name = 'remote'
@@ -618,7 +618,13 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
             self.__check_interval = check_info['progress_interval']
 
         self.__node_information = {}
-        for step, index in nodes_to_execute(self.__chip):
+        runtime = RuntimeFlowgraph(
+            self.__chip.schema.get("flowgraph", self.__chip.get('option', 'flow'), field='schema'),
+            from_steps=self.__chip.get('option', 'from'),
+            to_steps=self.__chip.get('option', 'to'),
+            prune_nodes=self.__chip.get('option', 'prune'))
+
+        for step, index in runtime.get_nodes():
             done = SCNodeStatus.is_done(self.__chip.get('record', 'status', step=step, index=index))
             node_info = {
                 "step": step,

@@ -21,7 +21,7 @@ from siliconcompiler.schema import SCHEMA_VERSION as sc_schema_version
 from siliconcompiler.remote.schema import ServerSchema
 from siliconcompiler.remote import banner, JobStatus
 from siliconcompiler.scheduler.slurm import get_configuration_directory
-from siliconcompiler.utils.flowgraph import nodes_to_execute
+from siliconcompiler.flowgraph import RuntimeFlowgraph
 
 
 # Compile validation code for API request bodies.
@@ -422,7 +422,12 @@ class Server:
         chip.run()
 
         # Archive each task.
-        for (step, index) in nodes_to_execute(chip):
+        runtime = RuntimeFlowgraph(
+            chip.schema.get("flowgraph", chip.get('option', 'flow'), field='schema'),
+            from_steps=chip.get('option', 'from'),
+            to_steps=chip.get('option', 'to'),
+            prune_nodes=chip.get('option', 'prune'))
+        for (step, index) in runtime.get_nodes():
             chip.cwd = os.path.join(chip.get('option', 'builddir'), '..')
             tf = tarfile.open(os.path.join(self.nfs_mount,
                                            job_hash,

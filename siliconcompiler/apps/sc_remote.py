@@ -6,7 +6,7 @@ from siliconcompiler import Chip
 from siliconcompiler import SiliconCompilerError
 from siliconcompiler.remote.client import Client, ConfigureClient
 from siliconcompiler.scheduler import _finalize_run
-from siliconcompiler.utils.flowgraph import nodes_to_execute
+from siliconcompiler.flowgraph import RuntimeFlowgraph
 
 
 def main():
@@ -170,7 +170,12 @@ To delete a job, use:
             return 1
 
         # Wrap up run
-        for step, index in nodes_to_execute(chip):
+        runtime = RuntimeFlowgraph(
+            chip.schema.get("flowgraph", flow, field='schema'),
+            from_steps=chip.get('option', 'from'),
+            to_steps=chip.get('option', 'to'),
+            prune_nodes=chip.get('option', 'prune'))
+        for step, index in runtime.get_nodes():
             manifest = os.path.join(chip.getworkdir(step=step, index=index),
                                     'outputs',
                                     f'{chip.design}.pkg.json')

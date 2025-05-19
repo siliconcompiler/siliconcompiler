@@ -37,8 +37,7 @@ from siliconcompiler.report.dashboard import DashboardType
 from siliconcompiler import package as sc_package
 import glob
 from siliconcompiler.scheduler import run as sc_runner
-from siliconcompiler.utils.flowgraph import nodes_to_execute, \
-    _check_flowgraph_io, _get_flowgraph_information
+from siliconcompiler.utils.flowgraph import _check_flowgraph_io, _get_flowgraph_information
 from siliconcompiler.tools._common import get_tool_task
 from types import FunctionType, ModuleType
 from siliconcompiler.flowgraph import RuntimeFlowgraph
@@ -1620,17 +1619,23 @@ class Chip:
             error = True
             self.logger.error(f"flowgraph {flow} not defined.")
 
-        nodes = [node for node in nodes_to_execute(self)
+        runtime = RuntimeFlowgraph(
+            self.schema.get("flowgraph", flow, field='schema'),
+            from_steps=self.get('option', 'from'),
+            to_steps=self.get('option', 'to'),
+            prune_nodes=self.get('option', 'prune'))
+
+        nodes = [node for node in runtime.get_nodes()
                  if self.get('record', 'status', step=node[0], index=node[1])
                  != NodeStatus.SKIPPED]
         flow_schema = self.schema.get("flowgraph", flow, field="schema")
-        runtime = RuntimeFlowgraph(
+        runtime_io = RuntimeFlowgraph(
             flow_schema,
             from_steps=set([step for step, _ in flow_schema.get_entry_nodes()]),
             prune_nodes=self.get('option', 'prune'))
 
         for (step, index) in nodes:
-            for in_step, in_index in runtime.get_node_inputs(
+            for in_step, in_index in runtime_io.get_node_inputs(
                     step, index, record=self.schema.get("record", field="schema")):
                 if (in_step, in_index) in nodes:
                     # we're gonna run this step, OK
@@ -2753,7 +2758,12 @@ class Chip:
             flow = self.get('option', 'flow')
             flowgraph_nodes = [(step, index) for index in self.getkeys("flowgraph", flow, step)]
         else:
-            flowgraph_nodes = nodes_to_execute(self)
+            runtime = RuntimeFlowgraph(
+                self.schema.get("flowgraph", flow, field='schema'),
+                from_steps=self.get('option', 'from'),
+                to_steps=self.get('option', 'to'),
+                prune_nodes=self.get('option', 'prune'))
+            flowgraph_nodes = runtime.get_nodes()
 
         if not archive_name:
             if step and index:
@@ -3236,7 +3246,12 @@ class Chip:
                 search_nodes.append((sc_step, sc_index))
             elif sc_step:
                 if flow is not None:
-                    for check_step, check_index in nodes_to_execute(self, flow):
+                    runtime = RuntimeFlowgraph(
+                        self.schema.get("flowgraph", flow, field='schema'),
+                        from_steps=self.get('option', 'from'),
+                        to_steps=self.get('option', 'to'),
+                        prune_nodes=self.get('option', 'prune'))
+                    for check_step, check_index in runtime.get_nodes():
                         if sc_step == check_step:
                             search_nodes.append((check_step, check_index))
             else:
