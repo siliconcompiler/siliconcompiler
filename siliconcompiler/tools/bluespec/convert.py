@@ -125,7 +125,7 @@ def post_process(chip):
                 if os.path.exists(mod_path):
                     extra_modules.add(mod_path)
                 else:
-                    chip.logger.warn(f"Unable to find module {module} source files at: {BSC_LIB}")
+                    chip.logger.warning(f"Unable to find module {module} source files at: {BSC_LIB}")
 
     # bsc outputs each compiled module to its own Verilog file, so we
     # concatenate them all to create a pickled output we can pass along.

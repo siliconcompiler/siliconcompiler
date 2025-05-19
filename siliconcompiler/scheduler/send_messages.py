@@ -25,7 +25,7 @@ with open(api_dir / 'email_credentials.json') as schema:
 def __load_config(chip):
     path = default_email_credentials_file()
     if not os.path.exists(path):
-        chip.logger.warn(f'Email credentials are not available: {path}')
+        chip.logger.warning(f'Email credentials are not available: {path}')
         return {}
 
     with open(path) as f:
