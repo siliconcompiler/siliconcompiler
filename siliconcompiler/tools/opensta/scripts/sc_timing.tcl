@@ -150,6 +150,16 @@ foreach corner $sc_scenarios {
     }
 }
 
+foreach corner $sc_scenarios {
+    set pex_corner [sc_cfg_get constraint timing $corner pexcorner]
+
+    set input_sdf_file "inputs/${sc_design}.${pex_corner}.sdf"
+    if { [file exists $input_sdf_file] } {
+        puts "Reading SDF ($corner): $input_sdf_file"
+        read_sdf -corner $corner $input_sdf_file
+    }
+}
+
 ###############################
 # Report Metrics
 ###############################
