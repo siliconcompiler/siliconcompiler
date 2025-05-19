@@ -7,6 +7,8 @@ import time
 
 import os.path
 
+from unittest.mock import patch, ANY
+
 from siliconcompiler import ToolSchema
 from siliconcompiler import RecordSchema, MetricSchema
 from siliconcompiler.schema import EditableSchema
@@ -16,10 +18,12 @@ from siliconcompiler import Chip
 from siliconcompiler import Flow
 from siliconcompiler.tools.builtin import nop
 
+import siliconcompiler.tool as dut_tool
 from siliconcompiler.tool import shutil as imported_shutil
 from siliconcompiler.tool import subprocess as imported_subprocess
 from siliconcompiler.tool import os as imported_os
 from siliconcompiler.tool import psutil as imported_psutil
+from siliconcompiler.tool import resource as imported_resource
 
 
 @pytest.fixture
@@ -623,9 +627,31 @@ def test_normalize_version():
     assert tool.normalize_version(None) is None
 
 
+def test_setup():
+    tool = ToolSchema()
+    assert tool.setup() is None
+
+
+def test_pre_process():
+    tool = ToolSchema()
+    assert tool.pre_process() is None
+
+
 def test_runtime_options():
     tool = ToolSchema()
     assert tool.runtime_options() == []
+
+
+def test_run_not_implemented():
+    tool = ToolSchema()
+    with pytest.raises(NotImplementedError,
+                       match="must be implemented by the implementation class"):
+        tool.run()
+
+
+def test_post_process():
+    tool = ToolSchema()
+    assert tool.post_process() is None
 
 
 def test_resetting_state_in_copy(running_chip):
@@ -1033,3 +1059,119 @@ def test_run_task_contl_c(running_chip, monkeypatch, patch_psutil, caplog):
         tool.run_task('.', False, "info", False, None, None)
 
     assert "Received ctrl-c." in caplog.text
+
+
+def test_run_task_breakpoint_valid(running_chip, monkeypatch):
+    pytest.importorskip('pty')
+    tool = ToolSchema()
+    # Insert empty task to provide access
+    EditableSchema(tool).insert('task', 'nop', TaskSchema())
+    running_chip.logger = logging.getLogger()
+    running_chip.logger.setLevel(logging.INFO)
+    tool.set_runtime(running_chip)
+
+    def dummy_get_exe(*args, **kwargs):
+        return "found/exe"
+    monkeypatch.setattr(tool, 'get_exe', dummy_get_exe)
+
+    with patch("pty.spawn", autospec=True) as spawn:
+        spawn.return_value = 1
+        assert tool.run_task('.', False, "info", True, None, None) == 1
+        spawn.assert_called_once()
+        spawn.assert_called_with(["found/exe"], ANY)
+
+
+def test_run_task_breakpoint_not_used(running_chip, monkeypatch):
+    pytest.importorskip('pty')
+    tool = ToolSchema()
+    # Insert empty task to provide access
+    EditableSchema(tool).insert('task', 'nop', TaskSchema())
+    running_chip.logger = logging.getLogger()
+    running_chip.logger.setLevel(logging.INFO)
+    tool.set_runtime(running_chip)
+
+    monkeypatch.setattr(dut_tool, "pty", None)
+
+    def dummy_get_exe(*args, **kwargs):
+        return "found/exe"
+    monkeypatch.setattr(tool, 'get_exe', dummy_get_exe)
+
+    def dummy_popen(*args, **kwargs):
+        assert args == (["found/exe"],)
+        assert kwargs["preexec_fn"] is None
+
+        class Popen:
+            returncode = 1
+
+            def poll(self):
+                return self.returncode
+        return Popen()
+    monkeypatch.setattr(imported_subprocess, 'Popen', dummy_popen)
+
+    with patch("pty.spawn", autospec=True) as spawn:
+        spawn.return_value = 1
+        assert tool.run_task('.', False, "info", True, None, None) == 1
+        spawn.assert_not_called()
+
+
+def test_run_task_run(running_chip, monkeypatch):
+    class RunTool(ToolSchema):
+        call_count = 0
+
+        def run(self):
+            self.call_count += 1
+            return 1
+
+    tool = RunTool()
+    # Insert empty task to provide access
+    EditableSchema(tool).insert('task', 'nop', TaskSchema())
+    running_chip.logger = logging.getLogger()
+    running_chip.logger.setLevel(logging.INFO)
+    tool.set_runtime(running_chip)
+
+    assert tool.run_task('.', False, "info", True, None, None) == 1
+    assert tool.call_count == 1
+
+
+def test_run_task_run_error(running_chip, monkeypatch):
+    class RunTool(ToolSchema):
+        call_count = 0
+
+        def run(self):
+            self.call_count += 1
+            raise ValueError("run error")
+
+    tool = RunTool()
+    # Insert empty task to provide access
+    EditableSchema(tool).insert('task', 'nop', TaskSchema())
+    running_chip.logger = logging.getLogger()
+    running_chip.logger.setLevel(logging.INFO)
+    tool.set_runtime(running_chip)
+
+    with pytest.raises(ValueError, match="run error"):
+        tool.run_task('.', False, "info", True, None, None)
+    assert tool.call_count == 1
+
+
+@pytest.mark.skipif(imported_resource is None, reason="resource not available")
+def test_run_task_run_failed_resource(running_chip, monkeypatch):
+    class RunTool(ToolSchema):
+        call_count = 0
+
+        def run(self):
+            self.call_count += 1
+            return 1
+
+    tool = RunTool()
+    # Insert empty task to provide access
+    EditableSchema(tool).insert('task', 'nop', TaskSchema())
+    running_chip.logger = logging.getLogger()
+    running_chip.logger.setLevel(logging.INFO)
+    tool.set_runtime(running_chip)
+
+    def dummy_resource(*args, **kwargs):
+        raise PermissionError
+    monkeypatch.setattr(imported_resource, "getrusage", dummy_resource)
+
+    assert tool.run_task('.', False, "info", True, None, None) == 1
+    assert tool.call_count == 1

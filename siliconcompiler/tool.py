@@ -633,15 +633,15 @@ class ToolSchema(NamedSchema):
                         sc_open(stderr_file) as stderr_reader:
                     read_stdio(stdout_reader, stderr_reader)
 
-                try:
-                    if resource:
+                if resource:
+                    try:
                         # Since memory collection is not possible, collect the current process
                         # peak memory
                         max_mem_bytes = max(
                             max_mem_bytes,
                             1024 * resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
-                except (OSError, ValueError, PermissionError):
-                    pass
+                    except (OSError, ValueError, PermissionError):
+                        pass
         else:
             cmdlist = self.get_runtime_arguments()
 
@@ -670,7 +670,7 @@ class ToolSchema(NamedSchema):
                         data = os.read(fd, 1024)
                         log_writer.write(data)
                         return data
-                    retcode = pty.spawn(cmdlist, read)
+                    retcode = pty.spawn([exe, *cmdlist], read)
             else:
                 with open(stdout_file, 'w') as stdout_writer, \
                         open(stdout_file, 'r', errors='replace_with_warning') as stdout_reader, \
