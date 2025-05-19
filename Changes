@@ -8,6 +8,28 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.33.0 (2025-05-19)
+=========================================
+
+**Major:**
+
+ * Core schema infratructure rewritten to provide better testing and easier use when integration changes.
+
+**Minor:**
+
+ * Added multi-job handling to command line dashboard and corrected handling of coloring in the log.
+ * Updated help, scopes, and default values in various keys int he schema.
+ * Allow packages to reference keys as data source.
+ * Speedup load time by selective loading large libraries.
+ * Added caching to flowgraph node handling to speed up common use cases.
+
+ * Tools:
+
+  * openroad: added gif of IR drop
+  * yosys: improved yosys-slang integration
+  * sv2v: allow runtime bypass via `['tool', 'sv2v', 'task', 'convert', 'var', 'skip_convert'] = True`.
+
+
 SiliconCompiler 0.32.3 (2025-04-11)
 =========================================
 
