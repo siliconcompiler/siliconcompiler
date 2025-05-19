@@ -670,7 +670,7 @@ class ToolSchema(NamedSchema):
                         data = os.read(fd, 1024)
                         log_writer.write(data)
                         return data
-                    retcode = pty.spawn(cmdlist, read)
+                    retcode = pty.spawn([exe, *cmdlist], read)
             else:
                 with open(stdout_file, 'w') as stdout_writer, \
                         open(stdout_file, 'r', errors='replace_with_warning') as stdout_reader, \
