@@ -134,7 +134,7 @@ def test_all_failed_min(chip):
     chip.edge(flow, 'place', 'placemin', tail_index=1)
 
     # Expect that command exits early
-    with pytest.raises(siliconcompiler.SiliconCompilerError):
+    with pytest.raises(RuntimeError):
         chip.run(raise_exception=True)
 
     # check that compilation failed
@@ -161,7 +161,7 @@ def test_branch_failed_join(chip):
     chip.edge(flow, 'place', 'placemin', tail_index=1)
 
     # Expect that command exits early
-    with pytest.raises(siliconcompiler.SiliconCompilerError):
+    with pytest.raises(RuntimeError):
         chip.run(raise_exception=True)
 
     # check that compilation failed

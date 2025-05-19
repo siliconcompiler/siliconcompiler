@@ -121,6 +121,6 @@ def test_invalid(gcd_chip):
     gcd_chip.set('option', 'from', ['syn'])
     gcd_chip.set('option', 'to', ['syn'])
 
-    with pytest.raises(siliconcompiler.SiliconCompilerError):
+    with pytest.raises(RuntimeError):
         # Should be caught by check_manifest()
         gcd_chip.run(raise_exception=True)

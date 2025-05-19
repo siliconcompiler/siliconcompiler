@@ -20,7 +20,7 @@ from siliconcompiler._metadata import version as sc_version
 from siliconcompiler.schema import SCHEMA_VERSION as sc_schema_version
 from siliconcompiler.remote.schema import ServerSchema
 from siliconcompiler.remote import banner, JobStatus
-from siliconcompiler.scheduler.slurm import get_configuration_directory
+from siliconcompiler.scheduler.slurm import SlurmSchedulerNode
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 
 
@@ -410,7 +410,7 @@ class Server:
         chip.set('option', 'builddir', build_dir)
         chip.set('option', 'remote', False)
 
-        job_cfg_dir = get_configuration_directory(chip)
+        job_cfg_dir = SlurmSchedulerNode.get_configuration_directory(chip)
         os.makedirs(job_cfg_dir, exist_ok=True)
         chip.write_manifest(f"{job_cfg_dir}/chip{chip.get('option', 'jobname')}.json")
 

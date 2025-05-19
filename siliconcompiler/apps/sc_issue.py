@@ -4,7 +4,7 @@ import os
 import siliconcompiler
 import tarfile
 import json
-from siliconcompiler.scheduler import _runtask, _executenode
+from siliconcompiler.scheduler.schedulernode import SchedulerNode
 from siliconcompiler.utils.issue import generate_testcase
 from siliconcompiler.tools._common import get_tool_task
 
@@ -153,8 +153,10 @@ To run a testcase, use:
         # Run task
         # Rerun setup task, assumed to be running in its own thread so
         # multiprocess is not needed
-        flow = chip.get('option', 'flow')
-        _runtask(chip, flow, step, index, _executenode, replay=True)
+        SchedulerNode(chip,
+                      step,
+                      index,
+                      replay=True).run()
 
         return 0
 

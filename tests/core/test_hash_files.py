@@ -243,7 +243,7 @@ def test_error_in_run_while_hashing(gcd_chip):
     gcd_chip.set('option', 'to', 'place.repair_design')
     gcd_chip.set('option', 'hash', True)
 
-    with pytest.raises(siliconcompiler.SiliconCompilerError):
+    with pytest.raises(RuntimeError):
         gcd_chip.run(raise_exception=True)
 
     schema = siliconcompiler.Schema(

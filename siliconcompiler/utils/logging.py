@@ -1,6 +1,5 @@
 import logging
 import sys
-from siliconcompiler.remote import client
 from siliconcompiler import utils
 
 
@@ -38,6 +37,8 @@ class SCInRunLoggerFormatter(logging.Formatter):
 
     @staticmethod
     def configure_format(fmt, chip, step, index):
+        from siliconcompiler.remote import client
+
         max_width = 20
 
         flow = chip.get('option', 'flow')

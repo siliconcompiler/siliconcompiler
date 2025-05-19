@@ -1,6 +1,6 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 import siliconcompiler
-from siliconcompiler.scheduler import _setup_node
+from siliconcompiler.scheduler.schedulernode import SchedulerNode
 
 import os
 import shutil
@@ -25,7 +25,7 @@ def test_check_manifest():
     for layer_nodes in chip.schema.get(
             "flowgraph", "asicflow", field="schema").get_execution_order():
         for step, index in layer_nodes:
-            _setup_node(chip, step, index)
+            SchedulerNode(chip, step, index).setup()
 
     chip.set('arg', 'step', None)
     chip.set('arg', 'index', None)
@@ -43,7 +43,7 @@ def test_check_allowed_filepaths_pass(scroot):
     for layer_nodes in chip.schema.get(
             "flowgraph", "asicflow", field="schema").get_execution_order():
         for step, index in layer_nodes:
-            _setup_node(chip, step, index)
+            SchedulerNode(chip, step, index).setup()
 
     # collect input files
     cwd = os.getcwd()
@@ -177,6 +177,6 @@ def test_check_missing_library():
     for layer_nodes in chip.schema.get(
             "flowgraph", "asicflow", field="schema").get_execution_order():
         for step, index in layer_nodes:
-            _setup_node(chip, step, index)
+            SchedulerNode(chip, step, index).setup()
 
     assert not chip.check_manifest()

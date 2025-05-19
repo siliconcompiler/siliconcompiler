@@ -64,7 +64,7 @@ def test_docker_run_with_failure(docker_image, capfd):
     chip.set('tool', 'openroad', 'task', 'global_placement', 'var', 'place_density', 'asdf',
              step='place.global', index='0')
 
-    with pytest.raises(SiliconCompilerError):
+    with pytest.raises(RuntimeError):
         chip.run(raise_exception=True)
 
     assert not os.path.isfile(f'{chip.getworkdir()}/heartbeat.pkg.json')

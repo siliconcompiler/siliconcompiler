@@ -4,7 +4,7 @@ import pytest
 import siliconcompiler
 from siliconcompiler.tools.surelog import parse
 from siliconcompiler.tools.verilator import lint, compile
-from siliconcompiler.scheduler import _setup_node
+from siliconcompiler.scheduler.schedulernode import SchedulerNode
 
 
 @pytest.mark.eda
@@ -108,7 +108,7 @@ def test_config_files_from_libs():
     chip.node(flow, 'import', lint)
     chip.set('option', 'flow', flow)
 
-    _setup_node(chip, 'import', '0')
+    SchedulerNode(chip, "import", "0").setup()
 
     chip.set('arg', 'step', 'import')
     chip.set('arg', 'index', '0')
@@ -129,7 +129,7 @@ def test_random_reset():
 
     chip.set('tool', 'verilator', 'task', 'compile', 'var', 'initialize_random', True)
 
-    _setup_node(chip, 'import', '0')
+    SchedulerNode(chip, "import", "0").setup()
 
     chip.set('arg', 'step', 'import')
     chip.set('arg', 'index', '0')
