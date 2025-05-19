@@ -24,7 +24,7 @@ from siliconcompiler.scheduler import slurm
 from siliconcompiler.scheduler import docker_runner
 from siliconcompiler import NodeStatus, SiliconCompilerError
 from siliconcompiler.utils.flowgraph import \
-    get_nodes_from, nodes_to_execute, _check_flowgraph
+    nodes_to_execute, _check_flowgraph
 from siliconcompiler.utils.logging import SCBlankLoggerFormatter
 from siliconcompiler.tools._common import input_file_node_name
 import lambdapdk
@@ -229,10 +229,16 @@ def _local_process(chip, flow):
                         chip.schema.get("record", field='schema').set('status', node_status,
                                                                       step=step, index=index)
 
+    runtimeflow = RuntimeFlowgraph(
+        chip.schema.get("flowgraph", flow, field="schema"),
+        from_steps=chip.get('option', 'from'),
+        to_steps=chip.get('option', 'to'),
+        prune_nodes=chip.get('option', 'prune'))
+
     def mark_pending(step, index):
         chip.schema.get("record", field='schema').set('status', NodeStatus.PENDING,
                                                       step=step, index=index)
-        for next_step, next_index in get_nodes_from(chip, flow, [(step, index)]):
+        for next_step, next_index in runtimeflow.get_nodes_starting_at(step, index):
             if chip.get('record', 'status', step=next_step, index=next_index) == \
                     NodeStatus.SKIPPED:
                 continue
@@ -242,12 +248,6 @@ def _local_process(chip, flow):
                                                           step=next_step, index=next_index)
 
     # Check if nodes have been modified from previous data
-    runtimeflow = RuntimeFlowgraph(
-        chip.schema.get("flowgraph", flow, field="schema"),
-        from_steps=chip.get('option', 'from'),
-        to_steps=chip.get('option', 'to'),
-        prune_nodes=chip.get('option', 'prune'))
-
     for layer_nodes in chip.schema.get("flowgraph", flow, field="schema").get_execution_order():
         for step, index in layer_nodes:
             # Only look at successful nodes

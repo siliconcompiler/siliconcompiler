@@ -6,21 +6,6 @@ from siliconcompiler.tools._common import input_file_node_name, get_tool_task
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 
 
-#######################################
-def get_nodes_from(chip, flow, nodes):
-    runtime = RuntimeFlowgraph(
-        chip.schema.get("flowgraph", flow, field="schema"),
-        from_steps=chip.get('option', 'from'),
-        to_steps=chip.get('option', 'to'),
-        prune_nodes=chip.get('option', 'prune'))
-
-    all_nodes = set()
-    for node in nodes:
-        all_nodes.update(runtime.get_nodes_starting_at(*node))
-
-    return all_nodes
-
-
 ###########################################################################
 def nodes_to_execute(chip, flow=None):
     '''
