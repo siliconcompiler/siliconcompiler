@@ -93,7 +93,6 @@ def get_default_iomap():
 
     # Timing libraries
     timing_liberty = ('lib', 'ccs')
-    timing_sdf = ('sdf',)
 
     # Layout
     layout_def = ('def',)
@@ -145,7 +144,6 @@ def get_default_iomap():
     default_iomap.update({ext: ('rtl', 'vhdl') for ext in rtl_vhdl})
 
     default_iomap.update({ext: ('timing', 'liberty') for ext in timing_liberty})
-    default_iomap.update({ext: ('timing', 'sdf') for ext in timing_sdf})
 
     default_iomap.update({ext: ('layout', 'def') for ext in layout_def})
     default_iomap.update({ext: ('layout', 'lef') for ext in layout_lef})

@@ -70,6 +70,18 @@ def setup(chip):
             chip.add('tool', tool, 'task', task, 'require', f'constraint,timing,{scenario},file',
                      step=step, index=index)
 
+    # Add the SPEF or SDF files as inputs if provided.
+    spef_files = [f for f in input_provides(chip, step, index) if f.endswith(".spef")]
+    sdf_files = [f for f in input_provides(chip, step, index) if f.endswith(".sdf")]
+    if spef_files and sdf_files:
+        return "both SPEF and SDF files provided, can only provide one"
+    for spef in spef_files:
+        chip.set('tool', tool, 'task', task, 'input', spef,
+                 step=step, index=index)
+    for sdf in sdf_files:
+        chip.set('tool', tool, 'task', task, 'input', sdf,
+                 step=step, index=index)
+
     add_common_file(chip, 'opensta_generic_sdc', 'sdc/sc_constraints.sdc')
 
 

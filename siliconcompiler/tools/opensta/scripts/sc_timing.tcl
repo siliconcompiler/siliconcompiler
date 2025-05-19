@@ -157,11 +157,6 @@ foreach corner $sc_scenarios {
     if { [file exists $input_sdf_file] } {
         puts "Reading SDF ($corner): $input_sdf_file"
         read_sdf -corner $corner $input_sdf_file
-    } elseif { [sc_cfg_exists input timing sdf] } {
-        foreach sdf_file [sc_cfg_get input timing sdf] {
-            puts "Reading SDF: ${sdf_file}"
-            read_sdf $sdf_file
-        }
     }
 }
 
