@@ -989,7 +989,7 @@ def _run_executable_or_builtin(chip, step, index, version, toolpath, workdir, ru
 
                             memory_usage = psutil.virtual_memory()
                             if memory_usage.percent > MEMORY_WARN_LIMIT:
-                                chip.logger.warn(
+                                chip.logger.warning(
                                     f'Current system memory usage is {memory_usage.percent}%')
 
                                 # increase limit warning
