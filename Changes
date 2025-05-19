@@ -13,7 +13,7 @@ SiliconCompiler 0.33.0 (2025-05-19)
 
 **Major:**
 
- * Core schema infratructure rewritten to provide better testing and easier use when integration changes.
+ * Core schema infrastructure rewritten to provide better testing and easier use when integration changes.
 
 **Minor:**
 
