@@ -12,8 +12,9 @@ def test_version():
     chip.use(asic_demo)
 
     flow = chip.get('option', 'flow')
-    chip.set('flowgraph', flow, 'import', '0', 'tool', 'dummy')
-    chip.set('flowgraph', flow, 'import', '0', 'taskmodule', 'tests.core.tools.dummy.import')
+    chip.set('flowgraph', flow, 'import.verilog', '0', 'tool', 'dummy')
+    chip.set('flowgraph', flow, 'import.verilog', '0', 'taskmodule',
+             'tests.core.tools.dummy.import')
 
     with pytest.raises(siliconcompiler.SiliconCompilerError):
         chip.run(raise_exception=True)

@@ -13,9 +13,6 @@ from siliconcompiler.flowgraph import RuntimeFlowgraph
 
 from siliconcompiler.schema import JournalingSchema
 
-from siliconcompiler.scheduler import slurm
-from siliconcompiler.scheduler import docker_runner
-from siliconcompiler.tools._common import get_tool_task
 from siliconcompiler.utils.logging import SCBlankLoggerFormatter
 
 
@@ -33,7 +30,7 @@ class TaskScheduler:
             raise ValueError(f"{hook} is not a valid callback")
         TaskScheduler.__callbacks[hook] = func
 
-    def __init__(self, chip):
+    def __init__(self, chip, tasks):
         self.__chip = chip
         self.__logger = self.__chip.logger
         self.__schema = self.__chip.schema
@@ -50,17 +47,21 @@ class TaskScheduler:
         # clip max parallel jobs to 1 <= jobs <= max_cores
         self.__max_parallel_run = max(1, min(self.__max_parallel_run, self.__max_cores))
 
+        self.__runtime_flow = RuntimeFlowgraph(
+            self.__flow,
+            from_steps=self.__chip.get('option', 'from'),
+            to_steps=self.__chip.get('option', 'to'),
+            prune_nodes=self.__chip.get('option', 'prune'))
+
         self.__log_queue = multiprocessing.Queue(-1)
 
         self.__nodes = {}
         self.__startTimes = {}
         self.__dwellTime = 0.1
 
-        self.__create_nodes()
+        self.__create_nodes(tasks)
 
-    def __create_nodes(self):
-        from siliconcompiler.scheduler import _executenode, _runtask
-
+    def __create_nodes(self, tasks):
         runtime = RuntimeFlowgraph(
             self.__flow,
             from_steps=set([step for step, _ in self.__flow.get_entry_nodes()]),
@@ -68,19 +69,11 @@ class TaskScheduler:
 
         init_funcs = set()
 
-        runtime_flow = RuntimeFlowgraph(
-            self.__flow,
-            from_steps=self.__chip.get('option', 'from'),
-            to_steps=self.__chip.get('option', 'to'),
-            prune_nodes=self.__chip.get('option', 'prune'))
-
-        for step, index in runtime_flow.get_nodes():
+        for step, index in self.__runtime_flow.get_nodes():
             if self.__record.get('status', step=step, index=index) != NodeStatus.PENDING:
                 continue
 
-            tool_name, task_name = get_tool_task(self.__chip, step, index)
-            threads = self.__chip.get('tool', tool_name, 'task', task_name, 'threads',
-                                      step=step, index=index)
+            threads = tasks[(step, index)].threads
             if not threads:
                 threads = self.__max_threads
             threads = max(1, min(threads, self.__max_threads))
@@ -89,42 +82,21 @@ class TaskScheduler:
                 "name": f"{step}{index}",
                 "inputs": runtime.get_node_inputs(step, index, record=self.__record),
                 "proc": None,
-                "child_pipe": None,
                 "parent_pipe": None,
-                "local": False,
-                "tool": tool_name,
-                "task": task_name,
                 "threads": threads,
                 "running": False,
                 "manifest": os.path.join(self.__chip.getworkdir(step=step, index=index),
                                          'outputs',
-                                         f'{self.__chip.design}.pkg.json')
+                                         f'{self.__chip.design}.pkg.json'),
+                "node": tasks[(step, index)]
             }
 
-            exec_func = _executenode
+            task["parent_pipe"], pipe = multiprocessing.Pipe()
+            task["node"].set_queue(pipe, self.__log_queue)
+            task["node"].init_state()  # reinit access to remove holdover access
 
-            node_scheduler = self.__chip.get('option', 'scheduler', 'name', step=step, index=index)
-            if node_scheduler == 'slurm':
-                # Defer job to compute node
-                # If the job is configured to run on a cluster, collect the schema
-                # and send it to a compute node for deferred execution.
-                init_funcs.add(slurm.init)
-                exec_func = slurm._defernode
-            elif node_scheduler == 'docker':
-                # Run job in docker
-                init_funcs.add(docker_runner.init)
-                exec_func = docker_runner.run
-                task["local"] = True
-            else:
-                task["local"] = True
-
-            task["parent_pipe"], task["child_pipe"] = multiprocessing.Pipe()
-            task["proc"] = multiprocessing.Process(
-                target=_runtask,
-                args=(self.__chip, self.__flow.name(), step, index, exec_func),
-                kwargs={"pipe": task["child_pipe"],
-                        "queue": self.__log_queue})
-
+            task["proc"] = multiprocessing.Process(target=task["node"].run)
+            init_funcs.add(task["node"].init)
             self.__nodes[(step, index)] = task
 
         # Call preprocessing for schedulers
@@ -218,6 +190,9 @@ class TaskScheduler:
 
                 if os.path.exists(manifest):
                     JournalingSchema(self.__schema).read_journal(manifest)
+                    # TODO: once tool is fixed this can go away
+                    self.__schema.unset("arg", "step")
+                    self.__schema.unset("arg", "index")
 
                 if info["parent_pipe"] and info["parent_pipe"].poll(1):
                     try:
@@ -249,7 +224,7 @@ class TaskScheduler:
     def __allow_start(self, node):
         info = self.__nodes[node]
 
-        if not info["local"]:
+        if not info["node"].is_local:
             # using a different scheduler, so allow
             return True
 
@@ -286,7 +261,7 @@ class TaskScheduler:
                 if not NodeStatus.is_done(in_status):
                     ready = False
                     break
-                if NodeStatus.is_error(in_status) and info["tool"] != "builtin":
+                if NodeStatus.is_error(in_status) and not info["node"].is_builtin:
                     # Fail if any dependency failed for non-builtin task
                     self.__record.set("status", NodeStatus.ERROR, step=step, index=index)
 
@@ -295,7 +270,7 @@ class TaskScheduler:
                 any_success = any([status == NodeStatus.SUCCESS for status in inputs])
             else:
                 any_success = True
-            if ready and info["tool"] == "builtin" and not any_success:
+            if ready and info["node"].is_builtin and not any_success:
                 self.__record.set("status", NodeStatus.ERROR, step=step, index=index)
 
             if self.__record.get('status', step=step, index=index) == NodeStatus.ERROR:
@@ -318,3 +293,14 @@ class TaskScheduler:
                 info["proc"].start()
 
         return changed
+
+    def check(self):
+        exit_steps = set([step for step, _ in self.__runtime_flow.get_exit_nodes()])
+        completed_steps = set([step for step, _ in
+                               self.__runtime_flow.get_completed_nodes(record=self.__record)])
+
+        unreached = set(exit_steps).difference(completed_steps)
+
+        if unreached:
+            raise RuntimeError(
+                f'These final steps could not be reached: {", ".join(sorted(unreached))}')

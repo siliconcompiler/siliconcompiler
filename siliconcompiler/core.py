@@ -36,7 +36,7 @@ from siliconcompiler.report.dashboard.cli import CliDashboard
 from siliconcompiler.report.dashboard import DashboardType
 from siliconcompiler import package as sc_package
 import glob
-from siliconcompiler.scheduler import run as sc_runner
+from siliconcompiler.scheduler.scheduler import Scheduler
 from siliconcompiler.utils.flowgraph import _check_flowgraph_io, _get_flowgraph_information
 from siliconcompiler.tools._common import get_tool_task
 from types import FunctionType, ModuleType
@@ -3201,9 +3201,14 @@ class Chip:
             >>> run()
             Runs the execution flow defined by the flowgraph dictionary.
         '''
+        from siliconcompiler.remote.client import ClientScheduler
 
         try:
-            sc_runner(self)
+            if self.get('option', 'remote'):
+                scheduler = ClientScheduler(self)
+            else:
+                scheduler = Scheduler(self)
+            scheduler.run()
         except Exception as e:
             if raise_exception:
                 raise e

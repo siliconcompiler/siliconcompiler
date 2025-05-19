@@ -2,7 +2,6 @@ import siliconcompiler
 
 from siliconcompiler.tools.builtin import nop, minimum, maximum
 from core.tools.dummy import runner
-from siliconcompiler._common import SiliconCompilerError
 from siliconcompiler.targets import freepdk45_demo
 
 import pytest
@@ -21,7 +20,7 @@ def test_prune_end(caplogger):
     chip.edge(flow, 'import', 'syn')
     chip.set('option', 'prune', ('syn', '0'))
 
-    with pytest.raises(SiliconCompilerError,
+    with pytest.raises(ValueError,
                        match=f"{flow} flowgraph contains errors and cannot be run."):
         chip.run(raise_exception=True)
 
@@ -42,7 +41,7 @@ def test_prune_middle(caplogger):
     chip.edge(flow, 'syn', 'place')
     chip.set('option', 'prune', ('syn', '0'))
 
-    with pytest.raises(SiliconCompilerError,
+    with pytest.raises(ValueError,
                        match="test flowgraph contains errors and cannot be run"):
         chip.run(raise_exception=True)
 
@@ -87,7 +86,7 @@ def test_prune_split_join(caplogger):
     # Remove all syn
     chip.set('option', 'prune', [('syn', '0'), ('syn', '1')])
 
-    with pytest.raises(SiliconCompilerError,
+    with pytest.raises(ValueError,
                        match="test flowgraph contains errors and cannot be run."):
         chip.run(raise_exception=True)
 
@@ -297,7 +296,7 @@ def test_prune_nodenotpresent(caplogger):
     chip.edge(flow, 'merge', 'report')
     chip.set('option', 'prune', [('sim1', '3')])
 
-    with pytest.raises(SiliconCompilerError,
+    with pytest.raises(ValueError,
                        match="test flowgraph contains errors and cannot be run."):
         chip.run(raise_exception=True)
 
@@ -359,7 +358,7 @@ def test_prune_max_all_inputs_pruned(caplogger):
     chip.edge(flow, 'syn', 'place', tail_index=1)
     chip.set('option', 'prune', [('syn', '0'), ('syn', '1')])
 
-    with pytest.raises(SiliconCompilerError,
+    with pytest.raises(ValueError,
                        match="test flowgraph contains errors and cannot be run."):
         chip.run(raise_exception=True)
 

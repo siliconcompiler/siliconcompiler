@@ -874,6 +874,17 @@ class ToolSchemaTmp(ToolSchema):
             return method(version)
         return ToolSchema.normalize_version(self, version)
 
+    def generate_replay_script(self, filepath, workdir, include_path=True):
+        prev_step, prev_index = self._ToolSchema__chip.get('arg', 'step'), \
+            self._ToolSchema__chip.get('arg', 'index')
+        step, index = self.node()
+        self._ToolSchema__chip.set('arg', 'step', step)
+        self._ToolSchema__chip.set('arg', 'index', index)
+        ret = ToolSchema.generate_replay_script(self, filepath, workdir, include_path=include_path)
+        self._ToolSchema__chip.set('arg', 'step', prev_step)
+        self._ToolSchema__chip.set('arg', 'index', prev_index)
+        return ret
+
     def setup(self):
         _, task = self.__tool_task_modules()
         method = self.__module_func("setup", [task])

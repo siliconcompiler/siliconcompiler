@@ -4,11 +4,11 @@ from threading import Lock
 
 from siliconcompiler import NodeStatus
 from siliconcompiler import Chip, Flow
-from siliconcompiler.scheduler import TaskScheduler
+from siliconcompiler.scheduler.taskscheduler import TaskScheduler
 from siliconcompiler.scheduler.taskscheduler import utils as imported_utils
+from siliconcompiler.scheduler.schedulernode import SchedulerNode
 
 from siliconcompiler.tools.builtin import join, nop
-from siliconcompiler.scheduler import _setup_node
 
 
 @pytest.fixture
@@ -40,14 +40,25 @@ def large_flow():
 
     chip.set("tool", "builtin", "task", "nop", "threads", 1)
     for step, index in chip.get("flowgraph", "testflow", field="schema").get_nodes():
-        _setup_node(chip, step, index, "testflow")
+        SchedulerNode(chip, step, index).setup()
         chip.set("record", "status", NodeStatus.PENDING, step=step, index=index)
 
     return chip
 
 
-def test_get_nodes(large_flow):
-    scheduler = TaskScheduler(large_flow)
+@pytest.fixture
+def make_tasks():
+    def make(chip):
+        tasks = {}
+        for step, index in chip.get(
+                "flowgraph", chip.get('option', 'flow'), field="schema").get_nodes():
+            tasks[(step, index)] = SchedulerNode(chip, step, index)
+        return tasks
+    return make
+
+
+def test_get_nodes(large_flow, make_tasks):
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
     assert scheduler.get_nodes() == [
         ('joinone', '0'), ('jointhree', '0'), ('jointwo', '0'),
         ('stepone', '0'), ('stepone', '1'), ('stepone', '2'),
@@ -55,9 +66,9 @@ def test_get_nodes(large_flow):
         ('steptwo', '0'), ('steptwo', '1'), ('steptwo', '2')]
 
 
-def test_get_nodes_with_complete(large_flow):
+def test_get_nodes_with_complete(large_flow, make_tasks):
     large_flow.set("record", "status", NodeStatus.SUCCESS, step="stepone", index="0")
-    scheduler = TaskScheduler(large_flow)
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
     assert scheduler.get_nodes() == [
         ('joinone', '0'), ('jointhree', '0'), ('jointwo', '0'),
         ('stepone', '1'), ('stepone', '2'),
@@ -80,15 +91,15 @@ def test_register_callback():
     assert callbacks["pre_run"] is callback
 
 
-def test_run(large_flow):
-    scheduler = TaskScheduler(large_flow)
+def test_run(large_flow, make_tasks):
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
     scheduler.run()
 
     for step, index in large_flow.get("flowgraph", "testflow", field="schema").get_nodes():
         assert large_flow.get("record", "status", step=step, index=index) == NodeStatus.SUCCESS
 
 
-def test_run_callbacks(large_flow):
+def test_run_callbacks(large_flow, make_tasks):
     class Callback:
         pre_run = 0
         pre_node = 0
@@ -116,7 +127,7 @@ def test_run_callbacks(large_flow):
     TaskScheduler.register_callback("post_node", Callback.callback_post_node)
     TaskScheduler.register_callback("post_run", Callback.callback_post_run)
 
-    scheduler = TaskScheduler(large_flow)
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
     scheduler.run()
 
     assert Callback.pre_run == 1
@@ -125,7 +136,7 @@ def test_run_callbacks(large_flow):
     assert Callback.post_run == 1
 
 
-def test_run_dashboard(large_flow, monkeypatch):
+def test_run_dashboard(large_flow, make_tasks, monkeypatch):
     class FakeDashboard:
         lock = Lock()
         calls = []
@@ -140,7 +151,7 @@ def test_run_dashboard(large_flow, monkeypatch):
 
     large_flow._dash = FakeDashboard()
 
-    scheduler = TaskScheduler(large_flow)
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
     scheduler.run()
 
     assert len(large_flow._dash.calls) == 14
@@ -149,8 +160,8 @@ def test_run_dashboard(large_flow, monkeypatch):
     assert len(large_flow._dash.calls[-1]["starttimes"]) == 13
 
 
-def test_run_control_c(large_flow, monkeypatch):
-    scheduler = TaskScheduler(large_flow)
+def test_run_control_c(large_flow, make_tasks, monkeypatch):
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
 
     def dummy_loop():
         raise KeyboardInterrupt
@@ -158,3 +169,16 @@ def test_run_control_c(large_flow, monkeypatch):
 
     with pytest.raises(SystemExit):
         scheduler.run()
+
+
+def test_check(large_flow, make_tasks):
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+    large_flow.set("record", "status", NodeStatus.SUCCESS, step="jointhree", index="0")
+    scheduler.check()
+
+
+def test_check_invalid(large_flow, make_tasks):
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+
+    with pytest.raises(RuntimeError, match="These final steps could not be reached: jointhree"):
+        scheduler.check()

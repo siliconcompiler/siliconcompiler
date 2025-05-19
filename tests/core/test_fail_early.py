@@ -1,7 +1,6 @@
 import siliconcompiler
 from siliconcompiler.tools.yosys import syn_asic
 from siliconcompiler.tools.surelog import parse
-from siliconcompiler._common import SiliconCompilerError
 import pytest
 import os
 from siliconcompiler.targets import freepdk45_demo
@@ -19,7 +18,7 @@ def test_fail_early(capfd):
 
     try:
         chip.run(raise_exception=True)
-    except SiliconCompilerError:
+    except RuntimeError:
         # Fail if 'syn' step is run
         out, _ = capfd.readouterr()
         assert "Halting step 'syn'" not in out
@@ -37,7 +36,7 @@ def test_tool_failure_manifest(datadir):
     chip.node(flow, 'syn', syn_asic)
     chip.edge(flow, 'import', 'syn')
 
-    with pytest.raises(SiliconCompilerError):
+    with pytest.raises(RuntimeError):
         chip.run(raise_exception=True)
 
     cfg = f'{chip.getworkdir(step="syn", index="0")}/outputs/gcd.pkg.json'
