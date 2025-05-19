@@ -6,22 +6,7 @@ from siliconcompiler.tools._common import input_file_node_name, get_tool_task
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 
 
-def _get_pruned_node_inputs(chip, flow, node):
-    # Ignore option from/to, we want reachable nodes of the whole flowgraph
-    flow_schema = chip.schema.get("flowgraph", flow, field="schema")
-    runtime = RuntimeFlowgraph(
-        flow_schema,
-        from_steps=set([step for step, _ in flow_schema.get_entry_nodes()]),
-        prune_nodes=chip.get('option', 'prune'))
-
-    return runtime.get_node_inputs(*node, record=chip.schema.get("record", field="schema"))
-
-
 #######################################
-def _get_flowgraph_execution_order(chip, flow, reverse=False):
-    return chip.schema.get("flowgraph", flow, field="schema").get_execution_order(reverse=reverse)
-
-
 def get_nodes_from(chip, flow, nodes):
     runtime = RuntimeFlowgraph(
         chip.schema.get("flowgraph", flow, field="schema"),
@@ -190,7 +175,7 @@ def _get_flowgraph_information(chip, flow, io=True):
     chip.schema = chip.schema.copy()
 
     # Setup nodes
-    node_exec_order = _get_flowgraph_execution_order(chip, flow)
+    node_exec_order = chip.schema.get("flowgraph", flow, field="schema").get_execution_order()
     if io:
         # try:
         for layer_nodes in node_exec_order:

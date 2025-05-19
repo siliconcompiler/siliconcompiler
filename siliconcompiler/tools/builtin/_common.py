@@ -3,7 +3,7 @@ from siliconcompiler import NodeStatus, SiliconCompilerError
 from siliconcompiler import utils
 import shutil
 from siliconcompiler.tools._common import get_tool_task
-from siliconcompiler.utils.flowgraph import _get_pruned_node_inputs
+from siliconcompiler.flowgraph import RuntimeFlowgraph
 
 
 ###########################################################################
@@ -152,4 +152,11 @@ def _select_inputs(chip, step, index):
     chip.logger.info(f"Running builtin task '{task}'")
 
     flow = chip.get('option', 'flow')
-    return _get_pruned_node_inputs(chip, flow, (step, index))
+
+    flow_schema = chip.schema.get("flowgraph", flow, field="schema")
+    runtime = RuntimeFlowgraph(
+        flow_schema,
+        from_steps=set([step for step, _ in flow_schema.get_entry_nodes()]),
+        prune_nodes=chip.get('option', 'prune'))
+
+    return runtime.get_node_inputs(step, index, record=chip.schema.get("record", field="schema"))

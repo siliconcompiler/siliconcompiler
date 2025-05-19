@@ -4,13 +4,12 @@ import pytest
 
 import os.path
 from siliconcompiler.apps import _common
-from siliconcompiler.utils.flowgraph import _get_flowgraph_execution_order
 
 
 @pytest.fixture
 def make_manifests():
     def impl(chip):
-        for nodes in _get_flowgraph_execution_order(chip, 'asicflow'):
+        for nodes in chip.schema.get("flowgraph", "asicflow", field="schema").get_execution_order():
             for step, index in nodes:
                 for d in ('inputs', 'outputs'):
                     path = os.path.join(chip.getworkdir(step=step, index=index), d)

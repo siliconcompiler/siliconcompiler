@@ -1,14 +1,14 @@
 from siliconcompiler import NodeStatus
 from siliconcompiler.utils import units
-from siliconcompiler.utils.flowgraph import _get_flowgraph_execution_order, \
-    nodes_to_execute
+from siliconcompiler.utils.flowgraph import nodes_to_execute
 from siliconcompiler.tools._common import get_tool_task
 
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 
 
 def _find_summary_image(chip, ext='png'):
-    for nodes in reversed(_get_flowgraph_execution_order(chip, chip.get('option', 'flow'))):
+    for nodes in reversed(chip.schema.get(
+            "flowgraph", chip.get('option', 'flow'), field="schema").get_execution_order()):
         for step, index in nodes:
             layout_img = chip.find_result(ext, step=step, index=index)
             if layout_img:
@@ -18,7 +18,8 @@ def _find_summary_image(chip, ext='png'):
 
 def _find_summary_metrics(chip, metrics_map):
     metrics = {}
-    for nodes in reversed(_get_flowgraph_execution_order(chip, chip.get('option', 'flow'))):
+    for nodes in reversed(chip.schema.get(
+            "flowgraph", chip.get('option', 'flow'), field="schema").get_execution_order()):
         for step, index in nodes:
             for name, metric_info in metrics_map.items():
                 if name in metrics:
@@ -64,7 +65,7 @@ def _collect_data(chip, flow=None, flowgraph_nodes=None, format_as_string=True):
     reports = {}
 
     # Build ordered list of nodes in flowgraph
-    for level_nodes in _get_flowgraph_execution_order(chip, flow):
+    for level_nodes in chip.schema.get("flowgraph", flow, field="schema").get_execution_order():
         nodes.extend(sorted(level_nodes))
     nodes = [node for node in nodes if node in flowgraph_nodes]
     for (step, index) in nodes:

@@ -38,9 +38,7 @@ from siliconcompiler import package as sc_package
 import glob
 from siliconcompiler.scheduler import run as sc_runner
 from siliconcompiler.utils.flowgraph import nodes_to_execute, \
-    _get_pruned_node_inputs, \
-    _get_flowgraph_execution_order, _check_flowgraph_io, \
-    _get_flowgraph_information
+    _check_flowgraph_io, _get_flowgraph_information
 from siliconcompiler.tools._common import get_tool_task
 from types import FunctionType, ModuleType
 from siliconcompiler.flowgraph import RuntimeFlowgraph
@@ -1625,8 +1623,15 @@ class Chip:
         nodes = [node for node in nodes_to_execute(self)
                  if self.get('record', 'status', step=node[0], index=node[1])
                  != NodeStatus.SKIPPED]
+        flow_schema = self.schema.get("flowgraph", flow, field="schema")
+        runtime = RuntimeFlowgraph(
+            flow_schema,
+            from_steps=set([step for step, _ in flow_schema.get_entry_nodes()]),
+            prune_nodes=self.get('option', 'prune'))
+
         for (step, index) in nodes:
-            for in_step, in_index in _get_pruned_node_inputs(self, flow, (step, index)):
+            for in_step, in_index in runtime.get_node_inputs(
+                    step, index, record=self.schema.get("record", field="schema")):
                 if (in_step, in_index) in nodes:
                     # we're gonna run this step, OK
                     continue
@@ -3236,9 +3241,8 @@ class Chip:
                             search_nodes.append((check_step, check_index))
             else:
                 if flow is not None:
-                    for nodes in _get_flowgraph_execution_order(self,
-                                                                flow,
-                                                                reverse=True):
+                    for nodes in self.schema.get(
+                            "flowgraph", flow, field="schema").get_execution_order(reverse=True):
                         search_nodes.extend(nodes)
 
             for ext in self._showtools.keys():

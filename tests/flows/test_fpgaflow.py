@@ -5,7 +5,6 @@ from siliconcompiler import Chip, FPGA
 from siliconcompiler.scheduler import _setup_node
 from siliconcompiler.flows import fpgaflow
 from siliconcompiler.tools.vpr import route, place
-from siliconcompiler.utils.flowgraph import _get_flowgraph_execution_order
 from logiklib.demo.K4_N8_6x6 import K4_N8_6x6
 from logiklib.demo.K6_N8_3x3 import K6_N8_3x3
 from logiklib.demo.K6_N8_12x12_BD import K6_N8_12x12_BD
@@ -425,7 +424,8 @@ def test_vpr_max_router_iterations():
 
     # Verify that the user's setting doesn't get clobbered
     # by the FPGA flow
-    for layer_nodes in _get_flowgraph_execution_order(chip, 'fpgaflow'):
+    for layer_nodes in chip.schema.get(
+            "flowgraph", "fpgaflow", field="schema").get_execution_order():
         for step, index in layer_nodes:
             _setup_node(chip, step, index)
 

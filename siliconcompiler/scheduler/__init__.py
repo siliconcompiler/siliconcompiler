@@ -23,8 +23,7 @@ from siliconcompiler.record import RecordTime, RecordTool
 from siliconcompiler.scheduler import slurm
 from siliconcompiler.scheduler import docker_runner
 from siliconcompiler import NodeStatus, SiliconCompilerError
-from siliconcompiler.utils.flowgraph import _get_flowgraph_execution_order, \
-    _get_pruned_node_inputs, \
+from siliconcompiler.utils.flowgraph import \
     get_nodes_from, nodes_to_execute, _check_flowgraph
 from siliconcompiler.utils.logging import SCBlankLoggerFormatter
 from siliconcompiler.tools._common import input_file_node_name
@@ -191,7 +190,7 @@ def _local_process(chip, flow):
             prune_nodes=chip.get('option', 'prune'))
         load_nodes = list(runtime.get_nodes())
 
-    for node_level in _get_flowgraph_execution_order(chip, flow):
+    for node_level in chip.schema.get("flowgraph", flow, field="schema").get_execution_order():
         for step, index in node_level:
             if (step, index) not in load_nodes:
                 continue
@@ -213,7 +212,7 @@ def _local_process(chip, flow):
     # Setup tools for all nodes to run.
     nodes = list(nodes_to_execute(chip, flow))
     all_setup_nodes = nodes + load_nodes + list(extra_setup_nodes.keys())
-    for layer_nodes in _get_flowgraph_execution_order(chip, flow):
+    for layer_nodes in chip.schema.get("flowgraph", flow, field="schema").get_execution_order():
         for step, index in layer_nodes:
             if (step, index) in all_setup_nodes:
                 node_kept = _setup_node(chip, step, index)
@@ -249,7 +248,7 @@ def _local_process(chip, flow):
         to_steps=chip.get('option', 'to'),
         prune_nodes=chip.get('option', 'prune'))
 
-    for layer_nodes in _get_flowgraph_execution_order(chip, flow):
+    for layer_nodes in chip.schema.get("flowgraph", flow, field="schema").get_execution_order():
         for step, index in layer_nodes:
             # Only look at successful nodes
             if chip.get('record', 'status', step=step, index=index) not in \
@@ -583,7 +582,14 @@ def _select_inputs(chip, step, index, trial=False):
         if trial:
             chip.logger.setLevel(log_level)
     else:
-        sel_inputs = _get_pruned_node_inputs(chip, flow, (step, index))
+        flow_schema = chip.schema.get("flowgraph", flow, field="schema")
+        runtime = RuntimeFlowgraph(
+            flow_schema,
+            from_steps=set([step for step, _ in flow_schema.get_entry_nodes()]),
+            prune_nodes=chip.get('option', 'prune'))
+
+        sel_inputs = runtime.get_node_inputs(step, index,
+                                             record=chip.schema.get("record", field="schema"))
 
     if (step, index) not in chip.schema.get("flowgraph", flow, field="schema").get_entry_nodes() \
             and not sel_inputs:
@@ -624,10 +630,18 @@ def _copy_previous_steps_output_data(chip, step, index, replay):
     '''
 
     flow = chip.get('option', 'flow')
-    if not _get_pruned_node_inputs(chip, flow, (step, index)):
+
+    flow_schema = chip.schema.get("flowgraph", flow, field="schema")
+    runtime = RuntimeFlowgraph(
+        flow_schema,
+        from_steps=set([step for step, _ in flow_schema.get_entry_nodes()]),
+        prune_nodes=chip.get('option', 'prune'))
+
+    if not runtime.get_node_inputs(step, index, record=chip.schema.get("record", field="schema")):
         all_inputs = []
     elif not chip.get('record', 'inputnode', step=step, index=index):
-        all_inputs = _get_pruned_node_inputs(chip, flow, (step, index))
+        all_inputs = runtime.get_node_inputs(step, index,
+                                             record=chip.schema.get("record", field="schema"))
     else:
         all_inputs = chip.get('record', 'inputnode', step=step, index=index)
 
@@ -1530,6 +1544,12 @@ def _prepare_nodes(chip, nodes_to_run, processes, local_processes, flow):
     # Log queue for logging messages
     log_queue = multiprocessing.Queue(-1)
 
+    flow_schema = chip.schema.get("flowgraph", flow, field="schema")
+    runtime = RuntimeFlowgraph(
+        flow_schema,
+        from_steps=set([step for step, _ in flow_schema.get_entry_nodes()]),
+        prune_nodes=chip.get('option', 'prune'))
+
     init_funcs = set()
     for (step, index) in nodes_to_execute(chip, flow):
         node = (step, index)
@@ -1537,7 +1557,9 @@ def _prepare_nodes(chip, nodes_to_run, processes, local_processes, flow):
         if chip.get('record', 'status', step=step, index=index) != NodeStatus.PENDING:
             continue
 
-        nodes_to_run[node] = _get_pruned_node_inputs(chip, flow, (step, index))
+        nodes_to_run[node] = runtime.get_node_inputs(
+            step, index,
+            record=chip.schema.get("record", field="schema"))
 
         exec_func = _executenode
 

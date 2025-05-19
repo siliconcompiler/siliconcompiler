@@ -13,8 +13,7 @@ from core.tools.fake import baz
 from core.tools.echo import echo
 
 from siliconcompiler.tools.builtin import nop
-from siliconcompiler.utils.flowgraph import _check_flowgraph, \
-    _get_flowgraph_execution_order
+from siliconcompiler.utils.flowgraph import _check_flowgraph
 from siliconcompiler.targets import freepdk45_demo, gf180_demo
 
 
@@ -24,7 +23,8 @@ def test_check_manifest():
     chip.input('examples/gcd/gcd.v')
     chip.set('option', 'to', ['syn'])
 
-    for layer_nodes in _get_flowgraph_execution_order(chip, 'asicflow'):
+    for layer_nodes in chip.schema.get(
+            "flowgraph", "asicflow", field="schema").get_execution_order():
         for step, index in layer_nodes:
             _setup_node(chip, step, index)
 
@@ -41,7 +41,8 @@ def test_check_allowed_filepaths_pass(scroot):
     chip.input(os.path.join(scroot, 'examples', 'gcd', 'gcd.v'))
     chip.use(freepdk45_demo)
 
-    for layer_nodes in _get_flowgraph_execution_order(chip, 'asicflow'):
+    for layer_nodes in chip.schema.get(
+            "flowgraph", "asicflow", field="schema").get_execution_order():
         for step, index in layer_nodes:
             _setup_node(chip, step, index)
 
@@ -216,7 +217,8 @@ def test_check_missing_library():
 
     chip.add('option', 'library', 'sc_test')
 
-    for layer_nodes in _get_flowgraph_execution_order(chip, 'asicflow'):
+    for layer_nodes in chip.schema.get(
+            "flowgraph", "asicflow", field="schema").get_execution_order():
         for step, index in layer_nodes:
             _setup_node(chip, step, index)
 
