@@ -599,7 +599,7 @@ def test_runtime_get_exit_nodes_jumbled_values(large_flow):
     assert runtime.get_exit_nodes() == (('jointhree', '0'),)
 
 
-def test_nodes_to_execute():
+def test_runtime_get_nodes_flows():
     '''
     A -- B -- C -- D
     |              |
@@ -622,7 +622,7 @@ def test_nodes_to_execute():
         ('A', '0'), ('B', '0'), ('C', '0'), ('D', '0'))
 
 
-def test_nodes_to_execute_to():
+def test_runtime_get_nodes_flows_to():
     '''
     Check to ensure forked graph is handled properly with to
     A -- B -- C -- D
@@ -649,7 +649,7 @@ def test_nodes_to_execute_to():
     )
 
 
-def test_nodes_to_execute_to_multiple():
+def test_runtime_get_nodes_flows_to_multiple():
     '''
     Check to ensure forked graph is handled properly with to and multiple ends
     A -- B -- C -- D
@@ -679,7 +679,7 @@ def test_nodes_to_execute_to_multiple():
     )
 
 
-def test_nodes_to_execute_from():
+def test_runtime_get_nodes_flows_from():
     '''
     Check to ensure forked graph is handled properly with from
     A --{B}-- C -- D
@@ -709,7 +709,7 @@ def test_nodes_to_execute_from():
     )
 
 
-def test_nodes_to_execute_from_to():
+def test_runtime_get_nodes_flows_from_to():
     '''
     Check to ensure forked graph is handled properly with from/to
     A --{B}-- C -- D
@@ -736,9 +736,9 @@ def test_nodes_to_execute_from_to():
     )
 
 
-def test_nodes_to_execute_disjoint_graph_from():
+def test_runtime_get_nodes_flows_disjoint_graph_from():
     '''
-    Check to ensure nodes_to_execute properly handles disjoint flowgraphs
+    Check to ensure get_nodes properly handles disjoint flowgraphs
     A --{B}-- C -- D
 
     E -- F -- G -- H
@@ -770,9 +770,9 @@ def test_nodes_to_execute_disjoint_graph_from():
     )
 
 
-def test_nodes_to_execute_disjoint_graph_to():
+def test_runtime_get_nodes_flows_disjoint_graph_to():
     '''
-    Check to ensure nodes_to_execute properly handles disjoint flowgraphs
+    Check to ensure get_nodes properly handles disjoint flowgraphs
     A -- B --[C]-- D
 
     E -- F -- G -- H
@@ -804,9 +804,9 @@ def test_nodes_to_execute_disjoint_graph_to():
     )
 
 
-def test_nodes_to_execute_disjoint_graph_from_to():
+def test_runtime_get_nodes_flows_disjoint_graph_from_to():
     '''
-    Check to ensure nodes_to_execute properly handles disjoint flowgraphs
+    Check to ensure get_nodes properly handles disjoint flowgraphs
     A --{B}--[C]-- D
 
     E -- F -- G -- H
@@ -837,9 +837,9 @@ def test_nodes_to_execute_disjoint_graph_from_to():
     )
 
 
-def test_nodes_to_execute_cut_middle():
+def test_runtime_get_nodes_flows_cut_middle():
     '''
-    Check to ensure nodes_to_execute properly handles pruning the middle node
+    Check to ensure get_nodes properly handles pruning the middle node
     {A} -- {X} --C -- [D]
     '''
     flow = FlowgraphSchema('test')
