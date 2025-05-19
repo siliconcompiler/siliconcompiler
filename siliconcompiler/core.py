@@ -2758,6 +2758,7 @@ class Chip:
             flow = self.get('option', 'flow')
             flowgraph_nodes = [(step, index) for index in self.getkeys("flowgraph", flow, step)]
         else:
+            flow = self.get('option', 'flow')
             runtime = RuntimeFlowgraph(
                 self.schema.get("flowgraph", flow, field='schema'),
                 from_steps=self.get('option', 'from'),
