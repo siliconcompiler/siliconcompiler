@@ -1062,6 +1062,7 @@ def test_run_task_contl_c(running_chip, monkeypatch, patch_psutil, caplog):
 
 
 def test_run_task_breakpoint_valid(running_chip, monkeypatch):
+    pytest.importorskip('pty')
     tool = ToolSchema()
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', 'nop', TaskSchema())
@@ -1081,6 +1082,7 @@ def test_run_task_breakpoint_valid(running_chip, monkeypatch):
 
 
 def test_run_task_breakpoint_not_used(running_chip, monkeypatch):
+    pytest.importorskip('pty')
     tool = ToolSchema()
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', 'nop', TaskSchema())
@@ -1151,6 +1153,7 @@ def test_run_task_run_error(running_chip, monkeypatch):
     assert tool.call_count == 1
 
 
+@pytest.mark.skipif(imported_resource is None, reason="resource not available")
 def test_run_task_run_failed_resource(running_chip, monkeypatch):
     class RunTool(ToolSchema):
         call_count = 0
