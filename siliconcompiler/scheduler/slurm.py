@@ -7,8 +7,8 @@ import uuid
 import json
 import shutil
 from siliconcompiler import utils, SiliconCompilerError
-from siliconcompiler.utils.flowgraph import nodes_to_execute
 from siliconcompiler.package import get_cache_path
+from siliconcompiler.flowgraph import RuntimeFlowgraph
 
 # Full list of Slurm states, split into 'active' and 'inactive' categories.
 # Many of these do not apply to a minimal configuration, but we'll track them all.
@@ -60,7 +60,14 @@ def init(chip):
     collect = False
     flow = chip.get('option', 'flow')
     entry_nodes = chip.schema.get("flowgraph", flow, field="schema").get_entry_nodes()
-    for (step, index) in nodes_to_execute(chip, flow):
+
+    runtime = RuntimeFlowgraph(
+        chip.schema.get("flowgraph", flow, field='schema'),
+        from_steps=chip.get('option', 'from'),
+        to_steps=chip.get('option', 'to'),
+        prune_nodes=chip.get('option', 'prune'))
+
+    for (step, index) in runtime.get_nodes():
         if (step, index) in entry_nodes:
             collect = True
 

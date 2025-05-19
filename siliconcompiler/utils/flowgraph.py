@@ -6,61 +6,6 @@ from siliconcompiler.tools._common import input_file_node_name, get_tool_task
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 
 
-def _get_pruned_node_inputs(chip, flow, node):
-    # Ignore option from/to, we want reachable nodes of the whole flowgraph
-    flow_schema = chip.schema.get("flowgraph", flow, field="schema")
-    runtime = RuntimeFlowgraph(
-        flow_schema,
-        from_steps=set([step for step, _ in flow_schema.get_entry_nodes()]),
-        prune_nodes=chip.get('option', 'prune'))
-
-    return runtime.get_node_inputs(*node, record=chip.schema.get("record", field="schema"))
-
-
-#######################################
-def _get_flowgraph_execution_order(chip, flow, reverse=False):
-    return chip.schema.get("flowgraph", flow, field="schema").get_execution_order(reverse=reverse)
-
-
-def get_nodes_from(chip, flow, nodes):
-    runtime = RuntimeFlowgraph(
-        chip.schema.get("flowgraph", flow, field="schema"),
-        from_steps=chip.get('option', 'from'),
-        to_steps=chip.get('option', 'to'),
-        prune_nodes=chip.get('option', 'prune'))
-
-    all_nodes = set()
-    for node in nodes:
-        all_nodes.update(runtime.get_nodes_starting_at(*node))
-
-    return all_nodes
-
-
-###########################################################################
-def nodes_to_execute(chip, flow=None):
-    '''
-    Returns an ordered list of flowgraph nodes which will be executed.
-    This takes the from/to options into account if flow is the current flow or None.
-
-    Returns:
-        A list of nodes that will get executed during run() (or a specific flow).
-
-    Example:
-        >>> nodes = nodes_to_execute()
-    '''
-    if flow is None:
-        flow = chip.get('option', 'flow')
-
-    runtime = RuntimeFlowgraph(
-        chip.schema.get("flowgraph", flow, field='schema'),
-        args=(chip.get('arg', 'step'), chip.get('arg', 'index')),
-        from_steps=chip.get('option', 'from'),
-        to_steps=chip.get('option', 'to'),
-        prune_nodes=chip.get('option', 'prune'))
-
-    return runtime.get_nodes()
-
-
 ###########################################################################
 def _check_flowgraph(chip, flow=None):
     '''
@@ -98,7 +43,6 @@ def _check_flowgraph_io(chip, nodes=None):
 
     runtime_full = RuntimeFlowgraph(
         chip.schema.get("flowgraph", flow, field='schema'),
-        args=(chip.get('arg', 'step'), chip.get('arg', 'index')),
         to_steps=chip.get('option', 'to'),
         prune_nodes=chip.get('option', 'prune'))
     runtime_flow = RuntimeFlowgraph(
@@ -190,7 +134,7 @@ def _get_flowgraph_information(chip, flow, io=True):
     chip.schema = chip.schema.copy()
 
     # Setup nodes
-    node_exec_order = _get_flowgraph_execution_order(chip, flow)
+    node_exec_order = chip.schema.get("flowgraph", flow, field="schema").get_execution_order()
     if io:
         # try:
         for layer_nodes in node_exec_order:

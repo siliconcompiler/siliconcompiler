@@ -9,13 +9,18 @@ from siliconcompiler.tools.openroad import clock_tree_synthesis
 
 from siliconcompiler.tools.builtin import nop
 from siliconcompiler.tools.builtin import minimum
-
-from siliconcompiler.utils.flowgraph import nodes_to_execute
+from siliconcompiler.flowgraph import RuntimeFlowgraph
 
 
 @pytest.fixture
 def gcd_with_metrics(gcd_chip):
-    steps = nodes_to_execute(gcd_chip)
+    runtime = RuntimeFlowgraph(
+        gcd_chip.schema.get("flowgraph", gcd_chip.get('option', 'flow'), field='schema'),
+        from_steps=gcd_chip.get('option', 'from'),
+        to_steps=gcd_chip.get('option', 'to'),
+        prune_nodes=gcd_chip.get('option', 'prune'))
+
+    steps = runtime.get_nodes()
 
     dummy_data = 0
     flow = gcd_chip.get('option', 'flow')

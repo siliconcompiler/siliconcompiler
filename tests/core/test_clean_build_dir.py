@@ -3,8 +3,8 @@ from siliconcompiler import Chip
 from siliconcompiler.targets import freepdk45_demo
 from siliconcompiler.scheduler import _setup_workdir, clean_build_dir
 from siliconcompiler import NodeStatus
-from siliconcompiler.utils.flowgraph import nodes_to_execute
 from siliconcompiler.tools.builtin import nop
+from siliconcompiler.flowgraph import RuntimeFlowgraph
 
 
 def test_clean_build_dir():
@@ -12,13 +12,19 @@ def test_clean_build_dir():
     chip.use(freepdk45_demo)
     chip.set('option', 'clean', True)
 
+    runtime = RuntimeFlowgraph(
+        chip.schema.get("flowgraph", chip.get('option', 'flow'), field='schema'),
+        from_steps=chip.get('option', 'from'),
+        to_steps=chip.get('option', 'to'),
+        prune_nodes=chip.get('option', 'prune'))
+
     # Create folders
-    for step, index in nodes_to_execute(chip):
+    for step, index in runtime.get_nodes():
         _setup_workdir(chip, step, index, False)
 
     clean_build_dir(chip)
 
-    for step, index in nodes_to_execute(chip):
+    for step, index in runtime.get_nodes():
         assert not os.path.exists(chip.getworkdir(step=step, index=index)), f'({step}, {index})'
     assert not os.path.exists(chip.getworkdir())
 
@@ -27,15 +33,27 @@ def test_clean_build_dir_from():
     chip = Chip('test')
     chip.use(freepdk45_demo)
 
+    runtime = RuntimeFlowgraph(
+        chip.schema.get("flowgraph", chip.get('option', 'flow'), field='schema'),
+        from_steps=chip.get('option', 'from'),
+        to_steps=chip.get('option', 'to'),
+        prune_nodes=chip.get('option', 'prune'))
+
     # Create folders
-    for step, index in nodes_to_execute(chip):
+    for step, index in runtime.get_nodes():
         _setup_workdir(chip, step, index, False)
 
     chip.set('option', 'from', 'place.global')
 
     clean_build_dir(chip)
 
-    for step, index in nodes_to_execute(chip):
+    runtime = RuntimeFlowgraph(
+        chip.schema.get("flowgraph", chip.get('option', 'flow'), field='schema'),
+        from_steps=chip.get('option', 'from'),
+        to_steps=chip.get('option', 'to'),
+        prune_nodes=chip.get('option', 'prune'))
+
+    for step, index in runtime.get_nodes():
         assert not os.path.exists(chip.getworkdir(step=step, index=index)), f'({step}, {index})'
 
     assert os.path.exists(chip.getworkdir(step='import.verilog', index='0'))
@@ -50,8 +68,14 @@ def test_clean_build_dir_clean():
     chip = Chip('test')
     chip.use(freepdk45_demo)
 
+    runtime = RuntimeFlowgraph(
+        chip.schema.get("flowgraph", chip.get('option', 'flow'), field='schema'),
+        from_steps=chip.get('option', 'from'),
+        to_steps=chip.get('option', 'to'),
+        prune_nodes=chip.get('option', 'prune'))
+
     # Create folders
-    for step, index in nodes_to_execute(chip):
+    for step, index in runtime.get_nodes():
         _setup_workdir(chip, step, index, False)
         chip.set('record', 'status', NodeStatus.SUCCESS, step=step, index=index)
         cfg = f"{chip.getworkdir(step=step, index=index)}/outputs/{chip.design}.pkg.json"
@@ -59,7 +83,7 @@ def test_clean_build_dir_clean():
 
     clean_build_dir(chip)
 
-    for step, index in nodes_to_execute(chip):
+    for step, index in runtime.get_nodes():
         assert os.path.exists(chip.getworkdir(step=step, index=index)), f'({step}, {index})'
     assert os.path.exists(chip.getworkdir())
 
@@ -68,15 +92,21 @@ def test_clean_build_dir_in_run():
     chip = Chip('test')
     chip.use(freepdk45_demo)
 
+    runtime = RuntimeFlowgraph(
+        chip.schema.get("flowgraph", chip.get('option', 'flow'), field='schema'),
+        from_steps=chip.get('option', 'from'),
+        to_steps=chip.get('option', 'to'),
+        prune_nodes=chip.get('option', 'prune'))
+
     # Create folders
-    for step, index in nodes_to_execute(chip):
+    for step, index in runtime.get_nodes():
         _setup_workdir(chip, step, index, False)
 
     chip.set('arg', 'step', 'floorplan.init')
 
     clean_build_dir(chip)
 
-    for step, index in nodes_to_execute(chip):
+    for step, index in runtime.get_nodes():
         assert os.path.exists(chip.getworkdir(step=step, index=index)), f'({step}, {index})'
     assert os.path.exists(chip.getworkdir())
 
@@ -85,15 +115,21 @@ def test_clean_build_dir_in_remote():
     chip = Chip('test')
     chip.use(freepdk45_demo)
 
+    runtime = RuntimeFlowgraph(
+        chip.schema.get("flowgraph", chip.get('option', 'flow'), field='schema'),
+        from_steps=chip.get('option', 'from'),
+        to_steps=chip.get('option', 'to'),
+        prune_nodes=chip.get('option', 'prune'))
+
     # Create folders
-    for step, index in nodes_to_execute(chip):
+    for step, index in runtime.get_nodes():
         _setup_workdir(chip, step, index, False)
 
     chip.set('record', 'remoteid', 'blah')
 
     clean_build_dir(chip)
 
-    for step, index in nodes_to_execute(chip):
+    for step, index in runtime.get_nodes():
         assert os.path.exists(chip.getworkdir(step=step, index=index)), f'({step}, {index})'
     assert os.path.exists(chip.getworkdir())
 
