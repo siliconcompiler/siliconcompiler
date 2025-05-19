@@ -47,6 +47,12 @@ def test_clean_build_dir_from():
 
     clean_build_dir(chip)
 
+    runtime = RuntimeFlowgraph(
+        chip.schema.get("flowgraph", chip.get('option', 'flow'), field='schema'),
+        from_steps=chip.get('option', 'from'),
+        to_steps=chip.get('option', 'to'),
+        prune_nodes=chip.get('option', 'prune'))
+
     for step, index in runtime.get_nodes():
         assert not os.path.exists(chip.getworkdir(step=step, index=index)), f'({step}, {index})'
 

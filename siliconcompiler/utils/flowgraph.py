@@ -43,7 +43,6 @@ def _check_flowgraph_io(chip, nodes=None):
 
     runtime_full = RuntimeFlowgraph(
         chip.schema.get("flowgraph", flow, field='schema'),
-        args=(chip.get('arg', 'step'), chip.get('arg', 'index')),
         to_steps=chip.get('option', 'to'),
         prune_nodes=chip.get('option', 'prune'))
     runtime_flow = RuntimeFlowgraph(

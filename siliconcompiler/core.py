@@ -1621,6 +1621,7 @@ class Chip:
 
         runtime = RuntimeFlowgraph(
             self.schema.get("flowgraph", flow, field='schema'),
+            args=(self.get('arg', 'step'), self.get('arg', 'index')),
             from_steps=self.get('option', 'from'),
             to_steps=self.get('option', 'to'),
             prune_nodes=self.get('option', 'prune'))
@@ -1631,6 +1632,7 @@ class Chip:
         flow_schema = self.schema.get("flowgraph", flow, field="schema")
         runtime_io = RuntimeFlowgraph(
             flow_schema,
+            args=(self.get('arg', 'step'), self.get('arg', 'index')),
             from_steps=set([step for step, _ in flow_schema.get_entry_nodes()]),
             prune_nodes=self.get('option', 'prune'))
 
