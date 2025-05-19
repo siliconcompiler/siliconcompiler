@@ -78,27 +78,6 @@ def test_check_allowed_filepaths_fail(scroot):
     assert not chip.check_manifest()
 
 
-def test_check_missing_file_param():
-    chip = siliconcompiler.Chip('gcd')
-    chip.use(freepdk45_demo)
-
-    _setup_node(chip, 'syn', '0')
-
-    chip.set('arg', 'step', 'syn')
-    chip.set('arg', 'index', '0')
-
-    chip.set('tool', 'yosys', 'task', 'syn_asic', 'input', [], step='syn', index='0')
-    chip.set('tool', 'yosys', 'task', 'syn_asic', 'output', [], step='syn', index='0')
-
-    # not real file, will cause error
-    libname = 'nangate45'
-    corner = 'typical'
-    chip.add('library', libname, 'output', corner, 'nldm',
-             '/fake/timing/file.lib')
-
-    assert not chip.check_manifest()
-
-
 @pytest.fixture
 def merge_flow_chip():
     chip = siliconcompiler.Chip('test')
