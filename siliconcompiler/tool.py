@@ -715,7 +715,7 @@ class ToolSchema(NamedSchema):
 
                                 memory_usage = psutil.virtual_memory()
                                 if memory_usage.percent > MEMORY_WARN_LIMIT:
-                                    self.__logger.warn(
+                                    self.__logger.warning(
                                         'Current system memory usage is '
                                         f'{memory_usage.percent:.1f}%')
 
