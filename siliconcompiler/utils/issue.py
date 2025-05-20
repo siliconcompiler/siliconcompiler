@@ -8,7 +8,6 @@ import time
 import tempfile
 from datetime import datetime
 from siliconcompiler.utils import get_file_template
-from siliconcompiler.scheduler import _makecmd, _write_task_manifest
 from siliconcompiler.tools._common import get_tool_task
 from siliconcompiler import RecordSchema
 
@@ -24,7 +23,6 @@ def generate_testcase(chip,
                       include_specific_libraries=None,
                       hash_files=False,
                       verbose_collect=True):
-
     # Save original schema since it will be modified
     schema_copy = chip.schema.copy()
 
@@ -153,38 +151,34 @@ def generate_testcase(chip,
     current_work_dir = os.getcwd()
     os.chdir(new_work_dir)
 
+    flow = chip.get('option', 'flow')
+
+    task_class = chip.get("tool", tool, field="schema")
+
+    chip.set('arg', 'step', step)
+    chip.set('arg', 'index', index)
+    task_class.set_runtime(chip)
+
     # Rewrite replay.sh
     prev_quiet = chip.get('option', 'quiet', step=step, index=index)
     chip.set('option', 'quiet', True, step=step, index=index)
-    from siliconcompiler import SiliconCompilerError
     try:
-        # Rerun setup
-        chip.set('arg', 'step', step)
-        chip.set('arg', 'index', index)
-        func = getattr(chip._get_task_module(step, index, flow=flow), 'pre_process', None)
-        if func:
-            try:
-                # Rerun pre_process
-                func(chip)
-            except Exception:
-                pass
-    except SiliconCompilerError:
+        # Rerun pre_process
+        task_class.pre_process()
+    except Exception:
         pass
     chip.set('option', 'quiet', prev_quiet, step=step, index=index)
 
-    flow = chip.get('option', 'flow')
-    is_python_tool = hasattr(chip._get_task_module(step, index, flow=flow), 'run')
+    is_python_tool = task_class.get_exe() is None
 
     if not is_python_tool:
-        _makecmd(chip,
-                 tool, task, step, index,
-                 script_name=f'{chip.getworkdir(step=step, index=index)}/replay.sh',
-                 include_path=False)
+        task_class.generate_replay_script(
+            f'{chip.getworkdir(step=step, index=index)}/replay.sh',
+            '.',
+            include_path=False)
 
     # Rewrite tool manifest
-    chip.set('arg', 'step', step)
-    chip.set('arg', 'index', index)
-    _write_task_manifest(chip, tool, path=new_work_dir)
+    task_class.write_task_manifest('.')
 
     # Restore normal path behavior
     chip._relative_path = None

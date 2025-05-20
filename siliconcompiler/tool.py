@@ -1,4 +1,5 @@
 import contextlib
+import logging
 import os
 import psutil
 import re
@@ -774,6 +775,7 @@ class ToolSchema(NamedSchema):
         for key in list(state.keys()):
             if key.startswith("_ToolSchema__"):
                 del state[key]
+
         return state
 
     def __setstate__(self, state):
@@ -803,6 +805,84 @@ class ToolSchema(NamedSchema):
 
     def post_process(self):
         pass
+
+
+###########################################################################
+# Migration helper
+###########################################################################
+class ToolSchemaTmp(ToolSchema):
+    def __module_func(self, name, modules):
+        for module in modules:
+            method = getattr(module, name, None)
+            if method:
+                return method
+        return None
+
+    def __tool_task_modules(self):
+        step, index = self.node()
+        flow = self._ToolSchema__chip.get('option', 'flow')
+        return \
+            self._ToolSchema__chip._get_tool_module(step, index, flow=flow), \
+            self._ToolSchema__chip._get_task_module(step, index, flow=flow)
+
+    def parse_version(self, stdout):
+        tool, _ = self.__tool_task_modules()
+        method = self.__module_func("parse_version", [tool])
+        if method:
+            return method(stdout)
+        return ToolSchema.parse_version(self, stdout)
+
+    def normalize_version(self, version):
+        tool, _ = self.__tool_task_modules()
+        method = self.__module_func("normalize_version", [tool])
+        if method:
+            return method(version)
+        return ToolSchema.normalize_version(self, version)
+
+    def setup(self):
+        _, task = self.__tool_task_modules()
+        method = self.__module_func("setup", [task])
+        if method:
+            return method(self._ToolSchema__chip)
+        return ToolSchema.setup(self)
+
+    def pre_process(self):
+        _, task = self.__tool_task_modules()
+        method = self.__module_func("pre_process", [task])
+        if method:
+            return method(self._ToolSchema__chip)
+        return ToolSchema.pre_process(self)
+
+    def runtime_options(self):
+        tool, task = self.__tool_task_modules()
+        method = self.__module_func("runtime_options", [task, tool])
+        if method:
+            return method(self._ToolSchema__chip)
+        return ToolSchema.runtime_options(self)
+
+    def run(self):
+        _, task = self.__tool_task_modules()
+        method = self.__module_func("run", [task])
+        if method:
+            # Handle logger stdout suppression if quiet
+            step, index = self.node()
+            stdout_handler_level = self._ToolSchema__chip.logger._console.level
+            if self._ToolSchema__chip.get('option', 'quiet', step=step, index=index):
+                self._ToolSchema__chip.logger._console.setLevel(logging.CRITICAL)
+
+            retcode = method(self._ToolSchema__chip)
+
+            self._ToolSchema__chip.logger._console.setLevel(stdout_handler_level)
+
+            return retcode
+        return ToolSchema.run(self)
+
+    def post_process(self):
+        _, task = self.__tool_task_modules()
+        method = self.__module_func("post_process", [task])
+        if method:
+            return method(self._ToolSchema__chip)
+        return ToolSchema.post_process(self)
 
 
 ###########################################################################
