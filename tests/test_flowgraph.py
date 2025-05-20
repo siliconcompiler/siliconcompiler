@@ -949,3 +949,17 @@ def test_runtime_validate_prune_path(large_flow, caplog):
 
     assert "no path from stepone0 to jointhree0 in the testflow flowgraph" in caplog.text
     assert "no path from stepone1 to jointhree0 in the testflow flowgraph" in caplog.text
+
+
+def test_runtime_validate_disjoint(caplog):
+    flow = FlowgraphSchema("testflow")
+
+    flow.node("stepone", "siliconcompiler.tools.builtin.nop")
+    flow.node("steptwo", "siliconcompiler.tools.builtin.nop")
+
+    assert RuntimeFlowgraph.validate(
+        flow,
+        from_steps=["stepone"],
+        to_steps=["steptwo"], logger=logging.getLogger()) is False
+
+    assert "no path from stepone0 to steptwo0 in the testflow flowgraph" in caplog.text
