@@ -36,10 +36,6 @@ class SchedulerNode:
         self.__parent_pipe, self.__child_pipe = multiprocessing.Pipe()
         self.set_queue(None)
 
-    @property
-    def pipe(self):
-        return self.__parent_pipe
-
     def set_queue(self, queue):
         self.__proc_queue = queue
 

@@ -5,6 +5,7 @@ import sys
 import os.path
 
 from siliconcompiler.flowgraph import RuntimeFlowgraph
+from siliconcompiler.scheduler.node import SchedulerNode
 
 
 class Scheduler:
@@ -64,6 +65,11 @@ class Scheduler:
         org_jobname = self.__chip.get('option', 'jobname')
         if self._increment_job_name():
             copy_old_run_dir(chip, org_jobname)
+
+        # Create tasks
+        for step, index in self.__flow.get_nodes():
+            self.__tasks[(step, index)] = SchedulerNode(step, index, self.__chip)
+
         clean_build_dir(chip)
         _reset_flow_nodes(chip, flow, runtime.get_nodes())
 
