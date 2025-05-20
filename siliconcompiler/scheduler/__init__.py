@@ -474,27 +474,18 @@ def _select_inputs(chip, step, index, trial=False):
 
     flow = chip.get('option', 'flow')
     tool, _ = get_tool_task(chip, step, index, flow)
-    sel_inputs = []
 
-    select_inputs = getattr(chip._get_task_module(step, index, flow=flow),
-                            '_select_inputs',
-                            None)
-    if select_inputs:
-        log_level = chip.logger.level
-        if trial:
-            chip.logger.setLevel(logging.CRITICAL)
-        sel_inputs = select_inputs(chip, step, index)
-        if trial:
-            chip.logger.setLevel(log_level)
-    else:
-        flow_schema = chip.schema.get("flowgraph", flow, field="schema")
-        runtime = RuntimeFlowgraph(
-            flow_schema,
-            from_steps=set([step for step, _ in flow_schema.get_entry_nodes()]),
-            prune_nodes=chip.get('option', 'prune'))
+    task_class = chip.get("tool", tool, field="schema")
+    task_class.set_runtime(chip)
 
-        sel_inputs = runtime.get_node_inputs(step, index,
-                                             record=chip.schema.get("record", field="schema"))
+    log_level = chip.logger.level
+    if trial:
+        chip.logger.setLevel(logging.CRITICAL)
+
+    sel_inputs = task_class.select_input_nodes()
+
+    if trial:
+        chip.logger.setLevel(log_level)
 
     if (step, index) not in chip.schema.get("flowgraph", flow, field="schema").get_entry_nodes() \
             and not sel_inputs:
