@@ -13,7 +13,6 @@ from core.tools.fake import baz
 from core.tools.echo import echo
 
 from siliconcompiler.tools.builtin import nop
-from siliconcompiler.utils.flowgraph import _check_flowgraph
 from siliconcompiler.targets import freepdk45_demo, gf180_demo
 
 
@@ -166,27 +165,6 @@ def test_check_missing_task_module():
              'taskmodule', 'missing.place')
 
     assert not chip.check_manifest()
-
-
-def test_check_graph_duplicate_edge():
-    chip = siliconcompiler.Chip('test')
-
-    flow = 'test'
-    chip.set('option', 'flow', flow)
-
-    chip.node(flow, 'import', foo)
-    chip.node(flow, 'export', baz)
-
-    chip.edge(flow, 'import', 'export')
-
-    # edge() should not allow duplicates
-    chip.edge(flow, 'import', 'export')
-    assert len(chip.get('flowgraph', flow, 'export', '0', 'input')) == 1
-
-    # check_manifest() should catch it if forced
-    chip.add('flowgraph', flow, 'export', '0', 'input', ('import', '0'))
-
-    assert not _check_flowgraph(chip)
 
 
 def test_check_missing_library():

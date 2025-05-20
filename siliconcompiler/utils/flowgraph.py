@@ -7,33 +7,6 @@ from siliconcompiler.flowgraph import RuntimeFlowgraph
 
 
 ###########################################################################
-def _check_flowgraph(chip, flow=None):
-    '''
-    Check if flowgraph is valid.
-
-    * Checks if all edges have valid nodes
-    * Checks that there are no duplicate edges
-    * Checks if from/to is valid
-
-    Returns True if valid, False otherwise.
-    '''
-
-    if not flow:
-        flow = chip.get('option', 'flow')
-
-    error = not chip.schema.get("flowgraph", flow, field="schema").validate(logger=chip.logger)
-    if not error:
-        error = not RuntimeFlowgraph.validate(
-            chip.schema.get("flowgraph", flow, field="schema"),
-            from_steps=chip.get('option', 'from'),
-            to_steps=chip.get('option', 'to'),
-            prune_nodes=chip.get('option', 'prune'),
-            logger=chip.logger)
-
-    return not error
-
-
-###########################################################################
 def _check_flowgraph_io(chip, nodes=None):
     '''Check if flowgraph is valid in terms of input and output files.
 

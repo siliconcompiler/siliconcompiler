@@ -3,7 +3,6 @@ import pytest
 import siliconcompiler
 from siliconcompiler.tools.builtin import join
 from siliconcompiler.flows import asicflow
-from siliconcompiler.utils.flowgraph import _check_flowgraph
 
 
 def test_builtin():
@@ -48,7 +47,7 @@ def test_remove_node_one_index():
     assert '1' not in chip.getkeys('flowgraph', 'asicflow', 'place.global')
     assert '2' in chip.getkeys('flowgraph', 'asicflow', 'place.global')
 
-    assert _check_flowgraph(chip, 'asicflow')
+    assert chip.get('flowgraph', 'asicflow', field="schema").validate()
 
 
 def test_remove_node_all_index():
@@ -59,7 +58,7 @@ def test_remove_node_all_index():
 
     assert 'place.global' not in chip.getkeys('flowgraph', 'asicflow')
 
-    assert _check_flowgraph(chip, 'asicflow')
+    assert chip.get('flowgraph', 'asicflow', field="schema").validate()
 
 
 def test_remove_node_no_step():

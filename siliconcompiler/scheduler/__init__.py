@@ -23,7 +23,6 @@ from siliconcompiler.record import RecordTime, RecordTool
 from siliconcompiler.scheduler import slurm
 from siliconcompiler.scheduler import docker_runner
 from siliconcompiler import NodeStatus, SiliconCompilerError
-from siliconcompiler.utils.flowgraph import _check_flowgraph
 from siliconcompiler.utils.logging import SCBlankLoggerFormatter
 from siliconcompiler.tools._common import input_file_node_name
 import lambdapdk
@@ -95,7 +94,16 @@ def run(chip):
 
     # Check if flowgraph is complete and valid
     flow = chip.get('option', 'flow')
-    if not _check_flowgraph(chip, flow=flow):
+    if not chip.schema.get("flowgraph", flow, field="schema").validate(logger=chip.logger):
+        raise SiliconCompilerError(
+            f"{flow} flowgraph contains errors and cannot be run.",
+            chip=chip)
+    if not RuntimeFlowgraph.validate(
+            chip.schema.get("flowgraph", flow, field="schema"),
+            from_steps=chip.get('option', 'from'),
+            to_steps=chip.get('option', 'to'),
+            prune_nodes=chip.get('option', 'prune'),
+            logger=chip.logger):
         raise SiliconCompilerError(
             f"{flow} flowgraph contains errors and cannot be run.",
             chip=chip)
