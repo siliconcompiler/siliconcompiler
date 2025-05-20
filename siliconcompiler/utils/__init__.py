@@ -3,6 +3,8 @@ import os
 import re
 import psutil
 import shutil
+import traceback
+from io import StringIO
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
 from siliconcompiler.schema.parametervalue import PathNodeValue
@@ -414,3 +416,12 @@ def get_cores(chip, physical=False):
         cores = 1
 
     return cores
+
+
+def print_traceback(logger, exception):
+    logger.error(f'{exception}')
+    trace = StringIO()
+    traceback.print_tb(exception.__traceback__, file=trace)
+    logger.error("Backtrace:")
+    for line in trace.getvalue().splitlines():
+        logger.error(line)

@@ -5,8 +5,6 @@ import re
 import shutil
 import sys
 import time
-from io import StringIO
-import traceback
 from logging.handlers import QueueHandler, QueueListener
 from siliconcompiler import sc_open
 from siliconcompiler import utils
@@ -417,7 +415,7 @@ def _runtask(chip, flow, step, index, exec_func, pipe=None, queue=None, replay=F
 
         exec_func(chip, step, index, replay)
     except Exception as e:
-        print_traceback(chip, e)
+        utils.print_traceback(chip.logger, e)
         _haltstep(chip, chip.get('option', 'flow'), step, index)
 
     # return to original directory
@@ -638,7 +636,7 @@ def _executenode(chip, step, index, replay):
         task_class.pre_process()
     except Exception as e:
         chip.logger.error(f"Pre-processing failed for '{tool}/{task}'.")
-        print_traceback(chip, e)
+        utils.print_traceback(chip.logger, e)
         raise e
 
     if chip.get('record', 'status', step=step, index=index) == NodeStatus.SKIPPED:
@@ -703,7 +701,7 @@ def _executenode(chip, step, index, replay):
             task_class.post_process()
         except Exception as e:
             chip.logger.error(f"Post-processing failed for '{tool}/{task}'.")
-            print_traceback(chip, e)
+            utils.print_traceback(chip.logger, e)
             chip._error = True
 
     _finalizenode(chip, step, index, replay)
@@ -1240,15 +1238,6 @@ def _check_nodes_status(chip, flow):
     if unreached:
         raise SiliconCompilerError(
             f'These final steps could not be reached: {",".join(sorted(unreached))}', chip=chip)
-
-
-def print_traceback(chip, exception):
-    chip.logger.error(f'{exception}')
-    trace = StringIO()
-    traceback.print_tb(exception.__traceback__, file=trace)
-    chip.logger.error("Backtrace:")
-    for line in trace.getvalue().splitlines():
-        chip.logger.error(line)
 
 
 def get_check_node_keys(chip, step, index):
