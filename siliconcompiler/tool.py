@@ -34,8 +34,6 @@ from siliconcompiler import sc_open
 
 from siliconcompiler.record import RecordTool
 
-from siliconcompiler.scheduler import print_traceback
-
 
 class TaskError(Exception):
     '''
@@ -626,8 +624,7 @@ class ToolSchema(NamedSchema):
                         retcode = self.run()
             except Exception as e:
                 self.__logger.error(f'Failed in run() for {self.name()}/{self.__task}: {e}')
-                retcode = 1  # default to non-zero
-                print_traceback(self.__chip, e)
+                utils.print_traceback(self.__logger, e)
                 raise e
             finally:
                 with sc_open(stdout_file) as stdout_reader, \
