@@ -784,6 +784,9 @@ class ToolSchema(NamedSchema):
         # Reinit runtime information
         self.set_runtime(None)
 
+    def get_output_files(self):
+        return self.get("task", self.__task, "output", step=self.__step, index=self.__index)
+
     ###############################################################
     def parse_version(self, stdout):
         raise NotImplementedError("must be implemented by the implementation class")
@@ -833,6 +836,13 @@ class ToolSchemaTmp(ToolSchema):
         return \
             self._ToolSchema__chip._get_tool_module(step, index, flow=flow), \
             self._ToolSchema__chip._get_task_module(step, index, flow=flow)
+
+    def get_output_files(self):
+        _, task = self.__tool_task_modules()
+        method = self.__module_func("_gather_outputs", [task])
+        if method:
+            return method(self._ToolSchema__chip, *self.node())
+        return ToolSchema.get_output_files(self)
 
     def parse_version(self, stdout):
         tool, _ = self.__tool_task_modules()
