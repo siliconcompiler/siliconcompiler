@@ -476,7 +476,7 @@ def _select_inputs(chip, step, index, trial=False):
     tool, _ = get_tool_task(chip, step, index, flow)
 
     task_class = chip.get("tool", tool, field="schema")
-    task_class.set_runtime(chip)
+    task_class.set_runtime(chip, step=step, index=index)
 
     log_level = chip.logger.level
     if trial:
@@ -1520,13 +1520,9 @@ def copy_old_run_dir(chip, org_jobname):
         if os.path.exists(replay_file):
             # delete file as it might be a hard link
             os.remove(replay_file)
-            chip.set('arg', 'step', step)
-            chip.set('arg', 'index', index)
-            task_class.set_runtime(chip)
+            task_class.set_runtime(chip, step=step, index=index)
             task_class.generate_replay_script(replay_file, chip.getworkdir(step=step, index=index))
             task_class.set_runtime(None)
-            chip.unset('arg', 'step')
-            chip.unset('arg', 'index')
 
         for io in ('inputs', 'outputs'):
             manifest = f'{chip.getworkdir(step=step, index=index)}/{io}/{chip.design}.pkg.json'

@@ -63,11 +63,7 @@ def _check_flowgraph_io(chip, nodes=None):
             else:
                 in_tool, _ = get_tool_task(chip, in_step, in_index, flow=flow)
                 task_class = chip.get("tool", in_tool, field="schema")
-                chip.set('arg', 'step', in_step)
-                chip.set('arg', 'index', in_index)
-                task_class.set_runtime(chip)
-                chip.unset('arg', 'step')
-                chip.unset('arg', 'index')
+                task_class.set_runtime(chip, step=in_step, index=in_index)
 
                 inputs = task_class.get_output_files()
 

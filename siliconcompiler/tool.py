@@ -93,7 +93,7 @@ class ToolSchema(NamedSchema):
 
         self.set_runtime(None)
 
-    def set_runtime(self, chip):
+    def set_runtime(self, chip, step=None, index=None):
         '''
         Sets the runtime information needed to properly execute a task.
         Note: unstable API
@@ -109,8 +109,8 @@ class ToolSchema(NamedSchema):
             self.__schema_full = chip.schema
             self.__logger = chip.logger
 
-        self.__step = None
-        self.__index = None
+        self.__step = step
+        self.__index = index
         self.__tool = None
         self.__task = None
 
@@ -121,8 +121,10 @@ class ToolSchema(NamedSchema):
             self.__schema_record = self.__schema_full.get("record", field="schema")
             self.__schema_metric = self.__schema_full.get("metric", field="schema")
 
-            self.__step = self.__schema_full.get('arg', 'step')
-            self.__index = self.__schema_full.get('arg', 'index')
+            if not self.__step:
+                self.__step = self.__schema_full.get('arg', 'step')
+            if not self.__index:
+                self.__index = self.__schema_full.get('arg', 'index')
 
             if not self.__step or not self.__index:
                 raise RuntimeError("step or index not specified")
@@ -785,7 +787,7 @@ class ToolSchema(NamedSchema):
         self.set_runtime(None)
 
     def get_output_files(self):
-        return self.get("task", self.__task, "output", step=self.__step, index=self.__index)
+        return set(self.get("task", self.__task, "output", step=self.__step, index=self.__index))
 
     ###############################################################
     def parse_version(self, stdout):
@@ -869,7 +871,7 @@ class ToolSchemaTmp(ToolSchema):
         _, task = self.__tool_task_modules()
         method = self.__module_func("_select_inputs", [task])
         if method:
-            return method(self._ToolSchema__chip)
+            return method(self._ToolSchema__chip, *self.node())
         return ToolSchema.select_input_nodes(self)
 
     def pre_process(self):
