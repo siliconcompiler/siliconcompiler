@@ -1024,8 +1024,8 @@ def schema_flowgraph(cfg):
 # Tool Setup
 ###########################################################################
 def schema_tool(cfg):
-    from siliconcompiler.tool import ToolSchema
-    cfg.insert("tool", "default", ToolSchema())
+    from siliconcompiler.tool import ToolSchemaTmp
+    cfg.insert("tool", "default", ToolSchemaTmp())
     return cfg
 
 
