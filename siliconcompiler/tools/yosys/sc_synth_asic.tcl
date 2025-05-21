@@ -189,7 +189,7 @@ proc get_modules { { find "*" } } {
     return [lsort $modules]
 }
 
-proc sc_annotate_gate_cost_equivalent {} {
+proc sc_annotate_gate_cost_equivalent { } {
     yosys cellmatch -derive_luts =A:liberty_cell
     # find a reference nand2 gate
     set found_cell ""
@@ -199,17 +199,17 @@ proc sc_annotate_gate_cost_equivalent {} {
     set nand2_cells [yosys tee -q -s result.string select -list-mod =*/a:lut=4'b0111 %m]
     yosys echo on
     foreach cell $nand2_cells {
-        if {! [rtlil::has_attr -mod $cell area]} {
+        if { ![rtlil::has_attr -mod $cell area] } {
             puts "WARNING: Cell $cell missing area information"
             continue
         }
         set area [rtlil::get_attr -string -mod $cell area]
-        if {$found_cell == "" || $area < $found_cell_area} {
+        if { $found_cell == "" || $area < $found_cell_area } {
             set found_cell $cell
             set found_cell_area $area
         }
     }
-    if {$found_cell == ""} {
+    if { $found_cell == "" } {
         set found_cell_area 1
         puts "WARNING: reference nand2 cell not found, using $found_cell_area as area"
     } else {
@@ -222,7 +222,7 @@ proc sc_annotate_gate_cost_equivalent {} {
     yosys echo on
     foreach cell $cells {
         set area [rtlil::get_attr -mod -string $cell area]
-        set gate_eq [expr {int(max(1, ceil($area / $found_cell_area)))}]
+        set gate_eq [expr { int(max(1, ceil($area / $found_cell_area))) }]
         puts "Setting gate_cost_equivalent for $cell as $gate_eq"
         rtlil::set_attr -mod -uint $cell gate_cost_equivalent $gate_eq
     }
