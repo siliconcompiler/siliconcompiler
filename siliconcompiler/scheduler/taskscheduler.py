@@ -30,16 +30,16 @@ class TaskScheduler:
     @staticmethod
     def registerCallback(hook, func):
         if hook not in TaskScheduler.__callbacks:
-            raise ValueError
+            raise ValueError(f"{hook} is not a valid callback")
         TaskScheduler.__callbacks[hook] = func
 
     def __init__(self, chip):
         self.__chip = chip
         self.__logger = self.__chip.logger
         self.__schema = self.__chip.schema
-        self.__flow = self.__chip.schema.get("flowgraph", self.__chip.get('option', 'flow'),
-                                             field="schema")
-        self.__record = self.__chip.schema.get("record", field="schema")
+        self.__flow = self.__schema.get("flowgraph", self.__chip.get('option', 'flow'),
+                                        field="schema")
+        self.__record = self.__schema.get("record", field="schema")
         self.__dashboard = chip._dash
 
         self.__max_cores = utils.get_cores(chip)
@@ -55,9 +55,6 @@ class TaskScheduler:
         self.__nodes = {}
         self.__startTimes = {}
         self.__dwellTime = 0.1
-
-        # Call this in case this was invoked without __main__
-        multiprocessing.freeze_support()
 
         self.__createNodes()
 
@@ -135,6 +132,9 @@ class TaskScheduler:
             init_func(self.__chip)
 
     def run(self):
+        # Call this in case this was invoked without __main__
+        multiprocessing.freeze_support()
+
         # Handle logs across threads
         log_listener = QueueListener(self.__log_queue, self.__logger._console)
         console_format = self.__logger._console.formatter
@@ -188,6 +188,9 @@ class TaskScheduler:
             elif len(running_nodes) > 1:
                 # if there are more than 1, join the first with a timeout
                 self.__nodes[running_nodes[0]]["proc"].join(timeout=self.__dwellTime)
+
+    def getNodes(self):
+        return sorted(self.__nodes.keys())
 
     def getRunningNodes(self):
         nodes = []
@@ -275,11 +278,10 @@ class TaskScheduler:
             step, index = node
 
             ready = True
-            any_success = False if info["inputs"] else True
+            inputs = []
             for in_step, in_index in info["inputs"]:
                 in_status = self.__record.get('status', step=in_step, index=in_index)
-                if in_status == NodeStatus.SUCCESS:
-                    any_success = True
+                inputs.append(in_status)
 
                 if not NodeStatus.is_done(in_status):
                     ready = False
@@ -289,6 +291,10 @@ class TaskScheduler:
                     self.__record.set("status", NodeStatus.ERROR, step=step, index=index)
 
             # Fail if no dependency successfully finished for builtin task
+            if inputs:
+                any_success = any([status == NodeStatus.SUCCESS for status in inputs])
+            else:
+                any_success = True
             if ready and info["tool"] == "builtin" and not any_success:
                 self.__record.set("status", NodeStatus.ERROR, step=step, index=index)
 
