@@ -75,7 +75,9 @@ if { [sc_cfg_tool_task_exists file memory_techmap] } {
 ########################################################
 
 foreach lib_file "$sc_libraries $sc_macro_libraries" {
-    yosys read_liberty -setattr liberty_cell -lib $lib_file
+    yosys read_liberty -overwrite -setattr liberty_cell -lib $lib_file
+    yosys read_liberty -overwrite -setattr liberty_cell \
+        -unit_delay -wb -ignore_miss_func -ignore_buses $lib_file
 }
 foreach bb_file $sc_blackboxes {
     yosys log "Reading blackbox model file: $bb_file"
@@ -187,6 +189,45 @@ proc get_modules { { find "*" } } {
     return [lsort $modules]
 }
 
+proc sc_annotate_gate_cost_equivalent { } {
+    yosys cellmatch -derive_luts =A:liberty_cell
+    # find a reference nand2 gate
+    set found_cell ""
+    set found_cell_area ""
+    # iterate over all cells with a nand2 signature
+    yosys echo off
+    set nand2_cells [yosys tee -q -s result.string select -list-mod =*/a:lut=4'b0111 %m]
+    yosys echo on
+    foreach cell $nand2_cells {
+        if { ![rtlil::has_attr -mod $cell area] } {
+            puts "WARNING: Cell $cell missing area information"
+            continue
+        }
+        set area [rtlil::get_attr -string -mod $cell area]
+        if { $found_cell == "" || $area < $found_cell_area } {
+            set found_cell $cell
+            set found_cell_area $area
+        }
+    }
+    if { $found_cell == "" } {
+        set found_cell_area 1
+        puts "WARNING: reference nand2 cell not found, using $found_cell_area as area"
+    } else {
+        puts "Using nand2 reference cell ($found_cell) with area: $found_cell_area"
+    }
+
+    # convert the area on all Liberty cells to a gate number equivalent
+    yosys echo off
+    set cells [yosys tee -q -s result.string select -list-mod =A:area =A:liberty_cell %i]
+    yosys echo on
+    foreach cell $cells {
+        set area [rtlil::get_attr -mod -string $cell area]
+        set gate_eq [expr { int(max(1, ceil($area / $found_cell_area))) }]
+        puts "Setting gate_cost_equivalent for $cell as $gate_eq"
+        rtlil::set_attr -mod -uint $cell gate_cost_equivalent $gate_eq
+    }
+}
+
 #########################
 # Schema helper functions
 #########################
@@ -296,6 +337,7 @@ if { !$flatten_design && [lindex [sc_cfg_tool_task_get var auto_flatten] 0] == "
     set sc_hier_threshold \
         [lindex [sc_cfg_tool_task_get var hier_threshold] 0]
 
+    sc_annotate_gate_cost_equivalent
     yosys keep_hierarchy -min_cost $sc_hier_threshold
 
     yosys synth -flatten {*}$synth_args -top $sc_design -run coarse:fine
