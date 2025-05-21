@@ -1,40 +1,22 @@
-import multiprocessing
 import logging
 import os
 import re
 import shutil
 import sys
-import time
-from logging.handlers import QueueHandler, QueueListener
+from logging.handlers import QueueHandler
 from siliconcompiler import sc_open
 from siliconcompiler import utils
 from siliconcompiler.remote import Client
 from siliconcompiler import Schema
 from siliconcompiler.schema import JournalingSchema
 from siliconcompiler.record import RecordTime, RecordTool
-from siliconcompiler.scheduler import slurm
-from siliconcompiler.scheduler import docker_runner
 from siliconcompiler import NodeStatus, SiliconCompilerError
-from siliconcompiler.utils.logging import SCBlankLoggerFormatter
 from siliconcompiler.tools._common import input_file_node_name
 import lambdapdk
 from siliconcompiler.tools._common import get_tool_task, record_metric
 from siliconcompiler.scheduler import send_messages
 from siliconcompiler.flowgraph import RuntimeFlowgraph
-
-
-# callback hooks to help custom runners track progress
-_callback_funcs = {}
-
-
-def register_callback(hook, func):
-    _callback_funcs[hook] = func
-
-
-def _get_callback(hook):
-    if hook in _callback_funcs:
-        return _callback_funcs[hook]
-    return None
+from siliconcompiler.scheduler.taskscheduler import TaskScheduler
 
 
 # Max lines to print from failed node log
@@ -281,35 +263,10 @@ def _local_process(chip, flow):
             'Implementation errors encountered. See previous errors.',
             chip=chip)
 
-    nodes_to_run = {}
-    processes = {}
-    local_processes = []
-    log_queue = _prepare_nodes(chip, nodes_to_run, processes, local_processes, flow)
-
-    # Handle logs across threads
-    log_listener = QueueListener(log_queue, chip.logger._console)
-    chip.logger._console.setFormatter(SCBlankLoggerFormatter())
-    log_listener.start()
-
-    # Update dashboard before run begins
-    if chip._dash:
-        chip._dash.update_manifest()
-
-    try:
-        _launch_nodes(chip, nodes_to_run, processes, local_processes)
-    except KeyboardInterrupt:
-        # exit immediately
-        log_listener.stop()
-        sys.exit(0)
-
-    if _get_callback('post_run'):
-        _get_callback('post_run')(chip)
+    task_scheduler = TaskScheduler(chip)
+    task_scheduler.run()
 
     _check_nodes_status(chip, flow)
-
-    # Cleanup logger
-    log_listener.stop()
-    chip._init_logger_formats()
 
 
 ###########################################################################
@@ -963,238 +920,6 @@ def _reset_flow_nodes(chip, flow, nodes_to_execute):
             for index in chip.getkeys('flowgraph', flow, step):
                 if (step, index) in nodes_to_execute:
                     clear_node(step, index)
-
-
-def _prepare_nodes(chip, nodes_to_run, processes, local_processes, flow):
-    '''
-    For each node to run, prepare a process and store its dependencies
-    '''
-
-    # Call this in case this was invoked without __main__
-    multiprocessing.freeze_support()
-
-    # Log queue for logging messages
-    log_queue = multiprocessing.Queue(-1)
-
-    flow_schema = chip.schema.get("flowgraph", flow, field="schema")
-    runtime = RuntimeFlowgraph(
-        flow_schema,
-        from_steps=set([step for step, _ in flow_schema.get_entry_nodes()]),
-        prune_nodes=chip.get('option', 'prune'))
-
-    init_funcs = set()
-    runtime_flow = RuntimeFlowgraph(
-        chip.schema.get("flowgraph", flow, field='schema'),
-        from_steps=chip.get('option', 'from'),
-        to_steps=chip.get('option', 'to'),
-        prune_nodes=chip.get('option', 'prune'))
-    for (step, index) in runtime_flow.get_nodes():
-        node = (step, index)
-
-        if chip.get('record', 'status', step=step, index=index) != NodeStatus.PENDING:
-            continue
-
-        nodes_to_run[node] = runtime.get_node_inputs(
-            step, index,
-            record=chip.schema.get("record", field="schema"))
-
-        exec_func = _executenode
-
-        if chip.get('option', 'scheduler', 'name', step=step, index=index) == 'slurm':
-            # Defer job to compute node
-            # If the job is configured to run on a cluster, collect the schema
-            # and send it to a compute node for deferred execution.
-            init_funcs.add(slurm.init)
-            exec_func = slurm._defernode
-        elif chip.get('option', 'scheduler', 'name', step=step, index=index) == 'docker':
-            # Run job in docker
-            init_funcs.add(docker_runner.init)
-            exec_func = docker_runner.run
-            local_processes.append((step, index))
-        else:
-            local_processes.append((step, index))
-
-        process = {
-            "child_pipe": None,
-            "parent_pipe": None,
-            "proc": None
-        }
-        process["parent_pipe"], process["child_pipe"] = multiprocessing.Pipe()
-        process["proc"] = multiprocessing.Process(
-            target=_runtask,
-            args=(chip, flow, step, index, exec_func),
-            kwargs={"pipe": process["child_pipe"],
-                    "queue": log_queue})
-
-        processes[node] = process
-
-    for init_func in init_funcs:
-        init_func(chip)
-
-    return log_queue
-
-
-def _check_node_dependencies(chip, node, deps, deps_was_successful):
-    had_deps = len(deps) > 0
-    step, index = node
-    tool, _ = get_tool_task(chip, step, index)
-
-    # Clear any nodes that have finished from dependency list.
-    for in_step, in_index in list(deps):
-        in_status = chip.get('record', 'status', step=in_step, index=in_index)
-        if NodeStatus.is_done(in_status):
-            deps.remove((in_step, in_index))
-        if in_status == NodeStatus.SUCCESS:
-            deps_was_successful[node] = True
-        if NodeStatus.is_error(in_status):
-            # Fail if any dependency failed for non-builtin task
-            if tool != 'builtin':
-                deps.clear()
-                chip.schema.get("record", field='schema').set('status', NodeStatus.ERROR,
-                                                              step=step, index=index)
-                return
-
-    # Fail if no dependency successfully finished for builtin task
-    if had_deps and len(deps) == 0 \
-            and tool == 'builtin' and not deps_was_successful.get(node):
-        chip.schema.get("record", field='schema').set('status', NodeStatus.ERROR,
-                                                      step=step, index=index)
-
-
-def _launch_nodes(chip, nodes_to_run, processes, local_processes):
-    running_nodes = {}
-    max_parallel_run = chip.get('option', 'scheduler', 'maxnodes')
-    max_cores = utils.get_cores(chip)
-    max_threads = utils.get_cores(chip)
-    if not max_parallel_run:
-        max_parallel_run = utils.get_cores(chip)
-
-    # clip max parallel jobs to 1 <= jobs <= max_cores
-    max_parallel_run = max(1, min(max_parallel_run, max_cores))
-
-    def allow_start(node):
-        if node not in local_processes:
-            # using a different scheduler, so allow
-            return True, 0
-
-        if len(running_nodes) >= max_parallel_run:
-            return False, 0
-
-        # Record thread count requested
-        step, index = node
-        tool, task = get_tool_task(chip, step, index)
-        requested_threads = chip.get('tool', tool, 'task', task, 'threads',
-                                     step=step, index=index)
-        if not requested_threads:
-            # not specified, marking it max to be safe
-            requested_threads = max_threads
-        # clamp to max_parallel to avoid getting locked up
-        requested_threads = max(1, min(requested_threads, max_threads))
-
-        if requested_threads + sum(running_nodes.values()) > max_cores:
-            # delay until there are enough core available
-            return False, 0
-
-        # allow and record how many threads to associate
-        return True, requested_threads
-
-    deps_was_successful = {}
-
-    if _get_callback('pre_run'):
-        _get_callback('pre_run')(chip)
-
-    start_times = {None: time.time()}
-
-    while len(nodes_to_run) > 0 or len(running_nodes) > 0:
-        changed = _process_completed_nodes(chip, processes, running_nodes)
-
-        # Check for new nodes that can be launched.
-        for node, deps in list(nodes_to_run.items()):
-            # TODO: breakpoint logic:
-            # if node is breakpoint, then don't launch while len(running_nodes) > 0
-
-            _check_node_dependencies(chip, node, deps, deps_was_successful)
-
-            if chip.get('record', 'status', step=node[0], index=node[1]) == NodeStatus.ERROR:
-                del nodes_to_run[node]
-                continue
-
-            # If there are no dependencies left, launch this node and
-            # remove from nodes_to_run.
-            if len(deps) == 0:
-                dostart, requested_threads = allow_start(node)
-
-                if dostart:
-                    if _get_callback('pre_node'):
-                        _get_callback('pre_node')(chip, *node)
-
-                    chip.schema.get("record", field='schema').set('status', NodeStatus.RUNNING,
-                                                                  step=node[0], index=node[1])
-                    start_times[node] = time.time()
-                    changed = True
-
-                    processes[node]["proc"].start()
-                    del nodes_to_run[node]
-                    running_nodes[node] = requested_threads
-
-        # Check for situation where we have stuff left to run but don't
-        # have any nodes running. This shouldn't happen, but we will get
-        # stuck in an infinite loop if it does, so we want to break out
-        # with an explicit error.
-        if len(nodes_to_run) > 0 and len(running_nodes) == 0:
-            raise SiliconCompilerError(
-                'Nodes left to run, but no running nodes. From/to may be invalid.', chip=chip)
-
-        if chip._dash and changed:
-            # Update dashboard if the manifest changed
-            chip._dash.update_manifest(payload={"starttimes": start_times})
-
-        if len(running_nodes) == 1:
-            # if there is only one node running, just join the thread
-            running_node = list(running_nodes.keys())[0]
-            processes[running_node]["proc"].join()
-        elif len(running_nodes) > 1:
-            # if there are more than 1, join the first with a timeout
-            running_node = list(running_nodes.keys())[0]
-            processes[running_node]["proc"].join(timeout=0.1)
-
-
-def _process_completed_nodes(chip, processes, running_nodes):
-    changed = False
-    for node in list(running_nodes.keys()):
-        if not processes[node]["proc"].is_alive():
-            step, index = node
-            manifest = os.path.join(chip.getworkdir(step=step, index=index),
-                                    'outputs',
-                                    f'{chip.design}.pkg.json')
-            chip.logger.debug(f'{step}{index} is complete merging: {manifest}')
-            if os.path.exists(manifest):
-                JournalingSchema(chip.schema).read_journal(manifest)
-
-            if processes[node]["parent_pipe"] and processes[node]["parent_pipe"].poll(1):
-                try:
-                    packages = processes[node]["parent_pipe"].recv()
-                    if isinstance(packages, dict):
-                        chip._packages.update(packages)
-                except:  # noqa E722
-                    pass
-
-            del running_nodes[node]
-            if processes[node]["proc"].exitcode > 0:
-                status = NodeStatus.ERROR
-            else:
-                status = chip.get('record', 'status', step=step, index=index)
-                if not status or status == NodeStatus.PENDING:
-                    status = NodeStatus.ERROR
-
-            chip.schema.get("record", field='schema').set('status', status, step=step, index=index)
-
-            changed = True
-
-            if _get_callback('post_node'):
-                _get_callback('post_node')(chip, *node)
-
-    return changed
 
 
 def _check_nodes_status(chip, flow):
