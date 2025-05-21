@@ -1,6 +1,6 @@
 from siliconcompiler.tools.builtin import _common
-from siliconcompiler.utils import flowgraph
 from siliconcompiler.tools.builtin.builtin import set_io_files
+from siliconcompiler.tools._common import get_tool_task
 
 
 def setup(chip):
@@ -41,7 +41,12 @@ def _gather_outputs(chip, step, index):
     flow = chip.get('option', 'flow')
 
     in_nodes = chip.get('flowgraph', flow, step, index, 'input')
-    in_task_outputs = [flowgraph._gather_outputs(chip, *node) for node in in_nodes]
+    in_task_outputs = []
+    for in_step, in_index in in_nodes:
+        in_tool, _ = get_tool_task(chip, in_step, in_index, flow=flow)
+        task_class = chip.get("tool", in_tool, field="schema")
+        task_class.set_runtime(chip, step=in_step, index=in_index)
+        in_task_outputs.append(task_class.get_output_files())
 
     if len(in_task_outputs) > 0:
         return in_task_outputs[0].intersection(*in_task_outputs[1:])

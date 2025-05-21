@@ -155,9 +155,7 @@ def generate_testcase(chip,
 
     task_class = chip.get("tool", tool, field="schema")
 
-    chip.set('arg', 'step', step)
-    chip.set('arg', 'index', index)
-    task_class.set_runtime(chip)
+    task_class.set_runtime(chip, step=step, index=index)
 
     # Rewrite replay.sh
     prev_quiet = chip.get('option', 'quiet', step=step, index=index)

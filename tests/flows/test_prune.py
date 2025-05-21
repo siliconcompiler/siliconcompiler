@@ -162,7 +162,7 @@ def test_input_provides_with_prune_multirun():
     time.sleep(2)
 
     chip.set('option', 'prune', ('twostep', '0'))
-    assert chip.run()
+    assert chip.run(raise_exception=True)
     assert chip.get('record', 'status', step='finalstep', index='0') == "success"
     assert chip.get('record', 'inputnode', step='finalstep', index='0') == [('onestep', '0')]
     assert chip.get('record', 'endtime', step='finalstep', index='0') != end_time

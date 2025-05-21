@@ -10,7 +10,7 @@ import os.path
 from unittest.mock import patch, ANY
 
 from siliconcompiler import ToolSchema
-from siliconcompiler import RecordSchema, MetricSchema
+from siliconcompiler import RecordSchema, MetricSchema, FlowgraphSchema
 from siliconcompiler.schema import EditableSchema
 from siliconcompiler.tool import TaskSchema, TaskExecutableNotFound, TaskError, TaskTimeout
 from siliconcompiler import Chip
@@ -70,6 +70,8 @@ def patch_psutil(monkeypatch):
 def running_chip():
     flow = Flow("testflow")
     flow.node("testflow", "running", nop)
+    flow.node("testflow", "notrunning", nop)
+    flow.edge("testflow", "running", "notrunning")
     chip = Chip('testdesign')
     chip.use(flow)
     chip.set('option', 'flow', 'testflow')
@@ -119,12 +121,22 @@ def test_set_runtime(running_chip):
     assert tool.schema() is running_chip.schema
 
 
+def test_set_runtime_different(running_chip):
+    tool = ToolSchema()
+    tool.set_runtime(running_chip, step="notrunning", index="0")
+    assert tool.node() == ('notrunning', '0')
+    assert tool.task() == 'nop'
+    assert tool.logger() is running_chip.logger
+    assert tool.schema() is running_chip.schema
+
+
 def test_schema_access(running_chip):
     tool = ToolSchema()
     tool.set_runtime(running_chip)
     assert tool.schema() is running_chip.schema
     assert isinstance(tool.schema("record"), RecordSchema)
     assert isinstance(tool.schema("metric"), MetricSchema)
+    assert isinstance(tool.schema("flow"), FlowgraphSchema)
 
 
 def test_schema_access_invalid(running_chip):
@@ -612,6 +624,14 @@ def test_get_runtime_arguments_error(running_chip, caplog):
         tool.get_runtime_arguments()
 
     assert "Failed to get runtime options for builtin/nop" in caplog.text
+
+
+def test_get_output_files(running_chip):
+    tool = ToolSchema()
+    tool.set_runtime(running_chip)
+    step, index = tool.node()
+    tool.set('task', tool.task(), 'output', ["file0", "file1"], step=step, index=index)
+    assert tool.get_output_files() == set(["file0", "file1"])
 
 
 def test_parse_version_not_implemented():
@@ -1175,3 +1195,15 @@ def test_run_task_run_failed_resource(running_chip, monkeypatch):
 
     assert tool.run_task('.', False, "info", True, None, None) == 1
     assert tool.call_count == 1
+
+
+def test_select_input_nodes_entry(running_chip):
+    tool = ToolSchema()
+    tool.set_runtime(running_chip)
+    assert tool.select_input_nodes() == []
+
+
+def test_select_input_nodes_entry_has_input(running_chip):
+    tool = ToolSchema()
+    tool.set_runtime(running_chip, step="notrunning", index="0")
+    assert tool.select_input_nodes() == [('running', '0')]

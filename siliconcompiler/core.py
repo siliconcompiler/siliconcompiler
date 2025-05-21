@@ -1729,7 +1729,7 @@ class Chip:
                 error = True
                 self.logger.error(f'No executable or run() function specified for {tool}/{task}')
 
-        if not _check_flowgraph_io(self, nodes=nodes):
+        if not error and not _check_flowgraph_io(self, nodes=nodes):
             error = True
 
         return not error
