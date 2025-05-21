@@ -1520,9 +1520,13 @@ def copy_old_run_dir(chip, org_jobname):
         if os.path.exists(replay_file):
             # delete file as it might be a hard link
             os.remove(replay_file)
+            chip.set('arg', 'step', step)
+            chip.set('arg', 'index', index)
             task_class.set_runtime(chip, step=step, index=index)
             task_class.generate_replay_script(replay_file, chip.getworkdir(step=step, index=index))
             task_class.set_runtime(None)
+            chip.unset('arg', 'step')
+            chip.unset('arg', 'index')
 
         for io in ('inputs', 'outputs'):
             manifest = f'{chip.getworkdir(step=step, index=index)}/{io}/{chip.design}.pkg.json'
