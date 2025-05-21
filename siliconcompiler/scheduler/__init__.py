@@ -623,6 +623,8 @@ def _executenode(chip, step, index, replay):
     task_class = chip.get("tool", tool, field="schema")
     task_class.set_runtime(chip)
 
+    chip.logger.info(f'Running in {workdir}')
+
     try:
         task_class.pre_process()
     except Exception as e:
