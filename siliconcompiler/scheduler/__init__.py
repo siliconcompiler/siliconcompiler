@@ -41,14 +41,6 @@ def _get_callback(hook):
 _failed_log_lines = 20
 
 
-#######################################
-def _do_record_access():
-    '''
-    Determine if Schema should record calls to .get
-    '''
-    return False
-
-
 ###############################################################################
 class SiliconCompilerTimeout(Exception):
     ''' Minimal Exception wrapper used to raise sc timeout errors.
@@ -318,10 +310,6 @@ def _local_process(chip, flow):
     # Cleanup logger
     log_listener.stop()
     chip._init_logger_formats()
-
-
-def __is_posix():
-    return sys.platform != 'win32'
 
 
 ###########################################################################
