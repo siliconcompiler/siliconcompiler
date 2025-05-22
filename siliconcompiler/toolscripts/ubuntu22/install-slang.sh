@@ -20,11 +20,11 @@ git checkout $(python3 ${src_path}/_tools.py --tool slang --field git-commit)
 
 cfg_args=""
 if [ ! -z ${PREFIX} ]; then
-    cfg_args="--prefix=$PREFIX"
+    cfg_args="-D CMAKE_INSTALL_PREFIX=$PREFIX"
 fi
 
-cmake -B build
+cmake -B build $cfg_args
 cmake --build build -j$(nproc)
-cmake --install build --strip $cfg_args
+cmake --install build --strip
 
 cd -
