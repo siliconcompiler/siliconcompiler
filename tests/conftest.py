@@ -283,7 +283,7 @@ def scserver(scserver_nfs_path, unused_tcp_port, request, wait_for_port):
 
 @pytest.fixture
 def wait_for_port():
-    def isOpen(port, timeout=1):
+    def is_open(port, timeout=1):
         test_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         test_socket.settimeout(1)
 
@@ -298,7 +298,7 @@ def wait_for_port():
 
     def wait(port, timeout=20):
         for _ in range(timeout):
-            if isOpen(port):
+            if is_open(port):
                 return
             else:
                 time.sleep(1)

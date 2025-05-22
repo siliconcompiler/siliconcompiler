@@ -375,22 +375,22 @@ def test_cell_area():
 
     assert report.size() == 0
 
-    report.addCell()
+    report.add_cell()
     assert report.size() == 0
 
-    report.addCell(name="test1", module="mod")
+    report.add_cell(name="test1", module="mod")
     assert report.size() == 0
 
-    report.addCell(name="test1", module="mod", cellcount=1, cellarea=2)
+    report.add_cell(name="test1", module="mod", cellcount=1, cellarea=2)
     assert report.size() == 1
 
-    report.addCell(module="mod", cellcount=1, cellarea=2)
+    report.add_cell(module="mod", cellcount=1, cellarea=2)
     assert report.size() == 2
 
-    report.addCell(module="mod", cellcount=1, cellarea=2)
+    report.add_cell(module="mod", cellcount=1, cellarea=2)
     assert report.size() == 3
 
-    report.writeReport("test.json")
+    report.write_report("test.json")
 
     assert os.path.isfile("test.json")
 

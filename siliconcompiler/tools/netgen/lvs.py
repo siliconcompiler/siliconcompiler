@@ -79,7 +79,7 @@ def post_process(chip):
         chip.logger.warning('No LVS report generated. Netgen may have encountered errors.')
         return
 
-    lvs_failures = count_lvs.count_LVS_failures(lvs_report)
+    lvs_failures = count_lvs.count_lvs_failures(lvs_report)
 
     # We don't count top-level pin mismatches as errors b/c we seem to get
     # false positives for disconnected pins. Report them as warnings

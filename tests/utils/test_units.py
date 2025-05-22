@@ -8,13 +8,13 @@ from siliconcompiler.utils.units import \
 
 
 def test_binary():
-    GB = 1.5
-    value = GB * 1024 * 1024 * 1024
-    assert units.format_binary(value, 'B') == "1.500G"
-    assert units.format_binary(value, 'B', digits=1) == "1.5G"
+    value = 1.5
+    value_scaled = value * 1024 * 1024 * 1024
+    assert units.format_binary(value_scaled, 'B') == "1.500G"
+    assert units.format_binary(value_scaled, 'B', digits=1) == "1.5G"
 
-    assert units.format_binary(GB, 'GB', digits=3) == "1.500"
-    assert units.format_binary(GB, 'GB', digits=1) == "1.5"
+    assert units.format_binary(value, 'GB', digits=3) == "1.500"
+    assert units.format_binary(value, 'GB', digits=1) == "1.5"
 
 
 def test_time():

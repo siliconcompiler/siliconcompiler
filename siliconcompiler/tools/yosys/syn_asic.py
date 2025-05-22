@@ -2,7 +2,7 @@ from siliconcompiler.tools.yosys import synth_post_process, setup as tool_setup
 import os
 import json
 import re
-from siliconcompiler.tools.yosys.prepareLib import processLibertyFile
+from siliconcompiler.tools.yosys.prepareLib import process_liberty_file
 from siliconcompiler import sc_open
 from siliconcompiler import utils
 from siliconcompiler.tools._common.asic import set_tool_task_var, get_libraries, get_mainlib, \
@@ -322,7 +322,7 @@ def prepare_synthesis_libraries(chip):
                     lib_file_name = f'{lib_file_name_base}_{unique_ident}'
                     unique_ident += 1
 
-                lib_content[lib_file_name] = processLibertyFile(
+                lib_content[lib_file_name] = process_liberty_file(
                     lib_file,
                     logger=logger
                 )
@@ -583,7 +583,7 @@ def _generate_cell_area_report(chip):
             cell_type = level_info["cells"][cell]["type"]
             if cell_type in modules:
                 area, count = get_area_count(cell_type)
-                cellarea_report.addCell(
+                cellarea_report.add_cell(
                     name=f"{prefix}{cell}",
                     module=cell_type,
                     cellcount=count,
@@ -594,7 +594,7 @@ def _generate_cell_area_report(chip):
     area = 0.0
     if "area" in stat["design"]:
         area = stat["design"]["area"]
-    cellarea_report.addCell(
+    cellarea_report.add_cell(
         name=design,
         module=design,
         cellarea=area,
@@ -604,4 +604,4 @@ def _generate_cell_area_report(chip):
     handle_heir(netlist["modules"][design], "")
 
     if cellarea_report.size() > 0:
-        cellarea_report.writeReport("reports/hierarchical_cell_area.json")
+        cellarea_report.write_report("reports/hierarchical_cell_area.json")

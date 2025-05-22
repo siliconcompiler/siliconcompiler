@@ -12,7 +12,7 @@ from git import Repo, Actor
 
 @pytest.fixture(autouse=True)
 def mock_git(monkeypatch):
-    class mockGit:
+    class MockGit:
         @staticmethod
         def checkout(*args, **kwargs):
             pass
@@ -29,7 +29,7 @@ def mock_git(monkeypatch):
         repo.index.add('pyproject.toml')
         repo.index.commit('msg', author=author, committer=committer)
 
-        repo.git = mockGit
+        repo.git = MockGit
 
         return repo
 

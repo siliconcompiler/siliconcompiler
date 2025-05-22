@@ -50,16 +50,16 @@ def __get_files(manager, tree):
     nodes = Queue(maxsize=0)
     nodes.put(tree.root)
 
-    def procRange(range):
+    def proc_range(range):
         files.add(manager.getFileName(range.start))
         files.add(manager.getFileName(range.end))
 
     while not nodes.empty():
         node = nodes.get()
-        procRange(node.sourceRange)
+        proc_range(node.sourceRange)
         for token in node:
             if isinstance(token, pyslang.Token):
-                procRange(token.range)
+                proc_range(token.range)
             else:
                 nodes.put(token)
 
@@ -103,7 +103,7 @@ def run(chip):
     add_source = chip.get('tool', tool, 'task', task, 'var', 'include_source_paths',
                           step=step, index=index)[0] == 'true'
 
-    def printFiles(out, files):
+    def print_files(out, files):
         for src_file in files:
             out.write(f'//   File: {src_file}\n')
 
@@ -126,12 +126,12 @@ def run(chip):
 
             out.write("////////////////////////////////////////////////////////////////\n")
             out.write("// Start:\n")
-            printFiles(out, files)
+            print_files(out, files)
 
             out.write(writer.print(tree).str() + '\n')
 
             out.write("// End:\n")
-            printFiles(out, files)
+            print_files(out, files)
             out.write("////////////////////////////////////////////////////////////////\n")
 
     if ok:

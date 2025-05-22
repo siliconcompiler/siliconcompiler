@@ -24,13 +24,13 @@ def chip():
         'teststep': minimum
     }
 
-    N = 10
+    synth_n = 10
     flow = 'testflow'
     chip.set('option', 'flow', flow)
 
     threads = {
         'import': 1,
-        'syn': N,
+        'syn': synth_n,
         'teststep': 1
     }
 
@@ -39,7 +39,7 @@ def chip():
         for index in range(threads[step]):
             if step == "teststep":
                 chip.node(flow, step, task[step], index=index)
-                for j in range(N):
+                for j in range(synth_n):
                     chip.edge(flow, flowpipe[i - 1], step, tail_index=j)
             elif step == 'import':
                 chip.node(flow, step, task[step], index=index)
@@ -54,7 +54,7 @@ def chip():
             chip.set('metric', 'setupwns', 0.0, step=step, index=index)
 
     # creating fake syn results
-    for index in range(N):
+    for index in range(synth_n):
         for metric in chip.getkeys('flowgraph', flow, 'syn', str(index), 'weight'):
             if metric != 'setupwns':
                 chip.set('metric', metric, 1000 - index * 1 + 42.0, step='syn', index=index)
@@ -84,9 +84,8 @@ def test_maximum(chip):
 
 def test_all_failed(chip):
     flow = chip.get('option', 'flow')
-    N = len(chip.getkeys('flowgraph', flow, 'syn'))
 
-    for index in range(N):
+    for index in range(len(chip.getkeys('flowgraph', flow, 'syn'))):
         chip.set('record', 'status', siliconcompiler.NodeStatus.ERROR,
                  step='syn', index=str(index))
 

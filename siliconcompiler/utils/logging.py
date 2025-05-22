@@ -32,12 +32,12 @@ class SCLoggerFormatter(logging.Formatter):
 class SCInRunLoggerFormatter(logging.Formatter):
     def __init__(self, chip, jobname, step, index):
         super().__init__(
-            SCInRunLoggerFormatter.configureFormat(
+            SCInRunLoggerFormatter.configure_format(
                 "| %(levelname)-8s | {} | {} | {} | %(message)s",
                 chip, step, index))
 
     @staticmethod
-    def configureFormat(fmt, chip, step, index):
+    def configure_format(fmt, chip, step, index):
         max_width = 20
 
         flow = chip.get('option', 'flow')

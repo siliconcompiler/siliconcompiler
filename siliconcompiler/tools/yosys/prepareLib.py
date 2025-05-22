@@ -6,7 +6,7 @@ import gzip
 import argparse  # argument parsing
 
 
-def processLibertyFile(input_file, logger=None):
+def process_liberty_file(input_file, logger=None):
     # Read input file
     if logger:
         logger.info(f"Opening file for replace: {input_file}")
@@ -56,4 +56,4 @@ if __name__ == "__main__":
                         help='Output File')
     args = parser.parse_args()
 
-    processLibertyFile(args.inputFile, args.outputFile, args.patterns)
+    process_liberty_file(args.inputFile, args.outputFile, args.patterns)

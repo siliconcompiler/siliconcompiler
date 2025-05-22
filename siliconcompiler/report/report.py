@@ -294,9 +294,9 @@ def get_total_manifest_key_count(manifest):
         acc (int) : An accumulator of the current number of folders and files.
     '''
     acc = len(manifest)
-    for dictKeys in manifest:
-        if isinstance(manifest[dictKeys], dict):
-            acc += get_total_manifest_key_count(manifest[dictKeys])
+    for key in manifest:
+        if isinstance(manifest[key], dict):
+            acc += get_total_manifest_key_count(manifest[key])
     return acc
 
 

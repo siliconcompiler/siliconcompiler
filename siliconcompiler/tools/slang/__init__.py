@@ -133,11 +133,11 @@ def _get_driver(chip, options_func, ignored_diagnotics=None):
 
     options = options_func(chip)
 
-    parseOpts = pyslang.CommandLineOptions()
-    parseOpts.ignoreProgramName = True
+    parse_options = pyslang.CommandLineOptions()
+    parse_options.ignoreProgramName = True
     opts = " ".join(options)
     code = 0
-    if not driver.parseCommandLine(opts, parseOpts):
+    if not driver.parseCommandLine(opts, parse_options):
         code = 1
 
     if code == 0 and not driver.processOptions():
