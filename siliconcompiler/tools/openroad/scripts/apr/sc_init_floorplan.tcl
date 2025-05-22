@@ -19,13 +19,7 @@ source "$sc_refdir/apr/preamble.tcl"
 # Setup Global Connections
 ###############################
 
-if { [sc_cfg_tool_task_exists {file} global_connect] } {
-    foreach global_connect [sc_cfg_tool_task_get {file} global_connect] {
-        puts "Sourcing global connect configuration: ${global_connect}"
-        source $global_connect
-    }
-}
-tee -file reports/global_connections.rpt {report_global_connect}
+sc_global_connections
 
 ###############################
 # Initialize floorplan
