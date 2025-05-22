@@ -4,6 +4,13 @@ set -e
 
 src_path=$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P)/..
 
+USE_SUDO_INSTALL="${USE_SUDO_INSTALL:-yes}"
+if [ "${USE_SUDO_INSTALL:-yes}" = "yes" ]; then
+    SUDO_INSTALL=sudo
+else
+    SUDO_INSTALL=""
+fi
+
 sudo apt-get install -y git build-essential wget
 sudo apt-get install -y tcl-dev tcl-tclreadline \
     bison flex libfl-dev zlib1g-dev automake autotools-dev
@@ -29,7 +36,7 @@ mkdir build
 cd build
 cmake $cmake_args ..
 make -j$(nproc)
-sudo make install
+$SUDO_INSTALL make install
 
 cd ../../..
 # cudd
@@ -40,7 +47,7 @@ cd cudd
 autoreconf
 ./configure $config_prefix
 make -j$(nproc)
-sudo make install
+$SUDO_INSTALL make install
 
 cd ../..
 #swig
@@ -54,7 +61,7 @@ wget https://github.com/PCRE2Project/pcre2/releases/download/pcre2-10.42/pcre2-1
 ./autogen.sh
 ./configure $config_prefix
 make -j$(nproc)
-sudo make -j$(nproc) install
+$SUDO_INSTALL make -j$(nproc) install
 
 cd ../..
 # opensta
@@ -67,6 +74,6 @@ mkdir -p build
 cd build
 cmake .. $cmake_args
 make -j$(nproc)
-sudo make install
+$SUDO_INSTALL make install
 
 cd -

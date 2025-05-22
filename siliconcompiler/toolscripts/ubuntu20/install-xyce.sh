@@ -5,6 +5,13 @@ set -e
 # Get directory of script
 src_path=$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P)/..
 
+USE_SUDO_INSTALL="${USE_SUDO_INSTALL:-yes}"
+if [ "${USE_SUDO_INSTALL:-yes}" = "yes" ]; then
+    SUDO_INSTALL=sudo -E PATH="$PATH"
+else
+    SUDO_INSTALL=""
+fi
+
 # Install core dependencies.
 sudo apt-get install -y build-essential gcc g++ make cmake automake autoconf bison flex git libblas-dev \
     liblapack-dev liblapack64-dev libfftw3-dev libsuitesparse-dev libopenmpi-dev libboost-all-dev \
@@ -48,7 +55,8 @@ cmake \
     -D TPL_AMD_INCLUDE_DIRS="/usr/include/suitesparse" \
     -C ../cmake/trilinos/trilinos-base.cmake \
     ../../trilinos
-cmake --build . -j$(nproc) -t install
+cmake --build . -j$(nproc)
+$SUDO_INSTALL make install
 
 cd ..
 
@@ -64,4 +72,4 @@ cmake \
 
 cmake --build . -j$(nproc)
 cmake --build . -j$(nproc) --target xycecinterface
-sudo -E PATH="$PATH" make install
+$SUDO_INSTALL make install

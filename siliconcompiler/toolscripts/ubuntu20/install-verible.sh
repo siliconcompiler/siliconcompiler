@@ -5,6 +5,13 @@ set -e
 # Get directory of script
 src_path=$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P)/..
 
+USE_SUDO_INSTALL="${USE_SUDO_INSTALL:-yes}"
+if [ "${USE_SUDO_INSTALL:-yes}" = "yes" ]; then
+    SUDO_INSTALL=sudo
+else
+    SUDO_INSTALL=""
+fi
+
 sudo apt-get install -y wget
 
 mkdir -p deps
@@ -19,8 +26,8 @@ tar xzf $filename
 
 if [ -z ${PREFIX} ]; then
     PREFIX=/opt/verible
-    sudo mkdir -p $PREFIX
+    $SUDO_INSTALL mkdir -p $PREFIX
     echo "Please add \"export PATH="/opt/verible/bin:\$PATH"\" to your .bashrc"
 fi
 
-sudo mv verible-$version/* $PREFIX
+$SUDO_INSTALL mv verible-$version/* $PREFIX

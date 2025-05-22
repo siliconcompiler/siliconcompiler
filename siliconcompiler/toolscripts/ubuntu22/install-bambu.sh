@@ -5,6 +5,13 @@ set -e
 # Get directory of script
 src_path=$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P)/..
 
+USE_SUDO_INSTALL="${USE_SUDO_INSTALL:-yes}"
+if [ "${USE_SUDO_INSTALL:-yes}" = "yes" ]; then
+    SUDO_INSTALL=sudo
+else
+    SUDO_INSTALL=""
+fi
+
 sudo apt-get install -y autoconf autoconf-archive automake libtool \
     libbdd-dev libboost-all-dev libmpc-dev libmpfr-dev \
     libxml2-dev liblzma-dev libmpfi-dev zlib1g-dev libicu-dev bison doxygen flex \

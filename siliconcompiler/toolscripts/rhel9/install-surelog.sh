@@ -5,6 +5,13 @@ set -e
 # Get directory of script
 src_path=$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P)/..
 
+USE_SUDO_INSTALL="${USE_SUDO_INSTALL:-yes}"
+if [ "${USE_SUDO_INSTALL:-yes}" = "yes" ]; then
+    SUDO_INSTALL=sudo -E PATH="$PATH"
+else
+    SUDO_INSTALL=""
+fi
+
 # These dependencies are up-to-date with instructions from the INSTALL.md from the commit we are pinned to below
 sudo yum install -y gcc-toolset-12
 sudo dnf config-manager --set-enabled devel || true
@@ -28,6 +35,6 @@ git submodule update --init --recursive
 
 scl run gcc-toolset-12 "LDFLAGS=\"-lrt\" make -j$(nproc)"
 
-sudo -E PATH="$PATH" make install
+$SUDO_INSTALL make install
 
 cd -

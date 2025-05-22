@@ -5,6 +5,13 @@ set -e
 # Get directory of script
 src_path=$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P)/..
 
+USE_SUDO_INSTALL="${USE_SUDO_INSTALL:-yes}"
+if [ "${USE_SUDO_INSTALL:-yes}" = "yes" ]; then
+    SUDO_INSTALL=sudo
+else
+    SUDO_INSTALL=""
+fi
+
 mkdir -p deps
 cd deps
 
@@ -47,7 +54,8 @@ cmake \
     -D TPL_AMD_INCLUDE_DIRS="/usr/include/suitesparse" \
     -C "$XYCE_DIR/cmake/trilinos/trilinos-base.cmake" \
     ..
-cmake --build . -j$(nproc) -t install
+cmake --build . -j$(nproc)
+$SUDO_INSTALL make install
 cd ../..
 
 # Build Xyce
@@ -61,5 +69,5 @@ cmake \
     ..
 cmake --build . -j$(nproc)
 cmake --build . -j$(nproc) --target xycecinterface
-sudo make install
+$SUDO_INSTALL make install
 cd -

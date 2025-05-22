@@ -5,6 +5,13 @@ set -e
 # Get directory of script
 src_path=$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P)/..
 
+USE_SUDO_INSTALL="${USE_SUDO_INSTALL:-yes}"
+if [ "${USE_SUDO_INSTALL:-yes}" = "yes" ]; then
+    SUDO_INSTALL=sudo
+else
+    SUDO_INSTALL=""
+fi
+
 sudo yum install -y wget
 
 mkdir -p deps
@@ -19,7 +26,7 @@ if [ ! -z ${PREFIX} ]; then
     args="-C $PREFIX --strip-components 1"
 fi
 
-tar xvf sbt.tgz $args
+$SUDO_INSTALL tar xvf sbt.tgz $args
 
 cd -
 
