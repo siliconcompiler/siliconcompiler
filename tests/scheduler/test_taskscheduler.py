@@ -116,10 +116,10 @@ def test_run_callbacks(large_flow):
 
     callbacks = TaskScheduler._TaskScheduler__callbacks
     with patch.dict(callbacks):
-        TaskScheduler.registerCallback("pre_run", Callback.callback_pre_run)
-        TaskScheduler.registerCallback("pre_node", Callback.callback_pre_node)
-        TaskScheduler.registerCallback("post_node", Callback.callback_post_node)
-        TaskScheduler.registerCallback("post_run", Callback.callback_post_run)
+        TaskScheduler.register_callback("pre_run", Callback.callback_pre_run)
+        TaskScheduler.register_callback("pre_node", Callback.callback_pre_node)
+        TaskScheduler.register_callback("post_node", Callback.callback_post_node)
+        TaskScheduler.register_callback("post_run", Callback.callback_post_run)
 
         scheduler = TaskScheduler(large_flow)
         scheduler.run()
