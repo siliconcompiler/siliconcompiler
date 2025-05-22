@@ -28,10 +28,6 @@ class TaskScheduler:
     }
 
     @staticmethod
-    def registerCallback(hook, func):
-        TaskScheduler.register_callback(hook, func)
-
-    @staticmethod
     def register_callback(hook, func):
         if hook not in TaskScheduler.__callbacks:
             raise ValueError(f"{hook} is not a valid callback")
