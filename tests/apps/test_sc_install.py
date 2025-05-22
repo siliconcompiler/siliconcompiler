@@ -5,6 +5,7 @@ from unittest import mock
 from pathlib import Path
 from siliconcompiler.apps import sc_install
 from siliconcompiler import RecordSchema
+from siliconcompiler.apps.sc_install import os as os_imported
 
 
 @pytest.fixture(autouse=True)
@@ -231,7 +232,53 @@ def test_prefix_script(monkeypatch, datadir, capfd):
     monkeypatch.setattr('sys.argv', ['sc-install', 'echo', '-prefix', prefix_path])
     assert sc_install.main() == 0
 
-    assert f"ECHO prefix: {prefix_path}" in capfd.readouterr().out
+    output = capfd.readouterr().out
+    assert f"ECHO prefix: {prefix_path}" in output
+    assert "USE_SUDO_INSTALL: no" in output
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
+def test_prefix_script_use_sudo_access(monkeypatch, datadir, capfd):
+    def return_os():
+        return {
+            "echo": os.path.join(datadir, "echo_prefix.sh")
+        }
+    monkeypatch.setattr(sc_install, '_get_tools_list', return_os)
+
+    def dummmy_access(*args):
+        return False
+    monkeypatch.setattr(os_imported, "access", dummmy_access)
+
+    prefix_path = os.path.abspath('testing123')
+
+    monkeypatch.setattr('sys.argv', ['sc-install', 'echo', '-prefix', prefix_path])
+    assert sc_install.main() == 0
+
+    output = capfd.readouterr().out
+    assert f"ECHO prefix: {prefix_path}" in output
+    assert "USE_SUDO_INSTALL: yes" in output
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
+def test_prefix_script_use_sudo_makedirs(monkeypatch, datadir, capfd):
+    def return_os():
+        return {
+            "echo": os.path.join(datadir, "echo_prefix.sh")
+        }
+    monkeypatch.setattr(sc_install, '_get_tools_list', return_os)
+
+    def dummmy_makedirs(*args, **kwargs):
+        raise PermissionError
+    monkeypatch.setattr(os_imported, "makedirs", dummmy_makedirs)
+
+    prefix_path = os.path.abspath('testing123')
+
+    monkeypatch.setattr('sys.argv', ['sc-install', 'echo', '-prefix', prefix_path])
+    assert sc_install.main() == 0
+
+    output = capfd.readouterr().out
+    assert f"ECHO prefix: {prefix_path}" in output
+    assert "USE_SUDO_INSTALL: yes" in output
 
 
 @pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
