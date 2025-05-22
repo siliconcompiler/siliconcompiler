@@ -187,6 +187,15 @@ class SchedulerNode:
 
         return not error
 
+    def summarize(self):
+        for metric in ['errors', 'warnings']:
+            val = self.__metric.get(metric, step=self.__step, index=self.__index)
+            if val is not None:
+                self.logger.info(f'Number of {metric}: {val}')
+
+        walltime = self.__record.get("tasktime", step=self.__step, index=self.__index)
+        self.logger.info(f"Finished task in {round(walltime, 2)}s")
+
     def run(self):
         '''
         Private per node run method called by run().
@@ -244,7 +253,7 @@ class SchedulerNode:
         if not self.__is_entry_node and not sel_inputs:
             self.halt(f'No inputs selected for {self.__step}{self.__index}')
 
-        # _hash_files(chip, step, index, setup=True)
+        _hash_files(chip, step, index, setup=True)
 
         # Forward data
         self.setup_input_directory()
