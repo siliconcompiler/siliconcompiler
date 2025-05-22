@@ -35,6 +35,6 @@ git checkout $(python3 ${src_path}/_tools.py --tool surelog --field git-commit)
 git submodule update --init --recursive
 
 make -j$(nproc)
-sudo -E PATH="$PATH" make install
+$SUDO_INSTALL make install
 
 cd -

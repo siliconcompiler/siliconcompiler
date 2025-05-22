@@ -26,6 +26,7 @@ tar xzf $filename
 
 if [ -z ${PREFIX} ]; then
     PREFIX=/opt/verible
+    SUDO_INSTALL=sudo
     $SUDO_INSTALL mkdir -p $PREFIX
     echo "Please add \"export PATH="/opt/verible/bin:\$PATH"\" to your .bashrc"
 fi

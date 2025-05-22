@@ -34,5 +34,5 @@ fi
 
 cmake -DARCH=ice40 $args .
 make -j$(nproc)
-sudo make install
+$SUDO_INSTALL make install
 cd -

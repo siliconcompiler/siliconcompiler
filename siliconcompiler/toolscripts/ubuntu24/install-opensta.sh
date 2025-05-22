@@ -36,7 +36,7 @@ mkdir build
 cd build
 cmake $cmake_args ..
 make -j$(nproc)
-sudo make install
+$SUDO_INSTALL make install
 
 cd ../../..
 # cudd
@@ -47,7 +47,7 @@ cd cudd
 autoreconf
 ./configure $config_prefix
 make -j$(nproc)
-sudo make install
+$SUDO_INSTALL make install
 
 cd ../..
 #swig
@@ -61,7 +61,7 @@ wget https://github.com/PCRE2Project/pcre2/releases/download/pcre2-10.42/pcre2-1
 ./autogen.sh
 ./configure $config_prefix
 make -j$(nproc)
-sudo make -j$(nproc) install
+$SUDO_INSTALL make -j$(nproc) install
 
 cd ../..
 # opensta
@@ -74,6 +74,6 @@ mkdir -p build
 cd build
 cmake .. $cmake_args
 make -j$(nproc)
-sudo make install
+$SUDO_INSTALL make install
 
 cd -

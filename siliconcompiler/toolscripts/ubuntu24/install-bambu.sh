@@ -36,9 +36,10 @@ if [ ! -z ${PREFIX} ]; then
     args=--prefix="$PREFIX"
 else
     args=--prefix=/opt/panda
+    SUDO_INSTALL=sudo
 
-    sudo mkdir -p /opt/panda
-    sudo chown $USER:$USER /opt/panda
+    $SUDO_INSTALL mkdir -p /opt/panda
+    $SUDO_INSTALL chown $USER:$USER /opt/panda
 fi
 
 make -f Makefile.init
@@ -48,7 +49,7 @@ cd obj
 
 CC=$(which gcc-11) CXX=$(which g++-11) ../configure --enable-release --disable-flopoco --with-opt-level=2 $args
 make -j$(nproc)
-make install
+$SUDO_INSTALL make install
 
 cd -
 

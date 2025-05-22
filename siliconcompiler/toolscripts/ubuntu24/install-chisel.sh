@@ -26,7 +26,7 @@ if [ ! -z ${PREFIX} ]; then
     args="-C $PREFIX --strip-components 1"
 fi
 
-tar xvf sbt.tgz $args
+$SUDO_INSTALL tar xvf sbt.tgz $args
 
 cd -
 

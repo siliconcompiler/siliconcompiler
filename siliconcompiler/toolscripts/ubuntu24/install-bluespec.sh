@@ -30,8 +30,8 @@ make -j$(nproc) install-src
 
 if [ -z ${PREFIX} ]; then
     # install
-    sudo mkdir -p /opt/tools/bsc
-    sudo chown $USER:$USER /opt/tools/bsc
+    $SUDO_INSTALL mkdir -p /opt/tools/bsc
+    $SUDO_INSTALL chown $USER:$USER /opt/tools/bsc
 
     BSC_VERSION=$(echo 'puts [lindex [Bluetcl::version] 0]' | inst/bin/bluetcl)
     mv inst /opt/tools/bsc/bsc-${BSC_VERSION}

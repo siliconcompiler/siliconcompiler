@@ -22,5 +22,5 @@ cd yosys-moosic
 git checkout $(python3 ${src_path}/_tools.py --tool yosys-moosic --field git-commit)
 
 make -j$(nproc)
-sudo PATH="$PATH" make install
+$SUDO_INSTALL make install
 cd -

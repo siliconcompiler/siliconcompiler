@@ -32,6 +32,6 @@ fi
 
 cmake -B build $cfg_args
 cmake --build build -j$(nproc)
-cmake --install build --strip $cfg_args
+$SUDO_INSTALL make -C build install
 
 cd -

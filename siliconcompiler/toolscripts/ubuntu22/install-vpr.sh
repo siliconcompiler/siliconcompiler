@@ -31,4 +31,4 @@ fi
 
 make CMAKE_PARAMS="$args -DWITH_PARMYS=OFF -DWITH_ABC=OFF -DYOSYS_F4PGA_PLUGINS=OFF" -j$(nproc)
 cd build
-sudo make install
+$SUDO_INSTALL make install

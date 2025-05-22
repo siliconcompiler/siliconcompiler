@@ -63,6 +63,6 @@ YOSYS_PLUGIN=$(yosys-config --datdir)/plugins/
 cd parmys
 
 make -j$(nproc)
-sudo mkdir -p $YOSYS_PLUGIN
-sudo cp parmys-plugin/build/parmys.so $YOSYS_PLUGIN
+$SUDO_INSTALL mkdir -p $YOSYS_PLUGIN
+$SUDO_INSTALL cp parmys-plugin/build/parmys.so $YOSYS_PLUGIN
 cd -

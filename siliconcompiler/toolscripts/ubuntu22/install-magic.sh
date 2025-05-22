@@ -30,4 +30,4 @@ fi
 
 LD_FLAGS=-shared ./configure $args
 make -j$(nproc)
-sudo make install
+$SUDO_INSTALL make install

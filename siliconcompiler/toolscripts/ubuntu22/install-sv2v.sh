@@ -23,7 +23,7 @@ if [ ! -z ${PREFIX} ]; then
     export PATH="$PREFIX:$PATH"
 fi
 
-curl -sSL https://get.haskellstack.org/ | sh -s - -f $haskell_args
+curl -sSL https://get.haskellstack.org/ | $SUDO_INSTALL sh -s - -f $haskell_args
 
 git clone $(python3 ${src_path}/_tools.py --tool sv2v --field git-url) sv2v
 cd sv2v
@@ -32,8 +32,8 @@ git checkout $(python3 ${src_path}/_tools.py --tool sv2v --field git-commit)
 make -j$(nproc)
 
 if [ ! -z ${PREFIX} ]; then
-    sudo mkdir -p ${PREFIX}/bin/
-    sudo cp bin/* ${PREFIX}/bin/
+    $SUDO_INSTALL mkdir -p ${PREFIX}/bin/
+    $SUDO_INSTALL cp bin/* ${PREFIX}/bin/
 fi
 
 cd -

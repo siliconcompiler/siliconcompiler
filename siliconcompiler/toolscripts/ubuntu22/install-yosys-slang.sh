@@ -27,5 +27,5 @@ git checkout $(python3 ${src_path}/_tools.py --tool yosys-slang --field git-comm
 git submodule update --init --recursive
 
 make -j$(nproc)
-sudo PATH="$PATH" make install
+$SUDO_INSTALL make install
 cd -
