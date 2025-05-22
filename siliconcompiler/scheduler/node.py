@@ -70,9 +70,7 @@ class SchedulerNode:
         if msg:
             self.logger.error(msg)
 
-        self.__chip.schema.get("record", field='schema').set(
-            "status", NodeStatus.ERROR,
-            step=self.__step, index=self.__index)
+        self.__record.set("status", NodeStatus.ERROR, step=self.__step, index=self.__index)
         self.__chip.schema.write_manifest(self.__manifests["output"])
 
         self.logger.error(f"Halting {self.__step}{self.__index} due to errors.")
@@ -189,7 +187,7 @@ class SchedulerNode:
 
     def summarize(self):
         for metric in ['errors', 'warnings']:
-            val = self.__metric.get(metric, step=self.__step, index=self.__index)
+            val = self.__metrics.get(metric, step=self.__step, index=self.__index)
             if val is not None:
                 self.logger.info(f'Number of {metric}: {val}')
 
@@ -370,6 +368,48 @@ class SchedulerNode:
                 utils.print_traceback(self.logger, e)
                 self.__error = True
 
-        _finalizenode(chip, step, index, replay)
+        flow = chip.get('option', 'flow')
+        quiet = (
+            chip.get('option', 'quiet', step=step, index=index) and not
+            chip.get('option', 'breakpoint', step=step, index=index)
+        )
+
+        is_skipped = chip.get('record', 'status', step=step, index=index) == NodeStatus.SKIPPED
+
+        if not is_skipped:
+            _check_logfile(chip, step, index, quiet, None)
+
+        _hash_files(chip, step, index)
+
+        # Capture wall runtime
+        self.__record.record_time(self.__step, self.__index, RecordTime.END)
+        self.__record.record_totaltime(
+            self.__step, self.__index,
+            self.__chip.get("flowgraph", flow, field='schema'),
+            self.__record)
+
+        # Save a successful manifest
+        if not is_skipped:
+            self.__record.set('status', NodeStatus.SUCCESS, step=self.__step, index=self.__index)
+
+        self.__chip.write_manifest(self.__manifests["output"])
+
+        self.summarize()
+
+        if self.__error and self.__generateTestCase:
+            _make_testcase(chip, step, index)
+
+        # Stop if there are errors
+        errors = self.__metrics.get('errors', step=self.__step, index=self.__index)
+        if errors and not self.__chip.get('option', 'continue',
+                                          step=self.__step, index=self.__index):
+            self.halt(f'{self.__task.name()}/{self.__task.task()} reported {errors} '
+                      f'errors during {self.__step}{self.__index}')
+
+        if self.__error:
+            self.halt()
+
+        if self.__chip.get('option', 'strict'):
+            assert_output_files(chip, step, index)
 
         send_messages.send(self.__chip, "end", self.__step, self.__index)
