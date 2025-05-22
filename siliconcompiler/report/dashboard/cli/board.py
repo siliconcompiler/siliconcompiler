@@ -246,6 +246,15 @@ class Board(metaclass=BoardSingleton):
 
     def _init_singleton(self):
         self._console = Console(theme=Board.__theme)
+
+        self.live = Live(
+            console=self._console,
+            screen=False,
+            auto_refresh=True,
+        )
+
+        self._registered_runs = 0
+
         self._active = self._console.is_terminal
         if not self._active:
             self._console = None
@@ -282,14 +291,13 @@ class Board(metaclass=BoardSingleton):
     def open_dashboard(self):
         """Starts the dashboard rendering thread if it is not already running."""
 
-        if not self._active:
-            return
+        self._registered_runs += 1
 
         if not self.is_running():
             self._update_render_data(None)
 
             with self._job_data_lock:
-                if not self._render_thread:
+                if not self._render_thread or not self._render_thread.is_alive():
                     self._render_thread = threading.Thread(target=self._render, daemon=True)
                     self._render_event.clear()
                     self._render_stop_event.clear()
@@ -337,6 +345,11 @@ class Board(metaclass=BoardSingleton):
         if not self.is_running():
             return
 
+        if self._registered_runs:
+            self._registered_runs -= 1
+            if self._registered_runs:
+                return
+            
         # check for running jobs
         with self._job_data_lock:
             if self._job_data:
@@ -348,6 +361,9 @@ class Board(metaclass=BoardSingleton):
 
         # Wait for rendering to finish
         self.wait()
+        
+        self._console.show_cursor()
+        
 
     def wait(self):
         """Waits for the dashboard rendering thread to finish."""
@@ -595,43 +611,22 @@ class Board(metaclass=BoardSingleton):
                 # Catch any multiprocessing errors
                 return True
 
-        live = None
-        try:
-            update_data()
-            live = Live(
-                self._get_rendable(),
-                console=self._console,
-                screen=False,
-                # transient=True,
-                auto_refresh=True,
-                # refresh_per_second=60,
-            )
-            live.start()
+        update_data()
+        self.live.start()
 
-            while not check_stop_event():
-                try:
-                    if self._render_event.wait(timeout=0.2):
-                        self._render_event.clear()
-                except:  # noqa E722
-                    # Catch any multiprocessing errors
-                    break
-
-                if check_stop_event():
-                    break
-
-                update_data()
-                live.update(self._get_rendable(), refresh=True)
-        finally:
+        while not check_stop_event():
             try:
-                update_data()
-                if live:
-                    live.update(self._get_rendable(), refresh=True)
-                    live.stop()
-                else:
-                    self._console.print(self._get_rendable())
-            finally:
-                # Restore the prompt
-                print("\033[?25h", end="")
+                if self._render_event.wait(timeout=0.2):
+                    self._render_event.clear()
+            except:  # noqa E722
+                # Catch any multiprocessing errors
+                break
+
+            if check_stop_event():
+                break
+
+            update_data()
+            self.live.update(self._get_rendable(), refresh=True)
 
     def _update_layout(self):
         with self._render_data_lock:
