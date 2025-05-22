@@ -48,17 +48,17 @@ class SchedulerNode:
         }
         self.__replay = os.path.join(self.__workdir, "replay.sh")
 
-        self.setQueue(None)
-        self.__setupSchemaAccess()
+        self.set_queue(None)
+        self.__setup_schema_access()
 
     @property
     def logger(self):
         return self.__chip.logger
 
-    def setQueue(self, queue):
+    def set_queue(self, queue):
         self.__queue = queue
 
-    def __setupSchemaAccess(self):
+    def __setup_schema_access(self):
         flow = self.__chip.get('option', 'flow')
         tool = self.__chip.get('flowgraph', flow, self.__step, self.__index, 'tool')
 
@@ -225,7 +225,7 @@ class SchedulerNode:
         self.__chip.schema.start_journal()
 
         # Must be after journaling to ensure journal is complete
-        self.__setupSchemaAccess()
+        self.__setup_schema_access()
 
         # Make record of sc version and machine
         self.__record.record_version(self.__step, self.__index)
