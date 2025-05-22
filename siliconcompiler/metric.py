@@ -3,6 +3,7 @@ from siliconcompiler.schema import EditableSchema, Parameter, PerNode, Scope
 from siliconcompiler.schema.utils import trim
 
 from siliconcompiler.utils.units import convert
+from siliconcompiler.record import RecordTime
 
 
 class MetricSchema(BaseSchema):
@@ -42,6 +43,64 @@ class MetricSchema(BaseSchema):
             value = convert(value, from_unit=unit, to_unit=metric_unit)
 
         return self.set(metric, value, step=step, index=str(index))
+
+    def record_totaltime(self, step, index, flow, record):
+        """
+        Record the total time for this node
+
+        Args:
+            step (str): step to record
+            index (str/int): index to record
+            flow (:class:`FlowgraphSchema`): flowgraph to lookup nodes in
+            record (:class:`RecordSchema`): record to lookup data in
+        """
+        all_nodes = flow.get_nodes()
+        node_times = [
+            (record.get_recorded_time(*node, RecordTime.START),
+             record.get_recorded_time(*node, RecordTime.END)) for node in all_nodes
+        ]
+
+        # Remove incomplete records
+        node_times = [times for times in node_times if times[0] is not None]
+
+        if len(node_times) == 0:
+            return False
+
+        node_end = record.get_recorded_time(step, index, RecordTime.END)
+        if node_end is None:
+            return False
+
+        node_times = sorted(node_times)
+        if len(node_times) > 1:
+            new_times = []
+            for n in range(len(node_times)):
+                if not new_times:
+                    new_times.append(node_times[n])
+                    continue
+                prev_start_time, prev_end_time = new_times[-1]
+                start_time, end_time = node_times[n]
+
+                new_start = min(prev_start_time, start_time)
+
+                if prev_end_time is None:
+                    new_times[-1] = (new_start, end_time)
+                elif prev_end_time >= start_time:
+                    if end_time is not None:
+                        new_end = max(prev_end_time, end_time)
+                    else:
+                        new_end = prev_end_time
+                    new_times[-1] = (new_start, new_end)
+                else:
+                    new_times.append(node_times[n])
+            node_times = new_times
+
+        total_time = 0
+        for start_time, end_time in node_times:
+            if start_time > node_end:
+                continue
+            total_time += min(end_time, node_end) - start_time
+
+        return self.record(step, index, "totaltime", total_time, unit="s")
 
 
 ###########################################################################

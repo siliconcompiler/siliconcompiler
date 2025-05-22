@@ -710,23 +710,15 @@ def _finalizenode(chip, step, index, replay):
     # Capture wall runtime and cpu cores
     end_time = chip.schema.get("record", field='schema').record_time(step, index, RecordTime.END)
 
-    # calculate total time
-    total_times = []
-    for check_step, check_index in chip.schema.get("flowgraph", flow, field="schema").get_nodes():
-        total_time = chip.get('metric', 'totaltime', step=check_step, index=check_index)
-        if total_time is not None:
-            total_times.append(total_time)
-    if total_times:
-        total_time = max(total_times)
-    else:
-        total_time = 0.0
-
     walltime = end_time - chip.schema.get("record", field='schema').get_recorded_time(
         step, index, RecordTime.START)
     record_metric(chip, step, index, 'tasktime', walltime,
                   source=None, source_unit='s')
-    record_metric(chip, step, index, 'totaltime', total_time + walltime,
-                  source=None, source_unit='s')
+
+    chip.schema.get("metric", field='schema').record_totaltime(
+        step, index,
+        chip.schema.get("flowgraph", flow, field='schema'),
+        chip.schema.get("record", field='schema'))
     chip.logger.info(f"Finished task in {round(walltime, 2)}s")
 
     # Save a successful manifest
