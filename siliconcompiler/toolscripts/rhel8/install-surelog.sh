@@ -5,13 +5,6 @@ set -e
 # Get directory of script
 src_path=$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P)/..
 
-USE_SUDO_INSTALL="${USE_SUDO_INSTALL:-yes}"
-if [ "${USE_SUDO_INSTALL:-yes}" = "yes" ]; then
-    SUDO_INSTALL=sudo
-else
-    SUDO_INSTALL=""
-fi
-
 sudo yum install -y git
 
 # These dependencies are up-to-date with instructions from the INSTALL.md from the commit we are pinned to below
@@ -35,6 +28,13 @@ git checkout $(python3 ${src_path}/_tools.py --tool surelog --field git-commit)
 git submodule update --init --recursive
 
 scl run gcc-toolset-12 "LDFLAGS=\"-lrt\" make -j$(nproc)"
+
+USE_SUDO_INSTALL="${USE_SUDO_INSTALL:-yes}"
+if [ "${USE_SUDO_INSTALL:-yes}" = "yes" ]; then
+    SUDO_INSTALL="sudo -E PATH=$PATH"
+else
+    SUDO_INSTALL=""
+fi
 
 $SUDO_INSTALL make install
 
