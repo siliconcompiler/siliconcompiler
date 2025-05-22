@@ -1,6 +1,11 @@
 import pytest
 
-from siliconcompiler.metric import MetricSchema
+from datetime import datetime, timezone
+from unittest.mock import patch
+
+from siliconcompiler import MetricSchema
+from siliconcompiler import RecordSchema, FlowgraphSchema
+from siliconcompiler.record import RecordTime
 
 
 def test_clear():
@@ -56,3 +61,287 @@ def test_record_unit_mismatch():
     with pytest.raises(ValueError,
                        match="errors does not have a unit, but ms was supplied"):
         schema.record("teststep", "testindex", "errors", 5, unit='ms')
+
+
+def test_record_totaltime_no_data():
+    flow = FlowgraphSchema()
+    flow.node("testone", "builtin.nop", index="0")
+    flow.node("testone", "builtin.nop", index="1")
+    flow.node("testone", "builtin.nop", index="2")
+    flow.node("testtwo", "builtin.nop", index="0")
+    flow.edge("testone", "testtwo", tail_index="0")
+    flow.edge("testone", "testtwo", tail_index="1")
+    flow.edge("testone", "testtwo", tail_index="2")
+
+    record = RecordSchema()
+
+    schema = MetricSchema()
+    assert schema.record_totaltime("testone", "0", flow, record) is False
+    assert schema.get("totaltime", step="testone", index="0") is None
+    assert schema.record_totaltime("testone", "1", flow, record) is False
+    assert schema.get("totaltime", step="testone", index="1") is None
+    assert schema.record_totaltime("testone", "2", flow, record) is False
+    assert schema.get("totaltime", step="testone", index="2") is None
+
+    assert schema.record_totaltime("testtwo", "0", flow, record) is False
+    assert schema.get("totaltime", step="testtwo", index="0") is None
+
+
+def test_record_totaltime_linear():
+    flow = FlowgraphSchema()
+    flow.node("testone", "builtin.nop", index="0")
+    flow.node("testone", "builtin.nop", index="1")
+    flow.node("testone", "builtin.nop", index="2")
+    flow.node("testtwo", "builtin.nop", index="0")
+    flow.edge("testone", "testtwo", tail_index="0")
+    flow.edge("testone", "testtwo", tail_index="1")
+    flow.edge("testone", "testtwo", tail_index="2")
+
+    record = RecordSchema()
+    record.set("inputnode",
+               [("testone", "0"), ("testone", "1"), ("testone", "2")],
+               step="testtwo", index="0")
+
+    with patch("siliconcompiler.record.datetime") as mock_datetime:
+        mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 0, tzinfo=timezone.utc)
+        record.record_time("testone", "0", RecordTime.START)
+    with patch("siliconcompiler.record.datetime") as mock_datetime:
+        mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 10, tzinfo=timezone.utc)
+        record.record_time("testone", "0", RecordTime.END)
+    with patch("siliconcompiler.record.datetime") as mock_datetime:
+        mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 15, tzinfo=timezone.utc)
+        record.record_time("testone", "1", RecordTime.START)
+    with patch("siliconcompiler.record.datetime") as mock_datetime:
+        mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 30, tzinfo=timezone.utc)
+        record.record_time("testone", "1", RecordTime.END)
+    with patch("siliconcompiler.record.datetime") as mock_datetime:
+        mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 30, tzinfo=timezone.utc)
+        record.record_time("testone", "2", RecordTime.START)
+    with patch("siliconcompiler.record.datetime") as mock_datetime:
+        mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 50, tzinfo=timezone.utc)
+        record.record_time("testone", "2", RecordTime.END)
+    with patch("siliconcompiler.record.datetime") as mock_datetime:
+        mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 1, 0, tzinfo=timezone.utc)
+        record.record_time("testtwo", "0", RecordTime.START)
+    with patch("siliconcompiler.record.datetime") as mock_datetime:
+        mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 1, 5, tzinfo=timezone.utc)
+        record.record_time("testtwo", "0", RecordTime.END)
+
+    schema = MetricSchema()
+    assert schema.record_totaltime("testone", "0", flow, record)
+    assert schema.get("totaltime", step="testone", index="0") == 10.0
+    assert schema.record_totaltime("testone", "1", flow, record)
+    assert schema.get("totaltime", step="testone", index="1") == 25.0
+    assert schema.record_totaltime("testone", "2", flow, record)
+    assert schema.get("totaltime", step="testone", index="2") == 45.0
+
+    assert schema.record_totaltime("testtwo", "0", flow, record)
+    assert schema.get("totaltime", step="testtwo", index="0") == 50.0
+
+
+def test_record_totaltime_overlap():
+    flow = FlowgraphSchema()
+    flow.node("testone", "builtin.nop", index="0")
+    flow.node("testone", "builtin.nop", index="1")
+    flow.node("testone", "builtin.nop", index="2")
+    flow.node("testtwo", "builtin.nop", index="0")
+    flow.edge("testone", "testtwo", tail_index="0")
+    flow.edge("testone", "testtwo", tail_index="1")
+    flow.edge("testone", "testtwo", tail_index="2")
+
+    record = RecordSchema()
+    record.set("inputnode",
+               [("testone", "0"), ("testone", "1"), ("testone", "2")],
+               step="testtwo", index="0")
+
+    with patch("siliconcompiler.record.datetime") as mock_datetime:
+        mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 0, tzinfo=timezone.utc)
+        record.record_time("testone", "0", RecordTime.START)
+    with patch("siliconcompiler.record.datetime") as mock_datetime:
+        mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 10, tzinfo=timezone.utc)
+        record.record_time("testone", "0", RecordTime.END)
+    with patch("siliconcompiler.record.datetime") as mock_datetime:
+        mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 0, tzinfo=timezone.utc)
+        record.record_time("testone", "1", RecordTime.START)
+    with patch("siliconcompiler.record.datetime") as mock_datetime:
+        mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 30, tzinfo=timezone.utc)
+        record.record_time("testone", "1", RecordTime.END)
+    with patch("siliconcompiler.record.datetime") as mock_datetime:
+        mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 0, tzinfo=timezone.utc)
+        record.record_time("testone", "2", RecordTime.START)
+    with patch("siliconcompiler.record.datetime") as mock_datetime:
+        mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 50, tzinfo=timezone.utc)
+        record.record_time("testone", "2", RecordTime.END)
+    with patch("siliconcompiler.record.datetime") as mock_datetime:
+        mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 1, 0, tzinfo=timezone.utc)
+        record.record_time("testtwo", "0", RecordTime.START)
+    with patch("siliconcompiler.record.datetime") as mock_datetime:
+        mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 1, 5, tzinfo=timezone.utc)
+        record.record_time("testtwo", "0", RecordTime.END)
+
+    schema = MetricSchema()
+    assert schema.record_totaltime("testone", "0", flow, record)
+    assert schema.get("totaltime", step="testone", index="0") == 10.0
+    assert schema.record_totaltime("testone", "1", flow, record)
+    assert schema.get("totaltime", step="testone", index="1") == 30.0
+    assert schema.record_totaltime("testone", "2", flow, record)
+    assert schema.get("totaltime", step="testone", index="2") == 50.0
+
+    assert schema.record_totaltime("testtwo", "0", flow, record)
+    assert schema.get("totaltime", step="testtwo", index="0") == 55.0
+
+
+def test_record_totaltime_overlap_staggered():
+    flow = FlowgraphSchema()
+    flow.node("testone", "builtin.nop", index="0")
+    flow.node("testone", "builtin.nop", index="1")
+    flow.node("testone", "builtin.nop", index="2")
+    flow.node("testtwo", "builtin.nop", index="0")
+    flow.edge("testone", "testtwo", tail_index="0")
+    flow.edge("testone", "testtwo", tail_index="1")
+    flow.edge("testone", "testtwo", tail_index="2")
+
+    record = RecordSchema()
+    record.set("inputnode",
+               [("testone", "0"), ("testone", "1"), ("testone", "2")],
+               step="testtwo", index="0")
+
+    with patch("siliconcompiler.record.datetime") as mock_datetime:
+        mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 0, tzinfo=timezone.utc)
+        record.record_time("testone", "0", RecordTime.START)
+    with patch("siliconcompiler.record.datetime") as mock_datetime:
+        mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 10, tzinfo=timezone.utc)
+        record.record_time("testone", "0", RecordTime.END)
+    with patch("siliconcompiler.record.datetime") as mock_datetime:
+        mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 5, tzinfo=timezone.utc)
+        record.record_time("testone", "1", RecordTime.START)
+    with patch("siliconcompiler.record.datetime") as mock_datetime:
+        mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 30, tzinfo=timezone.utc)
+        record.record_time("testone", "1", RecordTime.END)
+    with patch("siliconcompiler.record.datetime") as mock_datetime:
+        mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 10, tzinfo=timezone.utc)
+        record.record_time("testone", "2", RecordTime.START)
+    with patch("siliconcompiler.record.datetime") as mock_datetime:
+        mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 50, tzinfo=timezone.utc)
+        record.record_time("testone", "2", RecordTime.END)
+    with patch("siliconcompiler.record.datetime") as mock_datetime:
+        mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 1, 0, tzinfo=timezone.utc)
+        record.record_time("testtwo", "0", RecordTime.START)
+    with patch("siliconcompiler.record.datetime") as mock_datetime:
+        mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 1, 5, tzinfo=timezone.utc)
+        record.record_time("testtwo", "0", RecordTime.END)
+
+    schema = MetricSchema()
+    assert schema.record_totaltime("testone", "0", flow, record)
+    assert schema.get("totaltime", step="testone", index="0") == 10.0
+    assert schema.record_totaltime("testone", "1", flow, record)
+    assert schema.get("totaltime", step="testone", index="1") == 30.0
+    assert schema.record_totaltime("testone", "2", flow, record)
+    assert schema.get("totaltime", step="testone", index="2") == 50.0
+
+    assert schema.record_totaltime("testtwo", "0", flow, record)
+    assert schema.get("totaltime", step="testtwo", index="0") == 55.0
+
+
+def test_record_totaltime_overlap_staggered_with_gap():
+    flow = FlowgraphSchema()
+    flow.node("testone", "builtin.nop", index="0")
+    flow.node("testone", "builtin.nop", index="1")
+    flow.node("testone", "builtin.nop", index="2")
+    flow.node("testtwo", "builtin.nop", index="0")
+    flow.edge("testone", "testtwo", tail_index="0")
+    flow.edge("testone", "testtwo", tail_index="1")
+    flow.edge("testone", "testtwo", tail_index="2")
+
+    record = RecordSchema()
+    record.set("inputnode",
+               [("testone", "0"), ("testone", "1"), ("testone", "2")],
+               step="testtwo", index="0")
+
+    with patch("siliconcompiler.record.datetime") as mock_datetime:
+        mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 0, tzinfo=timezone.utc)
+        record.record_time("testone", "0", RecordTime.START)
+    with patch("siliconcompiler.record.datetime") as mock_datetime:
+        mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 10, tzinfo=timezone.utc)
+        record.record_time("testone", "0", RecordTime.END)
+    with patch("siliconcompiler.record.datetime") as mock_datetime:
+        mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 5, tzinfo=timezone.utc)
+        record.record_time("testone", "1", RecordTime.START)
+    with patch("siliconcompiler.record.datetime") as mock_datetime:
+        mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 30, tzinfo=timezone.utc)
+        record.record_time("testone", "1", RecordTime.END)
+    with patch("siliconcompiler.record.datetime") as mock_datetime:
+        mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 31, tzinfo=timezone.utc)
+        record.record_time("testone", "2", RecordTime.START)
+    with patch("siliconcompiler.record.datetime") as mock_datetime:
+        mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 50, tzinfo=timezone.utc)
+        record.record_time("testone", "2", RecordTime.END)
+    with patch("siliconcompiler.record.datetime") as mock_datetime:
+        mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 1, 0, tzinfo=timezone.utc)
+        record.record_time("testtwo", "0", RecordTime.START)
+    with patch("siliconcompiler.record.datetime") as mock_datetime:
+        mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 1, 5, tzinfo=timezone.utc)
+        record.record_time("testtwo", "0", RecordTime.END)
+
+    schema = MetricSchema()
+    assert schema.record_totaltime("testone", "0", flow, record)
+    assert schema.get("totaltime", step="testone", index="0") == 10.0
+    assert schema.record_totaltime("testone", "1", flow, record)
+    assert schema.get("totaltime", step="testone", index="1") == 30.0
+    assert schema.record_totaltime("testone", "2", flow, record)
+    assert schema.get("totaltime", step="testone", index="2") == 49.0
+
+    assert schema.record_totaltime("testtwo", "0", flow, record)
+    assert schema.get("totaltime", step="testtwo", index="0") == 54.0
+
+
+def test_record_totaltime_overlap_staggered_with_all_contained():
+    flow = FlowgraphSchema()
+    flow.node("testone", "builtin.nop", index="0")
+    flow.node("testone", "builtin.nop", index="1")
+    flow.node("testone", "builtin.nop", index="2")
+    flow.node("testtwo", "builtin.nop", index="0")
+    flow.edge("testone", "testtwo", tail_index="0")
+    flow.edge("testone", "testtwo", tail_index="1")
+    flow.edge("testone", "testtwo", tail_index="2")
+
+    record = RecordSchema()
+    record.set("inputnode",
+               [("testone", "0"), ("testone", "1"), ("testone", "2")],
+               step="testtwo", index="0")
+
+    with patch("siliconcompiler.record.datetime") as mock_datetime:
+        mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 0, tzinfo=timezone.utc)
+        record.record_time("testone", "0", RecordTime.START)
+    with patch("siliconcompiler.record.datetime") as mock_datetime:
+        mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 10, tzinfo=timezone.utc)
+        record.record_time("testone", "0", RecordTime.END)
+    with patch("siliconcompiler.record.datetime") as mock_datetime:
+        mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 1, tzinfo=timezone.utc)
+        record.record_time("testone", "1", RecordTime.START)
+    with patch("siliconcompiler.record.datetime") as mock_datetime:
+        mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 2, tzinfo=timezone.utc)
+        record.record_time("testone", "1", RecordTime.END)
+    with patch("siliconcompiler.record.datetime") as mock_datetime:
+        mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 3, tzinfo=timezone.utc)
+        record.record_time("testone", "2", RecordTime.START)
+    with patch("siliconcompiler.record.datetime") as mock_datetime:
+        mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 4, tzinfo=timezone.utc)
+        record.record_time("testone", "2", RecordTime.END)
+    with patch("siliconcompiler.record.datetime") as mock_datetime:
+        mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 1, 0, tzinfo=timezone.utc)
+        record.record_time("testtwo", "0", RecordTime.START)
+    with patch("siliconcompiler.record.datetime") as mock_datetime:
+        mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 1, 5, tzinfo=timezone.utc)
+        record.record_time("testtwo", "0", RecordTime.END)
+
+    schema = MetricSchema()
+    assert schema.record_totaltime("testone", "0", flow, record)
+    assert schema.get("totaltime", step="testone", index="0") == 10.0
+    assert schema.record_totaltime("testone", "1", flow, record)
+    assert schema.get("totaltime", step="testone", index="1") == 2.0
+    assert schema.record_totaltime("testone", "2", flow, record)
+    assert schema.get("totaltime", step="testone", index="2") == 4.0
+
+    assert schema.record_totaltime("testtwo", "0", flow, record)
+    assert schema.get("totaltime", step="testtwo", index="0") == 15.0

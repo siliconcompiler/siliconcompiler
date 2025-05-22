@@ -259,7 +259,7 @@ class RecordSchema(BaseSchema):
 
     def get_recorded_time(self, step, index, type):
         '''
-        Returns the time recorded for a given record.
+        Returns the time recorded for a given record, or None if nothing is recorded.
 
         Args:
             step (str): Step name to associate.
@@ -267,8 +267,12 @@ class RecordSchema(BaseSchema):
             type (:class:`RecordTime`): type of time to record
         '''
         type = RecordTime(type)
+        record_time = self.get(type.value, step=step, index=index)
+        if record_time is None:
+            return None
+
         return datetime.strptime(
-            self.get(type.value, step=step, index=index)+"+0000",
+            record_time+"+0000",
             RecordSchema.__TIMEFORMAT+"%z").timestamp()
 
     def record_tool(self, step, index, info, type):

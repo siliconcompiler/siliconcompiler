@@ -93,6 +93,14 @@ def test_get_recorded_time(type, mock_datetime_now):
     assert schema.get_recorded_time("teststep", "testindex", type) == 1583935200.0
 
 
+@pytest.mark.parametrize("type", (RecordTime.START, RecordTime.END))
+def test_get_recorded_time_no_record(type):
+    schema = RecordSchema()
+
+    assert schema.get(type.value, step="teststep", index="testindex") is None
+    assert schema.get_recorded_time("teststep", "testindex", type) is None
+
+
 def test_get_recorded_time_diff():
     schema = RecordSchema()
 
