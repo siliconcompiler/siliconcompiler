@@ -215,7 +215,6 @@ def test_cli_examples(do_cli_test, monkeypatch, cast):
         pass
     monkeypatch.setattr(siliconcompiler.Schema, 'read_manifest', _mock_read_manifest)
 
-    Debug = False
     did_something = True
     example_index = 0
     while (did_something):
@@ -225,8 +224,6 @@ def test_cli_examples(do_cli_test, monkeypatch, cast):
         chip.remove('package', 'source', 'siliconcompiler')
         expected_data = []
         for keypath in sorted(chip.allkeys()):
-            if Debug:
-                print(keypath)
             examples = chip.get(*keypath, field='example')
             examples = [e for e in examples if e.startswith('cli')]
             if len(examples) <= example_index:

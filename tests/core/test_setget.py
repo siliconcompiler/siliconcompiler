@@ -17,7 +17,6 @@ def test_setget(cast):
     schema examples are valid.
     '''
 
-    DEBUG = False
     chip = siliconcompiler.Chip('test')
     error = 0
 
@@ -26,8 +25,6 @@ def test_setget(cast):
         sctype = chip.get(*key, field='type')
         examples = chip.get(*key, field='example')
         pernode = chip.get(*key, field='pernode')
-        if DEBUG:
-            print(key, sctype, examples)
         for example in examples:
             if pernode != PerNode.REQUIRED:
                 match = re.match(r'api\:\s+chip.(set|add|get)\((.*)\)',
@@ -59,8 +56,6 @@ def test_setget(cast):
         value = cast(value, sctype)
 
         if match.group(1) == 'set':
-            if DEBUG:
-                print(*keypath, value)
             chip.set(*keypath, value, step=step, index=index, clobber=True)
         elif match.group(1) == 'add':
             chip.add(*keypath, value, step=step, index=index)

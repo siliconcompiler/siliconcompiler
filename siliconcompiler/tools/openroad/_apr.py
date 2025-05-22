@@ -402,7 +402,7 @@ def _generate_cell_area_report(design, ord_metrics):
         if stdcell_info_area:
             stdcellarea = sum(stdcell_info_area)
 
-        cellarea_report.addCell(
+        cellarea_report.add_cell(
             name=cell_name,
             module=cell_type,
             cellarea=cellarea,
@@ -420,7 +420,7 @@ def _generate_cell_area_report(design, ord_metrics):
         process_cell(module)
 
     if cellarea_report.size() > 0:
-        cellarea_report.writeReport("reports/hierarchical_cell_area.json")
+        cellarea_report.write_report("reports/hierarchical_cell_area.json")
 
 
 def define_tapcell_params(chip):

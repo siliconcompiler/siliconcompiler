@@ -48,38 +48,38 @@ def large_flow():
     return chip
 
 
-def test_getNodes(large_flow):
+def test_get_nodes(large_flow):
     scheduler = TaskScheduler(large_flow)
-    assert scheduler.getNodes() == [
+    assert scheduler.get_nodes() == [
         ('joinone', '0'), ('jointhree', '0'), ('jointwo', '0'),
         ('stepone', '0'), ('stepone', '1'), ('stepone', '2'),
         ('stepthree', '0'), ('stepthree', '1'), ('stepthree', '2'),
         ('steptwo', '0'), ('steptwo', '1'), ('steptwo', '2')]
 
 
-def test_getNodes_with_complete(large_flow):
+def test_get_nodes_with_complete(large_flow):
     large_flow.set("record", "status", NodeStatus.SUCCESS, step="stepone", index="0")
     scheduler = TaskScheduler(large_flow)
-    assert scheduler.getNodes() == [
+    assert scheduler.get_nodes() == [
         ('joinone', '0'), ('jointhree', '0'), ('jointwo', '0'),
         ('stepone', '1'), ('stepone', '2'),
         ('stepthree', '0'), ('stepthree', '1'), ('stepthree', '2'),
         ('steptwo', '0'), ('steptwo', '1'), ('steptwo', '2')]
 
 
-def test_registerCallback_invalid():
+def test_register_callback_invalid():
     with pytest.raises(ValueError, match="pre_run0 is not a valid callback"):
-        TaskScheduler.registerCallback("pre_run0", lambda: None)
+        TaskScheduler.register_callback("pre_run0", lambda: None)
 
 
-def test_registerCallback():
+def test_register_callback():
     def callback(chip):
         pass
 
     callbacks = TaskScheduler._TaskScheduler__callbacks
     with patch.dict(callbacks):
         assert callbacks["pre_run"] is not callback
-        TaskScheduler.registerCallback("pre_run", callback)
+        TaskScheduler.register_callback("pre_run", callback)
         assert callbacks["pre_run"] is callback
 
 
@@ -159,7 +159,7 @@ def test_run_control_c(large_flow, monkeypatch):
 
     def dummy_loop():
         raise KeyboardInterrupt
-    monkeypatch.setattr(scheduler, "_TaskScheduler__runLoop", dummy_loop)
+    monkeypatch.setattr(scheduler, "_TaskScheduler__run_loop", dummy_loop)
 
     with pytest.raises(SystemExit):
         scheduler.run()

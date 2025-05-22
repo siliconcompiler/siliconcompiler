@@ -257,10 +257,10 @@ class CellArea:
     def __init__(self):
         self.__areas = {}
 
-    def addCell(self, name=None, module=None,
-                cellarea=None, cellcount=None,
-                macroarea=None, macrocount=None,
-                stdcellarea=None, stdcellcount=None):
+    def add_cell(self, name=None, module=None,
+                 cellarea=None, cellcount=None,
+                 macroarea=None, macrocount=None,
+                 stdcellarea=None, stdcellcount=None):
         if not name and not module:
             return
 
@@ -294,6 +294,6 @@ class CellArea:
     def size(self):
         return len(self.__areas)
 
-    def writeReport(self, path):
+    def write_report(self, path):
         with open(path, 'w') as f:
             json.dump(self.__areas, f, indent=4)

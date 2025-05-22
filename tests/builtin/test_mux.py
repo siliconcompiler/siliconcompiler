@@ -24,13 +24,13 @@ def chip():
         'teststep': mux
     }
 
-    N = 10
+    synth_n = 10
     flow = 'testflow'
     chip.set('option', 'flow', flow)
 
     threads = {
         'import': 1,
-        'syn': N,
+        'syn': synth_n,
         'teststep': 1
     }
 
@@ -39,7 +39,7 @@ def chip():
         for index in range(threads[step]):
             if step == "teststep":
                 chip.node(flow, step, task[step], index=index)
-                for j in range(N):
+                for j in range(synth_n):
                     chip.edge(flow, flowpipe[i - 1], step, tail_index=j)
             elif step == 'import':
                 chip.node(flow, step, task[step], index=index)
@@ -48,7 +48,7 @@ def chip():
                 chip.edge(flow, flowpipe[i - 1], step, tail_index=0, head_index=index)
 
     # creating fake syn results
-    for index in range(N):
+    for index in range(synth_n):
         for metric in chip.getkeys('metric'):
             if metric != 'setupwns':
                 chip.set('metric', metric, 1000 - index * 1 + 42.0, step='syn', index=index)

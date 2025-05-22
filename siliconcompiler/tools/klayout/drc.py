@@ -6,7 +6,7 @@ from siliconcompiler.tools._common import input_provides, has_input_files, \
 from siliconcompiler.tools._common.asic import set_tool_task_var, get_tool_task_var
 
 from siliconcompiler.tools.klayout.klayout import setup as setup_tool
-import xml.etree.ElementTree as ET
+from xml.etree import ElementTree
 from siliconcompiler import utils
 
 
@@ -144,7 +144,7 @@ def post_process(chip):
     drc_report = None
     if os.path.isfile(drc_db):
         with open(drc_db, "r") as f:
-            drc_report = ET.fromstring(f.read())
+            drc_report = ElementTree.fromstring(f.read())
     if drc_report is None:
         drc_db = []
 

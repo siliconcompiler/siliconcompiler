@@ -34,7 +34,7 @@ import argparse
 from siliconcompiler import sc_open
 
 
-def count_LVS_failures(filename):
+def count_lvs_failures(filename):
     with sc_open(filename) as cfile:
         lvsdata = json.load(cfile)
 
@@ -114,7 +114,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Parses netgen lvs')
     parser.add_argument('--file', '-f', required=True)
     args = parser.parse_args()
-    failures = count_LVS_failures(args.file)
+    failures = count_lvs_failures(args.file)
     total = failures[0]
     if total > 0:
         failed = True

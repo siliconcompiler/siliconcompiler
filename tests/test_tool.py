@@ -227,11 +227,11 @@ def test_get_exe_version(running_chip, monkeypatch, caplog):
     def dummy_run(cmdlist, **kwargs):
         assert cmdlist == ['found/exe', '-version']
 
-        class ret:
+        class Ret:
             returncode = 0
             stdout = "myversion"
 
-        return ret()
+        return Ret()
     monkeypatch.setattr(imported_subprocess, 'run', dummy_run)
 
     assert tool.get_exe_version() == "1.0.0"
@@ -253,11 +253,11 @@ def test_get_exe_version_not_implemented(running_chip, monkeypatch):
     def dummy_run(cmdlist, **kwargs):
         assert cmdlist == ['found/exe', '-version']
 
-        class ret:
+        class Ret:
             returncode = 0
             stdout = "myversion"
 
-        return ret()
+        return Ret()
     monkeypatch.setattr(imported_subprocess, 'run', dummy_run)
 
     with pytest.raises(RuntimeError, match="testtool does not implement parse_version()"):
@@ -285,11 +285,11 @@ def test_get_exe_version_non_zero_return(running_chip, monkeypatch, caplog):
     def dummy_run(cmdlist, **kwargs):
         assert cmdlist == ['found/exe', '-version']
 
-        class ret:
+        class Ret:
             returncode = 1
             stdout = "myversion"
 
-        return ret()
+        return Ret()
     monkeypatch.setattr(imported_subprocess, 'run', dummy_run)
 
     assert tool.get_exe_version() == "1.0.0"
@@ -316,11 +316,11 @@ def test_get_exe_version_internal_error(running_chip, monkeypatch, caplog):
     def dummy_run(cmdlist, **kwargs):
         assert cmdlist == ['found/exe', '-version']
 
-        class ret:
+        class Ret:
             returncode = 0
             stdout = "myversion"
 
-        return ret()
+        return Ret()
     monkeypatch.setattr(imported_subprocess, 'run', dummy_run)
 
     with pytest.raises(ValueError, match="look for this match"):

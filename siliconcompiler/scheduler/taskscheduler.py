@@ -29,6 +29,10 @@ class TaskScheduler:
 
     @staticmethod
     def registerCallback(hook, func):
+        TaskScheduler.register_callback(hook, func)
+
+    @staticmethod
+    def register_callback(hook, func):
         if hook not in TaskScheduler.__callbacks:
             raise ValueError(f"{hook} is not a valid callback")
         TaskScheduler.__callbacks[hook] = func
@@ -56,9 +60,9 @@ class TaskScheduler:
         self.__startTimes = {}
         self.__dwellTime = 0.1
 
-        self.__createNodes()
+        self.__create_nodes()
 
-    def __createNodes(self):
+    def __create_nodes(self):
         from siliconcompiler.scheduler import _executenode, _runtask
 
         runtime = RuntimeFlowgraph(
@@ -148,7 +152,7 @@ class TaskScheduler:
         TaskScheduler.__callbacks["pre_run"](self.__chip)
 
         try:
-            self.__runLoop()
+            self.__run_loop()
         except KeyboardInterrupt:
             # exit immediately
             log_listener.stop()
@@ -160,24 +164,24 @@ class TaskScheduler:
         log_listener.stop()
         self.__logger._console.setFormatter(console_format)
 
-    def __runLoop(self):
+    def __run_loop(self):
         self.__startTimes = {None: time.time()}
 
-        while len(self.getNodesWaitingToRun()) > 0 or len(self.getRunningNodes()) > 0:
-            changed = self.__processCompletedNodes()
-            changed |= self.__launchNodes()
+        while len(self.get_nodes_waiting_to_run()) > 0 or len(self.get_running_nodes()) > 0:
+            changed = self.__process_completed_nodes()
+            changed |= self.__lanuch_nodes()
 
             if changed and self.__dashboard:
                 # Update dashboard if the manifest changed
                 self.__dashboard.update_manifest(payload={"starttimes": self.__startTimes})
 
-            running_nodes = self.getRunningNodes()
+            running_nodes = self.get_running_nodes()
 
             # Check for situation where we have stuff left to run but don't
             # have any nodes running. This shouldn't happen, but we will get
             # stuck in an infinite loop if it does, so we want to break out
             # with an explicit error.
-            if len(self.getNodesWaitingToRun()) > 0 and len(running_nodes) == 0:
+            if len(self.get_nodes_waiting_to_run()) > 0 and len(running_nodes) == 0:
                 raise SiliconCompilerError(
                     'Nodes left to run, but no running nodes. From/to may be invalid.',
                     chip=self.__chip)
@@ -189,26 +193,26 @@ class TaskScheduler:
                 # if there are more than 1, join the first with a timeout
                 self.__nodes[running_nodes[0]]["proc"].join(timeout=self.__dwellTime)
 
-    def getNodes(self):
+    def get_nodes(self):
         return sorted(self.__nodes.keys())
 
-    def getRunningNodes(self):
+    def get_running_nodes(self):
         nodes = []
         for node, info in self.__nodes.items():
             if info["running"]:
                 nodes.append(node)
         return sorted(nodes)
 
-    def getNodesWaitingToRun(self):
+    def get_nodes_waiting_to_run(self):
         nodes = []
         for node, info in self.__nodes.items():
             if not info["running"] and info["proc"]:
                 nodes.append(node)
         return sorted(nodes)
 
-    def __processCompletedNodes(self):
+    def __process_completed_nodes(self):
         changed = False
-        for node in self.getRunningNodes():
+        for node in self.get_running_nodes():
             info = self.__nodes[node]
 
             if not info["proc"].is_alive():
@@ -246,14 +250,14 @@ class TaskScheduler:
 
         return changed
 
-    def __allowStart(self, node):
+    def __allow_start(self, node):
         info = self.__nodes[node]
 
         if not info["local"]:
             # using a different scheduler, so allow
             return True
 
-        running_nodes = self.getRunningNodes()
+        running_nodes = self.get_running_nodes()
 
         if len(running_nodes) >= self.__max_parallel_run:
             # exceeding machine resources
@@ -268,9 +272,9 @@ class TaskScheduler:
         # allow
         return True
 
-    def __launchNodes(self):
+    def __lanuch_nodes(self):
         changed = False
-        for node in self.getNodesWaitingToRun():
+        for node in self.get_nodes_waiting_to_run():
             # TODO: breakpoint logic:
             # if node is breakpoint, then don't launch while len(running_nodes) > 0
 
@@ -304,7 +308,7 @@ class TaskScheduler:
 
             # If there are no dependencies left, launch this node and
             # remove from nodes_to_run.
-            if ready and self.__allowStart(node):
+            if ready and self.__allow_start(node):
                 self.__logger.debug(f'Launching {info["name"]}')
 
                 TaskScheduler.__callbacks['pre_node'](self.__chip, step, index)

@@ -75,7 +75,7 @@ def prepare_asic_libraries(chip):
                     lib_file_name = f'{lib_file_name_base}_{unique_ident}'
                     unique_ident += 1
 
-                lib_content[lib_file_name] = prepareLib.processLibertyFile(
+                lib_content[lib_file_name] = prepareLib.process_liberty_file(
                         lib_file,
                         logger=None if chip.get('option', 'quiet',
                                                 step=step, index=index) else chip.logger)

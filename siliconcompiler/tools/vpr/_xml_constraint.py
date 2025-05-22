@@ -1,4 +1,4 @@
-import xml.etree.ElementTree as ET
+from xml.etree import ElementTree
 import xml.dom.minidom
 
 
@@ -10,7 +10,7 @@ def generate_vpr_constraints_xml_file(pin_map, filename):
 
 def generate_vpr_constraints_xml(pin_map):
 
-    constraints_xml = ET.Element("vpr_constraints")
+    constraints_xml = ElementTree.Element("vpr_constraints")
 
     # Generate partition list section
     partition_list = generate_partition_list_xml(pin_map)
@@ -22,7 +22,7 @@ def generate_vpr_constraints_xml(pin_map):
 
 def generate_partition_list_xml(pin_map):
 
-    partition_list = ET.Element("partition_list")
+    partition_list = ElementTree.Element("partition_list")
 
     # ***ASSUMPTION:  pin map is a dictionary of block names
     #                 and tuples, where the tuples specify the
@@ -38,7 +38,7 @@ def generate_partition_list_xml(pin_map):
 
 def generate_partition_xml(pin, pin_region):
 
-    partition = ET.Element("partition")
+    partition = ElementTree.Element("partition")
 
     partition_name = generate_partition_name(pin)
     partition.set("name", partition_name)
@@ -80,7 +80,7 @@ def generate_partition_name(pin):
 
 def generate_add_atom_xml(pin_name):
 
-    atom_xml = ET.Element("add_atom")
+    atom_xml = ElementTree.Element("add_atom")
 
     atom_xml.set("name_pattern", str(pin_name))
 
@@ -89,7 +89,7 @@ def generate_add_atom_xml(pin_name):
 
 def generate_add_region_xml(x_low, x_high, y_low, y_high, subtile):
 
-    region_xml = ET.Element("add_region")
+    region_xml = ElementTree.Element("add_region")
 
     region_xml.set("x_low", str(x_low))
     region_xml.set("y_low", str(y_low))
@@ -100,9 +100,9 @@ def generate_add_region_xml(x_low, x_high, y_low, y_high, subtile):
     return region_xml
 
 
-def write_vpr_constraints_xml_file(constraints: ET.Element, filename: str):
+def write_vpr_constraints_xml_file(constraints: ElementTree.Element, filename: str):
 
-    dom = xml.dom.minidom.parseString(ET.tostring(constraints))
+    dom = xml.dom.minidom.parseString(ElementTree.tostring(constraints))
     xml_string = dom.toprettyxml()
 
     with open(filename, 'w') as xfile:

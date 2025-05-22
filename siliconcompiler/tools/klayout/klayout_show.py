@@ -17,18 +17,18 @@ def show(schema, tech, input_path, output_path, screenshot=False, report=None):
         sc_hide_layers = []
 
     # Load KLayout technology file
-    layoutOptions = tech.load_layout_options
+    layout_options = tech.load_layout_options
 
     # These may be disabled in our KLayout tech file for reasons relating to GDS
     # export, but for the purposes of viewing we'll hardcode them to True.
-    layoutOptions.lefdef_config.produce_blockages = True
-    layoutOptions.lefdef_config.produce_cell_outlines = True
-    layoutOptions.lefdef_config.produce_obstructions = True
+    layout_options.lefdef_config.produce_blockages = True
+    layout_options.lefdef_config.produce_cell_outlines = True
+    layout_options.lefdef_config.produce_obstructions = True
 
     # Always use LEF geometry even when LEF file contains FOREIGN statement.
-    layoutOptions.lefdef_config.macro_resolution_mode = 1
+    layout_options.lefdef_config.macro_resolution_mode = 1
 
-    tech.load_layout_options = layoutOptions
+    tech.load_layout_options = layout_options
 
     app = pya.Application.instance()
     main_window = pya.MainWindow.instance()

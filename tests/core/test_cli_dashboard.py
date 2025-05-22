@@ -29,7 +29,7 @@ def fake_console(monkeypatch):
 
 @pytest.fixture(autouse=True)
 def reset_singleton(monkeypatch):
-    class mock_manager:
+    class MockManager:
         def Lock(self):
             return threading.Lock()
 
@@ -43,11 +43,11 @@ def reset_singleton(monkeypatch):
             return {}
 
         def Namespace(self):
-            class dummy:
+            class Dummy:
                 pass
-            return dummy()
+            return Dummy()
 
-    monkeypatch.setattr(multiprocessing, "Manager", mock_manager)
+    monkeypatch.setattr(multiprocessing, "Manager", MockManager)
     with patch.dict(BoardSingleton._instances, clear=True):
         yield
 

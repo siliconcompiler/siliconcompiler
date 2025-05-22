@@ -84,12 +84,12 @@ def technology(design, schema):
         lefs.extend(schema.get('library', lib, 'output', sc_stackup, 'lef',
                                step=sc_step, index=sc_index))
 
-    layoutOptions = tech.load_layout_options
+    layout_options = tech.load_layout_options
 
-    layoutOptions.lefdef_config.macro_resolution_mode = 1
-    layoutOptions.lefdef_config.via_cellname_prefix = "VIA_"
+    layout_options.lefdef_config.macro_resolution_mode = 1
+    layout_options.lefdef_config.via_cellname_prefix = "VIA_"
     pathed_files = set()
-    for lef_file in layoutOptions.lefdef_config.lef_files:
+    for lef_file in layout_options.lefdef_config.lef_files:
         if foundry_lef and not os.path.isabs(lef_file):
             lef_file = os.path.join(os.path.dirname(foundry_lef), lef_file)
         lef_file = os.path.abspath(lef_file)
@@ -99,13 +99,13 @@ def technology(design, schema):
     for lef in lefs:
         pathed_files.add(os.path.abspath(lef))
 
-    layoutOptions.lefdef_config.lef_files = list(pathed_files)
-    layoutOptions.lefdef_config.read_lef_with_def = False
-    layoutOptions.lefdef_config.dbu = tech.dbu
+    layout_options.lefdef_config.lef_files = list(pathed_files)
+    layout_options.lefdef_config.read_lef_with_def = False
+    layout_options.lefdef_config.dbu = tech.dbu
 
-    layoutOptions.lefdef_config.produce_fills = True
+    layout_options.lefdef_config.produce_fills = True
 
-    for lef_file in layoutOptions.lefdef_config.lef_files:
+    for lef_file in layout_options.lefdef_config.lef_files:
         print(f"[INFO] LEF file: {lef_file}")
 
     # Set layer properties
@@ -127,7 +127,7 @@ def technology(design, schema):
         print(f"[INFO] Layer properties: {layer_properties}")
 
     # Set layer map
-    map_file = layoutOptions.lefdef_config.map_file
+    map_file = layout_options.lefdef_config.map_file
     if map_file:
         map_file = map_file[0]
         if not os.path.isabs(map_file):
@@ -141,10 +141,10 @@ def technology(design, schema):
                 break
 
     if map_file and os.path.exists(map_file):
-        layoutOptions.lefdef_config.map_file = map_file
+        layout_options.lefdef_config.map_file = map_file
         print(f"[INFO] Layer map: {map_file}")
 
-    tech.load_layout_options = layoutOptions
+    tech.load_layout_options = layout_options
 
     return tech
 
