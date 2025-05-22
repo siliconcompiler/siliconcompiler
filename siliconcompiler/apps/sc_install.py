@@ -42,6 +42,13 @@ def install_tool(tool, script, build_dir, prefix):
     # setup environment
     env = os.environ.copy()
     env["PREFIX"] = prefix
+    env["USE_SUDO_INSTALL"] = "no"
+    try:
+        os.makedirs(prefix, exist_ok=True)
+    except PermissionError:
+        env["USE_SUDO_INSTALL"] = "yes"
+    if not os.access(prefix, os.W_OK):
+        env["USE_SUDO_INSTALL"] = "yes"
 
     # run
     ret = subprocess.call(script, env=env, cwd=build_dir)
