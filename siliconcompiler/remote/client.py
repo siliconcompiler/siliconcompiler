@@ -16,6 +16,7 @@ from siliconcompiler._metadata import default_server
 from siliconcompiler.remote import JobStatus
 from siliconcompiler.report.dashboard import DashboardType
 from siliconcompiler.flowgraph import RuntimeFlowgraph
+from siliconcompiler.schema import JournalingSchema
 
 # Step name to use while logging
 remote_step_name = 'remote'
@@ -590,7 +591,7 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
                 f'{self.__chip.design}.pkg.json')
             if os.path.exists(manifest):
                 try:
-                    self.__chip.schema.read_journal(manifest)
+                    JournalingSchema(self.__chip.schema).read_journal(manifest)
                     node_info["imported"] = True
                     changed = True
                 except:  # noqa E722
