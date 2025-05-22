@@ -1,3 +1,4 @@
+import os
 import shutil
 import sys
 
@@ -8,6 +9,8 @@ from logging.handlers import QueueHandler
 from siliconcompiler import utils, sc_open
 from siliconcompiler import Schema
 from siliconcompiler import NodeStatus
+
+from siliconcompiler.tools._common import input_file_node_name
 
 from siliconcompiler.record import RecordTime, RecordTool
 from siliconcompiler.schema import JournalingSchema
@@ -29,7 +32,12 @@ class SchedulerNode:
         self.__error = False
         self.__generateTestCase = True
 
-        self.__workdir = self.__chip.getworkdir(jobname=self.__job, step=self.__step, index=self.__index)
+        flow = self.__chip.get('option', 'flow')
+        self.__is_entry_node = (self.__step, self.__index) not in \
+            self.__chip.get("flowgraph", flow, field="schema").get_entry_nodes()
+
+        self.__workdir = self.__chip.getworkdir(jobname=self.__job,
+                                                step=self.__step, index=self.__index)
         self.__manifests = {
             "input": os.path.join(self.__workdir, "inputs", f"{self.__design}.pkg.json"),
             "output": os.path.join(self.__workdir, "outputs", f"{self.__design}.pkg.json")
@@ -58,7 +66,10 @@ class SchedulerNode:
         self.__record = self.__chip.schema.get("record", field="schema")
         self.__metrics = self.__chip.schema.get("record", field="schema")
 
-    def halt(self):
+    def halt(self, msg=None):
+        if msg:
+            self.logger.error(msg)
+
         self.__chip.schema.get("record", field='schema').set(
             "status", NodeStatus.ERROR,
             step=self.__step, index=self.__index)
@@ -73,6 +84,108 @@ class SchedulerNode:
 
     def requires_run(self):
         return True
+
+    def setup_input_directory(self):
+        strict = self.__chip.get('option', 'strict')
+
+        in_files = set(self.__task.get('task', self.__task.task(), 'input',
+                                       step=self.__step, index=self.__index))
+
+        for in_step, in_index in self.__record.get('inputnode',
+                                                   step=self.__step, index=self.__index):
+            if self.__record('status', step=in_step, index=in_index) == NodeStatus.ERROR:
+                self.halt(f'Halting step due to previous error in {in_step}{in_index}')
+
+            output_dir = os.path.join(
+                self.__chip.getworkdir(step=in_step, index=in_index), "outputs")
+            if not os.path.isdir(output_dir):
+                self.halt(f'Unable to locate outputs directory for {in_step}{in_index}: '
+                          f'{output_dir}')
+
+            for outfile in os.scandir(output_dir):
+                if outfile.name == f'{self.__design}.pkg.json':
+                    # Dont forward manifest
+                    continue
+
+                new_name = input_file_node_name(outfile.name, in_step, in_index)
+                if strict:
+                    if outfile.name not in in_files and new_name not in in_files:
+                        continue
+
+                if outfile.is_file() or outfile.is_symlink():
+                    utils.link_symlink_copy(outfile.path,
+                                            f'inputs/{outfile.name}')
+                elif outfile.is_dir():
+                    shutil.copytree(outfile.path,
+                                    f'inputs/{outfile.name}',
+                                    dirs_exist_ok=True,
+                                    copy_function=utils.link_symlink_copy)
+
+                if new_name in in_files:
+                    # perform rename
+                    os.rename(f'inputs/{outfile.name}', f'inputs/{new_name}')
+
+    def validate(self):
+        '''
+        Runtime checks called from _runtask().
+
+        - Make sure expected inputs exist.
+        - Make sure all required filepaths resolve correctly.
+        '''
+        error = False
+
+        required_inputs = self.__task.get('task', self.__task.task(), 'input',
+                                          step=self.__step, index=self.__index)
+
+        input_dir = os.path.join(self.__workdir, 'inputs')
+
+        for filename in required_inputs:
+            path = os.path.join(input_dir, filename)
+            if not os.path.exists(path):
+                self.logger.error(f'Required input {filename} not received for '
+                                  f'{self.__step}{self.__index}.')
+                error = True
+
+        all_required = self.__task.get('task', self.__task.task(), 'require',
+                                       step=self.__step, index=self.__index)
+        for item in all_required:
+            keypath = item.split(',')
+            if not self.__chip.valid(*keypath):
+                self.__chip.logger.error(f'Cannot resolve required keypath [{",".join(keypath)}].')
+                error = True
+                continue
+
+            param = self.__chip.get(*keypath, field=None)
+            check_step, check_index = self.__step, self.__index
+            if param.get(field='pernode').is_never():
+                check_step, check_index = Schema.GLOBAL_KEY, Schema.GLOBAL_KEY
+
+            paramtype = param.get(field='type')
+
+            value = self.__chip.get(*keypath, step=check_step, index=check_index)
+            if not value:
+                self.__chip.logger.error('No value set for required keypath '
+                                         f'[{",".join(keypath)}].')
+                error = True
+                continue
+
+            if ('file' in paramtype) or ('dir' in paramtype):
+                abspath = self.__chip.find_files(*keypath,
+                                                 missing_ok=True,
+                                                 step=check_step, index=check_index)
+
+                unresolved_paths = value
+                if not isinstance(abspath, list):
+                    abspath = [abspath]
+                    unresolved_paths = [unresolved_paths]
+
+                for path, setpath in zip(abspath, unresolved_paths):
+                    if path is None:
+                        self.logger.error(f'Cannot resolve path {setpath} in '
+                                          f'required file keypath [{",".join(keypath)}].')
+                        error = True
+
+        return not error
 
     def run(self):
         '''
@@ -104,6 +217,7 @@ class SchedulerNode:
         self.__chip.schema = JournalingSchema(self.__chip.schema)
         self.__chip.schema.start_journal()
 
+        # Must be after journaling to ensure journal is complete
         self.__setupSchemaAccess()
 
         # Make record of sc version and machine
@@ -116,20 +230,37 @@ class SchedulerNode:
         # Start wall timer
         self.__record.record_time(self.__step, self.__index, RecordTime.START)
 
+        # Setup run directory
         self.__task.setup_work_directory(self.__workdir)
 
         cwd = os.getcwd()
         os.chdir(self.__workdir)
 
+        # Attach siliconcompiler file log handler
         self.__chip._add_file_logger(self.__logs["sc"])
 
-        try:
-            _setupnode(chip, flow, step, index, replay)
+        # Select the inputs to this node
+        sel_inputs = self.__task.select_input_nodes()
+        if not self.__is_entry_node and not sel_inputs:
+            self.halt(f'No inputs selected for {self.__step}{self.__index}')
 
+        # _hash_files(chip, step, index, setup=True)
+
+        # Forward data
+        self.setup_input_directory()
+
+        # Write manifest prior to step running into inputs
+        self.__chip.write_manifest(self.__manifests["input"])
+
+        # Check manifest
+        if not self.validate():
+            self.halt("Failed to validate node setup. See previous errors")
+
+        try:
             self.execute()
         except Exception as e:
-            utils.print_traceback(chip.logger, e)
-            _haltstep(chip, chip.get('option', 'flow'), step, index)
+            utils.print_traceback(self.logger, e)
+            self.halt()
 
         # return to original directory
         os.chdir(cwd)
@@ -156,7 +287,22 @@ class SchedulerNode:
 
         if self.__record.get('status', step=self.__step, index=self.__index) == NodeStatus.SKIPPED:
             # copy inputs to outputs and skip execution
-            forward_output_files(chip, step, index)
+            for in_step, in_index in self.__record('inputnode',
+                                                   step=self.__step, index=self.__index):
+                in_workdir = self.__chip.getworkdir(step=in_step, index=in_index)
+                for outfile in os.scandir(f"{in_workdir}/outputs"):
+                    if outfile.name == f'{self.__design}.pkg.json':
+                        # Dont forward manifest
+                        continue
+
+                    if outfile.is_file() or outfile.is_symlink():
+                        utils.link_symlink_copy(outfile.path,
+                                                f'outputs/{outfile.name}')
+                    elif outfile.is_dir():
+                        shutil.copytree(outfile.path,
+                                        f'outputs/{outfile.name}',
+                                        dirs_exist_ok=True,
+                                        copy_function=utils.link_symlink_copy)
 
             send_messages.send(self.__chip, "skipped", self.__step, self.__index)
         else:
