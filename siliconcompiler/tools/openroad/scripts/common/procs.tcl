@@ -874,3 +874,21 @@ proc sc_report_args { args } {
 
     puts "$keys(-command) siliconcompiler arguments: $keys(-args)"
 }
+
+proc sc_global_connections { args } {
+    sta::check_argc_eq0 "sc_global_connections" $args
+
+    if { [sc_cfg_tool_task_exists {file} global_connect] } {
+        set global_connect_files []
+        foreach global_connect [sc_cfg_tool_task_get {file} global_connect] {
+            if { [lsearch -exact $global_connect_files $global_connect] != -1 } {
+                continue
+            }
+            puts "Loading global connect configuration: ${global_connect}"
+            source $global_connect
+
+            lappend global_connect_files $global_connect
+        }
+    }
+    tee -file reports/global_connections.rpt {report_global_connect}
+}
