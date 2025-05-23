@@ -101,8 +101,10 @@
     "auto-update": true
   },
   "xyce": {
-    "version": "7.8",
-    "auto-update": false
+    "git-url": "https://github.com/Xyce/Xyce.git",
+    "git-commit": "Release-7.9.0",
+    "version-prefix": "Release-",
+    "auto-update": true
   },
   "xdm": {
     "git-url": "https://github.com/Xyce/XDM.git",

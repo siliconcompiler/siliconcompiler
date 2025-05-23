@@ -39,12 +39,9 @@ mkdir -p trilinos
 tar --strip-components=1 -xf trilinos.tar.gz -C trilinos
 
 # Download Xyce.
-xyce_version=$(python3 ${src_path}/_tools.py --tool xyce --field version)
-wget https://xyce.sandia.gov/files/xyce/Xyce-${xyce_version}.tar.gz --no-verbose -O xyce.tar.gz
-mkdir -p xyce
-tar --strip-components=1 -xf xyce.tar.gz -C xyce
-
+git clone $(python3 ${src_path}/_tools.py --tool xyce --field git-url) xyce
 cd xyce
+git checkout $(python3 ${src_path}/_tools.py --tool xyce --field git-commit)
 
 # Build Trilinos
 mkdir trilinos-build
