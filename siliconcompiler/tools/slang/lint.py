@@ -37,9 +37,7 @@ def run(chip):
 def runtime_options(chip):
     options = slang.common_runtime_options(chip)
     options.extend([
-        "--lint-only",
-        "-Weverything",
-        "-Werror"
+        "-Weverything"
     ])
 
     return options
