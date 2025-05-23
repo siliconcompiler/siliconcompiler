@@ -22,6 +22,8 @@ from siliconcompiler import SiliconCompilerError, NodeStatus
 from siliconcompiler.utils.logging import SCColorLoggerFormatter
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 
+import atexit
+
 
 class LogBufferHandler(logging.Handler):
     def __init__(self, sync_queue, n=50, event=None):
@@ -253,7 +255,7 @@ class Board(metaclass=BoardSingleton):
             auto_refresh=True,
         )
 
-        self._registered_runs = 0
+        atexit.register(self._stop_on_exit)
 
         self._active = self._console.is_terminal
         if not self._active:
@@ -288,10 +290,14 @@ class Board(metaclass=BoardSingleton):
 
         self._metrics = ("warnings", "errors")
 
+    def _stop_on_exit(self):
+        self.stop()
+
     def open_dashboard(self):
         """Starts the dashboard rendering thread if it is not already running."""
 
-        self._registered_runs += 1
+        if not self._active:
+            return
 
         if not self.is_running():
             self._update_render_data(None)
@@ -336,7 +342,6 @@ class Board(metaclass=BoardSingleton):
             return
 
         self._update_render_data(chip, complete=True)
-        self.stop()
 
     def stop(self):
         """
@@ -345,25 +350,19 @@ class Board(metaclass=BoardSingleton):
         if not self.is_running():
             return
 
-        if self._registered_runs:
-            self._registered_runs -= 1
-            if self._registered_runs:
+        if self._job_data:
+            if any([not job.complete for job in self._job_data.values()]):
                 return
-            
-        # check for running jobs
-        with self._job_data_lock:
-            if self._job_data:
-                if any([not job.complete for job in self._job_data.values()]):
-                    return
 
-            self._render_stop_event.set()
-            self._render_event.set()
+        self._render_stop_event.set()
+        self._render_event.set()
 
         # Wait for rendering to finish
         self.wait()
-        
+
+        # Restore terminal
+        self.live.stop()
         self._console.show_cursor()
-        
 
     def wait(self):
         """Waits for the dashboard rendering thread to finish."""
@@ -611,22 +610,32 @@ class Board(metaclass=BoardSingleton):
                 # Catch any multiprocessing errors
                 return True
 
-        update_data()
-        self.live.start()
-
-        while not check_stop_event():
-            try:
-                if self._render_event.wait(timeout=0.2):
-                    self._render_event.clear()
-            except:  # noqa E722
-                # Catch any multiprocessing errors
-                break
-
-            if check_stop_event():
-                break
-
+        try:
             update_data()
-            self.live.update(self._get_rendable(), refresh=True)
+
+            if not self.live.is_started:
+                self.live.start(refresh=True)
+
+            while not check_stop_event():
+                try:
+                    if self._render_event.wait(timeout=0.2):
+                        self._render_event.clear()
+                except:  # noqa E722
+                    # Catch any multiprocessing errors
+                    break
+
+                if check_stop_event():
+                    break
+
+                update_data()
+                self.live.update(self._get_rendable(), refresh=True)
+
+        finally:
+            update_data()
+            if self.live:
+                self.live.update(self._get_rendable(), refresh=True)
+            else:
+                self._console.print(self._get_rendable())
 
     def _update_layout(self):
         with self._render_data_lock:

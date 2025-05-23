@@ -66,6 +66,8 @@ class CliDashboard(AbstractDashboard):
         """
         self._dashboard.end_of_run(self._chip)
 
+        self._dashboard.stop()
+
         # Restore logger
         if self.__logger_console:
             self._logger.removeHandler(self._dashboard._log_handler)
