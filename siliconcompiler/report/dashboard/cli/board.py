@@ -22,6 +22,8 @@ from siliconcompiler import SiliconCompilerError, NodeStatus
 from siliconcompiler.utils.logging import SCColorLoggerFormatter
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 
+import atexit
+
 
 class LogBufferHandler(logging.Handler):
     def __init__(self, sync_queue, n=50, event=None):
@@ -246,6 +248,15 @@ class Board(metaclass=BoardSingleton):
 
     def _init_singleton(self):
         self._console = Console(theme=Board.__theme)
+
+        self.live = Live(
+            console=self._console,
+            screen=False,
+            auto_refresh=True,
+        )
+
+        atexit.register(self._stop_on_exit)
+
         self._active = self._console.is_terminal
         if not self._active:
             self._console = None
@@ -279,6 +290,9 @@ class Board(metaclass=BoardSingleton):
 
         self._metrics = ("warnings", "errors")
 
+    def _stop_on_exit(self):
+        self.stop()
+
     def open_dashboard(self):
         """Starts the dashboard rendering thread if it is not already running."""
 
@@ -289,7 +303,7 @@ class Board(metaclass=BoardSingleton):
             self._update_render_data(None)
 
             with self._job_data_lock:
-                if not self._render_thread:
+                if not self._render_thread or not self._render_thread.is_alive():
                     self._render_thread = threading.Thread(target=self._render, daemon=True)
                     self._render_event.clear()
                     self._render_stop_event.clear()
@@ -328,7 +342,6 @@ class Board(metaclass=BoardSingleton):
             return
 
         self._update_render_data(chip, complete=True)
-        self.stop()
 
     def stop(self):
         """
@@ -337,17 +350,19 @@ class Board(metaclass=BoardSingleton):
         if not self.is_running():
             return
 
-        # check for running jobs
-        with self._job_data_lock:
-            if self._job_data:
-                if any([not job.complete for job in self._job_data.values()]):
-                    return
+        if self._job_data:
+            if any([not job.complete for job in self._job_data.values()]):
+                return
 
-            self._render_stop_event.set()
-            self._render_event.set()
+        self._render_stop_event.set()
+        self._render_event.set()
 
         # Wait for rendering to finish
         self.wait()
+
+        # Restore terminal
+        self.live.stop()
+        self._console.show_cursor()
 
     def wait(self):
         """Waits for the dashboard rendering thread to finish."""
@@ -595,18 +610,11 @@ class Board(metaclass=BoardSingleton):
                 # Catch any multiprocessing errors
                 return True
 
-        live = None
         try:
             update_data()
-            live = Live(
-                self._get_rendable(),
-                console=self._console,
-                screen=False,
-                # transient=True,
-                auto_refresh=True,
-                # refresh_per_second=60,
-            )
-            live.start()
+
+            if not self.live.is_started:
+                self.live.start(refresh=True)
 
             while not check_stop_event():
                 try:
@@ -620,18 +628,14 @@ class Board(metaclass=BoardSingleton):
                     break
 
                 update_data()
-                live.update(self._get_rendable(), refresh=True)
+                self.live.update(self._get_rendable(), refresh=True)
+
         finally:
-            try:
-                update_data()
-                if live:
-                    live.update(self._get_rendable(), refresh=True)
-                    live.stop()
-                else:
-                    self._console.print(self._get_rendable())
-            finally:
-                # Restore the prompt
-                print("\033[?25h", end="")
+            update_data()
+            if self.live:
+                self.live.update(self._get_rendable(), refresh=True)
+            else:
+                self._console.print(self._get_rendable())
 
     def _update_layout(self):
         with self._render_data_lock:
