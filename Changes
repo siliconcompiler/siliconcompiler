@@ -8,6 +8,23 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.33.1 (2025-05-23)
+=========================================
+
+**Minor:**
+
+ * Removed flowgraph utility functions and replaced with calls to flowgraph class.
+ * Fixed manifest merging during remote run.
+ * Switched core scheduler code to be class instead of a collection methods.
+ * Attempt to determine if sudo is needed during `sc-install` and selectively apply it.
+
+ * Tools:
+
+  * opensta: added support for sdf reading.
+  * slang: use elaboration for linting to ensure user feedback.
+  * yosys: ensure cell areas are annotated before determining flattening.
+
+
 SiliconCompiler 0.33.0 (2025-05-19)
 =========================================
 
