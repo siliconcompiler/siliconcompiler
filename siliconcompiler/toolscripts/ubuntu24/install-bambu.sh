@@ -5,6 +5,13 @@ set -e
 # Get directory of script
 src_path=$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P)/..
 
+USE_SUDO_INSTALL="${USE_SUDO_INSTALL:-yes}"
+if [ "${USE_SUDO_INSTALL:-yes}" = "yes" ]; then
+    SUDO_INSTALL=sudo
+else
+    SUDO_INSTALL=""
+fi
+
 sudo apt-get install -y autoconf autoconf-archive automake libtool \
     libbdd-dev libboost-all-dev libmpc-dev libmpfr-dev \
     libxml2-dev liblzma-dev libmpfi-dev zlib1g-dev libicu-dev bison doxygen flex \
@@ -29,9 +36,10 @@ if [ ! -z ${PREFIX} ]; then
     args=--prefix="$PREFIX"
 else
     args=--prefix=/opt/panda
+    SUDO_INSTALL=sudo
 
-    sudo mkdir -p /opt/panda
-    sudo chown $USER:$USER /opt/panda
+    $SUDO_INSTALL mkdir -p /opt/panda
+    $SUDO_INSTALL chown $USER:$USER /opt/panda
 fi
 
 make -f Makefile.init
@@ -41,7 +49,7 @@ cd obj
 
 CC=$(which gcc-11) CXX=$(which g++-11) ../configure --enable-release --disable-flopoco --with-opt-level=2 $args
 make -j$(nproc)
-make install
+$SUDO_INSTALL make install
 
 cd -
 

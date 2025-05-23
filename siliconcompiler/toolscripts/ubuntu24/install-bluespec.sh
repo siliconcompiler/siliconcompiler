@@ -5,6 +5,13 @@ set -e
 # Get directory of script
 src_path=$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P)/..
 
+USE_SUDO_INSTALL="${USE_SUDO_INSTALL:-yes}"
+if [ "${USE_SUDO_INSTALL:-yes}" = "yes" ]; then
+    SUDO_INSTALL=sudo
+else
+    SUDO_INSTALL=""
+fi
+
 sudo apt-get install -y ghc libghc-regex-compat-dev libghc-syb-dev \
     libghc-old-time-dev libghc-split-dev tcl-dev build-essential pkg-config \
     autoconf gperf flex bison
@@ -23,8 +30,8 @@ make -j$(nproc) install-src
 
 if [ -z ${PREFIX} ]; then
     # install
-    sudo mkdir -p /opt/tools/bsc
-    sudo chown $USER:$USER /opt/tools/bsc
+    $SUDO_INSTALL mkdir -p /opt/tools/bsc
+    $SUDO_INSTALL chown $USER:$USER /opt/tools/bsc
 
     BSC_VERSION=$(echo 'puts [lindex [Bluetcl::version] 0]' | inst/bin/bluetcl)
     mv inst /opt/tools/bsc/bsc-${BSC_VERSION}

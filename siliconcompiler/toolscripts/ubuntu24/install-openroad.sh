@@ -4,6 +4,13 @@ set -e
 
 src_path=$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P)/..
 
+USE_SUDO_INSTALL="${USE_SUDO_INSTALL:-yes}"
+if [ "${USE_SUDO_INSTALL:-yes}" = "yes" ]; then
+    SUDO_INSTALL=sudo
+else
+    SUDO_INSTALL=""
+fi
+
 sudo apt-get install -y git
 
 mkdir -p deps
@@ -19,7 +26,7 @@ if [ ! -z ${PREFIX} ]; then
     deps_args="-prefix=$PREFIX"
 fi
 sudo ./etc/DependencyInstaller.sh -base
-./etc/DependencyInstaller.sh -common $deps_args
+$SUDO_INSTALL ./etc/DependencyInstaller.sh -common $deps_args
 
 cmake_args="-DENABLE_TESTS=OFF"
 if [ ! -z ${PREFIX} ]; then
@@ -29,6 +36,6 @@ fi
 ./etc/Build.sh -cmake="$cmake_args"
 
 cd build
-sudo make install
+$SUDO_INSTALL make install
 
 cd -

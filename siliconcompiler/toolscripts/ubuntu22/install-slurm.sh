@@ -8,6 +8,13 @@ sudo apt-get install -y libdbus-1-dev
 # Get directory of script
 src_path=$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P)/..
 
+USE_SUDO_INSTALL="${USE_SUDO_INSTALL:-yes}"
+if [ "${USE_SUDO_INSTALL:-yes}" = "yes" ]; then
+    SUDO_INSTALL=sudo
+else
+    SUDO_INSTALL=""
+fi
+
 sudo apt-get install -y wget
 
 mkdir -p deps
@@ -31,4 +38,4 @@ fi
 
 make -j$(nproc)
 
-sudo make install
+$SUDO_INSTALL make install

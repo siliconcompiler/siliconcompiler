@@ -29,6 +29,13 @@ git submodule update --init --recursive
 
 scl run gcc-toolset-12 "LDFLAGS=\"-lrt\" make -j$(nproc)"
 
-sudo -E PATH="$PATH" make install
+USE_SUDO_INSTALL="${USE_SUDO_INSTALL:-yes}"
+if [ "${USE_SUDO_INSTALL:-yes}" = "yes" ]; then
+    SUDO_INSTALL="sudo -E PATH=$PATH"
+else
+    SUDO_INSTALL=""
+fi
+
+$SUDO_INSTALL make install
 
 cd -

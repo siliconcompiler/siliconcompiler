@@ -5,6 +5,13 @@ set -e
 # Get directory of script
 src_path=$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P)/..
 
+USE_SUDO_INSTALL="${USE_SUDO_INSTALL:-yes}"
+if [ "${USE_SUDO_INSTALL:-yes}" = "yes" ]; then
+    SUDO_INSTALL=sudo
+else
+    SUDO_INSTALL=""
+fi
+
 sudo yum group install -y "Development Tools"
 sudo yum install -y tcl-devel tk-devel tcsh csh git
 
@@ -22,4 +29,4 @@ fi
 
 LD_FLAGS=-shared ./configure $args
 make -j$(nproc)
-sudo make install
+$SUDO_INSTALL make install
