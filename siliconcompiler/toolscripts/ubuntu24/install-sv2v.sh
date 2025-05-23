@@ -5,13 +5,6 @@ set -ex
 # Get directory of script
 src_path=$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P)/..
 
-USE_SUDO_INSTALL="${USE_SUDO_INSTALL:-yes}"
-if [ "${USE_SUDO_INSTALL:-yes}" = "yes" ]; then
-    SUDO_INSTALL=sudo
-else
-    SUDO_INSTALL=""
-fi
-
 mkdir -p deps
 cd deps
 
@@ -23,7 +16,14 @@ if [ ! -z ${PREFIX} ]; then
     export PATH="$PREFIX:$PATH"
 fi
 
-curl -sSL https://get.haskellstack.org/ | sh -s - -f $haskell_args
+USE_SUDO_INSTALL="${USE_SUDO_INSTALL:-yes}"
+if [ "${USE_SUDO_INSTALL:-yes}" = "yes" ]; then
+    SUDO_INSTALL="sudo -E PATH=$PATH"
+else
+    SUDO_INSTALL=""
+fi
+
+curl -sSL https://get.haskellstack.org/ | $SUDO_INSTALL sh -s - -f $haskell_args
 
 git clone $(python3 ${src_path}/_tools.py --tool sv2v --field git-url) sv2v
 cd sv2v

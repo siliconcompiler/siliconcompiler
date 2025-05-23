@@ -5,13 +5,6 @@ set -ex
 # Get directory of script
 src_path=$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P)/..
 
-USE_SUDO_INSTALL="${USE_SUDO_INSTALL:-yes}"
-if [ "${USE_SUDO_INSTALL:-yes}" = "yes" ]; then
-    SUDO_INSTALL=sudo
-else
-    SUDO_INSTALL=""
-fi
-
 # Install core dependencies.
 sudo apt-get install -y build-essential gcc g++ make cmake automake autoconf bison flex git libblas-dev \
     liblapack-dev liblapack64-dev libfftw3-dev libsuitesparse-dev libopenmpi-dev libboost-all-dev \
@@ -30,6 +23,13 @@ fi
 python3 -m venv .xyce --clear
 . .xyce/bin/activate
 python3 -m pip install cmake>=3.23.0
+
+USE_SUDO_INSTALL="${USE_SUDO_INSTALL:-yes}"
+if [ "${USE_SUDO_INSTALL:-yes}" = "yes" ]; then
+    SUDO_INSTALL="sudo -E PATH=$PATH"
+else
+    SUDO_INSTALL=""
+fi
 
 # Download Trilinos.
 ## Version specified in: https://github.com/Xyce/Xyce/blob/master/INSTALL.md#building-trilinos
