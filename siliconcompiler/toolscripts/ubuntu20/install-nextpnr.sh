@@ -1,6 +1,6 @@
 #!/bin/sh
 
-set -e
+set -ex
 
 sudo apt-get install -y build-essential clang bison flex libreadline-dev \
                         gawk tcl-dev libffi-dev git mercurial graphviz   \

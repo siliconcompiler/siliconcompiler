@@ -1,5 +1,5 @@
 #!/bin/sh
 
-set -e
+set -ex
 
 sudo apt-get install -y imagemagick
