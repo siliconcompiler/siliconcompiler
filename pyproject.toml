@@ -54,7 +54,7 @@ dependencies = [
     "importlib_metadata; python_version < '3.10'",
     "orjson == 3.10.15; python_version <= '3.8'",
     "orjson == 3.10.18; python_version >= '3.9'",
-    "pyslang == 8.0.0",
+    "pyslang == 8.1.0",
 
     # dashboard, streamlit does not support 3.9.7
     "streamlit == 1.40.1; python_version <= '3.8'",
