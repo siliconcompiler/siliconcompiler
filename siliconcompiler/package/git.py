@@ -81,4 +81,4 @@ def clone_from_git(chip, package, path, ref, url, data_path):
     chip.logger.info(f'Checking out {ref}')
     repo.git.checkout(ref)
     for submodule in repo.submodules:
-        submodule.update(init=True)
+        submodule.update(recursive=True, init=True, force=True)
