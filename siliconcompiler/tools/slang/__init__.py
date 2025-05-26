@@ -11,6 +11,7 @@ Sources: https://github.com/MikePopoloski/slang
 Installation: https://sv-lang.com/building.html
 '''
 import os
+import shlex
 
 try:
     import pyslang
@@ -135,7 +136,8 @@ def _get_driver(chip, options_func, ignored_diagnotics=None):
 
     parse_options = pyslang.CommandLineOptions()
     parse_options.ignoreProgramName = True
-    opts = " ".join(options)
+    opts = shlex.join(options)
+    chip.logger.info(f"runtime arguments: {opts}")
     code = 0
     if not driver.parseCommandLine(opts, parse_options):
         code = 1
