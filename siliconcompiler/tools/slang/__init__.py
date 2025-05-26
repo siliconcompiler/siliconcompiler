@@ -122,7 +122,6 @@ def common_runtime_options(chip):
     ###############################
     # Set up user-provided parameters to ensure we elaborate the correct modules
     for param, value in opts['param']:
-        value = value.replace('"', '\\"')
         options.extend(['-G', f'{param}={value}'])
 
     return options
