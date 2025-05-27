@@ -47,10 +47,10 @@
     "run-version": "source version.sh && echo $KLAYOUT_VERSION",
     "release-notes": "https://www.klayout.de/development.html",
     "docker-cmds": [
-      "RUN echo \"#!/bin/bash\" > install-klayout.sh",
-      "RUN echo \"sudo apt-get install -y ./klayout.deb\" >> install-klayout.sh",
-      "RUN echo \"rm ./klayout.deb\" >> install-klayout.sh",
-      "RUN chmod +x install-klayout.sh"
+      "RUN echo \"#!/bin/bash\" > $SC_PREFIX/install-klayout.sh",
+      "RUN echo \"sudo apt-get install -y $SC_PREFIX/klayout.deb\" >> $SC_PREFIX/install-klayout.sh",
+      "RUN echo \"sudo rm $SC_PREFIX/klayout.deb\" >> $SC_PREFIX/install-klayout.sh",
+      "RUN chmod +x $SC_PREFIX/install-klayout.sh"
     ]
   },
   "sv2v": {
