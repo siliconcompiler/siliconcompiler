@@ -35,4 +35,8 @@ wget -O klayout.deb $url
 # Install package
 sudo apt-get install -y ./klayout.deb
 
+if [ ! -z ${SC_PREFIX+x} ]; then
+    sudo cp ./klayout.deb "${SC_PREFIX}/"
+fi
+
 cd -
