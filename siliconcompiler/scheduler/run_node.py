@@ -4,6 +4,8 @@ import argparse
 import os
 import sys
 import tarfile
+import os.path
+
 from siliconcompiler import Chip, Schema
 from siliconcompiler.package import path as sc_path
 from siliconcompiler.scheduler import _runtask, _executenode
@@ -38,7 +40,6 @@ def main():
                                         field='shorthelp'))
     parser.add_argument('-cachedir',
                         metavar='<directory>',
-                        required=True,
                         help=schema.get('option', 'cachedir',
                                         field='shorthelp'))
     parser.add_argument('-cachemap',
@@ -72,12 +73,15 @@ def main():
     parser.add_argument('-unset_scheduler',
                         action='store_true',
                         help='Unset scheduler to ensure local run')
+    parser.add_argument('-replay',
+                        action='store_true',
+                        help='Running as replay')
     args = parser.parse_args()
 
     # Change to working directory to allow rel path to be build dir
     # this avoids needing to deal with the job hash on the client
     # side
-    os.chdir(args.cwd)
+    os.chdir(os.path.abspath(args.cwd))
 
     # Create the Chip object.
     chip = Chip('<design>')
@@ -86,8 +90,10 @@ def main():
     # setup work directory
     chip.set('arg', 'step', args.step)
     chip.set('arg', 'index', args.index)
-    chip.set('option', 'builddir', args.builddir)
-    chip.set('option', 'cachedir', args.cachedir)
+    chip.set('option', 'builddir', os.path.abspath(args.builddir))
+
+    if args.cachedir:
+        chip.set('option', 'cachedir', os.path.abspath(args.cachedir))
 
     if args.remoteid:
         chip.set('record', 'remoteid', args.remoteid)
@@ -118,7 +124,8 @@ def main():
                  chip.get('option', 'flow'),
                  chip.get('arg', 'step'),
                  chip.get('arg', 'index'),
-                 _executenode)
+                 _executenode,
+                 replay=args.replay)
         error = False
 
     finally:

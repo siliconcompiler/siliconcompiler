@@ -604,9 +604,10 @@ def _executenode(chip, step, index, replay):
         send_messages.send(chip, "begin", step, index)
 
         try:
-            task_class.generate_replay_script(
-                os.path.join(workdir, "replay.sh"),
-                workdir)
+            if not replay:
+                task_class.generate_replay_script(
+                    os.path.join(workdir, "replay.sh"),
+                    workdir)
             ret_code = task_class.run_task(
                 workdir,
                 chip.get('option', 'quiet', step=step, index=index),
