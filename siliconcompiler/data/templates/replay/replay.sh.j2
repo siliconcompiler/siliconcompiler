@@ -9,6 +9,7 @@ CD_WORK="{{ work_dir }}"
 PRINT=""
 CMDPREFIX=""
 SKIPEXPORT=0
+DONODE={{ node_only }}
 while [[ $# -gt 0 ]]; do
     case $1 in
         --which)
@@ -40,6 +41,11 @@ while [[ $# -gt 0 ]]; do
             shift
             shift
             ;;
+        --node)
+            DONODE=1
+            shift
+            shift
+            ;;
         -h|--help)
             echo "Usage: $0"
             echo "  Options:"
@@ -49,7 +55,8 @@ while [[ $# -gt 0 ]]; do
             echo "    --command         print the execution command"
             echo "    --skipcd          do not change directory into replay directory"
             echo "    --skipexports     do not export environmental variables"
-            echo "    --cmdprefix <cmd> prefix to add to the replay command, such as gdb"
+            echo "    --cmdprefix <cmd> prefix to add to the replay command, such as dgb"
+            echo "    --node            execute entire node"
             echo "    -h,--help         print this help"
             exit 0
             ;;
@@ -87,6 +94,16 @@ case $PRINT in
         ;;
 esac
 
+if [ $DONODE == 1 ]; then
+python3 -m siliconcompiler.scheduler.run_node \
+    -cfg "{{ cfg_file }}" \
+    -builddir "${PWD}/../../../../" \
+    -step "{{ step }}" \
+    -index "{{ index }}" \
+    -cwd "$PWD" \
+    -replay
+{% if cmds|length > 0 %}else
 # Command execution
 $CMDPREFIX \{% for cmd in cmds %}
 {% if not loop.first %}  {% endif %}{{ cmd }}{% if not loop.last %} \{% endif %}{% endfor %}
+{% endif %}fi

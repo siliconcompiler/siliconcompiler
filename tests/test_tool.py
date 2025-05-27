@@ -706,7 +706,7 @@ def test_generate_replay_script(running_chip, monkeypatch):
         replay_text = "\n".join(replay.read().splitlines())
     replay_hash = hashlib.md5(replay_text.encode()).hexdigest()
 
-    assert replay_hash == "6b93815de8247bcc11a9d0c102bc61fc"
+    assert replay_hash == "d86d8d1a38c5acf8a8954670cb0f802c"
 
 
 def test_generate_replay_script_no_path(running_chip, monkeypatch):
@@ -732,7 +732,7 @@ def test_generate_replay_script_no_path(running_chip, monkeypatch):
         replay_text = "\n".join(replay.read().splitlines())
     replay_hash = hashlib.md5(replay_text.encode()).hexdigest()
 
-    assert replay_hash == "de125830f9267465ded0e4c6541d7d50"
+    assert replay_hash == "ecf2e9d93e49feb3ce734fc3185e7480"
 
 
 def test_setup_work_directory():

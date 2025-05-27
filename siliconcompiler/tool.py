@@ -417,6 +417,10 @@ class ToolSchema(NamedSchema):
         replay_opts["exports"] = self.get_runtime_environmental_variables(include_path=include_path)
 
         replay_opts["executable"] = self.get('exe')
+        replay_opts["step"] = self.__step
+        replay_opts["index"] = self.__index
+        replay_opts["cfg_file"] = f"inputs/{self.__chip.design}.pkg.json"
+        replay_opts["node_only"] = 0 if replay_opts["executable"] else 1
 
         vswitch = self.get('vswitch')
         if vswitch:
@@ -428,23 +432,25 @@ class ToolSchema(NamedSchema):
         # detect file paths
         file_test = re.compile(r'^[/\.]')
 
-        format_cmd = [replay_opts["executable"]]
+        if replay_opts["executable"]:
+            format_cmd = [replay_opts["executable"]]
 
-        for cmdarg in self.get_runtime_arguments():
-            add_new_line = len(format_cmd) == 1
+            for cmdarg in self.get_runtime_arguments():
+                add_new_line = len(format_cmd) == 1
 
-            if arg_test.match(cmdarg) or file_test.match(cmdarg):
-                add_new_line = True
-            else:
-                if not arg_test.match(format_cmd[-1]):
+                if arg_test.match(cmdarg) or file_test.match(cmdarg):
                     add_new_line = True
+                else:
+                    if not arg_test.match(format_cmd[-1]):
+                        add_new_line = True
 
-            cmdarg = shlex.quote(cmdarg)
-            if add_new_line:
-                format_cmd.append(cmdarg)
-            else:
-                format_cmd[-1] += f' {cmdarg}'
-
+                cmdarg = shlex.quote(cmdarg)
+                if add_new_line:
+                    format_cmd.append(cmdarg)
+                else:
+                    format_cmd[-1] += f' {cmdarg}'
+        else:
+            format_cmd = []
         replay_opts["cmds"] = format_cmd
 
         # create replay file
