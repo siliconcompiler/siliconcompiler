@@ -35,8 +35,8 @@ RUN cat $SC_PREFIX/apt.txt | xargs apt-get install --ignore-missing -y && \
 {% endfor %}
 
 # Execute scripts needed by tools
-RUN find $SC_PREFIX -name "*.sh" -maxdepth 1 -exec {} + && \
-    rm -f $SC_PREFIX/*.sh
+RUN find $SC_PREFIX -name "*.sh" -maxdepth 1 -exec {} \;
+RUN rm -f $SC_PREFIX/*.sh
 
 {% if skip_build|length > 0 %}
 # Install tools without build
