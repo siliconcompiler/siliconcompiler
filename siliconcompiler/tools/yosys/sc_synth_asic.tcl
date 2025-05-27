@@ -120,10 +120,6 @@ if { [lindex [sc_cfg_tool_task_get var use_slang] 0] == "true" && [sc_load_plugi
     set slang_params []
     if { [sc_cfg_exists option param] } {
         dict for {key value} [sc_cfg_get option param] {
-            if { ![string is integer $value] } {
-                set value [concat \"$value\"]
-            }
-
             lappend slang_params -G "${key}=${value}"
         }
     }
