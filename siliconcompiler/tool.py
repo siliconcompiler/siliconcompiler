@@ -419,7 +419,7 @@ class ToolSchema(NamedSchema):
         replay_opts["executable"] = self.get('exe')
         replay_opts["step"] = self.__step
         replay_opts["index"] = self.__index
-        replay_opts["cfg_file"] = os.path.join("inputs", f"{self.__chip.design}.pkg.json")
+        replay_opts["cfg_file"] = f"inputs/{self.__chip.design}.pkg.json"
         replay_opts["node_only"] = 0 if replay_opts["executable"] else 1
 
         vswitch = self.get('vswitch')
