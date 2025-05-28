@@ -44,6 +44,25 @@ class MetricSchema(BaseSchema):
 
         return self.set(metric, value, step=step, index=str(index))
 
+    def record_tasktime(self, step, index, record):
+        """
+        Record the task time for this node
+
+        Args:
+            step (str): step to record
+            index (str/int): index to record
+            record (:class:`RecordSchema`): record to lookup data in
+        """
+        start_time, end_time = [
+            record.get_recorded_time(step, index, RecordTime.START),
+            record.get_recorded_time(step, index, RecordTime.END)
+        ]
+
+        if start_time is None or end_time is None:
+            return False
+
+        return self.record(step, index, "tasktime", end_time-start_time, unit="s")
+
     def record_totaltime(self, step, index, flow, record):
         """
         Record the total time for this node
