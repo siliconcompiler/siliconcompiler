@@ -63,6 +63,26 @@ def test_record_unit_mismatch():
         schema.record("teststep", "testindex", "errors", 5, unit='ms')
 
 
+def test_record_tasktime_no_data():
+    schema = MetricSchema()
+    assert schema.record_tasktime("testtwo", "0", RecordSchema()) is False
+    assert schema.get("tasktime", step="testtwo", index="0") is None
+
+
+def test_record_tasktime():
+    record = RecordSchema()
+    with patch("siliconcompiler.record.datetime") as mock_datetime:
+        mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 0, tzinfo=timezone.utc)
+        record.record_time("testone", "0", RecordTime.START)
+    with patch("siliconcompiler.record.datetime") as mock_datetime:
+        mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 10, tzinfo=timezone.utc)
+        record.record_time("testone", "0", RecordTime.END)
+
+    schema = MetricSchema()
+    assert schema.record_tasktime("testone", "0", record)
+    assert schema.get("tasktime", step="testone", index="0") == 10.0
+
+
 def test_record_totaltime_no_data():
     flow = FlowgraphSchema()
     flow.node("testone", "builtin.nop", index="0")

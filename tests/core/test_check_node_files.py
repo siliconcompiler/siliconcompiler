@@ -2,8 +2,8 @@
 import pathlib
 import pytest
 
-from siliconcompiler.scheduler import _setup_workdir
 from siliconcompiler.flowgraph import RuntimeFlowgraph
+from siliconcompiler.tool import ToolSchema
 
 
 @pytest.fixture()
@@ -14,9 +14,11 @@ def fake_chip(gcd_chip):
         to_steps=gcd_chip.get('option', 'to'),
         prune_nodes=gcd_chip.get('option', 'prune'))
 
+    dummy = ToolSchema()
+
     for step, index in runtime.get_nodes():
-        _setup_workdir(gcd_chip, step, index, False)
         workdir = pathlib.Path(gcd_chip.getworkdir(step=step, index=index))
+        dummy.setup_work_directory(workdir, remove_exist=False)
 
         for nfile in (workdir / 'inputs' / f'{gcd_chip.design}.input',
                       workdir / 'outputs' / f'{gcd_chip.design}.output',
