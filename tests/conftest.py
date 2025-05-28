@@ -74,7 +74,11 @@ def limit_cpus(monkeypatch, request):
     if 'eda' not in request.keywords:
         return
 
+    org_cpus = utils.get_cores(siliconcompiler.Chip("dummy"))
+
     def limit_cpu(*args, **kwargs):
+        if org_cpus > 1:
+            return 2
         return 1
 
     monkeypatch.setattr(utils, 'get_cores', limit_cpu)
