@@ -1,10 +1,11 @@
 import os
 from siliconcompiler import Chip
 from siliconcompiler.targets import freepdk45_demo
-from siliconcompiler.scheduler import _setup_workdir, clean_build_dir
+from siliconcompiler.scheduler import clean_build_dir
 from siliconcompiler import NodeStatus
 from siliconcompiler.tools.builtin import nop
 from siliconcompiler.flowgraph import RuntimeFlowgraph
+from siliconcompiler.tool import ToolSchema
 
 
 def test_clean_build_dir():
@@ -20,7 +21,8 @@ def test_clean_build_dir():
 
     # Create folders
     for step, index in runtime.get_nodes():
-        _setup_workdir(chip, step, index, False)
+        ToolSchema().setup_work_directory(
+            chip.getworkdir(step=step, index=index), remove_exist=False)
 
     clean_build_dir(chip)
 
@@ -41,7 +43,8 @@ def test_clean_build_dir_from():
 
     # Create folders
     for step, index in runtime.get_nodes():
-        _setup_workdir(chip, step, index, False)
+        ToolSchema().setup_work_directory(
+            chip.getworkdir(step=step, index=index), remove_exist=False)
 
     chip.set('option', 'from', 'place.global')
 
@@ -76,7 +79,9 @@ def test_clean_build_dir_clean():
 
     # Create folders
     for step, index in runtime.get_nodes():
-        _setup_workdir(chip, step, index, False)
+        ToolSchema().setup_work_directory(
+            chip.getworkdir(step=step, index=index), remove_exist=False)
+
         chip.set('record', 'status', NodeStatus.SUCCESS, step=step, index=index)
         cfg = f"{chip.getworkdir(step=step, index=index)}/outputs/{chip.design}.pkg.json"
         chip.write_manifest(cfg)
@@ -100,7 +105,8 @@ def test_clean_build_dir_in_run():
 
     # Create folders
     for step, index in runtime.get_nodes():
-        _setup_workdir(chip, step, index, False)
+        ToolSchema().setup_work_directory(
+            chip.getworkdir(step=step, index=index), remove_exist=False)
 
     chip.set('arg', 'step', 'floorplan.init')
 
@@ -123,7 +129,8 @@ def test_clean_build_dir_in_remote():
 
     # Create folders
     for step, index in runtime.get_nodes():
-        _setup_workdir(chip, step, index, False)
+        ToolSchema().setup_work_directory(
+            chip.getworkdir(step=step, index=index), remove_exist=False)
 
     chip.set('record', 'remoteid', 'blah')
 
