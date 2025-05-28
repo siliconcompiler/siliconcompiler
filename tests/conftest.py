@@ -2,6 +2,7 @@ import copy
 import os
 import pytest
 import siliconcompiler
+from siliconcompiler import utils
 from siliconcompiler.tools import openroad
 from siliconcompiler.tools._common import get_tool_tasks
 from siliconcompiler.targets import freepdk45_demo
@@ -63,6 +64,20 @@ def use_strict(monkeypatch, request):
         chip.set('option', 'strict', True)
 
     monkeypatch.setattr(siliconcompiler.Chip, '__init__', mock_init)
+
+
+@pytest.fixture(autouse=True)
+def limit_cpus(monkeypatch, request):
+    '''
+    Limit CPU core count for eda tests
+    '''
+    if 'eda' not in request.keywords:
+        return
+
+    def limit_cpu(*args, **kwargs):
+        return 1
+
+    monkeypatch.setattr(utils, 'get_cores', limit_cpu)
 
 
 @pytest.fixture(autouse=True)
