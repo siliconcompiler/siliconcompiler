@@ -1,3 +1,4 @@
+import os
 from siliconcompiler.tools._common import add_require_input, get_tool_task, input_provides
 
 def setup(chip):
@@ -13,13 +14,9 @@ def setup(chip):
     chip.set('tool', tool, 'vswitch', '--version')
     chip.set('tool', tool, 'version', '>=0.3.0', clobber=False)
 
-    chip.set('tool', tool, 'task', task, 'refdir', 'tools/surfer/scripts',
-             step=step, index=index, package='siliconcompiler')
-    chip.set('tool', tool, 'task', task, 'script', 'sc_show.cmd',
-             step=step, index=index)
-
+    # Require VCD file
     if f'{chip.top()}.vcd' in input_provides(chip, step, index):
-        chip.set('tool', tool, 'task', task, 'input', f'{chip.top()}.vcd'
+        chip.set('tool', tool, 'task', task, 'input', f'{chip.top()}.vcd',
                  step=step, index=index)
     elif chip.valid('tool', tool, 'task', task, 'var', 'show_filepath') and \
             chip.get('tool', tool, 'task', task, 'var', 'show_filepath', step=step, index=index):
@@ -29,6 +26,7 @@ def setup(chip):
     else:
         add_require_input(chip, 'input', 'waveform', 'vcd')
 
+    # Don't exit on show
     chip.set('tool', tool, 'task', task, 'var', 'show_exit', False,
              step=step, index=index, clobber=False)
 
@@ -39,9 +37,7 @@ def runtime_options(chip):
 
     options = []
 
-    script = chip.find_files('tool', tool, 'task', task, 'script', step=step, index=index)[0]
-    options.append(f'--script={script}')
-
+    # Get VCD file
     if os.path.exists(f'inputs/{chip.top()}.vcd'):
         dump = f'inputs/{chip.top()}.vcd'
     elif chip.valid('tool', tool, 'task', task, 'var', 'show_filepath') and \
@@ -50,6 +46,6 @@ def runtime_options(chip):
                         step=step, index=index)[0]
     else:
         dump = chip.find_files('input', 'waveform', 'vcd', step=step, index=index)[0]
-    options.append(f'--dump={dump}')
+    options.append(dump)
 
     return options
