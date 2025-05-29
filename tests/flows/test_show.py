@@ -18,7 +18,7 @@ def adjust_exe_options(chip, headless):
 
     for step in ('show', 'screenshot'):
         # adjust options to ensure programs exit
-        for tool in ('klayout', 'openroad', 'gtkwave'):
+        for tool in ('klayout', 'openroad', 'gtkwave', 'surfer'):
             chip.set('tool', tool, 'task', step, 'var', 'show_exit', 'true')
 
 
