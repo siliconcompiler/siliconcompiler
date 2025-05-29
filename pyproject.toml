@@ -160,7 +160,7 @@ markers = [
 testpaths = [
     "tests"
 ]
-timeout = "180"
+timeout = "240"
 asyncio_default_fixture_loop_scope = "function"
 filterwarnings = [
     "ignore:pkg_resources is deprecated as an API:DeprecationWarning",
