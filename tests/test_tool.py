@@ -89,6 +89,7 @@ def test_tasktimeout_init():
 def test_init():
     tool = ToolSchema()
     assert tool.node() == (None, None)
+    assert tool.tool() is None
     assert tool.task() is None
     assert tool.logger() is None
     assert tool.schema() is None
@@ -116,6 +117,7 @@ def test_set_runtime(running_chip):
     tool = ToolSchema()
     tool.set_runtime(running_chip)
     assert tool.node() == ('running', '0')
+    assert tool.tool() == 'builtin'
     assert tool.task() == 'nop'
     assert tool.logger() is running_chip.logger
     assert tool.schema() is running_chip.schema
@@ -125,6 +127,7 @@ def test_set_runtime_different(running_chip):
     tool = ToolSchema()
     tool.set_runtime(running_chip, step="notrunning", index="0")
     assert tool.node() == ('notrunning', '0')
+    assert tool.tool() == 'builtin'
     assert tool.task() == 'nop'
     assert tool.logger() is running_chip.logger
     assert tool.schema() is running_chip.schema
@@ -600,7 +603,7 @@ def test_get_runtime_arguments_all(running_chip):
         f.write("testfile")
 
     tool.set('task', tool.task(), 'option', ['--arg0', '--arg1'])
-    running_chip.set('tool', 'builtin', 'task', tool.task(), 'script', 'arg2.run')
+    running_chip.set('tool', tool.tool(), 'task', tool.task(), 'script', 'arg2.run')
 
     assert tool.get_runtime_arguments() == [
         '--arg0',

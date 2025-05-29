@@ -144,6 +144,14 @@ class ToolSchema(NamedSchema):
 
         return self.__step, self.__index
 
+    def tool(self):
+        '''
+        Returns:
+            task name
+        '''
+
+        return self.__tool
+
     def task(self):
         '''
         Returns:
@@ -870,28 +878,60 @@ class ToolSchemaTmp(ToolSchema):
         _, task = self.__tool_task_modules()
         method = self.__module_func("setup", [task])
         if method:
-            return method(self._ToolSchema__chip)
+            prev_step, prev_index = self._ToolSchema__chip.get('arg', 'step'), \
+                self._ToolSchema__chip.get('arg', 'index')
+            step, index = self.node()
+            self._ToolSchema__chip.set('arg', 'step', step)
+            self._ToolSchema__chip.set('arg', 'index', index)
+            ret = method(self._ToolSchema__chip)
+            self._ToolSchema__chip.set('arg', 'step', prev_step)
+            self._ToolSchema__chip.set('arg', 'index', prev_index)
+            return ret
         return ToolSchema.setup(self)
 
     def select_input_nodes(self):
         _, task = self.__tool_task_modules()
         method = self.__module_func("_select_inputs", [task])
         if method:
-            return method(self._ToolSchema__chip, *self.node())
+            prev_step, prev_index = self._ToolSchema__chip.get('arg', 'step'), \
+                self._ToolSchema__chip.get('arg', 'index')
+            step, index = self.node()
+            self._ToolSchema__chip.set('arg', 'step', step)
+            self._ToolSchema__chip.set('arg', 'index', index)
+            ret = method(self._ToolSchema__chip, *self.node())
+            self._ToolSchema__chip.set('arg', 'step', prev_step)
+            self._ToolSchema__chip.set('arg', 'index', prev_index)
+            return ret
         return ToolSchema.select_input_nodes(self)
 
     def pre_process(self):
         _, task = self.__tool_task_modules()
         method = self.__module_func("pre_process", [task])
         if method:
-            return method(self._ToolSchema__chip)
+            prev_step, prev_index = self._ToolSchema__chip.get('arg', 'step'), \
+                self._ToolSchema__chip.get('arg', 'index')
+            step, index = self.node()
+            self._ToolSchema__chip.set('arg', 'step', step)
+            self._ToolSchema__chip.set('arg', 'index', index)
+            ret = method(self._ToolSchema__chip)
+            self._ToolSchema__chip.set('arg', 'step', prev_step)
+            self._ToolSchema__chip.set('arg', 'index', prev_index)
+            return ret
         return ToolSchema.pre_process(self)
 
     def runtime_options(self):
         tool, task = self.__tool_task_modules()
         method = self.__module_func("runtime_options", [task, tool])
         if method:
-            return method(self._ToolSchema__chip)
+            prev_step, prev_index = self._ToolSchema__chip.get('arg', 'step'), \
+                self._ToolSchema__chip.get('arg', 'index')
+            step, index = self.node()
+            self._ToolSchema__chip.set('arg', 'step', step)
+            self._ToolSchema__chip.set('arg', 'index', index)
+            ret = method(self._ToolSchema__chip)
+            self._ToolSchema__chip.set('arg', 'step', prev_step)
+            self._ToolSchema__chip.set('arg', 'index', prev_index)
+            return ret
         return ToolSchema.runtime_options(self)
 
     def run(self):
@@ -904,7 +944,14 @@ class ToolSchemaTmp(ToolSchema):
             if self._ToolSchema__chip.get('option', 'quiet', step=step, index=index):
                 self._ToolSchema__chip.logger._console.setLevel(logging.CRITICAL)
 
+            prev_step, prev_index = self._ToolSchema__chip.get('arg', 'step'), \
+                self._ToolSchema__chip.get('arg', 'index')
+            step, index = self.node()
+            self._ToolSchema__chip.set('arg', 'step', step)
+            self._ToolSchema__chip.set('arg', 'index', index)
             retcode = method(self._ToolSchema__chip)
+            self._ToolSchema__chip.set('arg', 'step', prev_step)
+            self._ToolSchema__chip.set('arg', 'index', prev_index)
 
             self._ToolSchema__chip.logger._console.setLevel(stdout_handler_level)
 
@@ -915,7 +962,15 @@ class ToolSchemaTmp(ToolSchema):
         _, task = self.__tool_task_modules()
         method = self.__module_func("post_process", [task])
         if method:
-            return method(self._ToolSchema__chip)
+            prev_step, prev_index = self._ToolSchema__chip.get('arg', 'step'), \
+                self._ToolSchema__chip.get('arg', 'index')
+            step, index = self.node()
+            self._ToolSchema__chip.set('arg', 'step', step)
+            self._ToolSchema__chip.set('arg', 'index', index)
+            ret = method(self._ToolSchema__chip)
+            self._ToolSchema__chip.set('arg', 'step', prev_step)
+            self._ToolSchema__chip.set('arg', 'index', prev_index)
+            return ret
         return ToolSchema.post_process(self)
 
 
