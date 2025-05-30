@@ -377,17 +377,20 @@ def input_file_node_name(filename, step, index):
 
     file_type = get_file_ext(filename)
 
-    base = filename
-    total_ext = []
-    ext = None
-    while ext != file_type:
-        base, ext = os.path.splitext(base)
-        ext = ext[1:].lower()
-        total_ext.append(ext)
+    if file_type:
+        base = filename
+        ext = None
+        total_ext = []
+        while ext != file_type:
+            base, ext = os.path.splitext(base)
+            ext = ext[1:].lower()
+            total_ext.append(ext)
 
-    total_ext.reverse()
+        total_ext.reverse()
 
-    return f'{base}.{step}{index}.{".".join(total_ext)}'
+        return f'{base}.{step}{index}.{".".join(total_ext)}'
+    else:
+        return f'{filename}.{step}{index}'
 
 
 def add_common_file(chip, key, file):
