@@ -6,6 +6,7 @@ from siliconcompiler.tools.vpr import show as vpr_show
 from siliconcompiler.tools.vpr import screenshot as vpr_screenshot
 from siliconcompiler.tools.yosys import screenshot as yosys_screenshot
 from siliconcompiler.tools.gtkwave import show as gtkwave_show
+from siliconcompiler.tools.surfer import show as surfer_show
 from siliconcompiler.tools.graphviz import show as graphviz_show
 from siliconcompiler.tools.graphviz import screenshot as graphviz_screenshot
 
@@ -34,6 +35,7 @@ def setup(chip):
     chip.register_showtool('vg', yosys_screenshot)
 
     chip.register_showtool('vcd', gtkwave_show)
+    chip.register_showtool('vcd', surfer_show)
 
     chip.register_showtool('dot', graphviz_show)
     chip.register_showtool('dot', graphviz_screenshot)

@@ -169,5 +169,10 @@
       "vpr"
     ],
     "auto-update": false
+  },
+  "surfer": {
+    "git-url": "https://gitlab.com/surfer-project/surfer.git",
+    "git-commit": "v0.3.0",
+    "auto-update": false
   }
 }
