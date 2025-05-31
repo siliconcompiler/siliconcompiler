@@ -61,7 +61,7 @@ class SlurmSchedulerNode(SchedulerNode):
         Helper function to get the configuration directory for the scheduler
         '''
 
-        return f'{chip.getworkdir()}/sc_configs'
+        return os.path.join(chip.getworkdir(), 'sc_configs')
 
     @staticmethod
     def get_job_name(jobhash, step, index):
