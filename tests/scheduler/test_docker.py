@@ -24,17 +24,17 @@ def chip():
 
 def test_init(chip):
     node = DockerSchedulerNode(chip, "stepone", "0")
-    assert node._DockerSchedulerNode__queue.startswith(
+    assert node.queue.startswith(
         "ghcr.io/siliconcompiler/sc_runner:v")
 
 
 def test_init_specify_queue(chip):
     chip.set("option", "scheduler", "queue", "docker:v1", step="stepone", index="0")
     node = DockerSchedulerNode(chip, "stepone", "0")
-    assert node._DockerSchedulerNode__queue == "docker:v1"
+    assert node.queue == "docker:v1"
 
 
 def test_init_specify_env(chip, monkeypatch):
     monkeypatch.setenv("SC_DOCKER_IMAGE", "image:v2")
     node = DockerSchedulerNode(chip, "stepone", "0")
-    assert node._DockerSchedulerNode__queue == "image:v2"
+    assert node.queue == "image:v2"

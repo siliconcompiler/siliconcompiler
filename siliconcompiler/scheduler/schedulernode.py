@@ -102,6 +102,36 @@ class SchedulerNode:
         return self.__index
 
     @property
+    def design(self):
+        return self.__design
+
+    @property
+    def workdir(self):
+        return self.__workdir
+
+    @property
+    def jobworkdir(self):
+        return self.__jobworkdir
+
+    @property
+    def is_replay(self):
+        return self.__replay
+
+    @property
+    def task(self):
+        return self.__task
+
+    def get_manifest(self, input=False):
+        if input:
+            return self.__manifests["input"]
+        return self.__manifests["output"]
+
+    def get_log(self, type="exe"):
+        if type not in self.__logs:
+            raise ValueError(f"{type} is not a log")
+        return self.__logs[type]
+
+    @property
     def threads(self):
         self.__task.set_runtime(self.__chip, step=self.__step, index=self.__index)
         thread_count = self.__task.get("task", self.__task.task(), "threads",
@@ -127,7 +157,10 @@ class SchedulerNode:
             self.logger.error(msg)
 
         self.__record.set("status", NodeStatus.ERROR, step=self.__step, index=self.__index)
-        self.__chip.schema.write_manifest(self.__manifests["output"])
+        try:
+            self.__chip.schema.write_manifest(self.__manifests["output"])
+        except FileNotFoundError:
+            self.logger.error(f"Failed to write manifest for {self.__step}{self.__index}.")
 
         self.logger.error(f"Halting {self.__step}{self.__index} due to errors.")
         send_messages.send(self.__chip, "fail", self.__step, self.__index)
@@ -829,7 +862,11 @@ class SchedulerNode:
 
         error = False
 
-        outputs = os.listdir(os.path.join(self.__workdir, "outputs"))
+        try:
+            outputs = os.listdir(os.path.join(self.__workdir, "outputs"))
+        except FileNotFoundError:
+            self.halt("Output directory is missing")
+
         try:
             outputs.remove(os.path.basename(self.__manifests["output"]))
         except ValueError:

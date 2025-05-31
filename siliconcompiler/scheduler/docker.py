@@ -95,6 +95,10 @@ class DockerSchedulerNode(SchedulerNode):
 
         self.__queue = get_image(self.chip, self.step, self.index)
 
+    @property
+    def queue(self):
+        return self.__queue
+
     @staticmethod
     def init(chip):
         if sys.platform == 'win32':

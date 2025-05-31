@@ -12,6 +12,7 @@ from pathlib import Path
 
 from siliconcompiler import Chip, Flow
 from siliconcompiler import NodeStatus
+from siliconcompiler.tool import ToolSchema
 from siliconcompiler.tools.builtin import nop, join
 from scheduler.tools.echo import echo
 
@@ -34,21 +35,41 @@ def chip():
     return chip
 
 
+@pytest.fixture
+def echo_chip():
+    flow = Flow("testflow")
+
+    flow.node("testflow", "stepone", echo)
+    flow.node("testflow", "steptwo", echo)
+    flow.edge("testflow", "stepone", "steptwo")
+
+    chip = Chip("dummy")
+    chip.use(flow)
+    chip.set("option", "flow", "testflow")
+    chip.set("tool", "echo", "task", "echo", "threads", 1)
+
+    return chip
+
+
 def test_init(chip):
     node = SchedulerNode(chip, "stepone", "0")
 
     assert node.is_local is True
     assert node.is_builtin is False
     assert node.has_error is False
+    assert node.step == "stepone"
+    assert node.index == "0"
+    assert node.design == "dummy"
+    assert node.chip is chip
+    assert node.logger is chip.logger
+    assert node.is_replay is False
+    assert isinstance(node.task, ToolSchema)
+    assert node.jobworkdir == chip.getworkdir()
+    assert node.workdir == os.path.join(node.jobworkdir, "stepone", "0")
 
     # Check private fields
-    assert node._SchedulerNode__step == "stepone"
-    assert node._SchedulerNode__index == "0"
-    assert node._SchedulerNode__design == "dummy"
-
     assert node._SchedulerNode__record_user_info is False
     assert node._SchedulerNode__generate_test_case is True
-    assert node._SchedulerNode__replay is False
     assert node._SchedulerNode__hash is False
     assert node._SchedulerNode__is_entry_node is True
 
@@ -59,15 +80,19 @@ def test_init_replay(chip):
     assert node.is_local is True
     assert node.is_builtin is False
     assert node.has_error is False
+    assert node.step == "stepone"
+    assert node.index == "0"
+    assert node.design == "dummy"
+    assert node.chip is chip
+    assert node.logger is chip.logger
+    assert node.is_replay is True
+    assert isinstance(node.task, ToolSchema)
+    assert node.jobworkdir == chip.getworkdir()
+    assert node.workdir == os.path.join(node.jobworkdir, "stepone", "0")
 
     # Check private fields
-    assert node._SchedulerNode__step == "stepone"
-    assert node._SchedulerNode__index == "0"
-    assert node._SchedulerNode__design == "dummy"
-
     assert node._SchedulerNode__record_user_info is False
     assert node._SchedulerNode__generate_test_case is False
-    assert node._SchedulerNode__replay is True
     assert node._SchedulerNode__hash is False
     assert node._SchedulerNode__is_entry_node is True
 
@@ -78,15 +103,19 @@ def test_init_not_entry(chip):
     assert node.is_local is True
     assert node.is_builtin is False
     assert node.has_error is False
+    assert node.step == "steptwo"
+    assert node.index == "0"
+    assert node.design == "dummy"
+    assert node.chip is chip
+    assert node.logger is chip.logger
+    assert node.is_replay is False
+    assert isinstance(node.task, ToolSchema)
+    assert node.jobworkdir == chip.getworkdir()
+    assert node.workdir == os.path.join(node.jobworkdir, "steptwo", "0")
 
     # Check private fields
-    assert node._SchedulerNode__step == "steptwo"
-    assert node._SchedulerNode__index == "0"
-    assert node._SchedulerNode__design == "dummy"
-
     assert node._SchedulerNode__record_user_info is False
     assert node._SchedulerNode__generate_test_case is True
-    assert node._SchedulerNode__replay is False
     assert node._SchedulerNode__hash is False
     assert node._SchedulerNode__is_entry_node is False
 
@@ -106,9 +135,38 @@ def test_threads(chip):
     assert node.threads == 10
 
 
+def test_get_manifest_output(chip):
+    node = SchedulerNode(chip, "steptwo", "0")
+    assert node.get_manifest() == os.path.join(
+        node.workdir, "outputs", f"{node.design}.pkg.json")
+
+
+def test_get_manifest_input(chip):
+    node = SchedulerNode(chip, "steptwo", "0")
+    assert node.get_manifest(input=True) == os.path.join(
+        node.workdir, "inputs", f"{node.design}.pkg.json")
+
+
+@pytest.mark.parametrize(
+    "type,expect_name", [
+        ("exe", "steptwo.log"),
+        ("sc", "sc_steptwo0.log"),
+    ])
+def test_get_log(chip, type, expect_name):
+    node = SchedulerNode(chip, "steptwo", "0")
+    assert node.get_log(type) == os.path.join(
+        node.workdir, expect_name)
+
+
+def test_get_log_invalid(chip):
+    node = SchedulerNode(chip, "steptwo", "0")
+    with pytest.raises(ValueError, match="invalid is not a log"):
+        node.get_log("invalid")
+
+
 def test_halt(chip):
     node = SchedulerNode(chip, "steptwo", "0")
-    node._SchedulerNode__task.setup_work_directory(node._SchedulerNode__workdir)
+    node.task.setup_work_directory(node.workdir)
 
     with pytest.raises(SystemExit):
         node.halt()
@@ -119,7 +177,7 @@ def test_halt(chip):
 def test_halt_with_reason(chip, caplog):
     chip.logger = logging.getLogger()
     node = SchedulerNode(chip, "steptwo", "0")
-    node._SchedulerNode__task.setup_work_directory(node._SchedulerNode__workdir)
+    node.task.setup_work_directory(node.workdir)
 
     with pytest.raises(SystemExit):
         node.halt("failed due to error")
@@ -140,7 +198,7 @@ def test_setup_error(chip, monkeypatch, caplog):
 
     def dummy_setup(*args, **kwargs):
         raise ValueError("Find this")
-    monkeypatch.setattr(node._SchedulerNode__task, "setup", dummy_setup)
+    monkeypatch.setattr(node.task, "setup", dummy_setup)
 
     with pytest.raises(ValueError, match="Find this"):
         node.setup()
@@ -153,7 +211,7 @@ def test_setup_skipped(chip, monkeypatch, caplog):
 
     def dummy_setup(*args, **kwargs):
         return "skip me"
-    monkeypatch.setattr(node._SchedulerNode__task, "setup", dummy_setup)
+    monkeypatch.setattr(node.task, "setup", dummy_setup)
 
     assert node.setup() is False
     assert chip.get("record", "status", step="steptwo", index="0") == NodeStatus.SKIPPED
@@ -162,17 +220,17 @@ def test_setup_skipped(chip, monkeypatch, caplog):
 
 def test_clean_directory(chip):
     node = SchedulerNode(chip, "steptwo", "0")
-    os.makedirs(node._SchedulerNode__workdir, exist_ok=True)
-    assert os.path.exists(node._SchedulerNode__workdir)
+    os.makedirs(node.workdir, exist_ok=True)
+    assert os.path.exists(node.workdir)
     node.clean_directory()
-    assert not os.path.exists(node._SchedulerNode__workdir)
+    assert not os.path.exists(node.workdir)
 
 
 def test_clean_directory_no_dir(chip):
     node = SchedulerNode(chip, "steptwo", "0")
-    assert not os.path.exists(node._SchedulerNode__workdir)
+    assert not os.path.exists(node.workdir)
     node.clean_directory()
-    assert not os.path.exists(node._SchedulerNode__workdir)
+    assert not os.path.exists(node.workdir)
 
 
 def test_get_check_changed_keys(chip):
@@ -368,7 +426,7 @@ def test_check_previous_run_status_inputs_changed(chip, monkeypatch, caplog):
 
     def dummy_select(*args, **kwargs):
         return [("test", "1")]
-    monkeypatch.setattr(node._SchedulerNode__task, "select_input_nodes", dummy_select)
+    monkeypatch.setattr(node.task, "select_input_nodes", dummy_select)
 
     assert node.check_previous_run_status(node) is False
     assert "inputs to steptwo0 has been modified from previous run" in caplog.text
@@ -382,7 +440,7 @@ def test_check_previous_run_status_no_change(chip, monkeypatch):
 
     def dummy_select(*args, **kwargs):
         return [("stepone", "0")]
-    monkeypatch.setattr(node._SchedulerNode__task, "select_input_nodes", dummy_select)
+    monkeypatch.setattr(node.task, "select_input_nodes", dummy_select)
 
     assert node.check_previous_run_status(node) is True
 
@@ -595,8 +653,8 @@ def test_requires_run_fail_output(chip, caplog):
 
     node = SchedulerNode(chip, "steptwo", "0")
 
-    os.makedirs(os.path.dirname(node._SchedulerNode__manifests["input"]))
-    chip.write_manifest(node._SchedulerNode__manifests["input"])
+    os.makedirs(os.path.dirname(node.get_manifest(input=True)))
+    chip.write_manifest(node.get_manifest(input=True))
 
     assert node.requires_run() is True
     assert "Previous run did not generate output manifest" in \
@@ -606,10 +664,10 @@ def test_requires_run_fail_output(chip, caplog):
 def test_requires_run_all_pass(chip, monkeypatch):
     node = SchedulerNode(chip, "steptwo", "0")
 
-    os.makedirs(os.path.dirname(node._SchedulerNode__manifests["input"]))
-    chip.write_manifest(node._SchedulerNode__manifests["input"])
-    os.makedirs(os.path.dirname(node._SchedulerNode__manifests["output"]))
-    chip.write_manifest(node._SchedulerNode__manifests["output"])
+    os.makedirs(os.path.dirname(node.get_manifest(input=True)))
+    chip.write_manifest(node.get_manifest(input=True))
+    os.makedirs(os.path.dirname(node.get_manifest()))
+    chip.write_manifest(node.get_manifest())
 
     def dummy_get_check_changed_keys(*args):
         return (set(), set())
@@ -628,8 +686,8 @@ def test_requires_run_all_input_corrupt(chip, caplog):
 
     node = SchedulerNode(chip, "steptwo", "0")
 
-    os.makedirs(os.path.dirname(node._SchedulerNode__manifests["input"]))
-    with open(node._SchedulerNode__manifests["input"], "w") as f:
+    os.makedirs(os.path.dirname(node.get_manifest(input=True)))
+    with open(node.get_manifest(input=True), "w") as f:
         f.write("this is not a json file")
 
     assert node.requires_run() is True
@@ -642,11 +700,11 @@ def test_requires_run_all_output_corrupt(chip, caplog):
 
     node = SchedulerNode(chip, "steptwo", "0")
 
-    os.makedirs(os.path.dirname(node._SchedulerNode__manifests["input"]))
-    chip.write_manifest(node._SchedulerNode__manifests["input"])
+    os.makedirs(os.path.dirname(node.get_manifest(input=True)))
+    chip.write_manifest(node.get_manifest(input=True))
 
-    os.makedirs(os.path.dirname(node._SchedulerNode__manifests["output"]))
-    with open(node._SchedulerNode__manifests["output"], "w") as f:
+    os.makedirs(os.path.dirname(node.get_manifest()))
+    with open(node.get_manifest(), "w") as f:
         f.write("this is not a json file")
 
     assert node.requires_run() is True
@@ -659,10 +717,10 @@ def test_requires_run_all_state_failed(chip, monkeypatch, caplog):
 
     node = SchedulerNode(chip, "steptwo", "0")
 
-    os.makedirs(os.path.dirname(node._SchedulerNode__manifests["input"]))
-    chip.write_manifest(node._SchedulerNode__manifests["input"])
-    os.makedirs(os.path.dirname(node._SchedulerNode__manifests["output"]))
-    chip.write_manifest(node._SchedulerNode__manifests["output"])
+    os.makedirs(os.path.dirname(node.get_manifest(input=True)))
+    chip.write_manifest(node.get_manifest(input=True))
+    os.makedirs(os.path.dirname(node.get_manifest()))
+    chip.write_manifest(node.get_manifest())
 
     def dummy_check_previous_run_status(*args):
         return False
@@ -678,10 +736,10 @@ def test_requires_run_all_keys_failed(chip, monkeypatch, caplog):
 
     node = SchedulerNode(chip, "steptwo", "0")
 
-    os.makedirs(os.path.dirname(node._SchedulerNode__manifests["input"]))
-    chip.write_manifest(node._SchedulerNode__manifests["input"])
-    os.makedirs(os.path.dirname(node._SchedulerNode__manifests["output"]))
-    chip.write_manifest(node._SchedulerNode__manifests["output"])
+    os.makedirs(os.path.dirname(node.get_manifest(input=True)))
+    chip.write_manifest(node.get_manifest(input=True))
+    os.makedirs(os.path.dirname(node.get_manifest()))
+    chip.write_manifest(node.get_manifest())
 
     def dummy_check_previous_run_status(*args):
         return True
@@ -701,10 +759,10 @@ def test_requires_run_all_values_changed(chip, monkeypatch, caplog):
 
     node = SchedulerNode(chip, "steptwo", "0")
 
-    os.makedirs(os.path.dirname(node._SchedulerNode__manifests["input"]))
-    chip.write_manifest(node._SchedulerNode__manifests["input"])
-    os.makedirs(os.path.dirname(node._SchedulerNode__manifests["output"]))
-    chip.write_manifest(node._SchedulerNode__manifests["output"])
+    os.makedirs(os.path.dirname(node.get_manifest(input=True)))
+    chip.write_manifest(node.get_manifest(input=True))
+    os.makedirs(os.path.dirname(node.get_manifest()))
+    chip.write_manifest(node.get_manifest())
 
     def dummy_check_previous_run_status(*args):
         return True
@@ -728,10 +786,10 @@ def test_requires_run_all_files_changed(chip, monkeypatch, caplog):
 
     node = SchedulerNode(chip, "steptwo", "0")
 
-    os.makedirs(os.path.dirname(node._SchedulerNode__manifests["input"]))
-    chip.write_manifest(node._SchedulerNode__manifests["input"])
-    os.makedirs(os.path.dirname(node._SchedulerNode__manifests["output"]))
-    chip.write_manifest(node._SchedulerNode__manifests["output"])
+    os.makedirs(os.path.dirname(node.get_manifest(input=True)))
+    chip.write_manifest(node.get_manifest(input=True))
+    os.makedirs(os.path.dirname(node.get_manifest()))
+    chip.write_manifest(node.get_manifest())
 
     def dummy_check_previous_run_status(*args):
         return True
@@ -770,9 +828,9 @@ def test_check_logfile(chip, datadir, caplog):
     assert chip.get("metric", "warnings", step="stepone", index="0") is None
 
     # check log
-    os.makedirs(node._SchedulerNode__workdir, exist_ok=True)
+    os.makedirs(node.workdir, exist_ok=True)
     shutil.copy(os.path.join(datadir, 'schedulernode', 'check_logfile.log'),
-                node._SchedulerNode__logs["exe"])
+                node.get_log())
     node.check_logfile()
 
     # check line numbers in log and file
@@ -814,9 +872,9 @@ def test_check_logfile_with_extra_metrics(chip, datadir, caplog):
     chip.set("metric", "warnings", 11, step="stepone", index="0")
 
     # check log
-    os.makedirs(node._SchedulerNode__workdir, exist_ok=True)
+    os.makedirs(node.workdir, exist_ok=True)
     shutil.copy(os.path.join(datadir, 'schedulernode', 'check_logfile.log'),
-                node._SchedulerNode__logs["exe"])
+                node.get_log())
     node.check_logfile()
 
     # check line numbers in log and file
@@ -851,9 +909,9 @@ def test_check_logfile_none(chip, datadir, caplog):
     assert chip.get("metric", "warnings", step="stepone", index="0") is None
 
     # check log
-    os.makedirs(node._SchedulerNode__workdir, exist_ok=True)
+    os.makedirs(node.workdir, exist_ok=True)
     shutil.copy(os.path.join(datadir, 'schedulernode', 'check_logfile.log'),
-                node._SchedulerNode__logs["exe"])
+                node.get_log())
     node.check_logfile()
 
     errors_file = "stepone.errors"
@@ -881,9 +939,9 @@ def test_check_logfile_non_metric(chip, datadir, caplog):
     assert chip.get("metric", "warnings", step="stepone", index="0") is None
 
     # check log
-    os.makedirs(node._SchedulerNode__workdir, exist_ok=True)
+    os.makedirs(node.workdir, exist_ok=True)
     shutil.copy(os.path.join(datadir, 'schedulernode', 'check_logfile.log'),
-                node._SchedulerNode__logs["exe"])
+                node.get_log())
     node.check_logfile()
 
     assert os.path.isfile("stepone.somethingelse")
@@ -1138,3 +1196,95 @@ def test_summarize(chip, caplog):
     assert "Number of errors: 2\n" in caplog.text
     assert "Number of warnings: 4\n" in caplog.text
     assert "Finished task in 12.50s\n" in caplog.text
+
+
+def test_report_output_files_builtin(chip, caplog):
+    chip.logger = logging.getLogger()
+    chip.logger.setLevel(logging.INFO)
+
+    node = SchedulerNode(chip, "steptwo", "0")
+    node.init_state(assign_runtime=True)
+    node._SchedulerNode__report_output_files()
+    assert caplog.text == ""
+
+
+def test_report_output_files_missing_outputs_dir(echo_chip, caplog):
+    echo_chip.logger = logging.getLogger()
+    node = SchedulerNode(echo_chip, "steptwo", "0")
+    node.init_state(assign_runtime=True)
+
+    with pytest.raises(SystemExit):
+        node._SchedulerNode__report_output_files()
+    assert "Output directory is missing" in caplog.text
+    assert "Failed to write manifest for steptwo0" in caplog.text
+    assert "Halting steptwo0 due to errors" in caplog.text
+
+
+def test_report_output_files_missing_manifest(echo_chip, caplog):
+    echo_chip.logger = logging.getLogger()
+    node = SchedulerNode(echo_chip, "steptwo", "0")
+    node.init_state(assign_runtime=True)
+    os.makedirs(os.path.join(node.workdir, "outputs"), exist_ok=True)
+
+    with pytest.raises(SystemExit):
+        node._SchedulerNode__report_output_files()
+    assert "Output manifest (dummy.pkg.json) is missing." in caplog.text
+    assert "Halting steptwo0 due to errors" in caplog.text
+
+
+def test_report_output_files_missing_outputs(echo_chip, caplog):
+    echo_chip.logger = logging.getLogger()
+    echo_chip.set("tool", "echo", "task", "echo", "output", "echothis.txt",
+                  step="steptwo", index="0")
+
+    node = SchedulerNode(echo_chip, "steptwo", "0")
+    node.init_state(assign_runtime=True)
+    os.makedirs(os.path.join(node.workdir, "outputs"), exist_ok=True)
+    echo_chip.write_manifest(node.get_manifest())
+
+    with pytest.raises(SystemExit):
+        node._SchedulerNode__report_output_files()
+    assert "Expected output files are missing: echothis.txt" in caplog.text
+    assert "Halting steptwo0 due to errors" in caplog.text
+
+
+def test_report_output_files_extra_outputs(echo_chip, caplog):
+    echo_chip.logger = logging.getLogger()
+    echo_chip.set("tool", "echo", "task", "echo", "output", "echothis.txt",
+                  step="steptwo", index="0")
+
+    node = SchedulerNode(echo_chip, "steptwo", "0")
+    node.init_state(assign_runtime=True)
+    os.makedirs(os.path.join(node.workdir, "outputs"), exist_ok=True)
+    echo_chip.write_manifest(node.get_manifest())
+
+    with open(os.path.join(node.workdir, "outputs", "echothis.txt"), 'w') as f:
+        f.write("test")
+    with open(os.path.join(node.workdir, "outputs", "extra.txt"), 'w') as f:
+        f.write("test")
+
+    with pytest.raises(SystemExit):
+        node._SchedulerNode__report_output_files()
+    assert "Unexpected output files found: extra.txt" in caplog.text
+    assert "Halting steptwo0 due to errors" in caplog.text
+
+
+def test_report_output_files_extra_outputs_not_strict(echo_chip, caplog):
+    echo_chip.logger = logging.getLogger()
+    echo_chip.set("tool", "echo", "task", "echo", "output", "echothis.txt",
+                  step="steptwo", index="0")
+    echo_chip.set('option', 'strict', False)
+
+    node = SchedulerNode(echo_chip, "steptwo", "0")
+    node.init_state(assign_runtime=True)
+    os.makedirs(os.path.join(node.workdir, "outputs"), exist_ok=True)
+    echo_chip.write_manifest(node.get_manifest())
+
+    with open(os.path.join(node.workdir, "outputs", "echothis.txt"), 'w') as f:
+        f.write("test")
+    with open(os.path.join(node.workdir, "outputs", "extra.txt"), 'w') as f:
+        f.write("test")
+
+    node._SchedulerNode__report_output_files()
+    assert "Unexpected output files found: extra.txt" in caplog.text
+    assert "Halting steptwo0 due to errors" not in caplog.text

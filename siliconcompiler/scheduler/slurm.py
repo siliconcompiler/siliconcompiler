@@ -24,6 +24,10 @@ class SlurmSchedulerNode(SchedulerNode):
             # Generate a new uuid since it was not set
             self.__job_hash = uuid.uuid4().hex
 
+    @property
+    def jobhash(self):
+        return self.__job_hash
+
     @staticmethod
     def init(chip):
         if os.path.exists(chip._getcollectdir()):
