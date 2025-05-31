@@ -21,6 +21,7 @@ from siliconcompiler.scheduler import send_messages
 class Scheduler:
     def __init__(self, chip):
         self.__chip = chip
+        self.__logger = self.__chip.logger
 
         flow = self.__chip.get("option", "flow")
         if not flow:
@@ -34,7 +35,7 @@ class Scheduler:
         to_steps = self.__chip.get('option', 'to')
         prune_nodes = self.__chip.get('option', 'prune')
 
-        if not self.__flow.validate(logger=self.__chip.logger):
+        if not self.__flow.validate(logger=self.__logger):
             raise ValueError(f"{self.__flow.name()} flowgraph contains errors and cannot be run.")
         if not RuntimeFlowgraph.validate(
                 self.__flow,
@@ -71,11 +72,11 @@ class Scheduler:
         self.__tasks = {}
 
     def __print_status(self, header):
-        return
-        print(f"#### {header}")
+        self.__logger.debug(f"#### {header}")
         for step, index in self.__flow.get_nodes():
-            print(step, index, self.__record.get('status', step=step, index=index))
-        print("####")
+            self.__logger.debug(f"({step}, {index}) -> "
+                                f"{self.__record.get('status', step=step, index=index)}")
+        self.__logger.debug("####")
 
     def check_manifest(self):
         return self.__chip.check_manifest()
@@ -90,7 +91,7 @@ class Scheduler:
         self.__run_configure_nodes()
 
         # Check validity of setup
-        self.__chip.logger.info("Checking manifest before running.")
+        self.__logger.info("Checking manifest before running.")
         if not self.check_manifest():
             raise RuntimeError
 
@@ -108,6 +109,9 @@ class Scheduler:
         send_messages.send(self.__chip, 'summary', None, None)
 
     def __mark_pending(self, step, index):
+        if (step, index) not in self.__flow_runtime.get_nodes():
+            return
+
         self.__record.set('status', NodeStatus.PENDING, step=step, index=index)
         for next_step, next_index in self.__flow_runtime.get_nodes_starting_at(step, index):
             if self.__record.get('status', step=next_step, index=next_index) == NodeStatus.SKIPPED:
@@ -268,8 +272,8 @@ class Scheduler:
 
         if not self.__chip.get('option', 'nodisplay') and sys.platform == 'linux' \
                 and 'DISPLAY' not in os.environ and 'WAYLAND_DISPLAY' not in os.environ:
-            self.__chip.logger.warning('Environment variable $DISPLAY or $WAYLAND_DISPLAY not set')
-            self.__chip.logger.warning("Setting [option,nodisplay] to True")
+            self.__logger.warning('Environment variable $DISPLAY or $WAYLAND_DISPLAY not set')
+            self.__logger.warning("Setting [option,nodisplay] to True")
             self.__chip.set('option', 'nodisplay', True)
 
     def __increment_job_name(self):
