@@ -83,14 +83,14 @@ def schema_design(schema):
     schema.insert(
         fileset, 'param', name,
         Parameter(
-            ['str'],
+            'str',
             shorthelp="Design parameters",
             example=["api: chip.set('rtl, 'param', 'N', '64')"],
             help=trim("""
-            Sets a verilog parameter value. The value is limited to basic data
-            literals. The parameter override is passed into tools such as
-            Verilator and Yosys. The parameters support Verilog integer
-            literals (64'h4, 2'b0, 4) and strings.""")))
+            Sets a named parameter to a string value. The value is limited to basic
+            data literals. The types of parameters and values supported is tightly
+            coupled to tools being used. For example, in Verilog only integer
+            literals (64'h4, 2'b0, 4) and strings are supported.""")))
 
     schema.insert(
         fileset, 'libdir',
