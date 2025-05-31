@@ -20,6 +20,12 @@ def test_init_type_journal():
         JournalingSchema(JournalingSchema(BaseSchema()))
 
 
+def test_from_manifest():
+    with pytest.raises(RuntimeError,
+                       match="Journal cannot be generated from manifest"):
+        JournalingSchema.from_manifest()
+
+
 def test_start_stop():
     schema = JournalingSchema(BaseSchema())
     assert schema.get_journal() is None

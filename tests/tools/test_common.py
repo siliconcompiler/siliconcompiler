@@ -202,6 +202,9 @@ def test_input_file_node_name():
     assert 'test.other0.txt' == input_file_node_name('test.txt', 'other', '0')
     assert 'test.other1.txt.gz' == input_file_node_name('test.txt.gz', 'other', '1')
 
+    assert 'test.other0.not' == input_file_node_name('test.not', 'other', '0')
+    assert 'test.other1' == input_file_node_name('test', 'other', '1')
+
 
 def test_get_libraries():
     chip = Chip('<test>')

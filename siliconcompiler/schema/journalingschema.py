@@ -45,6 +45,10 @@ class JournalingSchema(BaseSchema):
 
         self.__parent = self
 
+    @classmethod
+    def from_manifest(cls, filepath=None, cfg=None):
+        raise RuntimeError("Journal cannot be generated from manifest")
+
     def get(self, *keypath, field='value', step=None, index=None):
         get_ret = super().get(*keypath, field=field, step=step, index=index)
         self.__record_journal("get", keypath, field=field, step=step, index=index)
