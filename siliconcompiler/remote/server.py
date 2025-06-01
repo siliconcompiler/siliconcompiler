@@ -99,10 +99,20 @@ class Server:
     def __run_start(self, chip):
         flow = chip.get("option", "flow")
         nodes = chip.schema.get("flowgraph", flow, field="schema").get_nodes()
+
+        with self.sc_jobs_lock:
+            job_hash = self.sc_chip_lookup[chip]["jobhash"]
+
+        start_tar = os.path.join(self.nfs_mount, job_hash, f'{job_hash}_None.tar.gz')
+        start_status = NodeStatus.SUCCESS
+        with tarfile.open(start_tar, "w:gz") as tf:
+            start_manifest = os.path.join(chip.getworkdir(), f"{chip.design}.pkg.json")
+            tf.add(start_manifest, arcname=os.path.relpath(start_manifest, self.nfs_mount))
+
         with self.sc_jobs_lock:
             job_name = self.sc_chip_lookup[chip]["name"]
 
-            self.sc_jobs[job_name][None]["status"] = NodeStatus.SUCCESS
+            self.sc_jobs[job_name][None]["status"] = start_status
 
             for step, index in nodes:
                 name = f"{step}{index}"
@@ -276,9 +286,6 @@ class Server:
         # Remove 'remote' JSON config value to run locally on compute node.
         chip.set('option', 'remote', False)
 
-        # Avoid hashing until setup information is handled correctly
-        chip.set('option', 'hash', False)
-
         # Dont clutter the server
         chip.set('option', 'quiet', True)
 
@@ -316,14 +323,6 @@ class Server:
             return web.json_response(
                 {'message': 'Could not find results for the requested job/node.'},
                 status=404)
-
-        if not node:
-            with tarfile.open(zipfn, 'w:gz') as tar:
-                text = "Done"
-                metadata_file = io.BytesIO(text.encode('ascii'))
-                tarinfo = tarfile.TarInfo(f'{job_hash}/done')
-                tarinfo.size = metadata_file.getbuffer().nbytes
-                tar.addfile(tarinfo=tarinfo, fileobj=metadata_file)
 
         return web.FileResponse(zipfn)
 
