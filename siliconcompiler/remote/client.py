@@ -10,6 +10,8 @@ import tarfile
 import tempfile
 import multiprocessing
 
+import os.path
+
 from siliconcompiler import utils, SiliconCompilerError, NodeStatus
 from siliconcompiler import NodeStatus as SCNodeStatus
 from siliconcompiler._metadata import default_server
