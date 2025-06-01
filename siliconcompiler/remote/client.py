@@ -704,9 +704,6 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
 
             nodes_to_fetch = []
             for node in completed:
-                if not node:
-                    # TODO: handle this download
-                    continue
                 if not self.__node_information[node]["fetched"]:
                     nodes_to_fetch.append(node)
 
