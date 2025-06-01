@@ -13,7 +13,6 @@ import sys
 import fastjsonschema
 from pathlib import Path
 from fastjsonschema import JsonSchemaException
-import io
 
 import os.path
 
@@ -25,7 +24,6 @@ from siliconcompiler.remote.schema import ServerSchema
 from siliconcompiler.remote import banner, JobStatus
 from siliconcompiler import NodeStatus as SCNodeStatus
 from siliconcompiler.remote import NodeStatus
-from siliconcompiler.scheduler.slurm import get_configuration_directory
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 from siliconcompiler.scheduler.taskscheduler import TaskScheduler
 
