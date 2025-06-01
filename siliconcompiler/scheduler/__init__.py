@@ -152,6 +152,9 @@ def _local_process(chip, flow):
     from_nodes = []
     extra_setup_nodes = {}
 
+    chip.schema = JournalingSchema(chip.schema)
+    chip.schema.start_journal()
+
     if chip.get('option', 'clean') or not chip.get('option', 'from'):
         load_nodes = list(chip.schema.get("flowgraph", flow, field="schema").get_nodes())
     else:
@@ -236,8 +239,7 @@ def _local_process(chip, flow):
                 mark_pending(step, index)
             elif (step, index) in extra_setup_nodes:
                 # import old information
-                JournalingSchema(chip.schema).import_journal(
-                    schema=extra_setup_nodes[(step, index)])
+                chip.schema.import_journal(schema=extra_setup_nodes[(step, index)])
 
     # Ensure pending nodes cause following nodes to be run
     for step, index in nodes:
@@ -249,6 +251,10 @@ def _local_process(chip, flow):
     for step, index in nodes:
         if chip.get('record', 'status', step=step, index=index) == NodeStatus.PENDING:
             clean_node_dir(chip, step, index)
+
+    chip.write_manifest(os.path.join(chip.getworkdir(), f"{chip.get('design')}.pkg.json"))
+    chip.schema.stop_journal()
+    chip.schema = chip.schema.get_base_schema()
 
     # Check validity of setup
     chip.logger.info("Checking manifest before running.")
