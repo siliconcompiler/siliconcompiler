@@ -312,18 +312,25 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
         try:
             # Decode response JSON, if possible.
             job_info = json.loads(info['message'])
-        except json.JSONDecodeError as e:
-            self.__logger.warning(f"Job is still running: {e}")
+            if "null" in job_info:
+                job_info[None] = job_info["null"]
+                del job_info["null"]
+        except json.JSONDecodeError:
+            self.__logger.warning(f"Job is still running: {info['message']}")
             return completed, starttimes, True
 
         nodes_to_log = {}
         for node, node_info in job_info.items():
             status = node_info['status']
-            nodes_to_log.setdefault(status, []).append((node, node_info))
 
             if SCNodeStatus.is_done(status):
                 # collect completed
                 completed.append(node)
+
+            if not node:
+                continue
+
+            nodes_to_log.setdefault(status, []).append((node, node_info))
 
             if self.__node_information and node in self.__node_information:
                 self.__chip.set('record', 'status', status,
@@ -670,6 +677,9 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
 
             nodes_to_fetch = []
             for node in completed:
+                if not node:
+                    # TODO: handle this download
+                    continue
                 if not self.__node_information[node]["fetched"]:
                     nodes_to_fetch.append(node)
 
@@ -683,7 +693,6 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
         for node, node_info in self.__node_information.items():
             if not node_info["fetched"]:
                 self.__schedule_fetch_result(node)
-        self.__schedule_fetch_result(node)
 
         self._finalize_loop()
 
