@@ -1,7 +1,5 @@
 import pytest
 
-from unittest.mock import patch
-
 from threading import Lock
 
 from siliconcompiler import NodeStatus
@@ -77,10 +75,9 @@ def test_register_callback():
         pass
 
     callbacks = TaskScheduler._TaskScheduler__callbacks
-    with patch.dict(callbacks):
-        assert callbacks["pre_run"] is not callback
-        TaskScheduler.register_callback("pre_run", callback)
-        assert callbacks["pre_run"] is callback
+    assert callbacks["pre_run"] is not callback
+    TaskScheduler.register_callback("pre_run", callback)
+    assert callbacks["pre_run"] is callback
 
 
 def test_run(large_flow):
@@ -114,15 +111,13 @@ def test_run_callbacks(large_flow):
         def callback_post_run(chip):
             Callback.post_run += 1
 
-    callbacks = TaskScheduler._TaskScheduler__callbacks
-    with patch.dict(callbacks):
-        TaskScheduler.register_callback("pre_run", Callback.callback_pre_run)
-        TaskScheduler.register_callback("pre_node", Callback.callback_pre_node)
-        TaskScheduler.register_callback("post_node", Callback.callback_post_node)
-        TaskScheduler.register_callback("post_run", Callback.callback_post_run)
+    TaskScheduler.register_callback("pre_run", Callback.callback_pre_run)
+    TaskScheduler.register_callback("pre_node", Callback.callback_pre_node)
+    TaskScheduler.register_callback("post_node", Callback.callback_post_node)
+    TaskScheduler.register_callback("post_run", Callback.callback_post_run)
 
-        scheduler = TaskScheduler(large_flow)
-        scheduler.run()
+    scheduler = TaskScheduler(large_flow)
+    scheduler.run()
 
     assert Callback.pre_run == 1
     assert Callback.pre_node == 12
