@@ -225,7 +225,13 @@ class BaseSchema:
             raise KeyError(f"[{','.join(keypath)}] is not a valid keypath")
         if field is None:
             return param
-        return param.get(field, step=step, index=index)
+
+        try:
+            return param.get(field, step=step, index=index)
+        except Exception as e:
+            new_msg = f"error while accessing [{','.join(keypath)}]: {e.args[0]}"
+            e.args = (new_msg, *e.args[1:])
+            raise e
 
     def set(self, *args, field='value', clobber=True, step=None, index=None):
         '''
@@ -259,7 +265,12 @@ class BaseSchema:
         except KeyError:
             raise KeyError(f"[{','.join(keypath)}] is not a valid keypath")
 
-        return param.set(value, field=field, clobber=clobber, step=step, index=index)
+        try:
+            return param.set(value, field=field, clobber=clobber, step=step, index=index)
+        except Exception as e:
+            new_msg = f"error while setting [{','.join(keypath)}]: {e.args[0]}"
+            e.args = (new_msg, *e.args[1:])
+            raise e
 
     def add(self, *args, field='value', step=None, index=None):
         '''
@@ -292,7 +303,12 @@ class BaseSchema:
         except KeyError:
             raise KeyError(f"[{','.join(keypath)}] is not a valid keypath")
 
-        return param.add(value, field=field, step=step, index=index)
+        try:
+            return param.add(value, field=field, step=step, index=index)
+        except Exception as e:
+            new_msg = f"error while adding to [{','.join(keypath)}]: {e.args[0]}"
+            e.args = (new_msg, *e.args[1:])
+            raise e
 
     def unset(self, *keypath, step=None, index=None):
         '''
@@ -325,7 +341,12 @@ class BaseSchema:
         except KeyError:
             raise KeyError(f"[{','.join(keypath)}] is not a valid keypath")
 
-        param.unset(step=step, index=index)
+        try:
+            param.unset(step=step, index=index)
+        except Exception as e:
+            new_msg = f"error while unsetting [{','.join(keypath)}]: {e.args[0]}"
+            e.args = (new_msg, *e.args[1:])
+            raise e
 
     def remove(self, *keypath):
         '''
