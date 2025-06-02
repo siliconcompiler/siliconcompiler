@@ -284,9 +284,6 @@ class Server:
         # Remove 'remote' JSON config value to run locally on compute node.
         chip.set('option', 'remote', False)
 
-        # Dont clutter the server
-        chip.set('option', 'quiet', True)
-
         # Run the job with the configured clustering option. (Non-blocking)
         job_proc = threading.Thread(target=self.remote_sc,
                                     args=[
