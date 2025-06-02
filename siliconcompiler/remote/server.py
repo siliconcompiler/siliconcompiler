@@ -1,6 +1,7 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 
 from aiohttp import web
+import copy
 import threading
 import json
 import logging as log
@@ -12,7 +13,8 @@ import sys
 import fastjsonschema
 from pathlib import Path
 from fastjsonschema import JsonSchemaException
-import io
+
+import os.path
 
 from siliconcompiler import Chip, Schema
 from siliconcompiler.schema import utils as schema_utils
@@ -20,8 +22,10 @@ from siliconcompiler._metadata import version as sc_version
 from siliconcompiler.schema import SCHEMA_VERSION as sc_schema_version
 from siliconcompiler.remote.schema import ServerSchema
 from siliconcompiler.remote import banner, JobStatus
-from siliconcompiler.scheduler.slurm import get_configuration_directory
+from siliconcompiler import NodeStatus as SCNodeStatus
+from siliconcompiler.remote import NodeStatus
 from siliconcompiler.flowgraph import RuntimeFlowgraph
+from siliconcompiler.scheduler.taskscheduler import TaskScheduler
 
 
 # Compile validation code for API request bodies.
@@ -81,7 +85,61 @@ class Server:
         self.schema = ServerSchema()
 
         # Set up a dictionary to track running jobs.
+        self.sc_jobs_lock = threading.Lock()
         self.sc_jobs = {}
+        self.sc_chip_lookup = {}
+
+        # Register callbacks
+        TaskScheduler.register_callback("pre_run", self.__run_start)
+        TaskScheduler.register_callback("pre_node", self.__node_start)
+        TaskScheduler.register_callback("post_node", self.__node_end)
+
+    def __run_start(self, chip):
+        flow = chip.get("option", "flow")
+        nodes = chip.schema.get("flowgraph", flow, field="schema").get_nodes()
+
+        with self.sc_jobs_lock:
+            job_hash = self.sc_chip_lookup[chip]["jobhash"]
+
+        start_tar = os.path.join(self.nfs_mount, job_hash, f'{job_hash}_None.tar.gz')
+        start_status = NodeStatus.SUCCESS
+        with tarfile.open(start_tar, "w:gz") as tf:
+            start_manifest = os.path.join(chip.getworkdir(), f"{chip.design}.pkg.json")
+            tf.add(start_manifest, arcname=os.path.relpath(start_manifest, self.nfs_mount))
+
+        with self.sc_jobs_lock:
+            job_name = self.sc_chip_lookup[chip]["name"]
+
+            self.sc_jobs[job_name][None]["status"] = start_status
+
+            for step, index in nodes:
+                name = f"{step}{index}"
+                if name not in self.sc_jobs[job_name]:
+                    continue
+                self.sc_jobs[job_name][name]["status"] = \
+                    chip.get('record', 'status', step=step, index=index)
+
+    def __node_start(self, chip, step, index):
+        with self.sc_jobs_lock:
+            job_name = self.sc_chip_lookup[chip]["name"]
+            self.sc_jobs[job_name][f"{step}{index}"]["status"] = NodeStatus.RUNNING
+
+    def __node_end(self, chip, step, index):
+        with self.sc_jobs_lock:
+            job_hash = self.sc_chip_lookup[chip]["jobhash"]
+            job_name = self.sc_chip_lookup[chip]["name"]
+
+        chip = copy.deepcopy(chip)
+        chip.cwd = os.path.join(chip.get('option', 'builddir'), '..')
+        with tarfile.open(os.path.join(self.nfs_mount,
+                                       job_hash,
+                                       f'{job_hash}_{step}{index}.tar.gz'),
+                          mode='w:gz') as tf:
+            chip._archive_node(tf, step=step, index=index, include="*")
+
+        with self.sc_jobs_lock:
+            self.sc_jobs[job_name][f"{step}{index}"]["status"] = \
+                chip.get('record', 'status', step=step, index=index)
 
     def run(self):
         if not os.path.exists(self.nfs_mount):
@@ -226,8 +284,8 @@ class Server:
         # Remove 'remote' JSON config value to run locally on compute node.
         chip.set('option', 'remote', False)
 
-        # Write JSON config to shared compute storage.
-        os.makedirs(os.path.join(job_root, 'configs'), exist_ok=True)
+        # Dont clutter the server
+        chip.set('option', 'quiet', True)
 
         # Run the job with the configured clustering option. (Non-blocking)
         job_proc = threading.Thread(target=self.remote_sc,
@@ -258,31 +316,13 @@ class Server:
         job_hash = job_params['job_hash']
         node = job_params['node'] if 'node' in job_params else None
 
-        resp = web.StreamResponse(
-            status=200,
-            reason='OK',
-            headers={
-                'Content-Type': 'application/x-tar',
-                'Content-Disposition': f'attachment; filename="{job_hash}_{node}.tar.gz"'
-            },
-        )
-        await resp.prepare(request)
-
         zipfn = os.path.join(self.nfs_mount, job_hash, f'{job_hash}_{node}.tar.gz')
-        if not node:
-            with tarfile.open(zipfn, 'w:gz') as tar:
-                text = "Done"
-                metadata_file = io.BytesIO(text.encode('ascii'))
-                tarinfo = tarfile.TarInfo(f'{job_hash}/done')
-                tarinfo.size = metadata_file.getbuffer().nbytes
-                tar.addfile(tarinfo=tarinfo, fileobj=metadata_file)
+        if not os.path.exists(zipfn):
+            return web.json_response(
+                {'message': 'Could not find results for the requested job/node.'},
+                status=404)
 
-        with open(zipfn, 'rb') as zipf:
-            await resp.write(zipf.read())
-
-        await resp.write_eof()
-
-        return resp
+        return web.FileResponse(zipfn)
 
     ####################
     async def handle_delete_job(self, request):
@@ -300,9 +340,10 @@ class Server:
         job_hash = job_params['job_hash']
 
         # Determine if the job is running.
-        for job in self.sc_jobs:
-            if job_hash in job:
-                return self.__response("Error: job is still running.", status=400)
+        with self.sc_jobs_lock:
+            for job in self.sc_jobs:
+                if job_hash in job:
+                    return self.__response("Error: job is still running.", status=400)
 
         # Delete job hash directory, only if it exists.
         # TODO: This assumes no malicious input.
@@ -342,16 +383,17 @@ class Server:
 
         # Determine if the job is running.
         # TODO: Return information about individual flowgraph nodes.
-        if jobname in self.sc_jobs:
-            resp = {
-                'status': JobStatus.RUNNING,
-                'message': 'Job is currently running on the server.',
-            }
-        else:
-            resp = {
-                'status': JobStatus.COMPLETED,
-                'message': 'Job has no running steps.',
-            }
+        with self.sc_jobs_lock:
+            if jobname in self.sc_jobs:
+                resp = {
+                    'status': JobStatus.RUNNING,
+                    'message': self.sc_jobs[jobname],
+                }
+            else:
+                resp = {
+                    'status': JobStatus.COMPLETED,
+                    'message': 'Job has no running steps.',
+                }
         return web.json_response(resp)
 
     ####################
@@ -402,17 +444,38 @@ class Server:
         # Assemble core job parameters.
         job_hash = chip.get('record', 'remoteid')
 
+        runtime = RuntimeFlowgraph(
+            chip.schema.get("flowgraph", chip.get('option', 'flow'), field='schema'),
+            from_steps=chip.get('option', 'from'),
+            to_steps=chip.get('option', 'to'),
+            prune_nodes=chip.get('option', 'prune'))
+
+        nodes = {}
+        nodes[None] = {
+            "status": SCNodeStatus.PENDING
+        }
+        for step, index in runtime.get_nodes():
+            status = chip.get('record', 'status', step=step, index=index)
+            if not status:
+                status = SCNodeStatus.PENDING
+            if SCNodeStatus.is_done(status):
+                status = NodeStatus.UPLOADED
+            nodes[f"{step}{index}"] = {
+                "status": status
+            }
+
         # Mark the job run as busy.
         sc_job_name = self.job_name(username, job_hash)
-        self.sc_jobs[sc_job_name] = 'busy'
+        with self.sc_jobs_lock:
+            self.sc_chip_lookup[chip] = {
+                "name": sc_job_name,
+                "jobhash": job_hash
+            }
+            self.sc_jobs[sc_job_name] = nodes
 
         build_dir = os.path.join(self.nfs_mount, job_hash)
         chip.set('option', 'builddir', build_dir)
         chip.set('option', 'remote', False)
-
-        job_cfg_dir = get_configuration_directory(chip)
-        os.makedirs(job_cfg_dir, exist_ok=True)
-        chip.write_manifest(f"{job_cfg_dir}/chip{chip.get('option', 'jobname')}.json")
 
         if self.get('option', 'cluster') == 'slurm':
             # Run the job with slurm clustering.
@@ -421,25 +484,10 @@ class Server:
         # Run the job.
         chip.run()
 
-        # Archive each task.
-        runtime = RuntimeFlowgraph(
-            chip.schema.get("flowgraph", chip.get('option', 'flow'), field='schema'),
-            from_steps=chip.get('option', 'from'),
-            to_steps=chip.get('option', 'to'),
-            prune_nodes=chip.get('option', 'prune'))
-        for (step, index) in runtime.get_nodes():
-            chip.cwd = os.path.join(chip.get('option', 'builddir'), '..')
-            tf = tarfile.open(os.path.join(self.nfs_mount,
-                                           job_hash,
-                                           f'{job_hash}_{step}{index}.tar.gz'),
-                              mode='w:gz')
-            chip._archive_node(tf, step=step, index=index)
-            tf.close()
-
-        # (Email notifications can be sent here using your preferred API)
-
         # Mark the job hash as being done.
-        self.sc_jobs.pop(sc_job_name)
+        with self.sc_jobs_lock:
+            self.sc_jobs.pop(sc_job_name)
+            self.sc_chip_lookup.pop(chip)
 
     ####################
     def __auth_password(self, username, password):
