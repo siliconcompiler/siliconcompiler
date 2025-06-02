@@ -1188,6 +1188,7 @@ def test_validate_missing_required_file(chip, caplog):
 
 def test_summarize(chip, caplog):
     chip.logger = logging.getLogger()
+    chip.logger.setLevel(logging.INFO)
 
     chip.set("metric", "errors", 2, step="steptwo", index="0")
     chip.set("metric", "warnings", 4, step="steptwo", index="0")
