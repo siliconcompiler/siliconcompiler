@@ -287,6 +287,48 @@ class RecordSchema(BaseSchema):
             record_time+"+0000",
             RecordSchema.__TIMEFORMAT+"%z").timestamp()
 
+    def get_earliest_time(self, type):
+        '''
+        Returns the earliest recorded time.
+
+        Args:
+            step (str): Step name to associate.
+            index (str): Index name to associate.
+            type (:class:`RecordTime`): type of time to record
+        '''
+        type = RecordTime(type)
+        record_param = self.get(type.value, field=None)
+
+        times = set()
+        for _, step, index in record_param.getvalues():
+            times.add(self.get_recorded_time(step, index, type))
+
+        if not times:
+            return None
+
+        return min(times)
+
+    def get_latest_time(self, type):
+        '''
+        Returns the last recorded time.
+
+        Args:
+            step (str): Step name to associate.
+            index (str): Index name to associate.
+            type (:class:`RecordTime`): type of time to record
+        '''
+        type = RecordTime(type)
+        record_param = self.get(type.value, field=None)
+
+        times = set()
+        for _, step, index in record_param.getvalues():
+            times.add(self.get_recorded_time(step, index, type))
+
+        if not times:
+            return None
+
+        return max(times)
+
     def record_tool(self, step, index, info, type):
         '''
         Record information about the tool used during this record.

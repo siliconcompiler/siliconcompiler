@@ -118,6 +118,46 @@ def test_get_recorded_time_no_record(type):
     assert schema.get_recorded_time("teststep", "testindex", type) is None
 
 
+@pytest.mark.parametrize("type", (RecordTime.START, RecordTime.END))
+def test_get_earliest_time(type):
+    schema = RecordSchema()
+
+    with patch("siliconcompiler.record.datetime") as mock_datetime:
+        mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 0, tzinfo=timezone.utc)
+        schema.record_time("stepone", "1", type)
+
+    with patch("siliconcompiler.record.datetime") as mock_datetime:
+        mock_datetime.now.return_value = datetime(2020, 3, 11, 15, 0, 0, tzinfo=timezone.utc)
+        schema.record_time("steptwo", "1", type)
+
+    assert schema.get_earliest_time(type) == 1583935200.0
+
+
+@pytest.mark.parametrize("type", (RecordTime.START, RecordTime.END))
+def test_get_earliest_time_no_data(type):
+    assert RecordSchema().get_earliest_time(type) is None
+
+
+@pytest.mark.parametrize("type", (RecordTime.START, RecordTime.END))
+def test_get_latest_time(type):
+    schema = RecordSchema()
+
+    with patch("siliconcompiler.record.datetime") as mock_datetime:
+        mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 0, tzinfo=timezone.utc)
+        schema.record_time("stepone", "1", type)
+
+    with patch("siliconcompiler.record.datetime") as mock_datetime:
+        mock_datetime.now.return_value = datetime(2020, 3, 11, 15, 0, 0, tzinfo=timezone.utc)
+        schema.record_time("steptwo", "1", type)
+
+    assert schema.get_latest_time(type) == 1583938800.0
+
+
+@pytest.mark.parametrize("type", (RecordTime.START, RecordTime.END))
+def test_get_latest_time_no_data(type):
+    assert RecordSchema().get_latest_time(type) is None
+
+
 def test_get_recorded_time_diff():
     schema = RecordSchema()
 
