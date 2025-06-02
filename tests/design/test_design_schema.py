@@ -1,7 +1,7 @@
 from siliconcompiler.design import DesignSchema
 
 
-def test_keys():
+def test_design_keys():
     assert sorted(DesignSchema().getkeys('default')) == sorted([
         'top',
         'file',
@@ -14,7 +14,7 @@ def test_keys():
         'param'])
 
 
-def test_setget():
+def test_design_params():
     schema = DesignSchema()
 
     # top module
