@@ -3,7 +3,7 @@ import os
 from siliconcompiler import sc_open, SiliconCompilerError
 from siliconcompiler import utils
 from siliconcompiler.tools._common import input_provides, input_file_node_name, get_tool_task
-from siliconcompiler import scheduler
+from siliconcompiler.scheduler.schedulernode import SchedulerNode
 
 
 def make_docs(chip):
@@ -12,7 +12,7 @@ def make_docs(chip):
     chip.set('option', 'flow', 'asicflow')
 
     for step, index in chip.schema.get("flowgraph", "asicflow", field="schema").get_entry_nodes():
-        scheduler._setup_node(chip, step, index)
+        SchedulerNode(chip, step, index).setup()
 
     chip.set('arg', 'step', 'import.combine')
     chip.set('arg', 'index', '0')
