@@ -292,8 +292,6 @@ class RecordSchema(BaseSchema):
         Returns the earliest recorded time.
 
         Args:
-            step (str): Step name to associate.
-            index (str): Index name to associate.
             type (:class:`RecordTime`): type of time to record
         '''
         type = RecordTime(type)
@@ -313,8 +311,6 @@ class RecordSchema(BaseSchema):
         Returns the last recorded time.
 
         Args:
-            step (str): Step name to associate.
-            index (str): Index name to associate.
             type (:class:`RecordTime`): type of time to record
         '''
         type = RecordTime(type)
