@@ -240,3 +240,6 @@ class JournalingSchema(BaseSchema):
                 continue
             else:
                 raise ValueError(f'Unknown record type {record_type}')
+
+    def __getstate__(self):
+        raise RuntimeError("pickling is not supported for journal")

@@ -1,3 +1,4 @@
+import pickle
 import pytest
 import json
 
@@ -750,3 +751,10 @@ def test_forward_exception_with_key_unset_import(error, monkeypatch):
                 }
             ]
         })
+
+
+def test_pickle():
+    schema = JournalingSchema(BaseSchema())
+
+    with pytest.raises(RuntimeError, match="pickling is not supported for journal"):
+        pickle.dumps(schema)
