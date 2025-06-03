@@ -10,9 +10,65 @@ class DesignSchema(NamedSchema):
         schema_design(self)
 
 
-###############################################################################
-# Design
-###############################################################################
+    def add_file(self, filename, fileset=None, filetype=None):
+        '''
+        Adds file to a filset. The default behavior is to infer filetypes and
+        filesets based on the suffix of the file extensions.
+
+        Default filetype and filset based on suffix:
+
+        .. code:: none
+
+            {iotable}
+
+        Args:
+            filename (path): File name (list or single file)
+            fileset (str): File grouping
+            filetype (str): File type
+
+        '''
+
+        # Handle list inputs
+        if isinstance(filename, (list, tuple)):
+            for item in filename:
+                self.add_file(
+                    item,
+                    fileset=fileset,
+                    filetype=filetype)
+            return
+
+        if filename is None:
+            raise ValueError(f"{category} cannot process None")
+
+        # Normalize value to string in case we receive a pathlib.Path
+        filename = str(filename)
+
+        ext = utils.get_file_ext(filename)
+
+        # map extension to default filetype/fileset
+        default_fileset, default_filetype = utils.get_default_iomap()[ext]
+
+        if not fileset:
+            fileset = default_fileset
+
+        if not filetype:
+            filetype = default_filetype
+
+        # final error checking
+        if not fileset or not filetype:
+            raise SiliconCompilerError(
+                f'Unable to infer {category} fileset and/or filetype for '
+                f'{filename} based on file extension.')
+        else:
+            self.logger.info(f'{filename} inferred as filetype {filetype}')
+            self.logger.info(f'{filename} inferred as fileset {fileset}')
+
+        # adding file
+        self.add(fileset, 'file', filetype, filename)
+
+###########################################################################
+# Schema
+###########################################################################
 def schema_design(schema):
     schema = EditableSchema(schema)
 
