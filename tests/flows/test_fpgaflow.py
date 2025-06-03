@@ -2,7 +2,7 @@ import os
 import json
 import pytest
 from siliconcompiler import Chip, FPGA
-from siliconcompiler.scheduler import _setup_node
+from siliconcompiler.scheduler.schedulernode import SchedulerNode
 from siliconcompiler.flows import fpgaflow
 from siliconcompiler.tools.vpr import route, place
 from logiklib.demo.K4_N8_6x6 import K4_N8_6x6
@@ -427,7 +427,7 @@ def test_vpr_max_router_iterations():
     for layer_nodes in chip.schema.get(
             "flowgraph", "fpgaflow", field="schema").get_execution_order():
         for step, index in layer_nodes:
-            _setup_node(chip, step, index)
+            SchedulerNode(chip, step, index).setup()
 
     assert '300' == \
         chip.get('tool', 'vpr', 'task', 'route', 'var', 'max_router_iterations',

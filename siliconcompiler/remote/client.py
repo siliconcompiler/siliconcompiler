@@ -18,10 +18,22 @@ from siliconcompiler._metadata import default_server
 from siliconcompiler.remote import JobStatus, NodeStatus
 from siliconcompiler.report.dashboard import DashboardType
 from siliconcompiler.flowgraph import RuntimeFlowgraph
+from siliconcompiler.scheduler.scheduler import Scheduler
 from siliconcompiler.schema import JournalingSchema
 
 # Step name to use while logging
 remote_step_name = 'remote'
+
+
+class ClientScheduler(Scheduler):
+    def run_core(self):
+        Client(self._Scheduler__chip).run()
+
+    def configure_nodes(self):
+        return
+
+    def check_manifest(self):
+        return True
 
 
 class Client():

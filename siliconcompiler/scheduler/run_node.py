@@ -8,7 +8,7 @@ import os.path
 
 from siliconcompiler import Chip, Schema
 from siliconcompiler.package import path as sc_path
-from siliconcompiler.scheduler import _runtask, _executenode
+from siliconcompiler.scheduler.schedulernode import SchedulerNode
 from siliconcompiler import __version__
 
 
@@ -104,8 +104,8 @@ def main():
             chip.unset('option', 'scheduler', 'name', step=step, index=index)
 
     # Init logger to ensure consistent view
-    chip._init_logger(step=chip.get('arg', 'step'),
-                      index=chip.get('arg', 'index'),
+    chip._init_logger(step=args.step,
+                      index=args.index,
                       in_run=True)
 
     if args.cachemap:
@@ -120,12 +120,10 @@ def main():
     # Run the task.
     error = True
     try:
-        _runtask(chip,
-                 chip.get('option', 'flow'),
-                 chip.get('arg', 'step'),
-                 chip.get('arg', 'index'),
-                 _executenode,
-                 replay=args.replay)
+        SchedulerNode(chip,
+                      args.step,
+                      args.index,
+                      replay=args.replay).run()
         error = False
 
     finally:

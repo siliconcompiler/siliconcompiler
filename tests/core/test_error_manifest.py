@@ -1,7 +1,7 @@
+import os.path
+
 import siliconcompiler
 from siliconcompiler.tools.surelog import parse
-from siliconcompiler._common import SiliconCompilerError
-import os
 from siliconcompiler.targets import freepdk45_demo
 
 
@@ -20,7 +20,7 @@ def test_error_manifest():
 
     try:
         chip.run(raise_exception=True)
-    except SiliconCompilerError:
+    except RuntimeError:
         workdir = chip.getworkdir(step=step, index=index)
         cfg = os.path.join(workdir, 'outputs', f'{chip.top()}.pkg.json')
         assert os.path.isfile(cfg)

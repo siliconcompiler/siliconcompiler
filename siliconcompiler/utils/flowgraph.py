@@ -4,6 +4,7 @@ from siliconcompiler import NodeStatus
 from siliconcompiler.tools._common import input_file_node_name, get_tool_task
 
 from siliconcompiler.flowgraph import RuntimeFlowgraph
+from siliconcompiler.scheduler.schedulernode import SchedulerNode
 
 
 ###########################################################################
@@ -87,7 +88,6 @@ def _check_flowgraph_io(chip, nodes=None):
 
 
 def _get_flowgraph_information(chip, flow, io=True):
-    from siliconcompiler.scheduler import _setup_node
     from siliconcompiler.tools._common import input_provides, input_file_node_name
 
     # Save schema to avoid making permanent changes
@@ -97,12 +97,12 @@ def _get_flowgraph_information(chip, flow, io=True):
     # Setup nodes
     node_exec_order = chip.schema.get("flowgraph", flow, field="schema").get_execution_order()
     if io:
-        # try:
+        prev_flow = chip.get("option", "flow")
+        chip.set("option", "flow", flow)
         for layer_nodes in node_exec_order:
             for step, index in layer_nodes:
-                _setup_node(chip, step, index, flow=flow)
-        # except:  # noqa E722
-        #     io = False
+                SchedulerNode(chip, step, index).setup()
+        chip.set("option", "flow", prev_flow)
 
     node_rank = {}
     for rank, rank_nodes in enumerate(node_exec_order):
