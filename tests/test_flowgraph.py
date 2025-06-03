@@ -186,6 +186,53 @@ def test_remove_node_no_index(large_flow):
         large_flow.remove_node('steptwo', 4)
 
 
+def test_insert_node(large_flow):
+    large_flow.insert_node(
+        "newnode", "siliconcompiler.tools.builtin.nop", before_step="joinone"
+    )
+
+    assert ("newnode", "0") in large_flow.get_nodes()
+    assert large_flow.get_execution_order() == (
+        (('stepone', '0'), ('stepone', '1'), ('stepone', '2')),
+        (('joinone', '0'),),
+        (('newnode', '0'),),
+        (('steptwo', '0'), ('steptwo', '1'), ('steptwo', '2')),
+        (('jointwo', '0'),),
+        (('stepthree', '0'), ('stepthree', '1'), ('stepthree', '2')),
+        (('jointhree', '0'),))
+    assert large_flow.get_node_outputs("joinone", "0") == (('newnode', '0'),)
+    assert large_flow.get_node_outputs("newnode", "0") == \
+        (('steptwo', '0'), ('steptwo', '1'), ('steptwo', '2'))
+
+
+def test_insert_node_branch(large_flow):
+    large_flow.insert_node(
+        "newnode", "siliconcompiler.tools.builtin.nop", before_step="stepone", before_index=2
+    )
+
+    assert ("newnode", "0") in large_flow.get_nodes()
+    assert large_flow.get_execution_order() == (
+        (('stepone', '0'), ('stepone', '1'), ('stepone', '2')),
+        (('newnode', '0'),),
+        (('joinone', '0'),),
+        (('steptwo', '0'), ('steptwo', '1'), ('steptwo', '2')),
+        (('jointwo', '0'),),
+        (('stepthree', '0'), ('stepthree', '1'), ('stepthree', '2')),
+        (('jointhree', '0'),))
+    assert large_flow.get_node_outputs("stepone", "0") == (('joinone', '0'),)
+    assert large_flow.get_node_outputs("stepone", "1") == (('joinone', '0'),)
+    assert large_flow.get_node_outputs("stepone", "2") == (('newnode', '0'),)
+    assert large_flow.get_node_outputs("joinone", "0") == \
+        (('steptwo', '0'), ('steptwo', '1'), ('steptwo', '2'))
+
+
+def test_insert_node_invalid(large_flow):
+    with pytest.raises(ValueError, match="invalid0 is not a valid node in testflow"):
+        large_flow.insert_node(
+            "newnode", "siliconcompiler.tools.builtin.nop", before_step="invalid"
+        )
+
+
 def test_get_nodes(large_flow):
     assert large_flow.get_nodes() == (
         ('joinone', '0'), ('jointhree', '0'), ('jointwo', '0'),
