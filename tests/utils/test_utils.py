@@ -41,6 +41,11 @@ def test_truncate_text():
     assert truncate_text(text, 10) == "testi...23"
     assert truncate_text(text, 15) == "testing-wi...23"
 
+    assert truncate_text("test", 1) == "test"
+    assert truncate_text("testing-without-numbers", 1) == "te..."
+    assert truncate_text("testing-without-numbers0", 1) == "t...0"
+    assert truncate_text("testing-without-numbers9123", 1) == "...23"
+
 
 @pytest.mark.parametrize("path,expect", [
     (pathlib.PureWindowsPath("one/one.txt"), "one_fe05bcdcdc4928012781a5f1a2a77cbb5398e106.txt"),
