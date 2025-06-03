@@ -44,6 +44,31 @@ def setup(chip, clobber=True):
     chip.add('tool', tool, 'task', task, 'output', design + '.net', step=step, index=index)
     chip.add('tool', tool, 'task', task, 'output', design + '.place', step=step, index=index)
 
+    # Add a parameter for generating a post-implementation netlist for external
+    # static timing analysis.
+    chip.set('tool', tool, 'task', task, 'var', 'gen_post_implementation_netlist',
+             'false', step=step, index=index, clobber=False)
+
+    chip.set('tool', tool, 'task', task, 'var', 'gen_post_implementation_netlist',
+             'set to true to have VPR generate a post-implementation netlist',
+             field='help')
+
+    chip.set('tool', tool, 'task', task, 'require',
+             ",".join(['tool', tool, 'task', task, 'var', 'gen_post_implementation_netlist']),
+             step=step, index=index)
+
+    # Add the post-implementation timing netlist outputs if requested.
+    gen_post_implementation_netlist = chip.get('tool', tool, 'task', task, 'var',
+                                               'gen_post_implementation_netlist',
+                                               step=step, index=index)[0]
+    if gen_post_implementation_netlist == 'true':
+        chip.add('tool', tool, 'task', task, 'output', design + '.vg',
+                 step=step, index=index)
+        chip.add('tool', tool, 'task', task, 'output', design + '.sdc',
+                 step=step, index=index)
+        chip.add('tool', tool, 'task', task, 'output', design + '.typical.sdf',
+                 step=step, index=index)
+
 
 def runtime_options(chip):
     '''Command line options to vpr for the route step
@@ -104,6 +129,21 @@ def runtime_options(chip):
         options.append("--graphics_commands")
         options.append(graphics_command_str)
 
+    # Generate a post-implementation netlist for use in external timing analysis
+    # if requested.
+    gen_post_implementation_netlist = chip.get('tool', tool, 'task', task, 'var',
+                                               'gen_post_implementation_netlist',
+                                               step=step, index=index)[0]
+    if gen_post_implementation_netlist == 'true':
+        # Generate the netlist.
+        options.extend(["--gen_post_synthesis_netlist", "on"])
+        # Generate the SDC file.
+        options.extend(["--gen_post_implementation_sdc", "on"])
+        # Create undriven nets for unconnected inputs.
+        options.extend(["--post_synth_netlist_unconn_inputs", "nets"])
+        # Turn off module parameters.
+        options.extend(["--post_synth_netlist_module_parameters", "off"])
+
     return options
 
 
@@ -122,3 +162,16 @@ def post_process(chip):
     shutil.copy2(f'inputs/{design}.blif', 'outputs')
     shutil.copy2(f'inputs/{design}.net', 'outputs')
     shutil.copy2(f'inputs/{design}.place', 'outputs')
+
+    # Copy and rename the post-implementation netlist results into the output
+    # directory to be used in external timing analysis.
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    tool, task = get_tool_task(chip, step, index)
+    gen_post_implementation_netlist = chip.get('tool', tool, 'task', task, 'var',
+                                               'gen_post_implementation_netlist',
+                                               step=step, index=index)[0]
+    if gen_post_implementation_netlist == 'true':
+        shutil.copy2(f'{design}_post_synthesis.v', f'outputs/{design}.vg')
+        shutil.copy2(f'{design}_post_synthesis.sdc', f'outputs/{design}.sdc')
+        shutil.copy2(f'{design}_post_synthesis.sdf', f'outputs/{design}.typical.sdf')

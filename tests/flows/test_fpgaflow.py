@@ -522,3 +522,49 @@ def test_fpga_syn_extract(top_module,
         assert expected_macro_count == 1, \
             f'Expected one instance of {expected_macro},' \
             ' got {expected_macro_count} instances'
+
+
+@pytest.mark.quick
+def test_vpr_gen_post_implementation_netlist():
+    chip = Chip('foo')
+    chip.input('test.v')
+
+    part_name = 'faux'
+
+    # Create FPGA
+    fpga = FPGA(part_name)
+
+    fpga.set('fpga', part_name, 'var', 'vpr_device_code', 'faux')
+    fpga.set('fpga', part_name, 'var', 'vpr_clock_model', 'ideal')
+
+    with open('test.file', 'w') as f:
+        f.write('test')
+
+    fpga.set('fpga', part_name, 'file', 'archfile', 'test.file')
+    fpga.set('fpga', part_name, 'file', 'graphfile', 'test.file')
+
+    fpga.set('fpga', part_name, 'var', 'channelwidth', 50)
+
+    chip.use(fpga)
+    chip.set('fpga', 'partname', 'faux')
+
+    # 3. Load flow
+    chip.use(fpgaflow, fpgaflow_type='vpr')
+    chip.set('option', 'flow', 'fpgaflow')
+
+    chip.set('tool', 'vpr', 'task', 'route', 'var', 'gen_post_implementation_netlist', 'true')
+
+    # Verify that the user's setting doesn't get clobbered
+    # by the FPGA flow
+    for layer_nodes in chip.schema.get(
+            "flowgraph", "fpgaflow", field="schema").get_execution_order():
+        for step, index in layer_nodes:
+            SchedulerNode(chip, step, index).setup()
+
+    assert 'true' == \
+        chip.get('tool', 'vpr', 'task', 'route', 'var', 'gen_post_implementation_netlist',
+                 step='route', index='0')[0]
+
+    chip.set('arg', 'step', 'route')
+    chip.set('arg', 'index', '0')
+    assert '--gen_post_synthesis_netlist' in route.runtime_options(chip)
