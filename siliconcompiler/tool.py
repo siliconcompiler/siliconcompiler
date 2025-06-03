@@ -66,6 +66,30 @@ class TaskSchema(NamedSchema):
 
         schema_task(self)
 
+    def add_parameter(self, name, type, help, defvalue=None):
+        '''
+        Adds a parameter to the task definition.
+
+        Args:
+            name (str): name of parameter
+            type (str): schema type of the parameter
+            help (str): help string for this parameter
+            defvalue (any): default value for the parameter
+        '''
+        help = trim(help)
+        param = Parameter(
+            type,
+            defvalue=defvalue,
+            scope=Scope.JOB,
+            pernode=PerNode.OPTIONAL,
+            shorthelp=help,
+            help=help
+        )
+
+        EditableSchema(self).insert("var", name, param)
+
+        return param
+
 
 class ToolSchema(NamedSchema):
     __parse_version_check_str = r"""
