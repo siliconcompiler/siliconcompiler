@@ -8,6 +8,21 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.33.2 (2025-06-03)
+=========================================
+
+**Minor:**
+
+ * Fixed bug in git submodule checkouts that left the incorrect version of the submodules checked out.
+ * Updated replay script to provide access to replay python scripts.
+ * Fixed bug in remote client that caused errors when running with hashing turned on.
+ * Updated `[record,starttime]` and `[record,endtime]` to include microseconds.
+
+ * Tools:
+
+  * slang: updated to version 8.1.
+
+
 SiliconCompiler 0.33.1 (2025-05-23)
 =========================================
 
