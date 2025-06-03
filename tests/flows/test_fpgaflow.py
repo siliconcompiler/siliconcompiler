@@ -524,7 +524,6 @@ def test_fpga_syn_extract(top_module,
             ' got {expected_macro_count} instances'
 
 
-@pytest.mark.quick
 def test_vpr_gen_post_implementation_netlist():
     chip = Chip('foo')
     chip.input('test.v')
@@ -552,7 +551,8 @@ def test_vpr_gen_post_implementation_netlist():
     chip.use(fpgaflow, fpgaflow_type='vpr')
     chip.set('option', 'flow', 'fpgaflow')
 
-    chip.set('tool', 'vpr', 'task', 'route', 'var', 'gen_post_implementation_netlist', 'true')
+    chip.set('tool', 'vpr', 'task', 'route', 'var', 'gen_post_implementation_netlist', True)
+    chip.set('tool', 'vpr', 'task', 'route', 'var', 'timing_corner', 'slow')
 
     # Verify that the user's setting doesn't get clobbered
     # by the FPGA flow
@@ -564,7 +564,10 @@ def test_vpr_gen_post_implementation_netlist():
     assert 'true' == \
         chip.get('tool', 'vpr', 'task', 'route', 'var', 'gen_post_implementation_netlist',
                  step='route', index='0')[0]
+    assert 'slow' == \
+        chip.get('tool', 'vpr', 'task', 'route', 'var', 'timing_corner',
+                 step='route', index='0')[0]
 
-    chip.set('arg', 'step', 'route')
-    chip.set('arg', 'index', '0')
-    assert '--gen_post_synthesis_netlist' in route.runtime_options(chip)
+    node = SchedulerNode(chip, step='route', index='0')
+    node.init_state(assign_runtime=True)
+    assert '--gen_post_synthesis_netlist' in node.task.get_runtime_arguments()
