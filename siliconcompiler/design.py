@@ -1,32 +1,46 @@
 from siliconcompiler.schema import NamedSchema
 from siliconcompiler.schema import EditableSchema, Parameter
 from siliconcompiler.schema.utils import trim
-
+from siliconcompiler import utils
 
 class DesignSchema(NamedSchema):
 
     def __init__(self, name=None):
         NamedSchema.__init__(self, name=name)
         schema_design(self)
+        depends = []
 
-
+    #############################################
     def add_file(self, filename, fileset=None, filetype=None):
-        '''
-        Adds file to a filset. The default behavior is to infer filetypes and
-        filesets based on the suffix of the file extensions.
+        """
+        Adds a file (or list of files) to a fileset. If no fileset or filetype is
+        specified, they are inferred based on the file extension.
 
-        Default filetype and filset based on suffix:
+        Default filetype and fileset mappings are determined by the extension
+        and defined in the I/O mapping table (iotable), typically like:
 
-        .. code:: none
-
-            {iotable}
+        .v        → (source, verilog)
+        .vhd      → (source, vhdl)
+        .sdc      → (constraint, sdc)
+        .lef      → (input, lef)
+        .def      → (input, def)
+        ...       → etc.
 
         Args:
-            filename (path): File name (list or single file)
-            fileset (str): File grouping
-            filetype (str): File type
+            filename (str or list[str] or Path): File path or list of paths to add.
+            fileset (str, optional): Logical group to associate the file with.
+                If not provided, it is inferred from the file extension.
+            filetype (str, optional): Type of the file (e.g., 'verilog', 'sdc').
+                If not provided, it is inferred from the file extension.
 
-        '''
+        Raises:
+            SiliconCompilerError: If fileset or filetype cannot be inferred from
+                the file extension.
+
+        Notes:
+            - If `filename` is a list or tuple, `add_file` is called recursively.
+            - This method normalizes `filename` to a string for consistency.
+        """
 
         # Handle list inputs
         if isinstance(filename, (list, tuple)):
@@ -36,9 +50,6 @@ class DesignSchema(NamedSchema):
                     fileset=fileset,
                     filetype=filetype)
             return
-
-        if filename is None:
-            raise ValueError(f"{category} cannot process None")
 
         # Normalize value to string in case we receive a pathlib.Path
         filename = str(filename)
@@ -59,12 +70,30 @@ class DesignSchema(NamedSchema):
             raise SiliconCompilerError(
                 f'Unable to infer {category} fileset and/or filetype for '
                 f'{filename} based on file extension.')
-        else:
-            self.logger.info(f'{filename} inferred as filetype {filetype}')
-            self.logger.info(f'{filename} inferred as fileset {fileset}')
 
-        # adding file
+        # adding files to dictionary
         self.add(fileset, 'file', filetype, filename)
+
+    #############################################
+    def option(self, key, value, fileset):
+        '''
+        Sets a design option.
+        Lists used add by default.
+        '''
+
+        if self.get(fileset, key, field="type") == "str":
+            self.set(fileset, key, value)
+        elif key=='param':
+            self.set(fileset, 'param', value)
+        else:
+            self.add(fileset, key, value)
+
+    #############################################
+    def use(self, module):
+        '''
+        Loads a Design dependency into the current Design object.
+        '''
+        depends.append(module)
 
 ###########################################################################
 # Schema
@@ -93,12 +122,12 @@ def schema_design(schema):
             the order specified by the ordered file list.""")))
 
     schema.insert(
-        fileset, 'top',
+        fileset, 'topmodule',
         Parameter(
             'str',
             shorthelp="Top module name",
-            example=["api: chip.set('rtl', 'top', 'mytop')",
-                     "api: chip.set('testbench', 'top', 'tb')"],
+            example=["api: chip.set('rtl', 'topmodule', 'mytop')",
+                     "api: chip.set('testbench', 'topmodule', 'tb')"],
             help=trim("""
             Name of top module specified on a per fileset basis.""")))
 
@@ -137,11 +166,11 @@ def schema_design(schema):
 
     name = 'default'
     schema.insert(
-        fileset, 'param', name,
+        fileset, 'param',
         Parameter(
-            'str',
+            '[(str,str)]',
             shorthelp="Design parameters",
-            example=["api: chip.set('rtl, 'param', 'N', '64')"],
+            example=["api: chip.set('rtl, 'param', ('N','64')"],
             help=trim("""
             Sets a named parameter to a string value. The value is limited to basic
             data literals. The types of parameters and values supported is tightly
