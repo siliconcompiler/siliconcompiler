@@ -370,6 +370,8 @@ def get_plugins(system, name=None):
 
 
 def truncate_text(text, width):
+    width = max(width, 5)
+
     if len(text) <= width:
         return text
 
