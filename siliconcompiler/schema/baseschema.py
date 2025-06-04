@@ -520,7 +520,9 @@ class BaseSchema:
                                      include_default=include_default,
                                      values_only=values_only)
 
-        manifest = {}
+        manifest = {
+            "__meta__": self.__meta
+        }
         if include_default and self.__default:
             manifest_dict = self.__default.getdict(include_default=include_default,
                                                    values_only=values_only)
