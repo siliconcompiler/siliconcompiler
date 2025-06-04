@@ -1,6 +1,18 @@
+import os.path
+
 from siliconcompiler.schema import BaseSchema
 from siliconcompiler.schema import EditableSchema, Parameter, Scope
 from siliconcompiler.schema.utils import trim
+
+from siliconcompiler.package import path as sc_resolver_path
+
+
+class PackageResolver:
+    def __init__(self, runnable):
+        self.__runnable = runnable
+
+    def resolve(self, package):
+        return sc_resolver_path(self.__runnable, package)
 
 
 class PackageSchema(BaseSchema):
@@ -8,6 +20,50 @@ class PackageSchema(BaseSchema):
         super().__init__()
 
         schema_package(self)
+
+    def register(self, name, path, ref=None, clobber=True):
+        """
+        Registers a package by its name with the source path and reference
+
+        Registered package sources are stored in the package section of the schema.
+
+        Args:
+            name (str): Package name
+            path (str): Path to the sources, can be file, git url, archive url
+            ref (str): Reference of the sources, can be commitid, branch name, tag
+            clobber (bool): Overwrite exisiting
+
+        Examples:
+            >>> chip.register('siliconcompiler_data',
+                    'git+https://github.com/siliconcompiler/siliconcompiler',
+                    'cd328131bafd361787f9137a6ffed999d64c8c30')
+        """
+
+        # If this is a file, get the directory for this
+        if os.path.isfile(path):
+            path = os.path.dirname(os.path.abspath(path))
+        elif os.path.isdir(path):
+            path = os.path.abspath(path)
+
+        self.set('source', name, 'path', path, clobber=clobber)
+        if ref:
+            self.set('source', name, 'ref', ref, clobber=clobber)
+
+    def get_resolvers(self, runnable):
+        '''
+        Returns a dictionary of packages with their resolver method.
+
+        Args:
+            runnable (TBD): Base runnable object
+        '''
+
+        resolver = PackageResolver(runnable)
+
+        resolvers = {}
+        for package in self.getkeys("source"):
+            resolvers[package] = resolver.resolve
+
+        return resolvers
 
 
 ############################################
