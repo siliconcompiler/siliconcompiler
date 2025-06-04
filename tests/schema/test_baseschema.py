@@ -313,7 +313,7 @@ def test_allkeys_end_parameter():
     assert schema.allkeys("test1", "test3") == set()
 
 
-def test_get_dict():
+def test_getdict():
     schema = BaseSchema()
     edit = EditableSchema(schema)
     edit.insert("test0", "default", "test1", Parameter("str"))
@@ -346,7 +346,49 @@ def test_get_dict():
     }
 
 
-def test_get_dict_keypath():
+def test_getdict_values_only():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("test0", "default", "test1", Parameter("str"))
+
+    assert schema.getdict(values_only=True) == {}
+
+
+def test_getdict_values_only_with_value():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("test0", "default", "test1", Parameter("str"))
+    schema.set("test0", "level1", "test1", "this value")
+
+    assert schema.getdict(values_only=True) == {
+        'test0': {
+            'level1': {
+                'test1': {
+                    None: {
+                        None: 'this value',
+                    },
+                },
+            },
+        },
+    }
+
+
+def test_getdict_values_keypath_only_with_value():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("test0", "default", "test1", Parameter("str"))
+    schema.set("test0", "level1", "test1", "this value")
+
+    assert schema.getdict("test0", "level1", values_only=True) == {
+        'test1': {
+            None: {
+                None: 'this value',
+            },
+        },
+    }
+
+
+def test_getdict_keypath():
     schema = BaseSchema()
     edit = EditableSchema(schema)
     edit.insert("test0", "default", "test1", Parameter("str"))
@@ -377,7 +419,7 @@ def test_get_dict_keypath():
     }
 
 
-def test_get_dict_keypath_unmatched():
+def test_getdict_keypath_unmatched():
     schema = BaseSchema()
     edit = EditableSchema(schema)
     edit.insert("test0", "default", "test1", Parameter("str"))
@@ -385,7 +427,7 @@ def test_get_dict_keypath_unmatched():
     assert schema.getdict("test0", "test1") == dict()
 
 
-def test_get_dict_from_dict():
+def test_getdict_from_dict():
     schema = BaseSchema()
     edit = EditableSchema(schema)
     edit.insert("test0", "default", "test1", Parameter("str"))
@@ -403,7 +445,7 @@ def test_get_dict_from_dict():
     assert schema.getdict() == check_schema.getdict()
 
 
-def test_get_dict_from_dict_unmatched():
+def test_getdict_from_dict_unmatched():
     schema = BaseSchema()
     edit = EditableSchema(schema)
     edit.insert("test0", "default", "test1", Parameter("str"))

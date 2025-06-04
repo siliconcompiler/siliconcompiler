@@ -470,7 +470,7 @@ class BaseSchema:
             add(keys, key, item)
         return set(keys)
 
-    def getdict(self, *keypath, include_default=True):
+    def getdict(self, *keypath, include_default=True, values_only=False):
         """
         Returns a schema dictionary.
 
@@ -480,6 +480,7 @@ class BaseSchema:
         Args:
             keypath (list of str): Variable length ordered schema key list
             include_default (boolean): If true will include default key paths
+            values_only (boolean): If true will only return values
 
         Returns:
             A schema dictionary
@@ -493,13 +494,21 @@ class BaseSchema:
             key_param = self.__manifest.get(keypath[0], None)
             if not key_param:
                 return {}
-            return key_param.getdict(*keypath[1:], include_default=include_default)
+            return key_param.getdict(*keypath[1:],
+                                     include_default=include_default,
+                                     values_only=values_only)
 
         manifest = {}
         if include_default and self.__default:
-            manifest["default"] = self.__default.getdict(include_default=include_default)
+            manifest_dict = self.__default.getdict(include_default=include_default,
+                                                   values_only=values_only)
+            if manifest_dict or not values_only:
+                manifest["default"] = manifest_dict
         for key, item in self.__manifest.items():
-            manifest[key] = item.getdict(include_default=include_default)
+            manifest_dict = item.getdict(include_default=include_default,
+                                         values_only=values_only)
+            if manifest_dict or not values_only:
+                manifest[key] = manifest_dict
         return manifest
 
     # Utility functions
