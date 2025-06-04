@@ -68,9 +68,14 @@ class PackageSchema(BaseSchema):
         elif os.path.isdir(path):
             path = os.path.abspath(path)
 
-        self.set('source', name, 'path', path, clobber=clobber)
-        if ref:
-            self.set('source', name, 'ref', ref, clobber=clobber)
+        success = False
+        if self.set('source', name, 'path', path, clobber=clobber):
+            success = True
+        if success and ref:
+            success = False
+            if self.set('source', name, 'ref', ref, clobber=clobber):
+                success = True
+        return success
 
     def get_resolvers(self, runnable):
         '''
