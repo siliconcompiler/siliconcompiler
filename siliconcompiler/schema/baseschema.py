@@ -585,7 +585,7 @@ class BaseSchema:
                 if isinstance(package_path, str):
                     search_paths.append(os.path.abspath(package_path))
                 elif callable(package_path):
-                    search_paths.append(package_path())
+                    search_paths.append(package_path(package))
                 else:
                     raise TypeError(f"Resolver for {package} is not a recognized type")
             else:

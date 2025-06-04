@@ -942,7 +942,7 @@ def test_find_files_with_package():
     class Resolver:
         called = 0
 
-        def resolve(self):
+        def resolve(self, package):
             self.called += 1
             return os.path.abspath("package_path")
 
@@ -978,7 +978,7 @@ def test_find_files_with_package_not_found():
     class Resolver:
         called = 0
 
-        def resolve(self):
+        def resolve(self, package):
             self.called += 1
             return os.path.abspath("package_path")
 
@@ -1033,7 +1033,7 @@ def test_find_files_with_package_as_string():
     class Resolver:
         called = 0
 
-        def resolve(self):
+        def resolve(self, package):
             self.called += 1
             return os.path.abspath("package_path")
 
