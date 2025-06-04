@@ -1547,39 +1547,25 @@ class Chip:
             True if all file paths are valid, otherwise False.
         '''
 
-        allkeys = self.allkeys()
-        error = False
-        for keypath in allkeys:
-            paramtype = self.get(*keypath, field='type')
-            is_file = 'file' in paramtype
-            is_dir = 'dir' in paramtype
-            is_list = paramtype.startswith('[')
+        ignore_keys = []
+        for keypath in self.allkeys():
+            if keypath[-2:] == ('option', 'builddir'):
+                ignore_keys.append(keypath)
 
-            if is_file or is_dir:
-                if keypath[-2:] == ('option', 'builddir'):
-                    # Skip ['option', 'builddir'] since it will get created by run() if it doesn't
-                    # exist
-                    continue
+        package_map = {}
 
-                for check_files, step, index in self.schema.get(*keypath, field=None).getvalues():
-                    if not check_files:
-                        continue
+        def resolve(package):
+            return sc_package.path(self, package)
 
-                    if not is_list:
-                        check_files = [check_files]
+        for package in self.schema.getkeys("package", "source"):
+            package_map[package] = resolve
 
-                    for idx, check_file in enumerate(check_files):
-                        found_file = self.__find_files(*keypath,
-                                                       missing_ok=True,
-                                                       step=step, index=index,
-                                                       list_index=idx)
-                        if is_list:
-                            found_file = found_file[0]
-                        if not found_file:
-                            self.logger.error(f"Parameter {keypath} path {check_file} is invalid")
-                            error = True
-
-        return not error
+        return self.schema.check_filepaths(
+            ignore_keys=ignore_keys,
+            logger=self.logger,
+            packages=package_map,
+            collection_dir=self._getcollectdir(),
+            cwd=self.cwd)
 
     ###########################################################################
     def check_manifest(self):
