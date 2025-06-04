@@ -57,7 +57,7 @@ class PackageSchema(BaseSchema):
             clobber (bool): Overwrite exisiting
 
         Examples:
-            >>> chip.register('siliconcompiler_data',
+            >>> schema.register('siliconcompiler_data',
                     'git+https://github.com/siliconcompiler/siliconcompiler',
                     'cd328131bafd361787f9137a6ffed999d64c8c30')
         """
