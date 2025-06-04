@@ -36,6 +36,9 @@ class BaseSchema:
         self.__manifest = {}
         self.__default = None
         self.__journal = Journal()
+        self.__meta = {
+            "type": f"{self.__class__.__module__}/{self.__class__.__name__}"
+        }
 
     def _from_dict(self, manifest, keypath, version=None):
         '''
@@ -518,7 +521,9 @@ class BaseSchema:
                                      include_default=include_default,
                                      values_only=values_only)
 
-        manifest = {}
+        manifest = {
+            "__meta__": self.__meta
+        }
         if include_default and self.__default:
             manifest_dict = self.__default.getdict(include_default=include_default,
                                                    values_only=values_only)
