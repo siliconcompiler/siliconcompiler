@@ -32,6 +32,7 @@ class PackageResolver:
                 self.__runnable.logger.info(f'Found {package} data at {data_path}')
 
             self.__cache[package] = data_path
+            return data_path
         else:
             raise FileNotFoundError(f"Unable to locate {package} at {data_path}")
 
@@ -85,7 +86,7 @@ class PackageSchema(BaseSchema):
             runnable (TBD): Base runnable object
         '''
 
-        resolver = PackageResolver(runnable)
+        resolver = PackageResolver(runnable, self.__cache)
 
         resolvers = {}
         for package in self.getkeys("source"):

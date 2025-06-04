@@ -1,3 +1,6 @@
+import os.path
+
+from siliconcompiler import Chip
 from siliconcompiler.packageschema import PackageSchema
 
 
@@ -35,3 +38,64 @@ def test_register_ref_with_clobber():
     assert schema.get("source", "testpackage", "ref") == "123456"
     assert schema.register("testpackage", "pathtosource", ref="1234567", clobber=True) is True
     assert schema.get("source", "testpackage", "ref") == "1234567"
+
+
+def test_register_ref_file():
+    schema = PackageSchema()
+    assert schema.getkeys("source") == tuple()
+    with open("test.txt", "w") as f:
+        f.write("test")
+
+    assert schema.register("testpackage", "test.txt") is True
+    assert schema.get("source", "testpackage", "path") == os.path.abspath(".")
+    assert schema.get("source", "testpackage", "ref") is None
+
+
+def test_register_ref_dir():
+    schema = PackageSchema()
+    assert schema.getkeys("source") == tuple()
+
+    assert schema.register("testpackage", ".") is True
+    assert schema.get("source", "testpackage", "path") == os.path.abspath(".")
+    assert schema.get("source", "testpackage", "ref") is None
+
+
+def test_get_path_cache_empty():
+    schema = PackageSchema()
+    assert schema.get_path_cache() == {}
+
+
+def test_get_path_cache_via_set_caches():
+    schema = PackageSchema()
+    assert schema.get_path_cache() == {}
+    schema._set_cache("testpackage", "thispath")
+    assert schema.get_path_cache() == {'testpackage': 'thispath'}
+
+
+def test_get_resolvers_empty():
+    schema = PackageSchema()
+    assert schema.get_resolvers(None) == {}
+
+
+def test_get_resolvers_with_value():
+    chip = Chip('')
+    schema = chip.schema.get("package", field="schema")
+    assert "testpackage" not in schema.get_resolvers(chip)
+    assert schema.get_path_cache() == {}
+    assert schema.register("testpackage", ".") is True
+    resolvers = schema.get_resolvers(chip)
+    assert "testpackage" in resolvers
+    assert resolvers["testpackage"]("testpackage") == os.path.abspath(".")
+    assert schema.get_path_cache() == {'testpackage': os.path.abspath(".")}
+
+
+def test_get_resolvers_with_using_cache():
+    chip = Chip('')
+    schema = chip.schema.get("package", field="schema")
+    assert "testpackage" not in schema.get_resolvers(chip)
+    assert schema.get_path_cache() == {}
+    assert schema.register("testpackage", ".") is True
+    schema._set_cache("testpackage", "thisnot.")
+    resolvers = schema.get_resolvers(chip)
+    assert "testpackage" in resolvers
+    assert resolvers["testpackage"]("testpackage") == "thisnot."
