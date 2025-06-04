@@ -4,15 +4,36 @@ from siliconcompiler.schema import BaseSchema
 from siliconcompiler.schema import EditableSchema, Parameter, Scope
 from siliconcompiler.schema.utils import trim
 
-from siliconcompiler.package import path as sc_resolver_path
+from siliconcompiler.package import _path as sc_resolver_path
 
 
 class PackageResolver:
-    def __init__(self, runnable):
+    def __init__(self, runnable, cache):
         self.__runnable = runnable
+        self.__cache = cache
 
     def resolve(self, package):
-        return sc_resolver_path(self.__runnable, package)
+        if package in self.__cache:
+            return self.__cache[package]
+
+        changed = False
+        data_path = sc_resolver_path(self.__runnable, package, True)
+
+        if isinstance(data_path, tuple) and len(data_path) == 2:
+            data_path, changed = data_path
+
+        if package.startswith("key://"):
+            return data_path
+
+        if os.path.exists(data_path):
+            if package not in self.__cache and changed:
+                self.__runnable.logger.info(f'Saved {package} data to {data_path}')
+            else:
+                self.__runnable.logger.info(f'Found {package} data at {data_path}')
+
+            self.__cache[package] = data_path
+        else:
+            raise FileNotFoundError(f"Unable to locate {package} at {data_path}")
 
 
 class PackageSchema(BaseSchema):
@@ -20,6 +41,8 @@ class PackageSchema(BaseSchema):
         super().__init__()
 
         schema_package(self)
+
+        self.__cache = {}
 
     def register(self, name, path, ref=None, clobber=True):
         """
@@ -64,6 +87,12 @@ class PackageSchema(BaseSchema):
             resolvers[package] = resolver.resolve
 
         return resolvers
+
+    def _set_cache(self, package, path):
+        self.__cache[package] = path
+
+    def get_path_cache(self):
+        return self.__cache.copy()
 
 
 ############################################
