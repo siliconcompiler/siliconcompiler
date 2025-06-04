@@ -1,10 +1,11 @@
+import logging
 import pytest
 
 import os.path
 
 from siliconcompiler.schema import BaseSchema
 from siliconcompiler.schema import EditableSchema
-from siliconcompiler.schema import Parameter
+from siliconcompiler.schema import Parameter, PerNode
 
 
 def test_get_value():
@@ -1139,3 +1140,144 @@ def test_find_files_list_dir_empty():
     edit.insert("directory", param)
 
     assert schema.find_files("directory") == []
+
+
+def test_check_filepaths_empty():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("[dir]")
+    edit.insert("directory", param)
+
+    assert schema.check_filepaths() is True
+
+
+def test_check_filepaths_found():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("[dir]")
+    edit.insert("directory", param)
+
+    os.makedirs("test0", exist_ok=True)
+
+    assert schema.set("directory", "test0")
+
+    assert schema.check_filepaths() is True
+
+
+def test_check_filepaths_found_file():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("[file]")
+    edit.insert("file", param)
+
+    with open("test0.txt", "w") as f:
+        f.write("test")
+
+    assert schema.set("file", "test0.txt")
+
+    assert schema.check_filepaths() is True
+
+
+def test_check_filepaths_scalar_found():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("dir")
+    edit.insert("directory", param)
+
+    os.makedirs("test0", exist_ok=True)
+
+    assert schema.set("directory", "test0")
+
+    assert schema.check_filepaths() is True
+
+
+def test_check_filepaths_with_non_path():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("dir")
+    edit.insert("directory", param)
+    edit.insert("other", Parameter("str"))
+
+    os.makedirs("test0", exist_ok=True)
+
+    assert schema.set("directory", "test0")
+
+    assert schema.check_filepaths() is True
+
+
+def test_check_filepaths_not_found_no_logger():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("[dir]")
+    edit.insert("directory", param)
+
+    assert schema.set("directory", "test0")
+
+    assert schema.check_filepaths() is False
+
+
+def test_check_filepaths_not_found_logger(caplog):
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("[dir]")
+    edit.insert("directory", param)
+
+    assert schema.set("directory", "test0")
+
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+
+    assert schema.check_filepaths(logger=logger) is False
+    assert "Parameter [directory] path test0 is invalid" in caplog.text
+
+
+def test_check_filepaths_not_found_logger_step_only(caplog):
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("[dir]", pernode=PerNode.OPTIONAL)
+    edit.insert("directory", param)
+
+    assert schema.set("directory", "test0", step="thisstep")
+
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+
+    assert schema.check_filepaths(logger=logger) is False
+    assert "Parameter [directory] (thisstep) path test0 is invalid" in caplog.text
+
+
+def test_check_filepaths_not_found_logger_step_index(caplog):
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("[dir]", pernode=PerNode.OPTIONAL)
+    edit.insert("directory", param)
+
+    assert schema.set("directory", "test0", step="thisstep", index="0")
+
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+
+    assert schema.check_filepaths(logger=logger) is False
+    assert "Parameter [directory] (thisstep0) path test0 is invalid" in caplog.text
+
+
+def test_check_filepaths_not_found_ignored():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("[dir]", pernode=PerNode.OPTIONAL)
+    edit.insert("directory", param)
+
+    assert schema.set("directory", "test0")
+
+    assert schema.check_filepaths(ignore_keys=[("directory",)]) is True
+
+
+def test_check_filepaths_not_found_ignored_list():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("[dir]", pernode=PerNode.OPTIONAL)
+    edit.insert("directory", param)
+
+    assert schema.set("directory", "test0")
+
+    assert schema.check_filepaths(ignore_keys=[["directory"]]) is True

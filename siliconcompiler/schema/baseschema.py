@@ -611,3 +611,69 @@ class BaseSchema:
                 return None
             return resolved_paths[0]
         return resolved_paths
+
+    def check_filepaths(self, ignore_keys=None, logger=None,
+                        packages=None, collection_dir=None, cwd=None):
+        '''
+        Verifies that paths to all files in manifest are valid.
+
+        Args:
+            ignore_keys (list of keypaths): list of keyptahs to ignore while checking
+            logger (:class:`logging.Logger`): optional logger to use to report errors
+            packages (dict of resolvers): dirctionary of path resolvers for package
+                paths, these can either be a path or a callable function
+            collection_dir (path): optional path to a collections directory
+            cwd (path): optional path to current working directory, this will default
+                to os.getcwd() if not provided.
+
+        Returns:
+            True if all file paths are valid, otherwise False.
+        '''
+
+        if ignore_keys is None:
+            ignore_keys = set()
+        else:
+            ignore_keys = set([
+                tuple(keypath) for keypath in ignore_keys
+            ])
+
+        error = False
+
+        for keypath in self.allkeys():
+            if keypath in ignore_keys:
+                continue
+
+            param = self.get(*keypath, field=None)
+            paramtype = param.get(field='type')
+
+            if 'file' not in paramtype and 'dir' not in paramtype:
+                continue
+
+            for check_files, step, index in param.getvalues():
+                if not check_files:
+                    # nothing set so continue
+                    continue
+
+                found_files = self.find_files(
+                    *keypath, missing_ok=True, step=step, index=index,
+                    packages=packages, collection_dir=collection_dir, cwd=cwd)
+
+                if not param.is_list():
+                    check_files = [check_files]
+                    found_files = [found_files]
+
+                for check_file, found_file in zip(check_files, found_files):
+                    if not found_file:
+                        error = True
+                        if logger:
+                            node_indicator = ""
+                            if step is not None:
+                                if index is None:
+                                    node_indicator = f" ({step})"
+                                else:
+                                    node_indicator = f" ({step}{index})"
+
+                            logger.error(f"Parameter [{','.join(keypath)}]{node_indicator} path "
+                                         f"{check_file} is invalid")
+
+        return not error
