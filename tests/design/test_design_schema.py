@@ -2,16 +2,19 @@ from siliconcompiler.design import DesignSchema
 
 
 def test_design_keys():
-    assert sorted(DesignSchema().getkeys('default')) == sorted([
-        'top',
-        'file',
-        'idir',
-        'lib',
-        'libdir',
-        'libext',
-        'define',
-        'undefine',
-        'param'])
+
+    golden_keys = sorted([('fileset', 'default', 'param'),
+                          ('dependency',),
+                          ('fileset', 'default', 'define'),
+                          ('fileset', 'default', 'libext'),
+                          ('fileset', 'default', 'libdir'),
+                          ('fileset', 'default', 'file', 'default'),
+                          ('fileset', 'default', 'lib'),
+                          ('fileset', 'default', 'idir'),
+                          ('fileset', 'default', 'undefine'),
+                          ('fileset', 'default', 'topmodule')])
+
+    assert sorted(DesignSchema().allkeys()) == golden_keys
 
 
 def test_design_params():
@@ -19,45 +22,45 @@ def test_design_params():
 
     # top module
     top = 'mytop'
-    assert d.set('rtl', 'top', top)
-    assert d.get('rtl', 'top') == top
+    assert d.set('fileset', 'rtl', 'topmodule', top)
+    assert d.get('fileset', 'rtl', 'topmodule') == top
 
     # files
     files = ['one.v', 'two.v']
-    assert d.set('rtl', 'file', 'verilog', files)
-    assert d.get('rtl', 'file', 'verilog') == files
+    assert d.set('fileset', 'rtl', 'file', 'verilog', files)
+    assert d.get('fileset', 'rtl', 'file', 'verilog') == files
 
     # idir
     idirs = ['/home/acme/incdir1', '/home/acme/incdir2']
-    assert d.set('rtl', 'idir', idirs)
-    assert d.get('rtl', 'idir', ) == idirs
+    assert d.set('fileset', 'rtl', 'idir', idirs)
+    assert d.get('fileset', 'rtl', 'idir', ) == idirs
 
     # libdirs
     libdirs = ['/usr/lib']
-    assert d.set('hls', 'libdir', libdirs)
-    assert d.get('hls', 'libdir', ) == libdirs
+    assert d.set('fileset', 'hls', 'libdir', libdirs)
+    assert d.get('fileset', 'hls', 'libdir', ) == libdirs
 
     # libs
     libs = ['lib1', 'lib2']
-    assert d.set('rtl', 'lib', libs)
-    assert d.get('rtl', 'lib', ) == libs
+    assert d.set('fileset', 'rtl', 'lib', libs)
+    assert d.get('fileset', 'rtl', 'lib', ) == libs
 
     # libext
     libexts = ['sv', 'v']
-    assert d.set('rtl', 'lib', libexts)
-    assert d.get('rtl', 'lib', ) == libexts
+    assert d.set('fileset', 'rtl', 'lib', libexts)
+    assert d.get('fileset', 'rtl', 'lib', ) == libexts
 
     # define
     defs = ['CFG_TARGET=FPGA']
-    assert d.set('rtl', 'define', defs)
-    assert d.get('rtl', 'define') == defs
+    assert d.set('fileset', 'rtl', 'define', defs)
+    assert d.get('fileset', 'rtl', 'define') == defs
 
     # undefine
     undefs = ['CFG_TARGET']
-    assert d.set('rtl', 'undefine', undefs)
-    assert d.get('rtl', 'undefine') == undefs
+    assert d.set('fileset', 'rtl', 'undefine', undefs)
+    assert d.get('fileset', 'rtl', 'undefine') == undefs
 
     # param
-    val = '2'
-    assert d.set('rtl', 'param', 'N', val)
-    assert d.get('rtl', 'param', 'N') == val
+    val = [('N','2')]
+    assert d.set('fileset', 'rtl', 'param', val)
+    assert d.get('fileset', 'rtl', 'param')  == val
