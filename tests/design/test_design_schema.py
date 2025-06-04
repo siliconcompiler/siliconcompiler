@@ -3,16 +3,16 @@ from siliconcompiler.design import DesignSchema
 
 def test_design_keys():
 
-    golden_keys = sorted([('fileset', 'default', 'param'),
-                          ('dependency',),
-                          ('fileset', 'default', 'define'),
-                          ('fileset', 'default', 'libext'),
+    golden_keys = sorted([('fileset', 'default', 'file', 'default'),
+                          ('fileset', 'default', 'topmodule'),
                           ('fileset', 'default', 'libdir'),
-                          ('fileset', 'default', 'file', 'default'),
                           ('fileset', 'default', 'lib'),
                           ('fileset', 'default', 'idir'),
+                          ('fileset', 'default', 'define'),
                           ('fileset', 'default', 'undefine'),
-                          ('fileset', 'default', 'topmodule')])
+                          ('fileset', 'default', 'param'),
+                          ('fileset', 'default', 'dependency')
+                          ])
 
     assert sorted(DesignSchema().allkeys()) == golden_keys
 
@@ -44,11 +44,6 @@ def test_design_params():
     libs = ['lib1', 'lib2']
     assert d.set('fileset', 'rtl', 'lib', libs)
     assert d.get('fileset', 'rtl', 'lib', ) == libs
-
-    # libext
-    libexts = ['sv', 'v']
-    assert d.set('fileset', 'rtl', 'lib', libexts)
-    assert d.get('fileset', 'rtl', 'lib', ) == libexts
 
     # define
     defs = ['CFG_TARGET=FPGA']

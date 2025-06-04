@@ -1,5 +1,7 @@
 from siliconcompiler.design import DesignSchema
 
+from increment import Increment
+
 class Heartbeat(DesignSchema):
 
     def __init__(self):
@@ -7,31 +9,29 @@ class Heartbeat(DesignSchema):
         super().__init__('heartbeat')
 
         # files
-        source = ['heartbeat.v']
-        sdc = ['heartbeat.sdc']
-        tb =  ['tb.v']
-
-        #self.package_root()
-        #self.package_home(path='git+https://github.com/acme')
-
-        #when is this needed? Is there a default?
-
-        # why do path concatenation at source? why not in find files/run?
+        source = ['data/heartbeat.v']
+        sdc = ['data/heartbeat.sdc']
+        tb =  ['data/tb.v']
 
         # rtl
-        self.add_file(fileset='rtl', files=source)
-        self.option(fileset='rtl', topmodule='heartbeat')
-        self.set('fileset', 'rtl', 'topmodule', 'heartbeat')
-        #self.set_libext()
-        #self.get_libext()
-        #TODO: study some clever APIs?
+        self.fileset='rtl'
+        self.topmodule='heartbeat'
+        self.add_file(source)
+
         # constraints
-        self.add_file(fileset='constraint', files=sdc)
+        self.fileset='constraint'
+        self.add_file(sdc)
 
         # tb
-        self.add_file(fileset='testbench', files=tb)
-        self.option(fileset='testbench', topmodule='tb')
+        self.fileset='testbench'
+        self.topmodule='tb'
+        self.add_file(tb)
 
+        # dependencie
+        self.use(Increment())
+
+#self.package_root()
+#self.package_home(path='git+https://github.com/acme')
 #d = Heartbeat()
 
 #self.use(Heartbeat())<--!!!!

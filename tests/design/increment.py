@@ -7,7 +7,7 @@ class Increment(DesignSchema):
         super().__init__('increment')
 
         # files
-        source = ['increment.v']
+        source = ['data/increment.v']
 
         # rtl
         self.fileset='rtl'
