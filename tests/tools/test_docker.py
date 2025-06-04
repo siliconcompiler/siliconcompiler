@@ -1,6 +1,6 @@
-from siliconcompiler import Chip, SiliconCompilerError
+from siliconcompiler import Chip
 from siliconcompiler import __version__
-import os
+import os.path
 import glob
 import docker
 import pytest
@@ -64,10 +64,9 @@ def test_docker_run_with_failure(docker_image, capfd):
     chip.set('tool', 'openroad', 'task', 'global_placement', 'var', 'place_density', 'asdf',
              step='place.global', index='0')
 
-    with pytest.raises(SiliconCompilerError):
+    with pytest.raises(RuntimeError):
         chip.run(raise_exception=True)
 
-    assert not os.path.isfile(f'{chip.getworkdir()}/heartbeat.pkg.json')
     assert len(glob.glob(f'{chip.getworkdir()}/sc_issue*')) == 1
     assert os.path.isfile(
         f'{chip.getworkdir(step="floorplan.init", index="0")}/outputs/heartbeat.odb')

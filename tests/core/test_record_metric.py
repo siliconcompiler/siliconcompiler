@@ -1,7 +1,6 @@
 # Copyright 2023 Silicon Compiler Authors. All Rights Reserved.
 import pytest
 import siliconcompiler
-from siliconcompiler.scheduler import _clear_metric
 from siliconcompiler.tools._common import record_metric
 from siliconcompiler.targets import freepdk45_demo
 
@@ -50,21 +49,3 @@ def test_metric_with_source(chip):
     task = chip.get('flowgraph', flow, 'floorplan.pin_placement', '0', 'task')
     assert chip.get('tool', tool, 'task', task, 'report', 'cells',
                     step='floorplan.pin_placement', index='0') == ['report.txt']
-
-
-def test_metric_clear(chip):
-    record_metric(chip, 'floorplan.pin_placement', '0', 'cells', 25, 'report.txt')
-    assert chip.get('metric', 'cells',
-                    step='floorplan.pin_placement', index='0') == 25
-
-    flow = chip.get('option', 'flow')
-    tool = chip.get('flowgraph', flow, 'floorplan.pin_placement', '0', 'tool')
-    task = chip.get('flowgraph', flow, 'floorplan.pin_placement', '0', 'task')
-    assert chip.get('tool', tool, 'task', task, 'report', 'cells',
-                    step='floorplan.pin_placement', index='0') == ['report.txt']
-
-    chip.schema.get("metric", field='schema').clear('floorplan.pin_placement', '0')
-    _clear_metric(chip, 'floorplan.pin_placement', '0', 'cells')
-    assert chip.get('metric', 'cells', step='floorplan.pin_placement', index='0') is None
-    assert chip.get('tool', tool, 'task', task, 'report', 'cells',
-                    step='floorplan.pin_placement', index='0') == []

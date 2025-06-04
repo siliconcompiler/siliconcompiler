@@ -1,5 +1,6 @@
 import siliconcompiler
-from siliconcompiler.scheduler import _setup_node
+
+from siliconcompiler.scheduler.schedulernode import SchedulerNode
 
 from siliconcompiler.tools.surelog import parse
 from siliconcompiler.tools.yosys import syn_asic
@@ -23,8 +24,8 @@ def test_check_flowgraph_io():
     chip.node(flow, 'syn', syn_asic)
     chip.edge(flow, 'import', 'syn')
 
-    _setup_node(chip, 'import', '0')
-    _setup_node(chip, 'syn', '0')
+    SchedulerNode(chip, "import", "0").setup()
+    SchedulerNode(chip, "syn", "0").setup()
 
     assert _check_flowgraph_io(chip)
 

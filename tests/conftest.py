@@ -12,6 +12,8 @@ import json
 import shutil
 import socket
 import time
+from siliconcompiler.scheduler import TaskScheduler
+from unittest.mock import patch
 
 
 def pytest_addoption(parser):
@@ -82,6 +84,17 @@ def limit_cpus(monkeypatch, request):
         return 1
 
     monkeypatch.setattr(utils, 'get_cores', limit_cpu)
+
+
+@pytest.fixture(autouse=True)
+def isolate_callbacks():
+    '''
+    Isolate callbacks for testing
+    '''
+
+    callbacks = TaskScheduler._TaskScheduler__callbacks
+    with patch.dict(callbacks):
+        yield
 
 
 @pytest.fixture(autouse=True)

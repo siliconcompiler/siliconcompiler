@@ -8,7 +8,7 @@ from siliconcompiler.tools.openroad import metrics
 
 from siliconcompiler.tools.builtin import nop
 from siliconcompiler.targets import freepdk45_demo
-from siliconcompiler.scheduler import _setup_node
+from siliconcompiler.scheduler.schedulernode import SchedulerNode
 
 
 def _setup_fifo(scroot):
@@ -141,7 +141,7 @@ def test_library_selection():
     chip.node(flow, 'import', init_floorplan)
     chip.set('option', 'flow', flow)
 
-    _setup_node(chip, 'import', '0')
+    SchedulerNode(chip, 'import', '0').setup()
 
     assert set(chip.get('tool', 'openroad', 'task', 'init_floorplan', 'var', 'scan_chain_cells',
                         step='import', index='0')) == set(['test0', 'test1'])
@@ -169,7 +169,7 @@ def test_library_selection_user():
     chip.node(flow, 'import', init_floorplan)
     chip.set('option', 'flow', flow)
 
-    _setup_node(chip, 'import', '0')
+    SchedulerNode(chip, 'import', '0').setup()
 
     assert set(chip.get('tool', 'openroad', 'task', 'init_floorplan', 'var', 'scan_chain_cells',
                         step='import', index='0')) == set(['user0', 'user1'])

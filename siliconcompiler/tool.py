@@ -66,6 +66,30 @@ class TaskSchema(NamedSchema):
 
         schema_task(self)
 
+    def add_parameter(self, name, type, help, defvalue=None):
+        '''
+        Adds a parameter to the task definition.
+
+        Args:
+            name (str): name of parameter
+            type (str): schema type of the parameter
+            help (str): help string for this parameter
+            defvalue (any): default value for the parameter
+        '''
+        help = trim(help)
+        param = Parameter(
+            type,
+            defvalue=defvalue,
+            scope=Scope.JOB,
+            pernode=PerNode.OPTIONAL,
+            shorthelp=help,
+            help=help
+        )
+
+        EditableSchema(self).insert("var", name, param)
+
+        return param
+
 
 class ToolSchema(NamedSchema):
     __parse_version_check_str = r"""
@@ -873,6 +897,17 @@ class ToolSchemaTmp(ToolSchema):
         if method:
             return method(version)
         return ToolSchema.normalize_version(self, version)
+
+    def generate_replay_script(self, filepath, workdir, include_path=True):
+        prev_step, prev_index = self._ToolSchema__chip.get('arg', 'step'), \
+            self._ToolSchema__chip.get('arg', 'index')
+        step, index = self.node()
+        self._ToolSchema__chip.set('arg', 'step', step)
+        self._ToolSchema__chip.set('arg', 'index', index)
+        ret = ToolSchema.generate_replay_script(self, filepath, workdir, include_path=include_path)
+        self._ToolSchema__chip.set('arg', 'step', prev_step)
+        self._ToolSchema__chip.set('arg', 'index', prev_index)
+        return ret
 
     def setup(self):
         _, task = self.__tool_task_modules()

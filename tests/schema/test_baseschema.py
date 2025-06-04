@@ -653,3 +653,71 @@ def test_getschema_parameter():
 
     with pytest.raises(ValueError, match=r"\[test0,test1\] is a complete keypath"):
         schema.get("test0", "test1", field='schema')
+
+
+@pytest.mark.parametrize("error", (ValueError, RuntimeError, KeyError))
+def test_forward_exception_with_key_get(error, monkeypatch):
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("str")
+    edit.insert("test0", "test1", param)
+
+    def dummy_get(*args, **kwargs):
+        raise error("this is an error from the param")
+    monkeypatch.setattr(param, 'get', dummy_get)
+
+    with pytest.raises(error,
+                       match=r"error while accessing \[test0,test1\]: "
+                             r"this is an error from the param"):
+        schema.get("test0", "test1")
+
+
+@pytest.mark.parametrize("error", (ValueError, RuntimeError, KeyError))
+def test_forward_exception_with_key_set(error, monkeypatch):
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("str")
+    edit.insert("test0", "test1", param)
+
+    def dummy_set(*args, **kwargs):
+        raise error("this is an error from the param")
+    monkeypatch.setattr(param, 'set', dummy_set)
+
+    with pytest.raises(error,
+                       match=r"error while setting \[test0,test1\]: "
+                             r"this is an error from the param"):
+        schema.set("test0", "test1", "value")
+
+
+@pytest.mark.parametrize("error", (ValueError, RuntimeError, KeyError))
+def test_forward_exception_with_key_add(error, monkeypatch):
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("[str]")
+    edit.insert("test0", "test1", param)
+
+    def dummy_add(*args, **kwargs):
+        raise error("this is an error from the param")
+    monkeypatch.setattr(param, 'add', dummy_add)
+
+    with pytest.raises(error,
+                       match=r"error while adding to \[test0,test1\]: "
+                             r"this is an error from the param"):
+        schema.add("test0", "test1", "value")
+
+
+@pytest.mark.parametrize("error", (ValueError, RuntimeError, KeyError))
+def test_forward_exception_with_key_unset(error, monkeypatch):
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("str")
+    edit.insert("test0", "test1", param)
+
+    def dummy_unset(*args, **kwargs):
+        raise error("this is an error from the param")
+    monkeypatch.setattr(param, 'unset', dummy_unset)
+
+    with pytest.raises(error,
+                       match=r"error while unsetting \[test0,test1\]: "
+                             r"this is an error from the param"):
+        schema.unset("test0", "test1")

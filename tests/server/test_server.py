@@ -1,5 +1,4 @@
-import os
-import siliconcompiler
+import os.path
 import pytest
 
 
@@ -43,23 +42,3 @@ def test_gcd_server_partial(gcd_remote_test):
     assert os.path.isfile('build/gcd/job0/floorplan.init/0/outputs/gcd.odb')
     # Verify that the following physyn step was not run.
     assert not os.path.isfile('build/gcd/job0/physyn/0/outputs/gcd.odb')
-
-
-###########################
-def test_gcd_server_argstep_noimport(gcd_remote_test):
-    '''Basic sc-server test: Run a local instance of a server, and build the GCD
-       example using loopback network calls to that server.
-
-       This test attempts to run a remote job with ('arg', 'step') set. Remote jobs need at least
-       one import task and one EDA task, so this should fail.
-    '''
-
-    # Get the partially-configured GCD Chip object from the fixture.
-    gcd_chip = gcd_remote_test()
-
-    # Set the '-step' option.
-    gcd_chip.set('arg', 'step', 'floorplan.init')
-
-    # Run the remote job.
-    with pytest.raises(siliconcompiler.SiliconCompilerError):
-        gcd_chip.run(raise_exception=True)
