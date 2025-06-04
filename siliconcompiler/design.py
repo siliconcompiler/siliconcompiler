@@ -10,9 +10,10 @@ class DesignSchema(NamedSchema):
         NamedSchema.__init__(self, name=name)
         schema_design(self)
         self.dependency = {}
+        self.active_fileset = ''
 
     #############################################
-    def add_file(self, files=None, fileset=None, filetype=None):
+    def add_file(self, filename, fileset=None, filetype=None, package=None):
         """
         Adds a file (or list of files) to a fileset.
 
@@ -45,11 +46,8 @@ class DesignSchema(NamedSchema):
             - This method normalizes `filename` to a string for consistency.
         """
 
-        #TODO: could we handle path resolution in this function
-        #ie: always pass in unix paths?
-
         # Handle list inputs
-        if isinstance(files, (list, tuple)):
+        if isinstance(filename, (list, tuple)):
             for item in files:
                 self.add_file(
                     item,
@@ -58,9 +56,9 @@ class DesignSchema(NamedSchema):
             return
 
         # Normalize value to string in case we receive a pathlib.Path
-        filename = str(files)
+        filename = str(filename)
 
-        ext = utils.get_file_ext(files)
+        ext = utils.get_file_ext(filename)
 
         # map extension to default filetype/fileset
         default_fileset, default_filetype = utils.get_default_iomap()[ext]
@@ -78,30 +76,76 @@ class DesignSchema(NamedSchema):
                 f'{filename} based on file extension.')
 
         # adding files to dictionary
-        self.add('fileset', fileset, 'file', filetype, files)
+        self.add('fileset', fileset, 'file', filetype, filename)
+
 
     #############################################
-    def option(self, fileset=None, **kwargs):
+    def get_file(self, fileset=None, filetype=None):
         """
-        Configures an option defined by the Design schema.
+        Returns a dictionary of design object files.
+        dict[fileset][filetype]
 
-        If the key is associated with a string-type field, the value is set directly.
-        For all lists, the value is appended using the `add` method.
+        If fileset is None, all filesets are returned.
+        If filetype is None, all filetypes within a fileset are returned.
 
         Args:
-        key (str): The name of the option to configure.
-        value (Any): The value to set or append for the given option.
-        fileset (str): The name of the fileset where the option is applied.
+            fileset (str, optional): Logical file group.
+            filetype (str, optional): Type of the file.
 
         """
+        pass
 
-        for key, value in kwargs.items():
-            if self.get('fileset', fileset, key, field="type") == "str":
-                self.set('fileset', fileset, key, value)
-            elif key=='param':
-                self.set('fileset', fileset, 'param', value)
-            else:
-                self.add('fileset', fileset, key, value)
+
+    #############################################
+    @property
+    def active_fileset(self):
+        """Get active fileset"""
+        return self.active_fileset
+
+    def active_fileset(self, value):
+        """Set active fileset"""
+        self.active_fileset = value
+
+    #############################################
+    @property
+    def topmodule(self):
+        """Get topmodule"""
+        return self.get('fileset', self.active_fileset, 'topmodule')
+
+    def topmodule(self, value):
+        """Set topmodule"""
+        self.set('fileset', self.active_fileset, 'topmodule', value)
+
+    #############################################
+    @property
+    def libdir(self):
+        """Get libdir"""
+        return self.get('fileset', self.active_fileset, 'libdir')
+
+    def libdir(self, value):
+        """Set libdir"""
+        self.set('fileset', self.active_fileset, 'libdir', value)
+
+    #############################################
+    @property
+    def lib(self):
+        """Get libdir"""
+        return self.get('fileset', self.active_fileset, 'libdir')
+
+    def lib(self, value):
+        """Set library"""
+        self.set('fileset', self.active_fileset, 'libdir', value)
+
+    #############################################
+    @property
+    def param(self):
+        """Get libdir"""
+        return self.get('fileset', self.active_fileset, 'param')
+
+    def param(self, value):
+        """Set library"""
+        self.set('fileset', self.active_fileset, 'param', value)
+
 
     #############################################
     def use(self, module):
@@ -114,13 +158,14 @@ class DesignSchema(NamedSchema):
         self.add('dependency', module.name)
 
     #############################################
-    def export(self, filename=None, filetype=None):
+    def export(self, fileset=None, filename=None, filetype=None):
         '''
         Export design configuration.
         Would be nice to insert this into schema with only
         non-zero values set.
         '''
 
+        #TODO: Move this function to BaseSchema
         cfg = {}
         # exporting simple dictionary
         for keys in self.allkeys(include_default=False):
@@ -135,6 +180,7 @@ class DesignSchema(NamedSchema):
                     local = local[k]
 
         # write to file
+        # TODO: which formats to support
         if filename:
             if filetype == 'flist':
                 pass
@@ -164,6 +210,7 @@ def schema_design(schema):
         'fileset', fileset, 'file', filetype,
         Parameter(
             ['file'],
+            scope=Scope.GLOBAL,
             shorthelp="Design files",
             example=[
                 "api: chip.set('fileset', 'rtl', 'file', 'verilog', 'mytop.v')",
@@ -174,10 +221,21 @@ def schema_design(schema):
             called during flowgraph execution. The files are processed in
             the order specified by the ordered file list.""")))
 
+     schema.insert(
+        'fileset', fileset, 'dependency',
+        Parameter(
+            ['str'],
+            scope=Scope.GLOBAL,
+            shorthelp="List of design dependencies",
+            example=["api: chip.set('dependency', 'stdlib')"],
+            help=trim("""
+            List of design packages this design depends on.""")))
+
     schema.insert(
         'fileset', fileset, 'topmodule',
         Parameter(
             'str',
+            scope=Scope.GLOBAL,
             shorthelp="Top module name",
             example=[
                 "api: chip.set('fileset', 'rtl', 'topmodule', 'mytop')",
@@ -189,6 +247,7 @@ def schema_design(schema):
         'fileset', fileset, 'idir',
         Parameter(
             ['dir'],
+            scope=Scope.GLOBAL,
             shorthelp="Include file search paths",
             example=[
                 "api: chip.set('fileset', 'rtl, 'idir', './rtl')",
@@ -202,6 +261,7 @@ def schema_design(schema):
         'fileset', fileset, 'define',
         Parameter(
             ['str'],
+            scope=Scope.GLOBAL,
             shorthelp="Preprocessor macro definitions",
             example=[
                 "api: chip.set('fileset', 'rtl', 'define', 'CFG_TARGET=FPGA')"],
@@ -214,6 +274,7 @@ def schema_design(schema):
         'fileset', fileset, 'undefine',
         Parameter(
             ['str'],
+            scope=Scope.GLOBAL,
             shorthelp="Preprocessor macro undefine",
             example=[
                 "api: chip.set('fileset', 'rtl', 'undefine', 'CFG_TARGET')"],
@@ -226,6 +287,7 @@ def schema_design(schema):
         'fileset', fileset, 'param',
         Parameter(
             '[(str,str)]',
+            scope=Scope.GLOBAL,
             shorthelp="Design parameters",
             example=[
                 "api: chip.set('fileset', 'rtl, 'param', ('N','64')"],
@@ -239,6 +301,7 @@ def schema_design(schema):
         'fileset', fileset, 'libdir',
         Parameter(
             ['dir'],
+            scope=Scope.GLOBAL,
             shorthelp="Library search paths",
             example=[
                 "api: chip.set('fileset', 'rtl, 'libdir', '/usr/lib')"],
@@ -252,6 +315,7 @@ def schema_design(schema):
         'fileset', fileset, 'lib',
         Parameter(
             ['str'],
+            scope=Scope.GLOBAL,
             shorthelp="Design libraries to include",
             example=[
                 "api: chip.set('fileset', 'rtl', 'lib', 'mylib')"],
@@ -260,28 +324,13 @@ def schema_design(schema):
             library in the compiler standard library paths and in the
             paths specified by :keypath:`libdir` parameter.""")))
 
-    schema.insert(
-        'fileset', fileset, 'libext',
-        Parameter(
-            ['str'],
-            shorthelp="Library file suffixes",
-            example=[
-                "api: chip.set('fileset', 'rtl', 'libext', 'sv')"],
-            help=trim("""
-            List of file extensions to use when searching for design modules.
-            For example, if :keypath:`libdir` is set to `./mylib` and libext is set
-            to `.v`, then the tool will search for modules in all files matching
-            `./mylib/*.v`. For GCC, libext is hard coded as '.a' and '.so'.""")))
 
-    ###########################
-    # Dependencies
-    ###########################
-
-    schema.insert(
-        'dependency',
-        Parameter(
-            ['str'],
-            shorthelp="List of design dependencies",
-            example=["api: chip.set('dependency', 'stdlib')"],
-            help=trim("""
-            List of design packages this design depends on.""")))
+    #TODO: need more information to know what files to take
+    #TODO: hide param index in helper function
+    #TODO: use in anger for ebrick
+    #TODO: change option, to proper setter/getter
+    #TODO: add context/state to the fileset, examples? Design schema state
+    # make dependency fileset based
+    # add valonly to getdict
+    # remove bender/ etc
+    #
