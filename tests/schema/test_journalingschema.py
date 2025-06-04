@@ -20,6 +20,12 @@ def test_init_type_journal():
         JournalingSchema(JournalingSchema(BaseSchema()))
 
 
+def test_from_manifest():
+    with pytest.raises(RuntimeError,
+                       match="Journal cannot be generated from manifest"):
+        JournalingSchema.from_manifest()
+
+
 def test_start_stop():
     schema = JournalingSchema(BaseSchema())
     assert schema.get_journal() is None
@@ -592,3 +598,155 @@ def test_getschema_start_early():
         "step": None,
         "index": None
     }]
+
+
+@pytest.mark.parametrize("error", (ValueError, RuntimeError, KeyError))
+def test_forward_exception_with_key_get(error, monkeypatch):
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("str")
+    edit.insert("test0", "test1", param)
+
+    def dummy_get(*args, **kwargs):
+        raise error("this is an error from the param")
+    monkeypatch.setattr(param, 'get', dummy_get)
+
+    with pytest.raises(error,
+                       match=r"error while accessing \[test0,test1\]: "
+                             r"this is an error from the param"):
+        JournalingSchema(schema).get("test0", "test1")
+
+
+@pytest.mark.parametrize("error", (ValueError, RuntimeError, KeyError))
+def test_forward_exception_with_key_set(error, monkeypatch):
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("str")
+    edit.insert("test0", "test1", param)
+
+    def dummy_set(*args, **kwargs):
+        raise error("this is an error from the param")
+    monkeypatch.setattr(param, 'set', dummy_set)
+
+    with pytest.raises(error,
+                       match=r"error while setting \[test0,test1\]: "
+                             r"this is an error from the param"):
+        JournalingSchema(schema).set("test0", "test1", "value")
+
+
+@pytest.mark.parametrize("error", (ValueError, RuntimeError, KeyError))
+def test_forward_exception_with_key_add(error, monkeypatch):
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("[str]")
+    edit.insert("test0", "test1", param)
+
+    def dummy_add(*args, **kwargs):
+        raise error("this is an error from the param")
+    monkeypatch.setattr(param, 'add', dummy_add)
+
+    with pytest.raises(error,
+                       match=r"error while adding to \[test0,test1\]: "
+                             r"this is an error from the param"):
+        JournalingSchema(schema).add("test0", "test1", "value")
+
+
+@pytest.mark.parametrize("error", (ValueError, RuntimeError, KeyError))
+def test_forward_exception_with_key_unset(error, monkeypatch):
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("str")
+    edit.insert("test0", "test1", param)
+
+    def dummy_unset(*args, **kwargs):
+        raise error("this is an error from the param")
+    monkeypatch.setattr(param, 'unset', dummy_unset)
+
+    with pytest.raises(error,
+                       match=r"error while unsetting \[test0,test1\]: "
+                             r"this is an error from the param"):
+        JournalingSchema(schema).unset("test0", "test1")
+
+
+@pytest.mark.parametrize("error", (ValueError, RuntimeError, KeyError))
+def test_forward_exception_with_key_set_import(error, monkeypatch):
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("str")
+    edit.insert("test0", "test1", param)
+
+    def dummy_set(*args, **kwargs):
+        raise error("this is an error from the param")
+    monkeypatch.setattr(param, 'set', dummy_set)
+
+    with pytest.raises(error,
+                       match=r"error while setting \[test0,test1\]: "
+                             r"this is an error from the param"):
+        JournalingSchema(schema).import_journal(cfg={
+            "__journal__": [
+                {
+                    "type": "set",
+                    "key": ("test0", "test1"),
+                    "value": "hello",
+                    "field": "value",
+                    "step": None,
+                    "index": None
+                }
+            ]
+        })
+
+
+@pytest.mark.parametrize("error", (ValueError, RuntimeError, KeyError))
+def test_forward_exception_with_key_add_import(error, monkeypatch):
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("[str]")
+    edit.insert("test0", "test1", param)
+
+    def dummy_add(*args, **kwargs):
+        raise error("this is an error from the param")
+    monkeypatch.setattr(param, 'add', dummy_add)
+
+    with pytest.raises(error,
+                       match=r"error while adding to \[test0,test1\]: "
+                             r"this is an error from the param"):
+        JournalingSchema(schema).import_journal(cfg={
+            "__journal__": [
+                {
+                    "type": "add",
+                    "key": ("test0", "test1"),
+                    "value": "hello",
+                    "field": "value",
+                    "step": None,
+                    "index": None
+                }
+            ]
+        })
+
+
+@pytest.mark.parametrize("error", (ValueError, RuntimeError, KeyError))
+def test_forward_exception_with_key_unset_import(error, monkeypatch):
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("str")
+    edit.insert("test0", "test1", param)
+
+    def dummy_unset(*args, **kwargs):
+        raise error("this is an error from the param")
+    monkeypatch.setattr(param, 'unset', dummy_unset)
+
+    with pytest.raises(error,
+                       match=r"error while unsetting \[test0,test1\]: "
+                             r"this is an error from the param"):
+        JournalingSchema(schema).import_journal(cfg={
+            "__journal__": [
+                {
+                    "type": "unset",
+                    "key": ("test0", "test1"),
+                    "value": None,
+                    "field": None,
+                    "step": None,
+                    "index": None
+                }
+            ]
+        })

@@ -1,12 +1,9 @@
 # Copyright 2023 Silicon Compiler Authors. All Rights Reserved.
-import os
 import sys
 
 from siliconcompiler import Chip
 from siliconcompiler import SiliconCompilerError
 from siliconcompiler.remote.client import Client, ConfigureClient
-from siliconcompiler.scheduler import _finalize_run
-from siliconcompiler.flowgraph import RuntimeFlowgraph
 
 
 def main():
@@ -168,20 +165,6 @@ To delete a job, use:
         except SiliconCompilerError as e:
             chip.logger.error(f'{e}')
             return 1
-
-        # Wrap up run
-        runtime = RuntimeFlowgraph(
-            chip.schema.get("flowgraph", flow, field='schema'),
-            from_steps=chip.get('option', 'from'),
-            to_steps=chip.get('option', 'to'),
-            prune_nodes=chip.get('option', 'prune'))
-        for step, index in runtime.get_nodes():
-            manifest = os.path.join(chip.getworkdir(step=step, index=index),
-                                    'outputs',
-                                    f'{chip.design}.pkg.json')
-            if os.path.exists(manifest):
-                chip.schema.read_journal(manifest)
-        _finalize_run(chip)
 
         # Summarize the run.
         chip.summary()

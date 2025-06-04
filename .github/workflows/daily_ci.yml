@@ -81,7 +81,7 @@ jobs:
           mkdir testrun
           cd testrun
 
-          pytest $GITHUB_WORKSPACE -n auto -m "not docker" --durations=0 --clean
+          pytest $GITHUB_WORKSPACE -n logical -m "not docker" --durations=0 --clean
 
   gallery:
     uses: siliconcompiler/scgallery/.github/workflows/run-designs.yml@main

@@ -2,7 +2,7 @@ import os
 import json
 import pytest
 from siliconcompiler import Chip, FPGA
-from siliconcompiler.scheduler import _setup_node
+from siliconcompiler.scheduler.schedulernode import SchedulerNode
 from siliconcompiler.flows import fpgaflow
 from siliconcompiler.tools.vpr import route, place
 from logiklib.demo.K4_N8_6x6 import K4_N8_6x6
@@ -427,7 +427,7 @@ def test_vpr_max_router_iterations():
     for layer_nodes in chip.schema.get(
             "flowgraph", "fpgaflow", field="schema").get_execution_order():
         for step, index in layer_nodes:
-            _setup_node(chip, step, index)
+            SchedulerNode(chip, step, index).setup()
 
     assert '300' == \
         chip.get('tool', 'vpr', 'task', 'route', 'var', 'max_router_iterations',
@@ -522,3 +522,52 @@ def test_fpga_syn_extract(top_module,
         assert expected_macro_count == 1, \
             f'Expected one instance of {expected_macro},' \
             ' got {expected_macro_count} instances'
+
+
+def test_vpr_gen_post_implementation_netlist():
+    chip = Chip('foo')
+    chip.input('test.v')
+
+    part_name = 'faux'
+
+    # Create FPGA
+    fpga = FPGA(part_name)
+
+    fpga.set('fpga', part_name, 'var', 'vpr_device_code', 'faux')
+    fpga.set('fpga', part_name, 'var', 'vpr_clock_model', 'ideal')
+
+    with open('test.file', 'w') as f:
+        f.write('test')
+
+    fpga.set('fpga', part_name, 'file', 'archfile', 'test.file')
+    fpga.set('fpga', part_name, 'file', 'graphfile', 'test.file')
+
+    fpga.set('fpga', part_name, 'var', 'channelwidth', 50)
+
+    chip.use(fpga)
+    chip.set('fpga', 'partname', 'faux')
+
+    # 3. Load flow
+    chip.use(fpgaflow, fpgaflow_type='vpr')
+    chip.set('option', 'flow', 'fpgaflow')
+
+    chip.set('tool', 'vpr', 'task', 'route', 'var', 'gen_post_implementation_netlist', True)
+    chip.set('tool', 'vpr', 'task', 'route', 'var', 'timing_corner', 'slow')
+
+    # Verify that the user's setting doesn't get clobbered
+    # by the FPGA flow
+    for layer_nodes in chip.schema.get(
+            "flowgraph", "fpgaflow", field="schema").get_execution_order():
+        for step, index in layer_nodes:
+            SchedulerNode(chip, step, index).setup()
+
+    assert 'true' == \
+        chip.get('tool', 'vpr', 'task', 'route', 'var', 'gen_post_implementation_netlist',
+                 step='route', index='0')[0]
+    assert 'slow' == \
+        chip.get('tool', 'vpr', 'task', 'route', 'var', 'timing_corner',
+                 step='route', index='0')[0]
+
+    node = SchedulerNode(chip, step='route', index='0')
+    node.init_state(assign_runtime=True)
+    assert '--gen_post_synthesis_netlist' in node.task.get_runtime_arguments()

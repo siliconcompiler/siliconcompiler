@@ -5,171 +5,155 @@ import stat
 import uuid
 import json
 import shutil
-from siliconcompiler import utils, SiliconCompilerError
+
+import os.path
+
+from siliconcompiler import utils
 from siliconcompiler.package import get_cache_path
 from siliconcompiler.flowgraph import RuntimeFlowgraph
-
-# Full list of Slurm states, split into 'active' and 'inactive' categories.
-# Many of these do not apply to a minimal configuration, but we'll track them all.
-# https://slurm.schedmd.com/squeue.html#SECTION_JOB-STATE-CODES
-SLURM_ACTIVE_STATES = [
-    'RUNNING',
-    'PENDING',
-    'CONFIGURING',
-    'COMPLETING',
-    'SIGNALING',
-    'STAGE_OUT',
-    'RESIZING',
-    'REQUEUED',
-]
-SLURM_INACTIVE_STATES = [
-    'BOOT_FAIL',
-    'CANCELLED',
-    'COMPLETED',
-    'DEADLINE',
-    'FAILED',
-    'NODE_FAIL',
-    'OUT_OF_MEMORY',
-    'PREEMPTED',
-    'RESV_DEL_HOLD',
-    'REQUEUE_FED',
-    'REQUEUE_HOLD',
-    'REVOKED',
-    'SPECIAL_EXIT',
-    'STOPPED',
-    'SUSPENDED',
-    'TIMEOUT',
-]
+from siliconcompiler.scheduler.schedulernode import SchedulerNode
 
 
-###########################################################################
-def get_configuration_directory(chip):
-    '''
-    Helper function to get the configuration directory for the scheduler
-    '''
+class SlurmSchedulerNode(SchedulerNode):
+    def __init__(self, chip, step, index, replay=False):
+        super().__init__(chip, step, index, replay=replay)
 
-    return f'{chip.getworkdir()}/configs'
+        # Get the temporary UID associated with this job run.
+        self.__job_hash = chip.get('record', 'remoteid')
+        if not self.__job_hash:
+            # Generate a new uuid since it was not set
+            self.__job_hash = uuid.uuid4().hex
 
+    @property
+    def jobhash(self):
+        return self.__job_hash
 
-def init(chip):
-    if os.path.exists(chip._getcollectdir()):
-        # nothing to do
-        return
+    @staticmethod
+    def init(chip):
+        if os.path.exists(chip._getcollectdir()):
+            # nothing to do
+            return
 
-    collect = False
-    flow = chip.get('option', 'flow')
-    entry_nodes = chip.schema.get("flowgraph", flow, field="schema").get_entry_nodes()
+        collect = False
+        flow = chip.get('option', 'flow')
+        entry_nodes = chip.schema.get("flowgraph", flow, field="schema").get_entry_nodes()
 
-    runtime = RuntimeFlowgraph(
-        chip.schema.get("flowgraph", flow, field='schema'),
-        from_steps=chip.get('option', 'from'),
-        to_steps=chip.get('option', 'to'),
-        prune_nodes=chip.get('option', 'prune'))
+        runtime = RuntimeFlowgraph(
+            chip.schema.get("flowgraph", flow, field='schema'),
+            from_steps=chip.get('option', 'from'),
+            to_steps=chip.get('option', 'to'),
+            prune_nodes=chip.get('option', 'prune'))
 
-    for (step, index) in runtime.get_nodes():
-        if (step, index) in entry_nodes:
-            collect = True
+        for (step, index) in runtime.get_nodes():
+            if (step, index) in entry_nodes:
+                collect = True
 
-    if collect:
-        chip.collect()
+        if collect:
+            chip.collect()
 
+    @property
+    def is_local(self):
+        return False
 
-###########################################################################
-def _defernode(chip, step, index, replay):
-    '''
-    Helper method to run an individual step on a slurm cluster.
+    @staticmethod
+    def get_configuration_directory(chip):
+        '''
+        Helper function to get the configuration directory for the scheduler
+        '''
 
-    Blocks until the compute node
-    finishes processing this step, and it sets the active/error bits.
-    '''
+        return os.path.join(chip.getworkdir(), 'sc_configs')
 
-    # Determine which HPC job scheduler being used.
-    scheduler_type = chip.get('option', 'scheduler', 'name', step=step, index=index)
+    @staticmethod
+    def get_job_name(jobhash, step, index):
+        return f'{jobhash}_{step}{index}'
 
-    if scheduler_type != 'slurm':
-        raise ValueError(f'{scheduler_type} is not a supported scheduler')
+    @staticmethod
+    def get_runtime_file_name(jobhash, step, index, ext):
+        return f"{SlurmSchedulerNode.get_job_name(jobhash, step, index)}.{ext}"
 
-    if not check_slurm():
-        raise SiliconCompilerError('slurm is not available or installed on this machine', chip=chip)
+    @staticmethod
+    def get_slurm_partition():
+        partitions = subprocess.run(['sinfo', '--json'],
+                                    stdout=subprocess.PIPE,
+                                    stderr=subprocess.STDOUT)
 
-    # Determine which cluster parititon to use. (Default value can be overridden on per-step basis)
-    partition = chip.get('option', 'scheduler', 'queue', step=step, index=index)
-    if not partition:
-        partition = _get_slurm_partition()
+        if partitions.returncode != 0:
+            raise RuntimeError('Unable to determine partitions in slurm')
 
-    # Get the temporary UID associated with this job run.
-    job_hash = chip.get('record', 'remoteid')
-    if not job_hash:
-        # Generate a new uuid since it was not set
-        job_hash = uuid.uuid4().hex
+        sinfo = json.loads(partitions.stdout.decode())
 
-    job_name = f'{job_hash}_{step}{index}'
+        # Return the first listed partition
+        return sinfo['nodes'][0]['partitions'][0]
 
-    # Write out the current schema for the compute node to pick up.
-    cfg_dir = get_configuration_directory(chip)
-    cfg_file = f'{cfg_dir}/{step}{index}.json'
-    log_file = f'{cfg_dir}/{step}{index}.log'
-    script_file = f'{cfg_dir}/{step}{index}.sh'
-    os.makedirs(cfg_dir, exist_ok=True)
+    def run(self):
+        '''
+        Helper method to run an individual step on a slurm cluster.
 
-    chip.set('option', 'scheduler', 'name', None, step=step, index=index)
-    chip.write_manifest(cfg_file)
+        Blocks until the compute node
+        finishes processing this step, and it sets the active/error bits.
+        '''
 
-    # Allow user-defined compute node execution script if it already exists on the filesystem.
-    # Otherwise, create a minimal script to run the task using the SiliconCompiler CLI.
-    if not os.path.isfile(script_file):
-        with open(script_file, 'w') as sf:
-            sf.write(utils.get_file_template('slurm/run.sh').render(
-                cfg_file=shlex.quote(cfg_file),
-                build_dir=shlex.quote(chip.get("option", "builddir")),
-                step=shlex.quote(step),
-                index=shlex.quote(index),
-                cachedir=shlex.quote(get_cache_path(chip))
-            ))
+        if shutil.which('sinfo') is None:
+            raise RuntimeError('slurm is not available or installed on this machine')
 
-    # This is Python for: `chmod +x [script_path]`
-    os.chmod(script_file,
-             os.stat(script_file).st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+        # Determine which cluster parititon to use.
+        partition = self.chip.get('option', 'scheduler', 'queue', step=self.step, index=self.index)
+        if not partition:
+            partition = SlurmSchedulerNode.get_slurm_partition()
 
-    schedule_cmd = ['srun',
-                    '--exclusive',
-                    '--partition', partition,
-                    '--chdir', chip.cwd,
-                    '--job-name', job_name,
-                    '--output', log_file]
+        # Write out the current schema for the compute node to pick up.
+        cfg_dir = SlurmSchedulerNode.get_configuration_directory(self.chip)
+        os.makedirs(cfg_dir, exist_ok=True)
 
-    # Only delay the starting time if the 'defer' Schema option is specified.
-    defer_time = chip.get('option', 'scheduler', 'defer', step=step, index=index)
-    if defer_time:
-        schedule_cmd.extend(['--begin', defer_time])
+        cfg_file = os.path.join(cfg_dir, SlurmSchedulerNode.get_runtime_file_name(
+            self.__job_hash, self.step, self.index, "pkg.json"))
+        log_file = os.path.join(cfg_dir, SlurmSchedulerNode.get_runtime_file_name(
+            self.__job_hash, self.step, self.index, "log"))
+        script_file = os.path.join(cfg_dir, SlurmSchedulerNode.get_runtime_file_name(
+            self.__job_hash, self.step, self.index, "sh"))
 
-    schedule_cmd.append(script_file)
+        # Remove scheduler as this is now a local run
+        self.chip.set('option', 'scheduler', 'name', None, step=self.step, index=self.index)
+        self.chip.write_manifest(cfg_file)
 
-    # Run the 'srun' command, and track its output.
-    # TODO: output should be fed to log, and stdout if quiet = False
-    step_result = subprocess.Popen(schedule_cmd,
-                                   stdout=subprocess.PIPE,
-                                   stderr=subprocess.STDOUT)
+        # Allow user-defined compute node execution script if it already exists on the filesystem.
+        # Otherwise, create a minimal script to run the task using the SiliconCompiler CLI.
+        if not os.path.isfile(script_file):
+            with open(script_file, 'w') as sf:
+                sf.write(utils.get_file_template('slurm/run.sh').render(
+                    cfg_file=shlex.quote(cfg_file),
+                    build_dir=shlex.quote(self.chip.get("option", "builddir")),
+                    step=shlex.quote(self.step),
+                    index=shlex.quote(self.index),
+                    cachedir=shlex.quote(get_cache_path(self.chip))
+                ))
 
-    # Wait for the subprocess call to complete. It should already be done,
-    # as it has closed its output stream. But if we don't call '.wait()',
-    # the '.returncode' value will not be set correctly.
-    step_result.wait()
+        # This is Python for: `chmod +x [script_path]`
+        os.chmod(script_file,
+                 os.stat(script_file).st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
 
+        schedule_cmd = ['srun',
+                        '--exclusive',
+                        '--partition', partition,
+                        '--chdir', self.chip.cwd,
+                        '--job-name', SlurmSchedulerNode.get_job_name(self.__job_hash,
+                                                                      self.step, self.index),
+                        '--output', log_file]
 
-def _get_slurm_partition():
-    partitions = subprocess.run(['sinfo', '--json'],
-                                stdout=subprocess.PIPE,
-                                stderr=subprocess.STDOUT)
+        # Only delay the starting time if the 'defer' Schema option is specified.
+        defer_time = self.chip.get('option', 'scheduler', 'defer', step=self.step, index=self.index)
+        if defer_time:
+            schedule_cmd.extend(['--begin', defer_time])
 
-    if partitions.returncode != 0:
-        raise RuntimeError('Unable to determine partitions in slurm')
+        schedule_cmd.append(script_file)
 
-    sinfo = json.loads(partitions.stdout.decode())
+        # Run the 'srun' command, and track its output.
+        # TODO: output should be fed to log, and stdout if quiet = False
+        step_result = subprocess.Popen(schedule_cmd,
+                                       stdout=subprocess.PIPE,
+                                       stderr=subprocess.STDOUT)
 
-    # Return the first listed partition
-    return sinfo['nodes'][0]['partitions'][0]
-
-
-def check_slurm():
-    return shutil.which('sinfo') is not None
+        # Wait for the subprocess call to complete. It should already be done,
+        # as it has closed its output stream. But if we don't call '.wait()',
+        # the '.returncode' value will not be set correctly.
+        step_result.wait()

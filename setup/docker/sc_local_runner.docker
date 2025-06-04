@@ -2,7 +2,7 @@ ARG SC_VERSION
 ARG SC_IMAGE=ghcr.io/siliconcompiler/sc_runner:v${SC_VERSION}
 FROM ${SC_IMAGE}
 
-RUN python3 -m venv /venv --clear
+RUN rm -rf /venv && python3 -m venv /venv
 
 ENV VIRTUAL_ENV="/venv"
 ENV PATH="/venv/bin:$PATH"

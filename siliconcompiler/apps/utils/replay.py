@@ -18,6 +18,7 @@ import siliconcompiler
 from siliconcompiler.apps._common import UNSET_DESIGN
 from siliconcompiler import SiliconCompilerError
 from siliconcompiler import utils
+from siliconcompiler.record import RecordTime
 
 
 def make_bytes(data):
@@ -127,11 +128,10 @@ def main():
     path = os.path.abspath(args['file'])
     os.makedirs(os.path.dirname(path), exist_ok=True)
 
-    starttimes = set()
-    for starttime, step, index in chip.schema.get('history', jobname, 'record', 'starttime',
-                                                  field=None).getvalues():
-        starttimes.add(datetime.strptime(starttime, '%Y-%m-%d %H:%M:%S'))
-    starttime = min(starttimes).strftime('%Y-%m-%d %H:%M:%S')
+    record_schema = chip.schema.get('history', jobname, 'record', field="schema")
+    starttime = datetime.fromtimestamp(
+        record_schema.get_earliest_time(RecordTime.START)).strftime(
+            '%Y-%m-%d %H:%M:%S')
 
     with io.StringIO() as fd:
         fd.write(utils.get_file_template('replay/requirements.txt').render(

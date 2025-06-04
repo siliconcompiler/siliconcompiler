@@ -36,7 +36,7 @@ from siliconcompiler.report.dashboard.cli import CliDashboard
 from siliconcompiler.report.dashboard import DashboardType
 from siliconcompiler import package as sc_package
 import glob
-from siliconcompiler.scheduler import run as sc_runner
+from siliconcompiler.scheduler.scheduler import Scheduler
 from siliconcompiler.utils.flowgraph import _check_flowgraph_io, _get_flowgraph_information
 from siliconcompiler.tools._common import get_tool_task
 from types import FunctionType, ModuleType
@@ -1547,39 +1547,25 @@ class Chip:
             True if all file paths are valid, otherwise False.
         '''
 
-        allkeys = self.allkeys()
-        error = False
-        for keypath in allkeys:
-            paramtype = self.get(*keypath, field='type')
-            is_file = 'file' in paramtype
-            is_dir = 'dir' in paramtype
-            is_list = paramtype.startswith('[')
+        ignore_keys = []
+        for keypath in self.allkeys():
+            if keypath[-2:] == ('option', 'builddir'):
+                ignore_keys.append(keypath)
 
-            if is_file or is_dir:
-                if keypath[-2:] == ('option', 'builddir'):
-                    # Skip ['option', 'builddir'] since it will get created by run() if it doesn't
-                    # exist
-                    continue
+        package_map = {}
 
-                for check_files, step, index in self.schema.get(*keypath, field=None).getvalues():
-                    if not check_files:
-                        continue
+        def resolve(package):
+            return sc_package.path(self, package)
 
-                    if not is_list:
-                        check_files = [check_files]
+        for package in self.schema.getkeys("package", "source"):
+            package_map[package] = resolve
 
-                    for idx, check_file in enumerate(check_files):
-                        found_file = self.__find_files(*keypath,
-                                                       missing_ok=True,
-                                                       step=step, index=index,
-                                                       list_index=idx)
-                        if is_list:
-                            found_file = found_file[0]
-                        if not found_file:
-                            self.logger.error(f"Parameter {keypath} path {check_file} is invalid")
-                            error = True
-
-        return not error
+        return self.schema.check_filepaths(
+            ignore_keys=ignore_keys,
+            logger=self.logger,
+            packages=package_map,
+            collection_dir=self._getcollectdir(),
+            cwd=self.cwd)
 
     ###########################################################################
     def check_manifest(self):
@@ -1729,7 +1715,11 @@ class Chip:
                 error = True
                 self.logger.error(f'No executable or run() function specified for {tool}/{task}')
 
-        if not error and not _check_flowgraph_io(self, nodes=nodes):
+        runtime_full = RuntimeFlowgraph(
+            self.schema.get("flowgraph", flow, field='schema'),
+            to_steps=self.get('option', 'to'),
+            prune_nodes=self.get('option', 'prune'))
+        if not error and not _check_flowgraph_io(self, nodes=runtime_full.get_nodes()):
             error = True
 
         return not error
@@ -3197,9 +3187,14 @@ class Chip:
             >>> run()
             Runs the execution flow defined by the flowgraph dictionary.
         '''
+        from siliconcompiler.remote.client import ClientScheduler
 
         try:
-            sc_runner(self)
+            if self.get('option', 'remote'):
+                scheduler = ClientScheduler(self)
+            else:
+                scheduler = Scheduler(self)
+            scheduler.run()
         except Exception as e:
             if raise_exception:
                 raise e

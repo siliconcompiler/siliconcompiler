@@ -11,7 +11,8 @@ from unittest.mock import patch, ANY
 
 from siliconcompiler import ToolSchema
 from siliconcompiler import RecordSchema, MetricSchema, FlowgraphSchema
-from siliconcompiler.schema import EditableSchema
+from siliconcompiler.schema import EditableSchema, Parameter
+from siliconcompiler.schema.parameter import PerNode, Scope
 from siliconcompiler.tool import TaskSchema, TaskExecutableNotFound, TaskError, TaskTimeout
 from siliconcompiler import Chip
 
@@ -89,6 +90,7 @@ def test_tasktimeout_init():
 def test_init():
     tool = ToolSchema()
     assert tool.node() == (None, None)
+    assert tool.tool() is None
     assert tool.task() is None
     assert tool.logger() is None
     assert tool.schema() is None
@@ -116,6 +118,7 @@ def test_set_runtime(running_chip):
     tool = ToolSchema()
     tool.set_runtime(running_chip)
     assert tool.node() == ('running', '0')
+    assert tool.tool() == 'builtin'
     assert tool.task() == 'nop'
     assert tool.logger() is running_chip.logger
     assert tool.schema() is running_chip.schema
@@ -125,6 +128,7 @@ def test_set_runtime_different(running_chip):
     tool = ToolSchema()
     tool.set_runtime(running_chip, step="notrunning", index="0")
     assert tool.node() == ('notrunning', '0')
+    assert tool.tool() == 'builtin'
     assert tool.task() == 'nop'
     assert tool.logger() is running_chip.logger
     assert tool.schema() is running_chip.schema
@@ -600,7 +604,7 @@ def test_get_runtime_arguments_all(running_chip):
         f.write("testfile")
 
     tool.set('task', tool.task(), 'option', ['--arg0', '--arg1'])
-    running_chip.set('tool', 'builtin', 'task', tool.task(), 'script', 'arg2.run')
+    running_chip.set('tool', tool.tool(), 'task', tool.task(), 'script', 'arg2.run')
 
     assert tool.get_runtime_arguments() == [
         '--arg0',
@@ -1207,3 +1211,47 @@ def test_select_input_nodes_entry_has_input(running_chip):
     tool = ToolSchema()
     tool.set_runtime(running_chip, step="notrunning", index="0")
     assert tool.select_input_nodes() == [('running', '0')]
+
+
+def test_task_add_parameter():
+    task = TaskSchema()
+
+    assert task.getkeys("var") == tuple()
+
+    assert isinstance(task.add_parameter("teststr", "str", "long form help"), Parameter)
+    assert isinstance(task.add_parameter("testbool", "bool", "long form help"), Parameter)
+    assert isinstance(task.add_parameter("testlist", "[str]", "long form help"), Parameter)
+
+    assert task.getkeys("var") == ("teststr", "testbool", "testlist")
+
+    assert task.get("var", "teststr") is None
+    assert task.get("var", "testlist") == []
+    assert task.get("var", "testbool") is False
+
+    assert task.get("var", "teststr", field="help") == "long form help"
+    assert task.get("var", "testlist", field="help") == "long form help"
+    assert task.get("var", "testbool", field="help") == "long form help"
+
+    assert task.get("var", "teststr", field="shorthelp") == "long form help"
+    assert task.get("var", "testlist", field="shorthelp") == "long form help"
+    assert task.get("var", "testbool", field="shorthelp") == "long form help"
+
+    assert task.get("var", "teststr", field="type") == "str"
+    assert task.get("var", "testlist", field="type") == "[str]"
+    assert task.get("var", "testbool", field="type") == "bool"
+
+    assert task.get("var", "teststr", field="scope") == Scope.JOB
+    assert task.get("var", "testlist", field="scope") == Scope.JOB
+    assert task.get("var", "testbool", field="scope") == Scope.JOB
+
+    assert task.get("var", "teststr", field="pernode") == PerNode.OPTIONAL
+    assert task.get("var", "testlist", field="pernode") == PerNode.OPTIONAL
+    assert task.get("var", "testbool", field="pernode") == PerNode.OPTIONAL
+
+
+def test_task_add_parameter_defvalue():
+    task = TaskSchema()
+
+    task.add_parameter("teststr", "str", "long form help", defvalue="checkthis")
+
+    assert task.get("var", "teststr") == "checkthis"

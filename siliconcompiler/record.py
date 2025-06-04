@@ -30,12 +30,24 @@ class RecordTool(Enum):
 
 
 class RecordSchema(BaseSchema):
-    __TIMEFORMAT = "%Y-%m-%d %H:%M:%S"
+    __TIMEFORMAT = "%Y-%m-%d %H:%M:%S.%f"
 
     def __init__(self):
         super().__init__()
 
         schema_record(self)
+
+    def _from_dict(self, manifest, keypath, version=None):
+        ret = super()._from_dict(manifest, keypath, version)
+
+        # Correct for change specification
+        if version and version < (0, 50, 4):
+            for timekey in RecordTime:
+                start_param = self.get(timekey.value, field=None)
+                for value, step, index in start_param.getvalues():
+                    start_param.set(f"{value}.000000", step=step, index=index)
+
+        return ret
 
     def clear(self, step, index, keep=None):
         '''
@@ -275,6 +287,44 @@ class RecordSchema(BaseSchema):
             record_time+"+0000",
             RecordSchema.__TIMEFORMAT+"%z").timestamp()
 
+    def get_earliest_time(self, type):
+        '''
+        Returns the earliest recorded time.
+
+        Args:
+            type (:class:`RecordTime`): type of time to record
+        '''
+        type = RecordTime(type)
+        record_param = self.get(type.value, field=None)
+
+        times = set()
+        for _, step, index in record_param.getvalues():
+            times.add(self.get_recorded_time(step, index, type))
+
+        if not times:
+            return None
+
+        return min(times)
+
+    def get_latest_time(self, type):
+        '''
+        Returns the last recorded time.
+
+        Args:
+            type (:class:`RecordTime`): type of time to record
+        '''
+        type = RecordTime(type)
+        record_param = self.get(type.value, field=None)
+
+        times = set()
+        for _, step, index in record_param.getvalues():
+            times.add(self.get_recorded_time(step, index, type))
+
+        if not times:
+            return None
+
+        return max(times)
+
     def record_tool(self, step, index, info, type):
         '''
         Record information about the tool used during this record.
@@ -320,11 +370,13 @@ def schema_record(schema):
                         'x86_64',
                         '(x86_64, rv64imafdc)'],
                'starttime': ['start time',
-                             '\"2021-09-06 12:20:20\"',
-                             'Time is reported in the ISO 8601 format YYYY-MM-DD HR:MIN:SEC'],
+                             '\"2021-09-06 12:20:20.000000\"',
+                             'Time is recorded with the format YYYY-MM-DD HR:MIN:SEC.MICROSEC for '
+                             'UTC'],
                'endtime': ['end time',
-                           '\"2021-09-06 12:20:20\"',
-                           'Time is reported in the ISO 8601 format YYYY-MM-DD HR:MIN:SEC'],
+                           '\"2021-09-06 12:20:20.000000\"',
+                           'Time is recorded with the format YYYY-MM-DD HR:MIN:SEC.MICROSEC for '
+                           'UTC'],
                'region': ['cloud region',
                           '\"US Gov Boston\"',
                           """Recommended naming methodology:

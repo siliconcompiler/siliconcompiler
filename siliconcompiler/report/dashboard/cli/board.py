@@ -751,7 +751,6 @@ class Board(metaclass=BoardSingleton):
 
             runtime_flow = RuntimeFlowgraph(
                 chip.schema.get("flowgraph", flow, field='schema'),
-                args=(chip.get('arg', 'step'), chip.get('arg', 'index')),
                 to_steps=chip.get('option', 'to'),
                 prune_nodes=chip.get('option', 'prune'))
             record = chip.schema.get("record", field='schema')

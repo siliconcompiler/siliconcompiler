@@ -10808,10 +10808,10 @@
         },
         "endtime": {
             "example": [
-                "cli: -record_endtime 'dfm 0 \"2021-09-06 12:20:20\"'",
-                "api: chip.set('record', 'endtime', '\"2021-09-06 12:20:20\"', step='dfm', index=0)"
+                "cli: -record_endtime 'dfm 0 \"2021-09-06 12:20:20.000000\"'",
+                "api: chip.set('record', 'endtime', '\"2021-09-06 12:20:20.000000\"', step='dfm', index=0)"
             ],
-            "help": "Record tracking the end time per step and index basis. Time is reported in the ISO 8601 format YYYY-MM-DD HR:MIN:SEC",
+            "help": "Record tracking the end time per step and index basis. Time is recorded with the format YYYY-MM-DD HR:MIN:SEC.MICROSEC for UTC",
             "lock": false,
             "node": {
                 "default": {
@@ -11158,10 +11158,10 @@
         },
         "starttime": {
             "example": [
-                "cli: -record_starttime 'dfm 0 \"2021-09-06 12:20:20\"'",
-                "api: chip.set('record', 'starttime', '\"2021-09-06 12:20:20\"', step='dfm', index=0)"
+                "cli: -record_starttime 'dfm 0 \"2021-09-06 12:20:20.000000\"'",
+                "api: chip.set('record', 'starttime', '\"2021-09-06 12:20:20.000000\"', step='dfm', index=0)"
             ],
-            "help": "Record tracking the start time per step and index basis. Time is reported in the ISO 8601 format YYYY-MM-DD HR:MIN:SEC",
+            "help": "Record tracking the start time per step and index basis. Time is recorded with the format YYYY-MM-DD HR:MIN:SEC.MICROSEC for UTC",
             "lock": false,
             "node": {
                 "default": {
@@ -11481,7 +11481,7 @@
             "default": {
                 "default": {
                     "signature": null,
-                    "value": "0.51.3"
+                    "value": "0.51.4"
                 }
             }
         },
