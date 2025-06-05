@@ -1,4 +1,8 @@
-from siliconcompiler.design import DesignSchema, Options
+import os
+import pytest
+import json
+from pathlib import Path
+from siliconcompiler.design import DesignSchema, Option
 
 def test_add_file():
     d = DesignSchema()
@@ -28,33 +32,33 @@ def test_options():
 
     # top module
     top = 'mytop'
-    d.set_option(Options.topmodule, top)
-    assert d.get_option(Options.topmodule) == top
+    d.set_option(Option.topmodule, top)
+    assert d.get_option(Option.topmodule) == top
 
     # idir
     idirs = ['/home/acme/incdir1', '/home/acme/incdir2']
-    d.set_option(Options.idir, idirs)
-    assert d.get_option(Options.idir) == idirs
+    d.set_option(Option.idir, idirs)
+    assert d.get_option(Option.idir) == idirs
 
     # libdirs
     libdirs = ['/usr/lib']
-    d.set_option(Options.libdir, libdirs)
-    assert d.get_option(Options.libdir) == libdirs
+    d.set_option(Option.libdir, libdirs)
+    assert d.get_option(Option.libdir) == libdirs
 
     # libs
     libs = ['lib1', 'lib2']
-    d.set_option(Options.lib, libs)
-    assert d.get_option(Options.lib) == libs
+    d.set_option(Option.lib, libs)
+    assert d.get_option(Option.lib) == libs
 
     # define
     defs = ['CFG_TARGET=FPGA']
-    d.set_option(Options.define, defs)
-    assert d.get_option(Options.define) == defs
+    d.set_option(Option.define, defs)
+    assert d.get_option(Option.define) == defs
 
     # undefine
     undefs = ['CFG_TARGET']
-    d.set_option(Options.undefine, undefs)
-    assert d.get_option(Options.undefine) == undefs
+    d.set_option(Option.undefine, undefs)
+    assert d.get_option(Option.undefine) == undefs
 
 def test_param():
 
@@ -79,9 +83,20 @@ def test_use():
 
 def test_export():
 
-    lib = DesignSchema('lib')
-    lib.add_file('lib.v')
+    d = DesignSchema()
 
-    #d = DesignSchema()
-    #d.use(lib)
-    #assert d.dependency[lib.name].get('fileset', 'rtl', 'file', 'verilog') == ['lib.v']
+    golden = Path(__file__).parent/'data'/'heartbeat.f'
+
+    d.set_fileset('rtl')
+    d.add_file(['data/heartbeat.v', 'data/increment.v'])
+    d.set_option(Option.define, 'ASIC')
+    d.set_option(Option.idir, './data')
+    d.set_option(Option.topmodule, 'heartbeat')
+
+    d.set_fileset('tb')
+    d.add_file(['data/tb.v'])
+    d.set_option(Option.define, 'VERILATOR')
+
+    d.export("heartbeat.f", fileset=['rtl', 'tb'])
+
+    assert Path('heartbeat.f').read_text() == golden.read_text()
