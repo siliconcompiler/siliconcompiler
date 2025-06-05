@@ -7,7 +7,7 @@ import os.path
 
 from siliconcompiler import Schema
 from siliconcompiler import NodeStatus
-from siliconcompiler.schema import JournalingSchema
+from siliconcompiler.schema import Journal
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 from siliconcompiler.scheduler.schedulernode import SchedulerNode
 from siliconcompiler.scheduler.slurm import SlurmSchedulerNode
@@ -181,8 +181,8 @@ class Scheduler:
         from_nodes = []
         extra_setup_nodes = {}
 
-        self.__chip.schema = JournalingSchema(self.__chip.schema)
-        self.__chip.schema.start_journal()
+        journal = Journal.access(self.__chip.schema)
+        journal.start()
 
         self.__print_status("Start")
 
@@ -210,9 +210,7 @@ class Scheduler:
             if os.path.exists(manifest):
                 # ensure we setup these nodes again
                 try:
-                    journal = JournalingSchema(Schema())
-                    journal.read_manifest(manifest)
-                    extra_setup_nodes[(step, index)] = journal
+                    extra_setup_nodes[(step, index)] = Schema.from_manifest(filepath=manifest)
                 except Exception:
                     pass
 
@@ -249,7 +247,7 @@ class Scheduler:
                     self.__mark_pending(step, index)
                 elif (step, index) in extra_setup_nodes:
                     # import old information
-                    self.__chip.schema.import_journal(schema=extra_setup_nodes[(step, index)])
+                    Journal.access(extra_setup_nodes[(step, index)]).replay(self.__chip.schema)
 
         self.__print_status("After requires run")
 
@@ -264,8 +262,7 @@ class Scheduler:
 
         self.__chip.write_manifest(os.path.join(self.__chip.getworkdir(),
                                                 f"{self.__chip.get('design')}.pkg.json"))
-        self.__chip.schema.stop_journal()
-        self.__chip.schema = self.__chip.schema.get_base_schema()
+        journal.stop()
 
         # Clean nodes marked pending
         for step, index in self.__flow_runtime.get_nodes():
