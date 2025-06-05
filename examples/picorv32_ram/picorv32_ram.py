@@ -54,7 +54,7 @@ def build_top():
     chip.set('constraint', 'component', 'sram', 'rotation', 'R180')
 
     # Set clock period, so that we won't need to provide an SDC constraints file.
-    chip.clock('clk', period=25)
+    chip.clock('clk', period=30)
 
     # Run the build.
     chip.set('option', 'remote', False)

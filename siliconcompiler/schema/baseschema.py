@@ -470,7 +470,7 @@ class BaseSchema:
             add(keys, key, item)
         return set(keys)
 
-    def getdict(self, *keypath, include_default=True):
+    def getdict(self, *keypath, include_default=True, values_only=False):
         """
         Returns a schema dictionary.
 
@@ -480,6 +480,7 @@ class BaseSchema:
         Args:
             keypath (list of str): Variable length ordered schema key list
             include_default (boolean): If true will include default key paths
+            values_only (boolean): If true will only return values
 
         Returns:
             A schema dictionary
@@ -493,13 +494,21 @@ class BaseSchema:
             key_param = self.__manifest.get(keypath[0], None)
             if not key_param:
                 return {}
-            return key_param.getdict(*keypath[1:], include_default=include_default)
+            return key_param.getdict(*keypath[1:],
+                                     include_default=include_default,
+                                     values_only=values_only)
 
         manifest = {}
         if include_default and self.__default:
-            manifest["default"] = self.__default.getdict(include_default=include_default)
+            manifest_dict = self.__default.getdict(include_default=include_default,
+                                                   values_only=values_only)
+            if manifest_dict or not values_only:
+                manifest["default"] = manifest_dict
         for key, item in self.__manifest.items():
-            manifest[key] = item.getdict(include_default=include_default)
+            manifest_dict = item.getdict(include_default=include_default,
+                                         values_only=values_only)
+            if manifest_dict or not values_only:
+                manifest[key] = manifest_dict
         return manifest
 
     # Utility functions
@@ -512,3 +521,168 @@ class BaseSchema:
         """
 
         return copy.deepcopy(self)
+
+    def find_files(self, *keypath, missing_ok=False, step=None, index=None,
+                   packages=None, collection_dir=None, cwd=None):
+        """
+        Returns absolute paths to files or directories based on the keypath
+        provided.
+
+        The keypath provided must point to a schema parameter of type file, dir,
+        or lists of either. Otherwise, it will trigger an error.
+
+        Args:
+            keypath (list of str): Variable length schema key list.
+            missing_ok (bool): If True, silently return None when files aren't
+                found. If False, print an error and set the error flag.
+            step (str): Step name to access for parameters that may be specified
+                on a per-node basis.
+            index (str): Index name to access for parameters that may be specified
+                on a per-node basis.
+            packages (dict of resolvers): dirctionary of path resolvers for package
+                paths, these can either be a path or a callable function
+            collection_dir (path): optional path to a collections directory
+            cwd (path): optional path to current working directory, this will default
+                to os.getcwd() if not provided.
+
+        Returns:
+            If keys points to a scalar entry, returns an absolute path to that
+            file/directory, or None if not found. It keys points to a list
+            entry, returns a list of either the absolute paths or None for each
+            entry, depending on whether it is found.
+
+        Examples:
+            >>> chip.find_files('input', 'verilog')
+            Returns a list of absolute paths to source files, as specified in
+            the schema.
+        """
+
+        param = self.get(*keypath, field=None)
+        paramtype = param.get(field='type')
+        if 'file' not in paramtype and 'dir' not in paramtype:
+            raise TypeError(f'Cannot find files on [{",".join(keypath)}], must be a path type')
+
+        paths = param.get(field=None, step=step, index=index)
+
+        is_list = True
+        if not isinstance(paths, list):
+            is_list = False
+            if paths.get():
+                paths = [paths]
+            else:
+                paths = []
+
+        # Ignore collection directory if it does not exist
+        if collection_dir and not os.path.exists(collection_dir):
+            collection_dir = None
+
+        if cwd is None:
+            cwd = os.getcwd()
+
+        if packages is None:
+            packages = {}
+
+        resolved_paths = []
+        for path in paths:
+            search_paths = []
+
+            package = path.get(field="package")
+            if package:
+                if package not in packages:
+                    raise ValueError(f"Resolver for {package} not provided")
+                package_path = packages[package]
+                if isinstance(package_path, str):
+                    search_paths.append(os.path.abspath(package_path))
+                elif callable(package_path):
+                    search_paths.append(package_path(package))
+                else:
+                    raise TypeError(f"Resolver for {package} is not a recognized type")
+            else:
+                if cwd:
+                    search_paths.append(os.path.abspath(cwd))
+
+            try:
+                resolved_path = path.resolve_path(search=search_paths,
+                                                  collection_dir=collection_dir)
+            except FileNotFoundError:
+                resolved_path = None
+                if not missing_ok:
+                    if package:
+                        raise FileNotFoundError(
+                            f'Could not find "{path.get()}" in {package} [{",".join(keypath)}]')
+                    else:
+                        raise FileNotFoundError(
+                            f'Could not find "{path.get()}" [{",".join(keypath)}]')
+            resolved_paths.append(resolved_path)
+
+        if not is_list:
+            if not resolved_paths:
+                return None
+            return resolved_paths[0]
+        return resolved_paths
+
+    def check_filepaths(self, ignore_keys=None, logger=None,
+                        packages=None, collection_dir=None, cwd=None):
+        '''
+        Verifies that paths to all files in manifest are valid.
+
+        Args:
+            ignore_keys (list of keypaths): list of keyptahs to ignore while checking
+            logger (:class:`logging.Logger`): optional logger to use to report errors
+            packages (dict of resolvers): dirctionary of path resolvers for package
+                paths, these can either be a path or a callable function
+            collection_dir (path): optional path to a collections directory
+            cwd (path): optional path to current working directory, this will default
+                to os.getcwd() if not provided.
+
+        Returns:
+            True if all file paths are valid, otherwise False.
+        '''
+
+        if ignore_keys is None:
+            ignore_keys = set()
+        else:
+            ignore_keys = set([
+                tuple(keypath) for keypath in ignore_keys
+            ])
+
+        error = False
+
+        for keypath in self.allkeys():
+            if keypath in ignore_keys:
+                continue
+
+            param = self.get(*keypath, field=None)
+            paramtype = param.get(field='type')
+
+            if 'file' not in paramtype and 'dir' not in paramtype:
+                continue
+
+            for check_files, step, index in param.getvalues():
+                if not check_files:
+                    # nothing set so continue
+                    continue
+
+                found_files = self.find_files(
+                    *keypath, missing_ok=True, step=step, index=index,
+                    packages=packages, collection_dir=collection_dir, cwd=cwd)
+
+                if not param.is_list():
+                    check_files = [check_files]
+                    found_files = [found_files]
+
+                for check_file, found_file in zip(check_files, found_files):
+                    if not found_file:
+                        error = True
+                        if logger:
+                            node_indicator = ""
+                            if step is not None:
+                                if index is None:
+                                    node_indicator = f" ({step})"
+                                else:
+                                    node_indicator = f" ({step}{index})"
+
+                            logger.error(f"Parameter [{','.join(keypath)}]{node_indicator} path "
+                                         f"{check_file} is invalid")
+
+        return not error

@@ -1187,6 +1187,64 @@ def test_getdict():
     }
 
 
+def test_getdict_values_only():
+    param = Parameter("int", pernode=PerNode.OPTIONAL)
+    assert param.getdict(include_default=False, values_only=True) == {}
+
+
+def test_getdict_values_only_include_default():
+    param = Parameter("int", pernode=PerNode.OPTIONAL)
+    assert param.getdict(include_default=True, values_only=True) == {}
+
+
+def test_getdict_values_only_step_index():
+    param = Parameter("int", pernode=PerNode.OPTIONAL)
+    param.set(5, step="thisstep", index="0")
+    param.set(5, step="thisstep")
+    assert param.getdict(include_default=False, values_only=True) == {
+        'thisstep': {
+            None: 5,
+            '0': 5,
+        },
+    }
+
+
+def test_getdict_values_only_step_index_global():
+    param = Parameter("int", pernode=PerNode.OPTIONAL)
+    param.set(4)
+    param.set(5, step="thisstep", index="0")
+    param.set(0, step="zerostep", index="0")
+    assert param.getdict(include_default=False, values_only=True) == {
+        None: {
+            None: 4
+        },
+        'thisstep': {
+            '0': 5,
+        },
+        'zerostep': {
+            '0': 0,
+        },
+    }
+
+
+def test_getdict_values_only_list():
+    param = Parameter("[int]", pernode=PerNode.OPTIONAL)
+    param.set(4)
+    param.set(5, step="thisstep", index="0")
+    param.set(0, step="zerostep", index="0")
+    assert param.getdict(include_default=False, values_only=True) == {
+        None: {
+            None: [4]
+        },
+        'thisstep': {
+            '0': [5],
+        },
+        'zerostep': {
+            '0': [0],
+        },
+    }
+
+
 def test_getdict_with_vals():
     param = Parameter("int", pernode=PerNode.OPTIONAL)
     param.set(1)

@@ -1,5 +1,10 @@
 on:
   workflow_dispatch:
+    inputs:
+      rungallery:
+        type: boolean
+        default: false
+        description: run entire gallery
   workflow_call:
   schedule:
     - cron: '0 8 * * *'
@@ -84,6 +89,7 @@ jobs:
           pytest $GITHUB_WORKSPACE -n logical -m "not docker" --durations=0 --clean
 
   gallery:
+    if: ${{ github.event_name	!= 'workflow_dispatch' || inputs.rungallery }}
     uses: siliconcompiler/scgallery/.github/workflows/run-designs.yml@main
     with:
       sc-ref: ${{ github.ref }}

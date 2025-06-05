@@ -111,7 +111,7 @@ def main():
     if args.cachemap:
         for cachepair in args.cachemap:
             package, path = cachepair.split(':')
-            chip._packages[package] = path
+            chip.get("package", field="schema")._set_cache(package, path)
 
     # Populate cache
     for package in chip.getkeys('package', 'source'):

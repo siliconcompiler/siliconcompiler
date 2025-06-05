@@ -1,10 +1,11 @@
+import logging
 import pytest
 
 import os.path
 
 from siliconcompiler.schema import BaseSchema
 from siliconcompiler.schema import EditableSchema
-from siliconcompiler.schema import Parameter
+from siliconcompiler.schema import Parameter, PerNode
 
 
 def test_get_value():
@@ -312,7 +313,7 @@ def test_allkeys_end_parameter():
     assert schema.allkeys("test1", "test3") == set()
 
 
-def test_get_dict():
+def test_getdict():
     schema = BaseSchema()
     edit = EditableSchema(schema)
     edit.insert("test0", "default", "test1", Parameter("str"))
@@ -345,7 +346,49 @@ def test_get_dict():
     }
 
 
-def test_get_dict_keypath():
+def test_getdict_values_only():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("test0", "default", "test1", Parameter("str"))
+
+    assert schema.getdict(values_only=True) == {}
+
+
+def test_getdict_values_only_with_value():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("test0", "default", "test1", Parameter("str"))
+    schema.set("test0", "level1", "test1", "this value")
+
+    assert schema.getdict(values_only=True) == {
+        'test0': {
+            'level1': {
+                'test1': {
+                    None: {
+                        None: 'this value',
+                    },
+                },
+            },
+        },
+    }
+
+
+def test_getdict_values_keypath_only_with_value():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("test0", "default", "test1", Parameter("str"))
+    schema.set("test0", "level1", "test1", "this value")
+
+    assert schema.getdict("test0", "level1", values_only=True) == {
+        'test1': {
+            None: {
+                None: 'this value',
+            },
+        },
+    }
+
+
+def test_getdict_keypath():
     schema = BaseSchema()
     edit = EditableSchema(schema)
     edit.insert("test0", "default", "test1", Parameter("str"))
@@ -376,7 +419,7 @@ def test_get_dict_keypath():
     }
 
 
-def test_get_dict_keypath_unmatched():
+def test_getdict_keypath_unmatched():
     schema = BaseSchema()
     edit = EditableSchema(schema)
     edit.insert("test0", "default", "test1", Parameter("str"))
@@ -384,7 +427,7 @@ def test_get_dict_keypath_unmatched():
     assert schema.getdict("test0", "test1") == dict()
 
 
-def test_get_dict_from_dict():
+def test_getdict_from_dict():
     schema = BaseSchema()
     edit = EditableSchema(schema)
     edit.insert("test0", "default", "test1", Parameter("str"))
@@ -402,7 +445,7 @@ def test_get_dict_from_dict():
     assert schema.getdict() == check_schema.getdict()
 
 
-def test_get_dict_from_dict_unmatched():
+def test_getdict_from_dict_unmatched():
     schema = BaseSchema()
     edit = EditableSchema(schema)
     edit.insert("test0", "default", "test1", Parameter("str"))
@@ -721,3 +764,562 @@ def test_forward_exception_with_key_unset(error, monkeypatch):
                        match=r"error while unsetting \[test0,test1\]: "
                              r"this is an error from the param"):
         schema.unset("test0", "test1")
+
+
+def test_find_files_non_path():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("str")
+    edit.insert("var", param)
+
+    with pytest.raises(TypeError, match=r"Cannot find files on \[var\], must be a path type"):
+        schema.find_files("var")
+
+
+def test_find_files_scalar_file():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("file")
+    edit.insert("file", param)
+
+    with open("test.txt", "w") as f:
+        f.write("test")
+
+    assert schema.set("file", "test.txt")
+
+    assert schema.find_files("file") == os.path.abspath("test.txt")
+
+
+def test_find_files_scalar_dir():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("dir")
+    edit.insert("directory", param)
+
+    os.makedirs("test", exist_ok=True)
+
+    assert schema.set("directory", "test")
+
+    assert schema.find_files("directory") == os.path.abspath("test")
+
+
+def test_find_files_scalar_file_not_found():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("file")
+    edit.insert("file", param)
+
+    assert schema.set("file", "test.txt")
+
+    with pytest.raises(FileNotFoundError, match=r"Could not find \"test.txt\" \[file\]"):
+        schema.find_files("file")
+
+
+def test_find_files_scalar_dir_not_found():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("dir")
+    edit.insert("directory", param)
+
+    assert schema.set("directory", "test")
+
+    with pytest.raises(FileNotFoundError, match=r"Could not find \"test\" \[directory\]"):
+        schema.find_files("directory")
+
+
+def test_find_files_scalar_file_not_found_missing_ok():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("file")
+    edit.insert("file", param)
+
+    assert schema.set("file", "test.txt")
+
+    assert schema.find_files("file", missing_ok=True) is None
+
+
+def test_find_files_scalar_dir_not_found_missing_ok():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("dir")
+    edit.insert("directory", param)
+
+    assert schema.set("directory", "test")
+
+    assert schema.find_files("directory", missing_ok=True) is None
+
+
+def test_find_files_list_file():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("[file]")
+    edit.insert("file", param)
+
+    with open("test0.txt", "w") as f:
+        f.write("test")
+
+    with open("test1.txt", "w") as f:
+        f.write("test")
+
+    assert schema.set("file", ["test0.txt", "test1.txt"])
+
+    assert schema.find_files("file") == [
+        os.path.abspath("test0.txt"),
+        os.path.abspath("test1.txt")
+    ]
+
+
+def test_find_files_list_dir():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("[dir]")
+    edit.insert("directory", param)
+
+    os.makedirs("test0", exist_ok=True)
+    os.makedirs("test1", exist_ok=True)
+
+    assert schema.set("directory", ["test0", "test1"])
+
+    assert schema.find_files("directory") == [
+        os.path.abspath("test0"),
+        os.path.abspath("test1")
+    ]
+
+
+def test_find_files_list_file_not_found():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("[file]")
+    edit.insert("file", param)
+
+    with open("test0.txt", "w") as f:
+        f.write("test")
+
+    assert schema.set("file", ["test0.txt", "test1.txt"])
+
+    with pytest.raises(FileNotFoundError, match=r"Could not find \"test1.txt\" \[file\]"):
+        schema.find_files("file")
+
+
+def test_find_files_list_dir_not_found():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("[dir]")
+    edit.insert("directory", param)
+
+    os.makedirs("test0", exist_ok=True)
+
+    assert schema.set("directory", ["test0", "test1"])
+
+    with pytest.raises(FileNotFoundError, match=r"Could not find \"test1\" \[directory\]"):
+        schema.find_files("directory")
+
+
+def test_find_files_list_file_not_found_missing_ok():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("[file]")
+    edit.insert("file", param)
+
+    with open("test0.txt", "w") as f:
+        f.write("test")
+
+    assert schema.set("file", ["test0.txt", "test1.txt"])
+
+    assert schema.find_files("file", missing_ok=True) == [
+        os.path.abspath("test0.txt"),
+        None
+    ]
+
+
+def test_find_files_list_dir_not_found_missing_ok():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("[dir]")
+    edit.insert("directory", param)
+
+    os.makedirs("test0", exist_ok=True)
+
+    assert schema.set("directory", ["test0", "test1"])
+
+    assert schema.find_files("directory", missing_ok=True) == [
+        os.path.abspath("test0"),
+        None
+    ]
+
+
+def test_find_files_with_cwd():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("[dir]")
+    edit.insert("directory", param)
+
+    os.makedirs("cwd/test0", exist_ok=True)
+    os.makedirs("cwd/test1", exist_ok=True)
+
+    assert schema.set("directory", ["test0", "test1"])
+
+    assert schema.find_files("directory", cwd="./cwd") == [
+        os.path.abspath("cwd/test0"),
+        os.path.abspath("cwd/test1")
+    ]
+
+
+def test_find_files_with_package():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("[file]")
+    edit.insert("package", "file", param)
+
+    os.makedirs("package_path", exist_ok=True)
+    with open("package_path/test0.txt", "w") as f:
+        f.write("test")
+
+    with open("package_path/test1.txt", "w") as f:
+        f.write("test")
+
+    assert schema.set("package", "file", ["test0.txt", "test1.txt"])
+    assert schema.set("package", "file", ["this_package", "this_package"], field="package")
+
+    class Resolver:
+        called = 0
+
+        def resolve(self, package):
+            self.called += 1
+            return os.path.abspath("package_path")
+
+    resolve0 = Resolver()
+    resolve1 = Resolver()
+    package_map = {
+        "this_package": resolve0.resolve,
+        "that_package": resolve1.resolve,
+    }
+
+    assert schema.find_files("package", "file", packages=package_map) == [
+        os.path.abspath("package_path/test0.txt"),
+        os.path.abspath("package_path/test1.txt"),
+    ]
+
+    assert resolve0.called == 2
+    assert resolve1.called == 0
+
+
+def test_find_files_with_package_not_found():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("[file]")
+    edit.insert("package", "file", param)
+
+    os.makedirs("package_path", exist_ok=True)
+    with open("package_path/test0.txt", "w") as f:
+        f.write("test")
+
+    assert schema.set("package", "file", ["test0.txt", "test1.txt"])
+    assert schema.set("package", "file", ["this_package", "this_package"], field="package")
+
+    class Resolver:
+        called = 0
+
+        def resolve(self, package):
+            self.called += 1
+            return os.path.abspath("package_path")
+
+    resolve0 = Resolver()
+    resolve1 = Resolver()
+    package_map = {
+        "this_package": resolve0.resolve,
+        "that_package": resolve1.resolve,
+    }
+
+    with pytest.raises(FileNotFoundError,
+                       match=r"Could not find \"test1.txt\" in this_package \[package,file\]"):
+        schema.find_files("package", "file", packages=package_map)
+
+    assert resolve0.called == 2
+    assert resolve1.called == 0
+
+
+def test_find_files_with_package_missing():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("[file]")
+    edit.insert("package", "file", param)
+
+    os.makedirs("package_path", exist_ok=True)
+    with open("package_path/test0.txt", "w") as f:
+        f.write("test")
+
+    assert schema.set("package", "file", ["test0.txt", "test1.txt"])
+    assert schema.set("package", "file", ["this_package", "this_package"], field="package")
+
+    with pytest.raises(ValueError, match=r"Resolver for this_package not provided"):
+        schema.find_files("package", "file", packages={})
+
+
+def test_find_files_with_package_as_string():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("[file]")
+    edit.insert("package", "file", param)
+
+    os.makedirs("package_path", exist_ok=True)
+    with open("package_path/test0.txt", "w") as f:
+        f.write("test")
+
+    with open("package_path/test1.txt", "w") as f:
+        f.write("test")
+
+    assert schema.set("package", "file", ["test0.txt", "test1.txt"])
+    assert schema.set("package", "file", ["this_package", "that_package"], field="package")
+
+    class Resolver:
+        called = 0
+
+        def resolve(self, package):
+            self.called += 1
+            return os.path.abspath("package_path")
+
+    resolve = Resolver()
+    package_map = {
+        "this_package": "package_path",
+        "that_package": resolve.resolve,
+    }
+
+    assert schema.find_files("package", "file", packages=package_map) == [
+        os.path.abspath("package_path/test0.txt"),
+        os.path.abspath("package_path/test1.txt"),
+    ]
+
+    assert resolve.called == 1
+
+
+def test_find_files_with_package_as_invalid():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("[file]")
+    edit.insert("package", "file", param)
+
+    os.makedirs("package_path", exist_ok=True)
+    with open("package_path/test0.txt", "w") as f:
+        f.write("test")
+
+    assert schema.set("package", "file", "test0.txt")
+    assert schema.set("package", "file", "this_package", field="package")
+
+    package_map = {
+        "this_package": 1
+    }
+
+    with pytest.raises(TypeError, match="Resolver for this_package is not a recognized type"):
+        schema.find_files("package", "file", packages=package_map)
+
+
+def test_find_files_with_collection_dir_not_found():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("[file]")
+    edit.insert("package", "file", param)
+
+    with open("test.txt", "w") as f:
+        f.write("test")
+
+    assert schema.set("package", "file", "test.txt")
+
+    assert schema.find_files("package", "file", collection_dir="nodirfound") == [
+        os.path.abspath("test.txt")
+    ]
+
+
+def test_find_files_with_collection_dir():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("[file]")
+    edit.insert("package", "file", param)
+
+    os.makedirs("collections_dir", exist_ok=True)
+
+    with open("collections_dir/test_3a52ce780950d4d969792a2559cd519d7ee8c727.txt", "w") as f:
+        f.write("test")
+
+    assert schema.set("package", "file", "test.txt")
+
+    assert schema.find_files("package", "file", collection_dir="collections_dir") == [
+        os.path.abspath("collections_dir/test_3a52ce780950d4d969792a2559cd519d7ee8c727.txt")
+    ]
+
+
+def test_find_files_scalar_file_empty():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("file")
+    edit.insert("file", param)
+
+    assert schema.find_files("file") is None
+
+
+def test_find_files_scalar_dir_empty():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("dir")
+    edit.insert("directory", param)
+
+    assert schema.find_files("directory") is None
+
+
+def test_find_files_list_file_empty():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("[file]")
+    edit.insert("file", param)
+
+    assert schema.find_files("file") == []
+
+
+def test_find_files_list_dir_empty():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("[dir]")
+    edit.insert("directory", param)
+
+    assert schema.find_files("directory") == []
+
+
+def test_check_filepaths_empty():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("[dir]")
+    edit.insert("directory", param)
+
+    assert schema.check_filepaths() is True
+
+
+def test_check_filepaths_found():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("[dir]")
+    edit.insert("directory", param)
+
+    os.makedirs("test0", exist_ok=True)
+
+    assert schema.set("directory", "test0")
+
+    assert schema.check_filepaths() is True
+
+
+def test_check_filepaths_found_file():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("[file]")
+    edit.insert("file", param)
+
+    with open("test0.txt", "w") as f:
+        f.write("test")
+
+    assert schema.set("file", "test0.txt")
+
+    assert schema.check_filepaths() is True
+
+
+def test_check_filepaths_scalar_found():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("dir")
+    edit.insert("directory", param)
+
+    os.makedirs("test0", exist_ok=True)
+
+    assert schema.set("directory", "test0")
+
+    assert schema.check_filepaths() is True
+
+
+def test_check_filepaths_with_non_path():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("dir")
+    edit.insert("directory", param)
+    edit.insert("other", Parameter("str"))
+
+    os.makedirs("test0", exist_ok=True)
+
+    assert schema.set("directory", "test0")
+
+    assert schema.check_filepaths() is True
+
+
+def test_check_filepaths_not_found_no_logger():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("[dir]")
+    edit.insert("directory", param)
+
+    assert schema.set("directory", "test0")
+
+    assert schema.check_filepaths() is False
+
+
+def test_check_filepaths_not_found_logger(caplog):
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("[dir]")
+    edit.insert("directory", param)
+
+    assert schema.set("directory", "test0")
+
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+
+    assert schema.check_filepaths(logger=logger) is False
+    assert "Parameter [directory] path test0 is invalid" in caplog.text
+
+
+def test_check_filepaths_not_found_logger_step_only(caplog):
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("[dir]", pernode=PerNode.OPTIONAL)
+    edit.insert("directory", param)
+
+    assert schema.set("directory", "test0", step="thisstep")
+
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+
+    assert schema.check_filepaths(logger=logger) is False
+    assert "Parameter [directory] (thisstep) path test0 is invalid" in caplog.text
+
+
+def test_check_filepaths_not_found_logger_step_index(caplog):
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("[dir]", pernode=PerNode.OPTIONAL)
+    edit.insert("directory", param)
+
+    assert schema.set("directory", "test0", step="thisstep", index="0")
+
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+
+    assert schema.check_filepaths(logger=logger) is False
+    assert "Parameter [directory] (thisstep0) path test0 is invalid" in caplog.text
+
+
+def test_check_filepaths_not_found_ignored():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("[dir]", pernode=PerNode.OPTIONAL)
+    edit.insert("directory", param)
+
+    assert schema.set("directory", "test0")
+
+    assert schema.check_filepaths(ignore_keys=[("directory",)]) is True
+
+
+def test_check_filepaths_not_found_ignored_list():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("[dir]", pernode=PerNode.OPTIONAL)
+    edit.insert("directory", param)
+
+    assert schema.set("directory", "test0")
+
+    assert schema.check_filepaths(ignore_keys=[["directory"]]) is True

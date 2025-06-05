@@ -409,12 +409,13 @@ class Parameter:
 
         return True
 
-    def getdict(self, include_default=True):
+    def getdict(self, include_default=True, values_only=False):
         """
         Returns a schema dictionary.
 
         Args:
             include_default (boolean): If true will include default values
+            values_only (boolean): If true will only return values
 
         Returns:
             A schema dictionary
@@ -423,6 +424,18 @@ class Parameter:
             >>> param.getdict()
             Returns the complete dictionary for the parameter
         """
+
+        if values_only:
+            dictvals = {}
+            is_list = self.is_list()
+            for value, step, index in self.getvalues(return_defvalue=include_default):
+                if is_list:
+                    if value:
+                        dictvals.setdefault(step, {})[index] = value
+                else:
+                    if value is not None:
+                        dictvals.setdefault(step, {})[index] = value
+            return dictvals
 
         dictvals = {
             "type": NodeType.encode(self.__type),
