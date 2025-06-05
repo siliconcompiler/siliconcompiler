@@ -5,7 +5,8 @@ import json
 class Journal:
     """
     This class provides the ability to record the schema transactions:
-    :meth:`BaseSchema.set`, :meth:`BaseSchema.add`, :meth:`BaseSchema.remove`, :meth:`BaseSchema.unset`, and :meth:`BaseSchema.get`.
+    :meth:`BaseSchema.set`, :meth:`BaseSchema.add`, :meth:`BaseSchema.remove`,
+    :meth:`BaseSchema.unset`, and :meth:`BaseSchema.get`.
 
     Args:
         keyprefix (list of str): keypath to prefix on to recorded path
