@@ -923,8 +923,7 @@ class SchedulerNode:
 
         for manifest in self.__manifests.values():
             if os.path.exists(manifest):
-                schema = JournalingSchema(Schema())
-                schema.read_manifest(manifest)
+                schema = Schema.from_manifest(manifest)
                 # delete file as it might be a hard link
                 os.remove(manifest)
                 schema.set('option', 'jobname', self.__chip.get('option', 'jobname'))

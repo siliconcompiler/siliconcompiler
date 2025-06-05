@@ -124,7 +124,7 @@ class Journal:
         self.__parent.__record_types.clear()
 
     @staticmethod
-    def replay_file(self, schema, filepath):
+    def replay_file(schema, filepath):
         with open(filepath, "r") as fid:
             data = json.load(fid)
         if "__journal__" not in data:
