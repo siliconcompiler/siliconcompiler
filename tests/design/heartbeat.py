@@ -1,4 +1,4 @@
-from siliconcompiler.design import DesignSchema
+from siliconcompiler.design import DesignSchema, Option
 
 from increment import Increment
 
@@ -15,7 +15,7 @@ class Heartbeat(DesignSchema):
 
         # rtl
         self.set_fileset('rtl')
-        self.set_option('topmodule', 'heartbeat')
+        self.set_option(Option.topmodule, 'heartbeat')
         self.add_file(source)
 
         # constraints
@@ -24,7 +24,7 @@ class Heartbeat(DesignSchema):
 
         # tb
         self.set_fileset('testbench')
-        self.set_option('topmodule','tb')
+        self.set_option(Option.topmodule,'tb')
         self.add_file(tb)
 
         # dependencie

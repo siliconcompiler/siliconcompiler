@@ -7,6 +7,8 @@ from siliconcompiler.design import DesignSchema, Option
 def test_add_file():
     d = DesignSchema()
 
+
+
     # explicit file add
     files = ['one.v', 'two.v']
     d.add_file(files, fileset='rtl', filetype='verilog')
@@ -91,12 +93,13 @@ def test_param():
 
 def test_use():
 
-    lib = DesignSchema('lib')
-    lib.add_file('lib.v')
+    lib = DesignSchema('mylib')
+    lib.add_file('mylib.v')
 
-    #d = DesignSchema()
-    #d.use(lib)
-    #assert d.dependency[lib.name].get('fileset', 'rtl', 'file', 'verilog') == ['lib.v']
+    d = DesignSchema()
+    d.use(lib)
+    d.set_fileset('rtl')
+    assert d.get_file(package='mylib') == ['mylib.v']
 
 def test_export():
 
@@ -119,4 +122,4 @@ def test_export():
     assert Path('heartbeat.f').read_text() == golden.read_text()
 
 
-test_get_file()
+test_use()
