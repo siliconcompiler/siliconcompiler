@@ -9,7 +9,6 @@ from siliconcompiler.schema import Parameter, PerNode
 from siliconcompiler.schema import Journal
 
 
-
 def test_get_value():
     schema = BaseSchema()
     edit = EditableSchema(schema)

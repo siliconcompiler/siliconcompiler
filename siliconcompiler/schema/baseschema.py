@@ -275,9 +275,11 @@ class BaseSchema:
             raise KeyError(f"[{','.join(keypath)}] is not a valid keypath")
 
         try:
-            set_ret = param.set(value, field=field, clobber=clobber, step=step, index=index)
+            set_ret = param.set(value, field=field, clobber=clobber,
+                                step=step, index=index)
             if set_ret:
-                self.__journal.record("set", keypath, value=value, field=field, step=step, index=index)
+                self.__journal.record("set", keypath, value=value, field=field,
+                                      step=step, index=index)
             return set_ret
         except Exception as e:
             new_msg = f"error while setting [{','.join(keypath)}]: {e.args[0]}"
@@ -318,7 +320,8 @@ class BaseSchema:
         try:
             add_ret = param.add(value, field=field, step=step, index=index)
             if add_ret:
-                self.__journal.record("add", keypath, value=value, field=field, step=step, index=index)
+                self.__journal.record("add", keypath, value=value, field=field,
+                                      step=step, index=index)
             return add_ret
         except Exception as e:
             new_msg = f"error while adding to [{','.join(keypath)}]: {e.args[0]}"
