@@ -1,4 +1,5 @@
 import copy
+import json
 
 
 class Journal:
@@ -121,6 +122,17 @@ class Journal:
         '''
         self.__parent.__journal = None
         self.__parent.__record_types.clear()
+
+    @staticmethod
+    def replay_file(self, schema, filepath):
+        with open(filepath, "r") as fid:
+            data = json.load(fid)
+        if "__journal__" not in data:
+            return
+
+        journal = Journal()
+        journal.from_dict(data["__journal__"])
+        journal.replay(schema)
 
     def replay(self, schema):
         '''
