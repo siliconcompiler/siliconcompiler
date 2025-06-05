@@ -1,16 +1,25 @@
 import json
+from enum import Enum
 from siliconcompiler.schema import NamedSchema
-from siliconcompiler.schema import EditableSchema, Parameter
+from siliconcompiler.schema import EditableSchema, Parameter, Scope
 from siliconcompiler.schema.utils import trim
 from siliconcompiler import utils
+
+class Options(str, Enum):
+    lib = 'lib'
+    libdir = 'libdir'
+    define = 'define'
+    undefine = 'undefine'
+    topmodule = 'topmodule'
+    idir = 'idir'
 
 class DesignSchema(NamedSchema):
 
     def __init__(self, name=None):
         NamedSchema.__init__(self, name=name)
         schema_design(self)
-        self.dependency = {}
-        self.active_fileset = ''
+        self.__dependency = {}
+        self.__fileset = None
 
     #############################################
     def add_file(self, filename, fileset=None, filetype=None, package=None):
@@ -48,7 +57,7 @@ class DesignSchema(NamedSchema):
 
         # Handle list inputs
         if isinstance(filename, (list, tuple)):
-            for item in files:
+            for item in filename:
                 self.add_file(
                     item,
                     fileset=fileset,
@@ -95,57 +104,39 @@ class DesignSchema(NamedSchema):
         """
         pass
 
-
     #############################################
-    @property
-    def active_fileset(self):
-        """Get active fileset"""
-        return self.active_fileset
 
-    def active_fileset(self, value):
-        """Set active fileset"""
-        self.active_fileset = value
+    def set_fileset(self, value):
+        """Sets the active fileset."""
+        self.__fileset = value
 
-    #############################################
-    @property
-    def topmodule(self):
-        """Get topmodule"""
-        return self.get('fileset', self.active_fileset, 'topmodule')
+    def get_fileset(self):
+        """Returns the active fileset."""
+        return self.__fileset
 
-    def topmodule(self, value):
-        """Set topmodule"""
-        self.set('fileset', self.active_fileset, 'topmodule', value)
+    def set_option(self, option: Options, value, fileset=None):
+        """Sets an fileset option."""
+        if fileset is None:
+            fileset =  self.__fileset
+        self.set('fileset', fileset, option.value, value)
 
-    #############################################
-    @property
-    def libdir(self):
-        """Get libdir"""
-        return self.get('fileset', self.active_fileset, 'libdir')
+    def get_option(self, option: Options, fileset=None):
+        """Returns a fileset option."""
+        if fileset is None:
+            fileset =  self.__fileset
+        return self.get('fileset', fileset, option.value)
 
-    def libdir(self, value):
-        """Set libdir"""
-        self.set('fileset', self.active_fileset, 'libdir', value)
+    def set_param(self, name, value, fileset=None):
+        """Adds named design parameter value."""
+        if fileset is None:
+            fileset =  self.__fileset
+        self.set('fileset', fileset, 'param', name, value)
 
-    #############################################
-    @property
-    def lib(self):
-        """Get libdir"""
-        return self.get('fileset', self.active_fileset, 'libdir')
-
-    def lib(self, value):
-        """Set library"""
-        self.set('fileset', self.active_fileset, 'libdir', value)
-
-    #############################################
-    @property
-    def param(self):
-        """Get libdir"""
-        return self.get('fileset', self.active_fileset, 'param')
-
-    def param(self, value):
-        """Set library"""
-        self.set('fileset', self.active_fileset, 'param', value)
-
+    def get_param(self, name, fileset=None):
+        """Returns a design parameter value."""
+        if fileset is None:
+            fileset =  self.__fileset
+        return self.get('fileset', fileset, 'param', name)
 
     #############################################
     def use(self, module):
@@ -201,7 +192,7 @@ def schema_design(schema):
     schema = EditableSchema(schema)
 
     ###########################
-    # General compile options
+    # Files
     ###########################
 
     fileset = 'default'
@@ -221,15 +212,9 @@ def schema_design(schema):
             called during flowgraph execution. The files are processed in
             the order specified by the ordered file list.""")))
 
-     schema.insert(
-        'fileset', fileset, 'dependency',
-        Parameter(
-            ['str'],
-            scope=Scope.GLOBAL,
-            shorthelp="List of design dependencies",
-            example=["api: chip.set('dependency', 'stdlib')"],
-            help=trim("""
-            List of design packages this design depends on.""")))
+    ###########################
+    # Options
+    ###########################
 
     schema.insert(
         'fileset', fileset, 'topmodule',
@@ -282,21 +267,6 @@ def schema_design(schema):
             Undefines a macro that may have been previously defined via the
             compiler, options, or header files.""")))
 
-    name = 'default'
-    schema.insert(
-        'fileset', fileset, 'param',
-        Parameter(
-            '[(str,str)]',
-            scope=Scope.GLOBAL,
-            shorthelp="Design parameters",
-            example=[
-                "api: chip.set('fileset', 'rtl, 'param', ('N','64')"],
-            help=trim("""
-            Sets a named parameter to a string value. The value is limited to basic
-            data literals. The types of parameters and values supported is tightly
-            coupled to tools being used. For example, in Verilog only integer
-            literals (64'h4, 2'b0, 4) and strings are supported.""")))
-
     schema.insert(
         'fileset', fileset, 'libdir',
         Parameter(
@@ -324,10 +294,38 @@ def schema_design(schema):
             library in the compiler standard library paths and in the
             paths specified by :keypath:`libdir` parameter.""")))
 
+    name = 'default'
+    schema.insert(
+        'fileset', fileset, 'param', name,
+        Parameter(
+            'str',
+            scope=Scope.GLOBAL,
+            shorthelp="Design parameters",
+            example=[
+                "api: chip.set('fileset', 'rtl, 'param', 'N', '64'"],
+            help=trim("""
+            Sets a named parameter to a string value. The value is limited to basic
+            data literals. The types of parameters and values supported is tightly
+            coupled to tools being used. For example, in Verilog only integer
+            literals (64'h4, 2'b0, 4) and strings are supported.""")))
+
+    ###########################
+    # Dependencies
+    ###########################
+
+    schema.insert(
+        'dependency',
+        Parameter(
+            ['str'],
+            scope=Scope.GLOBAL,
+            shorthelp="List of design dependencies",
+            example=["api: chip.set('dependency', 'stdlib')"],
+            help=trim("""
+            List of design packages this design depends on.""")))
+
 
     #TODO: need more information to know what files to take
     #TODO: hide param index in helper function
-    #TODO: use in anger for ebrick
     #TODO: change option, to proper setter/getter
     #TODO: add context/state to the fileset, examples? Design schema state
     # make dependency fileset based
