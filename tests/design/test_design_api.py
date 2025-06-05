@@ -23,6 +23,23 @@ def test_add_file():
     assert d.get('fileset', 'rtl', 'file', 'vhdl') == files
 
 
+def test_get_file():
+    d = DesignSchema()
+
+    d.add_file(['one.v'], fileset='rtl', filetype='verilog')
+    d.add_file(['tb.v'], fileset='testbench')
+    d.add_file(['one.vhdl'])
+
+    # get all files
+    assert d.get_file(fileset=['rtl','testbench']) == (['one.v'] +
+                                                       ['one.vhdl'] +
+                                                       ['tb.v'])
+    # get rtl only
+    assert d.get_file(fileset='rtl') == ['one.v'] + ['one.vhdl']
+
+    # get verilog rtl only
+    assert d.get_file(fileset='rtl', filetype='verilog') == ['one.v']
+
 def test_options():
 
     d = DesignSchema()
@@ -100,3 +117,6 @@ def test_export():
     d.export("heartbeat.f", fileset=['rtl', 'tb'])
 
     assert Path('heartbeat.f').read_text() == golden.read_text()
+
+
+test_get_file()

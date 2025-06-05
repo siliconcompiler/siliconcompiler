@@ -1,11 +1,12 @@
 import json
+from pathlib import Path
 from enum import Enum
 from siliconcompiler.schema import NamedSchema
 from siliconcompiler.schema import EditableSchema, Parameter, Scope
 from siliconcompiler.schema.utils import trim
 from siliconcompiler import utils
 
-class Options(str, Enum):
+class Option(str, Enum):
     lib = 'lib'
     libdir = 'libdir'
     define = 'define'
@@ -21,7 +22,47 @@ class DesignSchema(NamedSchema):
         self.__dependency = {}
         self.__fileset = None
 
-    #############################################
+    def set_fileset(self, value):
+        """Sets the active fileset."""
+        self.__fileset = value
+
+    def get_fileset(self):
+        """Returns the active fileset."""
+        return self.__fileset
+
+    def set_option(self, option: Option, value, fileset=None):
+        """Sets an fileset option."""
+        if fileset is None:
+            fileset =  self.__fileset
+        self.set('fileset', fileset, option.value, value)
+
+    def get_option(self, option: Option, fileset=None):
+        """Returns a fileset option."""
+        if fileset is None:
+            fileset =  self.__fileset
+        return self.get('fileset', fileset, option.value)
+
+    def set_param(self, name, value, fileset=None):
+        """Adds named design parameter value."""
+        if fileset is None:
+            fileset =  self.__fileset
+        self.set('fileset', fileset, 'param', name, value)
+
+    def get_param(self, name, fileset=None):
+        """Returns a design parameter value."""
+        if fileset is None:
+            fileset =  self.__fileset
+        return self.get('fileset', fileset, 'param', name)
+
+    def use(self, module):
+        '''
+        Stores module in local design dependency structure.
+        Records dependency in design schema.
+        '''
+        self.dependency[module.name] = {}
+        self.dependency[module.name] = module
+        self.add('dependency', module.name)
+
     def add_file(self, filename, fileset=None, filetype=None, package=None):
         """
         Adds a file (or list of files) to a fileset.
@@ -72,7 +113,9 @@ class DesignSchema(NamedSchema):
         # map extension to default filetype/fileset
         default_fileset, default_filetype = utils.get_default_iomap()[ext]
 
-        if not fileset:
+        if not fileset and self.__fileset:
+            fileset =  self.__fileset
+        elif not fileset:
             fileset = default_fileset
 
         if not filetype:
@@ -87,102 +130,66 @@ class DesignSchema(NamedSchema):
         # adding files to dictionary
         self.add('fileset', fileset, 'file', filetype, filename)
 
-
-    #############################################
     def get_file(self, fileset=None, filetype=None):
         """
-        Returns a dictionary of design object files.
-        dict[fileset][filetype]
-
-        If fileset is None, all filesets are returned.
-        If filetype is None, all filetypes within a fileset are returned.
-
-        Args:
-            fileset (str, optional): Logical file group.
-            filetype (str, optional): Type of the file.
-
+        Returns a list of files.
         """
-        pass
 
-    #############################################
+        filelist = []
 
-    def set_fileset(self, value):
-        """Sets the active fileset."""
-        self.__fileset = value
-
-    def get_fileset(self):
-        """Returns the active fileset."""
-        return self.__fileset
-
-    def set_option(self, option: Options, value, fileset=None):
-        """Sets an fileset option."""
         if fileset is None:
-            fileset =  self.__fileset
-        self.set('fileset', fileset, option.value, value)
+            fileset = self.__fileset
+        if not isinstance(fileset, list):
+            fileset = [fileset]
 
-    def get_option(self, option: Options, fileset=None):
-        """Returns a fileset option."""
-        if fileset is None:
-            fileset =  self.__fileset
-        return self.get('fileset', fileset, option.value)
+        for i in fileset:
+            # handle scalar+list in argumnet
+            if filetype and not isinstance(filetype, list):
+                filetype = [filetype]
+            elif not filetype:
+                filetype = list(self.getkeys('fileset', i, 'file'))
+            # grab the files
+            for j in filetype:
+                filelist.extend(self.get('fileset', i, 'file',j))
 
-    def set_param(self, name, value, fileset=None):
-        """Adds named design parameter value."""
-        if fileset is None:
-            fileset =  self.__fileset
-        self.set('fileset', fileset, 'param', name, value)
+        return filelist
 
-    def get_param(self, name, fileset=None):
-        """Returns a design parameter value."""
-        if fileset is None:
-            fileset =  self.__fileset
-        return self.get('fileset', fileset, 'param', name)
-
-    #############################################
-    def use(self, module):
-        '''
-        Stores module in local design dependency structure.
-        Records dependency in design schema.
-        '''
-        self.dependency[module.name] = {}
-        self.dependency[module.name] = module
-        self.add('dependency', module.name)
-
-    #############################################
-    def export(self, fileset=None, filename=None, filetype=None):
+    def export(self, filename, fileset=None, filetype=None):
         '''
         Export design configuration.
         Would be nice to insert this into schema with only
         non-zero values set.
         '''
 
-        #TODO: Move this function to BaseSchema
-        cfg = {}
-        # exporting simple dictionary
-        for keys in self.allkeys(include_default=False):
-            local = cfg
-            val = self.get(*keys)
-            if val:
-                for i, k in enumerate(list(keys)):
-                    if k not in local:
-                        local[k] = {}
-                    if (i == len(keys) - 1):
-                        local[k] = val
-                    local = local[k]
+        # select which filesets to dump
+        if fileset is None:
+            fileset = self.__fileset
+        if not isinstance(fileset, list):
+            fileset = [fileset]
 
-        # write to file
-        # TODO: which formats to support
-        if filename:
-            if filetype == 'flist':
-                pass
-            elif filetype == 'bender':
-                pass
-            elif filetype == 'fusesoc':
-                pass
-            else:
-                json.dumps(filename, indent=4)
+        # file extension lookup
+        if not filetype:
+            formats = {}
+            formats['f'] = 'flist'
+            filetype = formats[Path(filename).suffix.strip('.')]
 
-        return cfg
+        if filetype == "flist":
+            # TODO: handle dependency tree
+            with open(filename, "w") as f:
+                for i in fileset:
+                    for j in ['idir', 'define', 'file']:
+                        if j == 'idir':
+                            vals = self.get('fileset', i, 'idir')
+                            cmd = "+incdir+"
+                        elif j == 'define':
+                            vals = self.get('fileset', i, 'define')
+                            cmd = "+define+"
+                        else:
+                            vals = self.get('fileset', i, 'file', 'verilog')
+                            cmd = ""
+                        if vals:
+                            for item in vals:
+                                f.write(f"{cmd}{item}\n")
 
 ###########################################################################
 # Schema
@@ -326,9 +333,5 @@ def schema_design(schema):
 
     #TODO: need more information to know what files to take
     #TODO: hide param index in helper function
-    #TODO: change option, to proper setter/getter
-    #TODO: add context/state to the fileset, examples? Design schema state
-    # make dependency fileset based
-    # add valonly to getdict
     # remove bender/ etc
     #
