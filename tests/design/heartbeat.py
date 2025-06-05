@@ -14,17 +14,17 @@ class Heartbeat(DesignSchema):
         tb =  ['data/tb.v']
 
         # rtl
-        self.fileset='rtl'
-        self.topmodule='heartbeat'
+        self.set_fileset('rtl')
+        self.set_option('topmodule', 'heartbeat')
         self.add_file(source)
 
         # constraints
-        self.fileset='constraint'
+        self.set_fileset('constraint')
         self.add_file(sdc)
 
         # tb
-        self.fileset='testbench'
-        self.topmodule='tb'
+        self.set_fileset('testbench')
+        self.set_option('topmodule','tb')
         self.add_file(tb)
 
         # dependencie

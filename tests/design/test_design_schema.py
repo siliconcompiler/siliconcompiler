@@ -10,14 +10,14 @@ def test_design_keys():
                           ('fileset', 'default', 'idir'),
                           ('fileset', 'default', 'define'),
                           ('fileset', 'default', 'undefine'),
-                          ('fileset', 'default', 'param'),
-                          ('fileset', 'default', 'dependency')
+                          ('fileset', 'default', 'param', 'default'),
+                          ('dependency',) # TODO: why does schema returna  comma for one key?
                           ])
 
     assert sorted(DesignSchema().allkeys()) == golden_keys
 
 
-def test_design_params():
+def test_design_values():
     d = DesignSchema()
 
     # top module
@@ -56,6 +56,11 @@ def test_design_params():
     assert d.get('fileset', 'rtl', 'undefine') == undefs
 
     # param
-    val = [('N','2')]
-    assert d.set('fileset', 'rtl', 'param', val)
-    assert d.get('fileset', 'rtl', 'param')  == val
+    val = '2'
+    assert d.set('fileset', 'rtl', 'param', 'N', val)
+    assert d.get('fileset', 'rtl', 'param', 'N')  == val
+
+    # dependency
+    val = ['mylib']
+    assert d.set('dependency', val)
+    assert d.get('dependency')  == val
