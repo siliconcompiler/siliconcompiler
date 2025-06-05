@@ -96,11 +96,6 @@ Full API
 .. autoclass:: CommandLineSchema
     :members:
 
-.. autoclass:: JournalingSchema
-    :members:
-    :show-inheritance:
-    :inherited-members:
-
 .. autoclass:: Journal
     :members:
 
