@@ -55,7 +55,7 @@ class PackageSchema(BaseSchema):
             name (str): Package name
             path (str): Path to the sources, can be file, git url, archive url
             ref (str): Reference of the sources, can be commitid, branch name, tag
-            clobber (bool): Overwrite exisiting
+            clobber (bool): Overwrite existing
 
         Examples:
             >>> schema.register('siliconcompiler_data',
