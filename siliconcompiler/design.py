@@ -16,6 +16,10 @@ class Option(str, Enum):
 
 class DesignSchema(NamedSchema):
 
+    #TODO: do we want to have a hiararchy scheme for .use()?
+    #TODO: use, dependency should move elsewhere
+    #For example, dep="top.one.two"
+
     def __init__(self, name=None):
         NamedSchema.__init__(self, name=name)
         schema_design(self)
@@ -36,7 +40,7 @@ class DesignSchema(NamedSchema):
             fileset =  self.__fileset
         self.set('fileset', fileset, option.value, value)
 
-    def get_option(self, option: Option, fileset=None):
+    def get_option(self, option: Option, fileset=None, package=None):
         """Returns a fileset option."""
         if fileset is None:
             fileset =  self.__fileset
@@ -48,20 +52,23 @@ class DesignSchema(NamedSchema):
             fileset =  self.__fileset
         self.set('fileset', fileset, 'param', name, value)
 
-    def get_param(self, name, fileset=None):
+    def get_param(self, name, fileset=None, package=None):
         """Returns a design parameter value."""
         if fileset is None:
             fileset =  self.__fileset
-        return self.get('fileset', fileset, 'param', name)
+        if not package:
+            return self.get('fileset', fileset, 'param', name)
+        else:
+            return self.__dependency[package].get('fileset', fileset, 'param', name)
 
     def use(self, module):
         '''
         Stores module in local design dependency structure.
         Records dependency in design schema.
         '''
-        self.dependency[module.name] = {}
-        self.dependency[module.name] = module
-        self.add('dependency', module.name)
+        self.__dependency[module.name()] = {}
+        self.__dependency[module.name()] = module
+        self.add('dependency', module.name())
 
     def add_file(self, filename, fileset=None, filetype=None, package=None):
         """
@@ -107,7 +114,6 @@ class DesignSchema(NamedSchema):
 
         # Normalize value to string in case we receive a pathlib.Path
         filename = str(filename)
-
         ext = utils.get_file_ext(filename)
 
         # map extension to default filetype/fileset
@@ -130,27 +136,32 @@ class DesignSchema(NamedSchema):
         # adding files to dictionary
         self.add('fileset', fileset, 'file', filetype, filename)
 
-    def get_file(self, fileset=None, filetype=None):
+    def get_file(self, fileset=None, filetype=None, package=None):
         """
         Returns a list of files.
         """
-
-        filelist = []
 
         if fileset is None:
             fileset = self.__fileset
         if not isinstance(fileset, list):
             fileset = [fileset]
 
+        if filetype and not isinstance(filetype, list):
+            filetype = [filetype]
+
+        if package:
+            obj = self.__dependency[package]
+        else:
+            obj = self
+
+        filelist = []
         for i in fileset:
             # handle scalar+list in argumnet
-            if filetype and not isinstance(filetype, list):
-                filetype = [filetype]
-            elif not filetype:
-                filetype = list(self.getkeys('fileset', i, 'file'))
+            if not filetype:
+                filetype = list(obj.getkeys('fileset', i, 'file'))
             # grab the files
             for j in filetype:
-                filelist.extend(self.get('fileset', i, 'file',j))
+                filelist.extend(obj.get('fileset', i, 'file',j))
 
         return filelist
 
