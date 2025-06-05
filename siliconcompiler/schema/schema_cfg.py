@@ -110,7 +110,9 @@ def schema_cfg(schema):
     cfg = schema_constraint(cfg)
 
     # Options
-    cfg = schema_option(cfg)
+    cfg = schema_option_frontend(cfg)
+    cfg = schema_option_runtime(cfg)
+    cfg = schema_option_other(cfg)
     cfg = schema_arg(cfg)
 
     # Technology configuration
@@ -1086,72 +1088,9 @@ def schema_record(cfg):
 ###########################################################################
 # Run Options
 ###########################################################################
-def schema_option(cfg):
+def schema_option_other(cfg):
     ''' Technology agnostic run time options
     '''
-
-    scparam(cfg, ['option', 'remote'],
-            sctype='bool',
-            scope=Scope.JOB,
-            shorthelp="Option: enable remote processing",
-            switch="-remote <bool>",
-            example=[
-                "cli: -remote",
-                "api: chip.set('option', 'remote', True)"],
-            schelp="""
-            Sends job for remote processing if set to true. The remote
-            option requires a credentials file to be placed in the home
-            directory. Fore more information, see the credentials
-            parameter.""")
-
-    scparam(cfg, ['option', 'credentials'],
-            sctype='file',
-            scope=Scope.JOB,
-            shorthelp="Option: user credentials file",
-            switch="-credentials <file>",
-            example=[
-                "cli: -credentials /home/user/.sc/credentials",
-                "api: chip.set('option', 'credentials', '/home/user/.sc/credentials')"],
-            schelp="""
-            Filepath to credentials used for remote processing. If the
-            credentials parameter is empty, the remote processing client program
-            tries to access the ".sc/credentials" file in the user's home
-            directory. The file supports the following fields:
-
-            address=<server address>
-
-            port=<server port> (optional)
-
-            username=<user id> (optional)
-
-            password=<password / key used for authentication> (optional)""")
-
-    scparam(cfg, ['option', 'cachedir'],
-            sctype='file',
-            scope=Scope.JOB,
-            shorthelp="Option: user cache directory",
-            switch="-cachedir <file>",
-            example=[
-                "cli: -cachedir /home/user/.sc/cache",
-                "api: chip.set('option', 'cachedir', '/home/user/.sc/cache')"],
-            schelp="""
-            Filepath to cache used for package data sources. If the
-            cache parameter is empty, ".sc/cache" directory in the user's home
-            directory will be used.""")
-
-    scparam(cfg, ['option', 'nice'],
-            sctype='int',
-            scope=Scope.JOB,
-            pernode=PerNode.OPTIONAL,
-            shorthelp="Option: tool scheduling priority",
-            switch="-nice <int>",
-            example=[
-                "cli: -nice 5",
-                "api: chip.set('option', 'nice', 5)"],
-            schelp="""
-            Sets the type of execution priority of each individual flowgraph steps.
-            If the parameter is undefined, nice will not be used. For more information see
-            `Unix 'nice' <https://en.wikipedia.org/wiki/Nice_(Unix)>`_.""")
 
     # Compilation
     scparam(cfg, ['option', 'pdk'],
@@ -1174,40 +1113,6 @@ def schema_option(cfg):
             schelp="""
             Target stackup used during compilation. The stackup is required
             parameter for PDKs with multiple metal stackups.""")
-
-    scparam(cfg, ['option', 'flow'],
-            sctype='str',
-            scope=Scope.JOB,
-            shorthelp="Option: flow target",
-            switch="-flow <str>",
-            example=["cli: -flow asicflow",
-                     "api: chip.set('option', 'flow', 'asicflow')"],
-            schelp="""
-            Sets the flow for the current run. The flow name
-            must match up with a 'flow' in the flowgraph""")
-
-    scparam(cfg, ['option', 'optmode'],
-            sctype='str',
-            pernode=PerNode.OPTIONAL,
-            scope=Scope.JOB,
-            defvalue='O0',
-            shorthelp="Option: optimization mode",
-            switch=["-O<str>",
-                    "-optmode <str>"],
-            example=["cli: -O3",
-                     "cli: -optmode O3",
-                     "api: chip.set('option', 'optmode', 'O3')"],
-            schelp="""
-            The compiler has modes to prioritize run time and ppa. Modes
-            include.
-
-            (O0) = Exploration mode for debugging setup
-            (O1) = Higher effort and better PPA than O0
-            (O2) = Higher effort and better PPA than O1
-            (O3) = Signoff quality. Better PPA and higher run times than O2
-            (O4-O98) = Reserved (compiler/target dependent)
-            (O99) = Experimental highest possible effort, may be unstable
-            """)
 
     scparam(cfg, ['option', 'cfg'],
             sctype='[file]',
@@ -1280,6 +1185,110 @@ def schema_option(cfg):
             reference flows require special parameters, this
             parameter should only be used for specifying directories that are
             not directly supported by the schema.""")
+
+    return cfg
+
+
+def schema_option_runtime(cfg):
+    ''' Runtime run time options
+    '''
+
+    scparam(cfg, ['option', 'remote'],
+            sctype='bool',
+            scope=Scope.JOB,
+            shorthelp="Option: enable remote processing",
+            switch="-remote <bool>",
+            example=[
+                "cli: -remote",
+                "api: chip.set('option', 'remote', True)"],
+            schelp="""
+            Sends job for remote processing if set to true. The remote
+            option requires a credentials file to be placed in the home
+            directory. Fore more information, see the credentials
+            parameter.""")
+
+    scparam(cfg, ['option', 'credentials'],
+            sctype='file',
+            scope=Scope.JOB,
+            shorthelp="Option: user credentials file",
+            switch="-credentials <file>",
+            example=[
+                "cli: -credentials /home/user/.sc/credentials",
+                "api: chip.set('option', 'credentials', '/home/user/.sc/credentials')"],
+            schelp="""
+            Filepath to credentials used for remote processing. If the
+            credentials parameter is empty, the remote processing client program
+            tries to access the ".sc/credentials" file in the user's home
+            directory. The file supports the following fields:
+
+            address=<server address>
+
+            port=<server port> (optional)
+
+            username=<user id> (optional)
+
+            password=<password / key used for authentication> (optional)""")
+
+    scparam(cfg, ['option', 'cachedir'],
+            sctype='file',
+            scope=Scope.JOB,
+            shorthelp="Option: user cache directory",
+            switch="-cachedir <file>",
+            example=[
+                "cli: -cachedir /home/user/.sc/cache",
+                "api: chip.set('option', 'cachedir', '/home/user/.sc/cache')"],
+            schelp="""
+            Filepath to cache used for package data sources. If the
+            cache parameter is empty, ".sc/cache" directory in the user's home
+            directory will be used.""")
+
+    scparam(cfg, ['option', 'nice'],
+            sctype='int',
+            scope=Scope.JOB,
+            pernode=PerNode.OPTIONAL,
+            shorthelp="Option: tool scheduling priority",
+            switch="-nice <int>",
+            example=[
+                "cli: -nice 5",
+                "api: chip.set('option', 'nice', 5)"],
+            schelp="""
+            Sets the type of execution priority of each individual flowgraph steps.
+            If the parameter is undefined, nice will not be used. For more information see
+            `Unix 'nice' <https://en.wikipedia.org/wiki/Nice_(Unix)>`_.""")
+
+    scparam(cfg, ['option', 'flow'],
+            sctype='str',
+            scope=Scope.JOB,
+            shorthelp="Option: flow target",
+            switch="-flow <str>",
+            example=["cli: -flow asicflow",
+                     "api: chip.set('option', 'flow', 'asicflow')"],
+            schelp="""
+            Sets the flow for the current run. The flow name
+            must match up with a 'flow' in the flowgraph""")
+
+    scparam(cfg, ['option', 'optmode'],
+            sctype='str',
+            pernode=PerNode.OPTIONAL,
+            scope=Scope.JOB,
+            defvalue='O0',
+            shorthelp="Option: optimization mode",
+            switch=["-O<str>",
+                    "-optmode <str>"],
+            example=["cli: -O3",
+                     "cli: -optmode O3",
+                     "api: chip.set('option', 'optmode', 'O3')"],
+            schelp="""
+            The compiler has modes to prioritize run time and ppa. Modes
+            include.
+
+            (O0) = Exploration mode for debugging setup
+            (O1) = Higher effort and better PPA than O0
+            (O2) = Higher effort and better PPA than O1
+            (O3) = Signoff quality. Better PPA and higher run times than O2
+            (O4-O98) = Reserved (compiler/target dependent)
+            (O99) = Experimental highest possible effort, may be unstable
+            """)
 
     scparam(cfg, ['option', 'loglevel'],
             sctype='<info,warning,error,critical,debug,quiet>',
@@ -1374,18 +1383,6 @@ def schema_option(cfg):
             EDA tool. If the step is a command line tool, then the flow
             drops into a Python interpreter.""")
 
-    scparam(cfg, ['option', 'library'],
-            sctype='[str]',
-            scope=Scope.JOB,
-            pernode=PerNode.OPTIONAL,
-            shorthelp="Option: library list",
-            switch="-library <str>",
-            example=["cli: -library lambdalib_asap7",
-                     "api: chip.set('option', 'library', 'lambdalib_asap7')"],
-            schelp="""
-            List of soft libraries to be linked in during import.""")
-
-    # Booleans
     scparam(cfg, ['option', 'clean'],
             sctype='bool',
             scope=Scope.JOB,
@@ -1477,100 +1474,6 @@ def schema_option(cfg):
             Tracking will result in potentially sensitive data
             being recorded in the manifest so only turn on this feature
             if you have control of the final manifest.""")
-
-    scparam(cfg, ['option', 'entrypoint'],
-            sctype='str',
-            pernode=PerNode.OPTIONAL,
-            shorthelp="Option: program entry point",
-            switch="-entrypoint <str>",
-            example=["cli: -entrypoint top",
-                     "api: chip.set('option', 'entrypoint', 'top')"],
-            schelp="""Alternative entrypoint for compilation and
-            simulation. The default entry point is :keypath:`design`.""")
-
-    scparam(cfg, ['option', 'idir'],
-            sctype='[dir]',
-            shorthelp="Option: design search paths",
-            copy=True,
-            switch=['+incdir+<dir>',
-                    '-I <dir>',
-                    '-idir <dir>'],
-            example=[
-                "cli: +incdir+./mylib",
-                "cli: -I ./mylib",
-                "cli: -idir ./mylib",
-                "api: chip.set('option', 'idir', './mylib')"],
-            schelp="""
-            Search paths to look for files included in the design using
-            the ```include`` statement.""")
-
-    scparam(cfg, ['option', 'ydir'],
-            sctype='[dir]',
-            shorthelp="Option: design module search paths",
-            copy=True,
-            switch=['-y <dir>',
-                    '-ydir <dir>'],
-            example=[
-                "cli: -y './mylib'",
-                "cli: -ydir './mylib'",
-                "api: chip.set('option', 'ydir', './mylib')"],
-            schelp="""
-            Search paths to look for verilog modules found in the the
-            source list. The import engine will look for modules inside
-            files with the specified :keypath:`option,libext` param suffix.""")
-
-    scparam(cfg, ['option', 'vlib'],
-            sctype='[file]',
-            shorthelp="Option: design libraries",
-            copy=True,
-            switch=['-v <file>',
-                    '-vlib <file>'],
-            example=["cli: -v './mylib.v'",
-                     "cli: -vlib './mylib.v'",
-                     "api: chip.set('option', 'vlib', './mylib.v')"],
-            schelp="""
-            List of library files to be read in. Modules found in the
-            libraries are not interpreted as root modules.""")
-
-    scparam(cfg, ['option', 'define'],
-            sctype='[str]',
-            shorthelp="Option: design pre-processor symbol",
-            switch=["-D<str>",
-                    "-define <str>"],
-            example=["cli: -DCFG_ASIC=1",
-                     "cli: -define CFG_ASIC=1",
-                     "api: chip.set('option', 'define', 'CFG_ASIC=1')"],
-            schelp="""Symbol definition for source preprocessor.""")
-
-    scparam(cfg, ['option', 'libext'],
-            sctype='[str]',
-            shorthelp="Option: design file extensions",
-            switch=["+libext+<str>",
-                    "-libext <str>"],
-            example=[
-                "cli: +libext+sv",
-                "cli: -libext sv",
-                "api: chip.set('option', 'libext', 'sv')"],
-            schelp="""
-            List of file extensions that should be used for finding modules.
-            For example, if :keypath:`option,ydir` is specified as ./lib", and '.v'
-            is specified as libext then the files ./lib/\\*.v ", will be searched for
-            module matches.""")
-
-    name = 'default'
-    scparam(cfg, ['option', 'param', name],
-            sctype='str',
-            shorthelp="Option: design parameter",
-            switch="-param 'name <str>'",
-            example=[
-                "cli: -param 'N 64'",
-                "api: chip.set('option', 'param', 'N', '64')"],
-            schelp="""
-            Sets a top verilog level design module parameter. The value
-            is limited to basic data literals. The parameter override is
-            passed into tools such as Verilator and Yosys. The parameters
-            support Verilog integer literals (64'h4, 2'b0, 4) and strings.
-            Name of the top level module to compile.""")
 
     scparam(cfg, ['option', 'continue'],
             sctype='bool',
@@ -1750,6 +1653,118 @@ def schema_option(cfg):
             schelp="""
             Maximum number of concurrent nodes to run in a job. If not set this will default
             to the number of cpu cores available.""")
+
+    return cfg
+
+
+def schema_option_frontend(cfg):
+    ''' Frontend options
+    '''
+
+    scparam(cfg, ['option', 'library'],
+            sctype='[str]',
+            scope=Scope.JOB,
+            pernode=PerNode.OPTIONAL,
+            shorthelp="Option: library list",
+            switch="-library <str>",
+            example=["cli: -library lambdalib_asap7",
+                     "api: chip.set('option', 'library', 'lambdalib_asap7')"],
+            schelp="""
+            List of soft libraries to be linked in during import.""")
+
+    scparam(cfg, ['option', 'entrypoint'],
+            sctype='str',
+            pernode=PerNode.OPTIONAL,
+            shorthelp="Option: program entry point",
+            switch="-entrypoint <str>",
+            example=["cli: -entrypoint top",
+                     "api: chip.set('option', 'entrypoint', 'top')"],
+            schelp="""Alternative entrypoint for compilation and
+            simulation. The default entry point is :keypath:`design`.""")
+
+    scparam(cfg, ['option', 'idir'],
+            sctype='[dir]',
+            shorthelp="Option: design search paths",
+            copy=True,
+            switch=['+incdir+<dir>',
+                    '-I <dir>',
+                    '-idir <dir>'],
+            example=[
+                "cli: +incdir+./mylib",
+                "cli: -I ./mylib",
+                "cli: -idir ./mylib",
+                "api: chip.set('option', 'idir', './mylib')"],
+            schelp="""
+            Search paths to look for files included in the design using
+            the ```include`` statement.""")
+
+    scparam(cfg, ['option', 'ydir'],
+            sctype='[dir]',
+            shorthelp="Option: design module search paths",
+            copy=True,
+            switch=['-y <dir>',
+                    '-ydir <dir>'],
+            example=[
+                "cli: -y './mylib'",
+                "cli: -ydir './mylib'",
+                "api: chip.set('option', 'ydir', './mylib')"],
+            schelp="""
+            Search paths to look for verilog modules found in the the
+            source list. The import engine will look for modules inside
+            files with the specified :keypath:`option,libext` param suffix.""")
+
+    scparam(cfg, ['option', 'vlib'],
+            sctype='[file]',
+            shorthelp="Option: design libraries",
+            copy=True,
+            switch=['-v <file>',
+                    '-vlib <file>'],
+            example=["cli: -v './mylib.v'",
+                     "cli: -vlib './mylib.v'",
+                     "api: chip.set('option', 'vlib', './mylib.v')"],
+            schelp="""
+            List of library files to be read in. Modules found in the
+            libraries are not interpreted as root modules.""")
+
+    scparam(cfg, ['option', 'define'],
+            sctype='[str]',
+            shorthelp="Option: design pre-processor symbol",
+            switch=["-D<str>",
+                    "-define <str>"],
+            example=["cli: -DCFG_ASIC=1",
+                     "cli: -define CFG_ASIC=1",
+                     "api: chip.set('option', 'define', 'CFG_ASIC=1')"],
+            schelp="""Symbol definition for source preprocessor.""")
+
+    scparam(cfg, ['option', 'libext'],
+            sctype='[str]',
+            shorthelp="Option: design file extensions",
+            switch=["+libext+<str>",
+                    "-libext <str>"],
+            example=[
+                "cli: +libext+sv",
+                "cli: -libext sv",
+                "api: chip.set('option', 'libext', 'sv')"],
+            schelp="""
+            List of file extensions that should be used for finding modules.
+            For example, if :keypath:`option,ydir` is specified as ./lib", and '.v'
+            is specified as libext then the files ./lib/\\*.v ", will be searched for
+            module matches.""")
+
+    name = 'default'
+    scparam(cfg, ['option', 'param', name],
+            sctype='str',
+            shorthelp="Option: design parameter",
+            switch="-param 'name <str>'",
+            example=[
+                "cli: -param 'N 64'",
+                "api: chip.set('option', 'param', 'N', '64')"],
+            schelp="""
+            Sets a top verilog level design module parameter. The value
+            is limited to basic data literals. The parameter override is
+            passed into tools such as Verilator and Yosys. The parameters
+            support Verilog integer literals (64'h4, 2'b0, 4) and strings.
+            Name of the top level module to compile.""")
 
     return cfg
 

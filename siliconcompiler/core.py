@@ -18,7 +18,7 @@ import csv
 import yaml
 from inspect import getfullargspec
 from siliconcompiler import Schema
-from siliconcompiler.schema import SCHEMA_VERSION, PerNode, JournalingSchema, EditableSchema
+from siliconcompiler.schema import SCHEMA_VERSION, PerNode, Journal, EditableSchema
 from siliconcompiler.schema.parametertype import NodeType
 from siliconcompiler.schema.parametervalue import FileNodeValue, PathNodeValue
 from siliconcompiler.schema import utils as schema_utils
@@ -1782,10 +1782,7 @@ class Chip:
             schema.write_manifest(filepath)
             return
 
-        tcl_record = False
-        if isinstance(schema, JournalingSchema):
-            tcl_record = "get" in schema.get_journaling_types()
-            schema = schema.get_base_schema()
+        tcl_record = "get" in Journal.access(schema).get_types()
 
         is_csv = re.search(r'(\.csv)(\.gz)*$', filepath)
 
