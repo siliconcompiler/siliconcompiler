@@ -22,6 +22,7 @@ except ModuleNotFoundError:
 import os.path
 
 from .parameter import Parameter
+from .journal import Journal
 
 
 class BaseSchema:
@@ -34,6 +35,7 @@ class BaseSchema:
         # Data storage for the schema
         self.__manifest = {}
         self.__default = None
+        self.__journal = Journal()
 
     def _from_dict(self, manifest, keypath, version=None):
         '''
@@ -47,6 +49,9 @@ class BaseSchema:
 
         handled = set()
         missing = set()
+
+        if "__journal__" in manifest:
+            self.__journal.from_dict(manifest["__journal__"])
 
         if self.__default:
             data = manifest.get("default", None)
@@ -220,6 +225,8 @@ class BaseSchema:
             if field == 'schema':
                 if isinstance(param, Parameter):
                     raise ValueError(f"[{','.join(keypath)}] is a complete keypath")
+                self.__journal.record("get", keypath, field=field, step=step, index=index)
+                param.__journal = self.__journal.get_child(*keypath)
                 return param
         except KeyError:
             raise KeyError(f"[{','.join(keypath)}] is not a valid keypath")
@@ -227,7 +234,9 @@ class BaseSchema:
             return param
 
         try:
-            return param.get(field, step=step, index=index)
+            get_ret = param.get(field, step=step, index=index)
+            self.__journal.record("get", keypath, field=field, step=step, index=index)
+            return get_ret
         except Exception as e:
             new_msg = f"error while accessing [{','.join(keypath)}]: {e.args[0]}"
             e.args = (new_msg, *e.args[1:])
@@ -266,7 +275,10 @@ class BaseSchema:
             raise KeyError(f"[{','.join(keypath)}] is not a valid keypath")
 
         try:
-            return param.set(value, field=field, clobber=clobber, step=step, index=index)
+            set_ret = param.set(value, field=field, clobber=clobber, step=step, index=index)
+            if set_ret:
+                self.__journal.record("set", keypath, value=value, field=field, step=step, index=index)
+            return set_ret
         except Exception as e:
             new_msg = f"error while setting [{','.join(keypath)}]: {e.args[0]}"
             e.args = (new_msg, *e.args[1:])
@@ -304,7 +316,10 @@ class BaseSchema:
             raise KeyError(f"[{','.join(keypath)}] is not a valid keypath")
 
         try:
-            return param.add(value, field=field, step=step, index=index)
+            add_ret = param.add(value, field=field, step=step, index=index)
+            if add_ret:
+                self.__journal.record("add", keypath, value=value, field=field, step=step, index=index)
+            return add_ret
         except Exception as e:
             new_msg = f"error while adding to [{','.join(keypath)}]: {e.args[0]}"
             e.args = (new_msg, *e.args[1:])
@@ -343,6 +358,7 @@ class BaseSchema:
 
         try:
             param.unset(step=step, index=index)
+            self.__journal.record("unset", keypath, step=step, index=index)
         except Exception as e:
             new_msg = f"error while unsetting [{','.join(keypath)}]: {e.args[0]}"
             e.args = (new_msg, *e.args[1:])
@@ -376,6 +392,7 @@ class BaseSchema:
             return
 
         del key_param.__manifest[removal_key]
+        self.__journal.record("remove", keypath)
 
     def valid(self, *keypath, default_valid=False, check_complete=False):
         """
@@ -509,6 +526,10 @@ class BaseSchema:
                                          values_only=values_only)
             if manifest_dict or not values_only:
                 manifest[key] = manifest_dict
+
+        if not values_only and self.__journal.has_journaling():
+            manifest["__journal__"] = self.__journal.get()
+
         return manifest
 
     # Utility functions
