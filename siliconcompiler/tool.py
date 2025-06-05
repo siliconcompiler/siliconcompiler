@@ -416,15 +416,6 @@ class ToolSchema(NamedSchema):
         '''
 
         cmdargs = []
-        cmdargs.extend(self.get('task', self.__task, 'option',
-                                step=self.__step, index=self.__index))
-
-        # Add scripts files / TODO:
-        scripts = self.__chip.find_files('tool', self.__tool, 'task', self.__task, 'script',
-                                         step=self.__step, index=self.__index)
-
-        cmdargs.extend(scripts)
-
         try:
             cmdargs.extend(self.runtime_options())
         except Exception as e:
@@ -851,7 +842,17 @@ class ToolSchema(NamedSchema):
         pass
 
     def runtime_options(self):
-        return []
+        cmdargs = []
+        cmdargs.extend(self.get('task', self.__task, 'option',
+                                step=self.__step, index=self.__index))
+
+        # Add scripts files / TODO:
+        scripts = self.__chip.find_files('tool', self.__tool, 'task', self.__task, 'script',
+                                         step=self.__step, index=self.__index)
+
+        cmdargs.extend(scripts)
+
+        return cmdargs
 
     def run(self):
         raise NotImplementedError("must be implemented by the implementation class")
@@ -964,7 +965,8 @@ class ToolSchemaTmp(ToolSchema):
             step, index = self.node()
             self._ToolSchema__chip.set('arg', 'step', step)
             self._ToolSchema__chip.set('arg', 'index', index)
-            ret = method(self._ToolSchema__chip)
+            ret = ToolSchema.runtime_options(self)
+            ret.extend(method(self._ToolSchema__chip))
             self._ToolSchema__chip.set('arg', 'step', prev_step)
             self._ToolSchema__chip.set('arg', 'index', prev_index)
             return ret

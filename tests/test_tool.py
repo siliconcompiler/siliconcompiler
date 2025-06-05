@@ -594,7 +594,9 @@ def test_get_runtime_arguments(running_chip):
 def test_get_runtime_arguments_all(running_chip):
     class TestTool(ToolSchema):
         def runtime_options(self):
-            return ['--arg3']
+            options = super().runtime_options()
+            options.append("--arg3")
+            return options
     tool = TestTool("builtin")
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', 'nop', TaskSchema())
@@ -611,6 +613,24 @@ def test_get_runtime_arguments_all(running_chip):
         '--arg1',
         os.path.abspath("arg2.run"),
         '--arg3']
+
+
+def test_get_runtime_arguments_overwrite(running_chip):
+    class TestTool(ToolSchema):
+        def runtime_options(self):
+            return ['--arg3']
+    tool = TestTool("builtin")
+    # Insert empty task to provide access
+    EditableSchema(tool).insert('task', 'nop', TaskSchema())
+    tool.set_runtime(running_chip)
+
+    with open("arg2.run", "w") as f:
+        f.write("testfile")
+
+    tool.set('task', tool.task(), 'option', ['--arg0', '--arg1'])
+    running_chip.set('tool', tool.tool(), 'task', tool.task(), 'script', 'arg2.run')
+
+    assert tool.get_runtime_arguments() == ['--arg3']
 
 
 def test_get_runtime_arguments_error(running_chip, caplog):
@@ -661,9 +681,25 @@ def test_pre_process():
     assert tool.pre_process() is None
 
 
-def test_runtime_options():
+def test_runtime_options(running_chip):
     tool = ToolSchema()
+    tool.set_runtime(running_chip)
     assert tool.runtime_options() == []
+
+
+def test_runtime_options_with_aruments(running_chip):
+    tool = ToolSchema()
+    tool.set_runtime(running_chip)
+    tool.set('task', tool.task(), 'option', ['--arg0', '--arg1'])
+    with open("arg2.run", "w") as f:
+        f.write("test")
+
+    running_chip.set('tool', tool.tool(), 'task', tool.task(), 'script', 'arg2.run')
+    assert tool.runtime_options() == [
+        '--arg0',
+        '--arg1',
+        os.path.abspath("arg2.run")
+    ]
 
 
 def test_run_not_implemented():
