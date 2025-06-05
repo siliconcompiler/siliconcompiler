@@ -11,7 +11,7 @@ from siliconcompiler import SiliconCompilerError
 from siliconcompiler import utils
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 
-from siliconcompiler.schema import JournalingSchema
+from siliconcompiler.schema import Journal
 
 from siliconcompiler.utils.logging import SCBlankLoggerFormatter
 
@@ -189,7 +189,7 @@ class TaskScheduler:
                 self.__logger.debug(f'{info["name"]} is complete merging: {manifest}')
 
                 if os.path.exists(manifest):
-                    JournalingSchema(self.__schema).read_journal(manifest)
+                    Journal.replay_file(self.__schema, manifest)
                     # TODO: once tool is fixed this can go away
                     self.__schema.unset("arg", "step")
                     self.__schema.unset("arg", "index")

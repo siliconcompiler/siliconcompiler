@@ -15,7 +15,7 @@ from siliconcompiler import NodeStatus
 from siliconcompiler.tools._common import input_file_node_name, record_metric
 
 from siliconcompiler.record import RecordTime, RecordTool
-from siliconcompiler.schema import JournalingSchema
+from siliconcompiler.schema import Journal
 from siliconcompiler.scheduler import send_messages
 
 
@@ -539,8 +539,8 @@ class SchedulerNode:
         self.__chip.set('arg', 'index', self.__index)
 
         # Setup journaling
-        self.__chip.schema = JournalingSchema(self.__chip.schema)
-        self.__chip.schema.start_journal()
+        journal = Journal.access(self.__chip.schema)
+        journal.start()
 
         # Must be after journaling to ensure journal is complete
         self.init_state(assign_runtime=True)
@@ -594,8 +594,7 @@ class SchedulerNode:
         os.chdir(cwd)
 
         # Stop journaling
-        self.__chip.schema.stop_journal()
-        self.__chip.schema = self.__chip.schema.get_base_schema()
+        journal.stop()
 
         if self.__pipe:
             self.__pipe.send(self.__chip.get("package", field="schema").get_path_cache())
