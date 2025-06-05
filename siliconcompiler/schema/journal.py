@@ -5,7 +5,7 @@ import json
 class Journal:
     """
     This class provides the ability to record the schema transactions:
-    :meth:`set`, :meth:`add`, :meth:`remove`, and :meth:`unset`.
+    :meth:`BaseSchema.set`, :meth:`BaseSchema.add`, :meth:`BaseSchema.remove`, :meth:`BaseSchema.unset`, and :meth:`BaseSchema.get`.
 
     Args:
         keyprefix (list of str): keypath to prefix on to recorded path
@@ -24,14 +24,32 @@ class Journal:
 
     @property
     def keypath(self):
+        '''
+        Returns the reference key path for this journal
+        '''
+
         return self.__keyprefix
 
     def get_child(self, *keypath):
+        '''
+        Get a child journal based on a new keypath
+
+        Args:
+            keypath (list of str): keypath to prefix on to recorded path
+        '''
+
         child = Journal(keyprefix=[*self.__keyprefix, *keypath])
         child.__parent = self.__parent
         return child
 
     def from_dict(self, manifest):
+        '''
+        Import a journal from a manifest dictionary
+
+        Args:
+            manifest (dict): Manifest to decode.
+        '''
+
         self.__journal = manifest
 
     def get(self):
@@ -125,6 +143,13 @@ class Journal:
 
     @staticmethod
     def replay_file(schema, filepath):
+        '''
+        Replay a journal into a schema from a manifest
+
+        Args:
+            schema (:class:`BaseSchema`): schema to replay transactions to
+            filepath (path): path to manifest
+        '''
         with open(filepath, "r") as fid:
             data = json.load(fid)
         if "__journal__" not in data:
@@ -136,11 +161,10 @@ class Journal:
 
     def replay(self, schema):
         '''
-        Import the journaled transactions from a different schema.
-        Only one argument is supported at a time.
+        Replay journal into a schema
 
         Args:
-            schema (:class:`BaseSchema`): schema to replay transactions from
+            schema (:class:`BaseSchema`): schema to replay transactions to
         '''
 
         from .baseschema import BaseSchema
@@ -172,6 +196,12 @@ class Journal:
 
     @staticmethod
     def access(schema):
+        '''
+        Access a journal from a schema
+
+        Args:
+            schema (:class:`BaseSchema`): schema to replay transactions to access journal
+        '''
         from .baseschema import BaseSchema
         if isinstance(schema, BaseSchema):
             return schema._BaseSchema__journal
