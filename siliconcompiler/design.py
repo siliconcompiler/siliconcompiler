@@ -26,34 +26,72 @@ class DesignSchema(NamedSchema):
         self.__dependency = {}
         self.__fileset = None
 
-    def set_fileset(self, value):
-        """Sets the active fileset."""
+    def set_fileset(self, value: str):
+        """Sets the active fileset.
+
+        Args:
+        value (str): Name of fileset to activate.
+        """
         self.__fileset = value
 
     def get_fileset(self):
-        """Returns the active fileset."""
+        """Return the active fileset.
+
+        Returns:
+            str: Name of active fileset.
+        """
         return self.__fileset
 
     def set_option(self, option: Option, value, fileset=None):
-        """Sets an fileset option."""
+        """Sets an option in a fileset.
+
+        Args:
+           option (Option): Option enum or key name.
+           value: Value to assign to the option.
+           fileset (str, optional): Fileset name. Uses active fileset if not specified.
+        """
         if fileset is None:
             fileset =  self.__fileset
         self.set('fileset', fileset, option.value, value)
 
     def get_option(self, option: Option, fileset=None, package=None):
-        """Returns a fileset option."""
+        """Returns value of a fileset option.
+
+        Args:
+           option (Option): Option enum or key name.
+           fileset (str, optional): Fileset name. Uses active fileset if not specified.
+           package (str, optional): Dependency package to query instead of current design.
+
+        Returns:
+           Any: Value of the option.
+        """
         if fileset is None:
             fileset =  self.__fileset
         return self.get('fileset', fileset, option.value)
 
-    def set_param(self, name, value, fileset=None):
-        """Adds named design parameter value."""
+    def set_param(self, name: str, value : str, fileset=None):
+        """Sets a named design parameter for a fileset.
+
+        Args:
+            name (str): Parameter name.
+            value (str): Parameter value.
+            fileset (str, optional): Fileset name. Uses active fileset if not specified.
+        """
         if fileset is None:
             fileset =  self.__fileset
         self.set('fileset', fileset, 'param', name, value)
 
     def get_param(self, name, fileset=None, package=None):
-        """Returns a design parameter value."""
+        """Returns a named design parameter value.
+
+        Args:
+           name (str): Parameter name.
+           fileset (str, optional): Fileset name. Uses active fileset if not specified.
+           package (str, optional): Dependency package to query instead of current design.
+
+        Returns:
+            str: Parameter value
+        """
         if fileset is None:
             fileset =  self.__fileset
         if not package:
@@ -62,10 +100,14 @@ class DesignSchema(NamedSchema):
             return self.__dependency[package].get('fileset', fileset, 'param', name)
 
     def use(self, module):
-        '''
-        Stores module in local design dependency structure.
-        Records dependency in design schema.
-        '''
+        """Adds a module as a dependency.
+
+        Stores desuign object in design's dependency graph and records it
+        in the schema.
+
+        Args:
+            module: Design object.
+        """
         self.__dependency[module.name()] = {}
         self.__dependency[module.name()] = module
         self.add('dependency', module.name())
@@ -137,8 +179,15 @@ class DesignSchema(NamedSchema):
         self.add('fileset', fileset, 'file', filetype, filename)
 
     def get_file(self, fileset=None, filetype=None, package=None):
-        """
-        Returns a list of files.
+        """Returns a list of files from one or more filesets.
+
+        Args:
+            fileset (str or list[str], optional): Fileset(s) to query. Defaults to active fileset.
+            filetype (str or list[str], optional): File type(s) to filter by (e.g., 'verilog').
+            package (str, optional): Dependency package to query instead of current design.
+
+        Returns:
+            list[str]: List of file paths.
         """
 
         if fileset is None:
@@ -166,12 +215,17 @@ class DesignSchema(NamedSchema):
         return filelist
 
     def export(self, filename, fileset=None, filetype=None):
-        '''
-        Export design configuration.
-        Would be nice to insert this into schema with only
-        non-zero values set.
-        '''
+        """Exports design filesets to a configuration file.
 
+        Currently supports Verilog flist output only. Intended to support other
+        formats in the future.
+
+        Args:
+            filename (str or Path): Output file name.
+            fileset (str or list[str], optional): Fileset(s) to export. Defaults to active fileset.
+            filetype (str, optional): Export format (e.g., 'flist'). Inferred from file extension if not given.
+
+        """
         # select which filesets to dump
         if fileset is None:
             fileset = self.__fileset
