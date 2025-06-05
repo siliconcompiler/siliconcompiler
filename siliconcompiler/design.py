@@ -340,9 +340,3 @@ def schema_design(schema):
             example=["api: chip.set('dependency', 'stdlib')"],
             help=trim("""
             List of design packages this design depends on.""")))
-
-
-    #TODO: need more information to know what files to take
-    #TODO: hide param index in helper function
-    # remove bender/ etc
-    #
