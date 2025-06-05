@@ -120,6 +120,3 @@ def test_export():
     d.export("heartbeat.f", fileset=['rtl', 'tb'])
 
     assert Path('heartbeat.f').read_text() == golden.read_text()
-
-
-test_use()
