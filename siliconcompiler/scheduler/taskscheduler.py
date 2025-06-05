@@ -198,7 +198,8 @@ class TaskScheduler:
                     try:
                         packages = info["parent_pipe"].recv()
                         if isinstance(packages, dict):
-                            self.__chip._packages.update(packages)
+                            for package, path in packages.items():
+                                self.__chip.get("package", field="schema")._set_cache(package, path)
                     except:  # noqa E722
                         pass
 

@@ -383,13 +383,14 @@ class ToolSchema(NamedSchema):
                 envvars[lic_env] = ':'.join(license_file)
 
         if include_path:
-            path_param = self.get('path', field=None, step=self.__step, index=self.__index)
-            if path_param.get(field='package'):
-                raise NotImplementedError
+            path = self.find_files(
+                "path", step=self.__step, index=self.__index,
+                packages=self.__chip.get("package", field="schema").get_resolvers(self.__chip),
+                cwd=self.__chip.cwd,
+                missing_ok=True)
 
             envvars["PATH"] = os.getenv("PATH", os.defpath)
 
-            path = path_param.get(field=None).resolve_path()  # TODO: needs package search
             if path:
                 envvars["PATH"] = path + os.pathsep + envvars["PATH"]
 

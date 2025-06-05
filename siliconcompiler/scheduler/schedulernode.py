@@ -598,7 +598,7 @@ class SchedulerNode:
         self.__chip.schema = self.__chip.schema.get_base_schema()
 
         if self.__pipe:
-            self.__pipe.send(self.__chip._packages)
+            self.__pipe.send(self.__chip.get("package", field="schema").get_path_cache())
 
     def execute(self):
         self.logger.info(f'Running in {self.__workdir}')
