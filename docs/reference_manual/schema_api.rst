@@ -101,6 +101,9 @@ Full API
     :show-inheritance:
     :inherited-members:
 
+.. autoclass:: Journal
+    :members:
+
 .. autoclass:: NamedSchema
     :members:
     :show-inheritance:

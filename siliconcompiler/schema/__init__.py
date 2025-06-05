@@ -1,4 +1,5 @@
 from .parameter import Parameter, Scope, PerNode
+from .journal import Journal
 from .safeschema import SafeSchema
 from .editableschema import EditableSchema
 from .baseschema import BaseSchema
@@ -20,5 +21,6 @@ __all__ = [
     "PackageSchema",
     "Parameter",
     "Scope",
-    "PerNode"
+    "PerNode",
+    "Journal"
 ]
