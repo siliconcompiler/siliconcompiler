@@ -1,5 +1,6 @@
 from siliconcompiler.design import DesignSchema
 
+
 class Increment(DesignSchema):
 
     def __init__(self):
@@ -10,6 +11,6 @@ class Increment(DesignSchema):
         source = ['data/increment.v']
 
         # rtl
-        self.fileset='rtl'
-        self.topmodule='increment'
+        self.set_fileset('rtl')
+        self.set_topmodule('increment')
         self.add_file(source)

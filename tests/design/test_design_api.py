@@ -1,8 +1,6 @@
-import os
-import pytest
-import json
 from pathlib import Path
 from siliconcompiler.design import DesignSchema
+
 
 def test_add_file():
     d = DesignSchema("test")
@@ -39,6 +37,7 @@ def test_get_file():
 
     # get verilog rtl only
     assert d.get_file(fileset='rtl', filetype='verilog') == ['one.v']
+
 
 def test_options():
 
@@ -77,6 +76,7 @@ def test_options():
     d.set_undefine(undefs)
     assert d.get_undefine() == undefs
 
+
 def test_param():
 
     d = DesignSchema("test")
@@ -89,6 +89,7 @@ def test_param():
     d.set_param(name, val)
     assert d.get_param(name)  == val
 
+
 def test_use():
 
     lib = DesignSchema('mylib')
@@ -99,6 +100,7 @@ def test_use():
     d.use(lib)
     l = d.depends('mylib')
     assert l[0].get_file(fileset='rtl') == ['mylib.v']
+
 
 def test_write():
 
@@ -119,5 +121,3 @@ def test_write():
     d.write("heartbeat.f", fileset=['rtl', 'tb'])
 
     assert Path('heartbeat.f').read_text() == golden.read_text()
-
-test_use()

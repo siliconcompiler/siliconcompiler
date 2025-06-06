@@ -1,5 +1,4 @@
 from siliconcompiler.design import DesignSchema
-
 from increment import Increment
 
 class Heartbeat(DesignSchema):
@@ -11,7 +10,7 @@ class Heartbeat(DesignSchema):
         # files
         source = ['data/heartbeat.v']
         sdc = ['data/heartbeat.sdc']
-        tb =  ['data/tb.v']
+        tb = ['data/tb.v']
 
         # rtl
         self.set_fileset('rtl')
@@ -29,10 +28,3 @@ class Heartbeat(DesignSchema):
 
         # dependencie
         self.use(Increment())
-
-#self.package_root()
-#self.package_home(path='git+https://github.com/acme')
-#d = Heartbeat()
-
-#self.use(Heartbeat())<--!!!!
-#self.use(Heartbeat)
