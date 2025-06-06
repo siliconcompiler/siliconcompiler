@@ -2,12 +2,10 @@ import os
 import pytest
 import json
 from pathlib import Path
-from siliconcompiler.design import DesignSchema, Option
+from siliconcompiler.design import DesignSchema
 
 def test_add_file():
-    d = DesignSchema()
-
-
+    d = DesignSchema("test")
 
     # explicit file add
     files = ['one.v', 'two.v']
@@ -26,7 +24,7 @@ def test_add_file():
 
 
 def test_get_file():
-    d = DesignSchema()
+    d = DesignSchema("test")
 
     d.add_file(['one.v'], fileset='rtl', filetype='verilog')
     d.add_file(['tb.v'], fileset='testbench')
@@ -44,44 +42,44 @@ def test_get_file():
 
 def test_options():
 
-    d = DesignSchema()
+    d = DesignSchema("test")
 
     # create fileset context
     d.set_fileset('rtl')
 
     # top module
     top = 'mytop'
-    d.set_option(Option.topmodule, top)
-    assert d.get_option(Option.topmodule) == top
+    d.set_topmodule(top)
+    assert d.get_topmodule() == top
 
     # idir
     idirs = ['/home/acme/incdir1', '/home/acme/incdir2']
-    d.set_option(Option.idir, idirs)
-    assert d.get_option(Option.idir) == idirs
+    d.set_idir(idirs)
+    assert d.get_idir() == idirs
 
     # libdirs
     libdirs = ['/usr/lib']
-    d.set_option(Option.libdir, libdirs)
-    assert d.get_option(Option.libdir) == libdirs
+    d.set_libdir(libdirs)
+    assert d.get_libdir() == libdirs
 
     # libs
     libs = ['lib1', 'lib2']
-    d.set_option(Option.lib, libs)
-    assert d.get_option(Option.lib) == libs
+    d.set_lib(libs)
+    assert d.get_lib() == libs
 
     # define
     defs = ['CFG_TARGET=FPGA']
-    d.set_option(Option.define, defs)
-    assert d.get_option(Option.define) == defs
+    d.set_define(defs)
+    assert d.get_define() == defs
 
     # undefine
     undefs = ['CFG_TARGET']
-    d.set_option(Option.undefine, undefs)
-    assert d.get_option(Option.undefine) == undefs
+    d.set_undefine(undefs)
+    assert d.get_undefine() == undefs
 
 def test_param():
 
-    d = DesignSchema()
+    d = DesignSchema("test")
 
     d.set_fileset('rtl')
 
@@ -94,29 +92,32 @@ def test_param():
 def test_use():
 
     lib = DesignSchema('mylib')
+    lib.set_fileset('rtl')
     lib.add_file('mylib.v')
 
-    d = DesignSchema()
+    d = DesignSchema("test")
     d.use(lib)
-    d.set_fileset('rtl')
-    assert d.get_file(package='mylib') == ['mylib.v']
+    l = d.depends('mylib')
+    assert l[0].get_file(fileset='rtl') == ['mylib.v']
 
-def test_export():
+def test_write():
 
-    d = DesignSchema()
+    d = DesignSchema("test")
 
     golden = Path(__file__).parent/'data'/'heartbeat.f'
 
     d.set_fileset('rtl')
     d.add_file(['data/heartbeat.v', 'data/increment.v'])
-    d.set_option(Option.define, 'ASIC')
-    d.set_option(Option.idir, './data')
-    d.set_option(Option.topmodule, 'heartbeat')
+    d.set_define('ASIC')
+    d.set_idir('./data')
+    d.set_topmodule('heartbeat')
 
     d.set_fileset('tb')
     d.add_file(['data/tb.v'])
-    d.set_option(Option.define, 'VERILATOR')
+    d.set_define('VERILATOR')
 
-    d.export("heartbeat.f", fileset=['rtl', 'tb'])
+    d.write("heartbeat.f", fileset=['rtl', 'tb'])
 
     assert Path('heartbeat.f').read_text() == golden.read_text()
+
+test_use()

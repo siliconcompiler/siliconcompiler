@@ -14,11 +14,11 @@ def test_design_keys():
                           ('dependency',) # TODO: why does schema returna  comma for one key?
                           ])
 
-    assert sorted(DesignSchema().allkeys()) == golden_keys
+    assert sorted(DesignSchema("test").allkeys()) == golden_keys
 
 
 def test_design_values():
-    d = DesignSchema()
+    d = DesignSchema("test")
 
     # top module
     top = 'mytop'
