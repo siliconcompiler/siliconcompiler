@@ -6,6 +6,7 @@ from .baseschema import BaseSchema
 from .cmdlineschema import CommandLineSchema
 from .namedschema import NamedSchema
 from .packageschema import PackageSchema
+from .useschema import UseSchema
 
 from .schema_cfg import SCHEMA_VERSION
 
@@ -20,5 +21,6 @@ __all__ = [
     "Parameter",
     "Scope",
     "PerNode",
-    "Journal"
+    "Journal",
+    "UseSchema"
 ]

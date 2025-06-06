@@ -104,6 +104,9 @@ Full API
     :show-inheritance:
     :inherited-members:
 
+.. autoclass:: UseSchema
+    :members:
+
 .. autoclass:: PackageSchema
     :members:
     :show-inheritance:
