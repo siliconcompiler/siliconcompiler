@@ -27,5 +27,5 @@ class Heartbeat(DesignSchema):
         self.set_topmodule('tb')
         self.add_file(tb)
 
-        # dependencie
+        # dependencies
         self.use(Increment())

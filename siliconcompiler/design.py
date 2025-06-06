@@ -338,7 +338,7 @@ class DesignSchema(NamedSchema):
 
         filelist = []
         for i in fileset:
-            # handle scalar+list in argumnet
+            # handle scalar+list in argument
             if not filetype:
                 filetype = list(self.getkeys('fileset', i, 'file'))
             # grab the files
@@ -502,7 +502,7 @@ def schema_design(schema):
             Specifies directories to scan for libraries provided with the
             :keypath:`lib` parameter. If multiple paths are provided, they are
             searched based on the order of the libdir list. The libdir
-            parameter is transalted to the '-y' option in verilog based tools.""")))
+            parameter is translated to the '-y' option in verilog based tools.""")))
 
     schema.insert(
         'fileset', fileset, 'lib',
