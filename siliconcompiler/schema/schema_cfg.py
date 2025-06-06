@@ -214,7 +214,7 @@ def schema_fpga(cfg):
 ###############################################################################
 def schema_pdk(cfg):
     from siliconcompiler.pdk import PDKSchema
-    cfg.insert("pdk", "default", PDKSchema())
+    cfg.insert("pdk", "default", PDKSchema(None))
     return cfg
 
 
@@ -1018,7 +1018,7 @@ def schema_datasheet(cfg):
 ###############################################################################
 def schema_flowgraph(cfg):
     from siliconcompiler.flowgraph import FlowgraphSchema
-    cfg.insert("flowgraph", "default", FlowgraphSchema())
+    cfg.insert("flowgraph", "default", FlowgraphSchema(None))
     return cfg
 
 
@@ -1783,7 +1783,7 @@ def schema_package(cfg):
 ############################################
 def schema_checklist(cfg):
     from siliconcompiler.checklist import ChecklistSchema
-    cfg.insert("checklist", "default", ChecklistSchema())
+    cfg.insert("checklist", "default", ChecklistSchema(None))
     return cfg
 
 
