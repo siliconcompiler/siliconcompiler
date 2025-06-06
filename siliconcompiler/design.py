@@ -214,7 +214,7 @@ class DesignSchema(NamedSchema):
 
         return filelist
 
-    def export(self, filename, fileset=None, filetype=None):
+    def export(self, filename, fileset, filetype=None):
         """Exports design filesets to a configuration file.
 
         Currently supports Verilog flist output only. Intended to support other
@@ -222,13 +222,10 @@ class DesignSchema(NamedSchema):
 
         Args:
             filename (str or Path): Output file name.
-            fileset (str or list[str], optional): Fileset(s) to export. Defaults to active fileset.
+            fileset (str or list[str]): Fileset(s) to export. Defaults to active fileset.
             filetype (str, optional): Export format (e.g., 'flist'). Inferred from file extension if not given.
 
         """
-        # select which filesets to dump
-        if fileset is None:
-            fileset = self.__fileset
         if not isinstance(fileset, list):
             fileset = [fileset]
 
