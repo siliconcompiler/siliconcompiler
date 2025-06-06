@@ -44,50 +44,52 @@ def test_options():
     d = DesignSchema("test")
 
     # create fileset context
-    d.set_fileset('rtl')
+    fileset = 'rtl'
+    d.set_fileset(fileset)
 
     # top module
     top = 'mytop'
     d.set_topmodule(top)
-    assert d.get_topmodule() == top
+    assert d.get_topmodule(fileset) == top
 
     # idir
     idirs = ['/home/acme/incdir1', '/home/acme/incdir2']
     d.set_idir(idirs)
-    assert d.get_idir() == idirs
+    assert d.get_idir(fileset) == idirs
 
     # libdirs
     libdirs = ['/usr/lib']
     d.set_libdir(libdirs)
-    assert d.get_libdir() == libdirs
+    assert d.get_libdir(fileset) == libdirs
 
     # libs
     libs = ['lib1', 'lib2']
     d.set_lib(libs)
-    assert d.get_lib() == libs
+    assert d.get_lib(fileset) == libs
 
     # define
     defs = ['CFG_TARGET=FPGA']
     d.set_define(defs)
-    assert d.get_define() == defs
+    assert d.get_define(fileset) == defs
 
     # undefine
     undefs = ['CFG_TARGET']
     d.set_undefine(undefs)
-    assert d.get_undefine() == undefs
+    assert d.get_undefine(fileset) == undefs
 
 
 def test_param():
 
     d = DesignSchema("test")
 
-    d.set_fileset('rtl')
+    fileset='rtl'
+    d.set_fileset(fileset)
 
     # param
     name = 'N'
     val = '2'
     d.set_param(name, val)
-    assert d.get_param(name) == val
+    assert d.get_param(name,fileset) == val
 
 
 def test_use():
