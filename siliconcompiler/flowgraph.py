@@ -9,7 +9,7 @@ from siliconcompiler import NodeStatus
 
 
 class FlowgraphSchema(NamedSchema):
-    def __init__(self, name=None):
+    def __init__(self, name):
         super().__init__(name=name)
 
         schema = EditableSchema(self)
