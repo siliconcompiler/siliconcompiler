@@ -1,16 +1,16 @@
-import json
 from pathlib import Path
-from typing import Optional, Union, List, Dict
+from typing import List
 from siliconcompiler.schema import NamedSchema
 from siliconcompiler.schema import EditableSchema, Parameter, Scope
 from siliconcompiler.schema.utils import trim
 from siliconcompiler import utils
+from siliconcompiler.error import SiliconCompilerError
+
+# TODO: better name than 'fileset'
+# TODO: use, dependency should move elsewhere
 
 
-#TODO: better name than 'fileset'
-#TODO: use, dependency should move elsewhere
-#TODO: add typing? hints?
-
+###########################################################################
 class DesignSchema(NamedSchema):
 
     def __init__(self, name: str):
@@ -37,7 +37,7 @@ class DesignSchema(NamedSchema):
         return self.__fileset
 
     ############################################
-    def set_topmodule(self, value:str, fileset:str = None) -> None:
+    def set_topmodule(self, value: str, fileset: str = None) -> None:
         """Sets topmodule for a fileset.
 
         Args:
@@ -46,10 +46,10 @@ class DesignSchema(NamedSchema):
 
         """
         if fileset is None:
-            fileset =  self.__fileset
+            fileset = self.__fileset
         self.set('fileset', fileset, 'topmodule', value)
 
-    def get_topmodule(self, fileset:str = None) -> str:
+    def get_topmodule(self, fileset: str = None) -> str:
         """Returns topmodule for a fileset.
 
         Args:
@@ -60,11 +60,11 @@ class DesignSchema(NamedSchema):
 
         """
         if fileset is None:
-            fileset =  self.__fileset
+            fileset = self.__fileset
         return self.get('fileset', fileset, 'topmodule')
 
     ##############################################
-    def set_idir(self, value:str, fileset=None) -> None:
+    def set_idir(self, value: str, fileset=None) -> None:
         """Sets include directories for a fileset.
 
         Args:
@@ -73,7 +73,7 @@ class DesignSchema(NamedSchema):
 
         """
         if fileset is None:
-            fileset =  self.__fileset
+            fileset = self.__fileset
         self.set('fileset', fileset, 'idir', value)
 
     def get_idir(self, fileset=None) -> List[str]:
@@ -87,11 +87,11 @@ class DesignSchema(NamedSchema):
 
         """
         if fileset is None:
-            fileset =  self.__fileset
+            fileset = self.__fileset
         return self.get('fileset', fileset, 'idir')
 
     ##############################################
-    def set_define(self, value:str, fileset=None) -> None:
+    def set_define(self, value: str, fileset=None) -> None:
         """Defines a macro for a fileset.
 
         Args:
@@ -99,7 +99,7 @@ class DesignSchema(NamedSchema):
            fileset (str, optional): Fileset name.
         """
         if fileset is None:
-            fileset =  self.__fileset
+            fileset = self.__fileset
         self.set('fileset', fileset, 'define', value)
 
     def get_define(self, fileset=None) -> List[str]:
@@ -113,11 +113,11 @@ class DesignSchema(NamedSchema):
 
         """
         if fileset is None:
-            fileset =  self.__fileset
+            fileset = self.__fileset
         return self.get('fileset', fileset, 'define')
 
     ##############################################
-    def set_undefine(self, value:str , fileset:str =None)-> None:
+    def set_undefine(self, value: str, fileset: str = None) -> None:
         """Undefines a preprocessor macro for a fileset.
 
         Args:
@@ -125,7 +125,7 @@ class DesignSchema(NamedSchema):
            fileset (str, optional): Fileset name.
         """
         if fileset is None:
-            fileset =  self.__fileset
+            fileset = self.__fileset
         self.set('fileset', fileset, 'undefine', value)
 
     def get_undefine(self, fileset=None) -> List[str]:
@@ -139,11 +139,11 @@ class DesignSchema(NamedSchema):
 
         """
         if fileset is None:
-            fileset =  self.__fileset
+            fileset = self.__fileset
         return self.get('fileset', fileset, 'undefine')
 
     ###############################################
-    def set_libdir(self, value:str, fileset=None) -> None:
+    def set_libdir(self, value: str, fileset=None) -> None:
         """Sets dynamic library directories for a fileset.
 
         Args:
@@ -151,7 +151,7 @@ class DesignSchema(NamedSchema):
            fileset (str, optional): Fileset name.
         """
         if fileset is None:
-            fileset =  self.__fileset
+            fileset = self.__fileset
         self.set('fileset', fileset, 'libdir', value)
 
     def get_libdir(self, fileset=None) -> List[str]:
@@ -165,11 +165,11 @@ class DesignSchema(NamedSchema):
 
         """
         if fileset is None:
-            fileset =  self.__fileset
+            fileset = self.__fileset
         return self.get('fileset', fileset, 'libdir')
 
     ###############################################
-    def set_lib(self, value:str, fileset=None) -> None:
+    def set_lib(self, value: str, fileset=None) -> None:
         """Sets list of dynamic libraries for a fileset.
 
         Args:
@@ -177,7 +177,7 @@ class DesignSchema(NamedSchema):
            fileset (str, optional): Fileset name.
         """
         if fileset is None:
-            fileset =  self.__fileset
+            fileset = self.__fileset
         self.set('fileset', fileset, 'lib', value)
 
     def get_lib(self, fileset=None) -> List[str]:
@@ -191,11 +191,11 @@ class DesignSchema(NamedSchema):
 
         """
         if fileset is None:
-            fileset =  self.__fileset
+            fileset = self.__fileset
         return self.get('fileset', fileset, 'lib')
 
     ###############################################
-    def set_param(self, name: str, value : str, fileset:str=None) -> None:
+    def set_param(self, name: str, value: str, fileset: str = None) -> None:
         """Sets a named design parameter for a fileset.
 
         Args:
@@ -204,10 +204,10 @@ class DesignSchema(NamedSchema):
             fileset (str, optional): Fileset name.
         """
         if fileset is None:
-            fileset =  self.__fileset
+            fileset = self.__fileset
         self.set('fileset', fileset, 'param', name, value)
 
-    def get_param(self, name:str, fileset=None) -> str:
+    def get_param(self, name: str, fileset=None) -> str:
         """Returns value of a named design parameter.
 
         Args:
@@ -218,7 +218,7 @@ class DesignSchema(NamedSchema):
             str: Parameter value
         """
         if fileset is None:
-            fileset =  self.__fileset
+            fileset = self.__fileset
         return self.get('fileset', fileset, 'param', name)
 
     ###############################################
@@ -235,7 +235,7 @@ class DesignSchema(NamedSchema):
         self.__dependency[module.name()] = module
         self.add('dependency', module.name())
 
-    def depends(self, name :str = None):
+    def depends(self, name: str = None):
         """Returns a set of dependency design objects.
 
         Args:
@@ -250,7 +250,7 @@ class DesignSchema(NamedSchema):
             return list(self.__dependency.values())
 
     ###############################################
-    def add_file(self, filename, fileset=None, filetype=None, package=None):
+    def add_file(self, filename: str, fileset=None, filetype=None, package=None):
         """
         Adds a file (or list of files) to a fileset.
 
@@ -300,7 +300,7 @@ class DesignSchema(NamedSchema):
         default_fileset, default_filetype = utils.get_default_iomap()[ext]
 
         if not fileset and self.__fileset:
-            fileset =  self.__fileset
+            fileset = self.__fileset
         elif not fileset:
             fileset = default_fileset
 
@@ -310,14 +310,14 @@ class DesignSchema(NamedSchema):
         # final error checking
         if not fileset or not filetype:
             raise SiliconCompilerError(
-                f'Unable to infer {category} fileset and/or filetype for '
+                f'Unable to infer fileset and/or filetype for '
                 f'{filename} based on file extension.')
 
         # adding files to dictionary
         self.add('fileset', fileset, 'file', filetype, filename)
 
     ###############################################
-    def get_file(self, fileset:str = None, filetype:str = None):
+    def get_file(self, fileset: str = None, filetype: str = None):
         """Returns a list of files from one or more filesets.
 
         Args:
@@ -343,12 +343,12 @@ class DesignSchema(NamedSchema):
                 filetype = list(self.getkeys('fileset', i, 'file'))
             # grab the files
             for j in filetype:
-                filelist.extend(self.get('fileset', i, 'file',j))
+                filelist.extend(self.get('fileset', i, 'file', j))
 
         return filelist
 
     ###############################################
-    def write(self, filename:str, fileset: str, fileformat=None) -> None:
+    def write(self, filename: str, fileset: str, fileformat=None) -> None:
         """Exports filesets to a formatted text file.
 
         Currently supports Verilog `flist` format only.
@@ -392,7 +392,7 @@ class DesignSchema(NamedSchema):
                                 f.write(f"{cmd}{item}\n")
 
     ################################################
-    def read(self, filename:str, fileset: str, fileformat=None) -> None:
+    def read(self, filename: str, fileset: str, fileformat=None) -> None:
         """Imports filesets from a formatted text file.
 
         Currently supports Verilog `flist` format only.
@@ -401,10 +401,11 @@ class DesignSchema(NamedSchema):
         Args:
             filename (str or Path): Output file name.
             fileset (str or list[str]): Fileset(s) to export. Defaults to active fileset.
-            fileformat (str, optional): Export format (e.g., 'flist'). Inferred from file extension if not given.
+            fileformat (str, optional): Export format. Inferred from file extension if not given.
 
         """
         pass
+
 
 ###########################################################################
 # Schema
