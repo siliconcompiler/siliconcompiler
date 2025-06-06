@@ -4,7 +4,7 @@ from siliconcompiler.schema.utils import trim
 
 
 class ChecklistSchema(NamedSchema):
-    def __init__(self, name=None):
+    def __init__(self, name):
         super().__init__(name=name)
 
         schema_checklist(self)
