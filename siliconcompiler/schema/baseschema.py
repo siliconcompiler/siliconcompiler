@@ -79,16 +79,17 @@ class BaseSchema:
         '''
         Create a new schema based on the provided source files.
 
-        The two arguments to this class are mutually exclusive.
+        The two arguments to this method are mutually exclusive.
 
         Args:
             filepath (path): Initial manifest.
             cfg (dict): Initial configuration dictionary.
         '''
 
-        schema = cls()
         if not filepath and cfg is None:
             raise RuntimeError("filepath or dictionary is required")
+
+        schema = cls()
         if filepath:
             schema.read_manifest(filepath)
         if cfg:

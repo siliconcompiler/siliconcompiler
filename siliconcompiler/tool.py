@@ -61,8 +61,8 @@ class TaskExecutableNotFound(TaskError):
 
 
 class TaskSchema(NamedSchema):
-    def __init__(self, name=None):
-        super().__init__(name=name)
+    def __init__(self, name):
+        super().__init__(name)
 
         schema_task(self)
 
@@ -107,13 +107,13 @@ class ToolSchema(NamedSchema):
         r"^\s*" + __parse_version_check_str + r"\s*$",
         re.VERBOSE | re.IGNORECASE)
 
-    def __init__(self, name=None):
-        super().__init__(name=name)
+    def __init__(self, name):
+        super().__init__(name)
 
         schema_tool(self)
 
         schema = EditableSchema(self)
-        schema.insert("task", "default", TaskSchema())
+        schema.insert("task", "default", TaskSchema(None))
 
         self.set_runtime(None)
 
@@ -865,6 +865,9 @@ class ToolSchema(NamedSchema):
 # Migration helper
 ###########################################################################
 class ToolSchemaTmp(ToolSchema):
+    def __init__(self):
+        super().__init__(None)
+
     def __module_func(self, name, modules):
         for module in modules:
             method = getattr(module, name, None)
