@@ -21,7 +21,7 @@ def rtl2gds(target=skywater130_demo):
     chip.set('option', 'quiet', True)
     chip.set('option', 'remote', False)
 
-    chip.clock('clk', period=30)
+    chip.clock('clk', period=25)
 
     # RUN
     chip.run()

@@ -75,6 +75,8 @@ def limit_cpus(monkeypatch, request):
     '''
     if 'eda' not in request.keywords:
         return
+    if 'nocpulimit' in request.keywords:
+        return
 
     org_cpus = utils.get_cores(siliconcompiler.Chip("dummy"))
 
