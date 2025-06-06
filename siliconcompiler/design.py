@@ -49,18 +49,16 @@ class DesignSchema(NamedSchema):
             fileset = self.__fileset
         self.set('fileset', fileset, 'topmodule', value)
 
-    def get_topmodule(self, fileset: str = None) -> str:
+    def get_topmodule(self, fileset: str) -> str:
         """Returns topmodule for a fileset.
 
         Args:
-           fileset (str, optional): Fileset name.
+           fileset (str): Fileset name.
 
         Returns:
            str: Topmodule name
 
         """
-        if fileset is None:
-            fileset = self.__fileset
         return self.get('fileset', fileset, 'topmodule')
 
     ##############################################
@@ -76,18 +74,16 @@ class DesignSchema(NamedSchema):
             fileset = self.__fileset
         self.set('fileset', fileset, 'idir', value)
 
-    def get_idir(self, fileset=None) -> List[str]:
+    def get_idir(self, fileset: str) -> List[str]:
         """Returns include directories for a fileset.
 
         Args:
-           fileset (str, optional): Fileset name.
+           fileset (str): Fileset name.
 
         Returns:
            list[str]: Topmodule name
 
         """
-        if fileset is None:
-            fileset = self.__fileset
         return self.get('fileset', fileset, 'idir')
 
     ##############################################
@@ -102,18 +98,16 @@ class DesignSchema(NamedSchema):
             fileset = self.__fileset
         self.set('fileset', fileset, 'define', value)
 
-    def get_define(self, fileset=None) -> List[str]:
+    def get_define(self, fileset: str) -> List[str]:
         """Returns defined macros for a fileset.
 
         Args:
-           fileset (str, optional): Fileset name.
+           fileset (str): Fileset name.
 
         Returns:
            list[str]: List of macro definitions
 
         """
-        if fileset is None:
-            fileset = self.__fileset
         return self.get('fileset', fileset, 'define')
 
     ##############################################
@@ -128,18 +122,16 @@ class DesignSchema(NamedSchema):
             fileset = self.__fileset
         self.set('fileset', fileset, 'undefine', value)
 
-    def get_undefine(self, fileset=None) -> List[str]:
+    def get_undefine(self, fileset: str) -> List[str]:
         """Returns undefined macros for a fileset.
 
         Args:
-           fileset (str, optional): Fileset name.
+           fileset (str): Fileset name.
 
         Returns:
            list[str]: List of macro (un)definitions
 
         """
-        if fileset is None:
-            fileset = self.__fileset
         return self.get('fileset', fileset, 'undefine')
 
     ###############################################
@@ -154,18 +146,16 @@ class DesignSchema(NamedSchema):
             fileset = self.__fileset
         self.set('fileset', fileset, 'libdir', value)
 
-    def get_libdir(self, fileset=None) -> List[str]:
+    def get_libdir(self, fileset: str) -> List[str]:
         """Returns dynamic library directories for a fileset.
 
         Args:
-           fileset (str, optional): Fileset name.
+           fileset (str): Fileset name.
 
         Returns:
            list[str]: List of library directories.
 
         """
-        if fileset is None:
-            fileset = self.__fileset
         return self.get('fileset', fileset, 'libdir')
 
     ###############################################
@@ -180,11 +170,11 @@ class DesignSchema(NamedSchema):
             fileset = self.__fileset
         self.set('fileset', fileset, 'lib', value)
 
-    def get_lib(self, fileset=None) -> List[str]:
+    def get_lib(self, fileset: str) -> List[str]:
         """Returns list of dynamic libraries for a fileset.
 
         Args:
-           fileset (str, optional): Fileset name.
+           fileset (str): Fileset name.
 
         Returns:
            list[str]: List of libraries.
@@ -207,12 +197,12 @@ class DesignSchema(NamedSchema):
             fileset = self.__fileset
         self.set('fileset', fileset, 'param', name, value)
 
-    def get_param(self, name: str, fileset=None) -> str:
+    def get_param(self, name: str, fileset: str) -> str:
         """Returns value of a named design parameter.
 
         Args:
            name (str): Parameter name.
-           fileset (str, optional): Fileset name.
+           fileset (str): Fileset name.
 
         Returns:
             str: Parameter value
@@ -317,19 +307,17 @@ class DesignSchema(NamedSchema):
         self.add('fileset', fileset, 'file', filetype, filename)
 
     ###############################################
-    def get_file(self, fileset: str = None, filetype: str = None):
+    def get_file(self, fileset: str, filetype: str = None):
         """Returns a list of files from one or more filesets.
 
         Args:
-            fileset (str or list[str], optional): Fileset(s) to query. Defaults to active fileset.
+            fileset (str or list[str]): Fileset(s) to query. Defaults to active fileset.
             filetype (str or list[str], optional): File type(s) to filter by (e.g., 'verilog').
 
         Returns:
             list[str]: List of file paths.
         """
 
-        if fileset is None:
-            fileset = self.__fileset
         if not isinstance(fileset, list):
             fileset = [fileset]
 
