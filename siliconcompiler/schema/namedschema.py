@@ -26,6 +26,12 @@ class NamedSchema(BaseSchema):
         '''
         return self.__name
 
+    def _reset(self) -> None:
+        """
+        Resets the state of the object
+        """
+        pass
+
     @classmethod
     def from_manifest(cls, name, filepath=None, cfg=None):
         '''
