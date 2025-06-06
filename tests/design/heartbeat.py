@@ -1,6 +1,7 @@
 from siliconcompiler.design import DesignSchema
 from increment import Increment
 
+
 class Heartbeat(DesignSchema):
 
     def __init__(self):

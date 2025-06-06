@@ -29,9 +29,9 @@ def test_get_file():
     d.add_file(['one.vhdl'])
 
     # get all files
-    assert d.get_file(fileset=['rtl','testbench']) == (['one.v'] +
-                                                       ['one.vhdl'] +
-                                                       ['tb.v'])
+    assert d.get_file(fileset=['rtl', 'testbench']) == (['one.v'] +
+                                                        ['one.vhdl'] +
+                                                        ['tb.v'])
     # get rtl only
     assert d.get_file(fileset='rtl') == ['one.v'] + ['one.vhdl']
 
@@ -87,7 +87,7 @@ def test_param():
     name = 'N'
     val = '2'
     d.set_param(name, val)
-    assert d.get_param(name)  == val
+    assert d.get_param(name) == val
 
 
 def test_use():
@@ -98,8 +98,8 @@ def test_use():
 
     d = DesignSchema("test")
     d.use(lib)
-    l = d.depends('mylib')
-    assert l[0].get_file(fileset='rtl') == ['mylib.v']
+    lib = d.depends('mylib')
+    assert lib[0].get_file(fileset='rtl') == ['mylib.v']
 
 
 def test_write():

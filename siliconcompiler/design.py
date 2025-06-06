@@ -4,7 +4,7 @@ from siliconcompiler.schema import NamedSchema
 from siliconcompiler.schema import EditableSchema, Parameter, Scope
 from siliconcompiler.schema.utils import trim
 from siliconcompiler import utils
-from siliconcompiler.error import SiliconCompilerError
+from siliconcompiler import SiliconCompilerError
 
 # TODO: better name than 'fileset'
 # TODO: use, dependency should move elsewhere
