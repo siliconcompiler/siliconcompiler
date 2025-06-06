@@ -82,14 +82,14 @@ def test_param():
 
     d = DesignSchema("test")
 
-    fileset='rtl'
+    fileset = 'rtl'
     d.set_fileset(fileset)
 
     # param
     name = 'N'
     val = '2'
     d.set_param(name, val)
-    assert d.get_param(name,fileset) == val
+    assert d.get_param(name, fileset) == val
 
 
 def test_use():
