@@ -5,7 +5,7 @@ from .namedschema import NamedSchema
 
 class UseSchema:
     '''
-    Schema extention to add :meth:`.use` capability to a schema section.
+    Schema extension to add :meth:`.use` capability to a schema section.
     '''
 
     def __init__(self):
@@ -151,7 +151,7 @@ class UseSchema:
         Returns all dependencies associated with this object.
 
         Args:
-            hierarchy (bool): if True, will return all dependencies including childen
+            hierarchy (bool): if True, will return all dependencies including children
                 otherwise only this objects dependencies are returned.
         '''
 
