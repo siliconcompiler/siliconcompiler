@@ -22,7 +22,7 @@ def test_use():
 
     dep = NamedSchema("thisname")
     assert use.use(dep)
-    assert use.get_dependency("thisname") is dep
+    assert use.get_use("thisname") is dep
 
 
 def test_use_confirm_reset():
@@ -49,9 +49,9 @@ def test_use_clobber():
     dep0 = NamedSchema("thisname")
     dep1 = NamedSchema("thisname")
     assert use.use(dep0)
-    assert use.get_dependency("thisname") is dep0
+    assert use.get_use("thisname") is dep0
     assert use.use(dep1, clobber=True)
-    assert use.get_dependency("thisname") is dep1
+    assert use.get_use("thisname") is dep1
 
 
 def test_use_no_clobber():
@@ -60,36 +60,36 @@ def test_use_no_clobber():
     dep0 = NamedSchema("thisname")
     dep1 = NamedSchema("thisname")
     assert use.use(dep0)
-    assert use.get_dependency("thisname") is dep0
+    assert use.get_use("thisname") is dep0
     assert use.use(dep1, clobber=False) is False
-    assert use.get_dependency("thisname") is dep0
+    assert use.get_use("thisname") is dep0
 
 
-def test_get_dependency_not_found():
+def test_get_use_not_found():
     use = UseSchema()
 
-    with pytest.raises(KeyError, match="notthere is not an imported dependency"):
-        use.get_dependency("notthere")
+    with pytest.raises(KeyError, match="notthere is not an imported module"):
+        use.get_use("notthere")
 
 
-def test_remove_dependency_not_there():
+def test_remove_use_not_there():
     use = UseSchema()
-    assert use.remove_dependency("notthere") is False
+    assert use.remove_use("notthere") is False
 
 
-def test_remove_dependency():
+def test_remove_use():
     use = UseSchema()
     use.use(NamedSchema("thisname"))
-    assert use.get_dependency("thisname")
-    assert use.remove_dependency("thisname") is True
-    assert use.get_all_dependencies() == []
+    assert use.get_use("thisname")
+    assert use.remove_use("thisname") is True
+    assert use.get_all_used() == []
 
 
-def test_get_all_dependencies_empty():
-    assert UseSchema().get_all_dependencies() == []
+def test_get_all_used_empty():
+    assert UseSchema().get_all_used() == []
 
 
-def test_get_all_dependencies():
+def test_get_all_used():
     class Test(NamedSchema, UseSchema):
         def __init__(self, name):
             NamedSchema.__init__(self, name)
@@ -108,10 +108,10 @@ def test_get_all_dependencies():
     assert use.use(dep00)
     assert use.use(dep01)
 
-    assert use.get_all_dependencies() == [dep00, dep10, dep01, dep11]
+    assert use.get_all_used() == [dep00, dep10, dep01, dep11]
 
 
-def test_get_all_dependencies_no_hier():
+def test_get_all_used_no_hier():
     class Test(NamedSchema, UseSchema):
         def __init__(self, name):
             NamedSchema.__init__(self, name)
@@ -130,10 +130,10 @@ def test_get_all_dependencies_no_hier():
     assert use.use(dep00)
     assert use.use(dep01)
 
-    assert use.get_all_dependencies(hierarchy=False) == [dep00, dep01]
+    assert use.get_all_used(hierarchy=False) == [dep00, dep01]
 
 
-def test_get_all_dependencies_repeats():
+def test_get_all_used_repeats():
     class Test(NamedSchema, UseSchema):
         def __init__(self, name):
             NamedSchema.__init__(self, name)
@@ -153,10 +153,10 @@ def test_get_all_dependencies_repeats():
     assert use.use(dep00)
     assert use.use(dep01)
 
-    assert use.get_all_dependencies() == [dep00, dep10, dep11, dep01]
+    assert use.get_all_used() == [dep00, dep10, dep11, dep01]
 
 
-def test_get_all_dependencies_non_use():
+def test_get_all_used_non_use():
     class Test(NamedSchema, UseSchema):
         def __init__(self, name):
             NamedSchema.__init__(self, name)
@@ -179,11 +179,11 @@ def test_get_all_dependencies_non_use():
     assert use.use(dep00)
     assert use.use(dep01)
 
-    assert use.get_all_dependencies() == \
+    assert use.get_all_used() == \
         [dep00, dep10, dep20, dep01, dep11, dep21]
 
 
-def test_get_all_dependencies_circle():
+def test_get_all_used_circle():
     class Test(NamedSchema, UseSchema):
         def __init__(self, name):
             NamedSchema.__init__(self, name)
@@ -203,10 +203,10 @@ def test_get_all_dependencies_circle():
 
     assert use.use(dep00)
 
-    assert use.get_all_dependencies() == [dep00, dep10, dep01, dep11]
+    assert use.get_all_used() == [dep00, dep10, dep01, dep11]
 
 
-def test_write_dependencygraph_no_graphviz_exe():
+def test_write_usegraph_no_graphviz_exe():
     class Test(NamedSchema, UseSchema):
         def __init__(self, name):
             NamedSchema.__init__(self, name)
@@ -231,11 +231,11 @@ def test_write_dependencygraph_no_graphviz_exe():
         render.side_effect = raise_error
 
         with pytest.raises(RuntimeError, match="Unable to save flowgraph: failed to execute"):
-            use.write_dependencygraph("test.png")
+            use.write_usegraph("test.png")
         render.assert_called_once()
 
 
-def test_write_dependencygraph():
+def test_write_usegraph():
     class Test(NamedSchema, UseSchema):
         def __init__(self, name):
             NamedSchema.__init__(self, name)
@@ -254,11 +254,11 @@ def test_write_dependencygraph():
     assert use.use(dep00)
     assert use.use(dep01)
 
-    use.write_dependencygraph("test.png")
+    use.write_usegraph("test.png")
     assert os.path.exists("test.png")
 
 
-def test_write_dependencygraph_alt_config():
+def test_write_usegraph_alt_config():
     class Test(NamedSchema, UseSchema):
         def __init__(self, name):
             NamedSchema.__init__(self, name)
@@ -277,11 +277,11 @@ def test_write_dependencygraph_alt_config():
     assert use.use(dep00)
     assert use.use(dep01)
 
-    use.write_dependencygraph("test.png", landscape=True, border=False)
+    use.write_usegraph("test.png", landscape=True, border=False)
     assert os.path.exists("test.png")
 
 
-def test_write_dependencygraph_repeats():
+def test_write_usegraph_repeats():
     class Test(NamedSchema, UseSchema):
         def __init__(self, name):
             NamedSchema.__init__(self, name)
@@ -301,11 +301,11 @@ def test_write_dependencygraph_repeats():
     assert use.use(dep00)
     assert use.use(dep01)
 
-    use.write_dependencygraph("test.png")
+    use.write_usegraph("test.png")
     assert os.path.exists("test.png")
 
 
-def test_write_dependencygraph_circle():
+def test_write_usegraph_circle():
     class Test(NamedSchema, UseSchema):
         def __init__(self, name):
             NamedSchema.__init__(self, name)
@@ -325,5 +325,5 @@ def test_write_dependencygraph_circle():
 
     assert use.use(dep00)
 
-    use.write_dependencygraph("test.png")
+    use.write_usegraph("test.png")
     assert os.path.exists("test.png")
