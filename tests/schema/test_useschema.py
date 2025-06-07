@@ -8,6 +8,12 @@ from unittest.mock import patch
 from siliconcompiler.schema import UseSchema, NamedSchema, BaseSchema
 
 
+def test_init():
+    use = UseSchema()
+    assert use.getkeys() == tuple(["used"])
+    assert use.get("used") == []
+
+
 def test_use_invalid():
     use = UseSchema()
 
@@ -23,6 +29,7 @@ def test_use():
     dep = NamedSchema("thisname")
     assert use.use(dep)
     assert use.get_use("thisname") is dep
+    assert use.get("used") == ["thisname"]
 
 
 def test_use_confirm_reset():
@@ -52,6 +59,7 @@ def test_use_clobber():
     assert use.get_use("thisname") is dep0
     assert use.use(dep1, clobber=True)
     assert use.get_use("thisname") is dep1
+    assert use.get("used") == ["thisname"]
 
 
 def test_use_no_clobber():
@@ -63,6 +71,7 @@ def test_use_no_clobber():
     assert use.get_use("thisname") is dep0
     assert use.use(dep1, clobber=False) is False
     assert use.get_use("thisname") is dep0
+    assert use.get("used") == ["thisname"]
 
 
 def test_get_use_not_found():
@@ -83,6 +92,7 @@ def test_remove_use():
     assert use.get_use("thisname")
     assert use.remove_use("thisname") is True
     assert use.get_all_used() == []
+    assert use.get("used") == []
 
 
 def test_get_all_used_empty():
@@ -327,3 +337,86 @@ def test_write_usegraph_circle():
 
     use.write_usegraph("test.png")
     assert os.path.exists("test.png")
+
+
+def test_populate_used_empty():
+    use = UseSchema()
+    use._populate_used({})
+
+
+def test_populate_used():
+    class Test(NamedSchema, UseSchema):
+        def __init__(self, name):
+            NamedSchema.__init__(self, name)
+            UseSchema.__init__(self)
+
+    use = Test("top")
+
+    dep00 = Test("level0-0")
+    dep01 = Test("level0-1")
+    dep10 = Test("level1-0")
+    dep11 = Test("level1-1")
+
+    assert dep00.use(dep10)
+    assert dep01.use(dep11)
+
+    assert use.use(dep00)
+    assert use.use(dep01)
+
+    check = Test.from_manifest("test", cfg=use.getdict())
+    assert check.get_all_used() == []
+    module_map = {obj.name(): obj for obj in use.get_all_used()}
+    check._populate_used(module_map)
+    assert check.get_all_used() == use.get_all_used()
+
+
+def test_populate_used_missing():
+    class Test(NamedSchema, UseSchema):
+        def __init__(self, name):
+            NamedSchema.__init__(self, name)
+            UseSchema.__init__(self)
+
+    use = Test("top")
+
+    dep00 = Test("level0-0")
+    dep01 = Test("level0-1")
+    dep10 = Test("level1-0")
+    dep11 = Test("level1-1")
+
+    assert dep00.use(dep10)
+    assert dep01.use(dep11)
+
+    assert use.use(dep00)
+    assert use.use(dep01)
+
+    check = Test.from_manifest("test", cfg=use.getdict())
+    with pytest.raises(ValueError, match="level0-0 not available in map"):
+        check._populate_used({})
+
+
+def test_populate_used_already_populated():
+    class Test(NamedSchema, UseSchema):
+        def __init__(self, name):
+            NamedSchema.__init__(self, name)
+            UseSchema.__init__(self)
+
+    use = Test("top")
+
+    dep00 = Test("level0-0")
+    dep01 = Test("level0-1")
+    dep10 = Test("level1-0")
+    dep11 = Test("level1-1")
+
+    assert dep00.use(dep10)
+    assert dep01.use(dep11)
+
+    assert use.use(dep00)
+    assert use.use(dep01)
+
+    check = Test("top")
+    check.use(dep00)
+
+    assert check.get_all_used() == [dep00, dep10]
+    module_map = {obj.name(): obj for obj in use.get_all_used()}
+    check._populate_used(module_map)
+    assert check.get_all_used() == [dep00, dep10]

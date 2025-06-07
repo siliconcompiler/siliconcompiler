@@ -1,14 +1,29 @@
 import os.path
 
+from .baseschema import BaseSchema
+from .editableschema import EditableSchema
+from .parameter import Parameter, Scope
 from .namedschema import NamedSchema
 
 
-class UseSchema:
+class UseSchema(BaseSchema):
     '''
     Schema extension to add :meth:`.use` capability to a schema section.
     '''
 
     def __init__(self):
+        super().__init__()
+
+        schema = EditableSchema(self)
+
+        schema.insert(
+            'used',
+            Parameter(
+                '[str]',
+                scope=Scope.GLOBAL,
+                shorthelp="List of used dependencies",
+                help="List of used modules this design depends on."))
+
         self.__used = {}
 
     def use(self, obj: NamedSchema, clobber: bool = True) -> bool:
@@ -27,6 +42,9 @@ class UseSchema:
 
         if not clobber and obj.name() in self.__used:
             return False
+
+        if obj.name() not in self.__used:
+            self.add("used", obj.name())
 
         self.__used[obj.name()] = obj
         obj._reset()
@@ -173,4 +191,22 @@ class UseSchema:
             return False
 
         del self.__used[name]
+
+        # Remove from used list
+        used = self.get("used")
+        used.remove(name)
+        self.set("used", used)
+
         return True
+
+    def _populate_used(self, module_map: dict):
+        if self.__used:
+            return
+
+        for module in self.get("used"):
+            if module not in module_map:
+                raise ValueError(f"{module} not available in map")
+            self.__used[module] = module_map[module]
+
+            if isinstance(self.__used[module], UseSchema):
+                self.__used[module]._populate_used(module_map)
