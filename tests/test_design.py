@@ -113,36 +113,35 @@ def test_options():
 
     # create fileset context
     fileset = 'rtl'
-    d.set_fileset(fileset)
 
     # top module
     top = 'mytop'
-    d.set_topmodule(top)
+    d.set_topmodule(top, fileset)
     assert d.get_topmodule(fileset) == top
 
     # idir
     idirs = ['/home/acme/incdir1', '/home/acme/incdir2']
-    d.set_idir(idirs)
+    d.set_idir(idirs, fileset)
     assert d.get_idir(fileset) == idirs
 
     # libdirs
     libdirs = ['/usr/lib']
-    d.set_libdir(libdirs)
+    d.set_libdir(libdirs, fileset)
     assert d.get_libdir(fileset) == libdirs
 
     # libs
     libs = ['lib1', 'lib2']
-    d.set_lib(libs)
+    d.set_lib(libs, fileset)
     assert d.get_lib(fileset) == libs
 
     # define
     defs = ['CFG_TARGET=FPGA']
-    d.set_define(defs)
+    d.set_define(defs, fileset)
     assert d.get_define(fileset) == defs
 
     # undefine
     undefs = ['CFG_TARGET']
-    d.set_undefine(undefs)
+    d.set_undefine(undefs, fileset)
     assert d.get_undefine(fileset) == undefs
 
 
@@ -150,41 +149,39 @@ def test_param():
 
     d = DesignSchema("test")
 
-    fileset = 'rtl'
-    d.set_fileset(fileset)
-
-    # param
     name = 'N'
     val = '2'
-    d.set_param(name, val)
+    fileset = 'rtl'
+
+    d.set_param(name, val, fileset)
     assert d.get_param(name, fileset) == val
 
 
 def test_use():
 
+    fileset = 'rtl'
     lib = DesignSchema('mylib')
-    lib.set_fileset('rtl')
-    lib.add_file('mylib.v')
+    lib.add_file('mylib.v', fileset)
 
     d = DesignSchema("test")
     d.use(lib)
     lib = d.depends('mylib')
-    assert lib[0].get_file(fileset='rtl') == ['mylib.v']
+    assert lib[0].get_file(fileset) == ['mylib.v']
 
 
 def test_write(datadir):
 
     d = DesignSchema("test")
 
-    d.set_fileset('rtl')
-    d.add_file(['data/heartbeat.v', 'data/increment.v'])
-    d.set_define('ASIC')
-    d.set_idir('./data')
-    d.set_topmodule('heartbeat')
+    fileset = 'rtl'
+    d.add_file(['data/heartbeat.v', 'data/increment.v'], fileset)
+    d.set_define('ASIC', fileset)
+    d.set_idir('./data', fileset)
+    d.set_topmodule('heartbeat', fileset)
 
-    d.set_fileset('tb')
-    d.add_file(['data/tb.v'])
-    d.set_define('VERILATOR')
+    fileset = 'tb'
+    d.add_file(['data/tb.v'], fileset)
+    d.set_define('VERILATOR', fileset)
 
     d.write("heartbeat.f", fileset=['rtl', 'tb'])
 
@@ -200,27 +197,27 @@ def test_heartbeat_example(datadir):
             super().__init__('increment')
 
             # rtl
-            self.set_fileset('rtl')
-            self.set_topmodule('increment')
-            self.add_file(datadir / 'increment.v')
+            fileset = 'rtl'
+            self.set_topmodule('increment', fileset)
+            self.add_file(datadir / 'increment.v', fileset)
 
     class Heartbeat(DesignSchema):
         def __init__(self):
             super().__init__('heartbeat')
 
             # rtl
-            self.set_fileset('rtl')
-            self.set_topmodule('heartbeat')
-            self.add_file(datadir / 'heartbeat_increment.v')
+            fileset = 'rtl'
+            self.set_topmodule('heartbeat', fileset)
+            self.add_file(datadir / 'heartbeat_increment.v', fileset)
 
             # constraints
-            self.set_fileset('constraint')
-            self.add_file(datadir / 'heartbeat.sdc')
+            fileset = 'constraint'
+            self.add_file(datadir / 'heartbeat.sdc', fileset)
 
             # tb
-            self.set_fileset('testbench')
-            self.set_topmodule('tb')
-            self.add_file(datadir / 'heartbeat_tb.v')
+            fileset = 'testbench'
+            self.set_topmodule('tb', fileset)
+            self.add_file(datadir / 'heartbeat_tb.v', fileset)
 
             # dependencies
             self.use(Increment())

@@ -17,24 +17,6 @@ class DesignSchema(NamedSchema):
         NamedSchema.__init__(self, name=name)
         schema_design(self)
         self.__dependency = {}
-        self.__fileset: str = None
-
-    ############################################
-    def set_fileset(self, value: str) -> None:
-        """Sets the active fileset.
-
-        Args:
-        value (str): Name of fileset to activate.
-        """
-        self.__fileset = value
-
-    def get_fileset(self):
-        """Returns the active fileset.
-
-        Returns:
-            str: Name of active fileset.
-        """
-        return self.__fileset
 
     ############################################
     def set_topmodule(self, value: str, fileset: str = None) -> None:
@@ -45,8 +27,6 @@ class DesignSchema(NamedSchema):
            fileset (str, optional): Fileset name.
 
         """
-        if fileset is None:
-            fileset = self.__fileset
         self.set('fileset', fileset, 'topmodule', value)
 
     def get_topmodule(self, fileset: str) -> str:
@@ -70,8 +50,6 @@ class DesignSchema(NamedSchema):
            fileset (str, optional): Fileset name.
 
         """
-        if fileset is None:
-            fileset = self.__fileset
         self.set('fileset', fileset, 'idir', value)
 
     def get_idir(self, fileset: str) -> List[str]:
@@ -94,8 +72,6 @@ class DesignSchema(NamedSchema):
            value (str or List[str]): Macro definition.
            fileset (str, optional): Fileset name.
         """
-        if fileset is None:
-            fileset = self.__fileset
         self.set('fileset', fileset, 'define', value)
 
     def get_define(self, fileset: str) -> List[str]:
@@ -118,8 +94,6 @@ class DesignSchema(NamedSchema):
            value (str or List[str]): Macro definition to undefine.
            fileset (str, optional): Fileset name.
         """
-        if fileset is None:
-            fileset = self.__fileset
         self.set('fileset', fileset, 'undefine', value)
 
     def get_undefine(self, fileset: str) -> List[str]:
@@ -142,8 +116,6 @@ class DesignSchema(NamedSchema):
            value (str or List[str]): Library directories.
            fileset (str, optional): Fileset name.
         """
-        if fileset is None:
-            fileset = self.__fileset
         self.set('fileset', fileset, 'libdir', value)
 
     def get_libdir(self, fileset: str) -> List[str]:
@@ -166,8 +138,6 @@ class DesignSchema(NamedSchema):
            value (str or List[str]): Library directory names.
            fileset (str, optional): Fileset name.
         """
-        if fileset is None:
-            fileset = self.__fileset
         self.set('fileset', fileset, 'lib', value)
 
     def get_lib(self, fileset: str) -> List[str]:
@@ -180,8 +150,6 @@ class DesignSchema(NamedSchema):
            list[str]: List of libraries.
 
         """
-        if fileset is None:
-            fileset = self.__fileset
         return self.get('fileset', fileset, 'lib')
 
     ###############################################
@@ -193,8 +161,6 @@ class DesignSchema(NamedSchema):
             value (str): Parameter value.
             fileset (str, optional): Fileset name.
         """
-        if fileset is None:
-            fileset = self.__fileset
         self.set('fileset', fileset, 'param', name, value)
 
     def get_param(self, name: str, fileset: str) -> str:
@@ -207,8 +173,6 @@ class DesignSchema(NamedSchema):
         Returns:
             str: Parameter value
         """
-        if fileset is None:
-            fileset = self.__fileset
         return self.get('fileset', fileset, 'param', name)
 
     ###############################################
@@ -289,9 +253,7 @@ class DesignSchema(NamedSchema):
         # map extension to default filetype/fileset
         default_fileset, default_filetype = utils.get_default_iomap()[ext]
 
-        if not fileset and self.__fileset:
-            fileset = self.__fileset
-        elif not fileset:
+        if not fileset:
             fileset = default_fileset
 
         if not filetype:
