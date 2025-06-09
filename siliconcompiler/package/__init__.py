@@ -10,8 +10,7 @@ import functools
 import time
 from pathlib import Path
 
-from siliconcompiler.utils import get_plugins, get_env_vars
-from siliconcompiler.schema.parametervalue import PathNodeValue
+from siliconcompiler.utils import get_plugins
 
 
 def get_cache_path(chip):
@@ -92,8 +91,18 @@ def _path(chip, package, fetch):
                 f'Could not find package source for {package} in schema. '
                 'You can use register_source() to add it.', chip=chip)
 
-    env_vars = get_env_vars(chip, None, None)
-    data['path'] = PathNodeValue.resolve_env_vars(data['path'], envvars=env_vars)
+    path = data['path']
+    # Resolve env vars and user home
+    env_save = os.environ.copy()
+    schema_env = {}
+    for env in chip.getkeys('option', 'env'):
+        schema_env[env] = chip.get('option', 'env', env)
+    os.environ.update(schema_env)
+    path = os.path.expandvars(path)
+    path = os.path.expanduser(path)
+    os.environ.clear()
+    os.environ.update(env_save)
+    data['path'] = path
 
     if os.path.exists(data['path']):
         # Path is already a path

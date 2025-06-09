@@ -20,7 +20,7 @@ from inspect import getfullargspec
 from siliconcompiler import Schema
 from siliconcompiler.schema import SCHEMA_VERSION, PerNode, Journal, EditableSchema
 from siliconcompiler.schema.parametertype import NodeType
-from siliconcompiler.schema.parametervalue import FileNodeValue, PathNodeValue
+from siliconcompiler.schema.parametervalue import FileNodeValue
 from siliconcompiler.schema import utils as schema_utils
 from siliconcompiler import utils
 from siliconcompiler.utils.logging import SCColorLoggerFormatter, \
@@ -1110,10 +1110,16 @@ class Chip:
         package_name = f'flist-{os.path.basename(filename)}'
         package_dir = os.path.dirname(os.path.abspath(filename))
 
-        env_vars = utils.get_env_vars(self, None, None)
-
         def __make_path(rel, path):
-            path = PathNodeValue.resolve_env_vars(path, envvars=env_vars)
+            env_save = os.environ.copy()
+            schema_env = {}
+            for env in self.getkeys('option', 'env'):
+                schema_env[env] = self.get('option', 'env', env)
+            os.environ.update(schema_env)
+            path = os.path.expandvars(path)
+            path = os.path.expanduser(path)
+            os.environ.clear()
+            os.environ.update(env_save)
             if os.path.isabs(path):
                 if path.startswith(rel):
                     return os.path.relpath(path, rel), package_name
@@ -1380,7 +1386,6 @@ class Chip:
         else:
             search_paths = [self.cwd]
 
-        env_vars = utils.get_env_vars(self, step, index)
         for (dependency, path) in zip(dependencies, paths):
             faux_param = FileNodeValue()
             faux_param.set(path)
@@ -1391,7 +1396,6 @@ class Chip:
                 else:
                     faux_search = search_paths
                 resolved = faux_param.resolve_path(
-                    envvars=env_vars,
                     search=faux_search,
                     collection_dir=collection_dir)
             except FileNotFoundError:
