@@ -329,29 +329,6 @@ def grep(chip, args, line):
         return line
 
 
-#######################################
-def get_env_vars(chip, step, index):
-    '''
-    Returns a dictionary of environmental variables from the manifest
-    '''
-
-    schema_env = {}
-    for env in chip.getkeys('option', 'env'):
-        schema_env[env] = chip.get('option', 'env', env)
-
-    flow = chip.get('option', 'flow')
-    if step is not None and index is not None and flow:
-        tool = chip.get('flowgraph', flow, step, str(index), 'tool')
-        task = chip.get('flowgraph', flow, step, str(index), 'task')
-
-        if chip.valid('tool', tool, 'task', task, 'env'):
-            for env in chip.getkeys('tool', tool, 'task', task, 'env'):
-                schema_env[env] = chip.get('tool', tool, 'task', task, 'env', env,
-                                           step=step, index=index)
-
-    return schema_env
-
-
 def get_plugins(system, name=None):
     '''
     Search for python modules with a specific function

@@ -5,7 +5,6 @@ import multiprocessing
 
 from core.tools.dummy import environment
 from siliconcompiler.targets import freepdk45_demo
-from siliconcompiler.utils import get_env_vars
 
 
 @pytest.mark.skipif(
@@ -34,17 +33,3 @@ def test_env():
 
     # Ensure env variable is set in current process
     assert 'TEST' not in os.environ
-
-
-def test_get_env_vars():
-    chip = siliconcompiler.Chip('test')
-    # File doesn't need to resolve, just need to put something in the schema so
-    # we don't fail the initial static check_manifest().
-    chip.use(freepdk45_demo)
-
-    # Set env
-    chip.set('option', 'env', 'TEST', 'hello')
-    chip.set('tool', 'yosys', 'task', 'syn_asic', 'env', 'TEST', 'nothello')
-
-    assert get_env_vars(chip, None, None) == {'TEST': 'hello'}
-    assert get_env_vars(chip, 'syn', 0) == {'TEST': 'nothello'}
