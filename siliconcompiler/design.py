@@ -6,9 +6,6 @@ from siliconcompiler.schema.utils import trim
 from siliconcompiler import utils
 from siliconcompiler import SiliconCompilerError
 
-# TODO: better name than 'fileset'
-# TODO: use, dependency should move elsewhere
-
 
 ###########################################################################
 class DesignSchema(NamedSchema):
@@ -16,6 +13,7 @@ class DesignSchema(NamedSchema):
     def __init__(self, name: str):
         NamedSchema.__init__(self, name=name)
         schema_design(self)
+        # TODO: move this into use schema?
         self.__dependency = {}
 
     ############################################
@@ -174,34 +172,6 @@ class DesignSchema(NamedSchema):
             str: Parameter value
         """
         return self.get('fileset', fileset, 'param', name)
-
-    ###############################################
-    def use(self, module) -> None:
-        """Adds design object as dependency.
-
-        Stores design object in design's dependency graph and records it in the
-        'dependency' key of the schema.
-
-        Args:
-            module: Design object.
-        """
-        self.__dependency[module.name()] = {}
-        self.__dependency[module.name()] = module
-        self.add('dependency', module.name())
-
-    def depends(self, name: str = None):
-        """Returns a set of dependency design objects.
-
-        Args:
-            name (str, Optional): Name of the dependency.
-
-        Returns:
-            List (obj): List of design objects.
-        """
-        if name:
-            return [self.__dependency[name]] if name in self.__dependency else []
-        else:
-            return list(self.__dependency.values())
 
     ###############################################
     def add_file(self, filename: str, fileset=None, filetype=None, package=None):
@@ -481,17 +451,3 @@ def schema_design(schema):
             data literals. The types of parameters and values supported is tightly
             coupled to tools being used. For example, in Verilog only integer
             literals (64'h4, 2'b0, 4) and strings are supported.""")))
-
-    ###########################
-    # Dependencies
-    ###########################
-
-    schema.insert(
-        'dependency',
-        Parameter(
-            ['str'],
-            scope=Scope.GLOBAL,
-            shorthelp="List of design dependencies",
-            example=["api: chip.set('dependency', 'stdlib')"],
-            help=trim("""
-            List of design packages this design depends on.""")))

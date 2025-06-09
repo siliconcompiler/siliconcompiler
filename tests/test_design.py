@@ -1,7 +1,6 @@
 import os.path
-
 from pathlib import Path
-
+import pytest
 from siliconcompiler.design import DesignSchema
 
 
@@ -14,8 +13,7 @@ def test_design_keys():
                           ('fileset', 'default', 'idir'),
                           ('fileset', 'default', 'define'),
                           ('fileset', 'default', 'undefine'),
-                          ('fileset', 'default', 'param', 'default'),
-                          ('dependency',)
+                          ('fileset', 'default', 'param', 'default')
                           ])
 
     assert sorted(DesignSchema("test").allkeys()) == golden_keys
@@ -63,11 +61,6 @@ def test_design_values():
     val = '2'
     assert d.set('fileset', 'rtl', 'param', 'N', val)
     assert d.get('fileset', 'rtl', 'param', 'N') == val
-
-    # dependency
-    val = ['mylib']
-    assert d.set('dependency', val)
-    assert d.get('dependency') == val
 
 
 def test_add_file():
@@ -157,6 +150,7 @@ def test_param():
     assert d.get_param(name, fileset) == val
 
 
+@pytest.mark.skip(reason="waiting for use schema impl")
 def test_use():
 
     fileset = 'rtl'
@@ -189,6 +183,7 @@ def test_write(datadir):
     assert Path('heartbeat.f').read_text() == golden.read_text()
 
 
+@pytest.mark.skip(reason="waiting for use schema impl")
 def test_heartbeat_example(datadir):
     datadir = Path(datadir)
 
@@ -223,4 +218,4 @@ def test_heartbeat_example(datadir):
             self.use(Increment())
 
     dut = Heartbeat()
-    assert dut.get("dependency") == ["increment"]
+    assert 'increment' in dut.__dependency
