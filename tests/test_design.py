@@ -163,7 +163,7 @@ def test_use():
     assert lib[0].get_file(fileset) == ['mylib.v']
 
 
-def test_write(datadir):
+def test_write_filelist(datadir):
 
     d = DesignSchema("test")
 
@@ -177,7 +177,7 @@ def test_write(datadir):
     d.add_file(['data/tb.v'], fileset)
     d.set_define('VERILATOR', fileset)
 
-    d.write("heartbeat.f", fileset=['rtl', 'tb'])
+    d.write_filelist("heartbeat.f", fileset=['rtl', 'tb'])
 
     golden = Path(os.path.join(datadir, 'heartbeat.f'))
     assert Path('heartbeat.f').read_text() == golden.read_text()

@@ -268,8 +268,8 @@ class DesignSchema(NamedSchema):
         return filelist
 
     ###############################################
-    def write(self, filename: str, fileset: str, fileformat=None) -> None:
-        """Exports filesets to a formatted text file.
+    def write_filelist(self, filename: str, fileset: str, fileformat=None) -> None:
+        """Exports filesets to a standard formatted text file.
 
         Currently supports Verilog `flist` format only.
         Intended to support other formats in the future.
@@ -312,8 +312,8 @@ class DesignSchema(NamedSchema):
                                 f.write(f"{cmd}{item}\n")
 
     ################################################
-    def read(self, filename: str, fileset: str, fileformat=None) -> None:
-        """Imports filesets from a formatted text file.
+    def read_filelist(self, filename: str, fileset: str, fileformat=None) -> None:
+        """Imports filesets from a standard formatted text file.
 
         Currently supports Verilog `flist` format only.
         Intended to support other formats in the future.
