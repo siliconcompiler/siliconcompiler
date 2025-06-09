@@ -20,7 +20,7 @@ from inspect import getfullargspec
 from siliconcompiler import Schema
 from siliconcompiler.schema import SCHEMA_VERSION, PerNode, Journal, EditableSchema
 from siliconcompiler.schema.parametertype import NodeType
-from siliconcompiler.schema.parametervalue import FileNodeValue, PathNodeValue
+from siliconcompiler.schema.parametervalue import FileNodeValue
 from siliconcompiler.schema import utils as schema_utils
 from siliconcompiler import utils
 from siliconcompiler.utils.logging import SCColorLoggerFormatter, \
