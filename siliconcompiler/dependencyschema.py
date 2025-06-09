@@ -1,9 +1,12 @@
 import os.path
 
-from .schema.baseschema import BaseSchema
-from .schema.editableschema import EditableSchema
-from .schema.parameter import Parameter, Scope
-from .schema.namedschema import NamedSchema
+from siliconcompiler.schema.baseschema import BaseSchema
+from siliconcompiler.schema.editableschema import EditableSchema
+from siliconcompiler.schema.parameter import Parameter, Scope
+from siliconcompiler.schema.namedschema import NamedSchema
+from siliconcompiler.schema.utils import trim
+
+from siliconcompiler.package import Resolver
 
 
 class DependencySchema(BaseSchema):
@@ -14,8 +17,9 @@ class DependencySchema(BaseSchema):
     def __init__(self):
         super().__init__()
 
-        schema = EditableSchema(self)
+        self.__deps = {}
 
+        schema = EditableSchema(self)
         schema.insert(
             "deps",
             Parameter(
@@ -25,7 +29,38 @@ class DependencySchema(BaseSchema):
                 shorthelp="List of dependencies",
                 help="List of named object dependencies included via add_dep()."))
 
-        self.__deps = {}
+        schema.insert(
+            'source', 'default', 'path',
+            Parameter(
+                'str',
+                scope=Scope.GLOBAL,
+                shorthelp="Package: data source path",
+                example=[
+                    "api: chip.set('source', "
+                    "'freepdk45_data', 'path', 'ssh://git@github.com/siliconcompiler/freepdk45/')"],
+                help=trim("""
+                Package data source path, allowed paths:
+
+                * /path/on/network/drive
+                * file:///path/on/network/drive
+                * git+https://github.com/xyz/xyz
+                * git://github.com/xyz/xyz
+                * git+ssh://github.com/xyz/xyz
+                * ssh://github.com/xyz/xyz
+                * https://github.com/xyz/xyz/archive
+                * https://zeroasic.com/xyz.tar.gz
+                * python://siliconcompiler
+                """)))
+
+        schema.insert(
+            'source', 'default', 'ref',
+            Parameter(
+                'str',
+                scope=Scope.GLOBAL,
+                shorthelp="Package: data source reference",
+                example=[
+                    "api: chip.set('source', 'freepdk45_data', 'ref', '07ec4aa')"],
+                help="Package data source reference"))
 
     def _from_dict(self, manifest, keypath, version=None):
         self.set("deps", False, field="lock")
@@ -218,3 +253,105 @@ class DependencySchema(BaseSchema):
 
             if isinstance(self.__deps[module], DependencySchema):
                 self.__deps[module]._populate_deps(module_map)
+
+    def register_source(self, name: str, path: str, ref: str = None):
+        """
+        Registers a package by its name with the source path and reference
+
+        Args:
+            name (str): Package name
+            path (str): Path to the sources, can be file, git url, archive url
+            ref (str): Reference of the sources, can be commitid, branch name, tag
+
+        Examples:
+            >>> schema.register_source('siliconcompiler_data',
+                    'git+https://github.com/siliconcompiler/siliconcompiler',
+                    'v1.0.0')
+        """
+
+        if os.path.isfile(path):
+            path = os.path.dirname(os.path.abspath(path))
+
+        self.set("source", name, "path", path)
+        if ref:
+            self.set("source", name, "ref", ref)
+
+    def find_source(self, name: str, runnable=None):
+        """
+        Returns absolute path to the package root.
+
+        Raises:
+            ValueError: is package is not found
+
+        Args:
+            name (str): name of the source package to find.
+            runnable (TBD): root schema object
+
+        Returns:
+            Path to the source file root.
+
+        Examples:
+            >>> schema.find_source('siliconcompiler')
+            Returns the path to the root of the siliconcompiler package.
+        """
+
+        if not self.valid("source", name):
+            raise ValueError(f"{name} is not a recognized source")
+
+        source = self.get("source", name, "path")
+        ref = self.get("source", name, "path")
+
+        resolver = Resolver.find_resolver(source)
+        return resolver(name, runnable, source, ref).get_path()
+
+    def find_files(self, *keypath,
+                   missing_ok=False,
+                   step=None, index=None,
+                   collection_dir=None,
+                   cwd=None,
+                   runnable=None):
+        """
+        Returns absolute paths to files or directories based on the keypath
+        provided.
+
+        The keypath provided must point to a schema parameter of type file, dir,
+        or lists of either. Otherwise, it will trigger an error.
+
+        Args:
+            keypath (list of str): Variable length schema key list.
+            missing_ok (bool): If True, silently return None when files aren't
+                found. If False, print an error and set the error flag.
+            step (str): Step name to access for parameters that may be specified
+                on a per-node basis.
+            index (str): Index name to access for parameters that may be specified
+                on a per-node basis.
+            collection_dir (path): optional path to a collections directory
+            cwd (path): optional path to current working directory, this will default
+                to os.getcwd() if not provided.
+            runnable (TBD): root schema object
+
+        Returns:
+            If keys points to a scalar entry, returns an absolute path to that
+            file/directory, or None if not found. It keys points to a list
+            entry, returns a list of either the absolute paths or None for each
+            entry, depending on whether it is found.
+
+        Examples:
+            >>> schema.find_files('input', 'verilog')
+            Returns a list of absolute paths to source files, as specified in
+            the schema.
+        """
+
+        resolver_map = {}
+        for package in self.getkeys("source"):
+            source = self.get("source", package, "path")
+            ref = self.get("source", package, "path")
+            resolver = Resolver.find_resolver(source)
+            resolver_map[package] = resolver(package, runnable, source, ref).get_path
+
+        return super().find_files(*keypath,
+                                  missing_ok=missing_ok,
+                                  step=step, index=index,
+                                  packages=resolver_map,
+                                  collection_dir=collection_dir,
+                                  cwd=cwd)

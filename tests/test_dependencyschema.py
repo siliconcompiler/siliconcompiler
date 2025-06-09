@@ -6,12 +6,13 @@ import os.path
 from unittest.mock import patch
 
 from siliconcompiler.schema import NamedSchema, BaseSchema
+from siliconcompiler.schema import EditableSchema, Parameter
 from siliconcompiler.dependencyschema import DependencySchema
 
 
 def test_init():
     schema = DependencySchema()
-    assert schema.getkeys() == tuple(["deps"])
+    assert schema.getkeys() == tuple(["deps", "source"])
     assert schema.get("deps") == []
 
 
@@ -423,3 +424,194 @@ def test_populate_deps_already_populated():
     module_map = {obj.name(): obj for obj in schema.get_dep()}
     check._populate_deps(module_map)
     assert check.get_dep() == [dep00, dep10]
+
+
+def test_get_registered_sources():
+    schema = DependencySchema()
+    assert schema.getkeys("source") == tuple([])
+
+
+def test_register_source():
+    schema = DependencySchema()
+    schema.register_source("testsource", "file://.")
+    assert schema.get("source", "testsource", "path") == "file://."
+    assert schema.get("source", "testsource", "ref") is None
+
+
+def test_register_source_overwrite():
+    schema = DependencySchema()
+    schema.register_source("testsource", "file://.")
+    schema.register_source("testsource", "file://test")
+    assert schema.get("source", "testsource", "path") == "file://test"
+    assert schema.get("source", "testsource", "ref") is None
+
+
+def test_register_source_with_ref():
+    schema = DependencySchema()
+    schema.register_source("testsource", "file://.", "ref")
+    assert schema.get("source", "testsource", "path") == "file://."
+    assert schema.get("source", "testsource", "ref") == "ref"
+
+
+def test_register_source_with_file():
+    schema = DependencySchema()
+    with open("test.txt", "w") as f:
+        f.write("test")
+
+    schema.register_source("testsource", "test.txt")
+    assert schema.get("source", "testsource", "path") == os.path.abspath(".")
+    assert schema.get("source", "testsource", "ref") is None
+
+
+def test_find_files():
+    class Test(DependencySchema):
+        def __init__(self):
+            super().__init__()
+
+            schema = EditableSchema(self)
+            schema.insert("file", Parameter("file"))
+
+    test = Test()
+    test.register_source("testsource", "file://.")
+    param = test.set("file", "test.txt")
+    param.set("testsource", field="package")
+
+    with open("test.txt", "w") as f:
+        f.write("test")
+
+    assert test.find_files("file") == os.path.abspath("test.txt")
+
+
+def test_find_files_no_source():
+    class Test(DependencySchema):
+        def __init__(self):
+            super().__init__()
+
+            schema = EditableSchema(self)
+            schema.insert("file", Parameter("file"))
+
+    test = Test()
+    param = test.set("file", "test.txt")
+    param.set("testsource", field="package")
+
+    with pytest.raises(ValueError, match="Resolver for testsource not provided"):
+        test.find_files("file")
+
+
+def test_find_files_dir():
+    class Test(DependencySchema):
+        def __init__(self):
+            super().__init__()
+
+            schema = EditableSchema(self)
+            schema.insert("dir", Parameter("dir"))
+
+    test = Test()
+    test.register_source("testsource", "file://.")
+    param = test.set("dir", "test")
+    param.set("testsource", field="package")
+
+    os.makedirs("test", exist_ok=True)
+
+    assert test.find_files("dir") == os.path.abspath("test")
+
+
+def test_find_files_no_sources():
+    class Test(DependencySchema):
+        def __init__(self):
+            super().__init__()
+
+            schema = EditableSchema(self)
+            schema.insert("dir", Parameter("dir"))
+
+    test = Test()
+    assert test.set("dir", "test")
+
+    os.makedirs("test", exist_ok=True)
+
+    assert test.find_files("dir") == os.path.abspath("test")
+
+
+def test_find_files_cwd():
+    class Test(DependencySchema):
+        def __init__(self):
+            super().__init__()
+
+            schema = EditableSchema(self)
+            schema.insert("dir", Parameter("dir"))
+
+    test = Test()
+    assert test.set("dir", "test")
+
+    os.makedirs("cwd/test", exist_ok=True)
+
+    assert test.find_files("dir", cwd="cwd") == os.path.abspath("cwd/test")
+
+
+def test_find_files_keypath():
+    class Test(DependencySchema):
+        def __init__(self):
+            super().__init__()
+
+            schema = EditableSchema(self)
+            schema.insert("file", Parameter("file"))
+            schema.insert("ref", Parameter("dir"))
+
+    class Root(BaseSchema):
+        def __init__(self):
+            super().__init__()
+
+            schema = EditableSchema(self)
+            schema.insert("ref", Parameter("dir"))
+            schema.insert("test", Test())
+
+    root = Root()
+    test = root.get("test", field="schema")
+    test.register_source("keyref", "key://ref")
+    assert root.set("ref", "test")
+    os.makedirs("test", exist_ok=True)
+    param = test.set("file", "test.txt")
+    param.set("keyref", field="package")
+
+    with open("test/test.txt", "w") as f:
+        f.write("test")
+
+    assert test.find_files("file", runnable=root) == os.path.abspath("test/test.txt")
+
+
+def test_find_source():
+    schema = DependencySchema()
+    schema.register_source("testsource", "file://.")
+    assert schema.find_source("testsource") == os.path.abspath(".")
+
+
+def test_find_source_not_found():
+    schema = DependencySchema()
+    with pytest.raises(ValueError, match="testsource is not a recognized source"):
+        schema.find_source("testsource")
+
+
+def test_find_source_keypath():
+    class Test(DependencySchema):
+        def __init__(self):
+            super().__init__()
+
+            schema = EditableSchema(self)
+            schema.insert("file", Parameter("file"))
+            schema.insert("ref", Parameter("dir"))
+
+    class Root(BaseSchema):
+        def __init__(self):
+            super().__init__()
+
+            schema = EditableSchema(self)
+            schema.insert("ref", Parameter("dir"))
+            schema.insert("test", Test())
+
+    root = Root()
+    test = root.get("test", field="schema")
+    test.register_source("keyref", "key://ref")
+    assert root.set("ref", "test")
+    os.makedirs("test", exist_ok=True)
+
+    assert test.find_source("keyref", runnable=root) == os.path.abspath("test")
