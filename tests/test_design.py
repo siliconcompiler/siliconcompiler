@@ -1,3 +1,4 @@
+import re
 import os.path
 from pathlib import Path
 import pytest
@@ -76,6 +77,7 @@ def test_add_file():
     d.add_file('testbench', files)
     assert d.get('fileset', 'testbench', 'file', 'verilog') == files
 
+
 def test_get_file():
     d = DesignSchema("test")
 
@@ -131,24 +133,38 @@ def test_options():
     d.set_undefine(fileset, undefs)
     assert d.get_undefine(fileset) == undefs
 
+
 def test_errors():
 
     d = DesignSchema("test")
 
-    # ValueError (common set/get)
-    invalid_flist = None
-    with pytest.raises(ValueError, match="fileset value must be a string"):
-        d.set_topmodule(invalid_flist, "acracadabra")
-    with pytest.raises(ValueError, match="fileset value must be a string"):
-        d.get_topmodule(invalid_flist)
+    # check invalid fileset types
+    for item in [None, [], (0, 1), 1.1]:
+        with pytest.raises(ValueError, match="fileset key must be a string"):
+            d.set_topmodule(item, "aaaa")
+        with pytest.raises(ValueError, match="fileset key must be a string"):
+            d.get_topmodule(item)
 
-    # Check set/get error
-    invalid_top = [1]
-    valid_top = "str"
-    result =  d.set_topmodule('rtl', invalid_top)
-    print(f"res={result}")
-    result =  d.set_topmodule('rtl', valid_top)
-    print(f"res={result}")
+    # checking general types
+    for value in [None, (0, 1), 1.1]:
+        with pytest.raises(ValueError, match="value type must be str or List"):
+            d.set_libdir("aaaa", value)
+        with pytest.raises(ValueError, match="value type must be str or List"):
+            d.set_topmodule("aaaa", value)
+
+    # check valid topmodule strings
+    for value in ["0abc", "abc$", ""]:
+        with pytest.raises(ValueError, match=re.escape(f"{value} is not a legal topmodule string")):
+            d.set_topmodule("aaaa", value)
+
+    # check valid filename
+    with pytest.raises(ValueError, match="add_file cannot process None"):
+        d.add_file("aaaa", None)
+
+    # check valid extension
+    with pytest.raises(ValueError, match="illegal file extension"):
+        d.add_file("aaaa", "tmp.badex")
+
 
 def test_param():
 
