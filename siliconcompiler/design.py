@@ -230,7 +230,7 @@ class DesignSchema(NamedSchema):
             - This method normalizes `filename` to a string for consistency.
         """
 
-        # Handle list inputs
+        # handle list inputs
         if isinstance(filename, (list, tuple)):
             for item in filename:
                 self.add_file(
@@ -239,7 +239,6 @@ class DesignSchema(NamedSchema):
                     filetype=filetype)
             return
 
-        # error on empy file name
         if filename is None:
             raise ValueError("add_file cannot process None")
 
