@@ -14,8 +14,6 @@ class DesignSchema(NamedSchema):
     def __init__(self, name: str):
         NamedSchema.__init__(self, name=name)
         schema_design(self)
-        # TODO: move this into use schema?
-        self.__dependency = {}
 
     ############################################
     def set_topmodule(self, fileset: str, value: str) -> str:
@@ -39,7 +37,7 @@ class DesignSchema(NamedSchema):
             if not re.match(r'^[_a-zA-Z]\w*$', value):
                 raise ValueError(f"{value} is not a legal topmodule string")
 
-        return self._set(fileset, 'topmodule', value, typelist=[str])
+        return self.__set(fileset, 'topmodule', value, typelist=[str])
 
     def get_topmodule(self, fileset: str) -> str:
         """Returns topmodule for a fileset.
@@ -51,7 +49,7 @@ class DesignSchema(NamedSchema):
            str: Topmodule name
 
         """
-        return self._get(fileset, 'topmodule')
+        return self.__get(fileset, 'topmodule')
 
     ##############################################
     def set_idir(self, fileset: str, value: str) -> List[str]:
@@ -60,8 +58,12 @@ class DesignSchema(NamedSchema):
         Args:
            fileset (str): Fileset name.
            value (str or Path): Include directory name.
+
+        Returns:
+           list[str]: List of include directories
+
         """
-        return self._set(fileset, 'idir', value, typelist=[str, list])
+        return self.__set(fileset, 'idir', value, typelist=[str, list])
 
     def get_idir(self, fileset: str) -> List[str]:
         """Returns include directories for a fileset.
@@ -70,10 +72,10 @@ class DesignSchema(NamedSchema):
            fileset (str): Fileset name.
 
         Returns:
-           list[str]: Topmodule name
+           list[str]: List of include directories
 
         """
-        return self._get(fileset, 'idir')
+        return self.__get(fileset, 'idir')
 
     ##############################################
     def set_define(self, fileset: str, value: str) -> List[str]:
@@ -82,8 +84,12 @@ class DesignSchema(NamedSchema):
         Args:
            fileset (str): Fileset name.
            value (str or List[str]): Macro definition.
+
+        Returns:
+           list[str]: List of macro definitions
+
         """
-        return self._set(fileset, 'define', value, typelist=[str, list])
+        return self.__set(fileset, 'define', value, typelist=[str, list])
 
     def get_define(self, fileset: str) -> List[str]:
         """Returns defined macros for a fileset.
@@ -95,7 +101,7 @@ class DesignSchema(NamedSchema):
            list[str]: List of macro definitions
 
         """
-        return self._get(fileset, 'define')
+        return self.__get(fileset, 'define')
 
     ##############################################
     def set_undefine(self, fileset: str, value: str) -> List[str]:
@@ -104,8 +110,12 @@ class DesignSchema(NamedSchema):
         Args:
            fileset (str): Fileset name.
            value (str or List[str]): Macro definition to undefine.
+
+        Returns:
+           list[str]: List of macro (un)definitions
+
         """
-        return self._set(fileset, 'undefine', value, typelist=[str, list])
+        return self.__set(fileset, 'undefine', value, typelist=[str, list])
 
     def get_undefine(self, fileset: str) -> List[str]:
         """Returns undefined macros for a fileset.
@@ -117,7 +127,7 @@ class DesignSchema(NamedSchema):
            list[str]: List of macro (un)definitions
 
         """
-        return self._get(fileset, 'undefine')
+        return self.__get(fileset, 'undefine')
 
     ###############################################
     def set_libdir(self, fileset: str, value: str) -> List[str]:
@@ -126,8 +136,12 @@ class DesignSchema(NamedSchema):
         Args:
            fileset (str): Fileset name.
            value (str or List[str]): Library directories.
+
+        Returns:
+           list[str]: List of library directories.
+
         """
-        return self._set(fileset, 'libdir', value, typelist=[str, list])
+        return self.__set(fileset, 'libdir', value, typelist=[str, list])
 
     def get_libdir(self, fileset: str) -> List[str]:
         """Returns dynamic library directories for a fileset.
@@ -139,7 +153,7 @@ class DesignSchema(NamedSchema):
            list[str]: List of library directories.
 
         """
-        return self._get(fileset, 'libdir')
+        return self.__get(fileset, 'libdir')
 
     ###############################################
     def set_lib(self, fileset: str, value: str) -> List[str]:
@@ -149,8 +163,11 @@ class DesignSchema(NamedSchema):
            fileset (str): Fileset name.
            value (str or List[str]): Library directory names.
 
+        Returns:
+           list[str]: List of libraries.
+
         """
-        return self._set(fileset, 'lib', value, typelist=[str, list])
+        return self.__set(fileset, 'lib', value, typelist=[str, list])
 
     def get_lib(self, fileset: str) -> List[str]:
         """Returns list of dynamic libraries for a fileset.
@@ -162,7 +179,7 @@ class DesignSchema(NamedSchema):
            list[str]: List of libraries.
 
         """
-        return self._get(fileset, 'lib')
+        return self.__get(fileset, 'lib')
 
     ###############################################
     def set_param(self, fileset: str, name: str, value: str) -> str:
@@ -172,6 +189,10 @@ class DesignSchema(NamedSchema):
             fileset (str): Fileset name.
             name (str): Parameter name.
             value (str): Parameter value.
+
+        Returns:
+            str: Parameter value
+
         """
 
         if not isinstance(fileset, str):
@@ -180,8 +201,7 @@ class DesignSchema(NamedSchema):
         if not isinstance(value, str) or value is None:
             raise TypeError("param value must be a string")
 
-        self.set('fileset', fileset, 'param', name, value)
-        return self.get('fileset', fileset, 'param', name)
+        return self.set('fileset', fileset, 'param', name, value)
 
     def get_param(self, fileset: str, name: str) -> str:
         """Returns value of a named design parameter.
@@ -194,7 +214,7 @@ class DesignSchema(NamedSchema):
             str: Parameter value
         """
         if not isinstance(fileset, str):
-            raise RuntimeError("fileset value must be a string")
+            raise ValueError("fileset value must be a string")
         return self.get('fileset', fileset, 'param', name)
 
     ###############################################
@@ -220,10 +240,14 @@ class DesignSchema(NamedSchema):
             filename (Path or list[Path]): File path or list of paths to add.
             filetype (str, optional): Type of the file (e.g., 'verilog', 'sdc').
                 If not provided, it is inferred from the file extension.
+            package (str): Package name
 
         Raises:
             SiliconCompilerError: If fileset or filetype cannot be inferred from
                 the file extension.
+
+        Returns:
+           list[str]: List of file paths.
 
         Notes:
             - If `filename` is a list or tuple, `add_file` is called recursively.
@@ -263,7 +287,7 @@ class DesignSchema(NamedSchema):
                 f'{filename} based on file extension.')
 
         # adding files to dictionary
-        self.add('fileset', fileset, 'file', filetype, filename)
+        return self.add('fileset', fileset, 'file', filetype, filename)
 
     ###############################################
     def get_file(self, fileset: str, filetype: str = None):
@@ -371,14 +395,14 @@ class DesignSchema(NamedSchema):
             fileformat = formats[Path(filename).suffix.strip('.')]
 
         if fileformat == "flist":
-            raise RuntimeError("read_fileset is not implemented yet")
+            raise NotImplementedError("read_fileset is not implemented yet")
         else:
             raise ValueError(f"{fileformat} is not supported")
 
     ################################################
     # Helper Functions
     ################################################
-    def _set(self, fileset, option, value, typelist=None):
+    def __set(self, fileset, option, value, typelist=None):
         '''Sets a parameter value in schema.
         '''
 
@@ -398,10 +422,9 @@ class DesignSchema(NamedSchema):
         if value is None:
             raise ValueError(f"None is an illegal {option} value")
 
-        self.set('fileset', fileset, option, value)
-        return self.get('fileset', fileset, option)
+        return self.set('fileset', fileset, option, value)
 
-    def _get(self, fileset, option):
+    def __get(self, fileset, option):
         '''Gets a parameter value from schema.
         '''
         if not isinstance(fileset, str):
