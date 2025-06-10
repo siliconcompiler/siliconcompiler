@@ -6,6 +6,7 @@ from siliconcompiler.schema.utils import trim
 from siliconcompiler import utils
 from siliconcompiler import SiliconCompilerError
 
+
 ###########################################################################
 class DesignSchema(NamedSchema):
 
@@ -37,7 +38,6 @@ class DesignSchema(NamedSchema):
 
         """
         return self._get(fileset, 'topmodule')
-
 
     ##############################################
     def set_idir(self, value: str, fileset) -> List[str]:
@@ -163,7 +163,7 @@ class DesignSchema(NamedSchema):
             raise RuntimeError("fileset value must be a string")
         self.set('fileset', fileset, 'param', name, value)
         return self.get('fileset', fileset, 'param', name)
-    
+
     def get_param(self, name: str, fileset: str) -> str:
         """Returns value of a named design parameter.
 
@@ -333,7 +333,7 @@ class DesignSchema(NamedSchema):
     ################################################
     def _set(self, fileset, option, value=None):
         '''
-        '''       
+        '''
         if not isinstance(fileset, str):
             raise RuntimeError("fileset value must be a string")
         self.set('fileset', fileset, option, value)
@@ -341,7 +341,7 @@ class DesignSchema(NamedSchema):
 
     def _get(self, fileset, option):
         '''
-        '''       
+        '''
         if not isinstance(fileset, str):
             raise RuntimeError("fileset value must be a string")
         return self.get('fileset', fileset, option)
