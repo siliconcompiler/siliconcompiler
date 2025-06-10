@@ -414,7 +414,7 @@ class Board(metaclass=BoardSingleton):
         table.show_footer = False
         table.show_header = False
         for line in self._log_handler.get_lines(layout.log_height):
-            table.add_row(f"[bright_black]{line}[/]")
+            table.add_row(f"[white]{line}[/]")
         while table.row_count < layout.log_height:
             table.add_row("")
 

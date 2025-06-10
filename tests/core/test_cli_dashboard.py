@@ -500,8 +500,8 @@ def test_render_log_basic(mock_running_job_lg, dashboard_medium):
 
     consoleprint = console.file.getvalue().splitlines()
     assert len(consoleprint) == 16
-    assert consoleprint[0] == " \x1b[90mfirst row\x1b[0m  "
-    assert consoleprint[1] == " \x1b[90msecond row\x1b[0m "
+    assert consoleprint[0] == " \x1b[37mfirst row\x1b[0m  "
+    assert consoleprint[1] == " \x1b[37msecond row\x1b[0m "
     for n in range(2, 16):
         assert consoleprint[n].strip() == ""  # padding
 
