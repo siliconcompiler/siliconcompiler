@@ -2,7 +2,8 @@ from siliconcompiler.pdk import PDKSchema
 
 
 def test_set_add():
-    schema = PDKSchema()
+    schema = PDKSchema("testpdk")
+    assert schema.name() == "testpdk"
 
     assert schema.set("doc", "test", "./this.txt", package="thispackage")
     assert schema.get("doc", "test") == ["this.txt"]

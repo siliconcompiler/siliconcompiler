@@ -1,118 +1,180 @@
-import json
 from pathlib import Path
-from enum import Enum
+from typing import List
 from siliconcompiler.schema import NamedSchema
 from siliconcompiler.schema import EditableSchema, Parameter, Scope
 from siliconcompiler.schema.utils import trim
 from siliconcompiler import utils
+from siliconcompiler import SiliconCompilerError
 
-class Option(str, Enum):
-    lib = 'lib'
-    libdir = 'libdir'
-    define = 'define'
-    undefine = 'undefine'
-    topmodule = 'topmodule'
-    idir = 'idir'
 
+###########################################################################
 class DesignSchema(NamedSchema):
 
-    #TODO: do we want to have a hiararchy scheme for .use()?
-    #TODO: use, dependency should move elsewhere
-    #For example, dep="top.one.two"
-
-    def __init__(self, name=None):
+    def __init__(self, name: str):
         NamedSchema.__init__(self, name=name)
         schema_design(self)
+        # TODO: move this into use schema?
         self.__dependency = {}
-        self.__fileset = None
 
-    def set_fileset(self, value: str):
-        """Sets the active fileset.
+    ############################################
+    def set_topmodule(self, value: str, fileset: str = None) -> None:
+        """Sets topmodule for a fileset.
 
         Args:
-        value (str): Name of fileset to activate.
-        """
-        self.__fileset = value
+           value (str): Topmodule name.
+           fileset (str, optional): Fileset name.
 
-    def get_fileset(self):
-        """Return the active fileset.
+        """
+        self.set('fileset', fileset, 'topmodule', value)
+
+    def get_topmodule(self, fileset: str) -> str:
+        """Returns topmodule for a fileset.
+
+        Args:
+           fileset (str): Fileset name.
 
         Returns:
-            str: Name of active fileset.
-        """
-        return self.__fileset
+           str: Topmodule name
 
-    def set_option(self, option: Option, value, fileset=None):
-        """Sets an option in a fileset.
+        """
+        return self.get('fileset', fileset, 'topmodule')
+
+    ##############################################
+    def set_idir(self, value: str, fileset=None) -> None:
+        """Sets include directories for a fileset.
 
         Args:
-           option (Option): Option enum or key name.
-           value: Value to assign to the option.
-           fileset (str, optional): Fileset name. Uses active fileset if not specified.
-        """
-        if fileset is None:
-            fileset =  self.__fileset
-        self.set('fileset', fileset, option.value, value)
+           value (str or Path): Include directory name.
+           fileset (str, optional): Fileset name.
 
-    def get_option(self, option: Option, fileset=None, package=None):
-        """Returns value of a fileset option.
+        """
+        self.set('fileset', fileset, 'idir', value)
+
+    def get_idir(self, fileset: str) -> List[str]:
+        """Returns include directories for a fileset.
 
         Args:
-           option (Option): Option enum or key name.
-           fileset (str, optional): Fileset name. Uses active fileset if not specified.
-           package (str, optional): Dependency package to query instead of current design.
+           fileset (str): Fileset name.
 
         Returns:
-           Any: Value of the option.
-        """
-        if fileset is None:
-            fileset =  self.__fileset
-        return self.get('fileset', fileset, option.value)
+           list[str]: Topmodule name
 
-    def set_param(self, name: str, value : str, fileset=None):
+        """
+        return self.get('fileset', fileset, 'idir')
+
+    ##############################################
+    def set_define(self, value: str, fileset=None) -> None:
+        """Defines a macro for a fileset.
+
+        Args:
+           value (str or List[str]): Macro definition.
+           fileset (str, optional): Fileset name.
+        """
+        self.set('fileset', fileset, 'define', value)
+
+    def get_define(self, fileset: str) -> List[str]:
+        """Returns defined macros for a fileset.
+
+        Args:
+           fileset (str): Fileset name.
+
+        Returns:
+           list[str]: List of macro definitions
+
+        """
+        return self.get('fileset', fileset, 'define')
+
+    ##############################################
+    def set_undefine(self, value: str, fileset: str = None) -> None:
+        """Undefines a preprocessor macro for a fileset.
+
+        Args:
+           value (str or List[str]): Macro definition to undefine.
+           fileset (str, optional): Fileset name.
+        """
+        self.set('fileset', fileset, 'undefine', value)
+
+    def get_undefine(self, fileset: str) -> List[str]:
+        """Returns undefined macros for a fileset.
+
+        Args:
+           fileset (str): Fileset name.
+
+        Returns:
+           list[str]: List of macro (un)definitions
+
+        """
+        return self.get('fileset', fileset, 'undefine')
+
+    ###############################################
+    def set_libdir(self, value: str, fileset=None) -> None:
+        """Sets dynamic library directories for a fileset.
+
+        Args:
+           value (str or List[str]): Library directories.
+           fileset (str, optional): Fileset name.
+        """
+        self.set('fileset', fileset, 'libdir', value)
+
+    def get_libdir(self, fileset: str) -> List[str]:
+        """Returns dynamic library directories for a fileset.
+
+        Args:
+           fileset (str): Fileset name.
+
+        Returns:
+           list[str]: List of library directories.
+
+        """
+        return self.get('fileset', fileset, 'libdir')
+
+    ###############################################
+    def set_lib(self, value: str, fileset=None) -> None:
+        """Sets list of dynamic libraries for a fileset.
+
+        Args:
+           value (str or List[str]): Library directory names.
+           fileset (str, optional): Fileset name.
+        """
+        self.set('fileset', fileset, 'lib', value)
+
+    def get_lib(self, fileset: str) -> List[str]:
+        """Returns list of dynamic libraries for a fileset.
+
+        Args:
+           fileset (str): Fileset name.
+
+        Returns:
+           list[str]: List of libraries.
+
+        """
+        return self.get('fileset', fileset, 'lib')
+
+    ###############################################
+    def set_param(self, name: str, value: str, fileset: str = None) -> None:
         """Sets a named design parameter for a fileset.
 
         Args:
             name (str): Parameter name.
             value (str): Parameter value.
-            fileset (str, optional): Fileset name. Uses active fileset if not specified.
+            fileset (str, optional): Fileset name.
         """
-        if fileset is None:
-            fileset =  self.__fileset
         self.set('fileset', fileset, 'param', name, value)
 
-    def get_param(self, name, fileset=None, package=None):
-        """Returns a named design parameter value.
+    def get_param(self, name: str, fileset: str) -> str:
+        """Returns value of a named design parameter.
 
         Args:
            name (str): Parameter name.
-           fileset (str, optional): Fileset name. Uses active fileset if not specified.
-           package (str, optional): Dependency package to query instead of current design.
+           fileset (str): Fileset name.
 
         Returns:
             str: Parameter value
         """
-        if fileset is None:
-            fileset =  self.__fileset
-        if not package:
-            return self.get('fileset', fileset, 'param', name)
-        else:
-            return self.__dependency[package].get('fileset', fileset, 'param', name)
+        return self.get('fileset', fileset, 'param', name)
 
-    def use(self, module):
-        """Adds a module as a dependency.
-
-        Stores desuign object in design's dependency graph and records it
-        in the schema.
-
-        Args:
-            module: Design object.
-        """
-        self.__dependency[module.name()] = {}
-        self.__dependency[module.name()] = module
-        self.add('dependency', module.name())
-
-    def add_file(self, filename, fileset=None, filetype=None, package=None):
+    ###############################################
+    def add_file(self, filename: str, fileset=None, filetype=None, package=None):
         """
         Adds a file (or list of files) to a fileset.
 
@@ -130,7 +192,7 @@ class DesignSchema(NamedSchema):
         ...       → etc.
 
         Args:
-            filename (str or list[str] or Path): File path or list of paths to add.
+            filename (Path or list[Path]): File path or list of paths to add.
             fileset (str, optional): Logical group to associate the file with.
                 If not provided, it is inferred from the file extension.
             filetype (str, optional): Type of the file (e.g., 'verilog', 'sdc').
@@ -161,9 +223,7 @@ class DesignSchema(NamedSchema):
         # map extension to default filetype/fileset
         default_fileset, default_filetype = utils.get_default_iomap()[ext]
 
-        if not fileset and self.__fileset:
-            fileset =  self.__fileset
-        elif not fileset:
+        if not fileset:
             fileset = default_fileset
 
         if not filetype:
@@ -172,71 +232,66 @@ class DesignSchema(NamedSchema):
         # final error checking
         if not fileset or not filetype:
             raise SiliconCompilerError(
-                f'Unable to infer {category} fileset and/or filetype for '
+                f'Unable to infer fileset and/or filetype for '
                 f'{filename} based on file extension.')
 
         # adding files to dictionary
         self.add('fileset', fileset, 'file', filetype, filename)
 
-    def get_file(self, fileset=None, filetype=None, package=None):
+    ###############################################
+    def get_file(self, fileset: str, filetype: str = None):
         """Returns a list of files from one or more filesets.
 
         Args:
-            fileset (str or list[str], optional): Fileset(s) to query. Defaults to active fileset.
+            fileset (str or list[str]): Fileset(s) to query. Defaults to active fileset.
             filetype (str or list[str], optional): File type(s) to filter by (e.g., 'verilog').
-            package (str, optional): Dependency package to query instead of current design.
 
         Returns:
             list[str]: List of file paths.
         """
 
-        if fileset is None:
-            fileset = self.__fileset
         if not isinstance(fileset, list):
             fileset = [fileset]
 
         if filetype and not isinstance(filetype, list):
             filetype = [filetype]
 
-        if package:
-            obj = self.__dependency[package]
-        else:
-            obj = self
-
         filelist = []
         for i in fileset:
-            # handle scalar+list in argumnet
+            # handle scalar+list in argument
             if not filetype:
-                filetype = list(obj.getkeys('fileset', i, 'file'))
+                filetype = list(self.getkeys('fileset', i, 'file'))
             # grab the files
             for j in filetype:
-                filelist.extend(obj.get('fileset', i, 'file',j))
+                filelist.extend(self.get('fileset', i, 'file', j))
 
         return filelist
 
-    def export(self, filename, fileset, filetype=None):
-        """Exports design filesets to a configuration file.
+    ###############################################
+    def write_filelist(self, filename: str, fileset: str, fileformat=None) -> None:
+        """Exports filesets to a standard formatted text file.
 
-        Currently supports Verilog flist output only. Intended to support other
-        formats in the future.
+        Currently supports Verilog `flist` format only.
+        Intended to support other formats in the future.
 
         Args:
             filename (str or Path): Output file name.
-            fileset (str or list[str]): Fileset(s) to export. Defaults to active fileset.
-            filetype (str, optional): Export format (e.g., 'flist'). Inferred from file extension if not given.
+            fileset (str or list[str]): Fileset(s) to export.
+            fileformat (str, optional): Export format. Inferred from file extension if not given.
 
         """
         if not isinstance(fileset, list):
             fileset = [fileset]
 
         # file extension lookup
-        if not filetype:
+        if not fileformat:
             formats = {}
             formats['f'] = 'flist'
-            filetype = formats[Path(filename).suffix.strip('.')]
+            fileformat = formats[Path(filename).suffix.strip('.')]
 
-        if filetype == "flist":
+        if fileformat == "flist":
             # TODO: handle dependency tree
+            # TODO: add source info for comments to flist.
             with open(filename, "w") as f:
                 for i in fileset:
                     for j in ['idir', 'define', 'file']:
@@ -252,6 +307,22 @@ class DesignSchema(NamedSchema):
                         if vals:
                             for item in vals:
                                 f.write(f"{cmd}{item}\n")
+
+    ################################################
+    def read_filelist(self, filename: str, fileset: str, fileformat=None) -> None:
+        """Imports filesets from a standard formatted text file.
+
+        Currently supports Verilog `flist` format only.
+        Intended to support other formats in the future.
+
+        Args:
+            filename (str or Path): Output file name.
+            fileset (str or list[str]): Fileset(s) to export. Defaults to active fileset.
+            fileformat (str, optional): Export format. Inferred from file extension if not given.
+
+        """
+        pass
+
 
 ###########################################################################
 # Schema
@@ -348,7 +419,7 @@ def schema_design(schema):
             Specifies directories to scan for libraries provided with the
             :keypath:`lib` parameter. If multiple paths are provided, they are
             searched based on the order of the libdir list. The libdir
-            parameter is transalted to the '-y' option in verilog based tools.""")))
+            parameter is translated to the '-y' option in verilog based tools.""")))
 
     schema.insert(
         'fileset', fileset, 'lib',
@@ -377,17 +448,3 @@ def schema_design(schema):
             data literals. The types of parameters and values supported is tightly
             coupled to tools being used. For example, in Verilog only integer
             literals (64'h4, 2'b0, 4) and strings are supported.""")))
-
-    ###########################
-    # Dependencies
-    ###########################
-
-    schema.insert(
-        'dependency',
-        Parameter(
-            ['str'],
-            scope=Scope.GLOBAL,
-            shorthelp="List of design dependencies",
-            example=["api: chip.set('dependency', 'stdlib')"],
-            help=trim("""
-            List of design packages this design depends on.""")))
