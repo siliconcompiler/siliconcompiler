@@ -6,7 +6,6 @@ from siliconcompiler.schema.utils import trim
 from siliconcompiler import utils
 from siliconcompiler import SiliconCompilerError
 
-
 ###########################################################################
 class DesignSchema(NamedSchema):
 
@@ -17,7 +16,7 @@ class DesignSchema(NamedSchema):
         self.__dependency = {}
 
     ############################################
-    def set_topmodule(self, value: str, fileset: str = None) -> None:
+    def set_topmodule(self, value: str, fileset: str) -> str:
         """Sets topmodule for a fileset.
 
         Args:
@@ -25,7 +24,7 @@ class DesignSchema(NamedSchema):
            fileset (str, optional): Fileset name.
 
         """
-        self.set('fileset', fileset, 'topmodule', value)
+        return self._set(fileset, 'topmodule', value)
 
     def get_topmodule(self, fileset: str) -> str:
         """Returns topmodule for a fileset.
@@ -37,10 +36,11 @@ class DesignSchema(NamedSchema):
            str: Topmodule name
 
         """
-        return self.get('fileset', fileset, 'topmodule')
+        return self._get(fileset, 'topmodule')
+
 
     ##############################################
-    def set_idir(self, value: str, fileset=None) -> None:
+    def set_idir(self, value: str, fileset) -> List[str]:
         """Sets include directories for a fileset.
 
         Args:
@@ -48,7 +48,7 @@ class DesignSchema(NamedSchema):
            fileset (str, optional): Fileset name.
 
         """
-        self.set('fileset', fileset, 'idir', value)
+        return self._set(fileset, 'idir', value)
 
     def get_idir(self, fileset: str) -> List[str]:
         """Returns include directories for a fileset.
@@ -60,17 +60,17 @@ class DesignSchema(NamedSchema):
            list[str]: Topmodule name
 
         """
-        return self.get('fileset', fileset, 'idir')
+        return self._get(fileset, 'idir')
 
     ##############################################
-    def set_define(self, value: str, fileset=None) -> None:
+    def set_define(self, value: str, fileset) -> List[str]:
         """Defines a macro for a fileset.
 
         Args:
            value (str or List[str]): Macro definition.
            fileset (str, optional): Fileset name.
         """
-        self.set('fileset', fileset, 'define', value)
+        return self._set(fileset, 'define', value)
 
     def get_define(self, fileset: str) -> List[str]:
         """Returns defined macros for a fileset.
@@ -82,17 +82,17 @@ class DesignSchema(NamedSchema):
            list[str]: List of macro definitions
 
         """
-        return self.get('fileset', fileset, 'define')
+        return self._get(fileset, 'define')
 
     ##############################################
-    def set_undefine(self, value: str, fileset: str = None) -> None:
+    def set_undefine(self, value: str, fileset: str) -> List[str]:
         """Undefines a preprocessor macro for a fileset.
 
         Args:
            value (str or List[str]): Macro definition to undefine.
            fileset (str, optional): Fileset name.
         """
-        self.set('fileset', fileset, 'undefine', value)
+        return self._set(fileset, 'undefine', value)
 
     def get_undefine(self, fileset: str) -> List[str]:
         """Returns undefined macros for a fileset.
@@ -100,21 +100,21 @@ class DesignSchema(NamedSchema):
         Args:
            fileset (str): Fileset name.
 
-        Returns:
+       Returns:
            list[str]: List of macro (un)definitions
 
         """
-        return self.get('fileset', fileset, 'undefine')
+        return self._get(fileset, 'undefine')
 
     ###############################################
-    def set_libdir(self, value: str, fileset=None) -> None:
+    def set_libdir(self, value: str, fileset) -> List[str]:
         """Sets dynamic library directories for a fileset.
 
         Args:
            value (str or List[str]): Library directories.
            fileset (str, optional): Fileset name.
         """
-        self.set('fileset', fileset, 'libdir', value)
+        return self._set(fileset, 'libdir', value)
 
     def get_libdir(self, fileset: str) -> List[str]:
         """Returns dynamic library directories for a fileset.
@@ -126,17 +126,17 @@ class DesignSchema(NamedSchema):
            list[str]: List of library directories.
 
         """
-        return self.get('fileset', fileset, 'libdir')
+        return self._get(fileset, 'libdir')
 
     ###############################################
-    def set_lib(self, value: str, fileset=None) -> None:
+    def set_lib(self, value: str, fileset) -> List[str]:
         """Sets list of dynamic libraries for a fileset.
 
         Args:
            value (str or List[str]): Library directory names.
            fileset (str, optional): Fileset name.
         """
-        self.set('fileset', fileset, 'lib', value)
+        return self._set(fileset, 'lib', value)
 
     def get_lib(self, fileset: str) -> List[str]:
         """Returns list of dynamic libraries for a fileset.
@@ -148,10 +148,10 @@ class DesignSchema(NamedSchema):
            list[str]: List of libraries.
 
         """
-        return self.get('fileset', fileset, 'lib')
+        return self._get(fileset, 'lib')
 
     ###############################################
-    def set_param(self, name: str, value: str, fileset: str = None) -> None:
+    def set_param(self, name: str, value: str, fileset: str) -> List[str]:
         """Sets a named design parameter for a fileset.
 
         Args:
@@ -159,8 +159,11 @@ class DesignSchema(NamedSchema):
             value (str): Parameter value.
             fileset (str, optional): Fileset name.
         """
+        if not isinstance(fileset, str):
+            raise RuntimeError("fileset value must be a string")
         self.set('fileset', fileset, 'param', name, value)
-
+        return self.get('fileset', fileset, 'param', name)
+    
     def get_param(self, name: str, fileset: str) -> str:
         """Returns value of a named design parameter.
 
@@ -171,6 +174,8 @@ class DesignSchema(NamedSchema):
         Returns:
             str: Parameter value
         """
+        if not isinstance(fileset, str):
+            raise RuntimeError("fileset value must be a string")
         return self.get('fileset', fileset, 'param', name)
 
     ###############################################
@@ -268,7 +273,7 @@ class DesignSchema(NamedSchema):
         return filelist
 
     ###############################################
-    def write_filelist(self, filename: str, fileset: str, fileformat=None) -> None:
+    def write_fileset(self, filename: str, fileset: str, fileformat=None) -> None:
         """Exports filesets to a standard formatted text file.
 
         Currently supports Verilog `flist` format only.
@@ -309,7 +314,7 @@ class DesignSchema(NamedSchema):
                                 f.write(f"{cmd}{item}\n")
 
     ################################################
-    def read_filelist(self, filename: str, fileset: str, fileformat=None) -> None:
+    def read_fileset(self, filename: str, fileset: str, fileformat=None) -> None:
         """Imports filesets from a standard formatted text file.
 
         Currently supports Verilog `flist` format only.
@@ -322,6 +327,24 @@ class DesignSchema(NamedSchema):
 
         """
         pass
+
+    ################################################
+    # Helper Functions
+    ################################################
+    def _set(self, fileset, option, value=None):
+        '''
+        '''       
+        if not isinstance(fileset, str):
+            raise RuntimeError("fileset value must be a string")
+        self.set('fileset', fileset, option, value)
+        return self.get('fileset', fileset, option)
+
+    def _get(self, fileset, option):
+        '''
+        '''       
+        if not isinstance(fileset, str):
+            raise RuntimeError("fileset value must be a string")
+        return self.get('fileset', fileset, option)
 
 
 ###########################################################################
