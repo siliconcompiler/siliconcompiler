@@ -104,7 +104,7 @@ class UseSchema(BaseSchema):
                 "connects_to": set([make_label(subdep) for subdep in self.__used.values()])
             }
         }
-        for dep in self.get_all_used():
+        for dep in self.get_used():
             nodes[make_label(dep)] = {
                 "text": dep.name(),
                 "shape": "oval",
@@ -124,22 +124,6 @@ class UseSchema(BaseSchema):
             dot.render(filename=fileroot, cleanup=True)
         except graphviz.ExecutableNotFound as e:
             raise RuntimeError(f'Unable to save flowgraph: {e}')
-
-    def get_use(self, name: str) -> NamedSchema:
-        '''
-        Returns a used module which has been imported.
-
-        Raises:
-            KeyError: if the module is not found
-
-        Args:
-            name (str): name of the module
-        '''
-
-        if name not in self.__used:
-            raise KeyError(f"{name} is not an imported module")
-
-        return self.__used[name]
 
     def __get_all_used(self, seen: set) -> list:
         '''
@@ -164,14 +148,24 @@ class UseSchema(BaseSchema):
 
         return deps
 
-    def get_all_used(self, hierarchy: bool = True) -> list:
+    def get_used(self, name: str = None, hierarchy: bool = True) -> list:
         '''
-        Returns all used modules associated with this object.
+        Returns all used modules associated with this object or a specific one if requested.
+
+        Raises:
+            KeyError: if the module specific module is requested but not found
 
         Args:
+            name (str): name of the module
             hierarchy (bool): if True, will return all modules including children
                 otherwise only this objects modules are returned.
         '''
+
+        if name:
+            if name not in self.__used:
+                raise KeyError(f"{name} is not an imported module")
+
+            return self.__used[name]
 
         if hierarchy:
             return self.__get_all_used(set())

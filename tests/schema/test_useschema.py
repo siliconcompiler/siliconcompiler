@@ -28,7 +28,7 @@ def test_use():
 
     dep = NamedSchema("thisname")
     assert use.use(dep)
-    assert use.get_use("thisname") is dep
+    assert use.get_used("thisname") is dep
     assert use.get("used") == ["thisname"]
 
 
@@ -56,9 +56,9 @@ def test_use_clobber():
     dep0 = NamedSchema("thisname")
     dep1 = NamedSchema("thisname")
     assert use.use(dep0)
-    assert use.get_use("thisname") is dep0
+    assert use.get_used("thisname") is dep0
     assert use.use(dep1, clobber=True)
-    assert use.get_use("thisname") is dep1
+    assert use.get_used("thisname") is dep1
     assert use.get("used") == ["thisname"]
 
 
@@ -68,17 +68,17 @@ def test_use_no_clobber():
     dep0 = NamedSchema("thisname")
     dep1 = NamedSchema("thisname")
     assert use.use(dep0)
-    assert use.get_use("thisname") is dep0
+    assert use.get_used("thisname") is dep0
     assert use.use(dep1, clobber=False) is False
-    assert use.get_use("thisname") is dep0
+    assert use.get_used("thisname") is dep0
     assert use.get("used") == ["thisname"]
 
 
-def test_get_use_not_found():
+def test_get_used_not_found():
     use = UseSchema()
 
     with pytest.raises(KeyError, match="notthere is not an imported module"):
-        use.get_use("notthere")
+        use.get_used("notthere")
 
 
 def test_remove_use_not_there():
@@ -89,17 +89,17 @@ def test_remove_use_not_there():
 def test_remove_use():
     use = UseSchema()
     use.use(NamedSchema("thisname"))
-    assert use.get_use("thisname")
+    assert use.get_used("thisname")
     assert use.remove_use("thisname") is True
-    assert use.get_all_used() == []
+    assert use.get_used() == []
     assert use.get("used") == []
 
 
-def test_get_all_used_empty():
-    assert UseSchema().get_all_used() == []
+def test_get_used_empty():
+    assert UseSchema().get_used() == []
 
 
-def test_get_all_used():
+def test_get_used():
     class Test(NamedSchema, UseSchema):
         def __init__(self, name):
             NamedSchema.__init__(self, name)
@@ -118,10 +118,10 @@ def test_get_all_used():
     assert use.use(dep00)
     assert use.use(dep01)
 
-    assert use.get_all_used() == [dep00, dep10, dep01, dep11]
+    assert use.get_used() == [dep00, dep10, dep01, dep11]
 
 
-def test_get_all_used_no_hier():
+def test_get_used_no_hier():
     class Test(NamedSchema, UseSchema):
         def __init__(self, name):
             NamedSchema.__init__(self, name)
@@ -140,10 +140,10 @@ def test_get_all_used_no_hier():
     assert use.use(dep00)
     assert use.use(dep01)
 
-    assert use.get_all_used(hierarchy=False) == [dep00, dep01]
+    assert use.get_used(hierarchy=False) == [dep00, dep01]
 
 
-def test_get_all_used_repeats():
+def test_get_used_repeats():
     class Test(NamedSchema, UseSchema):
         def __init__(self, name):
             NamedSchema.__init__(self, name)
@@ -163,10 +163,10 @@ def test_get_all_used_repeats():
     assert use.use(dep00)
     assert use.use(dep01)
 
-    assert use.get_all_used() == [dep00, dep10, dep11, dep01]
+    assert use.get_used() == [dep00, dep10, dep11, dep01]
 
 
-def test_get_all_used_non_use():
+def test_get_used_non_use():
     class Test(NamedSchema, UseSchema):
         def __init__(self, name):
             NamedSchema.__init__(self, name)
@@ -189,11 +189,11 @@ def test_get_all_used_non_use():
     assert use.use(dep00)
     assert use.use(dep01)
 
-    assert use.get_all_used() == \
+    assert use.get_used() == \
         [dep00, dep10, dep20, dep01, dep11, dep21]
 
 
-def test_get_all_used_circle():
+def test_get_used_circle():
     class Test(NamedSchema, UseSchema):
         def __init__(self, name):
             NamedSchema.__init__(self, name)
@@ -213,7 +213,7 @@ def test_get_all_used_circle():
 
     assert use.use(dep00)
 
-    assert use.get_all_used() == [dep00, dep10, dep01, dep11]
+    assert use.get_used() == [dep00, dep10, dep01, dep11]
 
 
 def test_write_usegraph_no_graphviz_exe():
@@ -364,10 +364,10 @@ def test_populate_used():
     assert use.use(dep01)
 
     check = Test.from_manifest("test", cfg=use.getdict())
-    assert check.get_all_used() == []
-    module_map = {obj.name(): obj for obj in use.get_all_used()}
+    assert check.get_used() == []
+    module_map = {obj.name(): obj for obj in use.get_used()}
     check._populate_used(module_map)
-    assert check.get_all_used() == use.get_all_used()
+    assert check.get_used() == use.get_used()
 
 
 def test_populate_used_missing():
@@ -416,7 +416,7 @@ def test_populate_used_already_populated():
     check = Test("top")
     check.use(dep00)
 
-    assert check.get_all_used() == [dep00, dep10]
-    module_map = {obj.name(): obj for obj in use.get_all_used()}
+    assert check.get_used() == [dep00, dep10]
+    module_map = {obj.name(): obj for obj in use.get_used()}
     check._populate_used(module_map)
-    assert check.get_all_used() == [dep00, dep10]
+    assert check.get_used() == [dep00, dep10]
