@@ -18,23 +18,6 @@ from urllib import parse as url_parse
 from siliconcompiler.utils import get_plugins
 
 
-def is_python_module_editable(module_name):
-    dist_map = __get_python_module_mapping()
-    dist = dist_map[module_name][0]
-
-    is_editable = False
-    for f in distribution(dist).files:
-        if f.name == 'direct_url.json':
-            info = None
-            with open(f.locate(), 'r') as f:
-                info = json.load(f)
-
-            if "dir_info" in info:
-                is_editable = info["dir_info"].get("editable", False)
-
-    return is_editable
-
-
 def register_python_data_source(chip,
                                 package_name,
                                 python_module,
@@ -45,61 +28,15 @@ def register_python_data_source(chip,
     Helper function to register a python module as data source with an alternative in case
     the module is not installed in an editable state
     '''
-    # check if installed in an editable state
-    if is_python_module_editable(python_module):
-        if python_module_path_append:
-            path = PythonPathResolver(python_module, chip, f"python://{python_module}").resolve()
-            path = os.path.abspath(os.path.join(path, python_module_path_append))
-        else:
-            path = f"python://{python_module}"
-        ref = None
-    else:
-        path = alternative_path
-        ref = alternative_ref
+    import warnings
+    warnings.warn("The 'register_python_data_source' method was renamed "
+                  "PythonPathResolver.register_source",
+                  DeprecationWarning)
 
-    chip.register_source(name=package_name,
-                         path=path,
-                         ref=ref)
-
-
-@functools.lru_cache(maxsize=1)
-def __get_python_module_mapping():
-    mapping = {}
-
-    for dist in distributions():
-        dist_name = None
-        if hasattr(dist, 'name'):
-            dist_name = dist.name
-        else:
-            metadata = dist.read_text('METADATA')
-            if metadata:
-                find_name = re.compile(r'Name: (.*)')
-                for data in metadata.splitlines():
-                    group = find_name.findall(data)
-                    if group:
-                        dist_name = group[0]
-                        break
-
-        if not dist_name:
-            continue
-
-        provides = dist.read_text('top_level.txt')
-        if provides:
-            for module in dist.read_text('top_level.txt').split():
-                mapping.setdefault(module, []).append(dist_name)
-
-    return mapping
-
-
-def register_private_github_data_source(chip,
-                                        package_name,
-                                        repository,
-                                        release,
-                                        artifact):
-    chip.register_source(
-        package_name,
-        path=f"github+private://{repository}/{release}/{artifact}",
-        ref=release)
+    PythonPathResolver.register_source(
+        chip, package_name, python_module, alternative_path,
+        alternative_ref=alternative_ref,
+        python_module_path_append=python_module_path_append)
 
 
 class Resolver:
@@ -390,6 +327,80 @@ class FileResolver(Resolver):
 class PythonPathResolver(Resolver):
     def __init__(self, name, runnable, source, reference=None):
         super().__init__(name, runnable, source, None)
+
+    @staticmethod
+    @functools.lru_cache(maxsize=1)
+    def get_python_module_mapping():
+        mapping = {}
+
+        for dist in distributions():
+            dist_name = None
+            if hasattr(dist, 'name'):
+                dist_name = dist.name
+            else:
+                metadata = dist.read_text('METADATA')
+                if metadata:
+                    find_name = re.compile(r'Name: (.*)')
+                    for data in metadata.splitlines():
+                        group = find_name.findall(data)
+                        if group:
+                            dist_name = group[0]
+                            break
+
+            if not dist_name:
+                continue
+
+            provides = dist.read_text('top_level.txt')
+            if provides:
+                for module in dist.read_text('top_level.txt').split():
+                    mapping.setdefault(module, []).append(dist_name)
+
+        return mapping
+
+    @staticmethod
+    def is_python_module_editable(module_name):
+        dist_map = PythonPathResolver.get_python_module_mapping()
+        dist = dist_map[module_name][0]
+
+        is_editable = False
+        for f in distribution(dist).files:
+            if f.name == 'direct_url.json':
+                info = None
+                with open(f.locate(), 'r') as f:
+                    info = json.load(f)
+
+                if "dir_info" in info:
+                    is_editable = info["dir_info"].get("editable", False)
+
+        return is_editable
+
+    @staticmethod
+    def register_source(runnable,
+                        package_name,
+                        python_module,
+                        alternative_path,
+                        alternative_ref=None,
+                        python_module_path_append=None):
+        '''
+        Helper function to register a python module as data source with an alternative in case
+        the module is not installed in an editable state
+        '''
+        # check if installed in an editable state
+        if PythonPathResolver.is_python_module_editable(python_module):
+            if python_module_path_append:
+                path = PythonPathResolver(
+                    python_module, runnable, f"python://{python_module}").resolve()
+                path = os.path.abspath(os.path.join(path, python_module_path_append))
+            else:
+                path = f"python://{python_module}"
+            ref = None
+        else:
+            path = alternative_path
+            ref = alternative_ref
+
+        runnable.register_source(name=package_name,
+                                 path=path,
+                                 ref=ref)
 
     def resolve(self):
         module = importlib.import_module(self.urlpath)
