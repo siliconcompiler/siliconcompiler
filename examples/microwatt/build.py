@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 from siliconcompiler import Chip
-from siliconcompiler.package import path as sc_path
 from siliconcompiler.targets import freepdk45_demo
 
 
@@ -14,9 +13,11 @@ def main():
         'git+https://github.com/antonblanchard/microwatt',
         'd7458d5bebe19d20a6231471b6e0a7823365c2a6')
 
+    microwatt_path = chip.get("package", field="schema").get_resolver("microwatt")
+
     chip.add('option', 'define', 'LOG_LENGTH=0')
     chip.add('option', 'define',
-             'RAM_INIT_FILE=' + sc_path(chip, 'microwatt') + '/hello_world/hello_world.hex')
+             'RAM_INIT_FILE=' + str(microwatt_path.get_path()) + '/hello_world/hello_world.hex')
 
     for src in ('decode_types.vhdl',
                 'common.vhdl',

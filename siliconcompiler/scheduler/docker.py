@@ -5,8 +5,7 @@ import sys
 
 from pathlib import Path
 
-from siliconcompiler.package import get_cache_path
-from siliconcompiler.package import path as sc_path
+from siliconcompiler.package import RemoteResolver
 from siliconcompiler.utils import default_email_credentials_file
 from siliconcompiler.scheduler.schedulernode import SchedulerNode
 
@@ -50,8 +49,8 @@ def get_volumes_directories(chip, cache_dir, workdir, step, index):
                         all_dirs.add(path)
 
     # Collect caches
-    for package in chip.getkeys('package', 'source'):
-        all_dirs.add(sc_path(chip, package))
+    for resolver in chip.get('package', field="schema").get_resolvers(chip).values():
+        all_dirs.add(resolver())
 
     all_dirs = [
         Path(cache_dir),
@@ -170,7 +169,7 @@ class DockerSchedulerNode(SchedulerNode):
 
             volumes = [
                 f"{self.chip.cwd}:{cwd}:rw",
-                f"{get_cache_path(self.chip)}:{cache_dir}:rw"
+                f"{RemoteResolver.determine_cache_dir(self.chip)}:{cache_dir}:rw"
             ]
             self.logger.debug(f'Volumes: {volumes}')
 
@@ -181,7 +180,7 @@ class DockerSchedulerNode(SchedulerNode):
 
                 volumes.append(f'{os.path.dirname(email_file)}:/sc_home/.sc:ro')
         else:
-            cache_dir = get_cache_path(self.chip)
+            cache_dir = RemoteResolver.determine_cache_dir(self.chip)
             cwd = self.chip.cwd
             builddir = self.chip.find_files('option', 'builddir')
 
@@ -228,16 +227,17 @@ class DockerSchedulerNode(SchedulerNode):
             self.chip.write_manifest(local_cfg)
 
             cachemap = []
-            for package in self.chip.getkeys('package', 'source'):
-                cachemap.append(f'{package}:{sc_path(self.chip, package)}')
+            for package, resolver in self.chip.get(
+                    'package', field="schema").get_resolvers(self.chip).items():
+                cachemap.append(f'{package}:{resolver()}')
 
             self.logger.info('Running in docker container: '
                              f'{container.name} ({container.short_id})')
             args = [
                 '-cfg', cfg,
                 '-cwd', cwd,
-                '-builddir', builddir,
-                '-cachedir', cache_dir,
+                '-builddir', str(builddir),
+                '-cachedir', str(cache_dir),
                 '-step', self.step,
                 '-index', self.index,
                 '-unset_scheduler'

@@ -1,40 +1,11 @@
+import os
+
 import os.path
 
 from siliconcompiler.schema import BaseSchema
 from siliconcompiler.schema import EditableSchema, Parameter, Scope
 from siliconcompiler.schema.utils import trim
-
-from siliconcompiler.package import _path as sc_resolver_path
-
-
-class PackageResolver:
-    def __init__(self, runnable, cache):
-        self.__runnable = runnable
-        self.__cache = cache
-
-    def resolve(self, package):
-        if package in self.__cache:
-            return self.__cache[package]
-
-        changed = False
-        data_path = sc_resolver_path(self.__runnable, package, True)
-
-        if isinstance(data_path, tuple) and len(data_path) == 2:
-            data_path, changed = data_path
-
-        if package.startswith("key://"):
-            return data_path
-
-        if os.path.exists(data_path):
-            if package not in self.__cache and changed:
-                self.__runnable.logger.info(f'Saved {package} data to {data_path}')
-            else:
-                self.__runnable.logger.info(f'Found {package} data at {data_path}')
-
-            self.__cache[package] = data_path
-            return data_path
-        else:
-            raise FileNotFoundError(f"Unable to locate {package} at {data_path}")
+from siliconcompiler.package import Resolver
 
 
 class PackageSchema(BaseSchema):
@@ -78,6 +49,14 @@ class PackageSchema(BaseSchema):
                 success = True
         return success
 
+    def get_resolver(self, package, runnable=None):
+        resolver_cls = Resolver.find_resolver(self.get("source", package, "path"))
+        resolver = resolver_cls(package, runnable,
+                                self.get("source", package, "path"),
+                                self.get("source", package, "ref"))
+        resolver.set_cache(self.__cache)
+        return resolver
+
     def get_resolvers(self, runnable):
         '''
         Returns a dictionary of packages with their resolver method.
@@ -85,12 +64,9 @@ class PackageSchema(BaseSchema):
         Args:
             runnable (TBD): Base runnable object
         '''
-
-        resolver = PackageResolver(runnable, self.__cache)
-
         resolvers = {}
         for package in self.getkeys("source"):
-            resolvers[package] = resolver.resolve
+            resolvers[package] = self.get_resolver(package, runnable).get_path
 
         return resolvers
 
