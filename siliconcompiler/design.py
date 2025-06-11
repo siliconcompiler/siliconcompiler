@@ -196,10 +196,10 @@ class DesignSchema(NamedSchema):
         """
 
         if not isinstance(fileset, str):
-            raise TypeError("fileset key must be a string")
+            raise ValueError("fileset key must be a string")
 
         if not isinstance(value, str) or value is None:
-            raise TypeError("param value must be a string")
+            raise ValueError("param value must be a string")
 
         return self.set('fileset', fileset, 'param', name, value)
 
