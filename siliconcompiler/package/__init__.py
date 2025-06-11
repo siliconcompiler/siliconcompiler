@@ -58,7 +58,7 @@ class Resolver:
         self.__changed = False
         self.__cache = {}
 
-        if self.__root:
+        if self.__root and hasattr(self.__root, "logger"):
             self.__logger = self.__root.logger.getChild(f"resolver-{self.name}")
         else:
             self.__logger = logging.getLogger(f"resolver-{self.name}")
@@ -160,8 +160,9 @@ class Resolver:
 
         if self.root:
             schema_env = {}
-            for env in self.root.getkeys('option', 'env'):
-                schema_env[env] = self.root.get('option', 'env', env)
+            if self.root.valid("option", "env"):
+                for env in self.root.getkeys('option', 'env'):
+                    schema_env[env] = self.root.get('option', 'env', env)
             os.environ.update(schema_env)
 
         path = os.path.expandvars(path)
@@ -315,7 +316,7 @@ class FileResolver(Resolver):
         if source.startswith("file://"):
             source = source[7:]
         if not os.path.isabs(source):
-            source = os.path.join(runnable.cwd, source)
+            source = os.path.join(getattr(runnable, "cwd", os.getcwd()), source)
 
         super().__init__(name, runnable, f"file://{source}", None)
 
