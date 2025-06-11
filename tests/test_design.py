@@ -68,22 +68,24 @@ def test_add_file():
     d = DesignSchema("test")
 
     # explicit file add
+    fileset = 'rtl'
     files = ['one.v', 'two.v']
-    d.add_file('rtl', files, filetype='verilog')
-    assert d.get('fileset', 'rtl', 'file', 'verilog') == files
+    d.add_file(files, fileset, filetype='verilog')
+    assert d.get('fileset', fileset, 'file', 'verilog') == files
 
     # filetype mapping
+    fileset = 'testbench'
     files = ['tb.v', 'dut.v']
-    d.add_file('testbench', files)
+    d.add_file(files, fileset)
     assert d.get('fileset', 'testbench', 'file', 'verilog') == files
 
 
 def test_get_file():
     d = DesignSchema("test")
 
-    d.add_file('rtl', ['one.v'], filetype='verilog')
-    d.add_file('testbench', ['tb.v'])
-    d.add_file('rtl', ['one.vhdl'])
+    d.add_file(['one.v'], 'rtl', filetype='verilog')
+    d.add_file(['tb.v'], 'testbench')
+    d.add_file(['one.vhdl'], 'rtl')
 
     # get all files
     assert d.get_file(fileset=['rtl', 'testbench']) == (['one.v'] +
@@ -105,37 +107,37 @@ def test_options():
 
     # top module
     top = 'mytop'
-    d.set_topmodule(fileset, top)
+    d.set_topmodule(top, fileset)
     assert d.get_topmodule(fileset) == top
 
     # idir
     idirs = ['/home/acme/incdir1', '/home/acme/incdir2']
     for item in idirs:
-        d.add_idir(fileset, item)
+        d.add_idir(item, fileset)
     assert d.get_idir(fileset) == idirs
 
     # libdirs
     libdirs = ['/usr/lib1', '/usr/lib2']
     for item in libdirs:
-        d.add_libdir(fileset, item)
+        d.add_libdir(item, fileset)
     assert d.get_libdir(fileset) == libdirs
 
     # libs
     libs = ['lib1', 'lib2']
     for item in libs:
-        d.add_lib(fileset, item)
+        d.add_lib(item, fileset)
     assert d.get_lib(fileset) == libs
 
     # define
     defs = ['CFG_TARGET=FPGA', 'VERILATOR']
     for item in defs:
-        d.add_define(fileset, item)
+        d.add_define(item, fileset)
     assert d.get_define(fileset) == defs
 
     # undefine
     undefs = ['CFG_TARGET', 'CFG_SIM']
     for item in undefs:
-        d.add_undefine(fileset, item)
+        d.add_undefine(item, fileset)
     assert d.get_undefine(fileset) == undefs
 
 
@@ -143,32 +145,35 @@ def test_errors():
 
     d = DesignSchema("test")
 
+    fileset = 'rtl'
+
     # check invalid fileset types
+    dummy = 'mytop'
     for item in [None, [], (0, 1), 1.1]:
         with pytest.raises(ValueError, match="fileset key must be a string"):
-            d.set_topmodule(item, "aaaa")
+            d.set_topmodule(dummy, item)
         with pytest.raises(ValueError, match="fileset key must be a string"):
             d.get_topmodule(item)
 
     # checking general types
     for value in [None, (0, 1), 1.1]:
-        with pytest.raises(ValueError, match="value type must be str or List"):
-            d.add_libdir("aaaa", value)
-        with pytest.raises(ValueError, match="value type must be str or List"):
-            d.set_topmodule("aaaa", value)
+        with pytest.raises(ValueError, match="value must be of type string"):
+            d.add_libdir(value, fileset)
+        with pytest.raises(ValueError, match="value must be of type string"):
+            d.set_topmodule(value, fileset)
 
     # check valid topmodule strings
     for value in ["0abc", "abc$", ""]:
         with pytest.raises(ValueError, match=re.escape(f"{value} is not a legal topmodule string")):
-            d.set_topmodule("aaaa", value)
+            d.set_topmodule(value, fileset)
 
     # check valid filename
     with pytest.raises(ValueError, match="add_file cannot process None"):
-        d.add_file("aaaa", None)
+        d.add_file(None, fileset)
 
     # check valid extension
     with pytest.raises(ValueError, match="illegal file extension"):
-        d.add_file("aaaa", "tmp.badex")
+        d.add_file("tmp.badex", fileset)
 
 
 def test_param():
@@ -179,8 +184,8 @@ def test_param():
     val = '2'
     fileset = 'rtl'
 
-    d.set_param(fileset, name, val)
-    assert d.get_param(fileset, name) == val
+    d.set_param(name, val, fileset)
+    assert d.get_param(name, fileset) == val
 
 
 @pytest.mark.skip(reason="waiting for use schema impl")
@@ -201,16 +206,16 @@ def test_write_fileset(datadir):
     d = DesignSchema("test")
 
     fileset = 'rtl'
-    d.add_file(fileset, ['data/heartbeat.v', 'data/increment.v'])
-    d.add_define(fileset, 'ASIC')
-    d.add_idir(fileset, './data')
-    d.set_topmodule(fileset, 'heartbeat')
+    d.add_file(['data/heartbeat.v', 'data/increment.v'], fileset)
+    d.add_define('ASIC', fileset)
+    d.add_idir('./data', fileset)
+    d.set_topmodule('heartbeat', fileset)
 
     fileset = 'tb'
-    d.add_file(fileset, ['data/tb.v'])
-    d.add_define(fileset, 'VERILATOR')
+    d.add_file(['data/tb.v'], fileset)
+    d.add_define('VERILATOR', fileset)
 
-    d.write_fileset(fileset=['rtl', 'tb'], filename="heartbeat.f")
+    d.write_fileset(filename="heartbeat.f", fileset=['rtl', 'tb'])
 
     golden = Path(os.path.join(datadir, 'heartbeat.f'))
     assert Path('heartbeat.f').read_text() == golden.read_text()

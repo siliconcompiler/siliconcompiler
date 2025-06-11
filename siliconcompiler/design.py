@@ -16,12 +16,14 @@ class DesignSchema(NamedSchema):
         schema_design(self)
 
     ############################################
-    def set_topmodule(self, fileset: str, value: str) -> str:
-        """Sets topmodule for a fileset.
+    def set_topmodule(self,
+                      value: str,
+                      fileset: str = None) -> str:
+        """Sets the topmodule of a fileset.
 
         Args:
-           fileset (str): Fileset name.
            value (str): Topmodule name.
+           fileset (str, optional): Fileset name.
 
         Returns:
            str: Topmodule name
@@ -40,7 +42,7 @@ class DesignSchema(NamedSchema):
         return self.__set_add(fileset, 'topmodule', value, typelist=[str])
 
     def get_topmodule(self, fileset: str) -> str:
-        """Returns topmodule for a fileset.
+        """Returns the topmodule of a fileset.
 
         Args:
            fileset (str): Fileset name.
@@ -52,18 +54,22 @@ class DesignSchema(NamedSchema):
         return self.__get(fileset, 'topmodule')
 
     ##############################################
-    def add_idir(self, fileset: str, value: str) -> List[str]:
-        """Sets include directories for a fileset.
+    def add_idir(self,
+                 value: str,
+                 fileset: str = None,
+                 clobber: bool = False) -> List[str]:
+        """Adds include directories to a fileset.
 
         Args:
-           fileset (str): Fileset name.
            value (str or Path): Include directory name.
+           fileset (str, optional): Fileset name.
+           clobber (bool, optional): Clears existing list before adding item
 
         Returns:
            list[str]: List of include directories
 
         """
-        return self.__set_add(fileset, 'idir', value, typelist=[str, list])
+        return self.__set_add(fileset, 'idir', value, clobber, typelist=[str, list])
 
     def get_idir(self, fileset: str) -> List[str]:
         """Returns include directories for a fileset.
@@ -78,18 +84,22 @@ class DesignSchema(NamedSchema):
         return self.__get(fileset, 'idir')
 
     ##############################################
-    def add_define(self, fileset: str, value: str) -> List[str]:
-        """Defines a macro for a fileset.
+    def add_define(self,
+                   value: str,
+                   fileset: str = None,
+                   clobber: bool = False) -> List[str]:
+        """Adds preprocessor macro definitions to a fileset.
 
         Args:
-           fileset (str): Fileset name.
            value (str or List[str]): Macro definition.
+           fileset (str, optional): Fileset name.
+           clobber (bool, optional): Clears existing list before adding item.
 
         Returns:
            list[str]: List of macro definitions
 
         """
-        return self.__set_add(fileset, 'define', value, typelist=[str, list])
+        return self.__set_add(fileset, 'define', value, clobber, typelist=[str, list])
 
     def get_define(self, fileset: str) -> List[str]:
         """Returns defined macros for a fileset.
@@ -104,18 +114,22 @@ class DesignSchema(NamedSchema):
         return self.__get(fileset, 'define')
 
     ##############################################
-    def add_undefine(self, fileset: str, value: str) -> List[str]:
-        """Undefines a preprocessor macro for a fileset.
+    def add_undefine(self,
+                     value: str,
+                     fileset: str = None,
+                     clobber: bool = False) -> List[str]:
+        """Adds preprocessor macro (un)definitions to a fileset.
 
         Args:
-           fileset (str): Fileset name.
-           value (str or List[str]): Macro definition to undefine.
+           value (str or List[str]): Macro (un)definition.
+           fileset (str, optional): Fileset name.
+           clobber (bool, optional): CClears existing list before adding item.
 
         Returns:
            list[str]: List of macro (un)definitions
 
         """
-        return self.__set_add(fileset, 'undefine', value, typelist=[str, list])
+        return self.__set_add(fileset, 'undefine', value, clobber, typelist=[str, list])
 
     def get_undefine(self, fileset: str) -> List[str]:
         """Returns undefined macros for a fileset.
@@ -130,18 +144,22 @@ class DesignSchema(NamedSchema):
         return self.__get(fileset, 'undefine')
 
     ###############################################
-    def add_libdir(self, fileset: str, value: str) -> List[str]:
-        """Sets dynamic library directories for a fileset.
+    def add_libdir(self,
+                   value: str,
+                   fileset: str = None,
+                   clobber: bool = False) -> List[str]:
+        """Adds dynamic library directories to a fileset.
 
         Args:
-           fileset (str): Fileset name.
-           value (str or List[str]): Library directories.
+           value (str or List[str]): Library directories
+           fileset (str, optional): Fileset name.
+           clobber (bool, optional): Clears existing list before adding item.
 
         Returns:
            list[str]: List of library directories.
 
         """
-        return self.__set_add(fileset, 'libdir', value, typelist=[str, list])
+        return self.__set_add(fileset, 'libdir', value, clobber, typelist=[str, list])
 
     def get_libdir(self, fileset: str) -> List[str]:
         """Returns dynamic library directories for a fileset.
@@ -156,18 +174,22 @@ class DesignSchema(NamedSchema):
         return self.__get(fileset, 'libdir')
 
     ###############################################
-    def add_lib(self, fileset: str, value: str) -> List[str]:
-        """Sets list of dynamic libraries for a fileset.
+    def add_lib(self,
+                value: str,
+                fileset: str = None,
+                clobber: bool = False) -> List[str]:
+        """Adds dynamic libraries to a fileset.
 
         Args:
-           fileset (str): Fileset name.
-           value (str or List[str]): Library directory names.
+           value (str or List[str]): Libraries
+           fileset (str, optional): Fileset name.
+           clobber (bool, optional): Clears existing list before adding item.
 
         Returns:
            list[str]: List of libraries.
 
         """
-        return self.__set_add(fileset, 'lib', value, typelist=[str, list])
+        return self.__set_add(fileset, 'lib', value, clobber, typelist=[str, list])
 
     def get_lib(self, fileset: str) -> List[str]:
         """Returns list of dynamic libraries for a fileset.
@@ -182,13 +204,16 @@ class DesignSchema(NamedSchema):
         return self.__get(fileset, 'lib')
 
     ###############################################
-    def set_param(self, fileset: str, name: str, value: str) -> str:
-        """Sets a named design parameter for a fileset.
+    def set_param(self,
+                  name: str,
+                  value: str,
+                  fileset: str = None) -> str:
+        """Sets a named parameter for a fileset.
 
         Args:
-            fileset (str): Fileset name.
             name (str): Parameter name.
             value (str): Parameter value.
+            fileset (str, optional): Fileset name.
 
         Returns:
             str: Parameter value
@@ -203,8 +228,10 @@ class DesignSchema(NamedSchema):
 
         return self.set('fileset', fileset, 'param', name, value)
 
-    def get_param(self, fileset: str, name: str) -> str:
-        """Returns value of a named design parameter.
+    def get_param(self,
+                  name: str,
+                  fileset: str) -> str:
+        """Returns value of a named fileset parameter.
 
         Args:
            name (str): Parameter name.
@@ -218,15 +245,16 @@ class DesignSchema(NamedSchema):
         return self.get('fileset', fileset, 'param', name)
 
     ###############################################
-    def add_file(self, fileset: str, filename: str, filetype=None, package=None):
+    def add_file(self,
+                 filename: str,
+                 fileset: str = None,
+                 filetype: str = None,
+                 clobber: bool = False,
+                 package: str = None):
         """
-        Adds a file (or list of files) to a fileset.
+        Adds files to a fileset.
 
-        If no fileset or filetype is specified, they are inferred based on the
-        file extension.
 
-        Default filetype and fileset mappings are determined by the extension
-        and defined in the I/O mapping table (iotable), typically like:
 
         .v        → (source, verilog)
         .vhd      → (source, vhdl)
@@ -239,27 +267,32 @@ class DesignSchema(NamedSchema):
             fileset (str): Logical group to associate the file with.
             filename (Path or list[Path]): File path or list of paths to add.
             filetype (str, optional): Type of the file (e.g., 'verilog', 'sdc').
-                If not provided, it is inferred from the file extension.
-            package (str): Package name
+            clobber (bool, optional): Clears list before adding item
+            package (str, optional): Package name
 
         Raises:
             SiliconCompilerError: If fileset or filetype cannot be inferred from
-                the file extension.
+            the file extension.
 
         Returns:
            list[str]: List of file paths.
 
         Notes:
-            - If `filename` is a list or tuple, `add_file` is called recursively.
-            - This method normalizes `filename` to a string for consistency.
+           - This method normalizes `filename` to a string for consistency.
+
+           - If no filetype is specified, filetype is inferred based on
+           the file extension via a mapping table. (eg. .v is verilog).
+
+
         """
 
         # handle list inputs
         if isinstance(filename, (list, tuple)):
             for item in filename:
                 self.add_file(
-                    fileset,
                     item,
+                    fileset=fileset,
+                    clobber=clobber,
                     filetype=filetype)
             return
 
@@ -287,14 +320,19 @@ class DesignSchema(NamedSchema):
                 f'{filename} based on file extension.')
 
         # adding files to dictionary
-        return self.add('fileset', fileset, 'file', filetype, filename)
+        if clobber:
+            return self.set('fileset', fileset, 'file', filetype, filename)
+        else:
+            return self.add('fileset', fileset, 'file', filetype, filename)
 
     ###############################################
-    def get_file(self, fileset: str, filetype: str = None):
+    def get_file(self,
+                 fileset: str,
+                 filetype: str = None):
         """Returns a list of files from one or more filesets.
 
         Args:
-            fileset (str or list[str]): Fileset(s) to query. Defaults to active fileset.
+            fileset (str or list[str]): Fileset(s) to query.
             filetype (str or list[str], optional): File type(s) to filter by (e.g., 'verilog').
 
         Returns:
@@ -321,15 +359,18 @@ class DesignSchema(NamedSchema):
         return filelist
 
     ###############################################
-    def write_fileset(self, fileset: str, filename: str, fileformat=None) -> None:
+    def write_fileset(self,
+                      filename: str,
+                      fileset: str = None,
+                      fileformat: str = None) -> None:
         """Exports filesets to a standard formatted text file.
 
         Currently supports Verilog `flist` format only.
         Intended to support other formats in the future.
 
         Args:
-            fileset (str or list[str]): Fileset(s) to export.
             filename (str or Path): Output file name.
+            fileset (str or list[str]): Fileset(s) to export.
             fileformat (str, optional): Export format.
 
         Inferred from file extension if not given.
@@ -372,17 +413,19 @@ class DesignSchema(NamedSchema):
             raise ValueError(f"{fileformat} is not supported")
 
     ################################################
-    def read_fileset(self, fileset: str, filename: str, fileformat=None) -> None:
+    def read_fileset(self,
+                     filename: str,
+                     fileset: str,
+                     fileformat=None) -> None:
         """Imports filesets from a standard formatted text file.
 
         Currently supports Verilog `flist` format only.
         Intended to support other formats in the future.
 
         Args:
-            fileset (str or list[str]): Fileset(s) to import.
             filename (str or Path): Output file name.
+            fileset (str or list[str]): Filesets to import.
             fileformat (str, optional): Export format.
-                Inferred from file extension if not given.
 
         """
 
@@ -402,12 +445,12 @@ class DesignSchema(NamedSchema):
     ################################################
     # Helper Functions
     ################################################
-    def __set_add(self, fileset, option, value, typelist=None):
+    def __set_add(self, fileset, option, value, clobber=False, typelist=None):
         '''Sets a parameter value in schema.
         '''
 
         # check for a legal fileset
-        if not isinstance(fileset, str):
+        if not fileset or not isinstance(fileset, str):
             raise ValueError("fileset key must be a string")
 
         # Check for legal types
@@ -416,13 +459,13 @@ class DesignSchema(NamedSchema):
             if isinstance(value, item) and not isinstance(value, tuple):
                 legalval = True
         if not legalval:
-            raise ValueError("value type must be str or List")
+            raise ValueError("value must be of type string")
 
         # None is illegal for all setters
         if value is None:
             raise ValueError(f"None is an illegal {option} value")
 
-        if list in typelist:
+        if list in typelist and not clobber:
             return self.add('fileset', fileset, option, value)
         else:
             return self.set('fileset', fileset, option, value)
