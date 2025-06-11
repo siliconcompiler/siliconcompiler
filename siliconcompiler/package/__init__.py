@@ -18,6 +18,13 @@ from urllib import parse as url_parse
 from siliconcompiler.utils import get_plugins
 
 
+def path(chip, package):
+    import warnings
+    warnings.warn("The 'path' method has been deprecated",
+                  DeprecationWarning)
+    return chip.get("package", field="schema").get_resolver(package).get_path()
+
+
 def register_python_data_source(chip,
                                 package_name,
                                 python_module,
