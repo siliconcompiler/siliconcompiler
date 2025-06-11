@@ -37,7 +37,7 @@ class DesignSchema(NamedSchema):
             if not re.match(r'^[_a-zA-Z]\w*$', value):
                 raise ValueError(f"{value} is not a legal topmodule string")
 
-        return self.__set(fileset, 'topmodule', value, typelist=[str])
+        return self.__set_add(fileset, 'topmodule', value, typelist=[str])
 
     def get_topmodule(self, fileset: str) -> str:
         """Returns topmodule for a fileset.
@@ -52,7 +52,7 @@ class DesignSchema(NamedSchema):
         return self.__get(fileset, 'topmodule')
 
     ##############################################
-    def set_idir(self, fileset: str, value: str) -> List[str]:
+    def add_idir(self, fileset: str, value: str) -> List[str]:
         """Sets include directories for a fileset.
 
         Args:
@@ -63,7 +63,7 @@ class DesignSchema(NamedSchema):
            list[str]: List of include directories
 
         """
-        return self.__set(fileset, 'idir', value, typelist=[str, list])
+        return self.__set_add(fileset, 'idir', value, typelist=[str, list])
 
     def get_idir(self, fileset: str) -> List[str]:
         """Returns include directories for a fileset.
@@ -78,7 +78,7 @@ class DesignSchema(NamedSchema):
         return self.__get(fileset, 'idir')
 
     ##############################################
-    def set_define(self, fileset: str, value: str) -> List[str]:
+    def add_define(self, fileset: str, value: str) -> List[str]:
         """Defines a macro for a fileset.
 
         Args:
@@ -89,7 +89,7 @@ class DesignSchema(NamedSchema):
            list[str]: List of macro definitions
 
         """
-        return self.__set(fileset, 'define', value, typelist=[str, list])
+        return self.__set_add(fileset, 'define', value, typelist=[str, list])
 
     def get_define(self, fileset: str) -> List[str]:
         """Returns defined macros for a fileset.
@@ -104,7 +104,7 @@ class DesignSchema(NamedSchema):
         return self.__get(fileset, 'define')
 
     ##############################################
-    def set_undefine(self, fileset: str, value: str) -> List[str]:
+    def add_undefine(self, fileset: str, value: str) -> List[str]:
         """Undefines a preprocessor macro for a fileset.
 
         Args:
@@ -115,7 +115,7 @@ class DesignSchema(NamedSchema):
            list[str]: List of macro (un)definitions
 
         """
-        return self.__set(fileset, 'undefine', value, typelist=[str, list])
+        return self.__set_add(fileset, 'undefine', value, typelist=[str, list])
 
     def get_undefine(self, fileset: str) -> List[str]:
         """Returns undefined macros for a fileset.
@@ -130,7 +130,7 @@ class DesignSchema(NamedSchema):
         return self.__get(fileset, 'undefine')
 
     ###############################################
-    def set_libdir(self, fileset: str, value: str) -> List[str]:
+    def add_libdir(self, fileset: str, value: str) -> List[str]:
         """Sets dynamic library directories for a fileset.
 
         Args:
@@ -141,7 +141,7 @@ class DesignSchema(NamedSchema):
            list[str]: List of library directories.
 
         """
-        return self.__set(fileset, 'libdir', value, typelist=[str, list])
+        return self.__set_add(fileset, 'libdir', value, typelist=[str, list])
 
     def get_libdir(self, fileset: str) -> List[str]:
         """Returns dynamic library directories for a fileset.
@@ -156,7 +156,7 @@ class DesignSchema(NamedSchema):
         return self.__get(fileset, 'libdir')
 
     ###############################################
-    def set_lib(self, fileset: str, value: str) -> List[str]:
+    def add_lib(self, fileset: str, value: str) -> List[str]:
         """Sets list of dynamic libraries for a fileset.
 
         Args:
@@ -167,7 +167,7 @@ class DesignSchema(NamedSchema):
            list[str]: List of libraries.
 
         """
-        return self.__set(fileset, 'lib', value, typelist=[str, list])
+        return self.__set_add(fileset, 'lib', value, typelist=[str, list])
 
     def get_lib(self, fileset: str) -> List[str]:
         """Returns list of dynamic libraries for a fileset.
@@ -402,7 +402,7 @@ class DesignSchema(NamedSchema):
     ################################################
     # Helper Functions
     ################################################
-    def __set(self, fileset, option, value, typelist=None):
+    def __set_add(self, fileset, option, value, typelist=None):
         '''Sets a parameter value in schema.
         '''
 
@@ -422,7 +422,10 @@ class DesignSchema(NamedSchema):
         if value is None:
             raise ValueError(f"None is an illegal {option} value")
 
-        return self.set('fileset', fileset, option, value)
+        if list in typelist:
+            return self.add('fileset', fileset, option, value)
+        else:
+            return self.set('fileset', fileset, option, value)
 
     def __get(self, fileset, option):
         '''Gets a parameter value from schema.

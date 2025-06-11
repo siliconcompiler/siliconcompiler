@@ -110,27 +110,32 @@ def test_options():
 
     # idir
     idirs = ['/home/acme/incdir1', '/home/acme/incdir2']
-    d.set_idir(fileset, idirs)
+    for item in idirs:
+        d.add_idir(fileset, item)
     assert d.get_idir(fileset) == idirs
 
     # libdirs
-    libdirs = ['/usr/lib']
-    d.set_libdir(fileset, libdirs)
+    libdirs = ['/usr/lib1', '/usr/lib2']
+    for item in libdirs:
+        d.add_libdir(fileset, item)
     assert d.get_libdir(fileset) == libdirs
 
     # libs
     libs = ['lib1', 'lib2']
-    d.set_lib(fileset, libs)
+    for item in libs:
+        d.add_lib(fileset, item)
     assert d.get_lib(fileset) == libs
 
     # define
-    defs = ['CFG_TARGET=FPGA']
-    d.set_define(fileset, defs)
+    defs = ['CFG_TARGET=FPGA', 'VERILATOR']
+    for item in defs:
+        d.add_define(fileset, item)
     assert d.get_define(fileset) == defs
 
     # undefine
-    undefs = ['CFG_TARGET']
-    d.set_undefine(fileset, undefs)
+    undefs = ['CFG_TARGET', 'CFG_SIM']
+    for item in undefs:
+        d.add_undefine(fileset, item)
     assert d.get_undefine(fileset) == undefs
 
 
@@ -148,7 +153,7 @@ def test_errors():
     # checking general types
     for value in [None, (0, 1), 1.1]:
         with pytest.raises(ValueError, match="value type must be str or List"):
-            d.set_libdir("aaaa", value)
+            d.add_libdir("aaaa", value)
         with pytest.raises(ValueError, match="value type must be str or List"):
             d.set_topmodule("aaaa", value)
 
@@ -197,13 +202,13 @@ def test_write_fileset(datadir):
 
     fileset = 'rtl'
     d.add_file(fileset, ['data/heartbeat.v', 'data/increment.v'])
-    d.set_define(fileset, 'ASIC')
-    d.set_idir(fileset, './data')
+    d.add_define(fileset, 'ASIC')
+    d.add_idir(fileset, './data')
     d.set_topmodule(fileset, 'heartbeat')
 
     fileset = 'tb'
     d.add_file(fileset, ['data/tb.v'])
-    d.set_define(fileset, 'VERILATOR')
+    d.add_define(fileset, 'VERILATOR')
 
     d.write_fileset(fileset=['rtl', 'tb'], filename="heartbeat.f")
 
