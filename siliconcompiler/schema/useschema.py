@@ -30,11 +30,11 @@ class UseSchema(BaseSchema):
         """
         Adds a module to this object.
 
-        Returns:
-            True if object was imported, otherwise false.
-
         Args:
             obj (:class:`NamedSchema`): Module to add
+
+        Returns:
+            True if object was imported, otherwise false.
         """
 
         if not isinstance(obj, NamedSchema):
