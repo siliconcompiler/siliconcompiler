@@ -19,7 +19,8 @@ class GithubResolver(HTTPResolver):
 
         if len(self.gh_path) != 4:
             raise ValueError(
-                f"{self.source} is not in the proper form: <owner>/<repository>/<version>/<artifact>")
+                f"{self.source} is not in the proper form: "
+                "<owner>/<repository>/<version>/<artifact>")
 
     @property
     def gh_path(self):

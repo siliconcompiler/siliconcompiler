@@ -1,11 +1,9 @@
 import logging
-import pytest
 
 import os.path
 
 from siliconcompiler import Chip
 from siliconcompiler.packageschema import PackageSchema
-from siliconcompiler import packageschema
 
 
 def test_register():
