@@ -1,225 +1,28 @@
-import os
-from urllib.parse import urlparse
-import importlib
-import re
-from siliconcompiler import SiliconCompilerError
-from siliconcompiler.utils import default_cache_dir
-import json
-from importlib.metadata import distributions, distribution
+import contextlib
 import functools
+import importlib
+import json
+import logging
+import os
+import re
 import time
+import threading
+
+import os.path
+
+from fasteners import InterProcessLock
+from importlib.metadata import distributions, distribution
 from pathlib import Path
+from urllib import parse as url_parse
 
 from siliconcompiler.utils import get_plugins
 
 
-def get_cache_path(chip):
-    cache_path = chip.get('option', 'cachedir')
-    if cache_path:
-        cache_path = chip.find_files('option', 'cachedir', missing_ok=True)
-        if not cache_path:
-            cache_path = os.path.join(chip.cwd, chip.get('option', 'cachedir'))
-    if not cache_path:
-        cache_path = default_cache_dir()
-
-    return cache_path
-
-
-def get_download_cache_path(chip, package, ref):
-    cache_path = get_cache_path(chip)
-    if not os.path.exists(cache_path):
-        os.makedirs(cache_path, exist_ok=True)
-
-    if ref is None:
-        raise SiliconCompilerError(f'Reference is required for cached data: {package}', chip=chip)
-
-    return \
-        os.path.join(cache_path, f'{package}-{ref}'), \
-        os.path.join(cache_path, f'{package}-{ref}.lock')
-
-
-def _file_path_resolver(chip, package, path, ref, url, fetch):
-    return os.path.abspath(path.replace('file://', ''))
-
-
-def _python_path_resolver(chip, package, path, ref, url, fetch):
-    return path_from_python(chip, url.netloc)
-
-
-def _key_path_resolver(chip, package, path, ref, url, fetch):
-    key = url.netloc.split(',')
-    if chip.get(*key, field='pernode').is_never():
-        paths = chip.find_files(*key)
-    else:
-        paths = chip.find_files(*key, step=chip.get('arg', 'step'), index=chip.get('arg', 'index'))
-
-    if isinstance(paths, list):
-        return paths[0]
-    return paths
-
-
-def _get_path_resolver(path):
-    url = urlparse(path)
-
-    for resolver in get_plugins("path_resolver"):
-        func = resolver(url)
-        if func:
-            return func, url
-
-    if url.scheme == "key":
-        return _key_path_resolver, url
-
-    if url.scheme == "file":
-        return _file_path_resolver, url
-
-    if url.scheme == "python":
-        return _python_path_resolver, url
-
-    raise ValueError(f"{path} is not supported")
-
-
-def _path(chip, package, fetch):
-    # Initially try retrieving data source from schema
-    data = {}
-    data['path'] = chip.get('package', 'source', package, 'path')
-    data['ref'] = chip.get('package', 'source', package, 'ref')
-    if not data['path']:
-        if package.startswith("key://"):
-            data['path'] = package
-        else:
-            raise SiliconCompilerError(
-                f'Could not find package source for {package} in schema. '
-                'You can use register_source() to add it.', chip=chip)
-
-    path = data['path']
-    # Resolve env vars and user home
-    env_save = os.environ.copy()
-    schema_env = {}
-    for env in chip.getkeys('option', 'env'):
-        schema_env[env] = chip.get('option', 'env', env)
-    os.environ.update(schema_env)
-    path = os.path.expandvars(path)
-    path = os.path.expanduser(path)
-    os.environ.clear()
-    os.environ.update(env_save)
-    data['path'] = path
-
-    if os.path.exists(data['path']):
-        # Path is already a path
-        return os.path.abspath(data['path'])
-
-    path_resolver, url = _get_path_resolver(data['path'])
-
-    return path_resolver(chip, package, data['path'], data['ref'], url, fetch)
-
-
-def path(chip, package, fetch=True):
-    """
-    Compute data source data path
-    Additionally cache data source data if possible
-    Parameters:
-        package (str): Name of the data source
-        fetch (bool): Flag to indicate that the path should be fetched
-    Returns:
-        path: Location of data source on the local system
-    """
-
-    if package not in chip._packages:
-        changed = False
-        data_path = _path(chip, package, fetch)
-
-        if isinstance(data_path, tuple) and len(data_path) == 2:
-            data_path, changed = data_path
-
-        if package.startswith("key://"):
-            return data_path
-
-        if os.path.exists(data_path):
-            if package not in chip._packages and changed:
-                chip.logger.info(f'Saved {package} data to {data_path}')
-            else:
-                chip.logger.info(f'Found {package} data at {data_path}')
-
-            chip._packages[package] = data_path
-        else:
-            raise SiliconCompilerError(f'Unable to locate {package} data in {data_path}',
-                                       chip=chip)
-
-    return chip._packages[package]
-
-
-def __get_filebased_lock(data_lock):
-    base, _ = os.path.splitext(os.fsdecode(data_lock.path))
-    return Path(f'{base}.sc_lock')
-
-
-def aquire_data_lock(data_path, data_lock):
-    # Wait a maximum of 10 minutes for other processes to finish
-    max_seconds = 10 * 60
-    try:
-        if data_lock.acquire(timeout=max_seconds):
-            return
-    except RuntimeError:
-        # Fall back to file based locking method
-        lock_file = __get_filebased_lock(data_lock)
-        while (lock_file.exists()):
-            if max_seconds == 0:
-                raise SiliconCompilerError(f'Failed to access {data_path}.'
-                                           f'Lock {lock_file} still exists.')
-            time.sleep(1)
-            max_seconds -= 1
-
-        lock_file.touch()
-
-        return
-
-    raise SiliconCompilerError(f'Failed to access {data_path}. '
-                               f'{data_lock.path} is still locked, if this is a mistake, '
-                               'please delete it.')
-
-
-def release_data_lock(data_lock):
-    # Check if file based locking method was used
-    lock_file = __get_filebased_lock(data_lock)
-    if lock_file.exists():
-        lock_file.unlink(missing_ok=True)
-        return
-
-    data_lock.release()
-
-
-def path_from_python(chip, python_package, append_path=None):
-    try:
-        module = importlib.import_module(python_package)
-    except:  # noqa E722
-        raise SiliconCompilerError(f'Failed to import {python_package}.', chip=chip)
-
-    python_path = os.path.dirname(module.__file__)
-    if append_path:
-        if isinstance(append_path, str):
-            append_path = [append_path]
-        python_path = os.path.join(python_path, *append_path)
-
-    python_path = os.path.abspath(python_path)
-
-    return python_path
-
-
-def is_python_module_editable(module_name):
-    dist_map = __get_python_module_mapping()
-    dist = dist_map[module_name][0]
-
-    is_editable = False
-    for f in distribution(dist).files:
-        if f.name == 'direct_url.json':
-            info = None
-            with open(f.locate(), 'r') as f:
-                info = json.load(f)
-
-            if "dir_info" in info:
-                is_editable = info["dir_info"].get("editable", False)
-
-    return is_editable
+def path(chip, package):
+    import warnings
+    warnings.warn("The 'path' method has been deprecated",
+                  DeprecationWarning)
+    return chip.get("package", field="schema").get_resolver(package).get_path()
 
 
 def register_python_data_source(chip,
@@ -232,57 +35,402 @@ def register_python_data_source(chip,
     Helper function to register a python module as data source with an alternative in case
     the module is not installed in an editable state
     '''
-    # check if installed in an editable state
-    if is_python_module_editable(python_module):
-        if python_module_path_append:
-            path = path_from_python(chip, python_module, append_path=python_module_path_append)
+    import warnings
+    warnings.warn("The 'register_python_data_source' method was renamed "
+                  "PythonPathResolver.register_source",
+                  DeprecationWarning)
+
+    PythonPathResolver.register_source(
+        chip, package_name, python_module, alternative_path,
+        alternative_ref=alternative_ref,
+        python_module_path_append=python_module_path_append)
+
+
+class Resolver:
+    _RESOLVERS_LOCK = threading.Lock()
+    _RESOLVERS = {}
+
+    def __init__(self, name, runnable, source, reference=None):
+        self.__name = name
+        self.__root = runnable
+        self.__source = source
+        self.__reference = reference
+        self.__changed = False
+        self.__cache = {}
+
+        if self.__root:
+            self.__logger = self.__root.logger.getChild(f"resolver-{self.name}")
         else:
-            path = f"python://{python_module}"
-        ref = None
-    else:
-        path = alternative_path
-        ref = alternative_ref
+            self.__logger = logging.getLogger(f"resolver-{self.name}")
 
-    chip.register_source(name=package_name,
-                         path=path,
-                         ref=ref)
+    @staticmethod
+    def populate_resolvers():
+        with Resolver._RESOLVERS_LOCK:
+            Resolver._RESOLVERS.clear()
 
+            Resolver._RESOLVERS.update({
+                "": FileResolver,
+                "file": FileResolver,
+                "key": KeyPathResolver,
+                "python": PythonPathResolver
+            })
 
-@functools.lru_cache(maxsize=1)
-def __get_python_module_mapping():
-    mapping = {}
+            for resolver in get_plugins("path_resolver"):
+                Resolver._RESOLVERS.update(resolver())
 
-    for dist in distributions():
-        dist_name = None
-        if hasattr(dist, 'name'):
-            dist_name = dist.name
+    @staticmethod
+    def find_resolver(source):
+        if os.path.isabs(source):
+            return FileResolver
+
+        if not Resolver._RESOLVERS:
+            Resolver.populate_resolvers()
+
+        url = url_parse.urlparse(source)
+        with Resolver._RESOLVERS_LOCK:
+            if url.scheme in Resolver._RESOLVERS:
+                return Resolver._RESOLVERS[url.scheme]
+
+        raise ValueError(f"{source} is not supported")
+
+    @property
+    def name(self) -> str:
+        return self.__name
+
+    @property
+    def root(self):
+        return self.__root
+
+    @property
+    def logger(self) -> logging.Logger:
+        return self.__logger
+
+    @property
+    def source(self) -> str:
+        return self.__source
+
+    @property
+    def reference(self) -> str:
+        return self.__reference
+
+    @property
+    def urlparse(self) -> url_parse.ParseResult:
+        return url_parse.urlparse(self.__resolve_env(self.source))
+
+    @property
+    def urlscheme(self) -> str:
+        return self.urlparse.scheme
+
+    @property
+    def urlpath(self) -> str:
+        return self.urlparse.netloc
+
+    @property
+    def changed(self):
+        change = self.__changed
+        self.__changed = False
+        return change
+
+    def set_changed(self):
+        self.__changed = True
+
+    def set_cache(self, cache):
+        self.__cache = cache
+
+    def resolve(self):
+        raise NotImplementedError("child class must implement this")
+
+    def get_path(self):
+        if self.name in self.__cache:
+            return self.__cache[self.name]
+
+        path = self.resolve()
+        if not os.path.exists(path):
+            raise FileNotFoundError(f"Unable to locate {self.name} at {path}")
+
+        if self.changed and self.name not in self.__cache:
+            self.logger.info(f'Saved {self.name} data to {path}')
         else:
-            metadata = dist.read_text('METADATA')
-            if metadata:
-                find_name = re.compile(r'Name: (.*)')
-                for data in metadata.splitlines():
-                    group = find_name.findall(data)
-                    if group:
-                        dist_name = group[0]
-                        break
+            self.logger.info(f'Found {self.name} data at {path}')
+        self.__cache[self.name] = path
+        return self.__cache[self.name]
 
-        if not dist_name:
-            continue
+    def __resolve_env(self, path):
+        env_save = os.environ.copy()
 
-        provides = dist.read_text('top_level.txt')
-        if provides:
-            for module in dist.read_text('top_level.txt').split():
-                mapping.setdefault(module, []).append(dist_name)
+        if self.root:
+            schema_env = {}
+            for env in self.root.getkeys('option', 'env'):
+                schema_env[env] = self.root.get('option', 'env', env)
+            os.environ.update(schema_env)
 
-    return mapping
+        path = os.path.expandvars(path)
+        path = os.path.expanduser(path)
+        os.environ.clear()
+        os.environ.update(env_save)
+        return path
 
 
-def register_private_github_data_source(chip,
-                                        package_name,
-                                        repository,
-                                        release,
-                                        artifact):
-    chip.register_source(
-        package_name,
-        path=f"github+private://{repository}/{release}/{artifact}",
-        ref=release)
+class RemoteResolver(Resolver):
+    _CACHE_LOCKS = {}
+    _CACHE_LOCK = threading.Lock()
+
+    def __init__(self, name, runnable, source, reference=None):
+        if reference is None:
+            raise ValueError(f'Reference is required for cached data: {name}')
+
+        super().__init__(name, runnable, source, reference)
+
+        # Wait a maximum of 10 minutes for other processes to finish
+        self.__max_lock_wait = 60 * 10
+
+    @property
+    def timeout(self):
+        return self.__max_lock_wait
+
+    def set_timeout(self, value):
+        self.__max_lock_wait = value
+
+    @staticmethod
+    def determine_cache_dir(runnable) -> Path:
+        default_path = os.path.join(Path.home(), '.sc', 'cache')
+        if not runnable:
+            return Path(default_path)
+
+        path = runnable.get('option', 'cachedir')
+        if path:
+            path = runnable.find_files('option', 'cachedir', missing_ok=True)
+            if not path:
+                path = os.path.join(runnable.cwd, runnable.get('option', 'cachedir'))
+        if not path:
+            path = default_path
+
+        return Path(path)
+
+    @property
+    def cache_dir(self) -> Path:
+        return RemoteResolver.determine_cache_dir(self.root)
+
+    @property
+    def cache_name(self) -> str:
+        return f"{self.name}-{self.reference}"
+
+    @property
+    def cache_path(self) -> Path:
+        cache_dir = self.cache_dir
+        if not os.path.exists(cache_dir):
+            os.makedirs(cache_dir, exist_ok=True)
+
+        return self.cache_dir / self.cache_name
+
+    @property
+    def lock_file(self) -> Path:
+        cache_dir = self.cache_dir
+        if not os.path.exists(cache_dir):
+            os.makedirs(cache_dir, exist_ok=True)
+
+        return self.cache_dir / f"{self.cache_name}.lock"
+
+    @property
+    def sc_lock_file(self) -> Path:
+        cache_dir = self.cache_dir
+        if not os.path.exists(cache_dir):
+            os.makedirs(cache_dir, exist_ok=True)
+
+        return self.cache_dir / f"{self.cache_name}.sc_lock"
+
+    def thread_lock(self):
+        with RemoteResolver._CACHE_LOCK:
+            if self.name not in RemoteResolver._CACHE_LOCKS:
+                RemoteResolver._CACHE_LOCKS[self.name] = threading.Lock()
+            return RemoteResolver._CACHE_LOCKS[self.name]
+
+    @contextlib.contextmanager
+    def lock(self):
+        lock = self.thread_lock()
+        lock_acquired = False
+        try:
+            if lock.acquire_lock(timeout=self.timeout):
+                data_path_lock = InterProcessLock(self.lock_file)
+                sc_data_path_lock = None
+                try:
+                    lock_acquired = data_path_lock.acquire(timeout=self.timeout)
+                except (OSError, RuntimeError):
+                    if not lock_acquired:
+                        sc_data_path_lock = Path(self.sc_lock_file)
+                        max_seconds = self.timeout
+                        while sc_data_path_lock.exists():
+                            if max_seconds == 0:
+                                raise RuntimeError(f'Failed to access {self.cache_path}. '
+                                                   f'Lock {sc_data_path_lock} still exists.')
+                            time.sleep(1)
+                            max_seconds -= 1
+                        sc_data_path_lock.touch()
+                        lock_acquired = True
+                if lock_acquired:
+                    yield
+        finally:
+            if lock.locked():
+                lock.release()
+            if lock_acquired:
+                if data_path_lock.acquired:
+                    data_path_lock.release()
+                if sc_data_path_lock:
+                    sc_data_path_lock.unlink(missing_ok=True)
+
+        if not lock_acquired:
+            raise RuntimeError(f'Failed to access {self.cache_path}. '
+                               f'{self.lock_file} is still locked, if this is a mistake, '
+                               'please delete it.')
+
+    def resolve_remote(self):
+        raise NotImplementedError("child class must implement this")
+
+    def check_cache(self):
+        raise NotImplementedError("child class must implement this")
+
+    def resolve(self) -> Path:
+        cache_dir = self.cache_dir
+        if not os.path.exists(cache_dir):
+            try:
+                os.makedirs(cache_dir, exist_ok=True)
+            except OSError:
+                return self.cache_path
+
+        if not os.access(self.cache_dir, os.W_OK):
+            return self.cache_path
+
+        with self.lock():
+            if self.check_cache():
+                return self.cache_path
+
+            self.resolve_remote()
+            self.set_changed()
+            return self.cache_path
+
+
+###############
+class FileResolver(Resolver):
+    def __init__(self, name, runnable, source, reference=None):
+        if source.startswith("file://"):
+            source = source[7:]
+        if not os.path.isabs(source):
+            source = os.path.join(runnable.cwd, source)
+
+        super().__init__(name, runnable, f"file://{source}", None)
+
+    @property
+    def urlpath(self):
+        parse = self.urlparse
+        if parse.netloc:
+            return parse.netloc
+        else:
+            return parse.path
+
+    def resolve(self):
+        return os.path.abspath(self.urlpath)
+
+
+class PythonPathResolver(Resolver):
+    def __init__(self, name, runnable, source, reference=None):
+        super().__init__(name, runnable, source, None)
+
+    @staticmethod
+    @functools.lru_cache(maxsize=1)
+    def get_python_module_mapping():
+        mapping = {}
+
+        for dist in distributions():
+            dist_name = None
+            if hasattr(dist, 'name'):
+                dist_name = dist.name
+            else:
+                metadata = dist.read_text('METADATA')
+                if metadata:
+                    find_name = re.compile(r'Name: (.*)')
+                    for data in metadata.splitlines():
+                        group = find_name.findall(data)
+                        if group:
+                            dist_name = group[0]
+                            break
+
+            if not dist_name:
+                continue
+
+            provides = dist.read_text('top_level.txt')
+            if provides:
+                for module in dist.read_text('top_level.txt').split():
+                    mapping.setdefault(module, []).append(dist_name)
+
+        return mapping
+
+    @staticmethod
+    def is_python_module_editable(module_name):
+        dist_map = PythonPathResolver.get_python_module_mapping()
+        dist = dist_map[module_name][0]
+
+        is_editable = False
+        for f in distribution(dist).files:
+            if f.name == 'direct_url.json':
+                info = None
+                with open(f.locate(), 'r') as f:
+                    info = json.load(f)
+
+                if "dir_info" in info:
+                    is_editable = info["dir_info"].get("editable", False)
+
+        return is_editable
+
+    @staticmethod
+    def register_source(runnable,
+                        package_name,
+                        python_module,
+                        alternative_path,
+                        alternative_ref=None,
+                        python_module_path_append=None):
+        '''
+        Helper function to register a python module as data source with an alternative in case
+        the module is not installed in an editable state
+        '''
+        # check if installed in an editable state
+        if PythonPathResolver.is_python_module_editable(python_module):
+            if python_module_path_append:
+                path = PythonPathResolver(
+                    python_module, runnable, f"python://{python_module}").resolve()
+                path = os.path.abspath(os.path.join(path, python_module_path_append))
+            else:
+                path = f"python://{python_module}"
+            ref = None
+        else:
+            path = alternative_path
+            ref = alternative_ref
+
+        runnable.register_source(name=package_name,
+                                 path=path,
+                                 ref=ref)
+
+    def resolve(self):
+        module = importlib.import_module(self.urlpath)
+        python_path = os.path.dirname(module.__file__)
+        return os.path.abspath(python_path)
+
+
+class KeyPathResolver(Resolver):
+    def __init__(self, name, runnable, source, reference=None):
+        super().__init__(name, runnable, source, None)
+
+    def resolve(self):
+        if not self.root:
+            raise RuntimeError(f"Runnable has not be defined for {self.name}")
+
+        key = self.urlpath.split(",")
+        if self.root.get(*key, field='pernode').is_never():
+            paths = self.root.find_files(*key)
+        else:
+            paths = self.root.find_files(*key,
+                                         step=self.root.get('arg', 'step'),
+                                         index=self.root.get('arg', 'index'))
+
+        if isinstance(paths, list):
+            return paths[0]
+        return paths

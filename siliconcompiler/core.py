@@ -34,7 +34,6 @@ from siliconcompiler.report import _generate_summary_image, _open_summary_image
 from siliconcompiler.report.dashboard.web import WebDashboard
 from siliconcompiler.report.dashboard.cli import CliDashboard
 from siliconcompiler.report.dashboard import DashboardType
-from siliconcompiler import package as sc_package
 import glob
 from siliconcompiler.scheduler.scheduler import Scheduler
 from siliconcompiler.utils.flowgraph import _check_flowgraph_io, _get_flowgraph_information
@@ -1102,7 +1101,8 @@ class Chip:
         '''
 
         if package:
-            filename = os.path.join(sc_package.path(self, package), filename)
+            resolvers = self.get("package", field="schema").get_resolvers(self)
+            filename = os.path.join(resolvers[package](), filename)
 
         if not os.path.isfile(filename):
             raise FileNotFoundError(filename)
@@ -1386,13 +1386,14 @@ class Chip:
         else:
             search_paths = [self.cwd]
 
+        resolvers = self.get("package", field="schema").get_resolvers(self)
         for (dependency, path) in zip(dependencies, paths):
             faux_param = FileNodeValue()
             faux_param.set(path)
             try:
                 if dependency:
                     faux_param.set(dependency, field='package')
-                    faux_search = [os.path.abspath(os.path.join(sc_package.path(self, dependency)))]
+                    faux_search = [resolvers[dependency]()]
                 else:
                     faux_search = search_paths
                 resolved = faux_param.resolve_path(
@@ -1556,13 +1557,7 @@ class Chip:
             if keypath[-2:] == ('option', 'builddir'):
                 ignore_keys.append(keypath)
 
-        package_map = {}
-
-        def resolve(package):
-            return sc_package.path(self, package)
-
-        for package in self.schema.getkeys("package", "source"):
-            package_map[package] = resolve
+        package_map = self.get("package", field="schema").get_resolvers(self)
 
         return self.schema.check_filepaths(
             ignore_keys=ignore_keys,

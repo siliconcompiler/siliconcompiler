@@ -3,82 +3,80 @@ import shutil
 import os.path
 
 from git import Repo, GitCommandError
-from fasteners import InterProcessLock
-
-from siliconcompiler.package import get_download_cache_path
-from siliconcompiler.package import aquire_data_lock, release_data_lock
+from siliconcompiler.package import RemoteResolver
 
 
-def get_resolver(url):
-    if url.scheme in ("git", "git+https", "git+ssh", "ssh"):
-        return git_resolver
-    return None
+def get_resolver():
+    return {
+        "git": GitResolver,
+        "git+https": GitResolver,
+        "git+ssh": GitResolver,
+        "ssh": GitResolver
+    }
 
 
-def git_resolver(chip, package, path, ref, url, fetch):
-    data_path, data_path_lock = get_download_cache_path(chip, package, ref)
+class GitResolver(RemoteResolver):
+    def __init__(self, name, runnable, source, reference=None):
+        super().__init__(name, runnable, source, reference)
 
-    if not fetch:
-        return data_path, False
+    def check_cache(self):
+        if os.path.exists(self.cache_path):
+            try:
+                repo = Repo(self.cache_path)
+                if repo.untracked_files or repo.index.diff("HEAD"):
+                    self.logger.warning('The repo of the cached data is dirty.')
+                return True
+            except GitCommandError:
+                self.logger.warning('Deleting corrupted cache data.')
+                shutil.rmtree(self.cache_path)
+                return False
+        return False
 
-    # Acquire lock
-    data_lock = InterProcessLock(data_path_lock)
-    aquire_data_lock(data_path, data_lock)
+    def __get_token_env(self):
+        token_name = self.name.upper()
+        for tok in ('#', '$', '&', '-', '=', '!', '/'):
+            token_name = token_name.replace(tok, '')
 
-    if os.path.exists(data_path):
-        try:
-            repo = Repo(data_path)
-            if repo.untracked_files or repo.index.diff("HEAD"):
-                chip.logger.warning('The repo of the cached data is dirty.')
-            release_data_lock(data_lock)
-            return data_path, False
-        except GitCommandError:
-            chip.logger.warning('Deleting corrupted cache data.')
-            shutil.rmtree(data_path)
+        search_env = (
+            f'GITHUB_{token_name}_TOKEN',
+            'GITHUB_TOKEN',
+            'GIT_TOKEN'
+        )
 
-    clone_synchronized(chip, package, path, ref, url, data_path)
+        token = None
+        for env in search_env:
+            token = os.environ.get(env, None)
 
-    release_data_lock(data_lock)
+            if token:
+                return token
+        return None
 
-    return data_path, True
-
-
-def clone_synchronized(chip, package, path, ref, url, data_path):
-    try:
-        clone_from_git(chip, package, path, ref, url, data_path)
-    except GitCommandError as e:
-        if 'Permission denied' in repr(e):
-            if url.scheme in ['ssh', 'git+ssh']:
-                chip.logger.error('Failed to authenticate. Please setup your git ssh.')
-            elif url.scheme in ['git', 'git+https']:
-                chip.logger.error('Failed to authenticate. Please use a token or ssh.')
-        else:
-            chip.logger.error(str(e))
-
-
-def clone_from_git(chip, package, path, ref, url, data_path):
-    if url.scheme in ['git', 'git+https'] and url.username:
-        chip.logger.warning('Your token is in the data source path and will be stored in the '
-                            'schema. If you do not want this set the env variable GIT_TOKEN '
-                            'or use ssh for authentication.')
-    if url.scheme in ['git+ssh']:
-        chip.logger.info(f'Cloning {package} data from {url.netloc}:{url.path[1:]}')
-        # Git requires the format git@github.com:org/repo instead of git@github.com/org/repo
-        repo = Repo.clone_from(f'{url.netloc}/{url.path[1:]}',
-                               data_path,
-                               recurse_submodules=True)
-    elif url.scheme in ['ssh']:
-        chip.logger.info(f'Cloning {package} data from {path}')
-        repo = Repo.clone_from(path,
-                               data_path,
-                               recurse_submodules=True)
-    else:
-        if os.environ.get('GIT_TOKEN') and not url.username:
-            url = url._replace(netloc=f'{os.environ.get("GIT_TOKEN")}@{url.hostname}')
+    @property
+    def git_path(self):
+        if self.urlscheme == "git+ssh":
+            return f"ssh://{self.urlpath}{self.urlparse.path}"
+        if self.urlscheme == "ssh":
+            return self.source
+        url = self.urlparse
+        if not url.username and self.__get_token_env():
+            url = url._replace(netloc=f'{self.__get_token_env()}@{url.hostname}')
         url = url._replace(scheme='https')
-        chip.logger.info(f'Cloning {package} data from {url.geturl()}')
-        repo = Repo.clone_from(url.geturl(), data_path, recurse_submodules=True)
-    chip.logger.info(f'Checking out {ref}')
-    repo.git.checkout(ref)
-    for submodule in repo.submodules:
-        submodule.update(recursive=True, init=True, force=True)
+        return url.geturl()
+
+    def resolve_remote(self):
+        try:
+            path = self.git_path
+            self.logger.info(f'Cloning {self.name} data from {path}')
+            repo = Repo.clone_from(path, self.cache_path, recurse_submodules=True)
+            self.logger.info(f'Checking out {self.reference}')
+            repo.git.checkout(self.reference)
+            for submodule in repo.submodules:
+                submodule.update(recursive=True, init=True, force=True)
+        except GitCommandError as e:
+            if 'Permission denied' in repr(e):
+                if self.urlscheme in ('ssh', 'git+ssh'):
+                    raise RuntimeError('Failed to authenticate. Please setup your git ssh.')
+                elif self.urlscheme in ('git', 'git+https'):
+                    raise RuntimeError('Failed to authenticate. Please use a token or ssh.')
+            else:
+                raise e

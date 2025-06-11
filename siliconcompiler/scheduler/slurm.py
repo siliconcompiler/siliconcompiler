@@ -9,7 +9,7 @@ import shutil
 import os.path
 
 from siliconcompiler import utils
-from siliconcompiler.package import get_cache_path
+from siliconcompiler.package import RemoteResolver
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 from siliconcompiler.scheduler.schedulernode import SchedulerNode
 
@@ -125,7 +125,7 @@ class SlurmSchedulerNode(SchedulerNode):
                     build_dir=shlex.quote(self.chip.get("option", "builddir")),
                     step=shlex.quote(self.step),
                     index=shlex.quote(self.index),
-                    cachedir=shlex.quote(get_cache_path(self.chip))
+                    cachedir=shlex.quote(str(RemoteResolver.determine_cache_dir(self.chip)))
                 ))
 
         # This is Python for: `chmod +x [script_path]`
