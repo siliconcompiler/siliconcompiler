@@ -17,12 +17,12 @@ class UseSchema(BaseSchema):
         schema = EditableSchema(self)
 
         schema.insert(
-            'used',
+            'dependencies',
             Parameter(
                 '[str]',
                 scope=Scope.GLOBAL,
                 shorthelp="List of used dependencies",
-                help="List of used modules this design depends on."))
+                help="List of named object dependencies included via use()."))
 
         self.__used = {}
 
@@ -32,6 +32,8 @@ class UseSchema(BaseSchema):
 
         Args:
             obj (:class:`NamedSchema`): Module to add
+            clobber (bool): If true will insert the object and overwrite any
+                exisiting with the same name
 
         Returns:
             True if object was imported, otherwise false.
@@ -44,7 +46,7 @@ class UseSchema(BaseSchema):
             return False
 
         if obj.name() not in self.__used:
-            self.add("used", obj.name())
+            self.add("dependencies", obj.name())
 
         self.__used[obj.name()] = obj
         obj._reset()
@@ -187,9 +189,9 @@ class UseSchema(BaseSchema):
         del self.__used[name]
 
         # Remove from used list
-        used = self.get("used")
+        used = self.get("dependencies")
         used.remove(name)
-        self.set("used", used)
+        self.set("dependencies", used)
 
         return True
 
@@ -197,7 +199,7 @@ class UseSchema(BaseSchema):
         if self.__used:
             return
 
-        for module in self.get("used"):
+        for module in self.get("dependencies"):
             if module not in module_map:
                 raise ValueError(f"{module} not available in map")
             self.__used[module] = module_map[module]

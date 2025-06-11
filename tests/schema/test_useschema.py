@@ -10,8 +10,8 @@ from siliconcompiler.schema import UseSchema, NamedSchema, BaseSchema
 
 def test_init():
     use = UseSchema()
-    assert use.getkeys() == tuple(["used"])
-    assert use.get("used") == []
+    assert use.getkeys() == tuple(["dependencies"])
+    assert use.get("dependencies") == []
 
 
 def test_use_invalid():
@@ -29,7 +29,7 @@ def test_use():
     dep = NamedSchema("thisname")
     assert use.use(dep)
     assert use.get_used("thisname") is dep
-    assert use.get("used") == ["thisname"]
+    assert use.get("dependencies") == ["thisname"]
 
 
 def test_use_confirm_reset():
@@ -59,7 +59,7 @@ def test_use_clobber():
     assert use.get_used("thisname") is dep0
     assert use.use(dep1, clobber=True)
     assert use.get_used("thisname") is dep1
-    assert use.get("used") == ["thisname"]
+    assert use.get("dependencies") == ["thisname"]
 
 
 def test_use_no_clobber():
@@ -71,7 +71,7 @@ def test_use_no_clobber():
     assert use.get_used("thisname") is dep0
     assert use.use(dep1, clobber=False) is False
     assert use.get_used("thisname") is dep0
-    assert use.get("used") == ["thisname"]
+    assert use.get("dependencies") == ["thisname"]
 
 
 def test_get_used_not_found():
@@ -92,7 +92,7 @@ def test_remove_use():
     assert use.get_used("thisname")
     assert use.remove_use("thisname") is True
     assert use.get_used() == []
-    assert use.get("used") == []
+    assert use.get("dependencies") == []
 
 
 def test_get_used_empty():
