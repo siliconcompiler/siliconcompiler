@@ -50,6 +50,13 @@ class PackageSchema(BaseSchema):
         return success
 
     def get_resolver(self, package, runnable=None):
+        '''
+        Returns a specific resolver
+
+        Args:
+            package (str): name of package
+            runnable (TBD): Base runnable object
+        '''
         resolver_cls = Resolver.find_resolver(self.get("source", package, "path"))
         resolver = resolver_cls(package, runnable,
                                 self.get("source", package, "path"),
