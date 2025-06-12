@@ -57,13 +57,15 @@ class DesignSchema(NamedSchema):
     def add_idir(self,
                  value: str,
                  fileset: str = None,
-                 clobber: bool = False) -> List[str]:
+                 clobber: bool = False,
+                 package: str = None) -> List[str]:
         """Adds include directories to a fileset.
 
         Args:
            value (str or Path): Include directory name.
            fileset (str, optional): Fileset name.
            clobber (bool, optional): Clears existing list before adding item
+           package (str, optional): Package name
 
         Returns:
            list[str]: List of include directories
@@ -147,13 +149,15 @@ class DesignSchema(NamedSchema):
     def add_libdir(self,
                    value: str,
                    fileset: str = None,
-                   clobber: bool = False) -> List[str]:
+                   clobber: bool = False,
+                   package: str = None) -> List[str]:
         """Adds dynamic library directories to a fileset.
 
         Args:
            value (str or List[str]): Library directories
            fileset (str, optional): Fileset name.
            clobber (bool, optional): Clears existing list before adding item.
+           package (str, optional): Package name
 
         Returns:
            list[str]: List of library directories.
@@ -250,7 +254,7 @@ class DesignSchema(NamedSchema):
                  fileset: str = None,
                  filetype: str = None,
                  clobber: bool = False,
-                 package: str = None):
+                 package: str = None) -> List[str]:
         """
         Adds files to a fileset.
 
@@ -264,8 +268,8 @@ class DesignSchema(NamedSchema):
         ...       → etc.
 
         Args:
-            fileset (str): Logical group to associate the file with.
             filename (Path or list[Path]): File path or list of paths to add.
+            fileset (str): Logical group to associate the file with.
             filetype (str, optional): Type of the file (e.g., 'verilog', 'sdc').
             clobber (bool, optional): Clears list before adding item
             package (str, optional): Package name
