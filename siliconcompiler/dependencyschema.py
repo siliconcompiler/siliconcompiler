@@ -8,7 +8,7 @@ from .schema.namedschema import NamedSchema
 
 class DependencySchema(BaseSchema):
     '''
-    Schema extension to add :meth:`.use` capability to a schema section.
+    Schema extension to add :meth:`.add_dep` capability to a schema section.
     '''
 
     def __init__(self):
@@ -21,12 +21,12 @@ class DependencySchema(BaseSchema):
             Parameter(
                 '[str]',
                 scope=Scope.GLOBAL,
-                shorthelp="List of used dependencies",
-                help="List of named object dependencies included via use()."))
+                shorthelp="List of dependencies",
+                help="List of named object dependencies included via add_dep()."))
 
-        self.__used = {}
+        self.__deps = {}
 
-    def use(self, obj: NamedSchema, clobber: bool = True) -> bool:
+    def add_dep(self, obj: NamedSchema, clobber: bool = True) -> bool:
         """
         Adds a module to this object.
 
@@ -40,26 +40,26 @@ class DependencySchema(BaseSchema):
         """
 
         if not isinstance(obj, NamedSchema):
-            raise TypeError(f"Cannot use an object of type: {type(obj)}")
+            raise TypeError(f"Cannot add an object of type: {type(obj)}")
 
-        if not clobber and obj.name() in self.__used:
+        if not clobber and obj.name() in self.__deps:
             return False
 
-        if obj.name() not in self.__used:
+        if obj.name() not in self.__deps:
             self.add("dependencies", obj.name())
 
-        self.__used[obj.name()] = obj
+        self.__deps[obj.name()] = obj
         obj._reset()
 
         return True
 
-    def write_usegraph(self, filename: str,
+    def write_depgraph(self, filename: str,
                        fontcolor: str = '#000000',
                        background: str = 'transparent',
                        fontsize: str = '14',
                        border: bool = True, landscape: bool = False) -> None:
         r'''
-        Renders and saves the use graph to a file.
+        Renders and saves the dependency graph to a file.
 
         Args:
             filename (filepath): Output filepath
@@ -70,8 +70,8 @@ class DependencySchema(BaseSchema):
             landscape (bool): Renders graph in landscape layout if True
 
         Examples:
-            >>> use.write_usegraph('mydump.png')
-            Renders the object use graph and writes the result to a png file.
+            >>> schema.write_depgraph('mydump.png')
+            Renders the object dependency graph and writes the result to a png file.
         '''
         import graphviz
 
@@ -103,15 +103,15 @@ class DependencySchema(BaseSchema):
                 "text": self.name(),
                 "shape": "box",
                 "color": background,
-                "connects_to": set([make_label(subdep) for subdep in self.__used.values()])
+                "connects_to": set([make_label(subdep) for subdep in self.__deps.values()])
             }
         }
-        for dep in self.get_used():
+        for dep in self.get_dep():
             nodes[make_label(dep)] = {
                 "text": dep.name(),
                 "shape": "oval",
                 "color": background,
-                "connects_to": set([make_label(subdep) for subdep in dep.__used.values()])
+                "connects_to": set([make_label(subdep) for subdep in dep.__deps.values()])
             }
 
         for label, info in nodes.items():
@@ -127,13 +127,13 @@ class DependencySchema(BaseSchema):
         except graphviz.ExecutableNotFound as e:
             raise RuntimeError(f'Unable to save flowgraph: {e}')
 
-    def __get_all_used(self, seen: set) -> list:
+    def __get_all_deps(self, seen: set) -> list:
         '''
-        Loop through the use tree and generate a flat list
+        Loop through the dependency tree and generate a flat list
         '''
         deps = []
 
-        for obj in self.__used.values():
+        for obj in self.__deps.values():
             if obj.name() in seen:
                 continue
 
@@ -144,15 +144,15 @@ class DependencySchema(BaseSchema):
                 # nothing to iterate over
                 continue
 
-            for obj_dep in obj.__get_all_used(seen):
+            for obj_dep in obj.__get_all_deps(seen):
                 deps.append(obj_dep)
                 seen.add(obj_dep.name())
 
         return deps
 
-    def get_used(self, name: str = None, hierarchy: bool = True) -> list:
+    def get_dep(self, name: str = None, hierarchy: bool = True) -> list:
         '''
-        Returns all used modules associated with this object or a specific one if requested.
+        Returns all dependencies associated with this object or a specific one if requested.
 
         Raises:
             KeyError: if the module specific module is requested but not found
@@ -164,16 +164,16 @@ class DependencySchema(BaseSchema):
         '''
 
         if name:
-            if name not in self.__used:
+            if name not in self.__deps:
                 raise KeyError(f"{name} is not an imported module")
 
-            return self.__used[name]
+            return self.__deps[name]
 
         if hierarchy:
-            return self.__get_all_used(set())
-        return list(self.__used.values())
+            return self.__get_all_deps(set())
+        return list(self.__deps.values())
 
-    def remove_use(self, name: str) -> bool:
+    def remove_dep(self, name: str) -> bool:
         '''
         Removes a previously registered module.
 
@@ -183,26 +183,26 @@ class DependencySchema(BaseSchema):
         Returns:
             True if the module was removed, False is not found.
         '''
-        if name not in self.__used:
+        if name not in self.__deps:
             return False
 
-        del self.__used[name]
+        del self.__deps[name]
 
-        # Remove from used list
-        used = self.get("dependencies")
-        used.remove(name)
-        self.set("dependencies", used)
+        # Remove from dependency list
+        dependencies = self.get("dependencies")
+        dependencies.remove(name)
+        self.set("dependencies", dependencies)
 
         return True
 
-    def _populate_used(self, module_map: dict):
-        if self.__used:
+    def _populate_deps(self, module_map: dict):
+        if self.__deps:
             return
 
         for module in self.get("dependencies"):
             if module not in module_map:
                 raise ValueError(f"{module} not available in map")
-            self.__used[module] = module_map[module]
+            self.__deps[module] = module_map[module]
 
-            if isinstance(self.__used[module], DependencySchema):
-                self.__used[module]._populate_used(module_map)
+            if isinstance(self.__deps[module], DependencySchema):
+                self.__deps[module]._populate_deps(module_map)

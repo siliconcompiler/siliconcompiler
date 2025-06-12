@@ -10,30 +10,30 @@ from siliconcompiler.dependencyschema import DependencySchema
 
 
 def test_init():
-    use = DependencySchema()
-    assert use.getkeys() == tuple(["dependencies"])
-    assert use.get("dependencies") == []
+    schema = DependencySchema()
+    assert schema.getkeys() == tuple(["dependencies"])
+    assert schema.get("dependencies") == []
 
 
-def test_use_invalid():
-    use = DependencySchema()
+def test_add_dep_invalid():
+    schema = DependencySchema()
 
     with pytest.raises(TypeError,
-                       match="Cannot use an object of type: <class "
+                       match="Cannot add an object of type: <class "
                        "'siliconcompiler.schema.baseschema.BaseSchema'>"):
-        use.use(BaseSchema())
+        schema.add_dep(BaseSchema())
 
 
-def test_use():
-    use = DependencySchema()
+def test_add_dep():
+    schema = DependencySchema()
 
     dep = NamedSchema("thisname")
-    assert use.use(dep)
-    assert use.get_used("thisname") is dep
-    assert use.get("dependencies") == ["thisname"]
+    assert schema.add_dep(dep)
+    assert schema.get_dep("thisname") is dep
+    assert schema.get("dependencies") == ["thisname"]
 
 
-def test_use_confirm_reset():
+def test_add_dep_confirm_reset():
     class Test(NamedSchema):
         def __init__(self):
             super().__init__("thisname")
@@ -43,137 +43,137 @@ def test_use_confirm_reset():
             super()._reset()
             self.state_info = None
 
-    use = DependencySchema()
+    schema = DependencySchema()
 
     dep = Test()
     assert dep.state_info == "notthis"
-    assert use.use(dep)
+    assert schema.add_dep(dep)
     assert dep.state_info is None
 
 
-def test_use_clobber():
-    use = DependencySchema()
+def test_add_dep_clobber():
+    schema = DependencySchema()
 
     dep0 = NamedSchema("thisname")
     dep1 = NamedSchema("thisname")
-    assert use.use(dep0)
-    assert use.get_used("thisname") is dep0
-    assert use.use(dep1, clobber=True)
-    assert use.get_used("thisname") is dep1
-    assert use.get("dependencies") == ["thisname"]
+    assert schema.add_dep(dep0)
+    assert schema.get_dep("thisname") is dep0
+    assert schema.add_dep(dep1, clobber=True)
+    assert schema.get_dep("thisname") is dep1
+    assert schema.get("dependencies") == ["thisname"]
 
 
-def test_use_no_clobber():
-    use = DependencySchema()
+def test_add_dep_no_clobber():
+    schema = DependencySchema()
 
     dep0 = NamedSchema("thisname")
     dep1 = NamedSchema("thisname")
-    assert use.use(dep0)
-    assert use.get_used("thisname") is dep0
-    assert use.use(dep1, clobber=False) is False
-    assert use.get_used("thisname") is dep0
-    assert use.get("dependencies") == ["thisname"]
+    assert schema.add_dep(dep0)
+    assert schema.get_dep("thisname") is dep0
+    assert schema.add_dep(dep1, clobber=False) is False
+    assert schema.get_dep("thisname") is dep0
+    assert schema.get("dependencies") == ["thisname"]
 
 
-def test_get_used_not_found():
-    use = DependencySchema()
+def test_get_dep_not_found():
+    schema = DependencySchema()
 
     with pytest.raises(KeyError, match="notthere is not an imported module"):
-        use.get_used("notthere")
+        schema.get_dep("notthere")
 
 
-def test_remove_use_not_there():
-    use = DependencySchema()
-    assert use.remove_use("notthere") is False
+def test_remove_dep_not_there():
+    schema = DependencySchema()
+    assert schema.remove_dep("notthere") is False
 
 
-def test_remove_use():
-    use = DependencySchema()
-    use.use(NamedSchema("thisname"))
-    assert use.get_used("thisname")
-    assert use.remove_use("thisname") is True
-    assert use.get_used() == []
-    assert use.get("dependencies") == []
+def test_remove_dep():
+    schema = DependencySchema()
+    schema.add_dep(NamedSchema("thisname"))
+    assert schema.get_dep("thisname")
+    assert schema.remove_dep("thisname") is True
+    assert schema.get_dep() == []
+    assert schema.get("dependencies") == []
 
 
-def test_get_used_empty():
-    assert DependencySchema().get_used() == []
+def test_get_dep_empty():
+    assert DependencySchema().get_dep() == []
 
 
-def test_get_used():
+def test_get_dep():
     class Test(NamedSchema, DependencySchema):
         def __init__(self, name):
             NamedSchema.__init__(self, name)
             DependencySchema.__init__(self)
 
-    use = DependencySchema()
+    schema = DependencySchema()
 
     dep00 = Test("level0-0")
     dep01 = Test("level0-1")
     dep10 = Test("level1-0")
     dep11 = Test("level1-1")
 
-    assert dep00.use(dep10)
-    assert dep01.use(dep11)
+    assert dep00.add_dep(dep10)
+    assert dep01.add_dep(dep11)
 
-    assert use.use(dep00)
-    assert use.use(dep01)
+    assert schema.add_dep(dep00)
+    assert schema.add_dep(dep01)
 
-    assert use.get_used() == [dep00, dep10, dep01, dep11]
+    assert schema.get_dep() == [dep00, dep10, dep01, dep11]
 
 
-def test_get_used_no_hier():
+def test_get_dep_no_hier():
     class Test(NamedSchema, DependencySchema):
         def __init__(self, name):
             NamedSchema.__init__(self, name)
             DependencySchema.__init__(self)
 
-    use = DependencySchema()
+    schema = DependencySchema()
 
     dep00 = Test("level0-0")
     dep01 = Test("level0-1")
     dep10 = Test("level1-0")
     dep11 = Test("level1-1")
 
-    assert dep00.use(dep10)
-    assert dep01.use(dep11)
+    assert dep00.add_dep(dep10)
+    assert dep01.add_dep(dep11)
 
-    assert use.use(dep00)
-    assert use.use(dep01)
+    assert schema.add_dep(dep00)
+    assert schema.add_dep(dep01)
 
-    assert use.get_used(hierarchy=False) == [dep00, dep01]
+    assert schema.get_dep(hierarchy=False) == [dep00, dep01]
 
 
-def test_get_used_repeats():
+def test_get_dep_repeats():
     class Test(NamedSchema, DependencySchema):
         def __init__(self, name):
             NamedSchema.__init__(self, name)
             DependencySchema.__init__(self)
 
-    use = DependencySchema()
+    schema = DependencySchema()
 
     dep00 = Test("level0-0")
     dep01 = Test("level0-1")
     dep10 = Test("level1-0")
     dep11 = Test("level1-1")
 
-    assert dep00.use(dep10)
-    assert dep00.use(dep11)
-    assert dep01.use(dep11)
+    assert dep00.add_dep(dep10)
+    assert dep00.add_dep(dep11)
+    assert dep01.add_dep(dep11)
 
-    assert use.use(dep00)
-    assert use.use(dep01)
+    assert schema.add_dep(dep00)
+    assert schema.add_dep(dep01)
 
-    assert use.get_used() == [dep00, dep10, dep11, dep01]
+    assert schema.get_dep() == [dep00, dep10, dep11, dep01]
 
 
-def test_get_used_non_use():
+def test_get_dep_non_dep():
     class Test(NamedSchema, DependencySchema):
         def __init__(self, name):
             NamedSchema.__init__(self, name)
             DependencySchema.__init__(self)
 
-    use = DependencySchema()
+    schema = DependencySchema()
 
     dep00 = Test("level0-0")
     dep01 = Test("level0-1")
@@ -182,59 +182,59 @@ def test_get_used_non_use():
     dep20 = NamedSchema("level2-0")
     dep21 = NamedSchema("level2-1")
 
-    assert dep00.use(dep10)
-    assert dep10.use(dep20)
-    assert dep01.use(dep11)
-    assert dep11.use(dep21)
+    assert dep00.add_dep(dep10)
+    assert dep10.add_dep(dep20)
+    assert dep01.add_dep(dep11)
+    assert dep11.add_dep(dep21)
 
-    assert use.use(dep00)
-    assert use.use(dep01)
+    assert schema.add_dep(dep00)
+    assert schema.add_dep(dep01)
 
-    assert use.get_used() == \
+    assert schema.get_dep() == \
         [dep00, dep10, dep20, dep01, dep11, dep21]
 
 
-def test_get_used_circle():
+def test_get_dep_circle():
     class Test(NamedSchema, DependencySchema):
         def __init__(self, name):
             NamedSchema.__init__(self, name)
             DependencySchema.__init__(self)
 
-    use = DependencySchema()
+    schema = DependencySchema()
 
     dep00 = Test("level0-0")
     dep01 = Test("level0-1")
     dep10 = Test("level1-0")
     dep11 = Test("level1-1")
 
-    assert dep00.use(dep10)
-    assert dep10.use(dep01)
-    assert dep01.use(dep11)
-    assert dep11.use(dep00)
+    assert dep00.add_dep(dep10)
+    assert dep10.add_dep(dep01)
+    assert dep01.add_dep(dep11)
+    assert dep11.add_dep(dep00)
 
-    assert use.use(dep00)
+    assert schema.add_dep(dep00)
 
-    assert use.get_used() == [dep00, dep10, dep01, dep11]
+    assert schema.get_dep() == [dep00, dep10, dep01, dep11]
 
 
-def test_write_usegraph_no_graphviz_exe():
+def test_write_depgraph_no_graphviz_exe():
     class Test(NamedSchema, DependencySchema):
         def __init__(self, name):
             NamedSchema.__init__(self, name)
             DependencySchema.__init__(self)
 
-    use = Test("top")
+    schema = Test("top")
 
     dep00 = Test("level0-0")
     dep01 = Test("level0-1")
     dep10 = Test("level1-0")
     dep11 = Test("level1-1")
 
-    assert dep00.use(dep10)
-    assert dep01.use(dep11)
+    assert dep00.add_dep(dep10)
+    assert dep01.add_dep(dep11)
 
-    assert use.use(dep00)
-    assert use.use(dep01)
+    assert schema.add_dep(dep00)
+    assert schema.add_dep(dep01)
 
     with patch("graphviz.Digraph.render") as render:
         def raise_error(*args, **kwargs):
@@ -242,182 +242,182 @@ def test_write_usegraph_no_graphviz_exe():
         render.side_effect = raise_error
 
         with pytest.raises(RuntimeError, match="Unable to save flowgraph: failed to execute"):
-            use.write_usegraph("test.png")
+            schema.write_depgraph("test.png")
         render.assert_called_once()
 
 
-def test_write_usegraph():
+def test_write_depgraph():
     class Test(NamedSchema, DependencySchema):
         def __init__(self, name):
             NamedSchema.__init__(self, name)
             DependencySchema.__init__(self)
 
-    use = Test("top")
+    schema = Test("top")
 
     dep00 = Test("level0-0")
     dep01 = Test("level0-1")
     dep10 = Test("level1-0")
     dep11 = Test("level1-1")
 
-    assert dep00.use(dep10)
-    assert dep01.use(dep11)
+    assert dep00.add_dep(dep10)
+    assert dep01.add_dep(dep11)
 
-    assert use.use(dep00)
-    assert use.use(dep01)
+    assert schema.add_dep(dep00)
+    assert schema.add_dep(dep01)
 
-    use.write_usegraph("test.png")
+    schema.write_depgraph("test.png")
     assert os.path.exists("test.png")
 
 
-def test_write_usegraph_alt_config():
+def test_write_depgraph_alt_config():
     class Test(NamedSchema, DependencySchema):
         def __init__(self, name):
             NamedSchema.__init__(self, name)
             DependencySchema.__init__(self)
 
-    use = Test("top")
+    schema = Test("top")
 
     dep00 = Test("level0-0")
     dep01 = Test("level0-1")
     dep10 = Test("level1-0")
     dep11 = Test("level1-1")
 
-    assert dep00.use(dep10)
-    assert dep01.use(dep11)
+    assert dep00.add_dep(dep10)
+    assert dep01.add_dep(dep11)
 
-    assert use.use(dep00)
-    assert use.use(dep01)
+    assert schema.add_dep(dep00)
+    assert schema.add_dep(dep01)
 
-    use.write_usegraph("test.png", landscape=True, border=False)
+    schema.write_depgraph("test.png", landscape=True, border=False)
     assert os.path.exists("test.png")
 
 
-def test_write_usegraph_repeats():
+def test_write_depgraph_repeats():
     class Test(NamedSchema, DependencySchema):
         def __init__(self, name):
             NamedSchema.__init__(self, name)
             DependencySchema.__init__(self)
 
-    use = Test("top")
+    schema = Test("top")
 
     dep00 = Test("level0-0")
     dep01 = Test("level0-1")
     dep10 = Test("level1-0")
     dep11 = Test("level1-1")
 
-    assert dep00.use(dep10)
-    assert dep00.use(dep11)
-    assert dep01.use(dep11)
+    assert dep00.add_dep(dep10)
+    assert dep00.add_dep(dep11)
+    assert dep01.add_dep(dep11)
 
-    assert use.use(dep00)
-    assert use.use(dep01)
+    assert schema.add_dep(dep00)
+    assert schema.add_dep(dep01)
 
-    use.write_usegraph("test.png")
+    schema.write_depgraph("test.png")
     assert os.path.exists("test.png")
 
 
-def test_write_usegraph_circle():
+def test_write_depgraph_circle():
     class Test(NamedSchema, DependencySchema):
         def __init__(self, name):
             NamedSchema.__init__(self, name)
             DependencySchema.__init__(self)
 
-    use = Test("top")
+    schema = Test("top")
 
     dep00 = Test("level0-0")
     dep01 = Test("level0-1")
     dep10 = Test("level1-0")
     dep11 = Test("level1-1")
 
-    assert dep00.use(dep10)
-    assert dep10.use(dep01)
-    assert dep01.use(dep11)
-    assert dep11.use(dep00)
+    assert dep00.add_dep(dep10)
+    assert dep10.add_dep(dep01)
+    assert dep01.add_dep(dep11)
+    assert dep11.add_dep(dep00)
 
-    assert use.use(dep00)
+    assert schema.add_dep(dep00)
 
-    use.write_usegraph("test.png")
+    schema.write_depgraph("test.png")
     assert os.path.exists("test.png")
 
 
-def test_populate_used_empty():
-    use = DependencySchema()
-    use._populate_used({})
+def test_populate_deps_empty():
+    schema = DependencySchema()
+    schema._populate_deps({})
 
 
-def test_populate_used():
+def test_populate_deps():
     class Test(NamedSchema, DependencySchema):
         def __init__(self, name):
             NamedSchema.__init__(self, name)
             DependencySchema.__init__(self)
 
-    use = Test("top")
+    schema = Test("top")
 
     dep00 = Test("level0-0")
     dep01 = Test("level0-1")
     dep10 = Test("level1-0")
     dep11 = Test("level1-1")
 
-    assert dep00.use(dep10)
-    assert dep01.use(dep11)
+    assert dep00.add_dep(dep10)
+    assert dep01.add_dep(dep11)
 
-    assert use.use(dep00)
-    assert use.use(dep01)
+    assert schema.add_dep(dep00)
+    assert schema.add_dep(dep01)
 
-    check = Test.from_manifest("test", cfg=use.getdict())
-    assert check.get_used() == []
-    module_map = {obj.name(): obj for obj in use.get_used()}
-    check._populate_used(module_map)
-    assert check.get_used() == use.get_used()
+    check = Test.from_manifest("test", cfg=schema.getdict())
+    assert check.get_dep() == []
+    module_map = {obj.name(): obj for obj in schema.get_dep()}
+    check._populate_deps(module_map)
+    assert check.get_dep() == schema.get_dep()
 
 
-def test_populate_used_missing():
+def test_populate_deps_missing():
     class Test(NamedSchema, DependencySchema):
         def __init__(self, name):
             NamedSchema.__init__(self, name)
             DependencySchema.__init__(self)
 
-    use = Test("top")
+    schema = Test("top")
 
     dep00 = Test("level0-0")
     dep01 = Test("level0-1")
     dep10 = Test("level1-0")
     dep11 = Test("level1-1")
 
-    assert dep00.use(dep10)
-    assert dep01.use(dep11)
+    assert dep00.add_dep(dep10)
+    assert dep01.add_dep(dep11)
 
-    assert use.use(dep00)
-    assert use.use(dep01)
+    assert schema.add_dep(dep00)
+    assert schema.add_dep(dep01)
 
-    check = Test.from_manifest("test", cfg=use.getdict())
+    check = Test.from_manifest("test", cfg=schema.getdict())
     with pytest.raises(ValueError, match="level0-0 not available in map"):
-        check._populate_used({})
+        check._populate_deps({})
 
 
-def test_populate_used_already_populated():
+def test_populate_deps_already_populated():
     class Test(NamedSchema, DependencySchema):
         def __init__(self, name):
             NamedSchema.__init__(self, name)
             DependencySchema.__init__(self)
 
-    use = Test("top")
+    schema = Test("top")
 
     dep00 = Test("level0-0")
     dep01 = Test("level0-1")
     dep10 = Test("level1-0")
     dep11 = Test("level1-1")
 
-    assert dep00.use(dep10)
-    assert dep01.use(dep11)
+    assert dep00.add_dep(dep10)
+    assert dep01.add_dep(dep11)
 
-    assert use.use(dep00)
-    assert use.use(dep01)
+    assert schema.add_dep(dep00)
+    assert schema.add_dep(dep01)
 
     check = Test("top")
-    check.use(dep00)
+    check.add_dep(dep00)
 
-    assert check.get_used() == [dep00, dep10]
-    module_map = {obj.name(): obj for obj in use.get_used()}
-    check._populate_used(module_map)
-    assert check.get_used() == [dep00, dep10]
+    assert check.get_dep() == [dep00, dep10]
+    module_map = {obj.name(): obj for obj in schema.get_dep()}
+    check._populate_deps(module_map)
+    assert check.get_dep() == [dep00, dep10]
