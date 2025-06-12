@@ -21,10 +21,17 @@ class DependencySchema(BaseSchema):
             Parameter(
                 '[str]',
                 scope=Scope.GLOBAL,
+                lock=True,
                 shorthelp="List of dependencies",
                 help="List of named object dependencies included via add_dep()."))
 
         self.__deps = {}
+
+    def _from_dict(self, manifest, keypath, version=None):
+        self.set("dependencies", False, field="lock")
+        ret = super()._from_dict(manifest, keypath, version)
+        self.set("dependencies", True, field="lock")
+        return ret
 
     def add_dep(self, obj: NamedSchema, clobber: bool = True) -> bool:
         """
@@ -46,7 +53,9 @@ class DependencySchema(BaseSchema):
             return False
 
         if obj.name() not in self.__deps:
+            self.set("dependencies", False, field="lock")
             self.add("dependencies", obj.name())
+            self.set("dependencies", True, field="lock")
 
         self.__deps[obj.name()] = obj
         obj._reset()
@@ -191,7 +200,10 @@ class DependencySchema(BaseSchema):
         # Remove from dependency list
         dependencies = self.get("dependencies")
         dependencies.remove(name)
+
+        self.set("dependencies", False, field="lock")
         self.set("dependencies", dependencies)
+        self.set("dependencies", True, field="lock")
 
         return True
 

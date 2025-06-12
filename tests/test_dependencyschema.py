@@ -31,6 +31,7 @@ def test_add_dep():
     assert schema.add_dep(dep)
     assert schema.get_dep("thisname") is dep
     assert schema.get("dependencies") == ["thisname"]
+    assert schema.get("dependencies", field="lock") is True
 
 
 def test_add_dep_confirm_reset():
@@ -92,6 +93,7 @@ def test_remove_dep():
     schema.add_dep(NamedSchema("thisname"))
     assert schema.get_dep("thisname")
     assert schema.remove_dep("thisname") is True
+    assert schema.get("dependencies", field="lock") is True
     assert schema.get_dep() == []
     assert schema.get("dependencies") == []
 
