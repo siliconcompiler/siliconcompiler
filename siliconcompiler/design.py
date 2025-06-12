@@ -510,6 +510,21 @@ class DesignSchema(NamedSchema):
 
     @contextlib.contextmanager
     def with_fileset(self, fileset: str):
+        """
+        Use this context to temporarily set a design fileset.
+
+        Raises:
+            TypeError: if fileset is not a string
+            ValueError: if fileset if an empty string
+
+        Args:
+            fileset (str): name of the fileset
+
+        Example:
+            >>> with design.with_fileset("rtl"):
+            ...     design.set_topmodule("top")
+            Sets the top module for the rtl fileset as top.
+        """
         if not isinstance(fileset, str):
             raise TypeError("fileset must a string")
         if not fileset:
