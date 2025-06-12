@@ -5,17 +5,18 @@ import os.path
 
 from unittest.mock import patch
 
-from siliconcompiler.schema import UseSchema, NamedSchema, BaseSchema
+from siliconcompiler.schema import NamedSchema, BaseSchema
+from siliconcompiler.dependencyschema import DependencySchema
 
 
 def test_init():
-    use = UseSchema()
+    use = DependencySchema()
     assert use.getkeys() == tuple(["dependencies"])
     assert use.get("dependencies") == []
 
 
 def test_use_invalid():
-    use = UseSchema()
+    use = DependencySchema()
 
     with pytest.raises(TypeError,
                        match="Cannot use an object of type: <class "
@@ -24,7 +25,7 @@ def test_use_invalid():
 
 
 def test_use():
-    use = UseSchema()
+    use = DependencySchema()
 
     dep = NamedSchema("thisname")
     assert use.use(dep)
@@ -42,7 +43,7 @@ def test_use_confirm_reset():
             super()._reset()
             self.state_info = None
 
-    use = UseSchema()
+    use = DependencySchema()
 
     dep = Test()
     assert dep.state_info == "notthis"
@@ -51,7 +52,7 @@ def test_use_confirm_reset():
 
 
 def test_use_clobber():
-    use = UseSchema()
+    use = DependencySchema()
 
     dep0 = NamedSchema("thisname")
     dep1 = NamedSchema("thisname")
@@ -63,7 +64,7 @@ def test_use_clobber():
 
 
 def test_use_no_clobber():
-    use = UseSchema()
+    use = DependencySchema()
 
     dep0 = NamedSchema("thisname")
     dep1 = NamedSchema("thisname")
@@ -75,19 +76,19 @@ def test_use_no_clobber():
 
 
 def test_get_used_not_found():
-    use = UseSchema()
+    use = DependencySchema()
 
     with pytest.raises(KeyError, match="notthere is not an imported module"):
         use.get_used("notthere")
 
 
 def test_remove_use_not_there():
-    use = UseSchema()
+    use = DependencySchema()
     assert use.remove_use("notthere") is False
 
 
 def test_remove_use():
-    use = UseSchema()
+    use = DependencySchema()
     use.use(NamedSchema("thisname"))
     assert use.get_used("thisname")
     assert use.remove_use("thisname") is True
@@ -96,16 +97,16 @@ def test_remove_use():
 
 
 def test_get_used_empty():
-    assert UseSchema().get_used() == []
+    assert DependencySchema().get_used() == []
 
 
 def test_get_used():
-    class Test(NamedSchema, UseSchema):
+    class Test(NamedSchema, DependencySchema):
         def __init__(self, name):
             NamedSchema.__init__(self, name)
-            UseSchema.__init__(self)
+            DependencySchema.__init__(self)
 
-    use = UseSchema()
+    use = DependencySchema()
 
     dep00 = Test("level0-0")
     dep01 = Test("level0-1")
@@ -122,12 +123,12 @@ def test_get_used():
 
 
 def test_get_used_no_hier():
-    class Test(NamedSchema, UseSchema):
+    class Test(NamedSchema, DependencySchema):
         def __init__(self, name):
             NamedSchema.__init__(self, name)
-            UseSchema.__init__(self)
+            DependencySchema.__init__(self)
 
-    use = UseSchema()
+    use = DependencySchema()
 
     dep00 = Test("level0-0")
     dep01 = Test("level0-1")
@@ -144,12 +145,12 @@ def test_get_used_no_hier():
 
 
 def test_get_used_repeats():
-    class Test(NamedSchema, UseSchema):
+    class Test(NamedSchema, DependencySchema):
         def __init__(self, name):
             NamedSchema.__init__(self, name)
-            UseSchema.__init__(self)
+            DependencySchema.__init__(self)
 
-    use = UseSchema()
+    use = DependencySchema()
 
     dep00 = Test("level0-0")
     dep01 = Test("level0-1")
@@ -167,12 +168,12 @@ def test_get_used_repeats():
 
 
 def test_get_used_non_use():
-    class Test(NamedSchema, UseSchema):
+    class Test(NamedSchema, DependencySchema):
         def __init__(self, name):
             NamedSchema.__init__(self, name)
-            UseSchema.__init__(self)
+            DependencySchema.__init__(self)
 
-    use = UseSchema()
+    use = DependencySchema()
 
     dep00 = Test("level0-0")
     dep01 = Test("level0-1")
@@ -194,12 +195,12 @@ def test_get_used_non_use():
 
 
 def test_get_used_circle():
-    class Test(NamedSchema, UseSchema):
+    class Test(NamedSchema, DependencySchema):
         def __init__(self, name):
             NamedSchema.__init__(self, name)
-            UseSchema.__init__(self)
+            DependencySchema.__init__(self)
 
-    use = UseSchema()
+    use = DependencySchema()
 
     dep00 = Test("level0-0")
     dep01 = Test("level0-1")
@@ -217,10 +218,10 @@ def test_get_used_circle():
 
 
 def test_write_usegraph_no_graphviz_exe():
-    class Test(NamedSchema, UseSchema):
+    class Test(NamedSchema, DependencySchema):
         def __init__(self, name):
             NamedSchema.__init__(self, name)
-            UseSchema.__init__(self)
+            DependencySchema.__init__(self)
 
     use = Test("top")
 
@@ -246,10 +247,10 @@ def test_write_usegraph_no_graphviz_exe():
 
 
 def test_write_usegraph():
-    class Test(NamedSchema, UseSchema):
+    class Test(NamedSchema, DependencySchema):
         def __init__(self, name):
             NamedSchema.__init__(self, name)
-            UseSchema.__init__(self)
+            DependencySchema.__init__(self)
 
     use = Test("top")
 
@@ -269,10 +270,10 @@ def test_write_usegraph():
 
 
 def test_write_usegraph_alt_config():
-    class Test(NamedSchema, UseSchema):
+    class Test(NamedSchema, DependencySchema):
         def __init__(self, name):
             NamedSchema.__init__(self, name)
-            UseSchema.__init__(self)
+            DependencySchema.__init__(self)
 
     use = Test("top")
 
@@ -292,10 +293,10 @@ def test_write_usegraph_alt_config():
 
 
 def test_write_usegraph_repeats():
-    class Test(NamedSchema, UseSchema):
+    class Test(NamedSchema, DependencySchema):
         def __init__(self, name):
             NamedSchema.__init__(self, name)
-            UseSchema.__init__(self)
+            DependencySchema.__init__(self)
 
     use = Test("top")
 
@@ -316,10 +317,10 @@ def test_write_usegraph_repeats():
 
 
 def test_write_usegraph_circle():
-    class Test(NamedSchema, UseSchema):
+    class Test(NamedSchema, DependencySchema):
         def __init__(self, name):
             NamedSchema.__init__(self, name)
-            UseSchema.__init__(self)
+            DependencySchema.__init__(self)
 
     use = Test("top")
 
@@ -340,15 +341,15 @@ def test_write_usegraph_circle():
 
 
 def test_populate_used_empty():
-    use = UseSchema()
+    use = DependencySchema()
     use._populate_used({})
 
 
 def test_populate_used():
-    class Test(NamedSchema, UseSchema):
+    class Test(NamedSchema, DependencySchema):
         def __init__(self, name):
             NamedSchema.__init__(self, name)
-            UseSchema.__init__(self)
+            DependencySchema.__init__(self)
 
     use = Test("top")
 
@@ -371,10 +372,10 @@ def test_populate_used():
 
 
 def test_populate_used_missing():
-    class Test(NamedSchema, UseSchema):
+    class Test(NamedSchema, DependencySchema):
         def __init__(self, name):
             NamedSchema.__init__(self, name)
-            UseSchema.__init__(self)
+            DependencySchema.__init__(self)
 
     use = Test("top")
 
@@ -395,10 +396,10 @@ def test_populate_used_missing():
 
 
 def test_populate_used_already_populated():
-    class Test(NamedSchema, UseSchema):
+    class Test(NamedSchema, DependencySchema):
         def __init__(self, name):
             NamedSchema.__init__(self, name)
-            UseSchema.__init__(self)
+            DependencySchema.__init__(self)
 
     use = Test("top")
 

@@ -1,12 +1,12 @@
 import os.path
 
-from .baseschema import BaseSchema
-from .editableschema import EditableSchema
-from .parameter import Parameter, Scope
-from .namedschema import NamedSchema
+from .schema.baseschema import BaseSchema
+from .schema.editableschema import EditableSchema
+from .schema.parameter import Parameter, Scope
+from .schema.namedschema import NamedSchema
 
 
-class UseSchema(BaseSchema):
+class DependencySchema(BaseSchema):
     '''
     Schema extension to add :meth:`.use` capability to a schema section.
     '''
@@ -140,7 +140,7 @@ class UseSchema(BaseSchema):
             deps.append(obj)
             seen.add(obj.name())
 
-            if not isinstance(obj, UseSchema):
+            if not isinstance(obj, DependencySchema):
                 # nothing to iterate over
                 continue
 
@@ -204,5 +204,5 @@ class UseSchema(BaseSchema):
                 raise ValueError(f"{module} not available in map")
             self.__used[module] = module_map[module]
 
-            if isinstance(self.__used[module], UseSchema):
+            if isinstance(self.__used[module], DependencySchema):
                 self.__used[module]._populate_used(module_map)
