@@ -47,7 +47,7 @@ class DesignSchema(NamedSchema):
 
         return self.__set_add(fileset, 'topmodule', value, typelist=[str])
 
-    def get_topmodule(self, fileset: str) -> str:
+    def get_topmodule(self, fileset: str = None) -> str:
         """Returns the topmodule of a fileset.
 
         Args:
@@ -79,7 +79,7 @@ class DesignSchema(NamedSchema):
         """
         return self.__set_add(fileset, 'idir', value, clobber, typelist=[str, list])
 
-    def get_idir(self, fileset: str) -> List[str]:
+    def get_idir(self, fileset: str = None) -> List[str]:
         """Returns include directories for a fileset.
 
         Args:
@@ -109,7 +109,7 @@ class DesignSchema(NamedSchema):
         """
         return self.__set_add(fileset, 'define', value, clobber, typelist=[str, list])
 
-    def get_define(self, fileset: str) -> List[str]:
+    def get_define(self, fileset: str = None) -> List[str]:
         """Returns defined macros for a fileset.
 
         Args:
@@ -139,7 +139,7 @@ class DesignSchema(NamedSchema):
         """
         return self.__set_add(fileset, 'undefine', value, clobber, typelist=[str, list])
 
-    def get_undefine(self, fileset: str) -> List[str]:
+    def get_undefine(self, fileset: str = None) -> List[str]:
         """Returns undefined macros for a fileset.
 
         Args:
@@ -171,7 +171,7 @@ class DesignSchema(NamedSchema):
         """
         return self.__set_add(fileset, 'libdir', value, clobber, typelist=[str, list])
 
-    def get_libdir(self, fileset: str) -> List[str]:
+    def get_libdir(self, fileset: str = None) -> List[str]:
         """Returns dynamic library directories for a fileset.
 
         Args:
@@ -201,7 +201,7 @@ class DesignSchema(NamedSchema):
         """
         return self.__set_add(fileset, 'lib', value, clobber, typelist=[str, list])
 
-    def get_lib(self, fileset: str) -> List[str]:
+    def get_lib(self, fileset: str = None) -> List[str]:
         """Returns list of dynamic libraries for a fileset.
 
         Args:
@@ -243,7 +243,7 @@ class DesignSchema(NamedSchema):
 
     def get_param(self,
                   name: str,
-                  fileset: str) -> str:
+                  fileset: str = None) -> str:
         """Returns value of a named fileset parameter.
 
         Args:
@@ -253,6 +253,9 @@ class DesignSchema(NamedSchema):
         Returns:
             str: Parameter value
         """
+        if fileset is None:
+            fileset = self.__fileset
+
         if not isinstance(fileset, str):
             raise ValueError("fileset value must be a string")
         return self.get('fileset', fileset, 'param', name)
@@ -343,7 +346,7 @@ class DesignSchema(NamedSchema):
 
     ###############################################
     def get_file(self,
-                 fileset: str,
+                 fileset: str = None,
                  filetype: str = None):
         """Returns a list of files from one or more filesets.
 
@@ -354,6 +357,9 @@ class DesignSchema(NamedSchema):
         Returns:
             list[str]: List of file paths.
         """
+
+        if fileset is None:
+            fileset = self.__fileset
 
         if not isinstance(fileset, list):
             fileset = [fileset]
@@ -395,6 +401,9 @@ class DesignSchema(NamedSchema):
 
         if filename is None:
             raise ValueError("write_fileset() filename cannot be None")
+
+        if fileset is None:
+            fileset = self.__fileset
 
         if not isinstance(fileset, list):
             fileset = [fileset]
@@ -492,6 +501,9 @@ class DesignSchema(NamedSchema):
     def __get(self, fileset, option):
         '''Gets a parameter value from schema.
         '''
+        if fileset is None:
+            fileset = self.__fileset
+
         if not isinstance(fileset, str):
             raise ValueError("fileset key must be a string")
         return self.get('fileset', fileset, option)
