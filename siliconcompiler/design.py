@@ -1,11 +1,15 @@
+import contextlib
 import re
+
 from pathlib import Path
 from typing import List
+
+from siliconcompiler import utils
+from siliconcompiler import SiliconCompilerError
+
 from siliconcompiler.schema import NamedSchema
 from siliconcompiler.schema import EditableSchema, Parameter, Scope
 from siliconcompiler.schema.utils import trim
-from siliconcompiler import utils
-from siliconcompiler import SiliconCompilerError
 
 
 ###########################################################################
@@ -14,6 +18,8 @@ class DesignSchema(NamedSchema):
     def __init__(self, name: str):
         NamedSchema.__init__(self, name=name)
         schema_design(self)
+
+        self.__fileset = None
 
     ############################################
     def set_topmodule(self,
@@ -224,6 +230,9 @@ class DesignSchema(NamedSchema):
 
         """
 
+        if fileset is None:
+            fileset = self.__fileset
+
         if not isinstance(fileset, str):
             raise ValueError("fileset key must be a string")
 
@@ -289,6 +298,9 @@ class DesignSchema(NamedSchema):
 
 
         """
+
+        if fileset is None:
+            fileset = self.__fileset
 
         # handle list inputs
         if isinstance(filename, (list, tuple)):
@@ -453,6 +465,9 @@ class DesignSchema(NamedSchema):
         '''Sets a parameter value in schema.
         '''
 
+        if fileset is None:
+            fileset = self.__fileset
+
         # check for a legal fileset
         if not fileset or not isinstance(fileset, str):
             raise ValueError("fileset key must be a string")
@@ -480,6 +495,17 @@ class DesignSchema(NamedSchema):
         if not isinstance(fileset, str):
             raise ValueError("fileset key must be a string")
         return self.get('fileset', fileset, option)
+
+    @contextlib.contextmanager
+    def with_fileset(self, fileset: str):
+        if not isinstance(fileset, str):
+            raise TypeError("fileset must a string")
+        if not fileset:
+            raise ValueError("fileset cannot be an empty string")
+
+        self.__fileset = fileset
+        yield
+        self.__fileset = None
 
 
 ###########################################################################

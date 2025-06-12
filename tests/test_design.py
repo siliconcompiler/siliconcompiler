@@ -257,3 +257,71 @@ def test_heartbeat_example(datadir):
 
     dut = Heartbeat()
     assert 'increment' in dut.__dependency
+
+
+def test_with_fileset_invalid():
+    d = DesignSchema("test")
+
+    with pytest.raises(TypeError, match="fileset must a string"):
+        with d.with_fileset(None):
+            pass
+
+    with pytest.raises(ValueError, match="fileset cannot be an empty string"):
+        with d.with_fileset(""):
+            pass
+
+
+def test_options_with_fileset():
+    d = DesignSchema("test")
+
+    # create fileset context
+    with d.with_fileset("rtl"):
+        # top module
+        d.set_topmodule('mytop')
+        assert d.get_topmodule("rtl") == 'mytop'
+
+        # idir
+        idirs = ['/home/acme/incdir1', '/home/acme/incdir2']
+        for item in idirs:
+            d.add_idir(item)
+        assert d.get_idir("rtl") == idirs
+
+        # libdirs
+        libdirs = ['/usr/lib1', '/usr/lib2']
+        for item in libdirs:
+            d.add_libdir(item)
+        assert d.get_libdir("rtl") == libdirs
+
+        # libs
+        libs = ['lib1', 'lib2']
+        for item in libs:
+            d.add_lib(item)
+        assert d.get_lib("rtl") == libs
+
+        # define
+        defs = ['CFG_TARGET=FPGA', 'VERILATOR']
+        for item in defs:
+            d.add_define(item)
+        assert d.get_define("rtl") == defs
+
+        # undefine
+        undefs = ['CFG_TARGET', 'CFG_SIM']
+        for item in undefs:
+            d.add_undefine(item)
+        assert d.get_undefine("rtl") == undefs
+
+
+def test_add_file_with_fileset():
+    d = DesignSchema("test")
+
+    with d.with_fileset("rtl"):
+        # explicit file add
+        files = ['one.v', 'two.v']
+        d.add_file(files, filetype='verilog')
+    assert d.get('fileset', "rtl", 'file', 'verilog') == files
+
+    with d.with_fileset("testbench"):
+        # filetype mapping
+        d.add_file('tb.v')
+        d.add_file('dut.v')
+    assert d.get('fileset', 'testbench', 'file', 'verilog') == ['tb.v', 'dut.v']
