@@ -582,6 +582,47 @@ class BaseSchema:
             the schema.
         """
 
+        return self.__find_files(*keypath, missing_ok=missing_ok,
+                                 step=step, index=index,
+                                 packages=packages,
+                                 collection_dir=collection_dir,
+                                 cwd=cwd)
+
+    def __find_files(self, *keypath, missing_ok=False, step=None, index=None,
+                     packages=None, collection_dir=None, cwd=None):
+        """
+        Returns absolute paths to files or directories based on the keypath
+        provided.
+
+        The keypath provided must point to a schema parameter of type file, dir,
+        or lists of either. Otherwise, it will trigger an error.
+
+        Args:
+            keypath (list of str): Variable length schema key list.
+            missing_ok (bool): If True, silently return None when files aren't
+                found. If False, print an error and set the error flag.
+            step (str): Step name to access for parameters that may be specified
+                on a per-node basis.
+            index (str): Index name to access for parameters that may be specified
+                on a per-node basis.
+            packages (dict of resolvers): dirctionary of path resolvers for package
+                paths, these can either be a path or a callable function
+            collection_dir (path): optional path to a collections directory
+            cwd (path): optional path to current working directory, this will default
+                to os.getcwd() if not provided.
+
+        Returns:
+            If keys points to a scalar entry, returns an absolute path to that
+            file/directory, or None if not found. It keys points to a list
+            entry, returns a list of either the absolute paths or None for each
+            entry, depending on whether it is found.
+
+        Examples:
+            >>> chip.find_files('input', 'verilog')
+            Returns a list of absolute paths to source files, as specified in
+            the schema.
+        """
+
         param = self.get(*keypath, field=None)
         paramtype = param.get(field='type')
         if 'file' not in paramtype and 'dir' not in paramtype:
@@ -688,7 +729,7 @@ class BaseSchema:
                     # nothing set so continue
                     continue
 
-                found_files = self.find_files(
+                found_files = self.__find_files(
                     *keypath, missing_ok=True, step=step, index=index,
                     packages=packages, collection_dir=collection_dir, cwd=cwd)
 

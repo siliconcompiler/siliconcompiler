@@ -1,4 +1,5 @@
 import graphviz
+import logging
 import pytest
 
 import os.path
@@ -615,3 +616,51 @@ def test_find_source_keypath():
     os.makedirs("test", exist_ok=True)
 
     assert test.find_source("keyref", runnable=root) == os.path.abspath("test")
+
+
+def test_check_filepaths_empty():
+    schema = DependencySchema()
+    edit = EditableSchema(schema)
+    param = Parameter("[dir]")
+    edit.insert("directory", param)
+
+    assert schema.check_filepaths() is True
+
+
+def test_check_filepaths_found():
+    schema = DependencySchema()
+    edit = EditableSchema(schema)
+    param = Parameter("[dir]")
+    edit.insert("directory", param)
+
+    os.makedirs("test0", exist_ok=True)
+
+    assert schema.set("directory", "test0")
+
+    assert schema.check_filepaths() is True
+
+
+def test_check_filepaths_not_found_no_logger():
+    schema = DependencySchema()
+    edit = EditableSchema(schema)
+    param = Parameter("[dir]")
+    edit.insert("directory", param)
+
+    assert schema.set("directory", "test0")
+
+    assert schema.check_filepaths() is False
+
+
+def test_check_filepaths_not_found_logger(caplog):
+    schema = DependencySchema()
+    edit = EditableSchema(schema)
+    param = Parameter("[dir]")
+    edit.insert("directory", param)
+
+    assert schema.set("directory", "test0")
+
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+
+    assert schema.check_filepaths(logger=logger) is False
+    assert "Parameter [directory] path test0 is invalid" in caplog.text

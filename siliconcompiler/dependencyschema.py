@@ -304,6 +304,18 @@ class DependencySchema(BaseSchema):
         resolver = Resolver.find_resolver(source)
         return resolver(name, runnable, source, ref).get_path()
 
+    def __get_resolver_map(self, runnable):
+        """
+        Generate the resolver map got package handling for find_files and check_filepaths
+        """
+        resolver_map = {}
+        for package in self.getkeys("source"):
+            source = self.get("source", package, "path")
+            ref = self.get("source", package, "path")
+            resolver = Resolver.find_resolver(source)
+            resolver_map[package] = resolver(package, runnable, source, ref).get_path
+        return resolver_map
+
     def find_files(self, *keypath,
                    missing_ok=False,
                    step=None, index=None,
@@ -342,16 +354,36 @@ class DependencySchema(BaseSchema):
             the schema.
         """
 
-        resolver_map = {}
-        for package in self.getkeys("source"):
-            source = self.get("source", package, "path")
-            ref = self.get("source", package, "path")
-            resolver = Resolver.find_resolver(source)
-            resolver_map[package] = resolver(package, runnable, source, ref).get_path
-
         return super().find_files(*keypath,
                                   missing_ok=missing_ok,
                                   step=step, index=index,
-                                  packages=resolver_map,
+                                  packages=self.__get_resolver_map(runnable),
                                   collection_dir=collection_dir,
                                   cwd=cwd)
+
+    def check_filepaths(self, ignore_keys=None,
+                        logger=None,
+                        collection_dir=None,
+                        cwd=None,
+                        runnable=None):
+        '''
+        Verifies that paths to all files in manifest are valid.
+
+        Args:
+            ignore_keys (list of keypaths): list of keyptahs to ignore while checking
+            logger (:class:`logging.Logger`): optional logger to use to report errors
+            collection_dir (path): optional path to a collections directory
+            cwd (path): optional path to current working directory, this will default
+                to os.getcwd() if not provided.
+            runnable (TBD): root schema object
+
+        Returns:
+            True if all file paths are valid, otherwise False.
+        '''
+
+        return super().check_filepaths(
+            ignore_keys=ignore_keys,
+            logger=logger,
+            packages=self.__get_resolver_map(runnable),
+            collection_dir=collection_dir,
+            cwd=cwd)
