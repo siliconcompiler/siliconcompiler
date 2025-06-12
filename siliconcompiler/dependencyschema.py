@@ -40,7 +40,7 @@ class DependencySchema(BaseSchema):
         Args:
             obj (:class:`NamedSchema`): Module to add
             clobber (bool): If true will insert the object and overwrite any
-                exisiting with the same name
+                existing with the same name
 
         Returns:
             True if object was imported, otherwise false.
