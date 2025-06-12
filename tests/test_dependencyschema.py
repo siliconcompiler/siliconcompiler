@@ -11,8 +11,8 @@ from siliconcompiler.dependencyschema import DependencySchema
 
 def test_init():
     schema = DependencySchema()
-    assert schema.getkeys() == tuple(["dependencies"])
-    assert schema.get("dependencies") == []
+    assert schema.getkeys() == tuple(["deps"])
+    assert schema.get("deps") == []
 
 
 def test_add_dep_invalid():
@@ -30,8 +30,8 @@ def test_add_dep():
     dep = NamedSchema("thisname")
     assert schema.add_dep(dep)
     assert schema.get_dep("thisname") is dep
-    assert schema.get("dependencies") == ["thisname"]
-    assert schema.get("dependencies", field="lock") is True
+    assert schema.get("deps") == ["thisname"]
+    assert schema.get("deps", field="lock") is True
 
 
 def test_add_dep_confirm_reset():
@@ -61,7 +61,7 @@ def test_add_dep_clobber():
     assert schema.get_dep("thisname") is dep0
     assert schema.add_dep(dep1, clobber=True)
     assert schema.get_dep("thisname") is dep1
-    assert schema.get("dependencies") == ["thisname"]
+    assert schema.get("deps") == ["thisname"]
 
 
 def test_add_dep_no_clobber():
@@ -73,7 +73,7 @@ def test_add_dep_no_clobber():
     assert schema.get_dep("thisname") is dep0
     assert schema.add_dep(dep1, clobber=False) is False
     assert schema.get_dep("thisname") is dep0
-    assert schema.get("dependencies") == ["thisname"]
+    assert schema.get("deps") == ["thisname"]
 
 
 def test_get_dep_not_found():
@@ -93,9 +93,9 @@ def test_remove_dep():
     schema.add_dep(NamedSchema("thisname"))
     assert schema.get_dep("thisname")
     assert schema.remove_dep("thisname") is True
-    assert schema.get("dependencies", field="lock") is True
+    assert schema.get("deps", field="lock") is True
     assert schema.get_dep() == []
-    assert schema.get("dependencies") == []
+    assert schema.get("deps") == []
 
 
 def test_get_dep_empty():

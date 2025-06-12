@@ -104,8 +104,10 @@ Full API
     :show-inheritance:
     :inherited-members:
 
-.. autoclass:: UseSchema
+.. autoclass:: siliconcompiler.dependencyschema.DependencySchema
     :members:
+    :show-inheritance:
+    :inherited-members:
 
 .. autoclass:: PackageSchema
     :members:

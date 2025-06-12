@@ -17,7 +17,7 @@ class DependencySchema(BaseSchema):
         schema = EditableSchema(self)
 
         schema.insert(
-            'dependencies',
+            "deps",
             Parameter(
                 '[str]',
                 scope=Scope.GLOBAL,
@@ -28,9 +28,9 @@ class DependencySchema(BaseSchema):
         self.__deps = {}
 
     def _from_dict(self, manifest, keypath, version=None):
-        self.set("dependencies", False, field="lock")
+        self.set("deps", False, field="lock")
         ret = super()._from_dict(manifest, keypath, version)
-        self.set("dependencies", True, field="lock")
+        self.set("deps", True, field="lock")
         return ret
 
     def add_dep(self, obj: NamedSchema, clobber: bool = True) -> bool:
@@ -53,9 +53,9 @@ class DependencySchema(BaseSchema):
             return False
 
         if obj.name() not in self.__deps:
-            self.set("dependencies", False, field="lock")
-            self.add("dependencies", obj.name())
-            self.set("dependencies", True, field="lock")
+            self.set("deps", False, field="lock")
+            self.add("deps", obj.name())
+            self.set("deps", True, field="lock")
 
         self.__deps[obj.name()] = obj
         obj._reset()
@@ -198,12 +198,12 @@ class DependencySchema(BaseSchema):
         del self.__deps[name]
 
         # Remove from dependency list
-        dependencies = self.get("dependencies")
+        dependencies = self.get("deps")
         dependencies.remove(name)
 
-        self.set("dependencies", False, field="lock")
-        self.set("dependencies", dependencies)
-        self.set("dependencies", True, field="lock")
+        self.set("deps", False, field="lock")
+        self.set("deps", dependencies)
+        self.set("deps", True, field="lock")
 
         return True
 
@@ -211,7 +211,7 @@ class DependencySchema(BaseSchema):
         if self.__deps:
             return
 
-        for module in self.get("dependencies"):
+        for module in self.get("deps"):
             if module not in module_map:
                 raise ValueError(f"{module} not available in map")
             self.__deps[module] = module_map[module]
