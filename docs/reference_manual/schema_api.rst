@@ -88,7 +88,7 @@ Full API
 
 .. autoclass:: BaseSchema
     :members:
-    :private-members: +_from_dict
+    :private-members: +_from_dict,_parent
 
 .. autoclass:: EditableSchema
     :members:

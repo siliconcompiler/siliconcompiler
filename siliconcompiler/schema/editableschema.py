@@ -29,6 +29,9 @@ class EditableSchema:
             if key in self.__schema._BaseSchema__manifest and not clobber:
                 raise KeyError(f"[{','.join(fullkey)}] is already defined")
 
+            if isinstance(value, BaseSchema):
+                value._BaseSchema__parent = self.__schema
+
             if key == "default":
                 self.__schema._BaseSchema__default = value
             else:
@@ -36,6 +39,7 @@ class EditableSchema:
             return
 
         new_schema = BaseSchema()
+        new_schema._BaseSchema__parent = self.__schema
         if key == "default":
             if self.__schema._BaseSchema__default:
                 new_schema = self.__schema._BaseSchema__default
