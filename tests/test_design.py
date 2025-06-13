@@ -7,7 +7,8 @@ from siliconcompiler.design import DesignSchema
 
 def test_design_keys():
 
-    golden_keys = sorted([('fileset', 'default', 'file', 'default'),
+    golden_keys = sorted([('deps',),
+                          ('fileset', 'default', 'file', 'default'),
                           ('fileset', 'default', 'topmodule'),
                           ('fileset', 'default', 'libdir'),
                           ('fileset', 'default', 'lib'),
@@ -188,17 +189,16 @@ def test_param():
     assert d.get_param(name, fileset) == val
 
 
-@pytest.mark.skip(reason="waiting for use schema impl")
-def test_use():
+def test_add_dep():
 
     fileset = 'rtl'
     lib = DesignSchema('mylib')
     lib.add_file('mylib.v', fileset)
 
     d = DesignSchema("test")
-    d.use(lib)
-    lib = d.depends('mylib')
-    assert lib[0].get_file(fileset) == ['mylib.v']
+    d.add_dep(lib)
+    lib = d.get_dep('mylib')
+    assert lib.get_file(fileset) == ['mylib.v']
 
 
 def test_write_fileset(datadir):
@@ -221,7 +221,6 @@ def test_write_fileset(datadir):
     assert Path('heartbeat.f').read_text() == golden.read_text()
 
 
-@pytest.mark.skip(reason="waiting for use schema impl")
 def test_heartbeat_example(datadir):
     datadir = Path(datadir)
 
@@ -253,7 +252,7 @@ def test_heartbeat_example(datadir):
             self.add_file(datadir / 'heartbeat_tb.v', fileset)
 
             # dependencies
-            self.use(Increment())
+            self.add_dep(Increment())
 
     dut = Heartbeat()
-    assert 'increment' in dut.__dependency
+    assert dut.get("deps") == ["increment"]

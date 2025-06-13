@@ -1,6 +1,7 @@
 import re
 from pathlib import Path
 from typing import List
+from siliconcompiler.dependencyschema import DependencySchema
 from siliconcompiler.schema import NamedSchema
 from siliconcompiler.schema import EditableSchema, Parameter, Scope
 from siliconcompiler.schema.utils import trim
@@ -9,10 +10,12 @@ from siliconcompiler import SiliconCompilerError
 
 
 ###########################################################################
-class DesignSchema(NamedSchema):
+class DesignSchema(NamedSchema, DependencySchema):
 
     def __init__(self, name: str):
         NamedSchema.__init__(self, name=name)
+        DependencySchema.__init__(self)
+
         schema_design(self)
 
     ############################################
