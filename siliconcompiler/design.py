@@ -1,12 +1,16 @@
+import contextlib
 import re
+
 from pathlib import Path
 from typing import List
+
+from siliconcompiler import utils
+from siliconcompiler import SiliconCompilerError
+
 from siliconcompiler.dependencyschema import DependencySchema
 from siliconcompiler.schema import NamedSchema
 from siliconcompiler.schema import EditableSchema, Parameter, Scope
 from siliconcompiler.schema.utils import trim
-from siliconcompiler import utils
-from siliconcompiler import SiliconCompilerError
 
 
 ###########################################################################
@@ -17,6 +21,8 @@ class DesignSchema(NamedSchema, DependencySchema):
         DependencySchema.__init__(self)
 
         schema_design(self)
+
+        self.__fileset = None
 
     ############################################
     def set_topmodule(self,
@@ -44,7 +50,7 @@ class DesignSchema(NamedSchema, DependencySchema):
 
         return self.__set_add(fileset, 'topmodule', value, typelist=[str])
 
-    def get_topmodule(self, fileset: str) -> str:
+    def get_topmodule(self, fileset: str = None) -> str:
         """Returns the topmodule of a fileset.
 
         Args:
@@ -76,7 +82,7 @@ class DesignSchema(NamedSchema, DependencySchema):
         """
         return self.__set_add(fileset, 'idir', value, clobber, typelist=[str, list])
 
-    def get_idir(self, fileset: str) -> List[str]:
+    def get_idir(self, fileset: str = None) -> List[str]:
         """Returns include directories for a fileset.
 
         Args:
@@ -106,7 +112,7 @@ class DesignSchema(NamedSchema, DependencySchema):
         """
         return self.__set_add(fileset, 'define', value, clobber, typelist=[str, list])
 
-    def get_define(self, fileset: str) -> List[str]:
+    def get_define(self, fileset: str = None) -> List[str]:
         """Returns defined macros for a fileset.
 
         Args:
@@ -136,7 +142,7 @@ class DesignSchema(NamedSchema, DependencySchema):
         """
         return self.__set_add(fileset, 'undefine', value, clobber, typelist=[str, list])
 
-    def get_undefine(self, fileset: str) -> List[str]:
+    def get_undefine(self, fileset: str = None) -> List[str]:
         """Returns undefined macros for a fileset.
 
         Args:
@@ -168,7 +174,7 @@ class DesignSchema(NamedSchema, DependencySchema):
         """
         return self.__set_add(fileset, 'libdir', value, clobber, typelist=[str, list])
 
-    def get_libdir(self, fileset: str) -> List[str]:
+    def get_libdir(self, fileset: str = None) -> List[str]:
         """Returns dynamic library directories for a fileset.
 
         Args:
@@ -198,7 +204,7 @@ class DesignSchema(NamedSchema, DependencySchema):
         """
         return self.__set_add(fileset, 'lib', value, clobber, typelist=[str, list])
 
-    def get_lib(self, fileset: str) -> List[str]:
+    def get_lib(self, fileset: str = None) -> List[str]:
         """Returns list of dynamic libraries for a fileset.
 
         Args:
@@ -227,6 +233,9 @@ class DesignSchema(NamedSchema, DependencySchema):
 
         """
 
+        if fileset is None:
+            fileset = self.__fileset
+
         if not isinstance(fileset, str):
             raise ValueError("fileset key must be a string")
 
@@ -237,7 +246,7 @@ class DesignSchema(NamedSchema, DependencySchema):
 
     def get_param(self,
                   name: str,
-                  fileset: str) -> str:
+                  fileset: str = None) -> str:
         """Returns value of a named fileset parameter.
 
         Args:
@@ -247,6 +256,9 @@ class DesignSchema(NamedSchema, DependencySchema):
         Returns:
             str: Parameter value
         """
+        if fileset is None:
+            fileset = self.__fileset
+
         if not isinstance(fileset, str):
             raise ValueError("fileset value must be a string")
         return self.get('fileset', fileset, 'param', name)
@@ -293,6 +305,9 @@ class DesignSchema(NamedSchema, DependencySchema):
 
         """
 
+        if fileset is None:
+            fileset = self.__fileset
+
         # handle list inputs
         if isinstance(filename, (list, tuple)):
             for item in filename:
@@ -334,7 +349,7 @@ class DesignSchema(NamedSchema, DependencySchema):
 
     ###############################################
     def get_file(self,
-                 fileset: str,
+                 fileset: str = None,
                  filetype: str = None):
         """Returns a list of files from one or more filesets.
 
@@ -345,6 +360,9 @@ class DesignSchema(NamedSchema, DependencySchema):
         Returns:
             list[str]: List of file paths.
         """
+
+        if fileset is None:
+            fileset = self.__fileset
 
         if not isinstance(fileset, list):
             fileset = [fileset]
@@ -386,6 +404,9 @@ class DesignSchema(NamedSchema, DependencySchema):
 
         if filename is None:
             raise ValueError("write_fileset() filename cannot be None")
+
+        if fileset is None:
+            fileset = self.__fileset
 
         if not isinstance(fileset, list):
             fileset = [fileset]
@@ -456,6 +477,9 @@ class DesignSchema(NamedSchema, DependencySchema):
         '''Sets a parameter value in schema.
         '''
 
+        if fileset is None:
+            fileset = self.__fileset
+
         # check for a legal fileset
         if not fileset or not isinstance(fileset, str):
             raise ValueError("fileset key must be a string")
@@ -480,9 +504,38 @@ class DesignSchema(NamedSchema, DependencySchema):
     def __get(self, fileset, option):
         '''Gets a parameter value from schema.
         '''
+        if fileset is None:
+            fileset = self.__fileset
+
         if not isinstance(fileset, str):
             raise ValueError("fileset key must be a string")
         return self.get('fileset', fileset, option)
+
+    @contextlib.contextmanager
+    def active_fileset(self, fileset: str):
+        """
+        Use this context to temporarily set a design fileset.
+
+        Raises:
+            TypeError: if fileset is not a string
+            ValueError: if fileset if an empty string
+
+        Args:
+            fileset (str): name of the fileset
+
+        Example:
+            >>> with design.active_fileset("rtl"):
+            ...     design.set_topmodule("top")
+            Sets the top module for the rtl fileset as top.
+        """
+        if not isinstance(fileset, str):
+            raise TypeError("fileset must a string")
+        if not fileset:
+            raise ValueError("fileset cannot be an empty string")
+
+        self.__fileset = fileset
+        yield
+        self.__fileset = None
 
 
 ###########################################################################
