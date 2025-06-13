@@ -259,3 +259,96 @@ def test_heartbeat_example(datadir):
 
     dut = Heartbeat()
     assert dut.get("deps") == ["increment"]
+
+
+def test_active_fileset_invalid():
+    d = DesignSchema("test")
+
+    with pytest.raises(TypeError, match="fileset must a string"):
+        with d.active_fileset(None):
+            pass
+
+    with pytest.raises(ValueError, match="fileset cannot be an empty string"):
+        with d.active_fileset(""):
+            pass
+
+
+def test_options_active_fileset():
+    d = DesignSchema("test")
+
+    # create fileset context
+    with d.active_fileset("rtl"):
+        # top module
+        d.set_topmodule('mytop')
+        assert d.get_topmodule() == 'mytop'
+
+        # idir
+        idirs = ['/home/acme/incdir1', '/home/acme/incdir2']
+        for item in idirs:
+            d.add_idir(item)
+        assert d.get_idir() == idirs
+
+        # libdirs
+        libdirs = ['/usr/lib1', '/usr/lib2']
+        for item in libdirs:
+            d.add_libdir(item)
+        assert d.get_libdir() == libdirs
+
+        # libs
+        libs = ['lib1', 'lib2']
+        for item in libs:
+            d.add_lib(item)
+        assert d.get_lib() == libs
+
+        # define
+        defs = ['CFG_TARGET=FPGA', 'VERILATOR']
+        for item in defs:
+            d.add_define(item)
+        assert d.get_define() == defs
+
+        # undefine
+        undefs = ['CFG_TARGET', 'CFG_SIM']
+        for item in undefs:
+            d.add_undefine(item)
+        assert d.get_undefine() == undefs
+
+
+def test_options_active_fileset_overide_context():
+    d = DesignSchema("test")
+
+    # create fileset context
+    with d.active_fileset("rtl"):
+        # top module
+        d.set_topmodule('mytop')
+        assert d.get_topmodule() == 'mytop'
+        d.set_topmodule('mytop_other', fileset="notrtl")
+        assert d.get_topmodule() == 'mytop'
+        assert d.get_topmodule("notrtl") == 'mytop_other'
+
+
+def test_options_active_fileset_ensure_no_leftovers():
+    d = DesignSchema("test")
+
+    assert d._DesignSchema__fileset is None
+    # create fileset context
+    with d.active_fileset("rtl"):
+        assert d._DesignSchema__fileset == "rtl"
+    assert d._DesignSchema__fileset is None
+
+
+def test_add_file_active_fileset():
+    d = DesignSchema("test")
+
+    with d.active_fileset("rtl"):
+        # explicit file add
+        files = ['one.v', 'two.v']
+        d.add_file(files, filetype='verilog')
+        assert d.get_file(filetype="verilog") == files
+    assert d.get('fileset', "rtl", 'file', 'verilog') == files
+
+    with d.active_fileset("testbench"):
+        # filetype mapping
+        d.add_file('tb.v')
+        d.add_file('dut.v')
+        assert d.get_file() == ['tb.v', 'dut.v']
+    assert d.get('fileset', 'testbench', 'file', 'verilog') == ['tb.v', 'dut.v']
