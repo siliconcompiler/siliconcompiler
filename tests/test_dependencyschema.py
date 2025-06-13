@@ -580,19 +580,19 @@ def test_find_files_keypath():
     assert test.find_files("file", runnable=root) == os.path.abspath("test/test.txt")
 
 
-def test_find_source():
+def test_find_package():
     schema = DependencySchema()
     schema.register_source("testsource", "file://.")
-    assert schema.find_source("testsource") == os.path.abspath(".")
+    assert schema.find_package("testsource") == os.path.abspath(".")
 
 
-def test_find_source_not_found():
+def test_find_package_not_found():
     schema = DependencySchema()
     with pytest.raises(ValueError, match="testsource is not a recognized source"):
-        schema.find_source("testsource")
+        schema.find_package("testsource")
 
 
-def test_find_source_keypath():
+def test_find_package_keypath():
     class Test(DependencySchema):
         def __init__(self):
             super().__init__()
@@ -615,7 +615,7 @@ def test_find_source_keypath():
     assert root.set("ref", "test")
     os.makedirs("test", exist_ok=True)
 
-    assert test.find_source("keyref", runnable=root) == os.path.abspath("test")
+    assert test.find_package("keyref", runnable=root) == os.path.abspath("test")
 
 
 def test_check_filepaths_empty():

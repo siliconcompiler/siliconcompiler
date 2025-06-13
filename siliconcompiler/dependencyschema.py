@@ -284,7 +284,7 @@ class DependencySchema(BaseSchema):
         if tag:
             self.set("package", name, "tag", tag)
 
-    def find_source(self, name: str, runnable=None):
+    def find_package(self, name: str, runnable=None):
         """
         Returns absolute path to the package root.
 
@@ -292,14 +292,14 @@ class DependencySchema(BaseSchema):
             ValueError: is package is not found
 
         Args:
-            name (str): name of the source package to find.
+            name (str): name of the package to find.
             runnable (TBD): root schema object
 
         Returns:
-            Path to the source file root.
+            Path to the package directory root.
 
         Examples:
-            >>> schema.find_source('siliconcompiler')
+            >>> schema.find_package('siliconcompiler')
             Returns the path to the root of the siliconcompiler package.
         """
 
