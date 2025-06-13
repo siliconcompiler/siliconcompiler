@@ -40,7 +40,7 @@ class DependencySchema(BaseSchema):
                     "'freepdk45_data', 'path', 'ssh://git@github.com/siliconcompiler/freepdk45/')"],
                 help=trim("""
                     Package root path, this points the location where the package data can be
-                    retrived or accessed.
+                    retrieved or accessed.
                     Allowed roots:
 
                     * /path/on/network/drive
