@@ -36,6 +36,7 @@ class BaseSchema:
         self.__manifest = {}
         self.__default = None
         self.__journal = Journal()
+        self.__parent = self
 
     def _from_dict(self, manifest, keypath, version=None):
         '''
@@ -545,7 +546,17 @@ class BaseSchema:
             key (list of str): keypath to this schema
         """
 
-        return copy.deepcopy(self)
+        parent = self.__parent
+        self.__parent = None
+        schema_copy = copy.deepcopy(self)
+        self.__parent = parent
+
+        if self is not self.__parent:
+            schema_copy.__parent = self.__parent
+        else:
+            schema_copy.__parent = schema_copy
+
+        return schema_copy
 
     def find_files(self, *keypath, missing_ok=False, step=None, index=None,
                    packages=None, collection_dir=None, cwd=None):
@@ -752,3 +763,17 @@ class BaseSchema:
                                          f"{check_file} is invalid")
 
         return not error
+
+    def _parent(self, root=False):
+        '''
+        Returns the parent of this schema section, if root is true the root parent
+        will be returned.
+
+        Args:
+            root (bool): if true, returns the root of the schemas.
+        '''
+        if not root:
+            return self.__parent
+        if self.__parent is self:
+            return self
+        return self.__parent._parent(root=root)
