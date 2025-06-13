@@ -258,23 +258,23 @@ def test_heartbeat_example(datadir):
     assert dut.get("deps") == ["increment"]
 
 
-def test_with_fileset_invalid():
+def test_active_fileset_invalid():
     d = DesignSchema("test")
 
     with pytest.raises(TypeError, match="fileset must a string"):
-        with d.with_fileset(None):
+        with d.active_fileset(None):
             pass
 
     with pytest.raises(ValueError, match="fileset cannot be an empty string"):
-        with d.with_fileset(""):
+        with d.active_fileset(""):
             pass
 
 
-def test_options_with_fileset():
+def test_options_active_fileset():
     d = DesignSchema("test")
 
     # create fileset context
-    with d.with_fileset("rtl"):
+    with d.active_fileset("rtl"):
         # top module
         d.set_topmodule('mytop')
         assert d.get_topmodule() == 'mytop'
@@ -310,11 +310,11 @@ def test_options_with_fileset():
         assert d.get_undefine() == undefs
 
 
-def test_options_with_fileset_overide_context():
+def test_options_active_fileset_overide_context():
     d = DesignSchema("test")
 
     # create fileset context
-    with d.with_fileset("rtl"):
+    with d.active_fileset("rtl"):
         # top module
         d.set_topmodule('mytop')
         assert d.get_topmodule() == 'mytop'
@@ -323,27 +323,27 @@ def test_options_with_fileset_overide_context():
         assert d.get_topmodule("notrtl") == 'mytop_other'
 
 
-def test_options_with_fileset_ensure_no_leftovers():
+def test_options_active_fileset_ensure_no_leftovers():
     d = DesignSchema("test")
 
     assert d._DesignSchema__fileset is None
     # create fileset context
-    with d.with_fileset("rtl"):
+    with d.active_fileset("rtl"):
         assert d._DesignSchema__fileset == "rtl"
     assert d._DesignSchema__fileset is None
 
 
-def test_add_file_with_fileset():
+def test_add_file_active_fileset():
     d = DesignSchema("test")
 
-    with d.with_fileset("rtl"):
+    with d.active_fileset("rtl"):
         # explicit file add
         files = ['one.v', 'two.v']
         d.add_file(files, filetype='verilog')
         assert d.get_file(filetype="verilog") == files
     assert d.get('fileset', "rtl", 'file', 'verilog') == files
 
-    with d.with_fileset("testbench"):
+    with d.active_fileset("testbench"):
         # filetype mapping
         d.add_file('tb.v')
         d.add_file('dut.v')

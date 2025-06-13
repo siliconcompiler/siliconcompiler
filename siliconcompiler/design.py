@@ -512,7 +512,7 @@ class DesignSchema(NamedSchema, DependencySchema):
         return self.get('fileset', fileset, option)
 
     @contextlib.contextmanager
-    def with_fileset(self, fileset: str):
+    def active_fileset(self, fileset: str):
         """
         Use this context to temporarily set a design fileset.
 
@@ -524,7 +524,7 @@ class DesignSchema(NamedSchema, DependencySchema):
             fileset (str): name of the fileset
 
         Example:
-            >>> with design.with_fileset("rtl"):
+            >>> with design.active_fileset("rtl"):
             ...     design.set_topmodule("top")
             Sets the top module for the rtl fileset as top.
         """
