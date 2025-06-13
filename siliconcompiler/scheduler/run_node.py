@@ -110,7 +110,7 @@ def main():
             chip.get("package", field="schema")._set_cache(package, path)
 
     # Populate cache
-    for resolver in chip.get('package', field='schema').get_resolvers(chip).values():
+    for resolver in chip.get('package', field='schema').get_resolvers().values():
         resolver()
 
     # Run the task.
