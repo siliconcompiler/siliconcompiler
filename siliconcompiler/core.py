@@ -1101,7 +1101,7 @@ class Chip:
         '''
 
         if package:
-            resolvers = self.get("package", field="schema").get_resolvers(self)
+            resolvers = self.get("package", field="schema").get_resolvers()
             filename = os.path.join(resolvers[package](), filename)
 
         if not os.path.isfile(filename):
@@ -1386,7 +1386,7 @@ class Chip:
         else:
             search_paths = [self.cwd]
 
-        resolvers = self.get("package", field="schema").get_resolvers(self)
+        resolvers = self.get("package", field="schema").get_resolvers()
         for (dependency, path) in zip(dependencies, paths):
             faux_param = FileNodeValue()
             faux_param.set(path)
@@ -1557,7 +1557,7 @@ class Chip:
             if keypath[-2:] == ('option', 'builddir'):
                 ignore_keys.append(keypath)
 
-        package_map = self.get("package", field="schema").get_resolvers(self)
+        package_map = self.get("package", field="schema").get_resolvers()
 
         return self.schema.check_filepaths(
             ignore_keys=ignore_keys,

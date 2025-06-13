@@ -49,31 +49,27 @@ class PackageSchema(BaseSchema):
                 success = True
         return success
 
-    def get_resolver(self, package, runnable=None):
+    def get_resolver(self, package):
         '''
         Returns a specific resolver
 
         Args:
             package (str): name of package
-            runnable (TBD): Base runnable object
         '''
         resolver_cls = Resolver.find_resolver(self.get("source", package, "path"))
-        resolver = resolver_cls(package, runnable,
+        resolver = resolver_cls(package, self._parent(root=True),
                                 self.get("source", package, "path"),
                                 self.get("source", package, "ref"))
         resolver.set_cache(self.__cache)
         return resolver
 
-    def get_resolvers(self, runnable):
+    def get_resolvers(self):
         '''
         Returns a dictionary of packages with their resolver method.
-
-        Args:
-            runnable (TBD): Base runnable object
         '''
         resolvers = {}
         for package in self.getkeys("source"):
-            resolvers[package] = self.get_resolver(package, runnable).get_path
+            resolvers[package] = self.get_resolver(package).get_path
 
         return resolvers
 

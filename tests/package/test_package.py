@@ -25,7 +25,7 @@ def test_init():
     assert isinstance(resolver.logger, logging.Logger)
 
 
-def test_init_no_runnable():
+def test_init_no_root():
     resolver = Resolver("testpath", None, "source://this")
 
     assert resolver.name == "testpath"
@@ -230,7 +230,7 @@ def test_remote_cache_dir_default():
     assert resolver.cache_dir == Path.home() / ".sc" / "cache"
 
 
-def test_remote_cache_dir_no_runnable():
+def test_remote_cache_dir_no_root():
     resolver = RemoteResolver("thisname", None, "https://filepath", "ref")
     assert resolver.cache_dir == Path.home() / ".sc" / "cache"
 
@@ -507,7 +507,7 @@ def test_keypath_resolver():
     assert resolver.resolve() == os.path.abspath(".")
 
 
-def test_keypath_resolver_no_runnable():
+def test_keypath_resolver_no_root():
     resolver = KeyPathResolver("thisname", None, "key://option,dir,testdir")
-    with pytest.raises(RuntimeError, match="Runnable has not be defined for thisname"):
+    with pytest.raises(RuntimeError, match="Root schema has not be defined for thisname"):
         resolver.resolve()

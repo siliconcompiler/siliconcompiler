@@ -14,8 +14,8 @@ def get_resolver():
 
 
 class GithubResolver(HTTPResolver):
-    def __init__(self, name, runnable, source, reference=None):
-        super().__init__(name, runnable, source, reference)
+    def __init__(self, name, root, source, reference=None):
+        super().__init__(name, root, source, reference)
 
         if len(self.gh_path) != 4:
             raise ValueError(

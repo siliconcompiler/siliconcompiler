@@ -385,7 +385,7 @@ class ToolSchema(NamedSchema):
         if include_path:
             path = self.find_files(
                 "path", step=self.__step, index=self.__index,
-                packages=self.__chip.get("package", field="schema").get_resolvers(self.__chip),
+                packages=self.__chip.get("package", field="schema").get_resolvers(),
                 cwd=self.__chip.cwd,
                 missing_ok=True)
 

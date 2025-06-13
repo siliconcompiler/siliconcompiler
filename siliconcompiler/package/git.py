@@ -16,8 +16,8 @@ def get_resolver():
 
 
 class GitResolver(RemoteResolver):
-    def __init__(self, name, runnable, source, reference=None):
-        super().__init__(name, runnable, source, reference)
+    def __init__(self, name, root, source, reference=None):
+        super().__init__(name, root, source, reference)
 
     def check_cache(self):
         if os.path.exists(self.cache_path):

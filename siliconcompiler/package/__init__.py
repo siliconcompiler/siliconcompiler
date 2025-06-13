@@ -22,7 +22,7 @@ def path(chip, package):
     import warnings
     warnings.warn("The 'path' method has been deprecated",
                   DeprecationWarning)
-    return chip.get("package", field="schema").get_resolver(package, runnable=chip).get_path()
+    return chip.get("package", field="schema").get_resolver(package).get_path()
 
 
 def register_python_data_source(chip,
@@ -50,9 +50,9 @@ class Resolver:
     _RESOLVERS_LOCK = threading.Lock()
     _RESOLVERS = {}
 
-    def __init__(self, name, runnable, source, reference=None):
+    def __init__(self, name, root, source, reference=None):
         self.__name = name
-        self.__root = runnable
+        self.__root = root
         self.__source = source
         self.__reference = reference
         self.__changed = False
@@ -176,11 +176,11 @@ class RemoteResolver(Resolver):
     _CACHE_LOCKS = {}
     _CACHE_LOCK = threading.Lock()
 
-    def __init__(self, name, runnable, source, reference=None):
+    def __init__(self, name, root, source, reference=None):
         if reference is None:
             raise ValueError(f'Reference is required for cached data: {name}')
 
-        super().__init__(name, runnable, source, reference)
+        super().__init__(name, root, source, reference)
 
         # Wait a maximum of 10 minutes for other processes to finish
         self.__max_lock_wait = 60 * 10
@@ -193,16 +193,18 @@ class RemoteResolver(Resolver):
         self.__max_lock_wait = value
 
     @staticmethod
-    def determine_cache_dir(runnable) -> Path:
+    def determine_cache_dir(root) -> Path:
         default_path = os.path.join(Path.home(), '.sc', 'cache')
-        if not runnable:
+        if not root:
             return Path(default_path)
 
-        path = runnable.get('option', 'cachedir')
-        if path:
-            path = runnable.find_files('option', 'cachedir', missing_ok=True)
-            if not path:
-                path = os.path.join(runnable.cwd, runnable.get('option', 'cachedir'))
+        if root.valid('option', 'cachedir'):
+            path = root.get('option', 'cachedir')
+            if path:
+                path = root.find_files('option', 'cachedir', missing_ok=True)
+                if not path:
+                    path = os.path.join(getattr(root, "cwd", os.getcwd()),
+                                        root.get('option', 'cachedir'))
         if not path:
             path = default_path
 
@@ -312,13 +314,13 @@ class RemoteResolver(Resolver):
 
 ###############
 class FileResolver(Resolver):
-    def __init__(self, name, runnable, source, reference=None):
+    def __init__(self, name, root, source, reference=None):
         if source.startswith("file://"):
             source = source[7:]
         if not os.path.isabs(source):
-            source = os.path.join(getattr(runnable, "cwd", os.getcwd()), source)
+            source = os.path.join(getattr(root, "cwd", os.getcwd()), source)
 
-        super().__init__(name, runnable, f"file://{source}", None)
+        super().__init__(name, root, f"file://{source}", None)
 
     @property
     def urlpath(self):
@@ -333,8 +335,8 @@ class FileResolver(Resolver):
 
 
 class PythonPathResolver(Resolver):
-    def __init__(self, name, runnable, source, reference=None):
-        super().__init__(name, runnable, source, None)
+    def __init__(self, name, root, source, reference=None):
+        super().__init__(name, root, source, None)
 
     @staticmethod
     @functools.lru_cache(maxsize=1)
@@ -383,7 +385,7 @@ class PythonPathResolver(Resolver):
         return is_editable
 
     @staticmethod
-    def register_source(runnable,
+    def register_source(root,
                         package_name,
                         python_module,
                         alternative_path,
@@ -397,7 +399,7 @@ class PythonPathResolver(Resolver):
         if PythonPathResolver.is_python_module_editable(python_module):
             if python_module_path_append:
                 path = PythonPathResolver(
-                    python_module, runnable, f"python://{python_module}").resolve()
+                    python_module, root, f"python://{python_module}").resolve()
                 path = os.path.abspath(os.path.join(path, python_module_path_append))
             else:
                 path = f"python://{python_module}"
@@ -406,9 +408,9 @@ class PythonPathResolver(Resolver):
             path = alternative_path
             ref = alternative_ref
 
-        runnable.register_source(name=package_name,
-                                 path=path,
-                                 ref=ref)
+        root.register_source(name=package_name,
+                             path=path,
+                             ref=ref)
 
     def resolve(self):
         module = importlib.import_module(self.urlpath)
@@ -417,12 +419,12 @@ class PythonPathResolver(Resolver):
 
 
 class KeyPathResolver(Resolver):
-    def __init__(self, name, runnable, source, reference=None):
-        super().__init__(name, runnable, source, None)
+    def __init__(self, name, root, source, reference=None):
+        super().__init__(name, root, source, None)
 
     def resolve(self):
         if not self.root:
-            raise RuntimeError(f"Runnable has not be defined for {self.name}")
+            raise RuntimeError(f"Root schema has not be defined for {self.name}")
 
         key = self.urlpath.split(",")
         if self.root.get(*key, field='pernode').is_never():
