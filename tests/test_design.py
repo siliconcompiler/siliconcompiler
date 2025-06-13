@@ -323,6 +323,16 @@ def test_options_with_fileset_overide_context():
         assert d.get_topmodule("notrtl") == 'mytop_other'
 
 
+def test_options_with_fileset_ensure_no_leftovers():
+    d = DesignSchema("test")
+
+    assert d._DesignSchema__fileset is None
+    # create fileset context
+    with d.with_fileset("rtl"):
+        assert d._DesignSchema__fileset == "rtl"
+    assert d._DesignSchema__fileset is None
+
+
 def test_add_file_with_fileset():
     d = DesignSchema("test")
 
