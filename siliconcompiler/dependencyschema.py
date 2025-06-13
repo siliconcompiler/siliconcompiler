@@ -30,37 +30,45 @@ class DependencySchema(BaseSchema):
                 help="List of named object dependencies included via add_dep()."))
 
         schema.insert(
-            'source', 'default', 'path',
+            'package', 'default', 'root',
             Parameter(
                 'str',
                 scope=Scope.GLOBAL,
-                shorthelp="Package: data source path",
+                shorthelp="Package: package root",
                 example=[
                     "api: chip.set('source', "
                     "'freepdk45_data', 'path', 'ssh://git@github.com/siliconcompiler/freepdk45/')"],
                 help=trim("""
-                Package data source path, allowed paths:
+                    Package root path, this points the location where the package data can be
+                    retrived or accessed.
+                    Allowed roots:
 
-                * /path/on/network/drive
-                * file:///path/on/network/drive
-                * git+https://github.com/xyz/xyz
-                * git://github.com/xyz/xyz
-                * git+ssh://github.com/xyz/xyz
-                * ssh://github.com/xyz/xyz
-                * https://github.com/xyz/xyz/archive
-                * https://zeroasic.com/xyz.tar.gz
-                * python://siliconcompiler
-                """)))
+                    * /path/on/network/drive
+                    * file:///path/on/network/drive
+                    * git+https://github.com/xyz/xyz
+                    * git://github.com/xyz/xyz
+                    * git+ssh://github.com/xyz/xyz
+                    * ssh://github.com/xyz/xyz
+                    * https://github.com/xyz/xyz/archive
+                    * https://zeroasic.com/xyz.tar.gz
+                    * github://siliconcompiler/lambdapdk/v1.0/asap7.tar.gz
+                    * python://siliconcompiler
+                    """)))
 
         schema.insert(
-            'source', 'default', 'ref',
+            'package', 'default', 'tag',
             Parameter(
                 'str',
                 scope=Scope.GLOBAL,
-                shorthelp="Package: data source reference",
+                shorthelp="Package: package tag/version",
                 example=[
                     "api: chip.set('source', 'freepdk45_data', 'ref', '07ec4aa')"],
-                help="Package data source reference"))
+                help=trim("""
+                    Package reference tag. The meaning of the this tag depends on the context of
+                    the root.
+                    For git, this can be a tag, branch, or commit id. For https this is the version
+                    of the file that will be downloaded.
+                    """)))
 
     def _from_dict(self, manifest, keypath, version=None):
         self.set("deps", False, field="lock")
@@ -254,14 +262,14 @@ class DependencySchema(BaseSchema):
             if isinstance(self.__deps[module], DependencySchema):
                 self.__deps[module]._populate_deps(module_map)
 
-    def register_source(self, name: str, path: str, ref: str = None):
+    def register_source(self, name: str, root: str, tag: str = None):
         """
         Registers a package by its name with the source path and reference
 
         Args:
             name (str): Package name
-            path (str): Path to the sources, can be directory, git url, or archive url
-            ref (str): Reference of the sources, can be commitid, branch name, tag
+            root (str): Path to the root, can be directory, git url, or archive url
+            tag (str): Reference of the sources, can be commitid, branch name, tag
 
         Examples:
             >>> schema.register_source('siliconcompiler_data',
@@ -269,12 +277,12 @@ class DependencySchema(BaseSchema):
                     'v1.0.0')
         """
 
-        if os.path.isfile(path):
-            path = os.path.dirname(os.path.abspath(path))
+        if os.path.isfile(root):
+            root = os.path.dirname(os.path.abspath(root))
 
-        self.set("source", name, "path", path)
-        if ref:
-            self.set("source", name, "ref", ref)
+        self.set("package", name, "root", root)
+        if tag:
+            self.set("package", name, "tag", tag)
 
     def find_source(self, name: str, runnable=None):
         """
@@ -295,25 +303,25 @@ class DependencySchema(BaseSchema):
             Returns the path to the root of the siliconcompiler package.
         """
 
-        if not self.valid("source", name):
+        if not self.valid("package", name):
             raise ValueError(f"{name} is not a recognized source")
 
-        source = self.get("source", name, "path")
-        ref = self.get("source", name, "path")
+        root = self.get("package", name, "root")
+        tag = self.get("package", name, "tag")
 
-        resolver = Resolver.find_resolver(source)
-        return resolver(name, runnable, source, ref).get_path()
+        resolver = Resolver.find_resolver(root)
+        return resolver(name, runnable, root, tag).get_path()
 
     def __get_resolver_map(self, runnable):
         """
         Generate the resolver map got package handling for find_files and check_filepaths
         """
         resolver_map = {}
-        for package in self.getkeys("source"):
-            source = self.get("source", package, "path")
-            ref = self.get("source", package, "path")
-            resolver = Resolver.find_resolver(source)
-            resolver_map[package] = resolver(package, runnable, source, ref).get_path
+        for package in self.getkeys("package"):
+            root = self.get("package", package, "root")
+            tag = self.get("package", package, "tag")
+            resolver = Resolver.find_resolver(root)
+            resolver_map[package] = resolver(package, runnable, root, tag).get_path
         return resolver_map
 
     def find_files(self, *keypath,

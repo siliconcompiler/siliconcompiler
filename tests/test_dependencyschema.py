@@ -13,7 +13,7 @@ from siliconcompiler.dependencyschema import DependencySchema
 
 def test_init():
     schema = DependencySchema()
-    assert schema.getkeys() == tuple(["deps", "source"])
+    assert schema.getkeys() == tuple(["deps", "package"])
     assert schema.get("deps") == []
 
 
@@ -429,29 +429,29 @@ def test_populate_deps_already_populated():
 
 def test_get_registered_sources():
     schema = DependencySchema()
-    assert schema.getkeys("source") == tuple([])
+    assert schema.getkeys("package") == tuple([])
 
 
 def test_register_source():
     schema = DependencySchema()
     schema.register_source("testsource", "file://.")
-    assert schema.get("source", "testsource", "path") == "file://."
-    assert schema.get("source", "testsource", "ref") is None
+    assert schema.get("package", "testsource", "root") == "file://."
+    assert schema.get("package", "testsource", "tag") is None
 
 
 def test_register_source_overwrite():
     schema = DependencySchema()
     schema.register_source("testsource", "file://.")
     schema.register_source("testsource", "file://test")
-    assert schema.get("source", "testsource", "path") == "file://test"
-    assert schema.get("source", "testsource", "ref") is None
+    assert schema.get("package", "testsource", "root") == "file://test"
+    assert schema.get("package", "testsource", "tag") is None
 
 
 def test_register_source_with_ref():
     schema = DependencySchema()
     schema.register_source("testsource", "file://.", "ref")
-    assert schema.get("source", "testsource", "path") == "file://."
-    assert schema.get("source", "testsource", "ref") == "ref"
+    assert schema.get("package", "testsource", "root") == "file://."
+    assert schema.get("package", "testsource", "tag") == "ref"
 
 
 def test_register_source_with_file():
@@ -460,8 +460,8 @@ def test_register_source_with_file():
         f.write("test")
 
     schema.register_source("testsource", "test.txt")
-    assert schema.get("source", "testsource", "path") == os.path.abspath(".")
-    assert schema.get("source", "testsource", "ref") is None
+    assert schema.get("package", "testsource", "root") == os.path.abspath(".")
+    assert schema.get("package", "testsource", "tag") is None
 
 
 def test_find_files():

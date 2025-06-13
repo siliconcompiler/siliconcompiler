@@ -17,8 +17,8 @@ def test_design_keys():
         ('fileset', 'default', 'define'),
         ('fileset', 'default', 'undefine'),
         ('fileset', 'default', 'param', 'default'),
-        ('source', 'default', 'path'),
-        ('source', 'default', 'ref'),
+        ('package', 'default', 'root'),
+        ('package', 'default', 'tag'),
     ])
 
     assert set(DesignSchema("test").allkeys()) == golden_keys
