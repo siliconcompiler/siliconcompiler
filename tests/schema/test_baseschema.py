@@ -9,6 +9,57 @@ from siliconcompiler.schema import Parameter, PerNode
 from siliconcompiler.schema import Journal
 
 
+def test_copy():
+    schema = BaseSchema()
+    check_copy = schema.copy()
+
+    assert schema is not check_copy
+    assert schema._parent() is schema
+    assert check_copy._parent() is check_copy
+
+
+def test_copy_with_child():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("test0", "test1", "test2", Parameter("str"))
+
+    check_copy = schema.copy()
+
+    assert schema is not check_copy
+    assert schema._parent() is schema
+    assert schema.get("test0", field="schema")._parent() is schema
+    assert schema.get("test0", "test1", field="schema")._parent() is \
+        schema.get("test0", field="schema")
+    assert check_copy._parent() is check_copy
+    assert check_copy.get("test0", field="schema")._parent() is check_copy
+    assert check_copy.get("test0", "test1", field="schema")._parent() is \
+        check_copy.get("test0", field="schema")
+
+
+def test_copy_with_child_default():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("test0", "default", "test2", Parameter("str"))
+
+    assert schema.set("test0", "testthis", "test2", "thisset")
+
+    check_copy = schema.copy()
+
+    assert schema is not check_copy
+    assert schema._parent() is schema
+    assert schema.get("test0", field="schema")._parent() is schema
+    assert schema.get("test0", "default", field="schema")._parent() is \
+        schema.get("test0", field="schema")
+    assert schema.get("test0", "testthis", field="schema")._parent() is \
+        schema.get("test0", field="schema")
+    assert check_copy._parent() is check_copy
+    assert check_copy.get("test0", field="schema")._parent() is check_copy
+    assert check_copy.get("test0", "default", field="schema")._parent() is \
+        check_copy.get("test0", field="schema")
+    assert check_copy.get("test0", "testthis", field="schema")._parent() is \
+        check_copy.get("test0", field="schema")
+
+
 def test_get_value():
     schema = BaseSchema()
     edit = EditableSchema(schema)
@@ -435,6 +486,10 @@ def test_getdict_from_dict():
 
     check_schema = schema.copy()
 
+    assert schema.getdict() == check_schema.getdict()
+    assert schema._parent() is not check_schema._parent()
+    assert check_schema.get("test0", field="schema")._parent() is check_schema
+
     schema.set("test0", "testdefault", "test1", "4")
 
     assert check_schema.get("test0", "testdefault", "test1") is None
@@ -444,6 +499,12 @@ def test_getdict_from_dict():
     assert not schemamissing
 
     assert schema.getdict() == check_schema.getdict()
+    assert schema._parent() is not check_schema._parent()
+    assert check_schema.get("test0", field="schema")._parent() is check_schema
+    assert check_schema.get("test0", "default", field="schema")._parent() is \
+        check_schema.get("test0", field="schema")
+    assert check_schema.get("test0", "testdefault", field="schema")._parent() is \
+        check_schema.get("test0", field="schema")
 
 
 def test_getdict_from_dict_unmatched():
@@ -1509,3 +1570,19 @@ def test_fromdict_with_journal():
             'value': 'hello',
         }
     ]
+
+
+def test_parent():
+    schema = BaseSchema()
+    assert schema._parent() is schema
+
+
+def test_parent_with_child():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("test0", "test1", "test2", Parameter("str"))
+
+    assert schema._parent() is schema
+    assert schema._parent(root=True) is schema
+    assert schema.get("test0", field="schema")._parent(root=True) is schema
+    assert schema.get("test0", "test1", field="schema")._parent(root=True) is schema
