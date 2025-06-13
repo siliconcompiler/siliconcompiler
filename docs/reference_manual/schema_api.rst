@@ -38,6 +38,11 @@ Useful APIs
 Metrics Classes
 ===============
 
+.. autoclass:: siliconcompiler.DesignSchema
+    :members:
+    :show-inheritance:
+    :inherited-members:
+
 .. autoclass:: siliconcompiler.RecordSchema
     :members:
     :show-inheritance:

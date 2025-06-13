@@ -7,16 +7,19 @@ from typing import List
 from siliconcompiler import utils
 from siliconcompiler import SiliconCompilerError
 
+from siliconcompiler.dependencyschema import DependencySchema
 from siliconcompiler.schema import NamedSchema
 from siliconcompiler.schema import EditableSchema, Parameter, Scope
 from siliconcompiler.schema.utils import trim
 
 
 ###########################################################################
-class DesignSchema(NamedSchema):
+class DesignSchema(NamedSchema, DependencySchema):
 
     def __init__(self, name: str):
         NamedSchema.__init__(self, name=name)
+        DependencySchema.__init__(self)
+
         schema_design(self)
 
         self.__fileset = None

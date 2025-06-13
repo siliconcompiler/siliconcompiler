@@ -22,7 +22,7 @@ def path(chip, package):
     import warnings
     warnings.warn("The 'path' method has been deprecated",
                   DeprecationWarning)
-    return chip.get("package", field="schema").get_resolver(package).get_path()
+    return chip.get("package", field="schema").get_resolver(package, runnable=chip).get_path()
 
 
 def register_python_data_source(chip,
