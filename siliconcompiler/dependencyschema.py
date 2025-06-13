@@ -260,7 +260,7 @@ class DependencySchema(BaseSchema):
 
         Args:
             name (str): Package name
-            path (str): Path to the sources, can be file, git url, archive url
+            path (str): Path to the sources, can be directory, git url, or archive url
             ref (str): Reference of the sources, can be commitid, branch name, tag
 
         Examples:
