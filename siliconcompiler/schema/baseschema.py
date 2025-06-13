@@ -36,6 +36,7 @@ class BaseSchema:
         self.__manifest = {}
         self.__default = None
         self.__journal = Journal()
+        self.__parent = self
 
     def _from_dict(self, manifest, keypath, version=None):
         '''
@@ -64,6 +65,8 @@ class BaseSchema:
             obj = self.__manifest.get(key, None)
             if not obj and self.__default:
                 obj = self.__default.copy()
+                if isinstance(obj, BaseSchema):
+                    obj.__parent = self
                 self.__manifest[key] = obj
             if obj:
                 obj._from_dict(data, keypath + [key], version=version)
@@ -171,6 +174,8 @@ class BaseSchema:
                 if isinstance(self.__default, Parameter) and self.__default.get(field='lock'):
                     raise KeyError
                 key_param = self.__default.copy(key=complete_path)
+                if isinstance(key_param, BaseSchema):
+                    key_param.__parent = self.__default.__parent
                 self.__manifest[keypath[0]] = key_param
             elif use_default and self.__default:
                 key_param = self.__default
@@ -711,3 +716,17 @@ class BaseSchema:
                                          f"{check_file} is invalid")
 
         return not error
+
+    def _parent(self, root=False):
+        '''
+        Returns the parent of this schema section, if root is true the root parent
+        will be returned.
+
+        Args:
+            root (bool): if true, returns the root of the schemas.
+        '''
+        if not root:
+            return self.__parent
+        if self.__parent is self:
+            return self
+        return self.__parent._parent(root=root)
