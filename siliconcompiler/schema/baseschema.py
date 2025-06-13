@@ -65,8 +65,6 @@ class BaseSchema:
             obj = self.__manifest.get(key, None)
             if not obj and self.__default:
                 obj = self.__default.copy()
-                if isinstance(obj, BaseSchema):
-                    obj.__parent = self
                 self.__manifest[key] = obj
             if obj:
                 obj._from_dict(data, keypath + [key], version=version)
@@ -174,8 +172,6 @@ class BaseSchema:
                 if isinstance(self.__default, Parameter) and self.__default.get(field='lock'):
                     raise KeyError
                 key_param = self.__default.copy(key=complete_path)
-                if isinstance(key_param, BaseSchema):
-                    key_param.__parent = self.__default.__parent
                 self.__manifest[keypath[0]] = key_param
             elif use_default and self.__default:
                 key_param = self.__default
@@ -550,7 +546,17 @@ class BaseSchema:
             key (list of str): keypath to this schema
         """
 
-        return copy.deepcopy(self)
+        parent = self.__parent
+        self.__parent = None
+        schema_copy = copy.deepcopy(self)
+        self.__parent = parent
+
+        if self is not self.__parent:
+            schema_copy.__parent = self.__parent
+        else:
+            schema_copy.__parent = schema_copy
+
+        return schema_copy
 
     def find_files(self, *keypath, missing_ok=False, step=None, index=None,
                    packages=None, collection_dir=None, cwd=None):
