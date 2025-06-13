@@ -312,24 +312,24 @@ class DependencySchema(BaseSchema):
         resolver = Resolver.find_resolver(root)
         return resolver(name, runnable, root, tag).get_path()
 
-    def __get_resolver_map(self, runnable):
+    def __get_resolver_map(self):
         """
         Generate the resolver map got package handling for find_files and check_filepaths
         """
+        schema_root = self._parent(root=True)
         resolver_map = {}
         for package in self.getkeys("package"):
             root = self.get("package", package, "root")
             tag = self.get("package", package, "tag")
             resolver = Resolver.find_resolver(root)
-            resolver_map[package] = resolver(package, runnable, root, tag).get_path
+            resolver_map[package] = resolver(package, schema_root, root, tag).get_path
         return resolver_map
 
     def find_files(self, *keypath,
                    missing_ok=False,
                    step=None, index=None,
                    collection_dir=None,
-                   cwd=None,
-                   runnable=None):
+                   cwd=None):
         """
         Returns absolute paths to files or directories based on the keypath
         provided.
@@ -348,7 +348,6 @@ class DependencySchema(BaseSchema):
             collection_dir (path): optional path to a collections directory
             cwd (path): optional path to current working directory, this will default
                 to os.getcwd() if not provided.
-            runnable (TBD): root schema object
 
         Returns:
             If keys points to a scalar entry, returns an absolute path to that
@@ -365,15 +364,14 @@ class DependencySchema(BaseSchema):
         return super().find_files(*keypath,
                                   missing_ok=missing_ok,
                                   step=step, index=index,
-                                  packages=self.__get_resolver_map(runnable),
+                                  packages=self.__get_resolver_map(),
                                   collection_dir=collection_dir,
                                   cwd=cwd)
 
     def check_filepaths(self, ignore_keys=None,
                         logger=None,
                         collection_dir=None,
-                        cwd=None,
-                        runnable=None):
+                        cwd=None):
         '''
         Verifies that paths to all files in manifest are valid.
 
@@ -383,7 +381,6 @@ class DependencySchema(BaseSchema):
             collection_dir (path): optional path to a collections directory
             cwd (path): optional path to current working directory, this will default
                 to os.getcwd() if not provided.
-            runnable (TBD): root schema object
 
         Returns:
             True if all file paths are valid, otherwise False.
@@ -392,6 +389,6 @@ class DependencySchema(BaseSchema):
         return super().check_filepaths(
             ignore_keys=ignore_keys,
             logger=logger,
-            packages=self.__get_resolver_map(runnable),
+            packages=self.__get_resolver_map(),
             collection_dir=collection_dir,
             cwd=cwd)

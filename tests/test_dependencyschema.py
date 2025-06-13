@@ -577,7 +577,7 @@ def test_find_files_keypath():
     with open("test/test.txt", "w") as f:
         f.write("test")
 
-    assert test.find_files("file", runnable=root) == os.path.abspath("test/test.txt")
+    assert test.find_files("file") == os.path.abspath("test/test.txt")
 
 
 def test_find_package():
