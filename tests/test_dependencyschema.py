@@ -432,34 +432,34 @@ def test_get_registered_sources():
     assert schema.getkeys("package") == tuple([])
 
 
-def test_register_source():
+def test_register_package():
     schema = DependencySchema()
-    schema.register_source("testsource", "file://.")
+    schema.register_package("testsource", "file://.")
     assert schema.get("package", "testsource", "root") == "file://."
     assert schema.get("package", "testsource", "tag") is None
 
 
-def test_register_source_overwrite():
+def test_register_package_overwrite():
     schema = DependencySchema()
-    schema.register_source("testsource", "file://.")
-    schema.register_source("testsource", "file://test")
+    schema.register_package("testsource", "file://.")
+    schema.register_package("testsource", "file://test")
     assert schema.get("package", "testsource", "root") == "file://test"
     assert schema.get("package", "testsource", "tag") is None
 
 
-def test_register_source_with_ref():
+def test_register_package_with_ref():
     schema = DependencySchema()
-    schema.register_source("testsource", "file://.", "ref")
+    schema.register_package("testsource", "file://.", "ref")
     assert schema.get("package", "testsource", "root") == "file://."
     assert schema.get("package", "testsource", "tag") == "ref"
 
 
-def test_register_source_with_file():
+def test_register_package_with_file():
     schema = DependencySchema()
     with open("test.txt", "w") as f:
         f.write("test")
 
-    schema.register_source("testsource", "test.txt")
+    schema.register_package("testsource", "test.txt")
     assert schema.get("package", "testsource", "root") == os.path.abspath(".")
     assert schema.get("package", "testsource", "tag") is None
 
@@ -473,7 +473,7 @@ def test_find_files():
             schema.insert("file", Parameter("file"))
 
     test = Test()
-    test.register_source("testsource", "file://.")
+    test.register_package("testsource", "file://.")
     param = test.set("file", "test.txt")
     param.set("testsource", field="package")
 
@@ -508,7 +508,7 @@ def test_find_files_dir():
             schema.insert("dir", Parameter("dir"))
 
     test = Test()
-    test.register_source("testsource", "file://.")
+    test.register_package("testsource", "file://.")
     param = test.set("dir", "test")
     param.set("testsource", field="package")
 
@@ -568,7 +568,7 @@ def test_find_files_keypath():
 
     root = Root()
     test = root.get("test", field="schema")
-    test.register_source("keyref", "key://ref")
+    test.register_package("keyref", "key://ref")
     assert root.set("ref", "test")
     os.makedirs("test", exist_ok=True)
     param = test.set("file", "test.txt")
@@ -582,7 +582,7 @@ def test_find_files_keypath():
 
 def test_find_package():
     schema = DependencySchema()
-    schema.register_source("testsource", "file://.")
+    schema.register_package("testsource", "file://.")
     assert schema.find_package("testsource") == os.path.abspath(".")
 
 
@@ -611,7 +611,7 @@ def test_find_package_keypath():
 
     root = Root()
     test = root.get("test", field="schema")
-    test.register_source("keyref", "key://ref")
+    test.register_package("keyref", "key://ref")
     assert root.set("ref", "test")
     os.makedirs("test", exist_ok=True)
 

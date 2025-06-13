@@ -262,9 +262,9 @@ class DependencySchema(BaseSchema):
             if isinstance(self.__deps[module], DependencySchema):
                 self.__deps[module]._populate_deps(module_map)
 
-    def register_source(self, name: str, root: str, tag: str = None):
+    def register_package(self, name: str, root: str, tag: str = None):
         """
-        Registers a package by its name with the source path and reference
+        Registers a package by its name with the root and associated tag.
 
         Args:
             name (str): Package name
@@ -272,7 +272,7 @@ class DependencySchema(BaseSchema):
             tag (str): Reference of the sources, can be commitid, branch name, tag
 
         Examples:
-            >>> schema.register_source('siliconcompiler_data',
+            >>> schema.register_package('siliconcompiler_data',
                     'git+https://github.com/siliconcompiler/siliconcompiler',
                     'v1.0.0')
         """
