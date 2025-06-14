@@ -7,18 +7,21 @@ from siliconcompiler.design import DesignSchema
 
 def test_design_keys():
 
-    golden_keys = sorted([('deps',),
-                          ('fileset', 'default', 'file', 'default'),
-                          ('fileset', 'default', 'topmodule'),
-                          ('fileset', 'default', 'libdir'),
-                          ('fileset', 'default', 'lib'),
-                          ('fileset', 'default', 'idir'),
-                          ('fileset', 'default', 'define'),
-                          ('fileset', 'default', 'undefine'),
-                          ('fileset', 'default', 'param', 'default')
-                          ])
+    golden_keys = set([
+        ('deps',),
+        ('fileset', 'default', 'file', 'default'),
+        ('fileset', 'default', 'topmodule'),
+        ('fileset', 'default', 'libdir'),
+        ('fileset', 'default', 'lib'),
+        ('fileset', 'default', 'idir'),
+        ('fileset', 'default', 'define'),
+        ('fileset', 'default', 'undefine'),
+        ('fileset', 'default', 'param', 'default'),
+        ('package', 'default', 'root'),
+        ('package', 'default', 'tag'),
+    ])
 
-    assert sorted(DesignSchema("test").allkeys()) == golden_keys
+    assert set(DesignSchema("test").allkeys()) == golden_keys
 
 
 def test_design_values():

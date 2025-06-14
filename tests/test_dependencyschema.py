@@ -1,4 +1,5 @@
 import graphviz
+import logging
 import pytest
 
 import os.path
@@ -6,12 +7,13 @@ import os.path
 from unittest.mock import patch
 
 from siliconcompiler.schema import NamedSchema, BaseSchema
+from siliconcompiler.schema import EditableSchema, Parameter
 from siliconcompiler.dependencyschema import DependencySchema
 
 
 def test_init():
     schema = DependencySchema()
-    assert schema.getkeys() == tuple(["deps"])
+    assert schema.getkeys() == tuple(["deps", "package"])
     assert schema.get("deps") == []
 
 
@@ -423,3 +425,242 @@ def test_populate_deps_already_populated():
     module_map = {obj.name(): obj for obj in schema.get_dep()}
     check._populate_deps(module_map)
     assert check.get_dep() == [dep00, dep10]
+
+
+def test_get_registered_sources():
+    schema = DependencySchema()
+    assert schema.getkeys("package") == tuple([])
+
+
+def test_register_package():
+    schema = DependencySchema()
+    schema.register_package("testsource", "file://.")
+    assert schema.get("package", "testsource", "root") == "file://."
+    assert schema.get("package", "testsource", "tag") is None
+
+
+def test_register_package_overwrite():
+    schema = DependencySchema()
+    schema.register_package("testsource", "file://.")
+    schema.register_package("testsource", "file://test")
+    assert schema.get("package", "testsource", "root") == "file://test"
+    assert schema.get("package", "testsource", "tag") is None
+
+
+def test_register_package_with_ref():
+    schema = DependencySchema()
+    schema.register_package("testsource", "file://.", "ref")
+    assert schema.get("package", "testsource", "root") == "file://."
+    assert schema.get("package", "testsource", "tag") == "ref"
+
+
+def test_register_package_with_file():
+    schema = DependencySchema()
+    with open("test.txt", "w") as f:
+        f.write("test")
+
+    schema.register_package("testsource", "test.txt")
+    assert schema.get("package", "testsource", "root") == os.path.abspath(".")
+    assert schema.get("package", "testsource", "tag") is None
+
+
+def test_find_files():
+    class Test(DependencySchema):
+        def __init__(self):
+            super().__init__()
+
+            schema = EditableSchema(self)
+            schema.insert("file", Parameter("file"))
+
+    test = Test()
+    test.register_package("testsource", "file://.")
+    param = test.set("file", "test.txt")
+    param.set("testsource", field="package")
+
+    with open("test.txt", "w") as f:
+        f.write("test")
+
+    assert test.find_files("file") == os.path.abspath("test.txt")
+
+
+def test_find_files_no_source():
+    class Test(DependencySchema):
+        def __init__(self):
+            super().__init__()
+
+            schema = EditableSchema(self)
+            schema.insert("file", Parameter("file"))
+
+    test = Test()
+    param = test.set("file", "test.txt")
+    param.set("testsource", field="package")
+
+    with pytest.raises(ValueError, match="Resolver for testsource not provided"):
+        test.find_files("file")
+
+
+def test_find_files_dir():
+    class Test(DependencySchema):
+        def __init__(self):
+            super().__init__()
+
+            schema = EditableSchema(self)
+            schema.insert("dir", Parameter("dir"))
+
+    test = Test()
+    test.register_package("testsource", "file://.")
+    param = test.set("dir", "test")
+    param.set("testsource", field="package")
+
+    os.makedirs("test", exist_ok=True)
+
+    assert test.find_files("dir") == os.path.abspath("test")
+
+
+def test_find_files_no_sources():
+    class Test(DependencySchema):
+        def __init__(self):
+            super().__init__()
+
+            schema = EditableSchema(self)
+            schema.insert("dir", Parameter("dir"))
+
+    test = Test()
+    assert test.set("dir", "test")
+
+    os.makedirs("test", exist_ok=True)
+
+    assert test.find_files("dir") == os.path.abspath("test")
+
+
+def test_find_files_cwd():
+    class Test(DependencySchema):
+        def __init__(self):
+            super().__init__()
+
+            schema = EditableSchema(self)
+            schema.insert("dir", Parameter("dir"))
+
+    test = Test()
+    assert test.set("dir", "test")
+
+    os.makedirs("cwd/test", exist_ok=True)
+
+    assert test.find_files("dir", cwd="cwd") == os.path.abspath("cwd/test")
+
+
+def test_find_files_keypath():
+    class Test(DependencySchema):
+        def __init__(self):
+            super().__init__()
+
+            schema = EditableSchema(self)
+            schema.insert("file", Parameter("file"))
+            schema.insert("ref", Parameter("dir"))
+
+    class Root(BaseSchema):
+        def __init__(self):
+            super().__init__()
+
+            schema = EditableSchema(self)
+            schema.insert("ref", Parameter("dir"))
+            schema.insert("test", Test())
+
+    root = Root()
+    test = root.get("test", field="schema")
+    test.register_package("keyref", "key://ref")
+    assert root.set("ref", "test")
+    os.makedirs("test", exist_ok=True)
+    param = test.set("file", "test.txt")
+    param.set("keyref", field="package")
+
+    with open("test/test.txt", "w") as f:
+        f.write("test")
+
+    assert test.find_files("file") == os.path.abspath("test/test.txt")
+
+
+def test_find_package():
+    schema = DependencySchema()
+    schema.register_package("testsource", "file://.")
+    assert schema.find_package("testsource") == os.path.abspath(".")
+
+
+def test_find_package_not_found():
+    schema = DependencySchema()
+    with pytest.raises(ValueError, match="testsource is not a recognized source"):
+        schema.find_package("testsource")
+
+
+def test_find_package_keypath():
+    class Test(DependencySchema):
+        def __init__(self):
+            super().__init__()
+
+            schema = EditableSchema(self)
+            schema.insert("file", Parameter("file"))
+            schema.insert("ref", Parameter("dir"))
+
+    class Root(BaseSchema):
+        def __init__(self):
+            super().__init__()
+
+            schema = EditableSchema(self)
+            schema.insert("ref", Parameter("dir"))
+            schema.insert("test", Test())
+
+    root = Root()
+    test = root.get("test", field="schema")
+    test.register_package("keyref", "key://ref")
+    assert root.set("ref", "test")
+    os.makedirs("test", exist_ok=True)
+
+    assert test.find_package("keyref", runnable=root) == os.path.abspath("test")
+
+
+def test_check_filepaths_empty():
+    schema = DependencySchema()
+    edit = EditableSchema(schema)
+    param = Parameter("[dir]")
+    edit.insert("directory", param)
+
+    assert schema.check_filepaths() is True
+
+
+def test_check_filepaths_found():
+    schema = DependencySchema()
+    edit = EditableSchema(schema)
+    param = Parameter("[dir]")
+    edit.insert("directory", param)
+
+    os.makedirs("test0", exist_ok=True)
+
+    assert schema.set("directory", "test0")
+
+    assert schema.check_filepaths() is True
+
+
+def test_check_filepaths_not_found_no_logger():
+    schema = DependencySchema()
+    edit = EditableSchema(schema)
+    param = Parameter("[dir]")
+    edit.insert("directory", param)
+
+    assert schema.set("directory", "test0")
+
+    assert schema.check_filepaths() is False
+
+
+def test_check_filepaths_not_found_logger(caplog):
+    schema = DependencySchema()
+    edit = EditableSchema(schema)
+    param = Parameter("[dir]")
+    edit.insert("directory", param)
+
+    assert schema.set("directory", "test0")
+
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+
+    assert schema.check_filepaths(logger=logger) is False
+    assert "Parameter [directory] path test0 is invalid" in caplog.text
