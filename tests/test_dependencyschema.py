@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 from siliconcompiler.schema import NamedSchema, BaseSchema
 from siliconcompiler.schema import EditableSchema, Parameter
-from siliconcompiler.dependencyschema import DependencySchema
+from siliconcompiler.dependencyschema import DependencySchema, GlobalDependencySchema
 
 
 def test_init():
@@ -731,4 +731,115 @@ def test_check_filepaths_collection_dir():
     os.makedirs("collect/test_3a52ce780950d4d969792a2559cd519d7ee8c727", exist_ok=True)
 
     assert test.check_filepaths() is True
+    assert test.calls == 1
+
+
+def test_global_find_files():
+    class Test(GlobalDependencySchema):
+        def __init__(self):
+            super().__init__()
+
+            schema = EditableSchema(self)
+            schema.insert("file", Parameter("file"))
+
+    test = Test()
+    test.register_package("testsource", "file://.")
+    param = test.set("file", "test.txt")
+    param.set("testsource", field="package")
+
+    with open("test.txt", "w") as f:
+        f.write("test")
+
+    assert test.find_files("file") == os.path.abspath("test.txt")
+
+
+def test_global_find_files_no_source():
+    class Test(GlobalDependencySchema):
+        def __init__(self):
+            super().__init__()
+
+            schema = EditableSchema(self)
+            schema.insert("file", Parameter("file"))
+
+    test = Test()
+    param = test.set("file", "test.txt")
+    param.set("testsource", field="package")
+
+    with pytest.raises(ValueError, match="Resolver for testsource not provided"):
+        test.find_files("file")
+
+
+def test_global_find_files_dir():
+    class Test(GlobalDependencySchema):
+        def __init__(self):
+            super().__init__()
+
+            schema = EditableSchema(self)
+            schema.insert("dir", Parameter("dir"))
+
+    test = Test()
+    test.register_package("testsource", "file://.")
+    param = test.set("dir", "test")
+    param.set("testsource", field="package")
+
+    os.makedirs("test", exist_ok=True)
+
+    assert test.find_files("dir") == os.path.abspath("test")
+
+
+def test_global_find_files_no_sources():
+    class Test(GlobalDependencySchema):
+        def __init__(self):
+            super().__init__()
+
+            schema = EditableSchema(self)
+            schema.insert("dir", Parameter("dir"))
+
+    test = Test()
+    assert test.set("dir", "test")
+
+    os.makedirs("test", exist_ok=True)
+
+    assert test.find_files("dir") == os.path.abspath("test")
+
+
+def test_global_find_files_cwd():
+    class Test(GlobalDependencySchema):
+        cwd = "cwd"
+
+        def __init__(self):
+            super().__init__()
+
+            schema = EditableSchema(self)
+            schema.insert("dir", Parameter("dir"))
+
+    test = Test()
+    assert test.set("dir", "test")
+
+    os.makedirs("cwd/test", exist_ok=True)
+
+    assert test.find_files("dir") == os.path.abspath("cwd/test")
+
+
+def test_global_find_files_collection_dir():
+    class Test(GlobalDependencySchema):
+        calls = 0
+
+        def collection_dir(self):
+            self.calls += 1
+            return os.path.abspath("collect")
+
+        def __init__(self):
+            super().__init__()
+
+            schema = EditableSchema(self)
+            schema.insert("dir", Parameter("dir"))
+
+    test = Test()
+    assert test.set("dir", "test")
+
+    os.makedirs("collect/test_3a52ce780950d4d969792a2559cd519d7ee8c727", exist_ok=True)
+
+    assert test.find_files("dir") == \
+        os.path.abspath("collect/test_3a52ce780950d4d969792a2559cd519d7ee8c727")
     assert test.calls == 1
