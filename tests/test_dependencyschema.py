@@ -535,6 +535,8 @@ def test_find_files_no_sources():
 
 def test_find_files_cwd():
     class Test(DependencySchema):
+        cwd = "cwd"
+
         def __init__(self):
             super().__init__()
 
@@ -546,7 +548,31 @@ def test_find_files_cwd():
 
     os.makedirs("cwd/test", exist_ok=True)
 
-    assert test.find_files("dir", cwd="cwd") == os.path.abspath("cwd/test")
+    assert test.find_files("dir") == os.path.abspath("cwd/test")
+
+
+def test_find_files_collection_dir():
+    class Test(DependencySchema):
+        calls = 0
+
+        def collection_dir(self):
+            self.calls += 1
+            return os.path.abspath("collect")
+
+        def __init__(self):
+            super().__init__()
+
+            schema = EditableSchema(self)
+            schema.insert("dir", Parameter("dir"))
+
+    test = Test()
+    assert test.set("dir", "test")
+
+    os.makedirs("collect/test_3a52ce780950d4d969792a2559cd519d7ee8c727", exist_ok=True)
+
+    assert test.find_files("dir") == \
+        os.path.abspath("collect/test_3a52ce780950d4d969792a2559cd519d7ee8c727")
+    assert test.calls == 1
 
 
 def test_find_files_keypath():
@@ -661,6 +687,48 @@ def test_check_filepaths_not_found_logger(caplog):
 
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
+    schema.logger = logger
 
-    assert schema.check_filepaths(logger=logger) is False
+    assert schema.check_filepaths() is False
     assert "Parameter [directory] path test0 is invalid" in caplog.text
+
+
+def test_check_filepaths_cwd():
+    class Test(DependencySchema):
+        cwd = "cwd"
+
+        def __init__(self):
+            super().__init__()
+
+            schema = EditableSchema(self)
+            schema.insert("dir", Parameter("dir"))
+
+    test = Test()
+    assert test.set("dir", "test")
+
+    os.makedirs("cwd/test", exist_ok=True)
+
+    assert test.check_filepaths() is True
+
+
+def test_check_filepaths_collection_dir():
+    class Test(DependencySchema):
+        calls = 0
+
+        def collection_dir(self):
+            self.calls += 1
+            return os.path.abspath("collect")
+
+        def __init__(self):
+            super().__init__()
+
+            schema = EditableSchema(self)
+            schema.insert("dir", Parameter("dir"))
+
+    test = Test()
+    assert test.set("dir", "test")
+
+    os.makedirs("collect/test_3a52ce780950d4d969792a2559cd519d7ee8c727", exist_ok=True)
+
+    assert test.check_filepaths() is True
+    assert test.calls == 1

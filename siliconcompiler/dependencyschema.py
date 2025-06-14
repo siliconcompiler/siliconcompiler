@@ -327,9 +327,7 @@ class DependencySchema(BaseSchema):
 
     def find_files(self, *keypath,
                    missing_ok=False,
-                   step=None, index=None,
-                   collection_dir=None,
-                   cwd=None):
+                   step=None, index=None):
         """
         Returns absolute paths to files or directories based on the keypath
         provided.
@@ -345,9 +343,6 @@ class DependencySchema(BaseSchema):
                 on a per-node basis.
             index (str): Index name to access for parameters that may be specified
                 on a per-node basis.
-            collection_dir (path): optional path to a collections directory
-            cwd (path): optional path to current working directory, this will default
-                to os.getcwd() if not provided.
 
         Returns:
             If keys points to a scalar entry, returns an absolute path to that
@@ -360,6 +355,11 @@ class DependencySchema(BaseSchema):
             Returns a list of absolute paths to source files, as specified in
             the schema.
         """
+        schema_root = self._parent(root=True)
+        cwd = getattr(schema_root, "cwd", os.getcwd())
+        collection_dir = getattr(schema_root, "collection_dir", None)
+        if collection_dir:
+            collection_dir = collection_dir()
 
         return super().find_files(*keypath,
                                   missing_ok=missing_ok,
@@ -368,23 +368,22 @@ class DependencySchema(BaseSchema):
                                   collection_dir=collection_dir,
                                   cwd=cwd)
 
-    def check_filepaths(self, ignore_keys=None,
-                        logger=None,
-                        collection_dir=None,
-                        cwd=None):
+    def check_filepaths(self, ignore_keys=None):
         '''
         Verifies that paths to all files in manifest are valid.
 
         Args:
-            ignore_keys (list of keypaths): list of keyptahs to ignore while checking
-            logger (:class:`logging.Logger`): optional logger to use to report errors
-            collection_dir (path): optional path to a collections directory
-            cwd (path): optional path to current working directory, this will default
-                to os.getcwd() if not provided.
+            ignore_keys (list of keypaths): list of keypaths to ignore while checking
 
         Returns:
             True if all file paths are valid, otherwise False.
         '''
+        schema_root = self._parent(root=True)
+        cwd = getattr(schema_root, "cwd", os.getcwd())
+        logger = getattr(schema_root, "logger", None)
+        collection_dir = getattr(schema_root, "collection_dir", None)
+        if collection_dir:
+            collection_dir = collection_dir()
 
         return super().check_filepaths(
             ignore_keys=ignore_keys,

@@ -663,7 +663,7 @@ class BaseSchema:
         Verifies that paths to all files in manifest are valid.
 
         Args:
-            ignore_keys (list of keypaths): list of keyptahs to ignore while checking
+            ignore_keys (list of keypaths): list of keypaths to ignore while checking
             logger (:class:`logging.Logger`): optional logger to use to report errors
             packages (dict of resolvers): dirctionary of path resolvers for package
                 paths, these can either be a path or a callable function
