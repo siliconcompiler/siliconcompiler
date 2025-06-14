@@ -76,7 +76,7 @@ def test_get_path_cache_via_set_caches():
 
 def test_get_resolvers_empty():
     schema = PackageSchema()
-    assert schema.get_resolvers(None) == {}
+    assert schema.get_resolvers() == {}
 
 
 def test_get_resolvers_with_value(caplog):
@@ -84,10 +84,10 @@ def test_get_resolvers_with_value(caplog):
     chip.logger = logging.getLogger()
     chip.logger.setLevel(logging.INFO)
     schema = chip.schema.get("package", field="schema")
-    assert "testpackage" not in schema.get_resolvers(chip)
+    assert "testpackage" not in schema.get_resolvers()
     assert schema.get_path_cache() == {}
     assert schema.register("testpackage", ".") is True
-    resolvers = schema.get_resolvers(chip)
+    resolvers = schema.get_resolvers()
     assert "testpackage" in resolvers
     assert resolvers["testpackage"]() == os.path.abspath(".")
     assert schema.get_path_cache() == {'testpackage': os.path.abspath(".")}

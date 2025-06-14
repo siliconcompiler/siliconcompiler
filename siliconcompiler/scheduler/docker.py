@@ -49,7 +49,7 @@ def get_volumes_directories(chip, cache_dir, workdir, step, index):
                         all_dirs.add(path)
 
     # Collect caches
-    for resolver in chip.get('package', field="schema").get_resolvers(chip).values():
+    for resolver in chip.get('package', field="schema").get_resolvers().values():
         all_dirs.add(resolver())
 
     all_dirs = [
@@ -228,7 +228,7 @@ class DockerSchedulerNode(SchedulerNode):
 
             cachemap = []
             for package, resolver in self.chip.get(
-                    'package', field="schema").get_resolvers(self.chip).items():
+                    'package', field="schema").get_resolvers().items():
                 cachemap.append(f'{package}:{resolver()}')
 
             self.logger.info('Running in docker container: '
