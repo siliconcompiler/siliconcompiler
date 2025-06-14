@@ -284,7 +284,7 @@ class DependencySchema(BaseSchema):
         if tag:
             self.set("package", name, "tag", tag)
 
-    def find_package(self, name: str, runnable=None):
+    def find_package(self, name: str):
         """
         Returns absolute path to the package root.
 
@@ -293,7 +293,6 @@ class DependencySchema(BaseSchema):
 
         Args:
             name (str): name of the package to find.
-            runnable (TBD): root schema object
 
         Returns:
             Path to the package directory root.
@@ -310,7 +309,7 @@ class DependencySchema(BaseSchema):
         tag = self.get("package", name, "tag")
 
         resolver = Resolver.find_resolver(root)
-        return resolver(name, runnable, root, tag).get_path()
+        return resolver(name, self._parent(root=True), root, tag).get_path()
 
     def __get_resolver_map(self):
         """

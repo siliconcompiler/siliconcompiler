@@ -615,7 +615,7 @@ def test_find_package_keypath():
     assert root.set("ref", "test")
     os.makedirs("test", exist_ok=True)
 
-    assert test.find_package("keyref", runnable=root) == os.path.abspath("test")
+    assert test.find_package("keyref") == os.path.abspath("test")
 
 
 def test_check_filepaths_empty():
