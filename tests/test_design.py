@@ -270,6 +270,11 @@ def test_read_fileset_multiple_packages(datadir):
     assert d.get_define("rtl") == []
     assert d.get_file("rtl") == ['heartbeat.v', 'increment.v']
 
+    assert d.find_files("fileset", "rtl", "file", "verilog") == [
+        os.path.abspath("files1/heartbeat.v"),
+        os.path.abspath("files2/increment.v"),
+    ]
+
 
 def test_heartbeat_example(datadir):
     datadir = Path(datadir)
