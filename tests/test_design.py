@@ -1,4 +1,6 @@
 import re
+import shutil
+
 import os.path
 from pathlib import Path
 import pytest
@@ -245,6 +247,33 @@ def test_read_fileset(datadir):
     assert d.get_idir("rtl") == ["."]
     assert d.get_define("rtl") == ['ASIC']
     assert d.get_file("rtl") == ['heartbeat.v', 'increment.v']
+
+
+def test_read_fileset_multiple_packages(datadir):
+    d = DesignSchema("test")
+
+    os.makedirs("files1", exist_ok=True)
+    os.makedirs("files2", exist_ok=True)
+    shutil.copy(os.path.join(datadir, "heartbeat.v"), "files1")
+    shutil.copy(os.path.join(datadir, "increment.v"), "files2")
+
+    with open("flist.f", "w") as f:
+        f.write("files1/heartbeat.v\n")
+        f.write("files2/increment.v\n")
+
+    d.read_fileset("flist.f", fileset="rtl")
+
+    assert d.getkeys("package") == ('flist-test-rtl-flist.f-0', 'flist-test-rtl-flist.f-1')
+    assert d.get("package", "flist-test-rtl-flist.f-0", "root") == os.path.abspath("files1")
+    assert d.get("package", "flist-test-rtl-flist.f-1", "root") == os.path.abspath("files2")
+    assert d.get_idir("rtl") == []
+    assert d.get_define("rtl") == []
+    assert d.get_file("rtl") == ['heartbeat.v', 'increment.v']
+
+    assert d.find_files("fileset", "rtl", "file", "verilog") == [
+        os.path.abspath("files1/heartbeat.v"),
+        os.path.abspath("files2/increment.v"),
+    ]
 
 
 def test_heartbeat_example(datadir):
