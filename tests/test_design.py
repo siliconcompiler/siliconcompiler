@@ -236,6 +236,17 @@ def test_write_fileset(datadir):
     ]
 
 
+def test_read_fileset(datadir):
+    d = DesignSchema("test")
+
+    d.read_fileset(os.path.join(datadir, "heartbeat.f"), fileset="rtl")
+    assert d.getkeys("package") == ('flist-test-rtl-heartbeat.f-0', )
+    assert d.get("package", "flist-test-rtl-heartbeat.f-0", "root") == os.path.abspath(datadir)
+    assert d.get_idir("rtl") == ["."]
+    assert d.get_define("rtl") == ['ASIC']
+    assert d.get_file("rtl") == ['heartbeat.v', 'increment.v']
+
+
 def test_heartbeat_example(datadir):
     datadir = Path(datadir)
 
