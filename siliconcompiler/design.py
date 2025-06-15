@@ -1,6 +1,8 @@
 import contextlib
 import re
 
+import os.path
+
 from pathlib import Path
 from typing import List
 
@@ -456,6 +458,75 @@ class DesignSchema(NamedSchema, DependencySchema):
         else:
             raise ValueError(f"{fileformat} is not supported")
 
+    def __read_flist(self, filename: str, fileset: str):
+        # Extract information
+        rel_path = os.path.dirname(os.path.abspath(filename))
+
+        def expand_path(path):
+            path = os.path.expandvars(path)
+            path = os.path.expanduser(path)
+            if os.path.isabs(path):
+                return path
+            return os.path.join(rel_path, path)
+
+        include_dirs = []
+        defines = []
+        files = []
+        with utils.sc_open(filename) as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                if line.startswith("//"):
+                    continue
+                if line.startswith("+incdir+"):
+                    include_dirs.append(expand_path(line[8:]))
+                elif line.startswith("+define+"):
+                    defines.append(os.path.expandvars(line[8:]))
+                else:
+                    files.append(expand_path(line))
+
+        # Create packages
+        all_paths = include_dirs + [os.path.dirname(f) for f in files]
+        all_paths = sorted(set(all_paths))
+
+        package_root_name = f'flist-{self.name()}-{fileset}-{os.path.basename(filename)}'
+        packages = {}
+
+        for path_dir in all_paths:
+            found = False
+            for pdir in packages:
+                if path_dir.startswith(pdir):
+                    found = True
+                    break
+            if not found:
+                package_name = f"{package_root_name}-{len(packages)}"
+                self.register_package(package_name, path_dir)
+                packages[path_dir] = package_name
+
+        def get_package(path):
+            for pdir, name in packages.items():
+                if path.startswith(pdir):
+                    return name, pdir
+            return None, None
+
+        # Assign data
+        with self.active_fileset(fileset):
+            if defines:
+                self.add_define(defines)
+            if include_dirs:
+                for dir in include_dirs:
+                    package_name, pdir = get_package(dir)
+                    if package_name:
+                        dir = os.path.relpath(dir, pdir)
+                    self.add_idir(dir, package=package_name)
+            if files:
+                for f in files:
+                    package_name, pdir = get_package(f)
+                    if package_name:
+                        f = os.path.relpath(f, pdir)
+                    self.add_file(f, package=package_name)
+
     ################################################
     def read_fileset(self,
                      filename: str,
@@ -481,7 +552,7 @@ class DesignSchema(NamedSchema, DependencySchema):
             fileformat = formats[Path(filename).suffix.strip('.')]
 
         if fileformat == "flist":
-            raise NotImplementedError("read_fileset is not implemented yet")
+            self.__read_flist(filename, fileset)
         else:
             raise ValueError(f"{fileformat} is not supported")
 
