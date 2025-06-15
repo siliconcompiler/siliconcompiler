@@ -205,8 +205,8 @@ def test_add_dep():
 
 
 def test_write_fileset(datadir):
-
     d = DesignSchema("test")
+    d.cwd = os.path.dirname(datadir)
 
     fileset = 'rtl'
     d.add_file(['data/heartbeat.v', 'data/increment.v'], fileset)
@@ -215,13 +215,25 @@ def test_write_fileset(datadir):
     d.set_topmodule('heartbeat', fileset)
 
     fileset = 'tb'
-    d.add_file(['data/tb.v'], fileset)
+    d.add_file('data/heartbeat_tb.v', fileset)
     d.add_define('VERILATOR', fileset)
 
     d.write_fileset(filename="heartbeat.f", fileset=['rtl', 'tb'])
 
-    golden = Path(os.path.join(datadir, 'heartbeat.f'))
-    assert Path('heartbeat.f').read_text() == golden.read_text()
+    assert Path("heartbeat.f").read_text().splitlines() == [
+        '// test',
+        '// test / rtl / include directories',
+        f'+incdir+{os.path.abspath(datadir)}',
+        '// test / rtl / defines',
+        '+define+ASIC',
+        '// test / rtl / verilog files',
+        f'{os.path.abspath(os.path.join(datadir, "heartbeat.v"))}',
+        f'{os.path.abspath(os.path.join(datadir, "increment.v"))}',
+        '// test / tb / defines',
+        '+define+VERILATOR',
+        '// test / tb / verilog files',
+        f'{os.path.abspath(os.path.join(datadir, "heartbeat_tb.v"))}',
+    ]
 
 
 def test_heartbeat_example(datadir):

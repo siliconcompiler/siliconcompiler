@@ -379,6 +379,42 @@ class DesignSchema(NamedSchema, DependencySchema):
 
         return filelist
 
+    def __write_flist(self, filename: str, filesets: list):
+        written_cmd = set()
+
+        with open(filename, "w") as f:
+            def write(cmd):
+                if cmd in written_cmd:
+                    f.write(f"// {cmd}\n")
+                else:
+                    written_cmd.add(cmd)
+                    f.write(f"{cmd}\n")
+
+            def write_header(header):
+                f.write(f"// {header}\n")
+
+            for lib in [self, *self.get_dep()]:
+                write_header(f"{lib.name()}")
+                for fileset in filesets:
+                    if not lib.valid('fileset', fileset):
+                        continue
+
+                    if lib.get('fileset', fileset, 'idir'):
+                        write_header(f"{lib.name()} / {fileset} / include directories")
+                        for idir in lib.find_files('fileset', fileset, 'idir'):
+                            write(f"+incdir+{idir}")
+
+                    if lib.get('fileset', fileset, 'define'):
+                        write_header(f"{lib.name()} / {fileset} / defines")
+                        for define in lib.get('fileset', fileset, 'define'):
+                            write(f"+define+{define}")
+
+                    for filetype in lib.getkeys('fileset', fileset, 'file'):
+                        if lib.get('fileset', fileset, 'file', filetype):
+                            write_header(f"{lib.name()} / {fileset} / {filetype} files")
+                            for file in lib.find_files('fileset', fileset, 'file', filetype):
+                                write(file)
+
     ###############################################
     def write_fileset(self,
                       filename: str,
@@ -405,6 +441,10 @@ class DesignSchema(NamedSchema, DependencySchema):
         if not isinstance(fileset, list):
             fileset = [fileset]
 
+        for fset in fileset:
+            if not isinstance(fset, str):
+                raise ValueError("fileset key must be a string")
+
         # file extension lookup
         if not fileformat:
             formats = {}
@@ -412,25 +452,7 @@ class DesignSchema(NamedSchema, DependencySchema):
             fileformat = formats[Path(filename).suffix.strip('.')]
 
         if fileformat == "flist":
-            # TODO: handle dependency tree
-            # TODO: add source info for comments to flist.
-            with open(filename, "w") as f:
-                for i in fileset:
-                    if not isinstance(i, str):
-                        raise ValueError("fileset key must be a string")
-                    for j in ['idir', 'define', 'file']:
-                        if j == 'idir':
-                            vals = self.get('fileset', i, 'idir')
-                            cmd = "+incdir+"
-                        elif j == 'define':
-                            vals = self.get('fileset', i, 'define')
-                            cmd = "+define+"
-                        else:
-                            vals = self.get('fileset', i, 'file', 'verilog')
-                            cmd = ""
-                        if vals:
-                            for item in vals:
-                                f.write(f"{cmd}{item}\n")
+            self.__write_flist(filename, fileset)
         else:
             raise ValueError(f"{fileformat} is not supported")
 
