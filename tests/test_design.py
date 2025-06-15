@@ -283,6 +283,19 @@ def test_heartbeat_example(datadir):
     dut = Heartbeat()
     assert dut.get("deps") == ["increment"]
 
+    dut.write_fileset(filename="heartbeat.f", fileset=['rtl', 'testbench'])
+
+    assert Path("heartbeat.f").read_text().splitlines() == [
+        '// heartbeat',
+        '// heartbeat / rtl / verilog files',
+        f'{os.path.abspath(os.path.join(datadir, "heartbeat_increment.v"))}',
+        '// heartbeat / testbench / verilog files',
+        f'{os.path.abspath(os.path.join(datadir, "heartbeat_tb.v"))}',
+        '// increment',
+        '// increment / rtl / verilog files',
+        f'{os.path.abspath(os.path.join(datadir, "increment.v"))}'
+    ]
+
 
 def test_active_fileset_invalid():
     d = DesignSchema("test")
