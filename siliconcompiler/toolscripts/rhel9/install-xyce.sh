@@ -24,7 +24,7 @@ sudo dnf config-manager --set-enabled devel || true
 sudo yum install -y gcc gcc-c++ gcc-gfortran blas blas-devel \
     cmake lapack lapack-devel bison flex fftw-devel fftw \
     suitesparse suitesparse-devel autoconf automake libtool \
-    git
+    git openmpi-devel openmpi
 sudo dnf config-manager --set-disabled devel || true
 
 sudo yum install -y wget
@@ -42,27 +42,32 @@ cd xyce
 git checkout $(python3 ${src_path}/_tools.py --tool xyce --field git-commit)
 
 # Build Trilinos
-cd trilinos
-mkdir build
-cd build
+mkdir trilinos-build
+cd trilinos-build
 cmake \
     -D CMAKE_INSTALL_PREFIX="$PREFIX/trilinos" \
     -D AMD_LIBRARY_DIRS="/usr/lib" \
     -D TPL_AMD_INCLUDE_DIRS="/usr/include/suitesparse" \
-    -C "../cmake/trilinos/trilinos-base.cmake" \
-    ..
+    -D CMAKE_C_COMPILER=/usr/lib64/openmpi/bin/mpicc \
+    -D CMAKE_CXX_COMPILER=/usr/lib64/openmpi/bin/mpicxx \
+    -D CMAKE_Fortran_COMPILER=/usr/lib64/openmpi/bin/mpifort \
+    -C ../cmake/trilinos/trilinos-MPI-base.cmake \
+    ../../trilinos
 cmake --build . -j$(nproc)
 $SUDO_INSTALL make install
-cd ../..
+cd ..
 
 # Build Xyce
-cd xyce
-mkdir build
-cd build
+mkdir xyce-build
+cd xyce-build
+
 cmake \
     -D CMAKE_INSTALL_PREFIX="$PREFIX" \
     -D Trilinos_ROOT=$PREFIX/trilinos \
     -D BUILD_SHARED_LIBS=ON \
+    -D CMAKE_C_COMPILER=/usr/lib64/openmpi/bin/mpicc \
+    -D CMAKE_CXX_COMPILER=/usr/lib64/openmpi/bin/mpicxx \
+    -D CMAKE_Fortran_COMPILER=/usr/lib64/openmpi/bin/mpifort \
     ..
 cmake --build . -j$(nproc)
 cmake --build . -j$(nproc) --target xycecinterface

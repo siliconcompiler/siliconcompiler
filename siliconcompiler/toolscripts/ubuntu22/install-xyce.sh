@@ -50,7 +50,10 @@ cmake \
     -D CMAKE_INSTALL_PREFIX=$PREFIX/trilinos \
     -D AMD_LIBRARY_DIRS="/usr/lib" \
     -D TPL_AMD_INCLUDE_DIRS="/usr/include/suitesparse" \
-    -C ../cmake/trilinos/trilinos-base.cmake \
+    -D CMAKE_C_COMPILER=mpicc \
+    -D CMAKE_CXX_COMPILER=mpicxx \
+    -D CMAKE_Fortran_COMPILER=mpifort \
+    -C ../cmake/trilinos/trilinos-MPI-base.cmake \
     ../../trilinos
 cmake --build . -j$(nproc)
 $SUDO_INSTALL make install
@@ -65,6 +68,9 @@ cmake \
     -D CMAKE_INSTALL_PREFIX=$PREFIX \
     -D Trilinos_ROOT=$PREFIX/trilinos \
     -D BUILD_SHARED_LIBS=ON \
+    -D CMAKE_C_COMPILER=mpicc \
+    -D CMAKE_CXX_COMPILER=mpicxx \
+    -D CMAKE_Fortran_COMPILER=mpifort \
     ..
 
 cmake --build . -j$(nproc)
