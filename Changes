@@ -8,6 +8,22 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.34.0 (2025-06-16)
+=========================================
+
+**Major:**
+
+ * Added `.find_files` and `.check_filespaths` functionality to `BaseSchema`.
+ * Added functionality to `BaseSchema` to allow reverse traversal of the schema.
+ * Removed support for paths containing environmental variables.
+
+
+**Minor:**
+
+ * Added a values only mode to `getdict` to only return the values in the schema.
+ * Changes the log color in the commandline dashboard to white for better visibility.
+
+
 SiliconCompiler 0.33.2 (2025-06-03)
 =========================================
 
