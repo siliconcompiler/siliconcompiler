@@ -38,7 +38,7 @@ dependencies = [
     "PyYAML == 6.0.2",
     "pandas >= 1.1.5",
     "Jinja2 >= 2.11.3",
-    "graphviz == 0.20.3",
+    "graphviz == 0.21",
     "distro == 1.9.0",
     "packaging >= 21.3, < 25",
     "psutil >= 5.8.0",
@@ -118,16 +118,16 @@ test = [
     "pytest-xdist == 3.7.0; python_version >= '3.9'",
     "pytest-timeout == 2.4.0",
     "pytest-asyncio == 0.24.0; python_version <= '3.8'",
-    "pytest-asyncio == 0.26.0; python_version >= '3.9'",
+    "pytest-asyncio == 1.0.0; python_version >= '3.9'",
     "pytest-cov == 5.0.0; python_version <= '3.8'",
-    "pytest-cov == 6.1.1; python_version >= '3.9'",
+    "pytest-cov == 6.2.1; python_version >= '3.9'",
     "responses == 0.25.7",
     "PyVirtualDisplay == 3.0",
     "logiklib == 0.1.0"
 ]
 lint = [
     "flake8 == 7.2.0",
-    "tclint == 0.5.4",
+    "tclint == 0.6.0",
     "codespell == 2.4.1"
 ]
 docs = [
