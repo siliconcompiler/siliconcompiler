@@ -38,9 +38,8 @@ class DesignSchema(NamedSchema, DependencySchema):
            str: Topmodule name
 
         Notes:
-        - first character must be letter or underscore
-        - remaining characters can be letters, digits, or underscores
-
+            - first character must be letter or underscore
+            - remaining characters can be letters, digits, or underscores
         """
 
         # topmodule safety check
@@ -58,7 +57,6 @@ class DesignSchema(NamedSchema, DependencySchema):
 
         Returns:
            str: Topmodule name
-
         """
         return self.__get(fileset, 'topmodule')
 
@@ -78,9 +76,9 @@ class DesignSchema(NamedSchema, DependencySchema):
 
         Returns:
            list[str]: List of include directories
-
         """
-        return self.__set_add(fileset, 'idir', value, clobber, typelist=[str, list])
+        return self.__set_add(fileset, 'idir', value, clobber, typelist=[str, list],
+                              package=package)
 
     def get_idir(self, fileset: str = None) -> List[str]:
         """Returns include directories for a fileset.
@@ -90,7 +88,6 @@ class DesignSchema(NamedSchema, DependencySchema):
 
         Returns:
            list[str]: List of include directories
-
         """
         return self.__get(fileset, 'idir')
 
@@ -120,7 +117,6 @@ class DesignSchema(NamedSchema, DependencySchema):
 
         Returns:
            list[str]: List of macro definitions
-
         """
         return self.__get(fileset, 'define')
 
@@ -138,7 +134,6 @@ class DesignSchema(NamedSchema, DependencySchema):
 
         Returns:
            list[str]: List of macro (un)definitions
-
         """
         return self.__set_add(fileset, 'undefine', value, clobber, typelist=[str, list])
 
@@ -170,9 +165,9 @@ class DesignSchema(NamedSchema, DependencySchema):
 
         Returns:
            list[str]: List of library directories.
-
         """
-        return self.__set_add(fileset, 'libdir', value, clobber, typelist=[str, list])
+        return self.__set_add(fileset, 'libdir', value, clobber, typelist=[str, list],
+                              package=package)
 
     def get_libdir(self, fileset: str = None) -> List[str]:
         """Returns dynamic library directories for a fileset.
@@ -182,7 +177,6 @@ class DesignSchema(NamedSchema, DependencySchema):
 
         Returns:
            list[str]: List of library directories.
-
         """
         return self.__get(fileset, 'libdir')
 
@@ -200,7 +194,6 @@ class DesignSchema(NamedSchema, DependencySchema):
 
         Returns:
            list[str]: List of libraries.
-
         """
         return self.__set_add(fileset, 'lib', value, clobber, typelist=[str, list])
 
@@ -212,7 +205,6 @@ class DesignSchema(NamedSchema, DependencySchema):
 
         Returns:
            list[str]: List of libraries.
-
         """
         return self.__get(fileset, 'lib')
 
@@ -230,7 +222,6 @@ class DesignSchema(NamedSchema, DependencySchema):
 
         Returns:
             str: Parameter value
-
         """
 
         if fileset is None:
@@ -273,8 +264,6 @@ class DesignSchema(NamedSchema, DependencySchema):
         """
         Adds files to a fileset.
 
-
-
         .v        → (source, verilog)
         .vhd      → (source, vhdl)
         .sdc      → (constraint, sdc)
@@ -300,9 +289,7 @@ class DesignSchema(NamedSchema, DependencySchema):
            - This method normalizes `filename` to a string for consistency.
 
            - If no filetype is specified, filetype is inferred based on
-           the file extension via a mapping table. (eg. .v is verilog).
-
-
+                the file extension via a mapping table. (eg. .v is verilog).
         """
 
         if fileset is None:
@@ -343,9 +330,18 @@ class DesignSchema(NamedSchema, DependencySchema):
 
         # adding files to dictionary
         if clobber:
-            return self.set('fileset', fileset, 'file', filetype, filename)
+            params = self.set('fileset', fileset, 'file', filetype, filename)
         else:
-            return self.add('fileset', fileset, 'file', filetype, filename)
+            params = self.add('fileset', fileset, 'file', filetype, filename)
+
+        if package and params:
+            if not isinstance(params, (list, set, tuple)):
+                params = [params]
+
+            for param in params:
+                param.set(package, field="package")
+
+        return params
 
     ###############################################
     def get_file(self,
@@ -392,14 +388,12 @@ class DesignSchema(NamedSchema, DependencySchema):
 
         Currently supports Verilog `flist` format only.
         Intended to support other formats in the future.
+        Inferred from file extension if not given.
 
         Args:
             filename (str or Path): Output file name.
             fileset (str or list[str]): Fileset(s) to export.
             fileformat (str, optional): Export format.
-
-        Inferred from file extension if not given.
-
         """
 
         if filename is None:
@@ -454,7 +448,6 @@ class DesignSchema(NamedSchema, DependencySchema):
             filename (str or Path): Output file name.
             fileset (str or list[str]): Filesets to import.
             fileformat (str, optional): Export format.
-
         """
 
         if filename is None:
@@ -473,7 +466,7 @@ class DesignSchema(NamedSchema, DependencySchema):
     ################################################
     # Helper Functions
     ################################################
-    def __set_add(self, fileset, option, value, clobber=False, typelist=None):
+    def __set_add(self, fileset, option, value, clobber=False, typelist=None, package=None):
         '''Sets a parameter value in schema.
         '''
 
@@ -497,9 +490,18 @@ class DesignSchema(NamedSchema, DependencySchema):
             raise ValueError(f"None is an illegal {option} value")
 
         if list in typelist and not clobber:
-            return self.add('fileset', fileset, option, value)
+            params = self.add('fileset', fileset, option, value)
         else:
-            return self.set('fileset', fileset, option, value)
+            params = self.set('fileset', fileset, option, value)
+
+        if package and params:
+            if not isinstance(params, (list, set, tuple)):
+                params = [params]
+
+            for param in params:
+                param.set(package, field="package")
+
+        return params
 
     def __get(self, fileset, option):
         '''Gets a parameter value from schema.
