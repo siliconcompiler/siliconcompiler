@@ -24,7 +24,10 @@ class NamedSchema(BaseSchema):
         '''
         Returns the name of the schema
         '''
-        return self.__name
+        try:
+            return self.__name
+        except AttributeError:
+            return None
 
     def _reset(self) -> None:
         """
