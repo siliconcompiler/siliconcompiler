@@ -1,4 +1,6 @@
 import re
+import shutil
+
 import os.path
 from pathlib import Path
 import pytest
@@ -205,8 +207,8 @@ def test_add_dep():
 
 
 def test_write_fileset(datadir):
-
     d = DesignSchema("test")
+    d.cwd = os.path.dirname(datadir)
 
     fileset = 'rtl'
     d.add_file(['data/heartbeat.v', 'data/increment.v'], fileset)
@@ -215,13 +217,63 @@ def test_write_fileset(datadir):
     d.set_topmodule('heartbeat', fileset)
 
     fileset = 'tb'
-    d.add_file(['data/tb.v'], fileset)
+    d.add_file('data/heartbeat_tb.v', fileset)
     d.add_define('VERILATOR', fileset)
 
     d.write_fileset(filename="heartbeat.f", fileset=['rtl', 'tb'])
 
-    golden = Path(os.path.join(datadir, 'heartbeat.f'))
-    assert Path('heartbeat.f').read_text() == golden.read_text()
+    assert Path("heartbeat.f").read_text().splitlines() == [
+        '// test',
+        '// test / rtl / include directories',
+        f'+incdir+{os.path.abspath(datadir)}',
+        '// test / rtl / defines',
+        '+define+ASIC',
+        '// test / rtl / verilog files',
+        f'{os.path.abspath(os.path.join(datadir, "heartbeat.v"))}',
+        f'{os.path.abspath(os.path.join(datadir, "increment.v"))}',
+        '// test / tb / defines',
+        '+define+VERILATOR',
+        '// test / tb / verilog files',
+        f'{os.path.abspath(os.path.join(datadir, "heartbeat_tb.v"))}',
+    ]
+
+
+def test_read_fileset(datadir):
+    d = DesignSchema("test")
+
+    d.read_fileset(os.path.join(datadir, "heartbeat.f"), fileset="rtl")
+    assert d.getkeys("package") == ('flist-test-rtl-heartbeat.f-0', )
+    assert d.get("package", "flist-test-rtl-heartbeat.f-0", "root") == os.path.abspath(datadir)
+    assert d.get_idir("rtl") == ["."]
+    assert d.get_define("rtl") == ['ASIC']
+    assert d.get_file("rtl") == ['heartbeat.v', 'increment.v']
+
+
+def test_read_fileset_multiple_packages(datadir):
+    d = DesignSchema("test")
+
+    os.makedirs("files1", exist_ok=True)
+    os.makedirs("files2", exist_ok=True)
+    shutil.copy(os.path.join(datadir, "heartbeat.v"), "files1")
+    shutil.copy(os.path.join(datadir, "increment.v"), "files2")
+
+    with open("flist.f", "w") as f:
+        f.write("files1/heartbeat.v\n")
+        f.write("files2/increment.v\n")
+
+    d.read_fileset("flist.f", fileset="rtl")
+
+    assert d.getkeys("package") == ('flist-test-rtl-flist.f-0', 'flist-test-rtl-flist.f-1')
+    assert d.get("package", "flist-test-rtl-flist.f-0", "root") == os.path.abspath("files1")
+    assert d.get("package", "flist-test-rtl-flist.f-1", "root") == os.path.abspath("files2")
+    assert d.get_idir("rtl") == []
+    assert d.get_define("rtl") == []
+    assert d.get_file("rtl") == ['heartbeat.v', 'increment.v']
+
+    assert d.find_files("fileset", "rtl", "file", "verilog") == [
+        os.path.abspath("files1/heartbeat.v"),
+        os.path.abspath("files2/increment.v"),
+    ]
 
 
 def test_heartbeat_example(datadir):
@@ -259,6 +311,19 @@ def test_heartbeat_example(datadir):
 
     dut = Heartbeat()
     assert dut.get("deps") == ["increment"]
+
+    dut.write_fileset(filename="heartbeat.f", fileset=['rtl', 'testbench'])
+
+    assert Path("heartbeat.f").read_text().splitlines() == [
+        '// heartbeat',
+        '// heartbeat / rtl / verilog files',
+        f'{Path(os.path.abspath(os.path.join(datadir, "heartbeat_increment.v"))).as_posix()}',
+        '// heartbeat / testbench / verilog files',
+        f'{Path(os.path.abspath(os.path.join(datadir, "heartbeat_tb.v"))).as_posix()}',
+        '// increment',
+        '// increment / rtl / verilog files',
+        f'{Path(os.path.abspath(os.path.join(datadir, "increment.v"))).as_posix()}'
+    ]
 
 
 def test_active_fileset_invalid():
