@@ -1,3 +1,5 @@
+import contextlib
+
 from typing import final
 
 from siliconcompiler.design import DesignSchema
@@ -24,7 +26,22 @@ class LibrarySchema(DesignSchema):
             ))
 
 
-class StdCellLibrarySchema(LibrarySchema):
+class TimingCorner:
+    def add_file():
+        pass
+
+
+class ASICLibrary(LibrarySchema):
+    def __init__(self, name):
+        super().__init__(name)
+
+    @contextlib.contextmanager
+    def timing_corner(self, name):
+        print(name)
+        yield TimingCorner()
+
+
+class StdCellLibrarySchema(ASICLibrary):
     def __init__(self, name):
         super().__init__(name)
 
@@ -131,10 +148,12 @@ class OpenROADStdCellLibbrarySchema(StdCellLibrarySchema):
 
 
 if __name__ == "__main__":
-    class Test(StdCellLibrarySchema, YosysStdCellLibbrarySchema):
+    class Test(StdCellLibrarySchema):
         def __init__(self):
             StdCellLibrarySchema.__init__(self, "testlib")
-            YosysStdCellLibbrarySchema.__init__(self)
+            # YosysStdCellLibbrarySchema.__init__(self)
 
     t = Test()
-    t.write_manifest('Test.json')
+    with t.timing_corner("slow") as corner:
+        print(corner)
+    #t.write_manifest('Test.json')
