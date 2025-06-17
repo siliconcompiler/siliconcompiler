@@ -3,6 +3,7 @@ import sys
 
 from siliconcompiler.schema import BaseSchema, EditableSchema
 
+from siliconcompiler.design import DesignSchema
 from siliconcompiler.flowgraph import FlowgraphSchema
 from siliconcompiler.record import RecordSchema
 from siliconcompiler.metric import MetricSchema
@@ -21,6 +22,7 @@ class Runnable(BaseSchema):
 
         # Initialize schema
         schema = EditableSchema(self)
+        schema.insert("design", DesignSchema())
         schema.insert("flowgraph", "default", FlowgraphSchema())
         schema.insert("record", RecordSchema())
         schema.insert("metric", MetricSchema())
@@ -59,7 +61,7 @@ class Runnable(BaseSchema):
             else:
                 handler.setFormatter(formatter)
 
-    def use(self):
+    def add_dep(self, obj):
         pass
 
     def check(self):
