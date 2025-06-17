@@ -1,5 +1,3 @@
-import contextlib
-
 from typing import final
 
 from siliconcompiler.design import DesignSchema
@@ -13,7 +11,9 @@ class LibrarySchema(DesignSchema):
         super().__init__(name)
 
     @final
-    def define_tool_parameter(self, tool, name, type, shorthelp, help, **kwargs):
+    def define_tool_parameter(self, tool, name, type, help, **kwargs):
+        shorthelp = help.splitlines()[0].strip()
+
         EditableSchema(self).insert(
             "tool", tool, name,
             Parameter(
@@ -26,22 +26,7 @@ class LibrarySchema(DesignSchema):
             ))
 
 
-class TimingCorner:
-    def add_file():
-        pass
-
-
-class ASICLibrary(LibrarySchema):
-    def __init__(self, name):
-        super().__init__(name)
-
-    @contextlib.contextmanager
-    def timing_corner(self, name):
-        print(name)
-        yield TimingCorner()
-
-
-class StdCellLibrarySchema(ASICLibrary):
+class StdCellLibrarySchema(LibrarySchema):
     def __init__(self, name):
         super().__init__(name)
 
@@ -101,32 +86,19 @@ class StdCellLibrarySchema(ASICLibrary):
 
 class YosysStdCellLibbrarySchema(StdCellLibrarySchema):
     def __init__(self):
-        super().__init__()
+        super().__init__(name=self.name())
 
-        self.define_tool_parameter("yosys", "abc_clock_multiplier", "float", "short-blah", "long-blah")
-        self.define_tool_parameter("yosys", "abc_constraint_load", "float", "short-blah", "long-blah")
+        self.define_tool_parameter("yosys", "abc_clock_multiplier", "float", "long-blah")
+        self.define_tool_parameter("yosys", "abc_constraint_load", "float", "long-blah")
 
-        self.define_tool_parameter("yosys", "driver_cell", "str", "short-blah", "long-blah")
+        self.define_tool_parameter("yosys", "driver_cell", "str", "long-blah")
+        self.define_tool_parameter("yosys", "buffer_cell", "(str,str,str)", "long-blah")
+        self.define_tool_parameter("yosys", "tiehigh_cell", "(str,str)",  "long-blah")
+        self.define_tool_parameter("yosys", "tielow_cell", "(str,str)", "long-blah")
 
-        self.define_tool_parameter("yosys", "buffer_cell", "str", "short-blah", "long-blah")
-
-        self.define_tool_parameter("yosys", "buffer_cell_input_port", "str", "short-blah", "long-blah")
-
-        self.define_tool_parameter("yosys", "buffer_cell_output_port", "str", "short-blah", "long-blah")
-
-        self.define_tool_parameter("yosys", "tiehigh_cell", "str",  "short-blah", "long-blah")
-
-        self.define_tool_parameter("yosys", "tiehigh_port", "str", "short-blah", "long-blah")
-
-        self.define_tool_parameter("yosys", "tielow_cell", "str", "short-blah", "long-blah")
-
-        self.define_tool_parameter("yosys", "tielow_port", "str", "short-blah", "long-blah")
-
-        self.define_tool_parameter("yosys", "techmap", "[file]", "short-blah", "long-blah")
-
-        self.define_tool_parameter("yosys", "tristatebuffermap", "file", "short-blah", "long-blah")
-
-        self.define_tool_parameter("yosys", "addermap", "file", "short-blah", "long-blah")
+        self.define_tool_parameter("yosys", "techmap", "[file]", "long-blah")
+        self.define_tool_parameter("yosys", "tristatebuffermap", "file", "long-blah")
+        self.define_tool_parameter("yosys", "addermap", "file", "long-blah")
 
     def add_yosys_buffer_cell(self, cell, input_port, output_port):
         pass
@@ -142,18 +114,16 @@ class OpenROADStdCellLibbrarySchema(StdCellLibrarySchema):
     def __init__(self):
         super().__init__()
 
-        self.define_tool_parameter("openroad", "place_density", "float", "short-blah", "long-blah")
-
-        self.define_tool_parameter("openroad", "pdngen", "[file]", "short-blah", "long-blah")
+        self.define_tool_parameter("openroad", "place_density", "float", "long-blah")
+        self.define_tool_parameter("openroad", "pdngen", "[file]", "long-blah")
 
 
 if __name__ == "__main__":
-    class Test(StdCellLibrarySchema):
+    class Test(YosysStdCellLibbrarySchema, StdCellLibrarySchema):
         def __init__(self):
+            YosysStdCellLibbrarySchema.__init__(self)
             StdCellLibrarySchema.__init__(self, "testlib")
-            # YosysStdCellLibbrarySchema.__init__(self)
 
     t = Test()
-    with t.timing_corner("slow") as corner:
-        print(corner)
+    print(t.name())
     #t.write_manifest('Test.json')
