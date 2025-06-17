@@ -10,6 +10,15 @@ def test_name():
     assert NamedSchema("myname").name() == "myname"
 
 
+def test_name_no_init():
+    class Test(NamedSchema):
+        def __init__(self):
+            # do not init NamedSchema
+            pass
+
+    assert Test().name() is None
+
+
 def test_reset():
     NamedSchema("myname")._reset()
 
