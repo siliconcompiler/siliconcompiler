@@ -317,12 +317,12 @@ def test_heartbeat_example(datadir):
     assert Path("heartbeat.f").read_text().splitlines() == [
         '// heartbeat',
         '// heartbeat / rtl / verilog files',
-        f'{os.path.abspath(os.path.join(datadir, "heartbeat_increment.v"))}',
+        f'{Path(os.path.abspath(os.path.join(datadir, "heartbeat_increment.v"))).as_posix()}',
         '// heartbeat / testbench / verilog files',
-        f'{os.path.abspath(os.path.join(datadir, "heartbeat_tb.v"))}',
+        f'{Path(os.path.abspath(os.path.join(datadir, "heartbeat_tb.v"))).as_posix()}',
         '// increment',
         '// increment / rtl / verilog files',
-        f'{os.path.abspath(os.path.join(datadir, "increment.v"))}'
+        f'{Path(os.path.abspath(os.path.join(datadir, "increment.v"))).as_posix()}'
     ]
 
 
