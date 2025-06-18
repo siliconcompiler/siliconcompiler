@@ -99,10 +99,10 @@ class ChecklistSchema(NamedSchema):
                     flow = job_data.get("flowgraph", job_data.get('option', 'flow'), field="schema")
 
                     if (step, index) not in flow.get_nodes():
+                        error = True
                         if logger:
                             logger.error(f'{step}{index} not found in flowgraph for {job}')
-                            error = True
-                            continue
+                        continue
 
                     if job_data.get('record', 'status', step=step, index=index) == \
                             NodeStatus.SKIPPED:

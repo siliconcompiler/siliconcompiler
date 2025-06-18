@@ -134,3 +134,54 @@ def test_check_pass(project, caplog):
     assert checklist.check() is True
     assert "d1 criteria errors<2 met by job job0 with step teststep0 and task testtool/testtask" \
         in caplog.text
+
+
+@pytest.mark.parametrize("criteria", (
+        '1.0.0',
+        '+ 1.0',
+        '1.0e+09.5',
+        '1.0 e-09',
+        '1.0e -9',
+    ))
+def test_check_criteria_formatting_float_fail(project, criteria):
+    project.set('metric', 'fmax', 5, step='teststep', index='0')
+
+    checklist = ChecklistSchema()
+    checklist.set("d1", "criteria", f'fmax=={criteria}')
+    checklist.set("d1", "task", ('job0', 'teststep', '0'))
+
+    schema = EditableSchema(project)
+    schema.insert("checklist", checklist)
+
+    with pytest.raises(ValueError, match="Illegal checklist criteria: fmax==.*"):
+        checklist.check()
+
+
+@pytest.mark.parametrize("criteria", (
+        '1.0',
+        '+1.0',
+        '-1.0',
+        '1.0e+09',
+        '1.0e-09',
+        '1.0e-9',
+        ' 1.0e-9 ',
+    ))
+def test_check_criteria_formatting_float_pass(project, criteria):
+    # Test won't work if file doesn't exist
+    os.makedirs('build/test/job0/teststep/0')
+    with open('build/test/job0/teststep/0/testtask.log', 'w') as f:
+        f.write('test')
+
+    project.set('metric', 'fmax', criteria.strip(), step='teststep', index='0')
+    project.set('tool', 'testtool', 'task', 'testtask', 'report', 'fmax',
+                'build/test/job0/teststep/0/testtask.log',
+                step='teststep', index='0')
+
+    checklist = ChecklistSchema()
+    checklist.set("d1", "criteria", f'fmax=={criteria}')
+    checklist.set("d1", "task", ('job0', 'teststep', '0'))
+
+    schema = EditableSchema(project)
+    schema.insert("checklist", checklist)
+
+    assert checklist.check() is True
