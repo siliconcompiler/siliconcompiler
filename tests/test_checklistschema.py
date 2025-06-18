@@ -136,6 +136,82 @@ def test_check_pass(project, caplog):
         in caplog.text
 
 
+def test_check_item_missing(project, caplog):
+    # Test won't work if file doesn't exist
+    os.makedirs('build/test/job0/teststep/0')
+    with open('build/test/job0/teststep/0/testtask.log', 'w') as f:
+        f.write('test')
+
+    project.set('metric', 'errors', 1, step='teststep', index='0')
+    project.set('tool', 'testtool', 'task', 'testtask', 'report', 'errors',
+                'build/test/job0/teststep/0/testtask.log',
+                step='teststep', index='0')
+
+    checklist = ChecklistSchema()
+    checklist.set("d1", "criteria", "errors<2")
+    checklist.set("d1", "task", ('job0', 'teststep', '0'))
+
+    schema = EditableSchema(project)
+    schema.insert("checklist", checklist)
+
+    project.logger.setLevel(logging.INFO)
+
+    # automated pass
+    assert checklist.check(items=["d0"]) is False
+    assert "d0 is not a check in None." in caplog.text
+
+
+def test_check_node_skipped(project, caplog):
+    # Test won't work if file doesn't exist
+    os.makedirs('build/test/job0/teststep/0')
+    with open('build/test/job0/teststep/0/testtask.log', 'w') as f:
+        f.write('test')
+
+    project.set('metric', 'errors', 1, step='teststep', index='0')
+    project.set('tool', 'testtool', 'task', 'testtask', 'report', 'errors',
+                'build/test/job0/teststep/0/testtask.log',
+                step='teststep', index='0')
+    project.set("record", "status", NodeStatus.SKIPPED, step="teststep", index="0")
+
+    checklist = ChecklistSchema()
+    checklist.set("d1", "criteria", "errors<2")
+    checklist.set("d1", "task", ('job0', 'teststep', '0'))
+
+    schema = EditableSchema(project)
+    schema.insert("checklist", checklist)
+
+    project.logger.setLevel(logging.INFO)
+
+    # automated pass
+    assert checklist.check() is True
+    assert "teststep0 was skipped" in caplog.text
+
+
+def test_check_non_metric(project, caplog):
+    # Test won't work if file doesn't exist
+    os.makedirs('build/test/job0/teststep/0')
+    with open('build/test/job0/teststep/0/testtask.log', 'w') as f:
+        f.write('test')
+
+    project.set('metric', 'errors', 1, step='teststep', index='0')
+    project.set('tool', 'testtool', 'task', 'testtask', 'report', 'errors',
+                'build/test/job0/teststep/0/testtask.log',
+                step='teststep', index='0')
+
+    checklist = ChecklistSchema()
+    checklist.set("d1", "criteria", "error<2")
+    checklist.set("d1", "task", ('job0', 'teststep', '0'))
+
+    schema = EditableSchema(project)
+    schema.insert("checklist", checklist)
+
+    project.logger.setLevel(logging.INFO)
+
+    # automated pass
+    assert checklist.check() is False
+    assert "Criteria must use legal metrics only: error<2" in caplog.text
+
+
 @pytest.mark.parametrize("criteria", (
         '1.0.0',
         '+ 1.0',
