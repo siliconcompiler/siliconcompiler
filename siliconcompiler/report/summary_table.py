@@ -44,7 +44,7 @@ def _show_summary_table(chip, flow, flowgraph_nodes, show_all_indices):
 
     # trim labels to column width
     column_labels = []
-    labels = [f'{step}{index}' for step, index in nodes_to_show]
+    labels = [f'{step}/{index}' for step, index in nodes_to_show]
     if labels:
         column_width = min([column_width, max([len(label) for label in labels])])
 

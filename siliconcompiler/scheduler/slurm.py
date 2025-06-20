@@ -65,7 +65,7 @@ class SlurmSchedulerNode(SchedulerNode):
 
     @staticmethod
     def get_job_name(jobhash, step, index):
-        return f'{jobhash}_{step}{index}'
+        return f'{jobhash}_{step}_{index}'
 
     @staticmethod
     def get_runtime_file_name(jobhash, step, index, ext):

@@ -215,7 +215,7 @@ class DockerSchedulerNode(SchedulerNode):
                 volumes=volumes,
                 labels=[
                     "siliconcompiler",
-                    f"sc_node:{self.chip.design}:{self.step}{self.index}"
+                    f"sc_node:{self.chip.design}:{self.step}:{self.index}"
                 ],
                 user=user,
                 detach=True,

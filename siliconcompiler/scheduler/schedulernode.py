@@ -53,7 +53,7 @@ class SchedulerNode:
             "output": os.path.join(self.__workdir, "outputs", f"{self.__design}.pkg.json")
         }
         self.__logs = {
-            "sc": os.path.join(self.__workdir, f"sc_{self.__step}{self.__index}.log"),
+            "sc": os.path.join(self.__workdir, f"sc_{self.__step}_{self.__index}.log"),
             "exe": os.path.join(self.__workdir, f"{self.__step}.log")
         }
         self.__replay_script = os.path.join(self.__workdir, "replay.sh")
@@ -164,9 +164,9 @@ class SchedulerNode:
         try:
             self.__chip.schema.write_manifest(self.__manifests["output"])
         except FileNotFoundError:
-            self.logger.error(f"Failed to write manifest for {self.__step}{self.__index}.")
+            self.logger.error(f"Failed to write manifest for {self.__step}/{self.__index}.")
 
-        self.logger.error(f"Halting {self.__step}{self.__index} due to errors.")
+        self.logger.error(f"Halting {self.__step}/{self.__index} due to errors.")
         send_messages.send(self.__chip, "fail", self.__step, self.__index)
         sys.exit(1)
 
@@ -174,13 +174,13 @@ class SchedulerNode:
         self.__task.set_runtime(self.__chip, step=self.__step, index=self.__index)
 
         # Run node setup.
-        self.logger.info(f'Setting up node {self.__step}{self.__index} with '
+        self.logger.info(f'Setting up node {self.__step}/{self.__index} with '
                          f'{self.__task.tool()}/{self.__task.task()}')
         setup_ret = None
         try:
             setup_ret = self.__task.setup()
         except Exception as e:
-            self.logger.error(f'Failed to run setup() for {self.__step}{self.__index} '
+            self.logger.error(f'Failed to run setup() for {self.__step}/{self.__index} '
                               f'with {self.__task.tool()}/{self.__task.task()}')
             self.__task.set_runtime(None)
             raise e
@@ -188,7 +188,7 @@ class SchedulerNode:
         self.__task.set_runtime(None)
 
         if setup_ret is not None:
-            self.logger.warning(f'Removing {self.__step}{self.__index} due to {setup_ret}')
+            self.logger.warning(f'Removing {self.__step}/{self.__index} due to {setup_ret}')
             self.__record.set('status', NodeStatus.SKIPPED, step=self.__step, index=self.__index)
 
             return False
@@ -230,7 +230,7 @@ class SchedulerNode:
         self.logger.setLevel(log_level)
         if set(previous_run.__chip.get("record", "inputnode",
                                        step=self.__step, index=self.__index)) != set(sel_inputs):
-            self.logger.warning(f'inputs to {self.__step}{self.__index} has been modified from '
+            self.logger.warning(f'inputs to {self.__step}/{self.__index} has been modified from '
                                 'previous run')
             return False
 
@@ -240,7 +240,7 @@ class SchedulerNode:
 
     def check_values_changed(self, previous_run, keys):
         def print_warning(key):
-            self.logger.warning(f'[{",".join(key)}] in {self.__step}{self.__index} has been '
+            self.logger.warning(f'[{",".join(key)}] in {self.__step}/{self.__index} has been '
                                 'modified from previous run')
 
         for key in sorted(keys):
@@ -267,7 +267,7 @@ class SchedulerNode:
         use_hash = self.__hash and previous_run.__hash
 
         def print_warning(key, reason):
-            self.logger.warning(f'[{",".join(key)}] ({reason}) in {self.__step}{self.__index} has '
+            self.logger.warning(f'[{",".join(key)}] ({reason}) in {self.__step}/{self.__index} has '
                                 'been modified from previous run')
 
         def get_file_time(path):
@@ -410,12 +410,12 @@ class SchedulerNode:
         for in_step, in_index in self.__record.get('inputnode',
                                                    step=self.__step, index=self.__index):
             if NodeStatus.is_error(self.__record.get('status', step=in_step, index=in_index)):
-                self.halt(f'Halting step due to previous error in {in_step}{in_index}')
+                self.halt(f'Halting step due to previous error in {in_step}/{in_index}')
 
             output_dir = os.path.join(
                 self.__chip.getworkdir(step=in_step, index=in_index), "outputs")
             if not os.path.isdir(output_dir):
-                self.halt(f'Unable to locate outputs directory for {in_step}{in_index}: '
+                self.halt(f'Unable to locate outputs directory for {in_step}/{in_index}: '
                           f'{output_dir}')
 
             for outfile in os.scandir(output_dir):
@@ -460,7 +460,7 @@ class SchedulerNode:
             path = os.path.join(input_dir, filename)
             if not os.path.exists(path):
                 self.logger.error(f'Required input {filename} not received for '
-                                  f'{self.__step}{self.__index}.')
+                                  f'{self.__step}/{self.__index}.')
                 error = True
 
         all_required = self.__task.get('task', self.__task.task(), 'require',
@@ -567,7 +567,7 @@ class SchedulerNode:
         # Select the inputs to this node
         sel_inputs = self.__task.select_input_nodes()
         if not self.__is_entry_node and not sel_inputs:
-            self.halt(f'No inputs selected for {self.__step}{self.__index}')
+            self.halt(f'No inputs selected for {self.__step}/{self.__index}')
         self.__record.set("inputnode", sel_inputs, step=self.__step, index=self.__index)
 
         if self.__hash:
@@ -716,7 +716,7 @@ class SchedulerNode:
         if errors and not self.__chip.get('option', 'continue',
                                           step=self.__step, index=self.__index):
             self.halt(f'{self.__task.tool()}/{self.__task.task()} reported {errors} '
-                      f'errors during {self.__step}{self.__index}')
+                      f'errors during {self.__step}/{self.__index}')
 
         if self.__error:
             self.halt()
@@ -906,7 +906,7 @@ class SchedulerNode:
         if not os.path.exists(copy_from):
             return
 
-        self.logger.info(f'Importing {self.__step}{self.__index} from {source}')
+        self.logger.info(f'Importing {self.__step}/{self.__index} from {source}')
         shutil.copytree(
             copy_from, self.__workdir,
             dirs_exist_ok=True,

@@ -34,7 +34,7 @@ def pre_process(chip):
         break
 
     if not exec:
-        chip.error(f'{step}{index} did not receive an executable file')
+        chip.error(f'{step}/{index} did not receive an executable file')
 
     chip.set('tool', tool, 'exe', exec)
 

@@ -67,7 +67,7 @@ def settings(metrics, nodes, graph_number):
 
     Args:
         metrics (list) : A list of metrics that are set for all chips given in chips.
-        nodes (list) : A list of nodes given in the form f'{step}{index}'
+        nodes (list) : A list of nodes given in the form f'{step}/{index}'
         graph_number (int) : The number of graphs there are. Used to create
             keys to distinguish selectboxes from each other.
     """
@@ -147,7 +147,7 @@ def graph(metrics, nodes, node_to_step_index_map, graph_number):
 
     labels = {
         "runs": state.get_key(state.GRAPH_JOBS),
-        "nodes": [f'{step}{index}' for step, index in data]
+        "nodes": [f'{step}/{index}' for step, index in data]
     }
 
     if nodes:

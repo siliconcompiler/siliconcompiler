@@ -234,7 +234,7 @@ def generate_testcase(chip,
         design = chip.design
         job = chip.get('option', 'jobname')
         file_time = datetime.fromtimestamp(issue_time).strftime('%Y%m%d-%H%M%S')
-        archive_name = f'sc_issue_{design}_{job}_{step}{index}_{file_time}.tar.gz'
+        archive_name = f'sc_issue_{design}_{job}_{step}_{index}_{file_time}.tar.gz'
 
     # Make support files
     issue_path = os.path.join(issue_dir.name, 'issue.json')
@@ -254,7 +254,7 @@ def generate_testcase(chip,
         with open(run_path, 'w') as f:
             replay_dir = os.path.relpath(chip.getworkdir(step=step, index=index),
                                          chip.cwd)
-            issue_title = f'{chip.design} for {step}{index} using {tool}/{task}'
+            issue_title = f'{chip.design} for {step}/{index} using {tool}/{task}'
             f.write(get_file_template('issue/run.sh').render(
                 title=issue_title,
                 exec_dir=replay_dir
@@ -288,7 +288,7 @@ def generate_testcase(chip,
 
     issue_dir.cleanup()
 
-    chip.logger.info(f'Generated testcase for {step}{index} in: '
+    chip.logger.info(f'Generated testcase for {step}/{index} in: '
                      f'{full_archive_path}')
 
     # Restore original schema

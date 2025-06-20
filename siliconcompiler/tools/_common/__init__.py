@@ -388,9 +388,9 @@ def input_file_node_name(filename, step, index):
 
         total_ext.reverse()
 
-        return f'{base}.{step}{index}.{".".join(total_ext)}'
+        return f'{base}.{step}.{index}.{".".join(total_ext)}'
     else:
-        return f'{filename}.{step}{index}'
+        return f'{filename}.{step}.{index}'
 
 
 def add_common_file(chip, key, file):
