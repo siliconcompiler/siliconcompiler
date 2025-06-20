@@ -8,6 +8,7 @@ from siliconcompiler.flows._common import _make_docs
 from siliconcompiler.tools.yosys import syn_fpga as yosys_syn
 from siliconcompiler.tools.vpr import place as vpr_place
 from siliconcompiler.tools.vpr import route as vpr_route
+from siliconcompiler.tools.opensta import timing as opensta_timing
 from siliconcompiler.tools.genfasm import bitstream as genfasm_bitstream
 
 from siliconcompiler.tools.vivado import syn_fpga as vivado_syn
@@ -68,11 +69,13 @@ def setup(flowname='fpgaflow', fpgaflow_type=None, partname=None):
 
     # Minimal setup
     prevstep = setup_multiple_frontends(flow)
-    for step, tool_module in flow_pipe:
+    for step, tool_module, src_step in flow_pipe:
         # Flow
         flow.node(flowname, step, tool_module)
-        if prevstep:
+        if src_step == None and prevstep:
             flow.edge(flowname, prevstep, step)
+        if src_step:
+            flow.edge(flowname, src_step, step)
         # Hard goals
         for metric in ('errors', 'warnings', 'drvs', 'unconstrained',
                        'holdwns', 'holdtns', 'holdpaths',
@@ -81,7 +84,6 @@ def setup(flowname='fpgaflow', fpgaflow_type=None, partname=None):
         # Metrics
         for metric in ('luts', 'dsps', 'brams', 'registers', 'pins'):
             flow.set('flowgraph', flowname, step, '0', 'weight', metric, 1.0)
-        prevstep = step
 
     return flow
 
@@ -93,16 +95,17 @@ def flow_lookup_by_type(name):
     '''
 
     vivado_flow = [
-        ('syn_fpga', vivado_syn),
-        ('place', vivado_place),
-        ('route', vivado_route),
-        ('bitstream', vivado_bitstream)]
-    nextpnr_flow = [('syn', yosys_syn),
-                    ('apr', nextpnr_apr)]
-    vpr_flow = [('syn', yosys_syn),
-                ('place', vpr_place),
-                ('route', vpr_route),
-                ('bitstream', genfasm_bitstream)]
+        ('syn_fpga', vivado_syn, None),
+        ('place', vivado_place, 'syn_fpga'),
+        ('route', vivado_route, 'place'),
+        ('bitstream', vivado_bitstream, 'route')]
+    nextpnr_flow = [('syn', yosys_syn, None),
+                    ('apr', nextpnr_apr, 'syn')]
+    vpr_flow = [('syn', yosys_syn, None),
+                ('place', vpr_place, 'syn'),
+                ('route', vpr_route, 'place'),
+                ('timing', opensta_timing, 'route'),
+                ('bitstream', genfasm_bitstream, 'route')]
 
     flow_map = {
         "vivado": vivado_flow,
