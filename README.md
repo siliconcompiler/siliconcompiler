@@ -29,7 +29,7 @@ SiliconCompiler is a modular hardware build system ("make for silicon"). The pro
 # Getting Started
 
 SiliconCompiler is available as wheel packages on PyPI for macOS, Windows and
-Linux platforms. For working Python 3.8-3.13 environment, just use pip.
+Linux platforms. For working Python 3.9-3.13 environment, just use pip.
 
 ```sh
 python3 -m pip install --upgrade siliconcompiler

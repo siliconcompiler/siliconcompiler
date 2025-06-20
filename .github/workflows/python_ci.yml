@@ -23,15 +23,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python: ["3.8", "3.9", "3.10", "3.11", "3.12", "3.13"]
+        python: ["3.9", "3.10", "3.11", "3.12", "3.13"]
         os: ["ubuntu-latest", "ubuntu-24.04-arm", "windows-latest", "macos-latest"]
         # Python 3.9 is on macos-13 but not macos-latest (macos-14-arm64)
         # https://github.com/actions/setup-python/issues/696#issuecomment-1637587760
         exclude:
-          - { python: "3.8", os: "macos-latest" }
           - { python: "3.9", os: "macos-latest" }
         include:
-          - { python: "3.8", os: "macos-13" }
           - { python: "3.9", os: "macos-13" }
 
     steps:
