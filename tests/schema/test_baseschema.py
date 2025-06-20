@@ -1362,7 +1362,7 @@ def test_check_filepaths_not_found_logger_step_index(caplog):
     logger.setLevel(logging.INFO)
 
     assert schema.check_filepaths(logger=logger) is False
-    assert "Parameter [directory] (thisstep0) path test0 is invalid" in caplog.text
+    assert "Parameter [directory] (thisstep/0) path test0 is invalid" in caplog.text
 
 
 def test_check_filepaths_not_found_ignored():

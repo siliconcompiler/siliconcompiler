@@ -770,7 +770,7 @@ class RuntimeFlowgraph:
                     if not found:
                         exits = ",".join([f"{step}/{index}"
                                           for step, index in runtime.get_exit_nodes()])
-                        missing.append(f'no path from {entrynode[0]}{entrynode[1]} to {exits} '
+                        missing.append(f'no path from {entrynode[0]}/{entrynode[1]} to {exits} '
                                        f'in the {flow.name()} flowgraph')
                     if found:
                         found_any = True

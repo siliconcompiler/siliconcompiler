@@ -9,7 +9,7 @@ from siliconcompiler.apps import _common
 @pytest.fixture
 def make_manifests():
     def impl(chip):
-        for nodes in chip.schema.get("flowgraph", "asicflow", field="schema").get_execution_order():
+        for s in chip.schema.get("flowgraph", "asicflow", field="schema").get_execution_order():
             for step, index in nodes:
                 for d in ('inputs', 'outputs'):
                     path = os.path.join(chip.getworkdir(step=step, index=index), d)
@@ -238,7 +238,7 @@ def test_pick_manifest_step_index_invalid(gcd_chip, monkeypatch, caplogger):
 
     assert gcd_chip.design == "gcd"
 
-    assert "syn0 is not a valid node." in log()
+    assert "syn/0 is not a valid node." in log()
 
 
 def test_pick_manifest_step_index_manifest(gcd_chip, monkeypatch):
@@ -306,4 +306,4 @@ def test_pick_manifest_step_index_invalid_combo(gcd_chip, monkeypatch, caplogger
 
     assert gcd_chip.design == "gcd"
 
-    assert "syn0 is not a valid node." in log()
+    assert "syn/0 is not a valid node." in log()

@@ -62,7 +62,7 @@ def test_check_fail_unmet_spec(project, caplog):
     project.logger.setLevel(logging.INFO)
 
     assert checklist.check() is False
-    assert "d0 criteria errors==0 (1==0) unmet by job job0 with step teststep0 and task " \
+    assert "d0 criteria errors==0 (1==0) unmet by job job0 with step teststep/0 and task " \
         "testtool/testtask" in caplog.text
 
 
@@ -87,7 +87,7 @@ def test_check_fail_invalid_node(project, caplog):
     project.logger.setLevel(logging.INFO)
 
     assert checklist.check() is False
-    assert "notvalid0 not found in flowgraph for job0" in caplog.text
+    assert "notvalid/0 not found in flowgraph for job0" in caplog.text
 
 
 def test_check_fail_invalid_missing_docs(project, caplog):
@@ -103,9 +103,9 @@ def test_check_fail_invalid_missing_docs(project, caplog):
     project.logger.setLevel(logging.INFO)
 
     assert checklist.check() is False
-    assert "d0 criteria errors==1 met by job job0 with step teststep0 and task testtool/testtask" \
+    assert "d0 criteria errors==1 met by job job0 with step teststep/0 and task testtool/testtask" \
         in caplog.text
-    assert "No reports generated for metric errors in job job0 with step teststep0 and task " \
+    assert "No reports generated for metric errors in job job0 with step teststep/0 and task " \
         "testtool/testtask" in caplog.text
     assert "No report documenting item d0" in caplog.text
 
@@ -132,7 +132,7 @@ def test_check_pass(project, caplog):
 
     # automated pass
     assert checklist.check() is True
-    assert "d1 criteria errors<2 met by job job0 with step teststep0 and task testtool/testtask" \
+    assert "d1 criteria errors<2 met by job job0 with step teststep/0 and task testtool/testtask" \
         in caplog.text
 
 
@@ -184,7 +184,7 @@ def test_check_node_skipped(project, caplog):
 
     # automated pass
     assert checklist.check() is True
-    assert "teststep0 was skipped" in caplog.text
+    assert "teststep/0 was skipped" in caplog.text
 
 
 def test_check_non_metric(project, caplog):
