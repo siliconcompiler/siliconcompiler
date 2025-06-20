@@ -15,7 +15,10 @@ class DependencySchema(BaseSchema):
     '''
 
     def __init__(self):
-        super().__init__()
+        if hasattr(self, "_DependencySchema__deps"):
+            return
+
+        BaseSchema.__init__(self)
 
         self.__deps = {}
 

@@ -17,7 +17,7 @@ class PackageSchema(BaseSchema):
     '''
 
     def __init__(self, package=None):
-        super().__init__()
+        BaseSchema.__init__(self)
 
         if package is not None and not isinstance(package, str):
             raise ValueError("package must be a string")

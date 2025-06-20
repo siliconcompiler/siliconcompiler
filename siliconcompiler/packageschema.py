@@ -10,7 +10,7 @@ from siliconcompiler.package import Resolver
 
 class PackageSchema(BaseSchema):
     def __init__(self):
-        super().__init__()
+        BaseSchema.__init__(self)
 
         schema_package(self)
 
