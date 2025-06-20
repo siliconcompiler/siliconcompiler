@@ -113,7 +113,7 @@ class Server:
             self.sc_jobs[job_name][None]["status"] = start_status
 
             for step, index in nodes:
-                name = f"{step}/{index}"
+                name = f"{step}{index}"
                 if name not in self.sc_jobs[job_name]:
                     continue
                 self.sc_jobs[job_name][name]["status"] = \
@@ -122,7 +122,7 @@ class Server:
     def __node_start(self, chip, step, index):
         with self.sc_jobs_lock:
             job_name = self.sc_chip_lookup[chip]["name"]
-            self.sc_jobs[job_name][f"{step}/{index}"]["status"] = NodeStatus.RUNNING
+            self.sc_jobs[job_name][f"{step}{index}"]["status"] = NodeStatus.RUNNING
 
     def __node_end(self, chip, step, index):
         with self.sc_jobs_lock:
@@ -133,12 +133,12 @@ class Server:
         chip.cwd = os.path.join(chip.get('option', 'builddir'), '..')
         with tarfile.open(os.path.join(self.nfs_mount,
                                        job_hash,
-                                       f'{job_hash}_{step}_{index}.tar.gz'),
+                                       f'{job_hash}_{step}{index}.tar.gz'),
                           mode='w:gz') as tf:
             chip._archive_node(tf, step=step, index=index, include="*")
 
         with self.sc_jobs_lock:
-            self.sc_jobs[job_name][f"{step}/{index}"]["status"] = \
+            self.sc_jobs[job_name][f"{step}{index}"]["status"] = \
                 chip.get('record', 'status', step=step, index=index)
 
     def run(self):
@@ -457,7 +457,7 @@ class Server:
                 status = SCNodeStatus.PENDING
             if SCNodeStatus.is_done(status):
                 status = NodeStatus.UPLOADED
-            nodes[f"{step}/{index}"] = {
+            nodes[f"{step}{index}"] = {
                 "status": status
             }
 

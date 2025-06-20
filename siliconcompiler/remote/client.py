@@ -676,7 +676,7 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
                 "imported": done,
                 "fetched": done
             }
-            self.__node_information[f'{step}/{index}'] = node_info
+            self.__node_information[f'{step}{index}'] = node_info
 
     def __run_loop(self):
         self.__ensure_run_loop_information()
