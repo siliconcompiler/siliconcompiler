@@ -79,6 +79,11 @@ class FlowgraphSchema(NamedSchema):
             raise ValueError(f"{task} is not a valid task, it must be associated with "
                              "a tool '<tool>.<task>'.")
 
+        if '/' in step:
+            raise ValueError(f"{step} is not a valid step, it cannot contain '/'")
+        if '/' in index:
+            raise ValueError(f"{index} is not a valid index, it cannot contain '/'")
+
         tool_name, task_name = task_parts[-2:]
 
         # bind tool to node

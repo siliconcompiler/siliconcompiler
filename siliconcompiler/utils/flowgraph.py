@@ -173,7 +173,8 @@ def _get_flowgraph_information(chip, flow, io=True):
 
         rank_diff = {}
         for in_step, in_index in runtime_flow.get_node_inputs(step, index, record=record):
-            rank_diff[f'{in_step}/{in_index}'] = node_rank[node] - node_rank[f'{in_step}/{in_index}']
+            in_node_name = f'{in_step}/{in_index}'
+            rank_diff[in_node_name] = node_rank[node] - node_rank[in_node_name]
         nodes[node]["rank_diff"] = rank_diff
 
     for step, index in all_nodes:

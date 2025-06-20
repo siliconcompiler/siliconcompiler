@@ -73,6 +73,28 @@ def test_node_invalid_tool_task():
         flow.node("teststep", "nop")
 
 
+def test_node_step_name():
+    flow = FlowgraphSchema("testflow")
+
+    # Valid step
+    flow.node("teststep", nop)
+
+    # Invalid step
+    with pytest.raises(ValueError, match="teststep/ is not a valid step, it cannot contain '/'"):
+        flow.node("teststep/", nop)
+
+
+def test_node_index_name():
+    flow = FlowgraphSchema("testflow")
+
+    # Valid index
+    flow.node("teststep", nop, index="index")
+
+    # Invalid index
+    with pytest.raises(ValueError, match="index/ is not a valid index, it cannot contain '/'"):
+        flow.node("teststep", nop, index="index/")
+
+
 def test_node_index():
     flow = FlowgraphSchema("testflow")
     flow.node("teststep", "siliconcompiler.tools.builtin.nop", index=1)
