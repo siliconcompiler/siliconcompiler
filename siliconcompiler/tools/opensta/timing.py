@@ -1,6 +1,7 @@
 import os
 import re
 from siliconcompiler import utils
+from siliconcompiler import NodeStatus
 from siliconcompiler import sc_open, SiliconCompilerError
 from siliconcompiler.tools.opensta import setup as tool_setup
 from siliconcompiler.tools.opensta import runtime_options as tool_runtime_options
@@ -82,6 +83,28 @@ def setup(chip):
         chip.add('tool', tool, 'task', task, 'input', sdf_files, step=step, index=index)
 
     add_common_file(chip, 'opensta_generic_sdc', 'sdc/sc_constraints.sdc')
+
+
+def pre_process(chip):
+    '''
+    Tool specific function to run before step execution
+    '''
+
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    tool, task = get_tool_task(chip, step, index)
+
+    # If a verilog and sdc file are both provided as input to this tool, but they
+    # are both empty, skip this tool step.
+    design = chip.top()
+    if (f'{design}.vg' in input_provides(chip, step, index)) and \
+            (f'{design}.sdc' in input_provides(chip, step, index)):
+        if os.path.getsize(f'inputs/{design}.vg') == 0 and \
+                os.path.getsize(f'inputs/{design}.sdc') == 0:
+            chip.set('record', 'status', NodeStatus.SKIPPED, step=step, index=index)
+            chip.logger.warning(f'{step}{index} will be skipped since no timing '
+                                'analysis files were provided.')
+            return
 
 
 def __report_map(chip, metric, basefile):
