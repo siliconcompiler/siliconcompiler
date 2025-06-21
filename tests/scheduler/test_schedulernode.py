@@ -152,7 +152,7 @@ def test_get_manifest_input(chip):
 @pytest.mark.parametrize(
     "type,expect_name", [
         ("exe", "steptwo.log"),
-        ("sc", "sc_steptwo/0.log"),
+        ("sc", "sc_steptwo0.log"),
     ])
 def test_get_log(chip, type, expect_name):
     node = SchedulerNode(chip, "steptwo", "0")
@@ -1046,7 +1046,7 @@ def test_setup_input_directory_renames_dir(chip):
     dir0.mkdir(exist_ok=True)
 
     chip.set("record", "inputnode", ("stepone", "0"), step="steptwo", index="0")
-    chip.set("tool", "builtin", "task", "nop", "input", "dir0.stepone/0", step="steptwo", index="0")
+    chip.set("tool", "builtin", "task", "nop", "input", "dir0.stepone0", step="steptwo", index="0")
 
     node = SchedulerNode(chip, "steptwo", "0")
     node.init_state(assign_runtime=True)
@@ -1054,7 +1054,7 @@ def test_setup_input_directory_renames_dir(chip):
     node.setup_input_directory()
 
     assert not os.path.exists(input_dir / "dir0")
-    assert os.path.isdir(input_dir / "dir0.stepone/0")
+    assert os.path.isdir(input_dir / "dir0.stepone0")
     assert not os.path.isfile(input_dir / "dummy.pkg.json")
 
 
@@ -1072,7 +1072,7 @@ def test_setup_input_directory_renames_file(chip):
     file1.touch()
 
     chip.set("record", "inputnode", ("stepone", "0"), step="steptwo", index="0")
-    chip.set("tool", "builtin", "task", "nop", "input", "file0.stepone/0.txt",
+    chip.set("tool", "builtin", "task", "nop", "input", "file0.stepone0.txt",
              step="steptwo", index="0")
 
     node = SchedulerNode(chip, "steptwo", "0")
@@ -1081,7 +1081,7 @@ def test_setup_input_directory_renames_file(chip):
     node.setup_input_directory()
 
     assert not os.path.exists(input_dir / "file0.txt")
-    assert os.path.isfile(input_dir / "file0.stepone/0.txt")
+    assert os.path.isfile(input_dir / "file0.stepone0.txt")
     assert not os.path.isfile(input_dir / "dummy.pkg.json")
 
 
