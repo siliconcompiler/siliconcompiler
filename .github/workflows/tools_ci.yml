@@ -397,7 +397,7 @@ jobs:
 
   server_tests:
     needs: build_sc_tools
-    if: always() && !cancelled()
+    if: always() && !cancelled() && ${{ secrets.ZA_TOKEN != '' }}
     name: Test server
     timeout-minutes: 90
     runs-on: ubuntu-latest
