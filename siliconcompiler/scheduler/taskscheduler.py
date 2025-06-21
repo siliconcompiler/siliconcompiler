@@ -79,7 +79,7 @@ class TaskScheduler:
             threads = max(1, min(threads, self.__max_threads))
 
             task = {
-                "name": f"{step}{index}",
+                "name": f"{step}/{index}",
                 "inputs": runtime.get_node_inputs(step, index, record=self.__record),
                 "proc": None,
                 "parent_pipe": None,

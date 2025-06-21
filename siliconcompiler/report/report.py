@@ -61,7 +61,7 @@ def get_flowgraph_nodes(chip, step, index):
             value = chip.get('record', key, step=step, index=index)
         if value is not None:
             if key == 'inputnode':
-                value = ", ".join([f'{step}{index}' for step, index in value])
+                value = ", ".join([f'{step}/{index}' for step, index in value])
             if key == 'pythonpackage':
                 value = ", ".join(value)
             nodes[key] = str(value)
@@ -363,7 +363,7 @@ def get_chart_selection_options(chips):
         chip = chip_and_chip_name['chip_object']
         nodes_list, _, _, _, chip_metrics, _ = \
             utils._collect_data(chip, format_as_string=False)
-        nodes.update(set([f'{step}{index}' for step, index in nodes_list]))
+        nodes.update(set([f'{step}/{index}' for step, index in nodes_list]))
         metrics.update(set(chip_metrics))
     return nodes, metrics
 

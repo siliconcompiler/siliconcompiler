@@ -13,7 +13,7 @@ Schema: {{ version['schema'] }}
 Testcase built: {{ date }}
 Tool: {{ run['tool'] }} {% if run['toolversion'] %}{{ run['toolversion'] }}{% endif %}
 Task: {{ run['task'] }}
-Node: {{ run['step'] }}{{ run['index'] }}
+Node: {{ run['step'] }}/{{ run['index'] }}
 
 ** Python **
 Version: {{ python['version'] }}

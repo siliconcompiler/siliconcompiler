@@ -62,7 +62,7 @@ def pre_process(chip):
             for in_step, in_index in input_nodes
             ]):
         chip.set('record', 'status', NodeStatus.SKIPPED, step=step, index=index)
-        chip.logger.warning(f'{step}{index} will be skipped since are no macros to place.')
+        chip.logger.warning(f'{step}/{index} will be skipped since are no macros to place.')
         return
 
     build_pex_corners(chip)

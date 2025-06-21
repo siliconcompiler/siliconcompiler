@@ -45,7 +45,7 @@ def test_prune_middle(caplogger):
                        match="test flowgraph contains errors and cannot be run"):
         chip.run(raise_exception=True)
 
-    assert "no path from import0 to place0 in the test flowgraph" in log()
+    assert "no path from import/0 to place/0 in the test flowgraph" in log()
 
 
 def test_prune_split():
@@ -90,7 +90,7 @@ def test_prune_split_join(caplogger):
                        match="test flowgraph contains errors and cannot be run."):
         chip.run(raise_exception=True)
 
-    assert "no path from import0 to place0 in the test flowgraph" in log()
+    assert "no path from import/0 to place/0 in the test flowgraph" in log()
 
 
 def test_prune_split_disc3235():
@@ -300,7 +300,7 @@ def test_prune_nodenotpresent(caplogger):
                        match="test flowgraph contains errors and cannot be run."):
         chip.run(raise_exception=True)
 
-    assert "sim13 is not defined in the test flowgraph" in log()
+    assert "sim1/3 is not defined in the test flowgraph" in log()
 
 
 def test_prune_min():
@@ -362,4 +362,4 @@ def test_prune_max_all_inputs_pruned(caplogger):
                        match="test flowgraph contains errors and cannot be run."):
         chip.run(raise_exception=True)
 
-    assert "no path from import0 to place0 in the test flowgraph" in log()
+    assert "no path from import/0 to place/0 in the test flowgraph" in log()

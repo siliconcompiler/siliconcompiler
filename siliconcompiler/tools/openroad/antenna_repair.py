@@ -68,7 +68,7 @@ def pre_process(chip):
             chip.get('tool', tool, 'task', task, 'var', 'ant_check',
                      step=step, index=index)[0] == 'false':
         chip.set('record', 'status', NodeStatus.SKIPPED, step=step, index=index)
-        chip.logger.warning(f'{step}{index} will be skipped since antenna repair is disabled.')
+        chip.logger.warning(f'{step}/{index} will be skipped since antenna repair is disabled.')
         return
 
     define_ord_files(chip)

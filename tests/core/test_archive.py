@@ -72,9 +72,9 @@ def test_archive(chip):
 def test_archive_step_index(chip):
     chip.archive(step='import.verilog', index='0')
 
-    assert os.path.isfile('oh_parity_job0_import.verilog0.tgz')
+    assert os.path.isfile('oh_parity_job0_import.verilog_0.tgz')
 
-    with tarfile.open('oh_parity_job0_import.verilog0.tgz', 'r:gz') as f:
+    with tarfile.open('oh_parity_job0_import.verilog_0.tgz', 'r:gz') as f:
         contents = f.getnames()
 
     for item in ('build/oh_parity/job0/oh_parity.pkg.json',

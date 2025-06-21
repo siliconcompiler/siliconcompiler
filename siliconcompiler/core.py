@@ -1631,7 +1631,7 @@ class Chip:
                         NodeStatus.SUCCESS:
                     # this task has already completed successfully, OK
                     continue
-                self.logger.error(f'{step}{index} relies on {in_step}{in_index}, '
+                self.logger.error(f'{step}/{index} relies on {in_step}/{in_index}, '
                                   'but this task has not been run and is not in the '
                                   'current nodes to execute.')
                 error = True
@@ -1676,12 +1676,12 @@ class Chip:
             if not self._get_tool_module(step, index, flow=flow, error=False):
                 error = True
                 self.logger.error(f"Tool module {tool_name} could not be found or "
-                                  f"loaded for {step}{index}.")
+                                  f"loaded for {step}/{index}.")
             if not self._get_task_module(step, index, flow=flow, error=False):
                 error = True
                 task_module = self.get('flowgraph', flow, step, index, 'taskmodule')
                 self.logger.error(f"Task module {task_module} for {tool_name}/{task_name} "
-                                  f"could not be found or loaded for {step}{index}.")
+                                  f"could not be found or loaded for {step}/{index}.")
 
         # 5. Check per tool parameter requirements (when tool exists)
         for (step, index) in nodes:
@@ -2530,7 +2530,7 @@ class Chip:
     ###########################################################################
     def _archive_node(self, tar, step, index, include=None, verbose=True):
         if verbose:
-            self.logger.info(f'Archiving {step}{index}...')
+            self.logger.info(f'Archiving {step}/{index}...')
 
         basedir = self.getworkdir(step=step, index=index)
 
@@ -2539,7 +2539,7 @@ class Chip:
 
         if not os.path.isdir(basedir):
             if self.get('record', 'status', step=step, index=index) != NodeStatus.SKIPPED:
-                self.logger.error(f'Unable to archive {step}{index} due to missing node directory')
+                self.logger.error(f'Unable to archive {step}/{index} due to missing node directory')
             return
 
         if include:
@@ -2613,7 +2613,7 @@ class Chip:
 
         if not archive_name:
             if step and index:
-                archive_name = f"{design}_{jobname}_{step}{index}.tgz"
+                archive_name = f"{design}_{jobname}_{step}_{index}.tgz"
             elif step:
                 archive_name = f"{design}_{jobname}_{step}.tgz"
             else:
@@ -3179,7 +3179,7 @@ class Chip:
         self.unset('option', 'prune')
         self.unset('option', 'from')
         # build new job name
-        self.set('option', 'jobname', f'_{taskname}_{sc_job}_{sc_step}{sc_index}', clobber=True)
+        self.set('option', 'jobname', f'_{taskname}_{sc_job}_{sc_step}_{sc_index}', clobber=True)
 
         # Setup in step/index variables
         for step, index in self.get("flowgraph", "showflow", field="schema").get_nodes():

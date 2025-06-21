@@ -238,7 +238,7 @@ def test_pick_manifest_step_index_invalid(gcd_chip, monkeypatch, caplogger):
 
     assert gcd_chip.design == "gcd"
 
-    assert "syn0 is not a valid node." in log()
+    assert "syn/0 is not a valid node." in log()
 
 
 def test_pick_manifest_step_index_manifest(gcd_chip, monkeypatch):
@@ -306,4 +306,4 @@ def test_pick_manifest_step_index_invalid_combo(gcd_chip, monkeypatch, caplogger
 
     assert gcd_chip.design == "gcd"
 
-    assert "syn0 is not a valid node." in log()
+    assert "syn/0 is not a valid node." in log()

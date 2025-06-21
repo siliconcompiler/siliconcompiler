@@ -125,7 +125,7 @@ def init():
         chip_index = chip.get('arg', 'index')
 
         if chip_step and chip_index:
-            set_key(SELECTED_NODE, f'{chip_step}{chip_index}')
+            set_key(SELECTED_NODE, f'{chip_step}/{chip_index}')
 
     chip = get_chip("default")
     chip.unset('arg', 'step')

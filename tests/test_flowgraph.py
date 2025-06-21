@@ -73,6 +73,28 @@ def test_node_invalid_tool_task():
         flow.node("teststep", "nop")
 
 
+def test_node_step_name():
+    flow = FlowgraphSchema("testflow")
+
+    # Valid step
+    flow.node("teststep", nop)
+
+    # Invalid step
+    with pytest.raises(ValueError, match="teststep/ is not a valid step, it cannot contain '/'"):
+        flow.node("teststep/", nop)
+
+
+def test_node_index_name():
+    flow = FlowgraphSchema("testflow")
+
+    # Valid index
+    flow.node("teststep", nop, index="index")
+
+    # Invalid index
+    with pytest.raises(ValueError, match="index/ is not a valid index, it cannot contain '/'"):
+        flow.node("teststep", nop, index="index/")
+
+
 def test_node_index():
     flow = FlowgraphSchema("testflow")
     flow.node("teststep", "siliconcompiler.tools.builtin.nop", index=1)
@@ -155,7 +177,7 @@ def test_edge_undefined():
     flow = FlowgraphSchema("testflow")
     flow.node("stepone", "siliconcompiler.tools.builtin.nop")
 
-    with pytest.raises(ValueError, match="steptwo0 is not a defined node in testflow"):
+    with pytest.raises(ValueError, match="steptwo/0 is not a defined node in testflow"):
         flow.edge("stepone", "steptwo")
 
 
@@ -227,7 +249,7 @@ def test_insert_node_branch(large_flow):
 
 
 def test_insert_node_invalid(large_flow):
-    with pytest.raises(ValueError, match="invalid0 is not a valid node in testflow"):
+    with pytest.raises(ValueError, match="invalid/0 is not a valid node in testflow"):
         large_flow.insert_node(
             "newnode", "siliconcompiler.tools.builtin.nop", before_step="invalid"
         )
@@ -338,7 +360,7 @@ def test_get_node_outputs(large_flow):
 
 
 def test_get_node_outputs_invalid(large_flow):
-    with pytest.raises(ValueError, match="testnode0 is not a valid node"):
+    with pytest.raises(ValueError, match="testnode/0 is not a valid node"):
         large_flow.get_node_outputs("testnode", "0")
 
 
@@ -465,28 +487,28 @@ def test_validate(large_flow):
 def test_validate_duplicate_edge(large_flow, caplog):
     large_flow.add("joinone", "0", "input", ("stepone", "0"))
     assert not large_flow.validate(logger=logging.getLogger())
-    assert "Duplicate edge from stepone0 to joinone0 in the testflow flowgraph" in caplog.text
+    assert "Duplicate edge from stepone/0 to joinone/0 in the testflow flowgraph" in caplog.text
 
 
 def test_validate_missing_node(large_flow, caplog):
     large_flow.add("joinone", "0", "input", ("notvalid", "0"))
     assert not large_flow.validate(logger=logging.getLogger())
-    assert "notvalid0 is missing in the testflow flowgraph" in caplog.text
+    assert "notvalid/0 is missing in the testflow flowgraph" in caplog.text
 
 
 @pytest.mark.parametrize("item", ["tool", "task", "taskmodule"])
 def test_validate_missing_config(large_flow, caplog, item):
     large_flow.unset("joinone", "0", item)
     assert not large_flow.validate(logger=logging.getLogger())
-    assert f"joinone0 is missing a {item} definition in the testflow flowgraph" in caplog.text
+    assert f"joinone/0 is missing a {item} definition in the testflow flowgraph" in caplog.text
 
 
 def test_validate_loop(large_flow, caplog):
     large_flow.add("stepone", "2", "input", ("jointwo", "0"))
     assert not large_flow.validate(logger=logging.getLogger())
-    assert "stepone0 -> joinone0 -> steptwo0 -> jointwo0 -> stepone2 -> joinone0 forms " \
+    assert "stepone/0 -> joinone/0 -> steptwo/0 -> jointwo/0 -> stepone/2 -> joinone/0 forms " \
         "a loop in testflow" in caplog.text
-    assert "stepone1 -> joinone0 -> steptwo0 -> jointwo0 -> stepone2 -> joinone0 forms " \
+    assert "stepone/1 -> joinone/0 -> steptwo/0 -> jointwo/0 -> stepone/2 -> joinone/0 forms " \
         "a loop in testflow" in caplog.text
 
 
@@ -602,7 +624,7 @@ def test_runtime_get_entry_nodes_prune_from(large_flow):
 def test_runtime_get_nodes_starting_at_invalid(large_flow):
     runtime = RuntimeFlowgraph(large_flow, prune_nodes=[
         ("stepone", "0"), ("steptwo", "1"), ("stepthree", "2")])
-    with pytest.raises(ValueError, match="stepone0 is not a valid node"):
+    with pytest.raises(ValueError, match="stepone/0 is not a valid node"):
         runtime.get_nodes_starting_at("stepone", "0")
 
 
@@ -927,7 +949,7 @@ def test_get_node_inputs_invalid(large_flow):
     runtime = RuntimeFlowgraph(large_flow, prune_nodes=[
         ("stepone", "0"), ("steptwo", "1"), ("stepthree", "2")])
 
-    with pytest.raises(ValueError, match="stepone0 is not a valid node"):
+    with pytest.raises(ValueError, match="stepone/0 is not a valid node"):
         runtime.get_node_inputs("stepone", "0")
 
 
@@ -963,7 +985,7 @@ def test_runtime_validate_invalid_node(large_flow, caplog):
         large_flow,
         prune_nodes=[("notthis", "0")], logger=logging.getLogger()) is False
 
-    assert "notthis0 is not defined in the testflow flowgraph" in caplog.text
+    assert "notthis/0 is not defined in the testflow flowgraph" in caplog.text
 
 
 def test_runtime_validate_prune_exits(large_flow, caplog):
@@ -994,8 +1016,8 @@ def test_runtime_validate_prune_path(large_flow, caplog):
         large_flow,
         prune_nodes=[("joinone", "0"), ("stepone", "2")], logger=logging.getLogger()) is False
 
-    assert "no path from stepone0 to jointhree0 in the testflow flowgraph" in caplog.text
-    assert "no path from stepone1 to jointhree0 in the testflow flowgraph" in caplog.text
+    assert "no path from stepone/0 to jointhree/0 in the testflow flowgraph" in caplog.text
+    assert "no path from stepone/1 to jointhree/0 in the testflow flowgraph" in caplog.text
 
 
 def test_runtime_validate_disjoint(caplog):
@@ -1009,4 +1031,4 @@ def test_runtime_validate_disjoint(caplog):
         from_steps=["stepone"],
         to_steps=["steptwo"], logger=logging.getLogger()) is False
 
-    assert "no path from stepone0 to steptwo0 in the testflow flowgraph" in caplog.text
+    assert "no path from stepone/0 to steptwo/0 in the testflow flowgraph" in caplog.text

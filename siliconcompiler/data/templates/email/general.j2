@@ -9,11 +9,11 @@
     </head>
 
     <body>
-        <h2>Node Summary: "{{ step }}{{ index }}"</h2>
+        <h2>Node Summary: "{{ step }}/{{ index }}"</h2>
         <span>
             <p><b>Design</b>: {{ design }}</p>
             <p><b>Job</b>: {{ job }}</p>
-            <p><b>Node</b>: {{ step }}{{ index }}</p>
+            <p><b>Node</b>: {{ step }}/{{ index }}</p>
             <p><b>Status</b>: {{ status }}</p>
         </span>
         <span>
@@ -36,7 +36,7 @@
                     <th>Metrics</th>
                     <th>units</th>
                     {% for step, index in nodes %}
-                    <th align="center">{{ step }}{{ index }}</th>
+                    <th align="center">{{ step }}/{{ index }}</th>
                     {% endfor %}
                 </tr>
                 {% for metric in metric_keys %}

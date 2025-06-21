@@ -271,12 +271,12 @@
         {% for metric in metric_keys %}
           {% for step, index in nodes %}
             {% if reports[step, index][metric] %}
-              var sim_log_btn = document.getElementById("{{ step }}{{ index }}_{{ metric }}_metlink");
+              var sim_log_btn = document.getElementById("{{ step }}_{{ index }}_{{ metric }}_metlink");
               sim_log_btn.addEventListener('click', () => {
                 log_link = "{{ step }}/{{ index }}/{{ reports[step, index][metric][0] }}";
                 window.open(log_link, "_blank");
               });
-              var sim_log_btn = document.getElementById("{{ step }}{{ index }}_{{ metric }}_ddmetlink");
+              var sim_log_btn = document.getElementById("{{ step }}_{{ index }}_{{ metric }}_ddmetlink");
               sim_log_btn.addEventListener('click', () => {
                 log_link = "{{ step }}/{{ index }}/{{ reports[step, index][metric][0] }}";
                 window.open(log_link, "_blank");
@@ -333,7 +333,7 @@
               <th>-</th>
               <th>units</th>
               {% for step, index in nodes %}
-                <th>{{ step }}{{ index }}</th>
+                <th>{{ step }}/{{ index }}</th>
               {% endfor %}
             </tr>
             {% for metric in metric_keys %}
@@ -372,12 +372,12 @@
         <h2>Metrics for {{ design }} Tasks</h2>
         {% for step, index in nodes %}
           <div>
-            <a class="btn btn-success" data-bs-toggle="collapse" href="#{{ step }}{{ index }}_dropdown_div", role="button", aria-controls="{{ step }}{{ index }}_dropdown_div">
-              Toggle {{ step }}{{ index }} Metrics
+            <a class="btn btn-success" data-bs-toggle="collapse" href="#{{ step }}_{{ index }}_dropdown_div", role="button", aria-controls="{{ step }}_{{ index }}_dropdown_div">
+              Toggle {{ step }}/{{ index }} Metrics
             </a>
           </div>
-          <div id="{{ step }}{{ index }}_dropdown_div" class="collapse">
-            <table id="{{ step }}{{ index }}_metrics_table" class="table table-dark table-striped table-bordered">
+          <div id="{{ step }}_{{ index }}_dropdown_div" class="collapse">
+            <table id="{{ step }}_{{ index }}_metrics_table" class="table table-dark table-striped table-bordered">
               <tr>
                 {% for metric in metric_keys %}
                   <th>{{ metric }}</th>
