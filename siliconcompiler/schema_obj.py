@@ -16,7 +16,7 @@ from siliconcompiler.schema.schema_cfg import schema_cfg
 
 class Schema(BaseSchema):
     def __init__(self):
-        super().__init__()
+        BaseSchema.__init__(self)
 
         schema_cfg(self)
 
@@ -64,7 +64,7 @@ class SchemaTmp(Schema, CommandLineSchema):
     _RECORD_ACCESS_IDENTIFIER = "SC_CFG_ACCESS_KEY"
 
     def __init__(self, cfg=None, manifest=None, logger=None):
-        super().__init__()
+        Schema.__init__(self)
 
         schema = EditableSchema(self)
         schema.insert("history", BaseSchema())

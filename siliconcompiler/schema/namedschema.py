@@ -16,7 +16,7 @@ class NamedSchema(BaseSchema):
     '''
 
     def __init__(self, name):
-        super().__init__()
+        BaseSchema.__init__(self)
 
         self.__name = name
 

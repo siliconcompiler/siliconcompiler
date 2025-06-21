@@ -507,6 +507,10 @@ yosys abc {*}$abc_args {*}$abc_dont_use
 ########################################################
 
 yosys clean -purge
+
+# Recheck hierarchy to remove all unused modules
+yosys hierarchy -top $sc_design
+
 yosys setundef -zero
 
 yosys splitnets
