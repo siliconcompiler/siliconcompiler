@@ -397,12 +397,23 @@ jobs:
 
   server_tests:
     needs: build_sc_tools
-    if: always() && !cancelled() && ${{ secrets.ZA_TOKEN != '' }}
+    if: always() && !cancelled()
     name: Test server
     timeout-minutes: 90
     runs-on: ubuntu-latest
     steps:
+      - name: Check for Secret availability
+        id: secret-check
+        # perform secret check & put boolean result as an output
+        shell: bash
+        run: |
+          if [ "${{ secrets.ZA_TOKEN }}" != '' ]; then
+            echo "available=true" >> $GITHUB_OUTPUT;
+          else
+            echo "available=false" >> $GITHUB_OUTPUT;
+          fi
       - name: Trigger server tests
+        if: ${{ steps.secret-check.outputs.available == 'true' }}
         uses: convictional/trigger-workflow-and-wait@v1.6.5
         with:
           github_token: ${{ secrets.ZA_TOKEN }}
