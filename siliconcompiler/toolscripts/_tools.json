@@ -17,7 +17,7 @@
   },
   "opensta": {
     "git-url": "https://github.com/parallaxsw/OpenSTA.git",
-    "git-commit": "c2a0c4db30439b74ad30037d28c9c030e2fb34c3",
+    "git-commit": "f8e287caf4cfd4f867eee8fde3a5230902e3d9d8",
     "auto-update": true
   },
   "netgen": {
@@ -151,7 +151,7 @@
   },
   "yosys-slang": {
     "git-url": "https://github.com/povik/yosys-slang.git",
-    "git-commit": "6ba28d997b89c179a10ed79be6547b97c9f143a8",
+    "git-commit": "76b83eb5b73ba871797e6db7bc5fed10af380be4",
     "docker-depends": "yosys",
     "auto-update": true
   },
