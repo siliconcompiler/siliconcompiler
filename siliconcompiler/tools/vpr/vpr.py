@@ -316,7 +316,11 @@ def use_timing_analysis(chip):
     '''
     Return true if the given chip should use timing analysis in the VPR flow.
     '''
-    return chip.valid('input', 'constraint', 'sdc')
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    return \
+        chip.valid('input', 'constraint', 'sdc') and \
+        chip.get('input', 'constraint', 'sdc', step=step, index=index)
 
 
 def vpr_post_process(chip):

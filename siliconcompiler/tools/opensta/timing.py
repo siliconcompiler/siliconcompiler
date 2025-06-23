@@ -29,14 +29,14 @@ def setup(chip):
 
     design = chip.top()
     if f'{design}.vg' in input_provides(chip, step, index):
-        chip.set('tool', tool, 'task', task, 'input', f'{design}.vg',
+        chip.add('tool', tool, 'task', task, 'input', f'{design}.vg',
                  step=step, index=index)
     else:
-        chip.set('tool', tool, 'task', task, 'require', 'input,netlist,verilog',
+        chip.add('tool', tool, 'task', task, 'require', 'input,netlist,verilog',
                  step=step, index=index)
 
     if f'{design}.sdc' in input_provides(chip, step, index):
-        chip.set('tool', tool, 'task', task, 'input', f'{design}.sdc',
+        chip.add('tool', tool, 'task', task, 'input', f'{design}.sdc',
                  step=step, index=index)
     elif chip.valid('input', 'constraint', 'sdc') and \
             chip.get('input', 'constraint', 'sdc', step=step, index=index):
@@ -102,7 +102,7 @@ def pre_process(chip):
         if os.path.getsize(f'inputs/{design}.vg') == 0 and \
                 os.path.getsize(f'inputs/{design}.sdc') == 0:
             chip.set('record', 'status', NodeStatus.SKIPPED, step=step, index=index)
-            chip.logger.warning(f'{step}{index} will be skipped since no timing '
+            chip.logger.warning(f'{step}/{index} will be skipped since no timing '
                                 'analysis files were provided.')
             return
 
