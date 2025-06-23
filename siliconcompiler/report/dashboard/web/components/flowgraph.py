@@ -60,7 +60,7 @@ def get_nodes_and_edges(chip):
         node_color = NODE_COLORS[node_status]
 
         tool, task = get_tool_task(chip, step, index)
-        node_name = f'{step}{index}'
+        node_name = f'{step}/{index}'
         label = node_name + "\n" + tool + "/" + task
         if tool == 'builtin':
             label = node_name + "\n" + tool
@@ -95,7 +95,7 @@ def get_nodes_and_edges(chip):
                 dashes = True
 
             edges.append(Edge(
-                source=f'{source_step}{source_index}',
+                source=f'{source_step}/{source_index}',
                 target=node_name,
                 dir='up',
                 width=edge_width,

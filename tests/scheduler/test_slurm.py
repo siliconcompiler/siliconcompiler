@@ -60,9 +60,9 @@ def test_get_configuration_directory(chip):
 
 
 def test_get_job_name():
-    assert SlurmSchedulerNode.get_job_name("hash", "step", "index") == "hash_stepindex"
+    assert SlurmSchedulerNode.get_job_name("hash", "step", "index") == "hash_step_index"
 
 
 def test_get_runtime_file_name():
     assert SlurmSchedulerNode.get_runtime_file_name("hash", "step", "index", "sh") == \
-        "hash_stepindex.sh"
+        "hash_step_index.sh"

@@ -718,7 +718,7 @@ class BaseSchema:
                                 if index is None:
                                     node_indicator = f" ({step})"
                                 else:
-                                    node_indicator = f" ({step}{index})"
+                                    node_indicator = f" ({step}/{index})"
 
                             logger.error(f"Parameter [{','.join(keypath)}]{node_indicator} path "
                                          f"{check_file} is invalid")

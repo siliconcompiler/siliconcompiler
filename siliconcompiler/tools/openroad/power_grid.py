@@ -60,7 +60,7 @@ def pre_process(chip):
             (chip.get('tool', tool, 'task', task, 'var', 'pdn_enable',
                       step=step, index=index)[0] == 'false' or len(pdncfg) == 0):
         chip.set('record', 'status', NodeStatus.SKIPPED, step=step, index=index)
-        chip.logger.warning(f'{step}{index} will be skipped since power grid is disabled.')
+        chip.logger.warning(f'{step}/{index} will be skipped since power grid is disabled.')
         return
 
     define_ord_files(chip)

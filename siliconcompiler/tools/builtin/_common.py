@@ -83,10 +83,10 @@ def _minmax(chip, *nodes, op=None):
                     real = chip.get('metric', metric, step=step, index=index)
                     if real is None:
                         raise SiliconCompilerError(
-                            f'Metric {metric} has goal for {step}{index} '
+                            f'Metric {metric} has goal for {step}/{index} '
                             'but it has not been set.', chip=chip)
                     if abs(real) > goal:
-                        chip.logger.warning(f"Step {step}{index} failed "
+                        chip.logger.warning(f"Step {step}/{index} failed "
                                             f"because it didn't meet goals for '{metric}' "
                                             "metric.")
                         failed[step][index] = True
@@ -122,7 +122,7 @@ def _minmax(chip, *nodes, op=None):
             real = chip.get('metric', metric, step=step, index=index)
             if real is None:
                 raise SiliconCompilerError(
-                    f'Metric {metric} has weight for {step}{index} '
+                    f'Metric {metric} has weight for {step}/{index} '
                     'but it has not been set.', chip=chip)
 
             if not (max_val[metric] - min_val[metric]) == 0:

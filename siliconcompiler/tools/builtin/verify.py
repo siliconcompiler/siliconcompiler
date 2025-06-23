@@ -25,13 +25,13 @@ def _select_inputs(chip, step, index):
     inputs = _common._select_inputs(chip, step, index)
     if len(inputs) != 1:
         raise SiliconCompilerError(
-            f'{step}{index} receives {len(inputs)} inputs, but only supports one', chip=chip)
+            f'{step}/{index} receives {len(inputs)} inputs, but only supports one', chip=chip)
     inputs = inputs[0]
     flow = chip.get('option', 'flow')
     arguments = chip.get('flowgraph', flow, step, index, 'args')
 
     if len(arguments) == 0:
-        raise SiliconCompilerError(f'{step}{index} requires arguments for verify', chip=chip)
+        raise SiliconCompilerError(f'{step}/{index} requires arguments for verify', chip=chip)
 
     passes = True
     for criteria in arguments:
@@ -55,7 +55,7 @@ def _select_inputs(chip, step, index):
         metric_type = chip.get('metric', metric, field=None)
         goal = NodeType.normalize(goal, metric_type.get(field='type'))
         if not utils.safecompare(chip, value, op, goal):
-            chip.error(f"{step}{index} fails '{metric}' metric: {value}{op}{goal}")
+            chip.error(f"{step}/{index} fails '{metric}' metric: {value}{op}{goal}")
 
     if not passes:
         return []

@@ -26,7 +26,7 @@ def make_node_to_step_index_map(chip, metric_dataframe):
     if chip.get('option', 'flow'):
         for step, index in chip.schema.get("flowgraph", chip.get('option', 'flow'),
                                            field="schema").get_nodes():
-            node_to_step_index_map[f'{step}{index}'] = (step, index)
+            node_to_step_index_map[f'{step}/{index}'] = (step, index)
 
     # concatenate step and index
     metric_dataframe.columns = metric_dataframe.columns.map(lambda x: f'{x[0]}{x[1]}')

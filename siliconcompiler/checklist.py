@@ -101,13 +101,13 @@ class ChecklistSchema(NamedSchema):
                     if (step, index) not in flow.get_nodes():
                         error = True
                         if logger:
-                            logger.error(f'{step}{index} not found in flowgraph for {job}')
+                            logger.error(f'{step}/{index} not found in flowgraph for {job}')
                         continue
 
                     if job_data.get('record', 'status', step=step, index=index) == \
                             NodeStatus.SKIPPED:
                         if logger:
-                            logger.warning(f'{step}{index} was skipped')
+                            logger.warning(f'{step}/{index} was skipped')
                         continue
 
                     has_check = True
@@ -142,7 +142,7 @@ class ChecklistSchema(NamedSchema):
 
                     criteria_str = f'{metric}{op}{goal:{number_format}}'
                     compare_str = f'{value:{number_format}}{op}{goal:{number_format}}'
-                    step_desc = f'job {job} with step {step}{index} and task {tool}/{task}'
+                    step_desc = f'job {job} with step {step}/{index} and task {tool}/{task}'
                     if not criteria_ok and waivers:
                         if logger:
                             logger.warning(f'{item} criteria {criteria_str} ({compare_str}) unmet '

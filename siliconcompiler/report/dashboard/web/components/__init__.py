@@ -494,7 +494,7 @@ def node_viewer(chip, step, index, metric_dataframe, height=None):
 
     metrics_col, records_col, logs_and_reports_col = streamlit.columns(3, gap='small')
 
-    node_name = f'{step}{index}'
+    node_name = f'{step}/{index}'
 
     with metrics_col:
         streamlit.subheader(f'{node_name} metrics')
@@ -504,7 +504,7 @@ def node_viewer(chip, step, index, metric_dataframe, height=None):
                 use_container_width=True,
                 height=height)
     with records_col:
-        streamlit.subheader(f'{step}{index} details')
+        streamlit.subheader(f'{step}/{index} details')
         nodes = {}
         nodes[step + index] = report.get_flowgraph_nodes(chip, step, index)
         streamlit.dataframe(
@@ -512,7 +512,7 @@ def node_viewer(chip, step, index, metric_dataframe, height=None):
             use_container_width=True,
             height=height)
     with logs_and_reports_col:
-        streamlit.subheader(f'{step}{index} files')
+        streamlit.subheader(f'{step}/{index} files')
         node_file_tree_viewer(chip, step, index)
 
 
