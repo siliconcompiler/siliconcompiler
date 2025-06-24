@@ -634,36 +634,38 @@ proc sc_setup_sta { } {
         set_timing_derate -late $sta_late_timing_derate
     }
 
-    # Create path groups
-    if {
-        [lindex [sc_cfg_tool_task_get var sta_define_path_groups] 0] == "true" &&
-        [llength [sta::path_group_names]] == 0
-    } {
-        sc_path_group -name in2out -from [all_inputs -no_clocks] -to [all_outputs]
-
+    if { [sc_check_version 19370] } {
+        # Create path groups
         if {
-            [llength [all_clocks]] == 1 ||
-            [lindex [sc_cfg_tool_task_get var sta_unique_path_groups_per_clock] 0] == "false"
+            [lindex [sc_cfg_tool_task_get var sta_define_path_groups] 0] == "true" &&
+            [llength [sta::path_group_names]] == 0
         } {
-            sc_path_group -name in2reg -from [all_inputs -no_clocks] -to [all_registers]
-            sc_path_group -name reg2reg -from [all_registers] -to [all_registers]
-            sc_path_group -name reg2out -from [all_registers] -to [all_outputs]
-        } else {
-            foreach clock [all_clocks] {
-                set clk_name [get_property $clock name]
-                sc_path_group -name in2reg.${clk_name} \
-                    -from [all_inputs -no_clocks] \
-                    -to [all_registers -clock $clock]
-                sc_path_group -name reg2reg.${clk_name} \
-                    -from [all_registers -clock $clock] \
-                    -to [all_registers -clock $clock]
-                sc_path_group -name reg2out.${clk_name} \
-                    -from [all_registers -clock $clock] \
-                    -to [all_outputs]
+            sc_path_group -name in2out -from [all_inputs -no_clocks] -to [all_outputs]
+
+            if {
+                [llength [all_clocks]] == 1 ||
+                [lindex [sc_cfg_tool_task_get var sta_unique_path_groups_per_clock] 0] == "false"
+            } {
+                sc_path_group -name in2reg -from [all_inputs -no_clocks] -to [all_registers]
+                sc_path_group -name reg2reg -from [all_registers] -to [all_registers]
+                sc_path_group -name reg2out -from [all_registers] -to [all_outputs]
+            } else {
+                foreach clock [all_clocks] {
+                    set clk_name [get_property $clock name]
+                    sc_path_group -name in2reg.${clk_name} \
+                        -from [all_inputs -no_clocks] \
+                        -to [all_registers -clock $clock]
+                    sc_path_group -name reg2reg.${clk_name} \
+                        -from [all_registers -clock $clock] \
+                        -to [all_registers -clock $clock]
+                    sc_path_group -name reg2out.${clk_name} \
+                        -from [all_registers -clock $clock] \
+                        -to [all_outputs]
+                }
             }
         }
+        utl::info FLW 1 "Timing path groups: [sta::path_group_names]"
     }
-    utl::info FLW 1 "Timing path groups: [sta::path_group_names]"
 
     # Check timing setup
     if { [sc_cfg_tool_task_check_in_list check_setup var reports] } {

@@ -142,7 +142,7 @@ To run a testcase, use:
         chip.set('arg', 'step', step)
         chip.set('arg', 'index', index)
         tool, task = get_tool_task(chip, step, index)
-        chip.logger.info(f'Preparing run for {step}{index} - {tool}/{task}')
+        chip.logger.info(f'Preparing run for {step}/{index} - {tool}/{task}')
 
         # Modify run environment to point to extracted files
         builddir_key = ['option', 'builddir']

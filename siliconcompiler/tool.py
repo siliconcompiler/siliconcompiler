@@ -61,8 +61,8 @@ class TaskExecutableNotFound(TaskError):
 
 
 class TaskSchema(NamedSchema):
-    def __init__(self, name=None):
-        super().__init__(name=name)
+    def __init__(self, name):
+        NamedSchema.__init__(self, name)
 
         schema_task(self)
 
@@ -107,13 +107,13 @@ class ToolSchema(NamedSchema):
         r"^\s*" + __parse_version_check_str + r"\s*$",
         re.VERBOSE | re.IGNORECASE)
 
-    def __init__(self, name=None):
-        super().__init__(name=name)
+    def __init__(self, name):
+        NamedSchema.__init__(self, name)
 
         schema_tool(self)
 
         schema = EditableSchema(self)
-        schema.insert("task", "default", TaskSchema())
+        schema.insert("task", "default", TaskSchema(None))
 
         self.set_runtime(None)
 
@@ -383,13 +383,14 @@ class ToolSchema(NamedSchema):
                 envvars[lic_env] = ':'.join(license_file)
 
         if include_path:
-            path_param = self.get('path', field=None, step=self.__step, index=self.__index)
-            if path_param.get(field='package'):
-                raise NotImplementedError
+            path = self.find_files(
+                "path", step=self.__step, index=self.__index,
+                packages=self.__chip.get("package", field="schema").get_resolvers(),
+                cwd=self.__chip.cwd,
+                missing_ok=True)
 
             envvars["PATH"] = os.getenv("PATH", os.defpath)
 
-            path = path_param.get(field=None).resolve_path()  # TODO: needs package search
             if path:
                 envvars["PATH"] = path + os.pathsep + envvars["PATH"]
 
@@ -415,15 +416,6 @@ class ToolSchema(NamedSchema):
         '''
 
         cmdargs = []
-        cmdargs.extend(self.get('task', self.__task, 'option',
-                                step=self.__step, index=self.__index))
-
-        # Add scripts files / TODO:
-        scripts = self.__chip.find_files('tool', self.__tool, 'task', self.__task, 'script',
-                                         step=self.__step, index=self.__index)
-
-        cmdargs.extend(scripts)
-
         try:
             cmdargs.extend(self.runtime_options())
         except Exception as e:
@@ -850,7 +842,17 @@ class ToolSchema(NamedSchema):
         pass
 
     def runtime_options(self):
-        return []
+        cmdargs = []
+        cmdargs.extend(self.get('task', self.__task, 'option',
+                                step=self.__step, index=self.__index))
+
+        # Add scripts files / TODO:
+        scripts = self.__chip.find_files('tool', self.__tool, 'task', self.__task, 'script',
+                                         step=self.__step, index=self.__index)
+
+        cmdargs.extend(scripts)
+
+        return cmdargs
 
     def run(self):
         raise NotImplementedError("must be implemented by the implementation class")
@@ -863,6 +865,9 @@ class ToolSchema(NamedSchema):
 # Migration helper
 ###########################################################################
 class ToolSchemaTmp(ToolSchema):
+    def __init__(self):
+        ToolSchema.__init__(self, None)
+
     def __module_func(self, name, modules):
         for module in modules:
             method = getattr(module, name, None)
@@ -963,7 +968,8 @@ class ToolSchemaTmp(ToolSchema):
             step, index = self.node()
             self._ToolSchema__chip.set('arg', 'step', step)
             self._ToolSchema__chip.set('arg', 'index', index)
-            ret = method(self._ToolSchema__chip)
+            ret = ToolSchema.runtime_options(self)
+            ret.extend(method(self._ToolSchema__chip))
             self._ToolSchema__chip.set('arg', 'step', prev_step)
             self._ToolSchema__chip.set('arg', 'index', prev_index)
             return ret

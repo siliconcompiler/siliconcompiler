@@ -73,7 +73,7 @@ def main():
                 chip.add('checklist', 'oh_tapeout', 'errors_warnings', 'task',
                          ('signoff', step, index))
 
-    status = chip.check_checklist('oh_tapeout')
+    status = chip.check_checklist('oh_tapeout', require_reports=False)
     if not status:
         return 1
 
@@ -81,7 +81,7 @@ def main():
     for item in chip.getkeys('checklist', 'oh_tapeout'):
         chip.set('checklist', 'oh_tapeout', item, 'ok', True)
 
-    status = chip.check_checklist('oh_tapeout', check_ok=True)
+    status = chip.check_checklist('oh_tapeout', check_ok=True, require_reports=False)
     if not status:
         return 1
 

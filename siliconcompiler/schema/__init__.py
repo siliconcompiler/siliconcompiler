@@ -1,9 +1,9 @@
 from .parameter import Parameter, Scope, PerNode
+from .journal import Journal
 from .safeschema import SafeSchema
 from .editableschema import EditableSchema
 from .baseschema import BaseSchema
 from .cmdlineschema import CommandLineSchema
-from .journalingschema import JournalingSchema
 from .namedschema import NamedSchema
 from .packageschema import PackageSchema
 
@@ -15,10 +15,10 @@ __all__ = [
     "SafeSchema",
     "EditableSchema",
     "CommandLineSchema",
-    "JournalingSchema",
     "NamedSchema",
     "PackageSchema",
     "Parameter",
     "Scope",
-    "PerNode"
+    "PerNode",
+    "Journal"
 ]

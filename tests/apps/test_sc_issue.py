@@ -8,16 +8,16 @@ from siliconcompiler.apps import sc_issue
 
 @pytest.mark.parametrize('flags,outputfileglob', [
     (['-cfg', 'build/heartbeat/job0/syn/0/outputs/heartbeat.pkg.json'],
-     'sc_issue_heartbeat_job0_syn0_*.tar.gz'),
+     'sc_issue_heartbeat_job0_syn_0_*.tar.gz'),
     (['-cfg', 'build/heartbeat/job0/place.global/0/outputs/heartbeat.pkg.json',
       '-arg_step', 'syn', '-arg_index', '0'],
-     'sc_issue_heartbeat_job0_syn0_*.tar.gz'),
+     'sc_issue_heartbeat_job0_syn_0_*.tar.gz'),
     (['-cfg', 'build/heartbeat/job0/place.global/0/outputs/heartbeat.pkg.json',
       '-arg_step', 'place.global', '-arg_index', '0'],
-     'sc_issue_heartbeat_job0_place.global0_*.tar.gz'),
+     'sc_issue_heartbeat_job0_place.global_0_*.tar.gz'),
     (['-cfg', 'build/heartbeat/job0/heartbeat.pkg.json',
       '-arg_step', 'place.global', '-arg_index', '0'],
-     'sc_issue_heartbeat_job0_place.global0_*.tar.gz')
+     'sc_issue_heartbeat_job0_place.global_0_*.tar.gz')
 ])
 @pytest.mark.eda
 @pytest.mark.quick

@@ -66,7 +66,7 @@ def send(chip, msg_type, step, index):
     msg = MIMEMultipart()
 
     if step and index:
-        subject = f'SiliconCompiler : {chip.design} | {jobname} | {step}{index} | {msg_type}'
+        subject = f'SiliconCompiler : {chip.design} | {jobname} | {step} | {index} | {msg_type}'
     else:
         subject = f'SiliconCompiler : {chip.design} | {jobname} | {msg_type}'
 

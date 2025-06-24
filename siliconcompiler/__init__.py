@@ -3,6 +3,7 @@ from siliconcompiler._common import NodeStatus, SiliconCompilerError
 from siliconcompiler.utils import sc_open
 from siliconcompiler.schema_obj import SchemaTmp as Schema
 
+from siliconcompiler.design import DesignSchema
 from siliconcompiler.record import RecordSchema
 from siliconcompiler.metric import MetricSchema
 from siliconcompiler.pdk import PDKSchema
@@ -30,6 +31,7 @@ __all__ = [
     "Checklist",
     "Schema",
     "sc_open",
+    "DesignSchema",
     "RecordSchema",
     "MetricSchema",
     "PDKSchema",

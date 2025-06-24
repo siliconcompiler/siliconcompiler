@@ -204,7 +204,7 @@ def test_setup_error(chip, monkeypatch, caplog):
 
     with pytest.raises(ValueError, match="Find this"):
         node.setup()
-    assert "Failed to run setup() for steptwo0 with builtin/nop" in caplog.text
+    assert "Failed to run setup() for steptwo/0 with builtin/nop" in caplog.text
 
 
 def test_setup_skipped(chip, monkeypatch, caplog):
@@ -217,7 +217,7 @@ def test_setup_skipped(chip, monkeypatch, caplog):
 
     assert node.setup() is False
     assert chip.get("record", "status", step="steptwo", index="0") == NodeStatus.SKIPPED
-    assert "Removing steptwo0 due to skip me" in caplog.text
+    assert "Removing steptwo/0 due to skip me" in caplog.text
 
 
 def test_clean_directory(chip):
@@ -310,7 +310,7 @@ def test_check_values_changed_change(chip, caplog):
     other_chip.set("option", "param", "N", "128")
 
     assert node.check_values_changed(other, [("option", "param", "N")]) is True
-    assert "[option,param,N] in steptwo0 has been modified from previous run" in caplog.text
+    assert "[option,param,N] in steptwo/0 has been modified from previous run" in caplog.text
 
 
 def test_check_values_changed_change_missing(chip, caplog):
@@ -321,7 +321,7 @@ def test_check_values_changed_change_missing(chip, caplog):
     node.init_state(assign_runtime=True)
 
     assert node.check_values_changed(node, [("option", "params", "N")]) is True
-    assert "[option,params,N] in steptwo0 has been modified from previous run" in caplog.text
+    assert "[option,params,N] in steptwo/0 has been modified from previous run" in caplog.text
 
 
 def test_check_previous_run_status_flow(chip, caplog):
@@ -431,7 +431,7 @@ def test_check_previous_run_status_inputs_changed(chip, monkeypatch, caplog):
     monkeypatch.setattr(node.task, "select_input_nodes", dummy_select)
 
     assert node.check_previous_run_status(node) is False
-    assert "inputs to steptwo0 has been modified from previous run" in caplog.text
+    assert "inputs to steptwo/0 has been modified from previous run" in caplog.text
 
 
 def test_check_previous_run_status_no_change(chip, monkeypatch):
@@ -474,7 +474,7 @@ def test_check_files_changed_timestamp(chip, caplog):
     chip.set("option", "file", "test", "testfile.txt")
 
     assert node.check_files_changed(node, now, [("option", "file", "test")]) is True
-    assert "[option,file,test] (timestamp) in steptwo0 has been modified from previous run" in \
+    assert "[option,file,test] (timestamp) in steptwo/0 has been modified from previous run" in \
         caplog.text
 
 
@@ -509,7 +509,7 @@ def test_check_files_changed_timestamp_directory(chip, caplog):
     chip.set("option", "dir", "test", "testdir")
 
     assert node.check_files_changed(node, now, [("option", "dir", "test")]) is True
-    assert "[option,dir,test] (timestamp) in steptwo0 has been modified from previous run" in \
+    assert "[option,dir,test] (timestamp) in steptwo/0 has been modified from previous run" in \
         caplog.text
 
 
@@ -532,7 +532,7 @@ def test_check_files_changed_package(chip, caplog):
     chip.set("option", "file", "test", "testfile.txt", package="testing")
 
     assert node.check_files_changed(node_other, now, [("option", "file", "test")]) is True
-    assert "[option,file,test] (file package) in steptwo0 has been modified from previous run" in \
+    assert "[option,file,test] (file package) in steptwo/0 has been modified from previous run" in \
         caplog.text
 
 
@@ -555,7 +555,7 @@ def test_check_files_changed_timestamp_current_hash(chip, caplog):
     node.init_state(assign_runtime=True)
 
     assert node.check_files_changed(node_other, now, [("option", "file", "test")]) is True
-    assert "[option,file,test] (timestamp) in steptwo0 has been modified from previous run" in \
+    assert "[option,file,test] (timestamp) in steptwo/0 has been modified from previous run" in \
         caplog.text
 
 
@@ -579,7 +579,7 @@ def test_check_files_changed_timestamp_previous_hash(chip, caplog):
     node_other.init_state(assign_runtime=True)
 
     assert node.check_files_changed(node_other, now, [("option", "file", "test")]) is True
-    assert "[option,file,test] (timestamp) in steptwo0 has been modified from previous run" in \
+    assert "[option,file,test] (timestamp) in steptwo/0 has been modified from previous run" in \
         caplog.text
 
 
@@ -634,7 +634,7 @@ def test_check_files_changed_hash_directory(chip, caplog):
     node_other.init_state(assign_runtime=True)
 
     assert node.check_files_changed(node_other, now, [("option", "dir", "test")]) is True
-    assert "[option,dir,test] (file hash) in steptwo0 has been modified from previous run" in \
+    assert "[option,dir,test] (file hash) in steptwo/0 has been modified from previous run" in \
         caplog.text
 
 
@@ -1103,7 +1103,7 @@ def test_setup_input_directory_no_input_dir(chip, caplog):
     with pytest.raises(SystemExit):
         node.setup_input_directory()
 
-    assert "Unable to locate outputs directory for stepone0: " in caplog.text
+    assert "Unable to locate outputs directory for stepone/0: " in caplog.text
 
 
 @pytest.mark.parametrize("error", [NodeStatus.ERROR, NodeStatus.TIMEOUT])
@@ -1126,7 +1126,7 @@ def test_setup_input_directory_input_error(chip, error, caplog):
     with pytest.raises(SystemExit):
         node.setup_input_directory()
 
-    assert "Halting steptwo0 due to errors" in caplog.text
+    assert "Halting steptwo/0 due to errors" in caplog.text
 
 
 def test_validate(chip):
@@ -1144,7 +1144,7 @@ def test_validate_missing_inputs(chip, caplog):
     node = SchedulerNode(chip, "steptwo", "0")
     node.init_state(assign_runtime=True)
     assert node.validate() is False
-    assert "Required input file0.txt not received for steptwo0" in caplog.text
+    assert "Required input file0.txt not received for steptwo/0" in caplog.text
 
 
 def test_validate_missing_required_key(chip, caplog):
@@ -1219,8 +1219,8 @@ def test_report_output_files_missing_outputs_dir(echo_chip, caplog):
     with pytest.raises(SystemExit):
         node._SchedulerNode__report_output_files()
     assert "Output directory is missing" in caplog.text
-    assert "Failed to write manifest for steptwo0" in caplog.text
-    assert "Halting steptwo0 due to errors" in caplog.text
+    assert "Failed to write manifest for steptwo/0" in caplog.text
+    assert "Halting steptwo/0 due to errors" in caplog.text
 
 
 def test_report_output_files_missing_manifest(echo_chip, caplog):
@@ -1232,7 +1232,7 @@ def test_report_output_files_missing_manifest(echo_chip, caplog):
     with pytest.raises(SystemExit):
         node._SchedulerNode__report_output_files()
     assert "Output manifest (dummy.pkg.json) is missing." in caplog.text
-    assert "Halting steptwo0 due to errors" in caplog.text
+    assert "Halting steptwo/0 due to errors" in caplog.text
 
 
 def test_report_output_files_missing_outputs(echo_chip, caplog):
@@ -1248,7 +1248,7 @@ def test_report_output_files_missing_outputs(echo_chip, caplog):
     with pytest.raises(SystemExit):
         node._SchedulerNode__report_output_files()
     assert "Expected output files are missing: echothis.txt" in caplog.text
-    assert "Halting steptwo0 due to errors" in caplog.text
+    assert "Halting steptwo/0 due to errors" in caplog.text
 
 
 def test_report_output_files_extra_outputs(echo_chip, caplog):
@@ -1269,7 +1269,7 @@ def test_report_output_files_extra_outputs(echo_chip, caplog):
     with pytest.raises(SystemExit):
         node._SchedulerNode__report_output_files()
     assert "Unexpected output files found: extra.txt" in caplog.text
-    assert "Halting steptwo0 due to errors" in caplog.text
+    assert "Halting steptwo/0 due to errors" in caplog.text
 
 
 def test_report_output_files_extra_outputs_not_strict(echo_chip, caplog):
@@ -1290,7 +1290,7 @@ def test_report_output_files_extra_outputs_not_strict(echo_chip, caplog):
 
     node._SchedulerNode__report_output_files()
     assert "Unexpected output files found: extra.txt" in caplog.text
-    assert "Halting steptwo0 due to errors" not in caplog.text
+    assert "Halting steptwo/0 due to errors" not in caplog.text
 
 
 def test_run_pass(chip):
@@ -1366,7 +1366,7 @@ def test_run_failed_to_validate(chip, caplog):
     assert chip.get("record", "status", step="stepone", index="0") == NodeStatus.ERROR
 
     assert "Failed to validate node setup. See previous errors" in caplog.text
-    assert "Halting stepone0 due to errors" in caplog.text
+    assert "Halting stepone/0 due to errors" in caplog.text
 
 
 def test_run_failed_select_input(chip, caplog):
@@ -1387,8 +1387,8 @@ def test_run_failed_select_input(chip, caplog):
     assert chip.get("metric", "totaltime", step="steptwo", index="0") is None
     assert chip.get("record", "status", step="steptwo", index="0") == NodeStatus.ERROR
 
-    assert "No inputs selected for steptwo0" in caplog.text
-    assert "Halting steptwo0 due to errors" in caplog.text
+    assert "No inputs selected for steptwo/0" in caplog.text
+    assert "Halting steptwo/0 due to errors" in caplog.text
 
 
 def test_run_failed_to_execute(chip, caplog):
@@ -1410,7 +1410,7 @@ def test_run_failed_to_execute(chip, caplog):
     assert chip.get("record", "status", step="stepone", index="0") == NodeStatus.ERROR
 
     assert "thiserrorisraised" in caplog.text
-    assert "Halting stepone0 due to errors" in caplog.text
+    assert "Halting stepone/0 due to errors" in caplog.text
 
 
 def test_run_without_queue(chip):
@@ -1499,7 +1499,7 @@ def test_copy_from(chip, caplog):
     assert not os.path.exists(node.get_manifest("output"))
 
     node.copy_from("job0")
-    assert "Importing stepone0 from job0" in caplog.text
+    assert "Importing stepone/0 from job0" in caplog.text
 
     assert os.path.exists(node.replay_script)
     with open(node.replay_script, "r") as f:

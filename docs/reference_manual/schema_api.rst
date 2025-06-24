@@ -38,6 +38,11 @@ Useful APIs
 Metrics Classes
 ===============
 
+.. autoclass:: siliconcompiler.DesignSchema
+    :members:
+    :show-inheritance:
+    :inherited-members:
+
 .. autoclass:: siliconcompiler.RecordSchema
     :members:
     :show-inheritance:
@@ -83,7 +88,7 @@ Full API
 
 .. autoclass:: BaseSchema
     :members:
-    :private-members: +_from_dict
+    :private-members: +_from_dict,_parent
 
 .. autoclass:: EditableSchema
     :members:
@@ -96,12 +101,15 @@ Full API
 .. autoclass:: CommandLineSchema
     :members:
 
-.. autoclass:: JournalingSchema
+.. autoclass:: Journal
+    :members:
+
+.. autoclass:: NamedSchema
     :members:
     :show-inheritance:
     :inherited-members:
 
-.. autoclass:: NamedSchema
+.. autoclass:: siliconcompiler.dependencyschema.DependencySchema
     :members:
     :show-inheritance:
     :inherited-members:

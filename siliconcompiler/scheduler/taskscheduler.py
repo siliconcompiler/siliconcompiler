@@ -11,7 +11,7 @@ from siliconcompiler import SiliconCompilerError
 from siliconcompiler import utils
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 
-from siliconcompiler.schema import JournalingSchema
+from siliconcompiler.schema import Journal
 
 from siliconcompiler.utils.logging import SCBlankLoggerFormatter
 
@@ -79,7 +79,7 @@ class TaskScheduler:
             threads = max(1, min(threads, self.__max_threads))
 
             task = {
-                "name": f"{step}{index}",
+                "name": f"{step}/{index}",
                 "inputs": runtime.get_node_inputs(step, index, record=self.__record),
                 "proc": None,
                 "parent_pipe": None,
@@ -189,7 +189,7 @@ class TaskScheduler:
                 self.__logger.debug(f'{info["name"]} is complete merging: {manifest}')
 
                 if os.path.exists(manifest):
-                    JournalingSchema(self.__schema).read_journal(manifest)
+                    Journal.replay_file(self.__schema, manifest)
                     # TODO: once tool is fixed this can go away
                     self.__schema.unset("arg", "step")
                     self.__schema.unset("arg", "index")
@@ -198,7 +198,8 @@ class TaskScheduler:
                     try:
                         packages = info["parent_pipe"].recv()
                         if isinstance(packages, dict):
-                            self.__chip._packages.update(packages)
+                            for package, path in packages.items():
+                                self.__chip.get("package", field="schema")._set_cache(package, path)
                     except:  # noqa E722
                         pass
 

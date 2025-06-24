@@ -51,13 +51,13 @@ def test_from_to(gcd_with_metrics, capfd):
     # Summary output is hidden by capfd, so we print it to aid in debugging
     print(stdout)
 
-    assert 'import.verilog0' in stdout
-    assert 'import.convert0' in stdout
-    assert 'import.chisel0' in stdout
-    assert 'import.c0' in stdout
+    assert 'import.veri...0' in stdout
+    assert 'import.conv...0' in stdout
+    assert 'import.chisel/0' in stdout
+    assert 'import.c/0' in stdout
     assert 'import.blue...0' in stdout
-    assert 'import.vhdl0' in stdout
-    assert 'syn0' in stdout
+    assert 'import.vhdl/0' in stdout
+    assert 'syn/0' in stdout
     assert 'floorplan' not in stdout
 
 
@@ -97,9 +97,9 @@ def test_parallel_path(capfd):
     stdout, _ = capfd.readouterr()
     # Summary output is hidden by capfd, so we print it to aid in debugging
     print(stdout)
-    assert 'place1' in stdout
-    assert 'cts1' in stdout
-    assert 'place0' not in stdout
-    assert 'cts0' not in stdout
-    assert 'place2' not in stdout
-    assert 'cts2' not in stdout
+    assert 'place/1' in stdout
+    assert 'cts/1' in stdout
+    assert 'place/0' not in stdout
+    assert 'cts/0' not in stdout
+    assert 'place/2' not in stdout
+    assert 'cts/2' not in stdout

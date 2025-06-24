@@ -114,7 +114,7 @@ def pick_manifest(chip, src_file=None):
         if (step, index) in all_manifests[chip.design][jobname]:
             return all_manifests[chip.design][jobname][(step, index)]
         else:
-            chip.logger.error(f'{step}{index} is not a valid node.')
+            chip.logger.error(f'{step}/{index} is not a valid node.')
             return None
 
     if (None, None) in all_manifests[chip.design][jobname]:

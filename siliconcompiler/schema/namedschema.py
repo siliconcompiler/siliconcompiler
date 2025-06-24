@@ -15,8 +15,8 @@ class NamedSchema(BaseSchema):
         name (str): name of the schema
     '''
 
-    def __init__(self, name=None):
-        super().__init__()
+    def __init__(self, name):
+        BaseSchema.__init__(self)
 
         self.__name = name
 
@@ -24,7 +24,39 @@ class NamedSchema(BaseSchema):
         '''
         Returns the name of the schema
         '''
-        return self.__name
+        try:
+            return self.__name
+        except AttributeError:
+            return None
+
+    def _reset(self) -> None:
+        """
+        Resets the state of the object
+        """
+        pass
+
+    @classmethod
+    def from_manifest(cls, name, filepath=None, cfg=None):
+        '''
+        Create a new schema based on the provided source files.
+
+        The two arguments to this method are mutually exclusive.
+
+        Args:
+            name (str): name of the schema
+            filepath (path): Initial manifest.
+            cfg (dict): Initial configuration dictionary.
+        '''
+
+        if not filepath and cfg is None:
+            raise RuntimeError("filepath or dictionary is required")
+
+        schema = cls(name)
+        if filepath:
+            schema.read_manifest(filepath)
+        if cfg:
+            schema._from_dict(cfg, [])
+        return schema
 
     def _from_dict(self, manifest, keypath, version=None):
         if keypath:
@@ -35,7 +67,7 @@ class NamedSchema(BaseSchema):
     def copy(self, key=None):
         copy = super().copy(key=key)
 
-        if not self.__name and key and key[-1] != "default":
+        if key and key[-1] != "default":
             copy.__name = key[-1]
 
         return copy

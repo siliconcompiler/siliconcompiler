@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import siliconcompiler
-from siliconcompiler import package as sc_package
 from siliconcompiler.targets import freepdk45_demo
 
 import glob
@@ -52,14 +51,15 @@ def main(limit=-1):
 
     chip = siliconcompiler.Chip('oh')
     __register_oh(chip)
-    filelist = glob.glob(sc_package.path(chip, 'oh') + '/' + libdir + '/*.v')
+    oh_path = chip.get("package", field="schema").get_resolver("oh")
+    filelist = glob.glob(str(oh_path.get_path()) + '/' + libdir + '/*.v')
     dontcheck = ['asic_keeper.v',
                  'asic_antenna.v',
                  'asic_header.v',
                  'asic_footer.v',
                  'asic_decap.v']
     for item in dontcheck:
-        filelist.remove(os.path.join(sc_package.path(chip, 'oh') + '/' + libdir, item))
+        filelist.remove(os.path.join(oh_path.get_path(), libdir, item))
 
     filelist = sorted(filelist)[0:limit]
     return checkarea(filelist, libdir, freepdk45_demo)

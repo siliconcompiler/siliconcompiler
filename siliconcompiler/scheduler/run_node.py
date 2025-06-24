@@ -7,7 +7,6 @@ import tarfile
 import os.path
 
 from siliconcompiler import Chip, Schema
-from siliconcompiler.package import path as sc_path
 from siliconcompiler.scheduler.schedulernode import SchedulerNode
 from siliconcompiler import __version__
 
@@ -46,9 +45,6 @@ def main():
                         metavar='<package>:<directory>',
                         nargs='+',
                         help='Map of caches to prepopulate runner with')
-    parser.add_argument('-fetch_cache',
-                        action='store_true',
-                        help='Allow for cache downloads')
     parser.add_argument('-step',
                         required=True,
                         metavar='<step>',
@@ -111,11 +107,11 @@ def main():
     if args.cachemap:
         for cachepair in args.cachemap:
             package, path = cachepair.split(':')
-            chip._packages[package] = path
+            chip.get("package", field="schema")._set_cache(package, path)
 
     # Populate cache
-    for package in chip.getkeys('package', 'source'):
-        sc_path(chip, package, fetch=args.fetch_cache)
+    for resolver in chip.get('package', field='schema').get_resolvers().values():
+        resolver()
 
     # Run the task.
     error = True

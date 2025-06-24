@@ -4,8 +4,8 @@ from siliconcompiler.schema.utils import trim
 
 
 class PDKSchema(NamedSchema, PackageSchema):
-    def __init__(self, name=None, package=None):
-        NamedSchema.__init__(self, name=name)
+    def __init__(self, name, package=None):
+        NamedSchema.__init__(self, name)
         PackageSchema.__init__(self, package=package)
 
         schema_pdk(self)

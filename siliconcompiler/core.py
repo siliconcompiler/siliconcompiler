@@ -18,9 +18,9 @@ import csv
 import yaml
 from inspect import getfullargspec
 from siliconcompiler import Schema
-from siliconcompiler.schema import SCHEMA_VERSION, PerNode, JournalingSchema, EditableSchema
+from siliconcompiler.schema import SCHEMA_VERSION, PerNode, Journal, EditableSchema
 from siliconcompiler.schema.parametertype import NodeType
-from siliconcompiler.schema.parametervalue import FileNodeValue, PathNodeValue
+from siliconcompiler.schema.parametervalue import FileNodeValue
 from siliconcompiler.schema import utils as schema_utils
 from siliconcompiler import utils
 from siliconcompiler.utils.logging import SCColorLoggerFormatter, \
@@ -34,7 +34,6 @@ from siliconcompiler.report import _generate_summary_image, _open_summary_image
 from siliconcompiler.report.dashboard.web import WebDashboard
 from siliconcompiler.report.dashboard.cli import CliDashboard
 from siliconcompiler.report.dashboard import DashboardType
-from siliconcompiler import package as sc_package
 import glob
 from siliconcompiler.scheduler.scheduler import Scheduler
 from siliconcompiler.utils.flowgraph import _check_flowgraph_io, _get_flowgraph_information
@@ -1102,7 +1101,8 @@ class Chip:
         '''
 
         if package:
-            filename = os.path.join(sc_package.path(self, package), filename)
+            resolvers = self.get("package", field="schema").get_resolvers()
+            filename = os.path.join(resolvers[package](), filename)
 
         if not os.path.isfile(filename):
             raise FileNotFoundError(filename)
@@ -1110,10 +1110,16 @@ class Chip:
         package_name = f'flist-{os.path.basename(filename)}'
         package_dir = os.path.dirname(os.path.abspath(filename))
 
-        env_vars = utils.get_env_vars(self, None, None)
-
         def __make_path(rel, path):
-            path = PathNodeValue.resolve_env_vars(path, envvars=env_vars)
+            env_save = os.environ.copy()
+            schema_env = {}
+            for env in self.getkeys('option', 'env'):
+                schema_env[env] = self.get('option', 'env', env)
+            os.environ.update(schema_env)
+            path = os.path.expandvars(path)
+            path = os.path.expanduser(path)
+            os.environ.clear()
+            os.environ.update(env_save)
             if os.path.isabs(path):
                 if path.startswith(rel):
                     return os.path.relpath(path, rel), package_name
@@ -1380,18 +1386,17 @@ class Chip:
         else:
             search_paths = [self.cwd]
 
-        env_vars = utils.get_env_vars(self, step, index)
+        resolvers = self.get("package", field="schema").get_resolvers()
         for (dependency, path) in zip(dependencies, paths):
             faux_param = FileNodeValue()
             faux_param.set(path)
             try:
                 if dependency:
                     faux_param.set(dependency, field='package')
-                    faux_search = [os.path.abspath(os.path.join(sc_package.path(self, dependency)))]
+                    faux_search = [resolvers[dependency]()]
                 else:
                     faux_search = search_paths
                 resolved = faux_param.resolve_path(
-                    envvars=env_vars,
                     search=faux_search,
                     collection_dir=collection_dir)
             except FileNotFoundError:
@@ -1552,13 +1557,7 @@ class Chip:
             if keypath[-2:] == ('option', 'builddir'):
                 ignore_keys.append(keypath)
 
-        package_map = {}
-
-        def resolve(package):
-            return sc_package.path(self, package)
-
-        for package in self.schema.getkeys("package", "source"):
-            package_map[package] = resolve
+        package_map = self.get("package", field="schema").get_resolvers()
 
         return self.schema.check_filepaths(
             ignore_keys=ignore_keys,
@@ -1632,7 +1631,7 @@ class Chip:
                         NodeStatus.SUCCESS:
                     # this task has already completed successfully, OK
                     continue
-                self.logger.error(f'{step}{index} relies on {in_step}{in_index}, '
+                self.logger.error(f'{step}/{index} relies on {in_step}/{in_index}, '
                                   'but this task has not been run and is not in the '
                                   'current nodes to execute.')
                 error = True
@@ -1677,12 +1676,12 @@ class Chip:
             if not self._get_tool_module(step, index, flow=flow, error=False):
                 error = True
                 self.logger.error(f"Tool module {tool_name} could not be found or "
-                                  f"loaded for {step}{index}.")
+                                  f"loaded for {step}/{index}.")
             if not self._get_task_module(step, index, flow=flow, error=False):
                 error = True
                 task_module = self.get('flowgraph', flow, step, index, 'taskmodule')
                 self.logger.error(f"Task module {task_module} for {tool_name}/{task_name} "
-                                  f"could not be found or loaded for {step}{index}.")
+                                  f"could not be found or loaded for {step}/{index}.")
 
         # 5. Check per tool parameter requirements (when tool exists)
         for (step, index) in nodes:
@@ -1782,10 +1781,7 @@ class Chip:
             schema.write_manifest(filepath)
             return
 
-        tcl_record = False
-        if isinstance(schema, JournalingSchema):
-            tcl_record = "get" in schema.get_journaling_types()
-            schema = schema.get_base_schema()
+        tcl_record = "get" in Journal.access(schema).get_types()
 
         is_csv = re.search(r'(\.csv)(\.gz)*$', filepath)
 
@@ -1915,156 +1911,13 @@ class Chip:
             >>> status = chip.check_checklist('iso9000', 'd000')
             Returns status.
         '''
-        error = False
-
-        self.logger.info(f'Checking checklist {standard}')
-
         if standard not in self.getkeys('checklist'):
             self.logger.error(f'{standard} has not been loaded.')
             return False
 
-        if items is None:
-            items = self.getkeys('checklist', standard)
-
-        # these tasks are recorded by SC so there are no reports
-        metrics_without_reports = (
-            'tasktime',
-            'totaltime',
-            'exetime',
-            'memory')
-
-        for item in items:
-            if item not in self.getkeys('checklist', standard):
-                self.logger.error(f'{item} is not a check in {standard}.')
-                error = True
-                continue
-
-            allow_missing_reports = True
-
-            has_check = False
-
-            all_criteria = self.get('checklist', standard, item, 'criteria')
-            for criteria in all_criteria:
-                m = re.match(r'^(\w+)\s*([\>\=\<]+)\s*([+\-]?\d+(\.\d+)?(e[+\-]?\d+)?)$',
-                             criteria.strip())
-                if not m:
-                    self.error(f"Illegal checklist criteria: {criteria}")
-                    return False
-                elif m.group(1) not in self.getkeys('metric'):
-                    self.error(f"Criteria must use legal metrics only: {criteria}")
-                    return False
-
-                metric = m.group(1)
-                op = m.group(2)
-                if self.get('metric', metric, field='type') == 'int':
-                    goal = int(m.group(3))
-                    number_format = 'd'
-                else:
-                    goal = float(m.group(3))
-
-                    if goal == 0.0 or (abs(goal) > 1e-3 and abs(goal) < 1e5):
-                        number_format = '.3f'
-                    else:
-                        number_format = '.3e'
-
-                if metric not in metrics_without_reports:
-                    allow_missing_reports = False
-
-                tasks = self.get('checklist', standard, item, 'task')
-                for job, step, index in tasks:
-                    if job not in self.getkeys('history'):
-                        self.error(f'{job} not found in history')
-
-                    flow = self.get('option', 'flow', job=job)
-
-                    if step not in self.getkeys('flowgraph', flow, job=job):
-                        self.error(f'{step} not found in flowgraph')
-
-                    if index not in self.getkeys('flowgraph', flow, step, job=job):
-                        self.error(f'{step}{index} not found in flowgraph')
-
-                    if self.get('record', 'status', step=step, index=index, job=job) == \
-                            NodeStatus.SKIPPED:
-                        if verbose:
-                            self.logger.warning(f'{step}{index} was skipped')
-                        continue
-
-                    has_check = True
-
-                    # Automated checks
-                    flow = self.get('option', 'flow', job=job)
-                    tool = self.get('flowgraph', flow, step, index, 'tool', job=job)
-                    task = self.get('flowgraph', flow, step, index, 'task', job=job)
-
-                    value = self.get('metric', metric, job=job, step=step, index=index)
-                    criteria_ok = utils.safecompare(self, value, op, goal)
-                    if metric in self.getkeys('checklist', standard, item, 'waiver'):
-                        waivers = self.get('checklist', standard, item, 'waiver', metric)
-                    else:
-                        waivers = []
-
-                    criteria_str = f'{metric}{op}{goal:{number_format}}'
-                    compare_str = f'{value:{number_format}}{op}{goal:{number_format}}'
-                    step_desc = f'job {job} with step {step}{index} and task {tool}/{task}'
-                    if not criteria_ok and waivers:
-                        self.logger.warning(f'{item} criteria {criteria_str} ({compare_str}) unmet '
-                                            f'by {step_desc}, but found waivers.')
-                    elif not criteria_ok:
-                        self.logger.error(f'{item} criteria {criteria_str} ({compare_str}) unmet '
-                                          f'by {step_desc}.')
-                        error = True
-                    elif verbose and criteria_ok:
-                        self.logger.info(f'{item} criteria {criteria_str} met by {step_desc}.')
-
-                    has_reports = \
-                        self.valid('tool', tool, 'task', task, 'report', metric, job=job) and \
-                        self.get('tool', tool, 'task', task, 'report', metric, job=job,
-                                 step=step, index=index)
-
-                    if allow_missing_reports and not has_reports:
-                        # No reports available and it is allowed
-                        continue
-
-                    reports = []
-                    try:
-                        if has_reports:
-                            reports = self.find_files('tool', tool, 'task', task, 'report', metric,
-                                                      job=job,
-                                                      step=step, index=index,
-                                                      missing_ok=not require_reports)
-                    except SiliconCompilerError:
-                        reports = []
-                        continue
-
-                    if require_reports and not reports:
-                        self.logger.error(f'No EDA reports generated for metric {metric} in '
-                                          f'{step_desc}')
-                        error = True
-
-                    for report in reports:
-                        if not report:
-                            continue
-
-                        report = os.path.relpath(report, self.cwd)
-                        if report not in self.get('checklist', standard, item, 'report'):
-                            self.add('checklist', standard, item, 'report', report)
-
-            if has_check:
-                if require_reports and \
-                        not allow_missing_reports and \
-                        not self.get('checklist', standard, item, 'report'):
-                    # TODO: validate that report exists?
-                    self.logger.error(f'No report documenting item {item}')
-                    error = True
-
-                if check_ok and not self.get('checklist', standard, item, 'ok'):
-                    self.logger.error(f"Item {item} 'ok' field not checked")
-                    error = True
-
-        if not error:
-            self.logger.info('Check succeeded!')
-
-        return not error
+        return self.get("checklist", standard, field="schema").check(
+            items=items, check_ok=check_ok, require_reports=require_reports
+        )
 
     ###########################################################################
     def __import_library(self, libname, library, job=None, clobber=True, keep_input=True):
@@ -2677,7 +2530,7 @@ class Chip:
     ###########################################################################
     def _archive_node(self, tar, step, index, include=None, verbose=True):
         if verbose:
-            self.logger.info(f'Archiving {step}{index}...')
+            self.logger.info(f'Archiving {step}/{index}...')
 
         basedir = self.getworkdir(step=step, index=index)
 
@@ -2686,7 +2539,7 @@ class Chip:
 
         if not os.path.isdir(basedir):
             if self.get('record', 'status', step=step, index=index) != NodeStatus.SKIPPED:
-                self.logger.error(f'Unable to archive {step}{index} due to missing node directory')
+                self.logger.error(f'Unable to archive {step}/{index} due to missing node directory')
             return
 
         if include:
@@ -2760,7 +2613,7 @@ class Chip:
 
         if not archive_name:
             if step and index:
-                archive_name = f"{design}_{jobname}_{step}{index}.tgz"
+                archive_name = f"{design}_{jobname}_{step}_{index}.tgz"
             elif step:
                 archive_name = f"{design}_{jobname}_{step}.tgz"
             else:
@@ -3326,7 +3179,7 @@ class Chip:
         self.unset('option', 'prune')
         self.unset('option', 'from')
         # build new job name
-        self.set('option', 'jobname', f'_{taskname}_{sc_job}_{sc_step}{sc_index}', clobber=True)
+        self.set('option', 'jobname', f'_{taskname}_{sc_job}_{sc_step}_{sc_index}', clobber=True)
 
         # Setup in step/index variables
         for step, index in self.get("flowgraph", "showflow", field="schema").get_nodes():

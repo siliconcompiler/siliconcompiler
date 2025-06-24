@@ -5,7 +5,7 @@ from siliconcompiler.schema.utils import trim
 
 class FPGASchema(BaseSchema):
     def __init__(self):
-        super().__init__()
+        BaseSchema.__init__(self)
 
         schema_fpga(self)
 

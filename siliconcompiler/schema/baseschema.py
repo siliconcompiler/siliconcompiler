@@ -22,6 +22,7 @@ except ModuleNotFoundError:
 import os.path
 
 from .parameter import Parameter
+from .journal import Journal
 
 
 class BaseSchema:
@@ -32,8 +33,12 @@ class BaseSchema:
 
     def __init__(self):
         # Data storage for the schema
+        if hasattr(self, "_BaseSchema__manifest"):
+            return
         self.__manifest = {}
         self.__default = None
+        self.__journal = Journal()
+        self.__parent = self
 
     def _from_dict(self, manifest, keypath, version=None):
         '''
@@ -47,6 +52,9 @@ class BaseSchema:
 
         handled = set()
         missing = set()
+
+        if "__journal__" in manifest:
+            self.__journal.from_dict(manifest["__journal__"])
 
         if self.__default:
             data = manifest.get("default", None)
@@ -74,16 +82,17 @@ class BaseSchema:
         '''
         Create a new schema based on the provided source files.
 
-        The two arguments to this class are mutually exclusive.
+        The two arguments to this method are mutually exclusive.
 
         Args:
             filepath (path): Initial manifest.
             cfg (dict): Initial configuration dictionary.
         '''
 
-        schema = cls()
         if not filepath and cfg is None:
             raise RuntimeError("filepath or dictionary is required")
+
+        schema = cls()
         if filepath:
             schema.read_manifest(filepath)
         if cfg:
@@ -220,6 +229,8 @@ class BaseSchema:
             if field == 'schema':
                 if isinstance(param, Parameter):
                     raise ValueError(f"[{','.join(keypath)}] is a complete keypath")
+                self.__journal.record("get", keypath, field=field, step=step, index=index)
+                param.__journal = self.__journal.get_child(*keypath)
                 return param
         except KeyError:
             raise KeyError(f"[{','.join(keypath)}] is not a valid keypath")
@@ -227,7 +238,9 @@ class BaseSchema:
             return param
 
         try:
-            return param.get(field, step=step, index=index)
+            get_ret = param.get(field, step=step, index=index)
+            self.__journal.record("get", keypath, field=field, step=step, index=index)
+            return get_ret
         except Exception as e:
             new_msg = f"error while accessing [{','.join(keypath)}]: {e.args[0]}"
             e.args = (new_msg, *e.args[1:])
@@ -266,7 +279,12 @@ class BaseSchema:
             raise KeyError(f"[{','.join(keypath)}] is not a valid keypath")
 
         try:
-            return param.set(value, field=field, clobber=clobber, step=step, index=index)
+            set_ret = param.set(value, field=field, clobber=clobber,
+                                step=step, index=index)
+            if set_ret:
+                self.__journal.record("set", keypath, value=value, field=field,
+                                      step=step, index=index)
+            return set_ret
         except Exception as e:
             new_msg = f"error while setting [{','.join(keypath)}]: {e.args[0]}"
             e.args = (new_msg, *e.args[1:])
@@ -304,7 +322,11 @@ class BaseSchema:
             raise KeyError(f"[{','.join(keypath)}] is not a valid keypath")
 
         try:
-            return param.add(value, field=field, step=step, index=index)
+            add_ret = param.add(value, field=field, step=step, index=index)
+            if add_ret:
+                self.__journal.record("add", keypath, value=value, field=field,
+                                      step=step, index=index)
+            return add_ret
         except Exception as e:
             new_msg = f"error while adding to [{','.join(keypath)}]: {e.args[0]}"
             e.args = (new_msg, *e.args[1:])
@@ -343,6 +365,7 @@ class BaseSchema:
 
         try:
             param.unset(step=step, index=index)
+            self.__journal.record("unset", keypath, step=step, index=index)
         except Exception as e:
             new_msg = f"error while unsetting [{','.join(keypath)}]: {e.args[0]}"
             e.args = (new_msg, *e.args[1:])
@@ -376,6 +399,7 @@ class BaseSchema:
             return
 
         del key_param.__manifest[removal_key]
+        self.__journal.record("remove", keypath)
 
     def valid(self, *keypath, default_valid=False, check_complete=False):
         """
@@ -470,7 +494,7 @@ class BaseSchema:
             add(keys, key, item)
         return set(keys)
 
-    def getdict(self, *keypath, include_default=True):
+    def getdict(self, *keypath, include_default=True, values_only=False):
         """
         Returns a schema dictionary.
 
@@ -480,6 +504,7 @@ class BaseSchema:
         Args:
             keypath (list of str): Variable length ordered schema key list
             include_default (boolean): If true will include default key paths
+            values_only (boolean): If true will only return values
 
         Returns:
             A schema dictionary
@@ -493,13 +518,25 @@ class BaseSchema:
             key_param = self.__manifest.get(keypath[0], None)
             if not key_param:
                 return {}
-            return key_param.getdict(*keypath[1:], include_default=include_default)
+            return key_param.getdict(*keypath[1:],
+                                     include_default=include_default,
+                                     values_only=values_only)
 
         manifest = {}
         if include_default and self.__default:
-            manifest["default"] = self.__default.getdict(include_default=include_default)
+            manifest_dict = self.__default.getdict(include_default=include_default,
+                                                   values_only=values_only)
+            if manifest_dict or not values_only:
+                manifest["default"] = manifest_dict
         for key, item in self.__manifest.items():
-            manifest[key] = item.getdict(include_default=include_default)
+            manifest_dict = item.getdict(include_default=include_default,
+                                         values_only=values_only)
+            if manifest_dict or not values_only:
+                manifest[key] = manifest_dict
+
+        if not values_only and self.__journal.has_journaling():
+            manifest["__journal__"] = self.__journal.get()
+
         return manifest
 
     # Utility functions
@@ -511,7 +548,17 @@ class BaseSchema:
             key (list of str): keypath to this schema
         """
 
-        return copy.deepcopy(self)
+        parent = self.__parent
+        self.__parent = None
+        schema_copy = copy.deepcopy(self)
+        self.__parent = parent
+
+        if self is not self.__parent:
+            schema_copy.__parent = self.__parent
+        else:
+            schema_copy.__parent = schema_copy
+
+        return schema_copy
 
     def find_files(self, *keypath, missing_ok=False, step=None, index=None,
                    packages=None, collection_dir=None, cwd=None):
@@ -585,7 +632,7 @@ class BaseSchema:
                 if isinstance(package_path, str):
                     search_paths.append(os.path.abspath(package_path))
                 elif callable(package_path):
-                    search_paths.append(package_path(package))
+                    search_paths.append(package_path())
                 else:
                     raise TypeError(f"Resolver for {package} is not a recognized type")
             else:
@@ -618,7 +665,7 @@ class BaseSchema:
         Verifies that paths to all files in manifest are valid.
 
         Args:
-            ignore_keys (list of keypaths): list of keyptahs to ignore while checking
+            ignore_keys (list of keypaths): list of keypaths to ignore while checking
             logger (:class:`logging.Logger`): optional logger to use to report errors
             packages (dict of resolvers): dirctionary of path resolvers for package
                 paths, these can either be a path or a callable function
@@ -654,8 +701,8 @@ class BaseSchema:
                     # nothing set so continue
                     continue
 
-                found_files = self.find_files(
-                    *keypath, missing_ok=True, step=step, index=index,
+                found_files = BaseSchema.find_files(
+                    self, *keypath, missing_ok=True, step=step, index=index,
                     packages=packages, collection_dir=collection_dir, cwd=cwd)
 
                 if not param.is_list():
@@ -671,9 +718,23 @@ class BaseSchema:
                                 if index is None:
                                     node_indicator = f" ({step})"
                                 else:
-                                    node_indicator = f" ({step}{index})"
+                                    node_indicator = f" ({step}/{index})"
 
                             logger.error(f"Parameter [{','.join(keypath)}]{node_indicator} path "
                                          f"{check_file} is invalid")
 
         return not error
+
+    def _parent(self, root=False):
+        '''
+        Returns the parent of this schema section, if root is true the root parent
+        will be returned.
+
+        Args:
+            root (bool): if true, returns the root of the schemas.
+        '''
+        if not root:
+            return self.__parent
+        if self.__parent is self:
+            return self
+        return self.__parent._parent(root=root)

@@ -1,327 +1,513 @@
-import siliconcompiler
-from siliconcompiler import package
-from siliconcompiler.package import github, https
-from pathlib import Path
-import pytest
 import logging
-import os
-import responses
-import re
-from git import Repo, Actor
+import pytest
+
+import os.path
+
+from pathlib import Path
+from unittest.mock import patch
+
+import siliconcompiler
+
+from siliconcompiler.package import Resolver, RemoteResolver
+from siliconcompiler.package import FileResolver, PythonPathResolver, KeyPathResolver
+
+from siliconcompiler import Chip
 
 
-@pytest.fixture(autouse=True)
-def mock_git(monkeypatch):
-    class MockGit:
-        @staticmethod
-        def checkout(*args, **kwargs):
+def test_init():
+    resolver = Resolver("testpath", Chip("dummy"), "source://this")
+
+    assert resolver.name == "testpath"
+    assert resolver.source == "source://this"
+    assert resolver.reference is None
+    assert resolver.urlscheme == "source"
+    assert resolver.urlpath == "this"
+    assert isinstance(resolver.logger, logging.Logger)
+
+
+def test_init_no_root():
+    resolver = Resolver("testpath", None, "source://this")
+
+    assert resolver.name == "testpath"
+    assert resolver.source == "source://this"
+    assert resolver.reference is None
+    assert resolver.urlscheme == "source"
+    assert resolver.urlpath == "this"
+    assert isinstance(resolver.logger, logging.Logger)
+
+
+def test_init_with_ref():
+    resolver = Resolver("testpath", Chip("dummy"), "source://this", reference="ref")
+
+    assert resolver.name == "testpath"
+    assert resolver.source == "source://this"
+    assert resolver.reference == "ref"
+    assert resolver.urlscheme == "source"
+    assert resolver.urlpath == "this"
+    assert isinstance(resolver.logger, logging.Logger)
+
+
+def test_init_with_env(monkeypatch):
+    resolver = Resolver("testpath", Chip("dummy"), "source://${FILE_PATH}", reference="ref")
+
+    monkeypatch.setenv("FILE_PATH", "this")
+
+    assert resolver.name == "testpath"
+    assert resolver.source == "source://${FILE_PATH}"
+    assert resolver.reference == "ref"
+    assert resolver.urlscheme == "source"
+    assert resolver.urlpath == "this"
+    assert isinstance(resolver.logger, logging.Logger)
+
+
+def test_init_with_env_chip():
+    chip = Chip("dummy")
+    chip.set("option", "env", "FILE_PATH", "this")
+    resolver = Resolver("testpath", chip, "source://${FILE_PATH}", reference="ref")
+
+    assert resolver.name == "testpath"
+    assert resolver.root is chip
+    assert resolver.source == "source://${FILE_PATH}"
+    assert resolver.reference == "ref"
+    assert resolver.urlscheme == "source"
+    assert resolver.urlpath == "this"
+    assert isinstance(resolver.logger, logging.Logger)
+
+
+def test_resolve():
+    resolver = Resolver("testpath", Chip("dummy"), "source://this")
+    with pytest.raises(NotImplementedError, match="child class must implement this"):
+        resolver.resolve()
+
+
+def test_find_resolver_not_found():
+    with pytest.raises(ValueError, match="nosupport://help.me/file is not supported"):
+        Resolver.find_resolver("nosupport://help.me/file")
+
+
+def test_find_resolver_key():
+    assert Resolver.find_resolver("key://this") is KeyPathResolver
+
+
+def test_find_resolver_file():
+    assert Resolver.find_resolver("file://this") is FileResolver
+
+
+def test_find_resolver_file_dot():
+    assert Resolver.find_resolver(".") is FileResolver
+
+
+def test_find_resolver_file_empty():
+    assert Resolver.find_resolver("/this/path") is FileResolver
+
+
+def test_find_resolver_python():
+    assert Resolver.find_resolver("python://siliconcompiler") is PythonPathResolver
+
+
+def test_get_path_new_data(caplog):
+    class AlwaysNew(RemoteResolver):
+        def check_cache(self):
+            return False
+
+        @property
+        def cache_path(self):
+            return os.path.abspath("path")
+
+        def resolve_remote(self):
             pass
 
-    def clone(url, to_path, **kwargs):
-        Path(to_path).mkdir(parents=True)
-        repo = Repo.init(to_path)
+    os.makedirs("path", exist_ok=True)
 
-        test_path = Path(to_path) / 'pyproject.toml'
-        test_path.touch()
-
-        author = Actor("author", "author@example.com")
-        committer = Actor("committer", "committer@example.com")
-        repo.index.add('pyproject.toml')
-        repo.index.commit('msg', author=author, committer=committer)
-
-        repo.git = MockGit
-
-        return repo
-
-    monkeypatch.setattr("git.Repo.clone_from", clone)
-
-
-def cache_path(path, ref, chip=None, cache=None):
-    chip = chip or siliconcompiler.Chip('test')
-    chip.set('option', 'cachedir', cache)
-
-    if not cache:
-        cache = Path.home().joinpath('.sc/cache')
-
-    assert "siliconcompiler_data" not in chip._packages
-
-    # Setting this manually as siliconcompiler_data package is currently not on pypi
-    chip.register_source('siliconcompiler_data', path, ref)
-
-    assert "siliconcompiler_data" not in chip._packages
-
-    dependency_cache_path = Path(package.path(chip, 'siliconcompiler_data'))
-
-    if ref:
-        dir_name = f'siliconcompiler_data-{ref}'
-        assert Path(os.path.join(cache, dir_name)) == dependency_cache_path
-
-    assert dependency_cache_path.exists()
-
-    # Check if files got downloaded successfully
-    assert dependency_cache_path.joinpath('pyproject.toml').is_file()
-
-    assert "siliconcompiler_data" in chip._packages
-
-    return dependency_cache_path
-
-
-@pytest.mark.parametrize('path,ref', [
-    ('https://github.com/siliconcompiler/siliconcompiler/archive/',
-     '938df309b4803fd79b10de6d3c7d7aa4645c39f5'),
-    ('https://github.com/siliconcompiler/siliconcompiler/archive/refs/heads/main.tar.gz',
-     'version-1')
-])
-@responses.activate
-def test_dependency_path_download_http(datadir, path, ref, tmp_path):
-    with open(os.path.join(datadir, 'https.tar.gz'), "rb") as f:
-        responses.add(
-            responses.GET,
-            re.compile(r"https://github.com/siliconcompiler/siliconcompiler/.*\.tar.gz"),
-            body=f.read(),
-            status=200,
-            content_type="application/x-gzip"
-        )
-    cache_path(path, ref, cache=tmp_path)
-
-
-@pytest.mark.parametrize('path,ref', [
-    ('git+https://github.com/siliconcompiler/siliconcompiler',
-     'main'),
-    ('git://github.com/siliconcompiler/siliconcompiler',
-     'main'),
-])
-def test_dependency_path_download_git(path, ref, tmp_path):
-    cache_path(path, ref, cache=tmp_path)
-
-
-@pytest.mark.parametrize('path,ref', [
-    ('git://github.com/siliconcompiler/siliconcompiler',
-     'main'),
-])
-def test_package_path_user_cache(path, ref):
-    cache_path(path, ref, cache=os.path.abspath('test_cache'))
-
-
-def test_package_path_user_cache_not_supported():
-    with pytest.raises(ValueError, match="nosupport://help.me/file is not supported"):
-        cache_path("nosupport://help.me/file", None, cache=os.path.abspath('test_cache'))
-
-
-@pytest.mark.parametrize('path,ref', [
-    ('git+ssh://git@github.com/siliconcompiler/siliconcompiler',
-     'main')
-])
-def test_dependency_path_ssh(path, ref, tmp_path):
-    cache_path(path, ref, cache=tmp_path)
-
-
-@pytest.mark.parametrize('prefix', ['file://', ''])
-def test_dependency_path_local_prefix(prefix, tmp_path):
-    local_dependency_cache_path = cache_path(
-        'git+https://github.com/siliconcompiler/siliconcompiler',
-        'main',
-        cache=tmp_path)
-    cache_path(f'{prefix}{str(local_dependency_cache_path)}', '')
-
-
-def test_dependency_path_dirty_warning(caplog, tmp_path):
-    local_dependency_cache_path = cache_path(
-        'git+https://github.com/siliconcompiler/siliconcompiler',
-        'main',
-        cache=tmp_path)
-
-    file = Path(local_dependency_cache_path).joinpath('file.txt')
-    file.touch()
-
-    chip = siliconcompiler.Chip('test')
+    chip = Chip("dummy")
     chip.logger = logging.getLogger()
-    local_dependency_cache_path = cache_path(
-        'git+https://github.com/siliconcompiler/siliconcompiler',
-        'main', chip=chip, cache=tmp_path)
-    assert "The repo of the cached data is dirty." in caplog.text
+    chip.logger.setLevel(logging.INFO)
 
-    file.unlink()
-    assert not file.exists()
+    resolver = AlwaysNew("alwaysnew", chip, "notused", "notused")
+    assert resolver.get_path() == os.path.abspath("path")
 
-
-def test_package_with_import():
-    chip = siliconcompiler.Chip('test')
-
-    lib = siliconcompiler.Library('lib')
-    lib.register_source('test-source', 'path', 'ref')
-
-    assert 'test-source' not in chip.getkeys('package', 'source')
-    chip.use(lib)
-    assert 'test-source' in chip.getkeys('package', 'source')
+    assert "Saved alwaysnew data to " in caplog.text
 
 
-def test_package_with_env_var(monkeypatch):
-    chip = siliconcompiler.Chip('test')
-    chip.register_source('test-source', '$TEST_HOME')
+def test_get_path_old_data(caplog):
+    class AlwaysOld(RemoteResolver):
+        def check_cache(self):
+            return True
 
-    os.mkdir('test1')
-    monkeypatch.setenv("TEST_HOME", 'test1')
-    assert os.path.basename(package.path(chip, 'test-source')) == 'test1'
+        @property
+        def cache_path(self):
+            return os.path.abspath("path")
 
+        def resolve_remote(self):
+            pass
 
-def test_path_from_python_without_append():
-    chip = siliconcompiler.Chip('test')
-    path = package.path_from_python(chip, "siliconcompiler.apps")
+    os.makedirs("path", exist_ok=True)
 
-    assert path == os.path.join(chip.scroot, "apps")
+    chip = Chip("dummy")
+    chip.logger = logging.getLogger()
+    chip.logger.setLevel(logging.INFO)
 
+    resolver = AlwaysOld("alwaysold", chip, "notused", "notused")
+    assert resolver.get_path() == os.path.abspath("path")
 
-def test_path_from_python_with_append():
-    chip = siliconcompiler.Chip('test')
-    path = package.path_from_python(chip, "siliconcompiler", "apps")
-
-    assert path == os.path.join(chip.scroot, "apps")
-
-
-@pytest.mark.parametrize('is_local', [True, False])
-def test_register_python_data_source(monkeypatch, is_local):
-    chip = siliconcompiler.Chip('test')
-
-    def dummy_func(module_name):
-        return is_local
-    monkeypatch.setattr(package, "is_python_module_editable", dummy_func)
-
-    local_path = "python://siliconcompiler"
-    remote_path = "git+https://testing.com/sc_test.git"
-    package.register_python_data_source(
-        chip,
-        "sc_test",
-        "siliconcompiler",
-        remote_path
-    )
-
-    if is_local:
-        expect = local_path
-    else:
-        expect = remote_path
-
-    path = chip.get("package", "source", "sc_test", "path")
-
-    assert path == expect
+    assert "Found alwaysold data at " in caplog.text
 
 
-def test_register_python_data_source_with_append(monkeypatch):
-    chip = siliconcompiler.Chip('test')
+def test_get_path_usecache(caplog):
+    class AlwaysCache(RemoteResolver):
+        def check_cache(self):
+            return True
 
-    def dummy_func(module_name):
-        return True
-    monkeypatch.setattr(package, "is_python_module_editable", dummy_func)
+        @property
+        def cache_path(self):
+            return os.path.abspath("path")
 
-    expect = os.path.join(chip.scroot, "apps")
-    package.register_python_data_source(
-        chip,
-        "sc_test",
-        "siliconcompiler",
-        "git+https://testing.com/sc_test.git",
-        python_module_path_append="apps"
-    )
+        def resolve_remote(self):
+            pass
 
-    path = chip.get("package", "source", "sc_test", "path")
+    os.makedirs("path", exist_ok=True)
 
-    assert path == expect
+    chip = Chip("dummy")
+    chip.logger = logging.getLogger()
+    chip.logger.setLevel(logging.INFO)
 
+    resolver = AlwaysCache("alwayscache", chip, "notused", "notused")
+    resolver.set_cache({"alwayscache": "path"})
+    assert resolver.get_path() == "path"
 
-def test_register_source_tuple_2():
-    lib = siliconcompiler.Library("test", package=(
-        "test", "path_to_test"))
-
-    assert lib.get('package', 'source', 'test', 'path') == "path_to_test"
-    assert lib.get('package', 'source', 'test', 'ref') is None
+    assert caplog.text == ""
 
 
-def test_register_source_tuple_3():
-    lib = siliconcompiler.Library("test", package=(
-        "test", "path_to_test", "ref"))
+def test_get_path_not_found():
+    class AlwaysOld(RemoteResolver):
+        def check_cache(self):
+            return True
 
-    assert lib.get('package', 'source', 'test', 'path') == "path_to_test"
-    assert lib.get('package', 'source', 'test', 'ref') == "ref"
+        @property
+        def cache_path(self):
+            return os.path.abspath("path")
+
+        def resolve_remote(self):
+            pass
+
+    chip = Chip("dummy")
+    chip.logger = logging.getLogger()
+    chip.logger.setLevel(logging.INFO)
+
+    resolver = AlwaysOld("alwaysmissing", chip, "notused", "notused")
+    with pytest.raises(FileNotFoundError, match="Unable to locate alwaysmissing at .*path"):
+        resolver.get_path()
 
 
-def test_register_source_tuple_error():
+def test_remote_init():
+    resolver = RemoteResolver("thisname", Chip("dummy"), "https://filepath", "ref")
+
+    assert resolver.name == "thisname"
+    assert resolver.source == "https://filepath"
+    assert resolver.reference == "ref"
+    assert resolver.urlscheme == "https"
+    assert resolver.urlpath == "filepath"
+    assert isinstance(resolver.logger, logging.Logger)
+
+
+def test_remote_init_no_ref():
+    with pytest.raises(ValueError, match="Reference is required for cached data: thisname"):
+        RemoteResolver("thisname", Chip("dummy"), "https://filepath")
+
+
+def test_remote_child_impl():
+    resolver = RemoteResolver("thisname", Chip("dummy"), "https://filepath", "ref")
+
+    with pytest.raises(NotImplementedError, match="child class must implement this"):
+        resolver.resolve_remote()
+
+    with pytest.raises(NotImplementedError, match="child class must implement this"):
+        resolver.check_cache()
+
+
+def test_remote_cache_dir_default():
+    resolver = RemoteResolver("thisname", Chip("dummy"), "https://filepath", "ref")
+    assert resolver.cache_dir == Path.home() / ".sc" / "cache"
+
+
+def test_remote_cache_dir_no_root():
+    resolver = RemoteResolver("thisname", None, "https://filepath", "ref")
+    assert resolver.cache_dir == Path.home() / ".sc" / "cache"
+
+
+def test_remote_cache_dir_from_schema():
+    chip = Chip("dummy")
+    chip.set("option", "cachedir", os.path.abspath("."))
+    resolver = RemoteResolver("thisname", chip, "https://filepath", "ref")
+    assert resolver.cache_dir == Path(os.path.abspath("."))
+
+
+def test_remote_cache_dir_from_schema_not_found():
+    chip = Chip("dummy")
+    chip.set("option", "cachedir", "thispath")
+
+    resolver = RemoteResolver("thisname", chip, "https://filepath", "ref")
+    assert resolver.cache_dir == Path(os.path.abspath("thispath"))
+
+
+def test_remote_cache_name():
+    resolver = RemoteResolver("thisname", Chip("dummy"), "https://filepath", "ref")
+    assert resolver.cache_name == "thisname-ref"
+
+
+def test_remote_cache_path():
+    chip = Chip("dummy")
+    chip.set("option", "cachedir", "thispath")
+
+    resolver = RemoteResolver("thisname", chip, "https://filepath", "ref")
+    with patch("os.makedirs") as mkdir:
+        assert resolver.cache_path == Path(os.path.abspath("thispath/thisname-ref"))
+        mkdir.assert_called_once()
+
+
+def test_remote_cache_path_cache_exist():
+    chip = Chip("dummy")
+    chip.set("option", "cachedir", ".")
+
+    resolver = RemoteResolver("thisname", chip, "https://filepath", "ref")
+    with patch("os.makedirs") as mkdir:
+        assert resolver.cache_path == Path(os.path.abspath("thisname-ref"))
+        mkdir.assert_not_called()
+
+
+def test_remote_lock_file():
+    chip = Chip("dummy")
+    chip.set("option", "cachedir", "thispath")
+
+    resolver = RemoteResolver("thisname", chip, "https://filepath", "ref")
+    with patch("os.makedirs") as mkdir:
+        assert resolver.lock_file == Path(os.path.abspath("thispath/thisname-ref.lock"))
+        mkdir.assert_called_once()
+
+
+def test_remote_sc_lock_file():
+    chip = Chip("dummy")
+    chip.set("option", "cachedir", "thispath")
+
+    resolver = RemoteResolver("thisname", chip, "https://filepath", "ref")
+    with patch("os.makedirs") as mkdir:
+        assert resolver.sc_lock_file == Path(os.path.abspath("thispath/thisname-ref.sc_lock"))
+        mkdir.assert_called_once()
+
+
+def test_remote_resolve_cached():
+    chip = Chip("dummy")
+    chip.set("option", "cachedir", ".")
+
+    resolver = RemoteResolver("thisname", chip, "https://filepath", "ref")
+
+    with patch("siliconcompiler.package.RemoteResolver.lock") as lock, \
+         patch("siliconcompiler.package.RemoteResolver.check_cache") as check_cache, \
+         patch("siliconcompiler.package.RemoteResolver.resolve_remote") as resolve_remote:
+        check_cache.return_value = True
+        assert resolver.resolve() == Path(os.path.abspath("thisname-ref"))
+        lock.assert_called_once()
+        check_cache.assert_called_once()
+        resolve_remote.assert_not_called()
+
+
+def test_remote_resolve():
+    chip = Chip("dummy")
+    chip.set("option", "cachedir", ".")
+
+    resolver = RemoteResolver("thisname", chip, "https://filepath", "ref")
+
+    with patch("siliconcompiler.package.RemoteResolver.lock") as lock, \
+         patch("siliconcompiler.package.RemoteResolver.check_cache") as check_cache, \
+         patch("siliconcompiler.package.RemoteResolver.resolve_remote") as resolve_remote:
+        check_cache.return_value = False
+        assert resolver.resolve() == Path(os.path.abspath("thisname-ref"))
+        lock.assert_called_once()
+        check_cache.assert_called_once()
+        resolve_remote.assert_called_once()
+
+
+def test_remote_lock():
+    chip = Chip("dummy")
+    chip.set("option", "cachedir", ".")
+
+    resolver = RemoteResolver("thisname", chip, "https://filepath", "ref")
+
+    with resolver.lock():
+        assert os.path.exists(resolver.lock_file)
+        assert not os.path.exists(resolver.sc_lock_file)
+
+    assert os.path.exists(resolver.lock_file)
+    assert not os.path.exists(resolver.sc_lock_file)
+
+
+def test_remote_lock_after_lock():
+    chip = Chip("dummy")
+    chip.set("option", "cachedir", ".")
+
+    resolver = RemoteResolver("thisname", chip, "https://filepath", "ref")
+
+    with resolver.lock():
+        assert os.path.exists(resolver.lock_file)
+        assert not os.path.exists(resolver.sc_lock_file)
+
+    assert os.path.exists(resolver.lock_file)
+    assert not os.path.exists(resolver.sc_lock_file)
+
+    with resolver.lock():
+        assert os.path.exists(resolver.lock_file)
+        assert not os.path.exists(resolver.sc_lock_file)
+
+    assert os.path.exists(resolver.lock_file)
+    assert not os.path.exists(resolver.sc_lock_file)
+
+
+def test_remote_lock_within_lock():
+    chip = Chip("dummy")
+    chip.set("option", "cachedir", ".")
+
+    resolver0 = RemoteResolver("thisname", chip, "https://filepath", "ref")
+    resolver1 = RemoteResolver("thisname", chip, "https://filepath", "ref")
+
+    # change second resolver to wait 1 second
+    resolver1.set_timeout(1)
+    assert resolver1.timeout == 1
+
+    with resolver0.lock():
+        assert os.path.exists(resolver0.lock_file)
+        assert not os.path.exists(resolver0.sc_lock_file)
+
+        with pytest.raises(RuntimeError, match="Failed to access .*. .* is still locked, "
+                                               "if this is a mistake, please delete it."):
+            with resolver1.lock():
+                assert False, "should not get here"
+
+    assert os.path.exists(resolver0.lock_file)
+    assert not os.path.exists(resolver0.sc_lock_file)
+
+
+def test_remote_lock_exception():
+    chip = Chip("dummy")
+    chip.set("option", "cachedir", ".")
+
+    resolver = RemoteResolver("thisname", chip, "https://filepath", "ref")
+
     with pytest.raises(ValueError):
-        siliconcompiler.Library("test", package=("test",))
+        with resolver.lock():
+            assert os.path.exists(resolver.lock_file)
+            assert not os.path.exists(resolver.sc_lock_file)
+            raise ValueError
 
+    assert os.path.exists(resolver.lock_file)
+    assert not os.path.exists(resolver.sc_lock_file)
 
-def test_register_source_dict_path():
-    lib = siliconcompiler.Library("test", package={
-        "test": {"path": "path_to_test"}})
-
-    assert lib.get('package', 'source', 'test', 'path') == "path_to_test"
-    assert lib.get('package', 'source', 'test', 'ref') is None
-
-
-def test_register_source_dict_ref():
-    lib = siliconcompiler.Library("test", package={
-        "test": {"path": "path_to_test", "ref": "ref"}})
-
-    assert lib.get('package', 'source', 'test', 'path') == "path_to_test"
-    assert lib.get('package', 'source', 'test', 'ref') == "ref"
-
-
-def test_register_source_dict_error():
+    # try lock again
     with pytest.raises(ValueError):
-        siliconcompiler.Library("test", package={
-            "test": {"ref": "ref"}})
+        with resolver.lock():
+            assert os.path.exists(resolver.lock_file)
+            assert not os.path.exists(resolver.sc_lock_file)
+            raise ValueError
 
 
-def test_register_source_int():
-    with pytest.raises(ValueError):
-        siliconcompiler.Library("test", package=4)
+def test_remote_lock_failed():
+    chip = Chip("dummy")
+    chip.set("option", "cachedir", ".")
+
+    resolver = RemoteResolver("thisname", chip, "https://filepath", "ref")
+    resolver.set_timeout(1)
+
+    with patch("fasteners.InterProcessLock.acquire") as acquire:
+        acquire.return_value = False
+        with pytest.raises(RuntimeError,
+                           match="Failed to access .*.lock is still locked, if this is a mistake, "
+                                 "please delete it"):
+            with resolver.lock():
+                assert False, "Should not gain lock"
+            acquire.assert_called_once()
+
+    assert not os.path.exists(resolver.lock_file)
+    assert not os.path.exists(resolver.sc_lock_file)
 
 
-@pytest.mark.parametrize("package_path", (
-    "github://owner/repo/v0.1.2/test.tar.gz",
-    "https://pytestpath.com/test.tar.gz",
-    "git+https://pytestpath.com/test.git"
-))
-def test_github_offline_fetch(tmp_path, package_path):
-    chip = siliconcompiler.Chip('test')
-    chip.set('option', 'cachedir', tmp_path)
+def test_remote_lock_revert_to_file():
+    chip = Chip("dummy")
+    chip.set("option", "cachedir", ".")
 
-    cache_path = str(Path(tmp_path) / "test_github_offline_fetch-v0.1.2")
-    os.makedirs(cache_path)
+    resolver = RemoteResolver("thisname", chip, "https://filepath", "ref")
 
-    chip.register_source("test_github_offline_fetch", package_path, "v0.1.2")
-    assert Path(cache_path) == Path(package.path(chip, "test_github_offline_fetch", fetch=False))
+    with patch("fasteners.InterProcessLock.acquire") as acquire:
+        def fail_lock(*args, **kwargs):
+            raise RuntimeError
+        acquire.side_effect = fail_lock
 
+        with resolver.lock():
+            assert not os.path.exists(resolver.lock_file)
+            assert os.path.exists(resolver.sc_lock_file)
 
-def test_github_offline(monkeypatch, tmp_path):
-    chip = siliconcompiler.Chip('test')
-    chip.set('option', 'cachedir', tmp_path)
-
-    cache_path = str(Path(tmp_path) / "test_github_offline-v0.1.2")
-    os.makedirs(cache_path)
-
-    def dummy_func(chip, package, path, ref, url, data_lock):
-        assert False
-
-    monkeypatch.setattr(github, '_github_resolver', dummy_func)
-
-    chip.register_source("test_github_offline",
-                         "github://owner/repo/v0.1.2/test.tar.gz",
-                         "v0.1.2")
-    assert Path(cache_path) == Path(package.path(chip, "test_github_offline"))
+    assert not os.path.exists(resolver.lock_file)
+    assert not os.path.exists(resolver.sc_lock_file)
 
 
-def test_https_offline(monkeypatch, tmp_path):
-    chip = siliconcompiler.Chip('test')
-    chip.set('option', 'cachedir', tmp_path)
+def test_remote_lock_revert_to_file_failed():
+    chip = Chip("dummy")
+    chip.set("option", "cachedir", ".")
 
-    cache_path = str(Path(tmp_path) / "test_https_offline-v0.1.2")
-    os.makedirs(cache_path)
+    resolver = RemoteResolver("thisname", chip, "https://filepath", "ref")
 
-    def dummy_func(chip, package, path, ref, url, data_lock):
-        assert False
+    with patch("fasteners.InterProcessLock.acquire") as acquire, \
+         patch("time.sleep") as sleep:
+        def fail_lock(*args, **kwargs):
+            raise RuntimeError
+        acquire.side_effect = fail_lock
 
-    monkeypatch.setattr(https, '_http_resolver', dummy_func)
+        # Generate lock
+        resolver.sc_lock_file.touch()
 
-    chip.register_source("test_https_offline",
-                         "https://owner/repo/v0.1.2/test.tar.gz",
-                         "v0.1.2")
-    assert Path(cache_path) == Path(package.path(chip, "test_https_offline"))
+        with pytest.raises(RuntimeError,
+                           match="Failed to access .*. Lock .* still exists"):
+            with resolver.lock():
+                pass
+
+        assert sleep.call_count == 600
+
+    assert not os.path.exists(resolver.lock_file)
+    assert os.path.exists(resolver.sc_lock_file)
+
+
+def test_file_resolver_abs_path():
+    resolver = FileResolver("thisname", Chip("dummy"), os.path.abspath("test"))
+    assert resolver.resolve() == os.path.abspath("test")
+
+
+def test_file_resolver_with_file():
+    resolver = FileResolver("thisname", Chip("dummy"), "file://test")
+    assert resolver.resolve() == os.path.abspath("test")
+
+
+def test_file_resolver_with_abspath():
+    resolver = FileResolver("thisname", Chip("dummy"), f"file://{os.path.abspath('../test')}")
+    assert resolver.resolve() == os.path.abspath("../test")
+
+
+def test_file_resolver_with_relpath():
+    resolver = FileResolver("thisname", Chip("dummy"), "file://test")
+    assert resolver.resolve() == os.path.abspath("test")
+
+
+def test_python_path_resolver():
+    resolver = PythonPathResolver("thisname", Chip("dummy"), "python://siliconcompiler")
+    assert resolver.resolve() == os.path.dirname(siliconcompiler.__file__)
+
+
+def test_keypath_resolver():
+    chip = Chip("dummy")
+    chip.set("option", "dir", "testdir", ".")
+
+    resolver = KeyPathResolver("thisname", chip, "key://option,dir,testdir")
+    assert resolver.resolve() == os.path.abspath(".")
+
+
+def test_keypath_resolver_no_root():
+    resolver = KeyPathResolver("thisname", None, "key://option,dir,testdir")
+    with pytest.raises(RuntimeError, match="Root schema has not be defined for thisname"):
+        resolver.resolve()

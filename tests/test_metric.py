@@ -84,7 +84,7 @@ def test_record_tasktime():
 
 
 def test_record_totaltime_no_data():
-    flow = FlowgraphSchema()
+    flow = FlowgraphSchema("testflow")
     flow.node("testone", "builtin.nop", index="0")
     flow.node("testone", "builtin.nop", index="1")
     flow.node("testone", "builtin.nop", index="2")
@@ -108,7 +108,7 @@ def test_record_totaltime_no_data():
 
 
 def test_record_totaltime_linear():
-    flow = FlowgraphSchema()
+    flow = FlowgraphSchema("testflow")
     flow.node("testone", "builtin.nop", index="0")
     flow.node("testone", "builtin.nop", index="1")
     flow.node("testone", "builtin.nop", index="2")
@@ -160,7 +160,7 @@ def test_record_totaltime_linear():
 
 
 def test_record_totaltime_overlap():
-    flow = FlowgraphSchema()
+    flow = FlowgraphSchema("testflow")
     flow.node("testone", "builtin.nop", index="0")
     flow.node("testone", "builtin.nop", index="1")
     flow.node("testone", "builtin.nop", index="2")
@@ -212,7 +212,7 @@ def test_record_totaltime_overlap():
 
 
 def test_record_totaltime_overlap_staggered():
-    flow = FlowgraphSchema()
+    flow = FlowgraphSchema("testflow")
     flow.node("testone", "builtin.nop", index="0")
     flow.node("testone", "builtin.nop", index="1")
     flow.node("testone", "builtin.nop", index="2")
@@ -264,7 +264,7 @@ def test_record_totaltime_overlap_staggered():
 
 
 def test_record_totaltime_overlap_staggered_with_gap():
-    flow = FlowgraphSchema()
+    flow = FlowgraphSchema("testflow")
     flow.node("testone", "builtin.nop", index="0")
     flow.node("testone", "builtin.nop", index="1")
     flow.node("testone", "builtin.nop", index="2")
@@ -316,7 +316,7 @@ def test_record_totaltime_overlap_staggered_with_gap():
 
 
 def test_record_totaltime_overlap_staggered_with_all_contained():
-    flow = FlowgraphSchema()
+    flow = FlowgraphSchema("testflow")
     flow.node("testone", "builtin.nop", index="0")
     flow.node("testone", "builtin.nop", index="1")
     flow.node("testone", "builtin.nop", index="2")

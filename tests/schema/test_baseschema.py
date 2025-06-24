@@ -6,6 +6,58 @@ import os.path
 from siliconcompiler.schema import BaseSchema
 from siliconcompiler.schema import EditableSchema
 from siliconcompiler.schema import Parameter, PerNode
+from siliconcompiler.schema import Journal
+
+
+def test_copy():
+    schema = BaseSchema()
+    check_copy = schema.copy()
+
+    assert schema is not check_copy
+    assert schema._parent() is schema
+    assert check_copy._parent() is check_copy
+
+
+def test_copy_with_child():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("test0", "test1", "test2", Parameter("str"))
+
+    check_copy = schema.copy()
+
+    assert schema is not check_copy
+    assert schema._parent() is schema
+    assert schema.get("test0", field="schema")._parent() is schema
+    assert schema.get("test0", "test1", field="schema")._parent() is \
+        schema.get("test0", field="schema")
+    assert check_copy._parent() is check_copy
+    assert check_copy.get("test0", field="schema")._parent() is check_copy
+    assert check_copy.get("test0", "test1", field="schema")._parent() is \
+        check_copy.get("test0", field="schema")
+
+
+def test_copy_with_child_default():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("test0", "default", "test2", Parameter("str"))
+
+    assert schema.set("test0", "testthis", "test2", "thisset")
+
+    check_copy = schema.copy()
+
+    assert schema is not check_copy
+    assert schema._parent() is schema
+    assert schema.get("test0", field="schema")._parent() is schema
+    assert schema.get("test0", "default", field="schema")._parent() is \
+        schema.get("test0", field="schema")
+    assert schema.get("test0", "testthis", field="schema")._parent() is \
+        schema.get("test0", field="schema")
+    assert check_copy._parent() is check_copy
+    assert check_copy.get("test0", field="schema")._parent() is check_copy
+    assert check_copy.get("test0", "default", field="schema")._parent() is \
+        check_copy.get("test0", field="schema")
+    assert check_copy.get("test0", "testthis", field="schema")._parent() is \
+        check_copy.get("test0", field="schema")
 
 
 def test_get_value():
@@ -313,7 +365,7 @@ def test_allkeys_end_parameter():
     assert schema.allkeys("test1", "test3") == set()
 
 
-def test_get_dict():
+def test_getdict():
     schema = BaseSchema()
     edit = EditableSchema(schema)
     edit.insert("test0", "default", "test1", Parameter("str"))
@@ -346,7 +398,49 @@ def test_get_dict():
     }
 
 
-def test_get_dict_keypath():
+def test_getdict_values_only():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("test0", "default", "test1", Parameter("str"))
+
+    assert schema.getdict(values_only=True) == {}
+
+
+def test_getdict_values_only_with_value():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("test0", "default", "test1", Parameter("str"))
+    schema.set("test0", "level1", "test1", "this value")
+
+    assert schema.getdict(values_only=True) == {
+        'test0': {
+            'level1': {
+                'test1': {
+                    None: {
+                        None: 'this value',
+                    },
+                },
+            },
+        },
+    }
+
+
+def test_getdict_values_keypath_only_with_value():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("test0", "default", "test1", Parameter("str"))
+    schema.set("test0", "level1", "test1", "this value")
+
+    assert schema.getdict("test0", "level1", values_only=True) == {
+        'test1': {
+            None: {
+                None: 'this value',
+            },
+        },
+    }
+
+
+def test_getdict_keypath():
     schema = BaseSchema()
     edit = EditableSchema(schema)
     edit.insert("test0", "default", "test1", Parameter("str"))
@@ -377,7 +471,7 @@ def test_get_dict_keypath():
     }
 
 
-def test_get_dict_keypath_unmatched():
+def test_getdict_keypath_unmatched():
     schema = BaseSchema()
     edit = EditableSchema(schema)
     edit.insert("test0", "default", "test1", Parameter("str"))
@@ -385,12 +479,16 @@ def test_get_dict_keypath_unmatched():
     assert schema.getdict("test0", "test1") == dict()
 
 
-def test_get_dict_from_dict():
+def test_getdict_from_dict():
     schema = BaseSchema()
     edit = EditableSchema(schema)
     edit.insert("test0", "default", "test1", Parameter("str"))
 
     check_schema = schema.copy()
+
+    assert schema.getdict() == check_schema.getdict()
+    assert schema._parent() is not check_schema._parent()
+    assert check_schema.get("test0", field="schema")._parent() is check_schema
 
     schema.set("test0", "testdefault", "test1", "4")
 
@@ -401,9 +499,15 @@ def test_get_dict_from_dict():
     assert not schemamissing
 
     assert schema.getdict() == check_schema.getdict()
+    assert schema._parent() is not check_schema._parent()
+    assert check_schema.get("test0", field="schema")._parent() is check_schema
+    assert check_schema.get("test0", "default", field="schema")._parent() is \
+        check_schema.get("test0", field="schema")
+    assert check_schema.get("test0", "testdefault", field="schema")._parent() is \
+        check_schema.get("test0", field="schema")
 
 
-def test_get_dict_from_dict_unmatched():
+def test_getdict_from_dict_unmatched():
     schema = BaseSchema()
     edit = EditableSchema(schema)
     edit.insert("test0", "default", "test1", Parameter("str"))
@@ -942,7 +1046,7 @@ def test_find_files_with_package():
     class Resolver:
         called = 0
 
-        def resolve(self, package):
+        def resolve(self):
             self.called += 1
             return os.path.abspath("package_path")
 
@@ -978,7 +1082,7 @@ def test_find_files_with_package_not_found():
     class Resolver:
         called = 0
 
-        def resolve(self, package):
+        def resolve(self):
             self.called += 1
             return os.path.abspath("package_path")
 
@@ -1033,7 +1137,7 @@ def test_find_files_with_package_as_string():
     class Resolver:
         called = 0
 
-        def resolve(self, package):
+        def resolve(self):
             self.called += 1
             return os.path.abspath("package_path")
 
@@ -1258,7 +1362,7 @@ def test_check_filepaths_not_found_logger_step_index(caplog):
     logger.setLevel(logging.INFO)
 
     assert schema.check_filepaths(logger=logger) is False
-    assert "Parameter [directory] (thisstep0) path test0 is invalid" in caplog.text
+    assert "Parameter [directory] (thisstep/0) path test0 is invalid" in caplog.text
 
 
 def test_check_filepaths_not_found_ignored():
@@ -1281,3 +1385,204 @@ def test_check_filepaths_not_found_ignored_list():
     assert schema.set("directory", "test0")
 
     assert schema.check_filepaths(ignore_keys=[["directory"]]) is True
+
+
+def test_get_no_with_journal():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("test0", "test1", Parameter("str"))
+    journal = Journal.access(schema)
+
+    schema.set("test0", "test1", "hello")
+    assert schema.get("test0", "test1") == "hello"
+    assert journal.get() is None
+
+
+def test_get_with_journal():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("test0", "test1", Parameter("str"))
+    journal = Journal.access(schema)
+    schema.set("test0", "test1", "hello")
+
+    journal.start()
+    journal.add_type("get")
+    assert "get" in journal.get_types()
+
+    assert journal.get() == []
+    assert schema.get("test0", "test1") == "hello"
+    assert journal.get() == [{
+        "type": "get",
+        "key": ("test0", "test1"),
+        "value": None,
+        "field": "value",
+        "step": None,
+        "index": None
+    }]
+
+
+def test_get_with_journal_schema():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("test0", "test1", Parameter("str"))
+    journal = Journal.access(schema)
+    schema.set("test0", "test1", "hello")
+
+    journal.start()
+    journal.add_type("get")
+    assert "get" in journal.get_types()
+
+    assert journal.get() == []
+    child_schema = schema.get("test0", field="schema")
+    assert Journal.access(child_schema).keypath == ("test0",)
+    assert journal.get() == [{
+        "type": "get",
+        "key": ("test0",),
+        "value": None,
+        "field": "schema",
+        "step": None,
+        "index": None
+    }]
+
+
+def test_set_with_journal():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("test0", "test1", Parameter("str"))
+    journal = Journal.access(schema)
+    journal.start()
+
+    schema.set("test0", "test1", "hello")
+    assert journal.get() == [{
+        "type": "set",
+        "key": ("test0", "test1"),
+        "value": "hello",
+        "field": "value",
+        "step": None,
+        "index": None
+    }]
+    assert schema.get("test0", "test1") == "hello"
+
+
+def test_getdict_with_journal():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("test0", "test1", Parameter("str"))
+    journal = Journal.access(schema)
+    journal.start()
+
+    schema.set("test0", "test1", "hello")
+    assert schema.getdict() == {
+        '__journal__': [
+            {
+                'field': 'value',
+                'index': None,
+                'key': (
+                    'test0',
+                    'test1',
+                ),
+                'step': None,
+                'type': 'set',
+                'value': 'hello',
+            },
+        ],
+        'test0': {
+            'test1': {
+                'example': [],
+                'help': None,
+                'lock': False,
+                'node': {
+                    'default': {
+                        'default': {
+                            'signature': None,
+                            'value': None,
+                        },
+                    },
+                    'global': {
+                        'global': {
+                            'signature': None,
+                            'value': 'hello',
+                        },
+                    },
+                },
+                'notes': None,
+                'pernode': 'never',
+                'require': False,
+                'scope': 'job',
+                'shorthelp': None,
+                'switch': [],
+                'type': 'str',
+            },
+        },
+    }
+
+
+def test_getdict_with_journal_values_only():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("test0", "test1", Parameter("str"))
+    journal = Journal.access(schema)
+    journal.start()
+
+    schema.set("test0", "test1", "hello")
+    assert schema.getdict(values_only=True) == {
+        'test0': {
+            'test1': {
+                None: {
+                    None: 'hello',
+                },
+            },
+        },
+    }
+
+
+def test_fromdict_with_journal():
+    schema = BaseSchema()
+    journal = Journal.access(schema)
+    assert journal.get() is None
+
+    assert schema._from_dict({
+        '__journal__': [
+            {
+                'field': 'value',
+                'index': None,
+                'key': (
+                    'test0',
+                    'test1',
+                ),
+                'step': None,
+                'type': 'set',
+                'value': 'hello',
+            },
+        ]
+    }, [], None)
+
+    assert journal.get() == [
+        {
+            'field': 'value',
+            'index': None,
+            'key': (
+                'test0',
+                'test1',
+            ),
+            'step': None,
+            'type': 'set',
+            'value': 'hello',
+        }
+    ]
+
+
+def test_parent():
+    schema = BaseSchema()
+    assert schema._parent() is schema
+
+
+def test_parent_with_child():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("test0", "test1", "test2", Parameter("str"))
+
+    assert schema._parent() is schema
+    assert schema._parent(root=True) is schema
+    assert schema.get("test0", field="schema")._parent(root=True) is schema
+    assert schema.get("test0", "test1", field="schema")._parent(root=True) is schema

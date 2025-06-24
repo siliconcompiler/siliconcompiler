@@ -75,6 +75,8 @@ def limit_cpus(monkeypatch, request):
     '''
     if 'eda' not in request.keywords:
         return
+    if 'nocpulimit' in request.keywords:
+        return
 
     org_cpus = utils.get_cores(siliconcompiler.Chip("dummy"))
 
@@ -180,7 +182,7 @@ def gcd_chip_dir(tmpdir_factory, examples_root):
     chip.set('option', 'nodisplay', True)
     chip.set('option', 'quiet', True)
 
-    assert chip.run()
+    assert chip.run(raise_exception=True)
 
     os.chdir(cwd)
 
@@ -203,7 +205,7 @@ def heartbeat_chip_dir(tmpdir_factory, scroot):
     chip.input('heartbeat.v', package='heartbeat-pytest')
     chip.input('heartbeat.sdc', package='heartbeat-pytest')
     chip.use(freepdk45_demo)
-    assert chip.run()
+    assert chip.run(raise_exception=True)
 
     os.chdir(cwd)
 

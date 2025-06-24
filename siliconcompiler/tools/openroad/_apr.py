@@ -654,7 +654,7 @@ def define_dpo_params(chip):
                       schelp='true/false, when true the detailed placement optimization '
                              'will be performed')
     set_tool_task_var(chip, param_key='dpo_max_displacement',
-                      default_value='0',
+                      default_value='5',
                       schelp='maximum cell movement in detailed placement optimization in microns, '
                              '0 will result in the tool default maximum displacement')
 
