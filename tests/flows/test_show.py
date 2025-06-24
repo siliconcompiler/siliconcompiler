@@ -110,6 +110,7 @@ def test_show_nopdk(datadir, display):
 
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.skip(reason='exit not supported until surfer release 0.4')
 def test_show_vcd(datadir, display):
     chip = siliconcompiler.Chip('heartbeat')
 
