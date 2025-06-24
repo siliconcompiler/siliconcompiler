@@ -18,6 +18,7 @@ from siliconcompiler.tools import openroad
 from siliconcompiler.tools import opensta
 from siliconcompiler.tools import slang
 from siliconcompiler.tools import surelog
+from siliconcompiler.tools import surfer
 from siliconcompiler.tools.sv2v import sv2v
 from siliconcompiler.tools.verilator import verilator
 from siliconcompiler.tools.vivado import vivado
@@ -53,6 +54,7 @@ def get_tools():
             opensta,
             slang,
             surelog,
+            surfer,
             sv2v,
             verilator,
             vivado,
