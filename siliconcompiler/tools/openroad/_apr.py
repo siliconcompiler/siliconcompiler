@@ -646,6 +646,10 @@ def define_gpl_params(chip):
                       default_value='true',
                       schelp='true/false, when enabled a global placement is performed without '
                              'considering the impact of the pin placements')
+    set_tool_task_var(chip, param_key='gpl_enable_skip_initial_place',
+                      default_value='false',
+                      schelp='true/false, when enabled a global placement skips the initial '
+                             'placement, before the main global placement pass.')
 
 
 def define_dpo_params(chip):
