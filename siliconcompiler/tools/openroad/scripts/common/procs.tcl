@@ -68,6 +68,8 @@ proc sc_global_placement { args } {
     set gpl_routability_driven [lindex [sc_cfg_tool_task_get var gpl_routability_driven] 0]
     set gpl_timing_driven [lindex [sc_cfg_tool_task_get var gpl_timing_driven] 0]
     set gpl_padding [lindex [sc_cfg_tool_task_get var pad_global_place] 0]
+    set gpl_enable_skip_initial_place [lindex \
+        [sc_cfg_tool_task_get var gpl_enable_skip_initial_place] 0]
 
     set gpl_args []
     if {
@@ -78,6 +80,9 @@ proc sc_global_placement { args } {
     }
     if { $gpl_timing_driven == "true" } {
         lappend gpl_args "-timing_driven"
+    }
+    if { $gpl_enable_skip_initial_place == "true" } {
+        lappend gpl_args "-skip_initial_place"
     }
 
     if { [info exists flags(-skip_io)] } {
