@@ -1,6 +1,7 @@
 import os
 from siliconcompiler.tools._common import add_require_input, get_tool_task, input_provides
 
+
 def setup(chip):
     '''
     Show a VCD file.
@@ -29,6 +30,7 @@ def setup(chip):
     # Don't exit on show
     chip.set('tool', tool, 'task', task, 'var', 'show_exit', False,
              step=step, index=index, clobber=False)
+
 
 def runtime_options(chip):
     step = chip.get('arg', 'step')
