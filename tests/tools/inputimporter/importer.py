@@ -21,9 +21,8 @@ def setup(chip):
         return "no input files provided to copy"
 
     # For each input file, require that they appear in the output folder.
-    for input_file in input_files:
-        input_basename = os.path.basename(input_file)
-        chip.add('tool', tool, 'task', task, 'output', input_basename, step=step, index=index)
+    input_file_basenames = [os.path.basename(input_file) for input_file in input_files]
+    chip.add('tool', tool, 'task', task, 'output', input_file_basenames, step=step, index=index)
 
 
 def runtime_options(chip):

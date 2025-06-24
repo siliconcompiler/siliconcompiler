@@ -184,6 +184,7 @@ def runtime_options(chip):
         options.append("--sdc_file")
         options.append(sdc_file)
 
+    if use_timing_analysis(chip):
         report_type = chip.get('tool', tool, 'task', task, 'var', 'timing_report_type',
                                step=step, index=index)[0]
         options.extend(['--timing_report_detail', report_type])
@@ -309,6 +310,17 @@ def normalize_version(version):
 
 def auto_constraints():
     return 'inputs/sc_constraints.xml'
+
+
+def use_timing_analysis(chip):
+    '''
+    Return true if the given chip should use timing analysis in the VPR flow.
+    '''
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    return \
+        chip.valid('input', 'constraint', 'sdc') and \
+        chip.get('input', 'constraint', 'sdc', step=step, index=index)
 
 
 def vpr_post_process(chip):

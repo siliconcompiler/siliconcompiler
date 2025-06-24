@@ -46,8 +46,12 @@ def setup(chip, clobber=True):
 
     # Add a parameter for generating a post-implementation netlist for external
     # static timing analysis.
-    chip.set('tool', tool, 'task', task, 'var', 'gen_post_implementation_netlist',
-             False, step=step, index=index, clobber=False)
+    if vpr.use_timing_analysis(chip):
+        chip.set('tool', tool, 'task', task, 'var', 'gen_post_implementation_netlist',
+                 True, step=step, index=index, clobber=False)
+    else:
+        chip.set('tool', tool, 'task', task, 'var', 'gen_post_implementation_netlist',
+                 False, step=step, index=index, clobber=False)
 
     chip.set('tool', tool, 'task', task, 'var', 'gen_post_implementation_netlist',
              'set to true to have VPR generate a post-implementation netlist',
@@ -69,19 +73,18 @@ def setup(chip, clobber=True):
              ",".join(['tool', tool, 'task', task, 'var', 'timing_corner']),
              step=step, index=index)
 
-    # Add the post-implementation timing netlist outputs if requested.
-    gen_post_implementation_netlist = chip.get('tool', tool, 'task', task, 'var',
-                                               'gen_post_implementation_netlist',
-                                               step=step, index=index)[0]
+    # Add the post-implementation timing netlist outputs for the timing step.
+    # These files must always be generated so nodes that are connected after this
+    # step that are expecting these files do not complain if they are not generated.
     timing_corner = chip.get('tool', tool, 'task', task, 'var', 'timing_corner',
                              step=step, index=index)[0]
-    if gen_post_implementation_netlist == 'true':
-        chip.add('tool', tool, 'task', task, 'output', f'{design}.vg',
-                 step=step, index=index)
-        chip.add('tool', tool, 'task', task, 'output', f'{design}.sdc',
-                 step=step, index=index)
-        chip.add('tool', tool, 'task', task, 'output', f'{design}.{timing_corner}.sdf',
-                 step=step, index=index)
+
+    chip.add('tool', tool, 'task', task, 'output', f'{design}.vg',
+             step=step, index=index)
+    chip.add('tool', tool, 'task', task, 'output', f'{design}.sdc',
+             step=step, index=index)
+    chip.add('tool', tool, 'task', task, 'output', f'{design}.{timing_corner}.sdf',
+             step=step, index=index)
 
 
 def runtime_options(chip):
@@ -187,7 +190,17 @@ def post_process(chip):
                                                step=step, index=index)[0]
     timing_corner = chip.get('tool', tool, 'task', task, 'var', 'timing_corner',
                              step=step, index=index)[0]
-    if gen_post_implementation_netlist == 'true':
+
+    if vpr.use_timing_analysis(chip) and gen_post_implementation_netlist == 'true':
+        # These files will only exist if timing analysis is on and VPR was told
+        # to generate them.
         shutil.move(f'{design}_post_synthesis.v', f'outputs/{design}.vg')
         shutil.move(f'{design}_post_synthesis.sdc', f'outputs/{design}.sdc')
         shutil.move(f'{design}_post_synthesis.sdf', f'outputs/{design}.{timing_corner}.sdf')
+    else:
+        # If timing analysis is on or we are not generating a post-implementation
+        # netlist, just produce blank files. These will trigger any future nodes
+        # that use them to skip.
+        open(f'outputs/{design}.vg', 'a')
+        open(f'outputs/{design}.sdc', 'a')
+        open(f'outputs/{design}.{timing_corner}.sdf', 'a')
