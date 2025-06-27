@@ -1,3 +1,4 @@
+import logging
 import pytest
 import re
 import responses
@@ -17,7 +18,7 @@ from siliconcompiler import Chip
      'version-1')
 ])
 @responses.activate
-def test_dependency_path_download_http(datadir, path, ref, tmp_path):
+def test_dependency_path_download_http(datadir, path, ref, tmp_path, caplog):
     with open(os.path.join(datadir, 'https.tar.gz'), "rb") as f:
         responses.add(
             responses.GET,
@@ -29,10 +30,13 @@ def test_dependency_path_download_http(datadir, path, ref, tmp_path):
 
     chip = Chip("dummy")
     chip.set("option", "cachedir", tmp_path)
+    chip.logger = logging.getLogger()
+    chip.logger.setLevel(logging.INFO)
 
     resolver = HTTPResolver("sc-data", chip, path, ref)
     assert resolver.resolve() == Path(os.path.join(tmp_path, f"sc-data-{ref}"))
     assert os.path.isfile(os.path.join(tmp_path, f"sc-data-{ref}", "pyproject.toml"))
+    assert "Downloading sc-data data from " in caplog.text
 
 
 @responses.activate
