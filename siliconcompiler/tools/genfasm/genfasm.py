@@ -1,5 +1,4 @@
 from siliconcompiler.tools.vpr.vpr import parse_version as vpr_parse_version
-from siliconcompiler.tools.vpr.vpr import normalize_version as vpr_normalize_version
 from siliconcompiler.tools.vpr.vpr import add_tool_requirements as add_vpr_requirements
 
 '''
@@ -24,7 +23,7 @@ def make_docs(chip):
 def setup(chip):
     chip.set('tool', 'genfasm', 'exe', 'genfasm', clobber=False)
     chip.set('tool', 'genfasm', 'vswitch', '--version')
-    chip.set('tool', 'genfasm', 'version', '>=9.0.0', clobber=False)
+    chip.set('tool', 'genfasm', 'version', '>=v8.0.0-12677', clobber=False)
 
     add_tool_requirements(chip)
 
@@ -35,10 +34,6 @@ def add_tool_requirements(chip):
 
 def parse_version(chip):
     return vpr_parse_version(chip)
-
-
-def normalize_version(chip):
-    return vpr_normalize_version(chip)
 
 
 ##################################################
