@@ -199,7 +199,7 @@ if { [string match {ice*} $sc_partname] } {
     yosys synth_fpga \
         -top $sc_design \
         -lut_size $sc_syn_lut_size \
-        -partname $sc_partname \
+        -partname [string toupper $sc_partname] \
         -insbuf \
         {*}$synth_fpga_args
 } else {
