@@ -182,18 +182,22 @@ yosys hierarchy -top $sc_design
 
 if { [string match {ice*} $sc_partname] } {
     yosys synth_ice40 -top $sc_design -json "${sc_design}.netlist.json"
-} elseif {[string match {z*} $sc_partname] && [sc_load_plugin yosys-syn] } {
+} elseif { [string match {z*} $sc_partname] && [sc_load_plugin yosys-syn] } {
     puts "Using Yosys Synthesis plugin"
 
     set synth_fpga_args []
-    if {[lsearch -exact $sc_syn_feature_set enable] == -1 } {
+    if { [lsearch -exact $sc_syn_feature_set enable] == -1 } {
         lappend synth_fpga_args -no_dff_enable
     }
-    if {[lsearch -exact $sc_syn_feature_set async_set] == -1 } {
+    if { [lsearch -exact $sc_syn_feature_set async_set] == -1 } {
         lappend synth_fpga_args -no_dff_async_set
     }
-    if {[lsearch -exact $sc_syn_feature_set async_reset] == -1 } {
+    if { [lsearch -exact $sc_syn_feature_set async_reset] == -1 } {
         lappend synth_fpga_args -no_dff_async_reset
+    }
+    if { [lindex [sc_cfg_get fpga $sc_partname var synth_fpga_opt_mode] 0] != "none" } {
+        lappend synth_fpga_args \
+            -opt [lindex [sc_cfg_get fpga $sc_partname var synth_fpga_opt_mode] 0]
     }
 
     yosys synth_fpga \

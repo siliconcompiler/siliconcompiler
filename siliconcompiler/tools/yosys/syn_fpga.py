@@ -43,6 +43,13 @@ def setup(chip):
              'true/false, if true will attempt to use the slang frontend',
              field='help')
 
+    chip.set('tool', tool, 'task', task, 'var', 'synth_fpga_opt_mode', 'none',
+             step=step, index=index,
+             clobber=False)
+    chip.set('tool', tool, 'task', task, 'var', 'synth_fpga_opt_mode',
+             'optimization mode for the synth_fpga command',
+             field='help')
+
     # Setup FPGA params
     part_name = chip.get('fpga', 'partname')
 
