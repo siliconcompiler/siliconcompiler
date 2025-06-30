@@ -24,7 +24,7 @@ if { [sc_design_has_unplaced_macros] } {
 ###############################
 
 set pdn_blockages []
-set pdn_pin_keepout [lindex [sc_cfg_tool_task_get var fixed_pin_keepout] 0]
+set pdn_pin_keepout [sc_cfg_tool_task_get var fixed_pin_keepout]
 if { $pdn_pin_keepout > 0 } {
     foreach bterm [[ord::get_db_block] getBTerms] {
         foreach bpin [$bterm getBPins] {
@@ -66,7 +66,7 @@ if { $pdn_pin_keepout > 0 } {
 ###############################
 
 set pdn_files []
-foreach pdnconfig [sc_cfg_tool_task_get {file} pdn_config] {
+foreach pdnconfig [sc_cfg_tool_task_get var pdn_config] {
     if { [lsearch -exact $pdn_files $pdnconfig] != -1 } {
         continue
     }
@@ -76,7 +76,7 @@ foreach pdnconfig [sc_cfg_tool_task_get {file} pdn_config] {
     lappend pdn_files $pdnconfig
 }
 tee -quiet -file reports/power_grid_configuration.rpt {pdngen -report_only}
-pdngen -failed_via_report "reports/${sc_design}_pdngen_failed_vias.rpt"
+pdngen -failed_via_report "reports/${sc_topmodule}_pdngen_failed_vias.rpt"
 
 ###############################
 # Check Power Network

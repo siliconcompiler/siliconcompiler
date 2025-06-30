@@ -133,11 +133,8 @@ class SCColorLoggerFormatter(logging.Formatter):
 
 
 def get_console_formatter(chip, in_run, step, index):
-    if not hasattr(chip, "schema"):
-        return SCLoggerFormatter()
-
-    loglevel = chip.schema.get('option', 'loglevel',
-                               step=step, index=index)
+    loglevel = chip.get('option', 'loglevel',
+                        step=step, index=index)
 
     if loglevel == 'quiet':
         base_format = SCBlankLoggerFormatter()

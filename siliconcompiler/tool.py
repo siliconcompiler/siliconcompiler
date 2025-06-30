@@ -42,8 +42,9 @@ from siliconcompiler import utils, NodeStatus
 from siliconcompiler import sc_open
 from siliconcompiler import Schema
 
+from siliconcompiler.pathschema import PathSchema
 from siliconcompiler.record import RecordTool
-from siliconcompiler.scheduler import SchedulerNode
+# from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 
 
@@ -87,7 +88,7 @@ class TaskSkip(TaskError):
         return self.__why
 
 
-class TaskSchema(NamedSchema):
+class TaskSchema(NamedSchema, PathSchema):
     """
     A schema class that defines the parameters and methods for a single task
     in a compilation flow.
@@ -116,6 +117,7 @@ class TaskSchema(NamedSchema):
         super().__init__()
 
         schema_task(self)
+        schema_tool(self)
 
         self.__set_runtime(None)
 
@@ -162,14 +164,14 @@ class TaskSchema(NamedSchema):
         Args:
             node (SchedulerNode): The scheduler node for this runtime context.
         """
-        if node and not isinstance(node, SchedulerNode):
-            raise TypeError("node must be a scheduler node")
+        # if node and not isinstance(node, SchedulerNode):
+        #     raise TypeError("node must be a scheduler node")
 
         obj_copy = copy.copy(self)
         obj_copy.__set_runtime(node, step=step, index=index, relpath=relpath)
         yield obj_copy
 
-    def __set_runtime(self, node: SchedulerNode, step=None, index=None, relpath=None):
+    def __set_runtime(self, node, step=None, index=None, relpath=None):
         """
         Private helper to set the runtime information for executing a task.
 
@@ -192,7 +194,7 @@ class TaskSchema(NamedSchema):
                 raise RuntimeError("step and index cannot be provided with node")
 
             self.__chip = node.chip
-            self.__schema_full = node.chip.schema
+            self.__schema_full = node.project
             self.__logger = node.chip.logger
             self.__design_name = node.name
             self.__design_top = node.topmodule
@@ -246,7 +248,7 @@ class TaskSchema(NamedSchema):
         return self.__design_top
 
     @property
-    def node(self) -> SchedulerNode:
+    def node(self):
         """SchedulerNode: The scheduler node for the current runtime."""
         return self.__node
 
@@ -302,8 +304,6 @@ class TaskSchema(NamedSchema):
             return self.__schema_flow
         elif type == "runtimeflow":
             return self.__schema_flow_runtime
-        elif type == "tool":
-            return self.__schema_tool
         else:
             raise ValueError(f"{type} is not a schema section")
 
@@ -339,7 +339,7 @@ class TaskSchema(NamedSchema):
             str: The absolute path to the executable, or None if not specified.
         """
 
-        exe = self.schema("tool").get('exe')
+        exe = self.get('exe')
 
         if exe is None:
             return None
@@ -366,7 +366,7 @@ class TaskSchema(NamedSchema):
             str: The parsed version string.
         """
 
-        veropt = self.schema("tool").get('vswitch')
+        veropt = self.get('vswitch')
         if not veropt:
             return None
 
@@ -419,7 +419,7 @@ class TaskSchema(NamedSchema):
             bool: True if the version is acceptable, False otherwise.
         """
 
-        spec_sets = self.schema("tool").get('version', step=self.__step, index=self.__index)
+        spec_sets = self.get('version')
         if not spec_sets:
             # No requirement, so always true
             return True
@@ -497,18 +497,13 @@ class TaskSchema(NamedSchema):
             envvars[env] = self.__schema_full.get('option', 'env', env)
 
         # Add tool-specific license server vars
-        for lic_env in self.schema("tool").getkeys('licenseserver'):
-            license_file = self.schema("tool").get('licenseserver', lic_env,
-                                                   step=self.__step, index=self.__index)
+        for lic_env in self.getkeys('licenseserver'):
+            license_file = self.get('licenseserver', lic_env)
             if license_file:
                 envvars[lic_env] = ':'.join(license_file)
 
         if include_path:
-            path = self.schema("tool").find_files(
-                "path", step=self.__step, index=self.__index,
-                cwd=self.__cwd,
-                collection_dir=self.__collection_path,
-                missing_ok=True)
+            path = self.find_files("path", missing_ok=True)
 
             envvars["PATH"] = os.getenv("PATH", os.defpath)
 
@@ -571,13 +566,13 @@ class TaskSchema(NamedSchema):
         replay_opts["work_dir"] = workdir
         replay_opts["exports"] = self.get_runtime_environmental_variables(include_path=include_path)
 
-        replay_opts["executable"] = self.schema("tool").get('exe')
+        replay_opts["executable"] = self.get('exe')
         replay_opts["step"] = self.__step
         replay_opts["index"] = self.__index
         replay_opts["cfg_file"] = f"inputs/{self.__design_name}.pkg.json"
         replay_opts["node_only"] = 0 if replay_opts["executable"] else 1
 
-        vswitch = self.schema("tool").get('vswitch')
+        vswitch = self.get('vswitch')
         if vswitch:
             replay_opts["version_flag"] = shlex.join(vswitch)
 
@@ -658,7 +653,8 @@ class TaskSchema(NamedSchema):
         vars = {
             "sc_tool": NodeType.to_tcl(self.tool(), "str"),
             "sc_task": NodeType.to_tcl(self.task(), "str"),
-            "sc_topmodule": NodeType.to_tcl(self.design_topmodule, "str")
+            "sc_topmodule": NodeType.to_tcl(self.design_topmodule, "str"),
+            "sc_designlib": NodeType.to_tcl(self.design_name, "str")
         }
 
         refdir = manifest.get("tool", self.tool(), "task", self.task(), "refdir", field=None)
@@ -731,7 +727,7 @@ class TaskSchema(NamedSchema):
             backup (bool): If True, backs up an existing manifest.
         """
 
-        suffix = self.schema("tool").get('format')
+        suffix = self.get('format')
         if not suffix:
             return
 
@@ -1351,52 +1347,52 @@ class TaskSchema(NamedSchema):
                 clobber: bool = False):
         rets = []
         if exe:
-            rets.append(self.schema("tool").set("exe", exe, clobber=clobber))
+            rets.append(self.set("exe", exe, clobber=clobber))
         if vswitch:
             switches = self.add_vswitch(vswitch, clobber=clobber)
             if not isinstance(switches, list):
                 switches = list(switches)
             rets.extend(switches)
         if format:
-            rets.append(self.schema("tool").set("format", format, clobber=clobber))
+            rets.append(self.set("format", format, clobber=clobber))
         return rets
 
     def set_path(self, path: str, dataroot: str = None,
                  step: str = None, index: str = None,
                  clobber: bool = False):
         if not dataroot:
-            dataroot = self.schema("tool")._get_active("package")
-        with self.schema("tool")._active(package=dataroot):
-            return self.schema("tool").set("path", path, step=step, index=index, clobber=clobber)
+            dataroot = self._get_active("package")
+        with self._active(package=dataroot):
+            return self.set("path", path, step=step, index=index, clobber=clobber)
 
     def add_version(self, version: str, step: str = None, index: str = None, clobber: bool = False):
         if clobber:
-            return self.schema("tool").set("version", version, step=step, index=index)
+            return self.set("version", version, step=step, index=index)
         else:
-            return self.schema("tool").add("version", version, step=step, index=index)
+            return self.add("version", version, step=step, index=index)
 
     def add_vswitch(self, switch: str, clobber: bool = False):
         if clobber:
-            return self.schema("tool").set("vswitch", switch)
+            return self.set("vswitch", switch)
         else:
-            return self.schema("tool").add("vswitch", switch)
+            return self.add("vswitch", switch)
 
     def add_licenseserver(self, name: str, server: str,
                           step: str = None, index: str = None,
                           clobber: bool = False):
         if clobber:
-            return self.schema("tool").set("licenseserver", name, server, step=step, index=index)
+            return self.set("licenseserver", name, server, step=step, index=index)
         else:
-            return self.schema("tool").add("licenseserver", name, server, step=step, index=index)
+            return self.add("licenseserver", name, server, step=step, index=index)
 
     def add_sbom(self, version: str, sbom: str, dataroot: str = None, clobber: bool = False):
         if not dataroot:
-            dataroot = self.schema("tool")._get_active("package")
-        with self.schema("tool")._active(package=dataroot):
+            dataroot = self._get_active("package")
+        with self._active(package=dataroot):
             if clobber:
-                return self.schema("tool").set("sbom", version, sbom)
+                return self.set("sbom", version, sbom)
             else:
-                return self.schema("tool").add("sbom", version, sbom)
+                return self.add("sbom", version, sbom)
 
     def record_metric(self, metric, value, source_file=None, source_unit=None, quiet=False):
         '''
@@ -1481,9 +1477,7 @@ class TaskSchema(NamedSchema):
         if not index:
             index = self.__index
         return super().find_files(*keypath, missing_ok=missing_ok,
-                                  step=step, index=index,
-                                  collection_dir=self.__collection_path,
-                                  cwd=self.__cwd)
+                                  step=step, index=index)
 
     def _find_files_search_paths(self, keypath, step, index):
         paths = super()._find_files_search_paths(keypath, step, index)
@@ -1642,6 +1636,7 @@ class ShowTaskSchema(TaskSchema):
             return subclss
 
         classes = recurse(cls)
+
         # Support non-SC defined tasks from plugins
         for plugin in utils.get_plugins('showtask'):  # TODO rename
             plugin()
@@ -1821,10 +1816,9 @@ class ASICTaskSchema(TaskSchema):
     @property
     def pdk(self):
         """The Process Design Kit (PDK) schema object."""
-        pdk = self.mainlib.get("asic", "pdk")
+        pdk = self.schema().get("asic", "pdk")
         if not pdk:
-            raise ValueError("pdk has not been defined in "
-                             f"[{','.join([*self.mainlib._keypath, 'asic', 'pdk'])}]")
+            raise ValueError("pdk has not been defined in [asic,pdk]")
         if pdk not in self.schema().getkeys("library"):
             raise LookupError(f"{pdk} has not been loaded")
         return self.schema().get("library", pdk, field="schema")
@@ -1992,7 +1986,7 @@ class TaskSchemaTmp(TaskSchema):
 
     def get_exe(self):
         if self.tool() == "execute" and self.task() == "exec_input":
-            return self.schema("tool").get("exe")
+            return self.get("exe")
         return super().get_exe()
 
     def schema(self, type=None):
@@ -2109,6 +2103,7 @@ def schema_tool(schema):
         Parameter(
             'str',
             scope=Scope.GLOBAL,
+            pernode=PerNode.OPTIONAL,
             shorthelp="Tool: executable name",
             switch="-tool_exe 'tool <str>'",
             example=["cli: -tool_exe 'openroad openroad'",
@@ -2155,6 +2150,7 @@ def schema_tool(schema):
         Parameter(
             '[str]',
             scope=Scope.GLOBAL,
+            pernode=PerNode.OPTIONAL,
             shorthelp="Tool: executable version switch",
             switch="-tool_vswitch 'tool <str>'",
             example=["cli: -tool_vswitch 'openroad -version'",
@@ -2206,6 +2202,7 @@ def schema_tool(schema):
         Parameter(
             '<json,tcl,yaml>',
             scope=Scope.GLOBAL,
+            pernode=PerNode.OPTIONAL,
             shorthelp="Tool: file format",
             switch="-tool_format 'tool <str>'",
             example=["cli: -tool_format 'yosys tcl'",

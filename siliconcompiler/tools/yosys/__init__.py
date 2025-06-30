@@ -23,6 +23,7 @@ from siliconcompiler.tools._common import get_tool_task, record_metric
 
 from siliconcompiler import StdCellLibrarySchema
 from siliconcompiler import FPGASchema
+from siliconcompiler import TaskSchema
 
 
 class YosysStdCellLibrary(StdCellLibrarySchema):
@@ -385,6 +386,72 @@ class YosysFPGA(FPGASchema):
             return self.set("tool", "yosys", "dsps", name)
         else:
             return self.add("tool", "yosys", "dsps", name)
+
+
+class YosysTask(TaskSchema):
+    def tool(self):
+        return "yosys"
+
+    def setup(self):
+        super().setup()
+
+        self.set_exe("yosys", vswitch="--version", format="tcl")
+        self.add_version(">=0.48")
+
+        if self.has_breakpoint():
+            self.add_commandline_option("-C")
+        self.add_commandline_option("-c")
+
+        self.set_dataroot("siliconcompiler-yosys", __file__)
+
+        with self.active_dataroot("siliconcompiler-yosys"):
+            self.set_refdir("scripts")
+
+        self.add_regex("warnings", "Warning:")
+        self.add_regex("errors", "^ERROR")
+
+    def parse_version(self, stdout):
+        # Yosys 0.9+3672 (git sha1 014c7e26, gcc 7.5.0-3ubuntu1~18.04 -fPIC -Os)
+        return stdout.split()[1]
+
+    def normalize_version(self, version):
+        # Replace '+', which represents a "local version label", with '-', which is
+        # an "implicit post release number".
+        return version.replace('+', '-')
+
+    def _synthesis_post_process(self):
+        stat_json = "reports/stat.json"
+        if os.path.exists(stat_json):
+            with sc_open(stat_json) as f:
+                metrics = json.load(f)
+                if "design" in metrics:
+                    metrics = metrics["design"]
+
+                if "area" in metrics:
+                    self.record_metric("cellarea", float(metrics["area"]),
+                                       source_file=stat_json, source_unit="um^2")
+                if "num_cells" in metrics:
+                    self.record_metric("cells", metrics["num_cells"],
+                                       source_file=stat_json)
+                if "num_wire_bits" in metrics:
+                    self.record_metric("nets", metrics["num_wire_bits"],
+                                       source_file=stat_json)
+                if "num_port_bits" in metrics:
+                    self.record_metric("pins", float(metrics["num_port_bits"]),
+                                       source_file=stat_json)
+        else:
+            self.logger.warning("Yosys cell statistics are missing")
+
+        registers = None
+        with sc_open(self.get_logpath("exe")) as f:
+            for line in f:
+                line_registers = re.findall(r"^\s*mapped ([0-9]+) \$_DFF.*", line)
+                if line_registers:
+                    if registers is None:
+                        registers = 0
+                    registers += int(line_registers[0])
+        if registers is not None:
+            self.record_metric("registers", registers, source_file=self.get_logpath("exe"))
 
 
 ######################################################################

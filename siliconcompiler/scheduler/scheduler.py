@@ -48,7 +48,7 @@ class Scheduler:
         """
         self.__chip = chip
         self.__logger: logging.Logger = chip.logger
-        self.__name = chip.design
+        self.__name = chip.design.name
 
         flow = self.__chip.get("option", "flow")
         if not flow:
@@ -229,7 +229,7 @@ class Scheduler:
         self.run_core()
 
         # Store run in history
-        self.__chip.schema.record_history()
+        self.__chip._record_history()
 
         # Record final manifest
         filepath = os.path.join(self.__chip.getworkdir(), f"{self.__name}.pkg.json")
@@ -416,7 +416,7 @@ class Scheduler:
         from_nodes = []
         extra_setup_nodes = {}
 
-        journal = Journal.access(self.__chip.schema)
+        journal = Journal.access(self.__chip)
         journal.start()
 
         self.__print_status("Start")
@@ -484,7 +484,7 @@ class Scheduler:
                         self.__mark_pending(step, index)
                     elif (step, index) in extra_setup_nodes:
                         # import old information
-                        Journal.access(extra_setup_nodes[(step, index)]).replay(self.__chip.schema)
+                        Journal.access(extra_setup_nodes[(step, index)]).replay(self.__chip)
 
         self.__print_status("After requires run")
 

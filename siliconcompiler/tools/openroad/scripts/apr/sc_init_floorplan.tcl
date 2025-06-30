@@ -30,12 +30,11 @@ if { [sc_cfg_exists input asic floorplan] } {
     puts "Reading floorplan DEF: ${def}"
     read_def -floorplan_initialize $def
 } else {
-    set sc_libtype [sc_cfg_get library $sc_mainlib asic libarch]
-    set sc_site [lindex [sc_cfg_get library $sc_mainlib asic site $sc_libtype] 0]
+    set sc_site [lindex [sc_cfg_get library $sc_mainlib asic site] 0]
 
     #NOTE: assuming a two tuple value as lower left, upper right
-    set sc_diearea [sc_cfg_get constraint outline]
-    set sc_corearea [sc_cfg_get constraint corearea]
+    set sc_diearea [sc_cfg_get constraint area diearea]
+    set sc_corearea [sc_cfg_get constraint area corearea]
     if {
         $sc_diearea != "" &&
         $sc_corearea != ""
@@ -49,30 +48,36 @@ if { [sc_cfg_exists input asic floorplan] } {
             -site $sc_site
     } else {
         # Use density
-        initialize_floorplan -aspect_ratio [sc_cfg_get constraint aspectratio] \
-            -utilization [sc_cfg_get constraint density] \
-            -core_space [sc_cfg_get constraint coremargin] \
+        initialize_floorplan -aspect_ratio [sc_cfg_get constraint area aspectratio] \
+            -utilization [sc_cfg_get constraint area density] \
+            -core_space [sc_cfg_get constraint area coremargin] \
             -site $sc_site
     }
 }
 
+proc sc_format_area { area } {
+    return "([lindex $area 0], [lindex $area 1]) - ([lindex $area 2], [lindex $area 3])"
+}
+
 puts "Floorplan information:"
-puts "Die area: [ord::get_die_area]"
-puts "Core area: [ord::get_core_area]"
+puts "  Die area: [sc_format_area [ord::get_die_area]]"
+puts "  Core area: [sc_format_area [ord::get_core_area]]"
 
 ###############################
 # Track Creation
 ###############################
 
 # source tracks from file if found, else else use schema entries
-if { [sc_cfg_exists library $sc_mainlib option file openroad_tracks] } {
-    set tracks_file [lindex [sc_cfg_get library $sc_mainlib option file openroad_tracks] 0]
-    puts "Sourcing tracks configuration: ${tracks_file}"
-    source $tracks_file
+set sc_openroad_tracks [sc_cfg_get  library $sc_mainlib tool openroad tracks]
+if { $sc_openroad_tracks != "" } {
+    puts "Sourcing tracks configuration: ${sc_openroad_tracks}"
+    source $sc_openroad_tracks
 } else {
+    utl::info FLW 1 "Creating default routing tracks"
     make_tracks
 }
 
+# TODO
 set do_automatic_pins 1
 if {
     [sc_cfg_tool_task_exists file padring] &&
@@ -101,10 +106,8 @@ if {
 ###############################
 # Pin placement
 ###############################
-set sc_hpinmetal [sc_cfg_get pdk $sc_pdk {var} $sc_tool pin_layer_horizontal $sc_stackup]
-set sc_hpinmetal [sc_get_layer_name $sc_hpinmetal]
-set sc_vpinmetal [sc_cfg_get pdk $sc_pdk {var} $sc_tool pin_layer_vertical $sc_stackup]
-set sc_vpinmetal [sc_get_layer_name $sc_vpinmetal]
+set sc_hpinmetal [sc_get_layer_name [sc_cfg_tool_task_get var pin_layer_horizontal]]
+set sc_vpinmetal [sc_get_layer_name [sc_cfg_tool_task_get var pin_layer_vertical]]
 
 if { [sc_cfg_exists constraint pin] } {
     source "[sc_cfg_tool_task_get file sc_pin_constraint]"
@@ -317,11 +320,11 @@ if { [sc_check_version 23008] } {
 # Remove buffers inserted by synthesis
 ###############################
 
-if { [lindex [sc_cfg_tool_task_get var remove_synth_buffers] 0] == "true" } {
+if { [sc_cfg_tool_task_get var remove_synth_buffers] } {
     remove_buffers
 }
 
-if { [lindex [sc_cfg_tool_task_get var remove_dead_logic] 0] == "true" } {
+if { [sc_cfg_tool_task_get var remove_dead_logic] } {
     eliminate_dead_logic
 }
 

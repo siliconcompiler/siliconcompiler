@@ -5,6 +5,41 @@ from siliconcompiler.tools.execute.execute import setup as tool_setup
 from siliconcompiler.tools._common import input_provides, get_tool_task
 
 
+from siliconcompiler import TaskSchema
+
+
+class ExecInputTask(TaskSchema):
+    def __init__(self):
+        super().__init__()
+
+    def tool(self):
+        return "execute"
+
+    def task(self):
+        return "exec_input"
+
+    def setup(self):
+        super().setup()
+
+        for file in self.get_files_from_input_nodes().keys():
+            self.add_input_file(file)
+
+    def get_exe(self):
+        exec = None
+        for fin in glob.glob('inputs/*'):
+            if fin.endswith('.pkg.json'):
+                continue
+            exec = os.path.abspath(fin)
+            break
+
+        if not exec:
+            raise FileNotFoundError(f'{self.step}/{self.index} did not receive an executable file')
+
+        os.chmod(exec, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
+
+        return exec
+
+
 def setup(chip):
     '''
     Execute the output of the previous step directly.

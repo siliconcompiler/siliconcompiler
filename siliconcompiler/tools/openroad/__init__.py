@@ -14,8 +14,9 @@ from siliconcompiler.tools._common import get_tool_task
 
 from typing import List, Union
 
-from siliconcompiler.library import StdCellLibrarySchema
-from siliconcompiler.pdk import PDKSchema
+from siliconcompiler import StdCellLibrarySchema
+from siliconcompiler import PDKSchema
+from siliconcompiler.tool import ASICTaskSchema
 
 
 class OpenROADPDK(PDKSchema):
@@ -300,6 +301,74 @@ class OpenROADStdCellLibrary(StdCellLibrarySchema):
             self.set("tool", "openroad", "multibit_ff_cells", cells)
         else:
             self.add("tool", "openroad", "multibit_ff_cells", cells)
+
+
+class OpenROADTask(ASICTaskSchema):
+    def __init__(self):
+        super().__init__()
+
+        self.add_parameter("debug_level", "{(str,str,int)}", 'list of "tool key level" to enable debugging of OpenROAD')
+
+    def tool(self):
+        return "openroad"
+
+    def setup(self):
+        super().setup()
+
+        self.set_exe("openroad", vswitch="-version", format="tcl")
+        self.add_version(">=v2.0-17598")
+
+        self.set_dataroot("openroad-ref", __file__)
+        with self.active_dataroot("openroad-ref"):
+            self.set_refdir("scripts")
+
+        self.add_regex("warnings", r'^\[WARNING|^Warning')
+        self.add_regex("errors", r'^\[ERROR')
+
+        if self.schema().get('option', 'nodisplay'):
+            # Tells QT to use the offscreen platform if nodisplay is used
+            self.set_environmentalvariable("QPA_QT_PLATFORM", "offscreen")
+
+    def parse_version(self, stdout):
+        # stdout will be in one of the following forms:
+        # - 1 08de3b46c71e329a10aa4e753dcfeba2ddf54ddd
+        # - 1 v2.0-880-gd1c7001ad
+        # - v2.0-1862-g0d785bd84
+
+        # strip off the "1" prefix if it's there
+        version = stdout.split()[-1]
+
+        pieces = version.split('-')
+        if len(pieces) > 1:
+            # strip off the hash in the new version style
+            return '-'.join(pieces[:-1])
+        else:
+            return pieces[0]
+
+    def normalize_version(self, version):
+        if '.' in version:
+            return version.lstrip('v')
+        else:
+            return '0'
+
+    def add_debuglevel(self, tool, category, level, clobber=False):
+        if clobber:
+            self.set("var", "debug_level", (tool, category, level))
+        else:
+            self.add("var", "debug_level", (tool, category, level))
+
+    def unset_debuglevel(self):
+        self.unset("var", "debug_level")
+
+    def runtime_options(self):
+        options = super().runtime_options()
+        options.append("-no_init")
+        options.extend(["-metrics", "reports/metrics.json"])
+
+        if not self.has_breakpoint():
+            options.append("-exit")
+
+        return options
 
 
 ####################################################################

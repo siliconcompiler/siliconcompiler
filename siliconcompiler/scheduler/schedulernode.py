@@ -57,9 +57,19 @@ class SchedulerNode:
         self.__index = index
         self.__chip = chip
 
-        self.__name = self.__chip.design
-        self.__topmodule = self.__chip.top(step=step, index=index)
-        self.__topmodule_global = self.__chip.top()
+        self.__name = self.__chip.design.name
+        self.__topmodule = self.__chip.get(
+            "library",
+            self.__name,
+            "fileset",
+            self.__chip.get("option", "fileset")[0],
+            "topmodule")
+        self.__topmodule_global = self.__chip.get(
+            "library",
+            self.__name,
+            "fileset",
+            self.__chip.get("option", "fileset")[0],
+            "topmodule")
 
         self.__job = self.__chip.get('option', 'jobname')
         self.__record_user_info = self.__chip.get("option", "track",
@@ -80,9 +90,8 @@ class SchedulerNode:
             self.__chip.get("flowgraph", flow, field="schema").get_entry_nodes()
 
         self.__cwd = self.__chip.cwd
-        self.__jobworkdir = self.__chip.getworkdir(jobname=self.__job)
-        self.__workdir = self.__chip.getworkdir(jobname=self.__job,
-                                                step=self.__step, index=self.__index)
+        self.__jobworkdir = self.__chip.getworkdir()
+        self.__workdir = self.__chip.getworkdir(step=self.__step, index=self.__index)
         self.__manifests = {
             "input": os.path.join(self.__workdir, "inputs", f"{self.__name}.pkg.json"),
             "output": os.path.join(self.__workdir, "outputs", f"{self.__name}.pkg.json")
@@ -92,7 +101,7 @@ class SchedulerNode:
             "exe": os.path.join(self.__workdir, f"{self.__step}.log")
         }
         self.__replay_script = os.path.join(self.__workdir, "replay.sh")
-        self.__collection_path = self.__chip._getcollectdir()
+        self.__collection_path = self.__chip.getcollectiondir()
 
         self.set_queue(None, None)
         self.__setup_schema_access()
@@ -338,7 +347,7 @@ class SchedulerNode:
 
         self.__record.set("status", NodeStatus.ERROR, step=self.__step, index=self.__index)
         try:
-            self.__chip.schema.write_manifest(self.__manifests["output"])
+            self.__chip.write_manifest(self.__manifests["output"])
         except FileNotFoundError:
             self.logger.error(f"Failed to write manifest for {self.__step}/{self.__index}.")
 
@@ -584,20 +593,19 @@ class SchedulerNode:
         Returns:
             bool: True if a re-run is required, False otherwise.
         """
-        from siliconcompiler import Chip
+        from siliconcompiler import Project
 
         # Load previous manifest
         previous_node = None
         previous_node_time = time.time()
         if os.path.exists(self.__manifests["input"]):
             previous_node_time = os.path.getmtime(self.__manifests["input"])
-            chip = Chip('')
             try:
-                chip.schema = Schema(manifest=self.__manifests["input"], logger=self.logger)
+                project = Project.from_manifest(filepath=self.__manifests["input"])
             except:  # noqa E722
                 self.logger.debug("Input manifest failed to load")
                 return True
-            previous_node = SchedulerNode(chip, self.__step, self.__index)
+            previous_node = SchedulerNode(project, self.__step, self.__index)
         else:
             # No manifest found so assume rerun is needed
             self.logger.debug("Previous run did not generate input manifest")
@@ -605,13 +613,12 @@ class SchedulerNode:
 
         previous_node_end = None
         if os.path.exists(self.__manifests["output"]):
-            chip = Chip('')
             try:
-                chip.schema = Schema(manifest=self.__manifests["output"], logger=self.logger)
+                project = Project.from_manifest(filepath=self.__manifests["output"])
             except:  # noqa E722
                 self.logger.debug("Output manifest failed to load")
                 return True
-            previous_node_end = SchedulerNode(chip, self.__step, self.__index)
+            previous_node_end = SchedulerNode(project, self.__step, self.__index)
         else:
             # No manifest found so assume rerun is needed
             self.logger.debug("Previous run did not generate output manifest")
@@ -789,7 +796,7 @@ class SchedulerNode:
         self.__chip.set('arg', 'index', self.__index)
 
         # Setup journaling
-        journal = Journal.access(self.__chip.schema)
+        journal = Journal.access(self.__chip)
         journal.start()
 
         # Must be after journaling to ensure journal is complete

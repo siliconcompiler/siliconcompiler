@@ -1,6 +1,5 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 
-import copy
 import fastjsonschema
 import json
 import logging
@@ -17,7 +16,7 @@ from fastjsonschema import JsonSchemaException
 
 import os.path
 
-from siliconcompiler import Chip, Schema
+from siliconcompiler import Project
 from siliconcompiler import NodeStatus as SCNodeStatus
 from siliconcompiler._metadata import version as sc_version
 
@@ -103,7 +102,7 @@ class Server(ServerSchema):
         start_tar = os.path.join(self.nfs_mount, job_hash, f'{job_hash}_None.tar.gz')
         start_status = NodeStatus.SUCCESS
         with tarfile.open(start_tar, "w:gz") as tf:
-            start_manifest = os.path.join(chip.getworkdir(), f"{chip.design}.pkg.json")
+            start_manifest = os.path.join(chip.getworkdir(), f"{chip.design.name}.pkg.json")
             tf.add(start_manifest, arcname=os.path.relpath(start_manifest, self.nfs_mount))
 
         with self.sc_jobs_lock:
@@ -128,8 +127,8 @@ class Server(ServerSchema):
             job_hash = self.sc_chip_lookup[chip]["jobhash"]
             job_name = self.sc_chip_lookup[chip]["name"]
 
-        chip = copy.deepcopy(chip)
-        chip.cwd = os.path.join(chip.get('option', 'builddir'), '..')
+        chip = chip.copy()
+        chip._Project__cwd = os.path.join(chip.get('option', 'builddir'), '..')
         with tarfile.open(os.path.join(self.nfs_mount,
                                        job_hash,
                                        f'{job_hash}_{step}{index}.tar.gz'),
@@ -247,15 +246,16 @@ class Server(ServerSchema):
 
         # Create a dummy Chip object to make schema traversal easier.
         # start with a dummy name, as this will be overwritten
-        chip = Chip('server')
-        # Add provided schema
-        chip.schema = Schema(cfg=chip_cfg)
+        project = Project.from_manifest(cfg=chip_cfg)
+
+        # Remove dashboard from server runs
+        project.set('option', 'nodashboard', True)
 
         # Fetch some common values.
-        design = chip.design
-        job_name = chip.get('option', 'jobname')
+        design = project.design.name
+        job_name = project.get('option', 'jobname')
         job_hash = uuid.uuid4().hex
-        chip.set('record', 'remoteid', job_hash)
+        project.set('record', 'remoteid', job_hash)
 
         # Ensure that the job's root directory exists.
         job_root = os.path.join(self.nfs_mount, job_hash)
@@ -272,25 +272,24 @@ class Server(ServerSchema):
             os.remove(tmp_file)
 
         # Create the working directory for the given 'job hash' if necessary.
-        chip.set('option', 'builddir', job_root)
+        project.set('option', 'builddir', job_root)
 
         # Remove 'remote' JSON config value to run locally on compute node.
-        chip.set('option', 'remote', False)
+        project.set('option', 'remote', False)
 
         # Mark as nodisplay since it is a remote run
-        chip.set('option', 'nodisplay', True)
+        project.set('option', 'nodisplay', True)
 
         # Mark as quite to make server logging easier
-        chip.set('option', 'quiet', True)
+        project.set('option', 'quiet', True)
 
         # Log job received
         self.logger.info(f"Received job: {job_hash}")
 
         # Run the job with the configured clustering option. (Non-blocking)
         job_proc = threading.Thread(target=self.remote_sc,
-                                    args=[
-                                        chip,
-                                        job_params['username']])
+                                    args=[project,
+                                          job_params['username']])
         job_proc.start()
 
         # Return a response to the client.

@@ -44,7 +44,7 @@ def _generate_html_report(chip, flow, flowgraph_nodes, results_html):
     # default encoding is not UTF-8.
     with open(results_html, 'w', encoding='utf-8') as wf:
         wf.write(utils.get_file_template('report/sc_report.j2').render(
-            design=chip.design,
+            design=chip.design.name,
             nodes=nodes,
             errors=errors,
             metrics=metrics,
