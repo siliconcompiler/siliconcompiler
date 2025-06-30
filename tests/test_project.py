@@ -16,6 +16,30 @@ from siliconcompiler.utils.logging import SCColorLoggerFormatter, SCLoggerFormat
 from siliconcompiler.project import SCColorLoggerFormatter as dut_sc_color_logger
 
 
+class FauxTask0(TaskSchema):
+    def tool(self):
+        return "tool0"
+
+    def task(self):
+        return "task0"
+
+
+class FauxTask1(TaskSchema):
+    def tool(self):
+        return "tool1"
+
+    def task(self):
+        return "task1"
+
+
+class FauxTask2(TaskSchema):
+    def tool(self):
+        return "tool1"
+
+    def task(self):
+        return "task2"
+
+
 def test_key_groups():
     assert Project().getkeys() == (
         'arg',
@@ -330,46 +354,6 @@ def test_add_dep_flowgraph():
     assert proj.get("flowgraph", "test", field="schema") is flow
 
 
-@pytest.mark.skip(reason="flowgraph needs to be updated")
-def test_add_dep_flowgraph_with_tasks():
-    class Task0(TaskSchema):
-        def tool(self):
-            return "tool0"
-
-        def task(self):
-            return "task0"
-
-    class Task1(TaskSchema):
-        def tool(self):
-            return "tool1"
-
-        def task(self):
-            return "task1"
-
-    class Task2(TaskSchema):
-        def tool(self):
-            return "tool1"
-
-        def task(self):
-            return "task2"
-
-    flow = FlowgraphSchema("test")
-    flow.node("step0", Task0())
-    flow.node("step1", Task1())
-    flow.node("step2", Task2())
-
-    proj = Project()
-    proj.add_dep(flow)
-    assert proj.getkeys("flowgraph") == ("test",)
-    assert proj.get("flowgraph", "test", field="schema") is flow
-    assert proj.getkeys("tools") == ("tool0", "tool1")
-    assert proj.getkeys("tools", "tool0", "task") == ("task0",)
-    assert proj.getkeys("tools", "tool1", "task") == ("task1", "task2")
-    assert isinstance(proj.get("tools", "tool0", "task", "task0", field="schema"), Task0)
-    assert isinstance(proj.get("tools", "tool1", "task", "task1", field="schema"), Task1)
-    assert isinstance(proj.get("tools", "tool1", "task", "task2", field="schema"), Task2)
-
-
 def test_get_filesets_empty():
     design = DesignSchema("test")
     with design.active_fileset("rtl"):
@@ -667,3 +651,52 @@ def test_get_filesets_with_alias_missing():
 
     with pytest.raises(KeyError, match="test1 is not a loaded library"):
         proj.get_filesets()
+
+
+def test_add_dep_flowgraph_with_tasks():
+    flow = FlowgraphSchema("test")
+    flow.node("step0", FauxTask0())
+    flow.node("step1", FauxTask1())
+    flow.node("step2", FauxTask2())
+
+    proj = Project()
+    proj.add_dep(flow)
+    assert proj.getkeys("flowgraph") == ("test",)
+    assert proj.get("flowgraph", "test", field="schema") is flow
+    assert proj.getkeys("tool") == ("tool0", "tool1")
+    assert proj.getkeys("tool", "tool0", "task") == ("task0",)
+    assert proj.getkeys("tool", "tool1", "task") == ("task1", "task2")
+    assert isinstance(proj.get("tool", "tool0", "task", "task0", field="schema"), FauxTask0)
+    assert isinstance(proj.get("tool", "tool1", "task", "task1", field="schema"), FauxTask1)
+    assert isinstance(proj.get("tool", "tool1", "task", "task2", field="schema"), FauxTask2)
+
+
+def test_get_task():
+    flow = FlowgraphSchema("test")
+    flow.node("step0", FauxTask0())
+    flow.node("step1", FauxTask1())
+    flow.node("step2", FauxTask2())
+    proj = Project()
+    proj.add_dep(flow)
+
+    task = proj.get_task("tool0", "task0")
+    assert isinstance(task, FauxTask0)
+    assert task.node() == (None, None)
+
+
+def test_get_task_step_index():
+    flow = FlowgraphSchema("test")
+    flow.node("step0", FauxTask0())
+    flow.node("step1", FauxTask1())
+    flow.node("step2", FauxTask2())
+    proj = Project()
+    proj.add_dep(flow)
+
+    task = proj.get_task("tool0", "task0", step="step0", index="0")
+    assert isinstance(task, FauxTask0)
+    assert task.node() == ("step0", "0")
+
+
+def test_get_task_missing():
+    with pytest.raises(KeyError, match="tool0/task0 has not been loaded"):
+        Project().get_task("tool0", "task0")

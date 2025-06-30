@@ -14,8 +14,9 @@ from siliconcompiler.asic import ASICSchema
 from siliconcompiler.fpga import FPGASchema
 from siliconcompiler.packageschema import PackageSchema
 
-from siliconcompiler.project import Project
 from siliconcompiler.library import LibrarySchema, StdCellLibrarySchema
+
+from siliconcompiler.project import Project
 
 from siliconcompiler.core import Chip
 

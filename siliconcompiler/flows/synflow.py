@@ -9,6 +9,20 @@ from siliconcompiler.tools.opensta import timing
 from siliconcompiler.tools.builtin import minimum
 
 
+from siliconcompiler import FlowgraphSchema
+from siliconcompiler.tools.slang import elaborate
+
+
+class SynthesisFlowgraph(FlowgraphSchema):
+    def __init__(self):
+        super().__init__()
+        self.set_name("synflow")
+
+        self.node("elaborate", elaborate.Elaborate())
+        self.node("synthesis", syn_asic.ASICSynthesis())
+        self.edge("elaborate", "synthesis")
+
+
 ############################################################################
 # DOCS
 ############################################################################

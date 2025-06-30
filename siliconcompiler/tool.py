@@ -26,9 +26,9 @@ except ModuleNotFoundError:
 
 import os.path
 
+from enum import Flag, auto
 from packaging.version import Version, InvalidVersion
 from packaging.specifiers import SpecifierSet, InvalidSpecifier
-
 from typing import List, Union
 
 from siliconcompiler.schema import BaseSchema, NamedSchema, Journal
@@ -40,6 +40,7 @@ from siliconcompiler import utils, NodeStatus
 from siliconcompiler import sc_open
 from siliconcompiler import Schema
 
+from siliconcompiler.pathschema import PathSchema
 from siliconcompiler.record import RecordTool
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 
@@ -68,7 +69,7 @@ class TaskExecutableNotFound(TaskError):
     '''
 
 
-class TaskSchema(NamedSchema):
+class TaskSchema(NamedSchema, PathSchema):
     __parse_version_check_str = r"""
         (?P<operator>(==|!=|<=|>=|<|>|~=))
         \s*
@@ -124,13 +125,18 @@ class TaskSchema(NamedSchema):
         self.__collection_path = None
         if chip:
             self.__chip = chip
-            self.__schema_full = chip.schema
+            self.__schema_full = chip
             self.__logger = chip.logger
-            self.__design_name = chip.design
-            self.__design_top = chip.top(step=step, index=index)
-            self.__design_top_global = chip.top()
+            self.__design_name = self.__schema_full.get("option", "design")
+            self.__design_top = self.__schema_full.get(
+                "library",
+                self.__design_name,
+                "fileset",
+                self.__schema_full.get("option", "fileset")[0],
+                "topmodule")
+            self.__design_top_global = self.__design_top
             self.__cwd = chip.cwd
-            self.__collection_path = chip._getcollectdir()
+            self.__collection_path = chip.getcollectiondir()
 
         self.__step = step
         self.__index = index
@@ -1195,6 +1201,14 @@ class TaskSchema(NamedSchema):
         if source_file:
             self.add("report", metric, source_file)
 
+    def get_fileset_file_keys(self, filetype: str):
+        keys = []
+        for obj, fileset in self.schema().get_filesets():
+            key = ("library", obj.name(), "fileset", fileset, "file", filetype)
+            if self.schema().valid(*key, check_complete=True):
+                keys.append(key)
+        return keys
+
     ###############################################################
     def get(self, *keypath, field='value'):
         return super().get(*keypath, field=field,
@@ -1210,11 +1224,7 @@ class TaskSchema(NamedSchema):
     def _find_files_search_paths(self, keypath, step, index):
         paths = super()._find_files_search_paths(keypath, step, index)
         if keypath == "script":
-            paths.extend(self.find_files(
-                "refdir",
-                step=step, index=index,
-                cwd=self.__cwd,
-                collection_dir=self.__collection_path))
+            paths.extend(self.find_files("refdir", step=step, index=index))
         elif keypath == "input":
             paths.append(os.path.join(self._parent(root=True).getworkdir(step=step, index=index),
                                       "inputs"))
@@ -1251,8 +1261,6 @@ class TaskSchema(NamedSchema):
         scripts = self.find_files(
             'script',
             step=self.__step, index=self.__index,
-            cwd=self.__cwd,
-            collection_dir=self.__collection_path,
             missing_ok=True)
 
         cmdargs.extend(scripts)
@@ -1275,6 +1283,34 @@ class ToolSchema(NamedSchema):
 
         schema = EditableSchema(self)
         schema.insert("task", "default", TaskSchema(None))
+
+
+class FrontendOption(Flag):
+    FILE = auto()
+    INC_DIR = auto()
+    DEFINE = auto()
+    UNDEFINE = auto()
+    PARAM = auto()
+    LIBRARY = auto()
+
+
+class FrontendTask(TaskSchema):
+    def __root(self):
+        return self._parent(root=True)
+
+    def __design(self):
+        return self.__root().get("library", self.__root().design.name(), field="schema")
+
+    def has_files(self, fileset: str, filetype: str):
+        return bool(self.get_files(fileset, filetype, resolve=False))
+
+    def get_files(self, fileset: str, filetype: str, resolve: bool = True):
+        if resolve:
+            return self.__design().find_files('fileset', fileset, 'file', filetype)
+        return self.__design().get('fileset', fileset, 'file', filetype)
+
+    def get_option(self, fileset: str, type: FrontendOption):
+        return []
 
 
 ###########################################################################

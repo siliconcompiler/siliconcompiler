@@ -5,6 +5,17 @@ from siliconcompiler.tools.verilator import lint as verilator_lint
 from siliconcompiler.tools.slang import lint as slang_lint
 
 
+from siliconcompiler import FlowgraphSchema
+
+
+class LintFlowgraph(FlowgraphSchema):
+    def __init__(self):
+        super().__init__()
+        self.set_name("lintflow")
+
+        self.node("lint", slang_lint.Lint())
+
+
 ###########################################################################
 # Flowgraph Setup
 ############################################################################

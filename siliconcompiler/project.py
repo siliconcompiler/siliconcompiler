@@ -18,6 +18,9 @@ from siliconcompiler import ToolSchema, TaskSchema
 
 from siliconcompiler.pathschema import PathSchemaBase
 
+from siliconcompiler import PDKSchema
+from siliconcompiler import StdCellLibrarySchema
+
 from siliconcompiler.schema.schema_cfg import schema_option_runtime, schema_arg, schema_version
 
 from siliconcompiler.scheduler.scheduler import Scheduler
@@ -139,7 +142,8 @@ class Project(PathSchemaBase, BaseSchema):
         for task_cls in flow.get_all_tasks():
             task = task_cls()
             # TODO: this is not needed once tool moves
-            edit_schema.insert("tool", task.tool(), ToolSchema(), clobber=True)
+            if not self.valid("tool", task.tool()):
+                edit_schema.insert("tool", task.tool(), ToolSchema(), clobber=True)
             edit_schema.insert("tool", task.tool(), "task", task.task(), task, clobber=True)
 
     def check_manifest(self):
@@ -457,3 +461,41 @@ class Project(PathSchemaBase, BaseSchema):
             return self.set("option", "alias", alias)
         else:
             return self.add("option", "alias", alias)
+
+
+class LintProject(Project):
+    def __init__(self):
+        super().__init__()
+
+
+class ASICProject(Project):
+    def __init__(self):
+        super().__init__()
+
+        schema = EditableSchema(self)
+        schema.insert("pdk", "default", PDKSchema())
+
+        schema.insert("asic", "logiclib", Parameter("[str]"))
+        schema.insert("asic", "macrolib", Parameter("[str]"))  # TODO: is this needed?
+        schema.insert("asic", "arch", Parameter("str"))  # TODO: is this needed?
+
+    def check_manifest(self):
+        if not super().check_manifest():
+            return False
+
+        # Assert logic lib is set
+        # Assert libs exists
+
+        return True
+
+    def add_logiclib(self, library, clobber=False):
+        if isinstance(library, StdCellLibrarySchema):
+            self.add_dep(library)
+            library = library.name()
+        elif not isinstance(library, str):
+            raise TypeError
+
+        if clobber:
+            self.set("asic", "logiclib", library)
+        else:
+            self.add("asic", "logiclib", library)

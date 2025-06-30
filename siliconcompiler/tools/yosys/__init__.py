@@ -18,6 +18,42 @@ import json
 from siliconcompiler import sc_open
 from siliconcompiler.tools._common import get_tool_task, record_metric
 
+from siliconcompiler.tool import TaskSchema
+
+
+class YosysTask(TaskSchema):
+    def tool(self):
+        return "yosys"
+
+    def setup(self):
+        super().setup()
+
+        self.schema("tool").set("exe", "yosys")
+        self.schema("tool").set("vswitch", "--version")
+        self.schema("tool").set("version", ">=0.48")
+        self.schema("tool").set("format", "tcl")
+
+        if self.schema().get("option", "breakpoint", step=self.node()[0], index=self.node()[1]):
+            self.add("option", "-C")
+        self.add("option", "-c")
+
+        self.set_dataroot("siliconcompiler-yosys", __file__)
+
+        with self.active_dataroot("siliconcompiler-yosys"):
+            self.set('refdir', 'scripts', clobber=False)
+
+        self.add('regex', 'warnings', "Warning:")
+        self.add('regex', 'errors', "^ERROR")
+
+    def parse_version(self, stdout):
+        # Yosys 0.9+3672 (git sha1 014c7e26, gcc 7.5.0-3ubuntu1~18.04 -fPIC -Os)
+        return stdout.split()[1]
+
+    def normalize_version(self, version):
+        # Replace '+', which represents a "local version label", with '-', which is
+        # an "implicit post release number".
+        return version.replace('+', '-')
+
 
 ######################################################################
 # Make Docs

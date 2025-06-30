@@ -227,8 +227,8 @@ def __get_frontend_option_keys(chip):
         'param': []  # Only from 'option', no libraries
     }
 
-    for param in chip.getkeys('option', 'param'):
-        opts['param'].append(('option', 'param', param))
+    # for param in chip.getkeys('option', 'param'):
+    #     opts['param'].append(('option', 'param', param))
 
     return opts
 

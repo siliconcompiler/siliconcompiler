@@ -19,6 +19,7 @@ from siliconcompiler.package import Resolver
 from siliconcompiler.record import RecordTime, RecordTool
 from siliconcompiler.schema import Journal
 from siliconcompiler.scheduler import send_messages
+from siliconcompiler.package import Resolver
 
 
 class SchedulerNode:
@@ -27,8 +28,13 @@ class SchedulerNode:
         self.__index = index
         self.__chip = chip
 
-        self.__name = self.__chip.design
-        self.__topmodule = self.__chip.top(step=step, index=index)
+        self.__name = self.__chip.design.name()
+        self.__topmodule = self.__chip.get(
+            "library",
+            self.__name,
+            "fileset",
+            self.__chip.get("option", "fileset")[0],
+            "topmodule")
 
         self.__job = self.__chip.get('option', 'jobname')
         self.__record_user_info = self.__chip.get("option", "track",
@@ -48,9 +54,8 @@ class SchedulerNode:
         self.__is_entry_node = (self.__step, self.__index) in \
             self.__chip.get("flowgraph", flow, field="schema").get_entry_nodes()
 
-        self.__jobworkdir = self.__chip.getworkdir(jobname=self.__job)
-        self.__workdir = self.__chip.getworkdir(jobname=self.__job,
-                                                step=self.__step, index=self.__index)
+        self.__jobworkdir = self.__chip.getworkdir()
+        self.__workdir = self.__chip.getworkdir(step=self.__step, index=self.__index)
         self.__manifests = {
             "input": os.path.join(self.__workdir, "inputs", f"{self.__name}.pkg.json"),
             "output": os.path.join(self.__workdir, "outputs", f"{self.__name}.pkg.json")
@@ -192,7 +197,7 @@ class SchedulerNode:
 
         self.__record.set("status", NodeStatus.ERROR, step=self.__step, index=self.__index)
         try:
-            self.__chip.schema.write_manifest(self.__manifests["output"])
+            self.__chip.write_manifest(self.__manifests["output"])
         except FileNotFoundError:
             self.logger.error(f"Failed to write manifest for {self.__step}/{self.__index}.")
 
@@ -365,6 +370,7 @@ class SchedulerNode:
         return value_keys, path_keys
 
     def requires_run(self):
+        return True
         from siliconcompiler import Chip
 
         # Load previous manifest
@@ -554,7 +560,7 @@ class SchedulerNode:
         self.__chip.set('arg', 'index', self.__index)
 
         # Setup journaling
-        journal = Journal.access(self.__chip.schema)
+        journal = Journal.access(self.__chip)
         journal.start()
 
         # Must be after journaling to ensure journal is complete

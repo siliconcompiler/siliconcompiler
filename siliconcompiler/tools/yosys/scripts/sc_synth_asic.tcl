@@ -24,7 +24,6 @@ set sc_refdir [sc_cfg_tool_task_get refdir]
 set sc_design [sc_top]
 set sc_flow [sc_cfg_get option flow]
 set sc_optmode [sc_cfg_get option optmode]
-set sc_pdk [sc_cfg_get option pdk]
 
 ########################################################
 # Helper function
@@ -36,20 +35,15 @@ source "$sc_refdir/procs.tcl"
 # DESIGNER's CHOICE
 ####################
 
-set sc_logiclibs [sc_get_asic_libraries logic]
-set sc_macrolibs [sc_get_asic_libraries macro]
+set sc_logiclibs [sc_cfg_get asic logiclib]
+set sc_macrolibs [sc_cfg_get asic macrolib]
 
-set sc_libraries [sc_cfg_tool_task_get {file} synthesis_libraries]
-if { [sc_cfg_tool_task_exists {file} synthesis_libraries_macros] } {
-    set sc_macro_libraries \
-        [sc_cfg_tool_task_get {file} synthesis_libraries_macros]
-} else {
-    set sc_macro_libraries []
-}
+set sc_libraries [sc_cfg_tool_task_get var synthesis_libraries]
+set sc_macro_libraries [sc_cfg_tool_task_get var synthesis_libraries_macros]
+
 set sc_mainlib [lindex $sc_logiclibs 0]
 
-set sc_abc_constraints \
-    [lindex [sc_cfg_tool_task_get {file} abc_constraint_file] 0]
+set sc_abc_constraints [sc_cfg_tool_task_get var abc_constraint_file]
 
 set sc_blackboxes []
 foreach lib $sc_macrolibs {
