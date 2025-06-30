@@ -11,7 +11,8 @@ from siliconcompiler import NodeStatus, utils
 
 class ChecklistSchema(NamedSchema):
     def __init__(self, name=None):
-        NamedSchema.__init__(self, name=name)
+        super().__init__()
+        self.set_name(name)
 
         schema_checklist(self)
 

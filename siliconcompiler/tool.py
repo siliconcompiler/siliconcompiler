@@ -62,7 +62,8 @@ class TaskExecutableNotFound(TaskError):
 
 class TaskSchema(NamedSchema):
     def __init__(self, name):
-        NamedSchema.__init__(self, name)
+        super().__init__()
+        self.set_name(name)
 
         schema_task(self)
 
@@ -107,8 +108,9 @@ class ToolSchema(NamedSchema):
         r"^\s*" + __parse_version_check_str + r"\s*$",
         re.VERBOSE | re.IGNORECASE)
 
-    def __init__(self, name):
-        NamedSchema.__init__(self, name)
+    def __init__(self, name=None):
+        super().__init__()
+        self.set_name(name)
 
         schema_tool(self)
 
@@ -866,7 +868,7 @@ class ToolSchema(NamedSchema):
 ###########################################################################
 class ToolSchemaTmp(ToolSchema):
     def __init__(self):
-        ToolSchema.__init__(self, None)
+        super().__init__()
 
     def __module_func(self, name, modules):
         for module in modules:

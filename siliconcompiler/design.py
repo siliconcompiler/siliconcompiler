@@ -19,8 +19,8 @@ from siliconcompiler.schema.utils import trim
 class DesignSchema(NamedSchema, DependencySchema):
 
     def __init__(self, name: str):
-        NamedSchema.__init__(self, name=name)
-        DependencySchema.__init__(self)
+        super().__init__()
+        self.set_name(name)
 
         schema_design(self)
 

@@ -10,7 +10,8 @@ from siliconcompiler import NodeStatus
 
 class FlowgraphSchema(NamedSchema):
     def __init__(self, name):
-        NamedSchema.__init__(self, name=name)
+        super().__init__()
+        self.set_name(name)
 
         schema = EditableSchema(self)
         schema.insert("default", "default", FlowgraphNodeSchema())
@@ -785,7 +786,7 @@ class RuntimeFlowgraph:
 
 class FlowgraphNodeSchema(BaseSchema):
     def __init__(self):
-        BaseSchema.__init__(self)
+        super().__init__()
 
         schema_flowgraph(self)
 

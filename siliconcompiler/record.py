@@ -33,7 +33,7 @@ class RecordSchema(BaseSchema):
     __TIMEFORMAT = "%Y-%m-%d %H:%M:%S.%f"
 
     def __init__(self):
-        BaseSchema.__init__(self)
+        super().__init__()
 
         schema_record(self)
 

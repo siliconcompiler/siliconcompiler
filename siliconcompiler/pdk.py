@@ -1,12 +1,12 @@
-from siliconcompiler.schema import NamedSchema, PackageSchema
+from siliconcompiler.schema import NamedSchema
 from siliconcompiler.schema import EditableSchema, Parameter, Scope
 from siliconcompiler.schema.utils import trim
 
 
-class PDKSchema(NamedSchema, PackageSchema):
-    def __init__(self, name, package=None):
-        NamedSchema.__init__(self, name)
-        PackageSchema.__init__(self, package=package)
+class PDKSchema(NamedSchema):
+    def __init__(self, name=None):
+        super().__init__()
+        self.set_name(name)
 
         schema_pdk(self)
 
