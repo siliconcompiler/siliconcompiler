@@ -1,6 +1,8 @@
 import shutil
 import os
 
+import os.path
+
 from siliconcompiler.tools.openroad import make_docs as or_make_docs
 from siliconcompiler.tools.openroad._apr import setup as tool_setup
 from siliconcompiler.tools.openroad._apr import set_reports
@@ -8,6 +10,71 @@ from siliconcompiler.tools.openroad._apr import build_pex_corners, define_ord_fi
 from siliconcompiler.tools._common import find_incoming_ext, input_provides, get_tool_task
 from siliconcompiler.tools.openroad._apr import \
     define_ord_params, define_sta_params, define_sdc_params
+
+
+from siliconcompiler.tool import ShowTaskSchema
+from siliconcompiler.tools.openroad._apr import APRTask, OpenROADSTAParameter
+
+
+class ShowTask(ShowTaskSchema, APRTask, OpenROADSTAParameter):
+    def __init__(self):
+        super().__init__()
+
+    def setup(self):
+        super().setup()
+
+        self.unset("input")
+        self.unset("output")
+
+        self.set_script("sc_show.tcl")
+
+        self.set("var", "showexit", False, clobber=False)
+
+    def pre_process(self):
+        super().pre_process()
+        self._copy_show_files()
+
+    def get_supported_show_extentions(self):
+        return ["odb", "def"]
+
+    def _copy_show_files(self):
+        if not self.get("var", "showfilepath"):
+            return
+
+        show_file = self.find_files('var', 'showfilepath')
+        show_type = self.get('var', 'showfiletype')
+
+        show_job, show_step, show_index = (None, None, None)
+        show_node = self.get("var", "shownode")
+        if show_node:
+            show_job, show_step, show_index = show_node
+
+        # copy source in to keep sc_apr.tcl simple
+        dst_file = f"inputs/{self.design_topmodule}.{show_type}"
+        shutil.copy2(show_file, dst_file)
+
+        job_root = self.schema()
+        if show_job:
+            try:
+                job_root = job_root.history(show_job)
+            except KeyError:
+                pass
+
+        if show_step and show_index:
+            sdc_file = os.path.join(job_root.getworkdir(show_step, show_index),
+                                    "output",
+                                    f"{self.design_topmodule}.sdc")
+            if sdc_file and os.path.exists(sdc_file):
+                shutil.copy2(sdc_file, f"inputs/{self.design_topmodule}.sdc")
+
+    def runtime_options(self):
+        options = super().runtime_options()
+        try:
+            options.remove("-exit")
+        except KeyError:
+            pass
+        options.append("-gui")
+        return options
 
 
 ####################################################################

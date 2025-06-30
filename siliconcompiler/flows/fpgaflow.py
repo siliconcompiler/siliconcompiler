@@ -18,6 +18,26 @@ from siliconcompiler.tools.vivado import bitstream as vivado_bitstream
 from siliconcompiler.tools.nextpnr import apr as nextpnr_apr
 
 
+from siliconcompiler import FlowgraphSchema
+from siliconcompiler.tools.slang import elaborate
+
+
+class FPGAFlow(FlowgraphSchema):
+    def __init__(self):
+        super().__init__()
+        self.set_name("fpgaflow")
+
+        self.node("elaborate", elaborate.Elaborate())
+        self.node("synthesis", yosys_syn.FPGASynthesis())
+        self.edge("elaborate", "synthesis")
+        self.node("place", vpr_place.PlaceTask())
+        self.edge("synthesis", "place")
+        self.node("route", vpr_route.RouteTask())
+        self.edge("place", "route")
+        self.node("bitstream", genfasm_bitstream.BitstreamTask())
+        self.edge("route", "bitstream")
+
+
 ############################################################################
 # DOCS
 ############################################################################

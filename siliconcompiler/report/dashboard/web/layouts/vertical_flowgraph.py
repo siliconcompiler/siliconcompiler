@@ -31,7 +31,7 @@ def layout():
 
     # --- Dynamically create tabs based on available data ---
     tab_headings = ["Metrics", "Manifest", "File Viewer"]
-    if os.path.isfile(f'{chip.getworkdir()}/{chip.design}.png'):
+    if os.path.isfile(f'{chip.getworkdir()}/{chip.design.name}.png'):
         tab_headings.append("Design Preview")
 
     has_graphs = len(state.get_key(state.LOADED_CHIPS)) > 1
@@ -98,7 +98,7 @@ def layout():
     # --- Populate conditional tabs ---
     if "Design Preview" in tabs:
         with tabs["Design Preview"]:
-            components.file_viewer(chip, f'{chip.getworkdir()}/{chip.design}.png')
+            components.file_viewer(chip, f'{chip.getworkdir()}/{chip.design.name}.png')
 
     if "Graphs" in tabs:
         with tabs["Graphs"]:

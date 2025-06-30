@@ -18,40 +18,36 @@ source "$sc_refdir/apr/preamble.tcl"
 sc_setup_detailed_route
 
 set drt_arguments []
-if { [lindex [sc_cfg_tool_task_get {var} drt_disable_via_gen] 0] == "true" } {
+if { [sc_cfg_tool_task_get var drt_disable_via_gen] } {
     lappend drt_arguments "-disable_via_gen"
 }
-set drt_process_node [lindex [sc_cfg_tool_task_get {var} drt_process_node] 0]
+set drt_process_node [sc_cfg_tool_task_get var drt_process_node]
 if { $drt_process_node != "" } {
     lappend drt_arguments "-db_process_node" $drt_process_node
 }
 set drt_via_in_pin_bottom_layer \
-    [sc_get_layer_name [lindex [sc_cfg_tool_task_get {var} drt_via_in_pin_bottom_layer] 0]]
+    [sc_get_layer_name [sc_cfg_tool_task_get var drt_via_in_pin_bottom_layer]]
 if { $drt_via_in_pin_bottom_layer != "" } {
     lappend drt_arguments "-via_in_pin_bottom_layer" $drt_via_in_pin_bottom_layer
 }
 set drt_via_in_pin_top_layer \
-    [sc_get_layer_name [lindex [sc_cfg_tool_task_get {var} drt_via_in_pin_top_layer] 0]]
+    [sc_get_layer_name [sc_cfg_tool_task_get var drt_via_in_pin_top_layer]]
 if { $drt_via_in_pin_top_layer != "" } {
     lappend drt_arguments "-via_in_pin_top_layer" $drt_via_in_pin_top_layer
 }
 set drt_repair_pdn_vias \
-    [sc_get_layer_name [lindex [sc_cfg_tool_task_get {var} drt_repair_pdn_vias] 0]]
+    [sc_get_layer_name [sc_cfg_tool_task_get var drt_repair_pdn_vias]]
 if { $drt_repair_pdn_vias != "" } {
     lappend drt_arguments "-repair_pdn_vias" $drt_repair_pdn_vias
 }
-set drt_end_iteration [lindex [sc_cfg_tool_task_get {var} drt_end_iteration] 0]
+set drt_end_iteration [sc_cfg_tool_task_get var drt_end_iteration]
 if { $drt_end_iteration != "" } {
     lappend drt_arguments "-droute_end_iter" $drt_end_iteration
 }
-lappend drt_arguments \
-    -drc_report_iter_step \
-    [lindex [sc_cfg_tool_task_get {var} drt_report_interval] 0]
+lappend drt_arguments -drc_report_iter_step [sc_cfg_tool_task_get var drt_report_interval]
 
-set sc_minmetal [sc_cfg_get pdk $sc_pdk minlayer $sc_stackup]
-set sc_minmetal [sc_get_layer_name $sc_minmetal]
-set sc_maxmetal [sc_cfg_get pdk $sc_pdk maxlayer $sc_stackup]
-set sc_maxmetal [sc_get_layer_name $sc_maxmetal]
+set sc_minmetal [sc_get_layer_name [sc_cfg_get library $sc_pdk pdk minlayer]]
+set sc_maxmetal [sc_get_layer_name [sc_cfg_get library $sc_pdk pdk maxlayer]]
 
 if { [sc_check_version 23235] } {
     set_routing_layers -signal "${sc_minmetal}-${sc_maxmetal}"
@@ -63,8 +59,8 @@ if { [sc_check_version 23235] } {
 sc_report_args -command detailed_route -args $drt_arguments
 detailed_route \
     -save_guide_updates \
-    -output_drc "reports/${sc_design}_drc.rpt" \
-    -output_maze "reports/${sc_design}_maze.log" \
+    -output_drc "reports/${sc_topmodule}_drc.rpt" \
+    -output_maze "reports/${sc_topmodule}_maze.log" \
     -verbose 1 \
     {*}$drt_arguments
 

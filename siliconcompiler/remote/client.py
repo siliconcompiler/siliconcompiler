@@ -17,7 +17,6 @@ from siliconcompiler import NodeStatus as SCNodeStatus
 
 from siliconcompiler._metadata import default_server
 from siliconcompiler.flowgraph import RuntimeFlowgraph
-from siliconcompiler.report.dashboard import DashboardType
 from siliconcompiler.scheduler import Scheduler
 from siliconcompiler.schema import Journal
 
@@ -47,6 +46,8 @@ class Client():
     def __init__(self, chip, default_server=default_server):
         self.__chip = chip
         self.__logger = self.__chip.logger.getChild('remote-client')
+        self.__dashboard = self.__chip._Project__dashboard
+        self.__name = self.__chip.design.name
 
         self.__default_server = default_server
 
@@ -479,9 +480,6 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
             raise SiliconCompilerError('Cannot pass [arg,index] parameter into remote flow.',
                                        chip=self.__chip)
 
-        if not self.__chip._dash:
-            self.__chip.dashboard(type=DashboardType.CLI)
-
         # Only run the pre-process step if the job doesn't already have a remote ID.
         if not remote_resume:
             self.__run_preprocess()
@@ -499,9 +497,10 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
             self._run_loop()
         finally:
             # Restore logger
-            self.__chip._dash.end_of_run()
-            self.__chip._logger_console.setFormatter(
-                get_console_formatter(self.__chip, False, None, None))
+            if self.__dashboard:
+                self.__dashboard.end_of_run()
+                self.__chip._logger_console.setFormatter(
+                    get_console_formatter(self.__chip, False, None, None))
 
     def __request_run(self):
         '''
@@ -526,7 +525,7 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
             upload_file.flush()
 
             # We no longer need the collected files
-            shutil.rmtree(self.__chip._getcollectdir(jobname=self.__chip.get('option', 'jobname')))
+            shutil.rmtree(self.__chip.getcollectiondir())
 
         if 'pre_upload' in remote_status:
             self.__logger.info(remote_status['pre_upload']['message'])
@@ -613,10 +612,10 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
     def __import_run_manifests(self, starttimes):
         if not self.__setup_information_loaded:
             if self.__setup_information_fetched:
-                manifest = os.path.join(self.__chip.getworkdir(), f'{self.__chip.design}.pkg.json')
+                manifest = os.path.join(self.__chip.getworkdir(), f'{self.__name}.pkg.json')
                 if os.path.exists(manifest):
                     try:
-                        Journal.replay_file(self.__chip.schema, manifest)
+                        Journal.replay_file(self.__chip, manifest)
                         self.__setup_information_loaded = True
                         changed = True
                     except:  # noqa E722
@@ -635,10 +634,10 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
             manifest = os.path.join(
                 self.__chip.getworkdir(step=node_info["step"], index=node_info["index"]),
                 'outputs',
-                f'{self.__chip.design}.pkg.json')
+                f'{self.__name}.pkg.json')
             if os.path.exists(manifest):
                 try:
-                    Journal.replay_file(self.__chip.schema, manifest)
+                    Journal.replay_file(self.__chip, manifest)
                     node_info["imported"] = True
                     changed = True
                 except:  # noqa E722
@@ -650,9 +649,9 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
                 node_info["imported"] = True
                 changed = True
 
-        if changed and self.__chip._dash:
+        if changed and self.__dashboard:
             # Update dashboard if active
-            self.__chip._dash.update_manifest({"starttimes": starttimes})
+            self.__dashboard.update_manifest({"starttimes": starttimes})
 
         return changed
 
@@ -714,9 +713,9 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
             # preserve old starttimes
             starttimes = {**starttimes, **new_starttimes}
 
-            if self.__chip._dash:
+            if self.__dashboard:
                 # Update dashboard if active
-                self.__chip._dash.update_manifest({"starttimes": starttimes})
+                self.__dashboard.update_manifest({"starttimes": starttimes})
 
             if None in completed:
                 completed.remove(None)
@@ -746,8 +745,8 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
         # Un-set the 'remote' option to avoid from/to-based summary/show errors
         self.__chip.unset('option', 'remote')
 
-        if self.__chip._dash:
-            self.__chip._dash.update_manifest()
+        if self.__dashboard:
+            self.__dashboard.update_manifest()
 
     def _finalize_loop(self):
         if self.__download_pool:

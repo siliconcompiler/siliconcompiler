@@ -14,13 +14,13 @@ The main functions are:
   to the session state.
 """
 import argparse
+import fasteners
 import json
 import os
 import streamlit
 import streamlit_javascript
-import fasteners
 
-from siliconcompiler import Chip
+from siliconcompiler import Project
 
 # --- State Keys ---
 # These constants define the keys used to store and access data in
@@ -89,21 +89,16 @@ def update_manifest():
     file_time = os.stat(get_key(MANIFEST_FILE)).st_mtime
 
     if get_key(MANIFEST_TIME) != file_time:
-        chip = Chip(design='')
-
         with get_key(MANIFEST_LOCK):
-            chip.read_manifest(get_key(MANIFEST_FILE))
+            proj = Project.from_manifest(filepath=get_key(MANIFEST_FILE))
         set_key(MANIFEST_TIME, file_time)
         debug_print("Read manifest", get_key(MANIFEST_FILE))
 
-        add_chip("default", chip)
+        add_chip("default", proj)
 
         # Load historical runs from the manifest
-        for history in chip.getkeys('history'):
-            history_chip = Chip(design='')
-            history_chip.schema = chip.schema.history(history).copy()
-            history_chip.set('design', chip.design)
-            add_chip(history, history_chip)
+        for history in proj.getkeys('history'):
+            add_chip(history, proj.history(history).copy())
 
         return True
     return False
@@ -164,8 +159,7 @@ def init():
         # Load any additional graph-related chips specified in the config.
         for graph_info in config['graph_chips']:
             file_path = graph_info['path']
-            graph_chip = Chip(design='')
-            graph_chip.read_manifest(file_path)
+            graph_chip = Project.from_manifest(filepath=file_path)
             graph_chip.unset('arg', 'step')
             graph_chip.unset('arg', 'index')
 

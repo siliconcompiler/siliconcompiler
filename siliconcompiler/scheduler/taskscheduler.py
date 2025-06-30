@@ -62,11 +62,11 @@ class TaskScheduler:
         self.__chip = chip
         self.__logger = self.__chip.logger
         self.__logger_console_handler = self.__chip._logger_console
-        self.__schema = self.__chip.schema
+        self.__schema = self.__chip
         self.__flow = self.__schema.get("flowgraph", self.__chip.get('option', 'flow'),
                                         field="schema")
         self.__record = self.__schema.get("record", field="schema")
-        self.__dashboard = chip._dash
+        self.__dashboard = chip._Project__dashboard
 
         self.__max_cores = utils.get_cores(chip)
         self.__max_threads = utils.get_cores(chip)

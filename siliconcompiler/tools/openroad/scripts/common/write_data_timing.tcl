@@ -1,1 +1,1 @@
-write_sdc "outputs/${sc_design}.sdc"
+write_sdc "outputs/${sc_topmodule}.sdc"

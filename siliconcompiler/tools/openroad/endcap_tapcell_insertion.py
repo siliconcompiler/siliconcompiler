@@ -9,6 +9,28 @@ from siliconcompiler.tools.openroad._apr import build_pex_corners, \
 from siliconcompiler.tools.openroad._apr import extract_metrics
 
 
+from siliconcompiler.tools.openroad._apr import APRTask
+from siliconcompiler.tools.openroad._apr import OpenROADSTAParameter
+
+
+class EndCapTapCellTask(APRTask, OpenROADSTAParameter):
+    def __init__(self):
+        super().__init__()
+
+    def task(self):
+        return "endcap_tapcell_insertion"
+
+    def setup(self):
+        super().setup()
+
+        self.set_script("apr/sc_endcap_tapcell_insertion.tcl")
+
+        self._set_reports([
+            # Images
+            'placement_density'
+        ])
+
+
 def setup(chip):
     '''
     Perform endcap and tap cell insertion

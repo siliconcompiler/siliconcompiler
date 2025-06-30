@@ -1,15 +1,15 @@
+import json
 import os
 import time
 import tempfile
-import json
 
-import multiprocessing
-import subprocess
 import atexit
-import shutil
 import fasteners
+import multiprocessing
+import shutil
 import signal
 import socketserver
+import subprocess
 
 from siliconcompiler.report.dashboard import AbstractDashboard
 from siliconcompiler.report.dashboard.web import utils
@@ -58,7 +58,7 @@ class WebDashboard(AbstractDashboard):
         self.__dashboard = None
         self.__chip = chip
         self.__directory = tempfile.mkdtemp(prefix='sc_dashboard_',
-                                            suffix=f'_{self.__chip.design}')
+                                            suffix=f'_{self.__chip.design.name}')
         self.__manifest = os.path.join(self.__directory, 'manifest.json')
         self.__manifest_lock = os.path.join(self.__directory, 'manifest.lock')
         self.__port = port
