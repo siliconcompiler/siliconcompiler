@@ -20,15 +20,24 @@ from siliconcompiler import RecordSchema
 from siliconcompiler import MetricSchema
 from siliconcompiler import ChecklistSchema
 from siliconcompiler import ToolSchema, TaskSchema
+from siliconcompiler import LibrarySchema, FPGASchema
+
+from siliconcompiler.constraints import \
+    ASICTimingConstraintSchema, ASICAreaConstraint, ASICComponentConstraints, ASICPinConstraints
+from siliconcompiler.metrics import ASICMetricsSchema, FPGAMetricsSchema
 
 from siliconcompiler.dependencyschema import DependencySchema
 from siliconcompiler.pathschema import PathSchemaBase
+
+from siliconcompiler import PDKSchema
+from siliconcompiler import StdCellLibrarySchema
 
 from siliconcompiler.schema.schema_cfg import schema_option_runtime, schema_arg, schema_version
 
 from siliconcompiler.scheduler import Scheduler
 from siliconcompiler.utils.logging import SCColorLoggerFormatter, SCLoggerFormatter
 from siliconcompiler.utils import FilterDirectories
+from siliconcompiler.report.dashboard.cli import CliDashboard
 
 
 class Project(PathSchemaBase, BaseSchema):
@@ -54,9 +63,10 @@ class Project(PathSchemaBase, BaseSchema):
         schema_option_runtime(schema)
         schema.insert("option", "env", "default", Parameter("str"))
 
+        schema.insert("option", "design", Parameter("str"))
+
         schema.insert("option", "alias", Parameter("[(str,str,str,str)]"))
         schema.insert("option", "fileset", Parameter("[str]"))
-        schema.insert("option", "design", Parameter("str"))
 
         # Add history
         schema.insert("history", BaseSchema())
@@ -72,6 +82,8 @@ class Project(PathSchemaBase, BaseSchema):
                 self.set("option", "design", design)
             else:
                 self.set_design(design)
+
+        self.__dashboard = CliDashboard(self)
 
     def __init_logger(self):
         sc_logger = logging.getLogger("siliconcompiler")
@@ -252,7 +264,6 @@ class Project(PathSchemaBase, BaseSchema):
                 error = True
 
         # Assert fileset is set
-        # Assert flow is set
         filesets = self.get("option", "fileset")
         if not filesets:
             self.logger.error("[option,fileset] has not been set")
@@ -349,6 +360,10 @@ class Project(PathSchemaBase, BaseSchema):
         '''
         from siliconcompiler.remote.client import ClientScheduler
 
+        # Start dashboard
+        if not self.__dashboard.is_running():
+            self.__dashboard.open_dashboard()
+
         try:
             if self.get('option', 'remote'):
                 scheduler = ClientScheduler(self)
@@ -361,11 +376,9 @@ class Project(PathSchemaBase, BaseSchema):
             self.logger.error(str(e))
             return False
         finally:
-            pass
-            # Update dashboard if running
-            # if self._dash:
-            #     self._dash.update_manifest()
-            #     self._dash.end_of_run()
+            # Update dashboard
+            self.__dashboard.update_manifest()
+            self.__dashboard.end_of_run()
 
         return True
 
@@ -595,6 +608,9 @@ class Project(PathSchemaBase, BaseSchema):
         del state["_Project__logger"]
         del state["_logger_console"]
 
+        # Remove dashboard
+        del state["_Project__dashboard"]
+
         return state
 
     def __setstate__(self, state):
@@ -602,6 +618,9 @@ class Project(PathSchemaBase, BaseSchema):
 
         # Reinitialize logger on restore
         self.__init_logger()
+
+        # Restore dashboard
+        self.__dashboard = CliDashboard(self)
 
     def get_filesets(self) -> List[Tuple[NamedSchema, str]]:
         """
@@ -875,3 +894,184 @@ class Project(PathSchemaBase, BaseSchema):
 
         history = self.history(jobname)
         history.get("metric", field='schema').summary(headers=history._summary_headers())
+
+
+class SimProject(Project):
+    pass
+
+
+class LintProject(Project):
+    def __init__(self):
+        super().__init__()
+
+
+class FPGAProject(Project):
+    def __init__(self):
+        super().__init__()
+
+        schema = EditableSchema(self)
+        # TODO replace with FPGA constraints
+        schema.insert("constraint", "timing", ASICTimingConstraintSchema())
+        schema.insert("constraint", "component", ASICComponentConstraints())
+        schema.insert("constraint", "pin", ASICPinConstraints())
+
+        # Replace metrics with fpga metrics
+        schema.insert("metric", FPGAMetricsSchema(), clobber=True)
+
+        schema.insert("fpga", "device", Parameter("str"))
+
+    def add_dep(self, obj):
+        if isinstance(obj, FPGASchema):
+            EditableSchema(self).insert("library", obj.name, obj, clobber=True)
+        else:
+            return super().add_dep(obj)
+
+    def set_fpga(self, fpga):
+        if isinstance(fpga, FPGASchema):
+            self.add_dep(fpga)
+            fpga = fpga.name
+        elif not isinstance(fpga, str):
+            raise TypeError
+
+        return self.set("fpga", "device", fpga)
+
+    def check_manifest(self):
+        error = not super().check_manifest()
+
+        if not self.get("fpga", "device"):
+            self.logger.error("[fpga,device] has not been set")
+            error = True
+        else:
+            fpga = self.get("fpga", "device")
+            if not self.has_library(fpga):
+                self.logger.error(f"{fpga} has not been loaded")
+                error = True
+
+        return not error
+
+    def _summary_headers(self):
+        headers = super()._summary_headers()
+        headers.append(("fpga", self.get("fpga", "device")))
+        return headers
+
+
+class ASICProject(Project):
+    def __init__(self):
+        super().__init__()
+
+        schema = EditableSchema(self)
+        schema.insert("constraint", "timing", ASICTimingConstraintSchema())
+        schema.insert("constraint", "component", ASICComponentConstraints())
+        schema.insert("constraint", "pin", ASICPinConstraints())
+        schema.insert("constraint", "area", ASICAreaConstraint())
+
+        # Replace metrics with asic metrics
+        schema.insert("metric", ASICMetricsSchema(), clobber=True)
+
+        schema.insert("asic", "mainlib", Parameter("str"))
+        schema.insert("asic", "asiclib", Parameter("[str]"))
+        schema.insert("asic", "delaymodel", Parameter("str"))
+
+        schema.insert("asic", "minlayer", Parameter("str"))
+        schema.insert("asic", "maxlayer", Parameter("str"))
+
+    def add_dep(self, obj):
+        if isinstance(obj, StdCellLibrarySchema):
+            edit_schema = EditableSchema(self)
+            edit_schema.insert("library", obj.name, obj, clobber=True)
+            # Copy dependencies into project
+            for dep in obj.get_dep():
+                self.add_dep(dep)
+        if isinstance(obj, PDKSchema):
+            edit_schema = EditableSchema(self)
+            edit_schema.insert("library", obj.name, obj, clobber=True)
+        else:
+            return super().add_dep(obj)
+
+    def check_manifest(self) -> bool:
+        error = not super().check_manifest()
+
+        mainlib = self.get("asic", "mainlib")
+        if not mainlib:
+            # soft - assert mainlib is set
+            self.logger.warning("[asic,mainlib] has not been set, this will be inferred")
+        else:
+            # Assert mainlib exists
+            if mainlib not in self.getkeys("library"):
+                error = True
+                self.logger.error(f"{mainlib} library has not been loaded")
+
+        # Assert asiclib is set
+        if not self.get("asic", "asiclib"):
+            error = True
+            self.logger.error("[asic,asiclib] does not contain any libraries")
+
+        # Assert asiclibs exist
+        for lib in self.get("asic", "asiclib"):
+            if lib not in self.getkeys("library"):
+                error = True
+                self.logger.error(f"{lib} library has not been loaded")
+
+        # Assert asiclibs exist
+        if not self.get("asic", "delaymodel"):
+            error = True
+            self.logger.error(f"[asic,delaymodel] has not been set")
+
+        # Assert asic,pdk is set in libraries and all point the same pdk
+
+        return not error
+
+    def set_mainlib(self, library):
+        if isinstance(library, StdCellLibrarySchema):
+            self.add_dep(library)
+            library = library.name
+        elif not isinstance(library, str):
+            raise TypeError
+
+        return self.set("asic", "mainlib", library)
+
+    def add_asiclib(self, library, clobber=False):
+        if isinstance(library, StdCellLibrarySchema):
+            self.add_dep(library)
+            library = library.name
+        elif not isinstance(library, str):
+            raise TypeError
+
+        if clobber:
+            return self.set("asic", "asiclib", library)
+        else:
+            return self.add("asic", "asiclib", library)
+
+    def set_asic_routinglayers(self, min: str = None, max: str = None):
+        if min:
+            self.set("asic", "minlayer", min)
+        if max:
+            self.set("asic", "maxlayer", max)
+
+    def get_constraints(self, name: str) -> Union[ASICTimingConstraintSchema,
+                                                  ASICComponentConstraints,
+                                                  ASICPinConstraints,
+                                                  ASICAreaConstraint]:
+        return self.get("constraint", name, field="schema")
+
+    def run(self, raise_exception=False):
+        # Ensure mainlib is set
+        if not self.get("asic", "mainlib"):
+            mainlib = self.get("asic", "asiclib")[0]
+            self.logger.warning(f"Setting main library to: {mainlib}")
+            self.set_mainlib(mainlib)
+
+        return super().run(raise_exception)
+
+    def _summary_headers(self):
+        headers = super()._summary_headers()
+        mainlib = self.get("library", self.get("asic", "mainlib"), field="schema")
+
+        headers.append(("pdk", mainlib.get("asic", "pdk")))
+        headers.append(("mainlib", mainlib.name))
+
+        asiclib = self.get("asic", "asiclib")
+        if len(asiclib) > 1:
+            headers.append(("asiclib", ", ".join(asiclib)))
+
+        return headers

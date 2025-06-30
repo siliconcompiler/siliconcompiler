@@ -40,9 +40,11 @@ from siliconcompiler import utils, NodeStatus
 from siliconcompiler import sc_open
 from siliconcompiler import Schema
 
+from siliconcompiler.pathschema import PathSchema
 from siliconcompiler.record import RecordTool
-from siliconcompiler.scheduler import SchedulerNode
+# from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.flowgraph import RuntimeFlowgraph
+from siliconcompiler.utils import get_file_ext
 
 
 class TaskError(Exception):
@@ -69,7 +71,7 @@ class TaskExecutableNotFound(TaskError):
     '''
 
 
-class TaskSchema(NamedSchema):
+class TaskSchema(NamedSchema, PathSchema):
     __parse_version_check_str = r"""
         (?P<operator>(==|!=|<=|>=|<|>|~=))
         \s*
@@ -90,6 +92,7 @@ class TaskSchema(NamedSchema):
         self.set_name(name)
 
         schema_task(self)
+        schema_tool(self)
 
         self.__set_runtime(None)
 
@@ -132,14 +135,14 @@ class TaskSchema(NamedSchema):
         Args:
             node (:class:`SchedulerNode`): scheduler node for this runtime
         '''
-        if node and not isinstance(node, SchedulerNode):
-            raise TypeError("node must be a scheduler node")
+        # if node and not isinstance(node, SchedulerNode):
+        #     raise TypeError("node must be a scheduler node")
 
         obj_copy = copy.copy(self)
         obj_copy.__set_runtime(node, step=step, index=index, relpath=relpath)
         yield obj_copy
 
-    def __set_runtime(self, node: SchedulerNode, step=None, index=None, relpath=None):
+    def __set_runtime(self, node, step=None, index=None, relpath=None):
         '''
         Sets the runtime information needed to properly execute a task.
         Note: unstable API
@@ -163,7 +166,7 @@ class TaskSchema(NamedSchema):
                 raise RuntimeError("step and index cannot be provided with node")
 
             self.__chip = node.chip
-            self.__schema_full = node.chip.schema
+            self.__schema_full = node.project
             self.__logger = node.chip.logger
             self.__design_name = node.name
             self.__design_top = node.topmodule
@@ -223,7 +226,7 @@ class TaskSchema(NamedSchema):
         return self.__design_top
 
     @property
-    def node(self) -> SchedulerNode:
+    def node(self):
         """
         Returns:
             the scheduler node for the current runtime
@@ -299,8 +302,6 @@ class TaskSchema(NamedSchema):
             return self.__schema_flow
         elif type == "runtimeflow":
             return self.__schema_flow_runtime
-        elif type == "tool":
-            return self.__schema_tool
         else:
             raise ValueError(f"{type} is not a schema section")
 
@@ -328,7 +329,7 @@ class TaskSchema(NamedSchema):
             path to executable, or None if not specified
         '''
 
-        exe = self.schema("tool").get('exe')
+        exe = self.get('exe')
 
         if exe is None:
             return None
@@ -355,7 +356,7 @@ class TaskSchema(NamedSchema):
             version determined by :meth:`.parse_version`.
         '''
 
-        veropt = self.schema("tool").get('vswitch')
+        veropt = self.get('vswitch')
         if not veropt:
             return None
 
@@ -409,7 +410,7 @@ class TaskSchema(NamedSchema):
 
         '''
 
-        spec_sets = self.schema("tool").get('version', step=self.__step, index=self.__index)
+        spec_sets = self.get('version')
         if not spec_sets:
             # No requirement so always true
             return True
@@ -487,18 +488,13 @@ class TaskSchema(NamedSchema):
             envvars[env] = self.__schema_full.get('option', 'env', env)
 
         # Add tool specific vars
-        for lic_env in self.schema("tool").getkeys('licenseserver'):
-            license_file = self.schema("tool").get('licenseserver', lic_env,
-                                                   step=self.__step, index=self.__index)
+        for lic_env in self.getkeys('licenseserver'):
+            license_file = self.get('licenseserver', lic_env)
             if license_file:
                 envvars[lic_env] = ':'.join(license_file)
 
         if include_path:
-            path = self.schema("tool").find_files(
-                "path", step=self.__step, index=self.__index,
-                cwd=self.__cwd,
-                collection_dir=self.__collection_path,
-                missing_ok=True)
+            path = self.find_files("path", missing_ok=True)
 
             envvars["PATH"] = os.getenv("PATH", os.defpath)
 
@@ -561,13 +557,13 @@ class TaskSchema(NamedSchema):
         replay_opts["work_dir"] = workdir
         replay_opts["exports"] = self.get_runtime_environmental_variables(include_path=include_path)
 
-        replay_opts["executable"] = self.schema("tool").get('exe')
+        replay_opts["executable"] = self.get('exe')
         replay_opts["step"] = self.__step
         replay_opts["index"] = self.__index
         replay_opts["cfg_file"] = f"inputs/{self.__design_name}.pkg.json"
         replay_opts["node_only"] = 0 if replay_opts["executable"] else 1
 
-        vswitch = self.schema("tool").get('vswitch')
+        vswitch = self.get('vswitch')
         if vswitch:
             replay_opts["version_flag"] = shlex.join(vswitch)
 
@@ -649,7 +645,8 @@ class TaskSchema(NamedSchema):
         vars = {
             "sc_tool": NodeType.to_tcl(self.tool(), "str"),
             "sc_task": NodeType.to_tcl(self.task(), "str"),
-            "sc_topmodule": NodeType.to_tcl(self.design_topmodule, "str")
+            "sc_topmodule": NodeType.to_tcl(self.design_topmodule, "str"),
+            "sc_designlib": NodeType.to_tcl(self.design_name, "str")
         }
 
         refdir = manifest.get("tool", self.tool(), "task", self.task(), "refdir", field=None)
@@ -720,7 +717,7 @@ class TaskSchema(NamedSchema):
             backup (bool): if True and an existing manifest is found a backup is kept.
         '''
 
-        suffix = self.schema("tool").get('format')
+        suffix = self.get('format')
         if not suffix:
             return
 
@@ -1367,55 +1364,56 @@ class TaskSchema(NamedSchema):
     # Tool settings
     ###############################################################
     def set_exe(self, exe: str = None, vswitch: List[str] = None, format: str = None,
+                step: str = None, index: str = None,
                 clobber: bool = False):
         rets = []
         if exe:
-            rets.append(self.schema("tool").set("exe", exe, clobber=clobber))
+            rets.append(self.set("exe", exe, clobber=clobber))
         if vswitch:
             switches = self.add_vswitch(vswitch, clobber=clobber)
             if not isinstance(switches, list):
                 switches = list(switches)
             rets.extend(switches)
         if format:
-            rets.append(self.schema("tool").set("format", format, clobber=clobber))
+            rets.append(self.set("format", format, clobber=clobber))
         return rets
 
     def set_path(self, path: str, dataroot: str = None,
                  step: str = None, index: str = None,
                  clobber: bool = False):
         if not dataroot:
-            dataroot = self.schema("tool")._get_active("package")
-        with self.schema("tool")._active(package=dataroot):
-            return self.schema("tool").set("path", path, step=step, index=index, clobber=clobber)
+            dataroot = self._get_active("package")
+        with self._active(package=dataroot):
+            return self.set("path", path, step=step, index=index, clobber=clobber)
 
     def add_version(self, version: str, step: str = None, index: str = None, clobber: bool = False):
         if clobber:
-            return self.schema("tool").set("version", version, step=step, index=index)
+            return self.set("version", version, step=step, index=index)
         else:
-            return self.schema("tool").add("version", version, step=step, index=index)
+            return self.add("version", version, step=step, index=index)
 
     def add_vswitch(self, switch: str, clobber: bool = False):
         if clobber:
-            return self.schema("tool").set("vswitch", switch)
+            return self.set("vswitch", switch)
         else:
-            return self.schema("tool").add("vswitch", switch)
+            return self.add("vswitch", switch)
 
     def add_licenseserver(self, name: str, server: str,
                           step: str = None, index: str = None,
                           clobber: bool = False):
         if clobber:
-            return self.schema("tool").set("licenseserver", name, server, step=step, index=index)
+            return self.set("licenseserver", name, server, step=step, index=index)
         else:
-            return self.schema("tool").add("licenseserver", name, server, step=step, index=index)
+            return self.add("licenseserver", name, server, step=step, index=index)
 
     def add_sbom(self, version: str, sbom: str, dataroot: str = None, clobber: bool = False):
         if not dataroot:
-            dataroot = self.schema("tool")._get_active("package")
-        with self.schema("tool")._active(package=dataroot):
+            dataroot = self._get_active("package")
+        with self._active(package=dataroot):
             if clobber:
-                return self.schema("tool").set("sbom", version, sbom)
+                return self.set("sbom", version, sbom)
             else:
-                return self.schema("tool").add("sbom", version, sbom)
+                return self.add("sbom", version, sbom)
 
     def record_metric(self, metric, value, source_file=None, source_unit=None):
         '''
@@ -1498,9 +1496,7 @@ class TaskSchema(NamedSchema):
         if not index:
             index = self.__index
         return super().find_files(*keypath, missing_ok=missing_ok,
-                                  step=step, index=index,
-                                  collection_dir=self.__collection_path,
-                                  cwd=self.__cwd)
+                                  step=step, index=index)
 
     def _find_files_search_paths(self, keypath, step, index):
         paths = super()._find_files_search_paths(keypath, step, index)
@@ -1663,6 +1659,84 @@ class ASICTaskSchema(TaskSchema):
             return self.set("var", key, defvalue)
 
 
+class ShowTaskSchema(TaskSchema):
+    def __init__(self):
+        super().__init__()
+
+        self.add_parameter("showfilepath", "file", "path to show")
+        self.add_parameter("showfiletype", "str", "filetype to show")
+        self.add_parameter("shownode", "(str,str,str)", "node information to show from")
+        self.add_parameter("showexit", "bool", "exit after opening", defvalue=False)
+
+    def task(self):
+        return "show"
+
+    def setup(self):
+        super().setup()
+
+        self._set_filetype()
+
+        self.add_required_tool_key("var", "showexit")
+
+        if self.get("var", "shownode"):
+            self.add_required_tool_key("var", "shownode")
+
+        if self.get("var", "showfilepath"):
+            self.add_required_tool_key("var", "showfilepath")
+        elif self.get("var", "showfiletype"):
+            self.add_required_tool_key("var", "showfiletype")
+        else:
+            raise ValueError("no file information provided to show")
+
+    def preferred_show_extensions(self) -> List[str]:
+        return []
+
+    def _set_filetype(self):
+        if not self.get("var", "showfilepath"):
+            if not self.get("var", "showfiletype"):
+                input_files = {get_file_ext(f): f.lower()
+                               for f in self.get_files_from_input_nodes().keys()}
+                exts = self.preferred_show_extensions()
+                for ext in exts:
+                    if ext in input_files:
+                        if input_files[ext].endswith(".gz"):
+                            self.set("var", "showfiletype", f"{ext}.gz")
+                        else:
+                            self.set("var", "showfiletype", ext)
+                        break
+            self.set("var", "showfiletype", exts[-1], clobber=False)
+        else:
+            self.set("var", "showfiletype", self.get("var", "showfilepath").split(".")[-1])
+
+    def set_showfilepath(self, path: str, step: str = None, index: str = None):
+        return self.set("var", "showfilepath", path, step=step, index=index)
+
+    def set_showfiletype(self, type: str, step: str = None, index: str = None):
+        return self.set("var", "showfiletype", type, step=step, index=index)
+
+    def set_showexit(self, value: bool, step: str = None, index: str = None):
+        return self.set("var", "showexit", value, step=step, index=index)
+
+    def set_shownode(self, jobname: str = None, nodestep: str = None, nodeindex: str = None,
+                     step: str = None, index: str = None):
+        return self.set("var", "shownode", (jobname, nodestep, nodeindex), step=step, index=index)
+
+    def get_tcl_variables(self, manifest=None):
+        vars = super().get_tcl_variables(manifest)
+        vars["sc_do_screenshot"] = "false"
+        return vars
+
+
+class ScreenshotTaskSchema(ShowTaskSchema):
+    def task(self):
+        return "screenshot"
+
+    def get_tcl_variables(self, manifest=None):
+        vars = super().get_tcl_variables(manifest)
+        vars["sc_do_screenshot"] = "true"
+        return vars
+
+
 class ToolSchema(NamedSchema):
     def __init__(self, name=None):
         super().__init__()
@@ -1738,7 +1812,7 @@ class TaskSchemaTmp(TaskSchema):
 
     def get_exe(self):
         if self.tool() == "execute" and self.task() == "exec_input":
-            return self.schema("tool").get("exe")
+            return self.get("exe")
         return super().get_exe()
 
     def schema(self, type=None):
@@ -1848,6 +1922,7 @@ def schema_tool(schema):
         Parameter(
             'str',
             scope=Scope.GLOBAL,
+            pernode=PerNode.OPTIONAL,
             shorthelp="Tool: executable name",
             switch="-tool_exe 'tool <str>'",
             example=["cli: -tool_exe 'openroad openroad'",
@@ -1894,6 +1969,7 @@ def schema_tool(schema):
         Parameter(
             '[str]',
             scope=Scope.GLOBAL,
+            pernode=PerNode.OPTIONAL,
             shorthelp="Tool: executable version switch",
             switch="-tool_vswitch 'tool <str>'",
             example=["cli: -tool_vswitch 'openroad -version'",
@@ -1945,6 +2021,7 @@ def schema_tool(schema):
         Parameter(
             '<json,tcl,yaml>',
             scope=Scope.GLOBAL,
+            pernode=PerNode.OPTIONAL,
             shorthelp="Tool: file format",
             switch="-tool_format 'tool <str>'",
             example=["cli: -tool_format 'yosys tcl'",

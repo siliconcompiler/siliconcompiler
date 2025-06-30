@@ -10,6 +10,46 @@ from siliconcompiler.tools.openroad._apr import build_pex_corners, define_ord_fi
 from siliconcompiler.tools.openroad._apr import extract_metrics
 
 
+from siliconcompiler.tools.openroad._apr import APRTask
+from siliconcompiler.tools.openroad._apr import OpenROADSTAParameter, OpenROADPPLLayersParameter
+
+
+class InitFloorplanTask(APRTask, OpenROADSTAParameter, OpenROADPPLLayersParameter):
+    def __init__(self):
+        super().__init__()
+
+        self.add_parameter("ifp_snap_strategy", "<none,site,grid>", "Snapping strategy to use when placing macros.", defvalue="site")
+        self.add_parameter("remove_synth_buffers", "bool", "remove buffers inserted by synthesis", defvalue=True)
+        self.add_parameter("remove_dead_logic", "bool", "remove logic which does not drive a primary output", defvalue=True)
+
+        self.add_parameter("padring", "[file]", "script to generate a padring using ICeWall in OpenROAD")
+
+    def task(self):
+        return "init_floorplan"
+
+    def setup(self):
+        super().setup()
+
+        self.set_script("apr/sc_init_floorplan.tcl")
+
+        self._set_reports([
+            'check_setup',
+            'setup',
+            'unconstrained',
+            'power'
+        ])
+
+        self.add_required_tool_key("var", "ifp_snap_strategy")
+        self.add_required_tool_key("var", "remove_synth_buffers")
+        self.add_required_tool_key("var", "remove_dead_logic")
+
+        if self.get("var", "padring"):
+            self.add_required_tool_key("var", "padring")
+
+    def add_openroad_padring(self, file: str):
+        self.add("var", "padring", file)
+
+
 def setup(chip):
     '''
     Perform floorplanning and initial pin placements

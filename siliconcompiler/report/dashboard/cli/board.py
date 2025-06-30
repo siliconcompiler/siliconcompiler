@@ -818,7 +818,7 @@ class Board(metaclass=BoardSingleton):
         except SiliconCompilerError:
             pass
 
-        design = chip.get("design")
+        design = chip.get("option", "design")
         jobname = chip.get("option", "jobname")
 
         job_data = JobData()

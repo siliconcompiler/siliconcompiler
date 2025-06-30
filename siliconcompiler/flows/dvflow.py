@@ -7,6 +7,20 @@ from siliconcompiler.tools.xyce import simulate as xyce_simulate
 from siliconcompiler.tools.xdm import convert as xdm_convert
 
 
+from siliconcompiler import FlowgraphSchema
+
+
+class DVFlow(FlowgraphSchema):
+    def __init__(self, N: int = 1):
+        super().__init__()
+        self.set_name("dvflow")
+
+        self.node("compile", icarus_compile.CompileTask())
+        for n in range(N):
+            self.node("execute", exec_input.ExecInputTask(), index=n)
+            self.edge("compile", "execute", head_index=n)
+
+
 ############################################################################
 # DOCS
 ############################################################################

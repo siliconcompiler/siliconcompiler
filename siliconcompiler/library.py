@@ -4,6 +4,7 @@ from siliconcompiler import PackageSchema
 
 from siliconcompiler.dependencyschema import DependencySchema
 from siliconcompiler.filesetschema import FileSetSchema
+from siliconcompiler.dependencyschema import DependencySchema
 from siliconcompiler.schema import NamedSchema
 
 from siliconcompiler.schema import EditableSchema, Parameter, Scope, PerNode

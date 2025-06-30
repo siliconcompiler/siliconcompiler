@@ -10,11 +10,7 @@ def show(schema, tech, input_path, output_path, screenshot=False, report=None):
     index = schema.get('arg', 'index')
     task = schema.get('flowgraph', flow, step, index, 'task')
 
-    if 'hide_layers' in schema.getkeys('tool', 'klayout', 'task', task, 'var'):
-        sc_hide_layers = schema.get('tool', 'klayout', 'task', task, 'var', 'hide_layers',
-                                    step=step, index=index)
-    else:
-        sc_hide_layers = []
+    sc_hide_layers = schema.get("tool", "klayout", "task", task, "var", "hide_layers")
 
     # Load KLayout technology file
     layout_options = tech.load_layout_options
@@ -71,10 +67,8 @@ def show(schema, tech, input_path, output_path, screenshot=False, report=None):
 
     # If 'screenshot' mode is set, save image and exit.
     if screenshot:
-        xbins = int(schema.get('tool', 'klayout', 'task', task, 'var', 'xbins',
-                               step=step, index=index)[0])
-        ybins = int(schema.get('tool', 'klayout', 'task', task, 'var', 'ybins',
-                               step=step, index=index)[0])
+        xbins, ybins = schema.get('tool', 'klayout', 'task', task, 'var', 'show_bins',
+                                  step=step, index=index)
 
         if xbins == 1 and ybins == 1:
             __screenshot(schema, layout_view, output_path)
@@ -97,12 +91,8 @@ def __screenshot(schema, layout_view, output_path):
     task = schema.get('flowgraph', flow, step, index, 'task')
 
     # Save a screenshot. TODO: Get aspect ratio from sc_cfg?
-    horizontal_resolution = int(schema.get('tool', 'klayout', 'task', task, 'var',
-                                           'show_horizontal_resolution',
-                                           step=step, index=index)[0])
-    vertical_resolution = int(schema.get('tool', 'klayout', 'task', task, 'var',
-                                         'show_vertical_resolution',
-                                         step=step, index=index)[0])
+    horizontal_resolution, vertical_resolution = schema.get(
+        'tool', 'klayout', 'task', task, 'var', 'show_resolution', step=step, index=index)
 
     print(f'[INFO] Saving screenshot to {output_path}')
     layout_view.save_image(output_path, horizontal_resolution, vertical_resolution)
@@ -129,21 +119,11 @@ def __screenshot_montage(schema, view, xbins, ybins):
     if not design:
         design = schema.get('design')
 
-    horizontal_resolution = int(schema.get('tool', 'klayout', 'task', task, 'var',
-                                           'show_horizontal_resolution',
-                                           step=step, index=index)[0])
-    vertical_resolution = int(schema.get('tool', 'klayout', 'task', task, 'var',
-                                         'show_vertical_resolution',
-                                         step=step, index=index)[0])
-    margin = float(schema.get('tool', 'klayout', 'task', task, 'var',
-                              'margin',
-                              step=step, index=index)[0])
-    linewidth = int(schema.get('tool', 'klayout', 'task', task, 'var',
-                               'linewidth',
-                               step=step, index=index)[0])
-    oversampling = int(schema.get('tool', 'klayout', 'task', task, 'var',
-                                  'oversampling',
-                                  step=step, index=index)[0])
+    horizontal_resolution, vertical_resolution = schema.get(
+        'tool', 'klayout', 'task', task, 'var', 'show_resolution', step=step, index=index)
+    margin = schema.get('tool', 'klayout', 'task', task, 'var', 'show_margin', step=step, index=index)
+    linewidth = schema.get('tool', 'klayout', 'task', task, 'var', 'show_linewidth', step=step, index=index)
+    oversampling = schema.get('tool', 'klayout', 'task', task, 'var', 'show_oversampling', step=step, index=index)
 
     view.zoom_fit()
     cell = view.active_cellview().cell
