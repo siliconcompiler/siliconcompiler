@@ -5,7 +5,7 @@ from siliconcompiler.schema.utils import trim
 
 class ASICSchema(BaseSchema):
     def __init__(self):
-        BaseSchema.__init__(self)
+        super().__init__()
 
         schema_asic(self)
 

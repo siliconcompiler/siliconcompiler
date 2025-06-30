@@ -107,8 +107,8 @@ def test_get_dep_empty():
 def test_get_dep():
     class Test(NamedSchema, DependencySchema):
         def __init__(self, name):
-            NamedSchema.__init__(self, name)
-            DependencySchema.__init__(self)
+            super().__init__()
+            self.set_name(name)
 
     schema = DependencySchema()
 
@@ -129,8 +129,8 @@ def test_get_dep():
 def test_get_dep_no_hier():
     class Test(NamedSchema, DependencySchema):
         def __init__(self, name):
-            NamedSchema.__init__(self, name)
-            DependencySchema.__init__(self)
+            super().__init__()
+            self.set_name(name)
 
     schema = DependencySchema()
 
@@ -151,8 +151,8 @@ def test_get_dep_no_hier():
 def test_get_dep_repeats():
     class Test(NamedSchema, DependencySchema):
         def __init__(self, name):
-            NamedSchema.__init__(self, name)
-            DependencySchema.__init__(self)
+            super().__init__()
+            self.set_name(name)
 
     schema = DependencySchema()
 
@@ -174,8 +174,8 @@ def test_get_dep_repeats():
 def test_get_dep_non_dep():
     class Test(NamedSchema, DependencySchema):
         def __init__(self, name):
-            NamedSchema.__init__(self, name)
-            DependencySchema.__init__(self)
+            super().__init__()
+            self.set_name(name)
 
     schema = DependencySchema()
 
@@ -201,8 +201,8 @@ def test_get_dep_non_dep():
 def test_get_dep_circle():
     class Test(NamedSchema, DependencySchema):
         def __init__(self, name):
-            NamedSchema.__init__(self, name)
-            DependencySchema.__init__(self)
+            super().__init__()
+            self.set_name(name)
 
     schema = DependencySchema()
 
@@ -224,8 +224,8 @@ def test_get_dep_circle():
 def test_write_depgraph_no_graphviz_exe():
     class Test(NamedSchema, DependencySchema):
         def __init__(self, name):
-            NamedSchema.__init__(self, name)
-            DependencySchema.__init__(self)
+            super().__init__()
+            self.set_name(name)
 
     schema = Test("top")
 
@@ -253,8 +253,8 @@ def test_write_depgraph_no_graphviz_exe():
 def test_write_depgraph():
     class Test(NamedSchema, DependencySchema):
         def __init__(self, name):
-            NamedSchema.__init__(self, name)
-            DependencySchema.__init__(self)
+            super().__init__()
+            self.set_name(name)
 
     schema = Test("top")
 
@@ -276,8 +276,8 @@ def test_write_depgraph():
 def test_write_depgraph_alt_config():
     class Test(NamedSchema, DependencySchema):
         def __init__(self, name):
-            NamedSchema.__init__(self, name)
-            DependencySchema.__init__(self)
+            super().__init__()
+            self.set_name(name)
 
     schema = Test("top")
 
@@ -299,8 +299,8 @@ def test_write_depgraph_alt_config():
 def test_write_depgraph_repeats():
     class Test(NamedSchema, DependencySchema):
         def __init__(self, name):
-            NamedSchema.__init__(self, name)
-            DependencySchema.__init__(self)
+            super().__init__()
+            self.set_name(name)
 
     schema = Test("top")
 
@@ -323,8 +323,8 @@ def test_write_depgraph_repeats():
 def test_write_depgraph_circle():
     class Test(NamedSchema, DependencySchema):
         def __init__(self, name):
-            NamedSchema.__init__(self, name)
-            DependencySchema.__init__(self)
+            super().__init__()
+            self.set_name(name)
 
     schema = Test("top")
 
@@ -352,8 +352,8 @@ def test_populate_deps_empty():
 def test_populate_deps():
     class Test(NamedSchema, DependencySchema):
         def __init__(self, name):
-            NamedSchema.__init__(self, name)
-            DependencySchema.__init__(self)
+            super().__init__()
+            self.set_name(name)
 
     schema = Test("top")
 
@@ -378,8 +378,8 @@ def test_populate_deps():
 def test_populate_deps_missing():
     class Test(NamedSchema, DependencySchema):
         def __init__(self, name):
-            NamedSchema.__init__(self, name)
-            DependencySchema.__init__(self)
+            super().__init__()
+            self.set_name(name)
 
     schema = Test("top")
 
@@ -402,8 +402,8 @@ def test_populate_deps_missing():
 def test_populate_deps_already_populated():
     class Test(NamedSchema, DependencySchema):
         def __init__(self, name):
-            NamedSchema.__init__(self, name)
-            DependencySchema.__init__(self)
+            super().__init__()
+            self.set_name(name)
 
     schema = Test("top")
 

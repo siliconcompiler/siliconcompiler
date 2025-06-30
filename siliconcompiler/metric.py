@@ -8,7 +8,7 @@ from siliconcompiler.record import RecordTime
 
 class MetricSchema(BaseSchema):
     def __init__(self):
-        BaseSchema.__init__(self)
+        super().__init__()
 
         schema_metric(self)
 
