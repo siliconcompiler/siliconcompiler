@@ -2,7 +2,7 @@ import logging
 
 import os.path
 
-from siliconcompiler import Chip
+from siliconcompiler.schema import BaseSchema, EditableSchema
 from siliconcompiler.packageschema import PackageSchema
 
 
@@ -80,10 +80,19 @@ def test_get_resolvers_empty():
 
 
 def test_get_resolvers_with_value(caplog):
-    chip = Chip('')
-    chip.logger = logging.getLogger()
-    chip.logger.setLevel(logging.INFO)
-    schema = chip.schema.get("package", field="schema")
+    class TestProject(BaseSchema):
+        def __init__(self):
+            super().__init__()
+
+            self.logger = logging.getLogger()
+            self.logger.setLevel(logging.INFO)
+
+            schema = EditableSchema(self)
+            schema.insert("package", PackageSchema())
+
+    proj = TestProject()
+
+    schema = proj.get("package", field="schema")
     assert "testpackage" not in schema.get_resolvers()
     assert schema.get_path_cache() == {}
     assert schema.register("testpackage", ".") is True

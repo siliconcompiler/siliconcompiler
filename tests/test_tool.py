@@ -11,12 +11,11 @@ from unittest.mock import patch, ANY
 
 from siliconcompiler import ToolSchema
 from siliconcompiler import RecordSchema, MetricSchema, FlowgraphSchema
-from siliconcompiler.schema import EditableSchema, Parameter
+from siliconcompiler.packageschema import PackageSchema
+from siliconcompiler.schema import BaseSchema, EditableSchema, Parameter
 from siliconcompiler.schema.parameter import PerNode, Scope
 from siliconcompiler.tool import TaskSchema, TaskExecutableNotFound, TaskError, TaskTimeout
-from siliconcompiler import Chip
 
-from siliconcompiler import Flow
 from siliconcompiler.tools.builtin import nop
 
 import siliconcompiler.tool as dut_tool
@@ -68,17 +67,47 @@ def patch_psutil(monkeypatch):
 
 
 @pytest.fixture
-def running_chip():
-    flow = Flow("testflow")
-    flow.node("testflow", "running", nop)
-    flow.node("testflow", "notrunning", nop)
-    flow.edge("testflow", "running", "notrunning")
-    chip = Chip('testdesign')
-    chip.use(flow)
-    chip.set('option', 'flow', 'testflow')
-    chip.set('arg', 'step', "running")
-    chip.set('arg', 'index', "0")
-    return chip
+def running_project():
+
+    class TestProject(BaseSchema):
+        def __init__(self):
+            super().__init__()
+
+            self.design = "testdesign"
+            self.cwd = os.getcwd()
+
+            self.schema = self
+
+            self.logger = logging.getLogger()
+            self.logger.setLevel(logging.INFO)
+
+            schema = EditableSchema(self)
+
+            flow = FlowgraphSchema("testflow")
+            flow.node("running", nop)
+            flow.node("notrunning", nop)
+            flow.edge("running", "notrunning")
+            schema.insert("flowgraph", "testflow", flow)
+            schema.insert("record", RecordSchema())
+            schema.insert("metric", MetricSchema())
+
+            schema.insert("arg", "step", Parameter("str"))
+            schema.insert("arg", "index", Parameter("str"))
+            schema.insert("option", "flow", Parameter("str"))
+            schema.insert("option", "prune", Parameter("[(str,str)]"))
+            schema.insert("option", "env", "default", Parameter("str"))
+
+            schema.insert("tool", "default", ToolSchema(None))
+            schema.insert("package", PackageSchema())
+
+        def write_manifest(self, filepath, abspath=False):
+            return super().write_manifest(filepath)
+
+    project = TestProject()
+    project.set('option', 'flow', 'testflow')
+    project.set('arg', 'step', "running")
+    project.set('arg', 'index', "0")
+    return project
 
 
 def test_tasktimeout_init():
@@ -96,81 +125,81 @@ def test_init():
     assert tool.schema() is None
 
 
-def test_set_runtime_invalid_step(running_chip):
-    running_chip.unset('arg', 'step')
+def test_set_runtime_invalid_step(running_project):
+    running_project.unset('arg', 'step')
     with pytest.raises(RuntimeError, match="step or index not specified"):
-        ToolSchema("testtool").set_runtime(running_chip)
+        ToolSchema("testtool").set_runtime(running_project)
 
 
-def test_set_runtime_invalid_index(running_chip):
-    running_chip.unset('arg', 'index')
+def test_set_runtime_invalid_index(running_project):
+    running_project.unset('arg', 'index')
     with pytest.raises(RuntimeError, match="step or index not specified"):
-        ToolSchema("testtool").set_runtime(running_chip)
+        ToolSchema("testtool").set_runtime(running_project)
 
 
-def test_set_runtime_invalid_flow(running_chip):
-    running_chip.unset('option', 'flow')
+def test_set_runtime_invalid_flow(running_project):
+    running_project.unset('option', 'flow')
     with pytest.raises(RuntimeError, match="flow not specified"):
-        ToolSchema("testtool").set_runtime(running_chip)
+        ToolSchema("testtool").set_runtime(running_project)
 
 
-def test_set_runtime(running_chip):
+def test_set_runtime(running_project):
     tool = ToolSchema("testtool")
-    tool.set_runtime(running_chip)
+    tool.set_runtime(running_project)
     assert tool.node() == ('running', '0')
     assert tool.tool() == 'builtin'
     assert tool.task() == 'nop'
-    assert tool.logger() is running_chip.logger
-    assert tool.schema() is running_chip.schema
+    assert tool.logger() is running_project.logger
+    assert tool.schema() is running_project.schema
 
 
-def test_set_runtime_different(running_chip):
+def test_set_runtime_different(running_project):
     tool = ToolSchema("testtool")
-    tool.set_runtime(running_chip, step="notrunning", index="0")
+    tool.set_runtime(running_project, step="notrunning", index="0")
     assert tool.node() == ('notrunning', '0')
     assert tool.tool() == 'builtin'
     assert tool.task() == 'nop'
-    assert tool.logger() is running_chip.logger
-    assert tool.schema() is running_chip.schema
+    assert tool.logger() is running_project.logger
+    assert tool.schema() is running_project.schema
 
 
-def test_schema_access(running_chip):
+def test_schema_access(running_project):
     tool = ToolSchema("testtool")
-    tool.set_runtime(running_chip)
-    assert tool.schema() is running_chip.schema
+    tool.set_runtime(running_project)
+    assert tool.schema() is running_project.schema
     assert isinstance(tool.schema("record"), RecordSchema)
     assert isinstance(tool.schema("metric"), MetricSchema)
     assert isinstance(tool.schema("flow"), FlowgraphSchema)
 
 
-def test_schema_access_invalid(running_chip):
+def test_schema_access_invalid(running_project):
     tool = ToolSchema("testtool")
-    tool.set_runtime(running_chip)
+    tool.set_runtime(running_project)
     with pytest.raises(ValueError, match="invalid is not a schema section"):
         tool.schema("invalid")
 
 
-def test_get_exe_empty(running_chip):
+def test_get_exe_empty(running_project):
     tool = ToolSchema("testtool")
-    tool.set_runtime(running_chip)
+    tool.set_runtime(running_project)
     assert tool.get_exe() is None
 
 
-def test_get_exe_not_found(running_chip):
+def test_get_exe_not_found(running_project):
     tool = ToolSchema("testtool")
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', 'nop', TaskSchema("nop"))
-    tool.set_runtime(running_chip)
+    tool.set_runtime(running_project)
     assert tool.set('exe', 'testexe')
     with pytest.raises(TaskExecutableNotFound, match="testexe could not be found"):
         tool.get_exe()
 
 
-def test_get_exe_found(running_chip, monkeypatch):
+def test_get_exe_found(running_project, monkeypatch):
     tool = ToolSchema("testtool")
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', 'nop', TaskSchema("nop"))
-    tool.set_runtime(running_chip)
+    tool.set_runtime(running_project)
     assert tool.set('exe', 'testexe')
 
     def dummy_env(*args, **kwargs):
@@ -189,27 +218,27 @@ def test_get_exe_found(running_chip, monkeypatch):
     assert tool.get_exe() == "found/exe"
 
 
-def test_get_exe_version_no_vswitch(running_chip):
+def test_get_exe_version_no_vswitch(running_project):
     tool = ToolSchema("testtool")
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', 'nop', TaskSchema("nop"))
-    tool.set_runtime(running_chip)
+    tool.set_runtime(running_project)
     assert tool.set('exe', 'testexe')
 
     assert tool.get_exe_version() is None
 
 
-def test_get_exe_version_no_exe(running_chip):
+def test_get_exe_version_no_exe(running_project):
     tool = ToolSchema("testtool")
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', 'nop', TaskSchema("nop"))
-    tool.set_runtime(running_chip)
+    tool.set_runtime(running_project)
     assert tool.set('vswitch', '-version')
 
     assert tool.get_exe_version() is None
 
 
-def test_get_exe_version(running_chip, monkeypatch, caplog):
+def test_get_exe_version(running_project, monkeypatch, caplog):
     class TestTool(ToolSchema):
         def parse_version(self, stdout):
             assert stdout == "myversion"
@@ -218,9 +247,7 @@ def test_get_exe_version(running_chip, monkeypatch, caplog):
     tool = TestTool("testtool")
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', 'nop', TaskSchema("nop"))
-    running_chip.logger = logging.getLogger()
-    running_chip.logger.setLevel(logging.INFO)
-    tool.set_runtime(running_chip)
+    tool.set_runtime(running_project)
     assert tool.set('vswitch', 'testexe')
     assert tool.set('vswitch', '-version')
 
@@ -242,11 +269,11 @@ def test_get_exe_version(running_chip, monkeypatch, caplog):
     assert "Tool 'exe' found with version '1.0.0' in directory 'found'" in caplog.text
 
 
-def test_get_exe_version_not_implemented(running_chip, monkeypatch):
+def test_get_exe_version_not_implemented(running_project, monkeypatch):
     tool = ToolSchema("testtool")
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', 'nop', TaskSchema("nop"))
-    tool.set_runtime(running_chip)
+    tool.set_runtime(running_project)
     assert tool.set('vswitch', 'testexe')
     assert tool.set('vswitch', '-version')
 
@@ -268,7 +295,7 @@ def test_get_exe_version_not_implemented(running_chip, monkeypatch):
         tool.get_exe_version()
 
 
-def test_get_exe_version_non_zero_return(running_chip, monkeypatch, caplog):
+def test_get_exe_version_non_zero_return(running_project, monkeypatch, caplog):
     class TestTool(ToolSchema):
         def parse_version(self, stdout):
             assert stdout == "myversion"
@@ -277,8 +304,7 @@ def test_get_exe_version_non_zero_return(running_chip, monkeypatch, caplog):
     tool = TestTool("testtool")
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', 'nop', TaskSchema("nop"))
-    running_chip.logger = logging.getLogger()
-    tool.set_runtime(running_chip)
+    tool.set_runtime(running_project)
     assert tool.set('vswitch', 'testexe')
     assert tool.set('vswitch', '-version')
 
@@ -301,7 +327,7 @@ def test_get_exe_version_non_zero_return(running_chip, monkeypatch, caplog):
     assert "Version check on 'exe' ended with code 1" in caplog.text
 
 
-def test_get_exe_version_internal_error(running_chip, monkeypatch, caplog):
+def test_get_exe_version_internal_error(running_project, monkeypatch, caplog):
     class TestTool(ToolSchema):
         def parse_version(self, stdout):
             raise ValueError("look for this match")
@@ -309,8 +335,7 @@ def test_get_exe_version_internal_error(running_chip, monkeypatch, caplog):
     tool = TestTool("testtool")
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', 'nop', TaskSchema("nop"))
-    running_chip.logger = logging.getLogger()
-    tool.set_runtime(running_chip)
+    tool.set_runtime(running_project)
     assert tool.set('vswitch', '-version')
 
     def dummy_get_exe(*args, **kwargs):
@@ -338,42 +363,34 @@ def test_check_exe_version_not_set():
     assert tool.check_exe_version(None) is True
 
 
-def test_check_exe_version_valid(running_chip, caplog):
+def test_check_exe_version_valid(running_project, caplog):
     tool = ToolSchema("testtool")
-    running_chip.logger = logging.getLogger()
-    running_chip.logger.setLevel(logging.INFO)
-    tool.set_runtime(running_chip)
+    tool.set_runtime(running_project)
     tool.set('version', '==1.0.0')
     assert tool.check_exe_version('1.0.0') is True
     assert caplog.text == ''
 
 
-def test_check_exe_version_invalid(running_chip, caplog):
+def test_check_exe_version_invalid(running_project, caplog):
     tool = ToolSchema("testtool")
-    running_chip.logger = logging.getLogger()
-    running_chip.logger.setLevel(logging.INFO)
-    tool.set_runtime(running_chip)
+    tool.set_runtime(running_project)
     tool.set('version', '!=1.0.0')
     assert tool.check_exe_version('1.0.0') is False
     assert "Version check failed for testtool. Check installation." in caplog.text
     assert "Found version 1.0.0, did not satisfy any version specifier set !=1.0.0" in caplog.text
 
 
-def test_check_exe_version_value_ge(running_chip, caplog):
+def test_check_exe_version_value_ge(running_project, caplog):
     tool = ToolSchema("testtool")
-    running_chip.logger = logging.getLogger()
-    running_chip.logger.setLevel(logging.INFO)
-    tool.set_runtime(running_chip)
+    tool.set_runtime(running_project)
     tool.set('version', '>=1.0.0')
     assert tool.check_exe_version('1.0.0') is True
     assert caplog.text == ""
 
 
-def test_check_exe_version_value_compound(running_chip, caplog):
+def test_check_exe_version_value_compound(running_project, caplog):
     tool = ToolSchema("testtool")
-    running_chip.logger = logging.getLogger()
-    running_chip.logger.setLevel(logging.INFO)
-    tool.set_runtime(running_chip)
+    tool.set_runtime(running_project)
     tool.set('version', ['>=1.0.0,!=2.0.0'])
     assert tool.check_exe_version('2.0.0') is False
     assert "Version check failed for testtool. Check installation." in caplog.text
@@ -381,11 +398,9 @@ def test_check_exe_version_value_compound(running_chip, caplog):
         in caplog.text
 
 
-def test_check_exe_version_value_multiple_fail(running_chip, caplog):
+def test_check_exe_version_value_multiple_fail(running_project, caplog):
     tool = ToolSchema("testtool")
-    running_chip.logger = logging.getLogger()
-    running_chip.logger.setLevel(logging.INFO)
-    tool.set_runtime(running_chip)
+    tool.set_runtime(running_project)
     tool.set('version', ['>=1.0.0,<2.0.0', '>3.0.0'])
     assert tool.check_exe_version('2.0.0') is False
     assert "Version check failed for testtool. Check installation." in caplog.text
@@ -393,47 +408,39 @@ def test_check_exe_version_value_multiple_fail(running_chip, caplog):
         in caplog.text
 
 
-def test_check_exe_version_value_multiple_pass(running_chip, caplog):
+def test_check_exe_version_value_multiple_pass(running_project, caplog):
     tool = ToolSchema("testtool")
-    running_chip.logger = logging.getLogger()
-    running_chip.logger.setLevel(logging.INFO)
-    tool.set_runtime(running_chip)
+    tool.set_runtime(running_project)
     tool.set('version', ['>=1.0.0,<2.0.0', '>3.0.0'])
     assert tool.check_exe_version('3.0.1') is True
     assert caplog.text == ""
 
 
-def test_check_exe_version_value_invalid_spec(running_chip, caplog):
+def test_check_exe_version_value_invalid_spec(running_project, caplog):
     tool = ToolSchema("testtool")
-    running_chip.logger = logging.getLogger()
-    running_chip.logger.setLevel(logging.INFO)
-    tool.set_runtime(running_chip)
+    tool.set_runtime(running_project)
     tool.set('version', '1.0.0')
     assert tool.check_exe_version('1.0.0') is True
     assert "Invalid version specifier 1.0.0. Defaulting to ==1.0.0" in caplog.text
 
 
-def test_check_exe_version_value_invalid_spec_fail(running_chip, caplog):
+def test_check_exe_version_value_invalid_spec_fail(running_project, caplog):
     tool = ToolSchema("testtool")
-    running_chip.logger = logging.getLogger()
-    running_chip.logger.setLevel(logging.INFO)
-    tool.set_runtime(running_chip)
+    tool.set_runtime(running_project)
     tool.set('version', '1.0.0')
     assert tool.check_exe_version('1.0.1') is False
     assert "Invalid version specifier 1.0.0. Defaulting to ==1.0.0" in caplog.text
     assert "Found version 1.0.1, did not satisfy any version specifier set 1.0.0" in caplog.text
 
 
-def test_check_exe_version_normalize_error(running_chip, caplog):
+def test_check_exe_version_normalize_error(running_project, caplog):
     class TestTool(ToolSchema):
         def normalize_version(self, reported_version):
             assert reported_version == "myversion"
             raise ValueError("match this error")
 
     tool = TestTool("testtool")
-    running_chip.logger = logging.getLogger()
-    running_chip.logger.setLevel(logging.INFO)
-    tool.set_runtime(running_chip)
+    tool.set_runtime(running_project)
 
     tool.set('version', '==1.0.0')
     with pytest.raises(ValueError, match="match this error"):
@@ -441,22 +448,20 @@ def test_check_exe_version_normalize_error(running_chip, caplog):
     assert "Unable to normalize version for testtool: myversion" in caplog.text
 
 
-def test_check_exe_version_normalize_pass(running_chip, caplog):
+def test_check_exe_version_normalize_pass(running_project, caplog):
     class TestTool(ToolSchema):
         def normalize_version(self, reported_version):
             return "1.0.0"
 
     tool = TestTool("testtool")
-    running_chip.logger = logging.getLogger()
-    running_chip.logger.setLevel(logging.INFO)
-    tool.set_runtime(running_chip)
+    tool.set_runtime(running_project)
 
     tool.set('version', '==1.0.0')
     assert tool.check_exe_version('myversion') is True
     assert caplog.text == ""
 
 
-def test_check_exe_version_normalize_error_spec(running_chip, caplog):
+def test_check_exe_version_normalize_error_spec(running_project, caplog):
     class TestTool(ToolSchema):
         def normalize_version(self, reported_version):
             if reported_version == "1.0.0":
@@ -464,9 +469,7 @@ def test_check_exe_version_normalize_error_spec(running_chip, caplog):
             return "1.0.0"
 
     tool = TestTool("testtool")
-    running_chip.logger = logging.getLogger()
-    running_chip.logger.setLevel(logging.INFO)
-    tool.set_runtime(running_chip)
+    tool.set_runtime(running_project)
 
     tool.set('version', '==1.0.0')
     with pytest.raises(ValueError, match="match this error"):
@@ -474,22 +477,20 @@ def test_check_exe_version_normalize_error_spec(running_chip, caplog):
     assert "Unable to normalize versions for testtool: ==1.0.0" in caplog.text
 
 
-def test_check_exe_version_normalize_invalid_version(running_chip, caplog):
+def test_check_exe_version_normalize_invalid_version(running_project, caplog):
     class TestTool(ToolSchema):
         def normalize_version(self, reported_version):
             return "notvalid"
 
     tool = TestTool("testtool")
-    running_chip.logger = logging.getLogger()
-    running_chip.logger.setLevel(logging.INFO)
-    tool.set_runtime(running_chip)
+    tool.set_runtime(running_project)
 
     tool.set('version', '==1.0.0')
     assert tool.check_exe_version('myversion') is False
     assert "Version notvalid reported by testtool does not match standard" in caplog.text
 
 
-def test_check_exe_version_normalize_invalid_spec_version(running_chip, caplog):
+def test_check_exe_version_normalize_invalid_spec_version(running_project, caplog):
     class TestTool(ToolSchema):
         def normalize_version(self, reported_version):
             if reported_version == "myversion":
@@ -497,20 +498,18 @@ def test_check_exe_version_normalize_invalid_spec_version(running_chip, caplog):
             return "notvalid"
 
     tool = TestTool("testtool")
-    running_chip.logger = logging.getLogger()
-    running_chip.logger.setLevel(logging.INFO)
-    tool.set_runtime(running_chip)
+    tool.set_runtime(running_project)
 
     tool.set('version', '==1.0.0')
     assert tool.check_exe_version('myversion') is False
     assert "Version specifier set ==notvalid does not match standard" in caplog.text
 
 
-def test_get_runtime_environmental_variables(running_chip, monkeypatch):
+def test_get_runtime_environmental_variables(running_project, monkeypatch):
     tool = ToolSchema("testtool")
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', 'nop', TaskSchema("nop"))
-    tool.set_runtime(running_chip)
+    tool.set_runtime(running_project)
 
     monkeypatch.setenv("PATH", "this:path")
     monkeypatch.delenv("LD_LIBRARY_PATH", raising=False)
@@ -518,11 +517,11 @@ def test_get_runtime_environmental_variables(running_chip, monkeypatch):
     assert tool.get_runtime_environmental_variables() == {'PATH': 'this:path'}
 
 
-def test_get_runtime_environmental_variables_no_path(running_chip, monkeypatch):
+def test_get_runtime_environmental_variables_no_path(running_project, monkeypatch):
     tool = ToolSchema("testtool")
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', 'nop', TaskSchema("nop"))
-    tool.set_runtime(running_chip)
+    tool.set_runtime(running_project)
 
     monkeypatch.setenv("PATH", "this:path")
     monkeypatch.delenv("LD_LIBRARY_PATH", raising=False)
@@ -530,14 +529,14 @@ def test_get_runtime_environmental_variables_no_path(running_chip, monkeypatch):
     assert tool.get_runtime_environmental_variables(include_path=False) == {}
 
 
-def test_get_runtime_environmental_variables_envs(running_chip, monkeypatch):
+def test_get_runtime_environmental_variables_envs(running_project, monkeypatch):
     tool = ToolSchema("testtool")
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', 'nop', TaskSchema("nop"))
-    tool.set_runtime(running_chip)
+    tool.set_runtime(running_project)
 
-    running_chip.set('option', 'env', 'CHECK', 'THIS')
-    running_chip.set('option', 'env', 'CHECKS', 'THAT')
+    running_project.set('option', 'env', 'CHECK', 'THIS')
+    running_project.set('option', 'env', 'CHECKS', 'THAT')
     assert tool.set('licenseserver', 'ENV_LIC0', ('server0', 'server1'))
     assert tool.set('licenseserver', 'ENV_LIC1', ('server2', 'server3'))
     assert tool.set('task', tool.task(), 'env', 'CHECK', "helloworld")
@@ -562,11 +561,11 @@ def test_get_runtime_environmental_variables_envs(running_chip, monkeypatch):
     }
 
 
-def test_get_runtime_environmental_variables_tool_path(running_chip, monkeypatch):
+def test_get_runtime_environmental_variables_tool_path(running_project, monkeypatch):
     tool = ToolSchema("testtool")
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', 'nop', TaskSchema("nop"))
-    tool.set_runtime(running_chip)
+    tool.set_runtime(running_project)
 
     os.makedirs('./testpath', exist_ok=True)
     tool.set('path', './testpath')
@@ -582,16 +581,16 @@ def test_get_runtime_environmental_variables_tool_path(running_chip, monkeypatch
     }
 
 
-def test_get_runtime_arguments(running_chip):
+def test_get_runtime_arguments(running_project):
     tool = ToolSchema("testtool")
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', 'nop', TaskSchema("nop"))
-    tool.set_runtime(running_chip)
+    tool.set_runtime(running_project)
 
     assert tool.get_runtime_arguments() == []
 
 
-def test_get_runtime_arguments_all(running_chip):
+def test_get_runtime_arguments_all(running_project):
     class TestTool(ToolSchema):
         def runtime_options(self):
             options = super().runtime_options()
@@ -600,13 +599,13 @@ def test_get_runtime_arguments_all(running_chip):
     tool = TestTool("builtin")
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', 'nop', TaskSchema("nop"))
-    tool.set_runtime(running_chip)
+    tool.set_runtime(running_project)
 
     with open("arg2.run", "w") as f:
         f.write("testfile")
 
     tool.set('task', tool.task(), 'option', ['--arg0', '--arg1'])
-    running_chip.set('tool', tool.tool(), 'task', tool.task(), 'script', 'arg2.run')
+    running_project.set('tool', tool.tool(), 'task', tool.task(), 'script', 'arg2.run')
 
     assert tool.get_runtime_arguments() == [
         '--arg0',
@@ -615,34 +614,32 @@ def test_get_runtime_arguments_all(running_chip):
         '--arg3']
 
 
-def test_get_runtime_arguments_overwrite(running_chip):
+def test_get_runtime_arguments_overwrite(running_project):
     class TestTool(ToolSchema):
         def runtime_options(self):
             return ['--arg3']
     tool = TestTool("builtin")
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', 'nop', TaskSchema("nop"))
-    tool.set_runtime(running_chip)
+    tool.set_runtime(running_project)
 
     with open("arg2.run", "w") as f:
         f.write("testfile")
 
     tool.set('task', tool.task(), 'option', ['--arg0', '--arg1'])
-    running_chip.set('tool', tool.tool(), 'task', tool.task(), 'script', 'arg2.run')
+    running_project.set('tool', tool.tool(), 'task', tool.task(), 'script', 'arg2.run')
 
     assert tool.get_runtime_arguments() == ['--arg3']
 
 
-def test_get_runtime_arguments_error(running_chip, caplog):
+def test_get_runtime_arguments_error(running_project, caplog):
     class TestTool(ToolSchema):
         def runtime_options(self):
             raise ValueError("match this error")
     tool = TestTool("builtin")
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', 'nop', TaskSchema("nop"))
-    running_chip.logger = logging.getLogger()
-    running_chip.logger.setLevel(logging.INFO)
-    tool.set_runtime(running_chip)
+    tool.set_runtime(running_project)
 
     with pytest.raises(ValueError, match="match this error"):
         tool.get_runtime_arguments()
@@ -650,9 +647,9 @@ def test_get_runtime_arguments_error(running_chip, caplog):
     assert "Failed to get runtime options for builtin/nop" in caplog.text
 
 
-def test_get_output_files(running_chip):
+def test_get_output_files(running_project):
     tool = ToolSchema("testtool")
-    tool.set_runtime(running_chip)
+    tool.set_runtime(running_project)
     step, index = tool.node()
     tool.set('task', tool.task(), 'output', ["file0", "file1"], step=step, index=index)
     assert tool.get_output_files() == set(["file0", "file1"])
@@ -681,20 +678,20 @@ def test_pre_process():
     assert tool.pre_process() is None
 
 
-def test_runtime_options(running_chip):
+def test_runtime_options(running_project):
     tool = ToolSchema("testtool")
-    tool.set_runtime(running_chip)
+    tool.set_runtime(running_project)
     assert tool.runtime_options() == []
 
 
-def test_runtime_options_with_aruments(running_chip):
+def test_runtime_options_with_aruments(running_project):
     tool = ToolSchema("testtool")
-    tool.set_runtime(running_chip)
+    tool.set_runtime(running_project)
     tool.set('task', tool.task(), 'option', ['--arg0', '--arg1'])
     with open("arg2.run", "w") as f:
         f.write("test")
 
-    running_chip.set('tool', tool.tool(), 'task', tool.task(), 'script', 'arg2.run')
+    running_project.set('tool', tool.tool(), 'task', tool.task(), 'script', 'arg2.run')
     assert tool.runtime_options() == [
         '--arg0',
         '--arg1',
@@ -714,20 +711,20 @@ def test_post_process():
     assert tool.post_process() is None
 
 
-def test_resetting_state_in_copy(running_chip):
+def test_resetting_state_in_copy(running_project):
     tool = ToolSchema("testtool")
-    tool.set_runtime(running_chip)
+    tool.set_runtime(running_project)
     assert tool.schema() is not None
 
     tool = copy.deepcopy(tool)
     assert tool.schema() is None
 
 
-def test_generate_replay_script(running_chip, monkeypatch):
+def test_generate_replay_script(running_project, monkeypatch):
     tool = ToolSchema("builtin")
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', 'nop', TaskSchema("nop"))
-    tool.set_runtime(running_chip)
+    tool.set_runtime(running_project)
 
     assert tool.set('exe', 'testexe')
     assert tool.set('vswitch', '-version')
@@ -749,11 +746,11 @@ def test_generate_replay_script(running_chip, monkeypatch):
     assert replay_hash == "d86d8d1a38c5acf8a8954670cb0f802c"
 
 
-def test_generate_replay_script_no_path(running_chip, monkeypatch):
+def test_generate_replay_script_no_path(running_project, monkeypatch):
     tool = ToolSchema("builtin")
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', 'nop', TaskSchema("nop"))
-    tool.set_runtime(running_chip)
+    tool.set_runtime(running_project)
 
     assert tool.set('exe', 'testexe')
     assert tool.set('vswitch', '-version')
@@ -829,33 +826,33 @@ def test_setup_work_directory_ensure_keep():
     assert set(os.listdir("testwork")) == set(["inputs", "outputs", "reports", "dummyfile"])
 
 
-def test_write_task_manifest_none(running_chip):
+def test_write_task_manifest_none(running_project):
     tool = ToolSchema("testtool")
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', 'nop', TaskSchema("nop"))
-    tool.set_runtime(running_chip)
+    tool.set_runtime(running_project)
 
     tool.write_task_manifest('.')
     assert os.listdir() == []
 
 
 @pytest.mark.parametrize("suffix", ("tcl", "json", "yaml"))
-def test_write_task_manifest(running_chip, suffix):
+def test_write_task_manifest(running_project, suffix):
     tool = ToolSchema("testtool")
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', 'nop', TaskSchema("nop"))
-    tool.set_runtime(running_chip)
+    tool.set_runtime(running_project)
     tool.set("format", suffix)
 
     tool.write_task_manifest('.')
     assert os.listdir() == [f'sc_manifest.{suffix}']
 
 
-def test_write_task_manifest_with_backup(running_chip):
+def test_write_task_manifest_with_backup(running_project):
     tool = ToolSchema("testtool")
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', 'nop', TaskSchema("nop"))
-    tool.set_runtime(running_chip)
+    tool.set_runtime(running_project)
     tool.set("format", "json")
 
     tool.write_task_manifest('.')
@@ -864,11 +861,11 @@ def test_write_task_manifest_with_backup(running_chip):
     assert set(os.listdir()) == set(['sc_manifest.json', 'sc_manifest.json.bak'])
 
 
-def test_write_task_manifest_without_backup(running_chip):
+def test_write_task_manifest_without_backup(running_project):
     tool = ToolSchema("testtool")
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', 'nop', TaskSchema("nop"))
-    tool.set_runtime(running_chip)
+    tool.set_runtime(running_project)
     tool.set("format", "json")
 
     tool.write_task_manifest('.')
@@ -878,11 +875,11 @@ def test_write_task_manifest_without_backup(running_chip):
 
 
 @pytest.mark.parametrize("exitcode", [0, 1])
-def test_run_task(running_chip, exitcode, monkeypatch):
+def test_run_task(running_project, exitcode, monkeypatch):
     tool = ToolSchema("testtool")
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', 'nop', TaskSchema("nop"))
-    tool.set_runtime(running_chip)
+    tool.set_runtime(running_project)
     assert tool.set("format", "json")
 
     def dummy_popen(*args, **kwargs):
@@ -901,24 +898,24 @@ def test_run_task(running_chip, exitcode, monkeypatch):
         return "found/exe"
     monkeypatch.setattr(tool, 'get_exe', dummy_get_exe)
 
-    assert running_chip.get("record", "toolargs", step="running", index="0") is None
-    assert running_chip.get("record", "toolexitcode", step="running", index="0") is None
-    assert running_chip.get("metric", "exetime", step="running", index="0") is None
-    assert running_chip.get("metric", "memory", step="running", index="0") is None
+    assert running_project.get("record", "toolargs", step="running", index="0") is None
+    assert running_project.get("record", "toolexitcode", step="running", index="0") is None
+    assert running_project.get("metric", "exetime", step="running", index="0") is None
+    assert running_project.get("metric", "memory", step="running", index="0") is None
 
     assert tool.run_task('.', False, "info", False, None, None) == exitcode
 
-    assert running_chip.get("record", "toolargs", step="running", index="0") == ""
-    assert running_chip.get("record", "toolexitcode", step="running", index="0") == exitcode
-    assert running_chip.get("metric", "exetime", step="running", index="0") >= 0
-    assert running_chip.get("metric", "memory", step="running", index="0") >= 0
+    assert running_project.get("record", "toolargs", step="running", index="0") == ""
+    assert running_project.get("record", "toolexitcode", step="running", index="0") == exitcode
+    assert running_project.get("metric", "exetime", step="running", index="0") >= 0
+    assert running_project.get("metric", "memory", step="running", index="0") >= 0
 
 
-def test_run_task_failed_popen(running_chip, monkeypatch):
+def test_run_task_failed_popen(running_project, monkeypatch):
     tool = ToolSchema("testtool")
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', 'nop', TaskSchema("nop"))
-    tool.set_runtime(running_chip)
+    tool.set_runtime(running_project)
     assert tool.set("format", "json")
 
     def dummy_popen(*args, **kwargs):
@@ -934,11 +931,11 @@ def test_run_task_failed_popen(running_chip, monkeypatch):
 
 
 @pytest.mark.parametrize("nice", [-5, 0, 5])
-def test_run_task_nice(running_chip, nice, monkeypatch):
+def test_run_task_nice(running_project, nice, monkeypatch):
     tool = ToolSchema("testtool")
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', 'nop', TaskSchema("nop"))
-    tool.set_runtime(running_chip)
+    tool.set_runtime(running_project)
     assert tool.set("format", "json")
 
     def dummy_nice(level):
@@ -969,11 +966,11 @@ def test_run_task_nice(running_chip, nice, monkeypatch):
     assert tool.run_task('.', False, "info", False, nice, None) == 0
 
 
-def test_run_task_timeout(running_chip, monkeypatch, patch_psutil):
+def test_run_task_timeout(running_project, monkeypatch, patch_psutil):
     tool = ToolSchema("testtool")
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', 'nop', TaskSchema("nop"))
-    tool.set_runtime(running_chip)
+    tool.set_runtime(running_project)
     assert tool.set("format", "json")
 
     def dummy_popen(*args, **kwargs):
@@ -1001,13 +998,11 @@ def test_run_task_timeout(running_chip, monkeypatch, patch_psutil):
         tool.run_task('.', False, "info", False, None, 2)
 
 
-def test_run_task_memory_limit(running_chip, monkeypatch, patch_psutil, caplog):
+def test_run_task_memory_limit(running_project, monkeypatch, patch_psutil, caplog):
     tool = ToolSchema("testtool")
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', 'nop', TaskSchema("nop"))
-    running_chip.logger = logging.getLogger()
-    running_chip.logger.setLevel(logging.INFO)
-    tool.set_runtime(running_chip)
+    tool.set_runtime(running_project)
     assert tool.set("format", "json")
 
     def dummy_popen(*args, **kwargs):
@@ -1039,11 +1034,11 @@ def test_run_task_memory_limit(running_chip, monkeypatch, patch_psutil, caplog):
 
 
 @pytest.mark.parametrize("error", [PermissionError, imported_psutil.Error])
-def test_run_task_exceptions_loop(running_chip, monkeypatch, patch_psutil, error):
+def test_run_task_exceptions_loop(running_project, monkeypatch, patch_psutil, error):
     tool = ToolSchema("testtool")
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', 'nop', TaskSchema("nop"))
-    tool.set_runtime(running_chip)
+    tool.set_runtime(running_project)
     assert tool.set("format", "json")
 
     def dummy_popen(*args, **kwargs):
@@ -1076,13 +1071,11 @@ def test_run_task_exceptions_loop(running_chip, monkeypatch, patch_psutil, error
     assert tool.run_task('.', False, "info", False, None, None) == 0
 
 
-def test_run_task_contl_c(running_chip, monkeypatch, patch_psutil, caplog):
+def test_run_task_contl_c(running_project, monkeypatch, patch_psutil, caplog):
     tool = ToolSchema("testtool")
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', 'nop', TaskSchema("nop"))
-    running_chip.logger = logging.getLogger()
-    running_chip.logger.setLevel(logging.INFO)
-    tool.set_runtime(running_chip)
+    tool.set_runtime(running_project)
     assert tool.set("format", "json")
 
     def dummy_popen(*args, **kwargs):
@@ -1121,14 +1114,12 @@ def test_run_task_contl_c(running_chip, monkeypatch, patch_psutil, caplog):
     assert "Received ctrl-c." in caplog.text
 
 
-def test_run_task_breakpoint_valid(running_chip, monkeypatch):
+def test_run_task_breakpoint_valid(running_project, monkeypatch):
     pytest.importorskip('pty')
     tool = ToolSchema("testtool")
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', 'nop', TaskSchema("nop"))
-    running_chip.logger = logging.getLogger()
-    running_chip.logger.setLevel(logging.INFO)
-    tool.set_runtime(running_chip)
+    tool.set_runtime(running_project)
 
     def dummy_get_exe(*args, **kwargs):
         return "found/exe"
@@ -1141,14 +1132,12 @@ def test_run_task_breakpoint_valid(running_chip, monkeypatch):
         spawn.assert_called_with(["found/exe"], ANY)
 
 
-def test_run_task_breakpoint_not_used(running_chip, monkeypatch):
+def test_run_task_breakpoint_not_used(running_project, monkeypatch):
     pytest.importorskip('pty')
     tool = ToolSchema("testtool")
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', 'nop', TaskSchema("nop"))
-    running_chip.logger = logging.getLogger()
-    running_chip.logger.setLevel(logging.INFO)
-    tool.set_runtime(running_chip)
+    tool.set_runtime(running_project)
 
     monkeypatch.setattr(dut_tool, "pty", None)
 
@@ -1174,7 +1163,7 @@ def test_run_task_breakpoint_not_used(running_chip, monkeypatch):
         spawn.assert_not_called()
 
 
-def test_run_task_run(running_chip, monkeypatch):
+def test_run_task_run(running_project, monkeypatch):
     class RunTool(ToolSchema):
         call_count = 0
 
@@ -1185,15 +1174,13 @@ def test_run_task_run(running_chip, monkeypatch):
     tool = RunTool("runtool")
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', 'nop', TaskSchema("nop"))
-    running_chip.logger = logging.getLogger()
-    running_chip.logger.setLevel(logging.INFO)
-    tool.set_runtime(running_chip)
+    tool.set_runtime(running_project)
 
     assert tool.run_task('.', False, "info", True, None, None) == 1
     assert tool.call_count == 1
 
 
-def test_run_task_run_error(running_chip, monkeypatch):
+def test_run_task_run_error(running_project, monkeypatch):
     class RunTool(ToolSchema):
         call_count = 0
 
@@ -1204,9 +1191,7 @@ def test_run_task_run_error(running_chip, monkeypatch):
     tool = RunTool("runtool")
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', 'nop', TaskSchema("nop"))
-    running_chip.logger = logging.getLogger()
-    running_chip.logger.setLevel(logging.INFO)
-    tool.set_runtime(running_chip)
+    tool.set_runtime(running_project)
 
     with pytest.raises(ValueError, match="run error"):
         tool.run_task('.', False, "info", True, None, None)
@@ -1214,7 +1199,7 @@ def test_run_task_run_error(running_chip, monkeypatch):
 
 
 @pytest.mark.skipif(imported_resource is None, reason="resource not available")
-def test_run_task_run_failed_resource(running_chip, monkeypatch):
+def test_run_task_run_failed_resource(running_project, monkeypatch):
     class RunTool(ToolSchema):
         call_count = 0
 
@@ -1225,9 +1210,7 @@ def test_run_task_run_failed_resource(running_chip, monkeypatch):
     tool = RunTool("runtool")
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', 'nop', TaskSchema("nop"))
-    running_chip.logger = logging.getLogger()
-    running_chip.logger.setLevel(logging.INFO)
-    tool.set_runtime(running_chip)
+    tool.set_runtime(running_project)
 
     def dummy_resource(*args, **kwargs):
         raise PermissionError
@@ -1237,15 +1220,15 @@ def test_run_task_run_failed_resource(running_chip, monkeypatch):
     assert tool.call_count == 1
 
 
-def test_select_input_nodes_entry(running_chip):
+def test_select_input_nodes_entry(running_project):
     tool = ToolSchema("testtool")
-    tool.set_runtime(running_chip)
+    tool.set_runtime(running_project)
     assert tool.select_input_nodes() == []
 
 
-def test_select_input_nodes_entry_has_input(running_chip):
+def test_select_input_nodes_entry_has_input(running_project):
     tool = ToolSchema("testtool")
-    tool.set_runtime(running_chip, step="notrunning", index="0")
+    tool.set_runtime(running_project, step="notrunning", index="0")
     assert tool.select_input_nodes() == [('running', '0')]
 
 
