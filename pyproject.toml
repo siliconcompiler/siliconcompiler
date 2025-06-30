@@ -53,7 +53,7 @@ dependencies = [
     "pyslang == 8.1.0",
 
     # dashboard, streamlit does not support 3.9.7
-    "streamlit == 1.46.0; python_full_version != '3.9.7'",
+    "streamlit == 1.46.1; python_full_version != '3.9.7'",
     "streamlit_agraph == 0.0.45; python_full_version != '3.9.7'",
     "streamlit-antd-components == 0.3.2; python_full_version != '3.9.7'",
     "streamlit_javascript == 0.1.5; python_full_version != '3.9.7'",
