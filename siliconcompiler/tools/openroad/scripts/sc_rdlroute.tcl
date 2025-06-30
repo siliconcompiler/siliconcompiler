@@ -146,7 +146,7 @@ foreach obstruction [[ord::get_db_block] getObstructions] {
 utl::info FLW 1 "Deleted $removed_obs routing obstructions"
 
 if {
-    [lindex [sc_cfg_tool_task_get var fin_add_fill] 0] == "true" &&
+    [sc_cfg_tool_task_get var fin_add_fill] &&
     [sc_cfg_exists pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype fill]
 } {
     set sc_fillrules \

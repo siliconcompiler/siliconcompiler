@@ -2,12 +2,6 @@
 # Schema Adapter
 ###############################
 
-set sc_step [sc_cfg_get arg step]
-set sc_index [sc_cfg_get arg index]
-set sc_flow [sc_cfg_get option flow]
-set sc_tool [sc_cfg_get flowgraph $sc_flow $sc_step $sc_index tool]
-set sc_task [sc_cfg_get flowgraph $sc_flow $sc_step $sc_index task]
-
 set sc_refdir [sc_cfg_tool_task_get refdir]
 
 ##############################
@@ -27,18 +21,13 @@ source "$sc_refdir/common/procs.tcl"
 ###############################
 
 # Design
-set sc_design [sc_top]
+set sc_mainlib [sc_cfg_get asic mainlib]
 set sc_optmode [sc_cfg_get option optmode]
-set sc_pdk [sc_cfg_get option pdk]
-set sc_stackup [sc_cfg_get option stackup]
+set sc_pdk [sc_cfg_get asic pdk]
 
 # APR Parameters
-set sc_targetlibs [sc_get_asic_libraries logic]
-set sc_mainlib [lindex $sc_targetlibs 0]
+set sc_logiclibs [sc_cfg_get asic asiclib]
 set sc_delaymodel [sc_cfg_get asic delaymodel]
-
-# Hard macro libraries
-set sc_macrolibs [sc_get_asic_libraries macro]
 
 # Threads
 set_thread_count [sc_cfg_tool_task_get threads]

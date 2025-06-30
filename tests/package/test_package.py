@@ -13,11 +13,11 @@ from siliconcompiler.package import Resolver, RemoteResolver
 from siliconcompiler.package import FileResolver, PythonPathResolver, KeyPathResolver
 from siliconcompiler.package import InterProcessLock as dut_ipl
 
-from siliconcompiler import Chip
+from siliconcompiler import Project, DesignSchema
 
 
 def test_init():
-    resolver = Resolver("testpath", Chip("dummy"), "source://this")
+    resolver = Resolver("testpath", Project("testproj"), "source://this")
 
     assert resolver.name == "testpath"
     assert resolver.source == "source://this"
@@ -41,7 +41,7 @@ def test_init_no_root():
 
 
 def test_init_with_ref():
-    resolver = Resolver("testpath", Chip("dummy"), "source://this", reference="ref")
+    resolver = Resolver("testpath", Project("testproj"), "source://this", reference="ref")
 
     assert resolver.name == "testpath"
     assert resolver.source == "source://this"
@@ -53,7 +53,7 @@ def test_init_with_ref():
 
 
 def test_init_with_env(monkeypatch):
-    resolver = Resolver("testpath", Chip("dummy"), "source://${FILE_PATH}", reference="ref")
+    resolver = Resolver("testpath", Project("testproj"), "source://${FILE_PATH}", reference="ref")
 
     monkeypatch.setenv("FILE_PATH", "this")
 
@@ -67,7 +67,7 @@ def test_init_with_env(monkeypatch):
 
 
 def test_init_with_env_chip():
-    chip = Chip("dummy")
+    chip = Project("testproj")
     chip.set("option", "env", "FILE_PATH", "this")
     resolver = Resolver("testpath", chip, "source://${FILE_PATH}", reference="ref")
 
@@ -81,7 +81,7 @@ def test_init_with_env_chip():
 
 
 def test_resolve():
-    resolver = Resolver("testpath", Chip("dummy"), "source://this")
+    resolver = Resolver("testpath", Project("testproj"), "source://this")
     with pytest.raises(NotImplementedError, match="child class must implement this"):
         resolver.resolve()
 
@@ -112,22 +112,22 @@ def test_find_resolver_python():
 
 
 def test_cache_id_different_name():
-    res0 = Resolver("testpath0", Chip("dummy"), "file://.", reference="ref")
-    res1 = Resolver("testpath1", Chip("dummy"), "file://.", reference="ref")
+    res0 = Resolver("testpath0", Project("testproj"), "file://.", reference="ref")
+    res1 = Resolver("testpath1", Project("testproj"), "file://.", reference="ref")
 
     assert res0.cache_id == res1.cache_id
 
 
 def test_cache_id_different_ref():
-    res0 = Resolver("testpath0", Chip("dummy"), "file://.", reference="ref0")
-    res1 = Resolver("testpath1", Chip("dummy"), "file://.", reference="ref1")
+    res0 = Resolver("testpath0", Project("testproj"), "file://.", reference="ref0")
+    res1 = Resolver("testpath1", Project("testproj"), "file://.", reference="ref1")
 
     assert res0.cache_id != res1.cache_id
 
 
 def test_cache_id_different_source():
-    res0 = Resolver("testpath0", Chip("dummy"), "file://test0", reference="ref")
-    res1 = Resolver("testpath1", Chip("dummy"), "file://test1", reference="ref")
+    res0 = Resolver("testpath0", Project("testproj"), "file://test0", reference="ref")
+    res1 = Resolver("testpath1", Project("testproj"), "file://test1", reference="ref")
 
     assert res0.cache_id != res1.cache_id
 
@@ -146,11 +146,11 @@ def test_get_path_new_data(caplog):
 
     os.makedirs("path", exist_ok=True)
 
-    chip = Chip("dummy")
-    chip.logger = logging.getLogger()
-    chip.logger.setLevel(logging.INFO)
+    proj = Project("testproj")
+    setattr(proj, "_Project__logger", logging.getLogger())
+    proj.logger.setLevel(logging.INFO)
 
-    resolver = AlwaysNew("alwaysnew", chip, "notused", "notused")
+    resolver = AlwaysNew("alwaysnew", proj, "notused", "notused")
     assert resolver.get_path() == os.path.abspath("path")
 
     assert "Saved alwaysnew data to " in caplog.text
@@ -170,11 +170,11 @@ def test_get_path_old_data(caplog):
 
     os.makedirs("path", exist_ok=True)
 
-    chip = Chip("dummy")
-    chip.logger = logging.getLogger()
-    chip.logger.setLevel(logging.INFO)
+    proj = Project("testproj")
+    setattr(proj, "_Project__logger", logging.getLogger())
+    proj.logger.setLevel(logging.INFO)
 
-    resolver = AlwaysOld("alwaysold", chip, "notused", "notused")
+    resolver = AlwaysOld("alwaysold", proj, "notused", "notused")
     assert resolver.get_path() == os.path.abspath("path")
 
     assert "Found alwaysold data at " in caplog.text
@@ -194,12 +194,12 @@ def test_get_path_usecache(caplog):
 
     os.makedirs("path", exist_ok=True)
 
-    chip = Chip("dummy")
-    chip.logger = logging.getLogger()
-    chip.logger.setLevel(logging.INFO)
+    proj = Project("testproj")
+    setattr(proj, "_Project__logger", logging.getLogger())
+    proj.logger.setLevel(logging.INFO)
 
-    resolver = AlwaysCache("alwayscache", chip, "notused", "notused")
-    Resolver.set_cache(chip, resolver.cache_id, "path")
+    resolver = AlwaysCache("alwayscache", proj, "notused", "notused")
+    Resolver.set_cache(proj, resolver.cache_id, "path")
     assert resolver.get_path() == "path"
 
     assert caplog.text == ""
@@ -217,17 +217,17 @@ def test_get_path_not_found():
         def resolve_remote(self):
             pass
 
-    chip = Chip("dummy")
-    chip.logger = logging.getLogger()
-    chip.logger.setLevel(logging.INFO)
+    proj = Project("testproj")
+    setattr(proj, "_Project__logger", logging.getLogger())
+    proj.logger.setLevel(logging.INFO)
 
-    resolver = AlwaysOld("alwaysmissing", chip, "notused", "notused")
+    resolver = AlwaysOld("alwaysmissing", proj, "notused", "notused")
     with pytest.raises(FileNotFoundError, match="Unable to locate 'alwaysmissing' at .*path"):
         resolver.get_path()
 
 
 def test_remote_init():
-    resolver = RemoteResolver("thisname", Chip("dummy"), "https://filepath", "ref")
+    resolver = RemoteResolver("thisname", Project("testproj"), "https://filepath", "ref")
 
     assert resolver.name == "thisname"
     assert resolver.source == "https://filepath"
@@ -240,11 +240,11 @@ def test_remote_init():
 def test_remote_init_no_ref():
     with pytest.raises(ValueError,
                        match=r"A reference \(e.g., version, commit\) is required for thisname"):
-        RemoteResolver("thisname", Chip("dummy"), "https://filepath")
+        RemoteResolver("thisname", Project("testproj"), "https://filepath")
 
 
 def test_remote_child_impl():
-    resolver = RemoteResolver("thisname", Chip("dummy"), "https://filepath", "ref")
+    resolver = RemoteResolver("thisname", Project("testproj"), "https://filepath", "ref")
 
     with pytest.raises(NotImplementedError, match="child class must implement this"):
         resolver.resolve_remote()
@@ -255,7 +255,7 @@ def test_remote_child_impl():
 
 @pytest.mark.nocache
 def test_remote_cache_dir_default():
-    resolver = RemoteResolver("thisname", Chip("dummy"), "https://filepath", "ref")
+    resolver = RemoteResolver("thisname", Project("testproj"), "https://filepath", "ref")
     assert resolver.cache_dir == Path.home() / ".sc" / "cache"
 
 
@@ -265,14 +265,14 @@ def test_remote_cache_dir_no_root():
 
 
 def test_remote_cache_dir_from_schema():
-    chip = Chip("dummy")
+    chip = Project("testproj")
     chip.set("option", "cachedir", os.path.abspath("."))
     resolver = RemoteResolver("thisname", chip, "https://filepath", "ref")
     assert resolver.cache_dir == Path(os.path.abspath("."))
 
 
 def test_remote_cache_dir_from_schema_not_found():
-    chip = Chip("dummy")
+    chip = Project("testproj")
     chip.set("option", "cachedir", "thispath")
 
     resolver = RemoteResolver("thisname", chip, "https://filepath", "ref")
@@ -280,12 +280,12 @@ def test_remote_cache_dir_from_schema_not_found():
 
 
 def test_remote_cache_name():
-    resolver = RemoteResolver("thisname", Chip("dummy"), "https://filepath", "ref")
+    resolver = RemoteResolver("thisname", Project("testproj"), "https://filepath", "ref")
     assert resolver.cache_name == "thisname-ref-c7a4a1c3dfc3975e"
 
 
 def test_remote_cache_path():
-    chip = Chip("dummy")
+    chip = Project("testproj")
     chip.set("option", "cachedir", "thispath")
 
     resolver = RemoteResolver("thisname", chip, "https://filepath", "ref")
@@ -296,7 +296,7 @@ def test_remote_cache_path():
 
 
 def test_remote_cache_path_cache_exist():
-    chip = Chip("dummy")
+    chip = Project("testproj")
     chip.set("option", "cachedir", ".")
 
     resolver = RemoteResolver("thisname", chip, "https://filepath", "ref")
@@ -306,7 +306,7 @@ def test_remote_cache_path_cache_exist():
 
 
 def test_remote_lock_file():
-    chip = Chip("dummy")
+    chip = Project("testproj")
     chip.set("option", "cachedir", "thispath")
 
     resolver = RemoteResolver("thisname", chip, "https://filepath", "ref")
@@ -317,7 +317,7 @@ def test_remote_lock_file():
 
 
 def test_remote_sc_lock_file():
-    chip = Chip("dummy")
+    chip = Project("testproj")
     chip.set("option", "cachedir", "thispath")
 
     resolver = RemoteResolver("thisname", chip, "https://filepath", "ref")
@@ -328,7 +328,7 @@ def test_remote_sc_lock_file():
 
 
 def test_remote_resolve_cached():
-    chip = Chip("dummy")
+    chip = Project("testproj")
     chip.set("option", "cachedir", ".")
 
     resolver = RemoteResolver("thisname", chip, "https://filepath", "ref")
@@ -344,7 +344,7 @@ def test_remote_resolve_cached():
 
 
 def test_remote_resolve():
-    chip = Chip("dummy")
+    chip = Project("testproj")
     chip.set("option", "cachedir", ".")
 
     resolver = RemoteResolver("thisname", chip, "https://filepath", "ref")
@@ -360,7 +360,7 @@ def test_remote_resolve():
 
 
 def test_remote_resolve_cached_different_name():
-    chip = Chip("dummy")
+    chip = Project("testproj")
     chip.set("option", "cachedir", ".")
 
     resolver = RemoteResolver("thisname", chip, "https://filepath", "ref")
@@ -389,7 +389,7 @@ def test_remote_resolve_cached_different_name():
 
 
 def test_remote_lock():
-    chip = Chip("dummy")
+    chip = Project("testproj")
     chip.set("option", "cachedir", ".")
 
     resolver = RemoteResolver("thisname", chip, "https://filepath", "ref")
@@ -403,7 +403,7 @@ def test_remote_lock():
 
 
 def test_remote_lock_after_lock():
-    chip = Chip("dummy")
+    chip = Project("testproj")
     chip.set("option", "cachedir", ".")
 
     resolver = RemoteResolver("thisname", chip, "https://filepath", "ref")
@@ -424,7 +424,7 @@ def test_remote_lock_after_lock():
 
 
 def test_remote_lock_within_lock_thread():
-    chip = Chip("dummy")
+    chip = Project("testproj")
     chip.set("option", "cachedir", ".")
 
     resolver0 = RemoteResolver("thisname", chip, "https://filepath", "ref")
@@ -448,7 +448,7 @@ def test_remote_lock_within_lock_thread():
 
 
 def test_remote_lock_within_lock_thread_multiple_tries(monkeypatch):
-    chip = Chip("dummy")
+    chip = Project("testproj")
     chip.set("option", "cachedir", ".")
 
     resolver0 = RemoteResolver("thisname", chip, "https://filepath", "ref")
@@ -494,7 +494,7 @@ def test_remote_lock_within_lock_thread_multiple_tries(monkeypatch):
 
 
 def test_remote_lock_within_lock_file(monkeypatch):
-    chip = Chip("dummy")
+    chip = Project("testproj")
     chip.set("option", "cachedir", ".")
 
     resolver0 = RemoteResolver("thisname", chip, "https://filepath", "ref")
@@ -527,7 +527,7 @@ def test_remote_lock_within_lock_file(monkeypatch):
 
 
 def test_remote_lock_exception():
-    chip = Chip("dummy")
+    chip = Project("testproj")
     chip.set("option", "cachedir", ".")
 
     resolver = RemoteResolver("thisname", chip, "https://filepath", "ref")
@@ -550,7 +550,7 @@ def test_remote_lock_exception():
 
 
 def test_remote_lock_failed():
-    chip = Chip("dummy")
+    chip = Project("testproj")
     chip.set("option", "cachedir", ".")
 
     resolver = RemoteResolver("thisname", chip, "https://filepath", "ref")
@@ -570,7 +570,7 @@ def test_remote_lock_failed():
 
 
 def test_remote_lock_revert_to_file():
-    chip = Chip("dummy")
+    chip = Project("testproj")
     chip.set("option", "cachedir", ".")
 
     resolver = RemoteResolver("thisname", chip, "https://filepath", "ref")
@@ -589,7 +589,7 @@ def test_remote_lock_revert_to_file():
 
 
 def test_remote_lock_revert_to_file_failed():
-    chip = Chip("dummy")
+    chip = Project("testproj")
     chip.set("option", "cachedir", ".")
 
     resolver = RemoteResolver("thisname", chip, "https://filepath", "ref")
@@ -615,35 +615,38 @@ def test_remote_lock_revert_to_file_failed():
 
 
 def test_file_resolver_abs_path():
-    resolver = FileResolver("thisname", Chip("dummy"), os.path.abspath("test"))
+    resolver = FileResolver("thisname", Project("testproj"), os.path.abspath("test"))
     assert resolver.resolve() == os.path.abspath("test")
 
 
 def test_file_resolver_with_file():
-    resolver = FileResolver("thisname", Chip("dummy"), "file://test")
+    resolver = FileResolver("thisname", Project("testproj"), "file://test")
     assert resolver.resolve() == os.path.abspath("test")
 
 
 def test_file_resolver_with_abspath():
-    resolver = FileResolver("thisname", Chip("dummy"), f"file://{os.path.abspath('../test')}")
+    resolver = FileResolver("thisname", Project("testproj"), f"file://{os.path.abspath('../test')}")
     assert resolver.resolve() == os.path.abspath("../test")
 
 
 def test_file_resolver_with_relpath():
-    resolver = FileResolver("thisname", Chip("dummy"), "file://test")
+    resolver = FileResolver("thisname", Project("testproj"), "file://test")
     assert resolver.resolve() == os.path.abspath("test")
 
 
 def test_python_path_resolver():
-    resolver = PythonPathResolver("thisname", Chip("dummy"), "python://siliconcompiler")
+    resolver = PythonPathResolver("thisname", Project("testproj"), "python://siliconcompiler")
     assert resolver.resolve() == os.path.dirname(siliconcompiler.__file__)
 
 
 def test_keypath_resolver():
-    chip = Chip("dummy")
-    chip.set("option", "dir", "testdir", ".")
+    design = DesignSchema("testdesign")
+    with design.active_fileset("rtl"):
+        design.add_idir(".")
 
-    resolver = KeyPathResolver("thisname", chip, "key://option,dir,testdir")
+    proj = Project(design)
+
+    resolver = KeyPathResolver("thisname", proj, "key://library,testdesign,fileset,rtl,idir")
     assert resolver.resolve() == os.path.abspath(".")
 
 
@@ -655,13 +658,13 @@ def test_keypath_resolver_no_root():
 
 
 def test_get_cache():
-    chip = Chip("dummy")
+    chip = Project("testproj")
     assert Resolver.get_cache(chip) == {}
     assert getattr(chip, "__Resolver_cache_id")
 
 
 def test_set_cache():
-    chip = Chip("dummy")
+    chip = Project("testproj")
     assert Resolver.get_cache(chip) == {}
     assert getattr(chip, "__Resolver_cache_id")
 
@@ -677,8 +680,8 @@ def test_set_cache():
 
 
 def test_set_cache_different_chips():
-    chip0 = Chip("dummy")
-    chip1 = Chip("dummy")
+    chip0 = Project("testproj")
+    chip1 = Project("testproj")
 
     assert Resolver.get_cache(chip0) == {}
     assert Resolver.get_cache(chip1) == {}
@@ -702,7 +705,7 @@ def test_set_cache_different_chips():
 
 
 def test_reset_cache():
-    chip = Chip("dummy")
+    chip = Project("testproj")
 
     assert Resolver.get_cache(chip) == {}
 

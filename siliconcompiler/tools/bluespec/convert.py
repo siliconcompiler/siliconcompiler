@@ -1,144 +1,139 @@
 import os
 import shutil
-from siliconcompiler.tools._common import \
-    add_require_input, add_frontend_requires, get_frontend_options, get_input_files, \
-    get_tool_task, has_input_files
-from siliconcompiler import utils
+
+import os.path
+
 from siliconcompiler import sc_open
 
-# Directory inside step/index dir to store bsc intermediate results.
-VLOG_DIR = 'verilog'
-BSC_DIR = 'bluespec'
+from siliconcompiler import TaskSchema
 
 
-def setup(chip):
-    '''
-    Performs high level synthesis to generate a verilog output
-    '''
+class ConvertTask(TaskSchema):
+    VLOGDIR = "verilog"
+    BSCDIR = "bluespec"
 
-    if not has_input_files(chip, 'input', 'hll', 'bsv'):
-        return "no files in [input,hll,bsv]"
+    def tool(self):
+        return "bluespec"
 
-    tool = 'bluespec'
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    _, task = get_tool_task(chip, step, index)
+    def task(self):
+        return "convert"
 
-    # Standard Setup
-    refdir = 'tools/' + tool
-    chip.set('tool', tool, 'exe', 'bsc')
-    # This is technically the 'verbose' flag, but used alone it happens to give
-    # us the version and exit cleanly, so we'll use it here.
-    chip.set('tool', tool, 'vswitch', '-v')
-    chip.set('tool', tool, 'version', '>=2021.07', clobber=False)
+    def parse_version(self, stdout):
+        # Examples:
+        # Bluespec Compiler, version 2021.12.1-27-g9a7d5e05 (build 9a7d5e05)
+        # Bluespec Compiler, version 2021.07 (build 4cac6eba)
 
-    chip.set('tool', tool, 'task', task, 'refdir', refdir,
-             step=step, index=index,
-             package='siliconcompiler', clobber=False)
-    chip.set('tool', tool, 'task', task, 'threads', utils.get_cores(chip),
-             step=step, index=index, clobber=False)
+        long_version = stdout.split()[3]
+        return long_version.split('-')[0]
 
-    # Input/Output requirements
-    chip.add('tool', tool, 'task', task, 'output', chip.top() + '.v', step=step, index=index)
-    chip.add('tool', tool, 'task', task, 'output', chip.top() + '.dot', step=step, index=index)
+    def setup(self):
+        super().setup()
 
-    # Schema requirements
-    add_require_input(chip, 'input', 'hll', 'bsv')
-    add_frontend_requires(chip, ['idir', 'ydir', 'define'])
+        self.set_exe("bsc", vswitch="-v")
+        self.add_version(">=2021.07")
 
+        self.set_threads(1)
 
-################################
-# Pre-process
-################################
-def pre_process(chip):
-    # bsc requires its output directory exists before being called.
-    for path in (VLOG_DIR, BSC_DIR):
-        if os.path.isdir(path):
-            shutil.rmtree(path)
-        os.makedirs(path)
+        self.add_output_file(ext="v")
+        self.add_output_file(ext="dot")
 
+        self.add_required_key("option", "design")
+        self.add_required_key("option", "fileset")
+        if self.schema().get("option", "alias"):
+            self.add_required_key("option", "alias")
 
-################################
-#  Custom runtime options
-################################
-def runtime_options(chip):
-    cmdlist = []
+        # Mark required
+        for lib, fileset in self.schema().get_filesets():
+            if lib.get("fileset", fileset, "idir"):
+                self.add_required_key(lib, "fileset", fileset, "idir")
+            if lib.get("fileset", fileset, "define"):
+                self.add_required_key(lib, "fileset", fileset, "define")
+            if lib.get_file(fileset=fileset, filetype="bsv"):
+                self.add_required_key(lib, "fileset", fileset, "file", "bsv")
 
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
+    def pre_process(self):
+        super().pre_process()
+        # bsc requires its output directory exists before being called.
+        for path in (ConvertTask.VLOGDIR, ConvertTask.BSCDIR):
+            if os.path.isdir(path):
+                shutil.rmtree(path)
+            os.makedirs(path)
 
-    opts = get_frontend_options(chip, ['idir', 'ydir', 'define'])
+    def runtime_options(self):
+        options = super().runtime_options()
 
-    cmdlist.append('-verilog')
-    cmdlist.extend(['-vdir', VLOG_DIR])
-    cmdlist.extend(['-bdir', BSC_DIR])
-    cmdlist.extend(['-info-dir', 'reports'])
-    cmdlist.append('-u')
-    cmdlist.append('-v')
+        options.append('-verilog')
+        options.extend(['-vdir', ConvertTask.VLOGDIR])
+        options.extend(['-bdir', ConvertTask.BSCDIR])
+        options.extend(['-info-dir', 'reports'])
+        options.append('-u')
+        options.append('-v')
 
-    cmdlist.append('-show-module-use')
-    cmdlist.append('-sched-dot')
+        options.append('-show-module-use')
+        options.append('-sched-dot')
 
-    cmdlist.extend(['-g', chip.top(step, index)])
+        options.extend(['-g', self.design_topmodule])
 
-    bsc_path = ':'.join(opts['ydir'] + ['%/Libraries'])
-    cmdlist.extend(['-p', bsc_path])
+        filesets = self.schema().get_filesets()
+        idirs = []
+        defines = []
+        for lib, fileset in filesets:
+            idirs.extend(lib.find_files("fileset", fileset, "idir"))
+            defines.extend(lib.get("fileset", fileset, "define"))
 
-    for value in opts['idir']:
-        cmdlist.extend(['-I', value])
-    for value in opts['define']:
-        cmdlist.extend(['-D', value])
+        bsc_path = ':'.join(idirs + ['%/Libraries'])
+        options.extend(['-p', bsc_path])
 
-    sources = get_input_files(chip, 'input', 'hll', 'bsv', add_library_files=False)
-    if len(sources) != 1:
-        raise ValueError('Bluespec frontend only supports one source file!')
-    cmdlist.extend(sources)
+        for value in idirs:
+            options.extend(['-I', value])
+        for value in defines:
+            options.extend(['-D', value])
 
-    return cmdlist
+        sources = []
+        for lib, fileset in filesets:
+            if lib.get_file(fileset=fileset, filetype="bsv"):
+                for value in lib.get_file(fileset=fileset, filetype="bsv"):
+                    sources.append(value)
+        if len(sources) != 1:
+            raise ValueError('Bluespec only supports one source file!')
+        options.extend(sources)
 
+        return options
 
-################################
-# Post-process (post executable)
-################################
-def post_process(chip):
-    ''' Tool specific function to run after step execution
-    '''
+    def post_process(self):
+        super().post_process()
 
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
+        shutil.copyfile(f"reports/{self.design_topmodule}_combined_full.dot",
+                        f"outputs/{self.design_topmodule}.dot")
 
-    shutil.copyfile(f"reports/{chip.top(step, index)}_combined_full.dot",
-                    f"outputs/{chip.top()}.dot")
+        extra_modules = set()
+        use_file = os.path.join(ConvertTask.VLOGDIR, f"{self.design_topmodule}.use")
+        if os.path.exists(use_file):
+            bsc_tool_path = os.path.dirname(
+                os.path.dirname(
+                    self.schema("record").get('toolpath', step=self.step, index=self.index)))
+            bsc_lib = os.path.join(bsc_tool_path, "lib", "Verilog")
 
-    extra_modules = set()
-    use_file = os.path.join(VLOG_DIR, f"{chip.top(step, index)}.use")
-    if os.path.exists(use_file):
-        BSC_BASE = os.path.dirname(
-            os.path.dirname(
-                chip.get('record', 'toolpath', step=step, index=index)))
-        BSC_LIB = os.path.join(BSC_BASE, "lib", "Verilog")
+            with sc_open(use_file) as f:
+                for module in f:
+                    module = module.strip()
+                    mod_path = os.path.join(bsc_lib, f"{module}.v")
+                    if os.path.exists(mod_path):
+                        extra_modules.add(mod_path)
+                    else:
+                        self.logger.warning(f"Unable to find module {module} source "
+                                            f"files at: {bsc_lib}")
 
-        with sc_open(use_file) as f:
-            for module in f:
-                module = module.strip()
-                mod_path = os.path.join(BSC_LIB, f"{module}.v")
-                if os.path.exists(mod_path):
-                    extra_modules.add(mod_path)
-                else:
-                    chip.logger.warning(f"Unable to find module {module} source "
-                                        f"files at: {BSC_LIB}")
+        # bsc outputs each compiled module to its own Verilog file, so we
+        # concatenate them all to create a pickled output we can pass along.
+        with open(os.path.join('outputs', f'{self.design_topmodule}.v'), 'w') as pickled_vlog:
+            for src in os.listdir(ConvertTask.VLOGDIR):
+                if src.endswith(".v"):
+                    with sc_open(os.path.join(ConvertTask.VLOGDIR, src)) as vlog_mod:
+                        pickled_vlog.write(vlog_mod.read())
 
-    # bsc outputs each compiled module to its own Verilog file, so we
-    # concatenate them all to create a pickled output we can pass along.
-    design = chip.top()
-    with open(os.path.join('outputs', f'{design}.v'), 'w') as pickled_vlog:
-        for src in os.listdir(VLOG_DIR):
-            if src.endswith(".v"):
-                with sc_open(os.path.join(VLOG_DIR, src)) as vlog_mod:
-                    pickled_vlog.write(vlog_mod.read())
-
-        pickled_vlog.write("\n")
-        pickled_vlog.write("// Bluespec imports\n\n")
-        for vfile in extra_modules:
-            with sc_open(os.path.join(BSC_LIB, vfile)) as vlog_mod:
-                pickled_vlog.write(vlog_mod.read() + "\n")
+            pickled_vlog.write("\n")
+            pickled_vlog.write("// Bluespec imports\n\n")
+            for vfile in extra_modules:
+                with sc_open(os.path.join(bsc_lib, vfile)) as vlog_mod:
+                    pickled_vlog.write(vlog_mod.read() + "\n")

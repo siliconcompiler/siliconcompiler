@@ -3,6 +3,7 @@ import os
 
 
 @pytest.mark.eda
+@pytest.mark.ready
 @pytest.mark.nocpulimit
 @pytest.mark.timeout(1800)
 def test_py_aes():

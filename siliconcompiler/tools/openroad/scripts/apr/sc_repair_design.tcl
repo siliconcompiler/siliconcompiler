@@ -15,10 +15,10 @@ source "$sc_refdir/apr/preamble.tcl"
 # Buffer ports
 ###############################
 
-if { [lindex [sc_cfg_tool_task_get {var} rsz_buffer_inputs] 0] == "true" } {
+if { [sc_cfg_tool_task_get var rsz_buffer_inputs] } {
     buffer_ports -inputs
 }
-if { [lindex [sc_cfg_tool_task_get {var} rsz_buffer_outputs] 0] == "true" } {
+if { [sc_cfg_tool_task_get {var} rsz_buffer_outputs] } {
     buffer_ports -outputs
 }
 
@@ -32,12 +32,12 @@ sc_set_dont_use -scanchain -multibit -report dont_use.repair_drv
 
 set repair_design_args []
 
-set rsz_cap_margin [lindex [sc_cfg_tool_task_get {var} rsz_cap_margin] 0]
-if { $rsz_cap_margin != "false" } {
+set rsz_cap_margin [sc_cfg_tool_task_get var rsz_cap_margin]
+if { $rsz_cap_margin > 0 } {
     lappend repair_design_args "-cap_margin" $rsz_cap_margin
 }
-set rsz_slew_margin [lindex [sc_cfg_tool_task_get {var} rsz_slew_margin] 0]
-if { $rsz_slew_margin != "false" } {
+set rsz_slew_margin [sc_cfg_tool_task_get {var} rsz_slew_margin]
+if { $rsz_slew_margin > 0 } {
     lappend repair_design_args "-slew_margin" $rsz_slew_margin
 }
 

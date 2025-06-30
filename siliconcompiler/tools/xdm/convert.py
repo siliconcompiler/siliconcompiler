@@ -1,71 +1,74 @@
-from siliconcompiler.tools._common import input_provides, get_tool_task
-from siliconcompiler.tools.xdm import setup as tool_setup
-import os
 import shutil
 
+import os.path
 
-def setup(chip):
-    tool_setup(chip)
-
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    tool, task = get_tool_task(chip, step, index)
-
-    design = chip.top()
-
-    if f'{design}.cir' in input_provides(chip, step, index):
-        chip.add('tool', tool, 'task', task, 'input', f'{design}.cir',
-                 step=step, index=index)
-    else:
-        chip.add('tool', tool, 'task', task, 'require', 'input,netlist,spice',
-                 step=step, index=index)
-
-    chip.add('tool', tool, 'task', task, 'output', f'{design}.xyce', step=step, index=index)
-
-    chip.add('tool', tool, 'task', task, 'option', '--auto',
-             step=step, index=index)
-    chip.add('tool', tool, 'task', task, 'option', ['--source_file_format', 'hspice'],
-             step=step, index=index)
-    chip.add('tool', tool, 'task', task, 'option', ['--dir_out', f'outputs/{design}.xyce'],
-             step=step, index=index)
-
-    chip.set('tool', 'xdm', 'task', 'convert', 'var', 'rename', 'true',
-             step=step, index=index, clobber=False)
-    chip.set('tool', 'xdm', 'task', 'convert', 'var', 'rename',
-             'true/false: indicate whether to rename the output file to match the '
-             'naming scheme for siliconcompiler', field='help')
+from siliconcompiler import TaskSchema
 
 
-def runtime_options(chip):
-    return __get_input_file(chip)
+class ConvertTask(TaskSchema):
+    def __init__(self):
+        super().__init__()
 
+        self.add_parameter("rename", "bool",
+                           "true/false: indicate whether to rename the output file to match "
+                           "the naming scheme for siliconcompiler",
+                           defvalue=True)
 
-def __get_input_file(chip):
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    design = chip.top()
+    def tool(self):
+        return "xdm"
 
-    if f'{design}.cir' in input_provides(chip, step, index):
-        return [f'inputs/{design}.cir']
+    def task(self):
+        return "convert"
 
-    return chip.find_files('input', 'netlist', 'spice',
-                           step=step, index=index)
+    def parse_version(self, stdout):
+        line = stdout.splitlines()[5]
+        return line.split()[1]
 
+    def setup(self):
+        super().setup()
 
-def post_process(chip):
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
+        self.set_exe("xdm_bdl", vswitch="-h")
+        self.add_version(">=v2.7.0")
 
-    if chip.get('tool', 'xdm', 'task', 'convert', 'var', 'rename',
-                step=step, index=index) == ['false']:
-        return
+        # Mark required
+        self.add_required_tool_key("var", "rename")
 
-    inputfile = __get_input_file(chip)[0]
+        if f"{self.design_topmodule}.cir" in self.get_files_from_input_nodes():
+            self.add_input_file(ext="cir")
+        elif f"{self.design_topmodule}.spice" in self.get_files_from_input_nodes():
+            self.add_input_file(ext="spice")
+        else:
+            for lib, fileset in self.schema().get_filesets():
+                if lib.get_file(fileset=fileset, filetype="spice"):
+                    self.add_required_key(lib, "fileset", fileset, "file", "spice")
 
-    outdir = f'outputs/{chip.top()}.xyce'
+    def __input_file(self):
+        if os.path.exists(f"inputs/{self.design_topmodule}.cir"):
+            return f"inputs/{self.design_topmodule}.cir"
+        elif os.path.exists(f"inputs/{self.design_topmodule}.spice"):
+            return f"inputs/{self.design_topmodule}.spice"
+        else:
+            for lib, fileset in self.schema().get_filesets():
+                files = lib.get_file(fileset=fileset, filetype="spice")
+                if files:
+                    return files[0]
 
-    inputfile_base = os.path.basename(inputfile)
-    outputfile_base = f'{chip.top()}.cir'
+    def runtime_options(self):
+        options = super().runtime_options()
+        options.append("--auto")
+        options.extend(['--source_file_format', 'hspice'])
+        options.extend(['--dir_out', f'outputs/{self.design_topmodule}.xyce'])
+        options.append(self.__input_file())
 
-    if inputfile_base != outputfile_base:
-        shutil.move(os.path.join(outdir, inputfile_base), os.path.join(outdir, outputfile_base))
+    def post_process(self):
+        super().post_process()
+
+        if not self.get("var", "rename"):
+            return
+
+        basename = os.path.basename(self.__input_file())
+        outdir = f'outputs/{self.design_topmodule}.xyce'
+        outputfile_base = f'{self.design_topmodule}.cir'
+
+        if basename != outputfile_base:
+            shutil.move(os.path.join(outdir, basename), os.path.join(outdir, outputfile_base))

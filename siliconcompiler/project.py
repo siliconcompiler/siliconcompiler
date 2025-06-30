@@ -21,7 +21,7 @@ from siliconcompiler import FlowgraphSchema
 from siliconcompiler import RecordSchema
 from siliconcompiler import MetricSchema
 from siliconcompiler import ChecklistSchema
-from siliconcompiler import ToolSchema, TaskSchema
+from siliconcompiler import TaskSchema
 from siliconcompiler import ShowTaskSchema, ScreenshotTaskSchema
 from siliconcompiler import OptionSchema
 
@@ -102,7 +102,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         schema.insert("flowgraph", "default", FlowgraphSchema())
         schema.insert("metric", MetricSchema())
         schema.insert("record", RecordSchema())
-        schema.insert("tool", "default", ToolSchema())
+        schema.insert("tool", "default", "task", "default", TaskSchema())
 
         # Add options
         schema.insert("option", OptionSchema())
@@ -466,9 +466,6 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         # Instantiate tasks
         for task_cls in flow.get_all_tasks():
             task = task_cls()
-            # TODO: this is not needed once tool moves
-            if not self.valid("tool", task.tool()):
-                edit_schema.insert("tool", task.tool(), ToolSchema())
             if not self.valid("tool", task.tool(), "task", task.task()):
                 edit_schema.insert("tool", task.tool(), "task", task.task(), task)
 
@@ -1509,3 +1506,11 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         proj.run(raise_exception=True)
         if screenshot:
             return proj.find_result('png', step=nodename)
+
+
+class SimProject(Project):
+    pass
+
+
+class LintProject(Project):
+    pass

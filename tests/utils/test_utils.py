@@ -1,8 +1,7 @@
 import pytest
-import pathlib
-from siliconcompiler import Chip
+
 from siliconcompiler.utils import \
-    truncate_text, get_hashed_filename, safecompare, get_cores, \
+    truncate_text, safecompare, get_cores, \
     get_plugins
 
 
@@ -47,28 +46,6 @@ def test_truncate_text():
     assert truncate_text("testing-without-numbers9123", 1) == "...23"
 
 
-@pytest.mark.parametrize("path,expect", [
-    (pathlib.PureWindowsPath("one/one.txt"), "one_fe05bcdcdc4928012781a5f1a2a77cbb5398e106.txt"),
-    (pathlib.PurePosixPath("one/one.txt"), "one_fe05bcdcdc4928012781a5f1a2a77cbb5398e106.txt"),
-    ("one.txt", "one_3a52ce780950d4d969792a2559cd519d7ee8c727.txt"),
-    ("two", "two_3a52ce780950d4d969792a2559cd519d7ee8c727"),
-    ("two.txt", "two_3a52ce780950d4d969792a2559cd519d7ee8c727.txt"),
-    ("two.txt.gz", "two_3a52ce780950d4d969792a2559cd519d7ee8c727.txt.gz")
-])
-def test_hashed_filename(path, expect):
-    assert get_hashed_filename(path) == expect
-
-
-def test_hashed_filename_package():
-    assert get_hashed_filename('filename.txt', package="test0") == \
-        "filename_765ed134f3871334dbd46603ff7f7db306036020.txt"
-    assert get_hashed_filename('filename.txt', package="test1") == \
-        "filename_5d4ed2691c7b8ad46c00ce78043d4cc11c1744fc.txt"
-
-    assert get_hashed_filename('filename', package="test0") != \
-        get_hashed_filename('filename', package="test1")
-
-
 @pytest.mark.parametrize("a,op,b,expect", [
     (1, ">", 2, False),
     (1, ">", 1, False),
@@ -90,12 +67,12 @@ def test_hashed_filename_package():
     (2, "!=", 1, True)
 ])
 def test_safecompare(a, op, b, expect):
-    assert safecompare(Chip(''), a, op, b) is expect
+    assert safecompare(a, op, b) is expect
 
 
 def test_safecompare_invalid_operator():
     with pytest.raises(ValueError, match="Illegal comparison operation !"):
-        safecompare(Chip(''), 1, "!", 2)
+        safecompare(1, "!", 2)
 
 
 def test_get_cores_logical(monkeypatch):
@@ -106,7 +83,7 @@ def test_get_cores_logical(monkeypatch):
         return 2
 
     monkeypatch.setattr(psutil, 'cpu_count', cpu_count)
-    assert get_cores(Chip('')) == 2
+    assert get_cores() == 2
 
 
 def test_get_cores_physical(monkeypatch):
@@ -117,7 +94,7 @@ def test_get_cores_physical(monkeypatch):
         return 2
 
     monkeypatch.setattr(psutil, 'cpu_count', cpu_count)
-    assert get_cores(Chip(''), physical=True) == 2
+    assert get_cores(physical=True) == 2
 
 
 def test_get_cores_use_os(monkeypatch):
@@ -132,8 +109,8 @@ def test_get_cores_use_os(monkeypatch):
 
     monkeypatch.setattr(psutil, 'cpu_count', psutil_cpu_count)
     monkeypatch.setattr(os, 'cpu_count', os_cpu_count)
-    assert get_cores(Chip('')) == 6
-    assert get_cores(Chip(''), physical=True) == 3
+    assert get_cores() == 6
+    assert get_cores(physical=True) == 3
 
 
 def test_get_cores_use_os_one_core(monkeypatch):
@@ -148,8 +125,8 @@ def test_get_cores_use_os_one_core(monkeypatch):
 
     monkeypatch.setattr(psutil, 'cpu_count', psutil_cpu_count)
     monkeypatch.setattr(os, 'cpu_count', os_cpu_count)
-    assert get_cores(Chip('')) == 1
-    assert get_cores(Chip(''), physical=True) == 1
+    assert get_cores() == 1
+    assert get_cores(physical=True) == 1
 
 
 def test_get_cores_fallback(monkeypatch):
@@ -164,15 +141,13 @@ def test_get_cores_fallback(monkeypatch):
 
     monkeypatch.setattr(psutil, 'cpu_count', psutil_cpu_count)
     monkeypatch.setattr(os, 'cpu_count', os_cpu_count)
-    assert get_cores(Chip('')) == 1
-    assert get_cores(Chip(''), physical=True) == 1
+    assert get_cores() == 1
+    assert get_cores(physical=True) == 1
 
 
 def test_get_plugin():
     assert [] == get_plugins("nothingtofind")
-    assert len(get_plugins("show")) > 0
+    assert len(get_plugins("showtask")) > 0
     assert len(get_plugins("path_resolver")) > 0
-    assert len(get_plugins("docs")) > 0
-    assert len(get_plugins("target")) > 0
 
     assert len(get_plugins("path_resolver", "https")) == 1

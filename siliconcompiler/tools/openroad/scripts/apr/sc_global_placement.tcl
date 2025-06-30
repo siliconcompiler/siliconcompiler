@@ -13,10 +13,10 @@ source "$sc_refdir/apr/preamble.tcl"
 
 set dont_use_args []
 
-if { [lindex [sc_cfg_tool_task_get var enable_scan_chains] 0] == "true" } {
+if { [sc_cfg_tool_task_get var enable_scan_chains] } {
     lappend dont_use_args -scanchain
 }
-if { [lindex [sc_cfg_tool_task_get var enable_multibit_clustering] 0] == "true" } {
+if { [sc_cfg_tool_task_get var enable_multibit_clustering] } {
     lappend dont_use_args -multibit
 }
 
@@ -26,19 +26,19 @@ sc_set_dont_use {*}$dont_use_args -report dont_use.global_placement
 # Scan Chain Preparation
 ###############################
 
-if { [lindex [sc_cfg_tool_task_get var enable_scan_chains] 0] == "true" } {
+if { [sc_cfg_tool_task_get var enable_scan_chains] } {
     set dft_args []
-    if { [sc_cfg_tool_task_get var scan_in_port_pattern] != [] } {
+    if { [sc_cfg_tool_task_get var scan_in_port_pattern] != "" } {
         lappend dft_args -scan_in_name_pattern \
-            [lindex [sc_cfg_tool_task_get var scan_in_port_pattern] 0]
+            [sc_cfg_tool_task_get var scan_in_port_pattern]
     }
-    if { [sc_cfg_tool_task_get var scan_out_port_pattern] != [] } {
+    if { [sc_cfg_tool_task_get var scan_out_port_pattern] != "" } {
         lappend dft_args -scan_out_name_pattern \
-            [lindex [sc_cfg_tool_task_get var scan_out_port_pattern] 0]
+            [sc_cfg_tool_task_get var scan_out_port_pattern]
     }
-    if { [sc_cfg_tool_task_get var scan_enable_port_pattern] != [] } {
+    if { [sc_cfg_tool_task_get var scan_enable_port_pattern] != "" } {
         lappend dft_args -scan_enable_name_pattern \
-            [lindex [sc_cfg_tool_task_get var scan_enable_port_pattern] 0]
+            [sc_cfg_tool_task_get var scan_enable_port_pattern]
     }
 
     sc_report_args -command set_dft_config -args $dft_args
@@ -51,7 +51,7 @@ if { [lindex [sc_cfg_tool_task_get var enable_scan_chains] 0] == "true" } {
 # Perform multi-bit clustering
 ###############################
 
-if { [lindex [sc_cfg_tool_task_get var enable_multibit_clustering] 0] == "true" } {
+if { [sc_cfg_tool_task_get var enable_multibit_clustering] } {
     cluster_flops
 }
 
@@ -65,7 +65,7 @@ sc_global_placement
 # Scan Chain Finalize
 ###############################
 
-if { [lindex [sc_cfg_tool_task_get var enable_scan_chains] 0] == "true" } {
+if { [sc_cfg_tool_task_get var enable_scan_chains] } {
     tee -file reports/scan_chain.rpt {preview_dft -verbose}
     insert_dft
 

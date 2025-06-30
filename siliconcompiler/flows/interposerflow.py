@@ -1,17 +1,16 @@
-from siliconcompiler import Flow
+from siliconcompiler import FlowgraphSchema
 
 from siliconcompiler.tools.openroad import rdlroute
 from siliconcompiler.tools.klayout import export
 
 
-def setup():
+class InterposerFlow(FlowgraphSchema):
     '''
     A flow to perform RDL routing and generate a GDS
     '''
-    flow = Flow('interposerflow')
-    flow.node('interposerflow', 'rdlroute', rdlroute)
-    flow.node('interposerflow', 'write_gds', export)
+    def __init__(self):
+        super().__init__("interposerflow")
 
-    flow.edge('interposerflow', 'rdlroute', 'write_gds')
-
-    return flow
+        self.node("rdlroute", rdlroute.RDLRouteTask())
+        self.node("write_gds", export.ExportTask())
+        self.edge('rdlroute', 'write_gds')

@@ -1,136 +1,79 @@
-from siliconcompiler.tools._common import get_tool_task
-from siliconcompiler.tools._common.asic import get_libraries, set_tool_task_var
-from siliconcompiler.tools.openroad._apr import setup as apr_setup
-from siliconcompiler.tools.openroad._apr import set_reports, set_pnr_inputs, set_pnr_outputs
-from siliconcompiler.tools.openroad._apr import \
-    define_ord_params, define_sta_params, define_sdc_params, \
-    define_pex_params, define_psm_params
-from siliconcompiler.tools.openroad._apr import build_pex_corners, define_ord_files
-from siliconcompiler.tools.openroad._apr import extract_metrics
+from siliconcompiler.tools.openroad._apr import APRTask
+from siliconcompiler.tools.openroad._apr import OpenROADSTAParameter, OpenROADPSMParameter
 
 
-def setup(chip):
+class WriteViewsTask(APRTask, OpenROADSTAParameter, OpenROADPSMParameter):
     '''
     Write output files
     '''
+    def __init__(self):
+        super().__init__()
 
-    # Generic apr tool setup.
-    apr_setup(chip)
+        self.add_parameter("ord_abstract_lef_bloat_layers", "bool",
+                           "true/false, fill all layers when writing the abstract lef",
+                           defvalue=True)
+        self.add_parameter("ord_abstract_lef_bloat_factor", "int",
+                           "Factor to apply when writing the abstract lef", defvalue=10)
 
-    # Task setup
-    design = chip.top()
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    tool, task = get_tool_task(chip, step, index)
+        self.add_parameter("write_cdl", "bool",
+                           "true/false, when true enables writing the CDL file for the design",
+                           defvalue=False)
+        self.add_parameter("write_spef", "bool",
+                           "true/false, when true enables writing the SPEF file for the design",
+                           defvalue=True)
+        self.add_parameter("use_spef", "bool",
+                           "true/false, when true enables reading in SPEF files.")
+        self.add_parameter("write_liberty", "bool",
+                           "true/false, when true enables writing the liberty timing model for "
+                           "the design", defvalue=True)
+        self.add_parameter("write_sdf", "bool",
+                           "true/false, when true enables writing the SDF timing model for the "
+                           "design", defvalue=True)
 
-    chip.set('tool', tool, 'task', task, 'script', 'apr/sc_write_data.tcl',
-             step=step, index=index)
+        self.add_parameter("pex_corners", "{str}", "set of pex corners to perform extraction on")
 
-    # Setup task IO
-    set_pnr_inputs(chip)
-    set_pnr_outputs(chip)
+    def task(self):
+        return "write_data"
 
-    # set default values for openroad
-    define_ord_params(chip)
-    define_sta_params(chip)
-    define_sdc_params(chip)
-    define_pex_params(chip)
-    define_psm_params(chip)
+    def setup(self):
+        super().setup()
 
-    pdkname = chip.get('option', 'pdk')
-    targetlibs = get_libraries(chip, 'logic')
-    macrolibs = get_libraries(chip, 'macro')
-    stackup = chip.get('option', 'stackup')
+        self.set_script("apr/sc_write_data.tcl")
 
-    # Determine if exporting the cdl
-    set_tool_task_var(chip, param_key='write_cdl',
-                      default_value='false',
-                      schelp='true/false, when true enables writing the CDL file for the design')
-    do_cdl = chip.get('tool', tool, 'task', task, 'var', 'write_cdl',
-                      step=step, index=index)[0] == 'true'
+        self.set("var", "pex_corners", list(self._get_pex_mapping().values()))
 
-    if do_cdl:
-        chip.add('tool', tool, 'task', task, 'output', design + '.cdl', step=step, index=index)
-        for lib in targetlibs + macrolibs:
-            chip.add('tool', tool, 'task', task, 'require',
-                     ",".join(['library', lib, 'output', stackup, 'cdl']),
-                     step=step, index=index)
+        self.set("var", "use_spef", self.get("var", "write_spef"))
 
-    set_tool_task_var(chip, param_key='write_spef',
-                      default_value='true',
-                      schelp='true/false, when true enables writing the SPEF file for the design')
-    do_spef = chip.get('tool', tool, 'task', task, 'var', 'write_spef',
-                       step=step, index=index)[0] == 'true'
-    set_tool_task_var(chip, param_key='use_spef',
-                      default_value=do_spef,
-                      schelp='true/false, when true enables reading in SPEF files.')
+        self._set_reports([
+            'setup',
+            'hold',
+            'unconstrained',
+            'clock_skew',
+            'power',
+            'drv_violations',
+            'fmax',
 
-    if do_spef:
-        # Require openrcx pex models
-        for corner in chip.get('tool', tool, 'task', task, 'var', 'pex_corners',
-                               step=step, index=index):
-            chip.add('tool', tool, 'task', task, 'require',
-                     ",".join(['pdk', pdkname, 'pexmodel', 'openroad-openrcx', stackup, corner]),
-                     step=step, index=index)
+            # Images
+            'placement_density',
+            'routing_congestion',
+            'power_density',
+            'ir_drop',
+            'clock_placement',
+            'clock_trees',
+            'optimization_placement'
+        ])
 
-        # Add outputs SPEF in the format {design}.{pexcorner}.spef
-        for corner in chip.get('tool', tool, 'task', task, 'var', 'pex_corners',
-                               step=step, index=index):
-            chip.add('tool', tool, 'task', task, 'output', design + '.' + corner + '.spef',
-                     step=step, index=index)
+        # Setup outputs
+        self.add_output_file(ext="lef")
 
-    # Add outputs LEF
-    chip.add('tool', tool, 'task', task, 'output', design + '.lef', step=step, index=index)
-
-    set_tool_task_var(chip, param_key='write_liberty',
-                      default_value='true',
-                      schelp='true/false, when true enables writing the liberty '
-                             'timing model for the design')
-    do_liberty = chip.get('tool', tool, 'task', task, 'var', 'write_liberty',
-                          step=step, index=index)[0] == 'true'
-
-    if do_liberty:
-        # Add outputs liberty model in the format {design}.{libcorner}.lib
-        for corner in chip.getkeys('constraint', 'timing'):
-            chip.add('tool', tool, 'task', task, 'output', design + '.' + corner + '.lib',
-                     step=step, index=index)
-
-    set_tool_task_var(chip, param_key='write_sdf',
-                      default_value='true',
-                      schelp='true/false, when true enables writing the SDF timing model '
-                             'for the design')
-    do_sdf = chip.get('tool', tool, 'task', task, 'var', 'write_sdf',
-                      step=step, index=index)[0] == 'true'
-    if do_sdf:
-        # Add outputs liberty model in the format {design}.{libcorner}.sdf
-        for corner in chip.getkeys('constraint', 'timing'):
-            chip.add('tool', tool, 'task', task, 'output', design + '.' + corner + '.sdf',
-                     step=step, index=index)
-
-    set_reports(chip, [
-        'setup',
-        'hold',
-        'unconstrained',
-        'clock_skew',
-        'power',
-        'drv_violations',
-        'fmax',
-
-        # Images
-        'placement_density',
-        'routing_congestion',
-        'power_density',
-        'ir_drop',
-        'clock_placement',
-        'clock_trees',
-        'optimization_placement'
-    ])
-
-
-def pre_process(chip):
-    define_ord_files(chip)
-    build_pex_corners(chip)
-
-
-def post_process(chip):
-    extract_metrics(chip)
+        if self.get("var", "write_cdl"):
+            self.add_output_file(ext="cdl")
+        if self.get("var", "write_spef"):
+            for corner in self.get("var", "pex_corners"):
+                self.add_output_file(ext=f"{corner}.spef")
+        if self.get("var", "write_liberty"):
+            for corner in self.schema().getkeys("constraint", "timing"):
+                self.add_output_file(ext=f"{corner}.lib")
+        if self.get("var", "write_sdf"):
+            for corner in self.schema().getkeys("constraint", "timing"):
+                self.add_output_file(ext=f"{corner}.sdf")

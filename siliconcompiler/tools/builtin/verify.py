@@ -1,14 +1,12 @@
-from siliconcompiler.tools.builtin import _common
-from siliconcompiler.schema.parametertype import NodeType
-from siliconcompiler.tools.builtin.builtin import set_io_files
-from siliconcompiler import utils, SiliconCompilerError
-from siliconcompiler.tools._common import get_tool_task
-from siliconcompiler.scheduler import SchedulerNode
-
 import re
 
+from siliconcompiler.schema.parametertype import NodeType
+from siliconcompiler import TaskSchema, utils
 
-def setup(chip):
+from siliconcompiler.tools.builtin import BuiltinTask
+
+
+class VerifyTask(BuiltinTask):
     '''
     Tests an assertion on an input task.
 
@@ -18,72 +16,50 @@ def setup(chip):
     'metric==0.0'.
     The allowed conditional operators are: >, <, >=, <=, ==
     '''
+    def setup(self):
+        super().setup()
 
-    set_io_files(chip, outputs=False)
+        len_inputs = len(TaskSchema.select_input_nodes(self))
+        if len_inputs != 1:
+            raise ValueError(f'{self.step}/{self.index} receives {len_inputs} inputs, but only '
+                             'supports one')
 
+        if len(self.schema("flow").get(self.step, self.index, 'args')) == 0:
+            raise ValueError(f'{self.step}/{self.index} requires arguments for verify')
 
-def _select_inputs(chip, step, index):
-    inputs = _common._select_inputs(chip, step, index)
-    if len(inputs) != 1:
-        raise SiliconCompilerError(
-            f'{step}/{index} receives {len(inputs)} inputs, but only supports one', chip=chip)
-    inputs = inputs[0]
-    flow = chip.get('option', 'flow')
-    arguments = chip.get('flowgraph', flow, step, index, 'args')
+        for criteria in self.schema("flow").get(self.step, self.index, 'args'):
+            m = re.match(r'(\w+)([\>\=\<]+)(\w+)', criteria)
+            if not m:
+                raise ValueError(f"Illegal verify criteria: {criteria}")
 
-    if len(arguments) == 0:
-        raise SiliconCompilerError(f'{step}/{index} requires arguments for verify', chip=chip)
+            metric = m.group(1)
+            if metric not in self.schema("metric").getkeys():
+                raise ValueError(
+                    f"Criteria must use legal metrics only: {criteria}")
 
-    passes = True
-    for criteria in arguments:
-        m = re.match(r'(\w+)([\>\=\<]+)(\w+)', criteria)
-        if not m:
-            raise SiliconCompilerError(f"Illegal verify criteria: {criteria}", chip=chip)
+    def task(self):
+        return "verify"
 
-        metric = m.group(1)
-        op = m.group(2)
-        goal = m.group(3)
-        if metric not in chip.getkeys('metric'):
-            raise SiliconCompilerError(
-                f"Criteria must use legal metrics only: {criteria}", chip=chip)
+    def select_input_nodes(self):
+        step, index = super().select_input_nodes()[0]
+        arguments = self.schema("flow").get(self.step, self.index, 'args')
 
-        value = chip.get('metric', metric, step=inputs[0], index=inputs[1])
+        for criteria in arguments:
+            m = re.match(r'(\w+)([\>\=\<]+)(\w+)', criteria)
+            metric = m.group(1)
+            op = m.group(2)
+            goal = m.group(3)
 
-        if value is None:
-            raise SiliconCompilerError(
-                f"Missing metric for {metric} in {inputs[0]}{inputs[1]}", chip=chip)
+            metric_param = self.schema("metric").get(metric, field=None)
+            value = metric_param.get(step=step, index=index)
 
-        metric_type = chip.get('metric', metric, field=None)
-        goal = NodeType.normalize(goal, metric_type.get(field='type'))
-        if not utils.safecompare(chip, value, op, goal):
-            chip.error(f"{step}/{index} fails '{metric}' metric: {value}{op}{goal}")
+            if value is None:
+                raise ValueError(
+                    f"Missing metric for {metric} in {step}/{index}")
 
-    if not passes:
-        return []
+            goal = NodeType.normalize(goal, metric_param.get(field='type'))
+            if not utils.safecompare(value, op, goal):
+                raise ValueError(f"{self.step}/{self.index} fails '{metric}' "
+                                 f"metric: {value}{op}{goal}")
 
-    return inputs
-
-
-def _gather_outputs(chip, step, index):
-    flow = chip.get('option', 'flow')
-
-    in_nodes = chip.get('flowgraph', flow, step, index, 'input')
-    in_task_outputs = []
-    for in_step, in_index in in_nodes:
-        in_tool, in_task = get_tool_task(chip, in_step, in_index, flow=flow)
-        task_class = chip.get("tool", in_tool, "task", in_task, field="schema")
-        with task_class.runtime(SchedulerNode(chip, in_step, in_index)) as task:
-            in_task_outputs.append(task.get_output_files())
-
-    if len(in_task_outputs) > 0:
-        return in_task_outputs[0].intersection(*in_task_outputs[1:])
-
-    return []
-
-
-def run(chip):
-    return _common.run(chip)
-
-
-def post_process(chip):
-    _common.post_process(chip)
+        return [(step, index)]

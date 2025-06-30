@@ -1,10 +1,12 @@
 # Copyright 2023 Silicon Compiler Authors. All Rights Reserved.
 import sys
+import shlex
 
 import os.path
 
-from siliconcompiler import Chip
-from siliconcompiler.apps._common import pick_manifest, manifest_switches, UNSET_DESIGN
+from siliconcompiler import Project
+from siliconcompiler.apps._common import pick_manifest
+from siliconcompiler.report.dashboard.web import WebDashboard
 
 
 def main():
@@ -32,55 +34,45 @@ To include another chip object to compare to:
 -----------------------------------------------------------
 """
 
-    # Create a base chip class.
-    chip = Chip(UNSET_DESIGN)
+    class DashboardProject(Project):
+        def __init__(self):
+            super().__init__()
 
-    dashboard_arguments = {
-        "-port": {'type': int,
-                  'help': 'port to open the dashboard app on',
-                  'metavar': '<port>',
-                  'sc_print': False},
-        "-graph_cfg": {'type': str,
-                       'nargs': '+',
-                       'action': 'append',
-                       'help': 'chip name - optional, path to chip manifest (json)',
-                       'metavar': '<[manifest name, manifest path>',
-                       'sc_print': False}
-    }
+            self._add_commandline_argument("cfg", "file", "configuration manifest")
+            self._add_commandline_argument("port", "int", "port to open the dashboard app on")
+            self._add_commandline_argument("graph_cfg", "[str]",
+                                           "chip name - optional, path to chip manifest (json)")
 
-    try:
-        switches = chip.create_cmdline(
-            progname,
-            switchlist=[*manifest_switches(),
-                        '-loglevel'],
-            description=description,
-            additional_args=dashboard_arguments)
-    except Exception as e:
-        chip.logger.error(e)
-        return 1
+    cli = DashboardProject.create_cmdline(
+        progname,
+        description=description,
+        switchlist=[
+            '-design',
+            '-arg_step',
+            '-arg_index',
+            '-jobname',
+            '-cfg',
+            '-port',
+            '-graph_cfg'],
+        use_sources=False)
 
-    if not chip.get('option', 'cfg'):
-        manifest = pick_manifest(chip)
+    manifest = cli.get("cmdarg", "cfg")
 
-        if manifest:
-            chip.logger.info(f'Loading manifest: {manifest}')
-            chip.read_manifest(manifest)
-    else:
-        manifest = chip.get('option', 'cfg')
-
-    # Error checking
-    design = chip.get('design')
-    if design == UNSET_DESIGN:
-        chip.logger.error('Design not loaded')
-        return 1
+    # Attempt to load a manifest
+    if not manifest:
+        manifest = pick_manifest(cli)
 
     if not manifest:
-        chip.logger.error('Unable to determine job manifest')
-        return 2
+        cli.logger.error("Unable to find manifest")
+        return 1
+
+    cli.logger.info(f'Loading manifest: {manifest}')
+    project = Project.from_manifest(filepath=manifest)
 
     graph_chips = []
-    if switches['graph_cfg']:
-        for i, name_and_file_path in enumerate(switches['graph_cfg']):
+    if cli.get("cmdarg", "graph_cfg"):
+        for i, name_and_file_path in enumerate(cli.get("cmdarg", "graph_cfg")):
+            name_and_file_path = shlex.split(name_and_file_path)
             args = len(name_and_file_path)
             if args == 0:
                 continue
@@ -95,15 +87,16 @@ To include another chip object to compare to:
                                   f' {args} in "-graph_cfg {name_and_file_path}"'))
             if not os.path.isfile(file_path):
                 raise ValueError(f'not a valid file path: {file_path}')
-            graph_chip = Chip(design='')
-            graph_chip.read_manifest(file_path)
+            graph_proj = Project.from_manifest(filepath=file_path)
             graph_chips.append({
-                'chip': graph_chip,
+                'chip': graph_proj,
                 'name': name,
                 'cfg_path': os.path.abspath(file_path)
             })
 
-    chip.dashboard(wait=True, port=switches['port'], graph_chips=graph_chips)
+    dashboard = WebDashboard(project, port=cli.get("cmdarg", "port"), graph_chips=graph_chips)
+    dashboard.open_dashboard()
+    dashboard.wait()
 
     return 0
 

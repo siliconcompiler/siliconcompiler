@@ -18,7 +18,7 @@ source "$sc_refdir/apr/preamble.tcl"
 set sc_libtype [sc_cfg_get library $sc_mainlib asic libarch]
 
 if {
-    [lindex [sc_cfg_tool_task_get var fin_add_fill] 0] == "true" &&
+    [sc_cfg_tool_task_get var fin_add_fill] &&
     [sc_cfg_exists pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype fill]
 } {
     set sc_fillrules \

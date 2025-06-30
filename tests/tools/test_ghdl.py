@@ -1,26 +1,49 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
-import os
-import siliconcompiler
 import pytest
 
+import os.path
+
+from siliconcompiler import Project, FlowgraphSchema, DesignSchema
+from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.tools.ghdl import convert
-from siliconcompiler.targets import freepdk45_demo
 
 
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.ready
+def test_version(gcd_design):
+    proj = Project(gcd_design)
+    proj.add_fileset("rtl")
+
+    flow = FlowgraphSchema("testflow")
+    flow.node("version", convert.ConvertTask())
+    proj.set_flow(flow)
+
+    node = SchedulerNode(proj, "version", "0")
+    with node.runtime():
+        assert node.setup() is True
+        assert node.task.check_exe_version(node.task.get_exe_version()) is True
+
+
+@pytest.mark.eda
+@pytest.mark.quick
+@pytest.mark.ready
 def test_ghdl(datadir):
-    design = "adder"
-    design_src = os.path.join(datadir, f'{design}.vhdl')
+    design = DesignSchema("adder")
+    design.set_dataroot("root", datadir)
+    with design.active_dataroot("root"), design.active_fileset("rtl"):
+        design.set_topmodule("adder")
+        design.add_file("adder.vhdl")
 
-    chip = siliconcompiler.Chip(design)
-    chip.use(freepdk45_demo)
-    chip.input(design_src)
+    proj = Project(design)
+    proj.add_fileset("rtl")
 
-    chip.node('ghdl', 'import', convert)
-    chip.set('option', 'flow', 'ghdl')
+    flow = FlowgraphSchema("testflow")
+    flow.node("convert", convert.ConvertTask())
+    proj.set_flow(flow)
 
-    assert chip.run()
+    assert proj.run()
 
     # check that compilation succeeded
-    assert chip.find_result('v', step='import') is not None
+    assert proj.find_result('v', step='convert') == \
+        os.path.abspath("build/adder/job0/convert/0/outputs/adder.v")

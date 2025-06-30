@@ -1,9 +1,7 @@
-from siliconcompiler.tools.builtin import _common
-from siliconcompiler.tools.builtin import minimum
-from siliconcompiler.tools.builtin.builtin import set_io_files
+from siliconcompiler.tools.builtin import MinMaxBuiltinTask
 
 
-def setup(chip):
+class MaximumTask(MinMaxBuiltinTask):
     '''
     Selects the task with the maximum metric score from a list of inputs.
 
@@ -19,28 +17,5 @@ def setup(chip):
     Only goals with values set and metrics with weights set are considered
     in the calculation.
     '''
-
-    set_io_files(chip)
-
-
-def _select_inputs(chip, step, index):
-    inputs = _common._select_inputs(chip, step, index)
-
-    score, sel_inputs = _common._minmax(chip, *inputs, op='maximum')
-
-    if sel_inputs:
-        chip.logger.info(f"Selected '{sel_inputs[0]}{sel_inputs[1]}' with score {score:.3f}")
-
-    return sel_inputs
-
-
-def _gather_outputs(chip, step, index):
-    return minimum._gather_outputs(chip, step, index)
-
-
-def run(chip):
-    return _common.run(chip)
-
-
-def post_process(chip):
-    _common.post_process(chip)
+    def _mode(self):
+        return "maximum"

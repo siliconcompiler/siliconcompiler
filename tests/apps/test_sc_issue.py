@@ -1,70 +1,89 @@
 import os
-import glob
 
 import pytest
 
+import os.path
+
+from unittest.mock import patch
+
 from siliconcompiler.apps import sc_issue
 
+from siliconcompiler import FlowgraphSchema, Project
+from siliconcompiler.tools.builtin.nop import NOPTask
 
-@pytest.mark.parametrize('flags,outputfileglob', [
-    (['-cfg', 'build/heartbeat/job0/syn/0/outputs/heartbeat.pkg.json'],
-     'sc_issue_heartbeat_job0_syn_0_*.tar.gz'),
-    (['-cfg', 'build/heartbeat/job0/place.global/0/outputs/heartbeat.pkg.json',
-      '-arg_step', 'syn', '-arg_index', '0'],
-     'sc_issue_heartbeat_job0_syn_0_*.tar.gz'),
-    (['-cfg', 'build/heartbeat/job0/place.global/0/outputs/heartbeat.pkg.json',
-      '-arg_step', 'place.global', '-arg_index', '0'],
-     'sc_issue_heartbeat_job0_place.global_0_*.tar.gz'),
+
+@pytest.fixture
+def project(heartbeat_design):
+    flow = FlowgraphSchema("testflow")
+
+    flow.node("stepone", NOPTask())
+    flow.node("steptwo", NOPTask())
+    flow.edge("stepone", "steptwo")
+
+    proj = Project(heartbeat_design)
+    proj.add_fileset("rtl")
+    proj.set_flow(flow)
+
+    assert proj.run()
+
+    return proj
+
+
+@pytest.mark.parametrize('flags,outputfile', [
+    (['-cfg', 'build/heartbeat/job0/stepone/0/outputs/heartbeat.pkg.json'],
+     'sc_issue_heartbeat_job0_stepone_0_19691231-190020.tar.gz'),
+    (['-cfg', 'build/heartbeat/job0/steptwo/0/outputs/heartbeat.pkg.json',
+      '-arg_step', 'stepone', '-arg_index', '0'],
+     'sc_issue_heartbeat_job0_stepone_0_19691231-190020.tar.gz'),
+    (['-cfg', 'build/heartbeat/job0/stepone/0/outputs/heartbeat.pkg.json',
+      '-arg_step', 'stepone', '-arg_index', '0'],
+     'sc_issue_heartbeat_job0_stepone_0_19691231-190020.tar.gz'),
     (['-cfg', 'build/heartbeat/job0/heartbeat.pkg.json',
-      '-arg_step', 'place.global', '-arg_index', '0'],
-     'sc_issue_heartbeat_job0_place.global_0_*.tar.gz')
+      '-arg_step', 'steptwo', '-arg_index', '0'],
+     'sc_issue_heartbeat_job0_steptwo_0_19691231-190020.tar.gz')
 ])
-@pytest.mark.eda
-@pytest.mark.quick
-@pytest.mark.timeout(600)
 def test_sc_issue_generate_success(flags,
-                                   outputfileglob,
+                                   outputfile,
                                    monkeypatch,
-                                   heartbeat_chip_dir,
-                                   copy_chip_dir):
+                                   project):
     '''Test sc-issue app on a few sets of flags.'''
 
-    copy_chip_dir(heartbeat_chip_dir)
-
     monkeypatch.setattr('sys.argv', ['sc-issue'] + flags)
-    assert sc_issue.main() == 0
-    assert os.path.exists(glob.glob(outputfileglob)[0])
+    with patch("time.time") as time:
+        time.return_value = 20
+        assert sc_issue.main() == 0
+        time.assert_called()
+
+    assert os.path.isfile(outputfile)
 
 
-@pytest.mark.parametrize('flags', [
-    ['-cfg', 'build/heartbeat/job0/heartbeat.pkg.json']
-])
-@pytest.mark.eda
-@pytest.mark.quick
-@pytest.mark.timeout(600)
-def test_sc_issue_generate_fail(flags, monkeypatch, heartbeat_chip_dir, copy_chip_dir):
+def test_sc_issue_generate_fail_step(monkeypatch, project, capsys):
     '''Test sc-issue app on a few sets of flags.'''
 
-    copy_chip_dir(heartbeat_chip_dir)
-
-    monkeypatch.setattr('sys.argv', ['sc-issue'] + flags)
+    monkeypatch.setattr('sys.argv', ['sc-issue', '-cfg', 'build/heartbeat/job0/heartbeat.pkg.json'])
     assert sc_issue.main() == 1
+    assert "Unable to determine step from manifest" in capsys.readouterr().out
 
 
-@pytest.mark.eda
-@pytest.mark.quick
-@pytest.mark.timeout(600)
-def test_sc_issue_run(monkeypatch, heartbeat_chip_dir, copy_chip_dir):
+def test_sc_issue_generate_fail_index(monkeypatch, project, capsys):
     '''Test sc-issue app on a few sets of flags.'''
 
-    copy_chip_dir(heartbeat_chip_dir)
+    monkeypatch.setattr('sys.argv', ['sc-issue', '-cfg', 'build/heartbeat/job0/heartbeat.pkg.json',
+                                     '-arg_step', 'stepone'])
+    assert sc_issue.main() == 1
+    assert "Unable to determine index from manifest" in capsys.readouterr().out
+
+
+def test_sc_issue_run(monkeypatch, project):
+    '''Test sc-issue app on a few sets of flags.'''
 
     monkeypatch.setattr('sys.argv', ['sc-issue',
                                      '-cfg',
-                                     'build/heartbeat/job0/syn/0/outputs/heartbeat.pkg.json',
+                                     'build/heartbeat/job0/stepone/0/outputs/heartbeat.pkg.json',
                                      '-file',
                                      'sc_issue.tar.gz'])
     assert sc_issue.main() == 0
+    assert os.path.isfile("sc_issue.tar.gz")
 
     monkeypatch.setattr('sys.argv', ['sc-issue', '-run', '-file', 'sc_issue.tar.gz'])
     assert sc_issue.main() == 0

@@ -1,159 +1,144 @@
 import os
 import re
 import shutil
+
+import os.path
+
 from siliconcompiler.utils import sc_open
-from siliconcompiler.tools._common.asic import set_tool_task_var, set_tool_task_lib_var, get_mainlib
-from siliconcompiler.tools._common.asic_clock import get_clock_period, add_clock_requirements
-from siliconcompiler.tools._common import \
-    add_frontend_requires, add_require_input, get_frontend_options, get_input_files, \
-    get_tool_task, has_input_files, record_metric
+
+from siliconcompiler import TaskSchema
+from siliconcompiler.asic import ASICTaskSchema
 
 
-def make_docs(chip):
-    from siliconcompiler.targets import freepdk45_demo
-    chip.use(freepdk45_demo)
-    chip.input('<design>.c')
-    return setup(chip)
+class ConvertTask(ASICTaskSchema, TaskSchema):
+    def __init__(self):
+        super().__init__()
 
+        self.add_parameter("memorychannels", "int", "Number of memory channels available",
+                           defvalue=1)
 
-def setup(chip):
-    '''
-    Performs high level synthesis to generate a verilog output
-    '''
+    def tool(self):
+        return "bambu"
 
-    if not has_input_files(chip, 'input', 'hll', 'c') and \
-       not has_input_files(chip, 'input', 'hll', 'llvm'):
-        return "no files in [input,hll,c] or [input,hll,llvm]"
+    def task(self):
+        return "convert"
 
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    tool, task = get_tool_task(chip, step, index)
+    def parse_version(self, stdout):
+        # Long multiline output, but second-to-last line looks like:
+        # Version: PandA 0.9.6 - Revision 5e5e306b86383a7d85274d64977a3d71fdcff4fe-main
+        version_line = stdout.split('\n')[-3]
+        return version_line.split()[2]
 
-    # Standard Setup
-    refdir = 'tools/' + tool
-    chip.set('tool', tool, 'exe', 'bambu')
-    chip.set('tool', tool, 'vswitch', '--version')
-    chip.set('tool', tool, 'version', '>=2024.03', clobber=False)
+    def setup(self):
+        super().setup()
 
-    chip.set('tool', tool, 'task', task, 'refdir', refdir,
-             step=step, index=index,
-             package='siliconcompiler', clobber=False)
+        self.set_exe("bambu", vswitch="--version")
+        self.add_version(">=2024.03")
 
-    # Input/Output requirements
-    chip.add('tool', tool, 'task', task, 'output', chip.top() + '.v', step=step, index=index)
+        self.set_threads(1)
 
-    add_clock_requirements(chip)
+        self.add_output_file(ext="v")
 
-    # Schema requirements
-    add_require_input(chip, 'input', 'hll', 'c')
-    add_require_input(chip, 'input', 'hll', 'llvm')
-    add_frontend_requires(chip, ['idir', 'define'])
+        self.add_required_key("option", "design")
+        self.add_required_key("option", "fileset")
+        if self.schema().get("option", "alias"):
+            self.add_required_key("option", "alias")
 
-    set_tool_task_var(chip, 'device',
-                      schelp="Device to use during bambu synthesis")
-    set_tool_task_lib_var(chip, 'memorychannels', default_value=1,
-                          schelp="Number of memory channels available")
+        # Mark required
+        for lib, fileset in self.schema().get_filesets():
+            if lib.get("fileset", fileset, "idir"):
+                self.add_required_key(lib, "fileset", fileset, "idir")
+            if lib.get("fileset", fileset, "define"):
+                self.add_required_key(lib, "fileset", fileset, "define")
+            if lib.get_file(fileset=fileset, filetype="c"):
+                self.add_required_key(lib, "fileset", fileset, "file", "c")
+            elif lib.get_file(fileset=fileset, filetype="llvm"):
+                self.add_required_key(lib, "fileset", fileset, "file", "llvm")
 
-    # Require clock conversion factor, from library units to ns
-    mainlib = get_mainlib(chip)
-    chip.add('tool', tool, 'task', task, 'require',
-             ','.join(['library', mainlib, 'option', 'var', 'bambu_clock_multiplier']),
-             step=step, index=index)
+    def runtime_options(self):
+        options = super().runtime_options()
 
-    set_tool_task_var(chip, 'clock_multiplier',
-                      schelp="Clock multiplier used to convert library units to ns")
+        filesets = self.schema().get_filesets()
+        idirs = []
+        defines = []
+        for lib, fileset in filesets:
+            idirs.extend(lib.find_files("fileset", fileset, "idir"))
+            defines.extend(lib.get("fileset", fileset, "define"))
 
+        for idir in idirs:
+            options.append(f"-I{idir}")
 
-################################
-#  Custom runtime options
-################################
-def runtime_options(chip):
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    tool, task = get_tool_task(chip, step, index)
+        for define in defines:
+            options.append(f"-D{define}")
 
-    cmdlist = []
+        for lib, fileset in filesets:
+            if lib.get_file(fileset=fileset, filetype="c"):
+                for value in lib.get_file(fileset=fileset, filetype="c"):
+                    options.append(value)
+            elif lib.get_file(fileset=fileset, filetype="llvm"):
+                for value in lib.get_file(fileset=fileset, filetype="llvm"):
+                    options.append(value)
 
-    opts = get_frontend_options(chip, ['idir', 'define'])
+        options.append('--soft-float')
+        options.append('--memory-allocation-policy=NO_BRAM')
 
-    for value in opts['idir']:
-        cmdlist.append('-I' + value)
-    for value in opts['define']:
-        cmdlist.append('-D' + value)
-    for value in get_input_files(chip, 'input', 'hll', 'c'):
-        cmdlist.append(value)
-    if not has_input_files(chip, 'input', 'hll', 'c'):
-        # Only use llvm if C is empty
-        for value in get_input_files(chip, 'input', 'hll', 'llvm'):
-            cmdlist.append(value)
+        mem_channels = self.get("var", "memorychannels")
+        if mem_channels > 0:
+            options.append(f'--channels-number={mem_channels}')
 
-    cmdlist.append('--soft-float')
-    cmdlist.append('--memory-allocation-policy=NO_BRAM')
+        clk_name, clk_period = self.get_clock()
+        if clk_period is not None:
+            if self.mainlib.valid("var", "bambu_clock_multiplier"):
+                clock_multiplier = self.mainlib.get("var", "bambu_clock_multiplier")
+            else:
+                clock_multiplier = 1.0
+            clk_period *= clock_multiplier
+            if clk_name:
+                options.append(f'--clock-name={clk_name}')
+            options.append(f'--clock-period={clk_period}')
 
-    mem_channels = int(chip.get('tool', tool, 'task', task, 'var', 'memorychannels',
-                                step=step, index=index)[0])
-    if mem_channels > 0:
-        cmdlist.append(f'--channels-number={mem_channels}')
+        options.append('--disable-function-proxy')
 
-    mainlib = get_mainlib(chip)
-    clock_multiplier = float(chip.get('library', mainlib, 'option', 'var',
-                                      'bambu_clock_multiplier')[0])
-    clock_name, period = get_clock_period(chip, clock_units_multiplier=clock_multiplier)
-    if clock_name:
-        cmdlist.append(f'--clock-name={clock_name}')
-    if period:
-        cmdlist.append(f'--clock-period={period}')
+        if self.schema().valid("asic", "mainlib"):
+            device = self.schema().get("library",
+                                       self.schema().get("asic", "mainlib"),
+                                       "tool", "bambu", "device")
+            if device:
+                options.append(f'--device={device}')
 
-    cmdlist.append('--disable-function-proxy')
+        options.append(f'--top-fname={self.design_topmodule}')
 
-    device = chip.get('tool', tool, 'task', task, 'var', 'device',
-                      step=step, index=index)
-    if device:
-        cmdlist.append(f'--device={device[0]}')
+        return options
 
-    cmdlist.append(f'--top-fname={chip.top(step, index)}')
+    def post_process(self):
+        super().post_process()
 
-    return cmdlist
+        shutil.copy2(f'{self.design_topmodule}.v', os.path.join('outputs',
+                                                                f'{self.design_topmodule}.v'))
 
+        ff = re.compile(fr"Total number of flip-flops in function {self.design_topmodule}: (\d+)")
+        area = re.compile(r"Total estimated area: (\d+)")
+        fmax = re.compile(r"Estimated max frequency \(MHz\): (\d+\.?\d*)")
+        slack = re.compile(r"Minimum slack: (\d+\.?\d*)")
 
-################################
-# Post_process (post executable)
-################################
-def post_process(chip):
-    ''' Tool specific function to run after step execution
-    '''
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-
-    shutil.copy2(f'{chip.top(step, index)}.v', os.path.join('outputs', f'{chip.top()}.v'))
-
-    ff = re.compile(fr"Total number of flip-flops in function {chip.top(step, index)}: (\d+)")
-    area = re.compile(r"Total estimated area: (\d+)")
-    fmax = re.compile(r"Estimated max frequency \(MHz\): (\d+\.?\d*)")
-    slack = re.compile(r"Minimum slack: (\d+\.?\d*)")
-
-    log_file = f"{step}.log"
-    with sc_open(log_file) as log:
-        for line in log:
-            ff_match = ff.findall(line)
-            area_match = area.findall(line)
-            fmax_match = fmax.findall(line)
-            slack_match = slack.findall(line)
-            if ff_match:
-                record_metric(chip, step, index, "registers", int(ff_match[0]), log_file)
-            if area_match:
-                record_metric(chip, step, index, "cellarea", float(area_match[0]), log_file,
-                              source_unit='um^2')
-            if fmax_match:
-                record_metric(chip, step, index, "fmax", float(fmax_match[0]), log_file,
-                              source_unit='MHz')
-            if slack_match:
-                slack_ns = float(slack_match[0])
-                if slack_ns >= 0:
-                    record_metric(chip, step, index, "setupwns", 0, log_file,
-                                  source_unit='ns')
-                else:
-                    record_metric(chip, step, index, "setupwns", slack_ns, log_file,
-                                  source_unit='ns')
-                record_metric(chip, step, index, "setupslack", slack_ns, log_file,
-                              source_unit='ns')
+        log_file = self.get_logpath("exe")
+        with sc_open(log_file) as log:
+            for line in log:
+                ff_match = ff.findall(line)
+                area_match = area.findall(line)
+                fmax_match = fmax.findall(line)
+                slack_match = slack.findall(line)
+                if ff_match:
+                    self.record_metric("registers", int(ff_match[0]), log_file)
+                if area_match:
+                    self.record_metric("cellarea", float(area_match[0]), log_file,
+                                       source_unit='um^2')
+                if fmax_match:
+                    self.record_metric("fmax", float(fmax_match[0]), log_file, source_unit='MHz')
+                if slack_match:
+                    slack_ns = float(slack_match[0])
+                    if slack_ns >= 0:
+                        self.record_metric("setupwns", 0, log_file, source_unit='ns')
+                    else:
+                        self.record_metric("setupwns", slack_ns, log_file, source_unit='ns')
+                    self.record_metric("setupslack", slack_ns, log_file, source_unit='ns')

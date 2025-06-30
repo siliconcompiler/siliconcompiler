@@ -11,8 +11,10 @@ Sources: https://github.com/RTimothyEdwards/magic
 
 import gzip
 import shutil
-import os
+import os.path
+
 from siliconcompiler.tools._common import input_provides, get_tool_task
+from siliconcompiler.schema.parametervalue import PathNodeValue
 from siliconcompiler import utils
 
 
@@ -47,7 +49,7 @@ def setup(chip):
     chip.set('tool', tool, 'version', '>=8.3.196', clobber=False)
     chip.set('tool', tool, 'format', 'tcl')
 
-    chip.set('tool', tool, 'task', task, 'threads', utils.get_cores(chip),
+    chip.set('tool', tool, 'task', task, 'threads', utils.get_cores(),
              step=step, index=index, clobber=False)
     chip.set('tool', tool, 'task', task, 'refdir', refdir,
              step=step, index=index,
@@ -94,13 +96,13 @@ def process_file(file_type, chip, *key):
 
     for file in files:
         if file.lower().endswith('.gz'):
-            new_file_name = f'inputs/sc_{utils.get_hashed_filename(file[:-3])}'
+            new_file_name = f'inputs/sc_{PathNodeValue.get_hashed_filename(file[:-3], None)}'
 
             with gzip.open(file, 'rt', encoding="utf-8") as fin:
                 with open(new_file_name, 'w') as fout:
                     fout.write(fin.read().encode("ascii", "ignore").decode("ascii"))
         else:
-            new_file_name = f'inputs/sc_{utils.get_hashed_filename(file)}'
+            new_file_name = f'inputs/sc_{PathNodeValue.get_hashed_filename(file, None)}'
             shutil.copy(file, new_file_name)
 
         chip.add('tool', tool, 'task', task, 'file', f'read_{file_type}',

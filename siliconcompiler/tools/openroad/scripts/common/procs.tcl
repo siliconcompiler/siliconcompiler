@@ -8,9 +8,9 @@ proc sc_global_placement_density { args } {
         flags {-exclude_padding}
     sta::check_argc_eq0 "sc_global_placement_density" $args
 
-    set gpl_place_density [lindex [sc_cfg_tool_task_get var place_density] 0]
+    set gpl_place_density [sc_cfg_tool_task_get var place_density]
     set gpl_uniform_placement_adjustment \
-        [lindex [sc_cfg_tool_task_get var gpl_uniform_placement_adjustment] 0]
+        [sc_cfg_tool_task_get var gpl_uniform_placement_adjustment]
 
     set density_args []
     if { ![info exists flags(-exclude_padding)] } {
@@ -65,23 +65,19 @@ proc sc_global_placement { args } {
         flags {-skip_io -disable_routability_driven}
     sta::check_argc_eq0 "sc_global_placement" $args
 
-    set gpl_routability_driven [lindex [sc_cfg_tool_task_get var gpl_routability_driven] 0]
-    set gpl_timing_driven [lindex [sc_cfg_tool_task_get var gpl_timing_driven] 0]
-    set gpl_padding [lindex [sc_cfg_tool_task_get var pad_global_place] 0]
-    set gpl_enable_skip_initial_place [lindex \
-        [sc_cfg_tool_task_get var gpl_enable_skip_initial_place] 0]
+    set gpl_padding [sc_cfg_tool_task_get var pad_global_place]
 
     set gpl_args []
     if {
-        $gpl_routability_driven == "true" &&
+        [sc_cfg_tool_task_get var gpl_routability_driven] &&
         ![info exists flags(-disable_routability_driven)]
     } {
         lappend gpl_args "-routability_driven"
     }
-    if { $gpl_timing_driven == "true" } {
+    if { [sc_cfg_tool_task_get var gpl_timing_driven] } {
         lappend gpl_args "-timing_driven"
     }
-    if { $gpl_enable_skip_initial_place == "true" } {
+    if { [sc_cfg_tool_task_get var gpl_enable_skip_initial_place] } {
         lappend gpl_args "-skip_initial_place"
     }
 
@@ -108,16 +104,14 @@ proc sc_detailed_placement { args } {
         flags {}
     sta::check_argc_eq0 "sc_detailed_placement" $args
 
-    set dpl_padding [lindex [sc_cfg_tool_task_get var pad_detail_place] 0]
-    set dpl_disallow_one_site [lindex [sc_cfg_tool_task_get var dpl_disallow_one_site] 0]
-    set dpl_max_displacement [lindex [sc_cfg_tool_task_get var dpl_max_displacement] 0]
+    set dpl_padding [sc_cfg_tool_task_get var pad_detail_place]
 
     set_placement_padding -global \
         -left $dpl_padding \
         -right $dpl_padding
 
     set dpl_args []
-    if { $dpl_disallow_one_site == "true" } {
+    if { [sc_cfg_tool_task_get var dpl_disallow_one_site] } {
         lappend dpl_args "-disallow_one_site_gaps"
     }
 
@@ -130,7 +124,7 @@ proc sc_detailed_placement { args } {
     sc_report_args -command detailed_placement -args $dpl_args
 
     detailed_placement \
-        -max_displacement $dpl_max_displacement \
+        -max_displacement [sc_cfg_tool_task_get var dpl_max_displacement] \
         {*}$dpl_args
 
     if { $incremental_route } {
@@ -151,19 +145,9 @@ proc sc_pin_placement { args } {
         flags {-random}
     sta::check_argc_eq0 "sc_pin_placement" $args
 
-    if { [sc_cfg_tool_task_exists var pin_thickness_h] } {
-        set h_mult [lindex [sc_cfg_tool_task_get var pin_thickness_h] 0]
-        set_pin_thick_multiplier -hor_multiplier $h_mult
-    }
-    if { [sc_cfg_tool_task_exists var pin_thickness_v] } {
-        set v_mult [lindex [sc_cfg_tool_task_get var pin_thickness_v] 0]
-        set_pin_thick_multiplier -ver_multiplier $v_mult
-    }
-    if { [sc_cfg_tool_task_exists {file} ppl_constraints] } {
-        foreach pin_constraint [sc_cfg_tool_task_get {file} ppl_constraints] {
-            puts "Sourcing pin constraints: ${pin_constraint}"
-            source $pin_constraint
-        }
+    foreach pin_constraint [sc_cfg_tool_task_get var ppl_constraints] {
+        puts "Sourcing pin constraints: ${pin_constraint}"
+        source $pin_constraint
     }
 
     set ppl_args []
@@ -171,14 +155,10 @@ proc sc_pin_placement { args } {
         lappend ppl_args "-random"
     }
 
-    lappend ppl_args {*}[sc_cfg_tool_task_get {var} ppl_arguments]
+    lappend ppl_args {*}[sc_cfg_tool_task_get var ppl_arguments]
 
-    global sc_pdk
-    global sc_stackup
-    global sc_tool
-
-    set sc_hpinmetal [sc_cfg_get pdk $sc_pdk {var} $sc_tool pin_layer_horizontal $sc_stackup]
-    set sc_vpinmetal [sc_cfg_get pdk $sc_pdk {var} $sc_tool pin_layer_vertical $sc_stackup]
+    set sc_hpinmetal [sc_cfg_tool_task_get var pin_layer_horizontal]
+    set sc_vpinmetal [sc_cfg_tool_task_get var pin_layer_vertical]
 
     sc_report_args -command place_pins -args $ppl_args
     place_pins \
@@ -390,7 +370,7 @@ proc sc_supply_nets { } {
 ###########################
 
 proc sc_psm_check_nets { } {
-    if { [lindex [sc_cfg_tool_task_get var psm_enable] 0] == "true" } {
+    if { [sc_cfg_tool_task_get var psm_enable] } {
         set psm_nets []
 
         foreach net [sc_supply_nets] {
@@ -570,32 +550,25 @@ proc sc_get_layer_name { name } {
 }
 
 proc sc_has_tie_cell { type } {
-    upvar sc_cfg sc_cfg
     upvar sc_mainlib sc_mainlib
-    upvar sc_tool sc_tool
 
-    set library_vars [sc_cfg_get library $sc_mainlib option {var}]
-    return [expr {
-        [dict exists $library_vars openroad_tie${type}_cell] &&
-        [dict exists $library_vars openroad_tie${type}_port]
-    }]
+    return [sc_cfg_exists library $sc_mainlib tool openroad tie${type}_cell]
 }
 
 proc sc_get_tie_cell { type } {
-    upvar sc_cfg sc_cfg
     upvar sc_mainlib sc_mainlib
-    upvar sc_tool sc_tool
 
-    set cell [lindex [sc_cfg_get library $sc_mainlib option {var} openroad_tie${type}_cell] 0]
-    set port [lindex [sc_cfg_get library $sc_mainlib option {var} openroad_tie${type}_port] 0]
+    set cell_port [sc_cfg_get library $sc_mainlib tool openroad tie${type}_cell]
+    set cell [lindex $cell_port 0]
+    set port [lindex $cell_port 1]
 
     return "$cell/$port"
 }
 
 proc sc_get_input_files { type key } {
-    global sc_design
+    global sc_topmodule
 
-    set input_file "inputs/${sc_design}.${type}"
+    set input_file "inputs/${sc_topmodule}.${type}"
     if { [file exists $input_file] } {
         return [list $input_file]
     }
@@ -628,8 +601,8 @@ proc sc_path_group { args } {
 }
 
 proc sc_setup_sta { } {
-    set sta_early_timing_derate [lindex [sc_cfg_tool_task_get var sta_early_timing_derate] 0]
-    set sta_late_timing_derate [lindex [sc_cfg_tool_task_get var sta_late_timing_derate] 0]
+    set sta_early_timing_derate [sc_cfg_tool_task_get var sta_early_timing_derate]
+    set sta_late_timing_derate [sc_cfg_tool_task_get var sta_late_timing_derate]
 
     # Setup timing derating
     if { $sta_early_timing_derate != 0.0 } {
@@ -642,14 +615,14 @@ proc sc_setup_sta { } {
     if { [sc_check_version 19370] } {
         # Create path groups
         if {
-            [lindex [sc_cfg_tool_task_get var sta_define_path_groups] 0] == "true" &&
+            [sc_cfg_tool_task_get var sta_define_path_groups] &&
             [llength [sta::path_group_names]] == 0
         } {
             sc_path_group -name in2out -from [all_inputs -no_clocks] -to [all_outputs]
 
             if {
                 [llength [all_clocks]] == 1 ||
-                [lindex [sc_cfg_tool_task_get var sta_unique_path_groups_per_clock] 0] == "false"
+                ![sc_cfg_tool_task_get var sta_unique_path_groups_per_clock]
             } {
                 sc_path_group -name in2reg -from [all_inputs -no_clocks] -to [all_registers]
                 sc_path_group -name reg2reg -from [all_registers] -to [all_registers]
@@ -684,10 +657,15 @@ proc sc_setup_sta { } {
 
 proc sc_setup_global_routing { } {
     global sc_tool
-    global sc_stackup
     global sc_pdk
 
     ## Setup global routing
+
+    set layerderate [dict create]
+    foreach derate [sc_cfg_get library $sc_pdk tool $sc_tool globalroutingderating] {
+        lassign $derate layer derate
+        dict set layerderate $layer $derate
+    }
 
     # Adjust routing track density
     foreach layer [[ord::get_db_tech] getLayers] {
@@ -696,36 +674,31 @@ proc sc_setup_global_routing { } {
         }
 
         set layername [$layer getName]
-        if { ![sc_cfg_exists pdk $sc_pdk {var} $sc_tool "${layername}_adjustment" $sc_stackup] } {
-            utl::warn FLW 1 "Missing global routing adjustment for ${layername}"
+        if { ![dict exists $layerderate $layername] } {
+            utl::warn FLW 1 "Missing global routing adjustment for $layername"
         } else {
-            set adjustment [lindex \
-                [sc_cfg_get pdk $sc_pdk {var} $sc_tool "${layername}_adjustment" $sc_stackup] 0]
+            set adjustment [dict get $layerderate $layername]
             utl::info FLW 1 \
                 "Setting global routing adjustment for $layername to [expr { $adjustment * 100 }]%"
             set_global_routing_layer_adjustment $layername $adjustment
         }
     }
 
-    if {
-        [sc_cfg_tool_task_exists var grt_setup] &&
-        [lindex [sc_cfg_tool_task_get var grt_setup] 0] == "true"
-    } {
-        set grt_macro_extension [lindex [sc_cfg_tool_task_get var grt_macro_extension] 0]
+    if { [sc_cfg_tool_task_get var load_grt_setup] } {
+        set grt_macro_extension [sc_cfg_tool_task_get var grt_macro_extension]
         if { $grt_macro_extension > 0 } {
             utl::info FLW 1 "Setting global routing macro extension to $grt_macro_extension gcells"
             set_macro_extension $grt_macro_extension
         }
 
-        set openroad_grt_signal_min_layer [lindex [sc_cfg_tool_task_get var grt_signal_min_layer] 0]
-        set openroad_grt_signal_max_layer [lindex [sc_cfg_tool_task_get var grt_signal_max_layer] 0]
-        set openroad_grt_clock_min_layer [lindex [sc_cfg_tool_task_get var grt_clock_min_layer] 0]
-        set openroad_grt_clock_max_layer [lindex [sc_cfg_tool_task_get var grt_clock_max_layer] 0]
-
-        set openroad_grt_signal_min_layer [sc_get_layer_name $openroad_grt_signal_min_layer]
-        set openroad_grt_signal_max_layer [sc_get_layer_name $openroad_grt_signal_max_layer]
-        set openroad_grt_clock_min_layer [sc_get_layer_name $openroad_grt_clock_min_layer]
-        set openroad_grt_clock_max_layer [sc_get_layer_name $openroad_grt_clock_max_layer]
+        set openroad_grt_signal_min_layer \
+            [sc_get_layer_name [sc_cfg_tool_task_get var grt_signal_min_layer]]
+        set openroad_grt_signal_max_layer \
+            [sc_get_layer_name [sc_cfg_tool_task_get var grt_signal_max_layer]]
+        set openroad_grt_clock_min_layer \
+            [sc_get_layer_name [sc_cfg_tool_task_get var grt_clock_min_layer]]
+        set openroad_grt_clock_max_layer \
+            [sc_get_layer_name [sc_cfg_tool_task_get var grt_clock_max_layer]]
 
         utl::info FLW 1 "Setting global routing signal routing layers to:\
             ${openroad_grt_signal_min_layer}-${openroad_grt_signal_max_layer}"
@@ -741,15 +714,12 @@ proc sc_setup_global_routing { } {
 proc sc_setup_parasitics { } {
     global sc_tool
     global sc_pdk
-    global sc_stackup
 
-    set sc_rc_signal [lindex [sc_cfg_get pdk $sc_pdk {var} $sc_tool rclayer_signal $sc_stackup] 0]
-    set sc_rc_signal [sc_get_layer_name $sc_rc_signal]
+    set sc_rc_signal [sc_get_layer_name [sc_cfg_get library $sc_pdk tool $sc_tool rclayer_signal]]
+    set sc_rc_clk [sc_get_layer_name [sc_cfg_get library $sc_pdk tool $sc_tool rclayer_clock]]
 
-    set sc_rc_clk [lindex [sc_cfg_get pdk $sc_pdk {var} $sc_tool rclayer_clock $sc_stackup] 0]
-    set sc_rc_clk [sc_get_layer_name $sc_rc_clk]
-
-    set sc_parasitics [lindex [sc_cfg_tool_task_get {file} parasitics] 0]
+    set sc_parasitics [sc_cfg_tool_task_get var rsz_parasitics]
+    utl::info FLW 1 "Sourcing parasitic estimation from: $sc_parasitics"
     source $sc_parasitics
 
     set_wire_rc -clock -layer $sc_rc_clk
@@ -763,7 +733,7 @@ proc sc_insert_fillers { } {
 
     set fillers [sc_cfg_get library $sc_mainlib asic cells filler]
 
-    if { [lindex [sc_cfg_tool_task_get var dpl_use_decap_fillers] 0] == "true" } {
+    if { [sc_cfg_tool_task_get var dpl_use_decap_fillers] } {
         lappend fillers {*}[sc_cfg_get library $sc_mainlib asic cells decap]
     }
     if { $fillers != "" } {
@@ -843,10 +813,10 @@ proc sc_set_dont_use { args } {
             unset_dont_use [sc_cfg_get library $sc_mainlib asic cells $group]
         }
     }
-    if { [info exists flags(-multibit)] } {
+    if { [sc_cfg_tool_task_exists var multibit_ff_cells] && [info exists flags(-multibit)] } {
         unset_dont_use [sc_cfg_tool_task_get var multibit_ff_cells]
     }
-    if { [info exists flags(-scanchain)] } {
+    if { [sc_cfg_tool_task_exists var scan_chain_cells] && [info exists flags(-scanchain)] } {
         unset_dont_use [sc_cfg_tool_task_get var scan_chain_cells]
     }
 
@@ -885,17 +855,15 @@ proc sc_report_args { args } {
 proc sc_global_connections { args } {
     sta::check_argc_eq0 "sc_global_connections" $args
 
-    if { [sc_cfg_tool_task_exists {file} global_connect] } {
-        set global_connect_files []
-        foreach global_connect [sc_cfg_tool_task_get {file} global_connect] {
-            if { [lsearch -exact $global_connect_files $global_connect] != -1 } {
-                continue
-            }
-            puts "Loading global connect configuration: ${global_connect}"
-            source $global_connect
-
-            lappend global_connect_files $global_connect
+    set global_connect_files []
+    foreach global_connect [sc_cfg_tool_task_get var global_connect] {
+        if { [lsearch -exact $global_connect_files $global_connect] != -1 } {
+            continue
         }
+        puts "Loading global connect configuration: ${global_connect}"
+        source $global_connect
+
+        lappend global_connect_files $global_connect
     }
     tee -file reports/global_connections.rpt {report_global_connect}
 }

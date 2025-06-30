@@ -11,6 +11,8 @@ from siliconcompiler.utils import get_file_template
 from siliconcompiler.tools._common import get_tool_task
 from siliconcompiler import RecordSchema
 from siliconcompiler.scheduler import SchedulerNode
+from siliconcompiler.schema import SCHEMA_VERSION
+from siliconcompiler import __version__ as SC_VERSION
 
 
 def generate_testcase(chip,
@@ -25,7 +27,7 @@ def generate_testcase(chip,
                       hash_files=False,
                       verbose_collect=True):
     # Save original schema since it will be modified
-    schema_copy = chip.schema.copy()
+    chip = chip.copy()
 
     issue_dir = tempfile.TemporaryDirectory(prefix='sc_issue_')
 
@@ -130,15 +132,15 @@ def generate_testcase(chip,
 
     # Temporarily change current directory to appear to be issue_dir
     original_cwd = chip.cwd
-    chip.cwd = issue_dir.name
+    chip._Project__cwd = issue_dir.name
 
     # Get new directories
     job_dir = chip.getworkdir()
     new_work_dir = chip.getworkdir(step=step, index=index)
-    collection_dir = chip._getcollectdir()
+    collection_dir = chip.getcollectiondir()
 
     # Restore current directory
-    chip.cwd = original_cwd
+    chip._Project__cwd = original_cwd
 
     # Copy in issue run files
     shutil.copytree(work_dir, new_work_dir, dirs_exist_ok=True)
@@ -146,7 +148,7 @@ def generate_testcase(chip,
     chip.collect(directory=collection_dir, verbose=verbose_collect)
 
     # Set relative path to generate runnable files
-    chip.cwd = issue_dir.name
+    chip._Project__cwd = issue_dir.name
 
     current_work_dir = os.getcwd()
     os.chdir(new_work_dir)
@@ -177,7 +179,7 @@ def generate_testcase(chip,
         task.write_task_manifest('.')
 
     # Restore current directory
-    chip.cwd = original_cwd
+    chip._Project__cwd = original_cwd
     os.chdir(current_work_dir)
 
     git_data = {}
@@ -221,12 +223,12 @@ def generate_testcase(chip,
                                 'toolversion': chip.get('record', 'toolversion',
                                                         step=step, index=index),
                                 'task': task}
-    issue_information['version'] = {'schema': chip.schemaversion,
-                                    'sc': chip.scversion,
+    issue_information['version'] = {'schema': SCHEMA_VERSION,
+                                    'sc': SC_VERSION,
                                     'git': git_data}
 
     if not archive_name:
-        design = chip.design
+        design = chip.design.name
         job = chip.get('option', 'jobname')
         file_time = datetime.fromtimestamp(issue_time).strftime('%Y%m%d-%H%M%S')
         archive_name = f'sc_issue_{design}_{job}_{step}_{index}_{file_time}.tar.gz'
@@ -285,6 +287,3 @@ def generate_testcase(chip,
 
     chip.logger.info(f'Generated testcase for {step}/{index} in: '
                      f'{full_archive_path}')
-
-    # Restore original schema
-    chip.schema = schema_copy

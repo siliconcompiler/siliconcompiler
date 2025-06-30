@@ -1,9 +1,8 @@
-import os
-import siliconcompiler
+from siliconcompiler import ASICProject, DesignSchema
 from siliconcompiler.targets import skywater130_demo
 
 
-def setup(chip):
+def setup(proj: ASICProject):
     '''
     "Self-test" target which builds a small 8-bit counter design as an ASIC,
     targeting the Skywater130 PDK.
@@ -12,27 +11,25 @@ def setup(chip):
     to verify that SiliconCompiler is installed and configured correctly.
     '''
 
-    # Set design name
-    design = 'heartbeat'
-    chip.set('design', design)
+    design = DesignSchema("heartbeat")
+    design.set_dataroot("heartbeat", "python://siliconcompiler")
+    with design.active_dataroot("heartbeat"), design.active_fileset("rtl"):
+        design.set_topmodule("heartbeat")
+        design.add_file("data/heartbeat.v")
+        design.set_param("N", "8")
+    with design.active_dataroot("heartbeat"), design.active_fileset("sdc"):
+        design.add_file("data/heartbeat.sdc")
+
+    # Set design
+    proj.set_design(design)
+    proj.add_fileset("rtl")
+    proj.add_fileset("sdc")
 
     # Load the Sky130 PDK/standard cell library target.
-    chip.use(skywater130_demo)
-
-    # Set quiet flag
-    chip.set('option', 'quiet', True, clobber=False)
-
-    # Set die area and clock constraint.
-    chip.set('constraint', 'outline', [(0, 0), (50, 50)], clobber=False)
-    chip.set('constraint', 'corearea', [(5, 5), (45, 45)], clobber=False)
-    chip.clock('clk', period=10)
-
-    # Add source files.
-    chip.input(os.path.join('data', f'{design}.v'), package='siliconcompiler')
+    proj.load_target(skywater130_demo.setup)
 
 
-#########################
 if __name__ == "__main__":
-    target = siliconcompiler.Chip('<target>')
-    setup(target)
-    target.write_manifest('asic_demo.json')
+    proj = ASICProject()
+    proj.load_target(setup)
+    proj.run()

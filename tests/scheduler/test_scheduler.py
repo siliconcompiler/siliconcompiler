@@ -1,15 +1,36 @@
 import logging
 import os
 import pytest
+import time
 
 import os.path
 
 from unittest.mock import patch
 
-from siliconcompiler import Chip, Flow
+from siliconcompiler import Project, FlowgraphSchema, DesignSchema, NodeStatus
 from siliconcompiler.scheduler import Scheduler
+from siliconcompiler.schema import EditableSchema, Parameter
 
-from siliconcompiler.tools.builtin import nop
+from siliconcompiler.tools.builtin.nop import NOPTask
+
+
+@pytest.fixture
+def gcd_nop_project(gcd_design):
+    project = Project(gcd_design)
+    project.add_fileset("rtl")
+    project.add_fileset("sdc")
+
+    flow = FlowgraphSchema("nopflow")
+    flow.node("stepone", NOPTask())
+    flow.node("steptwo", NOPTask())
+    flow.node("stepthree", NOPTask())
+    flow.node("stepfour", NOPTask())
+    flow.edge("stepone", "steptwo")
+    flow.edge("steptwo", "stepthree")
+    flow.edge("stepthree", "stepfour")
+    project.set_flow(flow)
+
+    return project
 
 
 @pytest.fixture
@@ -19,48 +40,60 @@ def remove_display_environment():
 
 
 @pytest.fixture
-def basic_chip():
-    chip = Chip('test')
+def basic_project():
+    flow = FlowgraphSchema("test")
+    flow.node("stepone", NOPTask())
+    design = DesignSchema("testdesign")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+    proj = Project(design)
+    proj.add_fileset("rtl")
+    proj.set_flow(flow)
 
-    flow = Flow('test')
-    flow.node('test', 'stepone', nop)
-    chip.use(flow)
-    chip.set('option', 'flow', 'test')
+    return proj
 
-    return chip
+
+@pytest.fixture
+def basic_project_no_flow():
+    design = DesignSchema("testdesign")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+    proj = Project(design)
+    proj.add_fileset("rtl")
+
+    return proj
 
 
 def test_init_no_flow():
     with pytest.raises(ValueError, match="flow must be specified"):
-        Scheduler(Chip('test'))
+        Scheduler(Project(DesignSchema("testdesign")))
 
 
-def test_init_flow_not_defined():
-    chip = Chip('test')
-    chip.set("option", "flow", "test")
+def test_init_flow_not_defined(basic_project):
+    basic_project.set("option", "flow", "testflow")
     with pytest.raises(ValueError, match="flow is not defined"):
-        Scheduler(chip)
+        Scheduler(basic_project)
 
 
-def test_init_flow_not_valid(basic_chip):
+def test_init_flow_not_valid(basic_project):
     with patch("siliconcompiler.flowgraph.FlowgraphSchema.validate") as call:
         call.return_value = False
         with pytest.raises(ValueError, match="test flowgraph contains errors and cannot be run."):
-            Scheduler(basic_chip)
+            Scheduler(basic_project)
 
 
-def test_init_flow_runtime_not_valid(basic_chip):
+def test_init_flow_runtime_not_valid(basic_project):
     with patch("siliconcompiler.flowgraph.FlowgraphSchema.validate") as call0, \
          patch("siliconcompiler.flowgraph.RuntimeFlowgraph.validate") as call1:
         call0.return_value = True
         call1.return_value = False
         with pytest.raises(ValueError, match="test flowgraph contains errors and cannot be run."):
-            Scheduler(basic_chip)
+            Scheduler(basic_project)
 
 
-def test_check_display_run(basic_chip):
+def test_check_display_run(basic_project):
     # Checks if check_display() is called during run()
-    scheduler = Scheduler(basic_chip)
+    scheduler = Scheduler(basic_project)
     with patch("siliconcompiler.scheduler.Scheduler._Scheduler__check_display",
                autospec=True) as call:
         scheduler.run()
@@ -68,113 +101,113 @@ def test_check_display_run(basic_chip):
 
 
 @patch('sys.platform', 'linux')
-def test_check_display_nodisplay(gcd_chip, remove_display_environment, caplog):
+def test_check_display_nodisplay(basic_project, remove_display_environment, caplog):
     # Checks if the nodisplay option is set
     # On linux system without display
-    gcd_chip.logger = logging.getLogger()
-    gcd_chip.logger.setLevel(logging.INFO)
+    setattr(basic_project, "_Project__logger", logging.getLogger())
+    basic_project.logger.setLevel(logging.INFO)
 
-    gcd_chip.set("option", "nodisplay", False)
-    assert gcd_chip.get('option', 'nodisplay') is False
+    basic_project.set("option", "nodisplay", False)
+    assert basic_project.get('option', 'nodisplay') is False
 
-    scheduler = Scheduler(gcd_chip)
+    scheduler = Scheduler(basic_project)
     with patch.dict(os.environ, remove_display_environment, clear=True):
         scheduler._Scheduler__check_display()
-    assert gcd_chip.get('option', 'nodisplay') is True
+    assert basic_project.get('option', 'nodisplay') is True
     assert "Environment variable $DISPLAY or $WAYLAND_DISPLAY not set" in caplog.text
     assert "Setting [option,nodisplay] to True" in caplog.text
 
 
 @patch('sys.platform', 'linux')
 @pytest.mark.parametrize("env,value", [("DISPLAY", ":0"), ("WAYLAND_DISPLAY", "wayland-0")])
-def test_check_display_with_display(gcd_chip, remove_display_environment, env, value):
+def test_check_display_with_display(basic_project, remove_display_environment, env, value):
     # Checks that the nodisplay option is not set
     # On linux system with display
 
-    gcd_chip.set("option", "nodisplay", False)
-    assert gcd_chip.get('option', 'nodisplay') is False
+    basic_project.set("option", "nodisplay", False)
+    assert basic_project.get('option', 'nodisplay') is False
 
-    scheduler = Scheduler(gcd_chip)
+    scheduler = Scheduler(basic_project)
     remove_display_environment[env] = value
     with patch.dict(os.environ, remove_display_environment, clear=True):
         scheduler._Scheduler__check_display()
-    assert gcd_chip.get('option', 'nodisplay') is False
+    assert basic_project.get('option', 'nodisplay') is False
 
 
 @patch('sys.platform', 'darwin')
-def test_check_display_with_display_macos(gcd_chip, remove_display_environment):
+def test_check_display_with_display_macos(basic_project, remove_display_environment):
     # Checks that the nodisplay option is not set
     # On macos system
-    gcd_chip.set("option", "nodisplay", False)
-    assert gcd_chip.get('option', 'nodisplay') is False
+    basic_project.set("option", "nodisplay", False)
+    assert basic_project.get('option', 'nodisplay') is False
 
-    scheduler = Scheduler(gcd_chip)
+    scheduler = Scheduler(basic_project)
     with patch.dict(os.environ, remove_display_environment, clear=True):
         scheduler._Scheduler__check_display()
-    assert gcd_chip.get('option', 'nodisplay') is False
+    assert basic_project.get('option', 'nodisplay') is False
 
 
 @patch('sys.platform', 'win32')
-def test_check_display_with_display_windows(gcd_chip, remove_display_environment):
+def test_check_display_with_display_windows(basic_project, remove_display_environment):
     # Checks that the nodisplay option is not set
     # On windows system
-    gcd_chip.set("option", "nodisplay", False)
-    assert gcd_chip.get('option', 'nodisplay') is False
+    basic_project.set("option", "nodisplay", False)
+    assert basic_project.get('option', 'nodisplay') is False
 
-    scheduler = Scheduler(gcd_chip)
+    scheduler = Scheduler(basic_project)
     with patch.dict(os.environ, remove_display_environment, clear=True):
         scheduler._Scheduler__check_display()
-    assert gcd_chip.get('option', 'nodisplay') is False
+    assert basic_project.get('option', 'nodisplay') is False
 
 
-def test_increment_job_name_run(basic_chip):
+def test_increment_job_name_run(basic_project):
     # Checks if __increment_job_name() is called during run()
-    scheduler = Scheduler(basic_chip)
+    scheduler = Scheduler(basic_project)
     with patch("siliconcompiler.scheduler.Scheduler._Scheduler__increment_job_name",
                autospec=True) as call:
         scheduler.run()
         call.assert_called_once()
 
 
-def test_increment_job_name_with_cleanout(basic_chip):
-    basic_chip.set('option', 'clean', False)
+def test_increment_job_name_with_cleanout(basic_project):
+    basic_project.set('option', 'clean', False)
 
-    scheduler = Scheduler(basic_chip)
-
-    assert scheduler._Scheduler__increment_job_name() is False
-
-
-def test_increment_job_name_with_clean_but_not_increment(basic_chip):
-    basic_chip.set('option', 'clean', True)
-    basic_chip.set('option', 'jobincr', False)
-
-    scheduler = Scheduler(basic_chip)
+    scheduler = Scheduler(basic_project)
 
     assert scheduler._Scheduler__increment_job_name() is False
 
 
-def test_increment_job_name_default(basic_chip):
-    basic_chip.set('option', 'clean', True)
-    basic_chip.set('option', 'jobincr', True)
+def test_increment_job_name_with_clean_but_not_increment(basic_project):
+    basic_project.set('option', 'clean', True)
+    basic_project.set('option', 'jobincr', False)
 
-    scheduler = Scheduler(basic_chip)
+    scheduler = Scheduler(basic_project)
 
-    os.makedirs(basic_chip.getworkdir(), exist_ok=True)
+    assert scheduler._Scheduler__increment_job_name() is False
 
-    assert basic_chip.get("option", "jobname") == "job0"
+
+def test_increment_job_name_default(basic_project):
+    basic_project.set('option', 'clean', True)
+    basic_project.set('option', 'jobincr', True)
+
+    scheduler = Scheduler(basic_project)
+
+    os.makedirs(basic_project.getworkdir(), exist_ok=True)
+
+    assert basic_project.get("option", "jobname") == "job0"
     assert scheduler._Scheduler__increment_job_name() is True
-    assert basic_chip.get("option", "jobname") == "job1"
+    assert basic_project.get("option", "jobname") == "job1"
 
 
-def test_increment_job_name_default_no_dir(basic_chip):
-    basic_chip.set('option', 'clean', True)
-    basic_chip.set('option', 'jobincr', True)
+def test_increment_job_name_default_no_dir(basic_project):
+    basic_project.set('option', 'clean', True)
+    basic_project.set('option', 'jobincr', True)
 
-    scheduler = Scheduler(basic_chip)
+    scheduler = Scheduler(basic_project)
 
-    assert basic_chip.get("option", "jobname") == "job0"
+    assert basic_project.get("option", "jobname") == "job0"
     assert scheduler._Scheduler__increment_job_name() is False
-    assert basic_chip.get("option", "jobname") == "job0"
+    assert basic_project.get("option", "jobname") == "job0"
 
 
 @pytest.mark.parametrize("prev_name,new_name", [
@@ -184,73 +217,73 @@ def test_increment_job_name_default_no_dir(basic_chip):
     ("test", "test1"),
     ("junkname0withnumbers1", "junkname0withnumbers2")
 ])
-def test_increment_job_name(basic_chip, prev_name, new_name):
-    basic_chip.set('option', 'clean', True)
-    basic_chip.set('option', 'jobincr', True)
+def test_increment_job_name(basic_project, prev_name, new_name):
+    basic_project.set('option', 'clean', True)
+    basic_project.set('option', 'jobincr', True)
 
-    basic_chip.set('option', 'jobname', prev_name)
-    scheduler = Scheduler(basic_chip)
+    basic_project.set('option', 'jobname', prev_name)
+    scheduler = Scheduler(basic_project)
 
-    os.makedirs(basic_chip.getworkdir(), exist_ok=True)
+    os.makedirs(basic_project.getworkdir(), exist_ok=True)
 
-    assert basic_chip.get("option", "jobname") == prev_name
+    assert basic_project.get("option", "jobname") == prev_name
     assert scheduler._Scheduler__increment_job_name() is True
-    assert basic_chip.get("option", "jobname") == new_name
+    assert basic_project.get("option", "jobname") == new_name
 
 
-def test_clean_build_dir(basic_chip):
-    basic_chip.set('option', 'clean', True)
+def test_clean_build_dir(basic_project):
+    basic_project.set('option', 'clean', True)
 
-    scheduler = Scheduler(basic_chip)
+    scheduler = Scheduler(basic_project)
 
-    os.makedirs(basic_chip.getworkdir(), exist_ok=True)
+    os.makedirs(basic_project.getworkdir(), exist_ok=True)
 
     with patch("shutil.rmtree", autospec=True) as call:
         scheduler._Scheduler__clean_build_dir()
         call.assert_called_once()
 
 
-def test_clean_build_dir_with_from(basic_chip):
-    basic_chip.set('option', 'clean', True)
-    basic_chip.set('option', 'from', 'stepone')
+def test_clean_build_dir_with_from(basic_project):
+    basic_project.set('option', 'clean', True)
+    basic_project.set('option', 'from', 'stepone')
 
-    scheduler = Scheduler(basic_chip)
+    scheduler = Scheduler(basic_project)
 
-    os.makedirs(basic_chip.getworkdir(), exist_ok=True)
-    assert os.path.isdir(basic_chip.getworkdir())
-
-    with patch("shutil.rmtree", autospec=True) as call:
-        scheduler._Scheduler__clean_build_dir()
-        call.assert_not_called()
-
-
-def test_clean_build_dir_do_nothing(basic_chip):
-    basic_chip.set('option', 'clean', False)
-
-    scheduler = Scheduler(basic_chip)
-
-    os.makedirs(basic_chip.getworkdir(), exist_ok=True)
+    os.makedirs(basic_project.getworkdir(), exist_ok=True)
+    assert os.path.isdir(basic_project.getworkdir())
 
     with patch("shutil.rmtree", autospec=True) as call:
         scheduler._Scheduler__clean_build_dir()
         call.assert_not_called()
 
 
-def test_clean_build_dir_remote(basic_chip):
-    basic_chip.set('option', 'clean', True)
-    basic_chip.set('record', 'remoteid', 'blah')
+def test_clean_build_dir_do_nothing(basic_project):
+    basic_project.set('option', 'clean', False)
 
-    scheduler = Scheduler(basic_chip)
+    scheduler = Scheduler(basic_project)
 
-    os.makedirs(basic_chip.getworkdir(), exist_ok=True)
+    os.makedirs(basic_project.getworkdir(), exist_ok=True)
 
     with patch("shutil.rmtree", autospec=True) as call:
         scheduler._Scheduler__clean_build_dir()
         call.assert_not_called()
 
 
-def test_check_manifest_pass(basic_chip):
-    scheduler = Scheduler(basic_chip)
+def test_clean_build_dir_remote(basic_project):
+    basic_project.set('option', 'clean', True)
+    basic_project.set('record', 'remoteid', 'blah')
+
+    scheduler = Scheduler(basic_project)
+
+    os.makedirs(basic_project.getworkdir(), exist_ok=True)
+
+    with patch("shutil.rmtree", autospec=True) as call:
+        scheduler._Scheduler__clean_build_dir()
+        call.assert_not_called()
+
+
+def test_check_manifest_pass(basic_project):
+    scheduler = Scheduler(basic_project)
     with patch("siliconcompiler.scheduler.Scheduler.check_manifest",
                autospec=True) as call:
         call.return_value = True
@@ -258,11 +291,231 @@ def test_check_manifest_pass(basic_chip):
         call.assert_called_once()
 
 
-def test_check_manifest_fail(basic_chip):
-    scheduler = Scheduler(basic_chip)
+def test_check_manifest_fail(basic_project):
+    scheduler = Scheduler(basic_project)
     with patch("siliconcompiler.scheduler.Scheduler.check_manifest",
                autospec=True) as call:
         call.return_value = False
         with pytest.raises(RuntimeError, match='check_manifest\\(\\) failed'):
             scheduler.run()
         call.assert_called_once()
+
+
+def test_check_flowgraph_io_basic(basic_project, caplog):
+    setattr(basic_project, "_Project__logger", logging.getLogger())
+    basic_project.logger.setLevel(logging.INFO)
+
+    scheduler = Scheduler(basic_project)
+
+    assert scheduler._Scheduler__check_flowgraph_io() is True
+    assert caplog.text == ""
+
+
+def test_check_flowgraph_io_with_files(basic_project_no_flow, caplog):
+    flow = FlowgraphSchema("testflow")
+    flow.node("stepone", NOPTask())
+    flow.node("steptwo", NOPTask())
+    flow.edge("stepone", "steptwo")
+    basic_project_no_flow.set_flow(flow)
+
+    setattr(basic_project_no_flow, "_Project__logger", logging.getLogger())
+    basic_project_no_flow.logger.setLevel(logging.INFO)
+
+    scheduler = Scheduler(basic_project_no_flow)
+
+    nop = basic_project_no_flow.get_task(filter=NOPTask)
+    nop.add_output_file("test.v", step="stepone", index="0")
+    nop.add_input_file("test.v", step="steptwo", index="0")
+
+    assert scheduler._Scheduler__check_flowgraph_io() is True
+    assert caplog.text == ""
+
+
+def test_check_flowgraph_io_with_files_join(basic_project_no_flow, caplog):
+    flow = FlowgraphSchema("testflow")
+    flow.node("stepone", NOPTask())
+    flow.node("steptwo", NOPTask())
+    flow.node("dojoin", NOPTask())
+    flow.node("postjoin", NOPTask())
+    flow.edge("stepone", "dojoin")
+    flow.edge("steptwo", "dojoin")
+    flow.edge("dojoin", "postjoin")
+    basic_project_no_flow.set_flow(flow)
+
+    setattr(basic_project_no_flow, "_Project__logger", logging.getLogger())
+    basic_project_no_flow.logger.setLevel(logging.INFO)
+
+    scheduler = Scheduler(basic_project_no_flow)
+
+    nop = basic_project_no_flow.get_task(filter=NOPTask)
+    nop.add_output_file("a.v", step="stepone", index="0")
+    nop.add_output_file("b.v", step="steptwo", index="0")
+    nop.add_input_file("a.v", step="dojoin", index="0")
+    nop.add_input_file("b.v", step="dojoin", index="0")
+    nop.add_output_file("a.v", step="dojoin", index="0")
+    nop.add_output_file("b.v", step="dojoin", index="0")
+    nop.add_input_file("a.v", step="postjoin", index="0")
+    nop.add_input_file("b.v", step="postjoin", index="0")
+
+    assert scheduler._Scheduler__check_flowgraph_io() is True
+    assert caplog.text == ""
+
+
+def test_check_flowgraph_io_with_files_join_extra_files(basic_project_no_flow, caplog):
+    flow = FlowgraphSchema("testflow")
+    flow.node("stepone", NOPTask())
+    flow.node("steptwo", NOPTask())
+    flow.node("dojoin", NOPTask())
+    flow.node("postjoin", NOPTask())
+    flow.edge("stepone", "dojoin")
+    flow.edge("steptwo", "dojoin")
+    flow.edge("dojoin", "postjoin")
+    basic_project_no_flow.set_flow(flow)
+
+    setattr(basic_project_no_flow, "_Project__logger", logging.getLogger())
+    basic_project_no_flow.logger.setLevel(logging.INFO)
+
+    scheduler = Scheduler(basic_project_no_flow)
+
+    nop = basic_project_no_flow.get_task(filter=NOPTask)
+    nop.add_output_file("a.v", step="stepone", index="0")
+    nop.add_output_file("common.v", step="stepone", index="0")
+    nop.add_output_file("b.v", step="steptwo", index="0")
+    nop.add_output_file("common.v", step="stepone", index="0")
+    nop.add_input_file("common.v", step="dojoin", index="0")
+    nop.add_output_file("common.v", step="dojoin", index="0")
+    nop.add_input_file("common.v", step="postjoin", index="0")
+
+    assert scheduler._Scheduler__check_flowgraph_io() is True
+    assert caplog.text == ""
+
+
+def test_check_flowgraph_io_with_files_missing_input(basic_project_no_flow, caplog):
+    flow = FlowgraphSchema("testflow")
+    flow.node("stepone", NOPTask())
+    flow.node("steptwo", NOPTask())
+    flow.edge("stepone", "steptwo")
+    basic_project_no_flow.set_flow(flow)
+
+    setattr(basic_project_no_flow, "_Project__logger", logging.getLogger())
+    basic_project_no_flow.logger.setLevel(logging.INFO)
+
+    scheduler = Scheduler(basic_project_no_flow)
+
+    nop = basic_project_no_flow.get_task(filter=NOPTask)
+    nop.add_output_file("test.v", step="stepone", index="0")
+    nop.add_input_file("test.v", step="steptwo", index="0")
+    nop.add_input_file("missing.v", step="steptwo", index="0")
+
+    assert scheduler._Scheduler__check_flowgraph_io() is False
+    assert "Invalid flow: steptwo/0 will not receive required input missing.v" in caplog.text
+
+
+def test_check_flowgraph_io_with_files_multple_input(basic_project_no_flow, caplog):
+    flow = FlowgraphSchema("testflow")
+    flow.node("stepone", NOPTask(), index=0)
+    flow.node("stepone", NOPTask(), index=1)
+    flow.node("steptwo", NOPTask())
+    flow.edge("stepone", "steptwo", tail_index=0)
+    flow.edge("stepone", "steptwo", tail_index=1)
+    basic_project_no_flow.set_flow(flow)
+
+    setattr(basic_project_no_flow, "_Project__logger", logging.getLogger())
+    basic_project_no_flow.logger.setLevel(logging.INFO)
+
+    scheduler = Scheduler(basic_project_no_flow)
+
+    nop = basic_project_no_flow.get_task(filter=NOPTask)
+    nop.add_output_file("test.v", step="stepone", index="0")
+    nop.add_output_file("test.v", step="stepone", index="1")
+    nop.add_input_file("test.v", step="steptwo", index="0")
+
+    assert scheduler._Scheduler__check_flowgraph_io() is False
+    assert "Invalid flow: steptwo/0 receives test.v from multiple input tasks" in caplog.text
+
+
+def test_rerun(gcd_nop_project):
+    '''Regression test for #458.'''
+
+    gcd_nop_project.set('option', 'to', ['stepthree'])
+    assert gcd_nop_project.run()
+    run_copy = gcd_nop_project.copy()
+    time.sleep(1)  # delay to ensure timestamps differ
+    gcd_nop_project.set('option', 'from', ['steptwo'])
+    gcd_nop_project.set('option', 'to', ['steptwo'])
+    assert gcd_nop_project.run()
+
+    assert run_copy.get("record", "endtime", step="steptwo", index="0") != \
+        gcd_nop_project.get("record", "endtime", step="steptwo", index="0")
+
+    assert run_copy.get("record", "status", step="steptwo", index="0") == \
+        NodeStatus.SUCCESS
+    assert run_copy.get("record", "status", step="stepthree", index="0") == \
+        NodeStatus.SUCCESS
+
+    assert gcd_nop_project.get("record", "status", step="steptwo", index="0") == \
+        NodeStatus.SUCCESS
+    assert gcd_nop_project.get("record", "status", step="stepthree", index="0") == \
+        NodeStatus.PENDING
+
+
+def test_resume_normal(gcd_nop_project):
+    assert gcd_nop_project.run()
+    run_copy = gcd_nop_project.copy()
+    time.sleep(1)  # delay to ensure timestamps differ
+    assert gcd_nop_project.run()
+
+    assert run_copy.get("record", "endtime", step="steptwo", index="0") == \
+        gcd_nop_project.get("record", "endtime", step="steptwo", index="0")
+
+    assert run_copy.get("record", "status", step="steptwo", index="0") == \
+        NodeStatus.SUCCESS
+    assert run_copy.get("record", "status", step="stepthree", index="0") == \
+        NodeStatus.SUCCESS
+    assert gcd_nop_project.get("record", "status", step="stepfour", index="0") == \
+        NodeStatus.SUCCESS
+
+    assert gcd_nop_project.get("record", "status", step="steptwo", index="0") == \
+        NodeStatus.SUCCESS
+    assert gcd_nop_project.get("record", "status", step="stepthree", index="0") == \
+        NodeStatus.SUCCESS
+    assert gcd_nop_project.get("record", "status", step="stepfour", index="0") == \
+        NodeStatus.SUCCESS
+
+
+def test_resume_value_changed(gcd_nop_project):
+    EditableSchema(gcd_nop_project).insert("option", "testing", Parameter("str"))
+
+    assert gcd_nop_project.run()
+    run_copy = gcd_nop_project.copy()
+    time.sleep(1)  # delay to ensure timestamps differ
+
+    # Change require list
+    assert gcd_nop_project.set("tool", "builtin", "task", "nop", "require", "option,testing",
+                               step="stepthree", index="0")
+    assert gcd_nop_project.set("option", "testing", "thistest")
+    gcd_nop_project.logger.setLevel(logging.DEBUG)
+    assert gcd_nop_project.run()
+
+    assert run_copy.get("record", "endtime", step="steptwo", index="0") == \
+        gcd_nop_project.get("record", "endtime", step="steptwo", index="0")
+
+    assert run_copy.get("record", "endtime", step="stepthree", index="0") != \
+        gcd_nop_project.get("record", "endtime", step="stepthree", index="0")
+
+    assert run_copy.get("record", "endtime", step="stepfour", index="0") != \
+        gcd_nop_project.get("record", "endtime", step="stepfour", index="0")
+
+    assert run_copy.get("record", "status", step="steptwo", index="0") == \
+        NodeStatus.SUCCESS
+    assert run_copy.get("record", "status", step="stepthree", index="0") == \
+        NodeStatus.SUCCESS
+    assert run_copy.get("record", "status", step="stepfour", index="0") == \
+        NodeStatus.SUCCESS
+
+    assert gcd_nop_project.get("record", "status", step="steptwo", index="0") == \
+        NodeStatus.SUCCESS
+    assert gcd_nop_project.get("record", "status", step="stepthree", index="0") == \
+        NodeStatus.SUCCESS
+    assert gcd_nop_project.get("record", "status", step="stepfour", index="0") == \
+        NodeStatus.SUCCESS

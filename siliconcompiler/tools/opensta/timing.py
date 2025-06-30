@@ -10,6 +10,204 @@ from siliconcompiler.tools._common import input_provides, add_common_file, \
 from siliconcompiler.tools._common.asic import set_tool_task_var, get_timing_modes
 
 
+from siliconcompiler import TaskSchema
+
+
+class TimingTask(TaskSchema):
+    def __init__(self):
+        super().__init__()
+
+        self.add_parameter("top_n_paths", "int", "number of paths to report timing for",
+                           defvalue=10)
+        self.add_parameter("unique_path_groups_per_clock", "bool",
+                           "if true will generate separate path groups per clock", defvalue=False)
+        self.add_parameter("timing_mode", "str", "timing mode to use")
+
+    def set_timing_mode(self, mode: str, step: str = None, index: str = None):
+        return self.set("var", "timing_mode", mode, step=step, index=index)
+
+    def tool(self):
+        return "opensta"
+
+    def task(self):
+        return "timing"
+
+    def parse_version(self, stdout):
+        return stdout.strip()
+
+    def setup(self):
+        super().setup()
+
+        self.set_exe("sta", vswitch="-version", format="tcl")
+        self.add_version(">=2.6.2")
+
+        self.set_dataroot("refdir-root", __file__)
+        with self.active_dataroot("refdir-root"):
+            self.set_refdir("scripts")
+
+        self.set_threads()
+
+        self.set_script("sc_timing.tcl")
+        self.add_regex("warnings", r'^\[WARNING|^Warning')
+        self.add_regex("errors", r'^\[ERROR')
+
+        self.set("script", "sc_timing.tcl")
+
+        if f"{self.design_topmodule}.vg" in self.get_files_from_input_nodes():
+            self.add_input_file(ext="vg")
+        if f"{self.design_topmodule}.sdc" in self.get_files_from_input_nodes():
+            self.add_input_file(ext="sdc")
+        else:
+            for obj, key in self.get_fileset_file_keys("sdc"):
+                self.add_required_key(obj, *key)
+        for scenario in self.schema().get_timingconstraints().get_scenario().values():
+            if scenario.get("pexcorner") is None:
+                continue
+            if f"{self.design_topmodule}.{scenario.get('pexcorner')}.sdf" in \
+                    self.get_files_from_input_nodes():
+                self.add_input_file(ext=f"{scenario.get('pexcorner')}.sdf")
+
+        if self.get("var", "timing_mode"):
+            self.add_required_tool_key("var", "timing_mode")
+
+    def runtime_options(self):
+        options = super().runtime_options()
+        options.append("-no_init")
+        if not self.has_breakpoint():
+            options.append("-exit")
+
+        options.extend(["-threads", self.get_threads()])
+
+        return options
+
+    def post_process(self):
+        super().post_process()
+
+        peakpower = []
+        leakagepower = []
+        skews = {}
+        # parsing log file
+        logpath = self.get_logpath("exe")
+        with sc_open(logpath) as f:
+            timescale = "s"
+            metric = None
+            for line in f:
+                metricmatch = re.search(r'^SC_METRIC:\s+(\w+)', line)
+                value = re.search(r'(\d*\.?\d)*', line)
+                fmax = re.search(r'fmax = (\d*\.?\d*)', line)
+                tns = re.search(r'^tns (.*)', line)
+                slack = re.search(r'^worst slack (.*)', line)
+                skew = re.search(r'^\s*(.*)\s+(.*) skew', line)
+                power = re.search(r'^Total(.*)', line)
+                if metricmatch:
+                    metric = metricmatch.group(1)
+                    continue
+
+                if metric:
+                    if metric == 'timeunit':
+                        timescale = f'{line.strip()}s'
+                        metric = None
+                    if metric == 'fmax':
+                        if fmax:
+                            self.record_metric("fmax", float(fmax.group(1)),
+                                               source_file=self.__report_map("fmax"),
+                                               source_unit="MHz")
+                            metric = None
+                    elif metric == 'power':
+                        if power:
+                            powerlist = power.group(1).split()
+                            leakage = powerlist[2]
+                            total = powerlist[3]
+
+                            peakpower.append(float(total))
+                            leakagepower.append(float(leakage))
+
+                            metric = None
+                    elif metric == 'cellarea':
+                        self.record_metric("cellarea", float(value.group(0)),
+                                           source_file=self.__report_map("cellarea"),
+                                           source_unit="um^2")
+                        metric = None
+                    elif metric in ('logicdepth',
+                                    'cells',
+                                    'nets',
+                                    'buffers',
+                                    'inverters',
+                                    'registers',
+                                    'unconstrained',
+                                    'pins',
+                                    'setuppaths',
+                                    'holdpaths'):
+                        self.record_metric(metric, int(value.group(0)),
+                                           source_file=self.__report_map(metric))
+                        metric = None
+                    elif metric in ('holdslack', 'setupslack'):
+                        if slack:
+                            self.record_metric(metric, float(slack.group(1).split()[-1]),
+                                               source_file=self.__report_map(metric),
+                                               source_unit=timescale)
+                            metric = None
+                    elif metric in ('setuptns', 'holdtns'):
+                        if tns:
+                            self.record_metric(metric, float(tns.group(1).split()[-1]),
+                                               source_file=self.__report_map(metric),
+                                               source_unit=timescale)
+                            metric = None
+                    elif metric in ('setupskew', 'holdskew'):
+                        if skew:
+                            skews.setdefault(skew.group(2), []).append(float(skew.group(1)))
+                    else:
+                        metric = None
+
+        if peakpower:
+            self.record_metric("peakpower", max(peakpower),
+                               source_file=self.__report_map("peakpower"),
+                               source_unit='W')
+        if leakagepower:
+            self.record_metric("leakagepower", max(leakagepower),
+                               source_file=self.__report_map("leakagepower"),
+                               source_unit='W')
+        if skews:
+            for skewtype, values in skews.items():
+                skew = f'{skewtype}skew'
+                self.record_metric(skew, max(values),
+                                   source_file=self.__report_map(skew),
+                                   source_unit='W')
+
+        drv_report = "reports/drv_violators.rpt"
+        if os.path.exists(drv_report):
+            drv_count = 0
+            with sc_open(drv_report) as f:
+                for line in f:
+                    if re.search(r'\(VIOLATED\)$', line):
+                        drv_count += 1
+
+            self.record_metric("drvs", drv_count, source_file=[drv_report])
+
+    def __report_map(self, metric):
+        corners = self.schema().getkeys('constraint', 'timing')
+        mapping = {
+            "power": [f"reports/power.{corner}.rpt" for corner in corners],
+            "unconstrained": ["reports/unconstrained.rpt", "reports/unconstrained.topN.rpt"],
+            "setuppaths": ["reports/setup.rpt", "reports/setup.topN.rpt"],
+            "holdpaths": ["reports/hold.rpt", "reports/hold.topN.rpt"],
+            "holdslack": ["reports/hold.rpt", "reports/hold.topN.rpt"],
+            "setupslack": ["reports/setup.rpt", "reports/setup.topN.rpt"],
+            "setuptns": ["reports/setup.rpt", "reports/setup.topN.rpt"],
+            "holdtns": ["reports/hold.rpt", "reports/hold.topN.rpt"],
+            "setupskew": ["reports/skew.setup.rpt", "reports/setup.rpt", "reports/setup.topN.rpt"],
+            "holdskew": ["reports/skew.hold.rpt", "reports/hold.rpt", "reports/hold.topN.rpt"]
+        }
+
+        if metric in mapping:
+            paths = [self.get_logpath("exe")]
+            for path in mapping[metric]:
+                if os.path.exists(path):
+                    paths.append(path)
+            return paths
+        return [self.get_logpath("exe")]
+
+
 def setup(chip):
     '''
     Generate a static timing reports.
@@ -24,7 +222,7 @@ def setup(chip):
     chip.set('tool', tool, 'task', task, 'script', 'sc_timing.tcl',
              step=step, index=index, clobber=False)
 
-    chip.set('tool', tool, 'task', task, 'threads', utils.get_cores(chip),
+    chip.set('tool', tool, 'task', task, 'threads', utils.get_cores(),
              step=step, index=index)
 
     design = chip.top()

@@ -8,6 +8,7 @@ from siliconcompiler import MetricSchema
 from siliconcompiler import RecordSchema, FlowgraphSchema
 from siliconcompiler.record import RecordTime
 from siliconcompiler.schema import PerNode, Scope
+from siliconcompiler.tools.builtin.nop import NOPTask
 
 
 def test_keys():
@@ -105,10 +106,10 @@ def test_record_tasktime():
 
 def test_record_totaltime_no_data():
     flow = FlowgraphSchema("testflow")
-    flow.node("testone", "builtin.nop", index="0")
-    flow.node("testone", "builtin.nop", index="1")
-    flow.node("testone", "builtin.nop", index="2")
-    flow.node("testtwo", "builtin.nop", index="0")
+    flow.node("testone", NOPTask(), index="0")
+    flow.node("testone", NOPTask(), index="1")
+    flow.node("testone", NOPTask(), index="2")
+    flow.node("testtwo", NOPTask(), index="0")
     flow.edge("testone", "testtwo", tail_index="0")
     flow.edge("testone", "testtwo", tail_index="1")
     flow.edge("testone", "testtwo", tail_index="2")
@@ -129,10 +130,10 @@ def test_record_totaltime_no_data():
 
 def test_record_totaltime_linear():
     flow = FlowgraphSchema("testflow")
-    flow.node("testone", "builtin.nop", index="0")
-    flow.node("testone", "builtin.nop", index="1")
-    flow.node("testone", "builtin.nop", index="2")
-    flow.node("testtwo", "builtin.nop", index="0")
+    flow.node("testone", NOPTask(), index="0")
+    flow.node("testone", NOPTask(), index="1")
+    flow.node("testone", NOPTask(), index="2")
+    flow.node("testtwo", NOPTask(), index="0")
     flow.edge("testone", "testtwo", tail_index="0")
     flow.edge("testone", "testtwo", tail_index="1")
     flow.edge("testone", "testtwo", tail_index="2")
@@ -181,10 +182,10 @@ def test_record_totaltime_linear():
 
 def test_record_totaltime_overlap():
     flow = FlowgraphSchema("testflow")
-    flow.node("testone", "builtin.nop", index="0")
-    flow.node("testone", "builtin.nop", index="1")
-    flow.node("testone", "builtin.nop", index="2")
-    flow.node("testtwo", "builtin.nop", index="0")
+    flow.node("testone", NOPTask(), index="0")
+    flow.node("testone", NOPTask(), index="1")
+    flow.node("testone", NOPTask(), index="2")
+    flow.node("testtwo", NOPTask(), index="0")
     flow.edge("testone", "testtwo", tail_index="0")
     flow.edge("testone", "testtwo", tail_index="1")
     flow.edge("testone", "testtwo", tail_index="2")
@@ -233,10 +234,10 @@ def test_record_totaltime_overlap():
 
 def test_record_totaltime_overlap_staggered():
     flow = FlowgraphSchema("testflow")
-    flow.node("testone", "builtin.nop", index="0")
-    flow.node("testone", "builtin.nop", index="1")
-    flow.node("testone", "builtin.nop", index="2")
-    flow.node("testtwo", "builtin.nop", index="0")
+    flow.node("testone", NOPTask(), index="0")
+    flow.node("testone", NOPTask(), index="1")
+    flow.node("testone", NOPTask(), index="2")
+    flow.node("testtwo", NOPTask(), index="0")
     flow.edge("testone", "testtwo", tail_index="0")
     flow.edge("testone", "testtwo", tail_index="1")
     flow.edge("testone", "testtwo", tail_index="2")
@@ -285,10 +286,10 @@ def test_record_totaltime_overlap_staggered():
 
 def test_record_totaltime_overlap_staggered_with_gap():
     flow = FlowgraphSchema("testflow")
-    flow.node("testone", "builtin.nop", index="0")
-    flow.node("testone", "builtin.nop", index="1")
-    flow.node("testone", "builtin.nop", index="2")
-    flow.node("testtwo", "builtin.nop", index="0")
+    flow.node("testone", NOPTask(), index="0")
+    flow.node("testone", NOPTask(), index="1")
+    flow.node("testone", NOPTask(), index="2")
+    flow.node("testtwo", NOPTask(), index="0")
     flow.edge("testone", "testtwo", tail_index="0")
     flow.edge("testone", "testtwo", tail_index="1")
     flow.edge("testone", "testtwo", tail_index="2")
@@ -337,10 +338,10 @@ def test_record_totaltime_overlap_staggered_with_gap():
 
 def test_record_totaltime_overlap_staggered_with_all_contained():
     flow = FlowgraphSchema("testflow")
-    flow.node("testone", "builtin.nop", index="0")
-    flow.node("testone", "builtin.nop", index="1")
-    flow.node("testone", "builtin.nop", index="2")
-    flow.node("testtwo", "builtin.nop", index="0")
+    flow.node("testone", NOPTask(), index="0")
+    flow.node("testone", NOPTask(), index="1")
+    flow.node("testone", NOPTask(), index="2")
+    flow.node("testtwo", NOPTask(), index="0")
     flow.edge("testone", "testtwo", tail_index="0")
     flow.edge("testone", "testtwo", tail_index="1")
     flow.edge("testone", "testtwo", tail_index="2")

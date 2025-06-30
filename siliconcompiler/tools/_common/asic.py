@@ -1,6 +1,5 @@
 from . import get_libraries as common_get_libraries
 from . import get_tool_task, pick_key
-import json
 
 
 def get_mainlib(chip):
@@ -251,49 +250,3 @@ def get_tool_task_var(chip,
     _, value = pick_key(chip, reversed(check_keys), step=step, index=index)
 
     return value
-
-
-class CellArea:
-    def __init__(self):
-        self.__areas = {}
-
-    def add_cell(self, name=None, module=None,
-                 cellarea=None, cellcount=None,
-                 macroarea=None, macrocount=None,
-                 stdcellarea=None, stdcellcount=None):
-        if not name and not module:
-            return
-
-        if all([metric is None for metric in (
-                cellarea, cellcount,
-                macroarea, macrocount,
-                stdcellarea, stdcellcount)]):
-            return
-
-        if not name:
-            name = module
-
-        # ensure name is unique
-        check_name = name
-        idx = 0
-        while check_name in self.__areas:
-            check_name = f'{name}{idx}'
-            idx += 1
-        name = check_name
-
-        self.__areas[name] = {
-            "module": module,
-            "cellarea": cellarea,
-            "cellcount": cellcount,
-            "macroarea": macroarea,
-            "macrocount": macrocount,
-            "stdcellarea": stdcellarea,
-            "stdcellcount": stdcellcount
-        }
-
-    def size(self):
-        return len(self.__areas)
-
-    def write_report(self, path):
-        with open(path, 'w') as f:
-            json.dump(self.__areas, f, indent=4)

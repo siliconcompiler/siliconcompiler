@@ -1,41 +1,34 @@
-import os
+import shutil
 
-from tools.inputimporter import setup as tool_setup
-from siliconcompiler.tools._common import get_tool_task
+import os.path
+
+from siliconcompiler import TaskSchema
 
 
-def setup(chip):
+class ImporterTask(TaskSchema):
     '''
     Import (copy) files into the output folder.
     '''
+    def __init__(self):
+        super().__init__()
 
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    tool, task = get_tool_task(chip, step, index)
+        self.add_parameter("input_files", "[file]", "input files to copy")
 
-    tool_setup(chip)
+    def tool(self):
+        return "testing"
 
-    # Get the paths to all of the input files.
-    input_files = chip.get('tool', tool, 'task', task, 'var', 'input_files', step=step, index=index)
-    if not input_files:
-        return "no input files provided to copy"
+    def task(self):
+        return "importer"
 
-    # For each input file, require that they appear in the output folder.
-    input_file_basenames = [os.path.basename(input_file) for input_file in input_files]
-    chip.add('tool', tool, 'task', task, 'output', input_file_basenames, step=step, index=index)
+    def setup(self):
+        super().setup()
 
+        self.add_required_tool_key("var", "input_files")
 
-def runtime_options(chip):
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    tool, task = get_tool_task(chip, step, index)
+        for file in self.get("var", "input_files"):
+            self.add_output_file(os.path.basename(file))
 
-    # All files will be copied into the output directory.
-    cmds = ['-t', 'outputs/']
-
-    # Add all source files to be copied.
-    input_files = chip.get('tool', tool, 'task', task, 'var', 'input_files', step=step, index=index)
-    for input_file in input_files:
-        cmds.append(input_file)
-
-    return cmds
+    def run(self):
+        for file in self.find_files("var", "input_files"):
+            shutil.copy2(file, "outputs/")
+        return 0

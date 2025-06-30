@@ -1,71 +1,55 @@
-import os
+import os.path
 
-from siliconcompiler.tools.gtkwave import setup as tool_setup
-from siliconcompiler.tools._common import \
-    add_require_input, get_tool_task, input_provides
-from siliconcompiler import utils
+from siliconcompiler import ShowTaskSchema
 
 
-def setup(chip):
+class ShowTask(ShowTaskSchema):
     '''
     Show a VCD file.
     '''
+    def tool(self):
+        return "gtkwave"
 
-    tool_setup(chip)
+    def get_supported_show_extentions(self):
+        return ["vcd"]
 
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    tool, task = get_tool_task(chip, step, index)
+    def parse_version(self, stdout):
+        # First line: GTKWave Analyzer v3.3.116 (w)1999-2023 BSI
+        return stdout.split()[2]
 
-    chip.set('tool', tool, 'task', task, 'threads', utils.get_cores(chip),
-             step=step, index=index)
+    def normalize_version(self, version):
+        if version[0] == 'v':
+            return version[1:]
+        return version
 
-    chip.set('tool', tool, 'task', task, 'refdir',
-             'tools/gtkwave/scripts',
-             step=step, index=index, package='siliconcompiler')
+    def setup(self):
+        super().setup()
 
-    chip.set('tool', tool, 'task', task, 'refdir',
-             'tools/gtkwave/scripts',
-             step=step, index=index, package='siliconcompiler')
-    chip.set('tool', tool, 'task', task, 'script', 'sc_show.tcl',
-             step=step, index=index)
+        self.set_exe("gtkwave", vswitch="--version", format="tcl")
+        self.add_version(">=3.3.116")
 
-    if f'{chip.top()}.vcd' in input_provides(chip, step, index):
-        chip.set('tool', tool, 'task', task, 'input', f'{chip.top()}.vcd', step=step, index=index)
-    elif chip.valid('tool', tool, 'task', task, 'var', 'show_filepath') and \
-            chip.get('tool', tool, 'task', task, 'var', 'show_filepath', step=step, index=index):
-        chip.add('tool', tool, 'task', task, 'require',
-                 ",".join(['tool', tool, 'task', task, 'var', 'show_filepath']),
-                 step=step, index=index)
-    else:
-        add_require_input(chip, 'input', 'waveform', 'vcd')
+        self.set_threads()
 
-    chip.set('tool', tool, 'task', task, 'var', 'show_exit', False,
-             step=step, index=index, clobber=False)
+        self.set_dataroot("gtkwave", __file__)
+        with self.active_dataroot("gtkwave"):
+            self.set_refdir("scripts")
+        self.set_script("sc_show.tcl")
 
+        if f"{self.design_topmodule}.vcd" in self.get_files_from_input_nodes():
+            self.add_input_file(ext="vcd")
+        else:
+            self.add_required_tool_key("var", "showfilepath")
 
-def runtime_options(chip):
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    tool, task = get_tool_task(chip, step, index)
+    def runtime_options(self):
+        options = []
 
-    options = []
+        options.append(f'--cpu={self.get_threads()}')
+        options.append(f'--script={self.find_files("script")[0]}')
 
-    threads = chip.get('tool', tool, 'task', task, 'threads', step=step, index=index)
-    if threads:
-        options.append(f'--cpu={threads}')
+        if os.path.exists(f'inputs/{self.design_topmodule}.vcd'):
+            dump = f'inputs/{self.design_topmodule}.vcd'
+        else:
+            dump = self.find_files('var', 'showfilepath')
+        options.append(f'--dump={dump}')
 
-    script = chip.find_files('tool', tool, 'task', task, 'script', step=step, index=index)[0]
-    options.append(f'--script={script}')
-
-    if os.path.exists(f'inputs/{chip.top()}.vcd'):
-        dump = f'inputs/{chip.top()}.vcd'
-    elif chip.valid('tool', tool, 'task', task, 'var', 'show_filepath') and \
-            chip.get('tool', tool, 'task', task, 'var', 'show_filepath', step=step, index=index):
-        dump = chip.get('tool', tool, 'task', task, 'var', 'show_filepath',
-                        step=step, index=index)[0]
-    else:
-        dump = chip.find_files('input', 'waveform', 'vcd', step=step, index=index)[0]
-    options.append(f'--dump={dump}')
-
-    return options
+        return options

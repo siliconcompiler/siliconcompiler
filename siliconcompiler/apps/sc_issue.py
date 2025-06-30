@@ -5,22 +5,13 @@ import tarfile
 
 import os.path
 
-from siliconcompiler import Chip
+from siliconcompiler import Project
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.utils.issue import generate_testcase
-from siliconcompiler.tools._common import get_tool_task
 
 
 def main():
     progname = "sc-issue"
-    chip = Chip(progname)
-    switchlist = ['-cfg',
-                  '-arg_step',
-                  '-arg_index',
-                  '-tool_task_var',
-                  '-tool_task_option',
-                  '-loglevel',
-                  '-use']
     description = """
 -----------------------------------------------------------
 Restricted SC app that generates a sharable testcase from a
@@ -40,80 +31,89 @@ To run a testcase, use:
 -----------------------------------------------------------
 """  # noqa E501
 
-    issue_arguments = {
-        '-exclude_libraries': {'action': 'store_true',
-                               'help': 'flag to ensure libraries are excluded in the testcase',
-                               'sc_print': False},
-        '-exclude_pdks': {'action': 'store_true',
-                          'help': 'flag to ensure pdks are excluded in the testcase',
-                          'sc_print': False},
-        '-hash_files': {'action': 'store_true',
-                        'help': 'flag to hash the files in the schema before generating '
-                                'the manifest',
-                        'sc_print': False},
+    class IssueProject(Project):
+        def __init__(self):
+            super().__init__()
 
-        '-run': {'action': 'store_true',
-                 'help': 'run a provided testcase',
-                 'sc_print': False},
+            self._add_commandline_argument("cfg", "file", "configuration manifest")
+            self._add_commandline_argument("run", "bool", "run a provided testcase")
+            self._add_commandline_argument("hash_files", "bool",
+                                           "flag to hash the files in the schema before "
+                                           "generating the manifest")
+            self._add_commandline_argument("file", "file",
+                                           "filename for the generated testcase")
+            self._add_commandline_argument("add_pdk", "[str]",
+                                           "pdk to include in the testcase, if not provided all "
+                                           "libraries will be added according to the "
+                                           "-exclude_pdks flag")
+            self._add_commandline_argument("add_library", "[str]",
+                                           "library to include in the testcase, if not "
+                                           "provided all libraries will be added according to "
+                                           "the -exclude_libraries flag")
+            self._add_commandline_argument("exclude_libraries", "bool",
+                                           "flag to ensure libraries are excluded in the testcase")
+            self._add_commandline_argument("exclude_pdks", "bool",
+                                           "flag to ensure pdks are excluded in the testcase")
 
-        '-add_library': {'action': 'append',
-                         'help': 'library to include in the testcase, if not provided all '
-                                 'libraries will be added according to the -exclude_libraries flag',
-                         'metavar': '<library>',
-                         'sc_print': False},
-        '-add_pdk': {'action': 'append',
-                     'help': 'pdk to include in the testcase, if not provided all libraries '
-                             'will be added according to the -exclude_pdks flag',
-                     'metavar': '<pdk>',
-                     'sc_print': False},
+            # TODO port add dep func
+            # self._add_commandline_argument("add_dep", "[str]",
+            # "dependency to load before running", "-add_dep <str>")
 
-        '-file': {'help': 'filename for the generated testcase',
-                  'metavar': '<file>',
-                  'sc_print': False},
-    }
+    switchlist = ['-arg_step',
+                  '-arg_index',
+                  '-cfg',
+                  '-run',
+                  '-hash_files',
+                  '-file',
+                  '-add_pdk',
+                  '-add_library',
+                  '-exclude_libraries',
+                  '-exclude_pdks']
 
-    try:
-        switches = chip.create_cmdline(progname,
-                                       switchlist=switchlist,
-                                       description=description,
-                                       additional_args=issue_arguments)
-    except Exception as e:
-        chip.logger.error(e)
-        return 1
+    issue = IssueProject.create_cmdline(
+        progname,
+        description=description,
+        switchlist=switchlist)
 
-    if not switches['run']:
-        step = chip.get('arg', 'step')
-        index = chip.get('arg', 'index')
+    if not issue.get("cmdarg", "run"):
+        project = Project.from_manifest(filepath=issue.get("cmdarg", "cfg"))
 
+        if issue.get("arg", "step"):
+            project.set("arg", "step", issue.get("arg", "step"))
+        if issue.get("arg", "index"):
+            project.set("arg", "index", issue.get("arg", "index"))
+
+        step = project.get('arg', 'step')
+        index = project.get('arg', 'index')
         if not step:
-            chip.logger.error('Unable to determine step from manifest')
+            project.logger.error('Unable to determine step from manifest')
         if not index:
-            chip.logger.error('Unable to determine index from manifest')
+            project.logger.error('Unable to determine index from manifest')
         if not step or not index:
             # Exit out
             return 1
 
-        generate_testcase(chip,
+        generate_testcase(project,
                           step,
                           index,
-                          switches['file'],
-                          include_pdks=not switches['exclude_pdks'],
-                          include_specific_pdks=switches['add_pdk'],
-                          include_libraries=not switches['exclude_libraries'],
-                          include_specific_libraries=switches['add_library'],
-                          hash_files=switches['hash_files'])
+                          issue.get("cmdarg", "file"),
+                          include_pdks=not issue.get("cmdarg", "exclude_pdks"),
+                          include_specific_pdks=issue.get("cmdarg", "add_pdk"),
+                          include_libraries=not issue.get("cmdarg", "exclude_libraries"),
+                          include_specific_libraries=issue.get("cmdarg", "add_library"),
+                          hash_files=issue.get("cmdarg", "hash_files"))
 
         return 0
-
-    if switches['run']:
-        if not switches['file']:
+    else:
+        file = issue.get("cmdarg", "file")
+        if not file:
             raise ValueError('-file must be provided')
 
-        test_dir = os.path.basename(switches['file']).split('.')[0]
-        with tarfile.open(switches['file'], 'r:gz') as f:
+        test_dir = os.path.basename(file)[0:-7]
+        with tarfile.open(file, 'r:gz') as f:
             f.extractall(path='.')
 
-        chip.read_manifest(f'{test_dir}/orig_manifest.json')
+        project = Project.from_manifest(filepath=f'{test_dir}/orig_manifest.json')
 
         with open(f'{test_dir}/issue.json', 'r') as f:
             issue_info = json.load(f)
@@ -125,37 +125,40 @@ To run a testcase, use:
         else:
             sc_source = 'installed'
 
-        chip.logger.info(f"Design: {chip.design}")
-        chip.logger.info(f"SiliconCompiler version: {sc_version} / {sc_source}")
-        chip.logger.info(f"Schema version: {issue_info['version']['schema']}")
-        chip.logger.info(f"Python version: {issue_info['python']['version']}")
+        project.logger.info(f"Design: {project.design.name}")
+        project.logger.info(f"SiliconCompiler version: {sc_version} / {sc_source}")
+        project.logger.info(f"Schema version: {issue_info['version']['schema']}")
+        project.logger.info(f"Python version: {issue_info['python']['version']}")
 
         sc_machine = issue_info['machine']
         sc_os = sc_machine['system']
         if 'distro' in sc_machine:
             sc_os += f" {sc_machine['distro']}"
         sc_os += f" {sc_machine['osversion']} {sc_machine['arch']} {sc_machine['kernelversion']}"
-        chip.logger.info(f"Machine: {sc_os}")
-        chip.logger.info(f"Date: {issue_info['date']}")
+        project.logger.info(f"Machine: {sc_os}")
+        project.logger.info(f"Date: {issue_info['date']}")
 
         step = issue_info['run']['step']
         index = issue_info['run']['index']
 
-        chip.set('arg', 'step', step)
-        chip.set('arg', 'index', index)
-        tool, task = get_tool_task(chip, step, index)
-        chip.logger.info(f'Preparing run for {step}/{index} - {tool}/{task}')
+        project.set('arg', 'step', step)
+        project.set('arg', 'index', index)
+        flow = project.get("option", 'flow')
+        tool = project.get("flowgraph", flow, step, index, "tool")
+        task = project.get("flowgraph", flow, step, index, "task")
+        taskmod = project.get("flowgraph", flow, step, index, "taskmodule")
+        project.logger.info(f'Preparing run for {step}/{index} - {tool}/{task} - {taskmod}')
 
         # Modify run environment to point to extracted files
         builddir_key = ['option', 'builddir']
-        new_builddir = f"{test_dir}/{chip.get(*builddir_key)}"
-        chip.logger.info(f"Changing {builddir_key} to '{new_builddir}'")
-        chip.set(*builddir_key, new_builddir)
+        new_builddir = f"{test_dir}/{project.get(*builddir_key)}"
+        project.logger.info(f"Changing {builddir_key} to '{new_builddir}'")
+        project.set(*builddir_key, new_builddir)
 
         # Run task
         # Rerun setup task, assumed to be running in its own thread so
         # multiprocess is not needed
-        SchedulerNode(chip,
+        SchedulerNode(project,
                       step,
                       index,
                       replay=True).run()
