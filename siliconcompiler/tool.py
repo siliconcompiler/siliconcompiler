@@ -108,7 +108,7 @@ class ToolSchema(NamedSchema):
         r"^\s*" + __parse_version_check_str + r"\s*$",
         re.VERBOSE | re.IGNORECASE)
 
-    def __init__(self, name):
+    def __init__(self, name=None):
         super().__init__()
         self.set_name(name)
 
