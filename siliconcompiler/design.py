@@ -7,7 +7,6 @@ from pathlib import Path
 from typing import List
 
 from siliconcompiler import utils
-from siliconcompiler import SiliconCompilerError
 
 from siliconcompiler.dependencyschema import DependencySchema
 from siliconcompiler.schema import NamedSchema
@@ -326,7 +325,7 @@ class DesignSchema(NamedSchema, DependencySchema):
 
         # final error checking
         if not fileset or not filetype:
-            raise SiliconCompilerError(
+            raise ValueError(
                 f'Unable to infer fileset and/or filetype for '
                 f'{filename} based on file extension.')
 
