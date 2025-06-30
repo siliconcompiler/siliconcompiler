@@ -195,9 +195,9 @@ if { [string match {ice*} $sc_partname] } {
     if { [lsearch -exact $sc_syn_feature_set async_reset] == -1 } {
         lappend synth_fpga_args -no_dff_async_reset
     }
-    if { [lindex [sc_cfg_get fpga $sc_partname var synth_fpga_opt_mode] 0] != "none" } {
+    if { [lindex [sc_cfg_tool_task_get var synth_fpga_opt_mode] 0] != "none" } {
         lappend synth_fpga_args \
-            -opt [lindex [sc_cfg_get fpga $sc_partname var synth_fpga_opt_mode] 0]
+            -opt [lindex [sc_cfg_tool_task_get var synth_fpga_opt_mode] 0]
     }
 
     yosys synth_fpga \
