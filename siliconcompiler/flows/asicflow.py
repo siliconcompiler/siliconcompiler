@@ -25,6 +25,22 @@ from siliconcompiler.tools.klayout import export as klayout_export
 from siliconcompiler.tools.builtin import minimum
 
 
+from siliconcompiler import FlowgraphSchema
+from siliconcompiler.tools.slang import elaborate
+
+
+class ASICFlow(FlowgraphSchema):
+    def __init__(self):
+        super().__init__()
+        self.set_name("asicflow")
+
+        self.node("elaborate", elaborate.Elaborate())
+        self.node("synthesis", syn_asic.ASICSynthesis())
+        self.edge("elaborate", "synthesis")
+        self.node("floorplan.init", init_floorplan.InitFloorplanTask())
+        self.edge("synthesis", "floorplan.init")
+
+
 ############################################################################
 # DOCS
 ############################################################################

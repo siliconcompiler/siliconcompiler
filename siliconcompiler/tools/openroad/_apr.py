@@ -9,6 +9,65 @@ from siliconcompiler.tools._common.asic import get_mainlib, set_tool_task_var, g
 from siliconcompiler.tools.openroad import setup as tool_setup
 
 
+from siliconcompiler.tools.openroad import OpenROADTask
+
+
+class OpenROADSTAParameter(OpenROADTask):
+    def __init__(self):
+        super().__init__()
+
+        self.add_parameter("sta_early_timing_derate", "float", "timing derating factor to use for hold corners", defvalue=0.0)
+        self.add_parameter("sta_late_timing_derate", "float", "timing derating factor to use for setup corners", defvalue=0.0)
+        self.add_parameter("sta_top_n_paths", "int", "number of paths to report timing for", defvalue=10)
+        self.add_parameter("sta_define_path_groups", "bool", "if true will generate path groups for timing reporting", defvalue=True)
+        self.add_parameter("sta_unique_path_groups_per_clock", "bool", "if true will generate separate path groups per clock", defvalue=False)
+
+        # power_corner
+        # add_common_file(chip, 'opensta_generic_sdc', 'sdc/sc_constraints.sdc')
+
+
+class APRTask(OpenROADTask):
+    def __init__(self):
+        super().__init__()
+
+        supported = (
+            "setup",
+            "hold",
+            "unconstrained",
+            "clock_skew",
+            "drv_violations",
+            "fmax",
+            "power",
+            "check_setup",
+            "placement_density",
+            "routing_congestion",
+            "power_density",
+            "ir_drop",
+            "clock_placement",
+            "clock_trees",
+            "optimization_placement",
+            "module_view"
+        )
+        self.add_parameter("reports", f"<{','.join(supported)}>", "list of reports and images to generate")
+
+        self.add_parameter("ord_enable_images", "bool", "blah", defvalue=True)
+
+    def setup(self):
+        super().setup()
+
+        self._add_pnr_inputs()
+        self._add_pnr_outputs()
+
+    def _add_pnr_inputs(self):
+        pass
+
+    def _add_pnr_outputs(self):
+        self.add_output_file(ext="sdc")
+        self.add_output_file(ext="vg")
+        self.add_output_file(ext="def")
+        self.add_output_file(ext="odb")
+
+
 def setup(chip, exit=True):
     tool_setup(chip, exit=exit)
 

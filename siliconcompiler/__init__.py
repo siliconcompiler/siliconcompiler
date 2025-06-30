@@ -17,8 +17,9 @@ from siliconcompiler.checklist import ChecklistSchema
 from siliconcompiler.asic import ASICSchema
 from siliconcompiler.fpga import FPGASchema
 
-from siliconcompiler.project import Project
 from siliconcompiler.library import StdCellLibrarySchema
+
+from siliconcompiler.project import Project
 
 from siliconcompiler.core import Chip
 

@@ -9,34 +9,26 @@ source ./sc_manifest.tcl
 ###############################
 
 set sc_tool opensta
-set sc_step [sc_cfg_get arg step]
-set sc_index [sc_cfg_get arg index]
-set sc_flow [sc_cfg_get option flow]
-set sc_task [sc_cfg_get flowgraph $sc_flow $sc_step $sc_index task]
-
 set sc_refdir [sc_cfg_tool_task_get refdir]
 
 # Design
 set sc_design [sc_top]
+set sc_designlib [sc_cfg_get option design]
 
 # APR Parameters
-set sc_targetlibs [sc_get_asic_libraries logic]
-set sc_mainlib [lindex $sc_targetlibs 0]
+set sc_mainlib [sc_cfg_get asic mainlib]
+set sc_logiclibs [sc_cfg_get asic asiclib]
+
 set sc_delaymodel [sc_cfg_get asic delaymodel]
+
 set sc_timing_mode [lindex [sc_cfg_tool_task_get var timing_mode] 0]
+
 set sc_scenarios []
 foreach corner [dict keys [sc_cfg_get constraint timing]] {
     if { [sc_cfg_get constraint timing $corner mode] == $sc_timing_mode } {
         lappend sc_scenarios $corner
     }
 }
-
-###############################
-# Optional
-###############################
-
-# MACROS
-set sc_macrolibs [sc_get_asic_libraries macro]
 
 ###############################
 # Source helper functions
@@ -51,17 +43,18 @@ source "$sc_refdir/sc_procs.tcl"
 # Read Liberty
 puts "Defining timing corners: $sc_scenarios"
 define_corners {*}$sc_scenarios
-foreach lib "$sc_targetlibs $sc_macrolibs" {
-    #Liberty
-    foreach corner $sc_scenarios {
+
+foreach corner $sc_scenarios {
+    foreach lib $sc_logiclibs {
+        set lib_filesets []
         foreach libcorner [sc_cfg_get constraint timing $corner libcorner] {
-            if { [sc_cfg_exists library $lib output $libcorner $sc_delaymodel] } {
-                foreach lib_file [sc_cfg_get library $lib output $libcorner $sc_delaymodel] {
-                    puts "Reading liberty file for ${corner} ($libcorner): ${lib_file}"
-                    read_liberty -corner $corner $lib_file
-                }
-                break
+            if { [sc_cfg_exists library $lib asic libcornerfileset $libcorner $sc_delaymodel] } {
+                lappend lib_filesets {*}[sc_cfg_get library $lib asic libcornerfileset $libcorner $sc_delaymodel]
             }
+        }
+        foreach lib_file [sc_cfg_get_fileset $lib $lib_filesets liberty] {
+            puts "Reading liberty file for ${corner} ($libcorner): ${lib_file}"
+            read_liberty -corner $corner $lib_file
         }
     }
 }
@@ -84,16 +77,17 @@ if { [file exists "inputs/${sc_design}.sdc"] } {
     # get from previous step
     puts "Reading SDC: inputs/${sc_design}.sdc"
     read_sdc "inputs/${sc_design}.sdc"
-} elseif { [sc_cfg_exists input constraint sdc] } {
-    foreach sdc [sc_cfg_get input constraint sdc] {
+} else {
+    set sdc_files []
+    foreach sdc [sc_cfg_get_fileset $sc_designlib [sc_cfg_get option fileset] sdc] {
         # read step constraint if exists
         puts "Reading SDC: ${sdc}"
         read_sdc $sdc
+        lappend sdc_files $sdc
     }
 
-    set sdc_files []
     foreach corner $sc_scenarios {
-        foreach sdc [sc_cfg_get constraint timing $corner file] {
+        foreach sdc [sc_cfg_get_fileset $sc_designlib [sc_cfg_get constraint timing $corner sdcfileset] sdc] {
             if { [lsearch -exact $sdc_files $sdc] == -1 } {
                 # read step constraint if exists
                 puts "Reading mode (${sc_timing_mode}) SDC: ${sdc}"
@@ -102,13 +96,14 @@ if { [file exists "inputs/${sc_design}.sdc"] } {
             }
         }
     }
-} else {
-    # fall back on default auto generated constraints file
-    set sdc "[sc_cfg_tool_task_get file opensta_generic_sdc]"
-    puts "Reading SDC: ${sdc}"
-    puts "Warning: Defaulting back to default SDC"
-    read_sdc "${sdc}"
 }
+# } else {
+#     # fall back on default auto generated constraints file
+#     set sdc "[sc_cfg_tool_task_get file opensta_generic_sdc]"
+#     puts "Reading SDC: ${sdc}"
+#     puts "Warning: Defaulting back to default SDC"
+#     read_sdc "${sdc}"
+# }
 
 # Create path groups
 if { [llength [sta::path_group_names]] == 0 } {

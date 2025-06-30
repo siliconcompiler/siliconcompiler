@@ -7,7 +7,7 @@ import os.path
 
 from typing import Union, List, Tuple
 
-from siliconcompiler.schema import BaseSchema, NamedSchema, EditableSchema, Parameter
+from siliconcompiler.schema import BaseSchema, NamedSchema, EditableSchema, Parameter, PerNode
 
 from siliconcompiler import DesignSchema
 from siliconcompiler import FlowgraphSchema
@@ -15,8 +15,16 @@ from siliconcompiler import RecordSchema
 from siliconcompiler import MetricSchema
 from siliconcompiler import ChecklistSchema
 from siliconcompiler import ToolSchema, TaskSchema
+from siliconcompiler import LibrarySchema
+
+from siliconcompiler.constraints import \
+    ASICTimingConstraintSchema, ASICAreaConstraint, ASICComponentConstraints, ASICPinConstraints
+from siliconcompiler.metrics import ASICMetricsSchema
 
 from siliconcompiler.pathschema import PathSchemaBase
+
+from siliconcompiler import PDKSchema
+from siliconcompiler import StdCellLibrarySchema
 
 from siliconcompiler.schema.schema_cfg import schema_option_runtime, schema_arg, schema_version
 
@@ -47,9 +55,10 @@ class Project(PathSchemaBase, BaseSchema):
         schema_option_runtime(schema)
         schema.insert("option", "env", "default", Parameter("str"))
 
-        schema.insert("option", "alias", Parameter("[(str,str,str,str)]"))
-        schema.insert("option", "fileset", Parameter("[str]"))
         schema.insert("option", "design", Parameter("str"))
+
+        schema.insert("option", "alias", Parameter("[(str,str,str,str)]", pernode=PerNode.OPTIONAL))
+        schema.insert("option", "fileset", Parameter("[str]", pernode=PerNode.OPTIONAL))
 
         # Add history
         schema.insert("history", BaseSchema())
@@ -120,6 +129,9 @@ class Project(PathSchemaBase, BaseSchema):
             self.__import_design(obj)
         elif isinstance(obj, FlowgraphSchema):
             self.__import_flow(obj)
+        elif isinstance(obj, LibrarySchema):
+            edit_schema = EditableSchema(self)
+            edit_schema.insert("library", obj.name, obj, clobber=True)
         else:
             raise NotImplementedError
 
@@ -139,24 +151,88 @@ class Project(PathSchemaBase, BaseSchema):
         for task_cls in flow.get_all_tasks():
             task = task_cls()
             # TODO: this is not needed once tool moves
-            edit_schema.insert("tool", task.tool(), ToolSchema(), clobber=True)
+            if not self.valid("tool", task.tool()):
+                edit_schema.insert("tool", task.tool(), ToolSchema(), clobber=True)
             edit_schema.insert("tool", task.tool(), "task", task.task(), task, clobber=True)
 
-    def check_manifest(self):
-        # Assert design is set
-        # Assert fileset is set
-        # Assert flow is set
+    def check_manifest(self) -> bool:
+        error = False
 
-        # Assert design is a library
-        # Assert fileset is in design
-        # Assert design has topmodule
+        # Assert design is set
+        design = self.get("option", "design")
+        if not design:
+            self.logger.error("[option,design] has not been set")
+            error = True
+        else:
+            # Assert design is a library
+            if design not in self.getkeys("library"):
+                self.logger.error(f"{design} has not been loaded")
+                error = True
+
+        # Assert fileset is set
+        filesets = self.get("option", "fileset")
+        if not filesets:
+            self.logger.error("[option,fileset] has not been set")
+            error = True
+        elif design:
+            # Assert fileset is in design
+            design_obj = self.design
+            for fileset in filesets:
+                if fileset not in design_obj.getkeys("fileset"):
+                    self.logger.error(f"{fileset} is not a valid fileset in {design}")
+                    error = True
+
+            # Assert design has topmodule
+            fileset = filesets[0]
+            if fileset in design_obj.getkeys("fileset"):
+                if not design_obj.get_topmodule(fileset):
+                    self.logger.error(f"topmodule has not been set in {design}/{fileset}")
+                    error = True
+
+        # Assert flow is set
+        flow = self.get("option", "flow")
+        if not flow:
+            self.logger.error("[option,flow] has not been set")
+            error = True
+        else:
+            if flow not in self.getkeys("flowgraph"):
+                self.logger.error(f"{flow} has not need loaded")
+                error = True
 
         # Check that alias libraries exist
+        for src_lib, src_fileset, dst_lib, dst_fileset in self.get("option", "alias"):
+            if not src_lib:
+                self.logger.error("source library in [option,alias] must be set")
+                error = True
+                continue
+
+            if src_lib not in self.getkeys("library"):
+                self.logger.error(f"{src_lib} has not been loaded")
+                error = True
+                continue
+
+            if src_fileset not in self.getkeys("library", src_lib, "fileset"):
+                self.logger.error(f"{src_fileset} is not a valid fileset in {src_lib}")
+                error = True
+                continue
+
+            if not dst_lib:
+                continue
+
+            if dst_lib not in self.getkeys("library"):
+                self.logger.error(f"{dst_lib} has not been loaded")
+                error = True
+                continue
+
+            if dst_fileset and dst_fileset not in self.getkeys("library", dst_lib, "fileset"):
+                self.logger.error(f"{dst_fileset} is not a valid fileset in {dst_lib}")
+                error = True
+                continue
 
         # Check flowgraph
         # Check tasks have classes, cannot check post setup that is a runtime check
 
-        return True
+        return not error
 
     def run(self, raise_exception=False):
         '''
@@ -306,13 +382,14 @@ class Project(PathSchemaBase, BaseSchema):
         # Reinitialize logger on restore
         self.__init_logger()
 
-    def get_filesets(self) -> List[Tuple[NamedSchema, str]]:
+    def get_filesets(self, step: str = None, index: str = None) -> List[Tuple[NamedSchema, str]]:
         """
         Returns the filesets selected for this project
         """
         # Build alias mapping
         alias = {}
-        for src_lib, src_fileset, dst_lib, dst_fileset in self.get("option", "alias"):
+        for src_lib, src_fileset, dst_lib, dst_fileset in self.get("option", "alias",
+                                                                   step=step, index=index):
             if dst_lib:
                 if not self.valid("library", dst_lib):
                     raise KeyError(f"{dst_lib} is not a loaded library")
@@ -323,7 +400,8 @@ class Project(PathSchemaBase, BaseSchema):
                 dst_fileset = None
             alias[(src_lib, src_fileset)] = (dst_obj, dst_fileset)
 
-        return self.design.get_fileset(self.get("option", "fileset"), alias=alias)
+        return self.design.get_fileset(self.get("option", "fileset", step=step, index=index),
+                                       alias=alias)
 
     def get_task(self,
                  tool: str,
@@ -368,7 +446,7 @@ class Project(PathSchemaBase, BaseSchema):
 
         return self.set("option", "flow", flow)
 
-    def add_fileset(self, fileset: Union[List[str], str], clobber: bool = False):
+    def add_fileset(self, fileset: Union[List[str], str], step: str = None, index: str = None, clobber: bool = False):
         """
         Add a fileset to use in this project
 
@@ -391,15 +469,17 @@ class Project(PathSchemaBase, BaseSchema):
                 raise ValueError(f"{fs} is not a valid fileset in {self.design.name}")
 
         if clobber:
-            return self.set("option", "fileset", fileset)
+            return self.set("option", "fileset", fileset, step=step, index=index)
         else:
-            return self.add("option", "fileset", fileset)
+            return self.add("option", "fileset", fileset, step=step, index=index)
 
     def add_alias(self,
                   src_dep: Union[DesignSchema, str],
                   src_fileset: str,
                   alias_dep: Union[DesignSchema, str],
                   alias_fileset: str,
+                  step: str = None,
+                  index: str = None,
                   clobber: bool = False):
         """
         Add an aliased fileset.
@@ -430,11 +510,14 @@ class Project(PathSchemaBase, BaseSchema):
         if alias_dep is None:
             alias_dep = ""
 
+        if alias_fileset == "":
+            alias_fileset = None
+
         if isinstance(alias_dep, str):
             if alias_dep == "":
                 alias_dep = None
-                alias_dep_name = ""
-                alias_fileset = ""
+                alias_dep_name = None
+                alias_fileset = None
             else:
                 if alias_dep not in self.getkeys("library"):
                     raise KeyError(f"{alias_dep} has not been loaded")
@@ -449,11 +532,140 @@ class Project(PathSchemaBase, BaseSchema):
             else:
                 raise TypeError("alias dep is not a valid type")
 
-            if alias_fileset != "" and alias_fileset not in alias_dep.getkeys("fileset"):
+            if alias_fileset is not None and alias_fileset not in alias_dep.getkeys("fileset"):
                 raise ValueError(f"{alias_dep_name} does not have {alias_fileset} as a fileset")
 
         alias = (src_dep_name, src_fileset, alias_dep_name, alias_fileset)
         if clobber:
-            return self.set("option", "alias", alias)
+            return self.set("option", "alias", alias, step=step, index=index)
         else:
-            return self.add("option", "alias", alias)
+            return self.add("option", "alias", alias, step=step, index=index)
+
+
+class SimProject(Project):
+    pass
+
+
+class LintProject(Project):
+    def __init__(self):
+        super().__init__()
+
+
+class FPGAProject(Project):
+    def __init__(self):
+        super().__init__()
+
+        schema = EditableSchema(self)
+        # TODO replace with FPGA constraints
+        schema.insert("constraint", "timing", ASICTimingConstraintSchema())
+        schema.insert("constraint", "component", ASICComponentConstraints())
+        schema.insert("constraint", "pin", ASICPinConstraints())
+
+        # Replace metrics with asic metrics
+        schema.insert("metric", ASICMetricsSchema(), clobber=True)
+
+        schema.insert("fpga", "device", Parameter("str"))
+
+
+class ASICProject(Project):
+    def __init__(self):
+        super().__init__()
+
+        schema = EditableSchema(self)
+        schema.insert("constraint", "timing", ASICTimingConstraintSchema())
+        schema.insert("constraint", "component", ASICComponentConstraints())
+        schema.insert("constraint", "pin", ASICPinConstraints())
+        schema.insert("constraint", "area", ASICAreaConstraint())
+
+        # Replace metrics with asic metrics
+        schema.insert("metric", ASICMetricsSchema(), clobber=True)
+
+        schema.insert("asic", "mainlib", Parameter("str"))
+        schema.insert("asic", "asiclib", Parameter("[str]"))
+        schema.insert("asic", "delaymodel", Parameter("str"))
+
+        schema.insert("asic", "minlayer", Parameter("str"))
+        schema.insert("asic", "maxlayer", Parameter("str"))
+
+    def add_dep(self, obj):
+        if isinstance(obj, StdCellLibrarySchema):
+            edit_schema = EditableSchema(self)
+            edit_schema.insert("library", obj.name, obj, clobber=True)
+            # Copy dependencies into project
+            for dep in obj.get_dep():
+                self.add_dep(dep)
+        if isinstance(obj, PDKSchema):
+            edit_schema = EditableSchema(self)
+            edit_schema.insert("library", obj.name, obj, clobber=True)
+        else:
+            return super().add_dep(obj)
+
+    def check_manifest(self) -> bool:
+        error = not super().check_manifest()
+
+        mainlib = self.get("asic", "mainlib")
+        if not mainlib:
+            # soft - assert mainlib is set
+            self.logger.warning("[asic,mainlib] has not been set, this will be inferred")
+        else:
+            # Assert mainlib exists
+            if mainlib not in self.getkeys("library"):
+                error = True
+                self.logger.error(f"{mainlib} library has not been loaded")
+
+        # Assert asiclib is set
+        if not self.get("asic", "asiclib"):
+            error = True
+            self.logger.error("[asic,asiclib] does not contain any libraries")
+
+        # Assert asiclibs exist
+        for lib in self.get("asic", "asiclib"):
+            if lib not in self.getkeys("library"):
+                error = True
+                self.logger.error(f"{lib} library has not been loaded")
+
+        # Assert asic,pdk is set in libraries and all point the same pdk
+
+        return not error
+
+    def set_mainlib(self, library):
+        if isinstance(library, StdCellLibrarySchema):
+            self.add_dep(library)
+            library = library.name
+        elif not isinstance(library, str):
+            raise TypeError
+
+        return self.set("asic", "mainlib", library)
+
+    def add_asiclib(self, library, clobber=False):
+        if isinstance(library, StdCellLibrarySchema):
+            self.add_dep(library)
+            library = library.name
+        elif not isinstance(library, str):
+            raise TypeError
+
+        if clobber:
+            return self.set("asic", "asiclib", library)
+        else:
+            return self.add("asic", "asiclib", library)
+
+    def set_asic_routinglayers(self, min: str = None, max: str = None):
+        if min:
+            self.set("asic", "minlayer", min)
+        if max:
+            self.set("asic", "maxlayer", max)
+
+    def get_constraints(self, name: str) -> Union[ASICTimingConstraintSchema,
+                                                  ASICComponentConstraints,
+                                                  ASICPinConstraints,
+                                                  ASICAreaConstraint]:
+        return self.get("constraint", name, field="schema")
+
+    def run(self, raise_exception=False):
+        # Ensure mainlib is set
+        if not self.get("asic", "mainlib"):
+            mainlib = self.get("asic", "asiclib")[0]
+            self.logger.warning(f"Setting main library to: {mainlib}")
+            self.set_mainlib(mainlib)
+
+        return super().run(raise_exception)

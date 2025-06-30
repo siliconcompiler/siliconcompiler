@@ -59,7 +59,7 @@ proc sc_image_placement { } {
         return
     }
 
-    global sc_design
+    global sc_topmodule
 
     sc_image_setup_default
 
@@ -67,7 +67,7 @@ proc sc_image_placement { } {
     gui::set_display_controls "Layers/*" visible false
     gui::set_display_controls "Instances/Physical/*" visible false
 
-    sc_save_image "placement" reports/images/${sc_design}.placement.png
+    sc_save_image "placement" reports/images/${sc_topmodule}.placement.png
 }
 
 proc sc_image_routing { } {
@@ -75,21 +75,21 @@ proc sc_image_routing { } {
         return
     }
 
-    global sc_design
+    global sc_topmodule
 
     sc_image_setup_default
 
     gui::set_display_controls "Nets/Power" visible false
     gui::set_display_controls "Nets/Ground" visible false
 
-    sc_save_image "routing" reports/images/${sc_design}.routing.png
+    sc_save_image "routing" reports/images/${sc_topmodule}.routing.png
 }
 
 proc sc_image_everything { } {
-    global sc_design
+    global sc_topmodule
 
     sc_image_setup_default
-    sc_save_image "snapshot" reports/images/${sc_design}.png
+    sc_save_image "snapshot" reports/images/${sc_topmodule}.png
 }
 
 proc sc_image_irdrop { net corner } {
@@ -244,13 +244,13 @@ proc sc_image_module_view { } {
         return
     }
 
-    global sc_design
+    global sc_topmodule
     sc_image_setup_default
 
     gui::set_display_controls "Misc/Module view" visible true
     gui::set_display_controls "Nets/*" visible false
 
-    sc_save_image "module view" reports/images/${sc_design}.modules.png
+    sc_save_image "module view" reports/images/${sc_topmodule}.modules.png
 }
 
 proc sc_image_clocks { } {
@@ -258,7 +258,7 @@ proc sc_image_clocks { } {
         return
     }
 
-    global sc_design
+    global sc_topmodule
     sc_image_setup_default
 
     # The clock view: all clock nets and buffers
@@ -272,12 +272,12 @@ proc sc_image_clocks { } {
         return
     }
 
-    sc_save_image "clocks" reports/images/${sc_design}.clocks.png
+    sc_save_image "clocks" reports/images/${sc_topmodule}.clocks.png
 }
 
 proc sc_image_clocktree { } {
     gui::show_widget "Clock Tree Viewer"
-    global sc_design
+    global sc_topmodule
     global sc_scenarios
 
     sc_image_setup_default
@@ -318,7 +318,7 @@ proc sc_image_clocktree { } {
             gui::select_clockviewer_clock ${clock_name} {*}$select_clk_args
             sc_save_image \
                 "clock - ${clock_name}" \
-                reports/images/clocks/${sc_design}.${clock_name}.png
+                reports/images/clocks/${sc_topmodule}.${clock_name}.png
         }
     }
 
@@ -358,7 +358,7 @@ proc sc_image_timing_histograms { } {
 }
 
 proc sc_image_optimizer { } {
-    global sc_design
+    global sc_topmodule
     sc_image_setup_default
 
     # The resizer view: all instances created by the resizer grouped
@@ -397,11 +397,11 @@ proc sc_image_optimizer { } {
         return
     }
 
-    sc_save_image "optimizer" reports/images/${sc_design}.optimizer.png
+    sc_save_image "optimizer" reports/images/${sc_topmodule}.optimizer.png
 }
 
 proc sc_image_markers { } {
-    global sc_design
+    global sc_topmodule
     sc_image_setup_default
 
     global sc_starting_markers
@@ -420,7 +420,7 @@ proc sc_image_markers { } {
 
         sc_save_image \
             "markers - [$markerdb getName]" \
-            reports/images/markers/${sc_design}.[$markerdb getName].png
+            reports/images/markers/${sc_topmodule}.[$markerdb getName].png
     }
 
     gui::select_marker_category NULL

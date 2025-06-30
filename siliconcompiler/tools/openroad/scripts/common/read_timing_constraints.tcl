@@ -2,8 +2,9 @@
 # Read timing constraints
 ###############################
 
-if { [sc_has_input_files sdc "input constraint sdc"] } {
-    foreach sdc [sc_get_input_files sdc "input constraint sdc"] {
+set sdcs [sc_cfg_get_fileset $sc_designlib [sc_cfg_get option fileset] sdc]
+if { [llength $sdcs] > 0 } {
+    foreach sdc $sdcs {
         puts "Reading SDC: ${sdc}"
         read_sdc $sdc
     }
