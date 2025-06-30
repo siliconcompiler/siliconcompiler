@@ -10,6 +10,65 @@ from siliconcompiler.tools._common import input_provides, add_common_file, \
 from siliconcompiler.tools._common.asic import set_tool_task_var, get_timing_modes
 
 
+from siliconcompiler import TaskSchema
+
+
+class TimingTask(TaskSchema):
+    def __init__(self):
+        super().__init__()
+
+        self.add_parameter("top_n_paths", "int", "number of paths to report timing for", defvalue=10)
+        self.add_parameter("unique_path_groups_per_clock", "bool", "if true will generate separate path groups per clock", defvalue=False)
+        self.add_parameter("timing_mode", "str", "timing mode to use")
+
+    def tool(self):
+        return "opensta"
+
+    def task(self):
+        return "timing"
+
+    def parse_version(self, stdout):
+        return stdout.strip()
+
+    def setup(self):
+        super().setup()
+
+        self.schema("tool").set("exe", "sta")
+        self.schema("tool").set("vswitch", "-version")
+        self.schema("tool").set("version", ">=v2.6.2")
+        self.schema("tool").set("format", "tcl")
+
+        self.set_dataroot("refdir-root", __file__)
+        with self.active_dataroot("refdir-root"):
+            self.set("refdir", "scripts")
+        self.set_threads(clobber=False)
+
+        self.set("regex", "warnings", r'^\[WARNING|^Warning')
+        self.set("regex", "errors", r'^\[ERROR')
+
+        self.set("script", "sc_timing.tcl")
+
+        if f"{self.design_topmodule}.vg" in self.get_files_from_input_nodes():
+            self.add_input_file(ext="vg")
+        if f"{self.design_topmodule}.sdc" in self.get_files_from_input_nodes():
+            self.add_input_file(ext="sdc")
+        else:
+            for key in self.get_fileset_file_keys("sdc"):
+                self.add_required_key(*key)
+
+    def runtime_options(self):
+        options = super().runtime_options()
+        if not self.has_breakpoint():
+            options.append("-exit")
+
+        options.extend(["-threads", self.get_threads()])
+
+        return options
+
+    # def pre_process(self):
+    #     return super().pre_process()
+
+
 def setup(chip):
     '''
     Generate a static timing reports.

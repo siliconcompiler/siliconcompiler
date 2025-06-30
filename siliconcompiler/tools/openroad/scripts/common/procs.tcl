@@ -593,9 +593,9 @@ proc sc_get_tie_cell { type } {
 }
 
 proc sc_get_input_files { type key } {
-    global sc_design
+    global sc_topmodule
 
-    set input_file "inputs/${sc_design}.${type}"
+    set input_file "inputs/${sc_topmodule}.${type}"
     if { [file exists $input_file] } {
         return [list $input_file]
     }
@@ -684,7 +684,6 @@ proc sc_setup_sta { } {
 
 proc sc_setup_global_routing { } {
     global sc_tool
-    global sc_stackup
     global sc_pdk
 
     ## Setup global routing
@@ -696,11 +695,11 @@ proc sc_setup_global_routing { } {
         }
 
         set layername [$layer getName]
-        if { ![sc_cfg_exists pdk $sc_pdk {var} $sc_tool "${layername}_adjustment" $sc_stackup] } {
+        if { ![sc_cfg_exists library $sc_pdk tool $sc_tool globalroutingdetating ${layername}] } {
             utl::warn FLW 1 "Missing global routing adjustment for ${layername}"
         } else {
-            set adjustment [lindex \
-                [sc_cfg_get pdk $sc_pdk {var} $sc_tool "${layername}_adjustment" $sc_stackup] 0]
+            set adjustment \
+                [sc_cfg_get library $sc_pdk tool $sc_tool globalroutingdetating ${layername}]
             utl::info FLW 1 \
                 "Setting global routing adjustment for $layername to [expr { $adjustment * 100 }]%"
             set_global_routing_layer_adjustment $layername $adjustment
@@ -741,16 +740,13 @@ proc sc_setup_global_routing { } {
 proc sc_setup_parasitics { } {
     global sc_tool
     global sc_pdk
-    global sc_stackup
 
-    set sc_rc_signal [lindex [sc_cfg_get pdk $sc_pdk {var} $sc_tool rclayer_signal $sc_stackup] 0]
-    set sc_rc_signal [sc_get_layer_name $sc_rc_signal]
+    set sc_rc_signal [sc_get_layer_name [sc_cfg_get library $sc_pdk tool $sc_tool rclayer_signal]]
+    set sc_rc_clk [sc_get_layer_name [sc_cfg_get library $sc_pdk tool $sc_tool rclayer_clock]]
 
-    set sc_rc_clk [lindex [sc_cfg_get pdk $sc_pdk {var} $sc_tool rclayer_clock $sc_stackup] 0]
-    set sc_rc_clk [sc_get_layer_name $sc_rc_clk]
-
-    set sc_parasitics [lindex [sc_cfg_tool_task_get {file} parasitics] 0]
-    source $sc_parasitics
+    # TODO
+    # set sc_parasitics [lindex [sc_cfg_tool_task_get {file} parasitics] 0]
+    # source $sc_parasitics
 
     set_wire_rc -clock -layer $sc_rc_clk
     set_wire_rc -signal -layer $sc_rc_signal

@@ -26,9 +26,9 @@ except ModuleNotFoundError:
 
 import os.path
 
+from enum import Flag, auto
 from packaging.version import Version, InvalidVersion
 from packaging.specifiers import SpecifierSet, InvalidSpecifier
-
 from typing import List, Union, Dict
 
 from siliconcompiler.schema import BaseSchema, NamedSchema, Journal
@@ -40,8 +40,9 @@ from siliconcompiler import utils, NodeStatus
 from siliconcompiler import sc_open
 from siliconcompiler import Schema
 
+from siliconcompiler.pathschema import PathSchema
 from siliconcompiler.record import RecordTool
-from siliconcompiler.scheduler.schedulernode import SchedulerNode
+# from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 
 
@@ -69,7 +70,7 @@ class TaskExecutableNotFound(TaskError):
     '''
 
 
-class TaskSchema(NamedSchema):
+class TaskSchema(NamedSchema, PathSchema):
     __parse_version_check_str = r"""
         (?P<operator>(==|!=|<=|>=|<|>|~=))
         \s*
@@ -102,14 +103,14 @@ class TaskSchema(NamedSchema):
         Args:
             node (:class:`SchedulerNode`): scheduler node for this runtime
         '''
-        if node and not isinstance(node, SchedulerNode):
-            raise TypeError("node must be a scheduler node")
+        # if node and not isinstance(node, SchedulerNode):
+        #     raise TypeError("node must be a scheduler node")
 
         obj_copy = copy.copy(self)
         obj_copy.__set_runtime(node, step=step, index=index, relpath=relpath)
         yield obj_copy
 
-    def __set_runtime(self, node: SchedulerNode, step=None, index=None, relpath=None):
+    def __set_runtime(self, node, step=None, index=None, relpath=None):
         '''
         Sets the runtime information needed to properly execute a task.
         Note: unstable API
@@ -133,7 +134,7 @@ class TaskSchema(NamedSchema):
                 raise RuntimeError("step and index cannot be provided with node")
 
             self.__chip = node.chip
-            self.__schema_full = node.chip.schema
+            self.__schema_full = node.project
             self.__logger = node.chip.logger
             self.__design_name = node.name
             self.__design_top = node.topmodule
@@ -193,7 +194,7 @@ class TaskSchema(NamedSchema):
         return self.__design_top
 
     @property
-    def node(self) -> SchedulerNode:
+    def node(self):
         """
         Returns:
             the scheduler node for the current runtime
@@ -241,6 +242,10 @@ class TaskSchema(NamedSchema):
             logger
         '''
         return self.__logger
+
+    @property
+    def nodeworkdir(self) -> str:
+        return self.__jobdir
 
     def schema(self, type=None):
         '''
@@ -612,7 +617,8 @@ class TaskSchema(NamedSchema):
         vars = {
             "sc_tool": NodeType.to_tcl(self.tool(), "str"),
             "sc_task": NodeType.to_tcl(self.task(), "str"),
-            "sc_topmodule": NodeType.to_tcl(self.design_topmodule, "str")
+            "sc_topmodule": NodeType.to_tcl(self.design_topmodule, "str"),
+            "sc_designlib": NodeType.to_tcl(self.design_name, "str")
         }
 
         refdir = manifest.get("tool", self.tool(), "task", self.task(), "refdir", field=None)
@@ -1262,6 +1268,14 @@ class TaskSchema(NamedSchema):
         if source_file:
             self.add("report", metric, source_file)
 
+    def get_fileset_file_keys(self, filetype: str):
+        keys = []
+        for obj, fileset in self.schema().get_filesets():
+            key = ("library", obj.name, "fileset", fileset, "file", filetype)
+            if self.schema().valid(*key, check_complete=True):
+                keys.append(key)
+        return keys
+
     ###############################################################
     def get(self, *keypath, field='value'):
         return super().get(*keypath, field=field,
@@ -1277,11 +1291,7 @@ class TaskSchema(NamedSchema):
     def _find_files_search_paths(self, keypath, step, index):
         paths = super()._find_files_search_paths(keypath, step, index)
         if keypath == "script":
-            paths.extend(self.find_files(
-                "refdir",
-                step=step, index=index,
-                cwd=self.__cwd,
-                collection_dir=self.__collection_path))
+            paths.extend(self.find_files("refdir", step=step, index=index))
         elif keypath == "input":
             paths.append(os.path.join(self._parent(root=True).getworkdir(step=step, index=index),
                                       "inputs"))
@@ -1318,8 +1328,6 @@ class TaskSchema(NamedSchema):
         scripts = self.find_files(
             'script',
             step=self.__step, index=self.__index,
-            cwd=self.__cwd,
-            collection_dir=self.__collection_path,
             missing_ok=True)
 
         cmdargs.extend(scripts)
@@ -1449,6 +1457,34 @@ class ToolSchema(NamedSchema):
 
         schema = EditableSchema(self)
         schema.insert("task", "default", TaskSchema(None))
+
+
+class FrontendOption(Flag):
+    FILE = auto()
+    INC_DIR = auto()
+    DEFINE = auto()
+    UNDEFINE = auto()
+    PARAM = auto()
+    LIBRARY = auto()
+
+
+class FrontendTask(TaskSchema):
+    def __root(self):
+        return self._parent(root=True)
+
+    def __design(self):
+        return self.__root().get("library", self.__root().design.name, field="schema")
+
+    def has_files(self, fileset: str, filetype: str):
+        return bool(self.get_files(fileset, filetype, resolve=False))
+
+    def get_files(self, fileset: str, filetype: str, resolve: bool = True):
+        if resolve:
+            return self.__design().find_files('fileset', fileset, 'file', filetype)
+        return self.__design().get('fileset', fileset, 'file', filetype)
+
+    def get_option(self, fileset: str, type: FrontendOption):
+        return []
 
 
 ###########################################################################

@@ -33,7 +33,7 @@ utl::pop_metrics_stage
 utl::push_metrics_stage "sc__image__{}"
 if {
     [sc_has_gui] &&
-    [lindex [sc_cfg_tool_task_get var ord_enable_images] 0] == "true"
+    [sc_cfg_tool_task_get var ord_enable_images]
 } {
     if { [gui::enabled] } {
         source "$sc_refdir/common/write_images.tcl"

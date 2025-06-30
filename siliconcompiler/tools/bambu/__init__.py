@@ -16,6 +16,23 @@ Installation: https://panda.dei.polimi.it/?page_id=88
 
 from siliconcompiler.tools.bambu import convert
 
+from siliconcompiler.library import StdCellLibrarySchema
+
+
+class BambuStdCellLibrarySchema(StdCellLibrarySchema):
+    def __init__(self):
+        super().__init__()
+
+        self.define_tool_parameter("bambu", "device", "str", "blah")
+        self.define_tool_parameter("bambu", "clock_multiplier", "float",
+                                   "scalar facto to convert from library units to ns")
+
+    def set_bambu_device_name(self, name):
+        self.set("tool", "bambu", "device", name)
+
+    def set_bambu_clock_multiplier(self, factor):
+        self.set("tool", "bambu", "clock_multiplier", factor)
+
 
 ####################################################################
 # Make Docs

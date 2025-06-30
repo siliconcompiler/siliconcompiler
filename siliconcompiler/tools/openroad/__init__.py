@@ -12,6 +12,160 @@ Installation: https://github.com/The-OpenROAD-Project/OpenROAD
 '''
 from siliconcompiler.tools._common import get_tool_task
 
+from siliconcompiler.library import StdCellLibrarySchema
+from siliconcompiler.pdk import PDKSchema
+from siliconcompiler import TaskSchema
+
+from siliconcompiler.schema import EditableSchema, Parameter, PerNode, Scope
+
+
+class OpenROADPDK(PDKSchema):
+    def __init__(self):
+        super().__init__()
+
+        self.define_tool_parameter("openroad", "rclayer_signal", "str", "blah")
+        self.define_tool_parameter("openroad", "rclayer_clock", "str", "blah")
+
+        schema = EditableSchema(self)
+        schema.insert("tool", "openroad", "globalroutingdetating", "default",
+                      Parameter("float", pernode=PerNode.NEVER, scope=Scope.GLOBAL))
+
+    def set_openroad_rclayers(self, signal: str = None, clock: str = None):
+        if signal:
+            self.set("tool", "openroad", "rclayer_signal", signal)
+        if clock:
+            self.set("tool", "openroad", "rclayer_clock", clock)
+
+    def set_openroad_globalroutingdetating(self, layer: str, derating: float):
+        return self.set("tool", "openroad", "globalroutingdetating", layer, derating)
+
+
+class OpenROADStdCellLibrarySchema(StdCellLibrarySchema):
+    def __init__(self):
+        super().__init__()
+
+        self.define_tool_parameter("openroad", "tiehigh_cell", "(str,str)",  "long-blah")
+        self.define_tool_parameter("openroad", "tielow_cell", "(str,str)", "long-blah")
+
+        self.define_tool_parameter("openroad", "place_density", "float", "long-blah")
+
+        self.define_tool_parameter("openroad", "global_cell_padding", "int", "long-blah", defvalue=0)
+        self.define_tool_parameter("openroad", "detailed_cell_padding", "int", "long-blah", defvalue=0)
+
+        self.define_tool_parameter("openroad", "macro_placement_halo", "(float,float)", "long-blah")
+
+        self.define_tool_parameter("openroad", "tracks", "file", "long-blah")
+        self.define_tool_parameter("openroad", "tapcells", "file", "long-blah")
+        self.define_tool_parameter("openroad", "global_connect", "[file]", "long-blah")
+        self.define_tool_parameter("openroad", "power_grid", "[file]", "long-blah")
+
+        self.define_tool_parameter("openroad", "scan_chain_cells", "[str]", "scan chain cells")
+        self.define_tool_parameter("openroad", "multibit_ff_cells", "[str]", "multibit flipflops cells")
+
+    def set_openroad_tiehigh_cell(self, cell, output_port):
+        self.set("tool", "openroad", "tiehigh_cell", (cell, output_port))
+
+    def set_openroad_tielow_cell(self, cell, output_port):
+        self.set("tool", "openroad", "tielow_cell", (cell, output_port))
+
+    def set_openroad_placement_density(self, density):
+        self.set("tool", "openroad", "place_density", density)
+
+    def set_openroad_cell_padding(self, global_place, detailed_place):
+        self.set("tool", "openroad", "global_cell_padding", global_place)
+        self.set("tool", "openroad", "detailed_cell_padding", detailed_place)
+
+    def set_openroad_macro_placement_halo(self, x, y):
+        self.set("tool", "openroad", "macro_placement_halo", (x, y))
+
+    def set_openroad_tracks_file(self, file):
+        self.set("tool", "openroad", "tracks", file)
+
+    def set_openroad_tapcells_file(self, file):
+        self.set("tool", "openroad", "tapcells", file)
+
+    def add_openroad_global_connect_file(self, file):
+        self.add("tool", "openroad", "global_connect", file)
+
+    def add_openroad_power_grid_file(self, file):
+        self.add("tool", "openroad", "power_grid", file)
+
+    def add_openroad_scan_chain_cells(self, cells):
+        self.add("tool", "openroad", "scan_chain_cells", cells)
+
+    def add_openroad_multibit_flipflops(self, cells):
+        self.add("tool", "openroad", "multibit_ff_cells", cells)
+
+
+class OpenROADTask(TaskSchema):
+    def __init__(self):
+        super().__init__()
+
+        self.add_parameter("debug_level", "{(str,str,int)}", 'list of "tool key level" to enable debugging of OpenROAD')
+
+    def tool(self):
+        return "openroad"
+
+    def setup(self):
+        super().setup()
+
+        self.schema("tool").set("exe", "openroad")
+        self.schema("tool").set("vswitch", "-version")
+        self.schema("tool").set("version", ">=v2.0-17598", clobber=False)
+        self.schema("tool").set("format", "tcl")
+
+        self.set_dataroot("openroad-ref", __file__)
+        with self.active_dataroot("openroad-ref"):
+            self.set("refdir", "scripts")
+
+        self.set("regex", "warnings", r'^\[WARNING|Warning')
+        self.set("regex", "errors", r'^\[ERROR')
+
+        if self.schema().get('option', 'nodisplay'):
+            # Tells QT to use the offscreen platform if nodisplay is used
+            self.set("env", "QPA_QT_PLATFORM", "offscreen")
+
+    def parse_version(self, stdout):
+        # stdout will be in one of the following forms:
+        # - 1 08de3b46c71e329a10aa4e753dcfeba2ddf54ddd
+        # - 1 v2.0-880-gd1c7001ad
+        # - v2.0-1862-g0d785bd84
+
+        # strip off the "1" prefix if it's there
+        version = stdout.split()[-1]
+
+        pieces = version.split('-')
+        if len(pieces) > 1:
+            # strip off the hash in the new version style
+            return '-'.join(pieces[:-1])
+        else:
+            return pieces[0]
+
+    def normalize_version(self, version):
+        if '.' in version:
+            return version.lstrip('v')
+        else:
+            return '0'
+
+    def add_debuglevel(self, tool, category, level, clobber=False):
+        if clobber:
+            self.set("var", "debug_level", (tool, category, level))
+        else:
+            self.add("var", "debug_level", (tool, category, level))
+
+    def unset_debuglevel(self):
+        self.unset("var", "debug_level")
+
+    def runtime_options(self):
+        options = super().runtime_options()
+        options.append("-no_init")
+        options.extend(["-metrics", "reports/metrics.json"])
+
+        if not self.has_breakpoint():
+            options.append("-exit")
+
+        return options
+
 
 ####################################################################
 # Make Docs
