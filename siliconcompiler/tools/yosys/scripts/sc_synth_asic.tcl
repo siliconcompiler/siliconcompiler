@@ -21,10 +21,9 @@ set sc_refdir [sc_cfg_tool_task_get refdir]
 # DESIGNER's CHOICE
 ####################
 
-set sc_design [sc_top]
+set sc_design "gcd"
 set sc_flow [sc_cfg_get option flow]
 set sc_optmode [sc_cfg_get option optmode]
-set sc_pdk [sc_cfg_get option pdk]
 
 ########################################################
 # Helper function
@@ -36,20 +35,15 @@ source "$sc_refdir/procs.tcl"
 # DESIGNER's CHOICE
 ####################
 
-set sc_logiclibs [sc_get_asic_libraries logic]
-set sc_macrolibs [sc_get_asic_libraries macro]
+set sc_logiclibs [list "nangate45"]
+set sc_macrolibs [list ]
 
-set sc_libraries [sc_cfg_tool_task_get {file} synthesis_libraries]
-if { [sc_cfg_tool_task_exists {file} synthesis_libraries_macros] } {
-    set sc_macro_libraries \
-        [sc_cfg_tool_task_get {file} synthesis_libraries_macros]
-} else {
-    set sc_macro_libraries []
-}
+set sc_libraries [sc_cfg_tool_task_get var synthesis_libraries]
+set sc_macro_libraries [sc_cfg_tool_task_get var synthesis_libraries_macros]
+
 set sc_mainlib [lindex $sc_logiclibs 0]
 
-set sc_abc_constraints \
-    [lindex [sc_cfg_tool_task_get {file} abc_constraint_file] 0]
+set sc_abc_constraints [sc_cfg_tool_task_get var abc_constraint_file]
 
 set sc_blackboxes []
 foreach lib $sc_macrolibs {
@@ -438,7 +432,7 @@ if { [lindex [sc_cfg_tool_task_get var map_clockgates] 0] == "true" } {
 
 set dfflibmap_dont_use []
 foreach lib "$sc_logiclibs $sc_macrolibs" {
-    foreach cell [sc_cfg_get library $lib asic cells dontuse] {
+    foreach cell [sc_cfg_get design $lib asic cells dontuse] {
         lappend dfflibmap_dont_use -dont_use $cell
     }
 }
@@ -494,7 +488,7 @@ foreach lib_file $sc_libraries {
 set abc_dont_use []
 foreach lib "$sc_logiclibs $sc_macrolibs" {
     foreach group "dontuse hold clkbuf clkgate clklogic" {
-        foreach cell [sc_cfg_get library $lib asic cells $group] {
+        foreach cell [sc_cfg_get design $lib asic cells $group] {
             lappend abc_dont_use -dont_use $cell
         }
     }

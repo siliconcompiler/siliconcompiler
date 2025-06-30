@@ -26,6 +26,7 @@ except ModuleNotFoundError:
 
 import os.path
 
+from enum import Flag, auto
 from packaging.version import Version, InvalidVersion
 from packaging.specifiers import SpecifierSet, InvalidSpecifier
 
@@ -120,7 +121,7 @@ class TaskSchema(NamedSchema):
         self.__relpath = relpath
         if chip:
             self.__chip = chip
-            self.__schema_full = chip.schema
+            self.__schema_full = chip
             self.__logger = chip.logger
             self.__design_name = chip.design
             self.__design_top = chip.top()
@@ -201,6 +202,12 @@ class TaskSchema(NamedSchema):
             logger
         '''
         return self.__logger
+
+    def design_name(self):
+        return self.__design_name
+
+    def design_topmodule(self):
+        return self.__design_top
 
     def schema(self, type=None):
         '''
@@ -663,7 +670,12 @@ class TaskSchema(NamedSchema):
             for value, step, index in root.get(*keypath, field=None).getvalues():
                 if not value:
                     continue
-                abspaths = root.find_files(*keypath, missing_ok=True, step=step, index=index)
+                abspaths = root.find_files(
+                    *keypath,
+                    missing_ok=True,
+                    step=step, index=index,
+                    packages=root.get("package", field="schema").get_resolvers(),
+                    cwd=self.__cwd)
                 if isinstance(abspaths, (set, list)) and None in abspaths:
                     # Lists may not contain None
                     schema.set(*keypath, [], step=step, index=index)
@@ -1038,6 +1050,7 @@ class TaskSchema(NamedSchema):
             defvalue (any): default value for the parameter
         '''
         help = trim(help)
+
         param = Parameter(
             type,
             **kwargs,
@@ -1168,6 +1181,34 @@ class ToolSchema(NamedSchema):
 
         schema = EditableSchema(self)
         schema.insert("task", "default", TaskSchema(None))
+
+
+class FrontendOption(Flag):
+    FILE = auto()
+    INC_DIR = auto()
+    DEFINE = auto()
+    UNDEFINE = auto()
+    PARAM = auto()
+    LIBRARY = auto()
+
+
+class FrontendTask(TaskSchema):
+    def __root(self):
+        return self._parent(root=True)
+
+    def __design(self):
+        return self.__root().get("design", self.__root().design, field="schema")
+
+    def has_files(self, fileset: str, filetype: str):
+        return bool(self.get_files(fileset, filetype, resolve=False))
+
+    def get_files(self, fileset: str, filetype: str, resolve: bool = True):
+        if resolve:
+            return self.__design().find_files('fileset', fileset, 'file', filetype)
+        return self.__design().get('fileset', fileset, 'file', filetype)
+
+    def get_option(self, fileset: str, type: FrontendOption):
+        return []
 
 
 ###########################################################################

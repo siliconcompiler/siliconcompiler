@@ -48,9 +48,8 @@ class SchedulerNode:
         self.__is_entry_node = (self.__step, self.__index) in \
             self.__chip.get("flowgraph", flow, field="schema").get_entry_nodes()
 
-        self.__jobworkdir = self.__chip.getworkdir(jobname=self.__job)
-        self.__workdir = self.__chip.getworkdir(jobname=self.__job,
-                                                step=self.__step, index=self.__index)
+        self.__jobworkdir = self.__chip.getworkdir()
+        self.__workdir = self.__chip.getworkdir(step=self.__step, index=self.__index)
         self.__manifests = {
             "input": os.path.join(self.__workdir, "inputs", f"{self.__design}.pkg.json"),
             "output": os.path.join(self.__workdir, "outputs", f"{self.__design}.pkg.json")
@@ -184,7 +183,7 @@ class SchedulerNode:
 
         self.__record.set("status", NodeStatus.ERROR, step=self.__step, index=self.__index)
         try:
-            self.__chip.schema.write_manifest(self.__manifests["output"])
+            self.__chip.write_manifest(self.__manifests["output"])
         except FileNotFoundError:
             self.logger.error(f"Failed to write manifest for {self.__step}/{self.__index}.")
 
@@ -546,7 +545,7 @@ class SchedulerNode:
         self.__chip.set('arg', 'index', self.__index)
 
         # Setup journaling
-        journal = Journal.access(self.__chip.schema)
+        journal = Journal.access(self.__chip)
         journal.start()
 
         # Must be after journaling to ensure journal is complete

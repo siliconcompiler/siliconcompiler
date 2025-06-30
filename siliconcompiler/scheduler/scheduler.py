@@ -100,7 +100,7 @@ class Scheduler:
         self.run_core()
 
         # Store run in history
-        self.__chip.schema.record_history()
+        #self.__chip.schema.record_history()
 
         # Record final manifest
         filepath = os.path.join(self.__chip.getworkdir(), f"{self.__chip.design}.pkg.json")
@@ -181,7 +181,7 @@ class Scheduler:
         from_nodes = []
         extra_setup_nodes = {}
 
-        journal = Journal.access(self.__chip.schema)
+        journal = Journal.access(self.__chip)
         journal.start()
 
         self.__print_status("Start")
@@ -262,8 +262,10 @@ class Scheduler:
 
         self.__print_status("After ensure")
 
+        os.makedirs(self.__chip.getworkdir(), exist_ok=True)
+
         self.__chip.write_manifest(os.path.join(self.__chip.getworkdir(),
-                                                f"{self.__chip.get('design')}.pkg.json"))
+                                                f"{self.__chip.design}.pkg.json"))
         journal.stop()
 
         # Clean nodes marked pending
