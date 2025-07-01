@@ -60,9 +60,6 @@ class SchedulerNode:
         self.__replay_script = os.path.join(self.__workdir, "replay.sh")
 
         self.set_queue(None, None)
-        self.init_state()
-
-    def init_state(self):
         self.__setup_schema_access()
 
     @contextlib.contextmanager
@@ -152,6 +149,9 @@ class SchedulerNode:
     def set_queue(self, pipe, queue):
         self.__pipe = pipe
         self.__queue = queue
+
+        # Reinit
+        self.__setup_schema_access()
 
     def __setup_schema_access(self):
         flow = self.__chip.get('option', 'flow')
@@ -356,7 +356,6 @@ class SchedulerNode:
                 self.logger.debug("Input manifest failed to load")
                 return True
             previous_node = SchedulerNode(chip, self.__step, self.__index)
-            previous_node.init_state()
         else:
             # No manifest found so assume rerun is needed
             self.logger.debug("Previous run did not generate input manifest")
@@ -371,13 +370,10 @@ class SchedulerNode:
                 self.logger.debug("Output manifest failed to load")
                 return True
             previous_node_end = SchedulerNode(chip, self.__step, self.__index)
-            previous_node_end.init_state()
         else:
             # No manifest found so assume rerun is needed
             self.logger.debug("Previous run did not generate output manifest")
             return True
-
-        self.init_state()
 
         with self.runtime():
             if previous_node_end:
@@ -549,7 +545,7 @@ class SchedulerNode:
         journal.start()
 
         # Must be after journaling to ensure journal is complete
-        self.init_state()
+        self.__setup_schema_access()
 
         # Make record of sc version and machine
         self.__record.record_version(self.__step, self.__index)
