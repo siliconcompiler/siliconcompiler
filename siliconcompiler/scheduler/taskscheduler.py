@@ -73,7 +73,8 @@ class TaskScheduler:
             if self.__record.get('status', step=step, index=index) != NodeStatus.PENDING:
                 continue
 
-            threads = tasks[(step, index)].threads
+            with tasks[(step, index)].runtime():
+                threads = tasks[(step, index)].threads
             if not threads:
                 threads = self.__max_threads
             threads = max(1, min(threads, self.__max_threads))

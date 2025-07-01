@@ -132,9 +132,11 @@ def test_set_builtin(chip):
 @pytest.mark.nostrict
 def test_threads(chip):
     node = SchedulerNode(chip, "steptwo", "0")
-    assert node.threads == 1
+    with node.runtime():
+        assert node.threads == 1
     assert chip.schema.set("tool", "builtin", "task", "nop", "threads", 10)
-    assert node.threads == 10
+    with node.runtime():
+        assert node.threads == 10
 
 
 def test_get_manifest_output(chip):
@@ -191,7 +193,8 @@ def test_halt_with_reason(chip, caplog):
 def test_setup(chip):
     node = SchedulerNode(chip, "steptwo", "0")
 
-    assert node.setup() is True
+    with node.runtime():
+        assert node.setup() is True
 
 
 def test_setup_error(chip, monkeypatch, caplog):
@@ -202,8 +205,9 @@ def test_setup_error(chip, monkeypatch, caplog):
         raise ValueError("Find this")
     monkeypatch.setattr(node.task, "setup", dummy_setup)
 
-    with pytest.raises(ValueError, match="Find this"):
-        node.setup()
+    with node.runtime():
+        with pytest.raises(ValueError, match="Find this"):
+            node.setup()
     assert "Failed to run setup() for steptwo/0 with builtin/nop" in caplog.text
 
 
@@ -215,7 +219,8 @@ def test_setup_skipped(chip, monkeypatch, caplog):
         return "skip me"
     monkeypatch.setattr(node.task, "setup", dummy_setup)
 
-    assert node.setup() is False
+    with node.runtime():
+        assert node.setup() is False
     assert chip.get("record", "status", step="steptwo", index="0") == NodeStatus.SKIPPED
     assert "Removing steptwo/0 due to skip me" in caplog.text
 
@@ -237,9 +242,8 @@ def test_clean_directory_no_dir(chip):
 
 def test_get_check_changed_keys(chip):
     node = SchedulerNode(chip, "steptwo", "0")
-    node.init_state(assign_runtime=True)
-
-    values, paths = node.get_check_changed_keys()
+    with node.runtime():
+        values, paths = node.get_check_changed_keys()
     assert values == {
         ('tool', 'builtin', 'task', 'nop', 'threads'),
         ('tool', 'builtin', 'task', 'nop', 'option')
@@ -252,24 +256,22 @@ def test_get_check_changed_keys(chip):
 
 
 def test_get_check_changed_keys_with_invalid_require(chip):
-    node = SchedulerNode(chip, "steptwo", "0")
-    node.init_state(assign_runtime=True)
-
     chip.add("tool", "builtin", "task", "nop", "require", "this,key")
 
-    with pytest.raises(KeyError, match="\\[this,key\\] not found"):
-        node.get_check_changed_keys()
+    node = SchedulerNode(chip, "steptwo", "0")
+    with node.runtime():
+        with pytest.raises(KeyError, match="\\[this,key\\] not found"):
+            node.get_check_changed_keys()
 
 
 def test_get_check_changed_keys_with_require(chip):
-    node = SchedulerNode(chip, "steptwo", "0")
-    node.init_state(assign_runtime=True)
-
     chip.add("tool", "builtin", "task", "nop", "require", "option,idir")
     chip.add("tool", "builtin", "task", "nop", "require", "option,param,N")
     chip.set("tool", "builtin", "task", "nop", "env", "BUILD", "this")
 
-    values, paths = node.get_check_changed_keys()
+    node = SchedulerNode(chip, "steptwo", "0")
+    with node.runtime():
+        values, paths = node.get_check_changed_keys()
     assert values == {
         ('option', 'param', 'N'),
         ('tool', 'builtin', 'task', 'nop', 'env', "BUILD"),
@@ -286,30 +288,27 @@ def test_get_check_changed_keys_with_require(chip):
 
 
 def test_check_values_changed_no_change(chip):
-    node = SchedulerNode(chip, "steptwo", "0")
-    node.init_state(assign_runtime=True)
-
     chip.set("option", "param", "N", "64")
 
-    assert node.check_values_changed(node, [("option", "param", "N")]) is False
+    node = SchedulerNode(chip, "steptwo", "0")
+    with node.runtime():
+        assert node.check_values_changed(node, [("option", "param", "N")]) is False
 
 
 def test_check_values_changed_change(chip, caplog):
     chip.logger = logging.getLogger()
     chip.logger.setLevel(logging.INFO)
 
-    node = SchedulerNode(chip, "steptwo", "0")
-    node.init_state(assign_runtime=True)
-
     chip.set("option", "param", "N", "64")
 
+    node = SchedulerNode(chip, "steptwo", "0")
+
     other_chip = copy.deepcopy(chip)
-    other = SchedulerNode(other_chip, "steptwo", "0")
-    other.init_state(assign_runtime=True)
-
     other_chip.set("option", "param", "N", "128")
+    other = SchedulerNode(other_chip, "steptwo", "0")
 
-    assert node.check_values_changed(other, [("option", "param", "N")]) is True
+    with node.runtime(), other.runtime():
+        assert node.check_values_changed(other, [("option", "param", "N")]) is True
     assert "[option,param,N] in steptwo/0 has been modified from previous run" in caplog.text
 
 
@@ -318,9 +317,8 @@ def test_check_values_changed_change_missing(chip, caplog):
     chip.logger.setLevel(logging.INFO)
 
     node = SchedulerNode(chip, "steptwo", "0")
-    node.init_state(assign_runtime=True)
-
-    assert node.check_values_changed(node, [("option", "params", "N")]) is True
+    with node.runtime():
+        assert node.check_values_changed(node, [("option", "params", "N")]) is True
     assert "[option,params,N] in steptwo/0 has been modified from previous run" in caplog.text
 
 
@@ -329,8 +327,6 @@ def test_check_previous_run_status_flow(chip, caplog):
     chip.logger.setLevel(logging.DEBUG)
 
     node = SchedulerNode(chip, "steptwo", "0")
-    node.init_state(assign_runtime=True)
-
     flow = Flow("testflow0")
     flow.node("testflow0", "stepone", nop)
     flow.node("testflow0", "steptwo", nop)
@@ -341,9 +337,8 @@ def test_check_previous_run_status_flow(chip, caplog):
     chip.use(flow)
     chip.set("option", "flow", "testflow0")
     node_other = SchedulerNode(chip, "steptwo", "0")
-    node_other.init_state(assign_runtime=True)
-
-    assert node.check_previous_run_status(node_other) is False
+    with node.runtime(), node_other.runtime():
+        assert node.check_previous_run_status(node_other) is False
     assert "Flow name changed" in caplog.text
 
 
@@ -352,8 +347,6 @@ def test_check_previous_run_status_tool(chip, caplog):
     chip.logger.setLevel(logging.DEBUG)
 
     node = SchedulerNode(chip, "steptwo", "0")
-    node.init_state(assign_runtime=True)
-
     flow = Flow("testflow")
     flow.node("testflow", "stepone", nop)
     flow.node("testflow", "steptwo", echo)
@@ -364,9 +357,9 @@ def test_check_previous_run_status_tool(chip, caplog):
     chip.use(flow)
     chip.set("option", "flow", "testflow")
     node_other = SchedulerNode(chip, "steptwo", "0")
-    node_other.init_state(assign_runtime=True)
 
-    assert node.check_previous_run_status(node_other) is False
+    with node.runtime(), node_other.runtime():
+        assert node.check_previous_run_status(node_other) is False
     assert "Tool name changed" in caplog.text
 
 
@@ -375,8 +368,6 @@ def test_check_previous_run_status_task(chip, caplog):
     chip.logger.setLevel(logging.DEBUG)
 
     node = SchedulerNode(chip, "steptwo", "0")
-    node.init_state(assign_runtime=True)
-
     flow = Flow("testflow")
     flow.node("testflow", "stepone", nop)
     flow.node("testflow", "steptwo", join)
@@ -387,9 +378,9 @@ def test_check_previous_run_status_task(chip, caplog):
     chip.use(flow)
     chip.set("option", "flow", "testflow")
     node_other = SchedulerNode(chip, "steptwo", "0")
-    node_other.init_state(assign_runtime=True)
 
-    assert node.check_previous_run_status(node_other) is False
+    with node.runtime(), node_other.runtime():
+        assert node.check_previous_run_status(node_other) is False
     assert "Task name changed" in caplog.text
 
 
@@ -397,11 +388,11 @@ def test_check_previous_run_status_running(chip, caplog):
     chip.logger = logging.getLogger()
     chip.logger.setLevel(logging.DEBUG)
 
-    node = SchedulerNode(chip, "steptwo", "0")
-    node.init_state(assign_runtime=True)
     chip.set("record", "status", NodeStatus.RUNNING, step="steptwo", index="0")
 
-    assert node.check_previous_run_status(node) is False
+    node = SchedulerNode(chip, "steptwo", "0")
+    with node.runtime():
+        assert node.check_previous_run_status(node) is False
     assert "Previous step did not complete" in caplog.text
 
 
@@ -409,11 +400,11 @@ def test_check_previous_run_status_failed(chip, caplog):
     chip.logger = logging.getLogger()
     chip.logger.setLevel(logging.DEBUG)
 
-    node = SchedulerNode(chip, "steptwo", "0")
-    node.init_state(assign_runtime=True)
     chip.set("record", "status", NodeStatus.ERROR, step="steptwo", index="0")
 
-    assert node.check_previous_run_status(node) is False
+    node = SchedulerNode(chip, "steptwo", "0")
+    with node.runtime():
+        assert node.check_previous_run_status(node) is False
     assert "Previous step was not successful" in caplog.text
 
 
@@ -421,22 +412,22 @@ def test_check_previous_run_status_inputs_changed(chip, monkeypatch, caplog):
     chip.logger = logging.getLogger()
     chip.logger.setLevel(logging.INFO)
 
-    node = SchedulerNode(chip, "steptwo", "0")
-    node.init_state(assign_runtime=True)
     chip.set("record", "status", NodeStatus.SUCCESS, step="steptwo", index="0")
     chip.set("record", "inputnode", [("stepone", "0")], step="steptwo", index="0")
 
     def dummy_select(*args, **kwargs):
         return [("test", "1")]
+
+    node = SchedulerNode(chip, "steptwo", "0")
     monkeypatch.setattr(node.task, "select_input_nodes", dummy_select)
 
-    assert node.check_previous_run_status(node) is False
+    with node.runtime():
+        assert node.check_previous_run_status(node) is False
     assert "inputs to steptwo/0 has been modified from previous run" in caplog.text
 
 
 def test_check_previous_run_status_no_change(chip, monkeypatch):
     node = SchedulerNode(chip, "steptwo", "0")
-    node.init_state(assign_runtime=True)
     chip.set("record", "status", NodeStatus.SUCCESS, step="steptwo", index="0")
     chip.set("record", "inputnode", [("stepone", "0")], step="steptwo", index="0")
 
@@ -444,7 +435,8 @@ def test_check_previous_run_status_no_change(chip, monkeypatch):
         return [("stepone", "0")]
     monkeypatch.setattr(node.task, "select_input_nodes", dummy_select)
 
-    assert node.check_previous_run_status(node) is True
+    with node.runtime():
+        assert node.check_previous_run_status(node) is True
 
 
 def test_check_files_changed_timestamp_no_change(chip):
@@ -452,12 +444,11 @@ def test_check_files_changed_timestamp_no_change(chip):
         f.write("test")
 
     now = time.time() + 1
-
-    node = SchedulerNode(chip, "steptwo", "0")
-    node.init_state(assign_runtime=True)
     chip.set("option", "file", "test", "testfile.txt")
 
-    assert node.check_files_changed(node, now, [("option", "file", "test")]) is False
+    node = SchedulerNode(chip, "steptwo", "0")
+    with node.runtime():
+        assert node.check_files_changed(node, now, [("option", "file", "test")]) is False
 
 
 def test_check_files_changed_timestamp(chip, caplog):
@@ -469,11 +460,11 @@ def test_check_files_changed_timestamp(chip, caplog):
     with open("testfile.txt", "w") as f:
         f.write("test")
 
-    node = SchedulerNode(chip, "steptwo", "0")
-    node.init_state(assign_runtime=True)
     chip.set("option", "file", "test", "testfile.txt")
 
-    assert node.check_files_changed(node, now, [("option", "file", "test")]) is True
+    node = SchedulerNode(chip, "steptwo", "0")
+    with node.runtime():
+        assert node.check_files_changed(node, now, [("option", "file", "test")]) is True
     assert "[option,file,test] (timestamp) in steptwo/0 has been modified from previous run" in \
         caplog.text
 
@@ -486,11 +477,11 @@ def test_check_files_changed_directory(chip):
 
     now = time.time() + 1
 
-    node = SchedulerNode(chip, "steptwo", "0")
-    node.init_state(assign_runtime=True)
     chip.set("option", "dir", "test", "testdir")
 
-    assert node.check_files_changed(node, now, [("option", "dir", "test")]) is False
+    node = SchedulerNode(chip, "steptwo", "0")
+    with node.runtime():
+        assert node.check_files_changed(node, now, [("option", "dir", "test")]) is False
 
 
 def test_check_files_changed_timestamp_directory(chip, caplog):
@@ -504,11 +495,10 @@ def test_check_files_changed_timestamp_directory(chip, caplog):
     with open("testdir/testfile.txt", "w") as f:
         f.write("test")
 
-    node = SchedulerNode(chip, "steptwo", "0")
-    node.init_state(assign_runtime=True)
     chip.set("option", "dir", "test", "testdir")
-
-    assert node.check_files_changed(node, now, [("option", "dir", "test")]) is True
+    node = SchedulerNode(chip, "steptwo", "0")
+    with node.runtime():
+        assert node.check_files_changed(node, now, [("option", "dir", "test")]) is True
     assert "[option,dir,test] (timestamp) in steptwo/0 has been modified from previous run" in \
         caplog.text
 
@@ -523,15 +513,14 @@ def test_check_files_changed_package(chip, caplog):
         f.write("test")
 
     node = SchedulerNode(chip, "steptwo", "0")
-    node.init_state(assign_runtime=True)
     chip.set("option", "file", "test", "testfile.txt")
 
     node_other = SchedulerNode(copy.deepcopy(chip), "steptwo", "0")
-    node_other.init_state(assign_runtime=True)
 
     chip.set("option", "file", "test", "testfile.txt", package="testing")
 
-    assert node.check_files_changed(node_other, now, [("option", "file", "test")]) is True
+    with node.runtime(), node_other.runtime():
+        assert node.check_files_changed(node_other, now, [("option", "file", "test")]) is True
     assert "[option,file,test] (file package) in steptwo/0 has been modified from previous run" in \
         caplog.text
 
@@ -548,13 +537,11 @@ def test_check_files_changed_timestamp_current_hash(chip, caplog):
     chip.set("option", "file", "test", "testfile.txt")
 
     node_other = SchedulerNode(copy.deepcopy(chip), "steptwo", "0")
-    node_other.init_state(assign_runtime=True)
 
     chip.set("option", "hash", True)
     node = SchedulerNode(chip, "steptwo", "0")
-    node.init_state(assign_runtime=True)
-
-    assert node.check_files_changed(node_other, now, [("option", "file", "test")]) is True
+    with node.runtime(), node_other.runtime():
+        assert node.check_files_changed(node_other, now, [("option", "file", "test")]) is True
     assert "[option,file,test] (timestamp) in steptwo/0 has been modified from previous run" in \
         caplog.text
 
@@ -571,14 +558,12 @@ def test_check_files_changed_timestamp_previous_hash(chip, caplog):
     chip.set("option", "file", "test", "testfile.txt")
 
     node = SchedulerNode(chip, "steptwo", "0")
-    node.init_state(assign_runtime=True)
-
     chip = copy.deepcopy(chip)
     chip.set("option", "hash", True)
     node_other = SchedulerNode(chip, "steptwo", "0")
-    node_other.init_state(assign_runtime=True)
 
-    assert node.check_files_changed(node_other, now, [("option", "file", "test")]) is True
+    with node.runtime(), node_other.runtime():
+        assert node.check_files_changed(node_other, now, [("option", "file", "test")]) is True
     assert "[option,file,test] (timestamp) in steptwo/0 has been modified from previous run" in \
         caplog.text
 
@@ -599,12 +584,10 @@ def test_check_files_changed_hash_no_change(chip, caplog):
     chip.hash_files("option", "dir", "test")
 
     node = SchedulerNode(chip, "steptwo", "0")
-    node.init_state(assign_runtime=True)
-
     node_other = SchedulerNode(other_chip, "steptwo", "0")
-    node_other.init_state(assign_runtime=True)
 
-    assert node.check_files_changed(node_other, now, [("option", "dir", "test")]) is False
+    with node.runtime(), node_other.runtime():
+        assert node.check_files_changed(node_other, now, [("option", "dir", "test")]) is False
 
 
 def test_check_files_changed_hash_directory(chip, caplog):
@@ -628,12 +611,10 @@ def test_check_files_changed_hash_directory(chip, caplog):
         f.write("testing")
 
     node = SchedulerNode(chip, "steptwo", "0")
-    node.init_state(assign_runtime=True)
-
     node_other = SchedulerNode(other_chip, "steptwo", "0")
-    node_other.init_state(assign_runtime=True)
 
-    assert node.check_files_changed(node_other, now, [("option", "dir", "test")]) is True
+    with node.runtime(), node_other.runtime():
+        assert node.check_files_changed(node_other, now, [("option", "dir", "test")]) is True
     assert "[option,dir,test] (file hash) in steptwo/0 has been modified from previous run" in \
         caplog.text
 
@@ -824,16 +805,15 @@ def test_check_logfile(chip, datadir, caplog):
     chip.add('tool', 'builtin', 'task', 'nop', 'regex', 'warnings', "-v DPL")
 
     node = SchedulerNode(chip, "stepone", "0")
-    node.init_state(assign_runtime=True)
-
     assert chip.get("metric", "errors", step="stepone", index="0") is None
     assert chip.get("metric", "warnings", step="stepone", index="0") is None
 
-    # check log
-    os.makedirs(node.workdir, exist_ok=True)
-    shutil.copy(os.path.join(datadir, 'schedulernode', 'check_logfile.log'),
-                node.get_log())
-    node.check_logfile()
+    with node.runtime():
+        # check log
+        os.makedirs(node.workdir, exist_ok=True)
+        shutil.copy(os.path.join(datadir, 'schedulernode', 'check_logfile.log'),
+                    node.get_log())
+        node.check_logfile()
 
     # check line numbers in log and file
     warning_with_line_number = ' 90: [WARNING GRT-0043] No OR_DEFAULT vias defined.'
@@ -866,18 +846,17 @@ def test_check_logfile_with_extra_metrics(chip, datadir, caplog):
     chip.add('tool', 'builtin', 'task', 'nop', 'regex', 'warnings', "-v DPL")
 
     node = SchedulerNode(chip, "stepone", "0")
-    node.init_state(assign_runtime=True)
-
     assert chip.get("metric", "errors", step="stepone", index="0") is None
     assert chip.get("metric", "warnings", step="stepone", index="0") is None
     chip.set("metric", "errors", 5, step="stepone", index="0")
     chip.set("metric", "warnings", 11, step="stepone", index="0")
 
-    # check log
-    os.makedirs(node.workdir, exist_ok=True)
-    shutil.copy(os.path.join(datadir, 'schedulernode', 'check_logfile.log'),
-                node.get_log())
-    node.check_logfile()
+    with node.runtime():
+        # check log
+        os.makedirs(node.workdir, exist_ok=True)
+        shutil.copy(os.path.join(datadir, 'schedulernode', 'check_logfile.log'),
+                    node.get_log())
+        node.check_logfile()
 
     # check line numbers in log and file
     warning_with_line_number = ' 90: [WARNING GRT-0043] No OR_DEFAULT vias defined.'
@@ -905,16 +884,15 @@ def test_check_logfile_none(chip, datadir, caplog):
     chip.logger.setLevel(logging.INFO)
 
     node = SchedulerNode(chip, "stepone", "0")
-    node.init_state(assign_runtime=True)
-
     assert chip.get("metric", "errors", step="stepone", index="0") is None
     assert chip.get("metric", "warnings", step="stepone", index="0") is None
 
-    # check log
-    os.makedirs(node.workdir, exist_ok=True)
-    shutil.copy(os.path.join(datadir, 'schedulernode', 'check_logfile.log'),
-                node.get_log())
-    node.check_logfile()
+    with node.runtime():
+        # check log
+        os.makedirs(node.workdir, exist_ok=True)
+        shutil.copy(os.path.join(datadir, 'schedulernode', 'check_logfile.log'),
+                    node.get_log())
+        node.check_logfile()
 
     errors_file = "stepone.errors"
     assert not os.path.isfile(errors_file)
@@ -935,16 +913,15 @@ def test_check_logfile_non_metric(chip, datadir, caplog):
     chip.add('tool', 'builtin', 'task', 'nop', 'regex', 'somethingelse', "ERROR")
 
     node = SchedulerNode(chip, "stepone", "0")
-    node.init_state(assign_runtime=True)
-
     assert chip.get("metric", "errors", step="stepone", index="0") is None
     assert chip.get("metric", "warnings", step="stepone", index="0") is None
 
-    # check log
-    os.makedirs(node.workdir, exist_ok=True)
-    shutil.copy(os.path.join(datadir, 'schedulernode', 'check_logfile.log'),
-                node.get_log())
-    node.check_logfile()
+    with node.runtime():
+        # check log
+        os.makedirs(node.workdir, exist_ok=True)
+        shutil.copy(os.path.join(datadir, 'schedulernode', 'check_logfile.log'),
+                    node.get_log())
+        node.check_logfile()
 
     assert os.path.isfile("stepone.somethingelse")
 
@@ -954,8 +931,8 @@ def test_check_logfile_non_metric(chip, datadir, caplog):
 
 def test_setup_input_directory_do_nothing(chip):
     node = SchedulerNode(chip, "stepone", "0")
-    node.init_state(assign_runtime=True)
-    node.setup_input_directory()
+    with node.runtime():
+        node.setup_input_directory()
 
 
 def test_setup_input_directory(chip):
@@ -975,9 +952,8 @@ def test_setup_input_directory(chip):
     chip.set("tool", "builtin", "task", "nop", "input", "file0.txt", step="steptwo", index="0")
 
     node = SchedulerNode(chip, "steptwo", "0")
-    node.init_state(assign_runtime=True)
-
-    node.setup_input_directory()
+    with node.runtime():
+        node.setup_input_directory()
 
     assert os.path.isfile(input_dir / "file0.txt")
     assert not os.path.isfile(input_dir / "file1.txt")
@@ -1002,9 +978,8 @@ def test_setup_input_directory_not_strict(chip):
     chip.set("tool", "builtin", "task", "nop", "input", "file0.txt", step="steptwo", index="0")
 
     node = SchedulerNode(chip, "steptwo", "0")
-    node.init_state(assign_runtime=True)
-
-    node.setup_input_directory()
+    with node.runtime():
+        node.setup_input_directory()
 
     assert os.path.isfile(input_dir / "file0.txt")
     assert os.path.isfile(input_dir / "file1.txt")
@@ -1026,9 +1001,8 @@ def test_setup_input_directory_directory(chip):
     chip.set("tool", "builtin", "task", "nop", "input", "dir0", step="steptwo", index="0")
 
     node = SchedulerNode(chip, "steptwo", "0")
-    node.init_state(assign_runtime=True)
-
-    node.setup_input_directory()
+    with node.runtime():
+        node.setup_input_directory()
 
     assert os.path.isdir(input_dir / "dir0")
     assert not os.path.isfile(input_dir / "dummy.pkg.json")
@@ -1049,9 +1023,8 @@ def test_setup_input_directory_renames_dir(chip):
     chip.set("tool", "builtin", "task", "nop", "input", "dir0.stepone0", step="steptwo", index="0")
 
     node = SchedulerNode(chip, "steptwo", "0")
-    node.init_state(assign_runtime=True)
-
-    node.setup_input_directory()
+    with node.runtime():
+        node.setup_input_directory()
 
     assert not os.path.exists(input_dir / "dir0")
     assert os.path.isdir(input_dir / "dir0.stepone0")
@@ -1076,9 +1049,8 @@ def test_setup_input_directory_renames_file(chip):
              step="steptwo", index="0")
 
     node = SchedulerNode(chip, "steptwo", "0")
-    node.init_state(assign_runtime=True)
-
-    node.setup_input_directory()
+    with node.runtime():
+        node.setup_input_directory()
 
     assert not os.path.exists(input_dir / "file0.txt")
     assert os.path.isfile(input_dir / "file0.stepone0.txt")
@@ -1098,10 +1070,9 @@ def test_setup_input_directory_no_input_dir(chip, caplog):
              step="steptwo", index="0")
 
     node = SchedulerNode(chip, "steptwo", "0")
-    node.init_state(assign_runtime=True)
-
-    with pytest.raises(SystemExit):
-        node.setup_input_directory()
+    with node.runtime():
+        with pytest.raises(SystemExit):
+            node.setup_input_directory()
 
     assert "Unable to locate outputs directory for stepone/0: " in caplog.text
 
@@ -1121,18 +1092,17 @@ def test_setup_input_directory_input_error(chip, error, caplog):
              step="steptwo", index="0")
 
     node = SchedulerNode(chip, "steptwo", "0")
-    node.init_state(assign_runtime=True)
-
-    with pytest.raises(SystemExit):
-        node.setup_input_directory()
+    with node.runtime():
+        with pytest.raises(SystemExit):
+            node.setup_input_directory()
 
     assert "Halting steptwo/0 due to errors" in caplog.text
 
 
 def test_validate(chip):
     node = SchedulerNode(chip, "steptwo", "0")
-    node.init_state(assign_runtime=True)
-    assert node.validate() is True
+    with node.runtime():
+        assert node.validate() is True
 
 
 def test_validate_missing_inputs(chip, caplog):
@@ -1142,8 +1112,8 @@ def test_validate_missing_inputs(chip, caplog):
              step="steptwo", index="0")
 
     node = SchedulerNode(chip, "steptwo", "0")
-    node.init_state(assign_runtime=True)
-    assert node.validate() is False
+    with node.runtime():
+        assert node.validate() is False
     assert "Required input file0.txt not received for steptwo/0" in caplog.text
 
 
@@ -1154,8 +1124,8 @@ def test_validate_missing_required_key(chip, caplog):
              step="steptwo", index="0")
 
     node = SchedulerNode(chip, "steptwo", "0")
-    node.init_state(assign_runtime=True)
-    assert node.validate() is False
+    with node.runtime():
+        assert node.validate() is False
     assert "Cannot resolve required keypath [key,not,found]" in caplog.text
 
 
@@ -1168,8 +1138,8 @@ def test_validate_empty_required_key(chip, caplog):
     chip.unset("option", "var", "test")
 
     node = SchedulerNode(chip, "steptwo", "0")
-    node.init_state(assign_runtime=True)
-    assert node.validate() is False
+    with node.runtime():
+        assert node.validate() is False
     assert "No value set for required keypath [option,var,test]" in caplog.text
 
 
@@ -1181,8 +1151,8 @@ def test_validate_missing_required_file(chip, caplog):
     chip.set("option", "file", "test", "test.txt")
 
     node = SchedulerNode(chip, "steptwo", "0")
-    node.init_state(assign_runtime=True)
-    assert node.validate() is False
+    with node.runtime():
+        assert node.validate() is False
     assert "Cannot resolve path test.txt in required file keypath [option,file,test]" in caplog.text
 
 
@@ -1206,18 +1176,17 @@ def test_report_output_files_builtin(chip, caplog):
     chip.logger.setLevel(logging.INFO)
 
     node = SchedulerNode(chip, "steptwo", "0")
-    node.init_state(assign_runtime=True)
-    node._SchedulerNode__report_output_files()
+    with node.runtime():
+        node._SchedulerNode__report_output_files()
     assert caplog.text == ""
 
 
 def test_report_output_files_missing_outputs_dir(echo_chip, caplog):
     echo_chip.logger = logging.getLogger()
     node = SchedulerNode(echo_chip, "steptwo", "0")
-    node.init_state(assign_runtime=True)
-
-    with pytest.raises(SystemExit):
-        node._SchedulerNode__report_output_files()
+    with node.runtime():
+        with pytest.raises(SystemExit):
+            node._SchedulerNode__report_output_files()
     assert "Output directory is missing" in caplog.text
     assert "Failed to write manifest for steptwo/0" in caplog.text
     assert "Halting steptwo/0 due to errors" in caplog.text
@@ -1226,11 +1195,11 @@ def test_report_output_files_missing_outputs_dir(echo_chip, caplog):
 def test_report_output_files_missing_manifest(echo_chip, caplog):
     echo_chip.logger = logging.getLogger()
     node = SchedulerNode(echo_chip, "steptwo", "0")
-    node.init_state(assign_runtime=True)
-    os.makedirs(os.path.join(node.workdir, "outputs"), exist_ok=True)
+    with node.runtime():
+        os.makedirs(os.path.join(node.workdir, "outputs"), exist_ok=True)
 
-    with pytest.raises(SystemExit):
-        node._SchedulerNode__report_output_files()
+        with pytest.raises(SystemExit):
+            node._SchedulerNode__report_output_files()
     assert "Output manifest (dummy.pkg.json) is missing." in caplog.text
     assert "Halting steptwo/0 due to errors" in caplog.text
 
@@ -1241,12 +1210,12 @@ def test_report_output_files_missing_outputs(echo_chip, caplog):
                   step="steptwo", index="0")
 
     node = SchedulerNode(echo_chip, "steptwo", "0")
-    node.init_state(assign_runtime=True)
-    os.makedirs(os.path.join(node.workdir, "outputs"), exist_ok=True)
-    echo_chip.write_manifest(node.get_manifest())
+    with node.runtime():
+        os.makedirs(os.path.join(node.workdir, "outputs"), exist_ok=True)
+        echo_chip.write_manifest(node.get_manifest())
 
-    with pytest.raises(SystemExit):
-        node._SchedulerNode__report_output_files()
+        with pytest.raises(SystemExit):
+            node._SchedulerNode__report_output_files()
     assert "Expected output files are missing: echothis.txt" in caplog.text
     assert "Halting steptwo/0 due to errors" in caplog.text
 
@@ -1257,17 +1226,17 @@ def test_report_output_files_extra_outputs(echo_chip, caplog):
                   step="steptwo", index="0")
 
     node = SchedulerNode(echo_chip, "steptwo", "0")
-    node.init_state(assign_runtime=True)
-    os.makedirs(os.path.join(node.workdir, "outputs"), exist_ok=True)
-    echo_chip.write_manifest(node.get_manifest())
+    with node.runtime():
+        os.makedirs(os.path.join(node.workdir, "outputs"), exist_ok=True)
+        echo_chip.write_manifest(node.get_manifest())
 
-    with open(os.path.join(node.workdir, "outputs", "echothis.txt"), 'w') as f:
-        f.write("test")
-    with open(os.path.join(node.workdir, "outputs", "extra.txt"), 'w') as f:
-        f.write("test")
+        with open(os.path.join(node.workdir, "outputs", "echothis.txt"), 'w') as f:
+            f.write("test")
+        with open(os.path.join(node.workdir, "outputs", "extra.txt"), 'w') as f:
+            f.write("test")
 
-    with pytest.raises(SystemExit):
-        node._SchedulerNode__report_output_files()
+        with pytest.raises(SystemExit):
+            node._SchedulerNode__report_output_files()
     assert "Unexpected output files found: extra.txt" in caplog.text
     assert "Halting steptwo/0 due to errors" in caplog.text
 
@@ -1279,16 +1248,16 @@ def test_report_output_files_extra_outputs_not_strict(echo_chip, caplog):
     echo_chip.set('option', 'strict', False)
 
     node = SchedulerNode(echo_chip, "steptwo", "0")
-    node.init_state(assign_runtime=True)
-    os.makedirs(os.path.join(node.workdir, "outputs"), exist_ok=True)
-    echo_chip.write_manifest(node.get_manifest())
+    with node.runtime():
+        os.makedirs(os.path.join(node.workdir, "outputs"), exist_ok=True)
+        echo_chip.write_manifest(node.get_manifest())
 
-    with open(os.path.join(node.workdir, "outputs", "echothis.txt"), 'w') as f:
-        f.write("test")
-    with open(os.path.join(node.workdir, "outputs", "extra.txt"), 'w') as f:
-        f.write("test")
+        with open(os.path.join(node.workdir, "outputs", "echothis.txt"), 'w') as f:
+            f.write("test")
+        with open(os.path.join(node.workdir, "outputs", "extra.txt"), 'w') as f:
+            f.write("test")
 
-    node._SchedulerNode__report_output_files()
+        node._SchedulerNode__report_output_files()
     assert "Unexpected output files found: extra.txt" in caplog.text
     assert "Halting steptwo/0 due to errors" not in caplog.text
 
@@ -1485,11 +1454,12 @@ def test_copy_from(chip, caplog):
     chip.logger.setLevel(logging.INFO)
 
     node = SchedulerNode(chip, "stepone", "0")
-    node.init_state(assign_runtime=True)
-    node.task.setup_work_directory(node.workdir)
-    node.task.generate_replay_script(node.replay_script, node.workdir)
-    chip.write_flowgraph(node.get_manifest("input"))
-    chip.write_flowgraph(node.get_manifest("output"))
+    node.init_state()
+    with node.runtime():
+        node.task.setup_work_directory(node.workdir)
+        node.task.generate_replay_script(node.replay_script, node.workdir)
+        chip.write_flowgraph(node.get_manifest("input"))
+        chip.write_flowgraph(node.get_manifest("output"))
 
     chip.set("option", "jobname", "newname")
     node = SchedulerNode(chip, "stepone", "0")

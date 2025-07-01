@@ -1,3 +1,4 @@
+import contextlib
 import logging
 import os
 import shutil
@@ -61,10 +62,16 @@ class SchedulerNode:
         self.set_queue(None, None)
         self.init_state()
 
-    def init_state(self, assign_runtime=False):
+    def init_state(self):
         self.__setup_schema_access()
-        if assign_runtime:
-            self.__task.set_runtime(self.__chip, step=self.__step, index=self.__index)
+
+    @contextlib.contextmanager
+    def runtime(self):
+        prev_task = self.__task
+        with self.__task.runtime(self.__chip, step=self.__step, index=self.__index) as runtask:
+            self.__task = runtask
+            yield
+        self.__task = prev_task
 
     @staticmethod
     def init(chip):
@@ -137,10 +144,9 @@ class SchedulerNode:
 
     @property
     def threads(self):
-        self.__task.set_runtime(self.__chip, step=self.__step, index=self.__index)
-        thread_count = self.__task.get("task", self.__task.task(), "threads",
-                                       step=self.__step, index=self.__index)
-        self.__task.set_runtime(None)
+        with self.__task.runtime(self.__chip, step=self.__step, index=self.__index) as task:
+            thread_count = task.get("task", self.__task.task(), "threads",
+                                    step=self.__step, index=self.__index)
         return thread_count
 
     def set_queue(self, pipe, queue):
@@ -171,29 +177,26 @@ class SchedulerNode:
         sys.exit(1)
 
     def setup(self):
-        self.__task.set_runtime(self.__chip, step=self.__step, index=self.__index)
+        with self.__task.runtime(self.__chip, step=self.__step, index=self.__index) as task:
+            # Run node setup.
+            self.logger.info(f'Setting up node {self.__step}/{self.__index} with '
+                             f'{task.tool()}/{task.task()}')
+            setup_ret = None
+            try:
+                setup_ret = task.setup()
+            except Exception as e:
+                self.logger.error(f'Failed to run setup() for {self.__step}/{self.__index} '
+                                  f'with {task.tool()}/{task.task()}')
+                raise e
 
-        # Run node setup.
-        self.logger.info(f'Setting up node {self.__step}/{self.__index} with '
-                         f'{self.__task.tool()}/{self.__task.task()}')
-        setup_ret = None
-        try:
-            setup_ret = self.__task.setup()
-        except Exception as e:
-            self.logger.error(f'Failed to run setup() for {self.__step}/{self.__index} '
-                              f'with {self.__task.tool()}/{self.__task.task()}')
-            self.__task.set_runtime(None)
-            raise e
+            if setup_ret is not None:
+                self.logger.warning(f'Removing {self.__step}/{self.__index} due to {setup_ret}')
+                self.__record.set('status', NodeStatus.SKIPPED,
+                                  step=self.__step, index=self.__index)
 
-        self.__task.set_runtime(None)
+                return False
 
-        if setup_ret is not None:
-            self.logger.warning(f'Removing {self.__step}/{self.__index} due to {setup_ret}')
-            self.__record.set('status', NodeStatus.SKIPPED, step=self.__step, index=self.__index)
-
-            return False
-
-        return True
+            return True
 
     def check_previous_run_status(self, previous_run):
         # Assume modified if flow does not match
@@ -353,7 +356,7 @@ class SchedulerNode:
                 self.logger.debug("Input manifest failed to load")
                 return True
             previous_node = SchedulerNode(chip, self.__step, self.__index)
-            previous_node.init_state(assign_runtime=True)
+            previous_node.init_state()
         else:
             # No manifest found so assume rerun is needed
             self.logger.debug("Previous run did not generate input manifest")
@@ -368,38 +371,41 @@ class SchedulerNode:
                 self.logger.debug("Output manifest failed to load")
                 return True
             previous_node_end = SchedulerNode(chip, self.__step, self.__index)
-            previous_node_end.init_state(assign_runtime=True)
+            previous_node_end.init_state()
         else:
             # No manifest found so assume rerun is needed
             self.logger.debug("Previous run did not generate output manifest")
             return True
 
-        self.init_state(assign_runtime=True)
+        self.init_state()
 
-        if not self.check_previous_run_status(previous_node_end):
-            self.__task.set_runtime(None)
-            self.logger.debug("Previous run state failed")
-            return True
+        with self.runtime():
+            if previous_node_end:
+                with previous_node_end.runtime():
+                    if not self.check_previous_run_status(previous_node_end):
+                        self.logger.debug("Previous run state failed")
+                        return True
 
-        # Generate key paths to check
-        try:
-            value_keys, path_keys = self.get_check_changed_keys()
-            previous_value_keys, previous_path_keys = previous_node.get_check_changed_keys()
-            value_keys.update(previous_value_keys)
-            path_keys.update(previous_path_keys)
-        except KeyError:
-            self.__task.set_runtime(None)
-            self.logger.debug("Failed to acquire keys")
-            return True
+            if previous_node:
+                with previous_node.runtime():
+                    # Generate key paths to check
+                    try:
+                        value_keys, path_keys = self.get_check_changed_keys()
+                        previous_value_keys, previous_path_keys = \
+                            previous_node.get_check_changed_keys()
+                        value_keys.update(previous_value_keys)
+                        path_keys.update(previous_path_keys)
+                    except KeyError:
+                        self.logger.debug("Failed to acquire keys")
+                        return True
 
-        self.__task.set_runtime(None)
-        if self.check_values_changed(previous_node, value_keys.union(path_keys)):
-            self.logger.debug("Key values changed")
-            return True
+                    if self.check_values_changed(previous_node, value_keys.union(path_keys)):
+                        self.logger.debug("Key values changed")
+                        return True
 
-        if self.check_files_changed(previous_node, previous_node_time, path_keys):
-            self.logger.debug("Files changed")
-            return True
+                    if self.check_files_changed(previous_node, previous_node_time, path_keys):
+                        self.logger.debug("Files changed")
+                        return True
 
         return False
 
@@ -543,7 +549,7 @@ class SchedulerNode:
         journal.start()
 
         # Must be after journaling to ensure journal is complete
-        self.init_state(assign_runtime=True)
+        self.init_state()
 
         # Make record of sc version and machine
         self.__record.record_version(self.__step, self.__index)
@@ -555,40 +561,41 @@ class SchedulerNode:
         # Start wall timer
         self.__record.record_time(self.__step, self.__index, RecordTime.START)
 
-        # Setup run directory
-        self.__task.setup_work_directory(self.__workdir, remove_exist=not self.__replay)
-
         cwd = os.getcwd()
-        os.chdir(self.__workdir)
+        with self.runtime():
+            # Setup run directory
+            self.__task.setup_work_directory(self.__workdir, remove_exist=not self.__replay)
 
-        # Attach siliconcompiler file log handler
-        self.__chip._add_file_logger(self.__logs["sc"])
+            os.chdir(self.__workdir)
 
-        # Select the inputs to this node
-        sel_inputs = self.__task.select_input_nodes()
-        if not self.__is_entry_node and not sel_inputs:
-            self.halt(f'No inputs selected for {self.__step}/{self.__index}')
-        self.__record.set("inputnode", sel_inputs, step=self.__step, index=self.__index)
+            # Attach siliconcompiler file log handler
+            self.__chip._add_file_logger(self.__logs["sc"])
 
-        if self.__hash:
-            self.__hash_files_pre_execute()
+            # Select the inputs to this node
+            sel_inputs = self.__task.select_input_nodes()
+            if not self.__is_entry_node and not sel_inputs:
+                self.halt(f'No inputs selected for {self.__step}/{self.__index}')
+            self.__record.set("inputnode", sel_inputs, step=self.__step, index=self.__index)
 
-        # Forward data
-        if not self.__replay:
-            self.setup_input_directory()
+            if self.__hash:
+                self.__hash_files_pre_execute()
 
-        # Write manifest prior to step running into inputs
-        self.__chip.write_manifest(self.__manifests["input"])
+            # Forward data
+            if not self.__replay:
+                self.setup_input_directory()
 
-        # Check manifest
-        if not self.validate():
-            self.halt("Failed to validate node setup. See previous errors")
+            # Write manifest prior to step running into inputs
+            self.__chip.write_manifest(self.__manifests["input"])
 
-        try:
-            self.execute()
-        except Exception as e:
-            utils.print_traceback(self.logger, e)
-            self.halt()
+            # Check manifest
+            if not self.validate():
+                self.halt("Failed to validate node setup. See previous errors")
+
+            try:
+                self.execute()
+            except Exception as e:
+                utils.print_traceback(self.logger, e)
+                self.halt()
 
         # return to original directory
         os.chdir(cwd)
@@ -923,9 +930,8 @@ class SchedulerNode:
             # delete file as it might be a hard link
             os.remove(self.__replay_script)
 
-            self.__task.set_runtime(self.__chip, step=self.__step, index=self.__index)
-            self.__task.generate_replay_script(self.__replay_script, self.__workdir)
-            self.__task.set_runtime(None)
+            with self.runtime():
+                self.__task.generate_replay_script(self.__replay_script, self.__workdir)
 
         for manifest in self.__manifests.values():
             if os.path.exists(manifest):
