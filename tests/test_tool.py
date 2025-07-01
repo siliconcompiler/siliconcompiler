@@ -140,90 +140,91 @@ def test_init():
 
 
 def test_tool():
-    tool = ToolSchema("testtool")
     with pytest.raises(NotImplementedError,
                        match="tool name must be implemented by the child class"):
-        tool.tool()
+        ToolSchema("testtool").tool()
 
 
 def test_task():
-    tool = ToolSchema("testtool")
     with pytest.raises(NotImplementedError,
                        match="task name must be implemented by the child class"):
-        tool.task()
+        ToolSchema("testtool").task()
 
 
-def test_set_runtime_invalid_step(running_project):
+def test_runtime_invalid_step(running_project):
     running_project.unset('arg', 'step')
     with pytest.raises(RuntimeError, match="step or index not specified"):
-        ToolSchema("testtool").set_runtime(running_project)
+        with ToolSchema("testtool").runtime(running_project):
+            pass
 
 
 def test_set_runtime_invalid_index(running_project):
     running_project.unset('arg', 'index')
     with pytest.raises(RuntimeError, match="step or index not specified"):
-        ToolSchema("testtool").set_runtime(running_project)
+        with ToolSchema("testtool").runtime(running_project):
+            pass
 
 
 def test_set_runtime_invalid_flow(running_project):
     running_project.unset('option', 'flow')
     with pytest.raises(RuntimeError, match="flow not specified"):
-        ToolSchema("testtool").set_runtime(running_project)
+        with ToolSchema("testtool").runtime(running_project):
+            pass
 
 
-def test_set_runtime(running_project):
+def test_runtime(running_project):
     tool = ToolSchema("testtool")
-    tool.set_runtime(running_project)
-    assert tool.node() == ('running', '0')
-    assert tool.logger() is running_project.logger
-    assert tool.schema() is running_project.schema
+
+    with tool.runtime(running_project) as runtool:
+        assert runtool.node() == ('running', '0')
+        assert runtool.logger() is running_project.logger
+        assert runtool.schema() is running_project.schema
 
 
-def test_set_runtime_different(running_project):
+def test_runtime_different(running_project):
     tool = ToolSchema("testtool")
-    tool.set_runtime(running_project, step="notrunning", index="0")
-    assert tool.node() == ('notrunning', '0')
-    assert tool.logger() is running_project.logger
-    assert tool.schema() is running_project.schema
+    with tool.runtime(running_project, step="notrunning", index="0") as runtool:
+        assert runtool.node() == ('notrunning', '0')
+        assert runtool.logger() is running_project.logger
+        assert runtool.schema() is running_project.schema
 
 
 def test_schema_access(running_project):
     tool = ToolSchema("testtool")
-    tool.set_runtime(running_project)
-    assert tool.schema() is running_project.schema
-    assert isinstance(tool.schema("record"), RecordSchema)
-    assert isinstance(tool.schema("metric"), MetricSchema)
-    assert isinstance(tool.schema("flow"), FlowgraphSchema)
+    with tool.runtime(running_project) as runtool:
+        assert runtool.schema() is running_project.schema
+        assert isinstance(runtool.schema("record"), RecordSchema)
+        assert isinstance(runtool.schema("metric"), MetricSchema)
+        assert isinstance(runtool.schema("flow"), FlowgraphSchema)
 
 
 def test_schema_access_invalid(running_project):
     tool = ToolSchema("testtool")
-    tool.set_runtime(running_project)
-    with pytest.raises(ValueError, match="invalid is not a schema section"):
-        tool.schema("invalid")
+    with tool.runtime(running_project) as runtool:
+        with pytest.raises(ValueError, match="invalid is not a schema section"):
+            runtool.schema("invalid")
 
 
 def test_get_exe_empty(running_project):
     tool = ToolSchema("testtool")
-    tool.set_runtime(running_project)
-    assert tool.get_exe() is None
+    with tool.runtime(running_project) as runtool:
+        assert runtool.get_exe() is None
 
 
 def test_get_exe_not_found(nop_tool_task, running_project):
     tool = nop_tool_task()
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', tool.task(), TaskSchema(tool.task()))
-    tool.set_runtime(running_project)
     assert tool.set('exe', 'testexe')
-    with pytest.raises(TaskExecutableNotFound, match="testexe could not be found"):
-        tool.get_exe()
+    with tool.runtime(running_project) as runtool:
+        with pytest.raises(TaskExecutableNotFound, match="testexe could not be found"):
+            runtool.get_exe()
 
 
 def test_get_exe_found(nop_tool_task, running_project, monkeypatch):
     tool = nop_tool_task()
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', tool.task(), TaskSchema(tool.task()))
-    tool.set_runtime(running_project)
     assert tool.set('exe', 'testexe')
 
     def dummy_env(*args, **kwargs):
@@ -239,27 +240,28 @@ def test_get_exe_found(nop_tool_task, running_project, monkeypatch):
         return "found/exe"
 
     monkeypatch.setattr(imported_shutil, 'which', dummy_which)
-    assert tool.get_exe() == "found/exe"
+    with tool.runtime(running_project) as runtool:
+        assert runtool.get_exe() == "found/exe"
 
 
 def test_get_exe_version_no_vswitch(nop_tool_task, running_project):
     tool = nop_tool_task()
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', tool.task(), TaskSchema(tool.task()))
-    tool.set_runtime(running_project)
-    assert tool.set('exe', 'testexe')
+    with tool.runtime(running_project) as runtool:
+        assert runtool.set('exe', 'testexe')
 
-    assert tool.get_exe_version() is None
+        assert runtool.get_exe_version() is None
 
 
 def test_get_exe_version_no_exe(nop_tool_task, running_project):
     tool = nop_tool_task()
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', tool.task(), TaskSchema(tool.task()))
-    tool.set_runtime(running_project)
-    assert tool.set('vswitch', '-version')
+    with tool.runtime(running_project) as runtool:
+        assert runtool.set('vswitch', '-version')
 
-    assert tool.get_exe_version() is None
+        assert runtool.get_exe_version() is None
 
 
 def test_get_exe_version(nop_tool_task, running_project, monkeypatch, caplog):
@@ -271,7 +273,6 @@ def test_get_exe_version(nop_tool_task, running_project, monkeypatch, caplog):
     tool = TestTool()
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', tool.task(), TaskSchema(tool.task()))
-    tool.set_runtime(running_project)
     assert tool.set('vswitch', 'testexe')
     assert tool.set('vswitch', '-version')
 
@@ -289,7 +290,8 @@ def test_get_exe_version(nop_tool_task, running_project, monkeypatch, caplog):
         return Ret()
     monkeypatch.setattr(imported_subprocess, 'run', dummy_run)
 
-    assert tool.get_exe_version() == "1.0.0"
+    with tool.runtime(running_project) as runtool:
+        assert runtool.get_exe_version() == "1.0.0"
     assert "Tool 'exe' found with version '1.0.0' in directory 'found'" in caplog.text
 
 
@@ -297,7 +299,6 @@ def test_get_exe_version_not_implemented(nop_tool_task, running_project, monkeyp
     tool = nop_tool_task()
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', tool.task(), TaskSchema(tool.task()))
-    tool.set_runtime(running_project)
     assert tool.set('vswitch', 'testexe')
     assert tool.set('vswitch', '-version')
 
@@ -315,8 +316,9 @@ def test_get_exe_version_not_implemented(nop_tool_task, running_project, monkeyp
         return Ret()
     monkeypatch.setattr(imported_subprocess, 'run', dummy_run)
 
-    with pytest.raises(RuntimeError, match=r"builtin/nop does not implement parse_version\(\)"):
-        tool.get_exe_version()
+    with tool.runtime(running_project) as runtool:
+        with pytest.raises(RuntimeError, match=r"builtin/nop does not implement parse_version\(\)"):
+            runtool.get_exe_version()
 
 
 def test_get_exe_version_non_zero_return(nop_tool_task, running_project, monkeypatch, caplog):
@@ -328,7 +330,6 @@ def test_get_exe_version_non_zero_return(nop_tool_task, running_project, monkeyp
     tool = TestTool()
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', tool.task(), TaskSchema(tool.task()))
-    tool.set_runtime(running_project)
     assert tool.set('vswitch', 'testexe')
     assert tool.set('vswitch', '-version')
 
@@ -346,7 +347,8 @@ def test_get_exe_version_non_zero_return(nop_tool_task, running_project, monkeyp
         return Ret()
     monkeypatch.setattr(imported_subprocess, 'run', dummy_run)
 
-    assert tool.get_exe_version() == "1.0.0"
+    with tool.runtime(running_project) as runtool:
+        assert runtool.get_exe_version() == "1.0.0"
 
     assert "Version check on 'exe' ended with code 1" in caplog.text
 
@@ -359,7 +361,6 @@ def test_get_exe_version_internal_error(nop_tool_task, running_project, monkeypa
     tool = TestTool()
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', tool.task(), TaskSchema(tool.task()))
-    tool.set_runtime(running_project)
     assert tool.set('vswitch', '-version')
 
     def dummy_get_exe(*args, **kwargs):
@@ -376,8 +377,9 @@ def test_get_exe_version_internal_error(nop_tool_task, running_project, monkeypa
         return Ret()
     monkeypatch.setattr(imported_subprocess, 'run', dummy_run)
 
-    with pytest.raises(ValueError, match="look for this match"):
-        tool.get_exe_version()
+    with tool.runtime(running_project) as runtool:
+        with pytest.raises(ValueError, match="look for this match"):
+            runtool.get_exe_version()
 
     assert "builtin/nop failed to parse version string: myversion" in caplog.text
 
@@ -389,34 +391,34 @@ def test_check_exe_version_not_set():
 
 def test_check_exe_version_valid(nop_tool_task, running_project, caplog):
     tool = nop_tool_task()
-    tool.set_runtime(running_project)
-    tool.set('version', '==1.0.0')
-    assert tool.check_exe_version('1.0.0') is True
+    with tool.runtime(running_project) as runtool:
+        runtool.set('version', '==1.0.0')
+        assert runtool.check_exe_version('1.0.0') is True
     assert caplog.text == ''
 
 
 def test_check_exe_version_invalid(nop_tool_task, running_project, caplog):
     tool = nop_tool_task()
-    tool.set_runtime(running_project)
-    tool.set('version', '!=1.0.0')
-    assert tool.check_exe_version('1.0.0') is False
+    with tool.runtime(running_project) as runtool:
+        runtool.set('version', '!=1.0.0')
+        assert runtool.check_exe_version('1.0.0') is False
     assert "Version check failed for builtin/nop. Check installation." in caplog.text
     assert "Found version 1.0.0, did not satisfy any version specifier set !=1.0.0" in caplog.text
 
 
 def test_check_exe_version_value_ge(nop_tool_task, running_project, caplog):
     tool = nop_tool_task()
-    tool.set_runtime(running_project)
-    tool.set('version', '>=1.0.0')
-    assert tool.check_exe_version('1.0.0') is True
+    with tool.runtime(running_project) as runtool:
+        runtool.set('version', '>=1.0.0')
+        assert runtool.check_exe_version('1.0.0') is True
     assert caplog.text == ""
 
 
 def test_check_exe_version_value_compound(nop_tool_task, running_project, caplog):
     tool = nop_tool_task()
-    tool.set_runtime(running_project)
-    tool.set('version', ['>=1.0.0,!=2.0.0'])
-    assert tool.check_exe_version('2.0.0') is False
+    with tool.runtime(running_project) as runtool:
+        runtool.set('version', ['>=1.0.0,!=2.0.0'])
+        assert runtool.check_exe_version('2.0.0') is False
     assert "Version check failed for builtin/nop. Check installation." in caplog.text
     assert "Found version 2.0.0, did not satisfy any version specifier set >=1.0.0,!=2.0.0" \
         in caplog.text
@@ -424,9 +426,9 @@ def test_check_exe_version_value_compound(nop_tool_task, running_project, caplog
 
 def test_check_exe_version_value_multiple_fail(nop_tool_task, running_project, caplog):
     tool = nop_tool_task()
-    tool.set_runtime(running_project)
-    tool.set('version', ['>=1.0.0,<2.0.0', '>3.0.0'])
-    assert tool.check_exe_version('2.0.0') is False
+    with tool.runtime(running_project) as runtool:
+        runtool.set('version', ['>=1.0.0,<2.0.0', '>3.0.0'])
+        assert runtool.check_exe_version('2.0.0') is False
     assert "Version check failed for builtin/nop. Check installation." in caplog.text
     assert "Found version 2.0.0, did not satisfy any version specifier set >=1.0.0,<2.0.0; >3.0.0" \
         in caplog.text
@@ -434,25 +436,25 @@ def test_check_exe_version_value_multiple_fail(nop_tool_task, running_project, c
 
 def test_check_exe_version_value_multiple_pass(nop_tool_task, running_project, caplog):
     tool = nop_tool_task()
-    tool.set_runtime(running_project)
-    tool.set('version', ['>=1.0.0,<2.0.0', '>3.0.0'])
-    assert tool.check_exe_version('3.0.1') is True
+    with tool.runtime(running_project) as runtool:
+        runtool.set('version', ['>=1.0.0,<2.0.0', '>3.0.0'])
+        assert runtool.check_exe_version('3.0.1') is True
     assert caplog.text == ""
 
 
 def test_check_exe_version_value_invalid_spec(nop_tool_task, running_project, caplog):
     tool = nop_tool_task()
-    tool.set_runtime(running_project)
-    tool.set('version', '1.0.0')
-    assert tool.check_exe_version('1.0.0') is True
+    with tool.runtime(running_project) as runtool:
+        runtool.set('version', '1.0.0')
+        assert runtool.check_exe_version('1.0.0') is True
     assert "Invalid version specifier 1.0.0. Defaulting to ==1.0.0" in caplog.text
 
 
 def test_check_exe_version_value_invalid_spec_fail(nop_tool_task, running_project, caplog):
     tool = nop_tool_task()
-    tool.set_runtime(running_project)
-    tool.set('version', '1.0.0')
-    assert tool.check_exe_version('1.0.1') is False
+    with tool.runtime(running_project) as runtool:
+        runtool.set('version', '1.0.0')
+        assert runtool.check_exe_version('1.0.1') is False
     assert "Invalid version specifier 1.0.0. Defaulting to ==1.0.0" in caplog.text
     assert "Found version 1.0.1, did not satisfy any version specifier set 1.0.0" in caplog.text
 
@@ -464,11 +466,10 @@ def test_check_exe_version_normalize_error(nop_tool_task, running_project, caplo
             raise ValueError("match this error")
 
     tool = TestTool()
-    tool.set_runtime(running_project)
-
-    tool.set('version', '==1.0.0')
-    with pytest.raises(ValueError, match="match this error"):
-        tool.check_exe_version('myversion')
+    with tool.runtime(running_project) as runtool:
+        runtool.set('version', '==1.0.0')
+        with pytest.raises(ValueError, match="match this error"):
+            runtool.check_exe_version('myversion')
     assert "Unable to normalize version for builtin/nop: myversion" in caplog.text
 
 
@@ -478,10 +479,9 @@ def test_check_exe_version_normalize_pass(nop_tool_task, running_project, caplog
             return "1.0.0"
 
     tool = TestTool()
-    tool.set_runtime(running_project)
-
     tool.set('version', '==1.0.0')
-    assert tool.check_exe_version('myversion') is True
+    with tool.runtime(running_project) as runtool:
+        assert runtool.check_exe_version('myversion') is True
     assert caplog.text == ""
 
 
@@ -493,11 +493,10 @@ def test_check_exe_version_normalize_error_spec(nop_tool_task, running_project, 
             return "1.0.0"
 
     tool = TestTool()
-    tool.set_runtime(running_project)
-
     tool.set('version', '==1.0.0')
-    with pytest.raises(ValueError, match="match this error"):
-        tool.check_exe_version('myversion')
+    with tool.runtime(running_project) as runtool:
+        with pytest.raises(ValueError, match="match this error"):
+            runtool.check_exe_version('myversion')
     assert "Unable to normalize versions for builtin/nop: ==1.0.0" in caplog.text
 
 
@@ -507,10 +506,9 @@ def test_check_exe_version_normalize_invalid_version(nop_tool_task, running_proj
             return "notvalid"
 
     tool = TestTool()
-    tool.set_runtime(running_project)
-
     tool.set('version', '==1.0.0')
-    assert tool.check_exe_version('myversion') is False
+    with tool.runtime(running_project) as runtool:
+        runtool.check_exe_version('myversion') is False
     assert "Version notvalid reported by builtin/nop does not match standard" in caplog.text
 
 
@@ -522,10 +520,9 @@ def test_check_exe_version_normalize_invalid_spec_version(nop_tool_task, running
             return "notvalid"
 
     tool = TestTool()
-    tool.set_runtime(running_project)
-
     tool.set('version', '==1.0.0')
-    assert tool.check_exe_version('myversion') is False
+    with tool.runtime(running_project) as runtool:
+        runtool.check_exe_version('myversion') is False
     assert "Version specifier set ==notvalid does not match standard" in caplog.text
 
 
@@ -533,32 +530,28 @@ def test_get_runtime_environmental_variables(nop_tool_task, running_project, mon
     tool = nop_tool_task()
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', tool.task(), TaskSchema(tool.task()))
-    tool.set_runtime(running_project)
-
     monkeypatch.setenv("PATH", "this:path")
     monkeypatch.delenv("LD_LIBRARY_PATH", raising=False)
 
-    assert tool.get_runtime_environmental_variables() == {'PATH': 'this:path'}
+    with tool.runtime(running_project) as runtool:
+        assert runtool.get_runtime_environmental_variables() == {'PATH': 'this:path'}
 
 
 def test_get_runtime_environmental_variables_no_path(nop_tool_task, running_project, monkeypatch):
     tool = nop_tool_task()
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', tool.task(), TaskSchema(tool.task()))
-    tool.set_runtime(running_project)
-
     monkeypatch.setenv("PATH", "this:path")
     monkeypatch.delenv("LD_LIBRARY_PATH", raising=False)
 
-    assert tool.get_runtime_environmental_variables(include_path=False) == {}
+    with tool.runtime(running_project) as runtool:
+        assert runtool.get_runtime_environmental_variables(include_path=False) == {}
 
 
 def test_get_runtime_environmental_variables_envs(nop_tool_task, running_project, monkeypatch):
     tool = nop_tool_task()
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', tool.task(), TaskSchema(tool.task()))
-    tool.set_runtime(running_project)
-
     running_project.set('option', 'env', 'CHECK', 'THIS')
     running_project.set('option', 'env', 'CHECKS', 'THAT')
     assert tool.set('licenseserver', 'ENV_LIC0', ('server0', 'server1'))
@@ -568,29 +561,28 @@ def test_get_runtime_environmental_variables_envs(nop_tool_task, running_project
     monkeypatch.setenv("PATH", "this:path")
     monkeypatch.setenv("LD_LIBRARY_PATH", "this:ld:path")
 
-    assert tool.get_runtime_environmental_variables(include_path=False) == {
-        'CHECK': 'helloworld',
-        'CHECKS': 'THAT',
-        'ENV_LIC0': 'server0:server1',
-        'ENV_LIC1': 'server2:server3'
-    }
+    with tool.runtime(running_project) as runtool:
+        assert runtool.get_runtime_environmental_variables(include_path=False) == {
+            'CHECK': 'helloworld',
+            'CHECKS': 'THAT',
+            'ENV_LIC0': 'server0:server1',
+            'ENV_LIC1': 'server2:server3'
+        }
 
-    assert tool.get_runtime_environmental_variables() == {
-        'CHECK': 'helloworld',
-        'CHECKS': 'THAT',
-        'ENV_LIC0': 'server0:server1',
-        'ENV_LIC1': 'server2:server3',
-        'PATH': 'this:path',
-        'LD_LIBRARY_PATH': 'this:ld:path'
-    }
+        assert runtool.get_runtime_environmental_variables() == {
+            'CHECK': 'helloworld',
+            'CHECKS': 'THAT',
+            'ENV_LIC0': 'server0:server1',
+            'ENV_LIC1': 'server2:server3',
+            'PATH': 'this:path',
+            'LD_LIBRARY_PATH': 'this:ld:path'
+        }
 
 
 def test_get_runtime_environmental_variables_tool_path(nop_tool_task, running_project, monkeypatch):
     tool = nop_tool_task()
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', tool.task(), TaskSchema(tool.task()))
-    tool.set_runtime(running_project)
-
     os.makedirs('./testpath', exist_ok=True)
     tool.set('path', './testpath')
 
@@ -599,19 +591,19 @@ def test_get_runtime_environmental_variables_tool_path(nop_tool_task, running_pr
 
     expect_path = os.path.abspath('./testpath') + os.pathsep + "this:path"
 
-    assert tool.get_runtime_environmental_variables(include_path=False) == {}
-    assert tool.get_runtime_environmental_variables() == {
-        'PATH': expect_path
-    }
+    with tool.runtime(running_project) as runtool:
+        assert runtool.get_runtime_environmental_variables(include_path=False) == {}
+        assert runtool.get_runtime_environmental_variables() == {
+            'PATH': expect_path
+        }
 
 
 def test_get_runtime_arguments(nop_tool_task, running_project):
     tool = nop_tool_task()
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', tool.task(), TaskSchema(tool.task()))
-    tool.set_runtime(running_project)
-
-    assert tool.get_runtime_arguments() == []
+    with tool.runtime(running_project) as runtool:
+        assert runtool.get_runtime_arguments() == []
 
 
 def test_get_runtime_arguments_all(nop_tool_task, running_project):
@@ -623,19 +615,18 @@ def test_get_runtime_arguments_all(nop_tool_task, running_project):
     tool = TestTool()
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', tool.task(), TaskSchema(tool.task()))
-    tool.set_runtime(running_project)
-
     with open("arg2.run", "w") as f:
         f.write("testfile")
 
     tool.set('task', tool.task(), 'option', ['--arg0', '--arg1'])
     running_project.set('tool', tool.tool(), 'task', tool.task(), 'script', 'arg2.run')
 
-    assert tool.get_runtime_arguments() == [
-        '--arg0',
-        '--arg1',
-        os.path.abspath("arg2.run"),
-        '--arg3']
+    with tool.runtime(running_project) as runtool:
+        assert runtool.get_runtime_arguments() == [
+            '--arg0',
+            '--arg1',
+            os.path.abspath("arg2.run"),
+            '--arg3']
 
 
 def test_get_runtime_arguments_overwrite(nop_tool_task, running_project):
@@ -645,15 +636,14 @@ def test_get_runtime_arguments_overwrite(nop_tool_task, running_project):
     tool = TestTool()
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', tool.task(), TaskSchema(tool.task()))
-    tool.set_runtime(running_project)
-
     with open("arg2.run", "w") as f:
         f.write("testfile")
 
     tool.set('task', tool.task(), 'option', ['--arg0', '--arg1'])
     running_project.set('tool', tool.tool(), 'task', tool.task(), 'script', 'arg2.run')
 
-    assert tool.get_runtime_arguments() == ['--arg3']
+    with tool.runtime(running_project) as runtool:
+        assert runtool.get_runtime_arguments() == ['--arg3']
 
 
 def test_get_runtime_arguments_error(nop_tool_task, running_project, caplog):
@@ -663,27 +653,25 @@ def test_get_runtime_arguments_error(nop_tool_task, running_project, caplog):
     tool = TestTool()
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', tool.task(), TaskSchema(tool.task()))
-    tool.set_runtime(running_project)
-
-    with pytest.raises(ValueError, match="match this error"):
-        tool.get_runtime_arguments()
+    with tool.runtime(running_project) as runtool:
+        with pytest.raises(ValueError, match="match this error"):
+            runtool.get_runtime_arguments()
 
     assert "Failed to get runtime options for builtin/nop" in caplog.text
 
 
 def test_get_output_files(nop_tool_task, running_project):
     tool = nop_tool_task()
-    tool.set_runtime(running_project)
-    step, index = tool.node()
-    tool.set('task', tool.task(), 'output', ["file0", "file1"], step=step, index=index)
-    assert tool.get_output_files() == set(["file0", "file1"])
+    with tool.runtime(running_project) as runtool:
+        step, index = runtool.node()
+        runtool.set('task', tool.task(), 'output', ["file0", "file1"], step=step, index=index)
+        assert runtool.get_output_files() == set(["file0", "file1"])
 
 
 def test_parse_version_not_implemented():
-    tool = ToolSchema("testtool")
     with pytest.raises(NotImplementedError,
                        match="must be implemented by the implementation class"):
-        tool.parse_version("nothing")
+        ToolSchema("testtool").parse_version("nothing")
 
 
 def test_normalize_version():
@@ -704,30 +692,29 @@ def test_pre_process():
 
 def test_runtime_options(nop_tool_task, running_project):
     tool = nop_tool_task()
-    tool.set_runtime(running_project)
-    assert tool.runtime_options() == []
+    with tool.runtime(running_project) as runtool:
+        assert runtool.runtime_options() == []
 
 
 def test_runtime_options_with_aruments(nop_tool_task, running_project):
     tool = nop_tool_task()
-    tool.set_runtime(running_project)
     tool.set('task', tool.task(), 'option', ['--arg0', '--arg1'])
-    with open("arg2.run", "w") as f:
-        f.write("test")
+    with tool.runtime(running_project) as runtool:
+        with open("arg2.run", "w") as f:
+            f.write("test")
 
-    running_project.set('tool', tool.tool(), 'task', tool.task(), 'script', 'arg2.run')
-    assert tool.runtime_options() == [
-        '--arg0',
-        '--arg1',
-        os.path.abspath("arg2.run")
-    ]
+        running_project.set('tool', tool.tool(), 'task', tool.task(), 'script', 'arg2.run')
+        assert runtool.runtime_options() == [
+            '--arg0',
+            '--arg1',
+            os.path.abspath("arg2.run")
+        ]
 
 
 def test_run_not_implemented():
-    tool = ToolSchema("testtool")
     with pytest.raises(NotImplementedError,
                        match="must be implemented by the implementation class"):
-        tool.run()
+        ToolSchema("testtool").run()
 
 
 def test_post_process():
@@ -737,35 +724,33 @@ def test_post_process():
 
 def test_resetting_state_in_copy(running_project):
     tool = ToolSchema("testtool")
-    tool.set_runtime(running_project)
-    assert tool.schema() is not None
+    with tool.runtime(running_project) as runtool:
+        assert runtool.schema() is not None
 
-    tool = copy.deepcopy(tool)
-    assert tool.schema() is None
+        tool = copy.deepcopy(runtool)
+        assert tool.schema() is None
 
 
 def test_generate_replay_script(nop_tool_task, running_project, monkeypatch):
     tool = nop_tool_task()
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', tool.task(), TaskSchema(tool.task()))
-    tool.set_runtime(running_project)
-
     assert tool.set('exe', 'testexe')
     assert tool.set('vswitch', '-version')
     tool.set('task', tool.task(), 'option', [
         '--arg0', '--arg1', 'arg2', '--arg3', 'arg4', 'arg5',
         '/filehere', 'arg6'])
-
     monkeypatch.setenv("PATH", "this:path")
     monkeypatch.delenv("LD_LIBRARY_PATH", raising=False)
 
-    tool.generate_replay_script('replay.sh', './')
-    assert os.path.exists('replay.sh')
-    assert os.access('replay.sh', os.X_OK)
+    with tool.runtime(running_project) as runtool:
+        runtool.generate_replay_script('replay.sh', './')
+        assert os.path.exists('replay.sh')
+        assert os.access('replay.sh', os.X_OK)
 
-    with open('replay.sh', 'r') as replay:
-        replay_text = "\n".join(replay.read().splitlines())
-    replay_hash = hashlib.md5(replay_text.encode()).hexdigest()
+        with open('replay.sh', 'r') as replay:
+            replay_text = "\n".join(replay.read().splitlines())
+        replay_hash = hashlib.md5(replay_text.encode()).hexdigest()
 
     assert replay_hash == "d86d8d1a38c5acf8a8954670cb0f802c"
 
@@ -774,8 +759,6 @@ def test_generate_replay_script_no_path(nop_tool_task, running_project, monkeypa
     tool = nop_tool_task()
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', tool.task(), TaskSchema(tool.task()))
-    tool.set_runtime(running_project)
-
     assert tool.set('exe', 'testexe')
     assert tool.set('vswitch', '-version')
     tool.set('task', tool.task(), 'option', [
@@ -785,15 +768,16 @@ def test_generate_replay_script_no_path(nop_tool_task, running_project, monkeypa
     monkeypatch.setenv("PATH", "this:path")
     monkeypatch.delenv("LD_LIBRARY_PATH", raising=False)
 
-    tool.generate_replay_script('replay.sh', './', include_path=False)
-    assert os.path.exists('replay.sh')
-    assert os.access('replay.sh', os.X_OK)
+    with tool.runtime(running_project) as runtool:
+        runtool.generate_replay_script('replay.sh', './', include_path=False)
+        assert os.path.exists('replay.sh')
+        assert os.access('replay.sh', os.X_OK)
 
-    with open('replay.sh', 'r') as replay:
-        replay_text = "\n".join(replay.read().splitlines())
-    replay_hash = hashlib.md5(replay_text.encode()).hexdigest()
+        with open('replay.sh', 'r') as replay:
+            replay_text = "\n".join(replay.read().splitlines())
+        replay_hash = hashlib.md5(replay_text.encode()).hexdigest()
 
-    assert replay_hash == "ecf2e9d93e49feb3ce734fc3185e7480"
+        assert replay_hash == "ecf2e9d93e49feb3ce734fc3185e7480"
 
 
 def test_setup_work_directory():
@@ -854,10 +838,9 @@ def test_write_task_manifest_none(nop_tool_task, running_project):
     tool = nop_tool_task()
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', tool.task(), TaskSchema(tool.task()))
-    tool.set_runtime(running_project)
-
-    tool.write_task_manifest('.')
-    assert os.listdir() == []
+    with tool.runtime(running_project) as runtool:
+        runtool.write_task_manifest('.')
+        assert os.listdir() == []
 
 
 @pytest.mark.parametrize("suffix", ("tcl", "json", "yaml"))
@@ -865,37 +848,34 @@ def test_write_task_manifest(nop_tool_task, running_project, suffix):
     tool = nop_tool_task()
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', tool.task(), TaskSchema(tool.task()))
-    tool.set_runtime(running_project)
     tool.set("format", suffix)
-
-    tool.write_task_manifest('.')
-    assert os.listdir() == [f'sc_manifest.{suffix}']
+    with tool.runtime(running_project) as runtool:
+        runtool.write_task_manifest('.')
+        assert os.listdir() == [f'sc_manifest.{suffix}']
 
 
 def test_write_task_manifest_with_backup(nop_tool_task, running_project):
     tool = nop_tool_task()
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', tool.task(), TaskSchema(tool.task()))
-    tool.set_runtime(running_project)
     tool.set("format", "json")
-
-    tool.write_task_manifest('.')
-    assert os.listdir() == ['sc_manifest.json']
-    tool.write_task_manifest('.')
-    assert set(os.listdir()) == set(['sc_manifest.json', 'sc_manifest.json.bak'])
+    with tool.runtime(running_project) as runtool:
+        runtool.write_task_manifest('.')
+        assert os.listdir() == ['sc_manifest.json']
+        runtool.write_task_manifest('.')
+        assert set(os.listdir()) == set(['sc_manifest.json', 'sc_manifest.json.bak'])
 
 
 def test_write_task_manifest_without_backup(nop_tool_task, running_project):
     tool = nop_tool_task()
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', tool.task(), TaskSchema(tool.task()))
-    tool.set_runtime(running_project)
     tool.set("format", "json")
-
-    tool.write_task_manifest('.')
-    assert os.listdir() == ['sc_manifest.json']
-    tool.write_task_manifest('.', backup=False)
-    assert os.listdir() == ['sc_manifest.json']
+    with tool.runtime(running_project) as runtool:
+        runtool.write_task_manifest('.')
+        assert os.listdir() == ['sc_manifest.json']
+        runtool.write_task_manifest('.', backup=False)
+        assert os.listdir() == ['sc_manifest.json']
 
 
 @pytest.mark.parametrize("exitcode", [0, 1])
@@ -903,7 +883,6 @@ def test_run_task(nop_tool_task, running_project, exitcode, monkeypatch):
     tool = nop_tool_task()
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', tool.task(), TaskSchema(tool.task()))
-    tool.set_runtime(running_project)
     assert tool.set("format", "json")
 
     def dummy_popen(*args, **kwargs):
@@ -927,7 +906,8 @@ def test_run_task(nop_tool_task, running_project, exitcode, monkeypatch):
     assert running_project.get("metric", "exetime", step="running", index="0") is None
     assert running_project.get("metric", "memory", step="running", index="0") is None
 
-    assert tool.run_task('.', False, "info", False, None, None) == exitcode
+    with tool.runtime(running_project) as runtool:
+        assert runtool.run_task('.', False, "info", False, None, None) == exitcode
 
     assert running_project.get("record", "toolargs", step="running", index="0") == ""
     assert running_project.get("record", "toolexitcode", step="running", index="0") == exitcode
@@ -939,7 +919,6 @@ def test_run_task_failed_popen(nop_tool_task, running_project, monkeypatch):
     tool = nop_tool_task()
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', tool.task(), TaskSchema(tool.task()))
-    tool.set_runtime(running_project)
     assert tool.set("format", "json")
 
     def dummy_popen(*args, **kwargs):
@@ -950,8 +929,9 @@ def test_run_task_failed_popen(nop_tool_task, running_project, monkeypatch):
         return "found/exe"
     monkeypatch.setattr(tool, 'get_exe', dummy_get_exe)
 
-    with pytest.raises(TaskError, match="Unable to start found/exe: something bad happened"):
-        tool.run_task('.', False, "info", False, None, None)
+    with tool.runtime(running_project) as runtool:
+        with pytest.raises(TaskError, match="Unable to start found/exe: something bad happened"):
+            runtool.run_task('.', False, "info", False, None, None)
 
 
 @pytest.mark.parametrize("nice", [-5, 0, 5])
@@ -959,7 +939,6 @@ def test_run_task_nice(nop_tool_task, running_project, nice, monkeypatch):
     tool = nop_tool_task()
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', tool.task(), TaskSchema(tool.task()))
-    tool.set_runtime(running_project)
     assert tool.set("format", "json")
 
     def dummy_nice(level):
@@ -987,14 +966,14 @@ def test_run_task_nice(nop_tool_task, running_project, nice, monkeypatch):
         return "found/exe"
     monkeypatch.setattr(tool, 'get_exe', dummy_get_exe)
 
-    assert tool.run_task('.', False, "info", False, nice, None) == 0
+    with tool.runtime(running_project) as runtool:
+        assert runtool.run_task('.', False, "info", False, nice, None) == 0
 
 
 def test_run_task_timeout(nop_tool_task, running_project, monkeypatch, patch_psutil):
     tool = nop_tool_task()
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', tool.task(), TaskSchema(tool.task()))
-    tool.set_runtime(running_project)
     assert tool.set("format", "json")
 
     def dummy_popen(*args, **kwargs):
@@ -1018,15 +997,15 @@ def test_run_task_timeout(nop_tool_task, running_project, monkeypatch, patch_psu
         return "found/exe"
     monkeypatch.setattr(tool, 'get_exe', dummy_get_exe)
 
-    with pytest.raises(TaskTimeout, match="^$"):
-        tool.run_task('.', False, "info", False, None, 2)
+    with tool.runtime(running_project) as runtool:
+        with pytest.raises(TaskTimeout, match="^$"):
+            runtool.run_task('.', False, "info", False, None, 2)
 
 
 def test_run_task_memory_limit(nop_tool_task, running_project, monkeypatch, patch_psutil, caplog):
     tool = nop_tool_task()
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', tool.task(), TaskSchema(tool.task()))
-    tool.set_runtime(running_project)
     assert tool.set("format", "json")
 
     def dummy_popen(*args, **kwargs):
@@ -1052,7 +1031,8 @@ def test_run_task_memory_limit(nop_tool_task, running_project, monkeypatch, patc
         return "found/exe"
     monkeypatch.setattr(tool, 'get_exe', dummy_get_exe)
 
-    assert tool.run_task('.', False, "info", False, None, None) == 0
+    with tool.runtime(running_project) as runtool:
+        assert runtool.run_task('.', False, "info", False, None, None) == 0
 
     assert "Current system memory usage is 91.2%" in caplog.text
 
@@ -1062,7 +1042,6 @@ def test_run_task_exceptions_loop(nop_tool_task, running_project, monkeypatch, p
     tool = nop_tool_task()
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', tool.task(), TaskSchema(tool.task()))
-    tool.set_runtime(running_project)
     assert tool.set("format", "json")
 
     def dummy_popen(*args, **kwargs):
@@ -1092,14 +1071,14 @@ def test_run_task_exceptions_loop(nop_tool_task, running_project, monkeypatch, p
         return "found/exe"
     monkeypatch.setattr(tool, 'get_exe', dummy_get_exe)
 
-    assert tool.run_task('.', False, "info", False, None, None) == 0
+    with tool.runtime(running_project) as runtool:
+        assert runtool.run_task('.', False, "info", False, None, None) == 0
 
 
 def test_run_task_contl_c(nop_tool_task, running_project, monkeypatch, patch_psutil, caplog):
     tool = nop_tool_task()
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', tool.task(), TaskSchema(tool.task()))
-    tool.set_runtime(running_project)
     assert tool.set("format", "json")
 
     def dummy_popen(*args, **kwargs):
@@ -1132,8 +1111,9 @@ def test_run_task_contl_c(nop_tool_task, running_project, monkeypatch, patch_psu
         return "found/exe"
     monkeypatch.setattr(tool, 'get_exe', dummy_get_exe)
 
-    with pytest.raises(TaskError, match="^$"):
-        tool.run_task('.', False, "info", False, None, None)
+    with tool.runtime(running_project) as runtool:
+        with pytest.raises(TaskError, match="^$"):
+            runtool.run_task('.', False, "info", False, None, None)
 
     assert "Received ctrl-c." in caplog.text
 
@@ -1143,17 +1123,17 @@ def test_run_task_breakpoint_valid(nop_tool_task, running_project, monkeypatch):
     tool = nop_tool_task()
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', tool.task(), TaskSchema(tool.task()))
-    tool.set_runtime(running_project)
 
     def dummy_get_exe(*args, **kwargs):
         return "found/exe"
     monkeypatch.setattr(tool, 'get_exe', dummy_get_exe)
 
-    with patch("pty.spawn", autospec=True) as spawn:
-        spawn.return_value = 1
-        assert tool.run_task('.', False, "info", True, None, None) == 1
-        spawn.assert_called_once()
-        spawn.assert_called_with(["found/exe"], ANY)
+    with tool.runtime(running_project) as runtool:
+        with patch("pty.spawn", autospec=True) as spawn:
+            spawn.return_value = 1
+            assert runtool.run_task('.', False, "info", True, None, None) == 1
+            spawn.assert_called_once()
+            spawn.assert_called_with(["found/exe"], ANY)
 
 
 def test_run_task_breakpoint_not_used(nop_tool_task, running_project, monkeypatch):
@@ -1161,8 +1141,6 @@ def test_run_task_breakpoint_not_used(nop_tool_task, running_project, monkeypatc
     tool = nop_tool_task()
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', tool.task(), TaskSchema(tool.task()))
-    tool.set_runtime(running_project)
-
     monkeypatch.setattr(dut_tool, "pty", None)
 
     def dummy_get_exe(*args, **kwargs):
@@ -1181,10 +1159,11 @@ def test_run_task_breakpoint_not_used(nop_tool_task, running_project, monkeypatc
         return Popen()
     monkeypatch.setattr(imported_subprocess, 'Popen', dummy_popen)
 
-    with patch("pty.spawn", autospec=True) as spawn:
-        spawn.return_value = 1
-        assert tool.run_task('.', False, "info", True, None, None) == 1
-        spawn.assert_not_called()
+    with tool.runtime(running_project) as runtool:
+        with patch("pty.spawn", autospec=True) as spawn:
+            spawn.return_value = 1
+            assert runtool.run_task('.', False, "info", True, None, None) == 1
+            spawn.assert_not_called()
 
 
 def test_run_task_run(nop_tool_task, running_project, monkeypatch):
@@ -1198,13 +1177,12 @@ def test_run_task_run(nop_tool_task, running_project, monkeypatch):
     tool = RunTool()
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', tool.task(), TaskSchema(tool.task()))
-    tool.set_runtime(running_project)
+    with tool.runtime(running_project) as runtool:
+        assert runtool.run_task('.', False, "info", True, None, None) == 1
+        assert runtool.call_count == 1
 
-    assert tool.run_task('.', False, "info", True, None, None) == 1
-    assert tool.call_count == 1
 
-
-def test_run_task_run_error(nop_tool_task, running_project, monkeypatch):
+def test_run_task_run_error(nop_tool_task, running_project):
     class RunTool(nop_tool_task):
         call_count = 0
 
@@ -1215,11 +1193,10 @@ def test_run_task_run_error(nop_tool_task, running_project, monkeypatch):
     tool = RunTool()
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', tool.task(), TaskSchema(tool.task()))
-    tool.set_runtime(running_project)
-
-    with pytest.raises(ValueError, match="run error"):
-        tool.run_task('.', False, "info", True, None, None)
-    assert tool.call_count == 1
+    with tool.runtime(running_project) as runtool:
+        with pytest.raises(ValueError, match="run error"):
+            runtool.run_task('.', False, "info", True, None, None)
+        assert runtool.call_count == 1
 
 
 @pytest.mark.skipif(imported_resource is None, reason="resource not available")
@@ -1234,26 +1211,26 @@ def test_run_task_run_failed_resource(nop_tool_task, running_project, monkeypatc
     tool = RunTool()
     # Insert empty task to provide access
     EditableSchema(tool).insert('task', tool.task(), TaskSchema(tool.task()))
-    tool.set_runtime(running_project)
 
     def dummy_resource(*args, **kwargs):
         raise PermissionError
     monkeypatch.setattr(imported_resource, "getrusage", dummy_resource)
 
-    assert tool.run_task('.', False, "info", True, None, None) == 1
-    assert tool.call_count == 1
+    with tool.runtime(running_project) as runtool:
+        assert runtool.run_task('.', False, "info", True, None, None) == 1
+        assert runtool.call_count == 1
 
 
 def test_select_input_nodes_entry(running_project):
     tool = ToolSchema("testtool")
-    tool.set_runtime(running_project)
-    assert tool.select_input_nodes() == []
+    with tool.runtime(running_project) as runtool:
+        assert runtool.select_input_nodes() == []
 
 
 def test_select_input_nodes_entry_has_input(running_project):
     tool = ToolSchema("testtool")
-    tool.set_runtime(running_project, step="notrunning", index="0")
-    assert tool.select_input_nodes() == [('running', '0')]
+    with tool.runtime(running_project, step="notrunning", index="0") as runtool:
+        assert runtool.select_input_nodes() == [('running', '0')]
 
 
 def test_task_add_parameter():

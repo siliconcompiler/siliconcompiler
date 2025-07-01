@@ -64,9 +64,9 @@ def _check_flowgraph_io(chip, nodes=None):
             else:
                 in_tool, _ = get_tool_task(chip, in_step, in_index, flow=flow)
                 task_class = chip.get("tool", in_tool, field="schema")
-                task_class.set_runtime(chip, step=in_step, index=in_index)
 
-                inputs = task_class.get_output_files()
+                with task_class.runtime(chip, step=in_step, index=in_index) as task:
+                    inputs = task.get_output_files()
 
             for inp in inputs:
                 node_inp = input_file_node_name(inp, in_step, in_index)

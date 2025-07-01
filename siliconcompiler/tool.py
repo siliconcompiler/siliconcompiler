@@ -117,9 +117,22 @@ class ToolSchema(NamedSchema):
         schema = EditableSchema(self)
         schema.insert("task", "default", TaskSchema(None))
 
-        self.set_runtime(None)
+        self.__set_runtime(None)
 
-    def set_runtime(self, chip, step=None, index=None):
+    @contextlib.contextmanager
+    def runtime(self, chip, step=None, index=None):
+        '''
+        Sets the runtime information needed to properly execute a task.
+        Note: unstable API
+
+        Args:
+            chip (:class:`Chip`): root schema for the runtime information
+        '''
+        obj_copy = self.copy()
+        obj_copy.__set_runtime(chip, step=step, index=index)
+        yield obj_copy
+
+    def __set_runtime(self, chip, step=None, index=None):
         '''
         Sets the runtime information needed to properly execute a task.
         Note: unstable API
@@ -817,7 +830,7 @@ class ToolSchema(NamedSchema):
         self.__dict__ = state
 
         # Reinit runtime information
-        self.set_runtime(None)
+        self.__set_runtime(None)
 
     def get_output_files(self):
         return set(self.get("task", self.task(), "output", step=self.__step, index=self.__index))
@@ -890,6 +903,11 @@ class ToolSchemaTmp(ToolSchema):
 
     def task(self):
         return self.schema("flow").get(*self.node(), 'task')
+
+    def get_exe(self):
+        if self.tool() == "execute" and self.task() == "exec_input":
+            return self.schema().get("tool", "execute", "exe")
+        return super().get_exe()
 
     def get_output_files(self):
         _, task = self.__tool_task_modules()

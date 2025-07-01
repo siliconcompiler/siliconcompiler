@@ -217,7 +217,8 @@ class Scheduler:
         # Setup tools for all nodes to run
         for layer_nodes in self.__flow.get_execution_order():
             for step, index in layer_nodes:
-                node_kept = self.__tasks[(step, index)].setup()
+                with self.__tasks[(step, index)].runtime():
+                    node_kept = self.__tasks[(step, index)].setup()
                 if not node_kept and (step, index) in extra_setup_nodes:
                     # remove from previous node data
                     del extra_setup_nodes[(step, index)]
@@ -242,12 +243,13 @@ class Scheduler:
                 if self.__record.get("status", step=step, index=index) != NodeStatus.SUCCESS:
                     continue
 
-                if self.__tasks[(step, index)].requires_run():
-                    # This node must be run
-                    self.__mark_pending(step, index)
-                elif (step, index) in extra_setup_nodes:
-                    # import old information
-                    Journal.access(extra_setup_nodes[(step, index)]).replay(self.__chip.schema)
+                with self.__tasks[(step, index)].runtime():
+                    if self.__tasks[(step, index)].requires_run():
+                        # This node must be run
+                        self.__mark_pending(step, index)
+                    elif (step, index) in extra_setup_nodes:
+                        # import old information
+                        Journal.access(extra_setup_nodes[(step, index)]).replay(self.__chip.schema)
 
         self.__print_status("After requires run")
 
@@ -267,7 +269,8 @@ class Scheduler:
         # Clean nodes marked pending
         for step, index in self.__flow_runtime.get_nodes():
             if NodeStatus.is_waiting(self.__record.get('status', step=step, index=index)):
-                self.__tasks[(step, index)].clean_directory()
+                with self.__tasks[(step, index)].runtime():
+                    self.__tasks[(step, index)].clean_directory()
 
     def __check_display(self):
         '''
