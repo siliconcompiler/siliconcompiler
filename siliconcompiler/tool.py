@@ -333,7 +333,7 @@ class ToolSchema(NamedSchema):
                 version = Version(normalized_version)
             except InvalidVersion:
                 self.__logger.error(f'Version {normalized_version} reported by '
-                                    f'{self.tool()}/{self.task()} does  not match standard.')
+                                    f'{self.tool()}/{self.task()} does not match standard.')
                 return False
 
             try:
