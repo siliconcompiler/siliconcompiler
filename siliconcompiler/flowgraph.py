@@ -1,4 +1,5 @@
 import inspect
+import importlib
 
 from siliconcompiler import Schema
 from siliconcompiler.schema import BaseSchema, NamedSchema
@@ -30,6 +31,8 @@ class FlowgraphSchema(NamedSchema):
         self.__cache_execution_order_reverse = None
 
         self.__cache_node_outputs = None
+
+        self.__cache_tasks = None
 
     def node(self, step, task, index=0):
         '''
@@ -500,6 +503,32 @@ class FlowgraphSchema(NamedSchema):
                     logger.error(f"{' -> '.join(loop_path)} forms a loop in {self.name()}")
 
         return not error
+
+    def get_task_module(self, step, index):
+        """
+        Returns the module for a given task
+
+        Args:
+            step (str): Step name
+            index (int/str): Step index
+        """
+
+        index = str(index)
+
+        if (step, index) not in self.get_nodes():
+            raise ValueError(f"{step}/{index} is not a valid node in {self.name()}.")
+
+        taskmodule = self.get(step, index, 'taskmodule')
+
+        # Create cache
+        if self.__cache_tasks is None:
+            self.__cache_tasks = {}
+
+        if taskmodule in self.__cache_tasks:
+            return self.__cache_tasks[taskmodule]
+
+        self.__cache_tasks[taskmodule] = importlib.import_module(taskmodule)
+        return self.__cache_tasks[taskmodule]
 
 
 class RuntimeFlowgraph:
