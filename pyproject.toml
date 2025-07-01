@@ -40,7 +40,7 @@ dependencies = [
     "distro == 1.9.0",
     "packaging >= 21.3, < 25",
     "psutil >= 5.8.0",
-    "Pillow == 11.2.1",
+    "Pillow == 11.3.0",
     "GitPython == 3.1.44",
     "lambdapdk >= 0.1.47",
     "PyGithub == 2.6.1",
