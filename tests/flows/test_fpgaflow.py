@@ -569,6 +569,5 @@ def test_vpr_gen_post_implementation_netlist():
                  step='route', index='0')[0]
 
     node = SchedulerNode(chip, step='route', index='0')
-    node.init_state()
     with node.runtime():
         assert '--gen_post_synthesis_netlist' in node.task.get_runtime_arguments()

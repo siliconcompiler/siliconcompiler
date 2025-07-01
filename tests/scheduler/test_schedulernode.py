@@ -1454,7 +1454,6 @@ def test_copy_from(chip, caplog):
     chip.logger.setLevel(logging.INFO)
 
     node = SchedulerNode(chip, "stepone", "0")
-    node.init_state()
     with node.runtime():
         node.task.setup_work_directory(node.workdir)
         node.task.generate_replay_script(node.replay_script, node.workdir)

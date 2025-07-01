@@ -94,7 +94,6 @@ class TaskScheduler:
 
             task["parent_pipe"], pipe = multiprocessing.Pipe()
             task["node"].set_queue(pipe, self.__log_queue)
-            task["node"].init_state()  # reinit access to remove holdover access
 
             task["proc"] = multiprocessing.Process(target=task["node"].run)
             init_funcs.add(task["node"].init)
