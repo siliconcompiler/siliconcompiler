@@ -1032,3 +1032,19 @@ def test_runtime_validate_disjoint(caplog):
         to_steps=["steptwo"], logger=logging.getLogger()) is False
 
     assert "no path from stepone/0 to steptwo/0 in the testflow flowgraph" in caplog.text
+
+
+def test_get_task_module_invalid():
+    with pytest.raises(ValueError, match="teststep/testindex is not a valid node in testflow"):
+        FlowgraphSchema("testflow").get_task_module("teststep", "testindex")
+
+
+def test_get_task_module(large_flow):
+    assert large_flow.get_task_module("joinone", "0") is join
+    assert large_flow.get_task_module("stepone", "0") is nop
+
+
+def test_get_task_module_error(large_flow):
+    assert large_flow.set("joinone", "0", "taskmodule", "notvalid.module")
+    with pytest.raises(ModuleNotFoundError):
+        large_flow.get_task_module("joinone", "0")
