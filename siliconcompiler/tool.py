@@ -904,6 +904,11 @@ class ToolSchemaTmp(ToolSchema):
     def task(self):
         return self.schema("flow").get(*self.node(), 'task')
 
+    def get_exe(self):
+        if self.tool() == "execute" and self.task() == "exec_input":
+            return self.schema().get("tool", "execute", "exe")
+        return super().get_exe()
+
     def get_output_files(self):
         _, task = self.__tool_task_modules()
         method = self.__module_func("_gather_outputs", [task])
