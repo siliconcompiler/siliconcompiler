@@ -137,8 +137,6 @@ class ToolSchema(NamedSchema):
 
         self.__step = step
         self.__index = index
-        self.__tool = None
-        self.__task = None
 
         self.__schema_record = None
         self.__schema_metric = None
@@ -159,8 +157,6 @@ class ToolSchema(NamedSchema):
             if not flow:
                 raise RuntimeError("flow not specified")
             self.__schema_flow = self.__schema_full.get("flowgraph", flow, field="schema")
-            self.__tool = self.__schema_flow.get(self.__step, self.__index, 'tool')
-            self.__task = self.__schema_flow.get(self.__step, self.__index, 'task')
 
     def node(self):
         '''
@@ -173,10 +169,10 @@ class ToolSchema(NamedSchema):
     def tool(self):
         '''
         Returns:
-            task name
+            tool name
         '''
 
-        return self.__tool
+        raise NotImplementedError("tool name must be implemented by the child class")
 
     def task(self):
         '''
@@ -184,7 +180,7 @@ class ToolSchema(NamedSchema):
             task name
         '''
 
-        return self.__task
+        raise NotImplementedError("task name must be implemented by the child class")
 
     def logger(self):
         '''
@@ -265,7 +261,7 @@ class ToolSchema(NamedSchema):
         cmdlist = [exe]
         cmdlist.extend(veropt)
 
-        self.__logger.debug(f'Running {self.name()} version check: {" ".join(cmdlist)}')
+        self.__logger.debug(f'Running {self.tool()}/{self.task()} version check: {" ".join(cmdlist)}')
 
         proc = subprocess.run(cmdlist,
                               stdin=subprocess.DEVNULL,
@@ -280,9 +276,9 @@ class ToolSchema(NamedSchema):
         try:
             version = self.parse_version(proc.stdout)
         except NotImplementedError:
-            raise NotImplementedError(f'{self.name()} does not implement parse_version()')
+            raise NotImplementedError(f'{self.tool()}/{self.task()} does not implement parse_version()')
         except Exception as e:
-            self.__logger.error(f'{self.name()} failed to parse version string: {proc.stdout}')
+            self.__logger.error(f'{self.tool()}/{self.task()} failed to parse version string: {proc.stdout}')
             raise e from None
 
         self.__logger.info(f"Tool '{exe_base}' found with version '{version}' "
@@ -326,14 +322,14 @@ class ToolSchema(NamedSchema):
             try:
                 normalized_version = self.normalize_version(reported_version)
             except Exception as e:
-                self.__logger.error(f'Unable to normalize version for {self.name()}: '
+                self.__logger.error(f'Unable to normalize version for {self.tool()}/{self.task()}: '
                                     f'{reported_version}')
                 raise e from None
 
             try:
                 version = Version(normalized_version)
             except InvalidVersion:
-                self.__logger.error(f'Version {normalized_version} reported by {self.name()} does '
+                self.__logger.error(f'Version {normalized_version} reported by {self.tool()}/{self.task()} does '
                                     'not match standard.')
                 return False
 
@@ -342,7 +338,7 @@ class ToolSchema(NamedSchema):
                     f'{op}{self.normalize_version(ver)}' for op, ver in specs_list]
                 normalized_specs = ','.join(normalized_spec_list)
             except Exception as e:
-                self.__logger.error(f'Unable to normalize versions for {self.name()}: '
+                self.__logger.error(f'Unable to normalize versions for {self.tool()}/{self.task()}: '
                                     f'{",".join([f"{op}{ver}" for op, ver in specs_list])}')
                 raise e from None
 
@@ -357,7 +353,7 @@ class ToolSchema(NamedSchema):
                 return True
 
         allowedstr = '; '.join(spec_sets)
-        self.__logger.error(f"Version check failed for {self.name()}. Check installation.")
+        self.__logger.error(f"Version check failed for {self.tool()}/{self.task()}. Check installation.")
         self.__logger.error(f"Found version {reported_version}, "
                             f"did not satisfy any version specifier set {allowedstr}.")
         return False
@@ -403,8 +399,8 @@ class ToolSchema(NamedSchema):
                     envvars[var] = val
 
         # Add task specific vars
-        for env in self.getkeys('task', self.__task, 'env'):
-            envvars[env] = self.get('task', self.__task, 'env', env,
+        for env in self.getkeys('task', self.task(), 'env'):
+            envvars[env] = self.get('task', self.task(), 'env', env,
                                     step=self.__step, index=self.__index)
 
         return envvars
@@ -421,7 +417,7 @@ class ToolSchema(NamedSchema):
         try:
             cmdargs.extend(self.runtime_options())
         except Exception as e:
-            self.__logger.error(f'Failed to get runtime options for {self.name()}/{self.__task}')
+            self.__logger.error(f'Failed to get runtime options for {self.tool()}/{self.task()}')
             raise e from None
 
         # Cleanup args
@@ -533,9 +529,9 @@ class ToolSchema(NamedSchema):
         Args:
             io_type (str): name of io type
         '''
-        suffix = self.get('task', self.__task, io_type, 'suffix',
+        suffix = self.get('task', self.task(), io_type, 'suffix',
                           step=self.__step, index=self.__index)
-        destination = self.get('task', self.__task, io_type, 'destination',
+        destination = self.get('task', self.task(), io_type, 'destination',
                                step=self.__step, index=self.__index)
 
         io_file = None
@@ -583,13 +579,13 @@ class ToolSchema(NamedSchema):
         TERMINATE_TIMEOUT = 5
 
         terminate_process(proc.pid, timeout=TERMINATE_TIMEOUT)
-        self.__logger.info(f'Waiting for {self.name()} to exit...')
+        self.__logger.info(f'Waiting for {self.tool()}/{self.task()} to exit...')
         try:
             proc.wait(timeout=TERMINATE_TIMEOUT)
         except subprocess.TimeoutExpired:
             if proc.poll() is None:
-                self.__logger.warning(f'{self.name()} did not exit within {TERMINATE_TIMEOUT} '
-                                      'seconds. Terminating...')
+                self.__logger.warning(f'{self.tool()}/{self.task()} did not exit within '
+                                      f'{TERMINATE_TIMEOUT} seconds. Terminating...')
                 terminate_process(proc.pid, timeout=TERMINATE_TIMEOUT)
 
     def run_task(self, workdir, quiet, loglevel, breakpoint, nice, timeout):
@@ -660,7 +656,7 @@ class ToolSchema(NamedSchema):
                             contextlib.redirect_stdout(stdout_writer):
                         retcode = self.run()
             except Exception as e:
-                self.__logger.error(f'Failed in run() for {self.name()}/{self.__task}: {e}')
+                self.__logger.error(f'Failed in run() for {self.tool()}/{self.task()}: {e}')
                 utils.print_traceback(self.__logger, e)
                 raise e
             finally:
@@ -819,7 +815,7 @@ class ToolSchema(NamedSchema):
         self.set_runtime(None)
 
     def get_output_files(self):
-        return set(self.get("task", self.__task, "output", step=self.__step, index=self.__index))
+        return set(self.get("task", self.task(), "output", step=self.__step, index=self.__index))
 
     ###############################################################
     def parse_version(self, stdout):
@@ -845,11 +841,11 @@ class ToolSchema(NamedSchema):
 
     def runtime_options(self):
         cmdargs = []
-        cmdargs.extend(self.get('task', self.__task, 'option',
+        cmdargs.extend(self.get('task', self.task(), 'option',
                                 step=self.__step, index=self.__index))
 
         # Add scripts files / TODO:
-        scripts = self.__chip.find_files('tool', self.__tool, 'task', self.__task, 'script',
+        scripts = self.__chip.find_files('tool', self.tool(), 'task', self.task(), 'script',
                                          step=self.__step, index=self.__index)
 
         cmdargs.extend(scripts)
@@ -883,6 +879,12 @@ class ToolSchemaTmp(ToolSchema):
         return \
             self._ToolSchema__chip._get_tool_module(step, index, flow=flow), \
             self._ToolSchema__chip._get_task_module(step, index, flow=flow)
+
+    def tool(self):
+        return self.schema("flow").get(*self.node(), 'tool')
+
+    def task(self):
+        return self.schema("flow").get(*self.node(), 'task')
 
     def get_output_files(self):
         _, task = self.__tool_task_modules()
