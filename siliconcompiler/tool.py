@@ -261,7 +261,8 @@ class ToolSchema(NamedSchema):
         cmdlist = [exe]
         cmdlist.extend(veropt)
 
-        self.__logger.debug(f'Running {self.tool()}/{self.task()} version check: {" ".join(cmdlist)}')
+        self.__logger.debug(f'Running {self.tool()}/{self.task()} version check: '
+                            f'{" ".join(cmdlist)}')
 
         proc = subprocess.run(cmdlist,
                               stdin=subprocess.DEVNULL,
@@ -276,9 +277,11 @@ class ToolSchema(NamedSchema):
         try:
             version = self.parse_version(proc.stdout)
         except NotImplementedError:
-            raise NotImplementedError(f'{self.tool()}/{self.task()} does not implement parse_version()')
+            raise NotImplementedError(f'{self.tool()}/{self.task()} does not implement '
+                                      'parse_version()')
         except Exception as e:
-            self.__logger.error(f'{self.tool()}/{self.task()} failed to parse version string: {proc.stdout}')
+            self.__logger.error(f'{self.tool()}/{self.task()} failed to parse version string: '
+                                f'{proc.stdout}')
             raise e from None
 
         self.__logger.info(f"Tool '{exe_base}' found with version '{version}' "
@@ -329,8 +332,8 @@ class ToolSchema(NamedSchema):
             try:
                 version = Version(normalized_version)
             except InvalidVersion:
-                self.__logger.error(f'Version {normalized_version} reported by {self.tool()}/{self.task()} does '
-                                    'not match standard.')
+                self.__logger.error(f'Version {normalized_version} reported by '
+                                    f'{self.tool()}/{self.task()} does  not match standard.')
                 return False
 
             try:
@@ -338,7 +341,8 @@ class ToolSchema(NamedSchema):
                     f'{op}{self.normalize_version(ver)}' for op, ver in specs_list]
                 normalized_specs = ','.join(normalized_spec_list)
             except Exception as e:
-                self.__logger.error(f'Unable to normalize versions for {self.tool()}/{self.task()}: '
+                self.__logger.error(f'Unable to normalize versions for '
+                                    f'{self.tool()}/{self.task()}: '
                                     f'{",".join([f"{op}{ver}" for op, ver in specs_list])}')
                 raise e from None
 
@@ -353,7 +357,8 @@ class ToolSchema(NamedSchema):
                 return True
 
         allowedstr = '; '.join(spec_sets)
-        self.__logger.error(f"Version check failed for {self.tool()}/{self.task()}. Check installation.")
+        self.__logger.error(f"Version check failed for {self.tool()}/{self.task()}. "
+                            "Check installation.")
         self.__logger.error(f"Found version {reported_version}, "
                             f"did not satisfy any version specifier set {allowedstr}.")
         return False
