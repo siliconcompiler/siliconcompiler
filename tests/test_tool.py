@@ -101,6 +101,9 @@ def running_project():
             schema.insert("tool", "default", ToolSchema(None))
             schema.insert("package", PackageSchema())
 
+        def top(self):
+            return self.design
+
     project = TestProject()
     project.set('option', 'flow', 'testflow')
     project.set('arg', 'step', "running")
