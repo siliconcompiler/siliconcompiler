@@ -648,6 +648,10 @@ class ToolSchema(NamedSchema):
     def __abspath_schema(self):
         root = self.schema()
         schema = root.copy()
+
+        strict = root.get("option", "strict")
+        root.set("option", "strict", False)
+
         for keypath in root.allkeys():
             paramtype = schema.get(*keypath, field='type')
             if 'file' not in paramtype and 'dir' not in paramtype:
@@ -668,6 +672,9 @@ class ToolSchema(NamedSchema):
                         else:
                             abspaths = os.path.relpath(abspaths, self.__relpath)
                     schema.set(*keypath, abspaths, step=step, index=index)
+
+        root.set("option", "strict", strict)
+
         return schema
 
     def __get_io_file(self, io_type):
