@@ -1,5 +1,6 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 
+import copy
 import tarfile
 import os
 import pathlib
@@ -3316,3 +3317,6 @@ class Chip:
 
         # Reinitialize logger on restore
         self._init_logger()
+
+    def copy(self):
+        return copy.deepcopy(self)
