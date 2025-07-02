@@ -26,7 +26,7 @@ class DependencySchema(BaseSchema):
                 '[str]',
                 scope=Scope.GLOBAL,
                 lock=True,
-                shorthelp="List of dependencies",
+                shorthelp="List of package dependencies",
                 help="List of named object dependencies included via add_dep()."))
 
         schema.insert(
@@ -34,10 +34,10 @@ class DependencySchema(BaseSchema):
             Parameter(
                 'str',
                 scope=Scope.GLOBAL,
-                shorthelp="Package: package root",
+                shorthelp="Package root path",
                 example=[
-                    "api: chip.set('source', "
-                    "'freepdk45_data', 'path', 'ssh://git@github.com/siliconcompiler/freepdk45/')"],
+                    "api: chip.set('package', "
+                    "'freepdk45_data', 'root', 'ssh://git@github.com/siliconcompiler/freepdk45/')"],
                 help=trim("""
                     Package root path, this points the location where the package data can be
                     retrieved or accessed.
@@ -60,9 +60,9 @@ class DependencySchema(BaseSchema):
             Parameter(
                 'str',
                 scope=Scope.GLOBAL,
-                shorthelp="Package: package tag/version",
+                shorthelp="Package reference tag/version",
                 example=[
-                    "api: chip.set('source', 'freepdk45_data', 'ref', '07ec4aa')"],
+                    "api: chip.set('package', 'freepdk45_data', 'tag', '07ec4aa')"],
                 help=trim("""
                     Package reference tag. The meaning of the this tag depends on the context of
                     the root.
