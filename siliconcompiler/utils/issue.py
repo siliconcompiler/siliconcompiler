@@ -145,7 +145,6 @@ def generate_testcase(chip,
     chip.collect(directory=collection_dir, verbose=verbose_collect)
 
     # Set relative path to generate runnable files
-    chip._relative_path = new_work_dir
     chip.cwd = issue_dir.name
 
     current_work_dir = os.getcwd()
@@ -155,7 +154,7 @@ def generate_testcase(chip,
 
     task_class = chip.get("tool", tool, field="schema")
 
-    with task_class.runtime(chip, step=step, index=index) as task:
+    with task_class.runtime(chip, step=step, index=index, relpath=new_work_dir) as task:
         # Rewrite replay.sh
         prev_quiet = chip.get('option', 'quiet', step=step, index=index)
         chip.set('option', 'quiet', True, step=step, index=index)
@@ -167,7 +166,6 @@ def generate_testcase(chip,
         chip.set('option', 'quiet', prev_quiet, step=step, index=index)
 
         is_python_tool = task.get_exe() is None
-
         if not is_python_tool:
             task.generate_replay_script(
                 f'{chip.getworkdir(step=step, index=index)}/replay.sh',
@@ -176,9 +174,6 @@ def generate_testcase(chip,
 
         # Rewrite tool manifest
         task.write_task_manifest('.')
-
-    # Restore normal path behavior
-    chip._relative_path = None
 
     # Restore current directory
     chip.cwd = original_cwd

@@ -1,4 +1,6 @@
 import contextlib
+import csv
+import gzip
 import logging
 import os
 import psutil
@@ -8,6 +10,7 @@ import shutil
 import subprocess
 import sys
 import time
+import yaml
 
 try:
     import resource
@@ -25,12 +28,14 @@ import os.path
 from packaging.version import Version, InvalidVersion
 from packaging.specifiers import SpecifierSet, InvalidSpecifier
 
-from siliconcompiler.schema import NamedSchema
+from siliconcompiler.schema import NamedSchema, Journal
 from siliconcompiler.schema import EditableSchema, Parameter, PerNode, Scope
+from siliconcompiler.schema.parametertype import NodeType
 from siliconcompiler.schema.utils import trim
 
 from siliconcompiler import utils
 from siliconcompiler import sc_open
+from siliconcompiler import Schema
 
 from siliconcompiler.record import RecordTool
 from siliconcompiler.flowgraph import RuntimeFlowgraph
@@ -120,7 +125,7 @@ class ToolSchema(NamedSchema):
         self.__set_runtime(None)
 
     @contextlib.contextmanager
-    def runtime(self, chip, step=None, index=None):
+    def runtime(self, chip, step=None, index=None, relpath=None):
         '''
         Sets the runtime information needed to properly execute a task.
         Note: unstable API
@@ -129,10 +134,10 @@ class ToolSchema(NamedSchema):
             chip (:class:`Chip`): root schema for the runtime information
         '''
         obj_copy = self.copy()
-        obj_copy.__set_runtime(chip, step=step, index=index)
+        obj_copy.__set_runtime(chip, step=step, index=index, relpath=relpath)
         yield obj_copy
 
-    def __set_runtime(self, chip, step=None, index=None):
+    def __set_runtime(self, chip, step=None, index=None, relpath=None):
         '''
         Sets the runtime information needed to properly execute a task.
         Note: unstable API
@@ -143,10 +148,17 @@ class ToolSchema(NamedSchema):
         self.__chip = None
         self.__schema_full = None
         self.__logger = None
+        self.__design_name = None
+        self.__design_top = None
+        self.__cwd = None
+        self.__relpath = relpath
         if chip:
             self.__chip = chip
             self.__schema_full = chip.schema
             self.__logger = chip.logger
+            self.__design_name = chip.design
+            self.__design_top = chip.top()
+            self.__cwd = chip.cwd
 
         self.__step = step
         self.__index = index
@@ -401,8 +413,8 @@ class ToolSchema(NamedSchema):
         if include_path:
             path = self.find_files(
                 "path", step=self.__step, index=self.__index,
-                packages=self.__chip.get("package", field="schema").get_resolvers(),
-                cwd=self.__chip.cwd,
+                packages=self.schema().get("package", field="schema").get_resolvers(),
+                cwd=self.__cwd,
                 missing_ok=True)
 
             envvars["PATH"] = os.getenv("PATH", os.defpath)
@@ -433,7 +445,17 @@ class ToolSchema(NamedSchema):
 
         cmdargs = []
         try:
-            cmdargs.extend(self.runtime_options())
+            if self.__relpath:
+                args = []
+                for arg in self.runtime_options():
+                    if os.path.isabs(arg) and os.path.exists(arg):
+                        args.append(os.path.relpath(arg, self.__relpath))
+                    else:
+                        args.append(arg)
+            else:
+                args = self.runtime_options()
+
+            cmdargs.extend(args)
         except Exception as e:
             self.__logger.error(f'Failed to get runtime options for {self.tool()}/{self.task()}')
             raise e from None
@@ -459,7 +481,7 @@ class ToolSchema(NamedSchema):
         replay_opts["executable"] = self.get('exe')
         replay_opts["step"] = self.__step
         replay_opts["index"] = self.__index
-        replay_opts["cfg_file"] = f"inputs/{self.__chip.design}.pkg.json"
+        replay_opts["cfg_file"] = f"inputs/{self.__design_name}.pkg.json"
         replay_opts["node_only"] = 0 if replay_opts["executable"] else 1
 
         vswitch = self.get('vswitch')
@@ -519,6 +541,66 @@ class ToolSchema(NamedSchema):
         os.makedirs(os.path.join(workdir, 'outputs'), exist_ok=True)
         os.makedirs(os.path.join(workdir, 'reports'), exist_ok=True)
 
+    def __write_yaml_manifest(self, fout, manifest):
+        class YamlIndentDumper(yaml.Dumper):
+            def increase_indent(self, flow=False, indentless=False):
+                return super().increase_indent(flow=flow, indentless=indentless)
+
+        fout.write(yaml.dump(manifest.getdict(), Dumper=YamlIndentDumper,
+                             default_flow_style=False))
+
+    def __write_tcl_manifest(self, fout, manifest):
+        template = utils.get_file_template('tcl/manifest.tcl.j2')
+        tcl_set_cmds = []
+        for key in sorted(manifest.allkeys()):
+            # print out all non default values
+            if 'default' in key:
+                continue
+
+            param = manifest.get(*key, field=None)
+
+            # create a TCL dict
+            keystr = ' '.join([NodeType.to_tcl(keypart, 'str') for keypart in key])
+
+            valstr = param.gettcl(step=self.__step, index=self.__index)
+            if valstr is None:
+                continue
+
+            # Ensure empty values get something
+            if valstr == '':
+                valstr = '{}'
+
+            tcl_set_cmds.append(f"dict set sc_cfg {keystr} {valstr}")
+
+        if template:
+            fout.write(template.render(manifest_dict='\n'.join(tcl_set_cmds),
+                                       scroot=os.path.abspath(
+                                            os.path.join(os.path.dirname(__file__))),
+                                       record_access="get" in Journal.access(self).get_types(),
+                                       record_access_id=Schema._RECORD_ACCESS_IDENTIFIER))
+        else:
+            for cmd in tcl_set_cmds:
+                fout.write(cmd + '\n')
+            fout.write('\n')
+
+    def __write_csv_manifest(self, fout, manifest):
+        csvwriter = csv.writer(fout)
+        csvwriter.writerow(['Keypath', 'Value'])
+
+        for key in sorted(manifest.allkeys()):
+            keypath = ','.join(key)
+            param = manifest.get(*key, field=None)
+            if param.get(field="pernode").is_never():
+                value = param.get()
+            else:
+                value = param.get(step=self.__step, index=self.__index)
+
+            if isinstance(value, (set, list)):
+                for item in value:
+                    csvwriter.writerow([keypath, item])
+            else:
+                csvwriter.writerow([keypath, value])
+
     def write_task_manifest(self, directory, backup=True):
         '''
         Write the manifest needed for the task
@@ -537,8 +619,65 @@ class ToolSchema(NamedSchema):
         if backup and os.path.exists(manifest_path):
             shutil.copyfile(manifest_path, f'{manifest_path}.bak')
 
-        # TODO: pull in TCL/yaml here
-        self.__chip.write_manifest(manifest_path, abspath=True)
+        # Generate abs paths
+        schema = self.__abspath_schema()
+
+        if re.search(r'\.json(\.gz)?$', manifest_path):
+            schema.write_manifest(manifest_path)
+        else:
+            try:
+                # format specific dumping
+                if manifest_path.endswith('.gz'):
+                    fout = gzip.open(manifest_path, 'wt', encoding='UTF-8')
+                elif re.search(r'\.csv$', manifest_path):
+                    # Files written using csv library should be opened with newline=''
+                    # https://docs.python.org/3/library/csv.html#id3
+                    fout = open(manifest_path, 'w', newline='')
+                else:
+                    fout = open(manifest_path, 'w')
+
+                if re.search(r'(\.yaml|\.yml)(\.gz)?$', manifest_path):
+                    self.__write_yaml_manifest(fout, schema)
+                elif re.search(r'\.tcl(\.gz)?$', manifest_path):
+                    self.__write_tcl_manifest(fout, schema)
+                elif re.search(r'\.csv(\.gz)?$', manifest_path):
+                    self.__write_csv_manifest(fout, schema)
+                else:
+                    raise ValueError(f"{manifest_path} is not a recognized path type")
+            finally:
+                fout.close()
+
+    def __abspath_schema(self):
+        root = self.schema()
+        schema = root.copy()
+
+        strict = root.get("option", "strict")
+        root.set("option", "strict", False)
+
+        for keypath in root.allkeys():
+            paramtype = schema.get(*keypath, field='type')
+            if 'file' not in paramtype and 'dir' not in paramtype:
+                # only do something if type is file or dir
+                continue
+
+            for value, step, index in root.get(*keypath, field=None).getvalues():
+                if not value:
+                    continue
+                abspaths = root.find_files(*keypath, missing_ok=True, step=step, index=index)
+                if isinstance(abspaths, (set, list)) and None in abspaths:
+                    # Lists may not contain None
+                    schema.set(*keypath, [], step=step, index=index)
+                else:
+                    if self.__relpath:
+                        if isinstance(abspaths, (set, list)):
+                            abspaths = [os.path.relpath(path, self.__relpath) for path in abspaths]
+                        else:
+                            abspaths = os.path.relpath(abspaths, self.__relpath)
+                    schema.set(*keypath, abspaths, step=step, index=index)
+
+        root.set("option", "strict", strict)
+
+        return schema
 
     def __get_io_file(self, io_type):
         '''
@@ -558,7 +697,7 @@ class ToolSchema(NamedSchema):
             io_file = f"{self.__step}.{suffix}"
             io_log = True
         elif destination == 'output':
-            io_file = os.path.join('outputs', f"{self.__chip.top()}.{suffix}")
+            io_file = os.path.join('outputs', f"{self.__design_top}.{suffix}")
         elif destination == 'none':
             io_file = os.devnull
 
@@ -850,7 +989,7 @@ class ToolSchema(NamedSchema):
         runtime = RuntimeFlowgraph(
             flow,
             from_steps=set([step for step, _ in flow.get_entry_nodes()]),
-            prune_nodes=self.__chip.get('option', 'prune'))
+            prune_nodes=self.schema().get('option', 'prune'))
 
         return runtime.get_node_inputs(self.__step, self.__index, record=self.schema("record"))
 
@@ -908,6 +1047,11 @@ class ToolSchemaTmp(ToolSchema):
         if self.tool() == "execute" and self.task() == "exec_input":
             return self.schema().get("tool", "execute", "exe")
         return super().get_exe()
+
+    def schema(self, type=None):
+        if type is None:
+            return self._ToolSchema__chip
+        return super().schema(type)
 
     def get_output_files(self):
         _, task = self.__tool_task_modules()

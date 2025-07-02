@@ -94,14 +94,15 @@ def running_project():
             schema.insert("arg", "step", Parameter("str"))
             schema.insert("arg", "index", Parameter("str"))
             schema.insert("option", "flow", Parameter("str"))
+            schema.insert("option", "strict", Parameter("bool"))
             schema.insert("option", "prune", Parameter("[(str,str)]"))
             schema.insert("option", "env", "default", Parameter("str"))
 
             schema.insert("tool", "default", ToolSchema(None))
             schema.insert("package", PackageSchema())
 
-        def write_manifest(self, filepath, abspath=False):
-            return super().write_manifest(filepath)
+        def top(self):
+            return self.design
 
     project = TestProject()
     project.set('option', 'flow', 'testflow')
