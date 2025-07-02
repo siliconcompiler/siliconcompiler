@@ -100,9 +100,6 @@ def running_project():
             schema.insert("tool", "default", ToolSchema(None))
             schema.insert("package", PackageSchema())
 
-        def write_manifest(self, filepath, abspath=False):
-            return super().write_manifest(filepath)
-
     project = TestProject()
     project.set('option', 'flow', 'testflow')
     project.set('arg', 'step', "running")
