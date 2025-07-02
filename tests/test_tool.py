@@ -94,6 +94,7 @@ def running_project():
             schema.insert("arg", "step", Parameter("str"))
             schema.insert("arg", "index", Parameter("str"))
             schema.insert("option", "flow", Parameter("str"))
+            schema.insert("option", "strict", Parameter("bool"))
             schema.insert("option", "prune", Parameter("[(str,str)]"))
             schema.insert("option", "env", "default", Parameter("str"))
 
