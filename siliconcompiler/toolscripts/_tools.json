@@ -161,15 +161,6 @@
     "docker-depends": "yosys",
     "auto-update": true
   },
-  "yosys-parmys": {
-    "git-url": "https://github.com/verilog-to-routing/vtr-verilog-to-routing.git",
-    "git-commit": "29cc58dd2d242df245b38eac90e6b5d473ecb726",
-    "docker-depends": [
-      "yosys",
-      "vpr"
-    ],
-    "auto-update": false
-  },
   "surfer": {
     "git-url": "https://gitlab.com/surfer-project/surfer.git",
     "git-commit": "v0.3.0",

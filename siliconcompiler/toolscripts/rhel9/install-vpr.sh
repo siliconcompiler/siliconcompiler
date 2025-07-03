@@ -25,9 +25,6 @@ git submodule update --init --recursive
 sudo dnf config-manager --set-enabled devel || true
 ./install_dnf_packages.sh
 
-sudo yum install -y tbb-devel
-sudo dnf config-manager --set-disabled devel || true
-
 args=
 if [ ! -z ${PREFIX} ]; then
     args="-DCMAKE_INSTALL_PREFIX=$PREFIX"
