@@ -33,7 +33,7 @@ from siliconcompiler.schema import EditableSchema, Parameter, PerNode, Scope
 from siliconcompiler.schema.parametertype import NodeType
 from siliconcompiler.schema.utils import trim
 
-from siliconcompiler import utils
+from siliconcompiler import utils, NodeStatus
 from siliconcompiler import sc_open
 from siliconcompiler import Schema
 
@@ -166,6 +166,7 @@ class ToolSchema(NamedSchema):
         self.__schema_record = None
         self.__schema_metric = None
         self.__schema_flow = None
+        self.__schema_flow_runtime = None
         if self.__schema_full:
             self.__schema_record = self.__schema_full.get("record", field="schema")
             self.__schema_metric = self.__schema_full.get("metric", field="schema")
@@ -182,6 +183,11 @@ class ToolSchema(NamedSchema):
             if not flow:
                 raise RuntimeError("flow not specified")
             self.__schema_flow = self.__schema_full.get("flowgraph", flow, field="schema")
+
+            self.__schema_flow_runtime = RuntimeFlowgraph(
+                self.__schema_flow,
+                from_steps=set([step for step, _ in self.__schema_flow.get_entry_nodes()]),
+                prune_nodes=self.__schema_full.get('option', 'prune'))
 
     def node(self):
         '''
@@ -232,6 +238,8 @@ class ToolSchema(NamedSchema):
             return self.__schema_metric
         elif type == "flow":
             return self.__schema_flow
+        elif type == "runtimeflow":
+            return self.__schema_flow_runtime
         else:
             raise ValueError(f"{type} is not a schema section")
 
@@ -974,6 +982,65 @@ class ToolSchema(NamedSchema):
     def get_output_files(self):
         return set(self.get("task", self.task(), "output", step=self.__step, index=self.__index))
 
+    def get_files_from_input_nodes(self):
+        """
+        Returns a dictionary of files with the node they originated from
+        """
+
+        nodes = self.schema("runtimeflow").get_nodes()
+
+        inputs = {}
+        for in_step, in_index in self.schema("flow").get(*self.node(), 'input'):
+            if (in_step, in_index) not in nodes:
+                # node has been pruned so will not provide anything
+                continue
+
+            if self.schema("record").get('status', step=in_step, index=in_index) == \
+                    NodeStatus.SKIPPED:
+                in_tool = self.schema("flow").get(in_step, in_index, "tool")
+                in_task = self.schema("flow").get(in_step, in_index, "task")
+
+                task_obj = self.schema().get("tool", in_tool, field="schema")
+                with task_obj.runtime(self.__chip, step=in_step, index=in_index) as task:
+                    for file, nodes in task.get_files_from_input_nodes().items():
+                        inputs.setdefault(file, []).extend(nodes)
+                continue
+
+            in_tool = self.schema("flow").get(in_step, in_index, "tool")
+            in_task = self.schema("flow").get(in_step, in_index, "task")
+
+            task_obj = self.schema().get("tool", in_tool, "task", in_task, field="schema")
+
+            for output in task_obj.get("output", step=in_step, index=in_index):
+                inputs.setdefault(output, []).append((in_step, in_index))
+
+        return inputs
+
+    def compute_input_file_node_name(self, filename, step, index):
+        """
+        Generate a unique name for in input file based on the originating node.
+
+        Args:
+            filename (str): name of inputfile
+            step (str): Step name
+            index (str): Index name
+        """
+
+        _, file_type = os.path.splitext(filename)
+
+        if file_type:
+            base = filename
+            total_ext = []
+            while file_type:
+                base, file_type = os.path.splitext(base)
+                total_ext.append(file_type)
+
+            total_ext.reverse()
+
+            return f'{base}.{step}{index}{"".join(total_ext)}'
+        else:
+            return f'{filename}.{step}{index}'
+
     ###############################################################
     def parse_version(self, stdout):
         raise NotImplementedError("must be implemented by the implementation class")
@@ -985,13 +1052,8 @@ class ToolSchema(NamedSchema):
         pass
 
     def select_input_nodes(self):
-        flow = self.schema("flow")
-        runtime = RuntimeFlowgraph(
-            flow,
-            from_steps=set([step for step, _ in flow.get_entry_nodes()]),
-            prune_nodes=self.schema().get('option', 'prune'))
-
-        return runtime.get_node_inputs(self.__step, self.__index, record=self.schema("record"))
+        return self.schema("runtimeflow").get_node_inputs(
+            self.__step, self.__index, record=self.schema("record"))
 
     def pre_process(self):
         pass

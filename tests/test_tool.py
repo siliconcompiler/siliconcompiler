@@ -16,6 +16,7 @@ from siliconcompiler.packageschema import PackageSchema
 from siliconcompiler.schema import BaseSchema, EditableSchema, Parameter, SafeSchema
 from siliconcompiler.schema.parameter import PerNode, Scope
 from siliconcompiler.tool import TaskSchema, TaskExecutableNotFound, TaskError, TaskTimeout
+from siliconcompiler.flowgraph import RuntimeFlowgraph
 
 from siliconcompiler.tools.builtin import nop
 
@@ -200,6 +201,7 @@ def test_schema_access(running_project):
         assert isinstance(runtool.schema("record"), RecordSchema)
         assert isinstance(runtool.schema("metric"), MetricSchema)
         assert isinstance(runtool.schema("flow"), FlowgraphSchema)
+        assert isinstance(runtool.schema("runtimeflow"), RuntimeFlowgraph)
 
 
 def test_schema_access_invalid(running_project):
@@ -1257,3 +1259,69 @@ def test_task_add_parameter_defvalue():
     task.add_parameter("teststr", "str", "long form help", defvalue="checkthis")
 
     assert task.get("var", "teststr") == "checkthis"
+
+
+@pytest.mark.parametrize("filename,step,index,expect", [
+    ("noext", "instep", "inindex", "noext.instepinindex"),
+    ("file.ext0", "instep", "inindex", "file.instepinindex.ext0"),
+    ("file.ext0.ext1.ext2", "instep", "inindex", "file.instepinindex.ext0.ext1.ext2"),
+])
+def test_compute_input_file_node_name(filename, step, index, expect):
+    assert ToolSchema().compute_input_file_node_name(filename, step, index) == expect
+
+
+def test_get_files_from_input_nodes_entry(nop_tool_task, running_project):
+    tool = nop_tool_task()
+
+    with tool.runtime(running_project, step="running", index="0") as runtool:
+        assert runtool.get_files_from_input_nodes() == {}
+
+
+def test_get_files_from_input_nodes_end(nop_tool_task, running_project):
+    tool = nop_tool_task()
+
+    running_project.set("tool", tool.tool(), "task", tool.task(), "output", "file0.txt",
+                        step="running", index="0")
+
+    with tool.runtime(running_project, step="notrunning", index="0") as runtool:
+        assert runtool.get_files_from_input_nodes() == {
+            'file0.txt': [('running', '0')]
+        }
+
+
+def test_get_files_from_input_nodes_skipped(nop_tool_task, running_project):
+    tool = nop_tool_task()
+
+    flow = running_project.get("flowgraph", "testflow", field="schema")
+    flow.node("lastnode", nop)
+    flow.edge("notrunning", "lastnode")
+
+    running_project.set("tool", tool.tool(), "task", tool.task(), "output", "file0.txt",
+                        step="running", index="0")
+    running_project.set("record", "status", "skipped", step="notrunning", index="0")
+
+    with tool.runtime(running_project, step="lastnode", index="0") as runtool:
+        assert runtool.get_files_from_input_nodes() == {
+            'file0.txt': [('running', '0')]
+        }
+
+
+def test_get_files_from_input_nodes_multiple(nop_tool_task, running_project):
+    tool = nop_tool_task()
+
+    flow = running_project.get("flowgraph", "testflow", field="schema")
+    flow.node("firstnode", nop)
+    flow.edge("firstnode", "notrunning")
+
+    running_project.set("tool", tool.tool(), "task", tool.task(), "output", "file0.txt",
+                        step="running", index="0")
+    running_project.set("tool", tool.tool(), "task", tool.task(), "output", "file0.txt",
+                        step="firstnode", index="0")
+    running_project.add("tool", tool.tool(), "task", tool.task(), "output", "file1.txt",
+                        step="firstnode", index="0")
+
+    with tool.runtime(running_project, step="notrunning", index="0") as runtool:
+        assert runtool.get_files_from_input_nodes() == {
+            'file0.txt': [('running', '0'), ('firstnode', '0')],
+            'file1.txt': [('firstnode', '0')]
+        }
