@@ -170,7 +170,7 @@ exclude = [
     'build/',
     '.venv/',
     # messy file adapted from another source
-    '/siliconcompiler/tools/yosys/syn_strategies.tcl'
+    '/siliconcompiler/tools/yosys/scripts/syn_strategies.tcl'
 ]
 
 [tool.tclint.style]
