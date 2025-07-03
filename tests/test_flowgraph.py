@@ -1,6 +1,8 @@
 import pytest
 import logging
 
+from unittest.mock import patch
+
 from siliconcompiler import FlowgraphSchema
 from siliconcompiler import RecordSchema, NodeStatus
 from siliconcompiler.flowgraph import RuntimeFlowgraph
@@ -1042,6 +1044,13 @@ def test_get_task_module_invalid():
 def test_get_task_module(large_flow):
     assert large_flow.get_task_module("joinone", "0") is join
     assert large_flow.get_task_module("stepone", "0") is nop
+
+
+def test_get_task_module_ensure_cache(large_flow):
+    assert large_flow.get_task_module("joinone", "0") is join
+
+    with patch.dict(large_flow._FlowgraphSchema__cache_tasks, {join.__name__: None}):
+        assert large_flow.get_task_module("joinone", "0") is None
 
 
 def test_get_task_module_error(large_flow):
