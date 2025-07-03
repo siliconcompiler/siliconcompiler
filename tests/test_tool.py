@@ -1,6 +1,7 @@
 import copy
 import hashlib
 import logging
+import pathlib
 import pytest
 import os
 import time
@@ -889,7 +890,8 @@ def test_write_task_manifest_abspath(nop_tool_task, running_project):
         assert os.listdir() == ['sc_manifest.json']
 
     check = SafeSchema.from_manifest(filepath="sc_manifest.json")
-    assert check.get("tool", tool.tool(), "task", tool.task(), "refdir") == [os.path.abspath(".")]
+    assert check.get("tool", tool.tool(), "task", tool.task(), "refdir") == \
+        [pathlib.PurePosixPath(os.path.abspath("."))]
 
 
 def test_write_task_manifest_relative(nop_tool_task, running_project):
