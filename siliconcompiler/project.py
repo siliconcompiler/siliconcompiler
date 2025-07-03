@@ -1,7 +1,10 @@
 import logging
+import os
 import sys
 
-from siliconcompiler.schema import BaseSchema, EditableSchema
+import os.path
+
+from siliconcompiler.schema import BaseSchema, EditableSchema, Parameter
 
 from siliconcompiler.design import DesignSchema
 from siliconcompiler.flowgraph import FlowgraphSchema
@@ -9,7 +12,7 @@ from siliconcompiler.record import RecordSchema
 from siliconcompiler.metric import MetricSchema
 from siliconcompiler.checklist import ChecklistSchema
 from siliconcompiler.tool import ToolSchema
-from siliconcompiler.pdk import PDKSchema
+from siliconcompiler.packageschema import PackageSchema
 from siliconcompiler.schema.schema_cfg import schema_option_runtime
 
 from siliconcompiler.scheduler.scheduler import Scheduler
@@ -27,10 +30,15 @@ class Project(BaseSchema):
         schema.insert("flowgraph", "default", FlowgraphSchema())
         schema.insert("record", RecordSchema())
         schema.insert("metric", MetricSchema())
+        schema.insert("package", PackageSchema())
         schema.insert("checklist", "default", ChecklistSchema())
         schema.insert("tool", "default", ToolSchema())
 
         schema_option_runtime(schema)
+        schema.insert("option", "fileset", Parameter("[str]"))
+        schema.insert("option", "env", "default", Parameter("str"))
+        schema.insert("arg", "step", Parameter("str"))
+        schema.insert("arg", "index", Parameter("str"))
 
         # Initialize logger
         console_handler = logging.StreamHandler(stream=sys.stdout)
@@ -39,6 +47,9 @@ class Project(BaseSchema):
         }
         self.__logger_color = SCColorLoggerFormatter.supports_color(console_handler)
         self.__init_logger()
+
+        # Init fields
+        self.__cwd = os.getcwd()
 
     def __init_logger(self):
         sc_logger = logging.getLogger("siliconcompiler")
@@ -52,6 +63,8 @@ class Project(BaseSchema):
 
         self.__init_logger_formats(None)
 
+        self.logger._console = self.__logger_handlers["console"]
+
     def __init_logger_formats(self, jobname, step=None, index=None):
         formatter = SCLoggerFormatter()
         if jobname is not None:
@@ -62,11 +75,22 @@ class Project(BaseSchema):
             else:
                 handler.setFormatter(formatter)
 
+    @property
+    def design(self):
+        return self.get("design", field="schema").name()
+
+    def top(self):
+        return self.get("design", field="schema").name()
+
+    @property
+    def cwd(self):
+        return self.__cwd
+
     def add_dep(self, obj):
         pass
 
-    def check(self):
-        pass
+    def check_manifest(self):
+        return True
 
     def run(self, raise_exception=False):
         '''
@@ -121,11 +145,31 @@ class Project(BaseSchema):
 
         return True
 
+    def __getbuilddir(self):
+        dirlist = [self.cwd,
+                   self.get('option', 'builddir')]
+        return os.path.join(*dirlist)
 
-class ASICProject(Project):
+    def getworkdir(self, jobname=None, step=None, index=None):
+        if jobname is None:
+            jobname = self.get('option', 'jobname')
+
+        dirlist = [self.__getbuilddir(),
+                   self.design,
+                   jobname]
+
+        # Return jobdirectory if no step defined
+        # Return index 0 by default
+        if step is not None:
+            dirlist.append(step)
+
+            if index is None:
+                index = '0'
+
+            dirlist.append(str(index))
+        return os.path.join(*dirlist)
+
+
+class LintProject(Project):
     def __init__(self):
-        Project.__init__(self)
-
-        # Initialize schema
-        schema = EditableSchema(self)
-        schema.insert("pdk", "default", PDKSchema(None))
+        super().__init__()

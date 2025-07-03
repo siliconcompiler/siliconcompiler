@@ -3,6 +3,38 @@ from siliconcompiler.tools import slang
 from siliconcompiler.tools._common import get_tool_task
 
 
+from siliconcompiler import ToolSchema
+
+
+class Lint(ToolSchema):
+    def tool(self):
+        return "slang"
+
+    def task(self):
+        return "lint"
+
+    def setup(self):
+        super().setup()
+
+        if slang.test_version():
+            return slang.test_version()
+
+        self.set("task", self.task(), "threads", utils.get_cores(None), clobber=False)
+
+    def run(self):
+        driver, exitcode = slang._get_driver(self._parent(root=True), runtime_options)
+        if exitcode:
+            return exitcode
+
+        compilation, ok = slang._compile(self._parent(root=True), driver)
+        slang._diagnostics(self._parent(root=True), driver, compilation)
+
+        if ok:
+            return 0
+        else:
+            return 1
+
+
 def setup(chip):
     '''
     Lint system verilog

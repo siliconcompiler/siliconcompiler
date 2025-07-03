@@ -60,6 +60,7 @@ class FlowgraphSchema(NamedSchema):
             Creates a 'place' task with step='apr_place' and index=0 and binds it to the
             'openroad' tool.
         '''
+        from siliconcompiler.tool import ToolSchema
 
         if step in (Schema.GLOBAL_KEY, 'default', 'sc_collected_files'):
             raise ValueError(f"{step} is a reserved name")
@@ -68,31 +69,25 @@ class FlowgraphSchema(NamedSchema):
         if index in (Schema.GLOBAL_KEY, 'default'):
             raise ValueError(f"{index} is a reserved name")
 
-        # Determine task name and module
-        task_module = None
-        if isinstance(task, str):
-            task_module = task
-        elif inspect.ismodule(task):
-            task_module = task.__name__
-        else:
-            raise ValueError(f"{task} is not a string or module and cannot be used to "
-                             "setup a task.")
-
-        task_parts = task_module.split('.')
-        if len(task_parts) < 2:
-            raise ValueError(f"{task} is not a valid task, it must be associated with "
-                             "a tool '<tool>.<task>'.")
-
         if '/' in step:
             raise ValueError(f"{step} is not a valid step, it cannot contain '/'")
         if '/' in index:
             raise ValueError(f"{index} is not a valid index, it cannot contain '/'")
 
-        tool_name, task_name = task_parts[-2:]
+        # Determine task name and module
+        task_module = None
+        if isinstance(task, str):
+            task_module = task
+            task = self.__get_task_class(task_module)
+        elif isinstance(task, ToolSchema):
+            task_module = task.__class__.__module__ + "/" + task.__class__.__name__
+        else:
+            raise ValueError(f"{task} is not a string or module and cannot be used to "
+                             "setup a task.")
 
         # bind tool to node
-        self.set(step, index, 'tool', tool_name)
-        self.set(step, index, 'task', task_name)
+        self.set(step, index, 'tool', task.tool())
+        self.set(step, index, 'task', task.task())
         self.set(step, index, 'taskmodule', task_module)
 
         self.__clear_cache()
@@ -504,6 +499,17 @@ class FlowgraphSchema(NamedSchema):
 
         return not error
 
+    def __get_task_class(self, name):
+        # Create cache
+        if self.__cache_tasks is None:
+            self.__cache_tasks = {}
+
+        if name in self.__cache_tasks:
+            return self.__cache_tasks[name]
+
+        self.__cache_tasks[name] = importlib.import_module(name)
+        return self.__cache_tasks[name]
+
     def get_task_module(self, step, index):
         """
         Returns the module for a given task
@@ -518,17 +524,7 @@ class FlowgraphSchema(NamedSchema):
         if (step, index) not in self.get_nodes():
             raise ValueError(f"{step}/{index} is not a valid node in {self.name()}.")
 
-        taskmodule = self.get(step, index, 'taskmodule')
-
-        # Create cache
-        if self.__cache_tasks is None:
-            self.__cache_tasks = {}
-
-        if taskmodule in self.__cache_tasks:
-            return self.__cache_tasks[taskmodule]
-
-        self.__cache_tasks[taskmodule] = importlib.import_module(taskmodule)
-        return self.__cache_tasks[taskmodule]
+        return self.__get_task_class(self.get(step, index, 'taskmodule'))
 
 
 class RuntimeFlowgraph:

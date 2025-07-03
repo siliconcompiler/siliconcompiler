@@ -168,7 +168,7 @@ class SchedulerNode:
 
         self.__record.set("status", NodeStatus.ERROR, step=self.__step, index=self.__index)
         try:
-            self.__chip.schema.write_manifest(self.__manifests["output"])
+            self.__chip.write_manifest(self.__manifests["output"])
         except FileNotFoundError:
             self.logger.error(f"Failed to write manifest for {self.__step}/{self.__index}.")
 
@@ -524,20 +524,20 @@ class SchedulerNode:
         '''
 
         # Setup chip
-        self.__chip._init_codecs()
-        self.__chip._init_logger(self.__step, self.__index, in_run=True)
+        # self.__chip._init_codecs()
+        #self.__chip._init_logger(self.__step, self.__index, in_run=True)
 
         if self.__queue:
             self.logger.removeHandler(self.logger._console)
             self.logger._console = QueueHandler(self.__queue)
             self.logger.addHandler(self.logger._console)
-            self.__chip._init_logger_formats()
+            #self.__chip._init_logger_formats()
 
         self.__chip.set('arg', 'step', self.__step)
         self.__chip.set('arg', 'index', self.__index)
 
         # Setup journaling
-        journal = Journal.access(self.__chip.schema)
+        journal = Journal.access(self.__chip)
         journal.start()
 
         # Must be after journaling to ensure journal is complete
@@ -561,7 +561,7 @@ class SchedulerNode:
             os.chdir(self.__workdir)
 
             # Attach siliconcompiler file log handler
-            self.__chip._add_file_logger(self.__logs["sc"])
+            # self.__chip._add_file_logger(self.__logs["sc"])
 
             # Select the inputs to this node
             sel_inputs = self.__task.select_input_nodes()

@@ -119,7 +119,7 @@ class TaskSchema(NamedSchema):
         self.__relpath = relpath
         if chip:
             self.__chip = chip
-            self.__schema_full = chip.schema
+            self.__schema_full = chip
             self.__logger = chip.logger
             self.__design_name = chip.design
             self.__design_top = chip.top()

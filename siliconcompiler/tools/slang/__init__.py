@@ -115,14 +115,14 @@ def common_runtime_options(chip):
     #######################
     # Top Module
     #######################
-    options.extend(['--top', chip.top(step, index)])
+    options.extend(['--top', chip.top()])
 
     ###############################
     # Parameters (top module only)
     ###############################
     # Set up user-provided parameters to ensure we elaborate the correct modules
-    for param, value in opts['param']:
-        options.extend(['-G', f'{param}={value}'])
+    # for param, value in opts['param']:
+    #     options.extend(['-G', f'{param}={value}'])
 
     return options
 
