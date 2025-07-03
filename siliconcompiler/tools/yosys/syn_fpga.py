@@ -50,6 +50,13 @@ def setup(chip):
              'optimization mode for the synth_fpga command',
              field='help')
 
+    chip.set('tool', tool, 'task', task, 'var', 'synth_fpga_insert_buffers', True,
+             step=step, index=index,
+             clobber=False)
+    chip.set('tool', tool, 'task', task, 'var', 'synth_fpga_insert_buffers',
+             'insert buffers as part of the synth_fpga command',
+             field='help')
+
     # Setup FPGA params
     part_name = chip.get('fpga', 'partname')
 

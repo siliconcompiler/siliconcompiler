@@ -120,11 +120,14 @@ if { [string match {ice*} $sc_partname] } {
         lappend synth_fpga_args \
             -opt [lindex [sc_cfg_tool_task_get var synth_fpga_opt_mode] 0]
     }
+    if { [lindex [sc_cfg_tool_task_get var synth_fpga_insert_buffers] 0] == "true" } {
+        lappend synth_fpga_args -insbuf
+    }
 
     yosys synth_fpga \
         -config [lindex [sc_cfg_get fpga $sc_partname file yosys_fpga_config] 0] \
+        -show_config \
         -top $sc_design \
-        -insbuf \
         {*}$synth_fpga_args
 } else {
     # Pre-processing step:  if DSPs instance are hard-coded into
