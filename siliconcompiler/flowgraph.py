@@ -10,7 +10,7 @@ from siliconcompiler import NodeStatus
 
 
 class FlowgraphSchema(NamedSchema):
-    def __init__(self, name):
+    def __init__(self, name=None):
         super().__init__()
         self.set_name(name)
 

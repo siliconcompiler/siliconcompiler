@@ -66,7 +66,7 @@ class TaskExecutableNotFound(TaskError):
 
 
 class TaskSchema(NamedSchema):
-    def __init__(self, name):
+    def __init__(self, name=None):
         super().__init__()
         self.set_name(name)
 
