@@ -11,7 +11,7 @@ def chip():
     chip = siliconcompiler.Chip('test')
     chip.use(freepdk45_demo)
 
-    for step, index in chip.schema.get("flowgraph", "asicflow", field="schema").get_nodes():
+    for step, index in chip.get("flowgraph", "asicflow", field="schema").get_nodes():
         chip.set('record', 'status', NodeStatus.SUCCESS, step=step, index=index)
 
     return chip

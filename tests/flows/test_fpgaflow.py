@@ -424,7 +424,7 @@ def test_vpr_max_router_iterations():
 
     # Verify that the user's setting doesn't get clobbered
     # by the FPGA flow
-    for layer_nodes in chip.schema.get(
+    for layer_nodes in chip.get(
             "flowgraph", "fpgaflow", field="schema").get_execution_order():
         for step, index in layer_nodes:
             SchedulerNode(chip, step, index).setup()
@@ -556,7 +556,7 @@ def test_vpr_gen_post_implementation_netlist():
 
     # Verify that the user's setting doesn't get clobbered
     # by the FPGA flow
-    for layer_nodes in chip.schema.get(
+    for layer_nodes in chip.get(
             "flowgraph", "fpgaflow", field="schema").get_execution_order():
         for step, index in layer_nodes:
             SchedulerNode(chip, step, index).setup()

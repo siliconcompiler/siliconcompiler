@@ -154,10 +154,10 @@ To delete a job, use:
     elif args['reconnect']:
         # Start from successors of entry nodes, so entry nodes are not fetched from remote.
         flow = chip.get('option', 'flow')
-        entry_nodes = chip.schema.get("flowgraph", flow, field="schema").get_entry_nodes()
+        entry_nodes = chip.get("flowgraph", flow, field="schema").get_entry_nodes()
         for entry_node in entry_nodes:
-            outputs = chip.schema.get("flowgraph", flow,
-                                      field='schema').get_node_outputs(*entry_node)
+            outputs = chip.get("flowgraph", flow,
+                               field='schema').get_node_outputs(*entry_node)
             chip.set('option', 'from', list(map(lambda node: node[0], outputs)))
         # Enter the remote run loop.
         try:

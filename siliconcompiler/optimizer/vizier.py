@@ -157,7 +157,7 @@ class VizierOptimizier(Optimizer):
                 chip.graph(flow, org_flow, name=graph_name)
 
             # Complete nodes
-            nodes = chip.schema.get("flowgraph", org_flow, field="schema").get_nodes()
+            nodes = chip.get("flowgraph", org_flow, field="schema").get_nodes()
             for step, _ in list(nodes):
                 nodes.append((step, None))
             nodes = set(nodes)
@@ -167,7 +167,7 @@ class VizierOptimizier(Optimizer):
                 if key[0] == 'history':
                     continue
 
-                for value, step, index in chip.schema.get(*key, field=None).getvalues():
+                for value, step, index in chip.get(*key, field=None).getvalues():
                     node = (step, index)
 
                     if node in nodes:

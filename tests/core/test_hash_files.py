@@ -20,9 +20,9 @@ def test_hash_files():
             continue
         sc_type = chip.get(*keypath, field='type')
         if 'file' in sc_type:
-            for vals, step, index in chip.schema.get(*keypath, field=None).getvalues():
+            for vals, step, index in chip.get(*keypath, field=None).getvalues():
                 hashes = chip.hash_files(*keypath, step=step, index=index)
-                schema_hashes = chip.schema.get(*keypath, step=step, index=index, field='filehash')
+                schema_hashes = chip.get(*keypath, step=step, index=index, field='filehash')
                 if isinstance(hashes, list) and not hashes and schema_hashes is None:
                     hashes = None
                 assert hashes == schema_hashes

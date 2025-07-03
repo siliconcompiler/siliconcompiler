@@ -85,7 +85,7 @@ def _show_summary_table(chip, flow, flowgraph_nodes, show_all_indices):
             info_list.append(f"partname : {fpga_partname}")
 
     libraries = set()
-    for val, step, index in chip.schema.get('asic', 'logiclib', field=None).getvalues():
+    for val, step, index in chip.get('asic', 'logiclib', field=None).getvalues():
         if not step or (step, index) in flowgraph_nodes:
             libraries.update(val)
     if libraries:

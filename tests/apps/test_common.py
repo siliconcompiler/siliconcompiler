@@ -9,7 +9,7 @@ from siliconcompiler.apps import _common
 @pytest.fixture
 def make_manifests():
     def impl(chip):
-        for nodes in chip.schema.get("flowgraph", "asicflow", field="schema").get_execution_order():
+        for nodes in chip.get("flowgraph", "asicflow", field="schema").get_execution_order():
             for step, index in nodes:
                 for d in ('inputs', 'outputs'):
                     path = os.path.join(chip.getworkdir(step=step, index=index), d)

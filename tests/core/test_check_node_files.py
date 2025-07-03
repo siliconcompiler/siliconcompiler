@@ -9,7 +9,7 @@ from siliconcompiler.tool import ToolSchema
 @pytest.fixture()
 def fake_chip(gcd_chip):
     runtime = RuntimeFlowgraph(
-        gcd_chip.schema.get("flowgraph", gcd_chip.get('option', 'flow'), field='schema'),
+        gcd_chip.get("flowgraph", gcd_chip.get('option', 'flow'), field='schema'),
         from_steps=gcd_chip.get('option', 'from'),
         to_steps=gcd_chip.get('option', 'to'),
         prune_nodes=gcd_chip.get('option', 'prune'))

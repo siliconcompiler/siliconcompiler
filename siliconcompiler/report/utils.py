@@ -6,7 +6,7 @@ from siliconcompiler.flowgraph import RuntimeFlowgraph
 
 
 def _find_summary_image(chip, ext='png'):
-    for nodes in reversed(chip.schema.get(
+    for nodes in reversed(chip.get(
             "flowgraph", chip.get('option', 'flow'), field="schema").get_execution_order()):
         for step, index in nodes:
             layout_img = chip.find_result(ext, step=step, index=index)
@@ -17,7 +17,7 @@ def _find_summary_image(chip, ext='png'):
 
 def _find_summary_metrics(chip, metrics_map):
     metrics = {}
-    for nodes in reversed(chip.schema.get(
+    for nodes in reversed(chip.get(
             "flowgraph", chip.get('option', 'flow'), field="schema").get_execution_order()):
         for step, index in nodes:
             for name, metric_info in metrics_map.items():
@@ -45,7 +45,7 @@ def _collect_data(chip, flow=None, flowgraph_nodes=None, format_as_string=True):
 
     if not flowgraph_nodes:
         runtime = RuntimeFlowgraph(
-            chip.schema.get("flowgraph", flow, field='schema'),
+            chip.get("flowgraph", flow, field='schema'),
             from_steps=chip.get('option', 'from'),
             to_steps=chip.get('option', 'to'),
             prune_nodes=chip.get('option', 'prune'))
@@ -70,7 +70,7 @@ def _collect_data(chip, flow=None, flowgraph_nodes=None, format_as_string=True):
     reports = {}
 
     # Build ordered list of nodes in flowgraph
-    for level_nodes in chip.schema.get("flowgraph", flow, field="schema").get_execution_order():
+    for level_nodes in chip.get("flowgraph", flow, field="schema").get_execution_order():
         nodes.extend(sorted(level_nodes))
     nodes = [node for node in nodes if node in flowgraph_nodes]
     for (step, index) in nodes:
@@ -147,7 +147,7 @@ def _get_flowgraph_path(chip, flow, nodes_to_execute, only_include_successful=Fa
     to_search = []
     # Start search with any successful leaf nodes.
     flowgraph_steps = list(map(lambda node: node[0], nodes_to_execute))
-    runtime = RuntimeFlowgraph(chip.schema.get("flowgraph", flow, field='schema'),
+    runtime = RuntimeFlowgraph(chip.get("flowgraph", flow, field='schema'),
                                from_steps=flowgraph_steps,
                                to_steps=flowgraph_steps)
     end_nodes = runtime.get_exit_nodes()

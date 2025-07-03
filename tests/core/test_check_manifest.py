@@ -22,7 +22,7 @@ def test_check_manifest():
     chip.input('examples/gcd/gcd.v')
     chip.set('option', 'to', ['syn'])
 
-    for layer_nodes in chip.schema.get(
+    for layer_nodes in chip.get(
             "flowgraph", "asicflow", field="schema").get_execution_order():
         for step, index in layer_nodes:
             SchedulerNode(chip, step, index).setup()
@@ -40,7 +40,7 @@ def test_check_allowed_filepaths_pass(scroot):
     chip.input(os.path.join(scroot, 'examples', 'gcd', 'gcd.v'))
     chip.use(freepdk45_demo)
 
-    for layer_nodes in chip.schema.get(
+    for layer_nodes in chip.get(
             "flowgraph", "asicflow", field="schema").get_execution_order():
         for step, index in layer_nodes:
             SchedulerNode(chip, step, index).setup()
@@ -174,7 +174,7 @@ def test_check_missing_library():
 
     chip.add('option', 'library', 'sc_test')
 
-    for layer_nodes in chip.schema.get(
+    for layer_nodes in chip.get(
             "flowgraph", "asicflow", field="schema").get_execution_order():
         for step, index in layer_nodes:
             SchedulerNode(chip, step, index).setup()
