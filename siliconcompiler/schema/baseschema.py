@@ -32,9 +32,6 @@ class BaseSchema:
     '''
 
     def __init__(self):
-        # Data storage for the schema
-        if hasattr(self, "_BaseSchema__manifest"):
-            return
         self.__manifest = {}
         self.__default = None
         self.__journal = Journal()
