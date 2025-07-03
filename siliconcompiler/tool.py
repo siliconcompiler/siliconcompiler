@@ -1018,7 +1018,7 @@ class ToolSchema(NamedSchema):
 
     def compute_input_file_node_name(self, filename, step, index):
         """
-        Generate a unique name for in input file based on the orignating node.
+        Generate a unique name for in input file based on the originating node.
 
         Args:
             filename (str): name of inputfile
