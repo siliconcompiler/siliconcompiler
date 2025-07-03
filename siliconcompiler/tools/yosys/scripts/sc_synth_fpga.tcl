@@ -57,9 +57,12 @@ if { [file exists $input_verilog] } {
         yosys read_slang \
             -D SYNTHESIS \
             --keep-hierarchy \
+            --ignore-assertions \
+            --allow-use-before-declare \
             --top $sc_design \
             {*}$slang_params \
             $input_verilog
+        yosys setattr -unset init
     } else {
         # Use -noblackbox to correctly interpret empty modules as empty,
         # actual black boxes are read in later
@@ -72,81 +75,6 @@ if { [file exists $input_verilog] } {
 
         sc_apply_params
     }
-}
-
-####################
-# Helper functions
-####################
-proc legalize_flops { feature_set } {
-    set legalize_flop_types []
-
-    if {
-        [lsearch -exact $feature_set enable] >= 0 &&
-        [lsearch -exact $feature_set async_set] >= 0 &&
-        [lsearch -exact $feature_set async_reset] >= 0
-    } {
-        lappend legalize_flop_types \$_DFF_P_
-        lappend legalize_flop_types \$_DFF_PN?_
-        lappend legalize_flop_types \$_DFFE_PP_
-        lappend legalize_flop_types \$_DFFE_PN?P_
-        lappend legalize_flop_types \$_DFFSR_PNN_
-        lappend legalize_flop_types \$_DFFSRE_PNNP_
-    } elseif {
-        [lsearch -exact $feature_set enable] >= 0 &&
-        [lsearch -exact $feature_set async_set] >= 0
-    } {
-        lappend legalize_flop_types \$_DFF_P_
-        lappend legalize_flop_types \$_DFF_PN1_
-        lappend legalize_flop_types \$_DFFE_PP_
-        lappend legalize_flop_types \$_DFFE_PN1P_
-    } elseif {
-        [lsearch -exact $feature_set enable] >= 0 &&
-        [lsearch -exact $feature_set async_reset] >= 0
-    } {
-        lappend legalize_flop_types \$_DFF_P_
-        lappend legalize_flop_types \$_DFF_PN0_
-        lappend legalize_flop_types \$_DFFE_PP_
-        lappend legalize_flop_types \$_DFFE_PN0P_
-    } elseif { [lsearch -exact $feature_set enable] >= 0 } {
-        lappend legalize_flop_types \$_DFF_P_
-        lappend legalize_flop_types \$_DFF_P??_
-        lappend legalize_flop_types \$_DFFE_PP_
-        lappend legalize_flop_types \$_DFFE_P??P_
-    } elseif {
-        [lsearch -exact $feature_set async_set] >= 0 &&
-        [lsearch -exact $feature_set async_reset] >= 0
-    } {
-        lappend legalize_flop_types \$_DFF_P_
-        lappend legalize_flop_types \$_DFF_PN?_
-        lappend legalize_flop_types \$_DFFSR_PNN_
-    } elseif { [lsearch -exact $feature_set async_set] >= 0 } {
-        lappend legalize_flop_types \$_DFF_P_
-        lappend legalize_flop_types \$_DFF_PN1_
-    } elseif { [lsearch -exact $feature_set async_reset] >= 0 } {
-        lappend legalize_flop_types \$_DFF_P_
-        lappend legalize_flop_types \$_DFF_PN0_
-    } else {
-        # Choose to legalize to async resets even though they
-        # won't tech map.  Goal is to get the user to fix
-        # their code and put in synchronous resets
-        lappend legalize_flop_types \$_DFF_P_
-        lappend legalize_flop_types \$_DFF_P??_
-    }
-
-    set legalize_list []
-    foreach flop_type $legalize_flop_types {
-        lappend legalize_list -cell $flop_type 01
-    }
-    yosys log "Legalize list: $legalize_list"
-    yosys dfflegalize {*}$legalize_list
-}
-
-proc get_dsp_options { sc_syn_dsp_options } {
-    set option_text [list]
-    foreach dsp_option $sc_syn_dsp_options {
-        lappend option_text -D $dsp_option
-    }
-    return $option_text
 }
 
 set sc_partname [sc_cfg_get fpga partname]
@@ -182,28 +110,20 @@ yosys hierarchy -top $sc_design
 
 if { [string match {ice*} $sc_partname] } {
     yosys synth_ice40 -top $sc_design -json "${sc_design}.netlist.json"
-} elseif { [string match {z*} $sc_partname] && [sc_load_plugin yosys-syn] } {
-    puts "Using Yosys Synthesis plugin"
-
+} elseif {
+    [sc_cfg_exists fpga $sc_partname file yosys_fpga_config] &&
+    [llength [sc_cfg_get fpga $sc_partname file yosys_fpga_config]] != 0 &&
+    [sc_load_plugin yosys-syn]
+} {
     set synth_fpga_args []
-    if { [lsearch -exact $sc_syn_feature_set enable] == -1 } {
-        lappend synth_fpga_args -no_dff_enable
-    }
-    if { [lsearch -exact $sc_syn_feature_set async_set] == -1 } {
-        lappend synth_fpga_args -no_dff_async_set
-    }
-    if { [lsearch -exact $sc_syn_feature_set async_reset] == -1 } {
-        lappend synth_fpga_args -no_dff_async_reset
-    }
     if { [lindex [sc_cfg_tool_task_get var synth_fpga_opt_mode] 0] != "none" } {
         lappend synth_fpga_args \
             -opt [lindex [sc_cfg_tool_task_get var synth_fpga_opt_mode] 0]
     }
 
     yosys synth_fpga \
+        -config [lindex [sc_cfg_get fpga $sc_partname file yosys_fpga_config] 0] \
         -top $sc_design \
-        -lut_size $sc_syn_lut_size \
-        -partname [string toupper $sc_partname] \
         -insbuf \
         {*}$synth_fpga_args
 } else {
@@ -276,7 +196,7 @@ if { [string match {ice*} $sc_partname] } {
             [sc_cfg_get fpga $sc_partname file yosys_dsp_techmap]
 
         yosys log "Run techmap flow for DSP Blocks"
-        set formatted_dsp_options [get_dsp_options $sc_syn_dsp_options]
+        set formatted_dsp_options [sc_fpga_get_dsp_options $sc_syn_dsp_options]
         yosys techmap -map +/mul2dsp.v -map $sc_syn_dsp_library \
             {*}$formatted_dsp_options
 
@@ -314,7 +234,7 @@ if { [string match {ice*} $sc_partname] } {
     yosys demuxmap
     yosys simplemap
 
-    legalize_flops $sc_syn_feature_set
+    sc_fpga_legalize_flops $sc_syn_feature_set
 
     if { [sc_cfg_exists fpga $sc_partname file yosys_flop_techmap] } {
         set sc_syn_flop_library \
