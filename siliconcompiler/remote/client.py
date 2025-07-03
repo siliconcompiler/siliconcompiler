@@ -298,14 +298,15 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
             nodes_log = f'  {status.title()} ({num_nodes}): '
             log_nodes = []
             for node, _ in nodes:
-                node_len = len(node)
+                node_name = self.__node_information[node]['print']
+                node_len = len(node_name)
 
                 if node_len + line_len + 2 < self.__maxlinelength:
-                    log_nodes.append(node)
+                    log_nodes.append(node_name)
                     line_len += node_len + 2
                 else:
                     if len(log_nodes) == num_nodes - 1:
-                        log_nodes.append(node)
+                        log_nodes.append(node_name)
                     else:
                         log_nodes.append('...')
                     break
@@ -375,7 +376,7 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
             if SCNodeStatus.is_running(stat):
                 self.__logger.info(f'  {stat.title()} ({len(nodes)}):')
                 for node, node_info in nodes:
-                    running_log = f"    {node}"
+                    running_log = f"    {self.__node_information[node]['print']}"
                     if 'elapsed_time' in node_info:
                         running_log += f" ({node_info['elapsed_time']})"
                     self.__logger.info(running_log)
@@ -674,7 +675,8 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
                 "step": step,
                 "index": index,
                 "imported": done,
-                "fetched": done
+                "fetched": done,
+                "print": f"{step}/{index}"
             }
             self.__node_information[f'{step}{index}'] = node_info
 
@@ -749,7 +751,7 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
     def __schedule_fetch_result(self, node):
         if node:
             self.__node_information[node]["fetched"] = True
-            self.__logger.info(f'    {node}')
+            self.__logger.info(f'    {self.__node_information[node]["print"]}')
         else:
             self.__setup_information_fetched = True
         self.__download_pool.apply_async(Client._fetch_result, (self, node))

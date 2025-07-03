@@ -24,7 +24,7 @@ def test_automatic_issue(gcd_chip):
 
     with open(
             f'{gcd_chip.getworkdir(step="place.global", index="0")}/'
-            'sc_place.global0.log') as f:
+            'sc_place.global_0.log') as f:
         text = f.read()
         assert "Collecting input sources" not in text
         assert "Copying " not in text
