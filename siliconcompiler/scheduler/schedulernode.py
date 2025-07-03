@@ -54,7 +54,7 @@ class SchedulerNode:
             "output": os.path.join(self.__workdir, "outputs", f"{self.__design}.pkg.json")
         }
         self.__logs = {
-            "sc": os.path.join(self.__workdir, f"sc_{self.__step}{self.__index}.log"),
+            "sc": os.path.join(self.__workdir, f"sc_{self.__step}_{self.__index}.log"),
             "exe": os.path.join(self.__workdir, f"{self.__step}.log")
         }
         self.__replay_script = os.path.join(self.__workdir, "replay.sh")
