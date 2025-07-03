@@ -12,7 +12,7 @@ from unittest.mock import patch, ANY
 from siliconcompiler import ToolSchema
 from siliconcompiler import RecordSchema, MetricSchema, FlowgraphSchema
 from siliconcompiler.packageschema import PackageSchema
-from siliconcompiler.schema import BaseSchema, EditableSchema, Parameter
+from siliconcompiler.schema import BaseSchema, EditableSchema, Parameter, SafeSchema
 from siliconcompiler.schema.parameter import PerNode, Scope
 from siliconcompiler.tool import TaskSchema, TaskExecutableNotFound, TaskError, TaskTimeout
 
@@ -630,6 +630,29 @@ def test_get_runtime_arguments_all(nop_tool_task, running_project):
             '--arg3']
 
 
+def test_get_runtime_arguments_all_relative(nop_tool_task, running_project):
+    class TestTool(nop_tool_task):
+        def runtime_options(self):
+            options = super().runtime_options()
+            options.append("--arg3")
+            return options
+    tool = TestTool()
+    # Insert empty task to provide access
+    EditableSchema(tool).insert('task', tool.task(), TaskSchema(tool.task()))
+    with open("arg2.run", "w") as f:
+        f.write("testfile")
+
+    tool.set('task', tool.task(), 'option', ['--arg0', '--arg1'])
+    running_project.set('tool', tool.tool(), 'task', tool.task(), 'script', 'arg2.run')
+
+    with tool.runtime(running_project, relpath=os.getcwd()) as runtool:
+        assert runtool.get_runtime_arguments() == [
+            '--arg0',
+            '--arg1',
+            "arg2.run",
+            '--arg3']
+
+
 def test_get_runtime_arguments_overwrite(nop_tool_task, running_project):
     class TestTool(nop_tool_task):
         def runtime_options(self):
@@ -853,6 +876,34 @@ def test_write_task_manifest(nop_tool_task, running_project, suffix):
     with tool.runtime(running_project) as runtool:
         runtool.write_task_manifest('.')
         assert os.listdir() == [f'sc_manifest.{suffix}']
+
+
+def test_write_task_manifest_abspath(nop_tool_task, running_project):
+    tool = nop_tool_task()
+    # Insert empty task to provide access
+    EditableSchema(tool).insert('task', tool.task(), TaskSchema(tool.task()))
+    tool.set("format", "json")
+    running_project.set("tool", tool.tool(), "task", tool.task(), "refdir", ".")
+    with tool.runtime(running_project) as runtool:
+        runtool.write_task_manifest('.')
+        assert os.listdir() == ['sc_manifest.json']
+
+    check = SafeSchema.from_manifest(filepath="sc_manifest.json")
+    assert check.get("tool", tool.tool(), "task", tool.task(), "refdir") == [os.path.abspath(".")]
+
+
+def test_write_task_manifest_relative(nop_tool_task, running_project):
+    tool = nop_tool_task()
+    # Insert empty task to provide access
+    EditableSchema(tool).insert('task', tool.task(), TaskSchema(tool.task()))
+    tool.set("format", "json")
+    running_project.set("tool", tool.tool(), "task", tool.task(), "refdir", ".")
+    with tool.runtime(running_project, relpath=os.getcwd()) as runtool:
+        runtool.write_task_manifest('.')
+        assert os.listdir() == ['sc_manifest.json']
+
+    check = SafeSchema.from_manifest(filepath="sc_manifest.json")
+    assert check.get("tool", tool.tool(), "task", tool.task(), "refdir") == ["."]
 
 
 def test_write_task_manifest_with_backup(nop_tool_task, running_project):
