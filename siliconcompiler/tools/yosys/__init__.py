@@ -51,7 +51,7 @@ def setup(chip):
         option.append('-C')
     option.append('-c')
     chip.set('tool', tool, 'task', task, 'option', option, step=step, index=index, clobber=False)
-    chip.set('tool', tool, 'task', task, 'refdir', os.path.join('tools', tool),
+    chip.set('tool', tool, 'task', task, 'refdir', os.path.join('tools', tool, 'scripts'),
              step=step, index=index,
              package='siliconcompiler', clobber=False)
     chip.set('tool', tool, 'task', task, 'regex', 'warnings', "Warning:",
