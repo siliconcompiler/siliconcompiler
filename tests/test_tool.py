@@ -891,7 +891,7 @@ def test_write_task_manifest_abspath(nop_tool_task, running_project):
 
     check = SafeSchema.from_manifest(filepath="sc_manifest.json")
     assert check.get("tool", tool.tool(), "task", tool.task(), "refdir") == \
-        [str(pathlib.PurePosixPath(os.path.abspath(".")))]
+        [pathlib.Path(os.path.abspath(".")).as_posix()]
 
 
 def test_write_task_manifest_relative(nop_tool_task, running_project):
