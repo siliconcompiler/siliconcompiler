@@ -76,7 +76,7 @@
   },
   "vpr": {
     "git-url": "https://github.com/verilog-to-routing/vtr-verilog-to-routing.git",
-    "git-commit": "c606a21d9ab5db53fb382a7dd79a0703c887108c",
+    "git-commit": "4bb340af8243b95efdea493d4cb58aed1099151f",
     "auto-update": false
   },
   "icepack": {
@@ -160,15 +160,6 @@
     "git-commit": "5dd1d8a60d0cc7228be856350bb90faad24dae9e",
     "docker-depends": "yosys",
     "auto-update": true
-  },
-  "yosys-parmys": {
-    "git-url": "https://github.com/verilog-to-routing/vtr-verilog-to-routing.git",
-    "git-commit": "c606a21d9ab5db53fb382a7dd79a0703c887108c",
-    "docker-depends": [
-      "yosys",
-      "vpr"
-    ],
-    "auto-update": false
   },
   "surfer": {
     "git-url": "https://gitlab.com/surfer-project/surfer.git",
