@@ -36,10 +36,10 @@ class SlurmSchedulerNode(SchedulerNode):
 
         collect = False
         flow = chip.get('option', 'flow')
-        entry_nodes = chip.schema.get("flowgraph", flow, field="schema").get_entry_nodes()
+        entry_nodes = chip.get("flowgraph", flow, field="schema").get_entry_nodes()
 
         runtime = RuntimeFlowgraph(
-            chip.schema.get("flowgraph", flow, field='schema'),
+            chip.get("flowgraph", flow, field='schema'),
             from_steps=chip.get('option', 'from'),
             to_steps=chip.get('option', 'to'),
             prune_nodes=chip.get('option', 'prune'))

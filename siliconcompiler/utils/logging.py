@@ -43,7 +43,7 @@ class SCInRunLoggerFormatter(logging.Formatter):
 
         flow = chip.get('option', 'flow')
         if flow:
-            nodes_to_run = list(chip.schema.get("flowgraph", flow, field="schema").get_nodes())
+            nodes_to_run = list(chip.get("flowgraph", flow, field="schema").get_nodes())
         else:
             nodes_to_run = []
 

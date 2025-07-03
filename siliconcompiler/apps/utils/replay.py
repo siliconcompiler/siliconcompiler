@@ -87,8 +87,8 @@ def main():
 
     pythonversion = set()
     nodes = set()
-    for version, step, index in chip.schema.get('history', jobname, 'record', 'pythonversion',
-                                                field=None).getvalues():
+    for version, step, index in chip.get('history', jobname, 'record', 'pythonversion',
+                                         field=None).getvalues():
         pythonversion.add(version)
         nodes.add((step, index))
 
@@ -128,7 +128,7 @@ def main():
     path = os.path.abspath(args['file'])
     os.makedirs(os.path.dirname(path), exist_ok=True)
 
-    record_schema = chip.schema.get('history', jobname, 'record', field="schema")
+    record_schema = chip.get('history', jobname, 'record', field="schema")
     starttime = datetime.fromtimestamp(
         record_schema.get_earliest_time(RecordTime.START)).strftime(
             '%Y-%m-%d %H:%M:%S')
@@ -164,7 +164,7 @@ def main():
         fd.flush()
         script = convert_base64(compress(fd.getvalue()))
 
-    manifest = convert_base64(compress(json.dumps(chip.schema.getdict(), indent=2)))
+    manifest = convert_base64(compress(json.dumps(chip.getdict(), indent=2)))
 
     tool_info = []
     for tool, version in tools.items():

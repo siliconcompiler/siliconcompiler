@@ -50,7 +50,7 @@ def _generate_html_report(chip, flow, flowgraph_nodes, results_html):
             metrics=metrics,
             metrics_unit=metrics_unit,
             reports=reports,
-            manifest=chip.schema.getdict(),
+            manifest=chip.getdict(),
             pruned_cfg=pruned_cfg,
             metric_keys=metrics_to_show,
             img_data=img_data,

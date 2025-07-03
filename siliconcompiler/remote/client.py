@@ -530,7 +530,7 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
         # Redirected POST requests are translated to GETs. This is actually
         # part of the HTTP spec, so we need to manually follow the trail.
         post_params = {
-            'chip_cfg': self.__chip.schema.getdict(),
+            'chip_cfg': self.__chip.getdict(),
             'params': self.__get_post_params(include_job_id=True)
         }
 
@@ -572,7 +572,7 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
             key_type = self.__chip.get(*key, field='type')
 
             if 'dir' in key_type or 'file' in key_type:
-                for _, step, index in self.__chip.schema.get(*key, field=None).getvalues(
+                for _, step, index in self.__chip.get(*key, field=None).getvalues(
                         return_defvalue=False):
                     packages = self.__chip.get(*key, field='package', step=step, index=index)
                     if not isinstance(packages, list):
@@ -664,7 +664,7 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
 
         self.__node_information = {}
         runtime = RuntimeFlowgraph(
-            self.__chip.schema.get("flowgraph", self.__chip.get('option', 'flow'), field='schema'),
+            self.__chip.get("flowgraph", self.__chip.get('option', 'flow'), field='schema'),
             from_steps=self.__chip.get('option', 'from'),
             to_steps=self.__chip.get('option', 'to'),
             prune_nodes=self.__chip.get('option', 'prune'))

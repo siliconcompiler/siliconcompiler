@@ -45,8 +45,8 @@ def get_nodes_and_edges(chip):
     successful_path = report.get_flowgraph_path(chip)
 
     flow = chip.get('option', 'flow')
-    entry_exit_nodes = chip.schema.get("flowgraph", flow, field="schema").get_entry_nodes() + \
-        chip.schema.get("flowgraph", flow, field="schema").get_exit_nodes()
+    entry_exit_nodes = chip.get("flowgraph", flow, field="schema").get_entry_nodes() + \
+        chip.get("flowgraph", flow, field="schema").get_exit_nodes()
 
     for step, index in node_dependencies:
         # Build node

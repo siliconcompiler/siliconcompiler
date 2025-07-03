@@ -181,7 +181,7 @@ def make_manifest(chip):
         >>> make_manifest(chip)
         Returns tree/json of manifest.
     '''
-    manifest = chip.schema.getdict()
+    manifest = chip.getdict()
     modified_manifest = {}
     make_manifest_helper(manifest, modified_manifest)
     return modified_manifest
@@ -200,7 +200,7 @@ def get_flowgraph_path(chip):
     '''
     flow = chip.get('option', 'flow')
     runtime = RuntimeFlowgraph(
-        chip.schema.get("flowgraph", flow, field='schema'),
+        chip.get("flowgraph", flow, field='schema'),
         from_steps=chip.get('option', 'from'),
         to_steps=chip.get('option', 'to'),
         prune_nodes=chip.get('option', 'prune'))

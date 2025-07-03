@@ -750,10 +750,10 @@ class Board(metaclass=BoardSingleton):
                 raise SiliconCompilerError("dummy error")
 
             runtime_flow = RuntimeFlowgraph(
-                chip.schema.get("flowgraph", flow, field='schema'),
+                chip.get("flowgraph", flow, field='schema'),
                 to_steps=chip.get('option', 'to'),
                 prune_nodes=chip.get('option', 'prune'))
-            record = chip.schema.get("record", field='schema')
+            record = chip.get("record", field='schema')
 
             execnodes = runtime_flow.get_nodes()
             lowest_priority = 3 * len(execnodes)  # 2x + 1 is lowest computed, so 3x will be lower
@@ -776,7 +776,7 @@ class Board(metaclass=BoardSingleton):
                         node_outputs.setdefault(in_node, set()).add(node)
 
             flow_entry_nodes = set(
-                chip.schema.get("flowgraph", flow, field="schema").get_entry_nodes())
+                chip.get("flowgraph", flow, field="schema").get_entry_nodes())
 
             running_nodes = set([node for node in nodes if NodeStatus.is_running(nodestatus[node])])
             done_nodes = set([node for node in nodes if NodeStatus.is_done(nodestatus[node])])

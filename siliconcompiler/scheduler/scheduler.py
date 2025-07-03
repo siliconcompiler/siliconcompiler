@@ -30,7 +30,7 @@ class Scheduler:
         if flow not in self.__chip.getkeys("flowgraph"):
             raise ValueError("flow is not defined")
 
-        self.__flow = self.__chip.schema.get("flowgraph", flow, field="schema")
+        self.__flow = self.__chip.get("flowgraph", flow, field="schema")
         from_steps = self.__chip.get('option', 'from')
         to_steps = self.__chip.get('option', 'to')
         prune_nodes = self.__chip.get('option', 'prune')
@@ -66,8 +66,8 @@ class Scheduler:
             from_steps=set([step for step, _ in self.__flow.get_entry_nodes()]),
             prune_nodes=prune_nodes)
 
-        self.__record = self.__chip.schema.get("record", field="schema")
-        self.__metrics = self.__chip.schema.get("metric", field="schema")
+        self.__record = self.__chip.get("record", field="schema")
+        self.__metrics = self.__chip.get("metric", field="schema")
 
         self.__tasks = {}
 

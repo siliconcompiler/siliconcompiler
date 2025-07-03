@@ -153,10 +153,10 @@ def _select_inputs(chip, step, index):
 
     flow = chip.get('option', 'flow')
 
-    flow_schema = chip.schema.get("flowgraph", flow, field="schema")
+    flow_schema = chip.get("flowgraph", flow, field="schema")
     runtime = RuntimeFlowgraph(
         flow_schema,
         from_steps=set([step for step, _ in flow_schema.get_entry_nodes()]),
         prune_nodes=chip.get('option', 'prune'))
 
-    return runtime.get_node_inputs(step, index, record=chip.schema.get("record", field="schema"))
+    return runtime.get_node_inputs(step, index, record=chip.get("record", field="schema"))

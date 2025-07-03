@@ -158,9 +158,9 @@ class SchedulerNode:
         self.__flow = self.__chip.get("flowgraph", flow, field="schema")
 
         tool = self.__flow.get(self.__step, self.__index, 'tool')
-        self.__task = self.__chip.schema.get("tool", tool, field="schema")
-        self.__record = self.__chip.schema.get("record", field="schema")
-        self.__metrics = self.__chip.schema.get("metric", field="schema")
+        self.__task = self.__chip.get("tool", tool, field="schema")
+        self.__record = self.__chip.get("record", field="schema")
+        self.__metrics = self.__chip.get("metric", field="schema")
 
     def halt(self, msg=None):
         if msg:

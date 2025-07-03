@@ -96,7 +96,7 @@ class Server:
 
     def __run_start(self, chip):
         flow = chip.get("option", "flow")
-        nodes = chip.schema.get("flowgraph", flow, field="schema").get_nodes()
+        nodes = chip.get("flowgraph", flow, field="schema").get_nodes()
 
         with self.sc_jobs_lock:
             job_hash = self.sc_chip_lookup[chip]["jobhash"]
@@ -442,7 +442,7 @@ class Server:
         job_hash = chip.get('record', 'remoteid')
 
         runtime = RuntimeFlowgraph(
-            chip.schema.get("flowgraph", chip.get('option', 'flow'), field='schema'),
+            chip.get("flowgraph", chip.get('option', 'flow'), field='schema'),
             from_steps=chip.get('option', 'from'),
             to_steps=chip.get('option', 'to'),
             prune_nodes=chip.get('option', 'prune'))

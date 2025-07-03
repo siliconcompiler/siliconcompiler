@@ -73,7 +73,7 @@ def test_make_manifest_branches():
 
     test = report.make_manifest(chip)
     for key in chip.getkeys():
-        make_manifest_testing_helper(chip.schema.getdict(), test, key)
+        make_manifest_testing_helper(chip.getdict(), test, key)
 
 
 def test_make_manifest_leaves():

@@ -16,16 +16,16 @@ def _check_flowgraph_io(chip, nodes=None):
     flow = chip.get('option', 'flow')
 
     runtime_full = RuntimeFlowgraph(
-        chip.schema.get("flowgraph", flow, field='schema'),
+        chip.get("flowgraph", flow, field='schema'),
         to_steps=chip.get('option', 'to'),
         prune_nodes=chip.get('option', 'prune'))
     runtime_flow = RuntimeFlowgraph(
-        chip.schema.get("flowgraph", flow, field='schema'),
+        chip.get("flowgraph", flow, field='schema'),
         args=(chip.get('arg', 'step'), chip.get('arg', 'index')),
         from_steps=chip.get('option', 'from'),
         to_steps=chip.get('option', 'to'),
         prune_nodes=chip.get('option', 'prune'))
-    record = chip.schema.get("record", field='schema')
+    record = chip.get("record", field='schema')
 
     if not nodes:
         nodes = runtime_flow.get_nodes()
@@ -95,7 +95,7 @@ def _get_flowgraph_information(chip, flow, io=True):
     chip.schema = chip.schema.copy()
 
     # Setup nodes
-    node_exec_order = chip.schema.get("flowgraph", flow, field="schema").get_execution_order()
+    node_exec_order = chip.get("flowgraph", flow, field="schema").get_execution_order()
     if io:
         prev_flow = chip.get("option", "flow")
         chip.set("option", "flow", flow)
@@ -112,7 +112,7 @@ def _get_flowgraph_information(chip, flow, io=True):
     graph_inputs = {}
     all_graph_inputs = set()
     if io:
-        for step, index in chip.schema.get("flowgraph", flow, field="schema").get_nodes():
+        for step, index in chip.get("flowgraph", flow, field="schema").get_nodes():
             tool, task = get_tool_task(chip, step, index, flow=flow)
             for keypath in chip.get('tool', tool, 'task', task, 'require', step=step, index=index):
                 key = tuple(keypath.split(','))
@@ -122,7 +122,7 @@ def _get_flowgraph_information(chip, flow, io=True):
         for inputs in graph_inputs.values():
             all_graph_inputs.update(inputs)
 
-    exit_nodes = [f'{step}/{index}' for step, index in chip.schema.get(
+    exit_nodes = [f'{step}/{index}' for step, index in chip.get(
         "flowgraph", flow, field="schema").get_exit_nodes()]
 
     nodes = {}
@@ -135,11 +135,11 @@ def _get_flowgraph_information(chip, flow, io=True):
         return label.replace("<", r"\<").replace(">", r"\>")
 
     all_nodes = [(step, index) for step, index in sorted(
-                    chip.schema.get("flowgraph", flow, field="schema").get_nodes())
+                    chip.get("flowgraph", flow, field="schema").get_nodes())
                  if chip.get('record', 'status', step=step, index=index) != NodeStatus.SKIPPED]
 
-    runtime_flow = RuntimeFlowgraph(chip.schema.get("flowgraph", flow, field='schema'))
-    record = chip.schema.get("record", field='schema')
+    runtime_flow = RuntimeFlowgraph(chip.get("flowgraph", flow, field='schema'))
+    record = chip.get("record", field='schema')
 
     for step, index in all_nodes:
         tool, task = get_tool_task(chip, step, index, flow=flow)

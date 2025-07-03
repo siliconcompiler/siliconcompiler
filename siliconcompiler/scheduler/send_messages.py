@@ -92,7 +92,7 @@ def send(chip, msg_type, step, index):
                     msg.attach(img_attach)
 
             runtime = RuntimeFlowgraph(
-                chip.schema.get("flowgraph", flow, field='schema'),
+                chip.get("flowgraph", flow, field='schema'),
                 from_steps=chip.get('option', 'from'),
                 to_steps=chip.get('option', 'to'),
                 prune_nodes=chip.get('option', 'prune'))
