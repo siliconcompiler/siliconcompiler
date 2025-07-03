@@ -154,7 +154,7 @@ def test_get_manifest_input(chip):
 @pytest.mark.parametrize(
     "type,expect_name", [
         ("exe", "steptwo.log"),
-        ("sc", "sc_steptwo0.log"),
+        ("sc", "sc_steptwo_0.log"),
     ])
 def test_get_log(chip, type, expect_name):
     node = SchedulerNode(chip, "steptwo", "0")
