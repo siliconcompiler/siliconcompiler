@@ -152,7 +152,7 @@ def generate_testcase(chip,
 
     flow = chip.get('option', 'flow')
 
-    task_class = chip.get("tool", tool, field="schema")
+    task_class = chip.get("tool", tool, "task", task, field="schema")
 
     with task_class.runtime(chip, step=step, index=index, relpath=new_work_dir) as task:
         # Rewrite replay.sh
