@@ -383,7 +383,8 @@ class TaskSchema(NamedSchema):
 
         # Add tool specific vars
         for lic_env in self.schema("tool").getkeys('licenseserver'):
-            license_file = self.schema("tool").get('licenseserver', lic_env, step=self.__step, index=self.__index)
+            license_file = self.schema("tool").get('licenseserver', lic_env,
+                                                   step=self.__step, index=self.__index)
             if license_file:
                 envvars[lic_env] = ':'.join(license_file)
 

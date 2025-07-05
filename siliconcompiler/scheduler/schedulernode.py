@@ -613,7 +613,8 @@ class SchedulerNode:
             # copy inputs to outputs and skip execution
             for in_step, in_index in self.__record.get('inputnode',
                                                        step=self.__step, index=self.__index):
-                required_outputs = set(self.__task.get('output', step=self.__step, index=self.__index))
+                required_outputs = set(self.__task.get('output',
+                                                       step=self.__step, index=self.__index))
                 in_workdir = self.__chip.getworkdir(step=in_step, index=in_index)
                 for outfile in os.scandir(f"{in_workdir}/outputs"):
                     if outfile.name == f'{self.__design}.pkg.json':
