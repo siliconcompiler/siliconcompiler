@@ -62,8 +62,8 @@ def _check_flowgraph_io(chip, nodes=None):
                 manifest = f'{design}.pkg.json'
                 inputs = [inp for inp in os.listdir(in_step_out_dir) if inp != manifest]
             else:
-                in_tool, _ = get_tool_task(chip, in_step, in_index, flow=flow)
-                task_class = chip.get("tool", in_tool, field="schema")
+                in_tool, in_task = get_tool_task(chip, in_step, in_index, flow=flow)
+                task_class = chip.get("tool", in_tool, "task", in_task, field="schema")
 
                 with task_class.runtime(chip, step=in_step, index=in_index) as task:
                     inputs = task.get_output_files()

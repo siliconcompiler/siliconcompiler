@@ -66,38 +66,6 @@ class TaskExecutableNotFound(TaskError):
 
 
 class TaskSchema(NamedSchema):
-    def __init__(self, name=None):
-        super().__init__()
-        self.set_name(name)
-
-        schema_task(self)
-
-    def add_parameter(self, name, type, help, defvalue=None):
-        '''
-        Adds a parameter to the task definition.
-
-        Args:
-            name (str): name of parameter
-            type (str): schema type of the parameter
-            help (str): help string for this parameter
-            defvalue (any): default value for the parameter
-        '''
-        help = trim(help)
-        param = Parameter(
-            type,
-            defvalue=defvalue,
-            scope=Scope.JOB,
-            pernode=PerNode.OPTIONAL,
-            shorthelp=help,
-            help=help
-        )
-
-        EditableSchema(self).insert("var", name, param)
-
-        return param
-
-
-class ToolSchema(NamedSchema):
     __parse_version_check_str = r"""
         (?P<operator>(==|!=|<=|>=|<|>|~=))
         \s*
@@ -117,10 +85,7 @@ class ToolSchema(NamedSchema):
         super().__init__()
         self.set_name(name)
 
-        schema_tool(self)
-
-        schema = EditableSchema(self)
-        schema.insert("task", "default", TaskSchema(None))
+        schema_task(self)
 
         self.__set_runtime(None)
 
@@ -167,9 +132,11 @@ class ToolSchema(NamedSchema):
         self.__schema_metric = None
         self.__schema_flow = None
         self.__schema_flow_runtime = None
+        self.__schema_tool = None
         if self.__schema_full:
             self.__schema_record = self.__schema_full.get("record", field="schema")
             self.__schema_metric = self.__schema_full.get("metric", field="schema")
+            self.__schema_tool = self._parent()._parent()
 
             if not self.__step:
                 self.__step = self.__schema_full.get('arg', 'step')
@@ -240,6 +207,8 @@ class ToolSchema(NamedSchema):
             return self.__schema_flow
         elif type == "runtimeflow":
             return self.__schema_flow_runtime
+        elif type == "tool":
+            return self.__schema_tool
         else:
             raise ValueError(f"{type} is not a schema section")
 
@@ -254,7 +223,7 @@ class ToolSchema(NamedSchema):
             path to executable, or None if not specified
         '''
 
-        exe = self.get('exe')
+        exe = self.schema("tool").get('exe')
 
         if exe is None:
             return None
@@ -281,7 +250,7 @@ class ToolSchema(NamedSchema):
             version determined by :meth:`.parse_version`.
         '''
 
-        veropt = self.get('vswitch')
+        veropt = self.schema("tool").get('vswitch')
         if not veropt:
             return None
 
@@ -335,7 +304,7 @@ class ToolSchema(NamedSchema):
 
         '''
 
-        spec_sets = self.get('version', step=self.__step, index=self.__index)
+        spec_sets = self.schema("tool").get('version', step=self.__step, index=self.__index)
         if not spec_sets:
             # No requirement so always true
             return True
@@ -344,7 +313,7 @@ class ToolSchema(NamedSchema):
             split_specs = [s.strip() for s in spec_set.split(",") if s.strip()]
             specs_list = []
             for spec in split_specs:
-                match = re.match(ToolSchema.__parse_version_check, spec)
+                match = re.match(TaskSchema.__parse_version_check, spec)
                 if match is None:
                     self.__logger.warning(f'Invalid version specifier {spec}. '
                                           f'Defaulting to =={spec}.')
@@ -413,13 +382,13 @@ class ToolSchema(NamedSchema):
             envvars[env] = self.__schema_full.get('option', 'env', env)
 
         # Add tool specific vars
-        for lic_env in self.getkeys('licenseserver'):
-            license_file = self.get('licenseserver', lic_env, step=self.__step, index=self.__index)
+        for lic_env in self.schema("tool").getkeys('licenseserver'):
+            license_file = self.schema("tool").get('licenseserver', lic_env, step=self.__step, index=self.__index)
             if license_file:
                 envvars[lic_env] = ':'.join(license_file)
 
         if include_path:
-            path = self.find_files(
+            path = self.schema("tool").find_files(
                 "path", step=self.__step, index=self.__index,
                 packages=self.schema().get("package", field="schema").get_resolvers(),
                 cwd=self.__cwd,
@@ -437,8 +406,8 @@ class ToolSchema(NamedSchema):
                     envvars[var] = val
 
         # Add task specific vars
-        for env in self.getkeys('task', self.task(), 'env'):
-            envvars[env] = self.get('task', self.task(), 'env', env,
+        for env in self.getkeys("env"):
+            envvars[env] = self.get("env", env,
                                     step=self.__step, index=self.__index)
 
         return envvars
@@ -486,13 +455,13 @@ class ToolSchema(NamedSchema):
         replay_opts["work_dir"] = workdir
         replay_opts["exports"] = self.get_runtime_environmental_variables(include_path=include_path)
 
-        replay_opts["executable"] = self.get('exe')
+        replay_opts["executable"] = self.schema("tool").get('exe')
         replay_opts["step"] = self.__step
         replay_opts["index"] = self.__index
         replay_opts["cfg_file"] = f"inputs/{self.__design_name}.pkg.json"
         replay_opts["node_only"] = 0 if replay_opts["executable"] else 1
 
-        vswitch = self.get('vswitch')
+        vswitch = self.schema("tool").get('vswitch')
         if vswitch:
             replay_opts["version_flag"] = shlex.join(vswitch)
 
@@ -618,7 +587,7 @@ class ToolSchema(NamedSchema):
             backup (bool): if True and an existing manifest is found a backup is kept.
         '''
 
-        suffix = self.get('format')
+        suffix = self.schema("tool").get('format')
         if not suffix:
             return
 
@@ -694,10 +663,8 @@ class ToolSchema(NamedSchema):
         Args:
             io_type (str): name of io type
         '''
-        suffix = self.get('task', self.task(), io_type, 'suffix',
-                          step=self.__step, index=self.__index)
-        destination = self.get('task', self.task(), io_type, 'destination',
-                               step=self.__step, index=self.__index)
+        suffix = self.get(io_type, "suffix", step=self.__step, index=self.__index)
+        destination = self.get(io_type, "destination", step=self.__step, index=self.__index)
 
         io_file = None
         io_log = False
@@ -968,7 +935,7 @@ class ToolSchema(NamedSchema):
 
         # Remove runtime information
         for key in list(state.keys()):
-            if key.startswith("_ToolSchema__"):
+            if key.startswith("_TaskSchema__"):
                 del state[key]
 
         return state
@@ -980,7 +947,7 @@ class ToolSchema(NamedSchema):
         self.__set_runtime(None)
 
     def get_output_files(self):
-        return set(self.get("task", self.task(), "output", step=self.__step, index=self.__index))
+        return set(self.get("output", step=self.__step, index=self.__index))
 
     def get_files_from_input_nodes(self):
         """
@@ -995,21 +962,17 @@ class ToolSchema(NamedSchema):
                 # node has been pruned so will not provide anything
                 continue
 
-            if self.schema("record").get('status', step=in_step, index=in_index) == \
-                    NodeStatus.SKIPPED:
-                in_tool = self.schema("flow").get(in_step, in_index, "tool")
-                in_task = self.schema("flow").get(in_step, in_index, "task")
-
-                task_obj = self.schema().get("tool", in_tool, field="schema")
-                with task_obj.runtime(self.__chip, step=in_step, index=in_index) as task:
-                    for file, nodes in task.get_files_from_input_nodes().items():
-                        inputs.setdefault(file, []).extend(nodes)
-                continue
-
             in_tool = self.schema("flow").get(in_step, in_index, "tool")
             in_task = self.schema("flow").get(in_step, in_index, "task")
 
             task_obj = self.schema().get("tool", in_tool, "task", in_task, field="schema")
+
+            if self.schema("record").get('status', step=in_step, index=in_index) == \
+                    NodeStatus.SKIPPED:
+                with task_obj.runtime(self.__chip, step=in_step, index=in_index) as task:
+                    for file, nodes in task.get_files_from_input_nodes().items():
+                        inputs.setdefault(file, []).extend(nodes)
+                continue
 
             for output in task_obj.get("output", step=in_step, index=in_index):
                 inputs.setdefault(output, []).append((in_step, in_index))
@@ -1041,6 +1004,30 @@ class ToolSchema(NamedSchema):
         else:
             return f'{filename}.{step}{index}'
 
+    def add_parameter(self, name, type, help, defvalue=None):
+        '''
+        Adds a parameter to the task definition.
+
+        Args:
+            name (str): name of parameter
+            type (str): schema type of the parameter
+            help (str): help string for this parameter
+            defvalue (any): default value for the parameter
+        '''
+        help = trim(help)
+        param = Parameter(
+            type,
+            defvalue=defvalue,
+            scope=Scope.JOB,
+            pernode=PerNode.OPTIONAL,
+            shorthelp=help,
+            help=help
+        )
+
+        EditableSchema(self).insert("var", name, param)
+
+        return param
+
     ###############################################################
     def parse_version(self, stdout):
         raise NotImplementedError("must be implemented by the implementation class")
@@ -1060,8 +1047,7 @@ class ToolSchema(NamedSchema):
 
     def runtime_options(self):
         cmdargs = []
-        cmdargs.extend(self.get('task', self.task(), 'option',
-                                step=self.__step, index=self.__index))
+        cmdargs.extend(self.get("option", step=self.__step, index=self.__index))
 
         # Add scripts files / TODO:
         scripts = self.__chip.find_files('tool', self.tool(), 'task', self.task(), 'script',
@@ -1078,10 +1064,31 @@ class ToolSchema(NamedSchema):
         pass
 
 
+class ToolSchema(NamedSchema):
+    def __init__(self, name=None):
+        super().__init__()
+        self.set_name(name)
+
+        schema_tool(self)
+
+        schema = EditableSchema(self)
+        schema.insert("task", "default", TaskSchema(None))
+
+
 ###########################################################################
 # Migration helper
 ###########################################################################
-class ToolSchemaTmp(ToolSchema):
+class ToolSchemaTmp(NamedSchema):
+    def __init__(self):
+        super().__init__()
+
+        schema_tool(self)
+
+        schema = EditableSchema(self)
+        schema.insert("task", "default", TaskSchemaTmp())
+
+
+class TaskSchemaTmp(TaskSchema):
     def __init__(self):
         super().__init__()
 
@@ -1094,10 +1101,21 @@ class ToolSchemaTmp(ToolSchema):
 
     def __tool_task_modules(self):
         step, index = self.node()
-        flow = self._ToolSchema__chip.get('option', 'flow')
+        flow = self._TaskSchema__chip.get('option', 'flow')
         return \
-            self._ToolSchema__chip._get_tool_module(step, index, flow=flow), \
-            self._ToolSchema__chip._get_task_module(step, index, flow=flow)
+            self._TaskSchema__chip._get_tool_module(step, index, flow=flow), \
+            self._TaskSchema__chip._get_task_module(step, index, flow=flow)
+
+    @contextlib.contextmanager
+    def __in_step_index(self):
+        prev_step, prev_index = self._TaskSchema__chip.get('arg', 'step'), \
+            self._TaskSchema__chip.get('arg', 'index')
+        step, index = self.node()
+        self._TaskSchema__chip.set('arg', 'step', step)
+        self._TaskSchema__chip.set('arg', 'index', index)
+        yield
+        self._TaskSchema__chip.set('arg', 'step', prev_step)
+        self._TaskSchema__chip.set('arg', 'index', prev_index)
 
     def tool(self):
         return self.schema("flow").get(*self.node(), 'tool')
@@ -1107,106 +1125,77 @@ class ToolSchemaTmp(ToolSchema):
 
     def get_exe(self):
         if self.tool() == "execute" and self.task() == "exec_input":
-            return self.schema().get("tool", "execute", "exe")
+            return self.schema("tool").get("exe")
         return super().get_exe()
 
     def schema(self, type=None):
         if type is None:
-            return self._ToolSchema__chip
+            return self._TaskSchema__chip
         return super().schema(type)
 
     def get_output_files(self):
         _, task = self.__tool_task_modules()
         method = self.__module_func("_gather_outputs", [task])
         if method:
-            return method(self._ToolSchema__chip, *self.node())
-        return ToolSchema.get_output_files(self)
+            return method(self._TaskSchema__chip, *self.node())
+        return TaskSchema.get_output_files(self)
 
     def parse_version(self, stdout):
         tool, _ = self.__tool_task_modules()
         method = self.__module_func("parse_version", [tool])
         if method:
             return method(stdout)
-        return ToolSchema.parse_version(self, stdout)
+        return TaskSchema.parse_version(self, stdout)
 
     def normalize_version(self, version):
         tool, _ = self.__tool_task_modules()
         method = self.__module_func("normalize_version", [tool])
         if method:
             return method(version)
-        return ToolSchema.normalize_version(self, version)
+        return TaskSchema.normalize_version(self, version)
 
     def generate_replay_script(self, filepath, workdir, include_path=True):
-        prev_step, prev_index = self._ToolSchema__chip.get('arg', 'step'), \
-            self._ToolSchema__chip.get('arg', 'index')
-        step, index = self.node()
-        self._ToolSchema__chip.set('arg', 'step', step)
-        self._ToolSchema__chip.set('arg', 'index', index)
-        ret = ToolSchema.generate_replay_script(self, filepath, workdir, include_path=include_path)
-        self._ToolSchema__chip.set('arg', 'step', prev_step)
-        self._ToolSchema__chip.set('arg', 'index', prev_index)
+        with self.__in_step_index():
+            ret = TaskSchema.generate_replay_script(self, filepath, workdir,
+                                                    include_path=include_path)
         return ret
 
     def setup(self):
         _, task = self.__tool_task_modules()
         method = self.__module_func("setup", [task])
         if method:
-            prev_step, prev_index = self._ToolSchema__chip.get('arg', 'step'), \
-                self._ToolSchema__chip.get('arg', 'index')
-            step, index = self.node()
-            self._ToolSchema__chip.set('arg', 'step', step)
-            self._ToolSchema__chip.set('arg', 'index', index)
-            ret = method(self._ToolSchema__chip)
-            self._ToolSchema__chip.set('arg', 'step', prev_step)
-            self._ToolSchema__chip.set('arg', 'index', prev_index)
+            with self.__in_step_index():
+                ret = method(self._TaskSchema__chip)
             return ret
-        return ToolSchema.setup(self)
+        return TaskSchema.setup(self)
 
     def select_input_nodes(self):
         _, task = self.__tool_task_modules()
         method = self.__module_func("_select_inputs", [task])
         if method:
-            prev_step, prev_index = self._ToolSchema__chip.get('arg', 'step'), \
-                self._ToolSchema__chip.get('arg', 'index')
-            step, index = self.node()
-            self._ToolSchema__chip.set('arg', 'step', step)
-            self._ToolSchema__chip.set('arg', 'index', index)
-            ret = method(self._ToolSchema__chip, *self.node())
-            self._ToolSchema__chip.set('arg', 'step', prev_step)
-            self._ToolSchema__chip.set('arg', 'index', prev_index)
+            with self.__in_step_index():
+                ret = method(self._TaskSchema__chip, *self.node())
             return ret
-        return ToolSchema.select_input_nodes(self)
+        return TaskSchema.select_input_nodes(self)
 
     def pre_process(self):
         _, task = self.__tool_task_modules()
         method = self.__module_func("pre_process", [task])
         if method:
-            prev_step, prev_index = self._ToolSchema__chip.get('arg', 'step'), \
-                self._ToolSchema__chip.get('arg', 'index')
-            step, index = self.node()
-            self._ToolSchema__chip.set('arg', 'step', step)
-            self._ToolSchema__chip.set('arg', 'index', index)
-            ret = method(self._ToolSchema__chip)
-            self._ToolSchema__chip.set('arg', 'step', prev_step)
-            self._ToolSchema__chip.set('arg', 'index', prev_index)
+            with self.__in_step_index():
+                ret = method(self._TaskSchema__chip)
             return ret
-        return ToolSchema.pre_process(self)
+        return TaskSchema.pre_process(self)
 
     def runtime_options(self):
         tool, task = self.__tool_task_modules()
         method = self.__module_func("runtime_options", [task, tool])
         if method:
-            prev_step, prev_index = self._ToolSchema__chip.get('arg', 'step'), \
-                self._ToolSchema__chip.get('arg', 'index')
-            step, index = self.node()
-            self._ToolSchema__chip.set('arg', 'step', step)
-            self._ToolSchema__chip.set('arg', 'index', index)
-            ret = ToolSchema.runtime_options(self)
-            ret.extend(method(self._ToolSchema__chip))
-            self._ToolSchema__chip.set('arg', 'step', prev_step)
-            self._ToolSchema__chip.set('arg', 'index', prev_index)
+            with self.__in_step_index():
+                ret = TaskSchema.runtime_options(self)
+                ret.extend(method(self._TaskSchema__chip))
             return ret
-        return ToolSchema.runtime_options(self)
+        return TaskSchema.runtime_options(self)
 
     def run(self):
         _, task = self.__tool_task_modules()
@@ -1214,38 +1203,26 @@ class ToolSchemaTmp(ToolSchema):
         if method:
             # Handle logger stdout suppression if quiet
             step, index = self.node()
-            stdout_handler_level = self._ToolSchema__chip.logger._console.level
-            if self._ToolSchema__chip.get('option', 'quiet', step=step, index=index):
-                self._ToolSchema__chip.logger._console.setLevel(logging.CRITICAL)
+            stdout_handler_level = self._TaskSchema__chip.logger._console.level
+            if self._TaskSchema__chip.get('option', 'quiet', step=step, index=index):
+                self._TaskSchema__chip.logger._console.setLevel(logging.CRITICAL)
 
-            prev_step, prev_index = self._ToolSchema__chip.get('arg', 'step'), \
-                self._ToolSchema__chip.get('arg', 'index')
-            step, index = self.node()
-            self._ToolSchema__chip.set('arg', 'step', step)
-            self._ToolSchema__chip.set('arg', 'index', index)
-            retcode = method(self._ToolSchema__chip)
-            self._ToolSchema__chip.set('arg', 'step', prev_step)
-            self._ToolSchema__chip.set('arg', 'index', prev_index)
+            with self.__in_step_index():
+                retcode = method(self._TaskSchema__chip)
 
-            self._ToolSchema__chip.logger._console.setLevel(stdout_handler_level)
+            self._TaskSchema__chip.logger._console.setLevel(stdout_handler_level)
 
             return retcode
-        return ToolSchema.run(self)
+        return TaskSchema.run(self)
 
     def post_process(self):
         _, task = self.__tool_task_modules()
         method = self.__module_func("post_process", [task])
         if method:
-            prev_step, prev_index = self._ToolSchema__chip.get('arg', 'step'), \
-                self._ToolSchema__chip.get('arg', 'index')
-            step, index = self.node()
-            self._ToolSchema__chip.set('arg', 'step', step)
-            self._ToolSchema__chip.set('arg', 'index', index)
-            ret = method(self._ToolSchema__chip)
-            self._ToolSchema__chip.set('arg', 'step', prev_step)
-            self._ToolSchema__chip.set('arg', 'index', prev_index)
+            with self.__in_step_index():
+                ret = method(self._TaskSchema__chip)
             return ret
-        return ToolSchema.post_process(self)
+        return TaskSchema.post_process(self)
 
 
 ###########################################################################

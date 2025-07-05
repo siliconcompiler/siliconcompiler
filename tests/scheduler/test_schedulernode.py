@@ -14,7 +14,7 @@ from unittest.mock import patch
 
 from siliconcompiler import Chip, Flow, Schema
 from siliconcompiler import NodeStatus
-from siliconcompiler.tool import ToolSchema
+from siliconcompiler.tool import TaskSchema
 from siliconcompiler.tools.builtin import nop, join
 from scheduler.tools.echo import echo
 
@@ -65,7 +65,7 @@ def test_init(chip):
     assert node.chip is chip
     assert node.logger is chip.logger
     assert node.is_replay is False
-    assert isinstance(node.task, ToolSchema)
+    assert isinstance(node.task, TaskSchema)
     assert node.jobworkdir == chip.getworkdir()
     assert node.workdir == os.path.join(node.jobworkdir, "stepone", "0")
 
@@ -88,7 +88,7 @@ def test_init_replay(chip):
     assert node.chip is chip
     assert node.logger is chip.logger
     assert node.is_replay is True
-    assert isinstance(node.task, ToolSchema)
+    assert isinstance(node.task, TaskSchema)
     assert node.jobworkdir == chip.getworkdir()
     assert node.workdir == os.path.join(node.jobworkdir, "stepone", "0")
 
@@ -111,7 +111,7 @@ def test_init_not_entry(chip):
     assert node.chip is chip
     assert node.logger is chip.logger
     assert node.is_replay is False
-    assert isinstance(node.task, ToolSchema)
+    assert isinstance(node.task, TaskSchema)
     assert node.jobworkdir == chip.getworkdir()
     assert node.workdir == os.path.join(node.jobworkdir, "steptwo", "0")
 
@@ -1346,7 +1346,7 @@ def test_run_failed_select_input(chip, caplog):
     node = SchedulerNode(chip, "steptwo", "0")
     node.task.setup_work_directory(node.workdir)
 
-    with patch("siliconcompiler.tool.ToolSchemaTmp.select_input_nodes") as call_input_select:
+    with patch("siliconcompiler.tool.TaskSchemaTmp.select_input_nodes") as call_input_select:
         call_input_select.return_value = []
         with pytest.raises(SystemExit):
             node.run()
