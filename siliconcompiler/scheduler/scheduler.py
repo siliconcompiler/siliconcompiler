@@ -100,7 +100,7 @@ class Scheduler:
         self.run_core()
 
         # Store run in history
-        self.__chip.schema.record_history()
+        #self.__chip.schema.record_history()
 
         # Record final manifest
         filepath = os.path.join(self.__chip.getworkdir(), f"{self.__chip.design}.pkg.json")

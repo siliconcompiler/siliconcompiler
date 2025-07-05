@@ -25,6 +25,7 @@ except ModuleNotFoundError:
 
 import os.path
 
+from enum import Flag, auto
 from packaging.version import Version, InvalidVersion
 from packaging.specifiers import SpecifierSet, InvalidSpecifier
 
@@ -788,6 +789,7 @@ class TaskSchema(NamedSchema):
                     with contextlib.redirect_stderr(stderr_writer), \
                             contextlib.redirect_stdout(stdout_writer):
                         retcode = self.run()
+                        print(retcode)
             except Exception as e:
                 self.__logger.error(f'Failed in run() for {self.tool()}/{self.task()}: {e}')
                 utils.print_traceback(self.__logger, e)
@@ -1074,6 +1076,32 @@ class ToolSchema(NamedSchema):
 
         schema = EditableSchema(self)
         schema.insert("task", "default", TaskSchema(None))
+
+
+class FrontendOption(Flag):
+    FILE = auto()
+    INC_DIR = auto()
+    DEFINE = auto()
+    UNDEFINE = auto()
+    PARAM = auto()
+    LIBRARY = auto()
+
+
+class FrontendTask(TaskSchema):
+    def __root(self):
+        return self._parent(root=True)
+
+    def __design(self):
+        return self.__root().get("design", field="schema")
+
+    def get_files(self, fileset: str, filetype: str, resolve: bool = True):
+        if resolve:
+            return self.__design().find_files('fileset', fileset, 'file', filetype)
+        return self.__design().get('fileset', fileset, 'file', filetype)
+
+    def get_option(self, fileset: str, type: FrontendOption):
+        return []
+
 
 
 ###########################################################################

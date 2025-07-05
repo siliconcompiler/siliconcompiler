@@ -138,10 +138,11 @@ class Project(BaseSchema):
             self.logger.error(str(e))
             return False
         finally:
+            pass
             # Update dashboard if running
-            if self._dash:
-                self._dash.update_manifest()
-                self._dash.end_of_run()
+            # if self._dash:
+            #     self._dash.update_manifest()
+            #     self._dash.end_of_run()
 
         return True
 

@@ -3,10 +3,10 @@ from siliconcompiler.tools import slang
 from siliconcompiler.tools._common import get_tool_task
 
 
-from siliconcompiler import ToolSchema
+from siliconcompiler.tool import FrontendTask
 
 
-class Lint(ToolSchema):
+class Lint(FrontendTask):
     def tool(self):
         return "slang"
 
@@ -19,10 +19,12 @@ class Lint(ToolSchema):
         if slang.test_version():
             return slang.test_version()
 
-        self.set("task", self.task(), "threads", utils.get_cores(None), clobber=False)
+        self.set("threads", utils.get_cores(None), clobber=False)
 
     def run(self):
-        driver, exitcode = slang._get_driver(self._parent(root=True), runtime_options)
+        def tmp(*args):
+            return self.get_files("rtl", "verilog")
+        driver, exitcode = slang._get_driver(self._parent(root=True), tmp)
         if exitcode:
             return exitcode
 
