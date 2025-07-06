@@ -111,6 +111,32 @@ class SchemaTmp(Schema, CommandLineSchema):
             EditableSchema(self).insert("history", job, blank)
             return blank
 
+    def generate_doc(self, doc_state, keyprefix):
+        try:
+            from siliconcompiler.schema.docs.utils import build_section_with_target
+            from docutils import nodes
+        except ModuleNotFoundError:
+            return None
+
+        sections = []
+        for name, obj in self._BaseSchema__manifest.items():
+            if name in ("history", "library"):
+                continue
+
+            key_path = keyprefix + [name]
+            section_key = 'param-' + '-'.join([key for key in key_path if key != "default"])
+            section = build_section_with_target(name, section_key, doc_state.document)
+            for n in obj.generate_doc(doc_state, key_path):
+                section += n
+            sections.append(section)
+
+        # Sort all sections alphabetically by title. We may also have nodes
+        # in this list that aren't sections if `schema` has a 'default'
+        # entry that's a leaf. In this case, we sort this as an empty string
+        # in order to put this node at the beginning of the list.
+        return sorted(sections, key=lambda s: s[0][0] if isinstance(s, nodes.section) else '')
+
+
 
 ##############################################################################
 # Main routine

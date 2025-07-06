@@ -735,3 +735,27 @@ class BaseSchema:
         if self.__parent is self:
             return self
         return self.__parent._parent(root=root)
+
+    def generate_doc(self, doc_state, keyprefix):
+        try:
+            from .docs.utils import build_section_with_target
+            from docutils import nodes
+        except ModuleNotFoundError:
+            return None
+
+        sections = []
+        if self.__default:
+            sections.extend(self.__default.generate_doc(doc_state, keyprefix + ["default"]))
+        for name, obj in self.__manifest.items():
+            key_path = keyprefix + [name]
+            section_key = 'param-' + '-'.join([key for key in key_path if key != "default"])
+            section = build_section_with_target(name, section_key, doc_state.document)
+            for n in obj.generate_doc(doc_state, key_path):
+                section += n
+            sections.append(section)
+
+        # Sort all sections alphabetically by title. We may also have nodes
+        # in this list that aren't sections if `schema` has a 'default'
+        # entry that's a leaf. In this case, we sort this as an empty string
+        # in order to put this node at the beginning of the list.
+        return sorted(sections, key=lambda s: s[0][0] if isinstance(s, nodes.section) else '')
