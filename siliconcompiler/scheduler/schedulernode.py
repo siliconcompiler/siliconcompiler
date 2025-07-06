@@ -12,6 +12,7 @@ from logging.handlers import QueueHandler
 from siliconcompiler import utils, sc_open
 from siliconcompiler import Schema
 from siliconcompiler import NodeStatus
+from siliconcompiler.utils.logging import SCInRunLoggerFormatter
 
 from siliconcompiler.tools._common import input_file_node_name, record_metric
 
@@ -560,7 +561,10 @@ class SchedulerNode:
             os.chdir(self.__workdir)
 
             # Attach siliconcompiler file log handler
-            self.__chip._add_file_logger(self.__logs["sc"])
+            file_log = logging.FileHandler(self.__logs["sc"])
+            file_log.setFormatter(
+                SCInRunLoggerFormatter(self.__chip, self.__job, self.__step, self.__index))
+            self.logger.addHandler(file_log)
 
             # Select the inputs to this node
             sel_inputs = self.__task.select_input_nodes()
