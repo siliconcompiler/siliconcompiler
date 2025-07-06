@@ -1,3 +1,4 @@
+import logging
 import pytest
 from siliconcompiler import Chip, Library, Flow, PDK, Checklist, FPGA
 from siliconcompiler.use import PackageChip
@@ -58,28 +59,30 @@ def test_chip_not_passing():
         chip.use(func)
 
 
-def test_target_return(caplogger):
+def test_target_return(caplog):
     chip = Chip('test')
-    log = caplogger(chip)
+    chip.logger = logging.getLogger()
+    chip.logger.setLevel(logging.INFO)
 
     def func(chip):
         return [Library('test')]
 
     chip.use(func)
 
-    assert "Target returned items, which it should not have" in log()
+    assert "Target returned items, which it should not have" in caplog.text
 
 
-def test_library_return(caplogger):
+def test_library_return(caplog):
     chip = Chip('test')
-    log = caplogger(chip)
+    chip.logger = logging.getLogger()
+    chip.logger.setLevel(logging.INFO)
 
     def func():
         return [Library('test')]
 
     chip.use(func)
 
-    assert "Target returned items, which it should not have" not in log()
+    assert "Target returned items, which it should not have" not in caplog.text
 
 
 def test_load_target_string():
@@ -112,13 +115,14 @@ def test_packagechip_output():
 
 
 @pytest.mark.parametrize("cls", (Library, Flow, PDK, Checklist, FPGA))
-def test_deprecated_passing_chip(cls, caplogger):
+def test_deprecated_passing_chip(cls, caplog):
     chip = Chip("")
 
-    log = caplogger(chip)
+    chip.logger = logging.getLogger()
+    chip.logger.setLevel(logging.INFO)
 
     cls_name = cls.__name__.split(".")[-1]
 
     cls(chip, "name")
 
-    assert f"passing Chip object to name ({cls_name}) is deprecated" in log()
+    assert f"passing Chip object to name ({cls_name}) is deprecated" in caplog.text

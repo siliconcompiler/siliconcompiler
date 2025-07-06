@@ -1,3 +1,4 @@
+import logging
 import os
 import time
 import pytest
@@ -117,7 +118,7 @@ def test_pick_manifest_from_file_empty_list(gcd_chip):
     assert _common.pick_manifest_from_file(gcd_chip, "test.txt", {}) is None
 
 
-def test_pick_manifest(gcd_chip, monkeypatch, caplogger):
+def test_pick_manifest(gcd_chip, monkeypatch, caplog):
     def get_manifests(pwd):
         return {}
     monkeypatch.setattr(_common, '_get_manifests', get_manifests)
@@ -126,13 +127,14 @@ def test_pick_manifest(gcd_chip, monkeypatch, caplogger):
         return None
     monkeypatch.setattr(_common, 'pick_manifest_from_file', pick_manifest_from_file)
 
-    log = caplogger(gcd_chip)
+    gcd_chip.logger = logging.getLogger()
+    gcd_chip.logger.setLevel(logging.INFO)
     assert _common.pick_manifest(gcd_chip) is None
 
-    assert "Could not find manifest for gcd" in log()
+    assert "Could not find manifest for gcd" in caplog.text
 
 
-def test_pick_manifest_noset_design(gcd_chip, monkeypatch, caplogger):
+def test_pick_manifest_noset_design(gcd_chip, monkeypatch, caplog):
     def get_manifests(pwd):
         return {}
     monkeypatch.setattr(_common, '_get_manifests', get_manifests)
@@ -141,14 +143,15 @@ def test_pick_manifest_noset_design(gcd_chip, monkeypatch, caplogger):
         return None
     monkeypatch.setattr(_common, 'pick_manifest_from_file', pick_manifest_from_file)
 
-    log = caplogger(gcd_chip)
+    gcd_chip.logger = logging.getLogger()
+    gcd_chip.logger.setLevel(logging.INFO)
     gcd_chip.set('design', _common.UNSET_DESIGN)
     assert _common.pick_manifest(gcd_chip) is None
 
-    assert "Design name is not set" in log()
+    assert "Design name is not set" in caplog.text
 
 
-def test_pick_manifest_design_mismatch(gcd_chip, monkeypatch, caplogger):
+def test_pick_manifest_design_mismatch(gcd_chip, monkeypatch, caplog):
     def get_manifests(pwd):
         return {"gcd0": {}}
     monkeypatch.setattr(_common, '_get_manifests', get_manifests)
@@ -157,12 +160,13 @@ def test_pick_manifest_design_mismatch(gcd_chip, monkeypatch, caplogger):
         return None
     monkeypatch.setattr(_common, 'pick_manifest_from_file', pick_manifest_from_file)
 
-    log = caplogger(gcd_chip)
+    gcd_chip.logger = logging.getLogger()
+    gcd_chip.logger.setLevel(logging.INFO)
     assert _common.pick_manifest(gcd_chip) is None
 
     assert gcd_chip.design == "gcd"
 
-    assert "Could not find manifest for gcd" in log()
+    assert "Could not find manifest for gcd" in caplog.text
 
 
 def test_pick_manifest_set_design(gcd_chip, monkeypatch):
@@ -221,7 +225,7 @@ def test_pick_manifest_final_manifest(gcd_chip, monkeypatch):
     assert gcd_chip.design == "gcd"
 
 
-def test_pick_manifest_step_index_invalid(gcd_chip, monkeypatch, caplogger):
+def test_pick_manifest_step_index_invalid(gcd_chip, monkeypatch, caplog):
     def get_manifests(pwd):
         return {"gcd": {"job0": {(None, None): 'file', ('syn', '1'): 'file0'}}}
     monkeypatch.setattr(_common, '_get_manifests', get_manifests)
@@ -230,7 +234,8 @@ def test_pick_manifest_step_index_invalid(gcd_chip, monkeypatch, caplogger):
         return None
     monkeypatch.setattr(_common, 'pick_manifest_from_file', pick_manifest_from_file)
 
-    log = caplogger(gcd_chip)
+    gcd_chip.logger = logging.getLogger()
+    gcd_chip.logger.setLevel(logging.INFO)
     gcd_chip.set('design', _common.UNSET_DESIGN)
     gcd_chip.set('arg', 'step', 'syn')
     gcd_chip.set('arg', 'index', '0')
@@ -238,7 +243,7 @@ def test_pick_manifest_step_index_invalid(gcd_chip, monkeypatch, caplogger):
 
     assert gcd_chip.design == "gcd"
 
-    assert "syn/0 is not a valid node." in log()
+    assert "syn/0 is not a valid node." in caplog.text
 
 
 def test_pick_manifest_step_index_manifest(gcd_chip, monkeypatch):
@@ -290,7 +295,7 @@ def test_pick_manifest_step_index_found_index(gcd_chip, monkeypatch):
     assert gcd_chip.design == "gcd"
 
 
-def test_pick_manifest_step_index_invalid_combo(gcd_chip, monkeypatch, caplogger):
+def test_pick_manifest_step_index_invalid_combo(gcd_chip, monkeypatch, caplog):
     def get_manifests(pwd):
         return {"gcd": {"job0": {(None, None): 'file', ('syn1', '1'): 'file0'}}}
     monkeypatch.setattr(_common, '_get_manifests', get_manifests)
@@ -299,11 +304,12 @@ def test_pick_manifest_step_index_invalid_combo(gcd_chip, monkeypatch, caplogger
         return None
     monkeypatch.setattr(_common, 'pick_manifest_from_file', pick_manifest_from_file)
 
-    log = caplogger(gcd_chip)
+    gcd_chip.logger = logging.getLogger()
+    gcd_chip.logger.setLevel(logging.INFO)
     gcd_chip.set('design', _common.UNSET_DESIGN)
     gcd_chip.set('arg', "step", 'syn')
     assert _common.pick_manifest(gcd_chip) is None
 
     assert gcd_chip.design == "gcd"
 
-    assert "syn/0 is not a valid node." in log()
+    assert "syn/0 is not a valid node." in caplog.text

@@ -1,3 +1,4 @@
+import logging
 import siliconcompiler
 from siliconcompiler.targets import asic_demo
 import os
@@ -45,14 +46,15 @@ def test_collect_file_asic_demo():
         assert f.startswith(chip._getcollectdir())
 
 
-def test_collect_file_verbose(caplogger):
+def test_collect_file_verbose(caplog):
     chip = siliconcompiler.Chip('demo')
     chip.use(asic_demo)
-    log = caplogger(chip)
+    chip.logger = logging.getLogger()
+    chip.logger.setLevel(logging.INFO)
     chip.collect()
 
-    assert "Collecting input sources" in log()
-    assert "Copying " in log()
+    assert "Collecting input sources" in caplog.text
+    assert "Copying " in caplog.text
 
 
 def test_collect_directory():
@@ -113,14 +115,15 @@ def test_collect_directory_filereference():
     assert os.path.basename(path) == 'test'
 
 
-def test_collect_file_not_verbose(caplogger):
+def test_collect_file_not_verbose(caplog):
     chip = siliconcompiler.Chip('demo')
     chip.use(asic_demo)
-    log = caplogger(chip)
+    chip.logger = logging.getLogger()
+    chip.logger.setLevel(logging.INFO)
     chip.collect(verbose=False)
 
-    assert "Collecting input sources" not in log()
-    assert "Copying " not in log()
+    assert "Collecting input sources" not in caplog.text
+    assert "Copying " not in caplog.text
 
 
 def test_collect_file_with_false():
