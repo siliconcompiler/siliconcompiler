@@ -183,6 +183,29 @@ def test_runtime(running_project):
         assert runtool.schema() is running_project.schema
 
 
+def test_runtime_same_task(running_project):
+    with running_project.get_nop().runtime(running_project) as runtool0, \
+         running_project.get_nop().runtime(running_project,
+                                           step="notrunning", index="0") as runtool1:
+        assert runtool0 is not runtool1
+        assert runtool0.node() == ('running', '0')
+        assert runtool0.logger() is running_project.logger
+        assert runtool0.schema() is running_project.schema
+        assert runtool1.node() == ('notrunning', '0')
+        assert runtool1.logger() is running_project.logger
+        assert runtool1.schema() is running_project.schema
+
+        assert runtool0.set("option", "tool0_opt")
+        assert runtool1.set("option", "tool1_opt")
+
+        assert runtool0.get("option") == ["tool0_opt"]
+        assert runtool1.get("option") == ["tool1_opt"]
+    assert running_project.get("tool", "builtin", "task", "nop", "option",
+                               step="running", index="0") == ["tool0_opt"]
+    assert running_project.get("tool", "builtin", "task", "nop", "option",
+                               step="notrunning", index="0") == ["tool1_opt"]
+
+
 def test_runtime_different(running_project):
     with running_project.get_nop().runtime(running_project, step="notrunning", index="0") as \
             runtool:
@@ -213,6 +236,10 @@ def test_set(running_project):
         assert runtool.get("option") == ["only_step_index"]
         assert BaseSchema.get(runtool, "option", step="running", index="0") == ["only_step_index"]
         assert BaseSchema.get(runtool, "option", step="notrunning", index="0") == []
+    assert running_project.get("tool", "builtin", "task", "nop", "option",
+                               step="running", index="0") == ["only_step_index"]
+    assert running_project.get("tool", "builtin", "task", "nop", "option",
+                               step="notrunning", index="0") == []
 
 
 def test_add(running_project):
@@ -223,6 +250,11 @@ def test_add(running_project):
         assert BaseSchema.get(runtool, "option", step="running", index="0") == \
             ["only_step_index0", "only_step_index1"]
         assert BaseSchema.get(runtool, "option", step="notrunning", index="0") == []
+    assert running_project.get("tool", "builtin", "task", "nop", "option",
+                               step="running", index="0") == \
+        ["only_step_index0", "only_step_index1"]
+    assert running_project.get("tool", "builtin", "task", "nop", "option",
+                               step="notrunning", index="0") == []
 
 
 def test_get_exe_empty(running_project):

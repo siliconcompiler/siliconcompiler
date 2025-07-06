@@ -1,4 +1,5 @@
 import contextlib
+import copy
 import csv
 import gzip
 import logging
@@ -98,7 +99,7 @@ class TaskSchema(NamedSchema):
         Args:
             chip (:class:`Chip`): root schema for the runtime information
         '''
-        obj_copy = self.copy()
+        obj_copy = copy.copy(self)
         obj_copy.__set_runtime(chip, step=step, index=index, relpath=relpath)
         yield obj_copy
 
