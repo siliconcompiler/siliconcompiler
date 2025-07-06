@@ -408,8 +408,7 @@ class TaskSchema(NamedSchema):
 
         # Add task specific vars
         for env in self.getkeys("env"):
-            envvars[env] = self.get("env", env,
-                                    step=self.__step, index=self.__index)
+            envvars[env] = self.get("env", env)
 
         return envvars
 
@@ -664,8 +663,8 @@ class TaskSchema(NamedSchema):
         Args:
             io_type (str): name of io type
         '''
-        suffix = self.get(io_type, "suffix", step=self.__step, index=self.__index)
-        destination = self.get(io_type, "destination", step=self.__step, index=self.__index)
+        suffix = self.get(io_type, "suffix")
+        destination = self.get(io_type, "destination")
 
         io_file = None
         io_log = False
@@ -948,7 +947,7 @@ class TaskSchema(NamedSchema):
         self.__set_runtime(None)
 
     def get_output_files(self):
-        return set(self.get("output", step=self.__step, index=self.__index))
+        return set(self.get("output"))
 
     def get_files_from_input_nodes(self):
         """
@@ -975,7 +974,7 @@ class TaskSchema(NamedSchema):
                         inputs.setdefault(file, []).extend(nodes)
                 continue
 
-            for output in task_obj.get("output", step=in_step, index=in_index):
+            for output in NamedSchema.get(task_obj, "output", step=in_step, index=in_index):
                 inputs.setdefault(output, []).append((in_step, in_index))
 
         return inputs
@@ -1030,6 +1029,18 @@ class TaskSchema(NamedSchema):
         return param
 
     ###############################################################
+    def get(self, *keypath, field='value'):
+        return super().get(*keypath, field=field,
+                           step=self.__step, index=self.__index)
+
+    def set(self, *args, field='value', clobber=True):
+        return super().set(*args, field=field, clobber=clobber,
+                           step=self.__step, index=self.__index)
+
+    def add(self, *args, field='value'):
+        return super().add(*args, field=field, step=self.__step, index=self.__index)
+
+    ###############################################################
     def parse_version(self, stdout):
         raise NotImplementedError("must be implemented by the implementation class")
 
@@ -1048,7 +1059,7 @@ class TaskSchema(NamedSchema):
 
     def runtime_options(self):
         cmdargs = []
-        cmdargs.extend(self.get("option", step=self.__step, index=self.__index))
+        cmdargs.extend(self.get("option"))
 
         # Add scripts files / TODO:
         scripts = self.__chip.find_files('tool', self.tool(), 'task', self.task(), 'script',

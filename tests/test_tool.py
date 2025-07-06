@@ -207,6 +207,24 @@ def test_schema_access_invalid(running_project):
             runtool.schema("invalid")
 
 
+def test_set(running_project):
+    with running_project.get_nop().runtime(running_project) as runtool:
+        assert runtool.set("option", "only_step_index")
+        assert runtool.get("option") == ["only_step_index"]
+        assert BaseSchema.get(runtool, "option", step="running", index="0") == ["only_step_index"]
+        assert BaseSchema.get(runtool, "option", step="notrunning", index="0") == []
+
+
+def test_add(running_project):
+    with running_project.get_nop().runtime(running_project) as runtool:
+        assert runtool.add("option", "only_step_index0")
+        assert runtool.add("option", "only_step_index1")
+        assert runtool.get("option") == ["only_step_index0", "only_step_index1"]
+        assert BaseSchema.get(runtool, "option", step="running", index="0") == \
+            ["only_step_index0", "only_step_index1"]
+        assert BaseSchema.get(runtool, "option", step="notrunning", index="0") == []
+
+
 def test_get_exe_empty(running_project):
     with running_project.get_nop().runtime(running_project) as runtool:
         assert runtool.get_exe() is None
@@ -625,8 +643,7 @@ def test_get_runtime_arguments_error(running_project, monkeypatch, caplog):
 
 def test_get_output_files(running_project):
     with running_project.get_nop().runtime(running_project) as runtool:
-        step, index = runtool.node()
-        assert runtool.set('output', ["file0", "file1"], step=step, index=index)
+        assert runtool.set('output', ["file0", "file1"])
         assert runtool.get_output_files() == set(["file0", "file1"])
 
 
