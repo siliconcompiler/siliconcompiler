@@ -837,9 +837,9 @@ class TaskSchema(NamedSchema):
                     retcode = pty.spawn([exe, *cmdlist], read)
             else:
                 with open(stdout_file, 'w') as stdout_writer, \
-                        open(stdout_file, 'r', errors='replace_with_warning') as stdout_reader, \
+                        open(stdout_file, 'r', errors='replace') as stdout_reader, \
                         open(stderr_file, 'w') as stderr_writer, \
-                        open(stderr_file, 'r', errors='replace_with_warning') as stderr_reader:
+                        open(stderr_file, 'r', errors='replace') as stderr_reader:
                     # if STDOUT and STDERR are to be redirected to the same file,
                     # use a single writer
                     if stderr_file == stdout_file:
