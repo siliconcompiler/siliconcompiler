@@ -221,7 +221,8 @@ def default_email_credentials_file():
 
 @contextlib.contextmanager
 def sc_open(path, *args, **kwargs):
-    kwargs['errors'] = 'ignore_with_warning'
+    if 'errors' not in kwargs:
+        kwargs['errors'] = 'ignore'
     fobj = open(path, *args, **kwargs)
     try:
         with contextlib.closing(fobj):

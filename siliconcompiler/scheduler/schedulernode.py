@@ -524,7 +524,6 @@ class SchedulerNode:
         '''
 
         # Setup chip
-        self.__chip._init_codecs()
         self.__chip._init_logger(self.__step, self.__index, in_run=True)
 
         if self.__queue:
