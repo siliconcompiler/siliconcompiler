@@ -201,15 +201,6 @@ class Chip:
         else:
             return module
 
-    def _add_file_logger(self, filename):
-        # Add a file handler for logging
-        file_handler = logging.FileHandler(filename)
-        self.logger.addHandler(file_handler)
-
-        self._init_logger_formats()
-
-        return file_handler
-
     ###########################################################################
     def _init_logger(self, step=None, index=None, in_run=False):
 
