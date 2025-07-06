@@ -142,7 +142,7 @@ class SchedulerNode:
     @property
     def threads(self):
         with self.__task.runtime(self.__chip, step=self.__step, index=self.__index) as task:
-            thread_count = task.get("threads", step=self.__step, index=self.__index)
+            thread_count = task.get("threads")
         return thread_count
 
     def set_queue(self, pipe, queue):
@@ -317,7 +317,7 @@ class SchedulerNode:
     def get_check_changed_keys(self):
         all_keys = set()
 
-        all_keys.update(self.__task.get('require', step=self.__step, index=self.__index))
+        all_keys.update(self.__task.get('require'))
 
         tool_task_prefix = ('tool', self.__task.tool(), 'task', self.__task.task())
         for key in ('option', 'threads', 'prescript', 'postscript', 'refdir', 'script',):
@@ -405,7 +405,7 @@ class SchedulerNode:
         return False
 
     def setup_input_directory(self):
-        in_files = set(self.__task.get('input', step=self.__step, index=self.__index))
+        in_files = set(self.__task.get('input'))
 
         for in_step, in_index in self.__record.get('inputnode',
                                                    step=self.__step, index=self.__index):
@@ -451,7 +451,7 @@ class SchedulerNode:
         '''
         error = False
 
-        required_inputs = self.__task.get('input', step=self.__step, index=self.__index)
+        required_inputs = self.__task.get('input')
 
         input_dir = os.path.join(self.__workdir, 'inputs')
 
@@ -462,7 +462,7 @@ class SchedulerNode:
                                   f'{self.__step}/{self.__index}.')
                 error = True
 
-        all_required = self.__task.get('require', step=self.__step, index=self.__index)
+        all_required = self.__task.get('require')
         for item in all_required:
             keypath = item.split(',')
             if not self.__chip.valid(*keypath):
@@ -613,8 +613,7 @@ class SchedulerNode:
             # copy inputs to outputs and skip execution
             for in_step, in_index in self.__record.get('inputnode',
                                                        step=self.__step, index=self.__index):
-                required_outputs = set(self.__task.get('output',
-                                                       step=self.__step, index=self.__index))
+                required_outputs = set(self.__task.get('output'))
                 in_workdir = self.__chip.getworkdir(step=in_step, index=in_index)
                 for outfile in os.scandir(f"{in_workdir}/outputs"):
                     if outfile.name == f'{self.__design}.pkg.json':
@@ -753,7 +752,7 @@ class SchedulerNode:
         checks = {}
         matches = {}
         for suffix in self.__task.getkeys('regex'):
-            regexes = self.__task.get('regex', suffix, step=self.__step, index=self.__index)
+            regexes = self.__task.get('regex', suffix)
             if not regexes:
                 continue
 
@@ -824,7 +823,7 @@ class SchedulerNode:
                 errors += matches[metric]
 
                 sources = [os.path.basename(self.__logs["exe"])]
-                if self.__task.get('regex', metric, step=self.__step, index=self.__index):
+                if self.__task.get('regex', metric):
                     sources.append(f'{self.__step}.{metric}')
 
                 record_metric(self.__chip, self.__step, self.__index, metric, errors, sources)
@@ -836,7 +835,7 @@ class SchedulerNode:
                                    allow_cache=True, verbose=False)
 
         # hash all requirements
-        for item in set(self.__task.get('require', step=self.__step, index=self.__index)):
+        for item in set(self.__task.get('require')):
             args = item.split(',')
             sc_type = self.__chip.get(*args, field='type')
             if 'file' in sc_type or 'dir' in sc_type:
@@ -852,7 +851,7 @@ class SchedulerNode:
                                step=self.__step, index=self.__index, check=False, verbose=False)
 
         # hash all requirements
-        for item in set(self.__task.get('require', step=self.__step, index=self.__index)):
+        for item in set(self.__task.get('require')):
             args = item.split(',')
             sc_type = self.__chip.get(*args, field='type')
             if 'file' in sc_type or 'dir' in sc_type:
@@ -884,7 +883,7 @@ class SchedulerNode:
 
         outputs = set(outputs)
 
-        output_files = set(self.__task.get('output', step=self.__step, index=self.__index))
+        output_files = set(self.__task.get('output'))
 
         missing = output_files.difference(outputs)
         excess = outputs.difference(output_files)
