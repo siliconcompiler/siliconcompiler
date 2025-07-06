@@ -197,3 +197,22 @@ class KLayoutTask(ASICTaskSchema):
 
         if "area" in metrics:
             self.record_metric("totalarea", metrics["area"], metrics_file, "um^2")
+
+    @classmethod
+    def make_docs(cls):
+        from siliconcompiler import FlowgraphSchema, DesignSchema, ASICProject
+        from siliconcompiler.scheduler import SchedulerNode
+        from siliconcompiler.targets import freepdk45_demo
+        design = DesignSchema("<design>")
+        with design.active_fileset("docs"):
+            design.set_topmodule("top")
+        proj = ASICProject(design)
+        proj.add_fileset("docs")
+        proj.load_target(freepdk45_demo.setup)
+        flow = FlowgraphSchema("docsflow")
+        flow.node("<step>", cls(), index="<index>")
+        proj.set_flow(flow)
+
+        node = SchedulerNode(proj, "<step>", "<index>")
+        node.setup()
+        return node.task

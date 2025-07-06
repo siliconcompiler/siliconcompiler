@@ -5,7 +5,7 @@ from typing import List
 from siliconcompiler import utils
 
 from siliconcompiler.pathschema import PathSchema
-from siliconcompiler.schema import EditableSchema, Parameter, Scope
+from siliconcompiler.schema import EditableSchema, Parameter, Scope, BaseSchema
 from siliconcompiler.schema.utils import trim
 
 
@@ -248,3 +248,26 @@ class FileSetSchema(PathSchema):
         """
 
         return fileset in self.getkeys("fileset")
+
+    def _generate_doc(self, doc, ref_root, detailed=True):
+        from .schema.docs.utils import build_section
+
+        filesets_sec = build_section("Filesets", f"{ref_root}-filesets")
+        filesets_added = False
+        for fileset in self.getkeys("fileset"):
+            fileset_sec = build_section(fileset, f"{ref_root}-filesets-{fileset}")
+
+            params = BaseSchema._generate_doc(self.get("fileset", fileset, field="schema"),
+                                              doc,
+                                              ref_root=ref_root,
+                                              detailed=False)
+            if not params:
+                continue
+
+            fileset_sec += params
+            filesets_sec += fileset_sec
+            filesets_added = True
+
+        if filesets_added:
+            return filesets_sec
+        return None

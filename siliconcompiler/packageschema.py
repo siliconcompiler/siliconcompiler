@@ -1,7 +1,7 @@
 from typing import Union, Dict, List
 
 from siliconcompiler.pathschema import PathSchema
-from siliconcompiler.schema import EditableSchema, Parameter, Scope
+from siliconcompiler.schema import EditableSchema, Parameter, Scope, BaseSchema
 from siliconcompiler.schema.utils import trim
 
 
@@ -197,6 +197,12 @@ class PackageSchema(PathSchema):
         """
 
         return PackageSchema.__name__
+
+    def _generate_doc(self, doc, ref_root, detailed=True):
+        return BaseSchema._generate_doc(self.get("package", field="schema"),
+                                        doc,
+                                        ref_root=ref_root,
+                                        detailed=False)
 
 
 ############################################

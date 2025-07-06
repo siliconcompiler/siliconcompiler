@@ -10,11 +10,13 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
-import os
-import sys
-from datetime import date
 import inspect
 import importlib
+import sys
+
+import os.path
+
+from datetime import date
 
 sc_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, sc_root)
@@ -52,7 +54,6 @@ extensions = [
     'sphinx.ext.imgconverter',
     'sphinx.ext.autosummary',
     "sphinx.ext.linkcode",
-    'siliconcompiler.schema.docs.dynamicgen',
     'siliconcompiler.schema.docs.schemagen',
     'clientservergen',
     'requirements',

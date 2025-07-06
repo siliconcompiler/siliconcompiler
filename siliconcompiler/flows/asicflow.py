@@ -163,6 +163,10 @@ class ASICFlow(FlowgraphSchema):
         self.node("write.gds", klayout_export.ExportTask())
         self.edge("dfm.metal_fill", "write.gds")
 
+    @classmethod
+    def make_docs(cls):
+        return ASICFlow(syn_np=3, floorplan_np=3, place_np=3, cts_np=3, route_np=3)
+
 
 class HLSASSICFlow(ASICFlow):
     '''A High-Level Synthesis (HLS) extension of the ASICFlow.

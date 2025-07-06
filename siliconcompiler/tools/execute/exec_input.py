@@ -23,7 +23,7 @@ class ExecInputTask(TaskSchema):
     def setup(self):
         super().setup()
 
-        files = self.get_files_from_input_nodes().keys()
+        files = list(self.get_files_from_input_nodes().keys())
         if len(files) == 0:
             raise ValueError("must receive one input file")
         elif len(files) > 1:
@@ -45,3 +45,25 @@ class ExecInputTask(TaskSchema):
         os.chmod(exec, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
 
         return exec
+
+    @classmethod
+    def make_docs(cls):
+        from siliconcompiler import FlowgraphSchema, DesignSchema, Project
+        from siliconcompiler.scheduler import SchedulerNode
+        from siliconcompiler.tools.builtin.nop import NOPTask
+        design = DesignSchema("<design>")
+        with design.active_fileset("docs"):
+            design.set_topmodule("top")
+        proj = Project(design)
+        proj.add_fileset("docs")
+        flow = FlowgraphSchema("docsflow")
+        flow.node("<in>", NOPTask())
+        flow.node("<step>", cls(), index="<index>")
+        flow.edge("<in>", "<step>", head_index="<index>")
+        flow.set("<step>", "<index>", "args", "errors==0")
+        proj.set_flow(flow)
+
+        proj.get_task(filter=NOPTask).add_output_file("<top>.exe", step="<in>", index="0")
+        node = SchedulerNode(proj, "<step>", "<index>")
+        node.setup()
+        return node.task

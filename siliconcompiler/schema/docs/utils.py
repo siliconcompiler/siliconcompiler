@@ -1,7 +1,8 @@
 from docutils import nodes
 import sphinx.addnodes
 
-from siliconcompiler import Schema
+from docutils.statemachine import ViewList
+from sphinx.util.nodes import nested_parse_with_titles
 
 
 # Docutils helpers
@@ -127,30 +128,30 @@ def keypath(key_path, refdoc, key_text=None):
     '''Helper function for displaying Schema keypaths.'''
     text_parts = []
     key_parts = []
-    schema = Schema()
+    # schema = Schema()
     for key in key_path:
-        if schema.valid(*key_parts, "default", default_valid=True):
-            key_parts.append("default")
-            if key.startswith('<') and key.endswith('>'):
-                # Placeholder
-                text_parts.append(key)
-            else:
-                # Fully-qualified
-                text_parts.append(f"'{key}'")
-        else:
-            key_parts.append(key)
-            text_parts.append(f"'{key}'")
+        # if schema.valid(*key_parts, "default", default_valid=True):
+        #     key_parts.append("default")
+        #     if key.startswith('<') and key.endswith('>'):
+        #         # Placeholder
+        #         text_parts.append(key)
+        #     else:
+        #         # Fully-qualified
+        #         text_parts.append(f"'{key}'")
+        # else:
+        key_parts.append(key)
+        text_parts.append(key)
 
-        if not schema.valid(*key_parts, default_valid=True):
-            raise ValueError(f'Invalid keypath {key_path}')
+    #     if not schema.valid(*key_parts, default_valid=True):
+    #         raise ValueError(f'Invalid keypath {key_path}')
 
-    if not schema.valid(*key_parts, default_valid=True, check_complete=True):
-        # Not leaf
-        text_parts.append('...')
+    # if not schema.valid(*key_parts, default_valid=True, check_complete=True):
+    #     # Not leaf
+    #     text_parts.append('...')
 
     if key_text:
         text_parts = key_text
-    text = f"[{', '.join(text_parts)}]"
+    text = f"[{','.join(text_parts)}]"
     refid = get_ref_id('param-' + '-'.join([key for key in key_parts if key != "default"]))
 
     opt = {'refdoc': refdoc,
@@ -163,3 +164,12 @@ def keypath(key_path, refdoc, key_text=None):
     refnode += code(text)
 
     return refnode
+
+
+def parse_rst(state, content, dest):
+    rst = ViewList()
+    # use fake filename 'inline' for error # reporting
+    for i, line in enumerate(content.splitlines()):
+        rst.append(line, 'inline', i)
+
+    nested_parse_with_titles(state, rst, dest)

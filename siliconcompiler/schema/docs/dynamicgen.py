@@ -41,13 +41,16 @@ from siliconcompiler.schema.docs.utils import (
 
 def build_schema_value_table(params, refdoc, keypath_prefix=None):
     '''Helper function for displaying values set in schema as a docutils table.'''
-    table = [[strong('Keypath'), strong('Value')]]
+    table = [[strong('Keypath'), strong('Type'), strong('Value')]]
 
     if not keypath_prefix:
         keypath_prefix = []
 
-    def format_value(is_list, value):
-        if is_list:
+    def format_value(is_list, is_set, value):
+        if is_list or is_set:
+            value = list(value)
+            if is_set:
+                value = sorted(value)
             if len(value) > 1:
                 val_node = build_list([code(v) for v in value])
             elif len(value) > 0:
@@ -79,33 +82,34 @@ def build_schema_value_table(params, refdoc, keypath_prefix=None):
         return val_node
 
     for key, param in sorted(params.items(), key=lambda d: d[0]):
-        values = param.getvalues(return_defvalue=False)
+        values = param.getvalues(return_defvalue=True)
         if values:
             # take first of multiple possible values
             value, step, index = values[0]
+            if value is None or value == [] or value == set():
+                # Dont show empty
+                continue
+
             val_type = param.get(field='type')
             is_filedir = 'file' in val_type or 'dir' in val_type
-            # Don't display false booleans
-            if val_type == 'bool' and value is False:
-                continue
             if is_filedir:
                 val_node = format_value_file(val_type.startswith('['), value,
                                              param.get(field='package',
                                                        step=step, index=index))
             else:
-                val_node = format_value(val_type.startswith('['), value)
+                val_node = format_value(val_type.startswith('['), val_type.startswith('{'), value)
 
             # HTML builder fails if we don't make a text node the parent of the
             # reference node returned by keypath()
             p = nodes.paragraph()
             p += keypath([*keypath_prefix, *key], refdoc)
-            table.append([p, val_node])
+            table.append([p, code(param.get(field="type")), val_node])
 
     if len(table) > 1:
         # This colspec creates two columns of equal width that fill the entire
         # page, and adds line breaks if table cell contents are longer than one
         # line. "\X" is defined by Sphinx, otherwise this is standard LaTeX.
-        colspec = r'{|\X{1}{2}|\X{1}{2}|}'
+        colspec = r'{|\X{2}{5}|\X{1}{5}|\X{2}{5}|}'
         return build_table(table, colspec=colspec)
     else:
         return None
@@ -243,12 +247,12 @@ class DynamicGen(SphinxDirective):
         '''
 
         modules = []
-        for plugin in get_plugins("docs", name=self.PATH):
-            for mod in plugin():
-                if isinstance(mod, str):
-                    modules.extend(self.get_modules_in_dir(mod))
-                else:
-                    modules.append(mod)
+        # for plugin in get_plugins("docs", name=self.PATH):
+        #     for mod in plugin():
+        #         if isinstance(mod, str):
+        #             modules.extend(self.get_modules_in_dir(mod))
+        #         else:
+        #             modules.append(mod)
 
         return modules
 
@@ -304,10 +308,10 @@ class DynamicGen(SphinxDirective):
             return False
 
         src_link = None
-        for docs_link in get_plugins("docs", name="linkcode"):
-            src_link = docs_link(file=path)
-            if src_link:
-                break
+        # for docs_link in get_plugins("docs", name="linkcode"):
+        #     src_link = docs_link(file=path)
+        #     if src_link:
+        #         break
 
         if src_link:
             p = para('Setup file: ')
@@ -930,58 +934,7 @@ class ExampleGen(DynamicGen):
         return section
 
 
-def keypath_role(name, rawtext, text, lineno, inliner, options=None, content=None):
-    doc = inliner.document
-    env = doc.settings.env
-
-    # Split and clean up keypath
-    keys = [key.strip() for key in text.split(',')]
-    try:
-        return [keypath(keys, env.docname)], []
-    except ValueError as e:
-        msg = inliner.reporter.error(f'{rawtext}: {e}', line=lineno)
-        prb = inliner.problematic(rawtext, rawtext, msg)
-        return [prb], [msg]
-
-
-class SCDomain(StandardDomain):
-    name = 'sc'
-
-    # Override in StandardDomain so xref is literal instead of inline
-    # https://github.com/sphinx-doc/sphinx/blob/ba080286b06cb9e0cadec59a6cf1f96aa11aef5a/sphinx/domains/std.py#L789
-    def build_reference_node(self,
-                             fromdocname,
-                             builder,
-                             docname,
-                             labelid,
-                             sectname,
-                             rolename,
-                             **options):
-        nodeclass = options.pop('nodeclass', nodes.reference)
-        newnode = nodeclass('', '', internal=True, **options)
-        innernode = nodes.literal(sectname, sectname)
-        if innernode.get('classes') is not None:
-            innernode['classes'].append('std')
-            innernode['classes'].append('std-' + rolename)
-        if docname == fromdocname:
-            newnode['refid'] = labelid
-        else:
-            # set more info in contnode; in case the
-            # get_relative_uri call raises NoUri,
-            # the builder will then have to resolve these
-            contnode = pending_xref('')
-            contnode['refdocname'] = docname
-            contnode['refsectname'] = sectname
-            newnode['refuri'] = builder.get_relative_uri(
-                fromdocname, docname)
-            if labelid:
-                newnode['refuri'] += '#' + labelid
-        newnode.append(innernode)
-        return newnode
-
-
 def setup(app):
-    app.add_domain(SCDomain)
     app.add_directive('flowgen', FlowGen)
     app.add_directive('pdkgen', PDKGen)
     app.add_directive('libgen', LibGen)
@@ -990,7 +943,6 @@ def setup(app):
     app.add_directive('examplegen', ExampleGen)
     app.add_directive('targetgen', TargetGen)
     app.add_directive('checklistgen', ChecklistGen)
-    app.add_role('keypath', keypath_role)
 
     return {
         'version': siliconcompiler.__version__,

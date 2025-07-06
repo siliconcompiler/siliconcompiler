@@ -107,7 +107,13 @@ Default values for each field are stored under the special keys ``"default", "de
 Parameters
 -----------------------------
 
-.. schemagen::
+.. schema::
+  :root: siliconcompiler/ASICProject
+  :add_class:
+
+.. schema::
+  :root: siliconcompiler/FPGAProject
+  :add_class:
 
 Nested Schemas
 ----------------

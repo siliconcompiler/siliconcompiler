@@ -4,14 +4,14 @@ import inspect
 
 import os.path
 
-from siliconcompiler.schema import BaseSchema, NamedSchema
+from siliconcompiler.schema import BaseSchema, NamedSchema, DocsSchema
 from siliconcompiler.schema import EditableSchema, Parameter, Scope
 from siliconcompiler.schema.utils import trim
 
 from siliconcompiler import NodeStatus
 
 
-class FlowgraphSchema(NamedSchema):
+class FlowgraphSchema(NamedSchema, DocsSchema):
     '''
     Schema for defining and interacting with a flowgraph.
 
@@ -835,6 +835,35 @@ class FlowgraphSchema(NamedSchema):
             dot.edge(f'{edge0}{out_label_suffix}', f'{edge1}{in_label_suffix}', weight=str(weight))
 
         dot.render(filename=fileroot, cleanup=True)
+
+    def _generate_doc(self, doc, ref_root, detailed=True):
+        from .schema.docs.utils import image, build_section
+
+        docs = []
+        image_path_root = os.path.join(doc.env.app.outdir, f"_images/gen/flows/{self.name}.svg")
+        image_path = image_path_root
+        idx = 0
+        while os.path.exists(image_path):
+            base, ext = os.path.splitext(image_path_root)
+            image_path = f"{base}-{idx}{ext}"
+            idx += 1
+        os.makedirs(os.path.dirname(image_path), exist_ok=True)
+        self.write_flowgraph(image_path)
+        docs.append(image(image_path, center=True))
+
+        config = build_section("Nodes", f"{ref_root}-flow-{self.name}-nodes")
+        for nodes in self.get_execution_order():
+            for step, index in nodes:
+                sec = build_section(f"{step}/{index}",
+                                    f"{ref_root}-flow-{self.name}-nodes-{step}-{index}")
+                sec += BaseSchema._generate_doc(self.get(step, index, field="schema"),
+                                                doc,
+                                                ref_root=ref_root,
+                                                detailed=False)
+                config += sec
+        docs.append(config)
+
+        return docs
 
 
 class RuntimeFlowgraph:

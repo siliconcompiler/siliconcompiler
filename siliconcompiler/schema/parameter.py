@@ -157,6 +157,60 @@ class Parameter:
     def __str__(self):
         return str(self.getvalues())
 
+    def _generate_doc(self, doc, keyprefix):
+        try:
+            from .docs.utils import strong, para, code, build_list, build_table
+            from docutils.statemachine import ViewList
+            from docutils import nodes
+            from sphinx.util.nodes import nested_parse_with_titles
+        except ModuleNotFoundError:
+            return None
+
+        entries = [[strong('Description'), para(self.__shorthelp)],
+                   [strong('Type'), para(NodeType.encode(self.__type))]]
+
+        if self.get(field='pernode').is_never():
+            entries.append([strong('Per step/index'), para(str(self.__pernode.value).lower())])
+
+        entries.append([strong('Scope'), para(str(self.__scope.value).lower())])
+
+        if self.__unit:
+            entries.append([strong('Unit'), para(self.__unit)])
+
+        entries.append([strong('Default Value'), para(self.__defvalue.get())])
+
+        switch_list = [code(switch) for switch in self.__switch]
+        if switch_list:
+            entries.append([strong('CLI Switch'), build_list(switch_list)])
+
+        examples = {}
+        for example in self.__example:
+            name, ex = example.split(':', 1)
+            examples.setdefault(name, []).append(ex)
+
+        for name, exs in examples.items():
+            examples = [code(ex.strip()) for ex in exs]
+            p = None
+            for ex in examples:
+                if not p:
+                    p = para("")
+                else:
+                    p += para("")
+                p += ex
+            entries.append([strong(f'Example ({name.upper()})'), p])
+
+        table = build_table(entries, colwidths=[25, 75])
+
+        rst = ViewList()
+        # use fake filename 'inline' for error # reporting
+        if self.__help:
+            for i, line in enumerate(self.__help.splitlines()):
+                rst.append(line, 'inline', i)
+        body = nodes.paragraph()
+        nested_parse_with_titles(doc.state, rst, body)
+
+        return [body, table]
+
     def get(self, field='value', step=None, index=None):
         """
         Returns the value in a parameter field.

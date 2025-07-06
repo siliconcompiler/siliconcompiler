@@ -1,5 +1,6 @@
 import os.path
 
+from enum import Enum, auto
 from pathlib import PureWindowsPath
 
 import siliconcompiler
@@ -7,6 +8,11 @@ from siliconcompiler import __version__ as sc_version
 
 
 sc_root = os.path.dirname(os.path.dirname(os.path.abspath(siliconcompiler.__file__)))
+
+
+class DocType(Enum):
+    DETAILED = auto()
+    SUMMARY = auto()
 
 
 def relpath(file):

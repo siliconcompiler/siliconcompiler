@@ -4,7 +4,8 @@ from siliconcompiler import PackageSchema
 
 from siliconcompiler.dependencyschema import DependencySchema
 from siliconcompiler.filesetschema import FileSetSchema
-from siliconcompiler.schema import NamedSchema
+from siliconcompiler.pathschema import PathSchema
+from siliconcompiler.schema import NamedSchema, BaseSchema
 
 from siliconcompiler.schema import EditableSchema, Parameter, Scope, PerNode
 from siliconcompiler.schema.utils import trim
@@ -111,6 +112,29 @@ class ToolLibrarySchema(LibrarySchema):
                 del manifest["tool"]
 
         return super()._from_dict(manifest, keypath, version)
+
+    def _generate_doc(self, doc, ref_root, detailed=True):
+        from .schema.docs.utils import build_section
+
+        tools_sec = build_section("Tools", f"{ref_root}-tools")
+        tools_added = False
+        for tool in self.getkeys("tool"):
+            tool_sec = build_section(tool, f"{ref_root}-tools-{tool}")
+
+            tool_param = BaseSchema._generate_doc(self.get("tool", tool, field="schema"),
+                                                  doc,
+                                                  ref_root=ref_root,
+                                                  detailed=False)
+            if not tool_param:
+                continue
+
+            tool_sec += tool_param
+            tools_sec += tool_sec
+            tools_added = True
+
+        if tools_added:
+            return tools_sec
+        return None
 
 
 class StdCellLibrarySchema(ToolLibrarySchema, DependencySchema):
@@ -329,3 +353,39 @@ class StdCellLibrarySchema(ToolLibrarySchema, DependencySchema):
         """
 
         return StdCellLibrarySchema.__name__
+
+    def _generate_doc(self, doc, ref_root, detailed=True):
+        from .schema.docs.utils import build_section
+        docs = []
+
+        # Show dataroot
+        dataroot = PathSchema._generate_doc(self, doc, ref_root)
+        if dataroot:
+            docs.append(dataroot)
+
+        # Show package information
+        package_sec = build_section("Package", f"{ref_root}-package")
+        package = PackageSchema._generate_doc(self, doc, ref_root)
+        if package:
+            package_sec += package
+            docs.append(package_sec)
+
+        # Show filesets
+        fileset = FileSetSchema._generate_doc(self, doc, ref_root)
+        if fileset:
+            docs.append(fileset)
+
+        # Show ASIC
+        asic_sec = build_section("ASIC", f"{ref_root}-asic")
+        asic_sec += BaseSchema._generate_doc(self.get("asic", field="schema"),
+                                             doc,
+                                             ref_root=ref_root,
+                                             detailed=False)
+        docs.append(asic_sec)
+
+        # Show tool information
+        tools_sec = ToolLibrarySchema._generate_doc(self, doc, ref_root)
+        if tools_sec:
+            docs.append(tools_sec)
+
+        return docs

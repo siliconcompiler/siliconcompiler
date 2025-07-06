@@ -59,6 +59,10 @@ class SynthesisFlow(FlowgraphSchema):
             self.node("timing", timing.TimingTask(), index=n)
             self.edge(prev_step, "timing", head_index=n)
 
+    @classmethod
+    def make_docs(cls):
+        return SynthesisFlow(syn_np=3, timing_np=3)
+
 
 ##################################################
 if __name__ == "__main__":

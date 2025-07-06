@@ -370,3 +370,33 @@ class PathSchema(PathSchemaBase):
 
         with self._active(package=dataroot):
             yield
+
+    def _generate_doc(self, doc, ref_root, detailed=True):
+        from .schema.docs.utils import build_section, strong, build_table, build_list, \
+            code, para
+        from docutils import nodes
+
+        section = build_section("Data root", f"{ref_root}-dataroot")
+
+        # This colspec creates two columns of equal width that fill the entire
+        # page, and adds line breaks if table cell contents are longer than one
+        # line. "\X" is defined by Sphinx, otherwise this is standard LaTeX.
+        colspec = r'{|\X{1}{3}|\X{2}{3}|}'
+
+        table = [[strong('Root'), strong('Specifications')]]
+        for dataroot in self.getkeys("dataroot"):
+            path = self.get('dataroot', dataroot, 'path')
+            tag = self.get('dataroot', dataroot, 'tag')
+
+            specs = [nodes.paragraph('', 'Path: ', code(path))]
+            if tag:
+                specs.append(nodes.paragraph('', 'Tag: ', code(tag)))
+
+            table.append([para(dataroot), build_list(specs)])
+
+        if len(table) == 1:
+            return None
+
+        section += build_table(table, colspec=colspec)
+
+        return section

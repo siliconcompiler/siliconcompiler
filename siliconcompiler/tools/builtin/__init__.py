@@ -40,6 +40,28 @@ class BuiltinTask(TaskSchema):
         shutil.copytree('inputs', 'outputs', dirs_exist_ok=True,
                         copy_function=utils.link_symlink_copy)
 
+    @classmethod
+    def make_docs(cls):
+        from siliconcompiler import FlowgraphSchema, DesignSchema, Project
+        from siliconcompiler.scheduler import SchedulerNode
+        from siliconcompiler.tools.builtin.nop import NOPTask
+        design = DesignSchema("<design>")
+        with design.active_fileset("docs"):
+            design.set_topmodule("top")
+        proj = Project(design)
+        proj.add_fileset("docs")
+        flow = FlowgraphSchema("docsflow")
+        flow.node("<in>", NOPTask())
+        flow.node("<step>", cls(), index="<index>")
+        flow.edge("<in>", "<step>", head_index="<index>")
+        flow.set("<step>", "<index>", "args", "errors==0")
+        proj.set_flow(flow)
+
+        proj.get_task(filter=NOPTask).add_output_file("<top>.v", step="<in>", index="0")
+        node = SchedulerNode(proj, "<step>", "<index>")
+        node.setup()
+        return node.task
+
 
 class MinMaxBuiltinTask(BuiltinTask):
     def task(self):
