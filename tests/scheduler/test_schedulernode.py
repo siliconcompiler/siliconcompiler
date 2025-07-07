@@ -1319,7 +1319,7 @@ def test_run_pass_hash(chip):
 def test_run_failed_to_validate(chip, caplog):
     chip.logger = logging.getLogger()
     chip.logger.setLevel(logging.INFO)
-    chip.logger._console = None
+    chip.logger._console = logging.StreamHandler()
 
     node = SchedulerNode(chip, "stepone", "0")
     node.task.setup_work_directory(node.workdir)
@@ -1341,7 +1341,7 @@ def test_run_failed_to_validate(chip, caplog):
 def test_run_failed_select_input(chip, caplog):
     chip.logger = logging.getLogger()
     chip.logger.setLevel(logging.INFO)
-    chip.logger._console = None
+    chip.logger._console = logging.StreamHandler()
 
     node = SchedulerNode(chip, "steptwo", "0")
     node.task.setup_work_directory(node.workdir)
@@ -1363,7 +1363,7 @@ def test_run_failed_select_input(chip, caplog):
 def test_run_failed_to_execute(chip, caplog):
     chip.logger = logging.getLogger()
     chip.logger.setLevel(logging.INFO)
-    chip.logger._console = None
+    chip.logger._console = logging.StreamHandler()
 
     node = SchedulerNode(chip, "stepone", "0")
     node.task.setup_work_directory(node.workdir)
