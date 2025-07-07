@@ -165,18 +165,18 @@ class SchedulerNode:
         self.__metrics = self.__chip.get("metric", field="schema")
 
     def _init_run_logger(self):
-        self.logger._console.setFormatter(
+        self.__chip._logger_console.setFormatter(
             get_console_formatter(self.__chip, True, self.__step, self.__index))
         self.logger.setLevel(
             schema_utils.translate_loglevel(self.__chip.get('option', 'loglevel',
                                             step=self.__step, index=self.__index)))
 
         if self.__queue:
-            formatter = self.logger._console.formatter
-            self.logger.removeHandler(self.logger._console)
-            self.logger._console = QueueHandler(self.__queue)
-            self.logger._console.setFormatter(formatter)
-            self.logger.addHandler(self.logger._console)
+            formatter = self.__chip._logger_console.formatter
+            self.logger.removeHandler(self.__chip._logger_console)
+            self.__chip._logger_console = QueueHandler(self.__queue)
+            self.__chip._logger_console.setFormatter(formatter)
+            self.logger.addHandler(self.__chip._logger_console)
 
     def halt(self, msg=None):
         if msg:

@@ -1216,14 +1216,14 @@ class TaskSchemaTmp(TaskSchema):
         if method:
             # Handle logger stdout suppression if quiet
             step, index = self.node()
-            stdout_handler_level = self._TaskSchema__chip.logger._console.level
+            stdout_handler_level = self._TaskSchema__chip._logger_console.level
             if self._TaskSchema__chip.get('option', 'quiet', step=step, index=index):
-                self._TaskSchema__chip.logger._console.setLevel(logging.CRITICAL)
+                self._TaskSchema__chip._logger_console.setLevel(logging.CRITICAL)
 
             with self.__in_step_index():
                 retcode = method(self._TaskSchema__chip)
 
-            self._TaskSchema__chip.logger._console.setLevel(stdout_handler_level)
+            self._TaskSchema__chip._logger_console.setLevel(stdout_handler_level)
 
             return retcode
         return TaskSchema.run(self)

@@ -74,7 +74,7 @@ class Chip:
         self.schema = Schema(logger=self.logger)
 
         # Setup console formatting
-        self.logger._console.setFormatter(get_console_formatter(self, False, None, None))
+        self._logger_console.setFormatter(get_console_formatter(self, False, None, None))
 
         self.register_source('siliconcompiler',
                              'python://siliconcompiler')
@@ -211,12 +211,11 @@ class Chip:
 
         self.logger.setLevel(logging.INFO)
 
-        if not self.logger.hasHandlers():
-            stream_handler = logging.StreamHandler(stream=sys.stdout)
-            stream_handler.setFormatter(SCLoggerFormatter())
-            # Save console handler
-            self.logger._console = stream_handler
-            self.logger.addHandler(stream_handler)
+        stream_handler = logging.StreamHandler(stream=sys.stdout)
+        stream_handler.setFormatter(SCLoggerFormatter())
+        # Save console handler
+        self._logger_console = stream_handler
+        self.logger.addHandler(stream_handler)
 
     ###########################################################################
     def create_cmdline(self,
@@ -3230,6 +3229,7 @@ class Chip:
         # We have to remove the chip's logger before serializing the object
         # since the logger object is not serializable.
         del attributes['logger']
+        del attributes['_logger_console']
         return attributes
 
     #######################################
