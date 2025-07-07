@@ -23,10 +23,7 @@ from siliconcompiler.schema.parametertype import NodeType
 from siliconcompiler.schema.parametervalue import FileNodeValue
 from siliconcompiler.schema import utils as schema_utils
 from siliconcompiler import utils
-from siliconcompiler.utils.logging import SCColorLoggerFormatter, \
-    SCLoggerFormatter, SCInRunLoggerFormatter, \
-    SCDebugLoggerFormatter, SCDebugInRunLoggerFormatter, \
-    SCBlankLoggerFormatter
+from siliconcompiler.utils.logging import get_console_formatter, SCLoggerFormatter
 from siliconcompiler import _metadata
 from siliconcompiler import NodeStatus, SiliconCompilerError
 from siliconcompiler.report import _show_summary_table
@@ -72,9 +69,12 @@ class Chip:
                 "SiliconCompiler must be run from a directory that exists. "
                 "If you are sure that your working directory is valid, try running `cd $(pwd)`.")
 
-        self._init_logger()
+        self.__init_logger()
 
         self.schema = Schema(logger=self.logger)
+
+        # Setup console formatting
+        self.logger._console.setFormatter(get_console_formatter(self, False, None, None))
 
         self.register_source('siliconcompiler',
                              'python://siliconcompiler')
@@ -202,67 +202,21 @@ class Chip:
             return module
 
     ###########################################################################
-    def _init_logger(self, step=None, index=None, in_run=False):
-
+    def __init_logger(self):
         # Check if the logger exists and create
         if not hasattr(self, 'logger') or not self.logger:
             self.logger = logging.getLogger(f'sc_{id(self)}')
 
         self.logger.propagate = False
 
-        loglevel = 'info'
-        if hasattr(self, 'schema'):
-            loglevel = self.schema.get('option', 'loglevel', step=step, index=index)
-        else:
-            in_run = False
-
-        # Save in run flag
-        self.logger._in_run = in_run
-        self.logger._in_step = step
-        self.logger._in_index = index
-
-        self.logger.setLevel(schema_utils.translate_loglevel(loglevel))
+        self.logger.setLevel(logging.INFO)
 
         if not self.logger.hasHandlers():
             stream_handler = logging.StreamHandler(stream=sys.stdout)
+            stream_handler.setFormatter(SCLoggerFormatter())
             # Save console handler
             self.logger._console = stream_handler
             self.logger.addHandler(stream_handler)
-
-            self.logger._support_color = SCColorLoggerFormatter.supports_color(stream_handler)
-
-        self._init_logger_formats(loglevel=loglevel)
-
-    def _init_logger_formats(self, loglevel=None):
-        if not loglevel:
-            loglevel = self.schema.get('option', 'loglevel',
-                                       step=self.logger._in_step, index=self.logger._in_index)
-
-        if loglevel == 'quiet':
-            base_format = SCBlankLoggerFormatter()
-        elif self.logger._in_run:
-            if loglevel == 'debug':
-                base_format = SCDebugInRunLoggerFormatter(
-                    self,
-                    self.get('option', 'jobname'),
-                    self.logger._in_step, self.logger._in_index)
-            else:
-                base_format = SCInRunLoggerFormatter(
-                    self,
-                    self.get('option', 'jobname'),
-                    self.logger._in_step, self.logger._in_index)
-        else:
-            if loglevel == 'debug':
-                base_format = SCDebugLoggerFormatter()
-            else:
-                base_format = SCLoggerFormatter()
-
-        for handler in self.logger.handlers.copy():
-            if handler == self.logger._console and self.logger._support_color:
-                formatter = SCColorLoggerFormatter(base_format)
-            else:
-                formatter = base_format
-            handler.setFormatter(formatter)
 
     ###########################################################################
     def create_cmdline(self,
@@ -3283,7 +3237,7 @@ class Chip:
         self.__dict__ = state
 
         # Reinitialize logger on restore
-        self._init_logger()
+        self.__init_logger()
 
     def copy(self):
         return copy.deepcopy(self)

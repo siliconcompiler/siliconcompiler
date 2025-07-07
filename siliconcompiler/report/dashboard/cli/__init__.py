@@ -27,7 +27,7 @@ class CliDashboard(AbstractDashboard):
             self.__logger_console = self._chip.logger._console
             self._chip.logger._console = self._dashboard._log_handler
             self._logger.addHandler(self._dashboard._log_handler)
-            self._chip._init_logger_formats()
+            self._dashboard._log_handler.setFormatter(self.__logger_console.formatter)
 
     def open_dashboard(self):
         """Starts the dashboard rendering thread if it is not already running."""
@@ -73,7 +73,7 @@ class CliDashboard(AbstractDashboard):
             self._logger.removeHandler(self._dashboard._log_handler)
             self._chip.logger._console = self.__logger_console
             self._logger.addHandler(self.__logger_console)
-            self._chip._init_logger_formats()
+            self.__logger_console.setFormatter(self._dashboard._log_handler.formatter)
             self.__logger_console = None
 
     def wait(self):

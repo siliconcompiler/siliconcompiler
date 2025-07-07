@@ -93,6 +93,8 @@ class SlurmSchedulerNode(SchedulerNode):
         finishes processing this step, and it sets the active/error bits.
         '''
 
+        self._init_run_logger()
+
         if shutil.which('sinfo') is None:
             raise RuntimeError('slurm is not available or installed on this machine')
 
