@@ -528,10 +528,11 @@ class SchedulerNode:
         self.__chip._init_logger(self.__step, self.__index, in_run=True)
 
         if self.__queue:
+            formatter = self.logger._console.formatter
             self.logger.removeHandler(self.logger._console)
             self.logger._console = QueueHandler(self.__queue)
+            self.logger._console.setFormatter(formatter)
             self.logger.addHandler(self.logger._console)
-            self.__chip._init_logger_formats()
 
         self.__chip.set('arg', 'step', self.__step)
         self.__chip.set('arg', 'index', self.__index)
