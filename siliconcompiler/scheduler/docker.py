@@ -8,8 +8,6 @@ from pathlib import Path
 from siliconcompiler.package import RemoteResolver
 from siliconcompiler.utils import default_email_credentials_file
 from siliconcompiler.scheduler.schedulernode import SchedulerNode
-from siliconcompiler.utils.logging import get_console_formatter
-from siliconcompiler.schema import utils as schema_utils
 
 
 def get_image(chip, step, index):
