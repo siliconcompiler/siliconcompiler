@@ -20,6 +20,7 @@ from siliconcompiler.report.dashboard import DashboardType
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 from siliconcompiler.scheduler.scheduler import Scheduler
 from siliconcompiler.schema import Journal
+from siliconcompiler.utils.logging import get_console_formatter
 
 # Step name to use while logging
 remote_step_name = 'remote'
@@ -484,7 +485,8 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
 
         # Run the job on the remote server, and wait for it to finish.
         # Set logger to indicate remote run
-        self.__chip._init_logger(step=self.STEP_NAME, index=None, in_run=True)
+        self.__chip.logger._console.setFormatter(
+            get_console_formatter(self.__chip, True, self.STEP_NAME, None))
 
         # Ask the remote server to start processing the requested step.
         self.__request_run()
@@ -495,7 +497,8 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
         finally:
             # Restore logger
             self.__chip._dash.end_of_run()
-            self.__chip._init_logger(in_run=True)
+            self.__chip.logger._console.setFormatter(
+                get_console_formatter(self.__chip, False, None, None))
 
     def __request_run(self):
         '''
@@ -651,7 +654,8 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
         return changed
 
     def __ensure_run_loop_information(self):
-        self.__chip._init_logger(step=self.STEP_NAME, index='0', in_run=True)
+        self.__chip.logger._console.setFormatter(
+            get_console_formatter(self.__chip, True, self.STEP_NAME, None))
         if not self.__download_pool:
             self.__download_pool = multiprocessing.Pool()
 

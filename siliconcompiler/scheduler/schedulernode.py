@@ -12,7 +12,8 @@ from logging.handlers import QueueHandler
 from siliconcompiler import utils, sc_open
 from siliconcompiler import Schema
 from siliconcompiler import NodeStatus
-from siliconcompiler.utils.logging import SCInRunLoggerFormatter
+from siliconcompiler.utils.logging import get_console_formatter, SCInRunLoggerFormatter
+from siliconcompiler.schema import utils as schema_utils
 
 from siliconcompiler.tools._common import input_file_node_name, record_metric
 
@@ -162,6 +163,20 @@ class SchedulerNode:
         self.__task = self.__chip.get("tool", tool, "task", task, field="schema")
         self.__record = self.__chip.get("record", field="schema")
         self.__metrics = self.__chip.get("metric", field="schema")
+
+    def _init_run_logger(self):
+        self.logger._console.setFormatter(
+            get_console_formatter(self.__chip, True, self.__step, self.__index))
+        self.logger.setLevel(
+            schema_utils.translate_loglevel(self.__chip.get('option', 'loglevel',
+                                            step=self.__step, index=self.__index)))
+
+        if self.__queue:
+            formatter = self.logger._console.formatter
+            self.logger.removeHandler(self.logger._console)
+            self.logger._console = QueueHandler(self.__queue)
+            self.logger._console.setFormatter(formatter)
+            self.logger.addHandler(self.logger._console)
 
     def halt(self, msg=None):
         if msg:
@@ -524,15 +539,8 @@ class SchedulerNode:
         to the filesystem to communicate updates between processes.
         '''
 
-        # Setup chip
-        self.__chip._init_logger(self.__step, self.__index, in_run=True)
-
-        if self.__queue:
-            formatter = self.logger._console.formatter
-            self.logger.removeHandler(self.logger._console)
-            self.logger._console = QueueHandler(self.__queue)
-            self.logger._console.setFormatter(formatter)
-            self.logger.addHandler(self.logger._console)
+        # Setup logger
+        self._init_run_logger()
 
         self.__chip.set('arg', 'step', self.__step)
         self.__chip.set('arg', 'index', self.__index)

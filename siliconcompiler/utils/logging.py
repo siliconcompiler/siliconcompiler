@@ -108,14 +108,43 @@ class SCColorLoggerFormatter(logging.Formatter):
         return log_fmt.format(record)
 
     @staticmethod
-    def supports_color(handler):
-        if type(handler) is not logging.StreamHandler:
-            return False
-
+    def supports_color(stream):
         supported_platform = sys.platform != 'win32'
         try:
-            is_a_tty = hasattr(handler.stream, 'isatty') and handler.stream.isatty()
+            is_a_tty = hasattr(stream, 'isatty') and stream.isatty()
         except:  # noqa E722
             is_a_tty = False
 
         return supported_platform and is_a_tty
+
+
+def get_console_formatter(chip, in_run, step, index):
+    if not hasattr(chip, "schema"):
+        return SCLoggerFormatter()
+
+    loglevel = chip.schema.get('option', 'loglevel',
+                               step=step, index=index)
+
+    if loglevel == 'quiet':
+        base_format = SCBlankLoggerFormatter()
+    elif in_run:
+        if loglevel == 'debug':
+            base_format = SCDebugInRunLoggerFormatter(
+                chip,
+                chip.get('option', 'jobname'),
+                step, index)
+        else:
+            base_format = SCInRunLoggerFormatter(
+                chip,
+                chip.get('option', 'jobname'),
+                step, index)
+    else:
+        if loglevel == 'debug':
+            base_format = SCDebugLoggerFormatter()
+        else:
+            base_format = SCLoggerFormatter()
+
+    support_color = SCColorLoggerFormatter.supports_color(sys.stdout)
+    if support_color:
+        return SCColorLoggerFormatter(base_format)
+    return base_format

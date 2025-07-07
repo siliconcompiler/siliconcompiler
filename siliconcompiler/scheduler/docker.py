@@ -8,6 +8,8 @@ from pathlib import Path
 from siliconcompiler.package import RemoteResolver
 from siliconcompiler.utils import default_email_credentials_file
 from siliconcompiler.scheduler.schedulernode import SchedulerNode
+from siliconcompiler.utils.logging import get_console_formatter
+from siliconcompiler.schema import utils as schema_utils
 
 
 def get_image(chip, step, index):
@@ -112,6 +114,8 @@ class DockerSchedulerNode(SchedulerNode):
             chip.collect()
 
     def run(self):
+        self._init_run_logger()
+
         try:
             client = docker.from_env()
             client.version()
@@ -123,13 +127,6 @@ class DockerSchedulerNode(SchedulerNode):
 
         workdir = self.chip.getworkdir()
         start_cwd = os.getcwd()
-
-        # Remove handlers from logger
-        for handler in self.logger.handlers.copy():
-            self.logger.removeHandler(handler)
-
-        # Reinit logger
-        self.chip._init_logger(step=self.step, index=self.index, in_run=True)
 
         # Change working directory since the run may delete this folder
         os.makedirs(workdir, exist_ok=True)
