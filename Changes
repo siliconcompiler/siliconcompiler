@@ -8,6 +8,26 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.34.1 (2025-07-07)
+=========================================
+
+**Major:**
+
+ * Removed support for Python 3.8.
+ * Changed node names from {step}{index} to {step}/{index} [Ciprian167].
+
+**Minor:**
+
+ * Ensure only tool outputs are forwarded for skipped nodes.
+
+ * Tools:
+
+  * openroad: limit default max displacement for detailed placement optimizations.
+  * opensta: added support to gracefully handle empty input files.
+  * surfer: added support for surfer for waveform viewing [infinitymdm].
+  * vpr: added support to generate timing analysis files.
+
+
 SiliconCompiler 0.34.0 (2025-06-16)
 =========================================
 
