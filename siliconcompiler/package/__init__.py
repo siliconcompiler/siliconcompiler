@@ -198,6 +198,7 @@ class RemoteResolver(Resolver):
         if not root:
             return Path(default_path)
 
+        path = None
         if root.valid('option', 'cachedir'):
             path = root.get('option', 'cachedir')
             if path:
