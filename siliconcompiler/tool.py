@@ -1056,6 +1056,30 @@ class TaskSchema(NamedSchema):
 
         return self.add("require", ",".join(key))
 
+    def record_metric(self, metric, value, source_file=None, source_unit=None):
+        '''
+        Records a metric and associates the source file with it.
+
+        Args:
+            metric (str): metric to record
+            value (float/int): value of the metric that is being recorded
+            source (str): file the value came from
+            source_unit (str): unit of the value, if not provided it is assumed to have no units
+
+        Examples:
+            >>> self.record_metric('cellarea', 500.0, 'reports/metrics.json', \\
+                    source_units='um^2')
+            Records the metric cell area and notes the source as 'reports/metrics.json'
+        '''
+
+        if metric not in self.schema("metric").getkeys():
+            self.logger().warning(f"{metric} is not a valid metric")
+            return
+
+        self.schema("metric").record(self.__step, self.__index, metric, value, unit=source_unit)
+        if source_file:
+            self.add("report", metric, source_file)
+
     ###############################################################
     def get(self, *keypath, field='value'):
         return super().get(*keypath, field=field,

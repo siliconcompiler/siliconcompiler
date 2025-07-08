@@ -1344,3 +1344,38 @@ def test_add_required_key_invalid(running_project):
     with running_project.get_nop().runtime(running_project) as runtool:
         with pytest.raises(ValueError, match="key can only contain strings"):
             runtool.add_required_key("this", None, "is", "required")
+
+
+def test_record_metric_with_units(running_project):
+    with running_project.get_nop().runtime(running_project) as runtool:
+        runtool.record_metric("peakpower", 1.05e6, source_unit="uW")
+    assert running_project.get("metric", "peakpower", field="unit") == "mw"
+    assert running_project.get("metric", "peakpower", step="running", index="0") == 1.05e3
+
+    assert running_project.get("tool", "builtin", "task", "nop", "report", "peakpower",
+                               step="running", index="0") == []
+
+
+def test_record_metric_without_units(running_project):
+    with running_project.get_nop().runtime(running_project) as runtool:
+        runtool.record_metric("cells", 25)
+    assert running_project.get("metric", "cells", step="running", index="0") == 25
+
+    assert running_project.get("tool", "builtin", "task", "nop", "report", "cells",
+                               step="running", index="0") == []
+
+
+def test_record_metric_with_source(running_project):
+    with running_project.get_nop().runtime(running_project) as runtool:
+        runtool.record_metric("cells", 25, "report.txt")
+    assert running_project.get("metric", "cells", step="running", index="0") == 25
+
+    assert running_project.get("tool", "builtin", "task", "nop", "report", "cells",
+                               step="running", index="0") == ["report.txt"]
+
+
+def test_record_metric_invalid_metric(running_project, caplog):
+    with running_project.get_nop().runtime(running_project) as runtool:
+        runtool.record_metric("notavalidmetric", 25, "report.txt")
+
+    assert "notavalidmetric is not a valid metric" in caplog.text
