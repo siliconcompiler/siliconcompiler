@@ -157,6 +157,20 @@ class TaskSchema(NamedSchema):
                 from_steps=set([step for step, _ in self.__schema_flow.get_entry_nodes()]),
                 prune_nodes=self.__schema_full.get('option', 'prune'))
 
+    def design_name(self):
+        '''
+        Returns:
+            name of the design
+        '''
+        return self.__design_name
+
+    def design_topmodule(self):
+        '''
+        Returns:
+            top module of the design
+        '''
+        return self.__design_top
+
     def node(self):
         '''
         Returns:
@@ -212,6 +226,13 @@ class TaskSchema(NamedSchema):
             return self.__schema_tool
         else:
             raise ValueError(f"{type} is not a schema section")
+
+    def has_breakpoint(self):
+        '''
+        Returns:
+            True if this task has a breakpoint associated with it
+        '''
+        return self.schema().get("option", "breakpoint", step=self.__step, index=self.__index)
 
     def get_exe(self):
         '''
@@ -1028,6 +1049,43 @@ class TaskSchema(NamedSchema):
         EditableSchema(self).insert("var", name, param)
 
         return param
+
+    def add_required_key(self, *key):
+        '''
+        Adds a required keypath to the task driver.
+
+        Args:
+            key (list of str): required key path
+        '''
+
+        if any([not isinstance(k, str) for k in key]):
+            raise ValueError("key can only contain strings")
+
+        return self.add("require", ",".join(key))
+
+    def record_metric(self, metric, value, source_file=None, source_unit=None):
+        '''
+        Records a metric and associates the source file with it.
+
+        Args:
+            metric (str): metric to record
+            value (float/int): value of the metric that is being recorded
+            source (str): file the value came from
+            source_unit (str): unit of the value, if not provided it is assumed to have no units
+
+        Examples:
+            >>> self.record_metric('cellarea', 500.0, 'reports/metrics.json', \\
+                    source_units='um^2')
+            Records the metric cell area and notes the source as 'reports/metrics.json'
+        '''
+
+        if metric not in self.schema("metric").getkeys():
+            self.logger().warning(f"{metric} is not a valid metric")
+            return
+
+        self.schema("metric").record(self.__step, self.__index, metric, value, unit=source_unit)
+        if source_file:
+            self.add("report", metric, source_file)
 
     ###############################################################
     def get(self, *keypath, field='value'):
