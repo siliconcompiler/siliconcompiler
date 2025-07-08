@@ -6,6 +6,7 @@
 
 import contextlib
 import copy
+import logging
 
 try:
     import gzip
@@ -22,8 +23,14 @@ except ModuleNotFoundError:
 
 import os.path
 
+from io import TextIOWrapper
+from pathlib import Path
+from typing import Union, Tuple, List, Dict, Set, Callable
+
 from .parameter import Parameter, NodeValue
 from .journal import Journal
+
+from .typing import IndexType
 
 
 class BaseSchema:
@@ -39,7 +46,10 @@ class BaseSchema:
         self.__parent = self
         self.__active = None
 
-    def _from_dict(self, manifest, keypath, version=None):
+    def _from_dict(self,
+                   manifest: Dict,
+                   keypath: Union[Tuple[str], List[str]],
+                   version=None) -> Tuple[Set[Tuple[str]], Set[Tuple[str]]]:
         '''
         Decodes a dictionary into a schema object
 
@@ -77,7 +87,7 @@ class BaseSchema:
 
     # Manifest methods
     @classmethod
-    def from_manifest(cls, filepath=None, cfg=None):
+    def from_manifest(cls, filepath: Union[Path, str] = None, cfg: Dict = None):
         '''
         Create a new schema based on the provided source files.
 
@@ -99,7 +109,7 @@ class BaseSchema:
         return schema
 
     @staticmethod
-    def __open_file(filepath, is_read=True):
+    def __open_file(filepath: Union[Path, str], is_read: bool = True) -> TextIOWrapper:
         _, ext = os.path.splitext(filepath)
         if ext.lower() == ".gz":
             if not _has_gzip:
@@ -107,7 +117,7 @@ class BaseSchema:
             return gzip.open(filepath, mode="rt" if is_read else "wt", encoding="utf-8")
         return open(filepath, mode="r" if is_read else "w", encoding="utf-8")
 
-    def read_manifest(self, filepath):
+    def read_manifest(self, filepath: Union[Path, str]):
         """
         Reads a manifest from disk and replaces the current data with the data in the file.
 
@@ -125,7 +135,7 @@ class BaseSchema:
 
         self._from_dict(manifest, [])
 
-    def write_manifest(self, filepath):
+    def write_manifest(self, filepath: Union[Path, str]):
         '''
         Writes the manifest to a file.
 
@@ -149,11 +159,11 @@ class BaseSchema:
 
     # Accessor methods
     def __search(self,
-                 *keypath,
-                 insert_defaults=False,
-                 use_default=False,
-                 require_leaf=True,
-                 complete_path=None):
+                 *keypath: str,
+                 insert_defaults: bool = False,
+                 use_default: bool = False,
+                 require_leaf: bool = True,
+                 complete_path: Tuple[str] = None):
         if len(keypath) == 0:
             if require_leaf:
                 raise KeyError
@@ -191,7 +201,11 @@ class BaseSchema:
                                       complete_path=complete_path)
         return key_param
 
-    def get(self, *keypath, field='value', step=None, index=None):
+    def get(self,
+            *keypath: str,
+            field: str = 'value',
+            step: str = None,
+            index: IndexType = None):
         """
         Returns a parameter field from the schema.
 
@@ -245,7 +259,12 @@ class BaseSchema:
             e.args = (new_msg, *e.args[1:])
             raise e
 
-    def set(self, *args, field='value', clobber=True, step=None, index=None):
+    def set(self,
+            *args: str,
+            field: str = 'value',
+            clobber: bool = True,
+            step: str = None,
+            index: IndexType = None) -> Union[Tuple[NodeValue], NodeValue]:
         '''
         Sets a schema parameter field.
 
@@ -290,7 +309,11 @@ class BaseSchema:
             e.args = (new_msg, *e.args[1:])
             raise e
 
-    def add(self, *args, field='value', step=None, index=None):
+    def add(self,
+            *args: str,
+            field: str = 'value',
+            step: str = None,
+            index: IndexType = None) -> Union[Tuple[NodeValue], NodeValue]:
         '''
         Adds item(s) to a schema parameter list.
 
@@ -333,7 +356,7 @@ class BaseSchema:
             e.args = (new_msg, *e.args[1:])
             raise e
 
-    def unset(self, *keypath, step=None, index=None):
+    def unset(self, *keypath: str, step: str = None, index: IndexType = None):
         '''
         Unsets a schema parameter.
 
@@ -372,7 +395,7 @@ class BaseSchema:
             e.args = (new_msg, *e.args[1:])
             raise e
 
-    def remove(self, *keypath):
+    def remove(self, *keypath: str):
         '''
         Remove a schema parameter and its subparameters.
 
@@ -402,7 +425,10 @@ class BaseSchema:
         del key_param.__manifest[removal_key]
         self.__journal.record("remove", keypath)
 
-    def valid(self, *keypath, default_valid=False, check_complete=False):
+    def valid(self,
+              *keypath: str,
+              default_valid: bool = False,
+              check_complete: bool = False) -> bool:
         """
         Checks validity of a keypath.
 
@@ -436,7 +462,7 @@ class BaseSchema:
             return isinstance(param, Parameter)
         return True
 
-    def getkeys(self, *keypath):
+    def getkeys(self, *keypath: str) -> Tuple[Tuple[str]]:
         """
         Returns a tuple of schema dictionary keys.
 
@@ -466,7 +492,7 @@ class BaseSchema:
 
         return tuple(key_param.__manifest.keys())
 
-    def allkeys(self, *keypath, include_default=True):
+    def allkeys(self, *keypath: str, include_default: bool = True) -> Set[Tuple[str]]:
         '''
         Returns all keypaths in the schema as a set of tuples.
 
@@ -495,7 +521,10 @@ class BaseSchema:
             add(keys, key, item)
         return set(keys)
 
-    def getdict(self, *keypath, include_default=True, values_only=False):
+    def getdict(self,
+                *keypath: str,
+                include_default: bool = True,
+                values_only: bool = False) -> Dict:
         """
         Returns a schema dictionary.
 
@@ -541,7 +570,7 @@ class BaseSchema:
         return manifest
 
     # Utility functions
-    def copy(self, key=None):
+    def copy(self, key: Union[Tuple[str], List[str]] = None):
         """
         Returns a copy of this schema.
 
@@ -561,8 +590,14 @@ class BaseSchema:
 
         return schema_copy
 
-    def find_files(self, *keypath, missing_ok=False, step=None, index=None,
-                   packages=None, collection_dir=None, cwd=None):
+    def find_files(self,
+                   *keypath: str,
+                   missing_ok: bool = False,
+                   step: str = None,
+                   index: IndexType = None,
+                   packages: Dict[str, Union[Callable, Path, str]] = None,
+                   collection_dir: Union[str, Path] = None,
+                   cwd: Union[str, Path] = None) -> Union[List[str], str]:
         """
         Returns absolute paths to files or directories based on the keypath
         provided.
@@ -660,8 +695,12 @@ class BaseSchema:
             return resolved_paths[0]
         return resolved_paths
 
-    def check_filepaths(self, ignore_keys=None, logger=None,
-                        packages=None, collection_dir=None, cwd=None):
+    def check_filepaths(self,
+                        ignore_keys: List[Union[Tuple[str], List[str]]] = None,
+                        logger: logging.Logger = None,
+                        packages: Dict[str, Union[Callable, Path, str]] = None,
+                        collection_dir: Union[str, Path] = None,
+                        cwd: Union[str, Path] = None) -> bool:
         '''
         Verifies that paths to all files in manifest are valid.
 
@@ -726,7 +765,7 @@ class BaseSchema:
 
         return not error
 
-    def _parent(self, root=False):
+    def _parent(self, root: bool = False):
         '''
         Returns the parent of this schema section, if root is true the root parent
         will be returned.
@@ -768,7 +807,7 @@ class BaseSchema:
         finally:
             self.__active = orig_active
 
-    def _get_active(self, field):
+    def _get_active(self, field: str):
         '''
         Get the value of a specific field.
 
@@ -784,7 +823,7 @@ class BaseSchema:
 
         return self.__active.get(field, None)
 
-    def __process_active(self, param, nodevalues):
+    def __process_active(self, param: Parameter, nodevalues: Union[Tuple[NodeValue], NodeValue]):
         if not self.__active:
             return
 
