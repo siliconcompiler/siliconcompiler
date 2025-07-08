@@ -1586,3 +1586,111 @@ def test_parent_with_child():
     assert schema._parent(root=True) is schema
     assert schema.get("test0", field="schema")._parent(root=True) is schema
     assert schema.get("test0", "test1", field="schema")._parent(root=True) is schema
+
+
+def test_active_empty():
+    schema = BaseSchema()
+
+    assert schema._get_active(None) is None
+    with schema.active():
+        assert schema._get_active(None) == {}
+    assert schema._get_active(None) is None
+
+
+def test_active_package():
+    schema = BaseSchema()
+
+    assert schema._get_active(None) is None
+    with schema.active(package="testpack"):
+        assert schema._get_active(None) == {
+            "package": "testpack"
+        }
+        assert schema._get_active("package") == "testpack"
+    assert schema._get_active(None) is None
+
+
+def test_active_invalid_active():
+    schema = BaseSchema()
+
+    assert schema._get_active(None) is None
+    with schema.active(package="testpack"):
+        assert schema._get_active("package0") is None
+    assert schema._get_active(None) is None
+
+
+def test_active_compounded():
+    schema = BaseSchema()
+
+    assert schema._get_active(None) is None
+    with schema.active(package="testpack"):
+        assert schema._get_active(None) == {
+            "package": "testpack"
+        }
+
+        with schema.active(lock=True):
+            assert schema._get_active(None) == {
+                "package": "testpack",
+                "lock": True
+            }
+            with schema.active(lock=False):
+                assert schema._get_active(None) == {
+                    "package": "testpack",
+                    "lock": False
+                }
+            assert schema._get_active(None) == {
+                "package": "testpack",
+                "lock": True
+            }
+        assert schema._get_active(None) == {
+            "package": "testpack"
+        }
+
+    assert schema._get_active(None) is None
+
+
+def test_active_compounded_set():
+    schema = BaseSchema()
+    EditableSchema(schema).insert("teststr", Parameter("str"))
+    EditableSchema(schema).insert("testfile", Parameter("file"))
+    EditableSchema(schema).insert("testdir", Parameter("[dir]"))
+
+    with schema.active(package="testpack"):
+        assert schema.set("teststr", "thisstring")
+        assert schema.get("teststr") == "thisstring"
+
+        assert schema.set("testfile", "thisfile")
+        assert schema.get("testfile") == "thisfile"
+        assert schema.get("testfile", field="package") == "testpack"
+
+        assert schema.set("testdir", "thisdir")
+        assert schema.get("testdir") == ["thisdir"]
+        assert schema.get("testdir", field="package") == ["testpack"]
+
+        with schema.active(lock=True):
+            assert schema.set("teststr", "thisnewstring")
+            assert schema.get("teststr") == "thisnewstring"
+            assert schema.get("teststr", field="lock") is True
+
+
+def test_active_add():
+    schema = BaseSchema()
+    EditableSchema(schema).insert("teststr", Parameter("[str]"))
+    EditableSchema(schema).insert("testdir", Parameter("[dir]"))
+
+    with schema.active(package="testpack"):
+        assert schema.add("teststr", "thisstring0")
+        assert schema.get("teststr") == ["thisstring0"]
+
+        assert schema.add("teststr", "thisstring1")
+        assert schema.get("teststr") == ["thisstring0", "thisstring1"]
+
+        assert schema.add("testdir", "thisdir0")
+        assert schema.get("testdir") == ["thisdir0"]
+        assert schema.get("testdir", field="package") == ["testpack"]
+
+        with schema.active(package="anotherpack"):
+            assert schema.add("testdir", "thisdir1")
+            assert schema.get("testdir") == ["thisdir0", "thisdir1"]
+            assert schema.get("testdir", field="package") == [
+                "testpack",
+                "anotherpack"]
