@@ -1027,7 +1027,7 @@ class TaskSchema(NamedSchema):
         else:
             return f'{filename}.{step}{index}'
 
-    def add_parameter(self, name, type, help, defvalue=None):
+    def add_parameter(self, name, type, help, defvalue=None, **kwargs):
         '''
         Adds a parameter to the task definition.
 
@@ -1040,6 +1040,7 @@ class TaskSchema(NamedSchema):
         help = trim(help)
         param = Parameter(
             type,
+            **kwargs,
             defvalue=defvalue,
             scope=Scope.JOB,
             pernode=PerNode.OPTIONAL,
