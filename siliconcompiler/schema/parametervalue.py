@@ -83,11 +83,16 @@ class NodeListValue:
             field (str): name of schema field.
         """
 
-        vals = []
-        for val in self.__values:
-            value = val.get(field=field)
-            vals.append(value)
-        return vals
+        if self.__values:
+            vals = []
+            for val in self.__values:
+                value = val.get(field=field)
+                vals.append(value)
+            return vals
+        if self.__base.get("value") is None:
+            return []
+
+        return [self.__base.get(field=field)]
 
     def set(self, value, field='value'):
         """
@@ -375,10 +380,10 @@ class PathNodeValue(NodeValue):
         value (any): default value for this parameter
     '''
 
-    def __init__(self, type, value=None):
+    def __init__(self, type, value=None, package=None):
         super().__init__(type, value=value)
         self.__filehash = None
-        self.__package = None
+        self.__package = package
 
     def getdict(self):
         return {
@@ -603,8 +608,8 @@ class DirectoryNodeValue(PathNodeValue):
         value (any): default value for this parameter
     '''
 
-    def __init__(self, value=None):
-        super().__init__("dir", value=value)
+    def __init__(self, value=None, package=None):
+        super().__init__("dir", value=value, package=package)
 
     def hash(self, function, **kwargs):
         """
@@ -631,8 +636,8 @@ class FileNodeValue(PathNodeValue):
         value (any): default value for this parameter
     '''
 
-    def __init__(self, value=None):
-        super().__init__("file", value=value)
+    def __init__(self, value=None, package=None):
+        super().__init__("file", value=value, package=package)
         self.__date = None
         self.__author = []
 
