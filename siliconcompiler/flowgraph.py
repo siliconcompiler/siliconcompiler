@@ -68,6 +68,11 @@ class FlowgraphSchema(NamedSchema):
         if index in (Schema.GLOBAL_KEY, 'default'):
             raise ValueError(f"{index} is a reserved name")
 
+        if '/' in step:
+            raise ValueError(f"{step} is not a valid step, it cannot contain '/'")
+        if '/' in index:
+            raise ValueError(f"{index} is not a valid index, it cannot contain '/'")
+
         # Determine task name and module
         task_module = None
         if isinstance(task, str):
@@ -82,11 +87,6 @@ class FlowgraphSchema(NamedSchema):
         if len(task_parts) < 2:
             raise ValueError(f"{task} is not a valid task, it must be associated with "
                              "a tool '<tool>.<task>'.")
-
-        if '/' in step:
-            raise ValueError(f"{step} is not a valid step, it cannot contain '/'")
-        if '/' in index:
-            raise ValueError(f"{index} is not a valid index, it cannot contain '/'")
 
         tool_name, task_name = task_parts[-2:]
 
@@ -504,6 +504,17 @@ class FlowgraphSchema(NamedSchema):
 
         return not error
 
+    def __get_task_module(self, name):
+        # Create cache
+        if self.__cache_tasks is None:
+            self.__cache_tasks = {}
+
+        if name in self.__cache_tasks:
+            return self.__cache_tasks[name]
+
+        self.__cache_tasks[name] = importlib.import_module(name)
+        return self.__cache_tasks[name]
+
     def get_task_module(self, step, index):
         """
         Returns the module for a given task
@@ -518,17 +529,7 @@ class FlowgraphSchema(NamedSchema):
         if (step, index) not in self.get_nodes():
             raise ValueError(f"{step}/{index} is not a valid node in {self.name()}.")
 
-        taskmodule = self.get(step, index, 'taskmodule')
-
-        # Create cache
-        if self.__cache_tasks is None:
-            self.__cache_tasks = {}
-
-        if taskmodule in self.__cache_tasks:
-            return self.__cache_tasks[taskmodule]
-
-        self.__cache_tasks[taskmodule] = importlib.import_module(taskmodule)
-        return self.__cache_tasks[taskmodule]
+        return self.__get_task_module(self.get(step, index, 'taskmodule'))
 
 
 class RuntimeFlowgraph:
