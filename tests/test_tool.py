@@ -1330,3 +1330,17 @@ def test_get_files_from_input_nodes_multiple(running_project):
             'file0.txt': [('running', '0'), ('firstnode', '0')],
             'file1.txt': [('firstnode', '0')]
         }
+
+
+def test_add_required_key(running_project):
+    with running_project.get_nop().runtime(running_project) as runtool:
+        assert runtool.add_required_key("this", "key", "is", "required")
+        assert runtool.get("require") == ["this,key,is,required"]
+        assert runtool.add_required_key("this", "key", "is", "required", "too")
+        assert runtool.get("require") == ["this,key,is,required", "this,key,is,required,too"]
+
+
+def test_add_required_key_invalid(running_project):
+    with running_project.get_nop().runtime(running_project) as runtool:
+        with pytest.raises(ValueError, match="key can only contain strings"):
+            runtool.add_required_key("this", None, "is", "required")

@@ -1043,6 +1043,19 @@ class TaskSchema(NamedSchema):
 
         return param
 
+    def add_required_key(self, *key):
+        '''
+        Adds a required keypath to the task driver.
+
+        Args:
+            key (list of str): required key path
+        '''
+
+        if any([not isinstance(k, str) for k in key]):
+            raise ValueError("key can only contain strings")
+
+        return self.add("require", ",".join(key))
+
     ###############################################################
     def get(self, *keypath, field='value'):
         return super().get(*keypath, field=field,
