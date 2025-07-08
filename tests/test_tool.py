@@ -626,6 +626,46 @@ def test_get_runtime_arguments_all(running_project, monkeypatch):
             '--arg3']
 
 
+def test_get_runtime_different_types(running_project, monkeypatch):
+    with running_project.get_nop().runtime(running_project) as runtool:
+        def runtime_options():
+            return [
+                1,
+                None,
+                1.0,
+                "string",
+                pathlib.Path("path")
+            ]
+        monkeypatch.setattr(runtool, 'runtime_options', runtime_options)
+
+        assert runtool.get_runtime_arguments() == [
+            '1',
+            'None',
+            '1.0',
+            'string',
+            'path']
+
+
+def test_get_runtime_different_types_relpath(running_project, monkeypatch):
+    with running_project.get_nop().runtime(running_project, relpath=".") as runtool:
+        def runtime_options():
+            return [
+                1,
+                None,
+                1.0,
+                "string",
+                pathlib.Path("path")
+            ]
+        monkeypatch.setattr(runtool, 'runtime_options', runtime_options)
+
+        assert runtool.get_runtime_arguments() == [
+            '1',
+            'None',
+            '1.0',
+            'string',
+            'path']
+
+
 def test_get_runtime_arguments_all_relative(running_project, monkeypatch):
     with open("arg2.run", "w") as f:
         f.write("testfile")
