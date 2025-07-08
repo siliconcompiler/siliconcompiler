@@ -413,6 +413,34 @@ class PythonPathResolver(Resolver):
                              path=path,
                              ref=ref)
 
+    @staticmethod
+    def register_package(root,
+                         package_name,
+                         python_module,
+                         alternative_path,
+                         alternative_ref=None,
+                         python_module_path_append=None):
+        '''
+        Helper function to register a python module as data source with an alternative in case
+        the module is not installed in an editable state
+        '''
+        # check if installed in an editable state
+        if PythonPathResolver.is_python_module_editable(python_module):
+            if python_module_path_append:
+                path = PythonPathResolver(
+                    python_module, root, f"python://{python_module}").resolve()
+                path = os.path.abspath(os.path.join(path, python_module_path_append))
+            else:
+                path = f"python://{python_module}"
+            ref = None
+        else:
+            path = alternative_path
+            ref = alternative_ref
+
+        root.register_package(name=package_name,
+                              root=path,
+                              tag=ref)
+
     def resolve(self):
         module = importlib.import_module(self.urlpath)
         python_path = os.path.dirname(module.__file__)
