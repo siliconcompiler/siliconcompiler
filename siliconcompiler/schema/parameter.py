@@ -132,7 +132,6 @@ class Parameter:
                 self.__defvalue = NodeListValue(base)
             else:
                 self.__defvalue = base
-            print(self.__defvalue, self.__defvalue.get())
         elif NodeType.contains(self.__type, 'dir'):
             base = DirectoryNodeValue(defvalue, **kwargs)
             if isinstance(self.__type, list):
