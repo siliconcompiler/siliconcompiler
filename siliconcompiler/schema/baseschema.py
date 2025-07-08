@@ -4,6 +4,7 @@
 # SC dependencies outside of its directory, since it may be used by tool drivers
 # that have isolated Python environments.
 
+import contextlib
 import copy
 
 try:
@@ -21,7 +22,7 @@ except ModuleNotFoundError:
 
 import os.path
 
-from .parameter import Parameter
+from .parameter import Parameter, NodeValue
 from .journal import Journal
 
 
@@ -36,6 +37,7 @@ class BaseSchema:
         self.__default = None
         self.__journal = Journal()
         self.__parent = self
+        self.__active = None
 
     def _from_dict(self, manifest, keypath, version=None):
         '''
@@ -281,6 +283,7 @@ class BaseSchema:
             if set_ret:
                 self.__journal.record("set", keypath, value=value, field=field,
                                       step=step, index=index)
+                self.__process_active(param, set_ret)
             return set_ret
         except Exception as e:
             new_msg = f"error while setting [{','.join(keypath)}]: {e.args[0]}"
@@ -323,6 +326,7 @@ class BaseSchema:
             if add_ret:
                 self.__journal.record("add", keypath, value=value, field=field,
                                       step=step, index=index)
+                self.__process_active(param, add_ret)
             return add_ret
         except Exception as e:
             new_msg = f"error while adding to [{','.join(keypath)}]: {e.args[0]}"
@@ -735,3 +739,70 @@ class BaseSchema:
         if self.__parent is self:
             return self
         return self.__parent._parent(root=root)
+
+    @contextlib.contextmanager
+    def active(self, **kwargs):
+        '''
+        Use this context to temporarily set additional fields in :meth:`.set` and :meth:`.add`.
+        Additional fields can be specified which can be accessed by :meth:`._get_active`.
+
+        Args:
+            kwargs (dict of str): keyword arguments that are used for setting values
+
+        Example:
+            >>> with schema.active(package="lambdalib"):
+            ...     schema.set("file", "top.v")
+            Sets the file to top.v and associates lambdalib as the package.
+        '''
+        if self.__active:
+            orig_active = self.__active.copy()
+        else:
+            orig_active = None
+
+        if self.__active is None:
+            self.__active = {}
+
+        self.__active.update(kwargs)
+        try:
+            yield
+        finally:
+            self.__active = orig_active
+
+    def _get_active(self, field):
+        '''
+        Get the value of a specific field.
+
+        Args:
+            field (str): if None, return the current active dictionary,
+                         otherwise the value, if the field is not present, None is returned.
+        '''
+        if self.__active is None:
+            return None
+
+        if field is None:
+            return self.__active.copy()
+
+        return self.__active.get(field, None)
+
+    def __process_active(self, param, nodevalues):
+        if not self.__active:
+            return
+
+        if isinstance(nodevalues, NodeValue):
+            # Make everything a list
+            nodevalues = [nodevalues]
+
+        key_fields = ("copy", "lock")
+
+        nodevalues_fields = nodevalues[0].fields
+
+        for field, value in self.__active.items():
+            if field in key_fields:
+                param.set(value, field=field)
+                continue
+
+            if field not in nodevalues_fields:
+                continue
+
+            for param in nodevalues:
+                param.set(value, field=field)

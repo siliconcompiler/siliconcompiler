@@ -25,6 +25,7 @@ Useful APIs
     BaseSchema.write_manifest
     BaseSchema.read_manifest
     BaseSchema.from_manifest
+    BaseSchema.active
 
 **Editing schema:**
 
@@ -110,11 +111,6 @@ Full API
     :inherited-members:
 
 .. autoclass:: siliconcompiler.dependencyschema.DependencySchema
-    :members:
-    :show-inheritance:
-    :inherited-members:
-
-.. autoclass:: PackageSchema
     :members:
     :show-inheritance:
     :inherited-members:
