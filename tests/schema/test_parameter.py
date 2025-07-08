@@ -1642,3 +1642,213 @@ def test_parse_commandline_arguments_default_keys():
     with pytest.raises(ValueError,
                        match='Invalid value "test "step index 1"" for switch -test <int>'):
         param.parse_commandline_arguments("test \"step index 1\"", "key", "default", "default")
+
+
+def test_defvalue_file():
+    param = Parameter("file", defvalue="thisfile")
+    assert param.default.get() == "thisfile"
+
+
+def test_defvalue_file_getdict():
+    param = Parameter("file", defvalue="thisfile")
+    assert param.getdict() == {
+        'copy': False,
+        'example': [],
+        'hashalgo': 'sha256',
+        'help': None,
+        'lock': False,
+        'node': {
+            'default': {
+                'default': {
+                    'author': [],
+                    'date': None,
+                    'filehash': None,
+                    'package': None,
+                    'signature': None,
+                    'value': 'thisfile',
+                },
+            },
+        },
+        'notes': None,
+        'pernode': 'never',
+        'require': False,
+        'scope': 'job',
+        'shorthelp': None,
+        'switch': [],
+        'type': 'file',
+    }
+
+
+def test_defvalue_file_list():
+    param = Parameter("[file]", defvalue="thisfile")
+    assert param.default.get() == ["thisfile"]
+
+
+def test_defvalue_file_list_getdict():
+    param = Parameter("[file]", defvalue="thisfile")
+    assert param.getdict() == {
+        'copy': False,
+        'example': [],
+        'hashalgo': 'sha256',
+        'help': None,
+        'lock': False,
+        'node': {
+            'default': {
+                'default': {
+                    'author': [],
+                    'date': [
+                        None,
+                    ],
+                    'filehash': [
+                        None,
+                    ],
+                    'package': [
+                        None,
+                    ],
+                    'signature': [
+                        None,
+                    ],
+                    'value': [
+                        'thisfile',
+                    ],
+                },
+            },
+        },
+        'notes': None,
+        'pernode': 'never',
+        'require': False,
+        'scope': 'job',
+        'shorthelp': None,
+        'switch': [],
+        'type': '[file]',
+    }
+
+
+def test_defvalue_file_package():
+    param = Parameter("file", defvalue="thisfile", package="thispackage")
+    assert param.default.get() == "thisfile"
+    assert param.default.get(field="package") == "thispackage"
+
+
+def test_defvalue_file_package_getdict():
+    param = Parameter("file", defvalue="thisfile", package="thispackage")
+    assert param.getdict() == {
+        'copy': False,
+        'example': [],
+        'hashalgo': 'sha256',
+        'help': None,
+        'lock': False,
+        'node': {
+            'default': {
+                'default': {
+                    'author': [],
+                    'date': None,
+                    'filehash': None,
+                    'package': "thispackage",
+                    'signature': None,
+                    'value': 'thisfile',
+                },
+            },
+        },
+        'notes': None,
+        'pernode': 'never',
+        'require': False,
+        'scope': 'job',
+        'shorthelp': None,
+        'switch': [],
+        'type': 'file',
+    }
+
+
+def test_defvalue_file_list_package():
+    param = Parameter("[file]", defvalue="thisfile", package="thispackage")
+    assert param.default.get() == ["thisfile"]
+    assert param.default.get(field="package") == ["thispackage"]
+
+
+def test_defvalue_file_list_package_getdict():
+    param = Parameter("[file]", defvalue="thisfile", package="thispackage")
+    assert param.getdict() == {
+        'copy': False,
+        'example': [],
+        'hashalgo': 'sha256',
+        'help': None,
+        'lock': False,
+        'node': {
+            'default': {
+                'default': {
+                    'author': [],
+                    'date': [
+                        None,
+                    ],
+                    'filehash': [
+                        None,
+                    ],
+                    'package': [
+                        'thispackage',
+                    ],
+                    'signature': [
+                        None,
+                    ],
+                    'value': [
+                        'thisfile',
+                    ],
+                },
+            },
+        },
+        'notes': None,
+        'pernode': 'never',
+        'require': False,
+        'scope': 'job',
+        'shorthelp': None,
+        'switch': [],
+        'type': '[file]',
+    }
+
+
+def test_defvalue_dir_package():
+    param = Parameter("dir", defvalue="thisdir", package="thispackage")
+    assert param.default.get() == "thisdir"
+    assert param.default.get(field="package") == "thispackage"
+
+
+def test_defvalue_dir_list_package():
+    param = Parameter("[dir]", defvalue="thisdir", package="thispackage")
+    assert param.default.get() == ["thisdir"]
+    assert param.default.get(field="package") == ["thispackage"]
+
+
+def test_defvalue_dir_list_package_getdict():
+    param = Parameter("[dir]", defvalue="thisdir", package="thispackage")
+    assert param.getdict() == {
+        'copy': False,
+        'example': [],
+        'hashalgo': 'sha256',
+        'help': None,
+        'lock': False,
+        'node': {
+            'default': {
+                'default': {
+                    'filehash': [
+                        None,
+                    ],
+                    'package': [
+                        'thispackage',
+                    ],
+                    'signature': [
+                        None,
+                    ],
+                    'value': [
+                        'thisdir',
+                    ],
+                },
+            },
+        },
+        'notes': None,
+        'pernode': 'never',
+        'require': False,
+        'scope': 'job',
+        'shorthelp': None,
+        'switch': [],
+        'type': '[dir]',
+    }

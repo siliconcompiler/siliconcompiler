@@ -59,6 +59,7 @@ class Parameter:
         example (list of str): example field
         help (str): help field
         pernode (:class:`.PerNode`): pernode field
+        kwargs: forwarded to default value constructor
     '''
 
     GLOBAL_KEY = 'global'
@@ -77,7 +78,8 @@ class Parameter:
                  switch=None,
                  example=None,
                  help=None,
-                 pernode=PerNode.NEVER):
+                 pernode=PerNode.NEVER,
+                 **kwargs):
 
         self.__type = NodeType.parse(type)
         self.__scope = Scope(scope)
@@ -108,7 +110,7 @@ class Parameter:
 
         self.__pernode = PerNode(pernode)
 
-        self.__setdefvalue(defvalue)
+        self.__setdefvalue(defvalue, **kwargs)
 
         self.__node = {}
 
@@ -123,26 +125,27 @@ class Parameter:
             self.__hashalgo = str(hashalgo)
             self.__copy = bool(copy)
 
-    def __setdefvalue(self, defvalue):
+    def __setdefvalue(self, defvalue, **kwargs):
         if NodeType.contains(self.__type, 'file'):
-            base = FileNodeValue(defvalue)
+            base = FileNodeValue(defvalue, **kwargs)
             if isinstance(self.__type, list):
                 self.__defvalue = NodeListValue(base)
             else:
                 self.__defvalue = base
+            print(self.__defvalue, self.__defvalue.get())
         elif NodeType.contains(self.__type, 'dir'):
-            base = DirectoryNodeValue(defvalue)
+            base = DirectoryNodeValue(defvalue, **kwargs)
             if isinstance(self.__type, list):
                 self.__defvalue = NodeListValue(base)
             else:
                 self.__defvalue = base
         else:
             if isinstance(self.__type, list):
-                self.__defvalue = NodeListValue(NodeValue(self.__type[0]))
+                self.__defvalue = NodeListValue(NodeValue(self.__type[0], **kwargs))
                 if defvalue:
                     self.__defvalue.set(defvalue)
             else:
-                self.__defvalue = NodeValue(self.__type, value=defvalue)
+                self.__defvalue = NodeValue(self.__type, value=defvalue, **kwargs)
 
     def __str__(self):
         return str(self.getvalues())
