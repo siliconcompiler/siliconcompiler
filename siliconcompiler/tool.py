@@ -447,6 +447,7 @@ class TaskSchema(NamedSchema):
             if self.__relpath:
                 args = []
                 for arg in self.runtime_options():
+                    arg = str(arg)
                     if os.path.isabs(arg) and os.path.exists(arg):
                         args.append(os.path.relpath(arg, self.__relpath))
                     else:
