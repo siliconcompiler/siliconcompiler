@@ -157,6 +157,20 @@ class TaskSchema(NamedSchema):
                 from_steps=set([step for step, _ in self.__schema_flow.get_entry_nodes()]),
                 prune_nodes=self.__schema_full.get('option', 'prune'))
 
+    def design_name(self):
+        '''
+        Returns:
+            name of the design
+        '''
+        return self.__design_name
+
+    def design_topmodule(self):
+        '''
+        Returns:
+            top module of the design
+        '''
+        return self.__design_top
+
     def node(self):
         '''
         Returns:

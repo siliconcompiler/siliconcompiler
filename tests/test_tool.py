@@ -118,7 +118,7 @@ def running_project():
             schema.insert("package", PackageSchema())
 
         def top(self):
-            return self.design
+            return "designtop"
 
         def get_nop(self):
             return self.get("tool", "builtin", "task", "nop", field="schema")
@@ -228,6 +228,16 @@ def test_schema_access_invalid(running_project):
     with running_project.get_nop().runtime(running_project) as runtool:
         with pytest.raises(ValueError, match="invalid is not a schema section"):
             runtool.schema("invalid")
+
+
+def test_design_name(running_project):
+    with running_project.get_nop().runtime(running_project) as runtool:
+        assert runtool.design_name() == "testdesign"
+
+
+def test_design_topmodule(running_project):
+    with running_project.get_nop().runtime(running_project) as runtool:
+        assert runtool.design_topmodule() == "designtop"
 
 
 def test_set(running_project):
