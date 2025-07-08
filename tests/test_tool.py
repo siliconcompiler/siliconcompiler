@@ -107,6 +107,7 @@ def running_project():
 
             schema.insert("arg", "step", Parameter("str"))
             schema.insert("arg", "index", Parameter("str"))
+            schema.insert("option", "breakpoint", Parameter("bool", pernode=PerNode.OPTIONAL))
             schema.insert("option", "flow", Parameter("str"))
             schema.insert("option", "strict", Parameter("bool"))
             schema.insert("option", "prune", Parameter("[(str,str)]"))
@@ -1379,3 +1380,12 @@ def test_record_metric_invalid_metric(running_project, caplog):
         runtool.record_metric("notavalidmetric", 25, "report.txt")
 
     assert "notavalidmetric is not a valid metric" in caplog.text
+
+
+def test_has_breakpoint(running_project):
+    with running_project.get_nop().runtime(running_project) as runtool:
+        assert runtool.has_breakpoint() is False
+
+    running_project.set("option", "breakpoint", True, step="running")
+    with running_project.get_nop().runtime(running_project) as runtool:
+        assert runtool.has_breakpoint() is True

@@ -227,6 +227,13 @@ class TaskSchema(NamedSchema):
         else:
             raise ValueError(f"{type} is not a schema section")
 
+    def has_breakpoint(self):
+        '''
+        Returns:
+            True if this task has a breakpoint associated with it
+        '''
+        return self.schema().get("option", "breakpoint", step=self.__step, index=self.__index)
+
     def get_exe(self):
         '''
         Determines the absolute path for the specified executable.
