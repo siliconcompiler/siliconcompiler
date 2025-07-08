@@ -127,28 +127,12 @@ class Parameter:
 
     def __setdefvalue(self, defvalue, **kwargs):
         if NodeType.contains(self.__type, 'file'):
-            # only package is supported
-            kwargs = {"package": kwargs.get("package", None)}
             if isinstance(self.__type, list):
-                if not defvalue:
-                    defvalue = None
-                if kwargs["package"]:
-                    kwargs["package"] = kwargs["package"][0]
-                else:
-                    kwargs["package"] = None
                 self.__defvalue = NodeListValue(FileNodeValue(defvalue, **kwargs))
             else:
                 self.__defvalue = FileNodeValue(defvalue, **kwargs)
         elif NodeType.contains(self.__type, 'dir'):
-            # only package is supported
-            kwargs = {"package": kwargs.get("package", None)}
             if isinstance(self.__type, list):
-                if not defvalue:
-                    defvalue = None
-                if kwargs["package"]:
-                    kwargs["package"] = kwargs["package"][0]
-                else:
-                    kwargs["package"] = None
                 self.__defvalue = NodeListValue(DirectoryNodeValue(defvalue, **kwargs))
             else:
                 self.__defvalue = DirectoryNodeValue(defvalue, **kwargs)
@@ -539,20 +523,15 @@ class Parameter:
 
         requires_set = NodeType.contains(self.__type, tuple) or NodeType.contains(self.__type, set)
 
-        defvalue_kwargs = {}
         try:
-            defvalue = manifest["node"]["default"]["default"]["value"]
-            del manifest["node"]["default"]["default"]["value"]
-            defvalue_kwargs = manifest["node"]["default"]["default"]
-
+            defvalue = manifest["node"]["default"]["default"]
             del manifest["node"]["default"]
         except KeyError:
             defvalue = None
 
-        if requires_set:
-            self.__setdefvalue(NodeType.normalize(defvalue, self.__type), **defvalue_kwargs)
-        else:
-            self.__setdefvalue(defvalue, **defvalue_kwargs)
+        self.__setdefvalue(None)
+        if defvalue:
+            self.__defvalue._from_dict(defvalue, keypath, version)
 
         for step, indexdata in manifest["node"].items():
             self.__node[step] = {}
