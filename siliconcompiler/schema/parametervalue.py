@@ -375,10 +375,10 @@ class PathNodeValue(NodeValue):
         value (any): default value for this parameter
     '''
 
-    def __init__(self, type, value=None):
+    def __init__(self, type, value=None, package=None):
         super().__init__(type, value=value)
         self.__filehash = None
-        self.__package = None
+        self.__package = package
 
     def getdict(self):
         return {
@@ -603,8 +603,8 @@ class DirectoryNodeValue(PathNodeValue):
         value (any): default value for this parameter
     '''
 
-    def __init__(self, value=None):
-        super().__init__("dir", value=value)
+    def __init__(self, value=None, package=None):
+        super().__init__("dir", value=value, package=package)
 
     def hash(self, function, **kwargs):
         """
@@ -631,8 +631,8 @@ class FileNodeValue(PathNodeValue):
         value (any): default value for this parameter
     '''
 
-    def __init__(self, value=None):
-        super().__init__("file", value=value)
+    def __init__(self, value=None, package=None):
+        super().__init__("file", value=value, package=package)
         self.__date = None
         self.__author = []
 

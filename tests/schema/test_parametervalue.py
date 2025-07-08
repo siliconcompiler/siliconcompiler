@@ -853,3 +853,123 @@ def test_windows_path_imported_directory():
     check_file = value.resolve_path(collection_dir=os.path.abspath("collections"))
     assert check_file == os.path.abspath(import_path)
     assert os.path.isfile(check_file)
+
+
+def test_defvalue_file():
+    value = FileNodeValue(value="thisfile")
+    assert value.get() == "thisfile"
+
+
+def test_defvalue_file_getdict():
+    value = FileNodeValue(value="thisfile")
+    assert value.getdict() == {
+        'author': [],
+        'date': None,
+        'filehash': None,
+        'package': None,
+        'signature': None,
+        'value': 'thisfile'
+    }
+
+
+def test_defvalue_file_list():
+    value = NodeListValue(FileNodeValue(value="thisfile"))
+    assert value.get() == ["thisfile"]
+
+
+def test_defvalue_file_list_getdict():
+    value = NodeListValue(FileNodeValue(value="thisfile"))
+    assert value.getdict() == {
+        'author': [],
+        'date': [
+            None,
+        ],
+        'filehash': [
+            None,
+        ],
+        'package': [
+            None,
+        ],
+        'signature': [
+            None,
+        ],
+        'value': [
+            'thisfile',
+        ],
+    }
+
+
+def test_defvalue_file_package():
+    value = FileNodeValue(value="thisfile", package="thispackage")
+    assert value.get() == "thisfile"
+    assert value.get(field="package") == "thispackage"
+
+
+def test_defvalue_file_package_getdict():
+    value = FileNodeValue(value="thisfile", package="thispackage")
+    assert value.getdict() == {
+        'author': [],
+        'date': None,
+        'filehash': None,
+        'package': "thispackage",
+        'signature': None,
+        'value': 'thisfile',
+    }
+
+
+def test_defvalue_file_list_package():
+    value = NodeListValue(FileNodeValue(value="thisfile", package="thispackage"))
+    assert value.get() == ["thisfile"]
+    assert value.get(field="package") == ["thispackage"]
+
+
+def test_defvalue_file_list_package_getdict():
+    value = NodeListValue(FileNodeValue(value="thisfile", package="thispackage"))
+    assert value.getdict() == {
+        'author': [],
+        'date': [
+            None,
+        ],
+        'filehash': [
+            None,
+        ],
+        'package': [
+            'thispackage',
+        ],
+        'signature': [
+            None,
+        ],
+        'value': [
+            'thisfile',
+        ],
+    }
+
+
+def test_defvalue_dir_package():
+    value = DirectoryNodeValue(value="thisdir", package="thispackage")
+    assert value.get() == "thisdir"
+    assert value.get(field="package") == "thispackage"
+
+
+def test_defvalue_dir_list_package():
+    value = NodeListValue(DirectoryNodeValue(value="thisdir", package="thispackage"))
+    assert value.get() == ["thisdir"]
+    assert value.get(field="package") == ["thispackage"]
+
+
+def test_defvalue_dir_list_package_getdict():
+    value = NodeListValue(DirectoryNodeValue(value="thisdir", package="thispackage"))
+    assert value.getdict() == {
+        'filehash': [
+            None,
+        ],
+        'package': [
+            'thispackage',
+        ],
+        'signature': [
+            None,
+        ],
+        'value': [
+            'thisdir',
+        ],
+    }
