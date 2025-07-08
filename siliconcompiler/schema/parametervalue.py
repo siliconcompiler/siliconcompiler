@@ -83,11 +83,16 @@ class NodeListValue:
             field (str): name of schema field.
         """
 
-        vals = []
-        for val in self.__values:
-            value = val.get(field=field)
-            vals.append(value)
-        return vals
+        if self.__values:
+            vals = []
+            for val in self.__values:
+                value = val.get(field=field)
+                vals.append(value)
+            return vals
+        if self.__base.get("value") is None:
+            return []
+
+        return [self.__base.get(field=field)]
 
     def set(self, value, field='value'):
         """
