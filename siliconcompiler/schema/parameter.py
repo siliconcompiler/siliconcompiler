@@ -410,6 +410,12 @@ class Parameter:
 
         return True
 
+    def reset(self):
+        """
+        Resets a parameter back to its default state
+        """
+        self.__node = {}
+
     def getdict(self, include_default=True, values_only=False):
         """
         Returns a schema dictionary.

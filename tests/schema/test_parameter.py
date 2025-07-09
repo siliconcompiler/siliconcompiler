@@ -1852,3 +1852,20 @@ def test_defvalue_dir_list_package_getdict():
         'switch': [],
         'type': '[dir]',
     }
+
+
+def test_reset():
+    param = Parameter("int", pernode=PerNode.OPTIONAL, defvalue=1)
+
+    assert param.getvalues() == [
+        (1, None, None)
+    ]
+    assert param.set(2, step="steptwo", index="0")
+    assert param.getvalues() == [
+        (2, 'steptwo', '0'),
+        (1, None, None)
+    ]
+    param.reset()
+    assert param.getvalues() == [
+        (1, None, None)
+    ]
