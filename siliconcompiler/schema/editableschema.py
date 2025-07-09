@@ -31,6 +31,7 @@ class EditableSchema:
 
             if isinstance(value, BaseSchema):
                 value._BaseSchema__parent = self.__schema
+                value._BaseSchema__key = key
 
             if key == "default":
                 self.__schema._BaseSchema__default = value
@@ -47,6 +48,7 @@ class EditableSchema:
                 self.__schema._BaseSchema__default = new_schema
         else:
             new_schema = self.__schema._BaseSchema__manifest.setdefault(key, new_schema)
+        new_schema._BaseSchema__key = key
         EditableSchema(new_schema).__insert(keypath, value, fullkey, clobber)
 
     def __remove(self, keypath, fullkey):

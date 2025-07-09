@@ -38,6 +38,16 @@ class BaseSchema:
         self.__journal = Journal()
         self.__parent = self
         self.__active = None
+        self.__key = None
+
+    @property
+    def _keypath(self):
+        '''
+        Returns the key to the current section of the schema
+        '''
+        if self.__parent is self:
+            return tuple()
+        return tuple([*self.__parent._keypath, self.__key])
 
     def _from_dict(self, manifest, keypath, version=None):
         '''
@@ -106,6 +116,9 @@ class BaseSchema:
                 raise RuntimeError("gzip is not available")
             return gzip.open(filepath, mode="rt" if is_read else "wt", encoding="utf-8")
         return open(filepath, mode="r" if is_read else "w", encoding="utf-8")
+
+    def __format_key(self, *key):
+        return f"[{','.join([*self._keypath, *key])}]"
 
     def read_manifest(self, filepath):
         """
@@ -227,12 +240,12 @@ class BaseSchema:
                 require_leaf=require_leaf)
             if field == 'schema':
                 if isinstance(param, Parameter):
-                    raise ValueError(f"[{','.join(keypath)}] is a complete keypath")
+                    raise ValueError(f"{self.__format_key(*keypath)} is a complete keypath")
                 self.__journal.record("get", keypath, field=field, step=step, index=index)
                 param.__journal = self.__journal.get_child(*keypath)
                 return param
         except KeyError:
-            raise KeyError(f"[{','.join(keypath)}] is not a valid keypath")
+            raise KeyError(f"{self.__format_key(*keypath)} is not a valid keypath")
         if field is None:
             return param
 
@@ -241,7 +254,7 @@ class BaseSchema:
             self.__journal.record("get", keypath, field=field, step=step, index=index)
             return get_ret
         except Exception as e:
-            new_msg = f"error while accessing [{','.join(keypath)}]: {e.args[0]}"
+            new_msg = f"error while accessing {self.__format_key(*keypath)}: {e.args[0]}"
             e.args = (new_msg, *e.args[1:])
             raise e
 
@@ -275,7 +288,7 @@ class BaseSchema:
         try:
             param = self.__search(*keypath, insert_defaults=True)
         except KeyError:
-            raise KeyError(f"[{','.join(keypath)}] is not a valid keypath")
+            raise KeyError(f"{self.__format_key(*keypath)} is not a valid keypath")
 
         try:
             set_ret = param.set(value, field=field, clobber=clobber,
@@ -286,7 +299,7 @@ class BaseSchema:
                 self.__process_active(param, set_ret)
             return set_ret
         except Exception as e:
-            new_msg = f"error while setting [{','.join(keypath)}]: {e.args[0]}"
+            new_msg = f"error while setting {self.__format_key(*keypath)}: {e.args[0]}"
             e.args = (new_msg, *e.args[1:])
             raise e
 
@@ -319,7 +332,7 @@ class BaseSchema:
         try:
             param = self.__search(*keypath, insert_defaults=True)
         except KeyError:
-            raise KeyError(f"[{','.join(keypath)}] is not a valid keypath")
+            raise KeyError(f"{self.__format_key(*keypath)} is not a valid keypath")
 
         try:
             add_ret = param.add(value, field=field, step=step, index=index)
@@ -329,7 +342,7 @@ class BaseSchema:
                 self.__process_active(param, add_ret)
             return add_ret
         except Exception as e:
-            new_msg = f"error while adding to [{','.join(keypath)}]: {e.args[0]}"
+            new_msg = f"error while adding to {self.__format_key(*keypath)}: {e.args[0]}"
             e.args = (new_msg, *e.args[1:])
             raise e
 
@@ -362,13 +375,13 @@ class BaseSchema:
         try:
             param = self.__search(*keypath, use_default=True)
         except KeyError:
-            raise KeyError(f"[{','.join(keypath)}] is not a valid keypath")
+            raise KeyError(f"{self.__format_key(*keypath)} is not a valid keypath")
 
         try:
             param.unset(step=step, index=index)
             self.__journal.record("unset", keypath, step=step, index=index)
         except Exception as e:
-            new_msg = f"error while unsetting [{','.join(keypath)}]: {e.args[0]}"
+            new_msg = f"error while unsetting {self.__format_key(*keypath)}: {e.args[0]}"
             e.args = (new_msg, *e.args[1:])
             raise e
 
@@ -388,7 +401,7 @@ class BaseSchema:
         try:
             key_param = self.__search(*search_path, require_leaf=False)
         except KeyError:
-            raise KeyError(f"[{','.join(keypath)}] is not a valid keypath")
+            raise KeyError(f"{self.__format_key(*keypath)} is not a valid keypath")
 
         if removal_key not in key_param.__manifest:
             return
@@ -458,7 +471,7 @@ class BaseSchema:
             try:
                 key_param = self.__search(*keypath, require_leaf=False)
             except KeyError:
-                raise KeyError(f"[{','.join(keypath)}] is not a valid keypath")
+                raise KeyError(f"{self.__format_key(*keypath)} is not a valid keypath")
             if isinstance(key_param, Parameter):
                 return tuple()
         else:
@@ -559,6 +572,9 @@ class BaseSchema:
         else:
             schema_copy.__parent = schema_copy
 
+        if key:
+            schema_copy.__key = key[-1]
+
         return schema_copy
 
     def _find_files_search_paths(self, keypath, step, index):
@@ -612,7 +628,8 @@ class BaseSchema:
         param = base_schema.get(keypath[-1], field=None)
         paramtype = param.get(field='type')
         if 'file' not in paramtype and 'dir' not in paramtype:
-            raise TypeError(f'Cannot find files on [{",".join(keypath)}], must be a path type')
+            raise TypeError(
+                f'Cannot find files on {self.__format_key(*keypath)}, must be a path type')
 
         paths = param.get(field=None, step=step, index=index)
 
@@ -662,10 +679,11 @@ class BaseSchema:
                 if not missing_ok:
                     if package:
                         raise FileNotFoundError(
-                            f'Could not find "{path.get()}" in {package} [{",".join(keypath)}]')
+                            f'Could not find "{path.get()}" in {package} '
+                            f'{self.__format_key(*keypath)}')
                     else:
                         raise FileNotFoundError(
-                            f'Could not find "{path.get()}" [{",".join(keypath)}]')
+                            f'Could not find "{path.get()}" {self.__format_key(*keypath)}')
             resolved_paths.append(resolved_path)
 
         if not is_list:
@@ -735,8 +753,8 @@ class BaseSchema:
                                 else:
                                     node_indicator = f" ({step}/{index})"
 
-                            logger.error(f"Parameter [{','.join(keypath)}]{node_indicator} path "
-                                         f"{check_file} is invalid")
+                            logger.error(f"Parameter {self.__format_key(*keypath)}{node_indicator} "
+                                         f"path {check_file} is invalid")
 
         return not error
 
