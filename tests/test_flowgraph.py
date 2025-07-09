@@ -1057,3 +1057,9 @@ def test_get_task_module_error(large_flow):
     assert large_flow.set("joinone", "0", "taskmodule", "notvalid.module")
     with pytest.raises(ModuleNotFoundError):
         large_flow.get_task_module("joinone", "0")
+
+
+def test_get_all_tasks(large_flow):
+    assert large_flow.get_all_tasks() == set([
+        nop, join
+    ])
