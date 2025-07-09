@@ -531,6 +531,18 @@ class FlowgraphSchema(NamedSchema):
 
         return self.__get_task_module(self.get(step, index, 'taskmodule'))
 
+    def get_all_tasks(self):
+        '''
+        Returns all the task modules used in this flow
+
+        Returns:
+            set of modules
+        '''
+        tasks = set()
+        for step, index in self.get_nodes():
+            tasks.add(self.get_task_module(step, index))
+        return tasks
+
 
 class RuntimeFlowgraph:
     '''
