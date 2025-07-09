@@ -124,6 +124,9 @@ def running_project():
         def get_nop(self):
             return self.get("tool", "builtin", "task", "nop", field="schema")
 
+        def getworkdir(self, step=None, index=None):
+            return os.path.abspath(".")
+
     project = TestProject()
     project.set('option', 'flow', 'testflow')
     project.set('arg', 'step', "running")
@@ -1446,3 +1449,38 @@ def test_has_breakpoint(running_project):
     running_project.set("option", "breakpoint", True, step="running")
     with running_project.get_nop().runtime(running_project) as runtool:
         assert runtool.has_breakpoint() is True
+
+
+def test_search_path_resolution_not_special(running_project):
+    assert running_project.get_nop()._find_files_search_paths("otherkey", "step", "index") == []
+
+
+def test_search_path_resolution_script_no_ref(running_project):
+    assert running_project.get_nop()._find_files_search_paths("script", "step", "index") == []
+
+
+def test_search_path_resolution_script_with_ref(running_project):
+    running_project.get_nop().set("refdir", "refdir")
+    os.makedirs("refdir", exist_ok=True)
+
+    assert running_project.get_nop()._find_files_search_paths("script", "step", "index") == [
+        os.path.abspath("refdir")
+    ]
+
+
+def test_search_path_resolution_input(running_project):
+    assert running_project.get_nop()._find_files_search_paths("input", "step", "index") == [
+        os.path.abspath("inputs")
+    ]
+
+
+def test_search_path_resolution_report(running_project):
+    assert running_project.get_nop()._find_files_search_paths("report", "step", "index") == [
+        os.path.abspath("report")
+    ]
+
+
+def test_search_path_resolution_output(running_project):
+    assert running_project.get_nop()._find_files_search_paths("output", "step", "index") == [
+        os.path.abspath("outputs")
+    ]
