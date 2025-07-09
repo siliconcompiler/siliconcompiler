@@ -771,6 +771,23 @@ def test_runtime_options_with_aruments(running_project):
         ]
 
 
+def test_runtime_options_with_aruments_with_refdir(running_project):
+    assert running_project.set("tool", "builtin", 'task', "nop", 'option', ['--arg0', '--arg1'])
+    assert running_project.set("tool", "builtin", 'task', "nop", 'refdir', 'refdir')
+    assert running_project.set("tool", "builtin", 'task', "nop", 'script', 'arg2.run')
+    os.makedirs("refdir", exist_ok=True)
+    with open("refdir/arg2.run", "w") as f:
+        f.write("test")
+
+    with running_project.get_nop().runtime(running_project) as runtool:
+
+        assert runtool.runtime_options() == [
+            '--arg0',
+            '--arg1',
+            os.path.abspath("refdir/arg2.run")
+        ]
+
+
 def test_run_not_implemented():
     with pytest.raises(NotImplementedError,
                        match="must be implemented by the implementation class"):
