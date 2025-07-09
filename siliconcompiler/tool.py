@@ -1109,11 +1109,14 @@ class TaskSchema(NamedSchema):
                 packages=self._parent(root=True).get("package", field="schema").get_resolvers(),
                 cwd=self.__cwd))
         elif keypath == "input":
-            paths.append(os.path.join(self._parent(root=True).getworkdir(step=step, index=index), "inputs"))
+            paths.append(os.path.join(self._parent(root=True).getworkdir(step=step, index=index),
+                                      "inputs"))
         elif keypath == "report":
-            paths.append(os.path.join(self._parent(root=True).getworkdir(step=step, index=index), "report"))
+            paths.append(os.path.join(self._parent(root=True).getworkdir(step=step, index=index),
+                                      "report"))
         elif keypath == "output":
-            paths.append(os.path.join(self._parent(root=True).getworkdir(step=step, index=index), "outputs"))
+            paths.append(os.path.join(self._parent(root=True).getworkdir(step=step, index=index),
+                                      "outputs"))
         return paths
 
     ###############################################################
