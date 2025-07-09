@@ -78,6 +78,15 @@ def test_get_invalid_key():
         schema.get("test0", "test2")
 
 
+def test_get_invalid_key_from_child():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("test0", "test1", Parameter("str"))
+
+    with pytest.raises(KeyError, match=r"\[test0,test2\] is not a valid keypath"):
+        schema.get("test0", field="schema").get("test2")
+
+
 def test_get_field():
     schema = BaseSchema()
     edit = EditableSchema(schema)
@@ -124,6 +133,15 @@ def test_set_invalid_key():
         schema.set("test0", "test2", "hello")
 
 
+def test_set_invalid_key_from_child():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("test0", "test1", Parameter("str"))
+
+    with pytest.raises(KeyError, match=r"\[test0,test2\] is not a valid keypath"):
+        schema.get("test0", field="schema").set("test2", "hello")
+
+
 def test_add_invalid_key():
     schema = BaseSchema()
     edit = EditableSchema(schema)
@@ -133,6 +151,15 @@ def test_add_invalid_key():
         schema.add("test0", "test2", "hello")
 
 
+def test_add_invalid_key_from_child():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("test0", "test1", Parameter("str"))
+
+    with pytest.raises(KeyError, match=r"\[test0,test2\] is not a valid keypath"):
+        schema.get("test0", field="schema").add("test2", "hello")
+
+
 def test_set_partial_key():
     schema = BaseSchema()
     edit = EditableSchema(schema)
@@ -140,6 +167,15 @@ def test_set_partial_key():
 
     with pytest.raises(KeyError, match=r"\[test0\] is not a valid keypath"):
         schema.set("test0", "hello")
+
+
+def test_set_partial_key_from_child():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("test0", "test1", "test2", Parameter("str"))
+
+    with pytest.raises(KeyError, match=r"\[test0,test1\] is not a valid keypath"):
+        schema.get("test0", field="schema").set("test1", "hello")
 
 
 def test_get_empty_key():
@@ -204,6 +240,15 @@ def test_add_partial_key():
         schema.add("test0", "hello")
 
 
+def test_add_partial_key_form_child():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("test0", "test1", "test2", Parameter("str"))
+
+    with pytest.raises(KeyError, match=r"\[test0,test1\] is not a valid keypath"):
+        schema.get("test0", field="schema").add("test1", "hello")
+
+
 def test_unset_invalid_key():
     schema = BaseSchema()
     edit = EditableSchema(schema)
@@ -211,6 +256,15 @@ def test_unset_invalid_key():
 
     with pytest.raises(KeyError, match=r"\[test0,test3\] is not a valid keypath"):
         schema.unset("test0", "test3")
+
+
+def test_unset_invalid_key_from_child():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("test0", "test1", "test2", Parameter("str"))
+
+    with pytest.raises(KeyError, match=r"\[test0,test3\] is not a valid keypath"):
+        schema.get("test0", field="schema").unset("test3")
 
 
 def test_unset():
@@ -261,6 +315,15 @@ def test_remove_invalid_key():
 
     with pytest.raises(KeyError, match=r"\[test1,test1\] is not a valid keypath"):
         schema.remove("test1", "test1")
+
+
+def test_remove_invalid_key_from_child():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("test0", "test1", "default", Parameter("str"))
+
+    with pytest.raises(KeyError, match=r"\[test0,test0,test1\] is not a valid keypath"):
+        schema.get("test0", field="schema").remove("test0", "test1")
 
 
 def test_remove_parameter():
@@ -1721,3 +1784,44 @@ def test_find_files_custom_class():
 
     assert schema.find_files("rootedfile") == os.path.abspath("thisroot/thisfile.txt")
     assert schema.find_files("unrootedfile") == os.path.abspath("thatfile.txt")
+
+
+def test_keypath_root():
+    assert BaseSchema()._keypath == tuple()
+
+
+def test_keypath_with_levels():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("test0", "test1", "test2", Parameter("str"))
+    assert schema._keypath == tuple()
+    assert schema.get("test0", field="schema")._keypath == ("test0",)
+    assert schema.get("test0", "test1", field="schema")._keypath == ("test0", "test1")
+
+
+def test_keypath_with_default_unset():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("default", "test1", "test2", Parameter("str"))
+    assert schema._keypath == tuple()
+    assert schema.get("default", field="schema")._keypath == ("default",)
+    assert schema.get("test0", field="schema")._keypath == ("default",)
+    assert schema.get("test0", "test1", field="schema")._keypath == ("default", "test1")
+
+    assert schema.set("test0", "test1", "test2", "test")
+    assert schema.get("test0", field="schema")._keypath == ("test0",)
+    assert schema.get("test0", "test1", field="schema")._keypath == ("test0", "test1")
+
+
+def test_keypath_with_default_set():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("default", "test1", "test2", Parameter("str"))
+    assert schema.set("test0", "test1", "test2", "test")
+    assert schema.set("test3", "test1", "test2", "test")
+
+    assert schema._keypath == tuple()
+    assert schema.get("test0", field="schema")._keypath == ("test0",)
+    assert schema.get("test0", "test1", field="schema")._keypath == ("test0", "test1")
+    assert schema.get("test3", field="schema")._keypath == ("test3",)
+    assert schema.get("test3", "test1", field="schema")._keypath == ("test3", "test1")
