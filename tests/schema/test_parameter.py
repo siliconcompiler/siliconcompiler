@@ -1869,3 +1869,19 @@ def test_reset():
     assert param.getvalues() == [
         (1, None, None)
     ]
+
+
+def test_reset_pernode_never():
+    param = Parameter("int", pernode=PerNode.NEVER, defvalue=1)
+
+    assert param.getvalues() == [
+        (1, None, None)
+    ]
+    assert param.set(2)
+    assert param.getvalues() == [
+        (2, None, None)
+    ]
+    param.reset()
+    assert param.getvalues() == [
+        (1, None, None)
+    ]
