@@ -1703,9 +1703,9 @@ def test_find_files_custom_class():
             EditableSchema(self).insert("rootedfile", Parameter("file"))
             EditableSchema(self).insert("unrootedfile", Parameter("file"))
 
-        def _find_files_search_paths(self, *keypath):
-            paths = super()._find_files_search_paths(*keypath)
-            if keypath[-1] == "rootedfile":
+        def _find_files_search_paths(self, keypath, step, index):
+            paths = super()._find_files_search_paths(keypath, step, index)
+            if keypath == "rootedfile":
                 paths.append(os.path.abspath("thisroot"))
             return paths
 

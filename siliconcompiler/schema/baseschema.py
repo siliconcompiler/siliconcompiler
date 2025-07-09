@@ -561,9 +561,14 @@ class BaseSchema:
 
         return schema_copy
 
-    def _find_files_search_paths(self, *keypath):
+    def _find_files_search_paths(self, keypath, step, index):
         """
         Returns a list of paths to search during find files.
+
+        Args:
+            keypath (str): final component of keypath
+            step (str): Step name.
+            index (str): Index name.
         """
         return []
 
@@ -630,7 +635,7 @@ class BaseSchema:
             packages = {}
 
         resolved_paths = []
-        root_search_paths = base_schema._find_files_search_paths(keypath[-1])
+        root_search_paths = base_schema._find_files_search_paths(keypath[-1], step, index)
         for path in paths:
             search_paths = root_search_paths.copy()
 
