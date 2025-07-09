@@ -1101,6 +1101,24 @@ class TaskSchema(NamedSchema):
     def add(self, *args, field='value'):
         return super().add(*args, field=field, step=self.__step, index=self.__index)
 
+    def _find_files_search_paths(self, keypath, step, index):
+        paths = super()._find_files_search_paths(keypath, step, index)
+        if keypath == "script":
+            paths.extend(self.find_files(
+                "refdir", step=step, index=index,
+                packages=self._parent(root=True).get("package", field="schema").get_resolvers(),
+                cwd=self.__cwd))
+        elif keypath == "input":
+            paths.append(os.path.join(self._parent(root=True).getworkdir(step=step, index=index),
+                                      "inputs"))
+        elif keypath == "report":
+            paths.append(os.path.join(self._parent(root=True).getworkdir(step=step, index=index),
+                                      "report"))
+        elif keypath == "output":
+            paths.append(os.path.join(self._parent(root=True).getworkdir(step=step, index=index),
+                                      "outputs"))
+        return paths
+
     ###############################################################
     def parse_version(self, stdout):
         raise NotImplementedError("must be implemented by the implementation class")
@@ -1123,8 +1141,12 @@ class TaskSchema(NamedSchema):
         cmdargs.extend(self.get("option"))
 
         # Add scripts files / TODO:
-        scripts = self.__chip.find_files('tool', self.tool(), 'task', self.task(), 'script',
-                                         step=self.__step, index=self.__index)
+        scripts = self.find_files(
+            'script',
+            step=self.__step, index=self.__index,
+            packages=self.schema().get("package", field="schema").get_resolvers(),
+            cwd=self.__cwd,
+            missing_ok=True)
 
         cmdargs.extend(scripts)
 

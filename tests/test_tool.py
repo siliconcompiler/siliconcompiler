@@ -124,6 +124,9 @@ def running_project():
         def get_nop(self):
             return self.get("tool", "builtin", "task", "nop", field="schema")
 
+        def getworkdir(self, step=None, index=None):
+            return os.path.abspath(".")
+
     project = TestProject()
     project.set('option', 'flow', 'testflow')
     project.set('arg', 'step', "running")
@@ -768,6 +771,23 @@ def test_runtime_options_with_aruments(running_project):
             '--arg0',
             '--arg1',
             os.path.abspath("arg2.run")
+        ]
+
+
+def test_runtime_options_with_aruments_with_refdir(running_project):
+    assert running_project.set("tool", "builtin", 'task', "nop", 'option', ['--arg0', '--arg1'])
+    assert running_project.set("tool", "builtin", 'task', "nop", 'refdir', 'refdir')
+    assert running_project.set("tool", "builtin", 'task', "nop", 'script', 'arg2.run')
+    os.makedirs("refdir", exist_ok=True)
+    with open("refdir/arg2.run", "w") as f:
+        f.write("test")
+
+    with running_project.get_nop().runtime(running_project) as runtool:
+
+        assert runtool.runtime_options() == [
+            '--arg0',
+            '--arg1',
+            os.path.abspath("refdir/arg2.run")
         ]
 
 
@@ -1429,3 +1449,38 @@ def test_has_breakpoint(running_project):
     running_project.set("option", "breakpoint", True, step="running")
     with running_project.get_nop().runtime(running_project) as runtool:
         assert runtool.has_breakpoint() is True
+
+
+def test_search_path_resolution_not_special(running_project):
+    assert running_project.get_nop()._find_files_search_paths("otherkey", "step", "index") == []
+
+
+def test_search_path_resolution_script_no_ref(running_project):
+    assert running_project.get_nop()._find_files_search_paths("script", "step", "index") == []
+
+
+def test_search_path_resolution_script_with_ref(running_project):
+    running_project.get_nop().set("refdir", "refdir")
+    os.makedirs("refdir", exist_ok=True)
+
+    assert running_project.get_nop()._find_files_search_paths("script", "step", "index") == [
+        os.path.abspath("refdir")
+    ]
+
+
+def test_search_path_resolution_input(running_project):
+    assert running_project.get_nop()._find_files_search_paths("input", "step", "index") == [
+        os.path.abspath("inputs")
+    ]
+
+
+def test_search_path_resolution_report(running_project):
+    assert running_project.get_nop()._find_files_search_paths("report", "step", "index") == [
+        os.path.abspath("report")
+    ]
+
+
+def test_search_path_resolution_output(running_project):
+    assert running_project.get_nop()._find_files_search_paths("output", "step", "index") == [
+        os.path.abspath("outputs")
+    ]

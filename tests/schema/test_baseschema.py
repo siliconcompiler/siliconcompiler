@@ -1694,3 +1694,30 @@ def test_active_add():
             assert schema.get("testdir", field="package") == [
                 "testpack",
                 "anotherpack"]
+
+
+def test_find_files_custom_class():
+    class CustomFiles(BaseSchema):
+        def __init__(self):
+            super().__init__()
+            EditableSchema(self).insert("rootedfile", Parameter("file"))
+            EditableSchema(self).insert("unrootedfile", Parameter("file"))
+
+        def _find_files_search_paths(self, keypath, step, index):
+            paths = super()._find_files_search_paths(keypath, step, index)
+            if keypath == "rootedfile":
+                paths.append(os.path.abspath("thisroot"))
+            return paths
+
+    os.makedirs("thisroot", exist_ok=True)
+    with open("thisroot/thisfile.txt", "w") as f:
+        f.write("test")
+    with open("thatfile.txt", "w") as f:
+        f.write("test")
+
+    schema = CustomFiles()
+    schema.set("rootedfile", "thisfile.txt")
+    schema.set("unrootedfile", "thatfile.txt")
+
+    assert schema.find_files("rootedfile") == os.path.abspath("thisroot/thisfile.txt")
+    assert schema.find_files("unrootedfile") == os.path.abspath("thatfile.txt")

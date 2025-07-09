@@ -561,6 +561,17 @@ class BaseSchema:
 
         return schema_copy
 
+    def _find_files_search_paths(self, keypath, step, index):
+        """
+        Returns a list of paths to search during find files.
+
+        Args:
+            keypath (str): final component of keypath
+            step (str): Step name.
+            index (str): Index name.
+        """
+        return []
+
     def find_files(self, *keypath, missing_ok=False, step=None, index=None,
                    packages=None, collection_dir=None, cwd=None):
         """
@@ -596,7 +607,9 @@ class BaseSchema:
             the schema.
         """
 
-        param = self.get(*keypath, field=None)
+        base_schema = self.get(*keypath[0:-1], field="schema")
+
+        param = base_schema.get(keypath[-1], field=None)
         paramtype = param.get(field='type')
         if 'file' not in paramtype and 'dir' not in paramtype:
             raise TypeError(f'Cannot find files on [{",".join(keypath)}], must be a path type')
@@ -622,8 +635,9 @@ class BaseSchema:
             packages = {}
 
         resolved_paths = []
+        root_search_paths = base_schema._find_files_search_paths(keypath[-1], step, index)
         for path in paths:
-            search_paths = []
+            search_paths = root_search_paths.copy()
 
             package = path.get(field="package")
             if package:
