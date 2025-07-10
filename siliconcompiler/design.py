@@ -841,7 +841,7 @@ def schema_design(schema):
         Parameter(
             '[(str,str)]',
             scope=Scope.GLOBAL,
-            shorthelp="Design depencency fileset",
+            shorthelp="Design dependency fileset",
             example=[
                 "api: chip.set('fileset', 'rtl, 'depfileset', ('lambdalib', 'rtl')"],
             help=trim("""Sets the mapping for dependency filesets.""")))
