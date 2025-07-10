@@ -409,7 +409,7 @@ class DesignSchema(NamedSchema, DependencySchema):
 
         return filelist
 
-    def __write_flist(self, filename: str, filesets: list):
+    def __write_flist(self, filename: str, filesets: List[str]):
         written_cmd = set()
 
         with open(filename, "w") as f:
@@ -423,27 +423,28 @@ class DesignSchema(NamedSchema, DependencySchema):
             def write_header(header):
                 f.write(f"// {header}\n")
 
-            for lib in [self, *self.get_dep()]:
-                write_header(f"{lib.name()}")
-                for fileset in filesets:
-                    if not lib.valid('fileset', fileset):
-                        continue
+            for lib_name, fileset in self.get_fileset_mapping(filesets):
+                if lib_name == self.name():
+                    lib = self
+                else:
+                    # Remove prefix from name for lookup
+                    lib = self.get_dep(lib_name[len(self.name())+1:])
 
-                    if lib.get('fileset', fileset, 'idir'):
-                        write_header(f"{lib.name()} / {fileset} / include directories")
-                        for idir in lib.find_files('fileset', fileset, 'idir'):
-                            write(f"+incdir+{idir}")
+                if lib.get('fileset', fileset, 'idir'):
+                    write_header(f"{lib.name()} / {fileset} / include directories")
+                    for idir in lib.find_files('fileset', fileset, 'idir'):
+                        write(f"+incdir+{idir}")
 
-                    if lib.get('fileset', fileset, 'define'):
-                        write_header(f"{lib.name()} / {fileset} / defines")
-                        for define in lib.get('fileset', fileset, 'define'):
-                            write(f"+define+{define}")
+                if lib.get('fileset', fileset, 'define'):
+                    write_header(f"{lib.name()} / {fileset} / defines")
+                    for define in lib.get('fileset', fileset, 'define'):
+                        write(f"+define+{define}")
 
-                    for filetype in lib.getkeys('fileset', fileset, 'file'):
-                        if lib.get('fileset', fileset, 'file', filetype):
-                            write_header(f"{lib.name()} / {fileset} / {filetype} files")
-                            for file in lib.find_files('fileset', fileset, 'file', filetype):
-                                write(file)
+                for filetype in lib.getkeys('fileset', fileset, 'file'):
+                    if lib.get('fileset', fileset, 'file', filetype):
+                        write_header(f"{lib.name()} / {fileset} / {filetype} files")
+                        for file in lib.find_files('fileset', fileset, 'file', filetype):
+                            write(file)
 
     ###############################################
     def write_fileset(self,

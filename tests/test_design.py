@@ -236,7 +236,6 @@ def test_write_fileset(datadir):
     d.write_fileset(filename="heartbeat.f", fileset=['rtl', 'tb'])
 
     assert Path("heartbeat.f").read_text().splitlines() == [
-        '// test',
         '// test / rtl / include directories',
         f'+incdir+{os.path.abspath(datadir)}',
         '// test / rtl / defines',
@@ -321,6 +320,7 @@ def test_heartbeat_example(datadir):
 
             # dependencies
             self.add_dep(Increment())
+            self.add_dependency_fileset("increment", "rtl", "rtl")
 
     dut = Heartbeat()
     assert dut.get("deps") == ["increment"]
@@ -328,14 +328,12 @@ def test_heartbeat_example(datadir):
     dut.write_fileset(filename="heartbeat.f", fileset=['rtl', 'testbench'])
 
     assert Path("heartbeat.f").read_text().splitlines() == [
-        '// heartbeat',
         '// heartbeat / rtl / verilog files',
         f'{Path(os.path.abspath(os.path.join(datadir, "heartbeat_increment.v"))).as_posix()}',
-        '// heartbeat / testbench / verilog files',
-        f'{Path(os.path.abspath(os.path.join(datadir, "heartbeat_tb.v"))).as_posix()}',
-        '// increment',
         '// increment / rtl / verilog files',
-        f'{Path(os.path.abspath(os.path.join(datadir, "increment.v"))).as_posix()}'
+        f'{Path(os.path.abspath(os.path.join(datadir, "increment.v"))).as_posix()}',
+        '// heartbeat / testbench / verilog files',
+        f'{Path(os.path.abspath(os.path.join(datadir, "heartbeat_tb.v"))).as_posix()}'
     ]
 
 
