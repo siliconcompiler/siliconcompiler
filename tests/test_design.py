@@ -446,3 +446,40 @@ def test_add_file_active_fileset():
         d.add_file('dut.v')
         assert d.get_file() == ['tb.v', 'dut.v']
     assert d.get('fileset', 'testbench', 'file', 'verilog') == ['tb.v', 'dut.v']
+
+
+def test_get_fileset_mapping():
+    class Increment(DesignSchema):
+        def __init__(self):
+            super().__init__('increment')
+
+            with self.active_fileset("rtl.increment"):
+                self.add_file("increment.v")
+
+    class Heartbeat(DesignSchema):
+        def __init__(self):
+            super().__init__('heartbeat')
+
+            # dependencies
+            self.add_dep(Increment())
+            with self.active_fileset("rtl"):
+                self.add_file("heartbeat_increment.v")
+                self.add_dependency_fileset("increment", "rtl.increment")
+
+            with self.active_fileset("testbench"):
+                self.add_file("tb.v")
+
+    dut = Heartbeat()
+    assert dut.get_fileset_mapping("rtl") == [
+        ('heartbeat', 'rtl'),
+        ('heartbeat.increment', 'rtl.increment'),
+    ]
+
+    assert dut.get_fileset_mapping(["rtl", "testbench"]) == [
+        ('heartbeat', 'rtl'),
+        ('heartbeat.increment', 'rtl.increment'),
+        ('heartbeat', 'testbench')
+    ]
+
+    with pytest.raises(ValueError, match="constraint is not defined in heartbeat"):
+        dut.get_fileset_mapping("constraint")

@@ -4,7 +4,7 @@ import re
 import os.path
 
 from pathlib import Path
-from typing import List
+from typing import List, Union, Tuple
 
 from siliconcompiler import utils
 
@@ -659,6 +659,50 @@ class DesignSchema(NamedSchema, DependencySchema):
             yield
         finally:
             self.__fileset = orig_fileset
+
+    def __get_fileset_mapping(self, filesets: Union[List[str], str], prefix: str) -> List[Tuple[str, str]]:
+        """
+        Computes the filesets this object required for a given set of filesets
+
+        Args:
+            filesets (list of str): List of filesets to evaluate
+            prefix (str): prefix in the hierarchy
+
+        Returns:
+            List of tuples (name of dependency, fileset)
+        """
+        if isinstance(filesets, str):
+            # Ensure we have a list
+            filesets = [filesets]
+
+        mapping = []
+        for fileset in filesets:
+            if not self.valid("fileset", fileset):
+                raise ValueError(f"{fileset} is not defined in {self.name()}")
+
+            mapping.append((f"{prefix}{self.name()}", fileset))
+            for dep, depfileset in self.get("fileset", fileset, "depfileset"):
+                # Check if dep is found
+
+                dep_obj = self.get_dep(dep)
+                if not isinstance(dep_obj, DesignSchema):
+                    raise ValueError
+
+                mapping.extend(dep_obj.__get_fileset_mapping(depfileset, f"{prefix}{self.name()}."))
+
+        return mapping
+
+    def get_fileset_mapping(self, filesets: Union[List[str], str]) -> List[Tuple[str, str]]:
+        """
+        Computes the filesets this object required for a given set of filesets
+
+        Args:
+            filesets (list of str): List of filesets to evaluate
+
+        Returns:
+            List of tuples (name of dependency, fileset)
+        """
+        return self.__get_fileset_mapping(filesets, "")
 
 
 ###########################################################################
