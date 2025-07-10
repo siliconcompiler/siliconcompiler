@@ -628,8 +628,10 @@ class DesignSchema(NamedSchema, DependencySchema):
             raise ValueError("fileset cannot be an empty string")
 
         self.__fileset = fileset
-        yield
-        self.__fileset = None
+        try:
+            yield
+        finally:
+            self.__fileset = None
 
 
 ###########################################################################
