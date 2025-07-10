@@ -4,7 +4,7 @@ import re
 import os.path
 
 from pathlib import Path
-from typing import List, Union, Tuple
+from typing import List, Union, Tuple, Dict
 
 from siliconcompiler import utils
 
@@ -409,7 +409,10 @@ class DesignSchema(NamedSchema, DependencySchema):
 
         return filelist
 
-    def __write_flist(self, filename: str, filesets: List[str]):
+    def __write_flist(self,
+                      filename: str,
+                      filesets: List[str],
+                      depalias: Dict[str, Tuple[NamedSchema, str]]):
         written_cmd = set()
 
         with open(filename, "w") as f:
@@ -423,13 +426,7 @@ class DesignSchema(NamedSchema, DependencySchema):
             def write_header(header):
                 f.write(f"// {header}\n")
 
-            for lib_name, fileset in self.get_fileset_mapping(filesets):
-                if lib_name == self.name():
-                    lib = self
-                else:
-                    # Remove prefix from name for lookup
-                    lib = self.get_dep(lib_name[len(self.name())+1:])
-
+            for lib, fileset in self.get_fileset_mapping(filesets, depalias):
                 if lib.get('fileset', fileset, 'idir'):
                     write_header(f"{lib.name()} / {fileset} / include directories")
                     for idir in lib.find_files('fileset', fileset, 'idir'):
@@ -450,7 +447,8 @@ class DesignSchema(NamedSchema, DependencySchema):
     def write_fileset(self,
                       filename: str,
                       fileset: str = None,
-                      fileformat: str = None) -> None:
+                      fileformat: str = None,
+                      depalias: Dict[str, Tuple[NamedSchema, str]] = None) -> None:
         """Exports filesets to a standard formatted text file.
 
         Currently supports Verilog `flist` format only.
@@ -461,6 +459,7 @@ class DesignSchema(NamedSchema, DependencySchema):
             filename (str or Path): Output file name.
             fileset (str or list[str]): Fileset(s) to export.
             fileformat (str, optional): Export format.
+            depalias (dict of schema objects): Map of aliased objects
         """
 
         if filename is None:
@@ -483,7 +482,7 @@ class DesignSchema(NamedSchema, DependencySchema):
             fileformat = formats[Path(filename).suffix.strip('.')]
 
         if fileformat == "flist":
-            self.__write_flist(filename, fileset)
+            self.__write_flist(filename, fileset, depalias)
         else:
             raise ValueError(f"{fileformat} is not supported")
 
@@ -661,16 +660,18 @@ class DesignSchema(NamedSchema, DependencySchema):
         finally:
             self.__fileset = orig_fileset
 
-    def __get_fileset_mapping(self, filesets: Union[List[str], str], prefix: str) -> List[Tuple[str, str]]:
+    def __get_fileset_mapping(self,
+                              filesets: Union[List[str], str],
+                              alias: Dict[str, Tuple[NamedSchema, str]]) -> List[Tuple[str, str]]:
         """
         Computes the filesets this object required for a given set of filesets
 
         Args:
             filesets (list of str): List of filesets to evaluate
-            prefix (str): prefix in the hierarchy
+            alias (dict of schema objects): Map of aliased objects
 
         Returns:
-            List of tuples (name of dependency, fileset)
+            List of tuples (dependency object, fileset)
         """
         if isinstance(filesets, str):
             # Ensure we have a list
@@ -681,15 +682,21 @@ class DesignSchema(NamedSchema, DependencySchema):
             if not self.valid("fileset", fileset):
                 raise ValueError(f"{fileset} is not defined in {self.name()}")
 
-            mapping.append((f"{prefix}{self.name()}", fileset))
+            mapping.append((self, fileset))
             for dep, depfileset in self.get("fileset", fileset, "depfileset"):
-                # Check if dep is found
+                if (dep, depfileset) in alias:
+                    dep_obj, new_depfileset = alias[(dep, depfileset)]
+                    if dep_obj is None:
+                        continue
 
-                dep_obj = self.get_dep(dep)
+                    if new_depfileset:
+                        depfileset = new_depfileset
+                else:
+                    dep_obj = self.get_dep(dep)
                 if not isinstance(dep_obj, DesignSchema):
                     raise ValueError
 
-                mapping.extend(dep_obj.__get_fileset_mapping(depfileset, f"{prefix}{self.name()}."))
+                mapping.extend(dep_obj.__get_fileset_mapping(depfileset, alias))
 
         # Cleanup
         final_map = []
@@ -698,17 +705,53 @@ class DesignSchema(NamedSchema, DependencySchema):
                 final_map.append(cmap)
         return final_map
 
-    def get_fileset_mapping(self, filesets: Union[List[str], str]) -> List[Tuple[str, str]]:
+    def get_fileset_mapping(self,
+                            filesets: Union[List[str], str],
+                            alias: Dict[str, Tuple[NamedSchema, str]] = None) -> List[Tuple[NamedSchema, str]]:
         """
         Computes the filesets this object required for a given set of filesets
 
         Args:
             filesets (list of str): List of filesets to evaluate
+            alias (dict of schema objects): Map of aliased objects
 
         Returns:
-            List of tuples (name of dependency, fileset)
+            List of tuples (dependency object, fileset)
         """
-        return self.__get_fileset_mapping(filesets, "")
+        if alias is None:
+            alias = {}
+
+        if isinstance(filesets, str):
+            # Ensure we have a list
+            filesets = [filesets]
+
+        mapping = []
+        for fileset in filesets:
+            if not self.valid("fileset", fileset):
+                raise ValueError(f"{fileset} is not defined in {self.name()}")
+
+            mapping.append((self, fileset))
+            for dep, depfileset in self.get("fileset", fileset, "depfileset"):
+                if (dep, depfileset) in alias:
+                    dep_obj, new_depfileset = alias[(dep, depfileset)]
+                    if dep_obj is None:
+                        continue
+
+                    if new_depfileset:
+                        depfileset = new_depfileset
+                else:
+                    dep_obj = self.get_dep(dep)
+                if not isinstance(dep_obj, DesignSchema):
+                    raise ValueError
+
+                mapping.extend(dep_obj.get_fileset_mapping(depfileset, alias))
+
+        # Cleanup
+        final_map = []
+        for cmap in mapping:
+            if cmap not in final_map:
+                final_map.append(cmap)
+        return final_map
 
 
 ###########################################################################

@@ -454,12 +454,14 @@ def test_get_fileset_mapping():
             with self.active_fileset("rtl.increment"):
                 self.add_file("increment.v")
 
+    incr_object = Increment()
+
     class Heartbeat(DesignSchema):
         def __init__(self):
             super().__init__('heartbeat')
 
             # dependencies
-            self.add_dep(Increment())
+            self.add_dep(incr_object)
             with self.active_fileset("rtl"):
                 self.add_file("heartbeat_increment.v")
                 self.add_dependency_fileset("increment", "rtl.increment")
@@ -469,14 +471,14 @@ def test_get_fileset_mapping():
 
     dut = Heartbeat()
     assert dut.get_fileset_mapping("rtl") == [
-        ('heartbeat', 'rtl'),
-        ('heartbeat.increment', 'rtl.increment'),
+        (dut, 'rtl'),
+        (incr_object, 'rtl.increment'),
     ]
 
     assert dut.get_fileset_mapping(["rtl", "testbench"]) == [
-        ('heartbeat', 'rtl'),
-        ('heartbeat.increment', 'rtl.increment'),
-        ('heartbeat', 'testbench')
+        (dut, 'rtl'),
+        (incr_object, 'rtl.increment'),
+        (dut, 'testbench')
     ]
 
     with pytest.raises(ValueError, match="constraint is not defined in heartbeat"):
@@ -491,12 +493,14 @@ def test_get_fileset_mapping_duplicate():
             with self.active_fileset("rtl.increment"):
                 self.add_file("increment.v")
 
+    incr_object = Increment()
+
     class Heartbeat(DesignSchema):
         def __init__(self):
             super().__init__('heartbeat')
 
             # dependencies
-            self.add_dep(Increment())
+            self.add_dep(incr_object)
             with self.active_fileset("rtl"):
                 self.add_file("heartbeat_increment.v")
                 self.add_dependency_fileset("increment", "rtl.increment")
@@ -507,7 +511,71 @@ def test_get_fileset_mapping_duplicate():
 
     dut = Heartbeat()
     assert dut.get_fileset_mapping(["rtl", "testbench"]) == [
-        ('heartbeat', 'rtl'),
-        ('heartbeat.increment', 'rtl.increment'),
-        ('heartbeat', 'testbench')
+        (dut, 'rtl'),
+        (incr_object, 'rtl.increment'),
+        (dut, 'testbench')
+    ]
+
+
+def test_get_fileset_mapping_alias():
+    class IncrementAlias(DesignSchema):
+        def __init__(self):
+            super().__init__('increment_alias')
+
+            with self.active_fileset("rtl.alias"):
+                self.add_file("alias.v")
+            with self.active_fileset("rtl.increment"):
+                self.add_file("increment.v")
+
+    class Increment(DesignSchema):
+        def __init__(self):
+            super().__init__('increment')
+
+            with self.active_fileset("rtl.increment"):
+                self.add_file("increment.v")
+
+    incr_object = Increment()
+
+    class Heartbeat(DesignSchema):
+        def __init__(self):
+            super().__init__('heartbeat')
+
+            # dependencies
+            self.add_dep(incr_object)
+            with self.active_fileset("rtl"):
+                self.add_file("heartbeat_increment.v")
+                self.add_dependency_fileset("increment", "rtl.increment")
+
+            with self.active_fileset("testbench"):
+                self.add_file("tb.v")
+                self.add_dependency_fileset("increment", "rtl.increment")
+
+    dut = Heartbeat()
+    assert dut.get_fileset_mapping(["rtl", "testbench"]) == [
+        (dut, 'rtl'),
+        (incr_object, 'rtl.increment'),
+        (dut, 'testbench')
+    ]
+
+    alias = IncrementAlias()
+
+    assert dut.get_fileset_mapping(
+        ["rtl", "testbench"],
+        alias={("increment", "rtl.increment"): (alias, "rtl.alias")}) == [
+        (dut, 'rtl'),
+        (alias, 'rtl.alias'),
+        (dut, 'testbench')
+    ]
+    assert dut.get_fileset_mapping(
+        ["rtl", "testbench"],
+        alias={("increment", "rtl.increment"): (alias, None)}) == [
+        (dut, 'rtl'),
+        (alias, 'rtl.increment'),
+        (dut, 'testbench')
+    ]
+    assert dut.get_fileset_mapping(
+        ["rtl", "testbench"],
+        alias={("increment", "rtl.increment"): (None, None)}) == [
+        (dut, 'rtl'),
+        (dut, 'testbench')
     ]
