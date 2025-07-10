@@ -19,6 +19,7 @@ def test_design_keys():
         ('fileset', 'default', 'define'),
         ('fileset', 'default', 'undefine'),
         ('fileset', 'default', 'param', 'default'),
+        ('fileset', 'default', 'depfileset'),
         ('package', 'default', 'root'),
         ('package', 'default', 'tag'),
     ])
@@ -102,6 +103,18 @@ def test_get_file():
 
     # get verilog rtl only
     assert d.get_file(fileset='rtl', filetype='verilog') == ['one.v']
+
+
+def test_dependency_fileset():
+    d = DesignSchema("test")
+    assert d.add_dependency_fileset("obj0", "rtl", "rtl")
+    assert d.add_dependency_fileset("obj0", "rtl.tech", "rtl")
+    assert d.add_dependency_fileset("obj0", "testbench.this", "testbench")
+
+    assert d.get_dependency_fileset("rtl") == [
+        ('obj0', 'rtl'),
+        ('obj0', 'rtl.tech')]
+    assert d.get_dependency_fileset("testbench") == [('obj0', 'testbench.this')]
 
 
 def test_options():

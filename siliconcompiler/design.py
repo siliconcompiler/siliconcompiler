@@ -255,6 +255,38 @@ class DesignSchema(NamedSchema, DependencySchema):
             raise ValueError("fileset value must be a string")
         return self.get('fileset', fileset, 'param', name)
 
+    def add_dependency_fileset(self, name: str, dependency_fileset: str, fileset: str = None):
+        """
+        Record a reference to an imported dependency's fileset.
+
+        Args:
+           name (str): Dependency name.
+           dependency_fileset (str): Dependency fileset
+           fileset (str): Fileset name.
+
+        """
+        if fileset is None:
+            fileset = self.__fileset
+
+        if not isinstance(fileset, str):
+            raise ValueError("fileset value must be a string")
+        return self.add("fileset", fileset, "depfileset", (name, dependency_fileset))
+
+    def get_dependency_fileset(self, fileset: str = None):
+        """
+        Returns list of dependency filesets.
+
+        Args:
+           fileset (str): Fileset name.
+
+        Returns:
+           list[str]: List of dependencies and filesets.
+        """
+        if fileset is None:
+            fileset = self.__fileset
+
+        return self.get("fileset", fileset, "depfileset")
+
     ###############################################
     def add_file(self,
                  filename: str,
@@ -753,3 +785,13 @@ def schema_design(schema):
             data literals. The types of parameters and values supported is tightly
             coupled to tools being used. For example, in Verilog only integer
             literals (64'h4, 2'b0, 4) and strings are supported.""")))
+
+    schema.insert(
+        'fileset', fileset, 'depfileset',
+        Parameter(
+            '[(str,str)]',
+            scope=Scope.GLOBAL,
+            shorthelp="Design depencency fileset",
+            example=[
+                "api: chip.set('fileset', 'rtl, 'depfileset', ('lambdalib', 'rtl')"],
+            help=trim("""Sets the mapping for dependency filesets.""")))
