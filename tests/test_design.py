@@ -481,3 +481,33 @@ def test_get_fileset_mapping():
 
     with pytest.raises(ValueError, match="constraint is not defined in heartbeat"):
         dut.get_fileset_mapping("constraint")
+
+
+def test_get_fileset_mapping_duplicate():
+    class Increment(DesignSchema):
+        def __init__(self):
+            super().__init__('increment')
+
+            with self.active_fileset("rtl.increment"):
+                self.add_file("increment.v")
+
+    class Heartbeat(DesignSchema):
+        def __init__(self):
+            super().__init__('heartbeat')
+
+            # dependencies
+            self.add_dep(Increment())
+            with self.active_fileset("rtl"):
+                self.add_file("heartbeat_increment.v")
+                self.add_dependency_fileset("increment", "rtl.increment")
+
+            with self.active_fileset("testbench"):
+                self.add_file("tb.v")
+                self.add_dependency_fileset("increment", "rtl.increment")
+
+    dut = Heartbeat()
+    assert dut.get_fileset_mapping(["rtl", "testbench"]) == [
+        ('heartbeat', 'rtl'),
+        ('heartbeat.increment', 'rtl.increment'),
+        ('heartbeat', 'testbench')
+    ]

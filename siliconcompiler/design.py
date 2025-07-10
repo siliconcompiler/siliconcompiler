@@ -691,7 +691,12 @@ class DesignSchema(NamedSchema, DependencySchema):
 
                 mapping.extend(dep_obj.__get_fileset_mapping(depfileset, f"{prefix}{self.name()}."))
 
-        return mapping
+        # Cleanup
+        final_map = []
+        for cmap in mapping:
+            if cmap not in final_map:
+                final_map.append(cmap)
+        return final_map
 
     def get_fileset_mapping(self, filesets: Union[List[str], str]) -> List[Tuple[str, str]]:
         """
