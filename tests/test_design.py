@@ -591,6 +591,9 @@ def test_write_fileset_alias(datadir):
             with self.active_fileset("rtl.alias"):
                 self.add_file(datadir / "increment.v")
 
+            with self.active_fileset("rtl.alias_other"):
+                self.add_file(datadir / "increment.v")
+
     class Increment(DesignSchema):
         def __init__(self):
             super().__init__('increment')
@@ -627,6 +630,22 @@ def test_write_fileset_alias(datadir):
         f'{os.path.abspath(os.path.join(datadir, "heartbeat_increment.v"))}',
         '// increment_alias / rtl.alias / verilog files',
         f'{os.path.abspath(os.path.join(datadir, "increment.v"))}',
+        '// heartbeat / testbench / verilog files',
+        f'{os.path.abspath(os.path.join(datadir, "heartbeat_tb.v"))}',
+    ]
+
+    dut.write_fileset(
+        "fileset_double.f",
+        ["rtl", "testbench"],
+        depalias={("increment", "rtl.increment"): (alias, ["rtl.alias", "rtl.alias_other"])})
+
+    assert Path("fileset_double.f").read_text().splitlines() == [
+        '// heartbeat / rtl / verilog files',
+        f'{os.path.abspath(os.path.join(datadir, "heartbeat_increment.v"))}',
+        '// increment_alias / rtl.alias / verilog files',
+        f'{os.path.abspath(os.path.join(datadir, "increment.v"))}',
+        '// increment_alias / rtl.alias_other / verilog files',
+        f'// {os.path.abspath(os.path.join(datadir, "increment.v"))}',
         '// heartbeat / testbench / verilog files',
         f'{os.path.abspath(os.path.join(datadir, "heartbeat_tb.v"))}',
     ]
