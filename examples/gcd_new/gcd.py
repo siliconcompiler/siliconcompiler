@@ -9,8 +9,8 @@ from pathlib import Path
 from siliconcompiler.targets import freepdk45_demo
 
 from siliconcompiler import DesignSchema
-from siliconcompiler.project import LintProject
-from siliconcompiler.schema import EditableSchema\
+from siliconcompiler.project import LintProject, ASICProject
+from siliconcompiler.schema import EditableSchema
 
 from siliconcompiler.flows.lintflow import LintFlowgraph, slang_lint
 from siliconcompiler.flows.synflow import SynthesisFlowgraph, elaborate
@@ -158,11 +158,21 @@ class GCDDesign(DesignSchema):
                 self.add_file("gcd_asap7.sdc")
 
 
-def main():
+def main_lint():
     project = LintProject()
     project.add_dep(GCDDesign())
-    project.add_dep(Nangate45())
     project.add_dep(LintFlowgraph())
+    project.write_manifest("test.json")
+
+    project.set("option", "flow", "lintflow")
+
+    project.run(raise_exception=True)
+
+
+def main_asic():
+    project = ASICProject()
+    project.add_dep(GCDDesign())
+    project.add_dep(Nangate45())
     project.add_dep(SynthesisFlowgraph())
     project.write_manifest("test.json")
 
@@ -173,4 +183,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    main_asic()

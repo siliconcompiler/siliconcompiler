@@ -13,6 +13,7 @@ from siliconcompiler.metric import MetricSchema
 from siliconcompiler.checklist import ChecklistSchema
 from siliconcompiler.tool import ToolSchema
 from siliconcompiler.packageschema import PackageSchema
+from siliconcompiler.pdk import PDKSchema
 from siliconcompiler.schema.schema_cfg import schema_option_runtime
 
 from siliconcompiler.scheduler.scheduler import Scheduler
@@ -37,10 +38,13 @@ class Project(BaseSchema):
         schema.insert("tool", "default", ToolSchema())
 
         schema_option_runtime(schema)
-        schema.insert("option", "fileset", Parameter("[str]"))
         schema.insert("option", "env", "default", Parameter("str"))
         schema.insert("arg", "step", Parameter("str"))
         schema.insert("arg", "index", Parameter("str"))
+
+        schema.insert("option", "alias", Parameter("(str,str,str,str)"))
+        schema.insert("option", "fileset", Parameter("(str,str)"))
+        schema.insert("option", "design", Parameter("str"))
 
         # Init logger
         self.__init_logger()
@@ -230,3 +234,15 @@ class Project(BaseSchema):
 class LintProject(Project):
     def __init__(self):
         super().__init__()
+
+
+class ASICProject(Project):
+    def __init__(self):
+        super().__init__()
+
+        schema = EditableSchema(self)
+        schema.insert("pdk", "default", PDKSchema())
+
+        schema.insert("asic", "logiclib", Parameter("[str]"))
+        schema.insert("asic", "macrolib", Parameter("[str]"))  # TODO: is this needed?
+        schema.insert("asic", "arch", Parameter("str"))
