@@ -29,6 +29,7 @@ import os.path
 from enum import Flag, auto
 from packaging.version import Version, InvalidVersion
 from packaging.specifiers import SpecifierSet, InvalidSpecifier
+from typing import Callable
 
 from siliconcompiler.schema import NamedSchema, Journal
 from siliconcompiler.schema import EditableSchema, Parameter, PerNode, Scope
@@ -672,9 +673,7 @@ class TaskSchema(NamedSchema):
                 abspaths = root.find_files(
                     *keypath,
                     missing_ok=True,
-                    step=step, index=index,
-                    packages=root.get("package", field="schema").get_resolvers(),
-                    cwd=self.__cwd)
+                    step=step, index=index)
                 if isinstance(abspaths, (set, list)) and None in abspaths:
                     # Lists may not contain None
                     schema.set(*keypath, [], step=step, index=index)
@@ -1100,6 +1099,23 @@ class TaskSchema(NamedSchema):
         self.schema("metric").record(self.__step, self.__index, metric, value, unit=source_unit)
         if source_file:
             self.add("report", metric, source_file)
+
+    def set_threads(self, max_threads: int = None):
+        if max_threads is None or max_threads <= 0:
+            max_threads = utils.get_cores(None)
+
+        self.set("threads", max_threads, clobber=False)
+
+    def get_threads(self):
+        return self.get("threads")
+
+    def get_fileset_file_keys(self, filetype: str):
+        keys = []
+        for obj, fileset in self.schema().get_fileset_mapping():
+            key = ("library", obj.name(), "fileset", fileset, "file", filetype)
+            if self.schema().valid(*key, check_complete=True):
+                keys.append(key)
+        return keys
 
     ###############################################################
     def get(self, *keypath, field='value'):

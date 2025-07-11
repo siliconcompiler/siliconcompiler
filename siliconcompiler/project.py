@@ -19,6 +19,7 @@ from siliconcompiler.schema.schema_cfg import schema_option_runtime
 from siliconcompiler.scheduler.scheduler import Scheduler
 from siliconcompiler.utils.logging import SCColorLoggerFormatter, \
     SCLoggerFormatter, SCInRunLoggerFormatter
+from siliconcompiler.package import Resolver
 
 
 class Project(BaseSchema):
@@ -40,7 +41,7 @@ class Project(BaseSchema):
         schema.insert("arg", "step", Parameter("str"))
         schema.insert("arg", "index", Parameter("str"))
 
-        schema.insert("option", "alias", Parameter("(str,str,str,str)"))
+        schema.insert("option", "alias", Parameter("[(str,str,str,str)]"))
         schema.insert("option", "fileset", Parameter("[str]"))
         schema.insert("option", "design", Parameter("str"))
 
@@ -71,11 +72,11 @@ class Project(BaseSchema):
         self.__logger.addHandler(self._logger_console)
 
     @property
-    def logger(self):
+    def logger(self) -> logging.Logger:
         return self.__logger
 
     @property
-    def design(self):
+    def design(self) -> DesignSchema:
         return self.get("library", self.get("option", "design"), field="schema")
 
     @property
@@ -112,6 +113,19 @@ class Project(BaseSchema):
             edit_schema.insert("tool", task.tool(), "task", task.task(), task, clobber=True)
 
     def check_manifest(self):
+        # Assert design is set
+        # Assert fileset is set
+        # Assert flow is set
+
+        # Assert design is a library
+        # Assert fileset is in design
+        # Assert design has topmodule
+
+        # Check that alias libraries exist
+
+        # Check flowgraph
+        # Check tasks have classes, cannot check post setup that is a runtime check
+
         return True
 
     def run(self, raise_exception=False):
@@ -195,6 +209,20 @@ class Project(BaseSchema):
     def collect(self, **kwargs):
         pass
 
+    def get_fileset_mapping(self):
+        # Build alias mapping
+        alias = {}
+        for src_lib, src_fileset, dst_lib, dst_fileset in self.get("option", "alias"):
+            if dst_lib:
+                dst_obj = self.get("library", dst_lib, field="schema")
+            else:
+                dst_lib = None
+            if not dst_fileset:
+                dst_fileset = None
+            alias[(src_lib, src_fileset)] = (dst_obj, dst_fileset)
+
+        return self.design.get_fileset_mapping(self.get("option", "fileset"), alias=alias)
+
     def __getstate__(self):
         # Ensure a copy of the state is used
         state = self.__dict__.copy()
@@ -210,6 +238,72 @@ class Project(BaseSchema):
 
         # Reinitialize logger on restore
         self.__init_logger()
+
+    def __get_resolver_map(self):
+        """
+        Generate the resolver map got package handling for find_files and check_filepaths
+        """
+        resolver_map = {}
+        for package in self.getkeys("package", "source"):
+            root = self.get("package", "source", package, "path")
+            tag = self.get("package", "source", package, "ref")
+            resolver = Resolver.find_resolver(root)
+            resolver_map[package] = resolver(package, self, root, tag).get_path
+        return resolver_map
+
+    def find_files(self, *keypath,
+                   missing_ok=False,
+                   step=None, index=None):
+        """
+        Returns absolute paths to files or directories based on the keypath
+        provided.
+
+        The keypath provided must point to a schema parameter of type file, dir,
+        or lists of either. Otherwise, it will trigger an error.
+
+        Args:
+            keypath (list of str): Variable length schema key list.
+            missing_ok (bool): If True, silently return None when files aren't
+                found. If False, print an error and set the error flag.
+            step (str): Step name to access for parameters that may be specified
+                on a per-node basis.
+            index (str): Index name to access for parameters that may be specified
+                on a per-node basis.
+
+        Returns:
+            If keys points to a scalar entry, returns an absolute path to that
+            file/directory, or None if not found. It keys points to a list
+            entry, returns a list of either the absolute paths or None for each
+            entry, depending on whether it is found.
+
+        Examples:
+            >>> schema.find_files('input', 'verilog')
+            Returns a list of absolute paths to source files, as specified in
+            the schema.
+        """
+        return super().find_files(*keypath,
+                                  missing_ok=missing_ok,
+                                  step=step, index=index,
+                                  packages=self.__get_resolver_map(),
+                                  collection_dir=self.getcollectiondir(),
+                                  cwd=self.cwd)
+
+    def check_filepaths(self, ignore_keys=None):
+        '''
+        Verifies that paths to all files in manifest are valid.
+
+        Args:
+            ignore_keys (list of keypaths): list of keypaths to ignore while checking
+
+        Returns:
+            True if all file paths are valid, otherwise False.
+        '''
+        return super().check_filepaths(
+            ignore_keys=ignore_keys,
+            logger=self.logger,
+            packages=self.__get_resolver_map(),
+            collection_dir=self.getcollectiondir(),
+            cwd=self.cwd)
 
 
 class LintProject(Project):
@@ -227,3 +321,12 @@ class ASICProject(Project):
         schema.insert("asic", "logiclib", Parameter("[str]"))
         schema.insert("asic", "macrolib", Parameter("[str]"))  # TODO: is this needed?
         schema.insert("asic", "arch", Parameter("str"))
+
+    def check_manifest(self):
+        if not super().check_manifest():
+            return False
+
+        # Assert logic lib is set
+        # Assert libs exists
+
+        return True

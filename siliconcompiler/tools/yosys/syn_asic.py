@@ -237,7 +237,13 @@ class ASICSynthesis(YosysTask):
         elif f"{self.design_topmodule()}.sv" in self.get_files_from_input_nodes():
             self.set("input", f"{self.design_topmodule()}.sv")
         else:
-            raise NotImplementedError
+            filekeys = self.get_fileset_file_keys("systemverilog") + self.get_fileset_file_keys("verilog")
+            if not filekeys:
+                self.add_required_key("library", self.design_name(), "fileset", self.schema().get("option", "fileset")[0], "file", "verilog")
+            else:
+                for key in filekeys:
+                    self.add_required_key(*key)
+                # TODO, mark required for define and params
 
         self.set("output", f"{self.design_topmodule()}.vg")
         self.add("output", f"{self.design_topmodule()}.netlist.json")
