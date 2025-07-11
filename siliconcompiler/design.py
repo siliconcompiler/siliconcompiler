@@ -329,18 +329,15 @@ class DesignSchema(NamedSchema, DependencySchema):
                 f'Unable to infer fileset and/or filetype for '
                 f'{filename} based on file extension.')
 
+        if not package:
+            package = self._get_active("package")
+
         # adding files to dictionary
-        if clobber:
-            params = self.set('fileset', fileset, 'file', filetype, filename)
-        else:
-            params = self.add('fileset', fileset, 'file', filetype, filename)
-
-        if package and params:
-            if not isinstance(params, (list, set, tuple)):
-                params = [params]
-
-            for param in params:
-                param.set(package, field="package")
+        with self.active(package=package):
+            if clobber:
+                params = self.set('fileset', fileset, 'file', filetype, filename)
+            else:
+                params = self.add('fileset', fileset, 'file', filetype, filename)
 
         return params
 
@@ -581,17 +578,14 @@ class DesignSchema(NamedSchema, DependencySchema):
         if value is None:
             raise ValueError(f"None is an illegal {option} value")
 
-        if list in typelist and not clobber:
-            params = self.add('fileset', fileset, option, value)
-        else:
-            params = self.set('fileset', fileset, option, value)
+        if not package:
+            package = self._get_active("package")
 
-        if package and params:
-            if not isinstance(params, (list, set, tuple)):
-                params = [params]
-
-            for param in params:
-                param.set(package, field="package")
+        with self.active(package=package):
+            if list in typelist and not clobber:
+                params = self.add('fileset', fileset, option, value)
+            else:
+                params = self.set('fileset', fileset, option, value)
 
         return params
 
@@ -627,11 +621,12 @@ class DesignSchema(NamedSchema, DependencySchema):
         if not fileset:
             raise ValueError("fileset cannot be an empty string")
 
+        orig_fileset = self.__fileset
         self.__fileset = fileset
         try:
             yield
         finally:
-            self.__fileset = None
+            self.__fileset = orig_fileset
 
 
 ###########################################################################
