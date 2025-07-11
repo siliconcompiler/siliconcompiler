@@ -4,7 +4,7 @@ import re
 import os.path
 
 from pathlib import Path
-from typing import List
+from typing import List, Union, Tuple, Dict
 
 from siliconcompiler import utils
 
@@ -255,6 +255,38 @@ class DesignSchema(NamedSchema, DependencySchema):
             raise ValueError("fileset value must be a string")
         return self.get('fileset', fileset, 'param', name)
 
+    def add_dependency_fileset(self, name: str, dependency_fileset: str, fileset: str = None):
+        """
+        Record a reference to an imported dependency's fileset.
+
+        Args:
+           name (str): Dependency name.
+           dependency_fileset (str): Dependency fileset
+           fileset (str): Fileset name.
+
+        """
+        if fileset is None:
+            fileset = self.__fileset
+
+        if not isinstance(fileset, str):
+            raise ValueError("fileset value must be a string")
+        return self.add("fileset", fileset, "depfileset", (name, dependency_fileset))
+
+    def get_dependency_fileset(self, fileset: str = None):
+        """
+        Returns list of dependency filesets.
+
+        Args:
+           fileset (str): Fileset name.
+
+        Returns:
+           list[str]: List of dependencies and filesets.
+        """
+        if fileset is None:
+            fileset = self.__fileset
+
+        return self.get("fileset", fileset, "depfileset")
+
     ###############################################
     def add_file(self,
                  filename: str,
@@ -377,7 +409,10 @@ class DesignSchema(NamedSchema, DependencySchema):
 
         return filelist
 
-    def __write_flist(self, filename: str, filesets: list):
+    def __write_flist(self,
+                      filename: str,
+                      filesets: List[str],
+                      depalias: Dict[str, Tuple[NamedSchema, str]]):
         written_cmd = set()
 
         with open(filename, "w") as f:
@@ -391,33 +426,29 @@ class DesignSchema(NamedSchema, DependencySchema):
             def write_header(header):
                 f.write(f"// {header}\n")
 
-            for lib in [self, *self.get_dep()]:
-                write_header(f"{lib.name()}")
-                for fileset in filesets:
-                    if not lib.valid('fileset', fileset):
-                        continue
+            for lib, fileset in self.get_fileset_mapping(filesets, depalias):
+                if lib.get('fileset', fileset, 'idir'):
+                    write_header(f"{lib.name()} / {fileset} / include directories")
+                    for idir in lib.find_files('fileset', fileset, 'idir'):
+                        write(f"+incdir+{idir}")
 
-                    if lib.get('fileset', fileset, 'idir'):
-                        write_header(f"{lib.name()} / {fileset} / include directories")
-                        for idir in lib.find_files('fileset', fileset, 'idir'):
-                            write(f"+incdir+{idir}")
+                if lib.get('fileset', fileset, 'define'):
+                    write_header(f"{lib.name()} / {fileset} / defines")
+                    for define in lib.get('fileset', fileset, 'define'):
+                        write(f"+define+{define}")
 
-                    if lib.get('fileset', fileset, 'define'):
-                        write_header(f"{lib.name()} / {fileset} / defines")
-                        for define in lib.get('fileset', fileset, 'define'):
-                            write(f"+define+{define}")
-
-                    for filetype in lib.getkeys('fileset', fileset, 'file'):
-                        if lib.get('fileset', fileset, 'file', filetype):
-                            write_header(f"{lib.name()} / {fileset} / {filetype} files")
-                            for file in lib.find_files('fileset', fileset, 'file', filetype):
-                                write(file)
+                for filetype in lib.getkeys('fileset', fileset, 'file'):
+                    if lib.get('fileset', fileset, 'file', filetype):
+                        write_header(f"{lib.name()} / {fileset} / {filetype} files")
+                        for file in lib.find_files('fileset', fileset, 'file', filetype):
+                            write(file)
 
     ###############################################
     def write_fileset(self,
                       filename: str,
                       fileset: str = None,
-                      fileformat: str = None) -> None:
+                      fileformat: str = None,
+                      depalias: Dict[str, Tuple[NamedSchema, str]] = None) -> None:
         """Exports filesets to a standard formatted text file.
 
         Currently supports Verilog `flist` format only.
@@ -428,6 +459,7 @@ class DesignSchema(NamedSchema, DependencySchema):
             filename (str or Path): Output file name.
             fileset (str or list[str]): Fileset(s) to export.
             fileformat (str, optional): Export format.
+            depalias (dict of schema objects): Map of aliased objects
         """
 
         if filename is None:
@@ -450,7 +482,7 @@ class DesignSchema(NamedSchema, DependencySchema):
             fileformat = formats[Path(filename).suffix.strip('.')]
 
         if fileformat == "flist":
-            self.__write_flist(filename, fileset)
+            self.__write_flist(filename, fileset, depalias)
         else:
             raise ValueError(f"{fileformat} is not supported")
 
@@ -628,6 +660,55 @@ class DesignSchema(NamedSchema, DependencySchema):
         finally:
             self.__fileset = orig_fileset
 
+    def get_fileset_mapping(self,
+                            filesets: Union[List[str], str],
+                            alias: Dict[str, Tuple[NamedSchema, str]] = None) -> \
+            List[Tuple[NamedSchema, str]]:
+        """
+        Computes the filesets this object required for a given set of filesets
+
+        Args:
+            filesets (list of str): List of filesets to evaluate
+            alias (dict of schema objects): Map of aliased objects
+
+        Returns:
+            List of tuples (dependency object, fileset)
+        """
+        if alias is None:
+            alias = {}
+
+        if isinstance(filesets, str):
+            # Ensure we have a list
+            filesets = [filesets]
+
+        mapping = []
+        for fileset in filesets:
+            if not self.valid("fileset", fileset):
+                raise ValueError(f"{fileset} is not defined in {self.name()}")
+
+            mapping.append((self, fileset))
+            for dep, depfileset in self.get("fileset", fileset, "depfileset"):
+                if (dep, depfileset) in alias:
+                    dep_obj, new_depfileset = alias[(dep, depfileset)]
+                    if dep_obj is None:
+                        continue
+
+                    if new_depfileset:
+                        depfileset = new_depfileset
+                else:
+                    dep_obj = self.get_dep(dep)
+                if not isinstance(dep_obj, DesignSchema):
+                    raise TypeError(f"{dep} must be a design object.")
+
+                mapping.extend(dep_obj.get_fileset_mapping(depfileset, alias))
+
+        # Cleanup
+        final_map = []
+        for cmap in mapping:
+            if cmap not in final_map:
+                final_map.append(cmap)
+        return final_map
+
 
 ###########################################################################
 # Schema
@@ -753,3 +834,13 @@ def schema_design(schema):
             data literals. The types of parameters and values supported is tightly
             coupled to tools being used. For example, in Verilog only integer
             literals (64'h4, 2'b0, 4) and strings are supported.""")))
+
+    schema.insert(
+        'fileset', fileset, 'depfileset',
+        Parameter(
+            '[(str,str)]',
+            scope=Scope.GLOBAL,
+            shorthelp="Design dependency fileset",
+            example=[
+                "api: chip.set('fileset', 'rtl, 'depfileset', ('lambdalib', 'rtl')"],
+            help=trim("""Sets the mapping for dependency filesets.""")))
