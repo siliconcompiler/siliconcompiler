@@ -800,21 +800,22 @@ class BaseSchema:
         finally:
             self.__active = orig_active
 
-    def _get_active(self, field):
+    def _get_active(self, field, defvalue=None):
         '''
         Get the value of a specific field.
 
         Args:
             field (str): if None, return the current active dictionary,
-                         otherwise the value, if the field is not present, None is returned.
+                         otherwise the value, if the field is not present, defvalue is returned.
+            defvalue (any): value to return if the field is not present.
         '''
         if self.__active is None:
-            return None
+            return defvalue
 
         if field is None:
             return self.__active.copy()
 
-        return self.__active.get(field, None)
+        return self.__active.get(field, defvalue)
 
     def __process_active(self, param, nodevalues):
         if not self.__active:
