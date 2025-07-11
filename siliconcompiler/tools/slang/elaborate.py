@@ -22,14 +22,14 @@ class Elaborate(SlangTask):
         return "elaborate"
 
     def _output_file(self):
-        if self.has_files("rtl", "systemverilog"):
+        if self.has_files("rtl", "systemverilog"):  # TODO
             return f"{self.design_topmodule()}.sv"
         return f"{self.design_topmodule()}.v"
 
     def setup(self):
         super().setup()
 
-        if not self.has_files("rtl", "verilog") and not self.has_files("rtl", "systemverilog"):
+        if not self.has_files("rtl", "verilog") and not self.has_files("rtl", "systemverilog"):  # TODO
             return "no files in [input,rtl,systemverilog] or [input,rtl,verilog]"
 
         self.set("stdout", "destination", "log")
