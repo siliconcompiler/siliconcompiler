@@ -300,8 +300,6 @@ class ASICSynthesis(YosysTask):
             fileset_map.extend(lib_obj.get_fileset_mapping("models.timing.nldm"))  # TODO
 
         lib_file_map = {}
-        # for libtype in ('logic', 'macro'):
-        libtype = "logic"
         for lib, fileset in fileset_map:
             lib_content = {}
             lib_map = {}
@@ -337,7 +335,7 @@ class ASICSynthesis(YosysTask):
                 output_file = os.path.join(
                     self.schema().getworkdir(*self.node()),
                     'inputs',
-                    f'sc_{libtype}_{lib.name()}_{file}.lib'
+                    f'sc_{lib.name()}_{file}.lib'
                 )
                 lib_file_map[lib_map[file]] = output_file
 
