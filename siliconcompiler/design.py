@@ -660,54 +660,10 @@ class DesignSchema(NamedSchema, DependencySchema):
         finally:
             self.__fileset = orig_fileset
 
-    def __get_fileset_mapping(self,
-                              filesets: Union[List[str], str],
-                              alias: Dict[str, Tuple[NamedSchema, str]]) -> List[Tuple[str, str]]:
-        """
-        Computes the filesets this object required for a given set of filesets
-
-        Args:
-            filesets (list of str): List of filesets to evaluate
-            alias (dict of schema objects): Map of aliased objects
-
-        Returns:
-            List of tuples (dependency object, fileset)
-        """
-        if isinstance(filesets, str):
-            # Ensure we have a list
-            filesets = [filesets]
-
-        mapping = []
-        for fileset in filesets:
-            if not self.valid("fileset", fileset):
-                raise ValueError(f"{fileset} is not defined in {self.name()}")
-
-            mapping.append((self, fileset))
-            for dep, depfileset in self.get("fileset", fileset, "depfileset"):
-                if (dep, depfileset) in alias:
-                    dep_obj, new_depfileset = alias[(dep, depfileset)]
-                    if dep_obj is None:
-                        continue
-
-                    if new_depfileset:
-                        depfileset = new_depfileset
-                else:
-                    dep_obj = self.get_dep(dep)
-                if not isinstance(dep_obj, DesignSchema):
-                    raise ValueError
-
-                mapping.extend(dep_obj.__get_fileset_mapping(depfileset, alias))
-
-        # Cleanup
-        final_map = []
-        for cmap in mapping:
-            if cmap not in final_map:
-                final_map.append(cmap)
-        return final_map
-
     def get_fileset_mapping(self,
                             filesets: Union[List[str], str],
-                            alias: Dict[str, Tuple[NamedSchema, str]] = None) -> List[Tuple[NamedSchema, str]]:
+                            alias: Dict[str, Tuple[NamedSchema, str]] = None) -> \
+            List[Tuple[NamedSchema, str]]:
         """
         Computes the filesets this object required for a given set of filesets
 
@@ -742,7 +698,7 @@ class DesignSchema(NamedSchema, DependencySchema):
                 else:
                     dep_obj = self.get_dep(dep)
                 if not isinstance(dep_obj, DesignSchema):
-                    raise ValueError
+                    raise TypeError(f"{dep} must be a design object.")
 
                 mapping.extend(dep_obj.get_fileset_mapping(depfileset, alias))
 
