@@ -5,6 +5,7 @@ import os.path
 from pathlib import Path
 import pytest
 from siliconcompiler.design import DesignSchema
+from siliconcompiler.schema import NamedSchema
 
 
 def test_design_keys():
@@ -483,6 +484,24 @@ def test_get_fileset_mapping():
 
     with pytest.raises(ValueError, match="constraint is not defined in heartbeat"):
         dut.get_fileset_mapping("constraint")
+
+
+def test_get_fileset_mapping_invalid():
+    class Heartbeat(DesignSchema):
+        def __init__(self):
+            super().__init__('heartbeat')
+
+            # dependencies
+            self.add_dep(NamedSchema("test"))
+            with self.active_fileset("rtl"):
+                self.add_file("heartbeat_increment.v")
+                self.add_dependency_fileset("test", "rtl.increment")
+
+            with self.active_fileset("testbench"):
+                self.add_file("tb.v")
+
+    with pytest.raises(TypeError, match="test must be a design object"):
+        Heartbeat().get_fileset_mapping("rtl")
 
 
 def test_get_fileset_mapping_duplicate():
