@@ -1660,6 +1660,16 @@ def test_active_empty():
     assert schema._get_active(None) is None
 
 
+def test_active_defvalue():
+    schema = BaseSchema()
+
+    assert schema._get_active(None, 1) == 1
+    with schema.active(fileset="rtl"):
+        assert schema._get_active("fileset") == "rtl"
+        assert schema._get_active("notvalid", "testbench") == "testbench"
+    assert schema._get_active(None) is None
+
+
 def test_active_package():
     schema = BaseSchema()
 
