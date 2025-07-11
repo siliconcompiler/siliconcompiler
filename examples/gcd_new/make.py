@@ -158,7 +158,7 @@ class GCDDesign(DesignSchema):
                 self.add_file("gcd_asap7.sdc")
 
 
-def main_lint():
+def lint():
     project = LintProject()
     project.add_dep(GCDDesign())
     project.add_dep(LintFlowgraph())
@@ -169,7 +169,7 @@ def main_lint():
     project.run(raise_exception=True)
 
 
-def main_asic():
+def asic():
     project = ASICProject()
     project.add_dep(GCDDesign())
     project.add_dep(Nangate45())
@@ -183,4 +183,4 @@ def main_asic():
 
 
 if __name__ == "__main__":
-    main_asic()
+    asic()
