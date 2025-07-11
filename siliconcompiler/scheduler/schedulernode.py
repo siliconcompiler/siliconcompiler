@@ -356,6 +356,7 @@ class SchedulerNode:
         return value_keys, path_keys
 
     def requires_run(self):
+        return True
         from siliconcompiler import Chip
 
         # Load previous manifest
