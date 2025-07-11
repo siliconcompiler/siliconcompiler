@@ -212,7 +212,7 @@ class Project(BaseSchema):
 
     def __getstate__(self):
         # Ensure a copy of the state is used
-        state = super().__getstate__().copy()
+        state = self.__dict__.copy()
 
         # Remove logger since it is not serializable
         del state["_Project__logger"]
