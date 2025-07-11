@@ -49,56 +49,63 @@ class SlangTask(FrontendTask):
 
         options.extend(['--threads', self.get("threads")])
 
-        # opts = get_frontend_options(chip,
-        #                             ['ydir',
-        #                             'idir',
-        #                             'vlib',
-        #                             'libext',
-        #                             'define',
-        #                             'param'])
+        filesets = self.schema().design.get_fileset_mapping(self.schema().get("option", "fileset"))
+        idirs = []
+        ydirs = []
+        defines = []
+        undefines = []
+        params = []
+        for lib, fileset in filesets:
+            idirs.extend(lib.find_files("fileset", fileset, "idir"))
+            ydirs.extend(lib.find_files("fileset", fileset, "libdir"))
+            defines.extend(lib.get("fileset", fileset, "define"))
+            undefines.extend(lib.get("fileset", fileset, "undefine"))
+            for param in lib.getkeys("fileset", fileset, "param"):
+                params.append((param, lib.get("fileset", fileset, "param", param)))
 
-        # if opts['libext']:
-        #     options.extend(['--libext', f'{",".join(opts["libext"])}'])
+        #####################
+        # Library directories
+        #####################
+        if ydirs:
+            options.extend(['-y', f'{",".join(ydirs)}'])
 
-        # #####################
-        # # Library directories
-        # #####################
-        # if opts['ydir']:
-        #     options.extend(['-y', f'{",".join(opts["ydir"])}'])
+        #####################
+        # Include paths
+        #####################
+        if idirs:
+            options.extend(['--include-directory', f'{",".join(idirs)}'])
 
-        # #####################
-        # # Library files
-        # #####################
-        # if opts['vlib']:
-        #     options.extend(['-libfile', f'{",".join(opts["vlib"])}'])
+        #######################
+        # Variable Definitions
+        #######################
+        for value in defines:
+            options.extend(['-D', value])
 
-        # #####################
-        # # Include paths
-        # #####################
-        # if opts['idir']:
-        #     options.extend(['--include-directory', f'{",".join(opts["idir"])}'])
-
-        # #######################
-        # # Variable Definitions
-        # #######################
-        # for value in opts['define']:
-        #     options.extend(['-D', value])
+        #######################
+        # Variable Undefinitions
+        #######################
+        for value in undefines:
+            options.extend(['-U', value])
 
         # #######################
         # # Command files
         # #######################
-        # cmdfiles = get_input_files(chip, 'input', 'cmdfile', 'f')
-        # if cmdfiles:
-        #     options.extend(['-F', f'{",".join(cmdfiles)}'])
+        cmdfiles = []
+        for lib, fileset in filesets:
+            for value in lib.find_files("fileset", fileset, "file", "commandfile"):
+                cmdfiles.append(value)
+        if cmdfiles:
+            options.extend(['-F', f'{",".join(cmdfiles)}'])
 
         #######################
         # Sources
         #######################
-        fileset = "rtl"
-        for value in self.get_files(fileset, "systemverilog"):
-            options.append(value)
-        for value in self.get_files(fileset, "verilog"):
-            options.append(value)
+        for lib, fileset in filesets:
+            for value in lib.find_files("fileset", fileset, "file", "systemverilog"):
+                options.append(value)
+        for lib, fileset in filesets:
+            for value in lib.find_files("fileset", fileset, "file", "verilog"):
+                options.append(value)
 
         #######################
         # Top Module
@@ -109,8 +116,8 @@ class SlangTask(FrontendTask):
         # Parameters (top module only)
         ###############################
         # Set up user-provided parameters to ensure we elaborate the correct modules
-        # for param, value in opts['param']:
-        #     options.extend(['-G', f'{param}={value}'])
+        for param, value in params:
+            options.extend(['-G', f'{param}={value}'])
 
         return options
 

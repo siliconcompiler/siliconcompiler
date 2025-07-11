@@ -89,7 +89,7 @@ class TaskScheduler:
                 "running": False,
                 "manifest": os.path.join(self.__chip.getworkdir(step=step, index=index),
                                          'outputs',
-                                         f'{self.__chip.design}.pkg.json'),
+                                         f'{self.__chip.design.name()}.pkg.json'),
                 "node": tasks[(step, index)]
             }
 

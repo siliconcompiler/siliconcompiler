@@ -30,7 +30,7 @@ proc sc_top { } {
     if { $top_module != {{ '{}' }} } {
         return $top_module
     }
-    return $design_name
+    return "<error>"
 }
 
 # Shortcut to get tool vars

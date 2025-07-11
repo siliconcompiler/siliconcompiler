@@ -28,7 +28,7 @@ class SchedulerNode:
         self.__index = index
         self.__chip = chip
 
-        self.__design = self.__chip.design
+        self.__design = self.__chip.design.name()
 
         self.__job = self.__chip.get('option', 'jobname')
         self.__record_user_info = self.__chip.get("option", "track",

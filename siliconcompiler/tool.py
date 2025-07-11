@@ -123,8 +123,13 @@ class TaskSchema(NamedSchema):
             self.__chip = chip
             self.__schema_full = chip
             self.__logger = chip.logger
-            self.__design_name = chip.design
-            self.__design_top = chip.top()
+            self.__design_name = self.__schema_full.get("option", "design")
+            self.__design_top = self.__schema_full.get(
+                "library",
+                self.__design_name,
+                "fileset",
+                self.__schema_full.get("option", "fileset")[0],
+                "topmodule")
             self.__cwd = chip.cwd
 
         self.__step = step
@@ -202,12 +207,6 @@ class TaskSchema(NamedSchema):
             logger
         '''
         return self.__logger
-
-    def design_name(self):
-        return self.__design_name
-
-    def design_topmodule(self):
-        return self.__design_top
 
     def schema(self, type=None):
         '''
@@ -1197,7 +1196,7 @@ class FrontendTask(TaskSchema):
         return self._parent(root=True)
 
     def __design(self):
-        return self.__root().get("library", self.__root().design, field="schema")
+        return self.__root().get("library", self.__root().design.name(), field="schema")
 
     def has_files(self, fileset: str, filetype: str):
         return bool(self.get_files(fileset, filetype, resolve=False))

@@ -76,10 +76,7 @@ class Project(BaseSchema):
 
     @property
     def design(self):
-        return self.get("option", "design")
-
-    def top(self):  # TODO remove
-        return self.get("option", "design")
+        return self.get("library", self.get("option", "design"), field="schema")
 
     @property
     def cwd(self):
@@ -178,7 +175,7 @@ class Project(BaseSchema):
 
     def getworkdir(self, step=None, index=None):
         dirlist = [self.__getbuilddir(),
-                   self.design,
+                   self.design.name(),
                    self.get('option', 'jobname')]
 
         # Return jobdirectory if no step defined
