@@ -25,11 +25,9 @@ class Project(BaseSchema):
     def __init__(self):
         super().__init__()
 
-        self.__design_name = None
-
         # Initialize schema
         schema = EditableSchema(self)
-        schema.insert("design", "default", DesignSchema())
+        schema.insert("library", "default", DesignSchema())
         schema.insert("flowgraph", "default", FlowgraphSchema())
         schema.insert("record", RecordSchema())
         schema.insert("metric", MetricSchema())
@@ -43,7 +41,7 @@ class Project(BaseSchema):
         schema.insert("arg", "index", Parameter("str"))
 
         schema.insert("option", "alias", Parameter("(str,str,str,str)"))
-        schema.insert("option", "fileset", Parameter("(str,str)"))
+        schema.insert("option", "fileset", Parameter("[str]"))
         schema.insert("option", "design", Parameter("str"))
 
         # Init logger
@@ -78,21 +76,10 @@ class Project(BaseSchema):
 
     @property
     def design(self):
-        if self.__design_name:
-            return self.__design_name
+        return self.get("option", "design")
 
-        if len(self.getkeys("design")) == 1:
-            self.__design_name = self.getkeys("design")[0]
-            return self.__design_name
-
-        raise ValueError("Unable to determine design name")
-
-    @design.setter
-    def set_design(self, design):
-        self.__design_name = design.name()
-
-    def top(self):
-        return self.get("design", self.design, field="schema").name()
+    def top(self):  # TODO remove
+        return self.get("option", "design")
 
     @property
     def cwd(self):
@@ -106,10 +93,7 @@ class Project(BaseSchema):
 
     def __import_design(self, design: DesignSchema):
         edit_schema = EditableSchema(self)
-        if not self.__design_name:
-            self.__design_name = design.name()
-
-        edit_schema.insert("design", design.name(), design, clobber=True)
+        edit_schema.insert("library", design.name(), design, clobber=True)
 
         for dep in design.get_dep(None):
             self.add_dep(dep)

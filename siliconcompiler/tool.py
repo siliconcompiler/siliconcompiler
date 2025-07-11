@@ -1197,7 +1197,7 @@ class FrontendTask(TaskSchema):
         return self._parent(root=True)
 
     def __design(self):
-        return self.__root().get("design", self.__root().design, field="schema")
+        return self.__root().get("library", self.__root().design, field="schema")
 
     def has_files(self, fileset: str, filetype: str):
         return bool(self.get_files(fileset, filetype, resolve=False))

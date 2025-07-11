@@ -21,7 +21,7 @@ set sc_refdir [sc_cfg_tool_task_get refdir]
 # DESIGNER's CHOICE
 ####################
 
-set sc_design "gcd"
+set sc_design [sc_top]
 set sc_flow [sc_cfg_get option flow]
 set sc_optmode [sc_cfg_get option optmode]
 
@@ -35,8 +35,8 @@ source "$sc_refdir/procs.tcl"
 # DESIGNER's CHOICE
 ####################
 
-set sc_logiclibs [list "nangate45"]
-set sc_macrolibs [list ]
+set sc_logiclibs [sc_cfg_get asic logiclib]
+set sc_macrolibs [sc_cfg_get asic macrolib]
 
 set sc_libraries [sc_cfg_tool_task_get var synthesis_libraries]
 set sc_macro_libraries [sc_cfg_tool_task_get var synthesis_libraries_macros]
@@ -432,7 +432,7 @@ if { [lindex [sc_cfg_tool_task_get var map_clockgates] 0] == "true" } {
 
 set dfflibmap_dont_use []
 foreach lib "$sc_logiclibs $sc_macrolibs" {
-    foreach cell [sc_cfg_get design $lib asic cells dontuse] {
+    foreach cell [sc_cfg_get library $lib asic cells dontuse] {
         lappend dfflibmap_dont_use -dont_use $cell
     }
 }
@@ -488,7 +488,7 @@ foreach lib_file $sc_libraries {
 set abc_dont_use []
 foreach lib "$sc_logiclibs $sc_macrolibs" {
     foreach group "dontuse hold clkbuf clkgate clklogic" {
-        foreach cell [sc_cfg_get design $lib asic cells $group] {
+        foreach cell [sc_cfg_get library $lib asic cells $group] {
             lappend abc_dont_use -dont_use $cell
         }
     }

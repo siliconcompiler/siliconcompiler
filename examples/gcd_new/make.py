@@ -162,8 +162,8 @@ def lint():
     project = LintProject()
     project.add_dep(GCDDesign())
     project.add_dep(LintFlowgraph())
-    project.write_manifest("test.json")
 
+    project.set("option", "design", "gcd")
     project.set("option", "flow", "lintflow")
 
     project.run(raise_exception=True)
@@ -174,8 +174,10 @@ def asic():
     project.add_dep(GCDDesign())
     project.add_dep(Nangate45())
     project.add_dep(SynthesisFlowgraph())
-    project.write_manifest("test.json")
 
+    project.set("option", "design", "gcd")
+    project.set("option", "fileset", ["rtl", "rtl.freepdk45"])
+    project.set("asic", "logiclib", "nangate45")
     project.set("option", "flow", "synflow")
     project.set("tool", "yosys", "task", "syn_asic", "var", "synthesis_corner", "typical")
 

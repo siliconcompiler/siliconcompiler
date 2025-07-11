@@ -244,7 +244,8 @@ class ASICSynthesis(YosysTask):
 
         self.add_required_key(*self._keypath, "var", "synthesis_corner")
 
-        mainlib = self.schema().get("design", "nangate45", field="schema")
+        mainlib_name = self.schema().get("asic", "logiclib")[0]
+        mainlib = self.schema().get("library", mainlib_name, field="schema")
 
         if self.get('var', 'abc_constraint_driver') is not None:
             self.add_required_key(*self._keypath, "var", "abc_constraint_driver")
@@ -293,11 +294,15 @@ class ASICSynthesis(YosysTask):
         #         return chip.find_files(*keypath, step=step, index=index)
         #     return []
 
+        fileset_map = []
+        for lib in self.schema().get("asic", "logiclib") + self.schema().get("asic", "macrolib"):
+            lib_obj = self.schema().get("library", lib, field="schema")
+            fileset_map.extend(lib_obj.get_fileset_mapping("models.timing.nldm"))  # TODO
+
         lib_file_map = {}
         # for libtype in ('logic', 'macro'):
         libtype = "logic"
-        for lib, fileset in [
-                (self.schema().get("design", "nangate45", field="schema"), "models.timing.nldm")]:
+        for lib, fileset in fileset_map:
             lib_content = {}
             lib_map = {}
             # Mark dont use
@@ -346,7 +351,9 @@ class ASICSynthesis(YosysTask):
         if abc_clock_period is not None:
             return abc_clock_period
 
-        abc_clock_multiplier = self.schema().get("design", "nangate45", field="schema").get("tool", "yosys", "abc_clock_multiplier")
+        mainlib = self.schema().get("asic", "logiclib")[0]
+
+        abc_clock_multiplier = self.schema().get("library", mainlib, field="schema").get("tool", "yosys", "abc_clock_multiplier")
 
         period = 1.0
         # _, period = get_clock_period(self,

@@ -24,11 +24,13 @@ proc sc_cfg_exists { args } {
 }
 
 proc sc_top { } {
-    set sc_entrypoint [sc_cfg_get option entrypoint]
-    if { $sc_entrypoint == {{ '{}' }} } {
-        return [sc_cfg_get design]
+    set design_name [sc_cfg_get option design]
+    set fileset [lindex [sc_cfg_get option fileset] 0]
+    set top_module [sc_cfg_get library $design_name fileset $fileset topmodule]
+    if { $top_module != {{ '{}' }} } {
+        return $top_module
     }
-    return $sc_entrypoint
+    return $design_name
 }
 
 # Shortcut to get tool vars
