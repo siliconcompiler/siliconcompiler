@@ -391,6 +391,22 @@ def test_options_active_fileset_overide_context():
         assert d.get_topmodule("notrtl") == 'mytop_other'
 
 
+def test_options_active_fileset_nested():
+    d = DesignSchema("test")
+
+    # create fileset context
+    with d.active_fileset("rtl"):
+        # top module
+        d.set_topmodule('mytop')
+        assert d.get_topmodule() == 'mytop'
+
+        with d.active_fileset("notrtl"):
+            d.set_topmodule('mytop_other')
+            assert d.get_topmodule() == 'mytop_other'
+        assert d.get_topmodule() == 'mytop'
+        assert d.get_topmodule("notrtl") == 'mytop_other'
+
+
 def test_options_active_fileset_ensure_no_leftovers():
     d = DesignSchema("test")
 
