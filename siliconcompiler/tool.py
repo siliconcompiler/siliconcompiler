@@ -116,6 +116,7 @@ class TaskSchema(NamedSchema):
         self.__logger = None
         self.__design_name = None
         self.__design_top = None
+        self.__design_top_global = None
         self.__cwd = None
         self.__relpath = relpath
         if chip:
@@ -124,6 +125,7 @@ class TaskSchema(NamedSchema):
             self.__logger = chip.logger
             self.__design_name = chip.design
             self.__design_top = chip.top(step=step, index=index)
+            self.__design_top_global = chip.top()
             self.__cwd = chip.cwd
 
         self.__step = step
@@ -695,7 +697,7 @@ class TaskSchema(NamedSchema):
             io_file = f"{self.__step}.{suffix}"
             io_log = True
         elif destination == 'output':
-            io_file = os.path.join('outputs', f"{self.__design_top}.{suffix}")
+            io_file = os.path.join('outputs', f"{self.__design_top_global}.{suffix}")
         elif destination == 'none':
             io_file = os.devnull
 
