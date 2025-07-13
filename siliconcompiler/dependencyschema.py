@@ -36,10 +36,10 @@ class DependencySchema(BaseSchema):
                 scope=Scope.GLOBAL,
                 shorthelp="Data directory path",
                 example=[
-                    "api: chip.set('package', "
-                    "'freepdk45_data', 'root', 'ssh://git@github.com/siliconcompiler/freepdk45/')"],
+                    "api: chip.set('datadir', "
+                    "'freepdk45_data', 'path', 'ssh://git@github.com/siliconcompiler/freepdk45/')"],
                 help=trim("""
-                    Data direcotory path, this points the location where the package data can be
+                    Data directory path, this points the location where the data can be
                     retrieved or accessed.
                     Allowed roots:
 
@@ -62,7 +62,7 @@ class DependencySchema(BaseSchema):
                 scope=Scope.GLOBAL,
                 shorthelp="Data directory reference tag/version",
                 example=[
-                    "api: chip.set('package', 'freepdk45_data', 'tag', '07ec4aa')"],
+                    "api: chip.set('datadir', 'freepdk45_data', 'tag', '07ec4aa')"],
                 help=trim("""
                     Data directory reference tag. The meaning of the this tag depends on the
                     context of the path.
@@ -296,13 +296,13 @@ class DependencySchema(BaseSchema):
         Returns absolute path to the data directory.
 
         Raises:
-            ValueError: is package is not found
+            ValueError: is data directory is not found
 
         Args:
-            name (str): name of the package to find.
+            name (str): name of the data directory to find.
 
         Returns:
-            Path to the package directory root.
+            Path to the directory root.
 
         Examples:
             >>> schema.find_datadir('siliconcompiler')
