@@ -65,6 +65,7 @@ def test_init(chip):
     assert node.topmodule == "dummy"
     assert node.chip is chip
     assert node.logger is chip.logger
+    assert node.jobname == "job0"
     assert node.is_replay is False
     assert isinstance(node.task, TaskSchema)
     assert node.jobworkdir == chip.getworkdir()
@@ -90,6 +91,7 @@ def test_init_different_top(chip):
     assert node.topmodule == "thistop"
     assert node.chip is chip
     assert node.logger is chip.logger
+    assert node.jobname == "job0"
     assert node.is_replay is False
     assert isinstance(node.task, TaskSchema)
     assert node.jobworkdir == chip.getworkdir()
@@ -114,6 +116,7 @@ def test_init_replay(chip):
     assert node.topmodule == "dummy"
     assert node.chip is chip
     assert node.logger is chip.logger
+    assert node.jobname == "job0"
     assert node.is_replay is True
     assert isinstance(node.task, TaskSchema)
     assert node.jobworkdir == chip.getworkdir()
@@ -138,6 +141,7 @@ def test_init_not_entry(chip):
     assert node.topmodule == "dummy"
     assert node.chip is chip
     assert node.logger is chip.logger
+    assert node.jobname == "job0"
     assert node.is_replay is False
     assert isinstance(node.task, TaskSchema)
     assert node.jobworkdir == chip.getworkdir()

@@ -115,6 +115,10 @@ class SchedulerNode:
         return self.__topmodule
 
     @property
+    def jobname(self):
+        return self.__job
+
+    @property
     def workdir(self):
         return self.__workdir
 
