@@ -61,9 +61,37 @@ def test_init(chip):
     assert node.has_error is False
     assert node.step == "stepone"
     assert node.index == "0"
-    assert node.design == "dummy"
+    assert node.name == "dummy"
+    assert node.topmodule == "dummy"
     assert node.chip is chip
     assert node.logger is chip.logger
+    assert node.jobname == "job0"
+    assert node.is_replay is False
+    assert isinstance(node.task, TaskSchema)
+    assert node.jobworkdir == chip.getworkdir()
+    assert node.workdir == os.path.join(node.jobworkdir, "stepone", "0")
+
+    # Check private fields
+    assert node._SchedulerNode__record_user_info is False
+    assert node._SchedulerNode__generate_test_case is True
+    assert node._SchedulerNode__hash is False
+    assert node._SchedulerNode__is_entry_node is True
+
+
+def test_init_different_top(chip):
+    chip.set("option", "entrypoint", "thistop", step="stepone")
+    node = SchedulerNode(chip, "stepone", "0")
+
+    assert node.is_local is True
+    assert node.is_builtin is False
+    assert node.has_error is False
+    assert node.step == "stepone"
+    assert node.index == "0"
+    assert node.name == "dummy"
+    assert node.topmodule == "thistop"
+    assert node.chip is chip
+    assert node.logger is chip.logger
+    assert node.jobname == "job0"
     assert node.is_replay is False
     assert isinstance(node.task, TaskSchema)
     assert node.jobworkdir == chip.getworkdir()
@@ -84,9 +112,11 @@ def test_init_replay(chip):
     assert node.has_error is False
     assert node.step == "stepone"
     assert node.index == "0"
-    assert node.design == "dummy"
+    assert node.name == "dummy"
+    assert node.topmodule == "dummy"
     assert node.chip is chip
     assert node.logger is chip.logger
+    assert node.jobname == "job0"
     assert node.is_replay is True
     assert isinstance(node.task, TaskSchema)
     assert node.jobworkdir == chip.getworkdir()
@@ -107,9 +137,11 @@ def test_init_not_entry(chip):
     assert node.has_error is False
     assert node.step == "steptwo"
     assert node.index == "0"
-    assert node.design == "dummy"
+    assert node.name == "dummy"
+    assert node.topmodule == "dummy"
     assert node.chip is chip
     assert node.logger is chip.logger
+    assert node.jobname == "job0"
     assert node.is_replay is False
     assert isinstance(node.task, TaskSchema)
     assert node.jobworkdir == chip.getworkdir()
@@ -142,13 +174,13 @@ def test_threads(chip):
 def test_get_manifest_output(chip):
     node = SchedulerNode(chip, "steptwo", "0")
     assert node.get_manifest() == os.path.join(
-        node.workdir, "outputs", f"{node.design}.pkg.json")
+        node.workdir, "outputs", f"{node.name}.pkg.json")
 
 
 def test_get_manifest_input(chip):
     node = SchedulerNode(chip, "steptwo", "0")
     assert node.get_manifest(input=True) == os.path.join(
-        node.workdir, "inputs", f"{node.design}.pkg.json")
+        node.workdir, "inputs", f"{node.name}.pkg.json")
 
 
 @pytest.mark.parametrize(

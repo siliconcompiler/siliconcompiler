@@ -21,7 +21,8 @@ from siliconcompiler.scheduler import send_messages
 class Scheduler:
     def __init__(self, chip):
         self.__chip = chip
-        self.__logger = self.__chip.logger
+        self.__logger = chip.logger
+        self.__name = chip.design
 
         flow = self.__chip.get("option", "flow")
         if not flow:
@@ -51,19 +52,9 @@ class Scheduler:
             to_steps=to_steps,
             prune_nodes=self.__chip.get('option', 'prune'))
 
-        self.__flow_runtime_no_prune = RuntimeFlowgraph(
-            self.__flow,
-            from_steps=from_steps,
-            to_steps=to_steps)
-
         self.__flow_load_runtime = RuntimeFlowgraph(
             self.__flow,
             to_steps=from_steps,
-            prune_nodes=prune_nodes)
-
-        self.__flow_something = RuntimeFlowgraph(
-            self.__flow,
-            from_steps=set([step for step, _ in self.__flow.get_entry_nodes()]),
             prune_nodes=prune_nodes)
 
         self.__record = self.__chip.get("record", field="schema")
@@ -103,7 +94,7 @@ class Scheduler:
         self.__chip.schema.record_history()
 
         # Record final manifest
-        filepath = os.path.join(self.__chip.getworkdir(), f"{self.__chip.design}.pkg.json")
+        filepath = os.path.join(self.__chip.getworkdir(), f"{self.__name}.pkg.json")
         self.__chip.write_manifest(filepath)
 
         send_messages.send(self.__chip, 'summary', None, None)
@@ -206,7 +197,7 @@ class Scheduler:
 
             manifest = os.path.join(self.__chip.getworkdir(step=step, index=index),
                                     'outputs',
-                                    f'{self.__chip.design}.pkg.json')
+                                    f'{self.__name}.pkg.json')
             if os.path.exists(manifest):
                 # ensure we setup these nodes again
                 try:

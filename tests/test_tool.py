@@ -118,7 +118,7 @@ def running_project():
                 self.get("tool", "builtin", "task", field="schema")).insert("nop", NOPTask())
             schema.insert("package", PackageSchema())
 
-        def top(self):
+        def top(self, **kwargs):
             return "designtop"
 
         def get_nop(self):
