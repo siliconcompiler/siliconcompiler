@@ -23,8 +23,6 @@ class DesignSchema(NamedSchema, DependencySchema):
 
         schema_design(self)
 
-        self.__fileset = None
-
     ############################################
     def set_topmodule(self,
                       value: str,
@@ -226,7 +224,7 @@ class DesignSchema(NamedSchema, DependencySchema):
         """
 
         if fileset is None:
-            fileset = self.__fileset
+            fileset = self._get_active("fileset")
 
         if not isinstance(fileset, str):
             raise ValueError("fileset key must be a string")
@@ -249,7 +247,7 @@ class DesignSchema(NamedSchema, DependencySchema):
             str: Parameter value
         """
         if fileset is None:
-            fileset = self.__fileset
+            fileset = self._get_active("fileset")
 
         if not isinstance(fileset, str):
             raise ValueError("fileset value must be a string")
@@ -294,7 +292,7 @@ class DesignSchema(NamedSchema, DependencySchema):
         """
 
         if fileset is None:
-            fileset = self.__fileset
+            fileset = self._get_active("fileset")
 
         # handle list inputs
         if isinstance(filename, (list, tuple)):
@@ -356,7 +354,7 @@ class DesignSchema(NamedSchema, DependencySchema):
         """
 
         if fileset is None:
-            fileset = self.__fileset
+            fileset = self._get_active("fileset")
 
         if not isinstance(fileset, list):
             fileset = [fileset]
@@ -434,7 +432,7 @@ class DesignSchema(NamedSchema, DependencySchema):
             raise ValueError("write_fileset() filename cannot be None")
 
         if fileset is None:
-            fileset = self.__fileset
+            fileset = self._get_active("fileset")
 
         if not isinstance(fileset, list):
             fileset = [fileset]
@@ -560,7 +558,7 @@ class DesignSchema(NamedSchema, DependencySchema):
         '''
 
         if fileset is None:
-            fileset = self.__fileset
+            fileset = self._get_active("fileset")
 
         # check for a legal fileset
         if not fileset or not isinstance(fileset, str):
@@ -593,7 +591,7 @@ class DesignSchema(NamedSchema, DependencySchema):
         '''Gets a parameter value from schema.
         '''
         if fileset is None:
-            fileset = self.__fileset
+            fileset = self._get_active("fileset")
 
         if not isinstance(fileset, str):
             raise ValueError("fileset key must be a string")
@@ -621,12 +619,8 @@ class DesignSchema(NamedSchema, DependencySchema):
         if not fileset:
             raise ValueError("fileset cannot be an empty string")
 
-        orig_fileset = self.__fileset
-        self.__fileset = fileset
-        try:
+        with self.active(fileset=fileset):
             yield
-        finally:
-            self.__fileset = orig_fileset
 
 
 ###########################################################################
