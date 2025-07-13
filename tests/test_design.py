@@ -535,7 +535,8 @@ def test_read_fileset_with_abspath(datadir):
     d.read_fileset("test.f", fileset="test")
 
     assert d.getkeys("package") == ('flist-new-test-test.f-0', )
-    assert d.get("package", "flist-new-test-test.f-0", "root") == os.path.abspath(datadir)
+    assert d.get("package", "flist-new-test-test.f-0", "root") == \
+        Path(os.path.abspath(datadir)).as_posix()
     assert d.get_file("test") == ['heartbeat.v', 'increment.v']
 
 
