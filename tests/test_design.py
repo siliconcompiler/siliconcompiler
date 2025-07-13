@@ -253,6 +253,51 @@ def test_options_param_with_fileset():
     assert d.get_param('N', 'rtl') == '2'
 
 
+def test_options_dep_fileset():
+    d = DesignSchema("test")
+    assert d.add_dep_fileset("obj0", "rtl", "rtl")
+    assert d.add_dep_fileset("obj0", "rtl.tech", "rtl")
+    assert d.add_dep_fileset("obj0", "testbench.this", "testbench")
+
+    assert d.get_dep_fileset("rtl") == [
+        ('obj0', 'rtl'),
+        ('obj0', 'rtl.tech')]
+    assert d.get_dep_fileset("testbench") == [('obj0', 'testbench.this')]
+
+
+def test_options_dep_fileset_with_fileset():
+    d = DesignSchema("test")
+
+    with d.active_fileset("rtl"):
+        assert d.add_dep_fileset("obj0", "rtl")
+        assert d.add_dep_fileset("obj0", "rtl.tech")
+        assert d.get_dep_fileset() == [
+            ('obj0', 'rtl'),
+            ('obj0', 'rtl.tech')]
+    with d.active_fileset("testbench"):
+        assert d.add_dep_fileset("obj0", "testbench.this")
+        assert d.get_dep_fileset() == [('obj0', 'testbench.this')]
+
+    assert d.get_dep_fileset("rtl") == [
+        ('obj0', 'rtl'),
+        ('obj0', 'rtl.tech')]
+    assert d.get_dep_fileset("testbench") == [('obj0', 'testbench.this')]
+
+
+def test_options_add_dep_fileset_invalid_fileset():
+    d = DesignSchema("test")
+
+    with pytest.raises(ValueError, match="fileset key must be a string"):
+        d.add_dep_fileset("obj0", "rtl", fileset=1)
+
+
+def test_options_get_dep_fileset_invalid_fileset():
+    d = DesignSchema("test")
+
+    with pytest.raises(ValueError, match="fileset key must be a string"):
+        d.get_dep_fileset(fileset=1)
+
+
 def test_add_file_single():
     d = DesignSchema("test")
 
@@ -739,18 +784,6 @@ def test_add_file_active_fileset():
         d.add_file('dut.v')
         assert d.get_file() == ['tb.v', 'dut.v']
     assert d.get('fileset', 'testbench', 'file', 'verilog') == ['tb.v', 'dut.v']
-
-
-def test_dep_fileset():
-    d = DesignSchema("test")
-    assert d.add_dep_fileset("obj0", "rtl", "rtl")
-    assert d.add_dep_fileset("obj0", "rtl.tech", "rtl")
-    assert d.add_dep_fileset("obj0", "testbench.this", "testbench")
-
-    assert d.get_dep_fileset("rtl") == [
-        ('obj0', 'rtl'),
-        ('obj0', 'rtl.tech')]
-    assert d.get_dep_fileset("testbench") == [('obj0', 'testbench.this')]
 
 
 def test_get_fileset_mapping():
