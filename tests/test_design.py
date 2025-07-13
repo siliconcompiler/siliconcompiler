@@ -10,7 +10,6 @@ from siliconcompiler.design import DesignSchema
 
 
 def test_design_keys():
-
     golden_keys = set([
         ('deps',),
         ('fileset', 'default', 'file', 'default'),
@@ -28,125 +27,224 @@ def test_design_keys():
     assert set(DesignSchema("test").allkeys()) == golden_keys
 
 
-def test_design_values():
+@pytest.mark.parametrize("arg,value", [
+    (("topmodule",), "mytop"),
+    (("file", "verilog"), ['one.v', 'two.v']),
+    (("idir",), ['/home/acme/incdir1', '/home/acme/incdir2']),
+    (("libdir",), ['/usr/lib']),
+    (("lib",), ['lib1', 'lib2']),
+    (("define",), ['CFG_TARGET=FPGA']),
+    (("undefine",), ['CFG_TARGET']),
+    (("param", "N"), "64"),
+])
+def test_design_values(arg, value):
+    design = DesignSchema("test")
+
+    assert design.set("fileset", "rtl", *arg, value)
+    assert design.get("fileset", "rtl", *arg) == value
+
+
+def test_options_topmodule():
     d = DesignSchema("test")
 
-    # top module
-    top = 'mytop'
-    assert d.set('fileset', 'rtl', 'topmodule', top)
-    assert d.get('fileset', 'rtl', 'topmodule') == top
+    assert d.set_topmodule('mytop', 'rtl')
+    assert d.get_topmodule('rtl') == 'mytop'
 
-    # files
-    files = ['one.v', 'two.v']
-    assert d.set('fileset', 'rtl', 'file', 'verilog', files)
-    assert d.get('fileset', 'rtl', 'file', 'verilog') == files
 
-    # idir
-    idirs = ['/home/acme/incdir1', '/home/acme/incdir2']
-    assert d.set('fileset', 'rtl', 'idir', idirs)
-    assert d.get('fileset', 'rtl', 'idir', ) == idirs
+def test_options_topmodule_with_fileset():
+    d = DesignSchema("test")
 
-    # libdirs
-    libdirs = ['/usr/lib']
-    assert d.set('fileset', 'hls', 'libdir', libdirs)
-    assert d.get('fileset', 'hls', 'libdir', ) == libdirs
+    with d.active_fileset("rtl"):
+        assert d.set_topmodule('mytop')
+        assert d.get_topmodule() == 'mytop'
+    assert d.get_topmodule('rtl') == 'mytop'
 
-    # libs
-    libs = ['lib1', 'lib2']
-    assert d.set('fileset', 'rtl', 'lib', libs)
-    assert d.get('fileset', 'rtl', 'lib', ) == libs
 
-    # define
-    defs = ['CFG_TARGET=FPGA']
-    assert d.set('fileset', 'rtl', 'define', defs)
-    assert d.get('fileset', 'rtl', 'define') == defs
+def test_options_idir():
+    d = DesignSchema("test")
 
-    # undefine
-    undefs = ['CFG_TARGET']
-    assert d.set('fileset', 'rtl', 'undefine', undefs)
-    assert d.get('fileset', 'rtl', 'undefine') == undefs
+    for item in ['/home/acme/incdir1', '/home/acme/incdir2']:
+        assert d.add_idir(item, 'rtl')
+    assert d.get_idir('rtl') == ['/home/acme/incdir1', '/home/acme/incdir2']
 
-    # param
-    val = '2'
-    assert d.set('fileset', 'rtl', 'param', 'N', val)
-    assert d.get('fileset', 'rtl', 'param', 'N') == val
+
+def test_options_idir_with_fileset():
+    d = DesignSchema("test")
+
+    with d.active_fileset("rtl"):
+        for item in ['/home/acme/incdir1', '/home/acme/incdir2']:
+            assert d.add_idir(item)
+        assert d.get_idir() == ['/home/acme/incdir1', '/home/acme/incdir2']
+    assert d.get_idir("rtl") == ['/home/acme/incdir1', '/home/acme/incdir2']
+
+
+def test_options_libdir():
+    d = DesignSchema("test")
+
+    for item in ['/usr/lib1', '/usr/lib2']:
+        assert d.add_libdir(item, 'rtl')
+    assert d.get_libdir('rtl') == ['/usr/lib1', '/usr/lib2']
+
+
+def test_options_libdir_with_fileset():
+    d = DesignSchema("test")
+
+    with d.active_fileset("rtl"):
+        for item in ['/usr/lib1', '/usr/lib2']:
+            assert d.add_libdir(item)
+        assert d.get_libdir() == ['/usr/lib1', '/usr/lib2']
+    assert d.get_libdir('rtl') == ['/usr/lib1', '/usr/lib2']
+
+
+def test_options_lib():
+    d = DesignSchema("test")
+
+    for item in ['lib1', 'lib2']:
+        assert d.add_lib(item, 'rtl')
+    assert d.get_lib('rtl') == ['lib1', 'lib2']
+
+
+def test_options_lib_with_fileset():
+    d = DesignSchema("test")
+
+    with d.active_fileset("rtl"):
+        for item in ['lib1', 'lib2']:
+            assert d.add_lib(item)
+        assert d.get_lib() == ['lib1', 'lib2']
+    assert d.get_lib('rtl') == ['lib1', 'lib2']
+
+
+def test_options_define():
+    d = DesignSchema("test")
+
+    for item in ['CFG_TARGET=FPGA', 'VERILATOR']:
+        assert d.add_define(item, 'rtl')
+    assert d.get_define('rtl') == ['CFG_TARGET=FPGA', 'VERILATOR']
+
+
+def test_options_define_with_fileset():
+    d = DesignSchema("test")
+
+    with d.active_fileset("rtl"):
+        for item in ['CFG_TARGET=FPGA', 'VERILATOR']:
+            assert d.add_define(item)
+        assert d.get_define() == ['CFG_TARGET=FPGA', 'VERILATOR']
+    assert d.get_define('rtl') == ['CFG_TARGET=FPGA', 'VERILATOR']
+
+
+def test_options_undefine():
+    d = DesignSchema("test")
+
+    for item in ['CFG_TARGET', 'CFG_SIM']:
+        assert d.add_undefine(item, 'rtl')
+    assert d.get_undefine('rtl') == ['CFG_TARGET', 'CFG_SIM']
+
+
+def test_options_undefine_with_fileset():
+    d = DesignSchema("test")
+
+    with d.active_fileset("rtl"):
+        for item in ['CFG_TARGET', 'CFG_SIM']:
+            assert d.add_undefine(item)
+        assert d.get_undefine() == ['CFG_TARGET', 'CFG_SIM']
+    assert d.get_undefine('rtl') == ['CFG_TARGET', 'CFG_SIM']
+
+
+def test_options_param():
+    d = DesignSchema("test")
+
+    assert d.set_param('N', '2', 'rtl')
+    assert d.get_param('N', 'rtl') == '2'
+
+
+def test_options_set_param_error_fileset():
+    with pytest.raises(ValueError, match="fileset key must be a string"):
+        DesignSchema("test").set_param('N', '2', 123)
+
+
+def test_options_set_param_error_param():
+    with pytest.raises(ValueError, match="param value must be a string"):
+        DesignSchema("test").set_param("N", 2, "rtl")
+
+
+def test_options_get_param_error_fileset():
+    with pytest.raises(ValueError, match="fileset key must be a string"):
+        DesignSchema("test").get_param('N', 123)
+
+
+def test_options_param_with_fileset():
+    d = DesignSchema("test")
+
+    with d.active_fileset("rtl"):
+        assert d.set_param('N', '2')
+        assert d.get_param('N') == '2'
+    assert d.get_param('N', 'rtl') == '2'
 
 
 def test_add_file():
     d = DesignSchema("test")
 
-    # explicit file add
-    fileset = 'rtl'
-    files = ['one.v', 'two.v']
-    d.add_file(files, fileset, filetype='verilog')
-    assert d.get('fileset', fileset, 'file', 'verilog') == files
-
-    # filetype mapping
-    fileset = 'testbench'
-    files = ['tb.v', 'dut.v']
-    d.add_file(files, fileset)
-    assert d.get('fileset', 'testbench', 'file', 'verilog') == files
+    assert d.add_file(['one.v', 'two.v'], 'rtl', filetype='verilog')
+    assert d.get('fileset', 'rtl', 'file', 'verilog') == ['one.v', 'two.v']
 
 
-def test_get_file():
+def test_add_file_with_fileset():
+    d = DesignSchema("test")
+
+    with d.active_fileset("rtl"):
+        assert d.add_file(['one.v', 'two.v'], filetype='verilog')
+    assert d.get('fileset', 'rtl', 'file', 'verilog') == ['one.v', 'two.v']
+
+
+def test_add_file_with_filetype():
+    d = DesignSchema("test")
+
+    assert d.add_file(['tb.v', 'dut.v'], 'testbench')
+    assert d.get('fileset', 'testbench', 'file', 'verilog') == ['tb.v', 'dut.v']
+
+
+def test_get_file_multiple_filesets():
     d = DesignSchema("test")
 
     d.add_file(['one.v'], 'rtl', filetype='verilog')
     d.add_file(['tb.v'], 'testbench')
     d.add_file(['one.vhdl'], 'rtl')
 
-    # get all files
-    assert d.get_file(fileset=['rtl', 'testbench']) == (['one.v'] +
-                                                        ['one.vhdl'] +
-                                                        ['tb.v'])
-    # get rtl only
-    assert d.get_file(fileset='rtl') == ['one.v'] + ['one.vhdl']
+    assert d.get_file(fileset=['rtl', 'testbench']) == [
+        'one.v', 'one.vhdl', 'tb.v'
+    ]
+
+
+def test_get_file_one_fileset():
+    d = DesignSchema("test")
+
+    d.add_file(['one.v'], 'rtl', filetype='verilog')
+    d.add_file(['tb.v'], 'testbench')
+    d.add_file(['one.vhdl'], 'rtl')
+
+    assert d.get_file(fileset='rtl') == ['one.v', 'one.vhdl']
+
+
+def test_get_file_filetype():
+    d = DesignSchema("test")
+
+    d.add_file(['one.v'], 'rtl', filetype='verilog')
+    d.add_file(['tb.v'], 'testbench')
+    d.add_file(['one.vhdl'], 'rtl')
 
     # get verilog rtl only
     assert d.get_file(fileset='rtl', filetype='verilog') == ['one.v']
 
 
-def test_options():
-
+def test_get_file_filetype_vhdl():
     d = DesignSchema("test")
 
-    # create fileset context
-    fileset = 'rtl'
+    d.add_file(['one.v'], 'rtl', filetype='verilog')
+    d.add_file(['tb.v'], 'testbench')
+    d.add_file(['one.vhdl'], 'rtl')
 
-    # top module
-    top = 'mytop'
-    d.set_topmodule(top, fileset)
-    assert d.get_topmodule(fileset) == top
-
-    # idir
-    idirs = ['/home/acme/incdir1', '/home/acme/incdir2']
-    for item in idirs:
-        d.add_idir(item, fileset)
-    assert d.get_idir(fileset) == idirs
-
-    # libdirs
-    libdirs = ['/usr/lib1', '/usr/lib2']
-    for item in libdirs:
-        d.add_libdir(item, fileset)
-    assert d.get_libdir(fileset) == libdirs
-
-    # libs
-    libs = ['lib1', 'lib2']
-    for item in libs:
-        d.add_lib(item, fileset)
-    assert d.get_lib(fileset) == libs
-
-    # define
-    defs = ['CFG_TARGET=FPGA', 'VERILATOR']
-    for item in defs:
-        d.add_define(item, fileset)
-    assert d.get_define(fileset) == defs
-
-    # undefine
-    undefs = ['CFG_TARGET', 'CFG_SIM']
-    for item in undefs:
-        d.add_undefine(item, fileset)
-    assert d.get_undefine(fileset) == undefs
+    # get verilog rtl only
+    assert d.get_file(fileset=['rtl', 'testbench'], filetype='vhdl') == ['one.vhdl']
 
 
 def test_errors():
@@ -182,18 +280,6 @@ def test_errors():
     # check valid extension
     with pytest.raises(ValueError, match="illegal file extension"):
         d.add_file("tmp.badex", fileset)
-
-
-def test_param():
-
-    d = DesignSchema("test")
-
-    name = 'N'
-    val = '2'
-    fileset = 'rtl'
-
-    d.set_param(name, val, fileset)
-    assert d.get_param(name, fileset) == val
 
 
 def test_add_dep():

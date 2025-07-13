@@ -250,7 +250,7 @@ class DesignSchema(NamedSchema, DependencySchema):
             fileset = self._get_active("fileset")
 
         if not isinstance(fileset, str):
-            raise ValueError("fileset value must be a string")
+            raise ValueError("fileset key must be a string")
         return self.get('fileset', fileset, 'param', name)
 
     ###############################################
@@ -296,13 +296,15 @@ class DesignSchema(NamedSchema, DependencySchema):
 
         # handle list inputs
         if isinstance(filename, (list, tuple)):
+            params = []
             for item in filename:
-                self.add_file(
-                    item,
-                    fileset=fileset,
-                    clobber=clobber,
-                    filetype=filetype)
-            return
+                params.extend(
+                    self.add_file(
+                        item,
+                        fileset=fileset,
+                        clobber=clobber,
+                        filetype=filetype))
+            return params
 
         if filename is None:
             raise ValueError("add_file cannot process None")
@@ -316,7 +318,7 @@ class DesignSchema(NamedSchema, DependencySchema):
             ext = utils.get_file_ext(filename)
             iomap = utils.get_default_iomap()
             if ext in iomap:
-                default_fileset, default_filetype = iomap[ext]
+                _, default_filetype = iomap[ext]
                 filetype = default_filetype
             else:
                 raise ValueError("illegal file extension")
@@ -333,11 +335,9 @@ class DesignSchema(NamedSchema, DependencySchema):
         # adding files to dictionary
         with self.active(package=package):
             if clobber:
-                params = self.set('fileset', fileset, 'file', filetype, filename)
+                return self.set('fileset', fileset, 'file', filetype, filename)
             else:
-                params = self.add('fileset', fileset, 'file', filetype, filename)
-
-        return params
+                return self.add('fileset', fileset, 'file', filetype, filename)
 
     ###############################################
     def get_file(self,
