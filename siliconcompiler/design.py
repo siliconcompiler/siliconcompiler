@@ -407,6 +407,14 @@ class DesignSchema(NamedSchema, DependencySchema):
                             for file in lib.find_files('fileset', fileset, 'file', filetype):
                                 write(file)
 
+    def __map_fileformat(self, path):
+        _, ext = os.path.splitext(path)
+
+        if ext == ".f":
+            return "flist"
+        else:
+            raise ValueError(f"Unable to determine filetype of: {path}")
+
     ###############################################
     def write_fileset(self,
                       filename: str,
@@ -439,12 +447,7 @@ class DesignSchema(NamedSchema, DependencySchema):
 
         # file extension lookup
         if not fileformat:
-            _, ext = os.path.splitext(filename)
-
-            if ext == ".f":
-                fileformat = "flist"
-            else:
-                raise ValueError(f"Unable to determine filetype of: {filename}")
+            fileformat = self.__map_fileformat(filename)
 
         if fileformat == "flist":
             self.__write_flist(filename, fileset)
@@ -523,7 +526,7 @@ class DesignSchema(NamedSchema, DependencySchema):
     ################################################
     def read_fileset(self,
                      filename: str,
-                     fileset: str,
+                     fileset: str = None,
                      fileformat=None) -> None:
         """Imports filesets from a standard formatted text file.
 
@@ -537,17 +540,18 @@ class DesignSchema(NamedSchema, DependencySchema):
         """
 
         if filename is None:
-            raise ValueError("read_fileset() filename cannot be None")
+            raise ValueError("filename cannot be None")
 
         if not fileformat:
-            formats = {}
-            formats['f'] = 'flist'
-            fileformat = formats[Path(filename).suffix.strip('.')]
+            fileformat = self.__map_fileformat(filename)
+
+        if fileset is None:
+            fileset = self._get_active("fileset")
 
         if fileformat == "flist":
             self.__read_flist(filename, fileset)
         else:
-            raise ValueError(f"{fileformat} is not supported")
+            raise ValueError(f"{fileformat} is not a supported filetype")
 
     ################################################
     # Helper Functions

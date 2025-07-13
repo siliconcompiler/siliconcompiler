@@ -424,6 +424,38 @@ def test_write_fileset(datadir):
     ]
 
 
+def test_write_fileset_using_fileformat(datadir):
+    d = DesignSchema("test")
+    d.cwd = os.path.dirname(datadir)
+
+    fileset = 'rtl'
+    d.add_file(['data/heartbeat.v', 'data/increment.v'], fileset)
+    d.add_define('ASIC', fileset)
+    d.add_idir('./data', fileset)
+    d.set_topmodule('heartbeat', fileset)
+
+    fileset = 'tb'
+    d.add_file('data/heartbeat_tb.v', fileset)
+    d.add_define('VERILATOR', fileset)
+
+    d.write_fileset(filename="heartbeat.cmd", fileset=['rtl', 'tb'], fileformat="flist")
+
+    assert Path("heartbeat.cmd").read_text().splitlines() == [
+        '// test',
+        '// test / rtl / include directories',
+        f'+incdir+{os.path.abspath(datadir)}',
+        '// test / rtl / defines',
+        '+define+ASIC',
+        '// test / rtl / verilog files',
+        f'{os.path.abspath(os.path.join(datadir, "heartbeat.v"))}',
+        f'{os.path.abspath(os.path.join(datadir, "increment.v"))}',
+        '// test / tb / defines',
+        '+define+VERILATOR',
+        '// test / tb / verilog files',
+        f'{os.path.abspath(os.path.join(datadir, "heartbeat_tb.v"))}',
+    ]
+
+
 def test_write_fileset_duplicate(datadir):
     d = DesignSchema("test")
     d.cwd = os.path.dirname(datadir)
@@ -492,6 +524,33 @@ def test_read_fileset(datadir):
     assert d.get_idir("rtl") == ["."]
     assert d.get_define("rtl") == ['ASIC']
     assert d.get_file("rtl") == ['heartbeat.v', 'increment.v']
+
+
+def test_read_fileset_with_fileset(datadir):
+    d = DesignSchema("test")
+
+    with d.active_fileset("rtl"):
+        d.read_fileset(os.path.join(datadir, "heartbeat.f"))
+    assert d.getkeys("package") == ('flist-test-rtl-heartbeat.f-0', )
+    assert d.get("package", "flist-test-rtl-heartbeat.f-0", "root") == os.path.abspath(datadir)
+    assert d.get_idir("rtl") == ["."]
+    assert d.get_define("rtl") == ['ASIC']
+    assert d.get_file("rtl") == ['heartbeat.v', 'increment.v']
+
+
+def test_read_fileset_no_filepath():
+    with pytest.raises(ValueError, match="filename cannot be None"):
+        DesignSchema("test").read_fileset(None)
+
+
+def test_read_fileset_invalid_filetype():
+    with pytest.raises(ValueError, match="Unable to determine filetype of: test.invalid"):
+        DesignSchema("test").read_fileset("test.invalid")
+
+
+def test_read_fileset_invalid_fileformat():
+    with pytest.raises(ValueError, match="invalid is not a supported filetype"):
+        DesignSchema("test").read_fileset("test.f", fileformat="invalid")
 
 
 def test_read_fileset_multiple_packages(datadir):
