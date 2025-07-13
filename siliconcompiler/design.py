@@ -3,7 +3,6 @@ import re
 
 import os.path
 
-from pathlib import Path
 from typing import List
 
 from siliconcompiler import utils
