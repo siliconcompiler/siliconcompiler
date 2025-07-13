@@ -496,7 +496,7 @@ class DesignSchema(NamedSchema, DependencySchema):
                     break
             if not found:
                 package_name = f"{package_root_name}-{len(packages)}"
-                self.register_package(package_name, path_dir)
+                self.register_datadir(package_name, path_dir)
                 packages[path_dir] = package_name
 
         def get_package(path):
