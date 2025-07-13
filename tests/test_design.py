@@ -526,6 +526,19 @@ def test_read_fileset(datadir):
     assert d.get_file("rtl") == ['heartbeat.v', 'increment.v']
 
 
+def test_read_fileset_with_abspath(datadir):
+    d = DesignSchema("test")
+    d.add_file([datadir + '/heartbeat.v', datadir + '/increment.v'], "rtl")
+    d.write_fileset("test.f", fileset="rtl")
+
+    d = DesignSchema("new")
+    d.read_fileset("test.f", fileset="test")
+
+    assert d.getkeys("package") == ('flist-new-test-test.f-0', )
+    assert d.get("package", "flist-new-test-test.f-0", "root") == os.path.abspath(datadir)
+    assert d.get_file("test") == ['heartbeat.v', 'increment.v']
+
+
 def test_read_fileset_with_fileset(datadir):
     d = DesignSchema("test")
 
