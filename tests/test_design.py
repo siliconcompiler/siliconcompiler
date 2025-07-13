@@ -76,13 +76,17 @@ def test_options_topmodule_value_error():
         d.set_topmodule(4, "rtl")
 
 
+def test_options_topmodule_with_none():
+    with pytest.raises(ValueError, match="value must be of type string"):
+        DesignSchema("test").set_topmodule(None, 'rtl')
+
+
 @pytest.mark.parametrize("name", [
     "0abc", "abc$", ""
 ])
 def test_options_topmodule_invalid_name(name):
     with pytest.raises(ValueError, match=re.escape(f"{name} is not a legal topmodule string")):
         DesignSchema("test").set_topmodule(name, "rtl")
-
 
 
 def test_options_idir():
@@ -101,6 +105,11 @@ def test_options_idir_with_fileset():
             assert d.add_idir(item)
         assert d.get_idir() == ['/home/acme/incdir1', '/home/acme/incdir2']
     assert d.get_idir("rtl") == ['/home/acme/incdir1', '/home/acme/incdir2']
+
+
+def test_options_idir_with_none():
+    with pytest.raises(ValueError, match="value must be of type string"):
+        DesignSchema("test").add_idir(None, 'rtl')
 
 
 def test_options_idir_fileset_error():
@@ -127,6 +136,11 @@ def test_options_libdir():
     assert d.get_libdir('rtl') == ['/usr/lib1', '/usr/lib2']
 
 
+def test_options_libdir_with_none():
+    with pytest.raises(ValueError, match="value must be of type string"):
+        DesignSchema("test").add_libdir(None, 'rtl')
+
+
 def test_options_libdir_with_fileset():
     d = DesignSchema("test")
 
@@ -143,6 +157,11 @@ def test_options_lib():
     for item in ['lib1', 'lib2']:
         assert d.add_lib(item, 'rtl')
     assert d.get_lib('rtl') == ['lib1', 'lib2']
+
+
+def test_options_lib_with_none():
+    with pytest.raises(ValueError, match="value must be of type string"):
+        DesignSchema("test").add_lib(None, 'rtl')
 
 
 def test_options_lib_with_fileset():
@@ -163,6 +182,11 @@ def test_options_define():
     assert d.get_define('rtl') == ['CFG_TARGET=FPGA', 'VERILATOR']
 
 
+def test_options_define_with_none():
+    with pytest.raises(ValueError, match="value must be of type string"):
+        DesignSchema("test").add_define(None, 'rtl')
+
+
 def test_options_define_with_fileset():
     d = DesignSchema("test")
 
@@ -179,6 +203,11 @@ def test_options_undefine():
     for item in ['CFG_TARGET', 'CFG_SIM']:
         assert d.add_undefine(item, 'rtl')
     assert d.get_undefine('rtl') == ['CFG_TARGET', 'CFG_SIM']
+
+
+def test_options_undefine_with_none():
+    with pytest.raises(ValueError, match="value must be of type string"):
+        DesignSchema("test").add_undefine(None, 'rtl')
 
 
 def test_options_undefine_with_fileset():
@@ -343,6 +372,26 @@ def test_add_dep():
     assert lib.get_file(fileset) == ['mylib.v']
 
 
+def test_write_fileset_no_filepath():
+    with pytest.raises(ValueError, match="filename cannot be None"):
+        DesignSchema("test").write_fileset(None)
+
+
+def test_write_fileset_invalid_fileset():
+    with pytest.raises(ValueError, match="fileset key must be a string"):
+        DesignSchema("test").write_fileset("test.f", fileset=[None])
+
+
+def test_write_fileset_invalid_filetype():
+    with pytest.raises(ValueError, match="Unable to determine filetype of: test.invalid"):
+        DesignSchema("test").write_fileset("test.invalid", fileset="rtl")
+
+
+def test_write_fileset_invalid_fileformat():
+    with pytest.raises(ValueError, match="invalid is not a supported filetype"):
+        DesignSchema("test").write_fileset("test.f", fileset="rtl", fileformat="invalid")
+
+
 def test_write_fileset(datadir):
     d = DesignSchema("test")
     d.cwd = os.path.dirname(datadir)
@@ -406,6 +455,31 @@ def test_write_fileset_duplicate(datadir):
         '// +define+VERILATOR',
         '// test / tb / verilog files',
         f'{os.path.abspath(os.path.join(datadir, "heartbeat_tb.v"))}',
+    ]
+
+
+def test_write_fileset_with_fileset(datadir):
+    d = DesignSchema("test")
+    d.cwd = os.path.dirname(datadir)
+
+    fileset = 'rtl'
+    d.add_file(['data/heartbeat.v', 'data/increment.v'], fileset)
+    d.add_define('ASIC', fileset)
+    d.add_idir('./data', fileset)
+    d.set_topmodule('heartbeat', fileset)
+
+    with d.active_fileset("rtl"):
+        d.write_fileset(filename="heartbeat.f")
+
+    assert Path("heartbeat.f").read_text().splitlines() == [
+        '// test',
+        '// test / rtl / include directories',
+        f'+incdir+{os.path.abspath(datadir)}',
+        '// test / rtl / defines',
+        '+define+ASIC',
+        '// test / rtl / verilog files',
+        f'{os.path.abspath(os.path.join(datadir, "heartbeat.v"))}',
+        f'{os.path.abspath(os.path.join(datadir, "increment.v"))}'
     ]
 
 

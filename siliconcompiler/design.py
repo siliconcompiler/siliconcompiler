@@ -425,7 +425,7 @@ class DesignSchema(NamedSchema, DependencySchema):
         """
 
         if filename is None:
-            raise ValueError("write_fileset() filename cannot be None")
+            raise ValueError("filename cannot be None")
 
         if fileset is None:
             fileset = self._get_active("fileset")
@@ -439,14 +439,17 @@ class DesignSchema(NamedSchema, DependencySchema):
 
         # file extension lookup
         if not fileformat:
-            formats = {}
-            formats['f'] = 'flist'
-            fileformat = formats[Path(filename).suffix.strip('.')]
+            _, ext = os.path.splitext(filename)
+
+            if ext == ".f":
+                fileformat = "flist"
+            else:
+                raise ValueError(f"Unable to determine filetype of: {filename}")
 
         if fileformat == "flist":
             self.__write_flist(filename, fileset)
         else:
-            raise ValueError(f"{fileformat} is not supported")
+            raise ValueError(f"{fileformat} is not a supported filetype")
 
     def __read_flist(self, filename: str, fileset: str):
         # Extract information
