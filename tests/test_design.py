@@ -1,9 +1,11 @@
+import pytest
 import re
 import shutil
 
 import os.path
+
 from pathlib import Path
-import pytest
+
 from siliconcompiler.design import DesignSchema
 
 
