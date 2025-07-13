@@ -106,16 +106,16 @@ def test_get_file():
     assert d.get_file(fileset='rtl', filetype='verilog') == ['one.v']
 
 
-def test_dependency_fileset():
+def test_dep_fileset():
     d = DesignSchema("test")
-    assert d.add_dependency_fileset("obj0", "rtl", "rtl")
-    assert d.add_dependency_fileset("obj0", "rtl.tech", "rtl")
-    assert d.add_dependency_fileset("obj0", "testbench.this", "testbench")
+    assert d.add_dep_fileset("obj0", "rtl", "rtl")
+    assert d.add_dep_fileset("obj0", "rtl.tech", "rtl")
+    assert d.add_dep_fileset("obj0", "testbench.this", "testbench")
 
-    assert d.get_dependency_fileset("rtl") == [
+    assert d.get_dep_fileset("rtl") == [
         ('obj0', 'rtl'),
         ('obj0', 'rtl.tech')]
-    assert d.get_dependency_fileset("testbench") == [('obj0', 'testbench.this')]
+    assert d.get_dep_fileset("testbench") == [('obj0', 'testbench.this')]
 
 
 def test_options():
@@ -321,7 +321,8 @@ def test_heartbeat_example(datadir):
 
             # dependencies
             self.add_dep(Increment())
-            self.add_dependency_fileset("increment", "rtl", "rtl")
+            with self.active_fileset("rtl"):
+                self.add_dep_fileset("increment", "rtl")
 
     dut = Heartbeat()
     assert dut.get("deps") == ["increment"]
@@ -465,7 +466,7 @@ def test_get_fileset_mapping():
             self.add_dep(incr_object)
             with self.active_fileset("rtl"):
                 self.add_file("heartbeat_increment.v")
-                self.add_dependency_fileset("increment", "rtl.increment")
+                self.add_dep_fileset("increment", "rtl.increment")
 
             with self.active_fileset("testbench"):
                 self.add_file("tb.v")
@@ -495,7 +496,7 @@ def test_get_fileset_mapping_invalid():
             self.add_dep(NamedSchema("test"))
             with self.active_fileset("rtl"):
                 self.add_file("heartbeat_increment.v")
-                self.add_dependency_fileset("test", "rtl.increment")
+                self.add_dep_fileset("test", "rtl.increment")
 
             with self.active_fileset("testbench"):
                 self.add_file("tb.v")
@@ -522,11 +523,11 @@ def test_get_fileset_mapping_duplicate():
             self.add_dep(incr_object)
             with self.active_fileset("rtl"):
                 self.add_file("heartbeat_increment.v")
-                self.add_dependency_fileset("increment", "rtl.increment")
+                self.add_dep_fileset("increment", "rtl.increment")
 
             with self.active_fileset("testbench"):
                 self.add_file("tb.v")
-                self.add_dependency_fileset("increment", "rtl.increment")
+                self.add_dep_fileset("increment", "rtl.increment")
 
     dut = Heartbeat()
     assert dut.get_fileset_mapping(["rtl", "testbench"]) == [
@@ -563,11 +564,11 @@ def test_get_fileset_mapping_alias():
             self.add_dep(incr_object)
             with self.active_fileset("rtl"):
                 self.add_file("heartbeat_increment.v")
-                self.add_dependency_fileset("increment", "rtl.increment")
+                self.add_dep_fileset("increment", "rtl.increment")
 
             with self.active_fileset("testbench"):
                 self.add_file("tb.v")
-                self.add_dependency_fileset("increment", "rtl.increment")
+                self.add_dep_fileset("increment", "rtl.increment")
 
     dut = Heartbeat()
     assert dut.get_fileset_mapping(["rtl", "testbench"]) == [
@@ -630,11 +631,11 @@ def test_write_fileset_alias(datadir):
             self.add_dep(incr_object)
             with self.active_fileset("rtl"):
                 self.add_file(datadir / "heartbeat_increment.v")
-                self.add_dependency_fileset("increment", "rtl.increment")
+                self.add_dep_fileset("increment", "rtl.increment")
 
             with self.active_fileset("testbench"):
                 self.add_file(datadir / "heartbeat_tb.v")
-                self.add_dependency_fileset("increment", "rtl.increment")
+                self.add_dep_fileset("increment", "rtl.increment")
 
     dut = Heartbeat()
     alias = IncrementAlias()
