@@ -26,7 +26,7 @@ class DependencySchema(BaseSchema):
                 '[str]',
                 scope=Scope.GLOBAL,
                 lock=True,
-                shorthelp="List of package dependencies",
+                shorthelp="List of object dependencies",
                 help="List of named object dependencies included via add_dep()."))
 
         schema.insert(
