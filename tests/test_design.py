@@ -60,6 +60,31 @@ def test_options_topmodule_with_fileset():
     assert d.get_topmodule('rtl') == 'mytop'
 
 
+def test_options_topmodule_fileset_error():
+    d = DesignSchema("test")
+
+    with pytest.raises(ValueError, match="fileset key must be a string"):
+        d.set_topmodule('mytop', 2.3)
+    with pytest.raises(ValueError, match="fileset key must be a string"):
+        d.get_topmodule(2.3)
+
+
+def test_options_topmodule_value_error():
+    d = DesignSchema("test")
+
+    with pytest.raises(ValueError, match="value must be of type string"):
+        d.set_topmodule(4, "rtl")
+
+
+@pytest.mark.parametrize("name", [
+    "0abc", "abc$", ""
+])
+def test_options_topmodule_invalid_name(name):
+    with pytest.raises(ValueError, match=re.escape(f"{name} is not a legal topmodule string")):
+        DesignSchema("test").set_topmodule(name, "rtl")
+
+
+
 def test_options_idir():
     d = DesignSchema("test")
 
@@ -76,6 +101,22 @@ def test_options_idir_with_fileset():
             assert d.add_idir(item)
         assert d.get_idir() == ['/home/acme/incdir1', '/home/acme/incdir2']
     assert d.get_idir("rtl") == ['/home/acme/incdir1', '/home/acme/incdir2']
+
+
+def test_options_idir_fileset_error():
+    d = DesignSchema("test")
+
+    with pytest.raises(ValueError, match="fileset key must be a string"):
+        d.add_idir('mytop', 2.3)
+    with pytest.raises(ValueError, match="fileset key must be a string"):
+        d.get_idir(2.3)
+
+
+def test_options_idir_value_error():
+    d = DesignSchema("test")
+
+    with pytest.raises(ValueError, match="value must be of type string"):
+        d.add_idir(4, "rtl")
 
 
 def test_options_libdir():
@@ -181,6 +222,30 @@ def test_options_param_with_fileset():
     assert d.get_param('N', 'rtl') == '2'
 
 
+def test_add_file_single():
+    d = DesignSchema("test")
+
+    assert d.add_file('one.v', 'rtl', filetype='verilog')
+    assert d.add_file('two.v', 'rtl', filetype='verilog')
+    assert d.get('fileset', 'rtl', 'file', 'verilog') == ['one.v', 'two.v']
+
+
+def test_add_file_none():
+    d = DesignSchema("test")
+
+    with pytest.raises(ValueError, match="add_file cannot process None"):
+        d.add_file(None, "rtl")
+
+
+def test_add_file_clobber():
+    d = DesignSchema("test")
+
+    assert d.add_file('one.v', 'rtl', filetype='verilog')
+    assert d.get('fileset', 'rtl', 'file', 'verilog') == ['one.v']
+    assert d.add_file('two.v', 'rtl', filetype='verilog', clobber=True)
+    assert d.get('fileset', 'rtl', 'file', 'verilog') == ['two.v']
+
+
 def test_add_file():
     d = DesignSchema("test")
 
@@ -201,6 +266,20 @@ def test_add_file_with_filetype():
 
     assert d.add_file(['tb.v', 'dut.v'], 'testbench')
     assert d.get('fileset', 'testbench', 'file', 'verilog') == ['tb.v', 'dut.v']
+
+
+def test_add_file_invalid_filetype():
+    d = DesignSchema("test")
+
+    with pytest.raises(ValueError, match="Unrecognized file extension: ver"):
+        d.add_file('tb.ver', 'testbench')
+
+
+def test_add_file_invalid_fileset():
+    d = DesignSchema("test")
+
+    with pytest.raises(ValueError, match="fileset key must be a string"):
+        d.add_file('tb.ver', 3)
 
 
 def test_get_file_multiple_filesets():
@@ -247,39 +326,9 @@ def test_get_file_filetype_vhdl():
     assert d.get_file(fileset=['rtl', 'testbench'], filetype='vhdl') == ['one.vhdl']
 
 
-def test_errors():
-
-    d = DesignSchema("test")
-
-    fileset = 'rtl'
-
-    # check invalid fileset types
-    dummy = 'mytop'
-    for item in [None, [], (0, 1), 1.1]:
-        with pytest.raises(ValueError, match="fileset key must be a string"):
-            d.set_topmodule(dummy, item)
-        with pytest.raises(ValueError, match="fileset key must be a string"):
-            d.get_topmodule(item)
-
-    # checking general types
-    for value in [None, (0, 1), 1.1]:
-        with pytest.raises(ValueError, match="value must be of type string"):
-            d.add_libdir(value, fileset)
-        with pytest.raises(ValueError, match="value must be of type string"):
-            d.set_topmodule(value, fileset)
-
-    # check valid topmodule strings
-    for value in ["0abc", "abc$", ""]:
-        with pytest.raises(ValueError, match=re.escape(f"{value} is not a legal topmodule string")):
-            d.set_topmodule(value, fileset)
-
-    # check valid filename
-    with pytest.raises(ValueError, match="add_file cannot process None"):
-        d.add_file(None, fileset)
-
-    # check valid extension
-    with pytest.raises(ValueError, match="illegal file extension"):
-        d.add_file("tmp.badex", fileset)
+def test_get_file_one_invalid_fileset():
+    with pytest.raises(ValueError, match="fileset key must be a string"):
+        DesignSchema("test").get_file(fileset=4)
 
 
 def test_add_dep():
@@ -321,6 +370,40 @@ def test_write_fileset(datadir):
         f'{os.path.abspath(os.path.join(datadir, "increment.v"))}',
         '// test / tb / defines',
         '+define+VERILATOR',
+        '// test / tb / verilog files',
+        f'{os.path.abspath(os.path.join(datadir, "heartbeat_tb.v"))}',
+    ]
+
+
+def test_write_fileset_duplicate(datadir):
+    d = DesignSchema("test")
+    d.cwd = os.path.dirname(datadir)
+
+    fileset = 'rtl'
+    d.add_file(['data/heartbeat.v', 'data/increment.v'], fileset)
+    d.add_define('ASIC', fileset)
+    d.add_define('VERILATOR', fileset)
+    d.add_idir('./data', fileset)
+    d.set_topmodule('heartbeat', fileset)
+
+    fileset = 'tb'
+    d.add_file('data/heartbeat_tb.v', fileset)
+    d.add_define('VERILATOR', fileset)
+
+    d.write_fileset(filename="heartbeat.f", fileset=['rtl', 'tb'])
+
+    assert Path("heartbeat.f").read_text().splitlines() == [
+        '// test',
+        '// test / rtl / include directories',
+        f'+incdir+{os.path.abspath(datadir)}',
+        '// test / rtl / defines',
+        '+define+ASIC',
+        '+define+VERILATOR',
+        '// test / rtl / verilog files',
+        f'{os.path.abspath(os.path.join(datadir, "heartbeat.v"))}',
+        f'{os.path.abspath(os.path.join(datadir, "increment.v"))}',
+        '// test / tb / defines',
+        '// +define+VERILATOR',
         '// test / tb / verilog files',
         f'{os.path.abspath(os.path.join(datadir, "heartbeat_tb.v"))}',
     ]

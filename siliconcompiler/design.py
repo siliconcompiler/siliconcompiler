@@ -294,6 +294,9 @@ class DesignSchema(NamedSchema, DependencySchema):
         if fileset is None:
             fileset = self._get_active("fileset")
 
+        if not isinstance(fileset, str):
+            raise ValueError("fileset key must be a string")
+
         # handle list inputs
         if isinstance(filename, (list, tuple)):
             params = []
@@ -313,7 +316,6 @@ class DesignSchema(NamedSchema, DependencySchema):
         filename = str(filename)
 
         # map extension to default filetype/fileset
-
         if not filetype:
             ext = utils.get_file_ext(filename)
             iomap = utils.get_default_iomap()
@@ -321,13 +323,7 @@ class DesignSchema(NamedSchema, DependencySchema):
                 _, default_filetype = iomap[ext]
                 filetype = default_filetype
             else:
-                raise ValueError("illegal file extension")
-
-        # final error checking
-        if not fileset or not filetype:
-            raise ValueError(
-                f'Unable to infer fileset and/or filetype for '
-                f'{filename} based on file extension.')
+                raise ValueError(f"Unrecognized file extension: {ext}")
 
         if not package:
             package = self._get_active("package")
@@ -363,15 +359,15 @@ class DesignSchema(NamedSchema, DependencySchema):
             filetype = [filetype]
 
         filelist = []
-        for i in fileset:
-            if not isinstance(i, str):
+        for fs in fileset:
+            if not isinstance(fs, str):
                 raise ValueError("fileset key must be a string")
             # handle scalar+list in argument
             if not filetype:
-                filetype = list(self.getkeys('fileset', i, 'file'))
+                filetype = list(self.getkeys('fileset', fs, 'file'))
             # grab the files
             for j in filetype:
-                filelist.extend(self.get('fileset', i, 'file', j))
+                filelist.extend(self.get('fileset', fs, 'file', j))
 
         return filelist
 
