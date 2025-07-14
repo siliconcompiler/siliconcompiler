@@ -14,7 +14,7 @@ from unittest.mock import patch
 
 from siliconcompiler import Chip, Flow, Schema
 from siliconcompiler import NodeStatus
-from siliconcompiler.tool import TaskSchema
+from siliconcompiler import TaskSchema
 from siliconcompiler.tools.builtin import nop, join
 from scheduler.tools.echo import echo
 
