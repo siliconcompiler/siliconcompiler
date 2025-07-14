@@ -372,7 +372,7 @@ class DesignSchema(NamedSchema, DependencySchema):
             datadir = self._get_active("package")
 
         # adding files to dictionary
-        with self.active(datadir=datadir):
+        with self.active_datadir(datadir):
             if clobber:
                 return self.set('fileset', fileset, 'file', filetype, filename)
             else:
@@ -625,7 +625,7 @@ class DesignSchema(NamedSchema, DependencySchema):
         if not datadir:
             datadir = self._get_active("package")
 
-        with self.active(datadir=datadir):
+        with self.active_datadir(datadir):
             if list in typelist and not clobber:
                 params = self.add('fileset', fileset, option, value)
             else:
@@ -665,7 +665,7 @@ class DesignSchema(NamedSchema, DependencySchema):
         if not fileset:
             raise ValueError("fileset cannot be an empty string")
 
-        with self.active(fileset=fileset):
+        with self._active(fileset=fileset):
             yield
 
     def get_fileset(self,
@@ -812,8 +812,7 @@ def schema_design(schema):
             help=trim("""
             Specifies directories to scan for libraries provided with the
             :keypath:`lib` parameter. If multiple paths are provided, they are
-            searched based on the order of the libdir list. The libdir
-            parameter is translated to the '-y' option in verilog based tools.""")))
+            searched based on the order of the libdir list.""")))
 
     schema.insert(
         'fileset', fileset, 'lib',

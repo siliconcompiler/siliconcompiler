@@ -773,7 +773,23 @@ class BaseSchema:
         return self.__parent._parent(root=root)
 
     @contextlib.contextmanager
-    def active(self, **kwargs):
+    def active_datadir(self, datadir: str = None):
+        '''
+        Use this context to set the datadir parameter on files and directory parameters.
+
+        Args:
+            datadir (str): name of the datadir
+
+        Example:
+            >>> with schema.active_datadir("lambdalib"):
+            ...     schema.set("file", "top.v")
+            Sets the file to top.v and associates lambdalib as the datadir.
+        '''
+        with self._active(datadir=datadir):
+            yield
+
+    @contextlib.contextmanager
+    def _active(self, **kwargs):
         '''
         Use this context to temporarily set additional fields in :meth:`.set` and :meth:`.add`.
         Additional fields can be specified which can be accessed by :meth:`._get_active`.
@@ -782,7 +798,7 @@ class BaseSchema:
             kwargs (dict of str): keyword arguments that are used for setting values
 
         Example:
-            >>> with schema.active(package="lambdalib"):
+            >>> with schema._active(package="lambdalib"):
             ...     schema.set("file", "top.v")
             Sets the file to top.v and associates lambdalib as the package.
         '''

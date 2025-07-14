@@ -1655,7 +1655,7 @@ def test_active_empty():
     schema = BaseSchema()
 
     assert schema._get_active(None) is None
-    with schema.active():
+    with schema._active():
         assert schema._get_active(None) == {}
     assert schema._get_active(None) is None
 
@@ -1664,7 +1664,7 @@ def test_active_defvalue():
     schema = BaseSchema()
 
     assert schema._get_active(None, 1) == 1
-    with schema.active(fileset="rtl"):
+    with schema._active(fileset="rtl"):
         assert schema._get_active("fileset") == "rtl"
         assert schema._get_active("notvalid", "testbench") == "testbench"
     assert schema._get_active(None) is None
@@ -1674,7 +1674,19 @@ def test_active_package():
     schema = BaseSchema()
 
     assert schema._get_active(None) is None
-    with schema.active(package="testpack"):
+    with schema._active(package="testpack"):
+        assert schema._get_active(None) == {
+            "package": "testpack"
+        }
+        assert schema._get_active("package") == "testpack"
+    assert schema._get_active(None) is None
+
+
+def test_active_datadir():
+    schema = BaseSchema()
+
+    assert schema._get_active(None) is None
+    with schema.active_datadir("testpack"):
         assert schema._get_active(None) == {
             "package": "testpack"
         }
@@ -1686,7 +1698,7 @@ def test_active_package_rename():
     schema = BaseSchema()
 
     assert schema._get_active(None) is None
-    with schema.active(datadir="testpack"):
+    with schema._active(datadir="testpack"):
         assert schema._get_active(None) == {
             "package": "testpack"
         }
@@ -1698,7 +1710,7 @@ def test_active_invalid_active():
     schema = BaseSchema()
 
     assert schema._get_active(None) is None
-    with schema.active(package="testpack"):
+    with schema._active(package="testpack"):
         assert schema._get_active("package0") is None
     assert schema._get_active(None) is None
 
@@ -1707,17 +1719,17 @@ def test_active_compounded():
     schema = BaseSchema()
 
     assert schema._get_active(None) is None
-    with schema.active(package="testpack"):
+    with schema._active(package="testpack"):
         assert schema._get_active(None) == {
             "package": "testpack"
         }
 
-        with schema.active(lock=True):
+        with schema._active(lock=True):
             assert schema._get_active(None) == {
                 "package": "testpack",
                 "lock": True
             }
-            with schema.active(lock=False):
+            with schema._active(lock=False):
                 assert schema._get_active(None) == {
                     "package": "testpack",
                     "lock": False
@@ -1739,7 +1751,7 @@ def test_active_compounded_set():
     EditableSchema(schema).insert("testfile", Parameter("file"))
     EditableSchema(schema).insert("testdir", Parameter("[dir]"))
 
-    with schema.active(package="testpack"):
+    with schema._active(package="testpack"):
         assert schema.set("teststr", "thisstring")
         assert schema.get("teststr") == "thisstring"
 
@@ -1751,7 +1763,7 @@ def test_active_compounded_set():
         assert schema.get("testdir") == ["thisdir"]
         assert schema.get("testdir", field="package") == ["testpack"]
 
-        with schema.active(lock=True):
+        with schema._active(lock=True):
             assert schema.set("teststr", "thisnewstring")
             assert schema.get("teststr") == "thisnewstring"
             assert schema.get("teststr", field="lock") is True
@@ -1762,7 +1774,7 @@ def test_active_add():
     EditableSchema(schema).insert("teststr", Parameter("[str]"))
     EditableSchema(schema).insert("testdir", Parameter("[dir]"))
 
-    with schema.active(package="testpack"):
+    with schema._active(package="testpack"):
         assert schema.add("teststr", "thisstring0")
         assert schema.get("teststr") == ["thisstring0"]
 
@@ -1773,7 +1785,7 @@ def test_active_add():
         assert schema.get("testdir") == ["thisdir0"]
         assert schema.get("testdir", field="package") == ["testpack"]
 
-        with schema.active(package="anotherpack"):
+        with schema._active(package="anotherpack"):
             assert schema.add("testdir", "thisdir1")
             assert schema.get("testdir") == ["thisdir0", "thisdir1"]
             assert schema.get("testdir", field="package") == [
