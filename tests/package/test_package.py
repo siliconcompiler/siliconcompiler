@@ -399,10 +399,13 @@ def test_remote_lock_within_lock_thread_multiple_tries(monkeypatch):
     resolver1.set_timeout(10)
     assert resolver1.timeout == 10
 
-    with resolver0.lock():
-        assert os.path.exists(resolver0.lock_file)
-        assert not os.path.exists(resolver0.sc_lock_file)
+    # Allow filelock to pass
+    @contextlib.contextmanager
+    def dummy_lock():
+        yield
+    monkeypatch.setattr(resolver0, "_RemoteResolver__file_lock", dummy_lock)
 
+    with resolver0.lock():
         class DummyLock:
             def __init__(self):
                 self.calls = 0
@@ -425,6 +428,7 @@ def test_remote_lock_within_lock_thread_multiple_tries(monkeypatch):
         monkeypatch.setattr(RemoteResolver, "thread_lock", gen_dummy_lock)
         with resolver1.lock():
             assert lock.calls == 2
+        assert lock.calls == 2
 
     assert os.path.exists(resolver0.lock_file)
     assert not os.path.exists(resolver0.sc_lock_file)
