@@ -94,19 +94,25 @@ def test_options_topmodule_invalid_name(name):
 def test_options_idir():
     d = DesignSchema("test")
 
-    for item in ['/home/acme/incdir1', '/home/acme/incdir2']:
+    os.makedirs("incdir1", exist_ok=True)
+    os.makedirs("incdir2", exist_ok=True)
+
+    for item in ["incdir1", "incdir2"]:
         assert d.add_idir(item, 'rtl')
-    assert d.get_idir('rtl') == ['/home/acme/incdir1', '/home/acme/incdir2']
+    assert d.get_idir('rtl') == [os.path.abspath("incdir1"), os.path.abspath("incdir2")]
 
 
 def test_options_idir_with_fileset():
     d = DesignSchema("test")
 
+    os.makedirs("incdir1", exist_ok=True)
+    os.makedirs("incdir2", exist_ok=True)
+
     with d.active_fileset("rtl"):
-        for item in ['/home/acme/incdir1', '/home/acme/incdir2']:
+        for item in ["incdir1", "incdir2"]:
             assert d.add_idir(item)
-        assert d.get_idir() == ['/home/acme/incdir1', '/home/acme/incdir2']
-    assert d.get_idir("rtl") == ['/home/acme/incdir1', '/home/acme/incdir2']
+        assert d.get_idir() == [os.path.abspath("incdir1"), os.path.abspath("incdir2")]
+    assert d.get_idir('rtl') == [os.path.abspath("incdir1"), os.path.abspath("incdir2")]
 
 
 def test_options_idir_with_none():
@@ -133,9 +139,12 @@ def test_options_idir_value_error():
 def test_options_libdir():
     d = DesignSchema("test")
 
-    for item in ['/usr/lib1', '/usr/lib2']:
+    os.makedirs("lib1", exist_ok=True)
+    os.makedirs("lib2", exist_ok=True)
+
+    for item in ["lib1", "lib2"]:
         assert d.add_libdir(item, 'rtl')
-    assert d.get_libdir('rtl') == ['/usr/lib1', '/usr/lib2']
+    assert d.get_libdir('rtl') == [os.path.abspath("lib1"), os.path.abspath("lib2")]
 
 
 def test_options_libdir_with_none():
@@ -146,11 +155,14 @@ def test_options_libdir_with_none():
 def test_options_libdir_with_fileset():
     d = DesignSchema("test")
 
+    os.makedirs("lib1", exist_ok=True)
+    os.makedirs("lib2", exist_ok=True)
+
     with d.active_fileset("rtl"):
-        for item in ['/usr/lib1', '/usr/lib2']:
+        for item in ["lib1", "lib2"]:
             assert d.add_libdir(item)
-        assert d.get_libdir() == ['/usr/lib1', '/usr/lib2']
-    assert d.get_libdir('rtl') == ['/usr/lib1', '/usr/lib2']
+        assert d.get_libdir() == [os.path.abspath("lib1"), os.path.abspath("lib2")]
+    assert d.get_libdir('rtl') == [os.path.abspath("lib1"), os.path.abspath("lib2")]
 
 
 def test_options_lib():
@@ -375,45 +387,63 @@ def test_add_file_invalid_fileset():
 def test_get_file_multiple_filesets():
     d = DesignSchema("test")
 
+    Path("one.v").touch()
+    Path("tb.v").touch()
+    Path("one.vhdl").touch()
+
     d.add_file(['one.v'], 'rtl', filetype='verilog')
     d.add_file(['tb.v'], 'testbench')
     d.add_file(['one.vhdl'], 'rtl')
 
     assert d.get_file(fileset=['rtl', 'testbench']) == [
-        'one.v', 'one.vhdl', 'tb.v'
+        os.path.abspath('one.v'),
+        os.path.abspath('one.vhdl'),
+        os.path.abspath('tb.v')
     ]
 
 
 def test_get_file_one_fileset():
     d = DesignSchema("test")
 
+    Path("one.v").touch()
+    Path("one.vhdl").touch()
+
     d.add_file(['one.v'], 'rtl', filetype='verilog')
     d.add_file(['tb.v'], 'testbench')
     d.add_file(['one.vhdl'], 'rtl')
 
-    assert d.get_file(fileset='rtl') == ['one.v', 'one.vhdl']
+    assert d.get_file(fileset='rtl') == [
+        os.path.abspath('one.v'),
+        os.path.abspath('one.vhdl')
+    ]
 
 
 def test_get_file_filetype():
     d = DesignSchema("test")
 
+    Path("one.v").touch()
+
     d.add_file(['one.v'], 'rtl', filetype='verilog')
     d.add_file(['tb.v'], 'testbench')
     d.add_file(['one.vhdl'], 'rtl')
 
     # get verilog rtl only
-    assert d.get_file(fileset='rtl', filetype='verilog') == ['one.v']
+    assert d.get_file(fileset='rtl', filetype='verilog') == [os.path.abspath('one.v')]
 
 
 def test_get_file_filetype_vhdl():
     d = DesignSchema("test")
 
+    Path("one.vhdl").touch()
+
     d.add_file(['one.v'], 'rtl', filetype='verilog')
     d.add_file(['tb.v'], 'testbench')
     d.add_file(['one.vhdl'], 'rtl')
 
     # get verilog rtl only
-    assert d.get_file(fileset=['rtl', 'testbench'], filetype='vhdl') == ['one.vhdl']
+    assert d.get_file(fileset=['rtl', 'testbench'], filetype='vhdl') == [
+        os.path.abspath('one.vhdl')
+    ]
 
 
 def test_get_file_one_invalid_fileset():
@@ -427,10 +457,12 @@ def test_add_dep():
     lib = DesignSchema('mylib')
     lib.add_file('mylib.v', fileset)
 
+    Path("mylib.v").touch()
+
     d = DesignSchema("test")
     d.add_dep(lib)
     lib = d.get_dep('mylib')
-    assert lib.get_file(fileset) == ['mylib.v']
+    assert lib.get_file(fileset) == [os.path.abspath('mylib.v')]
 
 
 def test_write_fileset_no_filepath():
@@ -578,9 +610,20 @@ def test_read_fileset(datadir):
     d.read_fileset(os.path.join(datadir, "heartbeat.f"), fileset="rtl")
     assert d.getkeys("datadir") == ('flist-test-rtl-heartbeat.f-0', )
     assert d.get("datadir", "flist-test-rtl-heartbeat.f-0", "path") == os.path.abspath(datadir)
-    assert d.get_idir("rtl") == ["."]
+    assert d.get_idir("rtl") == [os.path.abspath(datadir)]
     assert d.get_define("rtl") == ['ASIC']
-    assert d.get_file("rtl") == ['heartbeat.v', 'increment.v']
+    assert d.get_file("rtl") == [
+        os.path.abspath(os.path.join(datadir, 'heartbeat.v')),
+        os.path.abspath(os.path.join(datadir, 'increment.v'))
+    ]
+    assert d.get("fileset", "rtl", "file", "verilog") == [
+        'heartbeat.v',
+        'increment.v'
+    ]
+    assert d.get("fileset", "rtl", "file", "verilog", field="package") == [
+        'flist-test-rtl-heartbeat.f-0',
+        'flist-test-rtl-heartbeat.f-0'
+    ]
 
 
 def test_read_fileset_with_abspath(datadir):
@@ -594,7 +637,10 @@ def test_read_fileset_with_abspath(datadir):
     assert d.getkeys("datadir") == ('flist-new-test-test.f-0', )
     assert d.get("datadir", "flist-new-test-test.f-0", "path") == \
         Path(os.path.abspath(datadir)).as_posix()
-    assert d.get_file("test") == ['heartbeat.v', 'increment.v']
+    assert d.get_file("test") == [
+        os.path.abspath(os.path.join(datadir, 'heartbeat.v')),
+        os.path.abspath(os.path.join(datadir, 'increment.v'))
+    ]
 
 
 def test_read_fileset_with_fileset(datadir):
@@ -604,9 +650,12 @@ def test_read_fileset_with_fileset(datadir):
         d.read_fileset(os.path.join(datadir, "heartbeat.f"))
     assert d.getkeys("datadir") == ('flist-test-rtl-heartbeat.f-0', )
     assert d.get("datadir", "flist-test-rtl-heartbeat.f-0", "path") == os.path.abspath(datadir)
-    assert d.get_idir("rtl") == ["."]
+    assert d.get_idir("rtl") == [os.path.abspath(datadir)]
     assert d.get_define("rtl") == ['ASIC']
-    assert d.get_file("rtl") == ['heartbeat.v', 'increment.v']
+    assert d.get_file("rtl") == [
+        os.path.abspath(os.path.join(datadir, 'heartbeat.v')),
+        os.path.abspath(os.path.join(datadir, 'increment.v'))
+    ]
 
 
 def test_read_fileset_no_filepath():
@@ -643,9 +692,7 @@ def test_read_fileset_multiple_packages(datadir):
     assert d.get("datadir", "flist-test-rtl-flist.f-1", "path") == os.path.abspath("files2")
     assert d.get_idir("rtl") == []
     assert d.get_define("rtl") == []
-    assert d.get_file("rtl") == ['heartbeat.v', 'increment.v']
-
-    assert d.find_files("fileset", "rtl", "file", "verilog") == [
+    assert d.get_file("rtl") == [
         os.path.abspath("files1/heartbeat.v"),
         os.path.abspath("files2/increment.v"),
     ]
@@ -722,17 +769,27 @@ def test_options_active_fileset():
         d.set_topmodule('mytop')
         assert d.get_topmodule() == 'mytop'
 
+        Path("incdir1").mkdir(exist_ok=True)
+        Path("incdir2").mkdir(exist_ok=True)
+
         # idir
-        idirs = ['/home/acme/incdir1', '/home/acme/incdir2']
-        for item in idirs:
+        for item in ['incdir1', 'incdir2']:
             d.add_idir(item)
-        assert d.get_idir() == idirs
+        assert d.get_idir() == [
+            os.path.abspath("incdir1"),
+            os.path.abspath("incdir2")
+        ]
+
+        Path("libdir1").mkdir(exist_ok=True)
+        Path("libdir2").mkdir(exist_ok=True)
 
         # libdirs
-        libdirs = ['/usr/lib1', '/usr/lib2']
-        for item in libdirs:
+        for item in ["libdir1", "libdir2"]:
             d.add_libdir(item)
-        assert d.get_libdir() == libdirs
+        assert d.get_libdir() == [
+            os.path.abspath("libdir1"),
+            os.path.abspath("libdir2")
+        ]
 
         # libs
         libs = ['lib1', 'lib2']
@@ -785,18 +842,32 @@ def test_options_active_fileset_nested():
 def test_add_file_active_fileset():
     d = DesignSchema("test")
 
+    Path('one.v').touch()
+    Path('two.v').touch()
+
     with d.active_fileset("rtl"):
         # explicit file add
-        files = ['one.v', 'two.v']
-        d.add_file(files, filetype='verilog')
-        assert d.get_file(filetype="verilog") == files
-    assert d.get('fileset', "rtl", 'file', 'verilog') == files
+        d.add_file(['one.v', 'two.v'], filetype='verilog')
+        assert d.get_file(filetype="verilog") == [
+            os.path.abspath("one.v"),
+            os.path.abspath("two.v")
+        ]
+    assert d.get('fileset', "rtl", 'file', 'verilog') == [
+        "one.v",
+        "two.v"
+    ]
+
+    Path('tb.v').touch()
+    Path('dut.v').touch()
 
     with d.active_fileset("testbench"):
         # filetype mapping
         d.add_file('tb.v')
         d.add_file('dut.v')
-        assert d.get_file() == ['tb.v', 'dut.v']
+        assert d.get_file() == [
+            os.path.abspath("tb.v"),
+            os.path.abspath("dut.v")
+        ]
     assert d.get('fileset', 'testbench', 'file', 'verilog') == ['tb.v', 'dut.v']
 
 

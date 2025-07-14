@@ -87,7 +87,7 @@ class DesignSchema(NamedSchema, DependencySchema):
         Returns:
            list[str]: List of include directories
         """
-        return self.__get(fileset, 'idir')
+        return self.__get(fileset, 'idir', is_file=True)
 
     ##############################################
     def add_define(self,
@@ -176,7 +176,7 @@ class DesignSchema(NamedSchema, DependencySchema):
         Returns:
            list[str]: List of library directories.
         """
-        return self.__get(fileset, 'libdir')
+        return self.__get(fileset, 'libdir', is_file=True)
 
     ###############################################
     def add_lib(self,
@@ -409,8 +409,8 @@ class DesignSchema(NamedSchema, DependencySchema):
             if not filetype:
                 filetype = list(self.getkeys('fileset', fs, 'file'))
             # grab the files
-            for j in filetype:
-                filelist.extend(self.get('fileset', fs, 'file', j))
+            for ftype in filetype:
+                filelist.extend(self.find_files('fileset', fs, 'file', ftype))
 
         return filelist
 
@@ -633,7 +633,7 @@ class DesignSchema(NamedSchema, DependencySchema):
 
         return params
 
-    def __get(self, fileset, option):
+    def __get(self, fileset, option, is_file=False):
         '''Gets a parameter value from schema.
         '''
         if fileset is None:
@@ -641,6 +641,8 @@ class DesignSchema(NamedSchema, DependencySchema):
 
         if not isinstance(fileset, str):
             raise ValueError("fileset key must be a string")
+        if is_file:
+            return self.find_files('fileset', fileset, option)
         return self.get('fileset', fileset, option)
 
     @contextlib.contextmanager
