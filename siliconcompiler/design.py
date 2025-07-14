@@ -328,7 +328,7 @@ class DesignSchema(NamedSchema, DependencySchema):
             datadir = self._get_active("package")
 
         # adding files to dictionary
-        with self.active(datadir=datadir):
+        with self.active_datadir(datadir):
             if clobber:
                 return self.set('fileset', fileset, 'file', filetype, filename)
             else:
@@ -581,7 +581,7 @@ class DesignSchema(NamedSchema, DependencySchema):
         if not datadir:
             datadir = self._get_active("package")
 
-        with self.active(datadir=datadir):
+        with self.active_datadir(datadir):
             if list in typelist and not clobber:
                 params = self.add('fileset', fileset, option, value)
             else:
@@ -621,7 +621,7 @@ class DesignSchema(NamedSchema, DependencySchema):
         if not fileset:
             raise ValueError("fileset cannot be an empty string")
 
-        with self.active(fileset=fileset):
+        with self._active(fileset=fileset):
             yield
 
 
