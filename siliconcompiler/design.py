@@ -63,20 +63,20 @@ class DesignSchema(NamedSchema, DependencySchema):
                  value: str,
                  fileset: str = None,
                  clobber: bool = False,
-                 package: str = None) -> List[str]:
+                 datadir: str = None) -> List[str]:
         """Adds include directories to a fileset.
 
         Args:
            value (str or Path): Include directory name.
            fileset (str, optional): Fileset name.
            clobber (bool, optional): Clears existing list before adding item
-           package (str, optional): Package name
+           datadir (str, optional): Package name
 
         Returns:
            list[str]: List of include directories
         """
         return self.__set_add(fileset, 'idir', value, clobber, typelist=[str, list],
-                              package=package)
+                              datadir=datadir)
 
     def get_idir(self, fileset: str = None) -> List[str]:
         """Returns include directories for a fileset.
@@ -152,20 +152,20 @@ class DesignSchema(NamedSchema, DependencySchema):
                    value: str,
                    fileset: str = None,
                    clobber: bool = False,
-                   package: str = None) -> List[str]:
+                   datadir: str = None) -> List[str]:
         """Adds dynamic library directories to a fileset.
 
         Args:
            value (str or List[str]): Library directories
            fileset (str, optional): Fileset name.
            clobber (bool, optional): Clears existing list before adding item.
-           package (str, optional): Package name
+           datadir (str, optional): Package name
 
         Returns:
            list[str]: List of library directories.
         """
         return self.__set_add(fileset, 'libdir', value, clobber, typelist=[str, list],
-                              package=package)
+                              datadir=datadir)
 
     def get_libdir(self, fileset: str = None) -> List[str]:
         """Returns dynamic library directories for a fileset.
@@ -258,7 +258,7 @@ class DesignSchema(NamedSchema, DependencySchema):
                  fileset: str = None,
                  filetype: str = None,
                  clobber: bool = False,
-                 package: str = None) -> List[str]:
+                 datadir: str = None) -> List[str]:
         """
         Adds files to a fileset.
 
@@ -274,7 +274,7 @@ class DesignSchema(NamedSchema, DependencySchema):
             fileset (str): Logical group to associate the file with.
             filetype (str, optional): Type of the file (e.g., 'verilog', 'sdc').
             clobber (bool, optional): Clears list before adding item
-            package (str, optional): Package name
+            datadir (str, optional): Package name
 
         Raises:
             SiliconCompilerError: If fileset or filetype cannot be inferred from
@@ -324,11 +324,11 @@ class DesignSchema(NamedSchema, DependencySchema):
             else:
                 raise ValueError(f"Unrecognized file extension: {ext}")
 
-        if not package:
-            package = self._get_active("package")
+        if not datadir:
+            datadir = self._get_active("package")
 
         # adding files to dictionary
-        with self.active(package=package):
+        with self.active(datadir=datadir):
             if clobber:
                 return self.set('fileset', fileset, 'file', filetype, filename)
             else:
@@ -481,26 +481,26 @@ class DesignSchema(NamedSchema, DependencySchema):
                 else:
                     files.append(expand_path(line))
 
-        # Create packages
+        # Create datadirs
         all_paths = include_dirs + [os.path.dirname(f) for f in files]
         all_paths = sorted(set(all_paths))
 
-        package_root_name = f'flist-{self.name()}-{fileset}-{os.path.basename(filename)}'
-        packages = {}
+        datadir_root_name = f'flist-{self.name()}-{fileset}-{os.path.basename(filename)}'
+        datadirs = {}
 
         for path_dir in all_paths:
             found = False
-            for pdir in packages:
+            for pdir in datadirs:
                 if path_dir.startswith(pdir):
                     found = True
                     break
             if not found:
-                package_name = f"{package_root_name}-{len(packages)}"
-                self.register_package(package_name, path_dir)
-                packages[path_dir] = package_name
+                datadir_name = f"{datadir_root_name}-{len(datadirs)}"
+                self.register_datadir(datadir_name, path_dir)
+                datadirs[path_dir] = datadir_name
 
-        def get_package(path):
-            for pdir, name in packages.items():
+        def get_datadir(path):
+            for pdir, name in datadirs.items():
                 if path.startswith(pdir):
                     return name, pdir
             return None, None
@@ -511,16 +511,16 @@ class DesignSchema(NamedSchema, DependencySchema):
                 self.add_define(defines)
             if include_dirs:
                 for dir in include_dirs:
-                    package_name, pdir = get_package(dir)
-                    if package_name:
+                    datadir_name, pdir = get_datadir(dir)
+                    if datadir_name:
                         dir = os.path.relpath(dir, pdir)
-                    self.add_idir(dir, package=package_name)
+                    self.add_idir(dir, datadir=datadir_name)
             if files:
                 for f in files:
-                    package_name, pdir = get_package(f)
-                    if package_name:
+                    datadir_name, pdir = get_datadir(f)
+                    if datadir_name:
                         f = os.path.relpath(f, pdir)
-                    self.add_file(f, package=package_name)
+                    self.add_file(f, datadir=datadir_name)
 
     ################################################
     def read_fileset(self,
@@ -555,7 +555,7 @@ class DesignSchema(NamedSchema, DependencySchema):
     ################################################
     # Helper Functions
     ################################################
-    def __set_add(self, fileset, option, value, clobber=False, typelist=None, package=None):
+    def __set_add(self, fileset, option, value, clobber=False, typelist=None, datadir=None):
         '''Sets a parameter value in schema.
         '''
 
@@ -578,10 +578,10 @@ class DesignSchema(NamedSchema, DependencySchema):
         if value is None:
             raise ValueError(f"None is an illegal {option} value")
 
-        if not package:
-            package = self._get_active("package")
+        if not datadir:
+            datadir = self._get_active("package")
 
-        with self.active(package=package):
+        with self.active(datadir=datadir):
             if list in typelist and not clobber:
                 params = self.add('fileset', fileset, option, value)
             else:

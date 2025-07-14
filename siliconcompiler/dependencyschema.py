@@ -26,20 +26,20 @@ class DependencySchema(BaseSchema):
                 '[str]',
                 scope=Scope.GLOBAL,
                 lock=True,
-                shorthelp="List of dependencies",
+                shorthelp="List of object dependencies",
                 help="List of named object dependencies included via add_dep()."))
 
         schema.insert(
-            'package', 'default', 'root',
+            'datadir', 'default', 'path',
             Parameter(
                 'str',
                 scope=Scope.GLOBAL,
-                shorthelp="Package: package root",
+                shorthelp="Data directory path",
                 example=[
-                    "api: chip.set('source', "
+                    "api: chip.set('datadir', "
                     "'freepdk45_data', 'path', 'ssh://git@github.com/siliconcompiler/freepdk45/')"],
                 help=trim("""
-                    Package root path, this points the location where the package data can be
+                    Data directory path, this points the location where the data can be
                     retrieved or accessed.
                     Allowed roots:
 
@@ -56,16 +56,16 @@ class DependencySchema(BaseSchema):
                     """)))
 
         schema.insert(
-            'package', 'default', 'tag',
+            'datadir', 'default', 'tag',
             Parameter(
                 'str',
                 scope=Scope.GLOBAL,
-                shorthelp="Package: package tag/version",
+                shorthelp="Data directory reference tag/version",
                 example=[
-                    "api: chip.set('source', 'freepdk45_data', 'ref', '07ec4aa')"],
+                    "api: chip.set('datadir', 'freepdk45_data', 'tag', '07ec4aa')"],
                 help=trim("""
-                    Package reference tag. The meaning of the this tag depends on the context of
-                    the root.
+                    Data directory reference tag. The meaning of the this tag depends on the
+                    context of the path.
                     For git, this can be a tag, branch, or commit id. For https this is the version
                     of the file that will be downloaded.
                     """)))
@@ -268,66 +268,67 @@ class DependencySchema(BaseSchema):
             if isinstance(self.__deps[module], DependencySchema):
                 self.__deps[module]._populate_deps(module_map)
 
-    def register_package(self, name: str, root: str, tag: str = None):
+    def register_datadir(self, name: str, path: str, tag: str = None):
         """
-        Registers a package by its name with the root and associated tag.
+        Registers a data directory by its name with the root and associated tag.
 
         Args:
-            name (str): Package name
-            root (str): Path to the root, can be directory, git url, or archive url
+            name (str): Data directory name
+            path (str): Path to the root of the data directory, can be directory, git url,
+                or archive url
             tag (str): Reference of the sources, can be commitid, branch name, tag
 
         Examples:
-            >>> schema.register_package('siliconcompiler_data',
+            >>> schema.register_datadir('siliconcompiler_data',
                     'git+https://github.com/siliconcompiler/siliconcompiler',
                     'v1.0.0')
         """
 
-        if os.path.isfile(root):
-            root = os.path.dirname(os.path.abspath(root))
+        if os.path.isfile(path):
+            path = os.path.dirname(os.path.abspath(path))
 
-        self.set("package", name, "root", root)
+        self.set("datadir", name, "path", path)
         if tag:
-            self.set("package", name, "tag", tag)
+            self.set("datadir", name, "tag", tag)
 
-    def find_package(self, name: str):
+    def find_datadir(self, name: str) -> str:
         """
-        Returns absolute path to the package root.
+        Returns absolute path to the data directory.
 
         Raises:
-            ValueError: is package is not found
+            ValueError: is data directory is not found
 
         Args:
-            name (str): name of the package to find.
+            name (str): name of the data directory to find.
 
         Returns:
-            Path to the package directory root.
+            Path to the directory root.
 
         Examples:
-            >>> schema.find_package('siliconcompiler')
-            Returns the path to the root of the siliconcompiler package.
+            >>> schema.find_datadir('siliconcompiler')
+            Returns the path to the root of the siliconcompiler data directory.
         """
 
-        if not self.valid("package", name):
+        if not self.valid("datadir", name):
             raise ValueError(f"{name} is not a recognized source")
 
-        root = self.get("package", name, "root")
-        tag = self.get("package", name, "tag")
+        path = self.get("datadir", name, "path")
+        tag = self.get("datadir", name, "tag")
 
-        resolver = Resolver.find_resolver(root)
-        return resolver(name, self._parent(root=True), root, tag).get_path()
+        resolver = Resolver.find_resolver(path)
+        return resolver(name, self._parent(root=True), path, tag).get_path()
 
     def __get_resolver_map(self):
         """
-        Generate the resolver map got package handling for find_files and check_filepaths
+        Generate the resolver map got data directory handling for find_files and check_filepaths
         """
         schema_root = self._parent(root=True)
         resolver_map = {}
-        for package in self.getkeys("package"):
-            root = self.get("package", package, "root")
-            tag = self.get("package", package, "tag")
-            resolver = Resolver.find_resolver(root)
-            resolver_map[package] = resolver(package, schema_root, root, tag).get_path
+        for datadir in self.getkeys("datadir"):
+            path = self.get("datadir", datadir, "path")
+            tag = self.get("datadir", datadir, "tag")
+            resolver = Resolver.find_resolver(path)
+            resolver_map[datadir] = resolver(datadir, schema_root, path, tag).get_path
         return resolver_map
 
     def find_files(self, *keypath,

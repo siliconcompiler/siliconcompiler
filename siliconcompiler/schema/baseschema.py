@@ -794,6 +794,13 @@ class BaseSchema:
         if self.__active is None:
             self.__active = {}
 
+        if "datadir" in kwargs:
+            # Tempoary rename
+            if "package" in kwargs:
+                raise ValueError("datadir and package cannot be specified")
+            kwargs["package"] = kwargs["datadir"]
+            del kwargs["datadir"]
+
         self.__active.update(kwargs)
         try:
             yield

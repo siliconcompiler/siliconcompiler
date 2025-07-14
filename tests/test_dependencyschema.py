@@ -13,7 +13,7 @@ from siliconcompiler.dependencyschema import DependencySchema
 
 def test_init():
     schema = DependencySchema()
-    assert schema.getkeys() == tuple(["deps", "package"])
+    assert schema.getkeys() == tuple(["deps", "datadir"])
     assert schema.get("deps") == []
 
 
@@ -474,39 +474,39 @@ def test_populate_deps_already_populated():
 
 def test_get_registered_sources():
     schema = DependencySchema()
-    assert schema.getkeys("package") == tuple([])
+    assert schema.getkeys("datadir") == tuple([])
 
 
-def test_register_package():
+def test_register_datadir():
     schema = DependencySchema()
-    schema.register_package("testsource", "file://.")
-    assert schema.get("package", "testsource", "root") == "file://."
-    assert schema.get("package", "testsource", "tag") is None
+    schema.register_datadir("testsource", "file://.")
+    assert schema.get("datadir", "testsource", "path") == "file://."
+    assert schema.get("datadir", "testsource", "tag") is None
 
 
-def test_register_package_overwrite():
+def test_register_datadir_overwrite():
     schema = DependencySchema()
-    schema.register_package("testsource", "file://.")
-    schema.register_package("testsource", "file://test")
-    assert schema.get("package", "testsource", "root") == "file://test"
-    assert schema.get("package", "testsource", "tag") is None
+    schema.register_datadir("testsource", "file://.")
+    schema.register_datadir("testsource", "file://test")
+    assert schema.get("datadir", "testsource", "path") == "file://test"
+    assert schema.get("datadir", "testsource", "tag") is None
 
 
-def test_register_package_with_ref():
+def test_register_datadir_with_ref():
     schema = DependencySchema()
-    schema.register_package("testsource", "file://.", "ref")
-    assert schema.get("package", "testsource", "root") == "file://."
-    assert schema.get("package", "testsource", "tag") == "ref"
+    schema.register_datadir("testsource", "file://.", "ref")
+    assert schema.get("datadir", "testsource", "path") == "file://."
+    assert schema.get("datadir", "testsource", "tag") == "ref"
 
 
-def test_register_package_with_file():
+def test_register_datadir_with_file():
     schema = DependencySchema()
     with open("test.txt", "w") as f:
         f.write("test")
 
-    schema.register_package("testsource", "test.txt")
-    assert schema.get("package", "testsource", "root") == os.path.abspath(".")
-    assert schema.get("package", "testsource", "tag") is None
+    schema.register_datadir("testsource", "test.txt")
+    assert schema.get("datadir", "testsource", "path") == os.path.abspath(".")
+    assert schema.get("datadir", "testsource", "tag") is None
 
 
 def test_find_files():
@@ -518,7 +518,7 @@ def test_find_files():
             schema.insert("file", Parameter("file"))
 
     test = Test()
-    test.register_package("testsource", "file://.")
+    test.register_datadir("testsource", "file://.")
     param = test.set("file", "test.txt")
     param.set("testsource", field="package")
 
@@ -553,7 +553,7 @@ def test_find_files_dir():
             schema.insert("dir", Parameter("dir"))
 
     test = Test()
-    test.register_package("testsource", "file://.")
+    test.register_datadir("testsource", "file://.")
     param = test.set("dir", "test")
     param.set("testsource", field="package")
 
@@ -639,7 +639,7 @@ def test_find_files_keypath():
 
     root = Root()
     test = root.get("test", field="schema")
-    test.register_package("keyref", "key://ref")
+    test.register_datadir("keyref", "key://ref")
     assert root.set("ref", "test")
     os.makedirs("test", exist_ok=True)
     param = test.set("file", "test.txt")
@@ -651,19 +651,19 @@ def test_find_files_keypath():
     assert test.find_files("file") == os.path.abspath("test/test.txt")
 
 
-def test_find_package():
+def test_find_datadir():
     schema = DependencySchema()
-    schema.register_package("testsource", "file://.")
-    assert schema.find_package("testsource") == os.path.abspath(".")
+    schema.register_datadir("testsource", "file://.")
+    assert schema.find_datadir("testsource") == os.path.abspath(".")
 
 
-def test_find_package_not_found():
+def test_find_datadir_not_found():
     schema = DependencySchema()
     with pytest.raises(ValueError, match="testsource is not a recognized source"):
-        schema.find_package("testsource")
+        schema.find_datadir("testsource")
 
 
-def test_find_package_keypath():
+def test_find_datadir_keypath():
     class Test(DependencySchema):
         def __init__(self):
             super().__init__()
@@ -682,11 +682,11 @@ def test_find_package_keypath():
 
     root = Root()
     test = root.get("test", field="schema")
-    test.register_package("keyref", "key://ref")
+    test.register_datadir("keyref", "key://ref")
     assert root.set("ref", "test")
     os.makedirs("test", exist_ok=True)
 
-    assert test.find_package("keyref") == os.path.abspath("test")
+    assert test.find_datadir("keyref") == os.path.abspath("test")
 
 
 def test_check_filepaths_empty():

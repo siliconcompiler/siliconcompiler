@@ -1682,6 +1682,18 @@ def test_active_package():
     assert schema._get_active(None) is None
 
 
+def test_active_package_rename():
+    schema = BaseSchema()
+
+    assert schema._get_active(None) is None
+    with schema.active(datadir="testpack"):
+        assert schema._get_active(None) == {
+            "package": "testpack"
+        }
+        assert schema._get_active("package") == "testpack"
+    assert schema._get_active(None) is None
+
+
 def test_active_invalid_active():
     schema = BaseSchema()
 
