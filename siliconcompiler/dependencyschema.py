@@ -270,18 +270,22 @@ class DependencySchema(BaseSchema):
 
     def register_datadir(self, name: str, path: str, tag: str = None):
         """
-        Registers a data directory by its name with the root and associated tag.
+        Registers a data directory by its name with the root and associated tag. If the path provided is
+        a file, the path recorded will be the directory the file is located in.
 
         Args:
             name (str): Data directory name
             path (str): Path to the root of the data directory, can be directory, git url,
-                or archive url
+                archive url, or path to a file
             tag (str): Reference of the sources, can be commitid, branch name, tag
 
         Examples:
             >>> schema.register_datadir('siliconcompiler_data',
                     'git+https://github.com/siliconcompiler/siliconcompiler',
                     'v1.0.0')
+            Records the data directory for siliconcompiler_data as a git clone for tag v1.0.0
+            >>> schema.register_datadir('file_data', __file__)
+            Records the data directory for file_data as the directory that __file__ is found in.
         """
 
         if os.path.isfile(path):
