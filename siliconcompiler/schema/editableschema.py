@@ -7,6 +7,8 @@
 from .parameter import Parameter
 from .baseschema import BaseSchema
 
+from typing import Union, Tuple
+
 
 class EditableSchema:
     '''
@@ -17,11 +19,15 @@ class EditableSchema:
         schema (:class:`BaseSchema`): schema to modify
     '''
 
-    def __init__(self, schema):
+    def __init__(self, schema: BaseSchema):
         # Grab manifest from base class
         self.__schema = schema
 
-    def __insert(self, keypath, value, fullkey, clobber):
+    def __insert(self,
+                 keypath: Tuple[str],
+                 value: Union[BaseSchema, Parameter],
+                 fullkey: Tuple[str],
+                 clobber: bool) -> None:
         key = keypath[0]
         keypath = keypath[1:]
 
@@ -51,7 +57,7 @@ class EditableSchema:
         new_schema._BaseSchema__key = key
         EditableSchema(new_schema).__insert(keypath, value, fullkey, clobber)
 
-    def __remove(self, keypath, fullkey):
+    def __remove(self, keypath: Tuple[str], fullkey: Tuple[str]) -> None:
         key = keypath[0]
         keypath = keypath[1:]
 
@@ -71,7 +77,7 @@ class EditableSchema:
         else:
             EditableSchema(next_param).__remove(keypath, fullkey)
 
-    def insert(self, *args, clobber=False):
+    def insert(self, *args, clobber: bool = False) -> None:
         '''
         Inserts a :class:`Parameter` or a :class:`BaseSchema` to the schema,
         based on the keypath and value provided in the ``*args``.
@@ -100,7 +106,7 @@ class EditableSchema:
 
         self.__insert(keypath, value, keypath, clobber=clobber)
 
-    def remove(self, *keypath):
+    def remove(self, *keypath: str) -> None:
         '''
         Removes a keypath from the schema.
 
@@ -120,7 +126,7 @@ class EditableSchema:
 
         self.__remove(keypath, keypath)
 
-    def search(self, *keypath):
+    def search(self, *keypath: str) -> Union[BaseSchema, Parameter]:
         '''
         Finds an item in the schema. This will raise a KeyError if
         the path is not found.
