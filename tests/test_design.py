@@ -7,6 +7,7 @@ import os.path
 from pathlib import Path
 
 from siliconcompiler.design import DesignSchema
+from siliconcompiler.design import NamedSchema
 
 
 def test_design_keys():
@@ -20,6 +21,7 @@ def test_design_keys():
         ('fileset', 'default', 'define'),
         ('fileset', 'default', 'undefine'),
         ('fileset', 'default', 'param', 'default'),
+        ('fileset', 'default', 'depfileset'),
         ('datadir', 'default', 'path'),
         ('datadir', 'default', 'tag'),
     ])
@@ -251,6 +253,65 @@ def test_options_param_with_fileset():
     assert d.get_param('N', 'rtl') == '2'
 
 
+def test_options_depfileset():
+    d = DesignSchema("test")
+    assert d.add_depfileset("obj0", "rtl", "rtl")
+    assert d.add_depfileset("obj0", "rtl.tech", "rtl")
+    assert d.add_depfileset("obj0", "testbench.this", "testbench")
+
+    assert d.get_depfileset("rtl") == [
+        ('obj0', 'rtl'),
+        ('obj0', 'rtl.tech')]
+    assert d.get_depfileset("testbench") == [('obj0', 'testbench.this')]
+
+
+def test_options_depfileset_with_object():
+    dep = NamedSchema("thisdep")
+
+    d = DesignSchema("test")
+    assert d.add_depfileset(dep, "rtl", "rtl")
+    assert d.get_dep("thisdep") is dep
+    assert d.get("fileset", "rtl", "depfileset") == [("thisdep", "rtl")]
+
+
+def test_options_depfileset_with_invalid_input():
+    with pytest.raises(TypeError, match="dep is not a valid type"):
+        DesignSchema("test").add_depfileset(1, "rtl", "rtl")
+
+
+def test_options_depfileset_with_fileset():
+    d = DesignSchema("test")
+
+    with d.active_fileset("rtl"):
+        assert d.add_depfileset("obj0", "rtl")
+        assert d.add_depfileset("obj0", "rtl.tech")
+        assert d.get_depfileset() == [
+            ('obj0', 'rtl'),
+            ('obj0', 'rtl.tech')]
+    with d.active_fileset("testbench"):
+        assert d.add_depfileset("obj0", "testbench.this")
+        assert d.get_depfileset() == [('obj0', 'testbench.this')]
+
+    assert d.get_depfileset("rtl") == [
+        ('obj0', 'rtl'),
+        ('obj0', 'rtl.tech')]
+    assert d.get_depfileset("testbench") == [('obj0', 'testbench.this')]
+
+
+def test_options_add_depfileset_invalid_fileset():
+    d = DesignSchema("test")
+
+    with pytest.raises(ValueError, match="fileset key must be a string"):
+        d.add_depfileset("obj0", "rtl", fileset=1)
+
+
+def test_options_get_depfileset_invalid_fileset():
+    d = DesignSchema("test")
+
+    with pytest.raises(ValueError, match="fileset key must be a string"):
+        d.get_depfileset(fileset=1)
+
+
 def test_add_file_single():
     d = DesignSchema("test")
 
@@ -409,7 +470,6 @@ def test_write_fileset(datadir):
     d.write_fileset(filename="heartbeat.f", fileset=['rtl', 'tb'])
 
     assert Path("heartbeat.f").read_text().splitlines() == [
-        '// test',
         '// test / rtl / include directories',
         f'+incdir+{os.path.abspath(datadir)}',
         '// test / rtl / defines',
@@ -441,7 +501,6 @@ def test_write_fileset_using_fileformat(datadir):
     d.write_fileset(filename="heartbeat.cmd", fileset=['rtl', 'tb'], fileformat="flist")
 
     assert Path("heartbeat.cmd").read_text().splitlines() == [
-        '// test',
         '// test / rtl / include directories',
         f'+incdir+{os.path.abspath(datadir)}',
         '// test / rtl / defines',
@@ -474,7 +533,6 @@ def test_write_fileset_duplicate(datadir):
     d.write_fileset(filename="heartbeat.f", fileset=['rtl', 'tb'])
 
     assert Path("heartbeat.f").read_text().splitlines() == [
-        '// test',
         '// test / rtl / include directories',
         f'+incdir+{os.path.abspath(datadir)}',
         '// test / rtl / defines',
@@ -504,7 +562,6 @@ def test_write_fileset_with_fileset(datadir):
         d.write_fileset(filename="heartbeat.f")
 
     assert Path("heartbeat.f").read_text().splitlines() == [
-        '// test',
         '// test / rtl / include directories',
         f'+incdir+{os.path.abspath(datadir)}',
         '// test / rtl / defines',
@@ -626,6 +683,8 @@ def test_heartbeat_example(datadir):
 
             # dependencies
             self.add_dep(Increment())
+            with self.active_fileset("rtl"):
+                self.add_depfileset("increment", "rtl")
 
     dut = Heartbeat()
     assert dut.get("deps") == ["increment"]
@@ -633,14 +692,12 @@ def test_heartbeat_example(datadir):
     dut.write_fileset(filename="heartbeat.f", fileset=['rtl', 'testbench'])
 
     assert Path("heartbeat.f").read_text().splitlines() == [
-        '// heartbeat',
         '// heartbeat / rtl / verilog files',
         f'{Path(os.path.abspath(os.path.join(datadir, "heartbeat_increment.v"))).as_posix()}',
-        '// heartbeat / testbench / verilog files',
-        f'{Path(os.path.abspath(os.path.join(datadir, "heartbeat_tb.v"))).as_posix()}',
-        '// increment',
         '// increment / rtl / verilog files',
-        f'{Path(os.path.abspath(os.path.join(datadir, "increment.v"))).as_posix()}'
+        f'{Path(os.path.abspath(os.path.join(datadir, "increment.v"))).as_posix()}',
+        '// heartbeat / testbench / verilog files',
+        f'{Path(os.path.abspath(os.path.join(datadir, "heartbeat_tb.v"))).as_posix()}'
     ]
 
 
@@ -741,3 +798,226 @@ def test_add_file_active_fileset():
         d.add_file('dut.v')
         assert d.get_file() == ['tb.v', 'dut.v']
     assert d.get('fileset', 'testbench', 'file', 'verilog') == ['tb.v', 'dut.v']
+
+
+def test_get_fileset():
+    class Increment(DesignSchema):
+        def __init__(self):
+            super().__init__('increment')
+
+            with self.active_fileset("rtl.increment"):
+                self.add_file("increment.v")
+
+    incr_object = Increment()
+
+    class Heartbeat(DesignSchema):
+        def __init__(self):
+            super().__init__('heartbeat')
+
+            # dependencies
+            self.add_dep(incr_object)
+            with self.active_fileset("rtl"):
+                self.add_file("heartbeat_increment.v")
+                self.add_depfileset("increment", "rtl.increment")
+
+            with self.active_fileset("testbench"):
+                self.add_file("tb.v")
+
+    dut = Heartbeat()
+    assert dut.get_fileset("rtl") == [
+        (dut, 'rtl'),
+        (incr_object, 'rtl.increment'),
+    ]
+
+    assert dut.get_fileset(["rtl", "testbench"]) == [
+        (dut, 'rtl'),
+        (incr_object, 'rtl.increment'),
+        (dut, 'testbench')
+    ]
+
+    with pytest.raises(ValueError, match="constraint is not defined in heartbeat"):
+        dut.get_fileset("constraint")
+
+
+def test_get_fileset_invalid():
+    class Heartbeat(DesignSchema):
+        def __init__(self):
+            super().__init__('heartbeat')
+
+            # dependencies
+            self.add_dep(NamedSchema("test"))
+            with self.active_fileset("rtl"):
+                self.add_file("heartbeat_increment.v")
+                self.add_depfileset("test", "rtl.increment")
+
+            with self.active_fileset("testbench"):
+                self.add_file("tb.v")
+
+    with pytest.raises(TypeError, match="test must be a design object"):
+        Heartbeat().get_fileset("rtl")
+
+
+def test_get_fileset_duplicate():
+    class Increment(DesignSchema):
+        def __init__(self):
+            super().__init__('increment')
+
+            with self.active_fileset("rtl.increment"):
+                self.add_file("increment.v")
+
+    incr_object = Increment()
+
+    class Heartbeat(DesignSchema):
+        def __init__(self):
+            super().__init__('heartbeat')
+
+            # dependencies
+            self.add_dep(incr_object)
+            with self.active_fileset("rtl"):
+                self.add_file("heartbeat_increment.v")
+                self.add_depfileset("increment", "rtl.increment")
+
+            with self.active_fileset("testbench"):
+                self.add_file("tb.v")
+                self.add_depfileset("increment", "rtl.increment")
+
+    dut = Heartbeat()
+    assert dut.get_fileset(["rtl", "testbench"]) == [
+        (dut, 'rtl'),
+        (incr_object, 'rtl.increment'),
+        (dut, 'testbench')
+    ]
+
+
+def test_get_fileset_alias():
+    class IncrementAlias(DesignSchema):
+        def __init__(self):
+            super().__init__('increment_alias')
+
+            with self.active_fileset("rtl.alias"):
+                self.add_file("alias.v")
+            with self.active_fileset("rtl.increment"):
+                self.add_file("increment.v")
+
+    class Increment(DesignSchema):
+        def __init__(self):
+            super().__init__('increment')
+
+            with self.active_fileset("rtl.increment"):
+                self.add_file("increment.v")
+
+    incr_object = Increment()
+
+    class Heartbeat(DesignSchema):
+        def __init__(self):
+            super().__init__('heartbeat')
+
+            # dependencies
+            self.add_dep(incr_object)
+            with self.active_fileset("rtl"):
+                self.add_file("heartbeat_increment.v")
+                self.add_depfileset("increment", "rtl.increment")
+
+            with self.active_fileset("testbench"):
+                self.add_file("tb.v")
+                self.add_depfileset("increment", "rtl.increment")
+
+    dut = Heartbeat()
+    assert dut.get_fileset(["rtl", "testbench"]) == [
+        (dut, 'rtl'),
+        (incr_object, 'rtl.increment'),
+        (dut, 'testbench')
+    ]
+
+    alias = IncrementAlias()
+
+    assert dut.get_fileset(
+        ["rtl", "testbench"],
+        alias={("increment", "rtl.increment"): (alias, "rtl.alias")}) == [
+        (dut, 'rtl'),
+        (alias, 'rtl.alias'),
+        (dut, 'testbench')
+    ]
+    assert dut.get_fileset(
+        ["rtl", "testbench"],
+        alias={("increment", "rtl.increment"): (alias, None)}) == [
+        (dut, 'rtl'),
+        (alias, 'rtl.increment'),
+        (dut, 'testbench')
+    ]
+    assert dut.get_fileset(
+        ["rtl", "testbench"],
+        alias={("increment", "rtl.increment"): (None, None)}) == [
+        (dut, 'rtl'),
+        (dut, 'testbench')
+    ]
+
+
+def test_write_fileset_alias(datadir):
+    datadir = Path(datadir)
+
+    class IncrementAlias(DesignSchema):
+        def __init__(self):
+            super().__init__('increment_alias')
+
+            with self.active_fileset("rtl.alias"):
+                self.add_file(datadir / "increment.v")
+
+            with self.active_fileset("rtl.alias_other"):
+                self.add_file(datadir / "increment.v")
+
+    class Increment(DesignSchema):
+        def __init__(self):
+            super().__init__('increment')
+
+            with self.active_fileset("rtl.increment"):
+                self.add_file(datadir / "increment.v")
+
+    incr_object = Increment()
+
+    class Heartbeat(DesignSchema):
+        def __init__(self):
+            super().__init__('heartbeat')
+
+            # dependencies
+            self.add_dep(incr_object)
+            with self.active_fileset("rtl"):
+                self.add_file(datadir / "heartbeat_increment.v")
+                self.add_depfileset("increment", "rtl.increment")
+
+            with self.active_fileset("testbench"):
+                self.add_file(datadir / "heartbeat_tb.v")
+                self.add_depfileset("increment", "rtl.increment")
+
+    dut = Heartbeat()
+    alias = IncrementAlias()
+
+    dut.write_fileset(
+        "fileset.f",
+        ["rtl", "testbench"],
+        depalias={("increment", "rtl.increment"): (alias, "rtl.alias")})
+
+    assert Path("fileset.f").read_text().splitlines() == [
+        '// heartbeat / rtl / verilog files',
+        f'{Path(os.path.abspath(os.path.join(datadir, "heartbeat_increment.v"))).as_posix()}',
+        '// increment_alias / rtl.alias / verilog files',
+        f'{Path(os.path.abspath(os.path.join(datadir, "increment.v"))).as_posix()}',
+        '// heartbeat / testbench / verilog files',
+        f'{Path(os.path.abspath(os.path.join(datadir, "heartbeat_tb.v"))).as_posix()}',
+    ]
+
+    dut.write_fileset(
+        "fileset_double.f",
+        ["rtl", "testbench"],
+        depalias={("increment", "rtl.increment"): (alias, ["rtl.alias", "rtl.alias_other"])})
+
+    assert Path("fileset_double.f").read_text().splitlines() == [
+        '// heartbeat / rtl / verilog files',
+        f'{Path(os.path.abspath(os.path.join(datadir, "heartbeat_increment.v"))).as_posix()}',
+        '// increment_alias / rtl.alias / verilog files',
+        f'{Path(os.path.abspath(os.path.join(datadir, "increment.v"))).as_posix()}',
+        '// increment_alias / rtl.alias_other / verilog files',
+        f'// {Path(os.path.abspath(os.path.join(datadir, "increment.v"))).as_posix()}',
+        '// heartbeat / testbench / verilog files',
+        f'{Path(os.path.abspath(os.path.join(datadir, "heartbeat_tb.v"))).as_posix()}',
+    ]
