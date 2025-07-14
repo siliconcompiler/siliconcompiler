@@ -1,3 +1,4 @@
+import contextlib
 import logging
 import pytest
 
@@ -10,6 +11,7 @@ import siliconcompiler
 
 from siliconcompiler.package import Resolver, RemoteResolver
 from siliconcompiler.package import FileResolver, PythonPathResolver, KeyPathResolver
+from siliconcompiler.package import InterProcessLock as dut_ipl
 
 from siliconcompiler import Chip
 
@@ -362,7 +364,7 @@ def test_remote_lock_after_lock():
     assert not os.path.exists(resolver.sc_lock_file)
 
 
-def test_remote_lock_within_lock():
+def test_remote_lock_within_lock_thread():
     chip = Chip("dummy")
     chip.set("option", "cachedir", ".")
 
@@ -377,10 +379,85 @@ def test_remote_lock_within_lock():
         assert os.path.exists(resolver0.lock_file)
         assert not os.path.exists(resolver0.sc_lock_file)
 
+        with pytest.raises(RuntimeError, match="Failed to access .*. "
+                                               "Another thread is currently holding the lock."):
+            with resolver1.lock():
+                assert False, "should not get here"
+
+    assert os.path.exists(resolver0.lock_file)
+    assert not os.path.exists(resolver0.sc_lock_file)
+
+
+def test_remote_lock_within_lock_thread_multiple_tries(monkeypatch):
+    chip = Chip("dummy")
+    chip.set("option", "cachedir", ".")
+
+    resolver0 = RemoteResolver("thisname", chip, "https://filepath", "ref")
+    resolver1 = RemoteResolver("thisname", chip, "https://filepath", "ref")
+
+    # change second resolver to wait 10 second
+    resolver1.set_timeout(10)
+    assert resolver1.timeout == 10
+
+    with resolver0.lock():
+        assert os.path.exists(resolver0.lock_file)
+        assert not os.path.exists(resolver0.sc_lock_file)
+
+        class DummyLock:
+            def __init__(self):
+                self.calls = 0
+                pass
+
+            def acquire_lock(self, timeout=None):
+                self.calls += 1
+                if self.calls == 1:
+                    return False
+                return True
+
+            def locked(self):
+                return False
+
+        lock = DummyLock()
+
+        def gen_dummy_lock(*args, **kwargs):
+            return lock
+
+        monkeypatch.setattr(RemoteResolver, "thread_lock", gen_dummy_lock)
+        with resolver1.lock():
+            assert lock.calls == 2
+
+    assert os.path.exists(resolver0.lock_file)
+    assert not os.path.exists(resolver0.sc_lock_file)
+
+
+def test_remote_lock_within_lock_file(monkeypatch):
+    chip = Chip("dummy")
+    chip.set("option", "cachedir", ".")
+
+    resolver0 = RemoteResolver("thisname", chip, "https://filepath", "ref")
+    resolver1 = RemoteResolver("thisname", chip, "https://filepath", "ref")
+
+    # change second resolver to wait 1 second
+    resolver1.set_timeout(1)
+    assert resolver1.timeout == 1
+
+    # Allow threadlock to pass
+    @contextlib.contextmanager
+    def dummy_lock():
+        yield
+    monkeypatch.setattr(resolver0, "_RemoteResolver__thread_lock", dummy_lock)
+
+    with resolver0.lock():
+        assert os.path.exists(resolver0.lock_file)
+        assert not os.path.exists(resolver0.sc_lock_file)
+
+        def dummy_lock(*args, **kwargs):
+            return False
+        monkeypatch.setattr(dut_ipl, "acquire", dummy_lock)
         with pytest.raises(RuntimeError, match="Failed to access .*. .* is still locked, "
                                                "if this is a mistake, please delete it."):
             with resolver1.lock():
-                assert False, "should not get here"
+                pass
 
     assert os.path.exists(resolver0.lock_file)
     assert not os.path.exists(resolver0.sc_lock_file)
