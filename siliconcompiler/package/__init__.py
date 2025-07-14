@@ -351,11 +351,8 @@ class FileResolver(Resolver):
 
     @property
     def urlpath(self):
-        parse = self.urlparse
-        if parse.netloc:
-            return parse.netloc
-        else:
-            return parse.path
+        # Rebuild URL and remove scheme prefix
+        return self.urlparse.geturl()[7:]
 
     def resolve(self):
         return os.path.abspath(self.urlpath)
