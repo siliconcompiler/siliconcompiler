@@ -36,7 +36,7 @@ Useful APIs
     EditableSchema.remove
     EditableSchema.search
 
-Metrics Classes
+Schema Classes
 ===============
 
 .. autoclass:: siliconcompiler.DesignSchema
@@ -74,6 +74,11 @@ Metrics Classes
     :show-inheritance:
     :inherited-members:
 
+.. autoclass:: siliconcompiler.TaskSchema
+    :members:
+    :show-inheritance:
+    :inherited-members:
+
 .. autoclass:: siliconcompiler.ASICSchema
     :members:
     :show-inheritance:
@@ -84,8 +89,8 @@ Metrics Classes
     :show-inheritance:
     :inherited-members:
 
-Full API
-========
+Core Schema Classes
+===================
 
 .. autoclass:: BaseSchema
     :members:
@@ -106,11 +111,6 @@ Full API
     :members:
 
 .. autoclass:: NamedSchema
-    :members:
-    :show-inheritance:
-    :inherited-members:
-
-.. autoclass:: siliconcompiler.dependencyschema.DependencySchema
     :members:
     :show-inheritance:
     :inherited-members:
@@ -153,6 +153,14 @@ Full API
     :members:
     :undoc-members:
 
+Supporting Classes
+==================
+
+.. autoclass:: siliconcompiler.dependencyschema.DependencySchema
+    :members:
+    :show-inheritance:
+    :inherited-members:
+
 .. autoclass:: siliconcompiler.flowgraph.FlowgraphNodeSchema
     :members:
     :show-inheritance:
@@ -160,11 +168,6 @@ Full API
 
 .. autoclass:: siliconcompiler.flowgraph.RuntimeFlowgraph
     :members:
-
-.. autoclass:: siliconcompiler.tool.TaskSchema
-    :members:
-    :show-inheritance:
-    :inherited-members:
 
 .. autoclass:: siliconcompiler.tool.TaskError
     :members:

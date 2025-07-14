@@ -3,7 +3,7 @@ import pathlib
 import pytest
 
 from siliconcompiler.flowgraph import RuntimeFlowgraph
-from siliconcompiler.tool import TaskSchema
+from siliconcompiler import TaskSchema
 
 
 @pytest.fixture()

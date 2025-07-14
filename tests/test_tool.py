@@ -11,11 +11,11 @@ import os.path
 from unittest.mock import patch, ANY
 
 from siliconcompiler import RecordSchema, MetricSchema, FlowgraphSchema
+from siliconcompiler import ToolSchema, TaskSchema
 from siliconcompiler.packageschema import PackageSchema
 from siliconcompiler.schema import BaseSchema, EditableSchema, Parameter, SafeSchema
 from siliconcompiler.schema.parameter import PerNode, Scope
-from siliconcompiler.tool import TaskSchema, TaskExecutableNotFound, TaskError, TaskTimeout
-from siliconcompiler.tool import ToolSchema
+from siliconcompiler.tool import TaskExecutableNotFound, TaskError, TaskTimeout
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 
 from siliconcompiler.tools.builtin import nop
