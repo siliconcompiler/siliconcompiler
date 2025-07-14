@@ -253,49 +253,63 @@ def test_options_param_with_fileset():
     assert d.get_param('N', 'rtl') == '2'
 
 
-def test_options_dep_fileset():
+def test_options_depfileset():
     d = DesignSchema("test")
-    assert d.add_dep_fileset("obj0", "rtl", "rtl")
-    assert d.add_dep_fileset("obj0", "rtl.tech", "rtl")
-    assert d.add_dep_fileset("obj0", "testbench.this", "testbench")
+    assert d.add_depfileset("obj0", "rtl", "rtl")
+    assert d.add_depfileset("obj0", "rtl.tech", "rtl")
+    assert d.add_depfileset("obj0", "testbench.this", "testbench")
 
-    assert d.get_dep_fileset("rtl") == [
+    assert d.get_depfileset("rtl") == [
         ('obj0', 'rtl'),
         ('obj0', 'rtl.tech')]
-    assert d.get_dep_fileset("testbench") == [('obj0', 'testbench.this')]
+    assert d.get_depfileset("testbench") == [('obj0', 'testbench.this')]
 
 
-def test_options_dep_fileset_with_fileset():
+def test_options_depfileset_with_object():
+    dep = NamedSchema("thisdep")
+
+    d = DesignSchema("test")
+    assert d.add_depfileset(dep, "rtl", "rtl")
+    assert d.get_dep("thisdep") is dep
+    assert d.get("fileset", "rtl", "depfileset") == [("thisdep", "rtl")]
+
+
+def test_options_depfileset_with_invalid_input():
+    with pytest.raises(TypeError, match="dep is not a valid type"):
+        DesignSchema("test").add_depfileset(1, "rtl", "rtl")
+
+
+def test_options_depfileset_with_fileset():
     d = DesignSchema("test")
 
     with d.active_fileset("rtl"):
-        assert d.add_dep_fileset("obj0", "rtl")
-        assert d.add_dep_fileset("obj0", "rtl.tech")
-        assert d.get_dep_fileset() == [
+        assert d.add_depfileset("obj0", "rtl")
+        assert d.add_depfileset("obj0", "rtl.tech")
+        assert d.get_depfileset() == [
             ('obj0', 'rtl'),
             ('obj0', 'rtl.tech')]
     with d.active_fileset("testbench"):
-        assert d.add_dep_fileset("obj0", "testbench.this")
-        assert d.get_dep_fileset() == [('obj0', 'testbench.this')]
+        assert d.add_depfileset("obj0", "testbench.this")
+        assert d.get_depfileset() == [('obj0', 'testbench.this')]
 
-    assert d.get_dep_fileset("rtl") == [
+    assert d.get_depfileset("rtl") == [
         ('obj0', 'rtl'),
         ('obj0', 'rtl.tech')]
-    assert d.get_dep_fileset("testbench") == [('obj0', 'testbench.this')]
+    assert d.get_depfileset("testbench") == [('obj0', 'testbench.this')]
 
 
-def test_options_add_dep_fileset_invalid_fileset():
+def test_options_add_depfileset_invalid_fileset():
     d = DesignSchema("test")
 
     with pytest.raises(ValueError, match="fileset key must be a string"):
-        d.add_dep_fileset("obj0", "rtl", fileset=1)
+        d.add_depfileset("obj0", "rtl", fileset=1)
 
 
-def test_options_get_dep_fileset_invalid_fileset():
+def test_options_get_depfileset_invalid_fileset():
     d = DesignSchema("test")
 
     with pytest.raises(ValueError, match="fileset key must be a string"):
-        d.get_dep_fileset(fileset=1)
+        d.get_depfileset(fileset=1)
 
 
 def test_add_file_single():
@@ -670,7 +684,7 @@ def test_heartbeat_example(datadir):
             # dependencies
             self.add_dep(Increment())
             with self.active_fileset("rtl"):
-                self.add_dep_fileset("increment", "rtl")
+                self.add_depfileset("increment", "rtl")
 
     dut = Heartbeat()
     assert dut.get("deps") == ["increment"]
@@ -804,7 +818,7 @@ def test_get_fileset_mapping():
             self.add_dep(incr_object)
             with self.active_fileset("rtl"):
                 self.add_file("heartbeat_increment.v")
-                self.add_dep_fileset("increment", "rtl.increment")
+                self.add_depfileset("increment", "rtl.increment")
 
             with self.active_fileset("testbench"):
                 self.add_file("tb.v")
@@ -834,7 +848,7 @@ def test_get_fileset_mapping_invalid():
             self.add_dep(NamedSchema("test"))
             with self.active_fileset("rtl"):
                 self.add_file("heartbeat_increment.v")
-                self.add_dep_fileset("test", "rtl.increment")
+                self.add_depfileset("test", "rtl.increment")
 
             with self.active_fileset("testbench"):
                 self.add_file("tb.v")
@@ -861,11 +875,11 @@ def test_get_fileset_mapping_duplicate():
             self.add_dep(incr_object)
             with self.active_fileset("rtl"):
                 self.add_file("heartbeat_increment.v")
-                self.add_dep_fileset("increment", "rtl.increment")
+                self.add_depfileset("increment", "rtl.increment")
 
             with self.active_fileset("testbench"):
                 self.add_file("tb.v")
-                self.add_dep_fileset("increment", "rtl.increment")
+                self.add_depfileset("increment", "rtl.increment")
 
     dut = Heartbeat()
     assert dut.get_fileset_mapping(["rtl", "testbench"]) == [
@@ -902,11 +916,11 @@ def test_get_fileset_mapping_alias():
             self.add_dep(incr_object)
             with self.active_fileset("rtl"):
                 self.add_file("heartbeat_increment.v")
-                self.add_dep_fileset("increment", "rtl.increment")
+                self.add_depfileset("increment", "rtl.increment")
 
             with self.active_fileset("testbench"):
                 self.add_file("tb.v")
-                self.add_dep_fileset("increment", "rtl.increment")
+                self.add_depfileset("increment", "rtl.increment")
 
     dut = Heartbeat()
     assert dut.get_fileset_mapping(["rtl", "testbench"]) == [
@@ -969,11 +983,11 @@ def test_write_fileset_alias(datadir):
             self.add_dep(incr_object)
             with self.active_fileset("rtl"):
                 self.add_file(datadir / "heartbeat_increment.v")
-                self.add_dep_fileset("increment", "rtl.increment")
+                self.add_depfileset("increment", "rtl.increment")
 
             with self.active_fileset("testbench"):
                 self.add_file(datadir / "heartbeat_tb.v")
-                self.add_dep_fileset("increment", "rtl.increment")
+                self.add_depfileset("increment", "rtl.increment")
 
     dut = Heartbeat()
     alias = IncrementAlias()

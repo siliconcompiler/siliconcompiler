@@ -252,12 +252,12 @@ class DesignSchema(NamedSchema, DependencySchema):
             raise ValueError("fileset key must be a string")
         return self.get('fileset', fileset, 'param', name)
 
-    def add_dep_fileset(self, dep_name: str, dep_fileset: str, fileset: str = None):
+    def add_depfileset(self, dep: Union[NamedSchema, str], dep_fileset: str, fileset: str = None):
         """
         Record a reference to an imported dependency's fileset.
 
         Args:
-           dep_name (str): Dependency name.
+           dep_name (:class:`NamedSchema` or str): Dependency name or object.
            dep_fileset (str): Dependency fileset
            fileset (str): Fileset name.
 
@@ -267,9 +267,18 @@ class DesignSchema(NamedSchema, DependencySchema):
 
         if not isinstance(fileset, str):
             raise ValueError("fileset key must be a string")
+
+        if isinstance(dep, str):
+            dep_name = dep
+        elif isinstance(dep, NamedSchema):
+            dep_name = dep.name()
+            self.add_dep(dep, clobber=True)
+        else:
+            raise TypeError("dep is not a valid type")
+
         return self.add("fileset", fileset, "depfileset", (dep_name, dep_fileset))
 
-    def get_dep_fileset(self, fileset: str = None):
+    def get_depfileset(self, fileset: str = None):
         """
         Returns list of dependency filesets.
 
