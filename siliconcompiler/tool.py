@@ -116,6 +116,7 @@ class TaskSchema(NamedSchema):
         self.__logger = None
         self.__design_name = None
         self.__design_top = None
+        self.__design_top_global = None
         self.__cwd = None
         self.__relpath = relpath
         if chip:
@@ -123,7 +124,8 @@ class TaskSchema(NamedSchema):
             self.__schema_full = chip.schema
             self.__logger = chip.logger
             self.__design_name = chip.design
-            self.__design_top = chip.top()
+            self.__design_top = chip.top(step=step, index=index)
+            self.__design_top_global = chip.top()
             self.__cwd = chip.cwd
 
         self.__step = step
@@ -157,14 +159,14 @@ class TaskSchema(NamedSchema):
                 from_steps=set([step for step, _ in self.__schema_flow.get_entry_nodes()]),
                 prune_nodes=self.__schema_full.get('option', 'prune'))
 
-    def design_name(self):
+    def design_name(self) -> str:
         '''
         Returns:
             name of the design
         '''
         return self.__design_name
 
-    def design_topmodule(self):
+    def design_topmodule(self) -> str:
         '''
         Returns:
             top module of the design
@@ -227,14 +229,14 @@ class TaskSchema(NamedSchema):
         else:
             raise ValueError(f"{type} is not a schema section")
 
-    def has_breakpoint(self):
+    def has_breakpoint(self) -> bool:
         '''
         Returns:
             True if this task has a breakpoint associated with it
         '''
         return self.schema().get("option", "breakpoint", step=self.__step, index=self.__index)
 
-    def get_exe(self):
+    def get_exe(self) -> str:
         '''
         Determines the absolute path for the specified executable.
 
@@ -260,7 +262,7 @@ class TaskSchema(NamedSchema):
 
         return fullexe
 
-    def get_exe_version(self):
+    def get_exe_version(self) -> str:
         '''
         Gets the version of the specified executable.
 
@@ -313,7 +315,7 @@ class TaskSchema(NamedSchema):
 
         return version
 
-    def check_exe_version(self, reported_version):
+    def check_exe_version(self, reported_version) -> bool:
         '''
         Check if the reported version matches the versions specified in
         :keypath:`tool,<tool>,version`.
@@ -695,7 +697,7 @@ class TaskSchema(NamedSchema):
             io_file = f"{self.__step}.{suffix}"
             io_log = True
         elif destination == 'output':
-            io_file = os.path.join('outputs', f"{self.__design_top}.{suffix}")
+            io_file = os.path.join('outputs', f"{self.__design_top_global}.{suffix}")
         elif destination == 'none':
             io_file = os.devnull
 

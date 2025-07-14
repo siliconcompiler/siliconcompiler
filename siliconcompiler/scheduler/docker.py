@@ -157,8 +157,7 @@ class DockerSchedulerNode(SchedulerNode):
             builddir = f'{cwd}/build'
 
             local_cfg = os.path.join(start_cwd, 'sc_docker.json')
-            job = self.chip.get('option', 'jobname')
-            cfg = f'{builddir}/{self.chip.design}/{job}/{self.step}/{self.index}/sc_docker.json'
+            cfg = f'{builddir}/{self.name}/{self.jobname}/{self.step}/{self.index}/sc_docker.json'
 
             user = None
 
@@ -210,7 +209,7 @@ class DockerSchedulerNode(SchedulerNode):
                 volumes=volumes,
                 labels=[
                     "siliconcompiler",
-                    f"sc_node:{self.chip.design}:{self.step}:{self.index}"
+                    f"sc_node:{self.name}:{self.step}:{self.index}"
                 ],
                 user=user,
                 detach=True,

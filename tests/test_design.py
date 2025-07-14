@@ -22,8 +22,8 @@ def test_design_keys():
         ('fileset', 'default', 'undefine'),
         ('fileset', 'default', 'param', 'default'),
         ('fileset', 'default', 'depfileset'),
-        ('package', 'default', 'root'),
-        ('package', 'default', 'tag'),
+        ('datadir', 'default', 'path'),
+        ('datadir', 'default', 'tag'),
     ])
 
     assert set(DesignSchema("test").allkeys()) == golden_keys
@@ -562,8 +562,8 @@ def test_read_fileset(datadir):
     d = DesignSchema("test")
 
     d.read_fileset(os.path.join(datadir, "heartbeat.f"), fileset="rtl")
-    assert d.getkeys("package") == ('flist-test-rtl-heartbeat.f-0', )
-    assert d.get("package", "flist-test-rtl-heartbeat.f-0", "root") == os.path.abspath(datadir)
+    assert d.getkeys("datadir") == ('flist-test-rtl-heartbeat.f-0', )
+    assert d.get("datadir", "flist-test-rtl-heartbeat.f-0", "path") == os.path.abspath(datadir)
     assert d.get_idir("rtl") == ["."]
     assert d.get_define("rtl") == ['ASIC']
     assert d.get_file("rtl") == ['heartbeat.v', 'increment.v']
@@ -577,8 +577,8 @@ def test_read_fileset_with_abspath(datadir):
     d = DesignSchema("new")
     d.read_fileset("test.f", fileset="test")
 
-    assert d.getkeys("package") == ('flist-new-test-test.f-0', )
-    assert d.get("package", "flist-new-test-test.f-0", "root") == \
+    assert d.getkeys("datadir") == ('flist-new-test-test.f-0', )
+    assert d.get("datadir", "flist-new-test-test.f-0", "path") == \
         Path(os.path.abspath(datadir)).as_posix()
     assert d.get_file("test") == ['heartbeat.v', 'increment.v']
 
@@ -588,8 +588,8 @@ def test_read_fileset_with_fileset(datadir):
 
     with d.active_fileset("rtl"):
         d.read_fileset(os.path.join(datadir, "heartbeat.f"))
-    assert d.getkeys("package") == ('flist-test-rtl-heartbeat.f-0', )
-    assert d.get("package", "flist-test-rtl-heartbeat.f-0", "root") == os.path.abspath(datadir)
+    assert d.getkeys("datadir") == ('flist-test-rtl-heartbeat.f-0', )
+    assert d.get("datadir", "flist-test-rtl-heartbeat.f-0", "path") == os.path.abspath(datadir)
     assert d.get_idir("rtl") == ["."]
     assert d.get_define("rtl") == ['ASIC']
     assert d.get_file("rtl") == ['heartbeat.v', 'increment.v']
@@ -624,9 +624,9 @@ def test_read_fileset_multiple_packages(datadir):
 
     d.read_fileset("flist.f", fileset="rtl")
 
-    assert d.getkeys("package") == ('flist-test-rtl-flist.f-0', 'flist-test-rtl-flist.f-1')
-    assert d.get("package", "flist-test-rtl-flist.f-0", "root") == os.path.abspath("files1")
-    assert d.get("package", "flist-test-rtl-flist.f-1", "root") == os.path.abspath("files2")
+    assert d.getkeys("datadir") == ('flist-test-rtl-flist.f-0', 'flist-test-rtl-flist.f-1')
+    assert d.get("datadir", "flist-test-rtl-flist.f-0", "path") == os.path.abspath("files1")
+    assert d.get("datadir", "flist-test-rtl-flist.f-1", "path") == os.path.abspath("files2")
     assert d.get_idir("rtl") == []
     assert d.get_define("rtl") == []
     assert d.get_file("rtl") == ['heartbeat.v', 'increment.v']

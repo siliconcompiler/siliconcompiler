@@ -4,6 +4,7 @@ import importlib
 import json
 import logging
 import os
+import random
 import re
 import time
 import threading
@@ -250,32 +251,51 @@ class RemoteResolver(Resolver):
             return RemoteResolver._CACHE_LOCKS[self.name]
 
     @contextlib.contextmanager
-    def lock(self):
+    def __thread_lock(self):
         lock = self.thread_lock()
         lock_acquired = False
         try:
-            if lock.acquire_lock(timeout=self.timeout):
-                data_path_lock = InterProcessLock(self.lock_file)
-                sc_data_path_lock = None
-                try:
-                    lock_acquired = data_path_lock.acquire(timeout=self.timeout)
-                except (OSError, RuntimeError):
-                    if not lock_acquired:
-                        sc_data_path_lock = Path(self.sc_lock_file)
-                        max_seconds = self.timeout
-                        while sc_data_path_lock.exists():
-                            if max_seconds == 0:
-                                raise RuntimeError(f'Failed to access {self.cache_path}. '
-                                                   f'Lock {sc_data_path_lock} still exists.')
-                            time.sleep(1)
-                            max_seconds -= 1
-                        sc_data_path_lock.touch()
-                        lock_acquired = True
-                if lock_acquired:
-                    yield
+            timeout = self.timeout
+            while timeout > 0:
+                if lock.acquire_lock(timeout=1):
+                    lock_acquired = True
+                    break
+                sleep_time = random.randint(1, max(1, int(timeout / 10)))
+                timeout -= sleep_time + 1
+                time.sleep(sleep_time)
+            if lock_acquired:
+                yield
         finally:
             if lock.locked():
                 lock.release()
+
+        if not lock_acquired:
+            raise RuntimeError(f'Failed to access {self.cache_path}. '
+                               f'Another thread is currently holding the lock.')
+
+    @contextlib.contextmanager
+    def __file_lock(self):
+        data_path_lock = InterProcessLock(self.lock_file)
+        lock_acquired = False
+        sc_data_path_lock = None
+        try:
+            try:
+                lock_acquired = data_path_lock.acquire(timeout=self.timeout)
+            except (OSError, RuntimeError):
+                if not lock_acquired:
+                    sc_data_path_lock = Path(self.sc_lock_file)
+                    max_seconds = self.timeout
+                    while sc_data_path_lock.exists():
+                        if max_seconds == 0:
+                            raise RuntimeError(f'Failed to access {self.cache_path}. '
+                                               f'Lock {sc_data_path_lock} still exists.')
+                        time.sleep(1)
+                        max_seconds -= 1
+                    sc_data_path_lock.touch()
+                    lock_acquired = True
+            if lock_acquired:
+                yield
+        finally:
             if lock_acquired:
                 if data_path_lock.acquired:
                     data_path_lock.release()
@@ -286,6 +306,12 @@ class RemoteResolver(Resolver):
             raise RuntimeError(f'Failed to access {self.cache_path}. '
                                f'{self.lock_file} is still locked, if this is a mistake, '
                                'please delete it.')
+
+    @contextlib.contextmanager
+    def lock(self):
+        with self.__thread_lock():
+            with self.__file_lock():
+                yield
 
     def resolve_remote(self):
         raise NotImplementedError("child class must implement this")

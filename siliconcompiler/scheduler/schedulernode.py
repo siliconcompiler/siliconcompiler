@@ -15,8 +15,6 @@ from siliconcompiler import NodeStatus
 from siliconcompiler.utils.logging import get_console_formatter, SCInRunLoggerFormatter
 from siliconcompiler.schema import utils as schema_utils
 
-from siliconcompiler.tools._common import input_file_node_name, record_metric
-
 from siliconcompiler.record import RecordTime, RecordTool
 from siliconcompiler.schema import Journal
 from siliconcompiler.scheduler import send_messages
@@ -28,7 +26,8 @@ class SchedulerNode:
         self.__index = index
         self.__chip = chip
 
-        self.__design = self.__chip.design
+        self.__name = self.__chip.design
+        self.__topmodule = self.__chip.top(step=step, index=index)
 
         self.__job = self.__chip.get('option', 'jobname')
         self.__record_user_info = self.__chip.get("option", "track",
@@ -52,8 +51,8 @@ class SchedulerNode:
         self.__workdir = self.__chip.getworkdir(jobname=self.__job,
                                                 step=self.__step, index=self.__index)
         self.__manifests = {
-            "input": os.path.join(self.__workdir, "inputs", f"{self.__design}.pkg.json"),
-            "output": os.path.join(self.__workdir, "outputs", f"{self.__design}.pkg.json")
+            "input": os.path.join(self.__workdir, "inputs", f"{self.__name}.pkg.json"),
+            "output": os.path.join(self.__workdir, "outputs", f"{self.__name}.pkg.json")
         }
         self.__logs = {
             "sc": os.path.join(self.__workdir, f"sc_{self.__step}_{self.__index}.log"),
@@ -108,8 +107,16 @@ class SchedulerNode:
         return self.__index
 
     @property
-    def design(self):
-        return self.__design
+    def name(self):
+        return self.__name
+
+    @property
+    def topmodule(self):
+        return self.__topmodule
+
+    @property
+    def jobname(self):
+        return self.__job
 
     @property
     def workdir(self):
@@ -435,11 +442,11 @@ class SchedulerNode:
                           f'{output_dir}')
 
             for outfile in os.scandir(output_dir):
-                if outfile.name == f'{self.__design}.pkg.json':
+                if outfile.name == f'{self.__name}.pkg.json':
                     # Dont forward manifest
                     continue
 
-                new_name = input_file_node_name(outfile.name, in_step, in_index)
+                new_name = self.__task.compute_input_file_node_name(outfile.name, in_step, in_index)
                 if self.__enforce_inputfiles:
                     if outfile.name not in in_files and new_name not in in_files:
                         continue
@@ -628,7 +635,7 @@ class SchedulerNode:
                 required_outputs = set(self.__task.get('output'))
                 in_workdir = self.__chip.getworkdir(step=in_step, index=in_index)
                 for outfile in os.scandir(f"{in_workdir}/outputs"):
-                    if outfile.name == f'{self.__design}.pkg.json':
+                    if outfile.name == f'{self.__name}.pkg.json':
                         # Dont forward manifest
                         continue
 
@@ -829,16 +836,16 @@ class SchedulerNode:
 
         for metric in ("errors", "warnings"):
             if metric in matches:
-                errors = self.__metrics.get(metric, step=self.__step, index=self.__index)
-                if errors is None:
-                    errors = 0
-                errors += matches[metric]
+                value = self.__metrics.get(metric, step=self.__step, index=self.__index)
+                if value is None:
+                    value = 0
+                value += matches[metric]
 
                 sources = [os.path.basename(self.__logs["exe"])]
                 if self.__task.get('regex', metric):
                     sources.append(f'{self.__step}.{metric}')
 
-                record_metric(self.__chip, self.__step, self.__index, metric, errors, sources)
+                self.__task.record_metric(metric, value, source_file=sources)
 
     def __hash_files_pre_execute(self):
         for task_key in ('refdir', 'prescript', 'postscript', 'script'):
@@ -936,7 +943,7 @@ class SchedulerNode:
                 schema = Schema.from_manifest(manifest)
                 # delete file as it might be a hard link
                 os.remove(manifest)
-                schema.set('option', 'jobname', self.__chip.get('option', 'jobname'))
+                schema.set('option', 'jobname', self.__job)
                 schema.write_manifest(manifest)
 
     def clean_directory(self):

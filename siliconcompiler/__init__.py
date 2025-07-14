@@ -8,7 +8,7 @@ from siliconcompiler.record import RecordSchema
 from siliconcompiler.metric import MetricSchema
 from siliconcompiler.pdk import PDKSchema
 from siliconcompiler.flowgraph import FlowgraphSchema
-from siliconcompiler.tool import ToolSchema
+from siliconcompiler.tool import ToolSchema, TaskSchema
 from siliconcompiler.checklist import ChecklistSchema
 from siliconcompiler.asic import ASICSchema
 from siliconcompiler.fpga import FPGASchema
@@ -31,12 +31,14 @@ __all__ = [
     "Checklist",
     "Schema",
     "sc_open",
+
     "DesignSchema",
     "RecordSchema",
     "MetricSchema",
     "PDKSchema",
     "FlowgraphSchema",
     "ToolSchema",
+    "TaskSchema",
     "ChecklistSchema",
     "ASICSchema",
     "FPGASchema"
