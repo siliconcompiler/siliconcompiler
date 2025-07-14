@@ -431,7 +431,7 @@ class DesignSchema(NamedSchema, DependencySchema):
             def write_header(header):
                 f.write(f"// {header}\n")
 
-            for lib, fileset in self.get_fileset_mapping(filesets, depalias):
+            for lib, fileset in self.get_fileset(filesets, depalias):
                 if lib.get('fileset', fileset, 'idir'):
                     write_header(f"{lib.name()} / {fileset} / include directories")
                     for idir in lib.find_files('fileset', fileset, 'idir'):
@@ -668,9 +668,9 @@ class DesignSchema(NamedSchema, DependencySchema):
         with self.active(fileset=fileset):
             yield
 
-    def get_fileset_mapping(self,
-                            filesets: Union[List[str], str],
-                            alias: Dict[str, Tuple[NamedSchema, str]] = None) -> \
+    def get_fileset(self,
+                    filesets: Union[List[str], str],
+                    alias: Dict[str, Tuple[NamedSchema, str]] = None) -> \
             List[Tuple[NamedSchema, str]]:
         """
         Computes the filesets this object required for a given set of filesets
@@ -708,7 +708,7 @@ class DesignSchema(NamedSchema, DependencySchema):
                 if not isinstance(dep_obj, DesignSchema):
                     raise TypeError(f"{dep} must be a design object.")
 
-                mapping.extend(dep_obj.get_fileset_mapping(depfileset, alias))
+                mapping.extend(dep_obj.get_fileset(depfileset, alias))
 
         # Cleanup
         final_map = []

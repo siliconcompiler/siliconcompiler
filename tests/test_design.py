@@ -800,7 +800,7 @@ def test_add_file_active_fileset():
     assert d.get('fileset', 'testbench', 'file', 'verilog') == ['tb.v', 'dut.v']
 
 
-def test_get_fileset_mapping():
+def test_get_fileset():
     class Increment(DesignSchema):
         def __init__(self):
             super().__init__('increment')
@@ -824,22 +824,22 @@ def test_get_fileset_mapping():
                 self.add_file("tb.v")
 
     dut = Heartbeat()
-    assert dut.get_fileset_mapping("rtl") == [
+    assert dut.get_fileset("rtl") == [
         (dut, 'rtl'),
         (incr_object, 'rtl.increment'),
     ]
 
-    assert dut.get_fileset_mapping(["rtl", "testbench"]) == [
+    assert dut.get_fileset(["rtl", "testbench"]) == [
         (dut, 'rtl'),
         (incr_object, 'rtl.increment'),
         (dut, 'testbench')
     ]
 
     with pytest.raises(ValueError, match="constraint is not defined in heartbeat"):
-        dut.get_fileset_mapping("constraint")
+        dut.get_fileset("constraint")
 
 
-def test_get_fileset_mapping_invalid():
+def test_get_fileset_invalid():
     class Heartbeat(DesignSchema):
         def __init__(self):
             super().__init__('heartbeat')
@@ -854,10 +854,10 @@ def test_get_fileset_mapping_invalid():
                 self.add_file("tb.v")
 
     with pytest.raises(TypeError, match="test must be a design object"):
-        Heartbeat().get_fileset_mapping("rtl")
+        Heartbeat().get_fileset("rtl")
 
 
-def test_get_fileset_mapping_duplicate():
+def test_get_fileset_duplicate():
     class Increment(DesignSchema):
         def __init__(self):
             super().__init__('increment')
@@ -882,14 +882,14 @@ def test_get_fileset_mapping_duplicate():
                 self.add_depfileset("increment", "rtl.increment")
 
     dut = Heartbeat()
-    assert dut.get_fileset_mapping(["rtl", "testbench"]) == [
+    assert dut.get_fileset(["rtl", "testbench"]) == [
         (dut, 'rtl'),
         (incr_object, 'rtl.increment'),
         (dut, 'testbench')
     ]
 
 
-def test_get_fileset_mapping_alias():
+def test_get_fileset_alias():
     class IncrementAlias(DesignSchema):
         def __init__(self):
             super().__init__('increment_alias')
@@ -923,7 +923,7 @@ def test_get_fileset_mapping_alias():
                 self.add_depfileset("increment", "rtl.increment")
 
     dut = Heartbeat()
-    assert dut.get_fileset_mapping(["rtl", "testbench"]) == [
+    assert dut.get_fileset(["rtl", "testbench"]) == [
         (dut, 'rtl'),
         (incr_object, 'rtl.increment'),
         (dut, 'testbench')
@@ -931,21 +931,21 @@ def test_get_fileset_mapping_alias():
 
     alias = IncrementAlias()
 
-    assert dut.get_fileset_mapping(
+    assert dut.get_fileset(
         ["rtl", "testbench"],
         alias={("increment", "rtl.increment"): (alias, "rtl.alias")}) == [
         (dut, 'rtl'),
         (alias, 'rtl.alias'),
         (dut, 'testbench')
     ]
-    assert dut.get_fileset_mapping(
+    assert dut.get_fileset(
         ["rtl", "testbench"],
         alias={("increment", "rtl.increment"): (alias, None)}) == [
         (dut, 'rtl'),
         (alias, 'rtl.increment'),
         (dut, 'testbench')
     ]
-    assert dut.get_fileset_mapping(
+    assert dut.get_fileset(
         ["rtl", "testbench"],
         alias={("increment", "rtl.increment"): (None, None)}) == [
         (dut, 'rtl'),
