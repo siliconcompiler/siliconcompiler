@@ -1793,7 +1793,7 @@ def test_active_add():
                 "anotherpack"]
 
 
-def test_find_files_custom_class():
+def test_find_files_custom_class_search_paths():
     class CustomFiles(BaseSchema):
         def __init__(self):
             super().__init__()
@@ -1818,6 +1818,44 @@ def test_find_files_custom_class():
 
     assert schema.find_files("rootedfile") == os.path.abspath("thisroot/thisfile.txt")
     assert schema.find_files("unrootedfile") == os.path.abspath("thatfile.txt")
+
+
+def test_find_files_custom_class_package_resolution():
+    class CustomFiles(BaseSchema):
+        def __init__(self):
+            super().__init__()
+            EditableSchema(self).insert("level0", "rootedfile", Parameter("file"))
+            EditableSchema(self).insert("level0", "level1", "unrootedfile", Parameter("file"))
+            self.calls = 0
+
+        def _find_files_datadir_resolvers(self):
+            self.calls += 1
+            return {
+                "thispackage": os.path.abspath("thisroot")
+            }
+
+    os.makedirs("thisroot", exist_ok=True)
+    with open("thisroot/thisfile.txt", "w") as f:
+        f.write("test")
+    with open("thisroot/thatfile.txt", "w") as f:
+        f.write("test")
+
+    custom = CustomFiles()
+    schema = BaseSchema()
+    EditableSchema(schema).insert("level-1", custom)
+    with schema.active_datadir("thispackage"):
+        assert schema.set("level-1", "level0", "rootedfile", "thisfile.txt")
+        assert schema.set("level-1", "level0", "level1", "unrootedfile", "thatfile.txt")
+
+    assert custom.calls == 0
+
+    assert schema.find_files("level-1", "level0", "rootedfile") == \
+        os.path.abspath("thisroot/thisfile.txt")
+    assert custom.calls == 1
+
+    assert schema.find_files("level-1", "level0", "level1", "unrootedfile") == \
+        os.path.abspath("thisroot/thatfile.txt")
+    assert custom.calls == 2
 
 
 def test_keypath_root():

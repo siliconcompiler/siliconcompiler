@@ -588,6 +588,17 @@ class BaseSchema:
         """
         return []
 
+    def _find_files_datadir_resolvers(self):
+        """
+        Returns a dictionary of path resolevrs data directory handling for find_files
+
+        Returns:
+            dictionary of str to resolver mapping
+        """
+        if self.__parent is self:
+            return {}
+        return self.__parent._find_files_datadir_resolvers()
+
     def find_files(self, *keypath, missing_ok=False, step=None, index=None,
                    packages=None, collection_dir=None, cwd=None):
         """
@@ -649,7 +660,7 @@ class BaseSchema:
             cwd = os.getcwd()
 
         if packages is None:
-            packages = {}
+            packages = base_schema._find_files_datadir_resolvers()
 
         resolved_paths = []
         root_search_paths = base_schema._find_files_search_paths(keypath[-1], step, index)
