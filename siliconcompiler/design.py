@@ -719,8 +719,7 @@ def schema_design(schema):
             help=trim("""
             Specifies directories to scan for libraries provided with the
             :keypath:`lib` parameter. If multiple paths are provided, they are
-            searched based on the order of the libdir list. The libdir
-            parameter is translated to the '-y' option in verilog based tools.""")))
+            searched based on the order of the libdir list.""")))
 
     schema.insert(
         'fileset', fileset, 'lib',
