@@ -322,9 +322,12 @@ class DependencySchema(BaseSchema):
         resolver = Resolver.find_resolver(path)
         return resolver(name, self._parent(root=True), path, tag).get_path()
 
-    def __get_resolver_map(self):
+    def _find_files_datadir_resolvers(self):
         """
-        Generate the resolver map got data directory handling for find_files and check_filepaths
+        Returns a dictionary of path resolevrs data directory handling for find_files
+
+        Returns:
+            dictionary of str to resolver mapping
         """
         schema_root = self._parent(root=True)
         resolver_map = {}
@@ -374,7 +377,6 @@ class DependencySchema(BaseSchema):
         return super().find_files(*keypath,
                                   missing_ok=missing_ok,
                                   step=step, index=index,
-                                  packages=self.__get_resolver_map(),
                                   collection_dir=collection_dir,
                                   cwd=cwd)
 
@@ -398,6 +400,5 @@ class DependencySchema(BaseSchema):
         return super().check_filepaths(
             ignore_keys=ignore_keys,
             logger=logger,
-            packages=self.__get_resolver_map(),
             collection_dir=collection_dir,
             cwd=cwd)
