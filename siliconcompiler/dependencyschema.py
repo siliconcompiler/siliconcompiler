@@ -270,8 +270,8 @@ class DependencySchema(BaseSchema):
 
     def register_datadir(self, name: str, path: str, tag: str = None):
         """
-        Registers a data directory by its name with the root and associated tag. If the path provided is
-        a file, the path recorded will be the directory the file is located in.
+        Registers a data directory by its name with the root and associated tag. If the path
+        provided is a file, the path recorded will be the directory the file is located in.
 
         Args:
             name (str): Data directory name
