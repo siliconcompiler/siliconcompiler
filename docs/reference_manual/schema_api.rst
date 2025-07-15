@@ -44,6 +44,11 @@ Schema Classes
     :show-inheritance:
     :inherited-members:
 
+.. autoclass:: siliconcompiler.LibrarySchema
+    :members:
+    :show-inheritance:
+    :inherited-members:
+
 .. autoclass:: siliconcompiler.RecordSchema
     :members:
     :show-inheritance:
