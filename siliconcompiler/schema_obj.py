@@ -85,6 +85,9 @@ class SchemaTmp(Schema, CommandLineSchema):
 
         super()._from_dict(manifest, keypath, version=version)
 
+    def _find_files_dataref_resolvers(self):
+        return self.get("package", field="schema").get_resolvers()
+
     def record_history(self):
         '''
         Copies all non-empty parameters from current job into the history

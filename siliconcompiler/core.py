@@ -1478,12 +1478,9 @@ class Chip:
             if keypath[-2:] == ('option', 'builddir'):
                 ignore_keys.append(keypath)
 
-        package_map = self.get("package", field="schema").get_resolvers()
-
         return self.schema.check_filepaths(
             ignore_keys=ignore_keys,
             logger=self.logger,
-            packages=package_map,
             collection_dir=self._getcollectdir(),
             cwd=self.cwd)
 

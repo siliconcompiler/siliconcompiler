@@ -127,6 +127,9 @@ def running_project():
         def getworkdir(self, step=None, index=None):
             return os.path.abspath(".")
 
+        def _getcollectdir(self):
+            return None
+
     project = TestProject()
     project.set('option', 'flow', 'testflow')
     project.set('arg', 'step', "running")
