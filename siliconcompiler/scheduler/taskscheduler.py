@@ -11,6 +11,7 @@ from siliconcompiler import SiliconCompilerError
 from siliconcompiler import utils
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 
+from siliconcompiler.package import Resolver
 from siliconcompiler.schema import Journal
 
 from siliconcompiler.utils.logging import SCBlankLoggerFormatter
@@ -200,7 +201,7 @@ class TaskScheduler:
                         packages = info["parent_pipe"].recv()
                         if isinstance(packages, dict):
                             for package, path in packages.items():
-                                self.__chip.get("package", field="schema")._set_cache(package, path)
+                                Resolver.set_cache(package, path)
                     except:  # noqa E722
                         pass
 

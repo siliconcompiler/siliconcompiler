@@ -174,7 +174,7 @@ def test_get_path_usecache(caplog):
     chip.logger.setLevel(logging.INFO)
 
     resolver = AlwaysCache("alwayscache", chip, "notused", "notused")
-    resolver.set_cache({"alwayscache": "path"})
+    resolver.set_cache("alwayscache", "path")
     assert resolver.get_path() == "path"
 
     assert caplog.text == ""
@@ -592,3 +592,24 @@ def test_keypath_resolver_no_root():
     resolver = KeyPathResolver("thisname", None, "key://option,dir,testdir")
     with pytest.raises(RuntimeError, match="Root schema has not be defined for thisname"):
         resolver.resolve()
+
+
+def test_get_cache():
+    with patch("os.getpid") as pid:
+        pid.return_value = "notanumber"
+        assert Resolver.get_cache() == {}
+
+
+def test_set_cache():
+    with patch("os.getpid") as pid:
+        pid.return_value = "notanumber"
+        assert Resolver.get_cache() == {}
+        Resolver.set_cache("test", "path")
+        assert Resolver.get_cache() == {
+            "test": "path"
+        }
+        Resolver.set_cache("test0", "path0")
+        assert Resolver.get_cache() == {
+            "test": "path",
+            "test0": "path0",
+        }

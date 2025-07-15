@@ -15,6 +15,7 @@ from siliconcompiler import NodeStatus
 from siliconcompiler.utils.logging import get_console_formatter, SCInRunLoggerFormatter
 from siliconcompiler.schema import utils as schema_utils
 
+from siliconcompiler.package import Resolver
 from siliconcompiler.record import RecordTime, RecordTool
 from siliconcompiler.schema import Journal
 from siliconcompiler.scheduler import send_messages
@@ -615,7 +616,7 @@ class SchedulerNode:
         journal.stop()
 
         if self.__pipe:
-            self.__pipe.send(self.__chip.get("package", field="schema").get_path_cache())
+            self.__pipe.send(Resolver.get_cache())
 
     def execute(self):
         self.logger.info(f'Running in {self.__workdir}')

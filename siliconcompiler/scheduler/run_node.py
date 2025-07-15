@@ -7,6 +7,7 @@ import tarfile
 import os.path
 
 from siliconcompiler import Chip, Schema
+from siliconcompiler.package import Resolver
 from siliconcompiler.scheduler.schedulernode import SchedulerNode
 from siliconcompiler import __version__
 
@@ -102,7 +103,7 @@ def main():
     if args.cachemap:
         for cachepair in args.cachemap:
             package, path = cachepair.split(':')
-            chip.get("package", field="schema")._set_cache(package, path)
+            Resolver.set_cache(package, path)
 
     # Populate cache
     for resolver in chip.get('package', field='schema').get_resolvers().values():
