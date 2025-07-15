@@ -153,7 +153,7 @@ class Resolver:
             return Resolver.__CACHE[root_id].copy()
 
     @staticmethod
-    def set_cache(root, name, path):
+    def set_cache(root, name: str, path: str):
         with Resolver.__CACHE_LOCK:
             root_id = id(root)
             if root_id not in Resolver.__CACHE:

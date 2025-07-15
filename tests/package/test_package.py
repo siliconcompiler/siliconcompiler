@@ -16,6 +16,12 @@ from siliconcompiler.package import InterProcessLock as dut_ipl
 from siliconcompiler import Chip
 
 
+@pytest.fixture(autouse=True)
+def unique_cache():
+    with patch.dict(Resolver._Resolver__CACHE, clear=True):
+        yield
+
+
 def test_init():
     resolver = Resolver("testpath", Chip("dummy"), "source://this")
 
@@ -616,13 +622,16 @@ def test_set_cache():
 def test_set_cache_different_chips():
     chip0 = Chip("dummy")
     chip1 = Chip("dummy")
+
     assert Resolver.get_cache(chip0) == {}
     assert Resolver.get_cache(chip1) == {}
+
     Resolver.set_cache(chip0, "test", "path")
     assert Resolver.get_cache(chip0) == {
         "test": "path"
     }
     assert Resolver.get_cache(chip1) == {}
+
     Resolver.set_cache(chip1, "test0", "path0")
     assert Resolver.get_cache(chip0) == {
         "test": "path"
