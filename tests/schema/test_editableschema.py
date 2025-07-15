@@ -297,9 +297,6 @@ def test_schema_keypath_with_default():
 
     assert len(schema.getkeys()) == 0
 
-    class TestSchema(BaseSchema):
-        pass
-
     obj0 = BaseSchema()
     obj1 = BaseSchema()
 
@@ -316,9 +313,6 @@ def test_schema_keypath_with_insert_at_default():
 
     assert len(schema.getkeys()) == 0
 
-    class TestSchema(BaseSchema):
-        pass
-
     obj0 = BaseSchema()
     obj1 = BaseSchema()
 
@@ -334,9 +328,6 @@ def test_schema_keypath_with_insert_after_default():
     schema = BaseSchema()
 
     assert len(schema.getkeys()) == 0
-
-    class TestSchema(BaseSchema):
-        pass
 
     obj0 = BaseSchema()
     obj1 = BaseSchema()
