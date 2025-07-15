@@ -30,13 +30,13 @@ class DependencySchema(BaseSchema):
                 help="List of named object dependencies included via add_dep()."))
 
         schema.insert(
-            'datadir', 'default', 'path',
+            'dataref', 'default', 'path',
             Parameter(
                 'str',
                 scope=Scope.GLOBAL,
                 shorthelp="Data directory path",
                 example=[
-                    "api: chip.set('datadir', "
+                    "api: chip.set('dataref', "
                     "'freepdk45_data', 'path', 'ssh://git@github.com/siliconcompiler/freepdk45/')"],
                 help=trim("""
                     Data directory path, this points the location where the data can be
@@ -56,13 +56,13 @@ class DependencySchema(BaseSchema):
                     """)))
 
         schema.insert(
-            'datadir', 'default', 'tag',
+            'dataref', 'default', 'tag',
             Parameter(
                 'str',
                 scope=Scope.GLOBAL,
                 shorthelp="Data directory reference tag/version",
                 example=[
-                    "api: chip.set('datadir', 'freepdk45_data', 'tag', '07ec4aa')"],
+                    "api: chip.set('dataref', 'freepdk45_data', 'tag', '07ec4aa')"],
                 help=trim("""
                     Data directory reference tag. The meaning of the this tag depends on the
                     context of the path.
@@ -268,7 +268,7 @@ class DependencySchema(BaseSchema):
             if isinstance(self.__deps[module], DependencySchema):
                 self.__deps[module]._populate_deps(module_map)
 
-    def register_datadir(self, name: str, path: str, tag: str = None):
+    def register_dataref(self, name: str, path: str, tag: str = None):
         """
         Registers a data directory by its name with the root and associated tag. If the path
         provided is a file, the path recorded will be the directory the file is located in.
@@ -280,22 +280,22 @@ class DependencySchema(BaseSchema):
             tag (str): Reference of the sources, can be commitid, branch name, tag
 
         Examples:
-            >>> schema.register_datadir('siliconcompiler_data',
+            >>> schema.register_dataref('siliconcompiler_data',
                     'git+https://github.com/siliconcompiler/siliconcompiler',
                     'v1.0.0')
             Records the data directory for siliconcompiler_data as a git clone for tag v1.0.0
-            >>> schema.register_datadir('file_data', __file__)
+            >>> schema.register_dataref('file_data', __file__)
             Records the data directory for file_data as the directory that __file__ is found in.
         """
 
         if os.path.isfile(path):
             path = os.path.dirname(os.path.abspath(path))
 
-        self.set("datadir", name, "path", path)
+        self.set("dataref", name, "path", path)
         if tag:
-            self.set("datadir", name, "tag", tag)
+            self.set("dataref", name, "tag", tag)
 
-    def find_datadir(self, name: str) -> str:
+    def find_dataref(self, name: str) -> str:
         """
         Returns absolute path to the data directory.
 
@@ -309,20 +309,20 @@ class DependencySchema(BaseSchema):
             Path to the directory root.
 
         Examples:
-            >>> schema.find_datadir('siliconcompiler')
+            >>> schema.find_dataref('siliconcompiler')
             Returns the path to the root of the siliconcompiler data directory.
         """
 
-        if not self.valid("datadir", name):
+        if not self.valid("dataref", name):
             raise ValueError(f"{name} is not a recognized source")
 
-        path = self.get("datadir", name, "path")
-        tag = self.get("datadir", name, "tag")
+        path = self.get("dataref", name, "path")
+        tag = self.get("dataref", name, "tag")
 
         resolver = Resolver.find_resolver(path)
         return resolver(name, self._parent(root=True), path, tag).get_path()
 
-    def _find_files_datadir_resolvers(self):
+    def _find_files_dataref_resolvers(self):
         """
         Returns a dictionary of path resolevrs data directory handling for find_files
 
@@ -331,11 +331,11 @@ class DependencySchema(BaseSchema):
         """
         schema_root = self._parent(root=True)
         resolver_map = {}
-        for datadir in self.getkeys("datadir"):
-            path = self.get("datadir", datadir, "path")
-            tag = self.get("datadir", datadir, "tag")
+        for dataref in self.getkeys("dataref"):
+            path = self.get("dataref", dataref, "path")
+            tag = self.get("dataref", dataref, "tag")
             resolver = Resolver.find_resolver(path)
-            resolver_map[datadir] = resolver(datadir, schema_root, path, tag).get_path
+            resolver_map[dataref] = resolver(dataref, schema_root, path, tag).get_path
         return resolver_map
 
     def find_files(self, *keypath,
