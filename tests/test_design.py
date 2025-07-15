@@ -6,8 +6,7 @@ import os.path
 
 from pathlib import Path
 
-from siliconcompiler.design import DesignSchema
-from siliconcompiler.design import NamedSchema
+from siliconcompiler import DesignSchema
 
 
 def test_design_keys():
@@ -267,6 +266,12 @@ def test_options_param_with_fileset():
 
 def test_options_depfileset():
     d = DesignSchema("test")
+    obj0 = DesignSchema("obj0")
+    obj0.set_topmodule("test", "rtl")
+    obj0.set_topmodule("test", "rtl.tech")
+    obj0.set_topmodule("test", "testbench.this")
+    d.add_dep(obj0)
+
     assert d.add_depfileset("obj0", "rtl", "rtl")
     assert d.add_depfileset("obj0", "rtl.tech", "rtl")
     assert d.add_depfileset("obj0", "testbench.this", "testbench")
@@ -278,7 +283,8 @@ def test_options_depfileset():
 
 
 def test_options_depfileset_with_object():
-    dep = NamedSchema("thisdep")
+    dep = DesignSchema("thisdep")
+    dep.set_topmodule("test", "rtl")
 
     d = DesignSchema("test")
     assert d.add_depfileset(dep, "rtl", "rtl")
@@ -293,6 +299,11 @@ def test_options_depfileset_with_invalid_input():
 
 def test_options_depfileset_with_fileset():
     d = DesignSchema("test")
+    obj0 = DesignSchema("obj0")
+    obj0.set_topmodule("test", "rtl")
+    obj0.set_topmodule("test", "rtl.tech")
+    obj0.set_topmodule("test", "testbench.this")
+    d.add_dep(obj0)
 
     with d.active_fileset("rtl"):
         assert d.add_depfileset("obj0", "rtl")
@@ -908,24 +919,6 @@ def test_get_fileset():
 
     with pytest.raises(ValueError, match="constraint is not defined in heartbeat"):
         dut.get_fileset("constraint")
-
-
-def test_get_fileset_invalid():
-    class Heartbeat(DesignSchema):
-        def __init__(self):
-            super().__init__('heartbeat')
-
-            # dependencies
-            self.add_dep(NamedSchema("test"))
-            with self.active_fileset("rtl"):
-                self.add_file("heartbeat_increment.v")
-                self.add_depfileset("test", "rtl.increment")
-
-            with self.active_fileset("testbench"):
-                self.add_file("tb.v")
-
-    with pytest.raises(TypeError, match="test must be a design object"):
-        Heartbeat().get_fileset("rtl")
 
 
 def test_get_fileset_duplicate():

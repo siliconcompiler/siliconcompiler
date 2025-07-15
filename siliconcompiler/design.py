@@ -253,12 +253,12 @@ class DesignSchema(NamedSchema, DependencySchema):
         return self.get('fileset', fileset, 'param', name)
 
     ###############################################
-    def add_depfileset(self, dep: Union[NamedSchema, str], depfileset: str, fileset: str = None):
+    def add_depfileset(self, dep: Union["DesignSchema", str], depfileset: str, fileset: str = None):
         """
         Record a reference to an imported dependency's fileset.
 
         Args:
-           dep (:class:`NamedSchema` or str): Dependency name or object.
+           dep (:class:`DesignSchema` or str): Dependency name or object.
            depfileset (str): Dependency fileset
            fileset (str): Fileset name.
 
@@ -271,11 +271,18 @@ class DesignSchema(NamedSchema, DependencySchema):
 
         if isinstance(dep, str):
             dep_name = dep
-        elif isinstance(dep, NamedSchema):
+            dep = self.get_dep(dep_name)
+        elif isinstance(dep, DesignSchema):
             dep_name = dep.name()
             self.add_dep(dep, clobber=True)
         else:
             raise TypeError("dep is not a valid type")
+
+        if not isinstance(dep, DesignSchema):
+            raise ValueError(f"cannot associate fileset ({depfileset}) with {dep.name()}")
+
+        if depfileset not in dep.getkeys("fileset"):
+            raise ValueError(f"{dep.name()} does not have {depfileset} as a fileset")
 
         return self.add("fileset", fileset, "depfileset", (dep_name, depfileset))
 
