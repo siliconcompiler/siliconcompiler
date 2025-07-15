@@ -6,8 +6,7 @@ import os.path
 
 from pathlib import Path
 
-from siliconcompiler.design import DesignSchema
-from siliconcompiler.design import NamedSchema
+from siliconcompiler import DesignSchema
 
 
 def test_design_keys():
