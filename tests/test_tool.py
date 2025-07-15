@@ -1555,3 +1555,59 @@ def test_add_commandline_option(running_project):
         assert runtool.add_commandline_option("arg0")
         assert runtool.get("option") == ["-exit", "arg0"]
         assert runtool.get_commandline_options() == ["-exit", "arg0"]
+
+
+def test_add_input_file_invalid(running_project):
+    with running_project.get_nop().runtime(running_project) as runtool:
+        with pytest.raises(ValueError, match="only file or ext can be specified"):
+            runtool.add_input_file(file="this.v", ext="v")
+
+
+def test_add_input_file_file(running_project):
+    with running_project.get_nop().runtime(running_project) as runtool:
+        runtool.add_input_file("this.v")
+        assert runtool.get("input") == ["this.v"]
+
+
+def test_add_input_file_ext(running_project):
+    with running_project.get_nop().runtime(running_project) as runtool:
+        runtool.add_input_file(ext="v")
+        assert runtool.get("input") == ["designtop.v"]
+        runtool.add_input_file("this.v")
+        assert runtool.get("input") == ["designtop.v", "this.v"]
+
+
+def test_add_input_file_clobber(running_project):
+    with running_project.get_nop().runtime(running_project) as runtool:
+        runtool.add_input_file(ext="v")
+        assert runtool.get("input") == ["designtop.v"]
+        runtool.add_input_file("this.v", clobber=True)
+        assert runtool.get("input") == ["this.v"]
+
+
+def test_add_output_file_invalid(running_project):
+    with running_project.get_nop().runtime(running_project) as runtool:
+        with pytest.raises(ValueError, match="only file or ext can be specified"):
+            runtool.add_output_file(file="this.v", ext="v")
+
+
+def test_add_output_file_file(running_project):
+    with running_project.get_nop().runtime(running_project) as runtool:
+        runtool.add_output_file("this.v")
+        assert runtool.get("output") == ["this.v"]
+
+
+def test_add_output_file_ext(running_project):
+    with running_project.get_nop().runtime(running_project) as runtool:
+        runtool.add_output_file(ext="v")
+        assert runtool.get("output") == ["designtop.v"]
+        runtool.add_output_file("this.v")
+        assert runtool.get("output") == ["designtop.v", "this.v"]
+
+
+def test_add_output_file_clobber(running_project):
+    with running_project.get_nop().runtime(running_project) as runtool:
+        runtool.add_output_file(ext="v")
+        assert runtool.get("output") == ["designtop.v"]
+        runtool.add_output_file("this.v", clobber=True)
+        assert runtool.get("output") == ["this.v"]
