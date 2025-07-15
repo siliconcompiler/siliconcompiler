@@ -1134,7 +1134,7 @@ class TaskSchema(NamedSchema):
 
         Args:
             file (str): full filename
-            ext (str): file extenstion, if specified, the filename will be <top>.<ext>
+            ext (str): file extension, if specified, the filename will be <top>.<ext>
             clobber (bool): overwrite existing value
         """
         if file and ext:
@@ -1155,7 +1155,7 @@ class TaskSchema(NamedSchema):
 
         Args:
             file (str): full filename
-            ext (str): file extenstion, if specified, the filename will be <top>.<ext>
+            ext (str): file extension, if specified, the filename will be <top>.<ext>
             clobber (bool): overwrite existing value
         """
         if file and ext:
