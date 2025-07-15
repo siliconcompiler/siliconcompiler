@@ -1,8 +1,5 @@
-import logging
-
 import os.path
 
-from siliconcompiler.schema import BaseSchema, EditableSchema
 from siliconcompiler.packageschema import PackageSchema
 
 
@@ -62,42 +59,6 @@ def test_register_ref_dir():
     assert schema.get("source", "testpackage", "ref") is None
 
 
-def test_get_path_cache_empty():
-    schema = PackageSchema()
-    assert schema.get_path_cache() == {}
-
-
-def test_get_path_cache_via_set_caches():
-    schema = PackageSchema()
-    assert schema.get_path_cache() == {}
-    schema._set_cache("testpackage", "thispath")
-    assert schema.get_path_cache() == {'testpackage': 'thispath'}
-
-
 def test_get_resolvers_empty():
     schema = PackageSchema()
     assert schema.get_resolvers() == {}
-
-
-def test_get_resolvers_with_value(caplog):
-    class TestProject(BaseSchema):
-        def __init__(self):
-            super().__init__()
-
-            self.logger = logging.getLogger()
-            self.logger.setLevel(logging.INFO)
-
-            schema = EditableSchema(self)
-            schema.insert("package", PackageSchema())
-
-    proj = TestProject()
-
-    schema = proj.get("package", field="schema")
-    assert "testpackage" not in schema.get_resolvers()
-    assert schema.get_path_cache() == {}
-    assert schema.register("testpackage", ".") is True
-    resolvers = schema.get_resolvers()
-    assert "testpackage" in resolvers
-    assert resolvers["testpackage"]() == os.path.abspath(".")
-    assert schema.get_path_cache() == {'testpackage': os.path.abspath(".")}
-    assert "Found testpackage data at " in caplog.text

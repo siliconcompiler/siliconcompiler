@@ -51,13 +51,15 @@ class Resolver:
     _RESOLVERS_LOCK = threading.Lock()
     _RESOLVERS = {}
 
+    __CACHE_LOCK = threading.Lock()
+    __CACHE = {}
+
     def __init__(self, name, root, source, reference=None):
         self.__name = name
         self.__root = root
         self.__source = source
         self.__reference = reference
         self.__changed = False
-        self.__cache = {}
 
         if self.__root and hasattr(self.__root, "logger"):
             self.__logger = self.__root.logger.getChild(f"resolver-{self.name}")
@@ -135,26 +137,45 @@ class Resolver:
     def set_changed(self):
         self.__changed = True
 
-    def set_cache(self, cache):
-        self.__cache = cache
-
     def resolve(self):
         raise NotImplementedError("child class must implement this")
 
+    @staticmethod
+    def get_cache(root, name: str = None):
+        with Resolver.__CACHE_LOCK:
+            root_id = id(root)
+            if root_id not in Resolver.__CACHE:
+                Resolver.__CACHE[root_id] = {}
+
+            if name:
+                return Resolver.__CACHE[root_id].get(name, None)
+
+            return Resolver.__CACHE[root_id].copy()
+
+    @staticmethod
+    def set_cache(root, name: str, path: str):
+        with Resolver.__CACHE_LOCK:
+            root_id = id(root)
+            if root_id not in Resolver.__CACHE:
+                Resolver.__CACHE[root_id] = {}
+            Resolver.__CACHE[root_id][name] = path
+
     def get_path(self):
-        if self.name in self.__cache:
-            return self.__cache[self.name]
+        cache_path = Resolver.get_cache(self.__root, self.name)
+        if cache_path:
+            return cache_path
 
         path = self.resolve()
         if not os.path.exists(path):
             raise FileNotFoundError(f"Unable to locate {self.name} at {path}")
 
-        if self.changed and self.name not in self.__cache:
+        if self.changed:
             self.logger.info(f'Saved {self.name} data to {path}')
         else:
             self.logger.info(f'Found {self.name} data at {path}')
-        self.__cache[self.name] = path
-        return self.__cache[self.name]
+
+        Resolver.set_cache(self.__root, self.name, path)
+        return path
 
     def __resolve_env(self, path):
         env_save = os.environ.copy()

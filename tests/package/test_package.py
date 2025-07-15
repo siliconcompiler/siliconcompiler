@@ -16,6 +16,12 @@ from siliconcompiler.package import InterProcessLock as dut_ipl
 from siliconcompiler import Chip
 
 
+@pytest.fixture(autouse=True)
+def unique_cache():
+    with patch.dict(Resolver._Resolver__CACHE, clear=True):
+        yield
+
+
 def test_init():
     resolver = Resolver("testpath", Chip("dummy"), "source://this")
 
@@ -174,7 +180,7 @@ def test_get_path_usecache(caplog):
     chip.logger.setLevel(logging.INFO)
 
     resolver = AlwaysCache("alwayscache", chip, "notused", "notused")
-    resolver.set_cache({"alwayscache": "path"})
+    Resolver.set_cache(chip, "alwayscache", "path")
     assert resolver.get_path() == "path"
 
     assert caplog.text == ""
@@ -592,3 +598,44 @@ def test_keypath_resolver_no_root():
     resolver = KeyPathResolver("thisname", None, "key://option,dir,testdir")
     with pytest.raises(RuntimeError, match="Root schema has not be defined for thisname"):
         resolver.resolve()
+
+
+def test_get_cache():
+    chip = Chip("dummy")
+    assert Resolver.get_cache(chip) == {}
+
+
+def test_set_cache():
+    chip = Chip("dummy")
+    assert Resolver.get_cache(chip) == {}
+    Resolver.set_cache(chip, "test", "path")
+    assert Resolver.get_cache(chip) == {
+        "test": "path"
+    }
+    Resolver.set_cache(chip, "test0", "path0")
+    assert Resolver.get_cache(chip) == {
+        "test": "path",
+        "test0": "path0",
+    }
+
+
+def test_set_cache_different_chips():
+    chip0 = Chip("dummy")
+    chip1 = Chip("dummy")
+
+    assert Resolver.get_cache(chip0) == {}
+    assert Resolver.get_cache(chip1) == {}
+
+    Resolver.set_cache(chip0, "test", "path")
+    assert Resolver.get_cache(chip0) == {
+        "test": "path"
+    }
+    assert Resolver.get_cache(chip1) == {}
+
+    Resolver.set_cache(chip1, "test0", "path0")
+    assert Resolver.get_cache(chip0) == {
+        "test": "path"
+    }
+    assert Resolver.get_cache(chip1) == {
+        "test0": "path0",
+    }

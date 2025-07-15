@@ -14,8 +14,6 @@ class PackageSchema(BaseSchema):
 
         schema_package(self)
 
-        self.__cache = {}
-
     def register(self, name, path, ref=None, clobber=True):
         """
         Registers a package by its name with the source path and reference
@@ -60,7 +58,6 @@ class PackageSchema(BaseSchema):
         resolver = resolver_cls(package, self._parent(root=True),
                                 self.get("source", package, "path"),
                                 self.get("source", package, "ref"))
-        resolver.set_cache(self.__cache)
         return resolver
 
     def get_resolvers(self):
@@ -72,12 +69,6 @@ class PackageSchema(BaseSchema):
             resolvers[package] = self.get_resolver(package).get_path
 
         return resolvers
-
-    def _set_cache(self, package, path):
-        self.__cache[package] = path
-
-    def get_path_cache(self):
-        return self.__cache.copy()
 
 
 ############################################
