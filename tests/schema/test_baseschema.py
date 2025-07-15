@@ -1846,4 +1846,5 @@ def test_keypath_with_default_schema_access():
     assert schema.get("test0", field="schema")._keypath == ("test0",)
     assert schema.get("test0", "default", field="schema")._keypath == ("test0", "default")
     assert schema.get("test0", "test1", field="schema")._keypath == ("test0", "test1")
-    assert schema.get("test0", "test1", "test1", field="schema")._keypath == ("test0", "test1", "test1")
+    assert schema.get("test0", "test1", "test1", field="schema")._keypath == \
+        ("test0", "test1", "test1")
