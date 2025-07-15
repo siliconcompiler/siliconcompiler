@@ -1127,6 +1127,48 @@ class TaskSchema(NamedSchema):
         """
         return self.get("option")
 
+    def add_input_file(self, file: str = None, ext: str = None, clobber: bool = False):
+        """
+        Add a required input file from the previous step in the flow.
+        file and ext are mutually exclusive.
+
+        Args:
+            file (str): full filename
+            ext (str): file extenstion, if specified, the filename will be <top>.<ext>
+            clobber (bool): overwrite existing value
+        """
+        if file and ext:
+            raise ValueError("only file or ext can be specified")
+
+        if ext:
+            file = f"{self.design_topmodule()}.{ext}"
+
+        if clobber:
+            return self.set("input", file)
+        else:
+            return self.add("input", file)
+
+    def add_output_file(self, file: str = None, ext: str = None, clobber: bool = False):
+        """
+        Add an output file that this task will produce
+        file and ext are mutually exclusive.
+
+        Args:
+            file (str): full filename
+            ext (str): file extenstion, if specified, the filename will be <top>.<ext>
+            clobber (bool): overwrite existing value
+        """
+        if file and ext:
+            raise ValueError("only file or ext can be specified")
+
+        if ext:
+            file = f"{self.design_topmodule()}.{ext}"
+
+        if clobber:
+            return self.set("output", file)
+        else:
+            return self.add("output", file)
+
     def record_metric(self, metric, value, source_file=None, source_unit=None):
         '''
         Records a metric and associates the source file with it.
