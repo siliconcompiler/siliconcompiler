@@ -63,20 +63,20 @@ class DesignSchema(NamedSchema, DependencySchema):
                  value: str,
                  fileset: str = None,
                  clobber: bool = False,
-                 datadir: str = None) -> List[str]:
+                 dataref: str = None) -> List[str]:
         """Adds include directories to a fileset.
 
         Args:
            value (str or Path): Include directory name.
            fileset (str, optional): Fileset name.
            clobber (bool, optional): Clears existing list before adding item
-           datadir (str, optional): Package name
+           dataref (str, optional): Data directory reference name
 
         Returns:
            list[str]: List of include directories
         """
         return self.__set_add(fileset, 'idir', value, clobber, typelist=[str, list],
-                              datadir=datadir)
+                              datadir=dataref)
 
     def get_idir(self, fileset: str = None) -> List[str]:
         """Returns include directories for a fileset.
@@ -152,20 +152,20 @@ class DesignSchema(NamedSchema, DependencySchema):
                    value: str,
                    fileset: str = None,
                    clobber: bool = False,
-                   datadir: str = None) -> List[str]:
+                   dataref: str = None) -> List[str]:
         """Adds dynamic library directories to a fileset.
 
         Args:
            value (str or List[str]): Library directories
            fileset (str, optional): Fileset name.
            clobber (bool, optional): Clears existing list before adding item.
-           datadir (str, optional): Package name
+           dataref (str, optional): Data directory reference name
 
         Returns:
            list[str]: List of library directories.
         """
         return self.__set_add(fileset, 'libdir', value, clobber, typelist=[str, list],
-                              datadir=datadir)
+                              datadir=dataref)
 
     def get_libdir(self, fileset: str = None) -> List[str]:
         """Returns dynamic library directories for a fileset.
@@ -252,6 +252,7 @@ class DesignSchema(NamedSchema, DependencySchema):
             raise ValueError("fileset key must be a string")
         return self.get('fileset', fileset, 'param', name)
 
+    ###############################################
     def add_depfileset(self, dep: Union[NamedSchema, str], depfileset: str, fileset: str = None):
         """
         Record a reference to an imported dependency's fileset.
@@ -302,7 +303,7 @@ class DesignSchema(NamedSchema, DependencySchema):
                  fileset: str = None,
                  filetype: str = None,
                  clobber: bool = False,
-                 datadir: str = None) -> List[str]:
+                 dataref: str = None) -> List[str]:
         """
         Adds files to a fileset.
 
@@ -318,7 +319,7 @@ class DesignSchema(NamedSchema, DependencySchema):
             fileset (str): Logical group to associate the file with.
             filetype (str, optional): Type of the file (e.g., 'verilog', 'sdc').
             clobber (bool, optional): Clears list before adding item
-            datadir (str, optional): Package name
+            dataref (str, optional): Data directory reference name
 
         Raises:
             SiliconCompilerError: If fileset or filetype cannot be inferred from
@@ -368,11 +369,11 @@ class DesignSchema(NamedSchema, DependencySchema):
             else:
                 raise ValueError(f"Unrecognized file extension: {ext}")
 
-        if not datadir:
-            datadir = self._get_active("package")
+        if not dataref:
+            dataref = self._get_active("package")
 
         # adding files to dictionary
-        with self.active_datadir(datadir):
+        with self.active_datadir(dataref):
             if clobber:
                 return self.set('fileset', fileset, 'file', filetype, filename)
             else:
@@ -558,13 +559,13 @@ class DesignSchema(NamedSchema, DependencySchema):
                     datadir_name, pdir = get_datadir(dir)
                     if datadir_name:
                         dir = os.path.relpath(dir, pdir)
-                    self.add_idir(dir, datadir=datadir_name)
+                    self.add_idir(dir, dataref=datadir_name)
             if files:
                 for f in files:
                     datadir_name, pdir = get_datadir(f)
                     if datadir_name:
                         f = os.path.relpath(f, pdir)
-                    self.add_file(f, datadir=datadir_name)
+                    self.add_file(f, dataref=datadir_name)
 
     ################################################
     def read_fileset(self,
