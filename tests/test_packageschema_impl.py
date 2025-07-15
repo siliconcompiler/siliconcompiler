@@ -1,10 +1,10 @@
 import os.path
 
-from siliconcompiler.packageschema import PackageSchema
+from siliconcompiler.packageschema import PackageSchemaTmp
 
 
 def test_register():
-    schema = PackageSchema()
+    schema = PackageSchemaTmp()
     assert schema.getkeys("source") == tuple()
     assert schema.register("testpackage", "pathtosource") is True
     assert schema.get("source", "testpackage", "path") == "pathtosource"
@@ -12,7 +12,7 @@ def test_register():
 
 
 def test_register_ref():
-    schema = PackageSchema()
+    schema = PackageSchemaTmp()
     assert schema.getkeys("source") == tuple()
     assert schema.register("testpackage", "pathtosource", ref="123456") is True
     assert schema.get("source", "testpackage", "path") == "pathtosource"
@@ -20,7 +20,7 @@ def test_register_ref():
 
 
 def test_register_ref_no_clobber():
-    schema = PackageSchema()
+    schema = PackageSchemaTmp()
     assert schema.getkeys("source") == tuple()
     assert schema.register("testpackage", "pathtosource", ref="123456") is True
     assert schema.get("source", "testpackage", "path") == "pathtosource"
@@ -30,7 +30,7 @@ def test_register_ref_no_clobber():
 
 
 def test_register_ref_with_clobber():
-    schema = PackageSchema()
+    schema = PackageSchemaTmp()
     assert schema.getkeys("source") == tuple()
     assert schema.register("testpackage", "pathtosource", ref="123456") is True
     assert schema.get("source", "testpackage", "path") == "pathtosource"
@@ -40,7 +40,7 @@ def test_register_ref_with_clobber():
 
 
 def test_register_ref_file():
-    schema = PackageSchema()
+    schema = PackageSchemaTmp()
     assert schema.getkeys("source") == tuple()
     with open("test.txt", "w") as f:
         f.write("test")
@@ -51,7 +51,7 @@ def test_register_ref_file():
 
 
 def test_register_ref_dir():
-    schema = PackageSchema()
+    schema = PackageSchemaTmp()
     assert schema.getkeys("source") == tuple()
 
     assert schema.register("testpackage", ".") is True
@@ -60,5 +60,5 @@ def test_register_ref_dir():
 
 
 def test_get_resolvers_empty():
-    schema = PackageSchema()
+    schema = PackageSchemaTmp()
     assert schema.get_resolvers() == {}

@@ -8,11 +8,11 @@ from siliconcompiler.schema.utils import trim
 from siliconcompiler.package import Resolver
 
 
-class PackageSchema(BaseSchema):
+class PackageSchemaTmp(BaseSchema):
     def __init__(self):
         super().__init__()
 
-        schema_package(self)
+        schema_package_tmp(self)
 
     def register(self, name, path, ref=None, clobber=True):
         """
@@ -74,7 +74,7 @@ class PackageSchema(BaseSchema):
 ############################################
 # Package information
 ############################################
-def schema_package(schema):
+def schema_package_tmp(schema):
     schema = EditableSchema(schema)
 
     schema.insert(
