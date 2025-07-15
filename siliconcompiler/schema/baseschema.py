@@ -231,11 +231,13 @@ class BaseSchema:
 
         try:
             require_leaf = True
+            insert_defaults = False
             if field == 'schema':
                 require_leaf = False
+                insert_defaults = True
             param = self.__search(
                 *keypath,
-                insert_defaults=False,
+                insert_defaults=insert_defaults,
                 use_default=True,
                 require_leaf=require_leaf)
             if field == 'schema':

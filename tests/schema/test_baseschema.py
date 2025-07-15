@@ -1877,8 +1877,8 @@ def test_keypath_with_default_unset():
     edit.insert("default", "test1", "test2", Parameter("str"))
     assert schema._keypath == tuple()
     assert schema.get("default", field="schema")._keypath == ("default",)
-    assert schema.get("test0", field="schema")._keypath == ("default",)
-    assert schema.get("test0", "test1", field="schema")._keypath == ("default", "test1")
+    assert schema.get("test0", field="schema")._keypath == ("test0",)
+    assert schema.get("test0", "test1", field="schema")._keypath == ("test0", "test1")
 
     assert schema.set("test0", "test1", "test2", "test")
     assert schema.get("test0", field="schema")._keypath == ("test0",)
@@ -1897,3 +1897,16 @@ def test_keypath_with_default_set():
     assert schema.get("test0", "test1", field="schema")._keypath == ("test0", "test1")
     assert schema.get("test3", field="schema")._keypath == ("test3",)
     assert schema.get("test3", "test1", field="schema")._keypath == ("test3", "test1")
+
+
+def test_keypath_with_default_schema_access():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("test0", "default", "test1", "test2", Parameter("str"))
+
+    assert schema._keypath == tuple()
+    assert schema.get("test0", field="schema")._keypath == ("test0",)
+    assert schema.get("test0", "default", field="schema")._keypath == ("test0", "default")
+    assert schema.get("test0", "test1", field="schema")._keypath == ("test0", "test1")
+    assert schema.get("test0", "test1", "test1", field="schema")._keypath == \
+        ("test0", "test1", "test1")
