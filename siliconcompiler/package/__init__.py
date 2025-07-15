@@ -141,25 +141,27 @@ class Resolver:
         raise NotImplementedError("child class must implement this")
 
     @staticmethod
-    def get_cache(name: str = None):
+    def get_cache(root, name: str = None):
         with Resolver.__CACHE_LOCK:
-            if os.getpid() not in Resolver.__CACHE:
-                Resolver.__CACHE[os.getpid()] = {}
+            root_id = id(root)
+            if root_id not in Resolver.__CACHE:
+                Resolver.__CACHE[root_id] = {}
 
             if name:
-                return Resolver.__CACHE[os.getpid()].get(name, None)
+                return Resolver.__CACHE[root_id].get(name, None)
 
-            return Resolver.__CACHE[os.getpid()].copy()
+            return Resolver.__CACHE[root_id].copy()
 
     @staticmethod
-    def set_cache(name, path):
+    def set_cache(root, name, path):
         with Resolver.__CACHE_LOCK:
-            if os.getpid() not in Resolver.__CACHE:
-                Resolver.__CACHE[os.getpid()] = {}
-            Resolver.__CACHE[os.getpid()][name] = path
+            root_id = id(root)
+            if root_id not in Resolver.__CACHE:
+                Resolver.__CACHE[root_id] = {}
+            Resolver.__CACHE[root_id][name] = path
 
     def get_path(self):
-        cache_path = Resolver.get_cache(self.name)
+        cache_path = Resolver.get_cache(self.__root, self.name)
         if cache_path:
             return cache_path
 
@@ -172,7 +174,7 @@ class Resolver:
         else:
             self.logger.info(f'Found {self.name} data at {path}')
 
-        Resolver.set_cache(self.name, path)
+        Resolver.set_cache(self.__root, self.name, path)
         return path
 
     def __resolve_env(self, path):

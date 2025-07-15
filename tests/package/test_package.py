@@ -174,7 +174,7 @@ def test_get_path_usecache(caplog):
     chip.logger.setLevel(logging.INFO)
 
     resolver = AlwaysCache("alwayscache", chip, "notused", "notused")
-    resolver.set_cache("alwayscache", "path")
+    Resolver.set_cache(chip, "alwayscache", "path")
     assert resolver.get_path() == "path"
 
     assert caplog.text == ""
@@ -595,21 +595,38 @@ def test_keypath_resolver_no_root():
 
 
 def test_get_cache():
-    with patch("os.getpid") as pid:
-        pid.return_value = "notanumber"
-        assert Resolver.get_cache() == {}
+    chip = Chip("dummy")
+    assert Resolver.get_cache(chip) == {}
 
 
 def test_set_cache():
-    with patch("os.getpid") as pid:
-        pid.return_value = "notanumber"
-        assert Resolver.get_cache() == {}
-        Resolver.set_cache("test", "path")
-        assert Resolver.get_cache() == {
-            "test": "path"
-        }
-        Resolver.set_cache("test0", "path0")
-        assert Resolver.get_cache() == {
-            "test": "path",
-            "test0": "path0",
-        }
+    chip = Chip("dummy")
+    assert Resolver.get_cache(chip) == {}
+    Resolver.set_cache(chip, "test", "path")
+    assert Resolver.get_cache(chip) == {
+        "test": "path"
+    }
+    Resolver.set_cache(chip, "test0", "path0")
+    assert Resolver.get_cache(chip) == {
+        "test": "path",
+        "test0": "path0",
+    }
+
+
+def test_set_cache_different_chips():
+    chip0 = Chip("dummy")
+    chip1 = Chip("dummy")
+    assert Resolver.get_cache(chip0) == {}
+    assert Resolver.get_cache(chip1) == {}
+    Resolver.set_cache(chip0, "test", "path")
+    assert Resolver.get_cache(chip0) == {
+        "test": "path"
+    }
+    assert Resolver.get_cache(chip1) == {}
+    Resolver.set_cache(chip1, "test0", "path0")
+    assert Resolver.get_cache(chip0) == {
+        "test": "path"
+    }
+    assert Resolver.get_cache(chip1) == {
+        "test0": "path0",
+    }

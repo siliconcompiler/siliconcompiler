@@ -201,7 +201,7 @@ class TaskScheduler:
                         packages = info["parent_pipe"].recv()
                         if isinstance(packages, dict):
                             for package, path in packages.items():
-                                Resolver.set_cache(package, path)
+                                Resolver.set_cache(self.__chip, package, path)
                     except:  # noqa E722
                         pass
 

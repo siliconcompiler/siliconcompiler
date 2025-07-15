@@ -103,7 +103,7 @@ def main():
     if args.cachemap:
         for cachepair in args.cachemap:
             package, path = cachepair.split(':')
-            Resolver.set_cache(package, path)
+            Resolver.set_cache(chip, package, path)
 
     # Populate cache
     for resolver in chip.get('package', field='schema').get_resolvers().values():

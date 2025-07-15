@@ -616,7 +616,7 @@ class SchedulerNode:
         journal.stop()
 
         if self.__pipe:
-            self.__pipe.send(Resolver.get_cache())
+            self.__pipe.send(Resolver.get_cache(self.__chip))
 
     def execute(self):
         self.logger.info(f'Running in {self.__workdir}')
