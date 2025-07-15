@@ -94,6 +94,11 @@ Schema Classes
     :show-inheritance:
     :inherited-members:
 
+.. autoclass:: siliconcompiler.StdCellLibrarySchema
+    :members:
+    :show-inheritance:
+    :inherited-members:
+
 Core Schema Classes
 ===================
 

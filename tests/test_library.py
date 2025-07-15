@@ -1,6 +1,6 @@
 import pytest
 
-from siliconcompiler import LibrarySchema
+from siliconcompiler import LibrarySchema, StdCellLibrarySchema
 from siliconcompiler.schema import PerNode, Scope
 
 
@@ -153,3 +153,70 @@ def test_define_tool_parameter_with_defvalue_file_copy_on():
     assert param.get(field="shorthelp") == "liberty file for synthesis"
     assert param.default.get() == "./this.lib"
     assert param.get(field="copy") is True
+
+
+def test_stdlib_asic_keys():
+    assert StdCellLibrarySchema().allkeys("asic") == {
+        ('cells', 'antenna',),
+        ('cells', 'clkbuf',),
+        ('cells', 'clkgate',),
+        ('cells', 'clklogic',),
+        ('cells', 'decap',),
+        ('cells', 'dontuse',),
+        ('cells', 'endcap',),
+        ('cells', 'filler',),
+        ('cells', 'hold',),
+        ('cells', 'tap',),
+        ('cells', 'tie',),
+        ('cornerfilesets', 'default',),
+        ('site',)
+    }
+
+
+def test_add_asic_corner_fileset():
+    lib = StdCellLibrarySchema("lib")
+    with lib.active_fileset("models"):
+        lib.add_file("test.lib")
+        assert lib.add_asic_corner_fileset("slow")
+    assert lib.get("asic", "cornerfilesets", "slow") == ["models"]
+
+
+def test_add_asic_corner_fileset_multiple():
+    lib = StdCellLibrarySchema("lib")
+    with lib.active_fileset("models1"):
+        lib.add_file("test.lib")
+        assert lib.add_asic_corner_fileset("slow")
+    with lib.active_fileset("models2"):
+        lib.add_file("test.lib")
+        assert lib.add_asic_corner_fileset("slow")
+    assert lib.get("asic", "cornerfilesets", "slow") == ["models1", "models2"]
+
+
+def test_add_asic_corner_fileset_without_active():
+    lib = StdCellLibrarySchema("lib")
+    with lib.active_fileset("models"):
+        lib.add_file("test.lib")
+    assert lib.add_asic_corner_fileset("slow", "models")
+
+
+def test_add_asic_corner_fileset_missing_fileset():
+    with pytest.raises(ValueError, match="models is not defined"):
+        StdCellLibrarySchema("lib").add_asic_corner_fileset("slow", "models")
+
+
+def test_add_asic_corner_fileset_invalid_fileset():
+    with pytest.raises(TypeError, match="fileset must be a string"):
+        StdCellLibrarySchema("lib").add_asic_corner_fileset("slow", 8)
+
+
+def test_add_asic_cell_list():
+    lib = StdCellLibrarySchema("lib")
+    lib.add_asic_cell_list("dontuse", "*X0*")
+    lib.add_asic_cell_list("dontuse", "*X1*")
+    assert lib.get("asic", "cells", "dontuse") == ["*X0*", "*X1*"]
+
+
+def test_add_asic_site():
+    lib = StdCellLibrarySchema("lib")
+    lib.add_asic_site("sc7p5site")
+    assert lib.get("asic", "site") == ["sc7p5site"]
