@@ -290,3 +290,60 @@ def test_schema_parent():
         schema.get("test0", "test1", field="schema")
     assert schema.get("test0", "test1", "test3", field="schema")._parent() is \
         schema.get("test0", "test1", field="schema")
+
+
+def test_schema_keypath_with_default():
+    schema = BaseSchema()
+
+    assert len(schema.getkeys()) == 0
+
+    class TestSchema(BaseSchema):
+        pass
+
+    obj0 = BaseSchema()
+    obj1 = BaseSchema()
+
+    edit = EditableSchema(schema)
+    edit.insert("test0", "default", "test2", obj0)
+    edit.insert("test0", "test1", "test3", obj1)
+
+    assert obj0._keypath == ("test0", "default", "test2")
+    assert obj1._keypath == ("test0", "test1", "test3")
+
+
+def test_schema_keypath_with_insert_at_default():
+    schema = BaseSchema()
+
+    assert len(schema.getkeys()) == 0
+
+    class TestSchema(BaseSchema):
+        pass
+
+    obj0 = BaseSchema()
+    obj1 = BaseSchema()
+
+    edit = EditableSchema(schema)
+    edit.insert("test0", "default", "test2", obj0)
+    EditableSchema(schema.get("test0", "test1", field="schema")).insert("test3", obj1)
+
+    assert obj0._keypath == ("test0", "default", "test2")
+    assert obj1._keypath == ("test0", "test1", "test3")
+
+
+def test_schema_keypath_with_insert_after_default():
+    schema = BaseSchema()
+
+    assert len(schema.getkeys()) == 0
+
+    class TestSchema(BaseSchema):
+        pass
+
+    obj0 = BaseSchema()
+    obj1 = BaseSchema()
+
+    edit = EditableSchema(schema)
+    edit.insert("test0", "default", "test2", "test3", obj0)
+    EditableSchema(schema.get("test0", "test1", "test2", field="schema")).insert("test4", obj1)
+
+    assert obj0._keypath == ("test0", "default", "test2", "test3")
+    assert obj1._keypath == ("test0", "test1", "test2", "test4")
