@@ -22,8 +22,8 @@ def test_design_keys():
         ('fileset', 'default', 'undefine'),
         ('fileset', 'default', 'param', 'default'),
         ('fileset', 'default', 'depfileset'),
-        ('datadir', 'default', 'path'),
-        ('datadir', 'default', 'tag'),
+        ('dataref', 'default', 'path'),
+        ('dataref', 'default', 'tag'),
     ])
 
     assert set(DesignSchema("test").allkeys()) == golden_keys
@@ -608,8 +608,8 @@ def test_read_fileset(datadir):
     d = DesignSchema("test")
 
     d.read_fileset(os.path.join(datadir, "heartbeat.f"), fileset="rtl")
-    assert d.getkeys("datadir") == ('flist-test-rtl-heartbeat.f-0', )
-    assert d.get("datadir", "flist-test-rtl-heartbeat.f-0", "path") == os.path.abspath(datadir)
+    assert d.getkeys("dataref") == ('flist-test-rtl-heartbeat.f-0', )
+    assert d.get("dataref", "flist-test-rtl-heartbeat.f-0", "path") == os.path.abspath(datadir)
     assert d.get_idir("rtl") == [os.path.abspath(datadir)]
     assert d.get_define("rtl") == ['ASIC']
     assert d.get_file("rtl") == [
@@ -634,8 +634,8 @@ def test_read_fileset_with_abspath(datadir):
     d = DesignSchema("new")
     d.read_fileset("test.f", fileset="test")
 
-    assert d.getkeys("datadir") == ('flist-new-test-test.f-0', )
-    assert d.get("datadir", "flist-new-test-test.f-0", "path") == \
+    assert d.getkeys("dataref") == ('flist-new-test-test.f-0', )
+    assert d.get("dataref", "flist-new-test-test.f-0", "path") == \
         Path(os.path.abspath(datadir)).as_posix()
     assert d.get_file("test") == [
         os.path.abspath(os.path.join(datadir, 'heartbeat.v')),
@@ -648,8 +648,8 @@ def test_read_fileset_with_fileset(datadir):
 
     with d.active_fileset("rtl"):
         d.read_fileset(os.path.join(datadir, "heartbeat.f"))
-    assert d.getkeys("datadir") == ('flist-test-rtl-heartbeat.f-0', )
-    assert d.get("datadir", "flist-test-rtl-heartbeat.f-0", "path") == os.path.abspath(datadir)
+    assert d.getkeys("dataref") == ('flist-test-rtl-heartbeat.f-0', )
+    assert d.get("dataref", "flist-test-rtl-heartbeat.f-0", "path") == os.path.abspath(datadir)
     assert d.get_idir("rtl") == [os.path.abspath(datadir)]
     assert d.get_define("rtl") == ['ASIC']
     assert d.get_file("rtl") == [
@@ -687,9 +687,9 @@ def test_read_fileset_multiple_packages(datadir):
 
     d.read_fileset("flist.f", fileset="rtl")
 
-    assert d.getkeys("datadir") == ('flist-test-rtl-flist.f-0', 'flist-test-rtl-flist.f-1')
-    assert d.get("datadir", "flist-test-rtl-flist.f-0", "path") == os.path.abspath("files1")
-    assert d.get("datadir", "flist-test-rtl-flist.f-1", "path") == os.path.abspath("files2")
+    assert d.getkeys("dataref") == ('flist-test-rtl-flist.f-0', 'flist-test-rtl-flist.f-1')
+    assert d.get("dataref", "flist-test-rtl-flist.f-0", "path") == os.path.abspath("files1")
+    assert d.get("dataref", "flist-test-rtl-flist.f-1", "path") == os.path.abspath("files2")
     assert d.get_idir("rtl") == []
     assert d.get_define("rtl") == []
     assert d.get_file("rtl") == [
@@ -699,7 +699,7 @@ def test_read_fileset_multiple_packages(datadir):
 
 
 def test_heartbeat_example(datadir):
-    datadir = Path(datadir)
+    dataref = Path(datadir)
 
     class Increment(DesignSchema):
         def __init__(self):
@@ -708,7 +708,7 @@ def test_heartbeat_example(datadir):
             # rtl
             fileset = 'rtl'
             self.set_topmodule('increment', fileset)
-            self.add_file(datadir / 'increment.v', fileset)
+            self.add_file(dataref / 'increment.v', fileset)
 
     class Heartbeat(DesignSchema):
         def __init__(self):
@@ -717,16 +717,16 @@ def test_heartbeat_example(datadir):
             # rtl
             fileset = 'rtl'
             self.set_topmodule('heartbeat', fileset)
-            self.add_file(datadir / 'heartbeat_increment.v', fileset)
+            self.add_file(dataref / 'heartbeat_increment.v', fileset)
 
             # constraints
             fileset = 'constraint'
-            self.add_file(datadir / 'heartbeat.sdc', fileset)
+            self.add_file(dataref / 'heartbeat.sdc', fileset)
 
             # tb
             fileset = 'testbench'
             self.set_topmodule('tb', fileset)
-            self.add_file(datadir / 'heartbeat_tb.v', fileset)
+            self.add_file(dataref / 'heartbeat_tb.v', fileset)
 
             # dependencies
             self.add_dep(Increment())

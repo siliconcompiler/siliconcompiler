@@ -76,7 +76,7 @@ class DesignSchema(NamedSchema, DependencySchema):
            list[str]: List of include directories
         """
         return self.__set_add(fileset, 'idir', value, clobber, typelist=[str, list],
-                              datadir=dataref)
+                              dataref=dataref)
 
     def get_idir(self, fileset: str = None) -> List[str]:
         """Returns include directories for a fileset.
@@ -165,7 +165,7 @@ class DesignSchema(NamedSchema, DependencySchema):
            list[str]: List of library directories.
         """
         return self.__set_add(fileset, 'libdir', value, clobber, typelist=[str, list],
-                              datadir=dataref)
+                              dataref=dataref)
 
     def get_libdir(self, fileset: str = None) -> List[str]:
         """Returns dynamic library directories for a fileset.
@@ -373,7 +373,7 @@ class DesignSchema(NamedSchema, DependencySchema):
             dataref = self._get_active("package")
 
         # adding files to dictionary
-        with self.active_datadir(dataref):
+        with self.active_dataref(dataref):
             if clobber:
                 return self.set('fileset', fileset, 'file', filetype, filename)
             else:
@@ -526,26 +526,26 @@ class DesignSchema(NamedSchema, DependencySchema):
                 else:
                     files.append(expand_path(line))
 
-        # Create datadirs
+        # Create datarefs
         all_paths = include_dirs + [os.path.dirname(f) for f in files]
         all_paths = sorted(set(all_paths))
 
-        datadir_root_name = f'flist-{self.name()}-{fileset}-{os.path.basename(filename)}'
-        datadirs = {}
+        dataref_root_name = f'flist-{self.name()}-{fileset}-{os.path.basename(filename)}'
+        datarefs = {}
 
         for path_dir in all_paths:
             found = False
-            for pdir in datadirs:
+            for pdir in datarefs:
                 if path_dir.startswith(pdir):
                     found = True
                     break
             if not found:
-                datadir_name = f"{datadir_root_name}-{len(datadirs)}"
-                self.register_datadir(datadir_name, path_dir)
-                datadirs[path_dir] = datadir_name
+                dataref_name = f"{dataref_root_name}-{len(datarefs)}"
+                self.register_dataref(dataref_name, path_dir)
+                datarefs[path_dir] = dataref_name
 
-        def get_datadir(path):
-            for pdir, name in datadirs.items():
+        def get_dataref(path):
+            for pdir, name in datarefs.items():
                 if path.startswith(pdir):
                     return name, pdir
             return None, None
@@ -556,16 +556,16 @@ class DesignSchema(NamedSchema, DependencySchema):
                 self.add_define(defines)
             if include_dirs:
                 for dir in include_dirs:
-                    datadir_name, pdir = get_datadir(dir)
-                    if datadir_name:
+                    dataref_name, pdir = get_dataref(dir)
+                    if dataref_name:
                         dir = os.path.relpath(dir, pdir)
-                    self.add_idir(dir, dataref=datadir_name)
+                    self.add_idir(dir, dataref=dataref_name)
             if files:
                 for f in files:
-                    datadir_name, pdir = get_datadir(f)
-                    if datadir_name:
+                    dataref_name, pdir = get_dataref(f)
+                    if dataref_name:
                         f = os.path.relpath(f, pdir)
-                    self.add_file(f, dataref=datadir_name)
+                    self.add_file(f, dataref=dataref_name)
 
     ################################################
     def read_fileset(self,
@@ -600,7 +600,7 @@ class DesignSchema(NamedSchema, DependencySchema):
     ################################################
     # Helper Functions
     ################################################
-    def __set_add(self, fileset, option, value, clobber=False, typelist=None, datadir=None):
+    def __set_add(self, fileset, option, value, clobber=False, typelist=None, dataref=None):
         '''Sets a parameter value in schema.
         '''
 
@@ -623,10 +623,10 @@ class DesignSchema(NamedSchema, DependencySchema):
         if value is None:
             raise ValueError(f"None is an illegal {option} value")
 
-        if not datadir:
-            datadir = self._get_active("package")
+        if not dataref:
+            dataref = self._get_active("package")
 
-        with self.active_datadir(datadir):
+        with self.active_dataref(dataref):
             if list in typelist and not clobber:
                 params = self.add('fileset', fileset, option, value)
             else:

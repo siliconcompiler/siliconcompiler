@@ -588,7 +588,7 @@ class BaseSchema:
         """
         return []
 
-    def _find_files_datadir_resolvers(self):
+    def _find_files_dataref_resolvers(self):
         """
         Returns a dictionary of path resolevrs data directory handling for find_files
 
@@ -597,7 +597,7 @@ class BaseSchema:
         """
         if self.__parent is self:
             return {}
-        return self.__parent._find_files_datadir_resolvers()
+        return self.__parent._find_files_dataref_resolvers()
 
     def find_files(self, *keypath, missing_ok=False, step=None, index=None,
                    packages=None, collection_dir=None, cwd=None):
@@ -660,7 +660,7 @@ class BaseSchema:
             cwd = os.getcwd()
 
         if packages is None:
-            packages = base_schema._find_files_datadir_resolvers()
+            packages = base_schema._find_files_dataref_resolvers()
 
         resolved_paths = []
         root_search_paths = base_schema._find_files_search_paths(keypath[-1], step, index)
@@ -784,19 +784,19 @@ class BaseSchema:
         return self.__parent._parent(root=root)
 
     @contextlib.contextmanager
-    def active_datadir(self, datadir: str = None):
+    def active_dataref(self, dataref: str = None):
         '''
-        Use this context to set the datadir parameter on files and directory parameters.
+        Use this context to set the dataref parameter on files and directory parameters.
 
         Args:
-            datadir (str): name of the datadir
+            dataref (str): name of the dataref
 
         Example:
-            >>> with schema.active_datadir("lambdalib"):
+            >>> with schema.active_dataref("lambdalib"):
             ...     schema.set("file", "top.v")
-            Sets the file to top.v and associates lambdalib as the datadir.
+            Sets the file to top.v and associates lambdalib as the dataref.
         '''
-        with self._active(datadir=datadir):
+        with self._active(dataref=dataref):
             yield
 
     @contextlib.contextmanager
@@ -821,12 +821,12 @@ class BaseSchema:
         if self.__active is None:
             self.__active = {}
 
-        if "datadir" in kwargs:
+        if "dataref" in kwargs:
             # Tempoary rename
             if "package" in kwargs:
-                raise ValueError("datadir and package cannot be specified")
-            kwargs["package"] = kwargs["datadir"]
-            del kwargs["datadir"]
+                raise ValueError("dataref and package cannot be specified")
+            kwargs["package"] = kwargs["dataref"]
+            del kwargs["dataref"]
 
         self.__active.update(kwargs)
         try:
