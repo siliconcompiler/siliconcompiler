@@ -1,8 +1,5 @@
-import logging
-
 import os.path
 
-from siliconcompiler.schema import BaseSchema, EditableSchema
 from siliconcompiler.packageschema import PackageSchema
 
 
