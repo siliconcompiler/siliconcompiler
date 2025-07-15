@@ -121,6 +121,7 @@ class TaskSchema(NamedSchema):
         self.__design_top_global = None
         self.__cwd = None
         self.__relpath = relpath
+        self.__collection_path = None
         if chip:
             self.__chip = chip
             self.__schema_full = chip.schema
@@ -129,6 +130,7 @@ class TaskSchema(NamedSchema):
             self.__design_top = chip.top(step=step, index=index)
             self.__design_top_global = chip.top()
             self.__cwd = chip.cwd
+            self.__collection_path = chip._getcollectdir()
 
         self.__step = step
         self.__index = index
@@ -417,8 +419,8 @@ class TaskSchema(NamedSchema):
         if include_path:
             path = self.schema("tool").find_files(
                 "path", step=self.__step, index=self.__index,
-                packages=self.schema().get("package", field="schema").get_resolvers(),
                 cwd=self.__cwd,
+                collection_dir=self.__collection_path,
                 missing_ok=True)
 
             envvars["PATH"] = os.getenv("PATH", os.defpath)
@@ -1209,9 +1211,10 @@ class TaskSchema(NamedSchema):
         paths = super()._find_files_search_paths(keypath, step, index)
         if keypath == "script":
             paths.extend(self.find_files(
-                "refdir", step=step, index=index,
-                packages=self._parent(root=True).get("package", field="schema").get_resolvers(),
-                cwd=self.__cwd))
+                "refdir",
+                step=step, index=index,
+                cwd=self.__cwd,
+                collection_dir=self.__collection_path))
         elif keypath == "input":
             paths.append(os.path.join(self._parent(root=True).getworkdir(step=step, index=index),
                                       "inputs"))
@@ -1248,8 +1251,8 @@ class TaskSchema(NamedSchema):
         scripts = self.find_files(
             'script',
             step=self.__step, index=self.__index,
-            packages=self.schema().get("package", field="schema").get_resolvers(),
             cwd=self.__cwd,
+            collection_dir=self.__collection_path,
             missing_ok=True)
 
         cmdargs.extend(scripts)
