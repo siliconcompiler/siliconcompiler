@@ -1107,6 +1107,26 @@ class TaskSchema(NamedSchema):
         """
         return self.get("threads")
 
+    def add_commandline_option(self, option: Union[List[str], str], clobber: bool = False):
+        """
+        Add to the command line options for the task
+
+        Args:
+            option (list of str or str): options to add to the commandline
+            clobber (bool): overwrite existing value
+        """
+
+        if clobber:
+            return self.set("option", option)
+        else:
+            return self.add("option", option)
+
+    def get_commandline_options(self) -> List[str]:
+        """
+        Returns the command line options specified
+        """
+        return self.get("option")
+
     def record_metric(self, metric, value, source_file=None, source_unit=None):
         '''
         Records a metric and associates the source file with it.

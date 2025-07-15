@@ -1510,6 +1510,7 @@ def test_set_threads(running_project):
         with running_project.get_nop().runtime(running_project) as runtool:
             assert runtool.set_threads()
             assert runtool.get("threads") == 15
+            assert runtool.get_threads() == 15
         get_cores.assert_called_once()
 
 
@@ -1518,6 +1519,7 @@ def test_set_threads_with_max(running_project):
         with running_project.get_nop().runtime(running_project) as runtool:
             assert runtool.set_threads(5)
             assert runtool.get("threads") == 5
+            assert runtool.get_threads() == 5
         get_cores.assert_not_called()
 
 
@@ -1526,8 +1528,10 @@ def test_set_threads_without_clobber(running_project):
         with running_project.get_nop().runtime(running_project) as runtool:
             assert runtool.set_threads(5)
             assert runtool.get("threads") == 5
+            assert runtool.get_threads() == 5
             assert not runtool.set_threads(10)
             assert runtool.get("threads") == 5
+            assert runtool.get_threads() == 5
         get_cores.assert_not_called()
 
 
@@ -1536,6 +1540,18 @@ def test_set_threads_with_clobber(running_project):
         with running_project.get_nop().runtime(running_project) as runtool:
             assert runtool.set_threads(5)
             assert runtool.get("threads") == 5
+            assert runtool.get_threads() == 5
             assert runtool.set_threads(10, clobber=True)
             assert runtool.get("threads") == 10
+            assert runtool.get_threads() == 10
         get_cores.assert_not_called()
+
+
+def test_add_commandline_option(running_project):
+    with running_project.get_nop().runtime(running_project) as runtool:
+        assert runtool.add_commandline_option("-exit")
+        assert runtool.get("option") == ["-exit"]
+        assert runtool.get_commandline_options() == ["-exit"]
+        assert runtool.add_commandline_option("arg0")
+        assert runtool.get("option") == ["-exit", "arg0"]
+        assert runtool.get_commandline_options() == ["-exit", "arg0"]
