@@ -1401,6 +1401,24 @@ def test_add_required_key(running_project):
         assert runtool.get("require") == ["this,key,is,required", "this,key,is,required,too"]
 
 
+def test_add_required_key_obj(running_project):
+    with running_project.get_nop().runtime(running_project) as runtool:
+        assert runtool.add_required_key(running_project.get_nop(), "this", "key", "is", "required")
+        assert runtool.get("require") == ["tool,builtin,task,nop,this,key,is,required"]
+        assert runtool.add_required_key(runtool, "this", "key", "is", "required", "too")
+        assert runtool.get("require") == ["tool,builtin,task,nop,this,key,is,required",
+                                          "tool,builtin,task,nop,this,key,is,required,too"]
+
+
+def test_add_required_tool_key(running_project):
+    with running_project.get_nop().runtime(running_project) as runtool:
+        assert runtool.add_required_tool_key("this", "key", "is", "required")
+        assert runtool.get("require") == ["tool,builtin,task,nop,this,key,is,required"]
+        assert runtool.add_required_tool_key("this", "key", "is", "required", "too")
+        assert runtool.get("require") == ["tool,builtin,task,nop,this,key,is,required",
+                                          "tool,builtin,task,nop,this,key,is,required,too"]
+
+
 def test_add_required_key_invalid(running_project):
     with running_project.get_nop().runtime(running_project) as runtool:
         with pytest.raises(ValueError, match="key can only contain strings"):
@@ -1484,3 +1502,56 @@ def test_search_path_resolution_output(running_project):
     assert running_project.get_nop()._find_files_search_paths("output", "step", "index") == [
         os.path.abspath("outputs")
     ]
+
+
+def test_set_threads(running_project):
+    with patch("siliconcompiler.utils.get_cores") as get_cores:
+        get_cores.return_value = 15
+        with running_project.get_nop().runtime(running_project) as runtool:
+            assert runtool.set_threads()
+            assert runtool.get("threads") == 15
+            assert runtool.get_threads() == 15
+        get_cores.assert_called_once()
+
+
+def test_set_threads_with_max(running_project):
+    with patch("siliconcompiler.utils.get_cores") as get_cores:
+        with running_project.get_nop().runtime(running_project) as runtool:
+            assert runtool.set_threads(5)
+            assert runtool.get("threads") == 5
+            assert runtool.get_threads() == 5
+        get_cores.assert_not_called()
+
+
+def test_set_threads_without_clobber(running_project):
+    with patch("siliconcompiler.utils.get_cores") as get_cores:
+        with running_project.get_nop().runtime(running_project) as runtool:
+            assert runtool.set_threads(5)
+            assert runtool.get("threads") == 5
+            assert runtool.get_threads() == 5
+            assert not runtool.set_threads(10)
+            assert runtool.get("threads") == 5
+            assert runtool.get_threads() == 5
+        get_cores.assert_not_called()
+
+
+def test_set_threads_with_clobber(running_project):
+    with patch("siliconcompiler.utils.get_cores") as get_cores:
+        with running_project.get_nop().runtime(running_project) as runtool:
+            assert runtool.set_threads(5)
+            assert runtool.get("threads") == 5
+            assert runtool.get_threads() == 5
+            assert runtool.set_threads(10, clobber=True)
+            assert runtool.get("threads") == 10
+            assert runtool.get_threads() == 10
+        get_cores.assert_not_called()
+
+
+def test_add_commandline_option(running_project):
+    with running_project.get_nop().runtime(running_project) as runtool:
+        assert runtool.add_commandline_option("-exit")
+        assert runtool.get("option") == ["-exit"]
+        assert runtool.get_commandline_options() == ["-exit"]
+        assert runtool.add_commandline_option("arg0")
+        assert runtool.get("option") == ["-exit", "arg0"]
+        assert runtool.get_commandline_options() == ["-exit", "arg0"]

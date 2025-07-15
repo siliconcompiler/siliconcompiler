@@ -29,7 +29,9 @@ import os.path
 from packaging.version import Version, InvalidVersion
 from packaging.specifiers import SpecifierSet, InvalidSpecifier
 
-from siliconcompiler.schema import NamedSchema, Journal
+from typing import List, Union
+
+from siliconcompiler.schema import BaseSchema, NamedSchema, Journal
 from siliconcompiler.schema import EditableSchema, Parameter, PerNode, Scope
 from siliconcompiler.schema.parametertype import NodeType
 from siliconcompiler.schema.utils import trim
@@ -1054,18 +1056,76 @@ class TaskSchema(NamedSchema):
 
         return param
 
-    def add_required_key(self, *key):
+    def add_required_tool_key(self, *key: str):
         '''
-        Adds a required keypath to the task driver.
+        Adds a required tool keypath to the task driver.
 
         Args:
             key (list of str): required key path
         '''
+        return self.add_required_key(self, *key)
+
+    def add_required_key(self, obj: Union[BaseSchema, str], *key: str):
+        '''
+        Adds a required keypath to the task driver.
+
+        Args:
+            obj (:class:`BaseSchema` or str): if this is a string it will be considered
+                part of the key, otherwise the keypath to the obj will be prepended to
+                the key
+            key (list of str): required key path
+        '''
+
+        if isinstance(obj, BaseSchema):
+            key = (*obj._keypath, *key)
+        else:
+            key = (obj, *key)
 
         if any([not isinstance(k, str) for k in key]):
             raise ValueError("key can only contain strings")
 
         return self.add("require", ",".join(key))
+
+    def set_threads(self, max_threads: int = None, clobber: bool = False):
+        """
+        Sets the requested thread count for the task
+
+        Args:
+            max_threads (int): if provided the requested thread count
+                will be set this value, otherwise the current machines
+                core count will be used.
+            clobber (bool): overwrite existing value
+        """
+        if max_threads is None or max_threads <= 0:
+            max_threads = utils.get_cores(None)
+
+        return self.set("threads", max_threads, clobber=clobber)
+
+    def get_threads(self) -> int:
+        """
+        Returns the number of threads requested.
+        """
+        return self.get("threads")
+
+    def add_commandline_option(self, option: Union[List[str], str], clobber: bool = False):
+        """
+        Add to the command line options for the task
+
+        Args:
+            option (list of str or str): options to add to the commandline
+            clobber (bool): overwrite existing value
+        """
+
+        if clobber:
+            return self.set("option", option)
+        else:
+            return self.add("option", option)
+
+    def get_commandline_options(self) -> List[str]:
+        """
+        Returns the command line options specified
+        """
+        return self.get("option")
 
     def record_metric(self, metric, value, source_file=None, source_unit=None):
         '''
