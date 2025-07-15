@@ -1,3 +1,5 @@
+import logging
+
 import os.path
 
 from siliconcompiler.schema.baseschema import BaseSchema
@@ -392,7 +394,9 @@ class DependencySchema(BaseSchema):
         '''
         schema_root = self._parent(root=True)
         cwd = getattr(schema_root, "cwd", os.getcwd())
-        logger = getattr(schema_root, "logger", None)
+        logger = getattr(schema_root,
+                         "logger",
+                         logging.getLogger("siliconcompiler.check_filepaths"))
         collection_dir = getattr(schema_root, "collection_dir", None)
         if collection_dir:
             collection_dir = collection_dir()
