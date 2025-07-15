@@ -408,7 +408,7 @@ class DesignSchema(NamedSchema, DependencySchema):
                 raise ValueError("fileset key must be a string")
             # handle scalar+list in argument
             if not filetype:
-                filetype = list(self.getkeys('fileset', fs, 'file'))
+                filetype = self.getkeys('fileset', fs, 'file')
             # grab the files
             for ftype in filetype:
                 filelist.extend(self.find_files('fileset', fs, 'file', ftype))
