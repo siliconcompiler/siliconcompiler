@@ -458,12 +458,12 @@ class PythonPathResolver(Resolver):
                              ref=ref)
 
     @staticmethod
-    def register_dataref(root,
-                         package_name,
-                         python_module,
-                         alternative_path,
-                         alternative_ref=None,
-                         python_module_path_append=None):
+    def set_dataroot(root,
+                     package_name,
+                     python_module,
+                     alternative_path,
+                     alternative_ref=None,
+                     python_module_path_append=None):
         '''
         Helper function to register a python module as data source with an alternative in case
         the module is not installed in an editable state
@@ -481,9 +481,9 @@ class PythonPathResolver(Resolver):
             path = alternative_path
             ref = alternative_ref
 
-        root.register_dataref(name=package_name,
-                              path=path,
-                              tag=ref)
+        root.set_dataroot(name=package_name,
+                          path=path,
+                          tag=ref)
 
     def resolve(self):
         module = importlib.import_module(self.urlpath)
