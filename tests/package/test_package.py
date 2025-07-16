@@ -597,11 +597,14 @@ def test_keypath_resolver_no_root():
 def test_get_cache():
     chip = Chip("dummy")
     assert Resolver.get_cache(chip) == {}
+    assert getattr(chip, "__Resolver_cache_id")
 
 
 def test_set_cache():
     chip = Chip("dummy")
     assert Resolver.get_cache(chip) == {}
+    assert getattr(chip, "__Resolver_cache_id")
+
     Resolver.set_cache(chip, "test", "path")
     assert Resolver.get_cache(chip) == {
         "test": "path"
@@ -619,6 +622,9 @@ def test_set_cache_different_chips():
 
     assert Resolver.get_cache(chip0) == {}
     assert Resolver.get_cache(chip1) == {}
+
+    assert getattr(chip0, "__Resolver_cache_id")
+    assert getattr(chip1, "__Resolver_cache_id")
 
     Resolver.set_cache(chip0, "test", "path")
     assert Resolver.get_cache(chip0) == {
@@ -644,6 +650,8 @@ def test_reset_cache():
     assert Resolver.get_cache(chip) == {
         "test": "path"
     }
+
+    assert getattr(chip, "__Resolver_cache_id")
 
     Resolver.reset_cache(chip)
     assert Resolver.get_cache(chip) == {}
