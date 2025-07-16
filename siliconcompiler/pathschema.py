@@ -21,13 +21,13 @@ class PathSchema(BaseSchema):
         schema = EditableSchema(self)
 
         schema.insert(
-            'dataref', 'default', 'path',
+            'dataroot', 'default', 'path',
             Parameter(
                 'str',
                 scope=Scope.GLOBAL,
                 shorthelp="Data directory path",
                 example=[
-                    "api: chip.set('dataref', "
+                    "api: chip.set('dataroot', "
                     "'freepdk45_data', 'path', 'ssh://git@github.com/siliconcompiler/freepdk45/')"],
                 help=trim("""
                     Data directory path, this points the location where the data can be
@@ -47,13 +47,13 @@ class PathSchema(BaseSchema):
                     """)))
 
         schema.insert(
-            'dataref', 'default', 'tag',
+            'dataroot', 'default', 'tag',
             Parameter(
                 'str',
                 scope=Scope.GLOBAL,
                 shorthelp="Data directory reference tag/version",
                 example=[
-                    "api: chip.set('dataref', 'freepdk45_data', 'tag', '07ec4aa')"],
+                    "api: chip.set('dataroot', 'freepdk45_data', 'tag', '07ec4aa')"],
                 help=trim("""
                     Data directory reference tag. The meaning of the this tag depends on the
                     context of the path.
@@ -61,7 +61,7 @@ class PathSchema(BaseSchema):
                     of the file that will be downloaded.
                     """)))
 
-    def register_dataref(self, name: str, path: str, tag: str = None):
+    def set_dataroot(self, name: str, path: str, tag: str = None):
         """
         Registers a data directory by its name with the root and associated tag. If the path
         provided is a file, the path recorded will be the directory the file is located in.
@@ -73,22 +73,22 @@ class PathSchema(BaseSchema):
             tag (str): Reference of the sources, can be commitid, branch name, tag
 
         Examples:
-            >>> schema.register_dataref('siliconcompiler_data',
+            >>> schema.set_dataroot('siliconcompiler_data',
                     'git+https://github.com/siliconcompiler/siliconcompiler',
                     'v1.0.0')
             Records the data directory for siliconcompiler_data as a git clone for tag v1.0.0
-            >>> schema.register_dataref('file_data', __file__)
+            >>> schema.set_dataroot('file_data', __file__)
             Records the data directory for file_data as the directory that __file__ is found in.
         """
 
         if os.path.isfile(path):
             path = os.path.dirname(os.path.abspath(path))
 
-        self.set("dataref", name, "path", path)
+        self.set("dataroot", name, "path", path)
         if tag:
-            self.set("dataref", name, "tag", tag)
+            self.set("dataroot", name, "tag", tag)
 
-    def find_dataref(self, name: str) -> str:
+    def get_dataroot(self, name: str) -> str:
         """
         Returns absolute path to the data directory.
 
@@ -102,20 +102,20 @@ class PathSchema(BaseSchema):
             Path to the directory root.
 
         Examples:
-            >>> schema.find_dataref('siliconcompiler')
+            >>> schema.get_dataroot('siliconcompiler')
             Returns the path to the root of the siliconcompiler data directory.
         """
 
-        if not self.valid("dataref", name):
+        if not self.valid("dataroot", name):
             raise ValueError(f"{name} is not a recognized source")
 
-        path = self.get("dataref", name, "path")
-        tag = self.get("dataref", name, "tag")
+        path = self.get("dataroot", name, "path")
+        tag = self.get("dataroot", name, "tag")
 
         resolver = Resolver.find_resolver(path)
         return resolver(name, self._parent(root=True), path, tag).get_path()
 
-    def _find_files_dataref_resolvers(self):
+    def _find_files_dataroot_resolvers(self):
         """
         Returns a dictionary of path resolevrs data directory handling for find_files
 
@@ -124,11 +124,11 @@ class PathSchema(BaseSchema):
         """
         schema_root = self._parent(root=True)
         resolver_map = {}
-        for dataref in self.getkeys("dataref"):
-            path = self.get("dataref", dataref, "path")
-            tag = self.get("dataref", dataref, "tag")
+        for dataroot in self.getkeys("dataroot"):
+            path = self.get("dataroot", dataroot, "path")
+            tag = self.get("dataroot", dataroot, "tag")
             resolver = Resolver.find_resolver(path)
-            resolver_map[dataref] = resolver(dataref, schema_root, path, tag).get_path
+            resolver_map[dataroot] = resolver(dataroot, schema_root, path, tag).get_path
         return resolver_map
 
     def find_files(self, *keypath,

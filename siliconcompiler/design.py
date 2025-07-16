@@ -64,20 +64,20 @@ class DesignSchema(NamedSchema, DependencySchema, PathSchema):
                  value: str,
                  fileset: str = None,
                  clobber: bool = False,
-                 dataref: str = None) -> List[str]:
+                 dataroot: str = None) -> List[str]:
         """Adds include directories to a fileset.
 
         Args:
            value (str or Path): Include directory name.
            fileset (str, optional): Fileset name.
            clobber (bool, optional): Clears existing list before adding item
-           dataref (str, optional): Data directory reference name
+           dataroot (str, optional): Data directory reference name
 
         Returns:
            list[str]: List of include directories
         """
         return self.__set_add(fileset, 'idir', value, clobber, typelist=[str, list],
-                              dataref=dataref)
+                              dataroot=dataroot)
 
     def get_idir(self, fileset: str = None) -> List[str]:
         """Returns include directories for a fileset.
@@ -153,20 +153,20 @@ class DesignSchema(NamedSchema, DependencySchema, PathSchema):
                    value: str,
                    fileset: str = None,
                    clobber: bool = False,
-                   dataref: str = None) -> List[str]:
+                   dataroot: str = None) -> List[str]:
         """Adds dynamic library directories to a fileset.
 
         Args:
            value (str or List[str]): Library directories
            fileset (str, optional): Fileset name.
            clobber (bool, optional): Clears existing list before adding item.
-           dataref (str, optional): Data directory reference name
+           dataroot (str, optional): Data directory reference name
 
         Returns:
            list[str]: List of library directories.
         """
         return self.__set_add(fileset, 'libdir', value, clobber, typelist=[str, list],
-                              dataref=dataref)
+                              dataroot=dataroot)
 
     def get_libdir(self, fileset: str = None) -> List[str]:
         """Returns dynamic library directories for a fileset.
@@ -311,7 +311,7 @@ class DesignSchema(NamedSchema, DependencySchema, PathSchema):
                  fileset: str = None,
                  filetype: str = None,
                  clobber: bool = False,
-                 dataref: str = None) -> List[str]:
+                 dataroot: str = None) -> List[str]:
         """
         Adds files to a fileset.
 
@@ -327,7 +327,7 @@ class DesignSchema(NamedSchema, DependencySchema, PathSchema):
             fileset (str): Logical group to associate the file with.
             filetype (str, optional): Type of the file (e.g., 'verilog', 'sdc').
             clobber (bool, optional): Clears list before adding item
-            dataref (str, optional): Data directory reference name
+            dataroot (str, optional): Data directory reference name
 
         Raises:
             SiliconCompilerError: If fileset or filetype cannot be inferred from
@@ -377,11 +377,11 @@ class DesignSchema(NamedSchema, DependencySchema, PathSchema):
             else:
                 raise ValueError(f"Unrecognized file extension: {ext}")
 
-        if not dataref:
-            dataref = self._get_active("package")
+        if not dataroot:
+            dataroot = self._get_active("package")
 
         # adding files to dictionary
-        with self.active_dataref(dataref):
+        with self.active_dataroot(dataroot):
             if clobber:
                 return self.set('fileset', fileset, 'file', filetype, filename)
             else:
@@ -534,26 +534,26 @@ class DesignSchema(NamedSchema, DependencySchema, PathSchema):
                 else:
                     files.append(expand_path(line))
 
-        # Create datarefs
+        # Create dataroots
         all_paths = include_dirs + [os.path.dirname(f) for f in files]
         all_paths = sorted(set(all_paths))
 
-        dataref_root_name = f'flist-{self.name()}-{fileset}-{os.path.basename(filename)}'
-        datarefs = {}
+        dataroot_root_name = f'flist-{self.name()}-{fileset}-{os.path.basename(filename)}'
+        dataroots = {}
 
         for path_dir in all_paths:
             found = False
-            for pdir in datarefs:
+            for pdir in dataroots:
                 if path_dir.startswith(pdir):
                     found = True
                     break
             if not found:
-                dataref_name = f"{dataref_root_name}-{len(datarefs)}"
-                self.register_dataref(dataref_name, path_dir)
-                datarefs[path_dir] = dataref_name
+                dataroot_name = f"{dataroot_root_name}-{len(dataroots)}"
+                self.set_dataroot(dataroot_name, path_dir)
+                dataroots[path_dir] = dataroot_name
 
-        def get_dataref(path):
-            for pdir, name in datarefs.items():
+        def get_dataroot(path):
+            for pdir, name in dataroots.items():
                 if path.startswith(pdir):
                     return name, pdir
             return None, None
@@ -564,16 +564,16 @@ class DesignSchema(NamedSchema, DependencySchema, PathSchema):
                 self.add_define(defines)
             if include_dirs:
                 for dir in include_dirs:
-                    dataref_name, pdir = get_dataref(dir)
-                    if dataref_name:
+                    dataroot_name, pdir = get_dataroot(dir)
+                    if dataroot_name:
                         dir = os.path.relpath(dir, pdir)
-                    self.add_idir(dir, dataref=dataref_name)
+                    self.add_idir(dir, dataroot=dataroot_name)
             if files:
                 for f in files:
-                    dataref_name, pdir = get_dataref(f)
-                    if dataref_name:
+                    dataroot_name, pdir = get_dataroot(f)
+                    if dataroot_name:
                         f = os.path.relpath(f, pdir)
-                    self.add_file(f, dataref=dataref_name)
+                    self.add_file(f, dataroot=dataroot_name)
 
     ################################################
     def read_fileset(self,
@@ -608,7 +608,7 @@ class DesignSchema(NamedSchema, DependencySchema, PathSchema):
     ################################################
     # Helper Functions
     ################################################
-    def __set_add(self, fileset, option, value, clobber=False, typelist=None, dataref=None):
+    def __set_add(self, fileset, option, value, clobber=False, typelist=None, dataroot=None):
         '''Sets a parameter value in schema.
         '''
 
@@ -631,10 +631,10 @@ class DesignSchema(NamedSchema, DependencySchema, PathSchema):
         if value is None:
             raise ValueError(f"None is an illegal {option} value")
 
-        if not dataref:
-            dataref = self._get_active("package")
+        if not dataroot:
+            dataroot = self._get_active("package")
 
-        with self.active_dataref(dataref):
+        with self.active_dataroot(dataroot):
             if list in typelist and not clobber:
                 params = self.add('fileset', fileset, option, value)
             else:
