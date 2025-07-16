@@ -482,8 +482,8 @@ class PythonPathResolver(Resolver):
             ref = alternative_ref
 
         root.set_dataroot(name=package_name,
-                              path=path,
-                              tag=ref)
+                          path=path,
+                          tag=ref)
 
     def resolve(self):
         module = importlib.import_module(self.urlpath)
