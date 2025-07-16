@@ -17,33 +17,89 @@ class PackageSchema(PathSchema):
         schema_package(self)
 
     def set_description(self, desc: str):
+        """
+        Set the description of the package.
+
+        Args:
+            desc (str): The description string.
+        """
         return self.set("description", trim(desc))
 
     def get_description(self) -> str:
+        """Get the description of the package.
+
+        Returns:
+            str: The description string.
+        """
         return self.get("description")
 
     def set_version(self, version: str):
+        """
+        Set the version of the package.
+
+        Args:
+            version (str): The version string.
+        """
         return self.set("version", version)
 
     def get_version(self) -> str:
+        """
+        Get the version of the package.
+
+        Returns:
+            str: The version string.
+        """
         return self.get("version")
 
     def add_license(self, name: str):
+        """
+        Add a license name to the package.
+
+        Args:
+            name (str): The name of the license.
+        """
         return self.add("license", "name", name)
 
     def add_license_file(self, file: str, dataref: str = None):
+        """
+        Add a license file to the package.
+
+        Args:
+            file (str): The path to the license file.
+            dataref (str, optional): The data reference for the package. Defaults to None,
+                                    which uses the active package.
+        """
         if not dataref:
             dataref = self._get_active("package")
         with self.active_dataref(dataref):
             return self.add("license", "file", file)
 
     def get_licenses(self) -> List[str]:
+        """
+        Get a list of license names associated with the package.
+        """
         return self.get("license", "name")
 
     def get_license_files(self) -> List[str]:
+        """
+        Get a list of license file paths associated with the package.
+        """
         return self.find_files("license", "file")
 
-    def add_author(self, identifier: str, name: str = None, email: str = None, organization: str = None):
+    def add_author(self,
+                   identifier: str,
+                   name: str = None,
+                   email: str = None,
+                   organization: str = None):
+        """
+        Add or update author information for the package.
+
+        Args:
+            identifier (str): A unique identifier for the author.
+            name (str, optional): The author's name. Defaults to None.
+            email (str, optional): The author's email address. Defaults to None.
+            organization (str, optional): The author's organization. Defaults to None.
+        """
         params = []
         if name:
             params.append(self.set("author", identifier, "name", name))
@@ -54,12 +110,31 @@ class PackageSchema(PathSchema):
         return [p for p in params if p]
 
     def add_documentation(self, type: str, path: str, dataref: str = None):
+        """
+        Add documentation to the package.
+
+        Args:
+            type (str): The type of documentation (e.g., "manual", "api").
+            path (str): The path to the documentation file.
+            dataref (str, optional): The data reference for the package. Defaults to None,
+                                    which uses the active package.
+
+        Returns:
+            The result of the `add` operation.
+        """
         if not dataref:
             dataref = self._get_active("package")
         with self.active_dataref(dataref):
             return self.add("doc", type, path)
 
     def get_documentation(self, type: str = None) -> Union[List[str], Dict[str, List[str]]]:
+        """
+        Get documentation files for the package.
+
+        Args:
+            type (str, optional): The type of documentation to retrieve. If None,
+                                returns all documentation organized by type. Defaults to None.
+        """
         if type:
             return self.find_files("doc", type)
 
