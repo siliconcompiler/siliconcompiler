@@ -8,6 +8,7 @@ import random
 import re
 import time
 import threading
+import uuid
 
 import os.path
 
@@ -141,9 +142,16 @@ class Resolver:
         raise NotImplementedError("child class must implement this")
 
     @staticmethod
+    def __get_root_id(root):
+        STORAGE = "__Resolver_cache_id"
+        if not getattr(root, STORAGE, None):
+            setattr(root, STORAGE, uuid.uuid4().hex)
+        return getattr(root, STORAGE)
+
+    @staticmethod
     def get_cache(root, name: str = None):
         with Resolver.__CACHE_LOCK:
-            root_id = id(root)
+            root_id = Resolver.__get_root_id(root)
             if root_id not in Resolver.__CACHE:
                 Resolver.__CACHE[root_id] = {}
 
@@ -155,7 +163,7 @@ class Resolver:
     @staticmethod
     def set_cache(root, name: str, path: str):
         with Resolver.__CACHE_LOCK:
-            root_id = id(root)
+            root_id = Resolver.__get_root_id(root)
             if root_id not in Resolver.__CACHE:
                 Resolver.__CACHE[root_id] = {}
             Resolver.__CACHE[root_id][name] = path
@@ -163,7 +171,7 @@ class Resolver:
     @staticmethod
     def reset_cache(root):
         with Resolver.__CACHE_LOCK:
-            root_id = id(root)
+            root_id = Resolver.__get_root_id(root)
             if root_id in Resolver.__CACHE:
                 del Resolver.__CACHE[root_id]
 
