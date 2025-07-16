@@ -549,7 +549,7 @@ class DesignSchema(NamedSchema, DependencySchema, PathSchema):
                     break
             if not found:
                 dataroot_name = f"{dataroot_root_name}-{len(dataroots)}"
-                self.register_dataroot(dataroot_name, path_dir)
+                self.set_dataroot(dataroot_name, path_dir)
                 dataroots[path_dir] = dataroot_name
 
         def get_dataroot(path):

@@ -61,7 +61,7 @@ class PathSchema(BaseSchema):
                     of the file that will be downloaded.
                     """)))
 
-    def register_dataroot(self, name: str, path: str, tag: str = None):
+    def set_dataroot(self, name: str, path: str, tag: str = None):
         """
         Registers a data directory by its name with the root and associated tag. If the path
         provided is a file, the path recorded will be the directory the file is located in.
@@ -73,11 +73,11 @@ class PathSchema(BaseSchema):
             tag (str): Reference of the sources, can be commitid, branch name, tag
 
         Examples:
-            >>> schema.register_dataroot('siliconcompiler_data',
+            >>> schema.set_dataroot('siliconcompiler_data',
                     'git+https://github.com/siliconcompiler/siliconcompiler',
                     'v1.0.0')
             Records the data directory for siliconcompiler_data as a git clone for tag v1.0.0
-            >>> schema.register_dataroot('file_data', __file__)
+            >>> schema.set_dataroot('file_data', __file__)
             Records the data directory for file_data as the directory that __file__ is found in.
         """
 
@@ -88,7 +88,7 @@ class PathSchema(BaseSchema):
         if tag:
             self.set("dataroot", name, "tag", tag)
 
-    def find_dataroot(self, name: str) -> str:
+    def get_dataroot(self, name: str) -> str:
         """
         Returns absolute path to the data directory.
 
@@ -102,7 +102,7 @@ class PathSchema(BaseSchema):
             Path to the directory root.
 
         Examples:
-            >>> schema.find_dataroot('siliconcompiler')
+            >>> schema.get_dataroot('siliconcompiler')
             Returns the path to the root of the siliconcompiler data directory.
         """
 
