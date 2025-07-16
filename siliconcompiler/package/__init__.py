@@ -160,6 +160,13 @@ class Resolver:
                 Resolver.__CACHE[root_id] = {}
             Resolver.__CACHE[root_id][name] = path
 
+    @staticmethod
+    def reset_cache(root):
+        with Resolver.__CACHE_LOCK:
+            root_id = id(root)
+            if root_id in Resolver.__CACHE:
+                del Resolver.__CACHE[root_id]
+
     def get_path(self):
         cache_path = Resolver.get_cache(self.__root, self.name)
         if cache_path:
