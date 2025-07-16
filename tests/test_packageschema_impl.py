@@ -121,15 +121,15 @@ def test_license_file():
     assert schema.get_license_files() == [os.path.abspath("lic")]
 
 
-def test_license_file_with_dataref():
+def test_license_file_with_dataroot():
     schema = PackageSchema()
 
     os.makedirs("lics", exist_ok=True)
     Path("lics/lic").touch()
 
-    schema.register_dataref("testdata", os.path.abspath("lics"))
+    schema.set_dataroot("testdata", os.path.abspath("lics"))
 
-    with schema.active_dataref("testdata"):
+    with schema.active_dataroot("testdata"):
         assert schema.add_license_file("./lic")
     assert schema.get_license_files() == [os.path.abspath("lics/lic")]
 
@@ -144,15 +144,15 @@ def test_add_documentation():
     assert schema.get_documentation("userguide") == [os.path.abspath("doc")]
 
 
-def test_add_documentation_with_dataref():
+def test_add_documentation_with_dataroot():
     schema = PackageSchema()
 
     os.makedirs("docs", exist_ok=True)
     Path("docs/quick").touch()
 
-    schema.register_dataref("testdata", os.path.abspath("docs"))
+    schema.set_dataroot("testdata", os.path.abspath("docs"))
 
-    with schema.active_dataref("testdata"):
+    with schema.active_dataroot("testdata"):
         assert schema.add_documentation("quickstart", "quick")
     assert schema.get("doc", "quickstart") == ["quick"]
     assert schema.get_documentation("quickstart") == [os.path.abspath("docs/quick")]
@@ -166,9 +166,9 @@ def test_get_documentation_all():
     Path("user").touch()
 
     assert schema.add_documentation("userguide", "user")
-    schema.register_dataref("testdata", os.path.abspath("docs"))
+    schema.set_dataroot("testdata", os.path.abspath("docs"))
 
-    with schema.active_dataref("testdata"):
+    with schema.active_dataroot("testdata"):
         assert schema.add_documentation("quickstart", "quick")
 
     assert schema.get_documentation() == {

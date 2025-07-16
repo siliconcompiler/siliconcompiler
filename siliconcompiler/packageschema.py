@@ -60,18 +60,18 @@ class PackageSchema(PathSchema):
         """
         return self.add("license", "name", name)
 
-    def add_license_file(self, file: str, dataref: str = None):
+    def add_license_file(self, file: str, dataroot: str = None):
         """
         Add a license file to the package.
 
         Args:
             file (str): The path to the license file.
-            dataref (str, optional): The data reference for the package. Defaults to None,
+            dataroot (str, optional): The data reference for the package. Defaults to None,
                                     which uses the active package.
         """
-        if not dataref:
-            dataref = self._get_active("package")
-        with self.active_dataref(dataref):
+        if not dataroot:
+            dataroot = self._get_active("package")
+        with self.active_dataroot(dataroot):
             return self.add("license", "file", file)
 
     def get_licenses(self) -> List[str]:
@@ -109,22 +109,22 @@ class PackageSchema(PathSchema):
             params.append(self.set("author", identifier, "organization", organization))
         return [p for p in params if p]
 
-    def add_documentation(self, type: str, path: str, dataref: str = None):
+    def add_documentation(self, type: str, path: str, dataroot: str = None):
         """
         Add documentation to the package.
 
         Args:
             type (str): The type of documentation (e.g., "manual", "api").
             path (str): The path to the documentation file.
-            dataref (str, optional): The data reference for the package. Defaults to None,
+            dataroot (str, optional): The data reference for the package. Defaults to None,
                                     which uses the active package.
 
         Returns:
             The result of the `add` operation.
         """
-        if not dataref:
-            dataref = self._get_active("package")
-        with self.active_dataref(dataref):
+        if not dataroot:
+            dataroot = self._get_active("package")
+        with self.active_dataroot(dataroot):
             return self.add("doc", type, path)
 
     def get_documentation(self, type: str = None) -> Union[List[str], Dict[str, List[str]]]:
