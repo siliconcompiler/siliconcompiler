@@ -161,6 +161,11 @@ Supporting Classes
     :show-inheritance:
     :inherited-members:
 
+.. autoclass:: siliconcompiler.pathschema.PathSchema
+    :members:
+    :show-inheritance:
+    :inherited-members:
+
 .. autoclass:: siliconcompiler.flowgraph.FlowgraphNodeSchema
     :members:
     :show-inheritance:
