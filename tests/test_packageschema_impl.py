@@ -85,7 +85,10 @@ def test_version():
 
 def test_author():
     schema = PackageSchema()
-    assert len(schema.add_author("person0", name="Bob", email="bob@org.com", organization="Bob Inc.")) == 3
+    assert len(schema.add_author("person0",
+                                 name="Bob",
+                                 email="bob@org.com",
+                                 organization="Bob Inc.")) == 3
     assert schema.get("author", "person0", "name") == "Bob"
     assert schema.get("author", "person0", "email") == "bob@org.com"
     assert schema.get("author", "person0", "organization") == "Bob Inc."
@@ -93,7 +96,10 @@ def test_author():
 
 def test_author_overwrite():
     schema = PackageSchema()
-    assert len(schema.add_author("person0", name="Bob", email="bob@org.com", organization="Bob Inc.")) == 3
+    assert len(schema.add_author("person0",
+                                 name="Bob",
+                                 email="bob@org.com",
+                                 organization="Bob Inc.")) == 3
     assert len(schema.add_author("person0", name="Bob0")) == 1
     assert schema.get("author", "person0", "name") == "Bob0"
     assert schema.get("author", "person0", "email") == "bob@org.com"
