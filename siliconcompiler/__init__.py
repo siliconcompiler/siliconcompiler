@@ -12,6 +12,7 @@ from siliconcompiler.tool import ToolSchema, TaskSchema
 from siliconcompiler.checklist import ChecklistSchema
 from siliconcompiler.asic import ASICSchema
 from siliconcompiler.fpga import FPGASchema
+from siliconcompiler.packageschema import PackageSchema
 
 from siliconcompiler.core import Chip
 
@@ -41,5 +42,6 @@ __all__ = [
     "TaskSchema",
     "ChecklistSchema",
     "ASICSchema",
-    "FPGASchema"
+    "FPGASchema",
+    "PackageSchema"
 ]

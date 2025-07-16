@@ -2,10 +2,170 @@ import os
 
 import os.path
 
-from siliconcompiler.schema import BaseSchema
-from siliconcompiler.schema import EditableSchema, Parameter, Scope
+from typing import Union, Dict, List
+
+from siliconcompiler.pathschema import PathSchema
+from siliconcompiler.schema import BaseSchema, EditableSchema, Parameter, Scope
 from siliconcompiler.schema.utils import trim
 from siliconcompiler.package import Resolver
+
+
+class PackageSchema(PathSchema):
+    def __init__(self):
+        super().__init__()
+
+        schema_package(self)
+
+    def set_description(self, desc: str):
+        return self.set("description", trim(desc))
+
+    def get_description(self) -> str:
+        return self.get("description")
+
+    def set_version(self, version: str):
+        return self.set("version", version)
+
+    def get_version(self) -> str:
+        return self.get("version")
+
+    def add_license(self, name: str):
+        return self.add("license", "name", name)
+
+    def add_license_file(self, file: str, dataref: str = None):
+        if not dataref:
+            dataref = self._get_active("package")
+        with self.active_dataref(dataref):
+            return self.add("license", "file", file)
+
+    def get_licenses(self) -> List[str]:
+        return self.get("license", "name")
+
+    def get_license_files(self) -> List[str]:
+        return self.find_files("license", "file")
+
+    def add_author(self, identifier: str, name: str = None, email: str = None, organization: str = None):
+        params = []
+        if name:
+            params.append(self.set("author", identifier, "name", name))
+        if email:
+            params.append(self.set("author", identifier, "email", email))
+        if organization:
+            params.append(self.set("author", identifier, "organization", organization))
+        return [p for p in params if p]
+
+    def add_documentation(self, type: str, path: str, dataref: str = None):
+        if not dataref:
+            dataref = self._get_active("package")
+        with self.active_dataref(dataref):
+            return self.add("doc", type, path)
+
+    def get_documentation(self, type: str = None) -> Union[List[str], Dict[str, List[str]]]:
+        if type:
+            return self.find_files("doc", type)
+
+        docs = {}
+        for type in self.getkeys("doc"):
+            doc_files = self.find_files("doc", type)
+            if doc_files:
+                docs[type] = doc_files
+        return docs
+
+
+############################################
+# Package information
+############################################
+def schema_package(schema):
+    schema = EditableSchema(schema)
+
+    schema.insert(
+        'version',
+        Parameter(
+            'str',
+            scope=Scope.GLOBAL,
+            shorthelp="Package: version",
+            switch="-package_version <str>",
+            example=[
+                "cli: -package_version 1.0",
+                "api: chip.set('package', 'version', '1.0')"],
+            help=trim("""Package version. Can be a branch, tag, commit hash,
+            or a semver compatible version.""")))
+
+    schema.insert(
+        'description',
+        Parameter(
+            'str',
+            scope=Scope.GLOBAL,
+            shorthelp="Package: description",
+            switch="-package_description <str>",
+            example=[
+                "cli: -package_description 'Yet another cpu'",
+                "api: chip.set('package', 'description', 'Yet another cpu')"],
+            help=trim("""Package short one line description for package
+            managers and summary reports.""")))
+
+    for item in [
+            'datasheet',
+            'reference',
+            'userguide',
+            'quickstart',
+            'releasenotes',
+            'testplan',
+            'signoff',
+            'tutorial']:
+        schema.insert(
+            'doc', item,
+            Parameter(
+                '[file]',
+                scope=Scope.GLOBAL,
+                shorthelp=f"Package: {item} document",
+                switch=f"-package_doc_{item} <file>",
+                example=[
+                    f"cli: -package_doc_{item} {item}.pdf",
+                    f"api: chip.set('package', 'doc', '{item}', '{item}.pdf')"],
+                help=trim(f"""Package list of {item} documents.""")))
+
+    schema.insert(
+        'license', 'name',
+        Parameter(
+            '[str]',
+            scope=Scope.GLOBAL,
+            shorthelp="Package: license identifiers",
+            switch="-package_license <str>",
+            example=[
+                "cli: -package_license 'Apache-2.0'",
+                "api: chip.set('package', 'license', 'Apache-2.0')"],
+            help=trim("""Package list of SPDX license identifiers.""")))
+
+    schema.insert(
+        'license', 'file',
+        Parameter(
+            '[file]',
+            scope=Scope.GLOBAL,
+            shorthelp="Package: license files",
+            switch="-package_licensefile <file>",
+            example=[
+                "cli: -package_licensefile './LICENSE'",
+                "api: chip.set('package', 'licensefile', './LICENSE')"],
+            help=trim("""Package list of license files for to be
+            applied in cases when a SPDX identifier is not available.
+            (eg. proprietary licenses).""")))
+
+    for item in [
+            'name',
+            'email',
+            'organization']:
+        schema.insert(
+            'author', 'default', item,
+            Parameter(
+                'str',
+                scope=Scope.GLOBAL,
+                shorthelp=f"Package: author {item}",
+                switch=f"-package_author_{item} 'userid <str>'",
+                example=[
+                    f"cli: -package_author_{item} 'wiley wiley@acme.com'",
+                    f"api: chip.set('package', 'author', 'wiley', '{item}', 'wiley@acme.com')"],
+                help=trim(f"""Package author {item} provided with full name as key and
+                {item} as value.""")))
 
 
 class PackageSchemaTmp(BaseSchema):
