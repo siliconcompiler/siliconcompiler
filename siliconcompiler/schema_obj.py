@@ -85,7 +85,7 @@ class SchemaTmp(Schema, CommandLineSchema):
 
         super()._from_dict(manifest, keypath, version=version)
 
-    def _find_files_dataref_resolvers(self):
+    def _find_files_dataroot_resolvers(self):
         return self.get("package", field="schema").get_resolvers()
 
     def record_history(self):

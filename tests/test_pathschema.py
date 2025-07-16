@@ -10,44 +10,44 @@ from siliconcompiler.pathschema import PathSchema
 
 def test_init():
     schema = PathSchema()
-    assert schema.getkeys() == ("dataref",)
+    assert schema.getkeys() == ("dataroot",)
 
 
 def test_get_registered_sources():
     schema = PathSchema()
-    assert schema.getkeys("dataref") == tuple([])
+    assert schema.getkeys("dataroot") == tuple([])
 
 
-def test_register_dataref():
+def test_register_dataroot():
     schema = PathSchema()
-    schema.register_dataref("testsource", "file://.")
-    assert schema.get("dataref", "testsource", "path") == "file://."
-    assert schema.get("dataref", "testsource", "tag") is None
+    schema.register_dataroot("testsource", "file://.")
+    assert schema.get("dataroot", "testsource", "path") == "file://."
+    assert schema.get("dataroot", "testsource", "tag") is None
 
 
-def test_register_dataref_overwrite():
+def test_register_dataroot_overwrite():
     schema = PathSchema()
-    schema.register_dataref("testsource", "file://.")
-    schema.register_dataref("testsource", "file://test")
-    assert schema.get("dataref", "testsource", "path") == "file://test"
-    assert schema.get("dataref", "testsource", "tag") is None
+    schema.register_dataroot("testsource", "file://.")
+    schema.register_dataroot("testsource", "file://test")
+    assert schema.get("dataroot", "testsource", "path") == "file://test"
+    assert schema.get("dataroot", "testsource", "tag") is None
 
 
-def test_register_dataref_with_ref():
+def test_register_dataroot_with_ref():
     schema = PathSchema()
-    schema.register_dataref("testsource", "file://.", "ref")
-    assert schema.get("dataref", "testsource", "path") == "file://."
-    assert schema.get("dataref", "testsource", "tag") == "ref"
+    schema.register_dataroot("testsource", "file://.", "ref")
+    assert schema.get("dataroot", "testsource", "path") == "file://."
+    assert schema.get("dataroot", "testsource", "tag") == "ref"
 
 
-def test_register_dataref_with_file():
+def test_register_dataroot_with_file():
     schema = PathSchema()
     with open("test.txt", "w") as f:
         f.write("test")
 
-    schema.register_dataref("testsource", "test.txt")
-    assert schema.get("dataref", "testsource", "path") == os.path.abspath(".")
-    assert schema.get("dataref", "testsource", "tag") is None
+    schema.register_dataroot("testsource", "test.txt")
+    assert schema.get("dataroot", "testsource", "path") == os.path.abspath(".")
+    assert schema.get("dataroot", "testsource", "tag") is None
 
 
 def test_find_files():
@@ -59,7 +59,7 @@ def test_find_files():
             schema.insert("file", Parameter("file"))
 
     test = Test()
-    test.register_dataref("testsource", "file://.")
+    test.register_dataroot("testsource", "file://.")
     param = test.set("file", "test.txt")
     param.set("testsource", field="package")
 
@@ -94,7 +94,7 @@ def test_find_files_dir():
             schema.insert("dir", Parameter("dir"))
 
     test = Test()
-    test.register_dataref("testsource", "file://.")
+    test.register_dataroot("testsource", "file://.")
     param = test.set("dir", "test")
     param.set("testsource", field="package")
 
@@ -180,7 +180,7 @@ def test_find_files_keypath():
 
     root = Root()
     test = root.get("test", field="schema")
-    test.register_dataref("keyref", "key://ref")
+    test.register_dataroot("keyref", "key://ref")
     assert root.set("ref", "test")
     os.makedirs("test", exist_ok=True)
     param = test.set("file", "test.txt")
@@ -192,19 +192,19 @@ def test_find_files_keypath():
     assert test.find_files("file") == os.path.abspath("test/test.txt")
 
 
-def test_find_dataref():
+def test_find_dataroot():
     schema = PathSchema()
-    schema.register_dataref("testsource", "file://.")
-    assert schema.find_dataref("testsource") == os.path.abspath(".")
+    schema.register_dataroot("testsource", "file://.")
+    assert schema.find_dataroot("testsource") == os.path.abspath(".")
 
 
-def test_find_dataref_not_found():
+def test_find_dataroot_not_found():
     schema = PathSchema()
     with pytest.raises(ValueError, match="testsource is not a recognized source"):
-        schema.find_dataref("testsource")
+        schema.find_dataroot("testsource")
 
 
-def test_find_dataref_keypath():
+def test_find_dataroot_keypath():
     class Test(PathSchema):
         def __init__(self):
             super().__init__()
@@ -223,11 +223,11 @@ def test_find_dataref_keypath():
 
     root = Root()
     test = root.get("test", field="schema")
-    test.register_dataref("keyref", "key://ref")
+    test.register_dataroot("keyref", "key://ref")
     assert root.set("ref", "test")
     os.makedirs("test", exist_ok=True)
 
-    assert test.find_dataref("keyref") == os.path.abspath("test")
+    assert test.find_dataroot("keyref") == os.path.abspath("test")
 
 
 def test_check_filepaths_empty():

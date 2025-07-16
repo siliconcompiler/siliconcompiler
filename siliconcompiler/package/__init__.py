@@ -458,7 +458,7 @@ class PythonPathResolver(Resolver):
                              ref=ref)
 
     @staticmethod
-    def register_dataref(root,
+    def register_dataroot(root,
                          package_name,
                          python_module,
                          alternative_path,
@@ -481,7 +481,7 @@ class PythonPathResolver(Resolver):
             path = alternative_path
             ref = alternative_ref
 
-        root.register_dataref(name=package_name,
+        root.register_dataroot(name=package_name,
                               path=path,
                               tag=ref)
 
