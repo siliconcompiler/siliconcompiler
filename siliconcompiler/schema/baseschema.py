@@ -672,14 +672,16 @@ class BaseSchema:
             package = path.get(field="package")
             if package:
                 if package not in packages:
-                    raise ValueError(f"Resolver for {package} not provided")
+                    raise ValueError(f"Resolver for {package} not provided: "
+                                     f"{self.__format_key(*keypath)}")
                 package_path = packages[package]
                 if isinstance(package_path, str):
                     search_paths.append(os.path.abspath(package_path))
                 elif callable(package_path):
                     search_paths.append(package_path())
                 else:
-                    raise TypeError(f"Resolver for {package} is not a recognized type")
+                    raise TypeError(f"Resolver for {package} is not a recognized type: "
+                                    f"{self.__format_key(*keypath)}")
             else:
                 if cwd:
                     search_paths.append(os.path.abspath(cwd))
