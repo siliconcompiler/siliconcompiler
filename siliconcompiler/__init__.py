@@ -14,6 +14,9 @@ from siliconcompiler.asic import ASICSchema
 from siliconcompiler.fpga import FPGASchema
 from siliconcompiler.packageschema import PackageSchema
 
+from siliconcompiler.project import Project
+from siliconcompiler.library import LibrarySchema, StdCellLibrarySchema
+
 from siliconcompiler.core import Chip
 
 from siliconcompiler._metadata import version as __version__
@@ -34,6 +37,7 @@ __all__ = [
     "sc_open",
 
     "DesignSchema",
+    "LibrarySchema",
     "RecordSchema",
     "MetricSchema",
     "PDKSchema",
@@ -43,5 +47,8 @@ __all__ = [
     "ChecklistSchema",
     "ASICSchema",
     "FPGASchema",
-    "PackageSchema"
+    "PackageSchema",
+
+    "Project",
+    "StdCellLibrarySchema"
 ]
