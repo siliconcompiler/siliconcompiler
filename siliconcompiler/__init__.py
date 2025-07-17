@@ -13,6 +13,8 @@ from siliconcompiler.checklist import ChecklistSchema
 from siliconcompiler.asic import ASICSchema
 from siliconcompiler.fpga import FPGASchema
 
+from siliconcompiler.project import Project
+
 from siliconcompiler.core import Chip
 
 from siliconcompiler._metadata import version as __version__
@@ -41,5 +43,7 @@ __all__ = [
     "TaskSchema",
     "ChecklistSchema",
     "ASICSchema",
-    "FPGASchema"
+    "FPGASchema",
+
+    "Project"
 ]
