@@ -190,6 +190,11 @@ def test_runtime(running_project):
         assert runtool.schema() is running_project.schema
 
 
+def test_runtime_node_only(running_project):
+    with running_project.get_nop().runtime(None, 'running', '0') as runtool:
+        assert runtool.node() == ('running', '0')
+
+
 def test_runtime_same_task(running_project):
     with running_project.get_nop().runtime(running_project) as runtool0, \
          running_project.get_nop().runtime(running_project,
@@ -259,6 +264,19 @@ def test_set(running_project):
                                step="notrunning", index="0") == []
 
 
+def test_set_step_index_only(running_project):
+    with running_project.get_nop().runtime(None, step="notrunning", index="0") as runtool:
+        assert runtool.set("option", "only_step_index")
+        assert runtool.get("option") == ["only_step_index"]
+        assert BaseSchema.get(runtool, "option", step="notrunning", index="0") == \
+            ["only_step_index"]
+        assert BaseSchema.get(runtool, "option", step="running", index="0") == []
+    assert running_project.get("tool", "builtin", "task", "nop", "option",
+                               step="notrunning", index="0") == ["only_step_index"]
+    assert running_project.get("tool", "builtin", "task", "nop", "option",
+                               step="running", index="0") == []
+
+
 def test_add(running_project):
     with running_project.get_nop().runtime(running_project) as runtool:
         assert runtool.add("option", "only_step_index0")
@@ -272,6 +290,21 @@ def test_add(running_project):
         ["only_step_index0", "only_step_index1"]
     assert running_project.get("tool", "builtin", "task", "nop", "option",
                                step="notrunning", index="0") == []
+
+
+def test_add_step_index_only(running_project):
+    with running_project.get_nop().runtime(None, step="notrunning", index="0") as runtool:
+        assert runtool.add("option", "only_step_index0")
+        assert runtool.add("option", "only_step_index1")
+        assert runtool.get("option") == ["only_step_index0", "only_step_index1"]
+        assert BaseSchema.get(runtool, "option", step="notrunning", index="0") == \
+            ["only_step_index0", "only_step_index1"]
+        assert BaseSchema.get(runtool, "option", step="running", index="0") == []
+    assert running_project.get("tool", "builtin", "task", "nop", "option",
+                               step="notrunning", index="0") == \
+        ["only_step_index0", "only_step_index1"]
+    assert running_project.get("tool", "builtin", "task", "nop", "option",
+                               step="running", index="0") == []
 
 
 def test_get_exe_empty(running_project):
@@ -1513,6 +1546,8 @@ def test_set_threads(running_project):
         with running_project.get_nop().runtime(running_project) as runtool:
             assert runtool.set_threads()
             assert runtool.get("threads") == 15
+            assert BaseSchema.get(runtool, "threads", step="running", index="0") == 15
+            assert BaseSchema.get(runtool, "threads", step="notrunning", index="0") is None
             assert runtool.get_threads() == 15
         get_cores.assert_called_once()
 
