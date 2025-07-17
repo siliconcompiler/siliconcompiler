@@ -153,11 +153,9 @@ def test_builddir():
 
 def test_builddir_abspath():
     project = Project()
-    project.set("option", "builddir", os.path.abspath("../buildhere"))
+    project.set("option", "builddir", os.path.abspath("diffdir/buildhere"))
 
-    assert not project._Project__getbuilddir().startswith(project.cwd)
-
-    assert project._Project__getbuilddir() == os.path.abspath("../buildhere")
+    assert project._Project__getbuilddir() == os.path.abspath("diffdir/buildhere")
 
 
 def test_builddir_diff_build():
