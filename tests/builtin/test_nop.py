@@ -6,7 +6,7 @@ from siliconcompiler.targets import freepdk45_demo
 
 
 ##################################
-def test_nop():
+def test_nop(has_graphviz):
     '''API test for nop methods
     '''
 

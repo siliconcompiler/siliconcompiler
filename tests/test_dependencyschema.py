@@ -293,7 +293,7 @@ def test_write_depgraph_no_graphviz_exe():
         render.assert_called_once()
 
 
-def test_write_depgraph():
+def test_write_depgraph(has_graphviz):
     class Test(NamedSchema, DependencySchema):
         def __init__(self, name):
             super().__init__()
@@ -316,7 +316,7 @@ def test_write_depgraph():
     assert os.path.exists("test.png")
 
 
-def test_write_depgraph_alt_config():
+def test_write_depgraph_alt_config(has_graphviz):
     class Test(NamedSchema, DependencySchema):
         def __init__(self, name):
             super().__init__()
@@ -339,7 +339,7 @@ def test_write_depgraph_alt_config():
     assert os.path.exists("test.png")
 
 
-def test_write_depgraph_repeats():
+def test_write_depgraph_repeats(has_graphviz):
     class Test(NamedSchema, DependencySchema):
         def __init__(self, name):
             super().__init__()
@@ -363,7 +363,7 @@ def test_write_depgraph_repeats():
     assert os.path.exists("test.png")
 
 
-def test_write_depgraph_circle():
+def test_write_depgraph_circle(has_graphviz):
     class Test(NamedSchema, DependencySchema):
         def __init__(self, name):
             super().__init__()

@@ -360,3 +360,12 @@ def run_cli():
         return proc
 
     return run
+
+
+@pytest.fixture
+def has_graphviz():
+    import graphviz
+    try:
+        graphviz.version()
+    except graphviz.ExecutableNotFound:
+        pytest.skip("graphviz not available")

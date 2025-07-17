@@ -17,7 +17,7 @@ from siliconcompiler.tools.builtin import nop
 from siliconcompiler.tools.builtin import join
 
 
-def test_graph():
+def test_graph(has_graphviz):
 
     chip = siliconcompiler.Chip('test')
 
