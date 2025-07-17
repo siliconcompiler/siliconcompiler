@@ -1682,30 +1682,6 @@ def test_active_package():
     assert schema._get_active(None) is None
 
 
-def test_active_dataroot():
-    schema = BaseSchema()
-
-    assert schema._get_active(None) is None
-    with schema.active_dataroot("testpack"):
-        assert schema._get_active(None) == {
-            "package": "testpack"
-        }
-        assert schema._get_active("package") == "testpack"
-    assert schema._get_active(None) is None
-
-
-def test_active_package_rename():
-    schema = BaseSchema()
-
-    assert schema._get_active(None) is None
-    with schema._active(dataroot="testpack"):
-        assert schema._get_active(None) == {
-            "package": "testpack"
-        }
-        assert schema._get_active("package") == "testpack"
-    assert schema._get_active(None) is None
-
-
 def test_active_invalid_active():
     schema = BaseSchema()
 
@@ -1843,7 +1819,7 @@ def test_find_files_custom_class_package_resolution():
     custom = CustomFiles()
     schema = BaseSchema()
     EditableSchema(schema).insert("level-1", custom)
-    with schema.active_dataroot("thispackage"):
+    with schema._active(package="thispackage"):
         assert schema.set("level-1", "level0", "rootedfile", "thisfile.txt")
         assert schema.set("level-1", "level0", "level1", "unrootedfile", "thatfile.txt")
 

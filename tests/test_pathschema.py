@@ -5,7 +5,7 @@ import os.path
 
 from siliconcompiler.schema import BaseSchema
 from siliconcompiler.schema import EditableSchema, Parameter
-from siliconcompiler.pathschema import PathSchema
+from siliconcompiler.pathschema import PathSchemaBase, PathSchema
 
 
 def test_init():
@@ -120,7 +120,7 @@ def test_find_files_no_sources():
 
 
 def test_find_files_cwd():
-    class Test(PathSchema):
+    class Test(PathSchemaBase):
         cwd = "cwd"
 
         def __init__(self):
@@ -138,7 +138,7 @@ def test_find_files_cwd():
 
 
 def test_find_files_collection_dir():
-    class Test(PathSchema):
+    class Test(PathSchemaBase):
         calls = 0
 
         def collection_dir(self):
@@ -231,7 +231,7 @@ def test_get_dataroot_keypath():
 
 
 def test_check_filepaths_empty():
-    schema = PathSchema()
+    schema = PathSchemaBase()
     edit = EditableSchema(schema)
     param = Parameter("[dir]")
     edit.insert("directory", param)
@@ -240,7 +240,7 @@ def test_check_filepaths_empty():
 
 
 def test_check_filepaths_found():
-    schema = PathSchema()
+    schema = PathSchemaBase()
     edit = EditableSchema(schema)
     param = Parameter("[dir]")
     edit.insert("directory", param)
@@ -253,7 +253,7 @@ def test_check_filepaths_found():
 
 
 def test_check_filepaths_not_found_no_logger():
-    schema = PathSchema()
+    schema = PathSchemaBase()
     edit = EditableSchema(schema)
     param = Parameter("[dir]")
     edit.insert("directory", param)
@@ -264,7 +264,7 @@ def test_check_filepaths_not_found_no_logger():
 
 
 def test_check_filepaths_not_found_logger(caplog):
-    schema = PathSchema()
+    schema = PathSchemaBase()
     edit = EditableSchema(schema)
     param = Parameter("[dir]")
     edit.insert("directory", param)
@@ -280,7 +280,7 @@ def test_check_filepaths_not_found_logger(caplog):
 
 
 def test_check_filepaths_cwd():
-    class Test(PathSchema):
+    class Test(PathSchemaBase):
         cwd = "cwd"
 
         def __init__(self):
@@ -298,7 +298,7 @@ def test_check_filepaths_cwd():
 
 
 def test_check_filepaths_collection_dir():
-    class Test(PathSchema):
+    class Test(PathSchemaBase):
         calls = 0
 
         def collection_dir(self):
@@ -318,3 +318,27 @@ def test_check_filepaths_collection_dir():
 
     assert test.check_filepaths() is True
     assert test.calls == 1
+
+
+def test_active_dataroot():
+    schema = PathSchema()
+
+    schema.set_dataroot("testpack", __file__)
+
+    assert schema._get_active(None) is None
+    with schema.active_dataroot("testpack"):
+        assert schema._get_active(None) == {
+            "package": "testpack"
+        }
+        assert schema._get_active("package") == "testpack"
+    assert schema._get_active(None) is None
+
+
+def test_active_dataroot_missing():
+    schema = PathSchema()
+
+    assert schema._get_active(None) is None
+    with pytest.raises(ValueError, match="testpack is not a recognized dataroot"):
+        with schema.active_dataroot("testpack"):
+            pass
+    assert schema._get_active(None) is None

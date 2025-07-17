@@ -672,14 +672,16 @@ class BaseSchema:
             package = path.get(field="package")
             if package:
                 if package not in packages:
-                    raise ValueError(f"Resolver for {package} not provided")
+                    raise ValueError(f"Resolver for {package} not provided: "
+                                     f"{self.__format_key(*keypath)}")
                 package_path = packages[package]
                 if isinstance(package_path, str):
                     search_paths.append(os.path.abspath(package_path))
                 elif callable(package_path):
                     search_paths.append(package_path())
                 else:
-                    raise TypeError(f"Resolver for {package} is not a recognized type")
+                    raise TypeError(f"Resolver for {package} is not a recognized type: "
+                                    f"{self.__format_key(*keypath)}")
             else:
                 if cwd:
                     search_paths.append(os.path.abspath(cwd))
@@ -786,22 +788,6 @@ class BaseSchema:
         return self.__parent._parent(root=root)
 
     @contextlib.contextmanager
-    def active_dataroot(self, dataroot: str = None):
-        '''
-        Use this context to set the dataroot parameter on files and directory parameters.
-
-        Args:
-            dataroot (str): name of the dataroot
-
-        Example:
-            >>> with schema.active_dataroot("lambdalib"):
-            ...     schema.set("file", "top.v")
-            Sets the file to top.v and associates lambdalib as the dataroot.
-        '''
-        with self._active(dataroot=dataroot):
-            yield
-
-    @contextlib.contextmanager
     def _active(self, **kwargs):
         '''
         Use this context to temporarily set additional fields in :meth:`.set` and :meth:`.add`.
@@ -822,13 +808,6 @@ class BaseSchema:
 
         if self.__active is None:
             self.__active = {}
-
-        if "dataroot" in kwargs:
-            # Tempoary rename
-            if "package" in kwargs:
-                raise ValueError("dataroot and package cannot be specified")
-            kwargs["package"] = kwargs["dataroot"]
-            del kwargs["dataroot"]
 
         self.__active.update(kwargs)
         try:
