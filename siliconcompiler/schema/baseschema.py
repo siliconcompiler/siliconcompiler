@@ -786,22 +786,6 @@ class BaseSchema:
         return self.__parent._parent(root=root)
 
     @contextlib.contextmanager
-    def active_dataroot(self, dataroot: str = None):
-        '''
-        Use this context to set the dataroot parameter on files and directory parameters.
-
-        Args:
-            dataroot (str): name of the dataroot
-
-        Example:
-            >>> with schema.active_dataroot("lambdalib"):
-            ...     schema.set("file", "top.v")
-            Sets the file to top.v and associates lambdalib as the dataroot.
-        '''
-        with self._active(dataroot=dataroot):
-            yield
-
-    @contextlib.contextmanager
     def _active(self, **kwargs):
         '''
         Use this context to temporarily set additional fields in :meth:`.set` and :meth:`.add`.
@@ -822,13 +806,6 @@ class BaseSchema:
 
         if self.__active is None:
             self.__active = {}
-
-        if "dataroot" in kwargs:
-            # Tempoary rename
-            if "package" in kwargs:
-                raise ValueError("dataroot and package cannot be specified")
-            kwargs["package"] = kwargs["dataroot"]
-            del kwargs["dataroot"]
 
         self.__active.update(kwargs)
         try:

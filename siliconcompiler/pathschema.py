@@ -1,3 +1,4 @@
+import contextlib
 import logging
 
 import os.path
@@ -84,9 +85,9 @@ class PathSchema(BaseSchema):
         if os.path.isfile(path):
             path = os.path.dirname(os.path.abspath(path))
 
-        self.set("dataroot", name, "path", path)
+        BaseSchema.set(self, "dataroot", name, "path", path)
         if tag:
-            self.set("dataroot", name, "tag", tag)
+            BaseSchema.set(self, "dataroot", name, "tag", tag)
 
     def get_dataroot(self, name: str) -> str:
         """
@@ -106,11 +107,11 @@ class PathSchema(BaseSchema):
             Returns the path to the root of the siliconcompiler data directory.
         """
 
-        if not self.valid("dataroot", name):
+        if not BaseSchema.valid(self, "dataroot", name):
             raise ValueError(f"{name} is not a recognized source")
 
-        path = self.get("dataroot", name, "path")
-        tag = self.get("dataroot", name, "tag")
+        path = BaseSchema.get(self, "dataroot", name, "path")
+        tag = BaseSchema.get(self, "dataroot", name, "tag")
 
         resolver = Resolver.find_resolver(path)
         return resolver(name, self._parent(root=True), path, tag).get_path()
@@ -125,11 +126,31 @@ class PathSchema(BaseSchema):
         schema_root = self._parent(root=True)
         resolver_map = {}
         for dataroot in self.getkeys("dataroot"):
-            path = self.get("dataroot", dataroot, "path")
-            tag = self.get("dataroot", dataroot, "tag")
+            path = BaseSchema.get(self, "dataroot", dataroot, "path")
+            tag = BaseSchema.get(self, "dataroot", dataroot, "tag")
             resolver = Resolver.find_resolver(path)
             resolver_map[dataroot] = resolver(dataroot, schema_root, path, tag).get_path
         return resolver_map
+
+    @contextlib.contextmanager
+    def active_dataroot(self, dataroot: str = None):
+        '''
+        Use this context to set the dataroot parameter on files and directory parameters.
+
+        Args:
+            dataroot (str): name of the dataroot
+
+        Example:
+            >>> with schema.active_dataroot("lambdalib"):
+            ...     schema.set("file", "top.v")
+            Sets the file to top.v and associates lambdalib as the dataroot.
+        '''
+
+        if dataroot and dataroot not in self.getkeys("dataroot"):
+            raise ValueError(f"{dataroot} is not a recognized dataroot")
+
+        with self._active(package=dataroot):
+            yield
 
     def find_files(self, *keypath,
                    missing_ok=False,
