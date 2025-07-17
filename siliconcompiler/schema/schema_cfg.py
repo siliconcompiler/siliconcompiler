@@ -59,16 +59,7 @@ def schema_cfg(schema):
     # Basic schema setup
     cfg = EditableSchema(schema)
 
-    scparam(cfg, ['schemaversion'],
-            sctype='str',
-            scope=Scope.GLOBAL,
-            defvalue=SCHEMA_VERSION,
-            require=True,
-            shorthelp="Schema version number",
-            lock=True,
-            switch="-schemaversion <str>",
-            example=["api: chip.get('schemaversion')"],
-            schelp="""SiliconCompiler schema version number.""")
+    schema_version(cfg)
 
     # Design topmodule/entrypoint
     scparam(cfg, ['design'],
@@ -137,6 +128,19 @@ def schema_cfg(schema):
 
     # Packaging
     cfg = schema_schematic(cfg)
+
+
+def schema_version(cfg):
+    scparam(cfg, ['schemaversion'],
+            sctype='str',
+            scope=Scope.GLOBAL,
+            defvalue=SCHEMA_VERSION,
+            require=True,
+            shorthelp="Schema version number",
+            lock=True,
+            switch="-schemaversion <str>",
+            example=["api: chip.get('schemaversion')"],
+            schelp="""SiliconCompiler schema version number.""")
 
 
 ###############################################################################

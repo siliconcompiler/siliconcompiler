@@ -593,6 +593,16 @@ def test_getkeys():
     assert schema.getkeys("test0") == tuple(["test1"])
 
 
+def test_getkeys_ensure_ordering():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("test2", "test1", Parameter("str"))
+    edit.insert("test0", "test1", Parameter("str"))
+
+    assert schema.getkeys() == ("test0", "test2")
+    assert schema.getkeys("test0") == tuple(["test1"])
+
+
 def test_getkeys_unmatched():
     schema = BaseSchema()
     edit = EditableSchema(schema)
@@ -1767,6 +1777,16 @@ def test_active_add():
             assert schema.get("testdir", field="package") == [
                 "testpack",
                 "anotherpack"]
+
+
+def test_active_set_field():
+    schema = BaseSchema()
+    EditableSchema(schema).insert("teststr", Parameter("[str]"))
+    EditableSchema(schema).insert("testdir", Parameter("[dir]"))
+
+    with schema._active(package="testpack"):
+        assert schema.add("teststr", "thisstring0")
+        assert schema.set("teststr", True, field="lock")
 
 
 def test_find_files_custom_class_search_paths():

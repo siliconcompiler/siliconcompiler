@@ -479,7 +479,7 @@ class BaseSchema:
         else:
             key_param = self
 
-        return tuple(key_param.__manifest.keys())
+        return tuple(sorted(key_param.__manifest.keys()))
 
     def allkeys(self, *keypath, include_default=True):
         '''
@@ -836,13 +836,17 @@ class BaseSchema:
         if not self.__active:
             return
 
-        if isinstance(nodevalues, NodeValue):
+        if not isinstance(nodevalues, (list, set, tuple)):
             # Make everything a list
             nodevalues = [nodevalues]
 
-        key_fields = ("copy", "lock")
+        if not all([isinstance(v, NodeValue) for v in nodevalues]):
+            nodevalues = []
+            nodevalues_fields = []
+        else:
+            nodevalues_fields = nodevalues[0].fields
 
-        nodevalues_fields = nodevalues[0].fields
+        key_fields = ("copy", "lock")
 
         for field, value in self.__active.items():
             if field in key_fields:
