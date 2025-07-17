@@ -72,14 +72,14 @@ def test_get_resolvers_empty():
 def test_description():
     schema = PackageSchema()
     assert schema.set_description("this is the description")
-    assert schema.get("description") == "this is the description"
+    assert schema.get("package", "description") == "this is the description"
     assert schema.get_description() == "this is the description"
 
 
 def test_version():
     schema = PackageSchema()
     assert schema.set_version("1.0")
-    assert schema.get("version") == "1.0"
+    assert schema.get("package", "version") == "1.0"
     assert schema.get_version() == "1.0"
 
 
@@ -89,9 +89,9 @@ def test_author():
                                  name="Bob",
                                  email="bob@org.com",
                                  organization="Bob Inc.")) == 3
-    assert schema.get("author", "person0", "name") == "Bob"
-    assert schema.get("author", "person0", "email") == "bob@org.com"
-    assert schema.get("author", "person0", "organization") == "Bob Inc."
+    assert schema.get("package", "author", "person0", "name") == "Bob"
+    assert schema.get("package", "author", "person0", "email") == "bob@org.com"
+    assert schema.get("package", "author", "person0", "organization") == "Bob Inc."
 
 
 def test_author_overwrite():
@@ -101,9 +101,9 @@ def test_author_overwrite():
                                  email="bob@org.com",
                                  organization="Bob Inc.")) == 3
     assert len(schema.add_author("person0", name="Bob0")) == 1
-    assert schema.get("author", "person0", "name") == "Bob0"
-    assert schema.get("author", "person0", "email") == "bob@org.com"
-    assert schema.get("author", "person0", "organization") == "Bob Inc."
+    assert schema.get("package", "author", "person0", "name") == "Bob0"
+    assert schema.get("package", "author", "person0", "email") == "bob@org.com"
+    assert schema.get("package", "author", "person0", "organization") == "Bob Inc."
 
 
 def test_license():
@@ -140,7 +140,7 @@ def test_add_documentation():
     Path("doc").touch()
 
     assert schema.add_documentation("userguide", "doc")
-    assert schema.get("doc", "userguide") == ["doc"]
+    assert schema.get("package", "doc", "userguide") == ["doc"]
     assert schema.get_documentation("userguide") == [os.path.abspath("doc")]
 
 
@@ -154,7 +154,7 @@ def test_add_documentation_with_dataroot():
 
     with schema.active_dataroot("testdata"):
         assert schema.add_documentation("quickstart", "quick")
-    assert schema.get("doc", "quickstart") == ["quick"]
+    assert schema.get("package", "doc", "quickstart") == ["quick"]
     assert schema.get_documentation("quickstart") == [os.path.abspath("docs/quick")]
 
 

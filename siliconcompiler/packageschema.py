@@ -23,7 +23,7 @@ class PackageSchema(PathSchema):
         Args:
             desc (str): The description string.
         """
-        return self.set("description", trim(desc))
+        return self.set("package", "description", trim(desc))
 
     def get_description(self) -> str:
         """Get the description of the package.
@@ -31,7 +31,7 @@ class PackageSchema(PathSchema):
         Returns:
             str: The description string.
         """
-        return self.get("description")
+        return self.get("package", "description")
 
     def set_version(self, version: str):
         """
@@ -40,7 +40,7 @@ class PackageSchema(PathSchema):
         Args:
             version (str): The version string.
         """
-        return self.set("version", version)
+        return self.set("package", "version", version)
 
     def get_version(self) -> str:
         """
@@ -49,7 +49,7 @@ class PackageSchema(PathSchema):
         Returns:
             str: The version string.
         """
-        return self.get("version")
+        return self.get("package", "version")
 
     def add_license(self, name: str):
         """
@@ -58,7 +58,7 @@ class PackageSchema(PathSchema):
         Args:
             name (str): The name of the license.
         """
-        return self.add("license", "name", name)
+        return self.add("package", "license", name)
 
     def add_license_file(self, file: str, dataroot: str = None):
         """
@@ -72,19 +72,19 @@ class PackageSchema(PathSchema):
         if not dataroot:
             dataroot = self._get_active("package")
         with self.active_dataroot(dataroot):
-            return self.add("license", "file", file)
+            return self.add("package", "licensefile", file)
 
     def get_licenses(self) -> List[str]:
         """
         Get a list of license names associated with the package.
         """
-        return self.get("license", "name")
+        return self.get("package", "license")
 
     def get_license_files(self) -> List[str]:
         """
         Get a list of license file paths associated with the package.
         """
-        return self.find_files("license", "file")
+        return self.find_files("package", "licensefile")
 
     def add_author(self,
                    identifier: str,
@@ -102,11 +102,11 @@ class PackageSchema(PathSchema):
         """
         params = []
         if name:
-            params.append(self.set("author", identifier, "name", name))
+            params.append(self.set("package", "author", identifier, "name", name))
         if email:
-            params.append(self.set("author", identifier, "email", email))
+            params.append(self.set("package", "author", identifier, "email", email))
         if organization:
-            params.append(self.set("author", identifier, "organization", organization))
+            params.append(self.set("package", "author", identifier, "organization", organization))
         return [p for p in params if p]
 
     def add_documentation(self, type: str, path: str, dataroot: str = None):
@@ -125,7 +125,7 @@ class PackageSchema(PathSchema):
         if not dataroot:
             dataroot = self._get_active("package")
         with self.active_dataroot(dataroot):
-            return self.add("doc", type, path)
+            return self.add("package", "doc", type, path)
 
     def get_documentation(self, type: str = None) -> Union[List[str], Dict[str, List[str]]]:
         """
@@ -136,11 +136,11 @@ class PackageSchema(PathSchema):
                                 returns all documentation organized by type. Defaults to None.
         """
         if type:
-            return self.find_files("doc", type)
+            return self.find_files("package", "doc", type)
 
         docs = {}
-        for type in self.getkeys("doc"):
-            doc_files = self.find_files("doc", type)
+        for type in self.getkeys("package", "doc"):
+            doc_files = self.find_files("package", "doc", type)
             if doc_files:
                 docs[type] = doc_files
         return docs
@@ -153,7 +153,7 @@ def schema_package(schema):
     schema = EditableSchema(schema)
 
     schema.insert(
-        'version',
+        'package', 'version',
         Parameter(
             'str',
             scope=Scope.GLOBAL,
@@ -166,7 +166,7 @@ def schema_package(schema):
             or a semver compatible version.""")))
 
     schema.insert(
-        'description',
+        'package', 'description',
         Parameter(
             'str',
             scope=Scope.GLOBAL,
@@ -188,7 +188,7 @@ def schema_package(schema):
             'signoff',
             'tutorial']:
         schema.insert(
-            'doc', item,
+            'package', 'doc', item,
             Parameter(
                 '[file]',
                 scope=Scope.GLOBAL,
@@ -200,7 +200,7 @@ def schema_package(schema):
                 help=trim(f"""Package list of {item} documents.""")))
 
     schema.insert(
-        'license', 'name',
+        'package', 'license',
         Parameter(
             '[str]',
             scope=Scope.GLOBAL,
@@ -212,7 +212,7 @@ def schema_package(schema):
             help=trim("""Package list of SPDX license identifiers.""")))
 
     schema.insert(
-        'license', 'file',
+        'package', 'licensefile',
         Parameter(
             '[file]',
             scope=Scope.GLOBAL,
@@ -230,7 +230,7 @@ def schema_package(schema):
             'email',
             'organization']:
         schema.insert(
-            'author', 'default', item,
+            'package', 'author', 'default', item,
             Parameter(
                 'str',
                 scope=Scope.GLOBAL,
