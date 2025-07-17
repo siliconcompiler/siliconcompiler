@@ -11,9 +11,82 @@ from siliconcompiler.schema.utils import trim
 from siliconcompiler.package import Resolver
 
 
-class PathSchema(BaseSchema):
+class PathSchemaBase(BaseSchema):
     '''
-    Schema extension to add support for path handling
+    Schema extension to add simpler find_files and check_filepaths
+    '''
+
+    def find_files(self, *keypath,
+                   missing_ok=False,
+                   step=None, index=None):
+        """
+        Returns absolute paths to files or directories based on the keypath
+        provided.
+
+        The keypath provided must point to a schema parameter of type file, dir,
+        or lists of either. Otherwise, it will trigger an error.
+
+        Args:
+            keypath (list of str): Variable length schema key list.
+            missing_ok (bool): If True, silently return None when files aren't
+                found. If False, print an error and set the error flag.
+            step (str): Step name to access for parameters that may be specified
+                on a per-node basis.
+            index (str): Index name to access for parameters that may be specified
+                on a per-node basis.
+
+        Returns:
+            If keys points to a scalar entry, returns an absolute path to that
+            file/directory, or None if not found. It keys points to a list
+            entry, returns a list of either the absolute paths or None for each
+            entry, depending on whether it is found.
+
+        Examples:
+            >>> schema.find_files('input', 'verilog')
+            Returns a list of absolute paths to source files, as specified in
+            the schema.
+        """
+        schema_root = self._parent(root=True)
+        cwd = getattr(schema_root, "cwd", os.getcwd())
+        collection_dir = getattr(schema_root, "collection_dir", None)
+        if collection_dir:
+            collection_dir = collection_dir()
+
+        return super().find_files(*keypath,
+                                  missing_ok=missing_ok,
+                                  step=step, index=index,
+                                  collection_dir=collection_dir,
+                                  cwd=cwd)
+
+    def check_filepaths(self, ignore_keys=None):
+        '''
+        Verifies that paths to all files in manifest are valid.
+
+        Args:
+            ignore_keys (list of keypaths): list of keypaths to ignore while checking
+
+        Returns:
+            True if all file paths are valid, otherwise False.
+        '''
+        schema_root = self._parent(root=True)
+        cwd = getattr(schema_root, "cwd", os.getcwd())
+        logger = getattr(schema_root,
+                         "logger",
+                         logging.getLogger("siliconcompiler.check_filepaths"))
+        collection_dir = getattr(schema_root, "collection_dir", None)
+        if collection_dir:
+            collection_dir = collection_dir()
+
+        return super().check_filepaths(
+            ignore_keys=ignore_keys,
+            logger=logger,
+            collection_dir=collection_dir,
+            cwd=cwd)
+
+
+class PathSchema(PathSchemaBase):
+    '''
+    Schema extension to add support for path handling with dataroots
     '''
 
     def __init__(self):
@@ -151,70 +224,3 @@ class PathSchema(BaseSchema):
 
         with self._active(package=dataroot):
             yield
-
-    def find_files(self, *keypath,
-                   missing_ok=False,
-                   step=None, index=None):
-        """
-        Returns absolute paths to files or directories based on the keypath
-        provided.
-
-        The keypath provided must point to a schema parameter of type file, dir,
-        or lists of either. Otherwise, it will trigger an error.
-
-        Args:
-            keypath (list of str): Variable length schema key list.
-            missing_ok (bool): If True, silently return None when files aren't
-                found. If False, print an error and set the error flag.
-            step (str): Step name to access for parameters that may be specified
-                on a per-node basis.
-            index (str): Index name to access for parameters that may be specified
-                on a per-node basis.
-
-        Returns:
-            If keys points to a scalar entry, returns an absolute path to that
-            file/directory, or None if not found. It keys points to a list
-            entry, returns a list of either the absolute paths or None for each
-            entry, depending on whether it is found.
-
-        Examples:
-            >>> schema.find_files('input', 'verilog')
-            Returns a list of absolute paths to source files, as specified in
-            the schema.
-        """
-        schema_root = self._parent(root=True)
-        cwd = getattr(schema_root, "cwd", os.getcwd())
-        collection_dir = getattr(schema_root, "collection_dir", None)
-        if collection_dir:
-            collection_dir = collection_dir()
-
-        return super().find_files(*keypath,
-                                  missing_ok=missing_ok,
-                                  step=step, index=index,
-                                  collection_dir=collection_dir,
-                                  cwd=cwd)
-
-    def check_filepaths(self, ignore_keys=None):
-        '''
-        Verifies that paths to all files in manifest are valid.
-
-        Args:
-            ignore_keys (list of keypaths): list of keypaths to ignore while checking
-
-        Returns:
-            True if all file paths are valid, otherwise False.
-        '''
-        schema_root = self._parent(root=True)
-        cwd = getattr(schema_root, "cwd", os.getcwd())
-        logger = getattr(schema_root,
-                         "logger",
-                         logging.getLogger("siliconcompiler.check_filepaths"))
-        collection_dir = getattr(schema_root, "collection_dir", None)
-        if collection_dir:
-            collection_dir = collection_dir()
-
-        return super().check_filepaths(
-            ignore_keys=ignore_keys,
-            logger=logger,
-            collection_dir=collection_dir,
-            cwd=cwd)
