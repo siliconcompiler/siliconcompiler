@@ -318,3 +318,27 @@ def test_check_filepaths_collection_dir():
 
     assert test.check_filepaths() is True
     assert test.calls == 1
+
+
+def test_active_dataroot():
+    schema = PathSchema()
+
+    schema.set_dataroot("testpack", __file__)
+
+    assert schema._get_active(None) is None
+    with schema.active_dataroot("testpack"):
+        assert schema._get_active(None) == {
+            "package": "testpack"
+        }
+        assert schema._get_active("package") == "testpack"
+    assert schema._get_active(None) is None
+
+
+def test_active_dataroot_missing():
+    schema = PathSchema()
+
+    assert schema._get_active(None) is None
+    with pytest.raises(ValueError, match="testpack is not a recognized dataroot"):
+        with schema.active_dataroot("testpack"):
+            pass
+    assert schema._get_active(None) is None
