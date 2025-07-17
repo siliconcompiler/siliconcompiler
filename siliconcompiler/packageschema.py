@@ -60,7 +60,7 @@ class PackageSchema(PathSchema):
         """
         return self.add("package", "license", name)
 
-    def add_license_file(self, file: str, dataroot: str = None):
+    def add_licensefile(self, file: str, dataroot: str = None):
         """
         Add a license file to the package.
 
@@ -74,13 +74,13 @@ class PackageSchema(PathSchema):
         with self.active_dataroot(dataroot):
             return self.add("package", "licensefile", file)
 
-    def get_licenses(self) -> List[str]:
+    def get_license(self) -> List[str]:
         """
         Get a list of license names associated with the package.
         """
         return self.get("package", "license")
 
-    def get_license_files(self) -> List[str]:
+    def get_licensefile(self) -> List[str]:
         """
         Get a list of license file paths associated with the package.
         """
@@ -109,7 +109,25 @@ class PackageSchema(PathSchema):
             params.append(self.set("package", "author", identifier, "organization", organization))
         return [p for p in params if p]
 
-    def add_documentation(self, type: str, path: str, dataroot: str = None):
+    def get_author(self, identifier: str = None):
+        """
+        Returns the author information for a specific author or all authors.
+
+        Args:
+            identifier (str): A unique identifier for the author, if None returns all
+        """
+        if identifier is None:
+            authors = []
+            for author in self.getkeys("package", "author"):
+                authors.append(self.get_author(author))
+            return authors
+        return {
+            "name": self.get("package", "author", identifier, "name"),
+            "email": self.get("package", "author", identifier, "email"),
+            "organization": self.get("package", "author", identifier, "organization")
+        }
+
+    def add_doc(self, type: str, path: str, dataroot: str = None):
         """
         Add documentation to the package.
 
@@ -127,7 +145,7 @@ class PackageSchema(PathSchema):
         with self.active_dataroot(dataroot):
             return self.add("package", "doc", type, path)
 
-    def get_documentation(self, type: str = None) -> Union[List[str], Dict[str, List[str]]]:
+    def get_doc(self, type: str = None) -> Union[List[str], Dict[str, List[str]]]:
         """
         Get documentation files for the package.
 

@@ -93,6 +93,12 @@ def test_author():
     assert schema.get("package", "author", "person0", "email") == "bob@org.com"
     assert schema.get("package", "author", "person0", "organization") == "Bob Inc."
 
+    assert schema.get_author("person0") == {
+        "email": "bob@org.com",
+        "name": "Bob",
+        "organization": "Bob Inc."
+    }
+
 
 def test_author_overwrite():
     schema = PackageSchema()
@@ -106,22 +112,47 @@ def test_author_overwrite():
     assert schema.get("package", "author", "person0", "organization") == "Bob Inc."
 
 
+def test_author_multiple():
+    schema = PackageSchema()
+    assert len(schema.add_author("person0",
+                                 name="Bob",
+                                 email="bob@org.com",
+                                 organization="AMCE Inc.")) == 3
+    assert len(schema.add_author("person1",
+                                 name="Alice",
+                                 email="alice@org.com",
+                                 organization="AMCE Inc.")) == 3
+
+    assert schema.get_author() == [
+        {
+            "email": "bob@org.com",
+            "name": "Bob",
+            "organization": "AMCE Inc."
+        },
+        {
+            "email": "alice@org.com",
+            "name": "Alice",
+            "organization": "AMCE Inc."
+        }
+    ]
+
+
 def test_license():
     schema = PackageSchema()
     assert schema.add_license("fake0")
     assert schema.add_license("fake1")
-    assert schema.get_licenses() == ["fake0", "fake1"]
+    assert schema.get_license() == ["fake0", "fake1"]
 
 
-def test_license_file():
+def test_licensefile():
     schema = PackageSchema()
     Path("lic").touch()
 
-    assert schema.add_license_file("./lic")
-    assert schema.get_license_files() == [os.path.abspath("lic")]
+    assert schema.add_licensefile("./lic")
+    assert schema.get_licensefile() == [os.path.abspath("lic")]
 
 
-def test_license_file_with_dataroot():
+def test_licensefile_with_dataroot():
     schema = PackageSchema()
 
     os.makedirs("lics", exist_ok=True)
@@ -130,21 +161,21 @@ def test_license_file_with_dataroot():
     schema.set_dataroot("testdata", os.path.abspath("lics"))
 
     with schema.active_dataroot("testdata"):
-        assert schema.add_license_file("./lic")
-    assert schema.get_license_files() == [os.path.abspath("lics/lic")]
+        assert schema.add_licensefile("./lic")
+    assert schema.get_licensefile() == [os.path.abspath("lics/lic")]
 
 
-def test_add_documentation():
+def test_add_doc():
     schema = PackageSchema()
 
     Path("doc").touch()
 
-    assert schema.add_documentation("userguide", "doc")
+    assert schema.add_doc("userguide", "doc")
     assert schema.get("package", "doc", "userguide") == ["doc"]
-    assert schema.get_documentation("userguide") == [os.path.abspath("doc")]
+    assert schema.get_doc("userguide") == [os.path.abspath("doc")]
 
 
-def test_add_documentation_with_dataroot():
+def test_add_doc_with_dataroot():
     schema = PackageSchema()
 
     os.makedirs("docs", exist_ok=True)
@@ -153,25 +184,25 @@ def test_add_documentation_with_dataroot():
     schema.set_dataroot("testdata", os.path.abspath("docs"))
 
     with schema.active_dataroot("testdata"):
-        assert schema.add_documentation("quickstart", "quick")
+        assert schema.add_doc("quickstart", "quick")
     assert schema.get("package", "doc", "quickstart") == ["quick"]
-    assert schema.get_documentation("quickstart") == [os.path.abspath("docs/quick")]
+    assert schema.get_doc("quickstart") == [os.path.abspath("docs/quick")]
 
 
-def test_get_documentation_all():
+def test_get_doc_all():
     schema = PackageSchema()
 
     os.makedirs("docs", exist_ok=True)
     Path("docs/quick").touch()
     Path("user").touch()
 
-    assert schema.add_documentation("userguide", "user")
+    assert schema.add_doc("userguide", "user")
     schema.set_dataroot("testdata", os.path.abspath("docs"))
 
     with schema.active_dataroot("testdata"):
-        assert schema.add_documentation("quickstart", "quick")
+        assert schema.add_doc("quickstart", "quick")
 
-    assert schema.get_documentation() == {
+    assert schema.get_doc() == {
         "quickstart": [os.path.abspath("docs/quick")],
         "userguide": [os.path.abspath("user")],
     }
