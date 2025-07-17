@@ -1,3 +1,4 @@
+import contextlib
 import logging
 
 import os.path
@@ -10,9 +11,82 @@ from siliconcompiler.schema.utils import trim
 from siliconcompiler.package import Resolver
 
 
-class PathSchema(BaseSchema):
+class PathSchemaBase(BaseSchema):
     '''
-    Schema extension to add support for path handling
+    Schema extension to add simpler find_files and check_filepaths
+    '''
+
+    def find_files(self, *keypath,
+                   missing_ok=False,
+                   step=None, index=None):
+        """
+        Returns absolute paths to files or directories based on the keypath
+        provided.
+
+        The keypath provided must point to a schema parameter of type file, dir,
+        or lists of either. Otherwise, it will trigger an error.
+
+        Args:
+            keypath (list of str): Variable length schema key list.
+            missing_ok (bool): If True, silently return None when files aren't
+                found. If False, print an error and set the error flag.
+            step (str): Step name to access for parameters that may be specified
+                on a per-node basis.
+            index (str): Index name to access for parameters that may be specified
+                on a per-node basis.
+
+        Returns:
+            If keys points to a scalar entry, returns an absolute path to that
+            file/directory, or None if not found. It keys points to a list
+            entry, returns a list of either the absolute paths or None for each
+            entry, depending on whether it is found.
+
+        Examples:
+            >>> schema.find_files('input', 'verilog')
+            Returns a list of absolute paths to source files, as specified in
+            the schema.
+        """
+        schema_root = self._parent(root=True)
+        cwd = getattr(schema_root, "cwd", os.getcwd())
+        collection_dir = getattr(schema_root, "collection_dir", None)
+        if collection_dir:
+            collection_dir = collection_dir()
+
+        return super().find_files(*keypath,
+                                  missing_ok=missing_ok,
+                                  step=step, index=index,
+                                  collection_dir=collection_dir,
+                                  cwd=cwd)
+
+    def check_filepaths(self, ignore_keys=None):
+        '''
+        Verifies that paths to all files in manifest are valid.
+
+        Args:
+            ignore_keys (list of keypaths): list of keypaths to ignore while checking
+
+        Returns:
+            True if all file paths are valid, otherwise False.
+        '''
+        schema_root = self._parent(root=True)
+        cwd = getattr(schema_root, "cwd", os.getcwd())
+        logger = getattr(schema_root,
+                         "logger",
+                         logging.getLogger("siliconcompiler.check_filepaths"))
+        collection_dir = getattr(schema_root, "collection_dir", None)
+        if collection_dir:
+            collection_dir = collection_dir()
+
+        return super().check_filepaths(
+            ignore_keys=ignore_keys,
+            logger=logger,
+            collection_dir=collection_dir,
+            cwd=cwd)
+
+
+class PathSchema(PathSchemaBase):
+    '''
+    Schema extension to add support for path handling with dataroots
     '''
 
     def __init__(self):
@@ -84,9 +158,9 @@ class PathSchema(BaseSchema):
         if os.path.isfile(path):
             path = os.path.dirname(os.path.abspath(path))
 
-        self.set("dataroot", name, "path", path)
+        BaseSchema.set(self, "dataroot", name, "path", path)
         if tag:
-            self.set("dataroot", name, "tag", tag)
+            BaseSchema.set(self, "dataroot", name, "tag", tag)
 
     def get_dataroot(self, name: str) -> str:
         """
@@ -106,11 +180,11 @@ class PathSchema(BaseSchema):
             Returns the path to the root of the siliconcompiler data directory.
         """
 
-        if not self.valid("dataroot", name):
+        if not BaseSchema.valid(self, "dataroot", name):
             raise ValueError(f"{name} is not a recognized source")
 
-        path = self.get("dataroot", name, "path")
-        tag = self.get("dataroot", name, "tag")
+        path = BaseSchema.get(self, "dataroot", name, "path")
+        tag = BaseSchema.get(self, "dataroot", name, "tag")
 
         resolver = Resolver.find_resolver(path)
         return resolver(name, self._parent(root=True), path, tag).get_path()
@@ -125,75 +199,28 @@ class PathSchema(BaseSchema):
         schema_root = self._parent(root=True)
         resolver_map = {}
         for dataroot in self.getkeys("dataroot"):
-            path = self.get("dataroot", dataroot, "path")
-            tag = self.get("dataroot", dataroot, "tag")
+            path = BaseSchema.get(self, "dataroot", dataroot, "path")
+            tag = BaseSchema.get(self, "dataroot", dataroot, "tag")
             resolver = Resolver.find_resolver(path)
             resolver_map[dataroot] = resolver(dataroot, schema_root, path, tag).get_path
         return resolver_map
 
-    def find_files(self, *keypath,
-                   missing_ok=False,
-                   step=None, index=None):
-        """
-        Returns absolute paths to files or directories based on the keypath
-        provided.
-
-        The keypath provided must point to a schema parameter of type file, dir,
-        or lists of either. Otherwise, it will trigger an error.
+    @contextlib.contextmanager
+    def active_dataroot(self, dataroot: str = None):
+        '''
+        Use this context to set the dataroot parameter on files and directory parameters.
 
         Args:
-            keypath (list of str): Variable length schema key list.
-            missing_ok (bool): If True, silently return None when files aren't
-                found. If False, print an error and set the error flag.
-            step (str): Step name to access for parameters that may be specified
-                on a per-node basis.
-            index (str): Index name to access for parameters that may be specified
-                on a per-node basis.
+            dataroot (str): name of the dataroot
 
-        Returns:
-            If keys points to a scalar entry, returns an absolute path to that
-            file/directory, or None if not found. It keys points to a list
-            entry, returns a list of either the absolute paths or None for each
-            entry, depending on whether it is found.
-
-        Examples:
-            >>> schema.find_files('input', 'verilog')
-            Returns a list of absolute paths to source files, as specified in
-            the schema.
-        """
-        schema_root = self._parent(root=True)
-        cwd = getattr(schema_root, "cwd", os.getcwd())
-        collection_dir = getattr(schema_root, "collection_dir", None)
-        if collection_dir:
-            collection_dir = collection_dir()
-
-        return super().find_files(*keypath,
-                                  missing_ok=missing_ok,
-                                  step=step, index=index,
-                                  collection_dir=collection_dir,
-                                  cwd=cwd)
-
-    def check_filepaths(self, ignore_keys=None):
+        Example:
+            >>> with schema.active_dataroot("lambdalib"):
+            ...     schema.set("file", "top.v")
+            Sets the file to top.v and associates lambdalib as the dataroot.
         '''
-        Verifies that paths to all files in manifest are valid.
 
-        Args:
-            ignore_keys (list of keypaths): list of keypaths to ignore while checking
+        if dataroot and dataroot not in self.getkeys("dataroot"):
+            raise ValueError(f"{dataroot} is not a recognized dataroot")
 
-        Returns:
-            True if all file paths are valid, otherwise False.
-        '''
-        schema_root = self._parent(root=True)
-        cwd = getattr(schema_root, "cwd", os.getcwd())
-        logger = getattr(schema_root,
-                         "logger",
-                         logging.getLogger("siliconcompiler.check_filepaths"))
-        collection_dir = getattr(schema_root, "collection_dir", None)
-        if collection_dir:
-            collection_dir = collection_dir()
-
-        return super().check_filepaths(
-            ignore_keys=ignore_keys,
-            logger=logger,
-            collection_dir=collection_dir,
-            cwd=cwd)
+        with self._active(package=dataroot):
+            yield
