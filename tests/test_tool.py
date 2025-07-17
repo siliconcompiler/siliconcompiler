@@ -1334,7 +1334,7 @@ def test_task_add_parameter():
     assert isinstance(task.add_parameter("testbool", "bool", "long form help"), Parameter)
     assert isinstance(task.add_parameter("testlist", "[str]", "long form help"), Parameter)
 
-    assert task.getkeys("var") == ("teststr", "testbool", "testlist")
+    assert task.getkeys("var") == ("testbool", "testlist", "teststr")
 
     assert task.get("var", "teststr") is None
     assert task.get("var", "testlist") == []

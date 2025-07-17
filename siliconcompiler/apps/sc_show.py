@@ -85,7 +85,7 @@ def main():
     for fileset in chip.getkeys('input'):
         for mode in chip.getkeys('input', fileset):
             if chip.get('input', fileset, mode, field=None).getvalues():
-                input_mode = [('input', fileset, mode)]
+                input_mode.append(('input', fileset, mode))
 
     filename = None
     if input_mode:

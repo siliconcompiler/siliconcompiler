@@ -479,7 +479,7 @@ class BaseSchema:
         else:
             key_param = self
 
-        return tuple(key_param.__manifest.keys())
+        return tuple(sorted(key_param.__manifest.keys()))
 
     def allkeys(self, *keypath, include_default=True):
         '''
