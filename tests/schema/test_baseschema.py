@@ -1779,6 +1779,16 @@ def test_active_add():
                 "anotherpack"]
 
 
+def test_active_set_field():
+    schema = BaseSchema()
+    EditableSchema(schema).insert("teststr", Parameter("[str]"))
+    EditableSchema(schema).insert("testdir", Parameter("[dir]"))
+
+    with schema._active(package="testpack"):
+        assert schema.add("teststr", "thisstring0")
+        assert schema.set("teststr", True, field="lock")
+
+
 def test_find_files_custom_class_search_paths():
     class CustomFiles(BaseSchema):
         def __init__(self):
