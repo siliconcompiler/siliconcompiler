@@ -6,7 +6,7 @@ from siliconcompiler.flows import dvflow
 from siliconcompiler.targets import freepdk45_demo
 
 
-def test_write_flowgraph_serial():
+def test_write_flowgraph_serial(has_graphviz):
 
     ################################################
     # Serial
@@ -19,7 +19,7 @@ def test_write_flowgraph_serial():
     assert os.path.isfile('serial.png')
 
 
-def test_write_flowgraph_forkjoin():
+def test_write_flowgraph_forkjoin(has_graphviz):
 
     ################################################
     # Fork-Join
@@ -32,7 +32,7 @@ def test_write_flowgraph_forkjoin():
     assert os.path.isfile('forkjoin.png')
 
 
-def test_write_flowgraph_pipes():
+def test_write_flowgraph_pipes(has_graphviz):
 
     ################################################
     # Pipes

@@ -9,8 +9,7 @@ from siliconcompiler.tools.openroad import init_floorplan
 from siliconcompiler.tools.builtin import minimum
 
 
-def test_edge():
-
+def test_edge(has_graphviz):
     chip = siliconcompiler.Chip('test')
 
     syn_np = 10

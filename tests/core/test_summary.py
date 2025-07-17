@@ -61,7 +61,7 @@ def test_from_to(gcd_with_metrics, capfd):
     assert 'floorplan' not in stdout
 
 
-def test_parallel_path(capfd):
+def test_parallel_path(capfd, has_graphviz):
     with capfd.disabled():
         chip = siliconcompiler.Chip('test')
 

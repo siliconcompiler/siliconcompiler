@@ -1478,7 +1478,7 @@ def test_copy_from_do_nothing(chip, caplog):
     assert caplog.text == ""
 
 
-def test_copy_from(chip, caplog):
+def test_copy_from(chip, caplog, has_graphviz):
     chip.logger = logging.getLogger()
     chip.logger.setLevel(logging.INFO)
 
