@@ -4,6 +4,8 @@ import pytest
 
 import os.path
 
+from pathlib import Path
+
 from siliconcompiler import Project
 from siliconcompiler import DesignSchema, FlowgraphSchema, TaskSchema
 
@@ -155,7 +157,8 @@ def test_builddir_abspath():
     project = Project()
     project.set("option", "builddir", os.path.abspath("diffdir/buildhere"))
 
-    assert project._Project__getbuilddir() == os.path.abspath("diffdir/buildhere")
+    assert project._Project__getbuilddir() == \
+        Path(os.path.abspath("diffdir/buildhere")).as_posix()
 
 
 def test_builddir_diff_build():
