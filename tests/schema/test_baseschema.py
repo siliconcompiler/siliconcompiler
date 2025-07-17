@@ -593,6 +593,16 @@ def test_getkeys():
     assert schema.getkeys("test0") == tuple(["test1"])
 
 
+def test_getkeys_ensure_ordering():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("test2", "test1", Parameter("str"))
+    edit.insert("test0", "test1", Parameter("str"))
+
+    assert schema.getkeys() == ("test0", "test2")
+    assert schema.getkeys("test0") == tuple(["test1"])
+
+
 def test_getkeys_unmatched():
     schema = BaseSchema()
     edit = EditableSchema(schema)
