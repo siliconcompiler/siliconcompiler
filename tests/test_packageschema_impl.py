@@ -69,6 +69,28 @@ def test_get_resolvers_empty():
     assert schema.get_resolvers() == {}
 
 
+def test_keys():
+    assert PackageSchema().allkeys() == set([
+        ('dataroot', 'default', 'path'),
+        ('dataroot', 'default', 'tag'),
+        ('package', 'author', 'default', 'email'),
+        ('package', 'author', 'default', 'name'),
+        ('package', 'author', 'default', 'organization'),
+        ('package', 'description'),
+        ('package', 'doc', 'datasheet'),
+        ('package', 'doc', 'quickstart'),
+        ('package', 'doc', 'reference'),
+        ('package', 'doc', 'releasenotes'),
+        ('package', 'doc', 'signoff'),
+        ('package', 'doc', 'testplan'),
+        ('package', 'doc', 'tutorial'),
+        ('package', 'doc', 'userguide'),
+        ('package', 'license'),
+        ('package', 'licensefile'),
+        ('package', 'version'),
+    ])
+
+
 def test_description():
     schema = PackageSchema()
     assert schema.set_description("this is the description")
