@@ -1777,8 +1777,8 @@ def schema_option_frontend(cfg):
 # Package information
 ############################################
 def schema_package(cfg):
-    from siliconcompiler.packageschema import PackageSchema
-    cfg.insert("package", PackageSchema())
+    from siliconcompiler.packageschema import PackageSchemaTmp
+    cfg.insert("package", PackageSchemaTmp())
     return cfg
 
 

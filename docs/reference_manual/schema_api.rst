@@ -198,3 +198,8 @@ Supporting Classes
     :members:
     :show-inheritance:
     :inherited-members:
+
+.. autoclass:: siliconcompiler.PackageSchema
+    :members:
+    :show-inheritance:
+    :inherited-members:
