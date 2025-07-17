@@ -546,6 +546,42 @@ def test_add_alias_alias_imported_clobber():
     ]
 
 
+def test_add_alias_remove_alias():
+    design = DesignSchema("test")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+
+    alias = DesignSchema("alias")
+    with alias.active_fileset("rtl"):
+        alias.set_topmodule("top")
+    with alias.active_fileset("rtl1"):
+        alias.set_topmodule("top")
+
+    proj = Project(design)
+    assert proj.add_alias("test", "rtl", None, "rtl")
+    assert proj.get("option", "alias") == [
+        ("test", "rtl", "", "")
+    ]
+
+
+def test_add_alias_repeat_fileset():
+    design = DesignSchema("test")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+
+    alias = DesignSchema("alias")
+    with alias.active_fileset("rtl"):
+        alias.set_topmodule("top")
+    with alias.active_fileset("rtl1"):
+        alias.set_topmodule("top")
+
+    proj = Project(design)
+    assert proj.add_alias("test", "rtl", alias, "")
+    assert proj.get("option", "alias") == [
+        ("test", "rtl", "alias", "")
+    ]
+
+
 def test_get_filesets_with_alias():
     dep = DesignSchema("dep")
     with dep.active_fileset("rtl"):
@@ -568,6 +604,55 @@ def test_get_filesets_with_alias():
     assert proj.get_filesets() == [
         (design, "rtl"),
         (alias, "rtl1")
+    ]
+
+
+def test_get_filesets_with_alias_remove():
+    dep = DesignSchema("dep")
+    with dep.active_fileset("rtl"):
+        dep.set_topmodule("top")
+
+    design = DesignSchema("test")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+        design.add_depfileset(dep, "rtl")
+
+    alias = DesignSchema("alias")
+    with alias.active_fileset("rtl"):
+        alias.set_topmodule("top")
+    with alias.active_fileset("rtl1"):
+        alias.set_topmodule("top")
+
+    proj = Project(design)
+    assert proj.add_fileset("rtl")
+    assert proj.add_alias(dep, "rtl", None, "rtl1")
+    assert proj.get_filesets() == [
+        (design, "rtl")
+    ]
+
+
+def test_get_filesets_with_alias_same_fileset():
+    dep = DesignSchema("dep")
+    with dep.active_fileset("rtl"):
+        dep.set_topmodule("top")
+
+    design = DesignSchema("test")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+        design.add_depfileset(dep, "rtl")
+
+    alias = DesignSchema("alias")
+    with alias.active_fileset("rtl"):
+        alias.set_topmodule("top")
+    with alias.active_fileset("rtl1"):
+        alias.set_topmodule("top")
+
+    proj = Project(design)
+    assert proj.add_fileset("rtl")
+    assert proj.add_alias(dep, "rtl", alias, "rtl")
+    assert proj.get_filesets() == [
+        (design, "rtl"),
+        (alias, "rtl")
     ]
 
 

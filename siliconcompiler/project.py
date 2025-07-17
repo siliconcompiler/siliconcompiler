@@ -318,7 +318,7 @@ class Project(PathSchemaBase, BaseSchema):
                     raise KeyError(f"{dst_lib} is not a loaded library")
                 dst_obj = self.get("library", dst_lib, field="schema")
             else:
-                dst_lib = None
+                dst_obj = None
             if not dst_fileset:
                 dst_fileset = None
             alias[(src_lib, src_fileset)] = (dst_obj, dst_fileset)
@@ -427,20 +427,30 @@ class Project(PathSchemaBase, BaseSchema):
         if src_fileset not in src_dep.getkeys("fileset"):
             raise ValueError(f"{src_dep_name} does not have {src_fileset} as a fileset")
 
+        if alias_dep is None:
+            alias_dep = ""
+
         if isinstance(alias_dep, str):
-            if alias_dep not in self.getkeys("library"):
-                raise KeyError(f"{alias_dep} has not been loaded")
+            if alias_dep == "":
+                alias_dep = None
+                alias_dep_name = ""
+                alias_fileset = ""
+            else:
+                if alias_dep not in self.getkeys("library"):
+                    raise KeyError(f"{alias_dep} has not been loaded")
 
-            alias_dep = self.get("library", alias_dep, field="schema")
-        if isinstance(alias_dep, DesignSchema):
-            alias_dep_name = alias_dep.name()
-            if alias_dep_name not in self.getkeys("library"):
-                self.add_dep(alias_dep)
-        else:
-            raise TypeError("alias dep is not a valid type")
+                alias_dep = self.get("library", alias_dep, field="schema")
 
-        if alias_fileset not in alias_dep.getkeys("fileset"):
-            raise ValueError(f"{alias_dep_name} does not have {alias_fileset} as a fileset")
+        if alias_dep is not None:
+            if isinstance(alias_dep, DesignSchema):
+                alias_dep_name = alias_dep.name()
+                if alias_dep_name not in self.getkeys("library"):
+                    self.add_dep(alias_dep)
+            else:
+                raise TypeError("alias dep is not a valid type")
+
+            if alias_fileset != "" and alias_fileset not in alias_dep.getkeys("fileset"):
+                raise ValueError(f"{alias_dep_name} does not have {alias_fileset} as a fileset")
 
         alias = (src_dep_name, src_fileset, alias_dep_name, alias_fileset)
         if clobber:
