@@ -14,6 +14,7 @@ from siliconcompiler.asic import ASICSchema
 from siliconcompiler.fpga import FPGASchema
 
 from siliconcompiler.project import Project
+from siliconcompiler.library import LibrarySchema, StdCellLibrarySchema
 
 from siliconcompiler.core import Chip
 
@@ -35,6 +36,7 @@ __all__ = [
     "sc_open",
 
     "DesignSchema",
+    "LibrarySchema",
     "RecordSchema",
     "MetricSchema",
     "PDKSchema",
@@ -45,5 +47,6 @@ __all__ = [
     "ASICSchema",
     "FPGASchema",
 
-    "Project"
+    "Project",
+    "StdCellLibrarySchema"
 ]
