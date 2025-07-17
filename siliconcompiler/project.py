@@ -314,6 +314,8 @@ class Project(PathSchemaBase, BaseSchema):
         alias = {}
         for src_lib, src_fileset, dst_lib, dst_fileset in self.get("option", "alias"):
             if dst_lib:
+                if not self.valid("library", dst_lib):
+                    raise KeyError(f"{dst_lib} is not a loaded library")
                 dst_obj = self.get("library", dst_lib, field="schema")
             else:
                 dst_lib = None

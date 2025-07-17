@@ -566,3 +566,16 @@ def test_get_filesets_with_alias():
         (design, "rtl"),
         (alias, "rtl1")
     ]
+
+
+def test_get_filesets_with_alias_missing():
+    design = DesignSchema("test")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+
+    proj = Project(design)
+    assert proj.add_fileset("rtl")
+    assert proj.set("option", "alias", ("test", "rtl", "test1", "rtl"))
+
+    with pytest.raises(KeyError, match="test1 is not a loaded library"):
+        proj.get_filesets()
