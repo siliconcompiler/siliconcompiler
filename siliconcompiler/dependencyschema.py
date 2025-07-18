@@ -51,6 +51,9 @@ class DependencySchema(BaseSchema):
         if not clobber and obj.name() in self.__deps:
             return False
 
+        if obj.name() is None:
+            raise ValueError("Cannot add an unnamed dependency")
+
         if obj.name() not in self.__deps:
             self.set("deps", False, field="lock")
             self.add("deps", obj.name())

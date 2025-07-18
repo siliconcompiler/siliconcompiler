@@ -7,6 +7,7 @@ import os.path
 from pathlib import Path
 
 from siliconcompiler import DesignSchema
+from siliconcompiler.schema import BaseSchema
 
 
 def test_design_keys():
@@ -1085,3 +1086,19 @@ def test_write_fileset_alias(datadir):
         '// heartbeat / testbench / verilog files',
         f'{Path(os.path.abspath(os.path.join(datadir, "heartbeat_tb.v"))).as_posix()}',
     ]
+
+
+def test_add_dep_invalid():
+    schema = DesignSchema()
+
+    with pytest.raises(TypeError,
+                       match="Cannot add an object of type: <class "
+                       "'siliconcompiler.schema.baseschema.BaseSchema'>"):
+        schema.add_dep(BaseSchema())
+
+
+def test_add_dep_same_name():
+    schema = DesignSchema("name0")
+
+    with pytest.raises(ValueError, match="Cannot add a dependency with the same name"):
+        schema.add_dep(DesignSchema("name0"))

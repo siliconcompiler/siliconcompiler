@@ -76,6 +76,13 @@ def test_add_dep_no_clobber():
     assert schema.get("deps") == ["thisname"]
 
 
+def test_add_dep_unnamed():
+    schema = DependencySchema()
+
+    with pytest.raises(ValueError, match="Cannot add an unnamed dependency"):
+        schema.add_dep(NamedSchema())
+
+
 def test_get_dep_not_found():
     schema = DependencySchema()
 

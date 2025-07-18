@@ -23,6 +23,15 @@ class DesignSchema(NamedSchema, DependencySchema, PathSchema):
 
         schema_design(self)
 
+    def add_dep(self, obj: NamedSchema, clobber: bool = True) -> bool:
+        if not isinstance(obj, NamedSchema):
+            raise TypeError(f"Cannot add an object of type: {type(obj)}")
+
+        if obj.name() == self.name():
+            raise ValueError("Cannot add a dependency with the same name")
+
+        return super().add_dep(obj, clobber=clobber)
+
     ############################################
     def set_topmodule(self,
                       value: str,
