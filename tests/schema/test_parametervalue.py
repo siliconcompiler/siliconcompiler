@@ -6,7 +6,7 @@ import os.path
 
 from siliconcompiler.schema.parametervalue import \
     NodeValue, DirectoryNodeValue, FileNodeValue, NodeListValue, \
-    PathNodeValue
+    PathNodeValue, NodeSetValue
 from siliconcompiler.schema.parametertype import NodeEnumType
 
 enum1 = NodeEnumType("one", "two", "three")
@@ -973,3 +973,221 @@ def test_defvalue_dir_list_package_getdict():
             'thisdir',
         ],
     }
+
+
+def test_set_set():
+    param = NodeSetValue(NodeValue("str"))
+
+    set_ret = param.set('test')
+    assert isinstance(set_ret, tuple)
+    assert len(set_ret) == 1
+    assert isinstance(set_ret[0], NodeValue)
+    assert set_ret[0].get() == 'test'
+
+
+def test_add_set():
+    param = NodeSetValue(NodeValue("str"))
+
+    param.set('test')
+    add_ret = param.add('test2')
+    assert isinstance(add_ret, tuple)
+    assert len(add_ret) == 1
+    assert isinstance(add_ret[0], NodeValue)
+    assert add_ret[0].get() == 'test2'
+
+
+def test_nodeset_str_getdict_empty():
+    param = NodeSetValue(NodeValue("str"))
+
+    assert param.getdict() == {'signature': [], 'value': []}
+
+
+def test_nodeset_file_getdict_empty():
+    param = NodeSetValue(FileNodeValue())
+
+    assert param.getdict() == {
+        'signature': [], 'value': [], 'author': [], 'date': [], 'filehash': [], 'package': []}
+
+
+def test_nodeset_file_getdict_author():
+    param = NodeSetValue(FileNodeValue())
+
+    param.set(["file0"])
+    param.set(["hash"], field='filehash')
+
+    assert param.getdict() == {
+        'signature': [None],
+        'value': ["file0"],
+        'author': [],
+        'date': [None],
+        'filehash': ["hash"],
+        'package': [None]}
+
+
+def test_nodeset_dir_getdict_empty():
+    param = NodeSetValue(DirectoryNodeValue())
+
+    assert param.getdict() == {'signature': [], 'value': [], 'filehash': [], 'package': []}
+
+
+def test_nodeset_type():
+    assert NodeSetValue(NodeValue("str")).type == set(["str"])
+    assert NodeSetValue(FileNodeValue()).type == set(["file"])
+    assert NodeSetValue(DirectoryNodeValue()).type == set(["dir"])
+
+
+def test_nodeset_fields():
+    assert NodeSetValue(NodeValue("str")).fields == (None, 'value', 'signature')
+    assert NodeSetValue(FileNodeValue()).fields == \
+        (None, 'value', 'signature', 'filehash', 'package', 'date', 'author')
+    assert NodeSetValue(DirectoryNodeValue()).fields == \
+        (None, 'value', 'signature', 'filehash', 'package')
+
+
+def test_nodeset_set_str_value():
+    param = NodeSetValue(NodeValue("str"))
+
+    param.set(["test1", "test2"])
+
+    assert param.getdict() == {
+        'signature': [None, None],
+        'value': ["test1", "test2"]}
+
+    param.set(["test0", "test4", "test1"])
+
+    assert param.getdict() == {
+        'signature': [None, None, None],
+        'value': ["test0", "test4", "test1"]}
+
+
+def test_nodeset_from_dict():
+    param = NodeSetValue(NodeValue("str"))
+    check_param = NodeSetValue(NodeValue("str"))
+
+    param.set(["test1", "test2"])
+
+    check_param._from_dict(param.getdict(), [], None)
+    assert param.getdict() == check_param.getdict()
+
+
+def test_nodeset_from_dict_incomplete_set():
+    param = NodeSetValue(NodeValue("str"))
+
+    param._from_dict({
+        'signature': [None, None],
+        'value': ["test1", "test2"]}, [], None)
+
+    assert param.getdict() == {
+        'signature': [None, None],
+        'value': ["test1", "test2"]}
+
+
+def test_nodeset_from_dict_ordering():
+    param = NodeSetValue(NodeValue("str"))
+
+    param._from_dict({
+        'signature': ["1234", "5678"],
+        'value': ["test1", "test2"]}, [], None)
+
+    assert param.getdict() == {
+        'signature': ["1234", "5678"],
+        'value': ["test1", "test2"]}
+
+
+def test_nodeset_set_str_signature():
+    param = NodeSetValue(NodeValue("str"))
+
+    param.set(["test1", "test2"])
+
+    assert param.getdict() == {
+        'signature': [None, None],
+        'value': ["test1", "test2"]}
+
+    param.set(["test3", "test4"], field='signature')
+
+    assert param.getdict() == {
+        'signature': ["test3", "test4"],
+        'value': ["test1", "test2"]}
+
+    with pytest.raises(ValueError, match="set on signature field must match number of value"):
+        param.set(["test3"], field='signature')
+
+
+def test_nodeset_add_str_value():
+    param = NodeSetValue(NodeValue("str"))
+
+    param.set(["test1", "test2"])
+
+    assert param.getdict() == {
+        'signature': [None, None],
+        'value': ["test1", "test2"]}
+
+    param.add(["test0", "test4", "test1"])
+
+    assert param.getdict() == {
+        'signature': [None, None, None, None],
+        'value': ["test1", "test2", "test0", "test4"]}
+
+
+def test_nodeset_add_str_non_value():
+    param = NodeSetValue(NodeValue("str"))
+
+    param.set(["test1", "test2"])
+
+    assert param.getdict() == {
+        'signature': [None, None],
+        'value': ["test1", "test2"]}
+
+    with pytest.raises(ValueError,
+                       match="cannot add to signature field"):
+        param.add(["test0", "test4", "test1"], field='signature')
+
+
+def test_nodeset_copy():
+    param = NodeSetValue(NodeValue("str"))
+
+    param.set(["test1", "test2"])
+
+    check_param = param.copy()
+
+    assert param is not check_param
+    assert param.getdict() == check_param.getdict()
+
+
+def test_nodeset_set_type():
+    value = NodeSetValue(NodeValue("str"))
+    value.set(["test"])
+    assert value.type == set(["str"])
+    assert value.values[0].type == "str"
+    value._set_type("[int]")
+    assert value.type == set(["int"])
+    assert value.values[0].type == "int"
+
+
+def test_nodeset_get_ordering():
+    value = NodeSetValue(NodeValue("str"))
+    value.set(["test0", "test1", "test1", "test3"])
+    assert value.get() == set(["test0", "test1", "test3"])
+    assert value.get(ordered=True) == ["test0", "test1", "test3"]
+
+
+def test_nodeset_set_reject_dups():
+    value = NodeSetValue(NodeValue("str"))
+    value.set(["test0", "test1", "test1", "test3"])
+    assert value.get() == set(["test0", "test1", "test3"])
+
+
+def test_nodeset_add_reject_dups():
+    value = NodeSetValue(NodeValue("str"))
+    value.add(["test0", "test1", "test1", "test3"])
+    assert value.get() == set(["test0", "test1", "test3"])
+    value.add(["test0", "test1", "test1", "test3", "test4"])
+    assert value.get() == set(["test0", "test1", "test3", "test4"])
+
+
+def test_nodeset_get_defvalue():
+    defvalue = NodeValue("str")
+    defvalue.set("this")
+    value = NodeSetValue(defvalue)
+    assert value.get() == set(["this"])
+    assert value.get(ordered=True) == ["this"]

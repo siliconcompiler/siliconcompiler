@@ -86,8 +86,7 @@ class NodeListValue:
         if self.__values:
             vals = []
             for val in self.__values:
-                value = val.get(field=field)
-                vals.append(value)
+                vals.append(val.get(field=field))
             return vals
         if self.__base.get("value") is None:
             return []
@@ -181,6 +180,185 @@ class NodeListValue:
         Returns the type for this value
         """
         return [self.__base.type]
+
+
+class NodeSetValue:
+    '''
+    Holds the data for a set schema type.
+
+    Args:
+        base (:class:`NodeValue`): base type for this set.
+    '''
+
+    def __init__(self, base):
+        self.__base = base
+        self.__values = []
+
+    def getdict(self):
+        """
+        Returns a schema dictionary.
+
+        Examples:
+            >>> value.getdict()
+            Returns the complete dictionary for the value
+        """
+
+        manifest = {}
+        for field in self.fields:
+            if field is None:
+                continue
+
+            value = self.get(field=field, ordered=True)
+            manifest.setdefault(field, []).extend(value)
+
+            if field == "author":
+                tmplist = []
+                for a in manifest[field]:
+                    tmplist.extend(a)
+                manifest[field] = tmplist
+        return manifest
+
+    def _from_dict(self, manifest, keypath, version):
+        '''
+        Create a new value based on the provided dictionary.
+
+        Args:
+            manifest (dict): Manifest to decide.
+            keypath (list of str): Path to the current keypath.
+            version (packaging.Version): Version of the dictionary schema
+            sctype (str): schema type for this value
+        '''
+
+        self.__values.clear()
+        for n in range(len(manifest["value"])):
+            param = self.__base.copy()
+            self.__values.append(param)
+
+            for field in self.fields:
+                if field is None:
+                    continue
+
+                if len(manifest[field]) <= n:
+                    continue
+                param.set(manifest[field][n], field=field)
+
+    def get(self, field='value', ordered: bool = False):
+        """
+        Returns the value in the specified field
+
+        Args:
+            field (str): name of schema field.
+            ordered (bool): if true, returns a list instead of set for values
+        """
+
+        vals = []
+
+        if self.__values:
+            for val in self.__values:
+                vals.append(val.get(field=field))
+        elif self.__base.get("value") is None:
+            pass
+        else:
+            vals.append(self.__base.get(field=field))
+
+        if not ordered and field == "value":
+            return set(vals)
+        return vals
+
+    def set(self, value, field='value'):
+        value = NodeType.normalize(value, [self.__base.type])
+
+        if field == 'value':
+            self.__values.clear()
+        else:
+            if len(value) != len(self.__values):
+                raise ValueError(f"set on {field} field must match number of values")
+
+        current_values = []
+        if field == "value":
+            current_values = [v.get() for v in self.__values]
+
+        modified = list()
+        m = 0
+        for n in range(len(value)):
+            if field == 'value':
+                if value[n] in current_values:
+                    continue
+
+                self.__values.append(self.__base.copy())
+                current_values.append(value[n])
+            self.__values[m].set(value[n], field=field)
+            modified.append(self.__values[m])
+            m += 1
+        return tuple(modified)
+
+    def add(self, value, field='value'):
+        """
+        Adds the value in a specific field and ensures it has been normalized.
+
+        Returns:
+            tuple of modified values
+
+        Args:
+            value (any): value to set
+            field (str): field to set
+        """
+
+        current_values = []
+        if field == "value":
+            current_values = [v.get() for v in self.__values]
+
+        modified = list()
+        if field == 'value':
+            value = NodeType.normalize(value, [self.__base.type])
+
+            for n in range(len(value)):
+                if value[n] in current_values:
+                    continue
+
+                self.__values.append(self.__base.copy())
+                self.__values[-1].set(value[n], field=field)
+                current_values.append(value[n])
+                modified.append(self.__values[-1])
+        else:
+            for val in self.__values:
+                val.add(value, field=field)
+                modified.append(val)
+        return tuple(modified)
+
+    @property
+    def fields(self):
+        """
+        Returns a list of valid fields for this value
+        """
+        return self.__base.fields
+
+    @property
+    def values(self):
+        '''
+        Returns a copy of the values stored in the list
+        '''
+        return self.__values.copy()
+
+    def copy(self):
+        """
+        Returns a copy of this value.
+        """
+
+        return copy.deepcopy(self)
+
+    def _set_type(self, sctype):
+        sctype = NodeType.parse(sctype)[0]
+        self.__base._set_type(sctype)
+        for val in self.__values:
+            val._set_type(sctype)
+
+    @property
+    def type(self):
+        """
+        Returns the type for this value
+        """
+        return set([self.__base.type])
 
 
 class NodeValue:
