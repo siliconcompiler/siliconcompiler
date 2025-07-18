@@ -1088,6 +1088,52 @@ def test_write_fileset_alias(datadir):
     ]
 
 
+def test_write_fileset_same_datroot_name(datadir):
+    dataroot0 = Path(datadir)
+    dataroot1 = Path(dataroot0.parent)
+
+    class Increment(DesignSchema):
+        def __init__(self):
+            super().__init__('increment')
+
+            self.set_dataroot("root", dataroot0)
+
+            with self.active_fileset("rtl.increment"), self.active_dataroot("root"):
+                self.add_file("increment.v")
+
+    incr_object = Increment()
+
+    class Heartbeat(DesignSchema):
+        def __init__(self):
+            super().__init__('heartbeat')
+
+            self.set_dataroot("root", dataroot1)
+
+            # dependencies
+            self.add_dep(incr_object)
+            with self.active_fileset("rtl"), self.active_dataroot("root"):
+                self.add_file("data/heartbeat_increment.v")
+                self.add_depfileset("increment", "rtl.increment")
+
+            with self.active_fileset("testbench"), self.active_dataroot("root"):
+                self.add_file("data/heartbeat_tb.v")
+
+    dut = Heartbeat()
+
+    assert dut.get("dataroot", "root", "path") != incr_object.get("dataroot", "root", "path")
+
+    dut.write_fileset("fileset.f",  ["rtl", "testbench"])
+
+    assert Path("fileset.f").read_text().splitlines() == [
+        '// heartbeat / rtl / verilog files',
+        f'{Path(os.path.abspath(os.path.join(datadir, "heartbeat_increment.v"))).as_posix()}',
+        '// increment / rtl.increment / verilog files',
+        f'{Path(os.path.abspath(os.path.join(datadir, "increment.v"))).as_posix()}',
+        '// heartbeat / testbench / verilog files',
+        f'{Path(os.path.abspath(os.path.join(datadir, "heartbeat_tb.v"))).as_posix()}',
+    ]
+
+
 def test_add_dep_invalid():
     schema = DesignSchema()
 
