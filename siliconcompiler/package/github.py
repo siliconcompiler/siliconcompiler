@@ -53,17 +53,13 @@ class GithubResolver(HTTPResolver):
         if not release:
             release = repo.get_latest_release().tag_name
 
-        url = None
-        for repo_release in repo.get_releases():
-            if repo_release.tag_name == release:
-                for asset in repo_release.assets:
-                    if asset.name == artifact:
-                        url = asset.url
+        repo_release = repo.get_release(release)
+        if repo_release:
+            for asset in repo_release.assets:
+                if asset.name == artifact:
+                    return asset.url
 
-        if not url:
-            raise ValueError(f'Unable to find release asset: {repository}/{release}/{artifact}')
-
-        return url
+        raise ValueError(f'Unable to find release asset: {repository}/{release}/{artifact}')
 
     def __get_gh_auth(self):
         token_name = self.name.upper()

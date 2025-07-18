@@ -55,14 +55,14 @@ def test_download_find_artifact():
             assets = []
 
         class Repo:
-            def get_releases(self):
+            def get_release(self, version):
                 release = Release()
-                release.tag_name = "v1.0"
+                release.tag_name = version
                 asset = Asset()
                 asset.name = "findme"
                 asset.url = "https://thisone"
                 release.assets.append(asset)
-                return [release]
+                return release
 
         get_repo.return_value = Repo()
         assert resolver.download_url == "https://thisone"
