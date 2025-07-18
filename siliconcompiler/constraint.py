@@ -37,7 +37,7 @@ class TimingScenarioSchema(NamedSchema):
         schema.insert(
             'libcorner',
             Parameter(
-                '[str]',
+                '{str}',
                 pernode=PerNode.OPTIONAL,
                 scope=Scope.GLOBAL,
                 shorthelp="Constraint: library corner",
@@ -100,7 +100,7 @@ class TimingScenarioSchema(NamedSchema):
         schema.insert(
             'check',
             Parameter(
-                '[<setup,hold,maxtran,maxcap,mincap,power,leakagepower,dynamicpower,signalem>]',
+                '{<setup,hold,maxtran,maxcap,mincap,power,leakagepower,dynamicpower,signalem>}',
                 pernode=PerNode.OPTIONAL,
                 scope=Scope.GLOBAL,
                 shorthelp="Constraint: timing checks",
@@ -112,8 +112,6 @@ class TimingScenarioSchema(NamedSchema):
                 Checks generally include objectives like meeting setup and hold goals
                 and minimize power. Standard check names include setup, hold, power,
                 noise, reliability."""))
-
-    # TODO: libcorner and check should be a set
 
     def set_pin_voltage(self, pin: str, voltage: float, step: str = None, index: Union[str, int] = None):
         return self.set("voltage", pin, voltage, step=step, index=index)
