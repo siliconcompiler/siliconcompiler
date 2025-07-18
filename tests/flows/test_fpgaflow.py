@@ -1,6 +1,7 @@
 import os
 import json
 import pytest
+import time
 from siliconcompiler import Chip, FPGA
 from siliconcompiler.scheduler.schedulernode import SchedulerNode
 from siliconcompiler.flows import fpgaflow
@@ -18,12 +19,11 @@ def designs_dir(datadir):
 
 @pytest.fixture(autouse=True, scope="module")
 def load_archs():
-    chip = Chip("dummy")
-    chip.use(K4_N8_6x6)
-    chip.use(K6_N8_3x3)
-    chip.use(K6_N8_12x12_BD)
-    chip.use(K6_N8_28x28_BD)
-    assert chip.check_filepaths()
+    for lib in [K4_N8_6x6, K6_N8_3x3, K6_N8_12x12_BD, K6_N8_28x28_BD]:
+        chip = Chip("dummy")
+        chip.use(lib)
+        assert chip.check_filepaths()
+        time.sleep(10)
 
 
 @pytest.mark.eda
