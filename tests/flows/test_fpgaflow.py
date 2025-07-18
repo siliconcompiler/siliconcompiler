@@ -16,6 +16,16 @@ def designs_dir(datadir):
     return os.path.join(datadir, 'fpga_designs')
 
 
+@pytest.fixture(autouse=True, scope="module")
+def load_archs():
+    chip = Chip("dummy")
+    chip.use(K4_N8_6x6)
+    chip.use(K6_N8_3x3)
+    chip.use(K6_N8_12x12_BD)
+    chip.use(K6_N8_28x28_BD)
+    assert chip.check_filepaths()
+
+
 @pytest.mark.eda
 @pytest.mark.quick
 def test_fpgaflow(designs_dir):
