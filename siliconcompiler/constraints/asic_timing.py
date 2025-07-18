@@ -5,7 +5,7 @@ from siliconcompiler.schema import BaseSchema, NamedSchema, EditableSchema, Para
 from siliconcompiler import DesignSchema
 
 
-class TimingScenarioSchema(NamedSchema):
+class ASICTimingScenarioSchema(NamedSchema):
     def __init__(self, name: str = None):
         super().__init__()
         self.set_name(name)
@@ -93,7 +93,7 @@ class TimingScenarioSchema(NamedSchema):
                 shorthelp="Constraint: SDC files",
                 switch="-constraint_timing_file 'scenario <file>'",
                 example=["api: chip.set('constraint', 'timing', 'worst', 'file', 'hello.sdc')"],
-                help="""List of timing constraint files to use for the scenario. The
+                help="""List of timing constraint sets files to use for the scenario. The
                 values are combined with any constraints specified by the design
                 'constraint' parameter. If no constraints are found, a default
                 constraint file is used based on the clock definitions."""))
@@ -376,13 +376,13 @@ class TimingScenarioSchema(NamedSchema):
         return self.get("check", step=step, index=index)
 
 
-class TimingConstraintSchema(BaseSchema):
+class ASICTimingConstraintSchema(BaseSchema):
     def __init__(self):
         super().__init__()
 
-        EditableSchema(self).insert("default", TimingScenarioSchema())
+        EditableSchema(self).insert("default", ASICTimingScenarioSchema())
 
-    def add_scenario(self, scenario: TimingScenarioSchema):
+    def add_scenario(self, scenario: ASICTimingScenarioSchema):
         """
         Adds a timing scenario to the design configuration.
 
@@ -391,16 +391,16 @@ class TimingConstraintSchema(BaseSchema):
         exists, it will be overwritten (`clobber=True`).
 
         Args:
-            scenario: The `TimingScenarioSchema` object representing the timing scenario to add.
+            scenario: The `ASICTimingScenarioSchema` object representing the timing scenario to add.
                       This object must have a valid name defined via its `name()` method.
 
         Raises:
             TypeError: If the provided `scenario` argument is not an instance of
-                       `TimingScenarioSchema`.
+                       `ASICTimingScenarioSchema`.
             ValueError: If the `scenario` object's `name()` method returns None, indicating
                         that the scenario does not have a defined name.
         """
-        if not isinstance(scenario, TimingScenarioSchema):
+        if not isinstance(scenario, ASICTimingScenarioSchema):
             raise TypeError("scenario must be a timing scenario object")
 
         if scenario.name() is None:
@@ -421,10 +421,10 @@ class TimingConstraintSchema(BaseSchema):
                       a dictionary containing all available timing scenarios.
 
         Returns:
-            - If `scenario` is provided: The :class:`TimingScenarioSchema` object corresponding
+            - If `scenario` is provided: The :class:`ASICTimingScenarioSchema` object corresponding
               to the specified scenario name.
             - If `scenario` is None: A dictionary where keys are scenario names (str) and
-              values are their respective :class:`TimingScenarioSchema` objects.
+              values are their respective :class:`ASICTimingScenarioSchema` objects.
 
         Raises:
             LookupError: If a specific `scenario` name is provided but no scenario with

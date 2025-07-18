@@ -3,11 +3,11 @@ import pytest
 from siliconcompiler import DesignSchema
 from siliconcompiler.schema import PerNode, Scope
 
-from siliconcompiler.constraint import TimingScenarioSchema, TimingConstraintSchema
+from siliconcompiler.constraints import ASICTimingScenarioSchema, ASICTimingConstraintSchema
 
 
 def test_timing_scanario_keys():
-    assert TimingScenarioSchema().allkeys() == set([
+    assert ASICTimingScenarioSchema().allkeys() == set([
         ('check',),
         ('libcorner',),
         ('mode',),
@@ -19,15 +19,15 @@ def test_timing_scanario_keys():
     ])
 
 
-@pytest.mark.parametrize("key", TimingScenarioSchema().allkeys())
+@pytest.mark.parametrize("key", ASICTimingScenarioSchema().allkeys())
 def test_timing_scanario_key_params(key):
-    param = TimingScenarioSchema().get(*key, field=None)
+    param = ASICTimingScenarioSchema().get(*key, field=None)
     assert param.get(field="pernode") == PerNode.OPTIONAL
     assert param.get(field="scope") == Scope.GLOBAL
 
 
 def test_timing_scanario_pin_voltage():
-    scene = TimingScenarioSchema()
+    scene = ASICTimingScenarioSchema()
     assert scene.set_pin_voltage("VDD", 1.8)
     assert scene.set_pin_voltage("VDD", 2.5, step="step0", index="1")
     assert scene.get("voltage", "VDD") == 1.8
@@ -37,13 +37,13 @@ def test_timing_scanario_pin_voltage():
 
 
 def test_timing_scanario_pin_voltage_missing():
-    scene = TimingScenarioSchema()
+    scene = ASICTimingScenarioSchema()
     with pytest.raises(LookupError, match="VDD does not have voltage"):
         scene.get_pin_voltage("VDD")
 
 
 def test_timing_scanario_libcorner():
-    scene = TimingScenarioSchema()
+    scene = ASICTimingScenarioSchema()
     assert scene.add_libcorner("slow0")
     assert scene.add_libcorner("slow1")
     assert scene.add_libcorner("slow2", step="step0", index="1")
@@ -54,7 +54,7 @@ def test_timing_scanario_libcorner():
 
 
 def test_timing_scanario_libcorner_clobber():
-    scene = TimingScenarioSchema()
+    scene = ASICTimingScenarioSchema()
     assert scene.add_libcorner("slow0")
     assert scene.get_libcorner() == set(["slow0"])
     assert scene.add_libcorner("slow1", clobber=True)
@@ -62,7 +62,7 @@ def test_timing_scanario_libcorner_clobber():
 
 
 def test_timing_scanario_libcorner_clobber_step_index():
-    scene = TimingScenarioSchema()
+    scene = ASICTimingScenarioSchema()
     assert scene.add_libcorner("slow0")
     assert scene.add_libcorner("slow1", step="step0", index="1")
     assert scene.get_libcorner() == set(["slow0"])
@@ -73,7 +73,7 @@ def test_timing_scanario_libcorner_clobber_step_index():
 
 
 def test_timing_scanario_pexcorner():
-    scene = TimingScenarioSchema()
+    scene = ASICTimingScenarioSchema()
     assert scene.set_pexcorner("ff")
     assert scene.set_pexcorner("ss", step="step0", index="1")
     assert scene.get("pexcorner") == "ff"
@@ -83,7 +83,7 @@ def test_timing_scanario_pexcorner():
 
 
 def test_timing_scanario_mode():
-    scene = TimingScenarioSchema()
+    scene = ASICTimingScenarioSchema()
     assert scene.set_mode("run")
     assert scene.set_mode("test", step="step0", index="1")
     assert scene.get("mode") == "run"
@@ -93,7 +93,7 @@ def test_timing_scanario_mode():
 
 
 def test_timing_scanario_opcond():
-    scene = TimingScenarioSchema()
+    scene = ASICTimingScenarioSchema()
     assert scene.set_opcond("op0")
     assert scene.set_opcond("op1", step="step0", index="1")
     assert scene.get("opcond") == "op0"
@@ -103,7 +103,7 @@ def test_timing_scanario_opcond():
 
 
 def test_timing_scanario_temperature():
-    scene = TimingScenarioSchema()
+    scene = ASICTimingScenarioSchema()
     assert scene.set_temperature(125.0)
     assert scene.set_temperature(-40, step="step0", index="1")
     assert scene.get("temperature") == 125.0
@@ -113,7 +113,7 @@ def test_timing_scanario_temperature():
 
 
 def test_timing_scanario_check():
-    scene = TimingScenarioSchema()
+    scene = ASICTimingScenarioSchema()
     assert scene.add_check("setup")
     assert scene.add_check("hold", step="step0", index="1")
     assert scene.get("check") == set(["setup"])
@@ -123,7 +123,7 @@ def test_timing_scanario_check():
 
 
 def test_timing_scanario_check_clobber():
-    scene = TimingScenarioSchema()
+    scene = ASICTimingScenarioSchema()
     assert scene.add_check("setup")
     assert scene.get_check() == set(["setup"])
     assert scene.add_check("hold", clobber=True)
@@ -131,7 +131,7 @@ def test_timing_scanario_check_clobber():
 
 
 def test_timing_scanario_check_clobber_step_index():
-    scene = TimingScenarioSchema()
+    scene = ASICTimingScenarioSchema()
     assert scene.add_check("setup")
     assert scene.add_check("hold", step="step0", index="1")
     assert scene.get_check() == set(["setup"])
@@ -143,16 +143,16 @@ def test_timing_scanario_check_clobber_step_index():
 
 def test_timing_scanario_sdcfileset_invalid_type_design():
     with pytest.raises(TypeError, match="design must be a design object or string"):
-        TimingScenarioSchema().add_sdcfileset(1.0, "fileset")
+        ASICTimingScenarioSchema().add_sdcfileset(1.0, "fileset")
 
 
 def test_timing_scanario_sdcfileset_invalid_type_fileset():
     with pytest.raises(TypeError, match="fileset must be a string"):
-        TimingScenarioSchema().add_sdcfileset("test", 1.0)
+        ASICTimingScenarioSchema().add_sdcfileset("test", 1.0)
 
 
 def test_timing_scanario_sdcfileset_design_obj():
-    scene = TimingScenarioSchema()
+    scene = ASICTimingScenarioSchema()
 
     design = DesignSchema("test")
     assert scene.add_sdcfileset(design, "rtl")
@@ -161,7 +161,7 @@ def test_timing_scanario_sdcfileset_design_obj():
 
 
 def test_timing_scanario_sdcfileset_design_str():
-    scene = TimingScenarioSchema()
+    scene = ASICTimingScenarioSchema()
 
     assert scene.add_sdcfileset("test", "rtl")
     assert scene.get("sdcfileset") == [("test", "rtl")]
@@ -169,7 +169,7 @@ def test_timing_scanario_sdcfileset_design_str():
 
 
 def test_timing_scanario_sdcfileset_design_step_index():
-    scene = TimingScenarioSchema()
+    scene = ASICTimingScenarioSchema()
 
     assert scene.add_sdcfileset("test", "rtl")
     assert scene.add_sdcfileset("test1", "rtl1", step="step0", index="1")
@@ -180,7 +180,7 @@ def test_timing_scanario_sdcfileset_design_step_index():
 
 
 def test_timing_scanario_sdcfileset_design_clobber():
-    scene = TimingScenarioSchema()
+    scene = ASICTimingScenarioSchema()
 
     assert scene.add_sdcfileset("test", "rtl")
     assert scene.add_sdcfileset("test1", "rtl1", step="step0", index="1")
@@ -192,7 +192,7 @@ def test_timing_scanario_sdcfileset_design_clobber():
 
 
 def test_timing_constraint_keys():
-    assert TimingConstraintSchema().allkeys() == set([
+    assert ASICTimingConstraintSchema().allkeys() == set([
         ('default', 'check',),
         ('default', 'libcorner',),
         ('default', 'mode',),
@@ -205,27 +205,27 @@ def test_timing_constraint_keys():
 
 
 def test_timing_constraint_get_scenarios_empty():
-    assert TimingConstraintSchema().get_scenario() == {}
+    assert ASICTimingConstraintSchema().get_scenario() == {}
 
 
 def test_timing_constraint_get_scenarios_missing():
     with pytest.raises(LookupError, match="notfound is not defined"):
-        TimingConstraintSchema().get_scenario("notfound")
+        ASICTimingConstraintSchema().get_scenario("notfound")
 
 
 def test_timing_constraint_add_scenario_invalid_type():
     with pytest.raises(TypeError, match="scenario must be a timing scenario object"):
-        TimingConstraintSchema().add_scenario(TimingConstraintSchema())
+        ASICTimingConstraintSchema().add_scenario(ASICTimingConstraintSchema())
 
 
 def test_timing_constraint_add_scenario_unnamed():
     with pytest.raises(ValueError, match="scenario must have a name"):
-        TimingConstraintSchema().add_scenario(TimingScenarioSchema())
+        ASICTimingConstraintSchema().add_scenario(ASICTimingScenarioSchema())
 
 
 def test_timing_constraint_add_scenario():
-    scene = TimingScenarioSchema("slow")
-    schema = TimingConstraintSchema()
+    scene = ASICTimingScenarioSchema("slow")
+    schema = ASICTimingConstraintSchema()
 
     schema.add_scenario(scene)
     assert schema.getkeys() == ("slow",)
@@ -233,9 +233,9 @@ def test_timing_constraint_add_scenario():
 
 
 def test_timing_constraint_get_scenario():
-    scene_s = TimingScenarioSchema("slow")
-    scene_f = TimingScenarioSchema("fast")
-    schema = TimingConstraintSchema()
+    scene_s = ASICTimingScenarioSchema("slow")
+    scene_f = ASICTimingScenarioSchema("fast")
+    schema = ASICTimingConstraintSchema()
 
     schema.add_scenario(scene_s)
     schema.add_scenario(scene_f)
