@@ -647,8 +647,7 @@ def test_read_fileset_with_abspath(datadir):
     d.read_fileset("test.f", fileset="test")
 
     assert d.getkeys("dataroot") == ('flist-new-test-test.f-0', )
-    assert d.get("dataroot", "flist-new-test-test.f-0", "path") == \
-        Path(os.path.abspath(datadir)).as_posix()
+    assert d.get("dataroot", "flist-new-test-test.f-0", "path") == os.path.abspath(datadir)
     assert d.get_file("test") == [
         os.path.abspath(os.path.join(datadir, 'heartbeat.v')),
         os.path.abspath(os.path.join(datadir, 'increment.v'))
@@ -752,11 +751,11 @@ def test_heartbeat_example(datadir):
 
     assert Path("heartbeat.f").read_text().splitlines() == [
         '// heartbeat / rtl / verilog files',
-        f'{Path(os.path.abspath(os.path.join(datadir, "heartbeat_increment.v"))).as_posix()}',
+        f'{os.path.abspath(os.path.join(datadir, "heartbeat_increment.v"))}',
         '// increment / rtl / verilog files',
-        f'{Path(os.path.abspath(os.path.join(datadir, "increment.v"))).as_posix()}',
+        f'{os.path.abspath(os.path.join(datadir, "increment.v"))}',
         '// heartbeat / testbench / verilog files',
-        f'{Path(os.path.abspath(os.path.join(datadir, "heartbeat_tb.v"))).as_posix()}'
+        f'{os.path.abspath(os.path.join(datadir, "heartbeat_tb.v"))}'
     ]
 
 
@@ -1064,11 +1063,11 @@ def test_write_fileset_alias(datadir):
 
     assert Path("fileset.f").read_text().splitlines() == [
         '// heartbeat / rtl / verilog files',
-        f'{Path(os.path.abspath(os.path.join(datadir, "heartbeat_increment.v"))).as_posix()}',
+        f'{os.path.abspath(os.path.join(datadir, "heartbeat_increment.v"))}',
         '// increment_alias / rtl.alias / verilog files',
-        f'{Path(os.path.abspath(os.path.join(datadir, "increment.v"))).as_posix()}',
+        f'{os.path.abspath(os.path.join(datadir, "increment.v"))}',
         '// heartbeat / testbench / verilog files',
-        f'{Path(os.path.abspath(os.path.join(datadir, "heartbeat_tb.v"))).as_posix()}',
+        f'{os.path.abspath(os.path.join(datadir, "heartbeat_tb.v"))}',
     ]
 
     dut.write_fileset(
@@ -1078,13 +1077,13 @@ def test_write_fileset_alias(datadir):
 
     assert Path("fileset_double.f").read_text().splitlines() == [
         '// heartbeat / rtl / verilog files',
-        f'{Path(os.path.abspath(os.path.join(datadir, "heartbeat_increment.v"))).as_posix()}',
+        f'{os.path.abspath(os.path.join(datadir, "heartbeat_increment.v"))}',
         '// increment_alias / rtl.alias / verilog files',
-        f'{Path(os.path.abspath(os.path.join(datadir, "increment.v"))).as_posix()}',
+        f'{os.path.abspath(os.path.join(datadir, "increment.v"))}',
         '// increment_alias / rtl.alias_other / verilog files',
-        f'// {Path(os.path.abspath(os.path.join(datadir, "increment.v"))).as_posix()}',
+        f'// {os.path.abspath(os.path.join(datadir, "increment.v"))}',
         '// heartbeat / testbench / verilog files',
-        f'{Path(os.path.abspath(os.path.join(datadir, "heartbeat_tb.v"))).as_posix()}',
+        f'{os.path.abspath(os.path.join(datadir, "heartbeat_tb.v"))}',
     ]
 
 
@@ -1126,11 +1125,11 @@ def test_write_fileset_same_datroot_name(datadir):
 
     assert Path("fileset.f").read_text().splitlines() == [
         '// heartbeat / rtl / verilog files',
-        f'{Path(os.path.abspath(os.path.join(datadir, "heartbeat_increment.v"))).as_posix()}',
+        f'{os.path.abspath(os.path.join(datadir, "heartbeat_increment.v"))}',
         '// increment / rtl.increment / verilog files',
-        f'{Path(os.path.abspath(os.path.join(datadir, "increment.v"))).as_posix()}',
+        f'{os.path.abspath(os.path.join(datadir, "increment.v"))}',
         '// heartbeat / testbench / verilog files',
-        f'{Path(os.path.abspath(os.path.join(datadir, "heartbeat_tb.v"))).as_posix()}',
+        f'{os.path.abspath(os.path.join(datadir, "heartbeat_tb.v"))}',
     ]
 
 
