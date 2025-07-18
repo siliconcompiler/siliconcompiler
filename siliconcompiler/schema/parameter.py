@@ -11,7 +11,8 @@ import shlex
 
 from enum import Enum
 
-from .parametervalue import NodeValue, DirectoryNodeValue, FileNodeValue, NodeListValue
+from .parametervalue import NodeValue, DirectoryNodeValue, FileNodeValue, NodeListValue, \
+    NodeSetValue
 from .parametertype import NodeType, NodeEnumType
 
 
@@ -129,17 +130,25 @@ class Parameter:
         if NodeType.contains(self.__type, 'file'):
             if isinstance(self.__type, list):
                 self.__defvalue = NodeListValue(FileNodeValue(defvalue, **kwargs))
+            elif isinstance(self.__type, set):
+                self.__defvalue = NodeSetValue(FileNodeValue(defvalue, **kwargs))
             else:
                 self.__defvalue = FileNodeValue(defvalue, **kwargs)
         elif NodeType.contains(self.__type, 'dir'):
             if isinstance(self.__type, list):
                 self.__defvalue = NodeListValue(DirectoryNodeValue(defvalue, **kwargs))
+            elif isinstance(self.__type, set):
+                self.__defvalue = NodeSetValue(DirectoryNodeValue(defvalue, **kwargs))
             else:
                 self.__defvalue = DirectoryNodeValue(defvalue, **kwargs)
         else:
             kwargs = {}
             if isinstance(self.__type, list):
                 self.__defvalue = NodeListValue(NodeValue(self.__type[0], **kwargs))
+                if defvalue:
+                    self.__defvalue.set(defvalue)
+            elif isinstance(self.__type, set):
+                self.__defvalue = NodeSetValue(NodeValue(list(self.__type)[0], **kwargs))
                 if defvalue:
                     self.__defvalue.set(defvalue)
             else:
@@ -345,7 +354,7 @@ class Parameter:
 
         if field in self.__defvalue.fields:
             if not self.is_list() and field == 'value':
-                raise ValueError("add can only be used on lists")
+                raise ValueError("add can only be used on lists or sets")
 
             if isinstance(index, int):
                 index = str(index)
@@ -613,7 +622,7 @@ class Parameter:
         Returns true is this parameter is a list type
         """
 
-        return isinstance(self.__type, list)
+        return isinstance(self.__type, (list, set))
 
     def is_empty(self):
         '''
