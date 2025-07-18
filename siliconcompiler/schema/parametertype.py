@@ -100,6 +100,8 @@ class NodeType:
                 return True
         if isinstance(value, list):
             return NodeType.contains(value[0], check)
+        if isinstance(value, set):
+            return NodeType.contains(list(value)[0], check)
         if isinstance(value, tuple):
             return any([NodeType.contains(v, check) for v in value])
         return value == check

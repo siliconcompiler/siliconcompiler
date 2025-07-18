@@ -131,6 +131,9 @@ Core Schema Classes
 .. autoclass:: siliconcompiler.schema.parametervalue.NodeListValue
     :members:
 
+.. autoclass:: siliconcompiler.schema.parametervalue.NodeSetValue
+    :members:
+
 .. autoclass:: siliconcompiler.schema.parametervalue.NodeValue
     :members:
 

@@ -290,6 +290,13 @@ def test_get_fields_enum():
     assert param.get(field='require') is False
 
 
+def test_set_add_illegal():
+    param = Parameter("<test0,test1>")
+
+    with pytest.raises(ValueError, match="add can only be used on lists or sets"):
+        param.add("test0")
+
+
 def test_set_add_enum():
     param = Parameter("[<test0,test1>]")
 
@@ -314,6 +321,17 @@ def test_add_fields_enum():
 
     with pytest.raises(ValueError, match='"invalid" is not a valid field'):
         param.add("test3", field="invalid")
+
+
+def test_set_add_set():
+    param = Parameter("{str}")
+
+    assert param.get() == set()
+    assert param.set("test0")
+    assert param.get() == set(["test0"])
+
+    assert param.add("test1")
+    assert param.get() == set(["test0", "test1"])
 
 
 def test_from_dict_round_trip():
@@ -1763,6 +1781,13 @@ def test_defvalue_file_package_getdict():
 def test_defvalue_file_list_package():
     param = Parameter("[file]", defvalue="thisfile", package="thispackage")
     assert param.default.get() == ["thisfile"]
+    assert param.default.get(field="package") == ["thispackage"]
+
+
+def test_defvalue_file_set_package():
+    param = Parameter("{file}", defvalue="thisfile", package="thispackage")
+    print(param._Parameter__type)
+    assert param.default.get() == set(["thisfile"])
     assert param.default.get(field="package") == ["thispackage"]
 
 
