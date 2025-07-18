@@ -25,6 +25,7 @@ def test_init():
     assert resolver.urlscheme == "source"
     assert resolver.urlpath == "this"
     assert isinstance(resolver.logger, logging.Logger)
+    assert resolver.cache_id == "2e7ef7cca5512780f587a0f30afe2ff574bc1448"
 
 
 def test_init_no_root():
@@ -36,6 +37,7 @@ def test_init_no_root():
     assert resolver.urlscheme == "source"
     assert resolver.urlpath == "this"
     assert isinstance(resolver.logger, logging.Logger)
+    assert resolver.cache_id == "2e7ef7cca5512780f587a0f30afe2ff574bc1448"
 
 
 def test_init_with_ref():
@@ -47,6 +49,7 @@ def test_init_with_ref():
     assert resolver.urlscheme == "source"
     assert resolver.urlpath == "this"
     assert isinstance(resolver.logger, logging.Logger)
+    assert resolver.cache_id == "0b0f5cbd0aba45a46024a52b4dd543d56b09f5df"
 
 
 def test_init_with_env(monkeypatch):
@@ -60,6 +63,7 @@ def test_init_with_env(monkeypatch):
     assert resolver.urlscheme == "source"
     assert resolver.urlpath == "this"
     assert isinstance(resolver.logger, logging.Logger)
+    assert resolver.cache_id == "44aae5e357af88c30de3ad29ee77f70bb8aa9b9d"
 
 
 def test_init_with_env_chip():
@@ -105,6 +109,27 @@ def test_find_resolver_file_empty():
 
 def test_find_resolver_python():
     assert Resolver.find_resolver("python://siliconcompiler") is PythonPathResolver
+
+
+def test_cache_id_different_name():
+    res0 = Resolver("testpath0", Chip("dummy"), "file://.", reference="ref")
+    res1 = Resolver("testpath1", Chip("dummy"), "file://.", reference="ref")
+
+    assert res0.cache_id == res1.cache_id
+
+
+def test_cache_id_different_ref():
+    res0 = Resolver("testpath0", Chip("dummy"), "file://.", reference="ref0")
+    res1 = Resolver("testpath1", Chip("dummy"), "file://.", reference="ref1")
+
+    assert res0.cache_id != res1.cache_id
+
+
+def test_cache_id_different_source():
+    res0 = Resolver("testpath0", Chip("dummy"), "file://test0", reference="ref")
+    res1 = Resolver("testpath1", Chip("dummy"), "file://test1", reference="ref")
+
+    assert res0.cache_id != res1.cache_id
 
 
 def test_get_path_new_data(caplog):
@@ -174,7 +199,7 @@ def test_get_path_usecache(caplog):
     chip.logger.setLevel(logging.INFO)
 
     resolver = AlwaysCache("alwayscache", chip, "notused", "notused")
-    Resolver.set_cache(chip, "alwayscache", "path")
+    Resolver.set_cache(chip, resolver.cache_id, "path")
     assert resolver.get_path() == "path"
 
     assert caplog.text == ""
@@ -327,6 +352,35 @@ def test_remote_resolve():
         lock.assert_called_once()
         check_cache.assert_called_once()
         resolve_remote.assert_called_once()
+
+
+def test_remote_resolve_cached_different_name():
+    chip = Chip("dummy")
+    chip.set("option", "cachedir", ".")
+
+    resolver = RemoteResolver("thisname", chip, "https://filepath", "ref")
+
+    with patch("siliconcompiler.package.RemoteResolver.lock") as lock, \
+         patch("siliconcompiler.package.RemoteResolver.check_cache") as check_cache, \
+         patch("siliconcompiler.package.RemoteResolver.resolve_remote") as resolve_remote:
+        check_cache.return_value = False
+        assert resolver.resolve() == Path(os.path.abspath("thisname-ref"))
+        Path(os.path.abspath("thisname-ref")).mkdir(exist_ok=True)
+        lock.assert_called_once()
+        check_cache.assert_called_once()
+        resolve_remote.assert_called_once()
+        assert resolver.get_path() == Path(os.path.abspath("thisname-ref"))
+
+    resolver = RemoteResolver("thisname1", chip, "https://filepath", "ref")
+    with patch("siliconcompiler.package.RemoteResolver.lock") as lock, \
+         patch("siliconcompiler.package.RemoteResolver.check_cache") as check_cache, \
+         patch("siliconcompiler.package.RemoteResolver.resolve_remote") as resolve_remote:
+        check_cache.return_value = False
+        # This will use the same of the other resolver despite the name change
+        assert resolver.get_path() == Path(os.path.abspath("thisname-ref"))
+        lock.assert_not_called()
+        check_cache.assert_not_called()
+        resolve_remote.assert_not_called()
 
 
 def test_remote_lock():

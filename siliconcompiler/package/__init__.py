@@ -1,5 +1,6 @@
 import contextlib
 import functools
+import hashlib
 import importlib
 import json
 import logging
@@ -61,6 +62,7 @@ class Resolver:
         self.__source = source
         self.__reference = reference
         self.__changed = False
+        self.__cacheid = None
 
         if self.__root and hasattr(self.__root, "logger"):
             self.__logger = self.__root.logger.getChild(f"resolver-{self.name}")
@@ -130,10 +132,23 @@ class Resolver:
         return self.urlparse.netloc
 
     @property
-    def changed(self):
+    def changed(self) -> bool:
         change = self.__changed
         self.__changed = False
         return change
+
+    @property
+    def cache_id(self) -> str:
+        if self.__cacheid is None:
+            hash = hashlib.sha1()
+            hash.update(self.__source.encode())
+            if self.__reference:
+                hash.update(self.__reference.encode())
+            else:
+                hash.update("".encode())
+
+            self.__cacheid = hash.hexdigest()
+        return self.__cacheid
 
     def set_changed(self):
         self.__changed = True
@@ -176,7 +191,7 @@ class Resolver:
                 del Resolver.__CACHE[root_id]
 
     def get_path(self):
-        cache_path = Resolver.get_cache(self.__root, self.name)
+        cache_path = Resolver.get_cache(self.__root, self.cache_id)
         if cache_path:
             return cache_path
 
@@ -189,7 +204,7 @@ class Resolver:
         else:
             self.logger.info(f'Found {self.name} data at {path}')
 
-        Resolver.set_cache(self.__root, self.name, path)
+        Resolver.set_cache(self.__root, self.cache_id, path)
         return path
 
     def __resolve_env(self, path):
