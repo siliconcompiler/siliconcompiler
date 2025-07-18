@@ -444,7 +444,7 @@ class PathNodeValue(NodeValue):
 
         return None
 
-    def resolve_path(self, search=None, collection_dir=None):
+    def resolve_path(self, search=None, collection_dir=None) -> str:
         """
         Resolve the path of this value.
 
@@ -462,10 +462,10 @@ class PathNodeValue(NodeValue):
         if collection_dir:
             collect_path = self.__resolve_collection_path(value, collection_dir)
             if collect_path:
-                return collect_path
+                return pathlib.Path(collect_path).as_posix()
 
         if os.path.isabs(value) and os.path.exists(value):
-            return value
+            return pathlib.Path(value).as_posix()
 
         # Search for file
         if search is None:
@@ -474,7 +474,7 @@ class PathNodeValue(NodeValue):
         for searchdir in search:
             abspath = os.path.abspath(os.path.join(searchdir, value))
             if os.path.exists(abspath):
-                return abspath
+                return pathlib.Path(abspath).as_posix()
 
         # File not found
         raise FileNotFoundError(value)
