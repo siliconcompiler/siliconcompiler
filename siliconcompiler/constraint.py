@@ -1,6 +1,7 @@
 from typing import Union, Set, List, Tuple
 
-from siliconcompiler.schema import BaseSchema, NamedSchema, EditableSchema, Parameter, PerNode, Scope
+from siliconcompiler.schema import BaseSchema, NamedSchema, EditableSchema, Parameter, \
+    PerNode, Scope
 from siliconcompiler import DesignSchema
 
 
@@ -113,48 +114,206 @@ class TimingScenarioSchema(NamedSchema):
                 and minimize power. Standard check names include setup, hold, power,
                 noise, reliability."""))
 
-    def set_pin_voltage(self, pin: str, voltage: float, step: str = None, index: Union[str, int] = None):
+    def set_pin_voltage(self,
+                        pin: str,
+                        voltage: float,
+                        step: str = None, index: Union[str, int] = None):
+        """
+        Sets the voltage for a specified pin.
+
+        Args:
+            pin (str): The name of the pin.
+            voltage (float): The voltage value to set.
+            step (str, optional): step name.
+            index (str, optional): index name.
+        """
         return self.set("voltage", pin, voltage, step=step, index=index)
 
-    def get_pin_voltage(self, pin: str, step: str = None, index: Union[str, int] = None) -> float:
+    def get_pin_voltage(self,
+                        pin: str,
+                        step: str = None, index: Union[str, int] = None) -> float:
+        """
+        Gets the voltage of a specified pin.
+
+        Args:
+            pin (str): The name of the pin.
+            step (str, optional): step name.
+            index (str, optional): index name.
+
+        Returns:
+            The voltage of the pin.
+
+        Raises:
+            LookupError: If the specified pin does not have a voltage defined.
+        """
         if not self.valid("voltage", pin):
             raise LookupError(f"{pin} does not have voltage")
         return self.get("voltage", pin, step=step, index=index)
 
-    def add_libcorner(self, libcorner: str, clobber: bool = False, step: str = None, index: Union[str, int] = None):
+    def add_libcorner(self,
+                      libcorner: str,
+                      clobber: bool = False,
+                      step: str = None, index: Union[str, int] = None):
+        """
+        Adds a library corner to the design.
+
+        Args:
+            libcorner (str): The name of the library corner to add.
+            clobber (bool): If True, existing library corners at the specified step/index will
+                    be overwritten.
+                    If False (default), the library corner will be added.
+            step (str, optional): step name.
+            index (str, optional): index name.
+        """
         if clobber:
             return self.set("libcorner", libcorner, step=step, index=index)
         else:
             return self.add("libcorner", libcorner, step=step, index=index)
 
-    def get_libcorner(self, step: str = None, index: Union[str, int] = None) -> Set[str]:
+    def get_libcorner(self,
+                      step: str = None, index: Union[str, int] = None) -> Set[str]:
+        """
+        Gets the set of library corners.
+
+        Args:
+            step (str, optional): step name.
+            index (str, optional): index name.
+
+        Returns:
+            A set of library corner names.
+        """
         return self.get("libcorner", step=step, index=index)
 
-    def set_pexcorner(self, pexcorner: str, step: str = None, index: Union[str, int] = None):
+    def set_pexcorner(self,
+                      pexcorner: str,
+                      step: str = None, index: Union[str, int] = None):
+        """
+        Sets the parasitic extraction (PEX) corner for the design.
+
+        Args:
+            pexcorner (str): The name of the PEX corner to set.
+            step (str, optional): step name.
+            index (str, optional): index name.
+        """
         return self.set("pexcorner", pexcorner, step=step, index=index)
 
-    def get_pexcorner(self, step: str = None, index: Union[str, int] = None) -> str:
+    def get_pexcorner(self,
+                      step: str = None, index: Union[str, int] = None) -> str:
+        """
+        Gets the parasitic extraction (PEX) corner currently set for the design.
+
+        Args:
+            step (str, optional): step name.
+            index (str, optional): index name.
+
+        Returns:
+            The name of the PEX corner.
+        """
         return self.get("pexcorner", step=step, index=index)
 
-    def set_mode(self, mode: str, step: str = None, index: Union[str, int] = None):
+    def set_mode(self,
+                 mode: str,
+                 step: str = None, index: Union[str, int] = None):
+        """
+        Sets the operational mode for the design.
+
+        Args:
+            mode (str): The operational mode to set (e.g., "func", "scan").
+            step (str, optional): step name.
+            index (str, optional): index name.
+        """
         return self.set("mode", mode, step=step, index=index)
 
-    def get_mode(self, step: str = None, index: Union[str, int] = None) -> str:
+    def get_mode(self,
+                 step: str = None, index: Union[str, int] = None) -> str:
+        """
+        Gets the operational mode currently set for the design.
+
+        Args:
+            step (str, optional): step name.
+            index (str, optional): index name.
+
+        Returns:
+            The name of the operational mode.
+        """
         return self.get("mode", step=step, index=index)
 
-    def set_opcond(self, opcond: str, step: str = None, index: Union[str, int] = None):
+    def set_opcond(self,
+                   opcond: str,
+                   step: str = None, index: Union[str, int] = None):
+        """
+        Sets the operating condition for the design.
+
+        Args:
+            opcond (str): The operating condition to set (e.g., "WC", "BC").
+            step (str, optional): step name.
+            index (str, optional): index name.
+        """
         return self.set("opcond", opcond, step=step, index=index)
 
-    def get_opcond(self, step: str = None, index: Union[str, int] = None) -> str:
+    def get_opcond(self,
+                   step: str = None, index: Union[str, int] = None) -> str:
+        """
+        Gets the operating condition currently set for the design.
+
+        Args:
+            step (str, optional): step name.
+            index (str, optional): index name.
+
+        Returns:
+            The name of the operating condition.
+        """
         return self.get("opcond", step=step, index=index)
 
-    def set_temperature(self, temperature: float, step: str = None, index: Union[str, int] = None):
+    def set_temperature(self,
+                        temperature: float,
+                        step: str = None, index: Union[str, int] = None):
+        """
+        Sets the temperature for the design.
+
+        Args:
+            temperature (float): The temperature value to set in degrees Celsius.
+            step (str, optional): step name.
+            index (str, optional): index name.
+        """
         return self.set("temperature", temperature, step=step, index=index)
 
-    def get_temperature(self, step: str = None, index: Union[str, int] = None) -> float:
+    def get_temperature(self,
+                        step: str = None, index: Union[str, int] = None) -> float:
+        """
+        Gets the temperature currently set for the design.
+
+        Args:
+            step (str, optional): step name.
+            index (str, optional): index name.
+
+        Returns:
+            The temperature in degrees Celsius.
+        """
         return self.get("temperature", step=step, index=index)
 
-    def add_sdcfileset(self, design: Union[DesignSchema, str], fileset: str, clobber: bool = False, step: str = None, index: Union[str, int] = None):
+    def add_sdcfileset(self,
+                       design: Union[DesignSchema, str],
+                       fileset: str,
+                       clobber: bool = False,
+                       step: str = None, index: Union[str, int] = None):
+        """
+        Adds an SDC fileset for a given design.
+
+        Args:
+            design (:class:`DesignSchema` or str): The design object or the name of the design to
+                associate the fileset with.
+            fileset (str): The name of the SDC fileset to add.
+            clobber (bool): If True, existing SDC filesets for the design at the specified
+                    step/index will be overwritten.
+                    If False (default), the SDC fileset will be added.
+            step (str, optional): step name.
+            index (str, optional): index name.
+
+        Raises:
+            TypeError: If `design` is not a DesignSchema object or a string, or if `fileset` is not
+                a string.
+        """
         if isinstance(design, DesignSchema):
             design = design.name()
 
@@ -169,16 +328,51 @@ class TimingScenarioSchema(NamedSchema):
         else:
             return self.add("sdcfileset", (design, fileset), step=step, index=index)
 
-    def get_sdcfileset(self, step: str = None, index: Union[str, int] = None) -> List[Tuple[str, str]]:
+    def get_sdcfileset(self,
+                       step: str = None, index: Union[str, int] = None) -> List[Tuple[str, str]]:
+        """
+        Gets the list of SDC filesets.
+
+        Args:
+            step (str, optional): step name.
+            index (str, optional): index name.
+
+        Returns:
+            A list of tuples, where each tuple contains the design name and the SDC fileset name.
+        """
         return self.get("sdcfileset", step=step, index=index)
 
-    def add_check(self, check: str, clobber: bool = False, step: str = None, index: Union[str, int] = None):
+    def add_check(self,
+                  check: str,
+                  clobber: bool = False,
+                  step: str = None, index: Union[str, int] = None):
+        """
+        Adds a check to the design process.
+
+        Args:
+            check (str): The name of the check to add.
+            clobber (bool): If True, existing checks at the specified step/index will
+                    be overwritten.
+                    If False (default), the check will be added.
+            step (str, optional): step name.
+            index (str, optional): index name.
+        """
         if clobber:
             return self.set("check", check, step=step, index=index)
         else:
             return self.add("check", check, step=step, index=index)
 
     def get_check(self, step: str = None, index: Union[str, int] = None) -> Set[str]:
+        """
+        Gets the set of checks configured for the design process.
+
+        Args:
+            step (str, optional): step name.
+            index (str, optional): index name.
+
+        Returns:
+            A set of check names.
+        """
         return self.get("check", step=step, index=index)
 
 
@@ -189,6 +383,23 @@ class TimingConstraintSchema(BaseSchema):
         EditableSchema(self).insert("default", TimingScenarioSchema())
 
     def add_scenario(self, scenario: TimingScenarioSchema):
+        """
+        Adds a timing scenario to the design configuration.
+
+        This method is responsible for incorporating a new or updated timing scenario
+        into the system's configuration. If a scenario with the same name already
+        exists, it will be overwritten (`clobber=True`).
+
+        Args:
+            scenario: The `TimingScenarioSchema` object representing the timing scenario to add.
+                      This object must have a valid name defined via its `name()` method.
+
+        Raises:
+            TypeError: If the provided `scenario` argument is not an instance of
+                       `TimingScenarioSchema`.
+            ValueError: If the `scenario` object's `name()` method returns None, indicating
+                        that the scenario does not have a defined name.
+        """
         if not isinstance(scenario, TimingScenarioSchema):
             raise TypeError("scenario must be a timing scenario object")
 
@@ -198,6 +409,27 @@ class TimingConstraintSchema(BaseSchema):
         EditableSchema(self).insert(scenario.name(), scenario, clobber=True)
 
     def get_scenario(self, scenario: str = None):
+        """
+        Retrieves one or all timing scenarios from the configuration.
+
+        This method provides flexibility to fetch either a specific timing scenario
+        by its name or a collection of all currently defined scenarios.
+
+        Args:
+            scenario (str, optional): The name (string) of the specific timing scenario to retrieve.
+                      If this argument is omitted or set to None, the method will return
+                      a dictionary containing all available timing scenarios.
+
+        Returns:
+            - If `scenario` is provided: The :class:`TimingScenarioSchema` object corresponding
+              to the specified scenario name.
+            - If `scenario` is None: A dictionary where keys are scenario names (str) and
+              values are their respective :class:`TimingScenarioSchema` objects.
+
+        Raises:
+            LookupError: If a specific `scenario` name is provided but no scenario with
+                         that name is found in the configuration.
+        """
         if scenario is None:
             scenarios = {}
             for scenario in self.getkeys():
