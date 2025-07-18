@@ -104,12 +104,93 @@ class ASICAreaConstraint(BaseSchema):
             params.append(self.set_coremargin(coremargin, step=step, index=index))
         return params
 
+    def set_density(self,
+                    density: float,
+                    aspectratio: float = None,
+                    coremargin: float = None,
+                    step: str = None, index: Union[str, int] = None):
+        """
+        Sets the density value.
+
+        This method validates the `density` input to ensure it's a number
+        between 0 (exclusive) and 100 (inclusive). Optionally, it can also
+        set the aspect ratio and core margin if provided.
+
+        Args:
+            density (float): The density value to set. Must be a number
+                             between 0.0 and 100.0 (exclusive of 0.0).
+            aspectratio (float, optional): The aspect ratio to set. If provided,
+                                           `set_aspectratio` will be called.
+                                           Defaults to None.
+            coremargin (float, optional): The core margin to set. If provided,
+                                          `set_coremargin` will be called.
+                                          Defaults to None.
+            step (str, optional): An identifier for the step in a workflow.
+                                  Defaults to None.
+            index (Union[str, int], optional): An index or identifier within a step.
+                                               Defaults to None.
+
+        Raises:
+            TypeError: If `density` is not a number.
+            ValueError: If `density` is not within the valid range (0, 100].
+
+        Returns:
+            list: A list of return values from the `set` and any optional
+                  `set_aspectratio` or `set_coremargin` calls.
+        """
+        if not isinstance(density, (int, float)):
+            raise TypeError("density must be a number")
+
+        if density <= 0.0 or density > 100.0:
+            raise ValueError("density must be between (0, 100]")
+
+        params = [
+            self.set("density", density, step=step, index=index)
+        ]
+        if aspectratio is not None:
+            params.append(self.set_aspectratio(aspectratio, step=step, index=index))
+        if coremargin is not None:
+            params.append(self.set_coremargin(coremargin, step=step, index=index))
+        return params
+
     def get_density(self, step: str = None, index: Union[str, int] = None) -> float:
+        """
+        Retrieves the current density value.
+
+        Args:
+            step (str, optional): An identifier for the step in a workflow.
+                                  Defaults to None.
+            index (Union[str, int], optional): An index or identifier within a step.
+                                               Defaults to None.
+
+        Returns:
+            float: The current density value.
+        """
         return self.get("density", step=step, index=index)
 
     def set_aspectratio(self,
                         aspectratio: float,
                         step: str = None, index: Union[str, int] = None):
+        """
+        Sets the aspect ratio.
+
+        This method validates the `aspectratio` input to ensure it's a positive number.
+
+        Args:
+            aspectratio (float): The aspect ratio value to set. Must be a
+                                 number greater than 0.0.
+            step (str, optional): An identifier for the step in a workflow.
+                                  Defaults to None.
+            index (Union[str, int], optional): An index or identifier within a step.
+                                               Defaults to None.
+
+        Raises:
+            TypeError: If `aspectratio` is not a number.
+            ValueError: If `aspectratio` is zero or negative.
+
+        Returns:
+            Any: The return value from the internal `set` method call.
+        """
         if not isinstance(aspectratio, (int, float)):
             raise TypeError("aspectratio must be a number")
 
@@ -120,11 +201,43 @@ class ASICAreaConstraint(BaseSchema):
 
     def get_aspectratio(self,
                         step: str = None, index: Union[str, int] = None) -> float:
+        """
+        Retrieves the current aspect ratio.
+
+        Args:
+            step (str, optional): An identifier for the step in a workflow.
+                                  Defaults to None.
+            index (Union[str, int], optional): An index or identifier within a step.
+                                               Defaults to None.
+
+        Returns:
+            float: The current aspect ratio value.
+        """
         return self.get("aspectratio", step=step, index=index)
 
     def set_coremargin(self,
                        coremargin: float,
                        step: str = None, index: Union[str, int] = None):
+        """
+        Sets the core margin.
+
+        This method validates the `coremargin` input to ensure it's a non-negative number.
+
+        Args:
+            coremargin (float): The core margin value to set. Must be a
+                                number greater than or equal to 0.0.
+            step (str, optional): An identifier for the step in a workflow.
+                                  Defaults to None.
+            index (Union[str, int], optional): An index or identifier within a step.
+                                               Defaults to None.
+
+        Raises:
+            TypeError: If `coremargin` is not a number.
+            ValueError: If `coremargin` is negative.
+
+        Returns:
+            Any: The return value from the internal `set` method call.
+        """
         if not isinstance(coremargin, (int, float)):
             raise TypeError("coremargin must be a number")
 
@@ -135,6 +248,18 @@ class ASICAreaConstraint(BaseSchema):
 
     def get_coremargin(self,
                        step: str = None, index: Union[str, int] = None) -> float:
+        """
+        Retrieves the current core margin.
+
+        Args:
+            step (str, optional): An identifier for the step in a workflow.
+                                  Defaults to None.
+            index (Union[str, int], optional): An index or identifier within a step.
+                                               Defaults to None.
+
+        Returns:
+            float: The current core margin value.
+        """
         return self.get("coremargin", step=step, index=index)
 
     def set_diearea_rectangle(self,
@@ -142,6 +267,36 @@ class ASICAreaConstraint(BaseSchema):
                               width: float,
                               coremargin: Union[float, Tuple[float, float]] = None,
                               step: str = None, index: Union[str, int] = None):
+        """
+        Sets the die area as a rectangle defined by its height and width,
+        with its bottom-left corner at (0,0).
+
+        Optionally, it can also set the core area as a rectangle based on
+        the provided core margin.
+
+        Args:
+            height (float): The height of the rectangular die area. Must be
+                            greater than zero.
+            width (float): The width of the rectangular die area. Must be
+                           greater than zero.
+            coremargin (Union[float, Tuple[float, float]], optional):
+                        The margin for the core area. Can be a single float
+                        (uniform margin) or a tuple of two floats (x and y margins).
+                        If provided, `set_corearea_rectangle` will be called.
+                        Defaults to None.
+            step (str, optional): An identifier for the step in a workflow.
+                                  Defaults to None.
+            index (Union[str, int], optional): An index or identifier within a step.
+                                               Defaults to None.
+
+        Raises:
+            TypeError: If `height` or `width` are not numbers.
+            ValueError: If `height` or `width` are zero or negative.
+
+        Returns:
+            list: A list of return values from the `set_diearea` and any optional
+                  `set_corearea_rectangle` calls.
+        """
         if not isinstance(height, (int, float)):
             raise TypeError("height must be a number")
         if not isinstance(width, (int, float)):
@@ -166,6 +321,36 @@ class ASICAreaConstraint(BaseSchema):
                                diewidth: float,
                                coremargin: Union[float, Tuple[float, float]],
                                step: str = None, index: Union[str, int] = None):
+        """
+        Sets the core area as a rectangle within a larger die area,
+        based on specified margins.
+
+        The core area is calculated by subtracting the margins from the die dimensions.
+        Margins can be uniform (single float) or specified separately for x and y.
+
+        Args:
+            dieheight (float): The height of the die area. Must be greater than zero.
+            diewidth (float): The width of the die area. Must be greater than zero.
+            coremargin (Union[float, Tuple[float, float]]): The margin(s) to apply
+                        to the core area.
+                        - If a float, it's applied uniformly to all sides.
+                        - If a tuple of two floats, it represents (x_margin, y_margin).
+            step (str, optional): An identifier for the step in a workflow.
+                                  Defaults to None.
+            index (Union[str, int], optional): An index or identifier within a step.
+                                               Defaults to None.
+
+        Raises:
+            TypeError: If `dieheight` or `diewidth` are not numbers, or if
+                       `coremargin` is not a number or a tuple of two numbers.
+            ValueError: If `dieheight` or `diewidth` are zero or negative,
+                        if `coremargin` is a tuple of incorrect length,
+                        if x or y margins are negative, or if margins are
+                        greater than or equal to the corresponding die dimensions.
+
+        Returns:
+            Any: The return value from the internal `set_corearea` method call.
+        """
         if not isinstance(dieheight, (int, float)):
             raise TypeError("height must be a number")
         if not isinstance(diewidth, (int, float)):
@@ -206,17 +391,71 @@ class ASICAreaConstraint(BaseSchema):
     def set_diearea(self,
                     points: List[Tuple[float, float]],
                     step: str = None, index: Union[str, int] = None):
+        """
+        Sets the die area using a list of points defining its boundary.
+
+        Args:
+            points (List[Tuple[float, float]]): A list of (x, y) tuples representing
+                                                the coordinates that define the die area.
+            step (str, optional): An identifier for the step in a workflow.
+                                  Defaults to None.
+            index (Union[str, int], optional): An index or identifier within a step.
+                                               Defaults to None.
+
+        Returns:
+            Any: The return value from the internal `set` method call.
+        """
         return self.set("diearea", points, step=step, index=index)
 
     def get_diearea(self,
                     step: str = None, index: Union[str, int] = None) -> List[Tuple[float, float]]:
+        """
+        Retrieves the current die area definition.
+
+        Args:
+            step (str, optional): An identifier for the step in a workflow.
+                                  Defaults to None.
+            index (Union[str, int], optional): An index or identifier within a step.
+                                               Defaults to None.
+
+        Returns:
+            List[Tuple[float, float]]: A list of (x, y) tuples representing
+                                       the coordinates that define the die area.
+        """
         return self.get("diearea", step=step, index=index)
 
     def set_corearea(self,
                      points: List[Tuple[float, float]],
                      step: str = None, index: Union[str, int] = None):
+        """
+        Sets the core area using a list of points defining its boundary.
+
+        Args:
+            points (List[Tuple[float, float]]): A list of (x, y) tuples representing
+                                                the coordinates that define the core area.
+            step (str, optional): An identifier for the step in a workflow.
+                                  Defaults to None.
+            index (Union[str, int], int): An index or identifier within a step.
+                                          Defaults to None.
+
+        Returns:
+            Any: The return value from the internal `set` method call.
+        """
         return self.set("corearea", points, step=step, index=index)
 
     def get_corearea(self,
                      step: str = None, index: Union[str, int] = None) -> List[Tuple[float, float]]:
+        """
+        Retrieves the current core area definition.
+
+        Args:
+            step (str, optional): An identifier for the step in a workflow.
+                                  Defaults to None.
+            index (Union[str, int], optional): An index or identifier within a step.
+                                               Defaults to None.
+
+        Returns:
+            List[Tuple[float, float]]: A list of (x, y) tuples representing
+                                       the coordinates that define the core area.
+        """
         return self.get("corearea", step=step, index=index)
