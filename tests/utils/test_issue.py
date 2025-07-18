@@ -3,7 +3,6 @@ import siliconcompiler
 import pytest
 import glob
 import os
-import pathlib
 import tarfile
 
 
@@ -41,7 +40,6 @@ def test_automatic_issue(gcd_chip):
 
 def test_relpath(gcd_chip):
     path = os.path.abspath('test.file')
-    path = pathlib.PureWindowsPath(path).as_posix()
     with open(path, 'w') as f:
         f.write('test')
 

@@ -243,7 +243,7 @@ def test_directory_resolve_path_abspath():
     value.set(os.path.abspath("testdir"))
     os.makedirs("testdir", exist_ok=True)
 
-    assert value.resolve_path() == pathlib.PureWindowsPath(os.path.abspath("testdir")).as_posix()
+    assert value.resolve_path() == os.path.abspath("testdir")
 
 
 def test_file_init():
@@ -336,7 +336,7 @@ def test_file_resolve_path_abspath():
     with open("test.txt", "w") as f:
         f.write("test")
 
-    assert value.resolve_path() == pathlib.PureWindowsPath(os.path.abspath("test.txt")).as_posix()
+    assert value.resolve_path() == os.path.abspath("test.txt")
 
 
 def test_set_list():

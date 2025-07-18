@@ -7,6 +7,7 @@ import os.path
 from pathlib import Path
 
 from siliconcompiler import DesignSchema
+from siliconcompiler.schema import BaseSchema
 
 
 def test_design_keys():
@@ -646,8 +647,7 @@ def test_read_fileset_with_abspath(datadir):
     d.read_fileset("test.f", fileset="test")
 
     assert d.getkeys("dataroot") == ('flist-new-test-test.f-0', )
-    assert d.get("dataroot", "flist-new-test-test.f-0", "path") == \
-        Path(os.path.abspath(datadir)).as_posix()
+    assert d.get("dataroot", "flist-new-test-test.f-0", "path") == os.path.abspath(datadir)
     assert d.get_file("test") == [
         os.path.abspath(os.path.join(datadir, 'heartbeat.v')),
         os.path.abspath(os.path.join(datadir, 'increment.v'))
@@ -751,11 +751,11 @@ def test_heartbeat_example(datadir):
 
     assert Path("heartbeat.f").read_text().splitlines() == [
         '// heartbeat / rtl / verilog files',
-        f'{Path(os.path.abspath(os.path.join(datadir, "heartbeat_increment.v"))).as_posix()}',
+        f'{os.path.abspath(os.path.join(datadir, "heartbeat_increment.v"))}',
         '// increment / rtl / verilog files',
-        f'{Path(os.path.abspath(os.path.join(datadir, "increment.v"))).as_posix()}',
+        f'{os.path.abspath(os.path.join(datadir, "increment.v"))}',
         '// heartbeat / testbench / verilog files',
-        f'{Path(os.path.abspath(os.path.join(datadir, "heartbeat_tb.v"))).as_posix()}'
+        f'{os.path.abspath(os.path.join(datadir, "heartbeat_tb.v"))}'
     ]
 
 
@@ -1063,11 +1063,11 @@ def test_write_fileset_alias(datadir):
 
     assert Path("fileset.f").read_text().splitlines() == [
         '// heartbeat / rtl / verilog files',
-        f'{Path(os.path.abspath(os.path.join(datadir, "heartbeat_increment.v"))).as_posix()}',
+        f'{os.path.abspath(os.path.join(datadir, "heartbeat_increment.v"))}',
         '// increment_alias / rtl.alias / verilog files',
-        f'{Path(os.path.abspath(os.path.join(datadir, "increment.v"))).as_posix()}',
+        f'{os.path.abspath(os.path.join(datadir, "increment.v"))}',
         '// heartbeat / testbench / verilog files',
-        f'{Path(os.path.abspath(os.path.join(datadir, "heartbeat_tb.v"))).as_posix()}',
+        f'{os.path.abspath(os.path.join(datadir, "heartbeat_tb.v"))}',
     ]
 
     dut.write_fileset(
@@ -1077,11 +1077,73 @@ def test_write_fileset_alias(datadir):
 
     assert Path("fileset_double.f").read_text().splitlines() == [
         '// heartbeat / rtl / verilog files',
-        f'{Path(os.path.abspath(os.path.join(datadir, "heartbeat_increment.v"))).as_posix()}',
+        f'{os.path.abspath(os.path.join(datadir, "heartbeat_increment.v"))}',
         '// increment_alias / rtl.alias / verilog files',
-        f'{Path(os.path.abspath(os.path.join(datadir, "increment.v"))).as_posix()}',
+        f'{os.path.abspath(os.path.join(datadir, "increment.v"))}',
         '// increment_alias / rtl.alias_other / verilog files',
-        f'// {Path(os.path.abspath(os.path.join(datadir, "increment.v"))).as_posix()}',
+        f'// {os.path.abspath(os.path.join(datadir, "increment.v"))}',
         '// heartbeat / testbench / verilog files',
-        f'{Path(os.path.abspath(os.path.join(datadir, "heartbeat_tb.v"))).as_posix()}',
+        f'{os.path.abspath(os.path.join(datadir, "heartbeat_tb.v"))}',
     ]
+
+
+def test_write_fileset_same_datroot_name(datadir):
+    dataroot0 = Path(datadir)
+    dataroot1 = Path(dataroot0.parent)
+
+    class Increment(DesignSchema):
+        def __init__(self):
+            super().__init__('increment')
+
+            self.set_dataroot("root", dataroot0)
+
+            with self.active_fileset("rtl.increment"), self.active_dataroot("root"):
+                self.add_file("increment.v")
+
+    incr_object = Increment()
+
+    class Heartbeat(DesignSchema):
+        def __init__(self):
+            super().__init__('heartbeat')
+
+            self.set_dataroot("root", dataroot1)
+
+            # dependencies
+            self.add_dep(incr_object)
+            with self.active_fileset("rtl"), self.active_dataroot("root"):
+                self.add_file("data/heartbeat_increment.v")
+                self.add_depfileset("increment", "rtl.increment")
+
+            with self.active_fileset("testbench"), self.active_dataroot("root"):
+                self.add_file("data/heartbeat_tb.v")
+
+    dut = Heartbeat()
+
+    assert dut.get("dataroot", "root", "path") != incr_object.get("dataroot", "root", "path")
+
+    dut.write_fileset("fileset.f",  ["rtl", "testbench"])
+
+    assert Path("fileset.f").read_text().splitlines() == [
+        '// heartbeat / rtl / verilog files',
+        f'{os.path.abspath(os.path.join(datadir, "heartbeat_increment.v"))}',
+        '// increment / rtl.increment / verilog files',
+        f'{os.path.abspath(os.path.join(datadir, "increment.v"))}',
+        '// heartbeat / testbench / verilog files',
+        f'{os.path.abspath(os.path.join(datadir, "heartbeat_tb.v"))}',
+    ]
+
+
+def test_add_dep_invalid():
+    schema = DesignSchema()
+
+    with pytest.raises(TypeError,
+                       match="Cannot add an object of type: <class "
+                       "'siliconcompiler.schema.baseschema.BaseSchema'>"):
+        schema.add_dep(BaseSchema())
+
+
+def test_add_dep_same_name():
+    schema = DesignSchema("name0")
+
+    with pytest.raises(ValueError, match="Cannot add a dependency with the same name"):
+        schema.add_dep(DesignSchema("name0"))
