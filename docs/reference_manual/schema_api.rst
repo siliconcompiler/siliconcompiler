@@ -99,6 +99,24 @@ Schema Classes
     :show-inheritance:
     :inherited-members:
 
+ASIC Constraint Classes
+=======================
+
+.. autoclass:: siliconcompiler.constraints.ASICTimingConstraintSchema
+    :members:
+    :show-inheritance:
+    :inherited-members:
+
+.. autoclass:: siliconcompiler.constraints.ASICTimingScenarioSchema
+    :members:
+    :show-inheritance:
+    :inherited-members:
+
+.. autoclass:: siliconcompiler.constraints.ASICAreaConstraint
+    :members:
+    :show-inheritance:
+    :inherited-members:
+
 Core Schema Classes
 ===================
 
