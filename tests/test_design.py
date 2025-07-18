@@ -24,6 +24,21 @@ def test_design_keys():
         ('fileset', 'default', 'depfileset'),
         ('dataroot', 'default', 'path'),
         ('dataroot', 'default', 'tag'),
+        ('package', 'author', 'default', 'email'),
+        ('package', 'author', 'default', 'name'),
+        ('package', 'author', 'default', 'organization'),
+        ('package', 'description'),
+        ('package', 'doc', 'datasheet'),
+        ('package', 'doc', 'quickstart'),
+        ('package', 'doc', 'reference'),
+        ('package', 'doc', 'releasenotes'),
+        ('package', 'doc', 'signoff'),
+        ('package', 'doc', 'testplan'),
+        ('package', 'doc', 'tutorial'),
+        ('package', 'doc', 'userguide'),
+        ('package', 'license'),
+        ('package', 'licensefile'),
+        ('package', 'version')
     ])
 
     assert set(DesignSchema("test").allkeys()) == golden_keys
