@@ -89,26 +89,6 @@ class ASICAreaConstraint(BaseSchema):
                     aspectratio: float = None,
                     coremargin: float = None,
                     step: str = None, index: Union[str, int] = None):
-        if not isinstance(density, (int, float)):
-            raise TypeError("density must be a number")
-
-        if density <= 0.0 or density > 100.0:
-            raise ValueError("density must be between (0, 100]")
-
-        params = [
-            self.set("density", density, step=step, index=index)
-        ]
-        if aspectratio is not None:
-            params.append(self.set_aspectratio(aspectratio, step=step, index=index))
-        if coremargin is not None:
-            params.append(self.set_coremargin(coremargin, step=step, index=index))
-        return params
-
-    def set_density(self,
-                    density: float,
-                    aspectratio: float = None,
-                    coremargin: float = None,
-                    step: str = None, index: Union[str, int] = None):
         """
         Sets the density value.
 
