@@ -3,7 +3,6 @@ import siliconcompiler
 import pytest
 import glob
 import os
-import pathlib
 import tarfile
 
 
