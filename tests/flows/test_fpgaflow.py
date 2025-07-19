@@ -394,6 +394,8 @@ def test_fpga_xml_constraints(designs_dir, datadir):
     assert os.path.exists(fasm_file)
 
 
+@pytest.mark.eda
+@pytest.mark.quick
 def test_vpr_max_router_iterations():
     chip = Chip('foo')
     chip.input('test.v')
@@ -525,6 +527,8 @@ def test_fpga_syn_extract(top_module,
             ' got {expected_macro_count} instances'
 
 
+@pytest.mark.eda
+@pytest.mark.quick
 def test_vpr_gen_post_implementation_netlist():
     chip = Chip('foo')
     chip.input('test.v')
