@@ -1,5 +1,7 @@
 import pytest
 
+from siliconcompiler.schema import PerNode, Scope
+
 from siliconcompiler.constraints import ASICPinConstraint, ASICPinConstraints
 
 
@@ -11,6 +13,25 @@ def pin_constraint():
 @pytest.fixture
 def pin_constraints_collection():
     return ASICPinConstraints()
+
+
+def test_asic_pin_constraint_keys():
+    assert ASICPinConstraint().allkeys() == set([
+        ('layer',),
+        ('placement',),
+        ('side',),
+        ('order',),
+        ('length',),
+        ('shape',),
+        ('width',),
+    ])
+
+
+@pytest.mark.parametrize("key", ASICPinConstraint().allkeys())
+def test_asic_pin_constraint_key_params(key):
+    param = ASICPinConstraint().get(*key, field=None)
+    assert param.get(field="pernode") == PerNode.OPTIONAL
+    assert param.get(field="scope") == Scope.GLOBAL
 
 
 def test_asic_pin_constraint_init(pin_constraint):
@@ -111,6 +132,18 @@ def test_set_get_order(pin_constraint):
     assert pin_constraint.get_order() == 0
     pin_constraint.set_order(-2)
     assert pin_constraint.get_order() == -2
+
+
+def test_asic_pin_constraints_keys():
+    assert ASICPinConstraints().allkeys() == set([
+        ('default', 'layer'),
+        ('default', 'placement'),
+        ('default', 'side'),
+        ('default', 'order'),
+        ('default', 'length'),
+        ('default', 'shape'),
+        ('default', 'width'),
+    ])
 
 
 def test_add_pinconstraint(pin_constraints_collection):

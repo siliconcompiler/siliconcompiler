@@ -1,5 +1,7 @@
 import pytest
 
+from siliconcompiler.schema import PerNode, Scope
+
 from siliconcompiler.constraints import ASICComponentConstraints, ASICComponentConstraint
 
 
@@ -13,6 +15,22 @@ def component_constraint():
 @pytest.fixture
 def component_constraints_collection():
     return ASICComponentConstraints()
+
+
+def test_asic_component_constraint_keys():
+    assert ASICComponentConstraint().allkeys() == set([
+        ('partname',),
+        ('placement',),
+        ('rotation',),
+        ('halo',)
+    ])
+
+
+@pytest.mark.parametrize("key", ASICComponentConstraint().allkeys())
+def test_asic_component_constraint_key_params(key):
+    param = ASICComponentConstraint().get(*key, field=None)
+    assert param.get(field="pernode") == PerNode.OPTIONAL
+    assert param.get(field="scope") == Scope.GLOBAL
 
 
 def test_asic_component_constraint_init(component_constraint):
@@ -70,6 +88,15 @@ def test_set_get_rotation(component_constraint):
     assert component_constraint.get_rotation() == "R90"
     component_constraint.set_rotation("MZ_MX_R180")
     assert component_constraint.get_rotation() == "MZ_MX_R180"
+
+
+def test_asic_component_constraints_keys():
+    assert ASICComponentConstraints().allkeys() == set([
+        ('default', 'partname'),
+        ('default', 'placement'),
+        ('default', 'rotation'),
+        ('default', 'halo')
+    ])
 
 
 def test_add_component(component_constraints_collection):
