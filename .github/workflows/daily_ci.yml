@@ -52,7 +52,7 @@ jobs:
       - name: Upload
         uses: actions/upload-artifact@v4.3.3
         with:
-          name: scpackage-cache
+          name: scpackage-daily-cache
           path: .sc/cache
           retention-days: 1
 
@@ -94,7 +94,7 @@ jobs:
       - name: Restore cache
         uses: actions/download-artifact@v4.3.0
         with:
-          name: scpackage-cache
+          name: scpackage-daily-cache
           path: ${{ env.SCTESTCACHE }}
 
       - name: Setup tests
