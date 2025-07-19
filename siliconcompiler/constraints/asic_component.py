@@ -5,6 +5,14 @@ from siliconcompiler.schema import BaseSchema, NamedSchema, EditableSchema, Para
 
 
 class ASICComponentConstraint(NamedSchema):
+    """
+    Represents a single ASIC component constraint within the design configuration.
+
+    This class defines various constraints that can be applied to an individual
+    ASIC component instance, such as its placement, part name (cell name),
+    keepout halo, and rotation.
+    """
+
     def __init__(self, name: str = None):
         super().__init__()
         self.set_name(name)
@@ -218,7 +226,7 @@ class ASICComponentConstraints(BaseSchema):
     Manages a collection of ASIC component constraints.
 
     This class provides methods to add, retrieve, create, and remove
-    individual `ASICComponentConstraint` objects, allowing for organized
+    individual :class:`ASICComponentConstraint` objects, allowing for organized
     management of component-level placement and property constraints.
     """
     def __init__(self):
@@ -236,7 +244,7 @@ class ASICComponentConstraints(BaseSchema):
         be overwritten (`clobber=True`).
 
         Args:
-            component: The `ASICComponentConstraint` object representing the component
+            component: The :class:`ASICComponentConstraint` object representing the component
                        constraint to add. This object must have a valid name defined
                        via its `name()` method.
 
@@ -291,7 +299,7 @@ class ASICComponentConstraints(BaseSchema):
         """
         Creates and adds a new component constraint with the specified name.
 
-        This method initializes a new `ASICComponentConstraint` object with the given
+        This method initializes a new :class:`ASICComponentConstraint` object with the given
         name and immediately adds it to the design configuration. It ensures that
         a constraint with the same name does not already exist, preventing accidental
         overwrites.
@@ -301,7 +309,7 @@ class ASICComponentConstraints(BaseSchema):
                              a non-empty string and unique within the current configuration.
 
         Returns:
-            ASICComponentConstraint: The newly created `ASICComponentConstraint` object.
+            ASICComponentConstraint: The newly created :class:`ASICComponentConstraint` object.
 
         Raises:
             ValueError: If the provided `component` name is empty or None.

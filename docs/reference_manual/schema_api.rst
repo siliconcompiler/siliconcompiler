@@ -117,6 +117,26 @@ ASIC Constraint Classes
     :show-inheritance:
     :inherited-members:
 
+.. autoclass:: siliconcompiler.constraints.ASICPinConstraints
+    :members:
+    :show-inheritance:
+    :inherited-members:
+
+.. autoclass:: siliconcompiler.constraints.ASICPinConstraint
+    :members:
+    :show-inheritance:
+    :inherited-members:
+
+.. autoclass:: siliconcompiler.constraints.ASICComponentConstraints
+    :members:
+    :show-inheritance:
+    :inherited-members:
+
+.. autoclass:: siliconcompiler.constraints.ASICComponentConstraint
+    :members:
+    :show-inheritance:
+    :inherited-members:
+
 Core Schema Classes
 ===================
 

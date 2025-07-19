@@ -4,6 +4,14 @@ from siliconcompiler.schema import BaseSchema, EditableSchema, Parameter, PerNod
 
 
 class ASICAreaConstraint(BaseSchema):
+    """
+    Manages various area-related constraints for an ASIC design.
+
+    This class provides a structured way to define and retrieve constraints
+    related to the die area, core area, core margin, target density, and
+    aspect ratio of the physical layout.
+    """
+
     def __init__(self):
         super().__init__()
 

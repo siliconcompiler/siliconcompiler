@@ -6,6 +6,14 @@ from siliconcompiler import DesignSchema
 
 
 class ASICTimingScenarioSchema(NamedSchema):
+    """
+    Represents a single timing scenario for ASIC design constraints.
+
+    This class encapsulates various parameters that define a specific timing
+    scenario, such as operating voltage, temperature, library corners, PEX corners,
+    operating mode, SDC filesets, and timing checks to be performed.
+    """
+
     def __init__(self, name: str = None):
         super().__init__()
         self.set_name(name)
@@ -377,6 +385,15 @@ class ASICTimingScenarioSchema(NamedSchema):
 
 
 class ASICTimingConstraintSchema(BaseSchema):
+    """
+    Manages a collection of ASIC timing scenarios for design constraints.
+
+    This class provides methods to add, retrieve, create, and remove
+    individual :class:`ASICTimingScenarioSchema` objects, allowing for organized
+    management of various timing-related constraints for different operating
+    conditions or analysis modes.
+    """
+
     def __init__(self):
         super().__init__()
 
@@ -391,12 +408,12 @@ class ASICTimingConstraintSchema(BaseSchema):
         exists, it will be overwritten (`clobber=True`).
 
         Args:
-            scenario: The `ASICTimingScenarioSchema` object representing the timing scenario to add.
-                      This object must have a valid name defined via its `name()` method.
+            scenario: The :class:`ASICTimingScenarioSchema` object representing the timing scenario
+                      to add. This object must have a valid name defined via its `name()` method.
 
         Raises:
             TypeError: If the provided `scenario` argument is not an instance of
-                       `ASICTimingScenarioSchema`.
+                       :class:`ASICTimingScenarioSchema`.
             ValueError: If the `scenario` object's `name()` method returns None, indicating
                         that the scenario does not have a defined name.
         """
@@ -444,7 +461,7 @@ class ASICTimingConstraintSchema(BaseSchema):
         """
         Creates and adds a new timing scenario with the specified name.
 
-        This method initializes a new `ASICTimingScenarioSchema` object with the given
+        This method initializes a new :class:`ASICTimingScenarioSchema` object with the given
         name and immediately adds it to the constraint configuration. It ensures that
         a scenario with the same name does not already exist, preventing accidental
         overwrites.
@@ -454,7 +471,8 @@ class ASICTimingConstraintSchema(BaseSchema):
                             a non-empty string and unique within the current configuration.
 
         Returns:
-            ASICTimingScenarioSchema: The newly created `ASICTimingScenarioSchema` object.
+            :class:ASICTimingScenarioSchema: The newly created :class:`ASICTimingScenarioSchema`
+                object.
 
         Raises:
             ValueError: If the provided `scenario` name is empty or None.

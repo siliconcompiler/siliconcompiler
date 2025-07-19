@@ -5,6 +5,14 @@ from siliconcompiler.schema import BaseSchema, NamedSchema, EditableSchema, Para
 
 
 class ASICPinConstraint(NamedSchema):
+    """
+    Represents a single ASIC pin constraint within the design configuration.
+
+    This class defines various constraints that can be applied to an individual
+    ASIC pin, such as its placement, dimensions (width, length), shape,
+    metal layer, and its relative position on the chip's side.
+    """
+
     def __init__(self, name: str = None):
         super().__init__()
         self.set_name(name)
@@ -308,6 +316,14 @@ class ASICPinConstraint(NamedSchema):
 
 
 class ASICPinConstraints(BaseSchema):
+    """
+    Manages a collection of ASIC pin constraints.
+
+    This class provides methods to add, retrieve, create, and remove
+    individual :class:`ASICPinConstraint` objects, allowing for organized
+    management of pin-level placement and property constraints.
+    """
+
     def __init__(self):
         super().__init__()
 
@@ -323,12 +339,12 @@ class ASICPinConstraints(BaseSchema):
         be overwritten (`clobber=True`).
 
         Args:
-            pin: The `ASICPinConstraint` object representing the pin constraint to add.
+            pin: The :class:`ASICPinConstraint` object representing the pin constraint to add.
                  This object must have a valid name defined via its `name()` method.
 
         Raises:
             TypeError: If the provided `pin` argument is not an instance of
-                       `ASICPinConstraint`.
+                       :class:`ASICPinConstraint`.
             ValueError: If the `pin` object's `name()` method returns None, indicating
                         that the pin constraint does not have a defined name.
         """
@@ -376,7 +392,7 @@ class ASICPinConstraints(BaseSchema):
         """
         Creates and adds a new pin constraint with the specified name.
 
-        This method initializes a new `ASICPinConstraint` object with the given
+        This method initializes a new :class:`ASICPinConstraint` object with the given
         name and immediately adds it to the design configuration. It ensures that
         a constraint with the same name does not already exist, preventing accidental
         overwrites.
@@ -386,7 +402,7 @@ class ASICPinConstraints(BaseSchema):
                        a non-empty string and unique within the current configuration.
 
         Returns:
-            ASICPinConstraint: The newly created `ASICPinConstraint` object.
+            :class:ASICPinConstraint: The newly created :class:`ASICPinConstraint` object.
 
         Raises:
             ValueError: If the provided `pin` name is empty or None.
