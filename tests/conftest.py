@@ -69,6 +69,24 @@ def use_strict(monkeypatch, request):
 
 
 @pytest.fixture(autouse=True)
+def use_cache(monkeypatch):
+    '''Set [option, cachedir]
+    '''
+
+    cachedir = os.getenv("SCTESTCACHE", None)
+    if not cachedir:
+        return
+
+    old_init = siliconcompiler.Chip.__init__
+
+    def mock_init(chip, design, **kwargs):
+        old_init(chip, design, **kwargs)
+        chip.set('option', 'cachedir', cachedir)
+
+    monkeypatch.setattr(siliconcompiler.Chip, '__init__', mock_init)
+
+
+@pytest.fixture(autouse=True)
 def limit_cpus(monkeypatch, request):
     '''
     Limit CPU core count for eda tests

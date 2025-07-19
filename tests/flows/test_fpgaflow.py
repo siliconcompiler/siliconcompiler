@@ -17,16 +17,6 @@ def designs_dir(datadir):
     return os.path.join(datadir, 'fpga_designs')
 
 
-@pytest.fixture(autouse=True, scope="module")
-def load_archs():
-    pytest.skip("Downloading artifacts are way too unstable")
-    for lib in [K4_N8_6x6, K6_N8_3x3, K6_N8_12x12_BD, K6_N8_28x28_BD]:
-        chip = Chip("dummy")
-        chip.use(lib)
-        assert chip.check_filepaths()
-        time.sleep(10)
-
-
 @pytest.mark.eda
 @pytest.mark.quick
 def test_fpgaflow(designs_dir):

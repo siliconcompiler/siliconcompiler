@@ -26,12 +26,45 @@ jobs:
       tool: 'tools'
       sc_version: ${{ github.ref }}
 
+  cache:
+    name: Generate cache
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install
+        run: |
+          python3 -m venv venv
+          . venv/bin/activate
+          python3 -m pip install --upgrade pip
+          python3 -m pip install -e .[test]
+          python3 -m pip install -r ./examples/requirements.txt
+
+      - name: Gather cache
+        run: |
+          . venv/bin/activate
+          python3 .github/workflows/bin/generate_cache.py
+
+      - name: Upload
+        uses: actions/upload-artifact@v4.3.3
+        with:
+          name: scpackage-cache
+          path: .sc/cache
+          retention-days: 1
+
   daily_tests_job:
-    needs: docker_image
+    needs: [cache, docker_image]
     timeout-minutes: 150
     runs-on: ubuntu-22.04 # Match ubuntu version with container
     container:
       image: ${{ needs.docker_image.outputs.sc_tool }}
+
+    env:
+      SCTESTCACHE: /github/home/.sc/cache/
 
     name: 'All tests'
     strategy:
@@ -57,6 +90,12 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: 'pip'
           allow-prereleases: true
+
+      - name: Restore cache
+        uses: actions/download-artifact@v4.3.0
+        with:
+          name: scpackage-cache
+          path: ${{ env.SCTESTCACHE }}
 
       - name: Setup tests
         run: |
