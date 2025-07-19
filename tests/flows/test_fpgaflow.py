@@ -1,7 +1,6 @@
 import os
 import json
 import pytest
-import time
 from siliconcompiler import Chip, FPGA
 from siliconcompiler.scheduler.schedulernode import SchedulerNode
 from siliconcompiler.flows import fpgaflow
@@ -15,16 +14,6 @@ from logiklib.demo.K6_N8_28x28_BD import K6_N8_28x28_BD
 @pytest.fixture
 def designs_dir(datadir):
     return os.path.join(datadir, 'fpga_designs')
-
-
-@pytest.fixture(autouse=True, scope="module")
-def load_archs():
-    pytest.skip("Downloading artifacts are way too unstable")
-    for lib in [K4_N8_6x6, K6_N8_3x3, K6_N8_12x12_BD, K6_N8_28x28_BD]:
-        chip = Chip("dummy")
-        chip.use(lib)
-        assert chip.check_filepaths()
-        time.sleep(10)
 
 
 @pytest.mark.eda
@@ -404,6 +393,8 @@ def test_fpga_xml_constraints(designs_dir, datadir):
     assert os.path.exists(fasm_file)
 
 
+@pytest.mark.eda
+@pytest.mark.quick
 def test_vpr_max_router_iterations():
     chip = Chip('foo')
     chip.input('test.v')
@@ -535,6 +526,8 @@ def test_fpga_syn_extract(top_module,
             ' got {expected_macro_count} instances'
 
 
+@pytest.mark.eda
+@pytest.mark.quick
 def test_vpr_gen_post_implementation_netlist():
     chip = Chip('foo')
     chip.input('test.v')

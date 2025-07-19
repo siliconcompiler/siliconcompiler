@@ -139,6 +139,7 @@ def test_klayout_operations(datadir):
             assert hashlib.md5(data).hexdigest() == op_hash
 
 
+@pytest.mark.nocache
 def test_pdk(setup_pdk_test):
     import klayout_pdk
 

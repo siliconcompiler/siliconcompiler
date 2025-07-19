@@ -1,8 +1,10 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
+import pytest
 import siliconcompiler
 import os
 
 
+@pytest.mark.nocache
 def test_check_filepaths_pass():
     chip = siliconcompiler.Chip('gcd')
     chip.input('gcd.v')
