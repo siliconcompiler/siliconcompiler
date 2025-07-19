@@ -69,9 +69,11 @@ def use_strict(monkeypatch, request):
 
 
 @pytest.fixture(autouse=True)
-def use_cache(monkeypatch):
+def use_cache(monkeypatch, request):
     '''Set [option, cachedir]
     '''
+    if 'nocache' in request.keywords:
+        return
 
     cachedir = os.getenv("SCTESTCACHE", None)
     if not cachedir:
