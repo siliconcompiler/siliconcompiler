@@ -3,6 +3,8 @@ from siliconcompiler._common import NodeStatus, SiliconCompilerError
 from siliconcompiler.utils import sc_open
 from siliconcompiler.schema_obj import SchemaTmp as Schema
 
+from siliconcompiler.packageschema import PackageSchema
+
 from siliconcompiler.design import DesignSchema
 from siliconcompiler.record import RecordSchema
 from siliconcompiler.metric import MetricSchema
@@ -12,7 +14,6 @@ from siliconcompiler.tool import ToolSchema, TaskSchema
 from siliconcompiler.checklist import ChecklistSchema
 from siliconcompiler.asic import ASICSchema
 from siliconcompiler.fpga import FPGASchema
-from siliconcompiler.packageschema import PackageSchema
 
 from siliconcompiler.project import Project
 from siliconcompiler.library import LibrarySchema, StdCellLibrarySchema
