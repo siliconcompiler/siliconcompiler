@@ -1,7 +1,6 @@
 import os
 import json
 import pytest
-import time
 from siliconcompiler import Chip, FPGA
 from siliconcompiler.scheduler.schedulernode import SchedulerNode
 from siliconcompiler.flows import fpgaflow
