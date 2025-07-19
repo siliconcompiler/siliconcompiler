@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Tuple, Union
 
 from siliconcompiler.schema import BaseSchema, NamedSchema, EditableSchema, Parameter, \
     PerNode, Scope
@@ -113,7 +113,7 @@ class ASICComponentConstraint(NamedSchema):
                     270 deg ccw
                     """))
 
-    def set_placement(self, x: float, y: float):
+    def set_placement(self, x: float, y: float, step: str = None, index: Union[str, int] = None):
         """
         Sets the placement constraint for the component.
 
@@ -122,6 +122,8 @@ class ASICComponentConstraint(NamedSchema):
                        micrometers (um) relative to the substrate origin.
             y (float): The Y-coordinate for the component's anchor point in
                        micrometers (um) relative to the substrate origin.
+            step (str, optional): step name.
+            index (str, optional): index name.
 
         Raises:
             TypeError: If `x` or `y` is not an int or float.
@@ -130,43 +132,53 @@ class ASICComponentConstraint(NamedSchema):
             raise TypeError("x must be a number")
         if not isinstance(y, (int, float)):
             raise TypeError("y must be a number")
-        return self.set("placement", (x, y))
+        return self.set("placement", (x, y), step=step, index=index)
 
-    def get_placement(self) -> Tuple[float, float]:
+    def get_placement(self, step: str = None, index: Union[str, int] = None) -> Tuple[float, float]:
         """
         Retrieves the current placement constraint of the component.
+
+        Args:
+            step (str, optional): step name.
+            index (str, optional): index name.
 
         Returns:
             Tuple[float, float]: A tuple (x, y) representing the component's
                                  anchor point coordinates in micrometers (um).
         """
-        return self.get("placement")
+        return self.get("placement", step=step, index=index)
 
-    def set_partname(self, name: str):
+    def set_partname(self, name: str, step: str = None, index: Union[str, int] = None):
         """
         Sets the part name (cell name) constraint for the component.
 
         Args:
             name (str): The name of the model, type, or variant of the placed component.
                         This is required for instances not in the design netlist.
+            step (str, optional): step name.
+            index (str, optional): index name.
 
         Raises:
             ValueError: If `name` is an empty string or None.
         """
         if not name:
             raise ValueError("a partname is required")
-        return self.set("partname", name)
+        return self.set("partname", name, step=step, index=index)
 
-    def get_partname(self) -> str:
+    def get_partname(self, step: str = None, index: Union[str, int] = None) -> str:
         """
         Retrieves the current part name (cell name) constraint of the component.
+
+        Args:
+            step (str, optional): step name.
+            index (str, optional): index name.
 
         Returns:
             str: The part name of the component.
         """
-        return self.get("partname")
+        return self.get("partname", step=step, index=index)
 
-    def set_halo(self, x: float, y: float):
+    def set_halo(self, x: float, y: float, step: str = None, index: Union[str, int] = None):
         """
         Sets the placement keepout halo constraint around the component.
 
@@ -175,6 +187,8 @@ class ASICComponentConstraint(NamedSchema):
                        Must be a non-negative numeric value.
             y (float): The vertical extent of the halo in micrometers (um).
                        Must be a non-negative numeric value.
+            step (str, optional): step name.
+            index (str, optional): index name.
 
         Raises:
             TypeError: If `x` or `y` is not an int or float.
@@ -188,19 +202,23 @@ class ASICComponentConstraint(NamedSchema):
             raise ValueError("x must be a positive number")
         if y < 0:
             raise ValueError("y must be a positive number")
-        return self.set("halo", (x, y))
+        return self.set("halo", (x, y), step=step, index=index)
 
-    def get_halo(self) -> Tuple[float, float]:
+    def get_halo(self, step: str = None, index: Union[str, int] = None) -> Tuple[float, float]:
         """
         Retrieves the current placement keepout halo constraint of the component.
+
+        Args:
+            step (str, optional): step name.
+            index (str, optional): index name.
 
         Returns:
             Tuple[float, float]: A tuple (horizontal, vertical) representing the
                                  halo extents in micrometers (um).
         """
-        return self.get("halo")
+        return self.get("halo", step=step, index=index)
 
-    def set_rotation(self, rotation: str):
+    def set_rotation(self, rotation: str, step: str = None, index: Union[str, int] = None):
         """
         Sets the rotation constraint for the component.
 
@@ -208,17 +226,23 @@ class ASICComponentConstraint(NamedSchema):
             rotation (str): The desired rotation of the component. Valid values
                             are defined by the `rotations` list schema help
                             (e.g., 'R0', 'R90', 'MX', 'MZ_R90').
+            step (str, optional): step name.
+            index (str, optional): index name.
         """
-        return self.set("rotation", rotation)
+        return self.set("rotation", rotation, step=step, index=index)
 
-    def get_rotation(self) -> str:
+    def get_rotation(self, step: str = None, index: Union[str, int] = None) -> str:
         """
         Retrieves the current rotation constraint of the component.
+
+        Args:
+            step (str, optional): step name.
+            index (str, optional): index name.
 
         Returns:
             str: The rotation of the component.
         """
-        return self.get("rotation")
+        return self.get("rotation", step=step, index=index)
 
 
 class ASICComponentConstraints(BaseSchema):

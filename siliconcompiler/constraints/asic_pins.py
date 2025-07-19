@@ -129,13 +129,15 @@ class ASICPinConstraint(NamedSchema):
                 same order number, the actual order is at the discretion of the
                 tool."""))
 
-    def set_width(self, width: float):
+    def set_width(self, width: float, step: str = None, index: Union[str, int] = None):
         """
         Sets the width constraint for the pin.
 
         Args:
             width (float): The desired width of the pin in micrometers (um).
                            Must be a positive numeric value.
+            step (str, optional): step name.
+            index (str, optional): index name.
 
         Raises:
             TypeError: If `width` is not an int or float.
@@ -145,24 +147,30 @@ class ASICPinConstraint(NamedSchema):
             raise TypeError("width must be a number")
         if width <= 0:
             raise ValueError("width must be a positive value")
-        return self.set("width", width)
+        return self.set("width", width, step=step, index=index)
 
-    def get_width(self) -> float:
+    def get_width(self, step: str = None, index: Union[str, int] = None) -> float:
         """
         Retrieves the current width constraint of the pin.
+
+        Args:
+            step (str, optional): step name.
+            index (str, optional): index name.
 
         Returns:
             float: The width of the pin in micrometers (um).
         """
-        return self.get("width")
+        return self.get("width", step=step, index=index)
 
-    def set_length(self, length: float):
+    def set_length(self, length: float, step: str = None, index: Union[str, int] = None):
         """
         Sets the length constraint for the pin.
 
         Args:
             length (float): The desired length of the pin in micrometers (um).
                             Must be a positive numeric value.
+            step (str, optional): step name.
+            index (str, optional): index name.
 
         Raises:
             TypeError: If `length` is not an int or float.
@@ -172,18 +180,22 @@ class ASICPinConstraint(NamedSchema):
             raise TypeError("length must be a number")
         if length <= 0:
             raise ValueError("length must be a positive value")
-        return self.set("length", length)
+        return self.set("length", length, step=step, index=index)
 
-    def get_length(self) -> float:
+    def get_length(self, step: str = None, index: Union[str, int] = None) -> float:
         """
         Retrieves the current length constraint of the pin.
+
+        Args:
+            step (str, optional): step name.
+            index (str, optional): index name.
 
         Returns:
             float: The length of the pin in micrometers (um).
         """
-        return self.get("length")
+        return self.get("length", step=step, index=index)
 
-    def set_placement(self, x: float, y: float):
+    def set_placement(self, x: float, y: float, step: str = None, index: Union[str, int] = None):
         """
         Sets the placement constraint for the pin.
 
@@ -192,6 +204,8 @@ class ASICPinConstraint(NamedSchema):
                        relative to the lower-left corner of the substrate.
             y (float): The Y-coordinate for the pin's center in micrometers (um)
                        relative to the lower-left corner of the substrate.
+            step (str, optional): step name.
+            index (str, optional): index name.
 
         Raises:
             TypeError: If `x` or `y` is not an int or float.
@@ -200,19 +214,23 @@ class ASICPinConstraint(NamedSchema):
             raise TypeError("x must be a number")
         if not isinstance(y, (int, float)):
             raise TypeError("y must be a number")
-        return self.set("placement", (x, y))
+        return self.set("placement", (x, y), step=step, index=index)
 
-    def get_placement(self) -> Tuple[float, float]:
+    def get_placement(self, step: str = None, index: Union[str, int] = None) -> Tuple[float, float]:
         """
         Retrieves the current placement constraint of the pin.
+
+        Args:
+            step (str, optional): step name.
+            index (str, optional): index name.
 
         Returns:
             Tuple[float, float]: A tuple (x, y) representing the pin's center
                                  coordinates in micrometers (um).
         """
-        return self.get("placement")
+        return self.get("placement", step=step, index=index)
 
-    def set_shape(self, shape: str):
+    def set_shape(self, shape: str, step: str = None, index: Union[str, int] = None):
         """
         Sets the shape constraint for the pin.
 
@@ -220,19 +238,25 @@ class ASICPinConstraint(NamedSchema):
             shape (str): The desired shape of the pin. Valid values include
                          'circle', 'rectangle', 'square', 'hexagon', 'octagon',
                          'oval', 'pill', or 'polygon'.
+            step (str, optional): step name.
+            index (str, optional): index name.
         """
-        return self.set("shape", shape)
+        return self.set("shape", shape, step=step, index=index)
 
-    def get_shape(self) -> str:
+    def get_shape(self, step: str = None, index: Union[str, int] = None) -> str:
         """
         Retrieves the current shape constraint of the pin.
+
+        Args:
+            step (str, optional): step name.
+            index (str, optional): index name.
 
         Returns:
             str: The shape of the pin.
         """
         return self.get("shape")
 
-    def set_layer(self, layer: str):
+    def set_layer(self, layer: str, step: str = None, index: Union[str, int] = None):
         """
         Sets the metal layer constraint for the pin.
 
@@ -240,19 +264,25 @@ class ASICPinConstraint(NamedSchema):
             layer (str): The name of the metal layer for the pin. This can be
                          a PDK-specific metal stack name (e.g., 'm4') or an
                          integer (e.g., '1' for the lowest routing layer).
+            step (str, optional): step name.
+            index (str, optional): index name.
         """
-        return self.set("layer", layer)
+        return self.set("layer", layer, step=step, index=index)
 
-    def get_layer(self) -> str:
+    def get_layer(self, step: str = None, index: Union[str, int] = None) -> str:
         """
         Retrieves the current metal layer constraint of the pin.
+
+        Args:
+            step (str, optional): step name.
+            index (str, optional): index name.
 
         Returns:
             str: The metal layer of the pin.
         """
         return self.get("layer")
 
-    def set_side(self, side: Union[int, str]):
+    def set_side(self, side: Union[int, str], step: str = None, index: Union[str, int] = None):
         """
         Sets the side constraint for the pin, indicating where it should be placed.
 
@@ -260,6 +290,8 @@ class ASICPinConstraint(NamedSchema):
             side (Union[int, str]): The side of the block where the pin should be placed.
                                     Can be an integer or a string ('left', 'west', 'top',
                                     'north', 'right', 'east', 'bottom', 'south').
+            step (str, optional): step name.
+            index (str, optional): index name.
 
         Raises:
             TypeError: If `side` is not an int or string.
@@ -284,35 +316,45 @@ class ASICPinConstraint(NamedSchema):
         if side <= 0:
             raise ValueError("side must be a positive integer")
 
-        return self.set("side", side)
+        return self.set("side", side, step=step, index=index)
 
-    def get_side(self) -> int:
+    def get_side(self, step: str = None, index: Union[str, int] = None) -> int:
         """
         Retrieves the current side constraint of the pin.
+
+        Args:
+            step (str, optional): step name.
+            index (str, optional): index name.
 
         Returns:
             int: The integer representation of the side (1 for lower left, etc.).
         """
-        return self.get("side")
+        return self.get("side", step=step, index=index)
 
-    def set_order(self, order: int):
+    def set_order(self, order: int, step: str = None, index: Union[str, int] = None):
         """
         Sets the relative order constraint for the pin on its assigned side.
 
         Args:
             order (int): The relative position of the pin in a vector of pins
                          on the specified side. Counting is done clockwise.
+            step (str, optional): step name.
+            index (str, optional): index name.
         """
-        return self.set("order", order)
+        return self.set("order", order, step=step, index=index)
 
-    def get_order(self) -> int:
+    def get_order(self, step: str = None, index: Union[str, int] = None) -> int:
         """
         Retrieves the current order constraint of the pin.
+
+        Args:
+            step (str, optional): step name.
+            index (str, optional): index name.
 
         Returns:
             int: The relative order of the pin on its side.
         """
-        return self.get("order")
+        return self.get("order", step=step, index=index)
 
 
 class ASICPinConstraints(BaseSchema):
