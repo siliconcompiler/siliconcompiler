@@ -317,7 +317,7 @@ jobs:
       image: ${{ needs.build_tool_builder.outputs.sc_tools }}
 
     env:
-      SCTESTCACHE: /github/home/.sc/cache/
+      SCTESTCACHE: ${{ github.workspace }}/.sc/cache/
 
     timeout-minutes: 45
     name: 'Tool-based tests'
@@ -363,14 +363,14 @@ jobs:
           verbose: true
 
   daily_tests_job_docker_linux:
-    needs: [build_tool_builder, build_sc_tools]
+    needs: [cache, build_tool_builder, build_sc_tools]
     timeout-minutes: 60
     runs-on: ubuntu-latest
 
     if: always() && !cancelled()
 
     env:
-      SCTESTCACHE: /github/home/.sc/cache/
+      SCTESTCACHE: ${{ github.workspace }}/.sc/cache/
 
     name: 'All docker tests (linux)'
     strategy:

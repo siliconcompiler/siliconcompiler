@@ -64,7 +64,7 @@ jobs:
       image: ${{ needs.docker_image.outputs.sc_tool }}
 
     env:
-      SCTESTCACHE: /github/home/.sc/cache/
+      SCTESTCACHE: ${{ github.workspace }}/.sc/cache/
 
     name: 'All tests'
     strategy:
