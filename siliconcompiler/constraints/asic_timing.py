@@ -439,3 +439,61 @@ class ASICTimingConstraintSchema(BaseSchema):
         if not self.valid(scenario):
             raise LookupError(f"{scenario} is not defined")
         return self.get(scenario, field="schema")
+
+    def make_scenario(self, scenario: str) -> ASICTimingScenarioSchema:
+        """
+        Creates and adds a new timing scenario with the specified name.
+
+        This method initializes a new `ASICTimingScenarioSchema` object with the given
+        name and immediately adds it to the constraint configuration. It ensures that
+        a scenario with the same name does not already exist, preventing accidental
+        overwrites.
+
+        Args:
+            scenario (str): The name for the new timing scenario. This name must be
+                            a non-empty string and unique within the current configuration.
+
+        Returns:
+            ASICTimingScenarioSchema: The newly created `ASICTimingScenarioSchema` object.
+
+        Raises:
+            ValueError: If the provided `scenario` name is empty or None.
+            LookupError: If a scenario with the specified `scenario` name already exists
+                         in the configuration.
+        """
+        if not scenario:
+            raise ValueError("scenario name is required")
+
+        if self.valid(scenario):
+            raise LookupError(f"{scenario} scenario already exists")
+
+        scenarioobj = ASICTimingScenarioSchema(scenario)
+        self.add_scenario(scenarioobj)
+        return scenarioobj
+
+    def remove_scenario(self, scenario: str) -> bool:
+        """
+        Removes a timing scenario from the design configuration.
+
+        This method deletes the specified timing scenario from the system's
+        configuration.
+
+        Args:
+            scenario (str): The name of the timing scenario to remove.
+                            This name must be a non-empty string.
+
+        Returns:
+            bool: True if the scenario was successfully removed, False if no
+                  scenario with the given name was found.
+
+        Raises:
+            ValueError: If the provided `scenario` name is empty or None.
+        """
+        if not scenario:
+            raise ValueError("scenario name is required")
+
+        if not self.valid(scenario):
+            return False
+
+        EditableSchema(self).remove(scenario)
+        return True

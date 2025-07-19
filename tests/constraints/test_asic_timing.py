@@ -244,3 +244,43 @@ def test_timing_constraint_get_scenario():
         "slow": scene_s,
         "fast": scene_f
     }
+
+
+def test_timing_constraint_make_scenario_illegal():
+    with pytest.raises(ValueError, match="scenario name is required"):
+        ASICTimingConstraintSchema().make_scenario(None)
+
+
+def test_timing_constraint_make_scenario_exists():
+    schema = ASICTimingConstraintSchema()
+
+    schema.add_scenario(ASICTimingScenarioSchema("slow"))
+    with pytest.raises(LookupError, match="slow scenario already exists"):
+        schema.make_scenario("slow")
+
+
+def test_timing_constraint_make_scenario():
+    schema = ASICTimingConstraintSchema()
+
+    constraint = schema.make_scenario("slow")
+    assert isinstance(constraint, ASICTimingScenarioSchema)
+    assert constraint.name() == "slow"
+    assert schema.get("slow", field="schema") is constraint
+
+
+def test_timing_constraint_remove_scenario_illegal():
+    with pytest.raises(ValueError, match="scenario name is required"):
+        ASICTimingConstraintSchema().remove_scenario(None)
+
+
+def test_timing_constraint_remove_scenario_not_found():
+    assert ASICTimingConstraintSchema().remove_scenario("slow") is False
+
+
+def test_timing_constraint_remove_scenario():
+    schema = ASICTimingConstraintSchema()
+
+    schema.make_scenario("slow")
+    assert schema.getkeys() == ("slow",)
+    assert schema.remove_scenario("slow") is True
+    assert schema.getkeys() == tuple()
