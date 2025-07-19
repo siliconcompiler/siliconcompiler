@@ -181,7 +181,7 @@ def test_remove_pinconstraint(pin_constraints_collection):
 
     # Remove existing
     assert pin_constraints_collection.remove_pinconstraint("to_remove_pin") is True
-    with pytest.raises(LookupError):  # Should no longer be found
+    with pytest.raises(LookupError, match="to_remove_pin is not defined"):
         pin_constraints_collection.get_pinconstraint("to_remove_pin")
 
     # Remove non-existent
