@@ -153,6 +153,22 @@ def test_set():
     }]
 
 
+def test_set_with_setinput():
+    journal = Journal()
+    journal.start()
+    assert "set" in journal.get_types()
+
+    journal.record("set", ["test0", "test1"], set(["hello"]), field="value")
+    assert journal.get() == [{
+        "type": "set",
+        "key": ("test0", "test1"),
+        "value": ["hello"],
+        "field": "value",
+        "step": None,
+        "index": None
+    }]
+
+
 def test_set_key_prefix():
     journal = Journal(keyprefix=["this", "prefix"])
     journal.start()
