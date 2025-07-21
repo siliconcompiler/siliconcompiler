@@ -461,6 +461,39 @@ def test_getdict():
     }
 
 
+def test_getdict_with_set():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("test0", "default", "test1", Parameter("{str}"))
+
+    assert schema.getdict() == {
+        'test0': {
+            'default': {
+                'test1': {
+                    'example': [],
+                    'help': None,
+                    'lock': False,
+                    'node': {
+                        'default': {
+                            'default': {
+                                'signature': [],
+                                'value': [],
+                            },
+                        },
+                    },
+                    'notes': None,
+                    'pernode': 'never',
+                    'require': False,
+                    'scope': 'job',
+                    'shorthelp': None,
+                    'switch': [],
+                    'type': '{str}',
+                },
+            },
+        },
+    }
+
+
 def test_getdict_values_only():
     schema = BaseSchema()
     edit = EditableSchema(schema)
