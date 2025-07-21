@@ -29,7 +29,7 @@ import os.path
 from packaging.version import Version, InvalidVersion
 from packaging.specifiers import SpecifierSet, InvalidSpecifier
 
-from typing import List, Tuple, Union
+from typing import List, Union
 
 from siliconcompiler.schema import BaseSchema, NamedSchema, Journal
 from siliconcompiler.schema import EditableSchema, Parameter, PerNode, Scope
@@ -41,6 +41,7 @@ from siliconcompiler import sc_open
 from siliconcompiler import Schema
 
 from siliconcompiler.record import RecordTool
+from siliconcompiler.scheduler.schedulernode import SchedulerNode
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 
 
@@ -93,26 +94,30 @@ class TaskSchema(NamedSchema):
         self.__set_runtime(None)
 
     @contextlib.contextmanager
-    def runtime(self, chip, step=None, index=None, relpath=None):
+    def runtime(self, node, step=None, index=None, relpath=None):
         '''
         Sets the runtime information needed to properly execute a task.
         Note: unstable API
 
         Args:
-            chip (:class:`Chip`): root schema for the runtime information
+            node (:class:`SchedulerNode`): scheduler node for this runtime
         '''
+        if node and not isinstance(node, SchedulerNode):
+            raise TypeError("node must be a scheduler node")
+
         obj_copy = copy.copy(self)
-        obj_copy.__set_runtime(chip, step=step, index=index, relpath=relpath)
+        obj_copy.__set_runtime(node, step=step, index=index, relpath=relpath)
         yield obj_copy
 
-    def __set_runtime(self, chip, step=None, index=None, relpath=None):
+    def __set_runtime(self, node: SchedulerNode, step=None, index=None, relpath=None):
         '''
         Sets the runtime information needed to properly execute a task.
         Note: unstable API
 
         Args:
-            chip (:class:`Chip`): root schema for the runtime information
+            node (:class:`SchedulerNode`): scheduler node for this runtime
         '''
+        self.__node = node
         self.__chip = None
         self.__schema_full = None
         self.__logger = None
@@ -122,18 +127,24 @@ class TaskSchema(NamedSchema):
         self.__cwd = None
         self.__relpath = relpath
         self.__collection_path = None
-        if chip:
-            self.__chip = chip
-            self.__schema_full = chip.schema
-            self.__logger = chip.logger
-            self.__design_name = chip.design
-            self.__design_top = chip.top(step=step, index=index)
-            self.__design_top_global = chip.top()
-            self.__cwd = chip.cwd
-            self.__collection_path = chip._getcollectdir()
+        if node:
+            if step is not None or index is not None:
+                raise RuntimeError("step and index cannot be provided with node")
 
-        self.__step = step
-        self.__index = index
+            self.__chip = node.chip
+            self.__schema_full = node.chip.schema
+            self.__logger = node.chip.logger
+            self.__design_name = node.name
+            self.__design_top = node.topmodule
+            self.__design_top_global = node.topmodule_global
+            self.__cwd = node.project_cwd
+            self.__collection_path = node.collection_dir
+
+            self.__step = node.step
+            self.__index = node.index
+        else:
+            self.__step = step
+            self.__index = index
 
         self.__schema_record = None
         self.__schema_metric = None
@@ -1014,7 +1025,7 @@ class TaskSchema(NamedSchema):
 
             if self.schema("record").get('status', step=in_step, index=in_index) == \
                     NodeStatus.SKIPPED:
-                with task_obj.runtime(self.__chip, step=in_step, index=in_index) as task:
+                with task_obj.runtime(self.__node.switch_node(in_step, in_index)) as task:
                     for file, nodes in task.get_files_from_input_nodes().items():
                         inputs.setdefault(file, []).extend(nodes)
                 continue
