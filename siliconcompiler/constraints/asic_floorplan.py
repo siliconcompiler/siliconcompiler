@@ -1,0 +1,449 @@
+from typing import Union, List, Tuple
+
+from siliconcompiler.schema import BaseSchema, EditableSchema, Parameter, PerNode, Scope
+
+
+class ASICAreaConstraint(BaseSchema):
+    """
+    Manages various area-related constraints for an ASIC design.
+
+    This class provides a structured way to define and retrieve constraints
+    related to the die area, core area, core margin, target density, and
+    aspect ratio of the physical layout.
+    """
+
+    def __init__(self):
+        super().__init__()
+
+        schema = EditableSchema(self)
+
+        schema.insert(
+            'diearea',
+            Parameter(
+                '[(float,float)]',
+                pernode=PerNode.OPTIONAL,
+                scope=Scope.GLOBAL,
+                unit='um',
+                shorthelp="Constraint: die area outline",
+                switch="-constraint_diearea <(float,float)>",
+                example=["api: chip.set('constraint', 'diearea', (0, 0))"],
+                schelp="""
+                List of (x, y) points that define the outline physical layout
+                physical design. Simple rectangle areas can be defined with two points,
+                one for the lower left corner and one for the upper right corner."""))
+
+        schema.insert(
+            'corearea',
+            Parameter(
+                '[(float,float)]',
+                pernode=PerNode.OPTIONAL,
+                scope=Scope.GLOBAL,
+                unit='um',
+                shorthelp="Constraint: layout core area",
+                switch="-constraint_corearea <(float,float)>",
+                example=["api: chip.set('constraint', 'corearea', (0, 0))"],
+                schelp="""
+                List of (x, y) points that define the outline of the core area for the
+                physical design. Simple rectangle areas can be defined with two points,
+                one for the lower left corner and one for the upper right corner."""))
+
+        schema.insert(
+            'coremargin',
+            Parameter(
+                'float',
+                pernode=PerNode.OPTIONAL,
+                scope=Scope.GLOBAL,
+                unit='um',
+                shorthelp="Constraint: layout core margin",
+                switch="-constraint_coremargin <float>",
+                example=["api: chip.set('constraint', 'coremargin', 1)"],
+                schelp="""
+                Halo/margin between the outline and core area for fully
+                automated layout sizing and floorplanning."""))
+
+        schema.insert(
+            'density', Parameter(
+                'float',
+                pernode=PerNode.OPTIONAL,
+                scope=Scope.GLOBAL,
+                shorthelp="Constraint: layout density",
+                switch="-constraint_density <float>",
+                example=["api: chip.set('constraint', 'density', 30)"],
+                schelp="""
+                Target density based on the total design cells area reported
+                after synthesis/elaboration. This number is used when no outline
+                or floorplan is supplied. Any number between 1 and 100 is legal,
+                but values above 50 may fail due to area/congestion issues during
+                automated place and route."""))
+
+        schema.insert(
+            'aspectratio', Parameter(
+                'float',
+                pernode=PerNode.OPTIONAL,
+                defvalue=1.0,
+                scope=Scope.GLOBAL,
+                shorthelp="Constraint: layout aspect ratio",
+                switch="-constraint_aspectratio <float>",
+                example=["api: chip.set('constraint', 'aspectratio', 2.0)"],
+                schelp="""
+                Height to width ratio of the block for automated floorplanning.
+                Values below 0.1 and above 10 should be avoided as they will likely fail
+                to converge during placement and routing. The ideal aspect ratio for
+                most designs is 1. This value is only used when no diearea or floorplan
+                is supplied."""))
+
+    def set_density(self,
+                    density: float,
+                    aspectratio: float = None,
+                    coremargin: float = None,
+                    step: str = None, index: Union[str, int] = None):
+        """
+        Sets the density value.
+
+        This method validates the `density` input to ensure it's a number
+        between 0 (exclusive) and 100 (inclusive). Optionally, it can also
+        set the aspect ratio and core margin if provided.
+
+        Args:
+            density (float): The density value to set. Must be a number
+                             between 0.0 and 100.0 (exclusive of 0.0).
+            aspectratio (float, optional): The aspect ratio to set. If provided,
+                                           `set_aspectratio` will be called.
+                                           Defaults to None.
+            coremargin (float, optional): The core margin to set. If provided,
+                                          `set_coremargin` will be called.
+                                          Defaults to None.
+            step (str, optional): An identifier for the step in a workflow.
+                                  Defaults to None.
+            index (Union[str, int], optional): An index or identifier within a step.
+                                               Defaults to None.
+
+        Raises:
+            TypeError: If `density` is not a number.
+            ValueError: If `density` is not within the valid range (0, 100].
+
+        Returns:
+            list: A list of return values from the `set` and any optional
+                  `set_aspectratio` or `set_coremargin` calls.
+        """
+        if not isinstance(density, (int, float)):
+            raise TypeError("density must be a number")
+
+        if density <= 0.0 or density > 100.0:
+            raise ValueError("density must be between (0, 100]")
+
+        params = [
+            self.set("density", density, step=step, index=index)
+        ]
+        if aspectratio is not None:
+            params.append(self.set_aspectratio(aspectratio, step=step, index=index))
+        if coremargin is not None:
+            params.append(self.set_coremargin(coremargin, step=step, index=index))
+        return params
+
+    def get_density(self, step: str = None, index: Union[str, int] = None) -> float:
+        """
+        Retrieves the current density value.
+
+        Args:
+            step (str, optional): An identifier for the step in a workflow.
+                                  Defaults to None.
+            index (Union[str, int], optional): An index or identifier within a step.
+                                               Defaults to None.
+
+        Returns:
+            float: The current density value.
+        """
+        return self.get("density", step=step, index=index)
+
+    def set_aspectratio(self,
+                        aspectratio: float,
+                        step: str = None, index: Union[str, int] = None):
+        """
+        Sets the aspect ratio.
+
+        This method validates the `aspectratio` input to ensure it's a positive number.
+
+        Args:
+            aspectratio (float): The aspect ratio value to set. Must be a
+                                 number greater than 0.0.
+            step (str, optional): An identifier for the step in a workflow.
+                                  Defaults to None.
+            index (Union[str, int], optional): An index or identifier within a step.
+                                               Defaults to None.
+
+        Raises:
+            TypeError: If `aspectratio` is not a number.
+            ValueError: If `aspectratio` is zero or negative.
+
+        Returns:
+            Any: The return value from the internal `set` method call.
+        """
+        if not isinstance(aspectratio, (int, float)):
+            raise TypeError("aspectratio must be a number")
+
+        if aspectratio <= 0.0:
+            raise ValueError("aspectratio cannot be zero or negative")
+
+        return self.set("aspectratio", aspectratio, step=step, index=index)
+
+    def get_aspectratio(self,
+                        step: str = None, index: Union[str, int] = None) -> float:
+        """
+        Retrieves the current aspect ratio.
+
+        Args:
+            step (str, optional): An identifier for the step in a workflow.
+                                  Defaults to None.
+            index (Union[str, int], optional): An index or identifier within a step.
+                                               Defaults to None.
+
+        Returns:
+            float: The current aspect ratio value.
+        """
+        return self.get("aspectratio", step=step, index=index)
+
+    def set_coremargin(self,
+                       coremargin: float,
+                       step: str = None, index: Union[str, int] = None):
+        """
+        Sets the core margin.
+
+        This method validates the `coremargin` input to ensure it's a non-negative number.
+
+        Args:
+            coremargin (float): The core margin value to set. Must be a
+                                number greater than or equal to 0.0.
+            step (str, optional): An identifier for the step in a workflow.
+                                  Defaults to None.
+            index (Union[str, int], optional): An index or identifier within a step.
+                                               Defaults to None.
+
+        Raises:
+            TypeError: If `coremargin` is not a number.
+            ValueError: If `coremargin` is negative.
+
+        Returns:
+            Any: The return value from the internal `set` method call.
+        """
+        if not isinstance(coremargin, (int, float)):
+            raise TypeError("coremargin must be a number")
+
+        if coremargin < 0.0:
+            raise ValueError("coremargin cannot be negative")
+
+        return self.set("coremargin", coremargin, step=step, index=index)
+
+    def get_coremargin(self,
+                       step: str = None, index: Union[str, int] = None) -> float:
+        """
+        Retrieves the current core margin.
+
+        Args:
+            step (str, optional): An identifier for the step in a workflow.
+                                  Defaults to None.
+            index (Union[str, int], optional): An index or identifier within a step.
+                                               Defaults to None.
+
+        Returns:
+            float: The current core margin value.
+        """
+        return self.get("coremargin", step=step, index=index)
+
+    def set_diearea_rectangle(self,
+                              height: float,
+                              width: float,
+                              coremargin: Union[float, Tuple[float, float]] = None,
+                              step: str = None, index: Union[str, int] = None):
+        """
+        Sets the die area as a rectangle defined by its height and width,
+        with its bottom-left corner at (0,0).
+
+        Optionally, it can also set the core area as a rectangle based on
+        the provided core margin.
+
+        Args:
+            height (float): The height of the rectangular die area. Must be
+                            greater than zero.
+            width (float): The width of the rectangular die area. Must be
+                           greater than zero.
+            coremargin (Union[float, Tuple[float, float]], optional):
+                        The margin for the core area. Can be a single float
+                        (uniform margin) or a tuple of two floats (x and y margins).
+                        If provided, `set_corearea_rectangle` will be called.
+                        Defaults to None.
+            step (str, optional): An identifier for the step in a workflow.
+                                  Defaults to None.
+            index (Union[str, int], optional): An index or identifier within a step.
+                                               Defaults to None.
+
+        Raises:
+            TypeError: If `height` or `width` are not numbers.
+            ValueError: If `height` or `width` are zero or negative.
+
+        Returns:
+            list: A list of return values from the `set_diearea` and any optional
+                  `set_corearea_rectangle` calls.
+        """
+        if not isinstance(height, (int, float)):
+            raise TypeError("height must be a number")
+        if not isinstance(width, (int, float)):
+            raise TypeError("width must be a number")
+
+        if height <= 0.0:
+            raise ValueError("height must be greater than zero")
+
+        if width <= 0.0:
+            raise ValueError("width must be greater than zero")
+
+        params = [
+            self.set_diearea([(0, 0), (width, height)], step=step, index=index)
+        ]
+        if coremargin is not None:
+            params.append(self.set_corearea_rectangle(
+                height, width, coremargin, step=step, index=index))
+        return params
+
+    def set_corearea_rectangle(self,
+                               dieheight: float,
+                               diewidth: float,
+                               coremargin: Union[float, Tuple[float, float]],
+                               step: str = None, index: Union[str, int] = None):
+        """
+        Sets the core area as a rectangle within a larger die area,
+        based on specified margins.
+
+        The core area is calculated by subtracting the margins from the die dimensions.
+        Margins can be uniform (single float) or specified separately for x and y.
+
+        Args:
+            dieheight (float): The height of the die area. Must be greater than zero.
+            diewidth (float): The width of the die area. Must be greater than zero.
+            coremargin (Union[float, Tuple[float, float]]): The margin(s) to apply
+                        to the core area.
+                        - If a float, it's applied uniformly to all sides.
+                        - If a tuple of two floats, it represents (x_margin, y_margin).
+            step (str, optional): An identifier for the step in a workflow.
+                                  Defaults to None.
+            index (Union[str, int], optional): An index or identifier within a step.
+                                               Defaults to None.
+
+        Raises:
+            TypeError: If `dieheight` or `diewidth` are not numbers, or if
+                       `coremargin` is not a number or a tuple of two numbers.
+            ValueError: If `dieheight` or `diewidth` are zero or negative,
+                        if `coremargin` is a tuple of incorrect length,
+                        if x or y margins are negative, or if margins are
+                        greater than or equal to the corresponding die dimensions.
+
+        Returns:
+            Any: The return value from the internal `set_corearea` method call.
+        """
+        if not isinstance(dieheight, (int, float)):
+            raise TypeError("height must be a number")
+        if not isinstance(diewidth, (int, float)):
+            raise TypeError("width must be a number")
+
+        if dieheight <= 0.0:
+            raise ValueError("height must be greater than zero")
+
+        if diewidth <= 0.0:
+            raise ValueError("width must be greater than zero")
+
+        if isinstance(coremargin, (int, float)):
+            coremargin = (coremargin, coremargin)
+        elif not isinstance(coremargin, (list, tuple)):
+            raise TypeError("coremargin must be a number to a tuple of two numbers")
+        else:
+            if len(coremargin) != 2:
+                raise ValueError("coremargin must be a number to a tuple of two numbers")
+
+        xmargin, ymargin = coremargin
+
+        if xmargin < 0:
+            raise ValueError("x margin canont be negative")
+
+        if ymargin < 0:
+            raise ValueError("y margin canont be negative")
+
+        if 2 * xmargin >= diewidth:
+            raise ValueError("x margin is greater than the die width")
+
+        if 2 * ymargin >= dieheight:
+            raise ValueError("y margin is greater than the die height")
+
+        return self.set_corearea([
+            (xmargin, ymargin),
+            (diewidth - xmargin, dieheight - ymargin)], step=step, index=index)
+
+    def set_diearea(self,
+                    points: List[Tuple[float, float]],
+                    step: str = None, index: Union[str, int] = None):
+        """
+        Sets the die area using a list of points defining its boundary.
+
+        Args:
+            points (List[Tuple[float, float]]): A list of (x, y) tuples representing
+                                                the coordinates that define the die area.
+            step (str, optional): An identifier for the step in a workflow.
+                                  Defaults to None.
+            index (Union[str, int], optional): An index or identifier within a step.
+                                               Defaults to None.
+
+        Returns:
+            Any: The return value from the internal `set` method call.
+        """
+        return self.set("diearea", points, step=step, index=index)
+
+    def get_diearea(self,
+                    step: str = None, index: Union[str, int] = None) -> List[Tuple[float, float]]:
+        """
+        Retrieves the current die area definition.
+
+        Args:
+            step (str, optional): An identifier for the step in a workflow.
+                                  Defaults to None.
+            index (Union[str, int], optional): An index or identifier within a step.
+                                               Defaults to None.
+
+        Returns:
+            List[Tuple[float, float]]: A list of (x, y) tuples representing
+                                       the coordinates that define the die area.
+        """
+        return self.get("diearea", step=step, index=index)
+
+    def set_corearea(self,
+                     points: List[Tuple[float, float]],
+                     step: str = None, index: Union[str, int] = None):
+        """
+        Sets the core area using a list of points defining its boundary.
+
+        Args:
+            points (List[Tuple[float, float]]): A list of (x, y) tuples representing
+                                                the coordinates that define the core area.
+            step (str, optional): An identifier for the step in a workflow.
+                                  Defaults to None.
+            index (Union[str, int], int): An index or identifier within a step.
+                                          Defaults to None.
+
+        Returns:
+            Any: The return value from the internal `set` method call.
+        """
+        return self.set("corearea", points, step=step, index=index)
+
+    def get_corearea(self,
+                     step: str = None, index: Union[str, int] = None) -> List[Tuple[float, float]]:
+        """
+        Retrieves the current core area definition.
+
+        Args:
+            step (str, optional): An identifier for the step in a workflow.
+                                  Defaults to None.
+            index (Union[str, int], optional): An index or identifier within a step.
+                                               Defaults to None.
+
+        Returns:
+            List[Tuple[float, float]]: A list of (x, y) tuples representing
+                                       the coordinates that define the core area.
+        """
+        return self.get("corearea", step=step, index=index)
