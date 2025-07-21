@@ -29,7 +29,7 @@ class DesignSchema(PackageSchema, NamedSchema, DependencySchema, PathSchema):
         if not isinstance(obj, NamedSchema):
             raise TypeError(f"Cannot add an object of type: {type(obj)}")
 
-        if obj.name() == self.name():
+        if obj.name == self.name:
             raise ValueError("Cannot add a dependency with the same name")
 
         return super().add_dep(obj, clobber=clobber)
@@ -285,16 +285,16 @@ class DesignSchema(PackageSchema, NamedSchema, DependencySchema, PathSchema):
             dep_name = dep
             dep = self.get_dep(dep_name)
         elif isinstance(dep, DesignSchema):
-            dep_name = dep.name()
+            dep_name = dep.name
             self.add_dep(dep, clobber=True)
         else:
             raise TypeError("dep is not a valid type")
 
         if not isinstance(dep, DesignSchema):
-            raise ValueError(f"cannot associate fileset ({depfileset}) with {dep.name()}")
+            raise ValueError(f"cannot associate fileset ({depfileset}) with {dep.name}")
 
         if depfileset not in dep.getkeys("fileset"):
-            raise ValueError(f"{dep.name()} does not have {depfileset} as a fileset")
+            raise ValueError(f"{dep.name} does not have {depfileset} as a fileset")
 
         return self.add("fileset", fileset, "depfileset", (dep_name, depfileset))
 
@@ -453,18 +453,18 @@ class DesignSchema(PackageSchema, NamedSchema, DependencySchema, PathSchema):
 
             for lib, fileset in self.get_fileset(filesets, depalias):
                 if lib.get('fileset', fileset, 'idir'):
-                    write_header(f"{lib.name()} / {fileset} / include directories")
+                    write_header(f"{lib.name} / {fileset} / include directories")
                     for idir in lib.find_files('fileset', fileset, 'idir'):
                         write(f"+incdir+{idir}")
 
                 if lib.get('fileset', fileset, 'define'):
-                    write_header(f"{lib.name()} / {fileset} / defines")
+                    write_header(f"{lib.name} / {fileset} / defines")
                     for define in lib.get('fileset', fileset, 'define'):
                         write(f"+define+{define}")
 
                 for filetype in lib.getkeys('fileset', fileset, 'file'):
                     if lib.get('fileset', fileset, 'file', filetype):
-                        write_header(f"{lib.name()} / {fileset} / {filetype} files")
+                        write_header(f"{lib.name} / {fileset} / {filetype} files")
                         for file in lib.find_files('fileset', fileset, 'file', filetype):
                             write(file)
 
@@ -549,7 +549,7 @@ class DesignSchema(PackageSchema, NamedSchema, DependencySchema, PathSchema):
         all_paths = include_dirs + [os.path.dirname(f) for f in files]
         all_paths = sorted(set(all_paths))
 
-        dataroot_root_name = f'flist-{self.name()}-{fileset}-{os.path.basename(filename)}'
+        dataroot_root_name = f'flist-{self.name}-{fileset}-{os.path.basename(filename)}'
         dataroots = {}
 
         for path_dir in all_paths:
@@ -714,7 +714,7 @@ class DesignSchema(PackageSchema, NamedSchema, DependencySchema, PathSchema):
         mapping = []
         for fileset in filesets:
             if not self.valid("fileset", fileset):
-                raise ValueError(f"{fileset} is not defined in {self.name()}")
+                raise ValueError(f"{fileset} is not defined in {self.name}")
 
             mapping.append((self, fileset))
             for dep, depfileset in self.get("fileset", fileset, "depfileset"):

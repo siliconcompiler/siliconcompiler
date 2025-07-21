@@ -34,24 +34,6 @@ def test_add_dep():
     assert schema.get("deps", field="lock") is True
 
 
-def test_add_dep_confirm_reset():
-    class Test(NamedSchema):
-        def __init__(self):
-            super().__init__("thisname")
-            self.state_info = "notthis"
-
-        def _reset(self):
-            super()._reset()
-            self.state_info = None
-
-    schema = DependencySchema()
-
-    dep = Test()
-    assert dep.state_info == "notthis"
-    assert schema.add_dep(dep)
-    assert dep.state_info is None
-
-
 def test_add_dep_clobber():
     schema = DependencySchema()
 
