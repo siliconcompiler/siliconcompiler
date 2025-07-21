@@ -53,6 +53,31 @@ def echo_chip():
     return chip
 
 
+def test_init_invalid_step(chip):
+    with pytest.raises(TypeError, match="step must be a string with a value"):
+        SchedulerNode(chip, None, "0")
+
+
+def test_init_invalid_step_empty(chip):
+    with pytest.raises(TypeError, match="step must be a string with a value"):
+        SchedulerNode(chip, "", "0")
+
+
+def test_init_invalid_index(chip):
+    with pytest.raises(TypeError, match="index must be a string with a value"):
+        SchedulerNode(chip, "step", None)
+
+
+def test_init_invalid_index_int(chip):
+    with pytest.raises(TypeError, match="index must be a string with a value"):
+        SchedulerNode(chip, "step", 0)
+
+
+def test_init_invalid_index_empty(chip):
+    with pytest.raises(TypeError, match="index must be a string with a value"):
+        SchedulerNode(chip, "step", "")
+
+
 def test_init(chip):
     node = SchedulerNode(chip, "stepone", "0")
 

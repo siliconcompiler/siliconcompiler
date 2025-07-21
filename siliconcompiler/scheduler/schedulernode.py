@@ -23,6 +23,11 @@ from siliconcompiler.scheduler import send_messages
 
 class SchedulerNode:
     def __init__(self, chip, step, index, replay=False):
+        if not isinstance(step, str) or step == "":
+            raise TypeError("step must be a string with a value")
+        if not isinstance(index, str) or index == "":
+            raise TypeError("index must be a string with a value")
+
         self.__step = step
         self.__index = index
         self.__chip = chip
@@ -83,22 +88,22 @@ class SchedulerNode:
         return SchedulerNode(self.__chip, step, index)
 
     @property
-    def is_local(self):
+    def is_local(self) -> bool:
         return True
 
     @property
-    def has_error(self):
+    def has_error(self) -> bool:
         return self.__error
 
     def set_builtin(self):
         self.__builtin = True
 
     @property
-    def is_builtin(self):
+    def is_builtin(self) -> bool:
         return self.__builtin
 
     @property
-    def logger(self):
+    def logger(self) -> logging.Logger:
         return self.__chip.logger
 
     @property
@@ -110,47 +115,47 @@ class SchedulerNode:
         return self.chip
 
     @property
-    def step(self):
+    def step(self) -> str:
         return self.__step
 
     @property
-    def index(self):
+    def index(self) -> str:
         return self.__index
 
     @property
-    def name(self):
+    def name(self) -> str:
         return self.__name
 
     @property
-    def topmodule(self):
+    def topmodule(self) -> str:
         return self.__topmodule
 
     @property
-    def topmodule_global(self):
+    def topmodule_global(self) -> str:
         return self.__topmodule_global
 
     @property
-    def jobname(self):
+    def jobname(self) -> str:
         return self.__job
 
     @property
-    def project_cwd(self):
+    def project_cwd(self) -> str:
         return self.__cwd
 
     @property
-    def workdir(self):
+    def workdir(self) -> str:
         return self.__workdir
 
     @property
-    def jobworkdir(self):
+    def jobworkdir(self) -> str:
         return self.__jobworkdir
 
     @property
-    def collection_dir(self):
+    def collection_dir(self) -> str:
         return self.__collection_path
 
     @property
-    def is_replay(self):
+    def is_replay(self) -> bool:
         return self.__replay
 
     @property
