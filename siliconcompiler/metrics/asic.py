@@ -28,12 +28,6 @@ class ASICMetricsSchema(MetricSchema):
                     help=trim(f"""Metric tracking the total number of {description} on a
                     per step and index basis.""")))
 
-        metrics = {'cellarea': 'cell area (ignoring fillers)',
-                'totalarea': 'physical die area',
-                'macroarea': 'macro cell area',
-                'padcellarea': 'io pad cell area',
-                'stdcellarea': 'standard cell area'}
-
         for item, description in [
                 ('cellarea', 'cell area (ignoring fillers)'),
                 ('totalarea', 'physical die area'),

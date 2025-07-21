@@ -11,7 +11,7 @@ class FPGAMetricsSchema(MetricSchema):
         schema = EditableSchema(self)
 
         for item, description in [
-            ('unconstrained', 'unconstrained timing paths')]:
+                ('unconstrained', 'unconstrained timing paths')]:
             schema.insert(
                 item,
                 Parameter(
