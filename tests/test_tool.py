@@ -199,6 +199,7 @@ def test_runtime(running_node):
     with running_node.task.runtime(running_node) as runtool:
         assert runtool.step == 'running'
         assert runtool.index == '0'
+        assert runtool.node is running_node
         assert runtool.logger is running_node.project.logger
         assert runtool.schema() is running_node.project.schema
 
@@ -207,20 +208,24 @@ def test_runtime_node_only(running_node):
     with running_node.task.runtime(None, 'running', '0') as runtool:
         assert runtool.step == 'running'
         assert runtool.index == '0'
+        assert runtool.node is None
         assert runtool.logger is None
         assert runtool.schema() is None
 
 
 def test_runtime_same_task(running_node):
+    running1 = running_node.switch_node("notrunning", "0")
     with running_node.task.runtime(running_node) as runtool0, \
-         running_node.task.runtime(running_node.switch_node("notrunning", "0")) as runtool1:
+         running_node.task.runtime(running1) as runtool1:
         assert runtool0 is not runtool1
         assert runtool0.step == 'running'
         assert runtool0.index == '0'
+        assert runtool0.node is running_node
         assert runtool0.logger is running_node.project.logger
         assert runtool0.schema() is running_node.project.schema
         assert runtool1.step == 'notrunning'
         assert runtool1.index == '0'
+        assert runtool1.node is running1
         assert runtool1.logger is running_node.project.logger
         assert runtool1.schema() is running_node.project.schema
 

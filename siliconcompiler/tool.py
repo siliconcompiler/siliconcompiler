@@ -191,6 +191,14 @@ class TaskSchema(NamedSchema):
         return self.__design_top
 
     @property
+    def node(self) -> SchedulerNode:
+        """
+        Returns:
+            the scheduler node for the current runtime
+        """
+        return self.__node
+
+    @property
     def step(self) -> str:
         '''
         Returns:
