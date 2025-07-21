@@ -49,7 +49,7 @@ dependencies = [
     "fastjsonschema == 2.21.1",
     "docker == 7.1.0",
     "importlib_metadata; python_version < '3.10'",
-    "orjson == 3.10.18",
+    "orjson == 3.11.0",
     "pyslang == 8.1.0",
 
     # dashboard, streamlit does not support 3.9.7
@@ -109,7 +109,7 @@ test = [
     "pytest == 8.4.1",
     "pytest-xdist == 3.8.0",
     "pytest-timeout == 2.4.0",
-    "pytest-asyncio == 1.0.0",
+    "pytest-asyncio == 1.1.0",
     "pytest-cov == 6.2.1",
     "responses == 0.25.7",
     "PyVirtualDisplay == 3.0",
