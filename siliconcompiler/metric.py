@@ -10,7 +10,91 @@ class MetricSchema(BaseSchema):
     def __init__(self):
         super().__init__()
 
-        schema_metric(self)
+        schema = EditableSchema(self)
+
+        for item, description in [
+                ('errors', 'errors'),
+                ('warnings', 'warnings')]:
+            schema.insert(
+                item,
+                Parameter(
+                    'int',
+                    scope=Scope.JOB,
+                    shorthelp=f"Metric: total {item}",
+                    switch=f"-metric_{item} 'step index <int>'",
+                    example=[
+                        f"cli: -metric_{item} 'dfm 0 0'",
+                        f"api: chip.set('metric', '{item}', 0, step='dfm', index=0)"],
+                    pernode=PerNode.REQUIRED,
+                    help=trim(f"""Metric tracking the total number of {description} on a
+                    per step and index basis.""")))
+
+        schema.insert(
+            'memory',
+            Parameter(
+                'float',
+                unit='B',
+                scope=Scope.JOB,
+                shorthelp="Metric: memory",
+                switch="-metric_memory 'step index <float>'",
+                example=[
+                    "cli: -metric_memory 'dfm 0 10e9'",
+                    "api: chip.set('metric', 'memory', 10e9, step='dfm', index=0)"],
+                pernode=PerNode.REQUIRED,
+                help=trim("""
+                Metric tracking total peak program memory footprint on a per
+                step and index basis.""")))
+
+        schema.insert(
+            'exetime',
+            Parameter(
+                'float',
+                unit='s',
+                scope=Scope.JOB,
+                shorthelp="Metric: exetime",
+                switch="-metric_exetime 'step index <float>'",
+                example=[
+                    "cli: -metric_exetime 'dfm 0 10.0'",
+                    "api: chip.set('metric', 'exetime', 10.0, step='dfm', index=0)"],
+                pernode=PerNode.REQUIRED,
+                help=trim("""
+                Metric tracking time spent by the EDA executable :keypath:`tool,<tool>,exe` on a
+                per step and index basis. It does not include the SiliconCompiler
+                runtime overhead or time waiting for I/O operations and
+                inter-processor communication to complete.""")))
+
+        schema.insert(
+            'tasktime',
+            Parameter(
+                'float',
+                unit='s',
+                scope=Scope.JOB,
+                shorthelp="Metric: tasktime",
+                switch="-metric_tasktime 'step index <float>'",
+                example=[
+                    "cli: -metric_tasktime 'dfm 0 10.0'",
+                    "api: chip.set('metric', 'tasktime', 10.0, step='dfm', index=0)"],
+                pernode=PerNode.REQUIRED,
+                help=trim("""
+                Metric tracking the total amount of time spent on a task from
+                beginning to end, including data transfers and pre/post
+                processing.""")))
+
+        schema.insert(
+            'totaltime',
+            Parameter(
+                'float',
+                unit='s',
+                scope=Scope.JOB,
+                shorthelp="Metric: totaltime",
+                switch="-metric_totaltime 'step index <float>'",
+                example=[
+                    "cli: -metric_totaltime 'dfm 0 10.0'",
+                    "api: chip.set('metric', 'totaltime', 10.0, step='dfm', index=0)"],
+                pernode=PerNode.REQUIRED,
+                help=trim("""
+                Metric tracking the total amount of time spent from the beginning
+                of the run up to and including the current step and index.""")))
 
     def clear(self, step, index):
         '''
@@ -122,10 +206,17 @@ class MetricSchema(BaseSchema):
         return self.record(step, index, "totaltime", total_time, unit="s")
 
 
+class MetricSchemaTmp(MetricSchema):
+    def __init__(self):
+        super().__init__()
+
+        schema_metric_tmp(self)
+
+
 ###########################################################################
 # Metrics to Track
 ###########################################################################
-def schema_metric(schema):
+def schema_metric_tmp(schema):
     schema = EditableSchema(schema)
 
     metrics = {'errors': 'errors',

@@ -8,6 +8,17 @@ from siliconcompiler import RecordSchema, FlowgraphSchema
 from siliconcompiler.record import RecordTime
 
 
+def test_keys():
+    assert MetricSchema().allkeys() == set([
+        ('exetime',),
+        ('tasktime',),
+        ('memory',),
+        ('warnings',),
+        ('totaltime',),
+        ('errors',),
+    ])
+
+
 def test_clear():
     schema = MetricSchema()
 
