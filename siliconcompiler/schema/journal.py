@@ -124,6 +124,9 @@ class Journal:
         if record_type not in self.__parent.__record_types:
             return
 
+        if isinstance(value, set):
+            value = list(value)
+
         self.__parent.__journal.append({
             "type": record_type,
             "key": tuple([*self.__keyprefix, *key]),
