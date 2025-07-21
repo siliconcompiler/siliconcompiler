@@ -57,7 +57,7 @@ class ChecklistSchema(NamedSchema):
         assert hasattr(schema_root, "history"), f"{schema_root}"
 
         if logger:
-            logger.info(f'Checking checklist {self.name()}')
+            logger.info(f'Checking checklist {self.name}')
 
         if items is None:
             items = self.getkeys()
@@ -72,7 +72,7 @@ class ChecklistSchema(NamedSchema):
         for item in items:
             if item not in self.getkeys():
                 if logger:
-                    logger.error(f'{item} is not a check in {self.name()}.')
+                    logger.error(f'{item} is not a check in {self.name}.')
                 error = True
                 continue
 

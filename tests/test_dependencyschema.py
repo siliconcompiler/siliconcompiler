@@ -402,7 +402,7 @@ def test_populate_deps():
 
     check = Test.from_manifest("test", cfg=schema.getdict())
     assert check.get_dep() == []
-    module_map = {obj.name(): obj for obj in schema.get_dep()}
+    module_map = {obj.name: obj for obj in schema.get_dep()}
     check._populate_deps(module_map)
     assert check.get_dep() == schema.get_dep()
 
@@ -454,6 +454,6 @@ def test_populate_deps_already_populated():
     check.add_dep(dep00)
 
     assert check.get_dep() == [dep00, dep10]
-    module_map = {obj.name(): obj for obj in schema.get_dep()}
+    module_map = {obj.name: obj for obj in schema.get_dep()}
     check._populate_deps(module_map)
     assert check.get_dep() == [dep00, dep10]

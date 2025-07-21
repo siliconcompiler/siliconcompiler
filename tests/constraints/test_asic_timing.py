@@ -264,7 +264,7 @@ def test_timing_constraint_make_scenario():
 
     constraint = schema.make_scenario("slow")
     assert isinstance(constraint, ASICTimingScenarioSchema)
-    assert constraint.name() == "slow"
+    assert constraint.name == "slow"
     assert schema.get("slow", field="schema") is constraint
 
 

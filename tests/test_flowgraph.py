@@ -38,7 +38,7 @@ def large_flow():
 
 def test_init():
     flow = FlowgraphSchema("testflow")
-    assert flow.name() == "testflow"
+    assert flow.name == "testflow"
 
 
 def test_node():

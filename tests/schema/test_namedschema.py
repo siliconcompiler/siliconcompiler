@@ -52,10 +52,6 @@ def test_name_no_init():
     assert Test().name is None
 
 
-def test_reset():
-    NamedSchema("myname")._reset()
-
-
 def test_copy_name():
     schema = NamedSchema("myname")
     assert schema.name == "myname"
