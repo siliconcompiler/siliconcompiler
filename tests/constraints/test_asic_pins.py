@@ -57,6 +57,16 @@ def test_set_get_width(pin_constraint):
         pin_constraint.set_width(-1.0)
 
 
+def test_set_get_width_step_index():
+    pin = ASICPinConstraint()
+    assert pin.set_width(10)
+    assert pin.set_width(20, step="step0", index="1")
+    assert pin.get("width") == 10
+    assert pin.get("width", step="step0", index="1") == 20
+    assert pin.get_width() == 10
+    assert pin.get_width(step="step0", index="1") == 20
+
+
 def test_set_get_length(pin_constraint):
     """Test setting and getting pin length."""
     pin_constraint.set_length(20.0)
@@ -72,6 +82,16 @@ def test_set_get_length(pin_constraint):
         pin_constraint.set_length(-5)
 
 
+def test_set_get_length_step_index():
+    pin = ASICPinConstraint()
+    assert pin.set_length(10)
+    assert pin.set_length(20, step="step0", index="1")
+    assert pin.get("length") == 10
+    assert pin.get("length", step="step0", index="1") == 20
+    assert pin.get_length() == 10
+    assert pin.get_length(step="step0", index="1") == 20
+
+
 def test_set_get_placement(pin_constraint):
     """Test setting and getting pin placement."""
     pin_constraint.set_placement(1.2, 3.4)
@@ -85,6 +105,16 @@ def test_set_get_placement(pin_constraint):
         pin_constraint.set_placement(1.0, "b")
 
 
+def test_set_get_placement_step_index():
+    pin = ASICPinConstraint()
+    assert pin.set_placement(0, 10)
+    assert pin.set_placement(10, 0, step="step0", index="1")
+    assert pin.get("placement") == (0, 10)
+    assert pin.get("placement", step="step0", index="1") == (10, 0)
+    assert pin.get_placement() == (0, 10)
+    assert pin.get_placement(step="step0", index="1") == (10, 0)
+
+
 def test_set_get_shape(pin_constraint):
     """Test setting and getting pin shape."""
     pin_constraint.set_shape("circle")
@@ -93,12 +123,32 @@ def test_set_get_shape(pin_constraint):
     assert pin_constraint.get_shape() == "polygon"
 
 
+def test_set_get_shape_step_index():
+    pin = ASICPinConstraint()
+    assert pin.set_shape("rectangle")
+    assert pin.set_shape("square", step="step0", index="1")
+    assert pin.get("shape") == "rectangle"
+    assert pin.get("shape", step="step0", index="1") == "square"
+    assert pin.get_shape() == "rectangle"
+    assert pin.get_shape(step="step0", index="1") == "square"
+
+
 def test_set_get_layer(pin_constraint):
     """Test setting and getting pin layer."""
     pin_constraint.set_layer("m5")
     assert pin_constraint.get_layer() == "m5"
     pin_constraint.set_layer("2")  # Test integer as string
     assert pin_constraint.get_layer() == "2"
+
+
+def test_set_get_layer_step_index():
+    pin = ASICPinConstraint()
+    assert pin.set_layer("m5")
+    assert pin.set_layer("m7", step="step0", index="1")
+    assert pin.get("layer") == "m5"
+    assert pin.get("layer", step="step0", index="1") == "m7"
+    assert pin.get_layer() == "m5"
+    assert pin.get_layer(step="step0", index="1") == "m7"
 
 
 def test_set_get_side(pin_constraint):
@@ -124,6 +174,16 @@ def test_set_get_side(pin_constraint):
         pin_constraint.set_side("invalid")
 
 
+def test_set_get_side_step_index():
+    pin = ASICPinConstraint()
+    assert pin.set_side(1)
+    assert pin.set_side(2, step="step0", index="1")
+    assert pin.get("side") == 1
+    assert pin.get("side", step="step0", index="1") == 2
+    assert pin.get_side() == 1
+    assert pin.get_side(step="step0", index="1") == 2
+
+
 def test_set_get_order(pin_constraint):
     """Test setting and getting pin order."""
     pin_constraint.set_order(5)
@@ -132,6 +192,16 @@ def test_set_get_order(pin_constraint):
     assert pin_constraint.get_order() == 0
     pin_constraint.set_order(-2)
     assert pin_constraint.get_order() == -2
+
+
+def test_set_get_order_step_index():
+    pin = ASICPinConstraint()
+    assert pin.set_order(1)
+    assert pin.set_order(2, step="step0", index="1")
+    assert pin.get("order") == 1
+    assert pin.get("order", step="step0", index="1") == 2
+    assert pin.get_order() == 1
+    assert pin.get_order(step="step0", index="1") == 2
 
 
 def test_asic_pin_constraints_keys():

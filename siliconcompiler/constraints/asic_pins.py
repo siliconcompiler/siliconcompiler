@@ -254,7 +254,7 @@ class ASICPinConstraint(NamedSchema):
         Returns:
             str: The shape of the pin.
         """
-        return self.get("shape")
+        return self.get("shape", step=step, index=index)
 
     def set_layer(self, layer: str, step: str = None, index: Union[str, int] = None):
         """
@@ -280,7 +280,7 @@ class ASICPinConstraint(NamedSchema):
         Returns:
             str: The metal layer of the pin.
         """
-        return self.get("layer")
+        return self.get("layer", step=step, index=index)
 
     def set_side(self, side: Union[int, str], step: str = None, index: Union[str, int] = None):
         """

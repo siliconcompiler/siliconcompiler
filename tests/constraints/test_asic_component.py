@@ -54,6 +54,16 @@ def test_set_get_placement(component_constraint):
         component_constraint.set_placement(1.0, "b")
 
 
+def test_set_get_placement_step_index():
+    component = ASICComponentConstraint()
+    assert component.set_placement(10, 15)
+    assert component.set_placement(20, 30, step="step0", index="1")
+    assert component.get("placement") == (10, 15)
+    assert component.get("placement", step="step0", index="1") == (20, 30)
+    assert component.get_placement() == (10, 15)
+    assert component.get_placement(step="step0", index="1") == (20, 30)
+
+
 def test_set_get_partname(component_constraint):
     """Test setting and getting component part name."""
     component_constraint.set_partname("my_cell")
@@ -63,6 +73,16 @@ def test_set_get_partname(component_constraint):
         component_constraint.set_partname("")
     with pytest.raises(ValueError, match="a partname is required"):
         component_constraint.set_partname(None)
+
+
+def test_set_get_partname_step_index():
+    component = ASICComponentConstraint()
+    assert component.set_partname("part0")
+    assert component.set_partname("part1", step="step0", index="1")
+    assert component.get("partname") == "part0"
+    assert component.get("partname", step="step0", index="1") == "part1"
+    assert component.get_partname() == "part0"
+    assert component.get_partname(step="step0", index="1") == "part1"
 
 
 def test_set_get_halo(component_constraint):
@@ -82,12 +102,33 @@ def test_set_get_halo(component_constraint):
         component_constraint.set_halo(1.0, -1.0)
 
 
+def test_set_get_halo_step_index():
+    component = ASICComponentConstraint()
+    assert component.set_halo(10, 15)
+    assert component.set_halo(20, 30, step="step0", index="1")
+    assert component.get("halo") == (10, 15)
+    assert component.get("halo", step="step0", index="1") == (20, 30)
+    assert component.get_halo() == (10, 15)
+    assert component.get_halo(step="step0", index="1") == (20, 30)
+
+
 def test_set_get_rotation(component_constraint):
     """Test setting and getting component rotation."""
     component_constraint.set_rotation("R90")
     assert component_constraint.get_rotation() == "R90"
     component_constraint.set_rotation("MZ_MX_R180")
     assert component_constraint.get_rotation() == "MZ_MX_R180"
+
+
+def test_set_get_rotation_step_index():
+    component = ASICComponentConstraint()
+    assert component.get_rotation() == "R0"
+    assert component.set_rotation("R180")
+    assert component.set_rotation("MY", step="step0", index="1")
+    assert component.get("rotation") == "R180"
+    assert component.get("rotation", step="step0", index="1") == "MY"
+    assert component.get_rotation() == "R180"
+    assert component.get_rotation(step="step0", index="1") == "MY"
 
 
 def test_asic_component_constraints_keys():
