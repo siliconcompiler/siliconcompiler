@@ -6,6 +6,7 @@ from unittest.mock import patch
 from siliconcompiler import MetricSchema
 from siliconcompiler import RecordSchema, FlowgraphSchema
 from siliconcompiler.record import RecordTime
+from siliconcompiler.schema import PerNode, Scope
 
 
 def test_keys():
@@ -17,6 +18,13 @@ def test_keys():
         ('totaltime',),
         ('errors',),
     ])
+
+
+@pytest.mark.parametrize("key", MetricSchema().allkeys())
+def test_key_params(key):
+    param = MetricSchema().get(*key, field=None)
+    assert param.get(field="pernode") == PerNode.REQUIRED
+    assert param.get(field="scope") == Scope.JOB
 
 
 def test_clear():
