@@ -311,7 +311,11 @@ proc sc_image_clocktree { } {
         }
 
         if { [info commands gui::select_clockviewer_clock] != "" } {
-            gui::select_clockviewer_clock ${clock_name}
+            set select_clk_args []
+            if { [sc_check_version 23008] } {
+                lappend select_clk_args 2
+            }
+            gui::select_clockviewer_clock ${clock_name} {*}$select_clk_args
             sc_save_image \
                 "clock - ${clock_name}" \
                 reports/images/clocks/${sc_design}.${clock_name}.png
