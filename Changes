@@ -8,6 +8,19 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.34.2 (2025-07-21)
+=========================================
+
+**Minor:**
+
+ * Fixed handling of tool command line arguments to ensure they are all strings.
+ * Fixed handling of schema parameters with default fields beyond just value.
+ * Fixed handling of schema set parameters.
+ * Added time delays when packages are locked to avoid deadlocks.
+ * Moved package caching to Resolver class to allow for shared caching across schema sections.
+ * Modified return value of `.getkeys()` to return a sorted tuple of the keys.
+
+
 SiliconCompiler 0.34.1 (2025-07-07)
 =========================================
 
