@@ -23,12 +23,18 @@ from siliconcompiler.scheduler import send_messages
 
 class SchedulerNode:
     def __init__(self, chip, step, index, replay=False):
+        if not isinstance(step, str) or step == "":
+            raise TypeError("step must be a string with a value")
+        if not isinstance(index, str) or index == "":
+            raise TypeError("index must be a string with a value")
+
         self.__step = step
         self.__index = index
         self.__chip = chip
 
         self.__name = self.__chip.design
         self.__topmodule = self.__chip.top(step=step, index=index)
+        self.__topmodule_global = self.__chip.top()
 
         self.__job = self.__chip.get('option', 'jobname')
         self.__record_user_info = self.__chip.get("option", "track",
@@ -48,6 +54,7 @@ class SchedulerNode:
         self.__is_entry_node = (self.__step, self.__index) in \
             self.__chip.get("flowgraph", flow, field="schema").get_entry_nodes()
 
+        self.__cwd = self.__chip.cwd
         self.__jobworkdir = self.__chip.getworkdir(jobname=self.__job)
         self.__workdir = self.__chip.getworkdir(jobname=self.__job,
                                                 step=self.__step, index=self.__index)
@@ -60,6 +67,7 @@ class SchedulerNode:
             "exe": os.path.join(self.__workdir, f"{self.__step}.log")
         }
         self.__replay_script = os.path.join(self.__workdir, "replay.sh")
+        self.__collection_path = self.__chip._getcollectdir()
 
         self.set_queue(None, None)
         self.__setup_schema_access()
@@ -67,7 +75,7 @@ class SchedulerNode:
     @contextlib.contextmanager
     def runtime(self):
         prev_task = self.__task
-        with self.__task.runtime(self.__chip, step=self.__step, index=self.__index) as runtask:
+        with self.__task.runtime(self) as runtask:
             self.__task = runtask
             yield
         self.__task = prev_task
@@ -76,23 +84,26 @@ class SchedulerNode:
     def init(chip):
         pass
 
+    def switch_node(self, step: str, index: str) -> "SchedulerNode":
+        return SchedulerNode(self.__chip, step, index)
+
     @property
-    def is_local(self):
+    def is_local(self) -> bool:
         return True
 
     @property
-    def has_error(self):
+    def has_error(self) -> bool:
         return self.__error
 
     def set_builtin(self):
         self.__builtin = True
 
     @property
-    def is_builtin(self):
+    def is_builtin(self) -> bool:
         return self.__builtin
 
     @property
-    def logger(self):
+    def logger(self) -> logging.Logger:
         return self.__chip.logger
 
     @property
@@ -100,35 +111,51 @@ class SchedulerNode:
         return self.__chip
 
     @property
-    def step(self):
+    def project(self):
+        return self.chip
+
+    @property
+    def step(self) -> str:
         return self.__step
 
     @property
-    def index(self):
+    def index(self) -> str:
         return self.__index
 
     @property
-    def name(self):
+    def name(self) -> str:
         return self.__name
 
     @property
-    def topmodule(self):
+    def topmodule(self) -> str:
         return self.__topmodule
 
     @property
-    def jobname(self):
+    def topmodule_global(self) -> str:
+        return self.__topmodule_global
+
+    @property
+    def jobname(self) -> str:
         return self.__job
 
     @property
-    def workdir(self):
+    def project_cwd(self) -> str:
+        return self.__cwd
+
+    @property
+    def workdir(self) -> str:
         return self.__workdir
 
     @property
-    def jobworkdir(self):
+    def jobworkdir(self) -> str:
         return self.__jobworkdir
 
     @property
-    def is_replay(self):
+    def collection_dir(self) -> str:
+        return self.__collection_path
+
+    @property
+    def is_replay(self) -> bool:
         return self.__replay
 
     @property
@@ -151,7 +178,7 @@ class SchedulerNode:
 
     @property
     def threads(self):
-        with self.__task.runtime(self.__chip, step=self.__step, index=self.__index) as task:
+        with self.__task.runtime(self) as task:
             thread_count = task.get("threads")
         return thread_count
 
@@ -201,7 +228,7 @@ class SchedulerNode:
         sys.exit(1)
 
     def setup(self):
-        with self.__task.runtime(self.__chip, step=self.__step, index=self.__index) as task:
+        with self.__task.runtime(self) as task:
             # Run node setup.
             self.logger.info(f'Setting up node {self.__step}/{self.__index} with '
                              f'{task.tool()}/{task.task()}')

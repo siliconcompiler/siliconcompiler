@@ -65,7 +65,7 @@ def _check_flowgraph_io(chip, nodes=None):
                 in_tool, in_task = get_tool_task(chip, in_step, in_index, flow=flow)
                 task_class = chip.get("tool", in_tool, "task", in_task, field="schema")
 
-                with task_class.runtime(chip, step=in_step, index=in_index) as task:
+                with task_class.runtime(SchedulerNode(chip, in_step, in_index)) as task:
                     inputs = task.get_output_files()
 
             for inp in inputs:

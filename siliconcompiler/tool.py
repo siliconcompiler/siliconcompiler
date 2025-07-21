@@ -41,6 +41,7 @@ from siliconcompiler import sc_open
 from siliconcompiler import Schema
 
 from siliconcompiler.record import RecordTool
+from siliconcompiler.scheduler.schedulernode import SchedulerNode
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 
 
@@ -93,26 +94,30 @@ class TaskSchema(NamedSchema):
         self.__set_runtime(None)
 
     @contextlib.contextmanager
-    def runtime(self, chip, step=None, index=None, relpath=None):
+    def runtime(self, node, step=None, index=None, relpath=None):
         '''
         Sets the runtime information needed to properly execute a task.
         Note: unstable API
 
         Args:
-            chip (:class:`Chip`): root schema for the runtime information
+            node (:class:`SchedulerNode`): scheduler node for this runtime
         '''
+        if node and not isinstance(node, SchedulerNode):
+            raise TypeError("node must be a scheduler node")
+
         obj_copy = copy.copy(self)
-        obj_copy.__set_runtime(chip, step=step, index=index, relpath=relpath)
+        obj_copy.__set_runtime(node, step=step, index=index, relpath=relpath)
         yield obj_copy
 
-    def __set_runtime(self, chip, step=None, index=None, relpath=None):
+    def __set_runtime(self, node: SchedulerNode, step=None, index=None, relpath=None):
         '''
         Sets the runtime information needed to properly execute a task.
         Note: unstable API
 
         Args:
-            chip (:class:`Chip`): root schema for the runtime information
+            node (:class:`SchedulerNode`): scheduler node for this runtime
         '''
+        self.__node = node
         self.__chip = None
         self.__schema_full = None
         self.__logger = None
@@ -122,18 +127,24 @@ class TaskSchema(NamedSchema):
         self.__cwd = None
         self.__relpath = relpath
         self.__collection_path = None
-        if chip:
-            self.__chip = chip
-            self.__schema_full = chip.schema
-            self.__logger = chip.logger
-            self.__design_name = chip.design
-            self.__design_top = chip.top(step=step, index=index)
-            self.__design_top_global = chip.top()
-            self.__cwd = chip.cwd
-            self.__collection_path = chip._getcollectdir()
+        if node:
+            if step is not None or index is not None:
+                raise RuntimeError("step and index cannot be provided with node")
 
-        self.__step = step
-        self.__index = index
+            self.__chip = node.chip
+            self.__schema_full = node.chip.schema
+            self.__logger = node.chip.logger
+            self.__design_name = node.name
+            self.__design_top = node.topmodule
+            self.__design_top_global = node.topmodule_global
+            self.__cwd = node.project_cwd
+            self.__collection_path = node.collection_dir
+
+            self.__step = node.step
+            self.__index = node.index
+        else:
+            self.__step = step
+            self.__index = index
 
         self.__schema_record = None
         self.__schema_metric = None
@@ -163,6 +174,7 @@ class TaskSchema(NamedSchema):
                 from_steps=set([step for step, _ in self.__schema_flow.get_entry_nodes()]),
                 prune_nodes=self.__schema_full.get('option', 'prune'))
 
+    @property
     def design_name(self) -> str:
         '''
         Returns:
@@ -170,6 +182,7 @@ class TaskSchema(NamedSchema):
         '''
         return self.__design_name
 
+    @property
     def design_topmodule(self) -> str:
         '''
         Returns:
@@ -177,15 +190,33 @@ class TaskSchema(NamedSchema):
         '''
         return self.__design_top
 
-    def node(self):
+    @property
+    def node(self) -> SchedulerNode:
+        """
+        Returns:
+            the scheduler node for the current runtime
+        """
+        return self.__node
+
+    @property
+    def step(self) -> str:
         '''
         Returns:
-            step and index for the current runtime
+            step for the current runtime
         '''
 
-        return self.__step, self.__index
+        return self.__step
 
-    def tool(self):
+    @property
+    def index(self) -> str:
+        '''
+        Returns:
+            index for the current runtime
+        '''
+
+        return self.__index
+
+    def tool(self) -> str:
         '''
         Returns:
             tool name
@@ -193,7 +224,7 @@ class TaskSchema(NamedSchema):
 
         raise NotImplementedError("tool name must be implemented by the child class")
 
-    def task(self):
+    def task(self) -> str:
         '''
         Returns:
             task name
@@ -201,7 +232,8 @@ class TaskSchema(NamedSchema):
 
         raise NotImplementedError("task name must be implemented by the child class")
 
-    def logger(self):
+    @property
+    def logger(self) -> logging.Logger:
         '''
         Returns:
             logger
@@ -232,6 +264,9 @@ class TaskSchema(NamedSchema):
             return self.__schema_tool
         else:
             raise ValueError(f"{type} is not a schema section")
+
+    def get_log_filename(self, log: str) -> str:
+        raise NotImplementedError
 
     def has_breakpoint(self) -> bool:
         '''
@@ -986,7 +1021,7 @@ class TaskSchema(NamedSchema):
         nodes = self.schema("runtimeflow").get_nodes()
 
         inputs = {}
-        for in_step, in_index in self.schema("flow").get(*self.node(), 'input'):
+        for in_step, in_index in self.schema("flow").get(self.step, self.index, 'input'):
             if (in_step, in_index) not in nodes:
                 # node has been pruned so will not provide anything
                 continue
@@ -998,7 +1033,7 @@ class TaskSchema(NamedSchema):
 
             if self.schema("record").get('status', step=in_step, index=in_index) == \
                     NodeStatus.SKIPPED:
-                with task_obj.runtime(self.__chip, step=in_step, index=in_index) as task:
+                with task_obj.runtime(self.__node.switch_node(in_step, in_index)) as task:
                     for file, nodes in task.get_files_from_input_nodes().items():
                         inputs.setdefault(file, []).extend(nodes)
                 continue
@@ -1143,7 +1178,7 @@ class TaskSchema(NamedSchema):
             raise ValueError("only file or ext can be specified")
 
         if ext:
-            file = f"{self.design_topmodule()}.{ext}"
+            file = f"{self.design_topmodule}.{ext}"
 
         if clobber:
             return self.set("input", file)
@@ -1164,7 +1199,7 @@ class TaskSchema(NamedSchema):
             raise ValueError("only file or ext can be specified")
 
         if ext:
-            file = f"{self.design_topmodule()}.{ext}"
+            file = f"{self.design_topmodule}.{ext}"
 
         if clobber:
             return self.set("output", file)
@@ -1188,7 +1223,7 @@ class TaskSchema(NamedSchema):
         '''
 
         if metric not in self.schema("metric").getkeys():
-            self.logger().warning(f"{metric} is not a valid metric")
+            self.logger.warning(f"{metric} is not a valid metric")
             return
 
         self.schema("metric").record(self.__step, self.__index, metric, value, unit=source_unit)
@@ -1302,28 +1337,26 @@ class TaskSchemaTmp(TaskSchema):
         return None
 
     def __tool_task_modules(self):
-        step, index = self.node()
         flow = self._TaskSchema__chip.get('option', 'flow')
         return \
-            self._TaskSchema__chip._get_tool_module(step, index, flow=flow), \
-            self._TaskSchema__chip._get_task_module(step, index, flow=flow)
+            self._TaskSchema__chip._get_tool_module(self.step, self.index, flow=flow), \
+            self._TaskSchema__chip._get_task_module(self.step, self.index, flow=flow)
 
     @contextlib.contextmanager
     def __in_step_index(self):
         prev_step, prev_index = self._TaskSchema__chip.get('arg', 'step'), \
             self._TaskSchema__chip.get('arg', 'index')
-        step, index = self.node()
-        self._TaskSchema__chip.set('arg', 'step', step)
-        self._TaskSchema__chip.set('arg', 'index', index)
+        self._TaskSchema__chip.set('arg', 'step', self.step)
+        self._TaskSchema__chip.set('arg', 'index', self.index)
         yield
         self._TaskSchema__chip.set('arg', 'step', prev_step)
         self._TaskSchema__chip.set('arg', 'index', prev_index)
 
     def tool(self):
-        return self.schema("flow").get(*self.node(), 'tool')
+        return self.schema("flow").get(self.step, self.index, 'tool')
 
     def task(self):
-        return self.schema("flow").get(*self.node(), 'task')
+        return self.schema("flow").get(self.step, self.index, 'task')
 
     def get_exe(self):
         if self.tool() == "execute" and self.task() == "exec_input":
@@ -1339,7 +1372,7 @@ class TaskSchemaTmp(TaskSchema):
         _, task = self.__tool_task_modules()
         method = self.__module_func("_gather_outputs", [task])
         if method:
-            return method(self._TaskSchema__chip, *self.node())
+            return method(self._TaskSchema__chip, self.step, self.index)
         return TaskSchema.get_output_files(self)
 
     def parse_version(self, stdout):
@@ -1376,7 +1409,7 @@ class TaskSchemaTmp(TaskSchema):
         method = self.__module_func("_select_inputs", [task])
         if method:
             with self.__in_step_index():
-                ret = method(self._TaskSchema__chip, *self.node())
+                ret = method(self._TaskSchema__chip, self.step, self.index)
             return ret
         return TaskSchema.select_input_nodes(self)
 
@@ -1404,9 +1437,8 @@ class TaskSchemaTmp(TaskSchema):
         method = self.__module_func("run", [task])
         if method:
             # Handle logger stdout suppression if quiet
-            step, index = self.node()
             stdout_handler_level = self._TaskSchema__chip._logger_console.level
-            if self._TaskSchema__chip.get('option', 'quiet', step=step, index=index):
+            if self._TaskSchema__chip.get('option', 'quiet', step=self.step, index=self.index):
                 self._TaskSchema__chip._logger_console.setLevel(logging.CRITICAL)
 
             with self.__in_step_index():

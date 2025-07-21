@@ -1,6 +1,7 @@
 from siliconcompiler.tools.builtin import _common
 from siliconcompiler.tools.builtin.builtin import set_io_files
 from siliconcompiler.tools._common import get_tool_task
+from siliconcompiler.scheduler.schedulernode import SchedulerNode
 
 
 def setup(chip):
@@ -45,7 +46,7 @@ def _gather_outputs(chip, step, index):
     for in_step, in_index in in_nodes:
         in_tool, in_task = get_tool_task(chip, in_step, in_index, flow=flow)
         task_class = chip.get("tool", in_tool, "task", in_task, field="schema")
-        with task_class.runtime(chip, step=in_step, index=in_index) as task:
+        with task_class.runtime(SchedulerNode(chip, in_step, in_index)) as task:
             in_task_outputs.append(task.get_output_files())
 
     if len(in_task_outputs) > 0:

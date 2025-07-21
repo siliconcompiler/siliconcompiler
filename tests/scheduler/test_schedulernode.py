@@ -53,6 +53,31 @@ def echo_chip():
     return chip
 
 
+def test_init_invalid_step(chip):
+    with pytest.raises(TypeError, match="step must be a string with a value"):
+        SchedulerNode(chip, None, "0")
+
+
+def test_init_invalid_step_empty(chip):
+    with pytest.raises(TypeError, match="step must be a string with a value"):
+        SchedulerNode(chip, "", "0")
+
+
+def test_init_invalid_index(chip):
+    with pytest.raises(TypeError, match="index must be a string with a value"):
+        SchedulerNode(chip, "step", None)
+
+
+def test_init_invalid_index_int(chip):
+    with pytest.raises(TypeError, match="index must be a string with a value"):
+        SchedulerNode(chip, "step", 0)
+
+
+def test_init_invalid_index_empty(chip):
+    with pytest.raises(TypeError, match="index must be a string with a value"):
+        SchedulerNode(chip, "step", "")
+
+
 def test_init(chip):
     node = SchedulerNode(chip, "stepone", "0")
 
@@ -63,13 +88,17 @@ def test_init(chip):
     assert node.index == "0"
     assert node.name == "dummy"
     assert node.topmodule == "dummy"
+    assert node.topmodule_global == "dummy"
     assert node.chip is chip
+    assert node.project is chip
     assert node.logger is chip.logger
     assert node.jobname == "job0"
     assert node.is_replay is False
     assert isinstance(node.task, TaskSchema)
     assert node.jobworkdir == chip.getworkdir()
     assert node.workdir == os.path.join(node.jobworkdir, "stepone", "0")
+    assert node.project_cwd == os.path.abspath(".")
+    assert node.collection_dir == os.path.join(node.jobworkdir, "sc_collected_files")
 
     # Check private fields
     assert node._SchedulerNode__record_user_info is False
@@ -89,13 +118,17 @@ def test_init_different_top(chip):
     assert node.index == "0"
     assert node.name == "dummy"
     assert node.topmodule == "thistop"
+    assert node.topmodule_global == "dummy"
     assert node.chip is chip
+    assert node.project is chip
     assert node.logger is chip.logger
     assert node.jobname == "job0"
     assert node.is_replay is False
     assert isinstance(node.task, TaskSchema)
     assert node.jobworkdir == chip.getworkdir()
     assert node.workdir == os.path.join(node.jobworkdir, "stepone", "0")
+    assert node.project_cwd == os.path.abspath(".")
+    assert node.collection_dir == os.path.join(node.jobworkdir, "sc_collected_files")
 
     # Check private fields
     assert node._SchedulerNode__record_user_info is False
@@ -114,13 +147,17 @@ def test_init_replay(chip):
     assert node.index == "0"
     assert node.name == "dummy"
     assert node.topmodule == "dummy"
+    assert node.topmodule_global == "dummy"
     assert node.chip is chip
+    assert node.project is chip
     assert node.logger is chip.logger
     assert node.jobname == "job0"
     assert node.is_replay is True
     assert isinstance(node.task, TaskSchema)
     assert node.jobworkdir == chip.getworkdir()
     assert node.workdir == os.path.join(node.jobworkdir, "stepone", "0")
+    assert node.project_cwd == os.path.abspath(".")
+    assert node.collection_dir == os.path.join(node.jobworkdir, "sc_collected_files")
 
     # Check private fields
     assert node._SchedulerNode__record_user_info is False
@@ -139,19 +176,27 @@ def test_init_not_entry(chip):
     assert node.index == "0"
     assert node.name == "dummy"
     assert node.topmodule == "dummy"
+    assert node.topmodule_global == "dummy"
     assert node.chip is chip
+    assert node.project is chip
     assert node.logger is chip.logger
     assert node.jobname == "job0"
     assert node.is_replay is False
     assert isinstance(node.task, TaskSchema)
     assert node.jobworkdir == chip.getworkdir()
     assert node.workdir == os.path.join(node.jobworkdir, "steptwo", "0")
+    assert node.project_cwd == os.path.abspath(".")
+    assert node.collection_dir == os.path.join(node.jobworkdir, "sc_collected_files")
 
     # Check private fields
     assert node._SchedulerNode__record_user_info is False
     assert node._SchedulerNode__generate_test_case is True
     assert node._SchedulerNode__hash is False
     assert node._SchedulerNode__is_entry_node is False
+
+
+def test_static_init():
+    assert SchedulerNode.init(None) is None
 
 
 def test_set_builtin(chip):
@@ -1510,3 +1555,13 @@ def test_copy_from(chip, caplog, has_graphviz):
     assert os.path.exists(node.get_manifest("output"))
     output_schema = Schema.from_manifest(filepath=node.get_manifest("output"))
     assert output_schema.get("option", "jobname") == "newname"
+
+
+def test_switch_node(chip):
+    node0 = SchedulerNode(chip, "stepone", "0")
+    node1 = node0.switch_node("steptwo", "2")
+    assert node0.step == "stepone"
+    assert node0.index == "0"
+    assert node1.step == "steptwo"
+    assert node1.index == "2"
+    assert node0.project is node1.project
