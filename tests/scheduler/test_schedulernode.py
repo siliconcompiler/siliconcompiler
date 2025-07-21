@@ -1530,3 +1530,13 @@ def test_copy_from(chip, caplog, has_graphviz):
     assert os.path.exists(node.get_manifest("output"))
     output_schema = Schema.from_manifest(filepath=node.get_manifest("output"))
     assert output_schema.get("option", "jobname") == "newname"
+
+
+def test_switch_node(chip):
+    node0 = SchedulerNode(chip, "stepone", "0")
+    node1 = node0.switch_node("steptwo", "2")
+    assert node0.step == "stepone"
+    assert node0.index == "0"
+    assert node1.step == "steptwo"
+    assert node1.index == "2"
+    assert node0.project is node1.project

@@ -79,6 +79,9 @@ class SchedulerNode:
     def init(chip):
         pass
 
+    def switch_node(self, step: str, index: str) -> "SchedulerNode":
+        return SchedulerNode(self.__chip, step, index)
+
     @property
     def is_local(self):
         return True
