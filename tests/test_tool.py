@@ -119,7 +119,7 @@ def running_project():
         def top(self, **kwargs):
             return "designtop"
 
-        def get_nop(self):
+        def get_nop(self) -> NOPTask:
             return self.get("tool", "builtin", "task", "nop", field="schema")
 
         def getworkdir(self, step=None, index=None):
@@ -143,8 +143,9 @@ def test_tasktimeout_init():
 
 def test_init():
     tool = TaskSchema("testtool")
-    assert tool.node() == (None, None)
-    assert tool.logger() is None
+    assert tool.step is None
+    assert tool.index is None
+    assert tool.logger is None
     assert tool.schema() is None
 
 
@@ -183,14 +184,18 @@ def test_set_runtime_invalid_flow(running_project):
 
 def test_runtime(running_project):
     with running_project.get_nop().runtime(running_project) as runtool:
-        assert runtool.node() == ('running', '0')
-        assert runtool.logger() is running_project.logger
+        assert runtool.step == 'running'
+        assert runtool.index == '0'
+        assert runtool.logger is running_project.logger
         assert runtool.schema() is running_project.schema
 
 
 def test_runtime_node_only(running_project):
     with running_project.get_nop().runtime(None, 'running', '0') as runtool:
-        assert runtool.node() == ('running', '0')
+        assert runtool.step == 'running'
+        assert runtool.index == '0'
+        assert runtool.logger is None
+        assert runtool.schema() is None
 
 
 def test_runtime_same_task(running_project):
@@ -198,11 +203,13 @@ def test_runtime_same_task(running_project):
          running_project.get_nop().runtime(running_project,
                                            step="notrunning", index="0") as runtool1:
         assert runtool0 is not runtool1
-        assert runtool0.node() == ('running', '0')
-        assert runtool0.logger() is running_project.logger
+        assert runtool0.step == 'running'
+        assert runtool0.index == '0'
+        assert runtool0.logger is running_project.logger
         assert runtool0.schema() is running_project.schema
-        assert runtool1.node() == ('notrunning', '0')
-        assert runtool1.logger() is running_project.logger
+        assert runtool1.step == 'notrunning'
+        assert runtool1.index == '0'
+        assert runtool1.logger is running_project.logger
         assert runtool1.schema() is running_project.schema
 
         assert runtool0.set("option", "tool0_opt")
@@ -219,8 +226,9 @@ def test_runtime_same_task(running_project):
 def test_runtime_different(running_project):
     with running_project.get_nop().runtime(running_project, step="notrunning", index="0") as \
             runtool:
-        assert runtool.node() == ('notrunning', '0')
-        assert runtool.logger() is running_project.logger
+        assert runtool.step == 'notrunning'
+        assert runtool.index == '0'
+        assert runtool.logger is running_project.logger
         assert runtool.schema() is running_project.schema
 
 
@@ -242,12 +250,12 @@ def test_schema_access_invalid(running_project):
 
 def test_design_name(running_project):
     with running_project.get_nop().runtime(running_project) as runtool:
-        assert runtool.design_name() == "testdesign"
+        assert runtool.design_name == "testdesign"
 
 
 def test_design_topmodule(running_project):
     with running_project.get_nop().runtime(running_project) as runtool:
-        assert runtool.design_topmodule() == "designtop"
+        assert runtool.design_topmodule == "designtop"
 
 
 def test_set(running_project):
