@@ -4,7 +4,7 @@ import pytest
 
 from siliconcompiler import NodeStatus
 from siliconcompiler import RecordSchema, MetricSchema, ToolSchema, FlowgraphSchema
-from siliconcompiler.schema import BaseSchema, EditableSchema, Parameter
+from siliconcompiler.schema import BaseSchema, EditableSchema, Parameter, PerNode
 
 from siliconcompiler.checklist import ChecklistSchema
 
@@ -220,6 +220,7 @@ def test_check_non_metric(project, caplog):
         '1.0e -9',
     ))
 def test_check_criteria_formatting_float_fail(project, criteria):
+    EditableSchema(project).insert("metric", "fmax", Parameter("float", pernode=PerNode.REQUIRED))
     project.set('metric', 'fmax', 5, step='teststep', index='0')
 
     checklist = ChecklistSchema()
@@ -247,6 +248,9 @@ def test_check_criteria_formatting_float_pass(project, criteria):
     os.makedirs('build/test/job0/teststep/0')
     with open('build/test/job0/teststep/0/testtask.log', 'w') as f:
         f.write('test')
+
+    EditableSchema(project).insert("metric", "fmax", Parameter("float", pernode=PerNode.REQUIRED))
+    print(project.getkeys("metric"))
 
     project.set('metric', 'fmax', criteria.strip(), step='teststep', index='0')
     project.set('tool', 'testtool', 'task', 'testtask', 'report', 'fmax',
