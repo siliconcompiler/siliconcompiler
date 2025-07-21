@@ -1460,6 +1460,8 @@ def test_add_required_key_invalid(running_project):
 
 
 def test_record_metric_with_units(running_project):
+    EditableSchema(running_project).insert(
+        "metric", "peakpower", Parameter("float", pernode=PerNode.REQUIRED, unit="mw"))
     with running_project.get_nop().runtime(running_project) as runtool:
         runtool.record_metric("peakpower", 1.05e6, source_unit="uW")
     assert running_project.get("metric", "peakpower", field="unit") == "mw"
@@ -1470,6 +1472,8 @@ def test_record_metric_with_units(running_project):
 
 
 def test_record_metric_without_units(running_project):
+    EditableSchema(running_project).insert(
+        "metric", "cells", Parameter("float", pernode=PerNode.REQUIRED))
     with running_project.get_nop().runtime(running_project) as runtool:
         runtool.record_metric("cells", 25)
     assert running_project.get("metric", "cells", step="running", index="0") == 25
@@ -1479,6 +1483,8 @@ def test_record_metric_without_units(running_project):
 
 
 def test_record_metric_with_source(running_project):
+    EditableSchema(running_project).insert(
+        "metric", "cells", Parameter("float", pernode=PerNode.REQUIRED))
     with running_project.get_nop().runtime(running_project) as runtool:
         runtool.record_metric("cells", 25, "report.txt")
     assert running_project.get("metric", "cells", step="running", index="0") == 25

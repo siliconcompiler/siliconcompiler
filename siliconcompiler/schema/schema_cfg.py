@@ -1075,8 +1075,8 @@ def schema_arg(cfg):
 # Metrics to Track
 ###########################################################################
 def schema_metric(cfg):
-    from siliconcompiler.metric import MetricSchema
-    cfg.insert("metric", MetricSchema())
+    from siliconcompiler.metric import MetricSchemaTmp
+    cfg.insert("metric", MetricSchemaTmp())
     return cfg
 
 
