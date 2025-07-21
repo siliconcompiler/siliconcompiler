@@ -7,6 +7,8 @@ from typing import List, Union, Tuple, Dict
 
 from siliconcompiler import utils
 
+from siliconcompiler import PackageSchema
+
 from siliconcompiler.dependencyschema import DependencySchema
 from siliconcompiler.pathschema import PathSchema
 from siliconcompiler.schema import NamedSchema
@@ -15,7 +17,7 @@ from siliconcompiler.schema.utils import trim
 
 
 ###########################################################################
-class DesignSchema(NamedSchema, DependencySchema, PathSchema):
+class DesignSchema(PackageSchema, NamedSchema, DependencySchema, PathSchema):
 
     def __init__(self, name: str = None):
         super().__init__()

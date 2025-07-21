@@ -149,6 +149,7 @@ markers = [
     "nostrict: don't automatically set [option, strict] parameter for Chip objects in this test.",
     "nocpulimit: don't limit cpu count for this test.",
     "docker: test requires docker",
+    "nocache: don't automatically set the cache directory",
 ]
 testpaths = [
     "tests"

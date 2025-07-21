@@ -5,6 +5,7 @@ import siliconcompiler
 from siliconcompiler.targets import freepdk45_demo, asic_demo
 
 
+@pytest.mark.nocache
 def test_hash_files():
     chip = siliconcompiler.Chip('top')
 

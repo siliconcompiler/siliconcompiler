@@ -252,6 +252,7 @@ def test_remote_child_impl():
         resolver.check_cache()
 
 
+@pytest.mark.nocache
 def test_remote_cache_dir_default():
     resolver = RemoteResolver("thisname", Chip("dummy"), "https://filepath", "ref")
     assert resolver.cache_dir == Path.home() / ".sc" / "cache"
