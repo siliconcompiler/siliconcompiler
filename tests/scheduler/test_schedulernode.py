@@ -63,13 +63,17 @@ def test_init(chip):
     assert node.index == "0"
     assert node.name == "dummy"
     assert node.topmodule == "dummy"
+    assert node.topmodule_global == "dummy"
     assert node.chip is chip
+    assert node.project is chip
     assert node.logger is chip.logger
     assert node.jobname == "job0"
     assert node.is_replay is False
     assert isinstance(node.task, TaskSchema)
     assert node.jobworkdir == chip.getworkdir()
     assert node.workdir == os.path.join(node.jobworkdir, "stepone", "0")
+    assert node.project_cwd == os.path.abspath(".")
+    assert node.collection_dir == os.path.join(node.jobworkdir, "sc_collected_files")
 
     # Check private fields
     assert node._SchedulerNode__record_user_info is False
@@ -89,13 +93,17 @@ def test_init_different_top(chip):
     assert node.index == "0"
     assert node.name == "dummy"
     assert node.topmodule == "thistop"
+    assert node.topmodule_global == "dummy"
     assert node.chip is chip
+    assert node.project is chip
     assert node.logger is chip.logger
     assert node.jobname == "job0"
     assert node.is_replay is False
     assert isinstance(node.task, TaskSchema)
     assert node.jobworkdir == chip.getworkdir()
     assert node.workdir == os.path.join(node.jobworkdir, "stepone", "0")
+    assert node.project_cwd == os.path.abspath(".")
+    assert node.collection_dir == os.path.join(node.jobworkdir, "sc_collected_files")
 
     # Check private fields
     assert node._SchedulerNode__record_user_info is False
@@ -114,13 +122,17 @@ def test_init_replay(chip):
     assert node.index == "0"
     assert node.name == "dummy"
     assert node.topmodule == "dummy"
+    assert node.topmodule_global == "dummy"
     assert node.chip is chip
+    assert node.project is chip
     assert node.logger is chip.logger
     assert node.jobname == "job0"
     assert node.is_replay is True
     assert isinstance(node.task, TaskSchema)
     assert node.jobworkdir == chip.getworkdir()
     assert node.workdir == os.path.join(node.jobworkdir, "stepone", "0")
+    assert node.project_cwd == os.path.abspath(".")
+    assert node.collection_dir == os.path.join(node.jobworkdir, "sc_collected_files")
 
     # Check private fields
     assert node._SchedulerNode__record_user_info is False
@@ -139,19 +151,27 @@ def test_init_not_entry(chip):
     assert node.index == "0"
     assert node.name == "dummy"
     assert node.topmodule == "dummy"
+    assert node.topmodule_global == "dummy"
     assert node.chip is chip
+    assert node.project is chip
     assert node.logger is chip.logger
     assert node.jobname == "job0"
     assert node.is_replay is False
     assert isinstance(node.task, TaskSchema)
     assert node.jobworkdir == chip.getworkdir()
     assert node.workdir == os.path.join(node.jobworkdir, "steptwo", "0")
+    assert node.project_cwd == os.path.abspath(".")
+    assert node.collection_dir == os.path.join(node.jobworkdir, "sc_collected_files")
 
     # Check private fields
     assert node._SchedulerNode__record_user_info is False
     assert node._SchedulerNode__generate_test_case is True
     assert node._SchedulerNode__hash is False
     assert node._SchedulerNode__is_entry_node is False
+
+
+def test_static_init():
+    assert SchedulerNode.init(None) is None
 
 
 def test_set_builtin(chip):

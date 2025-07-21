@@ -29,6 +29,7 @@ class SchedulerNode:
 
         self.__name = self.__chip.design
         self.__topmodule = self.__chip.top(step=step, index=index)
+        self.__topmodule_global = self.__chip.top()
 
         self.__job = self.__chip.get('option', 'jobname')
         self.__record_user_info = self.__chip.get("option", "track",
@@ -48,6 +49,7 @@ class SchedulerNode:
         self.__is_entry_node = (self.__step, self.__index) in \
             self.__chip.get("flowgraph", flow, field="schema").get_entry_nodes()
 
+        self.__cwd = self.__chip.cwd
         self.__jobworkdir = self.__chip.getworkdir(jobname=self.__job)
         self.__workdir = self.__chip.getworkdir(jobname=self.__job,
                                                 step=self.__step, index=self.__index)
@@ -60,6 +62,7 @@ class SchedulerNode:
             "exe": os.path.join(self.__workdir, f"{self.__step}.log")
         }
         self.__replay_script = os.path.join(self.__workdir, "replay.sh")
+        self.__collection_path = self.__chip._getcollectdir()
 
         self.set_queue(None, None)
         self.__setup_schema_access()
@@ -67,7 +70,7 @@ class SchedulerNode:
     @contextlib.contextmanager
     def runtime(self):
         prev_task = self.__task
-        with self.__task.runtime(self.__chip, step=self.__step, index=self.__index) as runtask:
+        with self.__task.runtime(self) as runtask:
             self.__task = runtask
             yield
         self.__task = prev_task
@@ -100,6 +103,10 @@ class SchedulerNode:
         return self.__chip
 
     @property
+    def project(self):
+        return self.chip
+
+    @property
     def step(self):
         return self.__step
 
@@ -116,8 +123,16 @@ class SchedulerNode:
         return self.__topmodule
 
     @property
+    def topmodule_global(self):
+        return self.__topmodule_global
+
+    @property
     def jobname(self):
         return self.__job
+
+    @property
+    def project_cwd(self):
+        return self.__cwd
 
     @property
     def workdir(self):
@@ -126,6 +141,10 @@ class SchedulerNode:
     @property
     def jobworkdir(self):
         return self.__jobworkdir
+
+    @property
+    def collection_dir(self):
+        return self.__collection_path
 
     @property
     def is_replay(self):
@@ -151,7 +170,7 @@ class SchedulerNode:
 
     @property
     def threads(self):
-        with self.__task.runtime(self.__chip, step=self.__step, index=self.__index) as task:
+        with self.__task.runtime(self) as task:
             thread_count = task.get("threads")
         return thread_count
 
@@ -201,7 +220,7 @@ class SchedulerNode:
         sys.exit(1)
 
     def setup(self):
-        with self.__task.runtime(self.__chip, step=self.__step, index=self.__index) as task:
+        with self.__task.runtime(self) as task:
             # Run node setup.
             self.logger.info(f'Setting up node {self.__step}/{self.__index} with '
                              f'{task.tool()}/{task.task()}')
