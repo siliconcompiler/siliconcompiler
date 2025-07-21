@@ -367,10 +367,10 @@ class ASICAreaConstraint(BaseSchema):
             raise ValueError("y margin canont be negative")
 
         if 2 * xmargin >= diewidth:
-            raise ValueError("x margin is greather than the die width")
+            raise ValueError("x margin is greater than the die width")
 
         if 2 * ymargin >= dieheight:
-            raise ValueError("y margin is greather than the die height")
+            raise ValueError("y margin is greater than the die height")
 
         return self.set_corearea([
             (xmargin, ymargin),

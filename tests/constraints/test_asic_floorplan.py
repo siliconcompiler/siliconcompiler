@@ -189,12 +189,12 @@ def test_corearea_rectangle_illegal_zero_width():
 
 
 def test_corearea_rectangle_illegal_extra_xmargin():
-    with pytest.raises(ValueError, match="x margin is greather than the die width"):
+    with pytest.raises(ValueError, match="x margin is greater than the die width"):
         ASICAreaConstraint().set_corearea_rectangle(100.0, 100.0, (50.0, 2))
 
 
 def test_corearea_rectangle_illegal_extra_ymargin():
-    with pytest.raises(ValueError, match="y margin is greather than the die height"):
+    with pytest.raises(ValueError, match="y margin is greater than the die height"):
         ASICAreaConstraint().set_corearea_rectangle(100.0, 100.0, (2, 50.0))
 
 
