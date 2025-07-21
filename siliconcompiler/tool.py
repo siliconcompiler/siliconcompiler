@@ -127,6 +127,7 @@ class TaskSchema(NamedSchema):
         self.__cwd = None
         self.__relpath = relpath
         self.__collection_path = None
+        self.__jobdir = None
         if node:
             if step is not None or index is not None:
                 raise RuntimeError("step and index cannot be provided with node")
@@ -139,6 +140,7 @@ class TaskSchema(NamedSchema):
             self.__design_top_global = node.topmodule_global
             self.__cwd = node.project_cwd
             self.__collection_path = node.collection_dir
+            self.__jobdir = node.workdir
 
             self.__step = node.step
             self.__index = node.index
@@ -265,8 +267,11 @@ class TaskSchema(NamedSchema):
         else:
             raise ValueError(f"{type} is not a schema section")
 
-    def get_log_filename(self, log: str) -> str:
-        raise NotImplementedError
+    def get_logpath(self, log: str) -> str:
+        """
+        Returns the relative path to the requested log.
+        """
+        return os.path.relpath(self.__node.get_log(log), self.__jobdir)
 
     def has_breakpoint(self) -> bool:
         '''
