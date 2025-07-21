@@ -10,6 +10,7 @@ from datetime import datetime
 from siliconcompiler.utils import get_file_template
 from siliconcompiler.tools._common import get_tool_task
 from siliconcompiler import RecordSchema
+from siliconcompiler.scheduler.schedulernode import SchedulerNode
 
 
 def generate_testcase(chip,
@@ -154,7 +155,7 @@ def generate_testcase(chip,
 
     task_class = chip.get("tool", tool, "task", task, field="schema")
 
-    with task_class.runtime(chip, step=step, index=index, relpath=new_work_dir) as task:
+    with task_class.runtime(SchedulerNode(chip, step, index), relpath=new_work_dir) as task:
         # Rewrite replay.sh
         prev_quiet = chip.get('option', 'quiet', step=step, index=index)
         chip.set('option', 'quiet', True, step=step, index=index)
