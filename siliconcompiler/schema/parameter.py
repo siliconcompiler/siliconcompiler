@@ -574,12 +574,25 @@ class Parameter:
 
         if self.__pernode == PerNode.REQUIRED and (step is None or index is None):
             return None
-        if not self.__pernode.is_never():
-            value = self.get(step=step, index=index)
-        else:
-            value = self.get()
 
-        return NodeType.to_tcl(value, self.__type)
+        if isinstance(index, int):
+            index = str(index)
+
+        try:
+            return self.__node[step][index].gettcl()
+        except KeyError:
+            if self.__pernode == PerNode.REQUIRED:
+                return self.__defvalue.gettcl()
+
+        try:
+            return self.__node[step][Parameter.GLOBAL_KEY].gettcl()
+        except KeyError:
+            pass
+
+        try:
+            return self.__node[Parameter.GLOBAL_KEY][Parameter.GLOBAL_KEY].gettcl()
+        except KeyError:
+            return self.__defvalue.gettcl()
 
     def getvalues(self, return_defvalue=True):
         """
