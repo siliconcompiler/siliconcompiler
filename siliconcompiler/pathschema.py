@@ -84,6 +84,32 @@ class PathSchemaBase(BaseSchema):
             cwd=cwd)
 
 
+class PathSchemaSimpleBase(PathSchemaBase):
+    def find_files(self, *keypath, missing_ok=False):
+        """
+        Returns absolute paths to files or directories based on the keypath
+        provided.
+        The keypath provided must point to a schema parameter of type file, dir,
+        or lists of either. Otherwise, it will trigger an error.
+        Args:
+            keypath (list of str): Variable length schema key list.
+            missing_ok (bool): If True, silently return None when files aren't
+                found. If False, print an error and set the error flag.
+        Returns:
+            If keys points to a scalar entry, returns an absolute path to that
+            file/directory, or None if not found. It keys points to a list
+            entry, returns a list of either the absolute paths or None for each
+            entry, depending on whether it is found.
+        Examples:
+            >>> schema.find_files('input', 'verilog')
+            Returns a list of absolute paths to source files, as specified in
+            the schema.
+        """
+        return super().find_files(*keypath,
+                                  missing_ok=missing_ok,
+                                  step=None, index=None)
+
+
 class PathSchema(PathSchemaBase):
     '''
     Schema extension to add support for path handling with dataroots

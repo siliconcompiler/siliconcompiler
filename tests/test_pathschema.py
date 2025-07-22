@@ -5,7 +5,7 @@ import os.path
 
 from siliconcompiler.schema import BaseSchema
 from siliconcompiler.schema import EditableSchema, Parameter
-from siliconcompiler.pathschema import PathSchemaBase, PathSchema
+from siliconcompiler.pathschema import PathSchemaBase, PathSchema, PathSchemaSimpleBase
 
 
 def test_init():
@@ -342,3 +342,114 @@ def test_active_dataroot_missing():
         with schema.active_dataroot("testpack"):
             pass
     assert schema._get_active(None) is None
+
+
+def test_simple_find_files():
+    class Test(PathSchema, PathSchemaSimpleBase):
+        def __init__(self):
+            super().__init__()
+
+            schema = EditableSchema(self)
+            schema.insert("file", Parameter("file"))
+
+    test = Test()
+    test.set_dataroot("testsource", "file://.")
+    param = test.set("file", "test.txt")
+    param.set("testsource", field="package")
+
+    with open("test.txt", "w") as f:
+        f.write("test")
+
+    assert test.find_files("file") == os.path.abspath("test.txt")
+
+
+def test_simple_find_files_no_source():
+    class Test(PathSchemaSimpleBase):
+        def __init__(self):
+            super().__init__()
+
+            schema = EditableSchema(self)
+            schema.insert("file", Parameter("file"))
+
+    test = Test()
+    param = test.set("file", "test.txt")
+    param.set("testsource", field="package")
+
+    with pytest.raises(ValueError, match="Resolver for testsource not provided"):
+        test.find_files("file")
+
+
+def test_simple_find_files_dir():
+    class Test(PathSchema, PathSchemaSimpleBase):
+        def __init__(self):
+            super().__init__()
+
+            schema = EditableSchema(self)
+            schema.insert("dir", Parameter("dir"))
+
+    test = Test()
+    test.set_dataroot("testsource", "file://.")
+    param = test.set("dir", "test")
+    param.set("testsource", field="package")
+
+    os.makedirs("test", exist_ok=True)
+
+    assert test.find_files("dir") == os.path.abspath("test")
+
+
+def test_simple_find_files_no_sources():
+    class Test(PathSchemaSimpleBase):
+        def __init__(self):
+            super().__init__()
+
+            schema = EditableSchema(self)
+            schema.insert("dir", Parameter("dir"))
+
+    test = Test()
+    assert test.set("dir", "test")
+
+    os.makedirs("test", exist_ok=True)
+
+    assert test.find_files("dir") == os.path.abspath("test")
+
+
+def test_simple_find_files_cwd():
+    class Test(PathSchemaSimpleBase):
+        cwd = "cwd"
+
+        def __init__(self):
+            super().__init__()
+
+            schema = EditableSchema(self)
+            schema.insert("dir", Parameter("dir"))
+
+    test = Test()
+    assert test.set("dir", "test")
+
+    os.makedirs("cwd/test", exist_ok=True)
+
+    assert test.find_files("dir") == os.path.abspath("cwd/test")
+
+
+def test_simple_find_files_collection_dir():
+    class Test(PathSchemaSimpleBase):
+        calls = 0
+
+        def collection_dir(self):
+            self.calls += 1
+            return os.path.abspath("collect")
+
+        def __init__(self):
+            super().__init__()
+
+            schema = EditableSchema(self)
+            schema.insert("dir", Parameter("dir"))
+
+    test = Test()
+    assert test.set("dir", "test")
+
+    os.makedirs("collect/test_3a52ce780950d4d969792a2559cd519d7ee8c727", exist_ok=True)
+
+    assert test.find_files("dir") == \
+        os.path.abspath("collect/test_3a52ce780950d4d969792a2559cd519d7ee8c727")
+    assert test.calls == 1
