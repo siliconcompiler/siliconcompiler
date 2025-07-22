@@ -776,6 +776,39 @@ def test_tcl_enum():
     assert param.gettcl(step="step", index="1") == '"test2"'
 
 
+def test_tcl_set():
+    param = Parameter("{str}", pernode=PerNode.REQUIRED)
+
+    assert param.set("test1", step="step", index="0")
+    assert param.set("test2", step="step", index="1")
+
+    assert param.gettcl() is None
+    assert param.gettcl(step="step", index="0") == '[list "test1"]'
+    assert param.gettcl(step="step", index="1") == '[list "test2"]'
+
+    assert param.add("test4", step="step", index="1")
+    assert param.add("test3", step="step", index="1")
+    assert param.gettcl(step="step", index="1") == '[list "test2" "test4" "test3"]'
+
+
+def test_tcl_set_empty():
+    param = Parameter("{str}", pernode=PerNode.REQUIRED)
+
+    assert param.gettcl() is None
+    assert param.gettcl(step="step", index="0") == '[list ]'
+
+
+def test_tcl_set_empty_int_index():
+    param = Parameter("{str}", pernode=PerNode.REQUIRED)
+
+    assert param.set("test1", step="step", index="0")
+    assert param.set("test2", step="step", index="1")
+
+    assert param.gettcl() is None
+    assert param.gettcl(step="step", index=0) == '[list "test1"]'
+    assert param.gettcl(step="step", index=1) == '[list "test2"]'
+
+
 def test_tcl_never():
     param = Parameter("str", pernode=PerNode.NEVER)
 

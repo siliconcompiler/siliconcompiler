@@ -19,6 +19,17 @@ def test_get_inner_value():
     assert isinstance(value.get(field=None), NodeValue)
 
 
+def test_gettcl():
+    value = NodeValue("str")
+
+    value.set("test")
+    assert value.gettcl() == '"test"'
+
+
+def test_gettcl_unset():
+    assert NodeValue("str").gettcl() == ""
+
+
 def test_set():
     value = NodeValue("str")
 
@@ -364,6 +375,17 @@ def test_nodelist_str_getdict_empty():
     param = NodeListValue(NodeValue("str"))
 
     assert param.getdict() == {'signature': [], 'value': []}
+
+
+def test_nodelist_gettcl():
+    param = NodeListValue(NodeValue("str"))
+
+    param.set("test")
+    assert param.gettcl() == '[list "test"]'
+
+
+def test_nodelist_gettcl_empty():
+    assert NodeListValue(NodeValue("str")).gettcl() == '[list ]'
 
 
 def test_nodelist_file_getdict_empty():
@@ -1191,3 +1213,16 @@ def test_nodeset_get_defvalue():
     value = NodeSetValue(defvalue)
     assert value.get() == set(["this"])
     assert value.get(ordered=True) == ["this"]
+
+
+def test_nodeset_gettcl():
+    param = NodeSetValue(NodeValue("str"))
+
+    param.add("test0")
+    param.add("test1")
+    param.add("test0")
+    assert param.gettcl() == '[list "test0" "test1"]'
+
+
+def test_nodeset_gettcl_empty():
+    assert NodeSetValue(NodeValue("str")).gettcl() == '[list ]'
