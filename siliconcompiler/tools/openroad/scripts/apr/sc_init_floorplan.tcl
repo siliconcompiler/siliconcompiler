@@ -301,12 +301,16 @@ if { [sc_cfg_exists constraint component] } {
     sc_print_macro_information
 }
 
-if { $do_automatic_pins } {
-    ###############################
-    # Automatic Random Pin Placement
-    ###############################
+if { [sc_check_version 23008] } {
+    # Dont do random placement
+} else {
+    if { $do_automatic_pins } {
+        ###############################
+        # Automatic Random Pin Placement
+        ###############################
 
-    sc_pin_placement -random
+        sc_pin_placement -random
+    }
 }
 
 ###############################

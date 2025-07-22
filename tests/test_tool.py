@@ -1696,3 +1696,15 @@ def test_add_output_file_clobber(running_node):
         assert runtool.get("output") == ["designtop.v"]
         runtool.add_output_file("this.v", clobber=True)
         assert runtool.get("output") == ["this.v"]
+
+
+def test_get_logpath(running_node):
+    with running_node.task.runtime(running_node) as runtool:
+        assert runtool.get_logpath("exe") == "running.log"
+        assert runtool.get_logpath("sc") == "sc_running_0.log"
+
+
+def test_get_logpath_fail(running_node):
+    with running_node.task.runtime(running_node) as runtool:
+        with pytest.raises(ValueError, match="notvalid is not a log"):
+            runtool.get_logpath("notvalid")
