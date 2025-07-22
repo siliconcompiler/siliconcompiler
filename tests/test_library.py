@@ -168,51 +168,138 @@ def test_stdlib_asic_keys():
         ('cells', 'hold',),
         ('cells', 'tap',),
         ('cells', 'tie',),
-        ('cornerfilesets', 'default',),
+        ('libcornerfileset', 'default', 'default'),
+        ('pexcornerfileset', 'default'),
+        ('aprfileset',),
         ('site',)
     }
 
 
-def test_add_asic_corner_fileset():
+def test_add_asic_libcornerfileset():
     lib = StdCellLibrarySchema("lib")
     with lib.active_fileset("models"):
         lib.add_file("test.lib")
-        assert lib.add_asic_corner_fileset("slow")
-    assert lib.get("asic", "cornerfilesets", "slow") == ["models"]
+        assert lib.add_asic_libcornerfileset("slow", "nldm")
+    assert lib.get("asic", "libcornerfileset", "slow", "nldm") == set(["models"])
 
 
-def test_add_asic_corner_fileset_multiple():
+def test_add_asic_libcornerfileset_multiple():
     lib = StdCellLibrarySchema("lib")
     with lib.active_fileset("models1"):
         lib.add_file("test.lib")
-        assert lib.add_asic_corner_fileset("slow")
+        assert lib.add_asic_libcornerfileset("slow", "nldm")
     with lib.active_fileset("models2"):
         lib.add_file("test.lib")
-        assert lib.add_asic_corner_fileset("slow")
-    assert lib.get("asic", "cornerfilesets", "slow") == ["models1", "models2"]
+        assert lib.add_asic_libcornerfileset("slow", "nldm")
+    assert lib.get("asic", "libcornerfileset", "slow", "nldm") == set(["models1", "models2"])
 
 
-def test_add_asic_corner_fileset_without_active():
+def test_add_asic_libcornerfileset_without_active():
     lib = StdCellLibrarySchema("lib")
     with lib.active_fileset("models"):
         lib.add_file("test.lib")
-    assert lib.add_asic_corner_fileset("slow", "models")
+    assert lib.add_asic_libcornerfileset("slow", "nldm", "models")
+    assert lib.get("asic", "libcornerfileset", "slow", "nldm") == set(["models"])
 
 
-def test_add_asic_corner_fileset_missing_fileset():
+def test_add_asic_libcornerfileset_missing_fileset():
     with pytest.raises(ValueError, match="models is not defined"):
-        StdCellLibrarySchema("lib").add_asic_corner_fileset("slow", "models")
+        StdCellLibrarySchema("lib").add_asic_libcornerfileset("slow", "nldm", "models")
 
 
-def test_add_asic_corner_fileset_invalid_fileset():
+def test_add_asic_libcornerfileset_invalid_model():
+    with pytest.raises(TypeError, match="model must be a string"):
+        StdCellLibrarySchema("lib").add_asic_libcornerfileset("slow", 8, "models")
+
+
+def test_add_asic_libcornerfileset_invalid_fileset():
     with pytest.raises(TypeError, match="fileset must be a string"):
-        StdCellLibrarySchema("lib").add_asic_corner_fileset("slow", 8)
+        StdCellLibrarySchema("lib").add_asic_libcornerfileset("slow", "nldm", 8)
 
 
-def test_add_asic_cell_list():
+def test_add_asic_pexcornerfileset():
     lib = StdCellLibrarySchema("lib")
-    lib.add_asic_cell_list("dontuse", "*X0*")
-    lib.add_asic_cell_list("dontuse", "*X1*")
+    with lib.active_fileset("models"):
+        lib.add_file("test.sp")
+        assert lib.add_asic_pexcornerfileset("slow", "spice")
+    assert lib.get("asic", "pexcornerfileset", "slow", "spice") == set(["models"])
+
+
+def test_add_asic_pexcornerfileset_multiple():
+    lib = StdCellLibrarySchema("lib")
+    with lib.active_fileset("models1"):
+        lib.add_file("test.sp")
+        assert lib.add_asic_pexcornerfileset("slow", "spice")
+    with lib.active_fileset("models2"):
+        lib.add_file("test.sp")
+        assert lib.add_asic_pexcornerfileset("slow", "spice")
+    assert lib.get("asic", "pexcornerfileset", "slow", "spice") == set(["models1", "models2"])
+
+
+def test_add_asic_pexcornerfileset_without_active():
+    lib = StdCellLibrarySchema("lib")
+    with lib.active_fileset("models"):
+        lib.add_file("test.sp")
+    assert lib.add_asic_pexcornerfileset("slow", "spice", "models")
+    assert lib.get("asic", "pexcornerfileset", "slow", "spice") == set(["models"])
+
+
+def test_add_asic_pexcornerfileset_missing_fileset():
+    with pytest.raises(ValueError, match="models is not defined"):
+        StdCellLibrarySchema("lib").add_asic_pexcornerfileset("slow", "spice", "models")
+
+
+def test_add_asic_pexcornerfileset_invalid_model():
+    with pytest.raises(TypeError, match="model must be a string"):
+        StdCellLibrarySchema("lib").add_asic_pexcornerfileset("slow", 8, "models")
+
+
+def test_add_asic_pexcornerfileset_invalid_fileset():
+    with pytest.raises(TypeError, match="fileset must be a string"):
+        StdCellLibrarySchema("lib").add_asic_pexcornerfileset("slow", "spice", 8)
+
+
+def test_add_asic_aprfileset():
+    lib = StdCellLibrarySchema("lib")
+    with lib.active_fileset("models"):
+        lib.add_file("test.lef")
+        assert lib.add_asic_aprfileset()
+    assert lib.get("asic", "aprfileset") == set(["models"])
+
+
+def test_add_asic_aprfileset_multiple():
+    lib = StdCellLibrarySchema("lib")
+    with lib.active_fileset("models1"):
+        lib.add_file("test.lef")
+        assert lib.add_asic_aprfileset()
+    with lib.active_fileset("models2"):
+        lib.add_file("test.gds")
+        assert lib.add_asic_aprfileset()
+    assert lib.get("asic", "aprfileset") == set(["models1", "models2"])
+
+
+def test_add_asic_aprfileset_without_active():
+    lib = StdCellLibrarySchema("lib")
+    with lib.active_fileset("models"):
+        lib.add_file("test.lef")
+    assert lib.add_asic_aprfileset("models")
+    assert lib.get("asic", "aprfileset") == set(["models"])
+
+
+def test_add_asic_aprfileset_missing_fileset():
+    with pytest.raises(ValueError, match="models is not defined"):
+        StdCellLibrarySchema("lib").add_asic_aprfileset("models")
+
+
+def test_add_asic_aprfileset_invalid_fileset():
+    with pytest.raises(TypeError, match="fileset must be a string"):
+        StdCellLibrarySchema("lib").add_asic_aprfileset(8)
+
+
+def test_add_asic_celllist():
+    lib = StdCellLibrarySchema("lib")
+    lib.add_asic_celllist("dontuse", "*X0*")
+    lib.add_asic_celllist("dontuse", "*X1*")
     assert lib.get("asic", "cells", "dontuse") == ["*X0*", "*X1*"]
 
 

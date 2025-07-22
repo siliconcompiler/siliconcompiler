@@ -49,13 +49,34 @@ class StdCellLibrarySchema(LibrarySchema):
         schema = EditableSchema(self)
 
         schema.insert(
-            'asic', 'cornerfilesets', 'default',
+            'asic', 'libcornerfileset', 'default', 'default',
             Parameter(
-                '[str]',
+                '{str}',
                 scope=Scope.GLOBAL,
-                shorthelp="ASIC: map of filesets to timing or pex corners",
-                example=["api: schema.set('asic', 'cornerfilesets', 'slow', 'timing.slow')"],
-                help=trim("""Map between filesets and timing or pex corners.""")))
+                shorthelp="ASIC: map of filesets to timing corners",
+                example=[
+                    "api: schema.set('asic', 'libcornerfileset', 'slow', 'nldm', 'timing.slow')"],
+                help=trim("""Map between filesets and timing corners.""")))
+
+        schema.insert(
+            'asic', 'pexcornerfileset', 'default',
+            Parameter(
+                '{str}',
+                scope=Scope.GLOBAL,
+                shorthelp="ASIC: map of filesets to pex corners",
+                example=[
+                    "api: schema.set('asic', 'pexcornerfileset', 'slow', 'timing.slow')"],
+                help=trim("""Map between filesets and pex corners.""")))
+
+        schema.insert(
+            'asic', 'aprfileset',
+            Parameter(
+                '{str}',
+                scope=Scope.GLOBAL,
+                shorthelp="ASIC: map of filesets to APR files",
+                example=[
+                    "api: schema.set('asic', 'aprfileset', 'model.lef')"],
+                help=trim("""Map between filesets and automated place and route tool files.""")))
 
         # TODO: Expand on the exact definitions of these types of cells.
         # minimize typing
@@ -93,12 +114,57 @@ class StdCellLibrarySchema(LibrarySchema):
                 example=["api: schema.set('asic', 'site', 'Site_12T')"],
                 help="Site names for a given library architecture."))
 
-    def add_asic_corner_fileset(self, corner: str, fileset: str = None):
+    def add_asic_libcornerfileset(self, corner: str, model: str, fileset: str = None):
         """
         Adds a mapping between filesets a corners defined in the library
 
         Args:
             corner (str): name of the timing or parasitic corner
+            model(str): type of delay modeling used, eg. ccs, nldm, etc.
+            fileset (str): name of the fileset
+        """
+        if not fileset:
+            fileset = self._get_active("fileset")
+
+        if not isinstance(fileset, str):
+            raise TypeError("fileset must be a string")
+
+        if not isinstance(model, str):
+            raise TypeError("model must be a string")
+
+        if fileset not in self.getkeys("fileset"):
+            raise ValueError(f"{fileset} is not defined")
+
+        return self.add("asic", "libcornerfileset", corner, model, fileset)
+
+    def add_asic_pexcornerfileset(self, corner: str, model: str, fileset: str = None):
+        """
+        Adds a mapping between filesets a corners defined in the library
+
+        Args:
+            corner (str): name of the timing or parasitic corner
+            model(str): type of delay modeling used, eg. spice, etc.
+            fileset (str): name of the fileset
+        """
+        if not fileset:
+            fileset = self._get_active("fileset")
+
+        if not isinstance(fileset, str):
+            raise TypeError("fileset must be a string")
+
+        if not isinstance(model, str):
+            raise TypeError("model must be a string")
+
+        if fileset not in self.getkeys("fileset"):
+            raise ValueError(f"{fileset} is not defined")
+
+        return self.add("asic", "pexcornerfileset", corner, model, fileset)
+
+    def add_asic_aprfileset(self, fileset: str = None):
+        """
+        Adds a mapping between filesets defined in the library
+
+        Args:
             fileset (str): name of the fileset
         """
         if not fileset:
@@ -110,9 +176,9 @@ class StdCellLibrarySchema(LibrarySchema):
         if fileset not in self.getkeys("fileset"):
             raise ValueError(f"{fileset} is not defined")
 
-        return self.add("asic", "cornerfilesets", corner, fileset)
+        return self.add("asic", "aprfileset", fileset)
 
-    def add_asic_cell_list(self, type: str, cells: Union[List[str], str]):
+    def add_asic_celllist(self, type: str, cells: Union[List[str], str]):
         """
         Adds a standard cell library to the specified type.
 
