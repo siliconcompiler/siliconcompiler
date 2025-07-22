@@ -1162,3 +1162,62 @@ def test_add_dep_same_name():
 
     with pytest.raises(ValueError, match="Cannot add a dependency with the same name"):
         schema.add_dep(DesignSchema("name0"))
+
+
+def test_copy_fileset():
+    schema = DesignSchema()
+
+    with schema.active_fileset("rtl"):
+        assert schema.set_topmodule("top")
+        assert schema.add_define("def")
+        assert schema.set_param("P", "1")
+        assert schema.add_file("top.v")
+
+    schema.copy_fileset("rtl", "rtl.other")
+    assert schema.get("fileset", "rtl.other", "topmodule") == "top"
+    assert schema.get("fileset", "rtl.other", "define") == ["def"]
+    assert schema.get("fileset", "rtl.other", "param", "P") == "1"
+    assert schema.get("fileset", "rtl.other", "file", "verilog") == ["top.v"]
+
+    with schema.active_fileset("rtl.other"):
+        assert schema.set_topmodule("test")
+
+    assert schema.get("fileset", "rtl", "topmodule") == "top"
+    assert schema.get("fileset", "rtl.other", "topmodule") == "test"
+
+
+def test_copy_fileset_fail_overwrite():
+    schema = DesignSchema()
+
+    with schema.active_fileset("rtl"):
+        assert schema.set_topmodule("top")
+        assert schema.add_define("def")
+        assert schema.set_param("P", "1")
+        assert schema.add_file("top.v")
+
+    with pytest.raises(ValueError, match="rtl already exists"):
+        schema.copy_fileset("rtl", "rtl")
+
+
+def test_copy_fileset_overwrite():
+    schema = DesignSchema()
+
+    with schema.active_fileset("rtl"):
+        assert schema.set_topmodule("top")
+        assert schema.add_define("def")
+        assert schema.set_param("P", "1")
+        assert schema.add_file("top.v")
+
+    schema.copy_fileset("rtl", "rtl.other")
+    assert schema.get("fileset", "rtl.other", "topmodule") == "top"
+    assert schema.get("fileset", "rtl.other", "define") == ["def"]
+    assert schema.get("fileset", "rtl.other", "param", "P") == "1"
+    assert schema.get("fileset", "rtl.other", "file", "verilog") == ["top.v"]
+
+    with schema.active_fileset("rtl.other"):
+        assert schema.set_topmodule("test")
+
+    assert schema.get("fileset", "rtl", "topmodule") == "top"
+    schema.copy_fileset("rtl.other", "rtl", clobber=True)
+    assert schema.get("fileset", "rtl", "topmodule") == "test"
+    assert schema.get("fileset", "rtl.other", "topmodule") == "test"
