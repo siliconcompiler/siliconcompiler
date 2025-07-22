@@ -75,24 +75,23 @@ class TaskScheduler:
             if self.__record.get('status', step=step, index=index) != NodeStatus.PENDING:
                 continue
 
-            with tasks[(step, index)].runtime():
-                threads = tasks[(step, index)].threads
-            if not threads:
-                threads = self.__max_threads
-            threads = max(1, min(threads, self.__max_threads))
-
             task = {
                 "name": f"{step}/{index}",
                 "inputs": runtime.get_node_inputs(step, index, record=self.__record),
                 "proc": None,
                 "parent_pipe": None,
-                "threads": threads,
+                "threads": None,
                 "running": False,
-                "manifest": os.path.join(self.__chip.getworkdir(step=step, index=index),
-                                         'outputs',
-                                         f'{self.__chip.design}.pkg.json'),
+                "manifest": None,
                 "node": tasks[(step, index)]
             }
+
+            with tasks[(step, index)].runtime():
+                threads = tasks[(step, index)].threads
+                task["manifest"] = tasks[(step, index)].get_manifest()
+            if not threads:
+                threads = self.__max_threads
+            task["threads"] = max(1, min(threads, self.__max_threads))
 
             task["parent_pipe"], pipe = multiprocessing.Pipe()
             task["node"].set_queue(pipe, self.__log_queue)
