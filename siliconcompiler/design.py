@@ -690,6 +690,21 @@ class DesignSchema(PackageSchema, NamedSchema, DependencySchema, PathSchema):
         with self._active(fileset=fileset):
             yield
 
+    def copy_fileset(self, src_fileset: str, dst_fileset: str, clobber: bool = False):
+        """
+        Create a new copy of a source fileset and store it in the destination fileset
+
+        Args:
+            src_fileset (str): source fileset
+            dst_fileset (str): destination fileset
+            clobber (bool): overwrite existing fileset
+        """
+        if not clobber and dst_fileset in self.getkeys("fileset"):
+            raise ValueError(f"{dst_fileset} already exists")
+
+        new_fs = self.get("fileset", src_fileset, field="schema").copy()
+        EditableSchema(self).insert("fileset", dst_fileset, new_fs, clobber=True)
+
     def get_fileset(self,
                     filesets: Union[List[str], str],
                     alias: Dict[str, Tuple[NamedSchema, str]] = None) -> \
