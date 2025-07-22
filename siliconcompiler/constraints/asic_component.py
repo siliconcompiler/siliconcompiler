@@ -281,10 +281,10 @@ class ASICComponentConstraints(BaseSchema):
         if not isinstance(component, ASICComponentConstraint):
             raise TypeError("component must be a component constraint object")
 
-        if component.name() is None:
+        if component.name is None:
             raise ValueError("component constraint must have a name")
 
-        EditableSchema(self).insert(component.name(), component, clobber=True)
+        EditableSchema(self).insert(component.name, component, clobber=True)
 
     def get_component(self, component: str = None):
         """

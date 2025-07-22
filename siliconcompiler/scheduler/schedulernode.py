@@ -251,7 +251,7 @@ class SchedulerNode:
 
     def check_previous_run_status(self, previous_run):
         # Assume modified if flow does not match
-        if self.__flow.name() != previous_run.__flow.name():
+        if self.__flow.name != previous_run.__flow.name:
             self.logger.debug("Flow name changed")
             return False
 

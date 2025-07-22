@@ -48,19 +48,18 @@ class DependencySchema(BaseSchema):
         if not isinstance(obj, NamedSchema):
             raise TypeError(f"Cannot add an object of type: {type(obj)}")
 
-        if not clobber and obj.name() in self.__deps:
+        if not clobber and obj.name in self.__deps:
             return False
 
-        if obj.name() is None:
+        if obj.name is None:
             raise ValueError("Cannot add an unnamed dependency")
 
-        if obj.name() not in self.__deps:
+        if obj.name not in self.__deps:
             self.set("deps", False, field="lock")
-            self.add("deps", obj.name())
+            self.add("deps", obj.name)
             self.set("deps", True, field="lock")
 
-        self.__deps[obj.name()] = obj
-        obj._reset()
+        self.__deps[obj.name] = obj
 
         return True
 
@@ -107,11 +106,11 @@ class DependencySchema(BaseSchema):
         dot.attr(bgcolor=background)
 
         def make_label(dep):
-            return f"lib-{dep.name()}"
+            return f"lib-{dep.name}"
 
         nodes = {
-            self.name(): {
-                "text": self.name(),
+            self.name: {
+                "text": self.name,
                 "shape": "box",
                 "color": background,
                 "connects_to": set([make_label(subdep) for subdep in self.__deps.values()])
@@ -119,7 +118,7 @@ class DependencySchema(BaseSchema):
         }
         for dep in self.get_dep():
             nodes[make_label(dep)] = {
-                "text": dep.name(),
+                "text": dep.name,
                 "shape": "oval",
                 "color": background,
                 "connects_to": set([make_label(subdep) for subdep in dep.__deps.values()])
@@ -145,11 +144,11 @@ class DependencySchema(BaseSchema):
         deps = []
 
         for obj in self.__deps.values():
-            if obj.name() in seen:
+            if obj.name in seen:
                 continue
 
             deps.append(obj)
-            seen.add(obj.name())
+            seen.add(obj.name)
 
             if not isinstance(obj, DependencySchema):
                 # nothing to iterate over
@@ -157,7 +156,7 @@ class DependencySchema(BaseSchema):
 
             for obj_dep in obj.__get_all_deps(seen):
                 deps.append(obj_dep)
-                seen.add(obj_dep.name())
+                seen.add(obj_dep.name)
 
         return deps
 

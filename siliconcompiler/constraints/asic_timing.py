@@ -323,7 +323,7 @@ class ASICTimingScenarioSchema(NamedSchema):
                 a string.
         """
         if isinstance(design, DesignSchema):
-            design = design.name()
+            design = design.name
 
         if not isinstance(design, str):
             raise TypeError("design must be a design object or string")
@@ -420,10 +420,10 @@ class ASICTimingConstraintSchema(BaseSchema):
         if not isinstance(scenario, ASICTimingScenarioSchema):
             raise TypeError("scenario must be a timing scenario object")
 
-        if scenario.name() is None:
+        if scenario.name is None:
             raise ValueError("scenario must have a name")
 
-        EditableSchema(self).insert(scenario.name(), scenario, clobber=True)
+        EditableSchema(self).insert(scenario.name, scenario, clobber=True)
 
     def get_scenario(self, scenario: str = None):
         """

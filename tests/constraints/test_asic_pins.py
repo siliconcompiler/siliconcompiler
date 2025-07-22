@@ -36,10 +36,10 @@ def test_asic_pin_constraint_key_params(key):
 
 def test_asic_pin_constraint_init(pin_constraint):
     """Test ASICPinConstraint initialization and name setting."""
-    assert pin_constraint.name() == "test_pin"
+    assert pin_constraint.name == "test_pin"
     # Test without name
     no_name_pin = ASICPinConstraint()
-    assert no_name_pin.name() is None
+    assert no_name_pin.name is None
 
 
 def test_set_get_width(pin_constraint):
@@ -263,7 +263,7 @@ def test_make_pinconstraint(pin_constraints_collection):
     """Test creating new pin constraints."""
     new_pin = pin_constraints_collection.make_pinconstraint("made_pin")
     assert isinstance(new_pin, ASICPinConstraint)
-    assert new_pin.name() == "made_pin"
+    assert new_pin.name == "made_pin"
     assert pin_constraints_collection.get_pinconstraint("made_pin") is new_pin
 
     # Test creating existing

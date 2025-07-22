@@ -123,7 +123,7 @@ class FlowgraphSchema(NamedSchema):
 
         for step, index in [(head, head_index), (tail, tail_index)]:
             if not self.valid(step, index):
-                raise ValueError(f"{step}/{index} is not a defined node in {self.name()}.")
+                raise ValueError(f"{step}/{index} is not a defined node in {self.name}.")
 
         tail_node = (tail, tail_index)
         if tail_node in self.get(head, head_index, 'input'):
@@ -143,7 +143,7 @@ class FlowgraphSchema(NamedSchema):
         '''
 
         if step not in self.getkeys():
-            raise ValueError(f'{step} is not a valid step in {self.name()}')
+            raise ValueError(f'{step} is not a valid step in {self.name}')
 
         if index is None:
             # Iterate over all indexes
@@ -153,7 +153,7 @@ class FlowgraphSchema(NamedSchema):
 
         index = str(index)
         if index not in self.getkeys(step):
-            raise ValueError(f'{index} is not a valid index for {step} in {self.name()}')
+            raise ValueError(f'{index} is not a valid index for {step} in {self.name}')
 
         # Save input edges
         node = (step, index)
@@ -192,7 +192,7 @@ class FlowgraphSchema(NamedSchema):
         before_index = str(before_index)
 
         if (before_step, before_index) not in self.get_nodes():
-            raise ValueError(f'{before_step}/{before_index} is not a valid node in {self.name()}')
+            raise ValueError(f'{before_step}/{before_index} is not a valid node in {self.name}')
 
         # add the node
         self.node(step, task, index=index)
@@ -474,14 +474,14 @@ class FlowgraphSchema(NamedSchema):
                     in_step, in_index = node
                     if logger:
                         logger.error(f'Duplicate edge from {in_step}/{in_index} to '
-                                     f'{step}/{index} in the {self.name()} flowgraph')
+                                     f'{step}/{index} in the {self.name} flowgraph')
                     error = True
 
         diff_nodes = check_nodes.difference(self.get_nodes())
         if diff_nodes:
             if logger:
                 for step, index in diff_nodes:
-                    logger.error(f'{step}/{index} is missing in the {self.name()} flowgraph')
+                    logger.error(f'{step}/{index} is missing in the {self.name} flowgraph')
             error = True
 
         # Detect missing definitions
@@ -490,7 +490,7 @@ class FlowgraphSchema(NamedSchema):
                 if not self.get(step, index, item):
                     if logger:
                         logger.error(f'{step}/{index} is missing a {item} definition in the '
-                                     f'{self.name()} flowgraph')
+                                     f'{self.name} flowgraph')
                     error = True
 
         # detect loops
@@ -500,7 +500,7 @@ class FlowgraphSchema(NamedSchema):
                 error = True
                 if logger:
                     loop_path = [f"{step}/{index}" for step, index in loop_path]
-                    logger.error(f"{' -> '.join(loop_path)} forms a loop in {self.name()}")
+                    logger.error(f"{' -> '.join(loop_path)} forms a loop in {self.name}")
 
         return not error
 
@@ -527,7 +527,7 @@ class FlowgraphSchema(NamedSchema):
         index = str(index)
 
         if (step, index) not in self.get_nodes():
-            raise ValueError(f"{step}/{index} is not a valid node in {self.name()}.")
+            raise ValueError(f"{step}/{index} is not a valid node in {self.name}.")
 
         return self.__get_task_module(self.get(step, index, 'taskmodule'))
 
@@ -759,18 +759,18 @@ class RuntimeFlowgraph:
         # Check for undefined steps
         for step in sorted(from_steps.difference(all_steps)):
             if logger:
-                logger.error(f'From {step} is not defined in the {flow.name()} flowgraph')
+                logger.error(f'From {step} is not defined in the {flow.name} flowgraph')
             error = True
 
         for step in sorted(to_steps.difference(all_steps)):
             if logger:
-                logger.error(f'To {step} is not defined in the {flow.name()} flowgraph')
+                logger.error(f'To {step} is not defined in the {flow.name} flowgraph')
             error = True
 
         # Check for undefined prunes
         for step, index in sorted(prune_nodes.difference(flow.get_nodes())):
             if logger:
-                logger.error(f'{step}/{index} is not defined in the {flow.name()} flowgraph')
+                logger.error(f'{step}/{index} is not defined in the {flow.name} flowgraph')
             error = True
 
         if not error:
@@ -789,7 +789,7 @@ class RuntimeFlowgraph:
             runtime_exits = set([step for step, _ in runtime.get_exit_nodes()])
             for step in unpruned_exits.difference(runtime_exits):
                 if logger:
-                    logger.error(f'pruning removed all exit nodes for {step} in the {flow.name()} '
+                    logger.error(f'pruning removed all exit nodes for {step} in the {flow.name} '
                                  'flowgraph')
                 error = True
 
@@ -797,7 +797,7 @@ class RuntimeFlowgraph:
             runtime_entry = set([step for step, _ in runtime.get_entry_nodes()])
             for step in unpruned_entry.difference(runtime_entry):
                 if logger:
-                    logger.error(f'pruning removed all entry nodes for {step} in the {flow.name()} '
+                    logger.error(f'pruning removed all entry nodes for {step} in the {flow.name} '
                                  'flowgraph')
                 error = True
 
@@ -814,7 +814,7 @@ class RuntimeFlowgraph:
                         exits = ",".join([f"{step}/{index}"
                                           for step, index in runtime.get_exit_nodes()])
                         missing.append(f'no path from {entrynode[0]}/{entrynode[1]} to {exits} '
-                                       f'in the {flow.name()} flowgraph')
+                                       f'in the {flow.name} flowgraph')
                     if found:
                         found_any = True
                 if not found_any:

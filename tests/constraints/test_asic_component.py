@@ -35,10 +35,10 @@ def test_asic_component_constraint_key_params(key):
 
 def test_asic_component_constraint_init(component_constraint):
     """Test ASICComponentConstraint initialization and name setting."""
-    assert component_constraint.name() == "test_comp"
+    assert component_constraint.name == "test_comp"
     # Test without name
     no_name_comp = ASICComponentConstraint()
-    assert no_name_comp.name() is None
+    assert no_name_comp.name is None
 
 
 def test_set_get_placement(component_constraint):
@@ -187,7 +187,7 @@ def test_make_component(component_constraints_collection):
     """Test creating new component constraints."""
     new_comp = component_constraints_collection.make_component("made_comp")
     assert isinstance(new_comp, ASICComponentConstraint)
-    assert new_comp.name() == "made_comp"
+    assert new_comp.name == "made_comp"
     assert component_constraints_collection.get_component("made_comp") is new_comp
 
     # Test creating existing

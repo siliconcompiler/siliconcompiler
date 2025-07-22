@@ -125,7 +125,7 @@ class Project(PathSchemaBase, BaseSchema):
 
     def __import_design(self, design: DesignSchema):
         edit_schema = EditableSchema(self)
-        edit_schema.insert("library", design.name(), design, clobber=True)
+        edit_schema.insert("library", design.name, design, clobber=True)
 
         # Copy dependencies into project
         for dep in design.get_dep():
@@ -133,7 +133,7 @@ class Project(PathSchemaBase, BaseSchema):
 
     def __import_flow(self, flow: FlowgraphSchema):
         edit_schema = EditableSchema(self)
-        edit_schema.insert("flowgraph", flow.name(), flow, clobber=True)
+        edit_schema.insert("flowgraph", flow.name, flow, clobber=True)
 
         # Instantiate tasks
         for task_cls in flow.get_all_tasks():
@@ -347,7 +347,7 @@ class Project(PathSchemaBase, BaseSchema):
         """
         if isinstance(design, DesignSchema):
             self.add_dep(design)
-            design = design.name()
+            design = design.name
         elif not isinstance(design, str):
             raise TypeError("design must be string or Design object")
 
@@ -362,7 +362,7 @@ class Project(PathSchemaBase, BaseSchema):
         """
         if isinstance(flow, FlowgraphSchema):
             self.add_dep(flow)
-            flow = flow.name()
+            flow = flow.name
         elif not isinstance(flow, str):
             raise TypeError("flow must be string or Flowgraph object")
 
@@ -388,7 +388,7 @@ class Project(PathSchemaBase, BaseSchema):
 
         for fs in fileset:
             if fs not in self.design.getkeys("fileset"):
-                raise ValueError(f"{fs} is not a valid fileset in {self.design.name()}")
+                raise ValueError(f"{fs} is not a valid fileset in {self.design.name}")
 
         if clobber:
             return self.set("option", "fileset", fileset)
@@ -418,7 +418,7 @@ class Project(PathSchemaBase, BaseSchema):
 
             src_dep = self.get("library", src_dep, field="schema")
         if isinstance(src_dep, DesignSchema):
-            src_dep_name = src_dep.name()
+            src_dep_name = src_dep.name
             if src_dep_name not in self.getkeys("library"):
                 raise KeyError(f"{src_dep_name} has not been loaded")
         else:
@@ -443,7 +443,7 @@ class Project(PathSchemaBase, BaseSchema):
 
         if alias_dep is not None:
             if isinstance(alias_dep, DesignSchema):
-                alias_dep_name = alias_dep.name()
+                alias_dep_name = alias_dep.name
                 if alias_dep_name not in self.getkeys("library"):
                     self.add_dep(alias_dep)
             else:

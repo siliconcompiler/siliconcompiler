@@ -37,14 +37,14 @@ class Scheduler:
         prune_nodes = self.__chip.get('option', 'prune')
 
         if not self.__flow.validate(logger=self.__logger):
-            raise ValueError(f"{self.__flow.name()} flowgraph contains errors and cannot be run.")
+            raise ValueError(f"{self.__flow.name} flowgraph contains errors and cannot be run.")
         if not RuntimeFlowgraph.validate(
                 self.__flow,
                 from_steps=from_steps,
                 to_steps=to_steps,
                 prune_nodes=prune_nodes,
                 logger=chip.logger):
-            raise ValueError(f"{self.__flow.name()} flowgraph contains errors and cannot be run.")
+            raise ValueError(f"{self.__flow.name} flowgraph contains errors and cannot be run.")
 
         self.__flow_runtime = RuntimeFlowgraph(
             self.__flow,

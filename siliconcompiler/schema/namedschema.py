@@ -20,6 +20,7 @@ class NamedSchema(BaseSchema):
 
         self.set_name(name)
 
+    @property
     def name(self) -> str:
         '''
         Returns the name of the schema
@@ -40,17 +41,11 @@ class NamedSchema(BaseSchema):
             name (str): name for object
         """
 
-        if self.name() is not None:
+        if self.name is not None:
             raise RuntimeError("Cannot call set_name more than once.")
         if name is not None and "." in name:
             raise ValueError("Named schema object cannot contains: .")
         self.__name = name
-
-    def _reset(self) -> None:
-        """
-        Resets the state of the object
-        """
-        pass
 
     def type(self) -> str:
         """

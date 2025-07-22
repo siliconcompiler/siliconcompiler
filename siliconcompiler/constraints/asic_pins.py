@@ -393,10 +393,10 @@ class ASICPinConstraints(BaseSchema):
         if not isinstance(pin, ASICPinConstraint):
             raise TypeError("pin must be a pin copnstraint object")
 
-        if pin.name() is None:
+        if pin.name is None:
             raise ValueError("pin constraint must have a name")
 
-        EditableSchema(self).insert(pin.name(), pin, clobber=True)
+        EditableSchema(self).insert(pin.name, pin, clobber=True)
 
     def get_pinconstraint(self, pin: str = None):
         """

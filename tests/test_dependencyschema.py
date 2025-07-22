@@ -34,24 +34,6 @@ def test_add_dep():
     assert schema.get("deps", field="lock") is True
 
 
-def test_add_dep_confirm_reset():
-    class Test(NamedSchema):
-        def __init__(self):
-            super().__init__("thisname")
-            self.state_info = "notthis"
-
-        def _reset(self):
-            super()._reset()
-            self.state_info = None
-
-    schema = DependencySchema()
-
-    dep = Test()
-    assert dep.state_info == "notthis"
-    assert schema.add_dep(dep)
-    assert dep.state_info is None
-
-
 def test_add_dep_clobber():
     schema = DependencySchema()
 
@@ -420,7 +402,7 @@ def test_populate_deps():
 
     check = Test.from_manifest("test", cfg=schema.getdict())
     assert check.get_dep() == []
-    module_map = {obj.name(): obj for obj in schema.get_dep()}
+    module_map = {obj.name: obj for obj in schema.get_dep()}
     check._populate_deps(module_map)
     assert check.get_dep() == schema.get_dep()
 
@@ -472,6 +454,6 @@ def test_populate_deps_already_populated():
     check.add_dep(dep00)
 
     assert check.get_dep() == [dep00, dep10]
-    module_map = {obj.name(): obj for obj in schema.get_dep()}
+    module_map = {obj.name: obj for obj in schema.get_dep()}
     check._populate_deps(module_map)
     assert check.get_dep() == [dep00, dep10]
