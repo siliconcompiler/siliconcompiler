@@ -217,6 +217,11 @@ Supporting Classes
     :show-inheritance:
     :inherited-members:
 
+.. autoclass:: siliconcompiler.filesetschema.FileSetSchema
+    :members:
+    :show-inheritance:
+    :inherited-members:
+
 .. autoclass:: siliconcompiler.flowgraph.FlowgraphNodeSchema
     :members:
     :show-inheritance:

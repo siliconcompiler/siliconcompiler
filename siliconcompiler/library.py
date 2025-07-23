@@ -1,12 +1,14 @@
 from typing import final, Union, List
 
-from siliconcompiler.design import DesignSchema
+from siliconcompiler import PackageSchema
+from siliconcompiler.filesetschema import FileSetSchema
+from siliconcompiler.schema import NamedSchema
 
 from siliconcompiler.schema import EditableSchema, Parameter, Scope, PerNode
 from siliconcompiler.schema.utils import trim
 
 
-class LibrarySchema(DesignSchema):
+class LibrarySchema(FileSetSchema, PackageSchema, NamedSchema):
     def __init__(self, name: str = None):
         super().__init__()
         self.set_name(name)
