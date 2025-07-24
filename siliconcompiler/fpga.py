@@ -43,10 +43,10 @@ class FPGASchema(ToolLibrarySchema):
         if not isinstance(name, str):
             raise TypeError
 
-        self.set("fpga", "partname", name)
+        return self.set("fpga", "partname", name)
 
     def set_lutsize(self, lut: int):
-        self.set("fpga", "lutsize", lut)
+        return self.set("fpga", "lutsize", lut)
 
 
 class FPGASchemaTmp(BaseSchema):

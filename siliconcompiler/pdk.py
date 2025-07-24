@@ -13,7 +13,7 @@ class PDKSchema(ToolLibrarySchema):
         schema = EditableSchema(self)
 
         schema.insert(
-            'foundry',
+            "pdk", 'foundry',
             Parameter(
                 'str',
                 scope=Scope.GLOBAL,
@@ -27,7 +27,7 @@ class PDKSchema(ToolLibrarySchema):
                 simulated non-manufacturable processes.""")))
 
         schema.insert(
-            'node',
+            "pdk", 'node',
             Parameter(
                 'float',
                 scope=Scope.GLOBAL,
@@ -44,7 +44,7 @@ class PDKSchema(ToolLibrarySchema):
                 10, 7, 5, 3.""")))
 
         schema.insert(
-            'stackup',
+            "pdk", 'stackup',
             Parameter(
                 'str',
                 scope=Scope.GLOBAL,
@@ -66,7 +66,7 @@ class PDKSchema(ToolLibrarySchema):
                 parameters.""")))
 
         schema.insert(
-            'minlayer',
+            "pdk", 'minlayer',
             Parameter(
                 'str',
                 scope=Scope.GLOBAL,
@@ -80,7 +80,7 @@ class PDKSchema(ToolLibrarySchema):
                 specified on a per stackup basis.""")))
 
         schema.insert(
-            'maxlayer',
+            "pdk", 'maxlayer',
             Parameter(
                 'str',
                 scope=Scope.GLOBAL,
@@ -94,7 +94,7 @@ class PDKSchema(ToolLibrarySchema):
                 specified on a per stackup basis.""")))
 
         schema.insert(
-            'wafersize',
+            "pdk", 'wafersize',
             Parameter(
                 'float',
                 scope=Scope.GLOBAL,
@@ -111,7 +111,7 @@ class PDKSchema(ToolLibrarySchema):
                 calculate dies per wafer and full factory chip costs.""")))
 
         schema.insert(
-            'unitcost',
+            "pdk", 'unitcost',
             Parameter(
                 'float',
                 scope=Scope.GLOBAL,
@@ -125,7 +125,7 @@ class PDKSchema(ToolLibrarySchema):
                 loss.""")))
 
         schema.insert(
-            'd0',
+            "pdk", 'd0',
             Parameter(
                 'float',
                 scope=Scope.GLOBAL,
@@ -142,7 +142,7 @@ class PDKSchema(ToolLibrarySchema):
                 calculated as dy = ((1-exp(-area * d0/100))/(area * d0/100))^2.""")))
 
         schema.insert(
-            'scribe',
+            "pdk", 'scribe',
             Parameter(
                 '(float,float)',
                 scope=Scope.GLOBAL,
@@ -159,7 +159,7 @@ class PDKSchema(ToolLibrarySchema):
                 to calculate effective dies per wafer and full factory cost.""")))
 
         schema.insert(
-            'edgemargin',
+            "pdk", 'edgemargin',
             Parameter(
                 'float',
                 scope=Scope.GLOBAL,
@@ -178,7 +178,7 @@ class PDKSchema(ToolLibrarySchema):
         tool = 'default'
         simtype = 'default'
         schema.insert(
-            'devmodelfileset', tool, simtype,
+            "pdk", 'devmodelfileset', tool, simtype,
             Parameter(
                 '[str]',
                 scope=Scope.GLOBAL,
@@ -200,7 +200,7 @@ class PDKSchema(ToolLibrarySchema):
 
         corner = 'default'
         schema.insert(
-            'pexmodelfileset', tool, corner,
+            "pdk", 'pexmodelfileset', tool, corner,
             Parameter(
                 '[str]',
                 scope=Scope.GLOBAL,
@@ -221,7 +221,7 @@ class PDKSchema(ToolLibrarySchema):
         src = 'default'
         dst = 'default'
         schema.insert(
-            'layermapfileset', tool, src, dst,
+            "pdk", 'layermapfileset', tool, src, dst,
             Parameter(
                 '[str]',
                 scope=Scope.GLOBAL,
@@ -244,7 +244,7 @@ class PDKSchema(ToolLibrarySchema):
                 or file formats (like 'gds').""")))
 
         schema.insert(
-            'displayfileset', tool,
+            "pdk", 'displayfileset', tool,
             Parameter(
                 '[str]',
                 scope=Scope.GLOBAL,
@@ -260,7 +260,7 @@ class PDKSchema(ToolLibrarySchema):
 
         # TODO: create firm list of accepted files
         schema.insert(
-            'aprtechfileset', tool,
+            "pdk", 'aprtechfileset', tool,
             Parameter(
                 '[file]',
                 scope=Scope.GLOBAL,
@@ -285,7 +285,7 @@ class PDKSchema(ToolLibrarySchema):
         name = 'default'
         for item in ('lvs', 'drc', 'erc', 'fill'):
             schema.insert(
-                item, 'runsetfileset', tool, name,
+                "pdk", item, 'runsetfileset', tool, name,
                 Parameter(
                     '[str]',
                     scope=Scope.GLOBAL,
@@ -298,7 +298,7 @@ class PDKSchema(ToolLibrarySchema):
                     help=trim(f"""Runset files for {item.upper()} task.""")))
 
             schema.insert(
-                item, 'waiverfileset', tool, name,
+                "pdk", item, 'waiverfileset', tool, name,
                 Parameter(
                     '[str]',
                     scope=Scope.GLOBAL,
@@ -309,6 +309,47 @@ class PDKSchema(ToolLibrarySchema):
                         f"api: chip.set('{item}', 'waiver', 'magic', 'M10', 'basic', "
                         f"'$PDK/{item}.txt')"],
                     help=trim(f"""Waiver files for {item.upper()} task.""")))
+
+    def set_foundry(self, foundry: str):
+        return self.set("pdk", "foundry", foundry)
+
+    def set_node(self, node: float):
+        return self.set("pdk", "node", node)
+
+    def set_stackup(self, stackup: str):
+        return self.set("pdk", "stackup", stackup)
+
+    def set_wafersize(self, wafersize: float):
+        return self.set("pdk", "wafersize", wafersize)
+
+    def set_unitcost(self, unitcost: float):
+        return self.set("pdk", "unitcost", unitcost)
+
+    def set_defectdensity(self, d0: float):
+        return self.set("pdk", "d0", d0)
+
+    def set_scribewidth(self, x: float, y: float):
+        return self.set("pdk", "scribe", (x, y))
+
+    def set_edgemargin(self, margin: float):
+        return self.set("pdk", "edgemargin", margin)
+
+    def set_apr_routinglayers(self, min: str = None, max: str = None):
+        if min:
+            self.set("pdk", "minlayer", min)
+        if max:
+            self.set("pdk", "maxlayer", max)
+
+    def set_apr_techfileset(self, tool: str, fileset: str = None, clobber: bool = False):
+        if not fileset:
+            fileset = self._get_active("fileset")
+
+        self._assert_fileset(fileset)
+
+        if clobber:
+            return self.set("pdk", "aprtechfileset", tool, fileset)
+        else:
+            return self.add("pdk", "aprtechfileset", tool, fileset)
 
 
 class PDKSchemaTmp(NamedSchema):
