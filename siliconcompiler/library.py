@@ -13,6 +13,8 @@ class LibrarySchema(FileSetSchema, PackageSchema, NamedSchema):
         super().__init__()
         self.set_name(name)
 
+
+class ToolLibrarySchema(LibrarySchema):
     @final
     def define_tool_parameter(self, tool: str, name: str, type: str, help: str, **kwargs):
         """
@@ -43,7 +45,7 @@ class LibrarySchema(FileSetSchema, PackageSchema, NamedSchema):
         )
 
 
-class StdCellLibrarySchema(LibrarySchema):
+class StdCellLibrarySchema(ToolLibrarySchema):
     def __init__(self, name: str = None):
         super().__init__()
         self.set_name(name)
@@ -128,14 +130,10 @@ class StdCellLibrarySchema(LibrarySchema):
         if not fileset:
             fileset = self._get_active("fileset")
 
-        if not isinstance(fileset, str):
-            raise TypeError("fileset must be a string")
-
         if not isinstance(model, str):
             raise TypeError("model must be a string")
 
-        if fileset not in self.getkeys("fileset"):
-            raise ValueError(f"{fileset} is not defined")
+        self._assert_fileset(fileset)
 
         return self.add("asic", "libcornerfileset", corner, model, fileset)
 
@@ -151,14 +149,10 @@ class StdCellLibrarySchema(LibrarySchema):
         if not fileset:
             fileset = self._get_active("fileset")
 
-        if not isinstance(fileset, str):
-            raise TypeError("fileset must be a string")
-
         if not isinstance(model, str):
             raise TypeError("model must be a string")
 
-        if fileset not in self.getkeys("fileset"):
-            raise ValueError(f"{fileset} is not defined")
+        self._assert_fileset(fileset)
 
         return self.add("asic", "pexcornerfileset", corner, model, fileset)
 
@@ -172,11 +166,7 @@ class StdCellLibrarySchema(LibrarySchema):
         if not fileset:
             fileset = self._get_active("fileset")
 
-        if not isinstance(fileset, str):
-            raise TypeError("fileset must be a string")
-
-        if fileset not in self.getkeys("fileset"):
-            raise ValueError(f"{fileset} is not defined")
+        self._assert_fileset(fileset)
 
         return self.add("asic", "aprfileset", fileset)
 

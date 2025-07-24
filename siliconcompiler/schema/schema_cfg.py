@@ -208,8 +208,8 @@ def schema_schematic(cfg):
 # FPGA
 ###############################################################################
 def schema_fpga(cfg):
-    from siliconcompiler.fpga import FPGASchema
-    cfg.insert("fpga", FPGASchema())
+    from siliconcompiler.fpga import FPGASchemaTmp
+    cfg.insert("fpga", FPGASchemaTmp())
     return cfg
 
 
@@ -217,8 +217,8 @@ def schema_fpga(cfg):
 # PDK
 ###############################################################################
 def schema_pdk(cfg):
-    from siliconcompiler.pdk import PDKSchema
-    cfg.insert("pdk", "default", PDKSchema(None))
+    from siliconcompiler.pdk import PDKSchemaTmp
+    cfg.insert("pdk", "default", PDKSchemaTmp())
     return cfg
 
 

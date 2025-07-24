@@ -6,8 +6,7 @@ from typing import List, Union, Tuple, Dict
 
 from siliconcompiler import utils
 
-from siliconcompiler import PackageSchema
-from siliconcompiler.filesetschema import FileSetSchema
+from siliconcompiler import LibrarySchema
 
 from siliconcompiler.dependencyschema import DependencySchema
 from siliconcompiler.schema import NamedSchema
@@ -16,7 +15,7 @@ from siliconcompiler.schema.utils import trim
 
 
 ###########################################################################
-class DesignSchema(FileSetSchema, PackageSchema, NamedSchema, DependencySchema):
+class DesignSchema(LibrarySchema, DependencySchema):
     def __init__(self, name: str = None):
         super().__init__()
         self.set_name(name)
@@ -568,8 +567,7 @@ class DesignSchema(FileSetSchema, PackageSchema, NamedSchema, DependencySchema):
 
         mapping = []
         for fileset in filesets:
-            if not self.valid("fileset", fileset):
-                raise ValueError(f"{fileset} is not defined in {self.name}")
+            self._assert_fileset(fileset)
 
             mapping.append((self, fileset))
             for dep, depfileset in self.get("fileset", fileset, "depfileset"):

@@ -2,8 +2,54 @@ from siliconcompiler.schema import BaseSchema
 from siliconcompiler.schema import EditableSchema, Parameter, Scope
 from siliconcompiler.schema.utils import trim
 
+from siliconcompiler import ToolLibrarySchema
 
-class FPGASchema(BaseSchema):
+
+class FPGASchema(ToolLibrarySchema):
+    def __init__(self, name: str = None):
+        super().__init__()
+        self.set_name(name)
+
+        schema = EditableSchema(self)
+        schema.insert(
+            "fpga", 'partname',
+            Parameter(
+                'str',
+                scope=Scope.GLOBAL,
+                shorthelp="FPGA: part name",
+                switch="-fpga_partname <str>",
+                example=["cli: -fpga_partname fpga64k",
+                         "api: chip.set('fpga', 'partname', 'fpga64k')"],
+                help=trim("""
+                Complete part name used as a device target by the FPGA compilation
+                tool. The part name must be an exact string match to the partname
+                hard coded within the FPGA EDA tool.""")))
+
+        schema.insert(
+            "fpga", 'lutsize',
+            Parameter(
+                'int',
+                scope=Scope.GLOBAL,
+                shorthelp="FPGA: lutsize",
+                switch="-fpga_lutsize 'partname <int>'",
+                example=["cli: -fpga_lutsize 'fpga64k 4'",
+                         "api: chip.set('fpga', 'fpga64k', 'lutsize', '4')"],
+                help=trim("""
+                Specify the number of inputs in each lookup table (LUT) for the
+                FPGA partname.  For architectures with fracturable LUTs, this is
+                the number of inputs of the unfractured LUT.""")))
+
+    def set_partname(self, name: str):
+        if not isinstance(name, str):
+            raise TypeError
+
+        return self.set("fpga", "partname", name)
+
+    def set_lutsize(self, lut: int):
+        return self.set("fpga", "lutsize", lut)
+
+
+class FPGASchemaTmp(BaseSchema):
     def __init__(self):
         super().__init__()
 
