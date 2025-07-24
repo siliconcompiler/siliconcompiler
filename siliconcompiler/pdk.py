@@ -262,7 +262,7 @@ class PDKSchema(ToolLibrarySchema):
         schema.insert(
             "pdk", 'aprtechfileset', tool,
             Parameter(
-                '[file]',
+                '[str]',
                 scope=Scope.GLOBAL,
                 shorthelp="PDK: APR technology files",
                 switch="-pdk_aprtech 'pdkname tool stackup libarch filetype <file>'",
@@ -340,7 +340,7 @@ class PDKSchema(ToolLibrarySchema):
         if max:
             self.set("pdk", "maxlayer", max)
 
-    def set_apr_techfileset(self, tool: str, fileset: str = None, clobber: bool = False):
+    def add_apr_techfileset(self, tool: str, fileset: str = None, clobber: bool = False):
         if not fileset:
             fileset = self._get_active("fileset")
 
