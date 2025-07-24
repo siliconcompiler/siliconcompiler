@@ -86,6 +86,13 @@ class OpenROADDPLParameter(OpenROADTask):
         self.add_parameter("dpl_disallow_one_site", "bool", "true/false, disallow single site gaps in detail placement", defvalue=False)
 
 
+class OpenROADFillCellsParameter(OpenROADTask):
+    def __init__(self):
+        super().__init__()
+
+        self.add_parameter("dpl_use_decap_fillers", "bool", "true/false, use decap fillers along with non-decap fillers", defvalue=True)
+
+
 class OpenROADDPOParameter(OpenROADTask):
     def __init__(self):
         super().__init__()
@@ -103,6 +110,19 @@ class OpenROADCTSParameter(OpenROADTask):
         self.add_parameter("cts_cluster_size", "int", "number of instances in a cluster to use during clock tree synthesis", defvalue=30)
         self.add_parameter("cts_balance_levels", "bool", "perform level balancing in clock tree synthesis", defvalue=True)
         self.add_parameter("cts_obstruction_aware", "bool", "make clock tree synthesis aware of obstructions", defvalue=True)
+
+
+class OpenROADGRTParameter(OpenROADTask):
+    def __init__(self):
+        super().__init__()
+
+        self.add_parameter("grt_allow_congestion", "bool", "true/false, when true allow global routing to finish with congestion", defvalue=False)
+        self.add_parameter("grt_overflow_iter", "int", "maximum number of iterations to use in global routing when attempting to solve overflow", defvalue=100)
+
+
+class OpenROADDRTPinAccessParameter(OpenROADTask):
+    def __init__(self):
+        super().__init__()
 
 
 class APRTask(OpenROADTask):
