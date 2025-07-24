@@ -567,8 +567,7 @@ class DesignSchema(LibrarySchema, DependencySchema):
 
         mapping = []
         for fileset in filesets:
-            if not self.valid("fileset", fileset):
-                raise ValueError(f"{fileset} is not defined in {self.name}")
+            self._assert_fileset(fileset)
 
             mapping.append((self, fileset))
             for dep, depfileset in self.get("fileset", fileset, "depfileset"):

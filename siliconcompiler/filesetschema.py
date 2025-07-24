@@ -200,6 +200,9 @@ class FileSetSchema(PathSchema):
             LookupError: if fileset is not found
         """
 
+        if not isinstance(fileset, str):
+            raise TypeError("fileset must be a string")
+
         if fileset not in self.getkeys("fileset"):
             name = getattr(self, "name", None)
             if name:

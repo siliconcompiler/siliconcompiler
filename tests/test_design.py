@@ -932,7 +932,7 @@ def test_get_fileset():
         (dut, 'testbench')
     ]
 
-    with pytest.raises(ValueError, match="constraint is not defined in heartbeat"):
+    with pytest.raises(LookupError, match="constraint is not defined in heartbeat"):
         dut.get_fileset("constraint")
 
 

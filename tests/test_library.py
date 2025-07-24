@@ -247,7 +247,7 @@ def test_add_asic_libcornerfileset_without_active():
 
 
 def test_add_asic_libcornerfileset_missing_fileset():
-    with pytest.raises(ValueError, match="models is not defined"):
+    with pytest.raises(LookupError, match="models is not defined in lib"):
         StdCellLibrarySchema("lib").add_asic_libcornerfileset("slow", "nldm", "models")
 
 
@@ -289,7 +289,7 @@ def test_add_asic_pexcornerfileset_without_active():
 
 
 def test_add_asic_pexcornerfileset_missing_fileset():
-    with pytest.raises(ValueError, match="models is not defined"):
+    with pytest.raises(LookupError, match="models is not defined"):
         StdCellLibrarySchema("lib").add_asic_pexcornerfileset("slow", "spice", "models")
 
 
@@ -331,7 +331,7 @@ def test_add_asic_aprfileset_without_active():
 
 
 def test_add_asic_aprfileset_missing_fileset():
-    with pytest.raises(ValueError, match="models is not defined"):
+    with pytest.raises(LookupError, match="models is not defined"):
         StdCellLibrarySchema("lib").add_asic_aprfileset("models")
 
 

@@ -282,3 +282,13 @@ def test_assert_fileset_failwith_name():
 
     with pytest.raises(LookupError, match="^rtl is not defined in thisname$"):
         Test()._assert_fileset("rtl")
+
+
+def test_assert_fileset_with_none():
+    with pytest.raises(TypeError, match="^fileset must be a string$"):
+        FileSetSchema()._assert_fileset(None)
+
+
+def test_assert_fileset_with_int():
+    with pytest.raises(TypeError, match="^fileset must be a string$"):
+        FileSetSchema()._assert_fileset(1)
