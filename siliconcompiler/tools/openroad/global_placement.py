@@ -10,6 +10,30 @@ from siliconcompiler.tools.openroad._apr import build_pex_corners, define_ord_fi
 from siliconcompiler.tools.openroad._apr import extract_metrics
 
 
+from siliconcompiler.tools.openroad._apr import APRTask
+from siliconcompiler.tools.openroad._apr import OpenROADSTAParameter, OpenROADGPLParameter
+
+
+class GlobalPlacementTask(APRTask, OpenROADSTAParameter, OpenROADGPLParameter):
+    def __init__(self):
+        super().__init__()
+
+        self.add_parameter("enable_scan_chains", "bool", "true/false, when true scan chains will be inserted.", defvalue=False)
+        self.add_parameter("scan_enable_port_pattern", "str", "pattern of the scan chain enable port")
+        self.add_parameter("scan_in_port_pattern", "str", "pattern of the scan chain in port")
+        self.add_parameter("scan_out_port_pattern", "str", "pattern of the scan chain out port")
+
+        self.add_parameter("enable_multibit_clustering", "bool", "true/false, when true multibit clustering will be performed.", defvalue=False)
+
+    def task(self):
+        return "global_placement"
+
+    def setup(self):
+        super().setup()
+
+        self.set("script", "apr/sc_global_placement.tcl")
+
+
 def setup(chip):
     '''
     Perform global placement

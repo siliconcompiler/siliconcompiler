@@ -47,6 +47,16 @@ class ASICFlow(FlowgraphSchema):
         # self.edge("floorplan.tapcell", "floorplan.power_grid")
         self.node("floorplan.pin_placement", pin_placement.PinPlacementTask())
         self.edge("floorplan.tapcell", "floorplan.pin_placement")
+        self.node("place.global", global_placement.GlobalPlacementTask())
+        self.edge("floorplan.pin_placement", "place.global")
+        self.node("place.repair_design", repair_design.RepairDesignTask())
+        self.edge("place.global", "place.repair_design")
+        self.node("place.detailed", detailed_placement.DetailedPlacementTask())
+        self.edge("place.repair_design", "place.detailed")
+        self.node("cts.clock_tree_synthesis", clock_tree_synthesis.CTSTask())
+        self.edge("place.detailed", "cts.clock_tree_synthesis")
+        self.node("cts.repair_timing", repair_timing.RepairTimingTask())
+        self.edge("cts.clock_tree_synthesis", "cts.repair_timing")
 
 
 ############################################################################

@@ -104,16 +104,14 @@ proc sc_detailed_placement { args } {
         flags {}
     sta::check_argc_eq0 "sc_detailed_placement" $args
 
-    set dpl_padding [lindex [sc_cfg_tool_task_get var pad_detail_place] 0]
-    set dpl_disallow_one_site [lindex [sc_cfg_tool_task_get var dpl_disallow_one_site] 0]
-    set dpl_max_displacement [lindex [sc_cfg_tool_task_get var dpl_max_displacement] 0]
+    set dpl_padding [sc_cfg_tool_task_get var pad_detail_place]
 
     set_placement_padding -global \
         -left $dpl_padding \
         -right $dpl_padding
 
     set dpl_args []
-    if { $dpl_disallow_one_site == "true" } {
+    if { [sc_cfg_tool_task_get var dpl_disallow_one_site] } {
         lappend dpl_args "-disallow_one_site_gaps"
     }
 
@@ -126,7 +124,7 @@ proc sc_detailed_placement { args } {
     sc_report_args -command detailed_placement -args $dpl_args
 
     detailed_placement \
-        -max_displacement $dpl_max_displacement \
+        -max_displacement [sc_cfg_tool_task_get var dpl_max_displacement] \
         {*}$dpl_args
 
     if { $incremental_route } {
@@ -822,10 +820,10 @@ proc sc_set_dont_use { args } {
             unset_dont_use [sc_cfg_get library $sc_mainlib asic cells $group]
         }
     }
-    if { [info exists flags(-multibit)] } {
+    if { [sc_cfg_tool_task_exists var multibit_ff_cells] && [info exists flags(-multibit)] } {
         unset_dont_use [sc_cfg_tool_task_get var multibit_ff_cells]
     }
-    if { [info exists flags(-scanchain)] } {
+    if { [sc_cfg_tool_task_exists var scan_chain_cells] && [info exists flags(-scanchain)] } {
         unset_dont_use [sc_cfg_tool_task_get var scan_chain_cells]
     }
 

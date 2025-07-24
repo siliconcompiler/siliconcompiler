@@ -8,6 +8,23 @@ from siliconcompiler.tools.openroad._apr import build_pex_corners, define_ord_fi
 from siliconcompiler.tools.openroad._apr import extract_metrics
 
 
+from siliconcompiler.tools.openroad._apr import APRTask
+from siliconcompiler.tools.openroad._apr import OpenROADSTAParameter, OpenROADDPLParameter, OpenROADDPOParameter
+
+
+class DetailedPlacementTask(APRTask, OpenROADSTAParameter, OpenROADDPLParameter, OpenROADDPOParameter):
+    def __init__(self):
+        super().__init__()
+
+    def task(self):
+        return "detailed_placement"
+
+    def setup(self):
+        super().setup()
+
+        self.set("script", "apr/sc_detailed_placement.tcl")
+
+
 def setup(chip):
     '''
     Perform detailed placement
