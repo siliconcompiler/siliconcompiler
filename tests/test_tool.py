@@ -11,7 +11,8 @@ import os.path
 from unittest.mock import patch, ANY
 
 from siliconcompiler import RecordSchema, MetricSchema, FlowgraphSchema
-from siliconcompiler import ToolSchema, TaskSchema
+from siliconcompiler import ToolSchema, TaskSchema, ASICTaskSchema
+from siliconcompiler import ToolLibrarySchema
 from siliconcompiler.schema import BaseSchema, EditableSchema, Parameter, SafeSchema
 from siliconcompiler.schema.parameter import PerNode, Scope
 from siliconcompiler.tool import TaskExecutableNotFound, TaskError, TaskTimeout
@@ -82,7 +83,6 @@ class NOPTask(TaskSchema):
 
 @pytest.fixture
 def running_project():
-
     class TestProject(BaseSchema):
         def __init__(self):
             super().__init__()
@@ -104,6 +104,8 @@ def running_project():
             schema.insert("flowgraph", "testflow", flow)
             schema.insert("record", RecordSchema())
             schema.insert("metric", MetricSchema())
+
+            schema.insert("library", "default", BaseSchema())
 
             schema.insert("arg", "step", Parameter("str"))
             schema.insert("arg", "index", Parameter("str"))
@@ -1740,3 +1742,387 @@ def test_get_tcl_variables_with_refdir_diffsource(running_node):
             'sc_topmodule': '"designtop"',
             "sc_refdir": '[list "thispath"]'
         }
+
+
+def test_asic_mainlib_not_set(running_node):
+    project = running_node.project
+    EditableSchema(project).insert("asic", "mainlib", Parameter("str"))
+
+    with ASICTaskSchema().runtime(running_node) as runtool:
+        with pytest.raises(ValueError, match=r"mainlib has not been defined in \[asic,mainlib\]"):
+            runtool.mainlib
+
+
+def test_asic_mainlib_not_loaded(running_node):
+    project = running_node.project
+    EditableSchema(project).insert("asic", "mainlib", Parameter("str"))
+    project.set("asic", "mainlib", "testlib")
+
+    with ASICTaskSchema().runtime(running_node) as runtool:
+        with pytest.raises(LookupError, match="testlib has not been loaded"):
+            runtool.mainlib
+
+
+def test_asic_mainlib(running_node):
+    project = running_node.project
+    EditableSchema(project).insert("asic", "mainlib", Parameter("str"))
+    project.set("asic", "mainlib", "testlib")
+    lib = BaseSchema()
+    EditableSchema(project).insert("library", "testlib", lib)
+
+    with ASICTaskSchema().runtime(running_node) as runtool:
+        assert runtool.mainlib is lib
+
+
+def test_asic_pdk_not_set(running_node):
+    project = running_node.project
+    EditableSchema(project).insert("asic", "mainlib", Parameter("str"))
+    project.set("asic", "mainlib", "testlib")
+    lib = BaseSchema()
+    EditableSchema(project).insert("library", "testlib", lib)
+    EditableSchema(lib).insert("asic", "pdk", Parameter("str"))
+
+    with ASICTaskSchema().runtime(running_node) as runtool:
+        with pytest.raises(ValueError,
+                           match=r"pdk has not been defined in \[library,testlib,asic,pdk\]"):
+            runtool.pdk
+
+
+def test_asic_pdk_not_loaded(running_node):
+    project = running_node.project
+    EditableSchema(project).insert("asic", "mainlib", Parameter("str"))
+    project.set("asic", "mainlib", "testlib")
+    lib = BaseSchema()
+    EditableSchema(project).insert("library", "testlib", lib)
+    EditableSchema(lib).insert("asic", "pdk", Parameter("str"))
+    lib.set("asic", "pdk", "testpdk")
+
+    with ASICTaskSchema().runtime(running_node) as runtool:
+        with pytest.raises(LookupError, match="testpdk has not been loaded"):
+            runtool.pdk
+
+
+def test_asic_pdk(running_node):
+    project = running_node.project
+    EditableSchema(project).insert("asic", "mainlib", Parameter("str"))
+    project.set("asic", "mainlib", "testlib")
+    lib = BaseSchema()
+    EditableSchema(project).insert("library", "testlib", lib)
+    EditableSchema(lib).insert("asic", "pdk", Parameter("str"))
+    lib.set("asic", "pdk", "testpdk")
+    pdk = BaseSchema()
+    EditableSchema(project).insert("library", "testpdk", pdk)
+
+    with ASICTaskSchema().runtime(running_node) as runtool:
+        assert runtool.pdk is pdk
+
+
+def test_asic_set_asic_var_from_lib(running_node):
+    project = running_node.project
+    EditableSchema(project).insert("asic", "mainlib", Parameter("str"))
+    project.set("asic", "mainlib", "testlib")
+    lib = ToolLibrarySchema()
+    pdk = ToolLibrarySchema()
+    EditableSchema(project).insert("library", "testlib", lib)
+    EditableSchema(lib).insert("asic", "pdk", Parameter("str"))
+    lib.set("asic", "pdk", "testpdk")
+    EditableSchema(project).insert("library", "testpdk", pdk)
+    EditableSchema(pdk).insert("asic", "pdk", Parameter("str"))
+
+    class TestTask(ASICTaskSchema):
+        def tool(self):
+            return "testtool"
+    task = TestTask()
+    EditableSchema(project).insert("task", task)
+    task.add_parameter("test_param", "str", "help")
+    pdk.define_tool_parameter("testtool", "test_param", "str", "help")
+    pdk.set("tool", "testtool", "test_param", "pdkvalue")
+    lib.define_tool_parameter("testtool", "test_param", "str", "help")
+    lib.set("tool", "testtool", "test_param", "libvalue")
+    with task.runtime(running_node) as runtool:
+        assert runtool.set_asic_var("test_param", defvalue="defvalue")
+        assert runtool.get("var", "test_param") == "libvalue"
+        assert runtool.get("require") == ['task,var,test_param',
+                                          'library,testlib,tool,testtool,test_param',
+                                          'task,var,test_param']
+
+
+def test_asic_set_asic_var_from_pdk(running_node):
+    project = running_node.project
+    EditableSchema(project).insert("asic", "mainlib", Parameter("str"))
+    project.set("asic", "mainlib", "testlib")
+    lib = ToolLibrarySchema()
+    pdk = ToolLibrarySchema()
+    EditableSchema(project).insert("library", "testlib", lib)
+    EditableSchema(lib).insert("asic", "pdk", Parameter("str"))
+    lib.set("asic", "pdk", "testpdk")
+    EditableSchema(project).insert("library", "testpdk", pdk)
+    EditableSchema(pdk).insert("asic", "pdk", Parameter("str"))
+
+    class TestTask(ASICTaskSchema):
+        def tool(self):
+            return "testtool"
+    task = TestTask()
+    EditableSchema(project).insert("task", task)
+    task.add_parameter("test_param", "str", "help")
+    pdk.define_tool_parameter("testtool", "test_param", "str", "help")
+    lib.define_tool_parameter("testtool", "test_param", "str", "help")
+    pdk.set("tool", "testtool", "test_param", "pdkvalue")
+    with task.runtime(running_node) as runtool:
+        assert runtool.set_asic_var("test_param", defvalue="defvalue")
+        assert runtool.get("var", "test_param") == "pdkvalue"
+        assert runtool.get("require") == ['task,var,test_param',
+                                          'library,testpdk,tool,testtool,test_param',
+                                          'task,var,test_param']
+
+
+def test_asic_set_asic_var_from_defvalue(running_node):
+    project = running_node.project
+    EditableSchema(project).insert("asic", "mainlib", Parameter("str"))
+    project.set("asic", "mainlib", "testlib")
+    lib = ToolLibrarySchema()
+    pdk = ToolLibrarySchema()
+    EditableSchema(project).insert("library", "testlib", lib)
+    EditableSchema(lib).insert("asic", "pdk", Parameter("str"))
+    lib.set("asic", "pdk", "testpdk")
+    EditableSchema(project).insert("library", "testpdk", pdk)
+    EditableSchema(pdk).insert("asic", "pdk", Parameter("str"))
+
+    class TestTask(ASICTaskSchema):
+        def tool(self):
+            return "testtool"
+    task = TestTask()
+    EditableSchema(project).insert("task", task)
+    task.add_parameter("test_param", "str", "help")
+    pdk.define_tool_parameter("testtool", "test_param", "str", "help")
+    lib.define_tool_parameter("testtool", "test_param", "str", "help")
+    with task.runtime(running_node) as runtool:
+        assert runtool.set_asic_var("test_param", defvalue="defvalue")
+        assert runtool.get("var", "test_param") == "defvalue"
+        assert runtool.get("require") == ['task,var,test_param']
+
+
+def test_asic_set_asic_var_no_value(running_node):
+    project = running_node.project
+    EditableSchema(project).insert("asic", "mainlib", Parameter("str"))
+    project.set("asic", "mainlib", "testlib")
+    lib = ToolLibrarySchema()
+    pdk = ToolLibrarySchema()
+    EditableSchema(project).insert("library", "testlib", lib)
+    EditableSchema(lib).insert("asic", "pdk", Parameter("str"))
+    lib.set("asic", "pdk", "testpdk")
+    EditableSchema(project).insert("library", "testpdk", pdk)
+    EditableSchema(pdk).insert("asic", "pdk", Parameter("str"))
+
+    class TestTask(ASICTaskSchema):
+        def tool(self):
+            return "testtool"
+    task = TestTask()
+    EditableSchema(project).insert("task", task)
+    task.add_parameter("test_param", "str", "help")
+    pdk.define_tool_parameter("testtool", "test_param", "str", "help")
+    lib.define_tool_parameter("testtool", "test_param", "str", "help")
+    with task.runtime(running_node) as runtool:
+        assert runtool.set_asic_var("test_param") is None
+        assert runtool.get("var", "test_param") is None
+        assert runtool.get("require") == []
+
+
+def test_asic_set_asic_var_require_set(running_node):
+    project = running_node.project
+    EditableSchema(project).insert("asic", "mainlib", Parameter("str"))
+    project.set("asic", "mainlib", "testlib")
+    lib = ToolLibrarySchema()
+    pdk = ToolLibrarySchema()
+    EditableSchema(project).insert("library", "testlib", lib)
+    EditableSchema(lib).insert("asic", "pdk", Parameter("str"))
+    lib.set("asic", "pdk", "testpdk")
+    EditableSchema(project).insert("library", "testpdk", pdk)
+    EditableSchema(pdk).insert("asic", "pdk", Parameter("str"))
+
+    class TestTask(ASICTaskSchema):
+        def tool(self):
+            return "testtool"
+    task = TestTask()
+    EditableSchema(project).insert("task", task)
+    task.add_parameter("test_param", "str", "help")
+    pdk.define_tool_parameter("testtool", "test_param", "str", "help")
+    lib.define_tool_parameter("testtool", "test_param", "str", "help")
+    with task.runtime(running_node) as runtool:
+        assert runtool.set_asic_var("test_param",
+                                    require=True, require_mainlib=True, require_pdk=True) is None
+        assert runtool.get("var", "test_param") is None
+        assert runtool.get("require") == ['library,testpdk,tool,testtool,test_param',
+                                          'library,testlib,tool,testtool,test_param',
+                                          'task,var,test_param']
+
+
+def test_asic_set_asic_var_skip_main(running_node):
+    project = running_node.project
+    EditableSchema(project).insert("asic", "mainlib", Parameter("str"))
+    project.set("asic", "mainlib", "testlib")
+    lib = ToolLibrarySchema()
+    pdk = ToolLibrarySchema()
+    EditableSchema(project).insert("library", "testlib", lib)
+    EditableSchema(lib).insert("asic", "pdk", Parameter("str"))
+    lib.set("asic", "pdk", "testpdk")
+    EditableSchema(project).insert("library", "testpdk", pdk)
+    EditableSchema(pdk).insert("asic", "pdk", Parameter("str"))
+
+    class TestTask(ASICTaskSchema):
+        def tool(self):
+            return "testtool"
+    task = TestTask()
+    EditableSchema(project).insert("task", task)
+    task.add_parameter("test_param", "str", "help")
+    pdk.define_tool_parameter("testtool", "test_param", "str", "help")
+    pdk.set("tool", "testtool", "test_param", "pdkvalue")
+    lib.define_tool_parameter("testtool", "test_param", "str", "help")
+    lib.set("tool", "testtool", "test_param", "libvalue")
+    with task.runtime(running_node) as runtool:
+        assert runtool.set_asic_var("test_param", defvalue="defvalue", check_mainlib=False)
+        assert runtool.get("var", "test_param") == "pdkvalue"
+        assert runtool.get("require") == ['task,var,test_param',
+                                          'library,testpdk,tool,testtool,test_param',
+                                          'task,var,test_param']
+
+
+def test_asic_set_asic_var_skip_pdk(running_node):
+    project = running_node.project
+    EditableSchema(project).insert("asic", "mainlib", Parameter("str"))
+    project.set("asic", "mainlib", "testlib")
+    lib = ToolLibrarySchema()
+    pdk = ToolLibrarySchema()
+    EditableSchema(project).insert("library", "testlib", lib)
+    EditableSchema(lib).insert("asic", "pdk", Parameter("str"))
+    lib.set("asic", "pdk", "testpdk")
+    EditableSchema(project).insert("library", "testpdk", pdk)
+    EditableSchema(pdk).insert("asic", "pdk", Parameter("str"))
+
+    class TestTask(ASICTaskSchema):
+        def tool(self):
+            return "testtool"
+    task = TestTask()
+    EditableSchema(project).insert("task", task)
+    task.add_parameter("test_param", "str", "help")
+    pdk.define_tool_parameter("testtool", "test_param", "str", "help")
+    pdk.set("tool", "testtool", "test_param", "pdkvalue")
+    lib.define_tool_parameter("testtool", "test_param", "str", "help")
+    with task.runtime(running_node) as runtool:
+        assert runtool.set_asic_var("test_param", defvalue="defvalue", check_pdk=False)
+        assert runtool.get("var", "test_param") == "defvalue"
+        assert runtool.get("require") == ['task,var,test_param']
+
+
+def test_asic_set_asic_var_dontoverwrite(running_node):
+    project = running_node.project
+    EditableSchema(project).insert("asic", "mainlib", Parameter("str"))
+    project.set("asic", "mainlib", "testlib")
+    lib = ToolLibrarySchema()
+    pdk = ToolLibrarySchema()
+    EditableSchema(project).insert("library", "testlib", lib)
+    EditableSchema(lib).insert("asic", "pdk", Parameter("str"))
+    lib.set("asic", "pdk", "testpdk")
+    EditableSchema(project).insert("library", "testpdk", pdk)
+    EditableSchema(pdk).insert("asic", "pdk", Parameter("str"))
+
+    class TestTask(ASICTaskSchema):
+        def tool(self):
+            return "testtool"
+    task = TestTask()
+    EditableSchema(project).insert("task", task)
+    task.add_parameter("test_param", "str", "help")
+    pdk.define_tool_parameter("testtool", "test_param", "str", "help")
+    lib.define_tool_parameter("testtool", "test_param", "str", "help")
+    task.set("var", "test_param", "uservalue")
+    with task.runtime(running_node) as runtool:
+        assert runtool.set_asic_var("test_param", defvalue="defvalue") is None
+        assert runtool.get("var", "test_param") == "uservalue"
+        assert runtool.get("require") == ['task,var,test_param']
+
+
+def test_asic_set_asic_var_custom_keys(running_node):
+    project = running_node.project
+    EditableSchema(project).insert("asic", "mainlib", Parameter("str"))
+    project.set("asic", "mainlib", "testlib")
+    lib = ToolLibrarySchema()
+    pdk = ToolLibrarySchema()
+    EditableSchema(project).insert("library", "testlib", lib)
+    EditableSchema(lib).insert("asic", "pdk", Parameter("str"))
+    lib.set("asic", "pdk", "testpdk")
+    EditableSchema(project).insert("library", "testpdk", pdk)
+    EditableSchema(pdk).insert("asic", "pdk", Parameter("str"))
+
+    class TestTask(ASICTaskSchema):
+        def tool(self):
+            return "testtool"
+    task = TestTask()
+    EditableSchema(project).insert("task", task)
+    task.add_parameter("test_param", "str", "help")
+    pdk.define_tool_parameter("testtool", "test_parampdk", "str", "help")
+    lib.define_tool_parameter("testtool", "test_paramlib", "str", "help")
+    with task.runtime(running_node) as runtool:
+        assert runtool.set_asic_var("test_param",
+                                    require=True, require_mainlib=True, require_pdk=True,
+                                    pdk_key="test_parampdk",
+                                    mainlib_key="test_paramlib") is None
+        assert runtool.get("var", "test_param") is None
+        assert runtool.get("require") == ['library,testpdk,tool,testtool,test_parampdk',
+                                          'library,testlib,tool,testtool,test_paramlib',
+                                          'task,var,test_param']
+
+
+def test_asic_set_asic_var_skip_main_notdefined(running_node):
+    project = running_node.project
+    EditableSchema(project).insert("asic", "mainlib", Parameter("str"))
+    project.set("asic", "mainlib", "testlib")
+    lib = ToolLibrarySchema()
+    pdk = ToolLibrarySchema()
+    EditableSchema(project).insert("library", "testlib", lib)
+    EditableSchema(lib).insert("asic", "pdk", Parameter("str"))
+    lib.set("asic", "pdk", "testpdk")
+    EditableSchema(project).insert("library", "testpdk", pdk)
+    EditableSchema(pdk).insert("asic", "pdk", Parameter("str"))
+
+    class TestTask(ASICTaskSchema):
+        def tool(self):
+            return "testtool"
+    task = TestTask()
+    EditableSchema(project).insert("task", task)
+    task.add_parameter("test_param", "str", "help")
+    pdk.define_tool_parameter("testtool", "test_param", "str", "help")
+    pdk.set("tool", "testtool", "test_param", "pdkvalue")
+    with task.runtime(running_node) as runtool:
+        assert runtool.set_asic_var("test_param")
+        assert runtool.get("var", "test_param") == "pdkvalue"
+        assert runtool.get("require") == ['library,testpdk,tool,testtool,test_param',
+                                          'task,var,test_param']
+
+
+def test_asic_set_asic_var_from_pdk_as_list(running_node):
+    project = running_node.project
+    EditableSchema(project).insert("asic", "mainlib", Parameter("str"))
+    project.set("asic", "mainlib", "testlib")
+    lib = ToolLibrarySchema()
+    pdk = ToolLibrarySchema()
+    EditableSchema(project).insert("library", "testlib", lib)
+    EditableSchema(lib).insert("asic", "pdk", Parameter("str"))
+    lib.set("asic", "pdk", "testpdk")
+    EditableSchema(project).insert("library", "testpdk", pdk)
+    EditableSchema(pdk).insert("asic", "pdk", Parameter("str"))
+
+    class TestTask(ASICTaskSchema):
+        def tool(self):
+            return "testtool"
+    task = TestTask()
+    EditableSchema(project).insert("task", task)
+    task.add_parameter("test_param", "[str]", "help")
+    pdk.define_tool_parameter("testtool", "test_param", "[str]", "help")
+    lib.define_tool_parameter("testtool", "test_param", "[str]", "help")
+    pdk.set("tool", "testtool", "test_param", "pdkvalue")
+    with task.runtime(running_node) as runtool:
+        assert runtool.set_asic_var("test_param", defvalue="defvalue")
+        assert runtool.get("var", "test_param") == ["pdkvalue"]
+        assert runtool.get("require") == ['task,var,test_param',
+                                          'library,testpdk,tool,testtool,test_param',
+                                          'task,var,test_param']
