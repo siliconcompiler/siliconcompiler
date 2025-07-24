@@ -34,14 +34,10 @@ global_connect
 # Tap Cells
 ###############################
 
-if {
-    [sc_cfg_tool_task_exists {file} ifp_tapcell] &&
-    [llength [sc_cfg_tool_task_get {file} ifp_tapcell]] > 0
-} {
-    foreach tapcell_file [sc_cfg_tool_task_get {file} ifp_tapcell] {
-        puts "Sourcing tapcell file: ${tapcell_file}"
-        source $tapcell_file
-    }
+set sc_tapcells [sc_cfg_get library $sc_mainlib tool openroad tapcells]
+if { $sc_tapcells != "" } {
+    puts "Sourcing tapcell file: ${sc_tapcells}"
+    source $sc_tapcells
     global_connect
 } else {
     utl::warn FLW 1 "Tapcell configuration not provided"

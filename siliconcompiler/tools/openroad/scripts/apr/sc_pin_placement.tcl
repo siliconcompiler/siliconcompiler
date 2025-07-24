@@ -16,7 +16,7 @@ if { [sc_design_has_placeable_ios] } {
     # Global Placement (without considering IO placements)
     ###############################
 
-    if { [lindex [sc_cfg_tool_task_get {var} gpl_enable_skip_io] 0] == "true" } {
+    if { [sc_cfg_tool_task_get var gpl_enable_skip_io] } {
         utl::info FLW 1 "Performing global placement without considering IO"
         sc_global_placement -skip_io
     }

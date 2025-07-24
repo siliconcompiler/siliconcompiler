@@ -39,6 +39,14 @@ class ASICFlow(FlowgraphSchema):
         self.edge("elaborate", "synthesis")
         self.node("floorplan.init", init_floorplan.InitFloorplanTask())
         self.edge("synthesis", "floorplan.init")
+        self.node("floorplan.macro_placement", macro_placement.MacroPlacementTask())
+        self.edge("floorplan.init", "floorplan.macro_placement")
+        self.node("floorplan.tapcell", endcap_tapcell_insertion.EndCapTapCellTask())
+        self.edge("floorplan.macro_placement", "floorplan.tapcell")
+        # self.node("floorplan.power_grid", power_grid.PowerGridTask())
+        # self.edge("floorplan.tapcell", "floorplan.power_grid")
+        self.node("floorplan.pin_placement", pin_placement.PinPlacementTask())
+        self.edge("floorplan.tapcell", "floorplan.pin_placement")
 
 
 ############################################################################

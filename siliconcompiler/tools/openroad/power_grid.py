@@ -13,6 +13,27 @@ from siliconcompiler.tools.openroad._apr import build_pex_corners, \
 from siliconcompiler.tools.openroad._apr import extract_metrics
 
 
+from siliconcompiler.tools.openroad._apr import APRTask
+from siliconcompiler.tools.openroad._apr import OpenROADSTAParameter
+
+
+class PowerGridTask(APRTask, OpenROADSTAParameter):
+    def __init__(self):
+        super().__init__()
+
+        self.add_parameter("fixed_pin_keepout", "float",
+                           "if > 0, applies a blockage in multiples of the routing pitch to each "
+                           "fixed pin to ensure there is room for routing.", defvalue=0)
+
+    def task(self):
+        return "power_grid"
+
+    def setup(self):
+        super().setup()
+
+        self.set("script", "apr/sc_power_grid.tcl")
+
+
 def setup(chip):
     '''
     Perform power grid insertion and connectivity analysis

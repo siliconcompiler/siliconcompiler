@@ -22,14 +22,11 @@ class InitFloorplanTask(APRTask, OpenROADSTAParameter):
         self.add_parameter("remove_synth_buffers", "bool", "remove buffers inserted by synthesis", defvalue=True)
         self.add_parameter("remove_dead_logic", "bool", "remove logic which does not drive a primary output", defvalue=True)
 
-    # Handle additional input files
     def task(self):
         return "init_floorplan"
 
     def setup(self):
         super().setup()
-
-        self.set_threads()
 
         self.set("script", "apr/sc_init_floorplan.tcl")
 

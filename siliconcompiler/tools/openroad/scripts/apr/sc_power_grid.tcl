@@ -24,7 +24,7 @@ if { [sc_design_has_unplaced_macros] } {
 ###############################
 
 set pdn_blockages []
-set pdn_pin_keepout [lindex [sc_cfg_tool_task_get var fixed_pin_keepout] 0]
+set pdn_pin_keepout [sc_cfg_tool_task_get var fixed_pin_keepout]
 if { $pdn_pin_keepout > 0 } {
     foreach bterm [[ord::get_db_block] getBTerms] {
         foreach bpin [$bterm getBPins] {

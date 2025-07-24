@@ -11,6 +11,36 @@ from siliconcompiler.tools.openroad._apr import build_pex_corners, define_ord_fi
 from siliconcompiler.tools.openroad._apr import extract_metrics
 
 
+from siliconcompiler.tools.openroad._apr import APRTask
+from siliconcompiler.tools.openroad._apr import OpenROADSTAParameter
+
+
+class MacroPlacementTask(APRTask, OpenROADSTAParameter):
+    def __init__(self):
+        super().__init__()
+
+        self.add_parameter("rtlmp_constraints", "[file]", "contraints script for macro placement")
+
+    def task(self):
+        return "macro_placement"
+
+    def setup(self):
+        super().setup()
+
+        self.set("script", "apr/sc_macro_placement.tcl")
+
+    def pre_process(self):
+        if all([
+                self.schema("metric").get('macros', step=in_step, index=in_index) == 0
+                for in_step, in_index in self.schema("record").get('inputnode', step=self.step, index=self.index)
+                ]):
+            self.schema("record").set('status', NodeStatus.SKIPPED, step=self.step, index=self.index)
+            self.logger.warning(f'{self.step}/{self.index} will be skipped since are no macros to place.')
+            return
+
+        super().pre_process()
+
+
 def setup(chip):
     '''
     Macro placement

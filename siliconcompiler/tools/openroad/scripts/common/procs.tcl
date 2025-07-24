@@ -8,9 +8,9 @@ proc sc_global_placement_density { args } {
         flags {-exclude_padding}
     sta::check_argc_eq0 "sc_global_placement_density" $args
 
-    set gpl_place_density [lindex [sc_cfg_tool_task_get var place_density] 0]
+    set gpl_place_density [sc_cfg_tool_task_get var place_density]
     set gpl_uniform_placement_adjustment \
-        [lindex [sc_cfg_tool_task_get var gpl_uniform_placement_adjustment] 0]
+        [sc_cfg_tool_task_get var gpl_uniform_placement_adjustment]
 
     set density_args []
     if { ![info exists flags(-exclude_padding)] } {
@@ -65,23 +65,19 @@ proc sc_global_placement { args } {
         flags {-skip_io -disable_routability_driven}
     sta::check_argc_eq0 "sc_global_placement" $args
 
-    set gpl_routability_driven [lindex [sc_cfg_tool_task_get var gpl_routability_driven] 0]
-    set gpl_timing_driven [lindex [sc_cfg_tool_task_get var gpl_timing_driven] 0]
-    set gpl_padding [lindex [sc_cfg_tool_task_get var pad_global_place] 0]
-    set gpl_enable_skip_initial_place [lindex \
-        [sc_cfg_tool_task_get var gpl_enable_skip_initial_place] 0]
+    set gpl_padding [sc_cfg_tool_task_get var pad_global_place]
 
     set gpl_args []
     if {
-        $gpl_routability_driven == "true" &&
+        [sc_cfg_tool_task_get var gpl_routability_driven] &&
         ![info exists flags(-disable_routability_driven)]
     } {
         lappend gpl_args "-routability_driven"
     }
-    if { $gpl_timing_driven == "true" } {
+    if { [sc_cfg_tool_task_get var gpl_timing_driven] } {
         lappend gpl_args "-timing_driven"
     }
-    if { $gpl_enable_skip_initial_place == "true" } {
+    if { [sc_cfg_tool_task_get var gpl_enable_skip_initial_place] } {
         lappend gpl_args "-skip_initial_place"
     }
 
@@ -151,19 +147,9 @@ proc sc_pin_placement { args } {
         flags {-random}
     sta::check_argc_eq0 "sc_pin_placement" $args
 
-    if { [sc_cfg_tool_task_exists var pin_thickness_h] } {
-        set h_mult [lindex [sc_cfg_tool_task_get var pin_thickness_h] 0]
-        set_pin_thick_multiplier -hor_multiplier $h_mult
-    }
-    if { [sc_cfg_tool_task_exists var pin_thickness_v] } {
-        set v_mult [lindex [sc_cfg_tool_task_get var pin_thickness_v] 0]
-        set_pin_thick_multiplier -ver_multiplier $v_mult
-    }
-    if { [sc_cfg_tool_task_exists {file} ppl_constraints] } {
-        foreach pin_constraint [sc_cfg_tool_task_get {file} ppl_constraints] {
-            puts "Sourcing pin constraints: ${pin_constraint}"
-            source $pin_constraint
-        }
+    foreach pin_constraint [sc_cfg_tool_task_get var ppl_constraints] {
+        puts "Sourcing pin constraints: ${pin_constraint}"
+        source $pin_constraint
     }
 
     set ppl_args []
@@ -171,14 +157,16 @@ proc sc_pin_placement { args } {
         lappend ppl_args "-random"
     }
 
-    lappend ppl_args {*}[sc_cfg_tool_task_get {var} ppl_arguments]
+    lappend ppl_args {*}[sc_cfg_tool_task_get var ppl_arguments]
 
     global sc_pdk
-    global sc_stackup
     global sc_tool
 
-    set sc_hpinmetal [sc_cfg_get pdk $sc_pdk {var} $sc_tool pin_layer_horizontal $sc_stackup]
-    set sc_vpinmetal [sc_cfg_get pdk $sc_pdk {var} $sc_tool pin_layer_vertical $sc_stackup]
+    # set sc_hpinmetal [sc_cfg_get pdk $sc_pdk {var} $sc_tool pin_layer_horizontal $sc_stackup]
+    # set sc_vpinmetal [sc_cfg_get pdk $sc_pdk {var} $sc_tool pin_layer_vertical $sc_stackup]
+
+    set sc_hpinmetal "3"
+    set sc_vpinmetal "4"
 
     sc_report_args -command place_pins -args $ppl_args
     place_pins \
@@ -570,24 +558,19 @@ proc sc_get_layer_name { name } {
 }
 
 proc sc_has_tie_cell { type } {
-    upvar sc_cfg sc_cfg
     upvar sc_mainlib sc_mainlib
     upvar sc_tool sc_tool
 
-    set library_vars [sc_cfg_get library $sc_mainlib option {var}]
-    return [expr {
-        [dict exists $library_vars openroad_tie${type}_cell] &&
-        [dict exists $library_vars openroad_tie${type}_port]
-    }]
+    return [sc_cfg_exists library $sc_mainlib tool openroad tie${type}_cell]
 }
 
 proc sc_get_tie_cell { type } {
-    upvar sc_cfg sc_cfg
     upvar sc_mainlib sc_mainlib
     upvar sc_tool sc_tool
 
-    set cell [lindex [sc_cfg_get library $sc_mainlib option {var} openroad_tie${type}_cell] 0]
-    set port [lindex [sc_cfg_get library $sc_mainlib option {var} openroad_tie${type}_port] 0]
+    set cell_port [sc_cfg_get library $sc_mainlib tool openroad tie${type}_cell]
+    set cell [lindex $cell_port 0]
+    set port [lindex $cell_port 1]
 
     return "$cell/$port"
 }
