@@ -26,6 +26,30 @@ class OpenROADSTAParameter(OpenROADTask):
         # add_common_file(chip, 'opensta_generic_sdc', 'sdc/sc_constraints.sdc')
 
 
+class OpenROADPPLParameter(OpenROADTask):
+    def __init__(self):
+        super().__init__()
+
+        self.add_parameter("ppl_arguments", "[str]", "additional arguments to pass along to the pin placer.")
+        self.add_parameter("ppl_constraints", "[file]", "pin placement constraints scripts.")
+
+
+class OpenROADGPLParameter(OpenROADTask):
+    def __init__(self):
+        super().__init__()
+
+        self.add_parameter("gpl_enable_skip_io", "bool", "true/false, when enabled a global "
+                           "placement is performed without considering the impact of the pin placements",
+                           defvalue=True)
+        self.add_parameter("gpl_enable_skip_initial_place", "bool", "true/false, when enabled a global placement skips the initial placement, before the main global placement pass.", defvalue=False)
+        self.add_parameter("gpl_uniform_placement_adjustment", "float", "percent of remaining area density to apply above uniform density (0.00 - 0.99)", defvalue=0.0)
+        self.add_parameter("gpl_timing_driven", "bool", "true/false, when true global placement will consider the timing performance of the design", defvalue=True)
+        self.add_parameter("gpl_routability_driven", "bool", "true/false, when true global placement will consider the routability of the design", defvalue=True)
+
+        self.add_parameter("place_density", "float", "global placement density (0.0 - 1.0)")
+        self.add_parameter("pad_global_place", "int", "global placement cell padding in number of sites", defvalue=0)
+
+
 class APRTask(OpenROADTask):
     def __init__(self):
         super().__init__()
@@ -54,6 +78,8 @@ class APRTask(OpenROADTask):
 
     def setup(self):
         super().setup()
+
+        self.set_threads()
 
         self._add_pnr_inputs()
         self._add_pnr_outputs()

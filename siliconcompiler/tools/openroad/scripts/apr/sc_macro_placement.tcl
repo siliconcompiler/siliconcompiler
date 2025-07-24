@@ -14,7 +14,7 @@ source "$sc_refdir/apr/preamble.tcl"
 ###############################
 # Macro placement constraints
 ###############################
-foreach script [sc_cfg_tool_task_get file rtlmp_constraints] {
+foreach script [sc_cfg_tool_task_get var rtlmp_constraints] {
     puts "Sourcing macro placement constraints: $script"
     source $script
 }
