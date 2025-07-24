@@ -5,6 +5,7 @@ import os.path
 from pathlib import Path
 
 from siliconcompiler.filesetschema import FileSetSchema
+from siliconcompiler.schema import NamedSchema
 
 
 def test_design_keys():
@@ -258,3 +259,26 @@ def test_copy_fileset_overwrite():
 
     assert schema.get("fileset", "rtl", "file", "verilog") == ["top.v", "test.v"]
     assert schema.get("fileset", "rtl.other", "file", "verilog") == ["top.v", "test.v"]
+
+
+def test_assert_fileset_pass():
+    schema = FileSetSchema()
+
+    with schema.active_fileset("rtl"):
+        assert schema.add_file("top.v")
+    schema._assert_fileset("rtl")
+
+
+def test_assert_fileset_fail():
+    with pytest.raises(LookupError, match="^rtl is not defined$"):
+        FileSetSchema()._assert_fileset("rtl")
+
+
+def test_assert_fileset_failwith_name():
+    class Test(FileSetSchema, NamedSchema):
+        def __init__(self):
+            super().__init__()
+            self.set_name("thisname")
+
+    with pytest.raises(LookupError, match="^rtl is not defined in thisname$"):
+        Test()._assert_fileset("rtl")

@@ -191,3 +191,18 @@ class FileSetSchema(PathSchema):
 
         new_fs = self.get("fileset", src_fileset, field="schema").copy()
         EditableSchema(self).insert("fileset", dst_fileset, new_fs, clobber=True)
+
+    def _assert_fileset(self, fileset: str) -> None:
+        """
+        Raises an error if the fileset does not exist
+
+        Raises:
+            LookupError: if fileset is not found
+        """
+
+        if fileset not in self.getkeys("fileset"):
+            name = getattr(self, "name", None)
+            if name:
+                raise LookupError(f"{fileset} is not defined in {name}")
+            else:
+                raise LookupError(f"{fileset} is not defined")
