@@ -56,6 +56,55 @@ class OpenROADGPLParameter(OpenROADTask):
         # self.set_asic_var("pad_global_place", check_pdk=False, mainlib_key="global_cell_padding")
 
 
+class OpenROADRSZDRVParameter(OpenROADTask):
+    def __init__(self):
+        super().__init__()
+
+        self.add_parameter("rsz_cap_margin", "float", "specifies the amount of margin to apply to max capacitance repairs in percent (0 - 100)", defvalue=0.0)
+        self.add_parameter("rsz_slew_margin", "float", "specifies the amount of margin to apply to max slew repairs in percent (0 - 100)", defvalue=0.0)
+
+
+class OpenROADRSZTimingParameter(OpenROADTask):
+    def __init__(self):
+        super().__init__()
+
+        self.add_parameter("rsz_setup_slack_margin", "float", "specifies the margin to apply when performing setup repair", defvalue=0.0, unit="ns")
+        self.add_parameter("rsz_hold_slack_margin", "float", "specifies the margin to apply when performing hold repair", defvalue=0.0, unit="ns")
+
+        self.add_parameter("rsz_skip_pin_swap", "bool", "true/false, skip pin swap optimization", defvalue=True)
+        self.add_parameter("rsz_skip_gate_cloning", "bool", "true/false, skip gate cloning optimization", defvalue=True)
+        self.add_parameter("rsz_repair_tns", "float", "percentage of violating nets to attempt to repair (0 - 100)", defvalue=100)
+        self.add_parameter("rsz_recover_power", "float", "percentage of paths to attempt to recover power (0 - 100)", defvalue=100)
+
+
+class OpenROADDPLParameter(OpenROADTask):
+    def __init__(self):
+        super().__init__()
+
+        self.add_parameter("pad_detail_place", "int", "detailed placement cell padding in number of sites", defvalue=0)
+        self.add_parameter("dpl_max_displacement", "(float,float)", "maximum cell movement in detailed placement in microns, 0 will result in the tool default maximum displacement", defvalue=(0, 0))
+        self.add_parameter("dpl_disallow_one_site", "bool", "true/false, disallow single site gaps in detail placement", defvalue=False)
+
+
+class OpenROADDPOParameter(OpenROADTask):
+    def __init__(self):
+        super().__init__()
+
+        self.add_parameter("dpo_enable", "bool", "true/false, when true the detailed placement optimization will be performed", defvalue=True)
+        self.add_parameter("dpo_max_displacement", "(float,float)", "maximum cell movement in detailed placement optimization in microns, 0 will result in the tool default maximum displacement", unit="um", defvalue=(5, 5))
+
+
+class OpenROADCTSParameter(OpenROADTask):
+    def __init__(self):
+        super().__init__()
+
+        self.add_parameter("cts_distance_between_buffers", "float", "maximum distance between buffers during clock tree synthesis in microns", defvalue=100, unit="um")
+        self.add_parameter("cts_cluster_diameter", "float", "clustering distance to use during clock tree synthesis in microns", defvalue=100, unit="um")
+        self.add_parameter("cts_cluster_size", "int", "number of instances in a cluster to use during clock tree synthesis", defvalue=30)
+        self.add_parameter("cts_balance_levels", "bool", "perform level balancing in clock tree synthesis", defvalue=True)
+        self.add_parameter("cts_obstruction_aware", "bool", "make clock tree synthesis aware of obstructions", defvalue=True)
+
+
 class APRTask(OpenROADTask):
     def __init__(self):
         super().__init__()

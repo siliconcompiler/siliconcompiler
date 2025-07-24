@@ -24,23 +24,22 @@ if { [llength [all_clocks]] > 0 } {
     repair_clock_inverters
 
     set sc_cts_arguments []
-    if { [lindex [sc_cfg_tool_task_get var cts_balance_levels] 0] == "true" } {
+    if { [sc_cfg_tool_task_get var cts_balance_levels] } {
         lappend sc_cts_arguments "-balance_levels"
     }
-    if { [lindex [sc_cfg_tool_task_get var cts_obstruction_aware] 0] == "true" } {
+    if { [sc_cfg_tool_task_get var cts_obstruction_aware] } {
         lappend sc_cts_arguments "-obstruction_aware"
     }
     if { [llength [sc_cfg_get library $sc_mainlib asic cells clkbuf]] > 0 } {
         lappend sc_cts_arguments "-buf_list" [sc_cfg_get library $sc_mainlib asic cells clkbuf]
     }
 
-    set cts_distance_between_buffers \
-        [lindex [sc_cfg_tool_task_get var cts_distance_between_buffers] 0]
+    set cts_distance_between_buffers [sc_cfg_tool_task_get var cts_distance_between_buffers]
     sc_report_args -command clock_tree_synthesis -args $sc_cts_arguments
     clock_tree_synthesis \
         -sink_clustering_enable \
-        -sink_clustering_size [lindex [sc_cfg_tool_task_get var cts_cluster_size] 0] \
-        -sink_clustering_max_diameter [lindex [sc_cfg_tool_task_get var cts_cluster_diameter] 0] \
+        -sink_clustering_size [sc_cfg_tool_task_get var cts_cluster_size] \
+        -sink_clustering_max_diameter [sc_cfg_tool_task_get var cts_cluster_diameter] \
         -distance_between_buffers $cts_distance_between_buffers \
         {*}$sc_cts_arguments
 

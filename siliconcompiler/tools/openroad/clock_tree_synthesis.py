@@ -8,6 +8,23 @@ from siliconcompiler.tools.openroad._apr import build_pex_corners, define_ord_fi
 from siliconcompiler.tools.openroad._apr import extract_metrics
 
 
+from siliconcompiler.tools.openroad._apr import APRTask
+from siliconcompiler.tools.openroad._apr import OpenROADSTAParameter, OpenROADDPLParameter, OpenROADCTSParameter
+
+
+class CTSTask(APRTask, OpenROADSTAParameter, OpenROADDPLParameter, OpenROADCTSParameter):
+    def __init__(self):
+        super().__init__()
+
+    def task(self):
+        return "clock_tree_synthesis"
+
+    def setup(self):
+        super().setup()
+
+        self.set("script", "apr/sc_clock_tree_synthesis.tcl")
+
+
 def setup(chip):
     '''
     Perform clock tree synthesis
