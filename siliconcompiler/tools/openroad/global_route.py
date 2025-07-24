@@ -8,6 +8,25 @@ from siliconcompiler.tools.openroad._apr import build_pex_corners, define_ord_fi
 from siliconcompiler.tools.openroad._apr import extract_metrics
 
 
+from siliconcompiler.tools.openroad._apr import APRTask
+from siliconcompiler.tools.openroad._apr import OpenROADSTAParameter, OpenROADGRTParameter, OpenROADDRTPinAccessParameter
+
+
+class GlobalRouteTask(APRTask, OpenROADSTAParameter, OpenROADGRTParameter, OpenROADDRTPinAccessParameter):
+    def __init__(self):
+        super().__init__()
+
+        self.add_parameter("grt_use_pin_access", "bool", "true/false, when true perform pin access before global routing", defvalue=False)
+
+    def task(self):
+        return "global_route"
+
+    def setup(self):
+        super().setup()
+
+        self.set("script", "apr/sc_global_route.tcl")
+
+
 def setup(chip):
     '''
     Perform global routing

@@ -57,6 +57,10 @@ class ASICFlow(FlowgraphSchema):
         self.edge("place.detailed", "cts.clock_tree_synthesis")
         self.node("cts.repair_timing", repair_timing.RepairTimingTask())
         self.edge("cts.clock_tree_synthesis", "cts.repair_timing")
+        self.node("cts.fillcell", fillercell_insertion.FillCellTask())
+        self.edge("cts.repair_timing", "cts.fillcell")
+        self.node("route.global", global_route.GlobalRouteTask())
+        self.edge("cts.fillcell", "route.global")
 
 
 ############################################################################
