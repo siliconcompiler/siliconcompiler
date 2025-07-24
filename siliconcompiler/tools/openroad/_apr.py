@@ -49,6 +49,12 @@ class OpenROADGPLParameter(OpenROADTask):
         self.add_parameter("place_density", "float", "global placement density (0.0 - 1.0)")
         self.add_parameter("pad_global_place", "int", "global placement cell padding in number of sites", defvalue=0)
 
+    def setup(self):
+        super().setup()
+
+        self.set_asic_var("place_density", require=True)
+        # self.set_asic_var("pad_global_place", check_pdk=False, mainlib_key="global_cell_padding")
+
 
 class APRTask(OpenROADTask):
     def __init__(self):
