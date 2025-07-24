@@ -10,6 +10,25 @@ from siliconcompiler.tools.openroad._apr import build_pex_corners, define_ord_fi
 from siliconcompiler.tools.openroad._apr import extract_metrics
 
 
+from siliconcompiler.tools.openroad._apr import APRTask
+from siliconcompiler.tools.openroad._apr import OpenROADSTAParameter
+
+
+class FillMetalTask(APRTask, OpenROADSTAParameter):
+    def __init__(self):
+        super().__init__()
+
+        self.add_parameter("fin_add_fill", "bool", "true/false, when true enables adding fill, if enabled by the PDK, to the design", defvalue=True)
+
+    def task(self):
+        return "fillmetal_insertion"
+
+    def setup(self):
+        super().setup()
+
+        self.set("script", "apr/sc_fillmetal_insertion.tcl")
+
+
 def setup(chip):
     '''
     Perform fill metal insertion

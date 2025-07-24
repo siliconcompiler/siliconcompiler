@@ -65,6 +65,10 @@ class ASICFlow(FlowgraphSchema):
         self.edge("route.global", "route.antenna_repair")
         self.node("route.detailed", detailed_route.DetailedRouteTask())
         self.edge("route.antenna_repair", "route.detailed")
+        # self.node("dfm.metal_fill", fillmetal_insertion.FillMetalTask())
+        # self.edge("route.detailed", "dfm.metal_fill")
+        self.node("write.views", write_data.WriteViewsTask())
+        self.edge("route.detailed", "write.views")
 
 
 ############################################################################
