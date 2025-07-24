@@ -51,11 +51,12 @@ class FreePDK45(OpenROADPDK, PDKSchema):
 
             self.set_apr_routinglayers(min="metal2", max="metal7")
 
-            # # Klayout setup file
-            # self.set('layermap', 'klayout', 'def', 'klayout', stackup,
-            #          pdkdir + '/setup/klayout/freepdk45.lyt')
-
-            # self.set('display', 'klayout', stackup, pdkdir + '/setup/klayout/freepdk45.lyp')
+            # Klayout setup file
+            with self.active_fileset("klayout.techmap"):
+                self.add_file(pdk_path / "setup" / "klayout" / "freepdk45.lyt", filetype="layermap")
+                self.add_file(pdk_path / "setup" / "klayout" / "freepdk45.lyp", filetype="diplay")
+                self.set("pdk", "layermapfileset", "klayout", "def", "klayout", "klayout.techmap")
+                self.set("pdk", "displayfileset", "klayout", "klayout.techmap")
 
             self.set_openroad_rclayers(signal="metal3", clock="metal5")
 
@@ -77,10 +78,12 @@ class FreePDK45(OpenROADPDK, PDKSchema):
             # self.set('var', 'openroad', 'pin_layer_horizontal', stackup, 'metal5')
 
             # # PEX
-            # self.set('pexmodel', 'openroad', stackup, 'typical',
-            #          pdkdir + '/pex/openroad/typical.tcl')
-            # self.set('pexmodel', 'openroad-openrcx', stackup, 'typical',
-            #          pdkdir + '/pex/openroad/typical.rules')
+            with self.active_fileset("openroad.pex"):
+                self.add_file(pdk_path / "pex" / "openroad" / "typical.tcl", filetype="tcl")
+                self.add_file(pdk_path / "pex" / "openroad" / "typical.rules", filetype="openrcx")
+
+                self.set("pdk", "pexmodelfileset", "openroad", "typical", "openroad.pex")
+                self.set("pdk", "pexmodelfileset", "openroad-openrcx", "typical", "openroad.pex")
 
     @final
     def define_tool_parameter(self, tool: str, name: str, type: str, help: str, **kwargs):
@@ -111,6 +114,83 @@ class FreePDK45(OpenROADPDK, PDKSchema):
         )
 
 
+class ASAP7(OpenROADPDK, PDKSchema):
+    def __init__(self):
+        super().__init__()
+        self.set_name("asap7")
+
+        PythonPathResolver.set_dataroot(
+            self,
+            "lambdapdk",
+            "lambdapdk",
+            "https://github.com/siliconcompiler/lambdapdk/archive/refs/tags/",
+            alternative_ref=f"v{lambda_version}",
+            python_module_path_append=".."
+        )
+
+        pdk_path = Path("lambdapdk", "asap7", "base")
+
+        self.set_foundry("virtual")
+        self.set_version("r1p7")
+        self.set_node(7)
+        self.set_stackup("10M")
+        self.set_wafersize(300)
+        self.set_scribewidth(0.1, 0.1)
+        self.set_edgemargin(2)
+        self.set_defectdensity(1.25)
+
+        with self.active_dataroot("lambdapdk"):
+            # APR Setup
+            with self.active_fileset("views.lef"):
+                self.add_file(pdk_path / "apr" / "asap7_tech.lef")
+                for tool in ('openroad', 'klayout', 'magic'):
+                    self.add_apr_techfileset(tool)
+
+            self.set_apr_routinglayers(min="M2", max="M7")
+
+            with self.active_fileset("layermap"):
+                self.add_file(pdk_path / "apr" / "asap7.layermap", filetype="layermap")
+
+            # Klayout setup file
+            with self.active_fileset("klayout.techmap"):
+                self.add_file(pdk_path / "setup" / "klayout" / "asap7.lyt", filetype="layermap")
+                self.add_file(pdk_path / "setup" / "klayout" / "asap7.lyp", filetype="display")
+                self.set("pdk", "layermapfileset", "klayout", "def", "klayout", "klayout.techmap")
+                self.set("pdk", "displayfileset", "klayout", "klayout.techmap")
+            self.set("pdk", "layermapfileset", "klayout", "def", "gds", "layermap")
+
+            self.set_openroad_rclayers(signal="M3", clock="M3")
+
+            # Openroad global routing grid derating
+            for layer, detate in [
+                    ('M1', 0.25),
+                    ('M2', 0.25),
+                    ('M3', 0.25),
+                    ('M4', 0.25),
+                    ('M5', 0.25),
+                    ('M6', 0.25),
+                    ('M7', 0.25),
+                    ('M8', 0.25),
+                    ('M9', 0.25),
+                    ('Pad', 0.25)]:
+                self.set_openroad_globalroutingdetating(layer, detate)
+
+            # self.set('var', 'openroad', 'pin_layer_vertical', stackup, 'metal6')
+            # self.set('var', 'openroad', 'pin_layer_horizontal', stackup, 'metal5')
+
+            # # Relaxed routing rules
+            # pdk.set('pdk', process, 'file', 'openroad', 'relax_routing_rules', stackup,
+            #         pdkdir + '/apr/openroad_relaxed_rules.tcl')
+
+            # # PEX
+            with self.active_fileset("openroad.pex"):
+                self.add_file(pdk_path / "pex" / "openroad" / "typical.tcl", filetype="tcl")
+                self.add_file(pdk_path / "pex" / "openroad" / "typical.rules", filetype="openrcx")
+
+                self.set("pdk", "pexmodelfileset", "openroad", "typical", "openroad.pex")
+                self.set("pdk", "pexmodelfileset", "openroad-openrcx", "typical", "openroad.pex")
+
+
 class ASAP7SC7p5Base(YosysStdCellLibrarySchema,
                      OpenROADStdCellLibrarySchema,
                      BambuStdCellLibrarySchema,
@@ -130,6 +210,9 @@ class ASAP7SC7p5Base(YosysStdCellLibrarySchema,
 
         # version
         self.set_version("28")
+
+        # PDK
+        self.set_asic_pdk(ASAP7())
 
         # site name
         self.add_asic_site('asap7sc7p5t')
