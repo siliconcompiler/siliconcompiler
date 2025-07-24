@@ -1,16 +1,60 @@
 import pytest
 
-from siliconcompiler import LibrarySchema, StdCellLibrarySchema
+from siliconcompiler import LibrarySchema, ToolLibrarySchema, StdCellLibrarySchema
 from siliconcompiler.schema import PerNode, Scope
 
 
-def test_allkeys():
+def test__allkeys():
     lib = LibrarySchema("test")
+    assert lib.allkeys() == set([
+        ('dataroot', 'default', 'path'),
+        ('dataroot', 'default', 'tag'),
+        ('fileset', 'default', 'file', 'default'),
+        ('package', 'version'),
+        ('package', 'doc', 'userguide'),
+        ('package', 'doc', 'quickstart'),
+        ('package', 'author', 'default', 'email'),
+        ('package', 'licensefile'),
+        ('package', 'license'),
+        ('package', 'doc', 'reference'),
+        ('package', 'doc', 'tutorial'),
+        ('package', 'doc', 'signoff'),
+        ('package', 'doc', 'datasheet'),
+        ('package', 'doc', 'releasenotes'),
+        ('package', 'author', 'default', 'organization'),
+        ('package', 'doc', 'testplan'),
+        ('package', 'description'),
+        ('package', 'author', 'default', 'name')
+    ])
+
+
+def test_allkeys_tool_library():
+    lib = ToolLibrarySchema("test")
+    assert lib.allkeys() == set([
+        ('dataroot', 'default', 'path'),
+        ('dataroot', 'default', 'tag'),
+        ('fileset', 'default', 'file', 'default'),
+        ('package', 'version'),
+        ('package', 'doc', 'userguide'),
+        ('package', 'doc', 'quickstart'),
+        ('package', 'author', 'default', 'email'),
+        ('package', 'licensefile'),
+        ('package', 'license'),
+        ('package', 'doc', 'reference'),
+        ('package', 'doc', 'tutorial'),
+        ('package', 'doc', 'signoff'),
+        ('package', 'doc', 'datasheet'),
+        ('package', 'doc', 'releasenotes'),
+        ('package', 'author', 'default', 'organization'),
+        ('package', 'doc', 'testplan'),
+        ('package', 'description'),
+        ('package', 'author', 'default', 'name')
+    ])
     assert lib.allkeys("tool") == set()
 
 
 def test_define_tool_parameter():
-    lib = LibrarySchema("test")
+    lib = ToolLibrarySchema("test")
     lib.define_tool_parameter(
         "yosys",
         "timingcorner",
@@ -29,7 +73,7 @@ def test_define_tool_parameter():
 
 
 def test_define_tool_parameter_override_illegal():
-    lib = LibrarySchema("test")
+    lib = ToolLibrarySchema("test")
     lib.define_tool_parameter(
         "yosys",
         "timingcorner",
@@ -51,7 +95,7 @@ def test_define_tool_parameter_override_illegal():
 
 def test_define_tool_parameter_invalid_help():
     with pytest.raises(TypeError, match="help must be a string"):
-        LibrarySchema("test").define_tool_parameter(
+        ToolLibrarySchema("test").define_tool_parameter(
             "yosys",
             "timingcorner",
             "str",
@@ -60,7 +104,7 @@ def test_define_tool_parameter_invalid_help():
 
 
 def test_define_tool_parameter_multiline_help_empty_first_line():
-    lib = LibrarySchema("test")
+    lib = ToolLibrarySchema("test")
     lib.define_tool_parameter(
         "yosys",
         "timingcorner",
@@ -79,7 +123,7 @@ def test_define_tool_parameter_multiline_help_empty_first_line():
 
 
 def test_define_tool_parameter_multiline_help():
-    lib = LibrarySchema("test")
+    lib = ToolLibrarySchema("test")
     lib.define_tool_parameter(
         "yosys",
         "timingcorner",
@@ -97,7 +141,7 @@ def test_define_tool_parameter_multiline_help():
 
 
 def test_define_tool_parameter_with_defvalue():
-    lib = LibrarySchema("test")
+    lib = ToolLibrarySchema("test")
     lib.define_tool_parameter(
         "yosys",
         "timingcorner",
@@ -115,7 +159,7 @@ def test_define_tool_parameter_with_defvalue():
 
 
 def test_define_tool_parameter_with_defvalue_file():
-    lib = LibrarySchema("test")
+    lib = ToolLibrarySchema("test")
     lib.define_tool_parameter(
         "yosys",
         "liberty",
@@ -136,7 +180,7 @@ def test_define_tool_parameter_with_defvalue_file():
 
 
 def test_define_tool_parameter_with_defvalue_file_copy_on():
-    lib = LibrarySchema("test")
+    lib = ToolLibrarySchema("test")
     lib.define_tool_parameter(
         "yosys",
         "liberty",

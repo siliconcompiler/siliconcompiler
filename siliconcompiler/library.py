@@ -13,6 +13,8 @@ class LibrarySchema(FileSetSchema, PackageSchema, NamedSchema):
         super().__init__()
         self.set_name(name)
 
+
+class ToolLibrarySchema(LibrarySchema):
     @final
     def define_tool_parameter(self, tool: str, name: str, type: str, help: str, **kwargs):
         """
