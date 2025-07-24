@@ -1790,6 +1790,7 @@ class Chip:
             fout.write(template.render(manifest_dict='\n'.join(tcl_set_cmds),
                                        scroot=os.path.abspath(
                                             os.path.join(os.path.dirname(__file__))),
+                                       toolvars={},
                                        record_access=record,
                                        record_access_id=Schema._RECORD_ACCESS_IDENTIFIER))
         else:
