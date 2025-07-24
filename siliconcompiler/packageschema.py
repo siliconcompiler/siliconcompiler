@@ -31,6 +31,7 @@ class PackageSchema(PathSchema):
         Returns:
             str: The description string.
         """
+
         return self.get("package", "description")
 
     def set_version(self, version: str):
@@ -50,6 +51,24 @@ class PackageSchema(PathSchema):
             str: The version string.
         """
         return self.get("package", "version")
+
+    def set_vendor(self, vendor: str):
+        """
+        Set the vendor of the package.
+
+        Args:
+            vendor (str): The vendor name.
+        """
+        return self.set("package", "vendor", vendor)
+
+    def get_vendor(self) -> str:
+        """
+        Get the vendor of the package.
+
+        Returns:
+            str: The vendor name.
+        """
+        return self.get("package", "vendor")
 
     def add_license(self, name: str):
         """
@@ -182,6 +201,18 @@ def schema_package(schema):
                 "api: chip.set('package', 'version', '1.0')"],
             help=trim("""Package version. Can be a branch, tag, commit hash,
             or a semver compatible version.""")))
+
+    schema.insert(
+        'package', 'vendor',
+        Parameter(
+            'str',
+            scope=Scope.GLOBAL,
+            shorthelp="Package: vendor",
+            switch="-package_vendor <str>",
+            example=[
+                "cli: -package_vendor acme",
+                "api: chip.set('package', 'vendor', 'acme')"],
+            help=trim("""Package vendor.""")))
 
     schema.insert(
         'package', 'description',

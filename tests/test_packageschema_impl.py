@@ -87,6 +87,7 @@ def test_keys():
         ('package', 'doc', 'userguide'),
         ('package', 'license'),
         ('package', 'licensefile'),
+        ('package', 'vendor'),
         ('package', 'version'),
     ])
 
@@ -103,6 +104,13 @@ def test_version():
     assert schema.set_version("1.0")
     assert schema.get("package", "version") == "1.0"
     assert schema.get_version() == "1.0"
+
+
+def test_vendor():
+    schema = PackageSchema()
+    assert schema.set_vendor("acme")
+    assert schema.get("package", "vendor") == "acme"
+    assert schema.get_vendor() == "acme"
 
 
 def test_author():
