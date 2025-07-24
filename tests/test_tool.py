@@ -1708,3 +1708,35 @@ def test_get_logpath_fail(running_node):
     with running_node.task.runtime(running_node) as runtool:
         with pytest.raises(ValueError, match="notvalid is not a log"):
             runtool.get_logpath("notvalid")
+
+
+def test_get_tcl_variables(running_node):
+    with running_node.task.runtime(running_node) as runtool:
+        assert runtool.get_tcl_variables() == {
+            'sc_task': '"nop"',
+            'sc_tool': '"builtin"',
+            'sc_topmodule': '"designtop"',
+        }
+
+
+def test_get_tcl_variables_with_refdir(running_node):
+    running_node.task.set("refdir", ".")
+    with running_node.task.runtime(running_node) as runtool:
+        assert runtool.get_tcl_variables() == {
+            'sc_task': '"nop"',
+            'sc_tool': '"builtin"',
+            'sc_topmodule': '"designtop"',
+            "sc_refdir": '[list "."]'
+        }
+
+
+def test_get_tcl_variables_with_refdir_diffsource(running_node):
+    copy_project = running_node.project.copy()
+    copy_project.set("tool", "builtin", "task", "nop", "refdir", "thispath")
+    with running_node.task.runtime(running_node) as runtool:
+        assert runtool.get_tcl_variables(copy_project) == {
+            'sc_task': '"nop"',
+            'sc_tool': '"builtin"',
+            'sc_topmodule': '"designtop"',
+            "sc_refdir": '[list "thispath"]'
+        }

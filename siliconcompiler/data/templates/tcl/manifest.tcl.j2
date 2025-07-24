@@ -21,3 +21,11 @@ proc sc_root {} {
 proc _sc_cfg_get_debug { args } {
     {% if record_access %}puts "{{ record_access_id }} [join $args ,]"{% endif %}
 }
+
+
+#############################################
+# Tool variables
+#############################################
+
+{% for var, val in toolvars.items() %}set {{ var }} {{ val }}
+{% endfor %}

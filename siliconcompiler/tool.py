@@ -29,7 +29,7 @@ import os.path
 from packaging.version import Version, InvalidVersion
 from packaging.specifiers import SpecifierSet, InvalidSpecifier
 
-from typing import List, Union
+from typing import List, Union, Dict
 
 from siliconcompiler.schema import BaseSchema, NamedSchema, Journal
 from siliconcompiler.schema import EditableSchema, Parameter, PerNode, Scope
@@ -595,6 +595,32 @@ class TaskSchema(NamedSchema):
         fout.write(yaml.dump(manifest.getdict(), Dumper=YamlIndentDumper,
                              default_flow_style=False))
 
+    def get_tcl_variables(self, manifest: BaseSchema = None) -> Dict[str, str]:
+        """
+        Get a dictionary of variables to define for the task in the tcl manifest
+
+        Args:
+            manifest (:class`.BaseSchema`): manifest to retrieve values from
+
+        Returns:
+            dict of variable name and value
+        """
+
+        if manifest is None:
+            manifest = self.schema()
+
+        vars = {
+            "sc_tool": NodeType.to_tcl(self.tool(), "str"),
+            "sc_task": NodeType.to_tcl(self.task(), "str"),
+            "sc_topmodule": NodeType.to_tcl(self.design_topmodule, "str")
+        }
+
+        refdir = manifest.get("tool", self.tool(), "task", self.task(), "refdir", field=None)
+        if refdir.get(step=self.__step, index=self.__index):
+            vars["sc_refdir"] = refdir.gettcl(step=self.__step, index=self.__index)
+
+        return vars
+
     def __write_tcl_manifest(self, fout, manifest):
         template = utils.get_file_template('tcl/manifest.tcl.j2')
         tcl_set_cmds = []
@@ -622,6 +648,7 @@ class TaskSchema(NamedSchema):
             fout.write(template.render(manifest_dict='\n'.join(tcl_set_cmds),
                                        scroot=os.path.abspath(
                                             os.path.join(os.path.dirname(__file__))),
+                                       toolvars=self.get_tcl_variables(manifest),
                                        record_access="get" in Journal.access(self).get_types(),
                                        record_access_id=Schema._RECORD_ACCESS_IDENTIFIER))
         else:
