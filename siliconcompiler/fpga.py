@@ -26,18 +26,6 @@ class FPGASchema(ToolLibrarySchema):
                 hard coded within the FPGA EDA tool.""")))
 
         schema.insert(
-            "fpga", 'vendor',
-            Parameter(
-                'str',
-                scope=Scope.GLOBAL,
-                shorthelp="FPGA: vendor name",
-                switch="-fpga_vendor 'partname <str>'",
-                example=["cli: -fpga_vendor 'fpga64k acme'",
-                         "api: chip.set('fpga', 'fpga64k', 'vendor', 'acme')"],
-                help=trim("""
-                Name of the FPGA vendor for the FPGA partname.""")))
-
-        schema.insert(
             "fpga", 'lutsize',
             Parameter(
                 'int',

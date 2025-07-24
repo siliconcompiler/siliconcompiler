@@ -46,7 +46,7 @@ class PDKSchema(ToolLibrarySchema):
         schema.insert(
             'stackup',
             Parameter(
-                '[str]',
+                'str',
                 scope=Scope.GLOBAL,
                 shorthelp="PDK: metal stackups",
                 switch="-pdk_stackup 'pdkname <str>'",
