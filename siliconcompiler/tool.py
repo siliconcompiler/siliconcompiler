@@ -1333,6 +1333,113 @@ class TaskSchema(NamedSchema):
         pass
 
 
+class ASICTaskSchema(TaskSchema):
+    @property
+    def mainlib(self):
+        mainlib = self.schema().get("asic", "mainlib")
+        if not mainlib:
+            raise ValueError("mainlib has not been defined in [asic,mainlib]")
+        if mainlib not in self.schema().getkeys("library"):
+            raise LookupError(f"{mainlib} has not been loaded")
+        return self.schema().get("library", mainlib, field="schema")
+
+    @property
+    def pdk(self):
+        pdk = self.mainlib.get("asic", "pdk")
+        if not pdk:
+            raise ValueError("pdk has not been defined in "
+                             f"[{','.join([*self.mainlib._keypath, 'asic', 'pdk'])}]")
+        if pdk not in self.schema().getkeys("library"):
+            raise LookupError(f"{pdk} has not been loaded")
+        return self.schema().get("library", pdk, field="schema")
+
+    def set_asic_var(self,
+                     key: str,
+                     defvalue=None,
+                     check_pdk: bool = True,
+                     require_pdk: bool = False,
+                     pdk_key: str = None,
+                     check_mainlib: bool = True,
+                     require_mainlib: bool = False,
+                     mainlib_key: str = None,
+                     require: bool = False):
+        '''
+        Set an ASIC parameter based on a prioritized lookup order.
+
+        This method attempts to set a parameter identified by `key` by checking
+        values in a specific order:
+        1. The main library
+        2. The PDK
+        3. A provided default value (`defvalue`)
+
+        The first non-empty or non-None value found in this hierarchy will be
+        used to set the parameter. If no value is found and `defvalue` is not
+        provided, the parameter will not be set unless explicitly required.
+
+        Args:
+            key: The string key for the parameter to be set. This key is used
+                to identify the parameter within the current object (`self`)
+                and, by default, within the main library and PDK.
+            defvalue: An optional default value to use if the parameter is not
+                found in the main library or PDK. If `None` and the parameter
+                is not found, it will not be set unless `require` is True.
+            check_pdk: If `True`, the method will attempt to retrieve the
+                parameter from the PDK. Defaults to `True`.
+            require_pdk: If `True`, the parameter *must* be defined in the PDK.
+                An error will be raised if it's not found and `check_pdk` is `True`.
+                Defaults to `False`.
+            pdk_key: The specific key to use when looking up the parameter in the
+                PDK. If `None`, `key` will be used.
+            check_mainlib: If `True`, the method will attempt to retrieve the
+                parameter from the main library. Defaults to `True`.
+            require_mainlib: If `True`, the parameter *must* be defined in the
+                main library. An error will be raised if it's not found and
+                `check_mainlib` is `True`. Defaults to `False`.
+            mainlib_key: The specific key to use when looking up the parameter in
+                the main library. If `None`, `key` will be used.
+            require: If `True`, the parameter *must* be set by this method (either
+                from a source or `defvalue`). An error will be raised if it cannot
+                be set. Defaults to `False`.
+        '''
+        check_keys = []
+        if check_pdk:
+            if not pdk_key:
+                pdk_key = key
+            check_keys.append((self.pdk, ("tool", self.tool(), pdk_key)))
+        if check_mainlib:
+            if not mainlib_key:
+                mainlib_key = key
+            check_keys.append((self.mainlib, ("tool", self.tool(), mainlib_key)))
+        check_keys.append((self, ("var", key)))
+
+        if require_pdk:
+            self.add_required_key(self.pdk, "tool", self.tool(), pdk_key)
+        if require_mainlib:
+            self.add_required_key(self.mainlib, "tool", self.tool(), mainlib_key)
+        if require or defvalue is not None:
+            self.add_required_key(self, "var", key)
+
+        if self.get("var", key, field=None).is_set(self.step, self.index):
+            return
+
+        for obj, keypath in reversed(check_keys):
+            if not obj.valid(*keypath):
+                continue
+
+            value = obj.get(*keypath)
+            if isinstance(value, (list, set, tuple)):
+                if not value:
+                    continue
+            else:
+                if value is None:
+                    continue
+            self.add_required_key(obj, *keypath)
+            self.add_required_key(self, "var", key)
+            return self.set("var", key, value)
+        if defvalue is not None:
+            return self.set("var", key, defvalue)
+
+
 class ToolSchema(NamedSchema):
     def __init__(self, name=None):
         super().__init__()
