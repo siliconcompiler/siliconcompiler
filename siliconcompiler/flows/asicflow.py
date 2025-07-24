@@ -61,6 +61,10 @@ class ASICFlow(FlowgraphSchema):
         self.edge("cts.repair_timing", "cts.fillcell")
         self.node("route.global", global_route.GlobalRouteTask())
         self.edge("cts.fillcell", "route.global")
+        self.node("route.antenna_repair", antenna_repair.AntennaRepairTask())
+        self.edge("route.global", "route.antenna_repair")
+        self.node("route.detailed", detailed_route.DetailedRouteTask())
+        self.edge("route.antenna_repair", "route.detailed")
 
 
 ############################################################################

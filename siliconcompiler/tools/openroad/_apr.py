@@ -120,9 +120,39 @@ class OpenROADGRTParameter(OpenROADTask):
         self.add_parameter("grt_overflow_iter", "int", "maximum number of iterations to use in global routing when attempting to solve overflow", defvalue=100)
 
 
-class OpenROADDRTPinAccessParameter(OpenROADTask):
+class OpenROADANTParameter(OpenROADTask):
     def __init__(self):
         super().__init__()
+
+        self.add_parameter("ant_iterations", "int", "maximum number of repair iterations to use during antenna repairs", defvalue=3)
+        self.add_parameter("ant_margin", "float", "adds a margin to the antenna ratios (0 - 100)", defvalue=0)
+
+
+class _OpenROADDRTCommonParameter(OpenROADTask):
+    def __init__(self):
+        super().__init__()
+
+        self.add_parameter("drt_process_node", "str", "when set this specifies to the detailed router the specific process node")
+        self.add_parameter("detailed_route_default_via", "[str]", "list of default vias to use for detail routing")
+        self.add_parameter("detailed_route_unidirectional_layer", "[str]", "list of layers to treat as unidirectional regardless of what the tech lef specifies")
+
+
+class OpenROADDRTPinAccessParameter(_OpenROADDRTCommonParameter):
+    def __init__(self):
+        super().__init__()
+
+
+class OpenROADDRTParameter(_OpenROADDRTCommonParameter):
+    def __init__(self):
+        super().__init__()
+
+        self.add_parameter("drt_disable_via_gen", "bool", "true/false, when true turns off via generation in detailed router and only uses the specified tech vias", defvalue=False)
+        self.add_parameter("drt_via_in_pin_bottom_layer", "str", "TODO")
+        self.add_parameter("drt_via_in_pin_top_layer", "str", "TODO")
+        self.add_parameter("drt_repair_pdn_vias", "str", "TODO")
+
+        self.add_parameter("drt_report_interval", "int", "reporting interval in steps for generating a DRC report.", defvalue=5)
+        self.add_parameter("drt_end_iteration", "int", "end iteration for detailed routing")
 
 
 class APRTask(OpenROADTask):
