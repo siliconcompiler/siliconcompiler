@@ -107,7 +107,7 @@
   },
   "xyce": {
     "git-url": "https://github.com/Xyce/Xyce.git",
-    "git-commit": "Release-7.9.0",
+    "git-commit": "Release-7.10.0",
     "version-prefix": "Release-",
     "auto-update": true
   },
