@@ -38,6 +38,7 @@ def test_design_keys():
         ('package', 'doc', 'userguide'),
         ('package', 'license'),
         ('package', 'licensefile'),
+        ('package', 'vendor'),
         ('package', 'version')
     ])
 

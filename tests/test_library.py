@@ -24,6 +24,7 @@ def test__allkeys():
         ('package', 'author', 'default', 'organization'),
         ('package', 'doc', 'testplan'),
         ('package', 'description'),
+        ('package', 'vendor'),
         ('package', 'author', 'default', 'name')
     ])
 
@@ -48,6 +49,7 @@ def test_allkeys_tool_library():
         ('package', 'author', 'default', 'organization'),
         ('package', 'doc', 'testplan'),
         ('package', 'description'),
+        ('package', 'vendor'),
         ('package', 'author', 'default', 'name')
     ])
     assert lib.allkeys("tool") == set()
