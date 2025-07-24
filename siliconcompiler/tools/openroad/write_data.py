@@ -9,6 +9,32 @@ from siliconcompiler.tools.openroad._apr import build_pex_corners, define_ord_fi
 from siliconcompiler.tools.openroad._apr import extract_metrics
 
 
+from siliconcompiler.tools.openroad._apr import APRTask
+from siliconcompiler.tools.openroad._apr import OpenROADSTAParameter
+
+
+class WriteViewsTask(APRTask, OpenROADSTAParameter):
+    def __init__(self):
+        super().__init__()
+
+        self.add_parameter("ord_abstract_lef_bloat_layers", "bool", "true/false, fill all layers when writing the abstract lef", defvalue=True)
+        self.add_parameter("ord_abstract_lef_bloat_factor", "int", "Factor to apply when writing the abstract lef", defvalue=10)
+
+        self.add_parameter("write_cdl", "bool", "true/false, when true enables writing the CDL file for the design", defvalue=False)
+        self.add_parameter("write_spef", "bool", "true/false, when true enables writing the SPEF file for the design", defvalue=True)
+        self.add_parameter("use_spef", "bool", "true/false, when true enables reading in SPEF files.")
+        self.add_parameter("write_liberty", "bool", "true/false, when true enables writing the liberty timing model for the design", defvalue=True)
+        self.add_parameter("write_sdf", "bool", "true/false, when true enables writing the SDF timing model for the design", defvalue=True)
+
+    def task(self):
+        return "write_data"
+
+    def setup(self):
+        super().setup()
+
+        self.set("script", "apr/sc_write_data.tcl")
+
+
 def setup(chip):
     '''
     Write output files
