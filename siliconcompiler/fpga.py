@@ -12,7 +12,7 @@ class FPGASchema(ToolLibrarySchema):
 
         schema = EditableSchema(self)
         schema.insert(
-            'partname',
+            "fpga", 'partname',
             Parameter(
                 'str',
                 scope=Scope.GLOBAL,
@@ -26,7 +26,7 @@ class FPGASchema(ToolLibrarySchema):
                 hard coded within the FPGA EDA tool.""")))
 
         schema.insert(
-            'vendor',
+            "fpga", 'vendor',
             Parameter(
                 'str',
                 scope=Scope.GLOBAL,
@@ -38,7 +38,7 @@ class FPGASchema(ToolLibrarySchema):
                 Name of the FPGA vendor for the FPGA partname.""")))
 
         schema.insert(
-            'lutsize',
+            "fpga", 'lutsize',
             Parameter(
                 'int',
                 scope=Scope.GLOBAL,
@@ -50,6 +50,15 @@ class FPGASchema(ToolLibrarySchema):
                 Specify the number of inputs in each lookup table (LUT) for the
                 FPGA partname.  For architectures with fracturable LUTs, this is
                 the number of inputs of the unfractured LUT.""")))
+
+    def set_partname(self, name: str):
+        if not isinstance(name, str):
+            raise TypeError
+
+        self.set("fpga", "partname", name)
+
+    def set_lutsize(self, lut: int):
+        self.set("fpga", "lutsize", lut)
 
 
 class FPGASchemaTmp(BaseSchema):
