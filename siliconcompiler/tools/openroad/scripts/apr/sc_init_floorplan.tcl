@@ -70,9 +70,8 @@ puts "  Core area: [sc_format_area [ord::get_core_area]]"
 # source tracks from file if found, else else use schema entries
 set sc_openroad_tracks [sc_cfg_get  library $sc_mainlib tool openroad tracks]
 if { $sc_openroad_tracks != "" } {
-    set tracks_file [lindex [sc_cfg_get library $sc_mainlib option file openroad_tracks] 0]
-    puts "Sourcing tracks configuration: ${tracks_file}"
-    source $tracks_file
+    puts "Sourcing tracks configuration: ${sc_openroad_tracks}"
+    source $sc_openroad_tracks
 } else {
     utl::info FLW 1 "Creating default routing tracks"
     make_tracks
