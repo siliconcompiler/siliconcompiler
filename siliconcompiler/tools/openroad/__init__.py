@@ -14,7 +14,7 @@ from siliconcompiler.tools._common import get_tool_task
 
 from siliconcompiler.library import StdCellLibrarySchema
 from siliconcompiler.pdk import PDKSchema
-from siliconcompiler import TaskSchema
+from siliconcompiler.tool import ASICTaskSchema
 
 from siliconcompiler.schema import EditableSchema, Parameter, PerNode, Scope
 
@@ -97,7 +97,7 @@ class OpenROADStdCellLibrarySchema(StdCellLibrarySchema):
         self.add("tool", "openroad", "multibit_ff_cells", cells)
 
 
-class OpenROADTask(TaskSchema):
+class OpenROADTask(ASICTaskSchema):
     def __init__(self):
         super().__init__()
 
