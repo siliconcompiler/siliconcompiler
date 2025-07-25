@@ -1413,11 +1413,13 @@ class ASICTaskSchema(TaskSchema):
         if check_pdk:
             if not pdk_key:
                 pdk_key = key
-            check_keys.append((self.pdk, ("tool", self.tool(), pdk_key)))
+            if self.pdk.valid("tool", self.tool(), pdk_key):
+                check_keys.append((self.pdk, ("tool", self.tool(), pdk_key)))
         if check_mainlib:
             if not mainlib_key:
                 mainlib_key = key
-            check_keys.append((self.mainlib, ("tool", self.tool(), mainlib_key)))
+            if self.mainlib.valid("tool", self.tool(), mainlib_key):
+                check_keys.append((self.mainlib, ("tool", self.tool(), mainlib_key)))
         check_keys.append((self, ("var", key)))
 
         if require_pdk:
@@ -1457,65 +1459,6 @@ class ToolSchema(NamedSchema):
 
         schema = EditableSchema(self)
         schema.insert("task", "default", TaskSchema(None))
-
-
-class ASICTaskSchema(TaskSchema):
-    @property
-    def mainlib(self):
-        return self.schema().get("library", self.schema().get("asic", "mainlib"), field="schema")
-
-    @property
-    def pdk(self):
-        return self.schema().get("library", self.mainlib.get("asic", "pdk"), field="schema")
-
-    def set_asic_var(self,
-                     key: str,
-                     defvalue=None,
-                     check_pdk: bool = True,
-                     require_pdk: bool = False,
-                     pdk_key: str = None,
-                     check_mainlib: bool = True,
-                     require_mainlib: bool = False,
-                     mainlib_key: str = None,
-                     require: bool = False):
-        '''
-        Set a parameter based on the value collected the from the main library -> pdk -> default_value
-        '''
-        check_keys = []
-        if check_pdk:
-            if not pdk_key:
-                pdk_key = key
-            if self.pdk.valid("tool", self.tool(), pdk_key):
-                check_keys.append((self.pdk, ("tool", self.tool(), pdk_key)))
-        if check_mainlib:
-            if not mainlib_key:
-                mainlib_key = key
-            if self.mainlib.valid("tool", self.tool(), mainlib_key):
-                check_keys.append((self.mainlib, ("tool", self.tool(), mainlib_key)))
-        check_keys.append((self, ("var", key)))
-
-        if require_pdk:
-            self.add_required_key(self.pdk, "tool", self.tool(), pdk_key)
-        if require_mainlib:
-            self.add_required_key(self.mainlib, "tool", self.tool(), mainlib_key)
-        if require or defvalue is not None:
-            self.add_required_key(self, "var", key)
-
-        if self.get("var", key, field=None).is_set(self.step, self.index):
-            return
-
-        for obj, keypath in reversed(check_keys):
-            value = obj.get(*keypath)
-            if isinstance(value, (list, tuple)):
-                if not value:
-                    continue
-            else:
-                if value is None:
-                    continue
-            self.add_required_key(obj, *keypath)
-            return self.set("var", key, value)
-        if defvalue is not None:
-            return self.set("var", key, defvalue)
 
 
 class FrontendOption(Flag):

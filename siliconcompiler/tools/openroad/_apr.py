@@ -255,6 +255,8 @@ class APRTask(OpenROADTask):
 
         self.add_parameter("load_grt_setup", "bool", "used to indicate if global routing information should be loaded", defvalue=False)
 
+        self.add_parameter("global_connect", "[file]", "list of files to use for specifying global connections")
+
     def setup(self):
         super().setup()
 
@@ -270,6 +272,21 @@ class APRTask(OpenROADTask):
         self.add_required_tool_key("var", "ord_heatmap_bins")
         self.add_required_tool_key("var", "load_grt_setup")
 
+    def pre_process(self):
+        super().pre_process()
+
+        self._build_pex_estimation_file()
+
+        # Setup global connect scripts
+        if self.get("var", "global_connect"):
+            # Already set so do nothing
+            return
+
+        for lib in self.schema().get("asic", "asiclib"):
+            libobj = self.schema().get("library", lib, field="schema")
+            if libobj.valid("tool", "openroad", "global_connect"):
+                self.add("var", "global_connect", libobj.find_files("tool", "openroad", "global_connect"))
+
     def _set_reports(self, task_reports: List[str]):
         self.set("var", "reports", set(task_reports).difference(self.get("var", "skip_reports")))
 
@@ -284,10 +301,6 @@ class APRTask(OpenROADTask):
         self.add_output_file(ext="vg")
         self.add_output_file(ext="def")
         self.add_output_file(ext="odb")
-
-    def pre_process(self):
-        super().pre_process()
-        self._build_pex_estimation_file()
 
     def _get_pex_mapping(self):
         corners = {}

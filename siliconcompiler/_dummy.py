@@ -8,7 +8,7 @@ from lambdapdk import __version__ as lambda_version
 from siliconcompiler.package import PythonPathResolver
 from siliconcompiler.schema import EditableSchema, Parameter, Scope, PerNode
 
-from siliconcompiler.library import StdCellLibrarySchema, ToolLibrarySchema
+from siliconcompiler.library import StdCellLibrarySchema
 
 from siliconcompiler import PDKSchema, DesignSchema
 
@@ -90,10 +90,7 @@ class FreePDK45(OpenROADPDK, PDKSchema):
 
             self.add_openroad_pinlayers(veritcal="metal6", horizontal="metal5")
 
-            # self.set('var', 'openroad', 'pin_layer_vertical', stackup, 'metal6')
-            # self.set('var', 'openroad', 'pin_layer_horizontal', stackup, 'metal5')
-
-            # # PEX
+            # PEX
             with self.active_fileset("openroad.pex"):
                 self.add_file(pdk_path / "pex" / "openroad" / "typical.tcl", filetype="tcl")
                 self.add_file(pdk_path / "pex" / "openroad" / "typical.rules", filetype="openrcx")

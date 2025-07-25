@@ -45,6 +45,27 @@ class FillMetalTask(APRTask, OpenROADSTAParameter):
             'clock_trees'
         ])
 
+        if self.get("var", "fin_add_fill"):
+            found = False
+            for fileset in self.pdk.get("pdk", "aprtechfileset", "openroad"):
+                if self.pdk.valid("fileset", fileset, "file", "fill"):
+                    self.add_required_key(self.pdk, "fileset", fileset, "file", "fill")
+                    found = True
+
+            if not found:
+                return "no metal fill script is available"
+            # if self.pdk.valid("chip.get('pdk', pdk, 'aprtech', tool, stackup, libtype, 'fill'):
+            #     chip.add('tool', tool, 'task', task, 'require',
+            #             ",".join(['pdk', pdk, 'aprtech', tool, stackup, libtype, 'fill']),
+            #             step=step, index=index)
+            # else:
+            #     if not has_pre_post_script(chip):
+            #         # nothing to do so we can skip
+            #         return "no fill script is available"
+
+            #     chip.set('tool', tool, 'task', task, 'var', 'fin_add_fill', False,
+            #             step=step, index=index)
+
 
 def setup(chip):
     '''
