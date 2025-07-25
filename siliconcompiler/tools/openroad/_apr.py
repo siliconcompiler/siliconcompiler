@@ -25,8 +25,8 @@ class OpenROADSTAParameter(OpenROADTask):
         self.add_parameter("sta_define_path_groups", "bool", "if true will generate path groups for timing reporting", defvalue=True)
         self.add_parameter("sta_unique_path_groups_per_clock", "bool", "if true will generate separate path groups per clock", defvalue=False)
 
-        # power_corner
-        # add_common_file(chip, 'opensta_generic_sdc', 'sdc/sc_constraints.sdc')
+        self.set_dataroot("siliconcompiler", "python://siliconcompiler")
+        self.add_parameter("opensta_generic_sdc", "file", "blah-blah", defvalue="tools/_common/sdc/sc_constraints.sdc", package="siliconcompiler")
 
 
 class OpenROADPSMParameter(OpenROADTask):
