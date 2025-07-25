@@ -43,10 +43,10 @@ class ASICFlow(FlowgraphSchema):
         self.edge("floorplan.init", "floorplan.macro_placement")
         self.node("floorplan.tapcell", endcap_tapcell_insertion.EndCapTapCellTask())
         self.edge("floorplan.macro_placement", "floorplan.tapcell")
-        # self.node("floorplan.power_grid", power_grid.PowerGridTask())
-        # self.edge("floorplan.tapcell", "floorplan.power_grid")
+        self.node("floorplan.power_grid", power_grid.PowerGridTask())
+        self.edge("floorplan.tapcell", "floorplan.power_grid")
         self.node("floorplan.pin_placement", pin_placement.PinPlacementTask())
-        self.edge("floorplan.tapcell", "floorplan.pin_placement")
+        self.edge("floorplan.power_grid", "floorplan.pin_placement")
         self.node("place.global", global_placement.GlobalPlacementTask())
         self.edge("floorplan.pin_placement", "place.global")
         self.node("place.repair_design", repair_design.RepairDesignTask())
@@ -65,10 +65,10 @@ class ASICFlow(FlowgraphSchema):
         self.edge("route.global", "route.antenna_repair")
         self.node("route.detailed", detailed_route.DetailedRouteTask())
         self.edge("route.antenna_repair", "route.detailed")
-        # self.node("dfm.metal_fill", fillmetal_insertion.FillMetalTask())
-        # self.edge("route.detailed", "dfm.metal_fill")
+        self.node("dfm.metal_fill", fillmetal_insertion.FillMetalTask())
+        self.edge("route.detailed", "dfm.metal_fill")
         self.node("write.views", write_data.WriteViewsTask())
-        self.edge("route.detailed", "write.views")
+        self.edge("dfm.metal_fill", "write.views")
 
 
 ############################################################################
