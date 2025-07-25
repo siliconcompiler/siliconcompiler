@@ -10,10 +10,10 @@ from siliconcompiler.tools.openroad._apr import extract_metrics
 
 
 from siliconcompiler.tools.openroad._apr import APRTask
-from siliconcompiler.tools.openroad._apr import OpenROADSTAParameter
+from siliconcompiler.tools.openroad._apr import OpenROADSTAParameter, OpenROADPSMParameter
 
 
-class WriteViewsTask(APRTask, OpenROADSTAParameter):
+class WriteViewsTask(APRTask, OpenROADSTAParameter, OpenROADPSMParameter):
     def __init__(self):
         super().__init__()
 
@@ -26,6 +26,8 @@ class WriteViewsTask(APRTask, OpenROADSTAParameter):
         self.add_parameter("write_liberty", "bool", "true/false, when true enables writing the liberty timing model for the design", defvalue=True)
         self.add_parameter("write_sdf", "bool", "true/false, when true enables writing the SDF timing model for the design", defvalue=True)
 
+        self.add_parameter("pex_corners", "{str}", "set of pex corners to perform extraction on")
+
     def task(self):
         return "write_data"
 
@@ -33,6 +35,44 @@ class WriteViewsTask(APRTask, OpenROADSTAParameter):
         super().setup()
 
         self.set("script", "apr/sc_write_data.tcl")
+
+        self.set("var", "pex_corners", list(self._get_pex_mapping().values()))
+
+        self.set("var", "use_spef", self.get("var", "write_spef"))
+
+        self._set_reports([
+            'setup',
+            'hold',
+            'unconstrained',
+            'clock_skew',
+            'power',
+            'drv_violations',
+            'fmax',
+
+            # Images
+            'placement_density',
+            'routing_congestion',
+            'power_density',
+            'ir_drop',
+            'clock_placement',
+            'clock_trees',
+            'optimization_placement'
+        ])
+
+        # Setup outputs
+        self.add_output_file(ext="lef")
+
+        if self.get("var", "write_cdl"):
+            self.add_output_file(ext="cdl")
+        if self.get("var", "write_spef"):
+            for corner in self.get("var", "pex_corners"):
+                self.add_output_file(ext=f"{corner}.spef")
+        if self.get("var", "write_liberty"):
+            for corner in self.schema().getkeys("constraint", "timing"):
+                self.add_output_file(ext=f"{corner}.lib")
+        if self.get("var", "write_sdf"):
+            for corner in self.schema().getkeys("constraint", "timing"):
+                self.add_output_file(ext=f"{corner}.sdf")
 
 
 def setup(chip):

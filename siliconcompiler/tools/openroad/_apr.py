@@ -1,5 +1,8 @@
 import os
 import json
+
+from typing import List
+
 from siliconcompiler import sc_open
 from siliconcompiler import utils
 from siliconcompiler.tools._common import input_provides, add_common_file, \
@@ -24,6 +27,14 @@ class OpenROADSTAParameter(OpenROADTask):
 
         # power_corner
         # add_common_file(chip, 'opensta_generic_sdc', 'sdc/sc_constraints.sdc')
+
+
+class OpenROADPSMParameter(OpenROADTask):
+    def __init__(self):
+        super().__init__()
+
+        self.add_parameter("psm_enable", "bool", "true/false, when true enables IR drop analysis", defvalue=True)
+        self.add_parameter("psm_skip_nets", "[str]", "list of nets to skip power grid analysis on")
 
 
 class OpenROADPPLParameter(OpenROADTask):
@@ -177,9 +188,14 @@ class APRTask(OpenROADTask):
             "optimization_placement",
             "module_view"
         )
-        self.add_parameter("reports", f"<{','.join(supported)}>", "list of reports and images to generate")
+        self.add_parameter("reports", f"{{<{','.join(supported)}>}}", "list of reports and images to generate, auto generated")
+        self.add_parameter("skip_reports", f"{{<{','.join(supported)}>}}", "list of reports and images skip")
 
-        self.add_parameter("ord_enable_images", "bool", "blah", defvalue=True)
+        self.add_parameter("ord_enable_images", "bool", "true/false, enable generating images of the design at the end of the task", defvalue=True)
+        self.add_parameter("ord_heatmap_bins", "(int,int)", "number of (X, Y) bins to use for heatmap image generation", defvalue=(16, 16))
+
+        self.add_parameter("rsz_parasitics", "file", "file used to specify the parasitics for estimation", copy=False)
+        self.add_parameter("power_corner", "str", "corner to use for power analysis")
 
     def setup(self):
         super().setup()
@@ -189,6 +205,18 @@ class APRTask(OpenROADTask):
         self._add_pnr_inputs()
         self._add_pnr_outputs()
 
+        # Set power corner
+        self.set("var", "power_corner", self._get_constraint_by_check("power"), clobber=False)
+
+        self.add_required_tool_key("var", "ord_enable_images")
+        self.add_required_tool_key("var", "ord_heatmap_bins")
+
+    def _set_reports(self, task_reports: List[str]):
+        self.set("var", "reports", set(task_reports).difference(self.get("var", "skip_reports")))
+
+        if "power" in self.get("var", "reports"):
+            self.add_required_tool_key("var", "power_corner")
+
     def _add_pnr_inputs(self):
         pass
 
@@ -197,6 +225,72 @@ class APRTask(OpenROADTask):
         self.add_output_file(ext="vg")
         self.add_output_file(ext="def")
         self.add_output_file(ext="odb")
+
+    def pre_process(self):
+        super().pre_process()
+        self._build_pex_estimation_file()
+
+    def _get_pex_mapping(self):
+        corners = {}
+        for constraint in self.schema().getkeys('constraint', 'timing'):
+            pexcorner = self.schema().get('constraint', 'timing', constraint, 'pexcorner',
+                                          step=self.step, index=self.index)
+            if pexcorner:
+                corners[constraint] = pexcorner
+
+        return corners
+
+    def _get_constraint_by_check(self, check: str) -> str:
+        for constraint in self.schema().getkeys('constraint', 'timing'):
+            if check in self.schema().get('constraint', 'timing', constraint, 'check',
+                                          step=self.step, index=self.index):
+                return constraint
+
+        # if not specified, just pick the first constraint available
+        return self.schema().getkeys('constraint', 'timing')[0]
+
+    def _build_pex_estimation_file(self):
+        corners = self._get_pex_mapping()
+
+        default_corner = self._get_constraint_by_check("setup")
+        if default_corner in corners:
+            corners[None] = corners[default_corner]
+
+        path = os.path.join(self.nodeworkdir, "inputs", "sc_parasitics.tcl")
+        self.set("var", "rsz_parasitics", path)
+
+        with open(path, 'w') as f:
+            for constraint, pexcorner in corners.items():
+                if self.pdk.valid("pdk", "pexmodelfileset", "openroad", pexcorner):
+                    pex_source_file = None
+                    for fileset in self.pdk.get("pdk", "pexmodelfileset", "openroad", pexcorner):
+                        if self.pdk.valid("fileset", fileset, "file", "tcl"):
+                            pex_source_file = self.pdk.get_file(fileset, "tcl")[0]
+                            break
+                    if not pex_source_file:
+                        continue
+
+                    corner_pex_template = utils.get_file_template(pex_source_file)
+                    pex_template = utils.get_file_template(
+                        'pex.tcl',
+                        root=os.path.join(os.path.dirname(__file__), 'templates'))
+
+                    if not pex_template:
+                        continue
+
+                    if constraint is None:
+                        constraint = "default"
+                        corner_specification = ""
+                    else:
+                        corner_specification = f"-corner {constraint}"
+
+                    f.write(pex_template.render(
+                        constraint=constraint,
+                        pexcorner=pexcorner,
+                        source=pex_source_file,
+                        pex=corner_pex_template.render({"corner": corner_specification})
+                    ))
+                    f.write('\n')
 
 
 def setup(chip, exit=True):

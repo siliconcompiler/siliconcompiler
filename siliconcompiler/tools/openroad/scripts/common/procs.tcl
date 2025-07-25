@@ -376,7 +376,7 @@ proc sc_supply_nets { } {
 ###########################
 
 proc sc_psm_check_nets { } {
-    if { [lindex [sc_cfg_tool_task_get var psm_enable] 0] == "true" } {
+    if { [sc_cfg_tool_task_get var psm_enable] } {
         set psm_nets []
 
         foreach net [sc_supply_nets] {
@@ -623,14 +623,14 @@ proc sc_setup_sta { } {
     if { [sc_check_version 19370] } {
         # Create path groups
         if {
-            [lindex [sc_cfg_tool_task_get var sta_define_path_groups] 0] == "true" &&
+            [sc_cfg_tool_task_get var sta_define_path_groups] &&
             [llength [sta::path_group_names]] == 0
         } {
             sc_path_group -name in2out -from [all_inputs -no_clocks] -to [all_outputs]
 
             if {
                 [llength [all_clocks]] == 1 ||
-                [lindex [sc_cfg_tool_task_get var sta_unique_path_groups_per_clock] 0] == "false"
+                ![sc_cfg_tool_task_get var sta_unique_path_groups_per_clock]
             } {
                 sc_path_group -name in2reg -from [all_inputs -no_clocks] -to [all_registers]
                 sc_path_group -name reg2reg -from [all_registers] -to [all_registers]
@@ -689,7 +689,7 @@ proc sc_setup_global_routing { } {
 
     if {
         [sc_cfg_tool_task_exists var grt_setup] &&
-        [lindex [sc_cfg_tool_task_get var grt_setup] 0] == "true"
+        [sc_cfg_tool_task_get var grt_setup]
     } {
         set grt_macro_extension [lindex [sc_cfg_tool_task_get var grt_macro_extension] 0]
         if { $grt_macro_extension > 0 } {
@@ -725,9 +725,9 @@ proc sc_setup_parasitics { } {
     set sc_rc_signal [sc_get_layer_name [sc_cfg_get library $sc_pdk tool $sc_tool rclayer_signal]]
     set sc_rc_clk [sc_get_layer_name [sc_cfg_get library $sc_pdk tool $sc_tool rclayer_clock]]
 
-    # TODO
-    # set sc_parasitics [lindex [sc_cfg_tool_task_get {file} parasitics] 0]
-    # source $sc_parasitics
+    set sc_parasitics [sc_cfg_tool_task_get var rsz_parasitics]
+    utl::info FLW 1 "Sourcing parasitic estimation from: $sc_parasitics"
+    source $sc_parasitics
 
     set_wire_rc -clock -layer $sc_rc_clk
     set_wire_rc -signal -layer $sc_rc_signal
@@ -740,7 +740,7 @@ proc sc_insert_fillers { } {
 
     set fillers [sc_cfg_get library $sc_mainlib asic cells filler]
 
-    if { [lindex [sc_cfg_tool_task_get var dpl_use_decap_fillers] 0] == "true" } {
+    if { [sc_cfg_tool_task_get var dpl_use_decap_fillers] } {
         lappend fillers {*}[sc_cfg_get library $sc_mainlib asic cells decap]
     }
     if { $fillers != "" } {

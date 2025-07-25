@@ -29,6 +29,11 @@ class MacroPlacementTask(APRTask, OpenROADSTAParameter):
 
         self.set("script", "apr/sc_macro_placement.tcl")
 
+        self._set_reports([
+            'setup',
+            'unconstrained'
+        ])
+
     def pre_process(self):
         if all([
                 self.schema("metric").get('macros', step=in_step, index=in_index) == 0

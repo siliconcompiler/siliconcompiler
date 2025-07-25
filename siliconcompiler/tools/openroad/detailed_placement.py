@@ -24,6 +24,21 @@ class DetailedPlacementTask(APRTask, OpenROADSTAParameter, OpenROADDPLParameter,
 
         self.set("script", "apr/sc_detailed_placement.tcl")
 
+        self._set_reports([
+            'setup',
+            'unconstrained',
+            'power',
+            'drv_violations',
+            'fmax',
+
+            # Images
+            'placement_density',
+            'routing_congestion',
+            'power_density',
+            'optimization_placement',
+            'module_view'
+        ])
+
 
 def setup(chip):
     '''

@@ -60,8 +60,7 @@ if { [sc_design_has_unplaced_macros] } {
         lappend rtlmp_args -fence_ux [lindex $rtlmp_fence 2]
         lappend rtlmp_args -fence_uy [lindex $rtlmp_fence 3]
     }
-    set rtlmp_bus_planning [lindex [sc_cfg_tool_task_get var rtlmp_bus_planning] 0]
-    if { $rtlmp_bus_planning == "true" } {
+    if { [sc_cfg_tool_task_get var rtlmp_bus_planning] } {
         lappend rtlmp_args -bus_planning
     }
     set rtlmp_target_dead_space [lindex [sc_cfg_tool_task_get var rtlmp_target_dead_space] 0]

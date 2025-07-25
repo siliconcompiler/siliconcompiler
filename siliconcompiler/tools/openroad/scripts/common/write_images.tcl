@@ -1,8 +1,7 @@
 # Adopted from https://github.com/The-OpenROAD-Project/OpenROAD-flow-scripts/blob/3f9740e6b3643835e918d78ae1d377d65af0f0fb/flow/scripts/save_images.tcl
 
 proc sc_image_heatmap { name ident image_name title { gif false } { allow_bin_adjust 1 } } {
-    set ord_heatmap_bins_x [lindex [sc_cfg_tool_task_get var ord_heatmap_bins_x] 0]
-    set ord_heatmap_bins_y [lindex [sc_cfg_tool_task_get var ord_heatmap_bins_y] 0]
+    lassign [sc_cfg_tool_task_get var ord_heatmap_bins] ord_heatmap_bins_x ord_heatmap_bins_y
 
     file mkdir reports/images/heatmap
 

@@ -15,7 +15,7 @@ source "$sc_refdir/apr/preamble.tcl"
 # Pin access
 ###############################
 
-if { [sc_cfg_tool_task_get {var} grt_use_pin_access] == "true" } {
+if { [sc_cfg_tool_task_get var grt_use_pin_access] } {
     sc_setup_detailed_route
 
     set sc_minmetal [sc_get_layer_name [sc_cfg_get pdk $sc_pdk minlayer]]

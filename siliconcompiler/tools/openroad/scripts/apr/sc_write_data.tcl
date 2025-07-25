@@ -52,12 +52,11 @@ if { [sc_cfg_tool_task_get var write_spef] } {
     # just need to define a corner
     define_process_corner -ext_model_index 0 X
     foreach pexcorner [sc_cfg_tool_task_get var pex_corners] {
-        set sc_pextool "${sc_tool}-openrcx"
         set pex_model \
-            [lindex [sc_cfg_get pdk $sc_pdk pexmodel $sc_pextool $sc_stackup $pexcorner] 0]
+            [lindex [sc_cfg_get_fileset $sc_pdk [sc_cfg_get library $sc_pdk pdk pexmodelfileset openroad] openrcx] 0]
         puts "Writing SPEF for $pexcorner"
         extract_parasitics -ext_model_file $pex_model
-        write_spef "outputs/${sc_design}.${pexcorner}.spef"
+        write_spef "outputs/${sc_topmodule}.${pexcorner}.spef"
     }
 
     if { [sc_cfg_tool_task_get var use_spef] } {
@@ -74,7 +73,7 @@ if { [sc_cfg_tool_task_get var write_spef] } {
 
             puts "Reading SPEF for $pexcorner into $corner"
             read_spef -corner $corner \
-                "outputs/${sc_design}.${pexcorner}.spef"
+                "outputs/${sc_topmodule}.${pexcorner}.spef"
         }
     } else {
         # estimate for metrics
@@ -92,16 +91,16 @@ if { [sc_cfg_tool_task_get var write_spef] } {
 foreach corner $sc_scenarios {
     if { [sc_cfg_tool_task_get var write_liberty] } {
         puts "Writing timing model for $corner"
-        write_timing_model -library_name "${sc_design}_${corner}" \
+        write_timing_model -library_name "${sc_topmodule}_${corner}" \
             -corner $corner \
-            "outputs/${sc_design}.${corner}.lib"
+            "outputs/${sc_topmodule}.${corner}.lib"
     }
 
     if { [sc_cfg_tool_task_get var write_sdf] } {
         puts "Writing SDF for $corner"
         write_sdf -corner $corner \
             -include_typ \
-            "outputs/${sc_design}.${corner}.sdf"
+            "outputs/${sc_topmodule}.${corner}.sdf"
     }
 }
 
