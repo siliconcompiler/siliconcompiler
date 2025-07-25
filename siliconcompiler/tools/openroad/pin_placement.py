@@ -24,6 +24,17 @@ class PinPlacementTask(APRTask, OpenROADSTAParameter, OpenROADGPLParameter, Open
 
         self.set("script", "apr/sc_pin_placement.tcl")
 
+        self._set_reports([
+            'setup',
+            'unconstrained',
+
+            # Images
+            'placement_density',
+            'routing_congestion',
+            'power_density',
+            'module_view'
+        ])
+
 
 def setup(chip):
     '''

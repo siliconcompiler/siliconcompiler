@@ -24,6 +24,21 @@ class FillCellTask(APRTask, OpenROADSTAParameter, OpenROADDPLParameter, OpenROAD
 
         self.set("script", "apr/sc_fillercell_insertion.tcl")
 
+        self._set_reports([
+            'setup',
+            'hold',
+            'unconstrained',
+            'power',
+            'drv_violations',
+            'fmax',
+
+            # Images
+            'placement_density',
+            'routing_congestion',
+            'power_density',
+            'module_view'
+        ])
+
 
 def setup(chip):
     '''

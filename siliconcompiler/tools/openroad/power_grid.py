@@ -14,16 +14,17 @@ from siliconcompiler.tools.openroad._apr import extract_metrics
 
 
 from siliconcompiler.tools.openroad._apr import APRTask
-from siliconcompiler.tools.openroad._apr import OpenROADSTAParameter
+from siliconcompiler.tools.openroad._apr import OpenROADSTAParameter, OpenROADPSMParameter
 
 
-class PowerGridTask(APRTask, OpenROADSTAParameter):
+class PowerGridTask(APRTask, OpenROADSTAParameter, OpenROADPSMParameter):
     def __init__(self):
         super().__init__()
 
         self.add_parameter("fixed_pin_keepout", "float",
                            "if > 0, applies a blockage in multiples of the routing pitch to each "
                            "fixed pin to ensure there is room for routing.", defvalue=0)
+        self.add_parameter("psm_allow_missing_terminal_nets", "[str]", "list of nets where a missing terminal is acceptable")
 
     def task(self):
         return "power_grid"
@@ -32,6 +33,8 @@ class PowerGridTask(APRTask, OpenROADSTAParameter):
         super().setup()
 
         self.set("script", "apr/sc_power_grid.tcl")
+
+        self._set_reports([])
 
 
 def setup(chip):

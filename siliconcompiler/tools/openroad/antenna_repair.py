@@ -30,6 +30,25 @@ class AntennaRepairTask(APRTask, OpenROADSTAParameter, OpenROADGRTParameter, Ope
 
         self.set("script", "apr/sc_antenna_repair.tcl")
 
+        self._set_reports([
+            'setup',
+            'hold',
+            'unconstrained',
+            'clock_skew',
+            'power',
+            'drv_violations',
+            'fmax',
+
+            # Images
+            'placement_density',
+            'routing_congestion',
+            'power_density',
+            'optimization_placement',
+            'clock_placement',
+            'clock_trees',
+            'module_view'
+        ])
+
     def pre_process(self):
         super().pre_process()
 

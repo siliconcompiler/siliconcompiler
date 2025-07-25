@@ -33,6 +33,19 @@ class GlobalPlacementTask(APRTask, OpenROADSTAParameter, OpenROADGPLParameter):
 
         self.set("script", "apr/sc_global_placement.tcl")
 
+        self._set_reports([
+            'setup',
+            'unconstrained',
+            'power',
+            'fmax',
+
+            # Images
+            'placement_density',
+            'routing_congestion',
+            'power_density',
+            'module_view'
+        ])
+
 
 def setup(chip):
     '''

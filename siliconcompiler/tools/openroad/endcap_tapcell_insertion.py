@@ -25,6 +25,11 @@ class EndCapTapCellTask(APRTask, OpenROADSTAParameter):
 
         self.set("script", "apr/sc_endcap_tapcell_insertion.tcl")
 
+        self._set_reports([
+            # Images
+            'placement_density'
+        ])
+
 
 def setup(chip):
     '''

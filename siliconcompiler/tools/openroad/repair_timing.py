@@ -29,6 +29,25 @@ class RepairTimingTask(APRTask, OpenROADSTAParameter, OpenROADDPLParameter, Open
 
         self.set("script", "apr/sc_repair_timing.tcl")
 
+        self._set_reports([
+            'setup',
+            'hold',
+            'unconstrained',
+            'clock_skew',
+            'power',
+            'drv_violations',
+            'fmax',
+
+            # Images
+            'placement_density',
+            'routing_congestion',
+            'power_density',
+            'optimization_placement',
+            'clock_placement',
+            'clock_trees',
+            'module_view'
+        ])
+
 
 def setup(chip):
     '''

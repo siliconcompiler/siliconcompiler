@@ -24,6 +24,24 @@ class DetailedRouteTask(APRTask, OpenROADSTAParameter, OpenROADDRTPinAccessParam
 
         self.set("script", "apr/sc_detailed_route.tcl")
 
+        self._set_reports([
+            'setup',
+            'hold',
+            'unconstrained',
+            'clock_skew',
+            'power',
+            'drv_violations',
+            'fmax',
+
+            # Images
+            'placement_density',
+            'routing_congestion',
+            'power_density',
+            'optimization_placement',
+            'clock_placement',
+            'clock_trees'
+        ])
+
 
 def setup(chip):
     '''

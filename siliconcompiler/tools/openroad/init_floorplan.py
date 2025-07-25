@@ -30,6 +30,13 @@ class InitFloorplanTask(APRTask, OpenROADSTAParameter):
 
         self.set("script", "apr/sc_init_floorplan.tcl")
 
+        self._set_reports([
+            'check_setup',
+            'setup',
+            'unconstrained',
+            'power'
+        ])
+
 
 def setup(chip):
     '''

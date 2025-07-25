@@ -28,6 +28,23 @@ class FillMetalTask(APRTask, OpenROADSTAParameter):
 
         self.set("script", "apr/sc_fillmetal_insertion.tcl")
 
+        self._set_reports([
+            'setup',
+            'hold',
+            'unconstrained',
+            'clock_skew',
+            'drv_violations',
+            'fmax',
+
+            # Images
+            'placement_density',
+            'routing_congestion',
+            'power_density',
+            'optimization_placement',
+            'clock_placement',
+            'clock_trees'
+        ])
+
 
 def setup(chip):
     '''
