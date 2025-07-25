@@ -526,8 +526,7 @@ class SchedulerNode:
             if param.get(field='pernode').is_never():
                 check_step, check_index = None, None
 
-            value = self.__chip.get(*keypath, step=check_step, index=check_index)
-            if not value:
+            if not param.has_value(step=check_step, index=check_index):
                 self.logger.error('No value set for required keypath '
                                   f'[{",".join(keypath)}].')
                 error = True
@@ -539,7 +538,7 @@ class SchedulerNode:
                                                  missing_ok=True,
                                                  step=check_step, index=check_index)
 
-                unresolved_paths = value
+                unresolved_paths = param.get(step=check_step, index=check_index)
                 if not isinstance(abspath, list):
                     abspath = [abspath]
                     unresolved_paths = [unresolved_paths]

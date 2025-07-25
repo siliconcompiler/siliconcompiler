@@ -164,6 +164,16 @@ class NodeListValue:
         return self.__base.fields
 
     @property
+    def has_value(self):
+        """
+        Returns true if this node has a value.
+        """
+        if self.__values:
+            return True
+        else:
+            return False
+
+    @property
     def values(self):
         '''
         Returns a copy of the values stored in the list
@@ -345,6 +355,16 @@ class NodeSetValue:
         return tuple(modified)
 
     @property
+    def has_value(self):
+        """
+        Returns true if this node has a value.
+        """
+        if self.__values:
+            return True
+        else:
+            return False
+
+    @property
     def fields(self):
         """
         Returns a list of valid fields for this value
@@ -485,6 +505,19 @@ class NodeValue:
         Not valid for this datatype, will raise a ValueError
         """
         raise ValueError(f"cannot add to {field} field")
+
+    @property
+    def has_value(self):
+        """
+        Returns true if this node has a value.
+        """
+        if isinstance(self.__type, (set, tuple, list)):
+            return bool(self.__value)
+
+        if self.__value is not None:
+            return True
+        else:
+            return False
 
     @property
     def fields(self):
