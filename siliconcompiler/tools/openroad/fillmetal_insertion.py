@@ -47,10 +47,10 @@ class FillMetalTask(APRTask, OpenROADSTAParameter):
 
         if self.get("var", "fin_add_fill"):
             found = False
-            for fileset in self.pdk.get("pdk", "aprtechfileset", "openroad"):
-                if self.pdk.valid("fileset", fileset, "file", "fill"):
-                    self.add_required_key(self.pdk, "fileset", fileset, "file", "fill")
-                    found = True
+            # for fileset in self.pdk.get("pdk", "fill", "runsetfileset", "openroad"):
+            #     if self.pdk.valid("fileset", fileset, "file", "fill"):
+            #         self.add_required_key(self.pdk, "fileset", fileset, "file", "fill")
+            #         found = True
 
             if not found:
                 return "no metal fill script is available"
