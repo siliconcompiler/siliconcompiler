@@ -88,6 +88,8 @@ class FreePDK45(OpenROADPDK, PDKSchema):
                     ('metal10', 0.25)]:
                 self.set_openroad_globalroutingdetating(layer, detate)
 
+            self.add_openroad_pinlayers(veritcal="metal6", horizontal="metal5")
+
             # self.set('var', 'openroad', 'pin_layer_vertical', stackup, 'metal6')
             # self.set('var', 'openroad', 'pin_layer_horizontal', stackup, 'metal5')
 
@@ -189,8 +191,7 @@ class ASAP7(OpenROADPDK, PDKSchema):
                     ('Pad', 0.25)]:
                 self.set_openroad_globalroutingdetating(layer, detate)
 
-            # self.set('var', 'openroad', 'pin_layer_vertical', stackup, 'metal6')
-            # self.set('var', 'openroad', 'pin_layer_horizontal', stackup, 'metal5')
+            self.add_openroad_pinlayers(veritcal="M5", horizontal="M4")
 
             # # Relaxed routing rules
             # pdk.set('pdk', process, 'file', 'openroad', 'relax_routing_rules', stackup,
@@ -585,5 +586,5 @@ def target_asap7(project):
     area.set_density(40)
     area.set_coremargin(1)
 
-    project.add_alias(Spram(), "rtl", FakeRam7Lambdalib(), "rtl")
-    project.add_asiclib(FakeRam7())
+    # project.add_alias(Spram(), "rtl", FakeRam7Lambdalib(), "rtl")
+    # project.add_asiclib(FakeRam7())

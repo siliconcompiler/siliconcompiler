@@ -11,10 +11,10 @@ from siliconcompiler.tools.openroad._apr import extract_metrics
 
 
 from siliconcompiler.tools.openroad._apr import APRTask
-from siliconcompiler.tools.openroad._apr import OpenROADSTAParameter
+from siliconcompiler.tools.openroad._apr import OpenROADSTAParameter, OpenROADPPLLayersParameter
 
 
-class InitFloorplanTask(APRTask, OpenROADSTAParameter):
+class InitFloorplanTask(APRTask, OpenROADSTAParameter, OpenROADPPLLayersParameter):
     def __init__(self):
         super().__init__()
 

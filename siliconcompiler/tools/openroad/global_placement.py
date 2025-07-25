@@ -11,10 +11,10 @@ from siliconcompiler.tools.openroad._apr import extract_metrics
 
 
 from siliconcompiler.tools.openroad._apr import APRTask
-from siliconcompiler.tools.openroad._apr import OpenROADSTAParameter, OpenROADGPLParameter
+from siliconcompiler.tools.openroad._apr import OpenROADSTAParameter, OpenROADGPLParameter, OpenROADGRTGeneralParameter
 
 
-class GlobalPlacementTask(APRTask, OpenROADSTAParameter, OpenROADGPLParameter):
+class GlobalPlacementTask(APRTask, OpenROADSTAParameter, OpenROADGPLParameter, OpenROADGRTGeneralParameter):
     def __init__(self):
         super().__init__()
 

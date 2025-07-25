@@ -106,11 +106,8 @@ if {
 ###############################
 # Pin placement
 ###############################
-# TODO
-# set sc_hpinmetal [sc_cfg_get pdk $sc_pdk {var} $sc_tool pin_layer_horizontal $sc_stackup]
-# set sc_hpinmetal [sc_get_layer_name $sc_hpinmetal]
-# set sc_vpinmetal [sc_cfg_get pdk $sc_pdk {var} $sc_tool pin_layer_vertical $sc_stackup]
-# set sc_vpinmetal [sc_get_layer_name $sc_vpinmetal]
+set sc_hpinmetal [sc_get_layer_name [sc_cfg_tool_task_get var pin_layer_horizontal]]
+set sc_vpinmetal [sc_get_layer_name [sc_cfg_tool_task_get var pin_layer_vertical]]
 
 if { [sc_cfg_exists constraint pin] } {
     source "[sc_cfg_tool_task_get file sc_pin_constraint]"
