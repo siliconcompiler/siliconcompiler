@@ -557,14 +557,12 @@ proc sc_get_layer_name { name } {
 
 proc sc_has_tie_cell { type } {
     upvar sc_mainlib sc_mainlib
-    upvar sc_tool sc_tool
 
     return [sc_cfg_exists library $sc_mainlib tool openroad tie${type}_cell]
 }
 
 proc sc_get_tie_cell { type } {
     upvar sc_mainlib sc_mainlib
-    upvar sc_tool sc_tool
 
     set cell_port [sc_cfg_get library $sc_mainlib tool openroad tie${type}_cell]
     set cell [lindex $cell_port 0]

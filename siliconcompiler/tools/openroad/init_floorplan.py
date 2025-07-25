@@ -22,6 +22,8 @@ class InitFloorplanTask(APRTask, OpenROADSTAParameter):
         self.add_parameter("remove_synth_buffers", "bool", "remove buffers inserted by synthesis", defvalue=True)
         self.add_parameter("remove_dead_logic", "bool", "remove logic which does not drive a primary output", defvalue=True)
 
+        self.add_parameter("padring", "[file]", "script to generate a padring using ICeWall in OpenROAD")
+
     def task(self):
         return "init_floorplan"
 
@@ -36,6 +38,16 @@ class InitFloorplanTask(APRTask, OpenROADSTAParameter):
             'unconstrained',
             'power'
         ])
+
+        self.add_required_tool_key("var", "ifp_snap_strategy")
+        self.add_required_tool_key("var", "remove_synth_buffers")
+        self.add_required_tool_key("var", "remove_dead_logic")
+
+        if self.get("var", "padring"):
+            self.add_required_tool_key("var", "padring")
+
+    def add_openroad_padring(self, file: str):
+        self.add("var", "padring", file)
 
 
 def setup(chip):

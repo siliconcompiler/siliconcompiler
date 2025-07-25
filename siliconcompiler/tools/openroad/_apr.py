@@ -64,7 +64,7 @@ class OpenROADGPLParameter(OpenROADTask):
         super().setup()
 
         self.set_asic_var("place_density", require=True)
-        # self.set_asic_var("pad_global_place", check_pdk=False, mainlib_key="global_cell_padding")
+        self.set_asic_var("pad_global_place", check_pdk=False, mainlib_key="global_cell_padding")
 
 
 class OpenROADRSZDRVParameter(OpenROADTask):
@@ -1491,54 +1491,54 @@ def define_mpl_params(chip):
                       schelp='macro channel to use when performing automated '
                              'macro placement ([x, y] in microns)')
 
-    set_tool_task_var(chip, param_key='rtlmp_min_instances',
+    set_tool_task_var(chip, param_key='mpl_min_instances',
                       schelp='minimum number of instances to use while clustering for '
                              'macro placement')
-    set_tool_task_var(chip, param_key='rtlmp_max_instances',
+    set_tool_task_var(chip, param_key='mpl_max_instances',
                       schelp='maximum number of instances to use while clustering for '
                              'macro placement')
-    set_tool_task_var(chip, param_key='rtlmp_min_macros',
+    set_tool_task_var(chip, param_key='mpl_min_macros',
                       schelp='minimum number of macros to use while clustering for macro placement')
-    set_tool_task_var(chip, param_key='rtlmp_max_macros',
+    set_tool_task_var(chip, param_key='mpl_max_macros',
                       schelp='maximum number of macros to use while clustering for macro placement')
-    set_tool_task_var(chip, param_key='rtlmp_max_levels',
+    set_tool_task_var(chip, param_key='mpl_max_levels',
                       schelp='maximum depth of physical hierarchical tree')
-    set_tool_task_var(chip, param_key='rtlmp_min_aspect_ratio',
+    set_tool_task_var(chip, param_key='mpl_min_aspect_ratio',
                       schelp='Specifies the minimum aspect ratio of its width to height of a '
                              'standard cell cluster')
-    set_tool_task_var(chip, param_key='rtlmp_fence',
+    set_tool_task_var(chip, param_key='mpl_fence',
                       schelp='Defines the global fence bounding box coordinates '
                              '(llx, lly, urx, ury)')
-    set_tool_task_var(chip, param_key='rtlmp_bus_planning',
+    set_tool_task_var(chip, param_key='mpl_bus_planning',
                       schelp='Flag to enable bus planning')
-    set_tool_task_var(chip, param_key='rtlmp_target_dead_space',
+    set_tool_task_var(chip, param_key='mpl_target_dead_space',
                       schelp='Specifies the target dead space percentage, which influences '
                              'the utilization of standard cell clusters')
 
-    set_tool_task_var(chip, param_key='rtlmp_area_weight',
+    set_tool_task_var(chip, param_key='mpl_area_weight',
                       schelp='Weight for the area of current floorplan')
-    set_tool_task_var(chip, param_key='rtlmp_outline_weight',
+    set_tool_task_var(chip, param_key='mpl_outline_weight',
                       schelp='Weight for violating the fixed outline constraint, meaning that all '
                              'clusters should be placed within the shape of their parent cluster')
-    set_tool_task_var(chip, param_key='rtlmp_wirelength_weight',
+    set_tool_task_var(chip, param_key='mpl_wirelength_weight',
                       schelp='Weight for half-perimeter wirelength')
-    set_tool_task_var(chip, param_key='rtlmp_guidance_weight',
+    set_tool_task_var(chip, param_key='mpl_guidance_weight',
                       schelp='Weight for guidance cost or clusters being placed near specified '
                              'regions if users provide such constraints')
-    set_tool_task_var(chip, param_key='rtlmp_fence_weight',
+    set_tool_task_var(chip, param_key='mpl_fence_weight',
                       schelp='Weight for fence cost, or how far the macro is from zero '
                              'fence violation')
-    set_tool_task_var(chip, param_key='rtlmp_boundary_weight',
+    set_tool_task_var(chip, param_key='mpl_boundary_weight',
                       schelp='Weight for the boundary, or how far the hard macro clusters are from '
                              'boundaries. Note that mixed macro clusters are not pushed, thus not '
                              'considered in this cost.')
-    set_tool_task_var(chip, param_key='rtlmp_blockage_weight',
+    set_tool_task_var(chip, param_key='mpl_blockage_weight',
                       schelp='Weight for the boundary, or how far the hard macro clusters are '
                              'from boundaries')
-    set_tool_task_var(chip, param_key='rtlmp_notch_weight',
+    set_tool_task_var(chip, param_key='mpl_notch_weight',
                       schelp='Weight for the notch, or the existence of dead space that cannot be '
                              'used for placement & routing')
-    set_tool_task_var(chip, param_key='rtlmp_macro_blockage_weight',
+    set_tool_task_var(chip, param_key='mpl_macro_blockage_weight',
                       schelp='Weight for macro blockage, or the overlapping instances of the macro')
 
 

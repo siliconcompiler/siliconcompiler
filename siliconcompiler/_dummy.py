@@ -8,13 +8,27 @@ from lambdapdk import __version__ as lambda_version
 from siliconcompiler.package import PythonPathResolver
 from siliconcompiler.schema import EditableSchema, Parameter, Scope, PerNode
 
-from siliconcompiler.library import StdCellLibrarySchema
+from siliconcompiler.library import StdCellLibrarySchema, ToolLibrarySchema
 
-from siliconcompiler import PDKSchema
+from siliconcompiler import PDKSchema, DesignSchema
 
 from siliconcompiler.tools.yosys.syn_asic import YosysStdCellLibrarySchema
 from siliconcompiler.tools.openroad import OpenROADStdCellLibrarySchema, OpenROADPDK
 from siliconcompiler.tools.bambu import BambuStdCellLibrarySchema
+
+
+class Spram(DesignSchema):
+    def __init__(self):
+        super().__init__()
+        self.set_name("la_spram")
+
+        self.set_dataroot("lambdalib", "python://lambdalib")
+
+        with self.active_dataroot("lambdalib"):
+            with self.active_fileset("rtl"):
+                self.set_topmodule("la_spram")
+                self.add_file("ramlib/rtl/la_spram.v")
+                self.add_file("ramlib/rtl/la_spram_impl.v")
 
 
 class FreePDK45(OpenROADPDK, PDKSchema):
@@ -410,6 +424,126 @@ class Nangate45(YosysStdCellLibrarySchema,
         self.set_bambu_clock_multiplier(1)
 
 
+class FakeRam45(StdCellLibrarySchema):
+    def __init__(self):
+        super().__init__()
+        self.set_name("fakeram45")
+
+        PythonPathResolver.set_dataroot(
+            self,
+            "lambdapdk",
+            "lambdapdk",
+            "https://github.com/siliconcompiler/lambdapdk/archive/refs/tags/",
+            alternative_ref=f"v{lambda_version}",
+            python_module_path_append=".."
+        )
+
+        # version
+        self.set_version("v1")
+
+        lib_path = Path("lambdapdk", "freepdk45", "libs", "fakeram45")
+
+        # General filelists
+        for config in ('64x32', '128x32', '256x32', '256x64', '512x32', '512x64'):
+            mem_name = f'fakeram45_{config}'
+
+            with self.active_dataroot("lambdapdk"):
+                with self.active_fileset("models.timing.nldm"):
+                    self.add_file(lib_path / "nldm" / f"{mem_name}.lib")
+                    self.add_asic_libcornerfileset("typical", "nldm")
+
+                with self.active_fileset("models.physical"):
+                    self.add_file(lib_path / "lef" / f"{mem_name}.lef")
+                    self.add_asic_aprfileset()
+
+
+class FakeRam45Lambdalib(DesignSchema):
+    def __init__(self):
+        super().__init__()
+        self.set_name("fakeram45_lambdaramlib")
+
+        PythonPathResolver.set_dataroot(
+            self,
+            "lambdapdk",
+            "lambdapdk",
+            "https://github.com/siliconcompiler/lambdapdk/archive/refs/tags/",
+            alternative_ref=f"v{lambda_version}",
+            python_module_path_append=".."
+        )
+
+        # version
+        self.set_version("v1")
+
+        lib_path = Path("lambdapdk", "freepdk45", "libs", "fakeram45")
+
+        with self.active_dataroot("lambdapdk"):
+            with self.active_fileset("rtl"):
+                self.add_file(lib_path / "lambda" / "la_spram.v")
+
+
+class FakeRam7(StdCellLibrarySchema):
+    def __init__(self):
+        super().__init__()
+        self.set_name("fakeram7")
+
+        PythonPathResolver.set_dataroot(
+            self,
+            "lambdapdk",
+            "lambdapdk",
+            "https://github.com/siliconcompiler/lambdapdk/archive/refs/tags/",
+            alternative_ref=f"v{lambda_version}",
+            python_module_path_append=".."
+        )
+
+        # version
+        self.set_version("v1")
+
+        lib_path = Path("lambdapdk", "asap7", "libs", "fakeram7")
+
+        # General filelists
+        for config in ('64x32', '128x32', '256x32', '256x64',
+                       '512x32', '512x64', '512x128',
+                       '1024x32', '1024x64',
+                       '2048x32', '2048x64',
+                       '4096x32', '4096x64',
+                       '8192x32', '8192x64'):
+            mem_name = f'fakeram7_sp_{config}'
+
+            with self.active_dataroot("lambdapdk"):
+                with self.active_fileset("models.timing.nldm"):
+                    self.add_file(lib_path / "nldm" / f"{mem_name}.lib")
+                    for corner in ("slow", "fast", "typical"):
+                        self.add_asic_libcornerfileset(corner, "nldm")
+
+                with self.active_fileset("models.physical"):
+                    self.add_file(lib_path / "lef" / f"{mem_name}.lef")
+                    self.add_asic_aprfileset()
+
+
+class FakeRam7Lambdalib(DesignSchema):
+    def __init__(self):
+        super().__init__()
+        self.set_name("fakeram7_lambdaramlib")
+
+        PythonPathResolver.set_dataroot(
+            self,
+            "lambdapdk",
+            "lambdapdk",
+            "https://github.com/siliconcompiler/lambdapdk/archive/refs/tags/",
+            alternative_ref=f"v{lambda_version}",
+            python_module_path_append=".."
+        )
+
+        # version
+        self.set_version("v1")
+
+        lib_path = Path("lambdapdk", "asap7", "libs", "fakeram7")
+
+        with self.active_dataroot("lambdapdk"):
+            with self.active_fileset("rtl"):
+                self.add_file(lib_path / "lambda" / "la_spram.v")
+
+
 def target_nangate45(project):
     project.add_asiclib(Nangate45())
     project.set_mainlib("nangate45")
@@ -423,6 +557,9 @@ def target_nangate45(project):
     area = project.get_constraints("area")
     area.set_density(40)
     area.set_coremargin(1)
+
+    project.add_alias(Spram(), "rtl", FakeRam45Lambdalib(), "rtl")
+    project.add_asiclib(FakeRam45())
 
 
 def target_asap7(project):
@@ -447,3 +584,6 @@ def target_asap7(project):
     area = project.get_constraints("area")
     area.set_density(40)
     area.set_coremargin(1)
+
+    project.add_alias(Spram(), "rtl", FakeRam7Lambdalib(), "rtl")
+    project.add_asiclib(FakeRam7())
