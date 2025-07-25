@@ -37,12 +37,35 @@ class OpenROADPSMParameter(OpenROADTask):
         self.add_parameter("psm_skip_nets", "[str]", "list of nets to skip power grid analysis on")
 
 
-class OpenROADPPLParameter(OpenROADTask):
+class OpenROADPPLLayersParameter(OpenROADTask):
+    def __init__(self):
+        super().__init__()
+
+        self.add_parameter("pin_layer_horizontal", "[str]", "layers to use for horizontal pins")
+        self.add_parameter("pin_layer_vertical", "[str]", "layers to use for veritcal pins")
+
+    def setup(self):
+        super().setup()
+
+        self.set_asic_var("pin_layer_horizontal", require=True)
+        self.set_asic_var("pin_layer_vertical", require=True)
+
+
+class OpenROADPPLParameter(OpenROADPPLLayersParameter):
     def __init__(self):
         super().__init__()
 
         self.add_parameter("ppl_arguments", "[str]", "additional arguments to pass along to the pin placer.")
         self.add_parameter("ppl_constraints", "[file]", "pin placement constraints scripts.")
+
+    def setup(self):
+        super().setup()
+
+        if self.get("var", "ppl_arguments"):
+            self.add_required_tool_key("var", "ppl_arguments")
+
+        if self.get("var", "ppl_constraints"):
+            self.add_required_tool_key("var", "ppl_constraints")
 
 
 class OpenROADGPLParameter(OpenROADTask):
@@ -123,7 +146,40 @@ class OpenROADCTSParameter(OpenROADTask):
         self.add_parameter("cts_obstruction_aware", "bool", "make clock tree synthesis aware of obstructions", defvalue=True)
 
 
-class OpenROADGRTParameter(OpenROADTask):
+class OpenROADGRTGeneralParameter(OpenROADTask):
+    def __init__(self):
+        super().__init__()
+
+        self.add_parameter("grt_macro_extension", "int", "macro extension distance in number of gcells, this can be useful when the detailed router needs additional space to avoid DRCs", defvalue=0)
+        self.add_parameter("grt_signal_min_layer", "str", "minimum layer to use for global routing of signals")
+        self.add_parameter("grt_signal_max_layer", "str", "maximum layer to use for global routing of signals")
+        self.add_parameter("grt_clock_min_layer", "str", "minimum layer to use for global routing of clock nets")
+        self.add_parameter("grt_clock_max_layer", "str", "maximum layer to use for global routing of clock nets")
+
+    def setup(self):
+        super().setup()
+
+        min_layer = self.schema().get("asic", "minlayer")
+        if not min_layer:
+            min_layer = self.pdk.get("pdk", "minlayer")
+        max_layer = self.schema().get("asic", "maxlayer")
+        if not max_layer:
+            max_layer = self.pdk.get("pdk", "maxlayer")
+
+        self.set("var", "load_grt_setup", True, clobber=False)
+        self.set("var", "grt_signal_min_layer", min_layer, clobber=False)
+        self.set("var", "grt_clock_min_layer", min_layer, clobber=False)
+        self.set("var", "grt_signal_max_layer", max_layer, clobber=False)
+        self.set("var", "grt_clock_max_layer", max_layer, clobber=False)
+
+        self.add_required_tool_key("var", "grt_macro_extension")
+        self.add_required_tool_key("var", "grt_signal_min_layer")
+        self.add_required_tool_key("var", "grt_clock_min_layer")
+        self.add_required_tool_key("var", "grt_signal_max_layer")
+        self.add_required_tool_key("var", "grt_clock_max_layer")
+
+
+class OpenROADGRTParameter(OpenROADGRTGeneralParameter):
     def __init__(self):
         super().__init__()
 
@@ -197,6 +253,8 @@ class APRTask(OpenROADTask):
         self.add_parameter("rsz_parasitics", "file", "file used to specify the parasitics for estimation", copy=False)
         self.add_parameter("power_corner", "str", "corner to use for power analysis")
 
+        self.add_parameter("load_grt_setup", "bool", "used to indicate if global routing information should be loaded", defvalue=False)
+
     def setup(self):
         super().setup()
 
@@ -210,6 +268,7 @@ class APRTask(OpenROADTask):
 
         self.add_required_tool_key("var", "ord_enable_images")
         self.add_required_tool_key("var", "ord_heatmap_bins")
+        self.add_required_tool_key("var", "load_grt_setup")
 
     def _set_reports(self, task_reports: List[str]):
         self.set("var", "reports", set(task_reports).difference(self.get("var", "skip_reports")))

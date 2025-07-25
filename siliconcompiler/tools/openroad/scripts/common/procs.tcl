@@ -157,14 +157,8 @@ proc sc_pin_placement { args } {
 
     lappend ppl_args {*}[sc_cfg_tool_task_get var ppl_arguments]
 
-    global sc_pdk
-    global sc_tool
-
-    # set sc_hpinmetal [sc_cfg_get pdk $sc_pdk {var} $sc_tool pin_layer_horizontal $sc_stackup]
-    # set sc_vpinmetal [sc_cfg_get pdk $sc_pdk {var} $sc_tool pin_layer_vertical $sc_stackup]
-
-    set sc_hpinmetal "3"
-    set sc_vpinmetal "4"
+    set sc_hpinmetal [sc_cfg_tool_task_get var pin_layer_horizontal]
+    set sc_vpinmetal [sc_cfg_tool_task_get var pin_layer_vertical]
 
     sc_report_args -command place_pins -args $ppl_args
     place_pins \
@@ -607,8 +601,8 @@ proc sc_path_group { args } {
 }
 
 proc sc_setup_sta { } {
-    set sta_early_timing_derate [lindex [sc_cfg_tool_task_get var sta_early_timing_derate] 0]
-    set sta_late_timing_derate [lindex [sc_cfg_tool_task_get var sta_late_timing_derate] 0]
+    set sta_early_timing_derate [sc_cfg_tool_task_get var sta_early_timing_derate]
+    set sta_late_timing_derate [sc_cfg_tool_task_get var sta_late_timing_derate]
 
     # Setup timing derating
     if { $sta_early_timing_derate != 0.0 } {
@@ -685,25 +679,21 @@ proc sc_setup_global_routing { } {
         }
     }
 
-    if {
-        [sc_cfg_tool_task_exists var grt_setup] &&
-        [sc_cfg_tool_task_get var grt_setup]
-    } {
-        set grt_macro_extension [lindex [sc_cfg_tool_task_get var grt_macro_extension] 0]
+    if { [sc_cfg_tool_task_get var load_grt_setup] } {
+        set grt_macro_extension [sc_cfg_tool_task_get var grt_macro_extension]
         if { $grt_macro_extension > 0 } {
             utl::info FLW 1 "Setting global routing macro extension to $grt_macro_extension gcells"
             set_macro_extension $grt_macro_extension
         }
 
-        set openroad_grt_signal_min_layer [lindex [sc_cfg_tool_task_get var grt_signal_min_layer] 0]
-        set openroad_grt_signal_max_layer [lindex [sc_cfg_tool_task_get var grt_signal_max_layer] 0]
-        set openroad_grt_clock_min_layer [lindex [sc_cfg_tool_task_get var grt_clock_min_layer] 0]
-        set openroad_grt_clock_max_layer [lindex [sc_cfg_tool_task_get var grt_clock_max_layer] 0]
-
-        set openroad_grt_signal_min_layer [sc_get_layer_name $openroad_grt_signal_min_layer]
-        set openroad_grt_signal_max_layer [sc_get_layer_name $openroad_grt_signal_max_layer]
-        set openroad_grt_clock_min_layer [sc_get_layer_name $openroad_grt_clock_min_layer]
-        set openroad_grt_clock_max_layer [sc_get_layer_name $openroad_grt_clock_max_layer]
+        set openroad_grt_signal_min_layer \
+            [sc_get_layer_name [sc_cfg_tool_task_get var grt_signal_min_layer]]
+        set openroad_grt_signal_max_layer \
+            [sc_get_layer_name [sc_cfg_tool_task_get var grt_signal_max_layer]]
+        set openroad_grt_clock_min_layer \
+            [sc_get_layer_name [sc_cfg_tool_task_get var grt_clock_min_layer]]
+        set openroad_grt_clock_max_layer \
+            [sc_get_layer_name [sc_cfg_tool_task_get var grt_clock_max_layer]]
 
         utl::info FLW 1 "Setting global routing signal routing layers to:\
             ${openroad_grt_signal_min_layer}-${openroad_grt_signal_max_layer}"

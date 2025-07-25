@@ -26,6 +26,9 @@ class OpenROADPDK(PDKSchema):
         self.define_tool_parameter("openroad", "rclayer_signal", "str", "blah")
         self.define_tool_parameter("openroad", "rclayer_clock", "str", "blah")
 
+        self.define_tool_parameter("openroad", "pin_layer_horizontal", "[str]", "blah")
+        self.define_tool_parameter("openroad", "pin_layer_vertical", "[str]", "blah")
+
         schema = EditableSchema(self)
         schema.insert("tool", "openroad", "globalroutingdetating", "default",
                       Parameter("float", pernode=PerNode.NEVER, scope=Scope.GLOBAL))
@@ -38,6 +41,12 @@ class OpenROADPDK(PDKSchema):
 
     def set_openroad_globalroutingdetating(self, layer: str, derating: float):
         return self.set("tool", "openroad", "globalroutingdetating", layer, derating)
+
+    def add_openroad_pinlayers(self, horizontal=None, veritcal=None):
+        if horizontal:
+            self.add("tool", "openroad", "pin_layer_horizontal", horizontal)
+        if veritcal:
+            self.add("tool", "openroad", "pin_layer_vertical", veritcal)
 
 
 class OpenROADStdCellLibrarySchema(StdCellLibrarySchema):
