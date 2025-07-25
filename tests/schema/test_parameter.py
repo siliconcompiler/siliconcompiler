@@ -1943,3 +1943,58 @@ def test_reset_pernode_never():
     assert param.getvalues() == [
         (1, None, None)
     ]
+
+
+@pytest.mark.parametrize(
+    "type", [
+        "str",
+        "{str}",
+        "int",
+        "{int}",
+        "float",
+        "{float}",
+        # "bool",  # bool automatically gets a value of False
+        "<one,two,three>",
+        "{<one,two,three>}",
+        "[str]",
+        "[file]",
+        "[dir]",
+        "file",
+        "dir",
+        "[[str]]",
+        "[(str,str)]",
+        "(str,str)",
+        "(str,int)",
+        "(str,float)",
+        "(str,<one,two,three,four>)",
+        "(<one,two,three>,<one,two,three,four>)",
+        "[(<one,two,three>,<one,two,three,four>)]"
+    ])
+def test_has_value_init_none(type):
+    assert Parameter(type).has_value() is False
+
+
+def test_has_value_init_none_per_node():
+    assert Parameter("str", pernode=PerNode.REQUIRED).has_value("step", "index") is False
+
+
+def test_has_value():
+    param = Parameter("str", pernode=PerNode.OPTIONAL)
+    assert param.has_value() is False
+    assert param.set("test", step="test", index="0")
+    assert param.has_value() is False
+    assert param.has_value(step="test", index="0") is True
+    assert param.set("test")
+    assert param.has_value() is True
+    assert param.has_value(step="test", index="0") is True
+
+
+def test_has_value_with_defvalue():
+    param = Parameter("str", pernode=PerNode.OPTIONAL, defvalue="test")
+    assert param.has_value() is True
+    assert param.set("test", step="test", index="0")
+    assert param.has_value() is True
+    assert param.has_value(step="test", index="0") is True
+    assert param.set("test")
+    assert param.has_value() is True
+    assert param.has_value(step="test", index="0") is True

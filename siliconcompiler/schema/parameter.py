@@ -669,6 +669,33 @@ class Parameter:
             index in self.__node[step] and \
             self.__node[step][index]
 
+    def has_value(self, step=None, index=None) -> bool:
+        '''
+        Returns whether the parameter as a value.
+
+        A value counts as set if a user has set a global value OR a value for
+        the provided step/index.
+        '''
+
+        if isinstance(index, int):
+            index = str(index)
+
+        try:
+            return self.__node[step][index].has_value
+        except KeyError:
+            if self.__pernode == PerNode.REQUIRED:
+                return self.__defvalue.has_value
+
+        try:
+            return self.__node[step][Parameter.GLOBAL_KEY].has_value
+        except KeyError:
+            pass
+
+        try:
+            return self.__node[Parameter.GLOBAL_KEY][Parameter.GLOBAL_KEY].has_value
+        except KeyError:
+            return self.__defvalue.has_value
+
     @property
     def default(self):
         """
