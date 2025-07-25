@@ -170,6 +170,80 @@ def test_value_from_dict():
     assert value.get(field='signature') == "testsig"
 
 
+@pytest.mark.parametrize(
+    "type", [
+        "str",
+        "{str}",
+        "int",
+        "{int}",
+        "float",
+        "{float}",
+        "bool",
+        "<one,two,three>",
+        "{<one,two,three>}",
+        "[str]",
+        "[file]",
+        "[dir]",
+        "file",
+        "dir",
+        "[[str]]",
+        "[(str,str)]",
+        "(str,str)",
+        "(str,int)",
+        "(str,float)",
+        "(str,<one,two,three,four>)",
+        "(<one,two,three>,<one,two,three,four>)",
+        "[(<one,two,three>,<one,two,three,four>)]"
+    ])
+def test_value_has_value_init_none(type):
+    assert NodeValue(type).has_value is False
+
+
+@pytest.mark.parametrize(
+    "type,value", [
+        ("str", ""),
+        ("str", " "),
+        ("str", "12"),
+        ("str", "0"),
+        ("{str}", set(["", "test"])),
+        ("int", 0),
+        ("int", 1),
+        ("{int}", set([0])),
+        ("{int}", set([0, 1])),
+        ("float", 0),
+        ("float", -10),
+        ("float", 10),
+        ("{float}", set([0])),
+        ("{float}", set([0, 2])),
+        ("bool", True),
+        ("bool", False),
+        ("<one,two,three>", "one"),
+        ("<one,two,three>", "two"),
+        ("<one,two,three>", "three"),
+        ("{<one,two,three>}", set(["one"])),
+        ("{<one,two,three>}", set(["one", "two"])),
+        ("{<one,two,three>}", set(["one", "three"])),
+        ("[str]", ["str"]),
+        ("[str]", [""]),
+        ("[file]", ["test.v"]),
+        ("[dir]", ["."]),
+        ("file", "test.v"),
+        ("dir", "."),
+        ("[[str]]", [[""]]),
+        ("[(str,str)]", [("", "")]),
+        ("(str,str)", ("", "")),
+        ("(str,int)", ("", 0)),
+        ("(str,float)", ("str", 0)),
+        ("(str,<one,two,three,four>)", ("str", "two")),
+        ("(<one,two,three>,<one,two,three,four>)", ("two", "two")),
+        ("[(<one,two,three>,<one,two,three,four>)]", [("two", "two")])
+    ])
+def test_value_has_value_with_value(type, value):
+    node = NodeValue(type)
+    node.set(value)
+    assert node.has_value is True
+
+
 def test_value_fields():
     assert NodeValue("str").fields == (None, "value", "signature")
 
@@ -1226,3 +1300,151 @@ def test_nodeset_gettcl():
 
 def test_nodeset_gettcl_empty():
     assert NodeSetValue(NodeValue("str")).gettcl() == '[list ]'
+
+
+@pytest.mark.parametrize(
+    "type", [
+        "str",
+        "{str}",
+        "int",
+        "{int}",
+        "float",
+        "{float}",
+        "bool",
+        "<one,two,three>",
+        "{<one,two,three>}",
+        "[str]",
+        "[file]",
+        "[dir]",
+        "file",
+        "dir",
+        "[[str]]",
+        "[(str,str)]",
+        "(str,str)",
+        "(str,int)",
+        "(str,float)",
+        "(str,<one,two,three,four>)",
+        "(<one,two,three>,<one,two,three,four>)",
+        "[(<one,two,three>,<one,two,three,four>)]"
+    ])
+def test_list_has_value_init_none(type):
+    assert NodeListValue(NodeValue(type)).has_value is False
+
+
+@pytest.mark.parametrize(
+    "type,value", [
+        ("str", ""),
+        ("str", " "),
+        ("str", "12"),
+        ("str", "0"),
+        ("{str}", set(["", "test"])),
+        ("int", 0),
+        ("int", 1),
+        ("{int}", set([0])),
+        ("{int}", set([0, 1])),
+        ("float", 0),
+        ("float", -10),
+        ("float", 10),
+        ("{float}", set([0])),
+        ("{float}", set([0, 2])),
+        ("bool", True),
+        ("bool", False),
+        ("<one,two,three>", "one"),
+        ("<one,two,three>", "two"),
+        ("<one,two,three>", "three"),
+        ("{<one,two,three>}", set(["one"])),
+        ("{<one,two,three>}", set(["one", "two"])),
+        ("{<one,two,three>}", set(["one", "three"])),
+        ("[str]", ["str"]),
+        ("[str]", [""]),
+        ("[file]", ["test.v"]),
+        ("[dir]", ["."]),
+        ("file", "test.v"),
+        ("dir", "."),
+        ("[[str]]", [[""]]),
+        ("[(str,str)]", [("", "")]),
+        ("(str,str)", ("", "")),
+        ("(str,int)", ("", 0)),
+        ("(str,float)", ("str", 0)),
+        ("(str,<one,two,three,four>)", ("str", "two")),
+        ("(<one,two,three>,<one,two,three,four>)", ("two", "two")),
+        ("[(<one,two,three>,<one,two,three,four>)]", [("two", "two")])
+    ])
+def test_list_has_value_with_value(type, value):
+    node = NodeListValue(NodeValue(type))
+    node.set(value)
+    assert node.has_value is True
+
+
+@pytest.mark.parametrize(
+    "type", [
+        "str",
+        "{str}",
+        "int",
+        "{int}",
+        "float",
+        "{float}",
+        "bool",
+        "<one,two,three>",
+        "{<one,two,three>}",
+        "[str]",
+        "[file]",
+        "[dir]",
+        "file",
+        "dir",
+        "[[str]]",
+        "[(str,str)]",
+        "(str,str)",
+        "(str,int)",
+        "(str,float)",
+        "(str,<one,two,three,four>)",
+        "(<one,two,three>,<one,two,three,four>)",
+        "[(<one,two,three>,<one,two,three,four>)]"
+    ])
+def test_set_has_value_init_none(type):
+    assert NodeSetValue(NodeValue(type)).has_value is False
+
+
+@pytest.mark.parametrize(
+    "type,value", [
+        ("str", ""),
+        ("str", " "),
+        ("str", "12"),
+        ("str", "0"),
+        ("{str}", set(["", "test"])),
+        ("int", 0),
+        ("int", 1),
+        ("{int}", set([0])),
+        ("{int}", set([0, 1])),
+        ("float", 0),
+        ("float", -10),
+        ("float", 10),
+        ("{float}", set([0])),
+        ("{float}", set([0, 2])),
+        ("bool", True),
+        ("bool", False),
+        ("<one,two,three>", "one"),
+        ("<one,two,three>", "two"),
+        ("<one,two,three>", "three"),
+        ("{<one,two,three>}", set(["one"])),
+        ("{<one,two,three>}", set(["one", "two"])),
+        ("{<one,two,three>}", set(["one", "three"])),
+        ("[str]", ["str"]),
+        ("[str]", [""]),
+        ("[file]", ["test.v"]),
+        ("[dir]", ["."]),
+        ("file", "test.v"),
+        ("dir", "."),
+        ("[[str]]", [[""]]),
+        ("[(str,str)]", [("", "")]),
+        ("(str,str)", ("", "")),
+        ("(str,int)", ("", 0)),
+        ("(str,float)", ("str", 0)),
+        ("(str,<one,two,three,four>)", ("str", "two")),
+        ("(<one,two,three>,<one,two,three,four>)", ("two", "two")),
+        ("[(<one,two,three>,<one,two,three,four>)]", [("two", "two")])
+    ])
+def test_set_has_value_with_value(type, value):
+    node = NodeSetValue(NodeValue(type))
+    node.set(value)
+    assert node.has_value is True
