@@ -292,6 +292,347 @@ class APRTask(OpenROADTask):
                     ))
                     f.write('\n')
 
+    def post_process(self):
+        super().post_process()
+
+        self._extract_metrics()
+
+    def _extract_metrics(self):
+        '''
+        Extract metrics
+        '''
+
+        metric_reports = {
+            "setuptns": [
+                "timing/total_negative_slack.rpt",
+                "timing/setup.rpt",
+                "timing/setup.histogram.rpt",
+                "images/timing/setup.histogram.png"
+            ],
+            "setupslack": [
+                "timing/worst_slack.setup.rpt",
+                "timing/setup.rpt",
+                "timing/setup.topN.rpt",
+                "timing/setup.histogram.rpt",
+                "images/timing/setup.histogram.png"
+            ],
+            "setupskew": [
+                "timing/skew.setup.rpt",
+                "timing/worst_slack.setup.rpt",
+                "timing/setup.rpt",
+                "timing/setup.topN.rpt"
+            ],
+            "setuppaths": [
+                "timing/setup.rpt",
+                "timing/setup.topN.rpt",
+                "timing/setup.histogram.rpt",
+                "images/timing/setup.histogram.png"
+            ],
+            "holdslack": [
+                "timing/worst_slack.hold.rpt",
+                "timing/hold.rpt",
+                "timing/hold.topN.rpt",
+                "timing/hold.histogram.rpt",
+                "images/timing/hold.histogram.png"
+            ],
+            "holdskew": [
+                "timing/skew.hold.rpt",
+                "timing/worst_slack.hold.rpt",
+                "timing/hold.rpt",
+                "timing/hold.topN.rpt"
+            ],
+            "holdpaths": [
+                "timing/hold.rpt",
+                "timing/hold.topN.rpt",
+                "timing/hold.histogram.rpt",
+                "images/timing/hold.histogram.png"
+            ],
+            "unconstrained": [
+                "timing/unconstrained.rpt",
+                "timing/unconstrained.topN.rpt"
+            ],
+            "peakpower": [
+                *[f"power/{corner}.rpt" for corner in self.schema().getkeys('constraint', 'timing')],
+                *[f"images/heatmap/power_density/{corner}.png"
+                    for corner in self.schema().getkeys('constraint', 'timing')]
+            ],
+            "drvs": [
+                "timing/drv_violators.rpt",
+                "floating_nets.rpt",
+                "overdriven_nets.rpt",
+                "overdriven_nets_with_parallel.rpt",
+                f"{self.design_topmodule}_antenna.rpt",
+                f"{self.design_topmodule}_antenna_post_repair.rpt"
+            ],
+            "drcs": [
+                f"{self.design_topmodule}_drc.rpt",
+                f"markers/{self.design_topmodule}.drc.rpt",
+                f"markers/{self.design_topmodule}.drc.json",
+                f"images/markers/{self.design_topmodule}.DRC.png"
+            ],
+            "utilization": [
+                "images/heatmap/placement_density.png"
+            ],
+            "wirelength": [
+                f"images/{self.design_topmodule}.routing.png"
+            ]
+        }
+        metric_reports["leakagepower"] = metric_reports["peakpower"]
+
+        metrics_file = "reports/metrics.json"
+
+        if not os.path.exists(metrics_file):
+            self.logger.warning("OpenROAD metrics file is missing")
+            return
+
+        def get_metric_sources(metric):
+            metric_sources = [metrics_file]
+            if metric in metric_reports:
+                for metric_file in metric_reports[metric]:
+                    metric_path = f'reports/{metric_file}'
+                    if os.path.exists(metric_path):
+                        metric_sources.append(metric_path)
+            return metric_sources
+
+        # parsing log file
+        with sc_open(metrics_file) as f:
+            try:
+                metrics = json.load(f)
+            except json.decoder.JSONDecodeError as e:
+                self.logger.error(f'Unable to parse metrics from OpenROAD: {e}')
+                metrics = {}
+
+            self._generate_cell_area_report(metrics)
+
+            or_units = {}
+            for unit, or_unit in [
+                    ('time', 'run__flow__platform__time_units'),
+                    ('capacitance', 'run__flow__platform__capacitance_units'),
+                    ('resistance', 'run__flow__platform__resistance_units'),
+                    ('volt', 'run__flow__platform__voltage_units'),
+                    ('amp', 'run__flow__platform__current_units'),
+                    ('power', 'run__flow__platform__power_units'),
+                    ('distance', 'run__flow__platform__distance_units')]:
+                if or_unit in metrics:
+                    # Remove first digit
+                    metric_unit = metrics[or_unit][1:]
+                    or_units[unit] = metric_unit
+
+            or_units['distance'] = 'um'  # always microns
+            or_units['power'] = 'W'  # always watts
+            or_units['area'] = f"{or_units['distance']}^2"
+            or_units['frequency'] = 'Hz'  # always hertz
+
+            has_timing = True
+            if 'sc__metric__timing__clocks' in metrics:
+                has_timing = metrics['sc__metric__timing__clocks'] > 0
+
+            for metric, or_metric, or_use, or_unit in [
+                ('vias', 'sc__step__global_route__vias', True, None),
+                ('vias', 'sc__step__route__vias', True, None),
+                ('wirelength', 'sc__step__global_route__wirelength', True, 'distance'),
+                ('wirelength', 'sc__step__route__wirelength', True, 'distance'),
+                ('cellarea', 'sc__metric__design__instance__area', True, 'area'),
+                ('stdcellarea', 'sc__metric__design__instance__area__stdcell', True, 'area'),
+                ('macroarea', 'sc__metric__design__instance__area__macros', True, 'area'),
+                ('padcellarea', 'sc__metric__design__instance__area__padcells', True, 'area'),
+                ('totalarea', 'sc__metric__design__die__area', True, 'area'),
+                ('utilization', 'sc__metric__design__instance__utilization', True, 100.0),
+                ('setuptns', 'sc__metric__timing__setup__tns', has_timing, 'time'),
+                ('holdtns', 'sc__metric__timing__hold__tns', has_timing, 'time'),
+                ('setupslack', 'sc__metric__timing__setup__ws', has_timing, 'time'),
+                ('holdslack', 'sc__metric__timing__hold__ws', has_timing, 'time'),
+                ('setupskew', 'sc__metric__clock__skew__setup', has_timing, 'time'),
+                ('holdskew', 'sc__metric__clock__skew__hold', has_timing, 'time'),
+                ('fmax', 'sc__metric__timing__fmax', has_timing, 'frequency'),
+                ('setuppaths', 'sc__metric__timing__drv__setup_violation_count', True, None),
+                ('holdpaths', 'sc__metric__timing__drv__hold_violation_count', True, None),
+                ('unconstrained', 'sc__metric__timing__unconstrained', True, None),
+                ('peakpower', 'sc__metric__power__total', True, 'power'),
+                ('leakagepower', 'sc__metric__power__leakage__total', True, 'power'),
+                ('pins', 'sc__metric__design__io', True, None),
+                ('cells', 'sc__metric__design__instance__count', True, None),
+                ('macros', 'sc__metric__design__instance__count__macros', True, None),
+                ('nets', 'sc__metric__design__nets', True, None),
+                ('registers', 'sc__metric__design__registers', True, None),
+                ('inverters', 'sc__metric__design__inverters', True, None),
+                ('buffers', 'sc__metric__design__buffers', True, None),
+                ('logicdepth', 'sc__metric__design__logic__depth', True, None)
+            ]:
+                if or_metric in metrics:
+                    value = metrics[or_metric]
+
+                    # Check for INF timing
+                    if or_unit == 'time' and abs(value) > 1e24:
+                        or_use = False
+
+                    if or_unit:
+                        if or_unit in or_units:
+                            or_unit = or_units[or_unit]
+                        else:
+                            value *= or_unit
+                            or_unit = None
+
+                    if or_use:
+                        self.record_metric(metric, value, source_file=get_metric_sources(metric), source_unit=or_unit)
+
+            ir_drop = None
+            for or_metric, value in metrics.items():
+                if or_metric.startswith("sc__step__design_powergrid__drop__worst__net") or \
+                        or_metric.startswith("sc__image__design_powergrid__drop__worst__net"):
+                    if not ir_drop:
+                        ir_drop = value
+                    else:
+                        ir_drop = max(value, ir_drop)
+
+            if ir_drop is not None:
+                self.record_metric("irdrop", ir_drop, source_file=get_metric_sources('irdrop'), source_unit="V")
+
+            # setup wns and hold wns can be computed from setup slack and hold slack
+            if 'sc__metric__timing__setup__ws' in metrics and \
+                    has_timing and \
+                    self.schema("metric").get('setupslack', step=self.step, index=self.index) is not None:
+                wns = min(0.0, self.schema("metric").get('setupslack', step=self.step, index=self.index))
+                wns_units = self.schema("metric").get('setupslack', field='unit')
+                self.record_metric("setupwns", wns, source_file=get_metric_sources('setupslack'), source_unit=wns_units)
+
+            if 'sc__metric__timing__hold__ws' in metrics and \
+                    has_timing and \
+                    self.schema("metric").get('holdslack', step=self.step, index=self.index) is not None:
+                wns = min(0.0, self.schema("metric").get('holdslack', step=self.step, index=self.index))
+                wns_units = self.schema("metric").get('holdslack', field='unit')
+                self.record_metric("holdwns", wns, source_file=get_metric_sources('holdslack'), source_unit=wns_units)
+
+            drvs = None
+            for metric in [
+                    'sc__metric__timing__drv__max_slew',
+                    'sc__metric__timing__drv__max_cap',
+                    'sc__metric__timing__drv__max_fanout',
+                    'sc__metric__timing__drv__max_fanout',
+                    'sc__metric__timing__drv__floating__nets',
+                    'sc__metric__timing__drv__floating__pins',
+                    'sc__metric__timing__drv__overdriven__nets',
+                    'sc__metric__antenna__violating__nets',
+                    'sc__metric__antenna__violating__pins']:
+                if metric in metrics:
+                    if drvs is None:
+                        drvs = int(metrics[metric])
+                    else:
+                        drvs += int(metrics[metric])
+
+            if drvs is not None:
+                self.record_metric("drvs", drvs, source_file=get_metric_sources('drvs'))
+
+            if 'sc__step__route__drc_errors' in metrics:
+                self.record_metric("drcs", int(metrics['sc__step__route__drc_errors']), source_file=get_metric_sources('drcs'))
+
+    def _generate_cell_area_report(self, ord_metrics):
+        cellarea_report = CellArea()
+
+        prefix = "sc__cellarea__design__instance"
+
+        filtered_data = {}
+        for key, value in ord_metrics.items():
+            if key.startswith(prefix):
+                filtered_data[key[len(prefix)+2:]] = value
+
+        modules = set()
+        modules.add("")
+        for key in filtered_data.keys():
+            if "__in_module:" in key:
+                module = key[key.find("__in_module:"):]
+                modules.add(module)
+
+        def process_cell(group):
+            data = {}
+            for key, value in filtered_data.items():
+                if (group != "" and key.endswith(group)):
+                    key = key[:key.find("__in_module:")]
+                    data[key] = value
+                elif (group == "" and "__in_module" not in key):
+                    data[key] = value
+
+            cell_type = None
+            cell_name = None
+
+            if not group:
+                cell_type = self.design_topmodule
+                cell_name = self.design_topmodule
+            else:
+                cell_type = group[len("__in_module:"):]
+
+            cellarea = None
+            cellcount = None
+
+            macroarea = None
+            macrocount = None
+
+            stdcell_types = (
+                'tie_cell',
+                'standard_cell',
+                'buffer',
+                'clock_buffer',
+                'timing_repair_buffer',
+                'inverter',
+                'clock_inverter',
+                'timing_Repair_inverter',
+                'clock_gate_cell',
+                'level_shifter_cell',
+                'sequential_cell',
+                'multi_input_combinational_cell',
+                'other'
+                )
+
+            stdcell_info_area = []
+            stdcell_info_count = []
+            stdcellarea = None
+            stdcellcount = None
+
+            for key, value in data.items():
+                if key == 'name':
+                    cell_name = value
+                elif key == 'count':
+                    cellcount = value
+                elif key == 'area':
+                    cellarea = value
+                elif key.startswith('count__class'):
+                    _, cell_class = key.split(':')
+                    if cell_class == 'macro':
+                        macrocount = value
+                    elif cell_class in stdcell_types:
+                        stdcell_info_count.append(value)
+                elif key.startswith('area__class'):
+                    _, cell_class = key.split(':')
+                    if cell_class == 'macro':
+                        macroarea = value
+                    elif cell_class in stdcell_types:
+                        stdcell_info_area.append(value)
+
+            if stdcell_info_count:
+                stdcellcount = sum(stdcell_info_count)
+            if stdcell_info_area:
+                stdcellarea = sum(stdcell_info_area)
+
+            cellarea_report.add_cell(
+                name=cell_name,
+                module=cell_type,
+                cellarea=cellarea,
+                cellcount=cellcount,
+                macroarea=macroarea,
+                macrocount=macrocount,
+                stdcellarea=stdcellarea,
+                stdcellcount=stdcellcount)
+
+            if filtered_data:
+                return True
+            return False
+
+        for module in modules:
+            process_cell(module)
+
+        if cellarea_report.size() > 0:
+            cellarea_report.write_report("reports/hierarchical_cell_area.json")
+
 
 def setup(chip, exit=True):
     tool_setup(chip, exit=exit)
