@@ -8,12 +8,7 @@ source ./sc_manifest.tcl
 # Schema Adapter
 ###############################
 
-set sc_tool opensta
-set sc_refdir [sc_cfg_tool_task_get refdir]
-
-# Design
-set sc_design [sc_top]
-set sc_designlib [sc_cfg_get option design]
+set sc_topmodulelib [sc_cfg_get option design]
 
 # APR Parameters
 set sc_mainlib [sc_cfg_get asic mainlib]
@@ -60,26 +55,26 @@ foreach corner $sc_scenarios {
 }
 
 # Read Verilog
-if { [file exists "inputs/${sc_design}.vg"] } {
-    puts "Reading netlist verilog: inputs/${sc_design}.vg"
-    read_verilog "inputs/${sc_design}.vg"
+if { [file exists "inputs/${sc_topmodule}.vg"] } {
+    puts "Reading netlist verilog: inputs/${sc_topmodule}.vg"
+    read_verilog "inputs/${sc_topmodule}.vg"
 } else {
     foreach netlist [sc_cfg_get input netlist verilog] {
         puts "Reading netlist verilog: ${netlist}"
         read_verilog $netlist
     }
 }
-link_design $sc_design
+link_design $sc_topmodule
 
 # Read SDC (in order of priority)
 # TODO: add logic for reading from ['constraint', ...] once we support MCMM
-if { [file exists "inputs/${sc_design}.sdc"] } {
+if { [file exists "inputs/${sc_topmodule}.sdc"] } {
     # get from previous step
-    puts "Reading SDC: inputs/${sc_design}.sdc"
-    read_sdc "inputs/${sc_design}.sdc"
+    puts "Reading SDC: inputs/${sc_topmodule}.sdc"
+    read_sdc "inputs/${sc_topmodule}.sdc"
 } else {
     set sdc_files []
-    foreach sdc [sc_cfg_get_fileset $sc_designlib [sc_cfg_get option fileset] sdc] {
+    foreach sdc [sc_cfg_get_fileset $sc_topmodulelib [sc_cfg_get option fileset] sdc] {
         # read step constraint if exists
         puts "Reading SDC: ${sdc}"
         read_sdc $sdc
@@ -87,7 +82,7 @@ if { [file exists "inputs/${sc_design}.sdc"] } {
     }
 
     foreach corner $sc_scenarios {
-        foreach sdc [sc_cfg_get_fileset $sc_designlib [sc_cfg_get constraint timing $corner sdcfileset] sdc] {
+        foreach sdc [sc_cfg_get_fileset $sc_topmodulelib [sc_cfg_get constraint timing $corner sdcfileset] sdc] {
             if { [lsearch -exact $sdc_files $sdc] == -1 } {
                 # read step constraint if exists
                 puts "Reading mode (${sc_timing_mode}) SDC: ${sdc}"
@@ -138,7 +133,7 @@ puts "Timing path groups: [sta::path_group_names]"
 foreach corner $sc_scenarios {
     set pex_corner [sc_cfg_get constraint timing $corner pexcorner]
 
-    set spef_file "inputs/${sc_design}.${pex_corner}.spef"
+    set spef_file "inputs/${sc_topmodule}.${pex_corner}.spef"
     if { [file exists $spef_file] } {
         puts "Reading SPEF ($corner): $spef_file"
         read_spef -corner $corner $spef_file
@@ -148,7 +143,7 @@ foreach corner $sc_scenarios {
 foreach corner $sc_scenarios {
     set pex_corner [sc_cfg_get constraint timing $corner pexcorner]
 
-    set input_sdf_file "inputs/${sc_design}.${pex_corner}.sdf"
+    set input_sdf_file "inputs/${sc_topmodule}.${pex_corner}.sdf"
     if { [file exists $input_sdf_file] } {
         puts "Reading SDF ($corner): $input_sdf_file"
         read_sdf -corner $corner $input_sdf_file

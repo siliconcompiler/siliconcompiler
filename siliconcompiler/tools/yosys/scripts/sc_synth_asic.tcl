@@ -98,7 +98,7 @@ if { ![file exists $input_verilog] } {
     }
 }
 
-if { [lindex [sc_cfg_tool_task_get var use_slang] 0] == "true" && [sc_load_plugin slang] } {
+if { [sc_cfg_tool_task_get var use_slang] && [sc_load_plugin slang] } {
     # This needs some reordering of loaded to ensure blackboxes are handled
     # before this
     set slang_params []
@@ -214,51 +214,31 @@ proc sc_annotate_gate_cost_equivalent { } {
 #########################
 
 proc sc_has_tie_cell { type } {
-    upvar sc_cfg sc_cfg
     upvar sc_mainlib sc_mainlib
-    upvar sc_tool sc_tool
 
-    return [expr {
-        [sc_cfg_exists library $sc_mainlib option {var} yosys_tie${type}_cell] &&
-        [sc_cfg_exists library $sc_mainlib option {var} yosys_tie${type}_port]
-    }]
+    return [sc_cfg_exists library $sc_mainlib tool yosys tie${type}_cell]
 }
 
 proc sc_get_tie_cell { type } {
-    upvar sc_cfg sc_cfg
     upvar sc_mainlib sc_mainlib
-    upvar sc_tool sc_tool
 
-    set cell \
-        [lindex [sc_cfg_get library $sc_mainlib option {var} yosys_tie${type}_cell] 0]
-    set port \
-        [lindex [sc_cfg_get library $sc_mainlib option {var} yosys_tie${type}_port] 0]
+    set cell_port [sc_cfg_get library $sc_mainlib tool yosys tie${type}_cell]
+    set cell [lindex $cell_port 0]
+    set port [lindex $cell_port 1]
 
     return "$cell $port"
 }
 
 proc has_buffer_cell { } {
-    upvar sc_cfg sc_cfg
     upvar sc_mainlib sc_mainlib
-    upvar sc_tool sc_tool
 
-    return [expr {
-        [sc_cfg_exists library $sc_mainlib option {var} yosys_buffer_cell] &&
-        [sc_cfg_exists library $sc_mainlib option {var} yosys_buffer_input] &&
-        [sc_cfg_exists library $sc_mainlib option {var} yosys_buffer_output]
-    }]
+    return [sc_cfg_exists library $sc_mainlib tool yosys buffer_cell]
 }
 
 proc get_buffer_cell { } {
-    upvar sc_cfg sc_cfg
     upvar sc_mainlib sc_mainlib
-    upvar sc_tool sc_tool
 
-    set cell [lindex [sc_cfg_get library $sc_mainlib option {var} yosys_buffer_cell] 0]
-    set in [lindex [sc_cfg_get library $sc_mainlib option {var} yosys_buffer_input] 0]
-    set out [lindex [sc_cfg_get library $sc_mainlib option {var} yosys_buffer_output] 0]
-
-    return "$cell $in $out"
+    return [sc_cfg_get library $sc_mainlib tool yosys buffer_cell]
 }
 
 ########################################################
@@ -289,10 +269,7 @@ if {
     yosys tribuf
 }
 
-set flatten_design [expr {
-    [lindex [sc_cfg_tool_task_get var flatten] 0]
-    == "true"
-}]
+set flatten_design [sc_cfg_tool_task_get var flatten]
 set synth_args []
 if { $flatten_design } {
     lappend synth_args "-flatten"
@@ -305,7 +282,7 @@ if { [sc_cfg_tool_task_exists file synth_extra_map] } {
 
 # Specify hierarchy separator
 yosys scratchpad \
-    -set flatten.separator "[lindex [sc_cfg_tool_task_get var hierarchy_separator] 0]"
+    -set flatten.separator "[sc_cfg_tool_task_get var hierarchy_separator]"
 
 # Start synthesis
 yosys synth {*}$synth_args -top $sc_topmodule -run begin:fine
@@ -314,9 +291,8 @@ yosys synth {*}$synth_args -top $sc_topmodule -run begin:fine
 sc_map_memory $sc_memory_libmap_files $sc_memory_techmap_files 0
 
 # Perform hierarchy flattening
-if { !$flatten_design && [lindex [sc_cfg_tool_task_get var auto_flatten] 0] == "true" } {
-    set sc_hier_threshold \
-        [lindex [sc_cfg_tool_task_get var hier_threshold] 0]
+if { !$flatten_design && [sc_cfg_tool_task_get var auto_flatten] } {
+    set sc_hier_threshold [sc_cfg_tool_task_get var hier_threshold]
 
     sc_annotate_gate_cost_equivalent
     yosys keep_hierarchy -min_cost $sc_hier_threshold
@@ -328,7 +304,7 @@ if { !$flatten_design && [lindex [sc_cfg_tool_task_get var auto_flatten] 0] == "
 yosys synth {*}$synth_args -top $sc_topmodule -run fine:check
 
 # Logic locking
-if { [lindex [sc_cfg_tool_task_get var lock_design] 0] == "true" } {
+if { [sc_cfg_tool_task_get var lock_design] } {
     if { [sc_load_plugin moosic] } {
         # moosic cannot handle hierarchy
         foreach module [get_modules "*"] {
@@ -339,8 +315,8 @@ if { [lindex [sc_cfg_tool_task_get var lock_design] 0] == "true" } {
         yosys flatten
         yosys opt -fast
 
-        set ll_port [lindex [sc_cfg_tool_task_get var lock_design_port] 0]
-        set ll_key [lindex [sc_cfg_tool_task_get var lock_design_key] 0]
+        set ll_port [sc_cfg_tool_task_get var lock_design_port]
+        set ll_key [sc_cfg_tool_task_get var lock_design_key]
         set ll_bits [expr { 4 * [string length $ll_key] }]
         yosys select -module $sc_topmodule
         yosys logic_locking \
@@ -372,16 +348,14 @@ yosys opt -purge
 
 # Handle tristate buffers
 if { $sc_tbuf == "true" } {
-    set sc_tbuf_techmap \
-        [lindex [sc_cfg_get library $sc_mainlib option file yosys_tbufmap] 0]
+    set sc_tbuf_techmap [sc_cfg_get library $sc_mainlib option file yosys_tbufmap]
     # Map tristate buffers
     yosys techmap -map $sc_tbuf_techmap
     post_techmap -fast
 }
 
-if { [sc_cfg_tool_task_get var map_adders] == "true" } {
-    set sc_adder_techmap \
-        [lindex [sc_cfg_get library $sc_mainlib option {file} yosys_addermap] 0]
+if { [sc_cfg_tool_task_get var map_adders] } {
+    set sc_adder_techmap [sc_cfg_get library $sc_mainlib option {file} yosys_addermap]
     # extract the full adders
     yosys extract_fa
     # map full adders
@@ -396,14 +370,14 @@ if { [sc_cfg_tool_task_exists {file} techmap] } {
     }
 }
 
-if { [sc_cfg_tool_task_get var autoname] == "true" } {
+if { [sc_cfg_tool_task_get var autoname] } {
     # use autoname to preserve some design naming
     # by doing it before dfflibmap the names will be slightly shorter since they will
     # only contain the $DFF_P names vs. the full library name of the associated flip-flop
     yosys rename -wire
 }
 
-if { [lindex [sc_cfg_tool_task_get var map_clockgates] 0] == "true" } {
+if { [sc_cfg_tool_task_get var map_clockgates] } {
     set clockgate_dont_use []
     foreach lib $sc_logiclibs {
         foreach cell [sc_cfg_get library $lib asic cells dontuse] {
@@ -418,7 +392,7 @@ if { [lindex [sc_cfg_tool_task_get var map_clockgates] 0] == "true" } {
     yosys clockgate \
         {*}$clockgate_dont_use \
         {*}$clockgate_liberty \
-        -min_net_size [lindex [sc_cfg_tool_task_get var min_clockgate_fanout] 0]
+        -min_net_size [sc_cfg_tool_task_get var min_clockgate_fanout]
 }
 
 set dfflibmap_dont_use []
@@ -474,6 +448,9 @@ if { $script != "" } {
     lappend abc_args "-script" $script
 }
 foreach lib_file $sc_libraries {
+    if { [string first "fake" $lib_file] != -1 } {
+        continue
+    }
     lappend abc_args "-liberty" $lib_file
 }
 set abc_dont_use []
@@ -515,7 +492,7 @@ if { [llength $yosys_hilomap_args] != 0 } {
 
 if {
     [has_buffer_cell] &&
-    [sc_cfg_tool_task_get var add_buffers] == "true"
+    [sc_cfg_tool_task_get var add_buffers]
 } {
     yosys insbuf -buf {*}[get_buffer_cell]
 }

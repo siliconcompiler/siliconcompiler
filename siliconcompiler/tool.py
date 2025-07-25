@@ -1489,13 +1489,13 @@ class ASICTaskSchema(TaskSchema):
         if check_mainlib:
             if not mainlib_key:
                 mainlib_key = key
-            check_keys.append((self.mainlib, ("tool", self.tool(), pdk_key)))
+            check_keys.append((self.mainlib, ("tool", self.tool(), mainlib_key)))
         check_keys.append((self, ("var", key)))
 
         if require_pdk:
             self.add_required_key(self.pdk, "tool", self.tool(), pdk_key)
         if require_mainlib:
-            self.add_required_key(self.mainlib, "tool", self.tool(), pdk_key)
+            self.add_required_key(self.mainlib, "tool", self.tool(), mainlib_key)
         if require or defvalue is not None:
             self.add_required_key(self, "var", key)
 
