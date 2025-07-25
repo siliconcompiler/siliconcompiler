@@ -558,8 +558,8 @@ def target_nangate45(project):
     area.set_density(40)
     area.set_coremargin(1)
 
-    project.add_alias(Spram(), "rtl", FakeRam45Lambdalib(), "rtl")
-    project.add_asiclib(FakeRam45())
+    # project.add_alias(Spram(), "rtl", FakeRam45Lambdalib(), "rtl")
+    # project.add_asiclib(FakeRam45())
 
 
 def target_asap7(project):
