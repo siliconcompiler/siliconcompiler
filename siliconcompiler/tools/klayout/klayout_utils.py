@@ -21,41 +21,26 @@ def get_streams(schema):
 
 
 def technology(design, schema):
-    from _common.asic import get_libraries
-
     sc_step = schema.get('arg', 'step')
     sc_index = schema.get('arg', 'index')
-    sc_pdk = schema.get('option', 'pdk')
 
-    if schema.valid('option', 'stackup'):
-        sc_stackup = schema.get('option', 'stackup')
-    else:
-        sc_stackup = schema.get('pdk', sc_pdk, 'stackup')[0]
-
-    logiclibs = schema.get('asic', 'logiclib', step=sc_step, index=sc_index)
-    if not logiclibs:
-        sc_libtype = schema.get('option', 'var', 'klayout_libtype')[0]
-    else:
-        sc_mainlib = logiclibs[0]
-        sc_libtype = schema.get('library', sc_mainlib, 'asic', 'libarch',
-                                step=sc_step, index=sc_index)
-
-    sc_libs = []
-    sc_libs += get_libraries(schema, 'logic')
-    sc_libs += get_libraries(schema, 'macro')
+    sc_libs = schema.get('asic', 'asiclib')
 
     local_files = {
         'lyt': f'inputs/{design}.lyt',
         'lyp': f'inputs/{design}.lyp'
     }
 
+    mainlib = schema.get("asic", "mainlib")
+    sc_pdk = schema.get("library", mainlib, "asic", "pdk")
+
     tech = pya.Technology.create_technology('sc_tech')
     # Load technology file
     tech_file = None
     if os.path.exists(local_files['lyt']):
         tech_file = local_files['lyt']
-    elif schema.valid('pdk', sc_pdk, 'layermap', 'klayout', 'def', 'klayout', sc_stackup):
-        tech_file = schema.get('pdk', sc_pdk, 'layermap', 'klayout', 'def', 'klayout', sc_stackup)
+    elif schema.valid('pdk', sc_pdk, 'layermap', 'klayout', 'def', 'klayout'):
+        tech_file = schema.get('pdk', sc_pdk, 'layermap', 'klayout', 'def', 'klayout')
         if tech_file:
             tech_file = tech_file[0]
 
@@ -63,7 +48,7 @@ def technology(design, schema):
         print(f"[INFO] Loading technology file: {tech_file}")
         tech.load(tech_file)
     else:
-        tech.name = f'{sc_pdk} for {sc_stackup}'
+        tech.name = sc_pdk
         tech.description = f'{", ".join(sc_libs)}'
 
     if schema.valid('pdk', sc_pdk, 'var', 'klayout', 'units', sc_stackup):
