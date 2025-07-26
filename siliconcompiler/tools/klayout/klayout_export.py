@@ -130,7 +130,6 @@ def main():
         generate_metrics
     )
     from klayout_show import show
-    from _common.asic import get_libraries
 
     schema = get_schema(manifest='sc_manifest.json')
 
@@ -138,7 +137,7 @@ def main():
     sc_step = schema.get('arg', 'step')
     sc_index = schema.get('arg', 'index')
     sc_stream = schema.get('tool', 'klayout', 'task', 'export', 'var', 'stream',
-                           step=sc_step, index=sc_index)[0]
+                           step=sc_step, index=sc_index)
 
     design_name = schema.get('option', 'design')
     fileset = schema.get("option", "fileset")[0]

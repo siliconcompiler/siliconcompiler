@@ -21,9 +21,6 @@ def get_streams(schema):
 
 
 def technology(design, schema):
-    sc_step = schema.get('arg', 'step')
-    sc_index = schema.get('arg', 'index')
-
     sc_libs = schema.get('asic', 'asiclib')
 
     local_files = {
@@ -39,8 +36,11 @@ def technology(design, schema):
     tech_file = None
     if os.path.exists(local_files['lyt']):
         tech_file = local_files['lyt']
-    elif schema.valid('pdk', sc_pdk, 'layermap', 'klayout', 'def', 'klayout'):
-        tech_file = schema.get('pdk', sc_pdk, 'layermap', 'klayout', 'def', 'klayout')
+    elif schema.valid('library', sc_pdk, 'layermapfileset', 'klayout', 'def', 'klayout'):
+        for fileset in schema.get('library', sc_pdk,
+                                  'layermapfileset', 'klayout', 'def', 'klayout'):
+            if schema.valid('library', sc_pdk, "fileset", fileset, "file", "layermap"):
+                tech_file = schema.get('library', sc_pdk, "fileset", fileset, "file", "layermap")
         if tech_file:
             tech_file = tech_file[0]
 
@@ -51,14 +51,18 @@ def technology(design, schema):
         tech.name = sc_pdk
         tech.description = f'{", ".join(sc_libs)}'
 
-    if schema.valid('pdk', sc_pdk, 'var', 'klayout', 'units', sc_stackup):
-        units = float(schema.get('pdk', sc_pdk, 'var', 'klayout', 'units', sc_stackup)[0])
+    if schema.valid('library', sc_pdk, 'tool', 'klayout', 'units'):
+        units = schema.get('library', sc_pdk, 'tool', 'klayout', 'units')
         tech.dbu = units
     print(f"[INFO] Technology database units are: {tech.dbu}um")
 
     lefs = []
 
-    foundry_lef = schema.get('pdk', sc_pdk, 'aprtech', 'klayout', sc_stackup, sc_libtype, 'lef')
+    foundry_lef = None
+    if schema.valid('library', sc_pdk, "pdk" 'aprtechfileset', "klayout"):
+        for fileset in schema.get('library', sc_pdk, "pdk", 'aprtechfileset', "klayout"):
+            if schema.valid('library', sc_pdk, "fileset", fileset, "lef"):
+                foundry_lef = schema.get('library', sc_pdk, "fileset", fileset, "lef")
     if foundry_lef:
         foundry_lef = foundry_lef[0]
         lefs.append(foundry_lef)
@@ -66,8 +70,10 @@ def technology(design, schema):
         foundry_lef = None
 
     for lib in sc_libs:
-        lefs.extend(schema.get('library', lib, 'output', sc_stackup, 'lef',
-                               step=sc_step, index=sc_index))
+        if schema.valid('library', lib, "asic", "aprfileset"):
+            for fileset in schema.get("library", lib, "asic", "aprfileset"):
+                if schema.valid("library", lib, "fileset", fileset, "file", "lef"):
+                    lefs.extend(schema.get("library", lib, "fileset", fileset, "file", "lef"))
 
     layout_options = tech.load_layout_options
 
@@ -102,8 +108,13 @@ def technology(design, schema):
                                                             layer_properties))
     if os.path.exists(local_files['lyp']):
         layer_properties = os.path.abspath(local_files['lyp'])
-    elif schema.valid('pdk', sc_pdk, 'display', 'klayout', sc_stackup):
-        pdk_layer_props = schema.get('pdk', sc_pdk, 'display', 'klayout', sc_stackup)
+    elif schema.valid('library', sc_pdk, "pdk", 'displayfileset', 'klayout'):
+        pdk_layer_props = None
+        for fileset in schema.get('library', sc_pdk, "pdk", 'displayfileset', 'klayout'):
+            # TODO Comes up not valid
+            if schema.valid("library", sc_pdk, "fileset", fileset, "file", "display"):
+                pdk_layer_props = schema.get("library", sc_pdk, "fileset", fileset,
+                                             "file", "display")
         if pdk_layer_props:
             layer_properties = pdk_layer_props[0]
 
@@ -119,11 +130,15 @@ def technology(design, schema):
             map_file = os.path.abspath(os.path.join(os.path.dirname(tech_file),
                                                     map_file))
     for s in get_streams(schema):
-        if schema.valid('pdk', sc_pdk, 'layermap', 'klayout', 'def', s, sc_stackup):
-            map_file = schema.get('pdk', sc_pdk, 'layermap', 'klayout', 'def', s, sc_stackup)
-            if map_file:
-                map_file = map_file[0]
-                break
+        if schema.valid('library', sc_pdk, 'layermapfileset', 'klayout', 'def', s):
+            for fileset in schema.get('library', sc_pdk, 'layermapfileset', 'klayout', 'def', s):
+                if schema.valid('library', sc_pdk, "fileset", fileset, "file", "layermap"):
+                    map_file = schema.get('library', sc_pdk, "fileset", fileset, "file", "layermap")
+                if map_file:
+                    map_file = map_file[0]
+                    break
+        if map_file:
+            break
 
     if map_file and os.path.exists(map_file):
         layout_options.lefdef_config.map_file = map_file
