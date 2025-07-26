@@ -68,7 +68,7 @@ class FreePDK45(OpenROADPDK, PDKSchema):
             # Klayout setup file
             with self.active_fileset("klayout.techmap"):
                 self.add_file(pdk_path / "setup" / "klayout" / "freepdk45.lyt", filetype="layermap")
-                self.add_file(pdk_path / "setup" / "klayout" / "freepdk45.lyp", filetype="diplay")
+                self.add_file(pdk_path / "setup" / "klayout" / "freepdk45.lyp", filetype="display")
                 self.set("pdk", "layermapfileset", "klayout", "def", "klayout", "klayout.techmap")
                 self.set("pdk", "displayfileset", "klayout", "klayout.techmap")
 

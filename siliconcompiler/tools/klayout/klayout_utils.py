@@ -111,7 +111,6 @@ def technology(design, schema):
     elif schema.valid('library', sc_pdk, "pdk", 'displayfileset', 'klayout'):
         pdk_layer_props = None
         for fileset in schema.get('library', sc_pdk, "pdk", 'displayfileset', 'klayout'):
-            # TODO Comes up not valid
             if schema.valid("library", sc_pdk, "fileset", fileset, "file", "display"):
                 pdk_layer_props = schema.get("library", sc_pdk, "fileset", fileset,
                                              "file", "display")
