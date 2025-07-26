@@ -69,6 +69,8 @@ class ASICFlow(FlowgraphSchema):
         self.edge("route.detailed", "dfm.metal_fill")
         self.node("write.views", write_data.WriteViewsTask())
         self.edge("dfm.metal_fill", "write.views")
+        self.node("write.gds", klayout_export.ExportTask())
+        self.edge("dfm.metal_fill", "write.gds")
 
 
 ############################################################################

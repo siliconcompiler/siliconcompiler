@@ -1,10 +1,134 @@
 import os
+import platform
+from pathlib import Path
+import shutil
+
 from siliconcompiler.tools.klayout.klayout import setup as setup_tool
 from siliconcompiler.tools.klayout.klayout import process_metrics
 from siliconcompiler.tools.klayout.klayout import runtime_options as runtime_options_tool
 from siliconcompiler.tools.klayout.screenshot import setup_gui_screenshot
 from siliconcompiler.tools._common import input_provides, get_tool_task
 from siliconcompiler.tools._common.asic import get_libraries
+
+
+from siliconcompiler.tool import ASICTaskSchema
+
+
+class ExportTask(ASICTaskSchema):
+    def __init__(self):
+        super().__init__()
+
+        self.add_parameter("stream", "<gds,oas>", "Extension to use for stream generation", defvalue="gds")
+        self.add_parameter("timestamps", "bool", "Export GDSII with timestamps", defvalue=True)
+        self.add_parameter("screenshot", "bool", "true/false: true will cause KLayout to generate a screenshot of the layout", defvalue=True)
+
+    def tool(self):
+        return "klayout"
+
+    def task(self):
+        return "export"
+
+    def parse_version(self, stdout):
+        # KLayout 0.26.11
+        return stdout.split()[1]
+
+    def setup(self):
+        super().setup()
+
+        klayout_exe = 'klayout'
+        if self.schema().get('option', 'scheduler', 'name', step=self.step, index=self.index) != 'docker':
+            if platform.system() == 'Windows':
+                klayout_exe = 'klayout_app.exe'
+                if not shutil.which(klayout_exe):
+                    loc_dir = os.path.join(Path.home(), 'AppData', 'Roaming', 'KLayout')
+                    global_dir = os.path.join(os.path.splitdrive(Path.home())[0],
+                                              os.path.sep,
+                                              'Program Files (x86)',
+                                              'KLayout')
+                    if os.path.isdir(loc_dir):
+                        self.schema("tool").set("path", loc_dir)
+                    elif os.path.isdir(global_dir):
+                        self.schema("tool").set("path", global_dir)
+            elif platform.system() == 'Darwin':
+                klayout_exe = 'klayout'
+                if not shutil.which(klayout_exe):
+                    klayout_dir = os.path.join(os.path.sep,
+                                               'Applications',
+                                               'klayout.app',
+                                               'Contents',
+                                               'MacOS')
+                    # different install directory when installed using Homebrew
+                    klayout_brew_dir = os.path.join(os.path.sep,
+                                                    'Applications',
+                                                    'KLayout',
+                                                    'klayout.app',
+                                                    'Contents',
+                                                    'MacOS')
+                    if os.path.isdir(klayout_dir):
+                        self.schema("tool").set("path", klayout_dir)
+                    elif os.path.isdir(klayout_brew_dir):
+                        self.schema("tool").set("path", klayout_brew_dir)
+
+        self.schema("tool").set("exe", klayout_exe)
+        self.schema("tool").set("vswitch", ['-zz', '-v'])
+        self.schema("tool").set("version", '>=0.28.0', clobber=False)
+        self.schema("tool").set('format', 'json')
+
+        self.add_commandline_option(['-z', '-nc', '-rx', '-r'], clobber=True)
+
+        self.set_dataroot("refdir", __file__)
+        with self.active_dataroot("refdir"):
+            self.set("refdir", ".")
+
+        if self.schema().get('option', 'nodisplay'):
+            # Tells QT to use the offscreen platform if nodisplay is used
+            self.set('env', 'QT_QPA_PLATFORM', 'offscreen')
+
+        self.set("regex", "warnings", r'(WARNING|warning)', clobber=False)
+        self.set("regex", "errors", r'ERROR', clobber=False)
+
+        self.set_threads(1)
+        self.set("script", "klayout_export.py")
+
+        self.add_required_tool_key("var", "stream")
+
+        default_stream = self.get("var", "stream")
+        sc_stream_order = [default_stream, *[s for s in ("gds", "oas") if s != default_stream]]
+        req_set = False
+        for s in sc_stream_order:
+            if self.pdk.valid("pdk", "layermapfileset", "klayout", "def", s):
+                self.add_required_key(self.pdk, "pdk", "layermapfileset", "klayout", "def", s)
+                req_set = True
+                break
+        if not req_set:
+            self.add_required_key(self.pdk, "pdk", "layermapfileset", "klayout", "def", "klayout")
+
+        for lib in self.schema().get("asic", "asiclib"):
+            lib_requires_stream = True
+            if self.schema().valid('library', lib, "tool", "klayout", 'allow_missing_cell') and \
+                    self.schema().get('library', lib, "tool", "klayout", 'allow_missing_cell'):
+                lib_requires_stream = False
+
+            req_set = False
+            libobj = self.schema().get("library", lib, field="schema")
+            for s in sc_stream_order:
+                for fileset in libobj.get("asic", "aprfileset"):
+                    if libobj.valid("fileset", fileset, "file", s):
+                        self.add_required_key(libobj, "fileset", fileset, "file", s)
+                        req_set = True
+                if req_set:
+                    break
+            req_set = False
+            for fileset in libobj.get("asic", "aprfileset"):
+                if libobj.valid("fileset", fileset, "file", "lef"):
+                    self.add_required_key(libobj, "fileset", fileset, "file", "lef")
+                    req_set = True
+
+    def runtime_options(self):
+        options = super().runtime_options()
+        options.extend(['-rd', f'SC_KLAYOUT_ROOT={os.path.dirname(__file__)}'])
+        options.extend(['-rd', f'SC_TOOLS_ROOT={os.path.dirname(os.path.dirname(__file__))}'])
+        return options
 
 
 def setup(chip):

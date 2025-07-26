@@ -137,21 +137,12 @@ def main():
     # Extract info from manifest
     sc_step = schema.get('arg', 'step')
     sc_index = schema.get('arg', 'index')
-    sc_pdk = schema.get('option', 'pdk')
-    sc_flow = schema.get('option', 'flow')
-    sc_task = schema.get('flowgraph', sc_flow, sc_step, sc_index, 'task')
-    sc_klayout_vars = schema.getkeys('tool', 'klayout', 'task', sc_task, 'var')
-    sc_stream = schema.get('tool', 'klayout', 'task', sc_task, 'var', 'stream',
+    sc_stream = schema.get('tool', 'klayout', 'task', 'export', 'var', 'stream',
                            step=sc_step, index=sc_index)[0]
 
-    if schema.valid('option', 'stackup'):
-        sc_stackup = schema.get('option', 'stackup')
-    else:
-        sc_stackup = schema.get('pdk', sc_pdk, 'stackup')[0]
-
-    design = schema.get('option', 'entrypoint')
-    if not design:
-        design = schema.get('design')
+    design_name = schema.get('option', 'design')
+    fileset = schema.get("option", "fileset")[0]
+    design = schema.get("library", design_name, "fileset", fileset, "topmodule")
 
     in_def = None
     for ext in ('def.gz', 'def'):
@@ -164,35 +155,25 @@ def main():
 
     out_file = os.path.join('outputs', f'{design}.{sc_stream}')
 
-    libs = get_libraries(schema, 'logic')
-    libs += get_libraries(schema, 'macro')
+    libs = schema.get("asic", "asiclib")
 
     in_files = []
     for lib in libs:
+        libobj = schema.get("library", lib, field="schema")
         for s in get_streams(schema):
-            if schema.valid('library', lib, 'output', sc_stackup, s):
-                in_files.extend(schema.get('library', lib, 'output', sc_stackup, s,
-                                           step=sc_step, index=sc_index))
-                break
+            for fileset in libobj.get("asic", "aprfileset"):
+                if libobj.valid("fileset", fileset, "file", s):
+                    in_files.extend(libobj.get("fileset", fileset, "file", s))
+                    break
 
     allow_missing = []
     for lib in libs:
-        if schema.valid('library', lib, 'option', 'var', 'klayout_allow_missing_cell'):
-            patterns = [pattern for pattern in schema.get('library', lib, 'option', 'var',
-                                                          'klayout_allow_missing_cell') if pattern]
+        if schema.valid('library', lib, 'tool', 'klayout', 'allow_missing_cell'):
+            patterns = [pattern for pattern in schema.get('library', lib, 'tool', 'klayout', 'allow_missing_cell') if pattern]
             allow_missing.extend(patterns)
 
-    if 'timestamps' in sc_klayout_vars:
-        sc_timestamps = schema.get('tool', 'klayout', 'task', sc_task, 'var', 'timestamps',
-                                   step=sc_step, index=sc_index) == ['true']
-    else:
-        sc_timestamps = False
-
-    if 'screenshot' in sc_klayout_vars:
-        sc_screenshot = schema.get('tool', 'klayout', 'task', sc_task, 'var', 'screenshot',
-                                   step=sc_step, index=sc_index) == ['true']
-    else:
-        sc_screenshot = True
+    sc_timestamps = schema.get('tool', 'klayout', 'task', "export", 'var', 'timestamps', step=sc_step, index=sc_index)
+    sc_screenshot = schema.get('tool', 'klayout', 'task', "export", 'var', 'screenshot', step=sc_step, index=sc_index)
 
     sc_tech = technology(design, schema)
 
