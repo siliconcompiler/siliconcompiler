@@ -556,8 +556,10 @@ def target_nangate45(project):
     area.set_density(40)
     area.set_coremargin(1)
 
-    # project.add_alias(Spram(), "rtl", FakeRam45Lambdalib(), "rtl")
-    # project.add_asiclib(FakeRam45())
+    spram = Spram()
+    if spram.name in project.getkeys("library"):
+        project.add_alias(spram, "rtl", FakeRam45Lambdalib(), "rtl", relax=True)
+        project.add_asiclib(FakeRam45())
 
 
 def target_asap7(project):
@@ -583,5 +585,7 @@ def target_asap7(project):
     area.set_density(40)
     area.set_coremargin(1)
 
-    # project.add_alias(Spram(), "rtl", FakeRam7Lambdalib(), "rtl")
-    # project.add_asiclib(FakeRam7())
+    spram = Spram()
+    if spram.name in project.getkeys("library"):
+        project.add_alias(spram, "rtl", FakeRam7Lambdalib(), "rtl", relax=True)
+        project.add_asiclib(FakeRam7())

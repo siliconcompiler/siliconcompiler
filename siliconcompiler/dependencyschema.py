@@ -189,6 +189,22 @@ class DependencySchema(BaseSchema):
             return self.__get_all_deps(set())
         return list(self.__deps.values())
 
+    def has_dep(self, name: str) -> bool:
+        '''
+        Checks if a specific dependencys is present
+
+        Args:
+            name (str): name of the module
+
+        Returns:
+            True if the module was found, False is not found.
+        '''
+
+        if isinstance(name, NamedSchema):
+            name = name.name
+
+        return name in self.__deps
+
     def remove_dep(self, name: str) -> bool:
         '''
         Removes a previously registered module.

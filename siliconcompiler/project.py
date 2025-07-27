@@ -207,8 +207,6 @@ class Project(PathSchemaBase, BaseSchema):
                 continue
 
             if src_lib not in self.getkeys("library"):
-                self.logger.error(f"{src_lib} has not been loaded")
-                error = True
                 continue
 
             if src_fileset not in self.getkeys("library", src_lib, "fileset"):
