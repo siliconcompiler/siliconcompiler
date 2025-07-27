@@ -19,7 +19,7 @@ from siliconcompiler import LibrarySchema
 
 from siliconcompiler.constraints import \
     ASICTimingConstraintSchema, ASICAreaConstraint, ASICComponentConstraints, ASICPinConstraints
-from siliconcompiler.metrics import ASICMetricsSchema
+from siliconcompiler.metrics import ASICMetricsSchema, FPGAMetricsSchema
 
 from siliconcompiler.pathschema import PathSchemaBase
 
@@ -382,14 +382,13 @@ class Project(PathSchemaBase, BaseSchema):
         # Reinitialize logger on restore
         self.__init_logger()
 
-    def get_filesets(self, step: str = None, index: str = None) -> List[Tuple[NamedSchema, str]]:
+    def get_filesets(self) -> List[Tuple[NamedSchema, str]]:
         """
         Returns the filesets selected for this project
         """
         # Build alias mapping
         alias = {}
-        for src_lib, src_fileset, dst_lib, dst_fileset in self.get("option", "alias",
-                                                                   step=step, index=index):
+        for src_lib, src_fileset, dst_lib, dst_fileset in self.get("option", "alias"):
             if dst_lib:
                 if not self.valid("library", dst_lib):
                     raise KeyError(f"{dst_lib} is not a loaded library")
@@ -400,8 +399,7 @@ class Project(PathSchemaBase, BaseSchema):
                 dst_fileset = None
             alias[(src_lib, src_fileset)] = (dst_obj, dst_fileset)
 
-        return self.design.get_fileset(self.get("option", "fileset", step=step, index=index),
-                                       alias=alias)
+        return self.design.get_fileset(self.get("option", "fileset"), alias=alias)
 
     def get_task(self,
                  tool: str,
@@ -446,7 +444,7 @@ class Project(PathSchemaBase, BaseSchema):
 
         return self.set("option", "flow", flow)
 
-    def add_fileset(self, fileset: Union[List[str], str], step: str = None, index: str = None, clobber: bool = False):
+    def add_fileset(self, fileset: Union[List[str], str], clobber: bool = False):
         """
         Add a fileset to use in this project
 
@@ -469,17 +467,15 @@ class Project(PathSchemaBase, BaseSchema):
                 raise ValueError(f"{fs} is not a valid fileset in {self.design.name}")
 
         if clobber:
-            return self.set("option", "fileset", fileset, step=step, index=index)
+            return self.set("option", "fileset", fileset)
         else:
-            return self.add("option", "fileset", fileset, step=step, index=index)
+            return self.add("option", "fileset", fileset)
 
     def add_alias(self,
                   src_dep: Union[DesignSchema, str],
                   src_fileset: str,
                   alias_dep: Union[DesignSchema, str],
                   alias_fileset: str,
-                  step: str = None,
-                  index: str = None,
                   clobber: bool = False):
         """
         Add an aliased fileset.
@@ -537,9 +533,9 @@ class Project(PathSchemaBase, BaseSchema):
 
         alias = (src_dep_name, src_fileset, alias_dep_name, alias_fileset)
         if clobber:
-            return self.set("option", "alias", alias, step=step, index=index)
+            return self.set("option", "alias", alias)
         else:
-            return self.add("option", "alias", alias, step=step, index=index)
+            return self.add("option", "alias", alias)
 
 
 class SimProject(Project):
@@ -561,8 +557,8 @@ class FPGAProject(Project):
         schema.insert("constraint", "component", ASICComponentConstraints())
         schema.insert("constraint", "pin", ASICPinConstraints())
 
-        # Replace metrics with asic metrics
-        schema.insert("metric", ASICMetricsSchema(), clobber=True)
+        # Replace metrics with fpga metrics
+        schema.insert("metric", FPGAMetricsSchema(), clobber=True)
 
         schema.insert("fpga", "device", Parameter("str"))
 
