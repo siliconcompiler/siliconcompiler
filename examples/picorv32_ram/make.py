@@ -51,6 +51,7 @@ def lint(fileset: str = "rtl"):
     project.set_flow(LintFlowgraph())
 
     project.run(raise_exception=True)
+    project.summary()
 
 
 def syn(fileset: str = "rtl", pdk: str = "freepdk45"):
@@ -68,6 +69,7 @@ def syn(fileset: str = "rtl", pdk: str = "freepdk45"):
         raise ValueError
 
     project.run(raise_exception=True)
+    project.summary()
 
 
 def asic(fileset: str = "rtl", pdk: str = "freepdk45"):
@@ -86,6 +88,7 @@ def asic(fileset: str = "rtl", pdk: str = "freepdk45"):
         raise ValueError
 
     project.run(raise_exception=True)
+    project.summary()
 
 
 def check():

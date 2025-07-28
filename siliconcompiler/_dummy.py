@@ -558,7 +558,7 @@ def target_nangate45(project):
 
     spram = Spram()
     if spram.name in project.getkeys("library"):
-        project.add_alias(spram, "rtl", FakeRam45Lambdalib(), "rtl", relax=True)
+        project.add_alias(spram, "rtl", FakeRam45Lambdalib(), "rtl")
         project.add_asiclib(FakeRam45())
 
 
@@ -587,5 +587,5 @@ def target_asap7(project):
 
     spram = Spram()
     if spram.name in project.getkeys("library"):
-        project.add_alias(spram, "rtl", FakeRam7Lambdalib(), "rtl", relax=True)
+        project.add_alias(spram, "rtl", FakeRam7Lambdalib(), "rtl")
         project.add_asiclib(FakeRam7())

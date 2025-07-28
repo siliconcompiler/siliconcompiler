@@ -535,6 +535,47 @@ class Project(PathSchemaBase, BaseSchema):
         else:
             return self.add("option", "alias", alias)
 
+    def _summary_headers(self):
+        alias = []
+        for src, src_fs, dst, dst_fs in self.get("option", "alias"):
+            aliased = f"{src} ({src_fs}) -> "
+            if not dst:
+                aliased += "deleted"
+            elif not dst_fs:
+                aliased += "deleted"
+            else:
+                aliased += f"{dst} ({dst_fs})"
+            alias.append(aliased)
+
+        headers = [
+            ("design", self.get("option", "design")),
+            ("filesets", ", ".join(self.get("option", "fileset")))
+        ]
+        if alias:
+            headers.append(("alias", ", ".join(alias)))
+        headers.append(("jobdir", self.getworkdir()))
+
+        return headers
+
+    def __summary(self, project: "Project"):
+        headers = project._summary_headers()
+        self.get("metric", field='schema').summary(headers=headers)
+
+    def summary(self, jobname: str = None):
+        histories = self.getkeys("history")
+
+        if not histories:
+            raise ValueError("no history to summarize")
+
+        if jobname is None:
+            jobname = self.get("option", "jobname")
+        if jobname not in histories:
+            org_job = jobname
+            jobname = histories[0]
+            self.logger.warning(f"{org_job} not found in history, picking {jobname}")
+
+        self.__summary(self.history(jobname))
+
 
 class SimProject(Project):
     pass
@@ -663,3 +704,11 @@ class ASICProject(Project):
             self.set_mainlib(mainlib)
 
         return super().run(raise_exception)
+
+    def _summary_headers(self):
+        headers = super()._summary_headers()
+        mainlib = self.get("library", self.get("asic", "mainlib"), field="schema")
+        headers.append(("pdk", mainlib.get("asic", "pdk")))
+        headers.append(("mainlib", self.get("asic", "mainlib")))
+        headers.append(("asiclib", ", ".join(self.get("asic", "asiclib"))))
+        return headers

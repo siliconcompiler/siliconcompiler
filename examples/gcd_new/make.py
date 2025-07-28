@@ -46,6 +46,7 @@ def lint():
     project.set_flow(LintFlowgraph())
 
     project.run(raise_exception=True)
+    project.summary()
 
 
 def syn(pdk: str = "freepdk45"):
@@ -64,7 +65,7 @@ def syn(pdk: str = "freepdk45"):
         raise ValueError
 
     project.run(raise_exception=True)
-    project.get("metric", field="schema").summary([("pdk", pdk)])
+    project.summary()
 
 
 def asic(pdk: str = "freepdk45"):
@@ -83,6 +84,7 @@ def asic(pdk: str = "freepdk45"):
         raise ValueError
 
     project.run(raise_exception=True)
+    project.summary()
 
 
 def check():
