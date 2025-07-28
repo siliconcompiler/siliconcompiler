@@ -10,9 +10,10 @@ from siliconcompiler.schema import EditableSchema, Parameter, Scope, PerNode
 
 from siliconcompiler.library import StdCellLibrarySchema
 
-from siliconcompiler import PDKSchema, DesignSchema
+from siliconcompiler import PDKSchema, DesignSchema, FPGASchema
 
 from siliconcompiler.tools.yosys.syn_asic import YosysStdCellLibrarySchema
+from siliconcompiler.tools.yosys.syn_fpga import YosysFPGA
 from siliconcompiler.tools.openroad import OpenROADStdCellLibrarySchema, OpenROADPDK
 from siliconcompiler.tools.bambu import BambuStdCellLibrarySchema
 
@@ -540,6 +541,43 @@ class FakeRam7Lambdalib(DesignSchema):
         with self.active_dataroot("lambdapdk"):
             with self.active_fileset("rtl"):
                 self.add_file(lib_path / "lambda" / "la_spram.v")
+
+
+class ICE40FPGA(YosysFPGA, FPGASchema):
+    def __init__(self):
+        super().__init__()
+        self.set_name("ice40up5k-sg48")
+        self.set_partname("ice40up5k-sg48")
+        self.set_lutsize(4)
+        self.set_vendor("lattice")
+
+
+class K6_N8_28x28_BDFPGA(YosysFPGA, FPGASchema):
+    def __init__(self):
+        super().__init__()
+        self.set_name("K6_N8_28x28_BD")
+        self.set_partname("K6_N8_28x28_BD")
+        self.set_lutsize(6)
+        self.set_vendor("zeroaisc")
+
+        self.set_dataroot("cad",
+                          "github://siliconcompiler/logiklib/v0.1.0/K6_N8_28x28_BD_cad.tar.gz",
+                          "v0.1.0")
+
+        with self.active_dataroot("cad"):
+            self.set("tool", "yosys", "flop_techmap", "techlib/tech_flops.v")
+            self.set("tool", "yosys", "memory_techmap", "techlib/tech_bram.v")
+            self.set("tool", "yosys", "memory_libmap", "techlib/bram_memory_map.txt")
+            self.set("tool", "yosys", "dsp_techmap", "techlib/tech_dsp.v")
+
+            self.set("tool", "yosys", "dsp_options", [
+                'DSP_A_MAXWIDTH=18', 'DSP_A_MINWIDTH=2',
+                'DSP_B_MAXWIDTH=18', 'DSP_B_MINWIDTH=2',
+                'DSP_NAME=_dsp_block_'])
+            self.set("tool", "yosys", "registers", ['dff', 'dffe', 'dffer', 'dffers', 'dffes', 'dffr', 'dffrs', 'dffs'])
+            self.set("tool", "yosys", "brams", ['bram_sp'])
+            self.set("tool", "yosys", "dsps", ['dsp_mult'])
+            self.set("tool", "yosys", "feature_set", ['async_reset', 'async_set', 'enable'])
 
 
 def target_nangate45(project):

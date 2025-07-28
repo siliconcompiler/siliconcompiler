@@ -23,7 +23,7 @@ from siliconcompiler.metrics import ASICMetricsSchema, FPGAMetricsSchema
 
 from siliconcompiler.pathschema import PathSchemaBase
 
-from siliconcompiler import PDKSchema
+from siliconcompiler import PDKSchema, FPGASchema
 from siliconcompiler import StdCellLibrarySchema
 
 from siliconcompiler.schema.schema_cfg import schema_option_runtime, schema_arg, schema_version
@@ -600,6 +600,43 @@ class FPGAProject(Project):
         schema.insert("metric", FPGAMetricsSchema(), clobber=True)
 
         schema.insert("fpga", "device", Parameter("str"))
+
+    def add_dep(self, obj):
+        if isinstance(obj, FPGASchema):
+            edit_schema = EditableSchema(self)
+            edit_schema.insert("library", obj.name, obj, clobber=True)
+        else:
+            return super().add_dep(obj)
+
+    def set_fpga(self, fpga):
+        if isinstance(fpga, FPGASchema):
+            self.add_dep(fpga)
+            fpga = fpga.name
+        elif not isinstance(fpga, str):
+            raise TypeError
+
+        return self.set("fpga", "device", fpga)
+
+    def check_manifest(self) -> bool:
+        error = not super().check_manifest()
+
+        # Assert fpga device is set
+        if not self.get("fpga", "device"):
+            error = True
+            self.logger.error("[fpga,device] has not been set")
+        else:
+            # Assert device exist
+            fpga = self.get("fpga", "device")
+            if fpga not in self.getkeys("library"):
+                error = True
+                self.logger.error(f"{fpga} library has not been loaded")
+
+        return not error
+
+    def _summary_headers(self):
+        headers = super()._summary_headers()
+        headers.append(("fpga", self.get("fpga", "device")))
+        return headers
 
 
 class ASICProject(Project):

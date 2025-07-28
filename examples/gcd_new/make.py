@@ -2,13 +2,14 @@
 # Copyright 2025 Silicon Compiler Authors. All Rights Reserved.
 
 from siliconcompiler import DesignSchema
-from siliconcompiler.project import LintProject, ASICProject
+from siliconcompiler.project import LintProject, ASICProject, FPGAProject
 
 from siliconcompiler.flows.lintflow import LintFlowgraph
 from siliconcompiler.flows.synflow import SynthesisFlowgraph
 from siliconcompiler.flows.asicflow import ASICFlow
+from siliconcompiler.flows.fpgaflow import FPGAFlow
 
-from siliconcompiler._dummy import target_asap7, target_nangate45
+from siliconcompiler._dummy import target_asap7, target_nangate45, ICE40FPGA, K6_N8_28x28_BDFPGA
 
 
 class GCDDesign(DesignSchema):
@@ -82,6 +83,19 @@ def asic(pdk: str = "freepdk45"):
         target_asap7(project)
     else:
         raise ValueError
+
+    project.run(raise_exception=True)
+    project.summary()
+
+
+def fpga():
+    project = FPGAProject()
+
+    project.set_design(GCDDesign())
+    project.add_fileset("rtl")
+    project.set_flow(FPGAFlow())
+
+    project.set_fpga(K6_N8_28x28_BDFPGA())
 
     project.run(raise_exception=True)
     project.summary()
