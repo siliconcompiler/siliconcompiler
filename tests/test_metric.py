@@ -609,7 +609,9 @@ def test_summary(capsys):
     assert schema.set("tasktime", 12.5, step="step", index="2")
     assert schema.set("tasktime", 15.5, step="step", index="3")
 
-    schema.summary(headers=[("pdk", "asap7"), ("library", "asap7_library")])
+    with patch("shutil.get_terminal_size") as get_terminal_size:
+        get_terminal_size.return_value.columns = 80
+        schema.summary(headers=[("pdk", "asap7"), ("library", "asap7_library")])
 
     out = capsys.readouterr().out
     assert out.splitlines() == [
@@ -626,7 +628,9 @@ def test_summary(capsys):
 def test_summary_empty(capsys):
     schema = MetricSchema()
 
-    schema.summary(headers=[("pdk", "asap7"), ("library", "asap7_library")])
+    with patch("shutil.get_terminal_size") as get_terminal_size:
+        get_terminal_size.return_value.columns = 80
+        schema.summary(headers=[("pdk", "asap7"), ("library", "asap7_library")])
 
     out = capsys.readouterr().out
     assert out.splitlines() == [
@@ -647,7 +651,9 @@ def test_summary_column_width(capsys):
     assert schema.set("tasktime", 12.5, step="step", index="2")
     assert schema.set("tasktime", 15.5, step="step", index="3")
 
-    schema.summary(headers=[("pdk", "asap7"), ("library", "asap7_library")], column_width=5)
+    with patch("shutil.get_terminal_size") as get_terminal_size:
+        get_terminal_size.return_value.columns = 80
+        schema.summary(headers=[("pdk", "asap7"), ("library", "asap7_library")], column_width=5)
 
     out = capsys.readouterr().out
     assert out.splitlines() == [
