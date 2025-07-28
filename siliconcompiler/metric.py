@@ -235,16 +235,15 @@ class MetricSchema(BaseSchema):
                     nodes.add((step, index))
             nodes = list(sorted(nodes))
 
-        # trim labels to column width
-        column_labels = ["unit"]
-        labels = [f'{step}/{index}' for step, index in nodes]
-        if labels:
-            column_width = min([column_width, max([len(label) for label in labels])])
-
-        for label in labels:
-            column_labels.append(truncate_text(label, column_width).center(column_width))
-
         row_labels = list(self.getkeys())
+        sort_map = {metric: 0 for metric in row_labels}
+        sort_map["errors"] = -2
+        sort_map["warnings"] = -1
+        sort_map["memory"] = 1
+        sort_map["exetime"] = 2
+        sort_map["tasktime"] = 3
+        sort_map["totaltime"] = 4
+        row_labels = sorted(row_labels, key=lambda row: sort_map[row])
 
         if trim_empty_metrics:
             for metric in self.getkeys():
@@ -253,6 +252,21 @@ class MetricSchema(BaseSchema):
                     data.append(self.get(metric, step=step, index=index))
                 if all([dat is None for dat in data]):
                     row_labels.remove(metric)
+
+        if 'totaltime' in row_labels:
+            if not any([self.get('totaltime', step=step, index=index) is None
+                        for step, index in nodes]):
+                nodes.sort(
+                    key=lambda node: self.get('totaltime', step=node[0], index=node[1]))
+
+        # trim labels to column width
+        column_labels = ["unit"]
+        labels = [f'{step}/{index}' for step, index in nodes]
+        if labels:
+            column_width = min([column_width, max([len(label) for label in labels])])
+
+        for label in labels:
+            column_labels.append(truncate_text(label, column_width).center(column_width))
 
         if formatted:
             none_value = "---".center(column_width)

@@ -416,6 +416,36 @@ def test_summary_table_all_nodes():
     }
 
 
+def test_summary_table_nodes_sorted():
+    schema = MetricSchema()
+
+    assert schema.set("totaltime", 165, step="step", index="0")
+    assert schema.set("totaltime", 147, step="step", index="1")
+    assert schema.set("totaltime", 12.5, step="step", index="2")
+    assert schema.set("totaltime", 15.5, step="step", index="3")
+
+    table = schema.summary_table()
+    assert table.index.to_list() == ["totaltime"]
+    assert table.columns.to_list() == ["unit", "step/2", "step/3", "step/1", "step/0"]
+    assert table.to_dict() == {
+        'unit': {
+            'totaltime': 's'
+        },
+        'step/0': {
+            'totaltime': '02:45.000'
+        },
+        'step/1': {
+            'totaltime': '02:27.000'
+        },
+        'step/2': {
+            'totaltime': '12.500'
+        },
+        'step/3': {
+            'totaltime': '15.500'
+        }
+    }
+
+
 def test_summary_table_select_nodes():
     schema = MetricSchema()
 
@@ -525,7 +555,7 @@ def test_summary_table_no_trim():
 
     table = schema.summary_table(trim_empty_metrics=False)
     assert table.index.to_list() == [
-        'errors', 'exetime', 'memory', 'tasktime', 'totaltime', 'warnings']
+        'errors', 'warnings', 'memory', 'exetime', 'tasktime', 'totaltime']
     assert table.columns.to_list() == ["unit", "step/0", "step/1", "step/2", "step/3"]
     assert table.to_dict() == {
         'unit': {
