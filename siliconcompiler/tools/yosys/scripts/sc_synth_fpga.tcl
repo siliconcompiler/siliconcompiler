@@ -92,7 +92,7 @@ if { [sc_cfg_exists library $sc_designlib tool yosys dsp_options] } {
 yosys hierarchy -top $sc_topmodule
 
 if { [string match {ice*} $sc_partname] } {
-    yosys synth_ice40 -top $sc_topmodule -json "${sc_topmodule}.netlist.json"
+    yosys synth_ice40 -top $sc_topmodule
 } elseif {
     [sc_cfg_exists library $sc_designlib tool yosys fpga_config] &&
     [sc_cfg_get library $sc_designlib tool yosys fpga_config] != {} &&
