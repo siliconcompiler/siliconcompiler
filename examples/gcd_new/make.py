@@ -88,14 +88,16 @@ def asic(pdk: str = "freepdk45"):
     project.summary()
 
 
-def fpga():
+def fpga(fpga: str = "K6_N8_28x28_BD"):
     project = FPGAProject()
 
     project.set_design(GCDDesign())
     project.add_fileset("rtl")
     project.set_flow(FPGAFlow())
 
-    project.set_fpga(K6_N8_28x28_BDFPGA())
+    project.add_dep(ICE40FPGA())
+    project.add_dep(K6_N8_28x28_BDFPGA())
+    project.set_fpga(fpga)
 
     project.run(raise_exception=True)
     project.summary()

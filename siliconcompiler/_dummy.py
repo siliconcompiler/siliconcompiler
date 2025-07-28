@@ -546,7 +546,7 @@ class FakeRam7Lambdalib(DesignSchema):
 class ICE40FPGA(YosysFPGA, FPGASchema):
     def __init__(self):
         super().__init__()
-        self.set_name("ice40up5k-sg48")
+        self.set_name("ice")
         self.set_partname("ice40up5k-sg48")
         self.set_lutsize(4)
         self.set_vendor("lattice")
@@ -555,7 +555,7 @@ class ICE40FPGA(YosysFPGA, FPGASchema):
 class K6_N8_28x28_BDFPGA(YosysFPGA, FPGASchema):
     def __init__(self):
         super().__init__()
-        self.set_name("K6_N8_28x28_BD")
+        self.set_name("K6_N8")
         self.set_partname("K6_N8_28x28_BD")
         self.set_lutsize(6)
         self.set_vendor("zeroaisc")
