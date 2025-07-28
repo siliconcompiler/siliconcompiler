@@ -1,8 +1,12 @@
+import shutil
+
+from typing import List, Tuple
+
 from siliconcompiler.schema import BaseSchema
 from siliconcompiler.schema import EditableSchema, Parameter, PerNode, Scope
 from siliconcompiler.schema.utils import trim
 
-from siliconcompiler.utils.units import convert
+from siliconcompiler.utils import truncate_text, units
 from siliconcompiler.record import RecordTime
 
 
@@ -124,7 +128,7 @@ class MetricSchema(BaseSchema):
             raise ValueError(f"{metric} does not have a unit, but {unit} was supplied")
 
         if metric_unit:
-            value = convert(value, from_unit=unit, to_unit=metric_unit)
+            value = units.convert(value, from_unit=unit, to_unit=metric_unit)
 
         return self.set(metric, value, step=step, index=str(index))
 
@@ -204,6 +208,114 @@ class MetricSchema(BaseSchema):
             total_time += min(end_time, node_end) - start_time
 
         return self.record(step, index, "totaltime", total_time, unit="s")
+
+    def get_formatted_metric(self, metric: str, step: str, index: str) -> str:
+        if metric == 'memory':
+            return units.format_binary(self.get(metric, step=step, index=index),
+                                       self.get(metric, field="unit"))
+        elif metric in ['exetime', 'tasktime', 'totaltime']:
+            return units.format_time(self.get(metric, step=step, index=index))
+        elif self.get(metric, field="type") == 'int':
+            return str(self.get(metric, step=step, index=index))
+        else:
+            return units.format_si(self.get(metric, step=step, index=index),
+                                   self.get(metric, field="unit"))
+
+    def summary_table(self,
+                      nodes: List[Tuple[str, str]] = None,
+                      column_width: int = 15,
+                      formatted: bool = True,
+                      trim_empty_metrics: bool = True):
+        from pandas import DataFrame
+
+        if not nodes:
+            nodes = set()
+            for metric in self.getkeys():
+                for value, step, index in self.get(metric, field=None).getvalues():
+                    nodes.add((step, index))
+            nodes = list(sorted(nodes))
+
+        row_labels = list(self.getkeys())
+        sort_map = {metric: 0 for metric in row_labels}
+        sort_map["errors"] = -2
+        sort_map["warnings"] = -1
+        sort_map["memory"] = 1
+        sort_map["exetime"] = 2
+        sort_map["tasktime"] = 3
+        sort_map["totaltime"] = 4
+        row_labels = sorted(row_labels, key=lambda row: sort_map[row])
+
+        if trim_empty_metrics:
+            for metric in self.getkeys():
+                data = []
+                for step, index in nodes:
+                    data.append(self.get(metric, step=step, index=index))
+                if all([dat is None for dat in data]):
+                    row_labels.remove(metric)
+
+        if 'totaltime' in row_labels:
+            if not any([self.get('totaltime', step=step, index=index) is None
+                        for step, index in nodes]):
+                nodes.sort(
+                    key=lambda node: self.get('totaltime', step=node[0], index=node[1]))
+
+        # trim labels to column width
+        column_labels = ["unit"]
+        labels = [f'{step}/{index}' for step, index in nodes]
+        if labels:
+            column_width = min([column_width, max([len(label) for label in labels])])
+
+        for label in labels:
+            column_labels.append(truncate_text(label, column_width).center(column_width))
+
+        if formatted:
+            none_value = "---".center(column_width)
+        else:
+            none_value = None
+
+        data = []
+        for metric in row_labels:
+            row = [self.get(metric, field="unit") or ""]
+            for step, index in nodes:
+                value = self.get(metric, step=step, index=index)
+                if value is None:
+                    value = none_value
+                else:
+                    if formatted:
+                        value = self.get_formatted_metric(metric, step=step, index=index)
+                        value = value.center(column_width)
+                    else:
+                        value = self.get(metric, step=step, index=index)
+                row.append(value)
+            data.append(row)
+
+        return DataFrame(data, row_labels, column_labels)
+
+    def summary(self,
+                headers: List[Tuple[str, str]],
+                nodes: List[Tuple[str, str]] = None,
+                column_width: int = 15) -> None:
+        header = []
+        headers.insert(0, ("SUMMARY", None))
+        if headers:
+            max_header = max([len(title) for title, _ in headers])
+            for title, value in headers:
+                if value is None:
+                    header.append(f"{title:<{max_header}} :")
+                else:
+                    header.append(f"{title:<{max_header}} : {value}")
+
+        max_line_width = max(4 * column_width, int(0.95*shutil.get_terminal_size().columns))
+        data = self.summary_table(nodes=nodes, column_width=column_width)
+
+        print("-" * max_line_width)
+        print("\n".join(header))
+        print()
+        if data.empty:
+            print("  No metrics to display!")
+        else:
+            print(data.to_string(line_width=max_line_width, col_space=3))
+        print("-" * max_line_width)
 
 
 class MetricSchemaTmp(MetricSchema):
