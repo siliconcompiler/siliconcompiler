@@ -64,6 +64,7 @@ def syn(pdk: str = "freepdk45"):
         raise ValueError
 
     project.run(raise_exception=True)
+    project.get("metric", field="schema").summary([("pdk", pdk)])
 
 
 def asic(pdk: str = "freepdk45"):
