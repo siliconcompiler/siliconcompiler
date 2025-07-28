@@ -558,7 +558,7 @@ class K6_N8_28x28_BDFPGA(YosysFPGA, FPGASchema):
         self.set_name("K6_N8")
         self.set_partname("K6_N8_28x28_BD")
         self.set_lutsize(6)
-        self.set_vendor("zeroaisc")
+        self.set_vendor("zeroasic")
 
         self.set_dataroot("cad",
                           "github://siliconcompiler/logiklib/v0.1.0/K6_N8_28x28_BD_cad.tar.gz",
