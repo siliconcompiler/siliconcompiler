@@ -384,3 +384,248 @@ def test_record_totaltime_overlap_staggered_with_all_contained():
 
     assert schema.record_totaltime("testtwo", "0", flow, record)
     assert schema.get("totaltime", step="testtwo", index="0") == 15.0
+
+
+def test_summary_table_all_nodes():
+    schema = MetricSchema()
+
+    assert schema.set("tasktime", 5, step="step", index="0")
+    assert schema.set("tasktime", 7, step="step", index="1")
+    assert schema.set("tasktime", 12.5, step="step", index="2")
+    assert schema.set("tasktime", 15.5, step="step", index="3")
+
+    table = schema.summary_table()
+    assert table.index.to_list() == ["tasktime"]
+    assert table.columns.to_list() == ["unit", "step/0", "step/1", "step/2", "step/3"]
+    assert table.to_dict() == {
+        'unit': {
+            'tasktime': 's'
+        },
+        'step/0': {
+            'tasktime': '05.000'
+        },
+        'step/1': {
+            'tasktime': '07.000'
+        },
+        'step/2': {
+            'tasktime': '12.500'
+        },
+        'step/3': {
+            'tasktime': '15.500'
+        }
+    }
+
+
+def test_summary_table_select_nodes():
+    schema = MetricSchema()
+
+    assert schema.set("tasktime", 5, step="step", index="0")
+    assert schema.set("tasktime", 7, step="step", index="1")
+    assert schema.set("tasktime", 12.5, step="step", index="2")
+    assert schema.set("tasktime", 15.5, step="step", index="3")
+
+    table = schema.summary_table(nodes=[("step", "1"), ("step", "3")])
+    assert table.index.to_list() == ["tasktime"]
+    assert table.columns.to_list() == ["unit", "step/1", "step/3"]
+    assert table.to_dict() == {
+        'unit': {
+            'tasktime': 's'
+        },
+        'step/1': {
+            'tasktime': '07.000'
+        },
+        'step/3': {
+            'tasktime': '15.500'
+        }
+    }
+
+
+def test_summary_table_raw():
+    schema = MetricSchema()
+
+    assert schema.set("tasktime", 5, step="step", index="0")
+    assert schema.set("tasktime", 7, step="step", index="1")
+    assert schema.set("tasktime", 12.5, step="step", index="2")
+    assert schema.set("tasktime", 15.5, step="step", index="3")
+
+    table = schema.summary_table(formatted=False)
+    assert table.index.to_list() == ["tasktime"]
+    assert table.columns.to_list() == ["unit", "step/0", "step/1", "step/2", "step/3"]
+    assert table.to_dict() == {
+        'unit': {
+            'tasktime': 's'
+        },
+        'step/0': {
+            'tasktime': 5.000
+        },
+        'step/1': {
+            'tasktime': 7.000
+        },
+        'step/2': {
+            'tasktime': 12.500
+        },
+        'step/3': {
+            'tasktime': 15.500
+        }
+    }
+
+
+def test_summary_table_multiple_metrics():
+    schema = MetricSchema()
+
+    assert schema.set("tasktime", 5, step="step", index="0")
+    assert schema.set("tasktime", 7, step="step", index="1")
+    assert schema.set("tasktime", 12.5, step="step", index="2")
+    assert schema.set("tasktime", 15.5, step="step", index="3")
+
+    assert schema.set("exetime", 15, step="step", index="0")
+    assert schema.set("exetime", 17, step="step", index="1")
+    assert schema.set("exetime", 112.5, step="step", index="2")
+    assert schema.set("exetime", 115.5, step="step", index="3")
+
+    table = schema.summary_table()
+    assert table.index.to_list() == ["exetime", "tasktime"]
+    assert table.columns.to_list() == ["unit", "step/0", "step/1", "step/2", "step/3"]
+    assert table.to_dict() == {
+        'unit': {
+            'tasktime': 's',
+            'exetime': 's'
+        },
+        'step/0': {
+            'tasktime': '05.000',
+            'exetime': '15.000'
+        },
+        'step/1': {
+            'tasktime': '07.000',
+            'exetime': '17.000'
+        },
+        'step/2': {
+            'tasktime': '12.500',
+            'exetime': '01:52.500'
+        },
+        'step/3': {
+            'tasktime': '15.500',
+            'exetime': '01:55.500'
+        }
+    }
+
+
+def test_summary_table_no_trim():
+    schema = MetricSchema()
+
+    assert schema.set("tasktime", 5, step="step", index="0")
+    assert schema.set("tasktime", 7, step="step", index="1")
+    assert schema.set("tasktime", 12.5, step="step", index="2")
+    assert schema.set("tasktime", 15.5, step="step", index="3")
+
+    assert schema.set("exetime", 15, step="step", index="0")
+    assert schema.set("exetime", 17, step="step", index="1")
+    assert schema.set("exetime", 112.5, step="step", index="2")
+    assert schema.set("exetime", 115.5, step="step", index="3")
+
+    table = schema.summary_table(trim_empty_metrics=False)
+    assert table.index.to_list() == [
+        'errors', 'exetime', 'memory', 'tasktime', 'totaltime', 'warnings']
+    assert table.columns.to_list() == ["unit", "step/0", "step/1", "step/2", "step/3"]
+    assert table.to_dict() == {
+        'unit': {
+            'errors': '',
+            'exetime': 's',
+            'memory': 'B',
+            'tasktime': 's',
+            'totaltime': 's',
+            'warnings': ''
+        },
+        'step/0': {
+            'errors': ' ---  ',
+            'exetime': '15.000',
+            'memory': ' ---  ',
+            'tasktime': '05.000',
+            'totaltime': ' ---  ',
+            'warnings': ' ---  '
+        },
+        'step/1': {
+            'errors': ' ---  ',
+            'exetime': '17.000',
+            'memory': ' ---  ',
+            'tasktime': '07.000',
+            'totaltime': ' ---  ',
+            'warnings': ' ---  '
+        },
+        'step/2': {
+            'errors': ' ---  ',
+            'exetime': '01:52.500',
+            'memory': ' ---  ',
+            'tasktime': '12.500',
+            'totaltime': ' ---  ',
+            'warnings': ' ---  '
+        },
+        'step/3': {
+            'errors': ' ---  ',
+            'exetime': '01:55.500',
+            'memory': ' ---  ',
+            'tasktime': '15.500',
+            'totaltime': ' ---  ',
+            'warnings': ' ---  '
+        }
+    }
+
+
+def test_summary(capsys):
+    schema = MetricSchema()
+
+    assert schema.set("tasktime", 5, step="step", index="0")
+    assert schema.set("tasktime", 7, step="step", index="1")
+    assert schema.set("tasktime", 12.5, step="step", index="2")
+    assert schema.set("tasktime", 15.5, step="step", index="3")
+
+    schema.summary(headers=[("pdk", "asap7"), ("library", "asap7_library")])
+
+    out = capsys.readouterr().out
+    assert out.splitlines() == [
+        '----------------------------------------------------------------------------',
+        'SUMMARY :',
+        'pdk     : asap7',
+        'library : asap7_library',
+        '',
+        '         unit  step/0  step/1  step/2  step/3',
+        'tasktime    s  05.000  07.000  12.500  15.500',
+        '----------------------------------------------------------------------------']
+
+
+def test_summary_empty(capsys):
+    schema = MetricSchema()
+
+    schema.summary(headers=[("pdk", "asap7"), ("library", "asap7_library")])
+
+    out = capsys.readouterr().out
+    assert out.splitlines() == [
+        '----------------------------------------------------------------------------',
+        'SUMMARY :',
+        'pdk     : asap7',
+        'library : asap7_library',
+        '',
+        '  No metrics to display!',
+        '----------------------------------------------------------------------------']
+
+
+def test_summary_column_width(capsys):
+    schema = MetricSchema()
+
+    assert schema.set("tasktime", 5, step="step", index="0")
+    assert schema.set("tasktime", 7, step="step", index="1")
+    assert schema.set("tasktime", 12.5, step="step", index="2")
+    assert schema.set("tasktime", 15.5, step="step", index="3")
+
+    schema.summary(headers=[("pdk", "asap7"), ("library", "asap7_library")], column_width=5)
+
+    out = capsys.readouterr().out
+    assert out.splitlines() == [
+        '----------------------------------------------------------------------------',
+        'SUMMARY :',
+        'pdk     : asap7',
+        'library : asap7_library',
+        '',
+        '         unit   s...0   s...1   s...2   s...3',
+        'tasktime    s  05.000  07.000  12.500  15.500',
+        '----------------------------------------------------------------------------']
