@@ -65,6 +65,8 @@ def test_make_manifest_branches():
         # all keys in the actual manifest are in the test except for keys in
         # the leaf or keys called 'default'
         for manifest_key in manifest[key]:
+            if manifest_key == "__meta__":
+                continue
             if _is_leaf(manifest[key]) or manifest_key == 'default':
                 continue
             make_manifest_testing_helper(manifest[key],
