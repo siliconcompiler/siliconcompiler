@@ -9,13 +9,14 @@ from typing import Union, List, Tuple
 
 from siliconcompiler.schema import BaseSchema, NamedSchema, EditableSchema, Parameter
 
-from siliconcompiler import DesignSchema
+from siliconcompiler import DesignSchema, LibrarySchema
 from siliconcompiler import FlowgraphSchema
 from siliconcompiler import RecordSchema
 from siliconcompiler import MetricSchema
 from siliconcompiler import ChecklistSchema
 from siliconcompiler import ToolSchema, TaskSchema
 
+from siliconcompiler.dependencyschema import DependencySchema
 from siliconcompiler.pathschema import PathSchemaBase
 
 from siliconcompiler.schema.schema_cfg import schema_option_runtime, schema_arg, schema_version
@@ -117,19 +118,20 @@ class Project(PathSchemaBase, BaseSchema):
 
     def add_dep(self, obj):
         if isinstance(obj, DesignSchema):
-            self.__import_design(obj)
+            EditableSchema(self).insert("library", obj.name, obj, clobber=True)
         elif isinstance(obj, FlowgraphSchema):
             self.__import_flow(obj)
+        elif isinstance(obj, LibrarySchema):
+            EditableSchema(self).insert("library", obj.name, obj, clobber=True)
+        elif isinstance(obj, ChecklistSchema):
+            EditableSchema(self).insert("checklist", obj.name, obj, clobber=True)
         else:
             raise NotImplementedError
 
-    def __import_design(self, design: DesignSchema):
-        edit_schema = EditableSchema(self)
-        edit_schema.insert("library", design.name, design, clobber=True)
-
         # Copy dependencies into project
-        for dep in design.get_dep():
-            self.add_dep(dep)
+        if isinstance(obj, DependencySchema):
+            for dep in obj.get_dep():
+                self.add_dep(dep)
 
     def __import_flow(self, flow: FlowgraphSchema):
         edit_schema = EditableSchema(self)
@@ -143,21 +145,83 @@ class Project(PathSchemaBase, BaseSchema):
                 edit_schema.insert("tool", task.tool(), ToolSchema(), clobber=True)
             edit_schema.insert("tool", task.tool(), "task", task.task(), task, clobber=True)
 
-    def check_manifest(self):
+    def check_manifest(self) -> bool:
+        error = False
+
         # Assert design is set
+        design = self.get("option", "design")
+        if not design:
+            self.logger.error("[option,design] has not been set")
+            error = True
+        else:
+            # Assert design is a library
+            if design not in self.getkeys("library"):
+                self.logger.error(f"{design} has not been loaded")
+                error = True
+
         # Assert fileset is set
         # Assert flow is set
+        filesets = self.get("option", "fileset")
+        if not filesets:
+            self.logger.error("[option,fileset] has not been set")
+            error = True
+        elif design:
+            # Assert fileset is in design
+            design_obj = self.design
+            for fileset in filesets:
+                if fileset not in design_obj.getkeys("fileset"):
+                    self.logger.error(f"{fileset} is not a valid fileset in {design}")
+                    error = True
 
-        # Assert design is a library
-        # Assert fileset is in design
-        # Assert design has topmodule
+            # Assert design has topmodule
+            fileset = filesets[0]
+            if fileset in design_obj.getkeys("fileset"):
+                if not design_obj.get_topmodule(fileset):
+                    self.logger.error(f"topmodule has not been set in {design}/{fileset}")
+                    error = True
+
+        # Assert flow is set
+        flow = self.get("option", "flow")
+        if not flow:
+            self.logger.error("[option,flow] has not been set")
+            error = True
+        else:
+            if flow not in self.getkeys("flowgraph"):
+                self.logger.error(f"{flow} has not need loaded")
+                error = True
 
         # Check that alias libraries exist
+        for src_lib, src_fileset, dst_lib, dst_fileset in self.get("option", "alias"):
+            if not src_lib:
+                self.logger.error("source library in [option,alias] must be set")
+                error = True
+                continue
+
+            if src_lib not in self.getkeys("library"):
+                continue
+
+            if src_fileset not in self.getkeys("library", src_lib, "fileset"):
+                self.logger.error(f"{src_fileset} is not a valid fileset in {src_lib}")
+                error = True
+                continue
+
+            if not dst_lib:
+                continue
+
+            if dst_lib not in self.getkeys("library"):
+                self.logger.error(f"{dst_lib} has not been loaded")
+                error = True
+                continue
+
+            if dst_fileset and dst_fileset not in self.getkeys("library", dst_lib, "fileset"):
+                self.logger.error(f"{dst_fileset} is not a valid fileset in {dst_lib}")
+                error = True
+                continue
 
         # Check flowgraph
         # Check tasks have classes, cannot check post setup that is a runtime check
 
-        return True
+        return not error
 
     def run(self, raise_exception=False):
         '''
