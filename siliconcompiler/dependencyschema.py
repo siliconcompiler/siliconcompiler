@@ -191,7 +191,7 @@ class DependencySchema(BaseSchema):
 
     def has_dep(self, name: str) -> bool:
         '''
-        Checks if a specific dependencys is present
+        Checks if a specific dependencies is present
         Args:
             name (str): name of the module
         Returns:
