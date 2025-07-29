@@ -139,7 +139,8 @@ class Project(PathSchemaBase, BaseSchema):
         for task_cls in flow.get_all_tasks():
             task = task_cls()
             # TODO: this is not needed once tool moves
-            edit_schema.insert("tool", task.tool(), ToolSchema(), clobber=True)
+            if not self.valid("tool", task.tool()):
+                edit_schema.insert("tool", task.tool(), ToolSchema(), clobber=True)
             edit_schema.insert("tool", task.tool(), "task", task.task(), task, clobber=True)
 
     def check_manifest(self):
