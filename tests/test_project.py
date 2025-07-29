@@ -6,6 +6,8 @@ import os.path
 
 from pathlib import Path
 
+from unittest.mock import patch
+
 from siliconcompiler import Project
 from siliconcompiler import DesignSchema, FlowgraphSchema, TaskSchema
 
@@ -413,19 +415,34 @@ def test_add_alias_invalid_src_type():
 
 
 def test_add_alias_src_name_not_loaded():
+    dst = DesignSchema("dst")
+    with dst.active_fileset("rtl"):
+        dst.set_topmodule("top")
+
     proj = Project()
-    with pytest.raises(KeyError, match="test0 has not been loaded"):
-        proj.add_alias("test0", "rtl", 2, "rtl")
+    assert proj.has_library("test0") is False
+    proj.add_alias("test0", "rtl", dst, "rtl")
+    assert proj.has_library("test0") is False
+    assert proj.get("option", "alias") == [
+        ("test0", "rtl", "dst", "rtl")
+    ]
 
 
 def test_add_alias_src_dep_not_loaded():
     design = DesignSchema("test")
     with design.active_fileset("rtl"):
         design.set_topmodule("top")
+    dst = DesignSchema("dst")
+    with dst.active_fileset("rtl"):
+        dst.set_topmodule("top")
 
     proj = Project()
-    with pytest.raises(KeyError, match="test has not been loaded"):
-        proj.add_alias(design, "rtl", 2, "rtl")
+    assert proj.has_library(design) is False
+    proj.add_alias(design, "rtl", dst, "rtl")
+    assert proj.has_library(design) is True
+    assert proj.get("option", "alias") == [
+        ("test", "rtl", "dst", "rtl")
+    ]
 
 
 def test_add_alias_src_invalid_fileset():
@@ -560,7 +577,7 @@ def test_add_alias_remove_alias():
     proj = Project(design)
     assert proj.add_alias("test", "rtl", None, "rtl")
     assert proj.get("option", "alias") == [
-        ("test", "rtl", "", "")
+        ("test", "rtl", None, None)
     ]
 
 
@@ -578,7 +595,7 @@ def test_add_alias_repeat_fileset():
     proj = Project(design)
     assert proj.add_alias("test", "rtl", alias, "")
     assert proj.get("option", "alias") == [
-        ("test", "rtl", "alias", "")
+        ("test", "rtl", "alias", None)
     ]
 
 
@@ -667,3 +684,140 @@ def test_get_filesets_with_alias_missing():
 
     with pytest.raises(KeyError, match="test1 is not a loaded library"):
         proj.get_filesets()
+
+
+def test_has_library_not_found():
+    proj = Project()
+    assert proj.has_library("test") is False
+
+    proj.add_dep(DesignSchema("test"))
+    assert proj.has_library("notfound") is False
+    assert proj.has_library("test") is True
+
+
+def test_has_library_not_found_with_object():
+    proj = Project()
+    design = DesignSchema("test")
+    assert proj.has_library(design) is False
+
+    proj.add_dep(design)
+    assert proj.has_library("notfound") is False
+    assert proj.has_library(design) is True
+
+
+def test_summary_headers():
+    proj = Project(DesignSchema("testdesign"))
+    assert proj._summary_headers() == [
+        ("design", "testdesign"),
+        ("jobdir", os.path.abspath("build/testdesign/job0"))
+    ]
+
+
+def test_summary_headers_filesets():
+    proj = Project(DesignSchema("testdesign"))
+    proj.set("option", "fileset", ["rtl0", "rtl1"])
+    assert proj._summary_headers() == [
+        ("design", "testdesign"),
+        ("filesets", "rtl0, rtl1"),
+        ("jobdir", os.path.abspath("build/testdesign/job0"))
+    ]
+
+
+def test_summary_headers_alias():
+    proj = Project(DesignSchema("testdesign"))
+    proj.add_dep(DesignSchema("testalias"))
+    proj.set("option", "alias", [
+        ("testdesign", "rtl", "testalias", "rtl0"),
+        ("testdesign", "rtl", "notfound", "rtl1"),
+        ("notfound", "rtl", "testdesign", "rtl1"),
+        ("testdesign", "rtl", "testalias", "rtl1"),
+    ])
+    proj.set("option", "fileset", ["rtl0", "rtl1"])
+    assert proj._summary_headers() == [
+        ("design", "testdesign"),
+        ("filesets", "rtl0, rtl1"),
+        ("alias", "testdesign (rtl) -> testalias (rtl0), testdesign (rtl) -> testalias (rtl1)"),
+        ("jobdir", os.path.abspath("build/testdesign/job0"))
+    ]
+
+
+def test_summary_headers_alias_with_delete_fileset():
+    proj = Project(DesignSchema("testdesign"))
+    proj.add_dep(DesignSchema("testalias"))
+    proj.set("option", "alias", [
+        ("testdesign", "rtl", "testalias", None)
+    ])
+    proj.set("option", "fileset", ["rtl0", "rtl1"])
+    assert proj._summary_headers() == [
+        ("design", "testdesign"),
+        ("filesets", "rtl0, rtl1"),
+        ("alias", "testdesign (rtl) -> deleted"),
+        ("jobdir", os.path.abspath("build/testdesign/job0"))
+    ]
+
+
+def test_summary_headers_alias_with_delete_dst():
+    proj = Project(DesignSchema("testdesign"))
+    proj.add_dep(DesignSchema("testalias"))
+    proj.set("option", "alias", [
+        ("testdesign", "rtl", None, "rtl")
+    ])
+    proj.set("option", "fileset", ["rtl0", "rtl1"])
+    assert proj._summary_headers() == [
+        ("design", "testdesign"),
+        ("filesets", "rtl0, rtl1"),
+        ("alias", "testdesign (rtl) -> deleted"),
+        ("jobdir", os.path.abspath("build/testdesign/job0"))
+    ]
+
+
+def test_summary_no_jobs():
+    with pytest.raises(ValueError, match="no history to summarize"):
+        Project().summary()
+
+
+def test_summary_select_job():
+    proj = Project(DesignSchema("testdesign"))
+    proj.set("option", "jobname", "thisjob")
+    proj._record_history()
+    proj.set("option", "jobname", "thatjob")
+    proj._record_history()
+
+    with patch("siliconcompiler.Project.history") as history:
+        history.return_value = proj
+        proj.summary()
+
+        history.assert_called_once_with("thatjob")
+
+
+def test_summary_select_job_user():
+    proj = Project(DesignSchema("testdesign"))
+    proj.set("option", "jobname", "thisjob")
+    proj._record_history()
+    proj.set("option", "jobname", "thatjob")
+    proj._record_history()
+
+    with patch("siliconcompiler.Project.history") as history:
+        history.return_value = proj
+        proj.summary("thisjob")
+
+        history.assert_called_once_with("thisjob")
+
+
+def test_summary_select_unknownjob(caplog):
+    proj = Project(DesignSchema("testdesign"))
+    setattr(proj, "_Project__logger", logging.getLogger())
+    proj.logger.setLevel(logging.WARNING)
+
+    proj.set("option", "jobname", "thisjob")
+    proj._record_history()
+    proj.set("option", "jobname", "thatjob")
+    proj._record_history()
+    proj.set("option", "jobname", "job0")
+
+    with patch("siliconcompiler.Project.history") as history:
+        history.return_value = proj
+        proj.summary()
+
+        history.assert_called_once_with("thatjob")  # will call with first alphabetical job
+    assert "job0 not found in history, picking thatjob" in caplog.text

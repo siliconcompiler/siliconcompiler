@@ -290,7 +290,7 @@ class DesignSchema(LibrarySchema, DependencySchema):
         if not isinstance(dep, DesignSchema):
             raise ValueError(f"cannot associate fileset ({depfileset}) with {dep.name}")
 
-        if depfileset not in dep.getkeys("fileset"):
+        if not dep.has_fileset(depfileset):
             raise ValueError(f"{dep.name} does not have {depfileset} as a fileset")
 
         return self.add("fileset", fileset, "depfileset", (dep_name, depfileset))

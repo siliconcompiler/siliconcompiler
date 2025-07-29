@@ -54,7 +54,7 @@ class DependencySchema(BaseSchema):
         if obj.name is None:
             raise ValueError("Cannot add an unnamed dependency")
 
-        if obj.name not in self.__deps:
+        if not self.has_dep(obj):
             self.set("deps", False, field="lock")
             self.add("deps", obj.name)
             self.set("deps", True, field="lock")
@@ -174,7 +174,7 @@ class DependencySchema(BaseSchema):
         '''
 
         if name:
-            if name not in self.__deps:
+            if not self.has_dep(name):
                 if "." in name:
                     name0, *name1 = name.split(".")
                     subdep = self.get_dep(name0)
@@ -189,6 +189,20 @@ class DependencySchema(BaseSchema):
             return self.__get_all_deps(set())
         return list(self.__deps.values())
 
+    def has_dep(self, name: str) -> bool:
+        '''
+        Checks if a specific dependencies is present
+        Args:
+            name (str): name of the module
+        Returns:
+            True if the module was found, False is not found.
+        '''
+
+        if isinstance(name, NamedSchema):
+            name = name.name
+
+        return name in self.__deps
+
     def remove_dep(self, name: str) -> bool:
         '''
         Removes a previously registered module.
@@ -199,8 +213,11 @@ class DependencySchema(BaseSchema):
         Returns:
             True if the module was removed, False is not found.
         '''
-        if name not in self.__deps:
+        if not self.has_dep(name):
             return False
+
+        if isinstance(name, NamedSchema):
+            name = name.name
 
         del self.__deps[name]
 

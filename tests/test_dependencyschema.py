@@ -34,6 +34,31 @@ def test_add_dep():
     assert schema.get("deps", field="lock") is True
 
 
+def test_has_dep():
+    schema = DependencySchema()
+
+    assert schema.has_dep("thisname") is False
+    assert schema.add_dep(NamedSchema("thisname"))
+    assert schema.has_dep("thisname") is True
+
+
+def test_has_dep_with_object():
+    schema = DependencySchema()
+
+    dep = NamedSchema("thisname")
+    assert schema.has_dep("thisname") is False
+    assert schema.add_dep(dep)
+    assert schema.has_dep(dep) is True
+
+
+def test_has_dep_invalid():
+    schema = DependencySchema()
+
+    assert schema.has_dep(1) is False
+    assert schema.has_dep(BaseSchema()) is False
+    assert schema.has_dep(NamedSchema) is False
+
+
 def test_add_dep_clobber():
     schema = DependencySchema()
 
@@ -82,6 +107,17 @@ def test_remove_dep():
     schema.add_dep(NamedSchema("thisname"))
     assert schema.get_dep("thisname")
     assert schema.remove_dep("thisname") is True
+    assert schema.get("deps", field="lock") is True
+    assert schema.get_dep() == []
+    assert schema.get("deps") == []
+
+
+def test_remove_dep_with_object():
+    schema = DependencySchema()
+    dep = NamedSchema("thisname")
+    schema.add_dep(dep)
+    assert schema.get_dep("thisname")
+    assert schema.remove_dep(dep) is True
     assert schema.get("deps", field="lock") is True
     assert schema.get_dep() == []
     assert schema.get("deps") == []
