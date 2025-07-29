@@ -19,7 +19,83 @@ def schema():
 def test_readin(schema):
     safe = SafeSchema.from_manifest(cfg=schema.getdict())
 
-    assert schema.getdict() == safe.getdict()
+    assert safe.getdict() == {
+        'test0': {
+            'type': 'str',
+            'require': False,
+            'scope': 'job',
+            'lock': False,
+            'switch': [],
+            'shorthelp': None,
+            'example': [],
+            'help': None,
+            'notes': None,
+            'pernode': 'never',
+            'node': {'default': {'default': {'value': None, 'signature': None}}}
+        },
+        'test1': {
+            'test2': {
+                'type': '[str]',
+                'require': False,
+                'scope': 'job',
+                'lock': False,
+                'switch': [],
+                'shorthelp': None,
+                'example': [],
+                'help': None,
+                'notes': None,
+                'pernode': 'never',
+                'node': {'default': {'default': {'value': [], 'signature': []}}}
+            },
+            '__meta__': {
+                'sctype': 'SafeSchema', 'class': 'siliconcompiler.schema.safeschema/SafeSchema'
+            }
+        },
+        'test3': {
+            'default': {
+                'type': 'int',
+                'require': False,
+                'scope': 'job',
+                'lock': False,
+                'switch': [],
+                'shorthelp': None,
+                'example': [],
+                'help': None,
+                'notes': None,
+                'pernode': 'never',
+                'node': {'default': {'default': {'value': None, 'signature': None}}}
+            },
+            '__meta__': {
+                'sctype': 'SafeSchema', 'class': 'siliconcompiler.schema.safeschema/SafeSchema'
+            }
+        },
+        'test4': {
+            'test5': {
+                'test6': {
+                    'type': 'str',
+                    'require': False,
+                    'scope': 'job',
+                    'lock': False,
+                    'switch': [],
+                    'shorthelp': None,
+                    'example': [],
+                    'help': None,
+                    'notes': None,
+                    'pernode': 'never',
+                    'node': {'default': {'default': {'value': None, 'signature': None}}}
+                },
+                '__meta__': {
+                    'sctype': 'SafeSchema', 'class': 'siliconcompiler.schema.safeschema/SafeSchema'
+                }
+            },
+            '__meta__': {
+                'sctype': 'SafeSchema', 'class': 'siliconcompiler.schema.safeschema/SafeSchema'
+            }
+        },
+        '__meta__': {
+            'sctype': 'SafeSchema', 'class': 'siliconcompiler.schema.safeschema/SafeSchema'
+        }
+    }
 
 
 def test_set(schema):
@@ -41,6 +117,16 @@ def test_add(schema):
 
 def test_from_dict_with_list():
     safe = SafeSchema()
-    assert safe.getdict() == {}
+    assert safe.getdict() == {
+        '__meta__': {
+            'class': 'siliconcompiler.schema.safeschema/SafeSchema',
+            'sctype': 'SafeSchema'
+        }
+    }
     safe._from_dict([], [], [])
-    assert safe.getdict() == {}
+    assert safe.getdict() == {
+        '__meta__': {
+            'class': 'siliconcompiler.schema.safeschema/SafeSchema',
+            'sctype': 'SafeSchema'
+        }
+    }

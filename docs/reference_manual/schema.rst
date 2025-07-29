@@ -134,6 +134,14 @@ For example, the following line returns the path to a LEF file associated with a
 
     chip.find_files('library', 'mylib', 'output', stackup, 'lef')
 
+meta data
+++++++++++
+
+The schema can record the class type of a section in the schema., this is recorded in cfg['__meta__'].
+The cfg['__meta__'] contains two keys, `sctype` and `class` , which represent the type of the section and exact python class respectively.
+If no cfg['__meta__'] is found, the section is assumed to be a regular schema class.
+
+
 Journaling
 ++++++++++
 

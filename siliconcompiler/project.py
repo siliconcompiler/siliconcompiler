@@ -115,6 +115,14 @@ class Project(PathSchemaBase, BaseSchema):
         """
         return self.__cwd
 
+    @classmethod
+    def _getdict_type(cls) -> str:
+        """
+        Returns the meta data for getdict
+        """
+
+        return Project.__name__
+
     def add_dep(self, obj):
         if isinstance(obj, DesignSchema):
             self.__import_design(obj)

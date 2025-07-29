@@ -93,6 +93,14 @@ class TaskSchema(NamedSchema):
 
         self.__set_runtime(None)
 
+    @classmethod
+    def _getdict_type(cls) -> str:
+        """
+        Returns the meta data for getdict
+        """
+
+        return TaskSchema.__name__
+
     @contextlib.contextmanager
     def runtime(self, node, step=None, index=None, relpath=None):
         '''
@@ -1450,6 +1458,14 @@ class ToolSchema(NamedSchema):
         schema = EditableSchema(self)
         schema.insert("task", "default", TaskSchema(None))
 
+    @classmethod
+    def _getdict_type(cls) -> str:
+        """
+        Returns the meta data for getdict
+        """
+
+        return ToolSchema.__name__
+
 
 ###########################################################################
 # Migration helper
@@ -1462,6 +1478,14 @@ class ToolSchemaTmp(NamedSchema):
 
         schema = EditableSchema(self)
         schema.insert("task", "default", TaskSchemaTmp())
+
+    @classmethod
+    def _getdict_type(cls) -> str:
+        """
+        Returns the meta data for getdict
+        """
+
+        return ToolSchemaTmp.__name__
 
 
 class TaskSchemaTmp(TaskSchema):

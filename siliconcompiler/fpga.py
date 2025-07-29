@@ -48,12 +48,28 @@ class FPGASchema(ToolLibrarySchema):
     def set_lutsize(self, lut: int):
         return self.set("fpga", "lutsize", lut)
 
+    @classmethod
+    def _getdict_type(cls) -> str:
+        """
+        Returns the meta data for getdict
+        """
+
+        return FPGASchema.__name__
+
 
 class FPGASchemaTmp(BaseSchema):
     def __init__(self):
         super().__init__()
 
         schema_fpga(self)
+
+    @classmethod
+    def _getdict_type(cls) -> str:
+        """
+        Returns the meta data for getdict
+        """
+
+        return FPGASchemaTmp.__name__
 
 
 ###############################################################################

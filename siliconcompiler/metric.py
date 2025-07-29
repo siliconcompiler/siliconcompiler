@@ -317,6 +317,14 @@ class MetricSchema(BaseSchema):
             print(data.to_string(line_width=max_line_width, col_space=3))
         print("-" * max_line_width)
 
+    @classmethod
+    def _getdict_type(cls) -> str:
+        """
+        Returns the meta data for getdict
+        """
+
+        return MetricSchema.__name__
+
 
 class MetricSchemaTmp(MetricSchema):
     def __init__(self):

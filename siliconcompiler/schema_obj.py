@@ -38,6 +38,14 @@ class Schema(BaseSchema):
 
         return super()._from_dict(manifest, keypath, version=version)
 
+    @classmethod
+    def _getdict_type(cls) -> str:
+        """
+        Returns the meta data for getdict
+        """
+
+        return Schema.__name__
+
 
 class SchemaTmp(Schema, CommandLineSchema):
     """Object for storing and accessing configuration values corresponding to
@@ -113,9 +121,18 @@ class SchemaTmp(Schema, CommandLineSchema):
             EditableSchema(self).insert("history", job, blank)
             return blank
 
+    @classmethod
+    def _getdict_type(cls) -> str:
+        """
+        Returns the meta data for getdict
+        """
+
+        return SchemaTmp.__name__
+
 
 ##############################################################################
 # Main routine
 if __name__ == "__main__":
     import json
-    print(json.dumps(SchemaTmp().getdict(), indent=4, sort_keys=True))
+    from siliconcompiler import Schema
+    print(json.dumps(Schema().getdict(), indent=4, sort_keys=True))

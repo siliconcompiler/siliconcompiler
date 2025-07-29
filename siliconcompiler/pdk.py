@@ -351,6 +351,14 @@ class PDKSchema(ToolLibrarySchema):
         else:
             return self.add("pdk", "aprtechfileset", tool, fileset)
 
+    @classmethod
+    def _getdict_type(cls) -> str:
+        """
+        Returns the meta data for getdict
+        """
+
+        return PDKSchema.__name__
+
 
 class PDKSchemaTmp(NamedSchema):
     def __init__(self, name=None):
@@ -358,6 +366,14 @@ class PDKSchemaTmp(NamedSchema):
         self.set_name(name)
 
         schema_pdk(self)
+
+    @classmethod
+    def _getdict_type(cls) -> str:
+        """
+        Returns the meta data for getdict
+        """
+
+        return PDKSchemaTmp.__name__
 
 
 ###############################################################################

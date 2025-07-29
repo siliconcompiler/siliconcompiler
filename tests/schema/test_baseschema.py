@@ -3,6 +3,8 @@ import pytest
 
 import os.path
 
+from unittest.mock import patch
+
 from siliconcompiler.schema import BaseSchema
 from siliconcompiler.schema import EditableSchema
 from siliconcompiler.schema import Parameter, PerNode
@@ -461,6 +463,89 @@ def test_getdict():
     }
 
 
+def test_getdict_meta():
+    class MetaClass(BaseSchema):
+        @classmethod
+        def _getdict_type(cls):
+            return "testmeta"
+
+    schema = MetaClass()
+    edit = EditableSchema(schema)
+    edit.insert("test0", "default", "test1", Parameter("str"))
+
+    assert schema.getdict() == {
+        '__meta__': {
+            'class': 'test_baseschema/MetaClass',
+            'sctype': 'testmeta'
+        },
+        'test0': {
+            'default': {
+                'test1': {
+                    'example': [],
+                    'help': None,
+                    'lock': False,
+                    'node': {
+                        'default': {
+                            'default': {
+                                'signature': None,
+                                'value': None,
+                            },
+                        },
+                    },
+                    'notes': None,
+                    'pernode': 'never',
+                    'require': False,
+                    'scope': 'job',
+                    'shorthelp': None,
+                    'switch': [],
+                    'type': 'str',
+                },
+            },
+        },
+    }
+
+
+def test_getdict_meta_imncomplete():
+    class MetaClass(BaseSchema):
+        @classmethod
+        def _getdict_type(cls):
+            raise NotImplementedError
+
+    schema = MetaClass()
+    edit = EditableSchema(schema)
+    edit.insert("test0", "default", "test1", Parameter("str"))
+
+    assert schema.getdict() == {
+        '__meta__': {
+            'class': 'test_baseschema/MetaClass'
+        },
+        'test0': {
+            'default': {
+                'test1': {
+                    'example': [],
+                    'help': None,
+                    'lock': False,
+                    'node': {
+                        'default': {
+                            'default': {
+                                'signature': None,
+                                'value': None,
+                            },
+                        },
+                    },
+                    'notes': None,
+                    'pernode': 'never',
+                    'require': False,
+                    'scope': 'job',
+                    'shorthelp': None,
+                    'switch': [],
+                    'type': 'str',
+                },
+            },
+        },
+    }
+
+
 def test_getdict_with_set():
     schema = BaseSchema()
     edit = EditableSchema(schema)
@@ -586,7 +671,7 @@ def test_getdict_from_dict():
     assert schema._parent() is not check_schema._parent()
     assert check_schema.get("test0", field="schema")._parent() is check_schema
 
-    schema.set("test0", "testdefault", "test1", "4")
+    assert schema.set("test0", "testdefault", "test1", "4")
 
     assert check_schema.get("test0", "testdefault", "test1") is None
 
@@ -616,7 +701,27 @@ def test_getdict_from_dict_unmatched():
 
     edit.remove("test0")
 
-    schemamissing, inmissing = schema._from_dict(check_schema.getdict(), [], None)
+    print(check_schema.getdict())
+
+    schemamissing, inmissing = schema._from_dict({
+        'test0': {
+            'default': {
+                'test1': {
+                    'type': 'str',
+                    'require': False,
+                    'scope': 'job',
+                    'lock': False,
+                    'switch': [],
+                    'shorthelp': None,
+                    'example': [],
+                    'help': None,
+                    'notes': None,
+                    'pernode': 'never',
+                    'node': {'default': {'default': {'value': None, 'signature': None}}}
+                },
+            },
+        },
+    }, [], None)
     assert not inmissing
     assert schemamissing == set(["test0"])
 
@@ -1943,3 +2048,659 @@ def test_keypath_with_default_schema_access():
     assert schema.get("test0", "test1", field="schema")._keypath == ("test0", "test1")
     assert schema.get("test0", "test1", "test1", field="schema")._keypath == \
         ("test0", "test1", "test1")
+
+
+def test_getdict_type():
+    assert BaseSchema._getdict_type() == "BaseSchema"
+
+
+def test_from_dict_composite_type_names():
+    class DummySchema(BaseSchema):
+        def __init__(self):
+            super().__init__()
+
+            EditableSchema(self).insert("string", Parameter("str"))
+
+        @classmethod
+        def _getdict_type(cls):
+            return "dummy_schema"
+
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("dummy", "default", BaseSchema())
+    edit.insert("base", "default", Parameter("str"))
+
+    with patch("siliconcompiler.schema.BaseSchema._BaseSchema__get_child_classes") as children, \
+            patch("siliconcompiler.schema.BaseSchema._BaseSchema__load_schema_class") as \
+            load_schema_class:
+        children.return_value = {
+            "BaseSchema": BaseSchema,
+            "dummy_schema": DummySchema
+        }
+        schema._from_dict({
+            'dummy': {
+                'default': {},
+                'newdummy': {  # this has a different type than the default
+                    'string': {
+                        'type': 'str',
+                        'require': False,
+                        'scope': 'job',
+                        'lock': False,
+                        'switch': [],
+                        'shorthelp': None,
+                        'example': [],
+                        'help': None,
+                        'notes': None,
+                        'pernode': 'never',
+                        'node': {'global': {'global': {'value': 'teststring', 'signature': None}},
+                                 'default': {'default': {'value': None, 'signature': None}}}
+                    },
+                    '__meta__': {
+                        'sctype': 'dummy_schema'
+                    }
+                }
+            },
+            'base': {
+                'default': {
+                    'type': 'str',
+                    'require': False,
+                    'scope': 'job',
+                    'lock': False,
+                    'switch': [],
+                    'shorthelp': None,
+                    'example': [],
+                    'help': None,
+                    'notes': None,
+                    'pernode': 'never',
+                    'node': {'default': {'default': {'value': None, 'signature': None}}}
+                },
+                'newbase': {
+                    'type': 'str',
+                    'require': False,
+                    'scope': 'job',
+                    'lock': False,
+                    'switch': [],
+                    'shorthelp': None,
+                    'example': [],
+                    'help': None,
+                    'notes': None,
+                    'pernode': 'never',
+                    'node': {'global': {'global': {'value': 'teststring', 'signature': None}},
+                             'default': {'default': {'value': None, 'signature': None}}}
+                }
+            }
+        }, [])
+        assert children.call_count == 5
+        load_schema_class.assert_not_called()
+
+    assert schema.get("dummy", "default", field="schema").__class__ is BaseSchema
+    assert schema.get("dummy", "newdummy", field="schema").__class__ is DummySchema
+    assert schema.get("base", "default", field=None).__class__ is Parameter
+    assert schema.get("base", "newbase", field=None).__class__ is Parameter
+
+    assert schema.get("dummy", "newdummy", field="schema")._keypath == \
+        ("dummy", "newdummy")
+    assert schema.get("dummy", "default", field="schema")._keypath == \
+        ("dummy", "default")
+
+    assert schema.get("dummy", "newdummy", "string") == "teststring"
+    assert schema.get("base", "newbase", "string") == "teststring"
+
+
+def test_from_dict_composite_nested():
+    class LowSchema(BaseSchema):
+        def __init__(self):
+            super().__init__()
+
+            EditableSchema(self).insert("string", Parameter("str"))
+
+        @classmethod
+        def _getdict_type(cls):
+            return "low_schema"
+
+    class ImplLowSchema(LowSchema):
+        @classmethod
+        def _getdict_type(cls):
+            return "impl_low_schema"
+
+    class DummySchema(BaseSchema):
+        def __init__(self):
+            super().__init__()
+
+            EditableSchema(self).insert("test0", "default", LowSchema())
+
+        @classmethod
+        def _getdict_type(cls):
+            return "dummy_schema"
+
+    class ImplDummySchema(DummySchema):
+        @classmethod
+        def _getdict_type(cls):
+            return "impl_dummy_schema"
+
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("dummy", "default", DummySchema())
+
+    with patch("siliconcompiler.schema.BaseSchema._BaseSchema__get_child_classes") as children, \
+            patch("siliconcompiler.schema.BaseSchema._BaseSchema__load_schema_class") as \
+            load_schema_class:
+        children.return_value = {
+            "BaseSchema": BaseSchema,
+            "dummy_schema": DummySchema,
+            "impl_dummy_schema": ImplDummySchema,
+            "low_schema": LowSchema,
+            "impl_low_schema": ImplLowSchema
+        }
+        schema._from_dict({
+            'dummy': {
+                'newdummy': {
+                    'test0': {
+                        'newlow': {
+                            'string': {
+                                'type': 'str',
+                                'require': False,
+                                'scope': 'job',
+                                'lock': False,
+                                'switch': [],
+                                'shorthelp': None,
+                                'example': [],
+                                'help': None,
+                                'notes': None,
+                                'pernode': 'never',
+                                'node': {'global': {'global': {'value': 'teststring',
+                                                               'signature': None}},
+                                         'default': {'default': {'value': None, 'signature': None}}}
+                            },
+                            '__meta__': {
+                                'sctype': 'impl_low_schema'
+                            }
+                        }
+                    },
+                    '__meta__': {
+                        'sctype': 'impl_dummy_schema'
+                    }
+                }
+            }
+        }, [])
+        assert children.call_count == 5
+        load_schema_class.assert_not_called()
+
+    assert schema.get("dummy", "default", field="schema").__class__ is DummySchema
+    assert schema.get("dummy", "newdummy", field="schema").__class__ is ImplDummySchema
+    assert schema.get("dummy", "newdummy", "test0", field="schema").__class__ is BaseSchema
+    assert schema.get("dummy", "newdummy", "test0", "newlow", field="schema").__class__ is \
+        ImplLowSchema
+    assert schema.get("dummy", "newdummy", "test0", "newlow", "string", field=None).__class__ is \
+        Parameter
+
+    assert schema.get("dummy", "newdummy", "test0", "newlow", field="schema")._keypath == \
+        ("dummy", "newdummy", "test0", "newlow")
+
+    assert schema.get("dummy", "newdummy", "test0", "newlow", "string") == "teststring"
+
+
+def test_from_dict_composite_type_names_use_default():
+    class DummySchema(BaseSchema):
+        def __init__(self):
+            super().__init__()
+
+            EditableSchema(self).insert("string", Parameter("str"))
+
+        @classmethod
+        def _getdict_type(cls):
+            return "dummy_schema"
+
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("dummy", "default", DummySchema())
+    edit.insert("base", "default", Parameter("str"))
+
+    with patch("siliconcompiler.schema.BaseSchema._BaseSchema__get_child_classes") as children, \
+            patch("siliconcompiler.schema.BaseSchema._BaseSchema__load_schema_class") as \
+            load_schema_class:
+        children.return_value = {
+            "BaseSchema": BaseSchema,
+            "dummy_schema": DummySchema
+        }
+        schema._from_dict({
+            'dummy': {
+                'newdummy': {  # this has a different type than the default
+                    'string': {
+                        'type': 'str',
+                        'require': False,
+                        'scope': 'job',
+                        'lock': False,
+                        'switch': [],
+                        'shorthelp': None,
+                        'example': [],
+                        'help': None,
+                        'notes': None,
+                        'pernode': 'never',
+                        'node': {'global': {'global': {'value': 'teststring', 'signature': None}},
+                                 'default': {'default': {'value': None, 'signature': None}}}
+                    },
+                    '__meta__': {
+                        'sctype': 'BaseSchema'
+                    }
+                }
+            },
+            'base': {
+                'default': {
+                    'type': 'str',
+                    'require': False,
+                    'scope': 'job',
+                    'lock': False,
+                    'switch': [],
+                    'shorthelp': None,
+                    'example': [],
+                    'help': None,
+                    'notes': None,
+                    'pernode': 'never',
+                    'node': {'default': {'default': {'value': None, 'signature': None}}}
+                },
+                'newbase': {
+                    'type': 'str',
+                    'require': False,
+                    'scope': 'job',
+                    'lock': False,
+                    'switch': [],
+                    'shorthelp': None,
+                    'example': [],
+                    'help': None,
+                    'notes': None,
+                    'pernode': 'never',
+                    'node': {'global': {'global': {'value': 'teststring', 'signature': None}},
+                             'default': {'default': {'value': None, 'signature': None}}}
+                }
+            }
+        }, [])
+        assert children.call_count == 4
+        load_schema_class.assert_not_called()
+
+    assert schema.get("dummy", "default", field="schema").__class__ is DummySchema
+    assert schema.get("dummy", "newdummy", field="schema").__class__ is DummySchema
+    assert schema.get("base", "default", field=None).__class__ is Parameter
+    assert schema.get("base", "newbase", field=None).__class__ is Parameter
+
+    assert schema.get("dummy", "newdummy", field="schema")._keypath == \
+        ("dummy", "newdummy")
+    assert schema.get("dummy", "default", field="schema")._keypath == \
+        ("dummy", "default")
+
+    assert schema.get("dummy", "newdummy", "string") == "teststring"
+    assert schema.get("base", "newbase", "string") == "teststring"
+
+
+def test_from_dict_composite_type_load_via_class_name():
+    class DummySchema(BaseSchema):
+        def __init__(self):
+            super().__init__()
+
+            EditableSchema(self).insert("string", Parameter("str"))
+
+        @classmethod
+        def _getdict_type(cls):
+            return "dummy_schema"
+
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("dummy", "default", BaseSchema())
+    edit.insert("base", "default", Parameter("str"))
+
+    with patch("siliconcompiler.schema.BaseSchema._BaseSchema__get_child_classes") as children, \
+            patch("siliconcompiler.schema.BaseSchema._BaseSchema__load_schema_class") as \
+            load_schema_class:
+        children.return_value = {
+            "BaseSchema": BaseSchema,
+            "dummy_schema": DummySchema
+        }
+        load_schema_class.return_value = DummySchema
+        schema._from_dict({
+            'dummy': {
+                'default': {},
+                'newdummy': {  # this has a different type than the default
+                    'string': {
+                        'type': 'str',
+                        'require': False,
+                        'scope': 'job',
+                        'lock': False,
+                        'switch': [],
+                        'shorthelp': None,
+                        'example': [],
+                        'help': None,
+                        'notes': None,
+                        'pernode': 'never',
+                        'node': {'global': {'global': {'value': 'teststring', 'signature': None}},
+                                 'default': {'default': {'value': None, 'signature': None}}}
+                    },
+                    '__meta__': {
+                        'class': 'test/DummySchema', 'sctype': 'dummy_schema'
+                    }
+                }
+            },
+            'base': {
+                'default': {
+                    'type': 'str',
+                    'require': False,
+                    'scope': 'job',
+                    'lock': False,
+                    'switch': [],
+                    'shorthelp': None,
+                    'example': [],
+                    'help': None,
+                    'notes': None,
+                    'pernode': 'never',
+                    'node': {'default': {'default': {'value': None, 'signature': None}}}
+                },
+                'newbase': {
+                    'type': 'str',
+                    'require': False,
+                    'scope': 'job',
+                    'lock': False,
+                    'switch': [],
+                    'shorthelp': None,
+                    'example': [],
+                    'help': None,
+                    'notes': None,
+                    'pernode': 'never',
+                    'node': {'global': {'global': {'value': 'teststring', 'signature': None}},
+                             'default': {'default': {'value': None, 'signature': None}}}
+                }
+            }
+        }, [])
+        assert children.call_count == 5
+        load_schema_class.assert_called_once_with("test/DummySchema")
+
+    assert schema.get("dummy", "default", field="schema").__class__ is BaseSchema
+    assert schema.get("dummy", "newdummy", field="schema").__class__ is DummySchema
+    assert schema.get("base", "default", field=None).__class__ is Parameter
+    assert schema.get("base", "newbase", field=None).__class__ is Parameter
+
+    assert schema.get("dummy", "newdummy", field="schema")._keypath == \
+        ("dummy", "newdummy")
+    assert schema.get("dummy", "default", field="schema")._keypath == \
+        ("dummy", "default")
+
+    assert schema.get("dummy", "newdummy", "string") == "teststring"
+    assert schema.get("base", "newbase", "string") == "teststring"
+
+
+def test_from_dict_composite_using_cls_name():
+    class DummySchema(BaseSchema):
+        def __init__(self):
+            super().__init__()
+
+            EditableSchema(self).insert("string", Parameter("str"))
+
+        @classmethod
+        def _getdict_type(cls):
+            return "dummy_schema"
+
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("dummy", "default", BaseSchema())
+    edit.insert("base", "default", Parameter("str"))
+
+    with patch("siliconcompiler.schema.BaseSchema._BaseSchema__get_child_classes") as children, \
+            patch("siliconcompiler.schema.BaseSchema._BaseSchema__load_schema_class") as \
+            load_schema_class:
+        children.return_value = {
+            "siliconcompiler.schema.baseschema/BaseSchema": BaseSchema,
+            "test/DummySchema": DummySchema
+        }
+        schema._from_dict({
+            'dummy': {
+                'default': {},
+                'newdummy': {  # this has a different type than the default
+                    'string': {
+                        'type': 'str',
+                        'require': False,
+                        'scope': 'job',
+                        'lock': False,
+                        'switch': [],
+                        'shorthelp': None,
+                        'example': [],
+                        'help': None,
+                        'notes': None,
+                        'pernode': 'never',
+                        'node': {'global': {'global': {'value': 'teststring', 'signature': None}},
+                                 'default': {'default': {'value': None, 'signature': None}}}
+                    },
+                    '__meta__': {
+                        'class': 'test/DummySchema', 'sctype': 'dummy_schema'
+                    }
+                }
+            },
+            'base': {
+                'default': {
+                    'type': 'str',
+                    'require': False,
+                    'scope': 'job',
+                    'lock': False,
+                    'switch': [],
+                    'shorthelp': None,
+                    'example': [],
+                    'help': None,
+                    'notes': None,
+                    'pernode': 'never',
+                    'node': {'default': {'default': {'value': None, 'signature': None}}}
+                },
+                'newbase': {
+                    'type': 'str',
+                    'require': False,
+                    'scope': 'job',
+                    'lock': False,
+                    'switch': [],
+                    'shorthelp': None,
+                    'example': [],
+                    'help': None,
+                    'notes': None,
+                    'pernode': 'never',
+                    'node': {'global': {'global': {'value': 'teststring', 'signature': None}},
+                             'default': {'default': {'value': None, 'signature': None}}}
+                }
+            }
+        }, [])
+        assert children.call_count == 5
+        load_schema_class.assert_not_called()
+
+    assert schema.get("dummy", "default", field="schema").__class__ is BaseSchema
+    assert schema.get("dummy", "newdummy", field="schema").__class__ is DummySchema
+    assert schema.get("base", "default", field=None).__class__ is Parameter
+    assert schema.get("base", "newbase", field=None).__class__ is Parameter
+
+    assert schema.get("dummy", "newdummy", field="schema")._keypath == \
+        ("dummy", "newdummy")
+    assert schema.get("dummy", "default", field="schema")._keypath == \
+        ("dummy", "default")
+
+    assert schema.get("dummy", "newdummy", "string") == "teststring"
+    assert schema.get("base", "newbase", "string") == "teststring"
+
+
+def test_from_dict_composite_no_meta():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("dummy", "default", Parameter("str"))
+    edit.insert("base", "default", Parameter("str"))
+
+    with patch("siliconcompiler.schema.BaseSchema._BaseSchema__get_child_classes") as children, \
+            patch("siliconcompiler.schema.BaseSchema._BaseSchema__load_schema_class") as \
+            load_schema_class:
+        schema._from_dict({
+            'dummy': {
+                'newdummy': {
+                    'type': 'str',
+                    'require': False,
+                    'scope': 'job',
+                    'lock': False,
+                    'switch': [],
+                    'shorthelp': None,
+                    'example': [],
+                    'help': None,
+                    'notes': None,
+                    'pernode': 'never',
+                    'node': {'global': {'global': {'value': 'teststring', 'signature': None}},
+                             'default': {'default': {'value': None, 'signature': None}}}
+                }
+            },
+            'base': {
+                'newbase': {
+                    'type': 'str',
+                    'require': False,
+                    'scope': 'job',
+                    'lock': False,
+                    'switch': [],
+                    'shorthelp': None,
+                    'example': [],
+                    'help': None,
+                    'notes': None,
+                    'pernode': 'never',
+                    'node': {'global': {'global': {'value': 'teststring', 'signature': None}},
+                             'default': {'default': {'value': None, 'signature': None}}}
+                }
+            }
+        }, [])
+        assert children.call_count == 3
+        load_schema_class.assert_not_called()
+
+    assert schema.get("dummy", field="schema").__class__ is BaseSchema
+    assert schema.get("dummy", "default", field=None).__class__ is Parameter
+    assert schema.get("dummy", "newdummy", field=None).__class__ is Parameter
+    assert schema.get("base", field="schema"), BaseSchema
+    assert schema.get("base", "default", field=None).__class__ is Parameter
+    assert schema.get("base", "newbase", field=None).__class__ is Parameter
+
+    assert schema.get("dummy", "newdummy") == "teststring"
+    assert schema.get("base", "newbase") == "teststring"
+
+
+def test___get_child_classes_invalid_child(monkeypatch):
+    class DummySchema0(BaseSchema):
+        def __init__(self):
+            super().__init__()
+
+        @classmethod
+        def _getdict_type(cls):
+            return "dummy_schema"
+
+    class DummySchema1(BaseSchema):
+        def __init__(self):
+            super().__init__()
+
+        @classmethod
+        def _getdict_type(cls):
+            return "dummy_schema"
+
+    monkeypatch.setattr(DummySchema0, "__subclasses__", lambda: [])
+    monkeypatch.setattr(DummySchema1, "__subclasses__", lambda: [])
+
+    with patch("siliconcompiler.schema.BaseSchema.__subclasses__") as subclasses:
+        subclasses.return_value = set([DummySchema0, DummySchema1])
+
+        with pytest.raises(RuntimeError, match="fatal error at: dummy_schema"):
+            BaseSchema._BaseSchema__get_child_classes.cache_clear()
+            BaseSchema._BaseSchema__get_child_classes()
+        subclasses.assert_called_once()
+
+
+def test___get_child_classes_valid(monkeypatch):
+    class DummySchema0(BaseSchema):
+        def __init__(self):
+            super().__init__()
+
+    class DummySchema1(BaseSchema):
+        def __init__(self):
+            super().__init__()
+
+    monkeypatch.setattr(DummySchema0, "__subclasses__", lambda: [])
+    monkeypatch.setattr(DummySchema1, "__subclasses__", lambda: [])
+
+    with patch("siliconcompiler.schema.BaseSchema.__subclasses__") as subclasses:
+        subclasses.return_value = set([DummySchema0, DummySchema1])
+
+        BaseSchema._BaseSchema__get_child_classes.cache_clear()
+        assert BaseSchema._BaseSchema__get_child_classes() == {
+            "BaseSchema": BaseSchema,
+            "siliconcompiler.schema.baseschema/BaseSchema": BaseSchema,
+            "test_baseschema/DummySchema0": DummySchema0,
+            "test_baseschema/DummySchema1": DummySchema1,
+        }
+        assert BaseSchema._BaseSchema__get_child_classes() == {
+            "BaseSchema": BaseSchema,
+            "siliconcompiler.schema.baseschema/BaseSchema": BaseSchema,
+            "test_baseschema/DummySchema0": DummySchema0,
+            "test_baseschema/DummySchema1": DummySchema1,
+        }
+        subclasses.assert_called_once()
+
+
+@pytest.mark.parametrize("clsname", ["notvalid", None, 1, 8.5])
+def test___load_schema_class_invalid_name(clsname):
+    BaseSchema._BaseSchema__load_schema_class.cache_clear()
+    assert BaseSchema._BaseSchema__load_schema_class(clsname) is None
+
+
+@pytest.mark.parametrize("error", [ImportError, ModuleNotFoundError, SyntaxError])
+def test___load_schema_class_reject_import_fails(error):
+    with patch("importlib.import_module") as import_module:
+        def raises(*args, **kwargs):
+            raise error
+        import_module.side_effect = raises
+
+        BaseSchema._BaseSchema__load_schema_class.cache_clear()
+        assert BaseSchema._BaseSchema__load_schema_class("test/Class") is None
+        import_module.assert_called_once()
+
+
+@pytest.mark.parametrize("error", [ZeroDivisionError, NotImplementedError])
+def test___load_schema_class_forward_import_fails(error):
+    with patch("importlib.import_module") as import_module:
+        def raises(*args, **kwargs):
+            raise error("match this")
+        import_module.side_effect = raises
+
+        BaseSchema._BaseSchema__load_schema_class.cache_clear()
+        with pytest.raises(error, match="match this"):
+            BaseSchema._BaseSchema__load_schema_class("test/Class")
+        import_module.assert_called_once()
+
+
+def test___load_schema_class_class_not_found():
+    class Test:
+        pass
+
+    with patch("importlib.import_module") as import_module:
+        import_module.return_value = Test
+
+        BaseSchema._BaseSchema__load_schema_class.cache_clear()
+        assert BaseSchema._BaseSchema__load_schema_class("test/Class") is None
+        import_module.assert_called_once_with("test")
+
+
+def test___load_schema_class_class_invalid_class_type():
+    class Test:
+        class Class:
+            pass
+
+    with patch("importlib.import_module") as import_module:
+        import_module.return_value = Test
+
+        BaseSchema._BaseSchema__load_schema_class.cache_clear()
+        with pytest.raises(TypeError, match="Class must be a BaseSchema type"):
+            BaseSchema._BaseSchema__load_schema_class("test/Class")
+        import_module.assert_called_once_with("test")
+
+
+def test___load_schema_class():
+    class Test:
+        class Class(BaseSchema):
+            pass
+
+    with patch("importlib.import_module") as import_module:
+        import_module.return_value = Test
+
+        BaseSchema._BaseSchema__load_schema_class.cache_clear()
+        assert BaseSchema._BaseSchema__load_schema_class("test/Class") is Test.Class
+        import_module.assert_called_once_with("test")

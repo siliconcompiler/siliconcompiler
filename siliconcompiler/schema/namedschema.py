@@ -54,6 +54,14 @@ class NamedSchema(BaseSchema):
         raise NotImplementedError("Must be implemented by the child classes.")
 
     @classmethod
+    def _getdict_type(cls) -> str:
+        """
+        Returns the meta data for getdict
+        """
+
+        raise NotImplementedError("Must be implemented by the child classes.")
+
+    @classmethod
     def from_manifest(cls, name, filepath=None, cfg=None):
         '''
         Create a new schema based on the provided source files.

@@ -339,6 +339,14 @@ class RecordSchema(BaseSchema):
             info = shlex.join(info)
         self.set(type.value, info, step=step, index=index)
 
+    @classmethod
+    def _getdict_type(cls) -> str:
+        """
+        Returns the meta data for getdict
+        """
+
+        return RecordSchema.__name__
+
 
 ###########################################################################
 # Run Record

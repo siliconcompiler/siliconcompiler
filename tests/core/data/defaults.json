@@ -1,4 +1,8 @@
 {
+    "__meta__": {
+        "class": "siliconcompiler.schema_obj/SchemaTmp",
+        "sctype": "SchemaTmp"
+    },
     "arg": {
         "index": {
             "example": [
@@ -52,6 +56,10 @@
         }
     },
     "asic": {
+        "__meta__": {
+            "class": "siliconcompiler.asic/ASICSchema",
+            "sctype": "ASICSchema"
+        },
         "cells": {
             "antenna": {
                 "example": [
@@ -459,6 +467,10 @@
     },
     "checklist": {
         "default": {
+            "__meta__": {
+                "class": "siliconcompiler.checklist/ChecklistSchema",
+                "sctype": "ChecklistSchema"
+            },
             "default": {
                 "criteria": {
                     "example": [
@@ -6323,8 +6335,16 @@
     },
     "flowgraph": {
         "default": {
+            "__meta__": {
+                "class": "siliconcompiler.flowgraph/FlowgraphSchema",
+                "sctype": "FlowgraphSchema"
+            },
             "default": {
                 "default": {
+                    "__meta__": {
+                        "class": "siliconcompiler.flowgraph/FlowgraphNodeSchema",
+                        "sctype": "FlowgraphNodeSchema"
+                    },
                     "args": {
                         "example": [
                             "cli: -flowgraph_args 'asicflow cts 0 0'",
@@ -6509,6 +6529,10 @@
         }
     },
     "fpga": {
+        "__meta__": {
+            "class": "siliconcompiler.fpga/FPGASchemaTmp",
+            "sctype": "FPGASchemaTmp"
+        },
         "default": {
             "file": {
                 "default": {
@@ -6685,6 +6709,10 @@
     },
     "library": {},
     "metric": {
+        "__meta__": {
+            "class": "siliconcompiler.metric/MetricSchemaTmp",
+            "sctype": "MetricSchema"
+        },
         "averagepower": {
             "example": [
                 "cli: -metric_averagepower 'place 0 0.01'",
@@ -9174,6 +9202,10 @@
         }
     },
     "package": {
+        "__meta__": {
+            "class": "siliconcompiler.packageschema/PackageSchemaTmp",
+            "sctype": "PackageSchemaTmp"
+        },
         "author": {
             "default": {
                 "email": {
@@ -9816,6 +9848,10 @@
     },
     "pdk": {
         "default": {
+            "__meta__": {
+                "class": "siliconcompiler.pdk/PDKSchemaTmp",
+                "sctype": "PDKSchemaTmp"
+            },
             "aprtech": {
                 "default": {
                     "default": {
@@ -10756,6 +10792,10 @@
         }
     },
     "record": {
+        "__meta__": {
+            "class": "siliconcompiler.record/RecordSchema",
+            "sctype": "RecordSchema"
+        },
         "arch": {
             "example": [
                 "cli: -record_arch 'dfm 0 x86_64'",
@@ -11481,7 +11521,7 @@
             "default": {
                 "default": {
                     "signature": null,
-                    "value": "0.51.4"
+                    "value": "0.51.5"
                 }
             }
         },
@@ -11497,6 +11537,10 @@
     },
     "tool": {
         "default": {
+            "__meta__": {
+                "class": "siliconcompiler.tool/ToolSchemaTmp",
+                "sctype": "ToolSchemaTmp"
+            },
             "exe": {
                 "example": [
                     "cli: -tool_exe 'openroad openroad'",
@@ -11638,6 +11682,10 @@
             },
             "task": {
                 "default": {
+                    "__meta__": {
+                        "class": "siliconcompiler.tool/TaskSchemaTmp",
+                        "sctype": "TaskSchema"
+                    },
                     "dir": {
                         "default": {
                             "copy": true,

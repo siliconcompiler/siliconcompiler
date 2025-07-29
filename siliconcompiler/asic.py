@@ -9,6 +9,14 @@ class ASICSchema(BaseSchema):
 
         schema_asic(self)
 
+    @classmethod
+    def _getdict_type(cls) -> str:
+        """
+        Returns the meta data for getdict
+        """
+
+        return ASICSchema.__name__
+
 
 ###############################################################################
 # ASIC

@@ -21,9 +21,20 @@ class SafeSchema(BaseSchema):
         except:  # noqa E722
             return None
 
+    @classmethod
+    def _getdict_type(cls) -> str:
+        """
+        Returns the meta data for getdict
+        """
+
+        return "SafeSchema"
+
     def _from_dict(self, manifest, keypath, version=None):
         if not isinstance(manifest, dict):
             return
+
+        if "__meta__" in manifest:
+            del manifest["__meta__"]
 
         for key, data in manifest.items():
             obj = SafeSchema.__is_dict_leaf(data, keypath + [key], version)

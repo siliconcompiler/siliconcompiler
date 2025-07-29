@@ -162,6 +162,9 @@ def make_manifest_helper(manifest_subsect, modified_manifest_subsect):
                             modified_manifest_subsect[step + index] = value
 
     for key, key_dict in manifest_subsect.items():
+        if key == "__meta__" or key == "__journal__":
+            continue
+
         if key != 'default':
             if _is_leaf(key_dict):
                 modified_manifest_subsect[key] = build_leaf(key_dict)

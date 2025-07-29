@@ -3,7 +3,7 @@
 from . import EditableSchema, Parameter, Scope, PerNode
 from .utils import trim
 
-SCHEMA_VERSION = '0.51.4'
+SCHEMA_VERSION = '0.51.5'
 
 
 #############################################################################
