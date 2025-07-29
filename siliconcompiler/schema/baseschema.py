@@ -6,6 +6,7 @@
 
 import contextlib
 import copy
+import importlib
 
 try:
     import gzip
@@ -21,6 +22,9 @@ except ModuleNotFoundError:
     _has_orjson = False
 
 import os.path
+
+from functools import cache
+from typing import Dict, Type
 
 from .parameter import Parameter, NodeValue
 from .journal import Journal
@@ -49,6 +53,63 @@ class BaseSchema:
             return tuple()
         return tuple([*self.__parent._keypath, self.__key])
 
+    @staticmethod
+    @cache
+    def __get_child_classes() -> Dict[str, Type["BaseSchema"]]:
+        def recurse(cls):
+            subclss = set()
+            subclss.add(cls)
+            for subcls in cls.__subclasses__():
+                subclss.update(recurse(subcls))
+            return subclss
+
+        # Resolve true base
+        cls_mapping = {}
+        for cls in recurse(BaseSchema):
+            try:
+                cls_mapping.setdefault(cls._getdict_type(), set()).add(cls)
+            except NotImplementedError:
+                pass
+
+        # Build lookup table
+        cls_map = {}
+        for cls_type, clss in cls_mapping.items():
+            for cls in clss:
+                cls_map[f"{cls.__module__}/{cls.__name__}"] = cls
+
+            if len(clss) > 1:
+                found = False
+                for cls in clss:
+                    if cls.__name__ == cls_type:
+                        cls_map[cls_type] = cls
+                        found = True
+                        break
+                if not found:
+                    raise RuntimeError(f"fatal error at: {cls_type}")
+            else:
+                cls_map[cls_type] = list(clss)[0]
+        return cls_map
+
+    @staticmethod
+    @cache
+    def __load_schema_class(cls_name: str) -> Type["BaseSchema"]:
+        try:
+            module_name, cls_name = cls_name.split("/")
+        except (ValueError, AttributeError):
+            return None
+
+        try:
+            module = importlib.import_module(module_name)
+        except (ImportError, ModuleNotFoundError, SyntaxError):
+            return None
+
+        cls = getattr(module, cls_name, None)
+        if not cls:
+            return None
+        if not issubclass(cls, BaseSchema):
+            raise TypeError(f"{cls_name} must be a BaseSchema type")
+        return cls
+
     def _from_dict(self, manifest, keypath, version=None):
         '''
         Decodes a dictionary into a schema object
@@ -62,8 +123,14 @@ class BaseSchema:
         handled = set()
         missing = set()
 
+        cls_map = BaseSchema.__get_child_classes()
+
         if "__journal__" in manifest:
             self.__journal.from_dict(manifest["__journal__"])
+            del manifest["__journal__"]
+
+        if "__meta__" in manifest:
+            del manifest["__meta__"]
 
         if self.__default:
             data = manifest.get("default", None)
@@ -74,9 +141,29 @@ class BaseSchema:
 
         for key, data in manifest.items():
             obj = self.__manifest.get(key, None)
+            if not obj and isinstance(data, dict) and "__meta__" in data:
+                # Lookup object, use class first, then type
+                cls_name = data["__meta__"].get("class", None)
+                cls = None
+                if cls_name:
+                    cls = cls_map.get(cls_name, None)
+                    if not cls:
+                        cls = BaseSchema.__load_schema_class(cls_name)
+                if not cls:
+                    cls = cls_map.get(data["__meta__"].get("sctype", None), None)
+                if cls is BaseSchema and self.__default:
+                    # Use default when BaseSchema is the class
+                    obj = self.__default.copy()
+                    self.__manifest[key] = obj
+                elif cls:
+                    obj = cls()
+                    self.__manifest[key] = obj
+
+            # Use default if it is available
             if not obj and self.__default:
                 obj = self.__default.copy(key=keypath + [key])
                 self.__manifest[key] = obj
+
             if obj:
                 obj._from_dict(data, keypath + [key], version=version)
                 handled.add(key)
@@ -510,6 +597,14 @@ class BaseSchema:
             add(keys, key, item)
         return set(keys)
 
+    @classmethod
+    def _getdict_type(cls) -> str:
+        """
+        Returns the meta data for getdict
+        """
+
+        return "BaseSchema"
+
     def getdict(self, *keypath, include_default=True, values_only=False):
         """
         Returns a schema dictionary.
@@ -552,6 +647,15 @@ class BaseSchema:
 
         if not values_only and self.__journal.has_journaling():
             manifest["__journal__"] = self.__journal.get()
+
+        if not values_only and self.__class__ is not BaseSchema:
+            manifest["__meta__"] = {
+                "class": f"{self.__class__.__module__}/{self.__class__.__name__}"
+            }
+            try:
+                manifest["__meta__"]["sctype"] = self._getdict_type()
+            except NotImplementedError:
+                pass
 
         return manifest
 
