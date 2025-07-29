@@ -13,6 +13,14 @@ class LibrarySchema(FileSetSchema, PackageSchema, NamedSchema):
         super().__init__()
         self.set_name(name)
 
+    @classmethod
+    def _getdict_type(cls) -> str:
+        """
+        Returns the meta data for getdict
+        """
+
+        return LibrarySchema.__name__
+
 
 class ToolLibrarySchema(LibrarySchema):
     @final
@@ -43,6 +51,14 @@ class ToolLibrarySchema(LibrarySchema):
             "tool", tool, name,
             Parameter(type, **kwargs)
         )
+
+    @classmethod
+    def _getdict_type(cls) -> str:
+        """
+        Returns the meta data for getdict
+        """
+
+        return ToolLibrarySchema.__name__
 
 
 class StdCellLibrarySchema(ToolLibrarySchema):
@@ -189,3 +205,11 @@ class StdCellLibrarySchema(ToolLibrarySchema):
             cells (list of str): cells to add
         """
         return self.add("asic", "site", site)
+
+    @classmethod
+    def _getdict_type(cls) -> str:
+        """
+        Returns the meta data for getdict
+        """
+
+        return StdCellLibrarySchema.__name__

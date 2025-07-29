@@ -543,6 +543,14 @@ class FlowgraphSchema(NamedSchema):
             tasks.add(self.get_task_module(step, index))
         return tasks
 
+    @classmethod
+    def _getdict_type(cls) -> str:
+        """
+        Returns the meta data for getdict
+        """
+
+        return FlowgraphSchema.__name__
+
 
 class RuntimeFlowgraph:
     '''
@@ -831,6 +839,14 @@ class FlowgraphNodeSchema(BaseSchema):
         super().__init__()
 
         schema_flowgraph(self)
+
+    @classmethod
+    def _getdict_type(cls) -> str:
+        """
+        Returns the meta data for getdict
+        """
+
+        return FlowgraphNodeSchema.__name__
 
 
 ###############################################################################

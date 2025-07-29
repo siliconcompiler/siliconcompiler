@@ -210,6 +210,14 @@ class ChecklistSchema(NamedSchema):
 
         return not error
 
+    @classmethod
+    def _getdict_type(cls) -> str:
+        """
+        Returns the meta data for getdict
+        """
+
+        return ChecklistSchema.__name__
+
 
 ############################################
 # Design Checklist

@@ -544,6 +544,14 @@ class DesignSchema(LibrarySchema, DependencySchema):
             return self.find_files('fileset', fileset, option)
         return self.get('fileset', fileset, option)
 
+    @classmethod
+    def _getdict_type(cls) -> str:
+        """
+        Returns the meta data for getdict
+        """
+
+        return DesignSchema.__name__
+
     def get_fileset(self,
                     filesets: Union[List[str], str],
                     alias: Dict[str, Tuple[NamedSchema, str]] = None) -> \

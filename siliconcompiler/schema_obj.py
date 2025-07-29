@@ -38,6 +38,14 @@ class Schema(BaseSchema):
 
         return super()._from_dict(manifest, keypath, version=version)
 
+    @classmethod
+    def _getdict_type(cls) -> str:
+        """
+        Returns the meta data for getdict
+        """
+
+        return Schema.__name__
+
 
 class SchemaTmp(Schema, CommandLineSchema):
     """Object for storing and accessing configuration values corresponding to
@@ -112,6 +120,14 @@ class SchemaTmp(Schema, CommandLineSchema):
             blank = SchemaTmp()
             EditableSchema(self).insert("history", job, blank)
             return blank
+
+    @classmethod
+    def _getdict_type(cls) -> str:
+        """
+        Returns the meta data for getdict
+        """
+
+        return SchemaTmp.__name__
 
 
 ##############################################################################

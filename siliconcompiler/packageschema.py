@@ -182,6 +182,14 @@ class PackageSchema(PathSchema):
                 docs[type] = doc_files
         return docs
 
+    @classmethod
+    def _getdict_type(cls) -> str:
+        """
+        Returns the meta data for getdict
+        """
+
+        return PackageSchema.__name__
+
 
 ############################################
 # Package information
@@ -353,6 +361,14 @@ class PackageSchemaTmp(BaseSchema):
             resolvers[package] = self.get_resolver(package).get_path
 
         return resolvers
+
+    @classmethod
+    def _getdict_type(cls) -> str:
+        """
+        Returns the meta data for getdict
+        """
+
+        return PackageSchemaTmp.__name__
 
 
 ############################################
