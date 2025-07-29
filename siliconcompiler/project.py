@@ -387,7 +387,7 @@ class Project(PathSchemaBase, BaseSchema):
             fileset = [fileset]
 
         for fs in fileset:
-            if fs not in self.design.getkeys("fileset"):
+            if not self.design.has_fileset(fs):
                 raise ValueError(f"{fs} is not a valid fileset in {self.design.name}")
 
         if clobber:
@@ -424,7 +424,7 @@ class Project(PathSchemaBase, BaseSchema):
         else:
             raise TypeError("source dep is not a valid type")
 
-        if src_fileset not in src_dep.getkeys("fileset"):
+        if not src_dep.has_fileset(src_fileset):
             raise ValueError(f"{src_dep_name} does not have {src_fileset} as a fileset")
 
         if alias_dep is None:
@@ -449,7 +449,7 @@ class Project(PathSchemaBase, BaseSchema):
             else:
                 raise TypeError("alias dep is not a valid type")
 
-            if alias_fileset != "" and alias_fileset not in alias_dep.getkeys("fileset"):
+            if alias_fileset != "" and not alias_dep.has_fileset(alias_fileset):
                 raise ValueError(f"{alias_dep_name} does not have {alias_fileset} as a fileset")
 
         alias = (src_dep_name, src_fileset, alias_dep_name, alias_fileset)

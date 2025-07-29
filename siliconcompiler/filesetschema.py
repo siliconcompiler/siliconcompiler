@@ -186,7 +186,7 @@ class FileSetSchema(PathSchema):
             dst_fileset (str): destination fileset
             clobber (bool): overwrite existing fileset
         """
-        if not clobber and dst_fileset in self.getkeys("fileset"):
+        if not clobber and self.has_fileset(dst_fileset):
             raise ValueError(f"{dst_fileset} already exists")
 
         new_fs = self.get("fileset", src_fileset, field="schema").copy()
@@ -203,9 +203,16 @@ class FileSetSchema(PathSchema):
         if not isinstance(fileset, str):
             raise TypeError("fileset must be a string")
 
-        if fileset not in self.getkeys("fileset"):
+        if not self.has_fileset(fileset):
             name = getattr(self, "name", None)
             if name:
                 raise LookupError(f"{fileset} is not defined in {name}")
             else:
                 raise LookupError(f"{fileset} is not defined")
+
+    def has_fileset(self, fileset: str) -> bool:
+        """
+        Returns true if the fileset exists
+        """
+
+        return fileset in self.getkeys("fileset")

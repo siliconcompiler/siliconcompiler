@@ -292,3 +292,15 @@ def test_assert_fileset_with_none():
 def test_assert_fileset_with_int():
     with pytest.raises(TypeError, match="^fileset must be a string$"):
         FileSetSchema()._assert_fileset(1)
+
+
+def test_has_fileset_not_found():
+    assert FileSetSchema().has_fileset("test") is False
+
+
+def test_has_fileset_found():
+    schema = FileSetSchema()
+    with schema.active_fileset("rtl"):
+        assert schema.add_file("top.v")
+    assert schema.has_fileset("test") is False
+    assert schema.has_fileset("rtl") is True
