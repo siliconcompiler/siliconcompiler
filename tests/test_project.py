@@ -667,3 +667,22 @@ def test_get_filesets_with_alias_missing():
 
     with pytest.raises(KeyError, match="test1 is not a loaded library"):
         proj.get_filesets()
+
+
+def test_has_library_not_found():
+    proj = Project()
+    assert proj.has_library("test") is False
+
+    proj.add_dep(DesignSchema("test"))
+    assert proj.has_library("notfound") is False
+    assert proj.has_library("test") is True
+
+
+def test_has_library_not_found_with_object():
+    proj = Project()
+    design = DesignSchema("test")
+    assert proj.has_library(design) is False
+
+    proj.add_dep(design)
+    assert proj.has_library("notfound") is False
+    assert proj.has_library(design) is True

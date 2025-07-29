@@ -457,3 +457,13 @@ class Project(PathSchemaBase, BaseSchema):
             return self.set("option", "alias", alias)
         else:
             return self.add("option", "alias", alias)
+
+    def has_library(self, library: str) -> bool:
+        """
+        Returns true if the library exists
+        """
+
+        if isinstance(library, NamedSchema):
+            library = library.name
+
+        return library in self.getkeys("library")
