@@ -413,30 +413,36 @@ class Project(PathSchemaBase, BaseSchema):
         """
 
         if isinstance(src_dep, str):
-            if src_dep not in self.getkeys("library"):
-                raise KeyError(f"{src_dep} has not been loaded")
+            if self.has_library(src_dep):
+                src_dep = self.get("library", src_dep, field="schema")
+            else:
+                src_dep_name = src_dep
+                src_dep = None
 
-            src_dep = self.get("library", src_dep, field="schema")
-        if isinstance(src_dep, DesignSchema):
-            src_dep_name = src_dep.name
-            if src_dep_name not in self.getkeys("library"):
-                raise KeyError(f"{src_dep_name} has not been loaded")
-        else:
-            raise TypeError("source dep is not a valid type")
+        if src_dep is not None:
+            if isinstance(src_dep, DesignSchema):
+                src_dep_name = src_dep.name
+                if not self.has_library(src_dep_name):
+                    self.add_dep(src_dep)
+            else:
+                raise TypeError("source dep is not a valid type")
 
-        if not src_dep.has_fileset(src_fileset):
-            raise ValueError(f"{src_dep_name} does not have {src_fileset} as a fileset")
+            if not src_dep.has_fileset(src_fileset):
+                raise ValueError(f"{src_dep_name} does not have {src_fileset} as a fileset")
 
         if alias_dep is None:
             alias_dep = ""
 
+        if alias_fileset == "":
+            alias_fileset = None
+
         if isinstance(alias_dep, str):
             if alias_dep == "":
                 alias_dep = None
-                alias_dep_name = ""
-                alias_fileset = ""
+                alias_dep_name = None
+                alias_fileset = None
             else:
-                if alias_dep not in self.getkeys("library"):
+                if not self.has_library(alias_dep):
                     raise KeyError(f"{alias_dep} has not been loaded")
 
                 alias_dep = self.get("library", alias_dep, field="schema")
@@ -444,12 +450,12 @@ class Project(PathSchemaBase, BaseSchema):
         if alias_dep is not None:
             if isinstance(alias_dep, DesignSchema):
                 alias_dep_name = alias_dep.name
-                if alias_dep_name not in self.getkeys("library"):
+                if not self.has_library(alias_dep_name):
                     self.add_dep(alias_dep)
             else:
                 raise TypeError("alias dep is not a valid type")
 
-            if alias_fileset != "" and not alias_dep.has_fileset(alias_fileset):
+            if alias_fileset is not None and not alias_dep.has_fileset(alias_fileset):
                 raise ValueError(f"{alias_dep_name} does not have {alias_fileset} as a fileset")
 
         alias = (src_dep_name, src_fileset, alias_dep_name, alias_fileset)

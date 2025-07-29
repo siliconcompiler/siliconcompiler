@@ -413,19 +413,34 @@ def test_add_alias_invalid_src_type():
 
 
 def test_add_alias_src_name_not_loaded():
+    dst = DesignSchema("dst")
+    with dst.active_fileset("rtl"):
+        dst.set_topmodule("top")
+
     proj = Project()
-    with pytest.raises(KeyError, match="test0 has not been loaded"):
-        proj.add_alias("test0", "rtl", 2, "rtl")
+    assert proj.has_library("test0") is False
+    proj.add_alias("test0", "rtl", dst, "rtl")
+    assert proj.has_library("test0") is False
+    assert proj.get("option", "alias") == [
+        ("test0", "rtl", "dst", "rtl")
+    ]
 
 
 def test_add_alias_src_dep_not_loaded():
     design = DesignSchema("test")
     with design.active_fileset("rtl"):
         design.set_topmodule("top")
+    dst = DesignSchema("dst")
+    with dst.active_fileset("rtl"):
+        dst.set_topmodule("top")
 
     proj = Project()
-    with pytest.raises(KeyError, match="test has not been loaded"):
-        proj.add_alias(design, "rtl", 2, "rtl")
+    assert proj.has_library(design) is False
+    proj.add_alias(design, "rtl", dst, "rtl")
+    assert proj.has_library(design) is True
+    assert proj.get("option", "alias") == [
+        ("test", "rtl", "dst", "rtl")
+    ]
 
 
 def test_add_alias_src_invalid_fileset():
@@ -560,7 +575,7 @@ def test_add_alias_remove_alias():
     proj = Project(design)
     assert proj.add_alias("test", "rtl", None, "rtl")
     assert proj.get("option", "alias") == [
-        ("test", "rtl", "", "")
+        ("test", "rtl", None, None)
     ]
 
 
@@ -578,7 +593,7 @@ def test_add_alias_repeat_fileset():
     proj = Project(design)
     assert proj.add_alias("test", "rtl", alias, "")
     assert proj.get("option", "alias") == [
-        ("test", "rtl", "alias", "")
+        ("test", "rtl", "alias", None)
     ]
 
 
