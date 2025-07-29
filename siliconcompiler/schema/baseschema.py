@@ -75,7 +75,7 @@ class BaseSchema:
         for key, data in manifest.items():
             obj = self.__manifest.get(key, None)
             if not obj and self.__default:
-                obj = self.__default.copy()
+                obj = self.__default.copy(key=keypath + [key])
                 self.__manifest[key] = obj
             if obj:
                 obj._from_dict(data, keypath + [key], version=version)
