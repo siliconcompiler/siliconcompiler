@@ -134,4 +134,5 @@ class SchemaTmp(Schema, CommandLineSchema):
 # Main routine
 if __name__ == "__main__":
     import json
-    print(json.dumps(SchemaTmp().getdict(), indent=4, sort_keys=True))
+    from siliconcompiler import Schema
+    print(json.dumps(Schema().getdict(), indent=4, sort_keys=True))
