@@ -473,3 +473,69 @@ class Project(PathSchemaBase, BaseSchema):
             library = library.name
 
         return library in self.getkeys("library")
+
+    def _summary_headers(self) -> List[Tuple[str, str]]:
+        """
+        Project defined headers to add to summary.
+        If projects require additional information they can extend this
+        method to add additional information.
+        """
+
+        alias = []
+        for src, src_fs, dst, dst_fs in self.get("option", "alias"):
+            if not self.has_library(src):
+                continue
+            if dst and not self.has_library(dst):
+                continue
+
+            aliased = f"{src} ({src_fs}) -> "
+            if not dst:
+                aliased += "deleted"
+            elif not dst_fs:
+                aliased += "deleted"
+            else:
+                aliased += f"{dst} ({dst_fs})"
+            alias.append(aliased)
+
+        filesets = self.get("option", "fileset")
+
+        headers = [
+            ("design", self.get("option", "design"))
+        ]
+        if filesets:
+            headers.append(("filesets", ", ".join(filesets)))
+        if alias:
+            headers.append(("alias", ", ".join(alias)))
+        headers.append(("jobdir", self.getworkdir()))
+
+        return headers
+
+    def summary(self, jobname: str = None) -> None:
+        '''
+        Prints a summary of the compilation manifest.
+
+        Metrics from the flowgraph nodes, or from/to parameter if
+        defined, are printed out on a per step basis.
+
+        Args:
+            jobname (str): If provided prints uses this job to print summary,
+                otherwise the value in :keypath:`option,jobname` will be used.
+
+        Examples:
+            >>> chip.summary()
+            Prints out a summary of the run to stdout.
+        '''
+        histories = self.getkeys("history")
+
+        if not histories:
+            raise ValueError("no history to summarize")
+
+        if jobname is None:
+            jobname = self.get("option", "jobname")
+        if jobname not in histories:
+            org_job = jobname
+            jobname = histories[0]
+            self.logger.warning(f"{org_job} not found in history, picking {jobname}")
+
+        history = self.history(jobname)
+        history.get("metric", field='schema').summary(headers=history._summary_headers())
