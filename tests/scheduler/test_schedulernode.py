@@ -1531,8 +1531,8 @@ def test_copy_from(chip, caplog, has_graphviz):
     with node.runtime():
         node.task.setup_work_directory(node.workdir)
         node.task.generate_replay_script(node.replay_script, node.workdir)
-        chip.write_flowgraph(node.get_manifest("input"))
-        chip.write_flowgraph(node.get_manifest("output"))
+        chip.write_manifest(node.get_manifest("input"))
+        chip.write_manifest(node.get_manifest("output"))
 
     chip.set("option", "jobname", "newname")
     node = SchedulerNode(chip, "stepone", "0")
