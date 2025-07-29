@@ -601,6 +601,10 @@ def test_getdict_from_dict():
         check_schema.get("test0", field="schema")
     assert check_schema.get("test0", "testdefault", field="schema")._parent() is \
         check_schema.get("test0", field="schema")
+    assert check_schema.get("test0", "default", field="schema")._keypath == \
+        ('test0', 'default')
+    assert check_schema.get("test0", "testdefault", field="schema")._keypath == \
+        ('test0', 'testdefault')
 
 
 def test_getdict_from_dict_unmatched():

@@ -76,6 +76,8 @@ class BaseSchema:
             obj = self.__manifest.get(key, None)
             if not obj and self.__default:
                 obj = self.__default.copy()
+                if isinstance(obj, BaseSchema):
+                    obj.__key = key
                 self.__manifest[key] = obj
             if obj:
                 obj._from_dict(data, keypath + [key], version=version)
