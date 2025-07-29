@@ -153,10 +153,13 @@ class BaseSchema:
                     cls = cls_map.get(data["__meta__"].get("sctype", None), None)
                 if cls is BaseSchema and self.__default:
                     # Use default when BaseSchema is the class
-                    obj = self.__default.copy()
+                    obj = self.__default.copy(key=keypath + [key])
                     self.__manifest[key] = obj
                 elif cls:
+                    # Create object and connect to schema
                     obj = cls()
+                    obj.__parent = self
+                    obj.__key = key
                     self.__manifest[key] = obj
 
             # Use default if it is available

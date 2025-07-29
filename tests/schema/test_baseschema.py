@@ -2133,13 +2133,111 @@ def test_from_dict_composite_type_names():
         assert children.call_count == 5
         load_schema_class.assert_not_called()
 
-    assert isinstance(schema.get("dummy", "default", field="schema"), BaseSchema)
-    assert isinstance(schema.get("dummy", "newdummy", field="schema"), DummySchema)
-    assert isinstance(schema.get("base", "default", field=None), Parameter)
-    assert isinstance(schema.get("base", "newbase", field=None), Parameter)
+    assert schema.get("dummy", "default", field="schema").__class__ is BaseSchema
+    assert schema.get("dummy", "newdummy", field="schema").__class__ is DummySchema
+    assert schema.get("base", "default", field=None).__class__ is Parameter
+    assert schema.get("base", "newbase", field=None).__class__ is Parameter
+
+    assert schema.get("dummy", "newdummy", field="schema")._keypath == \
+        ("dummy", "newdummy")
+    assert schema.get("dummy", "default", field="schema")._keypath == \
+        ("dummy", "default")
 
     assert schema.get("dummy", "newdummy", "string") == "teststring"
     assert schema.get("base", "newbase", "string") == "teststring"
+
+
+def test_from_dict_composite_nested():
+    class LowSchema(BaseSchema):
+        def __init__(self):
+            super().__init__()
+
+            EditableSchema(self).insert("string", Parameter("str"))
+
+        @classmethod
+        def _getdict_type(cls):
+            return "low_schema"
+
+    class ImplLowSchema(LowSchema):
+        @classmethod
+        def _getdict_type(cls):
+            return "impl_low_schema"
+
+    class DummySchema(BaseSchema):
+        def __init__(self):
+            super().__init__()
+
+            EditableSchema(self).insert("test0", "default", LowSchema())
+
+        @classmethod
+        def _getdict_type(cls):
+            return "dummy_schema"
+
+    class ImplDummySchema(DummySchema):
+        @classmethod
+        def _getdict_type(cls):
+            return "impl_dummy_schema"
+
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("dummy", "default", DummySchema())
+
+    with patch("siliconcompiler.schema.BaseSchema._BaseSchema__get_child_classes") as children, \
+            patch("siliconcompiler.schema.BaseSchema._BaseSchema__load_schema_class") as \
+            load_schema_class:
+        children.return_value = {
+            "BaseSchema": BaseSchema,
+            "dummy_schema": DummySchema,
+            "impl_dummy_schema": ImplDummySchema,
+            "low_schema": LowSchema,
+            "impl_low_schema": ImplLowSchema
+        }
+        schema._from_dict({
+            'dummy': {
+                'newdummy': {
+                    'test0': {
+                        'newlow': {
+                            'string': {
+                                'type': 'str',
+                                'require': False,
+                                'scope': 'job',
+                                'lock': False,
+                                'switch': [],
+                                'shorthelp': None,
+                                'example': [],
+                                'help': None,
+                                'notes': None,
+                                'pernode': 'never',
+                                'node': {'global': {'global': {'value': 'teststring',
+                                                               'signature': None}},
+                                         'default': {'default': {'value': None, 'signature': None}}}
+                            },
+                            '__meta__': {
+                                'sctype': 'impl_low_schema'
+                            }
+                        }
+                    },
+                    '__meta__': {
+                        'sctype': 'impl_dummy_schema'
+                    }
+                }
+            }
+        }, [])
+        assert children.call_count == 5
+        load_schema_class.assert_not_called()
+
+    assert schema.get("dummy", "default", field="schema").__class__ is DummySchema
+    assert schema.get("dummy", "newdummy", field="schema").__class__ is ImplDummySchema
+    assert schema.get("dummy", "newdummy", "test0", field="schema").__class__ is BaseSchema
+    assert schema.get("dummy", "newdummy", "test0", "newlow", field="schema").__class__ is \
+        ImplLowSchema
+    assert schema.get("dummy", "newdummy", "test0", "newlow", "string", field=None).__class__ is \
+        Parameter
+
+    assert schema.get("dummy", "newdummy", "test0", "newlow", field="schema")._keypath == \
+        ("dummy", "newdummy", "test0", "newlow")
+
+    assert schema.get("dummy", "newdummy", "test0", "newlow", "string") == "teststring"
 
 
 def test_from_dict_composite_type_names_use_default():
@@ -2220,10 +2318,15 @@ def test_from_dict_composite_type_names_use_default():
         assert children.call_count == 4
         load_schema_class.assert_not_called()
 
-    assert isinstance(schema.get("dummy", "default", field="schema"), BaseSchema)
-    assert isinstance(schema.get("dummy", "newdummy", field="schema"), DummySchema)
-    assert isinstance(schema.get("base", "default", field=None), Parameter)
-    assert isinstance(schema.get("base", "newbase", field=None), Parameter)
+    assert schema.get("dummy", "default", field="schema").__class__ is DummySchema
+    assert schema.get("dummy", "newdummy", field="schema").__class__ is DummySchema
+    assert schema.get("base", "default", field=None).__class__ is Parameter
+    assert schema.get("base", "newbase", field=None).__class__ is Parameter
+
+    assert schema.get("dummy", "newdummy", field="schema")._keypath == \
+        ("dummy", "newdummy")
+    assert schema.get("dummy", "default", field="schema")._keypath == \
+        ("dummy", "default")
 
     assert schema.get("dummy", "newdummy", "string") == "teststring"
     assert schema.get("base", "newbase", "string") == "teststring"
@@ -2309,10 +2412,15 @@ def test_from_dict_composite_type_load_via_class_name():
         assert children.call_count == 5
         load_schema_class.assert_called_once_with("test/DummySchema")
 
-    assert isinstance(schema.get("dummy", "default", field="schema"), BaseSchema)
-    assert isinstance(schema.get("dummy", "newdummy", field="schema"), DummySchema)
-    assert isinstance(schema.get("base", "default", field=None), Parameter)
-    assert isinstance(schema.get("base", "newbase", field=None), Parameter)
+    assert schema.get("dummy", "default", field="schema").__class__ is BaseSchema
+    assert schema.get("dummy", "newdummy", field="schema").__class__ is DummySchema
+    assert schema.get("base", "default", field=None).__class__ is Parameter
+    assert schema.get("base", "newbase", field=None).__class__ is Parameter
+
+    assert schema.get("dummy", "newdummy", field="schema")._keypath == \
+        ("dummy", "newdummy")
+    assert schema.get("dummy", "default", field="schema")._keypath == \
+        ("dummy", "default")
 
     assert schema.get("dummy", "newdummy", "string") == "teststring"
     assert schema.get("base", "newbase", "string") == "teststring"
@@ -2397,10 +2505,15 @@ def test_from_dict_composite_using_cls_name():
         assert children.call_count == 5
         load_schema_class.assert_not_called()
 
-    assert isinstance(schema.get("dummy", "default", field="schema"), BaseSchema)
-    assert isinstance(schema.get("dummy", "newdummy", field="schema"), DummySchema)
-    assert isinstance(schema.get("base", "default", field=None), Parameter)
-    assert isinstance(schema.get("base", "newbase", field=None), Parameter)
+    assert schema.get("dummy", "default", field="schema").__class__ is BaseSchema
+    assert schema.get("dummy", "newdummy", field="schema").__class__ is DummySchema
+    assert schema.get("base", "default", field=None).__class__ is Parameter
+    assert schema.get("base", "newbase", field=None).__class__ is Parameter
+
+    assert schema.get("dummy", "newdummy", field="schema")._keypath == \
+        ("dummy", "newdummy")
+    assert schema.get("dummy", "default", field="schema")._keypath == \
+        ("dummy", "default")
 
     assert schema.get("dummy", "newdummy", "string") == "teststring"
     assert schema.get("base", "newbase", "string") == "teststring"
@@ -2452,12 +2565,12 @@ def test_from_dict_composite_no_meta():
         assert children.call_count == 3
         load_schema_class.assert_not_called()
 
-    assert isinstance(schema.get("dummy", field="schema"), BaseSchema)
-    assert isinstance(schema.get("dummy", "default", field=None), Parameter)
-    assert isinstance(schema.get("dummy", "newdummy", field=None), Parameter)
-    assert isinstance(schema.get("base", field="schema"), BaseSchema)
-    assert isinstance(schema.get("base", "default", field=None), Parameter)
-    assert isinstance(schema.get("base", "newbase", field=None), Parameter)
+    assert schema.get("dummy", field="schema").__class__ is BaseSchema
+    assert schema.get("dummy", "default", field=None).__class__ is Parameter
+    assert schema.get("dummy", "newdummy", field=None).__class__ is Parameter
+    assert schema.get("base", field="schema"), BaseSchema
+    assert schema.get("base", "default", field=None).__class__ is Parameter
+    assert schema.get("base", "newbase", field=None).__class__ is Parameter
 
     assert schema.get("dummy", "newdummy") == "teststring"
     assert schema.get("base", "newbase") == "teststring"
