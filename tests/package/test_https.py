@@ -37,7 +37,8 @@ def test_dependency_path_download_http(datadir, path, ref, cache_id, tmp_path, c
 
     resolver = HTTPResolver("sc-data", chip, path, ref)
     assert resolver.resolve() == Path(os.path.join(tmp_path, f"sc-data-{ref[0:16]}-{cache_id}"))
-    assert os.path.isfile(os.path.join(tmp_path, f"sc-data-{ref[0:16]}-{cache_id}", "pyproject.toml"))
+    assert os.path.isfile(
+        os.path.join(tmp_path, f"sc-data-{ref[0:16]}-{cache_id}", "pyproject.toml"))
     assert "Downloading sc-data data from " in caplog.text
 
 
