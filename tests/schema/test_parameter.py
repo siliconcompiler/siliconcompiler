@@ -2,7 +2,7 @@ import argparse
 import pytest
 from siliconcompiler.schema import Parameter, PerNode, Scope
 from siliconcompiler.schema import SCHEMA_VERSION
-from siliconcompiler.schema.parametervalue import FileNodeValue
+from siliconcompiler.schema.parametervalue import FileNodeValue, NodeValue
 
 
 def test_pernode_is_never():
@@ -700,6 +700,44 @@ def test_getvalues():
         ('test1', 'step', None),
         ('test2', 'step', '0')
     ]
+
+
+def test_getvalues_nodes():
+    param = Parameter("str", defvalue="test", pernode=PerNode.OPTIONAL)
+
+    values = param.getvalues(return_values=False)
+    assert len(values) == 1
+    assert isinstance(values[0][0], NodeValue)
+    assert values[0][1] is None
+    assert values[0][2] is None
+    assert param.getvalues(return_values=False, return_defvalue=False) == []
+
+    param.set("test0")
+    param.set("test1", step="step")
+    param.set("test2", step="step", index="0")
+
+    values = param.getvalues(return_values=False)
+    assert len(values) == 3
+    assert isinstance(values[0][0], NodeValue)
+    assert values[0][1] is None
+    assert values[0][2] is None
+    assert isinstance(values[1][0], NodeValue)
+    assert values[1][1] == "step"
+    assert values[1][2] is None
+    assert isinstance(values[2][0], NodeValue)
+    assert values[2][1] == "step"
+    assert values[2][2] == "0"
+    values = param.getvalues(return_values=False, return_defvalue=False)
+    assert len(values) == 3
+    assert isinstance(values[0][0], NodeValue)
+    assert values[0][1] is None
+    assert values[0][2] is None
+    assert isinstance(values[1][0], NodeValue)
+    assert values[1][1] == "step"
+    assert values[1][2] is None
+    assert isinstance(values[2][0], NodeValue)
+    assert values[2][1] == "step"
+    assert values[2][2] == "0"
 
 
 def test_str():
