@@ -7,7 +7,7 @@ import os.path
 from unittest.mock import patch
 
 from siliconcompiler import Chip, Flow
-from siliconcompiler.scheduler.scheduler import Scheduler
+from siliconcompiler.scheduler import Scheduler
 
 from siliconcompiler.tools.builtin import nop
 
@@ -61,7 +61,7 @@ def test_init_flow_runtime_not_valid(basic_chip):
 def test_check_display_run(basic_chip):
     # Checks if check_display() is called during run()
     scheduler = Scheduler(basic_chip)
-    with patch("siliconcompiler.scheduler.scheduler.Scheduler._Scheduler__check_display",
+    with patch("siliconcompiler.scheduler.Scheduler._Scheduler__check_display",
                autospec=True) as call:
         scheduler.run()
         call.assert_called_once()
@@ -130,7 +130,7 @@ def test_check_display_with_display_windows(gcd_chip, remove_display_environment
 def test_increment_job_name_run(basic_chip):
     # Checks if __increment_job_name() is called during run()
     scheduler = Scheduler(basic_chip)
-    with patch("siliconcompiler.scheduler.scheduler.Scheduler._Scheduler__increment_job_name",
+    with patch("siliconcompiler.scheduler.Scheduler._Scheduler__increment_job_name",
                autospec=True) as call:
         scheduler.run()
         call.assert_called_once()
@@ -251,7 +251,7 @@ def test_clean_build_dir_remote(basic_chip):
 
 def test_check_manifest_pass(basic_chip):
     scheduler = Scheduler(basic_chip)
-    with patch("siliconcompiler.scheduler.scheduler.Scheduler.check_manifest",
+    with patch("siliconcompiler.scheduler.Scheduler.check_manifest",
                autospec=True) as call:
         call.return_value = True
         scheduler.run()
@@ -260,7 +260,7 @@ def test_check_manifest_pass(basic_chip):
 
 def test_check_manifest_fail(basic_chip):
     scheduler = Scheduler(basic_chip)
-    with patch("siliconcompiler.scheduler.scheduler.Scheduler.check_manifest",
+    with patch("siliconcompiler.scheduler.Scheduler.check_manifest",
                autospec=True) as call:
         call.return_value = False
         with pytest.raises(RuntimeError, match='check_manifest\\(\\) failed'):

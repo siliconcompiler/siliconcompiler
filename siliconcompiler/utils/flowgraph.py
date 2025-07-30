@@ -4,7 +4,7 @@ from siliconcompiler import NodeStatus
 from siliconcompiler.tools._common import input_file_node_name, get_tool_task
 
 from siliconcompiler.flowgraph import RuntimeFlowgraph
-from siliconcompiler.scheduler.schedulernode import SchedulerNode
+from siliconcompiler.scheduler import SchedulerNode
 
 
 ###########################################################################

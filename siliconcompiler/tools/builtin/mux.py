@@ -3,7 +3,7 @@ import re
 from siliconcompiler.tools.builtin.builtin import set_io_files
 from siliconcompiler import SiliconCompilerError
 from siliconcompiler.tools._common import get_tool_task
-from siliconcompiler.scheduler.schedulernode import SchedulerNode
+from siliconcompiler.scheduler import SchedulerNode
 
 
 def setup(chip):

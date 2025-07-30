@@ -41,7 +41,7 @@ from siliconcompiler import sc_open
 from siliconcompiler import Schema
 
 from siliconcompiler.record import RecordTool
-from siliconcompiler.scheduler.schedulernode import SchedulerNode
+from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 
 

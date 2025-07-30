@@ -7,7 +7,7 @@ from unittest.mock import patch
 from siliconcompiler import Chip, Flow
 from siliconcompiler.tools.builtin import nop
 
-from siliconcompiler.scheduler.slurm import SlurmSchedulerNode
+from siliconcompiler.scheduler import SlurmSchedulerNode
 
 
 @pytest.fixture

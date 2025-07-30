@@ -25,8 +25,8 @@ from siliconcompiler.remote import banner, JobStatus
 from siliconcompiler import NodeStatus as SCNodeStatus
 from siliconcompiler.remote import NodeStatus
 from siliconcompiler.flowgraph import RuntimeFlowgraph
-from siliconcompiler.scheduler.schedulernode import SchedulerNode
-from siliconcompiler.scheduler.taskscheduler import TaskScheduler
+from siliconcompiler.scheduler import SchedulerNode
+from siliconcompiler.scheduler import TaskScheduler
 
 
 # Compile validation code for API request bodies.

@@ -31,8 +31,7 @@ from siliconcompiler.report import _generate_summary_image, _open_summary_image
 from siliconcompiler.report.dashboard.web import WebDashboard
 from siliconcompiler.report.dashboard.cli import CliDashboard
 from siliconcompiler.report.dashboard import DashboardType
-from siliconcompiler.scheduler.scheduler import Scheduler
-from siliconcompiler.scheduler.schedulernode import SchedulerNode
+from siliconcompiler.scheduler import Scheduler, SchedulerNode
 from siliconcompiler.utils.flowgraph import _check_flowgraph_io, _get_flowgraph_information
 from siliconcompiler.tools._common import get_tool_task
 from types import FunctionType, ModuleType

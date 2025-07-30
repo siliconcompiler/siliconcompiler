@@ -8,7 +8,7 @@ from siliconcompiler.tools.openroad import metrics
 
 from siliconcompiler.tools.builtin import nop
 from siliconcompiler.targets import freepdk45_demo
-from siliconcompiler.scheduler.schedulernode import SchedulerNode
+from siliconcompiler.scheduler import SchedulerNode
 
 
 def _setup_fifo(scroot):

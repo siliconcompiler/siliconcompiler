@@ -23,7 +23,7 @@ from siliconcompiler.pathschema import PathSchemaBase
 
 from siliconcompiler.schema.schema_cfg import schema_option_runtime, schema_arg, schema_version
 
-from siliconcompiler.scheduler.scheduler import Scheduler
+from siliconcompiler.scheduler import Scheduler
 from siliconcompiler.utils.logging import SCColorLoggerFormatter, SCLoggerFormatter
 from siliconcompiler.utils import FilterDirectories
 

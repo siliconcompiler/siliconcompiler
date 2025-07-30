@@ -10,7 +10,7 @@ from datetime import datetime
 from siliconcompiler.utils import get_file_template
 from siliconcompiler.tools._common import get_tool_task
 from siliconcompiler import RecordSchema
-from siliconcompiler.scheduler.schedulernode import SchedulerNode
+from siliconcompiler.scheduler import SchedulerNode
 
 
 def generate_testcase(chip,

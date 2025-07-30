@@ -18,7 +18,7 @@ from siliconcompiler._metadata import default_server
 from siliconcompiler.remote import JobStatus, NodeStatus
 from siliconcompiler.report.dashboard import DashboardType
 from siliconcompiler.flowgraph import RuntimeFlowgraph
-from siliconcompiler.scheduler.scheduler import Scheduler
+from siliconcompiler.scheduler import Scheduler
 from siliconcompiler.schema import Journal
 from siliconcompiler.utils.logging import get_console_formatter
 

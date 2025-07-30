@@ -3,7 +3,7 @@ import pytest
 from siliconcompiler import Chip, Flow
 from siliconcompiler.tools.builtin import nop
 
-from siliconcompiler.scheduler.docker import DockerSchedulerNode
+from siliconcompiler.scheduler import DockerSchedulerNode
 
 
 @pytest.fixture

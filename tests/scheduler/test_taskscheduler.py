@@ -4,9 +4,9 @@ from threading import Lock
 
 from siliconcompiler import NodeStatus
 from siliconcompiler import Chip, Flow
-from siliconcompiler.scheduler.taskscheduler import TaskScheduler
+from siliconcompiler.scheduler import TaskScheduler
 from siliconcompiler.scheduler.taskscheduler import utils as imported_utils
-from siliconcompiler.scheduler.schedulernode import SchedulerNode
+from siliconcompiler.scheduler import SchedulerNode
 
 from siliconcompiler.tools.builtin import join, nop
 
