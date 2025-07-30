@@ -1,6 +1,6 @@
 import siliconcompiler
 
-from siliconcompiler.scheduler.schedulernode import SchedulerNode
+from siliconcompiler.scheduler import SchedulerNode
 
 from siliconcompiler.tools.surelog import parse
 from siliconcompiler.tools.yosys import syn_asic

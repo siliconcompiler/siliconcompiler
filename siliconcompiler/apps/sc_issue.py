@@ -4,7 +4,7 @@ import os
 import siliconcompiler
 import tarfile
 import json
-from siliconcompiler.scheduler.schedulernode import SchedulerNode
+from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.utils.issue import generate_testcase
 from siliconcompiler.tools._common import get_tool_task
 

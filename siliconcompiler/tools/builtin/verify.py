@@ -3,7 +3,7 @@ from siliconcompiler.schema.parametertype import NodeType
 from siliconcompiler.tools.builtin.builtin import set_io_files
 from siliconcompiler import utils, SiliconCompilerError
 from siliconcompiler.tools._common import get_tool_task
-from siliconcompiler.scheduler.schedulernode import SchedulerNode
+from siliconcompiler.scheduler import SchedulerNode
 
 import re
 

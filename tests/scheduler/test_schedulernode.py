@@ -18,7 +18,7 @@ from siliconcompiler import TaskSchema
 from siliconcompiler.tools.builtin import nop, join
 from scheduler.tools.echo import echo
 
-from siliconcompiler.scheduler.schedulernode import SchedulerNode
+from siliconcompiler.scheduler import SchedulerNode
 
 
 @pytest.fixture
@@ -1400,7 +1400,7 @@ def test_run_failed_to_validate(chip, caplog):
     node = SchedulerNode(chip, "stepone", "0")
     node.task.setup_work_directory(node.workdir)
 
-    with patch("siliconcompiler.scheduler.schedulernode.SchedulerNode.validate") as call_validate:
+    with patch("siliconcompiler.scheduler.SchedulerNode.validate") as call_validate:
         call_validate.return_value = False
         with pytest.raises(SystemExit):
             node.run()
@@ -1442,7 +1442,7 @@ def test_run_failed_to_execute(chip, caplog):
     node = SchedulerNode(chip, "stepone", "0")
     node.task.setup_work_directory(node.workdir)
 
-    with patch("siliconcompiler.scheduler.schedulernode.SchedulerNode.execute") as call_exec:
+    with patch("siliconcompiler.scheduler.SchedulerNode.execute") as call_exec:
         call_exec.side_effect = ValueError("thiserrorisraised")
         with pytest.raises(SystemExit):
             node.run()
@@ -1460,7 +1460,7 @@ def test_run_without_queue(chip):
     node = SchedulerNode(chip, "stepone", "0")
     node.task.setup_work_directory(node.workdir)
     with patch("logging.Logger.removeHandler") as call_remove_logger, \
-         patch("siliconcompiler.scheduler.schedulernode.SchedulerNode.execute") as call_exec:
+         patch("siliconcompiler.scheduler.SchedulerNode.execute") as call_exec:
         node.run()
         call_exec.assert_called_once()
         call_remove_logger.assert_not_called()
@@ -1479,7 +1479,7 @@ def test_run_with_queue(chip):
 
     node.task.setup_work_directory(node.workdir)
     with patch("logging.Logger.removeHandler") as call_remove_logger, \
-         patch("siliconcompiler.scheduler.schedulernode.SchedulerNode.execute") as call_exec:
+         patch("siliconcompiler.scheduler.SchedulerNode.execute") as call_exec:
         node.run()
         call_exec.assert_called_once()
         call_remove_logger.assert_called_once()
@@ -1493,7 +1493,7 @@ def test_run_called_testcase_on_error(chip):
     node.task.setup_work_directory(node.workdir)
     node._SchedulerNode__error = True
 
-    with patch("siliconcompiler.scheduler.schedulernode.SchedulerNode."
+    with patch("siliconcompiler.scheduler.SchedulerNode."
                "_SchedulerNode__generate_testcase") as call_testcase:
         with pytest.raises(SystemExit):
             node.run()
@@ -1507,7 +1507,7 @@ def test_run_not_called_testcase_on_error(chip):
     node.task.setup_work_directory(node.workdir)
     node._SchedulerNode__error = True
 
-    with patch("siliconcompiler.scheduler.schedulernode.SchedulerNode."
+    with patch("siliconcompiler.scheduler.SchedulerNode."
                "_SchedulerNode__generate_testcase") as call_testcase:
         with pytest.raises(SystemExit):
             node.run()

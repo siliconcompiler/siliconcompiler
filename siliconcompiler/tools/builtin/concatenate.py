@@ -3,7 +3,7 @@ import os
 from siliconcompiler import sc_open, SiliconCompilerError
 from siliconcompiler import utils
 from siliconcompiler.tools._common import input_provides, input_file_node_name, get_tool_task
-from siliconcompiler.scheduler.schedulernode import SchedulerNode
+from siliconcompiler.scheduler import SchedulerNode
 
 
 def make_docs(chip):

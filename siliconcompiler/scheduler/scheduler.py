@@ -9,10 +9,10 @@ from siliconcompiler import Schema
 from siliconcompiler import NodeStatus
 from siliconcompiler.schema import Journal
 from siliconcompiler.flowgraph import RuntimeFlowgraph
-from siliconcompiler.scheduler.schedulernode import SchedulerNode
-from siliconcompiler.scheduler.slurm import SlurmSchedulerNode
-from siliconcompiler.scheduler.docker import DockerSchedulerNode
-from siliconcompiler.scheduler.taskscheduler import TaskScheduler
+from siliconcompiler.scheduler import SchedulerNode
+from siliconcompiler.scheduler import SlurmSchedulerNode
+from siliconcompiler.scheduler import DockerSchedulerNode
+from siliconcompiler.scheduler import TaskScheduler
 
 from siliconcompiler import utils
 from siliconcompiler.scheduler import send_messages
@@ -253,8 +253,9 @@ class Scheduler:
 
         self.__print_status("After ensure")
 
+        os.makedirs(self.__chip.getworkdir(), exist_ok=True)
         self.__chip.write_manifest(os.path.join(self.__chip.getworkdir(),
-                                                f"{self.__chip.get('design')}.pkg.json"))
+                                                f"{self.__name}.pkg.json"))
         journal.stop()
 
         # Clean nodes marked pending

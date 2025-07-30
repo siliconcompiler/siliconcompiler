@@ -11,7 +11,7 @@ import os.path
 from siliconcompiler import utils
 from siliconcompiler.package import RemoteResolver
 from siliconcompiler.flowgraph import RuntimeFlowgraph
-from siliconcompiler.scheduler.schedulernode import SchedulerNode
+from siliconcompiler.scheduler import SchedulerNode
 
 
 class SlurmSchedulerNode(SchedulerNode):

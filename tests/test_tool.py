@@ -17,7 +17,7 @@ from siliconcompiler.schema import BaseSchema, EditableSchema, Parameter, SafeSc
 from siliconcompiler.schema.parameter import PerNode, Scope
 from siliconcompiler.tool import TaskExecutableNotFound, TaskError, TaskTimeout
 from siliconcompiler.flowgraph import RuntimeFlowgraph
-from siliconcompiler.scheduler.schedulernode import SchedulerNode
+from siliconcompiler.scheduler import SchedulerNode
 
 from siliconcompiler.tools.builtin import nop
 

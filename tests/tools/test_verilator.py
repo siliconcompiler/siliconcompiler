@@ -4,7 +4,7 @@ import pytest
 import siliconcompiler
 from siliconcompiler.tools.surelog import parse
 from siliconcompiler.tools.verilator import lint, compile
-from siliconcompiler.scheduler.schedulernode import SchedulerNode
+from siliconcompiler.scheduler import SchedulerNode
 
 
 @pytest.mark.eda

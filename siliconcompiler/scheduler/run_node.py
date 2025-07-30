@@ -8,7 +8,7 @@ import os.path
 
 from siliconcompiler import Chip, Schema
 from siliconcompiler.package import Resolver
-from siliconcompiler.scheduler.schedulernode import SchedulerNode
+from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler import __version__
 
 

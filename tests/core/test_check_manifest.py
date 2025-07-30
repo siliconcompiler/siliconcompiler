@@ -1,6 +1,6 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 import siliconcompiler
-from siliconcompiler.scheduler.schedulernode import SchedulerNode
+from siliconcompiler.scheduler import SchedulerNode
 
 import os
 import shutil
