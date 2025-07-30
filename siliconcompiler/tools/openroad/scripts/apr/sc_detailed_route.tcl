@@ -53,13 +53,18 @@ set sc_minmetal [sc_get_layer_name $sc_minmetal]
 set sc_maxmetal [sc_cfg_get pdk $sc_pdk maxlayer $sc_stackup]
 set sc_maxmetal [sc_get_layer_name $sc_maxmetal]
 
+if { [sc_check_version 23235] } {
+    set_routing_layers -signal "${sc_minmetal}-${sc_maxmetal}"
+} else {
+    lappend drt_arguments -bottom_routing_layer $sc_minmetal
+    lappend drt_arguments -top_routing_layer $sc_maxmetal
+}
+
 sc_report_args -command detailed_route -args $drt_arguments
 detailed_route \
     -save_guide_updates \
     -output_drc "reports/${sc_design}_drc.rpt" \
     -output_maze "reports/${sc_design}_maze.log" \
-    -bottom_routing_layer $sc_minmetal \
-    -top_routing_layer $sc_maxmetal \
     -verbose 1 \
     {*}$drt_arguments
 

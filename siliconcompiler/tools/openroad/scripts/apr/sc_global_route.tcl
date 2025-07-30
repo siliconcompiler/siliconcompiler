@@ -24,16 +24,20 @@ if { [lindex [sc_cfg_tool_task_get {var} grt_use_pin_access] 0] == "true" } {
     set sc_maxmetal [sc_get_layer_name $sc_maxmetal]
 
     set pin_access_args []
+    if { [sc_check_version 23235] } {
+        # use value from preamble
+    } else {
+        lappend pin_access_args -bottom_routing_layer $sc_minmetal
+        lappend pin_access_args -top_routing_layer $sc_maxmetal
+    }
+
     if { [lindex [sc_cfg_tool_task_get {var} drt_process_node] 0] != "false" } {
         lappend pin_access_args "-db_process_node" \
             [lindex [sc_cfg_tool_task_get {var} drt_process_node] 0]
     }
 
     sc_report_args -command pin_access -args $pin_access_args
-    pin_access \
-        -bottom_routing_layer $sc_minmetal \
-        -top_routing_layer $sc_maxmetal \
-        {*}$pin_access_args
+    pin_access {*}$pin_access_args
 }
 
 ###############################
