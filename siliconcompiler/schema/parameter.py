@@ -594,7 +594,7 @@ class Parameter:
         except KeyError:
             return self.__defvalue.gettcl()
 
-    def getvalues(self, return_defvalue=True):
+    def getvalues(self, return_defvalue=True, return_values=True):
         """
         Returns all values (global and pernode) associated with a particular parameter.
 
@@ -612,10 +612,16 @@ class Parameter:
                 index_arg = None if index == Parameter.GLOBAL_KEY else index
                 if step_arg is None and index_arg is None:
                     has_global = True
-                vals.append((self.__node[step][index].get(), step_arg, index_arg))
+                if return_values:
+                    vals.append((self.__node[step][index].get(), step_arg, index_arg))
+                else:
+                    vals.append((self.__node[step][index], step_arg, index_arg))
 
-        if (self.__pernode != PerNode.REQUIRED) and not has_global and return_defvalue:
-            vals.append((self.__defvalue.get(), None, None))
+        if self.__pernode != PerNode.REQUIRED and not has_global and return_defvalue:
+            if return_values:
+                vals.append((self.__defvalue.get(), None, None))
+            else:
+                vals.append((self.__defvalue, None, None))
 
         return vals
 
