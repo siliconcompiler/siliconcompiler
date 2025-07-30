@@ -982,6 +982,9 @@ class SchedulerNode:
             shutil.rmtree(self.__workdir)
 
     def archive(self, tar: tarfile.TarFile, include: List[str] = None, verbose: bool = None):
+        if not tar:
+            return
+
         if verbose:
             self.logger.info(f'Archiving {self.step}/{self.index}...')
 
