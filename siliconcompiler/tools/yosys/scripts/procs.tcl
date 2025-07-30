@@ -123,7 +123,6 @@ proc sc_fpga_legalize_flops { feature_set } {
         # won't tech map.  Goal is to get the user to fix
         # their code and put in synchronous resets
         lappend legalize_flop_types \$_DFF_P_
-        lappend legalize_flop_types \$_DFF_P??_
     }
 
     set legalize_list []
