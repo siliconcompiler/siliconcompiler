@@ -845,6 +845,11 @@ def test_from_manifest_file():
             super().__init__()
             edit = EditableSchema(self)
             edit.insert("test0", "test1", Parameter("str"))
+
+        @classmethod
+        def _getdict_type(cls):
+            return "NewSchema"
+
     schema = NewSchema()
     schema.set("test0", "test1", "testthis")
 
@@ -852,7 +857,12 @@ def test_from_manifest_file():
     schema.write_manifest("test.json.gz")
     assert os.path.isfile("test.json.gz")
 
-    new_schema = NewSchema.from_manifest(filepath="test.json.gz")
+    with patch("siliconcompiler.schema.BaseSchema._BaseSchema__get_child_classes") as children:
+        children.return_value = {
+            "BaseSchema": BaseSchema,
+            "NewSchema": NewSchema
+        }
+        new_schema = NewSchema.from_manifest(filepath="test.json.gz")
 
     assert new_schema.getdict() == schema.getdict()
 
@@ -869,6 +879,11 @@ def test_from_manifest_file_stdjson(monkeypatch):
             super().__init__()
             edit = EditableSchema(self)
             edit.insert("test0", "test1", Parameter("str"))
+
+        @classmethod
+        def _getdict_type(cls):
+            return "NewSchema"
+
     schema = NewSchema()
     schema.set("test0", "test1", "testthis")
 
@@ -876,7 +891,12 @@ def test_from_manifest_file_stdjson(monkeypatch):
     schema.write_manifest("test.json.gz")
     assert os.path.isfile("test.json.gz")
 
-    new_schema = NewSchema.from_manifest(filepath="test.json.gz")
+    with patch("siliconcompiler.schema.BaseSchema._BaseSchema__get_child_classes") as children:
+        children.return_value = {
+            "BaseSchema": BaseSchema,
+            "NewSchema": NewSchema
+        }
+        new_schema = NewSchema.from_manifest(filepath="test.json.gz")
 
     assert new_schema.getdict() == schema.getdict()
 
@@ -887,10 +907,20 @@ def test_from_manifest_cfg():
             super().__init__()
             edit = EditableSchema(self)
             edit.insert("test0", "test1", Parameter("str"))
+
+        @classmethod
+        def _getdict_type(cls):
+            return "NewSchema"
+
     schema = NewSchema()
     schema.set("test0", "test1", "testthis")
 
-    new_schema = NewSchema.from_manifest(cfg=schema.getdict())
+    with patch("siliconcompiler.schema.BaseSchema._BaseSchema__get_child_classes") as children:
+        children.return_value = {
+            "BaseSchema": BaseSchema,
+            "NewSchema": NewSchema
+        }
+        new_schema = NewSchema.from_manifest(cfg=schema.getdict())
 
     assert new_schema.getdict() == schema.getdict()
 
@@ -901,6 +931,7 @@ def test_from_manifest_cfg_no_meta():
             super().__init__()
             edit = EditableSchema(self)
             edit.insert("test0", "test1", Parameter("str"))
+
     schema = NewSchema()
     schema.set("test0", "test1", "testthis")
 
