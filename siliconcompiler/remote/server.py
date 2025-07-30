@@ -25,6 +25,7 @@ from siliconcompiler.remote import banner, JobStatus
 from siliconcompiler import NodeStatus as SCNodeStatus
 from siliconcompiler.remote import NodeStatus
 from siliconcompiler.flowgraph import RuntimeFlowgraph
+from siliconcompiler.scheduler.schedulernode import SchedulerNode
 from siliconcompiler.scheduler.taskscheduler import TaskScheduler
 
 
@@ -135,7 +136,7 @@ class Server:
                                        job_hash,
                                        f'{job_hash}_{step}{index}.tar.gz'),
                           mode='w:gz') as tf:
-            chip._archive_node(tf, step=step, index=index, include="*")
+            SchedulerNode(chip, step, index).archive(tf, include="*")
 
         with self.sc_jobs_lock:
             self.sc_jobs[job_name][f"{step}{index}"]["status"] = \

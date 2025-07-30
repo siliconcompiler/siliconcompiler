@@ -1,13 +1,17 @@
 import contextlib
+import glob
 import logging
 import os
 import shutil
 import sys
+import tarfile
 import time
 
 import os.path
 
 from logging.handlers import QueueHandler
+
+from typing import List
 
 from siliconcompiler import utils, sc_open
 from siliconcompiler import Schema
@@ -976,3 +980,35 @@ class SchedulerNode:
     def clean_directory(self):
         if os.path.exists(self.__workdir):
             shutil.rmtree(self.__workdir)
+
+    def archive(self, tar: tarfile.TarFile, include: List[str] = None, verbose: bool = None):
+        if not tar:
+            return
+
+        if verbose:
+            self.logger.info(f'Archiving {self.step}/{self.index}...')
+
+        def arcname(path):
+            return os.path.relpath(path, self.__cwd)
+
+        if not os.path.isdir(self.__workdir):
+            if self.project.get('record', 'status', step=self.step, index=self.index) != \
+                    NodeStatus.SKIPPED:
+                self.logger.error(f'Unable to archive {self.step}/{self.index} '
+                                  'due to missing node directory')
+            return
+
+        if include:
+            if isinstance(include, str):
+                include = [include]
+            for pattern in include:
+                for path in glob.iglob(os.path.join(self.__workdir, pattern)):
+                    tar.add(path, arcname=arcname(path))
+        else:
+            for folder in ('reports', 'outputs'):
+                path = os.path.join(self.__workdir, folder)
+                tar.add(path, arcname=arcname(path))
+
+            for logfile in self.__logs.values():
+                if os.path.isfile(logfile):
+                    tar.add(logfile, arcname=arcname(logfile))
