@@ -207,7 +207,7 @@ class BaseSchema:
             raise RuntimeError("filepath or dictionary is required")
 
         if filepath:
-            cfg = BaseSchema.__read_manifest(filepath)
+            cfg = BaseSchema._read_manifest(filepath)
 
         new_cls = None
         if "__meta__" in cfg:
@@ -235,7 +235,7 @@ class BaseSchema:
         return f"[{','.join([*self._keypath, *key])}]"
 
     @staticmethod
-    def __read_manifest(filepath):
+    def _read_manifest(filepath):
         """
         Reads a manifest from disk and returns dictionary.
 
@@ -263,7 +263,7 @@ class BaseSchema:
             Loads the file mychip.json into the current Schema object.
         """
 
-        self._from_dict(BaseSchema.__read_manifest(filepath), [])
+        self._from_dict(BaseSchema._read_manifest(filepath), [])
 
     def write_manifest(self, filepath):
         '''
