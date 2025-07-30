@@ -4,6 +4,8 @@
 # SC dependencies outside of its directory, since it may be used by tool drivers
 # that have isolated Python environments.
 
+from typing import Dict
+
 from .parameter import Parameter
 from .baseschema import BaseSchema
 
@@ -46,3 +48,13 @@ class SafeSchema(BaseSchema):
                 self._BaseSchema__default = obj
             else:
                 self._BaseSchema__manifest[key] = obj
+
+    @classmethod
+    def from_manifest(cls, filepath: str = None, cfg: Dict = None) -> "BaseSchema":
+        if filepath:
+            cfg = BaseSchema._read_manifest(filepath)
+
+        if cfg and "__meta__" in cfg:
+            del cfg["__meta__"]
+
+        return super().from_manifest(filepath=None, cfg=cfg)

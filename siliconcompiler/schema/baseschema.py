@@ -56,6 +56,9 @@ class BaseSchema:
     @staticmethod
     @cache
     def __get_child_classes() -> Dict[str, Type["BaseSchema"]]:
+        """
+        Returns all known subclasses of BaseSchema
+        """
         def recurse(cls):
             subclss = set()
             subclss.add(cls)
@@ -93,6 +96,9 @@ class BaseSchema:
     @staticmethod
     @cache
     def __load_schema_class(cls_name: str) -> Type["BaseSchema"]:
+        """
+        Load a schema class from a string
+        """
         try:
             module_name, cls_name = cls_name.split("/")
         except (ValueError, AttributeError):
@@ -110,6 +116,24 @@ class BaseSchema:
             raise TypeError(f"{cls_name} must be a BaseSchema type")
         return cls
 
+    @staticmethod
+    def __process_meta_section(meta: Dict[str, str]) -> Type["BaseSchema"]:
+        """
+        Handle __meta__ section of the schema by loading the appropriate class
+        """
+        cls_map = BaseSchema.__get_child_classes()
+
+        # Lookup object, use class first, then type
+        cls_name = meta.get("class", None)
+        cls = None
+        if cls_name:
+            cls = cls_map.get(cls_name, None)
+            if not cls:
+                cls = BaseSchema.__load_schema_class(cls_name)
+        if not cls:
+            cls = cls_map.get(meta.get("sctype", None), None)
+        return cls
+
     def _from_dict(self, manifest, keypath, version=None):
         '''
         Decodes a dictionary into a schema object
@@ -122,8 +146,6 @@ class BaseSchema:
 
         handled = set()
         missing = set()
-
-        cls_map = BaseSchema.__get_child_classes()
 
         if "__journal__" in manifest:
             self.__journal.from_dict(manifest["__journal__"])
@@ -143,14 +165,7 @@ class BaseSchema:
             obj = self.__manifest.get(key, None)
             if not obj and isinstance(data, dict) and "__meta__" in data:
                 # Lookup object, use class first, then type
-                cls_name = data["__meta__"].get("class", None)
-                cls = None
-                if cls_name:
-                    cls = cls_map.get(cls_name, None)
-                    if not cls:
-                        cls = BaseSchema.__load_schema_class(cls_name)
-                if not cls:
-                    cls = cls_map.get(data["__meta__"].get("sctype", None), None)
+                cls = BaseSchema.__process_meta_section(data["__meta__"])
                 if cls is BaseSchema and self.__default:
                     # Use default when BaseSchema is the class
                     obj = self.__default.copy(key=keypath + [key])
@@ -177,7 +192,7 @@ class BaseSchema:
 
     # Manifest methods
     @classmethod
-    def from_manifest(cls, filepath=None, cfg=None):
+    def from_manifest(cls, filepath: str = None, cfg: Dict = None) -> "BaseSchema":
         '''
         Create a new schema based on the provided source files.
 
@@ -191,11 +206,20 @@ class BaseSchema:
         if not filepath and cfg is None:
             raise RuntimeError("filepath or dictionary is required")
 
-        schema = cls()
         if filepath:
-            schema.read_manifest(filepath)
-        if cfg:
-            schema._from_dict(cfg, [])
+            cfg = BaseSchema._read_manifest(filepath)
+
+        new_cls = None
+        if "__meta__" in cfg:
+            # Determine correct class
+            new_cls = BaseSchema.__process_meta_section(cfg["__meta__"])
+        if new_cls:
+            schema = new_cls()
+        else:
+            schema = cls()
+
+        schema._from_dict(cfg, [])
+
         return schema
 
     @staticmethod
@@ -210,6 +234,23 @@ class BaseSchema:
     def __format_key(self, *key):
         return f"[{','.join([*self._keypath, *key])}]"
 
+    @staticmethod
+    def _read_manifest(filepath):
+        """
+        Reads a manifest from disk and returns dictionary.
+
+        Args:
+            filename (path): Path to a manifest file to be loaded.
+        """
+
+        fin = BaseSchema.__open_file(filepath)
+        try:
+            manifest = json.loads(fin.read())
+        finally:
+            fin.close()
+
+        return manifest
+
     def read_manifest(self, filepath):
         """
         Reads a manifest from disk and replaces the current data with the data in the file.
@@ -222,11 +263,7 @@ class BaseSchema:
             Loads the file mychip.json into the current Schema object.
         """
 
-        fin = BaseSchema.__open_file(filepath)
-        manifest = json.loads(fin.read())
-        fin.close()
-
-        self._from_dict(manifest, [])
+        self._from_dict(BaseSchema._read_manifest(filepath), [])
 
     def write_manifest(self, filepath):
         '''
