@@ -36,19 +36,21 @@ def mock_git(monkeypatch):
     monkeypatch.setattr("git.Repo.clone_from", clone)
 
 
-@pytest.mark.parametrize('path,ref', [
+@pytest.mark.parametrize('path,ref,cache_id', [
     ('git+https://github.com/siliconcompiler/siliconcompiler',
-     'main'),
+     'main',
+     '933ab1d5daa72905'),
     ('git://github.com/siliconcompiler/siliconcompiler',
-     'main'),
+     'main',
+     '4bd21abf91c854d6'),
 ])
-def test_dependency_path_download_git(path, ref, tmp_path):
+def test_dependency_path_download_git(path, ref, cache_id, tmp_path):
     chip = Chip("dummy")
     chip.set("option", "cachedir", tmp_path)
 
     resolver = GitResolver("testgit", chip, path, ref)
-    assert resolver.resolve() == Path(os.path.join(tmp_path, f"testgit-{ref}"))
-    assert os.path.isfile(os.path.join(tmp_path, f"testgit-{ref}", "pyproject.toml"))
+    assert resolver.resolve() == Path(os.path.join(tmp_path, f"testgit-{ref}-{cache_id}"))
+    assert os.path.isfile(os.path.join(tmp_path, f"testgit-{ref}-{cache_id}", "pyproject.toml"))
 
 
 def test_git_path_git_ssh():

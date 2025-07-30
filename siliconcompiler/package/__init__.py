@@ -269,7 +269,7 @@ class RemoteResolver(Resolver):
 
     @property
     def cache_name(self) -> str:
-        return f"{self.name}-{self.reference}"
+        return f"{self.name}-{self.reference[0:16]}-{self.cache_id[0:16]}"
 
     @property
     def cache_path(self) -> Path:

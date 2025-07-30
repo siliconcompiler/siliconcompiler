@@ -280,7 +280,7 @@ def test_remote_cache_dir_from_schema_not_found():
 
 def test_remote_cache_name():
     resolver = RemoteResolver("thisname", Chip("dummy"), "https://filepath", "ref")
-    assert resolver.cache_name == "thisname-ref"
+    assert resolver.cache_name == "thisname-ref-c7a4a1c3dfc3975e"
 
 
 def test_remote_cache_path():
@@ -289,7 +289,8 @@ def test_remote_cache_path():
 
     resolver = RemoteResolver("thisname", chip, "https://filepath", "ref")
     with patch("os.makedirs") as mkdir:
-        assert resolver.cache_path == Path(os.path.abspath("thispath/thisname-ref"))
+        assert resolver.cache_path == \
+            Path(os.path.abspath("thispath/thisname-ref-c7a4a1c3dfc3975e"))
         mkdir.assert_called_once()
 
 
@@ -299,7 +300,7 @@ def test_remote_cache_path_cache_exist():
 
     resolver = RemoteResolver("thisname", chip, "https://filepath", "ref")
     with patch("os.makedirs") as mkdir:
-        assert resolver.cache_path == Path(os.path.abspath("thisname-ref"))
+        assert resolver.cache_path == Path(os.path.abspath("thisname-ref-c7a4a1c3dfc3975e"))
         mkdir.assert_not_called()
 
 
@@ -309,7 +310,8 @@ def test_remote_lock_file():
 
     resolver = RemoteResolver("thisname", chip, "https://filepath", "ref")
     with patch("os.makedirs") as mkdir:
-        assert resolver.lock_file == Path(os.path.abspath("thispath/thisname-ref.lock"))
+        assert resolver.lock_file == \
+            Path(os.path.abspath("thispath/thisname-ref-c7a4a1c3dfc3975e.lock"))
         mkdir.assert_called_once()
 
 
@@ -319,7 +321,8 @@ def test_remote_sc_lock_file():
 
     resolver = RemoteResolver("thisname", chip, "https://filepath", "ref")
     with patch("os.makedirs") as mkdir:
-        assert resolver.sc_lock_file == Path(os.path.abspath("thispath/thisname-ref.sc_lock"))
+        assert resolver.sc_lock_file == \
+            Path(os.path.abspath("thispath/thisname-ref-c7a4a1c3dfc3975e.sc_lock"))
         mkdir.assert_called_once()
 
 
@@ -333,7 +336,7 @@ def test_remote_resolve_cached():
          patch("siliconcompiler.package.RemoteResolver.check_cache") as check_cache, \
          patch("siliconcompiler.package.RemoteResolver.resolve_remote") as resolve_remote:
         check_cache.return_value = True
-        assert resolver.resolve() == Path(os.path.abspath("thisname-ref"))
+        assert resolver.resolve() == Path(os.path.abspath("thisname-ref-c7a4a1c3dfc3975e"))
         lock.assert_called_once()
         check_cache.assert_called_once()
         resolve_remote.assert_not_called()
@@ -349,7 +352,7 @@ def test_remote_resolve():
          patch("siliconcompiler.package.RemoteResolver.check_cache") as check_cache, \
          patch("siliconcompiler.package.RemoteResolver.resolve_remote") as resolve_remote:
         check_cache.return_value = False
-        assert resolver.resolve() == Path(os.path.abspath("thisname-ref"))
+        assert resolver.resolve() == Path(os.path.abspath("thisname-ref-c7a4a1c3dfc3975e"))
         lock.assert_called_once()
         check_cache.assert_called_once()
         resolve_remote.assert_called_once()
@@ -365,12 +368,12 @@ def test_remote_resolve_cached_different_name():
          patch("siliconcompiler.package.RemoteResolver.check_cache") as check_cache, \
          patch("siliconcompiler.package.RemoteResolver.resolve_remote") as resolve_remote:
         check_cache.return_value = False
-        assert resolver.resolve() == Path(os.path.abspath("thisname-ref"))
-        Path(os.path.abspath("thisname-ref")).mkdir(exist_ok=True)
+        assert resolver.resolve() == Path(os.path.abspath("thisname-ref-c7a4a1c3dfc3975e"))
+        Path(os.path.abspath("thisname-ref-c7a4a1c3dfc3975e")).mkdir(exist_ok=True)
         lock.assert_called_once()
         check_cache.assert_called_once()
         resolve_remote.assert_called_once()
-        assert resolver.get_path() == Path(os.path.abspath("thisname-ref"))
+        assert resolver.get_path() == Path(os.path.abspath("thisname-ref-c7a4a1c3dfc3975e"))
 
     resolver = RemoteResolver("thisname1", chip, "https://filepath", "ref")
     with patch("siliconcompiler.package.RemoteResolver.lock") as lock, \
@@ -378,7 +381,7 @@ def test_remote_resolve_cached_different_name():
          patch("siliconcompiler.package.RemoteResolver.resolve_remote") as resolve_remote:
         check_cache.return_value = False
         # This will use the same of the other resolver despite the name change
-        assert resolver.get_path() == Path(os.path.abspath("thisname-ref"))
+        assert resolver.get_path() == Path(os.path.abspath("thisname-ref-c7a4a1c3dfc3975e"))
         lock.assert_not_called()
         check_cache.assert_not_called()
         resolve_remote.assert_not_called()
