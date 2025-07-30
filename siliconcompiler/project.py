@@ -1,5 +1,8 @@
 import logging
 import os
+import pathlib
+import shutil
+import stat
 import sys
 import uuid
 
@@ -8,6 +11,7 @@ import os.path
 from typing import Union, List, Tuple
 
 from siliconcompiler.schema import BaseSchema, NamedSchema, EditableSchema, Parameter
+from siliconcompiler.schema.parametervalue import NodeListValue, NodeSetValue
 
 from siliconcompiler import DesignSchema, LibrarySchema
 from siliconcompiler import FlowgraphSchema
@@ -328,8 +332,199 @@ class Project(PathSchemaBase, BaseSchema):
         """
         return os.path.join(self.getworkdir(), "sc_collected_files")
 
-    def collect(self, **kwargs):
-        pass
+    def collect(self,
+                directory: str = None,
+                verbose: bool = True,
+                whitelist: List[str] = None):
+        '''
+        Collects files found in the configuration dictionary and places
+        them in :meth:`.getcollectiondir`. The function only copies in files that have the 'copy'
+        field set as true.
+
+        Args:
+            directory (filepath): Output filepath
+            verbose (bool): Flag to indicate if logging should be used
+            whitelist (list[path]): List of directories that are allowed to be
+                collected. If a directory is is found that is not on this list
+                a RuntimeError will be raised.
+        '''
+
+        if not directory:
+            directory = self.getcollectiondir()
+        directory = os.path.abspath(directory)
+
+        # Remove existing directory
+        if os.path.exists(directory):
+            shutil.rmtree(directory)
+        os.makedirs(directory)
+
+        if verbose:
+            self.logger.info(f'Collecting files to: {directory}')
+
+        dirs = {}
+        files = {}
+
+        for key in self.allkeys():
+            if key[0] == 'history':
+                # skip history
+                continue
+
+            # Skip runtime directories
+            if key == ('option', 'builddir'):
+                # skip builddir
+                continue
+            if key == ('option', 'cachedir'):
+                # skip cache
+                continue
+
+            if key[0] == 'tool' and key[2] == 'task' and key[4] in ('input',
+                                                                    'report',
+                                                                    'output'):
+                # skip flow files files from builds
+                continue
+
+            leaftype = self.get(*key, field='type')
+            is_dir = "dir" in leaftype
+            is_file = "file" in leaftype
+
+            if not is_dir and not is_file:
+                continue
+
+            if not self.get(*key, field='copy'):
+                continue
+
+            for values, step, index in self.get(*key, field=None).getvalues(return_values=False):
+                if not values.has_value:
+                    continue
+
+                if isinstance(values, (NodeSetValue, NodeListValue)):
+                    values = values.values
+                else:
+                    values = [values]
+
+                if is_dir:
+                    dirs[(key, step, index)] = values
+                else:
+                    files[(key, step, index)] = values
+
+        class FilterDirs:
+            files = 0
+            directory_file_limit = None
+            abspath = None
+
+            @staticmethod
+            def filter(path, files):
+                if pathlib.Path(path) == pathlib.Path.home():
+                    # refuse to collect home directory
+                    self.logger.error(f'Cannot collect user home directory: {path}')
+                    return files
+
+                if pathlib.Path(path) == pathlib.Path(self.__getbuilddir()):
+                    # refuse to collect build directory
+                    self.logger.error(f'Cannot collect build directory: {path}')
+                    return files
+
+                # do not collect hidden files
+                hidden_files = []
+                # filter out hidden files (unix)
+                hidden_files.extend([f for f in files if f.startswith('.')])
+                # filter out hidden files (windows)
+                try:
+                    if hasattr(os.stat_result, 'st_file_attributes'):
+                        hidden_files.extend([
+                            f for f in files
+                            if bool(os.stat(os.path.join(path, f)).st_file_attributes &
+                                    stat.FILE_ATTRIBUTE_HIDDEN)
+                        ])
+                except:  # noqa 722
+                    pass
+                # filter out hidden files (macos)
+                try:
+                    if hasattr(os.stat_result, 'st_reparse_tag'):
+                        hidden_files.extend([
+                            f for f in files
+                            if bool(os.stat(os.path.join(path, f)).st_reparse_tag &
+                                    stat.UF_HIDDEN)
+                        ])
+                except:  # noqa 722
+                    pass
+
+                FilterDirs.file_count += len(files) - len(hidden_files)
+
+                if FilterDirs.directory_file_limit and \
+                        FilterDirs.file_count > FilterDirs.directory_file_limit:
+                    self.logger.error(f'File collection from {FilterDirs.abspath} exceeds '
+                                      f'{FilterDirs.directory_file_limit} files')
+                    return files
+
+                return hidden_files
+
+        for key, step, index in sorted(dirs.keys()):
+            abs_paths = self.find_files(*key, step=step, index=index)
+
+            new_paths = set()
+
+            if not isinstance(abs_paths, (list, tuple, set)):
+                abs_paths = [abs_paths]
+
+            abs_paths = zip(abs_paths, dirs[(key, step, index)])
+            abs_paths = sorted(abs_paths, key=lambda p: p[0])
+
+            for abs_path, value in abs_paths:
+                if not abs_path:
+                    raise FileNotFoundError(f"{value.get()} could not be copied")
+
+                if abs_path.startswith(directory):
+                    # File already imported in directory
+                    continue
+
+                imported = False
+                for new_path in new_paths:
+                    if abs_path.startwith(new_path):
+                        imported = True
+                        break
+                if imported:
+                    continue
+
+                new_paths.add(abs_path)
+
+                import_path = os.path.join(directory, value.get_hashed_filename())
+                if os.path.exists(import_path):
+                    continue
+
+                if whitelist is not None and abs_path not in whitelist:
+                    raise RuntimeError(f'{abs_path} is not on the approved collection list.')
+
+                if verbose:
+                    self.logger.info(f"  Collecting directoryL {abs_path}")
+                FilterDirs.abspath = abs_path
+                shutil.copytree(abs_path, import_path, ignore=FilterDirs.filter)
+                FilterDirs.abspath = None
+
+        for key, step, index in sorted(files.keys()):
+            abs_paths = self.find_files(*key, step=step, index=index)
+
+            if not isinstance(abs_paths, (list, tuple, set)):
+                abs_paths = [abs_paths]
+
+            abs_paths = zip(abs_paths, files[(key, step, index)])
+            abs_paths = sorted(abs_paths, key=lambda p: p[0])
+
+            for abs_path, value in abs_paths:
+                if not abs_path:
+                    raise FileNotFoundError(f"{value.get()} could not be copied")
+
+                if abs_path.startswith(directory):
+                    # File already imported in directory
+                    continue
+
+                import_path = os.path.join(directory, value.get_hashed_filename())
+                if os.path.exists(import_path):
+                    continue
+
+                if verbose:
+                    self.logger.info(f"  Collecting file: {abs_path}")
+                shutil.copy2(abs_path, import_path)
 
     def history(self, job: str) -> "Project":
         '''

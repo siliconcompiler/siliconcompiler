@@ -821,3 +821,54 @@ def test_summary_select_unknownjob(caplog):
 
         history.assert_called_once_with("thatjob")  # will call with first alphabetical job
     assert "job0 not found in history, picking thatjob" in caplog.text
+
+
+def test_collect_file_verbose(caplog):
+    design = DesignSchema("testdesign")
+    with design.active_fileset("rtl"):
+        with design._active(copy=True):
+            design.add_file("top.v")
+    with open("top.v", "w") as f:
+        f.write("test")
+
+    proj = Project(design)
+    setattr(proj, "_Project__logger", logging.getLogger())
+    proj.logger.setLevel(logging.INFO)
+
+    proj.collect()
+
+    assert f"Collecting files to: {proj.getcollectiondir()}" in caplog.text
+    assert f"  Collecting file: {os.path.abspath('top.v')}" in caplog.text
+
+
+def test_collect_file_update():
+    # Checks if collected files are properly updated after editing
+
+    # Create instance of design
+    design = DesignSchema("testdesign")
+    with design.active_fileset("rtl"):
+        with design._active(copy=True):
+            design.add_file("fake.v")
+
+    # Edit file
+    with open('fake.v', 'w') as f:
+        f.write('fake')
+
+    proj = Project(design)
+    proj.collect()
+
+    filename = design.get_file(fileset="rtl", filetype="verilog")[0]
+
+    assert len(os.listdir(proj.getcollectiondir())) == 1
+    with open(os.path.join(proj.getcollectiondir(), os.path.basename(filename)), 'r') as f:
+        assert f.readline() == 'fake'
+
+    # Edit file
+    with open('fake.v', 'w') as f:
+        f.write('newfake')
+
+    # Rerun collect
+    proj.collect()
+    assert len(os.listdir(proj.getcollectiondir())) == 1
+    with open(os.path.join(proj.getcollectiondir(), os.path.basename(filename)), 'r') as f:
+        assert f.readline() == 'newfake'
