@@ -992,7 +992,8 @@ class SchedulerNode:
             return os.path.relpath(path, self.__cwd)
 
         if not os.path.isdir(self.__workdir):
-            if self.get('record', 'status', step=self.step, index=self.index) != NodeStatus.SKIPPED:
+            if self.project.get('record', 'status', step=self.step, index=self.index) != \
+                    NodeStatus.SKIPPED:
                 self.logger.error(f'Unable to archive {self.step}/{self.index} '
                                   'due to missing node directory')
             return
