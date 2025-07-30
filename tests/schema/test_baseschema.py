@@ -895,6 +895,84 @@ def test_from_manifest_cfg():
     assert new_schema.getdict() == schema.getdict()
 
 
+def test_from_manifest_cfg_no_meta():
+    class NewSchema(BaseSchema):
+        def __init__(self):
+            super().__init__()
+            edit = EditableSchema(self)
+            edit.insert("test0", "test1", Parameter("str"))
+    schema = NewSchema()
+    schema.set("test0", "test1", "testthis")
+
+    new_schema = NewSchema.from_manifest(cfg={
+        'test0': {
+            'test1': {
+                'type': 'str',
+                'require': False,
+                'scope': 'job',
+                'lock': False,
+                'switch': [],
+                'shorthelp': None,
+                'example': [],
+                'help': None,
+                'notes': None,
+                'pernode': 'never',
+                'node': {'global': {'global': {'value': 'testthis', 'signature': None}},
+                         'default': {'default': {'value': None, 'signature': None}}}
+            }
+        }
+    })
+
+    assert new_schema.__class__ is NewSchema
+    assert new_schema.getdict() == schema.getdict()
+
+
+def test_from_manifest_cfg_different_base_correct_base_class():
+    class NewSchema(BaseSchema):
+        def __init__(self):
+            super().__init__()
+            edit = EditableSchema(self)
+            edit.insert("test0", "test1", Parameter("str"))
+
+        @classmethod
+        def _getdict_type(cls):
+            return "NewSchema"
+
+    schema = NewSchema()
+    schema.set("test0", "test1", "testthis")
+
+    with patch("siliconcompiler.schema.BaseSchema._BaseSchema__get_child_classes") as children:
+        children.return_value = {
+            "BaseSchema": BaseSchema,
+            "NewSchema": NewSchema
+        }
+        new_schema = BaseSchema.from_manifest(cfg={
+            'test0': {
+                'test1': {
+                    'type': 'str',
+                    'require': False,
+                    'scope': 'job',
+                    'lock': False,
+                    'switch': [],
+                    'shorthelp': None,
+                    'example': [],
+                    'help': None,
+                    'notes': None,
+                    'pernode': 'never',
+                    'node': {'global': {'global': {'value': 'testthis', 'signature': None}},
+                             'default': {'default': {'value': None, 'signature': None}}}
+                }
+            },
+            '__meta__': {
+                'class': 'test_baseschema/NewSchema',
+                'sctype': 'NewSchema'
+            }
+        })
+
+    assert new_schema.__class__ is NewSchema
+    assert new_schema.getdict() == schema.getdict()
+
+
 def test_valid():
     schema = BaseSchema()
     edit = EditableSchema(schema)
@@ -2130,7 +2208,7 @@ def test_from_dict_composite_type_names():
                 }
             }
         }, [])
-        assert children.call_count == 5
+        children.assert_called_once()
         load_schema_class.assert_not_called()
 
     assert schema.get("dummy", "default", field="schema").__class__ is BaseSchema
@@ -2223,7 +2301,7 @@ def test_from_dict_composite_nested():
                 }
             }
         }, [])
-        assert children.call_count == 5
+        assert children.call_count == 2
         load_schema_class.assert_not_called()
 
     assert schema.get("dummy", "default", field="schema").__class__ is DummySchema
@@ -2315,7 +2393,7 @@ def test_from_dict_composite_type_names_use_default():
                 }
             }
         }, [])
-        assert children.call_count == 4
+        children.assert_called_once()
         load_schema_class.assert_not_called()
 
     assert schema.get("dummy", "default", field="schema").__class__ is DummySchema
@@ -2409,7 +2487,7 @@ def test_from_dict_composite_type_load_via_class_name():
                 }
             }
         }, [])
-        assert children.call_count == 5
+        children.assert_called_once()
         load_schema_class.assert_called_once_with("test/DummySchema")
 
     assert schema.get("dummy", "default", field="schema").__class__ is BaseSchema
@@ -2502,7 +2580,7 @@ def test_from_dict_composite_using_cls_name():
                 }
             }
         }, [])
-        assert children.call_count == 5
+        children.assert_called_once()
         load_schema_class.assert_not_called()
 
     assert schema.get("dummy", "default", field="schema").__class__ is BaseSchema
@@ -2562,7 +2640,7 @@ def test_from_dict_composite_no_meta():
                 }
             }
         }, [])
-        assert children.call_count == 3
+        children.assert_not_called()
         load_schema_class.assert_not_called()
 
     assert schema.get("dummy", field="schema").__class__ is BaseSchema
@@ -2704,3 +2782,26 @@ def test___load_schema_class():
         BaseSchema._BaseSchema__load_schema_class.cache_clear()
         assert BaseSchema._BaseSchema__load_schema_class("test/Class") is Test.Class
         import_module.assert_called_once_with("test")
+
+
+def test_read_manifest_file():
+    from siliconcompiler.schema.baseschema import _has_orjson
+    assert _has_orjson
+
+    class NewSchema(BaseSchema):
+        def __init__(self):
+            super().__init__()
+            edit = EditableSchema(self)
+            edit.insert("test0", "test1", Parameter("str"))
+    schema = NewSchema()
+    schema.set("test0", "test1", "testthis")
+
+    assert not os.path.isfile("test.json.gz")
+    schema.write_manifest("test.json.gz")
+    assert os.path.isfile("test.json.gz")
+
+    new_schema = NewSchema()
+
+    assert new_schema.getdict() != schema.getdict()
+    new_schema.read_manifest(filepath="test.json.gz")
+    assert new_schema.getdict() == schema.getdict()
