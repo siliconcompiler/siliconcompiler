@@ -444,7 +444,7 @@ class Project(PathSchemaBase, BaseSchema):
                     raise RuntimeError(f'{abs_path} is not on the approved collection list.')
 
                 if verbose:
-                    self.logger.info(f"  Collecting directoryL {abs_path}")
+                    self.logger.info(f"  Collecting directory: {abs_path}")
                 path_filter.abspath = abs_path
                 shutil.copytree(abs_path, import_path, ignore=path_filter.filter)
                 path_filter.abspath = None

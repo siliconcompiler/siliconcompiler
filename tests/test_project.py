@@ -841,6 +841,23 @@ def test_collect_file_verbose(caplog):
     assert f"  Collecting file: {os.path.abspath('top.v')}" in caplog.text
 
 
+def test_collect_file_not_verbose(caplog):
+    design = DesignSchema("testdesign")
+    with design.active_fileset("rtl"):
+        with design._active(copy=True):
+            design.add_file("top.v")
+    with open("top.v", "w") as f:
+        f.write("test")
+
+    proj = Project(design)
+    setattr(proj, "_Project__logger", logging.getLogger())
+    proj.logger.setLevel(logging.INFO)
+
+    proj.collect(verbose=False)
+
+    assert caplog.text == ""
+
+
 def test_collect_file_update():
     # Checks if collected files are properly updated after editing
 
@@ -872,3 +889,199 @@ def test_collect_file_update():
     assert len(os.listdir(proj.getcollectiondir())) == 1
     with open(os.path.join(proj.getcollectiondir(), os.path.basename(filename)), 'r') as f:
         assert f.readline() == 'newfake'
+
+
+def test_collect_directory():
+    # Create instance of design
+    design = DesignSchema("testdesign")
+    with design.active_fileset("rtl"):
+        with design._active(copy=True):
+            design.add_idir("testingdir")
+            design.add_file("testingdir/test.v")
+
+    os.makedirs('testingdir', exist_ok=True)
+
+    with open('testingdir/test.v', 'w') as f:
+        f.write('test')
+
+    proj = Project(design)
+    proj.collect()
+
+    assert len(os.listdir(proj.getcollectiondir())) == 1
+
+    path = design.get_idir(fileset="rtl")[0]
+    assert path.startswith(proj.getcollectiondir())
+    assert os.listdir(path) == ['test.v']
+    assert design.get_file(fileset="rtl",
+                           filetype="verilog")[0].startswith(proj.getcollectiondir())
+
+
+def test_collect_subdirectory():
+    # Create instance of design
+    design = DesignSchema("testdesign")
+    with design.active_fileset("rtl"):
+        with design._active(copy=True):
+            design.add_idir("testingdir")
+            design.add_file("testingdir/subdir/test.v")
+
+    os.makedirs('testingdir/subdir', exist_ok=True)
+
+    with open('testingdir/subdir/test.v', 'w') as f:
+        f.write('test')
+
+    proj = Project(design)
+    proj.collect()
+
+    assert len(os.listdir(proj.getcollectiondir())) == 1
+
+    path = design.get_idir(fileset="rtl")[0]
+    assert path.startswith(proj.getcollectiondir())
+    assert os.listdir(path) == ['subdir']
+    assert os.listdir(os.path.join(path, "subdir")) == ['test.v']
+    assert design.get_file(fileset="rtl",
+                           filetype="verilog")[0].startswith(proj.getcollectiondir())
+
+
+def test_collect_file_with_false():
+    # Create instance of design
+    design = DesignSchema("testdesign")
+    with design.active_fileset("rtl"):
+        with design._active(copy=False):
+            design.add_file("fake.v")
+
+    # Edit file
+    with open('fake.v', 'w') as f:
+        f.write('fake')
+
+    proj = Project(design)
+    proj.collect()
+
+    # No files should have been collected
+    assert len(os.listdir(proj.getcollectiondir())) == 0
+
+
+def test_collect_file_home(monkeypatch):
+    def _mock_home():
+        return Path(os.getcwd()) / "home"
+
+    monkeypatch.setattr(Path, 'home', _mock_home)
+
+    _mock_home().mkdir(exist_ok=True)
+
+    # Create instance of design
+    design = DesignSchema("testdesign")
+    with design.active_fileset("rtl"):
+        with design._active(copy=True):
+            design.add_idir(str(Path.home()))
+
+    with open(Path.home() / "test.v", "w") as f:
+        f.write("test")
+
+    proj = Project(design)
+    proj.collect()
+
+    # No files should have been collected
+    assert len(os.listdir(proj.getcollectiondir())) == 1
+    subdir = os.path.join(proj.getcollectiondir(), os.listdir(proj.getcollectiondir())[0])
+    assert len(os.listdir(subdir)) == 0
+
+
+def test_collect_file_build():
+    os.makedirs('build', exist_ok=True)
+
+    # Create instance of design
+    design = DesignSchema("testdesign")
+    with design.active_fileset("rtl"):
+        with design._active(copy=True):
+            design.add_idir("build")
+
+    with open("build/test.v", "w") as f:
+        f.write("test")
+
+    proj = Project(design)
+    proj.collect()
+
+    # No files should have been collected
+    assert len(os.listdir(proj.getcollectiondir())) == 1
+    subdir = os.path.join(proj.getcollectiondir(), os.listdir(proj.getcollectiondir())[0])
+    assert len(os.listdir(subdir)) == 0
+
+
+def test_collect_file_hidden_dir():
+    os.makedirs('test/.test', exist_ok=True)
+
+    # Create instance of design
+    design = DesignSchema("testdesign")
+    with design.active_fileset("rtl"):
+        with design._active(copy=True):
+            design.add_idir("test")
+
+    with open("test/.test/test.v", "w") as f:
+        f.write("test")
+
+    proj = Project(design)
+    proj.collect()
+
+    # No files should have been collected
+    assert len(os.listdir(proj.getcollectiondir())) == 1
+    subdir = os.path.join(proj.getcollectiondir(), os.listdir(proj.getcollectiondir())[0])
+    assert len(os.listdir(subdir)) == 0
+
+
+def test_collect_file_hidden_file():
+    os.makedirs('test', exist_ok=True)
+
+    # Create instance of design
+    design = DesignSchema("testdesign")
+    with design.active_fileset("rtl"):
+        with design._active(copy=True):
+            design.add_idir("test")
+
+    with open("test/.test.v", "w") as f:
+        f.write("test")
+
+    proj = Project(design)
+    proj.collect()
+
+    # No files should have been collected
+    assert len(os.listdir(proj.getcollectiondir())) == 1
+    subdir = os.path.join(proj.getcollectiondir(), os.listdir(proj.getcollectiondir())[0])
+    assert len(os.listdir(subdir)) == 0
+
+
+def test_collect_file_whitelist_error():
+    os.makedirs('test/testing', exist_ok=True)
+
+    # Create instance of design
+    design = DesignSchema("testdesign")
+    with design.active_fileset("rtl"):
+        with design._active(copy=True):
+            design.add_idir("test")
+
+    with open('test/test', 'w') as f:
+        f.write('test')
+
+    proj = Project(design)
+
+    with pytest.raises(RuntimeError, match=".* is not on the approved collection list"):
+        proj.collect(whitelist=[os.path.abspath('not_test_folder')])
+
+    assert len(os.listdir(proj.getcollectiondir())) == 0
+
+
+def test_collect_file_whitelist_pass():
+    os.makedirs('test/testing', exist_ok=True)
+
+    # Create instance of design
+    design = DesignSchema("testdesign")
+    with design.active_fileset("rtl"):
+        with design._active(copy=True):
+            design.add_idir("test")
+
+    with open('test/test', 'w') as f:
+        f.write('test')
+
+    proj = Project(design)
+    proj.collect(whitelist=[os.path.abspath('test')])
+
+    assert len(os.listdir(proj.getcollectiondir())) == 1
