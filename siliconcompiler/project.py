@@ -1,8 +1,6 @@
 import logging
 import os
-import pathlib
 import shutil
-import stat
 import sys
 import uuid
 
@@ -27,6 +25,7 @@ from siliconcompiler.schema.schema_cfg import schema_option_runtime, schema_arg,
 
 from siliconcompiler.scheduler.scheduler import Scheduler
 from siliconcompiler.utils.logging import SCColorLoggerFormatter, SCLoggerFormatter
+from siliconcompiler.utils import FilterDirectories
 
 
 class Project(PathSchemaBase, BaseSchema):
@@ -407,58 +406,7 @@ class Project(PathSchemaBase, BaseSchema):
                 else:
                     files[(key, step, index)] = values
 
-        class FilterDirs:
-            files = 0
-            directory_file_limit = None
-            abspath = None
-
-            @staticmethod
-            def filter(path, files):
-                if pathlib.Path(path) == pathlib.Path.home():
-                    # refuse to collect home directory
-                    self.logger.error(f'Cannot collect user home directory: {path}')
-                    return files
-
-                if pathlib.Path(path) == pathlib.Path(self.__getbuilddir()):
-                    # refuse to collect build directory
-                    self.logger.error(f'Cannot collect build directory: {path}')
-                    return files
-
-                # do not collect hidden files
-                hidden_files = []
-                # filter out hidden files (unix)
-                hidden_files.extend([f for f in files if f.startswith('.')])
-                # filter out hidden files (windows)
-                try:
-                    if hasattr(os.stat_result, 'st_file_attributes'):
-                        hidden_files.extend([
-                            f for f in files
-                            if bool(os.stat(os.path.join(path, f)).st_file_attributes &
-                                    stat.FILE_ATTRIBUTE_HIDDEN)
-                        ])
-                except:  # noqa 722
-                    pass
-                # filter out hidden files (macos)
-                try:
-                    if hasattr(os.stat_result, 'st_reparse_tag'):
-                        hidden_files.extend([
-                            f for f in files
-                            if bool(os.stat(os.path.join(path, f)).st_reparse_tag &
-                                    stat.UF_HIDDEN)
-                        ])
-                except:  # noqa 722
-                    pass
-
-                FilterDirs.file_count += len(files) - len(hidden_files)
-
-                if FilterDirs.directory_file_limit and \
-                        FilterDirs.file_count > FilterDirs.directory_file_limit:
-                    self.logger.error(f'File collection from {FilterDirs.abspath} exceeds '
-                                      f'{FilterDirs.directory_file_limit} files')
-                    return files
-
-                return hidden_files
-
+        path_filter = FilterDirectories(self)
         for key, step, index in sorted(dirs.keys()):
             abs_paths = self.find_files(*key, step=step, index=index)
 
@@ -497,9 +445,9 @@ class Project(PathSchemaBase, BaseSchema):
 
                 if verbose:
                     self.logger.info(f"  Collecting directoryL {abs_path}")
-                FilterDirs.abspath = abs_path
-                shutil.copytree(abs_path, import_path, ignore=FilterDirs.filter)
-                FilterDirs.abspath = None
+                path_filter.abspath = abs_path
+                shutil.copytree(abs_path, import_path, ignore=path_filter.filter)
+                path_filter.abspath = None
 
         for key, step, index in sorted(files.keys()):
             abs_paths = self.find_files(*key, step=step, index=index)

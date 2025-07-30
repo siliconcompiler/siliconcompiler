@@ -1,12 +1,16 @@
 import contextlib
 import os
 import re
+import pathlib
 import psutil
 import shutil
+import stat
 import traceback
+
 from io import StringIO
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
+
 from siliconcompiler.schema.parametervalue import PathNodeValue
 
 import sys
@@ -405,3 +409,65 @@ def print_traceback(logger, exception):
     logger.error("Backtrace:")
     for line in trace.getvalue().splitlines():
         logger.error(line)
+
+
+class FilterDirectories:
+    def __init__(self, project):
+        self.file_count = 0
+        self.directory_file_limit = None
+        self.abspath = None
+        self.project = project
+
+    @property
+    def logger(self):
+        return self.project.logger
+
+    @property
+    def builddir(self):
+        return self.project._Project__getbuilddir()
+
+    def filter(self, path, files):
+        if pathlib.Path(path) == pathlib.Path.home():
+            # refuse to collect home directory
+            self.logger.error(f'Cannot collect user home directory: {path}')
+            return files
+
+        if pathlib.Path(path) == pathlib.Path(self.builddir):
+            # refuse to collect build directory
+            self.logger.error(f'Cannot collect build directory: {path}')
+            return files
+
+        # do not collect hidden files
+        hidden_files = []
+        # filter out hidden files (unix)
+        hidden_files.extend([f for f in files if f.startswith('.')])
+        # filter out hidden files (windows)
+        try:
+            if hasattr(os.stat_result, 'st_file_attributes'):
+                hidden_files.extend([
+                    f for f in files
+                    if bool(os.stat(os.path.join(path, f)).st_file_attributes &
+                            stat.FILE_ATTRIBUTE_HIDDEN)
+                ])
+        except:  # noqa 722
+            pass
+        # filter out hidden files (macos)
+        try:
+            if hasattr(os.stat_result, 'st_reparse_tag'):
+                hidden_files.extend([
+                    f for f in files
+                    if bool(os.stat(os.path.join(path, f)).st_reparse_tag &
+                            stat.UF_HIDDEN)
+                ])
+        except:  # noqa 722
+            pass
+
+        self.file_count += len(files) - len(hidden_files)
+
+        if self.directory_file_limit and \
+                self.file_count > self.directory_file_limit:
+            self.logger.error(f'File collection from {self.abspath} exceeds '
+                              f'{self.directory_file_limit} files')
+            return files
+
+        return hidden_files
