@@ -48,7 +48,8 @@ class PathSchemaBase(BaseSchema):
         """
         schema_root = self._parent(root=True)
         cwd = getattr(schema_root, "cwd", os.getcwd())
-        collection_dir = getattr(schema_root, "collection_dir", None)
+        collection_dir = getattr(schema_root, "collection_dir",
+                                 getattr(schema_root, "getcollectiondir", None))
         if collection_dir:
             collection_dir = collection_dir()
 
