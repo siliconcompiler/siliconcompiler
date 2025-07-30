@@ -111,22 +111,20 @@ def main():
 
     # Run the task.
     error = True
+    node = SchedulerNode(
+        chip,
+        args.step,
+        args.index,
+        replay=args.replay)
     try:
-        SchedulerNode(chip,
-                      args.step,
-                      args.index,
-                      replay=args.replay).run()
+        node.run()
         error = False
-
     finally:
         if args.archive:
             # Archive the results.
             with tarfile.open(args.archive,
                               mode='w:gz') as tf:
-                chip._archive_node(tf,
-                                   step=args.step,
-                                   index=args.index,
-                                   include=args.include)
+                node.archive(tf, include=args.include)
 
     # Return success/fail flag, in case the caller is interested.
     if error:
