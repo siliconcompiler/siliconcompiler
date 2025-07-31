@@ -302,6 +302,19 @@ def test_set_step_index_only(running_node):
                                     step="running", index="0") == []
 
 
+def test_set_step_index_only_override(running_node):
+    with running_node.task.runtime(None, step="notrunning", index="0") as runtool:
+        assert runtool.set("option", "only_step_index", step="something", index="else")
+        assert runtool.get("option", step="something", index="else") == ["only_step_index"]
+        assert BaseSchema.get(runtool, "option", step="something", index="else") == \
+            ["only_step_index"]
+        assert BaseSchema.get(runtool, "option", step="running", index="0") == []
+    assert running_node.project.get("tool", "builtin", "task", "nop", "option",
+                                    step="something", index="else") == ["only_step_index"]
+    assert running_node.project.get("tool", "builtin", "task", "nop", "option",
+                                    step="running", index="0") == []
+
+
 def test_add(running_node):
     with running_node.task.runtime(running_node) as runtool:
         assert runtool.add("option", "only_step_index0")
@@ -327,6 +340,22 @@ def test_add_step_index_only(running_node):
         assert BaseSchema.get(runtool, "option", step="running", index="0") == []
     assert running_node.project.get("tool", "builtin", "task", "nop", "option",
                                     step="notrunning", index="0") == \
+        ["only_step_index0", "only_step_index1"]
+    assert running_node.project.get("tool", "builtin", "task", "nop", "option",
+                                    step="running", index="0") == []
+
+
+def test_add_step_index_only_override(running_node):
+    with running_node.task.runtime(None, step="notrunning", index="0") as runtool:
+        assert runtool.add("option", "only_step_index0", step="something", index="else")
+        assert runtool.add("option", "only_step_index1", step="something", index="else")
+        assert runtool.get("option", step="something", index="else") == \
+            ["only_step_index0", "only_step_index1"]
+        assert BaseSchema.get(runtool, "option", step="something", index="else") == \
+            ["only_step_index0", "only_step_index1"]
+        assert BaseSchema.get(runtool, "option", step="running", index="0") == []
+    assert running_node.project.get("tool", "builtin", "task", "nop", "option",
+                                    step="something", index="else") == \
         ["only_step_index0", "only_step_index1"]
     assert running_node.project.get("tool", "builtin", "task", "nop", "option",
                                     step="running", index="0") == []
@@ -1779,6 +1808,129 @@ def test_get_tcl_variables_with_refdir_diffsource(running_node):
             'sc_topmodule': '"designtop"',
             "sc_refdir": '[list "thispath"]'
         }
+
+
+def test_set_exe(running_node):
+    with running_node.task.runtime(running_node) as runtool:
+        assert runtool.set_exe(exe="testexe", vswitch="-ver", format="json")
+        assert runtool.schema("tool").get("exe") == "testexe"
+        assert runtool.schema("tool").get("vswitch") == ["-ver"]
+        assert runtool.schema("tool").get("format") == "json"
+
+
+def test_set_path(running_node):
+    with running_node.task.runtime(running_node) as runtool:
+        assert runtool.set_path(".")
+        assert runtool.schema("tool").get("path") == "."
+
+
+def test_add_version(running_node):
+    with running_node.task.runtime(running_node) as runtool:
+        assert runtool.add_version(">=1")
+        assert runtool.add_version(">=2")
+        assert runtool.schema("tool").get("version") == [">=1", ">=2"]
+        assert runtool.add_version(">=3", clobber=True)
+        assert runtool.schema("tool").get("version") == [">=3"]
+
+
+def test_add_vswitch(running_node):
+    with running_node.task.runtime(running_node) as runtool:
+        assert runtool.add_vswitch("-h")
+        assert runtool.add_vswitch("-v")
+        assert runtool.schema("tool").get("vswitch") == ["-h", "-v"]
+        assert runtool.add_vswitch("-version", clobber=True)
+        assert runtool.schema("tool").get("vswitch") == ["-version"]
+
+
+def test_add_licenseserver(running_node):
+    with running_node.task.runtime(running_node) as runtool:
+        assert runtool.add_licenseserver("testlic", "lic0")
+        assert runtool.add_licenseserver("testlic", "lic1")
+        assert runtool.schema("tool").get("licenseserver", "testlic") == ['lic0', 'lic1']
+        assert runtool.add_licenseserver("testlic", "lic2", clobber=True)
+        assert runtool.schema("tool").get("licenseserver", "testlic") == ["lic2"]
+
+
+def test_add_sbom(running_node):
+    with running_node.task.runtime(running_node) as runtool:
+        assert runtool.add_sbom("v1", "sbom0")
+        assert runtool.add_sbom("v1", "sbom1")
+        assert runtool.schema("tool").get("sbom", "v1") == ['sbom0', 'sbom1']
+        assert runtool.add_sbom("v1", "sbom2", clobber=True)
+        assert runtool.schema("tool").get("sbom", "v1") == ["sbom2"]
+
+
+def test_set_environmentalvariable(running_node):
+    with running_node.task.runtime(running_node) as runtool:
+        assert runtool.set_environmentalvariable("ENV0", "TEST")
+        assert runtool.get("env", "ENV0") == "TEST"
+
+
+def test_add_prescript(running_node):
+    with running_node.task.runtime(running_node) as runtool:
+        assert runtool.has_prescript() is False
+
+        assert runtool.add_prescript("prescript0.tcl")
+        assert runtool.add_prescript("prescript1.tcl")
+        assert runtool.get("prescript") == ["prescript0.tcl", "prescript1.tcl"]
+        assert runtool.add_prescript("prescript2.tcl", clobber=True)
+        assert runtool.get("prescript") == ["prescript2.tcl"]
+
+        assert runtool.has_prescript() is True
+
+
+def test_add_postscript(running_node):
+    with running_node.task.runtime(running_node) as runtool:
+        assert runtool.has_postscript() is False
+
+        assert runtool.add_postscript("postscript0.tcl")
+        assert runtool.add_postscript("postscript1.tcl")
+        assert runtool.get("postscript") == ["postscript0.tcl", "postscript1.tcl"]
+        assert runtool.add_postscript("postscript2.tcl", clobber=True)
+        assert runtool.get("postscript") == ["postscript2.tcl"]
+
+        assert runtool.has_postscript() is True
+
+
+def test_set_refdir(running_node):
+    with running_node.task.runtime(running_node) as runtool:
+        assert runtool.set_refdir(".")
+        assert runtool.get("refdir") == ["."]
+
+
+def test_set_script(running_node):
+    with running_node.task.runtime(running_node) as runtool:
+        assert runtool.set_script("script.tcl")
+        assert runtool.get("script") == ["script.tcl"]
+
+
+def test_add_regex(running_node):
+    with running_node.task.runtime(running_node) as runtool:
+        assert runtool.add_regex("errors", "^Error")
+        assert runtool.add_regex("errors", "^Error0")
+        assert runtool.get("regex", "errors") == ["^Error", "^Error0"]
+        assert runtool.add_regex("errors", "^ERROR", clobber=True)
+        assert runtool.get("regex", "errors") == ["^ERROR"]
+
+
+def test_set_logdestination(running_node):
+    with running_node.task.runtime(running_node) as runtool:
+        print(runtool.get("stdout", "suffix"))
+        assert runtool.set_logdestination("stderr", "output", "txt")
+        assert runtool.set_logdestination("stdout", "none")
+        assert runtool.get("stderr", "destination") == "output"
+        assert runtool.get("stderr", "suffix") == "txt"
+        assert runtool.get("stdout", "destination") == "none"
+        assert runtool.get("stdout", "suffix") == "log"
+
+
+def test_add_warningoff(running_node):
+    with running_node.task.runtime(running_node) as runtool:
+        assert runtool.add_warningoff("Error")
+        assert runtool.add_warningoff("Error0")
+        assert runtool.get("warningoff") == ["Error", "Error0"]
+        assert runtool.add_warningoff("ERROR", clobber=True)
+        assert runtool.get("warningoff") == ["ERROR"]
 
 
 def test_asic_mainlib_not_set(running_node):

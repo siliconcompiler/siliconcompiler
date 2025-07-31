@@ -1155,16 +1155,20 @@ class TaskSchema(NamedSchema):
 
         return param
 
-    def add_required_tool_key(self, *key: str):
+    ###############################################################
+    # Task settings
+    ###############################################################
+    def add_required_tool_key(self, *key: str, step: str = None, index: str = None):
         '''
         Adds a required tool keypath to the task driver.
 
         Args:
             key (list of str): required key path
         '''
-        return self.add_required_key(self, *key)
+        return self.add_required_key(self, *key, step=step, index=index)
 
-    def add_required_key(self, obj: Union[BaseSchema, str], *key: str):
+    def add_required_key(self, obj: Union[BaseSchema, str], *key: str,
+                         step: str = None, index: str = None):
         '''
         Adds a required keypath to the task driver.
 
@@ -1183,9 +1187,11 @@ class TaskSchema(NamedSchema):
         if any([not isinstance(k, str) for k in key]):
             raise ValueError("key can only contain strings")
 
-        return self.add("require", ",".join(key))
+        return self.add("require", ",".join(key), step=step, index=index)
 
-    def set_threads(self, max_threads: int = None, clobber: bool = False):
+    def set_threads(self, max_threads: int = None,
+                    step: str = None, index: str = None,
+                    clobber: bool = False):
         """
         Sets the requested thread count for the task
 
@@ -1198,15 +1204,17 @@ class TaskSchema(NamedSchema):
         if max_threads is None or max_threads <= 0:
             max_threads = utils.get_cores(None)
 
-        return self.set("threads", max_threads, clobber=clobber)
+        return self.set("threads", max_threads, step=step, index=index, clobber=clobber)
 
-    def get_threads(self) -> int:
+    def get_threads(self, step: str = None, index: str = None) -> int:
         """
         Returns the number of threads requested.
         """
-        return self.get("threads")
+        return self.get("threads", step=step, index=index)
 
-    def add_commandline_option(self, option: Union[List[str], str], clobber: bool = False):
+    def add_commandline_option(self, option: Union[List[str], str],
+                               step: str = None, index: str = None,
+                               clobber: bool = False):
         """
         Add to the command line options for the task
 
@@ -1216,17 +1224,19 @@ class TaskSchema(NamedSchema):
         """
 
         if clobber:
-            return self.set("option", option)
+            return self.set("option", option, step=step, index=index)
         else:
-            return self.add("option", option)
+            return self.add("option", option, step=step, index=index)
 
-    def get_commandline_options(self) -> List[str]:
+    def get_commandline_options(self, step: str = None, index: str = None) -> List[str]:
         """
         Returns the command line options specified
         """
-        return self.get("option")
+        return self.get("option", step=step, index=index)
 
-    def add_input_file(self, file: str = None, ext: str = None, clobber: bool = False):
+    def add_input_file(self, file: str = None, ext: str = None,
+                       step: str = None, index: str = None,
+                       clobber: bool = False):
         """
         Add a required input file from the previous step in the flow.
         file and ext are mutually exclusive.
@@ -1243,11 +1253,13 @@ class TaskSchema(NamedSchema):
             file = f"{self.design_topmodule}.{ext}"
 
         if clobber:
-            return self.set("input", file)
+            return self.set("input", file, step=step, index=index)
         else:
-            return self.add("input", file)
+            return self.add("input", file, step=step, index=index)
 
-    def add_output_file(self, file: str = None, ext: str = None, clobber: bool = False):
+    def add_output_file(self, file: str = None, ext: str = None,
+                        step: str = None, index: str = None,
+                        clobber: bool = False):
         """
         Add an output file that this task will produce
         file and ext are mutually exclusive.
@@ -1264,9 +1276,139 @@ class TaskSchema(NamedSchema):
             file = f"{self.design_topmodule}.{ext}"
 
         if clobber:
-            return self.set("output", file)
+            return self.set("output", file, step=step, index=index)
         else:
-            return self.add("output", file)
+            return self.add("output", file, step=step, index=index)
+
+    def set_environmentalvariable(self, name: str, value: str,
+                                  step: str = None, index: str = None,
+                                  clobber: bool = False):
+        return self.set("env", name, value, step=step, index=index, clobber=clobber)
+
+    def add_prescript(self, script: str, dataroot: str = None,
+                      step: str = None, index: str = None,
+                      clobber: bool = False):
+        if not dataroot:
+            dataroot = self._get_active("package")
+        with self._active(package=dataroot):
+            if clobber:
+                return self.set("prescript", script, step=step, index=index)
+            else:
+                return self.add("prescript", script, step=step, index=index)
+
+    def add_postscript(self, script: str, dataroot: str = None,
+                       step: str = None, index: str = None,
+                       clobber: bool = False):
+        if not dataroot:
+            dataroot = self._get_active("package")
+        with self._active(package=dataroot):
+            if clobber:
+                return self.set("postscript", script, step=step, index=index)
+            else:
+                return self.add("postscript", script, step=step, index=index)
+
+    def has_prescript(self, step: str = None, index: str = None) -> bool:
+        if self.get("prescript", step=step, index=index):
+            return True
+        return False
+
+    def has_postscript(self, step: str = None, index: str = None) -> bool:
+        if self.get("postscript", step=step, index=index):
+            return True
+        return False
+
+    def set_refdir(self, dir: str, dataroot: str = None,
+                   step: str = None, index: str = None,
+                   clobber: bool = False):
+        if not dataroot:
+            dataroot = self._get_active("package")
+        with self._active(package=dataroot):
+            return self.set("refdir", dir, step=step, index=index, clobber=clobber)
+
+    def set_script(self, script: str, dataroot: str = None,
+                   step: str = None, index: str = None,
+                   clobber: bool = False):
+        if not dataroot:
+            dataroot = self._get_active("package")
+        with self._active(package=dataroot):
+            return self.set("script", script, step=step, index=index, clobber=clobber)
+
+    def add_regex(self, type: str, regex: str,
+                  step: str = None, index: str = None,
+                  clobber: bool = False):
+        if clobber:
+            return self.set("regex", type, regex, step=step, index=index)
+        else:
+            return self.add("regex", type, regex, step=step, index=index)
+
+    def set_logdestination(self, type: str, dest: str, suffix: str = None,
+                           step: str = None, index: str = None,
+                           clobber: bool = False):
+        rets = []
+        rets.append(self.set(type, "destination", dest, step=step, index=index, clobber=clobber))
+        if suffix:
+            rets.append(self.set(type, "suffix", suffix, step=step, index=index, clobber=clobber))
+        return rets
+
+    def add_warningoff(self, type: str, step: str = None, index: str = None, clobber: bool = False):
+        if clobber:
+            return self.set("warningoff", type, step=step, index=index)
+        else:
+            return self.add("warningoff", type, step=step, index=index)
+
+    ###############################################################
+    # Tool settings
+    ###############################################################
+    def set_exe(self, exe: str = None, vswitch: List[str] = None, format: str = None,
+                clobber: bool = False):
+        rets = []
+        if exe:
+            rets.append(self.schema("tool").set("exe", exe, clobber=clobber))
+        if vswitch:
+            switches = self.add_vswitch(vswitch, clobber=clobber)
+            if not isinstance(switches, list):
+                switches = list(switches)
+            rets.extend(switches)
+        if format:
+            rets.append(self.schema("tool").set("format", format, clobber=clobber))
+        return rets
+
+    def set_path(self, path: str, dataroot: str = None,
+                 step: str = None, index: str = None,
+                 clobber: bool = False):
+        if not dataroot:
+            dataroot = self.schema("tool")._get_active("package")
+        with self.schema("tool")._active(package=dataroot):
+            return self.schema("tool").set("path", path, step=step, index=index, clobber=clobber)
+
+    def add_version(self, version: str, step: str = None, index: str = None, clobber: bool = False):
+        if clobber:
+            return self.schema("tool").set("version", version, step=step, index=index)
+        else:
+            return self.schema("tool").add("version", version, step=step, index=index)
+
+    def add_vswitch(self, switch: str, clobber: bool = False):
+        if clobber:
+            return self.schema("tool").set("vswitch", switch)
+        else:
+            return self.schema("tool").add("vswitch", switch)
+
+    def add_licenseserver(self, name: str, server: str,
+                          step: str = None, index: str = None,
+                          clobber: bool = False):
+        if clobber:
+            return self.schema("tool").set("licenseserver", name, server, step=step, index=index)
+        else:
+            return self.schema("tool").add("licenseserver", name, server, step=step, index=index)
+
+    def add_sbom(self, version: str, sbom: str, dataroot: str = None, clobber: bool = False):
+        if not dataroot:
+            dataroot = self.schema("tool")._get_active("package")
+        with self.schema("tool")._active(package=dataroot):
+            if clobber:
+                return self.schema("tool").set("sbom", version, sbom)
+            else:
+                return self.schema("tool").add("sbom", version, sbom)
 
     def record_metric(self, metric, value, source_file=None, source_unit=None):
         '''
@@ -1293,25 +1435,43 @@ class TaskSchema(NamedSchema):
             self.add("report", metric, source_file)
 
     ###############################################################
-    def get(self, *keypath, field='value'):
-        return super().get(*keypath, field=field,
-                           step=self.__step, index=self.__index)
+    # Schema
+    ###############################################################
+    def get(self, *keypath, field='value', step: str = None, index: str = None):
+        if not step:
+            step = self.__step
+        if not index:
+            index = self.__index
+        return super().get(*keypath, field=field, step=step, index=index)
 
-    def set(self, *args, field='value', clobber=True):
-        return super().set(*args, field=field, clobber=clobber,
-                           step=self.__step, index=self.__index)
+    def set(self, *args, field='value', step: str = None, index: str = None, clobber=True):
+        if not step:
+            step = self.__step
+        if not index:
+            index = self.__index
+        return super().set(*args, field=field, clobber=clobber, step=step, index=index)
 
-    def add(self, *args, field='value'):
-        return super().add(*args, field=field, step=self.__step, index=self.__index)
+    def add(self, *args, field='value', step: str = None, index: str = None):
+        if not step:
+            step = self.__step
+        if not index:
+            index = self.__index
+        return super().add(*args, field=field, step=step, index=index)
+
+    def find_files(self, *keypath, missing_ok=False, step=None, index=None):
+        if not step:
+            step = self.__step
+        if not index:
+            index = self.__index
+        return super().find_files(*keypath, missing_ok=missing_ok,
+                                  step=step, index=index,
+                                  collection_dir=self.__collection_path,
+                                  cwd=self.__cwd)
 
     def _find_files_search_paths(self, keypath, step, index):
         paths = super()._find_files_search_paths(keypath, step, index)
         if keypath == "script":
-            paths.extend(self.find_files(
-                "refdir",
-                step=step, index=index,
-                cwd=self.__cwd,
-                collection_dir=self.__collection_path))
+            paths.extend(self.find_files("refdir", step=step, index=index))
         elif keypath == "input":
             paths.append(os.path.join(self._parent(root=True).getworkdir(step=step, index=index),
                                       "inputs"))
@@ -1323,6 +1483,8 @@ class TaskSchema(NamedSchema):
                                       "outputs"))
         return paths
 
+    ###############################################################
+    # Task methods
     ###############################################################
     def parse_version(self, stdout):
         raise NotImplementedError("must be implemented by the implementation class")
@@ -1344,15 +1506,10 @@ class TaskSchema(NamedSchema):
         cmdargs = []
         cmdargs.extend(self.get("option"))
 
-        # Add scripts files / TODO:
-        scripts = self.find_files(
-            'script',
-            step=self.__step, index=self.__index,
-            cwd=self.__cwd,
-            collection_dir=self.__collection_path,
-            missing_ok=True)
+        script = self.find_files('script', missing_ok=True)
 
-        cmdargs.extend(scripts)
+        if script:
+            cmdargs.extend(script)
 
         return cmdargs
 
