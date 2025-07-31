@@ -886,7 +886,7 @@ def test_get_rendable_xsmall_dashboard_finished_success(mock_finished_job_passed
     assert len(rendable.renderables) == 1
 
     # Display Summary
-    assert isinstance(rendable.renderables[0], Padding)
+    assert isinstance(rendable.renderables[0], Group)
 
 
 def test_get_rendable_small_dashboard_finished_success(mock_finished_job_passed, dashboard_small):
@@ -900,7 +900,7 @@ def test_get_rendable_small_dashboard_finished_success(mock_finished_job_passed,
     rendable = dashboard._get_rendable()
 
     assert isinstance(rendable, Group)
-    assert len(rendable.renderables) == 2
+    assert len(rendable.renderables) == 3
 
     jobs = rendable.renderables[0]
     assert isinstance(jobs, Group)
@@ -908,8 +908,9 @@ def test_get_rendable_small_dashboard_finished_success(mock_finished_job_passed,
     assert isinstance(jobs.renderables[0], Table)
     assert isinstance(jobs.renderables[1], Padding)
 
-    # Display Summary
-    assert isinstance(rendable.renderables[1], Padding)
+    # Display Log
+    assert isinstance(rendable.renderables[1], Group)
+    assert isinstance(rendable.renderables[2], Group)
 
 
 def test_get_rendable_medium_dashboard_finished_success(mock_finished_job_passed, dashboard_medium):
@@ -923,7 +924,7 @@ def test_get_rendable_medium_dashboard_finished_success(mock_finished_job_passed
     rendable = dashboard._get_rendable()
 
     assert isinstance(rendable, Group)
-    assert len(rendable.renderables) == 2
+    assert len(rendable.renderables) == 3
 
     jobs = rendable.renderables[0]
     assert isinstance(jobs, Group)
@@ -931,8 +932,9 @@ def test_get_rendable_medium_dashboard_finished_success(mock_finished_job_passed
     assert isinstance(jobs.renderables[0], Table)
     assert isinstance(jobs.renderables[1], Padding)
 
-    # Display Summary
-    assert isinstance(rendable.renderables[1], Padding)
+    # Display Log
+    assert isinstance(rendable.renderables[1], Group)
+    assert isinstance(rendable.renderables[2], Group)
 
 
 def test_get_rendable_xsmall_dashboard_finished_fail(mock_finished_job_fail, dashboard_xsmall):
@@ -946,13 +948,10 @@ def test_get_rendable_xsmall_dashboard_finished_fail(mock_finished_job_fail, das
     rendable = dashboard._get_rendable()
 
     assert isinstance(rendable, Group)
-    assert len(rendable.renderables) == 2
+    assert len(rendable.renderables) == 1
 
     # Display Done
     progress = rendable.renderables[0]
     assert len(progress.renderables) == 2
     assert isinstance(progress.renderables[0], Progress)
     assert isinstance(progress.renderables[1], Padding)
-
-    # Display Summary
-    assert isinstance(rendable.renderables[1], Padding)
