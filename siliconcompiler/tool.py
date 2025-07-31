@@ -1167,7 +1167,8 @@ class TaskSchema(NamedSchema):
         '''
         return self.add_required_key(self, *key, step=step, index=index)
 
-    def add_required_key(self, obj: Union[BaseSchema, str], *key: str, step: str = None, index: str = None):
+    def add_required_key(self, obj: Union[BaseSchema, str], *key: str,
+                         step: str = None, index: str = None):
         '''
         Adds a required keypath to the task driver.
 
@@ -1188,7 +1189,9 @@ class TaskSchema(NamedSchema):
 
         return self.add("require", ",".join(key), step=step, index=index)
 
-    def set_threads(self, max_threads: int = None, step: str = None, index: str = None, clobber: bool = False):
+    def set_threads(self, max_threads: int = None,
+                    step: str = None, index: str = None,
+                    clobber: bool = False):
         """
         Sets the requested thread count for the task
 
@@ -1209,7 +1212,9 @@ class TaskSchema(NamedSchema):
         """
         return self.get("threads", step=step, index=index)
 
-    def add_commandline_option(self, option: Union[List[str], str], step: str = None, index: str = None, clobber: bool = False):
+    def add_commandline_option(self, option: Union[List[str], str],
+                               step: str = None, index: str = None,
+                               clobber: bool = False):
         """
         Add to the command line options for the task
 
@@ -1229,7 +1234,9 @@ class TaskSchema(NamedSchema):
         """
         return self.get("option", step=step, index=index)
 
-    def add_input_file(self, file: str = None, ext: str = None, step: str = None, index: str = None, clobber: bool = False):
+    def add_input_file(self, file: str = None, ext: str = None,
+                       step: str = None, index: str = None,
+                       clobber: bool = False):
         """
         Add a required input file from the previous step in the flow.
         file and ext are mutually exclusive.
@@ -1250,7 +1257,9 @@ class TaskSchema(NamedSchema):
         else:
             return self.add("input", file, step=step, index=index)
 
-    def add_output_file(self, file: str = None, ext: str = None, step: str = None, index: str = None, clobber: bool = False):
+    def add_output_file(self, file: str = None, ext: str = None,
+                        step: str = None, index: str = None,
+                        clobber: bool = False):
         """
         Add an output file that this task will produce
         file and ext are mutually exclusive.
@@ -1271,10 +1280,14 @@ class TaskSchema(NamedSchema):
         else:
             return self.add("output", file, step=step, index=index)
 
-    def set_environmentalvariable(self, name: str, value: str, step: str = None, index: str = None):
-        return self.set("env", name, value, step=step, index=index)
+    def set_environmentalvariable(self, name: str, value: str,
+                                  step: str = None, index: str = None,
+                                  clobber: bool = False):
+        return self.set("env", name, value, step=step, index=index, clobber=clobber)
 
-    def add_prescript(self, script: str, dataroot: str = None, step: str = None, index: str = None, clobber: bool = False):
+    def add_prescript(self, script: str, dataroot: str = None,
+                      step: str = None, index: str = None,
+                      clobber: bool = False):
         if not dataroot:
             dataroot = self._get_active("package")
         with self._active(package=dataroot):
@@ -1283,7 +1296,9 @@ class TaskSchema(NamedSchema):
             else:
                 return self.add("prescript", script, step=step, index=index)
 
-    def add_postscript(self, script: str, dataroot: str = None, step: str = None, index: str = None, clobber: bool = False):
+    def add_postscript(self, script: str, dataroot: str = None,
+                       step: str = None, index: str = None,
+                       clobber: bool = False):
         if not dataroot:
             dataroot = self._get_active("package")
         with self._active(package=dataroot):
@@ -1302,29 +1317,37 @@ class TaskSchema(NamedSchema):
             return True
         return False
 
-    def set_refdir(self, dir: str, dataroot: str = None, step: str = None, index: str = None):
+    def set_refdir(self, dir: str, dataroot: str = None,
+                   step: str = None, index: str = None,
+                   clobber: bool = False):
         if not dataroot:
             dataroot = self._get_active("package")
         with self._active(package=dataroot):
-            return self.set("refdir", dir, step=step, index=index)
+            return self.set("refdir", dir, step=step, index=index, clobber=clobber)
 
-    def set_script(self, script: str, dataroot: str = None, step: str = None, index: str = None, clobber: bool = False):
+    def set_script(self, script: str, dataroot: str = None,
+                   step: str = None, index: str = None,
+                   clobber: bool = False):
         if not dataroot:
             dataroot = self._get_active("package")
         with self._active(package=dataroot):
             return self.set("script", script, step=step, index=index, clobber=clobber)
 
-    def add_regex(self, type: str, regex: str, step: str = None, index: str = None, clobber: bool = False):
+    def add_regex(self, type: str, regex: str,
+                  step: str = None, index: str = None,
+                  clobber: bool = False):
         if clobber:
             return self.set("regex", type, regex, step=step, index=index)
         else:
             return self.add("regex", type, regex, step=step, index=index)
 
-    def set_logdestination(self, type: str, dest: str, suffix: str = None, step: str = None, index: str = None):
+    def set_logdestination(self, type: str, dest: str, suffix: str = None,
+                           step: str = None, index: str = None,
+                           clobber: bool = False):
         rets = []
-        rets.append(self.set(type, "destination", dest, step=step, index=index))
+        rets.append(self.set(type, "destination", dest, step=step, index=index, clobber=clobber))
         if suffix:
-            rets.append(self.set(type, "suffix", suffix, step=step, index=index))
+            rets.append(self.set(type, "suffix", suffix, step=step, index=index, clobber=clobber))
         return rets
 
     def add_warningoff(self, type: str, step: str = None, index: str = None, clobber: bool = False):
@@ -1336,7 +1359,8 @@ class TaskSchema(NamedSchema):
     ###############################################################
     # Tool settings
     ###############################################################
-    def set_exe(self, exe: str = None, vswitch: List[str] = None, format: str = None, clobber: bool = False):
+    def set_exe(self, exe: str = None, vswitch: List[str] = None, format: str = None,
+                clobber: bool = False):
         rets = []
         if exe:
             rets.append(self.schema("tool").set("exe", exe, clobber=clobber))
@@ -1349,7 +1373,9 @@ class TaskSchema(NamedSchema):
             rets.append(self.schema("tool").set("format", format, clobber=clobber))
         return rets
 
-    def set_path(self, path: str, dataroot: str = None, step: str = None, index: str = None, clobber: bool = False):
+    def set_path(self, path: str, dataroot: str = None,
+                 step: str = None, index: str = None,
+                 clobber: bool = False):
         if not dataroot:
             dataroot = self.schema("tool")._get_active("package")
         with self.schema("tool")._active(package=dataroot):
@@ -1367,7 +1393,9 @@ class TaskSchema(NamedSchema):
         else:
             return self.schema("tool").add("vswitch", switch)
 
-    def add_licenseserver(self, name: str, server: str, step: str = None, index: str = None, clobber: bool = False):
+    def add_licenseserver(self, name: str, server: str,
+                          step: str = None, index: str = None,
+                          clobber: bool = False):
         if clobber:
             return self.schema("tool").set("licenseserver", name, server, step=step, index=index)
         else:
@@ -1435,18 +1463,24 @@ class TaskSchema(NamedSchema):
             step = self.__step
         if not index:
             index = self.__index
-        return super().find_files(*keypath, missing_ok=missing_ok, step=step, index=index, collection_dir=self.__collection_path, cwd=self.__cwd)
+        return super().find_files(*keypath, missing_ok=missing_ok,
+                                  step=step, index=index,
+                                  collection_dir=self.__collection_path,
+                                  cwd=self.__cwd)
 
     def _find_files_search_paths(self, keypath, step, index):
         paths = super()._find_files_search_paths(keypath, step, index)
         if keypath == "script":
             paths.extend(self.find_files("refdir", step=step, index=index))
         elif keypath == "input":
-            paths.append(os.path.join(self._parent(root=True).getworkdir(step=step, index=index), "inputs"))
+            paths.append(os.path.join(self._parent(root=True).getworkdir(step=step, index=index),
+                                      "inputs"))
         elif keypath == "report":
-            paths.append(os.path.join(self._parent(root=True).getworkdir(step=step, index=index), "report"))
+            paths.append(os.path.join(self._parent(root=True).getworkdir(step=step, index=index),
+                                      "report"))
         elif keypath == "output":
-            paths.append(os.path.join(self._parent(root=True).getworkdir(step=step, index=index), "outputs"))
+            paths.append(os.path.join(self._parent(root=True).getworkdir(step=step, index=index),
+                                      "outputs"))
         return paths
 
     ###############################################################
