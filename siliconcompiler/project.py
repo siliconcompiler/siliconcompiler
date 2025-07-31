@@ -570,9 +570,9 @@ class Project(PathSchemaBase, BaseSchema):
                 are considered), returns a `Set[TaskSchema]` containing the matching tasks.
         """
         all_tasks: Set[TaskSchema] = set()
-        for tool in self.getkeys("tool"):
-            for task in self.getkeys("tool", tool, "task"):
-                all_tasks.add(self.get("tool", tool, "task", task, field="schema"))
+        for tool_name in self.getkeys("tool"):
+            for task_name in self.getkeys("tool", tool_name, "task"):
+                all_tasks.add(self.get("tool", tool_name, "task", task_name, field="schema"))
 
         tasks = set()
         for task_obj in all_tasks:
@@ -582,11 +582,11 @@ class Project(PathSchemaBase, BaseSchema):
                 continue
             if filter:
                 if callable(filter):
-                    if not filter(task):
+                    if not filter(task_obj):
                         continue
-                elif not isinstance(task, filter):
+                elif not isinstance(task_obj, filter):
                     continue
-            tasks.add(task)
+            tasks.add(task_obj)
 
         if len(tasks) == 1:
             return list(tasks)[0]
