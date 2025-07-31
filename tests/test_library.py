@@ -1,7 +1,7 @@
 import pytest
 
 from siliconcompiler import LibrarySchema, ToolLibrarySchema, StdCellLibrarySchema
-from siliconcompiler.schema import PerNode, Scope
+from siliconcompiler.schema import EditableSchema, Parameter, PerNode, Scope
 
 
 def test__allkeys():
@@ -72,6 +72,57 @@ def test_define_tool_parameter():
     assert param.get(field="help") == "timing corner to use for synthesis"
     assert param.get(field="shorthelp") == "timing corner to use for synthesis"
     assert param.default.get() is None
+
+
+def test_define_tool_parameter_recovered():
+    class TestTool(ToolLibrarySchema):
+        def __init__(self, name=None):
+            super().__init__()
+            self.set_name(name)
+
+            self.define_tool_parameter("openroad", "param1", "str", "help")
+
+    lib = TestTool("test")
+    lib.define_tool_parameter(
+        "yosys",
+        "oneparam",
+        "str",
+        "timing corner to use for synthesis"
+    )
+    lib.define_tool_parameter(
+        "yosys",
+        "twoparam",
+        "[(str,float)]",
+        "timing corner to use for synthesis"
+    )
+    lib.define_tool_parameter(
+        "openroad",
+        "param2",
+        "[(str,float)]",
+        "timing corner to use for synthesis"
+    )
+
+    lib.set("tool", "openroad", "param1", "openroad_param")
+    lib.set("tool", "openroad", "param2", [("this0", -2), ("test1", -5)])
+    lib.set("tool", "yosys", "oneparam", "yosys_setting")
+    lib.set("tool", "yosys", "twoparam", [("this0", 12), ("test1", 14)])
+
+    assert lib.allkeys("tool") == set([('yosys', 'oneparam'),
+                                       ('yosys', 'twoparam'),
+                                       ("openroad", "param1"),
+                                       ("openroad", "param2")])
+
+    new_lib = TestTool.from_manifest(name="newlib", cfg=lib.getdict())
+
+    assert new_lib.allkeys("tool") == set([('yosys', 'oneparam'),
+                                           ('yosys', 'twoparam'),
+                                           ("openroad", "param1"),
+                                           ("openroad", "param2")])
+
+    assert new_lib.get("tool", "openroad", "param1") == "openroad_param"
+    assert new_lib.get("tool", "openroad", "param2") == [("this0", -2), ("test1", -5)]
+    assert new_lib.get("tool", "yosys", "oneparam") == "yosys_setting"
+    assert new_lib.get("tool", "yosys", "twoparam") == [("this0", 12), ("test1", 14)]
 
 
 def test_define_tool_parameter_override_illegal():

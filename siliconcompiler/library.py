@@ -60,6 +60,33 @@ class ToolLibrarySchema(LibrarySchema):
 
         return ToolLibrarySchema.__name__
 
+    def _from_dict(self, manifest, keypath, version=None):
+        if "tool" in manifest:
+            # collect tool keys
+            tool_keys = self.allkeys("tool")
+
+            # collect manifest
+            manifest_keys = set()
+            for tool, tool_var in manifest["tool"].items():
+                for var in tool_var:
+                    manifest_keys.add((tool, var))
+
+            edit = EditableSchema(self)
+            for tool, var in sorted(manifest_keys.difference(tool_keys)):
+                edit.insert("tool", tool, var,
+                            Parameter.from_dict(
+                                manifest["tool"][tool][var],
+                                keypath=keypath + [tool, var],
+                                version=version))
+                del manifest["tool"][tool][var]
+                if not manifest["tool"][tool]:
+                    del manifest["tool"][tool]
+
+            if not manifest["tool"]:
+                del manifest["tool"]
+
+        return super()._from_dict(manifest, keypath, version)
+
 
 class StdCellLibrarySchema(ToolLibrarySchema):
     def __init__(self, name: str = None):

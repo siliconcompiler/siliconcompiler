@@ -1404,6 +1404,43 @@ def test_task_add_parameter():
     assert task.get("var", "testbool", field="pernode") == PerNode.OPTIONAL
 
 
+def test_task_add_parameter_recovered():
+    task = TaskSchema("testtask")
+    assert task.add_parameter("teststr", "str", "long form help")
+    assert task.add_parameter("testbool", "bool", "long form help")
+    assert task.add_parameter("testlist", "[str]", "long form help")
+
+    assert task.getkeys("var") == ("testbool", "testlist", "teststr")
+
+    new_task = TaskSchema.from_manifest(name="newtask", cfg=task.getdict())
+
+    assert new_task.getkeys("var") == ("testbool", "testlist", "teststr")
+
+    assert new_task.get("var", "teststr") is None
+    assert new_task.get("var", "testlist") == []
+    assert new_task.get("var", "testbool") is False
+
+    assert new_task.get("var", "teststr", field="help") == "long form help"
+    assert new_task.get("var", "testlist", field="help") == "long form help"
+    assert new_task.get("var", "testbool", field="help") == "long form help"
+
+    assert new_task.get("var", "teststr", field="shorthelp") == "long form help"
+    assert new_task.get("var", "testlist", field="shorthelp") == "long form help"
+    assert new_task.get("var", "testbool", field="shorthelp") == "long form help"
+
+    assert new_task.get("var", "teststr", field="type") == "str"
+    assert new_task.get("var", "testlist", field="type") == "[str]"
+    assert new_task.get("var", "testbool", field="type") == "bool"
+
+    assert new_task.get("var", "teststr", field="scope") == Scope.JOB
+    assert new_task.get("var", "testlist", field="scope") == Scope.JOB
+    assert new_task.get("var", "testbool", field="scope") == Scope.JOB
+
+    assert new_task.get("var", "teststr", field="pernode") == PerNode.OPTIONAL
+    assert new_task.get("var", "testlist", field="pernode") == PerNode.OPTIONAL
+    assert new_task.get("var", "testbool", field="pernode") == PerNode.OPTIONAL
+
+
 def test_task_add_parameter_defvalue():
     task = TaskSchema("testtask")
 

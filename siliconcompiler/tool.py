@@ -101,6 +101,28 @@ class TaskSchema(NamedSchema):
 
         return TaskSchema.__name__
 
+    def _from_dict(self, manifest, keypath, version=None):
+        if "var" in manifest:
+            # collect var keys
+            var_keys = self.allkeys("var")
+
+            # collect manifest
+            manifest_keys = set(manifest["var"].keys())
+
+            edit = EditableSchema(self)
+            for var in sorted(manifest_keys.difference(var_keys)):
+                edit.insert("var", var,
+                            Parameter.from_dict(
+                                manifest["var"][var],
+                                keypath=keypath + [var],
+                                version=version))
+                del manifest["var"][var]
+
+            if not manifest["var"]:
+                del manifest["var"]
+
+        return super()._from_dict(manifest, keypath, version)
+
     @contextlib.contextmanager
     def runtime(self, node, step=None, index=None, relpath=None):
         '''
