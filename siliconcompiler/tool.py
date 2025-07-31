@@ -104,7 +104,7 @@ class TaskSchema(NamedSchema):
     def _from_dict(self, manifest, keypath, version=None):
         if "var" in manifest:
             # collect var keys
-            var_keys = self.allkeys("var")
+            var_keys = [k[0] for k in self.allkeys("var")]
 
             # collect manifest
             manifest_keys = set(manifest["var"].keys())
