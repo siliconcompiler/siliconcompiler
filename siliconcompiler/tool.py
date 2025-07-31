@@ -1276,7 +1276,7 @@ class TaskSchema(NamedSchema):
 
     def add_prescript(self, script: str, dataroot: str = None, step: str = None, index: str = None, clobber: bool = False):
         if not dataroot:
-            dataroot = self._active("package")
+            dataroot = self._get_active("package")
         with self._active(package=dataroot):
             if clobber:
                 return self.set("prescript", script, step=step, index=index)
@@ -1285,7 +1285,7 @@ class TaskSchema(NamedSchema):
 
     def add_postscript(self, script: str, dataroot: str = None, step: str = None, index: str = None, clobber: bool = False):
         if not dataroot:
-            dataroot = self._active("package")
+            dataroot = self._get_active("package")
         with self._active(package=dataroot):
             if clobber:
                 return self.set("postscript", script, step=step, index=index)
@@ -1302,18 +1302,15 @@ class TaskSchema(NamedSchema):
             return True
         return False
 
-    def add_refdir(self, dir: str, dataroot: str = None, step: str = None, index: str = None, clobber: bool = False):
+    def set_refdir(self, dir: str, dataroot: str = None, step: str = None, index: str = None):
         if not dataroot:
-            dataroot = self._active("package")
+            dataroot = self._get_active("package")
         with self._active(package=dataroot):
-            if clobber:
-                return self.set("refdir", dir, step=step, index=index)
-            else:
-                return self.add("refdir", dir, step=step, index=index)
+            return self.set("refdir", dir, step=step, index=index)
 
     def set_script(self, script: str, dataroot: str = None, step: str = None, index: str = None, clobber: bool = False):
         if not dataroot:
-            dataroot = self._active("package")
+            dataroot = self._get_active("package")
         with self._active(package=dataroot):
             return self.set("script", script, step=step, index=index, clobber=clobber)
 
@@ -1325,9 +1322,9 @@ class TaskSchema(NamedSchema):
 
     def set_logdestination(self, type: str, dest: str, suffix: str = None, step: str = None, index: str = None):
         rets = []
-        rets.append(self.set(type, "destination", dest, step=index, index=index))
+        rets.append(self.set(type, "destination", dest, step=step, index=index))
         if suffix:
-            rets.append(self.set(type, "suffix", dest, step=index, index=index))
+            rets.append(self.set(type, "suffix", suffix, step=step, index=index))
         return rets
 
     def add_warningoff(self, type: str, step: str = None, index: str = None, clobber: bool = False):
@@ -1352,8 +1349,11 @@ class TaskSchema(NamedSchema):
             rets.append(self.schema("tool").set("format", format, clobber=clobber))
         return rets
 
-    def set_path(self, path: str, step: str = None, index: str = None, clobber: bool = False):
-        return self.schema("tool").set("path", path, step=step, index=index, clobber=clobber)
+    def set_path(self, path: str, dataroot: str = None, step: str = None, index: str = None, clobber: bool = False):
+        if not dataroot:
+            dataroot = self.schema("tool")._get_active("package")
+        with self.schema("tool")._active(package=dataroot):
+            return self.schema("tool").set("path", path, step=step, index=index, clobber=clobber)
 
     def add_version(self, version: str, step: str = None, index: str = None, clobber: bool = False):
         if clobber:
@@ -1373,11 +1373,14 @@ class TaskSchema(NamedSchema):
         else:
             return self.schema("tool").add("licenseserver", name, server, step=step, index=index)
 
-    def add_sbom(self, version: str, sbom: str, clobber: bool = False):
-        if clobber:
-            return self.schema("tool").set("sbom", version, sbom)
-        else:
-            return self.schema("tool").add("sbom", version, sbom)
+    def add_sbom(self, version: str, sbom: str, dataroot: str = None, clobber: bool = False):
+        if not dataroot:
+            dataroot = self.schema("tool")._get_active("package")
+        with self.schema("tool")._active(package=dataroot):
+            if clobber:
+                return self.schema("tool").set("sbom", version, sbom)
+            else:
+                return self.schema("tool").add("sbom", version, sbom)
 
     def record_metric(self, metric, value, source_file=None, source_unit=None):
         '''
@@ -1411,41 +1414,39 @@ class TaskSchema(NamedSchema):
             step = self.__step
         if not index:
             index = self.__index
-        return super().get(*keypath, field=field,
-                           step=self.__step, index=self.__index)
+        return super().get(*keypath, field=field, step=step, index=index)
 
     def set(self, *args, field='value', step: str = None, index: str = None, clobber=True):
         if not step:
             step = self.__step
         if not index:
             index = self.__index
-        return super().set(*args, field=field, clobber=clobber,
-                           step=self.__step, index=self.__index)
+        return super().set(*args, field=field, clobber=clobber, step=step, index=index)
 
     def add(self, *args, field='value', step: str = None, index: str = None):
         if not step:
             step = self.__step
         if not index:
             index = self.__index
-        return super().add(*args, field=field, step=self.__step, index=self.__index)
+        return super().add(*args, field=field, step=step, index=index)
+
+    def find_files(self, *keypath, missing_ok=False, step=None, index=None):
+        if not step:
+            step = self.__step
+        if not index:
+            index = self.__index
+        return super().find_files(*keypath, missing_ok=missing_ok, step=step, index=index, collection_dir=self.__collection_path, cwd=self.__cwd)
 
     def _find_files_search_paths(self, keypath, step, index):
         paths = super()._find_files_search_paths(keypath, step, index)
         if keypath == "script":
-            paths.extend(self.find_files(
-                "refdir",
-                step=step, index=index,
-                cwd=self.__cwd,
-                collection_dir=self.__collection_path))
+            paths.extend(self.find_files("refdir", step=step, index=index))
         elif keypath == "input":
-            paths.append(os.path.join(self._parent(root=True).getworkdir(step=step, index=index),
-                                      "inputs"))
+            paths.append(os.path.join(self._parent(root=True).getworkdir(step=step, index=index), "inputs"))
         elif keypath == "report":
-            paths.append(os.path.join(self._parent(root=True).getworkdir(step=step, index=index),
-                                      "report"))
+            paths.append(os.path.join(self._parent(root=True).getworkdir(step=step, index=index), "report"))
         elif keypath == "output":
-            paths.append(os.path.join(self._parent(root=True).getworkdir(step=step, index=index),
-                                      "outputs"))
+            paths.append(os.path.join(self._parent(root=True).getworkdir(step=step, index=index), "outputs"))
         return paths
 
     ###############################################################
@@ -1471,15 +1472,10 @@ class TaskSchema(NamedSchema):
         cmdargs = []
         cmdargs.extend(self.get("option"))
 
-        # Add scripts files / TODO:
-        scripts = self.find_files(
-            'script',
-            step=self.__step, index=self.__index,
-            cwd=self.__cwd,
-            collection_dir=self.__collection_path,
-            missing_ok=True)
+        script = self.find_files('script', missing_ok=True)
 
-        cmdargs.extend(scripts)
+        if script:
+            cmdargs.extend(script)
 
         return cmdargs
 
