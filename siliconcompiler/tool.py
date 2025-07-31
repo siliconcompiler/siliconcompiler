@@ -107,7 +107,7 @@ class TaskSchema(NamedSchema):
             var_keys = self.allkeys("var")
 
             # collect manifest
-            manifest_keys = set(manifest["var"].keys())
+            manifest_keys = set([tuple([k]) for k in manifest["var"].keys()])
 
             edit = EditableSchema(self)
             for var in sorted(manifest_keys.difference(var_keys)):
