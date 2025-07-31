@@ -1,7 +1,7 @@
 import pytest
 
 from siliconcompiler import LibrarySchema, ToolLibrarySchema, StdCellLibrarySchema
-from siliconcompiler.schema import EditableSchema, Parameter, PerNode, Scope
+from siliconcompiler.schema import PerNode, Scope
 
 
 def test__allkeys():
