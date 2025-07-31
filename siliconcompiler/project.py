@@ -6,7 +6,7 @@ import uuid
 
 import os.path
 
-from typing import Union, List, Tuple
+from typing import Set, Union, List, Tuple, Type, Callable
 
 from siliconcompiler.schema import BaseSchema, NamedSchema, EditableSchema, Parameter
 from siliconcompiler.schema.parametervalue import NodeListValue, NodeSetValue
@@ -542,17 +542,55 @@ class Project(PathSchemaBase, BaseSchema):
         return self.design.get_fileset(self.get("option", "fileset"), alias=alias)
 
     def get_task(self,
-                 tool: str,
-                 task: str,
-                 step: str = None,
-                 index: Union[str, int] = None) -> TaskSchema:
-        if self.valid("tool", tool, "task", task):
-            obj: TaskSchema = self.get("tool", tool, "task", task, field="schema")
-            if step or index:
-                with obj.runtime(None, step, index) as obj:
-                    return obj
-            return obj
-        raise KeyError(f"{tool}/{task} has not been loaded")
+                 tool: str = None,
+                 task: str = None,
+                 filter: Union[Type[TaskSchema], Callable[[TaskSchema], bool]] = None) -> \
+            Union[Set[TaskSchema], TaskSchema]:
+        """Retrieves tasks based on specified criteria.
+
+        This method allows you to fetch tasks by tool name, task name, or by applying a custom
+        filter. If a single task matches the criteria, that task object is returned directly.
+        If multiple tasks match, a set of :class:`TaskSchema` objects is returned.
+        If no criteria are provided, all available tasks are returned.
+
+        Args:
+            tool (str, optional): The name of the tool to filter tasks by. Defaults to None.
+            task (str, optional): The name of the task to filter by. Defaults to None.
+            filter (Union[Type[TaskSchema], Callable[[TaskSchema], bool]], optional):
+                A filter to apply to the tasks. This can be:
+                - A `Type[TaskSchema]`: Only tasks that are instances of this type will be returned.
+                - A `Callable[[TaskSchema], bool]`: A function that takes a `TaskSchema` object
+                and returns `True` if the task should be included, `False` otherwise.
+                Defaults to None.
+
+        Returns:
+            Union[Set[TaskSchema], TaskSchema]:
+                - If exactly one task matches the criteria, returns that single `TaskSchema` object.
+                - If multiple tasks match or no specific tool/task is provided (and thus all tasks
+                are considered), returns a `Set[TaskSchema]` containing the matching tasks.
+        """
+        all_tasks: Set[TaskSchema] = set()
+        for tool in self.getkeys("tool"):
+            for task in self.getkeys("tool", tool, "task"):
+                all_tasks.add(self.get("tool", tool, "task", task, field="schema"))
+
+        tasks = set()
+        for task_obj in all_tasks:
+            if tool and task_obj.tool() != tool:
+                continue
+            if task and task_obj.task() != task:
+                continue
+            if filter:
+                if callable(filter):
+                    if not filter(task):
+                        continue
+                elif not isinstance(task, filter):
+                    continue
+            tasks.add(task)
+
+        if len(tasks) == 1:
+            return list(tasks)[0]
+        return tasks
 
     def set_design(self, design: Union[DesignSchema, str]):
         """

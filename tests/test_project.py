@@ -1085,3 +1085,11 @@ def test_collect_file_whitelist_pass():
     proj.collect(whitelist=[os.path.abspath('test')])
 
     assert len(os.listdir(proj.getcollectiondir())) == 1
+
+
+def test_get_task_missing():
+    assert Project().get_task("tool0", "task0") == set()
+
+
+def test_get_task_empty():
+    assert Project().get_task() == set()
