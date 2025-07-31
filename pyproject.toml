@@ -49,7 +49,7 @@ dependencies = [
     "fastjsonschema == 2.21.1",
     "docker == 7.1.0",
     "importlib_metadata; python_version < '3.10'",
-    "orjson >= 3.11.0, 4",
+    "orjson >= 3.11.0, < 4",
     "pyslang == 8.1.0",
 
     # dashboard, streamlit does not support 3.9.7
