@@ -140,7 +140,7 @@
     "auto-update": false
   },
   "slang": {
-    "git-commit": "v8.1",
+    "git-commit": "v9.0",
     "git-url": "https://github.com/MikePopoloski/slang.git",
     "auto-update": true
   },
