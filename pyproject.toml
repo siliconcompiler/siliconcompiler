@@ -41,7 +41,7 @@ dependencies = [
     "packaging >= 21.3, < 25",
     "psutil >= 5.8.0",
     "Pillow == 11.3.0",
-    "GitPython == 3.1.44",
+    "GitPython >= 3.1.44, < 3.2",
     "lambdapdk >= 0.1.47",
     "PyGithub == 2.6.1",
     "urllib3 >= 1.26.0", # Required for PyGithub
@@ -49,7 +49,7 @@ dependencies = [
     "fastjsonschema == 2.21.1",
     "docker == 7.1.0",
     "importlib_metadata; python_version < '3.10'",
-    "orjson == 3.11.0",
+    "orjson >= 3.11.0, < 4",
     "pyslang == 8.1.0",
 
     # dashboard, streamlit does not support 3.9.7
