@@ -1619,11 +1619,13 @@ class ASICTaskSchema(TaskSchema):
         if check_pdk:
             if not pdk_key:
                 pdk_key = key
-            check_keys.append((self.pdk, ("tool", self.tool(), pdk_key)))
+            if self.pdk.valid("tool", self.tool(), pdk_key):
+                check_keys.append((self.pdk, ("tool", self.tool(), pdk_key)))
         if check_mainlib:
             if not mainlib_key:
                 mainlib_key = key
-            check_keys.append((self.mainlib, ("tool", self.tool(), mainlib_key)))
+            if self.mainlib.valid("tool", self.tool(), mainlib_key):
+                check_keys.append((self.mainlib, ("tool", self.tool(), mainlib_key)))
         check_keys.append((self, ("var", key)))
 
         if require_pdk:
