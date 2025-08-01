@@ -134,18 +134,18 @@ class Layout:
     height: int = 0
     width: int = 0
 
-    log_height = 0
-    job_board_height = 0
-    progress_bar_height = 0
+    log_height: int = 0
+    job_board_height: int = 0
+    progress_bar_height: int = 0
 
     job_board_show_log: bool = True
     job_board_v_limit: int = 120
 
     __progress_bar_height_default = 1
     padding_log = 2
-    padding_progress_bar = 1
-    padding_job_board = 1
-    padding_job_board_header = 1
+    padding_progress_bar: int = 1
+    padding_job_board: int = 1
+    padding_job_board_header: int = 1
 
     def update(self, height, width, visible_jobs, visible_bars):
         self.height = height
@@ -544,6 +544,24 @@ class Board(metaclass=BoardSingleton):
 
         runtime_width = len(f"{max([0, *runtimes.values()]):.1f}")
 
+        job_info = []
+        for name, job in job_data.items():
+            done = job.finished == job.total
+            job_info.append(
+                (done, f"{job.design}/{job.jobname}", job.total, job.success, runtimes[name]))
+
+        while len(job_info) > layout.progress_bar_height:
+            for job in job_info:
+                if job[0]:
+                    # complete complete and can be removed
+                    job_info.remove(job)
+                    break
+            # remove first job
+            del job_info[0]
+
+        if not job_info:
+            return Padding("", (0, 0))
+
         progress = Progress(
             TextColumn("[progress.description]{task.description}"),
             MofNCompleteColumn(),
@@ -551,18 +569,13 @@ class Board(metaclass=BoardSingleton):
             TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
             TextColumn(f" {{task.fields[runtime]:>{runtime_width}.1f}}s")
         )
-        nodes = 0
-        for name, job in job_data.items():
-            nodes += len(job.nodes)
+        for _, name, total, success, runtime in job_info:
             progress.add_task(
-                f"[text.primary]Progress ({job.design}/{job.jobname}):",
-                total=job.total,
-                completed=job.success,
-                runtime=runtimes[name]
+                f"[text.primary]Progress ({name}):",
+                total=total,
+                completed=success,
+                runtime=runtime
             )
-
-        if nodes == 0:
-            return Padding("", (0, 0))
 
         return Group(progress, Padding("", (0, 0)))
 

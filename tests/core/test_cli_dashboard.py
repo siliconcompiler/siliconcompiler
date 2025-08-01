@@ -662,6 +662,10 @@ def test_render_job_dashboard_multi_job(mock_running_job_lg, mock_running_job_lg
     dashboard._update_rendable_data()
     dashboard._update_layout()
 
+    assert dashboard._layout.job_board_height == 18
+    assert dashboard._layout.progress_bar_height == 2
+    assert dashboard._layout.log_height == 15
+
     job_board = dashboard._render_job_dashboard(dashboard._layout)
 
     assert isinstance(job_board, Group)
@@ -757,6 +761,40 @@ def test_render_job_dashboard_multi_job(mock_running_job_lg, mock_running_job_lg
     assert len(actual_lines) == len(expected_lines)
     for i, (actual, expected) in enumerate(zip(actual_lines, expected_lines)):
         assert actual == expected, f"line {i} does not match"
+
+
+def test_render_job_dashboard_multi_job_limit_progress(
+        mock_running_job_lg, mock_running_job_lg_second,
+        dashboard_xsmall):
+    """Test that the job dashboard is created properly"""
+    dashboard = dashboard_xsmall._dashboard
+
+    with patch.object(Board, "_get_job") as mock_job_data:
+        mock_job_data.return_value = mock_running_job_lg
+        dashboard._update_render_data(dashboard_xsmall._chip)
+
+    with patch.object(Board, "_get_job") as mock_job_data:
+        mock_job_data.return_value = mock_running_job_lg_second
+        dashboard._update_render_data(dashboard_xsmall._chip)
+
+    dashboard._update_rendable_data()
+    dashboard._update_layout()
+
+    assert dashboard._layout.job_board_height == 0
+    assert dashboard._layout.progress_bar_height == 0
+    assert dashboard._layout.log_height == 0
+
+    # Force to show just one job
+    dashboard._layout.progress_bar_height = 1
+
+    progress_bars = dashboard._render_progress_bar(dashboard._layout)
+
+    assert isinstance(progress_bars, Group)
+    assert len(progress_bars.renderables) == 2
+
+    progress = progress_bars.renderables[0]
+    assert isinstance(progress, Progress)
+    assert len(progress._tasks) == 1
 
 
 def test_get_rendable_xsmall_dashboard_running(mock_running_job_lg, dashboard_xsmall):
