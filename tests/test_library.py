@@ -1,10 +1,10 @@
 import pytest
 
-from siliconcompiler import LibrarySchema, ToolLibrarySchema, StdCellLibrarySchema
+from siliconcompiler import LibrarySchema, ToolLibrarySchema, StdCellLibrarySchema, PDKSchema
 from siliconcompiler.schema import PerNode, Scope
 
 
-def test__allkeys():
+def test_allkeys():
     lib = LibrarySchema("test")
     assert lib.allkeys() == set([
         ('dataroot', 'default', 'path'),
@@ -27,6 +27,14 @@ def test__allkeys():
         ('package', 'vendor'),
         ('package', 'author', 'default', 'name')
     ])
+
+
+def test_getdict_type():
+    assert LibrarySchema._getdict_type() == "LibrarySchema"
+
+
+def test_toollib_getdict_type():
+    assert ToolLibrarySchema._getdict_type() == "ToolLibrarySchema"
 
 
 def test_allkeys_tool_library():
@@ -268,7 +276,8 @@ def test_stdlib_asic_keys():
         ('libcornerfileset', 'default', 'default'),
         ('pexcornerfileset', 'default'),
         ('aprfileset',),
-        ('site',)
+        ('site',),
+        ('pdk',)
     }
 
 
@@ -404,3 +413,22 @@ def test_add_asic_site():
     lib = StdCellLibrarySchema("lib")
     lib.add_asic_site("sc7p5site")
     assert lib.get("asic", "site") == ["sc7p5site"]
+
+
+def test_set_asic_pdk():
+    lib = StdCellLibrarySchema("lib")
+    pdk = PDKSchema("test")
+    lib.set_asic_pdk(pdk)
+    assert lib.get("asic", "pdk") == "test"
+
+
+def test_set_asic_pdk_string():
+    lib = StdCellLibrarySchema("lib")
+    lib.set_asic_pdk("test")
+    assert lib.get("asic", "pdk") == "test"
+
+
+def test_set_asic_pdk_string_invalid():
+    lib = StdCellLibrarySchema("lib")
+    with pytest.raises(TypeError, match="pdk must be a PDK object or string"):
+        lib.set_asic_pdk(1)
