@@ -351,7 +351,8 @@ class PDKSchema(ToolLibrarySchema):
         else:
             return self.add("pdk", "aprtechfileset", tool, fileset)
 
-    def add_layermapfileset(self, tool: str, src: str, dst: str, fileset: str = None, clobber: bool = False):
+    def add_layermapfileset(self, tool: str, src: str, dst: str, fileset: str = None,
+                            clobber: bool = False):
         if not fileset:
             fileset = self._get_active("fileset")
 
@@ -373,7 +374,8 @@ class PDKSchema(ToolLibrarySchema):
         else:
             return self.add("pdk", "displayfileset", tool, fileset)
 
-    def add_pexmodelfileset(self, tool: str, corner: str, fileset: str = None, clobber: bool = False):
+    def add_pexmodelfileset(self, tool: str, corner: str, fileset: str = None,
+                            clobber: bool = False):
         if not fileset:
             fileset = self._get_active("fileset")
 

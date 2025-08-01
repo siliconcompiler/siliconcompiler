@@ -173,7 +173,7 @@ class StdCellLibrarySchema(ToolLibrarySchema, DependencySchema):
                 example=["api: schema.set('asic', 'site', 'Site_12T')"],
                 help="Site names for a given library architecture."))
 
-    def set_asic_pdk(self, pdk: Union[str, "PDKSchema"]):
+    def set_asic_pdk(self, pdk):
         """
         Set the PDK associated with this library
 
