@@ -940,7 +940,6 @@ class TaskSchema(NamedSchema):
                         pass
         else:
             cmdlist = self.get_runtime_arguments()
-
             # Make record of tool options
             self.schema("record").record_tool(
                 self.__step, self.__index,

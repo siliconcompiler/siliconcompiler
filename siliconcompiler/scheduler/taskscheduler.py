@@ -94,7 +94,8 @@ class TaskScheduler:
             task["threads"] = max(1, min(threads, self.__max_threads))
 
             task["parent_pipe"], pipe = multiprocessing.Pipe()
-            task["node"].set_queue(pipe, self.__log_queue)
+            #task["node"].set_queue(pipe, self.__log_queue)
+            task["node"].set_queue(pipe, None)
 
             task["proc"] = multiprocessing.Process(target=task["node"].run)
             init_funcs.add(task["node"].init)

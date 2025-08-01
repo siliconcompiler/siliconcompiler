@@ -21,6 +21,7 @@ set sc_index [sc_cfg_get arg index]
 set sc_flow [sc_cfg_get option flow]
 set sc_task [sc_cfg_get flowgraph $sc_flow $sc_step $sc_index task]
 set sc_refdir [sc_cfg_tool_task_get refdir]
+set sc_synth_directive [sc_cfg_tool_task_get var synth_directive]
 
 source $sc_refdir/sc_$sc_task.tcl
 

@@ -21,5 +21,5 @@ if { $sc_constraint != "" } {
 }
 
 # run synthesis
-synth_design -top $sc_design
+synth_design -top $sc_design -directive $sc_synth_directive -mode out_of_context
 opt_design

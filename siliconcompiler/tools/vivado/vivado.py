@@ -123,7 +123,15 @@ def _parse_utilization(chip, step, index):
 
     with sc_open('reports/total_utilization.rpt') as f:
         regexes = {
-            'luts': (re.compile(r'(?:CLB|Slice) LUTs\*?\s+\|\s+(\d+)'), int),
+            'lut6': (re.compile(r'LUT6\*?\s+\|\s+(\d+)'), int),
+            'lut5': (re.compile(r'LUT5\*?\s+\|\s+(\d+)'), int),
+            'lut4': (re.compile(r'LUT4\*?\s+\|\s+(\d+)'), int),
+            'lut3': (re.compile(r'LUT3\*?\s+\|\s+(\d+)'), int),
+            'lut2': (re.compile(r'LUT2\*?\s+\|\s+(\d+)'), int),
+            'lut1': (re.compile(r'LUT1\*?\s+\|\s+(\d+)'), int),
+            'f7mux': (re.compile(r'MUXF7\*?\s+\|\s+(\d+)'), int),
+            'f8mux': (re.compile(r'MUXF8\*?\s+\|\s+(\d+)'), int),
+            'dsps': (re.compile(r'DSPs\*?\s+\|\s+(\d+)'), int),
             'regs': (re.compile(r'(?:CLB|Slice) Registers\s+\|\s+(\d+)'), int),
             'bram': (re.compile(r'Block RAM Tile\s+\|\s+(\d+(.\d+)?)'), float),
             # TODO: should URAM be float?
@@ -140,11 +148,22 @@ def _parse_utilization(chip, step, index):
                     vals[metric] = datatype(match.group(1))
                     continue
 
-        if 'luts' in vals:
-            record_metric(chip, step, index, 'luts', vals['luts'],
+        lut_cnt = sum([cnt for name, cnt in vals.items() if name.startswith('lut')])
+        if "f7mux" in vals:
+            lut_cnt += vals["f7mux"]
+        if "f8mux" in vals:
+            lut_cnt -= vals["f8mux"]
+
+        if lut_cnt != 0:
+            record_metric(chip, step, index, 'luts', lut_cnt,
                           'reports/total_utilization.rpt')
+
         if 'regs' in vals:
             record_metric(chip, step, index, 'registers', vals['regs'],
+                          'reports/total_utilization.rpt')
+
+        if 'dsps' in vals:
+            record_metric(chip, step, index, 'dsps', vals['dsps'],
                           'reports/total_utilization.rpt')
 
         total_bram = 0
