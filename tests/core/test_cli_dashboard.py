@@ -994,3 +994,21 @@ def test_get_rendable_xsmall_dashboard_finished_fail(mock_finished_job_fail, das
 
     # Display Summary
     assert isinstance(rendable.renderables[1], Padding)
+
+
+def test_layout_limit_jobs():
+    layout = Layout()
+
+    layout.update(15, 120, 50, 20)
+    assert layout.job_board_height == 4
+    assert layout.progress_bar_height == 5
+    assert layout.log_height == 1
+
+
+def test_layout_normal_size():
+    layout = Layout()
+
+    layout.update(50, 120, 15, 5)
+    assert layout.job_board_height == 15
+    assert layout.progress_bar_height == 5
+    assert layout.log_height == 25

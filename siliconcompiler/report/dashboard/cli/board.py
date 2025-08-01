@@ -156,10 +156,14 @@ class Layout:
             + self.padding_progress_bar
         )
         if self.height < min_required:
-            self.progress_bar_height = 0
-            self.job_board_height = 0
-            self.log_height = 0
-            return
+            # If there is room, split the view
+            if self.height > 10:
+                visible_bars = int(self.height / 2) - self.padding_progress_bar - 1
+            else:
+                self.progress_bar_height = self.height - self.padding_progress_bar - 1
+                self.job_board_height = 0
+                self.log_height = 0
+                return
 
         remaining_height = self.height
 
