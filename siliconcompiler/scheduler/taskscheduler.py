@@ -55,7 +55,8 @@ class TaskScheduler:
             to_steps=self.__chip.get('option', 'to'),
             prune_nodes=self.__chip.get('option', 'prune'))
 
-        self.__log_queue = multiprocessing.Queue(-1)
+        self.__thread_manager = multiprocessing.Manager()
+        self.__log_queue = self.__thread_manager.Queue()
 
         self.__nodes = {}
         self.__startTimes = {}
