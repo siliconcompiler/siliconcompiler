@@ -334,13 +334,13 @@ class PDKSchema(ToolLibrarySchema):
     def set_edgemargin(self, margin: float):
         return self.set("pdk", "edgemargin", margin)
 
-    def set_apr_routinglayers(self, min: str = None, max: str = None):
+    def set_aprroutinglayers(self, min: str = None, max: str = None):
         if min:
             self.set("pdk", "minlayer", min)
         if max:
             self.set("pdk", "maxlayer", max)
 
-    def add_apr_techfileset(self, tool: str, fileset: str = None, clobber: bool = False):
+    def add_aprtechfileset(self, tool: str, fileset: str = None, clobber: bool = False):
         if not fileset:
             fileset = self._get_active("fileset")
 
@@ -350,6 +350,41 @@ class PDKSchema(ToolLibrarySchema):
             return self.set("pdk", "aprtechfileset", tool, fileset)
         else:
             return self.add("pdk", "aprtechfileset", tool, fileset)
+
+    def add_layermapfileset(self, tool: str, src: str, dst: str, fileset: str = None,
+                            clobber: bool = False):
+        if not fileset:
+            fileset = self._get_active("fileset")
+
+        self._assert_fileset(fileset)
+
+        if clobber:
+            return self.set("pdk", "layermapfileset", tool, src, dst, fileset)
+        else:
+            return self.add("pdk", "layermapfileset", tool, src, dst, fileset)
+
+    def add_displayfileset(self, tool: str, fileset: str = None, clobber: bool = False):
+        if not fileset:
+            fileset = self._get_active("fileset")
+
+        self._assert_fileset(fileset)
+
+        if clobber:
+            return self.set("pdk", "displayfileset", tool, fileset)
+        else:
+            return self.add("pdk", "displayfileset", tool, fileset)
+
+    def add_pexmodelfileset(self, tool: str, corner: str, fileset: str = None,
+                            clobber: bool = False):
+        if not fileset:
+            fileset = self._get_active("fileset")
+
+        self._assert_fileset(fileset)
+
+        if clobber:
+            return self.set("pdk", "pexmodelfileset", tool, corner, fileset)
+        else:
+            return self.add("pdk", "pexmodelfileset", tool, corner, fileset)
 
     @classmethod
     def _getdict_type(cls) -> str:

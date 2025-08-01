@@ -1,3 +1,4 @@
+import importlib
 import logging
 import os
 import shutil
@@ -6,6 +7,7 @@ import uuid
 
 import os.path
 
+from inspect import getfullargspec
 from typing import Set, Union, List, Tuple, Type, Callable
 
 from siliconcompiler.schema import BaseSchema, NamedSchema, EditableSchema, Parameter
@@ -120,12 +122,90 @@ class Project(PathSchemaBase, BaseSchema):
         return self.__cwd
 
     @classmethod
+    def convert(cls, obj: "Project") -> "Project":
+        """
+        Convert a project from one type to another
+
+        Args:
+            obj: Source object to convert from
+
+        Returns:
+            new object of the new class type
+        """
+        if not isinstance(obj, Project):
+            raise TypeError("source object must be a Project")
+
+        new_obj = cls()
+
+        root_keys = new_obj.getkeys()
+        import_keys = set(root_keys).intersection(obj.getkeys())
+
+        if not issubclass(cls, obj.__class__):
+            for rm in ("checklist", "flowgraph", "metric", "record", "tool", "schemaversion"):
+                try:
+                    import_keys.remove(rm)
+                except KeyError:
+                    pass
+
+        manifest = obj.getdict()
+        for key in list(manifest.keys()):
+            if key not in import_keys:
+                del manifest[key]
+
+        new_obj._from_dict(manifest, [])
+
+        return new_obj
+
+    @classmethod
     def _getdict_type(cls) -> str:
         """
         Returns the meta data for getdict
         """
 
         return Project.__name__
+
+    def _from_dict(self, manifest, keypath, version=None):
+        ret = super()._from_dict(manifest, keypath, version)
+
+        # Restore dependencies
+        dep_map = {name: self.get("library", name, field="schema")
+                   for name in self.getkeys("library")}
+        for obj in dep_map.values():
+            if isinstance(obj, DependencySchema):
+                obj._populate_deps(dep_map)
+
+        return ret
+
+    def load_target(self, target: Union[str, Callable[["Project"], None]], **kwargs):
+        if isinstance(target, str):
+            if "." not in target:
+                raise ValueError("unable to process incomplete function path")
+
+            *module, func = target.split(".")
+            module = ".".join(module)
+
+            mod = importlib.import_module(module)
+            target = getattr(mod, func)
+
+        func_spec = getfullargspec(target)
+
+        args_len = len(func_spec.args or []) - len(func_spec.defaults or [])
+
+        if args_len == 0 and not func_spec.args:
+            raise ValueError('target signature cannot must take at least one argument')
+        if args_len > 1:
+            raise ValueError('target signature cannot have more than one required argument')
+
+        proj_arg = func_spec.args[0]
+        required_type = func_spec.annotations.get(proj_arg, Project)
+
+        if not issubclass(required_type, Project):
+            raise TypeError("target must take in a Project object")
+
+        if not isinstance(self, required_type):
+            raise TypeError(f"target requires a {required_type.__name__} project")
+
+        target(self, **kwargs)
 
     def add_dep(self, obj):
         if isinstance(obj, DesignSchema):

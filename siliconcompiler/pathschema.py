@@ -74,7 +74,9 @@ class PathSchemaBase(BaseSchema):
         logger = getattr(schema_root,
                          "logger",
                          logging.getLogger("siliconcompiler.check_filepaths"))
-        collection_dir = getattr(schema_root, "collection_dir", None)
+        collection_dir = getattr(schema_root, "collection_dir",
+                                 getattr(schema_root, "getcollectiondir",
+                                         None))
         if collection_dir:
             collection_dir = collection_dir()
 

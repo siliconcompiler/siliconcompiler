@@ -477,13 +477,12 @@ class Board(metaclass=BoardSingleton):
             job = job_data[chipid]
             node = job.nodes[node_idx]
 
-            if (
-                layout.job_board_show_log
-                and os.path.exists(node["log"])
-            ):
-                log_file = "[bright_black]{}[/]".format(node['log'])
-            else:
-                log_file = None
+            log_file = None
+            if layout.job_board_show_log:
+                for log in node["log"]:
+                    if os.path.exists(log):
+                        log_file = "[bright_black]{}[/]".format(log)
+                        break
 
             if node["time"]["duration"] is not None:
                 duration = f'{node["time"]["duration"]:.1f}s'
@@ -852,13 +851,18 @@ class Board(metaclass=BoardSingleton):
                         "duration": duration
                     },
                     "metrics": node_metrics,
-                    "log": os.path.join(
+                    "log": [os.path.join(
                         os.path.relpath(
                             chip.getworkdir(step=step, index=index),
                             chip.cwd,
                         ),
-                        f"{step}.log",
-                    ),
+                        f"{step}.log"),
+                        os.path.join(
+                            os.path.relpath(
+                                chip.getworkdir(step=step, index=index),
+                                chip.cwd,
+                            ),
+                            f"sc_{step}_{index}.log")],
                     "print": {
                         "order": nodeorder[(step, index)],
                         "priority": node_priority[(step, index)]

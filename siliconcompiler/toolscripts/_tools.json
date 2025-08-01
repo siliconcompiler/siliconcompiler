@@ -1,7 +1,7 @@
 {
   "openroad": {
     "git-url": "https://github.com/The-OpenROAD-Project/OpenROAD.git",
-    "git-commit": "13839d9451ab207c192be61dcc76d534b62b7af9",
+    "git-commit": "6b2c5097f7b7e7fe5e234d5f57e2eda4da46de2f",
     "docker-cmds": [
       "# Remove OR-Tools files",
       "RUN rm -f $SC_PREFIX/Makefile $SC_PREFIX/README.md",
@@ -17,7 +17,7 @@
   },
   "opensta": {
     "git-url": "https://github.com/parallaxsw/OpenSTA.git",
-    "git-commit": "3620d7a2591f2bcefe4be410bdbbf224353d53f5",
+    "git-commit": "0ab75c30bf9003f10730db05725d13154fa33cd4",
     "auto-update": true
   },
   "netgen": {
@@ -138,11 +138,6 @@
     "version": "v0.0-3303-gd87f2420",
     "git-url": "https://github.com/chipsalliance/verible.git",
     "auto-update": false
-  },
-  "slang": {
-    "git-commit": "v8.1",
-    "git-url": "https://github.com/MikePopoloski/slang.git",
-    "auto-update": true
   },
   "gtkwave": {
     "git-commit": "v3.3.116",

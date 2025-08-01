@@ -101,6 +101,7 @@ def test_install_group(call, monkeypatch):
     def return_os():
         return {
             "yosys": "yosys.sh",
+            "yosys-slang": "yosys-slang.sh",
             "openroad": "openroad.sh",
             "sv2v": "sv2v.sh",
             "klayout": "klayout.sh"
@@ -111,7 +112,7 @@ def test_install_group(call, monkeypatch):
 
     monkeypatch.setattr('sys.argv', ['sc-install', '-group', 'asic'])
     assert sc_install.main() == 0
-    assert call.call_count == 4
+    assert call.call_count == 5
 
 
 @pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
@@ -120,6 +121,7 @@ def test_install_groups(call, monkeypatch):
     def return_os():
         return {
             "yosys": "yosys.sh",
+            "yosys-slang": "yosys-slang.sh",
             "openroad": "openroad.sh",
             "sv2v": "sv2v.sh",
             "klayout": "klayout.sh",
@@ -131,7 +133,7 @@ def test_install_groups(call, monkeypatch):
 
     monkeypatch.setattr('sys.argv', ['sc-install', '-group', 'asic', 'fpga'])
     assert sc_install.main() == 0
-    assert call.call_count == 5
+    assert call.call_count == 6
 
 
 @pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
@@ -420,8 +422,8 @@ def test_groups(monkeypatch):
         return "<os>"
     monkeypatch.setattr(sc_install, '_get_os_name', os_info_name)
 
-    tools_asic = ("sv2v", "yosys", "openroad", "klayout")
-    tools_fpga = ("sv2v", "yosys", "vpr")
+    tools_asic = ("sv2v", "yosys", "yosys-slang", "openroad", "klayout")
+    tools_fpga = ("sv2v", "yosys", "yosys-slang", "vpr")
 
     recommend = sc_install._recommended_tool_groups(tools_asic)
     assert 'asic' in recommend

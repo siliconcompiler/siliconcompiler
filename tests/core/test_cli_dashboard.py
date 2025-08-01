@@ -71,7 +71,7 @@ def mock_running_job_lg():
             "step": f"node{index + 1}",
             "index": index,
             "status": statuses[index % len(statuses)],
-            "log": f"node{index + 1}.log",
+            "log": [f"node{index + 1}.log"],
             "metrics": ["", ""],
             "time": {
                 "duration": None,
@@ -104,7 +104,7 @@ def mock_running_job_lg_second():
             "step": f"node{index + 1}",
             "index": index,
             "status": statuses[index % len(statuses)],
-            "log": f"node{index + 1}.log",
+            "log": [f"node{index + 1}.log"],
             "metrics": ["", ""],
             "time": {
                 "duration": None,
@@ -138,7 +138,7 @@ def mock_running_job():
             "index": index,
             "status": random.choice(statuses),
             "metrics": ["", ""],
-            "log": f"node{index + 1}.log",
+            "log": [f"node{index + 1}.log"],
             "print": {
                 "order": (index, index),
                 "priority": 0 if statuses[index % len(statuses)] == NodeStatus.ERROR else index
@@ -167,7 +167,7 @@ def mock_finished_job_fail():
             "index": index,
             "status": statuses[index % len(statuses)],
             "metrics": ["", ""],
-            "log": f"node{index + 1}.log",
+            "log": [f"node{index + 1}.log"],
             "time": {
                 "duration": 5.0,
                 "start": None
@@ -199,7 +199,7 @@ def mock_finished_job_passed():
             "index": index,
             "status": NodeStatus.SUCCESS,
             "metrics": ["", ""],
-            "log": f"node{index + 1}.log",
+            "log": [f"node{index + 1}.log"],
             "time": {
                 "duration": 5.0,
                 "start": None
@@ -590,7 +590,7 @@ def test_render_job_dashboard(mock_running_job_lg, dashboard_medium):
         if node["status"] in [NodeStatus.SKIPPED]:
             continue
         if n % 2 == 0:
-            log = f'\x1b[90m{node["log"]}\x1b[0m'
+            log = f'\x1b[90m{node["log"][0]}\x1b[0m'
         else:
             log = ""
         status = node["status"].upper()
@@ -692,7 +692,7 @@ def test_render_job_dashboard_multi_job(mock_running_job_lg, mock_running_job_lg
         if node["status"] in [NodeStatus.SKIPPED]:
             continue
         if n % 2 == 0:
-            log = f'\x1b[90m{node["log"]}\x1b[0m'
+            log = f'\x1b[90m{node["log"][0]}\x1b[0m'
         else:
             log = ""
         status = node["status"].upper()
@@ -714,7 +714,7 @@ def test_render_job_dashboard_multi_job(mock_running_job_lg, mock_running_job_lg
         if node["status"] in [NodeStatus.SKIPPED]:
             continue
         if n % 2 == 0:
-            log = f'\x1b[90m{node["log"]}\x1b[0m'
+            log = f'\x1b[90m{node["log"][0]}\x1b[0m'
         else:
             log = ""
         status = node["status"].upper()
