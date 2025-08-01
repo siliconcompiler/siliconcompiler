@@ -145,7 +145,7 @@ class Project(PathSchemaBase, BaseSchema):
         args_len = len(func_spec.args or []) - len(func_spec.defaults or [])
 
         if args_len == 0 and not func_spec.args:
-            raise ValueError('target signature cannot must take atleast one argument')
+            raise ValueError('target signature cannot must take at least one argument')
         if args_len > 1:
             raise ValueError('target signature cannot have more than one required argument')
 

@@ -1182,7 +1182,8 @@ def test_load_target_invalid_signature_required_args():
 
     proj = Project()
 
-    with pytest.raises(ValueError, match="target signature cannot must take atleast one argument"):
+    with pytest.raises(ValueError,
+                       match="target signature cannot must take at least one argument"):
         proj.load_target(target)
 
 
