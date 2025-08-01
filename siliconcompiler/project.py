@@ -122,6 +122,41 @@ class Project(PathSchemaBase, BaseSchema):
         return self.__cwd
 
     @classmethod
+    def convert(cls, obj: "Project") -> "Project":
+        """
+        Convert a project from one type to another
+
+        Args:
+            obj: Source object to convert from
+
+        Returns:
+            new object of the new class type
+        """
+        if not isinstance(obj, Project):
+            raise TypeError("source object must be a Project")
+
+        new_obj = cls()
+
+        root_keys = new_obj.getkeys()
+        import_keys = set(root_keys).intersection(obj.getkeys())
+
+        if not issubclass(cls, obj.__class__):
+            for rm in ("checklist", "flowgraph", "metric", "record", "tool", "schemaversion"):
+                try:
+                    import_keys.remove(rm)
+                except KeyError:
+                    pass
+
+        manifest = obj.getdict()
+        for key in list(manifest.keys()):
+            if key not in import_keys:
+                del manifest[key]
+
+        new_obj._from_dict(manifest, [])
+
+        return new_obj
+
+    @classmethod
     def _getdict_type(cls) -> str:
         """
         Returns the meta data for getdict
