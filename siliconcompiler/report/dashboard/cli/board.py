@@ -525,12 +525,6 @@ class Board(metaclass=BoardSingleton):
         """
         with self._render_data_lock:
             job_data = self._render_data.jobs.copy()
-            done = self._render_data.finished > 0 \
-                and self._render_data.total == self._render_data.finished \
-                and self._render_data.success == self._render_data.total
-
-        if done:
-            return None
 
         ref_time = time.time()
         runtimes = {}
@@ -582,29 +576,6 @@ class Board(metaclass=BoardSingleton):
             )
 
         return Group(progress, Padding("", (0, 0)))
-
-    def _render_final(self, layout):
-        """
-        Creates a summary of the final results, including runtime, passed, and failed jobs.
-
-        Returns:
-            Padding: A Rich Padding object containing the summary text.
-        """
-        with self._render_data_lock:
-            success = self._render_data.success
-            error = self._render_data.error
-            total = self._render_data.total
-            finished = self._render_data.finished
-            runtime = self._render_data.runtime
-
-        if finished != 0 and finished == total:
-            return Padding(
-                f"[text.primary]Results {runtime:.2f}s\n"
-                f"     [success]{success} passed[/]\n"
-                f"     [error]{error} failed[/]\n"
-            )
-
-        return self._render_log(layout)
 
     def _render(self):
         """
@@ -715,7 +686,7 @@ class Board(metaclass=BoardSingleton):
 
         new_table = self._render_job_dashboard(layout)
         new_bar = self._render_progress_bar(layout)
-        footer = self._render_final(layout)
+        footer = self._render_log(layout)
 
         items = []
         if new_table:
