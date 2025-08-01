@@ -29,7 +29,7 @@ import os.path
 from packaging.version import Version, InvalidVersion
 from packaging.specifiers import SpecifierSet, InvalidSpecifier
 
-from typing import List, Union, Dict
+from typing import List, Union, Dict, Tuple
 
 from siliconcompiler.schema import BaseSchema, NamedSchema, Journal
 from siliconcompiler.schema import EditableSchema, Parameter, PerNode, Scope
@@ -1440,6 +1440,26 @@ class TaskSchema(NamedSchema):
         self.schema("metric").record(self.__step, self.__index, metric, value, unit=source_unit)
         if source_file:
             self.add("report", metric, source_file)
+
+    def get_fileset_file_keys(self, filetype: str) -> List[Tuple[NamedSchema, Tuple[str]]]:
+        """
+        Collect a set of keys for a particular filetype.
+
+        Args:
+            filetype (str): Name of the filetype
+
+        Returns:
+            list of (object, keypath)
+        """
+        if not isinstance(filetype, str):
+            raise TypeError("filetype must be a string")
+
+        keys = []
+        for obj, fileset in self.schema().get_filesets():
+            key = ("fileset", fileset, "file", filetype)
+            if obj.valid(*key, check_complete=True):
+                keys.append((obj, key))
+        return keys
 
     ###############################################################
     # Schema
