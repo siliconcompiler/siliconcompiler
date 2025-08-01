@@ -29,7 +29,7 @@ import os.path
 from packaging.version import Version, InvalidVersion
 from packaging.specifiers import SpecifierSet, InvalidSpecifier
 
-from typing import List, Union, Dict
+from typing import List, Union, Dict, Tuple
 
 from siliconcompiler.schema import BaseSchema, NamedSchema, Journal
 from siliconcompiler.schema import EditableSchema, Parameter, PerNode, Scope
@@ -271,6 +271,13 @@ class TaskSchema(NamedSchema):
             logger
         '''
         return self.__logger
+
+    @property
+    def nodeworkdir(self) -> str:
+        """
+        Path to the node working directory
+        """
+        return self.__jobdir
 
     def schema(self, type=None):
         '''
@@ -1434,6 +1441,26 @@ class TaskSchema(NamedSchema):
         if source_file:
             self.add("report", metric, source_file)
 
+    def get_fileset_file_keys(self, filetype: str) -> List[Tuple[NamedSchema, Tuple[str]]]:
+        """
+        Collect a set of keys for a particular filetype.
+
+        Args:
+            filetype (str): Name of the filetype
+
+        Returns:
+            list of (object, keypath)
+        """
+        if not isinstance(filetype, str):
+            raise TypeError("filetype must be a string")
+
+        keys = []
+        for obj, fileset in self.schema().get_filesets():
+            key = ("fileset", fileset, "file", filetype)
+            if obj.valid(*key, check_complete=True):
+                keys.append((obj, key))
+        return keys
+
     ###############################################################
     # Schema
     ###############################################################
@@ -1592,11 +1619,13 @@ class ASICTaskSchema(TaskSchema):
         if check_pdk:
             if not pdk_key:
                 pdk_key = key
-            check_keys.append((self.pdk, ("tool", self.tool(), pdk_key)))
+            if self.pdk.valid("tool", self.tool(), pdk_key):
+                check_keys.append((self.pdk, ("tool", self.tool(), pdk_key)))
         if check_mainlib:
             if not mainlib_key:
                 mainlib_key = key
-            check_keys.append((self.mainlib, ("tool", self.tool(), mainlib_key)))
+            if self.mainlib.valid("tool", self.tool(), mainlib_key):
+                check_keys.append((self.mainlib, ("tool", self.tool(), mainlib_key)))
         check_keys.append((self, ("var", key)))
 
         if require_pdk:

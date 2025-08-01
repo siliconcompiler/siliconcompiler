@@ -1933,6 +1933,18 @@ def test_add_warningoff(running_node):
         assert runtool.get("warningoff") == ["ERROR"]
 
 
+@pytest.mark.skip(reason="Project is needed as the base")
+def test_get_fileset_file_keys(running_node):
+    with running_node.task.runtime(running_node) as runtool:
+        assert runtool.get_fileset_file_keys("verilog") == ""
+
+
+def test_get_fileset_file_keys_invalid(running_node):
+    with running_node.task.runtime(running_node) as runtool:
+        with pytest.raises(TypeError, match="filetype must be a string"):
+            runtool.get_fileset_file_keys(["verilog"])
+
+
 def test_asic_mainlib_not_set(running_node):
     project = running_node.project
     EditableSchema(project).insert("asic", "mainlib", Parameter("str"))
