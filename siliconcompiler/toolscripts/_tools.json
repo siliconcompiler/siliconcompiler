@@ -139,11 +139,6 @@
     "git-url": "https://github.com/chipsalliance/verible.git",
     "auto-update": false
   },
-  "slang": {
-    "git-commit": "v8.1",
-    "git-url": "https://github.com/MikePopoloski/slang.git",
-    "auto-update": true
-  },
   "gtkwave": {
     "git-commit": "v3.3.116",
     "git-url": "https://github.com/gtkwave/gtkwave.git",
