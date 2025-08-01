@@ -12,7 +12,7 @@ from siliconcompiler import Project
 from siliconcompiler import DesignSchema, FlowgraphSchema, TaskSchema, \
     ToolSchema, ChecklistSchema, LibrarySchema
 
-from siliconcompiler.schema import NamedSchema, EditableSchema
+from siliconcompiler.schema import NamedSchema, EditableSchema, Parameter
 
 from siliconcompiler.utils.logging import SCColorLoggerFormatter, SCLoggerFormatter
 
@@ -303,6 +303,33 @@ def test_add_fileset_invalid():
     proj = Project(design)
     with pytest.raises(ValueError, match="rtl is not a valid fileset in test"):
         proj.add_fileset("rtl")
+
+
+def test_convert():
+    class ASICProject(Project):
+        def __init__(self, design=None):
+            super().__init__(design)
+
+            EditableSchema(self).insert("asic", Parameter("str"))
+
+    class FPGAProject(Project):
+        def __init__(self, design=None):
+            super().__init__(design)
+
+            EditableSchema(self).insert("fpga", Parameter("str"))
+
+    design = DesignSchema("design0")
+    proj0 = ASICProject(design)
+
+    proj1 = FPGAProject.convert(proj0)
+
+    assert proj0.allkeys("library") == proj1.allkeys("library")
+    assert proj0.allkeys("library") == proj1.allkeys("library")
+
+
+def test_convert_invalid():
+    with pytest.raises(TypeError, match="source object must be a Project"):
+        Project.convert("this")
 
 
 def test_add_dep_design():
