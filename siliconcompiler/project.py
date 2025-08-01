@@ -1,3 +1,4 @@
+import importlib
 import logging
 import os
 import shutil
@@ -6,6 +7,7 @@ import uuid
 
 import os.path
 
+from inspect import getfullargspec
 from typing import Set, Union, List, Tuple, Type, Callable
 
 from siliconcompiler.schema import BaseSchema, NamedSchema, EditableSchema, Parameter
@@ -126,6 +128,37 @@ class Project(PathSchemaBase, BaseSchema):
         """
 
         return Project.__name__
+
+    def load_target(self, target: Union[str, Callable[["Project"], None]], **kwargs):
+        if isinstance(target, str):
+            if "." not in target:
+                raise ValueError("unable to process incomplete function path")
+
+            *module, func = target.split(".")
+            module = ".".join(module)
+
+            mod = importlib.import_module(module)
+            target = getattr(mod, func)
+
+        func_spec = getfullargspec(target)
+
+        args_len = len(func_spec.args or []) - len(func_spec.defaults or [])
+
+        if args_len == 0 and not func_spec.args:
+            raise ValueError('target signature cannot must take atleast one argument')
+        if args_len > 1:
+            raise ValueError('target signature cannot have more than one required argument')
+
+        proj_arg = func_spec.args[0]
+        required_type = func_spec.annotations.get(proj_arg, Project)
+
+        if not issubclass(required_type, Project):
+            raise TypeError("target must take in a Project object")
+
+        if not isinstance(self, required_type):
+            raise TypeError(f"target requires a {required_type.__name__} project")
+
+        target(self, **kwargs)
 
     def add_dep(self, obj):
         if isinstance(obj, DesignSchema):

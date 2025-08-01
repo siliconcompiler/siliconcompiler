@@ -9,7 +9,8 @@ from pathlib import Path
 from unittest.mock import patch
 
 from siliconcompiler import Project
-from siliconcompiler import DesignSchema, FlowgraphSchema, TaskSchema, ToolSchema
+from siliconcompiler import DesignSchema, FlowgraphSchema, TaskSchema, \
+    ToolSchema, ChecklistSchema, LibrarySchema
 
 from siliconcompiler.schema import NamedSchema, EditableSchema
 
@@ -370,6 +371,22 @@ def test_add_dep_flowgraph_with_tasks():
     assert isinstance(proj.get("tools", "tool0", "task", "task0", field="schema"), Task0)
     assert isinstance(proj.get("tools", "tool1", "task", "task1", field="schema"), Task1)
     assert isinstance(proj.get("tools", "tool1", "task", "task2", field="schema"), Task2)
+
+
+def test_add_dep_checklist():
+    checklist = ChecklistSchema("test")
+    proj = Project()
+    proj.add_dep(checklist)
+    assert proj.getkeys("checklist") == ("test",)
+    assert proj.get("checklist", "test", field="schema") is checklist
+
+
+def test_add_dep_library():
+    lib = LibrarySchema("test")
+    proj = Project()
+    proj.add_dep(lib)
+    assert proj.getkeys("library") == ("test",)
+    assert proj.get("library", "test", field="schema") is lib
 
 
 def test_get_filesets_empty():
@@ -1132,3 +1149,129 @@ def test_get_task_missing():
 
 def test_get_task_empty():
     assert Project().get_task() == set()
+
+
+def test_load_target():
+    class Target:
+        calls = 0
+
+        @staticmethod
+        def target(target: Project):
+            Target.calls += 1
+
+    proj = Project()
+
+    assert Target.calls == 0
+    proj.load_target(Target.target)
+    assert Target.calls == 1
+
+
+def test_load_target_invalid_signature_type():
+    def target(target: str):
+        pass
+
+    proj = Project()
+
+    with pytest.raises(TypeError, match="target must take in a Project object"):
+        proj.load_target(target)
+
+
+def test_load_target_invalid_signature_required_args():
+    def target():
+        pass
+
+    proj = Project()
+
+    with pytest.raises(ValueError, match="target signature cannot must take atleast one argument"):
+        proj.load_target(target)
+
+
+def test_load_target_invalid_signature_toomany_required_args():
+    def target(arg0, arg1):
+        pass
+
+    proj = Project()
+
+    with pytest.raises(ValueError,
+                       match="target signature cannot have more than one required argument"):
+        proj.load_target(target)
+
+
+def test_load_target_invalid_project():
+    class Proj0(Project):
+        pass
+
+    class Proj1(Project):
+        pass
+
+    def target(arg0: Proj1):
+        pass
+
+    proj = Proj0()
+
+    with pytest.raises(TypeError, match="target requires a Proj1 project"):
+        proj.load_target(target)
+
+
+def test_load_target_with_kwargs():
+    proj = Project()
+
+    class Target:
+        calls = 0
+
+        @staticmethod
+        def target(target: Project, arg0: str = "", arg1: int = 1):
+            Target.calls += 1
+            assert target is proj
+            assert arg0 == "test"
+            assert arg1 == 2
+
+    assert Target.calls == 0
+    proj.load_target(Target.target, arg0="test", arg1=2)
+    assert Target.calls == 1
+
+
+def test_load_target_with_kwargs_incomplete():
+    proj = Project()
+
+    class Target:
+        calls = 0
+
+        @staticmethod
+        def target(target: Project, arg0: str = "", arg1: int = 1):
+            Target.calls += 1
+            assert target is proj
+            assert arg0 == "test"
+            assert arg1 == 1
+
+    assert Target.calls == 0
+    proj.load_target(Target.target, arg0="test")
+    assert Target.calls == 1
+
+
+def test_load_target_string():
+    class Target:
+        calls = 0
+
+        @staticmethod
+        def target(proj):
+            Target.calls += 1
+
+    proj = Project()
+
+    with patch("importlib.import_module") as import_mod:
+        import_mod.return_value = Target
+        assert Target.calls == 0
+        proj.load_target("Target.target")
+        import_mod.assert_called_once_with("Target")
+        assert Target.calls == 1
+
+
+def test_load_target_string_invalid():
+    proj = Project()
+    with pytest.raises(ValueError, match="unable to process incomplete function path"):
+        proj.load_target("Target")
+
+
+def test_getdict_type():
+    assert Project._getdict_type() == "Project"
