@@ -272,6 +272,13 @@ class TaskSchema(NamedSchema):
         '''
         return self.__logger
 
+    @property
+    def nodeworkdir(self) -> str:
+        """
+        Path to the node working directory
+        """
+        return self.__jobdir
+
     def schema(self, type=None):
         '''
         Get useful section of the schema.
