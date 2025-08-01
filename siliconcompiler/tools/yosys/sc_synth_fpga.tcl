@@ -256,8 +256,8 @@ if { [string match {ice*} $sc_partname] } {
         yosys techmap -map +/mul2dsp.v -map $sc_syn_dsp_library \
             {*}$formatted_dsp_options
 
-        post_techmap
-    }
+   	# do not call 'post_techmap'(which calls a bare 'yosys techmap')  before memory inference.
+   }
 
     #Mimic ICE40 flow by running an alumacc and memory -nomap passes
     #after DSP mapping
