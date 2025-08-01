@@ -1132,3 +1132,22 @@ def test_get_task_missing():
 
 def test_get_task_empty():
     assert Project().get_task() == set()
+
+
+def test_from_dict_restore_deps():
+    dep_design = DesignSchema("dep_design")
+    design = DesignSchema("testdesign")
+    design.add_dep(dep_design)
+
+    proj = Project(design)
+    assert proj.getkeys("library") == ("dep_design", "testdesign")
+    assert design.has_dep("dep_design")
+
+    new_proj = Project.from_manifest(cfg=proj.getdict())
+    assert new_proj.getkeys("library") == ("dep_design", "testdesign")
+    new_design = new_proj.get("library", "testdesign", field="schema")
+    new_dep_design = new_proj.get("library", "dep_design", field="schema")
+    assert new_design is not design
+    assert new_dep_design is not dep_design
+    assert new_design.has_dep("dep_design")
+    assert new_design.get_dep("dep_design") is new_dep_design

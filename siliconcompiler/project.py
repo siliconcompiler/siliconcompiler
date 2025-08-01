@@ -127,6 +127,18 @@ class Project(PathSchemaBase, BaseSchema):
 
         return Project.__name__
 
+    def _from_dict(self, manifest, keypath, version=None):
+        ret = super()._from_dict(manifest, keypath, version)
+
+        # Restore dependencies
+        dep_map = {name: self.get("library", name, field="schema")
+                   for name in self.getkeys("library")}
+        for obj in dep_map.values():
+            if isinstance(obj, DependencySchema):
+                obj._populate_deps(dep_map)
+
+        return ret
+
     def add_dep(self, obj):
         if isinstance(obj, DesignSchema):
             EditableSchema(self).insert("library", obj.name, obj, clobber=True)
