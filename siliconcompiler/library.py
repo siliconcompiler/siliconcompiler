@@ -1,6 +1,8 @@
 from typing import final, Union, List
 
 from siliconcompiler import PackageSchema
+
+from siliconcompiler.dependencyschema import DependencySchema
 from siliconcompiler.filesetschema import FileSetSchema
 from siliconcompiler.schema import NamedSchema
 
@@ -88,12 +90,22 @@ class ToolLibrarySchema(LibrarySchema):
         return super()._from_dict(manifest, keypath, version)
 
 
-class StdCellLibrarySchema(ToolLibrarySchema):
+class StdCellLibrarySchema(ToolLibrarySchema, DependencySchema):
     def __init__(self, name: str = None):
         super().__init__()
         self.set_name(name)
 
         schema = EditableSchema(self)
+
+        schema.insert(
+            "asic", "pdk",
+            Parameter(
+                "str",
+                scope=Scope.GLOBAL,
+                shorthelp="ASIC: ",
+                example=[
+                    "api: schema.set('asic', 'libcornerfileset', 'slow', 'nldm', 'timing.slow')"],
+                help=trim("""""")))
 
         schema.insert(
             'asic', 'libcornerfileset', 'default', 'default',
@@ -160,6 +172,24 @@ class StdCellLibrarySchema(ToolLibrarySchema):
                 shorthelp="ASIC: library sites",
                 example=["api: schema.set('asic', 'site', 'Site_12T')"],
                 help="Site names for a given library architecture."))
+
+    def set_asic_pdk(self, pdk: Union[str, "PDKSchema"]):
+        """
+        Set the PDK associated with this library
+
+        Args:
+            pdk (str or class:`PDKSchema`): pdk to associate
+        """
+        from siliconcompiler import PDKSchema
+        if isinstance(pdk, PDKSchema):
+            pdk_name = pdk.name
+            self.add_dep(pdk)
+        elif isinstance(pdk, str):
+            pdk_name = pdk
+        else:
+            raise TypeError("pdk must be a PDK object or string")
+
+        return self.set("asic", "pdk", pdk_name)
 
     def add_asic_libcornerfileset(self, corner: str, model: str, fileset: str = None):
         """
