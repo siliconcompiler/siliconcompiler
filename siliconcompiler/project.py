@@ -1,4 +1,5 @@
 import importlib
+import inspect
 import logging
 import os
 import shutil
@@ -661,11 +662,12 @@ class Project(PathSchemaBase, BaseSchema):
             if task and task_obj.task() != task:
                 continue
             if filter:
-                if callable(filter):
+                if inspect.isclass(filter):
+                    if not isinstance(task_obj, filter):
+                        continue
+                elif callable(filter):
                     if not filter(task_obj):
                         continue
-                elif not isinstance(task_obj, filter):
-                    continue
             tasks.add(task_obj)
 
         if len(tasks) == 1:
