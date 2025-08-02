@@ -1323,3 +1323,84 @@ def test_from_dict_restore_deps():
     assert new_dep_design is not dep_design
     assert new_design.has_dep("dep_design")
     assert new_design.get_dep("dep_design") is new_dep_design
+
+
+def test_find_result_not_setup():
+    design = DesignSchema("testdesign")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+
+    proj = Project(design)
+    with pytest.raises(ValueError, match=r"\[option,fileset\] is not set"):
+        proj.find_result("vg", "thisstep")
+
+
+def test_find_result_no_design():
+    proj = Project()
+    proj.set("option", "fileset", "rtl")
+    with pytest.raises(ValueError, match=r"name has not been set"):
+        proj.find_result("vg", "thisstep")
+
+
+def test_find_result_no_step():
+    proj = Project()
+
+    with pytest.raises(ValueError, match="step is required"):
+        proj.find_result(filename="balh")
+
+
+def test_find_result():
+    Path("outputs").mkdir(exist_ok=True)
+    Path("reports").mkdir(exist_ok=True)
+
+    Path("outputs/top.vg").touch()
+    Path("outputs/top.def.gz").touch()
+    Path("outputs/other.def").touch()
+    Path("reports/top.rpt").touch()
+    Path("reports/report_this.rpt").touch()
+
+    design = DesignSchema("testdesign")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+
+    proj = Project(design)
+    proj.add_fileset("rtl")
+
+    with patch("siliconcompiler.Project.getworkdir") as getworkdir:
+        getworkdir.return_value = os.path.abspath(".")
+        assert proj.find_result("vg", "thisstep") == os.path.abspath("outputs/top.vg")
+        getworkdir.assert_called_once_with("thisstep", "0")
+
+    with patch("siliconcompiler.Project.getworkdir") as getworkdir:
+        getworkdir.return_value = os.path.abspath(".")
+        assert proj.find_result("not", "thisstep") is None
+        getworkdir.assert_called_once_with("thisstep", "0")
+
+    with patch("siliconcompiler.Project.getworkdir") as getworkdir:
+        getworkdir.return_value = os.path.abspath(".")
+        assert proj.find_result("vg", "thisstep", index="5") == os.path.abspath("outputs/top.vg")
+        getworkdir.assert_called_once_with("thisstep", "5")
+
+    with patch("siliconcompiler.Project.getworkdir") as getworkdir:
+        getworkdir.return_value = os.path.abspath(".")
+        assert proj.find_result("def", "thisstep") == os.path.abspath("outputs/top.def.gz")
+        getworkdir.assert_called_once_with("thisstep", "0")
+
+    with patch("siliconcompiler.Project.getworkdir") as getworkdir:
+        getworkdir.return_value = os.path.abspath(".")
+        assert proj.find_result("rpt", "thisstep", directory="reports") == \
+            os.path.abspath("reports/top.rpt")
+        getworkdir.assert_called_once_with("thisstep", "0")
+
+    with patch("siliconcompiler.Project.getworkdir") as getworkdir:
+        getworkdir.return_value = os.path.abspath(".")
+        assert proj.find_result("rpt", "thisstep", directory="reports",
+                                filename="report_this.rpt") \
+            == os.path.abspath("reports/report_this.rpt")
+        getworkdir.assert_called_once_with("thisstep", "0")
+
+    with patch("siliconcompiler.Project.getworkdir") as getworkdir:
+        getworkdir.return_value = os.path.abspath(".")
+        assert proj.find_result("thisstep", filename="other.def") == \
+            os.path.abspath("outputs/other.def")
+        getworkdir.assert_called_once_with("thisstep", "0")

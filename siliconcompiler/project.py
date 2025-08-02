@@ -9,7 +9,7 @@ import uuid
 import os.path
 
 from inspect import getfullargspec
-from typing import Set, Union, List, Tuple, Type, Callable
+from typing import Set, Union, List, Tuple, Type, Callable, TextIO
 
 from siliconcompiler.schema import BaseSchema, NamedSchema, EditableSchema, Parameter
 from siliconcompiler.schema.parametervalue import NodeListValue, NodeSetValue
@@ -846,7 +846,7 @@ class Project(PathSchemaBase, BaseSchema):
 
         return headers
 
-    def summary(self, jobname: str = None) -> None:
+    def summary(self, jobname: str = None, fd: TextIO = None) -> None:
         '''
         Prints a summary of the compilation manifest.
 
@@ -856,6 +856,7 @@ class Project(PathSchemaBase, BaseSchema):
         Args:
             jobname (str): If provided prints uses this job to print summary,
                 otherwise the value in :keypath:`option,jobname` will be used.
+            fd (TextIO): If provided prints to this file descriptor instead of stdout.
 
         Examples:
             >>> chip.summary()
@@ -874,4 +875,60 @@ class Project(PathSchemaBase, BaseSchema):
             self.logger.warning(f"{org_job} not found in history, picking {jobname}")
 
         history = self.history(jobname)
-        history.get("metric", field='schema').summary(headers=history._summary_headers())
+        history.get("metric", field='schema').summary(
+            headers=history._summary_headers(),
+            fd=fd)
+
+    def find_result(self,
+                    filetype: str = None, step: str = None, /,
+                    index: str = "0", directory: str = "outputs",
+                    filename: str = None):
+        """
+        Returns the absolute path of a compilation result.
+        Utility function that returns the absolute path to a results
+        file based on the provided arguments. The result directory
+        structure is:
+        <dir>/<design>/<jobname>/<step>/<index>/<directory>/<design>.<filetype>
+        Args:
+            filetype (str): File extension (v, def, etc)
+            step (str): Task step name ('syn', 'place', etc)
+            jobname (str): Jobid directory name
+            index (str): Task index
+            directory (str): Node directory to search
+            filename (str): exact filename to search for
+        Returns:
+            Returns absolute path to file or None is the file is not found
+        Examples:
+            >>> vg_filepath = chip.find_result('vg', 'syn')
+           Returns the absolute path to the gate level verilog.
+        """
+
+        if filename and step is None:
+            step = filetype
+
+        if step is None:
+            raise ValueError("step is required")
+
+        workdir = self.getworkdir(step, index)
+
+        if not filename:
+            fileset = self.get("option", "fileset")
+            if not fileset:
+                raise ValueError("[option,fileset] is not set")
+            design_name = self.design.get_topmodule(fileset[0])
+
+            checkfiles = [
+                os.path.join(workdir, directory, f'{design_name}.{filetype}'),
+                os.path.join(workdir, directory, f'{design_name}.{filetype}.gz')
+            ]
+        else:
+            checkfiles = [
+                os.path.join(workdir, directory, filename)
+            ]
+
+        for filename in checkfiles:
+            self.logger.debug(f"Finding node file: {filename}")
+            if os.path.exists(filename):
+                return os.path.abspath(filename)
+
+        return None
