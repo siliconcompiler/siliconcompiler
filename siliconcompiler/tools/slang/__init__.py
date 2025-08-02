@@ -32,7 +32,7 @@ def test_version():
         return "pyslang is not installed"
 
     version = pyslang.VersionInfo
-    if version.getMajor() >= 7 and version.getMinor() >= 0:
+    if version.getMajor() >= 9 and version.getMinor() >= 0:
         return None
 
     ver = f"{version.getMajor()}.{version.getMinor()}.{version.getPatch()}"

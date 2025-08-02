@@ -119,7 +119,8 @@ def run(chip):
             writer.setIncludeSkipped(False)
             writer.setIncludeDirectives(False)
 
-            writer.setIncludePreprocessed(True)
+            writer.setExpandMacros(True)
+            writer.setExpandIncludes(True)
             writer.setIncludeTrivia(True)
             writer.setIncludeComments(True)
             writer.setSquashNewlines(True)
