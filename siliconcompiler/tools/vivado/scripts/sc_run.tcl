@@ -2,7 +2,7 @@
 # Reading SC Schema
 ###############################
 
-source ./sc_manifest.tcl
+source ./sc_manifest.tcl > /dev/null
 
 ##############################
 # Schema Adapter

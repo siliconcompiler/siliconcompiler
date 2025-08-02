@@ -124,6 +124,7 @@ def _parse_utilization(chip, step, index):
     with sc_open('reports/total_utilization.rpt') as f:
         regexes = {
             'luts': (re.compile(r'(?:CLB|Slice) LUTs\*?\s+\|\s+(\d+)'), int),
+            'dsps': (re.compile(r'DSPs\*?\s+\|\s+(\d+)'), int),
             'regs': (re.compile(r'(?:CLB|Slice) Registers\s+\|\s+(\d+)'), int),
             'bram': (re.compile(r'Block RAM Tile\s+\|\s+(\d+(.\d+)?)'), float),
             # TODO: should URAM be float?
@@ -156,6 +157,9 @@ def _parse_utilization(chip, step, index):
             record_metric(chip, step, index, 'brams', total_bram,
                           'reports/total_utilization.rpt')
 
+        if 'dsps' in vals:
+            record_metric(chip, step, index, 'dsps', vals['dsps'],
+                          'reports/total_utilization.rpt')
 
 def post_process(chip):
     step = chip.get('arg', 'step')

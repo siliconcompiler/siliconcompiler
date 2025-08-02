@@ -21,5 +21,12 @@ if { $sc_constraint != "" } {
 }
 
 # run synthesis
-synth_design -top $sc_design
+set synth_args []
+lappend synth_args -directive [lindex [sc_cfg_tool_task_get var synth_directive] 0]
+set synth_mode [lindex [sc_cfg_tool_task_get var synth_mode] 0]
+if { $synth_mode != "none" } {
+    lappend synth_args -mode $synth_mode
+}
+synth_design -top $sc_design {*}$synth_args
+
 opt_design
