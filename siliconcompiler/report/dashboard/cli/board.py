@@ -367,7 +367,7 @@ class Board(metaclass=BoardSingleton):
         # Restore terminal
         self.live.stop()
 
-        # Print final render to avoid loosing it
+        # Print final render to avoid losing it
         if self.live._screen:
             self._console.print(self._get_rendable())
         self._console.show_cursor()
