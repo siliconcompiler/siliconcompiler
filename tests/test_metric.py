@@ -1,6 +1,7 @@
 import pytest
 
 from datetime import datetime, timezone
+from io import StringIO
 from unittest.mock import patch
 
 from siliconcompiler import MetricSchema
@@ -615,6 +616,31 @@ def test_summary(capsys):
 
     out = capsys.readouterr().out
     assert out.splitlines() == [
+        '----------------------------------------------------------------------------',
+        'SUMMARY :',
+        'pdk     : asap7',
+        'library : asap7_library',
+        '',
+        '         unit  step/0  step/1  step/2  step/3',
+        'tasktime    s  05.000  07.000  12.500  15.500',
+        '----------------------------------------------------------------------------']
+
+
+def test_summary_fd():
+    schema = MetricSchema()
+
+    assert schema.set("tasktime", 5, step="step", index="0")
+    assert schema.set("tasktime", 7, step="step", index="1")
+    assert schema.set("tasktime", 12.5, step="step", index="2")
+    assert schema.set("tasktime", 15.5, step="step", index="3")
+
+    string = StringIO()
+
+    with patch("shutil.get_terminal_size") as get_terminal_size:
+        get_terminal_size.return_value.columns = 80
+        schema.summary(headers=[("pdk", "asap7"), ("library", "asap7_library")], fd=string)
+
+    assert string.getvalue().splitlines() == [
         '----------------------------------------------------------------------------',
         'SUMMARY :',
         'pdk     : asap7',

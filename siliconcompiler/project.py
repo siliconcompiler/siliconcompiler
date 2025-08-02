@@ -9,7 +9,7 @@ import uuid
 import os.path
 
 from inspect import getfullargspec
-from typing import Set, Union, List, Tuple, Type, Callable
+from typing import Set, Union, List, Tuple, Type, Callable, TextIO
 
 from siliconcompiler.schema import BaseSchema, NamedSchema, EditableSchema, Parameter
 from siliconcompiler.schema.parametervalue import NodeListValue, NodeSetValue
@@ -846,7 +846,7 @@ class Project(PathSchemaBase, BaseSchema):
 
         return headers
 
-    def summary(self, jobname: str = None) -> None:
+    def summary(self, jobname: str = None, fd: TextIO = None) -> None:
         '''
         Prints a summary of the compilation manifest.
 
@@ -856,6 +856,7 @@ class Project(PathSchemaBase, BaseSchema):
         Args:
             jobname (str): If provided prints uses this job to print summary,
                 otherwise the value in :keypath:`option,jobname` will be used.
+            fd (TextIO): If provided prints to this file descriptor instead of stdout.
 
         Examples:
             >>> chip.summary()
@@ -874,4 +875,6 @@ class Project(PathSchemaBase, BaseSchema):
             self.logger.warning(f"{org_job} not found in history, picking {jobname}")
 
         history = self.history(jobname)
-        history.get("metric", field='schema').summary(headers=history._summary_headers())
+        history.get("metric", field='schema').summary(
+            headers=history._summary_headers(),
+            fd=fd)
