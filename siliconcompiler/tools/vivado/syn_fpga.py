@@ -19,6 +19,12 @@ def setup(chip):
     chip.add('tool', tool, 'task', task, 'output', f'{design}.vg',
              step=step, index=index)
 
+    chip.set('tool', tool, 'task', task, 'var', 'synth_directive', 'Default',
+             step=step, index=index, clobber=False)
+
+    chip.set('tool', tool, 'task', task, 'var', 'synth_mode', 'none',
+             step=step, index=index, clobber=False)
+
 
 def post_process(chip):
     vivado.post_process(chip)
