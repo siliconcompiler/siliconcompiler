@@ -1168,6 +1168,7 @@ def test_get_task():
     assert proj.get_task(tool="faux", task="task1") is faux1
     assert proj.get_task(filter=lambda t: isinstance(t, FauxTask)) == set([faux0, faux1])
     assert proj.get_task(filter=lambda t: isinstance(t, FauxTask2)) is faux2
+    assert proj.get_task(filter=FauxTask2) is faux2
 
 
 def test_get_task_missing():
