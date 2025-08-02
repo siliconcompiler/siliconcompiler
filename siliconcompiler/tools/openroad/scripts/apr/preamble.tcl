@@ -100,3 +100,6 @@ if { [llength $openroad_dont_touch] > 0 } {
 tee -quiet -file reports/dont_touch.start.rpt {report_dont_touch}
 tee -quiet -file reports/dont_use.start.rpt {report_dont_use}
 tee -file reports/global_connections.start.rpt {report_global_connect}
+if { [sc_check_version 23264] } {
+    tee -file reports/report_buffers.rpt {report_buffers -filtered}
+}
