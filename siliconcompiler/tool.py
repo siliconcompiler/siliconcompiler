@@ -1706,7 +1706,7 @@ class ShowTaskSchema(TaskSchema):
                         break
             self.set("var", "showfiletype", exts[-1], clobber=False)
         else:
-            self.set("var", "showfiletype", self.get("var", "showfilepath").split(".")[-1])
+            self.set("var", "showfiletype", get_file_ext(self.get("var", "showfilepath")))
 
     def set_showfilepath(self, path: str, step: str = None, index: str = None):
         return self.set("var", "showfilepath", path, step=step, index=index)
