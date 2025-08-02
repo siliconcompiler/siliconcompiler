@@ -3,7 +3,6 @@ from unittest.mock import patch
 import threading
 import io
 import logging
-import multiprocessing
 import queue
 from rich.console import Console, Group
 from rich.table import Table
@@ -19,6 +18,7 @@ from siliconcompiler.report.dashboard.cli.board import (
     Layout,
 )
 from siliconcompiler import NodeStatus
+from siliconcompiler.utils.multiprocessing import MPManager
 import random
 
 
@@ -47,7 +47,7 @@ def reset_singleton(monkeypatch):
                 pass
             return Dummy()
 
-    monkeypatch.setattr(multiprocessing, "Manager", MockManager)
+    monkeypatch.setattr(MPManager, "get_manager", MockManager)
     with patch.dict(BoardSingleton._instances, clear=True):
         yield
 
