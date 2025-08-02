@@ -22,6 +22,8 @@ from siliconcompiler import SiliconCompilerError, NodeStatus
 from siliconcompiler.utils.logging import SCColorLoggerFormatter
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 
+from siliconcompiler.utils.multiprocessing import MPManager
+
 import atexit
 
 
@@ -269,22 +271,22 @@ class Board(metaclass=BoardSingleton):
         self._layout = Layout()
 
         # Manager to thread data
-        self._manager = multiprocessing.Manager()
+        manager = MPManager.get_manager()
 
-        self._render_event = self._manager.Event()
-        self._render_stop_event = self._manager.Event()
+        self._render_event = manager.Event()
+        self._render_stop_event = manager.Event()
         self._render_thread = None
 
         # Holds thread job data
-        self._board_info = self._manager.Namespace()
+        self._board_info = manager.Namespace()
         self._board_info.data_modified = False
-        self._job_data = self._manager.dict()
-        self._job_data_lock = self._manager.Lock()
+        self._job_data = manager.dict()
+        self._job_data_lock = manager.Lock()
 
         self._render_data = SessionData()
         self._render_data_lock = threading.Lock()
 
-        self._log_handler_queue = self._manager.Queue()
+        self._log_handler_queue = manager.Queue()
 
         self._log_handler = LogBufferHandler(
             self._log_handler_queue, n=120, event=self._render_event)
