@@ -1,6 +1,7 @@
 import shutil
+import sys
 
-from typing import List, Tuple
+from typing import List, Tuple, TextIO
 
 from siliconcompiler.schema import BaseSchema
 from siliconcompiler.schema import EditableSchema, Parameter, PerNode, Scope
@@ -294,7 +295,8 @@ class MetricSchema(BaseSchema):
     def summary(self,
                 headers: List[Tuple[str, str]],
                 nodes: List[Tuple[str, str]] = None,
-                column_width: int = 15) -> None:
+                column_width: int = 15,
+                fd: TextIO = None) -> None:
         header = []
         headers.insert(0, ("SUMMARY", None))
         if headers:
@@ -308,14 +310,17 @@ class MetricSchema(BaseSchema):
         max_line_width = max(4 * column_width, int(0.95*shutil.get_terminal_size().columns))
         data = self.summary_table(nodes=nodes, column_width=column_width)
 
-        print("-" * max_line_width)
-        print("\n".join(header))
-        print()
+        if not fd:
+            fd = sys.stdout
+
+        print("-" * max_line_width, file=fd)
+        print("\n".join(header), file=fd)
+        print(file=fd)
         if data.empty:
-            print("  No metrics to display!")
+            print("  No metrics to display!", file=fd)
         else:
-            print(data.to_string(line_width=max_line_width, col_space=3))
-        print("-" * max_line_width)
+            print(data.to_string(line_width=max_line_width, col_space=3), file=fd)
+        print("-" * max_line_width, file=fd)
 
     @classmethod
     def _getdict_type(cls) -> str:
