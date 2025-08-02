@@ -11,6 +11,7 @@ import re
 from siliconcompiler import utils
 from siliconcompiler import sc_open
 from siliconcompiler.tools._common import record_metric
+from siliconcompiler.tools._common import get_tool_task
 
 
 def make_docs(chip):
@@ -55,6 +56,9 @@ def setup_task(chip, task):
     chip.set('tool', tool, 'task', task, 'regex', 'errors', r'^ERROR:',
              step=step, index=index, clobber=False)
     chip.set('tool', tool, 'task', task, 'regex', 'warnings', r'^(CRITICAL )?WARNING:',
+             step=step, index=index, clobber=False)
+
+    chip.set('tool', tool, 'task', task, 'var', 'metric_luts', 'true',
              step=step, index=index, clobber=False)
 
 
@@ -121,9 +125,21 @@ def _parse_utilization(chip, step, index):
     if not os.path.isfile('reports/total_utilization.rpt'):
         return
 
+    step = chip.get('arg', 'step')
+    index = chip.get('arg', 'index')
+    tool, task = get_tool_task(chip, step, index)
+
     with sc_open('reports/total_utilization.rpt') as f:
         regexes = {
             'luts': (re.compile(r'(?:CLB|Slice) LUTs\*?\s+\|\s+(\d+)'), int),
+            'lut6': (re.compile(r'LUT6\*?\s+\|\s+(\d+)'), int),
+            'lut5': (re.compile(r'LUT5\*?\s+\|\s+(\d+)'), int),
+            'lut4': (re.compile(r'LUT4\*?\s+\|\s+(\d+)'), int),
+            'lut3': (re.compile(r'LUT3\*?\s+\|\s+(\d+)'), int),
+            'lut2': (re.compile(r'LUT2\*?\s+\|\s+(\d+)'), int),
+            'lut1': (re.compile(r'LUT1\*?\s+\|\s+(\d+)'), int),
+            'f7mux': (re.compile(r'MUXF7\*?\s+\|\s+(\d+)'), int),
+            'f8mux': (re.compile(r'MUXF8\*?\s+\|\s+(\d+)'), int),
             'dsps': (re.compile(r'DSPs\*?\s+\|\s+(\d+)'), int),
             'regs': (re.compile(r'(?:CLB|Slice) Registers\s+\|\s+(\d+)'), int),
             'bram': (re.compile(r'Block RAM Tile\s+\|\s+(\d+(.\d+)?)'), float),
@@ -141,8 +157,20 @@ def _parse_utilization(chip, step, index):
                     vals[metric] = datatype(match.group(1))
                     continue
 
-        if 'luts' in vals:
-            record_metric(chip, step, index, 'luts', vals['luts'],
+        lut_cnt = 0
+        if chip.get('tool', tool, 'task', task, 'var', 'metric_luts', step=step, index=index)[0] \
+                == 'true':
+            lut_cnt = vals.get('luts', 0)
+        else:
+            lut_cnt = sum([cnt for name, cnt in vals.items() if name.startswith('lut')])
+            lut_cnt -= vals.get('luts', 0)  # avoid double counting
+            if "f7mux" in vals:
+                lut_cnt += vals["f7mux"]
+            if "f8mux" in vals:
+                lut_cnt -= vals["f8mux"]
+
+        if lut_cnt != 0:
+            record_metric(chip, step, index, 'luts', lut_cnt,
                           'reports/total_utilization.rpt')
         if 'regs' in vals:
             record_metric(chip, step, index, 'registers', vals['regs'],
