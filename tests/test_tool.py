@@ -361,6 +361,17 @@ def test_add_step_index_only_override(running_node):
                                     step="running", index="0") == []
 
 
+def test_unset(running_node):
+    with running_node.task.runtime(running_node) as runtool:
+        assert runtool.add("option", "only_step_index0")
+        assert runtool.add("option", "only_step_index1")
+        assert runtool.get("option") == ["only_step_index0", "only_step_index1"]
+        assert BaseSchema.get(runtool, "option", step="running", index="0") == \
+            ["only_step_index0", "only_step_index1"]
+        runtool.unset("option")
+        assert runtool.get("option") == []
+
+
 def test_get_exe_empty(running_node):
     with running_node.task.runtime(running_node) as runtool:
         assert runtool.get_exe() is None

@@ -1485,6 +1485,13 @@ class TaskSchema(NamedSchema):
             index = self.__index
         return super().add(*args, field=field, step=step, index=index)
 
+    def unset(self, *args, step: str = None, index: str = None):
+        if not step:
+            step = self.__step
+        if not index:
+            index = self.__index
+        return super().unset(*args, step=step, index=index)
+
     def find_files(self, *keypath, missing_ok=False, step=None, index=None):
         if not step:
             step = self.__step
