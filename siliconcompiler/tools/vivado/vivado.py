@@ -161,6 +161,7 @@ def _parse_utilization(chip, step, index):
             record_metric(chip, step, index, 'dsps', vals['dsps'],
                           'reports/total_utilization.rpt')
 
+
 def post_process(chip):
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
