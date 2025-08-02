@@ -1731,6 +1731,11 @@ class ScreenshotTaskSchema(ShowTaskSchema):
     def task(self):
         return "screenshot"
 
+    def setup(self):
+        super().setup()
+
+        self.set_showexit(True)
+
     def get_tcl_variables(self, manifest=None):
         vars = super().get_tcl_variables(manifest)
         vars["sc_do_screenshot"] = "true"

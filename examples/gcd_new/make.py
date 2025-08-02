@@ -88,20 +88,7 @@ def asic(pdk: str = "freepdk45", show: bool = False):
     project.summary()
 
     if show:
-        from siliconcompiler.tools.openroad.show import ShowTask
-
-        class ShowFlow(FlowgraphSchema):
-            def __init__(self):
-                super().__init__()
-                self.set_name("showflow")
-
-                self.node("show", ShowTask())
-
-        project.set_flow(ShowFlow())
-        project.get_task(filter=lambda t: isinstance(t, ShowTask)).set_showfilepath("build/gcd/job0/write.views/0/outputs/gcd.odb")
-        project.set("option", "jobname", "show")
-        project.set("option", "clean", True)
-        project.run(raise_exception=True)
+        assert project.show(extension="odb")
 
 
 def fpga(fpga: str = "K4_N8"):

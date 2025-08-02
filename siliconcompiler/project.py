@@ -36,7 +36,7 @@ from siliconcompiler.schema.schema_cfg import schema_option_runtime, schema_arg,
 
 from siliconcompiler.scheduler import Scheduler
 from siliconcompiler.utils.logging import SCColorLoggerFormatter, SCLoggerFormatter
-from siliconcompiler.utils import FilterDirectories
+from siliconcompiler.utils import FilterDirectories, get_file_ext
 from siliconcompiler.report.dashboard.cli import CliDashboard
 
 
@@ -894,6 +894,177 @@ class Project(PathSchemaBase, BaseSchema):
 
         history = self.history(jobname)
         history.get("metric", field='schema').summary(headers=history._summary_headers())
+
+    def find_result(self, filetype, step, index='0', directory="outputs"):
+        """
+        Returns the absolute path of a compilation result.
+
+        Utility function that returns the absolute path to a results
+        file based on the provided arguments. The result directory
+        structure is:
+
+        <dir>/<design>/<jobname>/<step>/<index>/<directory>/<design>.filetype
+
+        Args:
+            filetype (str): File extension (v, def, etc)
+            step (str): Task step name ('syn', 'place', etc)
+            jobname (str): Jobid directory name
+            index (str): Task index
+
+        Returns:
+            Returns absolute path to file.
+
+        Examples:
+            >>> vg_filepath = chip.find_result('vg', 'syn')
+           Returns the absolute path to the gate level verilog.
+        """
+
+        workdir = self.getworkdir(step, index)
+
+        checkfiles = [
+            os.path.join(workdir, directory, f'{self.get("option", "design")}.{filetype}'),
+            os.path.join(workdir, directory, f'{self.get("option", "design")}.{filetype}.gz')
+        ]
+
+        for filename in checkfiles:
+            self.logger.debug(f"Finding node file: {filename}")
+            if os.path.exists(filename):
+                return filename
+
+        return None
+
+    def show(self, filename=None, screenshot=False, extension=None):
+        '''
+        Opens a graphical viewer for the filename provided.
+
+        The show function opens the filename specified using a viewer tool
+        selected based on the file suffix and the registered showtools.
+        Display settings and technology settings for viewing the file are read
+        from the in-memory chip object schema settings. All temporary render
+        and display files are saved in the <build_dir>/_show_<jobname> directory.
+
+        Args:
+            filename (path): Name of file to display
+            screenshot (bool): Flag to indicate if this is a screenshot or show
+            extension (str): extension of file to show
+
+        Examples:
+            >>> show('build/oh_add/job0/write.gds/0/outputs/oh_add.gds')
+            Displays gds file with a viewer assigned by showtool
+        '''
+
+        from siliconcompiler.tools.openroad.show import ShowTask
+        from siliconcompiler.tools.openroad.screenshot import ScreenshotTask
+        showtools = {
+            "def": (ShowTask, ScreenshotTask),
+            "odb": (ShowTask, ScreenshotTask)
+        }
+
+        sc_jobname = self.get("option", "jobname")
+        sc_step = None
+        sc_index = None
+
+        has_filename = filename is not None
+        # Finding last layout if no argument specified
+        if filename is None:
+            try:
+                search_obj = self.history(sc_jobname)
+            except KeyError:
+                search_obj = self
+
+            self.logger.info('Searching build directory for layout to show.')
+
+            search_nodes = []
+            flow = search_obj.get("option", "flow")
+            if flow:
+                flow_obj = search_obj.get("flowgraph", flow, field="schema")
+                for nodes in flow_obj.get_execution_order(reverse=True):
+                    search_nodes.extend(nodes)
+
+            for ext in showtools.keys():
+                if extension and extension != ext:
+                    continue
+
+                for step, index in search_nodes:
+                    filename = search_obj.find_result(ext,
+                                                      step=step,
+                                                      index=index)
+                    if filename:
+                        sc_step = step
+                        sc_index = index
+                        break
+                if filename:
+                    break
+
+        if filename is None:
+            self.logger.error('Unable to automatically find layout in build directory.')
+            self.logger.error('Try passing in a full path to show() instead.')
+            return False
+
+        filepath = os.path.abspath(filename)
+
+        if not has_filename:
+            self.logger.info(f'Showing file {filename}')
+
+        # Check that file exists
+        if not os.path.exists(filepath):
+            self.logger.error(f"Invalid filepath {filepath}.")
+            return False
+
+        filetype = get_file_ext(filepath)
+
+        if filetype not in showtools:
+            self.logger.error(f"Filetype '{filetype}' not available in the registered showtools.")
+            return False
+
+        proj = self.copy()
+
+        show_task, screenshot_task = showtools[filetype]
+        nodename = "screenshot" if screenshot else "show"
+        nodeclass = screenshot_task if screenshot else show_task
+
+        class ShowFlow(FlowgraphSchema):
+            def __init__(self):
+                super().__init__()
+                self.set_name("showflow")
+
+                self.node(nodename, nodeclass())
+
+        proj.set_flow(ShowFlow())
+
+        # Setup options:
+        for option, value in [
+                ("track", False),
+                ("hash", False),
+                ("nodisplay", False),
+                ("continue", True),
+                ("quiet", False),
+                ("clean", True)]:
+            proj.set("option", option, value)
+        proj.unset("arg", "step")
+        proj.unset("arg", "index")
+        proj.unset("option", "to")
+        proj.unset("option", "prune")
+        proj.unset("option", "from")
+
+        design = proj.get("option", "design")
+        jobname = f"_{nodename}_{sc_jobname}_{sc_step}_{sc_index}_{design}_{nodeclass().tool()}"
+        proj.set("option", "jobname", jobname)
+
+        # Setup in task variables
+        task: ShowTask = proj.get_task(filter=nodeclass)
+        task.set_showfilepath(filename)
+        task.set_showfiletype(filetype)
+        task.set_shownode(jobname=sc_jobname, step=sc_step, index=sc_index)
+
+        # run show flow
+        proj.run(raise_exception=True)
+        if screenshot:
+            success = proj.find_result('png', step=nodename)
+        else:
+            success = True
+
+        return success
 
 
 class SimProject(Project):
