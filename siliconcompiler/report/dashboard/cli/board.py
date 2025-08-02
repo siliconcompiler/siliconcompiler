@@ -255,8 +255,8 @@ class Board(metaclass=BoardSingleton):
 
         self.live = Live(
             console=self._console,
-            screen=False,
-            auto_refresh=True,
+            screen=True,
+            auto_refresh=True
         )
 
         atexit.register(self._stop_on_exit)
@@ -366,6 +366,10 @@ class Board(metaclass=BoardSingleton):
 
         # Restore terminal
         self.live.stop()
+
+        # Print final render to avoid losing it
+        if self.live._screen:
+            self._console.print(self._get_rendable())
         self._console.show_cursor()
 
     def wait(self):
