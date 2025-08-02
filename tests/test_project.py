@@ -1394,8 +1394,8 @@ def test_find_result():
 
     with patch("siliconcompiler.Project.getworkdir") as getworkdir:
         getworkdir.return_value = os.path.abspath(".")
-        assert proj.find_result("rpt", "thisstep", directory="reports", filename="report_this.rpt") == \
-            os.path.abspath("reports/report_this.rpt")
+        assert proj.find_result("rpt", "thisstep", directory="reports", filename="report_this.rpt") \
+            == os.path.abspath("reports/report_this.rpt")
         getworkdir.assert_called_once_with("thisstep", "0")
 
     with patch("siliconcompiler.Project.getworkdir") as getworkdir:
