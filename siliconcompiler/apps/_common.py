@@ -1,4 +1,5 @@
 import os
+import os.path
 
 
 # TODO: this is a hack to get around design name requirement: since legal
