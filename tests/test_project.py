@@ -5,6 +5,7 @@ import pytest
 import os.path
 
 from pathlib import Path
+from PIL import Image
 
 from unittest.mock import patch
 
@@ -1404,3 +1405,99 @@ def test_find_result():
         assert proj.find_result("thisstep", filename="other.def") == \
             os.path.abspath("outputs/other.def")
         getworkdir.assert_called_once_with("thisstep", "0")
+
+
+def test_snapshot(caplog):
+    image = Image.new('RGB', (1024, 1024))
+    image.save("test.png")
+
+    proj = Project(DesignSchema("testdesign"))
+    setattr(proj, "_Project__logger", logging.getLogger())
+    proj.logger.setLevel(logging.INFO)
+    proj.set("option", "design", "testdesign")
+
+    assert not os.path.isfile("testing.png")
+
+    with patch("siliconcompiler.report.summary_image._find_summary_image") as find, \
+            patch("PIL.ImageFile.ImageFile.show") as show:
+        find.return_value = "test.png"
+        proj.snapshot(path="testing.png")
+        find.assert_called_once()
+        show.assert_called_once()
+
+    assert os.path.isfile("testing.png")
+
+    assert "Generated summary image at " in caplog.text
+
+
+def test_snapshot_default_path(caplog):
+    image = Image.new('RGB', (1024, 1024))
+    image.save("test.png")
+
+    proj = Project(DesignSchema("testdesign"))
+    setattr(proj, "_Project__logger", logging.getLogger())
+    proj.logger.setLevel(logging.INFO)
+    proj.set("option", "design", "testdesign")
+
+    os.makedirs(proj.getworkdir(), exist_ok=True)
+    path = os.path.join(proj.getworkdir(), "testdesign.png")
+
+    assert not os.path.isfile(path)
+
+    with patch("siliconcompiler.report.summary_image._find_summary_image") as find, \
+            patch("PIL.ImageFile.ImageFile.show") as show:
+        find.return_value = "test.png"
+        proj.snapshot()
+        find.assert_called_once()
+        show.assert_called_once()
+
+    assert os.path.isfile(path)
+
+    assert "Generated summary image at " in caplog.text
+
+
+def test_snapshot_display_false(caplog):
+    image = Image.new('RGB', (1024, 1024))
+    image.save("test.png")
+
+    proj = Project(DesignSchema("testdesign"))
+    setattr(proj, "_Project__logger", logging.getLogger())
+    proj.logger.setLevel(logging.INFO)
+    proj.set("option", "design", "testdesign")
+
+    assert not os.path.isfile("testing.png")
+
+    with patch("siliconcompiler.report.summary_image._find_summary_image") as find, \
+            patch("PIL.ImageFile.ImageFile.show") as show:
+        find.return_value = "test.png"
+        proj.snapshot(path="testing.png", display=False)
+        find.assert_called_once()
+        show.assert_not_called()
+
+    assert os.path.isfile("testing.png")
+
+    assert "Generated summary image at " in caplog.text
+
+
+def test_snapshot_nodisplay(caplog):
+    image = Image.new('RGB', (1024, 1024))
+    image.save("test.png")
+
+    proj = Project(DesignSchema("testdesign"))
+    setattr(proj, "_Project__logger", logging.getLogger())
+    proj.logger.setLevel(logging.INFO)
+    proj.set("option", "design", "testdesign")
+    proj.set("option", "nodisplay", True)
+
+    assert not os.path.isfile("testing.png")
+
+    with patch("siliconcompiler.report.summary_image._find_summary_image") as find, \
+            patch("PIL.ImageFile.ImageFile.show") as show:
+        find.return_value = "test.png"
+        proj.snapshot(path="testing.png")
+        find.assert_called_once()
+        show.assert_not_called()
+
+    assert os.path.isfile("testing.png")
+
+    assert "Generated summary image at " in caplog.text
