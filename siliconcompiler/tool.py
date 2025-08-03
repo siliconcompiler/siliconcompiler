@@ -1417,7 +1417,7 @@ class TaskSchema(NamedSchema):
             else:
                 return self.schema("tool").add("sbom", version, sbom)
 
-    def record_metric(self, metric, value, source_file=None, source_unit=None):
+    def record_metric(self, metric, value, source_file=None, source_unit=None, quiet=False):
         '''
         Records a metric and associates the source file with it.
 
@@ -1426,6 +1426,7 @@ class TaskSchema(NamedSchema):
             value (float/int): value of the metric that is being recorded
             source (str): file the value came from
             source_unit (str): unit of the value, if not provided it is assumed to have no units
+            quiet (bool): dont generate warning on missing metric
 
         Examples:
             >>> self.record_metric('cellarea', 500.0, 'reports/metrics.json', \\
@@ -1434,7 +1435,8 @@ class TaskSchema(NamedSchema):
         '''
 
         if metric not in self.schema("metric").getkeys():
-            self.logger.warning(f"{metric} is not a valid metric")
+            if not quiet:
+                self.logger.warning(f"{metric} is not a valid metric")
             return
 
         self.schema("metric").record(self.__step, self.__index, metric, value, unit=source_unit)

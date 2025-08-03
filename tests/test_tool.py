@@ -1622,6 +1622,13 @@ def test_record_metric_invalid_metric(running_node, caplog):
     assert "notavalidmetric is not a valid metric" in caplog.text
 
 
+def test_record_metric_invalid_metric_quiet(running_node, caplog):
+    with running_node.task.runtime(running_node) as runtool:
+        runtool.record_metric("notavalidmetric", 25, "report.txt", quiet=True)
+
+    assert caplog.text == ""
+
+
 def test_has_breakpoint(running_node):
     with running_node.task.runtime(running_node) as runtool:
         assert runtool.has_breakpoint() is False
