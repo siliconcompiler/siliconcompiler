@@ -10,7 +10,8 @@ import os.path
 
 from unittest.mock import patch, ANY
 
-from siliconcompiler import RecordSchema, MetricSchema, FlowgraphSchema, ShowTaskSchema, ScreenshotTaskSchema
+from siliconcompiler import RecordSchema, MetricSchema, FlowgraphSchema, \
+    ShowTaskSchema, ScreenshotTaskSchema
 from siliconcompiler import ToolSchema, TaskSchema, ASICTaskSchema
 from siliconcompiler import ToolLibrarySchema
 from siliconcompiler.schema import BaseSchema, EditableSchema, Parameter, SafeSchema
