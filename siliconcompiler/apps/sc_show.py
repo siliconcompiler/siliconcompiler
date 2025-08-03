@@ -1,10 +1,11 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 import sys
-import os
-import siliconcompiler
-from siliconcompiler.utils import get_default_iomap
+
+import os.path
+
+from siliconcompiler import Chip
+from siliconcompiler.utils import get_default_iomap, get_file_ext
 from siliconcompiler.apps._common import manifest_switches, pick_manifest, UNSET_DESIGN
-from siliconcompiler.utils import get_file_ext
 
 
 def main():
@@ -44,7 +45,7 @@ def main():
     """
 
     # Create a base chip class.
-    chip = siliconcompiler.Chip(UNSET_DESIGN)
+    chip = Chip(UNSET_DESIGN)
 
     # Fill input map with default mapping only for showable files
     input_map = {}

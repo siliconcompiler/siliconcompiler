@@ -1,9 +1,13 @@
 # Copyright 2023 Silicon Compiler Authors. All Rights Reserved.
 import argparse
-import sys
-import os
 import importlib
+
+import sys
+
+import os.path
+
 from inspect import getmembers, isfunction, getfullargspec
+
 from siliconcompiler._metadata import version
 from siliconcompiler.schema import utils
 

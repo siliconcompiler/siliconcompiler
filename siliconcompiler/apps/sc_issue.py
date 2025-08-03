@@ -1,9 +1,11 @@
 # Copyright 2023 Silicon Compiler Authors. All Rights Reserved.
-import sys
-import os
-import siliconcompiler
-import tarfile
 import json
+import sys
+import tarfile
+
+import os.path
+
+from siliconcompiler import Chip
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.utils.issue import generate_testcase
 from siliconcompiler.tools._common import get_tool_task
@@ -11,7 +13,7 @@ from siliconcompiler.tools._common import get_tool_task
 
 def main():
     progname = "sc-issue"
-    chip = siliconcompiler.Chip(progname)
+    chip = Chip(progname)
     switchlist = ['-cfg',
                   '-arg_step',
                   '-arg_index',

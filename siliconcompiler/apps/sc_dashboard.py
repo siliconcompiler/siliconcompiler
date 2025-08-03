@@ -1,7 +1,9 @@
 # Copyright 2023 Silicon Compiler Authors. All Rights Reserved.
 import sys
-import siliconcompiler
-import os
+
+import os.path
+
+from siliconcompiler import Chip
 from siliconcompiler.apps._common import pick_manifest, manifest_switches, UNSET_DESIGN
 
 
@@ -31,7 +33,7 @@ To include another chip object to compare to:
 """
 
     # Create a base chip class.
-    chip = siliconcompiler.Chip(UNSET_DESIGN)
+    chip = Chip(UNSET_DESIGN)
 
     dashboard_arguments = {
         "-port": {'type': int,
@@ -93,7 +95,7 @@ To include another chip object to compare to:
                                   f' {args} in "-graph_cfg {name_and_file_path}"'))
             if not os.path.isfile(file_path):
                 raise ValueError(f'not a valid file path: {file_path}')
-            graph_chip = siliconcompiler.core.Chip(design='')
+            graph_chip = Chip(design='')
             graph_chip.read_manifest(file_path)
             graph_chips.append({
                 'chip': graph_chip,

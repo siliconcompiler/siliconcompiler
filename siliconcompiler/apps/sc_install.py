@@ -1,15 +1,18 @@
 # Copyright 2024 Silicon Compiler Authors. All Rights Reserved.
-
 import argparse
 import glob
+import re
+import shutil
 import subprocess
 import sys
-import shutil
-import re
+
 import os.path
+
 from collections.abc import Container
 from pathlib import Path
+
 import siliconcompiler
+
 from siliconcompiler import RecordSchema
 
 

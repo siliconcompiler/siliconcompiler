@@ -1,10 +1,8 @@
 # Copyright 2024 Silicon Compiler Authors. All Rights Reserved.
-
-# Standard Modules
 import base64
+import gzip
 import io
 import json
-import gzip
 import os
 import stat
 import sys
@@ -14,10 +12,9 @@ import textwrap
 
 from datetime import datetime
 
-import siliconcompiler
+from siliconcompiler import Chip
+from siliconcompiler import SiliconCompilerError, utils
 from siliconcompiler.apps._common import UNSET_DESIGN
-from siliconcompiler import SiliconCompilerError
-from siliconcompiler import utils
 from siliconcompiler.record import RecordTime
 
 
@@ -51,7 +48,7 @@ def main():
     ------------------------------------------------------------
     """
     # Create a base chip class.
-    chip = siliconcompiler.Chip(UNSET_DESIGN)
+    chip = Chip(UNSET_DESIGN)
 
     # Read command-line inputs and generate Chip objects to run the flow on.
     try:
