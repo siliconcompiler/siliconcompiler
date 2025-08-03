@@ -10,6 +10,7 @@ import shlex
 import shutil
 import subprocess
 import sys
+import threading
 import time
 import yaml
 
@@ -29,7 +30,7 @@ import os.path
 from packaging.version import Version, InvalidVersion
 from packaging.specifiers import SpecifierSet, InvalidSpecifier
 
-from typing import List, Union, Dict, Tuple
+from typing import List, Union, Dict, Tuple, Type
 
 from siliconcompiler.schema import BaseSchema, NamedSchema, Journal
 from siliconcompiler.schema import EditableSchema, Parameter, PerNode, Scope
@@ -1552,6 +1553,164 @@ class TaskSchema(NamedSchema):
 
     def post_process(self):
         pass
+
+
+class ShowTaskSchema(TaskSchema):
+    __TASKS_LOCK = threading.Lock()
+    __TASKS = set()
+
+    def __init__(self):
+        super().__init__()
+
+        self.add_parameter("showfilepath", "file", "path to show")
+        self.add_parameter("showfiletype", "str", "filetype to show")
+
+        self.add_parameter("shownode", "(str,str,str)",
+                           "source node information, not avlaways available")
+
+        self.add_parameter("showexit", "bool", "exit after opening", defvalue=False)
+
+    @classmethod
+    def register_task(cls, task):
+        if not issubclass(task, cls):
+            raise TypeError(f"task must be a subclass of {cls.__name__}")
+
+        with cls.__TASKS_LOCK:
+            cls.__TASKS.add(task)
+
+    @classmethod
+    def __populate_tasks(cls):
+        """
+        Returns all known subclasses of ShowTaskSchema
+        """
+        def recurse(cls):
+            subclss = set()
+            subclss.add(cls)
+            for subcls in cls.__subclasses__():
+                subclss.update(recurse(subcls))
+            return subclss
+
+        classes = recurse(cls)
+        # Support non-SC defined tasks
+        for plugin in utils.get_plugins('showtask'):  # TODO rename
+            new_clss = plugin(cls)
+            if isinstance(new_clss, (list, set, tuple)):
+                for new_cls in new_clss:
+                    if issubclass(new_cls, cls):
+                        classes.add(new_cls)
+            else:
+                raise TypeError("showtask entrypoint must return a set")
+
+        if not classes:
+            return
+
+        with cls.__TASKS_LOCK:
+            cls.__TASKS.update(classes)
+
+    @classmethod
+    def get_task(cls, ext):
+        if not cls.__TASKS:
+            cls.__populate_tasks()
+
+        with cls.__TASKS_LOCK:
+            tasks = cls.__TASKS.copy()
+
+        # TODO: add user preference lookup
+
+        if ext is None:
+            return tasks
+
+        for task in tasks:
+            if ext in task.get_supported_show_extentions():
+                return task()
+
+        return None
+
+    def task(self):
+        return "show"
+
+    def setup(self):
+        super().setup()
+
+        self._set_filetype()
+
+        self.add_required_tool_key("var", "showexit")
+
+        if self.get("var", "shownode"):
+            self.add_required_tool_key("var", "shownode")
+
+        if self.get("var", "showfilepath"):
+            self.add_required_tool_key("var", "showfilepath")
+        elif self.get("var", "showfiletype"):
+            self.add_required_tool_key("var", "showfiletype")
+        else:
+            raise ValueError("no file information provided to show")
+
+    def get_supported_show_extentions(self) -> List[str]:
+        raise NotImplementedError("this must be immplemented by the child class")
+
+    def _set_filetype(self):
+        def set_file(file, ext):
+            if file.lower().endswith(".gz"):
+                self.set("var", "showfiletype", f"{ext}.gz")
+            else:
+                self.set("var", "showfiletype", ext)
+
+        if not self.get("var", "showfilepath"):
+            exts = self.preferred_show_extensions()
+
+            if not self.get("var", "showfiletype"):
+                input_files = {utils.get_file_ext(f): f.lower()
+                               for f in self.get_files_from_input_nodes().keys()}
+                for ext in exts:
+                    if ext in input_files:
+                        set_file(input_files[ext], ext)
+                        break
+            self.set("var", "showfiletype", exts[-1], clobber=False)
+        else:
+            file = self.get("var", "showfilepath")
+            ext = utils.get_file_ext(file)
+            set_file(file, ext)
+
+    def set_showfilepath(self, path: str, step: str = None, index: str = None):
+        return self.set("var", "showfilepath", path, step=step, index=index)
+
+    def set_showfiletype(self, type: str, step: str = None, index: str = None):
+        return self.set("var", "showfiletype", type, step=step, index=index)
+
+    def set_showexit(self, value: bool, step: str = None, index: str = None):
+        return self.set("var", "showexit", value, step=step, index=index)
+
+    def set_shownode(self, jobname: str = None, nodestep: str = None, nodeindex: str = None,
+                     step: str = None, index: str = None):
+        return self.set("var", "shownode", (jobname, nodestep, nodeindex), step=step, index=index)
+
+    def get_tcl_variables(self, manifest=None):
+        vars = super().get_tcl_variables(manifest)
+
+        # Create screenshot variable
+        vars["sc_do_screenshot"] = "false"
+
+        return vars
+
+
+class ScreenshotTaskSchema(ShowTaskSchema):
+    def task(self):
+        return "screenshot"
+
+    def setup(self):
+        super().setup()
+
+        # Ensure exit is set
+        self.set_showexit(True)
+
+    def get_tcl_variables(self, manifest=None):
+        vars = super().get_tcl_variables(manifest)
+
+        # Create screenshot variable
+        vars["sc_do_screenshot"] = "true"
+
+        return vars
 
 
 class ASICTaskSchema(TaskSchema):
