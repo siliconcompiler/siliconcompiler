@@ -30,7 +30,7 @@ import os.path
 from packaging.version import Version, InvalidVersion
 from packaging.specifiers import SpecifierSet, InvalidSpecifier
 
-from typing import List, Union, Dict, Tuple, Type
+from typing import List, Union, Dict, Tuple
 
 from siliconcompiler.schema import BaseSchema, NamedSchema, Journal
 from siliconcompiler.schema import EditableSchema, Parameter, PerNode, Scope
@@ -1557,7 +1557,7 @@ class TaskSchema(NamedSchema):
 
 class ShowTaskSchema(TaskSchema):
     __TASKS_LOCK = threading.Lock()
-    __TASKS = set()
+    __TASKS = {}
 
     def __init__(self):
         super().__init__()
@@ -1571,23 +1571,49 @@ class ShowTaskSchema(TaskSchema):
         self.add_parameter("showexit", "bool", "exit after opening", defvalue=False)
 
     @classmethod
+    def __check_task(cls, task):
+        if cls is not ShowTaskSchema and cls is not ScreenshotTaskSchema:
+            raise TypeError("class must be ShowTaskSchema or ScreenshotTaskSchema")
+
+        if task is None:
+            return
+
+        if cls is ShowTaskSchema:
+            check, filter = ShowTaskSchema, ScreenshotTaskSchema
+        else:
+            check, filter = ScreenshotTaskSchema, None
+
+        if not issubclass(task, check):
+            return False
+        if filter and issubclass(task, filter):
+            return False
+
+        return True
+
+    @classmethod
     def register_task(cls, task):
-        if not issubclass(task, cls):
+        if not cls.__check_task(task):
             raise TypeError(f"task must be a subclass of {cls.__name__}")
 
         with cls.__TASKS_LOCK:
-            cls.__TASKS.add(task)
+            cls.__TASKS.setdefault(cls, set()).add(task)
 
     @classmethod
     def __populate_tasks(cls):
         """
-        Returns all known subclasses of ShowTaskSchema
+        Returns all known subclasses of ShowTaskSchema or ScreenshotTaskSchema
         """
+        cls.__check_task(None)
+
         def recurse(cls):
             subclss = set()
+            if not cls.__check_task(cls):
+                return subclss
+
             subclss.add(cls)
             for subcls in cls.__subclasses__():
                 subclss.update(recurse(subcls))
+
             return subclss
 
         classes = recurse(cls)
@@ -1596,7 +1622,7 @@ class ShowTaskSchema(TaskSchema):
             new_clss = plugin(cls)
             if isinstance(new_clss, (list, set, tuple)):
                 for new_cls in new_clss:
-                    if issubclass(new_cls, cls):
+                    if cls.__check_task(new_cls):
                         classes.add(new_cls)
             else:
                 raise TypeError("showtask entrypoint must return a set")
@@ -1604,24 +1630,29 @@ class ShowTaskSchema(TaskSchema):
         if not classes:
             return
 
-        with cls.__TASKS_LOCK:
-            cls.__TASKS.update(classes)
+        with ShowTaskSchema.__TASKS_LOCK:
+            ShowTaskSchema.__TASKS.setdefault(cls, set()).update(classes)
 
     @classmethod
     def get_task(cls, ext):
-        if not cls.__TASKS:
+        cls.__check_task(None)
+
+        if cls not in ShowTaskSchema.__TASKS:
             cls.__populate_tasks()
 
-        with cls.__TASKS_LOCK:
-            tasks = cls.__TASKS.copy()
+        with ShowTaskSchema.__TASKS_LOCK:
+            if cls not in ShowTaskSchema.__TASKS:
+                return None
 
-        # TODO: add user preference lookup
+            tasks = ShowTaskSchema.__TASKS[cls].copy()
+
+        # TODO: add user preference lookup (ext -> task)
 
         if ext is None:
             return tasks
 
         for task in tasks:
-            if ext in task.get_supported_show_extentions():
+            if ext in task().get_supported_show_extentions():
                 return task()
 
         return None

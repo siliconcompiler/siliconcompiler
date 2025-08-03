@@ -74,6 +74,8 @@ class Project(PathSchemaBase, BaseSchema):
             else:
                 self.set_design(design)
 
+        self.__dashboard = None  # CliDashboard(self)
+
     def __init_logger(self):
         sc_logger = logging.getLogger("siliconcompiler")
         sc_logger.propagate = False
@@ -350,6 +352,10 @@ class Project(PathSchemaBase, BaseSchema):
         '''
         from siliconcompiler.remote.client import ClientScheduler
 
+        # Start dashboard
+        if self.__dashboard and not self.__dashboard.is_running():
+            self.__dashboard.open_dashboard()
+
         try:
             if self.get('option', 'remote'):
                 scheduler = ClientScheduler(self)
@@ -362,11 +368,10 @@ class Project(PathSchemaBase, BaseSchema):
             self.logger.error(str(e))
             return False
         finally:
-            pass
-            # Update dashboard if running
-            # if self._dash:
-            #     self._dash.update_manifest()
-            #     self._dash.end_of_run()
+            if self.__dashboard:
+                # Update dashboard
+                self.__dashboard.update_manifest()
+                self.__dashboard.end_of_run()
 
         return True
 
@@ -894,7 +899,7 @@ class Project(PathSchemaBase, BaseSchema):
             fd=fd)
 
     def find_result(self,
-                    filetype: str = None, step: str = None, /,
+                    filetype: str = None, step: str = None,
                     index: str = "0", directory: str = "outputs",
                     filename: str = None) -> str:
         """
@@ -1014,7 +1019,10 @@ class Project(PathSchemaBase, BaseSchema):
 
             exts = set()
             for cls in tool_cls.get_task(None):
-                exts.update(cls.get_supported_show_extentions())
+                try:
+                    exts.update(cls().get_supported_show_extentions())
+                except NotImplementedError:
+                    pass
 
             for ext in exts:
                 if extension and extension != ext:
