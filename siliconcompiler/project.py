@@ -20,6 +20,7 @@ from siliconcompiler import RecordSchema
 from siliconcompiler import MetricSchema
 from siliconcompiler import ChecklistSchema
 from siliconcompiler import ToolSchema, TaskSchema
+from siliconcompiler import ShowTaskSchema, ScreenshotTaskSchema
 
 from siliconcompiler.dependencyschema import DependencySchema
 from siliconcompiler.pathschema import PathSchemaBase
@@ -28,7 +29,7 @@ from siliconcompiler.schema.schema_cfg import schema_option_runtime, schema_arg,
 
 from siliconcompiler.scheduler import Scheduler
 from siliconcompiler.utils.logging import SCColorLoggerFormatter, SCLoggerFormatter
-from siliconcompiler.utils import FilterDirectories
+from siliconcompiler.utils import FilterDirectories, get_file_ext
 
 
 class Project(PathSchemaBase, BaseSchema):
@@ -970,3 +971,130 @@ class Project(PathSchemaBase, BaseSchema):
 
         if os.path.isfile(path) and not self.get('option', 'nodisplay') and display:
             _open_summary_image(path)
+
+    def show(self, filename=None, screenshot=False, extension=None) -> str:
+        '''
+        Opens a graphical viewer for the filename provided.
+        The show function opens the filename specified using a viewer tool
+        selected based on the file suffix and the registered showtools.
+        Display settings and technology settings for viewing the file are read
+        from the in-memory chip object schema settings. All temporary render
+        and display files are saved in the <build_dir>/_show_<jobname> directory.
+        Args:
+            filename (path): Name of file to display
+            screenshot (bool): Flag to indicate if this is a screenshot or show
+            extension (str): extension of file to show
+        Examples:
+            >>> show('build/oh_add/job0/write.gds/0/outputs/oh_add.gds')
+            Displays gds file with a viewer assigned by showtool
+        '''
+
+        tool_cls = ScreenshotTaskSchema if screenshot else ShowTaskSchema
+
+        sc_jobname = self.get("option", "jobname")
+        sc_step = None
+        sc_index = None
+
+        has_filename = filename is not None
+        # Finding last layout if no argument specified
+        if filename is None:
+            try:
+                search_obj = self.history(sc_jobname)
+            except KeyError:
+                search_obj = self
+
+            self.logger.info('Searching build directory for layout to show.')
+
+            search_nodes = []
+            flow = search_obj.get("option", "flow")
+            if flow:
+                flow_obj = search_obj.get("flowgraph", flow, field="schema")
+                for nodes in flow_obj.get_execution_order(reverse=True):
+                    search_nodes.extend(nodes)
+
+            exts = set()
+            for cls in tool_cls.get_task(None):
+                exts.update(cls.get_supported_show_extentions())
+
+            for ext in exts:
+                if extension and extension != ext:
+                    continue
+
+                for step, index in search_nodes:
+                    filename = search_obj.find_result(ext,
+                                                      step=step,
+                                                      index=index)
+                    if filename:
+                        sc_step = step
+                        sc_index = index
+                        break
+                if filename:
+                    break
+
+        if filename is None:
+            self.logger.error('Unable to automatically find layout in build directory.')
+            self.logger.error('Try passing in a full path to show() instead.')
+            return
+
+        filepath = os.path.abspath(filename)
+
+        if not has_filename:
+            self.logger.info(f'Showing file {filename}')
+
+        # Check that file exists
+        if not os.path.exists(filepath):
+            self.logger.error(f"Invalid filepath {filepath}.")
+            return
+
+        filetype = get_file_ext(filepath)
+
+        task = tool_cls.get_task(filetype)
+        if task is None:
+            self.logger.error(f"Filetype '{filetype}' not available in the registered showtools.")
+            return False
+
+        # Create copy of project to avoid changing user project
+        proj = self.copy()
+
+        nodename = "screenshot" if screenshot else "show"
+
+        class ShowFlow(FlowgraphSchema):
+            """
+            Small auto created flow to build a single node show/screenshot flow
+            """
+            def __init__(self, nodename, task):
+                super().__init__()
+                self.set_name("showflow")
+
+                self.node(nodename, task)
+
+        proj.set_flow(ShowFlow(nodename, task))
+
+        # Setup options:
+        for option, value in [
+                ("track", False),
+                ("hash", False),
+                ("nodisplay", False),
+                ("continue", True),
+                ("quiet", False),
+                ("clean", True)]:
+            proj.set("option", option, value)
+        proj.unset("arg", "step")
+        proj.unset("arg", "index")
+        proj.unset("option", "to")
+        proj.unset("option", "prune")
+        proj.unset("option", "from")
+
+        jobname = f"_{nodename}_{sc_jobname}_{sc_step}_{sc_index}_{task.tool()}"
+        proj.set("option", "jobname", jobname)
+
+        # Setup in task variables
+        task: ShowTaskSchema = proj.get_task(filter=task.__class__)
+        task.set_showfilepath(filename)
+        task.set_showfiletype(filetype)
+        task.set_shownode(jobname=sc_jobname, step=sc_step, index=sc_index)
+
+        # run show flow
+        proj.run(raise_exception=True)
+        if screenshot:
+            return proj.find_result('png', step=nodename)
