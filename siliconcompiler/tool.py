@@ -1605,13 +1605,13 @@ class ShowTaskSchema(TaskSchema):
         """
         cls.__check_task(None)
 
-        def recurse(cls):
+        def recurse(searchcls):
             subclss = set()
-            if not cls.__check_task(cls):
+            if not cls.__check_task(searchcls):
                 return subclss
 
-            subclss.add(cls)
-            for subcls in cls.__subclasses__():
+            subclss.add(searchcls)
+            for subcls in searchcls.__subclasses__():
                 subclss.update(recurse(subcls))
 
             return subclss
@@ -1652,8 +1652,11 @@ class ShowTaskSchema(TaskSchema):
             return tasks
 
         for task in tasks:
-            if ext in task().get_supported_show_extentions():
-                return task()
+            try:
+                if ext in task().get_supported_show_extentions():
+                    return task()
+            except NotImplementedError:
+                pass
 
         return None
 
@@ -1678,7 +1681,8 @@ class ShowTaskSchema(TaskSchema):
             raise ValueError("no file information provided to show")
 
     def get_supported_show_extentions(self) -> List[str]:
-        raise NotImplementedError("this must be immplemented by the child class")
+        raise NotImplementedError(
+            "get_supported_show_extentions must be immplemented by the child class")
 
     def _set_filetype(self):
         def set_file(file, ext):
