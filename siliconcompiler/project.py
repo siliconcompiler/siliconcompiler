@@ -846,6 +846,19 @@ class Project(PathSchemaBase, BaseSchema):
 
         return headers
 
+    def _snapshot_info(self) -> List[Tuple[str, str]]:
+        """
+        Project defined information to add to snapshots.
+        If projects require additional information they can extend this
+        method to add additional information.
+        """
+
+        info = [
+            ("Design", self.get("option", "design"))
+        ]
+
+        return info
+
     def summary(self, jobname: str = None, fd: TextIO = None) -> None:
         '''
         Prints a summary of the compilation manifest.
@@ -882,7 +895,7 @@ class Project(PathSchemaBase, BaseSchema):
     def find_result(self,
                     filetype: str = None, step: str = None, /,
                     index: str = "0", directory: str = "outputs",
-                    filename: str = None):
+                    filename: str = None) -> str:
         """
         Returns the absolute path of a compilation result.
         Utility function that returns the absolute path to a results
@@ -932,3 +945,28 @@ class Project(PathSchemaBase, BaseSchema):
                 return os.path.abspath(filename)
 
         return None
+
+    def snapshot(self, path: str = None, display: bool = True) -> None:
+        '''
+        Creates a snapshot image of the job
+        Args:
+            path (str): Path to generate the image at, if not provided will default to
+                <job>/<design>.png
+            display (bool): If True, will open the image for viewing. If :keypath:`option,nodisplay`
+                is True, this argument will be ignored.
+        Examples:
+            >>> chip.snapshot()
+            Creates a snapshot image in the default location
+        '''
+        from siliconcompiler.report import generate_summary_image, _open_summary_image
+
+        if not path:
+            path = os.path.join(self.getworkdir(), f'{self.design.name}.png')
+
+        if os.path.exists(path):
+            os.remove(path)
+
+        generate_summary_image(self, path, self._snapshot_info())
+
+        if os.path.isfile(path) and not self.get('option', 'nodisplay') and display:
+            _open_summary_image(path)

@@ -1,7 +1,11 @@
 import os
 import string
+
+import os.path
+
 from PIL import Image, ImageFont, ImageDraw
 
+import siliconcompiler
 from siliconcompiler.utils import units
 from siliconcompiler.report.utils import _find_summary_image, _find_summary_metrics
 
@@ -11,10 +15,6 @@ def _generate_summary_image(chip, output_path):
     Takes a layout screenshot and generates a design summary image
     featuring a layout thumbnail and several metrics.
     '''
-
-    img_path = _find_summary_image(chip)
-    if not img_path:
-        return
 
     # Extract metrics for display
     metrics = {
@@ -46,14 +46,31 @@ def _generate_summary_image(chip, output_path):
         'LUTs': ('luts', None),
         'Fmax': ('fmax', format_freq)}))
 
-    # Generate design
+    info = []
+    for metric, value in metrics.items():
+        info.append((metric, value))
 
+    generate_summary_image(chip, output_path, info)
+
+
+def generate_summary_image(project, output_path, info):
+    '''
+    Takes a layout screenshot and generates a design summary image
+    featuring a layout thumbnail and several metrics.
+    '''
+
+    img_path = _find_summary_image(project)
+    if not img_path:
+        return
+
+    # Generate design
     WIDTH = 1024
     BORDER = 32
     LINE_SPACING = 8
     TEXT_INDENT = 16
 
-    FONT_PATH = os.path.join(chip.scroot, 'data', 'RobotoMono', 'RobotoMono-Regular.ttf')
+    FONT_PATH = os.path.join(os.path.dirname(siliconcompiler.__file__),
+                             'data', 'RobotoMono', 'RobotoMono-Regular.ttf')
     FONT_SIZE = 40
 
     # matches dark gray background color configured in klayout_show.py
@@ -82,8 +99,9 @@ def _generate_summary_image(chip, output_path):
     text = []
     x = BORDER + TEXT_INDENT
     y = thumbnail_height + 2 * BORDER
-    for metric, value in metrics.items():
-        line = f'{metric}: {value}'
+    max_title_len = max([len(title) for title, _ in info])
+    for title, value in info:
+        line = f'{title:<{max_title_len}}: {value}'
 
         # shorten line till it fits
         cropped_line = line
@@ -94,8 +112,8 @@ def _generate_summary_image(chip, output_path):
             cropped_line = cropped_line[:-1]
 
         if cropped_line != line:
-            chip.logger.warning(f'Cropped {line} to {cropped_line} to fit in design summary '
-                                'image')
+            project.logger.warning(f'Cropped {line} to {cropped_line} to fit in design summary '
+                                   'image')
 
         # Stash line to write and coords to write it at
         text.append(((x, y), cropped_line))
@@ -110,7 +128,7 @@ def _generate_summary_image(chip, output_path):
         draw.text(coords, line, TEXT_COLOR, font=font)
 
     design_summary.save(output_path)
-    chip.logger.info(f'Generated summary image at {output_path}')
+    project.logger.info(f'Generated summary image at {output_path}')
 
 
 def _open_summary_image(image):
