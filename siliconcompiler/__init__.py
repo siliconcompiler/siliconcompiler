@@ -13,6 +13,7 @@ from siliconcompiler.metric import MetricSchema
 from siliconcompiler.pdk import PDKSchema
 from siliconcompiler.flowgraph import FlowgraphSchema
 from siliconcompiler.tool import ToolSchema, TaskSchema, ASICTaskSchema
+from siliconcompiler.tool import ShowTaskSchema, ScreenshotTaskSchema
 from siliconcompiler.checklist import ChecklistSchema
 from siliconcompiler.asic import ASICSchema
 from siliconcompiler.fpga import FPGASchema
@@ -55,5 +56,7 @@ __all__ = [
     "Project",
     "StdCellLibrarySchema",
     "ToolLibrarySchema",
-    "ASICTaskSchema"
+    "ASICTaskSchema",
+    "ShowTaskSchema",
+    "ScreenshotTaskSchema"
 ]

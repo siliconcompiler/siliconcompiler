@@ -10,7 +10,8 @@ import os.path
 
 from unittest.mock import patch, ANY
 
-from siliconcompiler import RecordSchema, MetricSchema, FlowgraphSchema
+from siliconcompiler import RecordSchema, MetricSchema, FlowgraphSchema, \
+    ShowTaskSchema, ScreenshotTaskSchema
 from siliconcompiler import ToolSchema, TaskSchema, ASICTaskSchema
 from siliconcompiler import ToolLibrarySchema
 from siliconcompiler.schema import BaseSchema, EditableSchema, Parameter, SafeSchema
@@ -1961,6 +1962,90 @@ def test_get_fileset_file_keys_invalid(running_node):
     with running_node.task.runtime(running_node) as runtool:
         with pytest.raises(TypeError, match="filetype must be a string"):
             runtool.get_fileset_file_keys(["verilog"])
+
+
+@pytest.mark.parametrize("cls", [ShowTaskSchema, ScreenshotTaskSchema])
+def test_show_keys(cls):
+    assert cls().getkeys("var") == ('showexit', 'showfilepath', 'showfiletype', 'shownode')
+
+
+@pytest.mark.parametrize("cls", [ShowTaskSchema, ScreenshotTaskSchema])
+def test_show_check_task_none(cls):
+    assert cls._ShowTaskSchema__check_task(None) is None
+
+
+@pytest.mark.parametrize("cls", [ShowTaskSchema, ScreenshotTaskSchema])
+def test_show_tcl_vars(cls):
+    with patch("siliconcompiler.TaskSchema.get_tcl_variables") as tcl_vars:
+        tcl_vars.return_value = {}
+        assert cls().get_tcl_variables() == {
+            "sc_do_screenshot": "true" if cls is ScreenshotTaskSchema else "false"}
+
+
+def test_show_task_name():
+    assert ShowTaskSchema().task() == "show"
+    assert ScreenshotTaskSchema().task() == "screenshot"
+
+
+def test_show_check_task_invalid():
+    class Test(ShowTaskSchema):
+        pass
+
+    with pytest.raises(TypeError, match="class must be ShowTaskSchema or ScreenshotTaskSchema"):
+        Test._ShowTaskSchema__check_task(None)
+
+
+def test_show_check_task_is_showtask():
+    class Test(ShowTaskSchema):
+        pass
+
+    assert ShowTaskSchema._ShowTaskSchema__check_task(Test) is True
+    assert ScreenshotTaskSchema._ShowTaskSchema__check_task(Test) is False
+
+
+def test_show_check_task_is_screenshottask():
+    class Test(ScreenshotTaskSchema):
+        pass
+
+    assert ShowTaskSchema._ShowTaskSchema__check_task(Test) is False
+    assert ScreenshotTaskSchema._ShowTaskSchema__check_task(Test) is True
+
+
+def test_show_register_task_invalid():
+    class Test:
+        pass
+
+    with pytest.raises(TypeError, match="task must be a subclass of ShowTaskSchema"):
+        ShowTaskSchema.register_task(Test)
+
+
+def test_show_register_task():
+    class Test(ShowTaskSchema):
+        pass
+
+    with patch.dict("siliconcompiler.ShowTaskSchema._ShowTaskSchema__TASKS", clear=True) as tasks:
+        assert len(tasks) == 0
+        ShowTaskSchema.register_task(Test)
+        assert len(tasks) == 1
+        assert tasks[ShowTaskSchema] == set([Test])
+
+
+def test_show_get_task():
+    class Test(ShowTaskSchema):
+        def get_supported_show_extentions(self):
+            return ["ext"]
+        pass
+
+    with patch.dict("siliconcompiler.ShowTaskSchema._ShowTaskSchema__TASKS", clear=True):
+        assert ShowTaskSchema.get_task("ext").__class__ is Test
+
+
+@pytest.mark.parametrize("cls", [ShowTaskSchema, ScreenshotTaskSchema])
+def test_show_get_supported_show_extentions(cls):
+    with pytest.raises(NotImplementedError,
+                       match="get_supported_show_extentions must be "
+                             "immplemented by the child class"):
+        cls().get_supported_show_extentions() == {}
 
 
 def test_asic_mainlib_not_set(running_node):
