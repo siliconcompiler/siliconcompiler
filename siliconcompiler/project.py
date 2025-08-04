@@ -22,6 +22,7 @@ from siliconcompiler import ChecklistSchema
 from siliconcompiler import ToolSchema, TaskSchema
 from siliconcompiler import ShowTaskSchema, ScreenshotTaskSchema
 
+from siliconcompiler.cmdlineschema import CommandLineSchema
 from siliconcompiler.dependencyschema import DependencySchema
 from siliconcompiler.pathschema import PathSchemaBase
 
@@ -32,7 +33,7 @@ from siliconcompiler.utils.logging import SCColorLoggerFormatter, SCLoggerFormat
 from siliconcompiler.utils import FilterDirectories, get_file_ext
 
 
-class Project(PathSchemaBase, BaseSchema):
+class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
     """
     """
 

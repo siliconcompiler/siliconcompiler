@@ -1,5 +1,5 @@
 from siliconcompiler.schema import BaseSchema
-from siliconcompiler.schema import CommandLineSchema
+from siliconcompiler.cmdlineschema import CommandLineSchemaTmp
 from siliconcompiler.schema import EditableSchema
 from siliconcompiler.schema import Parameter, Scope
 
@@ -7,7 +7,7 @@ from siliconcompiler.schema import Parameter, Scope
 SCHEMA_VERSION = '0.0.2'
 
 
-class ServerSchema(BaseSchema, CommandLineSchema):
+class ServerSchema(BaseSchema, CommandLineSchemaTmp):
     def __init__(self):
         super().__init__()
 

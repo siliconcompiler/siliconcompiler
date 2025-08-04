@@ -152,9 +152,6 @@ Core Schema Classes
     :show-inheritance:
     :inherited-members:
 
-.. autoclass:: CommandLineSchema
-    :members:
-
 .. autoclass:: Journal
     :members:
 
@@ -211,6 +208,9 @@ Supporting Classes
     :members:
     :show-inheritance:
     :inherited-members:
+
+.. autoclass:: siliconcompiler.cmdlineschema.CommandLineSchema
+    :members:
 
 .. autoclass:: siliconcompiler.pathschema.PathSchema
     :members:

@@ -7,7 +7,7 @@
 from siliconcompiler.schema import BaseSchema
 from siliconcompiler.schema import SafeSchema
 from siliconcompiler.schema import EditableSchema
-from siliconcompiler.schema import CommandLineSchema
+from siliconcompiler.cmdlineschema import CommandLineSchemaTmp
 from siliconcompiler.schema import Parameter
 
 from siliconcompiler.schema.schema_cfg import schema_cfg
@@ -47,7 +47,7 @@ class Schema(BaseSchema):
         return Schema.__name__
 
 
-class SchemaTmp(Schema, CommandLineSchema):
+class SchemaTmp(Schema, CommandLineSchemaTmp):
     """Object for storing and accessing configuration values corresponding to
     the SiliconCompiler schema.
 
