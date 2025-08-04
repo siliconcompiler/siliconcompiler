@@ -1,7 +1,10 @@
+import io
+import logging
 import os
 import re
 import shutil
 import sys
+import traceback
 
 import os.path
 
@@ -15,13 +18,14 @@ from siliconcompiler.scheduler import DockerSchedulerNode
 from siliconcompiler.scheduler import TaskScheduler
 
 from siliconcompiler import utils
+from siliconcompiler.utils.logging import SCLoggerFormatter
 from siliconcompiler.scheduler import send_messages
 
 
 class Scheduler:
     def __init__(self, chip):
         self.__chip = chip
-        self.__logger = chip.logger
+        self.__logger: logging.Logger = chip.logger
         self.__name = chip.design
 
         flow = self.__chip.get("option", "flow")
@@ -62,6 +66,20 @@ class Scheduler:
 
         self.__tasks = {}
 
+        # Install job file logger
+        os.makedirs(self.__chip.getworkdir(), exist_ok=True)
+        file_log = os.path.join(self.__chip.getworkdir(), "job.log")
+        bak_count = 0
+        bak_file_log = f"{file_log}.bak"
+        while os.path.exists(bak_file_log):
+            bak_count += 1
+            bak_file_log = f"{file_log}.bak.{bak_count}"
+        if os.path.exists(file_log):
+            os.rename(file_log, bak_file_log)
+        self.__joblog_handler = logging.FileHandler(file_log)
+        self.__joblog_handler.setFormatter(SCLoggerFormatter())
+        self.__logger.addHandler(self.__joblog_handler)
+
     def __print_status(self, header):
         self.__logger.debug(f"#### {header}")
         for step, index in self.__flow.get_nodes():
@@ -77,10 +95,34 @@ class Scheduler:
         self.__record.record_python_packages()
 
         task_scheduler = TaskScheduler(self.__chip, self.__tasks)
-        task_scheduler.run()
+        task_scheduler.run(self.__joblog_handler)
         task_scheduler.check()
 
+    def __excepthook(self, exc_type, exc_value, exc_traceback):
+        if issubclass(exc_type, KeyboardInterrupt):
+            sys.__excepthook__(exc_type, exc_value, exc_traceback)
+            return
+
+        # Print a summary of the exception
+        except_msg = f"Exception raised: {exc_type.__name__}"
+        exc_value = str(exc_value).strip()
+        if exc_value:
+            except_msg += f" / {exc_value}"
+        self.__logger.error(except_msg)
+
+        trace = io.StringIO()
+
+        # Print the full traceback for debugging
+        self.__logger.error("Traceback (most recent call last):")
+        traceback.print_tb(exc_traceback, file=trace)
+        for line in trace.getvalue().splitlines():
+            self.__logger.error(line)
+
     def run(self):
+        # Install hook to ensure exception is logged
+        org_excepthook = sys.excepthook
+        sys.excepthook = self.__excepthook
+
         self.__run_setup()
         self.configure_nodes()
 
@@ -98,6 +140,11 @@ class Scheduler:
         self.__chip.write_manifest(filepath)
 
         send_messages.send(self.__chip, 'summary', None, None)
+
+        self.__logger.removeHandler(self.__joblog_handler)
+
+        # Restore hook
+        sys.excepthook = org_excepthook
 
     def __mark_pending(self, step, index):
         if (step, index) not in self.__flow_runtime.get_nodes():

@@ -1,11 +1,25 @@
 import logging
+import re
 import sys
+
 from siliconcompiler import utils
 
 
 class SCBlankLoggerFormatter(logging.Formatter):
     def __init__(self):
         super().__init__("%(message)s")
+
+
+class SCBlankColorlessLoggerFormatter(logging.Formatter):
+    def __init__(self):
+        super().__init__("%(message)s")
+
+        self.__rm = re.compile(u"\u001b\\[(\\d+)m")
+
+    def format(self, record):
+        msg = super().format(record)
+
+        return self.__rm.sub("", msg)
 
 
 class SCDebugLoggerFormatter(logging.Formatter):
