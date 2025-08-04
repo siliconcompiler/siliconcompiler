@@ -151,6 +151,7 @@ class Scheduler:
         send_messages.send(self.__chip, 'summary', None, None)
 
         self.__logger.removeHandler(self.__joblog_handler)
+        self.__joblog_handler = logging.NullHandler()
 
         # Restore hook
         sys.excepthook = org_excepthook
