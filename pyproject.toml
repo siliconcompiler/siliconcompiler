@@ -43,7 +43,7 @@ dependencies = [
     "Pillow == 11.3.0",
     "GitPython >= 3.1.44, < 3.2",
     "lambdapdk >= 0.1.47",
-    "PyGithub == 2.6.1",
+    "PyGithub == 2.7.0",
     "urllib3 >= 1.26.0", # Required for PyGithub
     "fasteners == 0.19",
     "fastjsonschema == 2.21.1",
@@ -53,7 +53,7 @@ dependencies = [
     "pyslang == 9.0.0",
 
     # dashboard, streamlit does not support 3.9.7
-    "streamlit == 1.46.1; python_full_version != '3.9.7'",
+    "streamlit == 1.47.1; python_full_version != '3.9.7'",
     "streamlit_agraph == 0.0.45; python_full_version != '3.9.7'",
     "streamlit-antd-components == 0.3.2; python_full_version != '3.9.7'",
     "streamlit_javascript == 0.1.5; python_full_version != '3.9.7'",
