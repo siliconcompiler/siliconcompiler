@@ -118,6 +118,9 @@ class Scheduler:
             # No need to copy, no remove org job name
             self.__org_job_name = None
 
+        # Clean the directory early if needed
+        self.__clean_build_dir()
+
         # Install job file logger
         os.makedirs(self.__chip.getworkdir(), exist_ok=True)
         file_log = os.path.join(self.__chip.getworkdir(), "job.log")
@@ -198,7 +201,6 @@ class Scheduler:
                                 dirs_exist_ok=True,
                                 copy_function=utils.link_copy)
 
-        self.__clean_build_dir()
         self.__reset_flow_nodes()
 
     def __reset_flow_nodes(self):
