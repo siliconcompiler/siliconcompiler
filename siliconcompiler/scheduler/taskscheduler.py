@@ -14,7 +14,7 @@ from siliconcompiler.flowgraph import RuntimeFlowgraph
 from siliconcompiler.package import Resolver
 from siliconcompiler.schema import Journal
 
-from siliconcompiler.utils.logging import SCBlankLoggerFormatter
+from siliconcompiler.utils.logging import SCBlankLoggerFormatter, SCBlankColorlessLoggerFormatter
 
 
 class TaskScheduler:
@@ -104,14 +104,19 @@ class TaskScheduler:
         for init_func in init_funcs:
             init_func(self.__chip)
 
-    def run(self):
+    def run(self, job_log_handler):
         # Call this in case this was invoked without __main__
         multiprocessing.freeze_support()
 
         # Handle logs across threads
-        log_listener = QueueListener(self.__log_queue, self.__logger_console_handler)
+        log_listener = QueueListener(self.__log_queue, self.__logger_console_handler,
+                                     job_log_handler)
         console_format = self.__logger_console_handler.formatter
+        file_formatter = job_log_handler.formatter
         self.__logger_console_handler.setFormatter(SCBlankLoggerFormatter())
+        job_log_handler.setFormatter(SCBlankColorlessLoggerFormatter())
+        self.__logger.removeHandler(job_log_handler)
+
         log_listener.start()
 
         # Update dashboard before run begins
@@ -132,6 +137,8 @@ class TaskScheduler:
         # Cleanup logger
         log_listener.stop()
         self.__logger_console_handler.setFormatter(console_format)
+        job_log_handler.setFormatter(file_formatter)
+        self.__logger.addHandler(job_log_handler)
 
     def __run_loop(self):
         self.__startTimes = {None: time.time()}

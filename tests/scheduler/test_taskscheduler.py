@@ -1,3 +1,5 @@
+import logging
+
 import pytest
 
 from threading import Lock
@@ -93,7 +95,7 @@ def test_register_callback():
 
 def test_run(large_flow, make_tasks):
     scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
-    scheduler.run()
+    scheduler.run(logging.NullHandler())
 
     for step, index in large_flow.get("flowgraph", "testflow", field="schema").get_nodes():
         assert large_flow.get("record", "status", step=step, index=index) == NodeStatus.SUCCESS
@@ -128,7 +130,7 @@ def test_run_callbacks(large_flow, make_tasks):
     TaskScheduler.register_callback("post_run", Callback.callback_post_run)
 
     scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
-    scheduler.run()
+    scheduler.run(logging.NullHandler())
 
     assert Callback.pre_run == 1
     assert Callback.pre_node == 12
@@ -152,7 +154,7 @@ def test_run_dashboard(large_flow, make_tasks, monkeypatch):
     large_flow._dash = FakeDashboard()
 
     scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
-    scheduler.run()
+    scheduler.run(logging.NullHandler())
 
     assert len(large_flow._dash.calls) == 14
     assert large_flow._dash.calls[0] is None
@@ -168,7 +170,7 @@ def test_run_control_c(large_flow, make_tasks, monkeypatch):
     monkeypatch.setattr(scheduler, "_TaskScheduler__run_loop", dummy_loop)
 
     with pytest.raises(SystemExit):
-        scheduler.run()
+        scheduler.run(logging.NullHandler())
 
 
 def test_check(large_flow, make_tasks):
