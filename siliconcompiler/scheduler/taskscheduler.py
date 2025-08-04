@@ -15,6 +15,7 @@ from siliconcompiler.package import Resolver
 from siliconcompiler.schema import Journal
 
 from siliconcompiler.utils.logging import SCBlankLoggerFormatter, SCBlankColorlessLoggerFormatter
+from siliconcompiler.utils.multiprocessing import MPManager
 
 
 class TaskScheduler:
@@ -55,7 +56,7 @@ class TaskScheduler:
             to_steps=self.__chip.get('option', 'to'),
             prune_nodes=self.__chip.get('option', 'prune'))
 
-        self.__log_queue = multiprocessing.Queue(-1)
+        self.__log_queue = MPManager.get_manager().Queue()
 
         self.__nodes = {}
         self.__startTimes = {}
