@@ -67,6 +67,7 @@ class Scheduler:
         self.__tasks = {}
 
         # Install job file logger
+        self.__new_job_dir = not os.path.exists(self.__chip.getworkdir())
         os.makedirs(self.__chip.getworkdir(), exist_ok=True)
         file_log = os.path.join(self.__chip.getworkdir(), "job.log")
         bak_count = 0
@@ -327,6 +328,8 @@ class Scheduler:
         Auto-update jobname if [option,jobincr] is True
         Do this before initializing logger so that it picks up correct jobname
         '''
+        if self.__new_job_dir:
+            return False
 
         if not self.__chip.get('option', 'clean'):
             return False
