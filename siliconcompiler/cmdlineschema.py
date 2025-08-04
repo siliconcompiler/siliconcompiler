@@ -4,7 +4,7 @@ import sys
 
 import os.path
 
-from typing import Set, Tuple, Dict, Callable
+from typing import Set
 
 from siliconcompiler.schema import BaseSchema, EditableSchema, Parameter, Scope, PerNode
 from siliconcompiler.schema.utils import trim
@@ -312,7 +312,7 @@ class CommandLineSchema(BaseSchema):
         parameters exposed at the command line. The order of command
         line switch settings parsed from the command line is as follows:
 
-         1. read_manifest (-cfg), if specificed by `use_cfg`
+         1. read_manifest (-cfg), if specified by `use_cfg`
          2. read commandline inputs
          3. all other switches
 
