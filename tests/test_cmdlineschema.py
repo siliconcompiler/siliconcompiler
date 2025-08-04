@@ -1,6 +1,8 @@
 import logging
 import pytest
 
+from unittest.mock import patch
+
 from siliconcompiler.schema import BaseSchema
 from siliconcompiler.schema import EditableSchema
 from siliconcompiler.schema import Parameter
@@ -148,7 +150,14 @@ def test_read_cfg(schema, monkeypatch):
     monkeypatch.setattr('sys.argv',
                         ['testprog', '-cfg', 'test.json'])
 
-    new_schema = schema.create_cmdline("testprog", use_cfg=True)
+    with patch("siliconcompiler.schema.BaseSchema._BaseSchema__get_child_classes") as children:
+        children.return_value = {
+            "BaseSchema": BaseSchema,
+            f"{schema.__module__}/{schema.__name__}": schema
+        }
+
+        new_schema = schema.create_cmdline("testprog", use_cfg=True)
+
     assert new_schema.get('test4') is True
 
 
