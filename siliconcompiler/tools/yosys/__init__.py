@@ -196,7 +196,7 @@ class YosysFPGA(FPGASchema):
                                    "A list of files used to extract a macro library.")
         self.define_tool_parameter("yosys", "dsp_techmap", "file",
                                    "The technology map file for DSP blocks.")
-        self.define_tool_parameter("yosys", "dsp_options", "[str]",
+        self.define_tool_parameter("yosys", "dsp_options", "{str}",
                                    "A list of synthesis options for DSP blocks.")
         self.define_tool_parameter("yosys", "memory_libmap", "file",
                                    "The library map file for memory elements.")
@@ -208,11 +208,11 @@ class YosysFPGA(FPGASchema):
                                    "{<mem_init,enable,async_reset,async_set>}",
                                    "The set of supported features for the FPGA.")
 
-        self.define_tool_parameter("yosys", "registers", "[str]",
+        self.define_tool_parameter("yosys", "registers", "{str}",
                                    "A list of supported register types.")
-        self.define_tool_parameter("yosys", "brams", "[str]",
+        self.define_tool_parameter("yosys", "brams", "{str}",
                                    "A list of supported block RAM types.")
-        self.define_tool_parameter("yosys", "dsps", "[str]",
+        self.define_tool_parameter("yosys", "dsps", "{str}",
                                    "A list of supported DSP types.")
 
     def set_yosys_config(self, file: str, dataroot: str = None):
