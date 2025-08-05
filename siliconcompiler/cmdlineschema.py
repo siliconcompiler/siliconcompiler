@@ -401,8 +401,11 @@ class CommandLineSchema(BaseSchema):
 
         if use_sources:
             # Add commandline key for input files
-            for s in (schema, keyschema):
-                s._add_commandline_argument("input", "[file]", "input files", ...)
+            if not isinstance(schema, CommandLineSchema):
+                raise TypeError("Schema is not a commandline class")
+            if "cmdarg" not in schema.getkeys() or "file" not in schema.getkeys("cmdarg"):
+                schema._add_commandline_argument("input", "[file]", "input files", ...)
+                keyschema._add_commandline_argument("input", "[file]", "input files", ...)
 
         # Get logger if available
         logger = getattr(schema, "logger", None)
