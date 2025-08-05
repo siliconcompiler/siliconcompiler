@@ -1,6 +1,7 @@
 import os
 import threading
 import logging
+import math
 import queue
 import time
 import multiprocessing
@@ -153,31 +154,40 @@ class Layout:
         self.height = height
         self.width = width
 
-        min_required = (
-            max(visible_bars, self.__progress_bar_height_default)
-            + self.padding_progress_bar
-        )
-        if self.height < min_required:
-            # If there is room, split the view
-            if self.height > 10:
-                visible_bars = int(self.height / 2) - self.padding_progress_bar - 1
-            else:
-                self.progress_bar_height = self.height - self.padding_progress_bar - 1
-                self.job_board_height = 0
-                self.log_height = 0
-                return
+        if self.height < 3:
+            self.progress_bar_height = self.height - self.padding_progress_bar - 1
+            self.job_board_height = 0
+            self.log_height = 0
+
+        # target sizes
+        target_jobs = 0.25 * self.height
+        target_bars = 0.50 * self.height
+        # 25 % for log
+
+        # Adjust targets based on progress bars
+        if visible_bars < target_bars:
+            remainder = target_bars - visible_bars
+            target_bars = visible_bars
+            target_jobs += 0.75 * remainder
+        target_bars = int(math.ceil(target_bars))
+
+        # Adjust targets based on jobs
+        if visible_jobs < target_jobs:
+            target_jobs = visible_jobs
+        target_jobs = int(math.ceil(target_jobs))
 
         remaining_height = self.height
 
         # Allocate progress bar space (highest priority)
-        self.progress_bar_height = max(visible_bars, self.__progress_bar_height_default)
+        self.progress_bar_height = max(min(target_bars, visible_bars),
+                                       self.__progress_bar_height_default)
         if self.progress_bar_height > 0:
             remaining_height -= self.progress_bar_height + self.padding_progress_bar
 
         # Calculate job board requirements
         job_board_min_space = self.padding_job_board_header + self.padding_job_board
         job_board_max_nodes = remaining_height // 2
-        visible_jobs = min(visible_jobs, job_board_max_nodes)
+        visible_jobs = min(min(target_jobs, visible_jobs), job_board_max_nodes)
         if visible_jobs > 0:
             job_board_full_space = visible_jobs + job_board_min_space
         else:
@@ -196,6 +206,8 @@ class Layout:
         else:
             self.job_board_height = visible_jobs
             self.log_height = remaining_height - job_board_full_space - self.padding_log
+        if self.log_height < 0:
+            self.log_height = 0
 
         if self.width < self.job_board_v_limit:
             self.job_board_show_log = False

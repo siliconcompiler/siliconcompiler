@@ -781,11 +781,9 @@ def test_render_job_dashboard_multi_job_limit_progress(
     dashboard._update_layout()
 
     assert dashboard._layout.job_board_height == 0
-    assert dashboard._layout.progress_bar_height == 0
+    # Ensure to show just one job
+    assert dashboard._layout.progress_bar_height == 1
     assert dashboard._layout.log_height == 0
-
-    # Force to show just one job
-    dashboard._layout.progress_bar_height = 1
 
     progress_bars = dashboard._render_progress_bar(dashboard._layout)
 
@@ -999,9 +997,18 @@ def test_layout_limit_jobs():
     layout = Layout()
 
     layout.update(15, 120, 50, 20)
-    assert layout.job_board_height == 4
-    assert layout.progress_bar_height == 5
-    assert layout.log_height == 1
+    assert layout.job_board_height == 3
+    assert layout.progress_bar_height == 8
+    assert layout.log_height == 0
+
+
+def test_layout_1to1_jobs():
+    layout = Layout()
+
+    layout.update(40, 120, 20, 20)
+    assert layout.job_board_height == 9
+    assert layout.progress_bar_height == 20
+    assert layout.log_height == 6
 
 
 def test_layout_normal_size():
