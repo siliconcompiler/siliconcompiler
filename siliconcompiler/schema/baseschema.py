@@ -7,6 +7,7 @@
 import contextlib
 import copy
 import importlib
+import logging
 
 try:
     import gzip
@@ -24,7 +25,7 @@ except ModuleNotFoundError:
 import os.path
 
 from functools import cache
-from typing import Dict, Type
+from typing import Dict, Type, Tuple, Union, Set, Callable, List
 
 from .parameter import Parameter, NodeValue
 from .journal import Journal
@@ -134,7 +135,7 @@ class BaseSchema:
             cls = cls_map.get(meta.get("sctype", None), None)
         return cls
 
-    def _from_dict(self, manifest, keypath, version=None):
+    def _from_dict(self, manifest: Dict, keypath: Tuple[str], version: str = None):
         '''
         Decodes a dictionary into a schema object
 
@@ -223,7 +224,7 @@ class BaseSchema:
         return schema
 
     @staticmethod
-    def __open_file(filepath, is_read=True):
+    def __open_file(filepath: str, is_read: bool = True):
         _, ext = os.path.splitext(filepath)
         if ext.lower() == ".gz":
             if not _has_gzip:
@@ -231,11 +232,11 @@ class BaseSchema:
             return gzip.open(filepath, mode="rt" if is_read else "wt", encoding="utf-8")
         return open(filepath, mode="r" if is_read else "w", encoding="utf-8")
 
-    def __format_key(self, *key):
+    def __format_key(self, *key: str):
         return f"[{','.join([*self._keypath, *key])}]"
 
     @staticmethod
-    def _read_manifest(filepath):
+    def _read_manifest(filepath: str):
         """
         Reads a manifest from disk and returns dictionary.
 
@@ -251,7 +252,7 @@ class BaseSchema:
 
         return manifest
 
-    def read_manifest(self, filepath):
+    def read_manifest(self, filepath: str):
         """
         Reads a manifest from disk and replaces the current data with the data in the file.
 
@@ -265,7 +266,7 @@ class BaseSchema:
 
         self._from_dict(BaseSchema._read_manifest(filepath), [])
 
-    def write_manifest(self, filepath):
+    def write_manifest(self, filepath: str):
         '''
         Writes the manifest to a file.
 
@@ -289,11 +290,11 @@ class BaseSchema:
 
     # Accessor methods
     def __search(self,
-                 *keypath,
-                 insert_defaults=False,
-                 use_default=False,
-                 require_leaf=True,
-                 complete_path=None):
+                 *keypath: str,
+                 insert_defaults: bool = False,
+                 use_default: bool = False,
+                 require_leaf: bool = True,
+                 complete_path: bool = None) -> Union["BaseSchema", Parameter]:
         if len(keypath) == 0:
             if require_leaf:
                 raise KeyError
@@ -331,7 +332,8 @@ class BaseSchema:
                                       complete_path=complete_path)
         return key_param
 
-    def get(self, *keypath, field='value', step=None, index=None):
+    def get(self, *keypath: str, field: str = 'value',
+            step: str = None, index: Union[int, str] = None):
         """
         Returns a parameter field from the schema.
 
@@ -387,7 +389,8 @@ class BaseSchema:
             e.args = (new_msg, *e.args[1:])
             raise e
 
-    def set(self, *args, field='value', clobber=True, step=None, index=None):
+    def set(self, *args: str, field: str = 'value', clobber: bool = True,
+            step: str = None, index: Union[int, str] = None):
         '''
         Sets a schema parameter field.
 
@@ -432,7 +435,8 @@ class BaseSchema:
             e.args = (new_msg, *e.args[1:])
             raise e
 
-    def add(self, *args, field='value', step=None, index=None):
+    def add(self, *args: str, field: str = 'value',
+            step: str = None, index: Union[int, str] = None):
         '''
         Adds item(s) to a schema parameter list.
 
@@ -475,7 +479,7 @@ class BaseSchema:
             e.args = (new_msg, *e.args[1:])
             raise e
 
-    def unset(self, *keypath, step=None, index=None):
+    def unset(self, *keypath: str, step: str = None, index: Union[int, str] = None):
         '''
         Unsets a schema parameter.
 
@@ -514,7 +518,7 @@ class BaseSchema:
             e.args = (new_msg, *e.args[1:])
             raise e
 
-    def remove(self, *keypath):
+    def remove(self, *keypath: str):
         '''
         Remove a schema parameter and its subparameters.
 
@@ -544,7 +548,8 @@ class BaseSchema:
         del key_param.__manifest[removal_key]
         self.__journal.record("remove", keypath)
 
-    def valid(self, *keypath, default_valid=False, check_complete=False):
+    def valid(self, *keypath: str, default_valid: bool = False,
+              check_complete: bool = False) -> bool:
         """
         Checks validity of a keypath.
 
@@ -578,7 +583,7 @@ class BaseSchema:
             return isinstance(param, Parameter)
         return True
 
-    def getkeys(self, *keypath):
+    def getkeys(self, *keypath: str) -> Tuple[str]:
         """
         Returns a tuple of schema dictionary keys.
 
@@ -608,7 +613,7 @@ class BaseSchema:
 
         return tuple(sorted(key_param.__manifest.keys()))
 
-    def allkeys(self, *keypath, include_default=True):
+    def allkeys(self, *keypath: str, include_default: bool = True) -> Set[Tuple[str]]:
         '''
         Returns all keypaths in the schema as a set of tuples.
 
@@ -645,7 +650,8 @@ class BaseSchema:
 
         return "BaseSchema"
 
-    def getdict(self, *keypath, include_default=True, values_only=False):
+    def getdict(self, *keypath: str, include_default: bool = True,
+                values_only: bool = False) -> Dict:
         """
         Returns a schema dictionary.
 
@@ -700,7 +706,7 @@ class BaseSchema:
         return manifest
 
     # Utility functions
-    def copy(self, key=None):
+    def copy(self, key: Tuple[str] = None):
         """
         Returns a copy of this schema.
 
@@ -723,7 +729,7 @@ class BaseSchema:
 
         return schema_copy
 
-    def _find_files_search_paths(self, keypath, step, index):
+    def _find_files_search_paths(self, keypath: Tuple[str], step: str, index: str):
         """
         Returns a list of paths to search during find files.
 
@@ -745,8 +751,11 @@ class BaseSchema:
             return {}
         return self.__parent._find_files_dataroot_resolvers()
 
-    def find_files(self, *keypath, missing_ok=False, step=None, index=None,
-                   packages=None, collection_dir=None, cwd=None):
+    def find_files(self, *keypath: str, missing_ok: bool = False,
+                   step: str = None, index: Union[int, str] = None,
+                   packages: Dict[str, Union[str, Callable]] = None,
+                   collection_dir: str = None,
+                   cwd: str = None) -> Union[str, List[str], Set[str]]:
         """
         Returns absolute paths to files or directories based on the keypath
         provided.
@@ -851,8 +860,11 @@ class BaseSchema:
             return resolved_paths[0]
         return resolved_paths
 
-    def check_filepaths(self, ignore_keys=None, logger=None,
-                        packages=None, collection_dir=None, cwd=None):
+    def check_filepaths(self, ignore_keys: bool = None,
+                        logger: logging.Logger = None,
+                        packages: Dict[str, Union[str, Callable]] = None,
+                        collection_dir: str = None,
+                        cwd: str = None) -> bool:
         '''
         Verifies that paths to all files in manifest are valid.
 
@@ -917,7 +929,7 @@ class BaseSchema:
 
         return not error
 
-    def _parent(self, root=False):
+    def _parent(self, root: bool = False) -> "BaseSchema":
         '''
         Returns the parent of this schema section, if root is true the root parent
         will be returned.
@@ -959,7 +971,7 @@ class BaseSchema:
         finally:
             self.__active = orig_active
 
-    def _get_active(self, field, defvalue=None):
+    def _get_active(self, field: str, defvalue=None):
         '''
         Get the value of a specific field.
 

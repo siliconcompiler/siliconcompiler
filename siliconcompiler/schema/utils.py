@@ -7,7 +7,7 @@
 import sys
 
 
-def trim(docstring):
+def trim(docstring: str) -> str:
     '''
     Helper function for cleaning up indentation of docstring.
 
@@ -42,7 +42,7 @@ def trim(docstring):
     return '\n'.join(trimmed)
 
 
-def translate_loglevel(level):
+def translate_loglevel(level: str) -> str:
     if level == "quiet":
         level = "error"
     return level.upper()

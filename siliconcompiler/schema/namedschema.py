@@ -4,6 +4,8 @@
 # SC dependencies outside of its directory, since it may be used by tool drivers
 # that have isolated Python environments.
 
+from typing import Dict, Tuple
+
 from .baseschema import BaseSchema
 
 
@@ -62,7 +64,7 @@ class NamedSchema(BaseSchema):
         raise NotImplementedError("Must be implemented by the child classes.")
 
     @classmethod
-    def from_manifest(cls, name, filepath=None, cfg=None):
+    def from_manifest(cls, name: str, filepath: str = None, cfg: Dict = None):
         '''
         Create a new schema based on the provided source files.
 
@@ -84,13 +86,13 @@ class NamedSchema(BaseSchema):
             schema._from_dict(cfg, [])
         return schema
 
-    def _from_dict(self, manifest, keypath, version=None):
+    def _from_dict(self, manifest: Dict, keypath: Tuple[str], version: str = None):
         if keypath:
             self.__name = keypath[-1]
 
         return super()._from_dict(manifest, keypath, version=version)
 
-    def copy(self, key=None):
+    def copy(self, key: Tuple[str] = None) -> "NamedSchema":
         copy = super().copy(key=key)
 
         if key and key[-1] != "default":
