@@ -44,3 +44,13 @@ def setup(chip):
     chip.register_showtool('dot', graphviz_screenshot)
     chip.register_showtool('xdot', graphviz_show)
     chip.register_showtool('xdot', graphviz_screenshot)
+
+
+def showtasks():
+    from siliconcompiler import ShowTaskSchema, ScreenshotTaskSchema
+
+    from siliconcompiler.tools.openroad.show import ShowTask as OpenROADShow
+    from siliconcompiler.tools.openroad.screenshot import ScreenshotTask as OpenROADScreenshot
+
+    ShowTaskSchema.register_task(OpenROADShow)
+    ScreenshotTaskSchema.register_task(OpenROADScreenshot)

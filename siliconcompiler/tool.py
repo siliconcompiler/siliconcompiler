@@ -1368,6 +1368,7 @@ class TaskSchema(NamedSchema):
     # Tool settings
     ###############################################################
     def set_exe(self, exe: str = None, vswitch: List[str] = None, format: str = None,
+                step: str = None, index: str = None,
                 clobber: bool = False):
         rets = []
         if exe:
