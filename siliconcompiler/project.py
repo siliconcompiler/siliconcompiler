@@ -379,8 +379,11 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         from siliconcompiler.remote.client import ClientScheduler
 
         # Start dashboard
-        if self.__dashboard and not self.__dashboard.is_running():
-            self.__dashboard.open_dashboard()
+        if self.__dashboard:
+            if not self.__dashboard.is_running():
+                self.__dashboard.open_dashboard()
+            # Attach logger
+            self.__dashboard.set_logger(self.logger)
 
         try:
             if self.get('option', 'remote'):

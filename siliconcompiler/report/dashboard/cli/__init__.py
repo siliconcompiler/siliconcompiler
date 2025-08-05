@@ -11,7 +11,7 @@ class CliDashboard(AbstractDashboard):
 
         self.__logger_console = None
 
-        self._logger = chip.logger
+        self._logger = None
 
     def set_logger(self, logger):
         """
@@ -20,6 +20,9 @@ class CliDashboard(AbstractDashboard):
         Args:
             logger (logging.Logger): The logger to set.
         """
+        if self._logger == logger:
+            return
+
         self._logger = logger
         if self._logger and self._dashboard._active:
             # Hijack the console
@@ -32,7 +35,7 @@ class CliDashboard(AbstractDashboard):
     def open_dashboard(self):
         """Starts the dashboard rendering thread if it is not already running."""
 
-        self.set_logger(self._logger)
+        self.set_logger(self._chip.logger)
 
         self._dashboard.open_dashboard()
 
