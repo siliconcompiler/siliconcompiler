@@ -2036,8 +2036,10 @@ def test_show_get_task():
             return ["ext"]
         pass
 
-    with patch.dict("siliconcompiler.ShowTaskSchema._ShowTaskSchema__TASKS", clear=True):
+    with patch.dict("siliconcompiler.ShowTaskSchema._ShowTaskSchema__TASKS", clear=True), \
+            patch("siliconcompiler.utils.showtools.showtasks") as showtasks:
         assert ShowTaskSchema.get_task("ext").__class__ is Test
+        showtasks.assert_called_once()
 
 
 @pytest.mark.parametrize("cls", [ShowTaskSchema, ScreenshotTaskSchema])
