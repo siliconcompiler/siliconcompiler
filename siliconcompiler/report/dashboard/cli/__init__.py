@@ -13,6 +13,10 @@ class CliDashboard(AbstractDashboard):
 
         self._logger = None
 
+        if self.is_running():
+            # Attach logger when already running
+            self.set_logger(self._chip.logger)
+
     def set_logger(self, logger):
         """
         Sets the logger for the dashboard.
