@@ -16,7 +16,7 @@ class KLayoutPDK(PDKSchema):
 
         self.define_tool_parameter("klayout", "units", "float",
                                    "The stream units for KLayout.")
-        self.define_tool_parameter("klayout", "hide_layers", "[str]",
+        self.define_tool_parameter("klayout", "hide_layers", "{str}",
                                    "A list of layer names to initially hide when "
                                    "displaying a layout.")
 
@@ -55,7 +55,7 @@ class KLayoutLibrary(StdCellLibrarySchema):
     def __init__(self):
         super().__init__()
 
-        self.define_tool_parameter("klayout", "allow_missing_cell", "[str]",
+        self.define_tool_parameter("klayout", "allow_missing_cell", "{str}",
                                    "A list of cells that are allowed to be empty "
                                    "in the final stream file.")
 
