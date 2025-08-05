@@ -193,3 +193,45 @@ def test_add_cmdarg_with_missing_switch(schema):
     schema = schema()
     with pytest.raises(ValueError, match="switch is required"):
         schema._add_commandline_argument("string", "str", "help string", "")
+
+
+def test_wrong_cfg_read_fail(schema, monkeypatch):
+    monkeypatch.setattr('sys.argv',
+                        ['testprog',
+                         '-cfg', "test.json"])
+
+    class TestSchema(BaseSchema):
+        @classmethod
+        def _getdict_type(cls):
+            return "testschema"
+
+    TestSchema().write_manifest("test.json")
+
+    with patch("siliconcompiler.schema.BaseSchema._BaseSchema__get_child_classes") as children:
+        children.return_value = {
+            "BaseSchema": BaseSchema,
+            "testschema": TestSchema
+        }
+        with pytest.raises(TypeError, match="Schema is not a commandline class"):
+            schema.create_cmdline("testprog", use_cfg=True)
+
+
+def test_wrong_cfg_read_okay(schema, monkeypatch):
+    monkeypatch.setattr('sys.argv',
+                        ['testprog',
+                         '-cfg', "test.json"])
+
+    class TestSchema(BaseSchema):
+        @classmethod
+        def _getdict_type(cls):
+            return "testschema"
+
+    TestSchema().write_manifest("test.json")
+
+    with patch("siliconcompiler.schema.BaseSchema._BaseSchema__get_child_classes") as children:
+        children.return_value = {
+            "BaseSchema": BaseSchema,
+            "testschema": TestSchema
+        }
+        check_schema = schema.create_cmdline("testprog", use_cfg=True, use_sources=False)
+    assert isinstance(check_schema, TestSchema)

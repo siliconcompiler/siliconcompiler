@@ -281,7 +281,6 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                 error = True
 
         # Assert fileset is set
-        # Assert flow is set
         filesets = self.get("option", "fileset")
         if not filesets:
             self.logger.error("[option,fileset] has not been set")
