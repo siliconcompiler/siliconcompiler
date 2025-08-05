@@ -31,6 +31,8 @@ class VPRLibrary(ToolLibrarySchema):
                                    "The path to the VPR architecture description file.")
         self.define_tool_parameter("vpr", "graphfile", "file",
                                    "The path to the VPR routing graph file.")
+        self.define_tool_parameter("vpr", "constraintsmap", "file",
+                                   "The path to the VPR constraints map file.")
 
         self.define_tool_parameter("vpr", "clock_model", "<ideal,route,dedicated_network>",
                                    "The clock modeling strategy to be used.")
@@ -123,6 +125,19 @@ class VPRLibrary(ToolLibrarySchema):
             dataroot = self._get_active("package")
         with self.active_dataroot(dataroot):
             return self.set("tool", "vpr", "graphfile", file)
+
+    def set_vpr_constraintsmap(self, file: str, dataroot: str = None):
+        """
+        Sets the path to the VPR constraints map file.
+
+        Args:
+            file (str): The path to the constraints map file.
+            dataroot (str, optional): The data root directory. Defaults to the active package.
+        """
+        if not dataroot:
+            dataroot = self._get_active("package")
+        with self.active_dataroot(dataroot):
+            return self.set("tool", "vpr", "constraintsmap", file)
 
     def set_vpr_clockmodel(self, model: str):
         """
