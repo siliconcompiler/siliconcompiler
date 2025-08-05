@@ -28,6 +28,7 @@ from siliconcompiler.pathschema import PathSchemaBase
 
 from siliconcompiler.schema.schema_cfg import schema_option_runtime, schema_arg, schema_version
 
+from siliconcompiler.report.dashboard.cli import CliDashboard
 from siliconcompiler.scheduler import Scheduler
 from siliconcompiler.utils.logging import SCColorLoggerFormatter, SCLoggerFormatter
 from siliconcompiler.utils import FilterDirectories, get_file_ext
@@ -56,9 +57,9 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         schema_option_runtime(schema)
         schema.insert("option", "env", "default", Parameter("str"))
 
+        schema.insert("option", "design", Parameter("str", switch=["-design <str>"]))
         schema.insert("option", "alias", Parameter("[(str,str,str,str)]"))
         schema.insert("option", "fileset", Parameter("[str]"))
-        schema.insert("option", "design", Parameter("str"))
 
         # Add history
         schema.insert("history", BaseSchema())
@@ -75,7 +76,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             else:
                 self.set_design(design)
 
-        self.__dashboard = None  # CliDashboard(self)
+        self.__dashboard = CliDashboard(self)
 
     def __init_logger(self):
         sc_logger = logging.getLogger("siliconcompiler")
@@ -169,15 +170,24 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
 
         return Project.__name__
 
-    def _from_dict(self, manifest, keypath, version=None):
-        ret = super()._from_dict(manifest, keypath, version)
-
-        # Restore dependencies
+    def __populate_deps(self, obj: DependencySchema = None):
+        """
+        Ensure dependencies that are loaded contain pointers to the project
+        libraries
+        """
+        if obj:
+            obj._reset_deps()
         dep_map = {name: self.get("library", name, field="schema")
                    for name in self.getkeys("library")}
         for obj in dep_map.values():
             if isinstance(obj, DependencySchema):
                 obj._populate_deps(dep_map)
+
+    def _from_dict(self, manifest, keypath, version=None):
+        ret = super()._from_dict(manifest, keypath, version)
+
+        # Restore dependencies
+        self.__populate_deps()
 
         return ret
 
@@ -213,14 +223,22 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         target(self, **kwargs)
 
     def add_dep(self, obj):
+        if isinstance(obj, (list, set, tuple)):
+            for iobj in obj:
+                self.add_dep(iobj)
+            return
+
         if isinstance(obj, DesignSchema):
-            EditableSchema(self).insert("library", obj.name, obj, clobber=True)
+            if not self.has_library(obj.name):
+                EditableSchema(self).insert("library", obj.name, obj)
         elif isinstance(obj, FlowgraphSchema):
             self.__import_flow(obj)
         elif isinstance(obj, LibrarySchema):
-            EditableSchema(self).insert("library", obj.name, obj, clobber=True)
+            if not self.has_library(obj.name):
+                EditableSchema(self).insert("library", obj.name, obj)
         elif isinstance(obj, ChecklistSchema):
-            EditableSchema(self).insert("checklist", obj.name, obj, clobber=True)
+            if obj.name not in self.getkeys("checklist"):
+                EditableSchema(self).insert("checklist", obj.name, obj)
         else:
             raise NotImplementedError
 
@@ -229,17 +247,24 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             for dep in obj.get_dep():
                 self.add_dep(dep)
 
+            # Rebuild dependencies to ensure instances are correct
+            self.__populate_deps(obj)
+
     def __import_flow(self, flow: FlowgraphSchema):
+        if flow.name in self.getkeys("flowgraph"):
+            return
+
         edit_schema = EditableSchema(self)
-        edit_schema.insert("flowgraph", flow.name, flow, clobber=True)
+        edit_schema.insert("flowgraph", flow.name, flow)
 
         # Instantiate tasks
         for task_cls in flow.get_all_tasks():
             task = task_cls()
             # TODO: this is not needed once tool moves
             if not self.valid("tool", task.tool()):
-                edit_schema.insert("tool", task.tool(), ToolSchema(), clobber=True)
-            edit_schema.insert("tool", task.tool(), "task", task.task(), task, clobber=True)
+                edit_schema.insert("tool", task.tool(), ToolSchema())
+            if not self.valid("tool", task.tool(), "task", task.task()):
+                edit_schema.insert("tool", task.tool(), "task", task.task(), task)
 
     def check_manifest(self) -> bool:
         error = False
@@ -602,6 +627,9 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         del state["_Project__logger"]
         del state["_logger_console"]
 
+        # Remove dashboard
+        del state["_Project__dashboard"]
+
         return state
 
     def __setstate__(self, state):
@@ -609,6 +637,9 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
 
         # Reinitialize logger on restore
         self.__init_logger()
+
+        # Restore dashboard
+        self.__dashboard = CliDashboard(self)
 
     def get_filesets(self) -> List[Tuple[NamedSchema, str]]:
         """

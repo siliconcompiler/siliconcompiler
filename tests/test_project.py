@@ -341,6 +341,21 @@ def test_add_dep_design():
     assert proj.get("library", "test", field="schema") is design
 
 
+def test_add_dep_invalid():
+    with pytest.raises(NotImplementedError):
+        Project().add_dep(str("this"))
+
+
+def test_add_dep_list():
+    design0 = DesignSchema("test0")
+    design1 = DesignSchema("test1")
+    proj = Project()
+    proj.add_dep([design0, design1])
+    assert proj.getkeys("library") == ("test0", "test1")
+    assert proj.get("library", "test0", field="schema") is design0
+    assert proj.get("library", "test1", field="schema") is design1
+
+
 def test_add_dep_design_with_deps():
     dep = DesignSchema("test0")
     design = DesignSchema("test")
@@ -351,6 +366,29 @@ def test_add_dep_design_with_deps():
     assert proj.getkeys("library") == ("test", "test0")
     assert proj.get("library", "test", field="schema") is design
     assert proj.get("library", "test0", field="schema") is dep
+    assert design.get_dep("test0") is dep
+
+
+def test_add_dep_design_with_2level_dep():
+    dep = DesignSchema("test0")
+    dep.add_dep(DesignSchema("test1"))
+    design = DesignSchema("test")
+    design.add_dep(DesignSchema("test1"))
+    design.add_dep(dep)
+
+    design_test1 = design.get_dep("test1")
+    dep_test1 = dep.get_dep("test1")
+
+    assert design_test1 is not dep_test1
+
+    proj = Project()
+    proj.add_dep(design)
+    assert proj.getkeys("library") == ("test", "test0", "test1")
+    assert proj.get("library", "test", field="schema") is design
+    assert proj.get("library", "test0", field="schema") is dep
+    assert proj.get("library", "test1", field="schema") is design_test1
+    assert design.get_dep("test0") is dep
+    assert design.get_dep("test1") is design_test1
 
 
 def test_add_dep_flowgraph():

@@ -14,7 +14,7 @@ class DependencySchema(BaseSchema):
     def __init__(self):
         super().__init__()
 
-        self.__deps = {}
+        self._reset_deps()
 
         schema = EditableSchema(self)
         schema.insert(
@@ -242,3 +242,6 @@ class DependencySchema(BaseSchema):
 
             if isinstance(self.__deps[module], DependencySchema):
                 self.__deps[module]._populate_deps(module_map)
+
+    def _reset_deps(self):
+        self.__deps = {}
