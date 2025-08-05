@@ -104,7 +104,7 @@ class OpenROADPDK(PDKSchema):
                 self.add("tool", "openroad", "pin_layer_vertical", vertical)
 
 
-class OpenROADStdCellLibrarySchema(StdCellLibrarySchema):
+class OpenROADStdCellLibrary(StdCellLibrarySchema):
     """
     Schema for defining standard cell library parameters for the OpenROAD tool.
 

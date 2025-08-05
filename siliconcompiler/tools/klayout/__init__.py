@@ -12,14 +12,6 @@ class KLayoutPDK(PDKSchema):
     KLayout, such as stream units and which layers to hide on initial display.
     """
     def __init__(self):
-        """
-        Initializes the KLayout PDK schema.
-
-        This constructor defines the following tool-specific parameters for 'klayout':
-        - `klayout.units`: The stream units used by KLayout.
-        - `klayout.hide_layers`: A list of layer names that should be initially
-          hidden when a layout is displayed.
-        """
         super().__init__()
 
         self.define_tool_parameter("klayout", "units", "float",
@@ -61,13 +53,6 @@ class KLayoutLibrary(StdCellLibrarySchema):
     final stream file without generating an error.
     """
     def __init__(self):
-        """
-        Initializes the KLayout library schema.
-
-        This constructor defines the following tool-specific parameter for 'klayout':
-        - `klayout.allow_missing_cell`: A list of cell names that are allowed to
-          be empty in the final stream file.
-        """
         super().__init__()
 
         self.define_tool_parameter("klayout", "allow_missing_cell", "[str]",

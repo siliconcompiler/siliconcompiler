@@ -25,7 +25,7 @@ from siliconcompiler import StdCellLibrarySchema
 from siliconcompiler import FPGASchema
 
 
-class YosysStdCellLibrarySchema(StdCellLibrarySchema):
+class YosysStdCellLibrary(StdCellLibrarySchema):
     """
     Schema for a standard cell library specifically for the Yosys tool.
 

@@ -1,14 +1,14 @@
 from typing import List, Union
 
-from siliconcompiler import ToolLibrarySchema
+from siliconcompiler import FPGASchema
 
 
-class VPRLibrary(ToolLibrarySchema):
+class VPRFPGA(FPGASchema):
     """
     Schema for defining library parameters specifically for the
     VPR (Verilog Place and Route) tool.
 
-    This class extends the base ToolLibrarySchema to manage various settings
+    This class extends the base FPGASchema to manage various settings
     related to VPR, such as device information, channel width, resource types,
     and input file paths for the architecture and routing graph.
     """
