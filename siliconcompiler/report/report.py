@@ -110,7 +110,7 @@ def make_manifest_helper(manifest_subsect, modified_manifest_subsect):
     def _is_leaf(cfg):
         # 'shorthelp' chosen arbitrarily: any mandatory field with a consistent
         # type would work.
-        return 'shorthelp' in cfg and isinstance(cfg['shorthelp'], str)
+        return 'type' in cfg and isinstance(cfg['type'], str)
 
     def build_leaf(manifest_subsect):
         if PerNode(manifest_subsect['pernode']) == PerNode.NEVER:
@@ -161,7 +161,7 @@ def make_manifest_helper(manifest_subsect, modified_manifest_subsect):
                         else:
                             modified_manifest_subsect[step + index] = value
 
-    for key, key_dict in manifest_subsect.items():
+    for key, key_dict in sorted(manifest_subsect.items(), key=lambda k: k[0]):
         if key == "__meta__" or key == "__journal__":
             continue
 
