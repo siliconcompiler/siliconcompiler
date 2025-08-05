@@ -16,6 +16,47 @@ Installation: https://panda.dei.polimi.it/?page_id=88
 
 from siliconcompiler.tools.bambu import convert
 
+from siliconcompiler import StdCellLibrarySchema
+
+
+class BambuStdCellLibrarySchema(StdCellLibrarySchema):
+    """
+    Schema for a standard cell library specifically for the Bambu tool.
+
+    This class extends the base StdCellLibrarySchema to define and manage
+    tool-specific parameters required by Bambu, such as the device name
+    and a clock multiplier factor.
+    """
+
+    def __init__(self):
+        super().__init__()
+
+        self.define_tool_parameter("bambu", "device", "str",
+                                   "name of the target device for bambu.")
+        self.define_tool_parameter("bambu", "clock_multiplier", "float",
+                                   "scalar facto to convert from library units to ns.")
+
+    def set_bambu_device_name(self, name):
+        """
+        Sets the name of the device to be used with the Bambu tool.
+
+        Args:
+            name (str): The name of the device.
+        """
+        self.set("tool", "bambu", "device", name)
+
+    def set_bambu_clock_multiplier(self, factor):
+        """
+        Sets the clock multiplier factor for the Bambu tool.
+
+        This factor is used to convert timing values from the standard
+        cell library's units to nanoseconds.
+
+        Args:
+            factor (float): The scalar factor for the clock conversion.
+        """
+        self.set("tool", "bambu", "clock_multiplier", factor)
+
 
 ####################################################################
 # Make Docs
