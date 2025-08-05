@@ -16,7 +16,7 @@ import json
 import os
 import re
 
-from typing import List
+from typing import List, Union
 
 from siliconcompiler import sc_open
 from siliconcompiler.tools._common import get_tool_task, record_metric
@@ -115,44 +115,60 @@ class YosysStdCellLibrarySchema(StdCellLibrarySchema):
         self.set("tool", "yosys", "abc_clock_multiplier", clock_multiplier)
         self.set("tool", "yosys", "abc_constraint_load", load)
 
-    def set_yosys_tristatebuffer_map(self, map: str):
+    def set_yosys_tristatebuffer_map(self, map: str, dataroot: str = None):
         """
         Sets the file path for the tristate buffer mapping.
 
         Args:
             map (str): The file path for the mapping.
+            dataroot (str, optional): The data root directory. Defaults to the active package.
         """
-        self.set("tool", "yosys", "tristatebuffermap", map)
+        if not dataroot:
+            dataroot = self._get_active("package")
+        with self.active_dataroot(dataroot):
+            self.set("tool", "yosys", "tristatebuffermap", map)
 
-    def set_yosys_adder_map(self, map: str):
+    def set_yosys_adder_map(self, map: str, dataroot: str = None):
         """
         Sets the file path for the adder mapping.
 
         Args:
             map (str): The file path for the mapping.
+            dataroot (str, optional): The data root directory. Defaults to the active package.
         """
-        self.set("tool", "yosys", "addermap", map)
+        if not dataroot:
+            dataroot = self._get_active("package")
+        with self.active_dataroot(dataroot):
+            self.set("tool", "yosys", "addermap", map)
 
-    def add_yosys_tech_map(self, map: str, clobber: bool = False):
+    def add_yosys_tech_map(self,
+                           map: Union[str, List[str]],
+                           dataroot: str = None,
+                           clobber: bool = False):
         """
         Adds a technology map file to the list of maps.
 
         Args:
-            map (str): The file path for the technology map.
-            clobber (bool): Replace the current value.
+            map (Union[str, List[str]]): The file path or a list of file paths for the technology
+                                         map.
+            dataroot (str, optional): The data root directory. Defaults to the active package.
+            clobber (bool, optional): If True, replaces the current value. Defaults to False.
         """
-        if clobber:
-            self.set("tool", "yosys", "techmap", map)
-        else:
-            self.add("tool", "yosys", "techmap", map)
+        if not dataroot:
+            dataroot = self._get_active("package")
+        with self.active_dataroot(dataroot):
+            if clobber:
+                self.set("tool", "yosys", "techmap", map)
+            else:
+                self.add("tool", "yosys", "techmap", map)
 
-    def add_yosys_synthesis_fileset(self, fileset: str, clobber: bool = False):
+    def add_yosys_synthesis_fileset(self, fileset: Union[str, List[str]], clobber: bool = False):
         """
         Adds a fileset name to the list of synthesis filesets.
 
         Args:
-            fileset (str): The name of the fileset.
-            clobber (bool): Replace the current value.
+            fileset (Union[str, List[str]]): The name of the fileset or a list of fileset names.
+            clobber (bool, optional): If True, replaces the current value. Defaults to False.
         """
         if clobber:
             self.set("tool", "yosys", "synthesis_fileset", fileset)
@@ -212,15 +228,16 @@ class YosysFPGA(FPGASchema):
         with self.active_dataroot(dataroot):
             return self.set("tool", "yosys", "fpga_config", file)
 
-    def add_yosys_macrolib(self, file: str, dataroot: str = None, clobber: bool = False):
+    def add_yosys_macrolib(self, file: Union[str, List[str]], dataroot: str = None,
+                           clobber: bool = False):
         """
         Adds a macro library file.
 
         Args:
-            file (str): The path to the macro library file.
+            file (Union[str, List[str]]): The path to the macro library file or a list of paths.
             dataroot (str, optional): The data root directory. Defaults to the active package.
-            clobber (bool, optional): If True, overwrites the existing list with the new file.
-                                      If False, appends the file to the list. Defaults to False.
+            clobber (bool, optional): If True, overwrites the existing list with the new file(s).
+                                      If False, appends the file(s) to the list. Defaults to False.
         """
         if not dataroot:
             dataroot = self._get_active("package")
@@ -230,15 +247,16 @@ class YosysFPGA(FPGASchema):
             else:
                 return self.add("tool", "yosys", "macrolib", file)
 
-    def add_yosys_extractlib(self, file: str, dataroot: str = None, clobber: bool = False):
+    def add_yosys_extractlib(self, file: Union[str, List[str]], dataroot: str = None,
+                             clobber: bool = False):
         """
         Adds a file used to extract a macro library.
 
         Args:
-            file (str): The path to the extraction file.
+            file (Union[str, List[str]]): The path to the extraction file or a list of paths.
             dataroot (str, optional): The data root directory. Defaults to the active package.
-            clobber (bool, optional): If True, overwrites the existing list with the new file.
-                                      If False, appends the file to the list. Defaults to False.
+            clobber (bool, optional): If True, overwrites the existing list with the new file(s).
+                                      If False, appends the file(s) to the list. Defaults to False.
         """
         if not dataroot:
             dataroot = self._get_active("package")
@@ -295,56 +313,60 @@ class YosysFPGA(FPGASchema):
         with self.active_dataroot(dataroot):
             return self.set("tool", "yosys", "flop_techmap", file)
 
-    def add_yosys_featureset(self, feature: str = None, clobber: bool = False):
+    def add_yosys_featureset(self, feature: Union[str, List[str]] = None, clobber: bool = False):
         """
         Adds a feature to the feature set.
 
         Args:
-            feature (str, optional): The name of the feature to add. Defaults to None.
-            clobber (bool, optional): If True, overwrites the existing set with the new feature.
-                                      If False, adds the feature to the set. Defaults to False.
+            feature (Union[str, List[str]], optional): The name of the feature or a list of feature
+                                                       names to add. Defaults to None.
+            clobber (bool, optional): If True, overwrites the existing set with the new feature(s).
+                                      If False, adds the feature(s) to the set. Defaults to False.
         """
         if clobber:
             return self.set("tool", "yosys", "feature_set", feature)
         else:
             return self.add("tool", "yosys", "feature_set", feature)
 
-    def add_yosys_registertype(self, name: str = None, clobber: bool = False):
+    def add_yosys_registertype(self, name: Union[str, List[str]] = None, clobber: bool = False):
         """
         Adds a register type to the list of supported registers.
 
         Args:
-            name (str, optional): The name of the register type. Defaults to None.
-            clobber (bool, optional): If True, overwrites the existing list with the new type.
-                                      If False, adds the type to the list. Defaults to False.
+            name (Union[str, List[str]], optional): The name of the register type or a list
+                                                    of types. Defaults to None.
+            clobber (bool, optional): If True, overwrites the existing list with the new type(s).
+                                      If False, adds the type(s) to the list. Defaults to False.
         """
         if clobber:
             return self.set("tool", "yosys", "registers", name)
         else:
             return self.add("tool", "yosys", "registers", name)
 
-    def add_yosys_bramtype(self, name: str = None, clobber: bool = False):
+    def add_yosys_bramtype(self, name: Union[str, List[str]] = None, clobber: bool = False):
         """
         Adds a block RAM type to the list of supported BRAMs.
 
         Args:
-            name (str, optional): The name of the BRAM type. Defaults to None.
-            clobber (bool, optional): If True, overwrites the existing list with the new type.
-                                      If False, adds the type to the list. Defaults to False.
+            name (Union[str, List[str]], optional): The name of the BRAM type or a list of types.
+                                                    Defaults to None.
+            clobber (bool, optional): If True, overwrites the existing list with the new type(s).
+                                      If False, adds the type(s) to the list. Defaults to False.
         """
         if clobber:
             return self.set("tool", "yosys", "brams", name)
         else:
             return self.add("tool", "yosys", "brams", name)
 
-    def add_yosys_dsptype(self, name: str = None, clobber: bool = False):
+    def add_yosys_dsptype(self, name: Union[str, List[str]] = None, clobber: bool = False):
         """
         Adds a DSP type to the list of supported DSPs.
 
         Args:
-            name (str, optional): The name of the DSP type. Defaults to None.
-            clobber (bool, optional): If True, overwrites the existing list with the new type.
-                                      If False, adds the type to the list. Defaults to False.
+            name (Union[str, List[str]], optional): The name of the DSP type or a list of types.
+                                                    Defaults to None.
+            clobber (bool, optional): If True, overwrites the existing list with the new type(s).
+                                      If False, adds the type(s) to the list. Defaults to False.
         """
         if clobber:
             return self.set("tool", "yosys", "dsps", name)

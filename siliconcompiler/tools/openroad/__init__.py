@@ -86,9 +86,9 @@ class OpenROADPDK(PDKSchema):
         Adds horizontal and/or vertical pin layers.
 
         Args:
-            horizontal (str or List[str], optional): The horizontal pin layer(s) to add.
+            horizontal (Union[str, List[str]], optional): The horizontal pin layer(s) to add.
                     Defaults to None.
-            vertical (str or List[str], optional): The vertical pin layer(s) to add.
+            vertical (Union[str, List[str]], optional): The vertical pin layer(s) to add.
                 Defaults to None.
             clobber (bool, optional): If True, overwrites the existing lists. Defaults to False.
         """
@@ -198,70 +198,88 @@ class OpenROADStdCellLibrarySchema(StdCellLibrarySchema):
         """
         self.set("tool", "openroad", "macro_placement_halo", (x, y))
 
-    def set_openroad_tracks_file(self, file: str):
+    def set_openroad_tracks_file(self, file: str, dataroot: str = None):
         """
         Sets the file for track definitions.
 
         Args:
             file (str): The path to the tracks file.
+            dataroot (str, optional): The data root directory. Defaults to the active package.
         """
-        self.set("tool", "openroad", "tracks", file)
+        if not dataroot:
+            dataroot = self._get_active("package")
+        with self.active_dataroot(dataroot):
+            self.set("tool", "openroad", "tracks", file)
 
-    def set_openroad_tapcells_file(self, file: str):
+    def set_openroad_tapcells_file(self, file: str, dataroot: str = None):
         """
         Sets the file for tap cell definitions.
 
         Args:
             file (str): The path to the tap cells file.
+            dataroot (str, optional): The data root directory. Defaults to the active package.
         """
-        self.set("tool", "openroad", "tapcells", file)
+        if not dataroot:
+            dataroot = self._get_active("package")
+        with self.active_dataroot(dataroot):
+            self.set("tool", "openroad", "tapcells", file)
 
-    def add_openroad_global_connect_file(self, file: str, clobber: bool = False):
+    def add_openroad_global_connect_file(self, file: Union[str, List[str]], dataroot: str = None,
+                                         clobber: bool = False):
         """
         Adds a global connect file to the list.
 
         Args:
-            file (str): The path to the global connect file.
-            clobber (bool): Overwrite existing values
+            file (Union[str, List[str]]): The path to the global connect file or a list of paths.
+            dataroot (str, optional): The data root directory. Defaults to the active package.
+            clobber (bool, optional): If True, overwrites existing values. Defaults to False.
         """
-        if clobber:
-            self.set("tool", "openroad", "global_connect", file)
-        else:
-            self.add("tool", "openroad", "global_connect", file)
+        if not dataroot:
+            dataroot = self._get_active("package")
+        with self.active_dataroot(dataroot):
+            if clobber:
+                self.set("tool", "openroad", "global_connect", file)
+            else:
+                self.add("tool", "openroad", "global_connect", file)
 
-    def add_openroad_power_grid_file(self, file, clobber: bool = False):
+    def add_openroad_power_grid_file(self, file: Union[str, List[str]], dataroot: str = None,
+                                     clobber: bool = False):
         """
         Adds a power grid file to the list.
 
         Args:
-            file (str): The path to the power grid file.
-            clobber (bool): Overwrite existing values
+            file (Union[str, List[str]]): The path to the power grid file or a list of paths.
+            dataroot (str, optional): The data root directory. Defaults to the active package.
+            clobber (bool, optional): If True, overwrites existing values. Defaults to False.
         """
-        if clobber:
-            self.set("tool", "openroad", "power_grid", file)
-        else:
-            self.add("tool", "openroad", "power_grid", file)
+        if not dataroot:
+            dataroot = self._get_active("package")
+        with self.active_dataroot(dataroot):
+            if clobber:
+                self.set("tool", "openroad", "power_grid", file)
+            else:
+                self.add("tool", "openroad", "power_grid", file)
 
-    def add_openroad_scan_chain_cells(self, cells, clobber: bool = False):
+    def add_openroad_scan_chain_cells(self, cells: Union[str, List[str]], clobber: bool = False):
         """
-        Adds a list of scan chain cells.
+        Adds scan chain cells to the list.
 
         Args:
-            cells (list): A list of cell names.
-            clobber (bool): Overwrite existing values
+            cells (Union[str, List[str]]): A cell name or a list of cell names.
+            clobber (bool, optional): If True, overwrites existing values. Defaults to False.
         """
         if clobber:
             self.set("tool", "openroad", "scan_chain_cells", cells)
         else:
             self.add("tool", "openroad", "scan_chain_cells", cells)
 
-    def add_openroad_multibit_flipflops(self, cells, clobber: bool = False):
+    def add_openroad_multibit_flipflops(self, cells: Union[str, List[str]], clobber: bool = False):
         """
-        Adds a list of multibit flip-flop cells.
+        Adds multibit flip-flop cells to the list.
 
         Args:
-            cells (list): A list of cell names.
-            clobber (bool): Overwrite existing values
+            cells (Union[str, List[str]]): A cell name or a list of cell names.
+            clobber (bool, optional): If True, overwrites existing values. Defaults to False.
         """
         if clobber:
             self.set("tool", "openroad", "multibit_ff_cells", cells)
