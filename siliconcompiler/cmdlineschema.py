@@ -4,7 +4,7 @@ import sys
 
 import os.path
 
-from typing import Set
+from typing import Set, List
 
 from siliconcompiler.schema import BaseSchema, EditableSchema, Parameter, Scope, PerNode
 from siliconcompiler.schema.utils import trim
@@ -268,7 +268,13 @@ class CommandLineSchema(BaseSchema):
         class NewSchema(BaseSchema, CommandLineSchema):
             creates a new class with the commandline options available
     '''
-    def _add_commandline_argument(self, name, type, help, switch, defvalue=None, **kwargs):
+    def _add_commandline_argument(self,
+                                  name: str,
+                                  type: str,
+                                  help: str,
+                                  switch: List[str] = None,
+                                  defvalue=None,
+                                  **kwargs):
         '''
         Adds a parameter to the commandline definition.
 
@@ -289,6 +295,16 @@ class CommandLineSchema(BaseSchema):
         kwargs["pernode"] = PerNode.NEVER
         kwargs["shorthelp"] = shorthelp
         kwargs["help"] = help
+
+        if switch is None:
+            switch = f"-{name} <{type}>"
+
+        if switch is not ... and not switch:
+            raise ValueError("switch is required")
+
+        if switch is ...:
+            switch = None
+
         kwargs["switch"] = switch
         if defvalue is not None:
             kwargs["defvalue"] = defvalue
@@ -386,7 +402,7 @@ class CommandLineSchema(BaseSchema):
         if use_sources:
             # Add commandline key for input files
             for s in (schema, keyschema):
-                s._add_commandline_argument("input", "[file]", "input files", None)
+                s._add_commandline_argument("input", "[file]", "input files", ...)
 
         # Get logger if available
         logger = getattr(schema, "logger", None)

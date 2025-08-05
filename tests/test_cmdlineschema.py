@@ -173,3 +173,23 @@ def test_custom_args(schema, monkeypatch):
     assert new_schema.get('test5') == 3
     assert new_schema.get('test6') == "CFG_ASIC=1"
     assert new_schema.get('test7') == "/path"
+
+
+def test_add_cmdarg_with_auto_switch(schema):
+    schema = schema()
+    schema._add_commandline_argument("string", "str", "help string")
+    assert schema.getkeys("cmdarg") == ("string",)
+    assert schema.get("cmdarg", "string", field="switch") == ["-string <str>"]
+
+
+def test_add_cmdarg_with_no_switch(schema):
+    schema = schema()
+    schema._add_commandline_argument("string", "str", "help string", ...)
+    assert schema.getkeys("cmdarg") == ("string",)
+    assert schema.get("cmdarg", "string", field="switch") == []
+
+
+def test_add_cmdarg_with_missing_switch(schema):
+    schema = schema()
+    with pytest.raises(ValueError, match="switch is required"):
+        schema._add_commandline_argument("string", "str", "help string", "")
