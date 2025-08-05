@@ -19,7 +19,7 @@ from siliconcompiler.tools.bambu import convert
 from siliconcompiler import StdCellLibrarySchema
 
 
-class BambuStdCellLibrarySchema(StdCellLibrarySchema):
+class BambuStdCellLibrary(StdCellLibrarySchema):
     """
     Schema for a standard cell library specifically for the Bambu tool.
 

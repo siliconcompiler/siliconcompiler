@@ -1368,6 +1368,7 @@ class TaskSchema(NamedSchema):
     # Tool settings
     ###############################################################
     def set_exe(self, exe: str = None, vswitch: List[str] = None, format: str = None,
+                step: str = None, index: str = None,
                 clobber: bool = False):
         rets = []
         if exe:
@@ -1621,13 +1622,7 @@ class ShowTaskSchema(TaskSchema):
         classes = recurse(cls)
         # Support non-SC defined tasks
         for plugin in utils.get_plugins('showtask'):  # TODO rename
-            new_clss = plugin(cls)
-            if isinstance(new_clss, (list, set, tuple)):
-                for new_cls in new_clss:
-                    if cls.__check_task(new_cls):
-                        classes.add(new_cls)
-            else:
-                raise TypeError("showtask entrypoint must return a set")
+            plugin()
 
         if not classes:
             return
