@@ -732,6 +732,8 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
 
         # Done: try to fetch any node results which still haven't been retrieved.
         self.__logger.info('Remote job completed! Retrieving final results...')
+        if not self.__setup_information_fetched:
+            self.__schedule_fetch_result(None)
         for node, node_info in self.__node_information.items():
             if not node_info["fetched"]:
                 self.__schedule_fetch_result(node)
