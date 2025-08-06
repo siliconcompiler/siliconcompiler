@@ -58,7 +58,7 @@ with open(api_dir / 'get_results.json') as schema:
     validate_get_results = fastjsonschema.compile(json.loads(schema.read()))
 
 
-class Server:
+class Server(ServerSchema):
     """
     The core class for the siliconcompiler 'gateway' server, which can run
     locally or on a remote host. Its job is to process requests for
@@ -75,6 +75,8 @@ class Server:
         Init method for Server object
         '''
 
+        super().__init__()
+
         # Initialize logger
         self.logger = log.getLogger(f'sc_server_{id(self)}')
         handler = log.StreamHandler(stream=sys.stdout)
@@ -83,17 +85,10 @@ class Server:
         self.logger.addHandler(handler)
         self.logger.setLevel(schema_utils.translate_loglevel(loglevel))
 
-        self.schema = ServerSchema()
-
         # Set up a dictionary to track running jobs.
         self.sc_jobs_lock = threading.Lock()
         self.sc_jobs = {}
         self.sc_chip_lookup = {}
-
-        # Register callbacks
-        TaskScheduler.register_callback("pre_run", self.__run_start)
-        TaskScheduler.register_callback("pre_node", self.__node_start)
-        TaskScheduler.register_callback("post_node", self.__node_end)
 
     def __run_start(self, chip):
         flow = chip.get("option", "flow")
@@ -144,7 +139,11 @@ class Server:
 
     def run(self):
         if not os.path.exists(self.nfs_mount):
+            os.makedirs(self.nfs_mount, exist_ok=True)
+        if not os.path.exists(self.nfs_mount):
             raise FileNotFoundError(f'{self.nfs_mount} could not be found.')
+        with open(os.path.join(self.nfs_mount, ".gitignore"), "w") as f:
+            f.write("*")
 
         self.logger.info(f"Running in: {self.nfs_mount}")
         # If authentication is enabled, try connecting to the SQLite3 database.
@@ -177,6 +176,11 @@ class Server:
                                     "file in the server's working directory. "
                                     "(User : Key) mappings were not imported.")
 
+        # Register callbacks
+        TaskScheduler.register_callback("pre_run", self.__run_start)
+        TaskScheduler.register_callback("pre_node", self.__node_start)
+        TaskScheduler.register_callback("post_node", self.__node_end)
+
         # Create a minimal web server to process the 'remote_run' API call.
         self.app = web.Application()
         self.app.add_routes([
@@ -194,21 +198,6 @@ class Server:
 
         # Start the async server.
         web.run_app(self.app, port=self.get('option', 'port'))
-
-    def create_cmdline(self, progname, description=None, switchlist=None, additional_args=None):
-        def print_banner():
-            print(banner)
-            print("Version:", Server.__version__, "\n")
-            print("-" * 80)
-
-        return self.schema.create_cmdline(
-            progname=progname,
-            description=description,
-            switchlist=switchlist,
-            additional_args=additional_args,
-            version=Server.__version__,
-            print_banner=print_banner,
-            logger=self.logger)
 
     ####################
     async def handle_remote_run(self, request):
@@ -544,18 +533,3 @@ class Server:
     @property
     def checkinterval(self):
         return self.get('option', 'checkinterval')
-
-    def get(self, *keypath, field='value'):
-        return self.schema.get(*keypath, field=field)
-
-    def set(self, *args, field='value', clobber=True):
-        keypath = args[:-1]
-        value = args[-1]
-
-        if keypath == ['option', 'loglevel'] and field == 'value':
-            self.logger.setLevel(schema_utils.translate_loglevel(value))
-
-        self.schema.set(*keypath, value, field=field, clobber=clobber)
-
-    def write_configuration(self, filepath):
-        self.schema.write_manifest(filepath)
