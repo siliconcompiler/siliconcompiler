@@ -37,11 +37,13 @@ class JobStatus():
 
 
 from siliconcompiler.remote.client import Client, ConfigureClient # noqa E402
+from siliconcompiler.remote.server import Server # noqa E402
 
 
 __all__ = [
     "NodeStatus",
     "JobStatus",
     "Client",
-    "ConfigureClient"
+    "ConfigureClient",
+    "Server"
 ]

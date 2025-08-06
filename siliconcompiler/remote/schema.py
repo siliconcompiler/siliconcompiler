@@ -1,13 +1,13 @@
 from siliconcompiler.schema import BaseSchema
-from siliconcompiler.cmdlineschema import CommandLineSchemaTmp
+from siliconcompiler.cmdlineschema import CommandLineSchema
 from siliconcompiler.schema import EditableSchema
 from siliconcompiler.schema import Parameter, Scope
 
 
-SCHEMA_VERSION = '0.0.2'
+SCHEMA_VERSION = '0.0.3'
 
 
-class ServerSchema(BaseSchema, CommandLineSchemaTmp):
+class ServerSchema(CommandLineSchema, BaseSchema):
     def __init__(self):
         super().__init__()
 
@@ -57,7 +57,7 @@ class ServerSchema(BaseSchema, CommandLineSchemaTmp):
             Parameter(
                 'dir',
                 scope=Scope.GLOBAL,
-                defvalue='/nfs/sc_compute',
+                defvalue='./sc_compute',
                 require='all',
                 shorthelp="Directory of mounted shared NFS storage.",
                 switch="-nfsmount <dir>",
@@ -77,22 +77,6 @@ class ServerSchema(BaseSchema, CommandLineSchemaTmp):
                 example=["cli: -auth true",
                          "api: server.set('option', 'auth', True)"],
                 help="""Flag determining whether to enable authenticated and encrypted jobs."""))
-
-        schema.insert(
-            'option', 'cfg',
-            Parameter(
-                '[file]',
-                scope=Scope.JOB,
-                shorthelp="Configuration manifest",
-                switch="-cfg <file>",
-                example=["cli: -cfg mypdk.json",
-                         "api: chip.set('option', 'cfg', 'mypdk.json')"],
-                help="""
-                List of filepaths to JSON formatted schema configuration
-                manifests. The files are read in automatically when using the
-                command line application. In Python programs, JSON manifests
-                can be merged into the current working manifest using the
-                read_manifest() method."""))
 
         schema.insert(
             'option', 'loglevel',
