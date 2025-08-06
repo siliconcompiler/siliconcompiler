@@ -1,26 +1,29 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 
 import json
+import multiprocessing
 import os
 import requests
 import shutil
 import time
-import urllib.parse
 import tarfile
 import tempfile
-import multiprocessing
 
 import os.path
+import urllib.parse
 
 from siliconcompiler import utils, SiliconCompilerError
 from siliconcompiler import NodeStatus as SCNodeStatus
+
 from siliconcompiler._metadata import default_server
-from siliconcompiler.remote import JobStatus, NodeStatus
-from siliconcompiler.report.dashboard import DashboardType
 from siliconcompiler.flowgraph import RuntimeFlowgraph
+from siliconcompiler.report.dashboard import DashboardType
 from siliconcompiler.scheduler import Scheduler
 from siliconcompiler.schema import Journal
+
 from siliconcompiler.utils.logging import get_console_formatter
+
+from siliconcompiler.remote import JobStatus, NodeStatus
 
 # Step name to use while logging
 remote_step_name = 'remote'
