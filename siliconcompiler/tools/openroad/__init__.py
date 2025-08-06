@@ -42,6 +42,9 @@ class OpenROADPDK(PDKSchema):
         self.define_tool_parameter("openroad", "globalroutingderating", "{(str,float)}",
                                    "A set of layer-specific derating factors for global routing.")
 
+        self.define_tool_parameter("openroad", "rcx_maxlayer", "str",
+                                   "Max layer to generate an OpenRCX extraction bench for.")
+
     def set_openroad_rclayers(self, signal: str = None, clock: str = None):
         """
         Sets the signal and/or clock layers for RC extraction.
@@ -102,6 +105,18 @@ class OpenROADPDK(PDKSchema):
                 self.add("tool", "openroad", "pin_layer_horizontal", horizontal)
             if vertical:
                 self.add("tool", "openroad", "pin_layer_vertical", vertical)
+
+    def set_openroad_rcxmaxlayer(self, layer: str):
+        """
+        Sets the maximum layer for OpenRCX extraction bench generation.
+
+        This parameter defines the highest routing layer to be considered during
+        RC extraction.
+
+        Args:
+            layer (str): The name of the top-most layer to be used for RC extraction.
+        """
+        self.set("tool", "openroad", "rcx_maxlayer", layer)
 
 
 class OpenROADStdCellLibrary(StdCellLibrarySchema):
