@@ -274,6 +274,12 @@ class Server(ServerSchema):
         # Remove 'remote' JSON config value to run locally on compute node.
         chip.set('option', 'remote', False)
 
+        # Mark as nodisplay since it is a remote run
+        chip.set('option', 'nodisplay', True)
+
+        # Mark as quite to make server logging easier
+        chip.set('option', 'quiet', True)
+
         # Log job received
         self.logger.info(f"Received job: {job_hash}")
 
