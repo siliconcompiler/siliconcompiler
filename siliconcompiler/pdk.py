@@ -374,6 +374,18 @@ class PDKSchema(ToolLibrarySchema):
         else:
             return self.add("pdk", "displayfileset", tool, fileset)
 
+    def add_devmodelfileset(self, tool: str, type: str, fileset: str = None,
+                            clobber: bool = False):
+        if not fileset:
+            fileset = self._get_active("fileset")
+
+        self._assert_fileset(fileset)
+
+        if clobber:
+            return self.set("pdk", "devmodelfileset", tool, type, fileset)
+        else:
+            return self.add("pdk", "devmodelfileset", tool, type, fileset)
+
     def add_pexmodelfileset(self, tool: str, corner: str, fileset: str = None,
                             clobber: bool = False):
         if not fileset:
@@ -385,6 +397,18 @@ class PDKSchema(ToolLibrarySchema):
             return self.set("pdk", "pexmodelfileset", tool, corner, fileset)
         else:
             return self.add("pdk", "pexmodelfileset", tool, corner, fileset)
+
+    def add_runsetfileset(self, type: str, tool: str, name: str, fileset: str = None,
+                          clobber: bool = False):
+        if not fileset:
+            fileset = self._get_active("fileset")
+
+        self._assert_fileset(fileset)
+
+        if clobber:
+            return self.set("pdk", type, "runsetfileset", name, fileset)
+        else:
+            return self.add("pdk", type, "runsetfileset", name, fileset)
 
     @classmethod
     def _getdict_type(cls) -> str:
