@@ -2933,7 +2933,7 @@ class Chip:
             >>> run()
             Runs the execution flow defined by the flowgraph dictionary.
         '''
-        from siliconcompiler.remote.client import ClientScheduler
+        from siliconcompiler.remote import ClientScheduler
 
         try:
             if self.get('option', 'remote'):

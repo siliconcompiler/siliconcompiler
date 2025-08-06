@@ -1,6 +1,6 @@
 import pytest
 from siliconcompiler.apps import sc_server
-from siliconcompiler.remote.server import Server
+from siliconcompiler.remote import Server
 
 
 def test_server_app(monkeypatch):

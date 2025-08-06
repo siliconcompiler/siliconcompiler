@@ -1,32 +1,35 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 
-from aiohttp import web
 import copy
-import threading
+import fastjsonschema
 import json
-import logging as log
+import logging
 import os
 import shutil
-import uuid
-import tarfile
 import sys
-import fastjsonschema
+import tarfile
+import threading
+import uuid
+
+from aiohttp import web
 from pathlib import Path
 from fastjsonschema import JsonSchemaException
 
 import os.path
 
 from siliconcompiler import Chip, Schema
-from siliconcompiler.schema import utils as schema_utils
-from siliconcompiler._metadata import version as sc_version
-from siliconcompiler.schema import SCHEMA_VERSION as sc_schema_version
-from siliconcompiler.remote.schema import ServerSchema
-from siliconcompiler.remote import banner, JobStatus
 from siliconcompiler import NodeStatus as SCNodeStatus
-from siliconcompiler.remote import NodeStatus
+from siliconcompiler._metadata import version as sc_version
+
+from siliconcompiler.schema import utils as schema_utils
+from siliconcompiler.schema import SCHEMA_VERSION as sc_schema_version
+
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.scheduler import TaskScheduler
+
+from siliconcompiler.remote import JobStatus, NodeStatus
+from siliconcompiler.remote.schema import ServerSchema
 
 
 # Compile validation code for API request bodies.
@@ -78,9 +81,9 @@ class Server(ServerSchema):
         super().__init__()
 
         # Initialize logger
-        self.logger = log.getLogger(f'sc_server_{id(self)}')
-        handler = log.StreamHandler(stream=sys.stdout)
-        formatter = log.Formatter('%(asctime)s | %(levelname)-8s | %(message)s')
+        self.logger = logging.getLogger(f'sc_server_{uuid.uuid4().hex}')
+        handler = logging.StreamHandler(stream=sys.stdout)
+        formatter = logging.Formatter('%(asctime)s | %(levelname)-8s | %(message)s')
         handler.setFormatter(formatter)
         self.logger.addHandler(handler)
         self.logger.setLevel(schema_utils.translate_loglevel(loglevel))
