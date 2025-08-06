@@ -3,7 +3,7 @@ import sys
 
 from siliconcompiler import Chip
 from siliconcompiler import SiliconCompilerError
-from siliconcompiler.remote.client import Client, ConfigureClient
+from siliconcompiler.remote import Client, ConfigureClient
 
 
 def main():

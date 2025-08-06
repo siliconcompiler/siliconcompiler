@@ -1,26 +1,29 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 
 import json
+import multiprocessing
 import os
 import requests
 import shutil
 import time
-import urllib.parse
 import tarfile
 import tempfile
-import multiprocessing
 
 import os.path
+import urllib.parse
 
 from siliconcompiler import utils, SiliconCompilerError
 from siliconcompiler import NodeStatus as SCNodeStatus
+
 from siliconcompiler._metadata import default_server
-from siliconcompiler.remote import JobStatus, NodeStatus
-from siliconcompiler.report.dashboard import DashboardType
 from siliconcompiler.flowgraph import RuntimeFlowgraph
+from siliconcompiler.report.dashboard import DashboardType
 from siliconcompiler.scheduler import Scheduler
 from siliconcompiler.schema import Journal
+
 from siliconcompiler.utils.logging import get_console_formatter
+
+from siliconcompiler.remote import JobStatus, NodeStatus
 
 # Step name to use while logging
 remote_step_name = 'remote'
@@ -732,6 +735,8 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
 
         # Done: try to fetch any node results which still haven't been retrieved.
         self.__logger.info('Remote job completed! Retrieving final results...')
+        if not self.__setup_information_fetched:
+            self.__schedule_fetch_result(None)
         for node, node_info in self.__node_information.items():
             if not node_info["fetched"]:
                 self.__schedule_fetch_result(node)

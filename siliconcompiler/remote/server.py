@@ -1,32 +1,35 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 
-from aiohttp import web
 import copy
-import threading
+import fastjsonschema
 import json
-import logging as log
+import logging
 import os
 import shutil
-import uuid
-import tarfile
 import sys
-import fastjsonschema
+import tarfile
+import threading
+import uuid
+
+from aiohttp import web
 from pathlib import Path
 from fastjsonschema import JsonSchemaException
 
 import os.path
 
 from siliconcompiler import Chip, Schema
-from siliconcompiler.schema import utils as schema_utils
-from siliconcompiler._metadata import version as sc_version
-from siliconcompiler.schema import SCHEMA_VERSION as sc_schema_version
-from siliconcompiler.remote.schema import ServerSchema
-from siliconcompiler.remote import banner, JobStatus
 from siliconcompiler import NodeStatus as SCNodeStatus
-from siliconcompiler.remote import NodeStatus
+from siliconcompiler._metadata import version as sc_version
+
+from siliconcompiler.schema import utils as schema_utils
+from siliconcompiler.schema import SCHEMA_VERSION as sc_schema_version
+
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.scheduler import TaskScheduler
+
+from siliconcompiler.remote import JobStatus, NodeStatus
+from siliconcompiler.remote.schema import ServerSchema
 
 
 # Compile validation code for API request bodies.
@@ -58,7 +61,7 @@ with open(api_dir / 'get_results.json') as schema:
     validate_get_results = fastjsonschema.compile(json.loads(schema.read()))
 
 
-class Server:
+class Server(ServerSchema):
     """
     The core class for the siliconcompiler 'gateway' server, which can run
     locally or on a remote host. Its job is to process requests for
@@ -75,25 +78,20 @@ class Server:
         Init method for Server object
         '''
 
+        super().__init__()
+
         # Initialize logger
-        self.logger = log.getLogger(f'sc_server_{id(self)}')
-        handler = log.StreamHandler(stream=sys.stdout)
-        formatter = log.Formatter('%(asctime)s | %(levelname)-8s | %(message)s')
+        self.logger = logging.getLogger(f'sc_server_{uuid.uuid4().hex}')
+        handler = logging.StreamHandler(stream=sys.stdout)
+        formatter = logging.Formatter('%(asctime)s | %(levelname)-8s | %(message)s')
         handler.setFormatter(formatter)
         self.logger.addHandler(handler)
         self.logger.setLevel(schema_utils.translate_loglevel(loglevel))
-
-        self.schema = ServerSchema()
 
         # Set up a dictionary to track running jobs.
         self.sc_jobs_lock = threading.Lock()
         self.sc_jobs = {}
         self.sc_chip_lookup = {}
-
-        # Register callbacks
-        TaskScheduler.register_callback("pre_run", self.__run_start)
-        TaskScheduler.register_callback("pre_node", self.__node_start)
-        TaskScheduler.register_callback("post_node", self.__node_end)
 
     def __run_start(self, chip):
         flow = chip.get("option", "flow")
@@ -144,7 +142,11 @@ class Server:
 
     def run(self):
         if not os.path.exists(self.nfs_mount):
+            os.makedirs(self.nfs_mount, exist_ok=True)
+        if not os.path.exists(self.nfs_mount):
             raise FileNotFoundError(f'{self.nfs_mount} could not be found.')
+        with open(os.path.join(self.nfs_mount, ".gitignore"), "w") as f:
+            f.write("*")
 
         self.logger.info(f"Running in: {self.nfs_mount}")
         # If authentication is enabled, try connecting to the SQLite3 database.
@@ -177,6 +179,11 @@ class Server:
                                     "file in the server's working directory. "
                                     "(User : Key) mappings were not imported.")
 
+        # Register callbacks
+        TaskScheduler.register_callback("pre_run", self.__run_start)
+        TaskScheduler.register_callback("pre_node", self.__node_start)
+        TaskScheduler.register_callback("post_node", self.__node_end)
+
         # Create a minimal web server to process the 'remote_run' API call.
         self.app = web.Application()
         self.app.add_routes([
@@ -194,21 +201,6 @@ class Server:
 
         # Start the async server.
         web.run_app(self.app, port=self.get('option', 'port'))
-
-    def create_cmdline(self, progname, description=None, switchlist=None, additional_args=None):
-        def print_banner():
-            print(banner)
-            print("Version:", Server.__version__, "\n")
-            print("-" * 80)
-
-        return self.schema.create_cmdline(
-            progname=progname,
-            description=description,
-            switchlist=switchlist,
-            additional_args=additional_args,
-            version=Server.__version__,
-            print_banner=print_banner,
-            logger=self.logger)
 
     ####################
     async def handle_remote_run(self, request):
@@ -284,6 +276,15 @@ class Server:
 
         # Remove 'remote' JSON config value to run locally on compute node.
         chip.set('option', 'remote', False)
+
+        # Mark as nodisplay since it is a remote run
+        chip.set('option', 'nodisplay', True)
+
+        # Mark as quite to make server logging easier
+        chip.set('option', 'quiet', True)
+
+        # Log job received
+        self.logger.info(f"Received job: {job_hash}")
 
         # Run the job with the configured clustering option. (Non-blocking)
         job_proc = threading.Thread(target=self.remote_sc,
@@ -544,18 +545,3 @@ class Server:
     @property
     def checkinterval(self):
         return self.get('option', 'checkinterval')
-
-    def get(self, *keypath, field='value'):
-        return self.schema.get(*keypath, field=field)
-
-    def set(self, *args, field='value', clobber=True):
-        keypath = args[:-1]
-        value = args[-1]
-
-        if keypath == ['option', 'loglevel'] and field == 'value':
-            self.logger.setLevel(schema_utils.translate_loglevel(value))
-
-        self.schema.set(*keypath, value, field=field, clobber=clobber)
-
-    def write_configuration(self, filepath):
-        self.schema.write_manifest(filepath)

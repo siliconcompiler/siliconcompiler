@@ -375,7 +375,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             >>> run()
             Runs the execution flow defined by the flowgraph dictionary.
         '''
-        from siliconcompiler.remote.client import ClientScheduler
+        from siliconcompiler.remote import ClientScheduler
 
         # Start dashboard
         if self.__dashboard:

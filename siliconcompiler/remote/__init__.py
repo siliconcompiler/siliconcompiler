@@ -36,12 +36,15 @@ class JobStatus():
     UNKNOWN = "unknown"
 
 
-from siliconcompiler.remote.client import Client, ConfigureClient # noqa E402
+from siliconcompiler.remote.client import Client, ConfigureClient, ClientScheduler # noqa E402
+from siliconcompiler.remote.server import Server # noqa E402
 
 
 __all__ = [
     "NodeStatus",
     "JobStatus",
     "Client",
-    "ConfigureClient"
+    "ConfigureClient",
+    "ClientScheduler",
+    "Server"
 ]
