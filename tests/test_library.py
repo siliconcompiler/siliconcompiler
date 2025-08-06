@@ -277,7 +277,8 @@ def test_stdlib_asic_keys():
         ('pexcornerfileset', 'default'),
         ('aprfileset',),
         ('site',),
-        ('pdk',)
+        ('pdk',),
+        ('stackup',)
     }
 
 
@@ -415,20 +416,44 @@ def test_add_asic_site():
     assert lib.get("asic", "site") == ["sc7p5site"]
 
 
-def test_set_asic_pdk():
+def test_add_asic_pdk():
     lib = StdCellLibrarySchema("lib")
     pdk = PDKSchema("test")
-    lib.set_asic_pdk(pdk)
+    pdk.set_stackup("10M")
+    lib.add_asic_pdk(pdk)
     assert lib.get("asic", "pdk") == "test"
+    assert lib.get("asic", "stackup") == set(["10M"])
 
 
-def test_set_asic_pdk_string():
+def test_add_asic_pdk_notdefault():
     lib = StdCellLibrarySchema("lib")
-    lib.set_asic_pdk("test")
+    pdk = PDKSchema("test")
+    lib.add_asic_pdk(pdk, default=False)
+    assert lib.get("asic", "pdk") is None
+
+
+def test_add_asic_pdk_string():
+    lib = StdCellLibrarySchema("lib")
+    lib.add_asic_pdk("test")
     assert lib.get("asic", "pdk") == "test"
 
 
-def test_set_asic_pdk_string_invalid():
+def test_add_asic_pdk_string_not_default():
+    lib = StdCellLibrarySchema("lib")
+    with pytest.raises(TypeError, match="pdk must be a PDK object"):
+        lib.add_asic_pdk("test", default=False)
+    assert lib.get("asic", "pdk") is None
+
+
+def test_add_asic_pdk_string_invalid():
     lib = StdCellLibrarySchema("lib")
     with pytest.raises(TypeError, match="pdk must be a PDK object or string"):
-        lib.set_asic_pdk(1)
+        lib.add_asic_pdk(1)
+
+
+def test_add_asic_stackup():
+    lib = StdCellLibrarySchema("lib")
+    lib.add_asic_stackup("10M")
+    assert lib.get("asic", "stackup") == set(["10M"])
+    lib.add_asic_stackup("11M")
+    assert lib.get("asic", "stackup") == set(["10M", "11M"])

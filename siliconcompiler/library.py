@@ -108,6 +108,16 @@ class StdCellLibrarySchema(ToolLibrarySchema, DependencySchema):
                 help=trim("""""")))
 
         schema.insert(
+            "asic", "stackup",
+            Parameter(
+                "{str}",
+                scope=Scope.GLOBAL,
+                shorthelp="ASIC: ",
+                example=[
+                    "api: schema.set('asic', 'libcornerfileset', 'slow', 'nldm', 'timing.slow')"],
+                help=trim("""Set of supported stackups""")))
+
+        schema.insert(
             'asic', 'libcornerfileset', 'default', 'default',
             Parameter(
                 '{str}',
@@ -173,23 +183,41 @@ class StdCellLibrarySchema(ToolLibrarySchema, DependencySchema):
                 example=["api: schema.set('asic', 'site', 'Site_12T')"],
                 help="Site names for a given library architecture."))
 
-    def set_asic_pdk(self, pdk):
+    def add_asic_pdk(self, pdk, default: bool = True):
         """
-        Set the PDK associated with this library
+        Adds the PDK associated with this library
 
         Args:
-            pdk (str or class:`PDKSchema`): pdk to associate
+            pdk (class:`PDKSchema`): pdk to associate
+            default (bool): if True, sets this PDK in [asic,pdk]
         """
         from siliconcompiler import PDKSchema
         if isinstance(pdk, PDKSchema):
             pdk_name = pdk.name
             self.add_dep(pdk)
-        elif isinstance(pdk, str):
-            pdk_name = pdk
-        else:
-            raise TypeError("pdk must be a PDK object or string")
 
-        return self.set("asic", "pdk", pdk_name)
+            if pdk.get("pdk", "stackup"):
+                # copy over stackup information
+                self.add_asic_stackup(pdk.get("pdk", "stackup"))
+        elif default:
+            if isinstance(pdk, str):
+                pdk_name = pdk
+            else:
+                raise TypeError("pdk must be a PDK object or string")
+        else:
+            raise TypeError("pdk must be a PDK object")
+
+        if default:
+            return self.set("asic", "pdk", pdk_name)
+
+    def add_asic_stackup(self, stackup: Union[str, List[str]]):
+        """
+        Set the stackups supported by this library
+
+        Args:
+            stackup (str or list of str): stackups supported
+        """
+        return self.add("asic", "stackup", stackup)
 
     def add_asic_libcornerfileset(self, corner: str, model: str, fileset: str = None):
         """
@@ -197,7 +225,7 @@ class StdCellLibrarySchema(ToolLibrarySchema, DependencySchema):
 
         Args:
             corner (str): name of the timing or parasitic corner
-            model(str): type of delay modeling used, eg. ccs, nldm, etc.
+            model (str): type of delay modeling used, eg. ccs, nldm, etc.
             fileset (str): name of the fileset
         """
         if not fileset:
