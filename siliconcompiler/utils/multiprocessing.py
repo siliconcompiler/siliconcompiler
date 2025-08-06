@@ -1,3 +1,4 @@
+import atexit
 import multiprocessing
 
 
@@ -20,6 +21,10 @@ class MPManager(metaclass=_ManagerSingleton):
     def _init_singleton(self):
         # Manager to thread data
         self.__manager = multiprocessing.Manager()
+        atexit.register(self.stop)
+
+    def stop(self):
+        self.__manager.shutdown()
 
     @staticmethod
     def get_manager():
