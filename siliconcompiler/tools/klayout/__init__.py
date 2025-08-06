@@ -19,6 +19,9 @@ class KLayoutPDK(PDKSchema):
         self.define_tool_parameter("klayout", "hide_layers", "{str}",
                                    "A list of layer names to initially hide when "
                                    "displaying a layout.")
+        self.define_tool_parameter("klayout", "drc_params", "{(str,str)}",
+                                   "Set of parameters to include for a particular drc deck, in the "
+                                   "form (deck name, parameter).")
 
     def set_klayout_units(self, units: float):
         """
@@ -42,6 +45,24 @@ class KLayoutPDK(PDKSchema):
             self.set("tool", "klayout", "hide_layers", layer)
         else:
             self.add("tool", "klayout", "hide_layers", layer)
+
+    def add_klayout_drcparam(self, deck: str, param: Union[str, List[str]], clobber: bool = False):
+        """
+        Adds one or more parameter to the DRC deck definition.
+
+        Args:
+            deck (str): name of the DRC deck.
+            param (Union[str, List[str]]): Parameters for a the specified deck.
+            clobber (bool, optional): If True, overwrites the existing list of parameters.
+                                      If False, appends to the list. Defaults to False.
+        """
+        if isinstance(param, str):
+            param = [param]
+        if clobber:
+            self.unset("tool", "klayout", "drc_params")
+
+        for p in param:
+            self.add("tool", "klayout", "drc_params", (deck, p))
 
 
 class KLayoutLibrary(StdCellLibrarySchema):
