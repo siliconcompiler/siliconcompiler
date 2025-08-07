@@ -276,7 +276,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             error = True
         else:
             # Assert design is a library
-            if design not in self.getkeys("library"):
+            if not self.has_library(design):
                 self.logger.error(f"{design} has not been loaded")
                 error = True
 
@@ -285,19 +285,19 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         if not filesets:
             self.logger.error("[option,fileset] has not been set")
             error = True
-        elif design:
+        elif design:  # Only check fileset in design if design is valid
             # Assert fileset is in design
-            design_obj = self.design
+            design_obj = self.design  # This is a mock object
             for fileset in filesets:
-                if fileset not in design_obj.getkeys("fileset"):
+                if not design_obj.has_fileset(fileset):
                     self.logger.error(f"{fileset} is not a valid fileset in {design}")
                     error = True
 
             # Assert design has topmodule
-            fileset = filesets[0]
-            if fileset in design_obj.getkeys("fileset"):
-                if not design_obj.get_topmodule(fileset):
-                    self.logger.error(f"topmodule has not been set in {design}/{fileset}")
+            # This check only happens if filesets are provided and design is valid
+            if filesets and design_obj.has_fileset(filesets[0]):
+                if not design_obj.get_topmodule(filesets[0]):
+                    self.logger.error(f"topmodule has not been set in {design}/{filesets[0]}")
                     error = True
 
         # Assert flow is set
@@ -307,20 +307,25 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             error = True
         else:
             if flow not in self.getkeys("flowgraph"):
-                self.logger.error(f"{flow} has not need loaded")
+                self.logger.error(f"{flow} has not been loaded")
                 error = True
 
         # Check that alias libraries exist
-        for src_lib, src_fileset, dst_lib, dst_fileset in self.get("option", "alias"):
+        # Default to an empty list if 'alias' is not set, to avoid TypeError
+        aliases = self.get("option", "alias") or []
+        for src_lib, src_fileset, dst_lib, dst_fileset in aliases:
             if not src_lib:
                 self.logger.error("source library in [option,alias] must be set")
                 error = True
                 continue
 
-            if src_lib not in self.getkeys("library"):
+            # If src_lib is not in getkeys("library"), skip further checks for this alias
+            # as the error would have been caught earlier if it was a 'design' check.
+            # This path is for aliases where src_lib itself might not be a primary design.
+            if not self.has_library(src_lib):
                 continue
 
-            if src_fileset not in self.getkeys("library", src_lib, "fileset"):
+            if not self.get("library", src_lib, field="schema").has_fileset(src_fileset):
                 self.logger.error(f"{src_fileset} is not a valid fileset in {src_lib}")
                 error = True
                 continue
@@ -328,12 +333,13 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             if not dst_lib:
                 continue
 
-            if dst_lib not in self.getkeys("library"):
+            if not self.has_library(dst_lib):
                 self.logger.error(f"{dst_lib} has not been loaded")
                 error = True
                 continue
 
-            if dst_fileset and dst_fileset not in self.getkeys("library", dst_lib, "fileset"):
+            if dst_fileset and \
+                    not self.get("library", dst_lib, field="schema").has_fileset(dst_fileset):
                 self.logger.error(f"{dst_fileset} is not a valid fileset in {dst_lib}")
                 error = True
                 continue
