@@ -16,9 +16,9 @@ from siliconcompiler.flowgraph import FlowgraphSchema
 from siliconcompiler.tool import ToolSchema, TaskSchema, ASICTaskSchema
 from siliconcompiler.tool import ShowTaskSchema, ScreenshotTaskSchema
 from siliconcompiler.checklist import ChecklistSchema
-from siliconcompiler.asic import ASICSchema
 
 from siliconcompiler.project import Project
+from siliconcompiler.asic import ASICSchema, ASICProject
 
 from siliconcompiler.core import Chip
 
@@ -53,6 +53,7 @@ __all__ = [
     "PackageSchema",
 
     "Project",
+    "ASICProject",
     "StdCellLibrarySchema",
     "ToolLibrarySchema",
     "ASICTaskSchema",
