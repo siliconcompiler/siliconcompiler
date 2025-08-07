@@ -171,7 +171,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
     def set(self, *args, field='value', clobber=True, step=None, index=None):
         ret = super().set(*args, field=field, clobber=clobber, step=step, index=index)
 
-        # Sepcial handling keys
+        # Special handling keys
         if args[0:2] == ("option", "nodashboard"):
             self.__init_dashboard()
 
