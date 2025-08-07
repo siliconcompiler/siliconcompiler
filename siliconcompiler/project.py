@@ -104,6 +104,17 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                 example=["api: project.set('option', 'fileset', 'rtl')"],
                 help=trim("""List of filesets to use from the selected design library""")))
 
+        schema.insert(
+            "option", "nodashboard",
+            Parameter(
+                "bool",
+                defvalue=False,
+                scope=Scope.GLOBAL,
+                switch=["-nodashboard <bool>"],
+                shorthelp="Option: Disables the dashboard",
+                example=["api: project.set('option', 'nodashboard', True)"],
+                help=trim("""Disables the dashboard during execution""")))
+
         # Add history
         schema.insert("history", BaseSchema())
 
@@ -119,7 +130,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             else:
                 self.set_design(design)
 
-        self.__dashboard = CliDashboard(self)
+        self.__init_dashboard()
 
     def __init_logger(self):
         """
@@ -138,6 +149,33 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             self._logger_console.setFormatter(SCLoggerFormatter())
 
         self.__logger.addHandler(self._logger_console)
+
+    def __init_dashboard(self):
+        """
+        Initializes or disables the CLI dashboard for the project.
+
+        If the 'nodashboard' option is set to True, any existing dashboard
+        instance is stopped and set to None. Otherwise, a new `CliDashboard`
+        instance is created and assigned to the project.
+        """
+        if self.get("option", "nodashboard"):
+            try:
+                if self.__dashboard:
+                    self.__dashboard.stop()
+            except AttributeError:
+                pass
+            self.__dashboard = None
+        else:
+            self.__dashboard = CliDashboard(self)
+
+    def set(self, *args, field='value', clobber=True, step=None, index=None):
+        ret = super().set(*args, field=field, clobber=clobber, step=step, index=index)
+
+        # Sepcial handling keys
+        if args[0:2] == ("option", "nodashboard"):
+            self.__init_dashboard()
+
+        return ret
 
     @property
     def logger(self) -> logging.Logger:
@@ -352,6 +390,10 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         else:
             raise NotImplementedError
 
+        # Copy dependencies into project
+        self._import_dep(obj)
+
+    def _import_dep(self, obj: DependencySchema):
         # Copy dependencies into project
         if isinstance(obj, DependencySchema):
             for dep in obj.get_dep():
@@ -809,7 +851,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         self.__init_logger()
 
         # Restore dashboard
-        self.__dashboard = CliDashboard(self)
+        self.__init_dashboard()
 
     def get_filesets(self) -> List[Tuple[NamedSchema, str]]:
         """
