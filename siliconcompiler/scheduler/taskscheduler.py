@@ -128,18 +128,17 @@ class TaskScheduler:
 
         try:
             self.__run_loop()
+            TaskScheduler.__callbacks["post_run"](self.__chip)
         except KeyboardInterrupt:
             # exit immediately
             log_listener.stop()
             sys.exit(0)
-
-        TaskScheduler.__callbacks["post_run"](self.__chip)
-
-        # Cleanup logger
-        log_listener.stop()
-        self.__logger_console_handler.setFormatter(console_format)
-        job_log_handler.setFormatter(file_formatter)
-        self.__logger.addHandler(job_log_handler)
+        finally:
+            # Cleanup logger
+            log_listener.stop()
+            self.__logger_console_handler.setFormatter(console_format)
+            job_log_handler.setFormatter(file_formatter)
+            self.__logger.addHandler(job_log_handler)
 
     def __run_loop(self):
         self.__startTimes = {None: time.time()}
