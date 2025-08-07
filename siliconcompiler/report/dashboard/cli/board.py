@@ -352,7 +352,10 @@ class Board(metaclass=BoardSingleton):
 
                 return self._render_thread.is_alive()
         except BrokenPipeError:
-            return False
+            if not self._render_thread:
+                return False
+
+            return self._render_thread.is_alive()
 
     def end_of_run(self, chip):
         """
