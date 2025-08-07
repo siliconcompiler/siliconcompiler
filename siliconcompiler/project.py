@@ -11,8 +11,9 @@ import os.path
 from inspect import getfullargspec
 from typing import Set, Union, List, Tuple, Type, Callable, TextIO
 
-from siliconcompiler.schema import BaseSchema, NamedSchema, EditableSchema, Parameter
+from siliconcompiler.schema import BaseSchema, NamedSchema, EditableSchema, Parameter, Scope
 from siliconcompiler.schema.parametervalue import NodeListValue, NodeSetValue
+from siliconcompiler.schema.utils import trim
 
 from siliconcompiler import DesignSchema, LibrarySchema
 from siliconcompiler import FlowgraphSchema
@@ -36,6 +37,10 @@ from siliconcompiler.utils import FilterDirectories, get_file_ext
 
 class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
     """
+    The Project class is the core object in SiliconCompiler, representing a
+    complete hardware design project. It manages design parameters, libraries,
+    flowgraphs, metrics, and provides methods for compilation, data collection,
+    and reporting.
     """
 
     def __init__(self, design: Union[DesignSchema, str] = None):
@@ -55,11 +60,60 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
 
         # Add options
         schema_option_runtime(schema)
-        schema.insert("option", "env", "default", Parameter("str"))
+        schema.insert(
+            "option", "env", "default",
+            Parameter(
+                "str",
+                scope=Scope.GLOBAL,
+                shorthelp="Option: environment variables",
+                example=["api: project.set('option', 'env', 'PDK_HOME', '/disk/mypdk')"],
+                help=trim("""
+                    Certain tools and reference flows require global environment
+                    variables to be set. These variables can be managed externally or
+                    specified through the env variable.""")))
 
-        schema.insert("option", "design", Parameter("str", switch=["-design <str>"]))
-        schema.insert("option", "alias", Parameter("[(str,str,str,str)]"))
-        schema.insert("option", "fileset", Parameter("[str]"))
+        schema.insert(
+            "option", "design",
+            Parameter(
+                "str",
+                scope=Scope.GLOBAL,
+                shorthelp="Option: Design library name",
+                example=["cli: -design hello_world",
+                         "api: project.set('option', 'design', 'hello_world')"],
+                switch=["-design <str>"],
+                help="Name of the top level library"))
+        schema.insert(
+            "option", "alias",
+            Parameter(
+                "[(str,str,str,str)]",
+                scope=Scope.GLOBAL,
+                shorthelp="Option: Fileset alias mapping",
+                example=["api: project.set('option', 'alias', ('design', 'rtl', 'lambda', 'rtl')"],
+                help=trim("""List of filesets to alias during a run. When an alias is specific
+                    it will be used instead of the source fileset. It is useful when you
+                    want to substitute a fileset from one library with a fileset from another,
+                    without changing the original design's code.
+                    For example, you might use it to swap in a different version of an IP
+                    block or a specific test environment.""")))
+        schema.insert(
+            "option", "fileset",
+            Parameter(
+                "[str]",
+                scope=Scope.GLOBAL,
+                shorthelp="Option: Selected design filesets",
+                example=["api: project.set('option', 'fileset', 'rtl')"],
+                help=trim("""List of filesets to use from the selected design library""")))
+
+        schema.insert(
+            "option", "nodashboard",
+            Parameter(
+                "bool",
+                defvalue=False,
+                scope=Scope.GLOBAL,
+                switch=["-nodashboard <bool>"],
+                shorthelp="Option: Disables the dashboard",
+                example=["api: project.set('option', 'nodashboard', True)"],
+                help=trim("""Disables the dashboard during execution""")))
 
         # Add history
         schema.insert("history", BaseSchema())
@@ -76,9 +130,12 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             else:
                 self.set_design(design)
 
-        self.__dashboard = CliDashboard(self)
+        self.__init_dashboard()
 
     def __init_logger(self):
+        """
+        Initializes the project-specific logger.
+        """
         sc_logger = logging.getLogger("siliconcompiler")
         sc_logger.propagate = False
         self.__logger = sc_logger.getChild(f"project_{uuid.uuid4().hex}")
@@ -92,6 +149,33 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             self._logger_console.setFormatter(SCLoggerFormatter())
 
         self.__logger.addHandler(self._logger_console)
+
+    def __init_dashboard(self):
+        """
+        Initializes or disables the CLI dashboard for the project.
+
+        If the 'nodashboard' option is set to True, any existing dashboard
+        instance is stopped and set to None. Otherwise, a new `CliDashboard`
+        instance is created and assigned to the project.
+        """
+        if self.get("option", "nodashboard"):
+            try:
+                if self.__dashboard:
+                    self.__dashboard.stop()
+            except AttributeError:
+                pass
+            self.__dashboard = None
+        else:
+            self.__dashboard = CliDashboard(self)
+
+    def set(self, *args, field='value', clobber=True, step=None, index=None):
+        ret = super().set(*args, field=field, clobber=clobber, step=step, index=index)
+
+        # Special handling keys
+        if args[0:2] == ("option", "nodashboard"):
+            self.__init_dashboard()
+
+        return ret
 
     @property
     def logger(self) -> logging.Logger:
@@ -172,8 +256,14 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
 
     def __populate_deps(self, obj: DependencySchema = None):
         """
-        Ensure dependencies that are loaded contain pointers to the project
-        libraries
+        Ensures that all loaded dependencies (like libraries) within the project
+        contain correct internal pointers back to the project's libraries.
+        This is crucial for maintaining a consistent and navigable schema graph.
+
+        Args:
+            obj (DependencySchema, optional): An optional dependency object to
+                reset and populate. If None, all existing library dependencies
+                in the project are processed. Defaults to None.
         """
         if obj:
             obj._reset_deps()
@@ -184,6 +274,22 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                 obj._populate_deps(dep_map)
 
     def _from_dict(self, manifest, keypath, version=None):
+        """
+        Populates the project's schema from a dictionary representation.
+
+        This method is typically used during deserialization or when loading
+        a project state from a manifest. After loading the data, it ensures
+        that internal dependencies are correctly re-established.
+
+        Args:
+            manifest (dict): The dictionary containing the schema data.
+            keypath (list): The current keypath being processed (used internally
+                            for recursive loading).
+            version (str, optional): The schema version of the manifest. Defaults to None.
+
+        Returns:
+            Any: The result of the superclass's `_from_dict` method.
+        """
         ret = super()._from_dict(manifest, keypath, version)
 
         # Restore dependencies
@@ -192,6 +298,31 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         return ret
 
     def load_target(self, target: Union[str, Callable[["Project"], None]], **kwargs):
+        """
+        Loads and executes a target function or method within the project context.
+
+        This method allows dynamically loading a Python function (e.g., a target
+        defined in a separate module) and executing it. It performs type checking
+        to ensure the target function accepts a Project object as its first
+        required argument and that the current project instance is compatible
+        with the target's expected Project type.
+
+        Args:
+            target (Union[str, Callable[["Project"], None]]):
+                The target to load. This can be:
+                - A string in the format "module.submodule.function_name"
+                - A callable Python function that accepts a Project object as its
+                  first argument.
+            **kwargs: Arbitrary keyword arguments to pass to the target function.
+
+        Raises:
+            ValueError: If the target string path is incomplete, if the target
+                        signature does not meet the requirements (e.g., no
+                        required arguments, or more than one required argument).
+            TypeError: If the target does not take a Project object as its
+                       first argument, or if the current project instance is
+                       not compatible with the target's required Project type.
+        """
         if isinstance(target, str):
             if "." not in target:
                 raise ValueError("unable to process incomplete function path")
@@ -223,6 +354,23 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         target(self, **kwargs)
 
     def add_dep(self, obj):
+        """
+        Adds a dependency object (e.g., a DesignSchema, FlowgraphSchema, LibrarySchema,
+        or ChecklistSchema) to the project.
+
+        This method intelligently adds various types of schema objects to the
+        project's internal structure. It also handles recursive addition of
+        dependencies if the added object itself is a `DependencySchema`.
+
+        Args:
+            obj (Union[DesignSchema, FlowgraphSchema, LibrarySchema, ChecklistSchema,
+                       List, Set, Tuple]):
+                The dependency object(s) to add. Can be a single schema object
+                or a collection (list, set, tuple) of schema objects.
+
+        Raises:
+            NotImplementedError: If the type of the object is not supported.
+        """
         if isinstance(obj, (list, set, tuple)):
             for iobj in obj:
                 self.add_dep(iobj)
@@ -243,6 +391,10 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             raise NotImplementedError
 
         # Copy dependencies into project
+        self._import_dep(obj)
+
+    def _import_dep(self, obj: DependencySchema):
+        # Copy dependencies into project
         if isinstance(obj, DependencySchema):
             for dep in obj.get_dep():
                 self.add_dep(dep)
@@ -251,6 +403,17 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             self.__populate_deps(obj)
 
     def __import_flow(self, flow: FlowgraphSchema):
+        """
+        Imports a FlowgraphSchema into the project.
+
+        If the flowgraph with the given name is not already present, it is
+        added to the project's flowgraph schema. This method also instantiates
+        and registers all tasks defined within the imported flowgraph, ensuring
+        that the necessary tool and task schemas are available.
+
+        Args:
+            flow (FlowgraphSchema): The flowgraph schema object to import.
+        """
         if flow.name in self.getkeys("flowgraph"):
             return
 
@@ -267,6 +430,21 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                 edit_schema.insert("tool", task.tool(), "task", task.task(), task)
 
     def check_manifest(self) -> bool:
+        """
+        Performs a comprehensive check of the project's manifest (configuration)
+        for consistency and validity.
+
+        This method verifies that essential options like 'design', 'fileset',
+        and 'flow' are properly set. It also checks if the specified design
+        and flowgraph are loaded, and if filesets within the selected design
+        are valid and have a top module defined. Additionally, it validates
+        any defined fileset aliases, ensuring that source and destination
+        libraries and filesets exist. Error messages are logged for any
+        detected inconsistencies.
+
+        Returns:
+            bool: True if the manifest is valid and all checks pass, False otherwise.
+        """
         error = False
 
         # Assert design is set
@@ -411,7 +589,13 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
 
     def __getbuilddir(self) -> str:
         """
-        Returns the path to the build directory
+        Returns the absolute path to the project's build directory.
+
+        This directory is where all intermediate and final compilation
+        artifacts are stored.
+
+        Returns:
+            str: The absolute path to the build directory.
         """
         builddir = self.get('option', 'builddir')
         if os.path.isabs(builddir):
@@ -421,12 +605,26 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
 
     def getworkdir(self, step: str = None, index: Union[int, str] = None) -> str:
         """
-        Returns absolute path to the work directory for a given step/index,
-        if step/index not given, job directory is returned.
+        Returns the absolute path to the working directory for a given
+        step and index within the project's job structure.
+
+        The directory structure is typically:
+        `<build_dir>/<design_name>/<job_name>/<step>/<index>/`
+
+        If `step` and `index` are not provided, the job directory is returned.
+        If `step` is provided but `index` is not, index '0' is assumed.
 
         Args:
-            step (str): Node step name
-            index (str/int): Node index
+            step (str, optional): The name of the flowgraph step (e.g., 'syn', 'place').
+                                  Defaults to None.
+            index (Union[int, str], optional): The index of the task within the step.
+                                               Defaults to None (implies '0' if step is set).
+
+        Returns:
+            str: The absolute path to the specified working directory.
+
+        Raises:
+            ValueError: If the design name is not set in the project.
         """
         if not self.name:
             raise ValueError("name has not been set")
@@ -448,7 +646,13 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
 
     def getcollectiondir(self):
         """
-        Returns absolute path to collected files directory
+        Returns the absolute path to the directory where collected files are stored.
+
+        This directory is typically located within the project's working directory
+        and is used to consolidate files marked for collection.
+
+        Returns:
+            str: The absolute path to the collected files directory.
         """
         return os.path.join(self.getworkdir(), "sc_collected_files")
 
@@ -647,7 +851,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         self.__init_logger()
 
         # Restore dashboard
-        self.__dashboard = CliDashboard(self)
+        self.__init_dashboard()
 
     def get_filesets(self) -> List[Tuple[NamedSchema, str]]:
         """
@@ -657,7 +861,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         alias = {}
         for src_lib, src_fileset, dst_lib, dst_fileset in self.get("option", "alias"):
             if dst_lib:
-                if not self.valid("library", dst_lib):
+                if not self.has_library(dst_lib):
                     raise KeyError(f"{dst_lib} is not a loaded library")
                 dst_obj = self.get("library", dst_lib, field="schema")
             else:
@@ -722,10 +926,18 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
 
     def set_design(self, design: Union[DesignSchema, str]):
         """
-        Set the design for this project
+        Sets the active design for this project.
+
+        This method allows you to specify the primary design that the project
+        will operate on. If a `DesignSchema` object is provided, it is first
+        added as a dependency.
 
         Args:
-            design (:class:`DesignSchema` or str): design object or name
+            design (Union[DesignSchema, str]): The design object or its name (string)
+                                               to be set as the current design.
+
+        Raises:
+            TypeError: If the provided `design` is not a string or a `DesignSchema` object.
         """
         if isinstance(design, DesignSchema):
             self.add_dep(design)
@@ -737,10 +949,18 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
 
     def set_flow(self, flow: Union[FlowgraphSchema, str]):
         """
-        Set the flow for this project
+        Sets the active flowgraph for this project.
+
+        This method allows you to specify the sequence of steps and tasks
+        (the flow) that the project will execute. If a `FlowgraphSchema` object
+        is provided, it is first added as a dependency.
 
         Args:
-            design (:class:`FlowgraphSchema` or str): flow object or name
+            flow (Union[FlowgraphSchema, str]): The flowgraph object or its name (string)
+                                                to be set as the current flow.
+
+        Raises:
+            TypeError: If the provided `flow` is not a string or a `FlowgraphSchema` object.
         """
         if isinstance(flow, FlowgraphSchema):
             self.add_dep(flow)
@@ -752,18 +972,30 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
 
     def add_fileset(self, fileset: Union[List[str], str], clobber: bool = False):
         """
-        Add a fileset to use in this project
+        Adds one or more filesets to be used in this project.
+
+        Filesets are collections of related files within a design. This method
+        allows you to specify which filesets from the selected design library
+        should be included in the current project context.
 
         Args:
-            fileset (list of str): name of fileset from the design
-            clobber (bool): if True, replace the filesets
+            fileset (Union[List[str], str]): The name(s) of the fileset(s) to add.
+                                             Can be a single string or a list of strings.
+            clobber (bool): If True, existing filesets will be replaced by the new ones.
+                            If False, new filesets will be added to the existing list.
+                            Defaults to False.
+
+        Raises:
+            TypeError: If `fileset` is not a string or a list/tuple/set of strings.
+            ValueError: If any of the specified filesets are not found in the currently
+                        selected design.
         """
         if not isinstance(fileset, str):
             if isinstance(fileset, (list, tuple, set)):
                 if not all([isinstance(v, str) for v in fileset]):
-                    raise TypeError("fileset must be a string")
+                    raise TypeError("fileset must be a string or a list/tuple/set of strings")
             else:
-                raise TypeError("fileset must be a string")
+                raise TypeError("fileset must be a string or a list/tuple/set of strings")
 
         if isinstance(fileset, str):
             fileset = [fileset]
@@ -784,14 +1016,32 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                   alias_fileset: str,
                   clobber: bool = False):
         """
-        Add an aliased fileset.
+        Adds an aliased fileset mapping to the project.
+
+        This method allows you to redirect a fileset reference from a source
+        library/fileset to a different destination library/fileset. This is
+        useful for substituting design components or test environments without
+        modifying the original design.
 
         Args:
-            src_dep (:class:`DesignSchema` or str): source design to alias
-            src_fileset (str): source fileset to alias
-            alias_dep (:class:`DesignSchema` or str): replacement design
-            alias_fileset (str): replacement fileset
-            clobber (bool): overwrite existing values
+            src_dep (Union[DesignSchema, str]): The source design library (object or name)
+                                                from which the fileset is being aliased.
+            src_fileset (str): The name of the source fileset to alias.
+            alias_dep (Union[DesignSchema, str]): The destination design library (object or name)
+                                                  to which the fileset is being redirected.
+                                                  Can be None or an empty string to indicate
+                                                  deletion.
+            alias_fileset (str): The name of the destination fileset. Can be None or an empty string
+                                 to indicate deletion of the fileset reference.
+            clobber (bool): If True, any existing alias for `(src_dep, src_fileset)` will be
+                            overwritten. If False, the alias will be added (or updated if it's
+                            the same source). Defaults to False.
+
+        Raises:
+            TypeError: If `src_dep` or `alias_dep` are not valid types (string or DesignSchema).
+            KeyError: If `alias_dep` is a string but the corresponding library is not loaded.
+            ValueError: If `src_fileset` is not found in `src_dep`, or if `alias_fileset` is
+                        not found in `alias_dep` (when `alias_fileset` is not None).
         """
 
         if isinstance(src_dep, str):
@@ -848,7 +1098,14 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
 
     def has_library(self, library: str) -> bool:
         """
-        Returns true if the library exists
+        Checks if a library with the given name exists and is loaded in the project.
+
+        Args:
+            library (Union[str, NamedSchema]): The name of the library (string)
+                                               or a `NamedSchema` object representing the library.
+
+        Returns:
+            bool: True if the library exists, False otherwise.
         """
 
         if isinstance(library, NamedSchema):
@@ -858,9 +1115,16 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
 
     def _summary_headers(self) -> List[Tuple[str, str]]:
         """
-        Project defined headers to add to summary.
-        If projects require additional information they can extend this
-        method to add additional information.
+        Generates a list of key-value pairs representing project-specific headers
+        to be included in the summary report.
+
+        This method provides information about the selected design, filesets,
+        any active aliases, and the job directory. Projects can extend this
+        method to add custom information to their summaries.
+
+        Returns:
+            List[Tuple[str, str]]: A list of tuples, where each tuple contains
+                                   a header name (str) and its corresponding value (str).
         """
 
         alias = []
@@ -894,9 +1158,15 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
 
     def _snapshot_info(self) -> List[Tuple[str, str]]:
         """
-        Project defined information to add to snapshots.
-        If projects require additional information they can extend this
-        method to add additional information.
+        Generates a list of key-value pairs representing project-specific
+        information to be included in snapshots.
+
+        This method provides basic information about the design used in the
+        snapshot. Projects can extend this method to add custom information.
+
+        Returns:
+            List[Tuple[str, str]]: A list of tuples, where each tuple contains
+                                   an information label (str) and its corresponding value (str).
         """
 
         info = [
@@ -943,23 +1213,35 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                     index: str = "0", directory: str = "outputs",
                     filename: str = None) -> str:
         """
-        Returns the absolute path of a compilation result.
-        Utility function that returns the absolute path to a results
-        file based on the provided arguments. The result directory
-        structure is:
-        <dir>/<design>/<jobname>/<step>/<index>/<directory>/<design>.<filetype>
+        Returns the absolute path of a compilation result file.
+
+        This utility function constructs and returns the absolute path to a
+        result file based on the provided arguments. The typical result
+        directory structure is:
+        `<build_dir>/<design_name>/<job_name>/<step>/<index>/<directory>/<design>.<filetype>`
+
         Args:
-            filetype (str): File extension (v, def, etc)
-            step (str): Task step name ('syn', 'place', etc)
-            jobname (str): Jobid directory name
-            index (str): Task index
-            directory (str): Node directory to search
-            filename (str): exact filename to search for
+            filetype (str, optional): The file extension (e.g., 'v', 'def', 'gds').
+                                      Required if `filename` is not provided.
+            step (str, optional): The name of the task step (e.g., 'syn', 'place').
+                                  Required.
+            index (str, optional): The task index within the step. Defaults to "0".
+            directory (str, optional): The node directory within the step to search
+                                       (e.g., 'outputs', 'reports'). Defaults to "outputs".
+            filename (str, optional): The exact filename to search for. If provided,
+                                      `filetype` is ignored for constructing the path.
+                                      Defaults to None.
+
         Returns:
-            Returns absolute path to file or None is the file is not found
+            str: The absolute path to the found file, or None if the file is not found.
+
+        Raises:
+            ValueError: If `step` is not provided, or if `[option,fileset]` is not set
+                        when `filename` is not provided.
+
         Examples:
             >>> vg_filepath = chip.find_result('vg', 'syn')
-           Returns the absolute path to the gate level verilog.
+            Returns the absolute path to the gate level verilog.
         """
 
         if filename and step is None:
@@ -994,15 +1276,23 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
 
     def snapshot(self, path: str = None, display: bool = True) -> None:
         '''
-        Creates a snapshot image of the job
+        Creates a snapshot image summarizing the job's progress and key information.
+
+        This function generates a PNG image that provides a visual overview
+        of the compilation job. The image can be saved to a specified path
+        and optionally displayed after generation.
+
         Args:
-            path (str): Path to generate the image at, if not provided will default to
-                <job>/<design>.png
-            display (bool): If True, will open the image for viewing. If :keypath:`option,nodisplay`
-                is True, this argument will be ignored.
+            path (str, optional): The file path where the snapshot image should be saved.
+                                  If not provided, it defaults to
+                                  `<job_directory>/<design_name>.png`.
+            display (bool, optional): If True, the generated image will be opened for viewing
+                                      if the system supports it and `option,nodisplay` is False.
+                                      Defaults to True.
+
         Examples:
             >>> chip.snapshot()
-            Creates a snapshot image in the default location
+            Creates a snapshot image in the default location.
         '''
         from siliconcompiler.report import generate_summary_image, _open_summary_image
 
@@ -1019,19 +1309,36 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
 
     def show(self, filename=None, screenshot=False, extension=None) -> str:
         '''
-        Opens a graphical viewer for the filename provided.
-        The show function opens the filename specified using a viewer tool
-        selected based on the file suffix and the registered showtools.
-        Display settings and technology settings for viewing the file are read
-        from the in-memory chip object schema settings. All temporary render
-        and display files are saved in the <build_dir>/_show_<jobname> directory.
+        Opens a graphical viewer for a specified file or the last generated layout.
+
+        The `show` function identifies an appropriate viewer tool based on the
+        file's extension and the registered showtools. Display settings and
+        technology-specific viewing configurations are read from the project's
+        in-memory schema. All temporary rendering and display files are stored
+        in a dedicated `_show_<jobname>` directory within the build directory.
+
+        If no `filename` is provided, the method attempts to automatically find
+        the last generated layout file in the build directory based on supported
+        extensions from registered showtools.
+
         Args:
-            filename (path): Name of file to display
-            screenshot (bool): Flag to indicate if this is a screenshot or show
-            extension (str): extension of file to show
+            filename (path, optional): The path to the file to display. If None,
+                                       the system attempts to find the most recent
+                                       layout file. Defaults to None.
+            screenshot (bool, optional): If True, the operation is treated as a
+                                         screenshot request, using `ScreenshotTaskSchema`
+                                         instead of `ShowTaskSchema`. Defaults to False.
+            extension (str, optional): The specific file extension to search for when
+                                       automatically finding a file (e.g., 'gds', 'lef').
+                                       Used only if `filename` is None. Defaults to None.
+
+        Returns:
+            str: The path to the generated screenshot file if `screenshot` is True,
+                 otherwise None.
+
         Examples:
             >>> show('build/oh_add/job0/write.gds/0/outputs/oh_add.gds')
-            Displays gds file with a viewer assigned by showtool
+            Displays a GDS file using a viewer assigned by the showtool.
         '''
 
         tool_cls = ScreenshotTaskSchema if screenshot else ShowTaskSchema
