@@ -135,7 +135,11 @@ class TaskScheduler:
             sys.exit(0)
         finally:
             # Cleanup logger
-            log_listener.stop()
+            try:
+                log_listener.stop()
+            except AttributeError:
+                # Logger already stopped
+                pass
             self.__logger_console_handler.setFormatter(console_format)
             job_log_handler.setFormatter(file_formatter)
             self.__logger.addHandler(job_log_handler)
