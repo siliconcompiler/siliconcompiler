@@ -345,11 +345,14 @@ class Board(metaclass=BoardSingleton):
         if not self._active:
             return False
 
-        with self._job_data_lock:
-            if not self._render_thread:
-                return False
+        try:
+            with self._job_data_lock:
+                if not self._render_thread:
+                    return False
 
-            return self._render_thread.is_alive()
+                return self._render_thread.is_alive()
+        except BrokenPipeError:
+            return False
 
     def end_of_run(self, chip):
         """
