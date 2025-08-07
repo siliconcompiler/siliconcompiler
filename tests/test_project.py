@@ -1539,3 +1539,216 @@ def test_snapshot_nodisplay(caplog):
     assert os.path.isfile("testing.png")
 
     assert "Generated summary image at " in caplog.text
+
+
+def test_check_manifest_empty(caplog):
+    proj = Project()
+    setattr(proj, "_Project__logger", logging.getLogger())
+    proj.logger.setLevel(logging.INFO)
+
+    assert proj.check_manifest() is False
+    assert "[option,design] has not been set" in caplog.text
+    assert "[option,fileset] has not been set" in caplog.text
+    assert "[option,flow] has not been set" in caplog.text
+
+
+def test_check_manifest_design_set_not_loaded(caplog):
+    proj = Project()
+    proj.set("option", "design", "testdesign")
+    setattr(proj, "_Project__logger", logging.getLogger())
+    proj.logger.setLevel(logging.INFO)
+
+    assert proj.check_manifest() is False
+    assert "testdesign has not been loaded" in caplog.text
+    assert "[option,fileset] has not been set" in caplog.text
+    assert "[option,flow] has not been set" in caplog.text
+
+
+def test_check_manifest_with_missing_fileset(caplog):
+    design = DesignSchema("testdesign")
+    proj = Project(design)
+    proj.set("option", "fileset", "rtl")
+    setattr(proj, "_Project__logger", logging.getLogger())
+    proj.logger.setLevel(logging.INFO)
+
+    assert proj.check_manifest() is False
+    assert "rtl is not a valid fileset in testdesign" in caplog.text
+    assert "[option,flow] has not been set" in caplog.text
+
+
+def test_check_manifest_with_missing_topmodule(caplog):
+    design = DesignSchema("testdesign")
+    with design.active_fileset("rtl"):
+        design.add_file("top.v")
+    proj = Project(design)
+    proj.set("option", "fileset", "rtl")
+    setattr(proj, "_Project__logger", logging.getLogger())
+    proj.logger.setLevel(logging.INFO)
+
+    assert proj.check_manifest() is False
+    assert "topmodule has not been set in testdesign/rtl" in caplog.text
+    assert "[option,flow] has not been set" in caplog.text
+
+
+def test_check_manifest_with_missing_flow(caplog):
+    design = DesignSchema("testdesign")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+        design.add_file("top.v")
+    proj = Project(design)
+    proj.set("option", "fileset", "rtl")
+    proj.set("option", "flow", "testflow")
+    setattr(proj, "_Project__logger", logging.getLogger())
+    proj.logger.setLevel(logging.INFO)
+
+    assert proj.check_manifest() is False
+    assert "testflow has not been loaded" in caplog.text
+
+
+def test_check_manifest_pass(caplog):
+    design = DesignSchema("testdesign")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+        design.add_file("top.v")
+    flow = FlowgraphSchema("testflow")
+    proj = Project(design)
+    proj.set("option", "fileset", "rtl")
+    proj.set_flow(flow)
+    setattr(proj, "_Project__logger", logging.getLogger())
+    proj.logger.setLevel(logging.INFO)
+
+    assert proj.check_manifest() is True
+    assert caplog.text == ""
+
+
+def test_check_manifest_with_alias_missing_src(caplog):
+    design = DesignSchema("testdesign")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+        design.add_file("top.v")
+    flow = FlowgraphSchema("testflow")
+    proj = Project(design)
+    proj.set("option", "fileset", "rtl")
+    proj.set_flow(flow)
+
+    proj.set("option", "alias", ("nothere", "rtl", None, None))
+
+    setattr(proj, "_Project__logger", logging.getLogger())
+    proj.logger.setLevel(logging.INFO)
+
+    assert proj.check_manifest() is True
+    assert caplog.text == ""
+
+
+def test_check_manifest_with_alias_empty_src(caplog):
+    design = DesignSchema("testdesign")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+        design.add_file("top.v")
+    flow = FlowgraphSchema("testflow")
+    proj = Project(design)
+    proj.set("option", "fileset", "rtl")
+    proj.set_flow(flow)
+
+    proj.set("option", "alias", (None, "rtl", None, None))
+
+    setattr(proj, "_Project__logger", logging.getLogger())
+    proj.logger.setLevel(logging.INFO)
+
+    assert proj.check_manifest() is False
+    assert "source library in [option,alias] must be set" in caplog.text
+
+
+def test_check_manifest_with_alias_missing_src_fileset(caplog):
+    design = DesignSchema("testdesign")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+        design.add_file("top.v")
+    flow = FlowgraphSchema("testflow")
+    proj = Project(design)
+    proj.set("option", "fileset", "rtl")
+    proj.set_flow(flow)
+
+    proj.set("option", "alias", ("testdesign", "rtl2", None, None))
+
+    setattr(proj, "_Project__logger", logging.getLogger())
+    proj.logger.setLevel(logging.INFO)
+
+    assert proj.check_manifest() is False
+    assert "rtl2 is not a valid fileset in testdesign" in caplog.text
+
+
+def test_check_manifest_with_alias_missing_dst(caplog):
+    design = DesignSchema("testdesign")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+        design.add_file("top.v")
+    flow = FlowgraphSchema("testflow")
+    proj = Project(design)
+    proj.set("option", "fileset", "rtl")
+    proj.set_flow(flow)
+
+    proj.set("option", "alias", ("testdesign", "rtl", None, None))
+
+    setattr(proj, "_Project__logger", logging.getLogger())
+    proj.logger.setLevel(logging.INFO)
+
+    assert proj.check_manifest() is True
+    assert caplog.text == ""
+
+
+def test_check_manifest_with_alias_empty_dst_fileset(caplog):
+    design = DesignSchema("testdesign")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+        design.add_file("top.v")
+    flow = FlowgraphSchema("testflow")
+    proj = Project(design)
+    proj.set("option", "fileset", "rtl")
+    proj.set_flow(flow)
+
+    proj.set("option", "alias", ("testdesign", "rtl", "testdesign", None))
+
+    setattr(proj, "_Project__logger", logging.getLogger())
+    proj.logger.setLevel(logging.INFO)
+
+    assert proj.check_manifest() is True
+    assert caplog.text == ""
+
+
+def test_check_manifest_with_alias_missing_dst_lib(caplog):
+    design = DesignSchema("testdesign")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+        design.add_file("top.v")
+    flow = FlowgraphSchema("testflow")
+    proj = Project(design)
+    proj.set("option", "fileset", "rtl")
+    proj.set_flow(flow)
+
+    proj.set("option", "alias", ("testdesign", "rtl", "testdesign1", None))
+
+    setattr(proj, "_Project__logger", logging.getLogger())
+    proj.logger.setLevel(logging.INFO)
+
+    assert proj.check_manifest() is False
+    assert " testdesign1 has not been loaded" in caplog.text
+
+
+def test_check_manifest_with_alias_missing_dst_fileset(caplog):
+    design = DesignSchema("testdesign")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+        design.add_file("top.v")
+    flow = FlowgraphSchema("testflow")
+    proj = Project(design)
+    proj.set("option", "fileset", "rtl")
+    proj.set_flow(flow)
+
+    proj.set("option", "alias", ("testdesign", "rtl", "testdesign", "rtl2"))
+
+    setattr(proj, "_Project__logger", logging.getLogger())
+    proj.logger.setLevel(logging.INFO)
+
+    assert proj.check_manifest() is False
+    assert "rtl2 is not a valid fileset in testdesign" in caplog.text
