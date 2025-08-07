@@ -11,8 +11,9 @@ import os.path
 from inspect import getfullargspec
 from typing import Set, Union, List, Tuple, Type, Callable, TextIO
 
-from siliconcompiler.schema import BaseSchema, NamedSchema, EditableSchema, Parameter
+from siliconcompiler.schema import BaseSchema, NamedSchema, EditableSchema, Parameter, Scope
 from siliconcompiler.schema.parametervalue import NodeListValue, NodeSetValue
+from siliconcompiler.schema.utils import trim
 
 from siliconcompiler import DesignSchema, LibrarySchema
 from siliconcompiler import FlowgraphSchema
@@ -55,11 +56,49 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
 
         # Add options
         schema_option_runtime(schema)
-        schema.insert("option", "env", "default", Parameter("str"))
+        schema.insert(
+            "option", "env", "default",
+            Parameter(
+                "str",
+                scope=Scope.GLOBAL,
+                shorthelp="Option: environment variables",
+                example=["api: project.set('option', 'env', 'PDK_HOME', '/disk/mypdk')"],
+                help=trim("""
+                    Certain tools and reference flows require global environment
+                    variables to be set. These variables can be managed externally or
+                    specified through the env variable.""")))
 
-        schema.insert("option", "design", Parameter("str", switch=["-design <str>"]))
-        schema.insert("option", "alias", Parameter("[(str,str,str,str)]"))
-        schema.insert("option", "fileset", Parameter("[str]"))
+        schema.insert(
+            "option", "design",
+            Parameter(
+                "str",
+                scope=Scope.GLOBAL,
+                shorthelp="Option: Design library name",
+                example=["cli: -design hello_world",
+                         "api: project.set('option', 'design', 'hello_world')"],
+                switch=["-design <str>"],
+                help="Name of the top level library"))
+        schema.insert(
+            "option", "alias",
+            Parameter(
+                "[(str,str,str,str)]",
+                scope=Scope.GLOBAL,
+                shorthelp="Option: Fileset alias mapping",
+                example=["api: project.set('option', 'alias', ('design', 'rtl', 'lambda', 'rtl')"],
+                help=trim("""List of filesets to alias during a run. When an alias is specific
+                          it will be used instead of the source fileset.  It is usefuly when you
+                          want to substitute a fileset from one library with a fileset from another,
+                          without changing the original design's code.
+                          For example, you might use it to swap in a different version of an IP
+                          block or a specific test environment.""")))
+        schema.insert(
+            "option", "fileset",
+            Parameter(
+                "[str]",
+                scope=Scope.GLOBAL,
+                shorthelp="Option: Seleted design filesets",
+                example=["api: project.set('option', 'fileset', 'rtl')"],
+                help=trim("""List of filesets to use from the selected design library""")))
 
         # Add history
         schema.insert("history", BaseSchema())
