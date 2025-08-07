@@ -175,6 +175,19 @@ class YosysStdCellLibrary(StdCellLibrarySchema):
         else:
             self.add("tool", "yosys", "synthesis_fileset", fileset)
 
+    def add_yosys_blackbox_fileset(self, fileset: Union[str, List[str]], clobber: bool = False):
+        """
+        Adds a fileset name to the list of blackbox filesets.
+
+        Args:
+            fileset (Union[str, List[str]]): The name of the fileset or a list of fileset names.
+            clobber (bool, optional): If True, replaces the current value. Defaults to False.
+        """
+        if clobber:
+            self.set("tool", "yosys", "blackbox_fileset", fileset)
+        else:
+            self.add("tool", "yosys", "blackbox_fileset", fileset)
+
 
 class YosysFPGA(FPGASchema):
     """
