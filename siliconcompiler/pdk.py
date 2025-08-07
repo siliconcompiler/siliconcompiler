@@ -406,9 +406,9 @@ class PDKSchema(ToolLibrarySchema):
         self._assert_fileset(fileset)
 
         if clobber:
-            return self.set("pdk", type, "runsetfileset", name, fileset)
+            return self.set("pdk", type, "runsetfileset", tool, name, fileset)
         else:
-            return self.add("pdk", type, "runsetfileset", name, fileset)
+            return self.add("pdk", type, "runsetfileset", tool, name, fileset)
 
     @classmethod
     def _getdict_type(cls) -> str:
