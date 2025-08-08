@@ -12,6 +12,7 @@ class DependencySchema(BaseSchema):
     '''
 
     def __init__(self):
+        '''Initializes the DependencySchema.'''
         super().__init__()
 
         self._reset_deps()
@@ -27,6 +28,20 @@ class DependencySchema(BaseSchema):
                 help="List of named object dependencies included via add_dep()."))
 
     def _from_dict(self, manifest, keypath, version=None):
+        '''
+        Internal helper to load schema from a dictionary manifest.
+
+        This method temporarily unlocks the 'deps' parameter to allow it to be
+        populated from the manifest data.
+
+        Args:
+            manifest (dict): The dictionary to load data from.
+            keypath (list): The list of keys representing the path to the data.
+            version (str, optional): The schema version. Defaults to None.
+
+        Returns:
+            The result of the parent class's _from_dict method.
+        '''
         self.set("deps", False, field="lock")
         ret = super()._from_dict(manifest, keypath, version)
         self.set("deps", True, field="lock")
@@ -37,9 +52,9 @@ class DependencySchema(BaseSchema):
         Adds a module to this object.
 
         Args:
-            obj (:class:`NamedSchema`): Module to add
+            obj (:class:`NamedSchema`): Module to add.
             clobber (bool): If true will insert the object and overwrite any
-                existing with the same name
+                existing with the same name.
 
         Returns:
             True if object was imported, otherwise false.
@@ -72,12 +87,12 @@ class DependencySchema(BaseSchema):
         Renders and saves the dependency graph to a file.
 
         Args:
-            filename (filepath): Output filepath
-            fontcolor (str): Node font RGB color hex value
-            background (str): Background color
-            fontsize (str): Node text font size
-            border (bool): Enables node border if True
-            landscape (bool): Renders graph in landscape layout if True
+            filename (filepath): Output filepath.
+            fontcolor (str): Node font RGB color hex value.
+            background (str): Background color.
+            fontsize (str): Node text font size.
+            border (bool): Enables node border if True.
+            landscape (bool): Renders graph in landscape layout if True.
 
         Examples:
             >>> schema.write_depgraph('mydump.png')
@@ -139,7 +154,16 @@ class DependencySchema(BaseSchema):
 
     def __get_all_deps(self, seen: set) -> list:
         '''
-        Loop through the dependency tree and generate a flat list
+        Recursively traverses the dependency tree to generate a flat list.
+
+        This method avoids cycles and duplicate entries by keeping track of
+        visited nodes in the 'seen' set.
+
+        Args:
+            seen (set): A set of dependency names that have already been visited.
+
+        Returns:
+            list: A flat list of all dependency objects.
         '''
         deps = []
 
@@ -165,12 +189,15 @@ class DependencySchema(BaseSchema):
         Returns all dependencies associated with this object or a specific one if requested.
 
         Raises:
-            KeyError: if the module specific module is requested but not found
+            KeyError: if the specific module is requested but not found.
 
         Args:
-            name (str): name of the module
-            hierarchy (bool): if True, will return all modules including children
-                otherwise only this objects modules are returned.
+            name (str): Name of the module.
+            hierarchy (bool): If True, will return all modules including children,
+                otherwise only this object's modules are returned.
+
+        Returns:
+            list: A list of dependency objects.
         '''
 
         if name:
@@ -191,11 +218,13 @@ class DependencySchema(BaseSchema):
 
     def has_dep(self, name: str) -> bool:
         '''
-        Checks if a specific dependencies is present
+        Checks if a specific dependency is present.
+
         Args:
-            name (str): name of the module
+            name (str): Name of the module.
+
         Returns:
-            True if the module was found, False is not found.
+            True if the module was found, False otherwise.
         '''
 
         if isinstance(name, NamedSchema):
@@ -208,10 +237,10 @@ class DependencySchema(BaseSchema):
         Removes a previously registered module.
 
         Args:
-            name (str): name of the module
+            name (str): Name of the module.
 
         Returns:
-            True if the module was removed, False is not found.
+            True if the module was removed, False if it was not found.
         '''
         if not self.has_dep(name):
             return False
@@ -232,6 +261,15 @@ class DependencySchema(BaseSchema):
         return True
 
     def _populate_deps(self, module_map: dict):
+        '''
+        Internal method to populate the internal dependency dictionary.
+
+        This is used to reconstruct object references from a serialized format
+        by looking up dependency names in the provided map.
+
+        Args:
+            module_map (dict): A dictionary mapping module names to module objects.
+        '''
         if self.__deps:
             return
 
@@ -244,4 +282,5 @@ class DependencySchema(BaseSchema):
                 self.__deps[module]._populate_deps(module_map)
 
     def _reset_deps(self):
+        '''Resets the internal dependency dictionary.'''
         self.__deps = {}

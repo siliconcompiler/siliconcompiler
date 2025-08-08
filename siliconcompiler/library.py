@@ -11,24 +11,36 @@ from siliconcompiler.schema.utils import trim
 
 
 class LibrarySchema(FileSetSchema, PackageSchema, NamedSchema):
+    """
+    A class for managing library schemas.
+    """
     def __init__(self, name: str = None):
+        """
+        Initializes a LibrarySchema object.
+
+        Args:
+            name (str, optional): The name of the library. Defaults to None.
+        """
         super().__init__()
         self.set_name(name)
 
     @classmethod
     def _getdict_type(cls) -> str:
         """
-        Returns the meta data for getdict
+        Returns the meta data for getdict.
         """
 
         return LibrarySchema.__name__
 
 
 class ToolLibrarySchema(LibrarySchema):
+    """
+    A class for managing tool-related library schemas.
+    """
     @final
     def define_tool_parameter(self, tool: str, name: str, type: str, help: str, **kwargs):
         """
-        Define a new tool parameter for the library
+        Define a new tool parameter for the library.
 
         Args:
             tool (str): name of the tool
@@ -57,12 +69,23 @@ class ToolLibrarySchema(LibrarySchema):
     @classmethod
     def _getdict_type(cls) -> str:
         """
-        Returns the meta data for getdict
+        Returns the meta data for getdict.
         """
 
         return ToolLibrarySchema.__name__
 
     def _from_dict(self, manifest, keypath, version=None):
+        """
+        Constructs a schema from a dictionary.
+
+        Args:
+            manifest (dict): Dictionary to construct from.
+            keypath (list): List of keys representing the path to the current dictionary.
+            version (str, optional): Version of the manifest. Defaults to None.
+
+        Returns:
+            dict: The constructed dictionary.
+        """
         if "tool" in manifest:
             # collect tool keys
             tool_keys = self.allkeys("tool")
@@ -91,7 +114,16 @@ class ToolLibrarySchema(LibrarySchema):
 
 
 class StdCellLibrarySchema(ToolLibrarySchema, DependencySchema):
+    """
+    A class for managing standard cell library schemas.
+    """
     def __init__(self, name: str = None):
+        """
+        Initializes a StdCellLibrarySchema object.
+
+        Args:
+            name (str, optional): The name of the standard cell library. Defaults to None.
+        """
         super().__init__()
         self.set_name(name)
 
@@ -185,7 +217,7 @@ class StdCellLibrarySchema(ToolLibrarySchema, DependencySchema):
 
     def add_asic_pdk(self, pdk, default: bool = True):
         """
-        Adds the PDK associated with this library
+        Adds the PDK associated with this library.
 
         Args:
             pdk (class:`PDKSchema`): pdk to associate
@@ -212,7 +244,7 @@ class StdCellLibrarySchema(ToolLibrarySchema, DependencySchema):
 
     def add_asic_stackup(self, stackup: Union[str, List[str]]):
         """
-        Set the stackups supported by this library
+        Set the stackups supported by this library.
 
         Args:
             stackup (str or list of str): stackups supported
@@ -221,7 +253,7 @@ class StdCellLibrarySchema(ToolLibrarySchema, DependencySchema):
 
     def add_asic_libcornerfileset(self, corner: str, model: str, fileset: str = None):
         """
-        Adds a mapping between filesets a corners defined in the library
+        Adds a mapping between filesets a corners defined in the library.
 
         Args:
             corner (str): name of the timing or parasitic corner
@@ -240,7 +272,7 @@ class StdCellLibrarySchema(ToolLibrarySchema, DependencySchema):
 
     def add_asic_pexcornerfileset(self, corner: str, model: str, fileset: str = None):
         """
-        Adds a mapping between filesets a corners defined in the library
+        Adds a mapping between filesets a corners defined in the library.
 
         Args:
             corner (str): name of the timing or parasitic corner
@@ -259,7 +291,7 @@ class StdCellLibrarySchema(ToolLibrarySchema, DependencySchema):
 
     def add_asic_aprfileset(self, fileset: str = None):
         """
-        Adds a mapping between filesets defined in the library
+        Adds a mapping between filesets defined in the library.
 
         Args:
             fileset (str): name of the fileset
@@ -283,18 +315,17 @@ class StdCellLibrarySchema(ToolLibrarySchema, DependencySchema):
 
     def add_asic_site(self, site: Union[List[str], str]):
         """
-        Adds a standard site to the library
+        Adds a standard site to the library.
 
         Args:
-            type (str): category of cell type
-            cells (list of str): cells to add
+            site (list of str or str): sites to add
         """
         return self.add("asic", "site", site)
 
     @classmethod
     def _getdict_type(cls) -> str:
         """
-        Returns the meta data for getdict
+        Returns the meta data for getdict.
         """
 
         return StdCellLibrarySchema.__name__

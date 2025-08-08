@@ -131,10 +131,10 @@ class ASICProject(Project):
 
         if isinstance(obj, StdCellLibrarySchema):
             if not self.has_library(obj.name):
-                EditableSchema(self).insert("library", obj.name, obj, clobber=True)
+                EditableSchema(self).insert("library", obj.name, obj)
         elif isinstance(obj, PDKSchema):
             if not self.has_library(obj.name):
-                EditableSchema(self).insert("library", obj.name, obj, clobber=True)
+                EditableSchema(self).insert("library", obj.name, obj)
         else:
             return super().add_dep(obj)
 
