@@ -549,11 +549,15 @@ class Board(metaclass=BoardSingleton):
         table.show_header = self.__JOB_BOARD_HEADER
         table.add_column("Status")
         table.add_column("Node")
-        table.add_column("Time", justify="right")
+        table.add_column("\U0001F550", justify="right")
         for metric in self._metrics:
+            if metric == "warnings":
+                metric = "[yellow]\u26A0[/]"
+            elif metric == "errors":
+                metric = "[red]\u26D4[/]"
             table.add_column(metric.capitalize(), justify="right")
         if layout.job_board_show_log:
-            table.add_column("Log")
+            table.add_column("\U0001F4DC")
 
         multi_jobs = len(job_data) > 1 or True
 
