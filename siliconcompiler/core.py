@@ -1,5 +1,6 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 
+import atexit
 import copy
 import tarfile
 import os
@@ -2692,6 +2693,7 @@ class Chip:
             self._dash = CliDashboard(self)
             wait = False
 
+        atexit.register(self._dash.stop)
         self._dash.open_dashboard()
 
         if wait:

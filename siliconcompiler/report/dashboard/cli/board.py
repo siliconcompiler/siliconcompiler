@@ -1,4 +1,3 @@
-import atexit
 import logging
 import os
 import math
@@ -343,8 +342,6 @@ class Board(metaclass=BoardSingleton):
             auto_refresh=True
         )
 
-        atexit.register(self._stop_on_exit)
-
         self._active = self._console.is_terminal
         if not self._active:
             self._console = None
@@ -382,9 +379,6 @@ class Board(metaclass=BoardSingleton):
 
     def make_log_hander(self) -> logging.Handler:
         return self._log_handler.make_handler()
-
-    def _stop_on_exit(self):
-        self.stop()
 
     def open_dashboard(self):
         """Starts the dashboard rendering thread if it is not already running."""
