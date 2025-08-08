@@ -101,7 +101,11 @@ class TaskSchema(NamedSchema):
         (?P<operator>(==|!=|<=|>=|<|>|~=))
         \s*
         (?P<version>
-            [^,;\s)]* # Match everything until a separator
+            [^,;\s)]* # Since this is a "legacy" specifier, and the version
+                      # string can be just about anything, we match everything
+                      # except for whitespace, a semi-colon for marker support,
+                      # a closing paren since versions can be enclosed in
+                      # them, and a comma since it's a version separator.
         )
         """
     __parse_version_check = re.compile(
@@ -745,8 +749,6 @@ class TaskSchema(NamedSchema):
                 if manifest_path.endswith('.gz'):
                     fout = gzip.open(manifest_path, 'wt', encoding='UTF-8')
                 elif re.search(r'\.csv$', manifest_path):
-                    # Files written using csv library should be opened with newline=''
-                    # https://docs.python.org/3/library/csv.html#id3
                     fout = open(manifest_path, 'w', newline='')
                 else:
                     fout = open(manifest_path, 'w')
@@ -827,7 +829,9 @@ class TaskSchema(NamedSchema):
         """
 
         def terminate_process(pid, timeout=3):
-            """Terminates a process and all its (grand+)children."""
+            """Terminates a process and all its (grand+)children.
+            Based on https://psutil.readthedocs.io/en/latest/#psutil.wait_procs and
+            https://psutil.readthedocs.io/en/latest/#kill-process-tree."""
             parent = psutil.Process(pid)
             children = parent.children(recursive=True)
             children.append(parent)
@@ -1003,7 +1007,13 @@ class TaskSchema(NamedSchema):
                                         'Current system memory usage is '
                                         f'{memory_usage.percent:.1f}%')
                                     MEMORY_WARN_LIMIT = int(memory_usage.percent + 1)
-                            except (psutil.Error, PermissionError):
+                            except psutil.Error:
+                                # Process may have already terminated or been killed.
+                                # Retain existing memory usage statistics in this case.
+                                pass
+                            except PermissionError:
+                                # OS is preventing access to this information so it cannot
+                                # be collected
                                 pass
 
                             read_stdio(stdout_reader, stderr_reader)
@@ -1545,6 +1555,7 @@ class TaskSchema(NamedSchema):
         """
         pass
 
+
 class ShowTaskSchema(TaskSchema):
     """
     A specialized TaskSchema for tasks that display files (e.g., in a GUI viewer).
@@ -1630,7 +1641,7 @@ class ShowTaskSchema(TaskSchema):
 
         classes = recurse(cls)
         # Support non-SC defined tasks from plugins
-        for plugin in utils.get_plugins('showtask'):
+        for plugin in utils.get_plugins('showtask'):  # TODO rename
             plugin()
 
         if not classes:

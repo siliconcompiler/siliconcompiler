@@ -151,7 +151,7 @@ class Scheduler:
         self.__logger.error("Traceback (most recent call last):")
         traceback.print_tb(exc_traceback, file=trace)
         for line in trace.getvalue().splitlines():
-            self.logger.error(line)
+            self.__logger.error(line)
 
     def run(self):
         """
