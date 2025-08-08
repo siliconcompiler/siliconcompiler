@@ -280,6 +280,15 @@ class ASICProject(Project):
         Raises:
             TypeError: If the provided `library` is not a string or a `StdCellLibrarySchema` object.
         """
+        if isinstance(library, (list, set, tuple)):
+            if clobber:
+                self.unset("asic", "asiclib")
+
+            ret = []
+            for lib in library:
+                ret.append(self.add_asiclib(lib))
+            return ret
+
         if isinstance(library, StdCellLibrarySchema):
             self.add_dep(library)
             library = library.name
@@ -306,6 +315,15 @@ class ASICProject(Project):
             self.set("asic", "minlayer", min)
         if max:
             self.set("asic", "maxlayer", max)
+
+    def set_asic_delaymodel(self, model: str):
+        """
+        Sets the delay model for timing analysis.
+
+        Args:
+            model (str): The delay model to use (e.g., 'nldm', 'ccs').
+        """
+        self.set("asic", "delaymodel", model)
 
     def get_timingconstraints(self) -> ASICTimingConstraintSchema:
         """
@@ -358,10 +376,8 @@ class ASICProject(Project):
 
         if not self.get("asic", "pdk") and self.get("asic", "mainlib"):
             mainlib = None
-            try:
+            if self.has_library(self.get("asic", "mainlib")):
                 mainlib = self.get("library", self.get("asic", "mainlib"), field="schema")
-            except KeyError:
-                pass
             if mainlib:
                 mainlib_pdk = mainlib.get("asic", "pdk")
                 if mainlib_pdk:
