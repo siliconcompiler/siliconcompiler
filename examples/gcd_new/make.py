@@ -10,7 +10,7 @@ from siliconcompiler.flows.synflow import SynthesisFlowgraph
 from siliconcompiler.flows.asicflow import ASICFlow, HLSASSICFlow
 from siliconcompiler.flows.fpgaflow import FPGAFlow
 
-from siliconcompiler._dummy import target_asap7, target_nangate45
+from siliconcompiler._dummy import target
 from siliconcompiler._dummy import ICE40FPGA, K6_N8_28x28_BDFPGA, K4_N8_6x6FPGA
 
 
@@ -59,12 +59,7 @@ def syn(pdk: str = "freepdk45"):
     project.add_fileset(f"rtl.{pdk}")
     project.set_flow(SynthesisFlowgraph())
 
-    if pdk == "freepdk45":
-        target_nangate45(project)
-    elif pdk == "asap7":
-        target_asap7(project)
-    else:
-        raise ValueError
+    project.load_target(target, pdk=pdk)
 
     project.run(raise_exception=True)
     project.summary()
@@ -81,12 +76,7 @@ def asic(pdk: str = "freepdk45", fileset: str = "rtl", show: bool = False, scree
     else:
         project.set_flow(ASICFlow())
 
-    if pdk == "freepdk45":
-        target_nangate45(project)
-    elif pdk == "asap7":
-        target_asap7(project)
-    else:
-        raise ValueError
+    project.load_target(target, pdk=pdk)
 
     project.run(raise_exception=True)
     project.summary()
