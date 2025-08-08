@@ -11,7 +11,15 @@ from siliconcompiler.schema.utils import trim
 
 ###########################################################################
 class FileSetSchema(PathSchema):
+    '''
+    Schema for storing and managing file sets.
+
+    This class provides methods to add, retrieve, and manage named groups of
+    files, known as filesets.
+    '''
+
     def __init__(self):
+        '''Initializes the FileSetSchema.'''
         super().__init__()
 
         schema = EditableSchema(self)
@@ -43,32 +51,35 @@ class FileSetSchema(PathSchema):
         """
         Adds files to a fileset.
 
-        .v        → (source, verilog)
-        .vhd      → (source, vhdl)
-        .sdc      → (constraint, sdc)
-        .lef      → (input, lef)
-        .def      → (input, def)
-        ...       → etc.
+        Based on the file's extension, this method can often infer the correct
+        fileset and filetype. For example:
+
+        * .v -> (source, verilog)
+        * .vhd -> (source, vhdl)
+        * .sdc -> (constraint, sdc)
+        * .lef -> (input, lef)
+        * .def -> (input, def)
+        * etc.
 
         Args:
             filename (Path or list[Path]): File path or list of paths to add.
             fileset (str): Logical group to associate the file with.
             filetype (str, optional): Type of the file (e.g., 'verilog', 'sdc').
-            clobber (bool, optional): Clears list before adding item
-            dataroot (str, optional): Data directory reference name
+            clobber (bool, optional): If True, clears the list before adding the
+                item. Defaults to False.
+            dataroot (str, optional): Data directory reference name.
 
         Raises:
-            SiliconCompilerError: If fileset or filetype cannot be inferred from
-            the file extension.
+            ValueError: If `fileset` or `filetype` cannot be inferred from
+                the file extension.
 
         Returns:
-           list[str]: List of file paths.
+           list[str]: A list of the file paths that were added.
 
         Notes:
-           - This method normalizes `filename` to a string for consistency.
-
-           - If no filetype is specified, filetype is inferred based on
-                the file extension via a mapping table. (eg. .v is verilog).
+           * This method normalizes `filename` to a string for consistency.
+           * If `filetype` is not specified, it is inferred from the
+               file extension.
         """
 
         if fileset is None:
@@ -123,11 +134,14 @@ class FileSetSchema(PathSchema):
         """Returns a list of files from one or more filesets.
 
         Args:
-            fileset (str or list[str]): Fileset(s) to query.
-            filetype (str or list[str], optional): File type(s) to filter by (e.g., 'verilog').
+            fileset (str or list[str]): Fileset(s) to query. If not provided,
+                the active fileset is used.
+            filetype (str or list[str], optional): File type(s) to filter by
+                (e.g., 'verilog'). If not provided, all filetypes in the
+                fileset are returned.
 
         Returns:
-            list[str]: List of file paths.
+            list[str]: A list of resolved file paths.
         """
 
         if fileset is None:
@@ -155,19 +169,22 @@ class FileSetSchema(PathSchema):
     @contextlib.contextmanager
     def active_fileset(self, fileset: str):
         """
-        Use this context to temporarily set a design fileset.
+        Provides a context to temporarily set an active design fileset.
+
+        This is useful for applying a set of configurations to a specific
+        fileset without repeatedly passing its name.
 
         Raises:
-            TypeError: if fileset is not a string
-            ValueError: if fileset if an empty string
+            TypeError: If `fileset` is not a string.
+            ValueError: If `fileset` is an empty string.
 
         Args:
-            fileset (str): name of the fileset
+            fileset (str): The name of the fileset to activate.
 
         Example:
             >>> with design.active_fileset("rtl"):
             ...     design.set_topmodule("top")
-            Sets the top module for the rtl fileset as top.
+            # This sets the top module for the 'rtl' fileset to 'top'.
         """
         if not isinstance(fileset, str):
             raise TypeError("fileset must a string")
@@ -179,12 +196,20 @@ class FileSetSchema(PathSchema):
 
     def copy_fileset(self, src_fileset: str, dst_fileset: str, clobber: bool = False):
         """
-        Create a new copy of a source fileset and store it in the destination fileset
+        Creates a new copy of a source fileset.
+
+        The entire configuration of the source fileset is duplicated and stored
+        under the destination fileset's name.
 
         Args:
-            src_fileset (str): source fileset
-            dst_fileset (str): destination fileset
-            clobber (bool): overwrite existing fileset
+            src_fileset (str): The name of the source fileset to copy.
+            dst_fileset (str): The name of the new destination fileset.
+            clobber (bool): If True, an existing destination fileset will be
+                overwritten. Defaults to False.
+
+        Raises:
+            ValueError: If the destination fileset already exists and `clobber`
+                is False.
         """
         if not clobber and self.has_fileset(dst_fileset):
             raise ValueError(f"{dst_fileset} already exists")
@@ -194,10 +219,11 @@ class FileSetSchema(PathSchema):
 
     def _assert_fileset(self, fileset: str) -> None:
         """
-        Raises an error if the fileset does not exist
+        Raises an error if the specified fileset does not exist.
 
         Raises:
-            LookupError: if fileset is not found
+            TypeError: If `fileset` is not a string.
+            LookupError: If the fileset is not found.
         """
 
         if not isinstance(fileset, str):
@@ -212,7 +238,13 @@ class FileSetSchema(PathSchema):
 
     def has_fileset(self, fileset: str) -> bool:
         """
-        Returns true if the fileset exists
+        Checks if a fileset exists in the schema.
+
+        Args:
+            fileset (str): The name of the fileset to check.
+
+        Returns:
+            bool: True if the fileset exists, False otherwise.
         """
 
         return fileset in self.getkeys("fileset")

@@ -10,7 +10,23 @@ from siliconcompiler import NodeStatus
 
 
 class FlowgraphSchema(NamedSchema):
+    '''
+    Schema for defining and interacting with a flowgraph.
+
+    A flowgraph is a directed acyclic graph (DAG) that represents the
+    compilation flow. Each node in the graph is a step/index pair that
+
+    maps to a specific tool task, and edges represent dependencies between
+    these tasks.
+    '''
+
     def __init__(self, name=None):
+        '''
+        Initializes a new FlowgraphSchema object.
+
+        Args:
+            name (str, optional): The name of the flowgraph. Defaults to None.
+        '''
         super().__init__()
         self.set_name(name)
 
@@ -21,7 +37,9 @@ class FlowgraphSchema(NamedSchema):
 
     def __clear_cache(self):
         '''
-        Clear the cache of node information
+        Clears the internal cache for memoized flowgraph properties.
+
+        This should be called any time the graph structure is modified.
         '''
 
         self.__cache_nodes = None
@@ -38,27 +56,27 @@ class FlowgraphSchema(NamedSchema):
         '''
         Creates a flowgraph node.
 
-        Creates a flowgraph node by binding a step to a tool specific task.
-        A tool can be an external executable or one of the built in functions
-        in the SiliconCompiler framework). Built in functions include: minimum,
-        maximum, join, mux, verify.
+        Creates a flowgraph node by binding a step to a tool-specific task.
+        A tool can be an external executable or one of the built-in functions
+        in the SiliconCompiler framework (e.g., minimum, maximum, join).
 
         The method modifies the following schema parameters:
 
-        * [<step>,<index>,tool,<tool>]
-        * [<step>,<index>,task,<task>]
-        * [<step>,<index>,taskmodule,<taskmodule>]
+        * `['<step>', '<index>', 'tool']`
+        * `['<step>', '<index>', 'task']`
+        * `['<step>', '<index>', 'taskmodule']`
 
         Args:
-            step (str): Step name
-            task (module/str): Task to associate with this node
-            index (int/str): Step index
+            step (str): Step name for the node.
+            task (module or str): The task to associate with this node. Can be
+                a module object or a string in the format '<tool>.<task>'.
+            index (int or str): Index for the step. Defaults to 0.
 
         Examples:
-            >>> import siliconcomiler.tools.openroad.place as place
-            >>> flow.node('apr_place', place, index=0)
-            Creates a 'place' task with step='apr_place' and index=0 and binds it to the
-            'openroad' tool.
+            >>> import siliconcompiler.tools.openroad as openroad
+            >>> flow.node('place', openroad.place, index=0)
+            # Creates a node for the 'place' task in the 'openroad' tool,
+            # identified by step='place' and index=0.
         '''
 
         if step in (Schema.GLOBAL_KEY, 'default', 'sc_collected_files'):
@@ -104,19 +122,19 @@ class FlowgraphSchema(NamedSchema):
         Connects the output of a tail node with the input of a head node by
         setting the 'input' field of the head node in the schema flowgraph.
 
-        The method modifies the following parameters:
+        The method modifies the following parameter:
 
-        [<head>,<head_index>,input]
+        * `['<head>', '<head_index>', 'input']`
 
         Args:
-            tail (str): Name of tail node
-            head (str): Name of head node
-            tail_index (int/str): Index of tail node to connect
-            head_index (int/str): Index of head node to connect
+            tail (str): Step name of the tail node.
+            head (str): Step name of the head node.
+            tail_index (int or str): Index of the tail node. Defaults to 0.
+            head_index (int or str): Index of the head node. Defaults to 0.
 
         Examples:
             >>> chip.edge('place', 'cts')
-            Creates a directed edge from place to cts.
+            # Creates a directed edge from ('place', '0') to ('cts', '0').
         '''
         head_index = str(head_index)
         tail_index = str(tail_index)
@@ -135,11 +153,12 @@ class FlowgraphSchema(NamedSchema):
 
     def remove_node(self, step, index=None):
         '''
-        Remove a flowgraph node.
+        Removes a flowgraph node and reconnects its inputs to its outputs.
 
         Args:
-            step (str): Step name
-            index (int/str): Step index
+            step (str): Step name of the node to remove.
+            index (int or str, optional): Index of the node to remove. If None,
+                all nodes for the given step are removed. Defaults to None.
         '''
 
         if step not in self.getkeys():
@@ -178,14 +197,17 @@ class FlowgraphSchema(NamedSchema):
 
     def insert_node(self, step, task, before_step, index=0, before_index=0):
         '''
-        Insert a new node after the specified node
+        Inserts a new node in the graph before a specified node.
+
+        The new node is placed between the `before` node and all of its
+        original inputs.
 
         Args:
-            step (str): Step name
-            index (int/str): Step index
-            task (module/str): Task to associate with this node
-            before_step (str): name of step to insert task after
-            before_index (int/str): index of step to insert task after
+            step (str): Step name for the new node.
+            task (module or str): Task to associate with the new node.
+            before_step (str): Step name of the existing node to insert before.
+            index (int or str): Index for the new node. Defaults to 0.
+            before_index (int or str): Index of the existing node. Defaults to 0.
         '''
 
         index = str(index)
@@ -210,15 +232,16 @@ class FlowgraphSchema(NamedSchema):
     ###########################################################################
     def graph(self, subflow, name=None):
         '''
-        Instantiates a named flow as a graph in the current flowgraph.
+        Instantiates a sub-flowgraph within the current flowgraph.
 
         Args:
-            subflow (str): Name of flow to instantiate
-            name (str): Name of instance
+            subflow (FlowgraphSchema): The flowgraph to instantiate.
+            name (str, optional): A prefix to add to the names of the
+                instantiated steps to ensure they are unique. Defaults to None.
 
-        Examples:
-            >>> chip.graph(asicflow)
-            Instantiates a flow named 'asicflow'.
+        Raises:
+            ValueError: If `subflow` is not a `FlowgraphSchema` object, or if
+                a step from the sub-flowgraph already exists in the current graph.
         '''
         if not isinstance(subflow, FlowgraphSchema):
             raise ValueError(f"subflow must a FlowgraphSchema, not: {type(subflow)}")
@@ -252,7 +275,12 @@ class FlowgraphSchema(NamedSchema):
 
     def get_nodes(self):
         '''
-        Returns all the nodes defined in this flowgraph
+        Returns a sorted tuple of all nodes defined in this flowgraph.
+
+        A node is represented as a `(step, index)` tuple.
+
+        Returns:
+            tuple[tuple(str,str)]: All nodes in the graph.
         '''
         if self.__cache_nodes is not None:
             return self.__cache_nodes
@@ -268,8 +296,12 @@ class FlowgraphSchema(NamedSchema):
 
     def get_entry_nodes(self):
         '''
-        Collect all step/indices that represent the entry
-        nodes for the flowgraph
+        Collects all nodes that are entry points to the flowgraph.
+
+        Entry nodes are those with no inputs.
+
+        Returns:
+            tuple[tuple(str,str)]: All entry nodes in the graph.
         '''
 
         if self.__cache_nodes_entry is not None:
@@ -286,8 +318,12 @@ class FlowgraphSchema(NamedSchema):
 
     def get_exit_nodes(self):
         '''
-        Collect all step/indices that represent the exit
-        nodes for the flowgraph
+        Collects all nodes that are exit points of the flowgraph.
+
+        Exit nodes are those that are not inputs to any other node.
+
+        Returns:
+            tuple[tuple(str,str)]: All exit nodes in the graph.
         '''
 
         if self.__cache_nodes_exit is not None:
@@ -307,11 +343,15 @@ class FlowgraphSchema(NamedSchema):
 
     def get_execution_order(self, reverse=False):
         '''
-        Generates a list of nodes in the order they will be executed.
+        Generates a topologically sorted list of nodes for execution.
 
         Args:
-            reverse (boolean): if True, the nodes will be ordered from exit nodes
-                to entry nodes.
+            reverse (bool): If True, the order is reversed, from exit nodes
+                to entry nodes. Defaults to False.
+
+        Returns:
+            tuple[tuple[tuple(str,str)]]: A tuple of tuples, where each inner
+            tuple represents a level of nodes that can be executed in parallel.
         '''
 
         if reverse:
@@ -387,11 +427,14 @@ class FlowgraphSchema(NamedSchema):
 
     def get_node_outputs(self, step, index):
         '''
-        Returns the nodes the given nodes provides input to.
+        Returns the nodes that the given node provides input to.
 
         Args:
-            step (str): step name
-            index (str/int) index name
+            step (str): Step name of the source node.
+            index (str or int): Index of the source node.
+
+        Returns:
+            tuple[tuple(str,str)]: A tuple of destination nodes.
         '''
 
         index = str(index)
@@ -423,12 +466,15 @@ class FlowgraphSchema(NamedSchema):
 
     def __find_loops(self, step, index, path=None):
         '''
-        Search for loops in the graph.
+        Internal helper to search for loops in the graph via depth-first search.
 
         Args:
-            step (str): step name to start from
-            index (str) index name to start from
-            path (list of nodes): path in graph so far
+            step (str): Step name to start from.
+            index (str): Index name to start from.
+            path (list, optional): The path taken so far. Defaults to None.
+
+        Returns:
+            list: A list of nodes forming a loop, or None if no loop is found.
         '''
         if path is None:
             path = []
@@ -448,17 +494,20 @@ class FlowgraphSchema(NamedSchema):
 
     def validate(self, logger=None):
         '''
-        Check if flowgraph is valid.
+        Checks if the flowgraph is valid.
 
-        * Checks if all edges have valid nodes
-        * Checks that there are no duplicate edges
-        * Checks if nodes are defined properly
-        * Checks if there are any loops present in the graph
-
-        Returns True if valid, False otherwise.
+        This method performs several checks:
+        * All edges must point to and from valid nodes.
+        * There should be no duplicate edges.
+        * All nodes must have their tool, task, and taskmodule defined.
+        * The graph must not contain any loops (it must be a DAG).
 
         Args:
-            logger (logging.Logger): logger to use for reporting
+            logger (logging.Logger, optional): A logger to use for reporting
+                errors. Defaults to None.
+
+        Returns:
+            bool: True if the graph is valid, False otherwise.
         '''
 
         error = False
@@ -505,6 +554,9 @@ class FlowgraphSchema(NamedSchema):
         return not error
 
     def __get_task_module(self, name):
+        '''
+        Internal helper to import and cache a task module by name.
+        '''
         # Create cache
         if self.__cache_tasks is None:
             self.__cache_tasks = {}
@@ -517,11 +569,14 @@ class FlowgraphSchema(NamedSchema):
 
     def get_task_module(self, step, index):
         """
-        Returns the module for a given task
+        Returns the imported Python module for a given task node.
 
         Args:
-            step (str): Step name
-            index (int/str): Step index
+            step (str): Step name of the node.
+            index (int or str): Index of the node.
+
+        Returns:
+            module: The imported task module.
         """
 
         index = str(index)
@@ -533,10 +588,10 @@ class FlowgraphSchema(NamedSchema):
 
     def get_all_tasks(self):
         '''
-        Returns all the task modules used in this flow
+        Returns all unique task modules used in this flowgraph.
 
         Returns:
-            set of modules
+            set[module]: A set of all imported task modules.
         '''
         tasks = set()
         for step, index in self.get_nodes():
@@ -546,7 +601,7 @@ class FlowgraphSchema(NamedSchema):
     @classmethod
     def _getdict_type(cls) -> str:
         """
-        Returns the meta data for getdict
+        Returns the metadata type for `getdict` serialization.
         """
 
         return FlowgraphSchema.__name__
@@ -554,16 +609,30 @@ class FlowgraphSchema(NamedSchema):
 
 class RuntimeFlowgraph:
     '''
-    Runtime representation of a flowgraph
+    A runtime representation of a flowgraph for a specific execution.
 
-    Args:
-        base (:class:`FlowgraphSchema`): base flowgraph for this runtime
-        args (tuple of step, index): specific node to apply runtime to
-        from_steps (list of steps): steps to start the runtime from
-        to_steps (list of steps): step to end the runtime at
-        prune_nodes (list of nodes): nodes to remove from execution
+    This class creates a "view" of a base flowgraph that considers runtime
+    options such as the start step (`-from`), end step (`-to`), and nodes to
+    exclude (`-prune`). It computes the precise subgraph of nodes that need
+    to be executed for a given run.
     '''
+
     def __init__(self, base, args=None, from_steps=None, to_steps=None, prune_nodes=None):
+        '''
+        Initializes a new RuntimeFlowgraph.
+
+        Args:
+            base (FlowgraphSchema): The base flowgraph to create a view of.
+            args (tuple[str, str], optional): A specific `(step, index)` to run.
+                If provided, this overrides `from_steps` and `to_steps`.
+                Defaults to None.
+            from_steps (list[str], optional): List of step names to start execution
+                from. Defaults to the base graph's entry nodes.
+            to_steps (list[str], optional): List of step names to end execution at.
+                Defaults to the base graph's exit nodes.
+            prune_nodes (list[tuple(str,str)], optional): A list of `(step, index)`
+                nodes to exclude from the graph. Defaults to None.
+        '''
         if not all([hasattr(base, attr) for attr in dir(FlowgraphSchema)]):
             raise ValueError(f"base must a FlowgraphSchema, not: {type(base)}")
 
@@ -615,6 +684,21 @@ class RuntimeFlowgraph:
         self.__compute_graph()
 
     def __walk_graph(self, node, path=None, reverse=True):
+        '''
+        Internal helper to recursively walk the graph to find all connected nodes.
+
+        This walk respects the runtime boundaries (`-from`, `-to`, `-prune`).
+
+        Args:
+            node (tuple(str,str)): The node to start the walk from.
+            path (list, optional): The path taken so far, used for cycle
+                detection. Defaults to None.
+            reverse (bool, optional): If True, walks backwards along inputs.
+                If False, walks forwards along outputs. Defaults to True.
+
+        Returns:
+            set[tuple(str,str)]: The set of nodes visited during the walk.
+        '''
         if node in self.__prune:
             return set()
 
@@ -643,7 +727,10 @@ class RuntimeFlowgraph:
 
     def __compute_graph(self):
         '''
-        Precompute graph information
+        Internal helper to precompute the runtime graph information.
+
+        This method determines the final set of nodes, entry/exit points, and
+        the execution order based on the runtime constraints.
         '''
 
         self.__nodes = set()
@@ -672,35 +759,51 @@ class RuntimeFlowgraph:
 
     def get_nodes(self):
         '''
-        Returns the nodes available in this graph
+        Returns the nodes that are part of this runtime graph.
+
+        Returns:
+            tuple[tuple(str,str)]: A tuple of all nodes in the runtime graph.
         '''
         return self.__nodes
 
     def get_execution_order(self):
         '''
-        Returns the execution order of the nodes
+        Returns the execution order of the nodes in this runtime graph.
+
+        Returns:
+            tuple[tuple[tuple(str,str)]]: A tuple of tuples representing
+            parallel execution levels.
         '''
         return self.__execution_order
 
     def get_entry_nodes(self):
         '''
-        Returns the entry nodes for this graph
+        Returns the entry nodes for this runtime graph.
+
+        Returns:
+            tuple[tuple(str,str)]: A tuple of all entry nodes.
         '''
         return self.__from
 
     def get_exit_nodes(self):
         '''
-        Returns the exit nodes for this graph
+        Returns the exit nodes for this runtime graph.
+
+        Returns:
+            tuple[tuple(str,str)]: A tuple of all exit nodes.
         '''
         return self.__to
 
     def get_nodes_starting_at(self, step, index):
         '''
-        Returns all the nodes that the given step, index connect to
+        Returns all nodes reachable from a given starting node in this runtime graph.
 
         Args:
-            step (str): step to start from
-            index (str/int): index to start from
+            step (str): The step name of the starting node.
+            index (str or int): The index of the starting node.
+
+        Returns:
+            tuple[tuple(str,str)]: A tuple of all reachable nodes.
         '''
         index = str(index)
 
@@ -710,6 +813,21 @@ class RuntimeFlowgraph:
         return tuple(sorted(self.__walk_graph((step, str(index)), reverse=False)))
 
     def get_node_inputs(self, step, index, record=None):
+        '''
+        Gets the inputs for a specific node in the runtime graph.
+
+        If a `record` object is provided, this method will traverse through
+        any input nodes that were SKIPPED to find the true, non-skipped inputs.
+
+        Args:
+            step (str): Step name of the node.
+            index (str): Index of the node.
+            record (Schema, optional): A schema object containing run records.
+                Used to check the status of input nodes. Defaults to None.
+
+        Returns:
+            list[tuple(str,str)]: A list of input nodes.
+        '''
         if (step, index) not in self.get_nodes():
             raise ValueError(f"{step}/{index} is not a valid node")
 
@@ -733,6 +851,16 @@ class RuntimeFlowgraph:
         return sorted(inputs)
 
     def get_completed_nodes(self, record=None):
+        '''
+        Finds all nodes in this runtime graph that have successfully completed.
+
+        Args:
+            record (Schema, optional): A schema object containing run records
+                to check for node status. Defaults to None.
+
+        Returns:
+            list[tuple(str,str)]: A sorted list of successfully completed nodes.
+        '''
         if not record:
             return []
 
@@ -745,6 +873,24 @@ class RuntimeFlowgraph:
 
     @staticmethod
     def validate(flow, from_steps=None, to_steps=None, prune_nodes=None, logger=None):
+        '''
+        Validates runtime options against a flowgraph.
+
+        Checks for undefined steps and ensures that pruning does not break
+        the graph by removing all entry/exit points or creating disjoint paths.
+
+        Args:
+            flow (FlowgraphSchema): The flowgraph to validate against.
+            from_steps (list[str], optional): List of start steps. Defaults to None.
+            to_steps (list[str], optional): List of end steps. Defaults to None.
+            prune_nodes (list[tuple(str,str)], optional): List of nodes to prune.
+                Defaults to None.
+            logger (logging.Logger, optional): Logger for error reporting.
+                Defaults to None.
+
+        Returns:
+            bool: True if the runtime configuration is valid, False otherwise.
+        '''
         all_steps = set([step for step, _ in flow.get_nodes()])
 
         if from_steps:
@@ -835,7 +981,14 @@ class RuntimeFlowgraph:
 
 
 class FlowgraphNodeSchema(BaseSchema):
+    '''
+    Schema definition for a single node within a flowgraph.
+    '''
+
     def __init__(self):
+        '''
+        Initializes a new FlowgraphNodeSchema.
+        '''
         super().__init__()
 
         schema_flowgraph(self)
@@ -843,7 +996,7 @@ class FlowgraphNodeSchema(BaseSchema):
     @classmethod
     def _getdict_type(cls) -> str:
         """
-        Returns the meta data for getdict
+        Returns the metadata type for `getdict` serialization.
         """
 
         return FlowgraphNodeSchema.__name__
@@ -853,6 +1006,16 @@ class FlowgraphNodeSchema(BaseSchema):
 # Flow Configuration
 ###############################################################################
 def schema_flowgraph(schema):
+    '''
+    Defines the schema parameters for a flowgraph node.
+
+    This function is called to populate a schema with parameters that
+    define a node's properties, such as its inputs, weights, goals, and the
+    tool/task it executes.
+
+    Args:
+        schema (Schema): The schema object to configure.
+    '''
     schema = EditableSchema(schema)
 
     # flowgraph input

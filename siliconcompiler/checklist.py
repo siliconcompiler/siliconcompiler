@@ -10,7 +10,16 @@ from siliconcompiler import NodeStatus, utils
 
 
 class ChecklistSchema(NamedSchema):
+    """
+    A class for managing design checklists and their verification.
+    """
     def __init__(self, name=None):
+        """
+        Initializes the ChecklistSchema object.
+
+        Args:
+            name (str, optional): The name of the checklist standard. Defaults to None.
+        """
         super().__init__()
         self.set_name(name)
 
@@ -223,6 +232,12 @@ class ChecklistSchema(NamedSchema):
 # Design Checklist
 ############################################
 def schema_checklist(schema):
+    """
+    Adds checklist schema parameters to the given schema.
+
+    Args:
+        schema (EditableSchema): The schema to modify.
+    """
     schema = EditableSchema(schema)
 
     item = 'default'

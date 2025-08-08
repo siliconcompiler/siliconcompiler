@@ -16,13 +16,46 @@ from siliconcompiler.schema.utils import trim
 
 ###########################################################################
 class DesignSchema(LibrarySchema, DependencySchema):
+    '''
+    Schema for a 'design', which is a chip object that can be compiled.
+
+    This class inherits from :class:`~siliconcompiler.LibrarySchema` and
+    :class:`~siliconcompiler.DependencySchema`, and adds parameters and methods
+    specific to describing a design, such as its top module, source filesets,
+    and compilation settings.
+    '''
+
     def __init__(self, name: str = None):
+        '''
+        Initializes a new DesignSchema object.
+
+        Args:
+            name (str, optional): The name of the design. Defaults to None.
+        '''
         super().__init__()
         self.set_name(name)
 
         schema_design(self)
 
     def add_dep(self, obj: NamedSchema, clobber: bool = True) -> bool:
+        '''
+        Adds a module dependency to this design.
+
+        This method extends the base `add_dep` to prevent a design from
+        adding a dependency on itself.
+
+        Args:
+            obj (NamedSchema): The dependency object to add.
+            clobber (bool): If True, overwrite an existing dependency with the
+                same name.
+
+        Returns:
+            bool: True if the dependency was added, False otherwise.
+
+        Raises:
+            TypeError: If `obj` is not a `NamedSchema`.
+            ValueError: If `obj` has the same name as the current design.
+        '''
         if not isinstance(obj, NamedSchema):
             raise TypeError(f"Cannot add an object of type: {type(obj)}")
 
@@ -39,7 +72,8 @@ class DesignSchema(LibrarySchema, DependencySchema):
 
         Args:
            value (str): Topmodule name.
-           fileset (str, optional): Fileset name.
+           fileset (str, optional): Fileset name. If not provided, the active
+            fileset is used.
 
         Returns:
            str: Topmodule name
@@ -60,7 +94,8 @@ class DesignSchema(LibrarySchema, DependencySchema):
         """Returns the topmodule of a fileset.
 
         Args:
-           fileset (str): Fileset name.
+           fileset (str): Fileset name. If not provided, the active fileset is
+            used.
 
         Returns:
            str: Topmodule name
@@ -77,9 +112,10 @@ class DesignSchema(LibrarySchema, DependencySchema):
 
         Args:
            value (str or Path): Include directory name.
-           fileset (str, optional): Fileset name.
-           clobber (bool, optional): Clears existing list before adding item
-           dataroot (str, optional): Data directory reference name
+           fileset (str, optional): Fileset name. If not provided, the active
+            fileset is used.
+           clobber (bool, optional): Clears existing list before adding item.
+           dataroot (str, optional): Data directory reference name.
 
         Returns:
            list[str]: List of include directories
@@ -91,7 +127,8 @@ class DesignSchema(LibrarySchema, DependencySchema):
         """Returns include directories for a fileset.
 
         Args:
-           fileset (str): Fileset name.
+           fileset (str): Fileset name. If not provided, the active fileset is
+            used.
 
         Returns:
            list[str]: List of include directories
@@ -107,7 +144,8 @@ class DesignSchema(LibrarySchema, DependencySchema):
 
         Args:
            value (str or List[str]): Macro definition.
-           fileset (str, optional): Fileset name.
+           fileset (str, optional): Fileset name. If not provided, the active
+            fileset is used.
            clobber (bool, optional): Clears existing list before adding item.
 
         Returns:
@@ -120,7 +158,8 @@ class DesignSchema(LibrarySchema, DependencySchema):
         """Returns defined macros for a fileset.
 
         Args:
-           fileset (str): Fileset name.
+           fileset (str): Fileset name. If not provided, the active fileset is
+            used.
 
         Returns:
            list[str]: List of macro definitions
@@ -136,8 +175,9 @@ class DesignSchema(LibrarySchema, DependencySchema):
 
         Args:
            value (str or List[str]): Macro (un)definition.
-           fileset (str, optional): Fileset name.
-           clobber (bool, optional): CClears existing list before adding item.
+           fileset (str, optional): Fileset name. If not provided, the active
+            fileset is used.
+           clobber (bool, optional): Clears existing list before adding item.
 
         Returns:
            list[str]: List of macro (un)definitions
@@ -148,7 +188,8 @@ class DesignSchema(LibrarySchema, DependencySchema):
         """Returns undefined macros for a fileset.
 
         Args:
-           fileset (str): Fileset name.
+           fileset (str): Fileset name. If not provided, the active fileset is
+            used.
 
        Returns:
            list[str]: List of macro (un)definitions
@@ -165,10 +206,11 @@ class DesignSchema(LibrarySchema, DependencySchema):
         """Adds dynamic library directories to a fileset.
 
         Args:
-           value (str or List[str]): Library directories
-           fileset (str, optional): Fileset name.
+           value (str or List[str]): Library directories.
+           fileset (str, optional): Fileset name. If not provided, the active
+            fileset is used.
            clobber (bool, optional): Clears existing list before adding item.
-           dataroot (str, optional): Data directory reference name
+           dataroot (str, optional): Data directory reference name.
 
         Returns:
            list[str]: List of library directories.
@@ -180,7 +222,8 @@ class DesignSchema(LibrarySchema, DependencySchema):
         """Returns dynamic library directories for a fileset.
 
         Args:
-           fileset (str): Fileset name.
+           fileset (str): Fileset name. If not provided, the active fileset is
+            used.
 
         Returns:
            list[str]: List of library directories.
@@ -195,8 +238,9 @@ class DesignSchema(LibrarySchema, DependencySchema):
         """Adds dynamic libraries to a fileset.
 
         Args:
-           value (str or List[str]): Libraries
-           fileset (str, optional): Fileset name.
+           value (str or List[str]): Libraries.
+           fileset (str, optional): Fileset name. If not provided, the active
+            fileset is used.
            clobber (bool, optional): Clears existing list before adding item.
 
         Returns:
@@ -208,7 +252,8 @@ class DesignSchema(LibrarySchema, DependencySchema):
         """Returns list of dynamic libraries for a fileset.
 
         Args:
-           fileset (str): Fileset name.
+           fileset (str): Fileset name. If not provided, the active fileset is
+            used.
 
         Returns:
            list[str]: List of libraries.
@@ -225,7 +270,8 @@ class DesignSchema(LibrarySchema, DependencySchema):
         Args:
             name (str): Parameter name.
             value (str): Parameter value.
-            fileset (str, optional): Fileset name.
+            fileset (str, optional): Fileset name. If not provided, the active
+                fileset is used.
 
         Returns:
             str: Parameter value
@@ -249,7 +295,8 @@ class DesignSchema(LibrarySchema, DependencySchema):
 
         Args:
            name (str): Parameter name.
-           fileset (str): Fileset name.
+           fileset (str): Fileset name. If not provided, the active fileset is
+            used.
 
         Returns:
             str: Parameter value
@@ -268,8 +315,9 @@ class DesignSchema(LibrarySchema, DependencySchema):
 
         Args:
            dep (:class:`DesignSchema` or str): Dependency name or object.
-           depfileset (str): Dependency fileset
-           fileset (str): Fileset name.
+           depfileset (str): Dependency fileset.
+           fileset (str): Fileset name. If not provided, the active fileset is
+            used.
 
         """
         if fileset is None:
@@ -300,10 +348,11 @@ class DesignSchema(LibrarySchema, DependencySchema):
         Returns list of dependency filesets.
 
         Args:
-           fileset (str): Fileset name.
+           fileset (str): Fileset name. If not provided, the active fileset is
+            used.
 
         Returns:
-           list[str]: List of dependencies and filesets.
+           list[tuple(str, str)]: List of dependencies and filesets.
         """
         if fileset is None:
             fileset = self._get_active("fileset")
@@ -317,6 +366,18 @@ class DesignSchema(LibrarySchema, DependencySchema):
                       filename: str,
                       filesets: List[str],
                       depalias: Dict[str, Tuple[NamedSchema, str]]):
+        '''
+        Internal helper to write a Verilog-style file list (`.f` file).
+
+        This method iterates through the specified filesets (and their
+        dependencies), writing out `+incdir+`, `+define+`, and source file
+        paths.
+
+        Args:
+            filename (str): The path to the output file list.
+            filesets (List[str]): A list of fileset names to include.
+            depalias (Dict): A dictionary for aliasing dependencies.
+        '''
         written_cmd = set()
 
         with open(filename, "w") as f:
@@ -348,6 +409,19 @@ class DesignSchema(LibrarySchema, DependencySchema):
                             write(file)
 
     def __map_fileformat(self, path):
+        '''
+        Internal helper to determine file format from a file extension.
+
+        Args:
+            path (str): The file path.
+
+        Returns:
+            str: The determined file format (e.g., "flist").
+
+        Raises:
+            ValueError: If the file format cannot be determined from the
+                extension.
+        '''
         _, ext = os.path.splitext(path)
 
         if ext == ".f":
@@ -369,9 +443,10 @@ class DesignSchema(LibrarySchema, DependencySchema):
 
         Args:
             filename (str or Path): Output file name.
-            fileset (str or list[str]): Fileset(s) to export.
+            fileset (str or list[str]): Fileset(s) to export. If not provided,
+                the active fileset is used.
             fileformat (str, optional): Export format.
-            depalias (dict of schema objects): Map of aliased objects
+            depalias (dict of schema objects): Map of aliased objects.
         """
 
         if filename is None:
@@ -397,6 +472,16 @@ class DesignSchema(LibrarySchema, DependencySchema):
             raise ValueError(f"{fileformat} is not a supported filetype")
 
     def __read_flist(self, filename: str, fileset: str):
+        '''
+        Internal helper to read a Verilog-style file list (`.f` file).
+
+        This method parses the file list for `+incdir+`, `+define+`, and
+        source files, and populates the specified fileset in the schema.
+
+        Args:
+            filename (str): The path to the input file list.
+            fileset (str): The name of the fileset to populate.
+        '''
         # Extract information
         rel_path = os.path.dirname(os.path.abspath(filename))
 
@@ -476,9 +561,11 @@ class DesignSchema(LibrarySchema, DependencySchema):
         Intended to support other formats in the future.
 
         Args:
-            filename (str or Path): Output file name.
-            fileset (str or list[str]): Filesets to import.
-            fileformat (str, optional): Export format.
+            filename (str or Path): Input file name.
+            fileset (str or list[str]): Fileset to import into. If not
+                provided, the active fileset is used.
+            fileformat (str, optional): Import format. Inferred from file
+                extension if not provided.
         """
 
         if filename is None:
@@ -499,7 +586,20 @@ class DesignSchema(LibrarySchema, DependencySchema):
     # Helper Functions
     ################################################
     def __set_add(self, fileset, option, value, clobber=False, typelist=None, dataroot=None):
-        '''Sets a parameter value in schema.
+        '''
+        Internal helper to set or add a parameter value in the schema.
+
+        This function handles common tasks for setters like `add_idir` and
+        `add_define`, such as resolving the active fileset, checking value
+        types, and calling the underlying schema `set()` or `add()` methods.
+
+        Args:
+            fileset (str): The fileset to modify.
+            option (str): The parameter key to modify.
+            value: The value to set or add.
+            clobber (bool): If True, overwrite the existing value.
+            typelist (list): A list of allowed types for the value.
+            dataroot (str): The dataroot to associate with the value.
         '''
 
         if fileset is None:
@@ -533,7 +633,17 @@ class DesignSchema(LibrarySchema, DependencySchema):
         return params
 
     def __get(self, fileset, option, is_file=False):
-        '''Gets a parameter value from schema.
+        '''
+        Internal helper to get a parameter value from the schema.
+
+        This function handles common tasks for getters, such as resolving the
+        active fileset and optionally resolving file paths.
+
+        Args:
+            fileset (str): The fileset to query.
+            option (str): The parameter key to retrieve.
+            is_file (bool): If True, treat the value as a file path and
+                resolve it using `find_files`.
         '''
         if fileset is None:
             fileset = self._get_active("fileset")
@@ -547,7 +657,9 @@ class DesignSchema(LibrarySchema, DependencySchema):
     @classmethod
     def _getdict_type(cls) -> str:
         """
-        Returns the meta data for getdict
+        Returns the meta data for getdict.
+
+        This is used to identify the object type during serialization.
         """
 
         return DesignSchema.__name__
@@ -557,14 +669,19 @@ class DesignSchema(LibrarySchema, DependencySchema):
                     alias: Dict[str, Tuple[NamedSchema, str]] = None) -> \
             List[Tuple[NamedSchema, str]]:
         """
-        Computes the filesets this object required for a given set of filesets
+        Computes the full, recursive list of (dependency, fileset) tuples
+        required for a given set of top-level filesets.
+
+        This method traverses the design's dependency graph.
 
         Args:
-            filesets (list of str): List of filesets to evaluate
-            alias (dict of schema objects): Map of aliased objects
+            filesets (list of str): List of top-level filesets to evaluate.
+            alias (dict of schema objects): Map of aliased objects to
+                substitute during traversal.
 
         Returns:
-            List of tuples (dependency object, fileset)
+            List[Tuple[NamedSchema, str]]: A flattened, unique list of
+            (dependency, fileset) tuples.
         """
         if alias is None:
             alias = {}
@@ -605,6 +722,16 @@ class DesignSchema(LibrarySchema, DependencySchema):
 # Schema
 ###########################################################################
 def schema_design(schema):
+    '''
+    Defines the schema parameters specific to a design.
+
+    This function is called by the `DesignSchema` constructor to set up
+    its unique schema elements, such as `topmodule`, `idir`, `define`, etc.,
+    under the `fileset` key.
+
+    Args:
+        schema (DesignSchema): The schema object to configure.
+    '''
 
     schema = EditableSchema(schema)
 

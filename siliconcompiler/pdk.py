@@ -6,7 +6,16 @@ from siliconcompiler import ToolLibrarySchema
 
 
 class PDKSchema(ToolLibrarySchema):
+    """
+    A class for managing Process Design Kit (PDK) schemas.
+    """
     def __init__(self, name: str = None):
+        """
+        Initializes a PDKSchema object.
+
+        Args:
+            name (str, optional): The name of the PDK. Defaults to None.
+        """
         super().__init__()
         self.set_name(name)
 
@@ -208,7 +217,7 @@ class PDKSchema(ToolLibrarySchema):
                 switch="-pdk_pexmodel 'pdkname tool stackup corner <file>'",
                 example=[
                     "cli: -pdk_pexmodel 'asap7 fastcap M10 max wire.mod'",
-                    "api: chip.set('pexmodel', 'fastcap', 'M10', 'max', 'wire.mod')"],
+                    "api: chip.set('pdk', 'asap7', 'pexmodel', 'fastcap', 'M10', 'max', 'wire.mod')"],
                 help=trim("""
                 List of filepaths to PDK wire TCAD models used during automated
                 synthesis, APR, and signoff verification. Pexmodels are specified on
@@ -311,36 +320,101 @@ class PDKSchema(ToolLibrarySchema):
                     help=trim(f"""Waiver files for {item.upper()} task.""")))
 
     def set_foundry(self, foundry: str):
+        """
+        Sets the foundry name for the PDK.
+
+        Args:
+            foundry (str): The name of the foundry.
+        """
         return self.set("pdk", "foundry", foundry)
 
     def set_node(self, node: float):
+        """
+        Sets the process node for the PDK.
+
+        Args:
+            node (float): The process node in nanometers.
+        """
         return self.set("pdk", "node", node)
 
     def set_stackup(self, stackup: str):
+        """
+        Sets the metal stackup for the PDK.
+
+        Args:
+            stackup (str): The name of the metal stackup.
+        """
         return self.set("pdk", "stackup", stackup)
 
     def set_wafersize(self, wafersize: float):
+        """
+        Sets the wafer size for the PDK.
+
+        Args:
+            wafersize (float): The wafer diameter in millimeters.
+        """
         return self.set("pdk", "wafersize", wafersize)
 
     def set_unitcost(self, unitcost: float):
+        """
+        Sets the unit cost for the PDK.
+
+        Args:
+            unitcost (float): The unit cost in USD.
+        """
         return self.set("pdk", "unitcost", unitcost)
 
     def set_defectdensity(self, d0: float):
+        """
+        Sets the process defect density for the PDK.
+
+        Args:
+            d0 (float): The defect density (defects per cm^2).
+        """
         return self.set("pdk", "d0", d0)
 
     def set_scribewidth(self, x: float, y: float):
+        """
+        Sets the scribe line width for the PDK.
+
+        Args:
+            x (float): The horizontal scribe width in millimeters.
+            y (float): The vertical scribe width in millimeters.
+        """
         return self.set("pdk", "scribe", (x, y))
 
     def set_edgemargin(self, margin: float):
+        """
+        Sets the wafer edge keep-out margin for the PDK.
+
+        Args:
+            margin (float): The edge margin in millimeters.
+        """
         return self.set("pdk", "edgemargin", margin)
 
     def set_aprroutinglayers(self, min: str = None, max: str = None):
+        """
+        Sets the minimum and maximum routing layers for the PDK.
+
+        Args:
+            min (str, optional): The minimum routing layer name. Defaults to None.
+            max (str, optional): The maximum routing layer name. Defaults to None.
+        """
         if min:
             self.set("pdk", "minlayer", min)
         if max:
             self.set("pdk", "maxlayer", max)
 
     def add_aprtechfileset(self, tool: str, fileset: str = None, clobber: bool = False):
+        """
+        Adds a fileset containing APR technology files.
+
+        Args:
+            tool (str): The name of the tool.
+            fileset (str, optional): The name of the fileset. Defaults to None,
+                                     which uses the active fileset.
+            clobber (bool, optional): If True, overwrites existing entries. Defaults to False.
+        """
         if not fileset:
             fileset = self._get_active("fileset")
 
@@ -353,6 +427,17 @@ class PDKSchema(ToolLibrarySchema):
 
     def add_layermapfileset(self, tool: str, src: str, dst: str, fileset: str = None,
                             clobber: bool = False):
+        """
+        Adds a fileset containing layer map files.
+
+        Args:
+            tool (str): The name of the tool.
+            src (str): The source format or tool name.
+            dst (str): The destination format or tool name.
+            fileset (str, optional): The name of the fileset. Defaults to None,
+                                     which uses the active fileset.
+            clobber (bool, optional): If True, overwrites existing entries. Defaults to False.
+        """
         if not fileset:
             fileset = self._get_active("fileset")
 
@@ -364,6 +449,15 @@ class PDKSchema(ToolLibrarySchema):
             return self.add("pdk", "layermapfileset", tool, src, dst, fileset)
 
     def add_displayfileset(self, tool: str, fileset: str = None, clobber: bool = False):
+        """
+        Adds a fileset containing display configuration files.
+
+        Args:
+            tool (str): The name of the tool.
+            fileset (str, optional): The name of the fileset. Defaults to None,
+                                     which uses the active fileset.
+            clobber (bool, optional): If True, overwrites existing entries. Defaults to False.
+        """
         if not fileset:
             fileset = self._get_active("fileset")
 
@@ -376,6 +470,16 @@ class PDKSchema(ToolLibrarySchema):
 
     def add_devmodelfileset(self, tool: str, type: str, fileset: str = None,
                             clobber: bool = False):
+        """
+        Adds a fileset containing device model files.
+
+        Args:
+            tool (str): The name of the tool.
+            type (str): The type of the device model (e.g., 'spice').
+            fileset (str, optional): The name of the fileset. Defaults to None,
+                                     which uses the active fileset.
+            clobber (bool, optional): If True, overwrites existing entries. Defaults to False.
+        """
         if not fileset:
             fileset = self._get_active("fileset")
 
@@ -388,6 +492,16 @@ class PDKSchema(ToolLibrarySchema):
 
     def add_pexmodelfileset(self, tool: str, corner: str, fileset: str = None,
                             clobber: bool = False):
+        """
+        Adds a fileset containing parasitic extraction (pex) model files.
+
+        Args:
+            tool (str): The name of the tool.
+            corner (str): The corner name (e.g., 'min', 'max').
+            fileset (str, optional): The name of the fileset. Defaults to None,
+                                     which uses the active fileset.
+            clobber (bool, optional): If True, overwrites existing entries. Defaults to False.
+        """
         if not fileset:
             fileset = self._get_active("fileset")
 
@@ -400,6 +514,17 @@ class PDKSchema(ToolLibrarySchema):
 
     def add_runsetfileset(self, type: str, tool: str, name: str, fileset: str = None,
                           clobber: bool = False):
+        """
+        Adds a fileset containing a runset for a specific verification task.
+
+        Args:
+            type (str): The type of task (e.g., 'lvs', 'drc').
+            tool (str): The name of the tool.
+            name (str): The name of the runset.
+            fileset (str, optional): The name of the fileset. Defaults to None,
+                                     which uses the active fileset.
+            clobber (bool, optional): If True, overwrites existing entries. Defaults to False.
+        """
         if not fileset:
             fileset = self._get_active("fileset")
 
@@ -420,7 +545,16 @@ class PDKSchema(ToolLibrarySchema):
 
 
 class PDKSchemaTmp(NamedSchema):
+    """
+    A temporary PDK schema class for development and testing.
+    """
     def __init__(self, name=None):
+        """
+        Initializes a temporary PDKSchemaTmp object.
+
+        Args:
+            name (str, optional): The name of the PDK. Defaults to None.
+        """
         super().__init__()
         self.set_name(name)
 
@@ -439,6 +573,12 @@ class PDKSchemaTmp(NamedSchema):
 # PDK
 ###############################################################################
 def schema_pdk(schema):
+    """
+    Adds PDK schema parameters to the given schema.
+
+    Args:
+        schema (EditableSchema): The schema to modify.
+    """
     schema = EditableSchema(schema)
 
     tool = 'default'

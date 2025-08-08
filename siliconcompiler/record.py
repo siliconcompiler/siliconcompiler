@@ -18,11 +18,17 @@ from siliconcompiler import _metadata
 
 
 class RecordTime(Enum):
+    """
+    Enumeration of time record types.
+    """
     START = "starttime"
     END = "endtime"
 
 
 class RecordTool(Enum):
+    """
+    Enumeration of tool record types.
+    """
     EXITCODE = "toolexitcode"
     VERSION = "toolversion"
     PATH = "toolpath"
@@ -30,14 +36,31 @@ class RecordTool(Enum):
 
 
 class RecordSchema(BaseSchema):
+    """
+    A class for managing run record data.
+    """
     __TIMEFORMAT = "%Y-%m-%d %H:%M:%S.%f"
 
     def __init__(self):
+        """
+        Initializes the RecordSchema object.
+        """
         super().__init__()
 
         schema_record(self)
 
     def _from_dict(self, manifest, keypath, version=None):
+        """
+        Constructs a schema from a dictionary.
+
+        Args:
+            manifest (dict): Dictionary to construct from.
+            keypath (list): List of keys representing the path to the current dictionary.
+            version (str, optional): Version of the manifest. Defaults to None.
+
+        Returns:
+            dict: The constructed dictionary.
+        """
         ret = super()._from_dict(manifest, keypath, version)
 
         # Correct for change specification
@@ -51,7 +74,7 @@ class RecordSchema(BaseSchema):
 
     def clear(self, step, index, keep=None):
         '''
-        Clear all saved metrics for a given step and index
+        Clear all saved metrics for a given step and index.
 
         Args:
             step (str): Step name to clear.
@@ -352,6 +375,12 @@ class RecordSchema(BaseSchema):
 # Run Record
 ###########################################################################
 def schema_record(schema):
+    """
+    Adds record schema parameters to the given schema.
+
+    Args:
+        schema (EditableSchema): The schema to modify.
+    """
     schema = EditableSchema(schema)
     records = {'userid': ['userid',
                           'wiley',
