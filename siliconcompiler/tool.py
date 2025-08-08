@@ -86,9 +86,8 @@ class TaskSchema(NamedSchema):
         r"^\s*" + __parse_version_check_str + r"\s*$",
         re.VERBOSE | re.IGNORECASE)
 
-    def __init__(self, name=None):
+    def __init__(self):
         super().__init__()
-        self.set_name(name)
 
         schema_task(self)
 
@@ -1862,7 +1861,7 @@ class ToolSchema(NamedSchema):
         schema_tool(self)
 
         schema = EditableSchema(self)
-        schema.insert("task", "default", TaskSchema(None))
+        schema.insert("task", "default", TaskSchema())
 
     @classmethod
     def _getdict_type(cls) -> str:

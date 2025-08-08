@@ -140,7 +140,7 @@ def test_from_manifest_no_args():
 
 def test_from_manifest_file():
     class NewSchema(NamedSchema):
-        def __init__(self, name):
+        def __init__(self, name=None):
             super().__init__(name)
             edit = EditableSchema(self)
             edit.insert("test0", "test1", Parameter("str"))
@@ -159,7 +159,7 @@ def test_from_manifest_file():
 
 def test_from_manifest_cfg():
     class NewSchema(NamedSchema):
-        def __init__(self, name):
+        def __init__(self, name=None):
             super().__init__(name)
             edit = EditableSchema(self)
             edit.insert("test0", "test1", Parameter("str"))

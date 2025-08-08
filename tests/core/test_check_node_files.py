@@ -14,7 +14,7 @@ def fake_chip(gcd_chip):
         to_steps=gcd_chip.get('option', 'to'),
         prune_nodes=gcd_chip.get('option', 'prune'))
 
-    dummy = TaskSchema("testtask")
+    dummy = TaskSchema()
 
     for step, index in runtime.get_nodes():
         workdir = pathlib.Path(gcd_chip.getworkdir(step=step, index=index))
