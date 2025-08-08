@@ -343,23 +343,12 @@ class ASICProject(Project):
         """
         return self.get("constraint", "area", field="schema")
 
-    def run(self, raise_exception=False):
+    def _init_run(self):
         """
-        Executes the ASIC compilation flow, with pre-run setup for ASIC-specific
-        parameters, then defers to the base Project's run method.
-
         This method ensures that if `[asic,mainlib]` or `[asic,pdk]` are not
         explicitly set but can be inferred (e.g., from `asiclib` or the main
         library's PDK), they are automatically configured. It also verifies
-        that the `mainlib` is included in the `asiclib` list. After these
-        pre-run adjustments, it calls the `run` method of the parent `Project` class.
-
-        Args:
-            raise_exception (bool): If True, will rethrow errors that the flow raises,
-                                    otherwise will report the error and return False.
-
-        Returns:
-            bool: True if the execution completes successfully, False otherwise.
+        that the `mainlib` is included in the `asiclib` list.
         """
         # Ensure mainlib is set
         if not self.get("asic", "mainlib") and self.get("asic", "asiclib"):
@@ -384,8 +373,6 @@ class ASICProject(Project):
             # Ensure mainlib is added to asiclib
             self.logger.warning(f'Adding {self.get("asic", "mainlib")} to [asic,asiclib]')
             self.add("asic", "asiclib", self.get("asic", "mainlib"))
-
-        return super().run(raise_exception)
 
     def _summary_headers(self):
         """
