@@ -1,10 +1,10 @@
+import json
 import os
 import shlex
-import subprocess
-import stat
-import uuid
-import json
 import shutil
+import stat
+import subprocess
+import uuid
 
 import os.path
 
@@ -15,7 +15,23 @@ from siliconcompiler.scheduler import SchedulerNode
 
 
 class SlurmSchedulerNode(SchedulerNode):
+    """A SchedulerNode implementation for running tasks on a Slurm cluster.
+
+    This class extends the base SchedulerNode to handle the specifics of
+    submitting a compilation step as a job to a Slurm workload manager.
+    It prepares a run script, a manifest, and uses the 'srun' command
+    to execute the step on a compute node.
+    """
+
     def __init__(self, chip, step, index, replay=False):
+        """Initializes a SlurmSchedulerNode.
+
+        Args:
+            chip (Chip): The parent Chip object.
+            step (str): The step name in the flowgraph.
+            index (str): The index for the step.
+            replay (bool): If True, sets up the node to replay a previous run.
+        """
         super().__init__(chip, step, index, replay=replay)
 
         # Get the temporary UID associated with this job run.
@@ -26,10 +42,22 @@ class SlurmSchedulerNode(SchedulerNode):
 
     @property
     def jobhash(self):
+        """str: A unique hash identifying the entire job run."""
         return self.__job_hash
 
     @staticmethod
     def init(chip):
+        """
+        A static pre-processing hook for the Slurm scheduler.
+
+        This method checks if the compilation flow starts from an entry node.
+        If so, it calls `chip.collect()` to gather all necessary source files
+        into a central location before any remote jobs are submitted. This
+        ensures that compute nodes have access to all required source files.
+
+        Args:
+            chip (Chip): The Chip object to perform pre-processing on.
+        """
         if os.path.exists(chip._getcollectdir()):
             # nothing to do
             return
@@ -53,26 +81,61 @@ class SlurmSchedulerNode(SchedulerNode):
 
     @property
     def is_local(self):
+        """bool: Returns False, as this node executes on a remote cluster."""
         return False
 
     @staticmethod
     def get_configuration_directory(chip):
-        '''
-        Helper function to get the configuration directory for the scheduler
-        '''
+        """Gets the directory for storing Slurm-related configuration files.
+
+        Args:
+            chip (Chip): The Chip object.
+
+        Returns:
+            str: The path to the configuration directory.
+        """
 
         return os.path.join(chip.getworkdir(), 'sc_configs')
 
     @staticmethod
     def get_job_name(jobhash, step, index):
+        """Generates a unique job name for a Slurm job.
+
+        Args:
+            jobhash (str): The unique hash for the entire run.
+            step (str): The step name of the node.
+            index (str): The index of the node.
+
+        Returns:
+            str: A unique job name string.
+        """
         return f'{jobhash}_{step}_{index}'
 
     @staticmethod
     def get_runtime_file_name(jobhash, step, index, ext):
+        """Generates a standardized filename for runtime files.
+
+        Args:
+            jobhash (str): The unique hash for the entire run.
+            step (str): The step name of the node.
+            index (str): The index of the node.
+            ext (str): The file extension.
+
+        Returns:
+            str: A standardized filename.
+        """
         return f"{SlurmSchedulerNode.get_job_name(jobhash, step, index)}.{ext}"
 
     @staticmethod
     def get_slurm_partition():
+        """Determines a default Slurm partition by querying the cluster.
+
+        Returns:
+            str: The name of the first available Slurm partition.
+
+        Raises:
+            RuntimeError: If the 'sinfo' command fails.
+        """
         partitions = subprocess.run(['sinfo', '--json'],
                                     stdout=subprocess.PIPE,
                                     stderr=subprocess.STDOUT)
@@ -86,12 +149,13 @@ class SlurmSchedulerNode(SchedulerNode):
         return sinfo['nodes'][0]['partitions'][0]
 
     def run(self):
-        '''
-        Helper method to run an individual step on a slurm cluster.
+        """
+        Runs the node's task as a job on a Slurm cluster.
 
-        Blocks until the compute node
-        finishes processing this step, and it sets the active/error bits.
-        '''
+        This method prepares all necessary files (manifest, run script),
+        constructs an 'srun' command, and submits the job. It then blocks
+        until the job completes on the compute node.
+        """
 
         self._init_run_logger()
 

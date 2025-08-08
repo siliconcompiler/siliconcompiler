@@ -26,7 +26,28 @@ from siliconcompiler.scheduler import send_messages
 
 
 class SchedulerNode:
+    """
+    A class for managing and executing a single node in the compilation flow graph.
+
+    This class encapsulates the state and logic required to run a specific
+    step and index, including setting up directories, handling file I/O,
+    executing the associated tool, and recording results.
+
+    """
+
     def __init__(self, chip, step, index, replay=False):
+        """
+        Initializes a SchedulerNode.
+
+        Args:
+            chip (Chip): The parent Chip object containing the schema and settings.
+            step (str): The step name in the flowgraph this node represents.
+            index (str): The index for the step this node represents.
+            replay (bool): If True, sets up the node to replay a previous run.
+
+        Raises:
+            TypeError: If 'step' or 'index' are not non-empty strings.
+        """
         if not isinstance(step, str) or step == "":
             raise TypeError("step must be a string with a value")
         if not isinstance(index, str) or index == "":
@@ -78,6 +99,12 @@ class SchedulerNode:
 
     @contextlib.contextmanager
     def runtime(self):
+        """
+        A context manager to temporarily switch the node's active task.
+
+        This is used to ensure that API calls within a specific context
+        are directed to the correct task's schema.
+        """
         prev_task = self.__task
         with self.__task.runtime(self) as runtask:
             self.__task = runtask
@@ -86,107 +113,173 @@ class SchedulerNode:
 
     @staticmethod
     def init(chip):
+        """Static placeholder for future initialization logic."""
         pass
 
     def switch_node(self, step: str, index: str) -> "SchedulerNode":
+        """
+        Creates a new SchedulerNode for a different step/index.
+
+        This allows for context switching to inspect or interact with other nodes
+        within the same chip context.
+
+        Args:
+            step (str): The step name of the new node.
+            index (str): The index of the new node.
+
+        Returns:
+            SchedulerNode: A new SchedulerNode instance for the specified step and index.
+        """
         return SchedulerNode(self.__chip, step, index)
 
     @property
     def is_local(self) -> bool:
+        """bool: Returns True, indicating the node runs on the local machine."""
         return True
 
     @property
     def has_error(self) -> bool:
+        """bool: True if the node has encountered an error."""
         return self.__error
 
     def set_builtin(self):
+        """Flags this node as a 'builtin' node."""
         self.__builtin = True
 
     @property
     def is_builtin(self) -> bool:
+        """bool: True if this node is a 'builtin' node."""
         return self.__builtin
 
     @property
     def logger(self) -> logging.Logger:
+        """logging.Logger: The logger instance for this node."""
         return self.__chip.logger
 
     @property
     def chip(self):
+        """Chip: The parent Chip object."""
         return self.__chip
 
     @property
     def project(self):
+        """Chip: The parent Chip object (alias for 'chip')."""
         return self.chip
 
     @property
     def step(self) -> str:
+        """str: The step name of this node."""
         return self.__step
 
     @property
     def index(self) -> str:
+        """str: The index of this node."""
         return self.__index
 
     @property
     def name(self) -> str:
+        """str: The design name associated with this node."""
         return self.__name
 
     @property
     def topmodule(self) -> str:
+        """str: The top module for this specific node."""
         return self.__topmodule
 
     @property
     def topmodule_global(self) -> str:
+        """str: The global top module for the entire flow."""
         return self.__topmodule_global
 
     @property
     def jobname(self) -> str:
+        """str: The name of the current job."""
         return self.__job
 
     @property
     def project_cwd(self) -> str:
+        """str: The original current working directory where the process was launched."""
         return self.__cwd
 
     @property
     def workdir(self) -> str:
+        """str: The working directory for this specific node (step/index)."""
         return self.__workdir
 
     @property
     def jobworkdir(self) -> str:
+        """str: The top-level working directory for the job."""
         return self.__jobworkdir
 
     @property
     def collection_dir(self) -> str:
+        """str: The directory for collected source files."""
         return self.__collection_path
 
     @property
     def is_replay(self) -> bool:
+        """bool: True if this node is configured for a replay run."""
         return self.__replay
 
     @property
     def task(self):
+        """Task: The task object associated with this node."""
         return self.__task
 
     def get_manifest(self, input=False):
+        """
+        Gets the path to the input or output manifest file for this node.
+
+        Args:
+            input (bool): If True, returns the input manifest path. Otherwise,
+                returns the output manifest path.
+
+        Returns:
+            str: The absolute path to the manifest file.
+        """
         if input:
             return self.__manifests["input"]
         return self.__manifests["output"]
 
     def get_log(self, type="exe"):
+        """
+        Gets the path to a specific log file for this node.
+
+        Args:
+            type (str): The type of log file to retrieve ('exe' or 'sc').
+
+        Returns:
+            str: The absolute path to the log file.
+
+        Raises:
+            ValueError: If an unknown log type is requested.
+        """
         if type not in self.__logs:
             raise ValueError(f"{type} is not a log")
         return self.__logs[type]
 
     @property
     def replay_script(self):
+        """str: The path to the shell script for replaying this node's execution."""
         return self.__replay_script
 
     @property
     def threads(self):
+        """int: The number of threads allocated for this node's task."""
         with self.__task.runtime(self) as task:
             thread_count = task.get("threads")
         return thread_count
 
     def set_queue(self, pipe, queue):
+        """
+        Configures the multiprocessing queue and pipe for inter-process communication.
+
+        This is primarily used for logging from a child process back to the parent.
+
+        Args:
+            pipe: The pipe for sending data back to the parent process.
+            queue: The multiprocessing.Queue for handling log records.
+        """
         self.__pipe = pipe
         self.__queue = queue
 
@@ -194,6 +287,13 @@ class SchedulerNode:
         self.__setup_schema_access()
 
     def __setup_schema_access(self):
+        """
+        Private helper to set up direct access to schema objects.
+
+        This method initializes direct references to the schema objects for the
+        flow, task, records, and metrics associated with this node, optimizing
+        access to configuration and results.
+        """
         flow = self.__chip.get('option', 'flow')
         self.__flow = self.__chip.get("flowgraph", flow, field="schema")
 
@@ -204,11 +304,17 @@ class SchedulerNode:
         self.__metrics = self.__chip.get("metric", field="schema")
 
     def _init_run_logger(self):
+        """
+        Initializes and configures the logger for the node's execution.
+
+        This sets up the console formatter to include the step/index and redirects
+        log output to a queue if one is provided for multiprocessing.
+        """
         self.__chip._logger_console.setFormatter(
             get_console_formatter(self.__chip, True, self.__step, self.__index))
         self.logger.setLevel(
             schema_utils.translate_loglevel(self.__chip.get('option', 'loglevel',
-                                            step=self.__step, index=self.__index)))
+                                                            step=self.__step, index=self.__index)))
 
         if self.__queue:
             formatter = self.__chip._logger_console.formatter
@@ -218,6 +324,15 @@ class SchedulerNode:
             self.logger.addHandler(self.__chip._logger_console)
 
     def halt(self, msg=None):
+        """
+        Stops the node's execution due to an error.
+
+        This method logs an error message, sets the node's status to ERROR,
+        writes the final manifest, and exits the process.
+
+        Args:
+            msg (str, optional): An error message to log.
+        """
         if msg:
             self.logger.error(msg)
 
@@ -232,6 +347,18 @@ class SchedulerNode:
         sys.exit(1)
 
     def setup(self):
+        """
+        Runs the setup() method for the node's assigned task.
+
+        This method prepares the task for execution. If the task's setup()
+        raises a TaskSkip exception, the node is marked as SKIPPED.
+
+        Returns:
+            bool: False if the node was skipped, True otherwise.
+
+        Raises:
+            Exception: Propagates any exception from the task's setup() method.
+        """
         from siliconcompiler.tool import TaskSkip
 
         with self.__task.runtime(self) as task:
@@ -253,6 +380,20 @@ class SchedulerNode:
             return True
 
     def check_previous_run_status(self, previous_run):
+        """
+        Checks if the previous run of this node completed successfully.
+
+        Compares tool/task names and status to determine if the prior result
+        is valid as a starting point for an incremental build.
+
+        Args:
+            previous_run (SchedulerNode): The node object from a previous run
+                loaded from a manifest.
+
+        Returns:
+            bool: True if the previous run was successful and compatible,
+                False otherwise.
+        """
         # Assume modified if flow does not match
         if self.__flow.name != previous_run.__flow.name:
             self.logger.debug("Flow name changed")
@@ -296,6 +437,16 @@ class SchedulerNode:
         return True
 
     def check_values_changed(self, previous_run, keys):
+        """
+        Checks if any specified schema parameter values have changed.
+
+        Args:
+            previous_run (SchedulerNode): The node object from a previous run.
+            keys (set of tuples): A set of keypaths to check for changes.
+
+        Returns:
+            bool: True if any value has changed, False otherwise.
+        """
         def print_warning(key):
             self.logger.warning(f'[{",".join(key)}] in {self.__step}/{self.__index} has been '
                                 'modified from previous run')
@@ -321,6 +472,19 @@ class SchedulerNode:
         return False
 
     def check_files_changed(self, previous_run, previous_time, keys):
+        """
+        Checks if any specified file-based parameters have changed.
+
+        This check can be based on file hashes (if enabled) or timestamps.
+
+        Args:
+            previous_run (SchedulerNode): The node object from a previous run.
+            previous_time (float): The timestamp of the previous run's manifest.
+            keys (set of tuples): A set of file/dir keypaths to check.
+
+        Returns:
+            bool: True if any file has changed, False otherwise.
+        """
         use_hash = self.__hash and previous_run.__hash
 
         def print_warning(key, reason):
@@ -369,6 +533,20 @@ class SchedulerNode:
         return False
 
     def get_check_changed_keys(self):
+        """
+        Gathers all schema keys that could trigger a re-run if changed.
+
+        This includes tool options, scripts, and required inputs specified
+        in the task's schema.
+
+        Returns:
+            tuple: A tuple containing two sets: (value_keys, path_keys).
+                `value_keys` are keys for simple values.
+                `path_keys` are keys for file/directory paths.
+
+        Raises:
+            KeyError: If a required keypath is not found in the schema.
+        """
         all_keys = set()
 
         all_keys.update(self.__task.get('require'))
@@ -395,6 +573,17 @@ class SchedulerNode:
         return value_keys, path_keys
 
     def requires_run(self):
+        """
+        Determines if the node needs to be re-run.
+
+        This method performs a series of checks against the results of a
+        previous run (if one exists). It checks for changes in run status,
+        configuration parameters, and input files to decide if the node's
+        task can be skipped.
+
+        Returns:
+            bool: True if a re-run is required, False otherwise.
+        """
         from siliconcompiler import Chip
 
         # Load previous manifest
@@ -459,6 +648,13 @@ class SchedulerNode:
         return False
 
     def setup_input_directory(self):
+        """
+        Prepares the 'inputs/' directory for the node's execution.
+
+        This method gathers output files from all preceding nodes in the
+        flowgraph and links or copies them into the current node's 'inputs/'
+        directory. It also handles file renaming as specified by the task.
+        """
         in_files = set(self.__task.get('input'))
 
         for in_step, in_index in self.__record.get('inputnode',
@@ -497,12 +693,16 @@ class SchedulerNode:
                               f'{self.__workdir}/inputs/{new_name}')
 
     def validate(self):
-        '''
-        Runtime checks called from _runtask().
+        """
+        Performs pre-run validation checks.
 
-        - Make sure expected inputs exist.
-        - Make sure all required filepaths resolve correctly.
-        '''
+        This method ensures that all expected input files exist in the 'inputs/'
+        directory and that all required schema parameters have been set and can
+        be resolved correctly before the task is executed.
+
+        Returns:
+            bool: True if validation passes, False otherwise.
+        """
         error = False
 
         required_inputs = self.__task.get('input')
@@ -555,6 +755,7 @@ class SchedulerNode:
         return not error
 
     def summarize(self):
+        """Prints a post-run summary of metrics to the logger."""
         for metric in ['errors', 'warnings']:
             val = self.__metrics.get(metric, step=self.__step, index=self.__index)
             if val is not None:
@@ -564,17 +765,22 @@ class SchedulerNode:
         self.logger.info(f"Finished task in {walltime:.2f}s")
 
     def run(self):
-        '''
-        Private per node run method called by run().
+        """
+        Executes the full lifecycle for this node.
 
-        The method takes in a step string and index string to indicate what
-        to run.
+        This method orchestrates the entire process of running a node:
+        1. Initializes logging and records metadata.
+        2. Sets up the working directory.
+        3. Determines and links inputs from previous nodes.
+        4. Writes the pre-execution manifest.
+        5. Validates that all inputs and parameters are ready.
+        6. Calls `execute()` to run the tool.
+        7. Stops journaling and returns to the original directory.
 
-        Note that since _runtask occurs in its own process with a separate
-        address space, any changes made to the `self` object will not
-        be reflected in the parent. We rely on reading/writing the chip manifest
-        to the filesystem to communicate updates between processes.
-        '''
+        Note: Since this method may run in its own process with a separate
+        address space, any changes made to the schema are communicated through
+        reading/writing the chip manifest to the filesystem.
+        """
 
         # Setup logger
         self._init_run_logger()
@@ -648,6 +854,13 @@ class SchedulerNode:
             self.__pipe.send(Resolver.get_cache(self.__chip))
 
     def execute(self):
+        """
+        Handles the core tool execution logic.
+
+        This method runs the pre-processing, execution, and post-processing
+        steps for the node's task. It manages the tool's environment, checks
+        for return codes, and handles log file parsing and error reporting.
+        """
         from siliconcompiler.tool import TaskSkip
 
         self.logger.info(f'Running in {self.__workdir}')
@@ -732,7 +945,7 @@ class SchedulerNode:
                             loglines = logfd.read().splitlines()
                             for logline in loglines[-self.__failed_log_lines:]:
                                 self.logger.error(logline)
-                        # No log file for pure-Python tools.
+                    # No log file for pure-Python tools.
                     msg += f' See log file {os.path.abspath(self.__logs["exe"])}'
                 self.logger.warning(msg)
                 self.__error = True
@@ -784,6 +997,12 @@ class SchedulerNode:
         send_messages.send(self.__chip, "end", self.__step, self.__index)
 
     def __generate_testcase(self):
+        """
+        Private helper to generate a test case upon failure.
+
+        This method packages the failing state (including manifests, inputs,
+        and logs) into a compressed archive for easier debugging.
+        """
         from siliconcompiler.utils.issue import generate_testcase
         import lambdapdk
 
@@ -800,6 +1019,14 @@ class SchedulerNode:
             verbose_collect=False)
 
     def check_logfile(self):
+        """
+        Parses the tool execution log file for patterns.
+
+        This method reads the tool's log file (e.g., 'synthesis.log') and
+        uses regular expressions defined in the schema to find and count
+        errors, warnings, and other specified metrics. The findings are
+        recorded in the schema and printed to the console.
+        """
         if self.__record.get('status', step=self.__step, index=self.__index) == NodeStatus.SKIPPED:
             return
 
@@ -883,6 +1110,7 @@ class SchedulerNode:
                 self.__task.record_metric(metric, value, source_file=sources)
 
     def __hash_files_pre_execute(self):
+        """Private helper to hash all relevant input files before execution."""
         for task_key in ('refdir', 'prescript', 'postscript', 'script'):
             self.__chip.hash_files('tool', self.__task.tool(), 'task', self.__task.task(), task_key,
                                    step=self.__step, index=self.__index, check=False,
@@ -900,6 +1128,7 @@ class SchedulerNode:
                                        check=False, allow_cache=True, verbose=False)
 
     def __hash_files_post_execute(self):
+        """Private helper to hash all output files after execution."""
         # hash all outputs
         self.__chip.hash_files('tool', self.__task.tool(), 'task', self.__task.task(), 'output',
                                step=self.__step, index=self.__index, check=False, verbose=False)
@@ -918,6 +1147,12 @@ class SchedulerNode:
                                        check=False, allow_cache=True, verbose=False)
 
     def __report_output_files(self):
+        """
+        Private helper to check for missing or unexpected output files.
+
+        Compares the files found in the 'outputs/' directory against the
+        files expected by the task's schema. Reports errors if they don't match.
+        """
         if self.__task.tool() == 'builtin':
             return
 
@@ -954,6 +1189,16 @@ class SchedulerNode:
             self.halt()
 
     def copy_from(self, source):
+        """
+        Imports the results of this node from a different job run.
+
+        This method copies the entire working directory of a node from a
+        specified source job into the current job's working directory. It is
+        used for resuming or branching from a previous run.
+
+        Args:
+            source (str): The jobname of the source run to copy from.
+        """
         copy_from = self.__chip.getworkdir(jobname=source, step=self.__step, index=self.__index)
 
         if not os.path.exists(copy_from):
@@ -982,10 +1227,25 @@ class SchedulerNode:
                 schema.write_manifest(manifest)
 
     def clean_directory(self):
+        """Removes the working directory for this node."""
         if os.path.exists(self.__workdir):
             shutil.rmtree(self.__workdir)
 
     def archive(self, tar: tarfile.TarFile, include: List[str] = None, verbose: bool = None):
+        """
+        Archives the node's results into a tar file.
+
+        By default, it archives the 'reports' and 'outputs' directories and all
+        log files. The `include` argument allows for custom file selection using
+        glob patterns.
+
+        Args:
+            tar (tarfile.TarFile): The tarfile object to add files to.
+            include (List[str], optional): A list of glob patterns to specify
+                which files to include in the archive. Defaults to None.
+            verbose (bool, optional): If True, prints archiving status messages.
+                Defaults to None.
+        """
         if not tar:
             return
 
