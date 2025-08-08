@@ -135,6 +135,9 @@ class Scheduler:
         self.__joblog_handler.setFormatter(SCLoggerFormatter())
         self.__logger.addHandler(self.__joblog_handler)
 
+        # Configure run
+        self.__chip._init_run()
+
         self.__run_setup()
         self.configure_nodes()
 

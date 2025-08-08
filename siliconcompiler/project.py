@@ -527,6 +527,13 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
 
         return not error
 
+    def _init_run(self):
+        """
+        Method called before calling :meth:`.check_manifest` to provide a mechanism to
+        setup the project correctly.
+        """
+        pass
+
     def run(self, raise_exception=False):
         '''
         Executes tasks in a flowgraph.

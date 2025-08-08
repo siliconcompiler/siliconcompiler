@@ -3213,3 +3213,6 @@ class Chip:
 
     def copy(self):
         return copy.deepcopy(self)
+
+    def _init_run(self):
+        pass
