@@ -232,24 +232,23 @@ class SchedulerNode:
         sys.exit(1)
 
     def setup(self):
+        from siliconcompiler.tool import TaskSkip
+
         with self.__task.runtime(self) as task:
             # Run node setup.
             self.logger.info(f'Setting up node {self.__step}/{self.__index} with '
                              f'{task.tool()}/{task.task()}')
-            setup_ret = None
             try:
-                setup_ret = task.setup()
+                task.setup()
+            except TaskSkip as skip:
+                self.logger.warning(f'Removing {self.__step}/{self.__index} due to {skip.why}')
+                self.__record.set('status', NodeStatus.SKIPPED,
+                                  step=self.__step, index=self.__index)
+                return False
             except Exception as e:
                 self.logger.error(f'Failed to run setup() for {self.__step}/{self.__index} '
                                   f'with {task.tool()}/{task.task()}')
                 raise e
-
-            if setup_ret is not None:
-                self.logger.warning(f'Removing {self.__step}/{self.__index} due to {setup_ret}')
-                self.__record.set('status', NodeStatus.SKIPPED,
-                                  step=self.__step, index=self.__index)
-
-                return False
 
             return True
 
@@ -649,10 +648,15 @@ class SchedulerNode:
             self.__pipe.send(Resolver.get_cache(self.__chip))
 
     def execute(self):
+        from siliconcompiler.tool import TaskSkip
+
         self.logger.info(f'Running in {self.__workdir}')
 
         try:
             self.__task.pre_process()
+        except TaskSkip as skip:
+            self.logger.warning(f'Removing {self.__step}/{self.__index} due to {skip.why}')
+            self.__record.set('status', NodeStatus.SKIPPED, step=self.__step, index=self.__index)
         except Exception as e:
             self.logger.error(
                 f"Pre-processing failed for {self.__task.tool()}/{self.__task.task()}")

@@ -70,6 +70,20 @@ class TaskExecutableNotFound(TaskError):
     '''
 
 
+class TaskSkip(TaskError):
+    """
+    Error indicates that this skip will be skipped.
+    This is only valid in :meth:`TaskSchema.setup` and :meth:`TaskSchema.pre_process` calls.
+    """
+    def __init__(self, why: str, *args):
+        super().__init__(why, *args)
+        self.__why = why
+
+    @property
+    def why(self):
+        return self.__why
+
+
 class TaskSchema(NamedSchema):
     __parse_version_check_str = r"""
         (?P<operator>(==|!=|<=|>=|<|>|~=))
@@ -1969,8 +1983,9 @@ class TaskSchemaTmp(TaskSchema):
         if method:
             with self.__in_step_index():
                 ret = method(self._TaskSchema__chip)
-            return ret
-        return TaskSchema.setup(self)
+            if ret:
+                raise TaskSkip(ret)
+        TaskSchema.setup(self)
 
     def select_input_nodes(self):
         _, task = self.__tool_task_modules()
@@ -1987,8 +2002,9 @@ class TaskSchemaTmp(TaskSchema):
         if method:
             with self.__in_step_index():
                 ret = method(self._TaskSchema__chip)
-            return ret
-        return TaskSchema.pre_process(self)
+            if ret:
+                raise TaskSkip(ret)
+        TaskSchema.pre_process(self)
 
     def runtime_options(self):
         tool, task = self.__tool_task_modules()
@@ -2022,9 +2038,8 @@ class TaskSchemaTmp(TaskSchema):
         method = self.__module_func("post_process", [task])
         if method:
             with self.__in_step_index():
-                ret = method(self._TaskSchema__chip)
-            return ret
-        return TaskSchema.post_process(self)
+                method(self._TaskSchema__chip)
+        TaskSchema.post_process(self)
 
 
 ###########################################################################
