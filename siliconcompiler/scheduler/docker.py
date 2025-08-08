@@ -11,6 +11,21 @@ from siliconcompiler.scheduler import SchedulerNode
 
 
 def get_image(chip, step, index):
+    """Determines the Docker image to use for a given node.
+
+    The image is selected based on the following priority:
+    1. The value of ['option', 'scheduler', 'queue'] specific to the step/index.
+    2. The value of the 'SC_DOCKER_IMAGE' environment variable.
+    3. A default image name constructed as 'ghcr.io/siliconcompiler/sc_runner:v<version>'.
+
+    Args:
+        chip (Chip): The Chip object.
+        step (str): The step name of the node.
+        index (str): The index of the node.
+
+    Returns:
+        str: The name of the Docker image to use.
+    """
     from siliconcompiler import __version__
 
     queue = chip.get('option', 'scheduler', 'queue', step=step, index=index)
@@ -23,6 +38,27 @@ def get_image(chip, step, index):
 
 
 def get_volumes_directories(chip, cache_dir, workdir, step, index):
+    """
+    Identifies and categorizes all host directories that need to be mounted
+    into the Docker container.
+
+    This function scans the chip schema for all file and directory paths,
+    collects them, and then prunes the list to a minimal set of parent
+    directories to mount. It then separates these directories into read-write
+    (RW) and read-only (RO) sets.
+
+    Args:
+        chip (Chip): The Chip object.
+        cache_dir (str): The path to the cache directory.
+        workdir (str): The path to the node's working directory.
+        step (str): The step name of the current node.
+        index (str): The index of the current node.
+
+    Returns:
+        tuple: A tuple containing two sets: (rw_volumes, ro_volumes).
+            `rw_volumes` is a set of Path objects for read-write directories.
+            `ro_volumes` is a set of Path objects for read-only directories.
+    """
     all_dirs = set()
     # Collect files
     for key in chip.allkeys():
@@ -89,17 +125,46 @@ def get_volumes_directories(chip, cache_dir, workdir, step, index):
 
 
 class DockerSchedulerNode(SchedulerNode):
+    """A SchedulerNode implementation for running tasks in a Docker container.
+
+    This class extends the base SchedulerNode to handle the specifics of
+    running a compilation step inside a Docker container. It uses the `docker-py`
+    library to manage the container lifecycle, including pulling the image,
+
+    mounting volumes, and executing the command.
+    """
+
     def __init__(self, chip, step, index, replay=False):
+        """Initializes a DockerSchedulerNode.
+
+        Args:
+            chip (Chip): The parent Chip object.
+            step (str): The step name in the flowgraph.
+            index (str): The index for the step.
+            replay (bool): If True, sets up the node to replay a previous run.
+        """
         super().__init__(chip, step, index, replay=replay)
 
         self.__queue = get_image(self.chip, self.step, self.index)
 
     @property
     def queue(self):
+        """str: The Docker image name to be used for the container."""
         return self.__queue
 
     @staticmethod
     def init(chip):
+        """
+        A static pre-processing hook for the Docker scheduler.
+
+        On Windows, this method forces all file/directory parameters to be
+        copied rather than linked, which avoids issues with differing
+        filesystem types between the host and the Linux-based container.
+        It then triggers `chip.collect()` to ensure all files are staged.
+
+        Args:
+            chip (Chip): The Chip object to perform pre-processing on.
+        """
         if sys.platform == 'win32':
             # this avoids the issue of different file system types
             chip.logger.error('Setting copy field to true for docker run on Windows')
@@ -112,6 +177,19 @@ class DockerSchedulerNode(SchedulerNode):
             chip.collect()
 
     def run(self):
+        """
+        Runs the node's task inside a Docker container.
+
+        This method orchestrates the entire process:
+        1. Connects to the Docker daemon.
+        2. Pulls the required Docker image if it's not present locally.
+        3. Determines and prepares all necessary volume mounts.
+        4. Creates and starts a detached Docker container.
+        5. Writes the current manifest to a file accessible by the container.
+        6. Executes the `sc-node` command inside the container.
+        7. Streams the container's log output to the console.
+        8. Halts on error and ensures the container is stopped upon completion.
+        """
         self._init_run_logger()
 
         try:

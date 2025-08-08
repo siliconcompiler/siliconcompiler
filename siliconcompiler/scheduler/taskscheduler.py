@@ -19,6 +19,13 @@ from siliconcompiler.utils.multiprocessing import MPManager
 
 
 class TaskScheduler:
+    """A class for managing the execution of individual tasks in a flowgraph.
+
+    This class is responsible for the fine-grained scheduling of tasks,
+    handling multiprocessing, resource allocation (cores/threads), and
+    dependency checking. It operates on a set of pending tasks defined by the
+    main Scheduler and executes them in a loop until the flow is complete.
+    """
     __callbacks = {
         "pre_run": lambda chip: None,
         "pre_node": lambda chip, step, index: None,
@@ -28,11 +35,30 @@ class TaskScheduler:
 
     @staticmethod
     def register_callback(hook, func):
+        """Registers a callback function to be executed at a specific hook point.
+
+        Valid hooks are 'pre_run', 'pre_node', 'post_node', and 'post_run'.
+
+        Args:
+            hook (str): The name of the hook to register the callback for.
+            func (function): The function to be called. It should accept the
+                chip object and, for node hooks, the step and index as arguments.
+
+        Raises:
+            ValueError: If the specified hook is not valid.
+        """
         if hook not in TaskScheduler.__callbacks:
             raise ValueError(f"{hook} is not a valid callback")
         TaskScheduler.__callbacks[hook] = func
 
     def __init__(self, chip, tasks):
+        """Initializes the TaskScheduler.
+
+        Args:
+            chip (Chip): The Chip object containing the configuration.
+            tasks (dict): A dictionary of SchedulerNode objects keyed by
+                (step, index) tuples.
+        """
         self.__chip = chip
         self.__logger = self.__chip.logger
         self.__logger_console_handler = self.__chip._logger_console
@@ -65,6 +91,16 @@ class TaskScheduler:
         self.__create_nodes(tasks)
 
     def __create_nodes(self, tasks):
+        """
+        Private helper to prepare all pending tasks for execution.
+
+        This method iterates through the tasks identified by the main Scheduler,
+        creates a multiprocessing.Process for each one, and sets up pipes for
+        inter-process communication (primarily for logging and package resolution).
+
+        Args:
+            tasks (dict): A dictionary of SchedulerNode objects.
+        """
         runtime = RuntimeFlowgraph(
             self.__flow,
             from_steps=set([step for step, _ in self.__flow.get_entry_nodes()]),
@@ -106,6 +142,16 @@ class TaskScheduler:
             init_func(self.__chip)
 
     def run(self, job_log_handler):
+        """
+        The main entry point for the task scheduling loop.
+
+        This method sets up a listener to handle logs from child processes,
+        calls the 'pre_run' callback, enters the main execution loop, and
+        handles cleanup and the 'post_run' callback.
+
+        Args:
+            job_log_handler (logging.FileHandler): The handler for the main job log file.
+        """
         # Call this in case this was invoked without __main__
         multiprocessing.freeze_support()
 
@@ -145,6 +191,13 @@ class TaskScheduler:
             self.__logger.addHandler(job_log_handler)
 
     def __run_loop(self):
+        """
+        The core execution loop of the scheduler.
+
+        This loop continues as long as there are nodes running or waiting to
+        run. In each iteration, it processes completed nodes and launches new
+        ones whose dependencies have been met.
+        """
         self.__startTimes = {None: time.time()}
 
         while len(self.get_nodes_waiting_to_run()) > 0 or len(self.get_running_nodes()) > 0:
@@ -174,9 +227,19 @@ class TaskScheduler:
                 self.__nodes[running_nodes[0]]["proc"].join(timeout=self.__dwellTime)
 
     def get_nodes(self):
+        """Gets a sorted list of all nodes managed by this scheduler.
+
+        Returns:
+            list: A list of (step, index) tuples for all nodes.
+        """
         return sorted(self.__nodes.keys())
 
     def get_running_nodes(self):
+        """Gets a sorted list of all nodes that are currently running.
+
+        Returns:
+            list: A list of (step, index) tuples for running nodes.
+        """
         nodes = []
         for node, info in self.__nodes.items():
             if info["running"]:
@@ -184,6 +247,11 @@ class TaskScheduler:
         return sorted(nodes)
 
     def get_nodes_waiting_to_run(self):
+        """Gets a sorted list of all nodes that are pending execution.
+
+        Returns:
+            list: A list of (step, index) tuples for pending nodes.
+        """
         nodes = []
         for node, info in self.__nodes.items():
             if not info["running"] and info["proc"]:
@@ -191,6 +259,17 @@ class TaskScheduler:
         return sorted(nodes)
 
     def __process_completed_nodes(self):
+        """
+        Private helper to check for and process completed nodes.
+
+        This method iterates through running nodes, checks if their process has
+        terminated, and if so, merges their results (manifest and package cache)
+        back into the main chip object. It updates the node's status based on
+        the process exit code.
+
+        Returns:
+            bool: True if any node's status changed, False otherwise.
+        """
         changed = False
         for node in self.get_running_nodes():
             info = self.__nodes[node]
@@ -235,6 +314,18 @@ class TaskScheduler:
         return changed
 
     def __allow_start(self, node):
+        """
+        Private helper to check if a node is allowed to start based on resources.
+
+        This method checks if launching a new node would exceed the configured
+        maximum number of parallel jobs or the total available CPU cores.
+
+        Args:
+            node (tuple): The (step, index) of the node to check.
+
+        Returns:
+            bool: True if the node can be launched, False otherwise.
+        """
         info = self.__nodes[node]
 
         if not info["node"].is_local:
@@ -257,6 +348,16 @@ class TaskScheduler:
         return True
 
     def __lanuch_nodes(self):
+        """
+        Private helper to launch new nodes whose dependencies are met.
+
+        This method iterates through pending nodes, checks if all their input
+        nodes have completed successfully, and if system resources are available.
+        If all conditions are met, it starts the node's process.
+
+        Returns:
+            bool: True if any new node was launched, False otherwise.
+        """
         changed = False
         for node in self.get_nodes_waiting_to_run():
             # TODO: breakpoint logic:
@@ -308,6 +409,15 @@ class TaskScheduler:
         return changed
 
     def check(self):
+        """
+        Checks if the flow completed successfully.
+
+        This method verifies that all nodes designated as exit points in the
+        flowgraph have been successfully completed.
+
+        Raises:
+            RuntimeError: If any final steps in the flow were not reached.
+        """
         exit_steps = set([step for step, _ in self.__runtime_flow.get_exit_nodes()])
         completed_steps = set([step for step, _ in
                                self.__runtime_flow.get_completed_nodes(record=self.__record)])

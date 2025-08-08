@@ -23,7 +23,28 @@ from siliconcompiler.scheduler import send_messages
 
 
 class Scheduler:
+    """
+    A class for orchestrating and executing a compilation flowgraph.
+
+    The Scheduler is responsible for managing the entire lifecycle of a compilation
+    run. It interprets the flowgraph defined in the Chip object, determines which
+    nodes (steps) need to be run based on user settings (like 'from', 'to') and
+    the state of previous runs, and then executes the tasks in the correct order.
+
+    It handles setting up individual task nodes, managing dependencies, logging,
+    and reporting results.
+    """
+
     def __init__(self, chip):
+        """
+        Initializes the Scheduler.
+
+        Args:
+            chip (Chip): The Chip object containing the configuration and flowgraph.
+
+        Raises:
+            ValueError: If the specified flow is not defined or fails validation.
+        """
         self.__chip = chip
         self.__logger: logging.Logger = chip.logger
         self.__name = chip.design
@@ -71,6 +92,12 @@ class Scheduler:
         self.__org_job_name = self.__chip.get("option", "jobname")
 
     def __print_status(self, header):
+        """
+        Private helper to print the current status of all nodes for debugging.
+
+        Args:
+            header (str): A header message to print before the status list.
+        """
         self.__logger.debug(f"#### {header}")
         for step, index in self.__flow.get_nodes():
             self.__logger.debug(f"({step}, {index}) -> "
@@ -78,10 +105,22 @@ class Scheduler:
         self.__logger.debug("####")
 
     def check_manifest(self):
+        """
+        Checks the validity of the Chip's manifest before a run.
+
+        Returns:
+            bool: True if the manifest is valid, False otherwise.
+        """
         self.__logger.info("Checking manifest before running.")
         return self.__chip.check_manifest()
 
     def run_core(self):
+        """
+        Executes the core task scheduling loop.
+
+        This method initializes and runs the TaskScheduler, which manages the
+        execution of individual nodes based on their dependencies and status.
+        """
         self.__record.record_python_packages()
 
         task_scheduler = TaskScheduler(self.__chip, self.__tasks)
@@ -89,6 +128,12 @@ class Scheduler:
         task_scheduler.check()
 
     def __excepthook(self, exc_type, exc_value, exc_traceback):
+        """
+        Custom exception hook to ensure all fatal errors are logged.
+
+        This captures unhandled exceptions, logs them to the job log file,
+        and prints a traceback for debugging before the program terminates.
+        """
         if issubclass(exc_type, KeyboardInterrupt):
             sys.__excepthook__(exc_type, exc_value, exc_traceback)
             return
@@ -106,9 +151,20 @@ class Scheduler:
         self.__logger.error("Traceback (most recent call last):")
         traceback.print_tb(exc_traceback, file=trace)
         for line in trace.getvalue().splitlines():
-            self.__logger.error(line)
+            self.logger.error(line)
 
     def run(self):
+        """
+        The main entry point to start the compilation flow.
+
+        This method orchestrates the entire run, including:
+        - Setting up a custom exception hook for logging.
+        - Initializing the job directory and log files.
+        - Configuring and setting up all nodes in the flow.
+        - Validating the manifest.
+        - Executing the core run loop.
+        - Recording the final results and history.
+        """
         # Install hook to ensure exception is logged
         org_excepthook = sys.excepthook
         sys.excepthook = self.__excepthook
@@ -163,6 +219,17 @@ class Scheduler:
         sys.excepthook = org_excepthook
 
     def __mark_pending(self, step, index):
+        """
+        Private helper to recursively mark a node and its dependents as PENDING.
+
+        When a node is determined to need a re-run, this function ensures that
+        it and all subsequent nodes in the flowgraph are marked as PENDING,
+        effectively queueing them for execution.
+
+        Args:
+            step (str): The step of the node to mark.
+            index (str): The index of the node to mark.
+        """
         if (step, index) not in self.__flow_runtime.get_nodes():
             return
 
@@ -175,6 +242,13 @@ class Scheduler:
             self.__record.set('status', NodeStatus.PENDING, step=next_step, index=next_index)
 
     def __run_setup(self):
+        """
+        Private helper to perform initial setup for the entire run.
+
+        This includes checking for a display environment, creating SchedulerNode
+        objects for each task, and copying results from a previous job if one
+        is specified.
+        """
         self.__check_display()
 
         # Create tasks
@@ -207,6 +281,12 @@ class Scheduler:
         self.__reset_flow_nodes()
 
     def __reset_flow_nodes(self):
+        """
+        Private helper to reset the status and metrics for all nodes in the flow.
+
+        This prepares the schema for a new run by clearing out results from any
+        previous executions.
+        """
         # Reset record
         for step, index in self.__flow.get_nodes():
             self.__record.clear(step, index, keep=['remoteid', 'status', 'pythonpackage'])
@@ -217,6 +297,12 @@ class Scheduler:
             self.__metrics.clear(step, index)
 
     def __clean_build_dir(self):
+        """
+        Private helper to clean the build directory if necessary.
+
+        If ['option', 'clean'] is True and the run starts from the beginning,
+        the entire build directory is removed to ensure a fresh start.
+        """
         if self.__record.get('remoteid'):
             return
 
@@ -228,6 +314,14 @@ class Scheduler:
                 shutil.rmtree(cur_job_dir)
 
     def configure_nodes(self):
+        """
+        Configures all nodes before execution.
+
+        This is a critical step that determines the final state of each node
+        (SUCCESS, PENDING, SKIPPED) before the scheduler starts. It loads
+        results from previous runs, checks for any modifications to parameters
+        or input files, and marks nodes for re-run accordingly.
+        """
         from_nodes = []
         extra_setup_nodes = {}
 
@@ -324,9 +418,13 @@ class Scheduler:
                     self.__tasks[(step, index)].clean_directory()
 
     def __check_display(self):
-        '''
-        Automatically disable display for Linux systems without desktop environment
-        '''
+        """
+        Private helper to automatically disable GUI display on headless systems.
+
+        If running on Linux without a DISPLAY or WAYLAND_DISPLAY environment
+        variable, this sets ['option', 'nodisplay'] to True to prevent tools
+        from attempting to open a GUI.
+        """
 
         if not self.__chip.get('option', 'nodisplay') and sys.platform == 'linux' \
                 and 'DISPLAY' not in os.environ and 'WAYLAND_DISPLAY' not in os.environ:
@@ -335,10 +433,16 @@ class Scheduler:
             self.__chip.set('option', 'nodisplay', True)
 
     def __increment_job_name(self):
-        '''
-        Auto-update jobname if [option,jobincr] is True
-        Do this before initializing logger so that it picks up correct jobname
-        '''
+        """
+        Private helper to auto-increment the jobname if ['option', 'jobincr'] is True.
+
+        This prevents overwriting previous job results by finding the highest
+        numbered existing job directory and creating a new one with an
+        incremented number.
+
+        Returns:
+            bool: True if the job name was incremented, False otherwise.
+        """
         if not self.__chip.get('option', 'clean'):
             return False
         if not self.__chip.get('option', 'jobincr'):

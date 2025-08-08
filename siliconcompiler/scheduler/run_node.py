@@ -1,4 +1,13 @@
 #!/usr/bin/env python3
+"""
+A command-line utility to execute a single node (step and index) from a
+SiliconCompiler flowgraph.
+
+This script is designed to be called by a scheduler (like Slurm, Docker, or
+a local process manager) to run a specific task in isolation. It takes all
+necessary configuration information via command-line arguments, sets up a
+Chip object, and executes the specified node's `run()` method.
+"""
 
 import argparse
 import os
@@ -14,13 +23,16 @@ from siliconcompiler import __version__
 
 ##########################
 def main():
+    """The main entry point for the run_node script."""
     schema = Schema()
 
-    # Can't use chip.cmdline because we don't want a bunch of extra logger information
+    # Set up a minimal argument parser, as we don't need the full
+    # Chip.cmdline() functionality which includes extra logger setup.
     parser = argparse.ArgumentParser(prog='run_node',
                                      formatter_class=argparse.RawDescriptionHelpFormatter,
                                      description='Script to run a single node in an SC flowgraph')
 
+    # Define command-line arguments
     parser.add_argument('-version',
                         action='version',
                         version=__version__)
@@ -75,16 +87,17 @@ def main():
                         help='Running as replay')
     args = parser.parse_args()
 
-    # Change to working directory to allow rel path to be build dir
-    # this avoids needing to deal with the job hash on the client
-    # side
+    # Change to the specified working directory. This is crucial for remote
+    # runners (like Docker) where paths inside the environment are different
+    # from the host.
     os.chdir(os.path.abspath(args.cwd))
 
     # Create the Chip object.
     chip = Chip('<design>')
+    # Load the configuration from the manifest provided.
     chip.read_manifest(args.cfg)
 
-    # setup work directory
+    # Configure the chip object based on command-line arguments.
     chip.set('arg', 'step', args.step)
     chip.set('arg', 'index', args.index)
     chip.set('option', 'builddir', os.path.abspath(args.builddir))
@@ -95,21 +108,24 @@ def main():
     if args.remoteid:
         chip.set('record', 'remoteid', args.remoteid)
 
+    # If running in a container/remote machine, we unset the scheduler to
+    # prevent a recursive scheduling loop.
     if args.unset_scheduler:
         for _, step, index in chip.get('option', 'scheduler', 'name',
                                        field=None).getvalues():
             chip.unset('option', 'scheduler', 'name', step=step, index=index)
 
+    # Pre-populate the package cache if a map is provided.
     if args.cachemap:
         for cachepair in args.cachemap:
             package, path = cachepair.split(':')
             Resolver.set_cache(chip, package, path)
 
-    # Populate cache
+    # Ensure all package caches are populated before running the node.
     for resolver in chip.get('package', field='schema').get_resolvers().values():
         resolver()
 
-    # Run the task.
+    # Instantiate the SchedulerNode for the specified step and index.
     error = True
     node = SchedulerNode(
         chip,
@@ -117,16 +133,17 @@ def main():
         args.index,
         replay=args.replay)
     try:
+        # Execute the node's run() method.
         node.run()
         error = False
     finally:
+        # Archive results upon completion, regardless of success or failure.
         if args.archive:
-            # Archive the results.
             with tarfile.open(args.archive,
                               mode='w:gz') as tf:
                 node.archive(tf, include=args.include)
 
-    # Return success/fail flag, in case the caller is interested.
+    # Return a non-zero exit code on error.
     if error:
         return 1
     return 0
@@ -134,4 +151,5 @@ def main():
 
 ##########################
 if __name__ == "__main__":
+    # This makes the script executable.
     sys.exit(main())
