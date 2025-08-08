@@ -15,6 +15,7 @@ from unittest.mock import patch
 from siliconcompiler import Chip, Flow, Schema
 from siliconcompiler import NodeStatus
 from siliconcompiler import TaskSchema
+from siliconcompiler.tool import TaskSkip
 from siliconcompiler.tools.builtin import nop, join
 from scheduler.tools.echo import echo
 
@@ -293,7 +294,7 @@ def test_setup_skipped(chip, monkeypatch, caplog):
     node = SchedulerNode(chip, "steptwo", "0")
 
     def dummy_setup(*args, **kwargs):
-        return "skip me"
+        raise TaskSkip("skip me")
     monkeypatch.setattr(node.task, "setup", dummy_setup)
 
     with node.runtime():
