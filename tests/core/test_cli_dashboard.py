@@ -13,7 +13,7 @@ from siliconcompiler.report.dashboard.cli import CliDashboard
 from siliconcompiler.report.dashboard.cli.board import (
     BoardSingleton,
     Board,
-    LogBufferHandler,
+    LogBuffer,
     JobData,
     Layout,
 )
@@ -357,15 +357,15 @@ def test_stop_dashboard(dashboard):
 
 def test_log_buffer_handler():
     event = threading.Event()
-    handler = LogBufferHandler(queue.Queue(), n=2, event=event)
+    buffer = LogBuffer(queue.Queue(), n=2, event=event)
 
     record1 = logging.LogRecord("test", logging.INFO, "path", 1, "msg1", (), None)
     record2 = logging.LogRecord("test", logging.INFO, "path", 1, "msg2", (), None)
 
-    handler.emit(record1)
-    handler.emit(record2)
+    buffer.make_handler().emit(record1)
+    buffer.make_handler().emit(record2)
 
-    lines = handler.get_lines()
+    lines = buffer.get_lines()
     assert len(lines) == 2
     assert "msg1" in lines[0]
     assert "msg2" in lines[1]

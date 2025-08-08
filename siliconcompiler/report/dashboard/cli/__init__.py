@@ -32,9 +32,9 @@ class CliDashboard(AbstractDashboard):
             # Hijack the console
             self._logger.removeHandler(self._chip._logger_console)
             self.__logger_console = self._chip._logger_console
-            self._chip._logger_console = self._dashboard._log_handler
-            self._logger.addHandler(self._dashboard._log_handler)
-            self._dashboard._log_handler.setFormatter(self.__logger_console.formatter)
+            self._chip._logger_console = self._dashboard.make_log_hander()
+            self._logger.addHandler(self._chip._logger_console)
+            self._chip._logger_console.setFormatter(self.__logger_console.formatter)
 
     def open_dashboard(self):
         """Starts the dashboard rendering thread if it is not already running."""
@@ -77,10 +77,11 @@ class CliDashboard(AbstractDashboard):
 
         # Restore logger
         if self.__logger_console:
-            self._logger.removeHandler(self._dashboard._log_handler)
+            self._logger.removeHandler(self._chip._logger_console)
+            formatter = self._chip._logger_console.formatter
             self._chip._logger_console = self.__logger_console
             self._logger.addHandler(self.__logger_console)
-            self.__logger_console.setFormatter(self._dashboard._log_handler.formatter)
+            self.__logger_console.setFormatter(formatter)
             self.__logger_console = None
 
     def wait(self):

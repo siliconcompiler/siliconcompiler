@@ -1,10 +1,11 @@
-import os
-import threading
+import atexit
 import logging
+import os
 import math
+import multiprocessing
 import queue
 import time
-import multiprocessing
+import threading
 
 from collections import deque
 from dataclasses import dataclass, field
@@ -25,27 +26,116 @@ from siliconcompiler.flowgraph import RuntimeFlowgraph
 
 from siliconcompiler.utils.multiprocessing import MPManager
 
-import atexit
+
+class LogBuffer:
+    """
+    A buffer for storing log messages, designed to be thread-safe and to work
+    in conjunction with a `LogBufferHandler` for dashboard or UI display.
+    It uses a `collections.deque` to maintain a fixed-size history of log lines.
+    """
+    def __init__(self, queue: queue.Queue, n: int = 15, event: threading.Event = None):
+        """
+        Initializes the LogBuffer.
+
+        Args:
+            queue (queue.Queue): A thread-safe queue to push new log lines to.
+            n (int): The maximum number of log lines to retain in the buffer's history.
+                     Defaults to 15.
+            event (threading.Event, optional): An optional `threading.Event` object.
+                                             If provided, this event is set whenever
+                                             a new log line is added, signaling
+                                             consumers that new data is available.
+                                             Defaults to None.
+        """
+        self.queue = queue
+        self.buffer = deque(maxlen=n)
+        self.lock = threading.Lock()
+        if not event:
+            # Create dummy event
+            event = threading.Event()
+        self.event = event
+
+    def make_handler(self) -> logging.Handler:
+        """
+        Creates and returns a `LogBufferHandler` instance associated with this `LogBuffer`.
+
+        This handler can then be added to a Python logger to direct log messages
+        to this buffer.
+
+        Returns:
+            logging.Handler: An instance of `LogBufferHandler`.
+        """
+        return LogBufferHandler(self)
+
+    def add_line(self, line: str):
+        """
+        Adds a new log line to the internal queue and signals the event.
+
+        This method is called by the `LogBufferHandler` (or directly) to
+        append a processed log line to the buffer. It also sets the internal
+        threading event to notify any waiting consumers.
+
+        Args:
+            line (str): The log line (string) to add.
+        """
+        self.queue.put(line)
+        self.event.set()
+
+    def get_lines(self, lines: int = None) -> List[str]:
+        """
+        Retrieves the last logged lines from the buffer.
+
+        New lines are first moved from the internal queue to the buffer,
+        and then the requested number of lines are returned from the buffer's history.
+
+        Args:
+            lines (int, optional): The maximum number of recent lines to retrieve.
+                                   If None, all lines currently in the buffer are returned.
+                                   Defaults to None.
+
+        Returns:
+            list[str]: A list of the last logged lines.
+        """
+        new_lines = []
+        try:
+            for _ in range(self.queue.qsize()):
+                new_lines.append(self.queue.get_nowait())
+        except queue.Empty:
+            pass
+        if not self.queue.empty():
+            # Set event since queue is not empty
+            self.event.set()
+
+        with self.lock:
+            self.buffer.extend(new_lines)
+            buffer_list = list(self.buffer)
+
+            if lines is None or lines > len(buffer_list):
+                return buffer_list
+            return buffer_list[-lines:]
 
 
 class LogBufferHandler(logging.Handler):
-    def __init__(self, sync_queue, n=50, event=None):
+    """
+    A custom logging handler that buffers log records and processes them
+    for display in a dashboard or other UI, replacing console color codes
+    with a simplified markdown-like format.
+    """
+    def __init__(self, parent: LogBuffer):
         """
-        Initializes the handler.
+        Initializes the LogBufferHandler.
 
         Args:
-            n (int): Maximum number of lines to keep.
-            event (threading.Event): Optional event to trigger on every log line.
+            parent (LogBuffer): The parent `LogBuffer` instance to which processed
+                                log lines will be added.
         """
         super().__init__()
-        self.queue = sync_queue
-        self.buffer = deque(maxlen=n)
-        self.event = event
-        self._lock = threading.Lock()
+        self._parent = parent
 
     def emit(self, record):
         """
-        Processes a log record.
+        Processes a log record, formats it, replaces console color codes,
+        and adds the transformed line to the parent `LogBuffer`.
 
         Args:
             record (logging.LogRecord): The log record to process.
@@ -61,27 +151,7 @@ class LogBufferHandler(logging.Handler):
                 (SCColorLoggerFormatter.red.replace("[", "\\["), "[red]"),
                 (SCColorLoggerFormatter.bold_red.replace("[", "\\["), "[bold red]")):
             log_entry = log_entry.replace(color, replacement)
-        self.queue.put(log_entry)
-        if self.event:
-            self.event.set()
-
-    def get_lines(self, lines=None):
-        """
-        Retrieves the last logged lines.
-
-        Returns:
-            list: A list of the last logged lines.
-        """
-        with self._lock:
-            while not self.queue.empty():
-                try:
-                    self.buffer.append(self.queue.get_nowait())
-                except queue.Empty:
-                    break
-            buffer_list = list(self.buffer)
-            if lines is None or lines > len(buffer_list):
-                return buffer_list
-            return buffer_list[-lines:]
+        self._parent.add_line(log_entry)
 
 
 @dataclass
@@ -300,13 +370,18 @@ class Board(metaclass=BoardSingleton):
 
         self._log_handler_queue = manager.Queue()
 
-        self._log_handler = LogBufferHandler(
-            self._log_handler_queue, n=120, event=self._render_event)
+        self._log_handler = LogBuffer(self._log_handler_queue, n=120, event=self._render_event)
+
+        # Sleep time for the dashboard
+        self._dwell = 0.1
 
         if not self.__JOB_BOARD_HEADER:
             self._layout.padding_job_board_header = 0
 
         self._metrics = ("warnings", "errors")
+
+    def make_log_hander(self) -> logging.Handler:
+        return self._log_handler.make_handler()
 
     def _stop_on_exit(self):
         self.stop()
@@ -629,7 +704,7 @@ class Board(metaclass=BoardSingleton):
 
             while not check_stop_event():
                 try:
-                    if self._render_event.wait(timeout=0.2):
+                    if self._render_event.wait(timeout=self._dwell):
                         self._render_event.clear()
                 except:  # noqa E722
                     # Catch any multiprocessing errors
@@ -640,6 +715,7 @@ class Board(metaclass=BoardSingleton):
 
                 update_data()
                 self.live.update(self._get_rendable(), refresh=True)
+                time.sleep(self._dwell)
 
         finally:
             update_data()
