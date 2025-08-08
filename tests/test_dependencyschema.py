@@ -419,7 +419,7 @@ def test_populate_deps_empty():
 
 def test_populate_deps():
     class Test(NamedSchema, DependencySchema):
-        def __init__(self, name):
+        def __init__(self, name=None):
             super().__init__()
             self.set_name(name)
 
@@ -445,7 +445,7 @@ def test_populate_deps():
 
 def test_populate_deps_missing():
     class Test(NamedSchema, DependencySchema):
-        def __init__(self, name):
+        def __init__(self, name=None):
             super().__init__()
             self.set_name(name)
 

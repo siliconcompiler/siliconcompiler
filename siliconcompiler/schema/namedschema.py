@@ -79,7 +79,8 @@ class NamedSchema(BaseSchema):
         if not filepath and cfg is None:
             raise RuntimeError("filepath or dictionary is required")
 
-        schema = cls(name)
+        schema = cls()
+        schema.set_name(name)
         if filepath:
             schema.read_manifest(filepath)
         if cfg:

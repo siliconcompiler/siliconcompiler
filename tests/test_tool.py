@@ -73,7 +73,6 @@ def patch_psutil(monkeypatch):
 class NOPTask(TaskSchema):
     def __init__(self):
         super().__init__()
-        self.set_name("testtask")
 
     def tool(self):
         return "builtin"
@@ -152,7 +151,7 @@ def test_tasktimeout_init():
 
 
 def test_init():
-    tool = TaskSchema("testtool")
+    tool = TaskSchema()
     assert tool.step is None
     assert tool.index is None
     assert tool.logger is None
@@ -162,39 +161,39 @@ def test_init():
 def test_tool():
     with pytest.raises(NotImplementedError,
                        match="tool name must be implemented by the child class"):
-        TaskSchema("testtool").tool()
+        TaskSchema().tool()
 
 
 def test_task():
     with pytest.raises(NotImplementedError,
                        match="task name must be implemented by the child class"):
-        TaskSchema("testtool").task()
+        TaskSchema().task()
 
 
 def test_runtime_invalid_type():
     with pytest.raises(TypeError, match="node must be a scheduler node"):
-        with TaskSchema("testtool").runtime(BaseSchema()):
+        with TaskSchema().runtime(BaseSchema()):
             pass
 
 
 def test_runtime_step_override(running_project):
     with pytest.raises(RuntimeError, match="step and index cannot be provided with node"):
-        with TaskSchema("testtool").runtime(SchedulerNode(running_project, "step", "index"),
-                                            step="step"):
+        with TaskSchema().runtime(SchedulerNode(running_project, "step", "index"),
+                                  step="step"):
             pass
 
 
 def test_runtime_index_override(running_project):
     with pytest.raises(RuntimeError, match="step and index cannot be provided with node"):
-        with TaskSchema("testtool").runtime(SchedulerNode(running_project, "step", "index"),
-                                            index="index"):
+        with TaskSchema().runtime(SchedulerNode(running_project, "step", "index"),
+                                  index="index"):
             pass
 
 
 def test_set_runtime_invalid_flow(running_node):
     running_node.project.unset('option', 'flow')
     with pytest.raises(RuntimeError, match="flow not specified"):
-        with TaskSchema("testtool").runtime(running_node):
+        with TaskSchema().runtime(running_node):
             pass
 
 
@@ -841,22 +840,22 @@ def test_get_output_files(running_node):
 def test_parse_version_not_implemented():
     with pytest.raises(NotImplementedError,
                        match="must be implemented by the implementation class"):
-        TaskSchema("testtool").parse_version("nothing")
+        TaskSchema().parse_version("nothing")
 
 
 def test_normalize_version():
-    tool = TaskSchema("testtool")
+    tool = TaskSchema()
     assert tool.normalize_version("nothing") == "nothing"
     assert tool.normalize_version(None) is None
 
 
 def test_setup():
-    tool = TaskSchema("testtool")
+    tool = TaskSchema()
     assert tool.setup() is None
 
 
 def test_pre_process():
-    tool = TaskSchema("testtool")
+    tool = TaskSchema()
     assert tool.pre_process() is None
 
 
@@ -901,16 +900,16 @@ def test_runtime_options_with_aruments_with_refdir(running_node):
 def test_run_not_implemented():
     with pytest.raises(NotImplementedError,
                        match="must be implemented by the implementation class"):
-        TaskSchema("testtool").run()
+        TaskSchema().run()
 
 
 def test_post_process():
-    tool = TaskSchema("testtool")
+    tool = TaskSchema()
     assert tool.post_process() is None
 
 
 def test_resetting_state_in_copy(running_node):
-    tool = TaskSchema("testtool")
+    tool = TaskSchema()
     with running_node.task.runtime(running_node) as runtool:
         assert runtool.schema() is not None
 
@@ -962,7 +961,7 @@ def test_generate_replay_script_no_path(running_node, monkeypatch):
 
 
 def test_setup_work_directory():
-    tool = TaskSchema("builtin")
+    tool = TaskSchema()
 
     os.makedirs("testwork", exist_ok=True)
 
@@ -978,7 +977,7 @@ def test_setup_work_directory():
 
 
 def test_setup_work_directory_ensure_clean():
-    tool = TaskSchema("builtin")
+    tool = TaskSchema()
 
     os.makedirs("testwork", exist_ok=True)
 
@@ -997,7 +996,7 @@ def test_setup_work_directory_ensure_clean():
 
 
 def test_setup_work_directory_ensure_keep():
-    tool = TaskSchema("builtin")
+    tool = TaskSchema()
 
     os.makedirs("testwork", exist_ok=True)
 
@@ -1410,7 +1409,7 @@ def test_select_input_nodes_entry_has_input(running_node):
 
 
 def test_task_add_parameter():
-    task = TaskSchema("testtask")
+    task = TaskSchema()
 
     assert task.getkeys("var") == tuple()
 
@@ -1446,7 +1445,7 @@ def test_task_add_parameter():
 
 
 def test_task_add_parameter_recovered():
-    task = TaskSchema("testtask")
+    task = TaskSchema()
     assert task.add_parameter("teststr", "str", "long form help")
     assert task.add_parameter("testbool", "bool", "long form help")
     assert task.add_parameter("testlist", "[str]", "long form help")
@@ -1483,7 +1482,7 @@ def test_task_add_parameter_recovered():
 
 
 def test_task_add_parameter_defvalue():
-    task = TaskSchema("testtask")
+    task = TaskSchema()
 
     task.add_parameter("teststr", "str", "long form help", defvalue="checkthis")
 
