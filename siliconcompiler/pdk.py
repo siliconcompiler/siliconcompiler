@@ -217,7 +217,8 @@ class PDKSchema(ToolLibrarySchema):
                 switch="-pdk_pexmodel 'pdkname tool stackup corner <file>'",
                 example=[
                     "cli: -pdk_pexmodel 'asap7 fastcap M10 max wire.mod'",
-                    "api: chip.set('pdk', 'asap7', 'pexmodel', 'fastcap', 'M10', 'max', 'wire.mod')"],
+                    "api: chip.set('pdk', 'asap7', 'pexmodel', 'fastcap', 'M10', 'max', "
+                    "'wire.mod')"],
                 help=trim("""
                 List of filepaths to PDK wire TCAD models used during automated
                 synthesis, APR, and signoff verification. Pexmodels are specified on
