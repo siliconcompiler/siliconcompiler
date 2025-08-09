@@ -11,7 +11,6 @@ from rich.progress import Progress
 
 from siliconcompiler.report.dashboard.cli import CliDashboard
 from siliconcompiler.report.dashboard.cli.board import (
-    BoardSingleton,
     Board,
     LogBuffer,
     JobData,
@@ -47,9 +46,7 @@ def reset_singleton(monkeypatch):
                 pass
             return Dummy()
 
-    monkeypatch.setattr(MPManager, "get_manager", MockManager)
-    with patch.dict(BoardSingleton._instances, clear=True):
-        yield
+    monkeypatch.setattr(MPManager, "get_dashboard", lambda: Board(MockManager()))
 
 
 @pytest.fixture
@@ -292,13 +289,6 @@ def test_init(dashboard):
     assert dashboard._render_data.error == 0
 
     assert dashboard._active
-
-
-def test_init_singleton(mock_chip):
-    dash1 = CliDashboard(mock_chip)
-    dash2 = CliDashboard(mock_chip)
-
-    assert dash1._dashboard is dash2._dashboard
 
 
 def test_no_tty(mock_chip, monkeypatch):

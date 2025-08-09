@@ -1,7 +1,6 @@
 import logging
 import os
 import math
-import multiprocessing
 import queue
 import time
 import threading
@@ -22,8 +21,6 @@ from rich.padding import Padding
 from siliconcompiler import SiliconCompilerError, NodeStatus
 from siliconcompiler.utils.logging import SCColorLoggerFormatter
 from siliconcompiler.flowgraph import RuntimeFlowgraph
-
-from siliconcompiler.utils.multiprocessing import MPManager
 
 
 class LogBuffer:
@@ -282,19 +279,7 @@ class Layout:
             self.job_board_show_log = False
 
 
-class BoardSingleton(type):
-    _instances = {}
-    _lock = multiprocessing.Lock()
-
-    def __call__(cls, *args, **kwargs):
-        with cls._lock:
-            if cls not in cls._instances:
-                cls._instances[cls] = super(BoardSingleton, cls).__call__(*args, **kwargs)
-                cls._instances[cls]._init_singleton()
-        return cls._instances[cls]
-
-
-class Board(metaclass=BoardSingleton):
+class Board:
     __status_color_map = {
         NodeStatus.PENDING: "blue",
         NodeStatus.QUEUED: "blue",
@@ -330,10 +315,7 @@ class Board(metaclass=BoardSingleton):
 
     __JOB_BOARD_BOX = box.SIMPLE_HEAD
 
-    def __init__(self):
-        pass
-
-    def _init_singleton(self):
+    def __init__(self, manager):
         self._console = Console(theme=Board.__theme)
 
         self.live = Live(
@@ -348,9 +330,6 @@ class Board(metaclass=BoardSingleton):
             return
 
         self._layout = Layout()
-
-        # Manager to thread data
-        manager = MPManager.get_manager()
 
         self._render_event = manager.Event()
         self._render_stop_event = manager.Event()
@@ -379,9 +358,6 @@ class Board(metaclass=BoardSingleton):
 
     def make_log_hander(self) -> logging.Handler:
         return self._log_handler.make_handler()
-
-    def _stop_on_exit(self):
-        self.stop()
 
     def open_dashboard(self):
         """Starts the dashboard rendering thread if it is not already running."""

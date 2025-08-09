@@ -13,6 +13,7 @@ import shutil
 import socket
 import time
 from siliconcompiler.scheduler import TaskScheduler
+from siliconcompiler.utils.multiprocessing import _ManagerSingleton
 from unittest.mock import patch
 
 
@@ -109,13 +110,13 @@ def limit_cpus(monkeypatch, request):
 
 
 @pytest.fixture(autouse=True)
-def isolate_callbacks():
+def isolate_statics_in_testing():
     '''
-    Isolate callbacks for testing
+    Isolate static instances for testing
     '''
 
-    callbacks = TaskScheduler._TaskScheduler__callbacks
-    with patch.dict(callbacks):
+    with patch.dict(TaskScheduler._TaskScheduler__callbacks), \
+            patch.dict(_ManagerSingleton._instances, clear=True):
         yield
 
 

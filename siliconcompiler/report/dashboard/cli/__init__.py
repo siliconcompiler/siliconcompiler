@@ -1,15 +1,16 @@
 import atexit
 
 from siliconcompiler.report.dashboard import AbstractDashboard
-from siliconcompiler.report.dashboard.cli.board import Board
 
 
 class CliDashboard(AbstractDashboard):
 
     def __init__(self, chip):
+        from siliconcompiler.utils.multiprocessing import MPManager
+
         super().__init__(chip)
 
-        self._dashboard = Board()
+        self._dashboard = MPManager.get_dashboard()
 
         self.__logger_console = None
 
