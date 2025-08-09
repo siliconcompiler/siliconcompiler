@@ -91,6 +91,19 @@ class Scheduler:
         self.__joblog_handler = logging.NullHandler()
         self.__org_job_name = self.__chip.get("option", "jobname")
 
+    @property
+    def project(self):
+        """
+        Returns the Project object associated with this scheduler.
+
+        This property provides access to the central Project object, which holds
+        the entire design configuration, flowgraph, and results.
+
+        Returns:
+            Project: The Project object for the current project.
+        """
+        return self.__chip
+
     def __print_status(self, header):
         """
         Private helper to print the current status of all nodes for debugging.

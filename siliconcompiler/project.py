@@ -594,7 +594,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
 
         return True
 
-    def __getbuilddir(self) -> str:
+    def _getbuilddir(self) -> str:
         """
         Returns the absolute path to the project's build directory.
 
@@ -636,7 +636,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         if not self.name:
             raise ValueError("name has not been set")
 
-        dirlist = [self.__getbuilddir(),
+        dirlist = [self._getbuilddir(),
                    self.name,
                    self.get('option', 'jobname')]
 
