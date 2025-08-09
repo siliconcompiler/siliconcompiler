@@ -33,6 +33,7 @@ from siliconcompiler.report.dashboard.cli import CliDashboard
 from siliconcompiler.scheduler import Scheduler
 from siliconcompiler.utils.logging import SCColorLoggerFormatter, SCLoggerFormatter
 from siliconcompiler.utils import FilterDirectories, get_file_ext
+from siliconcompiler.utils.multiprocessing import MPManager
 
 
 class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
@@ -136,10 +137,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         """
         Initializes the project-specific logger.
         """
-        sc_logger = logging.getLogger("siliconcompiler")
-        sc_logger.propagate = False
-        self.__logger = sc_logger.getChild(f"project_{uuid.uuid4().hex}")
-        self.__logger.propagate = False
+        self.__logger = MPManager.logger().getChild(f"project_{uuid.uuid4().hex}")
         self.__logger.setLevel(logging.INFO)
 
         self._logger_console = logging.StreamHandler(stream=sys.stdout)
