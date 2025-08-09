@@ -152,6 +152,22 @@ class LogBufferHandler(logging.Handler):
 
 @dataclass
 class JobData:
+    """
+    A data class to hold information about a single job's progress and status.
+
+    Attributes:
+        total (int): The total number of nodes in the job.
+        success (int): The number of successfully completed nodes.
+        error (int): The number of nodes that resulted in an error.
+        skipped (int): The number of skipped nodes.
+        finished (int): The total number of finished nodes (success or error).
+        jobname (str): The name of the job.
+        design (str): The name of the design associated with the job.
+        runtime (float): The total runtime of the job so far.
+        complete (bool): A flag indicating if the job has completed.
+        nodes (List[dict]): A list of dictionaries, each containing detailed
+                            information about a single node in the flowgraph.
+    """
     total: int = 0
     success: int = 0
     error: int = 0
@@ -166,6 +182,20 @@ class JobData:
 
 @dataclass
 class SessionData:
+    """
+    A data class to hold aggregated information about the entire run session,
+    which may include multiple jobs.
+
+    Attributes:
+        total (int): The total number of nodes across all jobs.
+        success (int): The total number of successfully completed nodes across all jobs.
+        error (int): The total number of nodes that resulted in an error across all jobs.
+        skipped (int): The total number of skipped nodes across all jobs.
+        finished (int): The total number of finished nodes across all jobs.
+        runtime (float): The maximum runtime among all jobs.
+        jobs (Dict[str, JobData]): A dictionary mapping job identifiers to their
+                                   corresponding JobData objects.
+    """
     total: int = 0
     success: int = 0
     error: int = 0
@@ -178,26 +208,17 @@ class SessionData:
 @dataclass
 class Layout:
     """
-    Layout class represents the configuration for a dashboard layout.
+    Manages the dynamic layout of the dashboard, calculating the height
+    of different sections based on terminal size and content.
 
     Attributes:
-        height (int): The total height of the layout.
-        width (int): The total width of the layout.
-        job_board_min (int): The minimum height allocated for the job board.
-        job_board_max (int): The maximum height allocated for the job board.
-        log_max (int): The maximum height allocated for the log section.
-        log_min (int): The minimum height allocated for the log section.
-        progress_bar_min (int): The minimum height allocated for the progress bar.
-        progress_bar_max (int): The maximum height allocated for the progress bar.
-        job_board_show_log (bool): A flag indicating whether to show the log in the job board.
-
-        __reserved (int): Reserved space for table headings and extra padding.
-
-    Methods:
-        available_height():
-            Calculates and returns the available height for other components in the layout
-            after accounting for reserved space, job board, and log sections.
-            Returns 0 if the total height is not set.
+        height (int): The total height of the terminal.
+        width (int): The total width of the terminal.
+        log_height (int): The calculated height for the log display area.
+        job_board_height (int): The calculated height for the job status board.
+        progress_bar_height (int): The calculated height for the progress bar section.
+        job_board_show_log (bool): Flag to determine if the log file column is shown.
+        job_board_v_limit (int): Width threshold to switch to a more compact view.
     """
 
     height: int = 0
@@ -216,7 +237,19 @@ class Layout:
     padding_job_board: int = 1
     padding_job_board_header: int = 1
 
-    def update(self, height, width, visible_jobs, visible_bars):
+    def update(self, height: int, width: int, visible_jobs: int, visible_bars: int):
+        """
+        Recalculates the layout dimensions based on the current terminal size and content.
+
+        This method implements the logic to intelligently allocate vertical space
+        to the progress bars, job board, and log view.
+
+        Args:
+            height (int): The current terminal height.
+            width (int): The current terminal width.
+            visible_jobs (int): The number of job nodes to be displayed.
+            visible_bars (int): The number of progress bars to be displayed.
+        """
         self.height = height
         self.width = width
 
@@ -280,6 +313,13 @@ class Layout:
 
 
 class Board:
+    """
+    The main class for rendering the live dashboard UI.
+
+    This class orchestrates the display of job progress, logs, and status updates
+    in the terminal using the `rich` library. It runs in a separate thread to
+    provide a non-blocking UI.
+    """
     __status_color_map = {
         NodeStatus.PENDING: "blue",
         NodeStatus.QUEUED: "blue",
@@ -316,6 +356,13 @@ class Board:
     __JOB_BOARD_BOX = box.SIMPLE_HEAD
 
     def __init__(self, manager):
+        """
+        Initializes the Board.
+
+        Args:
+            manager: A multiprocessing.Manager object to create shared state
+                     (events, dicts, locks) between processes.
+        """
         self._console = Console(theme=Board.__theme)
 
         self.live = Live(
@@ -357,6 +404,12 @@ class Board:
         self._metrics = ("warnings", "errors")
 
     def make_log_hander(self) -> logging.Handler:
+        """
+        Creates and returns a logging handler that directs logs to this board.
+
+        Returns:
+            logging.Handler: The log handler instance.
+        """
         return self._log_handler.make_handler()
 
     def open_dashboard(self):
@@ -378,8 +431,12 @@ class Board:
 
     def update_manifest(self, chip, starttimes=None):
         """
-        Updates the manifest file with the latest data from the chip object.
-        This ensures that the dashboard reflects the current state of the chip.
+        Updates the dashboard with the latest data from a chip object's manifest.
+
+        Args:
+            chip: The SiliconCompiler chip object.
+            starttimes (dict, optional): A dictionary mapping (step, index) tuples
+                                         to their start times. Defaults to None.
         """
 
         if not self._active:
@@ -387,8 +444,13 @@ class Board:
 
         self._update_render_data(chip, starttimes=starttimes)
 
-    def is_running(self):
-        """Returns True to indicate that the dashboard is running."""
+    def is_running(self) -> bool:
+        """
+        Checks if the dashboard rendering thread is currently active.
+
+        Returns:
+            bool: True if the dashboard is running, False otherwise.
+        """
 
         if not self._active:
             return False
@@ -407,7 +469,10 @@ class Board:
 
     def end_of_run(self, chip):
         """
-        Stops the dashboard rendering thread and ensures all rendering operations are completed.
+        Signals that the run has completed, performing a final update.
+
+        Args:
+            chip: The SiliconCompiler chip object at the end of the run.
         """
 
         if not self._active:
@@ -417,7 +482,7 @@ class Board:
 
     def stop(self):
         """
-        Stops the dashboard rendering thread and ensures all rendering operations are completed.
+        Stops the dashboard rendering thread and cleans up the terminal display.
         """
         if not self.is_running():
             return
@@ -448,12 +513,12 @@ class Board:
         self._render_thread.join()
 
     @staticmethod
-    def format_status(status: str):
+    def format_status(status: str) -> str:
         """
-        Formats the status of a node for display in the dashboard.
+        Formats a node status string with rich-compatible color markup.
 
         Args:
-            status (str): The status of the node (e.g., 'running', 'success', 'error').
+            status (str): The status of the node (e.g., 'RUNNING', 'SUCCESS').
 
         Returns:
             str: A formatted string with the status styled for display.
@@ -461,25 +526,37 @@ class Board:
         return f"[node.{status.lower()}]{status.upper()}[/]"
 
     @staticmethod
-    def format_node(design, jobname, step, index, multi_job) -> str:
+    def format_node(design: str, jobname: str, step: str, index: int, multi_job: bool) -> str:
         """
-        Formats a node's information for display in the dashboard.
+        Formats a node's identifier for display in the dashboard.
 
         Args:
             design (str): The design name.
             jobname (str): The job name.
             step (str): The step name.
             index (int): The step index.
+            multi_job (bool): Flag indicating if multiple jobs are running, which
+                              determines the format of the identifier.
 
         Returns:
-            str: A formatted string with the node's information styled for display.
+            str: A formatted string representing the node.
         """
         if multi_job:
             return f"{design}/{jobname}/{step}/{index}"
         else:
             return f"{step}/{index}"
 
-    def _render_log(self, layout):
+    def _render_log(self, layout: Layout):
+        """
+        Renders the log message area of the dashboard.
+
+        Args:
+            layout (Layout): The current layout object containing dimensions.
+
+        Returns:
+            rich.group.Group or None: A renderable Group object for the log
+                                      area, or None if there's no space.
+        """
         if layout.log_height == 0:
             return None
 
@@ -496,12 +573,16 @@ class Board:
 
         return Group(table, Padding("", (0, 0)))
 
-    def _render_job_dashboard(self, layout):
+    def _render_job_dashboard(self, layout: Layout):
         """
-        Creates a table of jobs and their statuses for display in the dashboard.
+        Renders the main job status board.
+
+        Args:
+            layout (Layout): The current layout object containing dimensions.
 
         Returns:
-            Group: A Rich Group object containing tables for each job.
+            rich.group.Group or None: A renderable Group containing the job table,
+                                      or None if there is no space or no data.
         """
         # Don't render anything if there is not enough space
         if layout.job_board_height == 0:
@@ -588,12 +669,16 @@ class Board:
             return Group(table, Padding("", (0, 0)))
         return Group(Padding("", (0, 0)), table, Padding("", (0, 0)))
 
-    def _render_progress_bar(self, layout):
+    def _render_progress_bar(self, layout: Layout):
         """
-        Creates progress bars showing job completion for display in the dashboard.
+        Renders the progress bar section of the dashboard.
+
+        Args:
+            layout (Layout): The current layout object containing dimensions.
 
         Returns:
-            Group: A Rich Group object containing progress bars for each job.
+            rich.group.Group or rich.padding.Padding: A renderable object for the
+                                                      progress bars.
         """
         with self._render_data_lock:
             job_data = self._render_data.jobs.copy()
@@ -651,8 +736,11 @@ class Board:
 
     def _render(self):
         """
-        Main rendering method for the TUI. Continuously updates the dashboard
-        with the latest data until the stop event is set.
+        Main rendering loop for the dashboard.
+
+        This method runs in a separate thread. It waits for update events,
+        fetches the latest data, re-renders the components, and updates the
+        live display.
         """
 
         def update_data():
@@ -697,7 +785,13 @@ class Board:
             else:
                 self._console.print(self._get_rendable())
 
-    def _update_layout(self):
+    def _update_layout(self) -> Layout:
+        """
+        Updates the layout dimensions based on the current data and console size.
+
+        Returns:
+            Layout: The updated layout object.
+        """
         with self._render_data_lock:
             visible_progress_bars = len(self._render_data.jobs)
             visible_jobs_count = self._render_data.total - self._render_data.skipped
@@ -712,6 +806,10 @@ class Board:
         return self._layout
 
     def _update_rendable_data(self):
+        """
+        Transfers job data from the shared multiprocessing dictionary to the
+        local render data object, aggregating session-wide statistics.
+        """
         jobs = {}
         with self._job_data_lock:
             if self._board_info.data_modified:
@@ -748,11 +846,13 @@ class Board:
 
     def _get_rendable(self):
         """
-        Combines all dashboard components (job table, progress bars, final summary)
-        into a single renderable group.
+        Assembles the final renderable object for the `rich.live` display.
+
+        It gets the latest layout, renders each component (job board, progress bars, log),
+        and combines them into a single `rich.group.Group`.
 
         Returns:
-            Group: A Rich Group object containing all dashboard components.
+            rich.group.Group: The complete, renderable dashboard layout.
         """
 
         layout = self._update_layout()
@@ -775,8 +875,13 @@ class Board:
 
     def _update_render_data(self, chip, starttimes=None, complete=False):
         """
-        Updates the render data with the latest job and node information from the chip object.
-        This data is used to populate the dashboard.
+        Extracts job and node information from a chip object and updates the
+        shared job data dictionary, triggering a render event.
+
+        Args:
+            chip: The SiliconCompiler chip object.
+            starttimes (dict, optional): Dictionary of node start times. Defaults to None.
+            complete (bool, optional): Flag indicating if the job is complete. Defaults to False.
         """
 
         if not chip:
@@ -795,6 +900,21 @@ class Board:
             self._render_event.set()
 
     def _get_job(self, chip, starttimes=None) -> JobData:
+        """
+        Parses a chip object to extract detailed information about the flowgraph,
+        node statuses, timings, and metrics.
+
+        This method calculates node display priority based on run status and
+        dependencies.
+
+        Args:
+            chip: The SiliconCompiler chip object to parse.
+            starttimes (dict, optional): A dictionary of node start times.
+                                         Defaults to None.
+
+        Returns:
+            JobData: A data object populated with the extracted information.
+        """
         if not starttimes:
             starttimes = {}
 

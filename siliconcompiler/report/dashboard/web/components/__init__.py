@@ -1,3 +1,11 @@
+"""
+A collection of functions that create and manage UI components for the
+SiliconCompiler web dashboard using Streamlit.
+
+This module contains functions for rendering various parts of the dashboard,
+such as headers, file viewers, metric tables, and the interactive flowgraph.
+These components are composed by the layout functions to build the complete UI.
+"""
 import base64
 import json
 import os
@@ -19,6 +27,7 @@ from siliconcompiler.report.dashboard.web.utils import file_utils
 from siliconcompiler.report.dashboard.web.components import flowgraph
 
 
+# --- Constants for Page Configuration ---
 SC_ABOUT = [
     f"SiliconCompiler {sc_version}",
     '''A compiler framework that automates translation from source code to
@@ -38,14 +47,13 @@ SC_FONT_PATH = os.path.join(SC_DATA_ROOT, 'RobotoMono', 'RobotoMono-Regular.ttf'
 
 def page_header(title_col_width=0.7):
     """
-    Displays the title and a selectbox that allows you to select a given run
-    to inspect.
+    Displays the main page header, including the design title, a job selector,
+    and a settings popover for developers.
 
     Args:
-        title_col_width (float) : A number between 0 and 1 which is the percentage of the
-            width of the screen given to the title and logo. The rest is given to selectbox.
+        title_col_width (float): The percentage of the page width to allocate
+            to the title and logo. The rest is divided among other components.
     """
-
     if state.DEVELOPER:
         col_width = (1 - title_col_width) / 2
         title_col, job_select_col, settings_col = \
@@ -62,6 +70,7 @@ def page_header(title_col_width=0.7):
     if state.DEVELOPER:
         with settings_col:
             with streamlit.popover("Settings", use_container_width=True):
+                # Layout selection
                 all_layouts = layouts.get_all_layouts()
                 layout_index = all_layouts.index(state.get_key(state.APP_LAYOUT))
                 if state.set_key(
@@ -69,98 +78,68 @@ def page_header(title_col_width=0.7):
                         streamlit.selectbox("Layout", all_layouts, index=layout_index)):
                     state.set_key(state.APP_RERUN, "Layout")
 
+                # Debugging and refresh rate settings
                 state._DEBUG = streamlit.checkbox("Debug", state._DEBUG)
-
                 state.set_key(
                     state.APP_RUNNING_REFRESH,
                     streamlit.slider(
                         "Running refresh rate (ms)",
-                        min_value=1000,
-                        max_value=10000,
-                        step=500,
+                        min_value=1000, max_value=10000, step=500,
                         value=state.get_key(state.APP_RUNNING_REFRESH)))
-
                 state.set_key(
                     state.APP_STOPPED_REFRESH,
                     streamlit.slider(
                         "Stopped refresh rate (ms)",
-                        min_value=1000,
-                        max_value=100000,
-                        step=1000,
+                        min_value=1000, max_value=100000, step=1000,
                         value=state.get_key(state.APP_STOPPED_REFRESH)))
 
+                # Content display settings
                 state.set_key(
                     state.MAX_DICT_ITEMS_TO_SHOW,
                     streamlit.number_input(
                         "Maximum dict item to show",
-                        min_value=1,
-                        max_value=10000,
+                        min_value=1, max_value=10000,
                         value=state.get_key(state.MAX_DICT_ITEMS_TO_SHOW)))
-
                 state.set_key(
                     state.MAX_FILE_LINES_TO_SHOW,
                     streamlit.number_input(
                         "Maximum file lines to show",
-                        min_value=100,
-                        max_value=1000,
-                        step=100,
+                        min_value=100, max_value=1000, step=100,
                         value=state.get_key(state.MAX_FILE_LINES_TO_SHOW)))
 
 
 def design_title(design=""):
+    """
+    Renders the SiliconCompiler logo and design name using custom HTML and CSS.
+
+    Args:
+        design (str): The name of the design to display.
+    """
+    # Inject custom font and CSS for styling the title
     font = base64.b64encode(open(SC_FONT_PATH, "rb").read()).decode()
-    streamlit.html(
-        f'''
+    streamlit.html(f'''
 <head>
     <style>
-        /* Define the @font-face rule */
         @font-face {{
-        font-family: 'Roboto Mono';
-        src: url(data:font/truetype;charset=utf-8;base64,{font}) format('truetype');
-        font-weight: normal;
-        font-style: normal;
+            font-family: 'Roboto Mono';
+            src: url(data:font/truetype;charset=utf-8;base64,{font}) format('truetype');
         }}
-
-        /* Styles for the logo and text */
-        .logo-container {{
-        display: flex;
-        align-items: flex-start;
+        .logo-container {{ display: flex; align-items: flex-start; }}
+        .logo-image {{ margin-right: 10px; margin-top: -10px; }}
+        .logo-text {{ display: flex; flex-direction: column; margin-top: -20px; }}
+        .design-text, .dashboard-text {{
+            font-family: 'Roboto Mono', sans-serif;
+            font-weight: 700 !important;
+            font-size: 30px !important;
         }}
-
-        .logo-image {{
-        margin-right: 10px;
-        margin-top: -10px;
-        }}
-
-        .logo-text {{
-        display: flex;
-        flex-direction: column;
-        margin-top: -20px;
-        }}
-
-        .design-text {{
-        color: #F1C437; /* Yellow color */
-        font-family: 'Roboto Mono', sans-serif;
-        font-weight: 700 !important;
-        font-size: 30px !important;
-        margin-bottom: -16px;
-        }}
-
-        .dashboard-text {{
-        color: #1D4482; /* Blue color */
-        font-family: 'Roboto Mono', sans-serif;
-        font-weight: 700 !important;
-        font-size: 30px !important;
-        }}
-
+        .design-text {{ color: #F1C437; margin-bottom: -16px; }}
+        .dashboard-text {{ color: #1D4482; }}
     </style>
-</head>
-        '''
-    )
+</head>''')
 
+    # Render the logo and title HTML
     logo = base64.b64encode(open(SC_LOGO_PATH, "rb").read()).decode()
-    streamlit.html(
-        f'''
+    streamlit.html(f'''
 <body>
     <div class="logo-container">
         <img src="data:image/png;base64,{logo}" alt="SiliconCompiler logo"
@@ -170,23 +149,33 @@ def design_title(design=""):
             <p class="dashboard-text">dashboard</p>
         </div>
     </div>
-</body>
-        '''
-    )
+</body>''')
 
 
 def job_selector():
+    """
+    Displays a selectbox for choosing a job/run to inspect.
+
+    The list of jobs includes the current run ('default') and any historical
+    runs found in the manifest.
+    """
     job = streamlit.selectbox(
         'pick a job',
         state.get_chips(),
         label_visibility='collapsed')
 
     if state.set_key(state.SELECTED_JOB, job):
-        # Job changed, so need to run
+        # If the job changes, trigger a rerun to update the entire dashboard.
         state.set_key(state.APP_RERUN, "Job")
 
 
 def setup_page():
+    """
+    Configures the global Streamlit page settings.
+
+    This should be one of the first Streamlit commands called. It sets the page
+    title, icon, layout, and custom menu items.
+    """
     streamlit.set_page_config(
         page_title=f'{state.get_chip().design} dashboard',
         page_icon=Image.open(SC_LOGO_PATH),
@@ -195,6 +184,19 @@ def setup_page():
 
 
 def file_viewer(chip, path, page_key=None, header_col_width=0.89):
+    """
+    Renders a viewer for a specified file.
+
+    Supports images, JSON, and plain text files with syntax highlighting
+    and pagination.
+
+    Args:
+        chip (Chip): The chip object, used for context (e.g., workdir).
+        path (str): The absolute path to the file to display.
+        page_key (str, optional): The state key to use for storing the current
+            page number for paginated text files.
+        header_col_width (float): The percentage of width for the file header.
+    """
     if not path:
         streamlit.error('Select a file')
         return
@@ -203,90 +205,74 @@ def file_viewer(chip, path, page_key=None, header_col_width=0.89):
         streamlit.error(f'{path} is not a file')
         return
 
-    # Detect file type
+    # --- File Header and Download Button ---
     relative_path = os.path.relpath(path, chip.getworkdir())
     filename = os.path.basename(path)
     file_extension = utils.get_file_ext(path)
 
-    # Build streamlit module
     header_col, download_col = \
         streamlit.columns([header_col_width, 1 - header_col_width], gap='small')
-
     with header_col:
         streamlit.header(relative_path)
-
     with download_col:
-        streamlit.markdown(' ')  # aligns download button with title
-        streamlit.download_button(
-            label="Download",
-            data=path,
-            file_name=filename,
-            use_container_width=True)
+        streamlit.markdown(' ')  # Aligns download button with title
+        with open(path, "rb") as fp:
+            streamlit.download_button(
+                label="Download",
+                data=fp,
+                file_name=filename,
+                use_container_width=True)
 
+    # --- File Content Viewer ---
     try:
         if file_extension in ('jpg', 'jpeg', 'png'):
-            # Data is an image
             streamlit.image(path)
         elif file_extension == 'json':
-            # Data is a json file
             data = json.loads(file_utils.read_file(path, None))
+            # Expand JSON if it's not too large
             expand_keys = report.get_total_manifest_key_count(data) < \
                 state.get_key(state.MAX_DICT_ITEMS_TO_SHOW)
             if not expand_keys:
-                # Open two levels
-                expand_keys = 2
+                expand_keys = 2  # Default to expanding two levels
             streamlit.json(data, expanded=expand_keys)
         else:
+            # For text files, implement pagination
             file_data = file_utils.read_file(path, None).splitlines()
-            max_pages = len(file_data)
             page_size = state.get_key(state.MAX_FILE_LINES_TO_SHOW)
+            max_pages = (len(file_data) + page_size - 1) // page_size
 
-            file_section = streamlit.container()
-
-            if page_key:
-                if state.get_key(page_key) is None:
-                    state.set_key(page_key, 1)
-                index = state.get_key(page_key)
-            else:
-                index = 1
+            if page_key and state.get_key(page_key) is None:
+                state.set_key(page_key, 1)
+            index = state.get_key(page_key) if page_key else 1
 
             page = sac.pagination(
-                align='center',
-                index=index,
-                jump=True,
-                show_total=True,
-                page_size=page_size,
-                total=max_pages,
-                disabled=max_pages < state.get_key(state.MAX_FILE_LINES_TO_SHOW))
+                align='center', index=index, total=max_pages,
+                disabled=max_pages <= 1)
 
             if page_key:
                 state.set_key(page_key, page)
 
-            start_idx = (page - 1) * state.get_key(state.MAX_FILE_LINES_TO_SHOW)
-            end_idx = start_idx + state.get_key(state.MAX_FILE_LINES_TO_SHOW)
+            start_idx = (page - 1) * page_size
+            end_idx = start_idx + page_size
             file_show = file_data[start_idx:end_idx]
-            with file_section:
-                # Assume file is text
-                streamlit.code(
-                    "\n".join(file_show),
-                    language=file_utils.get_file_type(file_extension),
-                    line_numbers=True)
+
+            streamlit.code(
+                "\n".join(file_show),
+                language=file_utils.get_file_type(file_extension),
+                line_numbers=True)
     except Exception as e:
-        streamlit.markdown(f'Error occurred reading file: {e}')
+        streamlit.error(f'Error occurred reading file: {e}')
 
 
-def manifest_viewer(
-        chip,
-        header_col_width=0.70):
+def manifest_viewer(chip, header_col_width=0.70):
     """
-    Displays the manifest and a way to search through the manifest.
+    Displays the chip's manifest with search and filtering options.
 
     Args:
-        chip (Chip) : Chip object
-        header_col_width (float) : A number between 0 and 1 which is the maximum
-            percentage of the width of the screen given to the header. The rest
-            is given to the settings and download buttons.
+        chip (Chip): The chip object whose manifest will be displayed.
+        header_col_width (float): The percentage of width for the header.
     """
+    # --- Header and Settings ---
     end_column_widths = (1 - header_col_width) / 2
     header_col, settings_col, download_col = \
         streamlit.columns(
@@ -294,102 +280,92 @@ def manifest_viewer(
             gap='small')
     with header_col:
         streamlit.header('Manifest')
-
     with settings_col:
-        streamlit.markdown(' ')  # aligns with title
+        streamlit.markdown(' ')  # Aligns with title
         with streamlit.popover("Settings", use_container_width=True):
-            if streamlit.checkbox(
-                    'Raw manifest',
-                    help='Click here to see the manifest before it was made more readable'):
+            # Filtering options
+            if streamlit.checkbox('Raw manifest', help='View raw, unprocessed manifest'):
                 manifest_to_show = chip.getdict()
             else:
                 manifest_to_show = report.make_manifest(chip)
 
-            if streamlit.checkbox(
-                    'Hide empty values',
-                    help='Hide empty keypaths',
-                    value=True):
-                manifest_to_show = report.search_manifest(
-                    manifest_to_show,
-                    value_search='*')
+            if streamlit.checkbox('Hide empty values', value=True):
+                manifest_to_show = report.search_manifest(manifest_to_show, value_search='*')
 
-            search_key = streamlit.text_input('Search Keys', '', placeholder="Keys")
-            search_value = streamlit.text_input('Search Values', '', placeholder="Values")
-
+            # Search functionality
+            search_key = streamlit.text_input('Search Keys', placeholder="Keys")
+            search_value = streamlit.text_input('Search Values', placeholder="Values")
             manifest_to_show = report.search_manifest(
-                manifest_to_show,
-                key_search=search_key,
-                value_search=search_value)
-
+                manifest_to_show, key_search=search_key, value_search=search_value)
     with download_col:
-        streamlit.markdown(' ')  # aligns with title
+        streamlit.markdown(' ')  # Aligns with title
         streamlit.download_button(
-            label='Download',
-            file_name='manifest.json',
+            label='Download', file_name='manifest.json',
             data=json.dumps(chip.getdict(), indent=2),
-            mime="application/json",
-            use_container_width=True)
+            mime="application/json", use_container_width=True)
 
+    # --- Manifest Display ---
     expand_keys = report.get_total_manifest_key_count(manifest_to_show) < \
         state.get_key(state.MAX_DICT_ITEMS_TO_SHOW)
     if not expand_keys:
-        # Open two levels
-        expand_keys = 2
+        expand_keys = 2  # Default to expanding two levels
     streamlit.json(manifest_to_show, expanded=expand_keys)
 
 
 def metrics_viewer(metric_dataframe, metric_to_metric_unit_map, header_col_width=0.7, height=None):
     """
-    Displays multi-select check box to the users which allows them to select
-    which nodes and metrics to view in the dataframe.
+    Displays a filterable and transposable table of metrics.
 
     Args:
-        metric_dataframe (Pandas.DataFrame) : Contains the metrics of all nodes.
-        metric_to_metric_unit_map (dict) : Maps the metric to the associated metric unit.
+        metric_dataframe (pandas.DataFrame): The dataframe containing all metrics.
+        metric_to_metric_unit_map (dict): A mapping from formatted metric names
+            (with units) to raw metric names.
+        header_col_width (float): The percentage of width for the header.
+        height (int, optional): The height of the dataframe in pixels.
     """
-
     all_nodes = metric_dataframe.columns.tolist()
     all_metrics = list(metric_to_metric_unit_map.values())
 
+    # --- Header and Settings ---
     header_col, settings_col = streamlit.columns(
-        [header_col_width, 1 - header_col_width],
-        gap="large")
+        [header_col_width, 1 - header_col_width], gap="large")
     with header_col:
         streamlit.header('Metrics')
     with settings_col:
-        # Align to header
-        streamlit.markdown('')
-
+        streamlit.markdown('')  # Align to header
         with streamlit.popover("Settings", use_container_width=True):
-            transpose = streamlit.checkbox(
-                'Transpose',
-                help='Transpose the metrics table')
-
+            transpose = streamlit.checkbox('Transpose', help='Transpose the metrics table')
             display_nodes = streamlit.multiselect('Pick nodes to include', all_nodes, [])
             display_metrics = streamlit.multiselect('Pick metrics to include?', all_metrics, [])
 
-    # Filter data
+    # --- Filter and Display Dataframe ---
     if not display_nodes:
         display_nodes = all_nodes
-
     if not display_metrics:
         display_metrics = all_metrics
 
     dataframe_nodes = list(display_nodes)
-    dataframe_metrics = []
-    for metric in metric_dataframe.index.tolist():
-        if metric_to_metric_unit_map[metric] in display_metrics:
-            dataframe_metrics.append(metric)
+    dataframe_metrics = [
+        metric for metric in metric_dataframe.index.tolist()
+        if metric_to_metric_unit_map.get(metric) in display_metrics
+    ]
 
-    metric_dataframe = metric_dataframe.loc[dataframe_metrics, dataframe_nodes]
+    filtered_df = metric_dataframe.loc[dataframe_metrics, dataframe_nodes]
     if transpose:
-        metric_dataframe = metric_dataframe.transpose()
+        filtered_df = filtered_df.transpose()
 
-    # TODO By July 2024, Streamlit will let catch click events on the dataframe
-    streamlit.dataframe(metric_dataframe, use_container_width=True, height=height)
+    streamlit.dataframe(filtered_df, use_container_width=True, height=height)
 
 
 def node_image_viewer(chip, step, index):
+    """
+    Displays a gallery of all image files associated with a given node.
+
+    Args:
+        chip (Chip): The chip object.
+        step (str): The step of the node.
+        index (str): The index of the node.
+    """
     exts = ('png', 'jpg', 'jpeg')
     images = []
     for path, _, files in report.get_files(chip, step, index):
@@ -397,46 +373,53 @@ def node_image_viewer(chip, step, index):
 
     if not images:
         streamlit.markdown("No images to show")
+        return
 
     work_dir = chip.getworkdir(step=step, index=index)
-
     columns = streamlit.slider(
         "Image columns",
-        min_value=1,
-        max_value=min(len(images), 10),
-        value=min(len(images), 4),
-        disabled=len(images) < 2)
+        min_value=1, max_value=min(len(images), 10),
+        value=min(len(images), 4), disabled=len(images) < 2)
 
-    column = 0
-    for image in sorted(images):
-        if column == 0:
+    # Display images in a grid
+    for i, image in enumerate(sorted(images)):
+        if i % columns == 0:
             cols = streamlit.columns(columns)
-
-        with cols[column]:
+        with cols[i % columns]:
             streamlit.image(
                 image,
                 caption=os.path.relpath(image, work_dir),
                 use_column_width=True)
 
-        column += 1
-        if column == columns:
-            column = 0
-
 
 def node_file_tree_viewer(chip, step, index):
+    """
+    Displays an interactive file tree for a given node.
+
+    Files are decorated with tags indicating which metrics they are a source for.
+    Selecting a file in the tree updates the application state to display it
+    in the file viewer.
+
+    Args:
+        chip (Chip): The chip object.
+        step (str): The step of the node.
+        index (str): The index of the node.
+    """
     logs_and_reports = file_utils.convert_filepaths_to_select_tree(
         report.get_files(chip, step, index))
 
     if not logs_and_reports:
         streamlit.markdown("No files to show")
+        return
 
+    # --- Prepare data for the tree component ---
     lookup = {}
     tree_items = []
-
     metrics_source, file_metrics = report.get_metrics_source(chip, step, index)
     work_dir = chip.getworkdir(step=step, index=index)
 
     def make_item(file):
+        """Recursively builds a tree item for the antd component."""
         lookup[file['value']] = file['label']
         item = sac.TreeItem(
             file['value'],
@@ -444,56 +427,55 @@ def node_file_tree_viewer(chip, step, index):
             tag=[],
             children=[])
 
+        # Add metric source tags
         check_file = os.path.relpath(file['value'], work_dir)
         if check_file in file_metrics:
             metrics = set(file_metrics[check_file])
-            primary_source = set()
-            if check_file in metrics_source:
-                primary_source = set(metrics_source[check_file])
-            metrics = metrics - primary_source
+            primary_source = set(metrics_source.get(check_file, []))
+            other_metrics = metrics - primary_source
 
-            for color, metric_set in (('blue', primary_source), ('green', metrics)):
-                if len(item.tag) >= 5:
-                    break
+            tags = [sac.Tag(m, color='blue') for m in primary_source]
+            tags += [sac.Tag(m, color='green') for m in other_metrics]
 
-                for metric in metric_set:
-                    if len(item.tag) < 5:
-                        item.tag.append(sac.Tag(metric, color=color))
-                    else:
-                        item.tag.append(sac.Tag('metrics...', color='geekblue'))
-                        break
+            item.tag = tags[:5]
+            if len(tags) > 5:
+                item.tag.append(sac.Tag('...', color='geekblue'))
             item.tooltip = "metrics: " + ", ".join(file_metrics[check_file])
 
+        # Recursively add children for folders
         if 'children' in file:
             item.icon = 'folder'
-            for child in file['children']:
-                item.children.append(make_item(child))
+            item.children = [make_item(child) for child in file['children']]
 
         return item
 
-    for file in logs_and_reports:
-        tree_items.append(make_item(file))
+    tree_items = [make_item(file) for file in logs_and_reports]
 
-    def format_label(value):
-        return lookup[value]
-
+    # --- Render the tree ---
     selected = sac.tree(
         items=tree_items,
-        format_func=format_label,
-        size='md',
-        icon='table',
-        open_all=True)
+        format_func=lambda v: lookup.get(v, v),
+        size='md', icon='table', open_all=True)
 
     if selected and os.path.isfile(selected):
         state.set_key(state.SELECTED_FILE, selected)
-        state.set_key(state.SELECTED_FILE_PAGE, None)
+        state.set_key(state.SELECTED_FILE_PAGE, 1)
 
 
 def node_viewer(chip, step, index, metric_dataframe, height=None):
+    """
+    Displays a summary view for a single node, including metrics, records, and files.
+
+    Args:
+        chip (Chip): The chip object.
+        step (str): The step of the node.
+        index (str): The index of the node.
+        metric_dataframe (pandas.DataFrame): The dataframe of all metrics.
+        height (int, optional): The height for the dataframe components.
+    """
     from pandas import DataFrame
 
     metrics_col, records_col, logs_and_reports_col = streamlit.columns(3, gap='small')
-
     node_name = f'{step}/{index}'
 
     with metrics_col:
@@ -501,58 +483,55 @@ def node_viewer(chip, step, index, metric_dataframe, height=None):
         if node_name in metric_dataframe:
             streamlit.dataframe(
                 metric_dataframe[node_name].dropna(),
-                use_container_width=True,
-                height=height)
+                use_container_width=True, height=height)
     with records_col:
-        streamlit.subheader(f'{step}/{index} details')
-        nodes = {}
-        nodes[step + index] = report.get_flowgraph_nodes(chip, step, index)
+        streamlit.subheader(f'{node_name} details')
+        nodes = {step + index: report.get_flowgraph_nodes(chip, step, index)}
         streamlit.dataframe(
             DataFrame.from_dict(nodes),
-            use_container_width=True,
-            height=height)
+            use_container_width=True, height=height)
     with logs_and_reports_col:
-        streamlit.subheader(f'{step}/{index} files')
+        streamlit.subheader(f'{node_name} files')
         node_file_tree_viewer(chip, step, index)
 
 
 def flowgraph_viewer(chip):
-    '''
-    This function creates, displays, and returns the selected node of the flowgraph.
+    """
+    Displays the interactive flowgraph for the current job.
+
+    Selecting a node in the graph updates the application state.
 
     Args:
-        chip (Chip) : The chip object that contains the schema read from.
-    '''
-
+        chip (Chip): The chip object containing the flowgraph to display.
+    """
     nodes, edges = flowgraph.get_nodes_and_edges(chip)
-    if state.set_key(state.SELECTED_FLOWGRAPH_NODE, agraph(
-            nodes=nodes,
-            edges=edges,
-            config=flowgraph.get_graph_config())):
+    selected_node = agraph(
+        nodes=nodes,
+        edges=edges,
+        config=flowgraph.get_graph_config())
+
+    if state.set_key(state.SELECTED_FLOWGRAPH_NODE, selected_node):
         if state.get_key(state.SELECTED_FLOWGRAPH_NODE):
             state.set_key(state.NODE_SOURCE, "flowgraph")
 
 
 def node_selector(nodes):
     """
-    Displays selectbox for nodes to show in the node information panel. Since
-    both the flowgraph and selectbox show which node's information is
-    displayed, the one clicked more recently will be displayed.
+    Displays a dropdown for selecting a node.
+
+    This provides an alternative to selecting a node by clicking on the flowgraph.
 
     Args:
-        nodes (list) : Contains the metrics of all nodes.
+        nodes (list): A list of node name strings (e.g., ['import/0', 'syn/0']).
     """
     prev_node = state.get_selected_node()
 
     with streamlit.popover("Select Node", use_container_width=True):
-        # Preselect node
-        idx = 0
-        if prev_node:
-            idx = nodes.index(prev_node)
-        if state.set_key(
-                state.SELECTED_SELECTOR_NODE,
-                streamlit.selectbox(
-                    'Pick a node to inspect',
-                    nodes,
-                    index=idx)):
+        idx = nodes.index(prev_node) if prev_node in nodes else 0
+        selected_node = streamlit.selectbox(
+            'Pick a node to inspect',
+            nodes,
+            index=idx)
+
+        if state.set_key(state.SELECTED_SELECTOR_NODE, selected_node):
             state.set_key(state.NODE_SOURCE, "selector")
