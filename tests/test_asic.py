@@ -381,7 +381,7 @@ def test_init_run_handling_missing_lib(caplog):
     assert "Adding thislib to [asic,asiclib]" in caplog.text
 
 
-def test_summary_headers(caplog):
+def test_summary_headers():
     proj = ASICProject()
     setattr(proj, "_Project__logger", logging.getLogger())
     proj.logger.setLevel(logging.INFO)
