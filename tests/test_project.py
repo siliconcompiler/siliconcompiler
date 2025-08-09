@@ -154,21 +154,21 @@ def test_pickling(monkeypatch):
 
 
 def test_builddir():
-    assert Project()._Project__getbuilddir() == os.path.abspath("build")
+    assert Project()._getbuilddir() == os.path.abspath("build")
 
 
 def test_builddir_abspath():
     project = Project()
     project.set("option", "builddir", os.path.abspath("diffdir/buildhere"))
 
-    assert project._Project__getbuilddir() == \
+    assert project._getbuilddir() == \
         Path(os.path.abspath("diffdir/buildhere")).as_posix()
 
 
 def test_builddir_diff_build():
     project = Project()
     project.set("option", "builddir", "testbuild")
-    assert project._Project__getbuilddir() == os.path.abspath("testbuild")
+    assert project._getbuilddir() == os.path.abspath("testbuild")
 
 
 def test_getworkdir_no_name():

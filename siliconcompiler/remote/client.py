@@ -31,7 +31,7 @@ remote_step_name = 'remote'
 
 class ClientScheduler(Scheduler):
     def run_core(self):
-        Client(self._Scheduler__chip).run()
+        Client(self.project).run()
 
     def configure_nodes(self):
         return

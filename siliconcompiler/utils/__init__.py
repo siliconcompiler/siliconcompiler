@@ -424,7 +424,7 @@ class FilterDirectories:
 
     @property
     def builddir(self):
-        return self.project._Project__getbuilddir()
+        return self.project._getbuilddir()
 
     def filter(self, path, files):
         if pathlib.Path(path) == pathlib.Path.home():

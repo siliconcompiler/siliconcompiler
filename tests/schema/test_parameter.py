@@ -1857,7 +1857,6 @@ def test_defvalue_file_list_package():
 
 def test_defvalue_file_set_package():
     param = Parameter("{file}", defvalue="thisfile", package="thispackage")
-    print(param._Parameter__type)
     assert param.default.get() == set(["thisfile"])
     assert param.default.get(field="package") == ["thispackage"]
 

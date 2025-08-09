@@ -170,6 +170,12 @@ def test_task():
         TaskSchema().task()
 
 
+def test_task_with_name():
+    task = TaskSchema()
+    task.set_name("thistask")
+    assert task.task() == "thistask"
+
+
 def test_runtime_invalid_type():
     with pytest.raises(TypeError, match="node must be a scheduler node"):
         with TaskSchema().runtime(BaseSchema()):

@@ -266,6 +266,8 @@ class TaskSchema(NamedSchema):
 
     def task(self) -> str:
         """str: The name of this task."""
+        if self.name:
+            return self.name
         raise NotImplementedError("task name must be implemented by the child class")
 
     @property
