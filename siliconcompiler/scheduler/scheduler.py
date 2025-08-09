@@ -19,6 +19,7 @@ from siliconcompiler.scheduler import TaskScheduler
 
 from siliconcompiler import utils
 from siliconcompiler.utils.logging import SCLoggerFormatter
+from siliconcompiler.utils.multiprocessing import MPManager
 from siliconcompiler.scheduler import send_messages
 
 
@@ -169,6 +170,9 @@ class Scheduler:
         # Ensure dashboard receives a stop if running
         if self.__chip._dash:
             self.__chip._dash.stop()
+
+        # Mark error to keep logfile
+        MPManager.error("uncaught exception")
 
     def run(self):
         """
