@@ -1,6 +1,5 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 
-import atexit
 import copy
 import tarfile
 import os
@@ -2691,7 +2690,6 @@ class Chip:
             self._dash = WebDashboard(self, port=port, graph_chips=graph_chips)
         elif type == DashboardType.CLI:
             self._dash = CliDashboard(self)
-            atexit.register(self._dash.stop)
             wait = False
 
         self._dash.open_dashboard()

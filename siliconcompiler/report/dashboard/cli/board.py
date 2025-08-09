@@ -1,3 +1,4 @@
+import atexit
 import logging
 import os
 import math
@@ -291,6 +292,8 @@ class BoardSingleton(type):
             if cls not in cls._instances:
                 cls._instances[cls] = super(BoardSingleton, cls).__call__(*args, **kwargs)
                 cls._instances[cls]._init_singleton()
+                atexit.register(cls._instances[cls]._stop_on_exit)
+
         return cls._instances[cls]
 
 
@@ -379,6 +382,9 @@ class Board(metaclass=BoardSingleton):
 
     def make_log_hander(self) -> logging.Handler:
         return self._log_handler.make_handler()
+
+    def _stop_on_exit(self):
+        self.stop()
 
     def open_dashboard(self):
         """Starts the dashboard rendering thread if it is not already running."""
