@@ -7,6 +7,8 @@ import os.path
 
 from datetime import datetime
 
+from siliconcompiler.report.dashboard.cli.board import Board
+
 
 class _ManagerSingleton(type):
     _instances = {}
@@ -39,6 +41,10 @@ class MPManager(metaclass=_ManagerSingleton):
 
         # Manager to thread data
         self.__manager = multiprocessing.Manager()
+
+        # Dashboard singleton
+        self.__board_lock = self.__manager.Lock()
+        self.__board = None
 
         atexit.register(self.stop)
 
@@ -76,19 +82,36 @@ class MPManager(metaclass=_ManagerSingleton):
             except:  # noqa E722
                 pass
 
+        # Call to stop board
+        if self.__board:
+            with self.__board_lock:
+                self.__board.stop()
+                self.__board = None
+
         self.__manager.shutdown()
 
     @staticmethod
     def error(msg: str = None):
+        manager = MPManager()
         if msg:
-            MPManager().logger().error(f"Error: {msg}")
+            manager.logger().error(f"Error: {msg}")
         else:
-            MPManager().logger().error("Error occurred")
-        MPManager().__error = True
+            manager.logger().error("Error occurred")
+        manager.__error = True
 
     @staticmethod
     def get_manager():
         return MPManager().__manager
+
+    @staticmethod
+    def get_dashboard() -> Board:
+        manager = MPManager()
+        if not manager.__board:
+            with manager.__board_lock:
+                if not manager.__board:
+                    manager.__board = Board(manager.__manager)
+
+        return manager.__board
 
     @staticmethod
     def logger() -> logging.Logger:
