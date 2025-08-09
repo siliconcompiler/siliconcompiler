@@ -8,7 +8,7 @@ from siliconcompiler import Chip
 
 def test_init_incorrect():
     with pytest.raises(ValueError,
-                       match="github://this is not in the proper form: "
+                       match="'github://this' is not in the proper form: github://"
                              "<owner>/<repository>/<version>/<artifact>"):
         GithubResolver("github", Chip("dummy"), "github://this", "main")
 

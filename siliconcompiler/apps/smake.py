@@ -1,64 +1,89 @@
 # Copyright 2023 Silicon Compiler Authors. All Rights Reserved.
+"""
+A 'make'-like command-line utility for executing Python functions.
+
+This script, 'smake', provides a simple command-line interface to run Python
+functions defined in a specified file (defaulting to 'make.py'). It inspects
+the target file, discovers all public functions, and automatically creates a
+command-line interface to execute them with their respective arguments.
+
+This allows for creating simple, self-documenting build or task scripts in
+Python without the need for complex boilerplate code.
+"""
 import argparse
 import importlib
-
 import sys
-
 import os.path
-
 from inspect import getmembers, isfunction, getfullargspec
 
 from siliconcompiler._metadata import version
 from siliconcompiler.schema import utils
 
-
+# The default filename to look for if none is specified.
 __default_source_file = "make.py"
 
 
 def __process_file(path):
+    """
+    Dynamically loads a Python module and inspects it for runnable targets.
+
+    This function takes a file path, imports it as a Python module, and scans
+    for all public functions (those not starting with an underscore). For each
+    function found, it extracts its signature (arguments, default values, type
+    annotations) and docstring to build a dictionary of "targets" that can be
+    called from the command line.
+
+    It also looks for a special `__scdefault` variable in the module to determine
+    the default target to run if none is specified.
+
+    Args:
+        path (str): The path to the Python file to process.
+
+    Returns:
+        tuple: A tuple containing:
+            - dict: A dictionary of discovered targets, with metadata for each.
+            - str or None: The name of the default target, if any.
+            - str or None: The docstring of the loaded module, if any.
+    """
     if not os.path.exists(path):
         return {}, None, None
+
+    # Dynamically load the specified file as a Python module.
     mod_name = 'scmake'
     spec = importlib.util.spec_from_file_location(mod_name, path)
     make = importlib.util.module_from_spec(spec)
     sys.modules[mod_name] = make
+    # Temporarily add CWD to path to allow the makefile to import local modules.
     syspath = sys.path.copy()
     sys.path.insert(0, os.getcwd())
     spec.loader.exec_module(make)
     sys.path = syspath
 
+    # Inspect the module for public functions to treat as targets.
     args = {}
     for name, func in getmembers(make, isfunction):
         if name.startswith('_'):
             continue
 
-        # generate doc
+        # Use the function's docstring for help text.
         docstring = utils.trim(func.__doc__)
         if not docstring:
             docstring = f"run \"{name}\""
         short_help = docstring.splitlines()[0]
 
+        # Inspect the function's signature to build CLI arguments.
         func_spec = getfullargspec(func)
-
         func_args = {}
         for arg in func_spec.args:
-            arg_type = str
-            if arg in func_spec.annotations:
-                arg_type = func_spec.annotations[arg]
-            func_args[arg] = {
-                "type": arg_type
-            }
+            arg_type = func_spec.annotations.get(arg, str)
+            func_args[arg] = {"type": arg_type}
 
         if func_spec.defaults:
             for arg, defval in zip(reversed(func_spec.args), reversed(func_spec.defaults)):
                 func_args[arg]["default"] = defval
-
-                if defval is None:
-                    continue
-
-                if type(defval) is not func_args[arg]["type"]:
-                    if isinstance(defval, (bool, str, float, int)):
-                        func_args[arg]["type"] = type(defval)
+                # Infer type from default value if it's a basic type.
+                if defval is not None and isinstance(defval, (bool, str, float, int)):
+                    func_args[arg]["type"] = type(defval)
 
         args[name] = {
             "function": func,
@@ -67,109 +92,106 @@ def __process_file(path):
             "args": func_args
         }
 
-    if args:
-        default_arg = list(args.keys())[0]
-    else:
-        default_arg = None
-
-    default_arg = getattr(make, '__scdefault', default_arg)
-
+    # Determine the default target.
+    default_arg = getattr(make, '__scdefault', list(args.keys())[0] if args else None)
     module_help = utils.trim(make.__doc__)
 
     return args, default_arg, module_help
 
 
 def main(source_file=None):
+    """
+    The main entry point for the smake command-line application.
+
+    This function handles command-line argument parsing, discovers targets
+    from the source file, and executes the selected target function with the
+    provided arguments.
+    """
     progname = "smake"
     description = f"""-----------------------------------------------------------
-SC app that provides an Makefile like interface to python
+SC app that provides a Makefile-like interface to Python
 configuration files. This utility app will analyze a file
-"{__default_source_file}" or the file specified with --file to determine
-the available targets.
+named "{__default_source_file}" (or the file specified with --file) to
+determine the available targets.
 
 To view the help, use:
     smake --help
 
-    or view the help for a specific target:
-    smake --help <target>
+To view the help for a specific target, use:
+    smake <target> --help
 
 To run a target, use:
     smake <target>
 
-    or run a target from a file other than "{__default_source_file}":
+To run a target from a different file, use:
     smake --file <file> <target>
 
-    or run a target in a different directory:
-    smake --directory <directory> <target>
+To run a target in a different directory, use:
+    smake -C <directory> <target>
 
-To run a target with supported arguments, use:
-    smake <target> --flow asicflow
+To run a target with arguments, use:
+    smake <target> --arg1 value1 --arg2 value2
 -----------------------------------------------------------"""
 
-    # handle source file identification before arg parse
-    file_args = None
+    # --- Pre-parsing to find --file and --directory arguments ---
+    # This allows us to load the correct file before setting up the full parser.
     if not source_file:
         source_file = __default_source_file
         file_args = ('--file', '-f')
-        for file_arg in file_args:
-            if file_arg in sys.argv:
-                source_file_idx = sys.argv.index(file_arg) + 1
-                if source_file_idx < len(sys.argv):
-                    source_file = sys.argv[source_file_idx]
-                else:
-                    source_file = None
-                break
+        if any(arg in sys.argv for arg in file_args):
+            for file_arg in file_args:
+                if file_arg in sys.argv:
+                    try:
+                        source_file = sys.argv[sys.argv.index(file_arg) + 1]
+                    except IndexError:
+                        print(f"Error: Argument for {file_arg} is missing.")
+                        return 1
+                    break
 
-    # handle directory identification before arg parse
     source_dir = os.getcwd()
     dir_args = ('--directory', '-C')
-    for file_arg in dir_args:
-        if file_arg in sys.argv:
-            source_dir_idx = sys.argv.index(file_arg) + 1
-            if source_dir_idx < len(sys.argv):
-                source_dir = sys.argv[source_dir_idx]
-            else:
-                source_dir = None
-            break
+    if any(arg in sys.argv for arg in dir_args):
+        for dir_arg in dir_args:
+            if dir_arg in sys.argv:
+                try:
+                    source_dir = sys.argv[sys.argv.index(dir_arg) + 1]
+                except IndexError:
+                    print(f"Error: Argument for {dir_arg} is missing.")
+                    return 1
+                break
 
-    if source_dir:
-        if not os.path.isdir(source_dir):
-            print(f"Unable to change directory to {source_dir}")
-            return 1
-
+    if source_dir and os.path.isdir(source_dir):
         os.chdir(source_dir)
+    elif source_dir:
+        print(f"Error: Unable to change directory to {source_dir}")
+        return 1
 
-    make_args = {}
-    default_arg = None
-    module_help = None
-    if source_file:
-        make_args, default_arg, module_help = __process_file(source_file)
+    # --- Process the source file to discover targets ---
+    make_args, default_arg, module_help = __process_file(source_file) if source_file else ({}, None, None)
 
     if module_help:
-        description += \
-            f"\n\n{module_help}\n\n-----------------------------------------------------------"
+        description += f"\n\n{module_help}\n\n-----------------------------------------------------------"
 
+    # --- Set up the main argument parser ---
     parser = argparse.ArgumentParser(
         progname,
         description=description,
         formatter_class=argparse.RawDescriptionHelpFormatter)
 
-    if file_args:
-        parser.add_argument(
-            *file_args,
-            metavar='<file>',
-            help=f'Use file as makefile, default is {__default_source_file}')
-
     parser.add_argument(
-        *dir_args,
+        '--file', '-f',
+        metavar='<file>',
+        help=f'Use file as makefile, default is {__default_source_file}')
+    parser.add_argument(
+        '--directory', '-C',
         metavar='<directory>',
         help='Change to directory <directory> before reading the makefile.')
-
     parser.add_argument(
         '--version', '-v',
         action='version',
-        version=version)
+        version=f"%(prog)s {version}")
 
+    # --- Create subparsers for each discovered target ---
     targetparsers = parser.add_subparsers(
         dest='target',
         metavar='<target>',
@@ -182,54 +204,63 @@ To run a target with supported arguments, use:
             help=info['help'],
             formatter_class=argparse.RawDescriptionHelpFormatter)
 
+        # Add arguments for each parameter of the target function.
         for subarg, subarg_info in info['args'].items():
             add_args = {}
-
             if "default" not in subarg_info:
                 add_args["required"] = True
             else:
-                if type(subarg_info["default"]) is subarg_info["type"]:
-                    add_args["default"] = subarg_info["default"]
+                add_args["default"] = subarg_info["default"]
 
-            if subarg_info["type"] is bool:
+            # Handle boolean arguments correctly.
+            arg_type = subarg_info["type"]
+            if arg_type is bool:
+                # Use a custom string-to-boolean converter.
                 def str2bool(v):
-                    # modified from:
-                    # https://github.com/pypa/distutils/blob/8993718731b951ee36d08cb784f02aa13542ce15/distutils/util.py
-                    val = v.lower()
+                    val = str(v).lower()
                     if val in ('y', 'yes', 't', 'true', 'on', '1'):
                         return True
                     elif val in ('n', 'no', 'f', 'false', 'off', '0'):
                         return False
-                    else:
-                        raise ValueError(f"invalid truth value {val!r}")
-                subarg_info["type"] = str2bool
+                    raise ValueError(f"invalid truth value {val!r}")
+                arg_type = str2bool
 
             subparse.add_argument(
                 f'--{subarg}',
                 dest=f'sub_{subarg}',
                 metavar=f'<{subarg}>',
-                type=subarg_info["type"],
+                type=arg_type,
                 **add_args)
 
+    # --- Parse arguments and execute the target ---
     args = parser.parse_args()
-    target = args.target
-    if not target:
-        target = default_arg
+    target = args.target or default_arg
 
-    if not os.path.isfile(source_file):
-        print(f"Unable to load {source_file}")
+    if not target:
+        if make_args:
+            print("Error: No target specified and no default target found.")
+            parser.print_help()
+        else:
+            print(f"Error: Unable to load makefile '{source_file}'.")
         return 1
 
+    if target not in make_args:
+        print(f"Error: Target '{target}' not found in '{source_file}'.")
+        return 1
+
+    # Prepare arguments to pass to the target function.
     call_args = {}
     args_vars = vars(args)
     for arg in make_args[target]["args"]:
-        if f'sub_{arg}' in args_vars and args_vars[f'sub_{arg}'] is not None:
-            call_args[arg] = args_vars[f'sub_{arg}']
+        arg_key = f'sub_{arg}'
+        if arg_key in args_vars and args_vars[arg_key] is not None:
+            call_args[arg] = args_vars[arg_key]
+
+    # Call the selected function with its arguments.
     make_args[target]["function"](**call_args)
 
     return 0
 
 
-#########################
 if __name__ == "__main__":
     sys.exit(main())

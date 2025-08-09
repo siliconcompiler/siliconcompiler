@@ -1,17 +1,30 @@
+"""
+A collection of utility functions for discovering and selecting the correct
+SiliconCompiler manifest file (`.pkg.json`) within a project directory.
+
+This module provides logic to automatically find manifests based on a standard
+build directory structure, and then select the most appropriate one based on
+the chip's configuration (design, jobname, step, index) or other clues.
+"""
 import os
 import os.path
 
 
-# TODO: this is a hack to get around design name requirement: since legal
-# design names probably can't contain spaces, we can detect if it is unset.
+# A placeholder to detect if the design name has not been set by the user.
+# Legal design names are unlikely to contain spaces.
 UNSET_DESIGN = '  unset  '
 
 
 def manifest_switches():
-    '''
-    Returns a list of manifest switches that can be used
-    to find the manifest based on their values
-    '''
+    """
+    Returns a list of command-line switches used to identify a manifest.
+
+    These switches correspond to chip parameters that can specify a unique
+    run or node within a project.
+
+    Returns:
+        list[str]: A list of command-line switch names.
+    """
     return ['-design',
             '-cfg',
             '-arg_step',
@@ -20,24 +33,47 @@ def manifest_switches():
 
 
 def _get_manifests(cwd):
+    """
+    Scans a directory tree to find all SiliconCompiler manifest files.
+
+    This function walks through a standard SC build structure
+    (`<builddir>/<design>/<jobname>/<step>/<index>`) to locate all
+    `.pkg.json` files. It organizes them into a nested dictionary for
+    easy lookup.
+
+    Args:
+        cwd (str): The current working directory to start the scan from.
+
+    Returns:
+        dict: A nested dictionary mapping:
+              `{design: {jobname: {(step, index): /path/to/manifest.pkg.json}}}`.
+              Top-level manifests are stored with a (None, None) key for the node.
+    """
     manifests = {}
 
-    def get_dirs(cwd):
+    def get_dirs(path):
+        """Helper to get all subdirectories of a given path."""
         dirs = []
-        for dirname in os.listdir(cwd):
-            fullpath = os.path.join(cwd, dirname)
+        if not os.path.isdir(path):
+            return dirs
+        for dirname in os.listdir(path):
+            fullpath = os.path.join(path, dirname)
             if os.path.isdir(fullpath):
                 dirs.append((dirname, fullpath))
         return dirs
 
+    # Expected structure: <cwd>/<builddir>/<design>/<jobname>/<step>/<index>
     for _, buildpath in get_dirs(cwd):
         for design, designdir in get_dirs(buildpath):
             for jobname, jobdir in get_dirs(designdir):
+                # Check for top-level manifest
                 manifest = os.path.join(jobdir, f'{design}.pkg.json')
                 if os.path.isfile(manifest):
                     manifests[(design, jobname, None, None)] = manifest
+                # Check for node-level manifests
                 for step, stepdir in get_dirs(jobdir):
                     for index, indexdir in get_dirs(stepdir):
+                        # Check outputs first, then inputs
                         manifest = os.path.join(indexdir, 'outputs', f'{design}.pkg.json')
                         if os.path.isfile(manifest):
                             manifests[(design, jobname, step, index)] = manifest
@@ -46,6 +82,7 @@ def _get_manifests(cwd):
                             if os.path.isfile(manifest):
                                 manifests[(design, jobname, step, index)] = manifest
 
+    # Reorganize the flat list into a nested dictionary for easier access.
     organized_manifest = {}
     for (design, job, step, index), manifest in manifests.items():
         jobs = organized_manifest.setdefault(design, {})
@@ -55,6 +92,22 @@ def _get_manifests(cwd):
 
 
 def pick_manifest_from_file(chip, src_file, all_manifests):
+    """
+    Tries to find a manifest located in the same directory as a given source file.
+
+    This is useful for applications like a GUI where a user might open a single
+    file from a larger project, and we need to infer the associated manifest.
+
+    Args:
+        chip (Chip): The chip object, used for logging.
+        src_file (str): The path to the source file provided by the user.
+        all_manifests (dict): The dictionary of all discovered manifests from
+            `_get_manifests`.
+
+    Returns:
+        str or None: The path to the found manifest, or None if no manifest
+                     is found in the same directory.
+    """
     if src_file is None:
         return None
 
@@ -73,54 +126,81 @@ def pick_manifest_from_file(chip, src_file, all_manifests):
 
 
 def pick_manifest(chip, src_file=None):
+    """
+    Selects the most appropriate manifest based on the chip's configuration.
+
+    This function implements the selection logic in the following order of priority:
+    1. Find a manifest in the same directory as `src_file`, if provided.
+    2. If the design is not set, try to infer it (only works if there is exactly one design).
+    3. If the jobname is not set, try to infer it (only works if there is one job for the design).
+    4. If step/index are specified, return the manifest for that specific node.
+    5. If no node is specified, return the top-level manifest for the job.
+    6. As a last resort, return the most recently modified manifest for the job.
+
+    Args:
+        chip (Chip): The chip object containing the configuration.
+        src_file (str, optional): A path to a source file to help locate the
+            manifest. Defaults to None.
+
+    Returns:
+        str or None: The absolute path to the selected manifest, or None if a
+                     suitable manifest cannot be determined.
+    """
     all_manifests = _get_manifests(os.getcwd())
 
+    # 1. Try to find based on source file location.
     manifest = pick_manifest_from_file(chip, src_file, all_manifests)
     if manifest:
         return manifest
 
+    # 2. Infer design if unset and only one option exists.
     if chip.design == UNSET_DESIGN:
         if len(all_manifests) == 1:
             chip.set('design', list(all_manifests.keys())[0])
         else:
-            chip.logger.error('Design name is not set')
+            chip.logger.error('Design name is not set and could not be inferred.')
             return None
 
     if chip.design not in all_manifests:
-        chip.logger.error(f'Could not find manifest for {chip.design}')
+        chip.logger.error(f'Could not find any manifests for design "{chip.design}".')
         return None
 
-    if chip.get('option', 'jobname') not in all_manifests[chip.design] and \
-            len(all_manifests[chip.design]) != 1:
-        chip.logger.error(f'Could not determine jobname for {chip.design}')
-        return None
-
+    # 3. Infer jobname if unset and only one option exists.
     jobname = chip.get('option', 'jobname')
-    if chip.get('option', 'jobname') not in all_manifests[chip.design]:
-        jobname = list(all_manifests[chip.design].keys())[0]
+    if jobname not in all_manifests[chip.design]:
+        if len(all_manifests[chip.design]) == 1:
+            jobname = list(all_manifests[chip.design].keys())[0]
+        else:
+            chip.logger.error(f'Could not determine jobname for design "{chip.design}".')
+            return None
 
+    # 4. Find specific node manifest if step/index are provided.
     step, index = chip.get('arg', 'step'), chip.get('arg', 'index')
+    # Auto-complete index if only step is provided
     if step and not index:
         all_nodes = list(all_manifests[chip.design][jobname].keys())
         try:
-            all_nodes.remove((None, None))
+            all_nodes.remove((None, None))  # Exclude top-level
         except ValueError:
             pass
         for found_step, found_index in sorted(all_nodes):
             if found_step == step:
                 index = found_index
+                break  # Take the first matching index
         if index is None:
-            index = '0'
+            index = '0'  # Default to '0' if no match found
+
     if step and index:
         if (step, index) in all_manifests[chip.design][jobname]:
             return all_manifests[chip.design][jobname][(step, index)]
         else:
-            chip.logger.error(f'{step}/{index} is not a valid node.')
+            chip.logger.error(f'Node "{step}/{index}" is not a valid node.')
             return None
 
+    # 5. Return top-level job manifest if it exists.
     if (None, None) in all_manifests[chip.design][jobname]:
-        return all_manifests[chip.design][jobname][None, None]
+        return all_manifests[chip.design][jobname][(None, None)]
 
-    # pick newest manifest
+    # 6. Fallback: return the most recently modified manifest in the job.
     return list(sorted(all_manifests[chip.design][jobname].values(),
                        key=lambda file: os.stat(file).st_ctime))[-1]
