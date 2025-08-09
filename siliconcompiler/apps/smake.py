@@ -167,10 +167,12 @@ To run a target with arguments, use:
         return 1
 
     # --- Process the source file to discover targets ---
-    make_args, default_arg, module_help = __process_file(source_file) if source_file else ({}, None, None)
+    make_args, default_arg, module_help = __process_file(source_file) \
+        if source_file else ({}, None, None)
 
     if module_help:
-        description += f"\n\n{module_help}\n\n-----------------------------------------------------------"
+        description += f"\n\n{module_help}\n\n"
+        description += "-----------------------------------------------------------"
 
     # --- Set up the main argument parser ---
     parser = argparse.ArgumentParser(
