@@ -1,3 +1,7 @@
+"""
+Defines a dashboard layout where the detailed node information is integrated
+directly into the main 'Metrics' tab, below the primary metrics table.
+"""
 import os
 import streamlit
 
@@ -11,74 +15,72 @@ import streamlit_antd_components as sac
 
 
 def layout():
+    """
+    Constructs an integrated layout for the web dashboard.
+
+    This function sets up the main page header and a tab group. The primary
+    "Metrics" tab is designed as a comprehensive view, containing the flowgraph,
+    the main metrics table, and the detailed node information viewer all in one
+    place. Other views like the Manifest, File Viewer, and Graphs are in
+    separate tabs.
+    """
     chip = state.get_chip()
     metric_dataframe, node_to_step_index_map, metric_to_metric_unit_map = \
         utils.generate_metric_dataframe(chip)
 
+    # Render the main page header (title, job selector, settings)
     components.page_header()
 
+    # --- Define the tab items ---
+    # Note: "Node Information" is not a separate tab in this layout.
     tab_headings = [
-        sac.TabsItem(
-            "Metrics",
-            icon='stack'),
-        sac.TabsItem(
-            "Manifest",
-            icon=file_utils.get_file_icon('manifest.pkg.json')),
-        sac.TabsItem(
-            "File Viewer",
-            icon=file_utils.get_file_icon(state.get_key(state.SELECTED_FILE))),
-        sac.TabsItem(
-            "Design Preview",
-            icon=file_utils.get_file_icon('design.png'),
-            disabled=not os.path.isfile(f'{chip.getworkdir()}/{chip.design}.png')),
-        sac.TabsItem(
-            "Graphs",
-            icon='graph-up',
-            disabled=len(state.get_key(state.LOADED_CHIPS)) == 1)
+        sac.TabsItem("Metrics", icon='stack'),
+        sac.TabsItem("Manifest", icon=file_utils.get_file_icon('manifest.pkg.json')),
+        sac.TabsItem("File Viewer",
+                     icon=file_utils.get_file_icon(state.get_key(state.SELECTED_FILE))),
+        sac.TabsItem("Design Preview", icon=file_utils.get_file_icon('design.png'),
+                     disabled=not os.path.isfile(f'{chip.getworkdir()}/{chip.design}.png')),
+        sac.TabsItem("Graphs", icon='graph-up',
+                     disabled=len(state.get_key(state.LOADED_CHIPS)) <= 1)
     ]
 
+    # Render the tabs and get the user's selection
     tab_selected = _common.sac_tabs(tab_headings)
 
+    # --- Render the content for the selected tab ---
     if tab_selected == "Metrics":
-        # Add flowgraph
+        # This tab contains the flowgraph, metrics table, and node details.
         if state.get_key(state.DISPLAY_FLOWGRAPH):
+            # Create a two-column layout for the flowgraph and main content
             default_flowgraph_width_in_percent = 0.4
             flowgraph_col_width_in_pixels = 520
-            flowgraph_col_width_in_percent = \
-                state.compute_component_size(
-                    default_flowgraph_width_in_percent,
-                    flowgraph_col_width_in_pixels)
+            flowgraph_col_width_in_percent = state.compute_component_size(
+                default_flowgraph_width_in_percent, flowgraph_col_width_in_pixels)
 
-            flowgraph_col, metrics_container = \
-                streamlit.columns(
-                    [flowgraph_col_width_in_percent, 1 - flowgraph_col_width_in_percent],
-                    gap="large")
+            flowgraph_col, metrics_container = streamlit.columns(
+                [flowgraph_col_width_in_percent, 1 - flowgraph_col_width_in_percent],
+                gap="large")
 
             with flowgraph_col:
-                header_col, flowgraph_toggle_container = streamlit.columns(2, gap="large")
-                with header_col:
-                    streamlit.header('Flowgraph')
+                streamlit.header('Flowgraph')
                 components.flowgraph_viewer(chip)
         else:
-            flowgraph_toggle_container = streamlit.container()
             metrics_container = streamlit.container()
 
-        with flowgraph_toggle_container:
-            streamlit.markdown("")
-            streamlit.markdown("")
-
+        with metrics_container:
+            # Add a toggle to hide/show the flowgraph
             if state.set_key(state.DISPLAY_FLOWGRAPH, not streamlit.checkbox(
-                    'Hide flowgraph',
+                    'Hide flowgraph', not state.get_key(state.DISPLAY_FLOWGRAPH),
                     help='Click here to hide the flowgraph')):
                 state.set_key(state.APP_RERUN, "Flowgraph")
 
-        with metrics_container:
+            # Display the main metrics table
             components.metrics_viewer(metric_dataframe, metric_to_metric_unit_map)
 
-            header_col, settings_col = \
-                streamlit.columns(
-                    [0.7, 0.3],
-                    gap='small')
+            streamlit.divider()
+
+            # Display the node information section within the same tab
+            header_col, settings_col = streamlit.columns([0.7, 0.3], gap='small')
             with header_col:
                 streamlit.header('Node Information')
             with settings_col:
@@ -88,23 +90,24 @@ def layout():
                 step, index = node_to_step_index_map[state.get_selected_node()]
                 current_file = state.get_key(state.SELECTED_FILE)
                 components.node_viewer(chip, step, index, metric_dataframe)
-                if state.get_key(state.SELECTED_FILE) and \
-                        current_file != state.get_key(state.SELECTED_FILE):
+                # Check if a file was selected to trigger a tab switch
+                if current_file != state.get_key(state.SELECTED_FILE):
                     state.set_key(state.APP_RERUN, "File")
 
-    if tab_selected == "Manifest":
+    elif tab_selected == "Manifest":
         components.manifest_viewer(chip)
 
-    if tab_selected == "File Viewer":
+    elif tab_selected == "File Viewer":
         components.file_viewer(
             chip,
             state.get_key(state.SELECTED_FILE),
             page_key=state.SELECTED_FILE_PAGE)
 
-    if tab_selected == "Design Preview":
+    elif tab_selected == "Design Preview":
         components.file_viewer(chip, f'{chip.getworkdir()}/{chip.design}.png')
 
-    if tab_selected == "Graphs":
+    elif tab_selected == "Graphs":
         graph.viewer(node_to_step_index_map)
 
+    # Check if a rerun is needed to switch to a different tab
     _common.check_rerun()
