@@ -80,7 +80,7 @@ class CliDashboard(AbstractDashboard):
         self._dashboard.stop()
 
         # Restore logger
-        if self.__logger_console:
+        if self.__logger_console and self._logger:
             self._logger.removeHandler(self._chip._logger_console)
             formatter = self._chip._logger_console.formatter
             self._chip._logger_console = self.__logger_console
