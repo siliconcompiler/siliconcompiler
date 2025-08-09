@@ -1,3 +1,5 @@
+import atexit
+
 from siliconcompiler.report.dashboard import AbstractDashboard
 from siliconcompiler.report.dashboard.cli.board import Board
 
@@ -16,6 +18,8 @@ class CliDashboard(AbstractDashboard):
         if self.is_running():
             # Attach logger when already running
             self.set_logger(self._chip.logger)
+
+        atexit.register(self.stop)
 
     def set_logger(self, logger):
         """

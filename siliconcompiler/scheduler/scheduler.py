@@ -166,6 +166,10 @@ class Scheduler:
         for line in trace.getvalue().splitlines():
             self.__logger.error(line)
 
+        # Ensure dashboard receives a stop if running
+        if self.__chip._dash:
+            self.__chip._dash.stop()
+
     def run(self):
         """
         The main entry point to start the compilation flow.

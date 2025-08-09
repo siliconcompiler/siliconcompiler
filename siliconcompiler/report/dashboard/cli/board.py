@@ -1,4 +1,3 @@
-import atexit
 import logging
 import os
 import math
@@ -342,8 +341,6 @@ class Board(metaclass=BoardSingleton):
             screen=True,
             auto_refresh=True
         )
-
-        atexit.register(self._stop_on_exit)
 
         self._active = self._console.is_terminal
         if not self._active:
