@@ -28,7 +28,7 @@ def test_smake_default_missing(monkeypatch, capfd):
 
     monkeypatch.setattr('sys.argv', ['smake'])
     assert smake.main() == 1
-    assert "Unable to load make.py" in capfd.readouterr().out
+    assert "Error: Unable to load makefile 'make.py'" in capfd.readouterr().out
 
 
 def test_smake_default_dir_missing(monkeypatch, capfd):

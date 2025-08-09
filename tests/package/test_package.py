@@ -87,7 +87,7 @@ def test_resolve():
 
 
 def test_find_resolver_not_found():
-    with pytest.raises(ValueError, match="nosupport://help.me/file is not supported"):
+    with pytest.raises(ValueError, match="Source URI 'nosupport://help.me/file' is not supported"):
         Resolver.find_resolver("nosupport://help.me/file")
 
 
@@ -222,7 +222,7 @@ def test_get_path_not_found():
     chip.logger.setLevel(logging.INFO)
 
     resolver = AlwaysOld("alwaysmissing", chip, "notused", "notused")
-    with pytest.raises(FileNotFoundError, match="Unable to locate alwaysmissing at .*path"):
+    with pytest.raises(FileNotFoundError, match="Unable to locate 'alwaysmissing' at .*path"):
         resolver.get_path()
 
 
@@ -238,7 +238,8 @@ def test_remote_init():
 
 
 def test_remote_init_no_ref():
-    with pytest.raises(ValueError, match="Reference is required for cached data: thisname"):
+    with pytest.raises(ValueError,
+                       match=r"A reference \(e.g., version, commit\) is required for thisname"):
         RemoteResolver("thisname", Chip("dummy"), "https://filepath")
 
 
@@ -516,8 +517,8 @@ def test_remote_lock_within_lock_file(monkeypatch):
         def dummy_lock(*args, **kwargs):
             return False
         monkeypatch.setattr(dut_ipl, "acquire", dummy_lock)
-        with pytest.raises(RuntimeError, match="Failed to access .*. .* is still locked, "
-                                               "if this is a mistake, please delete it."):
+        with pytest.raises(RuntimeError, match="Failed to access .*. .* is still locked. "
+                           "If this is a mistake, please delete the lock file."):
             with resolver1.lock():
                 pass
 
@@ -558,8 +559,8 @@ def test_remote_lock_failed():
     with patch("fasteners.InterProcessLock.acquire") as acquire:
         acquire.return_value = False
         with pytest.raises(RuntimeError,
-                           match="Failed to access .*.lock is still locked, if this is a mistake, "
-                                 "please delete it"):
+                           match="Failed to access .*.lock is still locked. "
+                           "If this is a mistake, please delete the lock file."):
             with resolver.lock():
                 assert False, "Should not gain lock"
             acquire.assert_called_once()
@@ -648,7 +649,8 @@ def test_keypath_resolver():
 
 def test_keypath_resolver_no_root():
     resolver = KeyPathResolver("thisname", None, "key://option,dir,testdir")
-    with pytest.raises(RuntimeError, match="Root schema has not be defined for thisname"):
+    with pytest.raises(RuntimeError,
+                       match="A root schema has not been defined for 'thisname'"):
         resolver.resolve()
 
 
