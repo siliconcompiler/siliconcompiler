@@ -127,9 +127,9 @@ class GithubResolver(HTTPResolver):
 
         repo_release = repo.get_release(release)
         if repo_release:
-            for asset in repo_release.get_assets():
+            for asset in repo_release.assets:
                 if asset.name == artifact:
-                    return asset.browser_download_url
+                    return asset.url
 
         raise ValueError(f'Unable to find release asset: {repository}/{release}/{artifact}')
 

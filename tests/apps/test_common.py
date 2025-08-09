@@ -131,7 +131,7 @@ def test_pick_manifest(gcd_chip, monkeypatch, caplog):
     gcd_chip.logger.setLevel(logging.INFO)
     assert _common.pick_manifest(gcd_chip) is None
 
-    assert "Could not find manifest for gcd" in caplog.text
+    assert "Could not find any manifests for design \"gcd\"." in caplog.text
 
 
 def test_pick_manifest_noset_design(gcd_chip, monkeypatch, caplog):
@@ -166,7 +166,7 @@ def test_pick_manifest_design_mismatch(gcd_chip, monkeypatch, caplog):
 
     assert gcd_chip.design == "gcd"
 
-    assert "Could not find manifest for gcd" in caplog.text
+    assert "Could not find any manifests for design \"gcd\"." in caplog.text
 
 
 def test_pick_manifest_set_design(gcd_chip, monkeypatch):
@@ -243,7 +243,7 @@ def test_pick_manifest_step_index_invalid(gcd_chip, monkeypatch, caplog):
 
     assert gcd_chip.design == "gcd"
 
-    assert "syn/0 is not a valid node." in caplog.text
+    assert "Node \"syn/0\" is not a valid node." in caplog.text
 
 
 def test_pick_manifest_step_index_manifest(gcd_chip, monkeypatch):
@@ -312,4 +312,4 @@ def test_pick_manifest_step_index_invalid_combo(gcd_chip, monkeypatch, caplog):
 
     assert gcd_chip.design == "gcd"
 
-    assert "syn/0 is not a valid node." in caplog.text
+    assert "Node \"syn/0\" is not a valid node." in caplog.text
