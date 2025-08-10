@@ -35,10 +35,14 @@ def test_get_dasboard():
 
 
 def test_logger():
-    logger = MPManager().logger()
+    new_logger = logging.getLogger("siliconcompiler_test_logger")
+    with patch("logging.getLogger") as getlogger:
+        getlogger.return_value = new_logger
+        logger = MPManager().logger()
+        getlogger.assert_called_once_with("siliconcompiler")
     assert isinstance(logger, logging.Logger)
-    assert logger.name.startswith("siliconcompiler_")
-    assert logger.name != "siliconcompiler_"
+    assert logger is new_logger
+    assert logger.name == "siliconcompiler_test_logger"
     assert logging.getLevelName(logger.level) == "INFO"
     assert len(logger.handlers) == 1
     assert isinstance(logger.handlers[0], logging.FileHandler)
@@ -58,9 +62,13 @@ def test_logger_except():
 
 def test_logger_no_enable():
     MPManager._MPManager__ENABLE_LOGGER = False
-    logger = MPManager().logger()
+    new_logger = logging.getLogger("siliconcompiler_test_logger_no_enable")
+    with patch("logging.getLogger") as getlogger:
+        getlogger.return_value = new_logger
+        logger = MPManager().logger()
+        getlogger.assert_called_once_with("siliconcompiler")
     assert isinstance(logger, logging.Logger)
-    assert logger.name.startswith("siliconcompiler_")
+    assert logger.name == "siliconcompiler_test_logger_no_enable"
     assert logging.getLevelName(logger.level) == "NOTSET"
     assert len(logger.handlers) == 0
 

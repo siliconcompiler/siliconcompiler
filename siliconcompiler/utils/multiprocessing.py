@@ -2,7 +2,6 @@ import atexit
 import logging
 import multiprocessing
 import tempfile
-import uuid
 
 import os.path
 
@@ -52,7 +51,7 @@ class MPManager(metaclass=_ManagerSingleton):
 
     def _init_logger(self):
         # Root logger
-        self.__logger = logging.getLogger(f"siliconcompiler_{uuid.uuid4().hex[0:8]}")
+        self.__logger = logging.getLogger("siliconcompiler")
         self.__logger.propagate = False
 
         if self.__ENABLE_LOGGER:
