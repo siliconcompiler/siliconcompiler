@@ -1,11 +1,48 @@
 from unittest.mock import patch
 
-from siliconcompiler.pdk import PDKSchema
+from siliconcompiler import PDKSchema
 
 
 def test_set_add():
     schema = PDKSchema("testpdk")
     assert schema.name == "testpdk"
+
+
+def test_asic_keys():
+    assert PDKSchema().allkeys("pdk") == {
+        ('scribe',),
+        ('pexmodelfileset', 'default', 'default'),
+        ('displayfileset', 'default'),
+        ('drc', 'waiverfileset', 'default', 'default'),
+        ('drc', 'runsetfileset', 'default', 'default'),
+        ('edgemargin',),
+        ('lvs', 'runsetfileset', 'default', 'default'),
+        ('unitcost',),
+        ('maxlayer',),
+        ('layermapfileset', 'default', 'default', 'default'),
+        ('devmodelfileset', 'default', 'default'),
+        ('lvs', 'waiverfileset', 'default', 'default'),
+        ('wafersize',),
+        ('node',),
+        ('minlayer',),
+        ('fill', 'runsetfileset', 'default', 'default'),
+        ('foundry',),
+        ('aprtechfileset', 'default'),
+        ('fill', 'waiverfileset', 'default', 'default'),
+        ('d0',),
+        ('erc', 'waiverfileset', 'default', 'default'),
+        ('erc', 'runsetfileset', 'default', 'default'),
+        ('stackup',)
+    }
+
+
+def test_keys():
+    assert PDKSchema().getkeys() == (
+        'dataroot',
+        'fileset',
+        'package',
+        'pdk'
+    )
 
 
 def test_getdict_type():
