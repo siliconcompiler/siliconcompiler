@@ -13,7 +13,7 @@ import shutil
 import socket
 import time
 from siliconcompiler.scheduler import TaskScheduler
-from siliconcompiler.utils.multiprocessing import _ManagerSingleton
+from siliconcompiler.utils.multiprocessing import _ManagerSingleton, MPManager
 from unittest.mock import patch
 
 
@@ -110,14 +110,19 @@ def limit_cpus(monkeypatch, request):
 
 
 @pytest.fixture(autouse=True)
-def isolate_statics_in_testing():
+def isolate_statics_in_testing(monkeypatch):
     '''
     Isolate static instances for testing
     '''
 
+    monkeypatch.setattr(MPManager, "_MPManager__ENABLE_LOGGER", False)
+
     with patch.dict(TaskScheduler._TaskScheduler__callbacks), \
             patch.dict(_ManagerSingleton._instances, clear=True):
         yield
+
+        # Cleanup afterwards
+        MPManager().stop()
 
 
 @pytest.fixture(autouse=True)

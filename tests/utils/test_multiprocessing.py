@@ -2,7 +2,7 @@ import logging
 
 from unittest.mock import patch
 
-from siliconcompiler.utils.multiprocessing import MPManager
+from siliconcompiler.utils.multiprocessing import MPManager, _ManagerSingleton
 from siliconcompiler.report.dashboard.cli.board import Board
 
 
@@ -12,11 +12,31 @@ def test_init_singleton():
 
     assert man0 is man1
 
+    assert MPManager in _ManagerSingleton._instances
+
+
+def test_has_cls():
+    assert _ManagerSingleton.has_cls(MPManager) is False
+    MPManager()
+    assert _ManagerSingleton.has_cls(MPManager) is True
+
+
+def test_remove_cls():
+    assert _ManagerSingleton.has_cls(MPManager) is False
+    MPManager()
+    assert _ManagerSingleton.has_cls(MPManager) is True
+    _ManagerSingleton.remove_cls(MPManager)
+    assert _ManagerSingleton.has_cls(MPManager) is False
+
 
 def test_init_singleton_once():
     with patch("siliconcompiler.utils.multiprocessing.MPManager._init_singleton") as singleton:
         MPManager() is MPManager()
         singleton.assert_called_once()
+        _ManagerSingleton.remove_cls(MPManager)
+
+    # Create MPManager to avoid cleanup issue
+    MPManager()
 
 
 def test_get_manager():
@@ -34,7 +54,9 @@ def test_get_dasboard():
     assert isinstance(dash0, Board)
 
 
-def test_logger():
+def test_logger(monkeypatch):
+    monkeypatch.setattr(MPManager, "_MPManager__ENABLE_LOGGER", True)
+
     new_logger = logging.getLogger("siliconcompiler_test_logger")
     with patch("logging.getLogger") as getlogger:
         getlogger.return_value = new_logger
@@ -50,7 +72,9 @@ def test_logger():
     assert logging.getLevelName(logger.handlers[0].level) == "WARNING"
 
 
-def test_logger_except():
+def test_logger_except(monkeypatch):
+    monkeypatch.setattr(MPManager, "_MPManager__ENABLE_LOGGER", True)
+
     with patch("os.makedirs") as mkdirs:
         def raise_error(*args):
             raise NotImplementedError
@@ -60,8 +84,9 @@ def test_logger_except():
         mkdirs.assert_called_once()
 
 
-def test_logger_no_enable():
-    MPManager._MPManager__ENABLE_LOGGER = False
+def test_logger_no_enable(monkeypatch):
+    monkeypatch.setattr(MPManager, "_MPManager__ENABLE_LOGGER", False)
+
     new_logger = logging.getLogger("siliconcompiler_test_logger_no_enable")
     with patch("logging.getLogger") as getlogger:
         getlogger.return_value = new_logger

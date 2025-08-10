@@ -25,22 +25,53 @@ class _ManagerSingleton(type):
     _instances = {}
     _lock = multiprocessing.Lock()
 
+    @staticmethod
+    def has_cls(cls):
+        """
+        Checks if a singleton instance exists for the given class.
+
+        Args:
+            cls (type): The class to check.
+
+        Returns:
+            bool: True if an instance exists, False otherwise.
+        """
+        return cls in _ManagerSingleton._instances
+
+    @staticmethod
+    def remove_cls(cls):
+        """
+        Removes a class's singleton instance from the registry.
+
+        This is useful for cleanup, especially in testing scenarios where
+        a fresh instance is needed.
+
+        Args:
+            cls (type): The class whose instance should be removed.
+        """
+        if not _ManagerSingleton.has_cls(cls):
+            return
+
+        with _ManagerSingleton._lock:
+            if cls in _ManagerSingleton._instances:
+                del _ManagerSingleton._instances[cls]
+
     def __call__(cls, *args, **kwargs):
         """
-        Handles the instantiation of the class.
+        Handles the instantiation of the class using a double-checked lock.
 
         If an instance of the class does not already exist, it creates one
         and stores it. Subsequent calls will return the existing instance.
         A special '_init_singleton' method is called on the first creation.
         """
-        if cls not in cls._instances:
-            with cls._lock:
-                if cls not in cls._instances:
+        if not _ManagerSingleton.has_cls(cls):
+            with _ManagerSingleton._lock:
+                if cls not in _ManagerSingleton._instances:
                     instance = super(_ManagerSingleton, cls).__call__(*args, **kwargs)
-                    cls._instances[cls] = instance
+                    _ManagerSingleton._instances[cls] = instance
                     # Custom initializer for the singleton instance
                     instance._init_singleton()
-        return cls._instances[cls]
+        return _ManagerSingleton._instances[cls]
 
 
 class MPManager(metaclass=_ManagerSingleton):
@@ -88,7 +119,7 @@ class MPManager(metaclass=_ManagerSingleton):
         self.__board = None
 
         # Register cleanup function to run at exit
-        atexit.register(self.stop)
+        atexit.register(MPManager.stop)
 
     def _init_logger(self):
         """
@@ -124,35 +155,48 @@ class MPManager(metaclass=_ManagerSingleton):
                 # Fails silently if logging can't be set up
                 pass
 
-    def stop(self):
+    @staticmethod
+    def stop():
         """
-        Cleans up all managed resources.
+        Cleans up all managed resources as a static method.
 
         This method is registered with atexit to run on script termination.
         It closes logger handlers, deletes the log file if no errors occurred,
-        stops the dashboard service, and shuts down the multiprocessing manager.
+        stops the dashboard service, shuts down the multiprocessing manager,
+        and finally removes the singleton instance from the registry.
         """
+        if not _ManagerSingleton.has_cls(MPManager):
+            return
+
+        manager = MPManager()
+
         # Remove all logger handlers to release file locks
-        for handler in list(self.__logger.handlers):
-            self.__logger.removeHandler(handler)
+        for handler in list(manager.__logger.handlers):
+            manager.__logger.removeHandler(handler)
             handler.close()
 
         # Remove the log file if the run was successful
-        if not self.__error:
+        if not manager.__error:
             try:
-                os.remove(self.__logfile)
+                os.remove(manager.__logfile)
             except:  # noqa E722
                 pass
 
         # Stop the dashboard service if it's running
-        if self.__board:
-            with self.__board_lock:
-                if self.__board:
-                    self.__board.stop()
-                    self.__board = None
+        if manager.__board:
+            with manager.__board_lock:
+                if manager.__board:
+                    manager.__board.stop()
+                    manager.__board = None
 
         # Shut down the multiprocessing manager
-        self.__manager.shutdown()
+        manager.__manager.shutdown()
+
+        # Unregister cleanup function to prevent it from being called again
+        atexit.unregister(MPManager.stop)
+
+        # Delete singleton instance to allow for re-initialization
+        _ManagerSingleton.remove_cls(MPManager)
 
     @staticmethod
     def error(msg: str = None):
