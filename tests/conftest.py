@@ -122,7 +122,7 @@ def isolate_statics_in_testing(monkeypatch):
         yield
 
         # Cleanup afterwards
-        MPManager().stop()
+        MPManager.stop()
 
 
 @pytest.fixture(autouse=True)
