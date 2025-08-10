@@ -45,6 +45,7 @@ class CliDashboard(AbstractDashboard):
             self.set_logger(self._chip.logger)
 
         # Ensure the dashboard is properly stopped on program exit
+        self.__exit_registered = True
         atexit.register(self.stop)
 
     def set_logger(self, logger):
@@ -77,6 +78,11 @@ class CliDashboard(AbstractDashboard):
         This method ensures the logger is set and then tells the underlying
         `Board` object to start its live-rendering thread.
         """
+
+        if not self.__exit_registered:
+            # Ensure the dashboard is properly stopped on program exit
+            self.__exit_registered = True
+            atexit.register(self.stop)
 
         self.set_logger(self._chip.logger)
 
@@ -138,6 +144,10 @@ class CliDashboard(AbstractDashboard):
             self._logger.addHandler(self.__logger_console)
             self.__logger_console.setFormatter(formatter)
             self.__logger_console = None
+
+        if self.__exit_registered:
+            atexit.unregister(self.stop)
+            self.__exit_registered = False
 
     def wait(self):
         """
