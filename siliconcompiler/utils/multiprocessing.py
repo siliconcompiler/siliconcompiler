@@ -2,6 +2,7 @@ import atexit
 import logging
 import multiprocessing
 import tempfile
+import uuid
 
 import os.path
 
@@ -15,10 +16,11 @@ class _ManagerSingleton(type):
     _lock = multiprocessing.Lock()
 
     def __call__(cls, *args, **kwargs):
-        with cls._lock:
-            if cls not in cls._instances:
-                cls._instances[cls] = super(_ManagerSingleton, cls).__call__(*args, **kwargs)
-                cls._instances[cls]._init_singleton()
+        if cls not in cls._instances:
+            with cls._lock:
+                if cls not in cls._instances:
+                    cls._instances[cls] = super(_ManagerSingleton, cls).__call__(*args, **kwargs)
+                    cls._instances[cls]._init_singleton()
         return cls._instances[cls]
 
 
@@ -50,7 +52,7 @@ class MPManager(metaclass=_ManagerSingleton):
 
     def _init_logger(self):
         # Root logger
-        self.__logger = logging.getLogger("siliconcompiler")
+        self.__logger = logging.getLogger(f"siliconcompiler_{uuid.uuid4().hex[0:8]}")
         self.__logger.propagate = False
 
         if self.__ENABLE_LOGGER:
