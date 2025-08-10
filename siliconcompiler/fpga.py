@@ -1,3 +1,12 @@
+"""
+Schema definitions for FPGA-related configurations in SiliconCompiler.
+
+This module defines classes and functions for managing FPGA-specific
+parameters, such as part names, LUT sizes, and vendor information,
+within the SiliconCompiler schema. It includes schemas for both
+tool-library and temporary configurations.
+"""
+
 from siliconcompiler.schema import BaseSchema
 from siliconcompiler.schema import EditableSchema, Parameter, Scope
 from siliconcompiler.schema.utils import trim
@@ -6,7 +15,19 @@ from siliconcompiler import ToolLibrarySchema
 
 
 class FPGASchema(ToolLibrarySchema):
+    """
+    A schema for configuring FPGA-related parameters.
+
+    This class extends ToolLibrarySchema to provide a structured way
+    to define and access FPGA-specific settings like part name and LUT size.
+    """
     def __init__(self, name: str = None):
+        """
+        Initializes the FPGASchema.
+
+        Args:
+            name (str, optional): The name of the schema. Defaults to None.
+        """
         super().__init__()
         self.set_name(name)
 
@@ -40,25 +61,53 @@ class FPGASchema(ToolLibrarySchema):
                 the number of inputs of the unfractured LUT.""")))
 
     def set_partname(self, name: str):
-        if not isinstance(name, str):
-            raise TypeError
+        """
+        Sets the FPGA part name.
 
+        Args:
+            name (str): The name of the FPGA part.
+
+        Returns:
+            Any: The result of the `set` operation.
+        """
         return self.set("fpga", "partname", name)
 
     def set_lutsize(self, lut: int):
+        """
+        Sets the LUT size for the FPGA.
+
+        Args:
+            lut (int): The number of inputs for the lookup table.
+
+        Returns:
+            Any: The result of the `set` operation.
+        """
         return self.set("fpga", "lutsize", lut)
 
     @classmethod
     def _getdict_type(cls) -> str:
         """
-        Returns the meta data for getdict
+        Returns the meta data for getdict.
+
+        Returns:
+            str: The name of the class.
         """
 
         return FPGASchema.__name__
 
 
 class FPGASchemaTmp(BaseSchema):
+    """
+    A temporary schema for FPGA configurations.
+
+    This class is used for temporary storage of FPGA-related settings.
+    It extends BaseSchema and uses the `schema_fpga` function to populate
+    its fields.
+    """
     def __init__(self):
+        """
+        Initializes the FPGASchemaTmp.
+        """
         super().__init__()
 
         schema_fpga(self)
@@ -66,7 +115,10 @@ class FPGASchemaTmp(BaseSchema):
     @classmethod
     def _getdict_type(cls) -> str:
         """
-        Returns the meta data for getdict
+        Returns the meta data for getdict.
+
+        Returns:
+            str: The name of the class.
         """
 
         return FPGASchemaTmp.__name__
@@ -76,6 +128,15 @@ class FPGASchemaTmp(BaseSchema):
 # FPGA
 ###############################################################################
 def schema_fpga(schema):
+    """
+    Adds FPGA-related parameters to a given schema.
+
+    This function defines and inserts various FPGA configuration parameters
+    into the provided schema object.
+
+    Args:
+        schema: The schema object to which the parameters will be added.
+    """
     schema = EditableSchema(schema)
 
     partname = 'default'
