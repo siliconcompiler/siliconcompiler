@@ -1008,3 +1008,57 @@ def test_layout_normal_size():
     assert layout.job_board_height == 15
     assert layout.progress_bar_height == 5
     assert layout.log_height == 25
+
+
+def test_get_job(mock_chip, fake_console):
+    dashboard = MPManager.get_dashboard()
+
+    job = dashboard._get_job(mock_chip)
+    assert isinstance(job, JobData)
+
+    assert job.total == 25
+    assert job.error == 0
+    assert job.success == 0
+    assert job.skipped == 0
+    assert job.finished == 0
+    assert job.design == "test_design"
+    assert job.complete is False
+    assert len(job.nodes) == 25
+
+
+def test_get_job_with_skipped(mock_chip, fake_console):
+    mock_chip.set("record", "status", "skipped", step="route.detailed", index=0)
+
+    dashboard = MPManager.get_dashboard()
+
+    job = dashboard._get_job(mock_chip)
+    assert isinstance(job, JobData)
+
+    assert job.total == 25
+    assert job.error == 0
+    assert job.success == 1
+    assert job.skipped == 1
+    assert job.finished == 1
+    assert job.design == "test_design"
+    assert job.complete is False
+    assert len(job.nodes) == 24
+
+
+def test_get_job_with_status(mock_chip, fake_console):
+    mock_chip.set("record", "status", "success", step="route.global", index=0)
+    mock_chip.set("record", "status", "skipped", step="route.detailed", index=0)
+    mock_chip.set("record", "status", "error", step="write.views", index=0)
+
+    dashboard = MPManager.get_dashboard()
+
+    job = dashboard._get_job(mock_chip)
+    assert isinstance(job, JobData)
+
+    assert job.total == 25
+    assert job.error == 1
+    assert job.success == 2
+    assert job.skipped == 1
+    assert job.finished == 3
+    assert job.design == "test_design"
+    assert job.complete is False
+    assert len(job.nodes) == 24
