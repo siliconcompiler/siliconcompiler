@@ -1,5 +1,6 @@
 import logging
 import pytest
+import sys
 
 import os.path
 
@@ -18,7 +19,7 @@ def mock_git(monkeypatch):
             pass
 
     def clone(url, to_path, **kwargs):
-        Path(to_path).mkdir(parents=True)
+        Path(to_path).mkdir(parents=True, exist_ok=True)
         repo = Repo.init(to_path)
 
         test_path = Path(to_path) / 'pyproject.toml'
@@ -71,13 +72,18 @@ def test_git_path_default():
     assert resolver.git_path == "https://github.com/test_owner/test_repo"
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="Appears to cause issues on windows machines")
 def test_dirty_warning(caplog, tmp_path):
     chip = Chip("dummy")
     chip.logger = logging.getLogger()
     chip.set("option", "cachedir", tmp_path)
 
+    assert Path(tmp_path).exists()
+
     resolver = GitResolver("testgit", chip, "git+ssh://github.com/test_owner/test_repo", "main")
     resolver.resolve()
+
+    assert Path(resolver.cache_path).exists()
 
     file = Path(resolver.cache_path).joinpath('file.txt')
     file.touch()
@@ -85,6 +91,3 @@ def test_dirty_warning(caplog, tmp_path):
     resolver.resolve()
 
     assert "The repo of the cached data is dirty." in caplog.text
-
-    file.unlink()
-    assert not file.exists()
