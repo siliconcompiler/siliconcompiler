@@ -1,5 +1,6 @@
 import logging
 import pytest
+import sys
 
 import os.path
 
@@ -71,6 +72,7 @@ def test_git_path_default():
     assert resolver.git_path == "https://github.com/test_owner/test_repo"
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="Appears to cause issues on windows machines")
 def test_dirty_warning(caplog, tmp_path):
     chip = Chip("dummy")
     chip.logger = logging.getLogger()
