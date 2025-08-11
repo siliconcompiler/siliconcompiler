@@ -86,6 +86,82 @@ class PathSchemaBase(BaseSchema):
             collection_dir=collection_dir,
             cwd=cwd)
 
+    def hash_files(self, *keypath, update=True, check=True, verbose=True,
+                   missing_ok=False, step=None, index=None):
+        '''Generates hash values for a list of parameter files.
+
+        Generates a hash value for each file found in the keypath. If existing
+        hash values are stored, this method will compare hashes and trigger an
+        error if there's a mismatch. If the update variable is True, the
+        computed hash values are recorded in the 'filehash' field of the
+        parameter, following the order dictated by the files within the 'value'
+        parameter field.
+
+        Files are located using the find_files() function.
+
+        The file hash calculation is performed based on the 'algo' setting.
+        Supported algorithms include SHA1, SHA224, SHA256, SHA384, SHA512,
+        and MD5.
+
+        Args:
+            *keypath(str): Keypath to parameter.
+            update (bool): If True, the hash values are recorded in the
+                chip object manifest.
+            check (bool): If True, checks the newly computed hash against
+                the stored hash.
+            verbose (bool): If True, generates log messages.
+            allow_cache (bool): If True, hashing check the cached values
+                for specific files, if found, it will use that hash value
+                otherwise the hash will be computed.
+            skip_missing (bool): If True, hashing will be skipped when missing
+                files are detected.
+
+        Returns:
+            A list of hash values.
+
+        Examples:
+            >>> hashlist = hash_files('input', 'rtl', 'verilog')
+            Computes, stores, and returns hashes of files in :keypath:`input, rtl, verilog`.
+        '''
+        schema_root = self._parent(root=True)
+        cwd = getattr(schema_root, "cwd", os.getcwd())
+        collection_dir = getattr(schema_root, "collection_dir",
+                                 getattr(schema_root, "getcollectiondir", None))
+        logger = getattr(schema_root,
+                         "logger",
+                         logging.getLogger("siliconcompiler.check_filepaths"))
+        if collection_dir:
+            collection_dir = collection_dir()
+
+        if verbose:
+            logger.info(f"Computing hash value for [{','.join([*self._keypath, *keypath])}]")
+
+        hashes = super().hash_files(*keypath,
+                                    missing_ok=missing_ok,
+                                    step=step, index=index,
+                                    collection_dir=collection_dir,
+                                    cwd=cwd)
+
+        if check:
+            check_hashes = self.get(*keypath, field="filehash", step=step, index=index)
+            if not isinstance(check_hashes, list):
+                check_hashes = [check_hashes]
+
+            new_hashes = hashes
+            if not isinstance(new_hashes, list):
+                new_hashes = [new_hashes]
+
+            for old_hash, new_hash in zip(check_hashes, new_hashes):
+                if old_hash is None or new_hash is None:
+                    continue
+                if old_hash != new_hash:
+                    raise ValueError(f"Hash mismatch in [{','.join([*self._keypath, *keypath])}]")
+
+        if update:
+            self.set(*keypath, hashes, field="filehash", step=step, index=index)
+
+        return hashes
+
 
 class PathSchemaSimpleBase(PathSchemaBase):
     def find_files(self, *keypath, missing_ok=False):
@@ -111,6 +187,47 @@ class PathSchemaSimpleBase(PathSchemaBase):
         return super().find_files(*keypath,
                                   missing_ok=missing_ok,
                                   step=None, index=None)
+
+    def hash_files(self, *keypath, update=True, check=True, verbose=True, missing_ok=False):
+        '''Generates hash values for a list of parameter files.
+
+        Generates a hash value for each file found in the keypath. If existing
+        hash values are stored, this method will compare hashes and trigger an
+        error if there's a mismatch. If the update variable is True, the
+        computed hash values are recorded in the 'filehash' field of the
+        parameter, following the order dictated by the files within the 'value'
+        parameter field.
+
+        Files are located using the find_files() function.
+
+        The file hash calculation is performed based on the 'algo' setting.
+        Supported algorithms include SHA1, SHA224, SHA256, SHA384, SHA512,
+        and MD5.
+
+        Args:
+            *keypath(str): Keypath to parameter.
+            update (bool): If True, the hash values are recorded in the
+                chip object manifest.
+            check (bool): If True, checks the newly computed hash against
+                the stored hash.
+            verbose (bool): If True, generates log messages.
+            allow_cache (bool): If True, hashing check the cached values
+                for specific files, if found, it will use that hash value
+                otherwise the hash will be computed.
+            skip_missing (bool): If True, hashing will be skipped when missing
+                files are detected.
+
+        Returns:
+            A list of hash values.
+
+        Examples:
+            >>> hashlist = hash_files('input', 'rtl', 'verilog')
+            Computes, stores, and returns hashes of files in :keypath:`input, rtl, verilog`.
+        '''
+
+        return super().hash_files(
+            *keypath, update=update, check=check, verbose=verbose,
+            missing_ok=missing_ok, step=None, index=None)
 
 
 class PathSchema(PathSchemaBase):
