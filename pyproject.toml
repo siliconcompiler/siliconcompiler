@@ -99,13 +99,6 @@ github = "siliconcompiler.package.github:get_resolver"
 
 [project.entry-points."siliconcompiler.docs"]
 linkcode = "siliconcompiler.schema.docs:get_codeurl"
-targets = "siliconcompiler.schema.docs:targets"
-flows = "siliconcompiler.schema.docs:flows"
-libs = "siliconcompiler.schema.docs:libraries"
-pdks = "siliconcompiler.schema.docs:pdks"
-tools = "siliconcompiler.schema.docs:tools"
-apps = "siliconcompiler.schema.docs:apps"
-checklists = "siliconcompiler.schema.docs:checklists"
 
 [project.optional-dependencies]
 test = [
