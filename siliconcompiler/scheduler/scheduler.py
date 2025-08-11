@@ -27,7 +27,7 @@ class Scheduler:
     A class for orchestrating and executing a compilation flowgraph.
 
     The Scheduler is responsible for managing the entire lifecycle of a compilation
-    run. It interprets the flowgraph defined in the Chip object, determines which
+    run. It interprets the flowgraph defined in the Project object, determines which
     nodes (steps) need to be run based on user settings (like 'from', 'to') and
     the state of previous runs, and then executes the tasks in the correct order.
 
@@ -35,31 +35,31 @@ class Scheduler:
     and reporting results.
     """
 
-    def __init__(self, chip):
+    def __init__(self, project):
         """
         Initializes the Scheduler.
 
         Args:
-            chip (Chip): The Chip object containing the configuration and flowgraph.
+            project (Project): The Project object containing the configuration and flowgraph.
 
         Raises:
             ValueError: If the specified flow is not defined or fails validation.
         """
-        self.__chip = chip
-        self.__logger: logging.Logger = chip.logger
-        self.__name = chip.design.name
+        self.__project = project
+        self.__logger: logging.Logger = project.logger
+        self.__name = project.design.name
 
-        flow = self.__chip.get("option", "flow")
+        flow = self.__project.get("option", "flow")
         if not flow:
             raise ValueError("flow must be specified")
 
-        if flow not in self.__chip.getkeys("flowgraph"):
+        if flow not in self.__project.getkeys("flowgraph"):
             raise ValueError("flow is not defined")
 
-        self.__flow = self.__chip.get("flowgraph", flow, field="schema")
-        from_steps = self.__chip.get('option', 'from')
-        to_steps = self.__chip.get('option', 'to')
-        prune_nodes = self.__chip.get('option', 'prune')
+        self.__flow = self.__project.get("flowgraph", flow, field="schema")
+        from_steps = self.__project.get('option', 'from')
+        to_steps = self.__project.get('option', 'to')
+        prune_nodes = self.__project.get('option', 'prune')
 
         if not self.__flow.validate(logger=self.__logger):
             raise ValueError(f"{self.__flow.name} flowgraph contains errors and cannot be run.")
@@ -68,28 +68,28 @@ class Scheduler:
                 from_steps=from_steps,
                 to_steps=to_steps,
                 prune_nodes=prune_nodes,
-                logger=chip.logger):
+                logger=self.__logger):
             raise ValueError(f"{self.__flow.name} flowgraph contains errors and cannot be run.")
 
         self.__flow_runtime = RuntimeFlowgraph(
             self.__flow,
             from_steps=from_steps,
             to_steps=to_steps,
-            prune_nodes=self.__chip.get('option', 'prune'))
+            prune_nodes=self.__project.get('option', 'prune'))
 
         self.__flow_load_runtime = RuntimeFlowgraph(
             self.__flow,
             to_steps=from_steps,
             prune_nodes=prune_nodes)
 
-        self.__record = self.__chip.get("record", field="schema")
-        self.__metrics = self.__chip.get("metric", field="schema")
+        self.__record = self.__project.get("record", field="schema")
+        self.__metrics = self.__project.get("metric", field="schema")
 
         self.__tasks = {}
 
         # Create dummy handler
         self.__joblog_handler = logging.NullHandler()
-        self.__org_job_name = self.__chip.get("option", "jobname")
+        self.__org_job_name = self.__project.get("option", "jobname")
 
     @property
     def project(self):
@@ -102,7 +102,7 @@ class Scheduler:
         Returns:
             Project: The Project object for the current project.
         """
-        return self.__chip
+        return self.__project
 
     def __print_status(self, header):
         """
@@ -119,13 +119,13 @@ class Scheduler:
 
     def check_manifest(self):
         """
-        Checks the validity of the Chip's manifest before a run.
+        Checks the validity of the Project's manifest before a run.
 
         Returns:
             bool: True if the manifest is valid, False otherwise.
         """
         self.__logger.info("Checking manifest before running.")
-        return self.__chip.check_manifest()
+        return self.__project.check_manifest()
 
     def run_core(self):
         """
@@ -136,7 +136,7 @@ class Scheduler:
         """
         self.__record.record_python_packages()
 
-        task_scheduler = TaskScheduler(self.__chip, self.__tasks)
+        task_scheduler = TaskScheduler(self.__project, self.__tasks)
         task_scheduler.run(self.__joblog_handler)
         task_scheduler.check()
 
@@ -167,8 +167,8 @@ class Scheduler:
             self.__logger.error(line)
 
         # Ensure dashboard receives a stop if running
-        if self.__chip._dash:
-            self.__chip._dash.stop()
+        if self.__project._dash:
+            self.__project._dash.stop()
 
         # Mark error to keep logfile
         MPManager.error("uncaught exception")
@@ -198,8 +198,8 @@ class Scheduler:
         self.__clean_build_dir()
 
         # Install job file logger
-        os.makedirs(self.__chip.getworkdir(), exist_ok=True)
-        file_log = os.path.join(self.__chip.getworkdir(), "job.log")
+        os.makedirs(self.__project.getworkdir(), exist_ok=True)
+        file_log = os.path.join(self.__project.getworkdir(), "job.log")
         bak_count = 0
         bak_file_log = f"{file_log}.bak"
         while os.path.exists(bak_file_log):
@@ -212,7 +212,7 @@ class Scheduler:
         self.__logger.addHandler(self.__joblog_handler)
 
         # Configure run
-        self.__chip._init_run()
+        self.__project._init_run()
 
         self.__run_setup()
         self.configure_nodes()
@@ -228,13 +228,13 @@ class Scheduler:
         self.run_core()
 
         # Store run in history
-        self.__chip._record_history()
+        self.__project._record_history()
 
         # Record final manifest
-        filepath = os.path.join(self.__chip.getworkdir(), f"{self.__name}.pkg.json")
-        self.__chip.write_manifest(filepath)
+        filepath = os.path.join(self.__project.getworkdir(), f"{self.__name}.pkg.json")
+        self.__project.write_manifest(filepath)
 
-        send_messages.send(self.__chip, 'summary', None, None)
+        send_messages.send(self.__project, 'summary', None, None)
 
         self.__logger.removeHandler(self.__joblog_handler)
         self.__joblog_handler = logging.NullHandler()
@@ -347,12 +347,13 @@ class Scheduler:
         for step, index in self.__flow.get_nodes():
             node_cls = SchedulerNode
 
-            node_scheduler = self.__chip.get('option', 'scheduler', 'name', step=step, index=index)
+            node_scheduler = self.__project.get('option', 'scheduler', 'name',
+                                                step=step, index=index)
             if node_scheduler == 'slurm':
                 node_cls = SlurmSchedulerNode
             elif node_scheduler == 'docker':
                 node_cls = DockerSchedulerNode
-            self.__tasks[(step, index)] = node_cls(self.__chip, step, index)
+            self.__tasks[(step, index)] = node_cls(self.__project, step, index)
             if self.__flow.get(step, index, "tool") == "builtin":
                 self.__tasks[(step, index)].set_builtin()
 
@@ -361,8 +362,11 @@ class Scheduler:
 
         if self.__org_job_name:
             # Copy collection directory
-            copy_from = self.__chip._getcollectdir(jobname=self.__org_job_name)
-            copy_to = self.__chip._getcollectdir()
+            curret_job = self.__project.get("option", "jobname")
+            self.__project.set("option", "jobname", self.__org_job_name)
+            copy_from = self.__project.getcollectiondir()
+            self.__project.set("option", "jobname", curret_job)
+            copy_to = self.__project.getcollectiondir()
             if os.path.exists(copy_from):
                 shutil.copytree(copy_from, copy_to,
                                 dirs_exist_ok=True,
@@ -396,10 +400,10 @@ class Scheduler:
         if self.__record.get('remoteid'):
             return
 
-        if self.__chip.get('option', 'clean') and not self.__chip.get('option', 'from'):
+        if self.__project.get('option', 'clean') and not self.__project.get('option', 'from'):
             # If no step or nodes to start from were specified, the whole flow is being run
             # start-to-finish. Delete the build dir to clear stale results.
-            cur_job_dir = self.__chip.getworkdir()
+            cur_job_dir = self.__project.getworkdir()
             if os.path.isdir(cur_job_dir):
                 shutil.rmtree(cur_job_dir)
 
@@ -417,17 +421,17 @@ class Scheduler:
         from_nodes = []
         extra_setup_nodes = {}
 
-        journal = Journal.access(self.__chip)
+        journal = Journal.access(self.__project)
         journal.start()
 
         self.__print_status("Start")
 
-        if self.__chip.get('option', 'clean'):
-            if self.__chip.get("option", "from"):
+        if self.__project.get('option', 'clean'):
+            if self.__project.get("option", "from"):
                 from_nodes = self.__flow_runtime.get_entry_nodes()
             load_nodes = self.__flow.get_nodes()
         else:
-            if self.__chip.get("option", "from"):
+            if self.__project.get("option", "from"):
                 from_nodes = self.__flow_runtime.get_entry_nodes()
             load_nodes = self.__flow_load_runtime.get_nodes()
 
@@ -440,7 +444,7 @@ class Scheduler:
                 # Node will be run so no need to load
                 continue
 
-            manifest = os.path.join(self.__chip.getworkdir(step=step, index=index),
+            manifest = os.path.join(self.__project.getworkdir(step=step, index=index),
                                     'outputs',
                                     f'{self.__name}.pkg.json')
             if os.path.exists(manifest):
@@ -485,7 +489,7 @@ class Scheduler:
                         self.__mark_pending(step, index)
                     elif (step, index) in extra_setup_nodes:
                         # import old information
-                        Journal.access(extra_setup_nodes[(step, index)]).replay(self.__chip)
+                        Journal.access(extra_setup_nodes[(step, index)]).replay(self.__project)
 
         self.__print_status("After requires run")
 
@@ -498,9 +502,9 @@ class Scheduler:
 
         self.__print_status("After ensure")
 
-        os.makedirs(self.__chip.getworkdir(), exist_ok=True)
-        self.__chip.write_manifest(os.path.join(self.__chip.getworkdir(),
-                                                f"{self.__name}.pkg.json"))
+        os.makedirs(self.__project.getworkdir(), exist_ok=True)
+        self.__project.write_manifest(os.path.join(self.__project.getworkdir(),
+                                                   f"{self.__name}.pkg.json"))
         journal.stop()
 
         # Clean nodes marked pending
@@ -518,11 +522,11 @@ class Scheduler:
         from attempting to open a GUI.
         """
 
-        if not self.__chip.get('option', 'nodisplay') and sys.platform == 'linux' \
+        if not self.__project.get('option', 'nodisplay') and sys.platform == 'linux' \
                 and 'DISPLAY' not in os.environ and 'WAYLAND_DISPLAY' not in os.environ:
             self.__logger.warning('Environment variable $DISPLAY or $WAYLAND_DISPLAY not set')
             self.__logger.warning("Setting [option,nodisplay] to True")
-            self.__chip.set('option', 'nodisplay', True)
+            self.__project.set('option', 'nodisplay', True)
 
     def __increment_job_name(self):
         """
@@ -535,15 +539,15 @@ class Scheduler:
         Returns:
             bool: True if the job name was incremented, False otherwise.
         """
-        if not self.__chip.get('option', 'clean'):
+        if not self.__project.get('option', 'clean'):
             return False
-        if not self.__chip.get('option', 'jobincr'):
+        if not self.__project.get('option', 'jobincr'):
             return False
 
-        workdir = self.__chip.getworkdir()
+        workdir = self.__project.getworkdir()
         if os.path.isdir(workdir):
             # Strip off digits following jobname, if any
-            stem = self.__chip.get('option', 'jobname').rstrip('0123456789')
+            stem = self.__project.get('option', 'jobname').rstrip('0123456789')
 
             dir_check = re.compile(fr'{stem}(\d+)')
 
@@ -552,6 +556,6 @@ class Scheduler:
                 m = dir_check.match(job)
                 if m:
                     jobid = max(jobid, int(m.group(1)))
-            self.__chip.set('option', 'jobname', f'{stem}{jobid + 1}')
+            self.__project.set('option', 'jobname', f'{stem}{jobid + 1}')
             return True
         return False
