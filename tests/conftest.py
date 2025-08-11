@@ -3,8 +3,7 @@ import os
 import pytest
 import siliconcompiler
 from siliconcompiler import utils
-from siliconcompiler.tools import openroad
-from siliconcompiler.tools._common import get_tool_tasks
+from siliconcompiler.tools.openroad._apr import APRTask
 from siliconcompiler.targets import freepdk45_demo
 from pathlib import Path
 import subprocess
@@ -114,16 +113,15 @@ def disable_or_images(monkeypatch, request):
     '''
     if 'eda' not in request.keywords:
         return
-    old_run = siliconcompiler.Chip.run
+    old_init = siliconcompiler.Project._init_run
 
-    def mock_run(chip, raise_exception=False):
-        for task in get_tool_tasks(chip, openroad):
-            chip.set('tool', 'openroad', 'task', task, 'var', 'ord_enable_images', 'false',
-                     clobber=False)
+    def mock_init(self: siliconcompiler.Project):
+        for task in self.get_task(filter=APRTask):
+            task.set('var', 'ord_enable_images', 'false', clobber=False)
 
-        return old_run(chip, raise_exception=raise_exception)
+        return old_init(self)
 
-    monkeypatch.setattr(siliconcompiler.Chip, 'run', mock_run)
+    monkeypatch.setattr(siliconcompiler.Project, '_init_run', mock_init)
 
 
 @pytest.fixture(scope='session')
