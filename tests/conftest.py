@@ -51,25 +51,6 @@ def test_wrapper(tmp_path, request, monkeypatch):
 
 
 @pytest.fixture(autouse=True)
-def use_strict(monkeypatch, request):
-    '''Set [option, strict] to True for all Chip objects created in test
-    session.
-
-    This helps catch bugs.
-    '''
-    if 'nostrict' in request.keywords:
-        return
-
-    old_init = siliconcompiler.Chip.__init__
-
-    def mock_init(chip, design, **kwargs):
-        old_init(chip, design, **kwargs)
-        chip.set('option', 'strict', True)
-
-    monkeypatch.setattr(siliconcompiler.Chip, '__init__', mock_init)
-
-
-@pytest.fixture(autouse=True)
 def use_cache(monkeypatch, request):
     '''Set [option, cachedir]
     '''
@@ -80,13 +61,14 @@ def use_cache(monkeypatch, request):
     if not cachedir:
         return
 
-    old_init = siliconcompiler.Chip.__init__
+    old_init = siliconcompiler.Project.__init__
 
-    def mock_init(chip, design, **kwargs):
-        old_init(chip, design, **kwargs)
-        chip.set('option', 'cachedir', cachedir)
+    def mock_init(self, *args, **kwargs):
+        old_init(*args, **kwargs)
 
-    monkeypatch.setattr(siliconcompiler.Chip, '__init__', mock_init)
+        self.set('option', 'cachedir', cachedir)
+
+    monkeypatch.setattr(siliconcompiler.Project, '__init__', mock_init)
 
 
 @pytest.fixture(autouse=True)
