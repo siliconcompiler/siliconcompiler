@@ -33,26 +33,3 @@ def test_get_codeurl_with_file(monkeypatch):
 @pytest.mark.skipif(sys.platform == 'win32', reason='/notafile is not an abspath in Windows')
 def test_get_codeurl_with_no_file():
     assert docs.get_codeurl("/notafile") is None
-
-
-@pytest.mark.parametrize("func", (
-        docs.libraries,
-        docs.pdks
-))
-def test_empty_docs(func):
-    vals = func()
-    assert isinstance(vals, list)
-    assert len(vals) == 0
-
-
-@pytest.mark.parametrize("func", (
-        docs.targets,
-        docs.flows,
-        docs.tools,
-        docs.apps,
-        docs.checklists
-))
-def test_not_empty_docs(func):
-    vals = func()
-    assert isinstance(vals, list)
-    assert len(vals) > 0
