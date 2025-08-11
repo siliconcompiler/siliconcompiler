@@ -40,7 +40,6 @@ from siliconcompiler.schema.utils import trim
 
 from siliconcompiler import utils, NodeStatus
 from siliconcompiler import sc_open
-from siliconcompiler import Schema
 
 from siliconcompiler.pathschema import PathSchema
 from siliconcompiler.record import RecordTool
@@ -693,7 +692,7 @@ class TaskSchema(NamedSchema, PathSchema):
                                            os.path.join(os.path.dirname(__file__))),
                                        toolvars=self.get_tcl_variables(manifest),
                                        record_access="get" in Journal.access(self).get_types(),
-                                       record_access_id=Schema._RECORD_ACCESS_IDENTIFIER))
+                                       record_access_id="TODO"))
         else:
             for cmd in tcl_set_cmds:
                 fout.write(cmd + '\n')
@@ -1928,162 +1927,6 @@ class ToolSchema(NamedSchema):
     def _getdict_type(cls) -> str:
         """Returns the metadata for getdict."""
         return ToolSchema.__name__
-
-
-###########################################################################
-# Migration helper
-###########################################################################
-class ToolSchemaTmp(NamedSchema):
-    def __init__(self):
-        super().__init__()
-
-        schema_tool(self)
-
-        schema = EditableSchema(self)
-        schema.insert("task", "default", TaskSchemaTmp())
-
-    @classmethod
-    def _getdict_type(cls) -> str:
-        """
-        Returns the meta data for getdict
-        """
-
-        return ToolSchemaTmp.__name__
-
-
-class TaskSchemaTmp(TaskSchema):
-    def __init__(self):
-        super().__init__()
-
-    def __module_func(self, name, modules):
-        for module in modules:
-            method = getattr(module, name, None)
-            if method:
-                return method
-        return None
-
-    def __tool_task_modules(self):
-        flow = self._TaskSchema__chip.get('option', 'flow')
-        return \
-            self._TaskSchema__chip._get_tool_module(self.step, self.index, flow=flow), \
-            self._TaskSchema__chip._get_task_module(self.step, self.index, flow=flow)
-
-    @contextlib.contextmanager
-    def __in_step_index(self):
-        prev_step, prev_index = self._TaskSchema__chip.get('arg', 'step'), \
-            self._TaskSchema__chip.get('arg', 'index')
-        self._TaskSchema__chip.set('arg', 'step', self.step)
-        self._TaskSchema__chip.set('arg', 'index', self.index)
-        yield
-        self._TaskSchema__chip.set('arg', 'step', prev_step)
-        self._TaskSchema__chip.set('arg', 'index', prev_index)
-
-    def tool(self):
-        return self.schema("flow").get(self.step, self.index, 'tool')
-
-    def task(self):
-        return self.schema("flow").get(self.step, self.index, 'task')
-
-    def get_exe(self):
-        if self.tool() == "execute" and self.task() == "exec_input":
-            return self.get("exe")
-        return super().get_exe()
-
-    def schema(self, type=None):
-        if type is None:
-            return self._TaskSchema__chip
-        return super().schema(type)
-
-    def get_output_files(self):
-        _, task = self.__tool_task_modules()
-        method = self.__module_func("_gather_outputs", [task])
-        if method:
-            return method(self._TaskSchema__chip, self.step, self.index)
-        return TaskSchema.get_output_files(self)
-
-    def parse_version(self, stdout):
-        tool, _ = self.__tool_task_modules()
-        method = self.__module_func("parse_version", [tool])
-        if method:
-            return method(stdout)
-        return TaskSchema.parse_version(self, stdout)
-
-    def normalize_version(self, version):
-        tool, _ = self.__tool_task_modules()
-        method = self.__module_func("normalize_version", [tool])
-        if method:
-            return method(version)
-        return TaskSchema.normalize_version(self, version)
-
-    def generate_replay_script(self, filepath, workdir, include_path=True):
-        with self.__in_step_index():
-            ret = TaskSchema.generate_replay_script(self, filepath, workdir,
-                                                    include_path=include_path)
-        return ret
-
-    def setup(self):
-        _, task = self.__tool_task_modules()
-        method = self.__module_func("setup", [task])
-        if method:
-            with self.__in_step_index():
-                ret = method(self._TaskSchema__chip)
-            if ret:
-                raise TaskSkip(ret)
-        TaskSchema.setup(self)
-
-    def select_input_nodes(self):
-        _, task = self.__tool_task_modules()
-        method = self.__module_func("_select_inputs", [task])
-        if method:
-            with self.__in_step_index():
-                ret = method(self._TaskSchema__chip, self.step, self.index)
-            return ret
-        return TaskSchema.select_input_nodes(self)
-
-    def pre_process(self):
-        _, task = self.__tool_task_modules()
-        method = self.__module_func("pre_process", [task])
-        if method:
-            with self.__in_step_index():
-                ret = method(self._TaskSchema__chip)
-            if ret:
-                raise TaskSkip(ret)
-        TaskSchema.pre_process(self)
-
-    def runtime_options(self):
-        tool, task = self.__tool_task_modules()
-        method = self.__module_func("runtime_options", [task, tool])
-        if method:
-            with self.__in_step_index():
-                ret = TaskSchema.runtime_options(self)
-                ret.extend(method(self._TaskSchema__chip))
-            return ret
-        return TaskSchema.runtime_options(self)
-
-    def run(self):
-        _, task = self.__tool_task_modules()
-        method = self.__module_func("run", [task])
-        if method:
-            # Handle logger stdout suppression if quiet
-            stdout_handler_level = self._TaskSchema__chip._logger_console.level
-            if self._TaskSchema__chip.get('option', 'quiet', step=self.step, index=self.index):
-                self._TaskSchema__chip._logger_console.setLevel(logging.CRITICAL)
-
-            with self.__in_step_index():
-                retcode = method(self._TaskSchema__chip)
-
-            self._TaskSchema__chip._logger_console.setLevel(stdout_handler_level)
-
-            return retcode
-        return TaskSchema.run(self)
-
-    def post_process(self):
-        _, task = self.__tool_task_modules()
-        method = self.__module_func("post_process", [task])
-        if method:
-            with self.__in_step_index():
-                method(self._TaskSchema__chip)
-        TaskSchema.post_process(self)
 
 
 ###########################################################################

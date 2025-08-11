@@ -14,7 +14,6 @@ from logging.handlers import QueueHandler
 from typing import List
 
 from siliconcompiler import utils, sc_open
-from siliconcompiler import Schema
 from siliconcompiler import NodeStatus
 from siliconcompiler.utils.logging import get_console_formatter, SCInRunLoggerFormatter
 from siliconcompiler.schema import utils as schema_utils
@@ -1206,6 +1205,8 @@ class SchedulerNode:
         Args:
             source (str): The jobname of the source run to copy from.
         """
+        from siliconcompiler import Project
+
         copy_from = self.__chip.getworkdir(jobname=source, step=self.__step, index=self.__index)
 
         if not os.path.exists(copy_from):
@@ -1227,7 +1228,7 @@ class SchedulerNode:
 
         for manifest in self.__manifests.values():
             if os.path.exists(manifest):
-                schema = Schema.from_manifest(manifest)
+                schema = Project.from_manifest(filepath=manifest)
                 # delete file as it might be a hard link
                 os.remove(manifest)
                 schema.set('option', 'jobname', self.__job)

@@ -1,7 +1,6 @@
 from siliconcompiler._common import NodeStatus, SiliconCompilerError
 
 from siliconcompiler.utils import sc_open
-from siliconcompiler.schema_obj import SchemaTmp as Schema
 
 from siliconcompiler.packageschema import PackageSchema
 
@@ -18,26 +17,15 @@ from siliconcompiler.checklist import ChecklistSchema
 from siliconcompiler.option import OptionSchema
 
 from siliconcompiler.project import Project
-from siliconcompiler.asic import ASICSchema, ASICProject
+from siliconcompiler.asic import ASICProject
 from siliconcompiler.fpga import FPGASchema, FPGAProject
-
-from siliconcompiler.core import Chip
 
 from siliconcompiler._metadata import version as __version__
 
-from siliconcompiler.use import PDK, FPGA, Library, Flow, Checklist
-
 __all__ = [
     "__version__",
-    "Chip",
     "SiliconCompilerError",
     "NodeStatus",
-    "PDK",
-    "FPGA",
-    "Library",
-    "Flow",
-    "Checklist",
-    "Schema",
     "sc_open",
 
     "DesignSchema",
@@ -49,7 +37,6 @@ __all__ = [
     "ToolSchema",
     "TaskSchema",
     "ChecklistSchema",
-    "ASICSchema",
     "FPGASchema",
     "PackageSchema",
     "OptionSchema",

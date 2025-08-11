@@ -2,8 +2,8 @@
 # Copyright 2025 Silicon Compiler Authors. All Rights Reserved.
 
 from siliconcompiler import DesignSchema
-from siliconcompiler.project import LintProject, FPGAProject
-from siliconcompiler import ASICProject
+from siliconcompiler.project import LintProject
+from siliconcompiler import ASICProject, FPGAProject
 
 from siliconcompiler.flows.lintflow import LintFlowgraph
 from siliconcompiler.flows.synflow import SynthesisFlowgraph

@@ -8,7 +8,6 @@ import traceback
 
 import os.path
 
-from siliconcompiler import Schema
 from siliconcompiler import NodeStatus
 from siliconcompiler.schema import Journal
 from siliconcompiler.flowgraph import RuntimeFlowgraph
@@ -413,6 +412,8 @@ class Scheduler:
         results from previous runs, checks for any modifications to parameters
         or input files, and marks nodes for re-run accordingly.
         """
+        from siliconcompiler import Project
+
         from_nodes = []
         extra_setup_nodes = {}
 
@@ -445,7 +446,7 @@ class Scheduler:
             if os.path.exists(manifest):
                 # ensure we setup these nodes again
                 try:
-                    extra_setup_nodes[(step, index)] = Schema.from_manifest(filepath=manifest)
+                    extra_setup_nodes[(step, index)] = Project.from_manifest(filepath=manifest)
                 except Exception:
                     pass
 
