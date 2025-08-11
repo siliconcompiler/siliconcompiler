@@ -929,6 +929,120 @@ class BaseSchema:
 
         return not error
 
+    def hash_files(self, *keypath, missing_ok: bool = False,
+                   step: str = None, index: Union[int, str] = None,
+                   packages: Dict[str, Union[str, Callable]] = None,
+                   collection_dir: str = None,
+                   cwd: str = None):
+        '''Generates hash values for a list of parameter files.
+
+        Generates a hash value for each file found in the keypath. If existing
+        hash values are stored, this method will compare hashes and trigger an
+        error if there's a mismatch. If the update variable is True, the
+        computed hash values are recorded in the 'filehash' field of the
+        parameter, following the order dictated by the files within the 'value'
+        parameter field.
+
+        Files are located using the find_files() function.
+
+        The file hash calculation is performed based on the 'algo' setting.
+        Supported algorithms include SHA1, SHA224, SHA256, SHA384, SHA512,
+        and MD5.
+
+        Args:
+            *keypath(str): Keypath to parameter.
+            missing_ok (bool): If True, silently return None when files aren't
+                found. If False, print an error and set the error flag.
+            step (str): Step name to access for parameters that may be specified
+                on a per-node basis.
+            index (str): Index name to access for parameters that may be specified
+                on a per-node basis.
+            packages (dict of resolvers): dirctionary of path resolvers for package
+                paths, these can either be a path or a callable function
+            collection_dir (path): optional path to a collections directory
+            cwd (path): optional path to current working directory, this will default
+                to os.getcwd() if not provided.
+
+        Returns:
+            A list of hash values.
+
+        Examples:
+            >>> hashlist = hash_files('input', 'rtl', 'verilog')
+            Computes, stores, and returns hashes of files in :keypath:`input, rtl, verilog`.
+        '''
+        base_schema = self.get(*keypath[0:-1], field="schema")
+
+        param = base_schema.get(keypath[-1], field=None)
+        paramtype = param.get(field='type')
+        if 'file' not in paramtype and 'dir' not in paramtype:
+            raise TypeError(
+                f'Cannot find files on {self.__format_key(*keypath)}, must be a path type')
+
+        hashalgo = param.get(field="hashalgo")
+        paths = param.get(field=None, step=step, index=index)
+
+        is_list = True
+        if not isinstance(paths, list):
+            is_list = False
+            if paths.get():
+                paths = [paths]
+            else:
+                paths = []
+
+        # Ignore collection directory if it does not exist
+        if collection_dir and not os.path.exists(collection_dir):
+            collection_dir = None
+
+        if cwd is None:
+            cwd = os.getcwd()
+
+        if packages is None:
+            packages = base_schema._find_files_dataroot_resolvers()
+
+        resolved_hashes = []
+        root_search_paths = base_schema._find_files_search_paths(keypath[-1], step, index)
+        for path in paths:
+            search_paths = root_search_paths.copy()
+
+            package = path.get(field="package")
+            if package:
+                if package not in packages:
+                    raise ValueError(f"Resolver for {package} not provided: "
+                                     f"{self.__format_key(*keypath)}")
+                package_path = packages[package]
+                if isinstance(package_path, str):
+                    search_paths.append(os.path.abspath(package_path))
+                elif callable(package_path):
+                    search_paths.append(package_path())
+                else:
+                    raise TypeError(f"Resolver for {package} is not a recognized type: "
+                                    f"{self.__format_key(*keypath)}")
+            else:
+                if cwd:
+                    search_paths.append(os.path.abspath(cwd))
+
+            try:
+                resolved_hash = path.hash(hashalgo,
+                                          search=search_paths,
+                                          collection_dir=collection_dir)
+            except FileNotFoundError:
+                resolved_hash = None
+                if not missing_ok:
+                    if package:
+                        raise FileNotFoundError(
+                            f'Could not find "{path.get()}" in {package} '
+                            f'{self.__format_key(*keypath)}')
+                    else:
+                        raise FileNotFoundError(
+                            f'Could not find "{path.get()}" {self.__format_key(*keypath)}')
+            resolved_hashes.append(resolved_hash)
+
+        if not is_list:
+            if not resolved_hashes:
+                return None
+            return resolved_hashes[0]
+        return resolved_hashes
+
     def _parent(self, root: bool = False) -> "BaseSchema":
         '''
         Returns the parent of this schema section, if root is true the root parent

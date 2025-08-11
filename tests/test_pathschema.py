@@ -3,6 +3,8 @@ import pytest
 
 import os.path
 
+from pathlib import Path
+
 from siliconcompiler.schema import BaseSchema
 from siliconcompiler.schema import EditableSchema, Parameter
 from siliconcompiler.pathschema import PathSchemaBase, PathSchema, PathSchemaSimpleBase
@@ -453,3 +455,80 @@ def test_simple_find_files_collection_dir():
     assert test.find_files("dir") == \
         os.path.abspath("collect/test_3a52ce780950d4d969792a2559cd519d7ee8c727")
     assert test.calls == 1
+
+
+def test_hash_files_file():
+    schema = PathSchemaBase()
+    edit = EditableSchema(schema)
+    param = Parameter("file")
+    edit.insert("file", param)
+
+    with open("testfile.txt", "w") as f:
+        f.write("test")
+
+    assert schema.set("file", "testfile.txt")
+
+    assert schema.hash_files("file") == \
+        "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
+
+
+def test_hash_files_list_file():
+    schema = PathSchemaBase()
+    edit = EditableSchema(schema)
+    param = Parameter("[file]")
+    edit.insert("file", param)
+
+    with open("testfile0.txt", "w") as f:
+        f.write("test0")
+
+    with open("testfile1.txt", "w") as f:
+        f.write("test1")
+
+    assert schema.set("file", ["testfile0.txt", "testfile1.txt"])
+
+    assert schema.hash_files("file") == \
+        [
+            "590c9f8430c7435807df8ba9a476e3f1295d46ef210f6efae2043a4c085a569e",
+            "1b4f0e9851971998e732078544c96b36c3d01cedf7caa332359d6f1d83567014"
+        ]
+
+
+def test_hash_files_dir():
+    schema = PathSchemaBase()
+    edit = EditableSchema(schema)
+    param = Parameter("dir")
+    edit.insert("dir", param)
+
+    Path("testpath").mkdir(exist_ok=True)
+
+    with open("testpath/testfile.txt", "w") as f:
+        f.write("test")
+
+    assert schema.set("dir", "testpath")
+
+    assert schema.hash_files("dir") == \
+        "9fca19f3378585fc7800eaf99ae48169848baf0eedbb1b63c0bde3a0d6c2bf10"
+
+
+def test_hash_files_list_dir():
+    schema = PathSchemaBase()
+    edit = EditableSchema(schema)
+    param = Parameter("[dir]")
+    edit.insert("dir", param)
+
+    Path("testpath0").mkdir(exist_ok=True)
+    Path("testpath1").mkdir(exist_ok=True)
+
+    with open("testpath0/testfile.txt", "w") as f:
+        f.write("test0")
+
+    with open("testpath1/testfile.txt", "w") as f:
+        f.write("test1")
+
+    assert schema.set("dir", ["testpath0", "testpath1"])
+
+    assert schema.hash_files("dir") == \
+        [
+            "0ebe9064753ebf28a96a7ef4bf6a2b707091acf7f0063566d1c339aeeb64c759",
+            "c7e3c20a832a68749bd28d790d5fa1cbf5168a80fd38989f2cceefd8b1a69a46"
+        ]
