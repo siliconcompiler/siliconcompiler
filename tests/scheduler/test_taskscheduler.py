@@ -5,56 +5,60 @@ import pytest
 from threading import Lock
 
 from siliconcompiler import NodeStatus
-from siliconcompiler import Chip, Flow
+from siliconcompiler import Project, FlowgraphSchema, DesignSchema
 from siliconcompiler.scheduler import TaskScheduler
 from siliconcompiler.scheduler.taskscheduler import utils as imported_utils
 from siliconcompiler.scheduler import SchedulerNode
 
-from siliconcompiler.tools.builtin import join, nop
+from siliconcompiler.tools.builtin.nop import NOPTask
+from siliconcompiler.tools.builtin.join import JoinTask
 
 
 @pytest.fixture
 def large_flow():
-    flow = Flow("testflow")
+    flow = FlowgraphSchema("testflow")
 
-    flow.node("testflow", "joinone", join)
+    flow.node("joinone", JoinTask())
     for n in range(3):
-        flow.node("testflow", "stepone", nop, index=n)
-        flow.edge("testflow", "stepone", "joinone", tail_index=n)
+        flow.node("stepone", NOPTask(), index=n)
+        flow.edge("stepone", "joinone", tail_index=n)
 
-    flow.node("testflow", "jointwo", join)
+    flow.node("jointwo", JoinTask())
     for n in range(3):
-        flow.node("testflow", "steptwo", nop, index=n)
+        flow.node("steptwo", NOPTask(), index=n)
 
-        flow.edge("testflow", "joinone", "steptwo", head_index=n)
-        flow.edge("testflow", "steptwo", "jointwo", tail_index=n)
+        flow.edge("joinone", "steptwo", head_index=n)
+        flow.edge("steptwo", "jointwo", tail_index=n)
 
-    flow.node("testflow", "jointhree", join)
+    flow.node("jointhree", JoinTask())
     for n in range(3):
-        flow.node("testflow", "stepthree", nop, index=n)
+        flow.node("stepthree", NOPTask(), index=n)
 
-        flow.edge("testflow", "jointwo", "stepthree", head_index=n)
-        flow.edge("testflow", "stepthree", "jointhree", tail_index=n)
+        flow.edge("jointwo", "stepthree", head_index=n)
+        flow.edge("stepthree", "jointhree", tail_index=n)
 
-    chip = Chip('testdesign')
-    chip.use(flow)
-    chip.set("option", "flow", "testflow")
+    design = DesignSchema("testdesign")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
 
-    chip.set("tool", "builtin", "task", "nop", "threads", 1)
-    for step, index in chip.get("flowgraph", "testflow", field="schema").get_nodes():
-        SchedulerNode(chip, step, index).setup()
-        chip.set("record", "status", NodeStatus.PENDING, step=step, index=index)
+    proj = Project(design)
+    proj.add_fileset("rtl")
+    proj.set_flow(flow)
 
-    return chip
+    for step, index in flow.get_nodes():
+        SchedulerNode(proj, step, index).setup()
+        proj.set("record", "status", NodeStatus.PENDING, step=step, index=index)
+
+    return proj
 
 
 @pytest.fixture
 def make_tasks():
-    def make(chip):
+    def make(proj):
         tasks = {}
-        for step, index in chip.get(
-                "flowgraph", chip.get('option', 'flow'), field="schema").get_nodes():
-            tasks[(step, index)] = SchedulerNode(chip, step, index)
+        for step, index in proj.get(
+                "flowgraph", proj.get('option', 'flow'), field="schema").get_nodes():
+            tasks[(step, index)] = SchedulerNode(proj, step, index)
         return tasks
     return make
 
@@ -84,7 +88,7 @@ def test_register_callback_invalid():
 
 
 def test_register_callback():
-    def callback(chip):
+    def callback(proj):
         pass
 
     callbacks = TaskScheduler._TaskScheduler__callbacks
@@ -109,19 +113,19 @@ def test_run_callbacks(large_flow, make_tasks):
         post_run = 0
 
         @staticmethod
-        def callback_pre_run(chip):
+        def callback_pre_run(proj):
             Callback.pre_run += 1
 
         @staticmethod
-        def callback_pre_node(chip, step, index):
+        def callback_pre_node(proj, step, index):
             Callback.pre_node += 1
 
         @staticmethod
-        def callback_post_node(chip, step, index):
+        def callback_post_node(proj, step, index):
             Callback.post_node += 1
 
         @staticmethod
-        def callback_post_run(chip):
+        def callback_post_run(proj):
             Callback.post_run += 1
 
     TaskScheduler.register_callback("pre_run", Callback.callback_pre_run)
@@ -151,15 +155,16 @@ def test_run_dashboard(large_flow, make_tasks, monkeypatch):
         return 1
     monkeypatch.setattr(imported_utils, "get_cores", dummy_get_cores)
 
-    large_flow._dash = FakeDashboard()
+    dashboard = FakeDashboard()
+    large_flow._Project__dashboard = dashboard
 
     scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
     scheduler.run(logging.NullHandler())
 
-    assert len(large_flow._dash.calls) == 14
-    assert large_flow._dash.calls[0] is None
-    assert all(["starttimes" in c for c in large_flow._dash.calls[1:]])
-    assert len(large_flow._dash.calls[-1]["starttimes"]) == 13
+    assert len(dashboard.calls) == 14
+    assert dashboard.calls[0] is None
+    assert all(["starttimes" in c for c in dashboard.calls[1:]])
+    assert len(dashboard.calls[-1]["starttimes"]) == 13
 
 
 def test_run_control_c(large_flow, make_tasks, monkeypatch):
