@@ -2,11 +2,13 @@ import logging
 import os
 import math
 import queue
+import re
 import time
 import threading
 
 from collections import deque
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import List, Dict
 
 from rich import box
@@ -51,7 +53,7 @@ class LogBuffer:
             event = threading.Event()
         self.event = event
 
-    def make_handler(self) -> logging.Handler:
+    def make_handler(self, logger_unicode_map) -> logging.Handler:
         """
         Creates and returns a `LogBufferHandler` instance associated with this `LogBuffer`.
 
@@ -61,7 +63,7 @@ class LogBuffer:
         Returns:
             logging.Handler: An instance of `LogBufferHandler`.
         """
-        return LogBufferHandler(self)
+        return LogBufferHandler(self, logger_unicode_map)
 
     def add_line(self, line: str):
         """
@@ -117,7 +119,7 @@ class LogBufferHandler(logging.Handler):
     for display in a dashboard or other UI, replacing console color codes
     with a simplified markdown-like format.
     """
-    def __init__(self, parent: LogBuffer):
+    def __init__(self, parent: LogBuffer, logger_unicode_map):
         """
         Initializes the LogBufferHandler.
 
@@ -128,6 +130,15 @@ class LogBufferHandler(logging.Handler):
         super().__init__()
         self._parent = parent
 
+        self.__logger_unicode_map = logger_unicode_map
+        if self.__logger_unicode_map:
+            self.__logger_unicode_map = self.__logger_unicode_map.copy()
+            for key, value in self.__logger_unicode_map.items():
+                self.__logger_unicode_map[key] = f"| {value}  |"
+            self.__unicode_rep = re.compile(r"^\|\s[\u001ba-zA-Z0-9\[\\ ]+\s+\|")
+        else:
+            self.__unicode_rep = None
+
     def emit(self, record):
         """
         Processes a log record, formats it, replaces console color codes,
@@ -137,16 +148,19 @@ class LogBufferHandler(logging.Handler):
             record (logging.LogRecord): The log record to process.
         """
         log_entry = self.format(record)
-        log_entry = log_entry.replace("[", "\\[")
+        if self.__unicode_rep:
+            log_entry = self.__unicode_rep.sub(self.__logger_unicode_map.get(record.levelname, record.levelname), log_entry)
+        else:
+            log_entry = log_entry.replace("[", "\\[")
 
-        # Replace console coloring
-        for color, replacement in (
-                (SCColorLoggerFormatter.reset.replace("[", "\\["), "[/]"),
-                (SCColorLoggerFormatter.blue.replace("[", "\\["), "[blue]"),
-                (SCColorLoggerFormatter.yellow.replace("[", "\\["), "[yellow]"),
-                (SCColorLoggerFormatter.red.replace("[", "\\["), "[red]"),
-                (SCColorLoggerFormatter.bold_red.replace("[", "\\["), "[bold red]")):
-            log_entry = log_entry.replace(color, replacement)
+            # Replace console coloring
+            for color, replacement in (
+                    (SCColorLoggerFormatter.reset.replace("[", "\\["), "[/]"),
+                    (SCColorLoggerFormatter.blue.replace("[", "\\["), "[blue]"),
+                    (SCColorLoggerFormatter.yellow.replace("[", "\\["), "[yellow]"),
+                    (SCColorLoggerFormatter.red.replace("[", "\\["), "[red]"),
+                    (SCColorLoggerFormatter.bold_red.replace("[", "\\["), "[bold red]")):
+                log_entry = log_entry.replace(color, replacement)
         self._parent.add_line(log_entry)
 
 
@@ -205,6 +219,12 @@ class SessionData:
     jobs: Dict[str, JobData] = field(default_factory=dict)
 
 
+class NodeType(Enum):
+    ENTRY = "entry"
+    EXIT = "exit"
+    OTHER = "other"
+
+
 @dataclass
 class Layout:
     """
@@ -236,6 +256,8 @@ class Layout:
     padding_progress_bar: int = 1
     padding_job_board: int = 1
     padding_job_board_header: int = 1
+
+    show_node_type: bool = False
 
     def update(self, height: int, width: int, visible_jobs: int, visible_bars: int):
         """
@@ -350,6 +372,27 @@ class Board:
             "header": "bold underline cyan",
         }
     )
+    _symbols = {
+        "table": {
+            "warnings": "⚠️",
+            "errors": "🚫",
+            "time": "⏳",
+            "log": "📜",
+        },
+        "logging": {
+            logging.getLevelName(logging.DEBUG): "🐛",
+            logging.getLevelName(logging.INFO): "ℹ️",
+            logging.getLevelName(logging.WARNING): "⚠️",
+            logging.getLevelName(logging.ERROR): "🚫",
+            logging.getLevelName(logging.CRITICAL): "🚨"
+        },
+        "node": {
+            NodeType.ENTRY: "🏠",
+            NodeType.EXIT: "🎯"
+        }
+    }
+
+    __USE_ICONS = False
 
     __JOB_BOARD_HEADER = True
 
@@ -377,6 +420,11 @@ class Board:
             return
 
         self._layout = Layout()
+
+        if Board.__USE_ICONS:
+            self._layout.show_node_type = True
+        else:
+            Board._symbols.clear()
 
         self._render_event = manager.Event()
         self._render_stop_event = manager.Event()
@@ -410,7 +458,7 @@ class Board:
         Returns:
             logging.Handler: The log handler instance.
         """
-        return self._log_handler.make_handler()
+        return self._log_handler.make_handler(Board._symbols.get("logging", None))
 
     def open_dashboard(self):
         """Starts the dashboard rendering thread if it is not already running."""
@@ -601,13 +649,19 @@ class Board:
         table.show_lines = False
         table.show_footer = False
         table.show_header = self.__JOB_BOARD_HEADER
-        table.add_column("Status")
-        table.add_column("Node")
-        table.add_column("Time", justify="right")
+
+        def get_column_header(title):
+            return Board._symbols.get("table", {}).get(title, title.capitalize())
+
+        table.add_column(get_column_header("status"))
+        if layout.show_node_type:
+            table.add_column(get_column_header(""))
+        table.add_column(get_column_header("node"))
+        table.add_column(get_column_header("time"), justify="right")
         for metric in self._metrics:
-            table.add_column(metric.capitalize(), justify="right")
+            table.add_column(get_column_header(metric), justify="right")
         if layout.job_board_show_log:
-            table.add_column("Log")
+            table.add_column(get_column_header("log"))
 
         multi_jobs = len(job_data) > 1 or True
 
@@ -648,7 +702,7 @@ class Board:
             else:
                 duration = ""
 
-            table_data.append((
+            row_data = [
                 Board.format_status(node["status"]),
                 Board.format_node(
                     job.design, job.jobname, node["step"], node["index"],
@@ -656,8 +710,11 @@ class Board:
                 ),
                 duration,
                 *node["metrics"],
-                log_file
-            ))
+                log_file]
+            if layout.show_node_type:
+                node_symbol = Board._symbols.get("node", {}).get(node["type"], "")
+                row_data.insert(1, node_symbol)
+            table_data.append(tuple(row_data))
 
         for row_data in table_data:
             table.add_row(*row_data)
@@ -922,6 +979,8 @@ class Board:
         nodestatus = {}
         nodeorder = {}
         node_priority = {}
+        flow_entry_nodes = set()
+        flow_exit_nodes = set()
         try:
             node_inputs = {}
             node_outputs = {}
@@ -957,6 +1016,7 @@ class Board:
 
             flow_entry_nodes = set(
                 chip.get("flowgraph", flow, field="schema").get_entry_nodes())
+            flow_exit_nodes = set(runtime_flow.get_exit_nodes())
 
             running_nodes = set([node for node in nodes if NodeStatus.is_running(nodestatus[node])])
             done_nodes = set([node for node in nodes if NodeStatus.is_done(nodestatus[node])])
@@ -1051,6 +1111,12 @@ class Board:
                 else:
                     node_metrics.append(str(value))
 
+            node_type = NodeType.OTHER
+            if (step, index) in flow_entry_nodes:
+                node_type = NodeType.ENTRY
+            if (step, index) in flow_exit_nodes:
+                node_type = NodeType.EXIT
+
             job_data.nodes.append(
                 {
                     "step": step,
@@ -1076,7 +1142,8 @@ class Board:
                     "print": {
                         "order": nodeorder[(step, index)],
                         "priority": node_priority[(step, index)]
-                    }
+                    },
+                    "type": node_type
                 }
             )
 
