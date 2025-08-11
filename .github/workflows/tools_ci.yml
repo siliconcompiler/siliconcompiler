@@ -123,7 +123,7 @@ jobs:
 
     steps:
       - name: Download docker artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: tools
 
@@ -160,7 +160,7 @@ jobs:
 
     steps:
       - name: Download docker artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: tools
 
@@ -193,7 +193,7 @@ jobs:
 
     steps:
       - name: Download docker artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: tools
 
@@ -234,7 +234,7 @@ jobs:
 
     steps:
     - name: Download docker artifacts
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v5
       with:
         name: tools
 
@@ -335,7 +335,7 @@ jobs:
           python3 -m pip install -r ./examples/requirements.txt
 
       - name: Restore cache
-        uses: actions/download-artifact@v4.3.0
+        uses: actions/download-artifact@v5
         with:
           name: scpackage-cache
           path: ${{ env.SCTESTCACHE }}
@@ -394,7 +394,7 @@ jobs:
           docker pull ${{ needs.build_tool_builder.outputs.sc_tools }}
 
       - name: Restore cache
-        uses: actions/download-artifact@v4.3.0
+        uses: actions/download-artifact@v5
         with:
           name: scpackage-cache
           path: ${{ env.SCTESTCACHE }}
