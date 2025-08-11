@@ -1,6 +1,20 @@
 from siliconcompiler.tools._common import get_tool_task
 
 
+from siliconcompiler import TaskSchema
+
+
+class EchoTask(TaskSchema):
+    def __init__(self):
+        super().__init__()
+
+    def tool(self):
+        return "echo"
+
+    def task(self):
+        return "echo"
+
+
 def setup(chip):
     tool = 'echo'
     step = chip.get('arg', 'step')

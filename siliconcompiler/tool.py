@@ -178,28 +178,20 @@ class TaskSchema(NamedSchema, PathSchema):
             node (SchedulerNode): The scheduler node for this runtime.
         """
         self.__node = node
-        self.__chip = None
         self.__schema_full = None
         self.__logger = None
         self.__design_name = None
         self.__design_top = None
-        self.__design_top_global = None
-        self.__cwd = None
         self.__relpath = relpath
-        self.__collection_path = None
         self.__jobdir = None
         if node:
             if step is not None or index is not None:
                 raise RuntimeError("step and index cannot be provided with node")
 
-            self.__chip = node.chip
             self.__schema_full = node.project
-            self.__logger = node.chip.logger
+            self.__logger = node.project.logger
             self.__design_name = node.name
             self.__design_top = node.topmodule
-            self.__design_top_global = node.topmodule_global
-            self.__cwd = node.project_cwd
-            self.__collection_path = node.collection_dir
             self.__jobdir = node.workdir
 
             self.__step = node.step
@@ -212,11 +204,9 @@ class TaskSchema(NamedSchema, PathSchema):
         self.__schema_metric = None
         self.__schema_flow = None
         self.__schema_flow_runtime = None
-        self.__schema_tool = None
         if self.__schema_full:
             self.__schema_record = self.__schema_full.get("record", field="schema")
             self.__schema_metric = self.__schema_full.get("metric", field="schema")
-            self.__schema_tool = self._parent()._parent()
 
             if not self.__step:
                 self.__step = self.__schema_full.get('arg', 'step')
@@ -811,7 +801,7 @@ class TaskSchema(NamedSchema, PathSchema):
             io_file = f"{self.__step}.{suffix}"
             io_log = True
         elif destination == 'output':
-            io_file = os.path.join('outputs', f"{self.__design_top_global}.{suffix}")
+            io_file = os.path.join('outputs', f"{self.__design_top}.{suffix}")
         elif destination == 'none':
             io_file = os.devnull
 

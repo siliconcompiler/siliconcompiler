@@ -2,6 +2,16 @@ from siliconcompiler.tools.builtin import _common
 from siliconcompiler.tools.builtin import nop
 from siliconcompiler.tools.builtin.builtin import set_io_files
 
+from siliconcompiler.tools.builtin import BuiltinTask
+
+
+class JoinTask(BuiltinTask):
+    def __init__(self):
+        super().__init__()
+
+    def task(self):
+        return "join"
+
 
 def setup(chip):
     '''
