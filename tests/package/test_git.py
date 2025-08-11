@@ -8,7 +8,7 @@ from git import Repo, Actor
 from pathlib import Path
 
 from siliconcompiler.package.git import GitResolver
-from siliconcompiler import Chip
+from siliconcompiler import Project
 
 
 @pytest.fixture(autouse=True)
@@ -46,41 +46,41 @@ def mock_git(monkeypatch):
      '4bd21abf91c854d6'),
 ])
 def test_dependency_path_download_git(path, ref, cache_id, tmp_path):
-    chip = Chip("dummy")
-    chip.set("option", "cachedir", tmp_path)
+    proj = Project("testproj")
+    proj.set("option", "cachedir", tmp_path)
 
-    resolver = GitResolver("testgit", chip, path, ref)
+    resolver = GitResolver("testgit", proj, path, ref)
     assert resolver.resolve() == Path(os.path.join(tmp_path, f"testgit-{ref}-{cache_id}"))
     assert os.path.isfile(os.path.join(tmp_path, f"testgit-{ref}-{cache_id}", "pyproject.toml"))
 
 
 def test_git_path_git_ssh():
-    resolver = GitResolver("testgit", Chip("dummy"),
+    resolver = GitResolver("testgit", Project(),
                            "git+ssh://github.com/test_owner/test_repo", "main")
     assert resolver.git_path == "ssh://github.com/test_owner/test_repo"
 
 
 def test_git_path_ssh():
-    resolver = GitResolver("testgit", Chip("dummy"),
+    resolver = GitResolver("testgit", Project(),
                            "ssh://github.com/test_owner/test_repo", "main")
     assert resolver.git_path == "ssh://github.com/test_owner/test_repo"
 
 
 def test_git_path_default():
-    resolver = GitResolver("testgit", Chip("dummy"),
+    resolver = GitResolver("testgit", Project(),
                            "git://github.com/test_owner/test_repo", "main")
     assert resolver.git_path == "https://github.com/test_owner/test_repo"
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="Appears to cause issues on windows machines")
 def test_dirty_warning(caplog, tmp_path):
-    chip = Chip("dummy")
-    chip.logger = logging.getLogger()
-    chip.set("option", "cachedir", tmp_path)
+    proj = Project("testproj")
+    setattr(proj, "_Project__logger", logging.getLogger())
+    proj.logger.setLevel(logging.INFO)
 
     assert Path(tmp_path).exists()
 
-    resolver = GitResolver("testgit", chip, "git+ssh://github.com/test_owner/test_repo", "main")
+    resolver = GitResolver("testgit", proj, "git+ssh://github.com/test_owner/test_repo", "main")
     resolver.resolve()
 
     assert Path(resolver.cache_path).exists()
