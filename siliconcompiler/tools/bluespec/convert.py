@@ -35,7 +35,7 @@ def setup(chip):
     chip.set('tool', tool, 'task', task, 'refdir', refdir,
              step=step, index=index,
              package='siliconcompiler', clobber=False)
-    chip.set('tool', tool, 'task', task, 'threads', utils.get_cores(chip),
+    chip.set('tool', tool, 'task', task, 'threads', utils.get_cores(),
              step=step, index=index, clobber=False)
 
     # Input/Output requirements

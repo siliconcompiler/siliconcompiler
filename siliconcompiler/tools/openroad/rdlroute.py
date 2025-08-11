@@ -45,7 +45,7 @@ def setup(chip):
              package='siliconcompiler')
     chip.set('tool', tool, 'task', task, 'script', script,
              step=step, index=index)
-    chip.set('tool', tool, 'task', task, 'threads', utils.get_cores(chip),
+    chip.set('tool', tool, 'task', task, 'threads', utils.get_cores(),
              step=step, index=index, clobber=False)
 
     if chip.get('option', 'nodisplay'):

@@ -138,7 +138,7 @@ def setup(chip, clobber=True):
              ",".join(['tool', tool, 'task', task, 'var', 'max_router_iterations']),
              step=step, index=index)
 
-    chip.set('tool', tool, 'task', task, 'threads', utils.get_cores(chip),
+    chip.set('tool', tool, 'task', task, 'threads', utils.get_cores(),
              step=step, index=index, clobber=clobber)
 
     # TO-DO: PRIOROTIZE the post-routing packing results?

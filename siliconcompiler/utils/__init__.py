@@ -253,7 +253,7 @@ def get_file_template(path,
 
 
 #######################################
-def safecompare(chip, value, op, goal):
+def safecompare(value, op, goal):
     # supported relational operations
     # >, >=, <=, <. ==, !=
     if op == ">":
@@ -380,7 +380,7 @@ def get_hashed_filename(path, package=None):
     return PathNodeValue.generate_hashed_path(path, package)
 
 
-def get_cores(chip, physical=False):
+def get_cores(physical=False):
     '''
     Get max number of cores for this machine.
 

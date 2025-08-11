@@ -55,7 +55,7 @@ def _select_inputs(chip, step, index):
 
         metric_type = chip.get('metric', metric, field=None)
         goal = NodeType.normalize(goal, metric_type.get(field='type'))
-        if not utils.safecompare(chip, value, op, goal):
+        if not utils.safecompare(value, op, goal):
             chip.error(f"{step}/{index} fails '{metric}' metric: {value}{op}{goal}")
 
     if not passes:

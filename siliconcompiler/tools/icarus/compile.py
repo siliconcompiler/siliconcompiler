@@ -141,7 +141,7 @@ def setup(chip):
     chip.set('tool', tool, 'vswitch', '-V')
     chip.set('tool', tool, 'version', '>=10.3', clobber=False)
 
-    chip.set('tool', tool, 'task', task, 'threads', utils.get_cores(chip),
+    chip.set('tool', tool, 'task', task, 'threads', utils.get_cores(),
              step=step, index=index, clobber=False)
 
     chip.set('tool', tool, 'task', task, 'var', 'verilog_generation',

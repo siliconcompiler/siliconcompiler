@@ -1174,7 +1174,7 @@ class TaskSchema(NamedSchema, PathSchema):
             clobber (bool): overwrite existing value
         """
         if max_threads is None or max_threads <= 0:
-            max_threads = utils.get_cores(None)
+            max_threads = utils.get_cores()
 
         return self.set("threads", max_threads, step=step, index=index, clobber=clobber)
 

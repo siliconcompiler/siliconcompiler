@@ -80,7 +80,7 @@ def limit_cpus(monkeypatch, request):
     if 'nocpulimit' in request.keywords:
         return
 
-    org_cpus = utils.get_cores(siliconcompiler.Chip("dummy"))
+    org_cpus = utils.get_cores()
 
     def limit_cpu(*args, **kwargs):
         if org_cpus > 1:

@@ -60,7 +60,7 @@ def setup(chip):
 
     chip.set('tool', tool, 'task', task, 'option', options,
              step=step, index=index, clobber=False)
-    chip.set('tool', tool, 'task', task, 'threads', utils.get_cores(chip),
+    chip.set('tool', tool, 'task', task, 'threads', utils.get_cores(),
              step=step, index=index, clobber=False)
 
     # Required for script based tools

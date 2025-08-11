@@ -43,7 +43,7 @@ def setup(chip):
 
     chip.set('tool', tool, 'task', task, 'output', f'{topmodule}.v', step=step, index=index)
 
-    chip.set('tool', tool, 'task', task, 'threads', utils.get_cores(chip),
+    chip.set('tool', tool, 'task', task, 'threads', utils.get_cores(),
              step=step, index=index, clobber=False)
 
     # Since we run sv2v after the import/preprocess step, there should be no

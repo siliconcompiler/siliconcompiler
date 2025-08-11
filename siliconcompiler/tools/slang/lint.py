@@ -44,7 +44,7 @@ def setup(chip):
     index = chip.get('arg', 'index')
     tool, task = get_tool_task(chip, step, index)
 
-    chip.set('tool', tool, 'task', task, 'threads', utils.get_cores(chip),
+    chip.set('tool', tool, 'task', task, 'threads', utils.get_cores(),
              clobber=False, step=step, index=index)
 
 

@@ -68,11 +68,11 @@ class TaskScheduler:
         self.__record = self.__schema.get("record", field="schema")
         self.__dashboard = chip._Project__dashboard
 
-        self.__max_cores = utils.get_cores(chip)
-        self.__max_threads = utils.get_cores(chip)
+        self.__max_cores = utils.get_cores()
+        self.__max_threads = utils.get_cores()
         self.__max_parallel_run = self.__chip.get('option', 'scheduler', 'maxnodes')
         if not self.__max_parallel_run:
-            self.__max_parallel_run = utils.get_cores(chip)
+            self.__max_parallel_run = utils.get_cores()
         # clip max parallel jobs to 1 <= jobs <= max_cores
         self.__max_parallel_run = max(1, min(self.__max_parallel_run, self.__max_cores))
 

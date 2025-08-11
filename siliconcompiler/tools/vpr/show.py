@@ -17,7 +17,7 @@ def setup(chip, clobber=True):
 
     vpr.setup_tool(chip, clobber=clobber)
 
-    chip.set('tool', tool, 'task', task, 'threads', utils.get_cores(chip),
+    chip.set('tool', tool, 'task', task, 'threads', utils.get_cores(),
              step=step, index=index, clobber=False)
 
 

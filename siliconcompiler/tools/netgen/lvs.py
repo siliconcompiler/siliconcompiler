@@ -25,7 +25,7 @@ def setup(chip):
     chip.set('tool', tool, 'version', '>=1.5.192', clobber=False)
     chip.set('tool', tool, 'format', 'tcl')
 
-    chip.set('tool', tool, 'task', task, 'threads', utils.get_cores(chip),
+    chip.set('tool', tool, 'task', task, 'threads', utils.get_cores(),
              step=step, index=index, clobber=False)
     chip.set('tool', tool, 'task', task, 'refdir', refdir,
              step=step, index=index,
