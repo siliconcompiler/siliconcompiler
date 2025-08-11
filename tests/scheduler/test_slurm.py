@@ -4,59 +4,62 @@ import os.path
 
 from unittest.mock import patch
 
-from siliconcompiler import Chip, Flow
-from siliconcompiler.tools.builtin import nop
+from siliconcompiler import Project, FlowgraphSchema, DesignSchema
+from siliconcompiler.tools.builtin.nop import NOPTask
 
 from siliconcompiler.scheduler import SlurmSchedulerNode
 
 
 @pytest.fixture
-def chip():
-    flow = Flow("testflow")
+def project():
+    flow = FlowgraphSchema("testflow")
 
-    flow.node("testflow", "stepone", nop)
-    flow.node("testflow", "steptwo", nop)
-    flow.edge("testflow", "stepone", "steptwo")
+    flow.node("stepone", NOPTask())
+    flow.node("steptwo", NOPTask())
+    flow.edge("stepone", "steptwo")
 
-    chip = Chip("dummy")
-    chip.use(flow)
-    chip.set("option", "flow", "testflow")
-    chip.set("tool", "builtin", "task", "nop", "threads", 1)
+    design = DesignSchema("testdesign")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
 
-    return chip
+    proj = Project(design)
+    proj.add_fileset("rtl")
+    proj.set_flow(flow)
+
+    return proj
 
 
-def test_init(chip):
+def test_init(project):
     with patch("uuid.uuid4") as job_name_call:
         class DummyUUID:
             hex = "thisisahash"
         job_name_call.return_value = DummyUUID
-        node = SlurmSchedulerNode(chip, "stepone", "0")
+        node = SlurmSchedulerNode(project, "stepone", "0")
         job_name_call.assert_called_once()
     assert node.jobhash == "thisisahash"
 
 
-def test_init_with_id(chip):
-    chip.set("record", "remoteid", "thisistheremoteid")
+def test_init_with_id(project):
+    project.set("record", "remoteid", "thisistheremoteid")
     with patch("uuid.uuid4") as job_name_call:
         class DummyUUID:
             pass
         job_name_call.return_value = DummyUUID
-        node = SlurmSchedulerNode(chip, "stepone", "0")
+        node = SlurmSchedulerNode(project, "stepone", "0")
         job_name_call.assert_not_called()
     assert node.jobhash == "thisistheremoteid"
 
 
-def test_is_local(chip):
-    node = SlurmSchedulerNode(chip, "stepone", "0")
+def test_is_local(project):
+    node = SlurmSchedulerNode(project, "stepone", "0")
     assert node.is_local is False
 
 
-def test_get_configuration_directory(chip):
-    assert os.path.basename(SlurmSchedulerNode.get_configuration_directory(chip)) == \
+def test_get_configuration_directory(project):
+    assert os.path.basename(SlurmSchedulerNode.get_configuration_directory(project)) == \
         "sc_configs"
-    assert os.path.dirname(SlurmSchedulerNode.get_configuration_directory(chip)) == \
-        chip.getworkdir()
+    assert os.path.dirname(SlurmSchedulerNode.get_configuration_directory(project)) == \
+        project.getworkdir()
 
 
 def test_get_job_name():
