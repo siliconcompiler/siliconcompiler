@@ -6,7 +6,6 @@ from siliconcompiler.schema_obj import SchemaTmp as Schema
 from siliconcompiler.packageschema import PackageSchema
 
 from siliconcompiler.library import LibrarySchema, ToolLibrarySchema, StdCellLibrarySchema
-from siliconcompiler.fpga import FPGASchema
 
 from siliconcompiler.design import DesignSchema
 from siliconcompiler.record import RecordSchema
@@ -20,6 +19,7 @@ from siliconcompiler.option import OptionSchema
 
 from siliconcompiler.project import Project
 from siliconcompiler.asic import ASICSchema, ASICProject
+from siliconcompiler.fpga import FPGASchema, FPGAProject
 
 from siliconcompiler.core import Chip
 
@@ -56,6 +56,7 @@ __all__ = [
 
     "Project",
     "ASICProject",
+    "FPGAProject",
     "StdCellLibrarySchema",
     "ToolLibrarySchema",
     "ASICTaskSchema",

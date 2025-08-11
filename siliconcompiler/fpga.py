@@ -7,11 +7,17 @@ within the SiliconCompiler schema. It includes schemas for both
 tool-library and temporary configurations.
 """
 
+from siliconcompiler import Project
+
 from siliconcompiler.schema import BaseSchema
 from siliconcompiler.schema import EditableSchema, Parameter, Scope
 from siliconcompiler.schema.utils import trim
 
 from siliconcompiler import ToolLibrarySchema
+
+from siliconcompiler.constraints import \
+    FPGATimingConstraintSchema, FPGAComponentConstraints, FPGAPinConstraints
+from siliconcompiler.metrics import FPGAMetricsSchema
 
 
 class FPGASchema(ToolLibrarySchema):
@@ -94,6 +100,151 @@ class FPGASchema(ToolLibrarySchema):
         """
 
         return FPGASchema.__name__
+
+
+class FPGAProject(Project):
+    """
+    A class for managing FPGA projects, inheriting from the base Project class.
+
+    This class extends the base project with FPGA-specific schema for constraints,
+    metrics, and device selection. It provides methods to configure and validate
+
+    an FPGA design project.
+    """
+
+    def __init__(self):
+        """
+        Initializes the FPGAProject.
+
+        This constructor sets up the project by calling the parent constructor
+        and then inserting FPGA-specific schema definitions for timing, component,
+        and pin constraints, as well as FPGA-specific metrics. It also adds
+        a parameter for specifying the target FPGA device.
+        """
+        super().__init__()
+
+        schema = EditableSchema(self)
+        schema.insert("constraint", "timing", FPGATimingConstraintSchema())
+        schema.insert("constraint", "component", FPGAComponentConstraints())
+        schema.insert("constraint", "pin", FPGAPinConstraints())
+
+        schema.insert("metric", FPGAMetricsSchema(), clobber=True)
+
+        schema.insert("fpga", "device", Parameter("str"))
+
+    @classmethod
+    def _getdict_type(cls):
+        return FPGAProject.__name__
+
+    def add_dep(self, obj):
+        """
+        Adds a dependency to the project.
+
+        If the dependency is an FPGASchema object, it is registered as a library.
+        Otherwise, the request is passed to the parent class's implementation.
+
+        Args:
+            obj: The dependency object to add. Can be an FPGASchema instance
+                 or another type supported by the base Project class.
+        """
+        if isinstance(obj, (list, set, tuple)):
+            for iobj in obj:
+                self.add_dep(iobj)
+            return
+
+        if isinstance(obj, FPGASchema):
+            EditableSchema(self).insert("library", obj.name, obj, clobber=True)
+        else:
+            return super().add_dep(obj)
+
+        self._import_dep(obj)
+
+    def set_fpga(self, fpga):
+        """
+        Sets the target FPGA device for the project.
+
+        This method can accept either an FPGASchema object or a string
+        representing the name of the FPGA device. If an object is provided,
+        it is first added as a dependency.
+
+        Args:
+            fpga (FPGASchema or str): The FPGA device to target.
+
+        Raises:
+            TypeError: If the provided fpga is not an FPGASchema object or a string.
+        """
+        if isinstance(fpga, FPGASchema):
+            self.add_dep(fpga)
+            fpga = fpga.name
+        elif not isinstance(fpga, str):
+            raise TypeError("fpga must be an FPGASchema object or a string.")
+
+        return self.set("fpga", "device", fpga)
+
+    def check_manifest(self):
+        """
+        Validates the project's manifest to ensure it is configured correctly.
+
+        This method performs the base project checks and then verifies that a
+        target FPGA device has been set and that the corresponding library
+        has been loaded into the project.
+
+        Returns:
+            bool: True if the manifest is valid, False otherwise.
+        """
+        error = not super().check_manifest()
+
+        if not self.get("fpga", "device"):
+            self.logger.error("[fpga,device] has not been set.")
+            error = True
+        else:
+            fpga_device = self.get("fpga", "device")
+            if not self.has_library(fpga_device):
+                self.logger.error(f"FPGA library '{fpga_device}' has not been loaded.")
+                error = True
+
+        return not error
+
+    def get_timingconstraints(self) -> FPGATimingConstraintSchema:
+        """
+        Retrieves the FPGA timing constraint schema for the project.
+
+        Returns:
+            FPGATimingConstraintSchema: The timing constraint schema object.
+        """
+        return self.get("constraint", "timing", field="schema")
+
+    def get_pinconstraints(self) -> FPGAPinConstraints:
+        """
+        Retrieves the FPGA pin constraint schema for the project.
+
+        Returns:
+            FPGAPinConstraints: The pin constraint schema object.
+        """
+        return self.get("constraint", "pin", field="schema")
+
+    def get_componentconstraints(self) -> FPGAComponentConstraints:
+        """
+        Retrieves the FPGA component constraint schema for the project.
+
+        Returns:
+            FPGAComponentConstraints: The component constraint schema object.
+        """
+        return self.get("constraint", "component", field="schema")
+
+    def _summary_headers(self):
+        """
+        Generates headers for the project summary.
+
+        This internal method extends the base summary headers by appending
+        the name of the target FPGA device.
+
+        Returns:
+            list: A list of tuples representing the summary headers.
+        """
+        headers = super()._summary_headers()
+        headers.append(("fpga", self.get("fpga", "device")))
+        return headers
 
 
 class FPGASchemaTmp(BaseSchema):

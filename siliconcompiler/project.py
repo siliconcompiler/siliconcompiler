@@ -24,11 +24,6 @@ from siliconcompiler import ChecklistSchema
 from siliconcompiler import ToolSchema, TaskSchema
 from siliconcompiler import ShowTaskSchema, ScreenshotTaskSchema
 from siliconcompiler import OptionSchema
-from siliconcompiler import FPGASchema
-
-from siliconcompiler.constraints import \
-    ASICTimingConstraintSchema, ASICComponentConstraints, ASICPinConstraints
-from siliconcompiler.metrics import FPGAMetricsSchema
 
 from siliconcompiler.cmdlineschema import CommandLineSchema
 from siliconcompiler.dependencyschema import DependencySchema
@@ -1516,53 +1511,3 @@ class SimProject(Project):
 
 class LintProject(Project):
     pass
-
-
-class FPGAProject(Project):
-    def __init__(self):
-        super().__init__()
-
-        schema = EditableSchema(self)
-        # TODO replace with FPGA constraints
-        schema.insert("constraint", "timing", ASICTimingConstraintSchema())
-        schema.insert("constraint", "component", ASICComponentConstraints())
-        schema.insert("constraint", "pin", ASICPinConstraints())
-
-        # Replace metrics with fpga metrics
-        schema.insert("metric", FPGAMetricsSchema(), clobber=True)
-
-        schema.insert("fpga", "device", Parameter("str"))
-
-    def add_dep(self, obj):
-        if isinstance(obj, FPGASchema):
-            EditableSchema(self).insert("library", obj.name, obj, clobber=True)
-        else:
-            return super().add_dep(obj)
-
-    def set_fpga(self, fpga):
-        if isinstance(fpga, FPGASchema):
-            self.add_dep(fpga)
-            fpga = fpga.name
-        elif not isinstance(fpga, str):
-            raise TypeError
-
-        return self.set("fpga", "device", fpga)
-
-    def check_manifest(self):
-        error = not super().check_manifest()
-
-        if not self.get("fpga", "device"):
-            self.logger.error("[fpga,device] has not been set")
-            error = True
-        else:
-            fpga = self.get("fpga", "device")
-            if not self.has_library(fpga):
-                self.logger.error(f"{fpga} has not been loaded")
-                error = True
-
-        return not error
-
-    def _summary_headers(self):
-        headers = super()._summary_headers()
-        headers.append(("fpga", self.get("fpga", "device")))
-        return headers
