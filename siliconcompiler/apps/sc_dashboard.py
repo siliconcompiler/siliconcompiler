@@ -1,5 +1,6 @@
 # Copyright 2023 Silicon Compiler Authors. All Rights Reserved.
 import sys
+import shlex
 
 import os.path
 
@@ -39,7 +40,7 @@ To include another chip object to compare to:
 
             self._add_commandline_argument("cfg", "file", "configuration manifest")
             self._add_commandline_argument("port", "int", "port to open the dashboard app on")
-            self._add_commandline_argument("graph_cfg", "[(str,str)]", "chip name - optional, path to chip manifest (json)")
+            self._add_commandline_argument("graph_cfg", "[str]", "chip name - optional, path to chip manifest (json)")
 
     cli = DashboardProject.create_cmdline(
         progname,
@@ -51,7 +52,8 @@ To include another chip object to compare to:
             '-jobname',
             '-cfg',
             '-port',
-            '-graph_cfg'])
+            '-graph_cfg'],
+        use_sources=False)
 
     manifest = cli.get("cmdarg", "cfg")
 
@@ -69,6 +71,7 @@ To include another chip object to compare to:
     graph_chips = []
     if cli.get("cmdarg", "graph_cfg"):
         for i, name_and_file_path in enumerate(cli.get("cmdarg", "graph_cfg")):
+            name_and_file_path = shlex.split(name_and_file_path)
             args = len(name_and_file_path)
             if args == 0:
                 continue

@@ -1,4 +1,4 @@
-from siliconcompiler import Chip
+from siliconcompiler import Project
 from siliconcompiler.apps import sc_remote
 from siliconcompiler.remote import Client
 from siliconcompiler.remote import JobStatus
