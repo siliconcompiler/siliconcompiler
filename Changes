@@ -8,6 +8,21 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.34.3 (2025-08-11)
+=========================================
+
+**Minor:**
+
+ * Implemented support for sets in schema, denoted by `{}`.
+ * Fixed cache folder handling by appending unique ID to each folder to avoid name collisions.
+ * Command line dashboard shows siliconcompiler log when tool log is not available, output is now preserved on exit, and improved handling of multiple jobs layout.
+ * Added `job.log` to build directory to provide a file source for the logging as well as the terminal.
+
+ * Tools:
+
+  * slang: updated to slang v9.0.
+
+
 SiliconCompiler 0.34.2 (2025-07-21)
 =========================================
 
