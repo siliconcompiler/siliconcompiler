@@ -25,8 +25,8 @@ class ASICProject(Project):
     additional ASIC libraries, delay models, and routing layer limits.
     """
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, design=None):
+        super().__init__(design)
 
         schema = EditableSchema(self)
         schema.insert("constraint", "timing", ASICTimingConstraintSchema())

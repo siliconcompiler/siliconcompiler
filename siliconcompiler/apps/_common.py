@@ -10,11 +10,6 @@ import os
 import os.path
 
 
-# A placeholder to detect if the design name has not been set by the user.
-# Legal design names are unlikely to contain spaces.
-UNSET_DESIGN = '  unset  '
-
-
 def manifest_switches():
     """
     Returns a list of command-line switches used to identify a manifest.

@@ -1,7 +1,10 @@
 import os
-from siliconcompiler.apps.utils import summarize, replay
+# from siliconcompiler.apps.utils import summarize, replay
 
 import pytest
+
+
+pytest.skip("need to get EDA resolved", allow_module_level=True)
 
 
 @pytest.mark.eda

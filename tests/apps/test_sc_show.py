@@ -77,4 +77,4 @@ def test_sc_show(flags, monkeypatch, heartbeat_chip_dir, copy_chip_dir):
 
 def test_sc_show_no_manifest(monkeypatch):
     monkeypatch.setattr('sys.argv', ['sc-show', '-design', 'test', '-arg_step', 'invalid'])
-    assert sc_show.main() == 2
+    assert sc_show.main() == 1

@@ -1,19 +1,25 @@
 import copy
 import os
 import pytest
-import siliconcompiler
-from siliconcompiler import utils
-from siliconcompiler.tools.openroad._apr import APRTask
-from siliconcompiler.targets import freepdk45_demo
-from pathlib import Path
 import subprocess
 import json
 import shutil
 import socket
 import time
+
+import os.path
+
+import siliconcompiler
+from siliconcompiler import utils, ASICProject, DesignSchema
+from siliconcompiler.tools.openroad._apr import APRTask
+from siliconcompiler.flows.asicflow import ASICFlow
+from siliconcompiler.targets import freepdk45_demo
+from pathlib import Path
 from siliconcompiler.scheduler import TaskScheduler
 from siliconcompiler.utils.multiprocessing import _ManagerSingleton, MPManager
 from unittest.mock import patch
+
+from siliconcompiler._dummy import target
 
 
 def pytest_addoption(parser):
@@ -149,6 +155,68 @@ def datadir(request):
     '''Returns an absolute path to the current test directory's local data
     directory.'''
     return os.path.abspath(os.path.join(os.path.dirname(request.fspath), 'data'))
+
+
+@pytest.fixture
+def heartbeat_design(examples_root):
+    design = DesignSchema("heartbeat")
+    design.set_dataroot("heartbeat-pytest-example", os.path.join(examples_root, 'heartbeat'))
+    with design.active_fileset("rtl"), design.active_dataroot("heartbeat-pytest-example"):
+        design.set_topmodule("heartbeat")
+        design.add_file("heartbeat.v")
+    with design.active_fileset("sdc"), design.active_dataroot("heartbeat-pytest-example"):
+        design.add_file("heartbeat.sdc")
+    return design
+
+
+@pytest.fixture
+def asic_heartbeat(heartbeat_design):
+    '''Returns a fully configured chip object that will compile the GCD example
+    design using freepdk45 and the asicflow.'''
+
+    project = ASICProject(heartbeat_design)
+    project.add_fileset("rtl")
+    project.add_fileset("sdc")
+
+    project.set_flow(ASICFlow())
+
+    project.load_target(target, pdk="freepdk45")
+
+    project.set('option', 'nodisplay', True)
+    project.set('option', 'quiet', True)
+
+    return project
+
+
+@pytest.fixture
+def gcd_design(examples_root):
+    design = DesignSchema("gcd")
+    design.set_dataroot("gcd-pytest-example", os.path.join(examples_root, 'gcd'))
+    with design.active_fileset("rtl"), design.active_dataroot("gcd-pytest-example"):
+        design.set_topmodule("gcd")
+        design.add_file("gcd.v")
+    with design.active_fileset("sdc"), design.active_dataroot("gcd-pytest-example"):
+        design.add_file("gcd.sdc")
+    return design
+
+
+@pytest.fixture
+def asic_gcd(gcd_design):
+    '''Returns a fully configured chip object that will compile the GCD example
+    design using freepdk45 and the asicflow.'''
+
+    project = ASICProject(gcd_design)
+    project.add_fileset("rtl")
+    project.add_fileset("sdc")
+
+    project.set_flow(ASICFlow())
+
+    project.load_target(target, pdk="freepdk45")
+
+    project.set('option', 'nodisplay', True)
+    project.set('option', 'quiet', True)
+
+    return project
 
 
 @pytest.fixture
