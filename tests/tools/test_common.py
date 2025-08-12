@@ -1,6 +1,7 @@
 import os
 
-from siliconcompiler import Chip, Library, Schema
+from siliconcompiler import Chip, Library
+from siliconcompiler.schema import Parameter
 from siliconcompiler.tools._common import input_provides, input_file_node_name, get_libraries, \
     add_require_input
 from siliconcompiler.tools._common.asic import get_libraries as get_asic_libraries, CellArea
@@ -213,8 +214,8 @@ def test_get_libraries():
     chip.set('option', 'library', 'test')
     chip.use(lib)
 
-    chip.set('arg', 'step', Schema.GLOBAL_KEY)
-    chip.set('arg', 'index', Schema.GLOBAL_KEY)
+    chip.set('arg', 'step', Parameter.GLOBAL_KEY)
+    chip.set('arg', 'index', Parameter.GLOBAL_KEY)
 
     assert get_libraries(chip) == set(['test'])
 
@@ -228,8 +229,8 @@ def test_get_libraries_recuriveloop():
     chip.use(lib)
     chip.set('option', 'library', 'main_lib')
 
-    chip.set('arg', 'step', Schema.GLOBAL_KEY)
-    chip.set('arg', 'index', Schema.GLOBAL_KEY)
+    chip.set('arg', 'step', Parameter.GLOBAL_KEY)
+    chip.set('arg', 'index', Parameter.GLOBAL_KEY)
 
     assert get_libraries(chip) == set(['main_lib'])
 
@@ -245,8 +246,8 @@ def test_get_libraries_recurive():
     chip.use(lib)
     chip.set('option', 'library', 'main_lib')
 
-    chip.set('arg', 'step', Schema.GLOBAL_KEY)
-    chip.set('arg', 'index', Schema.GLOBAL_KEY)
+    chip.set('arg', 'step', Parameter.GLOBAL_KEY)
+    chip.set('arg', 'index', Parameter.GLOBAL_KEY)
 
     assert get_libraries(chip) == set(['main_lib', 'test'])
 
@@ -262,8 +263,8 @@ def test_recursive_import_with_option_library():
     chip.use(lib)
     chip.set('option', 'library', 'main_lib')
 
-    chip.set('arg', 'step', Schema.GLOBAL_KEY)
-    chip.set('arg', 'index', Schema.GLOBAL_KEY)
+    chip.set('arg', 'step', Parameter.GLOBAL_KEY)
+    chip.set('arg', 'index', Parameter.GLOBAL_KEY)
 
     assert get_libraries(chip) == set(['main_lib', 'sub_lib'])
 
@@ -276,8 +277,8 @@ def test_get_libraries_asic_none(libtype):
     chip.set('option', 'library', 'test')
     chip.use(lib)
 
-    chip.set('arg', 'step', Schema.GLOBAL_KEY)
-    chip.set('arg', 'index', Schema.GLOBAL_KEY)
+    chip.set('arg', 'step', Parameter.GLOBAL_KEY)
+    chip.set('arg', 'index', Parameter.GLOBAL_KEY)
 
     assert get_asic_libraries(chip, libtype) == []
 
@@ -289,8 +290,8 @@ def test_get_libraries_asic_invalid():
     chip.set('option', 'library', 'test')
     chip.use(lib)
 
-    chip.set('arg', 'step', Schema.GLOBAL_KEY)
-    chip.set('arg', 'index', Schema.GLOBAL_KEY)
+    chip.set('arg', 'step', Parameter.GLOBAL_KEY)
+    chip.set('arg', 'index', Parameter.GLOBAL_KEY)
 
     with pytest.raises(ValueError):
         get_asic_libraries(chip, 'error')
@@ -305,8 +306,8 @@ def test_get_libraries_asic_single(libtype):
     chip.use(lib)
     chip.add('asic', f'{libtype}lib', 'testlib')
 
-    chip.set('arg', 'step', Schema.GLOBAL_KEY)
-    chip.set('arg', 'index', Schema.GLOBAL_KEY)
+    chip.set('arg', 'step', Parameter.GLOBAL_KEY)
+    chip.set('arg', 'index', Parameter.GLOBAL_KEY)
 
     assert get_asic_libraries(chip, libtype) == ['testlib']
 
@@ -320,8 +321,8 @@ def test_get_libraries_asic_sub_import_single(libtype):
     chip.set('option', 'library', 'test')
     chip.use(lib)
 
-    chip.set('arg', 'step', Schema.GLOBAL_KEY)
-    chip.set('arg', 'index', Schema.GLOBAL_KEY)
+    chip.set('arg', 'step', Parameter.GLOBAL_KEY)
+    chip.set('arg', 'index', Parameter.GLOBAL_KEY)
 
     assert get_asic_libraries(chip, libtype) == ['testlib']
 
@@ -336,8 +337,8 @@ def test_get_libraries_asic_sub_import_overlapping(libtype):
     chip.use(lib)
     chip.add('asic', f'{libtype}lib', 'testlib')
 
-    chip.set('arg', 'step', Schema.GLOBAL_KEY)
-    chip.set('arg', 'index', Schema.GLOBAL_KEY)
+    chip.set('arg', 'step', Parameter.GLOBAL_KEY)
+    chip.set('arg', 'index', Parameter.GLOBAL_KEY)
 
     assert get_asic_libraries(chip, libtype) == ['testlib']
 
@@ -352,8 +353,8 @@ def test_get_libraries_asic_sub_import_differnet(libtype):
     chip.use(lib)
     chip.add('asic', f'{libtype}lib', 'testlib2')
 
-    chip.set('arg', 'step', Schema.GLOBAL_KEY)
-    chip.set('arg', 'index', Schema.GLOBAL_KEY)
+    chip.set('arg', 'step', Parameter.GLOBAL_KEY)
+    chip.set('arg', 'index', Parameter.GLOBAL_KEY)
 
     assert get_asic_libraries(chip, libtype) == ['testlib2', 'testlib']
 
@@ -367,8 +368,8 @@ def test_get_libraries_asic_sub_not_enabled(libtype):
     chip.use(lib)
     chip.add('asic', f'{libtype}lib', 'testlib2')
 
-    chip.set('arg', 'step', Schema.GLOBAL_KEY)
-    chip.set('arg', 'index', Schema.GLOBAL_KEY)
+    chip.set('arg', 'step', Parameter.GLOBAL_KEY)
+    chip.set('arg', 'index', Parameter.GLOBAL_KEY)
 
     assert get_asic_libraries(chip, libtype) == ['testlib2']
 

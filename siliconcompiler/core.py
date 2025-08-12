@@ -18,7 +18,7 @@ import csv
 import yaml
 from inspect import getfullargspec
 from siliconcompiler import Schema
-from siliconcompiler.schema import SCHEMA_VERSION, PerNode, Journal, EditableSchema
+from siliconcompiler.schema import SCHEMA_VERSION, PerNode, Journal, EditableSchema, Parameter
 from siliconcompiler.schema.parametertype import NodeType
 from siliconcompiler.schema.parametervalue import FileNodeValue
 from siliconcompiler.schema import utils as schema_utils
@@ -138,9 +138,9 @@ class Chip:
         :keypath:`design`.
         '''
         if not step:
-            step = Schema.GLOBAL_KEY
+            step = Parameter.GLOBAL_KEY
         if not index:
-            index = Schema.GLOBAL_KEY
+            index = Parameter.GLOBAL_KEY
         entrypoint = self.get('option', 'entrypoint', step=step, index=index)
         if not entrypoint:
             return self.design
@@ -316,9 +316,9 @@ class Chip:
                         continue
                     if not self.get(*key, field='pernode').is_never():
                         if step is None:
-                            step = Schema.GLOBAL_KEY
+                            step = Parameter.GLOBAL_KEY
                         if index is None:
-                            index = Schema.GLOBAL_KEY
+                            index = Parameter.GLOBAL_KEY
 
                     packages = self.get(*key, field='package', step=step, index=index)
                     if not is_list:
@@ -776,7 +776,7 @@ class Chip:
                 pernode = self.schema.get(*keypath, field='pernode')
                 if pernode == PerNode.OPTIONAL and \
                    (step is None or index is None) and \
-                   (Schema.GLOBAL_KEY not in (step, index)):  # allow explicit access to global
+                   (Parameter.GLOBAL_KEY not in (step, index)):  # allow explicit access to global
                     self.error(
                         f"Invalid args to get() of keypath {keypath}: step and "
                         "index are required for reading from this parameter "
@@ -2169,13 +2169,13 @@ class Chip:
 
             in_labels = []
             for in_lib in lib.get('option', 'library',
-                                  step=Schema.GLOBAL_KEY, index=Schema.GLOBAL_KEY):
+                                  step=Parameter.GLOBAL_KEY, index=Parameter.GLOBAL_KEY):
                 in_labels.append(f'library-{in_lib}')
             for in_lib in lib.get('asic', 'logiclib',
-                                  step=Schema.GLOBAL_KEY, index=Schema.GLOBAL_KEY):
+                                  step=Parameter.GLOBAL_KEY, index=Parameter.GLOBAL_KEY):
                 in_labels.append(f'logiclib-{in_lib}')
             for in_lib in lib.get('asic', 'macrolib',
-                                  step=Schema.GLOBAL_KEY, index=Schema.GLOBAL_KEY):
+                                  step=Parameter.GLOBAL_KEY, index=Parameter.GLOBAL_KEY):
                 in_labels.append(f'macrolib-{in_lib}')
 
             shape = "oval"
@@ -2196,15 +2196,15 @@ class Chip:
             }
 
             for in_lib in lib.get('option', 'library',
-                                  step=Schema.GLOBAL_KEY, index=Schema.GLOBAL_KEY):
+                                  step=Parameter.GLOBAL_KEY, index=Parameter.GLOBAL_KEY):
                 collect_library("library", search_schema.search('library', in_lib),
                                 name=in_lib)
             for in_lib in lib.get('asic', 'logiclib',
-                                  step=Schema.GLOBAL_KEY, index=Schema.GLOBAL_KEY):
+                                  step=Parameter.GLOBAL_KEY, index=Parameter.GLOBAL_KEY):
                 collect_library("logiclib", search_schema.search('library', in_lib),
                                 name=in_lib)
             for in_lib in lib.get('asic', 'macrolib',
-                                  step=Schema.GLOBAL_KEY, index=Schema.GLOBAL_KEY):
+                                  step=Parameter.GLOBAL_KEY, index=Parameter.GLOBAL_KEY):
                 collect_library("macrolib", search_schema.search('library', in_lib),
                                 name=in_lib)
 
@@ -2249,7 +2249,7 @@ class Chip:
                 r_step = step
                 r_index = index
                 if r_index is None:
-                    r_index = Schema.GLOBAL_KEY
+                    r_index = Parameter.GLOBAL_KEY
 
                 val = self.get(*key, step=r_step, index=r_index)
                 if new_library is None:
@@ -2262,9 +2262,9 @@ class Chip:
             else:
                 for val, r_step, r_index in self.schema.get(*key, field=None).getvalues():
                     if r_step is None:
-                        r_step = Schema.GLOBAL_KEY
+                        r_step = Parameter.GLOBAL_KEY
                     if r_index is None:
-                        r_index = Schema.GLOBAL_KEY
+                        r_index = Parameter.GLOBAL_KEY
 
                     if new_library is None:
                         self.set(*key, [v for v in val if v != org_library],

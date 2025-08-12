@@ -1,5 +1,5 @@
 import siliconcompiler
-from siliconcompiler import Schema
+from siliconcompiler.schema import Parameter
 
 import os
 import pytest
@@ -122,7 +122,7 @@ def test_resume_changed_file_no_hash_timestamp(gcd_chip):
 
     shutil.copyfile(
         gcd_chip.find_files('input', 'constraint', 'sdc',
-                            step=Schema.GLOBAL_KEY, index=Schema.GLOBAL_KEY)[0],
+                            step=Parameter.GLOBAL_KEY, index=Parameter.GLOBAL_KEY)[0],
         './gcd.sdc')
 
     gcd_chip.set('input', 'constraint', 'sdc', './gcd.sdc')
@@ -170,7 +170,7 @@ def test_resume_changed_file_no_hash_dir_timestamp(gcd_chip):
 
     shutil.copyfile(
         gcd_chip.find_files('input', 'constraint', 'sdc',
-                            step=Schema.GLOBAL_KEY, index=Schema.GLOBAL_KEY)[0],
+                            step=Parameter.GLOBAL_KEY, index=Parameter.GLOBAL_KEY)[0],
         './gcd.sdc')
 
     gcd_chip.set('input', 'constraint', 'sdc', './gcd.sdc')
@@ -213,7 +213,7 @@ def test_resume_changed_file_no_hash_value_change(gcd_chip):
     # Copy file before to ensure timestamps are consistent
     shutil.copyfile(
         gcd_chip.find_files('input', 'constraint', 'sdc',
-                            step=Schema.GLOBAL_KEY, index=Schema.GLOBAL_KEY)[0],
+                            step=Parameter.GLOBAL_KEY, index=Parameter.GLOBAL_KEY)[0],
         './gcd.sdc')
 
     assert gcd_chip.run()

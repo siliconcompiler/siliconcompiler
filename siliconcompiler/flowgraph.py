@@ -1,7 +1,6 @@
 import inspect
 import importlib
 
-from siliconcompiler import Schema
 from siliconcompiler.schema import BaseSchema, NamedSchema
 from siliconcompiler.schema import EditableSchema, Parameter, Scope
 from siliconcompiler.schema.utils import trim
@@ -79,11 +78,11 @@ class FlowgraphSchema(NamedSchema):
             # identified by step='place' and index=0.
         '''
 
-        if step in (Schema.GLOBAL_KEY, 'default', 'sc_collected_files'):
+        if step in (Parameter.GLOBAL_KEY, 'default', 'sc_collected_files'):
             raise ValueError(f"{step} is a reserved name")
 
         index = str(index)
-        if index in (Schema.GLOBAL_KEY, 'default'):
+        if index in (Parameter.GLOBAL_KEY, 'default'):
             raise ValueError(f"{index} is a reserved name")
 
         if '/' in step:

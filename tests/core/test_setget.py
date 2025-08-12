@@ -4,9 +4,10 @@ import os
 import re
 import siliconcompiler
 import logging
-from siliconcompiler import Schema, SiliconCompilerError
+from siliconcompiler import SiliconCompilerError
 from siliconcompiler.targets import freepdk45_demo
 from siliconcompiler.schema import PerNode
+from siliconcompiler.schema import Parameter
 
 
 def test_setget(cast):
@@ -217,22 +218,22 @@ def test_pernode_get_global():
     chip.set('asic', 'logiclib', 'synlib', step='syn')
     chip.set('asic', 'logiclib', 'syn0lib', step='syn', index=0)
 
-    assert chip.get('asic', 'logiclib', step=Schema.GLOBAL_KEY) == ['mylib']
+    assert chip.get('asic', 'logiclib', step=Parameter.GLOBAL_KEY) == ['mylib']
     assert chip.get('asic', 'logiclib',
-                    step=Schema.GLOBAL_KEY, index=Schema.GLOBAL_KEY) == ['mylib']
+                    step=Parameter.GLOBAL_KEY, index=Parameter.GLOBAL_KEY) == ['mylib']
 
 
 def test_pernode_set_global():
     chip = siliconcompiler.Chip('test')
 
     chip.set('asic', 'logiclib', 'mylib')
-    assert chip.get('asic', 'logiclib', step=Schema.GLOBAL_KEY) == ['mylib']
+    assert chip.get('asic', 'logiclib', step=Parameter.GLOBAL_KEY) == ['mylib']
 
-    chip.set('asic', 'logiclib', 'mylib1', step=Schema.GLOBAL_KEY)
-    assert chip.get('asic', 'logiclib', step=Schema.GLOBAL_KEY) == ['mylib1']
+    chip.set('asic', 'logiclib', 'mylib1', step=Parameter.GLOBAL_KEY)
+    assert chip.get('asic', 'logiclib', step=Parameter.GLOBAL_KEY) == ['mylib1']
 
-    chip.set('asic', 'logiclib', 'mylib2', step=Schema.GLOBAL_KEY, index=Schema.GLOBAL_KEY)
-    assert chip.get('asic', 'logiclib', step=Schema.GLOBAL_KEY) == ['mylib2']
+    chip.set('asic', 'logiclib', 'mylib2', step=Parameter.GLOBAL_KEY, index=Parameter.GLOBAL_KEY)
+    assert chip.get('asic', 'logiclib', step=Parameter.GLOBAL_KEY) == ['mylib2']
 
 
 @pytest.mark.parametrize('field', ['filehash', 'package'])
@@ -441,9 +442,9 @@ def test_set_input():
     chip.input('test.sv')
 
     assert chip.get('input', 'rtl', 'verilog',
-                    step=Schema.GLOBAL_KEY, index=Schema.GLOBAL_KEY) == ['test.v']
+                    step=Parameter.GLOBAL_KEY, index=Parameter.GLOBAL_KEY) == ['test.v']
     assert chip.get('input', 'rtl', 'systemverilog',
-                    step=Schema.GLOBAL_KEY, index=Schema.GLOBAL_KEY) == ['test.sv']
+                    step=Parameter.GLOBAL_KEY, index=Parameter.GLOBAL_KEY) == ['test.sv']
 
 
 def test_add_input():
@@ -451,9 +452,9 @@ def test_add_input():
     chip.input(['test.v', 'test.sv'])
 
     assert chip.get('input', 'rtl', 'verilog',
-                    step=Schema.GLOBAL_KEY, index=Schema.GLOBAL_KEY) == ['test.v']
+                    step=Parameter.GLOBAL_KEY, index=Parameter.GLOBAL_KEY) == ['test.v']
     assert chip.get('input', 'rtl', 'systemverilog',
-                    step=Schema.GLOBAL_KEY, index=Schema.GLOBAL_KEY) == ['test.sv']
+                    step=Parameter.GLOBAL_KEY, index=Parameter.GLOBAL_KEY) == ['test.sv']
 
 
 def test_add_input_empty():
@@ -491,7 +492,7 @@ def test_add_input_same_type():
     chip.input(['test1.v', 'test2.v'])
 
     assert chip.get('input', 'rtl', 'verilog',
-                    step=Schema.GLOBAL_KEY, index=Schema.GLOBAL_KEY) == ['test1.v', 'test2.v']
+                    step=Parameter.GLOBAL_KEY, index=Parameter.GLOBAL_KEY) == ['test1.v', 'test2.v']
 
 
 def test_add_output():
@@ -499,9 +500,9 @@ def test_add_output():
     chip.output(['test.v', 'test.sv'])
 
     assert chip.get('output', 'rtl', 'verilog',
-                    step=Schema.GLOBAL_KEY, index=Schema.GLOBAL_KEY) == ['test.v']
+                    step=Parameter.GLOBAL_KEY, index=Parameter.GLOBAL_KEY) == ['test.v']
     assert chip.get('output', 'rtl', 'systemverilog',
-                    step=Schema.GLOBAL_KEY, index=Schema.GLOBAL_KEY) == ['test.sv']
+                    step=Parameter.GLOBAL_KEY, index=Parameter.GLOBAL_KEY) == ['test.sv']
 
 
 def test_add_output_same_type():
@@ -509,7 +510,7 @@ def test_add_output_same_type():
     chip.output(['test1.v', 'test2.v'])
 
     assert chip.get('output', 'rtl', 'verilog',
-                    step=Schema.GLOBAL_KEY, index=Schema.GLOBAL_KEY) == ['test1.v', 'test2.v']
+                    step=Parameter.GLOBAL_KEY, index=Parameter.GLOBAL_KEY) == ['test1.v', 'test2.v']
 
 
 def test_set_input_pernode():
@@ -519,14 +520,14 @@ def test_set_input_pernode():
     chip.input('test2.sv', step='test_sv', index='1')
 
     assert chip.get('input', 'rtl', 'verilog',
-                    step=Schema.GLOBAL_KEY, index=Schema.GLOBAL_KEY) == []
+                    step=Parameter.GLOBAL_KEY, index=Parameter.GLOBAL_KEY) == []
     assert chip.get('input', 'rtl', 'systemverilog',
-                    step=Schema.GLOBAL_KEY, index=Schema.GLOBAL_KEY) == []
+                    step=Parameter.GLOBAL_KEY, index=Parameter.GLOBAL_KEY) == []
 
     assert chip.get('input', 'rtl', 'verilog',
-                    step='test', index=Schema.GLOBAL_KEY) == ['test.v']
+                    step='test', index=Parameter.GLOBAL_KEY) == ['test.v']
     assert chip.get('input', 'rtl', 'systemverilog',
-                    step='test_sv', index=Schema.GLOBAL_KEY) == ['test.sv']
+                    step='test_sv', index=Parameter.GLOBAL_KEY) == ['test.sv']
 
     assert chip.get('input', 'rtl', 'systemverilog',
                     step='test_sv', index='0') == ['test.sv']
@@ -540,9 +541,9 @@ def test_set_output():
     chip.output('test.sv')
 
     assert chip.get('output', 'rtl', 'verilog',
-                    step=Schema.GLOBAL_KEY, index=Schema.GLOBAL_KEY) == ['test.v']
+                    step=Parameter.GLOBAL_KEY, index=Parameter.GLOBAL_KEY) == ['test.v']
     assert chip.get('output', 'rtl', 'systemverilog',
-                    step=Schema.GLOBAL_KEY, index=Schema.GLOBAL_KEY) == ['test.sv']
+                    step=Parameter.GLOBAL_KEY, index=Parameter.GLOBAL_KEY) == ['test.sv']
 
 
 @pytest.mark.nostrict

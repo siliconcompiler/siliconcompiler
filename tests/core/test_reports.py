@@ -82,7 +82,7 @@ def test_make_manifest_leaves():
     '''
     tests that all leaves that have a step and index have there step and index
     concatenated unless the index is 'default' in which case it is just the
-    step. If step is 'default' or Schema.GLOBAL_KEY the index is simply removed.
+    step. If step is 'default' or Parameter.GLOBAL_KEY the index is simply removed.
     If the pernode is PerNode.NEVER, the value given is the value of the node
     'default'/'default'.
     '''
@@ -93,7 +93,7 @@ def test_make_manifest_leaves():
     # pernode == PerNode.NEVER
     chip.set('design', 'design_name')
 
-    # index == Schema.GLOBAL_KEY
+    # index == Parameter.GLOBAL_KEY
     chip.set('option', 'scheduler', 'msgevent', 'all', step='import')
 
     test = report.make_manifest(chip)
@@ -102,7 +102,7 @@ def test_make_manifest_leaves():
     assert test['record']['distro']['import1'] == '8'
     # pernode == PerNode.NEVER
     assert test['design'] == 'design_name'
-    # index == Schema.GLOBAL_KEY
+    # index == Parameter.GLOBAL_KEY
     assert test['option']['scheduler']['msgevent']['import'] == ['all']
 
 
