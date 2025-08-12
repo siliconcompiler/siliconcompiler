@@ -94,7 +94,8 @@ class FlowgraphSchema(NamedSchema):
         task_module = None
         if isinstance(task, str):
             task_module = task
-            task = self.__get_task_module(task_module)
+            task_cls = self.__get_task_module(task_module)
+            task = task_cls()
         elif isinstance(task, TaskSchema):
             task_module = task.__class__.__module__ + "/" + task.__class__.__name__
         else:
@@ -557,7 +558,10 @@ class FlowgraphSchema(NamedSchema):
         if name in self.__cache_tasks:
             return self.__cache_tasks[name]
 
-        module_name, cls = name.split("/")
+        try:
+            module_name, cls = name.split("/")
+        except ValueError:
+            raise ValueError("task is not correctly formatted as <module>/<class>")
         module = importlib.import_module(module_name)
 
         self.__cache_tasks[name] = getattr(module, cls)
