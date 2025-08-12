@@ -52,10 +52,10 @@ def reset_singleton(monkeypatch):
 
 
 @pytest.fixture
-def mock_chip(gcd_chip):
-    gcd_chip.set('design', 'test_design')
-    gcd_chip.set('option', 'jobname', 'test_job')
-    return gcd_chip
+def mock_project(asic_gcd):
+    asic_gcd.set('option', 'design', 'test_design')
+    asic_gcd.set('option', 'jobname', 'test_job')
+    return asic_gcd
 
 
 @pytest.fixture
@@ -217,16 +217,16 @@ def mock_finished_job_passed():
 
 
 @pytest.fixture
-def dashboard(mock_chip, fake_console):
+def dashboard(mock_project, fake_console):
     with patch("threading.Thread"):
-        dashboard = CliDashboard(mock_chip)
+        dashboard = CliDashboard(mock_project)
         return dashboard
 
 
 @pytest.fixture
-def dashboard_xsmall(mock_chip, fake_console):
+def dashboard_xsmall(mock_project, fake_console):
     with patch("threading.Thread"):
-        dashboard = CliDashboard(mock_chip)
+        dashboard = CliDashboard(mock_project)
         dashboard._dashboard._console.height = 2
         dashboard._dashboard._console.width = 120
 
@@ -239,9 +239,9 @@ def dashboard_xsmall(mock_chip, fake_console):
 
 
 @pytest.fixture
-def dashboard_small(mock_chip, fake_console):
+def dashboard_small(mock_project, fake_console):
     with patch("threading.Thread"):
-        dashboard = CliDashboard(mock_chip)
+        dashboard = CliDashboard(mock_project)
         dashboard._dashboard._console.height = 14
         dashboard._dashboard._console.width = 120
 
@@ -254,9 +254,9 @@ def dashboard_small(mock_chip, fake_console):
 
 
 @pytest.fixture
-def dashboard_medium(mock_chip, fake_console):
+def dashboard_medium(mock_project, fake_console):
     with patch("threading.Thread"):
-        dashboard = CliDashboard(mock_chip)
+        dashboard = CliDashboard(mock_project)
         dashboard._dashboard._console.height = 40
         dashboard._dashboard._console.width = 200
 
@@ -269,9 +269,9 @@ def dashboard_medium(mock_chip, fake_console):
 
 
 @pytest.fixture
-def dashboard_large(mock_chip, fake_console):
+def dashboard_large(mock_project, fake_console):
     with patch("threading.Thread"):
-        dashboard = CliDashboard(mock_chip)
+        dashboard = CliDashboard(mock_project)
         dashboard._dashboard._console.height = 100
         dashboard._dashboard._console.width = 300
 
@@ -293,11 +293,11 @@ def test_init(dashboard):
     assert dashboard._active
 
 
-def test_no_tty(mock_chip, monkeypatch):
+def test_no_tty(mock_project, monkeypatch):
     monkeypatch.setattr(Console, "is_terminal", False)
 
     with patch("threading.Thread"):
-        dashboard = CliDashboard(mock_chip)
+        dashboard = CliDashboard(mock_project)
 
     assert not dashboard._dashboard._active
 
@@ -1012,55 +1012,55 @@ def test_layout_normal_size():
     assert layout.log_height == 25
 
 
-def test_get_job(mock_chip, fake_console):
+def test_get_job(mock_project, fake_console):
     dashboard = MPManager.get_dashboard()
 
-    job = dashboard._get_job(mock_chip)
+    job = dashboard._get_job(mock_project)
     assert isinstance(job, JobData)
 
-    assert job.total == 25
+    assert job.total == 19
     assert job.error == 0
     assert job.success == 0
     assert job.skipped == 0
     assert job.finished == 0
     assert job.design == "test_design"
     assert job.complete is False
-    assert len(job.nodes) == 25
+    assert len(job.nodes) == 19
 
 
-def test_get_job_with_skipped(mock_chip, fake_console):
-    mock_chip.set("record", "status", "skipped", step="route.detailed", index=0)
+def test_get_job_with_skipped(mock_project, fake_console):
+    mock_project.set("record", "status", "skipped", step="route.detailed", index=0)
 
     dashboard = MPManager.get_dashboard()
 
-    job = dashboard._get_job(mock_chip)
+    job = dashboard._get_job(mock_project)
     assert isinstance(job, JobData)
 
-    assert job.total == 25
+    assert job.total == 19
     assert job.error == 0
     assert job.success == 1
     assert job.skipped == 1
     assert job.finished == 1
     assert job.design == "test_design"
     assert job.complete is False
-    assert len(job.nodes) == 24
+    assert len(job.nodes) == 18
 
 
-def test_get_job_with_status(mock_chip, fake_console):
-    mock_chip.set("record", "status", "success", step="route.global", index=0)
-    mock_chip.set("record", "status", "skipped", step="route.detailed", index=0)
-    mock_chip.set("record", "status", "error", step="write.views", index=0)
+def test_get_job_with_status(mock_project, fake_console):
+    mock_project.set("record", "status", "success", step="route.global", index=0)
+    mock_project.set("record", "status", "skipped", step="route.detailed", index=0)
+    mock_project.set("record", "status", "error", step="write.views", index=0)
 
     dashboard = MPManager.get_dashboard()
 
-    job = dashboard._get_job(mock_chip)
+    job = dashboard._get_job(mock_project)
     assert isinstance(job, JobData)
 
-    assert job.total == 25
+    assert job.total == 19
     assert job.error == 1
     assert job.success == 2
     assert job.skipped == 1
     assert job.finished == 3
     assert job.design == "test_design"
     assert job.complete is False
-    assert len(job.nodes) == 24
+    assert len(job.nodes) == 18
