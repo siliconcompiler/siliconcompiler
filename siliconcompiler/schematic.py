@@ -118,15 +118,18 @@ class SchematicSchema(NamedSchema):
         return self.getkeys('schematic', 'component')
 
     ######################################################################
-    def connect(self,
-                pins: Union[List[str], str],
-                netname: str = None) -> List[str]:
+    def connect_net(self,
+                    pins: Union[List[str], str],
+                    netname: str = None) -> List[str]:
         """
         Connect one or more schematic pins to a net name.
 
+        Component connections specified as "inst.pinname" and primary
+        design pins specified as "pinname".
+
         If no netname is entered, a netname is automatically generated based
         on the order that the connect function is called. The automatically
-        generated net names are "net0, net1, net2,..etc).
+        generated net names are "net0, net1, net2, ..etc).
 
         Args:
             pins (str or List[str]):
@@ -145,6 +148,56 @@ class SchematicSchema(NamedSchema):
             self.index = self.index + 1
 
         return self.add('schematic', 'net', netname, 'connection', pins)
+
+    ######################################################################
+    def write_verilog(self, filename):
+        """
+        Writes out schematic as a Verilog netlist.
+
+        Args:
+            filename (str or Path):
+                Path to the output netlist file in `.csv` format.
+
+        """
+
+        if filename is None:
+            raise ValueError("filename cannot be None")
+
+        # Module definition
+        module_name = ""
+
+        # Port definitiosn (collect bits as buses)
+        port_lines = []
+
+        # Wire definitions (collect bits as buses)
+        wire_lines = []
+
+        # Instances (collect bits as buses)
+        inst_lines = []
+
+        # Write Verilog
+        with open(filename, "w") as f:
+
+            # Module
+            all_ports = []
+            f.write(f"module {module_name}({', '.join(all_ports)});\n\n")
+
+            # Port declaration
+            for line in port_lines:
+                f.write(line + "\n")
+            f.write("\n")
+
+            # Wire declarations
+            for line in wire_lines:
+                f.write(line + "\n")
+            f.write("\n")
+
+            # Instances
+            for line in inst_lines:
+                f.write(line + "\n")
+
+            # Endmodule
+            f.write("\nendmodule\n")
 
 
 ###########################################################################
