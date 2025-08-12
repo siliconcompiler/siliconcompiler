@@ -175,11 +175,21 @@ def test_custom_args(schema, monkeypatch):
     assert new_schema.get('test7') == "/path"
 
 
-def test_add_cmdarg_with_auto_switch(schema):
+@pytest.mark.parametrize("type,switchtype", [
+    ("str", "<str>"),
+    ("bool", "<bool>"),
+    ("int", "<int>"),
+    ("[str]", "<str>"),
+    ("[file]", "<file>"),
+    ("[dir]", "<dir>"),
+    ("{str}", "<str>"),
+    ("[(str,str)]", "<(str,str)>")
+])
+def test_add_cmdarg_with_auto_switch(schema, type, switchtype):
     schema = schema()
-    schema._add_commandline_argument("string", "str", "help string")
-    assert schema.getkeys("cmdarg") == ("string",)
-    assert schema.get("cmdarg", "string", field="switch") == ["-string <str>"]
+    schema._add_commandline_argument("testarg", type, "help string")
+    assert schema.getkeys("cmdarg") == ("testarg",)
+    assert schema.get("cmdarg", "testarg", field="switch") == [f"-testarg {switchtype}"]
 
 
 def test_add_cmdarg_with_no_switch(schema):
