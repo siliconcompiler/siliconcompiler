@@ -1,3 +1,5 @@
+import pytest
+
 from unittest.mock import patch
 
 from siliconcompiler import PDKSchema
@@ -262,3 +264,102 @@ def test_add_runsetfileset_with_fileset():
             schema.add_runsetfileset("drc", "testtool", "drc.beol")
         fileset_assert.assert_called_once_with("beol")
         assert schema.get("pdk", "drc", "runsetfileset", "testtool", "drc.beol") == ["beol"]
+
+
+def test_add_waiverfileset():
+    schema = PDKSchema()
+
+    with patch("siliconcompiler.PDKSchema._assert_fileset") as fileset_assert:
+        schema.add_waiverfileset("drc", "testtool", "drc.feol", "feol")
+        fileset_assert.assert_called_once_with("feol")
+        fileset_assert.reset_mock()
+
+        assert schema.get("pdk", "drc", "waiverfileset", "testtool", "drc.feol") == ["feol"]
+
+        schema.add_waiverfileset("drc", "testtool", "drc.feol", "drc.feol", clobber=True)
+        fileset_assert.assert_called_once_with("drc.feol")
+        assert schema.get("pdk", "drc", "waiverfileset", "testtool", "drc.feol") == ["drc.feol"]
+
+
+def test_add_waiverfileset_with_fileset():
+    schema = PDKSchema()
+
+    with patch("siliconcompiler.PDKSchema._assert_fileset") as fileset_assert:
+        with schema.active_fileset("beol"):
+            schema.add_waiverfileset("drc", "testtool", "drc.beol")
+        fileset_assert.assert_called_once_with("beol")
+        assert schema.get("pdk", "drc", "waiverfileset", "testtool", "drc.beol") == ["beol"]
+
+
+@pytest.mark.parametrize("d0,area,expect", [
+    (1.25, 150000*75000, 0.245),
+    (1.25, 75000*75000, 0.495),
+    (1.25, 5000*5000, 0.996),
+    (1.25, 1000*1000, 0.999),
+    (5.00, 150000*75000, 0.003),
+    (5.00, 75000*75000, 0.060),
+    (5.00, 5000*5000, 0.987),
+    (5.00, 1000*1000, 0.999),
+])
+def test_calc_yield_poisson(d0, area, expect):
+    pdk = PDKSchema()
+    pdk.set("pdk", "d0", d0)
+
+    assert int(1000 * pdk.calc_yield(area)) == int(1000 * expect)
+
+
+@pytest.mark.parametrize("d0,area,expect", [
+    (1.25, 150000*75000, 0.288),
+    (1.25, 75000*75000, 0.515),
+    (1.25, 5000*5000, 0.996),
+    (1.25, 1000*1000, 0.999),
+    (5.00, 150000*75000, 0.031),
+    (5.00, 75000*75000, 0.111),
+    (5.00, 5000*5000, 0.987),
+    (5.00, 1000*1000, 0.999),
+    (0.00, 500, 1.0)
+])
+def test_calc_yield_murphy(d0, area, expect):
+    pdk = PDKSchema()
+    pdk.set("pdk", "d0", d0)
+
+    assert int(1000 * pdk.calc_yield(area, model="murphy")) == int(1000 * expect)
+
+
+def test_calc_yield_no_d0():
+    with pytest.raises(ValueError, match=r"\[pdk,d0\] has not been set"):
+        PDKSchema().calc_yield(1.0)
+
+
+def test_calc_yield_wrong_model():
+    pdk = PDKSchema()
+    pdk.set("pdk", "d0", 1.0)
+
+    with pytest.raises(ValueError, match="Unknown yield model: unknown"):
+        pdk.calc_yield(1.0, model="unknown")
+
+
+@pytest.mark.parametrize("wafer,edge,scribe,die,expect", [
+    (300, 2, (0.1, 0.1), (150000, 75000), 0),
+    (300, 2, (0.1, 0.1), (75000, 75000), 4),
+    (300, 2, (0.1, 0.1), (5000, 5000), 2520),
+    (300, 2, (0.1, 0.1), (2000, 2000), 15332),
+    (200, 2, (0.1, 0.1), (2000, 2000), 6656),
+    (2, 2, (0.1, 0.1), (2000, 2000), 0),
+    (200, 2, (0.0, 0.0), (0, 0), 0),
+    (200, None, None, (2000, 2000), 7628),
+])
+def test_calc_dpw(wafer, edge, scribe, die, expect):
+    pdk = PDKSchema()
+    pdk.set("pdk", "wafersize", wafer)
+    if edge:
+        pdk.set("pdk", "edgemargin", edge)
+    if scribe:
+        pdk.set("pdk", "scribe", scribe)
+
+    assert pdk.calc_dpw(die[0], die[1]) == expect
+
+
+def test_calc_dpw_no_wafer():
+    with pytest.raises(ValueError, match=r"\[pdk,wafersize\] has not been set"):
+        PDKSchema().calc_dpw(1.0, 1.0)
