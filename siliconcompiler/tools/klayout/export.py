@@ -97,9 +97,26 @@ class ExportTask(ASICTaskSchema):
 
         self.set_script("klayout_export.py")
 
-        self.add_required_tool_key("var", "stream")
+        if f"{self.design_topmodule}.def" in self.get_files_from_input_nodes():
+            self.add_input_file(ext="def")
+        else:
+            pass
+        # design = chip.top()
+        # if design + '.def' in input_provides(chip, step, index):
+        #     chip.add('tool', tool, 'task', task, 'input', design + '.def',
+        #             step=step, index=index)
+        # else:
+        #     chip.add('tool', tool, 'task', task, 'require', 'input,layout,def',
+        #             step=step, index=index)
 
         default_stream = self.get("var", "stream")
+
+        self.add_output_file(ext=default_stream)
+        self.add_output_file(ext="lyt")
+        self.add_output_file(ext="lyp")
+
+        self.add_required_tool_key("var", "stream")
+
         sc_stream_order = [default_stream, *[s for s in ("gds", "oas") if s != default_stream]]
         req_set = False
         for s in sc_stream_order:

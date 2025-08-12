@@ -13,6 +13,8 @@ from siliconcompiler.tools.openroad._apr import extract_metrics
 from siliconcompiler.tools.openroad._apr import APRTask
 from siliconcompiler.tools.openroad._apr import OpenROADSTAParameter
 
+from siliconcompiler.tool import TaskSkip
+
 
 class FillMetalTask(APRTask, OpenROADSTAParameter):
     def __init__(self):
@@ -53,7 +55,7 @@ class FillMetalTask(APRTask, OpenROADSTAParameter):
             #         found = True
 
             if not found:
-                return "no metal fill script is available"
+                raise TaskSkip("no metal fill script is available")
             # if self.pdk.valid("chip.get('pdk', pdk, 'aprtech', tool, stackup, libtype, 'fill'):
             #     chip.add('tool', tool, 'task', task, 'require',
             #             ",".join(['pdk', pdk, 'aprtech', tool, stackup, libtype, 'fill']),

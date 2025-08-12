@@ -294,7 +294,17 @@ class APRTask(OpenROADTask):
             self.add_required_tool_key("var", "power_corner")
 
     def _add_pnr_inputs(self):
-        pass
+        if f"{self.design_topmodule}.sdc" in self.get_files_from_input_nodes():
+            self.add_input_file(ext="sdc")
+        else:
+            pass
+
+        if f"{self.design_topmodule}.odb" in self.get_files_from_input_nodes():
+            self.add_input_file(ext="odb")
+        elif f"{self.design_topmodule}.def" in self.get_files_from_input_nodes():
+            self.add_input_file(ext="def")
+        else:
+            pass
 
     def _add_pnr_outputs(self):
         self.add_output_file(ext="sdc")

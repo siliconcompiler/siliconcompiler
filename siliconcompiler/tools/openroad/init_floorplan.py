@@ -32,6 +32,23 @@ class InitFloorplanTask(APRTask, OpenROADSTAParameter, OpenROADPPLLayersParamete
 
         self.set_script("apr/sc_init_floorplan.tcl")
 
+        # if chip.valid('input', 'asic', 'floorplan') and \
+        #    chip.get('input', 'asic', 'floorplan', step=step, index=index):
+        #     chip.add('tool', tool, 'task', task, 'require',
+        #              ",".join(['input', 'asic', 'floorplan']),
+        #              step=step, index=index)
+
+        # if f'{design}.vg' in input_provides(chip, step, index):
+        #     chip.add('tool', tool, 'task', task, 'input', f'{design}.vg',
+        #              step=step, index=index)
+        # else:
+        #     chip.add('tool', tool, 'task', task, 'require', 'input,netlist,verilog',
+        #              step=step, index=index)
+        if f"{self.design_topmodule}.vg" in self.get_files_from_input_nodes():
+            self.add_input_file(ext="vg")
+        else:
+            pass
+
         self._set_reports([
             'check_setup',
             'setup',

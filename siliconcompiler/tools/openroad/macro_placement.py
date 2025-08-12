@@ -14,6 +14,8 @@ from siliconcompiler.tools.openroad._apr import extract_metrics
 from siliconcompiler.tools.openroad._apr import APRTask
 from siliconcompiler.tools.openroad._apr import OpenROADSTAParameter, OpenROADGPLParameter
 
+from siliconcompiler.tool import TaskSkip
+
 
 class MacroPlacementTask(APRTask, OpenROADSTAParameter, OpenROADGPLParameter):
     def __init__(self):
@@ -63,9 +65,7 @@ class MacroPlacementTask(APRTask, OpenROADSTAParameter, OpenROADGPLParameter):
                 self.schema("metric").get('macros', step=in_step, index=in_index) == 0
                 for in_step, in_index in self.schema("record").get('inputnode', step=self.step, index=self.index)
                 ]):
-            self.schema("record").set('status', NodeStatus.SKIPPED, step=self.step, index=self.index)
-            self.logger.warning(f'{self.step}/{self.index} will be skipped since are no macros to place.')
-            return
+            raise TaskSkip('no macros to place.')
 
         super().pre_process()
 
