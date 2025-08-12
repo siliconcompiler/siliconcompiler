@@ -1375,6 +1375,28 @@ def test_run_pass_record(chip):
     assert chip.get("record", "status", step="stepone", index="0") == NodeStatus.SUCCESS
 
 
+def test_run_pass_restore_env(chip):
+    node = SchedulerNode(chip, "stepone", "0")
+    node.task.setup_work_directory(node.workdir)
+    node.task.set("env", "TEST", "THISVALUE")
+
+    assert "TEST" not in os.environ
+
+    def check_run(*args, **kwargs):
+        assert "TEST" in os.environ
+        assert "THISVALUE" == os.environ["TEST"]
+        return 0
+
+    with patch("siliconcompiler.TaskSchema.run_task") as run_task, \
+            patch("siliconcompiler.scheduler.SchedulerNode.check_logfile") as check_logfile:
+        run_task.side_effect = check_run
+        node.run()
+        check_logfile.assert_called_once()
+        run_task.assert_called_once()
+
+    assert "TEST" not in os.environ
+
+
 def test_run_pass_hash(chip):
     chip.set("option", "hash", True)
 
