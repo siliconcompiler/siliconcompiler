@@ -43,12 +43,12 @@ def email_creds(monkeypatch):
 @pytest.mark.parametrize(
     'event', events
 )
-def test_email_all(gcd_chip, email_creds, event):
-    gcd_chip.set('option', 'scheduler', 'msgevent', 'all')
-    gcd_chip.set('option', 'scheduler', 'msgcontact', 'test@testing.xyz')
+def test_email_all(asic_gcd, email_creds, event):
+    asic_gcd.set('option', 'scheduler', 'msgevent', 'all')
+    asic_gcd.set('option', 'scheduler', 'msgcontact', 'test@testing.xyz')
 
     with patch('smtplib.SMTP_SSL', autospec=True) as mock_smtp:
-        send_messages.send(gcd_chip, event, "import", "0")
+        send_messages.send(asic_gcd, event, "import", "0")
 
         mock_smtp.assert_called()
 
@@ -60,12 +60,12 @@ def test_email_all(gcd_chip, email_creds, event):
 @pytest.mark.parametrize(
     'event', events
 )
-def test_email_none(gcd_chip, email_creds, event):
-    gcd_chip.set('option', 'scheduler', 'msgevent', [])
-    gcd_chip.set('option', 'scheduler', 'msgcontact', 'test@testing.xyz')
+def test_email_none(asic_gcd, email_creds, event):
+    asic_gcd.set('option', 'scheduler', 'msgevent', [])
+    asic_gcd.set('option', 'scheduler', 'msgcontact', 'test@testing.xyz')
 
     with patch('smtplib.SMTP_SSL', autospec=True) as mock_smtp:
-        send_messages.send(gcd_chip, event, "import", "0")
+        send_messages.send(asic_gcd, event, "import", "0")
 
         mock_smtp.assert_not_called()
 
@@ -77,12 +77,12 @@ def test_email_none(gcd_chip, email_creds, event):
 @pytest.mark.parametrize(
     'event,check_event', [v for v in combinations_with_replacement(events, 2) if v[0] == v[1]]
 )
-def test_email_single_match(gcd_chip, email_creds, event, check_event):
-    gcd_chip.set('option', 'scheduler', 'msgevent', event)
-    gcd_chip.set('option', 'scheduler', 'msgcontact', 'test@testing.xyz')
+def test_email_single_match(asic_gcd, email_creds, event, check_event):
+    asic_gcd.set('option', 'scheduler', 'msgevent', event)
+    asic_gcd.set('option', 'scheduler', 'msgcontact', 'test@testing.xyz')
 
     with patch('smtplib.SMTP_SSL', autospec=True) as mock_smtp:
-        send_messages.send(gcd_chip, check_event, "import", "0")
+        send_messages.send(asic_gcd, check_event, "import", "0")
 
         mock_smtp.assert_called()
 
@@ -94,12 +94,12 @@ def test_email_single_match(gcd_chip, email_creds, event, check_event):
 @pytest.mark.parametrize(
     'event,check_event', [v for v in combinations_with_replacement(events, 2) if v[0] != v[1]]
 )
-def test_email_single_not_match(gcd_chip, email_creds, event, check_event):
-    gcd_chip.set('option', 'scheduler', 'msgevent', event)
-    gcd_chip.set('option', 'scheduler', 'msgcontact', 'test@testing.xyz')
+def test_email_single_not_match(asic_gcd, email_creds, event, check_event):
+    asic_gcd.set('option', 'scheduler', 'msgevent', event)
+    asic_gcd.set('option', 'scheduler', 'msgcontact', 'test@testing.xyz')
 
     with patch('smtplib.SMTP_SSL', autospec=True) as mock_smtp:
-        send_messages.send(gcd_chip, check_event, "import", "0")
+        send_messages.send(asic_gcd, check_event, "import", "0")
 
         mock_smtp.assert_not_called()
 
@@ -111,12 +111,12 @@ def test_email_single_not_match(gcd_chip, email_creds, event, check_event):
 @pytest.mark.parametrize(
     'event', events
 )
-def test_email_missing_credentials(gcd_chip, event):
-    gcd_chip.set('option', 'scheduler', 'msgevent', [])
-    gcd_chip.set('option', 'scheduler', 'msgcontact', 'test@testing.xyz')
+def test_email_missing_credentials(asic_gcd, event):
+    asic_gcd.set('option', 'scheduler', 'msgevent', [])
+    asic_gcd.set('option', 'scheduler', 'msgcontact', 'test@testing.xyz')
 
     with patch('smtplib.SMTP_SSL', autospec=True) as mock_smtp:
-        send_messages.send(gcd_chip, event, "import", "0")
+        send_messages.send(asic_gcd, event, "import", "0")
 
         mock_smtp.assert_not_called()
 
@@ -128,11 +128,11 @@ def test_email_missing_credentials(gcd_chip, event):
 @pytest.mark.parametrize(
     'event', events
 )
-def test_email_missing_email(gcd_chip, email_creds, event):
-    gcd_chip.set('option', 'scheduler', 'msgevent', [])
+def test_email_missing_email(asic_gcd, email_creds, event):
+    asic_gcd.set('option', 'scheduler', 'msgevent', [])
 
     with patch('smtplib.SMTP_SSL', autospec=True) as mock_smtp:
-        send_messages.send(gcd_chip, event, "import", "0")
+        send_messages.send(asic_gcd, event, "import", "0")
 
         mock_smtp.assert_not_called()
 
@@ -144,11 +144,11 @@ def test_email_missing_email(gcd_chip, email_creds, event):
 @pytest.mark.parametrize(
     'event', events
 )
-def test_email_missing_event(gcd_chip, email_creds, event):
-    gcd_chip.set('option', 'scheduler', 'msgcontact', 'test@testing.xyz')
+def test_email_missing_event(asic_gcd, email_creds, event):
+    asic_gcd.set('option', 'scheduler', 'msgcontact', 'test@testing.xyz')
 
     with patch('smtplib.SMTP_SSL', autospec=True) as mock_smtp:
-        send_messages.send(gcd_chip, event, "import", "0")
+        send_messages.send(asic_gcd, event, "import", "0")
 
         mock_smtp.assert_not_called()
 
@@ -157,12 +157,12 @@ def test_email_missing_event(gcd_chip, email_creds, event):
         context.sendmail.assert_not_called()
 
 
-def test_email_step_index(gcd_chip, email_creds):
-    gcd_chip.set('option', 'scheduler', 'msgevent', 'all', step='syn', index='0')
-    gcd_chip.set('option', 'scheduler', 'msgcontact', 'test@testing.xyz')
+def test_email_step_index(asic_gcd, email_creds):
+    asic_gcd.set('option', 'scheduler', 'msgevent', 'all', step='syn', index='0')
+    asic_gcd.set('option', 'scheduler', 'msgcontact', 'test@testing.xyz')
 
     with patch('smtplib.SMTP_SSL', autospec=True) as mock_smtp:
-        send_messages.send(gcd_chip, "begin", "import", "0")
+        send_messages.send(asic_gcd, "begin", "import", "0")
 
         mock_smtp.assert_not_called()
 
@@ -171,7 +171,7 @@ def test_email_step_index(gcd_chip, email_creds):
         context.sendmail.assert_not_called()
 
     with patch('smtplib.SMTP_SSL', autospec=True) as mock_smtp:
-        send_messages.send(gcd_chip, "begin", "syn", "0")
+        send_messages.send(asic_gcd, "begin", "syn", "0")
 
         mock_smtp.assert_called()
 
