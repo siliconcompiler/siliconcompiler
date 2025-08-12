@@ -11,7 +11,8 @@ import os.path
 from inspect import getfullargspec
 from typing import Set, Union, List, Tuple, Type, Callable, TextIO
 
-from siliconcompiler.schema import BaseSchema, NamedSchema, EditableSchema, Parameter, Scope
+from siliconcompiler.schema import BaseSchema, NamedSchema, EditableSchema, Parameter, Scope, \
+    SCHEMA_VERSION
 from siliconcompiler.schema.parametervalue import NodeListValue, NodeSetValue
 from siliconcompiler.schema.utils import trim
 
@@ -22,12 +23,11 @@ from siliconcompiler import MetricSchema
 from siliconcompiler import ChecklistSchema
 from siliconcompiler import ToolSchema, TaskSchema
 from siliconcompiler import ShowTaskSchema, ScreenshotTaskSchema
+from siliconcompiler import OptionSchema
 
 from siliconcompiler.cmdlineschema import CommandLineSchema
 from siliconcompiler.dependencyschema import DependencySchema
 from siliconcompiler.pathschema import PathSchemaBase
-
-from siliconcompiler.schema.schema_cfg import schema_option_runtime, schema_arg, schema_version
 
 from siliconcompiler.report.dashboard.cli import CliDashboard
 from siliconcompiler.scheduler import Scheduler
@@ -49,8 +49,53 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
 
         # Initialize schema
         schema = EditableSchema(self)
-        schema_version(schema)
-        schema_arg(schema)
+
+        # Version
+        schema.insert(
+            'schemaversion',
+            Parameter(
+                'str',
+                scope=Scope.GLOBAL,
+                defvalue=SCHEMA_VERSION,
+                require=True,
+                shorthelp="Schema version number",
+                lock=True,
+                switch="-schemaversion <str>",
+                example=["api: chip.get('schemaversion')"],
+                schelp="""SiliconCompiler schema version number."""))
+
+        # Runtime arg
+        schema.insert(
+            'arg', 'step',
+            Parameter(
+                'str',
+                scope=Scope.SCRATCH,
+                shorthelp="ARG: step argument",
+                switch="-arg_step <str>",
+                example=["cli: -arg_step 'route'",
+                         "api: chip.set('arg', 'step', 'route')"],
+                schelp="""
+                Dynamic parameter passed in by the SC runtime as an argument to
+                a runtime task. The parameter enables configuration code
+                (usually TCL) to use control flow that depend on the current
+                'step'. The parameter is used the :meth:`.run()` function and
+                is not intended for external use."""))
+
+        schema.insert(
+            'arg', 'index',
+            Parameter(
+                'str',
+                scope=Scope.SCRATCH,
+                shorthelp="ARG: index argument",
+                switch="-arg_index <str>",
+                example=["cli: -arg_index 0",
+                         "api: chip.set('arg', 'index', '0')"],
+                schelp="""
+                Dynamic parameter passed in by the SC runtime as an argument to
+                a runtime task. The parameter enables configuration code
+                (usually TCL) to use control flow that depend on the current
+                'index'. The parameter is used the :meth:`.run()` function and
+                is not intended for external use."""))
 
         schema.insert("checklist", "default", ChecklistSchema())
         schema.insert("library", "default", DesignSchema())
@@ -60,7 +105,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         schema.insert("tool", "default", ToolSchema())
 
         # Add options
-        schema_option_runtime(schema)
+        schema.insert("option", OptionSchema())
         schema.insert(
             "option", "env", "default",
             Parameter(
