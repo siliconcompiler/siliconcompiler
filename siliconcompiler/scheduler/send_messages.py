@@ -119,7 +119,7 @@ def send(chip, msg_type, step, index):
     if "from" in cred:
         msg['From'] = cred["from"]
     else:
-        msg['From'] = to[0]
+        msg['From'] = list(to)[0]
     msg['To'] = ", ".join(to)
     msg['X-Entity-Ref-ID'] = uuid.uuid4().hex  # keep emails from getting grouped
 
