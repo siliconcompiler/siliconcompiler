@@ -2018,7 +2018,9 @@ def test_show_get_supported_show_extentions(cls):
 
 def test_asic_mainlib_not_set(running_node):
     project = running_node.project
+    EditableSchema(project).insert("asic", "pdk", Parameter("str"))
     EditableSchema(project).insert("asic", "mainlib", Parameter("str"))
+    project.set("asic", "pdk", "testpdk")
 
     with ASICTaskSchema().runtime(running_node) as runtool:
         with pytest.raises(ValueError, match=r"mainlib has not been defined in \[asic,mainlib\]"):
@@ -2027,7 +2029,9 @@ def test_asic_mainlib_not_set(running_node):
 
 def test_asic_mainlib_not_loaded(running_node):
     project = running_node.project
+    EditableSchema(project).insert("asic", "pdk", Parameter("str"))
     EditableSchema(project).insert("asic", "mainlib", Parameter("str"))
+    project.set("asic", "pdk", "testpdk")
     project.set("asic", "mainlib", "testlib")
 
     with ASICTaskSchema().runtime(running_node) as runtool:
@@ -2037,7 +2041,9 @@ def test_asic_mainlib_not_loaded(running_node):
 
 def test_asic_mainlib(running_node):
     project = running_node.project
+    EditableSchema(project).insert("asic", "pdk", Parameter("str"))
     EditableSchema(project).insert("asic", "mainlib", Parameter("str"))
+    project.set("asic", "pdk", "testpdk")
     project.set("asic", "mainlib", "testlib")
     lib = BaseSchema()
     EditableSchema(project).insert("library", "testlib", lib)
@@ -2048,6 +2054,7 @@ def test_asic_mainlib(running_node):
 
 def test_asic_pdk_not_set(running_node):
     project = running_node.project
+    EditableSchema(project).insert("asic", "pdk", Parameter("str"))
     EditableSchema(project).insert("asic", "mainlib", Parameter("str"))
     project.set("asic", "mainlib", "testlib")
     lib = BaseSchema()
@@ -2056,13 +2063,15 @@ def test_asic_pdk_not_set(running_node):
 
     with ASICTaskSchema().runtime(running_node) as runtool:
         with pytest.raises(ValueError,
-                           match=r"pdk has not been defined in \[library,testlib,asic,pdk\]"):
+                           match=r"pdk has not been defined in \[asic,pdk\]"):
             runtool.pdk
 
 
 def test_asic_pdk_not_loaded(running_node):
     project = running_node.project
+    EditableSchema(project).insert("asic", "pdk", Parameter("str"))
     EditableSchema(project).insert("asic", "mainlib", Parameter("str"))
+    project.set("asic", "pdk", "testpdk")
     project.set("asic", "mainlib", "testlib")
     lib = BaseSchema()
     EditableSchema(project).insert("library", "testlib", lib)
@@ -2076,7 +2085,9 @@ def test_asic_pdk_not_loaded(running_node):
 
 def test_asic_pdk(running_node):
     project = running_node.project
+    EditableSchema(project).insert("asic", "pdk", Parameter("str"))
     EditableSchema(project).insert("asic", "mainlib", Parameter("str"))
+    project.set("asic", "pdk", "testpdk")
     project.set("asic", "mainlib", "testlib")
     lib = BaseSchema()
     EditableSchema(project).insert("library", "testlib", lib)
@@ -2091,7 +2102,9 @@ def test_asic_pdk(running_node):
 
 def test_asic_set_asic_var_from_lib(running_node):
     project = running_node.project
+    EditableSchema(project).insert("asic", "pdk", Parameter("str"))
     EditableSchema(project).insert("asic", "mainlib", Parameter("str"))
+    project.set("asic", "pdk", "testpdk")
     project.set("asic", "mainlib", "testlib")
     lib = ToolLibrarySchema()
     pdk = ToolLibrarySchema()
@@ -2121,7 +2134,9 @@ def test_asic_set_asic_var_from_lib(running_node):
 
 def test_asic_set_asic_var_from_pdk(running_node):
     project = running_node.project
+    EditableSchema(project).insert("asic", "pdk", Parameter("str"))
     EditableSchema(project).insert("asic", "mainlib", Parameter("str"))
+    project.set("asic", "pdk", "testpdk")
     project.set("asic", "mainlib", "testlib")
     lib = ToolLibrarySchema()
     pdk = ToolLibrarySchema()
@@ -2150,7 +2165,9 @@ def test_asic_set_asic_var_from_pdk(running_node):
 
 def test_asic_set_asic_var_from_defvalue(running_node):
     project = running_node.project
+    EditableSchema(project).insert("asic", "pdk", Parameter("str"))
     EditableSchema(project).insert("asic", "mainlib", Parameter("str"))
+    project.set("asic", "pdk", "testpdk")
     project.set("asic", "mainlib", "testlib")
     lib = ToolLibrarySchema()
     pdk = ToolLibrarySchema()
@@ -2176,7 +2193,9 @@ def test_asic_set_asic_var_from_defvalue(running_node):
 
 def test_asic_set_asic_var_no_value(running_node):
     project = running_node.project
+    EditableSchema(project).insert("asic", "pdk", Parameter("str"))
     EditableSchema(project).insert("asic", "mainlib", Parameter("str"))
+    project.set("asic", "pdk", "testpdk")
     project.set("asic", "mainlib", "testlib")
     lib = ToolLibrarySchema()
     pdk = ToolLibrarySchema()
@@ -2202,7 +2221,9 @@ def test_asic_set_asic_var_no_value(running_node):
 
 def test_asic_set_asic_var_require_set(running_node):
     project = running_node.project
+    EditableSchema(project).insert("asic", "pdk", Parameter("str"))
     EditableSchema(project).insert("asic", "mainlib", Parameter("str"))
+    project.set("asic", "pdk", "testpdk")
     project.set("asic", "mainlib", "testlib")
     lib = ToolLibrarySchema()
     pdk = ToolLibrarySchema()
@@ -2231,7 +2252,9 @@ def test_asic_set_asic_var_require_set(running_node):
 
 def test_asic_set_asic_var_skip_main(running_node):
     project = running_node.project
+    EditableSchema(project).insert("asic", "pdk", Parameter("str"))
     EditableSchema(project).insert("asic", "mainlib", Parameter("str"))
+    project.set("asic", "pdk", "testpdk")
     project.set("asic", "mainlib", "testlib")
     lib = ToolLibrarySchema()
     pdk = ToolLibrarySchema()
@@ -2261,7 +2284,9 @@ def test_asic_set_asic_var_skip_main(running_node):
 
 def test_asic_set_asic_var_skip_pdk(running_node):
     project = running_node.project
+    EditableSchema(project).insert("asic", "pdk", Parameter("str"))
     EditableSchema(project).insert("asic", "mainlib", Parameter("str"))
+    project.set("asic", "pdk", "testpdk")
     project.set("asic", "mainlib", "testlib")
     lib = ToolLibrarySchema()
     pdk = ToolLibrarySchema()
@@ -2288,7 +2313,9 @@ def test_asic_set_asic_var_skip_pdk(running_node):
 
 def test_asic_set_asic_var_dontoverwrite(running_node):
     project = running_node.project
+    EditableSchema(project).insert("asic", "pdk", Parameter("str"))
     EditableSchema(project).insert("asic", "mainlib", Parameter("str"))
+    project.set("asic", "pdk", "testpdk")
     project.set("asic", "mainlib", "testlib")
     lib = ToolLibrarySchema()
     pdk = ToolLibrarySchema()
@@ -2315,7 +2342,9 @@ def test_asic_set_asic_var_dontoverwrite(running_node):
 
 def test_asic_set_asic_var_custom_keys(running_node):
     project = running_node.project
+    EditableSchema(project).insert("asic", "pdk", Parameter("str"))
     EditableSchema(project).insert("asic", "mainlib", Parameter("str"))
+    project.set("asic", "pdk", "testpdk")
     project.set("asic", "mainlib", "testlib")
     lib = ToolLibrarySchema()
     pdk = ToolLibrarySchema()
@@ -2346,7 +2375,9 @@ def test_asic_set_asic_var_custom_keys(running_node):
 
 def test_asic_set_asic_var_skip_main_notdefined(running_node):
     project = running_node.project
+    EditableSchema(project).insert("asic", "pdk", Parameter("str"))
     EditableSchema(project).insert("asic", "mainlib", Parameter("str"))
+    project.set("asic", "pdk", "testpdk")
     project.set("asic", "mainlib", "testlib")
     lib = ToolLibrarySchema()
     pdk = ToolLibrarySchema()
@@ -2373,7 +2404,9 @@ def test_asic_set_asic_var_skip_main_notdefined(running_node):
 
 def test_asic_set_asic_var_from_pdk_as_list(running_node):
     project = running_node.project
+    EditableSchema(project).insert("asic", "pdk", Parameter("str"))
     EditableSchema(project).insert("asic", "mainlib", Parameter("str"))
+    project.set("asic", "pdk", "testpdk")
     project.set("asic", "mainlib", "testlib")
     lib = ToolLibrarySchema()
     pdk = ToolLibrarySchema()
