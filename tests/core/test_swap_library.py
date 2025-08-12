@@ -1,5 +1,6 @@
-from siliconcompiler import Chip, Schema
+from siliconcompiler import Chip
 from siliconcompiler import Library
+from siliconcompiler.schema import Parameter
 import pytest
 
 
@@ -32,18 +33,18 @@ def test_swap_library_sublibrary_no_main_stepindex():
     chip.use(lib)
 
     assert chip.get('option', 'library',
-                    step=Schema.GLOBAL_KEY, index=Schema.GLOBAL_KEY) == []
+                    step=Parameter.GLOBAL_KEY, index=Parameter.GLOBAL_KEY) == []
     assert chip.get('library', 'main_lib', 'option', 'library',
-                    step=Schema.GLOBAL_KEY, index=Schema.GLOBAL_KEY) == ['sub_lib']
+                    step=Parameter.GLOBAL_KEY, index=Parameter.GLOBAL_KEY) == ['sub_lib']
 
     chip.swap_library('sub_lib', 'new_lib', step='import', index='4')
 
     assert chip.get('option', 'library',
-                    step=Schema.GLOBAL_KEY, index=Schema.GLOBAL_KEY) == []
+                    step=Parameter.GLOBAL_KEY, index=Parameter.GLOBAL_KEY) == []
     assert chip.get('library', 'main_lib', 'option', 'library',
-                    step=Schema.GLOBAL_KEY, index=Schema.GLOBAL_KEY) == ['sub_lib']
+                    step=Parameter.GLOBAL_KEY, index=Parameter.GLOBAL_KEY) == ['sub_lib']
     assert chip.get('library', 'main_lib', 'option', 'library',
-                    step='import', index=Schema.GLOBAL_KEY) == ['sub_lib']
+                    step='import', index=Parameter.GLOBAL_KEY) == ['sub_lib']
     assert chip.get('library', 'main_lib', 'option', 'library',
                     step='import', index='4') == ['new_lib']
 

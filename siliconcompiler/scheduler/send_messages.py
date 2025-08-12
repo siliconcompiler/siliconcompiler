@@ -7,19 +7,23 @@ It loads SMTP server credentials from a configuration file, constructs
 HTML-formatted emails with relevant job data and attachments (logs, images),
 and sends them to specified recipients.
 """
-from siliconcompiler.utils import default_email_credentials_file, get_file_template
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
-from email.mime.application import MIMEApplication
+import fastjsonschema
 import json
 import os
-from siliconcompiler import sc_open
-from siliconcompiler import Schema
-from siliconcompiler.report import utils as report_utils
-import fastjsonschema
-from pathlib import Path
+import smtplib
 import uuid
+
+import os.path
+from email.mime.multipart import MIMEMultipart
+
+from email.mime.text import MIMEText
+from email.mime.application import MIMEApplication
+from pathlib import Path
+
+from siliconcompiler import sc_open
+from siliconcompiler.utils import default_email_credentials_file, get_file_template
+from siliconcompiler.report import utils as report_utils
+from siliconcompiler.schema import Parameter
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 
 
@@ -80,9 +84,9 @@ def send(chip, msg_type, step, index):
     """
     chip_step, chip_index = step, index
     if step is None:
-        chip_step = Schema.GLOBAL_KEY
+        chip_step = Parameter.GLOBAL_KEY
     if index is None:
-        chip_index = Schema.GLOBAL_KEY
+        chip_index = Parameter.GLOBAL_KEY
     to = chip.get('option', 'scheduler', 'msgcontact', step=chip_step, index=chip_index)
     event = chip.get('option', 'scheduler', 'msgevent', step=chip_step, index=chip_index)
 

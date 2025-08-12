@@ -1,7 +1,6 @@
 import fnmatch
 import os
-from siliconcompiler import Schema
-from siliconcompiler.schema import PerNode
+from siliconcompiler.schema import PerNode, Parameter
 from siliconcompiler.report import utils
 from siliconcompiler.tools._common import get_tool_task
 from siliconcompiler.flowgraph import RuntimeFlowgraph
@@ -113,18 +112,18 @@ def make_manifest_helper(manifest_subsect, modified_manifest_subsect):
         return 'type' in cfg and isinstance(cfg['type'], str)
 
     def build_leaf(manifest_subsect):
+        nodes = manifest_subsect['node']
         if PerNode(manifest_subsect['pernode']) == PerNode.NEVER:
-            if Schema.GLOBAL_KEY in manifest_subsect['node'] and \
-                    Schema.GLOBAL_KEY in manifest_subsect['node'][Schema.GLOBAL_KEY]:
-                value = manifest_subsect['node'][Schema.GLOBAL_KEY][Schema.GLOBAL_KEY]['value']
+            if Parameter.GLOBAL_KEY in nodes and \
+                    Parameter.GLOBAL_KEY in nodes[Parameter.GLOBAL_KEY]:
+                value = nodes[Parameter.GLOBAL_KEY][Parameter.GLOBAL_KEY]['value']
             else:
-                value = manifest_subsect['node']['default']['default']['value']
+                value = nodes['default']['default']['value']
             return value
         else:
-            nodes = manifest_subsect['node']
             node_values = {}
             for step in nodes:
-                if step == 'default' or step == Schema.GLOBAL_KEY:
+                if step == 'default' or step == Parameter.GLOBAL_KEY:
                     value = nodes[step][step]['value']
                     node_values[step] = value
                 else:
@@ -132,23 +131,23 @@ def make_manifest_helper(manifest_subsect, modified_manifest_subsect):
                         value = nodes[step][index]['value']
                         if value is None:
                             continue
-                        if index == 'default' or index == Schema.GLOBAL_KEY:
+                        if index == 'default' or index == Parameter.GLOBAL_KEY:
                             node_values[step] = value
                         else:
                             node_values[step + index] = value
             return node_values
 
     if _is_leaf(manifest_subsect):
+        nodes = manifest_subsect['node']
         if PerNode(manifest_subsect['pernode']) == PerNode.NEVER:
-            if Schema.GLOBAL_KEY in manifest_subsect['node']:
-                value = manifest_subsect['node'][Schema.GLOBAL_KEY][Schema.GLOBAL_KEY]['value']
+            if Parameter.GLOBAL_KEY in nodes:
+                value = nodes[Parameter.GLOBAL_KEY][Parameter.GLOBAL_KEY]['value']
             else:
-                value = manifest_subsect['node']['default']['default']['value']
+                value = nodes['default']['default']['value']
             modified_manifest_subsect['value'] = value
         else:
-            nodes = manifest_subsect['node']
             for step in nodes:
-                if step == 'default' or step == Schema.GLOBAL_KEY:
+                if step == 'default' or step == Parameter.GLOBAL_KEY:
                     value = nodes[step][step]['value']
                     modified_manifest_subsect[step] = value
                 else:
@@ -156,7 +155,7 @@ def make_manifest_helper(manifest_subsect, modified_manifest_subsect):
                         value = nodes[step][index]['value']
                         if value is None:
                             continue
-                        if index == 'default' or index == Schema.GLOBAL_KEY:
+                        if index == 'default' or index == Parameter.GLOBAL_KEY:
                             modified_manifest_subsect[step] = value
                         else:
                             modified_manifest_subsect[step + index] = value
