@@ -1,13 +1,16 @@
-import pytest
-from unittest.mock import patch
-import threading
 import io
 import logging
+import pytest
 import queue
+import random
+import threading
+
 from rich.console import Console, Group
 from rich.table import Table
 from rich.padding import Padding
 from rich.progress import Progress
+
+from unittest.mock import patch
 
 from siliconcompiler.report.dashboard.cli import CliDashboard
 from siliconcompiler.report.dashboard.cli.board import (
@@ -18,7 +21,6 @@ from siliconcompiler.report.dashboard.cli.board import (
 )
 from siliconcompiler import NodeStatus
 from siliconcompiler.utils.multiprocessing import MPManager
-import random
 
 
 @pytest.fixture
