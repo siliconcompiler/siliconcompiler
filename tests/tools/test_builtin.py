@@ -9,6 +9,7 @@ from siliconcompiler.tools.builtin.nop import NOPTask
 from siliconcompiler.tools.builtin.join import JoinTask
 from siliconcompiler.tools.builtin.minimum import MinimumTask
 from siliconcompiler.tools.builtin.maximum import MaximumTask
+from siliconcompiler.tools.builtin.mux import MuxTask
 
 
 @pytest.fixture
@@ -58,6 +59,10 @@ def test_minimum_name():
 
 def test_maximum_name():
     assert MaximumTask().task() == "maximum"
+
+
+def test_mux_name():
+    assert MuxTask().task() == "mux"
 
 
 def test_nop_select_inputs(caplog):
@@ -207,7 +212,44 @@ def test_maximum_winner_goal_positive(minmax_project, caplog):
     assert "Selected 'start/1' with score 1.000" in caplog.text
 
 
-@pytest.mark.parametrize("cls", [NOPTask, JoinTask, MinimumTask, MaximumTask])
+def test_mux_minimum(minmax_project, caplog):
+    project = minmax_project(MuxTask)
+    project.set('flowgraph', "test", 'end', '0', 'args', 'minimum(errors)')
+
+    node = SchedulerNode(project, "end", "0")
+    with node.runtime():
+        assert node.task.select_input_nodes() == [('start', '9')]
+
+    assert "Running builtin task 'mux'" in caplog.text
+
+
+def test_mux_maximum(minmax_project, caplog):
+    project = minmax_project(MuxTask)
+    project.set('flowgraph', "test", 'end', '0', 'args', 'maximum(errors)')
+
+    node = SchedulerNode(project, "end", "0")
+    with node.runtime():
+        assert node.task.select_input_nodes() == [('start', '0')]
+
+    assert "Running builtin task 'mux'" in caplog.text
+
+
+def test_mux_two_metrics(minmax_project, caplog):
+    project = minmax_project(MuxTask)
+    for index in project.getkeys("flowgraph", "test", "start"):
+        project.set("metric", "errors", 100 - int(index), step="start", index=index)
+        project.set("metric", "warnings", int(index) % 3, step="start", index=index)
+    project.set('flowgraph', "test", 'end', '0', 'args', 'maximum(warnings)')
+    project.add('flowgraph', "test", 'end', '0', 'args', 'minimum(errors)')
+
+    node = SchedulerNode(project, "end", "0")
+    with node.runtime():
+        assert node.task.select_input_nodes() == [('start', '8')]
+
+    assert "Running builtin task 'mux'" in caplog.text
+
+
+@pytest.mark.parametrize("cls", [NOPTask, JoinTask, MinimumTask, MaximumTask, MuxTask])
 def tets_run(cls):
     design = DesignSchema("testdesign")
     with design.active_fileset("rtl"):
@@ -225,7 +267,7 @@ def tets_run(cls):
         assert node.task.run() == 0
 
 
-@pytest.mark.parametrize("cls", [NOPTask, JoinTask, MinimumTask, MaximumTask])
+@pytest.mark.parametrize("cls", [NOPTask, JoinTask, MinimumTask, MaximumTask, MuxTask])
 def test_post_process(cls):
     design = DesignSchema("testdesign")
     with design.active_fileset("rtl"):
@@ -245,7 +287,7 @@ def test_post_process(cls):
             copy.assert_called_once()
 
 
-@pytest.mark.parametrize("cls", [NOPTask, JoinTask, MinimumTask, MaximumTask])
+@pytest.mark.parametrize("cls", [NOPTask, JoinTask, MinimumTask, MaximumTask, MuxTask])
 def test_setup_copies_inputs(cls):
     design = DesignSchema("testdesign")
     with design.active_fileset("rtl"):
@@ -278,7 +320,7 @@ def test_setup_copies_inputs(cls):
     ]
 
 
-@pytest.mark.parametrize("cls", [NOPTask, JoinTask, MinimumTask, MaximumTask])
+@pytest.mark.parametrize("cls", [NOPTask, JoinTask, MinimumTask, MaximumTask, MuxTask])
 def test_setup_copies_inputs_multiple(cls):
     design = DesignSchema("testdesign")
     with design.active_fileset("rtl"):
