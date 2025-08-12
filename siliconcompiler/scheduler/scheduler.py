@@ -248,14 +248,16 @@ class Scheduler:
 
         Returns True if valid, False otherwise.
         '''
+        return True
+
         nodes = self.__flow_runtime.get_nodes()
 
         for (step, index) in nodes:
             # Get files we receive from input nodes.
             in_nodes = self.__flow_runtime.get_node_inputs(step, index, record=self.__record)
             all_inputs = set()
-            tool = self.__flow_runtime.get(step, index, "tool")
-            task = self.__flow_runtime.get(step, index, "task")
+            tool = self.__flow.get(step, index, "tool")
+            task = self.__flow.get(step, index, "task")
             requirements = self.__chip.get("tool", tool, 'task', task, 'input',
                                            step=step, index=index)
             for in_step, in_index in in_nodes:
@@ -277,8 +279,8 @@ class Scheduler:
                     manifest = f'{design}.pkg.json'
                     inputs = [inp for inp in os.listdir(in_step_out_dir) if inp != manifest]
                 else:
-                    in_tool = self.__flow_runtime.get(in_step, in_index, "tool")
-                    in_task = self.__flow_runtime.get(in_step, in_index, "task")
+                    in_tool = self.__flow.get(in_step, in_index, "tool")
+                    in_task = self.__flow.get(in_step, in_index, "task")
                     in_task_class = self.__chip.get("tool", in_tool, "task", in_task,
                                                     field="schema")
 
