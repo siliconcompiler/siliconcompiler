@@ -32,6 +32,17 @@ def basic_project():
     return proj
 
 
+@pytest.fixture
+def basic_project_no_flow():
+    design = DesignSchema("testdesign")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+    proj = Project(design)
+    proj.add_fileset("rtl")
+
+    return proj
+
+
 def test_init_no_flow():
     with pytest.raises(ValueError, match="flow must be specified"):
         Scheduler(Project(DesignSchema("testdesign")))
@@ -267,3 +278,136 @@ def test_check_manifest_fail(basic_project):
         with pytest.raises(RuntimeError, match='check_manifest\\(\\) failed'):
             scheduler.run()
         call.assert_called_once()
+
+
+def test_check_flowgraph_io_basic(basic_project, caplog):
+    setattr(basic_project, "_Project__logger", logging.getLogger())
+    basic_project.logger.setLevel(logging.INFO)
+
+    scheduler = Scheduler(basic_project)
+
+    assert scheduler._Scheduler__check_flowgraph_io() is True
+    assert caplog.text == ""
+
+
+def test_check_flowgraph_io_with_files(basic_project_no_flow, caplog):
+    flow = FlowgraphSchema("testflow")
+    flow.node("stepone", NOPTask())
+    flow.node("steptwo", NOPTask())
+    flow.edge("stepone", "steptwo")
+    basic_project_no_flow.set_flow(flow)
+
+    setattr(basic_project_no_flow, "_Project__logger", logging.getLogger())
+    basic_project_no_flow.logger.setLevel(logging.INFO)
+
+    scheduler = Scheduler(basic_project_no_flow)
+
+    nop = basic_project_no_flow.get_task(filter=NOPTask)
+    nop.add_output_file("test.v", step="stepone", index="0")
+    nop.add_input_file("test.v", step="steptwo", index="0")
+
+    assert scheduler._Scheduler__check_flowgraph_io() is True
+    assert caplog.text == ""
+
+
+def test_check_flowgraph_io_with_files_join(basic_project_no_flow, caplog):
+    flow = FlowgraphSchema("testflow")
+    flow.node("stepone", NOPTask())
+    flow.node("steptwo", NOPTask())
+    flow.node("dojoin", NOPTask())
+    flow.node("postjoin", NOPTask())
+    flow.edge("stepone", "dojoin")
+    flow.edge("steptwo", "dojoin")
+    flow.edge("dojoin", "postjoin")
+    basic_project_no_flow.set_flow(flow)
+
+    setattr(basic_project_no_flow, "_Project__logger", logging.getLogger())
+    basic_project_no_flow.logger.setLevel(logging.INFO)
+
+    scheduler = Scheduler(basic_project_no_flow)
+
+    nop = basic_project_no_flow.get_task(filter=NOPTask)
+    nop.add_output_file("a.v", step="stepone", index="0")
+    nop.add_output_file("b.v", step="steptwo", index="0")
+    nop.add_input_file("a.v", step="dojoin", index="0")
+    nop.add_input_file("b.v", step="dojoin", index="0")
+    nop.add_output_file("a.v", step="dojoin", index="0")
+    nop.add_output_file("b.v", step="dojoin", index="0")
+    nop.add_input_file("a.v", step="postjoin", index="0")
+    nop.add_input_file("b.v", step="postjoin", index="0")
+
+    assert scheduler._Scheduler__check_flowgraph_io() is True
+    assert caplog.text == ""
+
+
+def test_check_flowgraph_io_with_files_join_extra_files(basic_project_no_flow, caplog):
+    flow = FlowgraphSchema("testflow")
+    flow.node("stepone", NOPTask())
+    flow.node("steptwo", NOPTask())
+    flow.node("dojoin", NOPTask())
+    flow.node("postjoin", NOPTask())
+    flow.edge("stepone", "dojoin")
+    flow.edge("steptwo", "dojoin")
+    flow.edge("dojoin", "postjoin")
+    basic_project_no_flow.set_flow(flow)
+
+    setattr(basic_project_no_flow, "_Project__logger", logging.getLogger())
+    basic_project_no_flow.logger.setLevel(logging.INFO)
+
+    scheduler = Scheduler(basic_project_no_flow)
+
+    nop = basic_project_no_flow.get_task(filter=NOPTask)
+    nop.add_output_file("a.v", step="stepone", index="0")
+    nop.add_output_file("common.v", step="stepone", index="0")
+    nop.add_output_file("b.v", step="steptwo", index="0")
+    nop.add_output_file("common.v", step="stepone", index="0")
+    nop.add_input_file("common.v", step="dojoin", index="0")
+    nop.add_output_file("common.v", step="dojoin", index="0")
+    nop.add_input_file("common.v", step="postjoin", index="0")
+
+    assert scheduler._Scheduler__check_flowgraph_io() is True
+    assert caplog.text == ""
+
+
+def test_check_flowgraph_io_with_files_missing_input(basic_project_no_flow, caplog):
+    flow = FlowgraphSchema("testflow")
+    flow.node("stepone", NOPTask())
+    flow.node("steptwo", NOPTask())
+    flow.edge("stepone", "steptwo")
+    basic_project_no_flow.set_flow(flow)
+
+    setattr(basic_project_no_flow, "_Project__logger", logging.getLogger())
+    basic_project_no_flow.logger.setLevel(logging.INFO)
+
+    scheduler = Scheduler(basic_project_no_flow)
+
+    nop = basic_project_no_flow.get_task(filter=NOPTask)
+    nop.add_output_file("test.v", step="stepone", index="0")
+    nop.add_input_file("test.v", step="steptwo", index="0")
+    nop.add_input_file("missing.v", step="steptwo", index="0")
+
+    assert scheduler._Scheduler__check_flowgraph_io() is False
+    assert "Invalid flow: steptwo/0 will not receive required input missing.v" in caplog.text
+
+
+def test_check_flowgraph_io_with_files_multple_input(basic_project_no_flow, caplog):
+    flow = FlowgraphSchema("testflow")
+    flow.node("stepone", NOPTask(), index=0)
+    flow.node("stepone", NOPTask(), index=1)
+    flow.node("steptwo", NOPTask())
+    flow.edge("stepone", "steptwo", tail_index=0)
+    flow.edge("stepone", "steptwo", tail_index=1)
+    basic_project_no_flow.set_flow(flow)
+
+    setattr(basic_project_no_flow, "_Project__logger", logging.getLogger())
+    basic_project_no_flow.logger.setLevel(logging.INFO)
+
+    scheduler = Scheduler(basic_project_no_flow)
+
+    nop = basic_project_no_flow.get_task(filter=NOPTask)
+    nop.add_output_file("test.v", step="stepone", index="0")
+    nop.add_output_file("test.v", step="stepone", index="1")
+    nop.add_input_file("test.v", step="steptwo", index="0")
+
+    assert scheduler._Scheduler__check_flowgraph_io() is False
+    assert "Invalid flow: steptwo/0 receives test.v from multiple input tasks" in caplog.text

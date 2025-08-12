@@ -214,12 +214,12 @@ class Scheduler:
         # Configure run
         self.__project._init_run()
 
-        self.__run_setup()
-        self.configure_nodes()
-
         # Check validity of setup
         if not self.check_manifest():
             raise RuntimeError("check_manifest() failed")
+
+        self.__run_setup()
+        self.configure_nodes()
 
         # Check validity of flowgraphs IO
         if not self.__check_flowgraph_io():
@@ -247,9 +247,8 @@ class Scheduler:
 
         Returns True if valid, False otherwise.
         '''
-        return True
-
         nodes = self.__flow_runtime.get_nodes()
+        error = False
 
         for (step, index) in nodes:
             # Get files we receive from input nodes.
@@ -257,14 +256,15 @@ class Scheduler:
             all_inputs = set()
             tool = self.__flow.get(step, index, "tool")
             task = self.__flow.get(step, index, "task")
-            requirements = self.__chip.get("tool", tool, 'task', task, 'input',
-                                           step=step, index=index)
+            task_class = self.__project.get("tool", tool, "task", task, field="schema")
+            requirements = task_class.get('input', step=step, index=index)
+
             for in_step, in_index in in_nodes:
                 if (in_step, in_index) not in nodes:
                     # If we're not running the input step, the required
                     # inputs need to already be copied into the build
                     # directory.
-                    workdir = self.__chip.getworkdir(step=in_step, index=in_index)
+                    workdir = self.__project.getworkdir(step=in_step, index=in_index)
                     in_step_out_dir = os.path.join(workdir, 'outputs')
 
                     if not os.path.isdir(in_step_out_dir):
@@ -274,21 +274,20 @@ class Scheduler:
                         inputs = []
                         continue
 
-                    design = self.__chip.get("option", 'design')
+                    design = self.__project.get("option", 'design')
                     manifest = f'{design}.pkg.json'
                     inputs = [inp for inp in os.listdir(in_step_out_dir) if inp != manifest]
                 else:
                     in_tool = self.__flow.get(in_step, in_index, "tool")
                     in_task = self.__flow.get(in_step, in_index, "task")
-                    in_task_class = self.__chip.get("tool", in_tool, "task", in_task,
-                                                    field="schema")
+                    in_task_class = self.__project.get("tool", in_tool, "task", in_task,
+                                                       field="schema")
 
-                    with in_task_class.runtime(SchedulerNode(self.__chip,
+                    with in_task_class.runtime(SchedulerNode(self.__project,
                                                              in_step, in_index)) as task:
                         inputs = task.get_output_files()
 
-                task_class = self.__chip.get("tool", tool, "task", task, field="schema")
-                with task_class.runtime(SchedulerNode(self.__chip,
+                with task_class.runtime(SchedulerNode(self.__project,
                                                       step, index)) as task:
                     for inp in inputs:
                         node_inp = task.compute_input_file_node_name(inp, in_step, in_index)
@@ -297,16 +296,16 @@ class Scheduler:
                         if inp in all_inputs:
                             self.__logger.error(f'Invalid flow: {step}/{index} '
                                                 f'receives {inp} from multiple input tasks')
-                            return False
+                            error = True
                         all_inputs.add(inp)
 
             for requirement in requirements:
                 if requirement not in all_inputs:
                     self.__logger.error(f'Invalid flow: {step}/{index} will '
                                         f'not receive required input {requirement}.')
-                    return False
+                    error = True
 
-        return True
+        return not error
 
     def __mark_pending(self, step, index):
         """
