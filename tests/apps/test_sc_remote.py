@@ -9,6 +9,9 @@ import pytest
 import requests
 import uuid
 import sys
+
+import os.path
+
 from unittest.mock import patch
 from pathlib import Path
 from siliconcompiler.utils import default_credentials_file
@@ -109,6 +112,7 @@ def test_sc_remote_auth(monkeypatch, scserver, scserver_users, scserver_credenti
     # Create the temporary credentials file, and set the Chip to use it.
     tmp_creds = scserver_credential(port, user, user_pwd)
 
+    print(['sc-remote', '-credentials', tmp_creds])
     monkeypatch.setattr("sys.argv", ['sc-remote', '-credentials', tmp_creds])
     retcode = sc_remote.main()
 
@@ -499,7 +503,8 @@ def test_configure_update_whitelist_multiple(credentials_file, monkeypatch):
     monkeypatch.setattr('sys.argv', ['sc-remote',
                                      '-configure',
                                      '-credentials', credentials_file,
-                                     '-add', './add_this', 'add_this_too'])
+                                     '-add', './add_this',
+                                     '-add', 'add_this_too'])
 
     sc_remote.main()
 
@@ -514,7 +519,8 @@ def test_configure_update_whitelist_multiple(credentials_file, monkeypatch):
     monkeypatch.setattr('sys.argv', ['sc-remote',
                                      '-configure',
                                      '-credentials', credentials_file,
-                                     '-remove', './add_this', 'add_this_too'])
+                                     '-remove', './add_this',
+                                     '-remove', 'add_this_too'])
 
     sc_remote.main()
 
@@ -530,7 +536,8 @@ def test_configure_add_add_whitelist_multiple(credentials_file, monkeypatch):
     monkeypatch.setattr('sys.argv', ['sc-remote',
                                      '-configure',
                                      '-credentials', credentials_file,
-                                     '-add', './add_this', 'add_this_too'])
+                                     '-add', './add_this',
+                                     '-add', 'add_this_too'])
 
     sc_remote.main()
 
@@ -545,7 +552,8 @@ def test_configure_add_add_whitelist_multiple(credentials_file, monkeypatch):
     monkeypatch.setattr('sys.argv', ['sc-remote',
                                      '-configure',
                                      '-credentials', credentials_file,
-                                     '-add', './add_this', 'add_this_too'])
+                                     '-add', './add_this',
+                                     '-add', 'add_this_too'])
 
     sc_remote.main()
 

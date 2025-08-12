@@ -12,7 +12,7 @@ import tempfile
 import os.path
 import urllib.parse
 
-from siliconcompiler import utils, SiliconCompilerError
+from siliconcompiler import utils
 from siliconcompiler import NodeStatus as SCNodeStatus
 
 from siliconcompiler._metadata import default_server
@@ -81,9 +81,8 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
             if fail and not os.path.isfile(cfg_file) and \
                getattr(self, '_error_on_missing_file', True):
                 # Check if it's a file since its been requested by the user
-                raise SiliconCompilerError(
-                    f'Unable to find the credentials file: {cfg_file}',
-                    chip=self.__chip)
+                raise FileNotFoundError(
+                    f'Unable to find the credentials file: {cfg_file}')
         else:
             # Use the default config file path.
             cfg_file = utils.default_credentials_file()
@@ -108,10 +107,10 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
                 "directory_whitelist": []
             }
         if 'address' not in remote_cfg:
-            raise SiliconCompilerError(
+            raise ValueError(
                 'Improperly formatted remote server configuration - '
                 'please run "sc-remote -configure" and enter your server address and '
-                'credentials.', chip=self.__chip)
+                'credentials.')
 
         self.__config = remote_cfg
 
@@ -178,11 +177,11 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
             except requests.Timeout:
                 timeouts += 1
                 if timeouts > self.__max_timeouts:
-                    raise SiliconCompilerError('Server communications timed out', chip=self.__chip)
+                    raise TimeoutError('Server communications timed out')
                 time.sleep(self.__timeout)
                 continue
             except Exception as e:
-                raise SiliconCompilerError(f'Server communications error: {e}', chip=self.__chip)
+                raise RuntimeError(f'Server communications error: {e}')
 
             code = resp.status_code
             if 200 <= code and code < 300:
@@ -205,7 +204,7 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
             if error_action:
                 return error_action(code, msg)
             else:
-                raise SiliconCompilerError(f'Server responded with {code}: {msg}', chip=self.__chip)
+                raise RuntimeError(f'Server responded with {code}: {msg}')
 
     def cancel_job(self):
         '''
@@ -474,11 +473,9 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
         # Data is encrypted if user / key were specified.
         # run remote process
         if self.__chip.get('arg', 'step'):
-            raise SiliconCompilerError('Cannot pass [arg,step] parameter into remote flow.',
-                                       chip=self.__chip)
+            raise ValueError('Cannot pass [arg,step] parameter into remote flow.')
         if self.__chip.get('arg', 'index'):
-            raise SiliconCompilerError('Cannot pass [arg,index] parameter into remote flow.',
-                                       chip=self.__chip)
+            raise ValueError('Cannot pass [arg,index] parameter into remote flow.')
 
         # Only run the pre-process step if the job doesn't already have a remote ID.
         if not remote_resume:
@@ -510,7 +507,7 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
         remote_status = self.__check()
 
         if remote_status['status'] != 'ready':
-            raise SiliconCompilerError('Remote server is not available.', chip=self.__chip)
+            raise RuntimeError('Remote server is not available.')
 
         self.__print_tos(remote_status)
 
@@ -600,14 +597,14 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
         try:
             self.__run_loop()
             self._finalize_loop()
-        except KeyboardInterrupt:
+        except KeyboardInterrupt as e:
             manifest_path = self.remote_manifest()
             reconnect_cmd = f'sc-remote -cfg {manifest_path} -reconnect'
             cancel_cmd = f'sc-remote -cfg {manifest_path} -cancel'
             self.__logger.info('Disconnecting from remote job')
             self.__logger.info(f'To reconnect to this job use: {reconnect_cmd}')
             self.__logger.info(f'To cancel this job use: {cancel_cmd}')
-            raise SiliconCompilerError('Job canceled by user keyboard interrupt')
+            raise e
 
     def __import_run_manifests(self, starttimes):
         if not self.__setup_information_loaded:
