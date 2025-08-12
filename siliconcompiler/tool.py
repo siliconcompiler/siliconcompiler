@@ -43,7 +43,6 @@ from siliconcompiler import sc_open
 
 from siliconcompiler.pathschema import PathSchema
 from siliconcompiler.record import RecordTool
-# from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 
 
@@ -163,8 +162,9 @@ class TaskSchema(NamedSchema, PathSchema):
         Args:
             node (SchedulerNode): The scheduler node for this runtime context.
         """
-        # if node and not isinstance(node, SchedulerNode):
-        #     raise TypeError("node must be a scheduler node")
+        from siliconcompiler.scheduler import SchedulerNode
+        if node and not isinstance(node, SchedulerNode):
+            raise TypeError("node must be a scheduler node")
 
         obj_copy = copy.copy(self)
         obj_copy.__set_runtime(node, step=step, index=index, relpath=relpath)
@@ -776,9 +776,12 @@ class TaskSchema(NamedSchema, PathSchema):
                 else:
                     if self.__relpath:
                         if isinstance(abspaths, (set, list)):
-                            abspaths = [os.path.relpath(path, self.__relpath) for path in abspaths]
-                        else:
+                            abspaths = [os.path.relpath(path, self.__relpath) for path in abspaths
+                                        if path]
+                        elif abspaths:
                             abspaths = os.path.relpath(abspaths, self.__relpath)
+                        else:
+                            abspaths = None
                     schema.set(*keypath, abspaths, step=step, index=index)
 
         root.set("option", "strict", strict)
