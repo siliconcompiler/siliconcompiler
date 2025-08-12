@@ -352,8 +352,8 @@ def test_log_buffer_handler():
     record1 = logging.LogRecord("test", logging.INFO, "path", 1, "msg1", (), None)
     record2 = logging.LogRecord("test", logging.INFO, "path", 1, "msg2", (), None)
 
-    buffer.make_handler().emit(record1)
-    buffer.make_handler().emit(record2)
+    buffer.make_handler({}).emit(record1)
+    buffer.make_handler({}).emit(record2)
 
     lines = buffer.get_lines()
     assert len(lines) == 2

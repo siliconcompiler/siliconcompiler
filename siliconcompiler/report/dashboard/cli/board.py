@@ -149,7 +149,8 @@ class LogBufferHandler(logging.Handler):
         """
         log_entry = self.format(record)
         if self.__unicode_rep:
-            log_entry = self.__unicode_rep.sub(self.__logger_unicode_map.get(record.levelname, record.levelname), log_entry)
+            log_entry = self.__unicode_rep.sub(
+                self.__logger_unicode_map.get(record.levelname, record.levelname), log_entry)
         else:
             log_entry = log_entry.replace("[", "\\[")
 
@@ -220,6 +221,7 @@ class SessionData:
 
 
 class NodeType(Enum):
+    """Enumeration to categorize flowgraph nodes as entry, exit, or other."""
     ENTRY = "entry"
     EXIT = "exit"
     OTHER = "other"
@@ -462,7 +464,6 @@ class Board:
 
     def open_dashboard(self):
         """Starts the dashboard rendering thread if it is not already running."""
-
         if not self._active:
             return
 
@@ -486,7 +487,6 @@ class Board:
             starttimes (dict, optional): A dictionary mapping (step, index) tuples
                                          to their start times. Defaults to None.
         """
-
         if not self._active:
             return
 
@@ -499,7 +499,6 @@ class Board:
         Returns:
             bool: True if the dashboard is running, False otherwise.
         """
-
         if not self._active:
             return False
 
@@ -522,7 +521,6 @@ class Board:
         Args:
             chip: The SiliconCompiler chip object at the end of the run.
         """
-
         if not self._active:
             return
 
