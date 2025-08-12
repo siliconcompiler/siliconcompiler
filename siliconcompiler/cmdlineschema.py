@@ -297,7 +297,10 @@ class CommandLineSchema(BaseSchema):
         kwargs["help"] = help
 
         if switch is None:
-            switch = f"-{name} <{type}>"
+            stype = type
+            if type[0] in ("[", "{") and type[-1] in ("]", "}"):
+                stype = stype[1:-1]
+            switch = f"-{name} <{stype}>"
 
         if switch is not ... and not switch:
             raise ValueError("switch is required")
