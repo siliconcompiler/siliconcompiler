@@ -46,7 +46,7 @@ class SchematicSchema(NamedSchema):
 
         """
 
-        return self.set('schematic', 'pin', name, 'dir', pindir)
+        return self.set('schematic', 'pin', name, 'direction', pindir)
 
     def get_pindir(self, name: str):
         """
@@ -60,7 +60,7 @@ class SchematicSchema(NamedSchema):
             str: Pin direction
 
         """
-        return self.getkeys('schematic', 'pin', name, 'direction')
+        return self.get('schematic', 'pin', name, 'direction')
 
     def all_pins(self):
         """
@@ -127,7 +127,7 @@ class SchematicSchema(NamedSchema):
         Component connections specified as "inst.pinname" and primary
         design pins specified as "pinname".
 
-        If no netname is entered, a netname is automatically generated based
+        If no net name is entered, a netname is automatically generated based
         on the order that the connect function is called. The automatically
         generated net names are "net0, net1, net2, ..etc).
 
@@ -139,7 +139,7 @@ class SchematicSchema(NamedSchema):
                  Net name
 
         Returns:
-            str: Pin direction
+            str: List of pins connected to net
 
         """
 
@@ -148,6 +148,22 @@ class SchematicSchema(NamedSchema):
             self.index = self.index + 1
 
         return self.add('schematic', 'net', netname, 'connection', pins)
+
+    def get_net(self, netname: str = None) -> List[str]:
+        """
+        Return list of pins connected to net.
+
+        Args:
+
+            netname (str, optional):
+                 Net name
+
+        Returns:
+            str: List of pins connected to net
+
+        """
+
+        return self.get('schematic', 'net', netname, 'connection')
 
     ######################################################################
     def write_verilog(self, filename):
@@ -164,7 +180,7 @@ class SchematicSchema(NamedSchema):
             raise ValueError("filename cannot be None")
 
         # Module definition
-        module_name = ""
+        module_name = self.get_name()
 
         # Port definitiosn (collect bits as buses)
         port_lines = []
