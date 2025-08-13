@@ -575,7 +575,12 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         Method called before calling :meth:`.check_manifest` to provide a mechanism to
         setup the project correctly.
         """
-        pass
+        if not self.get("option", "fileset") and self.get("option", "design") and self.has_library(self.get("option", "design")):
+            filesets = self.design.getkeys("fileset")
+            if len(filesets) == 1:
+                fileset = filesets[0]
+                self.logger.warning(f"Setting design fileset to: {fileset}")
+                self.set("option", "fileset", fileset)
 
     def run(self, raise_exception=False):
         '''
