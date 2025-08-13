@@ -1,8 +1,7 @@
-from siliconcompiler import Chip
-from siliconcompiler.flows import interposerflow, drcflow
+# from siliconcompiler.flows import interposerflow, drcflow
 
-from lambdapdk import interposer
-from lambdapdk.interposer.libs import bumps
+# from lambdapdk import interposer
+# from lambdapdk.interposer.libs import bumps
 
 
 ####################################################

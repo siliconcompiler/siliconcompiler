@@ -1,6 +1,5 @@
 import os
 import siliconcompiler
-from siliconcompiler.apps import sc
 
 import pytest
 from siliconcompiler.targets import asic_demo
@@ -26,6 +25,8 @@ def test_self_test():
 @pytest.mark.timeout(300)
 def test_self_test_cli(monkeypatch):
     ''' Verify self-test functionality w/ command-line call '''
+    from siliconcompiler.apps import sc
+
     monkeypatch.setattr('sys.argv', ['sc', '-target', 'asic_demo'])
     assert sc.main() == 0
 
