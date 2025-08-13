@@ -368,6 +368,8 @@ class ASICProject(Project):
         library's PDK), they are automatically configured. It also verifies
         that the `mainlib` is included in the `asiclib` list.
         """
+        super()._init_run()
+
         # Ensure mainlib is set
         if not self.get("asic", "mainlib") and self.get("asic", "asiclib"):
             mainlib = self.get("asic", "asiclib")[0]
