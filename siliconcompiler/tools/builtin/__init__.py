@@ -18,15 +18,10 @@ class BuiltinTask(TaskSchema):
 
         self._set_io_files()
 
-    def _setup_outputs(self):
-        return True
-
     def _set_io_files(self):
         files = sorted(list(self.get_files_from_input_nodes().keys()))
         self.add_input_file(files)
-
-        if self._setup_outputs():
-            self.add_output_file(files)
+        self.add_output_file(files)
 
     def select_input_nodes(self):
         self.logger.info(f"Running builtin task '{self.task()}'")

@@ -10,6 +10,7 @@ from siliconcompiler.tools.builtin.join import JoinTask
 from siliconcompiler.tools.builtin.minimum import MinimumTask
 from siliconcompiler.tools.builtin.maximum import MaximumTask
 from siliconcompiler.tools.builtin.mux import MuxTask
+from siliconcompiler.tools.builtin.verify import VerifyTask
 
 
 @pytest.fixture
@@ -63,6 +64,10 @@ def test_maximum_name():
 
 def test_mux_name():
     assert MuxTask().task() == "mux"
+
+
+def test_verify_name():
+    assert VerifyTask().task() == "verify"
 
 
 def test_nop_select_inputs(caplog):
@@ -249,7 +254,64 @@ def test_mux_two_metrics(minmax_project, caplog):
     assert "Running builtin task 'mux'" in caplog.text
 
 
-@pytest.mark.parametrize("cls", [NOPTask, JoinTask, MinimumTask, MaximumTask, MuxTask])
+def test_verify_pass(minmax_project, caplog):
+    project = minmax_project(VerifyTask, parallel=1)
+    project.set('flowgraph', "test", 'end', '0', 'args', 'errors==1042')
+
+    node = SchedulerNode(project, "end", "0")
+    with node.runtime():
+        assert node.task.select_input_nodes() == [('start', '0')]
+
+    assert "Running builtin task 'verify'" in caplog.text
+
+
+def test_verify_fail(minmax_project, caplog):
+    project = minmax_project(VerifyTask, parallel=1)
+    project.set('flowgraph', "test", 'end', '0', 'args', 'errors==1041')
+
+    node = SchedulerNode(project, "end", "0")
+    with node.runtime():
+        with pytest.raises(ValueError, match="end/0 fails 'errors' metric: 1042==1041"):
+            node.task.select_input_nodes()
+
+    assert "Running builtin task 'verify'" in caplog.text
+
+
+def test_verify_pass_two(minmax_project, caplog):
+    project = minmax_project(VerifyTask, parallel=1)
+    project.set('flowgraph', "test", 'end', '0', 'args', 'errors==1042')
+    project.add('flowgraph', "test", 'end', '0', 'args', 'warnings==0')
+
+    node = SchedulerNode(project, "end", "0")
+    with node.runtime():
+        assert node.task.select_input_nodes() == [('start', '0')]
+
+    assert "Running builtin task 'verify'" in caplog.text
+
+
+def test_verify_fail_two(minmax_project, caplog):
+    project = minmax_project(VerifyTask, parallel=1)
+    project.set('flowgraph', "test", 'end', '0', 'args', 'errors==1042')
+    project.add('flowgraph', "test", 'end', '0', 'args', 'warnings==1')
+
+    node = SchedulerNode(project, "end", "0")
+    with node.runtime():
+        with pytest.raises(ValueError, match="end/0 fails 'warnings' metric: 0==1"):
+            node.task.select_input_nodes()
+
+    assert "Running builtin task 'verify'" in caplog.text
+
+
+def test_verify_input_fail(minmax_project):
+    project = minmax_project(VerifyTask, parallel=2)
+
+    node = SchedulerNode(project, "end", "0")
+    with node.runtime():
+        with pytest.raises(ValueError, match="end/0 receives 2 inputs, but only supports one"):
+            node.task.setup()
+
+
+@pytest.mark.parametrize("cls", [NOPTask, JoinTask, MinimumTask, MaximumTask, MuxTask, VerifyTask])
 def tets_run(cls):
     design = DesignSchema("testdesign")
     with design.active_fileset("rtl"):
@@ -267,7 +329,7 @@ def tets_run(cls):
         assert node.task.run() == 0
 
 
-@pytest.mark.parametrize("cls", [NOPTask, JoinTask, MinimumTask, MaximumTask, MuxTask])
+@pytest.mark.parametrize("cls", [NOPTask, JoinTask, MinimumTask, MaximumTask, MuxTask, VerifyTask])
 def test_post_process(cls):
     design = DesignSchema("testdesign")
     with design.active_fileset("rtl"):
@@ -304,6 +366,39 @@ def test_setup_copies_inputs(cls):
     proj.add_fileset("rtl")
     proj.set_flow(flow)
     proj.get_task(filter=NOPTask).add_output_file("test.out", step="start", index="0")
+
+    assert proj.get("tool", "builtin", "task", task_name, "input", step="end", index="0") == []
+    assert proj.get("tool", "builtin", "task", task_name, "output", step="end", index="0") == []
+
+    node = SchedulerNode(proj, "end", "0")
+    with node.runtime():
+        node.setup()
+
+    assert proj.get("tool", "builtin", "task", task_name, "input", step="end", index="0") == [
+        "test.out"
+    ]
+    assert proj.get("tool", "builtin", "task", task_name, "output", step="end", index="0") == [
+        "test.out"
+    ]
+
+
+def test_setup_copies_inputs_verify():
+    design = DesignSchema("testdesign")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+
+    task_name = VerifyTask().task()
+
+    flow = FlowgraphSchema("test")
+    flow.node("start", NOPTask())
+    flow.node("end", VerifyTask())
+    flow.edge("start", "end")
+
+    proj = Project(design)
+    proj.add_fileset("rtl")
+    proj.set_flow(flow)
+    proj.get_task(filter=NOPTask).add_output_file("test.out", step="start", index="0")
+    proj.set('flowgraph', "test", 'end', '0', 'args', 'errors==1042')
 
     assert proj.get("tool", "builtin", "task", task_name, "input", step="end", index="0") == []
     assert proj.get("tool", "builtin", "task", task_name, "output", step="end", index="0") == []

@@ -6,7 +6,7 @@ from siliconcompiler.tools.bluespec import convert as bluespec_convert
 from siliconcompiler.tools.ghdl import convert as ghdl_convert
 from siliconcompiler.tools.sv2v import convert as sv2v_convert
 
-from siliconcompiler.tools.builtin import concatenate
+# from siliconcompiler.tools.builtin import concatenate
 
 from siliconcompiler.tools.slang import has_pyslang
 
