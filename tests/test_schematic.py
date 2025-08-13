@@ -10,21 +10,23 @@ def test_schematic_keys():
     golden_keys = set([
         ('schematic', 'hierchar'),
         ('schematic', 'buschar'),
-        ('schematic', 'component', 'default', 'partname'),
         ('schematic', 'pin', 'default', 'direction'),
-        ('schematic', 'net', 'default', 'connection')
+        ('schematic', 'pin', 'default', 'bitrange'),
+        ('schematic', 'component', 'default', 'partname'),
+        ('schematic', 'component', 'default', 'connection', 'default'),
+        ('schematic', 'net', 'default', 'bitrange')
     ])
 
     assert set(SchematicSchema("test").allkeys()) == golden_keys
 
 
-def test_addget_pin():
+def test_get_pindir():
     d = SchematicSchema("test")
 
     # passing
-    assert d.add_pin("pin0", "output")
-    assert d.add_pin("pin1", "input")
-    assert d.add_pin("pin2", "inout")
+    d.add_pin("pin0", "output")
+    d.add_pin("pin1", "input")
+    d.add_pin("pin2", "inout")
 
     # check that pin was set correctly
     assert d.get_pindir("pin0") == "output"
@@ -33,12 +35,21 @@ def test_addget_pin():
     with pytest.raises(ValueError, match="error"):
         d.add_pin("input", "pin1")
 
+def test_get_pinrange():
+    d = SchematicSchema("test")
+
+    d.add_pin("pin0", "output")
+    assert d.get_pinrange("pin0") == (0,0)
+
+    d.add_pin("pin0", "output", bitrange=(7,0))
+    assert d.get_pinrange("pin0") == (7,0)
+
 def test_all_pins():
     d = SchematicSchema("test")
 
-    assert d.add_pin("pin0", "output")
-    assert d.add_pin("pin1", "input")
-    assert d.add_pin("pin2", "inout")
+    d.add_pin("pin0", "output")
+    d.add_pin("pin1", "input")
+    d.add_pin("pin2", "inout")
 
     assert d.all_pins() == ('pin0', 'pin1', 'pin2')
 
@@ -55,11 +66,3 @@ def test_all_components():
     assert d.add_component("i1", "NOR2")
 
     assert d.all_components() == ('i0', 'i1')
-
-def test_net():
-    d = SchematicSchema("test")
-
-    assert d.connect_net("pin0", "netA")
-    assert d.connect_net("pin1", "netA")
-
-    assert d.get_net("netA") == ["pin0", "pin1"]
