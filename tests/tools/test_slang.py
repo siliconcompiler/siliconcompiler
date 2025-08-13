@@ -1,25 +1,24 @@
 import os
 
-import siliconcompiler
+from siliconcompiler import FlowgraphSchema
+from siliconcompiler.project import LintProject
 from siliconcompiler.tools.slang import lint
 from siliconcompiler.tools.slang import elaborate
 from siliconcompiler.targets import freepdk45_demo
 
 
-def test_lint(scroot):
-    chip = siliconcompiler.Chip('heartbeat')
+def test_lint(heartbeat_design):
+    proj = LintProject(heartbeat_design)
+    proj.add_fileset("rtl")
 
-    v_src = os.path.join(scroot, 'tests', 'data', 'heartbeat.v')
-    chip.input(v_src)
+    flow = FlowgraphSchema("lint")
+    flow.node("lint", lint.Lint())
+    proj.set_flow(flow)
 
-    flow = 'lint'
-    chip.node(flow, 'lint', lint)
-    chip.set('option', 'flow', flow)
+    assert proj.run()
 
-    assert chip.run()
-
-    assert chip.get('metric', 'errors', step='lint', index='0') == 0
-    assert chip.get('metric', 'warnings', step='lint', index='0') == 0
+    assert proj.get('metric', 'errors', step='lint', index='0') == 0
+    assert proj.get('metric', 'warnings', step='lint', index='0') == 0
 
 
 def test_surelog(scroot):
