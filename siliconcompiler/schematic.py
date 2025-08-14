@@ -50,7 +50,7 @@ class Component:
         # clone pins from part to instance name for
         self.pins = part.pins
         for p in self.pins:
-            setattr(self, p, Pin(p))
+            setattr(self, p, Pin(p, name))
 
     def __repr__(self):
         return self.name
@@ -302,9 +302,6 @@ class Schematic(BaseSchema):
         # SC raw dictionary
         self.set('schematic', 'component', name, 'partname', part.name)
 
-        print(self.getkeys('schematic', 'component'))
-
-
         return comp
 
     def get_partname(self, inst: Component):
@@ -326,14 +323,14 @@ class Schematic(BaseSchema):
         return self.getkeys('schematic', 'component')
 
     ####################################
-    def connect(self, src, dst, net=None):
+    def connect(self, src: Pin, dst: Pin, net: Net = None):
         """
         Connect pin to net.
 
         Args:
-            src (str,obj): Source pin to connect
-            dst (str, obj): Destination pin to connect
-            net (str, optional): Net name. Not needed for primary pin.
+            src (Pin): Source pin to connect
+            dst (Pin): Destination pin to connect
+            net (Net): Net name. Not needed for primary pin.
         """
 
         #TODO: Auto assign net?
@@ -376,20 +373,30 @@ class Schematic(BaseSchema):
             else:
                 bitrange = ""
             lines.append(f"  {direction} {bitrange} {pin};")
-        lines.append("")  # blank line
 
         # Declare nets
+        lines.append("\n  // wires\n")
         for net in self.all_nets():
+            bits = self.get('schematic', 'net', net, 'bitrange')
+            if bits[1]:
+                bitrange = f"[{bits[1]}:{bits[0]}]"
+            else:
+                bitrange = ""
             if net not in self.pins:
-                lines.append(f"  wire {net};")
-
-        lines.append("")  # blank line
+                lines.append(f"  wire {bitrange} {net};")
 
         # Instantiate components
-        print("comp", self.all_components())
-        exit()
+        lines.append("\n  // components\n")
         for inst in self.all_components():
-            print(inst)
+            part = self.get('schematic', 'component', inst, 'partname')
+            lines.append(f"  {part} {inst} (")
+            port_map = []
+            for pin in self.getkeys('schematic', 'part', part, 'pin'):
+                bits = self.get('schematic', 'part', part, 'pin', pin, 'bitrange')
+                net = self.get('schematic','component',inst,'connection', pin)
+                port_map.append(f"    .{pin}({net})")
+            lines.append(",\n".join(port_map))
+            lines.append(f"  );\n")
 
         lines.append("\nendmodule\n")
 
@@ -581,7 +588,6 @@ if __name__ == '__main__':
     i0 = d.add_component("i0", and2)
     i1 = d.add_component("i1", and2)
     i2 = d.add_component("i2", and2)
-    i3 = d.add_component("i3", and2)
 
     # add nets
     net0 = d.add_net("net0")
@@ -589,12 +595,11 @@ if __name__ == '__main__':
 
     # wire up schematic
     # d.connect(src, dst)
-
     d.connect(in0, i0.a)
     d.connect(in1, i0.b)
     d.connect(in2, i1.a)
     d.connect(in3, i1.b)
-    d.connect(i1.z, i2.a, net0)
+    d.connect(i0.z, i2.a, net0)
     d.connect(i1.z, i2.b, net1)
     d.connect(i2.z, out)
 
