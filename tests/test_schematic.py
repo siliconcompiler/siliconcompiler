@@ -25,25 +25,24 @@ def test_add_pin():
     d = Schematic("test")
 
     # pindir
-    pin = d.add_pin("pin", "output")
-    assert d.get_pindir("pin") == "output"
-    assert d.get_pindir(pin) == "output"
+    pin0 = d.add_pin("pin0", "output")
+    assert d.get_pindir("pin0") == "output"
+    assert d.get_pindir(pin0) == "output"
 
-    pin = d.add_pin("pin", "input")
-    assert d.get_pindir("pin") == "input"
-    assert d.get_pindir(pin) == "input"
+    pin1 = d.add_pin("pin1", "input")
+    assert d.get_pindir("pin1") == "input"
+    assert d.get_pindir(pin1) == "input"
 
-    pin = d.add_pin("pin", "inout")
-    assert d.get_pindir("pin") == "inout"
-    assert d.get_pindir(pin) == "inout"
+    pin2 = d.add_pin("pin2", "inout")
+    assert d.get_pindir("pin2") == "inout"
+    assert d.get_pindir(pin2) == "inout"
 
-    # vector
+    # vector check
     bus = d.add_pin("bus[7:0]", "output")
     assert d.get_pinrange("bus") == (7,0)
     assert d.get_pinrange(bus) == (7,0)
 
-    # scalar
-    pin0 = d.add_pin("pin0", "output")
+    # scalar check
     assert d.get_pinrange("pin0") == (0,0)
     assert d.get_pinrange(pin0) == (0,0)
 
