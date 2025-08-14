@@ -1,12 +1,13 @@
+import re
+import json
+from types import SimpleNamespace
 from typing import List, Union
-
-from siliconcompiler.schema import NamedSchema
+from siliconcompiler.schema import BaseSchema
 from siliconcompiler.schema import EditableSchema, Parameter, Scope
 from siliconcompiler.schema.utils import trim
 
-
 ###########################################################################
-class SchematicSchema(NamedSchema):
+class SchematicSchema(BaseSchema):
     '''
     Basic schematic entry class for designing systems with real physical
     components.
@@ -23,180 +24,260 @@ class SchematicSchema(NamedSchema):
         Args:
             name (str, optional): The name of the design. Defaults to None.
         '''
-        super().__init__()
-        self.set_name(name)
-        self.index = 0
 
+        # in memory object lookup
+        self.name = name
+        self.parts = {}       # library parts
+        self.pins = {}        # top-level pins
+        self.nets = {}        # net declarations
+        self.components = {}  # instantiated parts
+        self.connections = {} # net: [pin refs]
+        self.index = 0        # generated net name index
+
+        # leveraging SC infrastructure as raw dictionary
+        super().__init__()
         schema_schematic(self)
 
+
     ######################################################################
-    def add_pin(self, name: str, pindir: str, bitrange=(0,0)):
+    def add_pin(self, name: str, direction: str, bitrange=(0,0)):
         """
         Adds pin to schematic object.
 
         Args:
-            name (str):
-                Pin name (e.g., "in", "sel", out", "A", "Z").
-
-            pindir (str):
-                Pin direction (input, output, or inout).
-
-            bitrange (int,int):
-                Vector Range (max, min).
-
+            name (str): Pin name (e.g., "in", "sel").
+            direction (str): Pin direction (input, output, or inout).
+            bitrange (int, int): Pin vector range (max, min).
         """
+        # local lookup table
+        pin = SimpleNamespace(name=name)
+        self.pins[name] = pin
+        setattr(self, name, pin)
 
-        self.set('schematic', 'pin', name, 'direction', pindir)
+        # SC raw dictionary
+        self.set('schematic', 'pin', name, 'direction', direction)
         self.set('schematic', 'pin', name, 'bitrange', bitrange)
+
+        # return pin object
+        return pin
 
     def get_pindir(self, name: str):
         """
         Returns direction of named pin.
 
         Args:
-            name (str):
-                Pin name (e.g., "in", "sel", out", "A", "Z").
-
+            name (str): Pin name (e.g., "in", "sel").
         Returns:
             str: Pin direction
-
         """
         return self.get('schematic', 'pin', name, 'direction')
 
     def get_pinrange(self, name: str):
         """
         Returns vector bit range of named pin.
-
         Args:
-            name (str):
-                Pin name (e.g., "in", "sel", out", "A", "Z").
-
+            name (str): Pin name.
         Returns:
             str: Pin vector bit range
-
         """
         return self.get('schematic', 'pin', name, 'bitrange')
 
     def all_pins(self):
         """
         Returns list of all schematic pins.
-
-        Returns:
-           list[str]: List of pins
-
         """
         return self.getkeys('schematic', 'pin')
 
-    ######################################################################
-    def add_component(self, instance: str, part: str):
+    ####################################################
+    def add_part(self, name: str, pins: List[str]):
         """
-        Adds component to the schematic object.
+        Adds part declaration.
+        This is an interface/header type declaration required for all
+        parts to be instantiated in the schematic.
 
         Args:
-            instance (str):
-                Instance name (e.g., "i0", "inst0", "myCell").
+            name (str): Part name (e.g., NAND2).
+            pins (list str): List of all part pins.
+                Vector pins use bus character [] (eg. in[7:0])
+        Returns:
+            str: Part object
+        """
+        # local object database
+        part = SimpleNamespace(name=name)
+        self.parts[name] = part
+        setattr(self, name, part)
 
-            part (str):
-                Component partname/cellname. (eg. "NAND2X1")
+        # make pins accessible as objects
+        for pin in pins:
+            setattr(part, pin, SimpleNamespace(name=pin))
 
+        # record flat SC dictionary
+        for pin in pins:
+            m = re.match(r"^([^\[]+)\[(\d+):(\d+)\]$", pin)
+            bitrange = (0,0)
+            if m:
+                pin = m.group(1)
+                bitrange = (int(m.group(2)), int(m.group(3)))
+            self.set('schematic', 'part', name, 'pin', pin, 'bitrange', bitrange)
+
+        # return part object
+        return part
+
+    #####################################################
+    def add_component(self, name: str, partname: str):
+        """
+        Adds component (instance) to the schematic object.
+        Args:
+            name (str): Instance name
+            partname (str): Instance partname/cellname.
         Returns:
             str: Pin direction
-
         """
+        # create component
+        comp = SimpleNamespace(name=name)
+        self.components[name] = comp
+        setattr(self, name, comp)
 
-        return self.set('schematic', 'component', instance, 'partname', part)
+        # clone part pins into component namespace
+        part = self.parts[partname]
+        for attr, value in vars(part).items():
+            if isinstance(value, SimpleNamespace):
+                setattr(comp, attr, SimpleNamespace(name=value.name))
 
-    def get_partname(self, inst: str):
+        # SC raw dictionary
+        self.set('schematic', 'component', name, 'partname', partname)
+
+        return comp
+
+    def get_partname(self, name: str):
         """
         Returns instance part name.
-
         Args:
-            inst (str):
-                Instance name (e.g., "i0", "inst0", "myCell").
-
+           name (str): Instance name (e.g., "i0", "inst0", "myCell").
         Returns:
            list[str]: Instance part name
-
         """
-
-        return self.get('schematic', 'component', inst, 'partname')
+        return self.get('schematic', 'component', name, 'partname')
 
     def all_components(self):
         """
         Returns list of all schematic components.
-
-        Returns:
-           list[str]: List of components
-
         """
-
         return self.getkeys('schematic', 'component')
 
-    ######################################################################
-    def connect_net(self,
-                    pins: Union[List[str], str],
-                    netname: str = None) -> List[str]:
+    ##########################################
+    def add_net(self, name, bitrange=(0,0)):
         """
-        Connect one or more schematic pins to a net name.
-
-        Component connections specified as "inst.pinname" and primary
-        design pins specified as "pinname".
-
-        If no net name is entered, a netname is automatically generated based
-        on the order that the connect function is called. The automatically
-        generated net names are "net0, net1, net2, ..etc).
-
+        Adds named net to the schematic.
         Args:
-            pins (str or List[str]):
-                 List of pins to connect.
-
-            netname (str, optional):
+            name (str, optional):
                  Net name
-
+            bitrange (int, int):
+                  Net vector range (max, min).
         Returns:
             str: List of pins connected to net
-
         """
+        # local object lookup
+        net = SimpleNamespace(name=name)
+        self.nets[name] = net
+        setattr(self, name, net)
 
-        if netname is None:
-            netname = f"net{self.index}"
-            self.index = self.index + 1
+        #  store in flat SC dictionary
+        self.set('schematic', 'net', name, 'bitrange', bitrange)
 
-        return self.add('schematic', 'net', netname, 'connection', pins)
+        return net
 
-    def get_net(self, netname: str = None) -> List[str]:
+    def get_netrange(self, name: str) -> List[str]:
         """
-        Return list of pins connected to net.
-
+        Returns of vector bit range (max,min) of named net.
         Args:
-
-            netname (str, optional):
-                 Net name
-
+            name (str): Net name
         Returns:
-            str: List of pins connected to net
-
+            str: Tuple (max,min) of net vector bit range.
         """
+        return self.get('schematic', 'net', name, 'bitrange')
 
-        return self.get('schematic', 'net', netname, 'connection')
+    def all_nets(self):
+        """
+        Returns list of all schematic nets.
+        """
+        return self.getkeys('schematic', 'net')
 
-    ######################################################################
-    def write_json(self,filename):
-       """
-        Writes out schematic as a JSON netlist.
+    ####################################
+    def connect(self, pins, net=None):
+        """
+        Connect pins together.
 
         Args:
-            filename (str or Path):
-                Path to the output netlist file.
-
+            pins (List[str]): Pin objects to connect
+            net (str, optional): Net name
         """
+        if net not in self.connections:
+            self.connections[net] = []
 
+        for pin in pins:
+            self.connections[net].append(self._resolve_pin(pin))
 
-
-    ######################################################################
+    ####################################
     def write_verilog(self, filename):
         """
-        Writes out schematic as a Verilog netlist.
+        Writes out schematic as Verilog netlist.
+
+        Args:
+            filename (str or Path):
+                Path to the output netlist file.
+
+        """
+        lines = []
+
+        # Module header
+        port_list = ", ".join(self.pins.keys())
+        lines.append(f"module {self.name}({port_list});\n")
+
+        # Declare top-level pins
+        for pin_name, pin in self.pins.items():
+            # For now we assume all are single-bit (scalars)
+            direction = self.get_pindir(pin_name)
+            lines.append(f"  {direction} {pin_name};")
+
+        lines.append("")  # blank line
+
+        # Declare nets
+        for net in self.connections:
+            if net not in self.pins:
+                lines.append(f"  wire {net};")
+
+        lines.append("")  # blank line
+
+        # Instantiate components
+        for comp_name, comp in self.components.items():
+            partname = self.get_partname(comp_name)
+            # collect pin connections
+            pin_conns = []
+            for pin_attr, pin_obj in vars(comp).items():
+                # find which net this pin is connected to
+                net_connected = None
+                for net_name, pins in self.connections.items():
+                    if self._resolve_pin(pin_obj) in pins:
+                        net_connected = net_name
+                        break
+                if net_connected:
+                    pin_conns.append(f".{pin_attr}({net_connected})")
+            pin_conns_str = ", ".join(pin_conns)
+            lines.append(f"  {partname} {comp_name} ({pin_conns_str});")
+
+        lines.append("\nendmodule\n")
+
+        # Write to file
+        with open(filename, "w") as f:
+            f.write("\n".join(lines))
+
+
+
+    ###################################
+    def read_verilog(self, filename):
+        """
+        Read Verilog netlist file into data structure.
 
         Args:
             filename (str or Path):
@@ -204,92 +285,24 @@ class SchematicSchema(NamedSchema):
 
         """
 
-        if filename is None:
-            raise ValueError("filename cannot be None")
+        # TODO: use pyslang to stuff content into common data structure
 
-        # Module definition
-        module_name = self.get_name()
+    ###########################
+    # Helper Functions
+    ###########################
+    def _resolve_pin(self, pin):
+        """Convert pin object to a unique string like 'i0.a' or 'in0'."""
+        if getattr(pin, "parent", None):
+            return f"{pin.parent}.{pin.name}"
+        return pin.name
 
-        # Port definitiosn (collect bits as buses)
-        port_lines = []
-
-        # Wire definitions (collect bits as buses)
-        wire_lines = []
-
-        # Instances (collect bits as buses)
-        inst_lines = []
-
-        # Write Verilog
-        with open(filename, "w") as f:
-
-            # Module
-            all_ports = []
-            f.write(f"module {module_name}({', '.join(all_ports)});\n\n")
-
-            # Port declaration
-            for line in port_lines:
-                f.write(line + "\n")
-            f.write("\n")
-
-            # Wire declarations
-            for line in wire_lines:
-                f.write(line + "\n")
-            f.write("\n")
-
-            # Instances
-            for line in inst_lines:
-                f.write(line + "\n")
-
-            # Endmodule
-            f.write("\nendmodule\n")
-
-###########################################################################
-# Helper Functions
-###########################################################################
-
-def _get_netlist(self):
-    '''
-    Walks schematic schema and returns a clean netlist.
-    '''
-    netlist = {}
-    netlist["module"] = self.get_name()
-
-    # pins
-    netlist["pins"] = {}
-    for item in self.all_pins():
-        netlist["pins"][item] = {}
-        bitrange = self.get('schematic', 'pin', item, 'bitrange')
-        netlist["pins"][item]["bitrange"] = bitrange
-
-    # nets
-    netlist["nets"] = {}
-    for item in self.all_nets():
-        netlist["nets"][item] = {}
-        bitrange = self.get('schematic', 'net', item, 'bitrange')
-        netlist["nets"][item]["bitrange"] = bitrange
-
-    # components
-    netlist["cells"] = {}
-    for inst in self.all_components():
-        netlist["components"][inst] = {}
-        # partname
-        partname = self.get('schematic', 'component', inst, 'partname')
-        netlist["components"][inst]["partname"] = partname
-        # connections
-        netlist["components"][inst]["connection"] = {}
-        all_pins = self.getkeys('schematic', 'component', inst, 'connection')
-        for pin in all_pins:
-            conn = self.get('schematic', 'component', inst, 'connection', pin)
-            netlist["components"][inst]["connection"][pin] = conn
-
-    return netlist
 
 ###########################################################################
 # Schema
 ###########################################################################
 def schema_schematic(schema):
     '''
-    Defines the schema parameters specific to a schematic.
+    Defines the schema parameters specific to a schematic
 
     This function is called by the `SchematicSchema` constructor to set up
     all schematic parameters:
@@ -301,8 +314,9 @@ def schema_schematic(schema):
     schema = EditableSchema(schema)
 
     inst = 'default'
-    pin = 'default'
+    defpin = 'default'
     net = 'default'
+    part = 'default'
 
     # hierarchy character
     schema.insert(
@@ -330,10 +344,9 @@ def schema_schematic(schema):
             bus character is used as part of a name, it must be
             escaped with a backslash('\').""")))
 
-
     # pin direction
     schema.insert(
-        'schematic', 'pin', pin, 'direction',
+        'schematic', 'pin', defpin, 'direction',
         Parameter(
             '<input,output,inout>',
             scope=Scope.GLOBAL,
@@ -345,7 +358,7 @@ def schema_schematic(schema):
 
     # pin vector size
     schema.insert(
-        'schematic', 'pin', pin, 'bitrange',
+        'schematic', 'pin', defpin, 'bitrange',
         Parameter(
             '(int,int)',
             scope=Scope.GLOBAL,
@@ -356,7 +369,32 @@ def schema_schematic(schema):
             Pin vector size, specified as a (max,min) tuple. A range of (0,0)
             indicates a scalar single bit pin.""")))
 
-    # cell partname
+    # net declarations
+    schema.insert(
+        'schematic', 'net', net, 'bitrange',
+        Parameter(
+            '(int,int)',
+            scope=Scope.GLOBAL,
+            shorthelp="Net bit range",
+            example=[
+                "api: chip.set('schematic', 'net', 'net0', 'bitrange', (7,0)"],
+            help=trim("""
+            Net vector bit range specifid as (max,min) tuple.""")))
+
+    # part pin vector size ("header")
+    schema.insert(
+        'schematic', 'part', part, 'pin', defpin, 'bitrange',
+        Parameter(
+            '(int,int)',
+            scope=Scope.GLOBAL,
+            shorthelp="Library part pin bitrange",
+            example=[
+                "api: chip.set('schematic', 'part', 'INV', 'pin', 'A', 'bitrange', (7,0)"],
+            help=trim("""
+            Part pin vector size, specified as a (max,min) tuple. A range of (0,0)
+            indicates a scalar single bit pin.""")))
+
+    # component instantiation
     schema.insert(
         'schematic', 'component', inst, 'partname',
         Parameter(
@@ -366,12 +404,12 @@ def schema_schematic(schema):
             example=[
                 "api: chip.set('schematic','component','i0','partname','INV')"],
             help=trim("""
-            Component partname/cellname specified on a per instance basis.""")))
-
+            Partname (aka cellname) of the placed component (aka instance)
+            specified on a per instance basis.""")))
 
     # cell connections
     schema.insert(
-        'schematic', 'component', inst, 'connection', pin,
+        'schematic', 'component', inst, 'connection', defpin,
         Parameter(
             'str',
             scope=Scope.GLOBAL,
@@ -385,14 +423,39 @@ def schema_schematic(schema):
             where "." is the hierarchy character. Connections without ".PIN"
             implies the connection is a primary design I/O pin.""")))
 
-    # net declarations
-    schema.insert(
-        'schematic', 'net', net, 'bitrange',
-        Parameter(
-            '(int,int)',
-            scope=Scope.GLOBAL,
-            shorthelp="Net bit range",
-            example=[
-                "api: chip.set('schematic', 'net', 'net0', 'bitrange', (7,0)"],
-            help=trim("""
-            Net vector bit range specieid as a (max,min) tuple.""")))
+
+if __name__ == '__main__':
+
+    d = SchematicSchema("hello_world")
+
+    # add library part headers
+    and2 = d.add_part("and2", ["a", "b", "z"])
+
+    # pin declarations
+    in0 = d.add_pin("in0", "input")
+    in1 = d.add_pin("in1", "input")
+    in2 = d.add_pin("in2", "input")
+    in3 = d.add_pin("in3", "input")
+    out = d.add_pin("out", "output")
+
+    # add instances
+    i0 = d.add_component("i0", "and2")
+    i1 = d.add_component("i1", "and2")
+    i2 = d.add_component("i2", "and2")
+    i3 = d.add_component("i3", "and2")
+
+    # add nets
+    net0 = d.add_net("net0")
+    net1 = d.add_net("net1")
+
+    # wire up schematic
+    d.connect(pins=i0.a, net=in0)
+    d.connect(pins=i0.b, net=in1)
+    d.connect(pins=i1.a, net=in2)
+    d.connect(pins=i1.b, net=in3)
+    d.connect(pins=i2.a, net=net0)
+    d.connect(pins=i2.b, net=net1)
+    d.connect(pins=i2.z, net=out)
+
+    # write verilog
+    d.write_verilog("hello_world.vg")
