@@ -1,6 +1,7 @@
 import re
 import json
 from typing import List, Union, Optional
+
 from siliconcompiler.schema import BaseSchema
 from siliconcompiler.schema import EditableSchema, Parameter, Scope
 from siliconcompiler.schema.utils import trim
@@ -10,11 +11,11 @@ class Pin:
     """Represents pin on component or top-level schematic."""
 
     def __init__(self, name: str, inst: Optional[str] = None):
-        self.name = name        # pin name only, e.g., "a"
-        self.inst = inst        # instance name, e.g., "i0"
+        self.name = name
+        self.inst = inst
         self.pin = f"{inst}.{name}" if inst else name
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.pin
 
 ###########################################################################
@@ -24,7 +25,7 @@ class Net:
     def __init__(self, name: str):
         self.name = name
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.name
 
 ###########################################################################
@@ -37,7 +38,7 @@ class Part:
         for p in pins:
             setattr(self, p, Pin(p))
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.name
 
 ###########################################################################
@@ -52,7 +53,7 @@ class Component:
         for p in self.pins:
             setattr(self, p, Pin(p, name))
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.name
 
 ###########################################################################
@@ -60,20 +61,9 @@ class Schematic(BaseSchema):
     '''
     Basic schematic entry class for designing systems with real physical
     components.
-
-    This class inherits from :class:`~siliconcompiler.LibrarySchema` and
-    :class:`~siliconcompiler.DependencySchema`, and adds parameters and
-    methods specific to creating a schematic.
     '''
 
-    def __init__(self, name: str = None):
-        '''
-        Initializes a new Schematic design object.
-
-        Args:
-            name (str, optional): The name of the design. Defaults to None.
-        '''
-
+    def __init__(self, name: str):
         # in memory object lookup for pythonic access
         # golden truth database is the SC schema
         self.name = name
@@ -87,7 +77,7 @@ class Schematic(BaseSchema):
         schema_schematic(self)
 
     ######################################################################
-    def add_pin(self, name: str, direction: str):
+    def add_pin(self, name: str, direction: str) -> Pin:
         """
         Add a pin to the schematic object.
 
@@ -111,20 +101,19 @@ class Schematic(BaseSchema):
         if m:
             name = m.group(1)
             bitrange = (int(m.group(2)), int(m.group(3)))
-
         # object/string lookup table
+        if name in self.pins:
+            raise ValueError(f"Pin '{name}' already exists.")
         pin = Pin(name)
         self.pins[name] = pin
         setattr(self, name, pin)
-
-        # storing data in SC dict
+        # store data in SC schema
         self.set('schematic', 'pin', name, 'direction', direction)
         self.set('schematic', 'pin', name, 'bitrange', bitrange)
-
-        # return pin object
+        
         return pin
 
-    def get_pindir(self, name: str):
+    def get_pindir(self, name: Union[str, Pin]) -> str:
         """
         Get the direction of a named pin.
 
@@ -139,12 +128,12 @@ class Schematic(BaseSchema):
             name = name.name
         return self.get('schematic', 'pin', name, 'direction')
 
-    def get_pinrange(self, name: str):
+    def get_pinrange(self, name: Union[str, Pin]) -> str:
         """
-        Get the vector bit range of a pin by name.
+        Get the vector bit range of a pin.
 
         Args:
-        name (str | Pin): The name of the pin, or a Pin
+        name (str | Pin): Pin  The name of the pin, or a Pin
             object with a `name` attribute.
 
         Returns:
@@ -154,7 +143,7 @@ class Schematic(BaseSchema):
             name = name.name
         return self.get('schematic', 'pin', name, 'bitrange')
 
-    def all_pins(self):
+    def all_pins(self) -> list[str]:
         """
         Get a list of all pins in the schematic.
 
@@ -164,7 +153,7 @@ class Schematic(BaseSchema):
         return self.getkeys('schematic', 'pin')
 
     ##########################################
-    def add_net(self, name: str):
+    def add_net(self, name: str) -> Net:
         """
         Add a named net to the schematic.
 
@@ -197,7 +186,7 @@ class Schematic(BaseSchema):
 
         return net
 
-    def get_netrange(self, name: str) -> List[str]:
+    def get_netrange(self, name: Union[str, Net]) -> List[str]:
         """
         Get the vector bit range of a named net.
 
@@ -223,14 +212,14 @@ class Schematic(BaseSchema):
 
         return self.get('schematic', 'net', name, 'bitrange')
 
-    def all_nets(self):
+    def all_nets(self) -> list[str]:
         """
         Returns list of all schematic nets.
         """
         return self.getkeys('schematic', 'net')
 
     ####################################################
-    def add_part(self, name: str, pins: List[str]):
+    def add_part(self, name: str, pins: List[str]) -> Part:
         """
         Adds part declaration.
         This is an interface/header type declaration required for all
@@ -260,6 +249,8 @@ class Schematic(BaseSchema):
             self.set('schematic', 'part', name, 'pin', pin, 'bitrange', bitrange)
 
         # local object database
+        if name in self.parts:
+            raise ValueError(f"Part '{name}' already exists.")
         part = Part(name, pins_blasted)
         self.parts[name] = part
         setattr(self, name, part)
@@ -267,7 +258,7 @@ class Schematic(BaseSchema):
         # return part object
         return part
 
-    def get_partpins(self, part:Part):
+    def get_partpins(self, part:Part) -> tuple[str]:
         """
         Returns list of part pins
         """
@@ -284,7 +275,7 @@ class Schematic(BaseSchema):
         return pins
 
     #####################################################
-    def add_component(self, name: str, part: Part):
+    def add_component(self, name: str, part: Part) -> Component:
         """
         Adds component (instance) to the schematic object.
         Args:
@@ -304,7 +295,7 @@ class Schematic(BaseSchema):
 
         return comp
 
-    def get_partname(self, inst: Component):
+    def get_partname(self, inst: Component) -> str:
         """
         Returns part name of named component.
 
@@ -316,14 +307,14 @@ class Schematic(BaseSchema):
 
         return self.get('schematic', 'component', inst.name, 'partname')
 
-    def all_components(self):
+    def all_components(self) -> list[str]:
         """
         Returns list of all schematic component objects.
         """
         return self.getkeys('schematic', 'component')
 
     ####################################
-    def connect(self, src: Pin, dst: Pin, net: Net = None):
+    def connect(self, src: Pin, dst: Pin, net: Optional[Net] = None):
         """
         Connect pin to net.
 
@@ -332,8 +323,6 @@ class Schematic(BaseSchema):
             dst (Pin): Destination pin to connect
             net (Net): Net name. Not needed for primary pin.
         """
-
-        #TODO: Auto assign net?
 
         if src.inst is None: # src --> gate
             net = src.name
