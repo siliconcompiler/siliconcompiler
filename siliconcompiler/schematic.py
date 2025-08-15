@@ -517,7 +517,7 @@ def schema_schematic(schema):
             example=[
                 "api: chip.set('schematic', 'net', 'net0', 'bitrange', (7,0)"],
             help=trim("""
-            Net vector bit range specifid as (max,min) tuple.""")))
+            Net vector bit range specified as (max,min) tuple.""")))
 
     # part pin vector size ("header")
     schema.insert(

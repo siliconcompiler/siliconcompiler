@@ -54,6 +54,8 @@ __all__ = [
     "PackageSchema",
     "OptionSchema",
 
+    "Schematic",
+
     "Project",
     "ASICProject",
     "StdCellLibrarySchema",
