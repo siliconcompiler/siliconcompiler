@@ -7,7 +7,7 @@ from siliconcompiler.packageschema import PackageSchema
 
 from siliconcompiler.library import LibrarySchema, ToolLibrarySchema, StdCellLibrarySchema
 from siliconcompiler.fpga import FPGASchema
-
+from siliconcompiler.schematic import Schematic
 from siliconcompiler.design import DesignSchema
 from siliconcompiler.record import RecordSchema
 from siliconcompiler.metric import MetricSchema
@@ -53,6 +53,8 @@ __all__ = [
     "FPGASchema",
     "PackageSchema",
     "OptionSchema",
+
+    "Schematic",
 
     "Project",
     "ASICProject",
