@@ -161,5 +161,5 @@ def test_write_verilog():
     test_dir = Path(__file__).parent
     golden_file = test_dir / "data" / "schematic.vg"
     d = hello_world()
-    d.write_verilog("test.v")
+    d.write_verilog("test.vg")
     assert filecmp.cmp("test.vg", golden_file)
