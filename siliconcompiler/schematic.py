@@ -1,10 +1,10 @@
 import re
-import json
 from typing import List, Union, Optional
 
 from siliconcompiler.schema import BaseSchema
 from siliconcompiler.schema import EditableSchema, Parameter, Scope
 from siliconcompiler.schema.utils import trim
+
 
 ###########################################################################
 class Pin:
@@ -18,6 +18,7 @@ class Pin:
     def __repr__(self) -> str:
         return self.pin
 
+
 ###########################################################################
 class Net:
     """Represents a net in the schematic."""
@@ -27,6 +28,7 @@ class Net:
 
     def __repr__(self) -> str:
         return self.name
+
 
 ###########################################################################
 class Part:
@@ -40,6 +42,7 @@ class Part:
 
     def __repr__(self) -> str:
         return self.name
+
 
 ###########################################################################
 class Component:
@@ -56,6 +59,7 @@ class Component:
     def __repr__(self) -> str:
         return self.name
 
+
 ###########################################################################
 class Schematic(BaseSchema):
     '''
@@ -70,7 +74,7 @@ class Schematic(BaseSchema):
         self.parts: dict[str, Part] = {}
         self.pins: dict[str, Pin] = {}
         self.nets: dict[str, Net] = {}
-        self.components: dict[str, Component]  = {}
+        self.components: dict[str, Component] = {}
 
         # leveraging SC infrastructure as raw dictionary
         super().__init__()
@@ -97,7 +101,7 @@ class Schematic(BaseSchema):
 
         # handle buses/vectors in names
         m = re.match(r"^([^\[]+)\[(\d+):(\d+)\]$", name)
-        bitrange = (0,0)
+        bitrange = (0, 0)
         if m:
             name = m.group(1)
             bitrange = (int(m.group(2)), int(m.group(3)))
@@ -110,7 +114,6 @@ class Schematic(BaseSchema):
         # store data in SC schema
         self.set('schematic', 'pin', name, 'direction', direction)
         self.set('schematic', 'pin', name, 'bitrange', bitrange)
-        
         return pin
 
     def get_pindir(self, name: Union[str, Pin]) -> str:
@@ -171,7 +174,7 @@ class Schematic(BaseSchema):
         """
         # handle buses/vectors in names
         m = re.match(r"^([^\[]+)\[(\d+):(\d+)\]$", name)
-        bitrange = (0,0)
+        bitrange = (0, 0)
         if m:
             name = m.group(1)
             bitrange = (int(m.group(2)), int(m.group(3)))
@@ -237,7 +240,7 @@ class Schematic(BaseSchema):
         pins_blasted = []
         for pin in pins:
             m = re.match(r"^([^\[]+)\[(\d+):(\d+)\]$", pin)
-            bitrange = (0,0)
+            bitrange = (0, 0)
             if m:
                 pin = m.group(1)
                 bitrange = (int(m.group(2)), int(m.group(3)))
@@ -258,16 +261,16 @@ class Schematic(BaseSchema):
         # return part object
         return part
 
-    def get_partpins(self, part:Part) -> tuple[str]:
+    def get_partpins(self, part: Part) -> tuple[str]:
         """
         Returns list of part pins
         """
 
         keys = self.getkeys('schematic', 'part', part.name, 'pin')
-        pinlist = [];
+        pinlist = []
         for item in keys:
             t = self.get('schematic', 'part', part.name, 'pin', item, 'bitrange')
-            if t != (0,0):
+            if t != (0, 0):
                 item = f"{item}[{t[0]}:{t[1]}]"
             pinlist.append(item)
         pins = tuple(pinlist)
@@ -324,17 +327,17 @@ class Schematic(BaseSchema):
             net (Net): Net name. Not needed for primary pin.
         """
 
-        if src.inst is None: # src --> gate
+        if src.inst is None:  # src --> gate
             net = src.name
-            self.set('schematic','component', dst.inst, 'connection', dst.name, net)
-        elif dst.inst is None: # gate --> dst
+            self.set('schematic', 'component', dst.inst, 'connection', dst.name, net)
+        elif dst.inst is None:  # gate --> dst
             net = dst.name
-            self.set('schematic','component', src.inst, 'connection', src.name, net)
-        elif net is not None: # gate --> gate
-            self.set('schematic','component', src.inst, 'connection', src.name, net)
-            self.set('schematic','component', dst.inst, 'connection', dst.name, net)
+            self.set('schematic', 'component', src.inst, 'connection', src.name, net)
+        elif net is not None:  # gate --> gate
+            self.set('schematic', 'component', src.inst, 'connection', src.name, net)
+            self.set('schematic', 'component', dst.inst, 'connection', dst.name, net)
         else:
-            raise ValueError("Net missing for instance to intance connetion.")
+            raise ValueError("Net missing for instance to instance connection.")
 
     ####################################
     def write_verilog(self, filename):
@@ -382,10 +385,10 @@ class Schematic(BaseSchema):
             port_map = []
             for pin in self.getkeys('schematic', 'part', part, 'pin'):
                 bits = self.get('schematic', 'part', part, 'pin', pin, 'bitrange')
-                net = self.get('schematic','component',inst,'connection', pin)
+                net = self.get('schematic', 'component', inst, 'connection', pin)
                 port_map.append(f"    .{pin}({net})")
             lines.append(",\n".join(port_map))
-            lines.append(f"  );\n")
+            lines.append("  );\n")
 
         lines.append("\nendmodule\n")
 
@@ -410,26 +413,27 @@ class Schematic(BaseSchema):
     # Helper Functions
     ###########################
     def _resolve_pin(self, pin_obj):
-         """
-         Resolves and returns the name of a pin from a given object.
+        """
+        Resolves and returns the name of a pin from a given object.
 
-         This helper abstracts away differences in pin representations
-         so that calling code (e.g., `connect()`) doesn't need to know
-         whether pins are stored under `.pin` (new style) or `.name`
-         (legacy style).
+        This helper abstracts away differences in pin representations
+        so that calling code (e.g., `connect()`) doesn't need to know
+        whether pins are stored under `.pin` (new style) or `.name`
+        (legacy style).
 
-         Args:
-         pin_obj (object): The pin object to resolve. Can be:
-            - An object with a `.pin` attribute
-            - An object with a `.name` attribute
-            - Other types (may return None)
+        Args:
+        pin_obj (object): The pin object to resolve. Can be:
+           - An object with a `.pin` attribute
+           - An object with a `.name` attribute
+           - Other types (may return None)
 
-         Returns:
-         str or None: The pin name string if found, otherwise None.
-         """
-         if hasattr(pin_obj, "pin"):
-             return pin_obj.pin
-         return getattr(pin_obj, "name", None)
+        Returns:
+        str or None: The pin name string if found, otherwise None.
+        """
+        if hasattr(pin_obj, "pin"):
+            return pin_obj.pin
+        return getattr(pin_obj, "name", None)
+
 
 ###########################################################################
 # Schema
@@ -555,6 +559,7 @@ def schema_schematic(schema):
             Net connections specified on a per instance and per instance-pin basis.
             Pin and net names must include the appropriate bit index in cases of pin or
             net vectors. Bit index optional for scalar nets and pins.""")))
+
 
 if __name__ == '__main__':
 
