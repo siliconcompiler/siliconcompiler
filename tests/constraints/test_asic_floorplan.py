@@ -144,7 +144,7 @@ def test_corearea_rectangle_illegal_width():
 
 
 def test_corearea_rectangle_illegal_margin():
-    with pytest.raises(TypeError, match="coremargin must be a number to a tuple of two numbers"):
+    with pytest.raises(TypeError, match="coremargin must be a number or a tuple of two numbers"):
         ASICAreaConstraint().set_corearea_rectangle(100.0, 100.0, "abc")
 
 
@@ -159,22 +159,22 @@ def test_corearea_rectangle_illegal_negative_width():
 
 
 def test_corearea_rectangle_illegal_negative_margin():
-    with pytest.raises(ValueError, match="x margin canont be negative"):
+    with pytest.raises(ValueError, match="x margin cannot be negative"):
         ASICAreaConstraint().set_corearea_rectangle(100.0, 100.0, -2.0)
 
 
 def test_corearea_rectangle_illegal_negative_xmargin():
-    with pytest.raises(ValueError, match="x margin canont be negative"):
+    with pytest.raises(ValueError, match="x margin cannot be negative"):
         ASICAreaConstraint().set_corearea_rectangle(100.0, 100.0, (-2.0, 2))
 
 
 def test_corearea_rectangle_illegal_extra_margin():
-    with pytest.raises(ValueError, match="coremargin must be a number to a tuple of two numbers"):
+    with pytest.raises(ValueError, match="coremargin must be a number or a tuple of two numbers"):
         ASICAreaConstraint().set_corearea_rectangle(100.0, 100.0, (2.0, 2, 2.0))
 
 
 def test_corearea_rectangle_illegal_negative_ymargin():
-    with pytest.raises(ValueError, match="y margin canont be negative"):
+    with pytest.raises(ValueError, match="y margin cannot be negative"):
         ASICAreaConstraint().set_corearea_rectangle(100.0, 100.0, (2, -2.0))
 
 
@@ -189,12 +189,14 @@ def test_corearea_rectangle_illegal_zero_width():
 
 
 def test_corearea_rectangle_illegal_extra_xmargin():
-    with pytest.raises(ValueError, match="x margin is greater than the die width"):
+    with pytest.raises(ValueError,
+                       match="x margin is greater than or equal to the die width"):
         ASICAreaConstraint().set_corearea_rectangle(100.0, 100.0, (50.0, 2))
 
 
 def test_corearea_rectangle_illegal_extra_ymargin():
-    with pytest.raises(ValueError, match="y margin is greater than the die height"):
+    with pytest.raises(ValueError,
+                       match="y margin is greater than or equal to the die height"):
         ASICAreaConstraint().set_corearea_rectangle(100.0, 100.0, (2, 50.0))
 
 
@@ -292,3 +294,27 @@ def test_set_corearea():
     schema = ASICAreaConstraint()
     assert schema.set_corearea([(0, 0), (10, 10), (20, 20), (20, 0), (0, 0)])
     assert schema.get_corearea() == [(0, 0), (10, 10), (20, 20), (20, 0), (0, 0)]
+
+
+@pytest.mark.parametrize("shape,expect", [
+    ([(0, 0), (10, 10)], 100),
+    ([(0, 0), (0, 20), (10, 20), (10, 10), (20, 10), (20, 0)], 300),
+])
+def test_calc_area(shape, expect):
+    schema = ASICAreaConstraint()
+    schema.set_diearea(shape)
+
+    assert schema.calc_diearea() == expect
+
+
+@pytest.mark.parametrize("shape,expect", [
+    ([(0, 0), (10, 10)], 100),
+    ([(0, 0), (0, 20), (10, 20), (10, 10), (20, 10), (20, 0)], 300),
+])
+def test_calc_area_with_step_index(shape, expect):
+    schema = ASICAreaConstraint()
+    schema.set_diearea([(0, 0), (100, 100)])
+    schema.set_diearea(shape, step="step", index="index")
+
+    assert schema.calc_diearea() == 10000
+    assert schema.calc_diearea(step="step", index="index") == expect

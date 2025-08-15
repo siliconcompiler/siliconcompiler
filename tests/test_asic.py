@@ -339,7 +339,9 @@ def test_init_run_set_mainlib(caplog):
     proj.add_asiclib(StdCellLibrarySchema("thislib"))
 
     assert proj.get("asic", "mainlib") is None
-    proj._init_run()
+    with patch("siliconcompiler.Project._init_run") as pinit:
+        proj._init_run()
+        pinit.assert_called_once()
     assert proj.get("asic", "mainlib") == "thislib"
 
     assert "Setting main library to: thislib" in caplog.text
@@ -357,7 +359,9 @@ def test_init_run_set_pdk_asiclib(caplog):
 
     assert proj.get("asic", "asiclib") == []
     assert proj.get("asic", "pdk") is None
-    proj._init_run()
+    with patch("siliconcompiler.Project._init_run") as pinit:
+        proj._init_run()
+        pinit.assert_called_once()
     assert proj.get("asic", "pdk") == "thispdk"
     assert proj.get("asic", "asiclib") == ["thislib"]
 
@@ -374,7 +378,9 @@ def test_init_run_handling_missing_lib(caplog):
 
     assert proj.get("asic", "asiclib") == []
     assert proj.get("asic", "pdk") is None
-    proj._init_run()
+    with patch("siliconcompiler.Project._init_run") as pinit:
+        proj._init_run()
+        pinit.assert_called_once()
     assert proj.get("asic", "pdk") is None
     assert proj.get("asic", "asiclib") == ["thislib"]
 

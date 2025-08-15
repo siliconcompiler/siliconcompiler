@@ -1,3 +1,5 @@
+import math
+
 from siliconcompiler.schema import NamedSchema
 from siliconcompiler.schema import EditableSchema, Parameter, Scope
 from siliconcompiler.schema.utils import trim
@@ -7,7 +9,13 @@ from siliconcompiler import ToolLibrarySchema
 
 class PDKSchema(ToolLibrarySchema):
     """
-    A class for managing Process Design Kit (PDK) schemas.
+    A schema for managing and validating Process Design Kit (PDK) configurations.
+
+    This class defines the structured parameters that constitute a PDK,
+    such as foundry information, process node, metal stackups, and various
+    technology files required for different EDA tools. It extends the
+    ToolLibrarySchema to provide a standardized way of describing and
+    accessing PDK data within the SiliconCompiler framework.
     """
     def __init__(self, name: str = None):
         """
@@ -32,7 +40,7 @@ class PDKSchema(ToolLibrarySchema):
                          "api: chip.set('pdk', 'asap7', 'foundry', 'virtual')"],
                 help=trim("""
                 Name of foundry corporation. Examples include intel, gf, tsmc,
-                samsung, skywater, virtual. The \'virtual\' keyword is reserved for
+                samsung, skywater, virtual. The 'virtual' keyword is reserved for
                 simulated non-manufacturable processes.""")))
 
         schema.insert(
@@ -536,6 +544,29 @@ class PDKSchema(ToolLibrarySchema):
         else:
             return self.add("pdk", type, "runsetfileset", tool, name, fileset)
 
+    def add_waiverfileset(self, type: str, tool: str, name: str, fileset: str = None,
+                          clobber: bool = False):
+        """
+        Adds a fileset containing waiver files for a specific verification task.
+
+        Args:
+            type (str): The type of task (e.g., 'lvs', 'drc').
+            tool (str): The name of the tool.
+            name (str): The name of the waiver set.
+            fileset (str, optional): The name of the fileset. Defaults to None,
+                                     which uses the active fileset.
+            clobber (bool, optional): If True, overwrites existing entries. Defaults to False.
+        """
+        if not fileset:
+            fileset = self._get_active("fileset")
+
+        self._assert_fileset(fileset)
+
+        if clobber:
+            return self.set("pdk", type, "waiverfileset", tool, name, fileset)
+        else:
+            return self.add("pdk", type, "waiverfileset", tool, name, fileset)
+
     @classmethod
     def _getdict_type(cls) -> str:
         """
@@ -543,6 +574,134 @@ class PDKSchema(ToolLibrarySchema):
         """
 
         return PDKSchema.__name__
+
+    def calc_yield(self, diearea: float, model: str = 'poisson') -> float:
+        '''Calculates raw die yield.
+
+        Calculates the raw yield of the design as a function of design area
+        and d0 defect density. Calculation can be done based on the poisson
+        model (default) or the murphy model. The die area and the d0
+        parameters are taken from the chip dictionary.
+
+        * Poisson model: dy = exp(-area * d0/100).
+        * Murphy model: dy = ((1-exp(-area * d0/100))/(area * d0/100))^2.
+
+        Args:
+            diearea (float): The area of the die in square micrometers (um^2).
+            model (string): Model to use for calculation (poisson or murphy)
+
+        Returns:
+            float: Design yield percentage.
+
+        Examples:
+            >>> yield = chip.calc_yield(1500.0)
+            # Calculates yield for a 1500 um^2 die.
+        '''
+        d0 = self.get('pdk', 'd0')
+        if d0 is None:
+            raise ValueError(f"[{','.join([*self._keypath, 'pdk', 'd0'])}] has not been set")
+
+        # diearea is um^2, but d0 looking for cm^2
+        diearea_cm2 = diearea / (10000.0**2)
+        d0 /= 100.0
+
+        if model == 'poisson':
+            dy = math.exp(-diearea_cm2 * d0)
+        elif model == 'murphy':
+            argument = diearea_cm2 * d0
+            if argument == 0:
+                return 1.0
+            dy = ((1 - math.exp(-argument)) / argument)**2
+        else:
+            raise ValueError(f'Unknown yield model: {model}')
+
+        return dy
+
+    def calc_dpw(self, diewidth: float, dieheight: float) -> int:
+        '''Calculates dies per wafer.
+
+        Calculates the gross dies per wafer based on the design area, wafersize,
+        wafer edge margin, and scribe lines. The calculation is done by starting
+        at the center of the wafer and placing as many complete design
+        footprints as possible within a legal placement area.
+
+        Args:
+            diewidth (float): The width of the die in micrometers (um).
+            dieheight (float): The height of the die in micrometers (um).
+
+        Returns:
+            int: Number of gross dies per wafer.
+
+        Examples:
+            >>> dpw = chip.calc_dpw(1000.0, 1500.0)
+            # Calculates dies per wafer for a 1000x1500 um die.
+        '''
+        # PDK information
+        wafersize = self.get('pdk', 'wafersize')
+
+        if wafersize is None:
+            raise ValueError(f"[{','.join([*self._keypath, 'pdk', 'wafersize'])}] has not been set")
+
+        edgemargin = self.get('pdk', 'edgemargin')
+        if edgemargin is None:
+            edgemargin = 0.0
+
+        scribe = self.get('pdk', 'scribe')
+        if scribe:
+            hscribe, vscribe = scribe
+        else:
+            hscribe, vscribe = None, None
+
+        if hscribe is None:
+            hscribe = 0.0
+
+        if vscribe is None:
+            vscribe = 0.0
+
+        # Convert to mm
+        diewidth_mm = diewidth / 1000.0
+        dieheight_mm = dieheight / 1000.0
+
+        # Derived parameters
+        radius = wafersize / 2.0 - edgemargin
+        if radius <= 0:
+            return 0
+
+        stepwidth = diewidth_mm + hscribe
+        stepheight = dieheight_mm + vscribe
+
+        if stepwidth <= 0 or stepheight <= 0:
+            return 0
+
+        # Raster dies out from center until you touch edge margin
+        # Work quadrant by quadrant
+        dies = 0
+        # This algorithm is a simple raster scan from the center, which is an
+        # approximation. More complex algorithms could yield slightly higher counts.
+        for quad in ('q1', 'q2', 'q3', 'q4'):
+            x = 0
+            y = 0
+            if quad == "q1":
+                xincr = stepwidth
+                yincr = stepheight
+            elif quad == "q2":
+                xincr = -stepwidth
+                yincr = stepheight
+            elif quad == "q3":
+                xincr = -stepwidth
+                yincr = -stepheight
+            elif quad == "q4":
+                xincr = stepwidth
+                yincr = -stepheight
+
+            while math.hypot(0, y) < radius:
+                y = y + yincr
+                x = xincr
+                while math.hypot(x, y) < radius:
+                    x = x + xincr
+                    dies = dies + 1
+
+        return dies
 
 
 class PDKSchemaTmp(NamedSchema):

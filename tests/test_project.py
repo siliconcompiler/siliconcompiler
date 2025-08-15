@@ -1752,3 +1752,55 @@ def test_check_manifest_with_alias_missing_dst_fileset(caplog):
 
     assert proj.check_manifest() is False
     assert "rtl2 is not a valid fileset in testdesign" in caplog.text
+
+
+def test_init_run(caplog):
+    design = DesignSchema("testdesign")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+        design.add_file("top.v")
+
+    proj = Project(design)
+
+    setattr(proj, "_Project__logger", logging.getLogger())
+    proj.logger.setLevel(logging.INFO)
+
+    assert proj.get("option", "fileset") == []
+    proj._init_run()
+    assert proj.get("option", "fileset") == ["rtl"]
+
+    assert "Setting design fileset to: rtl" in caplog.text
+
+
+def test_init_run_do_nothing(caplog):
+    design = DesignSchema("testdesign")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+        design.add_file("top.v")
+    with design.active_fileset("rtl2"):
+        design.set_topmodule("top")
+        design.add_file("top.v")
+
+    proj = Project(design)
+
+    setattr(proj, "_Project__logger", logging.getLogger())
+    proj.logger.setLevel(logging.INFO)
+
+    assert proj.get("option", "fileset") == []
+    proj._init_run()
+    assert proj.get("option", "fileset") == []
+
+    assert caplog.text == ""
+
+
+def test_init_run_no_design(caplog):
+    proj = Project()
+
+    setattr(proj, "_Project__logger", logging.getLogger())
+    proj.logger.setLevel(logging.INFO)
+
+    assert proj.get("option", "fileset") == []
+    proj._init_run()
+    assert proj.get("option", "fileset") == []
+
+    assert caplog.text == ""
