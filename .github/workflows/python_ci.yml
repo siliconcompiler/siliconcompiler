@@ -17,7 +17,7 @@ concurrency:
 
 jobs:
   python_test_job:
-    timeout-minutes: 15
+    timeout-minutes: 30
     runs-on: ${{ matrix.os }}
     name: 'Pure Python tests'
     strategy:
@@ -77,6 +77,7 @@ jobs:
           pip3 install -e .[test]
 
       - name: Run Python tests
+        timeout-minutes: 15
         if: runner.os != 'Windows'
         run: |
           . .venv/bin/activate
@@ -88,6 +89,7 @@ jobs:
           pytest $GITHUB_WORKSPACE -n logical -m "not eda and not docker" --cov --cov-report=xml --durations=0
 
       - name: Setup Python (windows)
+        timeout-minutes: 15
         if: runner.os == 'Windows'
         run: |
           ${{ steps.python.outputs.python-path }} -m venv venv
