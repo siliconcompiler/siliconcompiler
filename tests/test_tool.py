@@ -759,6 +759,17 @@ def test_get_runtime_arguments_no_return(running_node, monkeypatch):
             runtool.get_runtime_arguments()
 
 
+def test_get_runtime_arguments_number(running_node, monkeypatch):
+    with running_node.task.runtime(running_node) as runtool:
+        def runtime_options():
+            return 1
+
+        monkeypatch.setattr(runtool, 'runtime_options', runtime_options)
+
+        with pytest.raises(RuntimeError, match=r"runtime_options\(\) must return a list"):
+            runtool.get_runtime_arguments()
+
+
 def test_get_runtime_different_types(running_node, monkeypatch):
     with running_node.task.runtime(running_node) as runtool:
         def runtime_options():
