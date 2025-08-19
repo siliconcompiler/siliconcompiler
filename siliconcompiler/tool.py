@@ -537,16 +537,22 @@ class TaskSchema(NamedSchema):
 
         cmdargs = []
         try:
+            usr_args = self.runtime_options()
+            if usr_args is None:
+                raise RuntimeError("runtime_options() returned None")
+            if not isinstance(usr_args, (list, set, tuple)):
+                raise RuntimeError("runtime_options() must return a list")
+
             if self.__relpath:
                 args = []
-                for arg in self.runtime_options():
+                for arg in usr_args:
                     arg = str(arg)
                     if os.path.isabs(arg) and os.path.exists(arg):
                         args.append(os.path.relpath(arg, self.__relpath))
                     else:
                         args.append(arg)
             else:
-                args = self.runtime_options()
+                args = usr_args
 
             cmdargs.extend(args)
         except Exception as e:
