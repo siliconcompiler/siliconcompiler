@@ -289,6 +289,22 @@ def test_setup_error(chip, monkeypatch, caplog):
     assert "Failed to run setup() for steptwo/0 with builtin/nop" in caplog.text
 
 
+def test_setup_with_return(chip, monkeypatch, caplog):
+    chip.logger = logging.getLogger()
+    node = SchedulerNode(chip, "steptwo", "0")
+
+    def dummy_setup(*args, **kwargs):
+        return "This should not be there"
+    monkeypatch.setattr(node.task, "setup", dummy_setup)
+
+    with node.runtime():
+        with pytest.raises(RuntimeError,
+                           match=r"setup\(\) returned a value, but should not have: "
+                           "This should not be there"):
+            node.setup()
+    assert "Failed to run setup() for steptwo/0 with builtin/nop" in caplog.text
+
+
 def test_setup_skipped(chip, monkeypatch, caplog):
     chip.logger = logging.getLogger()
     node = SchedulerNode(chip, "steptwo", "0")

@@ -366,7 +366,9 @@ class SchedulerNode:
             self.logger.info(f'Setting up node {self.__step}/{self.__index} with '
                              f'{task.tool()}/{task.task()}')
             try:
-                task.setup()
+                ret = task.setup()
+                if ret is not None:
+                    raise RuntimeError(f"setup() returned a value, but should not have: {ret}")
             except TaskSkip as skip:
                 self.logger.warning(f'Removing {self.__step}/{self.__index} due to {skip.why}')
                 self.__record.set('status', NodeStatus.SKIPPED,
