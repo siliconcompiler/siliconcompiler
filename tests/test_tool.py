@@ -748,6 +748,17 @@ def test_get_runtime_arguments_all(running_node, monkeypatch):
             '--arg3']
 
 
+def test_get_runtime_arguments_no_return(running_node, monkeypatch):
+    with running_node.task.runtime(running_node) as runtool:
+        def runtime_options():
+            pass
+
+        monkeypatch.setattr(runtool, 'runtime_options', runtime_options)
+
+        with pytest.raises(RuntimeError, match=r"runtime_options\(\) returned None"):
+            runtool.get_runtime_arguments()
+
+
 def test_get_runtime_different_types(running_node, monkeypatch):
     with running_node.task.runtime(running_node) as runtool:
         def runtime_options():
