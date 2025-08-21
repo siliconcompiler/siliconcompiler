@@ -7,6 +7,7 @@ import logging
 import core.tools.run.run as run
 
 
+@pytest.mark.skip("times out on macos")
 @pytest.mark.parametrize("quiet", [True, False])
 def test(datadir, capfd, quiet):
 

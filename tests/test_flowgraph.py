@@ -1,6 +1,8 @@
 import pytest
 import logging
 
+import os.path
+
 from unittest.mock import patch
 
 from siliconcompiler import FlowgraphSchema
@@ -1063,3 +1065,8 @@ def test_get_all_tasks(large_flow):
     assert large_flow.get_all_tasks() == set([
         nop, join
     ])
+
+
+def test_write_flowgraph(large_flow, has_graphviz):
+    large_flow.write_flowgraph("test.png")
+    assert os.path.isfile("test.png")
