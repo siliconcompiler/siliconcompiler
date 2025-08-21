@@ -1067,6 +1067,6 @@ def test_get_all_tasks(large_flow):
     ])
 
 
-def test_write_flowgraph(large_flow):
+def test_write_flowgraph(large_flow, has_graphviz):
     large_flow.write_flowgraph("test.png")
     assert os.path.isfile("test.png")
