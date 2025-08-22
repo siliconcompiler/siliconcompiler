@@ -5,3 +5,6 @@ build/
 siliconcompiler.egg-info/
 **/build/
 **/__pycache__/
+/tests/
+/utils/
+/examples/

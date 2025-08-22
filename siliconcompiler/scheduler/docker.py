@@ -8,6 +8,7 @@ from pathlib import Path
 from siliconcompiler.package import RemoteResolver
 from siliconcompiler.utils import default_email_credentials_file
 from siliconcompiler.scheduler import SchedulerNode
+from siliconcompiler.utils.logging import SCBlankLoggerFormatter
 
 
 def get_image(chip, step, index):
@@ -322,9 +323,14 @@ class DockerSchedulerNode(SchedulerNode):
             stream = client.api.exec_start(exec_handle, stream=True)
 
             # Print the log
-            for chunk in stream:
-                for line in chunk.decode().splitlines():
-                    print(line)
+            org_formatter = self.project._logger_console.formatter
+            try:
+                self.project._logger_console.setFormatter(SCBlankLoggerFormatter())
+                for chunk in stream:
+                    for line in chunk.decode().splitlines():
+                        self.logger.info(line)
+            finally:
+                self.project._logger_console.setFormatter(org_formatter)
 
             if client.api.exec_inspect(exec_handle['Id']).get('ExitCode') != 0:
                 self.halt()
