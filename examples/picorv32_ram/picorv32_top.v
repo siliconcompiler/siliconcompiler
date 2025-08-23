@@ -106,7 +106,10 @@ module picorv32_top #(
     picorv32 rv32_soc (.*);
 
     // SRAM with always-active chip select and write control bits.
-    la_spram #(.DW(32), .AW(9)) sram (
+    la_spram #(
+        .DW(32),
+        .AW(9)
+    ) sram (
         .clk(clk),
         .ce(1'b1),
         .we((mem_wstrb != 0)),
