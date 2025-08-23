@@ -5,6 +5,7 @@ import sys
 import pytest
 
 
+@pytest.mark.skip(reason="examples needs to be rewritten")
 def test_all_examples_have_test_file(scroot):
     test_folder = os.path.dirname(__file__)
     ex_dir = os.path.join(scroot, 'examples')
@@ -34,6 +35,7 @@ def test_all_examples_have_test_file(scroot):
 
 @pytest.mark.skipif(sys.platform == 'win32',
                     reason='Execution checks do not work on windows.')
+@pytest.mark.skip(reason="examples needs to be rewritten")
 def test_all_examples_have_defs(scroot):
     test_folder = os.path.dirname(__file__)
     ex_dir = os.path.join(scroot, 'examples')

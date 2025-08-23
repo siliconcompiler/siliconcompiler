@@ -4,6 +4,7 @@ import pytest
 
 import os.path
 
+from datetime import datetime, timezone
 from unittest.mock import patch
 
 from siliconcompiler.apps import sc_issue
@@ -31,16 +32,16 @@ def project(heartbeat_design):
 
 @pytest.mark.parametrize('flags,outputfile', [
     (['-cfg', 'build/heartbeat/job0/stepone/0/outputs/heartbeat.pkg.json'],
-     'sc_issue_heartbeat_job0_stepone_0_19691231-190020.tar.gz'),
+     'sc_issue_heartbeat_job0_stepone_0_20200311-141213.tar.gz'),
     (['-cfg', 'build/heartbeat/job0/steptwo/0/outputs/heartbeat.pkg.json',
       '-arg_step', 'stepone', '-arg_index', '0'],
-     'sc_issue_heartbeat_job0_stepone_0_19691231-190020.tar.gz'),
+     'sc_issue_heartbeat_job0_stepone_0_20200311-141213.tar.gz'),
     (['-cfg', 'build/heartbeat/job0/stepone/0/outputs/heartbeat.pkg.json',
       '-arg_step', 'stepone', '-arg_index', '0'],
-     'sc_issue_heartbeat_job0_stepone_0_19691231-190020.tar.gz'),
+     'sc_issue_heartbeat_job0_stepone_0_20200311-141213.tar.gz'),
     (['-cfg', 'build/heartbeat/job0/heartbeat.pkg.json',
       '-arg_step', 'steptwo', '-arg_index', '0'],
-     'sc_issue_heartbeat_job0_steptwo_0_19691231-190020.tar.gz')
+     'sc_issue_heartbeat_job0_steptwo_0_20200311-141213.tar.gz')
 ])
 def test_sc_issue_generate_success(flags,
                                    outputfile,
@@ -49,10 +50,11 @@ def test_sc_issue_generate_success(flags,
     '''Test sc-issue app on a few sets of flags.'''
 
     monkeypatch.setattr('sys.argv', ['sc-issue'] + flags)
-    with patch("time.time") as time:
-        time.return_value = 20
+    with patch("siliconcompiler.utils.issue.datetime") as time:
+        time.fromtimestamp = datetime.fromtimestamp
+        time.now.return_value = datetime(2020, 3, 11, 14, 12, 13, tzinfo=timezone.utc)
         assert sc_issue.main() == 0
-        time.assert_called()
+        time.now.assert_called()
 
     assert os.path.isfile(outputfile)
 

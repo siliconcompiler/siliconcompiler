@@ -6,7 +6,7 @@ import sys
 import tarfile
 import time
 import tempfile
-from datetime import datetime
+from datetime import datetime, timezone
 from siliconcompiler.utils import get_file_template
 from siliconcompiler.tools._common import get_tool_task
 from siliconcompiler import RecordSchema
@@ -208,7 +208,7 @@ def generate_testcase(chip,
 
     tool, task = get_tool_task(chip, step=step, index=index)
 
-    issue_time = time.time()
+    issue_time = datetime.now(timezone.utc).timestamp()
     issue_information = {}
     issue_information['environment'] = {key: value for key, value in os.environ.items()}
     issue_information['python'] = {"path": sys.path,
@@ -230,7 +230,7 @@ def generate_testcase(chip,
     if not archive_name:
         design = chip.design.name
         job = chip.get('option', 'jobname')
-        file_time = datetime.fromtimestamp(issue_time).strftime('%Y%m%d-%H%M%S')
+        file_time = datetime.fromtimestamp(issue_time, timezone.utc).strftime('%Y%m%d-%H%M%S')
         archive_name = f'sc_issue_{design}_{job}_{step}_{index}_{file_time}.tar.gz'
 
     # Make support files
