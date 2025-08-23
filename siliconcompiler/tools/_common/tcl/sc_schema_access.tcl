@@ -121,7 +121,7 @@ proc sc_cfg_get_fileset { libraries filesets filetype } {
     set files []
     foreach library $libraries {
         foreach fileset $filesets {
-            if { [sc_cfg_exists library $library fileset $fileset file $filetype ] } {
+            if { [sc_cfg_exists library $library fileset $fileset file $filetype] } {
                 lappend files {*}[sc_cfg_get library $library fileset $fileset file $filetype]
             }
         }
