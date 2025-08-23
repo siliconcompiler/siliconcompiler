@@ -65,7 +65,8 @@ def syn(pdk: str = "freepdk45"):
     project.summary()
 
 
-def asic(pdk: str = "freepdk45", fileset: str = "rtl", show: bool = False, screenshot: bool = False):
+def asic(pdk: str = "freepdk45", fileset: str = "rtl", show: bool = False,
+         screenshot: bool = False):
     project = ASICProject()
 
     project.set_design(GCDDesign())

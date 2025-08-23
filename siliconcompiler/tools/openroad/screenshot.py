@@ -36,4 +36,3 @@ class ScreenshotTask(ScreenshotTaskSchema, ShowTask):
             'clock_trees',
             'optimization_placement'
         ])
-
