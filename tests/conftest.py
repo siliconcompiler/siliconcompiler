@@ -63,14 +63,14 @@ def use_cache(monkeypatch, request):
     if not cachedir:
         return
 
-    old_init = siliconcompiler.Project.__init__
+    old_init = siliconcompiler.Project._init_run
 
-    def mock_init(self, *args, **kwargs):
-        old_init(*args, **kwargs)
-
+    def mock_init(self):
         self.set('option', 'cachedir', cachedir)
 
-    monkeypatch.setattr(siliconcompiler.Project, '__init__', mock_init)
+        return old_init(self)
+
+    monkeypatch.setattr(siliconcompiler.Project, '_init_run', mock_init)
 
 
 @pytest.fixture(autouse=True)
