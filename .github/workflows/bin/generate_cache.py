@@ -2,9 +2,9 @@ import os
 import sys
 from pathlib import Path
 
-# from siliconcompiler import Chip
-# from siliconcompiler.package import path as sc_path
-# import lambdapdk
+from siliconcompiler import Project
+from lambdapdk.asap7 import ASAP7PDK
+from lambdapdk.ihp130 import IHP130PDK
 # from logiklib.demo.K4_N8_6x6 import K4_N8_6x6
 # from logiklib.demo.K6_N8_3x3 import K6_N8_3x3
 # from logiklib.demo.K6_N8_12x12_BD import K6_N8_12x12_BD
@@ -12,25 +12,13 @@ from pathlib import Path
 
 
 if __name__ == "__main__":
-    # chip = Chip('cache')
+    proj = Project("cache")
 
-    # chip.use(lambdapdk)
-    # chip.use(K4_N8_6x6)
-    # chip.use(K6_N8_3x3)
-    # chip.use(K6_N8_12x12_BD)
-    # chip.use(K6_N8_28x28_BD)
+    proj.set('option', 'cachedir', Path(os.getcwd()) / '.sc' / 'cache')
 
-    cwd = Path(os.getcwd())
-    cwd.mkdir(exist_ok=True)
-    # chip.set('option', 'cachedir', cwd / '.sc' / 'cache')
+    proj.add_dep(ASAP7PDK())
+    proj.add_dep(IHP130PDK())
 
-    # for package in chip.getkeys('package', 'source'):
-    #     chip.logger.info(f"Fetching {package} data source")
-
-    #     try:
-    #         sc_path(chip, package)
-    #     except Exception as e:
-    #         chip.logger.info(f"Failed to generate cache for {package}: {e}")
-    #         sys.exit(1)
+    proj.check_filepaths([("option", "builddir")])
 
     sys.exit(0)
