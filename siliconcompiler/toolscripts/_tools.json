@@ -1,7 +1,7 @@
 {
   "openroad": {
     "git-url": "https://github.com/The-OpenROAD-Project/OpenROAD.git",
-    "git-commit": "795d8a4e4d2354fe899914c710d245a65f16e8f5",
+    "git-commit": "6a23a4b44f9e8b7a8ca3d700bab0e9e87b2dcc57",
     "docker-cmds": [
       "# Remove OR-Tools files",
       "RUN rm -f $SC_PREFIX/Makefile $SC_PREFIX/README.md",
@@ -17,7 +17,7 @@
   },
   "opensta": {
     "git-url": "https://github.com/parallaxsw/OpenSTA.git",
-    "git-commit": "b654fd48a867bed27835e153fd8d3640f62a6666",
+    "git-commit": "255988633fe90820536b6542a6b608db4d9648bc",
     "auto-update": true
   },
   "netgen": {
@@ -112,8 +112,7 @@
     "auto-update": true
   },
   "xdm": {
-    "git-url": "https://github.com/Xyce/XDM.git",
-    "git-commit": "Release-2.7.0",
+    "version": "2.7.0",
     "auto-update": false
   },
   "slurm": {
