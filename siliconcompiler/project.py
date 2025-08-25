@@ -901,7 +901,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         return state
 
     def __setstate__(self, state):
-        # Retrive manager address
+        # Retrieve manager address
         MPManager._set_manager_address(state["__manager__"])
         del state["__manager__"]
 
