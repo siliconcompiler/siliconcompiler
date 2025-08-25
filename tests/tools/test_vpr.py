@@ -61,7 +61,8 @@ def test_run(datadir):
     fpga.set_vpr_graphfile(os.path.join(datadir, "fpga", "K6_N8_3x3_rr_graph.xml"))
     proj.set_fpga(fpga)
 
-    proj.get_task(filter=ImporterTask).set("var", "input_files", os.path.join(datadir, "adder.blif"))
+    proj.get_task(filter=ImporterTask).set("var", "input_files",
+                                           os.path.join(datadir, "adder.blif"))
 
     assert proj.run()
 
