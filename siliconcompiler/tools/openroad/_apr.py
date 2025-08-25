@@ -27,7 +27,7 @@ class OpenROADSTAParameter(OpenROADTask):
                            "if true will generate separate path groups per clock", defvalue=False)
 
         self.set_dataroot("siliconcompiler", "python://siliconcompiler")
-        self.add_parameter("opensta_generic_sdc", "file", "blah-blah",
+        self.add_parameter("opensta_generic_sdc", "file", "generic opensta SDC file",
                            defvalue="tools/_common/sdc/sc_constraints.sdc",
                            package="siliconcompiler")
 
