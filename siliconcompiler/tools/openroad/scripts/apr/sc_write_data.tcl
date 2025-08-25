@@ -49,11 +49,11 @@ if { [sc_cfg_tool_task_get var write_cdl] } {
 ###############################
 
 if { [sc_cfg_tool_task_get var write_spef] } {
+    set pexfileset [sc_cfg_get library $sc_pdk pdk pexmodelfileset openroad]
     # just need to define a corner
     define_process_corner -ext_model_index 0 X
     foreach pexcorner [sc_cfg_tool_task_get var pex_corners] {
-        set pex_model \
-            [lindex [sc_cfg_get_fileset $sc_pdk [sc_cfg_get library $sc_pdk pdk pexmodelfileset openroad] openrcx] 0]
+        set pex_model [lindex [sc_cfg_get_fileset $sc_pdk $pexfileset openrcx] 0]
         puts "Writing SPEF for $pexcorner"
         extract_parasitics -ext_model_file $pex_model
         write_spef "outputs/${sc_topmodule}.${pexcorner}.spef"

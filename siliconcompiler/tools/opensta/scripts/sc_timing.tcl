@@ -45,7 +45,8 @@ foreach corner $sc_scenarios {
         set lib_filesets []
         foreach libcorner [sc_cfg_get constraint timing $corner libcorner] {
             if { [sc_cfg_exists library $lib asic libcornerfileset $libcorner $sc_delaymodel] } {
-                lappend lib_filesets {*}[sc_cfg_get library $lib asic libcornerfileset $libcorner $sc_delaymodel]
+                lappend lib_filesets \
+                    {*}[sc_cfg_get library $lib asic libcornerfileset $libcorner $sc_delaymodel]
             }
         }
         foreach lib_file [sc_cfg_get_fileset $lib $lib_filesets liberty] {
@@ -84,8 +85,9 @@ if { [file exists "inputs/${sc_topmodule}.sdc"] } {
         lappend sdc_files $sdc
     }
 
+    set sdcfileset [sc_cfg_get constraint timing $corner sdcfileset]
     foreach corner $sc_scenarios {
-        foreach sdc [sc_cfg_get_fileset $sc_topmodulelib [sc_cfg_get constraint timing $corner sdcfileset] sdc] {
+        foreach sdc [sc_cfg_get_fileset $sc_topmodulelib $sdcfileset sdc] {
             if { [lsearch -exact $sdc_files $sdc] == -1 } {
                 # read step constraint if exists
                 puts "Reading mode (${sc_timing_mode}) SDC: ${sdc}"

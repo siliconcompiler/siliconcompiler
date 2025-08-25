@@ -9,7 +9,8 @@ foreach corner $sc_scenarios {
         set lib_filesets []
         foreach libcorner [sc_cfg_get constraint timing $corner libcorner] {
             if { [sc_cfg_exists library $lib asic libcornerfileset $libcorner $sc_delaymodel] } {
-                lappend lib_filesets {*}[sc_cfg_get library $lib asic libcornerfileset $libcorner $sc_delaymodel]
+                lappend lib_filesets \
+                    {*}[sc_cfg_get library $lib asic libcornerfileset $libcorner $sc_delaymodel]
             }
         }
         foreach lib_file [sc_cfg_get_fileset $lib $lib_filesets liberty] {

@@ -9,7 +9,8 @@ if { [sc_has_input_files odb "input layout odb"] } {
         read_db $odb_file
     }
 } else {
-    foreach sc_techlef [sc_cfg_get_fileset $sc_pdk [sc_cfg_get library $sc_pdk pdk aprtechfileset openroad] lef] {
+    set aprfileset [sc_cfg_get library $sc_pdk pdk aprtechfileset openroad]
+    foreach sc_techlef [sc_cfg_get_fileset $sc_pdk $aprfileset lef] {
         # Read techlef
         puts "Reading techlef: ${sc_techlef}"
         read_lef $sc_techlef
