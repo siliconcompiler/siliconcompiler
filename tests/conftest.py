@@ -1,9 +1,11 @@
 import os
 import pytest
-import subprocess
 import json
+import platform
 import shutil
 import socket
+import subprocess
+import sys
 import time
 
 import os.path
@@ -17,6 +19,7 @@ from pathlib import Path
 from siliconcompiler.scheduler import TaskScheduler
 from siliconcompiler.utils.multiprocessing import _ManagerSingleton, MPManager
 from unittest.mock import patch
+from pyvirtualdisplay import Display
 
 
 def pytest_addoption(parser):
@@ -375,3 +378,17 @@ def has_graphviz():
         graphviz.version()
     except graphviz.ExecutableNotFound:
         pytest.skip("graphviz not available")
+
+
+@pytest.fixture
+def display():
+    if "WSL2" in platform.platform():
+        os.environ["PYVIRTUALDISPLAY_DISPLAYFD"] = "0"
+
+    if sys.platform != 'win32':
+        display = Display(visible=False)
+        display.start()
+        yield display
+        display.stop()
+    else:
+        yield False

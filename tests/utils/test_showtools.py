@@ -1,11 +1,8 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
-import platform
 import pytest
-import sys
 
 import os.path
 
-from pyvirtualdisplay import Display
 from unittest.mock import patch
 
 from siliconcompiler import Project, ASICProject, DesignSchema, PDKSchema
@@ -34,20 +31,6 @@ def exit_on_show(monkeypatch):
 
     with patch.dict("siliconcompiler.ShowTaskSchema._ShowTaskSchema__TASKS", clear=True):
         yield
-
-
-@pytest.fixture
-def display():
-    if "WSL2" in platform.platform():
-        os.environ["PYVIRTUALDISPLAY_DISPLAYFD"] = "0"
-
-    if sys.platform != 'win32':
-        display = Display(visible=False)
-        display.start()
-        yield display
-        display.stop()
-    else:
-        yield False
 
 
 @pytest.mark.eda
