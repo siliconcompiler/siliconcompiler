@@ -1,27 +1,16 @@
-from siliconcompiler.tools.opensta import setup as tool_setup
-from siliconcompiler.tools.opensta import runtime_options as tool_runtime_options
-from siliconcompiler.tools._common import get_tool_task
+from siliconcompiler.tools.opensta import OpenSTATask
 
 
-def setup(chip):
+class CheckLibraryTask(OpenSTATask):
     '''
     Check setup information about the timing libraries.
     '''
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    tool, task = get_tool_task(chip, step, index)
+    def task(self):
+        return "check_libraries"
 
-    tool_setup(chip)
+    def setup(self):
+        self.set_threads(1)
 
-    chip.set('tool', tool, 'task', task, 'script', 'sc_check_library.tcl',
-             step=step, index=index, clobber=False)
+        super().setup()
 
-    chip.set('tool', tool, 'task', task, 'threads', 1,
-             step=step, index=index)
-
-
-################################
-# Runtime options
-################################
-def runtime_options(chip):
-    return tool_runtime_options(chip)
+        self.set_script("sc_check_library.tcl")

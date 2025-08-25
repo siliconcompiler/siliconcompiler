@@ -8,94 +8,41 @@ Sources: https://github.com/The-OpenROAD-Project/OpenSTA
 Installation: https://github.com/The-OpenROAD-Project/OpenSTA (also installed with OpenROAD)
 '''
 
-from siliconcompiler import utils
-from siliconcompiler.tools._common import get_tool_task
-from siliconcompiler.tools._common.asic import get_libraries
+
+from siliconcompiler import TaskSchema
 
 
-####################################################################
-# Make Docs
-####################################################################
-def make_docs(chip):
-    from siliconcompiler.targets import asap7_demo
-    chip.use(asap7_demo)
+class OpenSTATask(TaskSchema):
+    def __init__(self):
+        super().__init__()
 
+    def tool(self):
+        return "opensta"
 
-################################
-# Setup Tool (pre executable)
-################################
-def setup(chip):
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    tool, task = get_tool_task(chip, step, index)
+    def parse_version(self, stdout):
+        return stdout.strip()
 
-    chip.set('tool', tool, 'exe', 'sta')
-    chip.set('tool', tool, 'vswitch', '-version')
-    chip.set('tool', tool, 'version', '>=v2.6.2', clobber=False)
-    chip.set('tool', tool, 'format', 'tcl')
+    def setup(self):
+        super().setup()
 
-    targetlibs = get_libraries(chip, 'logic')
-    macrolibs = get_libraries(chip, 'macro')
-    delaymodel = chip.get('asic', 'delaymodel', step=step, index=index)
+        self.set_exe("sta", vswitch="-version", format="tcl")
+        self.add_version(">=2.6.2")
 
-    # Input/Output requirements for default asicflow steps
-    chip.set('tool', tool, 'task', task, 'refdir', 'tools/opensta/scripts',
-             step=step, index=index,
-             package='siliconcompiler', clobber=False)
-    chip.set('tool', tool, 'task', task, 'threads', utils.get_cores(),
-             step=step, index=index, clobber=False)
+        self.set_dataroot("refdir-root", __file__)
+        with self.active_dataroot("refdir-root"):
+            self.set_refdir("scripts")
 
-    if delaymodel != 'nldm':
-        chip.logger.error(f'{delaymodel} delay model is not supported by {tool}, only nldm')
+        self.set_threads()
 
-    if targetlibs:
-        # Note: only one footprint supported in mainlib
-        chip.add('tool', tool, 'task', task, 'require',
-                 ",".join(['asic', 'logiclib']),
-                 step=step, index=index)
+        self.add_regex("warnings", r'^\[WARNING|^Warning')
+        self.add_regex("errors", r'^\[ERROR')
 
-        for lib in targetlibs:
-            for timing_key in get_library_timing_keypaths(chip, lib).values():
-                chip.add('tool', tool, 'task', task, 'require', ",".join(timing_key),
-                         step=step, index=index)
-        for lib in macrolibs:
-            for timing_key in get_library_timing_keypaths(chip, lib).values():
-                if chip.valid(*timing_key):
-                    chip.add('tool', tool, 'task', task, 'require', ",".join(timing_key),
-                             step=step, index=index)
-    else:
-        chip.error('logiclib parameters required for OpenSTA.')
+    def runtime_options(self):
+        options = super().runtime_options()
+        options.append("-no_init")
+        if not self.has_breakpoint():
+            options.append("-exit")
 
-    # basic warning and error grep check on logfile
-    chip.set('tool', tool, 'task', task, 'regex', 'warnings', r'^\[WARNING|^Warning',
-             step=step, index=index, clobber=False)
-    chip.set('tool', tool, 'task', task, 'regex', 'errors', r'^\[ERROR',
-             step=step, index=index, clobber=False)
+        options.extend(["-threads", self.get_threads()])
 
-
-################################
-# Version Check
-################################
-def parse_version(stdout):
-    return stdout.strip()
-
-
-################################
-# Runtime options
-################################
-def runtime_options(chip):
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-
-    # exit automatically in batch mode and not breakpoint
-    option = []
-    if not chip.get('option', 'breakpoint', step=step, index=index):
-        option.append("-exit")
-
-    tool, task = get_tool_task(chip, step, index)
-    option.extend([
-        '-threads',
-        str(chip.get('tool', tool, 'task', task, 'threads', step=step, index=index))
-    ])
-
-    return option
+        return options

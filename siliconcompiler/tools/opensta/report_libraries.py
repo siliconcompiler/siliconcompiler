@@ -1,28 +1,14 @@
-from siliconcompiler import utils
-from siliconcompiler.tools.opensta import setup as tool_setup
-from siliconcompiler.tools.opensta import runtime_options as tool_runtime_options
-from siliconcompiler.tools._common import get_tool_task
+from siliconcompiler.tools.opensta import OpenSTATask
 
 
-def setup(chip):
+class ReportLibraryTask(OpenSTATask):
     '''
     Report information about the timing libraries.
     '''
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    tool, task = get_tool_task(chip, step, index)
+    def task(self):
+        return "report_libraries"
 
-    tool_setup(chip)
+    def setup(self):
+        super().setup()
 
-    chip.set('tool', tool, 'task', task, 'script', 'sc_report_libraries.tcl',
-             step=step, index=index, clobber=False)
-
-    chip.set('tool', tool, 'task', task, 'threads', utils.get_cores(),
-             step=step, index=index)
-
-
-################################
-# Runtime options
-################################
-def runtime_options(chip):
-    return tool_runtime_options(chip)
+        self.set_script("sc_report_libraries.tcl")
