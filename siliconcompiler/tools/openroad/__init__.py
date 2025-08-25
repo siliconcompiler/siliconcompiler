@@ -10,12 +10,11 @@ Sources: https://github.com/The-OpenROAD-Project/OpenROAD
 
 Installation: https://github.com/The-OpenROAD-Project/OpenROAD
 '''
-from siliconcompiler.tools._common import get_tool_task
-
 from typing import List, Union
 
-from siliconcompiler.library import StdCellLibrarySchema
-from siliconcompiler.pdk import PDKSchema
+from siliconcompiler import StdCellLibrarySchema
+from siliconcompiler import PDKSchema
+from siliconcompiler import ASICTaskSchema
 
 
 class OpenROADPDK(PDKSchema):
@@ -302,91 +301,70 @@ class OpenROADStdCellLibrary(StdCellLibrarySchema):
             self.add("tool", "openroad", "multibit_ff_cells", cells)
 
 
-####################################################################
-# Make Docs
-####################################################################
-def make_docs(chip):
-    from siliconcompiler.targets import asap7_demo
-    chip.use(asap7_demo)
+class OpenROADTask(ASICTaskSchema):
+    def __init__(self):
+        super().__init__()
 
+        self.add_parameter("debug_level", "{(str,str,int)}",
+                           'list of "tool key level" to enable debugging of OpenROAD')
 
-################################
-# Setup Tool (pre executable)
-################################
-def setup(chip, exit=True, clobber=False):
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    tool, task = get_tool_task(chip, step, index)
+    def tool(self):
+        return "openroad"
 
-    chip.set('tool', tool, 'exe', 'openroad')
-    chip.set('tool', tool, 'vswitch', '-version')
-    chip.set('tool', tool, 'version', '>=v2.0-17598', clobber=clobber)
-    chip.set('tool', tool, 'format', 'tcl', clobber=clobber)
+    def setup(self):
+        super().setup()
 
-    option = [
-        "-no_init",
-        "-metrics", "reports/metrics.json"
-    ]
+        self.set_exe("openroad", vswitch="-version", format="tcl")
+        self.add_version(">=v2.0-17598")
 
-    # exit automatically in batch mode and not breakpoint
-    if exit and \
-       not chip.get('option', 'breakpoint', step=step, index=index):
-        option.append("-exit")
+        self.set_dataroot("openroad-ref", __file__)
+        with self.active_dataroot("openroad-ref"):
+            self.set_refdir("scripts")
 
-    chip.set('tool', tool, 'task', task, 'option', option,
-             step=step, index=index, clobber=clobber)
+        self.add_regex("warnings", r'^\[WARNING|^Warning')
+        self.add_regex("errors", r'^\[ERROR')
 
-    chip.set('tool', tool, 'task', task, 'refdir',
-             'tools/openroad/scripts',
-             step=step, index=index, package='siliconcompiler')
+        if self.schema().get('option', 'nodisplay'):
+            # Tells QT to use the offscreen platform if nodisplay is used
+            self.set_environmentalvariable("QPA_QT_PLATFORM", "offscreen")
 
-    # basic warning and error grep check on logfile
-    chip.set('tool', tool, 'task', task, 'regex', 'warnings',
-             r'^\[WARNING|Warning',
-             step=step, index=index, clobber=clobber)
-    chip.set('tool', tool, 'task', task, 'regex', 'errors',
-             r'^\[ERROR',
-             step=step, index=index, clobber=clobber)
+    def parse_version(self, stdout):
+        # stdout will be in one of the following forms:
+        # - 1 08de3b46c71e329a10aa4e753dcfeba2ddf54ddd
+        # - 1 v2.0-880-gd1c7001ad
+        # - v2.0-1862-g0d785bd84
 
-    chip.set('tool', tool, 'task', task, 'var', 'debug_level',
-             'list of "tool key level" to enable debugging of OpenROAD',
-             field='help')
+        # strip off the "1" prefix if it's there
+        version = stdout.split()[-1]
 
-    if chip.get('option', 'nodisplay'):
-        # Tells QT to use the offscreen platform if nodisplay is used
-        chip.set('tool', tool, 'task', task, 'env',
-                 'QT_QPA_PLATFORM', 'offscreen',
-                 step=step, index=index)
+        pieces = version.split('-')
+        if len(pieces) > 1:
+            # strip off the hash in the new version style
+            return '-'.join(pieces[:-1])
+        else:
+            return pieces[0]
 
+    def normalize_version(self, version):
+        if '.' in version:
+            return version.lstrip('v')
+        else:
+            return '0'
 
-################################
-# Version Check
-################################
-def parse_version(stdout):
-    # stdout will be in one of the following forms:
-    # - 1 08de3b46c71e329a10aa4e753dcfeba2ddf54ddd
-    # - 1 v2.0-880-gd1c7001ad
-    # - v2.0-1862-g0d785bd84
+    def add_debuglevel(self, tool, category, level, clobber=False):
+        if clobber:
+            self.set("var", "debug_level", (tool, category, level))
+        else:
+            self.add("var", "debug_level", (tool, category, level))
 
-    # strip off the "1" prefix if it's there
-    version = stdout.split()[-1]
+    def unset_debuglevel(self):
+        self.unset("var", "debug_level")
 
-    pieces = version.split('-')
-    if len(pieces) > 1:
-        # strip off the hash in the new version style
-        return '-'.join(pieces[:-1])
-    else:
-        return pieces[0]
+    def runtime_options(self):
+        options = super().runtime_options()
+        options.append("-no_init")
+        options.extend(["-metrics", "reports/metrics.json"])
 
+        if not self.has_breakpoint():
+            options.append("-exit")
 
-def normalize_version(version):
-    if '.' in version:
-        return version.lstrip('v')
-    else:
-        return '0'
-
-
-##################################################
-if __name__ == "__main__":
-    chip = make_docs()
-    chip.write_manifest("openroad.json")
+        return options

@@ -1,20 +1,25 @@
-import copy
 import os
 import pytest
-import siliconcompiler
-from siliconcompiler import utils
-from siliconcompiler.tools import openroad
-from siliconcompiler.tools._common import get_tool_tasks
-from siliconcompiler.targets import freepdk45_demo
-from pathlib import Path
-import subprocess
 import json
+import platform
 import shutil
 import socket
+import subprocess
+import sys
 import time
+
+import os.path
+
+import siliconcompiler
+from siliconcompiler import utils, ASICProject, DesignSchema
+from siliconcompiler.tools.openroad._apr import APRTask
+from siliconcompiler.flows.asicflow import ASICFlow
+from siliconcompiler.targets import freepdk45_demo
+from pathlib import Path
 from siliconcompiler.scheduler import TaskScheduler
 from siliconcompiler.utils.multiprocessing import _ManagerSingleton, MPManager
 from unittest.mock import patch
+from pyvirtualdisplay import Display
 
 
 def pytest_addoption(parser):
@@ -51,25 +56,6 @@ def test_wrapper(tmp_path, request, monkeypatch):
 
 
 @pytest.fixture(autouse=True)
-def use_strict(monkeypatch, request):
-    '''Set [option, strict] to True for all Chip objects created in test
-    session.
-
-    This helps catch bugs.
-    '''
-    if 'nostrict' in request.keywords:
-        return
-
-    old_init = siliconcompiler.Chip.__init__
-
-    def mock_init(chip, design, **kwargs):
-        old_init(chip, design, **kwargs)
-        chip.set('option', 'strict', True)
-
-    monkeypatch.setattr(siliconcompiler.Chip, '__init__', mock_init)
-
-
-@pytest.fixture(autouse=True)
 def use_cache(monkeypatch, request):
     '''Set [option, cachedir]
     '''
@@ -80,13 +66,14 @@ def use_cache(monkeypatch, request):
     if not cachedir:
         return
 
-    old_init = siliconcompiler.Chip.__init__
+    old_init = siliconcompiler.Project._init_run
 
-    def mock_init(chip, design, **kwargs):
-        old_init(chip, design, **kwargs)
-        chip.set('option', 'cachedir', cachedir)
+    def mock_init(self):
+        self.set('option', 'cachedir', cachedir)
 
-    monkeypatch.setattr(siliconcompiler.Chip, '__init__', mock_init)
+        return old_init(self)
+
+    monkeypatch.setattr(siliconcompiler.Project, '_init_run', mock_init)
 
 
 @pytest.fixture(autouse=True)
@@ -99,7 +86,7 @@ def limit_cpus(monkeypatch, request):
     if 'nocpulimit' in request.keywords:
         return
 
-    org_cpus = utils.get_cores(siliconcompiler.Chip("dummy"))
+    org_cpus = utils.get_cores()
 
     def limit_cpu(*args, **kwargs):
         if org_cpus > 1:
@@ -110,12 +97,26 @@ def limit_cpus(monkeypatch, request):
 
 
 @pytest.fixture(autouse=True)
+def skip_eda(request):
+    '''
+    Limit CPU core count for eda tests
+    '''
+    if 'ready' in request.keywords:
+        return
+    if 'eda' in request.keywords:
+        pytest.skip("EDA not ready")
+    if 'docker' in request.keywords:
+        pytest.skip("docker not ready")
+
+
+@pytest.fixture(autouse=True)
 def isolate_statics_in_testing(monkeypatch):
     '''
     Isolate static instances for testing
     '''
 
     monkeypatch.setattr(MPManager, "_MPManager__ENABLE_LOGGER", False)
+    monkeypatch.setattr(MPManager, "_MPManager__address", None)
 
     with patch.dict(TaskScheduler._TaskScheduler__callbacks), \
             patch.dict(_ManagerSingleton._instances, clear=True):
@@ -132,16 +133,18 @@ def disable_or_images(monkeypatch, request):
     '''
     if 'eda' not in request.keywords:
         return
-    old_run = siliconcompiler.Chip.run
+    old_init = siliconcompiler.Project._init_run
 
-    def mock_run(chip, raise_exception=False):
-        for task in get_tool_tasks(chip, openroad):
-            chip.set('tool', 'openroad', 'task', task, 'var', 'ord_enable_images', 'false',
-                     clobber=False)
+    def mock_init(self: siliconcompiler.Project):
+        tasks = self.get_task(filter=APRTask)
+        if not isinstance(tasks, set):
+            tasks = [tasks]
+        for task in tasks:
+            task.set('var', 'ord_enable_images', False, clobber=False)
 
-        return old_run(chip, raise_exception=raise_exception)
+        return old_init(self)
 
-    monkeypatch.setattr(siliconcompiler.Chip, 'run', mock_run)
+    monkeypatch.setattr(siliconcompiler.Project, '_init_run', mock_init)
 
 
 @pytest.fixture(scope='session')
@@ -172,84 +175,65 @@ def datadir(request):
 
 
 @pytest.fixture
-def gcd_chip(examples_root):
-    '''Returns a fully configured chip object that will compile the GCD example
-    design using freepdk45 and the asicflow.'''
-
-    chip = siliconcompiler.Chip('gcd')
-    chip.register_source('gcd-pytest-example', os.path.join(examples_root, 'gcd'))
-    chip.use(freepdk45_demo)
-    chip.input('gcd.v', package='gcd-pytest-example')
-    chip.input('gcd.sdc', package='gcd-pytest-example')
-    chip.set('constraint', 'outline', [(0, 0), (100.13, 100.8)])
-    chip.set('constraint', 'corearea', [(10.07, 11.2), (90.25, 91)])
-    chip.set('option', 'nodisplay', True)
-    chip.set('option', 'quiet', True)
-
-    return chip
-
-
-@pytest.fixture(scope='session')
-def gcd_chip_dir(tmpdir_factory, examples_root):
-    '''Returns a fully configured chip object that will compile the GCD example
-    design using freepdk45 and the asicflow.'''
-
-    cwd = os.getcwd()
-    rundir = str(tmpdir_factory.mktemp("gcd"))
-    os.chdir(rundir)
-
-    chip = siliconcompiler.Chip('gcd')
-    chip.register_source('gcd-pytest-example', os.path.join(examples_root, 'gcd'))
-    chip.use(freepdk45_demo)
-    chip.input('gcd.v', package='gcd-pytest-example')
-    chip.input('gcd.sdc', package='gcd-pytest-example')
-    chip.set('constraint', 'outline', [(0, 0), (100.13, 100.8)])
-    chip.set('constraint', 'corearea', [(10.07, 11.2), (90.25, 91)])
-    chip.set('option', 'nodisplay', True)
-    chip.set('option', 'quiet', True)
-
-    assert chip.run(raise_exception=True)
-
-    os.chdir(cwd)
-
-    return chip, rundir
-
-
-@pytest.fixture(scope='session')
-def heartbeat_chip_dir(tmpdir_factory, scroot):
-    '''Fixture that creates a heartbeat build directory by running a build.
-    '''
-
-    cwd = os.getcwd()
-    rundir = str(tmpdir_factory.mktemp("heartbeat"))
-    os.chdir(rundir)
-
-    chip = siliconcompiler.Chip('heartbeat')
-    chip.register_source('heartbeat-pytest', os.path.join(scroot, 'tests', 'data'))
-    chip.set('option', 'loglevel', 'error')
-    chip.set('option', 'quiet', True)
-    chip.input('heartbeat.v', package='heartbeat-pytest')
-    chip.input('heartbeat.sdc', package='heartbeat-pytest')
-    chip.use(freepdk45_demo)
-    assert chip.run(raise_exception=True)
-
-    os.chdir(cwd)
-
-    return chip, rundir
+def heartbeat_design(examples_root):
+    design = DesignSchema("heartbeat")
+    design.set_dataroot("heartbeat-pytest-example", os.path.join(examples_root, 'heartbeat'))
+    with design.active_fileset("rtl"), design.active_dataroot("heartbeat-pytest-example"):
+        design.set_topmodule("heartbeat")
+        design.add_file("heartbeat.v")
+    with design.active_fileset("sdc"), design.active_dataroot("heartbeat-pytest-example"):
+        design.add_file("heartbeat.sdc")
+    return design
 
 
 @pytest.fixture
-def copy_chip_dir():
-    def gen_copy(chip_dir, output="./"):
-        chip, rundir = chip_dir
+def asic_heartbeat(heartbeat_design):
+    '''Returns a fully configured chip object that will compile the GCD example
+    design using freepdk45 and the asicflow.'''
 
-        shutil.copytree(rundir, output, dirs_exist_ok=True)
+    project = ASICProject(heartbeat_design)
+    project.add_fileset("rtl")
+    project.add_fileset("sdc")
 
-        new_chip = copy.deepcopy(chip)
-        new_chip.cwd = os.path.abspath(output)
-        return new_chip
+    project.set_flow(ASICFlow())
 
-    return gen_copy
+    project.load_target(freepdk45_demo.setup)
+
+    project.set('option', 'nodisplay', True)
+    project.set('option', 'quiet', True)
+
+    return project
+
+
+@pytest.fixture
+def gcd_design(examples_root):
+    design = DesignSchema("gcd")
+    design.set_dataroot("gcd-pytest-example", os.path.join(examples_root, 'gcd'))
+    with design.active_fileset("rtl"), design.active_dataroot("gcd-pytest-example"):
+        design.set_topmodule("gcd")
+        design.add_file("gcd.v")
+    with design.active_fileset("sdc"), design.active_dataroot("gcd-pytest-example"):
+        design.add_file("gcd.sdc")
+    return design
+
+
+@pytest.fixture
+def asic_gcd(gcd_design):
+    '''Returns a fully configured chip object that will compile the GCD example
+    design using freepdk45 and the asicflow.'''
+
+    project = ASICProject(gcd_design)
+    project.add_fileset("rtl")
+    project.add_fileset("sdc")
+
+    project.set_flow(ASICFlow())
+
+    project.load_target(freepdk45_demo.setup)
+
+    project.set('option', 'nodisplay', True)
+    project.set('option', 'quiet', True)
+
+    return project
 
 
 @pytest.fixture(scope='session')
@@ -395,3 +379,17 @@ def has_graphviz():
         graphviz.version()
     except graphviz.ExecutableNotFound:
         pytest.skip("graphviz not available")
+
+
+@pytest.fixture
+def display():
+    if "WSL2" in platform.platform():
+        os.environ["PYVIRTUALDISPLAY_DISPLAYFD"] = "0"
+
+    if sys.platform != 'win32':
+        display = Display(visible=False)
+        display.start()
+        yield display
+        display.stop()
+    else:
+        yield False

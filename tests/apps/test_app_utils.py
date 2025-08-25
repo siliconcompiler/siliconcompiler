@@ -1,42 +1,57 @@
-import os
+import pytest
+import sys
+
+import os.path
+
+from siliconcompiler import FlowgraphSchema, Project
+from siliconcompiler.tools.builtin.nop import NOPTask
 from siliconcompiler.apps.utils import summarize, replay
 
-import pytest
+
+@pytest.fixture
+def gcd_nop_project_run(gcd_design):
+    project = Project(gcd_design)
+    project.add_fileset("rtl")
+    project.add_fileset("sdc")
+
+    flow = FlowgraphSchema("nopflow")
+    flow.node("stepone", NOPTask())
+    flow.node("steptwo", NOPTask())
+    flow.edge("stepone", "steptwo")
+    project.set_flow(flow)
+
+    project.set('option', 'nodisplay', True)
+    project.set('option', 'quiet', True)
+
+    assert project.run()
+
+    return project
 
 
-@pytest.mark.eda
-@pytest.mark.quick
-def test_summarize_cfg(monkeypatch, gcd_chip_dir, copy_chip_dir):
+def test_summarize_cfg(monkeypatch, gcd_nop_project_run, capsys):
     '''Tests that sc summarizes a cfg.'''
 
-    chip = copy_chip_dir(gcd_chip_dir)
-    chip.write_manifest('test.json')
+    gcd_nop_project_run.write_manifest('test.json')
     assert os.path.isfile('test.json')
 
     monkeypatch.setattr('sys.argv', [summarize.__name__, '-cfg', 'test.json'])
     assert summarize.main() == 0
 
+    assert "stepone/0  steptwo/0" in capsys.readouterr().out
 
-@pytest.mark.eda
-@pytest.mark.quick
-def test_summarize_cfg_no_cfg(monkeypatch, gcd_chip_dir, copy_chip_dir):
+
+def test_summarize_cfg_no_cfg(monkeypatch):
     '''Tests that sc summarizes a cfg.'''
-
-    chip = copy_chip_dir(gcd_chip_dir)
-    chip.write_manifest('test.json')
-    assert os.path.isfile('test.json')
 
     monkeypatch.setattr('sys.argv', [summarize.__name__])
     assert summarize.main() == 1
 
 
-@pytest.mark.eda
-@pytest.mark.quick
-def test_replay_cfg_cli_error(monkeypatch, run_cli, gcd_chip_dir, copy_chip_dir):
+@pytest.mark.skipif(sys.platform == "win32", reason="Not supported on windows")
+def test_replay_cfg_cli_error(monkeypatch, run_cli, gcd_nop_project_run):
     '''Tests that sc generates a replay script.'''
 
-    chip = copy_chip_dir(gcd_chip_dir)
-    chip.write_manifest('test.json')
+    gcd_nop_project_run.write_manifest('test.json')
     assert os.path.isfile('test.json')
 
     monkeypatch.setattr('sys.argv',
@@ -48,13 +63,11 @@ def test_replay_cfg_cli_error(monkeypatch, run_cli, gcd_chip_dir, copy_chip_dir)
     run_cli(['./test_replay.sh', '-error'], retcode=1)
 
 
-@pytest.mark.eda
-@pytest.mark.quick
-def test_replay_cfg_help(monkeypatch, run_cli, gcd_chip_dir, copy_chip_dir):
+@pytest.mark.skipif(sys.platform == "win32", reason="Not supported on windows")
+def test_replay_cfg_help(monkeypatch, run_cli, gcd_nop_project_run):
     '''Tests that sc generates a replay script.'''
 
-    chip = copy_chip_dir(gcd_chip_dir)
-    chip.write_manifest('test.json')
+    gcd_nop_project_run.write_manifest('test.json')
     assert os.path.isfile('test.json')
 
     monkeypatch.setattr('sys.argv',
@@ -78,11 +91,15 @@ def test_replay_cfg_help(monkeypatch, run_cli, gcd_chip_dir, copy_chip_dir):
 
 @pytest.mark.eda
 @pytest.mark.quick
-def test_replay_cfg_print_tools(monkeypatch, run_cli, gcd_chip_dir, copy_chip_dir):
+@pytest.mark.ready
+@pytest.mark.skipif(sys.platform == "win32", reason="Not supported on windows")
+def test_replay_cfg_print_tools(monkeypatch, run_cli, asic_gcd):
     '''Tests that sc generates a replay script.'''
 
-    chip = copy_chip_dir(gcd_chip_dir)
-    chip.write_manifest('test.json')
+    asic_gcd.set("option", "to", "synthesis")
+    assert asic_gcd.run()
+
+    asic_gcd.write_manifest('test.json')
     assert os.path.isfile('test.json')
 
     monkeypatch.setattr('sys.argv',
@@ -94,19 +111,15 @@ def test_replay_cfg_print_tools(monkeypatch, run_cli, gcd_chip_dir, copy_chip_di
     proc = run_cli(['./test_replay.sh', '-print_tools'])
     assert proc.returncode == 0
 
-    output = proc.stdout
-    assert "openroad:" in output
-    assert "yosys   :" in output
-    assert "klayout :" in output
+    assert "yosys: " in proc.stdout
 
 
-@pytest.mark.eda
-@pytest.mark.quick
-def test_replay_cfg_setup(monkeypatch, run_cli, gcd_chip_dir, copy_chip_dir):
+@pytest.mark.skipif(sys.platform == "win32", reason="Not supported on windows")
+@pytest.mark.skipif(sys.platform == "darwin", reason="realpath not available in bash on macos")
+def test_replay_cfg_setup(monkeypatch, run_cli, gcd_nop_project_run):
     '''Tests that sc generates a replay script.'''
 
-    chip = copy_chip_dir(gcd_chip_dir)
-    chip.write_manifest('test.json')
+    gcd_nop_project_run.write_manifest('test.json')
     assert os.path.isfile('test.json')
 
     monkeypatch.setattr('sys.argv',
@@ -114,6 +127,13 @@ def test_replay_cfg_setup(monkeypatch, run_cli, gcd_chip_dir, copy_chip_dir):
     assert replay.main() == 0
 
     assert os.path.isfile('test_replay.sh')
+
+    # Remove slow pip install
+    with open("test_replay.sh", "r") as fin:
+        script = fin.read().splitlines()
+    script[script.index("pip3 install -r requirements.txt")] = "# removed pip install"
+    with open("test_replay.sh", "w") as fout:
+        fout.write("\n".join(script))
 
     proc = run_cli(['./test_replay.sh',
                     '-dir=replay_dir',
@@ -130,13 +150,10 @@ def test_replay_cfg_setup(monkeypatch, run_cli, gcd_chip_dir, copy_chip_dir):
     assert os.path.isfile('replay_dir/replay.py')
 
 
-@pytest.mark.eda
-@pytest.mark.quick
-def test_replay_cfg_no_cfg(monkeypatch, gcd_chip_dir, copy_chip_dir):
+def test_replay_cfg_no_cfg(monkeypatch, gcd_nop_project_run):
     '''Tests that sc generates a replay script.'''
 
-    chip = copy_chip_dir(gcd_chip_dir)
-    chip.write_manifest('test.json')
+    gcd_nop_project_run.write_manifest('test.json')
     assert os.path.isfile('test.json')
 
     monkeypatch.setattr('sys.argv',
@@ -147,13 +164,10 @@ def test_replay_cfg_no_cfg(monkeypatch, gcd_chip_dir, copy_chip_dir):
     assert not os.path.isfile('test_replay.sh')
 
 
-@pytest.mark.eda
-@pytest.mark.quick
-def test_replay_cfg_no_file(monkeypatch, gcd_chip_dir, copy_chip_dir):
+def test_replay_cfg_no_file(monkeypatch, gcd_nop_project_run):
     '''Tests that sc generates a replay script.'''
 
-    chip = copy_chip_dir(gcd_chip_dir)
-    chip.write_manifest('test.json')
+    gcd_nop_project_run.write_manifest('test.json')
     assert os.path.isfile('test.json')
 
     monkeypatch.setattr('sys.argv',

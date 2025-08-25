@@ -1,80 +1,46 @@
-from siliconcompiler.tools._common import get_tool_task
-from siliconcompiler.tools.openroad._apr import setup as apr_setup
-from siliconcompiler.tools.openroad._apr import set_reports, set_pnr_inputs, set_pnr_outputs, \
-    set_tool_task_var
-from siliconcompiler.tools.openroad._apr import \
-    define_ord_params, define_sta_params, define_sdc_params, \
-    define_gpl_params, define_grt_params, define_rsz_params, \
-    define_ppl_params
-from siliconcompiler.tools.openroad._apr import build_pex_corners, define_ord_files
-from siliconcompiler.tools.openroad._apr import extract_metrics
+from siliconcompiler.tools.openroad._apr import APRTask
+from siliconcompiler.tools.openroad._apr import OpenROADSTAParameter, OpenROADGPLParameter, \
+    OpenROADGRTGeneralParameter
 
 
-def setup(chip):
+class GlobalPlacementTask(APRTask, OpenROADSTAParameter, OpenROADGPLParameter,
+                          OpenROADGRTGeneralParameter):
     '''
     Perform global placement
     '''
+    def __init__(self):
+        super().__init__()
 
-    # Generic apr tool setup.
-    apr_setup(chip)
+        self.add_parameter("enable_scan_chains", "bool",
+                           "true/false, when true scan chains will be inserted.", defvalue=False)
+        self.add_parameter("scan_enable_port_pattern", "str",
+                           "pattern of the scan chain enable port")
+        self.add_parameter("scan_in_port_pattern", "str",
+                           "pattern of the scan chain in port")
+        self.add_parameter("scan_out_port_pattern", "str",
+                           "pattern of the scan chain out port")
 
-    # Task setup
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    tool, task = get_tool_task(chip, step, index)
+        self.add_parameter("enable_multibit_clustering", "bool",
+                           "true/false, when true multibit clustering will be performed.",
+                           defvalue=False)
 
-    chip.set('tool', tool, 'task', task, 'script', 'apr/sc_global_placement.tcl',
-             step=step, index=index)
+    def task(self):
+        return "global_placement"
 
-    # Setup task IO
-    set_pnr_inputs(chip)
-    set_pnr_outputs(chip)
+    def setup(self):
+        super().setup()
 
-    # set default values for openroad
-    define_ord_params(chip)
-    define_sta_params(chip)
-    define_sdc_params(chip)
-    define_gpl_params(chip)
-    define_grt_params(chip)
-    define_rsz_params(chip)
-    define_ppl_params(chip)
+        self.set_script("apr/sc_global_placement.tcl")
 
-    set_reports(chip, [
-        'setup',
-        'unconstrained',
-        'power',
-        'fmax',
+        self._set_reports([
+            'setup',
+            'unconstrained',
+            'power',
+            'fmax',
 
-        # Images
-        'placement_density',
-        'routing_congestion',
-        'power_density',
-        'module_view'
-    ])
-
-    set_tool_task_var(chip, param_key='enable_multibit_clustering',
-                      default_value=False,
-                      schelp='true/false, when true multibit clustering will be performed.')
-
-    set_tool_task_var(chip, param_key='enable_scan_chains',
-                      default_value=False,
-                      schelp='true/false, when true scan chains will be inserted.')
-
-    set_tool_task_var(chip, param_key='scan_enable_port_pattern',
-                      schelp='pattern of the scan chain enable port.',
-                      skip=['pdk', 'lib'])
-    set_tool_task_var(chip, param_key='scan_in_port_pattern',
-                      schelp='pattern of the scan chain in port.',
-                      skip=['pdk', 'lib'])
-    set_tool_task_var(chip, param_key='scan_out_port_pattern',
-                      schelp='pattern of the scan chain out port.',
-                      skip=['pdk', 'lib'])
-
-
-def pre_process(chip):
-    define_ord_files(chip)
-    build_pex_corners(chip)
-
-
-def post_process(chip):
-    extract_metrics(chip)
+            # Images
+            'placement_density',
+            'routing_congestion',
+            'power_density',
+            'module_view'
+        ])

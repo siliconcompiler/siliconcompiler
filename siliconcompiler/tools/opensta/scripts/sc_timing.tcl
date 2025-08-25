@@ -8,35 +8,23 @@ source ./sc_manifest.tcl
 # Schema Adapter
 ###############################
 
-set sc_tool opensta
-set sc_step [sc_cfg_get arg step]
-set sc_index [sc_cfg_get arg index]
-set sc_flow [sc_cfg_get option flow]
-set sc_task [sc_cfg_get flowgraph $sc_flow $sc_step $sc_index task]
-
-set sc_refdir [sc_cfg_tool_task_get refdir]
-
-# Design
-set sc_design [sc_top]
+set sc_topmodulelib [sc_cfg_get option design]
+set sc_filesets [sc_cfg_get option fileset]
 
 # APR Parameters
-set sc_targetlibs [sc_get_asic_libraries logic]
-set sc_mainlib [lindex $sc_targetlibs 0]
+set sc_mainlib [sc_cfg_get asic mainlib]
+set sc_logiclibs [sc_cfg_get asic asiclib]
+
 set sc_delaymodel [sc_cfg_get asic delaymodel]
+
 set sc_timing_mode [lindex [sc_cfg_tool_task_get var timing_mode] 0]
+
 set sc_scenarios []
 foreach corner [dict keys [sc_cfg_get constraint timing]] {
     if { [sc_cfg_get constraint timing $corner mode] == $sc_timing_mode } {
         lappend sc_scenarios $corner
     }
 }
-
-###############################
-# Optional
-###############################
-
-# MACROS
-set sc_macrolibs [sc_get_asic_libraries macro]
 
 ###############################
 # Source helper functions
@@ -51,49 +39,55 @@ source "$sc_refdir/sc_procs.tcl"
 # Read Liberty
 puts "Defining timing corners: $sc_scenarios"
 define_corners {*}$sc_scenarios
-foreach lib "$sc_targetlibs $sc_macrolibs" {
-    #Liberty
-    foreach corner $sc_scenarios {
+
+foreach corner $sc_scenarios {
+    foreach lib $sc_logiclibs {
+        set lib_filesets []
         foreach libcorner [sc_cfg_get constraint timing $corner libcorner] {
-            if { [sc_cfg_exists library $lib output $libcorner $sc_delaymodel] } {
-                foreach lib_file [sc_cfg_get library $lib output $libcorner $sc_delaymodel] {
-                    puts "Reading liberty file for ${corner} ($libcorner): ${lib_file}"
-                    read_liberty -corner $corner $lib_file
-                }
-                break
+            if { [sc_cfg_exists library $lib asic libcornerfileset $libcorner $sc_delaymodel] } {
+                lappend lib_filesets \
+                    {*}[sc_cfg_get library $lib asic libcornerfileset $libcorner $sc_delaymodel]
             }
+        }
+        foreach lib_file [sc_cfg_get_fileset $lib $lib_filesets liberty] {
+            puts "Reading liberty file for ${corner} ($libcorner): ${lib_file}"
+            read_liberty -corner $corner $lib_file
         }
     }
 }
 
 # Read Verilog
-if { [file exists "inputs/${sc_design}.vg"] } {
-    puts "Reading netlist verilog: inputs/${sc_design}.vg"
-    read_verilog "inputs/${sc_design}.vg"
+if { [file exists "inputs/${sc_topmodule}.vg"] } {
+    puts "Reading netlist verilog: inputs/${sc_topmodule}.vg"
+    read_verilog "inputs/${sc_topmodule}.vg"
 } else {
-    foreach netlist [sc_cfg_get input netlist verilog] {
-        puts "Reading netlist verilog: ${netlist}"
-        read_verilog $netlist
+    foreach fileset $sc_filesets {
+        foreach verilog [sc_cfg_get_fileset $sc_topmodulelib $fileset verilog] {
+            puts "Reading netlist verilog: ${verilog}"
+            read_verilog $verilog
+        }
     }
 }
-link_design $sc_design
+link_design $sc_topmodule
 
 # Read SDC (in order of priority)
 # TODO: add logic for reading from ['constraint', ...] once we support MCMM
-if { [file exists "inputs/${sc_design}.sdc"] } {
+if { [file exists "inputs/${sc_topmodule}.sdc"] } {
     # get from previous step
-    puts "Reading SDC: inputs/${sc_design}.sdc"
-    read_sdc "inputs/${sc_design}.sdc"
-} elseif { [sc_cfg_exists input constraint sdc] } {
-    foreach sdc [sc_cfg_get input constraint sdc] {
+    puts "Reading SDC: inputs/${sc_topmodule}.sdc"
+    read_sdc "inputs/${sc_topmodule}.sdc"
+} else {
+    set sdc_files []
+    foreach sdc [sc_cfg_get_fileset $sc_topmodulelib [sc_cfg_get option fileset] sdc] {
         # read step constraint if exists
         puts "Reading SDC: ${sdc}"
         read_sdc $sdc
+        lappend sdc_files $sdc
     }
 
-    set sdc_files []
+    set sdcfileset [sc_cfg_get constraint timing $corner sdcfileset]
     foreach corner $sc_scenarios {
-        foreach sdc [sc_cfg_get constraint timing $corner file] {
+        foreach sdc [sc_cfg_get_fileset $sc_topmodulelib $sdcfileset sdc] {
             if { [lsearch -exact $sdc_files $sdc] == -1 } {
                 # read step constraint if exists
                 puts "Reading mode (${sc_timing_mode}) SDC: ${sdc}"
@@ -102,13 +96,14 @@ if { [file exists "inputs/${sc_design}.sdc"] } {
             }
         }
     }
-} else {
-    # fall back on default auto generated constraints file
-    set sdc "[sc_cfg_tool_task_get file opensta_generic_sdc]"
-    puts "Reading SDC: ${sdc}"
-    puts "Warning: Defaulting back to default SDC"
-    read_sdc "${sdc}"
 }
+# } else {
+#     # fall back on default auto generated constraints file
+#     set sdc "[sc_cfg_tool_task_get file opensta_generic_sdc]"
+#     puts "Reading SDC: ${sdc}"
+#     puts "Warning: Defaulting back to default SDC"
+#     read_sdc "${sdc}"
+# }
 
 # Create path groups
 if { [llength [sta::path_group_names]] == 0 } {
@@ -143,7 +138,7 @@ puts "Timing path groups: [sta::path_group_names]"
 foreach corner $sc_scenarios {
     set pex_corner [sc_cfg_get constraint timing $corner pexcorner]
 
-    set spef_file "inputs/${sc_design}.${pex_corner}.spef"
+    set spef_file "inputs/${sc_topmodule}.${pex_corner}.spef"
     if { [file exists $spef_file] } {
         puts "Reading SPEF ($corner): $spef_file"
         read_spef -corner $corner $spef_file
@@ -153,7 +148,7 @@ foreach corner $sc_scenarios {
 foreach corner $sc_scenarios {
     set pex_corner [sc_cfg_get constraint timing $corner pexcorner]
 
-    set input_sdf_file "inputs/${sc_design}.${pex_corner}.sdf"
+    set input_sdf_file "inputs/${sc_topmodule}.${pex_corner}.sdf"
     if { [file exists $input_sdf_file] } {
         puts "Reading SDF ($corner): $input_sdf_file"
         read_sdf -corner $corner $input_sdf_file

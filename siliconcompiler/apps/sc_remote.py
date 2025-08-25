@@ -1,8 +1,7 @@
 # Copyright 2023 Silicon Compiler Authors. All Rights Reserved.
 import sys
 
-from siliconcompiler import Chip
-from siliconcompiler import SiliconCompilerError
+from siliconcompiler import Project, DesignSchema
 from siliconcompiler.remote import Client, ConfigureClient
 
 
@@ -42,141 +41,128 @@ To delete a job, use:
 -----------------------------------------------------------
 """
 
-    # Argument Parser
-    progname = 'sc-remote'
-    chip = Chip(progname)
-    switchlist = ['-cfg', '-credentials']
-    extra_args = {
-        '-configure': {'action': 'store_true',
-                       'help': 'create configuration file for the remote',
-                       'sc_print': False},
-        '-server': {'help': 'address of server for configure (only valid with -configure)',
-                    'metavar': '<server>',
-                    'sc_print': False},
-        '-add': {'help': 'path to add to the upload whitelist (only valid with -configure)',
-                 'metavar': '<path>',
-                 'nargs': '+',
-                 'sc_print': False},
-        '-remove': {'help': 'path to remove from the upload whitelist (only valid with -configure)',
-                    'metavar': '<path>',
-                    'nargs': '+',
-                    'sc_print': False},
-        '-list': {'help': 'print the current configuration (only valid with -configure)',
-                  'action': 'store_true',
-                  'sc_print': False},
-        '-reconnect': {'action': 'store_true',
-                       'help': 'reconnect to a running job on the remote',
-                       'sc_print': False},
-        '-cancel': {'action': 'store_true',
-                    'help': 'cancel a running job on the remote',
-                    'sc_print': False},
-        '-delete': {'action': 'store_true',
-                    'help': 'delete a job on the remote',
-                    'sc_print': False},
-    }
+    class RemoteProject(Project):
+        def __init__(self):
+            super().__init__()
 
-    try:
-        args = chip.create_cmdline(progname,
-                                   switchlist=switchlist,
-                                   additional_args=extra_args,
-                                   description=description)
-    except Exception as e:
-        chip.logger.error(e)
-        return 1
+            self.set_design(DesignSchema("dummy"))
+
+            self._add_commandline_argument("cfg", "file",
+                                           "configuration manifest")
+            self._add_commandline_argument("configure", "bool",
+                                           "create configuration file for the remote")
+            self._add_commandline_argument("server", "str",
+                                           "address of server for configure (only valid with "
+                                           "-configure)")
+            self._add_commandline_argument("add", "[dir]",
+                                           "path to add to the upload whitelist (only valid "
+                                           "with -configure)")
+            self._add_commandline_argument("remove", "[dir]",
+                                           "path to remove from the upload whitelist (only valid "
+                                           "with -configure)")
+            self._add_commandline_argument("list", "bool",
+                                           "print the current configuration (only valid with "
+                                           "-configure)")
+            self._add_commandline_argument("reconnect", "bool",
+                                           "reconnect to a running job on the remote")
+            self._add_commandline_argument("cancel", "bool",
+                                           "cancel a running job on the remote")
+            self._add_commandline_argument("delete", "bool",
+                                           "delete a job on the remote")
+
+    switchlist = ['-cfg',
+                  '-credentials',
+                  '-configure',
+                  '-server',
+                  '-add',
+                  '-remove',
+                  '-list',
+                  '-reconnect',
+                  '-cancel',
+                  '-delete']
+
+    # Argument Parser
+    remote = RemoteProject.create_cmdline(progname, switchlist=switchlist, description=description,
+                                          use_sources=False)
 
     # Sanity checks.
     exclusive = ['configure', 'reconnect', 'cancel', 'delete']
     cfg_only = ['reconnect', 'cancel', 'delete']
 
-    exclusive_count = sum([1 for arg in exclusive if args[arg]])
+    exclusive_count = sum([1 for arg in exclusive if remote.get("cmdarg", arg)])
     if exclusive_count > 1:
-        chip.logger.error(f'Error: {", ".join(["-"+e for e in exclusive])} are mutually exclusive')
+        remote.logger.error(f'Error: {", ".join(["-"+e for e in exclusive])} '
+                            'are mutually exclusive')
         return 1
-    chip_cfg = chip.get('option', 'cfg')
-    if not chip_cfg and any([args[arg] for arg in cfg_only]):
-        chip.logger.error(f'Error: -cfg is required for {", ".join(["-"+e for e in cfg_only])}')
+    project_cfg = remote.get('cmdarg', 'cfg')
+    if not project_cfg and any([remote.get("cmdarg", arg) for arg in cfg_only]):
+        remote.logger.error(f'Error: -cfg is required for {", ".join(["-"+e for e in cfg_only])}')
         return 2
-    if any([args[arg] for arg in cfg_only]) and args['server']:
-        chip.logger.error('Error: -server cannot be specified with '
-                          f'{", ".join(["-"+e for e in cfg_only])}')
+    if any([remote.get("cmdarg", arg) for arg in cfg_only]) and remote.get("cmdarg", 'server'):
+        remote.logger.error('Error: -server cannot be specified with '
+                            f'{", ".join(["-"+e for e in cfg_only])}')
 
-    if args['configure']:
-        if args['list']:
-            client = Client(chip)
+    if remote.get("cmdarg", 'configure'):
+        if remote.get("cmdarg", 'list'):
+            client = Client(remote)
             client.print_configuration()
             return 0
 
-        if not args['add'] and not args['remove']:
-            try:
-                client = ConfigureClient(chip)
-                client.configure_server(server=args['server'])
-            except ValueError as e:
-                chip.logger.error(e)
-                return 1
+        if not remote.get("cmdarg", 'add') and not remote.get("cmdarg", 'remove'):
+            client = ConfigureClient(remote)
+            client.configure_server(server=remote.get("cmdarg", 'server'))
         else:
-            try:
-                client = ConfigureClient(chip)
-                client.configure_whitelist(add=args['add'], remove=args['remove'])
-            except ValueError as e:
-                chip.logger.error(e)
-                return 1
+            client = ConfigureClient(remote)
+            client.configure_whitelist(add=remote.get("cmdarg", 'add'),
+                                       remove=remote.get("cmdarg", 'remove'))
 
         return 0
 
-    client = Client(chip)
+    if project_cfg:
+        project = Project.from_manifest(filepath=remote.find_files('cmdarg', 'cfg'))
+    else:
+        project = remote
+
+    if remote.get("option", "credentials"):
+        project.set("option", "credentials", remote.find_files("option", "credentials"))
+
+    client = Client(project)
     # Main logic.
     # If no job-related options are specified, fetch and report basic info.
     # Create temporary Chip object and check on the server.
-    try:
-        client.check()
-    except SiliconCompilerError as e:
-        chip.logger.error(f'{e}')
-        return 1
+    client.check()
 
     # If the -cancel flag is specified, cancel the job.
-    if args['cancel']:
-        try:
-            client.cancel_job()
-        except SiliconCompilerError as e:
-            chip.logger.error(f'{e}')
-            return 1
+    if remote.get("cmdarg", 'cancel'):
+        client.cancel_job()
 
     # If the -delete flag is specified, delete the job.
-    elif args['delete']:
-        try:
-            client.delete_job()
-        except SiliconCompilerError as e:
-            chip.logger.error(f'{e}')
-            return 1
+    elif remote.get("cmdarg", 'delete'):
+        client.delete_job()
 
     # If the -reconnect flag is specified, re-enter the client flow
     # in its "check_progress/ until job is done" loop.
-    elif args['reconnect']:
+    elif remote.get("cmdarg", 'reconnect'):
         # Start from successors of entry nodes, so entry nodes are not fetched from remote.
-        flow = chip.get('option', 'flow')
-        entry_nodes = chip.get("flowgraph", flow, field="schema").get_entry_nodes()
+        flow = project.get('option', 'flow')
+        entry_nodes = project.get("flowgraph", flow, field="schema").get_entry_nodes()
         for entry_node in entry_nodes:
-            outputs = chip.get("flowgraph", flow,
-                               field='schema').get_node_outputs(*entry_node)
-            chip.set('option', 'from', list(map(lambda node: node[0], outputs)))
+            outputs = project.get("flowgraph", flow,
+                                  field='schema').get_node_outputs(*entry_node)
+            project.set('option', 'from', list(map(lambda node: node[0], outputs)))
         # Enter the remote run loop.
         try:
             client._run_loop()
-        except SiliconCompilerError as e:
-            chip.logger.error(f'{e}')
-            return 1
+        except KeyboardInterrupt:
+            return 0
 
         # Summarize the run.
-        chip.summary()
+        project.summary()
 
     # If only a manifest is specified, make a 'check_progress/' request and report results:
-    elif chip_cfg:
-        try:
-            info = client.check_job_status()
-            client._report_job_status(info)
-        except Exception as e:
-            chip.logger.error(f'{e}')
-            return 1
+    elif project_cfg:
+        info = client.check_job_status()
+        client._report_job_status(info)
 
     # Done
     return 0

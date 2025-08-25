@@ -10,11 +10,12 @@ import tarfile
 import tempfile
 import textwrap
 
+import os.path
+
 from datetime import datetime
 
-from siliconcompiler import Chip
-from siliconcompiler import SiliconCompilerError, utils
-from siliconcompiler.apps._common import UNSET_DESIGN
+from siliconcompiler import Project
+from siliconcompiler import utils
 from siliconcompiler.record import RecordTime
 
 
@@ -47,93 +48,92 @@ def main():
     needed to replay that manifest.
     ------------------------------------------------------------
     """
-    # Create a base chip class.
-    chip = Chip(UNSET_DESIGN)
+
+    class ReplayProject(Project):
+        def __init__(self):
+            super().__init__()
+            self._add_commandline_argument(
+                "file", "file", "Path to generate replay file to.", defvalue="replay.sh")
+            self._add_commandline_argument(
+                "cfg", "file", "configuration manifest")
+            self.unset("option", "jobname")
 
     # Read command-line inputs and generate Chip objects to run the flow on.
-    try:
-        file_arg = {
-            'metavar': '<file>',
-            'help': 'Path to generate replay file to.',
-            'default': 'replay.sh',
-            'sc_print': True
-        }
-        args = chip.create_cmdline(
-            progname,
-            description=description,
-            switchlist=['-cfg',
-                        '-jobname',
-                        '-loglevel'],
-            additional_args={
-                '-file': file_arg
-            })
-    except SiliconCompilerError:
-        return 1
-    except Exception as e:
-        chip.logger.error(e)
+    proj = ReplayProject.create_cmdline(
+        progname,
+        description=description,
+        switchlist=[
+            "-file",
+            "-cfg",
+            "-jobname"
+        ],
+        use_sources=False
+    )
+
+    if not proj.get("cmdarg", "cfg"):
+        proj.logger.error("-cfg not provided")
         return 1
 
-    design = chip.get('design')
-    if design == UNSET_DESIGN:
-        chip.logger.error('Design not loaded')
-        return 1
+    replay = Project.from_manifest(filepath=proj.get("cmdarg", "cfg"))
+    if proj.get("option", "jobname"):
+        replay.set("option", "jobname", proj.get("option", "jobname"))
 
     # Print Job Summary
-    jobname = chip.get('option', 'jobname')
-    pythonpackages = chip.get('record', 'pythonpackage', job=jobname)
+    job = replay.history(replay.get('option', 'jobname'))
+    pythonpackages = job.get('record', 'pythonpackage')
 
     pythonversion = set()
     nodes = set()
-    for version, step, index in chip.get('history', jobname, 'record', 'pythonversion',
-                                         field=None).getvalues():
+    for version, step, index in job.get('record', 'pythonversion', field=None).getvalues():
         pythonversion.add(version)
         nodes.add((step, index))
 
     if len(pythonversion) > 1:
-        chip.logger.warning(f"More than one python version detected: {', '.join(pythonversion)}")
+        replay.logger.warning(f"More than one python version detected: {', '.join(pythonversion)}")
     pythonversion = list(pythonversion)[0]
 
     tools = {}
     tool_versions = []
     for step, index in nodes:
-        toolpath = chip.get('record', 'toolpath', job=jobname, step=step, index=index)
-        toolversion = chip.get('record', 'toolversion', job=jobname, step=step, index=index)
+        toolpath = job.get('record', 'toolpath', step=step, index=index)
+        toolversion = job.get('record', 'toolversion', step=step, index=index)
 
         if toolpath is None:
             continue
 
         tools.setdefault(toolpath, set()).add(toolversion)
         if toolversion:
-            tool = chip.get('flowgraph', chip.get('option', 'flow'), step, index, 'tool')
+            tool = job.get('flowgraph', job.get('option', 'flow'), step, index, 'tool')
             tool_versions.append(
                 ((step, index), tool, toolversion)
             )
 
     print("SUMMARY       :")
-    print(f"design        : {chip.design}")
+    print(f"design        : {job.name}")
     print(f"pythonversion : {pythonversion}")
 
     print("Python packages requires:")
     for pkg in sorted(pythonpackages):
         print(f"  {pkg}")
 
-    print("Tool requirements:")
-    tool_len = max([len(os.path.basename(tool)) for tool, _ in tools.items()])
-    for tool, version in tools.items():
-        print(f"  {os.path.basename(tool):<{tool_len}}: {', '.join(version)}")
+    if tools:
+        print("Tool requirements:")
+        tool_len = max([len(os.path.basename(tool)) for tool, _ in tools.items()])
+        for tool, version in tools.items():
+            print(f"  {os.path.basename(tool):<{tool_len}}: {', '.join(version)}")
 
-    path = os.path.abspath(args['file'])
+    path = os.path.abspath(proj.get("cmdarg", "file"))
     os.makedirs(os.path.dirname(path), exist_ok=True)
 
-    record_schema = chip.get('history', jobname, 'record', field="schema")
+    record_schema = job.get('record', field="schema")
     starttime = datetime.fromtimestamp(
         record_schema.get_earliest_time(RecordTime.START)).strftime(
             '%Y-%m-%d %H:%M:%S')
 
     with io.StringIO() as fd:
         fd.write(utils.get_file_template('replay/requirements.txt').render(
-            design=chip.design,
-            jobname=jobname,
+            design=job.name,
+            jobname=job.get("option", "jobname"),
             date=starttime,
             pkgs=pythonpackages
         ))
@@ -141,19 +141,18 @@ def main():
         requirements_file = fd.getvalue()
 
     with tempfile.TemporaryDirectory() as collect:
-        chip.collect(directory=collect, verbose=True, exclude_packages=['siliconcompiler'])
+        job.collect(directory=collect, verbose=True)
 
         with io.BytesIO() as fd:
             with tarfile.open(fileobj=fd, mode='w:gz') as tar:
                 tar.add(collect, arcname='')
-
             fd.flush()
             collect_files = convert_base64(fd.getvalue())
 
     with io.StringIO() as fd:
         fd.write(utils.get_file_template('replay/replay.py.j2').render(
-            design=chip.design,
-            jobname=jobname,
+            design=job.name,
+            jobname=job.get("option", "jobname"),
             date=starttime,
             src_file=wrap_text(collect_files),
             tool_versions=sorted(tool_versions)
@@ -161,18 +160,19 @@ def main():
         fd.flush()
         script = convert_base64(compress(fd.getvalue()))
 
-    manifest = convert_base64(compress(json.dumps(chip.getdict(), indent=2)))
+    manifest = convert_base64(compress(json.dumps(job.getdict(), indent=2)))
 
     tool_info = []
     for tool, version in tools.items():
         tool_info.append(f"{os.path.basename(tool):<{tool_len}}: {', '.join(version)}")
 
-    description = f"Replay for {chip.design} / {jobname}\nRun on: {starttime}"
+    description = f"Replay for {job.name} / {job.get('option', 'jobname')}\n" \
+        f"Run on: {starttime}"
 
     with open(path, 'w', encoding='utf-8') as wf:
         wf.write(utils.get_file_template('replay/setup.sh').render(
-            design=chip.design,
-            jobname=jobname,
+            design=job.name,
+            jobname=job.get("option", "jobname"),
             date=starttime,
             description=description,
             pythonversion=pythonversion,

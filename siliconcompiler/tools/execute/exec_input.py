@@ -1,41 +1,47 @@
 import glob
-import os
 import stat
-from siliconcompiler.tools.execute.execute import setup as tool_setup
-from siliconcompiler.tools._common import input_provides, get_tool_task
+
+import os.path
+
+from siliconcompiler import TaskSchema
 
 
-def setup(chip):
+class ExecInputTask(TaskSchema):
     '''
     Execute the output of the previous step directly.
     This only works if the task receives a single file.
     '''
-    tool_setup(chip)
+    def __init__(self):
+        super().__init__()
 
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    tool, task = get_tool_task(chip, step, index)
+    def tool(self):
+        return "execute"
 
-    chip.set('tool', tool, 'task', task, 'input',
-             list(input_provides(chip, step, index).keys()),
-             step=step, index=index)
+    def task(self):
+        return "exec_input"
 
+    def setup(self):
+        super().setup()
 
-def pre_process(chip):
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    tool, _ = get_tool_task(chip, step, index)
+        files = self.get_files_from_input_nodes().keys()
+        if len(files) == 0:
+            raise ValueError("must receive one input file")
+        elif len(files) > 1:
+            raise ValueError("execute only supports one input file")
 
-    exec = None
-    for fin in glob.glob('inputs/*'):
-        if fin.endswith('.pkg.json'):
-            continue
-        exec = os.path.abspath(fin)
-        break
+        self.add_input_file(files[0])
 
-    if not exec:
-        chip.error(f'{step}/{index} did not receive an executable file')
+    def get_exe(self):
+        exec = None
+        for fin in glob.glob('inputs/*'):
+            if fin.endswith('.pkg.json'):
+                continue
+            exec = os.path.abspath(fin)
+            break
 
-    chip.set('tool', tool, 'exe', exec)
+        if not exec:
+            raise FileNotFoundError(f'{self.step}/{self.index} did not receive an executable file')
 
-    os.chmod(exec, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
+        os.chmod(exec, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
+
+        return exec

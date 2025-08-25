@@ -144,7 +144,7 @@ class ChecklistSchema(NamedSchema):
                             number_format = '.3e'
 
                     value = job_data.get('metric', metric, step=step, index=index)
-                    criteria_ok = utils.safecompare(self, value, op, goal)
+                    criteria_ok = utils.safecompare(value, op, goal)
                     if metric in self.getkeys(item, 'waiver'):
                         waivers = self.get(item, 'waiver', metric)
                     else:

@@ -1,43 +1,29 @@
-from siliconcompiler import utils
-from siliconcompiler.tools import slang
-from siliconcompiler.tools._common import get_tool_task
+from siliconcompiler.tools.slang import SlangTask
 
 
-def setup(chip):
+class Lint(SlangTask):
     '''
     Lint system verilog
     '''
-    if slang.test_version():
-        return slang.test_version()
+    def task(self):
+        return "lint"
 
-    slang.setup(chip)
+    def runtime_options(self):
+        options = super().runtime_options()
+        options.extend([
+            "-Weverything"
+        ])
+        return options
 
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    tool, task = get_tool_task(chip, step, index)
+    def run(self):
+        self._init_driver()
+        if self._error_code:
+            return self._error_code
 
-    chip.set('tool', tool, 'task', task, 'threads', utils.get_cores(chip),
-             clobber=False, step=step, index=index)
+        ok = self._compile()
+        self._diagnostics()
 
-
-def run(chip):
-    driver, exitcode = slang._get_driver(chip, runtime_options)
-    if exitcode:
-        return exitcode
-
-    compilation, ok = slang._compile(chip, driver)
-    slang._diagnostics(chip, driver, compilation)
-
-    if ok:
-        return 0
-    else:
-        return 1
-
-
-def runtime_options(chip):
-    options = slang.common_runtime_options(chip)
-    options.extend([
-        "-Weverything"
-    ])
-
-    return options
+        if ok:
+            return 0
+        else:
+            return 1

@@ -1,53 +1,38 @@
-import os
-from siliconcompiler.tools._common import add_require_input, get_tool_task, input_provides
+import os.path
+
+from siliconcompiler import ShowTaskSchema
 
 
-def setup(chip):
-    '''
-    Show a VCD file.
-    '''
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    tool, task = get_tool_task(chip, step, index)
+class ShowTask(ShowTaskSchema):
+    def tool(self):
+        return "surfer"
 
-    # Standard setup
-    chip.set('tool', tool, 'exe', tool)
-    chip.set('tool', tool, 'vswitch', '--version')
-    chip.set('tool', tool, 'version', '>=0.3.0', clobber=False)
+    def parse_version(self, stdout):
+        # surfer 0.3.0
+        return stdout.strip().split()[1]
 
-    # Require VCD file
-    if f'{chip.top()}.vcd' in input_provides(chip, step, index):
-        chip.set('tool', tool, 'task', task, 'input', f'{chip.top()}.vcd',
-                 step=step, index=index)
-    elif chip.valid('tool', tool, 'task', task, 'var', 'show_filepath') and \
-            chip.get('tool', tool, 'task', task, 'var', 'show_filepath', step=step, index=index):
-        chip.add('tool', tool, 'task', task, 'require',
-                 ','.join(['tool', tool, 'task', task, 'var', 'show_filepath']),
-                 step=step, index=index)
-    else:
-        add_require_input(chip, 'input', 'waveform', 'vcd')
+    def get_supported_show_extentions(self):
+        return ["vcd"]
 
-    # Don't exit on show
-    chip.set('tool', tool, 'task', task, 'var', 'show_exit', False,
-             step=step, index=index, clobber=False)
+    def setup(self):
+        super().setup()
 
+        self.set_exe("surfer", vswitch="--version")
+        self.add_version(">=0.3.0")
 
-def runtime_options(chip):
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    tool, task = get_tool_task(chip, step, index)
+        if f"{self.design_topmodule}.vcd" in self.get_files_from_input_nodes():
+            self.add_input_file(ext="vcd")
+        else:
+            self.add_required_tool_key("var", "showfilepath")
 
-    options = []
+    def runtime_options(self):
+        options = super().runtime_options()
 
-    # Get VCD file
-    if os.path.exists(f'inputs/{chip.top()}.vcd'):
-        dump = f'inputs/{chip.top()}.vcd'
-    elif chip.valid('tool', tool, 'task', task, 'var', 'show_filepath') and \
-            chip.get('tool', tool, 'task', task, 'var', 'show_filepath', step=step, index=index):
-        dump = chip.get('tool', tool, 'task', task, 'var', 'show_filepath',
-                        step=step, index=index)[0]
-    else:
-        dump = chip.find_files('input', 'waveform', 'vcd', step=step, index=index)[0]
-    options.append(dump)
+        # Get VCD file
+        if os.path.exists(f'inputs/{self.design_topmodule}.vcd'):
+            dump = f'inputs/{self.design_topmodule}.vcd'
+        else:
+            dump = self.find_files('var', 'showfilepath')
+        options.append(dump)
 
-    return options
+        return options

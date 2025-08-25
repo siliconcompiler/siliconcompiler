@@ -1,141 +1,154 @@
 import os
 import shutil
 import glob
-from siliconcompiler.tools._common import add_frontend_requires, get_tool_task, has_input_files
-from siliconcompiler import sc_open, SiliconCompilerError
-from siliconcompiler import utils
+
+import os.path
+
+from siliconcompiler import sc_open
+
+from siliconcompiler import TaskSchema
 
 
-def setup(chip):
-    '''
-    Performs high level synthesis to generate a verilog output
-    '''
+class ConvertTask(TaskSchema):
+    def __init__(self):
+        super().__init__()
 
-    if not has_input_files(chip, 'input', 'config', 'chisel') and \
-       not has_input_files(chip, 'input', 'hll', 'scala'):
-        return "no files in [input,hll,scala] or [input,config,chisel]"
+        self.add_parameter("application", "str", "Application name of the chisel program")
+        self.add_parameter("argument", "[str]", "Arguments for the chisel build")
+        self.add_parameter("targetdir", "str", "Output target directory name",
+                           defvalue="chisel-output")
 
-    tool = 'chisel'
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    _, task = get_tool_task(chip, step, index)
+    def tool(self):
+        return "chisel"
 
-    # Standard Setup
-    refdir = 'tools/' + tool
-    chip.set('tool', tool, 'exe', 'sbt')
-    chip.set('tool', tool, 'vswitch', '--version')
-    chip.set('tool', tool, 'version', '>=1.5.5', clobber=False)
+    def task(self):
+        return "convert"
 
-    chip.set('tool', tool, 'task', task, 'refdir', refdir,
-             step=step, index=index,
-             package='siliconcompiler', clobber=False)
-    chip.set('tool', tool, 'task', task, 'threads', utils.get_cores(chip),
-             step=step, index=index, clobber=False)
+    def parse_version(self, stdout):
+        # sbt version in this project: 1.5.5
+        # sbt script version: 1.5.5
 
-    chip.set('tool', tool, 'task', task, 'option', ['-batch',
-                                                    '--no-share',
-                                                    '--no-global'],
-             step=step, index=index)
+        for line in stdout.splitlines():
+            line = line.strip()
+            if 'sbt script version:' in line:
+                return line.split()[-1]
 
-    chip.set('tool', tool, 'task', task, 'var', 'application',
-             'Application name of the chisel program',
-             field='help')
-    chip.set('tool', tool, 'task', task, 'var', 'argument',
-             'Arguments for the chisel build',
-             field='help')
+        return None
 
-    # Input/Output requirements
-    if chip.valid('input', 'config', 'chisel') and \
-       chip.get('input', 'config', 'chisel', step=step, index=index):
-        chip.add('tool', tool, 'task', task, 'require', 'input,config,chisel',
-                 step=step, index=index)
-        if len(chip.get('input', 'config', 'chisel', step=step, index=index)) != 1:
-            raise SiliconCompilerError('Only one build.sbt is supported.', chip=chip)
+    def setup(self):
+        super().setup()
 
-    if chip.valid('input', 'hll', 'scala') and \
-       chip.get('input', 'hll', 'scala', step=step, index=index):
-        chip.add('tool', tool, 'task', task, 'require', 'input,hll,scala',
-                 step=step, index=index)
+        self.set_exe("sbt", vswitch="--version")
+        self.add_version(">=1.5.5")
 
-    chip.add('tool', tool, 'task', task, 'output', chip.top() + '.v', step=step, index=index)
+        self.set_threads(1)
 
-    add_frontend_requires(chip, [])
+        self.set_dataroot("chisel-tool", __file__)
+        with self.active_dataroot("chisel-tool"):
+            self.set_refdir("template")
 
+        self.add_output_file(ext="v")
 
-def pre_process(chip):
-    tool = 'chisel'
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    _, task = get_tool_task(chip, step, index)
+        self.add_required_key("option", "design")
+        self.add_required_key("option", "fileset")
+        if self.schema().get("option", "alias"):
+            self.add_required_key("option", "alias")
 
-    refdir = chip.find_files('tool', tool, 'task', task, 'refdir', step=step, index=index)[0]
+        # Mark required
+        for lib, fileset in self.schema().get_filesets():
+            if lib.get_file(fileset=fileset, filetype="chisel"):
+                self.add_required_key(lib, "fileset", fileset, "file", "chisel")
+            elif lib.get_file(fileset=fileset, filetype="scala"):
+                self.add_required_key(lib, "fileset", fileset, "file", "scala")
 
-    if chip.valid('input', 'config', 'chisel') and \
-       chip.get('input', 'config', 'chisel', step=step, index=index):
-        build_file = chip.find_files('input', 'config', 'chisel', step=step, index=index)[0]
-        work_dir = chip.getworkdir(step=step, index=index)
-        build_dir = os.path.dirname(build_file)
-        # Expect file tree from: https://www.scala-sbt.org/1.x/docs/Directories.html
-        # copy build.sbt
-        # copy src/
-        shutil.copyfile(build_file, os.path.join(work_dir, 'build.sbt'))
-        shutil.copytree(os.path.join(build_dir, 'src'),
-                        os.path.join(work_dir, 'src'))
-        if os.path.exists(os.path.join(build_dir, 'project')):
-            shutil.copytree(os.path.join(build_dir, 'project'),
-                            os.path.join(work_dir, 'project'))
-        return
+        if self.get("var", "application"):
+            self.add_required_tool_key("var", "application")
+        if self.get("var", "argument"):
+            self.add_required_tool_key("var", "argument")
+        self.add_required_tool_key("var", "targetdir")
 
-    for filename in ('build.sbt', 'SCDriver.scala'):
-        src = os.path.join(refdir, filename)
-        dst = filename
-        shutil.copyfile(src, dst)
+    def pre_process(self):
+        super().pre_process()
+        refdir = self.find_files('refdir')[0]
 
-    # Chisel driver relies on Scala files being collected into '$CWD/inputs'
-    chip.set('input', 'hll', 'scala', True, field='copy')
-    chip.collect(directory=os.path.join(chip.getworkdir(step=step, index=index), 'inputs'))
+        chisel = None
+        for lib, fileset in self.schema().get_filesets():
+            if lib.get_file(fileset=fileset, filetype="chisel"):
+                chisel = lib.get_file(fileset=fileset, filetype="chisel")
+            if chisel:
+                break
+        if chisel:
+            chisel = chisel[0]
 
+        if chisel:
+            build_dir = os.path.dirname(chisel)
+            # Expect file tree from: https://www.scala-sbt.org/1.x/docs/Directories.html
+            # copy build.sbt
+            # copy src/
+            shutil.copyfile(chisel, os.path.join(self.nodeworkdir, 'build.sbt'))
+            shutil.copytree(os.path.join(build_dir, 'src'),
+                            os.path.join(self.nodeworkdir, 'src'))
+            if os.path.exists(os.path.join(build_dir, 'project')):
+                shutil.copytree(os.path.join(build_dir, 'project'),
+                                os.path.join(self.nodeworkdir, 'project'))
+            return
 
-def runtime_options(chip):
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    tool, task = get_tool_task(chip, step, index)
+        for filename in ('build.sbt', 'SCDriver.scala'):
+            src = os.path.join(refdir, filename)
+            dst = filename
+            shutil.copyfile(src, dst)
 
-    design = chip.top()
+        # Chisel driver relies on Scala files being collected into '$CWD/inputs'
+        for lib, fileset in self.schema().get_filesets():
+            if lib.get_file(fileset=fileset, filetype="scala"):
+                for file in lib.get_file(fileset=fileset, filetype="scala"):
+                    shutil.copy2(file, "inputs/")
 
-    run_main = ["runMain"]
-    if chip.valid('input', 'config', 'chisel') and \
-       chip.get('input', 'config', 'chisel', step=step, index=index):
-        app = design
-        if chip.valid('tool', tool, 'task', task, 'var', 'application') and \
-           chip.get('tool', tool, 'task', task, 'var', 'application', step=step, index=index):
-            app = chip.get('tool', tool, 'task', task, 'var', 'application',
-                           step=step, index=index)[0]
+    def runtime_options(self):
+        options = super().runtime_options()
+        options.append('-batch')
+        options.append('--no-share')
+        options.append('--no-global')
 
-        run_main.append(f"{app}")
+        run_main = ["runMain"]
 
-        if chip.valid('tool', tool, 'task', task, 'var', 'argument') and \
-           chip.get('tool', tool, 'task', task, 'var', 'argument', step=step, index=index):
-            run_main.extend(chip.get('tool', tool, 'task', task, 'var', 'argument',
-                                     step=step, index=index))
-        run_main.append("--")
+        chisel = None
+        for lib, fileset in self.schema().get_filesets():
+            if lib.get_file(fileset=fileset, filetype="chisel"):
+                chisel = lib.get_file(fileset=fileset, filetype="chisel")
+            if chisel:
+                break
+        if chisel:
+            chisel = chisel[0]
 
-        run_main.extend(["--target-dir", "chisel-output"])
-    else:
-        # Use built in driver
-        run_main.append("SCDriver")
-        run_main.extend(["--module", chip.top(step=step, index=index)])
+        if chisel:
+            app = self.design_topmodule
+            if self.get("var", "application"):
+                app = self.get("var", "application")
 
-        run_main.extend(["--output-file", f"../outputs/{design}.v"])
+            run_main.append(app)
+            run_main.extend(self.get("var", "argument"))
 
-    return [" ".join(run_main)]
+            run_main.append("--")
 
+            run_main.extend(["--target-dir", self.get("var", "targetdir")])
+        else:
+            # Use built in driver
+            run_main.append("SCDriver")
+            run_main.extend(["--module", self.design_topmodule])
 
-def post_process(chip):
-    chisel_path = 'chisel-output'
-    if os.path.exists(chisel_path):
-        design = chip.top()
-        with open(f'outputs/{design}.v', 'w') as out:
-            for f in glob.glob(os.path.join(chisel_path, '*.v')):
-                with sc_open(f) as i_file:
-                    out.writelines(i_file.readlines())
+            run_main.extend(["--output-file", f"../outputs/{self.design_topmodule}.v"])
+
+        options.append(" ".join(run_main))
+
+        return options
+
+    def post_process(self):
+        super().post_process()
+
+        chisel_path = self.get("var", "targetdir")
+        if os.path.exists(chisel_path):
+            with open(f'outputs/{self.design_topmodule}.v', 'w') as out:
+                for f in glob.glob(os.path.join(chisel_path, '*.v')):
+                    with sc_open(f) as i_file:
+                        out.writelines(i_file.readlines())

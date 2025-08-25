@@ -12,15 +12,15 @@ from unittest.mock import patch, ANY
 
 from siliconcompiler import RecordSchema, MetricSchema, FlowgraphSchema, \
     ShowTaskSchema, ScreenshotTaskSchema
-from siliconcompiler import ToolSchema, TaskSchema, ASICTaskSchema
-from siliconcompiler import ToolLibrarySchema
+from siliconcompiler import TaskSchema, Project
+from siliconcompiler import DesignSchema
 from siliconcompiler.schema import BaseSchema, EditableSchema, Parameter, SafeSchema
 from siliconcompiler.schema.parameter import PerNode, Scope
 from siliconcompiler.tool import TaskExecutableNotFound, TaskError, TaskTimeout
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 from siliconcompiler.scheduler import SchedulerNode
 
-from siliconcompiler.tools.builtin import nop
+from siliconcompiler.tools.builtin.nop import NOPTask
 
 import siliconcompiler.tool as dut_tool
 from siliconcompiler.tool import shutil as imported_shutil
@@ -70,73 +70,32 @@ def patch_psutil(monkeypatch):
     yield
 
 
-class NOPTask(TaskSchema):
-    def __init__(self):
-        super().__init__()
-
-    def tool(self):
-        return "builtin"
-
-    def task(self):
-        return "nop"
-
-
 @pytest.fixture
 def running_project():
-    class TestProject(BaseSchema):
+    class TestProject(Project):
         def __init__(self):
             super().__init__()
 
-            self.design = "testdesign"
-            self.cwd = os.getcwd()
+            design = DesignSchema("testdesign")
+            with design.active_fileset("rtl"):
+                design.set_topmodule("designtop")
+            self.set_design(design)
+            self.add_fileset("rtl")
 
-            self.schema = self
-
-            self.logger = logging.getLogger()
+            self._Project__logger = logging.getLogger()
             self.logger.setLevel(logging.INFO)
 
-            schema = EditableSchema(self)
-
             flow = FlowgraphSchema("testflow")
-            flow.node("running", nop)
-            flow.node("notrunning", nop)
+            flow.node("running", NOPTask())
+            flow.node("notrunning", NOPTask())
             flow.edge("running", "notrunning")
-            schema.insert("flowgraph", "testflow", flow)
-            schema.insert("record", RecordSchema())
-            schema.insert("metric", MetricSchema())
 
-            schema.insert("library", "default", BaseSchema())
-
-            schema.insert("arg", "step", Parameter("str"))
-            schema.insert("arg", "index", Parameter("str"))
-            schema.insert("option", "breakpoint", Parameter("bool", pernode=PerNode.OPTIONAL))
-            schema.insert("option", "flow", Parameter("str"))
-            schema.insert("option", "strict", Parameter("bool"))
-            schema.insert("option", "prune", Parameter("[(str,str)]"))
-            schema.insert("option", "jobname", Parameter("str", defvalue="job0"))
-            schema.insert("option", "track", Parameter("bool", pernode=PerNode.OPTIONAL))
-            schema.insert("option", "hash", Parameter("bool", pernode=PerNode.OPTIONAL))
-            schema.insert("option", "env", "default", Parameter("str"))
-
-            schema.insert("tool", "default", ToolSchema(None))
-            EditableSchema(
-                self.get("tool", "builtin", "task", field="schema")).insert("nop", NOPTask())
-
-        def top(self, **kwargs):
-            return "designtop"
+            self.set_flow(flow)
 
         def get_nop(self) -> NOPTask:
             return self.get("tool", "builtin", "task", "nop", field="schema")
 
-        def getworkdir(self, jobname=None, step=None, index=None):
-            return os.path.abspath(".")
-
-        def _getcollectdir(self):
-            return None
-
-    project = TestProject()
-    project.set('option', 'flow', 'testflow')
-    return project
+    return TestProject()
 
 
 @pytest.fixture
@@ -209,7 +168,7 @@ def test_runtime(running_node):
         assert runtool.index == '0'
         assert runtool.node is running_node
         assert runtool.logger is running_node.project.logger
-        assert runtool.schema() is running_node.project.schema
+        assert runtool.schema() is running_node.project
 
 
 def test_runtime_node_only(running_node):
@@ -230,12 +189,12 @@ def test_runtime_same_task(running_node):
         assert runtool0.index == '0'
         assert runtool0.node is running_node
         assert runtool0.logger is running_node.project.logger
-        assert runtool0.schema() is running_node.project.schema
+        assert runtool0.schema() is running_node.project
         assert runtool1.step == 'notrunning'
         assert runtool1.index == '0'
         assert runtool1.node is running1
         assert runtool1.logger is running_node.project.logger
-        assert runtool1.schema() is running_node.project.schema
+        assert runtool1.schema() is running_node.project
 
         assert runtool0.set("option", "tool0_opt")
         assert runtool1.set("option", "tool1_opt")
@@ -254,17 +213,16 @@ def test_runtime_different(running_node):
         assert runtool.step == 'notrunning'
         assert runtool.index == '0'
         assert runtool.logger is running_node.project.logger
-        assert runtool.schema() is running_node.project.schema
+        assert runtool.schema() is running_node.project
 
 
 def test_schema_access(running_node):
     with running_node.task.runtime(running_node) as runtool:
-        assert runtool.schema() is running_node.project.schema
+        assert runtool.schema() is running_node.project
         assert isinstance(runtool.schema("record"), RecordSchema)
         assert isinstance(runtool.schema("metric"), MetricSchema)
         assert isinstance(runtool.schema("flow"), FlowgraphSchema)
         assert isinstance(runtool.schema("runtimeflow"), RuntimeFlowgraph)
-        assert isinstance(runtool.schema("tool"), ToolSchema)
 
 
 def test_schema_access_invalid(running_node):
@@ -384,14 +342,14 @@ def test_get_exe_empty(running_node):
 
 
 def test_get_exe_not_found(running_node):
-    assert running_node.project.set('tool', 'builtin', 'exe', 'testexe')
+    assert running_node.project.set('tool', 'builtin', 'task', 'nop', 'exe', 'testexe')
     with running_node.task.runtime(running_node) as runtool:
         with pytest.raises(TaskExecutableNotFound, match="testexe could not be found"):
             runtool.get_exe()
 
 
 def test_get_exe_found(running_node, monkeypatch):
-    assert running_node.project.set('tool', 'builtin', 'exe', 'testexe')
+    assert running_node.project.set('tool', 'builtin', 'task', 'nop', 'exe', 'testexe')
 
     def dummy_env(*args, **kwargs):
         assert "include_path" in kwargs
@@ -411,13 +369,13 @@ def test_get_exe_found(running_node, monkeypatch):
 
 
 def test_get_exe_version_no_vswitch(running_node):
-    assert running_node.project.set('tool', 'builtin', 'exe', 'testexe')
+    assert running_node.project.set('tool', 'builtin', 'task', 'nop', 'exe', 'testexe')
     with running_node.task.runtime(running_node) as runtool:
         assert runtool.get_exe_version() is None
 
 
 def test_get_exe_version_no_exe(running_node):
-    assert running_node.project.set('tool', 'builtin', 'vswitch', '-version')
+    assert running_node.project.set('tool', 'builtin', 'task', 'nop', 'vswitch', '-version')
     with running_node.task.runtime(running_node) as runtool:
         assert runtool.get_exe_version() is None
 
@@ -428,8 +386,8 @@ def test_get_exe_version(running_node, monkeypatch, caplog):
         return "1.0.0"
     monkeypatch.setattr(running_node.task, 'parse_version', parse_version)
 
-    assert running_node.project.set('tool', 'builtin', 'vswitch', 'testexe')
-    assert running_node.project.set('tool', 'builtin', 'vswitch', '-version')
+    assert running_node.project.set('tool', 'builtin', 'task', 'nop', 'exe', 'testexe')
+    assert running_node.project.set('tool', 'builtin', 'task', 'nop', 'vswitch', '-version')
 
     def dummy_get_exe(*args, **kwargs):
         return "found/exe"
@@ -451,8 +409,8 @@ def test_get_exe_version(running_node, monkeypatch, caplog):
 
 
 def test_get_exe_version_not_implemented(running_node, monkeypatch):
-    assert running_node.project.set('tool', 'builtin', 'vswitch', 'testexe')
-    assert running_node.project.set('tool', 'builtin', 'vswitch', '-version')
+    assert running_node.project.set('tool', 'builtin', 'task', 'nop', 'exe', 'testexe')
+    assert running_node.project.set('tool', 'builtin', 'task', 'nop', 'vswitch', '-version')
 
     def dummy_get_exe(*args, **kwargs):
         return "found/exe"
@@ -479,8 +437,8 @@ def test_get_exe_version_non_zero_return(running_node, monkeypatch, caplog):
         return "1.0.0"
     monkeypatch.setattr(running_node.task, 'parse_version', parse_version)
 
-    assert running_node.project.set('tool', 'builtin', 'vswitch', 'testexe')
-    assert running_node.project.set('tool', 'builtin', 'vswitch', '-version')
+    assert running_node.project.set('tool', 'builtin', 'task', 'nop', 'exe', 'testexe')
+    assert running_node.project.set('tool', 'builtin', 'task', 'nop', 'vswitch', '-version')
 
     def dummy_get_exe(*args, **kwargs):
         return "found/exe"
@@ -507,7 +465,7 @@ def test_get_exe_version_internal_error(running_node, monkeypatch, caplog):
         raise ValueError("look for this match")
     monkeypatch.setattr(running_node.task, 'parse_version', parse_version)
 
-    assert running_node.project.set('tool', 'builtin', 'vswitch', '-version')
+    assert running_node.project.set('tool', 'builtin', 'task', 'nop', 'vswitch', '-version')
 
     def dummy_get_exe(*args, **kwargs):
         return "found/exe"
@@ -536,14 +494,14 @@ def test_check_exe_version_not_set(running_node):
 
 
 def test_check_exe_version_valid(running_node, caplog):
-    assert running_node.project.set('tool', 'builtin', 'version', '==1.0.0')
+    assert running_node.project.set('tool', 'builtin', 'task', 'nop', 'version', '==1.0.0')
     with running_node.task.runtime(running_node) as runtool:
         assert runtool.check_exe_version('1.0.0') is True
     assert caplog.text == ''
 
 
 def test_check_exe_version_invalid(running_node, caplog):
-    assert running_node.project.set('tool', 'builtin', 'version', '!=1.0.0')
+    assert running_node.project.set('tool', 'builtin', 'task', 'nop', 'version', '!=1.0.0')
     with running_node.task.runtime(running_node) as runtool:
         assert runtool.check_exe_version('1.0.0') is False
     assert "Version check failed for builtin/nop. Check installation." in caplog.text
@@ -551,14 +509,15 @@ def test_check_exe_version_invalid(running_node, caplog):
 
 
 def test_check_exe_version_value_ge(running_node, caplog):
-    assert running_node.project.set('tool', 'builtin', 'version', '>=1.0.0')
+    assert running_node.project.set('tool', 'builtin', 'task', 'nop', 'version', '>=1.0.0')
     with running_node.task.runtime(running_node) as runtool:
         assert runtool.check_exe_version('1.0.0') is True
     assert caplog.text == ""
 
 
 def test_check_exe_version_value_compound(running_node, caplog):
-    assert running_node.project.set('tool', 'builtin', 'version', ['>=1.0.0,!=2.0.0'])
+    assert running_node.project.set('tool', 'builtin', 'task', 'nop', 'version',
+                                    ['>=1.0.0,!=2.0.0'])
     with running_node.task.runtime(running_node) as runtool:
         assert runtool.check_exe_version('2.0.0') is False
     assert "Version check failed for builtin/nop. Check installation." in caplog.text
@@ -567,7 +526,8 @@ def test_check_exe_version_value_compound(running_node, caplog):
 
 
 def test_check_exe_version_value_multiple_fail(running_node, caplog):
-    assert running_node.project.set('tool', 'builtin', 'version', ['>=1.0.0,<2.0.0', '>3.0.0'])
+    assert running_node.project.set('tool', 'builtin', 'task', 'nop', 'version',
+                                    ['>=1.0.0,<2.0.0', '>3.0.0'])
     with running_node.task.runtime(running_node) as runtool:
         assert runtool.check_exe_version('2.0.0') is False
     assert "Version check failed for builtin/nop. Check installation." in caplog.text
@@ -576,21 +536,22 @@ def test_check_exe_version_value_multiple_fail(running_node, caplog):
 
 
 def test_check_exe_version_value_multiple_pass(running_node, caplog):
-    assert running_node.project.set('tool', 'builtin', 'version', ['>=1.0.0,<2.0.0', '>3.0.0'])
+    assert running_node.project.set('tool', 'builtin', 'task', 'nop', 'version',
+                                    ['>=1.0.0,<2.0.0', '>3.0.0'])
     with running_node.task.runtime(running_node) as runtool:
         assert runtool.check_exe_version('3.0.1') is True
     assert caplog.text == ""
 
 
 def test_check_exe_version_value_invalid_spec(running_node, caplog):
-    assert running_node.project.set('tool', 'builtin', 'version', '1.0.0')
+    assert running_node.project.set('tool', 'builtin', 'task', 'nop', 'version', '1.0.0')
     with running_node.task.runtime(running_node) as runtool:
         assert runtool.check_exe_version('1.0.0') is True
     assert "Invalid version specifier 1.0.0. Defaulting to ==1.0.0" in caplog.text
 
 
 def test_check_exe_version_value_invalid_spec_fail(running_node, caplog):
-    assert running_node.project.set('tool', 'builtin', 'version', '1.0.0')
+    assert running_node.project.set('tool', 'builtin', 'task', 'nop', 'version', '1.0.0')
     with running_node.task.runtime(running_node) as runtool:
         assert runtool.check_exe_version('1.0.1') is False
     assert "Invalid version specifier 1.0.0. Defaulting to ==1.0.0" in caplog.text
@@ -603,7 +564,7 @@ def test_check_exe_version_normalize_error(running_node, monkeypatch, caplog):
         raise ValueError("match this error")
     monkeypatch.setattr(running_node.task, 'normalize_version', normalize_version)
 
-    assert running_node.project.set("tool", "builtin", 'version', '==1.0.0')
+    assert running_node.project.set("tool", "builtin", 'task', 'nop', 'version', '==1.0.0')
     with running_node.task.runtime(running_node) as runtool:
         with pytest.raises(ValueError, match="match this error"):
             runtool.check_exe_version('myversion')
@@ -615,7 +576,7 @@ def test_check_exe_version_normalize_pass(running_node, monkeypatch, caplog):
         return "1.0.0"
     monkeypatch.setattr(running_node.task, 'normalize_version', normalize_version)
 
-    assert running_node.project.set("tool", "builtin", 'version', '==1.0.0')
+    assert running_node.project.set("tool", "builtin", 'task', 'nop', 'version', '==1.0.0')
     with running_node.task.runtime(running_node) as runtool:
         assert runtool.check_exe_version('myversion') is True
     assert caplog.text == ""
@@ -628,7 +589,7 @@ def test_check_exe_version_normalize_error_spec(running_node, monkeypatch, caplo
         return "1.0.0"
     monkeypatch.setattr(running_node.task, 'normalize_version', normalize_version)
 
-    assert running_node.project.set("tool", "builtin", 'version', '==1.0.0')
+    assert running_node.project.set("tool", "builtin", 'task', 'nop', 'version', '==1.0.0')
     with running_node.task.runtime(running_node) as runtool:
         with pytest.raises(ValueError, match="match this error"):
             runtool.check_exe_version('myversion')
@@ -640,7 +601,7 @@ def test_check_exe_version_normalize_invalid_version(running_node, monkeypatch, 
         return "notvalid"
     monkeypatch.setattr(running_node.task, 'normalize_version', normalize_version)
 
-    assert running_node.project.set("tool", "builtin", 'version', '==1.0.0')
+    assert running_node.project.set("tool", "builtin", 'task', 'nop', 'version', '==1.0.0')
     with running_node.task.runtime(running_node) as runtool:
         runtool.check_exe_version('myversion') is False
     assert "Version notvalid reported by builtin/nop does not match standard" in caplog.text
@@ -653,7 +614,7 @@ def test_check_exe_version_normalize_invalid_spec_version(running_node, monkeypa
         return "notvalid"
     monkeypatch.setattr(running_node.task, 'normalize_version', normalize_version)
 
-    assert running_node.project.set("tool", "builtin", 'version', '==1.0.0')
+    assert running_node.project.set("tool", "builtin", 'task', 'nop', 'version', '==1.0.0')
     with running_node.task.runtime(running_node) as runtool:
         runtool.check_exe_version('myversion') is False
     assert "Version specifier set ==notvalid does not match standard" in caplog.text
@@ -678,9 +639,9 @@ def test_get_runtime_environmental_variables_no_path(running_node, monkeypatch):
 def test_get_runtime_environmental_variables_envs(running_node, monkeypatch):
     running_node.project.set('option', 'env', 'CHECK', 'THIS')
     running_node.project.set('option', 'env', 'CHECKS', 'THAT')
-    assert running_node.project.set("tool", "builtin", 'licenseserver', 'ENV_LIC0',
+    assert running_node.project.set("tool", "builtin", 'task', 'nop', 'licenseserver', 'ENV_LIC0',
                                     ('server0', 'server1'))
-    assert running_node.project.set("tool", "builtin", 'licenseserver', 'ENV_LIC1',
+    assert running_node.project.set("tool", "builtin", 'task', 'nop', 'licenseserver', 'ENV_LIC1',
                                     ('server2', 'server3'))
     assert running_node.project.set("tool", "builtin", 'task', "nop", 'env', 'CHECK', "helloworld")
 
@@ -707,7 +668,7 @@ def test_get_runtime_environmental_variables_envs(running_node, monkeypatch):
 
 def test_get_runtime_environmental_variables_tool_path(running_node, monkeypatch):
     os.makedirs('./testpath', exist_ok=True)
-    assert running_node.project.set("tool", "builtin", 'path', './testpath')
+    assert running_node.project.set("tool", "builtin", 'task', 'nop', 'path', './testpath')
 
     monkeypatch.setenv("PATH", "this:path")
     monkeypatch.delenv("LD_LIBRARY_PATH", raising=False)
@@ -946,8 +907,8 @@ def test_resetting_state_in_copy(running_node):
 
 
 def test_generate_replay_script(running_node, monkeypatch):
-    assert running_node.project.set("tool", "builtin", 'exe', 'testexe')
-    assert running_node.project.set("tool", "builtin", 'vswitch', '-version')
+    assert running_node.project.set("tool", "builtin", 'task', 'nop', 'exe', 'testexe')
+    assert running_node.project.set("tool", "builtin", 'task', 'nop', 'vswitch', '-version')
     assert running_node.project.set("tool", "builtin", 'task', "nop", 'option', [
         '--arg0', '--arg1', 'arg2', '--arg3', 'arg4', 'arg5',
         '/filehere', 'arg6'])
@@ -967,8 +928,8 @@ def test_generate_replay_script(running_node, monkeypatch):
 
 
 def test_generate_replay_script_no_path(running_node, monkeypatch):
-    assert running_node.project.set("tool", "builtin", 'exe', 'testexe')
-    assert running_node.project.set("tool", "builtin", 'vswitch', '-version')
+    assert running_node.project.set("tool", "builtin", 'task', 'nop', 'exe', 'testexe')
+    assert running_node.project.set("tool", "builtin", 'task', 'nop', 'vswitch', '-version')
     assert running_node.project.set("tool", "builtin", 'task', "nop", 'option', [
         '--arg0', '--arg1', 'arg2', '--arg3', 'arg4', 'arg5',
         '/filehere', 'arg6'])
@@ -1050,14 +1011,14 @@ def test_write_task_manifest_none(running_node):
 
 @pytest.mark.parametrize("suffix", ("tcl", "json", "yaml"))
 def test_write_task_manifest(running_node, suffix):
-    assert running_node.project.set("tool", "builtin", "format", suffix)
+    assert running_node.project.set("tool", "builtin", 'task', 'nop', "format", suffix)
     with running_node.task.runtime(running_node) as runtool:
         runtool.write_task_manifest('.')
         assert os.listdir() == [f'sc_manifest.{suffix}']
 
 
 def test_write_task_manifest_abspath(running_node):
-    assert running_node.project.set("tool", "builtin", "format", "json")
+    assert running_node.project.set("tool", "builtin", 'task', 'nop', "format", "json")
     running_node.project.set("tool", "builtin", "task", "nop", "refdir", ".")
     with running_node.task.runtime(running_node) as runtool:
         runtool.write_task_manifest('.')
@@ -1069,7 +1030,7 @@ def test_write_task_manifest_abspath(running_node):
 
 
 def test_write_task_manifest_relative(running_node):
-    assert running_node.project.set("tool", "builtin", "format", "json")
+    assert running_node.project.set("tool", "builtin", 'task', 'nop', "format", "json")
     assert running_node.project.set("tool", "builtin", "task", "nop", "refdir", ".")
     with running_node.task.runtime(running_node, relpath=os.getcwd()) as runtool:
         runtool.write_task_manifest('.')
@@ -1080,7 +1041,7 @@ def test_write_task_manifest_relative(running_node):
 
 
 def test_write_task_manifest_with_backup(running_node):
-    assert running_node.project.set("tool", "builtin", "format", "json")
+    assert running_node.project.set("tool", "builtin", 'task', 'nop', "format", "json")
     with running_node.task.runtime(running_node) as runtool:
         runtool.write_task_manifest('.')
         assert os.listdir() == ['sc_manifest.json']
@@ -1089,7 +1050,7 @@ def test_write_task_manifest_with_backup(running_node):
 
 
 def test_write_task_manifest_without_backup(running_node):
-    assert running_node.project.set("tool", "builtin", "format", "json")
+    assert running_node.project.set("tool", "builtin", 'task', 'nop', "format", "json")
     with running_node.task.runtime(running_node) as runtool:
         runtool.write_task_manifest('.')
         assert os.listdir() == ['sc_manifest.json']
@@ -1099,7 +1060,7 @@ def test_write_task_manifest_without_backup(running_node):
 
 @pytest.mark.parametrize("exitcode", [0, 1])
 def test_run_task(running_node, exitcode, monkeypatch):
-    assert running_node.project.set("tool", "builtin", "format", "json")
+    assert running_node.project.set("tool", "builtin", 'task', 'nop', "format", "json")
 
     def dummy_popen(*args, **kwargs):
         assert args == (["found/exe"],)
@@ -1132,7 +1093,7 @@ def test_run_task(running_node, exitcode, monkeypatch):
 
 
 def test_run_task_failed_popen(running_node, monkeypatch):
-    assert running_node.project.set("tool", "builtin", "format", "json")
+    assert running_node.project.set("tool", "builtin", 'task', 'nop', "format", "json")
 
     def dummy_popen(*args, **kwargs):
         raise RuntimeError("something bad happened")
@@ -1149,7 +1110,7 @@ def test_run_task_failed_popen(running_node, monkeypatch):
 
 @pytest.mark.parametrize("nice", [-5, 0, 5])
 def test_run_task_nice(running_node, nice, monkeypatch):
-    assert running_node.project.set("tool", "builtin", "format", "json")
+    assert running_node.project.set("tool", "builtin", 'task', 'nop', "format", "json")
 
     def dummy_nice(level):
         assert level == nice
@@ -1181,7 +1142,7 @@ def test_run_task_nice(running_node, nice, monkeypatch):
 
 
 def test_run_task_timeout(running_node, monkeypatch, patch_psutil):
-    assert running_node.project.set("tool", "builtin", "format", "json")
+    assert running_node.project.set("tool", "builtin", 'task', 'nop', "format", "json")
 
     def dummy_popen(*args, **kwargs):
         assert args == (["found/exe"],)
@@ -1210,7 +1171,7 @@ def test_run_task_timeout(running_node, monkeypatch, patch_psutil):
 
 
 def test_run_task_memory_limit(running_node, monkeypatch, patch_psutil, caplog):
-    assert running_node.project.set("tool", "builtin", "format", "json")
+    assert running_node.project.set("tool", "builtin", 'task', 'nop', "format", "json")
 
     def dummy_popen(*args, **kwargs):
         assert args == (["found/exe"],)
@@ -1243,7 +1204,7 @@ def test_run_task_memory_limit(running_node, monkeypatch, patch_psutil, caplog):
 
 @pytest.mark.parametrize("error", [PermissionError, imported_psutil.Error])
 def test_run_task_exceptions_loop(running_node, monkeypatch, patch_psutil, error):
-    assert running_node.project.set("tool", "builtin", "format", "json")
+    assert running_node.project.set("tool", "builtin", 'task', 'nop', "format", "json")
 
     def dummy_popen(*args, **kwargs):
         assert args == (["found/exe"],)
@@ -1277,7 +1238,7 @@ def test_run_task_exceptions_loop(running_node, monkeypatch, patch_psutil, error
 
 
 def test_run_task_contl_c(running_node, monkeypatch, patch_psutil, caplog):
-    assert running_node.project.set("tool", "builtin", "format", "json")
+    assert running_node.project.set("tool", "builtin", 'task', 'nop', "format", "json")
 
     def dummy_popen(*args, **kwargs):
         assert args == (["found/exe"],)
@@ -1544,7 +1505,7 @@ def test_get_files_from_input_nodes_end(running_node):
 
 def test_get_files_from_input_nodes_skipped(running_node):
     flow = running_node.project.get("flowgraph", "testflow", field="schema")
-    flow.node("lastnode", nop)
+    flow.node("lastnode", NOPTask())
     flow.edge("notrunning", "lastnode")
 
     running_node.project.set("tool", "builtin", "task", "nop", "output", "file0.txt",
@@ -1559,7 +1520,7 @@ def test_get_files_from_input_nodes_skipped(running_node):
 
 def test_get_files_from_input_nodes_multiple(running_node):
     flow = running_node.project.get("flowgraph", "testflow", field="schema")
-    flow.node("firstnode", nop)
+    flow.node("firstnode", NOPTask())
     flow.edge("firstnode", "notrunning")
 
     running_node.project.set("tool", "builtin", "task", "nop", "output", "file0.txt",
@@ -1685,19 +1646,19 @@ def test_search_path_resolution_script_with_ref(running_node):
 
 def test_search_path_resolution_input(running_node):
     assert running_node.task._find_files_search_paths("input", "step", "index") == [
-        os.path.abspath("inputs")
+        os.path.abspath("build/testdesign/job0/step/index/inputs")
     ]
 
 
 def test_search_path_resolution_report(running_node):
     assert running_node.task._find_files_search_paths("report", "step", "index") == [
-        os.path.abspath("report")
+        os.path.abspath("build/testdesign/job0/step/index/report")
     ]
 
 
 def test_search_path_resolution_output(running_node):
     assert running_node.task._find_files_search_paths("output", "step", "index") == [
-        os.path.abspath("outputs")
+        os.path.abspath("build/testdesign/job0/step/index/outputs")
     ]
 
 
@@ -1830,6 +1791,7 @@ def test_get_tcl_variables(running_node):
             'sc_task': '"nop"',
             'sc_tool': '"builtin"',
             'sc_topmodule': '"designtop"',
+            'sc_designlib': '"testdesign"'
         }
 
 
@@ -1840,7 +1802,8 @@ def test_get_tcl_variables_with_refdir(running_node):
             'sc_task': '"nop"',
             'sc_tool': '"builtin"',
             'sc_topmodule': '"designtop"',
-            "sc_refdir": '[list "."]'
+            "sc_refdir": '[list "."]',
+            'sc_designlib': '"testdesign"'
         }
 
 
@@ -1852,58 +1815,59 @@ def test_get_tcl_variables_with_refdir_diffsource(running_node):
             'sc_task': '"nop"',
             'sc_tool': '"builtin"',
             'sc_topmodule': '"designtop"',
-            "sc_refdir": '[list "thispath"]'
+            "sc_refdir": '[list "thispath"]',
+            'sc_designlib': '"testdesign"'
         }
 
 
 def test_set_exe(running_node):
     with running_node.task.runtime(running_node) as runtool:
         assert runtool.set_exe(exe="testexe", vswitch="-ver", format="json")
-        assert runtool.schema("tool").get("exe") == "testexe"
-        assert runtool.schema("tool").get("vswitch") == ["-ver"]
-        assert runtool.schema("tool").get("format") == "json"
+        assert runtool.get("exe") == "testexe"
+        assert runtool.get("vswitch") == ["-ver"]
+        assert runtool.get("format") == "json"
 
 
 def test_set_path(running_node):
     with running_node.task.runtime(running_node) as runtool:
         assert runtool.set_path(".")
-        assert runtool.schema("tool").get("path") == "."
+        assert runtool.get("path") == "."
 
 
 def test_add_version(running_node):
     with running_node.task.runtime(running_node) as runtool:
         assert runtool.add_version(">=1")
         assert runtool.add_version(">=2")
-        assert runtool.schema("tool").get("version") == [">=1", ">=2"]
+        assert runtool.get("version") == [">=1", ">=2"]
         assert runtool.add_version(">=3", clobber=True)
-        assert runtool.schema("tool").get("version") == [">=3"]
+        assert runtool.get("version") == [">=3"]
 
 
 def test_add_vswitch(running_node):
     with running_node.task.runtime(running_node) as runtool:
         assert runtool.add_vswitch("-h")
         assert runtool.add_vswitch("-v")
-        assert runtool.schema("tool").get("vswitch") == ["-h", "-v"]
+        assert runtool.get("vswitch") == ["-h", "-v"]
         assert runtool.add_vswitch("-version", clobber=True)
-        assert runtool.schema("tool").get("vswitch") == ["-version"]
+        assert runtool.get("vswitch") == ["-version"]
 
 
 def test_add_licenseserver(running_node):
     with running_node.task.runtime(running_node) as runtool:
         assert runtool.add_licenseserver("testlic", "lic0")
         assert runtool.add_licenseserver("testlic", "lic1")
-        assert runtool.schema("tool").get("licenseserver", "testlic") == ['lic0', 'lic1']
+        assert runtool.get("licenseserver", "testlic") == ['lic0', 'lic1']
         assert runtool.add_licenseserver("testlic", "lic2", clobber=True)
-        assert runtool.schema("tool").get("licenseserver", "testlic") == ["lic2"]
+        assert runtool.get("licenseserver", "testlic") == ["lic2"]
 
 
 def test_add_sbom(running_node):
     with running_node.task.runtime(running_node) as runtool:
         assert runtool.add_sbom("v1", "sbom0")
         assert runtool.add_sbom("v1", "sbom1")
-        assert runtool.schema("tool").get("sbom", "v1") == ['sbom0', 'sbom1']
+        assert runtool.get("sbom", "v1") == ['sbom0', 'sbom1']
         assert runtool.add_sbom("v1", "sbom2", clobber=True)
-        assert runtool.schema("tool").get("sbom", "v1") == ["sbom2"]
+        assert runtool.get("sbom", "v1") == ["sbom2"]
 
 
 def test_set_environmentalvariable(running_node):
@@ -1979,10 +1943,9 @@ def test_add_warningoff(running_node):
         assert runtool.get("warningoff") == ["ERROR"]
 
 
-@pytest.mark.skip(reason="Project is needed as the base")
 def test_get_fileset_file_keys(running_node):
     with running_node.task.runtime(running_node) as runtool:
-        assert runtool.get_fileset_file_keys("verilog") == ""
+        assert runtool.get_fileset_file_keys("verilog") == []
 
 
 def test_get_fileset_file_keys_invalid(running_node):
@@ -2075,387 +2038,3 @@ def test_show_get_supported_show_extentions(cls):
                        match="get_supported_show_extentions must be "
                              "implemented by the child class"):
         cls().get_supported_show_extentions() == {}
-
-
-def test_asic_mainlib_not_set(running_node):
-    project = running_node.project
-    EditableSchema(project).insert("asic", "mainlib", Parameter("str"))
-
-    with ASICTaskSchema().runtime(running_node) as runtool:
-        with pytest.raises(ValueError, match=r"mainlib has not been defined in \[asic,mainlib\]"):
-            runtool.mainlib
-
-
-def test_asic_mainlib_not_loaded(running_node):
-    project = running_node.project
-    EditableSchema(project).insert("asic", "mainlib", Parameter("str"))
-    project.set("asic", "mainlib", "testlib")
-
-    with ASICTaskSchema().runtime(running_node) as runtool:
-        with pytest.raises(LookupError, match="testlib has not been loaded"):
-            runtool.mainlib
-
-
-def test_asic_mainlib(running_node):
-    project = running_node.project
-    EditableSchema(project).insert("asic", "mainlib", Parameter("str"))
-    project.set("asic", "mainlib", "testlib")
-    lib = BaseSchema()
-    EditableSchema(project).insert("library", "testlib", lib)
-
-    with ASICTaskSchema().runtime(running_node) as runtool:
-        assert runtool.mainlib is lib
-
-
-def test_asic_pdk_not_set(running_node):
-    project = running_node.project
-    EditableSchema(project).insert("asic", "mainlib", Parameter("str"))
-    project.set("asic", "mainlib", "testlib")
-    lib = BaseSchema()
-    EditableSchema(project).insert("library", "testlib", lib)
-    EditableSchema(lib).insert("asic", "pdk", Parameter("str"))
-
-    with ASICTaskSchema().runtime(running_node) as runtool:
-        with pytest.raises(ValueError,
-                           match=r"pdk has not been defined in \[library,testlib,asic,pdk\]"):
-            runtool.pdk
-
-
-def test_asic_pdk_not_loaded(running_node):
-    project = running_node.project
-    EditableSchema(project).insert("asic", "mainlib", Parameter("str"))
-    project.set("asic", "mainlib", "testlib")
-    lib = BaseSchema()
-    EditableSchema(project).insert("library", "testlib", lib)
-    EditableSchema(lib).insert("asic", "pdk", Parameter("str"))
-    lib.set("asic", "pdk", "testpdk")
-
-    with ASICTaskSchema().runtime(running_node) as runtool:
-        with pytest.raises(LookupError, match="testpdk has not been loaded"):
-            runtool.pdk
-
-
-def test_asic_pdk(running_node):
-    project = running_node.project
-    EditableSchema(project).insert("asic", "mainlib", Parameter("str"))
-    project.set("asic", "mainlib", "testlib")
-    lib = BaseSchema()
-    EditableSchema(project).insert("library", "testlib", lib)
-    EditableSchema(lib).insert("asic", "pdk", Parameter("str"))
-    lib.set("asic", "pdk", "testpdk")
-    pdk = BaseSchema()
-    EditableSchema(project).insert("library", "testpdk", pdk)
-
-    with ASICTaskSchema().runtime(running_node) as runtool:
-        assert runtool.pdk is pdk
-
-
-def test_asic_set_asic_var_from_lib(running_node):
-    project = running_node.project
-    EditableSchema(project).insert("asic", "mainlib", Parameter("str"))
-    project.set("asic", "mainlib", "testlib")
-    lib = ToolLibrarySchema()
-    pdk = ToolLibrarySchema()
-    EditableSchema(project).insert("library", "testlib", lib)
-    EditableSchema(lib).insert("asic", "pdk", Parameter("str"))
-    lib.set("asic", "pdk", "testpdk")
-    EditableSchema(project).insert("library", "testpdk", pdk)
-    EditableSchema(pdk).insert("asic", "pdk", Parameter("str"))
-
-    class TestTask(ASICTaskSchema):
-        def tool(self):
-            return "testtool"
-    task = TestTask()
-    EditableSchema(project).insert("task", task)
-    task.add_parameter("test_param", "str", "help")
-    pdk.define_tool_parameter("testtool", "test_param", "str", "help")
-    pdk.set("tool", "testtool", "test_param", "pdkvalue")
-    lib.define_tool_parameter("testtool", "test_param", "str", "help")
-    lib.set("tool", "testtool", "test_param", "libvalue")
-    with task.runtime(running_node) as runtool:
-        assert runtool.set_asic_var("test_param", defvalue="defvalue")
-        assert runtool.get("var", "test_param") == "libvalue"
-        assert runtool.get("require") == ['task,var,test_param',
-                                          'library,testlib,tool,testtool,test_param',
-                                          'task,var,test_param']
-
-
-def test_asic_set_asic_var_from_pdk(running_node):
-    project = running_node.project
-    EditableSchema(project).insert("asic", "mainlib", Parameter("str"))
-    project.set("asic", "mainlib", "testlib")
-    lib = ToolLibrarySchema()
-    pdk = ToolLibrarySchema()
-    EditableSchema(project).insert("library", "testlib", lib)
-    EditableSchema(lib).insert("asic", "pdk", Parameter("str"))
-    lib.set("asic", "pdk", "testpdk")
-    EditableSchema(project).insert("library", "testpdk", pdk)
-    EditableSchema(pdk).insert("asic", "pdk", Parameter("str"))
-
-    class TestTask(ASICTaskSchema):
-        def tool(self):
-            return "testtool"
-    task = TestTask()
-    EditableSchema(project).insert("task", task)
-    task.add_parameter("test_param", "str", "help")
-    pdk.define_tool_parameter("testtool", "test_param", "str", "help")
-    lib.define_tool_parameter("testtool", "test_param", "str", "help")
-    pdk.set("tool", "testtool", "test_param", "pdkvalue")
-    with task.runtime(running_node) as runtool:
-        assert runtool.set_asic_var("test_param", defvalue="defvalue")
-        assert runtool.get("var", "test_param") == "pdkvalue"
-        assert runtool.get("require") == ['task,var,test_param',
-                                          'library,testpdk,tool,testtool,test_param',
-                                          'task,var,test_param']
-
-
-def test_asic_set_asic_var_from_defvalue(running_node):
-    project = running_node.project
-    EditableSchema(project).insert("asic", "mainlib", Parameter("str"))
-    project.set("asic", "mainlib", "testlib")
-    lib = ToolLibrarySchema()
-    pdk = ToolLibrarySchema()
-    EditableSchema(project).insert("library", "testlib", lib)
-    EditableSchema(lib).insert("asic", "pdk", Parameter("str"))
-    lib.set("asic", "pdk", "testpdk")
-    EditableSchema(project).insert("library", "testpdk", pdk)
-    EditableSchema(pdk).insert("asic", "pdk", Parameter("str"))
-
-    class TestTask(ASICTaskSchema):
-        def tool(self):
-            return "testtool"
-    task = TestTask()
-    EditableSchema(project).insert("task", task)
-    task.add_parameter("test_param", "str", "help")
-    pdk.define_tool_parameter("testtool", "test_param", "str", "help")
-    lib.define_tool_parameter("testtool", "test_param", "str", "help")
-    with task.runtime(running_node) as runtool:
-        assert runtool.set_asic_var("test_param", defvalue="defvalue")
-        assert runtool.get("var", "test_param") == "defvalue"
-        assert runtool.get("require") == ['task,var,test_param']
-
-
-def test_asic_set_asic_var_no_value(running_node):
-    project = running_node.project
-    EditableSchema(project).insert("asic", "mainlib", Parameter("str"))
-    project.set("asic", "mainlib", "testlib")
-    lib = ToolLibrarySchema()
-    pdk = ToolLibrarySchema()
-    EditableSchema(project).insert("library", "testlib", lib)
-    EditableSchema(lib).insert("asic", "pdk", Parameter("str"))
-    lib.set("asic", "pdk", "testpdk")
-    EditableSchema(project).insert("library", "testpdk", pdk)
-    EditableSchema(pdk).insert("asic", "pdk", Parameter("str"))
-
-    class TestTask(ASICTaskSchema):
-        def tool(self):
-            return "testtool"
-    task = TestTask()
-    EditableSchema(project).insert("task", task)
-    task.add_parameter("test_param", "str", "help")
-    pdk.define_tool_parameter("testtool", "test_param", "str", "help")
-    lib.define_tool_parameter("testtool", "test_param", "str", "help")
-    with task.runtime(running_node) as runtool:
-        assert runtool.set_asic_var("test_param") is None
-        assert runtool.get("var", "test_param") is None
-        assert runtool.get("require") == []
-
-
-def test_asic_set_asic_var_require_set(running_node):
-    project = running_node.project
-    EditableSchema(project).insert("asic", "mainlib", Parameter("str"))
-    project.set("asic", "mainlib", "testlib")
-    lib = ToolLibrarySchema()
-    pdk = ToolLibrarySchema()
-    EditableSchema(project).insert("library", "testlib", lib)
-    EditableSchema(lib).insert("asic", "pdk", Parameter("str"))
-    lib.set("asic", "pdk", "testpdk")
-    EditableSchema(project).insert("library", "testpdk", pdk)
-    EditableSchema(pdk).insert("asic", "pdk", Parameter("str"))
-
-    class TestTask(ASICTaskSchema):
-        def tool(self):
-            return "testtool"
-    task = TestTask()
-    EditableSchema(project).insert("task", task)
-    task.add_parameter("test_param", "str", "help")
-    pdk.define_tool_parameter("testtool", "test_param", "str", "help")
-    lib.define_tool_parameter("testtool", "test_param", "str", "help")
-    with task.runtime(running_node) as runtool:
-        assert runtool.set_asic_var("test_param",
-                                    require=True, require_mainlib=True, require_pdk=True) is None
-        assert runtool.get("var", "test_param") is None
-        assert runtool.get("require") == ['library,testpdk,tool,testtool,test_param',
-                                          'library,testlib,tool,testtool,test_param',
-                                          'task,var,test_param']
-
-
-def test_asic_set_asic_var_skip_main(running_node):
-    project = running_node.project
-    EditableSchema(project).insert("asic", "mainlib", Parameter("str"))
-    project.set("asic", "mainlib", "testlib")
-    lib = ToolLibrarySchema()
-    pdk = ToolLibrarySchema()
-    EditableSchema(project).insert("library", "testlib", lib)
-    EditableSchema(lib).insert("asic", "pdk", Parameter("str"))
-    lib.set("asic", "pdk", "testpdk")
-    EditableSchema(project).insert("library", "testpdk", pdk)
-    EditableSchema(pdk).insert("asic", "pdk", Parameter("str"))
-
-    class TestTask(ASICTaskSchema):
-        def tool(self):
-            return "testtool"
-    task = TestTask()
-    EditableSchema(project).insert("task", task)
-    task.add_parameter("test_param", "str", "help")
-    pdk.define_tool_parameter("testtool", "test_param", "str", "help")
-    pdk.set("tool", "testtool", "test_param", "pdkvalue")
-    lib.define_tool_parameter("testtool", "test_param", "str", "help")
-    lib.set("tool", "testtool", "test_param", "libvalue")
-    with task.runtime(running_node) as runtool:
-        assert runtool.set_asic_var("test_param", defvalue="defvalue", check_mainlib=False)
-        assert runtool.get("var", "test_param") == "pdkvalue"
-        assert runtool.get("require") == ['task,var,test_param',
-                                          'library,testpdk,tool,testtool,test_param',
-                                          'task,var,test_param']
-
-
-def test_asic_set_asic_var_skip_pdk(running_node):
-    project = running_node.project
-    EditableSchema(project).insert("asic", "mainlib", Parameter("str"))
-    project.set("asic", "mainlib", "testlib")
-    lib = ToolLibrarySchema()
-    pdk = ToolLibrarySchema()
-    EditableSchema(project).insert("library", "testlib", lib)
-    EditableSchema(lib).insert("asic", "pdk", Parameter("str"))
-    lib.set("asic", "pdk", "testpdk")
-    EditableSchema(project).insert("library", "testpdk", pdk)
-    EditableSchema(pdk).insert("asic", "pdk", Parameter("str"))
-
-    class TestTask(ASICTaskSchema):
-        def tool(self):
-            return "testtool"
-    task = TestTask()
-    EditableSchema(project).insert("task", task)
-    task.add_parameter("test_param", "str", "help")
-    pdk.define_tool_parameter("testtool", "test_param", "str", "help")
-    pdk.set("tool", "testtool", "test_param", "pdkvalue")
-    lib.define_tool_parameter("testtool", "test_param", "str", "help")
-    with task.runtime(running_node) as runtool:
-        assert runtool.set_asic_var("test_param", defvalue="defvalue", check_pdk=False)
-        assert runtool.get("var", "test_param") == "defvalue"
-        assert runtool.get("require") == ['task,var,test_param']
-
-
-def test_asic_set_asic_var_dontoverwrite(running_node):
-    project = running_node.project
-    EditableSchema(project).insert("asic", "mainlib", Parameter("str"))
-    project.set("asic", "mainlib", "testlib")
-    lib = ToolLibrarySchema()
-    pdk = ToolLibrarySchema()
-    EditableSchema(project).insert("library", "testlib", lib)
-    EditableSchema(lib).insert("asic", "pdk", Parameter("str"))
-    lib.set("asic", "pdk", "testpdk")
-    EditableSchema(project).insert("library", "testpdk", pdk)
-    EditableSchema(pdk).insert("asic", "pdk", Parameter("str"))
-
-    class TestTask(ASICTaskSchema):
-        def tool(self):
-            return "testtool"
-    task = TestTask()
-    EditableSchema(project).insert("task", task)
-    task.add_parameter("test_param", "str", "help")
-    pdk.define_tool_parameter("testtool", "test_param", "str", "help")
-    lib.define_tool_parameter("testtool", "test_param", "str", "help")
-    task.set("var", "test_param", "uservalue")
-    with task.runtime(running_node) as runtool:
-        assert runtool.set_asic_var("test_param", defvalue="defvalue") is None
-        assert runtool.get("var", "test_param") == "uservalue"
-        assert runtool.get("require") == ['task,var,test_param']
-
-
-def test_asic_set_asic_var_custom_keys(running_node):
-    project = running_node.project
-    EditableSchema(project).insert("asic", "mainlib", Parameter("str"))
-    project.set("asic", "mainlib", "testlib")
-    lib = ToolLibrarySchema()
-    pdk = ToolLibrarySchema()
-    EditableSchema(project).insert("library", "testlib", lib)
-    EditableSchema(lib).insert("asic", "pdk", Parameter("str"))
-    lib.set("asic", "pdk", "testpdk")
-    EditableSchema(project).insert("library", "testpdk", pdk)
-    EditableSchema(pdk).insert("asic", "pdk", Parameter("str"))
-
-    class TestTask(ASICTaskSchema):
-        def tool(self):
-            return "testtool"
-    task = TestTask()
-    EditableSchema(project).insert("task", task)
-    task.add_parameter("test_param", "str", "help")
-    pdk.define_tool_parameter("testtool", "test_parampdk", "str", "help")
-    lib.define_tool_parameter("testtool", "test_paramlib", "str", "help")
-    with task.runtime(running_node) as runtool:
-        assert runtool.set_asic_var("test_param",
-                                    require=True, require_mainlib=True, require_pdk=True,
-                                    pdk_key="test_parampdk",
-                                    mainlib_key="test_paramlib") is None
-        assert runtool.get("var", "test_param") is None
-        assert runtool.get("require") == ['library,testpdk,tool,testtool,test_parampdk',
-                                          'library,testlib,tool,testtool,test_paramlib',
-                                          'task,var,test_param']
-
-
-def test_asic_set_asic_var_skip_main_notdefined(running_node):
-    project = running_node.project
-    EditableSchema(project).insert("asic", "mainlib", Parameter("str"))
-    project.set("asic", "mainlib", "testlib")
-    lib = ToolLibrarySchema()
-    pdk = ToolLibrarySchema()
-    EditableSchema(project).insert("library", "testlib", lib)
-    EditableSchema(lib).insert("asic", "pdk", Parameter("str"))
-    lib.set("asic", "pdk", "testpdk")
-    EditableSchema(project).insert("library", "testpdk", pdk)
-    EditableSchema(pdk).insert("asic", "pdk", Parameter("str"))
-
-    class TestTask(ASICTaskSchema):
-        def tool(self):
-            return "testtool"
-    task = TestTask()
-    EditableSchema(project).insert("task", task)
-    task.add_parameter("test_param", "str", "help")
-    pdk.define_tool_parameter("testtool", "test_param", "str", "help")
-    pdk.set("tool", "testtool", "test_param", "pdkvalue")
-    with task.runtime(running_node) as runtool:
-        assert runtool.set_asic_var("test_param")
-        assert runtool.get("var", "test_param") == "pdkvalue"
-        assert runtool.get("require") == ['library,testpdk,tool,testtool,test_param',
-                                          'task,var,test_param']
-
-
-def test_asic_set_asic_var_from_pdk_as_list(running_node):
-    project = running_node.project
-    EditableSchema(project).insert("asic", "mainlib", Parameter("str"))
-    project.set("asic", "mainlib", "testlib")
-    lib = ToolLibrarySchema()
-    pdk = ToolLibrarySchema()
-    EditableSchema(project).insert("library", "testlib", lib)
-    EditableSchema(lib).insert("asic", "pdk", Parameter("str"))
-    lib.set("asic", "pdk", "testpdk")
-    EditableSchema(project).insert("library", "testpdk", pdk)
-    EditableSchema(pdk).insert("asic", "pdk", Parameter("str"))
-
-    class TestTask(ASICTaskSchema):
-        def tool(self):
-            return "testtool"
-    task = TestTask()
-    EditableSchema(project).insert("task", task)
-    task.add_parameter("test_param", "[str]", "help")
-    pdk.define_tool_parameter("testtool", "test_param", "[str]", "help")
-    lib.define_tool_parameter("testtool", "test_param", "[str]", "help")
-    pdk.set("tool", "testtool", "test_param", "pdkvalue")
-    with task.runtime(running_node) as runtool:
-        assert runtool.set_asic_var("test_param", defvalue="defvalue")
-        assert runtool.get("var", "test_param") == ["pdkvalue"]
-        assert runtool.get("require") == ['task,var,test_param',
-                                          'library,testpdk,tool,testtool,test_param',
-                                          'task,var,test_param']

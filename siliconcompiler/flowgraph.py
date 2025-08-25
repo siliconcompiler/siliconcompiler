@@ -1,6 +1,6 @@
 import graphviz
-import inspect
 import importlib
+import inspect
 
 import os.path
 
@@ -80,6 +80,7 @@ class FlowgraphSchema(NamedSchema):
             # Creates a node for the 'place' task in the 'openroad' tool,
             # identified by step='place' and index=0.
         '''
+        from siliconcompiler.tool import TaskSchema
 
         if step in (Parameter.GLOBAL_KEY, 'default', 'sc_collected_files'):
             raise ValueError(f"{step} is a reserved name")
@@ -95,24 +96,22 @@ class FlowgraphSchema(NamedSchema):
 
         # Determine task name and module
         task_module = None
+        if inspect.isclass(task) and issubclass(task, TaskSchema):
+            task = task()
+
         if isinstance(task, str):
             task_module = task
-        elif inspect.ismodule(task):
-            task_module = task.__name__
+            task_cls = self.__get_task_module(task_module)
+            task = task_cls()
+        elif isinstance(task, TaskSchema):
+            task_module = task.__class__.__module__ + "/" + task.__class__.__name__
         else:
             raise ValueError(f"{task} is not a string or module and cannot be used to "
                              "setup a task.")
 
-        task_parts = task_module.split('.')
-        if len(task_parts) < 2:
-            raise ValueError(f"{task} is not a valid task, it must be associated with "
-                             "a tool '<tool>.<task>'.")
-
-        tool_name, task_name = task_parts[-2:]
-
         # bind tool to node
-        self.set(step, index, 'tool', tool_name)
-        self.set(step, index, 'task', task_name)
+        self.set(step, index, 'tool', task.tool())
+        self.set(step, index, 'task', task.task())
         self.set(step, index, 'taskmodule', task_module)
 
         self.__clear_cache()
@@ -566,7 +565,13 @@ class FlowgraphSchema(NamedSchema):
         if name in self.__cache_tasks:
             return self.__cache_tasks[name]
 
-        self.__cache_tasks[name] = importlib.import_module(name)
+        try:
+            module_name, cls = name.split("/")
+        except ValueError:
+            raise ValueError("task is not correctly formatted as <module>/<class>")
+        module = importlib.import_module(module_name)
+
+        self.__cache_tasks[name] = getattr(module, cls)
         return self.__cache_tasks[name]
 
     def get_task_module(self, step, index):

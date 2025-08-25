@@ -8,7 +8,7 @@ import os.path
 from pathlib import Path
 
 from siliconcompiler.package.https import HTTPResolver
-from siliconcompiler import Chip
+from siliconcompiler import Project
 
 
 @pytest.mark.parametrize('path,ref,cache_id', [
@@ -30,12 +30,12 @@ def test_dependency_path_download_http(datadir, path, ref, cache_id, tmp_path, c
             content_type="application/x-gzip"
         )
 
-    chip = Chip("dummy")
-    chip.set("option", "cachedir", tmp_path)
-    chip.logger = logging.getLogger()
-    chip.logger.setLevel(logging.INFO)
+    proj = Project("testproj")
+    proj.set("option", "cachedir", tmp_path)
+    setattr(proj, "_Project__logger", logging.getLogger())
+    proj.logger.setLevel(logging.INFO)
 
-    resolver = HTTPResolver("sc-data", chip, path, ref)
+    resolver = HTTPResolver("sc-data", proj, path, ref)
     assert resolver.resolve() == Path(os.path.join(tmp_path, f"sc-data-{ref[0:16]}-{cache_id}"))
     assert os.path.isfile(
         os.path.join(tmp_path, f"sc-data-{ref[0:16]}-{cache_id}", "pyproject.toml"))
@@ -53,7 +53,7 @@ def test_dependency_path_download_http_failed():
 
     resolver = HTTPResolver(
         "sc-data",
-        Chip("dummy"),
+        Project("testproj"),
         "https://github.com/siliconcompiler/siliconcompiler/archive/refs/heads/main.tar.gz",
         "main"
     )

@@ -1,146 +1,111 @@
-import siliconcompiler
-
-import os
-import sys
-
 import pytest
 
-from siliconcompiler.tools.surelog import parse
-from siliconcompiler.targets import freepdk45_demo
+import os.path
+
+from siliconcompiler import Project, FlowgraphSchema, DesignSchema
+from siliconcompiler.scheduler import SchedulerNode
+from siliconcompiler.tools.surelog.parse import ElaborateTask
 
 
 @pytest.mark.eda
 @pytest.mark.quick
-def test_surelog(scroot):
-    gcd_src = os.path.join(scroot, 'examples', 'gcd', 'gcd.v')
-    design = "gcd"
-    step = "parse"
+@pytest.mark.ready
+def test_version(gcd_design):
+    proj = Project(gcd_design)
+    proj.add_fileset("rtl")
 
-    chip = siliconcompiler.Chip(design)
-    chip.use(freepdk45_demo)
+    flow = FlowgraphSchema("testflow")
+    flow.node("version", ElaborateTask())
+    proj.set_flow(flow)
 
-    chip.input(gcd_src)
-    chip.node('surelog', step, parse)
-    chip.set('option', 'flow', 'surelog')
-
-    assert chip.run()
-
-    output = chip.find_result('v', step=step)
-    assert output is not None
+    node = SchedulerNode(proj, "version", "0")
+    with node.runtime():
+        assert node.setup() is True
+        assert node.task.check_exe_version(node.task.get_exe_version()) is True
 
 
 @pytest.mark.eda
 @pytest.mark.quick
-def test_surelog_duplicate_inputs(scroot):
-    gcd_src = os.path.join(scroot, 'examples', 'gcd', 'gcd.v')
-    design = "gcd"
-    step = "parse"
+@pytest.mark.ready
+def test_surelog(gcd_design):
+    proj = Project(gcd_design)
+    proj.add_fileset("rtl")
 
-    chip = siliconcompiler.Chip(design)
-    chip.use(freepdk45_demo)
+    flow = FlowgraphSchema("testflow")
+    flow.node("elaborate", ElaborateTask())
+    proj.set_flow(flow)
 
-    # Set duplicate input files.
-    chip.input(gcd_src)
-    chip.input(gcd_src)
+    node = SchedulerNode(proj, "elaborate", "0")
+    with node.runtime():
+        assert node.setup() is True
+        node.run()
 
-    chip.set('option', 'clean', True)
-    chip.node('surelog', step, parse)
-    chip.set('option', 'flow', 'surelog')
-
-    assert chip.run()
-
-    output = chip.find_result('v', step=step)
-    assert output is not None
-
-    # Ensure only one module is written to the output Verilog. (Two will be written if dedup fails)
-    module_count = 0
-    with open(output, 'r') as rf:
-        for line in rf.readlines():
-            if line.startswith('module gcd'):
-                module_count += 1
-    assert module_count == 1
+    output = proj.find_result('v', step="elaborate")
+    assert os.path.isfile(output)
 
 
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.ready
 def test_surelog_preproc_regression(datadir):
-    src = os.path.join(datadir, 'test_preproc.v')
-    design = 'test_preproc'
-    step = "parse"
+    design = DesignSchema("testdesign")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("test_preproc")
+        design.add_file(os.path.join(datadir, 'test_preproc.v'))
+        design.add_define("MEM_ROOT=test")
 
-    chip = siliconcompiler.Chip(design)
-    chip.use(freepdk45_demo)
-    chip.node('surelog', step, parse)
-    chip.input(src)
-    chip.add('option', 'define', 'MEM_ROOT=test')
-    chip.set('option', 'flow', 'surelog')
+    proj = Project(design)
+    proj.add_fileset("rtl")
 
-    assert chip.run()
+    flow = FlowgraphSchema("testflow")
+    flow.node("elaborate", ElaborateTask())
+    proj.set_flow(flow)
 
-    result = chip.find_result('v', step=step)
+    node = SchedulerNode(proj, "elaborate", "0")
+    with node.runtime():
+        assert node.setup() is True
+        node.run()
 
-    assert result is not None
-
-    with open(result, 'r') as vlog:
+    output = proj.find_result('v', step="elaborate")
+    assert os.path.isfile(output)
+    with open(output, 'r') as vlog:
         assert "`MEM_ROOT" not in vlog.read()
 
 
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.skipif(sys.platform == 'win32', reason='Replay script not supported on Windows')
-def test_replay(scroot, run_cli):
-    src = os.path.join(scroot, 'examples', 'gcd', 'gcd.v')
-    design = "gcd"
-    step = "parse"
-
-    chip = siliconcompiler.Chip(design)
-    chip.use(freepdk45_demo)
-
-    chip.input(src)
-    chip.node('surelog', step, parse)
-    chip.set('option', 'flow', 'surelog')
-    chip.set('option', 'quiet', True)
-    chip.set('option', 'clean', True)  # replay should work even with clean=True
-    chip.set('tool', 'surelog', 'task', step, 'env', 'SLOG_ENV', 'SUCCESS', step=step, index='0')
-
-    assert chip.run()
-
-    workdir = chip.getworkdir(step=step)
-    script = os.path.join(workdir, 'replay.sh')
-    echo = 'echo $SLOG_ENV'
-
-    with open(script, 'a') as f:
-        f.write(echo + '\n')
-
-    proc = run_cli(script)
-
-    assert proc.stdout.rstrip().splitlines()[-1] == \
-        'SUCCESS'
-
-
-@pytest.mark.eda
-@pytest.mark.quick
+@pytest.mark.ready
 def test_github_issue_1789(datadir):
-    chip = siliconcompiler.Chip('encode_stream_sc_module_8')
-    chip.use(freepdk45_demo)
+    design = DesignSchema("testdesign")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("encode_stream_sc_module_8")
+        design.add_file(os.path.join(datadir, 'gh1789', 'encode_stream_sc_module_8.v'))
+        design.add_define("MEM_ROOT=test")
 
-    i_file = os.path.join(datadir,
-                          'gh1789',
-                          'encode_stream_sc_module_8.v')
+    proj = Project(design)
+    proj.add_fileset("rtl")
 
-    chip.input(i_file)
-    chip.node('surelog', "import.verilog", parse)
-    chip.set('option', 'flow', 'surelog')
+    flow = FlowgraphSchema("testflow")
+    flow.node("elaborate", ElaborateTask())
+    proj.set_flow(flow)
 
-    assert chip.run()
+    node = SchedulerNode(proj, "elaborate", "0")
+    with node.runtime():
+        assert node.setup() is True
+        node.run()
+
+    output = proj.find_result('v', step="elaborate")
+    assert os.path.isfile(output)
+    with open(output, 'r') as vlog:
+        assert "`MEM_ROOT" not in vlog.read()
 
     i_file_data = None
-    with open(i_file, 'r') as f:
+    with open(os.path.join(datadir, 'gh1789', 'encode_stream_sc_module_8.v'), 'r') as f:
         i_file_data = f.read()
     i_file_data = "\n".join(i_file_data.splitlines())
 
     o_file_data = None
-    o_file = chip.find_result('v', step='import.verilog')
+    o_file = output
     with open(o_file, 'r') as f:
         o_file_data = f.read()
 

@@ -1,49 +1,38 @@
-from siliconcompiler.tools._common import get_tool_task
-from siliconcompiler.tools.openroad import make_docs as or_make_docs
-from siliconcompiler.tools.openroad import show
-from siliconcompiler.tools.openroad._apr import set_reports
+from siliconcompiler.tool import ScreenshotTaskSchema
+from siliconcompiler.tools.openroad.show import ShowTask
 
 
-####################################################################
-# Make Docs
-####################################################################
-def make_docs(chip):
-    or_make_docs(chip)
-    chip.set('tool', 'openroad', 'task', 'screenshot', 'var', 'show_filepath', '<path>')
-
-
-def setup(chip):
+class ScreenshotTask(ScreenshotTaskSchema, ShowTask):
     '''
     Generate a PNG file from a layout file
     '''
-    show.generic_show_setup(chip, True)
+    def __init__(self):
+        super().__init__()
 
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    tool, task = get_tool_task(chip, step, index)
+        self.add_parameter("show_vertical_resolution", "int", "blah", defvalue=1024)
+        self.add_parameter("include_report_images", "bool",
+                           "true/false, include the images in reports/", defvalue=False)
 
-    chip.add('tool', tool, 'task', task, 'output', f'{chip.top()}.png', step=step, index=index)
+    def setup(self):
+        super().setup()
 
-    chip.set('tool', tool, 'task', task, 'var', 'show_vertical_resolution', '1024',
-             step=step, index=index, clobber=False)
+        self.unset("input")
+        self.add_output_file(ext="png", clobber=True)
 
-    chip.set('tool', tool, 'task', task, 'var', 'include_report_images', 'false',
-             step=step, index=index, clobber=False)
-    chip.set('tool', tool, 'task', task, 'var', 'include_report_images',
-             'true/false, include the images in reports/',
-             field='help')
+        self.set_script("sc_show.tcl")
 
-    set_reports(chip, [
-        # Images
-        'placement_density',
-        'routing_congestion',
-        'power_density',
-        'ir_drop',
-        'clock_placement',
-        'clock_trees',
-        'optimization_placement'
-    ])
+        self.set("var", "showexit", True)
 
+        # No need for the GUI to open
+        self.set_environmentalvariable("QT_QPA_PLATFORM", "offscreen")
 
-def pre_process(chip):
-    show.pre_process(chip)
+        self._set_reports([
+            # Images
+            'placement_density',
+            'routing_congestion',
+            'power_density',
+            'ir_drop',
+            'clock_placement',
+            'clock_trees',
+            'optimization_placement'
+        ])

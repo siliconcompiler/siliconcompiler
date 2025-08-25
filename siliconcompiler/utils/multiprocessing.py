@@ -2,8 +2,11 @@ import atexit
 import logging
 import multiprocessing
 import tempfile
+
 import os.path
+
 from datetime import datetime
+from multiprocessing.managers import SyncManager
 
 from siliconcompiler.report.dashboard.cli.board import Board
 
@@ -83,6 +86,8 @@ class MPManager(metaclass=_ManagerSingleton):
     It is designed to be instantiated once and accessed globally.
     """
     __ENABLE_LOGGER: bool = True
+    __address: str = None
+    __authkey: bytes = b'siliconcompiler-manager-authkey'  # arbitrary authkey value
 
     def __init__(self):
         """
@@ -112,7 +117,16 @@ class MPManager(metaclass=_ManagerSingleton):
         self._init_logger()
 
         # Manager to handle shared data between processes
-        self.__manager = multiprocessing.Manager()
+        if MPManager._get_manager_address() is None:
+            self.__manager = SyncManager(authkey=MPManager.__authkey)
+            self.__manager.start()
+            MPManager._set_manager_address(self.__manager.address)
+            self.__manager_server = True
+        else:
+            self.__manager = SyncManager(address=MPManager._get_manager_address(),
+                                         authkey=MPManager.__authkey)
+            self.__manager.connect()
+            self.__manager_server = False
 
         # Dashboard singleton setup
         self.__board_lock = self.__manager.Lock()
@@ -189,8 +203,10 @@ class MPManager(metaclass=_ManagerSingleton):
                     manager.__board.stop()
                     manager.__board = None
 
-        # Shut down the multiprocessing manager
-        manager.__manager.shutdown()
+        if manager.__manager_server:
+            # Shut down the multiprocessing manager
+            MPManager.__address = None
+            manager.__manager.shutdown()
 
         # Unregister cleanup function to prevent it from being called again
         atexit.unregister(MPManager.stop)
@@ -254,3 +270,18 @@ class MPManager(metaclass=_ManagerSingleton):
             logging.Logger: The singleton logger instance.
         """
         return MPManager().__logger
+
+    @staticmethod
+    def _set_manager_address(address: str):
+        """
+        Set the address of the manager
+        """
+        if MPManager.__address is None:
+            MPManager.__address = address
+
+    @staticmethod
+    def _get_manager_address() -> str:
+        """
+        Get the address of the manager
+        """
+        return MPManager.__address

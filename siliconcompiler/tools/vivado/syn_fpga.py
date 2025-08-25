@@ -1,30 +1,24 @@
-from siliconcompiler.tools import vivado
-from siliconcompiler.tools.vivado import tool
-from siliconcompiler.tools._common import get_tool_task
+from siliconcompiler.tools.vivado import VivadoTask
 
 
-def setup(chip):
+class SynthesisTask(VivadoTask):
     '''Performs FPGA synthesis.'''
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    _, task = get_tool_task(chip, step, index)
-    vivado.setup_task(chip, task)
+    def __init__(self):
+        super().__init__()
 
-    design = chip.top()
-    chip.set('tool', tool, 'task', task, 'input', f'{design}.v', step=step, index=index)
-    chip.set('tool', tool, 'task', task, 'output', f'{design}.dcp',
-             step=step, index=index)
-    chip.add('tool', tool, 'task', task, 'output', f'{design}.xdc',
-             step=step, index=index)
-    chip.add('tool', tool, 'task', task, 'output', f'{design}.vg',
-             step=step, index=index)
+        self.add_parameter("synth_directive", "str", "synthesis directive", defvalue="Default")
+        self.add_parameter("synth_mode", "str", "synthesis mode", defvalue="none")
 
-    chip.set('tool', tool, 'task', task, 'var', 'synth_directive', 'Default',
-             step=step, index=index, clobber=False)
+    def task(self):
+        return "syn_fpga"
 
-    chip.set('tool', tool, 'task', task, 'var', 'synth_mode', 'none',
-             step=step, index=index, clobber=False)
+    def setup(self):
+        super().setup()
 
+        self.add_input_file(ext="v")
+        self.add_output_file(ext="vg")
+        self.add_output_file(ext="dcp")
+        self.add_output_file(ext="xdc")
 
-def post_process(chip):
-    vivado.post_process(chip)
+        self.add_required_tool_key("var", "synth_directive")
+        self.add_required_tool_key("var", "synth_mode")

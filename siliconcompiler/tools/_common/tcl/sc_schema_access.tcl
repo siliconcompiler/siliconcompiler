@@ -23,14 +23,6 @@ proc sc_cfg_exists { args } {
     return [dict exists $sc_cfg {*}$args]
 }
 
-proc sc_top { } {
-    set sc_entrypoint [sc_cfg_get option entrypoint]
-    if { $sc_entrypoint == {{ '{}' }} } {
-        return [sc_cfg_get design]
-    }
-    return $sc_entrypoint
-}
-
 # Shortcut to get tool vars
 proc sc_cfg_tool_task_get { args } {
     set sc_step [sc_cfg_get arg step]
@@ -123,4 +115,16 @@ proc sc_get_asic_libraries { type } {
     }
 
     return $libs
+}
+
+proc sc_cfg_get_fileset { libraries filesets filetype } {
+    set files []
+    foreach library $libraries {
+        foreach fileset $filesets {
+            if { [sc_cfg_exists library $library fileset $fileset file $filetype] } {
+                lappend files {*}[sc_cfg_get library $library fileset $fileset file $filetype]
+            }
+        }
+    }
+    return $files
 }

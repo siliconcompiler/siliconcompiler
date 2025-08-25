@@ -2,11 +2,47 @@ import shutil
 from siliconcompiler import utils
 from siliconcompiler import SiliconCompilerError
 from siliconcompiler.tools.vpr import vpr
+from siliconcompiler.tools.vpr.vpr import VPRTask
 from siliconcompiler.tools.vpr._json_constraint import load_constraints_map
 from siliconcompiler.tools.vpr._json_constraint import load_json_constraints
 from siliconcompiler.tools.vpr._json_constraint import map_constraints
 from siliconcompiler.tools.vpr._xml_constraint import generate_vpr_constraints_xml_file
 from siliconcompiler.tools._common import get_tool_task
+
+
+class PlaceTask(VPRTask):
+    def __init__(self):
+        super().__init__()
+
+    def task(self):
+        return "place"
+
+    def setup(self):
+        super().setup()
+
+        self.add_input_file(ext="blif")
+
+        self.add_output_file(ext="blif")
+        self.add_output_file(ext="net")
+        self.add_output_file(ext="place")
+
+    def runtime_options(self):
+        options = super().runtime_options()
+
+        options.append(f"inputs/{self.design_topmodule}.blif")
+
+        options.append("--pack")
+        options.append("--place")
+
+        if self.get("var", "enable_images"):
+            options.extend(["--graphics_commands", " ".join(self._get_common_graphics())])
+
+        return options
+
+    def post_process(self):
+        super().post_process()
+
+        shutil.copy2(f'inputs/{self.design_topmodule}.blif', 'outputs')
 
 
 def setup(chip, clobber=True):
@@ -21,7 +57,7 @@ def setup(chip, clobber=True):
 
     vpr.setup_tool(chip, clobber=clobber)
 
-    chip.set('tool', tool, 'task', task, 'threads', utils.get_cores(chip),
+    chip.set('tool', tool, 'task', task, 'threads', utils.get_cores(),
              step=step, index=index, clobber=False)
 
     design = chip.top()

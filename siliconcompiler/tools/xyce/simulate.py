@@ -1,70 +1,67 @@
-from siliconcompiler.tools._common import input_provides, get_tool_task
-from siliconcompiler.tools.xyce import setup as tool_setup
-import os
+import os.path
+
+from siliconcompiler import TaskSchema
 
 
-def setup(chip):
-    tool_setup(chip)
+class SimulateTask(TaskSchema):
+    def __init__(self):
+        super().__init__()
 
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    tool, task = get_tool_task(chip, step, index)
+        self.add_parameter("trace", "bool", "true/false, enable dumping all signals")
+        self.add_parameter("trace_format", "<ASCII,binary>", "Format to use for traces.",
+                           defvalue="ASCII")
 
-    design = chip.top()
+    def tool(self):
+        return "xyce"
 
-    if f'{design}.xyce' in input_provides(chip, step, index):
-        chip.add('tool', tool, 'task', task, 'input', f'{design}.xyce',
-                 step=step, index=index)
-    elif f'{design}.cir' in input_provides(chip, step, index):
-        chip.add('tool', tool, 'task', task, 'input', f'{design}.cir',
-                 step=step, index=index)
-    else:
-        chip.add('tool', tool, 'task', task, 'require', 'input,netlist,spice',
-                 step=step, index=index)
+    def task(self):
+        return "simulate"
 
-    chip.set('tool', tool, 'task', task, 'var', 'trace', 'false',
-             step=step, index=index, clobber=False)
-    chip.set('tool', tool, 'task', task, 'var', 'trace', 'true/false, enable dumping all signals',
-             field='help')
+    def parse_version(self, stdout):
+        ver = stdout.split()[-1]
+        return ver.split('-')[0]
 
-    allowed_traced = ['ASCII', 'binary']
-    chip.set('tool', tool, 'task', task, 'var', 'trace_format', 'ASCII',
-             step=step, index=index, clobber=False)
-    chip.set('tool', tool, 'task', task, 'var', 'trace_format', 'Format to use for traces. '
-             f'Allowed values are {allowed_traced}',
-             field='help')
+    def setup(self):
+        super().setup()
 
-    if chip.get('tool', tool, 'task', task, 'var', 'trace_format', step=step, index=index)[0] \
-            not in allowed_traced:
-        raise ValueError(f"{chip.get('tool', tool, 'task', task, 'var', 'trace_format')[0]} "
-                         "is not an accepted value")
+        self.set_exe("Xyce", vswitch="-v")
+        self.add_version(">=v7.8")
 
-    if chip.get('tool', tool, 'task', task, 'var', 'trace_format', step=step, index=index) == \
-            ['ASCII']:
-        chip.add('tool', tool, 'task', task, 'option', '-a',
-                 step=step, index=index)
+        self.add_regex("warnings", "warning")
+        self.add_regex("errors", "error")
 
-    if chip.get('tool', tool, 'task', task, 'var', 'trace',
-                step=step, index=index) == ['true']:
-        chip.add('tool', tool, 'task', task, 'output', f'{design}.raw',
-                 step=step, index=index)
-        chip.add('tool', tool, 'task', task, 'option', ['-r', f'outputs/{design}.raw'],
-                 step=step, index=index)
+        self.set_threads(1)
 
+        self.add_required_tool_key("var", "trace")
+        self.add_required_tool_key("var", "trace_format")
 
-def runtime_options(chip):
-    design = chip.top()
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-
-    if f'{design}.xyce' in input_provides(chip, step, index):
-        if os.path.isfile(f'inputs/{design}.xyce'):
-            return [f'inputs/{design}.xyce']
-        elif os.path.isfile(f'inputs/{design}.xyce/{design}.cir'):
-            return [f'inputs/{design}.xyce/{design}.cir']
+        if f"{self.design_topmodule}.xyce" in self.get_files_from_input_nodes():
+            self.add_input_file(ext="xyce")
+        elif f"{self.design_topmodule}.cir" in self.get_files_from_input_nodes():
+            self.add_input_file(ext="cir")
         else:
-            return [f'inputs/{design}.xyce']
-    elif f'{design}.cir' in input_provides(chip, step, index):
-        return [f'inputs/{design}.cir']
+            for lib, fileset in self.schema().get_filesets():
+                if lib.get_file(fileset=fileset, filetype="spice"):
+                    self.add_required_key(lib, "fileset", fileset, "file", "spice")
 
-    return chip.find_files('input', 'netlist', 'spice', step=step, index=index)
+        if self.get("var", "trace"):
+            self.add_output_file(ext="raw")
+
+    def runtime_options(self):
+        options = super().runtime_options()
+
+        if self.get("var", "trace_format") == "ASCII":
+            options.append("-a")
+
+        if self.get("var", "trace"):
+            options.extend(["-r", f"outputs/{self.design_topmodule}.raw"])
+
+        if os.path.exists(f"inputs/{self.design_topmodule}.xyce"):
+            options.append(f"inputs/{self.design_topmodule}.xyce")
+        elif os.path.exists(f"inputs/{self.design_topmodule}.cir"):
+            options.append(f"inputs/{self.design_topmodule}.cir")
+        else:
+            for lib, fileset in self.schema().get_filesets():
+                options.extend(lib.get_file(fileset=fileset, filetype="spice"))
+
+        return options

@@ -9,7 +9,6 @@ Installation: https://github.com/The-OpenROAD-Project/OpenSTA (also installed wi
 '''
 
 from siliconcompiler import utils
-from siliconcompiler.tools.openroad._apr import get_library_timing_keypaths
 from siliconcompiler.tools._common import get_tool_task
 from siliconcompiler.tools._common.asic import get_libraries
 
@@ -43,7 +42,7 @@ def setup(chip):
     chip.set('tool', tool, 'task', task, 'refdir', 'tools/opensta/scripts',
              step=step, index=index,
              package='siliconcompiler', clobber=False)
-    chip.set('tool', tool, 'task', task, 'threads', utils.get_cores(chip),
+    chip.set('tool', tool, 'task', task, 'threads', utils.get_cores(),
              step=step, index=index, clobber=False)
 
     if delaymodel != 'nldm':

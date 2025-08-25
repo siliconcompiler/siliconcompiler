@@ -7,11 +7,16 @@ within the SiliconCompiler schema. It includes schemas for both
 tool-library and temporary configurations.
 """
 
-from siliconcompiler.schema import BaseSchema
+from siliconcompiler import Project
+
 from siliconcompiler.schema import EditableSchema, Parameter, Scope
 from siliconcompiler.schema.utils import trim
 
 from siliconcompiler import ToolLibrarySchema
+
+from siliconcompiler.constraints import \
+    FPGATimingConstraintSchema, FPGAComponentConstraints, FPGAPinConstraints
+from siliconcompiler.metrics import FPGAMetricsSchema
 
 
 class FPGASchema(ToolLibrarySchema):
@@ -96,112 +101,146 @@ class FPGASchema(ToolLibrarySchema):
         return FPGASchema.__name__
 
 
-class FPGASchemaTmp(BaseSchema):
+class FPGAProject(Project):
     """
-    A temporary schema for FPGA configurations.
+    A class for managing FPGA projects, inheriting from the base Project class.
 
-    This class is used for temporary storage of FPGA-related settings.
-    It extends BaseSchema and uses the `schema_fpga` function to populate
-    its fields.
+    This class extends the base project with FPGA-specific schema for constraints,
+    metrics, and device selection. It provides methods to configure and validate
+
+    an FPGA design project.
     """
-    def __init__(self):
-        """
-        Initializes the FPGASchemaTmp.
-        """
-        super().__init__()
 
-        schema_fpga(self)
+    def __init__(self, design=None):
+        """
+        Initializes the FPGAProject.
+
+        This constructor sets up the project by calling the parent constructor
+        and then inserting FPGA-specific schema definitions for timing, component,
+        and pin constraints, as well as FPGA-specific metrics. It also adds
+        a parameter for specifying the target FPGA device.
+        """
+        super().__init__(design)
+
+        schema = EditableSchema(self)
+        schema.insert("constraint", "timing", FPGATimingConstraintSchema())
+        schema.insert("constraint", "component", FPGAComponentConstraints())
+        schema.insert("constraint", "pin", FPGAPinConstraints())
+
+        schema.insert("metric", FPGAMetricsSchema(), clobber=True)
+
+        schema.insert("fpga", "device", Parameter("str"))
 
     @classmethod
-    def _getdict_type(cls) -> str:
+    def _getdict_type(cls):
+        return FPGAProject.__name__
+
+    def add_dep(self, obj):
         """
-        Returns the meta data for getdict.
+        Adds a dependency to the project.
+
+        If the dependency is an FPGASchema object, it is registered as a library.
+        Otherwise, the request is passed to the parent class's implementation.
+
+        Args:
+            obj: The dependency object to add. Can be an FPGASchema instance
+                 or another type supported by the base Project class.
+        """
+        if isinstance(obj, (list, set, tuple)):
+            for iobj in obj:
+                self.add_dep(iobj)
+            return
+
+        if isinstance(obj, FPGASchema):
+            EditableSchema(self).insert("library", obj.name, obj, clobber=True)
+        else:
+            return super().add_dep(obj)
+
+        self._import_dep(obj)
+
+    def set_fpga(self, fpga):
+        """
+        Sets the target FPGA device for the project.
+
+        This method can accept either an FPGASchema object or a string
+        representing the name of the FPGA device. If an object is provided,
+        it is first added as a dependency.
+
+        Args:
+            fpga (FPGASchema or str): The FPGA device to target.
+
+        Raises:
+            TypeError: If the provided fpga is not an FPGASchema object or a string.
+        """
+        if isinstance(fpga, FPGASchema):
+            self.add_dep(fpga)
+            fpga = fpga.name
+        elif not isinstance(fpga, str):
+            raise TypeError("fpga must be an FPGASchema object or a string.")
+
+        return self.set("fpga", "device", fpga)
+
+    def check_manifest(self):
+        """
+        Validates the project's manifest to ensure it is configured correctly.
+
+        This method performs the base project checks and then verifies that a
+        target FPGA device has been set and that the corresponding library
+        has been loaded into the project.
 
         Returns:
-            str: The name of the class.
+            bool: True if the manifest is valid, False otherwise.
         """
+        error = not super().check_manifest()
 
-        return FPGASchemaTmp.__name__
+        if not self.get("fpga", "device"):
+            self.logger.error("[fpga,device] has not been set.")
+            error = True
+        else:
+            fpga_device = self.get("fpga", "device")
+            if not self.has_library(fpga_device):
+                self.logger.error(f"FPGA library '{fpga_device}' has not been loaded.")
+                error = True
 
+        return not error
 
-###############################################################################
-# FPGA
-###############################################################################
-def schema_fpga(schema):
-    """
-    Adds FPGA-related parameters to a given schema.
+    def get_timingconstraints(self) -> FPGATimingConstraintSchema:
+        """
+        Retrieves the FPGA timing constraint schema for the project.
 
-    This function defines and inserts various FPGA configuration parameters
-    into the provided schema object.
+        Returns:
+            FPGATimingConstraintSchema: The timing constraint schema object.
+        """
+        return self.get("constraint", "timing", field="schema")
 
-    Args:
-        schema: The schema object to which the parameters will be added.
-    """
-    schema = EditableSchema(schema)
+    def get_pinconstraints(self) -> FPGAPinConstraints:
+        """
+        Retrieves the FPGA pin constraint schema for the project.
 
-    partname = 'default'
-    key = 'default'
+        Returns:
+            FPGAPinConstraints: The pin constraint schema object.
+        """
+        return self.get("constraint", "pin", field="schema")
 
-    schema.insert(
-        'partname',
-        Parameter(
-            'str',
-            scope=Scope.GLOBAL,
-            shorthelp="FPGA: part name",
-            switch="-fpga_partname <str>",
-            example=["cli: -fpga_partname fpga64k",
-                     "api: chip.set('fpga', 'partname', 'fpga64k')"],
-            help=trim("""
-            Complete part name used as a device target by the FPGA compilation
-            tool. The part name must be an exact string match to the partname
-            hard coded within the FPGA EDA tool.""")))
+    def get_componentconstraints(self) -> FPGAComponentConstraints:
+        """
+        Retrieves the FPGA component constraint schema for the project.
 
-    schema.insert(
-        partname, 'vendor',
-        Parameter(
-            'str',
-            scope=Scope.GLOBAL,
-            shorthelp="FPGA: vendor name",
-            switch="-fpga_vendor 'partname <str>'",
-            example=["cli: -fpga_vendor 'fpga64k acme'",
-                     "api: chip.set('fpga', 'fpga64k', 'vendor', 'acme')"],
-            help=trim("""
-            Name of the FPGA vendor for the FPGA partname.""")))
+        Returns:
+            FPGAComponentConstraints: The component constraint schema object.
+        """
+        return self.get("constraint", "component", field="schema")
 
-    schema.insert(
-        partname, 'lutsize',
-        Parameter(
-            'int',
-            scope=Scope.GLOBAL,
-            shorthelp="FPGA: lutsize",
-            switch="-fpga_lutsize 'partname <int>'",
-            example=["cli: -fpga_lutsize 'fpga64k 4'",
-                     "api: chip.set('fpga', 'fpga64k', 'lutsize', '4')"],
-            help=trim("""
-            Specify the number of inputs in each lookup table (LUT) for the
-            FPGA partname.  For architectures with fracturable LUTs, this is
-            the number of inputs of the unfractured LUT.""")))
+    def _summary_headers(self):
+        """
+        Generates headers for the project summary.
 
-    schema.insert(
-        partname, 'file', key,
-        Parameter(
-            '[file]',
-            scope=Scope.GLOBAL,
-            shorthelp="FPGA: file",
-            switch="-fpga_file 'partname key <file>'",
-            example=["cli: -fpga_file 'fpga64k archfile my_arch.xml'",
-                     "api: chip.set('fpga', 'fpga64k', 'file', 'archfile', 'my_arch.xml')"],
-            help=trim("""
-            Specify a file for the FPGA partname.""")))
+        This internal method extends the base summary headers by appending
+        the name of the target FPGA device.
 
-    schema.insert(
-        partname, 'var', key,
-        Parameter(
-            '[str]',
-            scope=Scope.GLOBAL,
-            shorthelp="FPGA: var",
-            switch="-fpga_var 'partname key <str>'",
-            example=["cli: -fpga_var 'fpga64k channelwidth 100'",
-                     "api: chip.set('fpga', 'fpga64k', 'var', 'channelwidth', '100')"],
-            help=trim("""
-            Specify a variable value for the FPGA partname.""")))
+        Returns:
+            list: A list of tuples representing the summary headers.
+        """
+        headers = super()._summary_headers()
+        headers.append(("fpga", self.get("fpga", "device")))
+        return headers

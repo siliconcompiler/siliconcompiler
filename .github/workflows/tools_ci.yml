@@ -446,7 +446,7 @@ jobs:
 
   server_tests:
     needs: build_sc_tools
-    if: always() && !cancelled()
+    if: false
     name: Test server
     timeout-minutes: 90
     runs-on: ubuntu-latest

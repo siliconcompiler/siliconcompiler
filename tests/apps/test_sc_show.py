@@ -1,80 +1,112 @@
 import os
-
 import pytest
+
+import os.path
+
+from unittest.mock import patch
 
 from siliconcompiler.apps import sc_show
 
 
+@pytest.fixture
+def make_manifests():
+    def impl(project):
+        for nodes in project.get("flowgraph", "asicflow", field="schema").get_execution_order():
+            for step, index in nodes:
+                for d in ('inputs', 'outputs'):
+                    path = os.path.join(project.getworkdir(step=step, index=index), d)
+                    os.makedirs(path, exist_ok=True)
+                    project.write_manifest(os.path.join(path, f"{project.design.name}.pkg.json"))
+        project.write_manifest(os.path.join(project.getworkdir(),
+                                            f"{project.design.name}.pkg.json"))
+
+    return impl
+
+
 @pytest.mark.parametrize('flags', [
     [],
-    ['-design', 'heartbeat'],
-    ['-design', 'heartbeat',
+    ['-design', 'gcd'],
+    ['-design', 'gcd',
      '-arg_step', 'floorplan.init'],
-    ['-design', 'heartbeat',
+    ['-design', 'gcd',
      '-arg_step', 'floorplan.init',
      '-arg_index', '0'],
-    ['-design', 'heartbeat',
-     '-screenshot'],
+    ['-design', 'gcd']
 ])
-@pytest.mark.eda
-@pytest.mark.quick
-@pytest.mark.timeout(180)
-def test_sc_show_design_only(flags, monkeypatch, heartbeat_chip_dir, copy_chip_dir):
+def test_sc_show_design_only(flags, monkeypatch, make_manifests, asic_gcd):
     '''Test sc-show app on a few sets of flags.'''
 
-    copy_chip_dir(heartbeat_chip_dir)
-
-    # Mock chip.run() to avoid GUI complications
-    # We have separate tests in test/core/test_show.py that handle these
-    # complications and test this function itself, so there's no need to
-    # run it here.
-    def fake_run(chip, raise_exception=False):
-        # fake a png output in case this is a screenshot
-        step, index = chip.get("flowgraph", "showflow", field="schema").get_exit_nodes()[0]
-        os.makedirs(f'{chip.getworkdir(step=step, index=index)}/outputs', exist_ok=True)
-        with open(f'{chip.getworkdir(step=step, index=index)}/outputs/{chip.top()}.png', 'w') as f:
-            f.write('\n')
-        return True
-
-    monkeypatch.setattr('siliconcompiler.Chip.run', fake_run)
+    make_manifests(asic_gcd)
 
     monkeypatch.setattr('sys.argv', ['sc-show'] + flags)
-    assert sc_show.main() == 0
+    with patch('siliconcompiler.Project.show') as show:
+        assert sc_show.main() == 0
+        show.assert_called_once_with(None, extension=None, screenshot=False)
+
+
+@pytest.mark.parametrize('flags', [
+    [],
+    ['-design', 'gcd'],
+    ['-design', 'gcd',
+     '-arg_step', 'floorplan.init'],
+    ['-design', 'gcd',
+     '-arg_step', 'floorplan.init',
+     '-arg_index', '0'],
+])
+def test_sc_show_design_only_screenshot(flags, monkeypatch, make_manifests, asic_gcd, capsys):
+    '''Test sc-show app on a few sets of flags.'''
+
+    make_manifests(asic_gcd)
+
+    with open("test.png", "w") as f:
+        f.write("test")
+
+    monkeypatch.setattr('sys.argv', ['sc-show', '-screenshot'] + flags)
+    with patch('siliconcompiler.Project.show') as show:
+        show.return_value = "test.png"
+        assert sc_show.main() == 0
+        show.assert_called_once_with(None, extension=None, screenshot=True)
+    assert "Screenshot file: test.png" in capsys.readouterr().out
 
 
 @pytest.mark.parametrize('flags', [
     ['build/heartbeat/job0/route.detailed/0/outputs/heartbeat.def'],
-    ['-input', 'layout def build/heartbeat/job0/route.detailed/0/outputs/heartbeat.def'],
-    ['-input', 'layout gds build/heartbeat/job0/write.gds/0/outputs/heartbeat.gds'],
-    ['-input', 'layout def build/heartbeat/job0/write.gds/0/inputs/heartbeat.def',
+    ['build/heartbeat/job0/route.detailed/0/outputs/heartbeat.def'],
+    ['build/heartbeat/job0/write.gds/0/outputs/heartbeat.gds'],
+    ['build/heartbeat/job0/write.gds/0/inputs/heartbeat.def',
      '-cfg', 'build/heartbeat/job0/write.gds/0/outputs/heartbeat.pkg.json']
 ])
-@pytest.mark.eda
-@pytest.mark.quick
-@pytest.mark.timeout(180)
-def test_sc_show(flags, monkeypatch, heartbeat_chip_dir, copy_chip_dir):
+def test_sc_show(flags, monkeypatch, make_manifests, asic_gcd):
     '''Test sc-show app on a few sets of flags.'''
 
-    copy_chip_dir(heartbeat_chip_dir)
-
-    # Mock chip.run() to avoid GUI complications
-    # We have separate tests in test/core/test_show.py that handle these
-    # complications and test this function itself, so there's no need to
-    # run it here.
-    def fake_run(chip, raise_exception=False):
-        # fake a png output in case this is a screenshot
-        step, index = chip.get("flowgraph", "showflow", field="schema").get_exit_nodes()[0]
-        os.makedirs(f'{chip.getworkdir(step=step, index=index)}/outputs', exist_ok=True)
-        with open(f'{chip.getworkdir(step=step, index=index)}/outputs/{chip.top()}.png', 'w') as f:
-            f.write('\n')
-        return True
-
-    monkeypatch.setattr('siliconcompiler.Chip.run', fake_run)
+    make_manifests(asic_gcd)
 
     monkeypatch.setattr('sys.argv', ['sc-show'] + flags)
-    assert sc_show.main() == 0
+    with patch('siliconcompiler.Project.show') as show:
+        assert sc_show.main() == 0
+        show.assert_called_once_with(flags[0], extension=None, screenshot=False)
+
+
+@pytest.mark.parametrize('flags', [
+    ['-ext', 'gds'],
+    ['-design', 'gcd', '-ext', 'gds'],
+    ['-design', 'gcd',
+     '-arg_step', 'floorplan.init', '-ext', 'def'],
+    ['-design', 'gcd',
+     '-arg_step', 'floorplan.init',
+     '-arg_index', '0', '-ext', 'odb'],
+])
+def test_sc_show_ext(flags, monkeypatch, make_manifests, asic_gcd):
+    '''Test sc-show app on a few sets of flags.'''
+
+    make_manifests(asic_gcd)
+
+    monkeypatch.setattr('sys.argv', ['sc-show'] + flags)
+    with patch('siliconcompiler.Project.show') as show:
+        assert sc_show.main() == 0
+        show.assert_called_once_with(None, extension=flags[-1], screenshot=False)
 
 
 def test_sc_show_no_manifest(monkeypatch):
     monkeypatch.setattr('sys.argv', ['sc-show', '-design', 'test', '-arg_step', 'invalid'])
-    assert sc_show.main() == 2
+    assert sc_show.main() == 1

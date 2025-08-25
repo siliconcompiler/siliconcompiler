@@ -1,8 +1,5 @@
 import siliconcompiler
 
-from siliconcompiler.flows._common import setup_multiple_frontends
-from siliconcompiler.flows._common import _make_docs
-
 from siliconcompiler.tools.yosys import syn_asic
 from siliconcompiler.tools.openroad import init_floorplan
 from siliconcompiler.tools.openroad import macro_placement
@@ -22,7 +19,66 @@ from siliconcompiler.tools.openroad import fillmetal_insertion
 from siliconcompiler.tools.openroad import write_data
 from siliconcompiler.tools.klayout import export as klayout_export
 
+from siliconcompiler.tools.bambu.convert import ConvertTask
+
 from siliconcompiler.tools.builtin import minimum
+
+
+from siliconcompiler import FlowgraphSchema
+from siliconcompiler.tools.slang import elaborate
+
+
+class ASICFlow(FlowgraphSchema):
+    def __init__(self):
+        super().__init__()
+        self.set_name("asicflow")
+
+        self.node("elaborate", elaborate.Elaborate())
+        self.node("synthesis", syn_asic.ASICSynthesis())
+        self.edge("elaborate", "synthesis")
+        self.node("floorplan.init", init_floorplan.InitFloorplanTask())
+        self.edge("synthesis", "floorplan.init")
+        self.node("floorplan.macro_placement", macro_placement.MacroPlacementTask())
+        self.edge("floorplan.init", "floorplan.macro_placement")
+        self.node("floorplan.tapcell", endcap_tapcell_insertion.EndCapTapCellTask())
+        self.edge("floorplan.macro_placement", "floorplan.tapcell")
+        self.node("floorplan.power_grid", power_grid.PowerGridTask())
+        self.edge("floorplan.tapcell", "floorplan.power_grid")
+        self.node("floorplan.pin_placement", pin_placement.PinPlacementTask())
+        self.edge("floorplan.power_grid", "floorplan.pin_placement")
+        self.node("place.global", global_placement.GlobalPlacementTask())
+        self.edge("floorplan.pin_placement", "place.global")
+        self.node("place.repair_design", repair_design.RepairDesignTask())
+        self.edge("place.global", "place.repair_design")
+        self.node("place.detailed", detailed_placement.DetailedPlacementTask())
+        self.edge("place.repair_design", "place.detailed")
+        self.node("cts.clock_tree_synthesis", clock_tree_synthesis.CTSTask())
+        self.edge("place.detailed", "cts.clock_tree_synthesis")
+        self.node("cts.repair_timing", repair_timing.RepairTimingTask())
+        self.edge("cts.clock_tree_synthesis", "cts.repair_timing")
+        self.node("cts.fillcell", fillercell_insertion.FillCellTask())
+        self.edge("cts.repair_timing", "cts.fillcell")
+        self.node("route.global", global_route.GlobalRouteTask())
+        self.edge("cts.fillcell", "route.global")
+        self.node("route.antenna_repair", antenna_repair.AntennaRepairTask())
+        self.edge("route.global", "route.antenna_repair")
+        self.node("route.detailed", detailed_route.DetailedRouteTask())
+        self.edge("route.antenna_repair", "route.detailed")
+        self.node("dfm.metal_fill", fillmetal_insertion.FillMetalTask())
+        self.edge("route.detailed", "dfm.metal_fill")
+        self.node("write.views", write_data.WriteViewsTask())
+        self.edge("dfm.metal_fill", "write.views")
+        self.node("write.gds", klayout_export.ExportTask())
+        self.edge("dfm.metal_fill", "write.gds")
+
+
+class HLSASSICFlow(ASICFlow):
+    def __init__(self):
+        super().__init__()
+
+        self.remove_node("elaborate")
+        self.node("convert", ConvertTask())
+        self.edge("convert", "synthesis")
 
 
 ############################################################################

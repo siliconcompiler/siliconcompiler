@@ -1,61 +1,44 @@
 import shutil
-from siliconcompiler import utils
-from siliconcompiler.tools.genfasm import genfasm
-from siliconcompiler.tools.vpr import vpr
-from siliconcompiler.tools._common import get_tool_task
+from siliconcompiler.tools.vpr.vpr import VPRTask
 
 
-def setup(chip):
+class BitstreamTask(VPRTask):
     '''
     Generates a bitstream
     '''
-    genfasm.setup(chip)
+    def __init__(self):
+        super().__init__()
 
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    tool, task = get_tool_task(chip, step, index)
+    def tool(self):
+        return "genfasm"
 
-    chip.set('tool', tool, 'task', task, 'threads', utils.get_cores(chip),
-             step=step, index=index, clobber=False)
+    def task(self):
+        return "bitstream"
 
-    chip.set('tool', tool, 'task', task, 'regex', 'warnings', "^Warning",
-             step=step, index=index, clobber=False)
-    chip.set('tool', tool, 'task', task, 'regex', 'errors', "^Error",
-             step=step, index=index, clobber=False)
+    def setup(self):
+        super().setup()
 
-    design = chip.top()
+        self.set_exe("genfasm", clobber=True)
 
-    chip.set('tool', tool, 'task', task, 'input', design + '.route', step=step, index=index)
-    chip.add('tool', tool, 'task', task, 'input', design + '.blif', step=step, index=index)
-    chip.add('tool', tool, 'task', task, 'input', design + '.net', step=step, index=index)
-    chip.add('tool', tool, 'task', task, 'input', design + '.place', step=step, index=index)
+        self.add_input_file(ext="route")
+        self.add_input_file(ext="blif")
+        self.add_input_file(ext="net")
+        self.add_input_file(ext="place")
 
-    chip.add('tool', tool, 'task', task, 'output', design + '.fasm', step=step, index=index)
+        self.add_output_file(ext="fasm")
 
+    def runtime_options(self):
+        options = super().runtime_options()
 
-def runtime_options(chip):
-    options = vpr.runtime_options(chip)
+        options.append(f"inputs/{self.design_topmodule}.blif")
 
-    design = chip.top()
+        options.extend(['--net_file', f'inputs/{self.design_topmodule}.net'])
+        options.extend(['--place_file', f'inputs/{self.design_topmodule}.place'])
+        options.extend(['--route_file', f'inputs/{self.design_topmodule}.route'])
 
-    blif = f"inputs/{design}.blif"
-    options.append(blif)
+        return options
 
-    options.extend(['--net_file', f'inputs/{design}.net'])
-    options.extend(['--place_file', f'inputs/{design}.place'])
-    options.extend(['--route_file', f'inputs/{design}.route'])
+    def post_process(self):
+        super().post_process()
 
-    return options
-
-################################
-# Post_process (post executable)
-################################
-
-
-def post_process(chip):
-    ''' Tool specific function to run after step execution
-    '''
-    vpr.vpr_post_process(chip)
-
-    design = chip.top()
-    shutil.move(f'{design}.fasm', 'outputs')
+        shutil.move(f'{self.design_topmodule}.fasm', 'outputs')

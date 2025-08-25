@@ -63,7 +63,7 @@ def page_header(title_col_width=0.7):
             streamlit.columns([title_col_width, 1 - title_col_width], gap="large")
 
     with title_col:
-        design_title(design=state.get_chip().design)
+        design_title(design=state.get_chip().design.name)
     with job_select_col:
         job_selector()
 
@@ -177,7 +177,7 @@ def setup_page():
     title, icon, layout, and custom menu items.
     """
     streamlit.set_page_config(
-        page_title=f'{state.get_chip().design} dashboard',
+        page_title=f'{state.get_chip().design.name} dashboard',
         page_icon=Image.open(SC_LOGO_PATH),
         layout="wide",
         menu_items=SC_MENU)
@@ -285,7 +285,7 @@ def manifest_viewer(chip, header_col_width=0.70):
         with streamlit.popover("Settings", use_container_width=True):
             # Filtering options
             if streamlit.checkbox('Raw manifest', help='View raw, unprocessed manifest'):
-                manifest_to_show = chip.getdict()
+                manifest_to_show = json.loads(json.dumps(chip.getdict(), sort_keys=True))
             else:
                 manifest_to_show = report.make_manifest(chip)
 

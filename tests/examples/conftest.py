@@ -1,4 +1,4 @@
-import siliconcompiler
+from siliconcompiler import Project
 import pytest
 
 
@@ -21,10 +21,10 @@ def setup_example_test(examples_root, monkeypatch, request):
     convenience for accessing any necessary files.
     '''
 
-    def _mock_show(chip, filename=None, screenshot=False):
+    def _mock_show(*args, **kwargs):
         pass
 
     # pytest's monkeypatch lets us modify sys.path for this test only.
     monkeypatch.syspath_prepend(examples_root)
     # Mock chip.show() so it doesn't run.
-    monkeypatch.setattr(siliconcompiler.Chip, 'show', _mock_show)
+    monkeypatch.setattr(Project, 'show', _mock_show)

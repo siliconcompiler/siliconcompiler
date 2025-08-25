@@ -13,9 +13,6 @@ Sources: https://github.com/ferrandi/PandA-bambu
 
 Installation: https://panda.dei.polimi.it/?page_id=88
 '''
-
-from siliconcompiler.tools.bambu import convert
-
 from siliconcompiler import StdCellLibrarySchema
 
 
@@ -56,18 +53,3 @@ class BambuStdCellLibrary(StdCellLibrarySchema):
             factor (float): The scalar factor for the clock conversion.
         """
         self.set("tool", "bambu", "clock_multiplier", factor)
-
-
-####################################################################
-# Make Docs
-####################################################################
-def make_docs(chip):
-    convert.setup(chip)
-    return chip
-
-
-def parse_version(stdout):
-    # Long multiline output, but second-to-last line looks like:
-    # Version: PandA 0.9.6 - Revision 5e5e306b86383a7d85274d64977a3d71fdcff4fe-main
-    version_line = stdout.split('\n')[-3]
-    return version_line.split()[2]

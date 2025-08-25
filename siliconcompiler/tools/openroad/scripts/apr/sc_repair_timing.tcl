@@ -20,28 +20,28 @@ if { [sc_check_version 20073] && [grt::have_routes] } {
     set parasitics_stage -global_routing
 }
 
-set rsz_setup_slack_margin [lindex [sc_cfg_tool_task_get {var} rsz_setup_slack_margin] 0]
-set rsz_hold_slack_margin [lindex [sc_cfg_tool_task_get {var} rsz_hold_slack_margin] 0]
-set rsz_slew_margin [lindex [sc_cfg_tool_task_get {var} rsz_slew_margin] 0]
-set rsz_cap_margin [lindex [sc_cfg_tool_task_get {var} rsz_cap_margin] 0]
-set rsz_repair_tns [lindex [sc_cfg_tool_task_get {var} rsz_repair_tns] 0]
-set rsz_recover_power [lindex [sc_cfg_tool_task_get {var} rsz_recover_power] 0]
+set rsz_setup_slack_margin [sc_cfg_tool_task_get {var} rsz_setup_slack_margin]
+set rsz_hold_slack_margin [sc_cfg_tool_task_get {var} rsz_hold_slack_margin]
+set rsz_slew_margin [sc_cfg_tool_task_get {var} rsz_slew_margin]
+set rsz_cap_margin [sc_cfg_tool_task_get {var} rsz_cap_margin]
+set rsz_repair_tns [sc_cfg_tool_task_get {var} rsz_repair_tns]
+set rsz_recover_power [sc_cfg_tool_task_get {var} rsz_recover_power]
 
 set repair_timing_args []
-if { [lindex [sc_cfg_tool_task_get {var} rsz_skip_pin_swap] 0] == "true" } {
+if { [sc_cfg_tool_task_get {var} rsz_skip_pin_swap] } {
     lappend repair_timing_args "-skip_pin_swap"
 }
-if { [lindex [sc_cfg_tool_task_get {var} rsz_skip_gate_cloning] 0] == "true" } {
+if { [sc_cfg_tool_task_get {var} rsz_skip_gate_cloning] } {
     lappend repair_timing_args "-skip_gate_cloning"
 }
 
 set repair_design_args []
-set rsz_cap_margin [lindex [sc_cfg_tool_task_get {var} rsz_cap_margin] 0]
-if { $rsz_cap_margin != "false" } {
+set rsz_cap_margin [sc_cfg_tool_task_get {var} rsz_cap_margin]
+if { $rsz_cap_margin > 0 } {
     lappend repair_design_args "-cap_margin" $rsz_cap_margin
 }
-set rsz_slew_margin [lindex [sc_cfg_tool_task_get {var} rsz_slew_margin] 0]
-if { $rsz_slew_margin != "false" } {
+set rsz_slew_margin [sc_cfg_tool_task_get {var} rsz_slew_margin]
+if { $rsz_slew_margin > 0 } {
     lappend repair_design_args "-slew_margin" $rsz_slew_margin
 }
 
@@ -50,7 +50,7 @@ set total_insts [llength [[ord::get_db_block] getInsts]]
 remove_fillers
 set removed_fillers [expr { $total_insts - [llength [[ord::get_db_block] getInsts]] }]
 
-if { [lindex [sc_cfg_tool_task_get var rsz_skip_drv_repair] 0] != "true" } {
+if { [sc_cfg_tool_task_get var rsz_skip_drv_repair] } {
     ###############################
     # DRV Repair
     ###############################
@@ -71,7 +71,7 @@ if { [lindex [sc_cfg_tool_task_get var rsz_skip_drv_repair] 0] != "true" } {
     sc_set_dont_use
 }
 
-if { [lindex [sc_cfg_tool_task_get var rsz_skip_setup_repair] 0] != "true" } {
+if { [sc_cfg_tool_task_get var rsz_skip_setup_repair] } {
     ###############################
     # Setup Repair
     ###############################
@@ -96,7 +96,7 @@ if { [lindex [sc_cfg_tool_task_get var rsz_skip_setup_repair] 0] != "true" } {
     sc_set_dont_use
 }
 
-if { [lindex [sc_cfg_tool_task_get var rsz_skip_hold_repair] 0] != "true" } {
+if { [sc_cfg_tool_task_get var rsz_skip_hold_repair] } {
     ###############################
     # Hold Repair
     ###############################
@@ -121,7 +121,7 @@ if { [lindex [sc_cfg_tool_task_get var rsz_skip_hold_repair] 0] != "true" } {
     sc_set_dont_use
 }
 
-if { [lindex [sc_cfg_tool_task_get var rsz_skip_recover_power] 0] != "true" } {
+if { [sc_cfg_tool_task_get var rsz_skip_recover_power] } {
     ###############################
     # Recover power
     ###############################

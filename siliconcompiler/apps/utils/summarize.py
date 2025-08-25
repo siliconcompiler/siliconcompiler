@@ -1,9 +1,7 @@
 # Copyright 2024 Silicon Compiler Authors. All Rights Reserved.
 import sys
 
-from siliconcompiler import Chip
-from siliconcompiler import SiliconCompilerError
-from siliconcompiler.apps._common import UNSET_DESIGN
+from siliconcompiler import Project
 
 
 ###########################
@@ -14,28 +12,18 @@ def main():
     Utility script to print job summary from a manifest
     ------------------------------------------------------------
     """
-    # Create a base chip class.
-    chip = Chip(UNSET_DESIGN)
-
     # Read command-line inputs and generate Chip objects to run the flow on.
-    try:
-        chip.create_cmdline(progname,
-                            description=description,
-                            switchlist=['-cfg',
-                                        '-loglevel'])
-    except SiliconCompilerError:
-        return 1
-    except Exception as e:
-        chip.logger.error(e)
-        return 1
+    proj = Project.create_cmdline(
+        progname,
+        description=description,
+        switchlist=['-jobname'],
+        use_cfg=True, use_sources=False)
 
-    design = chip.get('design')
-    if design == UNSET_DESIGN:
-        chip.logger.error('Design not loaded')
+    if not proj.get('option', 'design'):
         return 1
 
     # Print Job Summary
-    chip.summary()
+    proj.summary()
 
     return 0
 

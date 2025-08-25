@@ -24,6 +24,171 @@ import re
 from siliconcompiler import sc_open, SiliconCompilerError
 from siliconcompiler.tools._common import get_tool_task, record_metric
 
+from siliconcompiler import TaskSchema
+
+
+class VPRTask(TaskSchema):
+    __block_file = "reports/block_usage.json"
+
+    def __init__(self):
+        super().__init__()
+
+        self.add_parameter("enable_images", "bool",
+                           "true/false generate images of the design at the end of the task",
+                           defvalue=True)
+        self.add_parameter("timing_paths", "int", "number of timing paths to report", defvalue=20)
+        self.add_parameter("timing_report_type",
+                           "<netlist,aggregated,detailed,debug>",
+                           "level of detail for timing reports: vpr --timing_report_detail",
+                           defvalue="aggregated")
+
+    def tool(self):
+        return "vpr"
+
+    def parse_version(self, stdout):
+        # Example output of vpr --version:
+        # Note that blank comment lines in this example
+        # represent newlines printed by vpr --version
+
+        # VPR FPGA Placement and Routing.
+        # Version: 8.1.0-dev+c4156f225
+        # Revision: v8.0.0-7887-gc4156f225
+        # Compiled: 2023-06-14T17:32:05
+        # Compiler: GNU 9.4.0 on Linux-5.14.0-1059-oem x86_64
+        # Build Info: release IPO VTR_ASSERT_LEVEL=2
+        #
+        # University of Toronto
+        # verilogtorouting.org
+        # vtr-users@googlegroups.com
+        # This is free open source code under MIT license.
+        #
+        #
+
+        # Grab the revision. Which will be of the form:
+        #       v8.0.0-7887-gc4156f225
+        revision = stdout.split()[8]
+
+        # VTR infrequently makes even minor releases, use the number of commits
+        # since the last release of VTR as another part of the release segment.
+        pieces = revision.split("-")
+        if len(pieces) == 3:
+            # Strip off the hash if it exists.
+            return "-".join(pieces[:-1])
+        else:
+            return revision
+
+    def auto_constraints_file(self):
+        return 'inputs/sc_constraints.xml'
+
+    def setup(self):
+        super().setup()
+
+        self.set_exe("vpr", vswitch="--version")
+        self.add_version(">=v8.0.0-12677")
+
+        self.add_regex("warnings", "^Warning")
+        self.add_regex("errors", "^Error")
+
+        self.set_threads()
+
+    def runtime_options(self):
+        options = super().runtime_options()
+
+        fpga = self.schema().get("library", self.schema().get("fpga", "device"), field="schema")
+
+        options.extend(["--device", fpga.get("tool", "vpr", "devicecode")])
+
+        # Medium-term solution:  VPR performs hash digest checks that
+        # fail if file paths are changed between steps.  We wish to
+        # disable the digest checks to work around this
+        options.extend(["--verify_file_digests", "off"])
+
+        options.extend(["--write_block_usage", VPRTask.__block_file])
+        options.extend(["--outfile_prefix", "outputs/"])
+
+        options.append(fpga.find_files("tool", "vpr", "archfile"))
+
+        options.extend(["--num_workers", self.get_threads()])
+
+        # For most architectures, constant nets need to be routed
+        # like regular nets to be functionally correct (however inefficient
+        # that might be...); these two options help control that
+        options.extend(['--constant_net_method', 'route'])
+        options.extend(['--const_gen_inference', 'none'])
+
+        # If we allow VPR to sweep dangling primary I/Os and logic blocks
+        # it can interfere with circuit debugging; so disable that
+        options.extend(['--sweep_dangling_primary_ios', 'off'])
+        # If you don't sweep dangling primary I/Os, but sweeping nets
+        # VPR can crash:
+        options.extend(['--sweep_dangling_nets', 'off'])
+        # If you don't sweep dangling nets then the timing engine requires
+        # you to set an option allowing dangling nodes
+        options.extend(['--allow_dangling_combinational_nodes', 'on'])
+        options.extend(['--sweep_constant_primary_outputs', 'off'])
+        options.extend(['--sweep_dangling_blocks', 'off'])
+
+        # Explicitly specify the clock modeling type in the part driver
+        # to avoid ambiguity and future-proof against new VPR clock models
+        options.extend(['--clock_modeling', fpga.get("tool", "vpr", "clock_model")])
+        if (fpga.get("tool", "vpr", "clock_model") == 'dedicated_network'):
+            options.append('--two_stage_clock_routing')
+
+        # TODO
+        sdc_file = None
+        # if chip.valid('input', 'constraint', 'sdc'):
+        #     sdc_file = find_single_file(chip, 'input', 'constraint', 'sdc',
+        #                                 step=step, index=index,
+        #                                 file_not_found_msg="SDC file not found")
+
+        # if sdc_file:
+        #     options.append("--sdc_file")
+        #     options.append(sdc_file)
+
+        if False:  # use_timing_analysis(chip):
+            report_type = chip.get('tool', tool, 'task', task, 'var', 'timing_report_type',
+                                step=step, index=index)[0]
+            options.extend(['--timing_report_detail', report_type])
+            report_paths = chip.get('tool', tool, 'task', task, 'var', 'timing_paths',
+                                    step=step, index=index)[0]
+            options.extend(['--timing_report_npaths', report_paths])
+        else:
+            options.extend(["--timing_analysis", "off"])
+
+        # Per the scheme implemented in the placement pre-process step,
+        # if a constraints file exists it will always be in the auto_constraints()
+        # location:
+        if (os.path.isfile(self.auto_constraints_file())):
+            options.extend(["--read_vpr_constraints", self.auto_constraints_file])
+
+        # Routing graph XML:
+        options.extend(["--read_rr_graph", fpga.find_files("tool", "vpr", "graphfile")])
+
+        # ***NOTE: For real FPGA chips you need to specify the routing channel
+        #          width explicitly.  VPR requires an explicit routing channel
+        #          with when --read_rr_graph is used (typically the case for
+        #          real chips).  Otherwise VPR performs a binary search for
+        #          the minimum routing channel width that the circuit fits in.
+        # Given the above, it may be appropriate to couple these variables somehow,
+        # but --route_chan_width CAN be used by itself.
+        options.extend(["--route_chan_width", fpga.get("tool", "vpr", "channelwidth")])
+
+        return options
+
+    def _get_common_graphics(self):
+        graphics_commands = []
+
+        # set_draw_block_text 1 displays the label for various blocks in the design
+        # set_draw_block_outlines 1 displays the outline/boundary for various blocks in the design
+        # save_graphics saves the block diagram as a png/svg/pdf
+        # Refer:
+        # https://docs.verilogtorouting.org/en/latest/vpr/command_line_usage/#graphics-options
+        graphics_commands.append("set_draw_block_text 1; " +
+                                 "set_draw_block_outlines 1; " +
+                                 f"save_graphics reports/{self.design_topmodule}_place.png;")
+
+        return graphics_commands
+
 
 __block_file = "reports/block_usage.json"
 
@@ -321,6 +486,7 @@ def use_timing_analysis(chip):
     '''
     Return true if the given chip should use timing analysis in the VPR flow.
     '''
+    return False
     step = chip.get('arg', 'step')
     index = chip.get('arg', 'index')
     return \
