@@ -1,5 +1,5 @@
 import shutil
-from siliconcompiler.tools.vpr.vpr import VPRTask
+from siliconcompiler.tools.vpr import VPRTask
 
 
 class BitstreamTask(VPRTask):

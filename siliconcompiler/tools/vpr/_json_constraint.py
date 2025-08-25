@@ -19,7 +19,7 @@ def load_constraints_map(constraints_map_file):
     return constraints_map
 
 
-def map_constraints(chip,
+def map_constraints(logger,
                     json_generic_constraints,
                     constraints_map):
 
@@ -57,7 +57,7 @@ def map_constraints(chip,
                 design_constraints[named_design_pin] = design_pin_constraint_assignment
 
             else:
-                chip.logger.error(f'Cannot map to pin {design_pin_assignment}')
+                logger.error(f'Cannot map to pin {design_pin_assignment}')
                 errors += 1
 
     return design_constraints, errors
