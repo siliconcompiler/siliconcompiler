@@ -895,9 +895,16 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         # Remove dashboard
         del state["_Project__dashboard"]
 
+        # Pass along manager address
+        state["__manager__"] = MPManager._get_manager_address()
+
         return state
 
     def __setstate__(self, state):
+        # Retrive manager address
+        MPManager._set_manager_address(state["__manager__"])
+        del state["__manager__"]
+
         self.__dict__ = state
 
         # Reinitialize logger on restore

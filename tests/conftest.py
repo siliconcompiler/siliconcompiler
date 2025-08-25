@@ -116,6 +116,7 @@ def isolate_statics_in_testing(monkeypatch):
     '''
 
     monkeypatch.setattr(MPManager, "_MPManager__ENABLE_LOGGER", False)
+    monkeypatch.setattr(MPManager, "_MPManager__address", None)
 
     with patch.dict(TaskScheduler._TaskScheduler__callbacks), \
             patch.dict(_ManagerSingleton._instances, clear=True):
