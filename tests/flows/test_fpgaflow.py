@@ -1,9 +1,9 @@
 import os
 import json
 import pytest
-from siliconcompiler.scheduler import SchedulerNode
-from siliconcompiler.flows import fpgaflow
-from siliconcompiler.tools.vpr import route, place
+# from siliconcompiler.scheduler import SchedulerNode
+# from siliconcompiler.flows import fpgaflow
+# from siliconcompiler.tools.vpr import route, place
 # from logiklib.demo.K4_N8_6x6 import K4_N8_6x6
 # from logiklib.demo.K6_N8_3x3 import K6_N8_3x3
 # from logiklib.demo.K6_N8_12x12_BD import K6_N8_12x12_BD
