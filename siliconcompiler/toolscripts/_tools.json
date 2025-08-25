@@ -112,8 +112,7 @@
     "auto-update": true
   },
   "xdm": {
-    "git-url": "https://github.com/Xyce/XDM.git",
-    "git-commit": "Release-2.7.0",
+    "version": "2.7.0",
     "auto-update": false
   },
   "slurm": {
