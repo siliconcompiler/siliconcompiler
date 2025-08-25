@@ -61,7 +61,8 @@ class PlaceTask(VPRTask):
                     raise ValueError(
                         "Pin constraints specify I/O ports not in this architecture")
 
-            generate_vpr_constraints_xml_file(all_place_constraints, self.auto_constraints_file())
+                generate_vpr_constraints_xml_file(all_place_constraints,
+                                                  self.auto_constraints_file())
 
     def runtime_options(self):
         options = super().runtime_options()

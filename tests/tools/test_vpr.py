@@ -2,11 +2,14 @@ import pytest
 
 import os.path
 
-from siliconcompiler import FPGAProject, FlowgraphSchema
+from siliconcompiler import FPGAProject, FlowgraphSchema, DesignSchema
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.tools.vpr.place import PlaceTask
 from siliconcompiler.tools.vpr.route import RouteTask
 from siliconcompiler.tools.vpr import VPRFPGA
+from siliconcompiler.tools.genfasm.bitstream import BitstreamTask
+
+from tools.inputimporter.importer import ImporterTask
 
 
 @pytest.mark.eda
@@ -24,6 +27,47 @@ def test_version(gcd_design):
     with node.runtime():
         assert node.setup() is True
         assert node.task.check_exe_version(node.task.get_exe_version()) is True
+
+
+@pytest.mark.eda
+@pytest.mark.quick
+@pytest.mark.ready
+def test_run(datadir):
+    design = DesignSchema("adder")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("adder")
+
+    proj = FPGAProject(design)
+    proj.add_fileset("rtl")
+
+    flow = FlowgraphSchema("testflow")
+    flow.node("import", ImporterTask())
+    flow.node("place", PlaceTask())
+    flow.node("route", RouteTask())
+    flow.node("bitstream", BitstreamTask())
+    flow.edge("import", "place")
+    flow.edge("place", "route")
+    flow.edge("route", "bitstream")
+    proj.set_flow(flow)
+
+    fpga = VPRFPGA()
+    fpga.set_name("testfpga")
+    fpga.set_vpr_devicecode("K6_N8_3x3")
+    fpga.set_vpr_channelwidth(40)
+    fpga.set_vpr_clockmodel("ideal")
+    fpga.set_lutsize(6)
+    fpga.add_vpr_registertype("dff")
+    fpga.set_vpr_archfile(os.path.join(datadir, "fpga", "K6_N8_3x3.xml"))
+    fpga.set_vpr_graphfile(os.path.join(datadir, "fpga", "K6_N8_3x3_rr_graph.xml"))
+    proj.set_fpga(fpga)
+
+    proj.get_task(filter=ImporterTask).set("var", "input_files", os.path.join(datadir, "adder.blif"))
+
+    assert proj.run()
+
+    assert os.path.isfile(proj.find_result("place", "place"))
+    assert os.path.isfile(proj.find_result("route", "route"))
+    assert os.path.isfile(proj.find_result("fasm", "bitstream"))
 
 
 def test_vpr_max_router_iterations(gcd_design):
