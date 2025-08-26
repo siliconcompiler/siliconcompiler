@@ -138,8 +138,7 @@ jobs:
       run: |
         . venv/bin/activate
         pytest sc/tests/ -m "not eda and not docker" -n logical
-        pytest sc/tests/tools/test_slang.py -n logical
-        pytest sc/tests/flows/test_show.py -k "klayout" -n logical
+        pytest sc/tests/utils/test_showtools.py -k "klayout" -n logical
 
     - name: Install SC (windows)
       if: matrix.platform.os == 'windows-latest'
@@ -160,11 +159,7 @@ jobs:
         if ($LASTEXITCODE -ne 0) {
           exit $LASTEXITCODE
         }
-        pytest sc/tests/tools/test_slang.py -n logical
-        if ($LASTEXITCODE -ne 0) {
-          exit $LASTEXITCODE
-        }
-        pytest sc/tests/flows/test_show.py -k "klayout" -n logical
+        pytest sc/tests/utils/test_showtools.py -k "klayout" -n logical
         if ($LASTEXITCODE -ne 0) {
           exit $LASTEXITCODE
         }
