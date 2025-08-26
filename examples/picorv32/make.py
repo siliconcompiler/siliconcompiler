@@ -2,16 +2,14 @@
 # Copyright 2025 Silicon Compiler Authors. All Rights Reserved.
 
 from siliconcompiler import DesignSchema
-from siliconcompiler.project import LintProject, FPGAProject
 from siliconcompiler import ASICProject
+from siliconcompiler.project import LintProject
 
 from siliconcompiler.flows.lintflow import LintFlowgraph
 from siliconcompiler.flows.synflow import SynthesisFlowgraph
-from siliconcompiler.flows.asicflow import ASICFlow
-from siliconcompiler.flows.fpgaflow import FPGAFlow
 
-from siliconcompiler._dummy import target, Spram
-from siliconcompiler._dummy import ICE40FPGA, K6_N8_28x28_BDFPGA, K4_N8_6x6FPGA
+from siliconcompiler.targets import asic_target
+from lambdalib.ramlib import Spram
 
 
 class PicoRV32Design(DesignSchema):
@@ -39,15 +37,23 @@ class PicoRV32Design(DesignSchema):
 
         with self.active_fileset("sdc.freepdk45"):
             with self.active_dataroot("example"):
-                self.add_file("picorv32.sdc")
+                self.add_file("freepdk45.sdc")
 
         with self.active_fileset("sdc.asap7"):
             with self.active_dataroot("example"):
-                self.add_file("picorv32.sdc")
+                self.add_file("asap7.sdc")
 
         with self.active_fileset("sdc.gf180"):
             with self.active_dataroot("example"):
-                self.add_file("picorv32.sdc")
+                self.add_file("gf180.sdc")
+
+        with self.active_fileset("sdc.ihp130"):
+            with self.active_dataroot("example"):
+                self.add_file("ihp130.sdc")
+
+        with self.active_fileset("sdc.sky130"):
+            with self.active_dataroot("example"):
+                self.add_file("sky130.sdc")
 
 
 def lint(fileset: str = "rtl"):
@@ -57,7 +63,7 @@ def lint(fileset: str = "rtl"):
     project.add_fileset(fileset)
     project.set_flow(LintFlowgraph())
 
-    project.run(raise_exception=True)
+    project.run()
     project.summary()
 
 
@@ -66,11 +72,12 @@ def syn(fileset: str = "rtl", pdk: str = "freepdk45"):
 
     project.set_design(PicoRV32Design())
     project.add_fileset(fileset)
+    project.add_fileset(f"sdc.{pdk}")
+
+    project.load_target(asic_target, pdk=pdk)
     project.set_flow(SynthesisFlowgraph())
 
-    project.load_target(target, pdk=pdk)
-
-    project.run(raise_exception=True)
+    project.run()
     project.summary()
 
 
@@ -80,27 +87,10 @@ def asic(fileset: str = "rtl", pdk: str = "freepdk45"):
     project.set_design(PicoRV32Design())
     project.add_fileset(fileset)
     project.add_fileset(f"sdc.{pdk}")
-    project.set_flow(ASICFlow())
 
-    project.load_target(target, pdk=pdk)
+    project.load_target(asic_target, pdk=pdk)
 
-    project.run(raise_exception=True)
-    project.summary()
-
-
-def fpga(fileset: str = "rtl", fpga: str = "K4_N8"):
-    project = FPGAProject()
-
-    project.set_design(PicoRV32Design())
-    project.add_fileset(fileset)
-    project.set_flow(FPGAFlow())
-
-    project.add_dep(ICE40FPGA())
-    project.add_dep(K6_N8_28x28_BDFPGA())
-    project.add_dep(K4_N8_6x6FPGA())
-    project.set_fpga(fpga)
-
-    project.run(raise_exception=True)
+    project.run()
     project.summary()
 
 
