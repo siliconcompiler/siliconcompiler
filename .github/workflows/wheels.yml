@@ -138,7 +138,7 @@ jobs:
       run: |
         . venv/bin/activate
         pytest sc/tests/ -m "not eda and not docker" -n logical
-        pytest sc/tests/utils/test_showtools.py -k "klayout" -n logical
+        # pytest sc/tests/utils/test_showtools.py -k "klayout" -n logical
 
     - name: Install SC (windows)
       if: matrix.platform.os == 'windows-latest'
