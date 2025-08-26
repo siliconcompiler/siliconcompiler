@@ -5,7 +5,7 @@ from siliconcompiler.tools.slang import lint as slang_lint
 from siliconcompiler import FlowgraphSchema
 
 
-class LintFlowgraph(FlowgraphSchema):
+class LintFlow(FlowgraphSchema):
     '''An RTL linting flow.
 
     This flow is designed to check RTL source files for stylistic, semantic,
@@ -42,5 +42,5 @@ class LintFlowgraph(FlowgraphSchema):
 
 ##################################################
 if __name__ == "__main__":
-    flow = LintFlowgraph()
+    flow = LintFlow()
     flow.write_flowgraph(f"{flow.name}.png")

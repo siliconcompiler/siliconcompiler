@@ -23,7 +23,7 @@ def setup(project: ASICProject, syn_np=1, floorplan_np=1, physyn_np=1, place_np=
 
     # 2. Load flows
     project.set_flow(asicflow.ASICFlow())
-    project.add_dep(synflow.SynthesisFlowgraph())
+    project.add_dep(synflow.SynthesisFlow())
 
     # 3. Set default targets
 

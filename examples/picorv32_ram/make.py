@@ -5,8 +5,8 @@ from siliconcompiler import DesignSchema
 from siliconcompiler.project import LintProject, FPGAProject
 from siliconcompiler import ASICProject
 
-from siliconcompiler.flows.lintflow import LintFlowgraph
-from siliconcompiler.flows.synflow import SynthesisFlowgraph
+from siliconcompiler.flows.lintflow import LintFlow
+from siliconcompiler.flows.synflow import SynthesisFlow
 from siliconcompiler.flows.asicflow import ASICFlow
 from siliconcompiler.flows.fpgaflow import FPGAFlow
 
@@ -55,7 +55,7 @@ def lint(fileset: str = "rtl"):
 
     project.set_design(PicoRV32Design())
     project.add_fileset(fileset)
-    project.set_flow(LintFlowgraph())
+    project.set_flow(LintFlow())
 
     project.run(raise_exception=True)
     project.summary()
@@ -66,7 +66,7 @@ def syn(fileset: str = "rtl", pdk: str = "freepdk45"):
 
     project.set_design(PicoRV32Design())
     project.add_fileset(fileset)
-    project.set_flow(SynthesisFlowgraph())
+    project.set_flow(SynthesisFlow())
 
     project.load_target(target, pdk=pdk)
 
