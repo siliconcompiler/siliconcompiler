@@ -19,6 +19,10 @@ from siliconcompiler.tools.gtkwave.show import ShowTask as GtkwaveShow
 from siliconcompiler.tools.surfer.show import ShowTask as SurferShow
 
 
+def generate_id(cls):
+    return f"tool_{cls().tool()}"
+
+
 @pytest.fixture(autouse=True)
 def exit_on_show(monkeypatch):
     org_setup = ShowTaskSchema.setup
@@ -36,7 +40,8 @@ def exit_on_show(monkeypatch):
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.ready
-@pytest.mark.parametrize('task', [klayout_show.ShowTask, openroad_show.ShowTask])
+@pytest.mark.parametrize('task', [klayout_show.ShowTask, openroad_show.ShowTask],
+                         ids=generate_id)
 @pytest.mark.parametrize('target, testfile',
                          [(freepdk45_demo, 'heartbeat_freepdk45.def'),
                           (skywater130_demo, 'heartbeat_sky130.def')])
@@ -57,7 +62,8 @@ def test_show_def(target, testfile, task, datadir, display):
 @pytest.mark.quick
 @pytest.mark.ready
 @pytest.mark.parametrize('task', [klayout_screenshot.ScreenshotTask,
-                                  openroad_screenshot.ScreenshotTask])
+                                  openroad_screenshot.ScreenshotTask],
+                         ids=generate_id)
 @pytest.mark.parametrize('target, testfile',
                          [(freepdk45_demo, 'heartbeat_freepdk45.def'),
                           (skywater130_demo, 'heartbeat_sky130.def')])
@@ -78,7 +84,7 @@ def test_screenshot_def(target, testfile, task, datadir, display):
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.ready
-def test_show_lyp(datadir, display):
+def test_show_lyp_tool_klayout(datadir, display):
     ''' Test sc-show with only a KLayout .lyp file for layer properties '''
     design = DesignSchema("heartbeat")
     with design.active_fileset("rtl"):
@@ -97,7 +103,7 @@ def test_show_lyp(datadir, display):
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.ready
-def test_show_nopdk(datadir, display):
+def test_show_nopdk_tool_klayout(datadir, display):
     design = DesignSchema("heartbeat")
     with design.active_fileset("rtl"):
         design.set_topmodule("heartbeat")

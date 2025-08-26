@@ -34,6 +34,7 @@ from siliconcompiler.scheduler import Scheduler
 from siliconcompiler.utils.logging import SCColorLoggerFormatter, SCLoggerFormatter
 from siliconcompiler.utils import FilterDirectories, get_file_ext
 from siliconcompiler.utils.multiprocessing import MPManager
+from siliconcompiler.flows.showflow import ShowFlow
 
 
 class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
@@ -1470,20 +1471,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
 
         # Create copy of project to avoid changing user project
         proj = self.copy()
-
-        nodename = "screenshot" if screenshot else "show"
-
-        class ShowFlow(FlowgraphSchema):
-            """
-            Small auto created flow to build a single node show/screenshot flow
-            """
-            def __init__(self, nodename, task):
-                super().__init__()
-                self.set_name("showflow")
-
-                self.node(nodename, task)
-
-        proj.set_flow(ShowFlow(nodename, task))
+        proj.set_flow(ShowFlow(task))
 
         # Setup options:
         for option, value in [
@@ -1500,7 +1488,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         proj.unset("option", "prune")
         proj.unset("option", "from")
 
-        jobname = f"_{nodename}_{sc_jobname}_{sc_step}_{sc_index}_{task.tool()}"
+        jobname = f"_{task.task()}_{sc_jobname}_{sc_step}_{sc_index}_{task.tool()}"
         proj.set("option", "jobname", jobname)
 
         # Setup in task variables
@@ -1512,7 +1500,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         # run show flow
         proj.run(raise_exception=True)
         if screenshot:
-            return proj.find_result('png', step=nodename)
+            return proj.find_result('png', step=task.task())
 
 
 class SimProject(Project):
