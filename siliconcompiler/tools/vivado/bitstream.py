@@ -1,7 +1,7 @@
 from siliconcompiler.tools.vivado import VivadoTask
 
 
-class SynthesisTask(VivadoTask):
+class BitstreamTask(VivadoTask):
     '''Generates bitstream of implemented design.'''
     def task(self):
         return "bitstream"

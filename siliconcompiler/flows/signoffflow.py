@@ -1,53 +1,31 @@
-import siliconcompiler
-
 from siliconcompiler.tools.magic import extspice
 from siliconcompiler.tools.magic import drc
 from siliconcompiler.tools.netgen import lvs
-from siliconcompiler.tools.builtin import nop
 from siliconcompiler.tools.builtin import join
 
-
-def make_docs(chip):
-    chip.set('input', 'netlist', 'verilog', 'test')
-    return setup()
+from siliconcompiler import FlowgraphSchema
 
 
-def setup():
-    '''A flow for running LVS/DRC signoff on a GDS layout.
-
-    Inputs must be passed to this flow as follows::
-
-        flow.input('<path-to-layout>.gds')
-        flow.input('<path-to-netlist>.vg')
+class SignoffFlow(FlowgraphSchema):
     '''
-    flowname = 'signoffflow'
+    A flow for running LVS/DRC signoff on a GDS layout.
+    '''
 
-    flow = siliconcompiler.Flow(flowname)
+    def __init__(self, name: str = "signoffflow"):
+        super().__init__(name)
 
-    # nop import since we don't need to pull in any sources
-    flow.node(flowname, 'import', nop)
+        self.node("drc", drc.DRCTask())
 
-    flow.node(flowname, 'extspice', extspice)
-    flow.node(flowname, 'drc', drc)
-    flow.node(flowname, 'lvs', lvs)
-    flow.node(flowname, 'signoff', join)
+        self.node("extspice", extspice.ExtractTask())
+        self.node("lvs", lvs.LVSTask())
+        self.edge("extspice", "lvs")
 
-    flow.edge(flowname, 'import', 'drc')
-    flow.edge(flowname, 'import', 'extspice')
-    flow.edge(flowname, 'extspice', 'lvs')
-    flow.edge(flowname, 'lvs', 'signoff')
-    flow.edge(flowname, 'drc', 'signoff')
-
-    # Set default goal
-    for step in flow.getkeys('flowgraph', flowname):
-        flow.set('flowgraph', flowname, step, '0', 'goal', 'errors', 0)
-
-    return flow
+        self.node("signoff", join.JoinTask())
+        self.edge("drc", "signoff")
+        self.edge("lvs", "signoff")
 
 
 ##################################################
 if __name__ == "__main__":
-    chip = siliconcompiler.Chip('design')
-    flow = make_docs(chip)
-    chip.use(flow)
-    chip.write_flowgraph(f"{flow.top()}.png", flow=flow.top())
+    flow = SignoffFlow()
+    flow.write_flowgraph(f"{flow.name}.png")

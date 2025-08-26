@@ -1,5 +1,3 @@
-import siliconcompiler
-
 from siliconcompiler.tools.yosys import syn_asic
 from siliconcompiler.tools.openroad import init_floorplan
 from siliconcompiler.tools.openroad import macro_placement
@@ -29,77 +27,6 @@ from siliconcompiler.tools.slang import elaborate
 
 
 class ASICFlow(FlowgraphSchema):
-    def __init__(self):
-        super().__init__()
-        self.set_name("asicflow")
-
-        self.node("elaborate", elaborate.Elaborate())
-        self.node("synthesis", syn_asic.ASICSynthesis())
-        self.edge("elaborate", "synthesis")
-        self.node("floorplan.init", init_floorplan.InitFloorplanTask())
-        self.edge("synthesis", "floorplan.init")
-        self.node("floorplan.macro_placement", macro_placement.MacroPlacementTask())
-        self.edge("floorplan.init", "floorplan.macro_placement")
-        self.node("floorplan.tapcell", endcap_tapcell_insertion.EndCapTapCellTask())
-        self.edge("floorplan.macro_placement", "floorplan.tapcell")
-        self.node("floorplan.power_grid", power_grid.PowerGridTask())
-        self.edge("floorplan.tapcell", "floorplan.power_grid")
-        self.node("floorplan.pin_placement", pin_placement.PinPlacementTask())
-        self.edge("floorplan.power_grid", "floorplan.pin_placement")
-        self.node("place.global", global_placement.GlobalPlacementTask())
-        self.edge("floorplan.pin_placement", "place.global")
-        self.node("place.repair_design", repair_design.RepairDesignTask())
-        self.edge("place.global", "place.repair_design")
-        self.node("place.detailed", detailed_placement.DetailedPlacementTask())
-        self.edge("place.repair_design", "place.detailed")
-        self.node("cts.clock_tree_synthesis", clock_tree_synthesis.CTSTask())
-        self.edge("place.detailed", "cts.clock_tree_synthesis")
-        self.node("cts.repair_timing", repair_timing.RepairTimingTask())
-        self.edge("cts.clock_tree_synthesis", "cts.repair_timing")
-        self.node("cts.fillcell", fillercell_insertion.FillCellTask())
-        self.edge("cts.repair_timing", "cts.fillcell")
-        self.node("route.global", global_route.GlobalRouteTask())
-        self.edge("cts.fillcell", "route.global")
-        self.node("route.antenna_repair", antenna_repair.AntennaRepairTask())
-        self.edge("route.global", "route.antenna_repair")
-        self.node("route.detailed", detailed_route.DetailedRouteTask())
-        self.edge("route.antenna_repair", "route.detailed")
-        self.node("dfm.metal_fill", fillmetal_insertion.FillMetalTask())
-        self.edge("route.detailed", "dfm.metal_fill")
-        self.node("write.views", write_data.WriteViewsTask())
-        self.edge("dfm.metal_fill", "write.views")
-        self.node("write.gds", klayout_export.ExportTask())
-        self.edge("dfm.metal_fill", "write.gds")
-
-
-class HLSASSICFlow(ASICFlow):
-    def __init__(self):
-        super().__init__()
-
-        self.remove_node("elaborate")
-        self.node("convert", ConvertTask())
-        self.edge("convert", "synthesis")
-
-
-############################################################################
-# DOCS
-############################################################################
-def make_docs(chip):
-    n = 3
-    _make_docs(chip)
-    return setup(syn_np=n, floorplan_np=n, physyn_np=n, place_np=n, cts_np=n, route_np=n)
-
-
-###########################################################################
-# Flowgraph Setup
-############################################################################
-def setup(flowname='asicflow',
-          syn_np=1,
-          floorplan_np=1,
-          physyn_np=1,
-          place_np=1,
-          cts_np=1,
-          route_np=1):
     '''
     A configurable ASIC compilation flow.
 
@@ -131,146 +58,116 @@ def setup(flowname='asicflow',
     * cts_np : Number of parallel clock tree synthesis jobs to launch
     * route_np : Number of parallel routing jobs to launch
     '''
+    def __init__(self, name: str = 'asicflow',
+                 syn_np: int = 1,
+                 floorplan_np: int = 1,
+                 place_np: int = 1,
+                 cts_np: int = 1,
+                 route_np: int = 1):
+        super().__init__()
+        self.set_name(name)
 
-    flow = siliconcompiler.Flow(flowname)
+        self.node("elaborate", elaborate.Elaborate())
 
-    # Linear flow, up until branch to run parallel verification steps.
-    longpipe = [
-        'syn',
-        'syn.min',
-        'floorplan.init',
-        'floorplan.macro_placement',
-        'floorplan.tapcell',
-        'floorplan.power_grid',
-        'floorplan.pin_placement',
-        'floorplan.min',
-        'place.global',
-        'place.repair_design',
-        'place.detailed',
-        'place.min',
-        'cts.clock_tree_synthesis',
-        'cts.repair_timing',
-        'cts.fillcell',
-        'cts.min',
-        'route.global',
-        'route.antenna_repair',
-        'route.detailed',
-        'route.min',
-        'dfm.metal_fill'
-    ]
-
-    # step --> task
-    tasks = {
-        'syn': syn_asic,
-        'syn.min': minimum,
-        'floorplan.init': init_floorplan,
-        'floorplan.macro_placement': macro_placement,
-        'floorplan.tapcell': endcap_tapcell_insertion,
-        'floorplan.power_grid': power_grid,
-        'floorplan.pin_placement': pin_placement,
-        'floorplan.min': minimum,
-        'place.global': global_placement,
-        'place.repair_design': repair_design,
-        'place.detailed': detailed_placement,
-        'place.min': minimum,
-        'cts.clock_tree_synthesis': clock_tree_synthesis,
-        'cts.repair_timing': repair_timing,
-        'cts.fillcell': fillercell_insertion,
-        'cts.min': minimum,
-        'route.global': global_route,
-        'route.antenna_repair': antenna_repair,
-        'route.detailed': detailed_route,
-        'route.min': minimum,
-        'dfm.metal_fill': fillmetal_insertion
-    }
-
-    np = {
-        "syn": syn_np,
-        "floorplan": floorplan_np,
-        "physyn": physyn_np,
-        "place": place_np,
-        "cts": cts_np,
-        "route": route_np
-    }
-
-    prevstep = None
-    # Remove built in steps where appropriate
-    flowpipe = []
-    for step in longpipe:
-        task = tasks[step]
-        if task == minimum:
-            np_step = prevstep.split('.')[0]
-            if np_step in np and np[np_step] > 1:
-                flowpipe.append(step)
+        if syn_np > 1:
+            syn_prev_node = "synthesis.min"
+            self.node("synthesis.min", minimum.MinimumTask())
         else:
-            flowpipe.append(step)
-        prevstep = step
+            syn_prev_node = "synthesis"
 
-    flowtasks = []
-    for step in flowpipe:
-        flowtasks.append((step, tasks[step]))
+        for n in range(syn_np):
+            self.node("synthesis", syn_asic.ASICSynthesis(), index=n)
+            self.edge("elaborate", "synthesis", head_index=n)
+            if syn_np > 1:
+                self.edge("synthesis", "synthesis.min", tail_index=n)
 
-    # Programmatically build linear portion of flowgraph and fanin/fanout args
-    prevstep = setup_multiple_frontends(flow)
-    prev_fanout = 1
-    for step, task in flowtasks:
-        fanout = 1
-        np_step = step.split('.')[0]
-        if np_step in np and task != minimum:
-            fanout = np[np_step]
+        if floorplan_np > 1:
+            fp_prev_node = "floorplan.min"
+            self.node("floorplan.min", minimum.MinimumTask())
+        else:
+            fp_prev_node = "floorplan.pin_placement"
 
-        # create nodes
-        for index in range(fanout):
-            # nodes
-            flow.node(flowname, step, task, index=index)
+        for n in range(floorplan_np):
+            self.node("floorplan.init", init_floorplan.InitFloorplanTask(), index=n)
+            self.edge(syn_prev_node, "floorplan.init", head_index=n)
+            self.node("floorplan.macro_placement", macro_placement.MacroPlacementTask(), index=n)
+            self.edge("floorplan.init", "floorplan.macro_placement", tail_index=n, head_index=n)
+            self.node("floorplan.tapcell", endcap_tapcell_insertion.EndCapTapCellTask(), index=n)
+            self.edge("floorplan.macro_placement", "floorplan.tapcell", tail_index=n, head_index=n)
+            self.node("floorplan.power_grid", power_grid.PowerGridTask(), index=n)
+            self.edge("floorplan.tapcell", "floorplan.power_grid", tail_index=n, head_index=n)
+            self.node("floorplan.pin_placement", pin_placement.PinPlacementTask(), index=n)
+            self.edge("floorplan.power_grid", "floorplan.pin_placement", tail_index=n, head_index=n)
+            if floorplan_np > 1:
+                self.edge("floorplan.pin_placement", "floorplan.min", tail_index=n)
 
-        # create edges
-        for index in range(fanout):
-            # edges
-            fanin = prev_fanout
-            if task == minimum:
-                for i in range(fanin):
-                    flow.edge(flowname, prevstep, step, tail_index=i)
-            elif prevstep:
-                if fanin == fanout:
-                    flow.edge(flowname, prevstep, step, tail_index=index, head_index=index)
-                else:
-                    flow.edge(flowname, prevstep, step, head_index=index)
+        if place_np > 1:
+            place_prev_node = "place.min"
+            self.node("place.min", minimum.MinimumTask())
+        else:
+            place_prev_node = "place.detailed"
 
-            # metrics
-            goal_metrics = ()
-            weight_metrics = ()
-            if task in (syn_asic, ):
-                goal_metrics = ('errors',)
-                weight_metrics = ()
-            elif task in (init_floorplan, macro_placement, endcap_tapcell_insertion,
-                          power_grid, pin_placement, global_placement, repair_design,
-                          detailed_placement, clock_tree_synthesis, repair_timing,
-                          fillercell_insertion, global_route, antenna_repair, detailed_route,
-                          fillmetal_insertion):
-                goal_metrics = ('errors', 'setupwns', 'setuptns')
-                weight_metrics = ('cellarea', 'peakpower', 'leakagepower')
+        for n in range(place_np):
+            self.node("place.global", global_placement.GlobalPlacementTask(), index=n)
+            self.edge(fp_prev_node, "place.global", head_index=n)
+            self.node("place.repair_design", repair_design.RepairDesignTask(), index=n)
+            self.edge("place.global", "place.repair_design", tail_index=n, head_index=n)
+            self.node("place.detailed", detailed_placement.DetailedPlacementTask(), index=n)
+            self.edge("place.repair_design", "place.detailed", tail_index=n, head_index=n)
+            if place_np > 1:
+                self.edge("place.detailed", "place.min", tail_index=n)
 
-            for metric in goal_metrics:
-                flow.set('flowgraph', flowname, step, str(index), 'goal', metric, 0)
-            for metric in weight_metrics:
-                flow.set('flowgraph', flowname, step, str(index), 'weight', metric, 1.0)
-        prevstep = step
-        prev_fanout = fanout
+        if cts_np > 1:
+            cts_prev_node = "cts.min"
+            self.node("cts.min", minimum.MinimumTask())
+        else:
+            cts_prev_node = "cts.fillcell"
 
-    # add write information steps
-    flow.node(flowname, 'write.gds', klayout_export)
-    flow.edge(flowname, prevstep, 'write.gds')
-    flow.node(flowname, 'write.views', write_data)
-    flow.edge(flowname, prevstep, 'write.views')
+        for n in range(cts_np):
+            self.node("cts.clock_tree_synthesis", clock_tree_synthesis.CTSTask(), index=n)
+            self.edge(place_prev_node, "cts.clock_tree_synthesis", head_index=n)
+            self.node("cts.repair_timing", repair_timing.RepairTimingTask(), index=n)
+            self.edge("cts.clock_tree_synthesis", "cts.repair_timing", tail_index=n, head_index=n)
+            self.node("cts.fillcell", fillercell_insertion.FillCellTask(), index=n)
+            self.edge("cts.repair_timing", "cts.fillcell", tail_index=n, head_index=n)
+            if cts_np > 1:
+                self.edge("cts.fillcell", "cts.min", tail_index=n)
 
-    return flow
+        if route_np > 1:
+            route_prev_node = "route.min"
+            self.node("route.min", minimum.MinimumTask())
+        else:
+            route_prev_node = "route.detailed"
+
+        for n in range(route_np):
+            self.node("route.global", global_route.GlobalRouteTask(), index=n)
+            self.edge(cts_prev_node, "route.global", head_index=n)
+            self.node("route.antenna_repair", antenna_repair.AntennaRepairTask(), index=n)
+            self.edge("route.global", "route.antenna_repair", tail_index=n, head_index=n)
+            self.node("route.detailed", detailed_route.DetailedRouteTask(), index=n)
+            self.edge("route.antenna_repair", "route.detailed", tail_index=n, head_index=n)
+            if route_np > 1:
+                self.edge("route.detailed", "route.min", tail_index=n)
+
+        self.node("dfm.metal_fill", fillmetal_insertion.FillMetalTask())
+        self.edge(route_prev_node, "dfm.metal_fill")
+
+        self.node("write.views", write_data.WriteViewsTask())
+        self.edge("dfm.metal_fill", "write.views")
+        self.node("write.gds", klayout_export.ExportTask())
+        self.edge("dfm.metal_fill", "write.gds")
+
+
+class HLSASSICFlow(ASICFlow):
+    def __init__(self):
+        super().__init__()
+
+        self.remove_node("elaborate")
+        self.node("convert", ConvertTask())
+        self.edge("convert", "synthesis")
 
 
 ##################################################
 if __name__ == "__main__":
-    chip = siliconcompiler.Chip('design')
-    chip.set('input', 'constraint', 'sdc', 'test')
-    flow = make_docs(chip)
-    chip.use(flow)
-    chip.write_flowgraph(f"{flow.top()}.png", flow=flow.top())
+    flow = ASICFlow(syn_np=3, floorplan_np=3, place_np=3, cts_np=3, route_np=3)
+    flow.write_flowgraph(f"{flow.name}.png")

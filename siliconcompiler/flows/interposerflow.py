@@ -14,3 +14,9 @@ class InterposerFlow(FlowgraphSchema):
         self.node("rdlroute", rdlroute.RDLRouteTask())
         self.node("write_gds", export.ExportTask())
         self.edge('rdlroute', 'write_gds')
+
+
+##################################################
+if __name__ == "__main__":
+    flow = InterposerFlow()
+    flow.write_flowgraph(f"{flow.name}.png")

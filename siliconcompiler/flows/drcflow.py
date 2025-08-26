@@ -1,13 +1,18 @@
-from siliconcompiler import Flow
-
+from siliconcompiler import FlowgraphSchema
 from siliconcompiler.tools.klayout import drc
 
 
-def setup():
+class DRCFlow(FlowgraphSchema):
     '''
     Perform a DRC run on an input GDS
     '''
-    flow = Flow('drcflow')
-    flow.node('drcflow', 'drc', drc)
+    def __init__(self, name: str = "drcflow"):
+        super().__init__(name)
 
-    return flow
+        self.node("drc", drc.DRCTask())
+
+
+##################################################
+if __name__ == "__main__":
+    flow = DRCFlow()
+    flow.write_flowgraph(f"{flow.name}.png")

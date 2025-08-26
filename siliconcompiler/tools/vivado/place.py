@@ -1,7 +1,7 @@
 from siliconcompiler.tools.vivado import VivadoTask
 
 
-class SynthesisTask(VivadoTask):
+class PlaceTask(VivadoTask):
     '''Performs placement.'''
     def task(self):
         return "place"

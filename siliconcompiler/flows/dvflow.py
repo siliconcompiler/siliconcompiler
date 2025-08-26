@@ -11,30 +11,6 @@ from siliconcompiler import FlowgraphSchema
 
 
 class DVFlow(FlowgraphSchema):
-    def __init__(self, N: int = 1):
-        super().__init__()
-        self.set_name("dvflow")
-
-        self.node("compile", icarus_compile.CompileTask())
-        for n in range(N):
-            self.node("execute", exec_input.ExecInputTask(), index=n)
-            self.edge("compile", "execute", head_index=n)
-
-
-############################################################################
-# DOCS
-############################################################################
-def make_docs(chip):
-    chip.set('input', 'rtl', 'netlist', 'test')
-    return setup(np=5)
-
-
-#############################################################################
-# Flowgraph Setup
-#############################################################################
-def setup(flowname='dvflow',
-          tool='icarus',
-          np=1):
     '''
     A configurable constrained random stimulus DV flow.
 
@@ -56,81 +32,36 @@ def setup(flowname='dvflow',
 
     This flow is a WIP
     '''
+    def __init__(self, name: str = None, tool: str = "icarus", np: int = 1):
+        if name is None:
+            name = f"dvflow-{tool}"
+        super().__init__(name)
 
-    flow = siliconcompiler.Flow(flowname)
+        if tool == "icarus":
+            self.node("compile", icarus_compile.CompileTask())
+            sim_task = exec_input.ExecInputTask()
+            com_name = "compile"
+        elif tool == "verilator":
+            self.node("compile", verilator_compile.CompileTask())
+            sim_task = exec_input.ExecInputTask()
+            com_name = "compile"
+        elif tool == "xyce":
+            sim_task = xyce_simulate.SimulateTask()
+            com_name = None
+        elif tool == "xdm-xyce":
+            self.node("compile", xdm_convert.ConvertTask())
+            sim_task = xyce_simulate.SimulateTask()
+            com_name = "compile"
+        else:
+            raise ValueError(f'{tool} is not a supported tool')
 
-    tasks = {}
-    flow_np = {}
-
-    if tool == 'icarus':
-        tasks['compile'] = icarus_compile
-        tasks['sim'] = exec_input
-
-        flowpipe = [
-            'compile',
-            'sim'
-        ]
-        flow_np = {
-            'compile': 1,
-            'sim': np
-        }
-    elif tool == 'verilator':
-        tasks['compile'] = verilator_compile
-        tasks['sim'] = exec_input
-
-        flowpipe = [
-            'compile',
-            'sim'
-        ]
-        flow_np = {
-            'compile': 1,
-            'sim': np
-        }
-    elif tool == 'xyce':
-        tasks['sim'] = xyce_simulate
-
-        flowpipe = [
-            'sim'
-        ]
-        flow_np = {
-            'sim': np
-        }
-    elif tool == 'xdm-xyce':
-        tasks['compile'] = xdm_convert
-        tasks['sim'] = xyce_simulate
-
-        flowpipe = [
-            'compile',
-            'sim'
-        ]
-        flow_np = {
-            'compile': 1,
-            'sim': np
-        }
-    else:
-        raise ValueError(f'{tool} is not a supported tool for {flowname}')
-
-    prevstep = None
-    # Flow setup
-    for step in flowpipe:
-        task = tasks[step]
-
-        parallel = flow_np[step]
-
-        for n in range(parallel):
-            flow.node(flowname, step, task, index=n)
-
-            if prevstep:
-                flow.edge(flowname, prevstep, step, tail_index=0, head_index=n)
-
-        prevstep = step
-
-    return flow
+        for n in range(np):
+            self.node("simulate", sim_task, index=n)
+            if com_name:
+                self.edge(com_name, "simulate", head_index=n)
 
 
 ##################################################
 if __name__ == "__main__":
-    chip = siliconcompiler.Chip('design')
-    flow = make_docs(chip)
-    chip.use(flow)
-    chip.write_flowgraph(f"{flow.top()}.png", flow=flow.top())
+    flow = DVFlow(np=3)
+    flow.write_flowgraph(f"{flow.name}.png")
