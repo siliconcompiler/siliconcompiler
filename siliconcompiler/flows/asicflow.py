@@ -175,7 +175,7 @@ class HLSASSICFlow(ASICFlow):
         """
         Initializes the HLSASSICFlow.
         """
-        super().__init__()
+        super().__init__("hlsasicflow")
 
         self.remove_node("elaborate")
         self.node("convert", ConvertTask())

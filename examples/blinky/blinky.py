@@ -1,22 +1,43 @@
 #!/usr/bin/env python3
 
-from siliconcompiler import Chip
-from siliconcompiler.targets import fpgaflow_demo
+from siliconcompiler import FPGAProject, DesignSchema, FPGASchema
+from siliconcompiler.flows import fpgaflow
 
 
 def main():
-    chip = Chip('blinky')
+    '''RTL2bitstream flow'''
 
-    chip.register_source("blinky-example", __file__)
+    # Create design
+    design = DesignSchema("blinky")
+    design.set_dataroot("blinky", __file__)
+    with design.active_dataroot("blinky"), design.active_fileset("rtl"):
+        design.set_topmodule("blinky")
+        design.add_file("blinky.v")
+    with design.active_dataroot("blinky"), design.active_fileset("pcf"):
+        design.add_file("icebreaker.pcf")
 
-    chip.input("blinky.v", package="blinky-example")
-    chip.input("icebreaker.pcf", package="blinky-example")
-    chip.set('fpga', 'partname', 'ice40up5k-sg48')
+    # Create project
+    project = FPGAProject(design)
 
-    chip.use(fpgaflow_demo)
+    # Define filesets
+    project.add_fileset("rtl")
+    project.add_fileset("pcf")
 
-    chip.run()
-    chip.summary()
+    # Load FPGA
+    fpga = FPGASchema("ice40")
+    fpga.set_partname("ice40up5k-sg48")
+    project.set_fpga(fpga)
+
+    # Load flow
+    project.set_flow(fpgaflow.FPGANextPNRFlow())
+
+    # Run
+    assert project.run()
+
+    # Analyze
+    project.summary()
+
+    return project
 
 
 if __name__ == '__main__':

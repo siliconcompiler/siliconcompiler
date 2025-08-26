@@ -44,8 +44,8 @@ class FPGASynthesis(YosysTask):
                 self.add_required_key("library", self.design_name, "fileset",
                                       self.schema().get("option", "fileset")[0], "file", "verilog")
             else:
-                for key in filekeys:
-                    self.add_required_key(*key)
+                for lib, key in filekeys:
+                    self.add_required_key(lib, *key)
                 # TODO, mark required for define and params
 
         self.add_output_file(ext="vg")
