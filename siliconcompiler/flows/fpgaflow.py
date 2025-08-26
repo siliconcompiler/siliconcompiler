@@ -36,7 +36,9 @@ class FPGAXilinxFlow(FlowgraphSchema):
         """
         super().__init__(name)
 
+        self.node("elaborate", elaborate.Elaborate())
         self.node("syn_fpga", vivado_syn.SynthesisTask())
+        self.edge("elaborate", "syn_fpga")
         self.node("place", vivado_place.PlaceTask())
         self.edge("syn_fpga", "place")
         self.node("route", vivado_route.RouteTask())
@@ -65,7 +67,9 @@ class FPGANextPNRFlow(FlowgraphSchema):
         """
         super().__init__(name)
 
+        self.node("elaborate", elaborate.Elaborate())
         self.node("syn_fpga", yosys_syn.FPGASynthesis())
+        self.edge("elaborate", "syn_fpga")
         self.node("apr", nextpnr_apr.APRTask())
         self.edge("syn_fpga", "apr")
 

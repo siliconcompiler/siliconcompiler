@@ -4,7 +4,7 @@ from siliconcompiler import ASICProject, DesignSchema
 from siliconcompiler.targets import freepdk45_demo
 
 
-def rtl2gds():
+def main():
     '''RTL2GDS flow'''
 
     # Create design
@@ -26,14 +26,14 @@ def rtl2gds():
     # Load target
     project.load_target(freepdk45_demo.setup)
 
-    # RUN
+    # Run
     project.run()
 
-    # ANALYZE
+    # Analyze
     project.summary()
 
     return project
 
 
 if __name__ == '__main__':
-    rtl2gds()
+    main()
