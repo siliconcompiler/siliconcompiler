@@ -6,10 +6,10 @@ from siliconcompiler.flows.dvflow import DVFlow
 from siliconcompiler.flows.fpgaflow import FPGANextPNRFlow, FPGAVPRFlow, FPGAXilinxFlow
 from siliconcompiler.flows.generate_openroad_rcx import GenerateOpenRCXFlow
 from siliconcompiler.flows.interposerflow import InterposerFlow
-from siliconcompiler.flows.lintflow import LintFlowgraph
+from siliconcompiler.flows.lintflow import LintFlow
 from siliconcompiler.flows.showflow import ShowFlow
 from siliconcompiler.flows.signoffflow import SignoffFlow
-from siliconcompiler.flows.synflow import SynthesisFlowgraph
+from siliconcompiler.flows.synflow import SynthesisFlow
 
 from siliconcompiler.tools.builtin.nop import NOPTask
 
@@ -21,10 +21,10 @@ from siliconcompiler.tools.builtin.nop import NOPTask
     FPGANextPNRFlow(), FPGAVPRFlow(), FPGAXilinxFlow(),
     GenerateOpenRCXFlow(NOPTask()),
     InterposerFlow(),
-    LintFlowgraph(tool="slang"), LintFlowgraph(tool="verilator"),
+    LintFlow(tool="slang"), LintFlow(tool="verilator"),
     ShowFlow(NOPTask()),
     SignoffFlow(),
-    SynthesisFlowgraph()
+    SynthesisFlow()
 ])
 def test_default_valid(flow: ASICFlow):
     assert flow.validate()

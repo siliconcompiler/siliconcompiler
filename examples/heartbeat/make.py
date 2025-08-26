@@ -5,8 +5,8 @@ from siliconcompiler import DesignSchema
 from siliconcompiler.project import LintProject, SimProject
 from siliconcompiler import ASICProject
 
-from siliconcompiler.flows.lintflow import LintFlowgraph
-from siliconcompiler.flows.synflow import SynthesisFlowgraph
+from siliconcompiler.flows.lintflow import LintFlow
+from siliconcompiler.flows.synflow import SynthesisFlow
 from siliconcompiler.flows.dvflow import DVFlow
 from siliconcompiler.flows.asicflow import ASICFlow
 
@@ -57,7 +57,7 @@ def lint(N: str = None):
     if N is not None:
         hb.set_param("N", N, fileset="rtl")
 
-    project.set_flow(LintFlowgraph())
+    project.set_flow(LintFlow())
 
     project.run(raise_exception=True)
     project.summary()
@@ -71,7 +71,7 @@ def syn(pdk: str = "freepdk45", N: str = None):
     project.set_design(hb)
     project.add_fileset("rtl")
     project.add_fileset(f"rtl.{pdk}")
-    project.set_flow(SynthesisFlowgraph())
+    project.set_flow(SynthesisFlow())
 
     if N is not None:
         hb.set_param("N", N, fileset="rtl")

@@ -7,7 +7,7 @@ from siliconcompiler import FlowgraphSchema
 from siliconcompiler.tools.slang import elaborate
 
 
-class SynthesisFlowgraph(FlowgraphSchema):
+class SynthesisFlow(FlowgraphSchema):
     '''A configurable ASIC synthesis flow with static timing analysis.
 
     This flow translates RTL designs into a gate-level netlist and then
@@ -62,5 +62,5 @@ class SynthesisFlowgraph(FlowgraphSchema):
 
 ##################################################
 if __name__ == "__main__":
-    flow = SynthesisFlowgraph(syn_np=3, timing_np=3)
+    flow = SynthesisFlow(syn_np=3, timing_np=3)
     flow.write_flowgraph(f"{flow.name}.png")
