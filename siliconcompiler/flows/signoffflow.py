@@ -7,11 +7,24 @@ from siliconcompiler import FlowgraphSchema
 
 
 class SignoffFlow(FlowgraphSchema):
-    '''
-    A flow for running LVS/DRC signoff on a GDS layout.
+    '''A flow for running LVS/DRC signoff on a GDS layout.
+
+    This flow performs two key physical verification steps in parallel:
+    1. Design Rule Checking (DRC) using Magic.
+    2. Layout Versus Schematic (LVS) checking using Netgen.
+
+    The LVS step first requires extracting a SPICE netlist from the layout,
+    which is also handled by Magic. A final 'join' step ensures that both
+    DRC and LVS tasks must complete successfully for the flow to finish.
     '''
 
     def __init__(self, name: str = "signoffflow"):
+        """
+        Initializes the SignoffFlow.
+
+        Args:
+            name (str): The name of the flow.
+        """
         super().__init__(name)
 
         self.node("drc", drc.DRCTask())

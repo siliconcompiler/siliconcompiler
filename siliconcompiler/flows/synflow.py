@@ -8,25 +8,32 @@ from siliconcompiler.tools.slang import elaborate
 
 
 class SynthesisFlowgraph(FlowgraphSchema):
-    '''
-    A configurable ASIC synthesis flow with static timing.
+    '''A configurable ASIC synthesis flow with static timing analysis.
 
-    The 'synflow' includes the stages below. The steps syn have
-    minimization associated with them.
-    To view the flowgraph, see the .png file.
+    This flow translates RTL designs into a gate-level netlist and then
+    performs static timing analysis (STA) on the result. It allows for
+    parallel execution of both synthesis and timing steps to explore different
+    strategies or speed up execution.
 
-    * **import**: Sources are collected and packaged for compilation
-    * **syn**: Translates RTL to netlist using Yosys
-    * **timing**: Create timing reports of design
-
-    The syn and timing steps supports per process
-    options that can be set up by setting 'syn_np' or 'timing_np'
-    arg to a value > 1, as detailed below:
-
-    * syn_np : Number of parallel synthesis jobs to launch
-    * timing_np : Number of parallel timing jobs to launch
+    The flow consists of the following steps:
+    * **elaborate**: Elaborates the RTL design from its source files.
+    * **synthesis**: Translates the elaborated RTL into a gate-level netlist
+      using Yosys.
+    * **timing**: Performs static timing analysis on the synthesized netlist
+      using OpenSTA.
     '''
     def __init__(self, name: str = "synflow", syn_np: int = 1, timing_np: int = 1):
+        """
+        Initializes the SynthesisFlowgraph.
+
+        Args:
+            name (str): The name of the flow.
+            syn_np (int): The number of parallel synthesis jobs to launch. If
+                greater than 1, a 'minimum' step is added to select the best
+                result.
+            timing_np (int): The number of parallel timing analysis jobs to
+                launch.
+        """
         super().__init__()
         self.set_name(name)
 

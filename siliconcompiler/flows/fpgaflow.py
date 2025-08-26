@@ -16,35 +16,24 @@ from siliconcompiler.tools.slang import elaborate
 
 
 class FPGAXilinxFlow(FlowgraphSchema):
-    '''
-    A configurable FPGA compilation flow.
+    '''An FPGA compilation flow targeting Xilinx devices using Vivado.
 
-    The 'fpgaflow' module is a configurable FPGA flow with support for
-    open source and commercial tool flows.
+    This flow uses the commercial Vivado toolchain for synthesis, placement,
+    routing, and bitstream generation.
 
-    The following step convention is recommended for VPR.
-
-    * **import**: Sources are collected and packaged for compilation
-    * **syn**: Synthesize RTL into an device specific netlist
-    * **place**: FPGA specific placement step
-    * **route**: FPGA specific routing step
-    * **bitstream**: Bitstream generation
-
-    Note that nextpnr does not appear to support breaking placement, routing,
-    and bitstream generation into individual steps, leading to the following
-    recommended step convention
-
-    * **import**: Sources are collected and packaged for compilation
-    * **syn**: Synthesize RTL into an device specific netlist
-    * **apr**: One-step execution of place, route, bitstream with nextpnr
-
-    Args:
-        - fpgaflow_type (str): this parameter can be used to select a specific
-          fpga flow instead of one selected from the partname.
-        - partname (str): this parameter can be used to select a specific fpga
-          flow instead of one selected from the partname set in the schema.
+    The flow consists of the following steps:
+    * **syn_fpga**: Synthesize RTL into a device-specific netlist.
+    * **place**: Place the synthesized netlist onto the FPGA fabric.
+    * **route**: Route the connections between placed components.
+    * **bitstream**: Generate the final bitstream for device programming.
     '''
     def __init__(self, name: str = "fpgaflow-xilinx"):
+        """
+        Initializes the FPGAXilinxFlow.
+
+        Args:
+            name (str): The name of the flow.
+        """
         super().__init__(name)
 
         self.node("syn_fpga", vivado_syn.SynthesisTask())
@@ -57,35 +46,23 @@ class FPGAXilinxFlow(FlowgraphSchema):
 
 
 class FPGANextPNRFlow(FlowgraphSchema):
-    '''
-    A configurable FPGA compilation flow.
+    '''An open-source FPGA flow using Yosys and NextPNR.
 
-    The 'fpgaflow' module is a configurable FPGA flow with support for
-    open source and commercial tool flows.
+    This flow is tailored for FPGAs supported by the NextPNR tool, which
+    handles placement, routing, and bitstream generation in a single step.
 
-    The following step convention is recommended for VPR.
-
-    * **import**: Sources are collected and packaged for compilation
-    * **syn**: Synthesize RTL into an device specific netlist
-    * **place**: FPGA specific placement step
-    * **route**: FPGA specific routing step
-    * **bitstream**: Bitstream generation
-
-    Note that nextpnr does not appear to support breaking placement, routing,
-    and bitstream generation into individual steps, leading to the following
-    recommended step convention
-
-    * **import**: Sources are collected and packaged for compilation
-    * **syn**: Synthesize RTL into an device specific netlist
-    * **apr**: One-step execution of place, route, bitstream with nextpnr
-
-    Args:
-        - fpgaflow_type (str): this parameter can be used to select a specific
-          fpga flow instead of one selected from the partname.
-        - partname (str): this parameter can be used to select a specific fpga
-          flow instead of one selected from the partname set in the schema.
+    The flow consists of the following steps:
+    * **syn_fpga**: Synthesize RTL into a device-specific netlist using Yosys.
+    * **apr**: Perform automatic place and route (APR) and generate the
+      bitstream using NextPNR.
     '''
     def __init__(self, name: str = "fpgaflow-nextpnr"):
+        """
+        Initializes the FPGANextPNRFlow.
+
+        Args:
+            name (str): The name of the flow.
+        """
         super().__init__(name)
 
         self.node("syn_fpga", yosys_syn.FPGASynthesis())
@@ -94,35 +71,25 @@ class FPGANextPNRFlow(FlowgraphSchema):
 
 
 class FPGAVPRFlow(FlowgraphSchema):
-    '''
-    A configurable FPGA compilation flow.
+    '''An open-source FPGA flow using Yosys, VPR, and GenFasm.
 
-    The 'fpgaflow' module is a configurable FPGA flow with support for
-    open source and commercial tool flows.
+    This flow is designed for academic and research FPGAs, utilizing VPR
+    (Versatile Place and Route) for placement and routing.
 
-    The following step convention is recommended for VPR.
-
-    * **import**: Sources are collected and packaged for compilation
-    * **syn**: Synthesize RTL into an device specific netlist
-    * **place**: FPGA specific placement step
-    * **route**: FPGA specific routing step
-    * **bitstream**: Bitstream generation
-
-    Note that nextpnr does not appear to support breaking placement, routing,
-    and bitstream generation into individual steps, leading to the following
-    recommended step convention
-
-    * **import**: Sources are collected and packaged for compilation
-    * **syn**: Synthesize RTL into an device specific netlist
-    * **apr**: One-step execution of place, route, bitstream with nextpnr
-
-    Args:
-        - fpgaflow_type (str): this parameter can be used to select a specific
-          fpga flow instead of one selected from the partname.
-        - partname (str): this parameter can be used to select a specific fpga
-          flow instead of one selected from the partname set in the schema.
+    The flow consists of the following steps:
+    * **elaborate**: Elaborate the RTL design from sources.
+    * **synthesis**: Synthesize the elaborated design into a netlist using Yosys.
+    * **place**: Place the netlist components onto the FPGA architecture using VPR.
+    * **route**: Route the connections between placed components using VPR.
+    * **bitstream**: Generate the final bitstream using GenFasm.
     '''
     def __init__(self, name: str = "fpgaflow-vpr"):
+        """
+        Initializes the FPGAVPRFlow.
+
+        Args:
+            name (str): The name of the flow.
+        """
         super().__init__(name)
 
         self.node("elaborate", elaborate.Elaborate())

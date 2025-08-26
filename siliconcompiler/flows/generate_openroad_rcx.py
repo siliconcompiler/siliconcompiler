@@ -6,11 +6,41 @@ from siliconcompiler import FlowgraphSchema, TaskSchema
 
 
 class GenerateOpenRCXFlow(FlowgraphSchema):
+    '''A flow to generate OpenRCX parasitic extraction decks for OpenROAD.
+
+    This flow automates the process of characterizing a parasitic extraction
+    tool to generate the necessary configuration files (RCX decks) for
+    OpenROAD's built-in OpenRCX engine. It works by comparing the output of a
+    third-party "golden" extraction tool against OpenRCX's results and
+    calibrating OpenRCX accordingly.
+
+    The flow consists of the following main steps for each specified corner:
+    1. **bench**: A benchmark design with simple structures is created.
+    2. **pex**: A user-provided third-party PEX tool is run on the benchmark
+       to generate a "golden" SPEF file.
+    3. **extract**: The golden SPEF is used to generate a calibrated OpenRCX
+       deck.
     '''
-    Flow to generate the OpenRCX decks needed by OpenROAD to do parasitic
-    extraction.
-    '''
-    def __init__(self, extraction_task: TaskSchema = None, corners: int = 1, serial_extraction: bool = False):
+    def __init__(self, extraction_task: TaskSchema = None, corners: int = 1,
+                 serial_extraction: bool = False):
+        """
+        Initializes the GenerateOpenRCXFlow.
+
+        Args:
+            extraction_task (TaskSchema): The SiliconCompiler task schema for the
+                third-party PEX tool that will be used to generate the golden
+                SPEF files. This is a required parameter.
+            corners (int): The number of process corners to generate RCX decks
+                for. A separate 'pex' and 'extract' step will be created for
+                each corner.
+            serial_extraction (bool): If True, forces the 'pex' steps for each
+                corner to run sequentially rather than in parallel. This can be
+                useful when the PEX tool has license limitations that prevent
+                multiple concurrent runs.
+
+        Raises:
+            ValueError: If `extraction_task` is not provided.
+        """
         super().__init__("generate_rcx")
 
         if extraction_task is None:

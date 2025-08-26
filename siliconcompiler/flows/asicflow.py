@@ -27,36 +27,31 @@ from siliconcompiler.tools.slang import elaborate
 
 
 class ASICFlow(FlowgraphSchema):
-    '''
-    A configurable ASIC compilation flow.
+    '''A configurable ASIC compilation flow.
 
-    The 'asicflow' includes the stages below. The steps syn, floorplan,
-    physyn, place, cts, route, and dfm have minimization associated
-    with them. To view the flowgraph, see the .png file.
+    This flow targets ASIC designs, taking RTL through a complete synthesis,
+    place-and-route, and finishing flow.
 
-    * **import**: Sources are collected and packaged for compilation
-    * **syn**: Translates RTL to netlist using Yosys
-    * **floorplan**: Floorplanning
-    * **physyn**: Physical Synthesis
-    * **place**: Global and detailed placement
-    * **cts**: Clock tree synthesis
-    * **route**: Global and detailed routing
-    * **dfm**: Metal fill, atenna fixes and any other post routing steps
-    * **export**: Export design from APR tool and merge with library GDS
-    * **sta**: Static timing analysis (signoff)
-    * **lvs**: Layout versus schematic check (signoff)
-    * **drc**: Design rule check (signoff)
+    The flow is divided into the following major steps:
+    * **elaborate**: RTL elaboration using Slang.
+    * **synthesis**: RTL synthesis using Yosys.
+    * **floorplan**: Floorplanning, including macro placement, tapcell/endcap
+      insertion, power grid generation, and pin placement.
+    * **place**: Global and detailed placement.
+    * **cts**: Clock tree synthesis and post-CTS timing repair.
+    * **route**: Global and detailed routing.
+    * **dfm**: Design-for-manufacturing steps, primarily metal fill.
+    * **write**: Writing out final views of the design (GDSII, etc.).
 
-    The syn, physyn, place, cts, route steps supports per process
-    options that can be set up by setting '<step>_np'
-    arg to a value > 1, as detailed below:
+    The synthesis, floorplan, place, cts, and route steps support parallel
+    execution to explore different strategies. This can be configured by
+    setting the corresponding '_np' argument to a value greater than 1.
 
-    * syn_np : Number of parallel synthesis jobs to launch
-    * floorplan_np : Number of parallel floorplan jobs to launch
-    * physyn_np : Number of parallel physical synthesis jobs to launch
-    * place_np : Number of parallel place jobs to launch
-    * cts_np : Number of parallel clock tree synthesis jobs to launch
-    * route_np : Number of parallel routing jobs to launch
+    * **syn_np**: Number of parallel synthesis jobs to launch.
+    * **floorplan_np**: Number of parallel floorplan jobs to launch.
+    * **place_np**: Number of parallel placement jobs to launch.
+    * **cts_np**: Number of parallel clock tree synthesis jobs to launch.
+    * **route_np**: Number of parallel routing jobs to launch.
     '''
     def __init__(self, name: str = 'asicflow',
                  syn_np: int = 1,
@@ -64,6 +59,17 @@ class ASICFlow(FlowgraphSchema):
                  place_np: int = 1,
                  cts_np: int = 1,
                  route_np: int = 1):
+        """
+        Initializes the ASICFlow with configurable parallel execution.
+
+        Args:
+            name (str): The name of the flow.
+            syn_np (int): The number of parallel synthesis jobs to launch.
+            floorplan_np (int): The number of parallel floorplan jobs to launch.
+            place_np (int): The number of parallel placement jobs to launch.
+            cts_np (int): The number of parallel clock tree synthesis jobs to launch.
+            route_np (int): The number of parallel routing jobs to launch.
+        """
         super().__init__()
         self.set_name(name)
 
@@ -159,7 +165,16 @@ class ASICFlow(FlowgraphSchema):
 
 
 class HLSASSICFlow(ASICFlow):
+    '''A High-Level Synthesis (HLS) extension of the ASICFlow.
+
+    This class inherits from ASICFlow and modifies it to support HLS by
+    replacing the initial 'elaborate' step with a 'convert' step, which
+    handles the conversion of HLS code to RTL.
+    '''
     def __init__(self):
+        """
+        Initializes the HLSASSICFlow.
+        """
         super().__init__()
 
         self.remove_node("elaborate")

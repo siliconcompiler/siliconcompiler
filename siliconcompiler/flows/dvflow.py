@@ -1,5 +1,3 @@
-import siliconcompiler
-
 from siliconcompiler.tools.icarus import compile as icarus_compile
 from siliconcompiler.tools.verilator import compile as verilator_compile
 from siliconcompiler.tools.execute import exec_input
@@ -16,23 +14,33 @@ class DVFlow(FlowgraphSchema):
 
     The verification pipeline includes the following steps:
 
-    * **compile**: RTL sources are compiled into object form (once)
-    * **sim**: Compiled RTL is exercised using generated test
+    * **compile**: RTL sources are compiled into an intermediate format.
+    * **sim**: The compiled design is simulated with a generated testbench.
 
-    The dvflow can be parametrized using a single 'np' parameter.
-    Setting 'np' > 1 results in multiple independent verification
-    pipelines to be launched.
+    The dvflow can be parametrized using the 'np' parameter. Setting 'np' > 1
+    results in multiple independent verification pipelines being launched in
+    parallel.
 
     Supported tools are:
-
-    * icarus
-    * verilator
-    * xyce
-    * xdm-xyce
-
-    This flow is a WIP
+    * 'icarus': Compiles and simulates with the Icarus Verilog simulator.
+    * 'verilator': Compiles and simulates with Verilator.
+    * 'xyce': Simulates a netlist with the Xyce circuit simulator.
+    * 'xdm-xyce': Converts a design to a Xyce-compatible format and simulates.
     '''
     def __init__(self, name: str = None, tool: str = "icarus", np: int = 1):
+        """
+        Initializes the DVFlow with a specified tool and parallelism.
+
+        Args:
+            name (str, optional): The name of the flow. If not provided, it
+                defaults to 'dvflow-<tool>'.
+            tool (str): The simulation tool to use. Supported options are
+                'icarus', 'verilator', 'xyce', and 'xdm-xyce'.
+            np (int): The number of parallel simulation jobs to launch.
+
+        Raises:
+            ValueError: If an unsupported tool is specified.
+        """
         if name is None:
             name = f"dvflow-{tool}"
         super().__init__(name)
