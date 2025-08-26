@@ -1,5 +1,3 @@
-import siliconcompiler
-
 from siliconcompiler.tools.icarus import compile as icarus_compile
 from siliconcompiler.tools.verilator import compile as verilator_compile
 from siliconcompiler.tools.execute import exec_input
@@ -11,126 +9,67 @@ from siliconcompiler import FlowgraphSchema
 
 
 class DVFlow(FlowgraphSchema):
-    def __init__(self, N: int = 1):
-        super().__init__()
-        self.set_name("dvflow")
-
-        self.node("compile", icarus_compile.CompileTask())
-        for n in range(N):
-            self.node("execute", exec_input.ExecInputTask(), index=n)
-            self.edge("compile", "execute", head_index=n)
-
-
-############################################################################
-# DOCS
-############################################################################
-def make_docs(chip):
-    chip.set('input', 'rtl', 'netlist', 'test')
-    return setup(np=5)
-
-
-#############################################################################
-# Flowgraph Setup
-#############################################################################
-def setup(flowname='dvflow',
-          tool='icarus',
-          np=1):
     '''
     A configurable constrained random stimulus DV flow.
 
     The verification pipeline includes the following steps:
 
-    * **compile**: RTL sources are compiled into object form (once)
-    * **sim**: Compiled RTL is exercised using generated test
+    * **compile**: RTL sources are compiled into an intermediate format.
+    * **sim**: The compiled design is simulated with a generated testbench.
 
-    The dvflow can be parametrized using a single 'np' parameter.
-    Setting 'np' > 1 results in multiple independent verification
-    pipelines to be launched.
+    The dvflow can be parametrized using the 'np' parameter. Setting 'np' > 1
+    results in multiple independent verification pipelines being launched in
+    parallel.
 
     Supported tools are:
-
-    * icarus
-    * verilator
-    * xyce
-    * xdm-xyce
-
-    This flow is a WIP
+    * 'icarus': Compiles and simulates with the Icarus Verilog simulator.
+    * 'verilator': Compiles and simulates with Verilator.
+    * 'xyce': Simulates a netlist with the Xyce circuit simulator.
+    * 'xdm-xyce': Converts a design to a Xyce-compatible format and simulates.
     '''
+    def __init__(self, name: str = None, tool: str = "icarus", np: int = 1):
+        """
+        Initializes the DVFlow with a specified tool and parallelism.
 
-    flow = siliconcompiler.Flow(flowname)
+        Args:
+            name (str, optional): The name of the flow. If not provided, it
+                defaults to 'dvflow-<tool>'.
+            tool (str): The simulation tool to use. Supported options are
+                'icarus', 'verilator', 'xyce', and 'xdm-xyce'.
+            np (int): The number of parallel simulation jobs to launch.
 
-    tasks = {}
-    flow_np = {}
+        Raises:
+            ValueError: If an unsupported tool is specified.
+        """
+        if name is None:
+            name = f"dvflow-{tool}"
+        super().__init__(name)
 
-    if tool == 'icarus':
-        tasks['compile'] = icarus_compile
-        tasks['sim'] = exec_input
+        if tool == "icarus":
+            self.node("compile", icarus_compile.CompileTask())
+            sim_task = exec_input.ExecInputTask()
+            com_name = "compile"
+        elif tool == "verilator":
+            self.node("compile", verilator_compile.CompileTask())
+            sim_task = exec_input.ExecInputTask()
+            com_name = "compile"
+        elif tool == "xyce":
+            sim_task = xyce_simulate.SimulateTask()
+            com_name = None
+        elif tool == "xdm-xyce":
+            self.node("compile", xdm_convert.ConvertTask())
+            sim_task = xyce_simulate.SimulateTask()
+            com_name = "compile"
+        else:
+            raise ValueError(f'{tool} is not a supported tool')
 
-        flowpipe = [
-            'compile',
-            'sim'
-        ]
-        flow_np = {
-            'compile': 1,
-            'sim': np
-        }
-    elif tool == 'verilator':
-        tasks['compile'] = verilator_compile
-        tasks['sim'] = exec_input
-
-        flowpipe = [
-            'compile',
-            'sim'
-        ]
-        flow_np = {
-            'compile': 1,
-            'sim': np
-        }
-    elif tool == 'xyce':
-        tasks['sim'] = xyce_simulate
-
-        flowpipe = [
-            'sim'
-        ]
-        flow_np = {
-            'sim': np
-        }
-    elif tool == 'xdm-xyce':
-        tasks['compile'] = xdm_convert
-        tasks['sim'] = xyce_simulate
-
-        flowpipe = [
-            'compile',
-            'sim'
-        ]
-        flow_np = {
-            'compile': 1,
-            'sim': np
-        }
-    else:
-        raise ValueError(f'{tool} is not a supported tool for {flowname}')
-
-    prevstep = None
-    # Flow setup
-    for step in flowpipe:
-        task = tasks[step]
-
-        parallel = flow_np[step]
-
-        for n in range(parallel):
-            flow.node(flowname, step, task, index=n)
-
-            if prevstep:
-                flow.edge(flowname, prevstep, step, tail_index=0, head_index=n)
-
-        prevstep = step
-
-    return flow
+        for n in range(np):
+            self.node("simulate", sim_task, index=n)
+            if com_name:
+                self.edge(com_name, "simulate", head_index=n)
 
 
 ##################################################
 if __name__ == "__main__":
-    chip = siliconcompiler.Chip('design')
-    flow = make_docs(chip)
-    chip.use(flow)
-    chip.write_flowgraph(f"{flow.top()}.png", flow=flow.top())
+    flow = DVFlow(np=3)
+    flow.write_flowgraph(f"{flow.name}.png")

@@ -1,13 +1,26 @@
-from siliconcompiler import Flow
-
+from siliconcompiler import FlowgraphSchema
 from siliconcompiler.tools.klayout import drc
 
 
-def setup():
-    '''
-    Perform a DRC run on an input GDS
-    '''
-    flow = Flow('drcflow')
-    flow.node('drcflow', 'drc', drc)
+class DRCFlow(FlowgraphSchema):
+    '''A design rule check (DRC) flow.
 
-    return flow
+    This flow is designed to perform a DRC run on an input GDSII file using
+    KLayout.
+    '''
+    def __init__(self, name: str = "drcflow"):
+        """
+        Initializes the DRCFlow.
+
+        Args:
+            name (str): The name of the flow.
+        """
+        super().__init__(name)
+
+        self.node("drc", drc.DRCTask())
+
+
+##################################################
+if __name__ == "__main__":
+    flow = DRCFlow()
+    flow.write_flowgraph(f"{flow.name}.png")

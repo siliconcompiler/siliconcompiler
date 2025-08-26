@@ -1,140 +1,66 @@
-import siliconcompiler
-
 from siliconcompiler.tools.yosys import syn_asic
 from siliconcompiler.tools.opensta import timing
 
 from siliconcompiler.tools.builtin import minimum
-
 
 from siliconcompiler import FlowgraphSchema
 from siliconcompiler.tools.slang import elaborate
 
 
 class SynthesisFlowgraph(FlowgraphSchema):
-    def __init__(self):
+    '''A configurable ASIC synthesis flow with static timing analysis.
+
+    This flow translates RTL designs into a gate-level netlist and then
+    performs static timing analysis (STA) on the result. It allows for
+    parallel execution of both synthesis and timing steps to explore different
+    strategies or speed up execution.
+
+    The flow consists of the following steps:
+    * **elaborate**: Elaborates the RTL design from its source files.
+    * **synthesis**: Translates the elaborated RTL into a gate-level netlist
+      using Yosys.
+    * **timing**: Performs static timing analysis on the synthesized netlist
+      using OpenSTA.
+    '''
+    def __init__(self, name: str = "synflow", syn_np: int = 1, timing_np: int = 1):
+        """
+        Initializes the SynthesisFlowgraph.
+
+        Args:
+            name (str): The name of the flow.
+            syn_np (int): The number of parallel synthesis jobs to launch. If
+                greater than 1, a 'minimum' step is added to select the best
+                result.
+            timing_np (int): The number of parallel timing analysis jobs to
+                launch.
+        """
         super().__init__()
-        self.set_name("synflow")
+        self.set_name(name)
 
         self.node("elaborate", elaborate.Elaborate())
-        self.node("synthesis", syn_asic.ASICSynthesis())
-        self.edge("elaborate", "synthesis")
-        self.node("timing", timing.TimingTask())
-        self.edge("synthesis", "timing")
+        if syn_np > 1:
+            self.node("synmin", minimum.MinimumTask())
 
+        for n in range(syn_np):
+            self.node("synthesis", syn_asic.ASICSynthesis(), index=n)
+            self.edge("elaborate", "synthesis", head_index=n)
 
-############################################################################
-# DOCS
-############################################################################
-def make_docs(chip):
-    n = 3
-    _make_docs(chip)
-    return setup(syn_np=n, timing_np=n)
+            if syn_np > 1:
+                self.edge("synthesis", "synmin", tail_index=n)
 
+            for metric in ('errors',):
+                self.set("synthesis", str(n), 'goal', metric, 0)
 
-###########################################################################
-# Flowgraph Setup
-############################################################################
-def setup(flowname='synflow',
-          syn_np=1,
-          timing_np=1):
-    '''
-    A configurable ASIC synthesys flow with static timing.
-
-    The 'synflow' includes the stages below. The steps syn have
-    minimization associated with them.
-    To view the flowgraph, see the .png file.
-
-    * **import**: Sources are collected and packaged for compilation
-    * **syn**: Translates RTL to netlist using Yosys
-    * **timing**: Create timing reports of design
-
-    The syn and timing steps supports per process
-    options that can be set up by setting 'syn_np' or 'timing_np'
-    arg to a value > 1, as detailed below:
-
-    * syn_np : Number of parallel synthesis jobs to launch
-    * timing_np : Number of parallel timing jobs to launch
-    '''
-
-    flow = siliconcompiler.Flow(flowname)
-
-    # Linear flow, up until branch to run parallel verification steps.
-    longpipe = ['syn',
-                'synmin',
-                'timing']
-
-    # step --> task
-    tasks = {
-        'syn': syn_asic,
-        'synmin': minimum,
-        'timing': timing
-    }
-
-    np = {
-        "syn": syn_np,
-        "timing": timing_np
-    }
-
-    prevstep = None
-    # Remove built in steps where appropriate
-    flowpipe = []
-    for step in longpipe:
-        task = tasks[step]
-        if task == minimum:
-            if prevstep in np and np[prevstep] > 1:
-                flowpipe.append(step)
+        if syn_np > 1:
+            prev_step = "synmin"
         else:
-            flowpipe.append(step)
-        prevstep = step
-
-    flowtasks = []
-    for step in flowpipe:
-        flowtasks.append((step, tasks[step]))
-
-    # Programmatically build linear portion of flowgraph and fanin/fanout args
-    prevstep = setup_multiple_frontends(flow)
-    for step, task in flowtasks:
-        fanout = 1
-        if step in np:
-            fanout = np[step]
-        # create nodes
-        for index in range(fanout):
-            # nodes
-            flow.node(flowname, step, task, index=index)
-
-            # edges
-            if task == minimum:
-                fanin = 1
-                if prevstep in np:
-                    fanin = np[prevstep]
-                for i in range(fanin):
-                    flow.edge(flowname, prevstep, step, tail_index=i)
-            elif prevstep:
-                flow.edge(flowname, prevstep, step, head_index=index)
-
-            # metrics
-            goal_metrics = ()
-            weight_metrics = ()
-            if task in (syn_asic, ):
-                goal_metrics = ('errors',)
-                weight_metrics = ()
-            elif task in (timing, ):
-                goal_metrics = ('errors', 'setupwns', 'setuptns')
-                weight_metrics = ('cellarea', 'peakpower', 'leakagepower')
-
-            for metric in goal_metrics:
-                flow.set('flowgraph', flowname, step, str(index), 'goal', metric, 0)
-            for metric in weight_metrics:
-                flow.set('flowgraph', flowname, step, str(index), 'weight', metric, 1.0)
-        prevstep = step
-
-    return flow
+            prev_step = "synthesis"
+        for n in range(timing_np):
+            self.node("timing", timing.TimingTask(), index=n)
+            self.edge(prev_step, "timing", head_index=n)
 
 
 ##################################################
 if __name__ == "__main__":
-    chip = siliconcompiler.Chip('design')
-    chip.set('input', 'constraint', 'sdc', 'test')
-    flow = make_docs(chip)
-    chip.use(flow)
-    chip.write_flowgraph(f"{flow.top()}.png", flow=flow.top())
+    flow = SynthesisFlowgraph(syn_np=3, timing_np=3)
+    flow.write_flowgraph(f"{flow.name}.png")

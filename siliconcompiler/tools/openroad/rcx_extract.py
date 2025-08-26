@@ -1,35 +1,29 @@
-from siliconcompiler.tools.openroad.rcx_bench import setup_task
-from siliconcompiler.tools._common import get_tool_task
+from siliconcompiler.tools.openroad import OpenROADTask
 
 
-def setup(chip):
+class ORXExtractTask(OpenROADTask):
     '''
     Convert extracted results into RCX.
     '''
+    def __init__(self):
+        super().__init__()
 
-    # Generic tool setup.
-    setup_task(chip)
+        self.add_parameter("corner", "str", "Parasitic corner to generate RCX file for")
 
-    design = chip.top()
+    def task(self):
+        return "rcx_extract"
 
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    tool, task = get_tool_task(chip, step, index)
+    def setup(self):
+        self.set_threads(1)
 
-    chip.set('tool', tool, 'task', task, 'var', 'corner',
-             'Parasitic corner to generate RCX file for',
-             field='help')
-    chip.add('tool', tool, 'task', task, 'require',
-             ",".join(['tool', tool, 'task', task, 'var', 'corner']),
-             step=step, index=index)
+        super().setup()
 
-    if chip.valid('tool', tool, 'task', task, 'var', 'corner') and \
-       chip.get('tool', tool, 'task', task, 'var', 'corner', step=step, index=index):
-        corner = chip.get('tool', tool, 'task', task, 'var', 'corner', step=step, index=index)[0]
-    else:
-        # Placeholder since require will cause this to fail
-        corner = 'corner'
+        self.set_script("sc_rcx.tcl")
 
-    chip.add('tool', tool, 'task', task, 'input', f'{design}.def', step=step, index=index)
-    chip.add('tool', tool, 'task', task, 'input', f'{design}.{corner}.spef', step=step, index=index)
-    chip.add('tool', tool, 'task', task, 'output', f'{design}.{corner}.rcx', step=step, index=index)
+        self.add_required_tool_key("var", "corner")
+
+        corner = self.get("var", "corner")
+
+        self.add_input_file(ext="def")
+        self.add_input_file(ext=f"{corner}.spef")
+        self.add_output_file(ext=f"{corner}.rcx")

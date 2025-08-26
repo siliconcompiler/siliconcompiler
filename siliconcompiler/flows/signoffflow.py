@@ -1,53 +1,44 @@
-import siliconcompiler
-
 from siliconcompiler.tools.magic import extspice
 from siliconcompiler.tools.magic import drc
 from siliconcompiler.tools.netgen import lvs
-from siliconcompiler.tools.builtin import nop
 from siliconcompiler.tools.builtin import join
 
-
-def make_docs(chip):
-    chip.set('input', 'netlist', 'verilog', 'test')
-    return setup()
+from siliconcompiler import FlowgraphSchema
 
 
-def setup():
+class SignoffFlow(FlowgraphSchema):
     '''A flow for running LVS/DRC signoff on a GDS layout.
 
-    Inputs must be passed to this flow as follows::
+    This flow performs two key physical verification steps in parallel:
+    1. Design Rule Checking (DRC) using Magic.
+    2. Layout Versus Schematic (LVS) checking using Netgen.
 
-        flow.input('<path-to-layout>.gds')
-        flow.input('<path-to-netlist>.vg')
+    The LVS step first requires extracting a SPICE netlist from the layout,
+    which is also handled by Magic. A final 'join' step ensures that both
+    DRC and LVS tasks must complete successfully for the flow to finish.
     '''
-    flowname = 'signoffflow'
 
-    flow = siliconcompiler.Flow(flowname)
+    def __init__(self, name: str = "signoffflow"):
+        """
+        Initializes the SignoffFlow.
 
-    # nop import since we don't need to pull in any sources
-    flow.node(flowname, 'import', nop)
+        Args:
+            name (str): The name of the flow.
+        """
+        super().__init__(name)
 
-    flow.node(flowname, 'extspice', extspice)
-    flow.node(flowname, 'drc', drc)
-    flow.node(flowname, 'lvs', lvs)
-    flow.node(flowname, 'signoff', join)
+        self.node("drc", drc.DRCTask())
 
-    flow.edge(flowname, 'import', 'drc')
-    flow.edge(flowname, 'import', 'extspice')
-    flow.edge(flowname, 'extspice', 'lvs')
-    flow.edge(flowname, 'lvs', 'signoff')
-    flow.edge(flowname, 'drc', 'signoff')
+        self.node("extspice", extspice.ExtractTask())
+        self.node("lvs", lvs.LVSTask())
+        self.edge("extspice", "lvs")
 
-    # Set default goal
-    for step in flow.getkeys('flowgraph', flowname):
-        flow.set('flowgraph', flowname, step, '0', 'goal', 'errors', 0)
-
-    return flow
+        self.node("signoff", join.JoinTask())
+        self.edge("drc", "signoff")
+        self.edge("lvs", "signoff")
 
 
 ##################################################
 if __name__ == "__main__":
-    chip = siliconcompiler.Chip('design')
-    flow = make_docs(chip)
-    chip.use(flow)
-    chip.write_flowgraph(f"{flow.top()}.png", flow=flow.top())
+    flow = SignoffFlow()
+    flow.write_flowgraph(f"{flow.name}.png")

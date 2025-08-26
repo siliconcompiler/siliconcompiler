@@ -1,7 +1,7 @@
 from siliconcompiler.tools.magic import MagicTask
 
 
-class DRCTask(MagicTask):
+class ExtractTask(MagicTask):
     '''
     Extract spice netlists from a GDS file for simulation use
     '''

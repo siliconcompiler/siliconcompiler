@@ -24,14 +24,10 @@ class ExportTask(KLayoutTask, ScreenshotParams):
         if f"{self.design_topmodule}.def" in self.get_files_from_input_nodes():
             self.add_input_file(ext="def")
         else:
-            pass
-        # design = chip.top()
-        # if design + '.def' in input_provides(chip, step, index):
-        #     chip.add('tool', tool, 'task', task, 'input', design + '.def',
-        #             step=step, index=index)
-        # else:
-        #     chip.add('tool', tool, 'task', task, 'require', 'input,layout,def',
-        #             step=step, index=index)
+            for lib, fileset in self.schema().get_filesets():
+                if lib.get_file(fileset=fileset, filetype="def"):
+                    self.add_required_key(lib, "fileset", fileset, "file", "def")
+                    break
 
         default_stream = self.get("var", "stream")
 
