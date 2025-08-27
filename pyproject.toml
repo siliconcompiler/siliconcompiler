@@ -43,7 +43,6 @@ dependencies = [
     "Pillow == 11.3.0",
     "GitPython >= 3.1.44, < 3.2",
     "lambdapdk == 0.2.0-rc1",
-    "lambdalib == 0.4.0-rc1",
     "PyGithub == 2.7.0",
     "urllib3 >= 1.26.0", # Required for PyGithub
     "fasteners == 0.20",
