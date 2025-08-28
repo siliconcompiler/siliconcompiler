@@ -1499,8 +1499,9 @@ class TaskSchema(NamedSchema, PathSchema, DocsSchema):
         return paths
 
     def _generate_doc(self, doc, ref_root, detailed=True):
-        from .schema.docs.utils import build_section
+        from .schema.docs.utils import build_section, strong, keypath, code, para, build_table
         from .schema.docs.dynamicgen import build_schema_value_table
+        from docutils import nodes
 
         docs = []
 
@@ -1510,6 +1511,22 @@ class TaskSchema(NamedSchema, PathSchema, DocsSchema):
             docs.append(dataroot)
 
         # Show var definitions
+        table = [[strong('Parameters'), strong('Type'), strong('Help')]]
+        for key in self.getkeys("var"):
+            key_node = nodes.paragraph()
+            key_node += keypath(list(self._keypath) + [key], doc.env.docname,
+                                key_text=["...", "var", key])
+            table.append([
+                key_node,
+                code(self.get("var", key, field="type")),
+                para(self.get("var", key, field="help"))
+            ])
+
+        if len(table) > 1:
+            vars = build_section("Variables", f"{ref_root}-variables")
+            colspec = r'{|\X{2}{5}|\X{1}{5}|\X{2}{5}|}'
+            vars += build_table(table, colspec=colspec)
+            docs.append(vars)
 
         # Show tool information
         params = {}

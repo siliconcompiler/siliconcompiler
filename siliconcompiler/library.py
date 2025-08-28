@@ -114,12 +114,29 @@ class ToolLibrarySchema(LibrarySchema):
         return super()._from_dict(manifest, keypath, version)
 
     def _generate_doc(self, doc, ref_root, detailed=True):
-        from .schema.docs.utils import build_section
+        from .schema.docs.utils import build_section, strong, keypath, code, para, build_table
+        from docutils import nodes
 
         tools_sec = build_section("Tools", f"{ref_root}-tools")
         tools_added = False
         for tool in self.getkeys("tool"):
             tool_sec = build_section(tool, f"{ref_root}-tools-{tool}")
+
+            # Show var definitions
+            table = [[strong('Parameters'), strong('Type'), strong('Help')]]
+            for key in self.getkeys("tool", tool):
+                key_node = nodes.paragraph()
+                key_node += keypath(list(self._keypath) + ["tool", tool, key], doc.env.docname)
+                table.append([
+                    key_node,
+                    code(self.get("tool", tool, key, field="type")),
+                    para(self.get("tool", tool, key, field="help"))
+                ])
+            if len(table) > 1:
+                tool_defs = build_section("Variables", f"{ref_root}-tools-{tool}-defns")
+                colspec = r'{|\X{2}{5}|\X{1}{5}|\X{2}{5}|}'
+                tool_defs += build_table(table, colspec=colspec)
+                tool_sec += tool_defs
 
             tool_param = BaseSchema._generate_doc(self.get("tool", tool, field="schema"),
                                                   doc,
@@ -128,7 +145,9 @@ class ToolLibrarySchema(LibrarySchema):
             if not tool_param:
                 continue
 
-            tool_sec += tool_param
+            tool_cfg = build_section("Configuration", f"{ref_root}-tools-{tool}-configs")
+            tool_cfg += tool_param
+            tool_sec += tool_cfg
             tools_sec += tool_sec
             tools_added = True
 
