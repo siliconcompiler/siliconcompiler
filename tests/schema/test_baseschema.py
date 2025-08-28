@@ -3263,3 +3263,78 @@ def test_hash_files_list_dir_empty():
     edit.insert("directory", param)
 
     assert schema.hash_files("directory") == []
+
+
+def test_generate_doc_detailed():
+    pytest.importorskip("sphinx")
+    from docutils import nodes
+
+    class Document:
+        def note_explicit_target(*args):
+            pass
+
+    class State:
+        document = Document()
+
+    class Doc:
+        state = State()
+
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("str")
+    edit.insert("param", param)
+
+    with patch("sphinx.util.nodes.nested_parse_with_titles") as nested_parse_with_titles:
+        doc = schema._generate_doc(Doc())
+        assert len(doc) == 1
+        assert isinstance(doc[0], nodes.section)
+        nested_parse_with_titles.assert_called_once()
+
+
+def test_generate_doc_not_detailed_empty():
+    pytest.importorskip("sphinx")
+    from docutils import nodes
+
+    class Document:
+        def note_explicit_target(*args):
+            pass
+
+    class State:
+        document = Document()
+
+    class Doc:
+        state = State()
+
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("str")
+    edit.insert("param", param)
+
+    assert schema._generate_doc(Doc(), detailed=False) is None
+
+
+def test_generate_doc_not_detailed():
+    pytest.importorskip("sphinx")
+    from docutils import nodes
+    from sphinx.addnodes import tabular_col_spec
+
+    class Document:
+        def note_explicit_target(*args):
+            pass
+
+    class State:
+        document = Document()
+
+    class Doc:
+        state = State()
+
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("str")
+    edit.insert("param", param)
+    schema.set("param", "something")
+
+    doc = schema._generate_doc(Doc(), detailed=False)
+    assert len(doc) == 2
+    assert isinstance(doc[0], tabular_col_spec)
+    assert isinstance(doc[1], nodes.table)
