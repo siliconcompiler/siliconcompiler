@@ -1,6 +1,6 @@
 import pytest
 from siliconcompiler.targets import \
-    asap7_demo, asic_demo, freepdk45_demo, \
+    asap7_demo, freepdk45_demo, \
     gf180_demo, ihp130_demo, interposer_demo, skywater130_demo
 
 from siliconcompiler import ASICProject
@@ -8,7 +8,6 @@ from siliconcompiler import ASICProject
 
 @pytest.mark.parametrize("target", (
         asap7_demo,
-        asic_demo,
         freepdk45_demo,
         gf180_demo,
         ihp130_demo,

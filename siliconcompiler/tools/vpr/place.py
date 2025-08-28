@@ -50,7 +50,7 @@ class PlaceTask(VPRTask):
 
                 fpga = self.schema().get("library", self.schema().get("fpga", "device"),
                                          field="schema")
-                map_file = fpga.get("tool", "vpr", "constraintsmap")
+                map_file = fpga.find_files("tool", "vpr", "constraintsmap")
 
                 constraints_map = load_constraints_map(map_file)
                 json_constraints = load_json_constraints(pcf_file)
