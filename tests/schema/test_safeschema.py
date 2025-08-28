@@ -249,9 +249,13 @@ def test_from_manifest_with_cfg(schema):
 
 def test_from_manifest_rm_meta_cfg(schema):
     with patch("siliconcompiler.schema.BaseSchema.from_manifest") as from_manifest:
-        SafeSchema.from_manifest(cfg=schema.getdict())
+        cfg = schema.getdict()
+        cfg["__meta__"] = {}
+
+        SafeSchema.from_manifest(cfg=cfg)
         from_manifest.assert_called_once()
         args = from_manifest.call_args
+
         assert args.kwargs["filepath"] is None
         assert "__meta__" not in args.kwargs["cfg"]
 

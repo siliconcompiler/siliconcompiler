@@ -1,5 +1,8 @@
 import argparse
 import pytest
+
+from unittest.mock import patch
+
 from siliconcompiler.schema import Parameter, PerNode, Scope
 from siliconcompiler.schema import SCHEMA_VERSION
 from siliconcompiler.schema.parametervalue import FileNodeValue, NodeValue
@@ -2035,3 +2038,21 @@ def test_has_value_with_defvalue():
     assert param.set("test")
     assert param.has_value() is True
     assert param.has_value(step="test", index="0") is True
+
+
+def test_generate_doc():
+    pytest.importorskip("sphinx")
+    from docutils import nodes
+
+    class Doc:
+        state = None
+
+    param = Parameter("str")
+
+    with patch("sphinx.util.nodes.nested_parse_with_titles") as nested_parse_with_titles:
+        doc = param._generate_doc(Doc(), [])
+        assert len(doc) == 2
+        assert isinstance(doc[0], nodes.paragraph)
+        assert len(doc[1]) == 1
+        assert isinstance(doc[1][0], nodes.table)
+        nested_parse_with_titles.assert_called_once()

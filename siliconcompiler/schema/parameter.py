@@ -158,13 +158,10 @@ class Parameter:
         return str(self.getvalues())
 
     def _generate_doc(self, doc, keyprefix):
-        try:
-            from .docs.utils import strong, para, code, build_list, build_table
-            from docutils.statemachine import ViewList
-            from docutils import nodes
-            from sphinx.util.nodes import nested_parse_with_titles
-        except ModuleNotFoundError:
-            return None
+        from .docs.utils import strong, para, code, build_list, build_table
+        from docutils.statemachine import ViewList
+        from docutils import nodes
+        from sphinx.util.nodes import nested_parse_with_titles
 
         entries = [[strong('Description'), para(self.__shorthelp)],
                    [strong('Type'), para(NodeType.encode(self.__type))]]
