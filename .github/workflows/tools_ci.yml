@@ -471,4 +471,4 @@ jobs:
           workflow_file_name: containers.yml
           client_payload: '{"sc-ref": "${{ github.ref }}"}'
           wait_interval: 60
-          ref: 'project'
+          ref: 'main'
