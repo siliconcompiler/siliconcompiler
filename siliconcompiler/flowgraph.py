@@ -567,8 +567,8 @@ class FlowgraphSchema(NamedSchema):
 
         try:
             module_name, cls = name.split("/")
-        except ValueError:
-            raise ValueError("task is not correctly formatted as <module>/<class>")
+        except (ValueError, AttributeError):
+            raise ValueError(f"task is not correctly formatted as <module>/<class>: {name}")
         module = importlib.import_module(module_name)
 
         self.__cache_tasks[name] = getattr(module, cls)

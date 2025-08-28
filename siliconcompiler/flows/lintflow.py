@@ -12,6 +12,7 @@ class LintFlow(FlowgraphSchema):
     and syntactic issues using a specified linting tool.
 
     Supported tools:
+
     * 'slang': A linter based on the Slang compiler.
     * 'verilator': A linter based on the Verilator tool.
     '''

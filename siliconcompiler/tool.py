@@ -251,14 +251,20 @@ class TaskSchema(NamedSchema, PathSchema):
         """str: The index for the current runtime."""
         return self.__index
 
+    @property
+    def name(self) -> str:
+        """str: The name of this task."""
+        try:
+            return self.task()
+        except NotImplementedError:
+            return super().name
+
     def tool(self) -> str:
         """str: The name of the tool associated with this task."""
         raise NotImplementedError("tool name must be implemented by the child class")
 
     def task(self) -> str:
         """str: The name of this task."""
-        if self.name:
-            return self.name
         raise NotImplementedError("task name must be implemented by the child class")
 
     @property

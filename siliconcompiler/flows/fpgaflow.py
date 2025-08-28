@@ -22,6 +22,7 @@ class FPGAXilinxFlow(FlowgraphSchema):
     routing, and bitstream generation.
 
     The flow consists of the following steps:
+
     * **syn_fpga**: Synthesize RTL into a device-specific netlist.
     * **place**: Place the synthesized netlist onto the FPGA fabric.
     * **route**: Route the connections between placed components.
@@ -54,6 +55,7 @@ class FPGANextPNRFlow(FlowgraphSchema):
     handles placement, routing, and bitstream generation in a single step.
 
     The flow consists of the following steps:
+
     * **syn_fpga**: Synthesize RTL into a device-specific netlist using Yosys.
     * **apr**: Perform automatic place and route (APR) and generate the
       bitstream using NextPNR.
@@ -81,6 +83,7 @@ class FPGAVPRFlow(FlowgraphSchema):
     (Versatile Place and Route) for placement and routing.
 
     The flow consists of the following steps:
+
     * **elaborate**: Elaborate the RTL design from sources.
     * **synthesis**: Synthesize the elaborated design into a netlist using Yosys.
     * **place**: Place the netlist components onto the FPGA architecture using VPR.

@@ -1087,3 +1087,15 @@ def test_get_all_tasks(large_flow):
 def test_write_flowgraph(large_flow, has_graphviz):
     large_flow.write_flowgraph("test.png")
     assert os.path.isfile("test.png")
+
+
+def test_get_task_module_invalid_format():
+    with pytest.raises(ValueError,
+                       match="task is not correctly formatted as <module>/<class>: something"):
+        FlowgraphSchema()._FlowgraphSchema__get_task_module("something")
+
+
+def test_get_task_module_invalid_type():
+    with pytest.raises(ValueError,
+                       match="task is not correctly formatted as <module>/<class>: None"):
+        FlowgraphSchema()._FlowgraphSchema__get_task_module(None)

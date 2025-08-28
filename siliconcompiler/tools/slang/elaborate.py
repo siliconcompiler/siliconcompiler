@@ -29,13 +29,6 @@ class Elaborate(SlangTask):
     def setup(self):
         super().setup()
 
-        if not self.get_fileset_file_keys("systemverilog") and \
-                not self.get_fileset_file_keys("verilog"):
-            filesets = []
-            for obj, fileset in self.schema().get_fileset_mapping():
-                filesets.append(f"{obj.name}/{fileset}")
-            return f"no verilog or systemverilog files in {','.join(filesets)}"
-
         self.add_output_file(self._output_file())
 
         self.add_required_tool_key("var", "include_source_paths")

@@ -129,10 +129,13 @@ def test_task():
         TaskSchema().task()
 
 
-def test_task_with_name():
-    task = TaskSchema()
-    task.set_name("thistask")
+def test_task_name():
+    class NameTask(TaskSchema):
+        def task(self):
+            return "thistask"
+    task = NameTask()
     assert task.task() == "thistask"
+    assert task.name == "thistask"
 
 
 def test_runtime_invalid_type():
