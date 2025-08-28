@@ -70,6 +70,12 @@ class GenerateOpenRCXFlow(FlowgraphSchema):
 
                 self.edge(prev, 'pex', head_index=n, tail_index=prev_index)
 
+    @classmethod
+    def make_docs(cls):
+        from siliconcompiler.tools.builtin.nop import NOPTask
+        return [GenerateOpenRCXFlow(NOPTask(), corners=3, serial_extraction=False),
+                GenerateOpenRCXFlow(NOPTask(), corners=3, serial_extraction=True)]
+
 
 ##################################################
 if __name__ == "__main__":

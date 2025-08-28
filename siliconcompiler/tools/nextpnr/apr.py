@@ -58,3 +58,21 @@ class APRTask(TaskSchema):
                 options.extend(['--pcf', pcf])
 
         return options
+
+    @classmethod
+    def make_docs(cls):
+        from siliconcompiler import FlowgraphSchema, DesignSchema, FPGAProject, FPGASchema
+        from siliconcompiler.scheduler import SchedulerNode
+        design = DesignSchema("<design>")
+        with design.active_fileset("docs"):
+            design.set_topmodule("top")
+        proj = FPGAProject(design)
+        proj.add_fileset("docs")
+        flow = FlowgraphSchema("docsflow")
+        flow.node("<step>", cls(), index="<index>")
+        proj.set_flow(flow)
+        proj.set_fpga(FPGASchema("<fpga>"))
+
+        node = SchedulerNode(proj, "<step>", "<index>")
+        node.setup()
+        return node.task

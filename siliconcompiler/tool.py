@@ -33,7 +33,7 @@ from packaging.specifiers import SpecifierSet, InvalidSpecifier
 
 from typing import List, Dict, Tuple, Union
 
-from siliconcompiler.schema import BaseSchema, NamedSchema, Journal
+from siliconcompiler.schema import BaseSchema, NamedSchema, Journal, DocsSchema
 from siliconcompiler.schema import EditableSchema, Parameter, PerNode, Scope
 from siliconcompiler.schema.parametertype import NodeType
 from siliconcompiler.schema.utils import trim
@@ -86,7 +86,7 @@ class TaskSkip(TaskError):
         return self.__why
 
 
-class TaskSchema(NamedSchema, PathSchema):
+class TaskSchema(NamedSchema, PathSchema, DocsSchema):
     """
     A schema class that defines the parameters and methods for a single task
     in a compilation flow.
@@ -1498,9 +1498,52 @@ class TaskSchema(NamedSchema, PathSchema):
                                       "outputs"))
         return paths
 
+    def _generate_doc(self, doc, ref_root, detailed=True):
+        from .schema.docs.utils import build_section
+        from .schema.docs.dynamicgen import build_schema_value_table
+
+        docs = []
+
+        # Show dataroot
+        dataroot = PathSchema._generate_doc(self, doc, ref_root)
+        if dataroot:
+            docs.append(dataroot)
+
+        # Show var definitions
+
+        # Show tool information
+        params = {}
+        for key in self.allkeys(include_default=False):
+            if key[0] == "dataroot":  # data root already handled
+                continue
+            params[key] = self.get(*key, field=None)
+        table = build_schema_value_table(params, "", self._keypath)
+        setup_info = build_section("Configuration", f"{ref_root}-config")
+        setup_info += table
+        docs.append(setup_info)
+
+        return docs
+
     ###############################################################
     # Task methods
     ###############################################################
+    @classmethod
+    def make_docs(cls):
+        from siliconcompiler import FlowgraphSchema, DesignSchema, Project
+        from siliconcompiler.scheduler import SchedulerNode
+        design = DesignSchema("<design>")
+        with design.active_fileset("docs"):
+            design.set_topmodule("top")
+        proj = Project(design)
+        proj.add_fileset("docs")
+        flow = FlowgraphSchema("docsflow")
+        flow.node("<step>", cls(), index="<index>")
+        proj.set_flow(flow)
+
+        node = SchedulerNode(proj, "<step>", "<index>")
+        node.setup()
+        return node.task
+
     def parse_version(self, stdout):
         """
         Parses the tool's version from its stdout. Must be implemented by subclasses.

@@ -1,9 +1,12 @@
 import math
 
-from siliconcompiler.schema import EditableSchema, Parameter, Scope
+from siliconcompiler.schema import EditableSchema, Parameter, Scope, BaseSchema
 from siliconcompiler.schema.utils import trim
 
 from siliconcompiler import ToolLibrarySchema
+from siliconcompiler.pathschema import PathSchema
+from siliconcompiler.filesetschema import FileSetSchema
+from siliconcompiler.packageschema import PackageSchema
 
 
 class PDKSchema(ToolLibrarySchema):
@@ -701,3 +704,39 @@ class PDKSchema(ToolLibrarySchema):
                     dies = dies + 1
 
         return dies
+
+    def _generate_doc(self, doc, ref_root, detailed=True):
+        from .schema.docs.utils import build_section
+        docs = []
+
+        # Show dataroot
+        dataroot = PathSchema._generate_doc(self, doc, ref_root)
+        if dataroot:
+            docs.append(dataroot)
+
+        # Show package information
+        package_sec = build_section("Package", f"{ref_root}-package")
+        package = PackageSchema._generate_doc(self, doc, ref_root)
+        if package:
+            package_sec += package
+            docs.append(package_sec)
+
+        # Show filesets
+        fileset = FileSetSchema._generate_doc(self, doc, ref_root)
+        if fileset:
+            docs.append(fileset)
+
+        # Show PDK
+        pdk_sec = build_section("PDK", f"{ref_root}-pdkinfo")
+        pdk_sec += BaseSchema._generate_doc(self.get("pdk", field="schema"),
+                                            doc,
+                                            ref_root=ref_root,
+                                            detailed=False)
+        docs.append(pdk_sec)
+
+        # Show tool information
+        tools_sec = ToolLibrarySchema._generate_doc(self, doc, ref_root)
+        if tools_sec:
+            docs.append(tools_sec)
+
+        return docs

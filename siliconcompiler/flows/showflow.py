@@ -20,6 +20,11 @@ class ShowFlow(FlowgraphSchema):
 
         self.node(task.task(), task)
 
+    @classmethod
+    def make_docs(cls):
+        from siliconcompiler.tools.klayout.show import ShowTask
+        return ShowFlow(ShowTask())
+
 
 ##################################################
 if __name__ == "__main__":

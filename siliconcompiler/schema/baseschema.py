@@ -1116,3 +1116,48 @@ class BaseSchema:
 
             for param in nodevalues:
                 param.set(value, field=field)
+
+    def _generate_doc(self, doc, ref_root: str = None, detailed: bool = True):
+        from .docs.utils import build_section_with_target
+        from .docs.dynamicgen import build_schema_value_table
+        from docutils import nodes
+
+        if detailed:
+            sections = []
+            if self.__default:
+                if isinstance(self.__default, Parameter):
+                    sections.extend(Parameter._generate_doc(self.__default, doc,
+                                                            list(self._keypath) + ["default"]))
+                else:
+                    sections.extend(BaseSchema._generate_doc(self.__default,
+                                                             doc,
+                                                             ref_root=ref_root,
+                                                             detailed=detailed))
+            for name, obj in self.__manifest.items():
+                key_path = list(self._keypath) + [name]
+                section_key = 'param-' + '-'.join([key for key in key_path if key != "default"])
+                section = build_section_with_target(name, section_key, doc.state.document)
+                if isinstance(obj, Parameter):
+                    for n in Parameter._generate_doc(obj, doc, key_path):
+                        section += n
+                else:
+                    for n in BaseSchema._generate_doc(obj,
+                                                      doc,
+                                                      ref_root=ref_root,
+                                                      detailed=detailed):
+                        section += n
+                sections.append(section)
+
+            # Sort all sections alphabetically by title. We may also have nodes
+            # in this list that aren't sections if `schema` has a 'default'
+            # entry that's a leaf. In this case, we sort this as an empty string
+            # in order to put this node at the beginning of the list.
+            return sorted(sections, key=lambda s: s[0][0] if isinstance(s, nodes.section) else '')
+        else:
+            params = {}
+            for key in self.allkeys(include_default=False):
+                params[key] = self.get(*key, field=None)
+            table = build_schema_value_table(params, "", self._keypath)
+            if table:
+                return table
+            return None
