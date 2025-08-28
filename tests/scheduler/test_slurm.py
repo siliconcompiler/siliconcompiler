@@ -73,6 +73,7 @@ def test_get_runtime_file_name():
 
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.ready
 def test_slurm_local_py(project):
     '''Basic Python API test: build the GCD example using only Python code.
        Note: Requires that the test runner be connected to a cluster, or configured
@@ -85,9 +86,9 @@ def test_slurm_local_py(project):
     # Run the chip's build process synchronously.
     assert project.run()
 
-    assert os.path.isfile('build/gcd/job0/gcd.pkg.json')
-    assert os.path.isfile('build/gcd/job0/stepone/0/outputs/gcd.pkg.json')
-    assert os.path.isfile('build/gcd/job0/steptwo/0/outputs/gcd.pkg.json')
+    assert os.path.isfile('build/testdesign/job0/testdesign.pkg.json')
+    assert os.path.isfile('build/testdesign/job0/stepone/0/outputs/testdesign.pkg.json')
+    assert os.path.isfile('build/testdesign/job0/steptwo/0/outputs/testdesign.pkg.json')
 
     assert project.get("record", "status", step="stepone", index="0") == NodeStatus.SUCCESS
     assert project.get("record", "status", step="steptwo", index="0") == NodeStatus.SUCCESS
