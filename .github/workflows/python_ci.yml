@@ -117,3 +117,44 @@ jobs:
           files: coverage.xml
           name: codecov-${{ matrix.python }}-${{ matrix.os }}
           verbose: true
+
+  python_docs_test:
+    timeout-minutes: 30
+    runs-on: "ubuntu-latest"
+    name: 'Pure Python tests with docs'
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install graphviz
+
+      - name: Setup Python
+        run: |
+          python3 -m venv .venv
+          . .venv/bin/activate
+          python3 --version
+          pip3 install --upgrade pip
+          pip3 install -e .[test,docs]
+
+      - name: Run Python tests
+        timeout-minutes: 15
+        run: |
+          . .venv/bin/activate
+
+          # change running directory
+          mkdir testrun
+          cd testrun
+
+          pytest $GITHUB_WORKSPACE -n logical -m "not eda and not docker" --cov --cov-report=xml --durations=0
+
+      - name: Upload coverage reports to Codecov
+        continue-on-error: true
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage.xml
+          name: codecov-python-with-docs
+          verbose: true

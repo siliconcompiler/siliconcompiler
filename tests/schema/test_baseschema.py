@@ -3293,7 +3293,6 @@ def test_generate_doc_detailed():
 
 def test_generate_doc_not_detailed_empty():
     pytest.importorskip("sphinx")
-    from docutils import nodes
 
     class Document:
         def note_explicit_target(*args):
