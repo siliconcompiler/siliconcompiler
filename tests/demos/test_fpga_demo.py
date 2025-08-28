@@ -14,3 +14,7 @@ def test_self_test():
     proj = fpga_demo.FPGADemo()
     assert proj.run()
     assert os.path.isfile('build/heartbeat/job0/bitstream/0/outputs/heartbeat.fasm')
+    assert proj.get('metric', 'holdslack', step='route', index='0') >= 0.0
+    assert proj.get('metric', 'holdslack', step='route', index='0') < 10.0
+    assert proj.get('metric', 'setupslack', step='route', index='0') >= 0.0
+    assert proj.get('metric', 'setupslack', step='route', index='0') < 10.0

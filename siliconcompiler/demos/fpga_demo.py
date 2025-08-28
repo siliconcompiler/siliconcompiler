@@ -55,13 +55,14 @@ class FPGADemo(FPGAProject):
             design.add_file("data/heartbeat.v")
             design.set_param("N", "8")
         with design.active_dataroot("heartbeat"), design.active_fileset("sdc"):
-            design.add_file("data/heartbeat.sdc")
+            design.add_file("data/demo_fpga/heartbeat.sdc")
         with design.active_dataroot("heartbeat"), design.active_fileset("pcf"):
             design.add_file("data/demo_fpga/heartbeat.pcf")
 
         # Set design
         self.set_design(design)
         self.add_fileset("rtl")
+        self.add_fileset("sdc")
         self.add_fileset("pcf")
 
         # Set FPGA
