@@ -10,10 +10,10 @@ from sphinx.domains.std import StandardDomain
 from sphinx.addnodes import pending_xref
 from docutils.parsers.rst import directives
 
-from siliconcompiler.schema import utils, BaseSchema, Parameter, NamedSchema
+from siliconcompiler.schema import utils, BaseSchema, Parameter, NamedSchema, EditableSchema
 from siliconcompiler.schema.docschema import DocsSchema
 from siliconcompiler.schema.docs.utils import parse_rst, link, para, \
-    literalblock, build_section_with_target, keypath
+    literalblock, build_section_with_target, keypath, build_section
 from siliconcompiler.utils import get_plugins
 
 
@@ -159,6 +159,85 @@ class ToolGen(SchemaGen):
         return [sec]
 
 
+class TargetGen(SchemaGen):
+
+    option_spec = {
+        'root': str
+    }
+
+    def run(self):
+        from siliconcompiler import Project
+
+        root = self.options["root"]
+        method = root.split(".")[-1]
+        root = ".".join(root.split(".")[0:-1])
+
+        print(f'Generating docs for target {root} -> {method}...')
+        module = importlib.import_module(root)
+        target = getattr(module, method)
+
+        self.env.note_dependency(inspect.getfile(target))
+        self.env.note_dependency(__file__)
+        self.env.note_dependency(utils.__file__)
+
+        func_spec = inspect.getfullargspec(target)
+        required_type = func_spec.annotations.get(func_spec.args[0], Project)
+
+        proj: Project = required_type()
+        proj.load_target(target)
+
+        target_doc = build_section_with_target(root, f"target-{root}-{method}", self.state.document)
+
+        # Add docstrings
+        docstring = inspect.getdoc(target)
+        if not docstring:
+            docstring = inspect.getdoc(module)
+
+        if docstring:
+            parse_rst(self.state, docstring, target_doc)
+
+        src_link = None
+        src_file = inspect.getfile(target)
+        for docs_link in get_plugins("docs", name="linkcode"):
+            src_link = docs_link(file=src_file)
+            if src_link:
+                break
+
+        if src_link:
+            p = para('File: ')
+            p += link(src_link, text=os.path.basename(src_file))
+            target_doc += p
+
+        loaded = {}
+        for lib in proj.getkeys("library"):
+            lib_obj = proj.get("library", lib, field="schema")
+            loaded.setdefault(lib_obj._getdict_type(), set()).add(lib_obj)
+
+        for key in sorted(loaded.keys()):
+            sec = build_section(key, f"target-{root}-{method}-lib-{key}")
+            modlist = nodes.bullet_list()
+            for library in sorted([lib_obj.name for lib_obj in loaded[key]]):
+                print(key, library)
+                list_item = nodes.list_item()
+                list_item += para(library)
+                modlist += list_item
+            sec += modlist
+            target_doc += sec
+
+        EditableSchema(proj).remove("library")
+        EditableSchema(proj).remove("flowgraph")
+        EditableSchema(proj).remove("tool")
+
+        params = BaseSchema._generate_doc(proj, self, f"target-{root}-{method}-config",
+                                          detailed=False)
+        if params:
+            cfg_sec = build_section("Configuration", f"target-{root}-{method}-config")
+            cfg_sec += params
+            target_doc += cfg_sec
+
+        return [target_doc]
+
+
 class AppGen(SphinxDirective):
 
     option_spec = {
@@ -231,6 +310,7 @@ def setup(app):
     app.add_directive('schema', SchemaGen)
     app.add_directive('scapp', AppGen)
     app.add_directive('sctool', ToolGen)
+    app.add_directive('sctarget', TargetGen)
     app.add_role('keypath', keypath_role)
 
     return {
