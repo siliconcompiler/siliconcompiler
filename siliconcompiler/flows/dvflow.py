@@ -22,6 +22,7 @@ class DVFlow(FlowgraphSchema):
     parallel.
 
     Supported tools are:
+
     * 'icarus': Compiles and simulates with the Icarus Verilog simulator.
     * 'verilator': Compiles and simulates with Verilator.
     * 'xyce': Simulates a netlist with the Xyce circuit simulator.

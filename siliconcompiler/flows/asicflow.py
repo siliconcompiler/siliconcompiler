@@ -21,7 +21,6 @@ from siliconcompiler.tools.bambu.convert import ConvertTask
 
 from siliconcompiler.tools.builtin import minimum
 
-
 from siliconcompiler import FlowgraphSchema
 from siliconcompiler.tools.slang import elaborate
 
@@ -33,6 +32,7 @@ class ASICFlow(FlowgraphSchema):
     place-and-route, and finishing flow.
 
     The flow is divided into the following major steps:
+
     * **elaborate**: RTL elaboration using Slang.
     * **synthesis**: RTL synthesis using Yosys.
     * **floorplan**: Floorplanning, including macro placement, tapcell/endcap

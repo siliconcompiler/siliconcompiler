@@ -6,7 +6,7 @@ class ExtractTask(MagicTask):
     Extract spice netlists from a GDS file for simulation use
     '''
     def task(self):
-        return "extpice"
+        return "extspice"
 
     def setup(self):
         super().setup()

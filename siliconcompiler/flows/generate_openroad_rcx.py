@@ -15,6 +15,7 @@ class GenerateOpenRCXFlow(FlowgraphSchema):
     calibrating OpenRCX accordingly.
 
     The flow consists of the following main steps for each specified corner:
+
     1. **bench**: A benchmark design with simple structures is created.
     2. **pex**: A user-provided third-party PEX tool is run on the benchmark
        to generate a "golden" SPEF file.
