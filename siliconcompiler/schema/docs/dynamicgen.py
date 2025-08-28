@@ -6,11 +6,7 @@ from docutils import nodes
 from sphinx.util.nodes import nested_parse_with_titles
 from docutils.statemachine import ViewList
 from sphinx.util.docutils import SphinxDirective
-from sphinx.domains.std import StandardDomain
-from sphinx.addnodes import pending_xref
 import docutils
-from siliconcompiler.utils import get_plugins
-
 import importlib
 import pkgutil
 import os
