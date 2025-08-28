@@ -1,6 +1,6 @@
 # Copyright 2025 Zero ASIC Corporation
 
-from siliconcompiler import FPGAProject, DesignSchema, FPGASchema
+from siliconcompiler import FPGAProject, DesignSchema
 from siliconcompiler.flows.fpgaflow import FPGAVPRFlow
 
 from siliconcompiler.tools.vpr import VPRFPGA
