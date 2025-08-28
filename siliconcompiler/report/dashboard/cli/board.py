@@ -521,7 +521,7 @@ class Board:
         Args:
             chip: The SiliconCompiler chip object at the end of the run.
         """
-        if not self._active:
+        if not self.is_running():
             return
 
         self._update_render_data(chip, complete=True)
