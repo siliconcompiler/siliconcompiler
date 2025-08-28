@@ -46,7 +46,7 @@ class SlurmSchedulerNode(SchedulerNode):
         return self.__job_hash
 
     @staticmethod
-    def init(chip):
+    def init(project):
         """
         A static pre-processing hook for the Slurm scheduler.
 
@@ -58,26 +58,26 @@ class SlurmSchedulerNode(SchedulerNode):
         Args:
             chip (Chip): The Chip object to perform pre-processing on.
         """
-        if os.path.exists(chip._getcollectdir()):
+        if os.path.exists(project.getcollectiondir()):
             # nothing to do
             return
 
         collect = False
-        flow = chip.get('option', 'flow')
-        entry_nodes = chip.get("flowgraph", flow, field="schema").get_entry_nodes()
+        flow = project.get('option', 'flow')
+        entry_nodes = project.get("flowgraph", flow, field="schema").get_entry_nodes()
 
         runtime = RuntimeFlowgraph(
-            chip.get("flowgraph", flow, field='schema'),
-            from_steps=chip.get('option', 'from'),
-            to_steps=chip.get('option', 'to'),
-            prune_nodes=chip.get('option', 'prune'))
+            project.get("flowgraph", flow, field='schema'),
+            from_steps=project.get('option', 'from'),
+            to_steps=project.get('option', 'to'),
+            prune_nodes=project.get('option', 'prune'))
 
         for (step, index) in runtime.get_nodes():
             if (step, index) in entry_nodes:
                 collect = True
 
         if collect:
-            chip.collect()
+            project.collect()
 
     @property
     def is_local(self):
@@ -85,7 +85,7 @@ class SlurmSchedulerNode(SchedulerNode):
         return False
 
     @staticmethod
-    def get_configuration_directory(chip):
+    def get_configuration_directory(project):
         """Gets the directory for storing Slurm-related configuration files.
 
         Args:
@@ -95,7 +95,7 @@ class SlurmSchedulerNode(SchedulerNode):
             str: The path to the configuration directory.
         """
 
-        return os.path.join(chip.getworkdir(), 'sc_configs')
+        return os.path.join(project.getworkdir(), 'sc_configs')
 
     @staticmethod
     def get_job_name(jobhash, step, index):
@@ -163,12 +163,13 @@ class SlurmSchedulerNode(SchedulerNode):
             raise RuntimeError('slurm is not available or installed on this machine')
 
         # Determine which cluster parititon to use.
-        partition = self.chip.get('option', 'scheduler', 'queue', step=self.step, index=self.index)
+        partition = self.project.get('option', 'scheduler', 'queue',
+                                     step=self.step, index=self.index)
         if not partition:
             partition = SlurmSchedulerNode.get_slurm_partition()
 
         # Write out the current schema for the compute node to pick up.
-        cfg_dir = SlurmSchedulerNode.get_configuration_directory(self.chip)
+        cfg_dir = SlurmSchedulerNode.get_configuration_directory(self.project)
         os.makedirs(cfg_dir, exist_ok=True)
 
         cfg_file = os.path.join(cfg_dir, SlurmSchedulerNode.get_runtime_file_name(
@@ -179,8 +180,8 @@ class SlurmSchedulerNode(SchedulerNode):
             self.__job_hash, self.step, self.index, "sh"))
 
         # Remove scheduler as this is now a local run
-        self.chip.set('option', 'scheduler', 'name', None, step=self.step, index=self.index)
-        self.chip.write_manifest(cfg_file)
+        self.project.set('option', 'scheduler', 'name', None, step=self.step, index=self.index)
+        self.project.write_manifest(cfg_file)
 
         # Allow user-defined compute node execution script if it already exists on the filesystem.
         # Otherwise, create a minimal script to run the task using the SiliconCompiler CLI.
@@ -188,10 +189,10 @@ class SlurmSchedulerNode(SchedulerNode):
             with open(script_file, 'w') as sf:
                 sf.write(utils.get_file_template('slurm/run.sh').render(
                     cfg_file=shlex.quote(cfg_file),
-                    build_dir=shlex.quote(self.chip.get("option", "builddir")),
+                    build_dir=shlex.quote(self.project.get("option", "builddir")),
                     step=shlex.quote(self.step),
                     index=shlex.quote(self.index),
-                    cachedir=shlex.quote(str(RemoteResolver.determine_cache_dir(self.chip)))
+                    cachedir=shlex.quote(str(RemoteResolver.determine_cache_dir(self.project)))
                 ))
 
         # This is Python for: `chmod +x [script_path]`
@@ -201,13 +202,14 @@ class SlurmSchedulerNode(SchedulerNode):
         schedule_cmd = ['srun',
                         '--exclusive',
                         '--partition', partition,
-                        '--chdir', self.chip.cwd,
+                        '--chdir', self.project.cwd,
                         '--job-name', SlurmSchedulerNode.get_job_name(self.__job_hash,
                                                                       self.step, self.index),
                         '--output', log_file]
 
         # Only delay the starting time if the 'defer' Schema option is specified.
-        defer_time = self.chip.get('option', 'scheduler', 'defer', step=self.step, index=self.index)
+        defer_time = self.project.get('option', 'scheduler', 'defer',
+                                      step=self.step, index=self.index)
         if defer_time:
             schedule_cmd.extend(['--begin', defer_time])
 
