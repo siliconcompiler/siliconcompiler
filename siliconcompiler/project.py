@@ -638,7 +638,17 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                 self.__dashboard.update_manifest()
                 self.__dashboard.end_of_run()
 
+        self.__reset_job_params()
+
         return True
+
+    def __reset_job_params(self):
+        for key in self.allkeys():
+            if key[0] == "history":
+                continue
+            param = self.get(*key, field=None)
+            if param.get(field="scope") != Scope.GLOBAL:
+                param.reset()
 
     def _getbuilddir(self) -> str:
         """

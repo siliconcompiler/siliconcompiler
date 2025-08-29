@@ -1896,7 +1896,7 @@ def schema_tool(schema):
         'exe',
         Parameter(
             'str',
-            scope=Scope.GLOBAL,
+            scope=Scope.JOB,
             pernode=PerNode.OPTIONAL,
             shorthelp="Tool: executable name",
             switch="-tool_exe 'tool <str>'",
@@ -1908,7 +1908,7 @@ def schema_tool(schema):
         'sbom', 'default',
         Parameter(
             '[file]',
-            scope=Scope.GLOBAL,
+            scope=Scope.JOB,
             pernode=PerNode.OPTIONAL,
             shorthelp="Tool: software BOM",
             switch="-tool_sbom 'tool version <file>'",
@@ -1926,7 +1926,7 @@ def schema_tool(schema):
         'path',
         Parameter(
             'dir',
-            scope=Scope.GLOBAL,
+            scope=Scope.JOB,
             pernode=PerNode.OPTIONAL,
             shorthelp="Tool: executable path",
             switch="-tool_path 'tool <dir>'",
@@ -1943,7 +1943,7 @@ def schema_tool(schema):
         'vswitch',
         Parameter(
             '[str]',
-            scope=Scope.GLOBAL,
+            scope=Scope.JOB,
             pernode=PerNode.OPTIONAL,
             shorthelp="Tool: executable version switch",
             switch="-tool_vswitch 'tool <str>'",
@@ -1958,7 +1958,7 @@ def schema_tool(schema):
         'vendor',
         Parameter(
             'str',
-            scope=Scope.GLOBAL,
+            scope=Scope.JOB,
             shorthelp="Tool: vendor",
             switch="-tool_vendor 'tool <str>'",
             example=["cli: -tool_vendor 'yosys yosys'",
@@ -1973,7 +1973,7 @@ def schema_tool(schema):
         'version',
         Parameter(
             '[str]',
-            scope=Scope.GLOBAL,
+            scope=Scope.JOB,
             pernode=PerNode.OPTIONAL,
             shorthelp="Tool: version",
             switch="-tool_version 'tool <str>'",
@@ -1995,7 +1995,7 @@ def schema_tool(schema):
         'format',
         Parameter(
             '<json,tcl,yaml>',
-            scope=Scope.GLOBAL,
+            scope=Scope.JOB,
             pernode=PerNode.OPTIONAL,
             shorthelp="Tool: file format",
             switch="-tool_format 'tool <str>'",
@@ -2008,7 +2008,7 @@ def schema_tool(schema):
         'licenseserver', 'default',
         Parameter(
             '[str]',
-            scope=Scope.GLOBAL,
+            scope=Scope.JOB,
             pernode=PerNode.OPTIONAL,
             shorthelp="Tool: license servers",
             switch="-tool_licenseserver 'name key <str>'",
