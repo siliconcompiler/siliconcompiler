@@ -7,9 +7,8 @@ A flowgraph in SiliconCompiler defines the sequence of steps, or tasks, required
 
 Flowgraphs are highly flexible and allow you to create custom compilation flows tailored to your specific needs. You can build them in two primary ways:
 
-1. Instantiate :class:`.FlowgraphSchema`: For simple or dynamically generated flows, you can create an object directly from the :class:`.FlowgraphSchema` class and configure it.
-
-2. Subclass :class:`.FlowgraphSchema`: For creating reusable, complex flows, you can define your own Python class that inherits from :class:`.FlowgraphSchema`.
+1. **Instantiate FlowgraphSchema**: For simple or dynamically generated flows, you can create an object directly from the :class:`.FlowgraphSchema` class and configure it.
+2. **Subclass FlowgraphSchema**: For creating reusable, complex flows, you can define your own Python class that inherits from :class:`.FlowgraphSchema`.
 
 Once defined, you load your flowgraph into a project using the :meth:`.Project.set_flow()` method before starting a run. This tells SiliconCompiler which set of tasks to execute.
 
@@ -20,8 +19,8 @@ Key Concepts
 
 Before we build a flowgraph, let's define the core components:
 
-* Node: A node represents a single task or step in the flow. Each node is typically an instance of a Task class, which wraps a specific EDA tool (e.g., Yosys for synthesis, OpenROAD for place-and-route).
-* Edge: An edge defines a dependency between two nodes. If you create an edge from nodeA to nodeB, it means that nodeA must complete successfully before nodeB can begin. This creates the directed, acyclic graph that SiliconCompiler executes.
+* **Node**: A node represents a single task or step in the flow. Each node is typically an instance of a Task class, which wraps a specific EDA tool (e.g., Yosys for synthesis, OpenROAD for place-and-route).
+* **Edge**: An edge defines a dependency between two nodes. If you create an edge from nodeA to nodeB, it means that nodeA must complete successfully before nodeB can begin. This creates the directed, acyclic graph that SiliconCompiler executes.
 
 Example: A Basic Synthesis Flow
 -------------------------------
