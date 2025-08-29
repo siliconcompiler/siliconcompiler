@@ -20,7 +20,7 @@ from rich.console import Console
 from rich.console import Group
 from rich.padding import Padding
 
-from siliconcompiler import SiliconCompilerError, NodeStatus
+from siliconcompiler import NodeStatus
 from siliconcompiler.utils.logging import SCColorLoggerFormatter
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 
@@ -984,7 +984,7 @@ class Board:
             node_outputs = {}
             flow = chip.get("option", "flow")
             if not flow:
-                raise SiliconCompilerError("dummy error")
+                raise RuntimeError("dummy error")
 
             runtime_flow = RuntimeFlowgraph(
                 chip.get("flowgraph", flow, field='schema'),
@@ -1062,7 +1062,7 @@ class Board:
                     if node not in node_priority:
                         continue
                     node_priority[node] = min(node_priority[node], level)
-        except SiliconCompilerError:
+        except RuntimeError:
             pass
 
         design = chip.get("option", "design")

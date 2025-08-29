@@ -1,5 +1,4 @@
 import siliconcompiler
-from siliconcompiler import SiliconCompilerError
 from siliconcompiler.fpgas import lattice_ice40
 
 from siliconcompiler.flows import fpgaflow
@@ -25,7 +24,7 @@ def setup(chip, partname=None):
         partname = chip.get('fpga', 'partname')
 
     if not partname:
-        raise SiliconCompilerError('FPGA partname has not been set.', chip=chip)
+        raise ValueError('FPGA partname has not been set.')
 
     # 2.  Load all available FPGAs
     chip.use(lattice_ice40)
