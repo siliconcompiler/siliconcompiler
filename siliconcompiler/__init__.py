@@ -1,4 +1,4 @@
-from siliconcompiler._common import NodeStatus, SiliconCompilerError
+from siliconcompiler._common import NodeStatus
 
 from siliconcompiler.utils import sc_open
 
@@ -24,7 +24,6 @@ from siliconcompiler._metadata import version as __version__
 
 __all__ = [
     "__version__",
-    "SiliconCompilerError",
     "NodeStatus",
     "sc_open",
 

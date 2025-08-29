@@ -7,7 +7,6 @@ import os.path
 from logging.handlers import QueueListener
 
 from siliconcompiler import NodeStatus
-from siliconcompiler import SiliconCompilerError
 from siliconcompiler import utils
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 
@@ -215,9 +214,8 @@ class TaskScheduler:
             # stuck in an infinite loop if it does, so we want to break out
             # with an explicit error.
             if len(self.get_nodes_waiting_to_run()) > 0 and len(running_nodes) == 0:
-                raise SiliconCompilerError(
-                    'Nodes left to run, but no running nodes. From/to may be invalid.',
-                    chip=self.__chip)
+                raise RuntimeError(
+                    'Nodes left to run, but no running nodes. From/to may be invalid.')
 
             if len(running_nodes) == 1:
                 # if there is only one node running, just join the thread
