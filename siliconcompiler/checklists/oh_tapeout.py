@@ -1,41 +1,27 @@
-import siliconcompiler
+from siliconcompiler import ChecklistSchema
 
 
-def setup():
-    '''Subset of OH! library tapeout checklist.
-
-    https://github.com/aolofsson/oh/blob/master/docs/tapeout_checklist.md
+class OHTapeoutChecklist(ChecklistSchema):
     '''
-    standard = 'oh_tapeout'
+    Subset of OH! library tapeout checklist.
 
-    checklist = siliconcompiler.Checklist(standard)
+    https://github.com/aolofsson/oh/blob/b8a962e61b7ea359ba6dacf6e4c12171287164f1/docs/tapeout_checklist.md
+    '''
+    def __init__(self):
+        super().__init__("oh_tapeout")
 
-    # Automated
-    checklist.set('checklist', standard, 'drc_clean', 'description',
-                  'Is block DRC clean?')
-    checklist.set('checklist', standard, 'drc_clean', 'criteria', 'drcs==0')
+        # Automated
+        self.set('drc_clean', 'description', 'Is block DRC clean?')
+        self.set('drc_clean', 'criteria', 'drcs==0')
 
-    checklist.set('checklist', standard, 'lvs_clean', 'description',
-                  'Is block LVS clean?')
-    checklist.set('checklist', standard, 'lvs_clean', 'criteria', 'drcs==0')
+        self.set('lvs_clean', 'description', 'Is block LVS clean?')
+        self.set('lvs_clean', 'criteria', 'drcs==0')
 
-    checklist.set('checklist', standard, 'setup_time', 'description',
-                  'Setup time met?')
-    checklist.set('checklist', standard, 'setup_time', 'criteria', 'setupslack>=0')
+        self.set('setup_time', 'description', 'Setup time met?')
+        self.set('setup_time', 'criteria', 'setupslack>=0')
 
-    checklist.set('checklist', standard, 'errors_warnings', 'description',
-                  'Are all EDA warnings/errors acceptable?')
-    checklist.set('checklist', standard, 'errors_warnings', 'criteria',
-                  ['errors==0', 'warnings==0'])
+        self.set('errors_warnings', 'description', 'Are all EDA warnings/errors acceptable?')
+        self.set('errors_warnings', 'criteria', ['errors==0', 'warnings==0'])
 
-    # Manual
-    checklist.set('checklist', standard, 'spec', 'description',
-                  'Is there a written specification?')
-
-    return checklist
-
-
-##################################################
-if __name__ == "__main__":
-    checklist = setup(siliconcompiler.Chip('<checklist>'))
-    checklist.write_manifest(f"{checklist.top()}.json")
+        # Manual
+        self.set('spec', 'description', 'Is there a written specification?')

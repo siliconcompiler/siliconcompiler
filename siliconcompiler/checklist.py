@@ -3,7 +3,7 @@ import re
 import os.path
 
 from siliconcompiler.schema import NamedSchema
-from siliconcompiler.schema import EditableSchema, Parameter, Scope
+from siliconcompiler.schema import EditableSchema, Parameter, Scope, BaseSchema
 from siliconcompiler.schema.utils import trim
 
 from siliconcompiler import NodeStatus, utils
@@ -226,6 +226,22 @@ class ChecklistSchema(NamedSchema):
         """
 
         return ChecklistSchema.__name__
+
+    def _generate_doc(self, doc, ref_root: str = None, detailed: bool = True):
+        from .schema.docs.utils import build_section
+        settings = build_section('Configuration', f"{ref_root}-config")
+
+        for key in self.getkeys():
+            criteria = build_section(key, f"{ref_root}-config-{key}")
+            params = BaseSchema._generate_doc(self.get(key, field="schema"),
+                                              doc,
+                                              ref_root=f"{ref_root}-config-{key}",
+                                              detailed=False)
+            if params:
+                criteria += params
+                settings += criteria
+
+        return settings
 
 
 ############################################
