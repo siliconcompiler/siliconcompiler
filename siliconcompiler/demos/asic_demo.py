@@ -39,3 +39,5 @@ if __name__ == "__main__":
                     "targeting the Skywater130 PDK.",
         switchlist=["-remote"])
     proj.run()
+    proj.summary()
+    proj.snapshot()
