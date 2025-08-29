@@ -9,7 +9,7 @@ from siliconcompiler.tools.vpr.route import RouteTask
 from siliconcompiler.tools.vpr import VPRFPGA
 from siliconcompiler.tools.genfasm.bitstream import BitstreamTask
 
-from tools.inputimporter.importer import ImporterTask
+from tools.inputimporter import ImporterTask
 
 
 @pytest.mark.eda

@@ -16,7 +16,7 @@ from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.tools.klayout.export import ExportTask
 from siliconcompiler.tools.klayout import KLayoutLibrary
 
-from tools.inputimporter import importer
+from tools.inputimporter import ImporterTask
 
 
 @pytest.fixture
@@ -60,13 +60,13 @@ def test_export(datadir):
     proj.add_asiclib(lib)
 
     flow = FlowgraphSchema("testflow")
-    flow.node('import', importer.ImporterTask())
+    flow.node('import', ImporterTask())
     flow.node("export", export.ExportTask())
     flow.edge('import', 'export')
     proj.set_flow(flow)
 
-    proj.get_task(filter=importer.ImporterTask).set("var", "input_files",
-                                                    os.path.join(datadir, 'heartbeat_wrapper.def'))
+    proj.get_task(filter=ImporterTask).set("var", "input_files",
+                                           os.path.join(datadir, 'heartbeat_wrapper.def'))
 
     proj.get_task(filter=export.ExportTask).set("var", "timestamps", False)
 
@@ -91,15 +91,15 @@ def test_klayout_operations(datadir):
     proj.load_target(freepdk45_demo.setup)
 
     flow = FlowgraphSchema("testflow")
-    flow.node('import', importer.ImporterTask())
+    flow.node('import', ImporterTask())
     flow.node("ops1", operations.OperationsTask())
     flow.node("ops2", operations.OperationsTask())
     flow.edge('import', 'ops1')
     flow.edge('ops1', 'ops2')
     proj.set_flow(flow)
 
-    proj.get_task(filter=importer.ImporterTask).set("var", "input_files",
-                                                    os.path.join(datadir, 'heartbeat.gds'))
+    proj.get_task(filter=ImporterTask).set("var", "input_files",
+                                           os.path.join(datadir, 'heartbeat.gds'))
     ops: operations.OperationsTask = proj.get_task(filter=operations.OperationsTask)
     ops.set("var", "timestamps", False)
 
@@ -174,12 +174,12 @@ def test_drc_pass(setup_pdk_test, datadir):
     proj.set_mainlib("testdesign")
 
     flow = FlowgraphSchema("testflow")
-    flow.node('import', importer.ImporterTask())
+    flow.node('import', ImporterTask())
     flow.node("drc", drc.DRCTask())
     flow.edge('import', 'drc')
     proj.set_flow(flow)
 
-    proj.get_task(filter=importer.ImporterTask).set(
+    proj.get_task(filter=ImporterTask).set(
         "var", "input_files", os.path.join(datadir, "klayout_pdk", 'interposer.gds'))
     proj.get_task(filter=drc.DRCTask).set("var", "drc_name", "drc")
 
@@ -204,12 +204,12 @@ def test_drc_fail(setup_pdk_test, datadir):
     proj.set_mainlib("testdesign")
 
     flow = FlowgraphSchema("testflow")
-    flow.node('import', importer.ImporterTask())
+    flow.node('import', ImporterTask())
     flow.node("drc", drc.DRCTask())
     flow.edge('import', 'drc')
     proj.set_flow(flow)
 
-    proj.get_task(filter=importer.ImporterTask).set(
+    proj.get_task(filter=ImporterTask).set(
         "var", "input_files", os.path.join(datadir, "klayout_pdk", "withdrcs", 'interposer.gds'))
     proj.get_task(filter=drc.DRCTask).set("var", "drc_name", "drc")
 
@@ -234,14 +234,14 @@ def test_convert_drc(setup_pdk_test, datadir):
     proj.set_mainlib("testdesign")
 
     flow = FlowgraphSchema("testflow")
-    flow.node('import', importer.ImporterTask())
+    flow.node('import', ImporterTask())
     flow.node("drc", drc.DRCTask())
     flow.node("convert", convert_drc_db.ConvertDRCDBTask())
     flow.edge('import', 'drc')
     flow.edge('drc', 'convert')
     proj.set_flow(flow)
 
-    proj.get_task(filter=importer.ImporterTask).set(
+    proj.get_task(filter=ImporterTask).set(
         "var", "input_files", os.path.join(datadir, "klayout_pdk", "withdrcs", 'interposer.gds'))
     proj.get_task(filter=drc.DRCTask).set("var", "drc_name", "drc")
 

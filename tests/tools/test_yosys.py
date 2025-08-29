@@ -4,7 +4,7 @@ import os.path
 
 from siliconcompiler.targets import freepdk45_demo
 
-from tools.inputimporter import importer
+from tools.inputimporter import ImporterTask
 
 from siliconcompiler import ASICProject, DesignSchema, FlowgraphSchema
 from siliconcompiler.scheduler import SchedulerNode
@@ -41,15 +41,15 @@ def test_yosys_lec(datadir):
     proj.load_target(freepdk45_demo.setup)
 
     flow = FlowgraphSchema("lec")
-    flow.node('import', importer.ImporterTask())
+    flow.node('import', ImporterTask())
     flow.node("lec", ASICLECTask())
     flow.edge('import', 'lec')
     proj.set_flow(flow)
 
-    proj.get_task(filter=importer.ImporterTask).add("var", "input_files",
-                                                    os.path.join(datadir, 'lec', 'foo.v'))
-    proj.get_task(filter=importer.ImporterTask).add("var", "input_files",
-                                                    os.path.join(datadir, 'lec', 'foo.vg'))
+    proj.get_task(filter=ImporterTask).add("var", "input_files",
+                                           os.path.join(datadir, 'lec', 'foo.v'))
+    proj.get_task(filter=ImporterTask).add("var", "input_files",
+                                           os.path.join(datadir, 'lec', 'foo.vg'))
 
     assert proj.run()
     assert proj.get('metric', 'drvs', step='lec', index='0') == 0
@@ -68,14 +68,14 @@ def test_yosys_lec_broken(datadir):
     proj.load_target(freepdk45_demo.setup)
 
     flow = FlowgraphSchema("lec")
-    flow.node('import', importer.ImporterTask())
+    flow.node('import', ImporterTask())
     flow.node("lec", ASICLECTask())
     flow.edge('import', 'lec')
     proj.set_flow(flow)
 
-    proj.get_task(filter=importer.ImporterTask).add(
+    proj.get_task(filter=ImporterTask).add(
         "var", "input_files", os.path.join(datadir, 'lec', 'broken', 'foo.v'))
-    proj.get_task(filter=importer.ImporterTask).add(
+    proj.get_task(filter=ImporterTask).add(
         "var", "input_files", os.path.join(datadir, 'lec', 'broken', 'foo.vg'))
 
     assert proj.run()

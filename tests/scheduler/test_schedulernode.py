@@ -17,7 +17,7 @@ from siliconcompiler import TaskSchema
 from siliconcompiler.tool import TaskSkip
 from siliconcompiler.tools.builtin.nop import NOPTask
 from siliconcompiler.tools.builtin.join import JoinTask
-from scheduler.tools.echo.echo import EchoTask
+from scheduler.tools.echo import EchoTask
 
 from siliconcompiler.scheduler import SchedulerNode
 
