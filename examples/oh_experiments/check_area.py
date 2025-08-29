@@ -3,8 +3,6 @@
 from siliconcompiler import ASICProject, DesignSchema
 from siliconcompiler.targets import freepdk45_demo
 
-from siliconcompiler.targets import freepdk45_demo
-
 import glob
 import sys
 
