@@ -12,10 +12,18 @@ set sc_topmodulelib [sc_cfg_get option design]
 set sc_filesets [sc_cfg_get option fileset]
 
 # APR Parameters
-set sc_mainlib [sc_cfg_get asic mainlib]
-set sc_logiclibs [sc_cfg_get asic asiclib]
-
-set sc_delaymodel [sc_cfg_get asic delaymodel]
+set sc_mainlib []
+set sc_logiclibs []
+set sc_delaymodel []
+if { [sc_cfg_exists asic] } {
+    set sc_mainlib [sc_cfg_get asic mainlib]
+    set sc_logiclibs [sc_cfg_get asic asiclib]
+    set sc_delaymodel [sc_cfg_get asic delaymodel]
+} elseif { [sc_cfg_exists fpga] } {
+    set sc_mainlib [sc_cfg_get fpga device]
+    set sc_logiclibs [sc_cfg_get fpga device]
+    set sc_delaymodel "nldm"
+}
 
 set sc_timing_mode [lindex [sc_cfg_tool_task_get var timing_mode] 0]
 
@@ -47,6 +55,10 @@ foreach corner $sc_scenarios {
             if { [sc_cfg_exists library $lib asic libcornerfileset $libcorner $sc_delaymodel] } {
                 lappend lib_filesets \
                     {*}[sc_cfg_get library $lib asic libcornerfileset $libcorner $sc_delaymodel]
+            }
+            if { [sc_cfg_exists library $lib fpga_sta_timing libcornerfileset $libcorner $sc_delaymodel] } {
+                lappend lib_filesets \
+                    {*}[sc_cfg_get library $lib fpga_sta_timing libcornerfileset $libcorner $sc_delaymodel]
             }
         }
         foreach lib_file [sc_cfg_get_fileset $lib $lib_filesets liberty] {

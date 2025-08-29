@@ -66,6 +66,11 @@ class VPRFPGA(FPGASchema):
         self.define_tool_parameter("vpr", "clock_model", "<ideal,route,dedicated_network>",
                                    "The clock modeling strategy to be used.")
 
+        self.define_tool_parameter("vpr",
+                                   "router_lookahead",
+                                   "<classic,map,compressed_map,extended_map,simple>",
+                                   "The lookahead the router will use to estimate cost.")
+
     def set_vpr_devicecode(self, name: str):
         """
         Sets the device code for VPR.
@@ -177,6 +182,18 @@ class VPRFPGA(FPGASchema):
                          (e.g., 'ideal', 'route', or 'dedicated_network').
         """
         return self.set("tool", "vpr", "clock_model", model)
+
+    def set_vpr_router_lookahead(self, lookahead: str):
+        """
+        Sets the lookahead that the router will use to estimate the cost of
+        paths in the routing graph. This is also sometimes used in placement
+        to estimate costs.
+
+        Args:
+            lookahead (str): The name of the lookahead to use
+                             (e.g., 'map', 'classic', ...).
+        """
+        return self.set("tool", "vpr", "router_lookahead", lookahead)
 
 
 class VPRTask(TaskSchema):
@@ -295,6 +312,11 @@ class VPRTask(TaskSchema):
         options.extend(['--clock_modeling', fpga.get("tool", "vpr", "clock_model")])
         if fpga.get("tool", "vpr", "clock_model") == 'dedicated_network':
             options.append('--two_stage_clock_routing')
+
+        # Set the router lookahead if provided.
+        if fpga.get("tool", "vpr", "router_lookahead"):
+            options.extend(['--router_lookahead',
+                            fpga.get("tool", "vpr", "router_lookahead")])
 
         sdc_file = None
         for lib, fileset in self.schema().get_filesets():
