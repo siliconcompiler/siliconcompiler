@@ -158,26 +158,26 @@ def generate_testcase(chip,
 
     task_class = chip.get("tool", tool, "task", task, field="schema")
 
-    with task_class.runtime(SchedulerNode(chip, step, index), relpath=new_work_dir) as task:
+    with task_class.runtime(SchedulerNode(chip, step, index), relpath=new_work_dir) as task_obj:
         # Rewrite replay.sh
         prev_quiet = chip.get('option', 'quiet', step=step, index=index)
         chip.set('option', 'quiet', True, step=step, index=index)
         try:
             # Rerun pre_process
-            task.pre_process()
+            task_obj.pre_process()
         except Exception:
             pass
         chip.set('option', 'quiet', prev_quiet, step=step, index=index)
 
-        is_python_tool = task.get_exe() is None
+        is_python_tool = task_obj.get_exe() is None
         if not is_python_tool:
-            task.generate_replay_script(
+            task_obj.generate_replay_script(
                 f'{chip.getworkdir(step=step, index=index)}/replay.sh',
                 '.',
                 include_path=False)
 
         # Rewrite tool manifest
-        task.write_task_manifest('.')
+        task_obj.write_task_manifest('.')
 
     # Restore current directory
     chip._Project__cwd = original_cwd
