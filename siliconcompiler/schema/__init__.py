@@ -19,3 +19,5 @@ __all__ = [
     "Journal",
     "DocsSchema"
 ]
+
+SCHEMA_VERSION = __version__
