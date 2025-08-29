@@ -60,7 +60,7 @@ def test_opensta_sdf(datadir):
     proj.set_flow(flow)
 
     proj.get_task(filter=ImporterTask).set("var", "input_files",
-                                                    os.path.join(datadir, 'lec', 'foo.typical.sdf'))
+                                           os.path.join(datadir, 'lec', 'foo.typical.sdf'))
 
     # Check that OpenSTA ran successfully
     assert proj.run()
