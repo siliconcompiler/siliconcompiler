@@ -1264,6 +1264,11 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             self.logger.warning(f"{org_job} not found in history, picking {jobname}")
 
         history = self.history(jobname)
+
+        if not fd:
+            if self.__dashboard and self.__dashboard.is_running():
+                self.__dashboard.stop()
+
         history.get("metric", field='schema').summary(
             headers=history._summary_headers(),
             fd=fd)

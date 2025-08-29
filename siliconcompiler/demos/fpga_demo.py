@@ -79,3 +79,4 @@ if __name__ == "__main__":
                     "targeting the z1000.",
         switchlist=["-remote"])
     proj.run()
+    proj.summary()

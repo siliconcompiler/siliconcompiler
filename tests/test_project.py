@@ -857,6 +857,38 @@ def test_summary_select_job():
         history.assert_called_once_with("thatjob")
 
 
+def test_summary_stop_dashboard():
+    proj = Project(DesignSchema("testdesign"))
+    proj._record_history()
+
+    with patch("siliconcompiler.report.dashboard.cli.CliDashboard.is_running") as is_running, \
+            patch("siliconcompiler.report.dashboard.cli.CliDashboard.stop") as stop, \
+            patch("siliconcompiler.Project.history") as history:
+        history.return_value = proj
+        is_running.return_value = True
+        proj.summary()
+
+        is_running.assert_called_once()
+        stop.assert_called_once()
+        history.assert_called_once_with("job0")
+
+
+def test_summary_stop_dashboard_not_running():
+    proj = Project(DesignSchema("testdesign"))
+    proj._record_history()
+
+    with patch("siliconcompiler.report.dashboard.cli.CliDashboard.is_running") as is_running, \
+            patch("siliconcompiler.report.dashboard.cli.CliDashboard.stop") as stop, \
+            patch("siliconcompiler.Project.history") as history:
+        history.return_value = proj
+        is_running.return_value = False
+        proj.summary()
+
+        is_running.assert_called_once()
+        stop.assert_not_called()
+        history.assert_called_once_with("job0")
+
+
 def test_summary_select_job_user():
     proj = Project(DesignSchema("testdesign"))
     proj.set("option", "jobname", "thisjob")
