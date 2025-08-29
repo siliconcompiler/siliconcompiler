@@ -90,5 +90,7 @@ def test_slurm_local_py(project):
     assert os.path.isfile('build/testdesign/job0/stepone/0/outputs/testdesign.pkg.json')
     assert os.path.isfile('build/testdesign/job0/steptwo/0/outputs/testdesign.pkg.json')
 
-    assert project.get("record", "status", step="stepone", index="0") == NodeStatus.SUCCESS
-    assert project.get("record", "status", step="steptwo", index="0") == NodeStatus.SUCCESS
+    assert project.history("job0").get("record", "status", step="stepone", index="0") == \
+        NodeStatus.SUCCESS
+    assert project.history("job0").get("record", "status", step="steptwo", index="0") == \
+        NodeStatus.SUCCESS

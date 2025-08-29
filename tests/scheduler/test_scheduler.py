@@ -445,17 +445,17 @@ def test_rerun(gcd_nop_project):
     gcd_nop_project.set('option', 'to', ['steptwo'])
     assert gcd_nop_project.run()
 
-    assert run_copy.get("record", "endtime", step="steptwo", index="0") != \
-        gcd_nop_project.get("record", "endtime", step="steptwo", index="0")
+    assert run_copy.history("job0").get("record", "endtime", step="steptwo", index="0") != \
+        gcd_nop_project.history("job0").get("record", "endtime", step="steptwo", index="0")
 
-    assert run_copy.get("record", "status", step="steptwo", index="0") == \
+    assert run_copy.history("job0").get("record", "status", step="steptwo", index="0") == \
         NodeStatus.SUCCESS
-    assert run_copy.get("record", "status", step="stepthree", index="0") == \
+    assert run_copy.history("job0").get("record", "status", step="stepthree", index="0") == \
         NodeStatus.SUCCESS
 
-    assert gcd_nop_project.get("record", "status", step="steptwo", index="0") == \
+    assert gcd_nop_project.history("job0").get("record", "status", step="steptwo", index="0") == \
         NodeStatus.SUCCESS
-    assert gcd_nop_project.get("record", "status", step="stepthree", index="0") == \
+    assert gcd_nop_project.history("job0").get("record", "status", step="stepthree", index="0") == \
         NodeStatus.PENDING
 
 
@@ -465,21 +465,21 @@ def test_resume_normal(gcd_nop_project):
     time.sleep(1)  # delay to ensure timestamps differ
     assert gcd_nop_project.run()
 
-    assert run_copy.get("record", "endtime", step="steptwo", index="0") == \
-        gcd_nop_project.get("record", "endtime", step="steptwo", index="0")
+    assert run_copy.history("job0").get("record", "endtime", step="steptwo", index="0") == \
+        gcd_nop_project.history("job0").get("record", "endtime", step="steptwo", index="0")
 
-    assert run_copy.get("record", "status", step="steptwo", index="0") == \
+    assert run_copy.history("job0").get("record", "status", step="steptwo", index="0") == \
         NodeStatus.SUCCESS
-    assert run_copy.get("record", "status", step="stepthree", index="0") == \
+    assert run_copy.history("job0").get("record", "status", step="stepthree", index="0") == \
         NodeStatus.SUCCESS
-    assert gcd_nop_project.get("record", "status", step="stepfour", index="0") == \
+    assert gcd_nop_project.history("job0").get("record", "status", step="stepfour", index="0") == \
         NodeStatus.SUCCESS
 
-    assert gcd_nop_project.get("record", "status", step="steptwo", index="0") == \
+    assert gcd_nop_project.history("job0").get("record", "status", step="steptwo", index="0") == \
         NodeStatus.SUCCESS
-    assert gcd_nop_project.get("record", "status", step="stepthree", index="0") == \
+    assert gcd_nop_project.history("job0").get("record", "status", step="stepthree", index="0") == \
         NodeStatus.SUCCESS
-    assert gcd_nop_project.get("record", "status", step="stepfour", index="0") == \
+    assert gcd_nop_project.history("job0").get("record", "status", step="stepfour", index="0") == \
         NodeStatus.SUCCESS
 
 
@@ -497,25 +497,25 @@ def test_resume_value_changed(gcd_nop_project):
     gcd_nop_project.logger.setLevel(logging.DEBUG)
     assert gcd_nop_project.run()
 
-    assert run_copy.get("record", "endtime", step="steptwo", index="0") == \
-        gcd_nop_project.get("record", "endtime", step="steptwo", index="0")
+    assert run_copy.history("job0").get("record", "endtime", step="steptwo", index="0") == \
+        gcd_nop_project.history("job0").get("record", "endtime", step="steptwo", index="0")
 
-    assert run_copy.get("record", "endtime", step="stepthree", index="0") != \
-        gcd_nop_project.get("record", "endtime", step="stepthree", index="0")
+    assert run_copy.history("job0").get("record", "endtime", step="stepthree", index="0") != \
+        gcd_nop_project.history("job0").get("record", "endtime", step="stepthree", index="0")
 
-    assert run_copy.get("record", "endtime", step="stepfour", index="0") != \
-        gcd_nop_project.get("record", "endtime", step="stepfour", index="0")
+    assert run_copy.history("job0").get("record", "endtime", step="stepfour", index="0") != \
+        gcd_nop_project.history("job0").get("record", "endtime", step="stepfour", index="0")
 
-    assert run_copy.get("record", "status", step="steptwo", index="0") == \
+    assert run_copy.history("job0").get("record", "status", step="steptwo", index="0") == \
         NodeStatus.SUCCESS
-    assert run_copy.get("record", "status", step="stepthree", index="0") == \
+    assert run_copy.history("job0").get("record", "status", step="stepthree", index="0") == \
         NodeStatus.SUCCESS
-    assert run_copy.get("record", "status", step="stepfour", index="0") == \
+    assert run_copy.history("job0").get("record", "status", step="stepfour", index="0") == \
         NodeStatus.SUCCESS
 
-    assert gcd_nop_project.get("record", "status", step="steptwo", index="0") == \
+    assert gcd_nop_project.history("job0").get("record", "status", step="steptwo", index="0") == \
         NodeStatus.SUCCESS
-    assert gcd_nop_project.get("record", "status", step="stepthree", index="0") == \
+    assert gcd_nop_project.history("job0").get("record", "status", step="stepthree", index="0") == \
         NodeStatus.SUCCESS
-    assert gcd_nop_project.get("record", "status", step="stepfour", index="0") == \
+    assert gcd_nop_project.history("job0").get("record", "status", step="stepfour", index="0") == \
         NodeStatus.SUCCESS
