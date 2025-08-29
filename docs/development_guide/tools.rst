@@ -182,12 +182,22 @@ Your TCL script is responsible for reading from this dictionary and applying the
 API Quick Reference
 -------------------
 
-The :class:`.FlowgraphSchema` class provides a rich API for creating, modifying, and inspecting flowgraphs.
+The :class:`.TaskSchema` class provides a rich API for defining and controlling how a tool operates. The methods are grouped below by their primary function.
 
 .. currentmodule:: siliconcompiler.TaskSchema
 
-Key Methods to Implement in Task
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Task __init__ methods
+^^^^^^^^^^^^^^^^^^^^^
+
+.. autosummary::
+    :nosignatures:
+
+    add_parameter
+
+Core Implementation Methods
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+These are the main methods you will implement in your :class:`.TaskSchema` subclass to define its behavior.
 
 .. autosummary::
     :nosignatures:
@@ -202,8 +212,13 @@ Key Methods to Implement in Task
     run
     post_process
 
-Tool setup methods
-^^^^^^^^^^^^^^^^^^
+Configuration Methods
+^^^^^^^^^^^^^^^^^^^^^
+
+These methods are called within your :meth:`.TaskSchema.setup()` implementation to configure the task's properties.
+
+Tools settings
+""""""""""""""
 
 .. autosummary::
     :nosignatures:
@@ -215,57 +230,55 @@ Tool setup methods
     add_licenseserver
     add_sbom
 
-Task __init__ methods
-^^^^^^^^^^^^^^^^^^
+Task settings
+"""""""""""""
 
 .. autosummary::
     :nosignatures:
 
-    add_parameter
-
-Task setup methods
-^^^^^^^^^^^^^^^^^^
-
-.. autosummary::
-    :nosignatures:
-
-    set_threads
     add_commandline_option
     add_input_file
     add_output_file
-    set_environmentalvariable
-    add_prescript
+    add_parameter
     add_postscript
-    set_refdir
-    set_script
+    add_prescript
     add_regex
-    set_logdestination
-    add_warningoff
     add_required_key
     add_required_tool_key
-    schema
-    step
-    index
-    get_logpath
-    has_breakpoint
+    add_warningoff
+    set_environmentalvariable
+    set_logdestination
+    set_refdir
+    set_script
+    set_threads
 
-Access
-^^^^^^
+Runtime Accessor Methods
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+These methods are used to get information about the current state of the flow during execution (e.g., inside :meth:`.TaskSchema.runtime_options()` or :meth:`.TaskSchema.post_process()`).
 
 .. autosummary::
     :nosignatures:
 
-    get_commandline_options
-    get_threads
-    get_fileset_file_keys
-    has_prescript
-    has_postscript
     compute_input_file_node_name
-    get_files_from_input_nodes
-    get_output_files
-    nodeworkdir
     design_name
     design_topmodule
+    get_commandline_options
+    get_files_from_input_nodes
+    get_fileset_file_keys
+    get_logpath
+    get_output_files
+    get_threads
+    has_breakpoint
+    has_postscript
+    has_prescript
+    index
+    nodeworkdir
+    record_metric
+    schema
+    step
+    task
+    tool
 
 Tool post process methods
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -273,17 +286,17 @@ Tool post process methods
 .. autosummary::
     :nosignatures:
 
-    get_logpath
     record_metric
 
 Docuemntation methods
 ^^^^^^^^^^^^^^^^^^^^^
 
+These methods are used for auto-generating documentation for your tool.
+
 .. autosummary::
     :nosignatures:
 
     make_docs
-
 
 Class Reference
 ---------------
