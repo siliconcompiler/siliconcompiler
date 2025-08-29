@@ -1,86 +1,150 @@
 .. _dev_pdks:
 
-PDKs
-=====
+Defining a Process Design Kit (PDK)
+===================================
 
-Process Design Kits (PDKs) for leading process nodes generally include hundreds of files, documents, and configuration parameters, resulting in significant startup times in porting a design to a new node.
-The SiliconCompiler project minimizes per design PDK setup efforts by offering a way to package PDKs as standardized reusable objects, and making them available as named modules which can be loaded by the :meth:`.use()` function.
+In semiconductor design, a Process Design Kit (PDK) contains all the technology-specific data—such as transistor models, layout rules, and standard cell libraries—required to manufacture a chip on a particular process node.
+These kits are often complex and vary significantly between foundries.
 
-A complete set of supported open PDKs can be found in :ref:`pdks <builtin_pdks>`. The table below shows the function interfaces supported in setting up PDKs.
+SiliconCompiler simplifies this by providing a standardized Python object, the :class:`.PDKSchema`, to define and package a PDK.
+This object acts as a structured "manifest" that describes the PDK's properties and points to all the necessary files.
+Once defined, a PDK can be easily reused and loaded into any project with a single command: :meth:`.ASICProject.set_pdk()`.
 
-Functions
----------
+Key Concepts
+------------
 
-The table below shows the function interfaces for setting up PDK objects.
+A :class:`.PDKSchema` is built around two main concepts:
 
-.. list-table::
-   :widths: 10 10 10 10 10 10
-   :header-rows: 1
+* Metadata: High-level information that describes the manufacturing process, such as the foundry, process node (e.g., 28nm), and metal stackup. This data is essential for design tools and for calculating manufacturing metrics.
+* Filesets: A "fileset" is a named group of files that serve a specific purpose. For example, a views.lef fileset contains all the LEF files needed for abstract layout views, while a models.spice fileset would contain SPICE models for simulation. This organization ensures that each tool gets exactly the files it needs.
 
-   * - Function
-     - Description
-     - Arg
-     - Returns
-     - Used by
-     - Required
+Example: Defining a Virtual PDK
+-------------------------------
 
-   * - :ref:`setup() <pdk_setup>`
-     - PDK setup function
-     - optional keyword arguments
-     - :class:`.PDK`
-     - :meth:`.use()`
-     - yes
-
-   * - :ref:`make_docs() <pdk_make_docs>`
-     - Doc generator
-     - :class:`.Chip`
-     - :class:`.PDK`
-     - sphinx
-     - no
-
-
-.. _pdk_setup:
-
-setup()
--------
-
-A minimally viable PDK will include a simulation device model and a set of codified manufacturing rules ("drc").
-For an example setup, see the `Freepdk45 source code <https://github.com/siliconcompiler/lambdapdk/blob/main/lambdapdk/freepdk45/__init__.py>`_.
-An example of some of the fundamental settings are shown below.
+The following example demonstrates how to create a basic PDK definition by subclassing :class:`.PDKSchema`. We will define a fictional 28nm process.
 
 .. code-block:: python
 
-    from siliconcompiler import PDK
-    process = '<process_name>'
+  from pathlib import Path
+  from siliconcompiler import PDKSchema
 
-    pdk = PDK(process)
-    pdk.set('pdk', process, 'foundry', <foundry_name>)
-    pdk.set('pdk', process, 'node', <node_geometry>)
-    pdk.set('pdk', process, 'version', <version>)
-    pdk.set('pdk', process, 'stackup', <stackuplist>)
-    pdk.set('pdk', process, 'drc', 'runset', <tool>, <stackup>, <runset_type>, <file>)
-    pdk.set('pdk', process, 'lvs', 'runset', <tool>, <stackup>, <runset_type> <file>)
-    pdk.set('pdk', process, 'devmodel', <tool>, <modeltype>, <stackup>, <file>)
+  class ExamplePDK(PDKSchema):
+      """
+      A demonstration PDKSchema for a fictional 28nm process.
+      """
+      def __init__(self):
+          super().__init__()
 
-To support standard RTL2GDS flows, the PDK setup will also need to specify pointers to routing technology rules, layout abstractions, layer maps, and routing grids as shown in the below example.
-For a complete set of available PDK parameters, see the :keypath:`pdk` section of the :ref:`Schema <SiliconCompiler Schema>`.
+          # 1. Give the PDK a unique name.
+          self.set_name("examplepdk")
+
+          # Assume the PDK files are in a local directory named "examplepdk/"
+          pdk_path = Path("examplepdk")
+
+          # 2. Define the high-level process metadata.
+          self.set_foundry("virtual")
+          self.set_version("v1.0")
+          self.set_node(28)  # Process node in nanometers
+          self.set_stackup("12M") # Number of metal layers
+          self.set_wafersize(300) # Wafer diameter in millimeters
+
+          # Define manufacturing and cost parameters.
+          self.set_scribewidth(0.1, 0.1)
+          self.set_edgemargin(2)
+          self.set_defectdensity(1.25)
+
+          # 3. Define the data source for the PDK files.
+          # Here, we point to a fictional Git repository.
+          self.set_dataroot("pdksource", "git+https://data.com/source.tar.gz")
+
+          # 4. Organize the PDK files into filesets.
+          # The 'with self.active_dataroot(...)' block tells SiliconCompiler
+          # that all files added inside this block are relative to this data source.
+          with self.active_dataroot("pdksource"):
+              # The 'with self.active_fileset(...)' block groups related files.
+              # Here, we are defining the LEF files for the abstract view.
+              with self.active_fileset("views.lef"):
+                  self.add_file(pdk_path / "apr" / "examplepdk.lef")
+                  # This helper function automatically adds technology LEF files
+                  # for common open-source tools.
+                  for tool in ('openroad', 'klayout', 'magic'):
+                      self.add_aprtechfileset(tool)
+
+              # Define which metal layers are available for routing.
+              self.set_aprroutinglayers(min="metal2", max="metal7")
+
+
+To use this PDK, you would instantiate it and pass it to your project:
 
 .. code-block:: python
 
-    chip.set('pdk', process, 'aprtech', <tool>, <stackup>, <libtype>, 'lef', <file>)
-    chip.set('pdk', process, 'layermap', <tool>, 'def', 'gds', <stackup>, <file>)
+  import siliconcompiler
 
+  # Create a project
+  project = siliconcompiler.ASICProject()
 
-.. _pdk_make_docs:
+  # Instantiate and set the PDK
+  pdk = ExamplePDK()
+  project.set_pdk(pdk)
 
-make_docs(chip)
+  # Now, when project.run() is called, the tools in the flow
+  # will be able to find and use the files defined in the PDK.
+
+Useful APIs
+-----------
+
+The PDKSchema class provides a comprehensive API for defining all aspects of a PDK.
+
+.. currentmodule:: siliconcompiler.PDKSchema
+
+Setting Process Metadata
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+These methods define the core physical and manufacturing properties of the process.
+
+.. autosummary::
+    :nosignatures:
+
+    set_foundry
+    set_node
+    set_stackup
+    set_wafersize
+    set_unitcost
+    set_defectdensity
+    set_scribewidth
+    set_edgemargin
+    set_aprroutinglayers
+
+Organizing Filesets
+^^^^^^^^^^^^^^^^^^^
+
+These methods are used to group files for different tools and design views.
+
+.. autosummary::
+    :nosignatures:
+
+    add_aprtechfileset
+    add_displayfileset
+    add_devmodelfileset
+    add_pexmodelfileset
+    add_runsetfileset
+    add_waiverfileset
+
+Manufacturing Calculations
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+These methods use the defined metadata to compute key manufacturing metrics.
+
+.. autosummary::
+    :nosignatures:
+
+    calc_yield
+    calc_dpw
+
+Class Reference
 ---------------
-The ``make_docs()`` function is used by the projects auto-doc generation.
-This function is only needed if the PDK requires additional inputs to be setup correctly.
-The function should include a call to the setup function to populate the schema with all settings as shown below.
-The input to this function ``chip`` is a chip object created by the auto-doc generator.
 
-.. code-block:: python
-
-  def make_docs(chip):
-    return setup()
+.. autoclass:: siliconcompiler.PDKSchema
+    :members:
+    :show-inheritance:
+    :inherited-members:
