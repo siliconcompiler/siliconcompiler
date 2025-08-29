@@ -11,8 +11,8 @@ from siliconcompiler.utils import get_file_template
 from siliconcompiler.tools._common import get_tool_task
 from siliconcompiler import RecordSchema
 from siliconcompiler.scheduler import SchedulerNode
-from siliconcompiler.schema import SCHEMA_VERSION
-from siliconcompiler import __version__ as SC_VERSION
+from siliconcompiler.schema import __version__ as schema_version
+from siliconcompiler import __version__ as sc_version
 
 
 def generate_testcase(chip,
@@ -223,8 +223,8 @@ def generate_testcase(chip,
                                 'toolversion': chip.get('record', 'toolversion',
                                                         step=step, index=index),
                                 'task': task}
-    issue_information['version'] = {'schema': SCHEMA_VERSION,
-                                    'sc': SC_VERSION,
+    issue_information['version'] = {'schema': schema_version,
+                                    'sc': sc_version,
                                     'git': git_data}
 
     if not archive_name:

@@ -12,7 +12,7 @@ from inspect import getfullargspec
 from typing import Set, Union, List, Tuple, Type, Callable, TextIO
 
 from siliconcompiler.schema import BaseSchema, NamedSchema, EditableSchema, Parameter, Scope, \
-    SCHEMA_VERSION
+    __version__ as schema_version
 from siliconcompiler.schema.parametervalue import NodeListValue, NodeSetValue
 from siliconcompiler.schema.utils import trim
 
@@ -53,15 +53,14 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
 
         # Version
         schema.insert(
-            'schemaversion',
+            BaseSchema._version_key,
             Parameter(
                 'str',
                 scope=Scope.GLOBAL,
-                defvalue=SCHEMA_VERSION,
+                defvalue=schema_version,
                 require=True,
                 shorthelp="Schema version number",
                 lock=True,
-                switch="-schemaversion <str>",
                 example=["api: chip.get('schemaversion')"],
                 schelp="""SiliconCompiler schema version number."""))
 
