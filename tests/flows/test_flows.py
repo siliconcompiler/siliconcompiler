@@ -1,6 +1,6 @@
 import pytest
 
-from siliconcompiler.flows.asicflow import ASICFlow, HLSASSICFlow
+from siliconcompiler.flows.asicflow import ASICFlow, HLSASICFlow, VHDLASICFlow
 from siliconcompiler.flows.drcflow import DRCFlow
 from siliconcompiler.flows.dvflow import DVFlow
 from siliconcompiler.flows.fpgaflow import FPGANextPNRFlow, FPGAVPRFlow, FPGAXilinxFlow
@@ -15,7 +15,7 @@ from siliconcompiler.tools.builtin.nop import NOPTask
 
 
 @pytest.mark.parametrize("flow", [
-    ASICFlow(), HLSASSICFlow(),
+    ASICFlow(), HLSASICFlow(), VHDLASICFlow(),
     DRCFlow(),
     DVFlow(tool="icarus"), DVFlow(tool="verilator"), DVFlow(tool="xyce"), DVFlow(tool="xdm-xyce"),
     FPGANextPNRFlow(), FPGAVPRFlow(), FPGAXilinxFlow(),

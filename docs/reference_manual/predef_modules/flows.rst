@@ -13,6 +13,12 @@ See the pre-built :ref:`targets <builtin_targets>` for examples on how these are
   :root: siliconcompiler.flows.asicflow/ASICFlow
 
 .. schema::
+  :root: siliconcompiler.flows.asicflow/HLSASICFlow
+
+.. schema::
+  :root: siliconcompiler.flows.asicflow/VHDLASICFlow
+
+.. schema::
   :root: siliconcompiler.flows.drcflow/DRCFlow
 
 .. schema::
