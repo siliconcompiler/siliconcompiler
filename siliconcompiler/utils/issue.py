@@ -8,7 +8,6 @@ import time
 import tempfile
 from datetime import datetime, timezone
 from siliconcompiler.utils import get_file_template
-from siliconcompiler.tools._common import get_tool_task
 from siliconcompiler import RecordSchema
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.schema import __version__ as schema_version
@@ -56,7 +55,9 @@ def generate_testcase(chip,
     chip.write_manifest(manifest_path)
 
     flow = chip.get('option', 'flow')
-    tool, task = get_tool_task(chip, step, index, flow=flow)
+    tool = chip.get('flowgraph', flow, step, index, 'tool')
+    task = chip.get('flowgraph', flow, step, index, 'task')
+
     task_requires = chip.get('tool', tool, 'task', task, 'require',
                              step=step, index=index)
 
@@ -205,8 +206,6 @@ def generate_testcase(chip,
     except Exception as e:
         git_data['failed'] = str(e)
         pass
-
-    tool, task = get_tool_task(chip, step=step, index=index)
 
     issue_time = datetime.now(timezone.utc).timestamp()
     issue_information = {}

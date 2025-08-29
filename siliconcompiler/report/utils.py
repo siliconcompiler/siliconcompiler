@@ -1,6 +1,5 @@
 from siliconcompiler import NodeStatus
 from siliconcompiler.utils import units
-from siliconcompiler.tools._common import get_tool_task
 
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 
@@ -13,28 +12,6 @@ def _find_summary_image(chip, ext='png'):
             if layout_img:
                 return layout_img
     return None
-
-
-def _find_summary_metrics(chip, metrics_map):
-    metrics = {}
-    for nodes in reversed(chip.get(
-            "flowgraph", chip.get('option', 'flow'), field="schema").get_execution_order()):
-        for step, index in nodes:
-            for name, metric_info in metrics_map.items():
-                if name in metrics:
-                    continue
-
-                metric, formatter = metric_info
-
-                data = chip.get('metric', metric, step=step, index=index)
-                if data is not None:
-                    unit = chip.get('metric', metric, field='unit')
-                    if formatter:
-                        metrics[name] = formatter(data, unit)
-                    else:
-                        metrics[name] = str(data)
-
-    return metrics
 
 
 def _collect_data(chip, flow=None, flowgraph_nodes=None, format_as_string=True):
@@ -53,7 +30,7 @@ def _collect_data(chip, flow=None, flowgraph_nodes=None, format_as_string=True):
         flowgraph_nodes = list(runtime.get_nodes())
         # only report tool based steps functions
         for (step, index) in list(flowgraph_nodes):
-            tool, task = get_tool_task(chip, step, '0', flow=flow)
+            tool = chip.get('flowgraph', flow, step, '0', 'tool')
             if tool == 'builtin':
                 index = flowgraph_nodes.index((step, index))
                 del flowgraph_nodes[index]
@@ -98,7 +75,9 @@ def _collect_data(chip, flow=None, flowgraph_nodes=None, format_as_string=True):
             value = chip.get('metric', metric, step=step, index=index)
             if value is not None:
                 show_metric = True
-            tool, task = get_tool_task(chip, step, index, flow=flow)
+
+            tool = chip.get('flowgraph', flow, step, index, 'tool')
+            task = chip.get('flowgraph', flow, step, index, 'task')
             rpts = chip.get('tool', tool, 'task', task, 'report', metric,
                             step=step, index=index)
 

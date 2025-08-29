@@ -3,7 +3,6 @@ Utility functions for generating and configuring the interactive flowgraph
 display for the web dashboard using the `streamlit-agraph` library.
 """
 from siliconcompiler.report import report
-from siliconcompiler.tools._common import get_tool_task
 from siliconcompiler import NodeStatus
 
 from streamlit_agraph import Node, Edge, Config
@@ -69,7 +68,8 @@ def get_nodes_and_edges(chip):
         node_status = chip.get('record', 'status', step=step, index=index)
         node_color = NODE_COLORS.get(node_status, NODE_COLORS["Unknown"])
 
-        tool, task = get_tool_task(chip, step, index)
+        tool = flowgraph_schema.get(step, index, "tool")
+        task = flowgraph_schema.get(step, index, "task")
         node_name = f'{step}/{index}'
         label = f"{node_name}\n{tool}/{task}"
         if tool == 'builtin':

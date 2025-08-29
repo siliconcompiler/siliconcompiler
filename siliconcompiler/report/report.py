@@ -2,7 +2,6 @@ import fnmatch
 import os
 from siliconcompiler.schema import PerNode, Parameter
 from siliconcompiler.report import utils
-from siliconcompiler.tools._common import get_tool_task
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 
 
@@ -48,7 +47,12 @@ def get_flowgraph_nodes(chip, step, index):
         Returns pandas dataframe of tracked metrics.
     '''
     nodes = {}
-    tool, task = get_tool_task(chip, step, index)
+
+    flow = chip.get('option', 'flow')
+
+    tool = chip.get('flowgraph', flow, step, index, 'tool')
+    task = chip.get('flowgraph', flow, step, index, 'task')
+
     if tool is not None:
         nodes['tool'] = tool
     if task is not None:
@@ -316,7 +320,12 @@ def get_metrics_source(chip, step, index):
     '''
     file_to_metric = {}
     metric_primary_source = {}
-    tool, task = get_tool_task(chip, step, index)
+
+    flow = chip.get('option', 'flow')
+
+    tool = chip.get('flowgraph', flow, step, index, 'tool')
+    task = chip.get('flowgraph', flow, step, index, 'task')
+
     if not chip.valid('tool', tool, 'task', task, 'report'):
         return metric_primary_source, file_to_metric
 
