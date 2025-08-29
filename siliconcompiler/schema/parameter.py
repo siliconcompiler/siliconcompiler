@@ -69,7 +69,7 @@ class Parameter:
                  type,
                  require=False,
                  defvalue=None,
-                 scope=Scope.JOB,
+                 scope=Scope.GLOBAL,
                  copy=False,
                  lock=False,
                  hashalgo='sha256',
