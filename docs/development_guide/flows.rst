@@ -64,6 +64,7 @@ We'll create a new class called SynthesisFlow that inherits from :class:`.Flowgr
 To use this flow, you would instantiate it and set it in your project:
 
 .. code-block:: python
+
   import siliconcompiler
 
   # Create a project
