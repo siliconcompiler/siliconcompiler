@@ -8,7 +8,7 @@ from siliconcompiler.tools.opensta import timing
 
 from siliconcompiler.targets import freepdk45_demo
 
-from tools.inputimporter import importer
+from tools.inputimporter import ImporterTask
 
 
 @pytest.mark.eda
@@ -54,12 +54,12 @@ def test_opensta_sdf(datadir):
     proj.load_target(freepdk45_demo.setup)
 
     flow = FlowgraphSchema("timing")
-    flow.node('import', importer.ImporterTask())
+    flow.node('import', ImporterTask())
     flow.node("opensta", timing.TimingTask())
     flow.edge('import', 'opensta')
     proj.set_flow(flow)
 
-    proj.get_task(filter=importer.ImporterTask).set("var", "input_files",
+    proj.get_task(filter=ImporterTask).set("var", "input_files",
                                                     os.path.join(datadir, 'lec', 'foo.typical.sdf'))
 
     # Check that OpenSTA ran successfully

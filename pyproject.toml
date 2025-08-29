@@ -145,6 +145,9 @@ markers = [
     "docker: test requires docker",
     "nocache: don't automatically set the cache directory",
 ]
+pythonpath = [
+    "tests"
+]
 testpaths = [
     "tests"
 ]
