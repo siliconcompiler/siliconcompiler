@@ -1499,8 +1499,8 @@ class TaskSchema(NamedSchema, PathSchema, DocsSchema):
         return paths
 
     def _generate_doc(self, doc, ref_root, detailed=True):
-        from .schema.docs.utils import build_section, strong, keypath, code, para, build_table
-        from .schema.docs.dynamicgen import build_schema_value_table
+        from .schema.docs.utils import build_section, strong, keypath, code, para, \
+            build_table, build_schema_value_table
         from docutils import nodes
 
         docs = []

@@ -309,10 +309,12 @@ def keypath_role(name, rawtext, text, lineno, inliner, options=None, content=Non
 
 def setup(app):
     app.add_domain(SCDomain)
+
     app.add_directive('schema', SchemaGen)
     app.add_directive('scapp', AppGen)
     app.add_directive('sctool', ToolGen)
     app.add_directive('sctarget', TargetGen)
+
     app.add_role('keypath', keypath_role)
 
     return {
