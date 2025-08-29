@@ -1,115 +1,166 @@
 .. _dev_libraries:
 
-Libraries
-=========
+Defining a Library
+==================
 
-Efficient hardware and software development demands a robust ecosystem of reusable high quality components.
-In SiliconCompiler, you can add new IP to your design by creating a :class:`.Library` object which can be passed into the :meth:`.use()` function.
-The :class:`.Library` class contains its own Schema dictionary, which can describe a macro block or standard cell library.
+In hardware design, a library is a collection of reusable components.
+SiliconCompiler generalizes this concept with the :class:`.DesignSchema` object, which acts as a standardized "manifest" for any piece of IP (Intellectual Property) you want to include in your design.
 
-The general flow to create and import a library is to instantiate a :class:`.Library` object, set up any required sources (in the case of a soft library), or models and outputs (in case of a hardened library), and then import it into a parent design :class:`.Chip` object.
-To enable simple 'target' based access, it is recommended that fundamental physical foundry sponsored IP (stdcells, GPIO, memory macros) are set up as part of reusable library modules.
-To select which standard cell libraries to use during compilation, add their names to the :keypath:`asic, logiclib` parameter, to select macro libraries, add their names to the :keypath:`asic, macrolib` parameter, and to select soft-IP libraries, add their names to the :keypath:`option, library` parameter.
+This could be a hard macro with pre-defined physical layouts (GDS, LEF), a standard cell library from a foundry, or a soft IP delivered as RTL source code (Verilog, VHDL).
 
-Functions
----------
+By packaging IP into a :class:`.DesignSchema`, you make it easy to manage, version, and reuse across different projects.
+Libraries are loaded into a project using the :meth:`.Project.add_dep()` method.
 
-The table below shows the function interfaces for setting up Library objects.
+Types of Libraries
+------------------
 
-.. list-table::
-   :widths: 10 10 10 10 10 10
-   :header-rows: 1
+There are two primary categories of libraries you can define:
 
-   * - Function
-     - Description
-     - Args
-     - Returns
-     - Used by
-     - Required
+* **Hard Libraries (StdCellLibrarySchema)**: These represent foundational, physical IP. This includes standard cell libraries, I/O cells, or hard macros (like SRAMs or SERDES) that have fixed layouts. They are defined using the specialized :class:`.StdCellLibrarySchema` class, which has extra features for handling physical and timing models.
+* **Soft Libraries (DesignSchema)**: These represent synthesizable IP delivered as source code. This is common for digital IP cores that you want to integrate into your design before synthesis. They are defined using the base :class:`.DesignSchema` class.
 
-   * - :ref:`setup() <library_setup>`
-     - Library setup function
-     - optional keyword arguments
-     - :class:`.Library` or list of :class:`.Library`
-     - :meth:`.use()`
-     - yes
+Example 1: Hard IP Library
+--------------------------
 
-   * - :ref:`make_docs() <library_make_docs>`
-     - Doc generator
-     - :class:`.Chip`
-     - :class:`.Library`
-     - sphinx
-     - no
-
-.. _library_setup:
-
-setup()
--------
-
-A library can be setup as either a :ref:`foundational IP <library_setup_foundation>` library, such as those for foundry sponsored IP, or a :ref:`soft library <library_setup_soft>`, which can be used to include external IP in your design.
-
-.. _library_setup_foundation:
-
-Foundational IP
-***************
-
-Here is an example of setting up a :class:`.Library` object with a hard IP macro.
+This example demonstrates how to define a library for a hard macro. This macro is a pre-designed block with its own physical layout (LEF, GDS) and timing models (.lib).
+We will use the :class:`.StdCellLibrarySchema` because it is a physical, foundational component.
 
 .. code-block:: python
 
-  from siliconcompiler import Library
+  from pathlib import Path
+  from siliconcompiler import StdCellLibrarySchema
+  from my_pdk import FakePDK # Assuming a PDK is defined elsewhere
 
-  lib = Library('mymacro', package='mypackage')
-  lib.register_source('mypackage', path='git+https://github.com/myproject/mypackage', ref='v1.0')
-  lib.add('output', '10M', 'lef', 'mymacro.lef')
-  lib.add('output', '10M', 'gds', 'mymacro.gds')
+  class FakeHardIPLibrary(StdCellLibrarySchema):
+      def __init__(self):
+          # 1. Call the parent constructor with a unique name for the library.
+          super().__init__("fakeip")
 
-  return lib
+          # 2. Associate this library with a specific PDK.
+          # This tells SiliconCompiler that this IP is designed for this technology.
+          self.add_asic_pdk(FakePDK())
 
-This example creates a library named ``mymacro`` which contains two files a lef and gds.
-These files are included in the ``mypackage``, which was defined using :meth:`.register_source()`.
-In this case it is defined as a reference to a github repository, for IPs with liberty files and GDSs, it is recommended that the distribution be via tagged releases.
+          # 3. Define the location of the library's source files.
+          # Here, we point to a local directory.
+          path_base = Path("fakeip")
+          self.set_dataroot("fakedata", "python://fakedata_module")
 
+          # 4. Organize the library's files into standardized filesets.
+          with self.active_dataroot("fakedata"):
+              # Define the physical view files (LEF and GDS).
+              with self.active_fileset("models.physical"):
+                  self.add_file(path_base / "lef" / "fakeip.lef")
+                  self.add_file(path_base / "gds" / "fakeip.gds")
+                  # Helper function to add standard APR tech files.
+                  self.add_asic_aprfileset()
 
-.. _library_setup_soft:
+              # Define the timing models. This library provides an NLDM model
+              # for the "typical" corner.
+              with self.active_fileset("models.timing.nldm"):
+                  self.add_file(path_base / "nldm" / "fakeip.lib")
+                  # Helper to associate the file with a specific corner.
+                  self.add_asic_libcornerfileset("typical", "nldm")
 
-Soft IP
-*******
+Using the Library
+^^^^^^^^^^^^^^^^^
 
-Here is an example of setting up a :class:`.Library` object with a HDL IP.
+To use either of these libraries in your design, you would instantiate the class and add it as a dependency to your project.
 
 .. code-block:: python
 
-  from siliconcompiler import Library
-  from hdlpackage import subcompnent
+  import siliconcompiler
 
-  lib = Library('mymacro', package='mypackage', auto_enable=True)
-  lib.register_source('mypackage', path='python://hdlpackage')
-  lib.input('mymacro.v')
-  lib.input('mymacro_submodule.v')
-  lib.add('option', 'idir', 'include')
+  project = siliconcompiler.ASICProject()
 
-  lib.use(subcompnent)
+  # Instantiate and add the soft IP library.
+  soft_ip_lib = FakeHardIPLibrary()
+  project.add_asiclib(soft_ip_lib)
 
-  return lib
+  # Now, the 'fakeip' will be included during compilation.
+  # project.run()
 
-This example creates a library named ``mymacro`` which contains two source files and a include directory.
-These files are included in the ``mypackage``, which was defined using :meth:`.register_source()`.
-In this case, the files are bundled with the python package as HDL tends to be fairly small and this can be easily distributed via `pypi.org <https://pypi.org/>`__.
-The library also contains a reference to a ``subcompnent`` which is needed to compile this object.
-Additionally, the ``auto_enable`` is set to ``True`` which ensures that when this library is brought in with :meth:`.use()` it is automatically added to the :keypath:`option, library`.
+Example 2: Soft IP Library
+--------------------------
 
+This example shows how to define a library for a soft IP core, which is just a reusable block of RTL code. Since there are no physical or timing views, we use the :class:`.DesignSchema`.
 
-.. _library_make_docs:
+.. code-block:: python
 
-make_docs(chip)
+  from siliconcompiler import DesignSchema
+
+  class FakeSoftIP(DesignSchema):
+      def __init__(self):
+          # 1. Call the parent constructor with a unique name.
+          super().__init__("fakesoftip")
+
+          # 2. Set metadata for the library.
+          self.set_version("v1.0")
+
+          # 3. Define the location of the source files.
+          self.set_dataroot("fakedata", "python://fakedata_module")
+
+          # 4. Add the RTL source code to the 'rtl' fileset.
+          # When this library is included in a project, this Verilog file
+          # will be passed to the synthesis tool.
+          with self.active_dataroot("fakedata"), self.active_fileset("rtl"):
+                  self.add_file("rtl/fakeip.v")
+
+Using the Library
+^^^^^^^^^^^^^^^^^
+
+To use either of these libraries in your design, you would instantiate the class and add it as a dependency to your project.
+
+.. code-block:: python
+
+  import siliconcompiler
+
+  project = siliconcompiler.Project()
+
+  # Instantiate and add the soft IP library.
+  soft_ip_lib = FakeSoftIP()
+  project.add_dep(soft_ip_lib)
+
+  # Now, the 'fakeip.v' source file will be included during compilation.
+  # project.run()
+
+Useful APIs
+-----------
+
+Core Configuration
+^^^^^^^^^^^^^^^^^^^
+
+.. currentmodule:: siliconcompiler.DesignSchema
+
+.. autosummary::
+    :nosignatures:
+
+    add_file
+    set_dataroot
+
+PDK and Physical Views
+^^^^^^^^^^^^^^^^^^^^^^
+
+.. currentmodule:: siliconcompiler.StdCellLibrarySchema
+
+.. autosummary::
+    :nosignatures:
+
+    add_file
+    set_dataroot
+    add_asic_pdk
+    add_asic_aprfileset
+    add_asic_libcornerfileset
+
+Class Reference
 ---------------
-The ``make_docs()`` function is used by the projects auto-doc generation.
-This function is only needed if the library requires additional inputs to be setup correctly.
-The function should include a call to the setup function to populate the schema with all settings as shown below.
-The input to this function ``chip`` is a chip object created by the auto-doc generator.
+For a complete list of all available methods, please see the full class documentation.
 
-.. code-block:: python
+.. autoclass:: siliconcompiler.DesignSchema
+    :members:
+    :show-inheritance:
+    :inherited-members:
 
-  def make_docs(chip):
-    return setup()
+.. autoclass:: siliconcompiler.StdCellLibrarySchema
+    :members:
+    :show-inheritance:
+    :inherited-members:

@@ -30,7 +30,6 @@ This example demonstrates the fundamental :meth:`.node()` and :meth:`.edge()` AP
 
 We'll create a new class called SynthesisFlow that inherits from :class:`.FlowgraphSchema`.
 
-
 .. code-block:: python
 
   # Import the base class and the specific tool tasks we need.
