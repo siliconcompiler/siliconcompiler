@@ -4,7 +4,7 @@ import pytest
 from unittest.mock import patch
 
 from siliconcompiler.schema import Parameter, PerNode, Scope
-from siliconcompiler.schema import SCHEMA_VERSION
+from siliconcompiler.schema import __version__
 from siliconcompiler.schema.parametervalue import FileNodeValue, NodeValue
 
 
@@ -447,7 +447,7 @@ def test_from_dict():
             '-test',
         ],
         'type': '(str,<test0,test1>)',
-    }, [], tuple([int(v) for v in SCHEMA_VERSION.split('.')]))
+    }, [], tuple([int(v) for v in __version__.split('.')]))
     assert param.default.get() is None
     assert param.get() == ('test', 'test1')
     assert param.get(step="teststep") == ('test', 'test1')

@@ -21,7 +21,7 @@ from siliconcompiler import NodeStatus as SCNodeStatus
 from siliconcompiler._metadata import version as sc_version
 
 from siliconcompiler.schema import utils as schema_utils
-from siliconcompiler.schema import SCHEMA_VERSION as sc_schema_version
+from siliconcompiler.schema import __version__ as sc_schema_version
 
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 from siliconcompiler.scheduler import SchedulerNode
