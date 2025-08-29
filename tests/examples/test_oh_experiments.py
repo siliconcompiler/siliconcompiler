@@ -26,8 +26,8 @@ def test_py_check_area():
     from oh_experiments import check_area
     check_area.main(5)
 
-    assert os.path.isfile('build/oh/job0/rtl.asic_and2.pkg.json')
-    assert os.path.isfile('build/oh/job0/rtl.asic_and3.pkg.json')
-    assert os.path.isfile('build/oh/job0/rtl.asic_and4.pkg.json')
-    assert os.path.isfile('build/oh/job0/rtl.asic_ao21.pkg.json')
-    assert os.path.isfile('build/oh/job0/rtl.asic_ao211.pkg.json')
+    assert os.path.isfile('build/oh/rtl.asic_and2/oh.pkg.json')
+    assert os.path.isfile('build/oh/rtl.asic_and3/oh.pkg.json')
+    assert os.path.isfile('build/oh/rtl.asic_and4/oh.pkg.json')
+    assert os.path.isfile('build/oh/rtl.asic_ao21/oh.pkg.json')
+    assert os.path.isfile('build/oh/rtl.asic_ao211/oh.pkg.json')
