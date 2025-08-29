@@ -88,5 +88,7 @@ def test_docker_run(docker_image, project):
     # assert "Running in docker container:" in output.out
     # assert output.out.count("Running in docker container:") == 2
 
-    assert project.get("record", "status", step="stepone", index="0") == NodeStatus.SUCCESS
-    assert project.get("record", "status", step="steptwo", index="0") == NodeStatus.SUCCESS
+    assert project.history("job0").get("record", "status", step="stepone", index="0") == \
+        NodeStatus.SUCCESS
+    assert project.history("job0").get("record", "status", step="steptwo", index="0") == \
+        NodeStatus.SUCCESS

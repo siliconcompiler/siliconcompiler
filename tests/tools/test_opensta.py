@@ -34,8 +34,8 @@ def test_opensta(datadir):
     assert proj.run()
 
     # Check that the setup and hold slacks are the expected values.
-    assert proj.get('metric', 'setupslack', step='opensta', index='0') == -0.220
-    assert proj.get('metric', 'holdslack', step='opensta', index='0') == 0.050
+    assert proj.history("job0").get('metric', 'setupslack', step='opensta', index='0') == -0.220
+    assert proj.history("job0").get('metric', 'holdslack', step='opensta', index='0') == 0.050
 
 
 @pytest.mark.eda
@@ -66,5 +66,5 @@ def test_opensta_sdf(datadir):
     assert proj.run()
 
     # Check that the setup and hold slacks are the expected values.
-    assert proj.get('metric', 'setupslack', step='opensta', index='0') == -0.890
-    assert proj.get('metric', 'holdslack', step='opensta', index='0') == 0.020
+    assert proj.history("job0").get('metric', 'setupslack', step='opensta', index='0') == -0.890
+    assert proj.history("job0").get('metric', 'holdslack', step='opensta', index='0') == 0.020

@@ -55,7 +55,7 @@ def test_from_manifest_with_file(schema):
                 'notes': None,
                 'pernode': 'never',
                 'require': False,
-                'scope': 'job',
+                'scope': 'global',
                 'shorthelp': None,
                 'switch': [],
                 'type': 'str',
@@ -64,7 +64,7 @@ def test_from_manifest_with_file(schema):
         'test0': {
             'type': 'str',
             'require': False,
-            'scope': 'job',
+            'scope': 'global',
             'lock': False,
             'switch': [],
             'shorthelp': None,
@@ -78,7 +78,7 @@ def test_from_manifest_with_file(schema):
             'test2': {
                 'type': '[str]',
                 'require': False,
-                'scope': 'job',
+                'scope': 'global',
                 'lock': False,
                 'switch': [],
                 'shorthelp': None,
@@ -96,7 +96,7 @@ def test_from_manifest_with_file(schema):
             'default': {
                 'type': 'int',
                 'require': False,
-                'scope': 'job',
+                'scope': 'global',
                 'lock': False,
                 'switch': [],
                 'shorthelp': None,
@@ -115,7 +115,7 @@ def test_from_manifest_with_file(schema):
                 'test6': {
                     'type': 'str',
                     'require': False,
-                    'scope': 'job',
+                    'scope': 'global',
                     'lock': False,
                     'switch': [],
                     'shorthelp': None,
@@ -163,7 +163,7 @@ def test_from_manifest_with_cfg(schema):
                 'notes': None,
                 'pernode': 'never',
                 'require': False,
-                'scope': 'job',
+                'scope': 'global',
                 'shorthelp': None,
                 'switch': [],
                 'type': 'str',
@@ -172,7 +172,7 @@ def test_from_manifest_with_cfg(schema):
         'test0': {
             'type': 'str',
             'require': False,
-            'scope': 'job',
+            'scope': 'global',
             'lock': False,
             'switch': [],
             'shorthelp': None,
@@ -186,7 +186,7 @@ def test_from_manifest_with_cfg(schema):
             'test2': {
                 'type': '[str]',
                 'require': False,
-                'scope': 'job',
+                'scope': 'global',
                 'lock': False,
                 'switch': [],
                 'shorthelp': None,
@@ -204,7 +204,7 @@ def test_from_manifest_with_cfg(schema):
             'default': {
                 'type': 'int',
                 'require': False,
-                'scope': 'job',
+                'scope': 'global',
                 'lock': False,
                 'switch': [],
                 'shorthelp': None,
@@ -223,7 +223,7 @@ def test_from_manifest_with_cfg(schema):
                 'test6': {
                     'type': 'str',
                     'require': False,
-                    'scope': 'job',
+                    'scope': 'global',
                     'lock': False,
                     'switch': [],
                     'shorthelp': None,

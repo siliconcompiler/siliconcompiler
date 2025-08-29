@@ -61,5 +61,5 @@ def test_metrics_task(asic_gcd):
     asic_gcd.set('option', 'to', 'metrics')
     assert asic_gcd.run()
 
-    assert asic_gcd.get('metric', 'cellarea', step='metrics', index='0') is not None
-    assert asic_gcd.get('metric', 'totalarea', step='metrics', index='0') is not None
+    assert asic_gcd.history("job0").get('metric', 'cellarea', step='metrics', index='0') is not None
+    assert asic_gcd.history("job0").get('metric', 'totalarea', step='metrics', index='0') is not None

@@ -184,7 +184,7 @@ def test_drc_pass(setup_pdk_test, datadir):
     proj.get_task(filter=drc.DRCTask).set("var", "drc_name", "drc")
 
     assert proj.run()
-    assert proj.get('metric', 'drcs', step='drc', index='0') == 0
+    assert proj.history("job0").get('metric', 'drcs', step='drc', index='0') == 0
 
 
 @pytest.mark.eda
@@ -214,7 +214,7 @@ def test_drc_fail(setup_pdk_test, datadir):
     proj.get_task(filter=drc.DRCTask).set("var", "drc_name", "drc")
 
     assert proj.run()
-    assert proj.get('metric', 'drcs', step='drc', index='0') == 12
+    assert proj.history("job0").get('metric', 'drcs', step='drc', index='0') == 12
 
 
 @pytest.mark.eda
@@ -246,7 +246,7 @@ def test_convert_drc(setup_pdk_test, datadir):
     proj.get_task(filter=drc.DRCTask).set("var", "drc_name", "drc")
 
     assert proj.run()
-    assert proj.get('metric', 'drcs', step='drc', index='0') == 12
+    assert proj.history("job0").get('metric', 'drcs', step='drc', index='0') == 12
 
     lyrdb = proj.find_result("lyrdb", step="convert", directory="inputs")
     assert os.path.isfile(lyrdb)

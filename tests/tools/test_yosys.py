@@ -52,7 +52,7 @@ def test_yosys_lec(datadir):
                                            os.path.join(datadir, 'lec', 'foo.vg'))
 
     assert proj.run()
-    assert proj.get('metric', 'drvs', step='lec', index='0') == 0
+    assert proj.history("job0").get('metric', 'drvs', step='lec', index='0') == 0
 
 
 @pytest.mark.eda
@@ -79,4 +79,4 @@ def test_yosys_lec_broken(datadir):
         "var", "input_files", os.path.join(datadir, 'lec', 'broken', 'foo.vg'))
 
     assert proj.run()
-    assert proj.get('metric', 'drvs', step='lec', index='0') == 2
+    assert proj.history("job0").get('metric', 'drvs', step='lec', index='0') == 2
