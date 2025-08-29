@@ -1006,9 +1006,9 @@ class SchedulerNode:
             self.__index,
             archive_directory=self.__jobworkdir,
             include_pdks=False,
-            include_specific_pdks=lambdapdk.get_pdks(),
+            include_specific_pdks=lambdapdk.get_pdk_names(),
             include_libraries=False,
-            include_specific_libraries=lambdapdk.get_libs(),
+            include_specific_libraries=lambdapdk.get_lib_names(),
             hash_files=self.__hash,
             verbose_collect=False)
 
