@@ -288,7 +288,7 @@ Tool post process methods
 
     record_metric
 
-Docuemntation methods
+Documentation methods
 ^^^^^^^^^^^^^^^^^^^^^
 
 These methods are used for auto-generating documentation for your tool.
