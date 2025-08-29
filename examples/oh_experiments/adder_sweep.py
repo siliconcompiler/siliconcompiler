@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from siliconcompiler import Chip
+from siliconcompiler import ASICProject, DesignSchema
 from siliconcompiler.targets import freepdk45_demo
 
 try:
@@ -13,21 +13,29 @@ def main():
     # datawidths to check
     datawidths = [8, 16, 32, 64]
 
+    # Setup design
+    design = DesignSchema("oh_add")
+    design.set_dataroot("oh",
+                        "git+https://github.com/aolofsson/oh",
+                        "23b26c4a938d4885a2a340967ae9f63c3c7a3527")
+    for n in datawidths:
+        with design.active_dataroot("oh"), design.active_fileset(f"rtl.{n}"):
+            design.set_topmodule("oh_add")
+            design.add_file("mathlib/hdl/oh_add.v")
+            design.set_param("N", str(n))
+
     # Gather Data
     area = []
     for n in datawidths:
-        chip = Chip("oh_add")
-        chip.register_source('oh',
-                             'git+https://github.com/aolofsson/oh',
-                             '23b26c4a938d4885a2a340967ae9f63c3c7a3527')
-        chip.use(freepdk45_demo)
-        chip.input('mathlib/hdl/oh_add.v', package='oh')
-        chip.set('option', 'quiet', True)
-        chip.set('option', 'to', ['syn'])
-        chip.set('option', 'param', 'N', str(n))
-        chip.run()
+        proj = ASICProject(design)
+        proj.load_target(freepdk45_demo.setup)
+        proj.set_flow("synflow")
 
-        area.append(chip.get('metric', 'cellarea', step='syn', index='0'))
+        proj.add_fileset(f"rtl.{n}", clobber=True)
+        proj.set("option", "jobname", f"N{n}")
+        proj.run()
+
+        area.append(proj.get('metric', 'cellarea', step='synthesis', index='0'))
 
     if plt:
         # Plot Data
@@ -35,8 +43,8 @@ def main():
         plt.plot(datawidths, area)
         plt.show()
     else:
-        print('areas:', area)
-        print('Install matplotlib to automatically plot this data!')
+        proj.logger.info(f'areas: {area}')
+        proj.logger.warning('Install matplotlib to automatically plot this data!')
         return area
 
 
