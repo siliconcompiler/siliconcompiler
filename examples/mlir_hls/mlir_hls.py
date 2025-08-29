@@ -2,7 +2,7 @@
 
 from siliconcompiler import ASICProject, DesignSchema
 from siliconcompiler.targets import freepdk45_demo
-from siliconcompiler.flows.asicflow import HLSASSICFlow
+from siliconcompiler.flows.asicflow import HLSASICFlow
 
 
 def main():
@@ -23,7 +23,7 @@ def main():
     project.load_target(freepdk45_demo.setup)
 
     # Load hls flow
-    project.set_flow(HLSASSICFlow())
+    project.set_flow(HLSASICFlow())
 
     # Run
     project.run()

@@ -18,6 +18,7 @@ from siliconcompiler.tools.openroad import write_data
 from siliconcompiler.tools.klayout import export as klayout_export
 
 from siliconcompiler.tools.bambu.convert import ConvertTask
+from siliconcompiler.tools.ghdl.convert import ConvertTask as GHDLConvertTask
 
 from siliconcompiler.tools.builtin import minimum
 
@@ -168,7 +169,7 @@ class ASICFlow(FlowgraphSchema):
         return ASICFlow(syn_np=3, floorplan_np=3, place_np=3, cts_np=3, route_np=3)
 
 
-class HLSASSICFlow(ASICFlow):
+class HLSASICFlow(ASICFlow):
     '''A High-Level Synthesis (HLS) extension of the ASICFlow.
 
     This class inherits from ASICFlow and modifies it to support HLS by
@@ -177,13 +178,45 @@ class HLSASSICFlow(ASICFlow):
     '''
     def __init__(self):
         """
-        Initializes the HLSASSICFlow.
+        Initializes the HLSASICFlow.
         """
         super().__init__("hlsasicflow")
 
         self.remove_node("elaborate")
         self.node("convert", ConvertTask())
         self.edge("convert", "synthesis")
+
+    @classmethod
+    def make_docs(cls):
+        return cls()
+
+
+class VHDLASICFlow(ASICFlow):
+    '''A VHDL-based ASIC synthesis flow.
+
+    This class extends the standard ASICFlow to support VHDL input by
+    replacing the initial Verilog-focused 'elaborate' step with a 'convert'
+    step that uses GHDL to analyze and elaborate the VHDL design before
+    synthesis.
+    '''
+    def __init__(self):
+        '''Initializes the VHDL ASIC flow.
+
+        This method sets up the flow graph by:
+
+        1. Removing the default 'elaborate' node.
+        2. Adding a 'convert' node that runs the GHDLConvertTask.
+        3. Connecting the new 'convert' node to the 'synthesis' node.
+        '''
+        super().__init__("vhdlasicflow")
+
+        self.remove_node("elaborate")
+        self.node("convert", GHDLConvertTask())
+        self.edge("convert", "synthesis")
+
+    @classmethod
+    def make_docs(cls):
+        return cls()
 
 
 ##################################################

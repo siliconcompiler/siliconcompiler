@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 
-import siliconcompiler
+from siliconcompiler import ASICProject, DesignSchema
 from siliconcompiler.targets import freepdk45_demo
 
 import glob
-import os
-import re
 import sys
+
+import os.path
 
 
 def __register_oh(chip):
@@ -15,7 +15,7 @@ def __register_oh(chip):
                          '23b26c4a938d4885a2a340967ae9f63c3c7a3527')
 
 
-def checkarea(filelist, libdir, target):
+def checkarea(design, filesets, target):
     '''
     Runs SC through synthesis and prints out the module name, cell count,
     and area as a csv format ready to be imported into a spreadsheet
@@ -27,42 +27,46 @@ def checkarea(filelist, libdir, target):
     target (module): Name of the SC target. For example, freepdk45_demo.
     '''
 
-    print("module", "cells", "area", sep=",")
-    for item in filelist:
-        design = re.match(r'.*/(\w+)\.v', item).group(1)
-        chip = siliconcompiler.Chip(design)
-        __register_oh(chip)
-        chip.use(target)
-        chip.input(item)
-        chip.add('option', 'ydir', libdir, package='oh')
-        chip.set('option', 'quiet', True)
-        chip.set('option', 'to', ['syn'])
-        chip.run()
-        cells = chip.get('metric', 'cells', step='syn', index='0')
-        area = chip.get('metric', 'cellarea', step='syn', index='0')
-        print(design, cells, area, sep=",")
+    for fileset in filesets:
+        proj = ASICProject(design)
+        proj.add_fileset(fileset)
+
+        proj.load_target(target.setup)
+
+        proj.set("option", "jobname", fileset)
+        proj.set_flow("synflow")
+
+        proj.run()
+        cells = proj.get('metric', 'cells', step='synthesis', index='0')
+        area = proj.get('metric', 'cellarea', step='synthesis', index='0')
+        proj.logger.info(f"{fileset},{cells},{area}")
 
     return 0
 
 
 def main(limit=-1):
-    # Checking asiclib
-    libdir = os.path.join('asiclib', 'hdl')
+    # Setup design
+    design = DesignSchema("oh")
+    design.set_dataroot("oh",
+                        "git+https://github.com/aolofsson/oh",
+                        "23b26c4a938d4885a2a340967ae9f63c3c7a3527")
+    oh_path = design.get_dataroot("oh")
+    for file in glob.glob(os.path.join(oh_path, "asiclib", "hdl", "*.v")):
+        if os.path.basename(file) in [
+                'asic_keeper.v',
+                'asic_antenna.v',
+                'asic_header.v',
+                'asic_footer.v',
+                'asic_decap.v']:
+            continue
 
-    chip = siliconcompiler.Chip('oh')
-    __register_oh(chip)
-    oh_path = chip.get("package", field="schema").get_resolver("oh")
-    filelist = glob.glob(str(oh_path.get_path()) + '/' + libdir + '/*.v')
-    dontcheck = ['asic_keeper.v',
-                 'asic_antenna.v',
-                 'asic_header.v',
-                 'asic_footer.v',
-                 'asic_decap.v']
-    for item in dontcheck:
-        filelist.remove(os.path.join(oh_path.get_path(), libdir, item))
+        top = os.path.basename(file).split(".")[0]
+        with design.active_dataroot("oh"), design.active_fileset(f"rtl.{top}"):
+            design.set_topmodule(top)
+            design.add_file(os.path.join("asiclib", "hdl", os.path.basename(file)))
 
-    filelist = sorted(filelist)[0:limit]
-    return checkarea(filelist, libdir, freepdk45_demo)
+    filesets = sorted(design.getkeys("fileset"))[0:limit]
+    return checkarea(design, filesets, freepdk45_demo)
 
 
 #########################

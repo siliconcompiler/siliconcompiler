@@ -7,7 +7,7 @@ from siliconcompiler import ASICProject, FPGAProject
 
 from siliconcompiler.flows.lintflow import LintFlow
 from siliconcompiler.flows.synflow import SynthesisFlow
-from siliconcompiler.flows.asicflow import ASICFlow, HLSASSICFlow
+from siliconcompiler.flows.asicflow import ASICFlow, HLSASICFlow
 from siliconcompiler.flows.fpgaflow import FPGAFlow
 
 from siliconcompiler._dummy import target
@@ -73,7 +73,7 @@ def asic(pdk: str = "freepdk45", fileset: str = "rtl", show: bool = False,
     project.add_fileset(fileset)
     project.add_fileset(f"rtl.{pdk}")
     if fileset == "hls.c":
-        project.set_flow(HLSASSICFlow())
+        project.set_flow(HLSASICFlow())
     else:
         project.set_flow(ASICFlow())
 
