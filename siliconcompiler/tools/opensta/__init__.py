@@ -11,6 +11,10 @@ Installation: https://github.com/The-OpenROAD-Project/OpenSTA (also installed wi
 
 from siliconcompiler import TaskSchema
 
+from siliconcompiler import FPGASchema
+
+from siliconcompiler.schema.utils import trim
+
 
 class OpenSTATask(TaskSchema):
     def __init__(self):
@@ -65,3 +69,33 @@ class OpenSTATask(TaskSchema):
         node = SchedulerNode(proj, "<step>", "<index>")
         node.setup()
         return node.task
+
+
+class OpenSTAFPGA(FPGASchema):
+    """
+    Schema for defining library parameters specifically for the
+    OpenSTA tool when targeting an FPGA.
+
+    This class extends the base FPGASchema to manage various settings
+    related to OpenSTA, specifically for passing liberty filesets.
+    """
+    def __init__(self):
+        super().__init__()
+
+        self.define_tool_parameter("opensta", "liberty_filesets", "{str}",
+                                   "A set of liberty filesets to read to perform STA.")
+
+    def add_opensta_liberty_fileset(self, fileset: str = None):
+        """
+        Adds the given fileset to the set of liberty files which will be used
+        for STA.
+
+        Args:
+            fileset (str): name of the fileset
+        """
+        if not fileset:
+            fileset = self._get_active("fileset")
+
+        self._assert_fileset(fileset)
+
+        return self.add("tool", "opensta", "liberty_filesets", fileset)

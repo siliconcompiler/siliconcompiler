@@ -8,9 +8,8 @@ from siliconcompiler.constraints.asic_pins import \
 from siliconcompiler.constraints.asic_component import \
     ASICComponentConstraint, ASICComponentConstraints
 
-
-class FPGATimingConstraintSchema(BaseSchema):
-    pass
+from siliconcompiler.constraints.fpga_timing import \
+    FPGATimingConstraintSchema, FPGATimingScenarioSchema
 
 
 class FPGAPinConstraints(BaseSchema):
@@ -28,5 +27,7 @@ __all__ = [
     "ASICPinConstraint",
     "ASICPinConstraints",
     "ASICComponentConstraint",
-    "ASICComponentConstraints"
+    "ASICComponentConstraints",
+    "FPGATimingConstraintSchema",
+    "FPGATimingScenarioSchema"
 ]

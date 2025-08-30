@@ -31,6 +31,9 @@ See the pre-built :ref:`targets <builtin_targets>` for examples on how these are
   :root: siliconcompiler.flows.fpgaflow/FPGAVPRFlow
 
 .. schema::
+  :root: siliconcompiler.flows.fpgaflow/FPGAVPROpenSTAFlow
+
+.. schema::
   :root: siliconcompiler.flows.fpgaflow/FPGAXilinxFlow
 
 .. schema::
