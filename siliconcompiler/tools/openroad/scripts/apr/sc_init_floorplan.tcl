@@ -55,10 +55,6 @@ if { [sc_cfg_exists input asic floorplan] } {
     }
 }
 
-proc sc_format_area { area } {
-    return "([lindex $area 0], [lindex $area 1]) - ([lindex $area 2], [lindex $area 3])"
-}
-
 puts "Floorplan information:"
 puts "  Die area: [sc_format_area [ord::get_die_area]]"
 puts "  Core area: [sc_format_area [ord::get_core_area]]"

@@ -4,6 +4,7 @@ from lambdapdk.interposer import Interposer_3ML_0400
 from lambdapdk.interposer.libs.bumps import BumpLibrary
 
 from siliconcompiler.flows import interposerflow
+from siliconcompiler.flows import drcflow
 
 
 ####################################################
@@ -20,6 +21,7 @@ def setup(project: ASICProject):
 
     # 2. Load flows
     project.set_flow(interposerflow.InterposerFlow())
+    project.add_dep(drcflow.DRCFlow())
 
     # 3. Set default targets
 
