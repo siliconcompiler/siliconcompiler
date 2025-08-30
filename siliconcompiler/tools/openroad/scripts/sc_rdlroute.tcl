@@ -8,32 +8,8 @@ source ./sc_manifest.tcl
 # Schema Adapter
 ###############################
 
-set sc_tool openroad
-set sc_step [sc_cfg_get arg step]
-set sc_index [sc_cfg_get arg index]
-set sc_flow [sc_cfg_get option flow]
-set sc_task [sc_cfg_get flowgraph $sc_flow $sc_step $sc_index task]
-
-set sc_refdir [sc_cfg_tool_task_get refdir]
-
-# Design
-set sc_design [sc_top]
-set sc_optmode [sc_cfg_get option optmode]
-set sc_pdk [sc_cfg_get option pdk]
-set sc_stackup [sc_cfg_get option stackup]
-
-# PDK Design Rules
-set sc_libtype [lindex [sc_cfg_get option var openroad_libtype] 0]
-set sc_techlef [sc_cfg_get pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype lef]
-
+set sc_pdk [sc_cfg_get asic pdk]
 set sc_threads [sc_cfg_tool_task_get threads]
-
-###############################
-# Optional
-###############################
-
-# MACROS
-set sc_macrolibs [sc_get_asic_libraries macro]
 
 ##############################
 # Setup debugging
@@ -54,28 +30,36 @@ source "$sc_refdir/common/procs.tcl"
 set_thread_count $sc_threads
 
 # Read techlef
-puts "Reading techlef: ${sc_techlef}"
-read_lef $sc_techlef
+set aprfileset [sc_cfg_get library $sc_pdk pdk aprtechfileset openroad]
+foreach sc_techlef [sc_cfg_get_fileset $sc_pdk $aprfileset lef] {
+    # Read techlef
+    puts "Reading techlef: ${sc_techlef}"
+    read_lef $sc_techlef
+}
 
 # Read Lefs
-foreach lib "$sc_macrolibs" {
-    foreach lef_file [sc_cfg_get library $lib output $sc_stackup lef] {
+foreach lib [sc_cfg_get asic asiclib] {
+    set filesets [sc_cfg_get library $lib asic aprfileset]
+    foreach lef_file [sc_cfg_get_fileset $lib $filesets lef] {
         puts "Reading lef: ${lef_file}"
         read_lef $lef_file
     }
 }
 
 # Read Verilog
-if { [file exists "inputs/${sc_design}.vg"] } {
-    puts "Reading netlist verilog: inputs/${sc_design}.vg"
-    read_verilog "inputs/${sc_design}.vg"
+if { [file exists "inputs/${sc_topmodule}.vg"] } {
+    puts "Reading netlist verilog: inputs/${sc_topmodule}.vg"
+    read_verilog "inputs/${sc_topmodule}.vg"
+} elseif { [file exists "inputs/${sc_topmodule}.v"] } {
+    puts "Reading netlist verilog: inputs/${sc_topmodule}.v"
+    read_verilog "inputs/${sc_topmodule}.v"
 } else {
-    foreach netlist [sc_cfg_get input netlist verilog] {
+    foreach netlist [sc_cfg_get_fileset $sc_designlib [sc_cfg_get option fileset] verilog] {
         puts "Reading netlist verilog: ${netlist}"
         read_verilog $netlist
     }
 }
-link_design $sc_design
+link_design $sc_topmodule
 
 ###############################
 # Source Step Script
@@ -102,7 +86,7 @@ if { [sc_cfg_exists input asic floorplan] } {
     read_def -floorplan_initialize $def
 } else {
     #NOTE: assuming a two tuple value as lower left, upper right
-    set sc_diearea [sc_cfg_get constraint outline]
+    set sc_diearea [sc_cfg_get constraint area diearea]
 
     # Use die and core sizes
     set sc_diesize "[lindex $sc_diearea 0] [lindex $sc_diearea 1]"
@@ -117,19 +101,17 @@ if { [sc_cfg_exists input asic floorplan] } {
 }
 
 puts "Floorplan information:"
-puts "Die area: [ord::get_die_area]"
+puts "  Die area: [sc_format_area [ord::get_die_area]]"
 
 ###########################
 # Track Creation
 ###########################
-
-# source tracks from file if found, else else use schema entries
 make_tracks
 
 ###########################
 # RDL Routing
 ###########################
-foreach rdl_file [sc_cfg_tool_task_get {file} rdlroute] {
+foreach rdl_file [sc_cfg_tool_task_get var rdlroute] {
     puts "Sourcing rdlroute: ${rdl_file}"
     source $rdl_file
 }
@@ -145,10 +127,7 @@ foreach obstruction [[ord::get_db_block] getObstructions] {
 }
 utl::info FLW 1 "Deleted $removed_obs routing obstructions"
 
-if {
-    [sc_cfg_tool_task_get var fin_add_fill] &&
-    [sc_cfg_exists pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype fill]
-} {
+if { [sc_cfg_tool_task_get var fin_add_fill] } {
     set sc_fillrules \
         [lindex [sc_cfg_get pdk $sc_pdk aprtech openroad $sc_stackup $sc_libtype fill] 0]
     density_fill -rules $sc_fillrules
