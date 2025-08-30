@@ -1,8 +1,7 @@
-from typing import Union, Set, List, Tuple
+from typing import Union, Set
 
 from siliconcompiler.schema import BaseSchema, NamedSchema, EditableSchema, Parameter, \
     PerNode, Scope
-from siliconcompiler import DesignSchema
 
 
 class FPGATimingScenarioSchema(NamedSchema):
@@ -10,7 +9,7 @@ class FPGATimingScenarioSchema(NamedSchema):
     Represents a single timing scenario for FPGA design constraints.
 
     This class encapsulates various parameters that define a specific timing
-    scenario, library corners, PEX corners, and operating mode.
+    scenario and operating mode.
     """
 
     def __init__(self, name: str = None):
@@ -18,30 +17,6 @@ class FPGATimingScenarioSchema(NamedSchema):
         self.set_name(name)
 
         schema = EditableSchema(self)
-        schema.insert(
-            'libcorner',
-            Parameter(
-                '{str}',
-                pernode=PerNode.OPTIONAL,
-                scope=Scope.GLOBAL,
-                shorthelp="Constraint: library corner",
-                switch="-constraint_timing_libcorner 'scenario <str>'",
-                example=["api: chip.set('constraint', 'timing', 'worst', 'libcorner', 'ttt')"],
-                help="""List of characterization corners used to select
-                timing files for all logiclibs and macrolibs."""))
-
-        schema.insert(
-            'pexcorner',
-            Parameter(
-                'str',
-                pernode=PerNode.OPTIONAL,
-                scope=Scope.GLOBAL,
-                shorthelp="Constraint: pex corner",
-                switch="-constraint_timing_pexcorner 'scenario <str>'",
-                example=["api: chip.set('constraint', 'timing', 'worst', 'pexcorner', 'max')"],
-                help="""Parasitic corner applied to the scenario. The
-                'pexcorner' string must match a corner found in :keypath:`pdk,<pdk>,pexmodel`."""))
-
         schema.insert(
             'mode',
             Parameter(
@@ -53,67 +28,6 @@ class FPGATimingScenarioSchema(NamedSchema):
                 example=["api: chip.set('constraint', 'timing', 'worst', 'mode', 'test')"],
                 help="""Operating mode for the scenario. Operating mode strings
                 can be values such as test, functional, standby."""))
-
-    def add_libcorner(self,
-                      libcorner: str,
-                      clobber: bool = False,
-                      step: str = None, index: Union[str, int] = None):
-        """
-        Adds a library corner to the design.
-
-        Args:
-            libcorner (str): The name of the library corner to add.
-            clobber (bool): If True, existing library corners at the specified step/index will
-                    be overwritten.
-                    If False (default), the library corner will be added.
-            step (str, optional): step name.
-            index (str, optional): index name.
-        """
-        if clobber:
-            return self.set("libcorner", libcorner, step=step, index=index)
-        else:
-            return self.add("libcorner", libcorner, step=step, index=index)
-
-    def get_libcorner(self,
-                      step: str = None, index: Union[str, int] = None) -> Set[str]:
-        """
-        Gets the set of library corners.
-
-        Args:
-            step (str, optional): step name.
-            index (str, optional): index name.
-
-        Returns:
-            A set of library corner names.
-        """
-        return self.get("libcorner", step=step, index=index)
-
-    def set_pexcorner(self,
-                      pexcorner: str,
-                      step: str = None, index: Union[str, int] = None):
-        """
-        Sets the parasitic extraction (PEX) corner for the design.
-
-        Args:
-            pexcorner (str): The name of the PEX corner to set.
-            step (str, optional): step name.
-            index (str, optional): index name.
-        """
-        return self.set("pexcorner", pexcorner, step=step, index=index)
-
-    def get_pexcorner(self,
-                      step: str = None, index: Union[str, int] = None) -> str:
-        """
-        Gets the parasitic extraction (PEX) corner currently set for the design.
-
-        Args:
-            step (str, optional): step name.
-            index (str, optional): index name.
-
-        Returns:
-            The name of the PEX corner.
-        """
-        return self.get("pexcorner", step=step, index=index)
 
     def set_mode(self,
                  mode: str,
@@ -141,7 +55,6 @@ class FPGATimingScenarioSchema(NamedSchema):
             The name of the operational mode.
         """
         return self.get("mode", step=step, index=index)
-
 
 
 class FPGATimingConstraintSchema(BaseSchema):

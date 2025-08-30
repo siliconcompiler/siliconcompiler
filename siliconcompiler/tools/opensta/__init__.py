@@ -12,7 +12,6 @@ Installation: https://github.com/The-OpenROAD-Project/OpenSTA (also installed wi
 from siliconcompiler import TaskSchema
 
 from siliconcompiler import FPGASchema
-from siliconcompiler.schema import EditableSchema, Parameter, Scope
 
 from siliconcompiler.schema.utils import trim
 
@@ -71,45 +70,32 @@ class OpenSTATask(TaskSchema):
         node.setup()
         return node.task
 
+
 class OpenSTAFPGA(FPGASchema):
     """
     Schema for defining library parameters specifically for the
     OpenSTA tool when targeting an FPGA.
 
     This class extends the base FPGASchema to manage various settings
-    related to OpenSTA, specifically for passing timing corner liberty
-    filesets.
+    related to OpenSTA, specifically for passing liberty filesets.
     """
     def __init__(self):
         super().__init__()
 
-        schema = EditableSchema(self)
+        self.define_tool_parameter("opensta", "liberty_filesets", "{str}",
+                                   "A set of liberty filesets to read to perform STA.")
 
-        schema.insert(
-                'fpga_sta_timing', 'libcornerfileset', 'default', 'default',
-                Parameter(
-                    '{str}',
-                    scope=Scope.GLOBAL,
-                    shorthelp="FPGA: map of filesets to timing corners used for STA",
-                    example=[
-                        "api: schema.set('fpga_sta_timing', 'libcornerfileset', 'typical', 'nldm', 'timing.typical')"],
-                    help=trim("""Map between filesets and timing corners.""")))
-
-    def add_fpga_sta_timing_libcornerfileset(self, corner: str, model: str, fileset: str = None):
+    def add_opensta_liberty_fileset(self, fileset: str = None):
         """
-        Adds a mapping between filesets a corners defined in the library.
+        Adds the given fileset to the set of liberty files which will be used
+        for STA.
 
         Args:
-            corner (str): name of the timing or parasitic corner
-            model (str): type of delay modeling used, eg. nldm, ccs, etc.
             fileset (str): name of the fileset
         """
         if not fileset:
             fileset = self._get_active("fileset")
 
-        if not isinstance(model, str):
-            raise TypeError("model must be a string")
-
         self._assert_fileset(fileset)
 
-        return self.add("fpga_sta_timing", "libcornerfileset", corner, model, fileset)
+        return self.add("tool", "opensta", "liberty_filesets", fileset)

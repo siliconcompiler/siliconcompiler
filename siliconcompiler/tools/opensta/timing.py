@@ -7,9 +7,9 @@ from siliconcompiler import sc_open
 from siliconcompiler.tools.opensta import OpenSTATask
 
 
-class TimingTask(OpenSTATask):
+class TimingTaskBase(OpenSTATask):
     '''
-    Generate a static timing reports.
+    Base class for generating static timing reports.
     '''
     def __init__(self):
         super().__init__()
@@ -25,8 +25,15 @@ class TimingTask(OpenSTATask):
                            defvalue="tools/_common/sdc/sc_constraints.sdc",
                            package="siliconcompiler")
 
+        self.add_parameter("device_type",
+                           "<asic,fpga>",
+                           "The type of device that the tool is targeting")
+
     def set_timing_mode(self, mode: str, step: str = None, index: str = None):
         return self.set("var", "timing_mode", mode, step=step, index=index)
+
+    def _set_device_type(self, device_type: str, step: str = None, index: str = None):
+        return self.set("var", "device_type", device_type, step=step, index=index)
 
     def task(self):
         return "timing"
@@ -38,32 +45,13 @@ class TimingTask(OpenSTATask):
 
         if f"{self.design_topmodule}.vg" in self.get_files_from_input_nodes():
             self.add_input_file(ext="vg")
-        if f"{self.design_topmodule}.sdc" in self.get_files_from_input_nodes():
-            self.add_input_file(ext="sdc")
-        else:
-            for obj, key in self.get_fileset_file_keys("sdc"):
-                self.add_required_key(obj, *key)
-        added_spef = False
-        for scenario in self.schema().get_timingconstraints().get_scenario().values():
-            if scenario.get("pexcorner") is None:
-                continue
-            if f"{self.design_topmodule}.{scenario.get('pexcorner')}.spef" in \
-                    self.get_files_from_input_nodes():
-                self.add_input_file(ext=f"{scenario.get('pexcorner')}.spef")
-                added_spef = True
-        if not added_spef:
-            for scenario in self.schema().get_timingconstraints().get_scenario().values():
-                if scenario.get("pexcorner") is None:
-                    continue
-                if f"{self.design_topmodule}.{scenario.get('pexcorner')}.sdf" in \
-                        self.get_files_from_input_nodes():
-                    self.add_input_file(ext=f"{scenario.get('pexcorner')}.sdf")
 
         if self.get("var", "timing_mode"):
             self.add_required_tool_key("var", "timing_mode")
         self.add_required_tool_key("var", "top_n_paths")
         self.add_required_tool_key("var", "unique_path_groups_per_clock")
         self.add_required_tool_key("var", "opensta_generic_sdc")
+        self.add_required_tool_key("var", "device_type")
 
     def post_process(self):
         super().post_process()
@@ -191,3 +179,52 @@ class TimingTask(OpenSTATask):
                     paths.append(path)
             return paths
         return [self.get_logpath("exe")]
+
+
+class TimingTask(TimingTaskBase):
+    '''
+    Generate static timing reports for an ASIC target device.
+    '''
+    def __init__(self):
+        super().__init__()
+        super()._set_device_type("asic")
+
+    def setup(self):
+        super().setup()
+
+        if f"{self.design_topmodule}.sdc" in self.get_files_from_input_nodes():
+            self.add_input_file(ext="sdc")
+        else:
+            for obj, key in self.get_fileset_file_keys("sdc"):
+                self.add_required_key(obj, *key)
+
+        added_spef = False
+        for scenario in self.schema().get_timingconstraints().get_scenario().values():
+            if scenario.get("pexcorner") is None:
+                continue
+            if f"{self.design_topmodule}.{scenario.get('pexcorner')}.spef" in \
+                    self.get_files_from_input_nodes():
+                self.add_input_file(ext=f"{scenario.get('pexcorner')}.spef")
+                added_spef = True
+        if not added_spef:
+            for scenario in self.schema().get_timingconstraints().get_scenario().values():
+                if scenario.get("pexcorner") is None:
+                    continue
+                if f"{self.design_topmodule}.{scenario.get('pexcorner')}.sdf" in \
+                        self.get_files_from_input_nodes():
+                    self.add_input_file(ext=f"{scenario.get('pexcorner')}.sdf")
+
+
+class FPGATimingTask(TimingTaskBase):
+    '''
+    Generate static timing reports for an FPGA target device.
+    '''
+    def __init__(self):
+        super().__init__()
+        super()._set_device_type("fpga")
+
+    def setup(self):
+        super().setup()
+
+        self.add_input_file(ext="sdc")
+        self.add_input_file(ext=f"typical.sdf")

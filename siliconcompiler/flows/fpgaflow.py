@@ -136,7 +136,7 @@ class FPGAVPROpenSTAFlow(FPGAVPRFlow):
         """
         super().__init__(name)
 
-        self.node("timing", timing.TimingTask())
+        self.node("timing", timing.FPGATimingTask())
         self.edge("route", "timing")
 
 
