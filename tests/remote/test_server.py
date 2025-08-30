@@ -115,6 +115,7 @@ def test_server_partial(gcd_remote_test):
 
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.ready
 def test_server_slurm(gcd_remote_test):
     '''Basic sc-server test: Run a local instance of a server, and build the GCD
        example using loopback network calls to that server.

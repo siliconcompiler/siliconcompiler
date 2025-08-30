@@ -162,7 +162,8 @@ class ToolGen(SchemaGen):
 class TargetGen(SchemaGen):
 
     option_spec = {
-        'root': str
+        'root': str,
+        'name': str
     }
 
     def run(self):
@@ -186,7 +187,9 @@ class TargetGen(SchemaGen):
         proj: Project = required_type()
         proj.load_target(target)
 
-        target_doc = build_section_with_target(root, f"target-{root}-{method}", self.state.document)
+        name = self.options.get("name", self.options["root"])
+
+        target_doc = build_section_with_target(name, f"target-{root}-{method}", self.state.document)
 
         # Add docstrings
         docstring = inspect.getdoc(target)
@@ -217,7 +220,6 @@ class TargetGen(SchemaGen):
             sec = build_section(key, f"target-{root}-{method}-lib-{key}")
             modlist = nodes.bullet_list()
             for library in sorted([lib_obj.name for lib_obj in loaded[key]]):
-                print(key, library)
                 list_item = nodes.list_item()
                 list_item += para(library)
                 modlist += list_item
@@ -307,10 +309,12 @@ def keypath_role(name, rawtext, text, lineno, inliner, options=None, content=Non
 
 def setup(app):
     app.add_domain(SCDomain)
+
     app.add_directive('schema', SchemaGen)
     app.add_directive('scapp', AppGen)
     app.add_directive('sctool', ToolGen)
     app.add_directive('sctarget', TargetGen)
+
     app.add_role('keypath', keypath_role)
 
     return {

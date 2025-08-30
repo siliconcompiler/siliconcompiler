@@ -1,88 +1,162 @@
 .. _dev_flows:
 
-Flows
-=====
+Building a Flowgraph
+====================
 
-SiliconCompiler flows are created by configuring the :keypath:`flowgraph` parameters within the schema.
-To simplify reuse of complex flows, the project includes standardized interfaces for bundling flowgraph settings as reusable named modules.
+A flowgraph in SiliconCompiler defines the sequence of steps, or tasks, required to transform your hardware design from source code into a physical layout. Think of it as a recipe for your chip, where each step is a specific tool run (like synthesis or place-and-route).
 
-Similar to other types of SiliconCompiler modules, flows are loaded by passing a :class:`.Flow` object into the :meth:`.use()` function before a run is started. :class:`.Flow` objects typically use the :meth:`.node()` and :meth:`.edge()` functions to configure a "flowgraph" which represents a hierarchical collection of tasks to execute.
-A complete set of supported open flows can be found in :ref:`flows <builtin_flows>`.
+Flowgraphs are highly flexible and allow you to create custom compilation flows tailored to your specific needs. You can build them in two primary ways:
 
+1. **Instantiate FlowgraphSchema**: For simple or dynamically generated flows, you can create an object directly from the :class:`.FlowgraphSchema` class and configure it.
+2. **Subclass FlowgraphSchema**: For creating reusable, complex flows, you can define your own Python class that inherits from :class:`.FlowgraphSchema`.
 
-Functions
----------
+Once defined, you load your flowgraph into a project using the :meth:`.Project.set_flow()` method before starting a run. This tells SiliconCompiler which set of tasks to execute.
 
-The table below shows the function interfaces for setting up Flow objects.
+A complete set of supported builtin flows can be found in :ref:`flows <builtin_flows>`.
 
-.. list-table::
-   :widths: 10 10 10 10 10 10
-   :header-rows: 1
+Key Concepts
+------------
 
-   * - Function
-     - Description
-     - Arg
-     - Returns
-     - Used by
-     - Required
+Before we build a flowgraph, let's define the core components:
 
-   * - :ref:`setup() <flow_setup>`
-     - Flow setup function
-     - optional keyword arguments
-     - :class:`.Flow`
-     - :meth:`.use()`
-     - yes
+* **Node**: A node represents a single task or step in the flow. Each node is typically an instance of a Task class, which wraps a specific EDA tool (e.g., Yosys for synthesis, OpenROAD for place-and-route).
+* **Edge**: An edge defines a dependency between two nodes. If you create an edge from nodeA to nodeB, it means that nodeA must complete successfully before nodeB can begin. This creates the directed, acyclic graph that SiliconCompiler executes.
 
-   * - :ref:`make_docs() <flow_make_docs>`
-     - Doc generator
-     - :class:`.Chip`
-     - :class:`.Flow`
-     - sphinx
-     - no
+Example: A Basic Synthesis Flow
+-------------------------------
 
-.. _flow_setup:
+Here's how to build a simple flow that elaborates Verilog, runs synthesis, and then performs a timing analysis.
+This example demonstrates the fundamental :meth:`.node()` and :meth:`.edge()` API calls.
 
-setup()
--------
-
-A SiliconCompiler flowgraph consists of a set of connected nodes and edges, where a node is an executable tool performing some ("task"), and an edge is the connection between those tasks.
-To configure the flow, the following helper methods are available :meth:`.node()` to create a new node in the graph and :meth:`.edge()` to create an edge between nodes.
+We'll create a new class called SynthesisFlow that inherits from :class:`.FlowgraphSchema`.
 
 .. code-block:: python
 
-  from siliconcompiler import Flow
-  from siliconcompiler.tools.surelog import parse
+  # Import the base class and the specific tool tasks we need.
+  from siliconcompiler import FlowgraphSchema
   from siliconcompiler.tools.yosys import syn_asic
+  from siliconcompiler.tools.opensta import timing
+  from siliconcompiler.tools.slang import elaborate
 
-  flowname = '<flowname>'
-  flow = Flow(flowname)
-  flow.node(flowname, <node name0>, parse)
-  flow.node(flowname, <node name1>, syn_asic)
-  flow.edge(flowname, <node name0>, <node name1>)
+  class SynthesisFlow(FlowgraphSchema):
+      """
+      A simple synthesis flow that demonstrates the basic principles
+      of creating a SiliconCompiler flowgraph.
+      """
+      def __init__(self):
+          # It's important to call the parent constructor and give the flow a name.
+          super().__init__("synthesis_flow")
 
-Flows that support SiliconCompiler metric functions (:ref:`minimum <tools-builtin-minimum-ref>`, :ref:`maximum <tools-builtin-maximum-ref>`, :ref:`verify <tools-builtin-verify-ref>`, and :ref:`mux <tools-builtin-mux-ref>`) should also set appropriate metric weights and goals for correct behavior.
+          # Step 1: Create the nodes for our flow.
+          # Each node is given a name (e.g., "elaborate") and is associated
+          # with a Task object that knows how to run a specific tool.
+          self.node("elaborate", elaborate.Elaborate())
+          self.node("synthesis", syn_asic.ASICSynthesis())
+          self.node("timing", timing.TimingTask())
+
+          # Step 2: Create the edges to define the execution order.
+          # This tells SiliconCompiler that 'elaborate' must run before 'synthesis',
+          # and 'synthesis' must run before 'timing'.
+          self.edge("elaborate", "synthesis")
+          self.edge("synthesis", "timing")
+
+
+To use this flow, you would instantiate it and set it in your project:
 
 .. code-block:: python
 
-  for metric in ('errors','drvs','holdwns','setupwns','holdtns','setuptns'):
-    flow.set('flowgraph', flowname, step, index, 'goal', metric, 0)
-  for metric in ('cellarea', 'peakpower', 'standbypower'):
-    flow.set('flowgraph', flowname, step, index, 'weight', metric, 1.0)
+  import siliconcompiler
 
-For a complete working example, see the `asicflow <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/flows/asicflow.py>`_ and `fpgaflow <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/flows/fpgaflow.py>`_ source code.
+  # Create a project
+  project = siliconcompiler.Project()
+
+  # Instantiate and set the flow
+  flow = SynthesisFlow()
+  project.set_flow(flow)
+
+  # Now you can configure the rest of your project and run it.
+  # project.run()
 
 
-.. _flow_make_docs:
+Useful APIs
+-----------
 
-make_docs(chip)
+The :class:`.FlowgraphSchema` class provides a rich API for creating, modifying, and inspecting flowgraphs.
+
+.. currentmodule:: siliconcompiler.FlowgraphSchema
+
+Create a Flowgraph
+^^^^^^^^^^^^^^^^^^
+
+These are the fundamental methods for building the graph structure.
+
+.. autosummary::
+    :nosignatures:
+
+    node
+    edge
+
+Modifying a Flowgraph
+^^^^^^^^^^^^^^^^^^^^^
+
+These methods allow you to alter an existing flowgraph, which is useful for dynamically adjusting a pre-defined flow.
+
+.. autosummary::
+    :nosignatures:
+
+    remove_node
+    insert_node
+    graph
+
+Inspecting a Flowgraph
+^^^^^^^^^^^^^^^^^^^^^^
+
+These methods help you understand the structure and execution order of your flow.
+
+.. autosummary::
+    :nosignatures:
+
+    get_nodes
+    get_entry_nodes
+    get_exit_nodes
+    get_execution_order
+    get_node_outputs
+    validate
+    get_task_module
+    get_all_tasks
+    write_flowgraph
+
+Documentation
+^^^^^^^^^^^^^
+
+This method helps you generate documentation for your custom flow.
+
+.. autosummary::
+    :nosignatures:
+
+    make_docs
+
+Class Reference
 ---------------
 
-The ``make_docs()`` function is used by the projects auto-doc generation.
-This function is only needed if the flow requires additional inputs to be setup correctly.
-The function should include a call to the setup function to populate the schema with all settings as shown below.
-The input to this function ``chip`` is a chip object created by the auto-doc generator.
+For more detailed information, refer to the full API documentation for the primary classes involved in creating and managing flowgraphs.
 
-.. code-block:: python
+.. autoclass:: siliconcompiler.FlowgraphSchema
+    :members:
+    :show-inheritance:
+    :inherited-members:
 
-  def make_docs(chip):
-    return setup()
+Supporting Classes
+------------------
+
+These classes are used internally by the flowgraph but can be useful to understand.
+
+.. autoclass:: siliconcompiler.flowgraph.FlowgraphNodeSchema
+    :members:
+    :show-inheritance:
+    :inherited-members:
+
+.. autoclass:: siliconcompiler.flowgraph.RuntimeFlowgraph
+    :members:
+    :show-inheritance:
+    :inherited-members:

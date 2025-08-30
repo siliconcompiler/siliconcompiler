@@ -103,7 +103,7 @@ class OptionSchema(BaseSchema):
                 switch=["-O<str>",
                         "-optmode <str>"],
                 example=["cli: -O3",
-                         "cli: -optmode O3",
+                         "cli: -optmode 3",
                          "api: chip.set('optmode', 'O3')"],
                 help="""
                 The compiler has modes to prioritize run time and ppa. Modes

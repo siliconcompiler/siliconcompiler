@@ -867,3 +867,7 @@ proc sc_global_connections { args } {
     }
     tee -file reports/global_connections.rpt {report_global_connect}
 }
+
+proc sc_format_area { area } {
+    return "([lindex $area 0], [lindex $area 1]) - ([lindex $area 2], [lindex $area 3])"
+}

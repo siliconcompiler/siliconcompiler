@@ -8,18 +8,24 @@ These are typically "demo" targets which use a specific combination of predefine
 
 .. sctarget::
     :root: siliconcompiler.targets.asap7_demo.setup
+    :name: asap7_demo
 
 .. sctarget::
     :root: siliconcompiler.targets.freepdk45_demo.setup
+    :name: freepdk45_demo
 
 .. sctarget::
     :root: siliconcompiler.targets.gf180_demo.setup
+    :name: gf180_demo
 
 .. sctarget::
     :root: siliconcompiler.targets.ihp130_demo.setup
+    :name: ihp130_demo
 
 .. sctarget::
     :root: siliconcompiler.targets.interposer_demo.setup
+    :name: interposer_demo
 
 .. sctarget::
     :root: siliconcompiler.targets.skywater130_demo.setup
+    :name: skywater130_demo

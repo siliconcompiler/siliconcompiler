@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 # Copyright 2024 Silicon Compiler Authors. All Rights Reserved.
 
-from siliconcompiler import Chip
+from siliconcompiler import ASICProject, DesignSchema, FlowgraphSchema
 from siliconcompiler.targets import interposer_demo
+from siliconcompiler.tools.openroad.rdlroute import RDLRouteTask
+from siliconcompiler.tools.klayout.drc import DRCTask
 
 
 def main():
@@ -10,30 +12,48 @@ def main():
     Simple interposer example.
     '''
 
-    chip = Chip('interposer')
-    chip.register_source("interposer-example", __file__)
-    chip.input("interposer.v",
-               fileset='netlist', package="interposer-example")
+    # Create design
+    design = DesignSchema("interposer")
+    design.set_dataroot("interposer", __file__)
+    with design.active_dataroot("interposer"), design.active_fileset("netlist"):
+        design.set_topmodule("interposer")
+        design.add_file("interposer.v")
 
-    chip.set('option', 'quiet', True)
-    chip.set('option', 'track', True)
-    chip.set('option', 'hash', True)
-    chip.set('option', 'nodisplay', True)
-    chip.set('constraint', 'outline', [(0, 0), (500.0, 1000.0)])
-    chip.set('tool', 'openroad', 'task', 'rdlroute', 'file', 'rdlroute',
-             "bumps.tcl", package="interposer-example")
-    chip.use(interposer_demo)
+    # Create project
+    project = ASICProject(design)
 
-    chip.run()
-    chip.summary()
+    # Define filesets
+    project.add_fileset("netlist")
 
-    gds = chip.find_result('gds', step='write_gds')
+    # Load target
+    project.load_target(interposer_demo.setup)
 
-    chip.set('option', 'flow', 'drcflow')
-    chip.set('option', 'jobname', 'signoff')
-    chip.input(gds)
-    chip.run()
-    chip.summary()
+    # Define die area
+    project.get_areaconstraints().set_diearea_rectangle(1000, 500)
+
+    # Create full flow
+    flow = FlowgraphSchema("compositeflow")
+    flow.graph(project.get("flowgraph", "interposerflow", field="schema"))
+    flow.graph(project.get("flowgraph", "drcflow", field="schema"))
+    flow.edge("write_gds", "drc")
+    project.set_flow(flow)
+
+    # Define bump locations script
+    route: RDLRouteTask = project.get_task(filter=RDLRouteTask)
+    route.set_dataroot("interposer", __file__)
+    with route.active_dataroot("interposer"):
+        route.add_openroad_rdlroute("bumps.tcl")
+
+    # Define drc deck
+    project.get_task(filter=DRCTask).set("var", "drc_name", "drc")
+
+    # Run
+    project.run()
+
+    # Analyze
+    project.summary()
+
+    return project
 
 
 if __name__ == '__main__':

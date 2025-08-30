@@ -1270,11 +1270,48 @@ class TaskSchema(NamedSchema, PathSchema, DocsSchema):
     def set_environmentalvariable(self, name: str, value: str,
                                   step: str = None, index: str = None,
                                   clobber: bool = False):
+        '''Sets an environment variable for the tool's execution context.
+
+        The specified variable will be set in the shell environment before the
+        tool's executable is launched.
+
+        Args:
+            name (str): The name of the environment variable (e.g., 'PATH').
+            value (str): The value to assign to the variable.
+            step (str, optional): The step associated with this setting.
+                Defaults to the current step.
+            index (str, optional): The index associated with this setting.
+                Defaults to the current index.
+            clobber (bool): If True, overwrite existing values. Otherwise,
+                append to them.
+
+        Returns:
+            The schema key that was set.
+        '''
         return self.set("env", name, value, step=step, index=index, clobber=clobber)
 
     def add_prescript(self, script: str, dataroot: str = None,
                       step: str = None, index: str = None,
                       clobber: bool = False):
+        '''Adds a script to be executed *before* the main tool command.
+
+        This is useful for pre-processing files or setting up the environment
+        in ways that go beyond simple environment variables.
+
+        Args:
+            script (str): The path to the pre-execution script.
+            dataroot (str, optional): The data root this path is relative to.
+                Defaults to the active package.
+            step (str, optional): The step associated with this setting.
+                Defaults to the current step.
+            index (str, optional): The index associated with this setting.
+                Defaults to the current index.
+            clobber (bool): If True, overwrite existing values. Otherwise,
+                append to them.
+
+        Returns:
+            The schema key that was set.
+        '''
         if not dataroot:
             dataroot = self._get_active("package")
         with self._active(package=dataroot):
@@ -1286,6 +1323,25 @@ class TaskSchema(NamedSchema, PathSchema, DocsSchema):
     def add_postscript(self, script: str, dataroot: str = None,
                        step: str = None, index: str = None,
                        clobber: bool = False):
+        '''Adds a script to be executed *after* the main tool command.
+
+        This is useful for post-processing tool outputs or performing cleanup
+        actions.
+
+        Args:
+            script (str): The path to the post-execution script.
+            dataroot (str, optional): The data root this path is relative to.
+                Defaults to the active package.
+            step (str, optional): The step associated with this setting.
+                Defaults to the current step.
+            index (str, optional): The index associated with this setting.
+                Defaults to the current index.
+            clobber (bool): If True, overwrite existing values. Otherwise,
+                append to them.
+
+        Returns:
+            The schema key that was set.
+        '''
         if not dataroot:
             dataroot = self._get_active("package")
         with self._active(package=dataroot):
@@ -1295,11 +1351,29 @@ class TaskSchema(NamedSchema, PathSchema, DocsSchema):
                 return self.add("postscript", script, step=step, index=index)
 
     def has_prescript(self, step: str = None, index: str = None) -> bool:
+        '''Checks if any pre-execution scripts are configured for the task.
+
+        Args:
+            step (str, optional): The step to check. Defaults to the current step.
+            index (str, optional): The index to check. Defaults to the current index.
+
+        Returns:
+            True if one or more pre-scripts are set, False otherwise.
+        '''
         if self.get("prescript", step=step, index=index):
             return True
         return False
 
     def has_postscript(self, step: str = None, index: str = None) -> bool:
+        '''Checks if any post-execution scripts are configured for the task.
+
+        Args:
+            step (str, optional): The step to check. Defaults to the current step.
+            index (str, optional): The index to check. Defaults to the current index.
+
+        Returns:
+            True if one or more post-scripts are set, False otherwise.
+        '''
         if self.get("postscript", step=step, index=index):
             return True
         return False
@@ -1307,6 +1381,24 @@ class TaskSchema(NamedSchema, PathSchema, DocsSchema):
     def set_refdir(self, dir: str, dataroot: str = None,
                    step: str = None, index: str = None,
                    clobber: bool = False):
+        '''Sets the reference directory for tool scripts and auxiliary files.
+
+        This is often used by script-based tools to find helper scripts or
+        resource files relative to the main entry script.
+
+        Args:
+            dir (str): The path to the reference directory.
+            dataroot (str, optional): The data root this path is relative to.
+                Defaults to the active package.
+            step (str, optional): The step associated with this setting.
+                Defaults to the current step.
+            index (str, optional): The index associated with this setting.
+                Defaults to the current index.
+            clobber (bool): If True, overwrite existing values.
+
+        Returns:
+            The schema key that was set.
+        '''
         if not dataroot:
             dataroot = self._get_active("package")
         with self._active(package=dataroot):
@@ -1315,6 +1407,21 @@ class TaskSchema(NamedSchema, PathSchema, DocsSchema):
     def set_script(self, script: str, dataroot: str = None,
                    step: str = None, index: str = None,
                    clobber: bool = False):
+        '''Sets the main entry script for a script-based tool (e.g., a TCL script).
+
+        Args:
+            script (str): The path to the entry script.
+            dataroot (str, optional): The data root this path is relative to.
+                Defaults to the active package.
+            step (str, optional): The step associated with this setting.
+                Defaults to the current step.
+            index (str, optional): The index associated with this setting.
+                Defaults to the current index.
+            clobber (bool): If True, overwrite existing values.
+
+        Returns:
+            The schema key that was set.
+        '''
         if not dataroot:
             dataroot = self._get_active("package")
         with self._active(package=dataroot):
@@ -1323,6 +1430,24 @@ class TaskSchema(NamedSchema, PathSchema, DocsSchema):
     def add_regex(self, type: str, regex: str,
                   step: str = None, index: str = None,
                   clobber: bool = False):
+        '''Adds a regular expression for parsing the tool's log file.
+
+        These regexes are used by the framework to identify errors, warnings,
+        and metrics from the tool's standard output.
+
+        Args:
+            type (str): The category of the regex (e.g., 'error', 'warning').
+            regex (str): The regular expression pattern.
+            step (str, optional): The step associated with this setting.
+                Defaults to the current step.
+            index (str, optional): The index associated with this setting.
+                Defaults to the current index.
+            clobber (bool): If True, overwrite existing values. Otherwise,
+                append to them.
+
+        Returns:
+            The schema key that was set.
+        '''
         if clobber:
             return self.set("regex", type, regex, step=step, index=index)
         else:
@@ -1331,6 +1456,24 @@ class TaskSchema(NamedSchema, PathSchema, DocsSchema):
     def set_logdestination(self, type: str, dest: str, suffix: str = None,
                            step: str = None, index: str = None,
                            clobber: bool = False):
+        '''Configures the destination for log files.
+
+        This method sets where log files are written ('file' or 'api') and
+        can specify a custom file suffix.
+
+        Args:
+            type (str): The type of log (e.g., 'report', 'metric').
+            dest (str): The destination, either 'file' or 'api'.
+            suffix (str, optional): A custom suffix for the log file name.
+            step (str, optional): The step associated with this setting.
+                Defaults to the current step.
+            index (str, optional): The index associated with this setting.
+                Defaults to the current index.
+            clobber (bool): If True, overwrite existing values.
+
+        Returns:
+            A list of the schema keys that were set.
+        '''
         rets = []
         rets.append(self.set(type, "destination", dest, step=step, index=index, clobber=clobber))
         if suffix:
@@ -1338,6 +1481,23 @@ class TaskSchema(NamedSchema, PathSchema, DocsSchema):
         return rets
 
     def add_warningoff(self, type: str, step: str = None, index: str = None, clobber: bool = False):
+        '''Adds a warning message or code to be suppressed during log parsing.
+
+        Any warning that matches a regex in this list will be ignored by the
+        framework.
+
+        Args:
+            type (str): The warning message or code to suppress.
+            step (str, optional): The step associated with this setting.
+                Defaults to the current step.
+            index (str, optional): The index associated with this setting.
+                Defaults to the current index.
+            clobber (bool): If True, overwrite existing values. Otherwise,
+                append to them.
+
+        Returns:
+            The schema key that was set.
+        '''
         if clobber:
             return self.set("warningoff", type, step=step, index=index)
         else:
@@ -1349,6 +1509,27 @@ class TaskSchema(NamedSchema, PathSchema, DocsSchema):
     def set_exe(self, exe: str = None, vswitch: List[str] = None, format: str = None,
                 step: str = None, index: str = None,
                 clobber: bool = False):
+        '''Sets the executable, version switch, and script format for a tool.
+
+        This is a convenience method that bundles the configuration of a tool's
+        core executable properties.
+
+        Args:
+            exe (str, optional): The name of the tool's executable binary.
+            vswitch (List[str], optional): The command-line switch used to
+                make the executable print its version (e.g., '--version').
+            format (str, optional): The format of the entry script, if any
+                (e.g., 'tcl', 'python').
+            step (str, optional): The step associated with this setting.
+                Defaults to the current step.
+            index (str, optional): The index associated with this setting.
+                Defaults to the current index.
+            clobber (bool): If True, overwrite existing values. Otherwise,
+                append to them.
+
+        Returns:
+            A list of the schema keys that were set.
+        '''
         rets = []
         if exe:
             rets.append(self.set("exe", exe, clobber=clobber))
@@ -1364,18 +1545,68 @@ class TaskSchema(NamedSchema, PathSchema, DocsSchema):
     def set_path(self, path: str, dataroot: str = None,
                  step: str = None, index: str = None,
                  clobber: bool = False):
+        '''Sets the directory path where the tool's executable is located.
+
+        This path is prepended to the system's PATH environment variable
+        during execution.
+
+        Args:
+            path (str): The directory path to the tool's executable.
+            dataroot (str, optional): The data root this path is relative to.
+                Defaults to the active package.
+            step (str, optional): The step associated with this setting.
+                Defaults to the current step.
+            index (str, optional): The index associated with this setting.
+                Defaults to the current index.
+            clobber (bool): If True, overwrite existing values. Otherwise,
+                append to them.
+
+        Returns:
+            The schema key that was set.
+        '''
         if not dataroot:
             dataroot = self._get_active("package")
         with self._active(package=dataroot):
             return self.set("path", path, step=step, index=index, clobber=clobber)
 
     def add_version(self, version: str, step: str = None, index: str = None, clobber: bool = False):
+        '''Adds a supported version specifier for the tool.
+
+        SiliconCompiler checks the tool's actual version against these
+        specifiers to ensure compatibility. Versions should follow the
+        PEP-440 standard (e.g., '>=5.6', '==1.2.3').
+
+        Args:
+            version (str): The version specifier string.
+            step (str, optional): The step associated with this setting.
+                Defaults to the current step.
+            index (str, optional): The index associated with this setting.
+                Defaults to the current index.
+            clobber (bool): If True, overwrite existing values. Otherwise,
+                append to them.
+
+        Returns:
+            The schema key that was set.
+        '''
         if clobber:
             return self.set("version", version, step=step, index=index)
         else:
             return self.add("version", version, step=step, index=index)
 
     def add_vswitch(self, switch: str, clobber: bool = False):
+        '''Adds the command-line switch used to print the tool's version.
+
+        This switch is passed to the executable to get its version string
+        for checking.
+
+        Args:
+            switch (str): The version switch (e.g., '-v', '--version').
+            clobber (bool): If True, overwrite existing values. Otherwise,
+                append to them.
+
+        Returns:
+            The schema key that was set.
+        '''
         if clobber:
             return self.set("vswitch", switch)
         else:
@@ -1384,12 +1615,46 @@ class TaskSchema(NamedSchema, PathSchema, DocsSchema):
     def add_licenseserver(self, name: str, server: str,
                           step: str = None, index: str = None,
                           clobber: bool = False):
+        '''Configures a license server connection for the tool.
+
+        This sets the environment variables that commercial EDA tools use
+        to find their license server.
+
+        Args:
+            name (str): The name of the license variable (e.g., 'LM_LICENSE_FILE').
+            server (str): The server address (e.g., 'port@host').
+            step (str, optional): The step associated with this setting.
+                Defaults to the current step.
+            index (str, optional): The index associated with this setting.
+                Defaults to the current index.
+            clobber (bool): If True, overwrite existing values. Otherwise,
+                append to them.
+
+        Returns:
+            The schema key that was set.
+        '''
         if clobber:
             return self.set("licenseserver", name, server, step=step, index=index)
         else:
             return self.add("licenseserver", name, server, step=step, index=index)
 
     def add_sbom(self, version: str, sbom: str, dataroot: str = None, clobber: bool = False):
+        '''Adds a Software Bill of Materials (SBOM) file for a tool version.
+
+        Associates a specific tool version with its corresponding SBOM file,
+        typically in SPDX or CycloneDX format.
+
+        Args:
+            version (str): The exact tool version this SBOM corresponds to.
+            sbom (str): The path to the SBOM file.
+            dataroot (str, optional): The data root this path is relative to.
+                Defaults to the active package.
+            clobber (bool): If True, overwrite existing values. Otherwise,
+                append to them.
+
+        Returns:
+            The schema key that was set.
+        '''
         if not dataroot:
             dataroot = self._get_active("package")
         with self._active(package=dataroot):
@@ -1499,8 +1764,8 @@ class TaskSchema(NamedSchema, PathSchema, DocsSchema):
         return paths
 
     def _generate_doc(self, doc, ref_root, detailed=True):
-        from .schema.docs.utils import build_section, strong, keypath, code, para, build_table
-        from .schema.docs.dynamicgen import build_schema_value_table
+        from .schema.docs.utils import build_section, strong, keypath, code, para, \
+            build_table, build_schema_value_table
         from docutils import nodes
 
         docs = []
