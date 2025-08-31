@@ -69,6 +69,8 @@ class WriteViewsTask(APRTask, OpenROADSTAParameter, OpenROADPSMParameter):
         if self.get("var", "write_cdl"):
             self.add_output_file(ext="cdl")
         if self.get("var", "write_spef"):
+            self.add_required_tool_key("var", "pex_corners")
+            self.add_required_tool_key("var", "use_spef")
             for corner in self.get("var", "pex_corners"):
                 self.add_output_file(ext=f"{corner}.spef")
         if self.get("var", "write_liberty"):
@@ -77,3 +79,10 @@ class WriteViewsTask(APRTask, OpenROADSTAParameter, OpenROADPSMParameter):
         if self.get("var", "write_sdf"):
             for corner in self.schema().getkeys("constraint", "timing"):
                 self.add_output_file(ext=f"{corner}.sdf")
+
+        self.add_required_tool_key("var", "ord_abstract_lef_bloat_layers")
+        self.add_required_tool_key("var", "ord_abstract_lef_bloat_factor")
+        self.add_required_tool_key("var", "write_cdl")
+        self.add_required_tool_key("var", "write_spef")
+        self.add_required_tool_key("var", "write_liberty")
+        self.add_required_tool_key("var", "write_sdf")
