@@ -124,6 +124,7 @@ class VerilatorTask(TaskSchema):
         fileset = self.schema().get("option", "fileset")[0]
         design = self.schema().design
         for param in design.getkeys("fileset", fileset, "param"):
+            value = design.get("fileset", fileset, "param", param)
             value = value.replace('"', '\\"')
             options.append(f'-G{param}={value}')
 
