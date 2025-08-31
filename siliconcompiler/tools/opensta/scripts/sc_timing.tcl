@@ -35,7 +35,6 @@ if { $opensta_timing_mode == "asic" } {
     lappend sc_scenarios "typical"
 }
 
-
 ###############################
 # Source helper functions
 ###############################
@@ -55,9 +54,13 @@ if { $opensta_timing_mode == "asic" } {
         foreach lib $sc_logiclibs {
             set lib_filesets []
             foreach libcorner [sc_cfg_get constraint timing $corner libcorner] {
-                if { [sc_cfg_exists library $lib asic libcornerfileset $libcorner $sc_delaymodel] } {
+                if {
+                    [sc_cfg_exists library $lib asic \
+                        libcornerfileset $libcorner $sc_delaymodel]
+                } {
                     lappend lib_filesets \
-                        {*}[sc_cfg_get library $lib asic libcornerfileset $libcorner $sc_delaymodel]
+                        {*}[sc_cfg_get library $lib asic \
+                            libcornerfileset $libcorner $sc_delaymodel]
                 }
             }
             foreach lib_file [sc_cfg_get_fileset $lib $lib_filesets liberty] {
