@@ -1,4 +1,4 @@
-from typing import Union, Set
+from typing import Union
 
 from siliconcompiler.schema import BaseSchema, NamedSchema, EditableSchema, Parameter, \
     PerNode, Scope

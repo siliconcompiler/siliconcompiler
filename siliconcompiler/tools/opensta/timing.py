@@ -233,4 +233,4 @@ class FPGATimingTask(TimingTaskBase):
         super().setup()
 
         self.add_input_file(ext="sdc")
-        self.add_input_file(ext=f"typical.sdf")
+        self.add_input_file(ext="typical.sdf")
