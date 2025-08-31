@@ -82,6 +82,45 @@ class MacroPlacementTask(APRTask, OpenROADSTAParameter, OpenROADGPLParameter):
 
         self.set_asic_var("macro_place_halo", require=True, mainlib_key="macro_placement_halo")
 
+        if self.get("var", "mpl_constraints"):
+            self.add_required_tool_key("var", "mpl_constraints")
+
+        if self.get("var", "mpl_min_instances") is not None:
+            self.add_required_tool_key("var", "mpl_min_instances")
+        if self.get("var", "mpl_max_instances") is not None:
+            self.add_required_tool_key("var", "mpl_max_instances")
+        if self.get("var", "mpl_min_macros") is not None:
+            self.add_required_tool_key("var", "mpl_min_macros")
+        if self.get("var", "mpl_max_macros") is not None:
+            self.add_required_tool_key("var", "mpl_max_macros")
+        if self.get("var", "mpl_max_levels") is not None:
+            self.add_required_tool_key("var", "mpl_max_levels")
+        if self.get("var", "mpl_min_aspect_ratio") is not None:
+            self.add_required_tool_key("var", "mpl_min_aspect_ratio")
+        if self.get("var", "mpl_fence") is not None:
+            self.add_required_tool_key("var", "mpl_fence")
+        self.add_required_tool_key("var", "mpl_bus_planning")
+        if self.get("var", "mpl_target_dead_space") is not None:
+            self.add_required_tool_key("var", "mpl_target_dead_space")
+        if self.get("var", "mpl_area_weight") is not None:
+            self.add_required_tool_key("var", "mpl_area_weight")
+        if self.get("var", "mpl_outline_weight") is not None:
+            self.add_required_tool_key("var", "mpl_outline_weight")
+        if self.get("var", "mpl_wirelength_weight") is not None:
+            self.add_required_tool_key("var", "mpl_wirelength_weight")
+        if self.get("var", "mpl_guidance_weight") is not None:
+            self.add_required_tool_key("var", "mpl_guidance_weight")
+        if self.get("var", "mpl_fence_weight") is not None:
+            self.add_required_tool_key("var", "mpl_fence_weight")
+        if self.get("var", "mpl_boundary_weight") is not None:
+            self.add_required_tool_key("var", "mpl_boundary_weight")
+        if self.get("var", "mpl_blockage_weight") is not None:
+            self.add_required_tool_key("var", "mpl_blockage_weight")
+        if self.get("var", "mpl_notch_weight") is not None:
+            self.add_required_tool_key("var", "mpl_notch_weight")
+        if self.get("var", "mpl_macro_blockage_weight") is not None:
+            self.add_required_tool_key("var", "mpl_macro_blockage_weight")
+
     def pre_process(self):
         if all([
                 self.schema("metric").get('macros', step=in_step, index=in_index) == 0

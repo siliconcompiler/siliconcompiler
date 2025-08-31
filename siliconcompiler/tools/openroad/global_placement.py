@@ -44,3 +44,12 @@ class GlobalPlacementTask(APRTask, OpenROADSTAParameter, OpenROADGPLParameter,
             'power_density',
             'module_view'
         ])
+
+        self.add_required_tool_key("var", "enable_multibit_clustering")
+        self.add_required_tool_key("var", "enable_scan_chains")
+        if self.get("var", "scan_enable_port_pattern"):
+            self.add_required_tool_key("var", "scan_enable_port_pattern")
+        if self.get("var", "scan_in_port_pattern"):
+            self.add_required_tool_key("var", "scan_in_port_pattern")
+        if self.get("var", "scan_out_port_pattern"):
+            self.add_required_tool_key("var", "scan_out_port_pattern")
