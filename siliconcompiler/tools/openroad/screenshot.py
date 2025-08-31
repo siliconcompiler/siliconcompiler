@@ -36,3 +36,6 @@ class ScreenshotTask(ScreenshotTaskSchema, ShowTask):
             'clock_trees',
             'optimization_placement'
         ])
+
+        self.add_required_tool_key("var", "show_vertical_resolution")
+        self.add_required_tool_key("var", "include_report_images")

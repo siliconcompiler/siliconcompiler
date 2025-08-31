@@ -28,6 +28,13 @@ class PowerGridTask(APRTask, OpenROADSTAParameter, OpenROADPSMParameter):
 
         self._set_reports([])
 
+        self.add_required_tool_key("var", "fixed_pin_keepout")
+        if self.get("var", "psm_allow_missing_terminal_nets"):
+            self.add_required_tool_key("var", "psm_allow_missing_terminal_nets")
+        self.add_required_tool_key("var", "pdn_enable")
+        if self.get("var", "pdn_config"):
+            self.add_required_tool_key("var", "pdn_config")
+
     def pre_process(self):
         super().pre_process()
 

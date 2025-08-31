@@ -328,6 +328,9 @@ class OpenROADTask(ASICTaskSchema):
             # Tells QT to use the offscreen platform if nodisplay is used
             self.set_environmentalvariable("QT_QPA_PLATFORM", "offscreen")
 
+        if self.get("var", "debug_level"):
+            self.add_required_tool_key("var", "debug_level")
+
     def parse_version(self, stdout):
         # stdout will be in one of the following forms:
         # - 1 08de3b46c71e329a10aa4e753dcfeba2ddf54ddd

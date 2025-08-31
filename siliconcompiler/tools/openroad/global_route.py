@@ -40,3 +40,5 @@ class GlobalRouteTask(APRTask, OpenROADSTAParameter, OpenROADGRTParameter,
             'clock_placement',
             'clock_trees'
         ])
+
+        self.add_required_tool_key("var", "grt_use_pin_access")

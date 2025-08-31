@@ -520,7 +520,11 @@ class SchedulerNode:
                     print_warning(key, "file package")
                     return True
 
-                for check_file in self.__project.find_files(*key, step=step, index=index):
+                files = self.__project.find_files(*key, step=step, index=index)
+                if not isinstance(files, (list, set, tuple)):
+                    files = [files]
+
+                for check_file in files:
                     if get_file_time(check_file) > previous_time:
                         print_warning(key, "timestamp")
                         return True
