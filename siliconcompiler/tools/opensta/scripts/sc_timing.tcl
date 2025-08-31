@@ -12,14 +12,13 @@ set sc_topmodulelib [sc_cfg_get option design]
 set sc_filesets [sc_cfg_get option fileset]
 
 # APR Parameters
-set opensta_device_type [lindex [sc_cfg_tool_task_get var device_type] 0]
 set sc_timing_mode [lindex [sc_cfg_tool_task_get var timing_mode] 0]
 
 set sc_mainlib []
 set sc_logiclibs []
 set sc_delaymodel []
 set sc_scenarios []
-if { $opensta_device_type == "asic" } {
+if { $opensta_timing_mode == "asic" } {
     set sc_mainlib [sc_cfg_get asic mainlib]
     set sc_logiclibs [sc_cfg_get asic asiclib]
     set sc_delaymodel [sc_cfg_get asic delaymodel]
@@ -29,7 +28,7 @@ if { $opensta_device_type == "asic" } {
             lappend sc_scenarios $corner
         }
     }
-} elseif { $opensta_device_type == "fpga" } {
+} elseif { $opensta_timing_mode == "fpga" } {
     set sc_mainlib [sc_cfg_get fpga device]
     set sc_logiclibs [sc_cfg_get fpga device]
     set sc_delaymodel "nldm"
@@ -51,7 +50,7 @@ source "$sc_refdir/sc_procs.tcl"
 puts "Defining timing corners: $sc_scenarios"
 define_corners {*}$sc_scenarios
 
-if { $opensta_device_type == "asic" } {
+if { $opensta_timing_mode == "asic" } {
     foreach corner $sc_scenarios {
         foreach lib $sc_logiclibs {
             set lib_filesets []
@@ -67,7 +66,7 @@ if { $opensta_device_type == "asic" } {
             }
         }
     }
-} elseif { $opensta_device_type == "fpga" } {
+} elseif { $opensta_timing_mode == "fpga" } {
     foreach corner $sc_scenarios {
         foreach lib $sc_logiclibs {
             foreach lib_fileset [sc_cfg_get library $lib tool opensta liberty_filesets] {
@@ -159,7 +158,7 @@ puts "Timing path groups: [sta::path_group_names]"
 
 ###############################
 
-if { $opensta_device_type == "asic" } {
+if { $opensta_timing_mode == "asic" } {
     foreach corner $sc_scenarios {
         set pex_corner [sc_cfg_get constraint timing $corner pexcorner]
 
@@ -179,7 +178,7 @@ if { $opensta_device_type == "asic" } {
             read_sdf -corner $corner $input_sdf_file
         }
     }
-} elseif { $opensta_device_type == "fpga" } {
+} elseif { $opensta_timing_mode == "fpga" } {
     foreach corner $sc_scenarios {
         set input_sdf_file "inputs/${sc_topmodule}.typical.sdf"
         if { [file exists $input_sdf_file] } {

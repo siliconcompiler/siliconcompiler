@@ -13,8 +13,6 @@ from siliconcompiler import TaskSchema
 
 from siliconcompiler import FPGASchema
 
-from siliconcompiler.schema.utils import trim
-
 
 class OpenSTATask(TaskSchema):
     def __init__(self):

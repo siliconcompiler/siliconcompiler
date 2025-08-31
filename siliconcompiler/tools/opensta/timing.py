@@ -25,15 +25,8 @@ class TimingTaskBase(OpenSTATask):
                            defvalue="tools/_common/sdc/sc_constraints.sdc",
                            package="siliconcompiler")
 
-        self.add_parameter("device_type",
-                           "<asic,fpga>",
-                           "The type of device that the tool is targeting")
-
     def set_timing_mode(self, mode: str, step: str = None, index: str = None):
         return self.set("var", "timing_mode", mode, step=step, index=index)
-
-    def _set_device_type(self, device_type: str, step: str = None, index: str = None):
-        return self.set("var", "device_type", device_type, step=step, index=index)
 
     def task(self):
         return "timing"
@@ -51,7 +44,6 @@ class TimingTaskBase(OpenSTATask):
         self.add_required_tool_key("var", "top_n_paths")
         self.add_required_tool_key("var", "unique_path_groups_per_clock")
         self.add_required_tool_key("var", "opensta_generic_sdc")
-        self.add_required_tool_key("var", "device_type")
 
     def post_process(self):
         super().post_process()
@@ -187,7 +179,14 @@ class TimingTask(TimingTaskBase):
     '''
     def __init__(self):
         super().__init__()
-        super()._set_device_type("asic")
+
+    def get_tcl_variables(self, manifest=None):
+        """
+        Gets Tcl variables for the task, setting 'opensta_timing_mode' to asic.
+        """
+        vars = super().get_tcl_variables(manifest)
+        vars["opensta_timing_mode"] = "asic"
+        return vars
 
     def setup(self):
         super().setup()
@@ -221,7 +220,14 @@ class FPGATimingTask(TimingTaskBase):
     '''
     def __init__(self):
         super().__init__()
-        super()._set_device_type("fpga")
+
+    def get_tcl_variables(self, manifest=None):
+        """
+        Gets Tcl variables for the task, setting 'opensta_timing_mode' to fpga.
+        """
+        vars = super().get_tcl_variables(manifest)
+        vars["opensta_timing_mode"] = "fpga"
+        return vars
 
     def setup(self):
         super().setup()
