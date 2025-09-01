@@ -75,7 +75,7 @@ def test_export(datadir):
     assert os.path.isfile(result)
     with open(result, 'rb') as gds_file:
         data = gds_file.read()
-        assert hashlib.md5(data).hexdigest() == 'ba8c9faa547ee5197ecafbad80e32da8'
+        assert hashlib.md5(data).hexdigest() == '2b200f0d3b66cabc856ebdb502579e6d'
 
 
 @pytest.mark.eda

@@ -6,6 +6,7 @@ import os.path
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.ready
+@pytest.mark.skip(reason="skip until new lambdapdk RC2")
 def test_py_interposer():
     from interposer import interposer
     project = interposer.main()
