@@ -8,29 +8,17 @@ source ./sc_manifest.tcl > /dev/null
 # Schema Adapter
 ##############################
 
-set sc_design [sc_top]
-if { [sc_cfg_exists input fpga xdc] } {
-    set sc_constraint [sc_cfg_get input fpga xdc]
-} else {
-    set sc_constraint ""
-}
-set sc_tool "vivado"
-set sc_partname [sc_cfg_get fpga partname]
-set sc_step [sc_cfg_get arg step]
-set sc_index [sc_cfg_get arg index]
-set sc_flow [sc_cfg_get option flow]
-set sc_task [sc_cfg_get flowgraph $sc_flow $sc_step $sc_index task]
-set sc_refdir [sc_cfg_tool_task_get refdir]
-
-source $sc_refdir/sc_$sc_task.tcl
+set sc_fpgalib [sc_cfg_get fpga device]
+set sc_partname [sc_cfg_get library $sc_fpgalib fpga partname]
+source $sc_refdir/sc_${sc_task}.tcl
 
 ##############################
 # Checkpoint
 ##############################
 
-write_checkpoint -force "outputs/${sc_design}"
-write_xdc "outputs/${sc_design}.xdc"
-write_verilog "outputs/${sc_design}.vg"
+write_checkpoint -force "outputs/${sc_topmodule}"
+write_xdc "outputs/${sc_topmodule}.xdc"
+write_verilog "outputs/${sc_topmodule}.vg"
 
 ##############################
 # Reports / Metrics
