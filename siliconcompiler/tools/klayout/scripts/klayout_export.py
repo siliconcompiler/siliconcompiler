@@ -154,9 +154,8 @@ def main():
 
     out_file = os.path.join('outputs', f'{design}.{sc_stream}')
 
-    libs = schema.get("asic", "asiclib")
-
     in_files = []
+    libs = schema.get("asic", "asiclib")
     for lib in libs:
         libobj = schema.get("library", lib, field="schema")
         for s in get_streams(schema):

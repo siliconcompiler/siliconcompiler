@@ -35,8 +35,8 @@ def technology(design, schema):
     tech_file = None
     if os.path.exists(local_files['lyt']):
         tech_file = local_files['lyt']
-    elif schema.valid('library', sc_pdk, 'layermapfileset', 'klayout', 'def', 'klayout'):
-        for fileset in schema.get('library', sc_pdk,
+    elif schema.valid('library', sc_pdk, 'pdk', 'layermapfileset', 'klayout', 'def', 'klayout'):
+        for fileset in schema.get('library', sc_pdk, 'pdk',
                                   'layermapfileset', 'klayout', 'def', 'klayout'):
             if schema.valid('library', sc_pdk, "fileset", fileset, "file", "layermap"):
                 tech_file = schema.get('library', sc_pdk, "fileset", fileset, "file", "layermap")
@@ -59,10 +59,10 @@ def technology(design, schema):
     lefs = []
 
     foundry_lef = None
-    if schema.valid('library', sc_pdk, "pdk" 'aprtechfileset', "klayout"):
+    if schema.valid('library', sc_pdk, "pdk", 'aprtechfileset', "klayout"):
         for fileset in schema.get('library', sc_pdk, "pdk", 'aprtechfileset', "klayout"):
-            if schema.valid('library', sc_pdk, "fileset", fileset, "lef"):
-                foundry_lef = schema.get('library', sc_pdk, "fileset", fileset, "lef")
+            if schema.valid('library', sc_pdk, "fileset", fileset, "file", "lef"):
+                foundry_lef = schema.get('library', sc_pdk, "fileset", fileset, "file", "lef")
     if foundry_lef:
         foundry_lef = foundry_lef[0]
         lefs.append(foundry_lef)
