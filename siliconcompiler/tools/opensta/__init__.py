@@ -83,17 +83,22 @@ class OpenSTAFPGA(FPGASchema):
         self.define_tool_parameter("opensta", "liberty_filesets", "{str}",
                                    "A set of liberty filesets to read to perform STA.")
 
-    def add_opensta_liberty_fileset(self, fileset: str = None):
+    def add_opensta_liberty_fileset(self, fileset: str = None, clobber: bool = False):
         """
         Adds the given fileset to the set of liberty files which will be used
         for STA.
 
         Args:
             fileset (str): name of the fileset
+            clobber (bool, optional): If True, overwrites existing list.
+                                      If False, adds to the list. Defaults to False.
         """
         if not fileset:
             fileset = self._get_active("fileset")
 
         self._assert_fileset(fileset)
 
-        return self.add("tool", "opensta", "liberty_filesets", fileset)
+        if clobber:
+            return self.set("tool", "opensta", "liberty_filesets", fileset)
+        else:
+            return self.add("tool", "opensta", "liberty_filesets", fileset)
