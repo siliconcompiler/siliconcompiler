@@ -22,12 +22,6 @@ class _ASICTask(ASICTaskSchema, YosysTask):
             copy=False
         )
         self.add_parameter(
-            "synthesis_libraries_macros",
-            "[file]",
-            "generated liberty files for use with synthesis for macros",
-            copy=False
-        )
-        self.add_parameter(
             "synthesis_corner",
             "{str}",
             "Timing corners to use for synthesis")
@@ -67,10 +61,6 @@ class _ASICTask(ASICTaskSchema, YosysTask):
         mark cells dont use and format liberty files for yosys and abc
         """
 
-        # Clear in case of rerun
-        for libtype in ('synthesis_libraries', 'synthesis_libraries_macros'):
-            self.set("var", libtype, [])
-
         delaymodel = self.schema().get("asic", "delaymodel")
 
         # Generate synthesis_libraries and synthesis_macro_libraries for Yosys use
@@ -109,10 +99,6 @@ class _ASICTask(ASICTaskSchema, YosysTask):
             if not lib_content:
                 continue
 
-            var_name = 'synthesis_libraries'
-            if libtype == "macro":
-                var_name = 'synthesis_libraries_macros'
-
             for file, content in lib_content.items():
                 output_file = os.path.join(
                     self.nodeworkdir,
@@ -124,7 +110,7 @@ class _ASICTask(ASICTaskSchema, YosysTask):
                 with open(output_file, 'w') as f:
                     f.write(content)
 
-                self.add("var", var_name, output_file)
+                self.add("var", 'synthesis_libraries', output_file)
 
     def add_synthesis_corner(self, corner, step=None, index=None, clobber=True):
         if clobber:
@@ -356,7 +342,6 @@ class ASICSynthesis(_ASICTask, YosysTask):
         if abc_clock_period:
             self.set("var", "abc_clock_period", abc_clock_period)
 
-        self._prepare_synthesis_libraries()
         self._create_abc_synthesis_constraints()
 
     def _get_abc_period(self):
