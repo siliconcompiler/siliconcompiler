@@ -28,9 +28,6 @@ class TimingTaskBase(OpenSTATask):
     def set_timing_mode(self, mode: str, step: str = None, index: str = None):
         return self.set("var", "timing_mode", mode, step=step, index=index)
 
-    def task(self):
-        return "timing"
-
     def setup(self):
         super().setup()
 
@@ -180,6 +177,9 @@ class TimingTask(TimingTaskBase):
     def __init__(self):
         super().__init__()
 
+    def task(self):
+        return "timing"
+
     def get_tcl_variables(self, manifest=None):
         """
         Gets Tcl variables for the task, setting 'opensta_timing_mode' to asic.
@@ -220,6 +220,9 @@ class FPGATimingTask(TimingTaskBase):
     '''
     def __init__(self):
         super().__init__()
+
+    def task(self):
+        return "fpga_timing"
 
     def get_tcl_variables(self, manifest=None):
         """
