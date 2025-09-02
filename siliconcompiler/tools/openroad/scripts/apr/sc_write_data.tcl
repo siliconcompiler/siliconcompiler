@@ -41,7 +41,7 @@ if { [sc_cfg_tool_task_get var write_cdl] } {
             }
         }
     }
-    write_cdl -masters $sc_cdl_masters "outputs/${sc_design}.cdl"
+    write_cdl -masters $sc_cdl_masters "outputs/${sc_topmodule}.cdl"
 }
 
 ###############################

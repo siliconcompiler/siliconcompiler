@@ -22,11 +22,6 @@ set sc_index [sc_cfg_get arg index]
 set sc_flow [sc_cfg_get option flow]
 set sc_task [sc_cfg_get flowgraph $sc_flow $sc_step $sc_index task]
 
-# Design
-set sc_design [sc_top]
-set sc_pdk [sc_cfg_get option pdk]
-set sc_stackup [sc_cfg_get option stackup]
-
 # Library
 set sc_libtype [lindex [sc_cfg_tool_task_get {var} libtype] 0]
 

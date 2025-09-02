@@ -205,8 +205,8 @@ foreach markerdb [[ord::get_db_block] getMarkerCategories] {
         continue
     }
 
-    $markerdb writeTR "reports/markers/${sc_design}.[$markerdb getName].rpt"
-    $markerdb writeJSON "reports/markers/${sc_design}.[$markerdb getName].json"
+    $markerdb writeTR "reports/markers/${sc_topmodule}.[$markerdb getName].rpt"
+    $markerdb writeJSON "reports/markers/${sc_topmodule}.[$markerdb getName].json"
 }
 
 utl::push_metrics_stage "sc__cellarea__{}"
