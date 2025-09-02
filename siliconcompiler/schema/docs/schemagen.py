@@ -21,7 +21,9 @@ class SchemaGen(SphinxDirective):
 
     option_spec = {
         'root': str,
-        'add_class': directives.flag
+        'add_class': directives.flag,
+        'add_methods': directives.flag,
+        'reference_class': str
     }
 
     def run(self):
@@ -98,6 +100,32 @@ class SchemaGen(SphinxDirective):
                 p += link(src_link, text=os.path.basename(src_file))
                 schema_sec += p
 
+            if self.options.get("add_methods", False):
+                reference_class = self.options.get("reference_class", None)
+                methods = [name for name, _ in inspect.getmembers(schema_cls, inspect.isfunction)
+                           if not name.startswith('_')]
+                if reference_class:
+                    ref_module, ref_cls = reference_class.split("/")
+                    ref_cls = getattr(importlib.import_module(ref_module), ref_cls)
+                else:
+                    if issubclass(schema_cls, NamedSchema):
+                        ref_cls = NamedSchema
+                    else:
+                        ref_cls = BaseSchema
+
+                ref_methods = [name for name, _ in inspect.getmembers(ref_cls, inspect.isfunction)
+                               if not name.startswith('_')]
+
+                doc_methods = set(methods).difference(ref_methods)
+
+                if doc_methods:
+                    methods_sec = build_section("Methods", f"{schema_sec_ref}-methods")
+                    for method in sorted(doc_methods):
+                        cls_ref = nodes.inline('')
+                        parse_rst(self.state, f".. automethod:: {module}.{cls}.{method}", cls_ref)
+                        methods_sec += cls_ref
+                    schema_sec += methods_sec
+
             section = schema._generate_doc(self, ref_root=schema_sec_ref)
             if section:
                 if isinstance(section, list):
@@ -123,6 +151,8 @@ class ToolGen(SchemaGen):
     def run(self):
         root = self.options["root"]
         self.options["add_class"] = True
+        self.options["add_methods"] = True
+        self.options["reference_class"] = "siliconcompiler/TaskSchema"
 
         print(f'Generating docs for tool {root}...')
 
