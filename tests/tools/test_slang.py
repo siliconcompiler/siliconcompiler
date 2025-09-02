@@ -44,8 +44,8 @@ def test_lint(heartbeat_design):
 
     assert proj.run()
 
-    assert proj.get('metric', 'errors', step='lint', index='0') == 0
-    assert proj.get('metric', 'warnings', step='lint', index='0') == 0
+    assert proj.history("job0").get('metric', 'errors', step='lint', index='0') == 0
+    assert proj.history("job0").get('metric', 'warnings', step='lint', index='0') == 0
 
 
 def test_elaborate(heartbeat_design):
@@ -58,8 +58,8 @@ def test_elaborate(heartbeat_design):
 
     assert proj.run()
 
-    assert proj.get('metric', 'errors', step='elaborate', index='0') == 0
-    assert proj.get('metric', 'warnings', step='elaborate', index='0') == 0
+    assert proj.history("job0").get('metric', 'errors', step='elaborate', index='0') == 0
+    assert proj.history("job0").get('metric', 'warnings', step='elaborate', index='0') == 0
 
     assert proj.find_result("v", step="elaborate") == \
         os.path.abspath("build/heartbeat/job0/elaborate/0/outputs/heartbeat.v")
@@ -78,5 +78,5 @@ def test_slang_duplicate_inputs(heartbeat_design):
 
     assert proj.run()
 
-    assert proj.get('metric', 'errors', step='lint', index='0') == 0
-    assert proj.get('metric', 'warnings', step='lint', index='0') == 0
+    assert proj.history("job0").get('metric', 'errors', step='lint', index='0') == 0
+    assert proj.history("job0").get('metric', 'warnings', step='lint', index='0') == 0

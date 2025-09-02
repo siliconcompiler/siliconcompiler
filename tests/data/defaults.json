@@ -2641,7 +2641,7 @@
             "exe": {
               "type": "str",
               "require": false,
-              "scope": "global",
+              "scope": "job",
               "lock": false,
               "switch": [
                 "-tool_exe 'tool <str>'"
@@ -2667,7 +2667,7 @@
               "default": {
                 "type": "[file]",
                 "require": false,
-                "scope": "global",
+                "scope": "job",
                 "lock": false,
                 "switch": [
                   "-tool_sbom 'tool version <file>'"
@@ -2699,7 +2699,7 @@
             "path": {
               "type": "dir",
               "require": false,
-              "scope": "global",
+              "scope": "job",
               "lock": false,
               "switch": [
                 "-tool_path 'tool <dir>'"
@@ -2728,7 +2728,7 @@
             "vswitch": {
               "type": "[str]",
               "require": false,
-              "scope": "global",
+              "scope": "job",
               "lock": false,
               "switch": [
                 "-tool_vswitch 'tool <str>'"
@@ -2753,7 +2753,7 @@
             "vendor": {
               "type": "str",
               "require": false,
-              "scope": "global",
+              "scope": "job",
               "lock": false,
               "switch": [
                 "-tool_vendor 'tool <str>'"
@@ -2778,7 +2778,7 @@
             "version": {
               "type": "[str]",
               "require": false,
-              "scope": "global",
+              "scope": "job",
               "lock": false,
               "switch": [
                 "-tool_version 'tool <str>'"
@@ -2803,7 +2803,7 @@
             "format": {
               "type": "<json,tcl,yaml>",
               "require": false,
-              "scope": "global",
+              "scope": "job",
               "lock": false,
               "switch": [
                 "-tool_format 'tool <str>'"
@@ -2829,7 +2829,7 @@
               "default": {
                 "type": "[str]",
                 "require": false,
-                "scope": "global",
+                "scope": "job",
                 "lock": false,
                 "switch": [
                   "-tool_licenseserver 'name key <str>'"
@@ -2864,7 +2864,7 @@
       "remote": {
         "type": "bool",
         "require": false,
-        "scope": "job",
+        "scope": "global",
         "lock": false,
         "switch": [
           "-remote <bool>"
@@ -2889,7 +2889,7 @@
       "credentials": {
         "type": "file",
         "require": false,
-        "scope": "job",
+        "scope": "global",
         "lock": false,
         "switch": [
           "-credentials <file>"
@@ -2918,12 +2918,12 @@
         "copy": false
       },
       "cachedir": {
-        "type": "file",
+        "type": "dir",
         "require": false,
-        "scope": "job",
+        "scope": "global",
         "lock": false,
         "switch": [
-          "-cachedir <file>"
+          "-cachedir <dir>"
         ],
         "shorthelp": "Option: user cache directory",
         "example": [
@@ -2939,9 +2939,7 @@
               "value": null,
               "signature": null,
               "filehash": null,
-              "package": null,
-              "date": null,
-              "author": []
+              "package": null
             }
           }
         },
@@ -2951,7 +2949,7 @@
       "nice": {
         "type": "int",
         "require": false,
-        "scope": "job",
+        "scope": "global",
         "lock": false,
         "switch": [
           "-nice <int>"
@@ -2976,7 +2974,7 @@
       "flow": {
         "type": "str",
         "require": false,
-        "scope": "job",
+        "scope": "global",
         "lock": false,
         "switch": [
           "-flow <str>"
@@ -3001,7 +2999,7 @@
       "optmode": {
         "type": "int",
         "require": false,
-        "scope": "job",
+        "scope": "global",
         "lock": false,
         "switch": [
           "-O<str>",
@@ -3028,7 +3026,7 @@
       "loglevel": {
         "type": "<critical,debug,error,info,quiet,warning>",
         "require": false,
-        "scope": "job",
+        "scope": "global",
         "lock": false,
         "switch": [
           "-loglevel <str>"
@@ -3053,7 +3051,7 @@
       "builddir": {
         "type": "dir",
         "require": false,
-        "scope": "job",
+        "scope": "global",
         "lock": false,
         "switch": [
           "-builddir <dir>"
@@ -3082,7 +3080,7 @@
       "jobname": {
         "type": "str",
         "require": false,
-        "scope": "job",
+        "scope": "global",
         "lock": false,
         "switch": [
           "-jobname <str>"
@@ -3207,7 +3205,7 @@
       "clean": {
         "type": "bool",
         "require": false,
-        "scope": "job",
+        "scope": "global",
         "lock": false,
         "switch": [
           "-clean <bool>"
@@ -3232,7 +3230,7 @@
       "hash": {
         "type": "bool",
         "require": false,
-        "scope": "job",
+        "scope": "global",
         "lock": false,
         "switch": [
           "-hash <bool>"
@@ -3257,7 +3255,7 @@
       "nodisplay": {
         "type": "bool",
         "require": false,
-        "scope": "job",
+        "scope": "global",
         "lock": false,
         "switch": [
           "-nodisplay <bool>"
@@ -3282,7 +3280,7 @@
       "quiet": {
         "type": "bool",
         "require": false,
-        "scope": "job",
+        "scope": "global",
         "lock": false,
         "switch": [
           "-quiet <bool>"
@@ -3332,7 +3330,7 @@
       "novercheck": {
         "type": "bool",
         "require": false,
-        "scope": "job",
+        "scope": "global",
         "lock": false,
         "switch": [
           "-novercheck <bool>"
@@ -3357,7 +3355,7 @@
       "track": {
         "type": "bool",
         "require": false,
-        "scope": "job",
+        "scope": "global",
         "lock": false,
         "switch": [
           "-track <bool>"
@@ -3382,7 +3380,7 @@
       "continue": {
         "type": "bool",
         "require": false,
-        "scope": "job",
+        "scope": "global",
         "lock": false,
         "switch": [
           "-continue <bool>"
@@ -3407,7 +3405,7 @@
       "timeout": {
         "type": "float",
         "require": false,
-        "scope": "job",
+        "scope": "global",
         "lock": false,
         "switch": [
           "-timeout <float>"
@@ -3433,7 +3431,7 @@
       "strict": {
         "type": "bool",
         "require": false,
-        "scope": "job",
+        "scope": "global",
         "lock": false,
         "switch": [
           "-strict <bool>"
@@ -3459,7 +3457,7 @@
         "name": {
           "type": "<docker,lsf,sge,slurm>",
           "require": false,
-          "scope": "job",
+          "scope": "global",
           "lock": false,
           "switch": [
             "-scheduler <str>"
@@ -3484,7 +3482,7 @@
         "cores": {
           "type": "int",
           "require": false,
-          "scope": "job",
+          "scope": "global",
           "lock": false,
           "switch": [
             "-cores <int>"
@@ -3509,7 +3507,7 @@
         "memory": {
           "type": "int",
           "require": false,
-          "scope": "job",
+          "scope": "global",
           "lock": false,
           "switch": [
             "-memory <int>"
@@ -3535,7 +3533,7 @@
         "queue": {
           "type": "str",
           "require": false,
-          "scope": "job",
+          "scope": "global",
           "lock": false,
           "switch": [
             "-queue <str>"
@@ -3560,7 +3558,7 @@
         "defer": {
           "type": "str",
           "require": false,
-          "scope": "job",
+          "scope": "global",
           "lock": false,
           "switch": [
             "-defer <str>"
@@ -3585,7 +3583,7 @@
         "options": {
           "type": "[str]",
           "require": false,
-          "scope": "job",
+          "scope": "global",
           "lock": false,
           "switch": [
             "-scheduler_options <str>"
@@ -3610,7 +3608,7 @@
         "msgevent": {
           "type": "{<all,begin,end,fail,summary,timeout>}",
           "require": false,
-          "scope": "job",
+          "scope": "global",
           "lock": false,
           "switch": [
             "-msgevent <str>"
@@ -3635,7 +3633,7 @@
         "msgcontact": {
           "type": "{str}",
           "require": false,
-          "scope": "job",
+          "scope": "global",
           "lock": false,
           "switch": [
             "-msgcontact <str>"
@@ -3660,7 +3658,7 @@
         "maxnodes": {
           "type": "int",
           "require": false,
-          "scope": "job",
+          "scope": "global",
           "lock": false,
           "switch": [
             "-maxnodes <int>"
@@ -7141,7 +7139,7 @@
             "exe": {
               "type": "str",
               "require": false,
-              "scope": "global",
+              "scope": "job",
               "lock": false,
               "switch": [
                 "-tool_exe 'tool <str>'"
@@ -7167,7 +7165,7 @@
               "default": {
                 "type": "[file]",
                 "require": false,
-                "scope": "global",
+                "scope": "job",
                 "lock": false,
                 "switch": [
                   "-tool_sbom 'tool version <file>'"
@@ -7199,7 +7197,7 @@
             "path": {
               "type": "dir",
               "require": false,
-              "scope": "global",
+              "scope": "job",
               "lock": false,
               "switch": [
                 "-tool_path 'tool <dir>'"
@@ -7228,7 +7226,7 @@
             "vswitch": {
               "type": "[str]",
               "require": false,
-              "scope": "global",
+              "scope": "job",
               "lock": false,
               "switch": [
                 "-tool_vswitch 'tool <str>'"
@@ -7253,7 +7251,7 @@
             "vendor": {
               "type": "str",
               "require": false,
-              "scope": "global",
+              "scope": "job",
               "lock": false,
               "switch": [
                 "-tool_vendor 'tool <str>'"
@@ -7278,7 +7276,7 @@
             "version": {
               "type": "[str]",
               "require": false,
-              "scope": "global",
+              "scope": "job",
               "lock": false,
               "switch": [
                 "-tool_version 'tool <str>'"
@@ -7303,7 +7301,7 @@
             "format": {
               "type": "<json,tcl,yaml>",
               "require": false,
-              "scope": "global",
+              "scope": "job",
               "lock": false,
               "switch": [
                 "-tool_format 'tool <str>'"
@@ -7329,7 +7327,7 @@
               "default": {
                 "type": "[str]",
                 "require": false,
-                "scope": "global",
+                "scope": "job",
                 "lock": false,
                 "switch": [
                   "-tool_licenseserver 'name key <str>'"
@@ -7364,7 +7362,7 @@
       "remote": {
         "type": "bool",
         "require": false,
-        "scope": "job",
+        "scope": "global",
         "lock": false,
         "switch": [
           "-remote <bool>"
@@ -7389,7 +7387,7 @@
       "credentials": {
         "type": "file",
         "require": false,
-        "scope": "job",
+        "scope": "global",
         "lock": false,
         "switch": [
           "-credentials <file>"
@@ -7418,12 +7416,12 @@
         "copy": false
       },
       "cachedir": {
-        "type": "file",
+        "type": "dir",
         "require": false,
-        "scope": "job",
+        "scope": "global",
         "lock": false,
         "switch": [
-          "-cachedir <file>"
+          "-cachedir <dir>"
         ],
         "shorthelp": "Option: user cache directory",
         "example": [
@@ -7439,9 +7437,7 @@
               "value": null,
               "signature": null,
               "filehash": null,
-              "package": null,
-              "date": null,
-              "author": []
+              "package": null
             }
           }
         },
@@ -7451,7 +7447,7 @@
       "nice": {
         "type": "int",
         "require": false,
-        "scope": "job",
+        "scope": "global",
         "lock": false,
         "switch": [
           "-nice <int>"
@@ -7476,7 +7472,7 @@
       "flow": {
         "type": "str",
         "require": false,
-        "scope": "job",
+        "scope": "global",
         "lock": false,
         "switch": [
           "-flow <str>"
@@ -7501,7 +7497,7 @@
       "optmode": {
         "type": "int",
         "require": false,
-        "scope": "job",
+        "scope": "global",
         "lock": false,
         "switch": [
           "-O<str>",
@@ -7528,7 +7524,7 @@
       "loglevel": {
         "type": "<critical,debug,error,info,quiet,warning>",
         "require": false,
-        "scope": "job",
+        "scope": "global",
         "lock": false,
         "switch": [
           "-loglevel <str>"
@@ -7553,7 +7549,7 @@
       "builddir": {
         "type": "dir",
         "require": false,
-        "scope": "job",
+        "scope": "global",
         "lock": false,
         "switch": [
           "-builddir <dir>"
@@ -7582,7 +7578,7 @@
       "jobname": {
         "type": "str",
         "require": false,
-        "scope": "job",
+        "scope": "global",
         "lock": false,
         "switch": [
           "-jobname <str>"
@@ -7707,7 +7703,7 @@
       "clean": {
         "type": "bool",
         "require": false,
-        "scope": "job",
+        "scope": "global",
         "lock": false,
         "switch": [
           "-clean <bool>"
@@ -7732,7 +7728,7 @@
       "hash": {
         "type": "bool",
         "require": false,
-        "scope": "job",
+        "scope": "global",
         "lock": false,
         "switch": [
           "-hash <bool>"
@@ -7757,7 +7753,7 @@
       "nodisplay": {
         "type": "bool",
         "require": false,
-        "scope": "job",
+        "scope": "global",
         "lock": false,
         "switch": [
           "-nodisplay <bool>"
@@ -7782,7 +7778,7 @@
       "quiet": {
         "type": "bool",
         "require": false,
-        "scope": "job",
+        "scope": "global",
         "lock": false,
         "switch": [
           "-quiet <bool>"
@@ -7832,7 +7828,7 @@
       "novercheck": {
         "type": "bool",
         "require": false,
-        "scope": "job",
+        "scope": "global",
         "lock": false,
         "switch": [
           "-novercheck <bool>"
@@ -7857,7 +7853,7 @@
       "track": {
         "type": "bool",
         "require": false,
-        "scope": "job",
+        "scope": "global",
         "lock": false,
         "switch": [
           "-track <bool>"
@@ -7882,7 +7878,7 @@
       "continue": {
         "type": "bool",
         "require": false,
-        "scope": "job",
+        "scope": "global",
         "lock": false,
         "switch": [
           "-continue <bool>"
@@ -7907,7 +7903,7 @@
       "timeout": {
         "type": "float",
         "require": false,
-        "scope": "job",
+        "scope": "global",
         "lock": false,
         "switch": [
           "-timeout <float>"
@@ -7933,7 +7929,7 @@
       "strict": {
         "type": "bool",
         "require": false,
-        "scope": "job",
+        "scope": "global",
         "lock": false,
         "switch": [
           "-strict <bool>"
@@ -7959,7 +7955,7 @@
         "name": {
           "type": "<docker,lsf,sge,slurm>",
           "require": false,
-          "scope": "job",
+          "scope": "global",
           "lock": false,
           "switch": [
             "-scheduler <str>"
@@ -7984,7 +7980,7 @@
         "cores": {
           "type": "int",
           "require": false,
-          "scope": "job",
+          "scope": "global",
           "lock": false,
           "switch": [
             "-cores <int>"
@@ -8009,7 +8005,7 @@
         "memory": {
           "type": "int",
           "require": false,
-          "scope": "job",
+          "scope": "global",
           "lock": false,
           "switch": [
             "-memory <int>"
@@ -8035,7 +8031,7 @@
         "queue": {
           "type": "str",
           "require": false,
-          "scope": "job",
+          "scope": "global",
           "lock": false,
           "switch": [
             "-queue <str>"
@@ -8060,7 +8056,7 @@
         "defer": {
           "type": "str",
           "require": false,
-          "scope": "job",
+          "scope": "global",
           "lock": false,
           "switch": [
             "-defer <str>"
@@ -8085,7 +8081,7 @@
         "options": {
           "type": "[str]",
           "require": false,
-          "scope": "job",
+          "scope": "global",
           "lock": false,
           "switch": [
             "-scheduler_options <str>"
@@ -8110,7 +8106,7 @@
         "msgevent": {
           "type": "{<all,begin,end,fail,summary,timeout>}",
           "require": false,
-          "scope": "job",
+          "scope": "global",
           "lock": false,
           "switch": [
             "-msgevent <str>"
@@ -8135,7 +8131,7 @@
         "msgcontact": {
           "type": "{str}",
           "require": false,
-          "scope": "job",
+          "scope": "global",
           "lock": false,
           "switch": [
             "-msgcontact <str>"
@@ -8160,7 +8156,7 @@
         "maxnodes": {
           "type": "int",
           "require": false,
-          "scope": "job",
+          "scope": "global",
           "lock": false,
           "switch": [
             "-maxnodes <int>"
@@ -8330,7 +8326,7 @@
       "device": {
         "type": "str",
         "require": false,
-        "scope": "job",
+        "scope": "global",
         "lock": false,
         "switch": [],
         "shorthelp": null,
@@ -11915,7 +11911,7 @@
             "exe": {
               "type": "str",
               "require": false,
-              "scope": "global",
+              "scope": "job",
               "lock": false,
               "switch": [
                 "-tool_exe 'tool <str>'"
@@ -11941,7 +11937,7 @@
               "default": {
                 "type": "[file]",
                 "require": false,
-                "scope": "global",
+                "scope": "job",
                 "lock": false,
                 "switch": [
                   "-tool_sbom 'tool version <file>'"
@@ -11973,7 +11969,7 @@
             "path": {
               "type": "dir",
               "require": false,
-              "scope": "global",
+              "scope": "job",
               "lock": false,
               "switch": [
                 "-tool_path 'tool <dir>'"
@@ -12002,7 +11998,7 @@
             "vswitch": {
               "type": "[str]",
               "require": false,
-              "scope": "global",
+              "scope": "job",
               "lock": false,
               "switch": [
                 "-tool_vswitch 'tool <str>'"
@@ -12027,7 +12023,7 @@
             "vendor": {
               "type": "str",
               "require": false,
-              "scope": "global",
+              "scope": "job",
               "lock": false,
               "switch": [
                 "-tool_vendor 'tool <str>'"
@@ -12052,7 +12048,7 @@
             "version": {
               "type": "[str]",
               "require": false,
-              "scope": "global",
+              "scope": "job",
               "lock": false,
               "switch": [
                 "-tool_version 'tool <str>'"
@@ -12077,7 +12073,7 @@
             "format": {
               "type": "<json,tcl,yaml>",
               "require": false,
-              "scope": "global",
+              "scope": "job",
               "lock": false,
               "switch": [
                 "-tool_format 'tool <str>'"
@@ -12103,7 +12099,7 @@
               "default": {
                 "type": "[str]",
                 "require": false,
-                "scope": "global",
+                "scope": "job",
                 "lock": false,
                 "switch": [
                   "-tool_licenseserver 'name key <str>'"
@@ -12138,7 +12134,7 @@
       "remote": {
         "type": "bool",
         "require": false,
-        "scope": "job",
+        "scope": "global",
         "lock": false,
         "switch": [
           "-remote <bool>"
@@ -12163,7 +12159,7 @@
       "credentials": {
         "type": "file",
         "require": false,
-        "scope": "job",
+        "scope": "global",
         "lock": false,
         "switch": [
           "-credentials <file>"
@@ -12192,12 +12188,12 @@
         "copy": false
       },
       "cachedir": {
-        "type": "file",
+        "type": "dir",
         "require": false,
-        "scope": "job",
+        "scope": "global",
         "lock": false,
         "switch": [
-          "-cachedir <file>"
+          "-cachedir <dir>"
         ],
         "shorthelp": "Option: user cache directory",
         "example": [
@@ -12213,9 +12209,7 @@
               "value": null,
               "signature": null,
               "filehash": null,
-              "package": null,
-              "date": null,
-              "author": []
+              "package": null
             }
           }
         },
@@ -12225,7 +12219,7 @@
       "nice": {
         "type": "int",
         "require": false,
-        "scope": "job",
+        "scope": "global",
         "lock": false,
         "switch": [
           "-nice <int>"
@@ -12250,7 +12244,7 @@
       "flow": {
         "type": "str",
         "require": false,
-        "scope": "job",
+        "scope": "global",
         "lock": false,
         "switch": [
           "-flow <str>"
@@ -12275,7 +12269,7 @@
       "optmode": {
         "type": "int",
         "require": false,
-        "scope": "job",
+        "scope": "global",
         "lock": false,
         "switch": [
           "-O<str>",
@@ -12302,7 +12296,7 @@
       "loglevel": {
         "type": "<critical,debug,error,info,quiet,warning>",
         "require": false,
-        "scope": "job",
+        "scope": "global",
         "lock": false,
         "switch": [
           "-loglevel <str>"
@@ -12327,7 +12321,7 @@
       "builddir": {
         "type": "dir",
         "require": false,
-        "scope": "job",
+        "scope": "global",
         "lock": false,
         "switch": [
           "-builddir <dir>"
@@ -12356,7 +12350,7 @@
       "jobname": {
         "type": "str",
         "require": false,
-        "scope": "job",
+        "scope": "global",
         "lock": false,
         "switch": [
           "-jobname <str>"
@@ -12481,7 +12475,7 @@
       "clean": {
         "type": "bool",
         "require": false,
-        "scope": "job",
+        "scope": "global",
         "lock": false,
         "switch": [
           "-clean <bool>"
@@ -12506,7 +12500,7 @@
       "hash": {
         "type": "bool",
         "require": false,
-        "scope": "job",
+        "scope": "global",
         "lock": false,
         "switch": [
           "-hash <bool>"
@@ -12531,7 +12525,7 @@
       "nodisplay": {
         "type": "bool",
         "require": false,
-        "scope": "job",
+        "scope": "global",
         "lock": false,
         "switch": [
           "-nodisplay <bool>"
@@ -12556,7 +12550,7 @@
       "quiet": {
         "type": "bool",
         "require": false,
-        "scope": "job",
+        "scope": "global",
         "lock": false,
         "switch": [
           "-quiet <bool>"
@@ -12606,7 +12600,7 @@
       "novercheck": {
         "type": "bool",
         "require": false,
-        "scope": "job",
+        "scope": "global",
         "lock": false,
         "switch": [
           "-novercheck <bool>"
@@ -12631,7 +12625,7 @@
       "track": {
         "type": "bool",
         "require": false,
-        "scope": "job",
+        "scope": "global",
         "lock": false,
         "switch": [
           "-track <bool>"
@@ -12656,7 +12650,7 @@
       "continue": {
         "type": "bool",
         "require": false,
-        "scope": "job",
+        "scope": "global",
         "lock": false,
         "switch": [
           "-continue <bool>"
@@ -12681,7 +12675,7 @@
       "timeout": {
         "type": "float",
         "require": false,
-        "scope": "job",
+        "scope": "global",
         "lock": false,
         "switch": [
           "-timeout <float>"
@@ -12707,7 +12701,7 @@
       "strict": {
         "type": "bool",
         "require": false,
-        "scope": "job",
+        "scope": "global",
         "lock": false,
         "switch": [
           "-strict <bool>"
@@ -12733,7 +12727,7 @@
         "name": {
           "type": "<docker,lsf,sge,slurm>",
           "require": false,
-          "scope": "job",
+          "scope": "global",
           "lock": false,
           "switch": [
             "-scheduler <str>"
@@ -12758,7 +12752,7 @@
         "cores": {
           "type": "int",
           "require": false,
-          "scope": "job",
+          "scope": "global",
           "lock": false,
           "switch": [
             "-cores <int>"
@@ -12783,7 +12777,7 @@
         "memory": {
           "type": "int",
           "require": false,
-          "scope": "job",
+          "scope": "global",
           "lock": false,
           "switch": [
             "-memory <int>"
@@ -12809,7 +12803,7 @@
         "queue": {
           "type": "str",
           "require": false,
-          "scope": "job",
+          "scope": "global",
           "lock": false,
           "switch": [
             "-queue <str>"
@@ -12834,7 +12828,7 @@
         "defer": {
           "type": "str",
           "require": false,
-          "scope": "job",
+          "scope": "global",
           "lock": false,
           "switch": [
             "-defer <str>"
@@ -12859,7 +12853,7 @@
         "options": {
           "type": "[str]",
           "require": false,
-          "scope": "job",
+          "scope": "global",
           "lock": false,
           "switch": [
             "-scheduler_options <str>"
@@ -12884,7 +12878,7 @@
         "msgevent": {
           "type": "{<all,begin,end,fail,summary,timeout>}",
           "require": false,
-          "scope": "job",
+          "scope": "global",
           "lock": false,
           "switch": [
             "-msgevent <str>"
@@ -12909,7 +12903,7 @@
         "msgcontact": {
           "type": "{str}",
           "require": false,
-          "scope": "job",
+          "scope": "global",
           "lock": false,
           "switch": [
             "-msgcontact <str>"
@@ -12934,7 +12928,7 @@
         "maxnodes": {
           "type": "int",
           "require": false,
-          "scope": "job",
+          "scope": "global",
           "lock": false,
           "switch": [
             "-maxnodes <int>"

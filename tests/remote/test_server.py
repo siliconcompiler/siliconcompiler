@@ -33,8 +33,10 @@ def test_server_authenticated(gcd_nop_project, scserver, scserver_users, scserve
     assert os.path.isfile('build/gcd/job0/stepone/0/outputs/gcd.pkg.json')
     assert os.path.isfile('build/gcd/job0/steptwo/0/outputs/gcd.pkg.json')
 
-    assert gcd_nop_project.get("record", "status", step="stepone", index="0") == NodeStatus.SUCCESS
-    assert gcd_nop_project.get("record", "status", step="steptwo", index="0") == NodeStatus.SUCCESS
+    assert gcd_nop_project.history("job0").get("record", "status", step="stepone", index="0") == \
+        NodeStatus.SUCCESS
+    assert gcd_nop_project.history("job0").get("record", "status", step="steptwo", index="0") == \
+        NodeStatus.SUCCESS
 
 
 ###########################
@@ -84,8 +86,10 @@ def test_server(gcd_remote_test):
     assert os.path.isfile('build/gcd/job0/stepone/0/outputs/gcd.pkg.json')
     assert os.path.isfile('build/gcd/job0/steptwo/0/outputs/gcd.pkg.json')
 
-    assert gcd_project.get("record", "status", step="stepone", index="0") == NodeStatus.SUCCESS
-    assert gcd_project.get("record", "status", step="steptwo", index="0") == NodeStatus.SUCCESS
+    assert gcd_project.history("job0").get("record", "status", step="stepone", index="0") == \
+        NodeStatus.SUCCESS
+    assert gcd_project.history("job0").get("record", "status", step="steptwo", index="0") == \
+        NodeStatus.SUCCESS
 
 
 ###########################
@@ -109,8 +113,10 @@ def test_server_partial(gcd_remote_test):
     assert os.path.isfile('build/gcd/job0/stepone/0/outputs/gcd.pkg.json')
     assert not os.path.isfile('build/gcd/job0/steptwo/0/outputs/gcd.pkg.json')
 
-    assert gcd_project.get("record", "status", step="stepone", index="0") == NodeStatus.SUCCESS
-    assert gcd_project.get("record", "status", step="steptwo", index="0") == NodeStatus.PENDING
+    assert gcd_project.history("job0").get("record", "status", step="stepone", index="0") == \
+        NodeStatus.SUCCESS
+    assert gcd_project.history("job0").get("record", "status", step="steptwo", index="0") == \
+        NodeStatus.PENDING
 
 
 @pytest.mark.eda
@@ -131,5 +137,7 @@ def test_server_slurm(gcd_remote_test):
     assert os.path.isfile('build/gcd/job0/stepone/0/outputs/gcd.pkg.json')
     assert os.path.isfile('build/gcd/job0/steptwo/0/outputs/gcd.pkg.json')
 
-    assert gcd_project.get("record", "status", step="stepone", index="0") == NodeStatus.SUCCESS
-    assert gcd_project.get("record", "status", step="steptwo", index="0") == NodeStatus.SUCCESS
+    assert gcd_project.history("job0").get("record", "status", step="stepone", index="0") == \
+        NodeStatus.SUCCESS
+    assert gcd_project.history("job0").get("record", "status", step="steptwo", index="0") == \
+        NodeStatus.SUCCESS
