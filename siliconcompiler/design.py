@@ -328,10 +328,14 @@ class DesignSchema(LibrarySchema, DependencySchema):
 
         if isinstance(dep, str):
             dep_name = dep
-            dep = self.get_dep(dep_name)
+            if dep_name != self.name:
+                dep = self.get_dep(dep_name)
+            else:
+                dep = self
         elif isinstance(dep, DesignSchema):
             dep_name = dep.name
-            self.add_dep(dep, clobber=True)
+            if dep is not self:
+                self.add_dep(dep, clobber=True)
         else:
             raise TypeError("dep is not a valid type")
 
@@ -704,7 +708,10 @@ class DesignSchema(LibrarySchema, DependencySchema):
                     if new_depfileset:
                         depfileset = new_depfileset
                 else:
-                    dep_obj = self.get_dep(dep)
+                    if dep == self.name:
+                        dep_obj = self
+                    else:
+                        dep_obj = self.get_dep(dep)
                 if not isinstance(dep_obj, DesignSchema):
                     raise TypeError(f"{dep} must be a design object.")
 

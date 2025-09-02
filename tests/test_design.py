@@ -309,6 +309,22 @@ def test_options_depfileset_with_object():
     assert d.get("fileset", "rtl", "depfileset") == [("thisdep", "rtl")]
 
 
+def test_options_depfileset_with_self():
+    d = DesignSchema("test")
+    d.set_topmodule("test", "rtl")
+    d.set_topmodule("test", "rtl2")
+    assert d.add_depfileset(d, "rtl2", "rtl")
+    assert d.get("fileset", "rtl", "depfileset") == [("test", "rtl2")]
+
+
+def test_options_depfileset_with_selfname():
+    d = DesignSchema("test")
+    d.set_topmodule("test", "rtl")
+    d.set_topmodule("test", "rtl2")
+    assert d.add_depfileset("test", "rtl2", "rtl")
+    assert d.get("fileset", "rtl", "depfileset") == [("test", "rtl2")]
+
+
 def test_options_depfileset_with_invalid_input():
     with pytest.raises(TypeError, match="dep is not a valid type"):
         DesignSchema("test").add_depfileset(1, "rtl", "rtl")
@@ -935,6 +951,34 @@ def test_get_fileset():
 
     with pytest.raises(LookupError, match="constraint is not defined in heartbeat"):
         dut.get_fileset("constraint")
+
+
+def test_get_fileset_self():
+    class Heartbeat(DesignSchema):
+        def __init__(self):
+            super().__init__('heartbeat')
+
+            with self.active_fileset("rtl.increment"):
+                self.add_file("increment.v")
+
+            with self.active_fileset("rtl"):
+                self.add_file("heartbeat_increment.v")
+                self.add_depfileset(self, "rtl.increment")
+
+            with self.active_fileset("testbench"):
+                self.add_file("tb.v")
+
+    dut = Heartbeat()
+    assert dut.get_fileset("rtl") == [
+        (dut, 'rtl'),
+        (dut, 'rtl.increment'),
+    ]
+
+    assert dut.get_fileset(["rtl", "testbench"]) == [
+        (dut, 'rtl'),
+        (dut, 'rtl.increment'),
+        (dut, 'testbench')
+    ]
 
 
 def test_get_fileset_duplicate():
