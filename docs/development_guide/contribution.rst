@@ -1,65 +1,62 @@
-Contributing modules
-=====================
+How to Contribute a New Module
+==============================
 
-The SiliconCompiler project was designed to encourage contribution.
-Theoretically, the project could support 100's of process PDKs, 100's of tools, and countless flows, but the project maintainers couldn't possibly manage all of them without community help.
+SiliconCompiler is built for community collaboration.
+Our goal is to support hundreds of PDKs, tools, and flows, which is only possible with help from contributors like you.
+This guide outlines the process for adding a new module to the project.
 
-.. note::
+Before You Begin: The Ground Rules
+----------------------------------
 
-   Before making a pull request, make sure you have the right to do so and you are not violating any potential `NDAs <https://en.wikipedia.org/wiki/Non-disclosure_agreement>`_ and `copyright <https://en.wikipedia.org/wiki/Copyright>`_ law.
-   In general, PDK modules should only be published by foundries and tool modules should only be published by the tool owners.
+* **Check for Existing Modules:** Before starting, please browse the repository to see if a module for your target tool or PDK already exists.
+* **Permissions and NDAs:** Ensure you have the right to contribute the code and that it does not violate any Non-Disclosure Agreements (NDAs) or copyrights. As a general rule, new PDK modules should be contributed by the foundry, and tool modules by the tool's authors or maintainers.
 
-The process for target contributions is as follows:
+The Contribution Workflow in 3 Steps
+------------------------------------
 
-1. Clone the SiliconCompiler project from the `GitHub Repository <https://github.com/siliconcompiler/siliconcompiler>`_ and follow the :ref:`Installation` instructions.
+Step 1: Set Up Your Development Environment
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-2. Create a :ref:`flow <flows>`, :ref:`pdk <pdks>`, :ref:`library <libraries>`, :ref:`target <targets>`, or :ref:`tool <tools>` using the existing modules as guides.
-   Place the module file in the appropriate location per the directory structure shown below:
+First, clone the official SiliconCompiler repository to your local machine and install it in editable mode. This allows your local changes to be immediately reflected when you run tests.
+
+.. code-block:: bash
+
+   # Clone the repository
+   git clone https://github.com/siliconcompiler/siliconcompiler.git
+   cd siliconcompiler
+
+   # Install in editable mode
+   pip install -e .
+
+
+Step 2: Create Your New Module File
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Using existing modules as a reference, create your new Python file for the flow, PDK, library, or tool you are adding.
+Place the file in the correct directory within the ``siliconcompiler/`` source tree:
 
 .. code-block:: text
 
-   .
-   ├── flows
-   │   ├── asicflow.py
-   │   ├── dvflow.py
-   │   └── fpgaflow.py
-   │   └── ...
-   ├── libs
-   │   ├── asap7sc7p5t.py
-   │   ├── nangate45.py
-   │   └── sky130hd.py
-   │   └── ...
-   ├── pdks
-   │   ├── asap7.py
-   │   ├── freepdk45.py
-   │   └── skywater130.py
-   │   └── ...
-   ├── targets
-   │   ├── asap7_demo.py
-   │   ├── freepdk45_demo.py
-   │   └── skywater130_demo.py
-   │   └── ...
-   └── tools
-       ├── klayout
-       │   ├── klayout.py
-       │   └── ...
-       ├── openroad
-       │   ├── openroad.py
-       │   ├── sc_apr.tcl
-       │   └── ...
-       ├── verilator
-       │   └── verilator.py
-       ├── yosys
-       |    ├── yosys.py
-       |    ├── sc_syn.tcl
-       |    └── ...
-       └── <...>
+   siliconcompiler/
+   ├── flows/
+   │   ├── asicflow.py
+   │   └── your_flow.py  <--
+   ├── libs/
+   │   ├── sky130hd.py
+   │   └── your_lib.py   <--
+   ├── pdks/
+   │   ├── skywater130.py
+   │   └── your_pdk.py   <--
+   └── tools/
+      ├── openroad/
+      │   └── openroad.py
+      └── your_tool/
+         └── your_tool.py  <--
 
-3. Test the new target by calling :meth:`.use()`.
+Step 3: Submit Your Contribution
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: python
+Once you have created and tested your module, you are ready to submit it for review.
 
-  import <newpdk>
-  chip.use(<newpdk>)
-
-4. Read the `contributing <https://github.com/siliconcompiler/siliconcompiler/blob/main/CONTRIBUTING.md>`_ guide to learn how to submit a pull request.
+Please read our `CONTRIBUTING.md <https://github.com/siliconcompiler/siliconcompiler/blob/main/CONTRIBUTING.md>`_ guide on GitHub.
+It contains essential information about our pull request process, coding standards, and how to format your commit messages.

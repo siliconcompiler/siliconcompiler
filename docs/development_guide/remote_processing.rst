@@ -1,85 +1,96 @@
-Remote processing
-==================
+Guide to Remote Compilation
+===========================
 
-The SiliconCompiler project supports a remote processing model that leverages the cloud to provide access to:
-
- #. Pre-configured tool installations.
- #. Warehouse scale elastic compute.
- #. NDA encumbered IPs, PDKs, and EDA tools.
-
+SiliconCompiler supports a remote compilation model, allowing you to leverage cloud resources for access to pre-configured tool installations, elastic compute, and potentially NDA-protected PDKs or IPs on private servers.
 
 .. note::
 
-    Note that our public sever only supports open-source tools and PDKs.
-    In the event that our servers are busy processing a large number of jobs, your job may get queued and experience delays in processing.
+    Our public server only supports open-source tools and PDKs.
+    During periods of high traffic, your job may be queued, which could result in processing delays.
+    When you run a remote job, SiliconCompiler will remind you that your design is being uploaded to a public service.
 
-Even though our publicly-available servers only support open-source IP and tools, the remote API is capable of supporting any SiliconCompiler modules which the server operators wish to install.
-If you are interested in creating a custom server implementation, we provide a minimal example development server which can be used as a starting point.
-You can also find descriptions of the core remote API calls in the :ref:`remote API <Server API>` section.
+Step 1: Configure Your Remote Server
+------------------------------------
 
-See the :ref:`Quickstart guide` for instructions on running a simple example on our public servers.
+All remote server settings are managed through a ``credentials.json`` file located in your home directory (``$HOME/.sc/`` on Linux/macOS or ``C:\Users\<USERNAME>\.sc\`` on Windows).
 
-Configuring a Different Remote Server
--------------------------------------
+While you can create this file manually, the recommended method is to use the interactive ``sc-remote`` command.
 
-If you have a custom remote endpoint that you wish to use with SiliconCompiler, you can run the :ref:`sc-remote` command to set that up with your SiliconCompiler installation.
+Method 1: Interactive Setup (Recommended)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Public Server
-^^^^^^^^^^^^^
+Open your terminal and run the following command:
 
-If your remote server does not require authentication, you can simply pass its address in as a command-line argument:
+.. code-block:: bash
 
-``sc-remote -configure -server https://server.siliconcompiler.com``
+  sc-remote -configure
 
-If a previous credentials file already exists, you will be prompted to overwrite it.
-Your credentials file will be placed in ``$HOME/.sc/``, if you want to back it up or delete it.
-SiliconCompiler will default to using our public beta address if you have not configured anything, and it will remind you that your design is being uploaded to a public service for processing before starting each remote job.
+ou will be prompted to enter your server's details. Follow the prompts based on the type of server you are connecting to:
 
-.. _private-server:
+* **Private/Authenticated Server:** Provide the server address, your username, and your password/API key when prompted.
 
-Private Server
-^^^^^^^^^^^^^^
+.. code-block:: bash
 
-If your custom remote server requires authentication, you can run ``sc-remote -configure`` with no additional arguments and fill in the address, username, and password fields that it prompts you for.
+  Remote server address: [https://your-secure-server.com](https://your-secure-server.com)
+  Remote username: your-username
+  Remote password: your-key
+  Remote configuration saved to: /home/user/.sc/credentials.json
 
-SiliconCompiler also supports private servers which require authentication to access.
-If you have such a server to connect to, you will need a credentials text file located at ``$HOME/.sc/credentials`` on Linux or macOS, or at ``C:\\Users\\<USERNAME>\\.sc\\credentials`` on Windows.
-The credentials file is a JSON formatted file containing information about the remote server address, username, and password.
+* **Public/Unauthenticated Server:** Enter the server address and press Enter to leave the username and password fields blank.
 
-.. code-block:: json
+.. code-block:: bash
 
-   {
-      "address": "your-server",
-      "username": "your-username",
-      "password": "your-key"
-   }
+  Remote server address: [https://server.siliconcompiler.com](https://server.siliconcompiler.com)
+  Remote username:
+  Remote password:
+  Remote configuration saved to: /home/user/.sc/credentials.json
 
-Use a text editor to create the credentials file.
-Alternatively you can use :ref:`sc-remote` app to generate it from the command line.
+Method 2: Manual Configuration
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: console
+If you prefer, you can create the ``credentials.json`` file manually in the appropriate directory.
+The file must contain the following JSON structure:
 
-  (venv) sc-remote -configure
-  Remote server address (leave blank to use default server): your-server
-  Remote username (leave blank for no username): your-username
-  Remote password (leave blank for no password): your-key
-  Remote configuration saved to: $HOME/.sc/credentials
+.. code-block::
 
-To verify that your credentials file and server is configured correctly, run the :ref:`sc-remote` command.
+  {
+    "address": "your-server-address",
+    "username": "your-username",
+    "password": "your-password-or-key"
+  }
 
-.. code-block:: console
+For a public server, simply leave the username and password fields as empty strings ("").
 
-  (venv) sc-remote
+Step 2: Verify the Connection
+-----------------------------
 
-Once you've configured SiliconCompiler to run on your remote endpoint, see the :ref:`Quickstart guide` for instructions on running a simple example, along with expected outputs.
+After configuration, run ``sc-remote`` without any arguments to test the connection to your server.
+
+.. code-block:: bash
+
+  sc-remote
+
+A successful connection will typically display a status message or an empty list of your remote jobs, confirming that your configuration and credentials are correct.
+
+Step 3: Run a Remote Job
+------------------------
+
+To send a compilation job to the configured remote server, simply add the ``-remote`` flag to your ``sc`` command.
+
+.. code-block:: bash
+
+  sc -target asic_demo -remote
+
+The job will be packaged, sent to the remote server for processing, and the results will be streamed back to your local machine.
 
 Troubleshooting
 ---------------
 
-The jobs will be run in isolated environments with limited communication interfaces, however, so some network and filesystem calls may not work properly.
+* **Local Changes Not Reflected:** Any modifications you make to local, built-in tool scripts, PDKs, or libraries will not be used in a remote job. The remote server uses its own pre-configured environment.
+* **Network and Filesystem Issues:** Jobs run in isolated environments on the server. Code that relies on specific network or local filesystem calls may not work as expected.
+* **Reporting Issues:** If you encounter problems with the remote workflow, please open an issue on the `SiliconCompiler repository's issue page <https://github.com/siliconcompiler/siliconcompiler/issues>`_.
 
-Any changes that you make to SiliconCompiler's built-in tool setup scripts on your local machine will not be reflected in jobs which are run on a remote server.
-Likewise, any changes that you make to the built-in open-source PDKs and standard cell libraries will not be sent to the remote servers.
-If you have suggestions for improving the open-source modules, :ref:`check out our contributing guide <Contributing modules>`.
+For Developers: Custom Servers
+------------------------------
 
-Please report any issues that you encounter with the remote workflow on `the SiliconCompiler repository's issue page <https://github.com/siliconcompiler/siliconcompiler/issues>`_.
+If you are interested in deploying your own custom server, we provide a minimal example development server that can be used as a starting point: ``sc-server`` using the :ref:`remote API <Server API>`.
