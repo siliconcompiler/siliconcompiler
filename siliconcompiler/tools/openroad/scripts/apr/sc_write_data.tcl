@@ -109,10 +109,12 @@ foreach corner $sc_scenarios {
 ###############################
 
 foreach corner $sc_scenarios {
-    foreach net [dict keys [sc_cfg_get constraint timing $corner voltage]] {
-        set_pdnsim_net_voltage -corner $corner \
-            -net $net \
-            -voltage [sc_cfg_get constraint timing $corner voltage $net]
+    if { [sc_cfg_exists constraint timing $corner voltage] } {
+        foreach net [dict keys [sc_cfg_get constraint timing $corner voltage]] {
+            set_pdnsim_net_voltage -corner $corner \
+                -net $net \
+                -voltage [sc_cfg_get constraint timing $corner voltage $net]
+        }
     }
 }
 
