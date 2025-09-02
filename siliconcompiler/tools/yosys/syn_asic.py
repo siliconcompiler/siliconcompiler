@@ -22,6 +22,12 @@ class _ASICTask(ASICTaskSchema, YosysTask):
             copy=False
         )
         self.add_parameter(
+            "abc_libraries",
+            "[file]",
+            "generated liberty files for use with synthesis for standard cell libraries",
+            copy=False
+        )
+        self.add_parameter(
             "synthesis_corner",
             "{str}",
             "Timing corners to use for synthesis")
@@ -111,6 +117,9 @@ class _ASICTask(ASICTaskSchema, YosysTask):
                     f.write(content)
 
                 self.add("var", 'synthesis_libraries', output_file)
+                if lib.valid("tool", "yosys", "skip_abc_liberty") and \
+                        not lib.get("tool", "yosys", "skip_abc_liberty"):
+                    self.add("var", 'abc_libraries', output_file)
 
     def add_synthesis_corner(self, corner, step=None, index=None, clobber=True):
         if clobber:
