@@ -392,7 +392,8 @@ class ASICProject(Project):
         if self.get("asic", "mainlib") not in self.get("asic", "asiclib"):
             # Ensure mainlib is added to asiclib
             self.logger.warning(f'Adding {self.get("asic", "mainlib")} to [asic,asiclib]')
-            self.add("asic", "asiclib", self.get("asic", "mainlib"))
+            asiclibs = [self.get("asic", "mainlib"), *self.get("asic", "asiclib")]
+            self.set("asic", "asiclib", asiclibs)
 
     def _summary_headers(self):
         """
