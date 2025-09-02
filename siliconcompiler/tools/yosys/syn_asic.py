@@ -117,7 +117,8 @@ class _ASICTask(ASICTaskSchema, YosysTask):
                     f.write(content)
 
                 self.add("var", 'synthesis_libraries', output_file)
-                if lib.valid("tool", "yosys", "skip_abc_liberty") and not lib.get("tool", "yosys", "skip_abc_liberty"):
+                if lib.valid("tool", "yosys", "skip_abc_liberty") and \
+                        not lib.get("tool", "yosys", "skip_abc_liberty"):
                     self.add("var", 'abc_libraries', output_file)
 
     def add_synthesis_corner(self, corner, step=None, index=None, clobber=True):
