@@ -27,7 +27,7 @@ def setup(project: ASICProject, syn_np=1, floorplan_np=1, physyn_np=1, place_np=
 
     # 4. Timing corners
     scenario = project.get_timingconstraints().make_scenario("typical")
-    scenario.add_libcorner("typical")
+    scenario.add_libcorner(["typical", "generic"])
     scenario.set_pexcorner("typical")
     scenario.add_check(["setup", "hold"])
 

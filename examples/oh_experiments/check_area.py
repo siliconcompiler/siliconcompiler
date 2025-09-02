@@ -9,12 +9,6 @@ import sys
 import os.path
 
 
-def __register_oh(chip):
-    chip.register_source('oh',
-                         'git+https://github.com/aolofsson/oh',
-                         '23b26c4a938d4885a2a340967ae9f63c3c7a3527')
-
-
 def checkarea(design, filesets, target):
     '''
     Runs SC through synthesis and prints out the module name, cell count,
@@ -31,14 +25,14 @@ def checkarea(design, filesets, target):
         proj = ASICProject(design)
         proj.add_fileset(fileset)
 
-        proj.load_target(target.setup)
+        proj.load_target(target)
 
         proj.set("option", "jobname", fileset)
         proj.set_flow("synflow")
 
         proj.run()
-        cells = proj.get('metric', 'cells', step='synthesis', index='0')
-        area = proj.get('metric', 'cellarea', step='synthesis', index='0')
+        cells = proj.history(fileset).get('metric', 'cells', step='synthesis', index='0')
+        area = proj.history(fileset).get('metric', 'cellarea', step='synthesis', index='0')
         proj.logger.info(f"{fileset},{cells},{area}")
 
     return 0
@@ -66,7 +60,7 @@ def main(limit=-1):
             design.add_file(os.path.join("asiclib", "hdl", os.path.basename(file)))
 
     filesets = sorted(design.getkeys("fileset"))[0:limit]
-    return checkarea(design, filesets, freepdk45_demo)
+    return checkarea(design, filesets, freepdk45_demo.setup)
 
 
 #########################
