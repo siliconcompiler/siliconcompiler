@@ -108,6 +108,16 @@ foreach corner $sc_scenarios {
 # Check Power Network
 ###############################
 
+foreach corner $sc_scenarios {
+    if { [sc_cfg_exists constraint timing $corner voltage] } {
+        foreach net [dict keys [sc_cfg_get constraint timing $corner voltage]] {
+            set_pdnsim_net_voltage -corner $corner \
+                -net $net \
+                -voltage [sc_cfg_get constraint timing $corner voltage $net]
+        }
+    }
+}
+
 foreach net [sc_psm_check_nets] {
     foreach corner $sc_scenarios {
         puts "Analyzing supply net: $net on $corner"
