@@ -24,18 +24,18 @@ def main():
             design.add_file("mathlib/hdl/oh_add.v")
             design.set_param("N", str(n))
 
+    proj = ASICProject(design)
+    proj.load_target(freepdk45_demo.setup)
+    proj.set_flow("synflow")
+
     # Gather Data
     area = []
     for n in datawidths:
-        proj = ASICProject(design)
-        proj.load_target(freepdk45_demo.setup)
-        proj.set_flow("synflow")
-
         proj.add_fileset(f"rtl.{n}", clobber=True)
         proj.set("option", "jobname", f"N{n}")
         proj.run()
 
-        area.append(proj.get('metric', 'cellarea', step='synthesis', index='0'))
+        area.append(proj.history(f"N{n}").get('metric', 'cellarea', step='synthesis', index='0'))
 
     if plt:
         # Plot Data
