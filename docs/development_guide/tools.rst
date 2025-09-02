@@ -19,7 +19,6 @@ The Structure of a Tool Driver
 A tool driver is a Python module that typically defines at least one :class:`.TaskSchema` class.
 
 .. code-block:: python
-  # my_tool.py
 
   from siliconcompiler import TaskSchema
 

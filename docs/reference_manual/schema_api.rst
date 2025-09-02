@@ -25,7 +25,6 @@ Useful APIs
     BaseSchema.write_manifest
     BaseSchema.read_manifest
     BaseSchema.from_manifest
-    BaseSchema.active
 
 **Editing schema:**
 
