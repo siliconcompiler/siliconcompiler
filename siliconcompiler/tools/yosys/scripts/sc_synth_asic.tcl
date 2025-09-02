@@ -447,7 +447,7 @@ if { [file exists $sc_abc_constraints] } {
 if { $script != "" } {
     lappend abc_args "-script" $script
 }
-foreach lib_file $sc_libraries {
+foreach lib_file [sc_cfg_tool_task_get var abc_libraries] {
     lappend abc_args "-liberty" $lib_file
 }
 set abc_dont_use []
