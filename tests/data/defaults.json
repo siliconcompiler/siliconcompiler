@@ -8304,8 +8304,37 @@
     "history": {},
     "constraint": {
       "timing": {
+        "default": {
+          "mode": {
+            "type": "str",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-constraint_timing_mode 'scenario <str>'"
+            ],
+            "shorthelp": "Constraint: operating mode",
+            "example": [
+              "api: chip.set('constraint', 'timing', 'worst', 'mode', 'test')"
+            ],
+            "help": "Operating mode for the scenario. Operating mode strings\n                can be values such as test, functional, standby.",
+            "notes": null,
+            "pernode": "optional",
+            "node": {
+              "default": {
+                "default": {
+                  "value": null,
+                  "signature": null
+                }
+              }
+            }
+          },
+          "__meta__": {
+            "class": "siliconcompiler.constraints.fpga_timing/FPGATimingScenarioSchema"
+          }
+        },
         "__meta__": {
-          "class": "siliconcompiler.constraints/FPGATimingConstraintSchema",
+          "class": "siliconcompiler.constraints.fpga_timing/FPGATimingConstraintSchema",
           "sctype": "BaseSchema"
         }
       },

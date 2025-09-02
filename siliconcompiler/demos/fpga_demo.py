@@ -1,13 +1,14 @@
 # Copyright 2025 Zero ASIC Corporation
 
 from siliconcompiler import FPGAProject, DesignSchema
-from siliconcompiler.flows.fpgaflow import FPGAVPRFlow
+from siliconcompiler.flows.fpgaflow import FPGAVPROpenSTAFlow
 
 from siliconcompiler.tools.vpr import VPRFPGA
 from siliconcompiler.tools.yosys import YosysFPGA
+from siliconcompiler.tools.opensta import OpenSTAFPGA
 
 
-class Z1000(YosysFPGA, VPRFPGA):
+class Z1000(YosysFPGA, VPRFPGA, OpenSTAFPGA):
     '''
     z1000 is the first in a series of open FPGA architectures.
     The baseline z1000 part is an architecture with 2K LUTs
@@ -34,6 +35,14 @@ class Z1000(YosysFPGA, VPRFPGA):
             self.set_vpr_archfile("data/demo_fpga/z1000.xml")
             self.set_vpr_graphfile("data/demo_fpga/z1000_rr_graph.xml")
             self.set_vpr_constraintsmap("data/demo_fpga/z1000_constraint_map.json")
+
+        self.set_vpr_router_lookahead("classic")
+
+        with self.active_dataroot("siliconcompiler"):
+            with self.active_fileset("z1000_opensta_liberty_files"):
+                self.add_file("data/demo_fpga/vtr_primitives.lib")
+                self.add_file("data/demo_fpga/tech_flops.lib")
+                self.add_opensta_liberty_fileset()
 
 
 class FPGADemo(FPGAProject):
@@ -69,7 +78,7 @@ class FPGADemo(FPGAProject):
         self.set_fpga(Z1000())
 
         # Set flow
-        self.set_flow(FPGAVPRFlow())
+        self.set_flow(FPGAVPROpenSTAFlow())
 
 
 if __name__ == "__main__":

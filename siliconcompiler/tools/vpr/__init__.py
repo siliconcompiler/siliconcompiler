@@ -66,6 +66,12 @@ class VPRFPGA(FPGASchema):
         self.define_tool_parameter("vpr", "clock_model", "<ideal,route,dedicated_network>",
                                    "The clock modeling strategy to be used.")
 
+        self.define_tool_parameter("vpr",
+                                   "router_lookahead",
+                                   "<classic,map,compressed_map,extended_map,simple>",
+                                   "The lookahead the router will use to estimate cost.",
+                                   defvalue="map")
+
     def set_vpr_devicecode(self, name: str):
         """
         Sets the device code for VPR.
@@ -178,6 +184,18 @@ class VPRFPGA(FPGASchema):
         """
         return self.set("tool", "vpr", "clock_model", model)
 
+    def set_vpr_router_lookahead(self, lookahead: str):
+        """
+        Sets the lookahead that the router will use to estimate the cost of
+        paths in the routing graph. This is also sometimes used in placement
+        to estimate costs.
+
+        Args:
+            lookahead (str): The name of the lookahead to use
+                             (e.g., 'map', 'classic', ...).
+        """
+        return self.set("tool", "vpr", "router_lookahead", lookahead)
+
 
 class VPRTask(TaskSchema):
     __block_file = "reports/block_usage.json"
@@ -194,6 +212,9 @@ class VPRTask(TaskSchema):
                            "level of detail for timing reports: vpr --timing_report_detail",
                            defvalue="aggregated")
         self.add_parameter("enable_timing_analysis", "bool", "enable timing analysis")
+        self.add_parameter("router_lookahead",
+                           "<classic,map,compressed_map,extended_map,simple>",
+                           "The lookahead the router will use to estimate cost.")
 
     def tool(self):
         return "vpr"
@@ -252,6 +273,8 @@ class VPRTask(TaskSchema):
             if lib.get_file(fileset=fileset, filetype="sdc"):
                 self.add_required_key(lib, "fileset", fileset, "file", "sdc")
                 self.set("var", "enable_timing_analysis", True)
+        if self.get("var", "router_lookahead"):
+            self.add_required_tool_key("var", "router_lookahead")
 
     def runtime_options(self):
         options = super().runtime_options()
@@ -295,6 +318,16 @@ class VPRTask(TaskSchema):
         options.extend(['--clock_modeling', fpga.get("tool", "vpr", "clock_model")])
         if fpga.get("tool", "vpr", "clock_model") == 'dedicated_network':
             options.append('--two_stage_clock_routing')
+
+        # Set the router lookahead.
+        if self.get("var", "router_lookahead"):
+            # Use the router lookahead set on the tool if provided.
+            options.extend(['--router_lookahead',
+                            self.get("var", "router_lookahead")])
+        else:
+            # Use the router lookahead set on the FPGA.
+            options.extend(['--router_lookahead',
+                            fpga.get("tool", "vpr", "router_lookahead")])
 
         sdc_file = None
         for lib, fileset in self.schema().get_filesets():

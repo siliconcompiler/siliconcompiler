@@ -12,18 +12,27 @@ set sc_topmodulelib [sc_cfg_get option design]
 set sc_filesets [sc_cfg_get option fileset]
 
 # APR Parameters
-set sc_mainlib [sc_cfg_get asic mainlib]
-set sc_logiclibs [sc_cfg_get asic asiclib]
-
-set sc_delaymodel [sc_cfg_get asic delaymodel]
-
 set sc_timing_mode [lindex [sc_cfg_tool_task_get var timing_mode] 0]
 
+set sc_mainlib []
+set sc_logiclibs []
+set sc_delaymodel []
 set sc_scenarios []
-foreach corner [dict keys [sc_cfg_get constraint timing]] {
-    if { [sc_cfg_get constraint timing $corner mode] == $sc_timing_mode } {
-        lappend sc_scenarios $corner
+if { $opensta_timing_mode == "asic" } {
+    set sc_mainlib [sc_cfg_get asic mainlib]
+    set sc_logiclibs [sc_cfg_get asic asiclib]
+    set sc_delaymodel [sc_cfg_get asic delaymodel]
+
+    foreach corner [dict keys [sc_cfg_get constraint timing]] {
+        if { [sc_cfg_get constraint timing $corner mode] == $sc_timing_mode } {
+            lappend sc_scenarios $corner
+        }
     }
+} elseif { $opensta_timing_mode == "fpga" } {
+    set sc_mainlib [sc_cfg_get fpga device]
+    set sc_logiclibs [sc_cfg_get fpga device]
+    set sc_delaymodel "nldm"
+    lappend sc_scenarios "typical"
 }
 
 ###############################
@@ -40,18 +49,35 @@ source "$sc_refdir/sc_procs.tcl"
 puts "Defining timing corners: $sc_scenarios"
 define_corners {*}$sc_scenarios
 
-foreach corner $sc_scenarios {
-    foreach lib $sc_logiclibs {
-        set lib_filesets []
-        foreach libcorner [sc_cfg_get constraint timing $corner libcorner] {
-            if { [sc_cfg_exists library $lib asic libcornerfileset $libcorner $sc_delaymodel] } {
-                lappend lib_filesets \
-                    {*}[sc_cfg_get library $lib asic libcornerfileset $libcorner $sc_delaymodel]
+if { $opensta_timing_mode == "asic" } {
+    foreach corner $sc_scenarios {
+        foreach lib $sc_logiclibs {
+            set lib_filesets []
+            foreach libcorner [sc_cfg_get constraint timing $corner libcorner] {
+                if {
+                    [sc_cfg_exists library $lib asic \
+                        libcornerfileset $libcorner $sc_delaymodel]
+                } {
+                    lappend lib_filesets \
+                        {*}[sc_cfg_get library $lib asic \
+                            libcornerfileset $libcorner $sc_delaymodel]
+                }
+            }
+            foreach lib_file [sc_cfg_get_fileset $lib $lib_filesets liberty] {
+                puts "Reading liberty file for ${corner} ($libcorner): ${lib_file}"
+                read_liberty -corner $corner $lib_file
             }
         }
-        foreach lib_file [sc_cfg_get_fileset $lib $lib_filesets liberty] {
-            puts "Reading liberty file for ${corner} ($libcorner): ${lib_file}"
-            read_liberty -corner $corner $lib_file
+    }
+} elseif { $opensta_timing_mode == "fpga" } {
+    foreach corner $sc_scenarios {
+        foreach lib $sc_logiclibs {
+            foreach lib_fileset [sc_cfg_get library $lib tool opensta liberty_filesets] {
+                foreach lib_file [sc_cfg_get_fileset $lib $lib_fileset liberty] {
+                    puts "Reading liberty file for ${corner} (typical): ${lib_file}"
+                    read_liberty -corner ${corner} $lib_file
+                }
+            }
         }
     }
 }
@@ -135,23 +161,33 @@ puts "Timing path groups: [sta::path_group_names]"
 
 ###############################
 
-foreach corner $sc_scenarios {
-    set pex_corner [sc_cfg_get constraint timing $corner pexcorner]
+if { $opensta_timing_mode == "asic" } {
+    foreach corner $sc_scenarios {
+        set pex_corner [sc_cfg_get constraint timing $corner pexcorner]
 
-    set spef_file "inputs/${sc_topmodule}.${pex_corner}.spef"
-    if { [file exists $spef_file] } {
-        puts "Reading SPEF ($corner): $spef_file"
-        read_spef -corner $corner $spef_file
+        set spef_file "inputs/${sc_topmodule}.${pex_corner}.spef"
+        if { [file exists $spef_file] } {
+            puts "Reading SPEF ($corner): $spef_file"
+            read_spef -corner $corner $spef_file
+        }
     }
-}
 
-foreach corner $sc_scenarios {
-    set pex_corner [sc_cfg_get constraint timing $corner pexcorner]
+    foreach corner $sc_scenarios {
+        set pex_corner [sc_cfg_get constraint timing $corner pexcorner]
 
-    set input_sdf_file "inputs/${sc_topmodule}.${pex_corner}.sdf"
-    if { [file exists $input_sdf_file] } {
-        puts "Reading SDF ($corner): $input_sdf_file"
-        read_sdf -corner $corner $input_sdf_file
+        set input_sdf_file "inputs/${sc_topmodule}.${pex_corner}.sdf"
+        if { [file exists $input_sdf_file] } {
+            puts "Reading SDF ($corner): $input_sdf_file"
+            read_sdf -corner $corner $input_sdf_file
+        }
+    }
+} elseif { $opensta_timing_mode == "fpga" } {
+    foreach corner $sc_scenarios {
+        set input_sdf_file "inputs/${sc_topmodule}.typical.sdf"
+        if { [file exists $input_sdf_file] } {
+            puts "Reading SDF ($corner): $input_sdf_file"
+            read_sdf -corner $corner $input_sdf_file
+        }
     }
 }
 

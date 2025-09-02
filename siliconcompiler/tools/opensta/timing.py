@@ -7,9 +7,9 @@ from siliconcompiler import sc_open
 from siliconcompiler.tools.opensta import OpenSTATask
 
 
-class TimingTask(OpenSTATask):
+class TimingTaskBase(OpenSTATask):
     '''
-    Generate a static timing reports.
+    Base class for generating static timing reports.
     '''
     def __init__(self):
         super().__init__()
@@ -28,9 +28,6 @@ class TimingTask(OpenSTATask):
     def set_timing_mode(self, mode: str, step: str = None, index: str = None):
         return self.set("var", "timing_mode", mode, step=step, index=index)
 
-    def task(self):
-        return "timing"
-
     def setup(self):
         super().setup()
 
@@ -38,26 +35,6 @@ class TimingTask(OpenSTATask):
 
         if f"{self.design_topmodule}.vg" in self.get_files_from_input_nodes():
             self.add_input_file(ext="vg")
-        if f"{self.design_topmodule}.sdc" in self.get_files_from_input_nodes():
-            self.add_input_file(ext="sdc")
-        else:
-            for obj, key in self.get_fileset_file_keys("sdc"):
-                self.add_required_key(obj, *key)
-        added_spef = False
-        for scenario in self.schema().get_timingconstraints().get_scenario().values():
-            if scenario.get("pexcorner") is None:
-                continue
-            if f"{self.design_topmodule}.{scenario.get('pexcorner')}.spef" in \
-                    self.get_files_from_input_nodes():
-                self.add_input_file(ext=f"{scenario.get('pexcorner')}.spef")
-                added_spef = True
-        if not added_spef:
-            for scenario in self.schema().get_timingconstraints().get_scenario().values():
-                if scenario.get("pexcorner") is None:
-                    continue
-                if f"{self.design_topmodule}.{scenario.get('pexcorner')}.sdf" in \
-                        self.get_files_from_input_nodes():
-                    self.add_input_file(ext=f"{scenario.get('pexcorner')}.sdf")
 
         if self.get("var", "timing_mode"):
             self.add_required_tool_key("var", "timing_mode")
@@ -191,3 +168,72 @@ class TimingTask(OpenSTATask):
                     paths.append(path)
             return paths
         return [self.get_logpath("exe")]
+
+
+class TimingTask(TimingTaskBase):
+    '''
+    Generate static timing reports for an ASIC target device.
+    '''
+    def __init__(self):
+        super().__init__()
+
+    def task(self):
+        return "timing"
+
+    def get_tcl_variables(self, manifest=None):
+        """
+        Gets Tcl variables for the task, setting 'opensta_timing_mode' to asic.
+        """
+        vars = super().get_tcl_variables(manifest)
+        vars["opensta_timing_mode"] = "asic"
+        return vars
+
+    def setup(self):
+        super().setup()
+
+        if f"{self.design_topmodule}.sdc" in self.get_files_from_input_nodes():
+            self.add_input_file(ext="sdc")
+        else:
+            for obj, key in self.get_fileset_file_keys("sdc"):
+                self.add_required_key(obj, *key)
+
+        added_spef = False
+        for scenario in self.schema().get_timingconstraints().get_scenario().values():
+            if scenario.get("pexcorner") is None:
+                continue
+            if f"{self.design_topmodule}.{scenario.get('pexcorner')}.spef" in \
+                    self.get_files_from_input_nodes():
+                self.add_input_file(ext=f"{scenario.get('pexcorner')}.spef")
+                added_spef = True
+        if not added_spef:
+            for scenario in self.schema().get_timingconstraints().get_scenario().values():
+                if scenario.get("pexcorner") is None:
+                    continue
+                if f"{self.design_topmodule}.{scenario.get('pexcorner')}.sdf" in \
+                        self.get_files_from_input_nodes():
+                    self.add_input_file(ext=f"{scenario.get('pexcorner')}.sdf")
+
+
+class FPGATimingTask(TimingTaskBase):
+    '''
+    Generate static timing reports for an FPGA target device.
+    '''
+    def __init__(self):
+        super().__init__()
+
+    def task(self):
+        return "fpga_timing"
+
+    def get_tcl_variables(self, manifest=None):
+        """
+        Gets Tcl variables for the task, setting 'opensta_timing_mode' to fpga.
+        """
+        vars = super().get_tcl_variables(manifest)
+        vars["opensta_timing_mode"] = "fpga"
+        return vars
+
+    def setup(self):
+        super().setup()
+
+        self.add_input_file(ext="sdc")
+        self.add_input_file(ext="typical.sdf")
