@@ -73,6 +73,8 @@ def build_section_with_target(text, key, ctx):
 
 
 def get_ref_id(key):
+    if key[-4:] == "-ref":
+        return key
     return nodes.make_id(key + "-ref")
 
 

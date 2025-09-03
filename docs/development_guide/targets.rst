@@ -92,6 +92,7 @@ How to Use the Target
 Once the target function is defined, you can load it into your project like this:
 
 .. code-block:: python
+
   import siliconcompiler
 
   # Create a project

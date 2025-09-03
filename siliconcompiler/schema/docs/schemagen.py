@@ -23,7 +23,8 @@ class SchemaGen(SphinxDirective):
         'root': str,
         'add_class': directives.flag,
         'add_methods': directives.flag,
-        'reference_class': str
+        'reference_class': str,
+        'ref_root': str
     }
 
     def run(self):
@@ -55,7 +56,7 @@ class SchemaGen(SphinxDirective):
         else:
             schemas = [schema_cls()]
 
-        ref_root = f"schema-{module}.{cls}"
+        ref_root = self.options.get("ref_root", f"schema-{module}.{cls}")
 
         secs = []
         for n, schema in enumerate(schemas):
