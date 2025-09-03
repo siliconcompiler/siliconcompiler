@@ -100,8 +100,12 @@ class TimingTaskBase(OpenSTATask):
                                     'pins',
                                     'setuppaths',
                                     'holdpaths'):
-                        self.record_metric(metric, int(value.group(0)),
-                                           source_file=self.__report_map(metric))
+                        try:
+                            self.record_metric(metric, int(value.group(0)),
+                                               source_file=self.__report_map(metric))
+                        except ValueError:
+                            # if breakpoint the last metric will fail
+                            pass
                         metric = None
                     elif metric in ('holdslack', 'setupslack'):
                         if slack:
