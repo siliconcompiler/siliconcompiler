@@ -970,7 +970,10 @@ class SchedulerNode:
             self.__record)
 
         # Save a successful manifest
-        if self.__record.get('status', step=self.__step, index=self.__index) != NodeStatus.SKIPPED:
+        if self.__error:
+            self.__record.set('status', NodeStatus.ERROR, step=self.__step, index=self.__index)
+        elif self.__record.get('status', step=self.__step, index=self.__index) != \
+                NodeStatus.SKIPPED:
             self.__record.set('status', NodeStatus.SUCCESS, step=self.__step, index=self.__index)
 
         self.__project.write_manifest(self.__manifests["output"])
