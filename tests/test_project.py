@@ -365,6 +365,29 @@ def test_add_dep_design():
     assert proj.get("library", "test", field="schema") is design
 
 
+def test_add_dep_self_reference():
+    class Heartbeat(DesignSchema):
+        def __init__(self):
+            super().__init__('heartbeat')
+
+            with self.active_fileset("rtl.increment"):
+                self.add_file("increment.v")
+
+            with self.active_fileset("rtl"):
+                self.add_file("heartbeat_increment.v")
+                self.add_depfileset(self, "rtl.increment")
+
+            with self.active_fileset("testbench"):
+                self.add_file("tb.v")
+
+    dut = Heartbeat()
+
+    proj = Project()
+    proj.add_dep(dut)
+    assert proj.getkeys("library") == ("heartbeat",)
+    assert proj.get("library", "heartbeat", field="schema") is dut
+
+
 def test_add_dep_invalid():
     with pytest.raises(NotImplementedError):
         Project().add_dep(str("this"))
