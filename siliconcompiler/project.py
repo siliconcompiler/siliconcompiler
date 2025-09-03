@@ -580,6 +580,18 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                 self.logger.warning(f"Setting design fileset to: {fileset}")
                 self.set("option", "fileset", fileset)
 
+        if self.__dashboard and self.get("option", "flow"):
+            breakpoints = set()
+            flow = self.get("flowgraph", self.get("option", "flow"), field="schema")
+            for step, index in flow.get_nodes():
+                if self.get("option", "breakpoint", step=step, index=index):
+                    breakpoints.add((step, index))
+            print(breakpoints)
+            if breakpoints and self.__dashboard.is_running():
+                self.logger.info("Disabling dashboard due to breakpoints at: "
+                                 f"{', '.join([f'{step}/{index}' for step, index in breakpoints])}")
+                self.__dashboard.stop()
+
     def run(self, raise_exception=False):
         '''
         Executes tasks in a flowgraph.
