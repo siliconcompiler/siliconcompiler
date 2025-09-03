@@ -1428,6 +1428,33 @@ def test_run_failed_to_execute(project, caplog):
     assert "Halting stepone/0 due to errors" in caplog.text
 
 
+def test_run_failed_to_execute_initial_save_has_error(project):
+    node = SchedulerNode(project, "stepone", "0")
+    node.task.setup_work_directory(node.workdir)
+
+    assert node._SchedulerNode__generate_test_case is True
+
+    with patch("siliconcompiler.TaskSchema.run_task") as run_task, \
+            patch("siliconcompiler.scheduler.SchedulerNode.halt") as halt, \
+            patch("siliconcompiler.scheduler.SchedulerNode._SchedulerNode__generate_testcase") as \
+            testcase:
+        run_task.return_value = 1
+
+        def halt_step(*args, **kwargs):
+            raise ValueError
+        halt.side_effect = halt_step
+
+        with pytest.raises(ValueError):
+            node.run()
+
+        run_task.assert_called_once()
+        testcase.assert_called_once()
+
+    assert project.get("record", "status", step="stepone", index="0") == NodeStatus.ERROR
+    saved_manifest = Project.from_manifest(filepath=node.get_manifest())
+    assert saved_manifest.get("record", "status", step="stepone", index="0") == NodeStatus.ERROR
+
+
 def test_run_failed_to_execute_generate_issue(project, caplog):
     setattr(project, "_Project__logger", logging.getLogger())
     project.logger.setLevel(logging.INFO)
@@ -1447,6 +1474,8 @@ def test_run_failed_to_execute_generate_issue(project, caplog):
         testcase.assert_called_once()
 
     assert project.get("record", "status", step="stepone", index="0") == NodeStatus.ERROR
+    saved_manifest = Project.from_manifest(filepath=node.get_manifest())
+    assert saved_manifest.get("record", "status", step="stepone", index="0") == NodeStatus.ERROR
 
     assert "Halting stepone/0 due to errors" in caplog.text
 
