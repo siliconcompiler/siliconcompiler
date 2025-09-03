@@ -167,8 +167,8 @@ class Scheduler:
             self.__logger.error(line)
 
         # Ensure dashboard receives a stop if running
-        if self.__project._dash:
-            self.__project._dash.stop()
+        if self.__project._Project__dashboard:
+            self.__project._Project__dashboard.stop()
 
         # Mark error to keep logfile
         MPManager.error("uncaught exception")

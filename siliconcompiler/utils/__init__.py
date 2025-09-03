@@ -203,6 +203,7 @@ def default_email_credentials_file():
 def sc_open(path, *args, **kwargs):
     if 'errors' not in kwargs:
         kwargs['errors'] = 'ignore'
+    kwargs["newline"] = "\n"
     fobj = open(path, *args, **kwargs)
     try:
         with contextlib.closing(fobj):
