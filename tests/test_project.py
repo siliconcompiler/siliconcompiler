@@ -1811,6 +1811,54 @@ def test_init_run(caplog):
     assert "Setting design fileset to: rtl" in caplog.text
 
 
+def test_init_run_disable_dashboard_breakpoint(caplog):
+    design = DesignSchema("testdesign")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+        design.add_file("top.v")
+
+    proj = Project(design)
+
+    flow = FlowgraphSchema("testflow")
+    flow.node("faux", FauxTask0())
+    proj.set_flow(flow)
+
+    setattr(proj, "_Project__logger", logging.getLogger())
+    proj.logger.setLevel(logging.INFO)
+    setattr(proj, "__Project_dashboard", True)
+
+    proj.set("option", "breakpoint", True, step="faux")
+
+    with patch("siliconcompiler.report.dashboard.cli.CliDashboard.is_running") as is_running, \
+            patch("siliconcompiler.report.dashboard.cli.CliDashboard.stop") as stop:
+        is_running.return_value = True
+        proj._init_run()
+        is_running.assert_called_once()
+        stop.assert_called_once()
+
+    assert "Disabling dashboard due to breakpoints at: faux/0" in caplog.text
+
+
+def test_init_run_disable_dashboard_no_breakpoint():
+    design = DesignSchema("testdesign")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+        design.add_file("top.v")
+
+    proj = Project(design)
+
+    flow = FlowgraphSchema("testflow")
+    flow.node("faux", FauxTask0())
+    proj.set_flow(flow)
+
+    setattr(proj, "__Project_dashboard", True)
+
+    with patch("siliconcompiler.report.dashboard.cli.CliDashboard.is_running") as is_running:
+        is_running.return_value = True
+        proj._init_run()
+        is_running.assert_not_called()
+
+
 def test_init_run_do_nothing(caplog):
     design = DesignSchema("testdesign")
     with design.active_fileset("rtl"):
