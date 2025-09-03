@@ -73,7 +73,8 @@ class SchedulerNode:
         self.__generate_test_case = not replay
         self.__replay = replay
         self.__hash = self.__project.get("option", "hash")
-        self.__breakpoint = self.__project.get("option", "breakpoint", step=self.__step, index=self.__index)
+        self.__breakpoint = self.__project.get("option", "breakpoint",
+                                               step=self.__step, index=self.__index)
         self.__builtin = False
 
         self.__enforce_inputfiles = True
