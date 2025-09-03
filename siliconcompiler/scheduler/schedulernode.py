@@ -73,6 +73,7 @@ class SchedulerNode:
         self.__generate_test_case = not replay
         self.__replay = replay
         self.__hash = self.__project.get("option", "hash")
+        self.__breakpoint = self.__project.get("option", "breakpoint", step=self.__step, index=self.__index)
         self.__builtin = False
 
         self.__enforce_inputfiles = True
@@ -585,6 +586,11 @@ class SchedulerNode:
         """
         from siliconcompiler import Project
 
+        if self.__breakpoint:
+            # Breakpoint is set to must run
+            self.logger.debug("Breakpoint is set")
+            return True
+
         # Load previous manifest
         previous_node = None
         previous_node_time = time.time()
@@ -924,8 +930,7 @@ class SchedulerNode:
                     self.__workdir,
                     self.__project.get('option', 'quiet', step=self.__step, index=self.__index),
                     self.__project.get('option', 'loglevel', step=self.__step, index=self.__index),
-                    self.__project.get('option', 'breakpoint',
-                                       step=self.__step, index=self.__index),
+                    self.__breakpoint,
                     self.__project.get('option', 'nice', step=self.__step, index=self.__index),
                     self.__project.get('option', 'timeout', step=self.__step, index=self.__index))
             except Exception as e:

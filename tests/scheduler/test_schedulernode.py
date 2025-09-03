@@ -693,6 +693,18 @@ def test_check_files_changed_hash_directory(project, caplog):
         "from previous run" in caplog.text
 
 
+def test_requires_run_breakpoint(project, caplog):
+    setattr(project, "_Project__logger", logging.getLogger())
+    project.logger.setLevel(logging.DEBUG)
+
+    assert project.set("option", "breakpoint", True, step="steptwo")
+
+    node = SchedulerNode(project, "steptwo", "0")
+
+    assert node.requires_run() is True
+    assert "Breakpoint is set" in caplog.text
+
+
 def test_requires_run_fail_input(project, caplog):
     setattr(project, "_Project__logger", logging.getLogger())
     project.logger.setLevel(logging.DEBUG)
