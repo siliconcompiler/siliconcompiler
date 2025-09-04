@@ -19,6 +19,8 @@ from siliconcompiler.tools.klayout import export as klayout_export
 
 from siliconcompiler.tools.bambu.convert import ConvertTask
 from siliconcompiler.tools.ghdl.convert import ConvertTask as GHDLConvertTask
+from siliconcompiler.tools.sv2v.convert import ConvertTask as SV2VConvertTask
+from siliconcompiler.tools.chisel.convert import ConvertTask as ChiselConvertTask
 
 from siliconcompiler.tools.builtin import minimum
 
@@ -48,20 +50,21 @@ class ASICFlow(FlowgraphSchema):
     execution to explore different strategies. This can be configured by
     setting the corresponding '_np' argument to a value greater than 1.
 
-    * **syn_np**: Number of parallel synthesis jobs to launch.
-    * **floorplan_np**: Number of parallel floorplan jobs to launch.
-    * **place_np**: Number of parallel placement jobs to launch.
-    * **cts_np**: Number of parallel clock tree synthesis jobs to launch.
-    * **route_np**: Number of parallel routing jobs to launch.
+    Args:
+        syn_np (int): Number of parallel synthesis jobs to launch.
+        floorplan_np (int): Number of parallel floorplan jobs to launch.
+        place_np (int): Number of parallel placement jobs to launch.
+        cts_np (int): Number of parallel clock tree synthesis jobs to launch.
+        route_np (int): Number of parallel routing jobs to launch.
     '''
+
     def __init__(self, name: str = 'asicflow',
                  syn_np: int = 1,
                  floorplan_np: int = 1,
                  place_np: int = 1,
                  cts_np: int = 1,
                  route_np: int = 1):
-        """
-        Initializes the ASICFlow with configurable parallel execution.
+        """Initializes the ASICFlow with configurable parallel execution.
 
         Args:
             name (str): The name of the flow.
@@ -166,29 +169,88 @@ class ASICFlow(FlowgraphSchema):
 
     @classmethod
     def make_docs(cls):
-        return ASICFlow(syn_np=3, floorplan_np=3, place_np=3, cts_np=3, route_np=3)
+        '''Creates an instance of the flow for documentation generation.
+
+        This method is intended to be used by documentation generation tools to
+        create a representative instance of the flow, typically with parallel
+        execution features enabled to demonstrate the flow's capabilities.
+
+        Returns:
+            An instance of the ASICFlow class.
+        '''
+        return cls(syn_np=3, floorplan_np=3, place_np=3, cts_np=3, route_np=3)
+
+
+class SV2VASICFlow(ASICFlow):
+    '''A SystemVerilog-to-Verilog extension of the ASICFlow.
+
+    This flow is intended for designs written in SystemVerilog that may not be
+    fully supported by downstream synthesis or APR tools. It inserts a
+    'convert' step using SV2V before the standard 'elaborate' step to ensure
+    the design is in a compatible Verilog format.
+    '''
+
+    def __init__(self, name: str = 'sv2vasicflow',
+                 syn_np: int = 1,
+                 floorplan_np: int = 1,
+                 place_np: int = 1,
+                 cts_np: int = 1,
+                 route_np: int = 1):
+        """Initializes the SV2VASICFlow.
+
+        Args:
+            name (str): The name of the flow.
+            syn_np (int): The number of parallel synthesis jobs to launch.
+            floorplan_np (int): The number of parallel floorplan jobs to launch.
+            place_np (int): The number of parallel placement jobs to launch.
+            cts_np (int): The number of parallel clock tree synthesis jobs to launch.
+            route_np (int): The number of parallel routing jobs to launch.
+        """
+        super().__init__(name,
+                         syn_np=syn_np,
+                         floorplan_np=floorplan_np,
+                         place_np=place_np,
+                         cts_np=cts_np,
+                         route_np=route_np)
+
+        self.insert_node("convert", SV2VConvertTask(), before_step="elaborate")
 
 
 class HLSASICFlow(ASICFlow):
     '''A High-Level Synthesis (HLS) extension of the ASICFlow.
 
-    This class inherits from ASICFlow and modifies it to support HLS by
-    replacing the initial 'elaborate' step with a 'convert' step, which
-    handles the conversion of HLS code to RTL.
+    This class inherits from ASICFlow and modifies it to support C-based HLS.
+    It replaces the initial 'elaborate' step with a 'convert' step, which
+    handles the conversion of HLS C code to RTL using the Bambu tool.
     '''
-    def __init__(self):
+
+    def __init__(self, name: str = 'hlsasicflow',
+                 syn_np: int = 1,
+                 floorplan_np: int = 1,
+                 place_np: int = 1,
+                 cts_np: int = 1,
+                 route_np: int = 1):
+        """Initializes the HLSASICFlow.
+
+        Args:
+            name (str): The name of the flow.
+            syn_np (int): The number of parallel synthesis jobs to launch.
+            floorplan_np (int): The number of parallel floorplan jobs to launch.
+            place_np (int): The number of parallel placement jobs to launch.
+            cts_np (int): The number of parallel clock tree synthesis jobs to launch.
+            route_np (int): The number of parallel routing jobs to launch.
         """
-        Initializes the HLSASICFlow.
-        """
-        super().__init__("hlsasicflow")
+        super().__init__(name,
+                         syn_np=syn_np,
+                         floorplan_np=floorplan_np,
+                         place_np=place_np,
+                         cts_np=cts_np,
+                         route_np=route_np)
 
         self.remove_node("elaborate")
         self.node("convert", ConvertTask())
-        self.edge("convert", "synthesis")
-
-    @classmethod
-    def make_docs(cls):
-        return cls()
+        for n in range(syn_np):
+            self.edge("convert", "synthesis", head_index=n)
 
 
 class VHDLASICFlow(ASICFlow):
@@ -196,27 +258,80 @@ class VHDLASICFlow(ASICFlow):
 
     This class extends the standard ASICFlow to support VHDL input by
     replacing the initial Verilog-focused 'elaborate' step with a 'convert'
-    step that uses GHDL to analyze and elaborate the VHDL design before
-    synthesis.
+    step. This new step uses GHDL to analyze and elaborate the VHDL design
+    before synthesis.
     '''
-    def __init__(self):
+
+    def __init__(self, name: str = 'vhdlasicflow',
+                 syn_np: int = 1,
+                 floorplan_np: int = 1,
+                 place_np: int = 1,
+                 cts_np: int = 1,
+                 route_np: int = 1):
         '''Initializes the VHDL ASIC flow.
 
-        This method sets up the flow graph by:
+        This method sets up the flow graph for VHDL designs by:
 
         1. Removing the default 'elaborate' node.
         2. Adding a 'convert' node that runs the GHDLConvertTask.
-        3. Connecting the new 'convert' node to the 'synthesis' node.
+        3. Connecting the new 'convert' node to the 'synthesis' node(s).
+
+        Args:
+            name (str): The name of the flow.
+            syn_np (int): The number of parallel synthesis jobs to launch.
+            floorplan_np (int): The number of parallel floorplan jobs to launch.
+            place_np (int): The number of parallel placement jobs to launch.
+            cts_np (int): The number of parallel clock tree synthesis jobs to launch.
+            route_np (int): The number of parallel routing jobs to launch.
         '''
-        super().__init__("vhdlasicflow")
+        super().__init__(name,
+                         syn_np=syn_np,
+                         floorplan_np=floorplan_np,
+                         place_np=place_np,
+                         cts_np=cts_np,
+                         route_np=route_np)
 
         self.remove_node("elaborate")
         self.node("convert", GHDLConvertTask())
-        self.edge("convert", "synthesis")
+        for n in range(syn_np):
+            self.edge("convert", "synthesis", head_index=n)
 
-    @classmethod
-    def make_docs(cls):
-        return cls()
+
+class ChiselASICFlow(ASICFlow):
+    '''A Chisel-based ASIC synthesis flow.
+
+    This class extends the standard ASICFlow to support designs written in
+    the Chisel hardware construction language. It replaces the Verilog-focused
+    'elaborate' step with a 'convert' step that uses the Chisel compiler to
+    generate Verilog from the Chisel source before synthesis.
+    '''
+
+    def __init__(self, name: str = 'chiselasicflow',
+                 syn_np: int = 1,
+                 floorplan_np: int = 1,
+                 place_np: int = 1,
+                 cts_np: int = 1,
+                 route_np: int = 1):
+        """Initializes the ChiselASICFlow.
+
+        Args:
+            name (str): The name of the flow.
+            syn_np (int): The number of parallel synthesis jobs to launch.
+            floorplan_np (int): The number of parallel floorplan jobs to launch.
+            place_np (int): The number of parallel placement jobs to launch.
+            cts_np (int): The number of parallel clock tree synthesis jobs to launch.
+            route_np (int): The number of parallel routing jobs to launch.
+        """
+        super().__init__(name,
+                         syn_np=syn_np,
+                         floorplan_np=floorplan_np,
+                         place_np=place_np,
+                         cts_np=cts_np,
+                         route_np=route_np)
+        self.remove_node("elaborate")
+        self.node("convert", ChiselConvertTask())
+        for n in range(syn_np):
+            self.edge("convert", "synthesis", head_index=n)
 
 
 ##################################################
