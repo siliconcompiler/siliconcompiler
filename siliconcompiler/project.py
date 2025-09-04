@@ -338,6 +338,11 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         # Restore dependencies
         self.__populate_deps()
 
+        # Preserve logger in history
+        for history in self.getkeys("history"):
+            hist = self.get("history", history, field="schema")
+            hist.__logger = self.__logger
+
         return ret
 
     def load_target(self, target: Union[str, Callable[["Project"], None]], **kwargs):
@@ -898,6 +903,9 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         job = self.get("option", "jobname")
         proj = self.copy()
 
+        # Preserve logger
+        proj.__logger = self.__logger
+
         # Remove history from proj
         EditableSchema(proj).insert("history", BaseSchema(), clobber=True)
 
@@ -1361,7 +1369,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
 
         return None
 
-    def snapshot(self, path: str = None, display: bool = True) -> None:
+    def snapshot(self, path: str = None, jobname: str = None, display: bool = True) -> None:
         '''
         Creates a snapshot image summarizing the job's progress and key information.
 
@@ -1373,6 +1381,8 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             path (str, optional): The file path where the snapshot image should be saved.
                                   If not provided, it defaults to
                                   `<job_directory>/<design_name>.png`.
+            jobname (str, optional): If provided prints uses this job to print summary,
+                                   otherwise the value in :keypath:`option,jobname` will be used.
             display (bool, optional): If True, the generated image will be opened for viewing
                                       if the system supports it and `option,nodisplay` is False.
                                       Defaults to True.
@@ -1383,13 +1393,27 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         '''
         from siliconcompiler.report import generate_summary_image, _open_summary_image
 
+        histories = self.getkeys("history")
+
+        if not histories:
+            raise ValueError("no history to snapshot")
+
+        if jobname is None:
+            jobname = self.get("option", "jobname")
+        if jobname not in histories:
+            org_job = jobname
+            jobname = histories[0]
+            self.logger.warning(f"{org_job} not found in history, picking {jobname}")
+
+        history = self.history(jobname)
+
         if not path:
-            path = os.path.join(self.getworkdir(), f'{self.design.name}.png')
+            path = os.path.join(history.getworkdir(), f'{history.design.name}.png')
 
         if os.path.exists(path):
             os.remove(path)
 
-        generate_summary_image(self, path, self._snapshot_info())
+        generate_summary_image(history, path, history._snapshot_info())
 
         if os.path.isfile(path) and not self.get('option', 'nodisplay') and display:
             _open_summary_image(path)

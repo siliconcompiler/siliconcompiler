@@ -5,7 +5,7 @@ import os.path
 
 from unittest.mock import patch
 
-from siliconcompiler import ASICProject, ASICTaskSchema, ToolLibrarySchema, Project, \
+from siliconcompiler import ASICProject, ASICTaskSchema, ToolLibrarySchema, \
     DesignSchema, FlowgraphSchema
 
 from siliconcompiler.asic import CellArea
@@ -22,7 +22,7 @@ from siliconcompiler.scheduler import SchedulerNode
 
 @pytest.fixture
 def running_project():
-    class TestProject(Project):
+    class TestProject(ASICProject):
         def __init__(self):
             super().__init__()
 
@@ -473,8 +473,6 @@ def test_cell_area():
 
 def test_asic_mainlib_not_set(running_node):
     project = running_node.project
-    EditableSchema(project).insert("asic", "pdk", Parameter("str"))
-    EditableSchema(project).insert("asic", "mainlib", Parameter("str"))
     project.set("asic", "pdk", "testpdk")
 
     with ASICTaskSchema().runtime(running_node) as runtool:
@@ -484,8 +482,6 @@ def test_asic_mainlib_not_set(running_node):
 
 def test_asic_mainlib_not_loaded(running_node):
     project = running_node.project
-    EditableSchema(project).insert("asic", "pdk", Parameter("str"))
-    EditableSchema(project).insert("asic", "mainlib", Parameter("str"))
     project.set("asic", "pdk", "testpdk")
     project.set("asic", "mainlib", "testlib")
 
@@ -496,8 +492,6 @@ def test_asic_mainlib_not_loaded(running_node):
 
 def test_asic_mainlib(running_node):
     project = running_node.project
-    EditableSchema(project).insert("asic", "pdk", Parameter("str"))
-    EditableSchema(project).insert("asic", "mainlib", Parameter("str"))
     project.set("asic", "pdk", "testpdk")
     project.set("asic", "mainlib", "testlib")
     lib = BaseSchema()
@@ -509,8 +503,6 @@ def test_asic_mainlib(running_node):
 
 def test_asic_pdk_not_set(running_node):
     project = running_node.project
-    EditableSchema(project).insert("asic", "pdk", Parameter("str"))
-    EditableSchema(project).insert("asic", "mainlib", Parameter("str"))
     project.set("asic", "mainlib", "testlib")
     lib = BaseSchema()
     EditableSchema(project).insert("library", "testlib", lib)
@@ -524,8 +516,6 @@ def test_asic_pdk_not_set(running_node):
 
 def test_asic_pdk_not_loaded(running_node):
     project = running_node.project
-    EditableSchema(project).insert("asic", "pdk", Parameter("str"))
-    EditableSchema(project).insert("asic", "mainlib", Parameter("str"))
     project.set("asic", "pdk", "testpdk")
     project.set("asic", "mainlib", "testlib")
     lib = BaseSchema()
@@ -540,8 +530,6 @@ def test_asic_pdk_not_loaded(running_node):
 
 def test_asic_pdk(running_node):
     project = running_node.project
-    EditableSchema(project).insert("asic", "pdk", Parameter("str"))
-    EditableSchema(project).insert("asic", "mainlib", Parameter("str"))
     project.set("asic", "pdk", "testpdk")
     project.set("asic", "mainlib", "testlib")
     lib = BaseSchema()
@@ -557,8 +545,6 @@ def test_asic_pdk(running_node):
 
 def test_asic_set_asic_var_from_lib(running_node):
     project = running_node.project
-    EditableSchema(project).insert("asic", "pdk", Parameter("str"))
-    EditableSchema(project).insert("asic", "mainlib", Parameter("str"))
     project.set("asic", "pdk", "testpdk")
     project.set("asic", "mainlib", "testlib")
     lib = ToolLibrarySchema()
@@ -589,8 +575,6 @@ def test_asic_set_asic_var_from_lib(running_node):
 
 def test_asic_set_asic_var_from_pdk(running_node):
     project = running_node.project
-    EditableSchema(project).insert("asic", "pdk", Parameter("str"))
-    EditableSchema(project).insert("asic", "mainlib", Parameter("str"))
     project.set("asic", "pdk", "testpdk")
     project.set("asic", "mainlib", "testlib")
     lib = ToolLibrarySchema()
@@ -620,8 +604,6 @@ def test_asic_set_asic_var_from_pdk(running_node):
 
 def test_asic_set_asic_var_from_defvalue(running_node):
     project = running_node.project
-    EditableSchema(project).insert("asic", "pdk", Parameter("str"))
-    EditableSchema(project).insert("asic", "mainlib", Parameter("str"))
     project.set("asic", "pdk", "testpdk")
     project.set("asic", "mainlib", "testlib")
     lib = ToolLibrarySchema()
@@ -648,8 +630,6 @@ def test_asic_set_asic_var_from_defvalue(running_node):
 
 def test_asic_set_asic_var_no_value(running_node):
     project = running_node.project
-    EditableSchema(project).insert("asic", "pdk", Parameter("str"))
-    EditableSchema(project).insert("asic", "mainlib", Parameter("str"))
     project.set("asic", "pdk", "testpdk")
     project.set("asic", "mainlib", "testlib")
     lib = ToolLibrarySchema()
@@ -676,8 +656,6 @@ def test_asic_set_asic_var_no_value(running_node):
 
 def test_asic_set_asic_var_require_set(running_node):
     project = running_node.project
-    EditableSchema(project).insert("asic", "pdk", Parameter("str"))
-    EditableSchema(project).insert("asic", "mainlib", Parameter("str"))
     project.set("asic", "pdk", "testpdk")
     project.set("asic", "mainlib", "testlib")
     lib = ToolLibrarySchema()
@@ -707,8 +685,6 @@ def test_asic_set_asic_var_require_set(running_node):
 
 def test_asic_set_asic_var_skip_main(running_node):
     project = running_node.project
-    EditableSchema(project).insert("asic", "pdk", Parameter("str"))
-    EditableSchema(project).insert("asic", "mainlib", Parameter("str"))
     project.set("asic", "pdk", "testpdk")
     project.set("asic", "mainlib", "testlib")
     lib = ToolLibrarySchema()
@@ -739,8 +715,6 @@ def test_asic_set_asic_var_skip_main(running_node):
 
 def test_asic_set_asic_var_skip_pdk(running_node):
     project = running_node.project
-    EditableSchema(project).insert("asic", "pdk", Parameter("str"))
-    EditableSchema(project).insert("asic", "mainlib", Parameter("str"))
     project.set("asic", "pdk", "testpdk")
     project.set("asic", "mainlib", "testlib")
     lib = ToolLibrarySchema()
@@ -768,8 +742,6 @@ def test_asic_set_asic_var_skip_pdk(running_node):
 
 def test_asic_set_asic_var_dontoverwrite(running_node):
     project = running_node.project
-    EditableSchema(project).insert("asic", "pdk", Parameter("str"))
-    EditableSchema(project).insert("asic", "mainlib", Parameter("str"))
     project.set("asic", "pdk", "testpdk")
     project.set("asic", "mainlib", "testlib")
     lib = ToolLibrarySchema()
@@ -797,8 +769,6 @@ def test_asic_set_asic_var_dontoverwrite(running_node):
 
 def test_asic_set_asic_var_custom_keys(running_node):
     project = running_node.project
-    EditableSchema(project).insert("asic", "pdk", Parameter("str"))
-    EditableSchema(project).insert("asic", "mainlib", Parameter("str"))
     project.set("asic", "pdk", "testpdk")
     project.set("asic", "mainlib", "testlib")
     lib = ToolLibrarySchema()
@@ -830,8 +800,6 @@ def test_asic_set_asic_var_custom_keys(running_node):
 
 def test_asic_set_asic_var_skip_main_notdefined(running_node):
     project = running_node.project
-    EditableSchema(project).insert("asic", "pdk", Parameter("str"))
-    EditableSchema(project).insert("asic", "mainlib", Parameter("str"))
     project.set("asic", "pdk", "testpdk")
     project.set("asic", "mainlib", "testlib")
     lib = ToolLibrarySchema()
@@ -859,8 +827,6 @@ def test_asic_set_asic_var_skip_main_notdefined(running_node):
 
 def test_asic_set_asic_var_from_pdk_as_list(running_node):
     project = running_node.project
-    EditableSchema(project).insert("asic", "pdk", Parameter("str"))
-    EditableSchema(project).insert("asic", "mainlib", Parameter("str"))
     project.set("asic", "pdk", "testpdk")
     project.set("asic", "mainlib", "testlib")
     lib = ToolLibrarySchema()
@@ -925,3 +891,50 @@ def test_get_clock_none(running_project, running_node):
 
     assert name is None
     assert sdc_period is None
+
+
+def test_snapshot_info_empty():
+    proj = ASICProject(DesignSchema("testdesign"))
+
+    assert proj._snapshot_info() == [
+        ("Design", "testdesign")
+    ]
+
+
+def test_snapshot_info_pdk():
+    proj = ASICProject(DesignSchema("testdesign"))
+    proj.set("asic", "pdk", "testpdk")
+
+    assert proj._snapshot_info() == [
+        ("Design", "testdesign"),
+        ("PDK", "testpdk")
+    ]
+
+
+def test_snapshot_info_metrics(running_project):
+    running_project.set("asic", "pdk", "testpdk")
+    running_project.set("metric", "totalarea", 10, step="running", index="0")
+    running_project.set("metric", "fmax", 5, step="running", index="0")
+    running_project.set("metric", "totalarea", 20, step="notrunning", index="0")
+    running_project.set("metric", "fmax", 30, step="notrunning", index="0")
+
+    assert running_project._snapshot_info() == [
+        ("Design", "testdesign"),
+        ("PDK", "testpdk"),
+        ("Area", "20.000um^2"),
+        ("Fmax", "30.000Hz")
+    ]
+
+
+def test_snapshot_info_metrics_mixed_nodes(running_project):
+    running_project.set("asic", "pdk", "testpdk")
+    running_project.set("metric", "totalarea", 10, step="running", index="0")
+    running_project.set("metric", "fmax", 5, step="running", index="0")
+    running_project.set("metric", "totalarea", 20, step="notrunning", index="0")
+
+    assert running_project._snapshot_info() == [
+        ("Design", "testdesign"),
+        ("PDK", "testpdk"),
+        ("Area", "20.000um^2"),
+        ("Fmax", "5.000Hz")
+    ]

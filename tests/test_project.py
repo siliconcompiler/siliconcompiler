@@ -1484,6 +1484,14 @@ def test_find_result():
         getworkdir.assert_called_once_with("thisstep", "0")
 
 
+def test_snapshot_info():
+    proj = Project(DesignSchema("testdesign"))
+
+    assert proj._snapshot_info() == [
+        ("Design", "testdesign")
+    ]
+
+
 def test_snapshot(caplog):
     image = Image.new('RGB', (1024, 1024))
     image.save("test.png")
@@ -1492,6 +1500,7 @@ def test_snapshot(caplog):
     setattr(proj, "_Project__logger", logging.getLogger())
     proj.logger.setLevel(logging.INFO)
     proj.set("option", "design", "testdesign")
+    proj._record_history()
 
     assert not os.path.isfile("testing.png")
 
@@ -1507,6 +1516,25 @@ def test_snapshot(caplog):
     assert "Generated summary image at " in caplog.text
 
 
+def test_snapshot_no_jobs():
+    with pytest.raises(ValueError, match="no history to snapshot"):
+        Project().snapshot()
+
+
+def test_snapshot_select_job():
+    proj = Project(DesignSchema("testdesign"))
+    proj.set("option", "jobname", "thisjob")
+    proj._record_history()
+    proj.set("option", "jobname", "thatjob")
+    proj._record_history()
+
+    with patch("siliconcompiler.Project.history") as history:
+        history.return_value = proj
+        proj.snapshot()
+
+        history.assert_called_once_with("thatjob")
+
+
 def test_snapshot_default_path(caplog):
     image = Image.new('RGB', (1024, 1024))
     image.save("test.png")
@@ -1515,6 +1543,7 @@ def test_snapshot_default_path(caplog):
     setattr(proj, "_Project__logger", logging.getLogger())
     proj.logger.setLevel(logging.INFO)
     proj.set("option", "design", "testdesign")
+    proj._record_history()
 
     os.makedirs(proj.getworkdir(), exist_ok=True)
     path = os.path.join(proj.getworkdir(), "testdesign.png")
@@ -1541,6 +1570,7 @@ def test_snapshot_display_false(caplog):
     setattr(proj, "_Project__logger", logging.getLogger())
     proj.logger.setLevel(logging.INFO)
     proj.set("option", "design", "testdesign")
+    proj._record_history()
 
     assert not os.path.isfile("testing.png")
 
@@ -1565,6 +1595,7 @@ def test_snapshot_nodisplay(caplog):
     proj.logger.setLevel(logging.INFO)
     proj.set("option", "design", "testdesign")
     proj.set("option", "nodisplay", True)
+    proj._record_history()
 
     assert not os.path.isfile("testing.png")
 
