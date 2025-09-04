@@ -57,7 +57,8 @@ if { [sc_cfg_tool_task_check_in_list hold var reports] } {
 if { [sc_cfg_tool_task_check_in_list unconstrained var reports] } {
     puts "$PREFIX unconstrained"
     tee -file reports/timing/unconstrained.rpt \
-        "report_checks -fields $fields -unconstrained -format full_clock_expanded"
+        "report_checks -fields $fields -unconstrained -format full_clock_expanded \
+        -path_group unconstrained"
     tee -file reports/timing/unconstrained.topN.rpt -quiet \
         "report_checks -fields $fields -unconstrained -group_count $sta_top_n_paths"
 }
@@ -205,8 +206,8 @@ foreach markerdb [[ord::get_db_block] getMarkerCategories] {
         continue
     }
 
-    $markerdb writeTR "reports/markers/${sc_design}.[$markerdb getName].rpt"
-    $markerdb writeJSON "reports/markers/${sc_design}.[$markerdb getName].json"
+    $markerdb writeTR "reports/markers/${sc_topmodule}.[$markerdb getName].rpt"
+    $markerdb writeJSON "reports/markers/${sc_topmodule}.[$markerdb getName].json"
 }
 
 utl::push_metrics_stage "sc__cellarea__{}"

@@ -1,212 +1,352 @@
-import os
+import importlib
+import inspect
+import subprocess
+
+import os.path
+
 from docutils import nodes
-from sphinx.util.nodes import nested_parse_with_titles
-from docutils.statemachine import ViewList
 from sphinx.util.docutils import SphinxDirective
+from sphinx.domains.std import StandardDomain
+from sphinx.addnodes import pending_xref
+from docutils.parsers.rst import directives
 
-import siliconcompiler
-from siliconcompiler import Schema
-from siliconcompiler.schema import utils, PerNode
-from siliconcompiler.schema.docs.utils import (
-    strong,
-    code,
-    para,
-    keypath,
-    build_table,
-    build_section_with_target,
-    build_list
-)
-from siliconcompiler.schema.docs import sc_root as SC_ROOT
+from siliconcompiler.schema import utils, BaseSchema, Parameter, NamedSchema, EditableSchema
+from siliconcompiler.schema.docschema import DocsSchema
+from siliconcompiler.schema.docs.utils import parse_rst, link, para, \
+    literalblock, build_section_with_target, keypath, build_section
+from siliconcompiler.utils import get_plugins
 
 
-# Main Sphinx plugin
 class SchemaGen(SphinxDirective):
 
+    option_spec = {
+        'root': str,
+        'add_class': directives.flag,
+        'add_methods': directives.flag,
+        'reference_class': str,
+        'ref_root': str
+    }
+
     def run(self):
-        self.env.note_dependency(
-            os.path.join(SC_ROOT, 'siliconcompiler', 'schema', 'schema_cfg.py'))
+        root = self.options['root']
+
+        print(f'Generating docs for {root}...')
+
+        module, cls = root.split("/")
+        schema_cls = getattr(importlib.import_module(module), cls)
+
+        assert issubclass(schema_cls, BaseSchema)
+
+        # Mark dependencies
+        self.env.note_dependency(inspect.getfile(Parameter))
+        for mro_cls in schema_cls.mro():
+            try:
+                self.env.note_dependency(inspect.getfile(mro_cls))
+            except TypeError:
+                pass
         self.env.note_dependency(__file__)
         self.env.note_dependency(utils.__file__)
 
-        self.schema = Schema()
-
-        return self.process_schema([])
-
-    def process_parameter(self, parameter):
-        entries = [[strong('Description'), para(parameter.get(field='shorthelp'))],
-                   [strong('Type'), para(parameter.get(field='type'))]]
-
-        if parameter.get(field='pernode') != PerNode.NEVER:
-            entries.append([strong('Per step/index'),
-                            para(str(parameter.get(field='pernode').value).lower())])
-
-        entries.append([strong('Scope'), para(str(parameter.get(field='scope').value).lower())])
-
-        if parameter.get(field='unit'):
-            entries.append([strong('Unit'), para(parameter.get(field='unit'))])
-
-        switch_list = [code(switch) for switch in parameter.get(field='switch')]
-        entries.extend([[strong('Default Value'), para(parameter.default.get())],
-                        [strong('CLI Switch'), build_list(switch_list)]])
-
-        examples = {}
-        for example in parameter.get(field='example'):
-            name, ex = example.split(':', 1)
-            examples.setdefault(name, []).append(ex)
-
-        for name, exs in examples.items():
-            examples = [code(ex.strip()) for ex in exs]
-            p = None
-            for ex in examples:
-                if not p:
-                    p = para("")
-                else:
-                    p += para("")
-                p += ex
-            entries.append([strong(f'Example ({name.upper()})'), p])
-
-        table = build_table(entries, colwidths=[25, 75])
-        body = self.parse_rst(utils.trim(parameter.get(field='help')))
-
-        return [table, body]
-
-    def process_schema(self, keypath):
-        if self.schema.valid(*keypath, default_valid=True, check_complete=True):
-            return self.process_parameter(self.schema.get(*keypath, field=None))
-
-        sections = []
-        if self.schema.valid(*keypath, "default"):
-            for n in self.process_schema(keypath + ["default"]):
-                sections.append(n)
-        for key in self.schema.getkeys(*keypath):
-            if not keypath and key in ('history', 'library'):
-                continue
-            section_key = 'param-' + '-'.join(
-                [key for key in (keypath + [key]) if key != "default"])
-            section = build_section_with_target(key, section_key, self.state.document)
-            for n in self.process_schema(keypath + [key]):
-                section += n
-            sections.append(section)
-
-        # Sort all sections alphabetically by title. We may also have nodes
-        # in this list that aren't sections if  `schema` has a 'default'
-        # entry that's a leaf. In this case, we sort this as an empty string
-        # in order to put this node at the beginning of the list.
-        return sorted(sections, key=lambda s: s[0][0] if isinstance(s, nodes.section) else '')
-
-    def parse_rst(self, content):
-        rst = ViewList()
-        # use fake filename 'inline' for error # reporting
-        for i, line in enumerate(content.split('\n')):
-            rst.append(line, 'inline', i)
-        body = nodes.paragraph()
-        nested_parse_with_titles(self.state, rst, body)
-
-        return body
-
-
-class CategorySummary(SphinxDirective):
-
-    option_spec = {'category': str}
-
-    def run(self):
-        self.env.note_dependency(__file__)
-        category = self.options['category']
-
-        # List of documentation objects to return.
-        new_doc = []
-        section = nodes.section(ids=[nodes.make_id(f'{category}_summary')])
-
-        chip = siliconcompiler.Chip('<design>')
-
-        table = [[strong('parameter'), strong('description')]]
-
-        # Descend through defaults until we find the real items
-        prefix = [category]
-        while 'default' in chip.getdict(*prefix).keys():
-            prefix.append('default')
-
-        for item in chip.getkeys(*prefix):
-            key = para('')
-            key += keypath([*prefix, item], self.env.docname)
-            if 'shorthelp' in chip.getkeys(*prefix, item):
-                shorthelp = chip.get(*prefix, item, field='shorthelp')
-                table.append([key, para(shorthelp)])
+        if issubclass(schema_cls, DocsSchema):
+            doc_schema = schema_cls.make_docs()
+            if not isinstance(doc_schema, list):
+                schemas = [doc_schema]
             else:
-                table.append([key, para("Contains sub-tree of parameters. See Schema.")])
-        section += build_table(table)
-        new_doc += section
+                schemas = doc_schema
+        else:
+            schemas = [schema_cls()]
 
-        return new_doc
+        ref_root = self.options.get("ref_root", f"schema-{module}.{cls}")
+
+        secs = []
+        for n, schema in enumerate(schemas):
+            name = None
+            if isinstance(schema, NamedSchema):
+                name = schema.name
+            if not name:
+                name = cls
+            if len(schemas) > 1:
+                name = f"{name} / {n}"
+                schema_sec_ref = f"{ref_root}-{n}"
+            else:
+                schema_sec_ref = ref_root
+            schema_sec = build_section_with_target(name, schema_sec_ref,
+                                                   self.state.document)
+
+            # Add docstrings
+            docstring = None
+            for mro_cls in schema_cls.mro():
+                docstring = inspect.getdoc(schema_cls)
+                if docstring:
+                    break
+
+            if docstring:
+                parse_rst(self.state, docstring, schema_sec)
+
+            if self.options.get("add_class", False):
+                # Add reference to class docs
+                cls_ref = nodes.inline('')
+                parse_rst(self.state, f'Class: :class:`{cls}<{module}.{cls}>`', cls_ref)
+                schema_sec += cls_ref
+
+            src_link = None
+            src_file = inspect.getfile(schema_cls)
+            for docs_link in get_plugins("docs", name="linkcode"):
+                src_link = docs_link(file=src_file)
+                if src_link:
+                    break
+
+            if src_link:
+                p = para('File: ')
+                p += link(src_link, text=os.path.basename(src_file))
+                schema_sec += p
+
+            if self.options.get("add_methods", False):
+                reference_class = self.options.get("reference_class", None)
+                methods = [name for name, _ in inspect.getmembers(schema_cls, inspect.isfunction)
+                           if not name.startswith('_')]
+                if reference_class:
+                    ref_module, ref_cls = reference_class.split("/")
+                    ref_cls = getattr(importlib.import_module(ref_module), ref_cls)
+                else:
+                    if issubclass(schema_cls, NamedSchema):
+                        ref_cls = NamedSchema
+                    else:
+                        ref_cls = BaseSchema
+
+                ref_methods = [name for name, _ in inspect.getmembers(ref_cls, inspect.isfunction)
+                               if not name.startswith('_')]
+
+                doc_methods = set(methods).difference(ref_methods)
+
+                if doc_methods:
+                    methods_sec = build_section("Methods", f"{schema_sec_ref}-methods")
+                    for method in sorted(doc_methods):
+                        cls_ref = nodes.inline('')
+                        parse_rst(self.state, f".. automethod:: {module}.{cls}.{method}", cls_ref)
+                        methods_sec += cls_ref
+                    schema_sec += methods_sec
+
+            section = schema._generate_doc(self, ref_root=schema_sec_ref)
+            if section:
+                if isinstance(section, list):
+                    for subsec in section:
+                        if not subsec:
+                            continue
+                        schema_sec += subsec
+                else:
+                    schema_sec += section
+            secs.append(schema_sec)
+
+        return secs
 
 
-class CategoryGroupTable(SphinxDirective):
+class ToolGen(SchemaGen):
+    from typing import List
+
+    option_spec = {
+        **SchemaGen.option_spec,
+        'tasks': str
+    }
 
     def run(self):
+        root = self.options["root"]
+        self.options["add_class"] = True
+        self.options["add_methods"] = True
+        self.options["reference_class"] = "siliconcompiler/TaskSchema"
+
+        print(f'Generating docs for tool {root}...')
+
+        tool_mod = importlib.import_module(root)
+        tool_name = root.split(".")[-1]
+        sec = build_section_with_target(tool_name, f"tool-{tool_name}", self.state.document)
+
+        # Add docstrings
+        docstring = inspect.getdoc(tool_mod)
+        if docstring:
+            parse_rst(self.state, docstring, sec)
+
+        src_link = None
+        src_file = inspect.getfile(tool_mod)
+        for docs_link in get_plugins("docs", name="linkcode"):
+            src_link = docs_link(file=src_file)
+            if src_link:
+                break
+
+        if src_link:
+            p = para('File: ')
+            p += link(src_link, text=os.path.basename(src_file))
+            sec += p
+
+        if "tasks" not in self.options:
+            return [sec]
+
+        for task in self.options["tasks"].split():
+            if "/" in task:
+                self.options["root"] = f"{root}.{task}"
+            else:
+                self.options["root"] = f"{root}/{task}"
+            sec += super().run()
+        return [sec]
+
+
+class TargetGen(SchemaGen):
+
+    option_spec = {
+        'root': str,
+        'name': str
+    }
+
+    def run(self):
+        from siliconcompiler import Project
+
+        root = self.options["root"]
+        method = root.split(".")[-1]
+        root = ".".join(root.split(".")[0:-1])
+
+        print(f'Generating docs for target {root} -> {method}...')
+        module = importlib.import_module(root)
+        target = getattr(module, method)
+
+        self.env.note_dependency(inspect.getfile(target))
         self.env.note_dependency(__file__)
+        self.env.note_dependency(utils.__file__)
 
-        desc = {
-            "option": "Compilation options",
-            "tool": "Individual tool settings",
-            "flowgraph": "Execution flow definition",
-            "pdk": "PDK related settings",
-            "asic": "ASIC related settings",
-            "fpga": "FPGA related settings",
-            "checklist": "Checklist related settings",
-            "constraint": "Design constraint settings",
-            "metric": "Metric tracking",
-            "record": "Compilation history tracking",
-            "package": "Packaging manifest",
-            "datasheet": "Design interface specifications",
-            "schematic": "Schematic specifications",
+        func_spec = inspect.getfullargspec(target)
+        required_type = func_spec.annotations.get(func_spec.args[0], Project)
 
-            # Nothing to document
-            "library": "",
-            "history": "",
-            "input": "",
-            "output": "",
-            "schemaversion": "",
-            "design": "",
-            "arg": "",
-        }
+        proj: Project = required_type()
+        proj.load_target(target)
 
-        self.schema = Schema()
+        name = self.options.get("name", self.options["root"])
 
-        # Check if all groups have desc
-        for group in self.schema.getkeys():
-            if group not in desc:
-                raise ValueError(f"{group} not found in group descriptions")
+        target_doc = build_section_with_target(name, f"target-{root}-{method}", self.state.document)
 
-        # Check if all groups have schema
-        for group in desc.keys():
-            if group not in self.schema.getkeys():
-                raise ValueError(f"{group} not found in schema")
+        # Add docstrings
+        docstring = inspect.getdoc(target)
+        if not docstring:
+            docstring = inspect.getdoc(module)
 
-        table = [[strong('Group'), strong('Parameters'), strong('Description')]]
+        if docstring:
+            parse_rst(self.state, docstring, target_doc)
 
-        total = 0
-        for group in self.schema.getkeys():
-            text = desc[group]
-            if len(text) == 0:
-                continue
+        src_link = None
+        src_file = inspect.getfile(target)
+        for docs_link in get_plugins("docs", name="linkcode"):
+            src_link = docs_link(file=src_file)
+            if src_link:
+                break
 
-            key = para('')
-            key += keypath([group], self.env.docname)
+        if src_link:
+            p = para('File: ')
+            p += link(src_link, text=os.path.basename(src_file))
+            target_doc += p
 
-            count = len(self.schema.allkeys(group, include_default=True))
-            total += count
+        loaded = {}
+        for lib in proj.getkeys("library"):
+            lib_obj = proj.get("library", lib, field="schema")
+            loaded.setdefault(lib_obj._getdict_type(), set()).add(lib_obj)
 
-            table.append([key, para(f'{count}'), para(text)])
+        for key in sorted(loaded.keys()):
+            sec = build_section(key, f"target-{root}-{method}-lib-{key}")
+            modlist = nodes.bullet_list()
+            for library in sorted([lib_obj.name for lib_obj in loaded[key]]):
+                list_item = nodes.list_item()
+                list_item += para(library)
+                modlist += list_item
+            sec += modlist
+            target_doc += sec
 
-        table.append([strong('Total'), para(f'{total}'), para('')])
+        EditableSchema(proj).remove("library")
+        EditableSchema(proj).remove("flowgraph")
+        EditableSchema(proj).remove("tool")
 
-        return build_table(table)
+        params = BaseSchema._generate_doc(proj, self, f"target-{root}-{method}-config",
+                                          detailed=False)
+        if params:
+            cfg_sec = build_section("Configuration", f"target-{root}-{method}-config")
+            cfg_sec += params
+            target_doc += cfg_sec
+
+        return [target_doc]
+
+
+class AppGen(SphinxDirective):
+
+    option_spec = {
+        'app': str
+    }
+
+    def run(self):
+        app = self.options['app']
+
+        output = subprocess.check_output([app, '--help']).decode('utf-8')
+
+        section = build_section_with_target(app, f"app-{app}", self.state.document)
+        section += literalblock(output)
+
+        return [section]
+
+
+class SCDomain(StandardDomain):
+    name = 'sc'
+
+    # Override in StandardDomain so xref is literal instead of inline
+    # https://github.com/sphinx-doc/sphinx/blob/ba080286b06cb9e0cadec59a6cf1f96aa11aef5a/sphinx/domains/std.py#L789
+    def build_reference_node(self,
+                             fromdocname,
+                             builder,
+                             docname,
+                             labelid,
+                             sectname,
+                             rolename,
+                             **options):
+        nodeclass = options.pop('nodeclass', nodes.reference)
+        newnode = nodeclass('', '', internal=True, **options)
+        innernode = nodes.literal(sectname, sectname)
+        if innernode.get('classes') is not None:
+            innernode['classes'].append('std')
+            innernode['classes'].append('std-' + rolename)
+        if docname == fromdocname:
+            newnode['refid'] = labelid
+        else:
+            # set more info in contnode; in case the
+            # get_relative_uri call raises NoUri,
+            # the builder will then have to resolve these
+            contnode = pending_xref('')
+            contnode['refdocname'] = docname
+            contnode['refsectname'] = sectname
+            newnode['refuri'] = builder.get_relative_uri(
+                fromdocname, docname)
+            if labelid:
+                newnode['refuri'] += '#' + labelid
+        newnode.append(innernode)
+        return newnode
+
+
+def keypath_role(name, rawtext, text, lineno, inliner, options=None, content=None):
+    doc = inliner.document
+    env = doc.settings.env
+
+    # Split and clean up keypath
+    keys = [key.strip() for key in text.split(',')]
+    try:
+        return [keypath(keys, env.docname)], []
+    except ValueError as e:
+        msg = inliner.reporter.error(f'{rawtext}: {e}', line=lineno)
+        prb = inliner.problematic(rawtext, rawtext, msg)
+        return [prb], [msg]
 
 
 def setup(app):
-    app.add_directive('schemagen', SchemaGen)
-    app.add_directive('schema_category_summary', CategorySummary)
-    app.add_directive('schema_group_summary', CategoryGroupTable)
+    app.add_domain(SCDomain)
+
+    app.add_directive('schema', SchemaGen)
+    app.add_directive('scapp', AppGen)
+    app.add_directive('sctool', ToolGen)
+    app.add_directive('sctarget', TargetGen)
+
+    app.add_role('keypath', keypath_role)
 
     return {
         'version': '0.1',

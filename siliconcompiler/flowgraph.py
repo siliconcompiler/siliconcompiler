@@ -1,14 +1,17 @@
-import inspect
+import graphviz
 import importlib
+import inspect
 
-from siliconcompiler.schema import BaseSchema, NamedSchema
+import os.path
+
+from siliconcompiler.schema import BaseSchema, NamedSchema, DocsSchema
 from siliconcompiler.schema import EditableSchema, Parameter, Scope
 from siliconcompiler.schema.utils import trim
 
 from siliconcompiler import NodeStatus
 
 
-class FlowgraphSchema(NamedSchema):
+class FlowgraphSchema(NamedSchema, DocsSchema):
     '''
     Schema for defining and interacting with a flowgraph.
 
@@ -77,6 +80,7 @@ class FlowgraphSchema(NamedSchema):
             # Creates a node for the 'place' task in the 'openroad' tool,
             # identified by step='place' and index=0.
         '''
+        from siliconcompiler.tool import TaskSchema
 
         if step in (Parameter.GLOBAL_KEY, 'default', 'sc_collected_files'):
             raise ValueError(f"{step} is a reserved name")
@@ -92,24 +96,22 @@ class FlowgraphSchema(NamedSchema):
 
         # Determine task name and module
         task_module = None
+        if inspect.isclass(task) and issubclass(task, TaskSchema):
+            task = task()
+
         if isinstance(task, str):
             task_module = task
-        elif inspect.ismodule(task):
-            task_module = task.__name__
+            task_cls = self.__get_task_module(task_module)
+            task = task_cls()
+        elif isinstance(task, TaskSchema):
+            task_module = task.__class__.__module__ + "/" + task.__class__.__name__
         else:
             raise ValueError(f"{task} is not a string or module and cannot be used to "
                              "setup a task.")
 
-        task_parts = task_module.split('.')
-        if len(task_parts) < 2:
-            raise ValueError(f"{task} is not a valid task, it must be associated with "
-                             "a tool '<tool>.<task>'.")
-
-        tool_name, task_name = task_parts[-2:]
-
         # bind tool to node
-        self.set(step, index, 'tool', tool_name)
-        self.set(step, index, 'task', task_name)
+        self.set(step, index, 'tool', task.tool())
+        self.set(step, index, 'task', task.task())
         self.set(step, index, 'taskmodule', task_module)
 
         self.__clear_cache()
@@ -563,7 +565,13 @@ class FlowgraphSchema(NamedSchema):
         if name in self.__cache_tasks:
             return self.__cache_tasks[name]
 
-        self.__cache_tasks[name] = importlib.import_module(name)
+        try:
+            module_name, cls = name.split("/")
+        except (ValueError, AttributeError):
+            raise ValueError(f"task is not correctly formatted as <module>/<class>: {name}")
+        module = importlib.import_module(module_name)
+
+        self.__cache_tasks[name] = getattr(module, cls)
         return self.__cache_tasks[name]
 
     def get_task_module(self, step, index):
@@ -604,6 +612,258 @@ class FlowgraphSchema(NamedSchema):
         """
 
         return FlowgraphSchema.__name__
+
+    def __get_graph_information(self):
+        # Setup nodes
+        node_exec_order = self.get_execution_order()
+
+        node_rank = {}
+        for rank, rank_nodes in enumerate(node_exec_order):
+            for step, index in rank_nodes:
+                node_rank[f'{step}/{index}'] = rank
+
+        all_graph_inputs = set()
+
+        exit_nodes = [f'{step}/{index}' for step, index in self.get_exit_nodes()]
+
+        nodes = {}
+        edges = []
+
+        def clean_label(label):
+            return label.replace("<", "").replace(">", "")
+
+        def clean_text(label):
+            return label.replace("<", r"\<").replace(">", r"\>")
+
+        all_nodes = [(step, index) for step, index in sorted(self.get_nodes())]
+
+        runtime_flow = RuntimeFlowgraph(self)
+
+        for step, index in all_nodes:
+            tool = self.get(step, index, "tool")
+            task = self.get(step, index, "task")
+
+            inputs = []
+            outputs = []
+
+            node = f'{step}/{index}'
+
+            nodes[node] = {
+                "node": (step, index),
+                "file_inputs": inputs,
+                "inputs": {clean_text(f): f'input-{clean_label(f)}' for f in sorted(inputs)},
+                "outputs": {clean_text(f): f'output-{clean_label(f)}' for f in sorted(outputs)},
+                "task": f'{tool}/{task}' if tool != 'builtin' else task,
+                "is_input": node_rank[node] == 0,
+                "rank": node_rank[node]
+            }
+            nodes[node]["width"] = max(len(nodes[node]["inputs"]), len(nodes[node]["outputs"]))
+
+            if tool is None or task is None:
+                nodes[node]["task"] = None
+
+            rank_diff = {}
+            for in_step, in_index in runtime_flow.get_node_inputs(step, index):
+                in_node_name = f'{in_step}/{in_index}'
+                rank_diff[in_node_name] = node_rank[node] - node_rank[in_node_name]
+            nodes[node]["rank_diff"] = rank_diff
+
+        for step, index in all_nodes:
+            node = f'{step}/{index}'
+            all_inputs = []
+            for in_step, in_index in self.get(step, index, 'input'):
+                all_inputs.append(f'{in_step}/{in_index}')
+            for item in all_inputs:
+                edges.append((item, node, 1 if node in exit_nodes else 2))
+
+        return all_graph_inputs, nodes, edges
+
+    def write_flowgraph(self, filename,
+                        fillcolor='#ffffff', fontcolor='#000000',
+                        background='transparent', fontsize='14',
+                        border=True, landscape=False):
+        r'''
+        Renders and saves the compilation flowgraph to a file.
+
+        The chip object flowgraph is traversed to create a graphviz (\*.dot)
+        file comprised of node, edges, and labels. The dot file is a
+        graphical representation of the flowgraph useful for validating the
+        correctness of the execution flow graph. The dot file is then
+        converted to the appropriate picture or drawing format based on the
+        filename suffix provided. Supported output render formats include
+        png, svg, gif, pdf and a few others. For more information about the
+        graphviz project, see see https://graphviz.org/
+
+        Args:
+            filename (filepath): Output filepath
+            fillcolor(str): Node fill RGB color hex value
+            fontcolor (str): Node font RGB color hex value
+            background (str): Background color
+            fontsize (str): Node text font size
+            border (bool): Enables node border if True
+            landscape (bool): Renders graph in landscape layout if True
+
+        Examples:
+            >>> chip.write_flowgraph('mydump.png')
+            Renders the object flowgraph and writes the result to a png file.
+        '''
+
+        filepath = os.path.abspath(filename)
+        fileroot, ext = os.path.splitext(filepath)
+        fileformat = ext.replace(".", "")
+
+        # controlling border width
+        if border:
+            penwidth = '1'
+        else:
+            penwidth = '0'
+
+        # controlling graph direction
+        if landscape:
+            rankdir = 'LR'
+            out_label_suffix = ':e'
+            in_label_suffix = ':w'
+        else:
+            rankdir = 'TB'
+            out_label_suffix = ':s'
+            in_label_suffix = ':n'
+
+        all_graph_inputs, nodes, edges = self.__get_graph_information()
+
+        out_label_suffix = ''
+        in_label_suffix = ''
+
+        dot = graphviz.Digraph(format=fileformat)
+        dot.graph_attr['rankdir'] = rankdir
+        dot.attr(bgcolor=background)
+
+        subgraphs = {
+            "graphs": {},
+            "nodes": []
+        }
+        for node, info in nodes.items():
+            subgraph_temp = subgraphs
+
+            for key in node.split(".")[0:-1]:
+                if key not in subgraph_temp["graphs"]:
+                    subgraph_temp["graphs"][key] = {
+                        "graphs": {},
+                        "nodes": []
+                    }
+                subgraph_temp = subgraph_temp["graphs"][key]
+
+            if info['is_input']:
+                if "sc-inputs" not in subgraph_temp["graphs"]:
+                    subgraph_temp["graphs"]["sc-inputs"] = {
+                        "graphs": {},
+                        "nodes": []
+                    }
+                subgraph_temp = subgraph_temp["graphs"]["sc-inputs"]
+
+            subgraph_temp["nodes"].append(node)
+
+        with dot.subgraph(name='inputs') as input_graph:
+            input_graph.graph_attr['cluster'] = 'true'
+            input_graph.graph_attr['color'] = background
+
+            # add inputs
+            for graph_input in sorted(all_graph_inputs):
+                input_graph.node(
+                    graph_input, label=graph_input, bordercolor=fontcolor, style='filled',
+                    fontcolor=fontcolor, fontsize=fontsize, ordering="in",
+                    penwidth=penwidth, fillcolor=fillcolor, shape="box")
+
+        def make_node(graph, node, prefix):
+            info = nodes[node]
+
+            shape = "oval"
+            task_label = f"\\n ({info['task']})" if info['task'] is not None else ""
+            labelname = f"{node.replace(prefix, '')}{task_label}"
+
+            graph.node(node, label=labelname, bordercolor=fontcolor, style='filled',
+                       fontcolor=fontcolor, fontsize=fontsize, ordering="in",
+                       penwidth=penwidth, fillcolor=fillcolor, shape=shape)
+
+        graph_idx = 0
+
+        def get_node_count(graph_info):
+            nodes = len(graph_info["nodes"])
+
+            for subgraph in graph_info["graphs"]:
+                nodes += get_node_count(graph_info["graphs"][subgraph])
+
+            return nodes
+
+        def build_graph(graph_info, parent, prefix):
+            nonlocal graph_idx
+
+            for subgraph in graph_info["graphs"]:
+                child_prefix = prefix
+                if get_node_count(graph_info["graphs"][subgraph]) > 1:
+                    if subgraph != "sc-inputs":
+                        child_prefix = f"{child_prefix}{subgraph}."
+                    graph = graphviz.Digraph(name=f"cluster_{graph_idx}")
+                    graph_idx += 1
+
+                    graph.graph_attr['rankdir'] = rankdir
+                    graph.attr(bgcolor=background)
+
+                    if subgraph == "sc-inputs":
+                        graph.attr(style='invis')
+                    else:
+                        graph.attr(color=fontcolor)
+                        graph.attr(style='rounded')
+                        graph.attr(shape='oval')
+                        graph.attr(label=subgraph)
+                        graph.attr(labeljust='l')
+                        graph.attr(fontcolor=fontcolor)
+                        graph.attr(fontsize=str(int(fontsize) + 2))
+                else:
+                    graph = parent
+
+                build_graph(graph_info["graphs"][subgraph], graph, child_prefix)
+
+                if graph is not parent:
+                    parent.subgraph(graph)
+
+            for subnode in graph_info["nodes"]:
+                make_node(parent, subnode, prefix)
+
+        build_graph(subgraphs, dot, "")
+
+        for edge0, edge1, weight in edges:
+            dot.edge(f'{edge0}{out_label_suffix}', f'{edge1}{in_label_suffix}', weight=str(weight))
+
+        dot.render(filename=fileroot, cleanup=True)
+
+    def _generate_doc(self, doc, ref_root, detailed=True):
+        from .schema.docs.utils import image, build_section
+
+        docs = []
+        image_path_root = os.path.join(doc.env.app.outdir, f"_images/gen/flows/{self.name}.svg")
+        image_path = image_path_root
+        idx = 0
+        while os.path.exists(image_path):
+            base, ext = os.path.splitext(image_path_root)
+            image_path = f"{base}-{idx}{ext}"
+            idx += 1
+        os.makedirs(os.path.dirname(image_path), exist_ok=True)
+        self.write_flowgraph(image_path)
+        docs.append(image(image_path, center=True))
+
+        config = build_section("Nodes", f"{ref_root}-flow-{self.name}-nodes")
+        for nodes in self.get_execution_order():
+            for step, index in nodes:
+                sec = build_section(f"{step}/{index}",
+                                    f"{ref_root}-flow-{self.name}-nodes-{step}-{index}")
+                sec += BaseSchema._generate_doc(self.get(step, index, field="schema"),
+                                                doc,
+                                                ref_root=ref_root,
+                                                detailed=False)
+                config += sec
+        docs.append(config)
+
+        return docs
 
 
 class RuntimeFlowgraph:

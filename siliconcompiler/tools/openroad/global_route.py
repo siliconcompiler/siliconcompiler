@@ -1,63 +1,44 @@
-from siliconcompiler.tools._common import get_tool_task
-from siliconcompiler.tools.openroad._apr import setup as apr_setup
-from siliconcompiler.tools.openroad._apr import set_reports, set_pnr_inputs, set_pnr_outputs
-from siliconcompiler.tools.openroad._apr import \
-    define_ord_params, define_sta_params, define_sdc_params, \
-    define_grt_params, define_drt_params
-from siliconcompiler.tools.openroad._apr import build_pex_corners, define_ord_files
-from siliconcompiler.tools.openroad._apr import extract_metrics
+from siliconcompiler.tools.openroad._apr import APRTask
+from siliconcompiler.tools.openroad._apr import OpenROADSTAParameter, OpenROADGRTParameter, \
+    OpenROADDRTPinAccessParameter
 
 
-def setup(chip):
+class GlobalRouteTask(APRTask, OpenROADSTAParameter, OpenROADGRTParameter,
+                      OpenROADDRTPinAccessParameter):
     '''
     Perform global routing
     '''
+    def __init__(self):
+        super().__init__()
 
-    # Generic apr tool setup.
-    apr_setup(chip)
+        self.add_parameter("grt_use_pin_access", "bool",
+                           "true/false, when true perform pin access before global routing",
+                           defvalue=False)
 
-    # Task setup
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    tool, task = get_tool_task(chip, step, index)
+    def task(self):
+        return "global_route"
 
-    chip.set('tool', tool, 'task', task, 'script', 'apr/sc_global_route.tcl',
-             step=step, index=index)
+    def setup(self):
+        super().setup()
 
-    # Setup task IO
-    set_pnr_inputs(chip)
-    set_pnr_outputs(chip)
+        self.set_script("apr/sc_global_route.tcl")
 
-    # set default values for openroad
-    define_ord_params(chip)
-    define_sta_params(chip)
-    define_sdc_params(chip)
-    define_grt_params(chip, load_all=True)
-    define_drt_params(chip)
+        self._set_reports([
+            'setup',
+            'hold',
+            'unconstrained',
+            'clock_skew',
+            'power',
+            'drv_violations',
+            'fmax',
 
-    set_reports(chip, [
-        'setup',
-        'hold',
-        'unconstrained',
-        'clock_skew',
-        'power',
-        'drv_violations',
-        'fmax',
+            # Images
+            'placement_density',
+            'routing_congestion',
+            'power_density',
+            'optimization_placement',
+            'clock_placement',
+            'clock_trees'
+        ])
 
-        # Images
-        'placement_density',
-        'routing_congestion',
-        'power_density',
-        'optimization_placement',
-        'clock_placement',
-        'clock_trees'
-    ])
-
-
-def pre_process(chip):
-    define_ord_files(chip)
-    build_pex_corners(chip)
-
-
-def post_process(chip):
-    extract_metrics(chip)
+        self.add_required_tool_key("var", "grt_use_pin_access")

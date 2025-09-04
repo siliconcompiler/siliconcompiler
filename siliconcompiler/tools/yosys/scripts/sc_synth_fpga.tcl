@@ -6,25 +6,11 @@ source ./sc_manifest.tcl
 
 yosys echo on
 
-###############################
-# Schema Adapter
-###############################
-
-set sc_tool yosys
-set sc_step [sc_cfg_get arg step]
-set sc_index [sc_cfg_get arg index]
-set sc_flow [sc_cfg_get option flow]
-set sc_task [sc_cfg_get flowgraph $sc_flow $sc_step $sc_index task]
-set sc_refdir [sc_cfg_tool_task_get refdir]
-
 ####################
 # DESIGNER's CHOICE
 ####################
 
-set sc_design [sc_top]
-set sc_flow [sc_cfg_get option flow]
 set sc_optmode [sc_cfg_get option optmode]
-set sc_pdk [sc_cfg_get option pdk]
 
 ########################################################
 # Helper function
@@ -39,108 +25,88 @@ source "$sc_refdir/procs.tcl"
 # TODO: the original OpenFPGA synth script used read_verilog with -nolatches. Is
 # that a flag we might want here?
 
-set input_verilog "inputs/$sc_design.v"
-if { [file exists $input_verilog] } {
-    if { [lindex [sc_cfg_tool_task_get var use_slang] 0] == "true" && [sc_load_plugin slang] } {
-        # This needs some reordering of loaded to ensure blackboxes are handled
-        # before this
-        set slang_params []
-        if { [sc_cfg_exists option param] } {
-            dict for {key value} [sc_cfg_get option param] {
-                if { ![string is integer $value] } {
-                    set value [concat \"$value\"]
-                }
+set input_verilog "inputs/$sc_topmodule.v"
+if { ![file exists $input_verilog] } {
+    set input_verilog "inputs/$sc_topmodule.sv"
+}
 
-                lappend slang_params -G "${key}=${value}"
-            }
+if { [sc_cfg_tool_task_get var use_slang] && [sc_load_plugin slang] } {
+    # This needs some reordering of loaded to ensure blackboxes are handled
+    # before this
+    set slang_params []
+    set fileset [lindex [sc_cfg_get option fileset] 0]
+    if { [sc_cfg_exists library $sc_designlib fileset $fileset param] } {
+        dict for {key value} [sc_cfg_get library $sc_designlib fileset $fileset param] {
+            lappend slang_params -G "${key}=${value}"
         }
-        yosys read_slang \
-            -D SYNTHESIS \
-            --keep-hierarchy \
-            --ignore-assertions \
-            --allow-use-before-declare \
-            --top $sc_design \
-            {*}$slang_params \
-            $input_verilog
-        yosys setattr -unset init
-    } else {
-        # Use -noblackbox to correctly interpret empty modules as empty,
-        # actual black boxes are read in later
-        # https://github.com/YosysHQ/yosys/issues/1468
-        yosys read_verilog -noblackbox -sv $input_verilog
-
-        ########################################################
-        # Override top level parameters
-        ########################################################
-
-        sc_apply_params
     }
-}
-
-set sc_partname [sc_cfg_get fpga partname]
-set build_dir [sc_cfg_get option builddir]
-set job_name [sc_cfg_get option jobname]
-set step [sc_cfg_get arg step]
-set index [sc_cfg_get arg index]
-
-set sc_syn_lut_size \
-    [sc_cfg_get fpga $sc_partname lutsize]
-
-if { [sc_cfg_exists fpga $sc_partname var feature_set] } {
-    set sc_syn_feature_set \
-        [sc_cfg_get fpga $sc_partname var feature_set]
+    yosys read_slang \
+        -D SYNTHESIS \
+        --keep-hierarchy \
+        --ignore-assertions \
+        --allow-use-before-declare \
+        --top $sc_topmodule \
+        {*}$slang_params \
+        $input_verilog
+    yosys setattr -unset init
 } else {
-    set sc_syn_feature_set [list]
+    # Use -noblackbox to correctly interpret empty modules as empty,
+    # actual black boxes are read in later
+    # https://github.com/YosysHQ/yosys/issues/1468
+    yosys read_verilog -noblackbox -sv $input_verilog
+
+    ########################################################
+    # Override top level parameters
+    ########################################################
+
+    sc_apply_params
 }
 
-if { [sc_cfg_exists fpga $sc_partname var yosys_dsp_options] } {
-    yosys log "Process Yosys DSP techmap options."
-    set sc_syn_dsp_options \
-        [sc_cfg_get fpga $sc_partname var yosys_dsp_options]
-    yosys log "Yosys DSP techmap options = $sc_syn_dsp_options"
-} else {
-    set sc_syn_dsp_options [list]
-}
+set sc_designlib [sc_cfg_get fpga device]
+set sc_partname [sc_cfg_get library $sc_designlib fpga partname]
+
+set sc_syn_lut_size [sc_cfg_get library $sc_designlib fpga lutsize]
 
 # TODO: add logic that remaps yosys built in name based on part number
 
 # Run this first to handle module instantiations in generate blocks -- see
 # comment in syn_asic.tcl for longer explanation.
-yosys hierarchy -top $sc_design
+yosys hierarchy -top $sc_topmodule
 
 if { [string match {ice*} $sc_partname] } {
-    yosys synth_ice40 -top $sc_design -json "${sc_design}.netlist.json"
+    yosys synth_ice40 -top $sc_topmodule
 } elseif {
-    [sc_cfg_exists fpga $sc_partname file yosys_fpga_config] &&
-    [llength [sc_cfg_get fpga $sc_partname file yosys_fpga_config]] != 0 &&
+    [sc_cfg_exists library $sc_designlib tool yosys fpga_config] &&
+    [sc_cfg_get library $sc_designlib tool yosys fpga_config] != {} &&
     [sc_load_plugin yosys-syn]
 } {
     set synth_fpga_args []
-    if { [lindex [sc_cfg_tool_task_get var synth_fpga_opt_mode] 0] != "none" } {
+    if { [sc_cfg_tool_task_get var synth_opt_mode] != "none" } {
         lappend synth_fpga_args \
-            -opt [lindex [sc_cfg_tool_task_get var synth_fpga_opt_mode] 0]
+            -opt [lindex [sc_cfg_tool_task_get var synth_opt_mode] 0]
     }
-    if { [lindex [sc_cfg_tool_task_get var synth_fpga_insert_buffers] 0] == "true" } {
+    if { [sc_cfg_tool_task_get var synth_insert_buffers] } {
         lappend synth_fpga_args -insbuf
     }
 
     yosys synth_fpga \
-        -config [lindex [sc_cfg_get fpga $sc_partname file yosys_fpga_config] 0] \
+        -config [sc_cfg_get library $sc_designlib tool yosys fpga_config] \
         -show_config \
-        -top $sc_design \
+        -top $sc_topmodule \
         {*}$synth_fpga_args
 } else {
+    set sc_syn_feature_set [sc_cfg_get library $sc_designlib tool yosys feature_set]
+
+    yosys log "Process Yosys DSP techmap options."
+    set sc_syn_dsp_options [sc_cfg_get library $sc_designlib tool yosys dsp_options]
+    yosys log "Yosys DSP techmap options = $sc_syn_dsp_options"
+
     # Pre-processing step:  if DSPs instance are hard-coded into
     # the user's design, we can use a blackbox flow for DSP mapping
     # as follows:
 
-    if { [sc_cfg_exists fpga $sc_partname file yosys_macrolib] } {
-        set sc_syn_macrolibs \
-            [sc_cfg_get fpga $sc_partname file yosys_macrolib]
-
-        foreach macrolib $sc_syn_macrolibs {
-            yosys read_verilog -lib $macrolib
-        }
+    foreach macrolib [sc_cfg_get library $sc_designlib tool yosys macrolib] {
+        yosys read_verilog -lib $macrolib
     }
 
     # Match VPR reference flow's hierarchy check, including their comments
@@ -159,14 +125,9 @@ if { [string match {ice*} $sc_partname] } {
     # An extract pass needs to happen prior to other optimizations,
     # otherwise yosys can transform its internal model into something
     # that doesn't match the patterns defined in the extract library
-    if { [sc_cfg_exists fpga $sc_partname file yosys_extractlib] } {
-        set sc_syn_extractlibs \
-            [sc_cfg_get fpga $sc_partname file yosys_extractlib]
-
-        foreach extractlib $sc_syn_extractlibs {
-            yosys log "Run extract with $extractlib"
-            yosys extract -map $extractlib
-        }
+    foreach extractlib [sc_cfg_get library $sc_designlib tool yosys extractlib] {
+        yosys log "Run extract with $extractlib"
+        yosys extract -map $extractlib
     }
 
     # Other hard macro passes can happen after the generic optimization
@@ -194,14 +155,13 @@ if { [string match {ice*} $sc_partname] } {
     #so that we don't convert any math blocks
     #into other primitives
 
-    if { [sc_cfg_exists fpga $sc_partname file yosys_dsp_techmap] } {
+    if { [sc_cfg_get library $sc_designlib tool yosys dsp_techmap] != {} } {
         set sc_syn_dsp_library \
-            [sc_cfg_get fpga $sc_partname file yosys_dsp_techmap]
+            [sc_cfg_get library $sc_designlib tool yosys dsp_techmap]
 
         yosys log "Run techmap flow for DSP Blocks"
-        set formatted_dsp_options [sc_fpga_get_dsp_options $sc_syn_dsp_options]
         yosys techmap -map +/mul2dsp.v -map $sc_syn_dsp_library \
-            {*}$formatted_dsp_options
+            {*}[sc_fpga_get_dsp_options $sc_syn_dsp_options]
 
         post_techmap
     }
@@ -215,17 +175,9 @@ if { [string match {ice*} $sc_partname] } {
 
     yosys techmap -map +/techmap.v
 
-    set sc_syn_memory_libmap ""
-    if { [sc_cfg_exists fpga $sc_partname file yosys_memory_libmap] } {
-        set sc_syn_memory_libmap \
-            [sc_cfg_get fpga $sc_partname file yosys_memory_libmap]
-    }
+    set sc_syn_memory_libmap [sc_cfg_get library $sc_designlib tool yosys memory_libmap]
     set sc_do_rom_map [expr { [lsearch -exact $sc_syn_feature_set mem_init] < 0 }]
-    set sc_syn_memory_library ""
-    if { [sc_cfg_exists fpga $sc_partname file yosys_memory_techmap] } {
-        set sc_syn_memory_library \
-            [sc_cfg_get fpga $sc_partname file yosys_memory_techmap]
-    }
+    set sc_syn_memory_library [sc_cfg_get library $sc_designlib tool yosys memory_techmap]
 
     if { [sc_map_memory $sc_syn_memory_libmap $sc_syn_memory_library $sc_do_rom_map] } {
         post_techmap
@@ -239,9 +191,8 @@ if { [string match {ice*} $sc_partname] } {
 
     sc_fpga_legalize_flops $sc_syn_feature_set
 
-    if { [sc_cfg_exists fpga $sc_partname file yosys_flop_techmap] } {
-        set sc_syn_flop_library \
-            [sc_cfg_get fpga $sc_partname file yosys_flop_techmap]
+    set sc_syn_flop_library [sc_cfg_get library $sc_designlib tool yosys flop_techmap]
+    if { $sc_syn_flop_library != {} } {
         yosys techmap -map $sc_syn_flop_library
 
         post_techmap
@@ -258,12 +209,12 @@ if { [string match {ice*} $sc_partname] } {
 }
 
 yosys echo off
-yosys tee -o ./reports/stat.json stat -json -top $sc_design
+yosys tee -o ./reports/stat.json stat -json -top $sc_topmodule
 yosys echo on
 
 ########################################################
 # Write Netlist
 ########################################################
-yosys write_verilog -noexpr -nohex -nodec "outputs/${sc_design}.vg"
-yosys write_json "outputs/${sc_design}.netlist.json"
-yosys write_blif "outputs/${sc_design}.blif"
+yosys write_verilog -noexpr -nohex -nodec "outputs/${sc_topmodule}.vg"
+yosys write_json "outputs/${sc_topmodule}.netlist.json"
+yosys write_blif "outputs/${sc_topmodule}.blif"

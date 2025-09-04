@@ -1,0 +1,789 @@
+library (TechFlops) {
+
+    delay_model             		: table_lookup;
+    time_unit               		: "1ns";
+    slew_lower_threshold_pct_fall 	: 20.00 ;
+    slew_lower_threshold_pct_rise 	: 20.00 ;
+    slew_upper_threshold_pct_fall 	: 80.00 ;
+    slew_upper_threshold_pct_rise 	: 80.00 ;
+    input_threshold_pct_fall      	: 50.00 ;
+    input_threshold_pct_rise      	: 50.00 ;
+    output_threshold_pct_fall     	: 50.00 ;
+    output_threshold_pct_rise     	: 50.00 ;
+
+    cell (dff) {
+        ff (IQ, IQN) {
+            next_state: "D";
+            clocked_on: "clk";
+        }
+
+        pin (D) {
+            direction: input;
+            
+            timing() {
+                related_pin: "clk";
+                timing_type: hold_rising;
+
+                fall_constraint(scalar) {
+                    values("0.0");
+                }
+                rise_constraint(scalar) {
+                    values("0.0");
+                }
+            }
+
+            timing() {
+                related_pin: "clk";
+                timing_type: setup_rising;
+
+                fall_constraint(scalar) {
+                    values("0.0");
+                }
+                rise_constraint(scalar) {
+                    values("0.0");
+                }
+            }
+        }
+
+        pin (clk) {
+            direction: input;
+            clock: true;
+
+            timing() {
+                related_pin: "clk";
+                timing_type: min_pulse_width;
+
+                fall_constraint(scalar) {
+                    values("0.0");
+                }
+                rise_constraint(scalar) {
+                    values("0.0");
+                }
+            }
+        }
+
+        pin (Q) {
+            direction: output;
+            function: "IQ";
+            
+            timing() {
+                related_pin: "clk";
+                timing_type: rising_edge;
+                timing_sense: non_unate;
+
+                cell_fall(scalar) {
+                    values("0.0");
+                }
+                cell_rise(scalar) {
+                    values("0.0");
+                }
+                fall_transition(scalar) {
+                    values("0.0");
+                }
+                rise_transition(scalar) {
+                    values("0.0");
+                }
+            }
+        }
+
+        pin (QN) {
+            direction: output;
+            function: "IQN";
+
+            timing() {
+                related_pin: "clk";
+                timing_type: rising_edge;
+                timing_sense: non_unate;
+
+                cell_fall(scalar) {
+                    values("0.0");
+                }
+                cell_rise(scalar) {
+                    values("0.0");
+                }
+                fall_transition(scalar) {
+                    values("0.0");
+                }
+                rise_transition(scalar) {
+                    values("0.0");
+                }
+            }
+        }
+    }
+
+    cell (dffr) {
+        ff (IQ, IQN) {
+            next_state: "D";
+            clocked_on: "clk";
+            clear: "!R";
+        }
+
+        pin (D) {
+            direction: input;
+            
+            timing() {
+                related_pin: "clk";
+                timing_type: hold_rising;
+                when: "R";
+                sdf_cond: "R === 1'b1";
+
+                fall_constraint(scalar) {
+                    values("0.0");
+                }
+                rise_constraint(scalar) {
+                    values("0.0");
+                }
+            }
+
+            timing() {
+                related_pin: "clk";
+                timing_type: setup_rising;
+                when: "R";
+                sdf_cond: "R === 1'b1";
+
+                fall_constraint(scalar) {
+                    values("0.0");
+                }
+                rise_constraint(scalar) {
+                    values("0.0");
+                }
+            }
+        }
+
+        pin (R) {
+            direction: input;
+
+            timing() {
+                related_pin: "clk";
+                timing_type: recovery_rising;
+
+                rise_constraint(scalar) {
+                    values("0.0");
+                }
+            }
+
+            timing() {
+                related_pin: "clk";
+                timing_type: removal_rising;
+
+                rise_constraint(scalar) {
+                    values("0.0");
+                }
+            }
+
+            timing() {
+                related_pin: "R";
+                timing_type: min_pulse_width;
+
+                fall_constraint(scalar) {
+                    values("0.0");
+                }
+            }
+        }
+
+        pin (clk) {
+            direction: input;
+            clock: true;
+
+            timing() {
+                related_pin: "clk";
+                timing_type: min_pulse_width;
+                when: "R";
+                sdf_cond: "R === 1'b1";
+
+                fall_constraint(scalar) {
+                    values("0.0");
+                }
+                rise_constraint(scalar) {
+                    values("0.0");
+                }
+            }
+        }
+
+        pin (Q) {
+            direction: output;
+            function: "IQ";
+            
+            timing() {
+                related_pin: "clk";
+                timing_type: rising_edge;
+                timing_sense: non_unate;
+
+                cell_fall(scalar) {
+                    values("0.0");
+                }
+                cell_rise(scalar) {
+                    values("0.0");
+                }
+                fall_transition(scalar) {
+                    values("0.0");
+                }
+                rise_transition(scalar) {
+                    values("0.0");
+                }
+            }
+
+            timing() {
+                related_pin: "R";
+                timing_type: clear;
+                when: "!clk & !D";
+                sdf_cond: "(clk == 1'b0) && (D == 1'b0)";
+                timing_sense: positive_unate;
+
+                cell_fall(scalar) {
+                    values("0.0");
+                }
+                fall_transition(scalar) {
+                    values("0.0");
+                }
+            }
+
+            timing() {
+                related_pin: "R";
+                timing_type: clear;
+                when: "!clk & D";
+                sdf_cond: "(clk == 1'b0) && (D == 1'b1)";
+                timing_sense: positive_unate;
+
+                cell_fall(scalar) {
+                    values("0.0");
+                }
+                fall_transition(scalar) {
+                    values("0.0");
+                }
+            }
+
+            timing() {
+                related_pin: "R";
+                timing_type: clear;
+                when: "clk & !D";
+                sdf_cond: "(clk == 1'b1) && (D == 1'b0)";
+                timing_sense: positive_unate;
+
+                cell_fall(scalar) {
+                    values("0.0");
+                }
+                fall_transition(scalar) {
+                    values("0.0");
+                }
+            }
+
+            timing() {
+                related_pin: "R";
+                timing_type: clear;
+                when: "clk & D";
+                sdf_cond: "(clk == 1'b1) && (D == 1'b1)";
+                timing_sense: positive_unate;
+
+                cell_fall(scalar) {
+                    values("0.0");
+                }
+                fall_transition(scalar) {
+                    values("0.0");
+                }
+            }
+        }
+
+        pin (QN) {
+            direction: output;
+            function: "IQN";
+
+            timing() {
+                related_pin: "clk";
+                timing_type: rising_edge;
+                timing_sense: non_unate;
+
+                cell_fall(scalar) {
+                    values("0.0");
+                }
+                cell_rise(scalar) {
+                    values("0.0");
+                }
+                fall_transition(scalar) {
+                    values("0.0");
+                }
+                rise_transition(scalar) {
+                    values("0.0");
+                }
+            }
+
+            timing() {
+                related_pin: "R";
+                timing_type: preset;
+                when: "!clk & !D";
+                sdf_cond: "(clk == 1'b0) && (D == 1'b0)";
+                timing_sense: negative_unate;
+
+                cell_rise(scalar) {
+                    values("0.0");
+                }
+                rise_transition(scalar) {
+                    values("0.0");
+                }
+            }
+
+            timing() {
+                related_pin: "R";
+                timing_type: preset;
+                when: "!clk & D";
+                sdf_cond: "(clk == 1'b0) && (D == 1'b1)";
+                timing_sense: negative_unate;
+
+                cell_rise(scalar) {
+                    values("0.0");
+                }
+                rise_transition(scalar) {
+                    values("0.0");
+                }
+            }
+
+            timing() {
+                related_pin: "R";
+                timing_type: preset;
+                when: "clk & !D";
+                sdf_cond: "(clk == 1'b1) && (D == 1'b0)";
+                timing_sense: negative_unate;
+
+                cell_rise(scalar) {
+                    values("0.0");
+                }
+                rise_transition(scalar) {
+                    values("0.0");
+                }
+            }
+
+            timing() {
+                related_pin: "R";
+                timing_type: preset;
+                when: "clk & D";
+                sdf_cond: "(clk == 1'b1) && (D == 1'b1)";
+                timing_sense: negative_unate;
+
+                cell_rise(scalar) {
+                    values("0.0");
+                }
+                rise_transition(scalar) {
+                    values("0.0");
+                }
+            }
+        }
+    }
+
+    cell (dffe) {
+        ff (IQ, IQN) {
+            next_state: "(E & D) | (!E & IQ)";
+            clocked_on: "clk";
+        }
+
+        pin (D) {
+            direction: input;
+            
+            timing() {
+                related_pin: "clk";
+                timing_type: hold_rising;
+
+                fall_constraint(scalar) {
+                    values("0.0");
+                }
+                rise_constraint(scalar) {
+                    values("0.0");
+                }
+            }
+
+            timing() {
+                related_pin: "clk";
+                timing_type: setup_rising;
+
+                fall_constraint(scalar) {
+                    values("0.0");
+                }
+                rise_constraint(scalar) {
+                    values("0.0");
+                }
+            }
+        }
+
+        pin (E) {
+            direction: input;
+
+            timing() {
+                related_pin: "clk";
+                timing_type: hold_rising;
+
+                fall_constraint(scalar) {
+                    values("0.0");
+                }
+                rise_constraint(scalar) {
+                    values("0.0");
+                }
+            }
+
+            timing() {
+                related_pin: "clk";
+                timing_type: setup_rising;
+
+                fall_constraint(scalar) {
+                    values("0.0");
+                }
+                rise_constraint(scalar) {
+                    values("0.0");
+                }
+            }
+        }
+
+        pin (clk) {
+            direction: input;
+            clock: true;
+
+            timing() {
+                related_pin: "clk";
+                timing_type: min_pulse_width;
+
+                fall_constraint(scalar) {
+                    values("0.0");
+                }
+                rise_constraint(scalar) {
+                    values("0.0");
+                }
+            }
+        }
+
+        pin (Q) {
+            direction: output;
+            function: "IQ";
+            
+            timing() {
+                related_pin: "clk";
+                timing_type: rising_edge;
+                timing_sense: non_unate;
+
+                cell_fall(scalar) {
+                    values("0.0");
+                }
+                cell_rise(scalar) {
+                    values("0.0");
+                }
+                fall_transition(scalar) {
+                    values("0.0");
+                }
+                rise_transition(scalar) {
+                    values("0.0");
+                }
+            }
+        }
+
+        pin (QN) {
+            direction: output;
+            function: "IQN";
+
+            timing() {
+                related_pin: "clk";
+                timing_type: rising_edge;
+                timing_sense: non_unate;
+
+                cell_fall(scalar) {
+                    values("0.0");
+                }
+                cell_rise(scalar) {
+                    values("0.0");
+                }
+                fall_transition(scalar) {
+                    values("0.0");
+                }
+                rise_transition(scalar) {
+                    values("0.0");
+                }
+            }
+        }
+    }
+
+    cell (dffer) {
+        ff (IQ, IQN) {
+            next_state: "(E & D) | (!E & IQ)";
+            clocked_on: "clk";
+            clear: "!R";
+        }
+
+        pin (D) {
+            direction: input;
+            
+            timing() {
+                related_pin: "clk";
+                timing_type: hold_rising;
+                when: "R";
+                sdf_cond: "R === 1'b1";
+
+                fall_constraint(scalar) {
+                    values("0.0");
+                }
+                rise_constraint(scalar) {
+                    values("0.0");
+                }
+            }
+
+            timing() {
+                related_pin: "clk";
+                timing_type: setup_rising;
+                when: "R";
+                sdf_cond: "R === 1'b1";
+
+                fall_constraint(scalar) {
+                    values("0.0");
+                }
+                rise_constraint(scalar) {
+                    values("0.0");
+                }
+            }
+        }
+
+        pin (E) {
+            direction: input;
+
+            timing() {
+                related_pin: "clk";
+                timing_type: hold_rising;
+                when: "R";
+                sdf_cond: "R === 1'b1";
+
+                fall_constraint(scalar) {
+                    values("0.0");
+                }
+                rise_constraint(scalar) {
+                    values("0.0");
+                }
+            }
+
+            timing() {
+                related_pin: "clk";
+                timing_type: setup_rising;
+                when: "R";
+                sdf_cond: "R === 1'b1";
+
+                fall_constraint(scalar) {
+                    values("0.0");
+                }
+                rise_constraint(scalar) {
+                    values("0.0");
+                }
+            }
+        }
+
+        pin (R) {
+            direction: input;
+
+            timing() {
+                related_pin: "clk";
+                timing_type: recovery_rising;
+
+                rise_constraint(scalar) {
+                    values("0.0");
+                }
+            }
+
+            timing() {
+                related_pin: "clk";
+                timing_type: removal_rising;
+
+                rise_constraint(scalar) {
+                    values("0.0");
+                }
+            }
+
+            timing() {
+                related_pin: "R";
+                timing_type: min_pulse_width;
+
+                fall_constraint(scalar) {
+                    values("0.0");
+                }
+            }
+        }
+
+        pin (clk) {
+            direction: input;
+            clock: true;
+
+            timing() {
+                related_pin: "clk";
+                timing_type: min_pulse_width;
+                when: "R";
+                sdf_cond: "R === 1'b1";
+
+                fall_constraint(scalar) {
+                    values("0.0");
+                }
+                rise_constraint(scalar) {
+                    values("0.0");
+                }
+            }
+        }
+
+        pin (Q) {
+            direction: output;
+            function: "IQ";
+            
+            timing() {
+                related_pin: "clk";
+                timing_type: rising_edge;
+                timing_sense: non_unate;
+
+                cell_fall(scalar) {
+                    values("0.0");
+                }
+                cell_rise(scalar) {
+                    values("0.0");
+                }
+                fall_transition(scalar) {
+                    values("0.0");
+                }
+                rise_transition(scalar) {
+                    values("0.0");
+                }
+            }
+
+            timing() {
+                related_pin: "R";
+                timing_type: clear;
+                when: "!clk & !D";
+                sdf_cond: "(clk == 1'b0) && (D == 1'b0)";
+                timing_sense: positive_unate;
+
+                cell_fall(scalar) {
+                    values("0.0");
+                }
+                fall_transition(scalar) {
+                    values("0.0");
+                }
+            }
+
+            timing() {
+                related_pin: "R";
+                timing_type: clear;
+                when: "!clk & D";
+                sdf_cond: "(clk == 1'b0) && (D == 1'b1)";
+                timing_sense: positive_unate;
+
+                cell_fall(scalar) {
+                    values("0.0");
+                }
+                fall_transition(scalar) {
+                    values("0.0");
+                }
+            }
+
+            timing() {
+                related_pin: "R";
+                timing_type: clear;
+                when: "clk & !D";
+                sdf_cond: "(clk == 1'b1) && (D == 1'b0)";
+                timing_sense: positive_unate;
+
+                cell_fall(scalar) {
+                    values("0.0");
+                }
+                fall_transition(scalar) {
+                    values("0.0");
+                }
+            }
+
+            timing() {
+                related_pin: "R";
+                timing_type: clear;
+                when: "clk & D";
+                sdf_cond: "(clk == 1'b1) && (D == 1'b1)";
+                timing_sense: positive_unate;
+
+                cell_fall(scalar) {
+                    values("0.0");
+                }
+                fall_transition(scalar) {
+                    values("0.0");
+                }
+            }
+        }
+
+        pin (QN) {
+            direction: output;
+            function: "IQN";
+
+            timing() {
+                related_pin: "clk";
+                timing_type: rising_edge;
+                timing_sense: non_unate;
+
+                cell_fall(scalar) {
+                    values("0.0");
+                }
+                cell_rise(scalar) {
+                    values("0.0");
+                }
+                fall_transition(scalar) {
+                    values("0.0");
+                }
+                rise_transition(scalar) {
+                    values("0.0");
+                }
+            }
+
+            timing() {
+                related_pin: "R";
+                timing_type: preset;
+                when: "!clk & !D";
+                sdf_cond: "(clk == 1'b0) && (D == 1'b0)";
+                timing_sense: negative_unate;
+
+                cell_rise(scalar) {
+                    values("0.0");
+                }
+                rise_transition(scalar) {
+                    values("0.0");
+                }
+            }
+
+            timing() {
+                related_pin: "R";
+                timing_type: preset;
+                when: "!clk & D";
+                sdf_cond: "(clk == 1'b0) && (D == 1'b1)";
+                timing_sense: negative_unate;
+
+                cell_rise(scalar) {
+                    values("0.0");
+                }
+                rise_transition(scalar) {
+                    values("0.0");
+                }
+            }
+
+            timing() {
+                related_pin: "R";
+                timing_type: preset;
+                when: "clk & !D";
+                sdf_cond: "(clk == 1'b1) && (D == 1'b0)";
+                timing_sense: negative_unate;
+
+                cell_rise(scalar) {
+                    values("0.0");
+                }
+                rise_transition(scalar) {
+                    values("0.0");
+                }
+            }
+
+            timing() {
+                related_pin: "R";
+                timing_type: preset;
+                when: "clk & D";
+                sdf_cond: "(clk == 1'b1) && (D == 1'b1)";
+                timing_sense: negative_unate;
+
+                cell_rise(scalar) {
+                    values("0.0");
+                }
+                rise_transition(scalar) {
+                    values("0.0");
+                }
+            }
+        }
+    }
+}

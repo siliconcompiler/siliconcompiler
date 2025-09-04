@@ -1,41 +1,69 @@
 import glob
-import os
 import stat
-from siliconcompiler.tools.execute.execute import setup as tool_setup
-from siliconcompiler.tools._common import input_provides, get_tool_task
+
+import os.path
+
+from siliconcompiler import TaskSchema
 
 
-def setup(chip):
+class ExecInputTask(TaskSchema):
     '''
     Execute the output of the previous step directly.
     This only works if the task receives a single file.
     '''
-    tool_setup(chip)
+    def __init__(self):
+        super().__init__()
 
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    tool, task = get_tool_task(chip, step, index)
+    def tool(self):
+        return "execute"
 
-    chip.set('tool', tool, 'task', task, 'input',
-             list(input_provides(chip, step, index).keys()),
-             step=step, index=index)
+    def task(self):
+        return "exec_input"
 
+    def setup(self):
+        super().setup()
 
-def pre_process(chip):
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    tool, _ = get_tool_task(chip, step, index)
+        files = list(self.get_files_from_input_nodes().keys())
+        if len(files) == 0:
+            raise ValueError("must receive one input file")
+        elif len(files) > 1:
+            raise ValueError("execute only supports one input file")
 
-    exec = None
-    for fin in glob.glob('inputs/*'):
-        if fin.endswith('.pkg.json'):
-            continue
-        exec = os.path.abspath(fin)
-        break
+        self.add_input_file(files[0])
 
-    if not exec:
-        chip.error(f'{step}/{index} did not receive an executable file')
+    def get_exe(self):
+        exec = None
+        for fin in glob.glob('inputs/*'):
+            if fin.endswith('.pkg.json'):
+                continue
+            exec = os.path.abspath(fin)
+            break
 
-    chip.set('tool', tool, 'exe', exec)
+        if not exec:
+            raise FileNotFoundError(f'{self.step}/{self.index} did not receive an executable file')
 
-    os.chmod(exec, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
+        os.chmod(exec, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
+
+        return exec
+
+    @classmethod
+    def make_docs(cls):
+        from siliconcompiler import FlowgraphSchema, DesignSchema, Project
+        from siliconcompiler.scheduler import SchedulerNode
+        from siliconcompiler.tools.builtin.nop import NOPTask
+        design = DesignSchema("<design>")
+        with design.active_fileset("docs"):
+            design.set_topmodule("top")
+        proj = Project(design)
+        proj.add_fileset("docs")
+        flow = FlowgraphSchema("docsflow")
+        flow.node("<in>", NOPTask())
+        flow.node("<step>", cls(), index="<index>")
+        flow.edge("<in>", "<step>", head_index="<index>")
+        flow.set("<step>", "<index>", "args", "errors==0")
+        proj.set_flow(flow)
+
+        proj.get_task(filter=NOPTask).add_output_file("<top>.exe", step="<in>", index="0")
+        node = SchedulerNode(proj, "<step>", "<index>")
+        node.setup()
+        return node.task

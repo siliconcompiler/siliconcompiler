@@ -106,17 +106,18 @@ module picorv32_top #(
     picorv32 rv32_soc (.*);
 
     // SRAM with always-active chip select and write control bits.
-    sky130_sram_2kbyte_1rw1r_32x512_8 sram (
-        .clk0  (clk),
-        .csb0  ('b0),
-        .web0  (!(mem_wstrb != 0)),
-        .wmask0(mem_wstrb),
-        .addr0 (mem_addr),
-        .din0  (mem_wdata),
-        .dout0 (mem_rdata),
-        .clk1  (clk),
-        .csb1  ('b1),
-        .addr1 ('b0),
-        .dout1 ()
+    la_spram #(
+        .DW(32),
+        .AW(9)
+    ) sram (
+        .clk(clk),
+        .ce(1'b1),
+        .we((mem_wstrb != 0)),
+        .wmask(mem_wstrb),
+        .addr(mem_addr),
+        .din(mem_wdata),
+        .dout(mem_rdata),
+        .ctrl(),
+        .test()
     );
 endmodule

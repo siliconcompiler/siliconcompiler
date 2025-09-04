@@ -1,3 +1,5 @@
+from siliconcompiler.schema import BaseSchema
+
 from siliconcompiler.constraints.asic_timing import \
     ASICTimingConstraintSchema, ASICTimingScenarioSchema
 from siliconcompiler.constraints.asic_floorplan import ASICAreaConstraint
@@ -6,6 +8,18 @@ from siliconcompiler.constraints.asic_pins import \
 from siliconcompiler.constraints.asic_component import \
     ASICComponentConstraint, ASICComponentConstraints
 
+from siliconcompiler.constraints.fpga_timing import \
+    FPGATimingConstraintSchema, FPGATimingScenarioSchema
+
+
+class FPGAPinConstraints(BaseSchema):
+    pass
+
+
+class FPGAComponentConstraints(BaseSchema):
+    pass
+
+
 __all__ = [
     "ASICTimingConstraintSchema",
     "ASICTimingScenarioSchema",
@@ -13,5 +27,7 @@ __all__ = [
     "ASICPinConstraint",
     "ASICPinConstraints",
     "ASICComponentConstraint",
-    "ASICComponentConstraints"
+    "ASICComponentConstraints",
+    "FPGATimingConstraintSchema",
+    "FPGATimingScenarioSchema"
 ]

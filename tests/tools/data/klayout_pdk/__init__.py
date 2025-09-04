@@ -1,35 +1,25 @@
-import os
-
-from siliconcompiler import PDK
+from siliconcompiler.tools.klayout import KLayoutPDK
 
 
-####################################################
-# PDK Setup
-####################################################
-def setup():
-    '''
-    Faux PDK
-    '''
+class FauxPDK(KLayoutPDK):
+    def __init__(self):
+        super().__init__()
+        self.set_name("faux")
 
-    pdkdir = os.path.dirname(__file__)
+        self.set_dataroot("root", __file__)
 
-    pdk = PDK('faux', package=('faux_pdk', pdkdir))
+        self.set_stackup("M5")
 
-    # process name
-    pdk.set('pdk', 'faux', 'foundry', 'virtual')
-    pdk.set('pdk', 'faux', 'node', 130)
-    pdk.set('pdk', 'faux', 'wafersize', 200)
+        self.add_klayout_drcparam("drc", "input=<input>")
+        self.add_klayout_drcparam("drc", "topcell=<topcell>")
+        self.add_klayout_drcparam("drc", "report=<report>")
+        self.add_klayout_drcparam("drc", "threads=<threads>")
 
-    stackup = 'M5'
+        with self.active_dataroot("root"):
+            with self.active_fileset("klayout.drc"):
+                self.add_file("interposer.drc", filetype="drc")
+                self.add_runsetfileset("drc", "klayout", "drc")
 
-    pdk.set('pdk', 'faux', 'stackup', stackup)
-    pdk.set('pdk', 'faux', 'drc', 'runset', 'klayout', stackup, 'drc', 'interposer.drc')
-
-    pdk.add('pdk', 'faux', 'var', 'klayout', stackup, 'drc_params:drc', 'input=<input>')
-    pdk.add('pdk', 'faux', 'var', 'klayout', stackup, 'drc_params:drc', 'topcell=<topcell>')
-    pdk.add('pdk', 'faux', 'var', 'klayout', stackup, 'drc_params:drc', 'report=<report>')
-    pdk.add('pdk', 'faux', 'var', 'klayout', stackup, 'drc_params:drc', 'threads=<threads>')
-
-    pdk.set('pdk', 'faux', 'display', 'klayout', stackup, 'layers.lyp')
-
-    return pdk
+            with self.active_fileset("klayout.techmap"):
+                self.add_file("layers.lyp", filetype="display")
+                self.add_displayfileset("klayout")

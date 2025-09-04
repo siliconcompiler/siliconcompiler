@@ -1,35 +1,47 @@
-import siliconcompiler
-
-from siliconcompiler.flows._common import _make_docs
 from siliconcompiler.tools.verilator import lint as verilator_lint
 from siliconcompiler.tools.slang import lint as slang_lint
 
 
-###########################################################################
-# Flowgraph Setup
-############################################################################
-def setup(tool='verilator'):
+from siliconcompiler import FlowgraphSchema
+
+
+class LintFlow(FlowgraphSchema):
+    '''An RTL linting flow.
+
+    This flow is designed to check RTL source files for stylistic, semantic,
+    and syntactic issues using a specified linting tool.
+
+    Supported tools:
+
+    * 'slang': A linter based on the Slang compiler.
+    * 'verilator': A linter based on the Verilator tool.
     '''
-    An RTL linting flow.
-    '''
+    def __init__(self, name: str = None, tool: str = "slang"):
+        """
+        Initializes the LintFlowgraph.
 
-    flowname = 'lintflow'
-    flow = siliconcompiler.Flow(flowname)
+        Args:
+            name (str, optional): The name of the flow. If not provided, it
+                defaults to 'lintflow-<tool>'.
+            tool (str): The linting tool to use. Supported options are
+                'slang' and 'verilator'.
 
-    if tool == 'verilator':
-        flow.node(flowname, 'lint', verilator_lint)
-    elif tool == 'slang':
-        flow.node(flowname, 'lint', slang_lint)
-    else:
-        raise ValueError(f'Unsupported lint tool: {tool}')
+        Raises:
+            ValueError: If an unsupported lint tool is specified.
+        """
+        if name is None:
+            name = f"lintflow-{tool}"
+        super().__init__(name)
 
-    return flow
+        if tool == "slang":
+            self.node("lint", slang_lint.Lint())
+        elif tool == "verilator":
+            self.node("lint", verilator_lint.LintTask())
+        else:
+            raise ValueError(f'Unsupported lint tool: {tool}')
 
 
 ##################################################
 if __name__ == "__main__":
-    chip = siliconcompiler.Chip('design')
-    _make_docs(chip)
-    flow = setup()
-    chip.use(flow)
-    chip.write_flowgraph(f"{flow.top()}.png", flow=flow.top())
+    flow = LintFlow()
+    flow.write_flowgraph(f"{flow.name}.png")

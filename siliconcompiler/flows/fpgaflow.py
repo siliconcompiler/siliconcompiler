@@ -1,14 +1,8 @@
-import siliconcompiler
-import re
-
-from siliconcompiler import SiliconCompilerError
-from siliconcompiler.flows._common import setup_multiple_frontends
-from siliconcompiler.flows._common import _make_docs
-
 from siliconcompiler.tools.yosys import syn_fpga as yosys_syn
 from siliconcompiler.tools.vpr import place as vpr_place
 from siliconcompiler.tools.vpr import route as vpr_route
 from siliconcompiler.tools.genfasm import bitstream as genfasm_bitstream
+from siliconcompiler.tools.opensta import timing
 
 from siliconcompiler.tools.vivado import syn_fpga as vivado_syn
 from siliconcompiler.tools.vivado import place as vivado_place
@@ -18,181 +12,135 @@ from siliconcompiler.tools.vivado import bitstream as vivado_bitstream
 from siliconcompiler.tools.nextpnr import apr as nextpnr_apr
 
 
-############################################################################
-# DOCS
-############################################################################
-def make_docs(chip):
-    _make_docs(chip)
-    return setup(partname='example_arch')
+from siliconcompiler import FlowgraphSchema
+from siliconcompiler.tools.slang import elaborate
 
 
-############################################################################
-# Flowgraph Setup
-############################################################################
-def setup(flowname='fpgaflow', fpgaflow_type=None, partname=None):
+class FPGAXilinxFlow(FlowgraphSchema):
+    '''An FPGA compilation flow targeting Xilinx devices using Vivado.
+
+    This flow uses the commercial Vivado toolchain for synthesis, placement,
+    routing, and bitstream generation.
+
+    The flow consists of the following steps:
+
+    * **syn_fpga**: Synthesize RTL into a device-specific netlist.
+    * **place**: Place the synthesized netlist onto the FPGA fabric.
+    * **route**: Route the connections between placed components.
+    * **bitstream**: Generate the final bitstream for device programming.
     '''
-    A configurable FPGA compilation flow.
+    def __init__(self, name: str = "fpgaflow-xilinx"):
+        """
+        Initializes the FPGAXilinxFlow.
 
-    The 'fpgaflow' module is a configurable FPGA flow with support for
-    open source and commercial tool flows.
+        Args:
+            name (str): The name of the flow.
+        """
+        super().__init__(name)
 
-    The following step convention is recommended for VPR.
+        self.node("elaborate", elaborate.Elaborate())
+        self.node("syn_fpga", vivado_syn.SynthesisTask())
+        self.edge("elaborate", "syn_fpga")
+        self.node("place", vivado_place.PlaceTask())
+        self.edge("syn_fpga", "place")
+        self.node("route", vivado_route.RouteTask())
+        self.edge("place", "route")
+        self.node("bitstream", vivado_bitstream.BitstreamTask())
+        self.edge("route", "bitstream")
 
-    * **import**: Sources are collected and packaged for compilation
-    * **syn**: Synthesize RTL into an device specific netlist
-    * **place**: FPGA specific placement step
-    * **route**: FPGA specific routing step
-    * **bitstream**: Bitstream generation
 
-    Note that nextpnr does not appear to support breaking placement, routing,
-    and bitstream generation into individual steps, leading to the following
-    recommended step convention
+class FPGANextPNRFlow(FlowgraphSchema):
+    '''An open-source FPGA flow using Yosys and NextPNR.
 
-    * **import**: Sources are collected and packaged for compilation
-    * **syn**: Synthesize RTL into an device specific netlist
-    * **apr**: One-step execution of place, route, bitstream with nextpnr
+    This flow is tailored for FPGAs supported by the NextPNR tool, which
+    handles placement, routing, and bitstream generation in a single step.
 
-    Args:
-        - fpgaflow_type (str): this parameter can be used to select a specific
-          fpga flow instead of one selected from the partname.
-        - partname (str): this parameter can be used to select a specific fpga
-          flow instead of one selected from the partname set in the schema.
+    The flow consists of the following steps:
+
+    * **syn_fpga**: Synthesize RTL into a device-specific netlist using Yosys.
+    * **apr**: Perform automatic place and route (APR) and generate the
+      bitstream using NextPNR.
     '''
+    def __init__(self, name: str = "fpgaflow-nextpnr"):
+        """
+        Initializes the FPGANextPNRFlow.
 
-    flow = siliconcompiler.Flow(flowname)
+        Args:
+            name (str): The name of the flow.
+        """
+        super().__init__(name)
 
-    if fpgaflow_type:
-        flow_pipe = flow_lookup_by_type(fpgaflow_type)
-    else:
-        flow_pipe = flow_lookup(partname)
-
-    # Minimal setup
-    prevstep = setup_multiple_frontends(flow)
-    for step, tool_module in flow_pipe:
-        # Flow
-        flow.node(flowname, step, tool_module)
-        if prevstep:
-            flow.edge(flowname, prevstep, step)
-        # Hard goals
-        for metric in ('errors', 'warnings', 'drvs', 'unconstrained',
-                       'holdwns', 'holdtns', 'holdpaths',
-                       'setupwns', 'setuptns', 'setuppaths'):
-            flow.set('flowgraph', flowname, step, '0', 'goal', metric, 0)
-        # Metrics
-        for metric in ('luts', 'dsps', 'brams', 'registers', 'pins'):
-            flow.set('flowgraph', flowname, step, '0', 'weight', metric, 1.0)
-        prevstep = step
-
-    return flow
+        self.node("elaborate", elaborate.Elaborate())
+        self.node("syn_fpga", yosys_syn.FPGASynthesis())
+        self.edge("elaborate", "syn_fpga")
+        self.node("apr", nextpnr_apr.APRTask())
+        self.edge("syn_fpga", "apr")
 
 
-##################################################
-def flow_lookup_by_type(name):
+class FPGAVPRFlow(FlowgraphSchema):
+    '''An open-source FPGA flow using Yosys, VPR, and GenFasm.
+
+    This flow is designed for academic and research FPGAs, utilizing VPR
+    (Versatile Place and Route) for placement and routing.
+
+    The flow consists of the following steps:
+
+    * **elaborate**: Elaborate the RTL design from sources.
+    * **synthesis**: Synthesize the elaborated design into a netlist using Yosys.
+    * **place**: Place the netlist components onto the FPGA architecture using VPR.
+    * **route**: Route the connections between placed components using VPR.
+    * **bitstream**: Generate the final bitstream using GenFasm.
     '''
-    Returns a list for the the flow selected based on name of the flow type.
+    def __init__(self, name: str = "fpgaflow-vpr"):
+        """
+        Initializes the FPGAVPRFlow.
+
+        Args:
+            name (str): The name of the flow.
+        """
+        super().__init__(name)
+
+        self.node("elaborate", elaborate.Elaborate())
+        self.node("synthesis", yosys_syn.FPGASynthesis())
+        self.edge("elaborate", "synthesis")
+        self.node("place", vpr_place.PlaceTask())
+        self.edge("synthesis", "place")
+        self.node("route", vpr_route.RouteTask())
+        self.edge("place", "route")
+        self.node("bitstream", genfasm_bitstream.BitstreamTask())
+        self.edge("route", "bitstream")
+
+
+class FPGAVPROpenSTAFlow(FPGAVPRFlow):
+    '''An open-source FPGA flow using Yosys, VPR, GenFasm, and OpenSTA.
+
+    This flow is designed for academic and research FPGAs, utilizing VPR
+    (Versatile Place and Route) for placement and routing and OpenSTA for
+    post-implementation timing analysis.
+
+    The flow consists of the following steps:
+
+    * **elaborate**: Elaborate the RTL design from sources.
+    * **synthesis**: Synthesize the elaborated design into a netlist using Yosys.
+    * **place**: Place the netlist components onto the FPGA architecture using VPR.
+    * **route**: Route the connections between placed components using VPR.
+    * **bitstream**: Generate the final bitstream using GenFasm.
+    * **timing**: Perform post-implementation static timing analysis of the design.
     '''
+    def __init__(self, name: str = "fpgaflow-vpr-open-sta"):
+        """
+        Initializes the FPGAVPROpenSTAFlow.
 
-    vivado_flow = [
-        ('syn_fpga', vivado_syn),
-        ('place', vivado_place),
-        ('route', vivado_route),
-        ('bitstream', vivado_bitstream)]
-    nextpnr_flow = [('syn', yosys_syn),
-                    ('apr', nextpnr_apr)]
-    vpr_flow = [('syn', yosys_syn),
-                ('place', vpr_place),
-                ('route', vpr_route),
-                ('bitstream', genfasm_bitstream)]
+        Args:
+            name (str): The name of the flow.
+        """
+        super().__init__(name)
 
-    flow_map = {
-        "vivado": vivado_flow,
-        "nextpnr": nextpnr_flow,
-        "vpr": vpr_flow
-    }
-
-    if name not in flow_map:
-        raise SiliconCompilerError(f'{name} is not a supported FPGA flow type')
-
-    return flow_map[name]
-
-
-##################################################
-def flow_lookup(partname):
-    '''
-    Returns a list for the the flow selected based on the part number
-    regular expression.
-    '''
-
-    if not partname:
-        raise SiliconCompilerError('A part number must be specified to setup the fpga flow.')
-
-    partname = partname.lower()
-
-    ###########
-    # xilinx
-    ###########
-
-    spartan6 = bool(re.match('^xc6', partname))
-    spartan7 = bool(re.match('^xc7s', partname))
-    artix = bool(re.match('^xc7a', partname))
-    artixultra = bool(re.match('^au', partname))
-    kintex7 = bool(re.match('^xc7k', partname))
-    kintexultra = bool(re.match('^xcku', partname))
-    zynq = bool(re.match(r'^z\-7', partname))
-    zynqultra = bool(re.match('^zu', partname))
-    virtex7 = bool(re.match('^xc7v', partname))
-    virtexultra = bool(re.match('^xcvu', partname))
-
-    xilinx = spartan6 or spartan7 or \
-        artix or artixultra or \
-        kintex7 or kintexultra or \
-        zynq or zynqultra or \
-        virtex7 or virtexultra
-
-    #############
-    # intel
-    #############
-
-    cyclone4 = bool(re.match('^ep4', partname))
-    cyclone5 = bool(re.match('^5cs', partname))
-    cyclone10 = bool(re.match('^10cl', partname))
-    stratix5 = bool(re.match('^5sg', partname))
-
-    intel = cyclone10 or cyclone4 or cyclone5 or stratix5
-
-    ###########
-    # lattice
-    ###########
-
-    ice40 = re.match('^ice40', partname)
-
-    ###########
-    # example
-    ###########
-
-    example = re.match('^example_arch', partname)
-
-    flow = None
-    if xilinx:
-        flow = flow_lookup_by_type('vivado')
-    elif intel:
-        flow = flow_lookup_by_type('intel')
-    elif ice40:
-        flow = flow_lookup_by_type('nextpnr')
-    elif example:
-        flow = flow_lookup_by_type('vpr')
-
-    if not flow:
-        raise SiliconCompilerError(
-            f'fpgaflow: unsupported partname {partname}'
-        )
-
-    return flow
+        self.node("timing", timing.FPGATimingTask())
+        self.edge("route", "timing")
 
 
 ##################################################
 if __name__ == "__main__":
-    chip = siliconcompiler.Chip('design')
-    flow = make_docs(chip)
-    chip.use(flow)
-    chip.write_flowgraph(f"{flow.top()}.png", flow=flow.top())
+    for flow in [FPGANextPNRFlow(), FPGAVPRFlow(), FPGAXilinxFlow()]:
+        flow.write_flowgraph(f"{flow.name}.png")

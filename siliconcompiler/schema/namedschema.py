@@ -43,8 +43,11 @@ class NamedSchema(BaseSchema):
             name (str): name for object
         """
 
-        if self.name is not None:
-            raise RuntimeError("Cannot call set_name more than once.")
+        try:
+            if self.__name is not None:
+                raise RuntimeError("Cannot call set_name more than once.")
+        except AttributeError:
+            pass
         if name is not None and "." in name:
             raise ValueError("Named schema object cannot contains: .")
         self.__name = name

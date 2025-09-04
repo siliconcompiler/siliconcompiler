@@ -1,91 +1,69 @@
-import os
+import os.path
 
-from siliconcompiler import utils
 from siliconcompiler.tools.netgen import count_lvs
 from siliconcompiler import sc_open
-from siliconcompiler.tools._common import get_tool_task, record_metric
+
+from siliconcompiler import TaskSchema
 
 
-def setup(chip):
+class LVSTask(TaskSchema):
     '''
     Perform LVS on the supplied netlists
     '''
 
-    tool = 'netgen'
-    refdir = 'tools/' + tool
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    _, task = get_tool_task(chip, step, index)
+    def __init__(self):
+        super().__init__()
 
-    # magic used for drc and lvs
-    script = 'sc_lvs.tcl'
+    def tool(self):
+        return "netgen"
 
-    chip.set('tool', tool, 'exe', tool)
-    chip.set('tool', tool, 'vswitch', '-batch')
-    chip.set('tool', tool, 'version', '>=1.5.192', clobber=False)
-    chip.set('tool', tool, 'format', 'tcl')
+    def task(self):
+        return "lvs"
 
-    chip.set('tool', tool, 'task', task, 'threads', utils.get_cores(chip),
-             step=step, index=index, clobber=False)
-    chip.set('tool', tool, 'task', task, 'refdir', refdir,
-             step=step, index=index,
-             package='siliconcompiler', clobber=False)
-    chip.set('tool', tool, 'task', task, 'script', script,
-             step=step, index=index, clobber=False)
+    def parse_version(self, stdout):
+        # First line: Netgen 1.5.190 compiled on Fri Jun 25 16:05:36 EDT 2021
+        return stdout.split()[1]
 
-    # set options
-    options = []
-    options.append('-batch')
-    options.append('source')
-    chip.set('tool', tool, 'task', task, 'option', options, step=step, index=index, clobber=False)
+    def setup(self):
+        super().setup()
 
-    design = chip.top()
-    chip.add('tool', tool, 'task', task, 'input', f'{design}.spice', step=step, index=index)
-    if chip.valid('input', 'netlist', 'verilog'):
-        chip.add('tool', tool, 'task', task, 'require',
-                 ','.join(['input', 'netlist', 'verilog']),
-                 step=step, index=index)
-    else:
-        chip.add('tool', tool, 'task', task, 'input', f'{design}.vg', step=step, index=index)
+        self.set_exe("netgen", vswitch="-batch", format="tcl")
+        self.add_version(">=1.5.192")
 
-    # Netgen doesn't have a standard error prefix that we can grep for, but it
-    # does print all errors to stderr, so we can redirect them to <step>.errors
-    # and use that file to count errors.
-    chip.set('tool', tool, 'task', task, 'stderr', 'suffix', 'errors', step=step, index=index)
+        self.set_threads()
 
-    chip.set('tool', tool, 'task', task, 'regex', 'warnings', '^Warning:',
-             step=step, index=index, clobber=False)
+        self.set_dataroot("netgen", __file__)
+        with self.active_dataroot("netgen"):
+            self.set_refdir("scripts")
+        self.set_script("sc_lvs.tcl")
 
+        self.add_commandline_option("-batch")
+        self.add_commandline_option("source")
 
-################################
-# Post_process (post executable)
-################################
-def post_process(chip):
-    ''' Tool specific function to run after step execution
+        self.add_input_file(ext="spice")
+        self.add_input_file(ext="vg")
 
-    Reads error count from output and fills in appropriate entry in metrics
-    '''
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    design = chip.top()
+        self.set_logdestination("stderr", "log", suffix="errors")
+        self.add_regex("warnings", '^Warning:')
 
-    with sc_open(f'{step}.errors') as f:
-        errors = len([line for line in f.readlines() if not line.startswith("Note:")])
-    record_metric(chip, step, index, 'errors', errors, f'{step}.errors')
+    def post_process(self):
+        with sc_open(f'{self.step}.errors') as f:
+            errors = len([line for line in f.readlines() if not line.startswith("Note:")])
+        self.record_metric('errors', errors, f'{self.step}.errors')
 
-    # Export metrics
-    lvs_report = f'reports/{design}.lvs.json'
-    if not os.path.isfile(lvs_report):
-        chip.logger.warning('No LVS report generated. Netgen may have encountered errors.')
-        return
+        # Export metrics
+        lvs_report = f'reports/{self.design_topmodule}.lvs.json'
+        if not os.path.isfile(lvs_report):
+            self.logger.warning('No LVS report generated. Netgen may have encountered errors.')
+            return
 
-    lvs_failures = count_lvs.count_lvs_failures(lvs_report)
+        lvs_failures = count_lvs.count_lvs_failures(lvs_report)
 
-    # We don't count top-level pin mismatches as errors b/c we seem to get
-    # false positives for disconnected pins. Report them as warnings
-    # instead, the designer can then take a look at the full report for
-    # details.
-    pin_failures = lvs_failures[3]
-    errors = lvs_failures[0] - pin_failures
-    record_metric(chip, step, index, 'drcs', errors, lvs_report)
-    record_metric(chip, step, index, 'warnings', pin_failures, lvs_report)
+        # We don't count top-level pin mismatches as errors b/c we seem to get
+        # false positives for disconnected pins. Report them as warnings
+        # instead, the designer can then take a look at the full report for
+        # details.
+        pin_failures = lvs_failures[3]
+        errors = lvs_failures[0] - pin_failures
+        self.record_metric('drcs', errors, lvs_report)
+        self.record_metric('warnings', pin_failures, lvs_report)

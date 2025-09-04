@@ -1,99 +1,82 @@
-import siliconcompiler
-import os
 import pytest
-import json
 
-from siliconcompiler.tools.yosys import lec
+import os.path
 
-from siliconcompiler.tools.builtin import nop
 from siliconcompiler.targets import freepdk45_demo
 
+from tools.inputimporter import ImporterTask
+
+from siliconcompiler import ASICProject, DesignSchema, FlowgraphSchema
+from siliconcompiler.scheduler import SchedulerNode
+from siliconcompiler.tools.yosys.lec_asic import ASICLECTask
+
 
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.ready
+def test_version(gcd_design):
+    proj = ASICProject(gcd_design)
+    proj.add_fileset("rtl")
+
+    flow = FlowgraphSchema("testflow")
+    flow.node("version", ASICLECTask())
+    proj.set_flow(flow)
+
+    node = SchedulerNode(proj, "version", "0")
+    with node.runtime():
+        assert node.setup() is True
+        assert node.task.check_exe_version(node.task.get_exe_version()) is True
+
+
+@pytest.mark.eda
+@pytest.mark.quick
+@pytest.mark.ready
 def test_yosys_lec(datadir):
-    lec_dir = os.path.join(datadir, 'lec')
+    design = DesignSchema("testdesign")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("foo")
 
-    chip = siliconcompiler.Chip('foo')
-    chip.use(freepdk45_demo)
+    proj = ASICProject(design)
+    proj.add_fileset(["rtl"])
+    proj.load_target(freepdk45_demo.setup)
 
-    flow = 'lec'
-    chip.node(flow, 'import', nop)
-    chip.node(flow, 'lec', lec)
-    chip.edge(flow, 'import', 'lec')
-    chip.set('option', 'flow', flow)
+    flow = FlowgraphSchema("lec")
+    flow.node('import', ImporterTask())
+    flow.node("lec", ASICLECTask())
+    flow.edge('import', 'lec')
+    proj.set_flow(flow)
 
-    chip.input(os.path.join(lec_dir, 'foo.v'))
-    chip.input(os.path.join(lec_dir, 'foo.vg'))
+    proj.get_task(filter=ImporterTask).add("var", "input_files",
+                                           os.path.join(datadir, 'lec', 'foo.v'))
+    proj.get_task(filter=ImporterTask).add("var", "input_files",
+                                           os.path.join(datadir, 'lec', 'foo.vg'))
 
-    assert chip.run()
-
-    errors = chip.get('metric', 'drvs', step='lec', index='0')
-
-    assert errors == 0
+    assert proj.run()
+    assert proj.history("job0").get('metric', 'drvs', step='lec', index='0') == 0
 
 
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.ready
 def test_yosys_lec_broken(datadir):
-    lec_dir = os.path.join(datadir, 'lec')
+    design = DesignSchema("testdesign")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("foo")
 
-    chip = siliconcompiler.Chip('foo')
-    chip.use(freepdk45_demo)
+    proj = ASICProject(design)
+    proj.add_fileset(["rtl"])
+    proj.load_target(freepdk45_demo.setup)
 
-    flow = 'lec'
-    chip.node(flow, 'import', nop)
-    chip.node(flow, 'lec', lec)
-    chip.edge(flow, 'import', 'lec')
-    chip.set('option', 'flow', flow)
+    flow = FlowgraphSchema("lec")
+    flow.node('import', ImporterTask())
+    flow.node("lec", ASICLECTask())
+    flow.edge('import', 'lec')
+    proj.set_flow(flow)
 
-    chip.input(os.path.join(lec_dir, 'foo_broken.v'))
-    chip.input(os.path.join(lec_dir, 'foo_broken.vg'))
+    proj.get_task(filter=ImporterTask).add(
+        "var", "input_files", os.path.join(datadir, 'lec', 'broken', 'foo.v'))
+    proj.get_task(filter=ImporterTask).add(
+        "var", "input_files", os.path.join(datadir, 'lec', 'broken', 'foo.vg'))
 
-    assert chip.run()
-
-    errors = chip.get('metric', 'drvs', step='lec', index='0')
-
-    assert errors == 2
-
-
-@pytest.mark.eda
-@pytest.mark.quick
-@pytest.mark.parametrize("ext", ('v', 'vg'))
-def test_screenshot(datadir, ext):
-    lec_dir = os.path.join(datadir, 'lec')
-
-    chip = siliconcompiler.Chip('foo')
-    chip.use(freepdk45_demo)
-    path = chip.show(os.path.join(lec_dir, f'foo_broken.{ext}'), screenshot=True)
-
-    assert path
-    assert os.path.exists(path)
-
-
-@pytest.mark.eda
-@pytest.mark.quick
-def test_tristate(datadir):
-    chip = siliconcompiler.Chip('test')
-    chip.use(freepdk45_demo)
-
-    chip.set('option', 'to', 'syn')
-
-    chip.input(os.path.join(datadir, 'tristate.v'))
-
-    assert chip.run()
-
-    assert chip.get('metric', 'errors', step='syn', index='0') == 0
-
-    report_file = 'build/test/job0/syn/0/reports/stat.json'
-    assert os.path.isfile(report_file)
-
-    with open(report_file, "r") as report_data:
-        stats = json.loads(report_data.read())
-
-        assert 'design' in stats
-        assert 'num_cells_by_type' in stats['design']
-
-        cells_by_type = stats['design']['num_cells_by_type']
-        assert "TBUF_X1" in cells_by_type
-        assert cells_by_type["TBUF_X1"] == 1
+    assert proj.run()
+    assert proj.history("job0").get('metric', 'drvs', step='lec', index='0') == 2

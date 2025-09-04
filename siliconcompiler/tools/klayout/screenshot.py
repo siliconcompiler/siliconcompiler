@@ -1,105 +1,41 @@
-from siliconcompiler.tools.klayout.klayout import setup as setup_tool
-from siliconcompiler.tools.klayout.show import general_gui_setup
-from siliconcompiler.tools.klayout.show import pre_process as show_pre_process
-from siliconcompiler.tools.klayout.show import runtime_options as show_runtime_options
-from siliconcompiler.tools._common import get_tool_task
+from siliconcompiler import ScreenshotTaskSchema, TaskSchema
+from siliconcompiler.tools.klayout.show import ShowTask
 
 
-def make_docs(chip):
-    from siliconcompiler.tools.klayout import klayout
-    klayout.make_docs(chip)
-    chip.set('tool', 'klayout', 'task', 'screenshot', 'var', 'show_filepath', '<path>')
-
-
-def setup(chip):
+class ScreenshotParams(TaskSchema):
     '''
     Generate a PNG file from a layout file
     '''
+    def __init__(self):
+        super().__init__()
 
-    # Generic tool setup.
-    setup_tool(chip)
+        self.add_parameter("show_resolution", "(int,int)",
+                           "Horizontal and vertical resolution in pixels",
+                           defvalue=(4096, 4096), unit="px")
+        self.add_parameter("show_bins", "(int,int)",
+                           "If greater than 1, splits the image into multiple segments along "
+                           "x-axis and y-axis", defvalue=(1, 1))
+        self.add_parameter("show_margin", "float",
+                           "Margin around design in microns", defvalue=10, unit="um")
+        self.add_parameter("show_linewidth", "int",
+                           "Width of lines in detailed screenshots", defvalue=0, unit="px")
+        self.add_parameter("show_oversampling", "int",
+                           "Image oversampling used in detailed screenshots'", defvalue=2)
 
-    tool = 'klayout'
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    _, task = get_tool_task(chip, step, index)
-    clobber = False
+    def setup(self):
+        super().setup()
 
-    chip.set('tool', tool, 'task', task, 'threads', 1, step=step, index=index, clobber=clobber)
-
-    setup_gui_screenshot(chip)
-
-    option = ['-nc', '-z', '-rm']
-    chip.set('tool', tool, 'task', task, 'option', option, step=step, index=index, clobber=clobber)
-
-
-def pre_process(chip):
-    show_pre_process(chip)
-
-
-def setup_gui_screenshot(chip, require_input=True):
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    tool, task = get_tool_task(chip, step, index)
-    design = chip.top()
-
-    general_gui_setup(chip, task, True, require_input=require_input)
-
-    chip.set('tool', tool, 'task', task, 'var', 'show_horizontal_resolution', '4096',
-             step=step, index=index, clobber=False)
-    chip.set('tool', tool, 'task', task, 'var', 'show_vertical_resolution', '4096',
-             step=step, index=index, clobber=False)
-
-    chip.set('tool', tool, 'task', task, 'var', 'xbins', '1',
-             step=step, index=index, clobber=False)
-    chip.set('tool', tool, 'task', task, 'var', 'ybins', '1',
-             step=step, index=index, clobber=False)
-    chip.set('tool', tool, 'task', task, 'var', 'margin', '10',
-             step=step, index=index, clobber=False)
-
-    chip.set('tool', tool, 'task', task, 'var', 'linewidth', '0',
-             step=step, index=index, clobber=False)
-    chip.set('tool', tool, 'task', task, 'var', 'oversampling', '2',
-             step=step, index=index, clobber=False)
-
-    # Help
-    chip.set('tool', tool, 'task', task, 'var', 'show_horizontal_resolution',
-             'Horizontal resolution in pixels',
-             field='help')
-    chip.set('tool', tool, 'task', task, 'var', 'show_vertical_resolution',
-             'Vertical resolution in pixels',
-             field='help')
-
-    chip.set('tool', tool, 'task', task, 'var', 'xbins',
-             'If greater than 1, splits the image into multiple segments along x-axis',
-             field='help')
-    chip.set('tool', tool, 'task', task, 'var', 'ybins',
-             'If greater than 1, splits the image into multiple segments along y-axis',
-             field='help')
-    chip.set('tool', tool, 'task', task, 'var', 'margin',
-             'Margin around design in microns',
-             field='help')
-    chip.set('tool', tool, 'task', task, 'var', 'linewidth',
-             'Width of lines in detailed screenshots',
-             field='help')
-    chip.set('tool', tool, 'task', task, 'var', 'oversampling',
-             'Image oversampling used in detailed screenshots',
-             field='help')
-
-    xbins = int(chip.get('tool', tool, 'task', task, 'var', 'xbins',
-                         step=step, index=index)[0])
-    ybins = int(chip.get('tool', tool, 'task', task, 'var', 'ybins',
-                         step=step, index=index)[0])
-
-    if xbins == 1 and ybins == 1:
-        chip.add('tool', tool, 'task', task, 'output', design + '.png',
-                 step=step, index=index)
-    else:
-        for x in range(xbins):
-            for y in range(ybins):
-                chip.add('tool', tool, 'task', task, 'output', f'{design}_X{x}_Y{y}.png',
-                         step=step, index=index)
+        if self.get("var", "show_bins") == (1, 1):
+            self.add_output_file(ext="png")
+        else:
+            xbins, ybins = self.get("var", "show_bins")
+            for x in range(xbins):
+                for y in range(ybins):
+                    self.add_output_file(f"{self.design_topmodule}_X{x}_Y{y}.png")
 
 
-def runtime_options(chip):
-    return show_runtime_options(chip)
+class ScreenshotTask(ShowTask, ScreenshotTaskSchema, ScreenshotParams):
+    def setup(self):
+        super().setup()
+
+        self.add_commandline_option(['-nc', '-z', '-rm'], clobber=True)

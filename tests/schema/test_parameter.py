@@ -1,7 +1,10 @@
 import argparse
 import pytest
+
+from unittest.mock import patch
+
 from siliconcompiler.schema import Parameter, PerNode, Scope
-from siliconcompiler.schema import SCHEMA_VERSION
+from siliconcompiler.schema import __version__
 from siliconcompiler.schema.parametervalue import FileNodeValue, NodeValue
 
 
@@ -18,7 +21,7 @@ def test_default_init(sctype):
     assert param.getdict() == {
         'type': sctype,
         'require': False,
-        'scope': 'job',
+        'scope': 'global',
         'lock': False,
         'switch': [],
         'shorthelp': None,
@@ -36,7 +39,7 @@ def test_default_init_list(sctype):
     assert param.getdict() == {
         'type': f"[{sctype}]",
         'require': False,
-        'scope': 'job',
+        'scope': 'global',
         'lock': False,
         'switch': [],
         'shorthelp': None,
@@ -53,7 +56,7 @@ def test_default_init_file():
     assert param.getdict() == {
         'type': 'file',
         'require': False,
-        'scope': 'job',
+        'scope': 'global',
         'lock': False,
         'switch': [],
         'shorthelp': None,
@@ -78,7 +81,7 @@ def test_default_init_dir():
     assert param.getdict() == {
         'type': 'dir',
         'require': False,
-        'scope': 'job',
+        'scope': 'global',
         'lock': False,
         'switch': [],
         'shorthelp': None,
@@ -444,7 +447,7 @@ def test_from_dict():
             '-test',
         ],
         'type': '(str,<test0,test1>)',
-    }, [], tuple([int(v) for v in SCHEMA_VERSION.split('.')]))
+    }, [], tuple([int(v) for v in __version__.split('.')]))
     assert param.default.get() is None
     assert param.get() == ('test', 'test1')
     assert param.get(step="teststep") == ('test', 'test1')
@@ -985,7 +988,7 @@ def test_immutable_returns():
 
 @pytest.mark.parametrize("value,field,expect", [
     ("dir", "type", "dir"),
-    ("global", "scope", Scope.GLOBAL),
+    ("job", "scope", Scope.JOB),
     ("scratch", "scope", Scope.SCRATCH),
     (Scope.SCRATCH, "scope", Scope.SCRATCH),
     ("t", "lock", True),
@@ -1060,7 +1063,7 @@ def test_normalize_fields_scalar_errors_int():
 
 @pytest.mark.parametrize("value,field,expect", [
     ("dir", "type", "dir"),
-    ("global", "scope", Scope.GLOBAL),
+    ("job", "scope", Scope.JOB),
     ("scratch", "scope", Scope.SCRATCH),
     (Scope.SCRATCH, "scope", Scope.SCRATCH),
     ("t", "lock", True),
@@ -1256,7 +1259,7 @@ def test_getdict():
         'notes': None,
         'pernode': 'optional',
         'require': False,
-        'scope': 'job',
+        'scope': 'global',
         'shorthelp': None,
         'switch': [],
         'type': 'int',
@@ -1269,7 +1272,7 @@ def test_getdict():
         'notes': None,
         'pernode': 'optional',
         'require': False,
-        'scope': 'job',
+        'scope': 'global',
         'shorthelp': None,
         'switch': [],
         'type': 'int',
@@ -1366,7 +1369,7 @@ def test_getdict_with_vals():
         'notes': None,
         'pernode': 'optional',
         'require': False,
-        'scope': 'job',
+        'scope': 'global',
         'shorthelp': None,
         'switch': [],
         'type': 'int',
@@ -1392,7 +1395,7 @@ def test_getdict_with_vals():
         'notes': None,
         'pernode': 'optional',
         'require': False,
-        'scope': 'job',
+        'scope': 'global',
         'shorthelp': None,
         'switch': [],
         'type': 'int',
@@ -1431,7 +1434,7 @@ def test_getdict_with_vals_list():
         'notes': None,
         'pernode': 'optional',
         'require': False,
-        'scope': 'job',
+        'scope': 'global',
         'shorthelp': None,
         'switch': [],
         'type': '[int]',
@@ -1457,7 +1460,7 @@ def test_getdict_with_vals_list():
         'notes': None,
         'pernode': 'optional',
         'require': False,
-        'scope': 'job',
+        'scope': 'global',
         'shorthelp': None,
         'switch': [],
         'type': '[int]',
@@ -1761,7 +1764,7 @@ def test_defvalue_file_getdict():
         'notes': None,
         'pernode': 'never',
         'require': False,
-        'scope': 'job',
+        'scope': 'global',
         'shorthelp': None,
         'switch': [],
         'type': 'file',
@@ -1806,7 +1809,7 @@ def test_defvalue_file_list_getdict():
         'notes': None,
         'pernode': 'never',
         'require': False,
-        'scope': 'job',
+        'scope': 'global',
         'shorthelp': None,
         'switch': [],
         'type': '[file]',
@@ -1842,7 +1845,7 @@ def test_defvalue_file_package_getdict():
         'notes': None,
         'pernode': 'never',
         'require': False,
-        'scope': 'job',
+        'scope': 'global',
         'shorthelp': None,
         'switch': [],
         'type': 'file',
@@ -1894,7 +1897,7 @@ def test_defvalue_file_list_package_getdict():
         'notes': None,
         'pernode': 'never',
         'require': False,
-        'scope': 'job',
+        'scope': 'global',
         'shorthelp': None,
         'switch': [],
         'type': '[file]',
@@ -1942,7 +1945,7 @@ def test_defvalue_dir_list_package_getdict():
         'notes': None,
         'pernode': 'never',
         'require': False,
-        'scope': 'job',
+        'scope': 'global',
         'shorthelp': None,
         'switch': [],
         'type': '[dir]',
@@ -2035,3 +2038,21 @@ def test_has_value_with_defvalue():
     assert param.set("test")
     assert param.has_value() is True
     assert param.has_value(step="test", index="0") is True
+
+
+def test_generate_doc():
+    pytest.importorskip("sphinx")
+    from docutils import nodes
+
+    class Doc:
+        state = None
+
+    param = Parameter("str")
+
+    with patch("sphinx.util.nodes.nested_parse_with_titles") as nested_parse_with_titles:
+        doc = param._generate_doc(Doc(), [])
+        assert len(doc) == 2
+        assert isinstance(doc[0], nodes.paragraph)
+        assert len(doc[1]) == 1
+        assert isinstance(doc[1][0], nodes.table)
+        nested_parse_with_titles.assert_called_once()

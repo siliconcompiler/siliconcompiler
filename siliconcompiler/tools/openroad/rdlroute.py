@@ -1,101 +1,54 @@
-import os
-
-from siliconcompiler import utils
-from siliconcompiler.tools._common import input_provides, get_tool_task
-from siliconcompiler.tools._common.asic import set_tool_task_var
-from siliconcompiler.tools.openroad._apr import build_pex_corners
-from siliconcompiler.tools.openroad._apr import extract_metrics
+from siliconcompiler.tools.openroad import OpenROADTask
 
 
-def setup(chip):
+class RDLRouteTask(OpenROADTask):
     '''
     Perform floorplanning, pin placements, macro placements and power grid generation
     '''
+    def __init__(self):
+        super().__init__()
 
-    # Generic tool setup.
-    # default tool settings, note, not additive!
+        self.add_parameter("rdlroute", "[file]", "RDL routing scripts")
 
-    tool = 'openroad'
-    script = 'sc_rdlroute.tcl'
-    refdir = os.path.join('tools', tool, 'scripts')
+        self.add_parameter("fin_add_fill", "bool",
+                           "true/false, when true enables adding fill, "
+                           "if enabled by the PDK, to the design", defvalue=True)
 
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    tool, task = get_tool_task(chip, step, index)
+    def add_openroad_rdlroute(self, file, dataroot=None, step=None, index=None, clobber=False):
+        if not dataroot:
+            dataroot = self._get_active("package")
 
-    design = chip.top()
+        with self.active_dataroot(dataroot):
+            if clobber:
+                self.set("var", "rdlroute", file, step=step, index=index)
+            else:
+                self.add("var", "rdlroute", file, step=step, index=index)
 
-    chip.set('tool', tool, 'exe', tool)
-    chip.set('tool', tool, 'vswitch', '-version')
-    chip.set('tool', tool, 'version', '>=v2.0-17581')
-    chip.set('tool', tool, 'format', 'tcl')
+    def task(self):
+        return "rdlroute"
 
-    # exit automatically in batch mode and not breakpoint
-    option = ['-no_init']
-    if exit and not chip.get('option', 'breakpoint', step=step, index=index):
-        option.append("-exit")
+    def setup(self):
+        super().setup()
 
-    option.extend(["-metrics", "reports/metrics.json"])
-    chip.set('tool', tool, 'task', task, 'option', option, step=step, index=index)
+        self.set_script("sc_rdlroute.tcl")
 
-    # Input/Output requirements for default asicflow steps
+        self.set_threads()
 
-    chip.set('tool', tool, 'task', task, 'refdir', refdir,
-             step=step, index=index,
-             package='siliconcompiler')
-    chip.set('tool', tool, 'task', task, 'script', script,
-             step=step, index=index)
-    chip.set('tool', tool, 'task', task, 'threads', utils.get_cores(chip),
-             step=step, index=index, clobber=False)
+        if f"{self.design_topmodule}.vg" in self.get_files_from_input_nodes():
+            self.add_input_file(ext="vg")
+        elif f"{self.design_topmodule}.v" in self.get_files_from_input_nodes():
+            self.add_input_file(ext="v")
+        else:
+            for lib, fileset in self.schema().get_filesets():
+                if lib.get_file(fileset=fileset, filetype="verilog"):
+                    self.add_required_key(lib, "fileset", fileset, "file", "verilog")
 
-    if chip.get('option', 'nodisplay'):
-        # Tells QT to use the offscreen platform if nodisplay is used
-        chip.set('tool', tool, 'task', task, 'env', 'QT_QPA_PLATFORM', 'offscreen',
-                 step=step, index=index)
+        self.add_output_file(ext="vg")
+        self.add_output_file(ext="def")
+        self.add_output_file(ext="odb")
 
-    # basic warning and error grep check on logfile
-    chip.set('tool', tool, 'task', task, 'regex', 'warnings', r'^\[WARNING|^Warning',
-             step=step, index=index, clobber=False)
-    chip.set('tool', tool, 'task', task, 'regex', 'errors', r'^\[ERROR',
-             step=step, index=index, clobber=False)
+        if self.get("var", "rdlroute"):
+            self.add_required_tool_key("var", "rdlroute")
+        self.add_required_tool_key("var", "fin_add_fill")
 
-    chip.add('tool', tool, 'task', task, 'require',
-             'option,var,openroad_libtype',
-             step=step, index=index)
-    chip.add('tool', tool, 'task', task, 'require',
-             ','.join(['tool', tool, 'task', task, 'file', 'rdlroute']),
-             step=step, index=index)
-    chip.set('tool', tool, 'task', task, 'file', 'rdlroute',
-             'script to perform rdl route',
-             field='help')
-
-    set_tool_task_var(chip, param_key='fin_add_fill',
-                      default_value='false',
-                      schelp='true/false, when true enables adding fill, '
-                             'if enabled by the PDK, to the design',
-                      skip='lib')
-
-    chip.set('tool', tool, 'task', task, 'var', 'debug_level',
-             'list of "tool key level" to enable debugging of OpenROAD',
-             field='help')
-
-    if f'{design}.v' in input_provides(chip, step, index):
-        chip.add('tool', tool, 'task', task, 'input', design + '.v', step=step, index=index)
-    elif f'{design}.vg' in input_provides(chip, step, index):
-        chip.add('tool', tool, 'task', task, 'input', design + '.vg', step=step, index=index)
-    else:
-        chip.add('tool', tool, 'task', task, 'require',
-                 ','.join(['input', 'netlist', 'verilog']),
-                 step=step, index=index)
-
-    chip.add('tool', tool, 'task', task, 'output', design + '.vg', step=step, index=index)
-    chip.add('tool', tool, 'task', task, 'output', design + '.def', step=step, index=index)
-    chip.add('tool', tool, 'task', task, 'output', design + '.odb', step=step, index=index)
-
-
-def pre_process(chip):
-    build_pex_corners(chip)
-
-
-def post_process(chip):
-    extract_metrics(chip)
+        self.set("var", "fin_add_fill", False)

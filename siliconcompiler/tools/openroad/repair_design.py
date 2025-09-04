@@ -1,60 +1,48 @@
-from siliconcompiler.tools._common import get_tool_task
-from siliconcompiler.tools.openroad._apr import setup as apr_setup
-from siliconcompiler.tools.openroad._apr import set_reports, set_pnr_inputs, set_pnr_outputs
-from siliconcompiler.tools.openroad._apr import \
-    define_ord_params, define_sta_params, define_sdc_params, \
-    define_rsz_params, define_tiecell_params
-from siliconcompiler.tools.openroad._apr import build_pex_corners, define_ord_files
-from siliconcompiler.tools.openroad._apr import extract_metrics
+from siliconcompiler.tools.openroad._apr import APRTask
+from siliconcompiler.tools.openroad._apr import OpenROADSTAParameter, OpenROADRSZDRVParameter
 
 
-def setup(chip):
+class RepairDesignTask(APRTask, OpenROADSTAParameter, OpenROADRSZDRVParameter):
     '''
     Perform timing repair and tie-off cell insertion
     '''
+    def __init__(self):
+        super().__init__()
 
-    # Generic apr tool setup.
-    apr_setup(chip)
+        self.add_parameter("ifp_tie_separation", "float",
+                           "maximum distance between tie high/low cells in microns",
+                           defvalue=0, unit="um")
 
-    # Task setup
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    tool, task = get_tool_task(chip, step, index)
+        self.add_parameter("rsz_buffer_inputs", "bool",
+                           "true/false, when true enables adding buffers to the input ports",
+                           defvalue=False)
+        self.add_parameter("rsz_buffer_outputs", "bool",
+                           "true/false, when true enables adding buffers to the output ports",
+                           defvalue=False)
 
-    chip.set('tool', tool, 'task', task, 'script', 'apr/sc_repair_design.tcl',
-             step=step, index=index)
+    def task(self):
+        return "repair_design"
 
-    # Setup task IO
-    set_pnr_inputs(chip)
-    set_pnr_outputs(chip)
+    def setup(self):
+        super().setup()
 
-    # set default values for openroad
-    define_ord_params(chip)
-    define_sta_params(chip)
-    define_sdc_params(chip)
-    define_rsz_params(chip)
-    define_tiecell_params(chip)
+        self.set_script("apr/sc_repair_design.tcl")
 
-    set_reports(chip, [
-        'setup',
-        'unconstrained',
-        'power',
-        'drv_violations',
-        'fmax',
+        self._set_reports([
+            'setup',
+            'unconstrained',
+            'power',
+            'drv_violations',
+            'fmax',
 
-        # Images
-        'placement_density',
-        'routing_congestion',
-        'power_density',
-        'optimization_placement',
-        'module_view'
-    ])
+            # Images
+            'placement_density',
+            'routing_congestion',
+            'power_density',
+            'optimization_placement',
+            'module_view'
+        ])
 
-
-def pre_process(chip):
-    define_ord_files(chip)
-    build_pex_corners(chip)
-
-
-def post_process(chip):
-    extract_metrics(chip)
+        self.add_required_tool_key("var", "ifp_tie_separation")
+        self.add_required_tool_key("var", "rsz_buffer_inputs")
+        self.add_required_tool_key("var", "rsz_buffer_outputs")

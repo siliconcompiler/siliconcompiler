@@ -1,0 +1,10282 @@
+{
+  "gpio_out_clk[0]": {
+    "x": 1,
+    "y": 1,
+    "subtile": 0
+  },
+  "gpio_out_clk[1]": {
+    "x": 1,
+    "y": 1,
+    "subtile": 1
+  },
+  "gpio_out_clk[2]": {
+    "x": 1,
+    "y": 1,
+    "subtile": 2
+  },
+  "gpio_out_clk[3]": {
+    "x": 1,
+    "y": 1,
+    "subtile": 3
+  },
+  "gpio_in_clk[0]": {
+    "x": 1,
+    "y": 1,
+    "subtile": 0
+  },
+  "gpio_in_clk[1]": {
+    "x": 1,
+    "y": 1,
+    "subtile": 1
+  },
+  "gpio_in_clk[2]": {
+    "x": 1,
+    "y": 1,
+    "subtile": 2
+  },
+  "gpio_in_clk[3]": {
+    "x": 1,
+    "y": 1,
+    "subtile": 3
+  },
+  "gpio_out_west[0]": {
+    "x": 1,
+    "y": 2,
+    "subtile": 0
+  },
+  "gpio_out_west[1]": {
+    "x": 1,
+    "y": 2,
+    "subtile": 1
+  },
+  "gpio_out_west[2]": {
+    "x": 1,
+    "y": 2,
+    "subtile": 2
+  },
+  "gpio_out_west[3]": {
+    "x": 1,
+    "y": 2,
+    "subtile": 3
+  },
+  "gpio_out_west[4]": {
+    "x": 1,
+    "y": 2,
+    "subtile": 4
+  },
+  "gpio_out_west[5]": {
+    "x": 1,
+    "y": 2,
+    "subtile": 5
+  },
+  "gpio_out_west[6]": {
+    "x": 1,
+    "y": 2,
+    "subtile": 6
+  },
+  "gpio_out_west[7]": {
+    "x": 1,
+    "y": 2,
+    "subtile": 7
+  },
+  "gpio_out_west[8]": {
+    "x": 1,
+    "y": 2,
+    "subtile": 8
+  },
+  "gpio_out_west[9]": {
+    "x": 1,
+    "y": 2,
+    "subtile": 9
+  },
+  "gpio_out_west[10]": {
+    "x": 1,
+    "y": 2,
+    "subtile": 10
+  },
+  "gpio_out_west[11]": {
+    "x": 1,
+    "y": 2,
+    "subtile": 11
+  },
+  "gpio_out_west[12]": {
+    "x": 1,
+    "y": 2,
+    "subtile": 12
+  },
+  "gpio_out_west[13]": {
+    "x": 1,
+    "y": 2,
+    "subtile": 13
+  },
+  "gpio_out_west[14]": {
+    "x": 1,
+    "y": 2,
+    "subtile": 14
+  },
+  "gpio_out_west[15]": {
+    "x": 1,
+    "y": 2,
+    "subtile": 15
+  },
+  "gpio_out_west[16]": {
+    "x": 1,
+    "y": 3,
+    "subtile": 0
+  },
+  "gpio_out_west[17]": {
+    "x": 1,
+    "y": 3,
+    "subtile": 1
+  },
+  "gpio_out_west[18]": {
+    "x": 1,
+    "y": 3,
+    "subtile": 2
+  },
+  "gpio_out_west[19]": {
+    "x": 1,
+    "y": 3,
+    "subtile": 3
+  },
+  "gpio_out_west[20]": {
+    "x": 1,
+    "y": 3,
+    "subtile": 4
+  },
+  "gpio_out_west[21]": {
+    "x": 1,
+    "y": 3,
+    "subtile": 5
+  },
+  "gpio_out_west[22]": {
+    "x": 1,
+    "y": 3,
+    "subtile": 6
+  },
+  "gpio_out_west[23]": {
+    "x": 1,
+    "y": 3,
+    "subtile": 7
+  },
+  "gpio_out_west[24]": {
+    "x": 1,
+    "y": 3,
+    "subtile": 8
+  },
+  "gpio_out_west[25]": {
+    "x": 1,
+    "y": 3,
+    "subtile": 9
+  },
+  "gpio_out_west[26]": {
+    "x": 1,
+    "y": 3,
+    "subtile": 10
+  },
+  "gpio_out_west[27]": {
+    "x": 1,
+    "y": 3,
+    "subtile": 11
+  },
+  "gpio_out_west[28]": {
+    "x": 1,
+    "y": 3,
+    "subtile": 12
+  },
+  "gpio_out_west[29]": {
+    "x": 1,
+    "y": 3,
+    "subtile": 13
+  },
+  "gpio_out_west[30]": {
+    "x": 1,
+    "y": 3,
+    "subtile": 14
+  },
+  "gpio_out_west[31]": {
+    "x": 1,
+    "y": 3,
+    "subtile": 15
+  },
+  "gpio_out_west[32]": {
+    "x": 1,
+    "y": 4,
+    "subtile": 0
+  },
+  "gpio_out_west[33]": {
+    "x": 1,
+    "y": 4,
+    "subtile": 1
+  },
+  "gpio_out_west[34]": {
+    "x": 1,
+    "y": 4,
+    "subtile": 2
+  },
+  "gpio_out_west[35]": {
+    "x": 1,
+    "y": 4,
+    "subtile": 3
+  },
+  "gpio_out_west[36]": {
+    "x": 1,
+    "y": 4,
+    "subtile": 4
+  },
+  "gpio_out_west[37]": {
+    "x": 1,
+    "y": 4,
+    "subtile": 5
+  },
+  "gpio_out_west[38]": {
+    "x": 1,
+    "y": 4,
+    "subtile": 6
+  },
+  "gpio_out_west[39]": {
+    "x": 1,
+    "y": 4,
+    "subtile": 7
+  },
+  "gpio_out_west[40]": {
+    "x": 1,
+    "y": 4,
+    "subtile": 8
+  },
+  "gpio_out_west[41]": {
+    "x": 1,
+    "y": 4,
+    "subtile": 9
+  },
+  "gpio_out_west[42]": {
+    "x": 1,
+    "y": 4,
+    "subtile": 10
+  },
+  "gpio_out_west[43]": {
+    "x": 1,
+    "y": 4,
+    "subtile": 11
+  },
+  "gpio_out_west[44]": {
+    "x": 1,
+    "y": 4,
+    "subtile": 12
+  },
+  "gpio_out_west[45]": {
+    "x": 1,
+    "y": 4,
+    "subtile": 13
+  },
+  "gpio_out_west[46]": {
+    "x": 1,
+    "y": 4,
+    "subtile": 14
+  },
+  "gpio_out_west[47]": {
+    "x": 1,
+    "y": 4,
+    "subtile": 15
+  },
+  "gpio_out_west[48]": {
+    "x": 1,
+    "y": 5,
+    "subtile": 0
+  },
+  "gpio_out_west[49]": {
+    "x": 1,
+    "y": 5,
+    "subtile": 1
+  },
+  "gpio_out_west[50]": {
+    "x": 1,
+    "y": 5,
+    "subtile": 2
+  },
+  "gpio_out_west[51]": {
+    "x": 1,
+    "y": 5,
+    "subtile": 3
+  },
+  "gpio_out_west[52]": {
+    "x": 1,
+    "y": 5,
+    "subtile": 4
+  },
+  "gpio_out_west[53]": {
+    "x": 1,
+    "y": 5,
+    "subtile": 5
+  },
+  "gpio_out_west[54]": {
+    "x": 1,
+    "y": 5,
+    "subtile": 6
+  },
+  "gpio_out_west[55]": {
+    "x": 1,
+    "y": 5,
+    "subtile": 7
+  },
+  "gpio_out_west[56]": {
+    "x": 1,
+    "y": 5,
+    "subtile": 8
+  },
+  "gpio_out_west[57]": {
+    "x": 1,
+    "y": 5,
+    "subtile": 9
+  },
+  "gpio_out_west[58]": {
+    "x": 1,
+    "y": 5,
+    "subtile": 10
+  },
+  "gpio_out_west[59]": {
+    "x": 1,
+    "y": 5,
+    "subtile": 11
+  },
+  "gpio_out_west[60]": {
+    "x": 1,
+    "y": 5,
+    "subtile": 12
+  },
+  "gpio_out_west[61]": {
+    "x": 1,
+    "y": 5,
+    "subtile": 13
+  },
+  "gpio_out_west[62]": {
+    "x": 1,
+    "y": 5,
+    "subtile": 14
+  },
+  "gpio_out_west[63]": {
+    "x": 1,
+    "y": 5,
+    "subtile": 15
+  },
+  "gpio_out_west[64]": {
+    "x": 1,
+    "y": 6,
+    "subtile": 0
+  },
+  "gpio_out_west[65]": {
+    "x": 1,
+    "y": 6,
+    "subtile": 1
+  },
+  "gpio_out_west[66]": {
+    "x": 1,
+    "y": 6,
+    "subtile": 2
+  },
+  "gpio_out_west[67]": {
+    "x": 1,
+    "y": 6,
+    "subtile": 3
+  },
+  "gpio_out_west[68]": {
+    "x": 1,
+    "y": 6,
+    "subtile": 4
+  },
+  "gpio_out_west[69]": {
+    "x": 1,
+    "y": 6,
+    "subtile": 5
+  },
+  "gpio_out_west[70]": {
+    "x": 1,
+    "y": 6,
+    "subtile": 6
+  },
+  "gpio_out_west[71]": {
+    "x": 1,
+    "y": 6,
+    "subtile": 7
+  },
+  "gpio_out_west[72]": {
+    "x": 1,
+    "y": 6,
+    "subtile": 8
+  },
+  "gpio_out_west[73]": {
+    "x": 1,
+    "y": 6,
+    "subtile": 9
+  },
+  "gpio_out_west[74]": {
+    "x": 1,
+    "y": 6,
+    "subtile": 10
+  },
+  "gpio_out_west[75]": {
+    "x": 1,
+    "y": 6,
+    "subtile": 11
+  },
+  "gpio_out_west[76]": {
+    "x": 1,
+    "y": 6,
+    "subtile": 12
+  },
+  "gpio_out_west[77]": {
+    "x": 1,
+    "y": 6,
+    "subtile": 13
+  },
+  "gpio_out_west[78]": {
+    "x": 1,
+    "y": 6,
+    "subtile": 14
+  },
+  "gpio_out_west[79]": {
+    "x": 1,
+    "y": 6,
+    "subtile": 15
+  },
+  "gpio_out_west[80]": {
+    "x": 1,
+    "y": 7,
+    "subtile": 0
+  },
+  "gpio_out_west[81]": {
+    "x": 1,
+    "y": 7,
+    "subtile": 1
+  },
+  "gpio_out_west[82]": {
+    "x": 1,
+    "y": 7,
+    "subtile": 2
+  },
+  "gpio_out_west[83]": {
+    "x": 1,
+    "y": 7,
+    "subtile": 3
+  },
+  "gpio_out_west[84]": {
+    "x": 1,
+    "y": 7,
+    "subtile": 4
+  },
+  "gpio_out_west[85]": {
+    "x": 1,
+    "y": 7,
+    "subtile": 5
+  },
+  "gpio_out_west[86]": {
+    "x": 1,
+    "y": 7,
+    "subtile": 6
+  },
+  "gpio_out_west[87]": {
+    "x": 1,
+    "y": 7,
+    "subtile": 7
+  },
+  "gpio_out_west[88]": {
+    "x": 1,
+    "y": 7,
+    "subtile": 8
+  },
+  "gpio_out_west[89]": {
+    "x": 1,
+    "y": 7,
+    "subtile": 9
+  },
+  "gpio_out_west[90]": {
+    "x": 1,
+    "y": 7,
+    "subtile": 10
+  },
+  "gpio_out_west[91]": {
+    "x": 1,
+    "y": 7,
+    "subtile": 11
+  },
+  "gpio_out_west[92]": {
+    "x": 1,
+    "y": 7,
+    "subtile": 12
+  },
+  "gpio_out_west[93]": {
+    "x": 1,
+    "y": 7,
+    "subtile": 13
+  },
+  "gpio_out_west[94]": {
+    "x": 1,
+    "y": 7,
+    "subtile": 14
+  },
+  "gpio_out_west[95]": {
+    "x": 1,
+    "y": 7,
+    "subtile": 15
+  },
+  "gpio_out_west[96]": {
+    "x": 1,
+    "y": 8,
+    "subtile": 0
+  },
+  "gpio_out_west[97]": {
+    "x": 1,
+    "y": 8,
+    "subtile": 1
+  },
+  "gpio_out_west[98]": {
+    "x": 1,
+    "y": 8,
+    "subtile": 2
+  },
+  "gpio_out_west[99]": {
+    "x": 1,
+    "y": 8,
+    "subtile": 3
+  },
+  "gpio_out_west[100]": {
+    "x": 1,
+    "y": 8,
+    "subtile": 4
+  },
+  "gpio_out_west[101]": {
+    "x": 1,
+    "y": 8,
+    "subtile": 5
+  },
+  "gpio_out_west[102]": {
+    "x": 1,
+    "y": 8,
+    "subtile": 6
+  },
+  "gpio_out_west[103]": {
+    "x": 1,
+    "y": 8,
+    "subtile": 7
+  },
+  "gpio_out_west[104]": {
+    "x": 1,
+    "y": 8,
+    "subtile": 8
+  },
+  "gpio_out_west[105]": {
+    "x": 1,
+    "y": 8,
+    "subtile": 9
+  },
+  "gpio_out_west[106]": {
+    "x": 1,
+    "y": 8,
+    "subtile": 10
+  },
+  "gpio_out_west[107]": {
+    "x": 1,
+    "y": 8,
+    "subtile": 11
+  },
+  "gpio_out_west[108]": {
+    "x": 1,
+    "y": 8,
+    "subtile": 12
+  },
+  "gpio_out_west[109]": {
+    "x": 1,
+    "y": 8,
+    "subtile": 13
+  },
+  "gpio_out_west[110]": {
+    "x": 1,
+    "y": 8,
+    "subtile": 14
+  },
+  "gpio_out_west[111]": {
+    "x": 1,
+    "y": 8,
+    "subtile": 15
+  },
+  "gpio_out_west[112]": {
+    "x": 1,
+    "y": 9,
+    "subtile": 0
+  },
+  "gpio_out_west[113]": {
+    "x": 1,
+    "y": 9,
+    "subtile": 1
+  },
+  "gpio_out_west[114]": {
+    "x": 1,
+    "y": 9,
+    "subtile": 2
+  },
+  "gpio_out_west[115]": {
+    "x": 1,
+    "y": 9,
+    "subtile": 3
+  },
+  "gpio_out_west[116]": {
+    "x": 1,
+    "y": 9,
+    "subtile": 4
+  },
+  "gpio_out_west[117]": {
+    "x": 1,
+    "y": 9,
+    "subtile": 5
+  },
+  "gpio_out_west[118]": {
+    "x": 1,
+    "y": 9,
+    "subtile": 6
+  },
+  "gpio_out_west[119]": {
+    "x": 1,
+    "y": 9,
+    "subtile": 7
+  },
+  "gpio_out_west[120]": {
+    "x": 1,
+    "y": 9,
+    "subtile": 8
+  },
+  "gpio_out_west[121]": {
+    "x": 1,
+    "y": 9,
+    "subtile": 9
+  },
+  "gpio_out_west[122]": {
+    "x": 1,
+    "y": 9,
+    "subtile": 10
+  },
+  "gpio_out_west[123]": {
+    "x": 1,
+    "y": 9,
+    "subtile": 11
+  },
+  "gpio_out_west[124]": {
+    "x": 1,
+    "y": 9,
+    "subtile": 12
+  },
+  "gpio_out_west[125]": {
+    "x": 1,
+    "y": 9,
+    "subtile": 13
+  },
+  "gpio_out_west[126]": {
+    "x": 1,
+    "y": 9,
+    "subtile": 14
+  },
+  "gpio_out_west[127]": {
+    "x": 1,
+    "y": 9,
+    "subtile": 15
+  },
+  "gpio_out_west[128]": {
+    "x": 1,
+    "y": 10,
+    "subtile": 0
+  },
+  "gpio_out_west[129]": {
+    "x": 1,
+    "y": 10,
+    "subtile": 1
+  },
+  "gpio_out_west[130]": {
+    "x": 1,
+    "y": 10,
+    "subtile": 2
+  },
+  "gpio_out_west[131]": {
+    "x": 1,
+    "y": 10,
+    "subtile": 3
+  },
+  "gpio_out_west[132]": {
+    "x": 1,
+    "y": 10,
+    "subtile": 4
+  },
+  "gpio_out_west[133]": {
+    "x": 1,
+    "y": 10,
+    "subtile": 5
+  },
+  "gpio_out_west[134]": {
+    "x": 1,
+    "y": 10,
+    "subtile": 6
+  },
+  "gpio_out_west[135]": {
+    "x": 1,
+    "y": 10,
+    "subtile": 7
+  },
+  "gpio_out_west[136]": {
+    "x": 1,
+    "y": 10,
+    "subtile": 8
+  },
+  "gpio_out_west[137]": {
+    "x": 1,
+    "y": 10,
+    "subtile": 9
+  },
+  "gpio_out_west[138]": {
+    "x": 1,
+    "y": 10,
+    "subtile": 10
+  },
+  "gpio_out_west[139]": {
+    "x": 1,
+    "y": 10,
+    "subtile": 11
+  },
+  "gpio_out_west[140]": {
+    "x": 1,
+    "y": 10,
+    "subtile": 12
+  },
+  "gpio_out_west[141]": {
+    "x": 1,
+    "y": 10,
+    "subtile": 13
+  },
+  "gpio_out_west[142]": {
+    "x": 1,
+    "y": 10,
+    "subtile": 14
+  },
+  "gpio_out_west[143]": {
+    "x": 1,
+    "y": 10,
+    "subtile": 15
+  },
+  "gpio_out_west[144]": {
+    "x": 1,
+    "y": 11,
+    "subtile": 0
+  },
+  "gpio_out_west[145]": {
+    "x": 1,
+    "y": 11,
+    "subtile": 1
+  },
+  "gpio_out_west[146]": {
+    "x": 1,
+    "y": 11,
+    "subtile": 2
+  },
+  "gpio_out_west[147]": {
+    "x": 1,
+    "y": 11,
+    "subtile": 3
+  },
+  "gpio_out_west[148]": {
+    "x": 1,
+    "y": 11,
+    "subtile": 4
+  },
+  "gpio_out_west[149]": {
+    "x": 1,
+    "y": 11,
+    "subtile": 5
+  },
+  "gpio_out_west[150]": {
+    "x": 1,
+    "y": 11,
+    "subtile": 6
+  },
+  "gpio_out_west[151]": {
+    "x": 1,
+    "y": 11,
+    "subtile": 7
+  },
+  "gpio_out_west[152]": {
+    "x": 1,
+    "y": 11,
+    "subtile": 8
+  },
+  "gpio_out_west[153]": {
+    "x": 1,
+    "y": 11,
+    "subtile": 9
+  },
+  "gpio_out_west[154]": {
+    "x": 1,
+    "y": 11,
+    "subtile": 10
+  },
+  "gpio_out_west[155]": {
+    "x": 1,
+    "y": 11,
+    "subtile": 11
+  },
+  "gpio_out_west[156]": {
+    "x": 1,
+    "y": 11,
+    "subtile": 12
+  },
+  "gpio_out_west[157]": {
+    "x": 1,
+    "y": 11,
+    "subtile": 13
+  },
+  "gpio_out_west[158]": {
+    "x": 1,
+    "y": 11,
+    "subtile": 14
+  },
+  "gpio_out_west[159]": {
+    "x": 1,
+    "y": 11,
+    "subtile": 15
+  },
+  "gpio_out_west[160]": {
+    "x": 1,
+    "y": 12,
+    "subtile": 0
+  },
+  "gpio_out_west[161]": {
+    "x": 1,
+    "y": 12,
+    "subtile": 1
+  },
+  "gpio_out_west[162]": {
+    "x": 1,
+    "y": 12,
+    "subtile": 2
+  },
+  "gpio_out_west[163]": {
+    "x": 1,
+    "y": 12,
+    "subtile": 3
+  },
+  "gpio_out_west[164]": {
+    "x": 1,
+    "y": 12,
+    "subtile": 4
+  },
+  "gpio_out_west[165]": {
+    "x": 1,
+    "y": 12,
+    "subtile": 5
+  },
+  "gpio_out_west[166]": {
+    "x": 1,
+    "y": 12,
+    "subtile": 6
+  },
+  "gpio_out_west[167]": {
+    "x": 1,
+    "y": 12,
+    "subtile": 7
+  },
+  "gpio_out_west[168]": {
+    "x": 1,
+    "y": 12,
+    "subtile": 8
+  },
+  "gpio_out_west[169]": {
+    "x": 1,
+    "y": 12,
+    "subtile": 9
+  },
+  "gpio_out_west[170]": {
+    "x": 1,
+    "y": 12,
+    "subtile": 10
+  },
+  "gpio_out_west[171]": {
+    "x": 1,
+    "y": 12,
+    "subtile": 11
+  },
+  "gpio_out_west[172]": {
+    "x": 1,
+    "y": 12,
+    "subtile": 12
+  },
+  "gpio_out_west[173]": {
+    "x": 1,
+    "y": 12,
+    "subtile": 13
+  },
+  "gpio_out_west[174]": {
+    "x": 1,
+    "y": 12,
+    "subtile": 14
+  },
+  "gpio_out_west[175]": {
+    "x": 1,
+    "y": 12,
+    "subtile": 15
+  },
+  "gpio_out_west[176]": {
+    "x": 1,
+    "y": 13,
+    "subtile": 0
+  },
+  "gpio_out_west[177]": {
+    "x": 1,
+    "y": 13,
+    "subtile": 1
+  },
+  "gpio_out_west[178]": {
+    "x": 1,
+    "y": 13,
+    "subtile": 2
+  },
+  "gpio_out_west[179]": {
+    "x": 1,
+    "y": 13,
+    "subtile": 3
+  },
+  "gpio_out_west[180]": {
+    "x": 1,
+    "y": 13,
+    "subtile": 4
+  },
+  "gpio_out_west[181]": {
+    "x": 1,
+    "y": 13,
+    "subtile": 5
+  },
+  "gpio_out_west[182]": {
+    "x": 1,
+    "y": 13,
+    "subtile": 6
+  },
+  "gpio_out_west[183]": {
+    "x": 1,
+    "y": 13,
+    "subtile": 7
+  },
+  "gpio_out_west[184]": {
+    "x": 1,
+    "y": 13,
+    "subtile": 8
+  },
+  "gpio_out_west[185]": {
+    "x": 1,
+    "y": 13,
+    "subtile": 9
+  },
+  "gpio_out_west[186]": {
+    "x": 1,
+    "y": 13,
+    "subtile": 10
+  },
+  "gpio_out_west[187]": {
+    "x": 1,
+    "y": 13,
+    "subtile": 11
+  },
+  "gpio_out_west[188]": {
+    "x": 1,
+    "y": 13,
+    "subtile": 12
+  },
+  "gpio_out_west[189]": {
+    "x": 1,
+    "y": 13,
+    "subtile": 13
+  },
+  "gpio_out_west[190]": {
+    "x": 1,
+    "y": 13,
+    "subtile": 14
+  },
+  "gpio_out_west[191]": {
+    "x": 1,
+    "y": 13,
+    "subtile": 15
+  },
+  "gpio_out_west[192]": {
+    "x": 1,
+    "y": 14,
+    "subtile": 0
+  },
+  "gpio_out_west[193]": {
+    "x": 1,
+    "y": 14,
+    "subtile": 1
+  },
+  "gpio_out_west[194]": {
+    "x": 1,
+    "y": 14,
+    "subtile": 2
+  },
+  "gpio_out_west[195]": {
+    "x": 1,
+    "y": 14,
+    "subtile": 3
+  },
+  "gpio_out_west[196]": {
+    "x": 1,
+    "y": 14,
+    "subtile": 4
+  },
+  "gpio_out_west[197]": {
+    "x": 1,
+    "y": 14,
+    "subtile": 5
+  },
+  "gpio_out_west[198]": {
+    "x": 1,
+    "y": 14,
+    "subtile": 6
+  },
+  "gpio_out_west[199]": {
+    "x": 1,
+    "y": 14,
+    "subtile": 7
+  },
+  "gpio_out_west[200]": {
+    "x": 1,
+    "y": 14,
+    "subtile": 8
+  },
+  "gpio_out_west[201]": {
+    "x": 1,
+    "y": 14,
+    "subtile": 9
+  },
+  "gpio_out_west[202]": {
+    "x": 1,
+    "y": 14,
+    "subtile": 10
+  },
+  "gpio_out_west[203]": {
+    "x": 1,
+    "y": 14,
+    "subtile": 11
+  },
+  "gpio_out_west[204]": {
+    "x": 1,
+    "y": 14,
+    "subtile": 12
+  },
+  "gpio_out_west[205]": {
+    "x": 1,
+    "y": 14,
+    "subtile": 13
+  },
+  "gpio_out_west[206]": {
+    "x": 1,
+    "y": 14,
+    "subtile": 14
+  },
+  "gpio_out_west[207]": {
+    "x": 1,
+    "y": 14,
+    "subtile": 15
+  },
+  "gpio_out_west[208]": {
+    "x": 1,
+    "y": 15,
+    "subtile": 0
+  },
+  "gpio_out_west[209]": {
+    "x": 1,
+    "y": 15,
+    "subtile": 1
+  },
+  "gpio_out_west[210]": {
+    "x": 1,
+    "y": 15,
+    "subtile": 2
+  },
+  "gpio_out_west[211]": {
+    "x": 1,
+    "y": 15,
+    "subtile": 3
+  },
+  "gpio_out_west[212]": {
+    "x": 1,
+    "y": 15,
+    "subtile": 4
+  },
+  "gpio_out_west[213]": {
+    "x": 1,
+    "y": 15,
+    "subtile": 5
+  },
+  "gpio_out_west[214]": {
+    "x": 1,
+    "y": 15,
+    "subtile": 6
+  },
+  "gpio_out_west[215]": {
+    "x": 1,
+    "y": 15,
+    "subtile": 7
+  },
+  "gpio_out_west[216]": {
+    "x": 1,
+    "y": 15,
+    "subtile": 8
+  },
+  "gpio_out_west[217]": {
+    "x": 1,
+    "y": 15,
+    "subtile": 9
+  },
+  "gpio_out_west[218]": {
+    "x": 1,
+    "y": 15,
+    "subtile": 10
+  },
+  "gpio_out_west[219]": {
+    "x": 1,
+    "y": 15,
+    "subtile": 11
+  },
+  "gpio_out_west[220]": {
+    "x": 1,
+    "y": 15,
+    "subtile": 12
+  },
+  "gpio_out_west[221]": {
+    "x": 1,
+    "y": 15,
+    "subtile": 13
+  },
+  "gpio_out_west[222]": {
+    "x": 1,
+    "y": 15,
+    "subtile": 14
+  },
+  "gpio_out_west[223]": {
+    "x": 1,
+    "y": 15,
+    "subtile": 15
+  },
+  "gpio_out_west[224]": {
+    "x": 1,
+    "y": 16,
+    "subtile": 0
+  },
+  "gpio_out_west[225]": {
+    "x": 1,
+    "y": 16,
+    "subtile": 1
+  },
+  "gpio_out_west[226]": {
+    "x": 1,
+    "y": 16,
+    "subtile": 2
+  },
+  "gpio_out_west[227]": {
+    "x": 1,
+    "y": 16,
+    "subtile": 3
+  },
+  "gpio_out_west[228]": {
+    "x": 1,
+    "y": 16,
+    "subtile": 4
+  },
+  "gpio_out_west[229]": {
+    "x": 1,
+    "y": 16,
+    "subtile": 5
+  },
+  "gpio_out_west[230]": {
+    "x": 1,
+    "y": 16,
+    "subtile": 6
+  },
+  "gpio_out_west[231]": {
+    "x": 1,
+    "y": 16,
+    "subtile": 7
+  },
+  "gpio_out_west[232]": {
+    "x": 1,
+    "y": 16,
+    "subtile": 8
+  },
+  "gpio_out_west[233]": {
+    "x": 1,
+    "y": 16,
+    "subtile": 9
+  },
+  "gpio_out_west[234]": {
+    "x": 1,
+    "y": 16,
+    "subtile": 10
+  },
+  "gpio_out_west[235]": {
+    "x": 1,
+    "y": 16,
+    "subtile": 11
+  },
+  "gpio_out_west[236]": {
+    "x": 1,
+    "y": 16,
+    "subtile": 12
+  },
+  "gpio_out_west[237]": {
+    "x": 1,
+    "y": 16,
+    "subtile": 13
+  },
+  "gpio_out_west[238]": {
+    "x": 1,
+    "y": 16,
+    "subtile": 14
+  },
+  "gpio_out_west[239]": {
+    "x": 1,
+    "y": 16,
+    "subtile": 15
+  },
+  "gpio_out_west[240]": {
+    "x": 1,
+    "y": 17,
+    "subtile": 0
+  },
+  "gpio_out_west[241]": {
+    "x": 1,
+    "y": 17,
+    "subtile": 1
+  },
+  "gpio_out_west[242]": {
+    "x": 1,
+    "y": 17,
+    "subtile": 2
+  },
+  "gpio_out_west[243]": {
+    "x": 1,
+    "y": 17,
+    "subtile": 3
+  },
+  "gpio_out_west[244]": {
+    "x": 1,
+    "y": 17,
+    "subtile": 4
+  },
+  "gpio_out_west[245]": {
+    "x": 1,
+    "y": 17,
+    "subtile": 5
+  },
+  "gpio_out_west[246]": {
+    "x": 1,
+    "y": 17,
+    "subtile": 6
+  },
+  "gpio_out_west[247]": {
+    "x": 1,
+    "y": 17,
+    "subtile": 7
+  },
+  "gpio_out_west[248]": {
+    "x": 1,
+    "y": 17,
+    "subtile": 8
+  },
+  "gpio_out_west[249]": {
+    "x": 1,
+    "y": 17,
+    "subtile": 9
+  },
+  "gpio_out_west[250]": {
+    "x": 1,
+    "y": 17,
+    "subtile": 10
+  },
+  "gpio_out_west[251]": {
+    "x": 1,
+    "y": 17,
+    "subtile": 11
+  },
+  "gpio_out_west[252]": {
+    "x": 1,
+    "y": 17,
+    "subtile": 12
+  },
+  "gpio_out_west[253]": {
+    "x": 1,
+    "y": 17,
+    "subtile": 13
+  },
+  "gpio_out_west[254]": {
+    "x": 1,
+    "y": 17,
+    "subtile": 14
+  },
+  "gpio_out_west[255]": {
+    "x": 1,
+    "y": 17,
+    "subtile": 15
+  },
+  "gpio_in_west[0]": {
+    "x": 1,
+    "y": 2,
+    "subtile": 0
+  },
+  "gpio_in_west[1]": {
+    "x": 1,
+    "y": 2,
+    "subtile": 1
+  },
+  "gpio_in_west[2]": {
+    "x": 1,
+    "y": 2,
+    "subtile": 2
+  },
+  "gpio_in_west[3]": {
+    "x": 1,
+    "y": 2,
+    "subtile": 3
+  },
+  "gpio_in_west[4]": {
+    "x": 1,
+    "y": 2,
+    "subtile": 4
+  },
+  "gpio_in_west[5]": {
+    "x": 1,
+    "y": 2,
+    "subtile": 5
+  },
+  "gpio_in_west[6]": {
+    "x": 1,
+    "y": 2,
+    "subtile": 6
+  },
+  "gpio_in_west[7]": {
+    "x": 1,
+    "y": 2,
+    "subtile": 7
+  },
+  "gpio_in_west[8]": {
+    "x": 1,
+    "y": 2,
+    "subtile": 8
+  },
+  "gpio_in_west[9]": {
+    "x": 1,
+    "y": 2,
+    "subtile": 9
+  },
+  "gpio_in_west[10]": {
+    "x": 1,
+    "y": 2,
+    "subtile": 10
+  },
+  "gpio_in_west[11]": {
+    "x": 1,
+    "y": 2,
+    "subtile": 11
+  },
+  "gpio_in_west[12]": {
+    "x": 1,
+    "y": 2,
+    "subtile": 12
+  },
+  "gpio_in_west[13]": {
+    "x": 1,
+    "y": 2,
+    "subtile": 13
+  },
+  "gpio_in_west[14]": {
+    "x": 1,
+    "y": 2,
+    "subtile": 14
+  },
+  "gpio_in_west[15]": {
+    "x": 1,
+    "y": 2,
+    "subtile": 15
+  },
+  "gpio_in_west[16]": {
+    "x": 1,
+    "y": 3,
+    "subtile": 0
+  },
+  "gpio_in_west[17]": {
+    "x": 1,
+    "y": 3,
+    "subtile": 1
+  },
+  "gpio_in_west[18]": {
+    "x": 1,
+    "y": 3,
+    "subtile": 2
+  },
+  "gpio_in_west[19]": {
+    "x": 1,
+    "y": 3,
+    "subtile": 3
+  },
+  "gpio_in_west[20]": {
+    "x": 1,
+    "y": 3,
+    "subtile": 4
+  },
+  "gpio_in_west[21]": {
+    "x": 1,
+    "y": 3,
+    "subtile": 5
+  },
+  "gpio_in_west[22]": {
+    "x": 1,
+    "y": 3,
+    "subtile": 6
+  },
+  "gpio_in_west[23]": {
+    "x": 1,
+    "y": 3,
+    "subtile": 7
+  },
+  "gpio_in_west[24]": {
+    "x": 1,
+    "y": 3,
+    "subtile": 8
+  },
+  "gpio_in_west[25]": {
+    "x": 1,
+    "y": 3,
+    "subtile": 9
+  },
+  "gpio_in_west[26]": {
+    "x": 1,
+    "y": 3,
+    "subtile": 10
+  },
+  "gpio_in_west[27]": {
+    "x": 1,
+    "y": 3,
+    "subtile": 11
+  },
+  "gpio_in_west[28]": {
+    "x": 1,
+    "y": 3,
+    "subtile": 12
+  },
+  "gpio_in_west[29]": {
+    "x": 1,
+    "y": 3,
+    "subtile": 13
+  },
+  "gpio_in_west[30]": {
+    "x": 1,
+    "y": 3,
+    "subtile": 14
+  },
+  "gpio_in_west[31]": {
+    "x": 1,
+    "y": 3,
+    "subtile": 15
+  },
+  "gpio_in_west[32]": {
+    "x": 1,
+    "y": 4,
+    "subtile": 0
+  },
+  "gpio_in_west[33]": {
+    "x": 1,
+    "y": 4,
+    "subtile": 1
+  },
+  "gpio_in_west[34]": {
+    "x": 1,
+    "y": 4,
+    "subtile": 2
+  },
+  "gpio_in_west[35]": {
+    "x": 1,
+    "y": 4,
+    "subtile": 3
+  },
+  "gpio_in_west[36]": {
+    "x": 1,
+    "y": 4,
+    "subtile": 4
+  },
+  "gpio_in_west[37]": {
+    "x": 1,
+    "y": 4,
+    "subtile": 5
+  },
+  "gpio_in_west[38]": {
+    "x": 1,
+    "y": 4,
+    "subtile": 6
+  },
+  "gpio_in_west[39]": {
+    "x": 1,
+    "y": 4,
+    "subtile": 7
+  },
+  "gpio_in_west[40]": {
+    "x": 1,
+    "y": 4,
+    "subtile": 8
+  },
+  "gpio_in_west[41]": {
+    "x": 1,
+    "y": 4,
+    "subtile": 9
+  },
+  "gpio_in_west[42]": {
+    "x": 1,
+    "y": 4,
+    "subtile": 10
+  },
+  "gpio_in_west[43]": {
+    "x": 1,
+    "y": 4,
+    "subtile": 11
+  },
+  "gpio_in_west[44]": {
+    "x": 1,
+    "y": 4,
+    "subtile": 12
+  },
+  "gpio_in_west[45]": {
+    "x": 1,
+    "y": 4,
+    "subtile": 13
+  },
+  "gpio_in_west[46]": {
+    "x": 1,
+    "y": 4,
+    "subtile": 14
+  },
+  "gpio_in_west[47]": {
+    "x": 1,
+    "y": 4,
+    "subtile": 15
+  },
+  "gpio_in_west[48]": {
+    "x": 1,
+    "y": 5,
+    "subtile": 0
+  },
+  "gpio_in_west[49]": {
+    "x": 1,
+    "y": 5,
+    "subtile": 1
+  },
+  "gpio_in_west[50]": {
+    "x": 1,
+    "y": 5,
+    "subtile": 2
+  },
+  "gpio_in_west[51]": {
+    "x": 1,
+    "y": 5,
+    "subtile": 3
+  },
+  "gpio_in_west[52]": {
+    "x": 1,
+    "y": 5,
+    "subtile": 4
+  },
+  "gpio_in_west[53]": {
+    "x": 1,
+    "y": 5,
+    "subtile": 5
+  },
+  "gpio_in_west[54]": {
+    "x": 1,
+    "y": 5,
+    "subtile": 6
+  },
+  "gpio_in_west[55]": {
+    "x": 1,
+    "y": 5,
+    "subtile": 7
+  },
+  "gpio_in_west[56]": {
+    "x": 1,
+    "y": 5,
+    "subtile": 8
+  },
+  "gpio_in_west[57]": {
+    "x": 1,
+    "y": 5,
+    "subtile": 9
+  },
+  "gpio_in_west[58]": {
+    "x": 1,
+    "y": 5,
+    "subtile": 10
+  },
+  "gpio_in_west[59]": {
+    "x": 1,
+    "y": 5,
+    "subtile": 11
+  },
+  "gpio_in_west[60]": {
+    "x": 1,
+    "y": 5,
+    "subtile": 12
+  },
+  "gpio_in_west[61]": {
+    "x": 1,
+    "y": 5,
+    "subtile": 13
+  },
+  "gpio_in_west[62]": {
+    "x": 1,
+    "y": 5,
+    "subtile": 14
+  },
+  "gpio_in_west[63]": {
+    "x": 1,
+    "y": 5,
+    "subtile": 15
+  },
+  "gpio_in_west[64]": {
+    "x": 1,
+    "y": 6,
+    "subtile": 0
+  },
+  "gpio_in_west[65]": {
+    "x": 1,
+    "y": 6,
+    "subtile": 1
+  },
+  "gpio_in_west[66]": {
+    "x": 1,
+    "y": 6,
+    "subtile": 2
+  },
+  "gpio_in_west[67]": {
+    "x": 1,
+    "y": 6,
+    "subtile": 3
+  },
+  "gpio_in_west[68]": {
+    "x": 1,
+    "y": 6,
+    "subtile": 4
+  },
+  "gpio_in_west[69]": {
+    "x": 1,
+    "y": 6,
+    "subtile": 5
+  },
+  "gpio_in_west[70]": {
+    "x": 1,
+    "y": 6,
+    "subtile": 6
+  },
+  "gpio_in_west[71]": {
+    "x": 1,
+    "y": 6,
+    "subtile": 7
+  },
+  "gpio_in_west[72]": {
+    "x": 1,
+    "y": 6,
+    "subtile": 8
+  },
+  "gpio_in_west[73]": {
+    "x": 1,
+    "y": 6,
+    "subtile": 9
+  },
+  "gpio_in_west[74]": {
+    "x": 1,
+    "y": 6,
+    "subtile": 10
+  },
+  "gpio_in_west[75]": {
+    "x": 1,
+    "y": 6,
+    "subtile": 11
+  },
+  "gpio_in_west[76]": {
+    "x": 1,
+    "y": 6,
+    "subtile": 12
+  },
+  "gpio_in_west[77]": {
+    "x": 1,
+    "y": 6,
+    "subtile": 13
+  },
+  "gpio_in_west[78]": {
+    "x": 1,
+    "y": 6,
+    "subtile": 14
+  },
+  "gpio_in_west[79]": {
+    "x": 1,
+    "y": 6,
+    "subtile": 15
+  },
+  "gpio_in_west[80]": {
+    "x": 1,
+    "y": 7,
+    "subtile": 0
+  },
+  "gpio_in_west[81]": {
+    "x": 1,
+    "y": 7,
+    "subtile": 1
+  },
+  "gpio_in_west[82]": {
+    "x": 1,
+    "y": 7,
+    "subtile": 2
+  },
+  "gpio_in_west[83]": {
+    "x": 1,
+    "y": 7,
+    "subtile": 3
+  },
+  "gpio_in_west[84]": {
+    "x": 1,
+    "y": 7,
+    "subtile": 4
+  },
+  "gpio_in_west[85]": {
+    "x": 1,
+    "y": 7,
+    "subtile": 5
+  },
+  "gpio_in_west[86]": {
+    "x": 1,
+    "y": 7,
+    "subtile": 6
+  },
+  "gpio_in_west[87]": {
+    "x": 1,
+    "y": 7,
+    "subtile": 7
+  },
+  "gpio_in_west[88]": {
+    "x": 1,
+    "y": 7,
+    "subtile": 8
+  },
+  "gpio_in_west[89]": {
+    "x": 1,
+    "y": 7,
+    "subtile": 9
+  },
+  "gpio_in_west[90]": {
+    "x": 1,
+    "y": 7,
+    "subtile": 10
+  },
+  "gpio_in_west[91]": {
+    "x": 1,
+    "y": 7,
+    "subtile": 11
+  },
+  "gpio_in_west[92]": {
+    "x": 1,
+    "y": 7,
+    "subtile": 12
+  },
+  "gpio_in_west[93]": {
+    "x": 1,
+    "y": 7,
+    "subtile": 13
+  },
+  "gpio_in_west[94]": {
+    "x": 1,
+    "y": 7,
+    "subtile": 14
+  },
+  "gpio_in_west[95]": {
+    "x": 1,
+    "y": 7,
+    "subtile": 15
+  },
+  "gpio_in_west[96]": {
+    "x": 1,
+    "y": 8,
+    "subtile": 0
+  },
+  "gpio_in_west[97]": {
+    "x": 1,
+    "y": 8,
+    "subtile": 1
+  },
+  "gpio_in_west[98]": {
+    "x": 1,
+    "y": 8,
+    "subtile": 2
+  },
+  "gpio_in_west[99]": {
+    "x": 1,
+    "y": 8,
+    "subtile": 3
+  },
+  "gpio_in_west[100]": {
+    "x": 1,
+    "y": 8,
+    "subtile": 4
+  },
+  "gpio_in_west[101]": {
+    "x": 1,
+    "y": 8,
+    "subtile": 5
+  },
+  "gpio_in_west[102]": {
+    "x": 1,
+    "y": 8,
+    "subtile": 6
+  },
+  "gpio_in_west[103]": {
+    "x": 1,
+    "y": 8,
+    "subtile": 7
+  },
+  "gpio_in_west[104]": {
+    "x": 1,
+    "y": 8,
+    "subtile": 8
+  },
+  "gpio_in_west[105]": {
+    "x": 1,
+    "y": 8,
+    "subtile": 9
+  },
+  "gpio_in_west[106]": {
+    "x": 1,
+    "y": 8,
+    "subtile": 10
+  },
+  "gpio_in_west[107]": {
+    "x": 1,
+    "y": 8,
+    "subtile": 11
+  },
+  "gpio_in_west[108]": {
+    "x": 1,
+    "y": 8,
+    "subtile": 12
+  },
+  "gpio_in_west[109]": {
+    "x": 1,
+    "y": 8,
+    "subtile": 13
+  },
+  "gpio_in_west[110]": {
+    "x": 1,
+    "y": 8,
+    "subtile": 14
+  },
+  "gpio_in_west[111]": {
+    "x": 1,
+    "y": 8,
+    "subtile": 15
+  },
+  "gpio_in_west[112]": {
+    "x": 1,
+    "y": 9,
+    "subtile": 0
+  },
+  "gpio_in_west[113]": {
+    "x": 1,
+    "y": 9,
+    "subtile": 1
+  },
+  "gpio_in_west[114]": {
+    "x": 1,
+    "y": 9,
+    "subtile": 2
+  },
+  "gpio_in_west[115]": {
+    "x": 1,
+    "y": 9,
+    "subtile": 3
+  },
+  "gpio_in_west[116]": {
+    "x": 1,
+    "y": 9,
+    "subtile": 4
+  },
+  "gpio_in_west[117]": {
+    "x": 1,
+    "y": 9,
+    "subtile": 5
+  },
+  "gpio_in_west[118]": {
+    "x": 1,
+    "y": 9,
+    "subtile": 6
+  },
+  "gpio_in_west[119]": {
+    "x": 1,
+    "y": 9,
+    "subtile": 7
+  },
+  "gpio_in_west[120]": {
+    "x": 1,
+    "y": 9,
+    "subtile": 8
+  },
+  "gpio_in_west[121]": {
+    "x": 1,
+    "y": 9,
+    "subtile": 9
+  },
+  "gpio_in_west[122]": {
+    "x": 1,
+    "y": 9,
+    "subtile": 10
+  },
+  "gpio_in_west[123]": {
+    "x": 1,
+    "y": 9,
+    "subtile": 11
+  },
+  "gpio_in_west[124]": {
+    "x": 1,
+    "y": 9,
+    "subtile": 12
+  },
+  "gpio_in_west[125]": {
+    "x": 1,
+    "y": 9,
+    "subtile": 13
+  },
+  "gpio_in_west[126]": {
+    "x": 1,
+    "y": 9,
+    "subtile": 14
+  },
+  "gpio_in_west[127]": {
+    "x": 1,
+    "y": 9,
+    "subtile": 15
+  },
+  "gpio_in_west[128]": {
+    "x": 1,
+    "y": 10,
+    "subtile": 0
+  },
+  "gpio_in_west[129]": {
+    "x": 1,
+    "y": 10,
+    "subtile": 1
+  },
+  "gpio_in_west[130]": {
+    "x": 1,
+    "y": 10,
+    "subtile": 2
+  },
+  "gpio_in_west[131]": {
+    "x": 1,
+    "y": 10,
+    "subtile": 3
+  },
+  "gpio_in_west[132]": {
+    "x": 1,
+    "y": 10,
+    "subtile": 4
+  },
+  "gpio_in_west[133]": {
+    "x": 1,
+    "y": 10,
+    "subtile": 5
+  },
+  "gpio_in_west[134]": {
+    "x": 1,
+    "y": 10,
+    "subtile": 6
+  },
+  "gpio_in_west[135]": {
+    "x": 1,
+    "y": 10,
+    "subtile": 7
+  },
+  "gpio_in_west[136]": {
+    "x": 1,
+    "y": 10,
+    "subtile": 8
+  },
+  "gpio_in_west[137]": {
+    "x": 1,
+    "y": 10,
+    "subtile": 9
+  },
+  "gpio_in_west[138]": {
+    "x": 1,
+    "y": 10,
+    "subtile": 10
+  },
+  "gpio_in_west[139]": {
+    "x": 1,
+    "y": 10,
+    "subtile": 11
+  },
+  "gpio_in_west[140]": {
+    "x": 1,
+    "y": 10,
+    "subtile": 12
+  },
+  "gpio_in_west[141]": {
+    "x": 1,
+    "y": 10,
+    "subtile": 13
+  },
+  "gpio_in_west[142]": {
+    "x": 1,
+    "y": 10,
+    "subtile": 14
+  },
+  "gpio_in_west[143]": {
+    "x": 1,
+    "y": 10,
+    "subtile": 15
+  },
+  "gpio_in_west[144]": {
+    "x": 1,
+    "y": 11,
+    "subtile": 0
+  },
+  "gpio_in_west[145]": {
+    "x": 1,
+    "y": 11,
+    "subtile": 1
+  },
+  "gpio_in_west[146]": {
+    "x": 1,
+    "y": 11,
+    "subtile": 2
+  },
+  "gpio_in_west[147]": {
+    "x": 1,
+    "y": 11,
+    "subtile": 3
+  },
+  "gpio_in_west[148]": {
+    "x": 1,
+    "y": 11,
+    "subtile": 4
+  },
+  "gpio_in_west[149]": {
+    "x": 1,
+    "y": 11,
+    "subtile": 5
+  },
+  "gpio_in_west[150]": {
+    "x": 1,
+    "y": 11,
+    "subtile": 6
+  },
+  "gpio_in_west[151]": {
+    "x": 1,
+    "y": 11,
+    "subtile": 7
+  },
+  "gpio_in_west[152]": {
+    "x": 1,
+    "y": 11,
+    "subtile": 8
+  },
+  "gpio_in_west[153]": {
+    "x": 1,
+    "y": 11,
+    "subtile": 9
+  },
+  "gpio_in_west[154]": {
+    "x": 1,
+    "y": 11,
+    "subtile": 10
+  },
+  "gpio_in_west[155]": {
+    "x": 1,
+    "y": 11,
+    "subtile": 11
+  },
+  "gpio_in_west[156]": {
+    "x": 1,
+    "y": 11,
+    "subtile": 12
+  },
+  "gpio_in_west[157]": {
+    "x": 1,
+    "y": 11,
+    "subtile": 13
+  },
+  "gpio_in_west[158]": {
+    "x": 1,
+    "y": 11,
+    "subtile": 14
+  },
+  "gpio_in_west[159]": {
+    "x": 1,
+    "y": 11,
+    "subtile": 15
+  },
+  "gpio_in_west[160]": {
+    "x": 1,
+    "y": 12,
+    "subtile": 0
+  },
+  "gpio_in_west[161]": {
+    "x": 1,
+    "y": 12,
+    "subtile": 1
+  },
+  "gpio_in_west[162]": {
+    "x": 1,
+    "y": 12,
+    "subtile": 2
+  },
+  "gpio_in_west[163]": {
+    "x": 1,
+    "y": 12,
+    "subtile": 3
+  },
+  "gpio_in_west[164]": {
+    "x": 1,
+    "y": 12,
+    "subtile": 4
+  },
+  "gpio_in_west[165]": {
+    "x": 1,
+    "y": 12,
+    "subtile": 5
+  },
+  "gpio_in_west[166]": {
+    "x": 1,
+    "y": 12,
+    "subtile": 6
+  },
+  "gpio_in_west[167]": {
+    "x": 1,
+    "y": 12,
+    "subtile": 7
+  },
+  "gpio_in_west[168]": {
+    "x": 1,
+    "y": 12,
+    "subtile": 8
+  },
+  "gpio_in_west[169]": {
+    "x": 1,
+    "y": 12,
+    "subtile": 9
+  },
+  "gpio_in_west[170]": {
+    "x": 1,
+    "y": 12,
+    "subtile": 10
+  },
+  "gpio_in_west[171]": {
+    "x": 1,
+    "y": 12,
+    "subtile": 11
+  },
+  "gpio_in_west[172]": {
+    "x": 1,
+    "y": 12,
+    "subtile": 12
+  },
+  "gpio_in_west[173]": {
+    "x": 1,
+    "y": 12,
+    "subtile": 13
+  },
+  "gpio_in_west[174]": {
+    "x": 1,
+    "y": 12,
+    "subtile": 14
+  },
+  "gpio_in_west[175]": {
+    "x": 1,
+    "y": 12,
+    "subtile": 15
+  },
+  "gpio_in_west[176]": {
+    "x": 1,
+    "y": 13,
+    "subtile": 0
+  },
+  "gpio_in_west[177]": {
+    "x": 1,
+    "y": 13,
+    "subtile": 1
+  },
+  "gpio_in_west[178]": {
+    "x": 1,
+    "y": 13,
+    "subtile": 2
+  },
+  "gpio_in_west[179]": {
+    "x": 1,
+    "y": 13,
+    "subtile": 3
+  },
+  "gpio_in_west[180]": {
+    "x": 1,
+    "y": 13,
+    "subtile": 4
+  },
+  "gpio_in_west[181]": {
+    "x": 1,
+    "y": 13,
+    "subtile": 5
+  },
+  "gpio_in_west[182]": {
+    "x": 1,
+    "y": 13,
+    "subtile": 6
+  },
+  "gpio_in_west[183]": {
+    "x": 1,
+    "y": 13,
+    "subtile": 7
+  },
+  "gpio_in_west[184]": {
+    "x": 1,
+    "y": 13,
+    "subtile": 8
+  },
+  "gpio_in_west[185]": {
+    "x": 1,
+    "y": 13,
+    "subtile": 9
+  },
+  "gpio_in_west[186]": {
+    "x": 1,
+    "y": 13,
+    "subtile": 10
+  },
+  "gpio_in_west[187]": {
+    "x": 1,
+    "y": 13,
+    "subtile": 11
+  },
+  "gpio_in_west[188]": {
+    "x": 1,
+    "y": 13,
+    "subtile": 12
+  },
+  "gpio_in_west[189]": {
+    "x": 1,
+    "y": 13,
+    "subtile": 13
+  },
+  "gpio_in_west[190]": {
+    "x": 1,
+    "y": 13,
+    "subtile": 14
+  },
+  "gpio_in_west[191]": {
+    "x": 1,
+    "y": 13,
+    "subtile": 15
+  },
+  "gpio_in_west[192]": {
+    "x": 1,
+    "y": 14,
+    "subtile": 0
+  },
+  "gpio_in_west[193]": {
+    "x": 1,
+    "y": 14,
+    "subtile": 1
+  },
+  "gpio_in_west[194]": {
+    "x": 1,
+    "y": 14,
+    "subtile": 2
+  },
+  "gpio_in_west[195]": {
+    "x": 1,
+    "y": 14,
+    "subtile": 3
+  },
+  "gpio_in_west[196]": {
+    "x": 1,
+    "y": 14,
+    "subtile": 4
+  },
+  "gpio_in_west[197]": {
+    "x": 1,
+    "y": 14,
+    "subtile": 5
+  },
+  "gpio_in_west[198]": {
+    "x": 1,
+    "y": 14,
+    "subtile": 6
+  },
+  "gpio_in_west[199]": {
+    "x": 1,
+    "y": 14,
+    "subtile": 7
+  },
+  "gpio_in_west[200]": {
+    "x": 1,
+    "y": 14,
+    "subtile": 8
+  },
+  "gpio_in_west[201]": {
+    "x": 1,
+    "y": 14,
+    "subtile": 9
+  },
+  "gpio_in_west[202]": {
+    "x": 1,
+    "y": 14,
+    "subtile": 10
+  },
+  "gpio_in_west[203]": {
+    "x": 1,
+    "y": 14,
+    "subtile": 11
+  },
+  "gpio_in_west[204]": {
+    "x": 1,
+    "y": 14,
+    "subtile": 12
+  },
+  "gpio_in_west[205]": {
+    "x": 1,
+    "y": 14,
+    "subtile": 13
+  },
+  "gpio_in_west[206]": {
+    "x": 1,
+    "y": 14,
+    "subtile": 14
+  },
+  "gpio_in_west[207]": {
+    "x": 1,
+    "y": 14,
+    "subtile": 15
+  },
+  "gpio_in_west[208]": {
+    "x": 1,
+    "y": 15,
+    "subtile": 0
+  },
+  "gpio_in_west[209]": {
+    "x": 1,
+    "y": 15,
+    "subtile": 1
+  },
+  "gpio_in_west[210]": {
+    "x": 1,
+    "y": 15,
+    "subtile": 2
+  },
+  "gpio_in_west[211]": {
+    "x": 1,
+    "y": 15,
+    "subtile": 3
+  },
+  "gpio_in_west[212]": {
+    "x": 1,
+    "y": 15,
+    "subtile": 4
+  },
+  "gpio_in_west[213]": {
+    "x": 1,
+    "y": 15,
+    "subtile": 5
+  },
+  "gpio_in_west[214]": {
+    "x": 1,
+    "y": 15,
+    "subtile": 6
+  },
+  "gpio_in_west[215]": {
+    "x": 1,
+    "y": 15,
+    "subtile": 7
+  },
+  "gpio_in_west[216]": {
+    "x": 1,
+    "y": 15,
+    "subtile": 8
+  },
+  "gpio_in_west[217]": {
+    "x": 1,
+    "y": 15,
+    "subtile": 9
+  },
+  "gpio_in_west[218]": {
+    "x": 1,
+    "y": 15,
+    "subtile": 10
+  },
+  "gpio_in_west[219]": {
+    "x": 1,
+    "y": 15,
+    "subtile": 11
+  },
+  "gpio_in_west[220]": {
+    "x": 1,
+    "y": 15,
+    "subtile": 12
+  },
+  "gpio_in_west[221]": {
+    "x": 1,
+    "y": 15,
+    "subtile": 13
+  },
+  "gpio_in_west[222]": {
+    "x": 1,
+    "y": 15,
+    "subtile": 14
+  },
+  "gpio_in_west[223]": {
+    "x": 1,
+    "y": 15,
+    "subtile": 15
+  },
+  "gpio_in_west[224]": {
+    "x": 1,
+    "y": 16,
+    "subtile": 0
+  },
+  "gpio_in_west[225]": {
+    "x": 1,
+    "y": 16,
+    "subtile": 1
+  },
+  "gpio_in_west[226]": {
+    "x": 1,
+    "y": 16,
+    "subtile": 2
+  },
+  "gpio_in_west[227]": {
+    "x": 1,
+    "y": 16,
+    "subtile": 3
+  },
+  "gpio_in_west[228]": {
+    "x": 1,
+    "y": 16,
+    "subtile": 4
+  },
+  "gpio_in_west[229]": {
+    "x": 1,
+    "y": 16,
+    "subtile": 5
+  },
+  "gpio_in_west[230]": {
+    "x": 1,
+    "y": 16,
+    "subtile": 6
+  },
+  "gpio_in_west[231]": {
+    "x": 1,
+    "y": 16,
+    "subtile": 7
+  },
+  "gpio_in_west[232]": {
+    "x": 1,
+    "y": 16,
+    "subtile": 8
+  },
+  "gpio_in_west[233]": {
+    "x": 1,
+    "y": 16,
+    "subtile": 9
+  },
+  "gpio_in_west[234]": {
+    "x": 1,
+    "y": 16,
+    "subtile": 10
+  },
+  "gpio_in_west[235]": {
+    "x": 1,
+    "y": 16,
+    "subtile": 11
+  },
+  "gpio_in_west[236]": {
+    "x": 1,
+    "y": 16,
+    "subtile": 12
+  },
+  "gpio_in_west[237]": {
+    "x": 1,
+    "y": 16,
+    "subtile": 13
+  },
+  "gpio_in_west[238]": {
+    "x": 1,
+    "y": 16,
+    "subtile": 14
+  },
+  "gpio_in_west[239]": {
+    "x": 1,
+    "y": 16,
+    "subtile": 15
+  },
+  "gpio_in_west[240]": {
+    "x": 1,
+    "y": 17,
+    "subtile": 0
+  },
+  "gpio_in_west[241]": {
+    "x": 1,
+    "y": 17,
+    "subtile": 1
+  },
+  "gpio_in_west[242]": {
+    "x": 1,
+    "y": 17,
+    "subtile": 2
+  },
+  "gpio_in_west[243]": {
+    "x": 1,
+    "y": 17,
+    "subtile": 3
+  },
+  "gpio_in_west[244]": {
+    "x": 1,
+    "y": 17,
+    "subtile": 4
+  },
+  "gpio_in_west[245]": {
+    "x": 1,
+    "y": 17,
+    "subtile": 5
+  },
+  "gpio_in_west[246]": {
+    "x": 1,
+    "y": 17,
+    "subtile": 6
+  },
+  "gpio_in_west[247]": {
+    "x": 1,
+    "y": 17,
+    "subtile": 7
+  },
+  "gpio_in_west[248]": {
+    "x": 1,
+    "y": 17,
+    "subtile": 8
+  },
+  "gpio_in_west[249]": {
+    "x": 1,
+    "y": 17,
+    "subtile": 9
+  },
+  "gpio_in_west[250]": {
+    "x": 1,
+    "y": 17,
+    "subtile": 10
+  },
+  "gpio_in_west[251]": {
+    "x": 1,
+    "y": 17,
+    "subtile": 11
+  },
+  "gpio_in_west[252]": {
+    "x": 1,
+    "y": 17,
+    "subtile": 12
+  },
+  "gpio_in_west[253]": {
+    "x": 1,
+    "y": 17,
+    "subtile": 13
+  },
+  "gpio_in_west[254]": {
+    "x": 1,
+    "y": 17,
+    "subtile": 14
+  },
+  "gpio_in_west[255]": {
+    "x": 1,
+    "y": 17,
+    "subtile": 15
+  },
+  "gpio_out_south[0]": {
+    "x": 2,
+    "y": 1,
+    "subtile": 0
+  },
+  "gpio_out_south[1]": {
+    "x": 2,
+    "y": 1,
+    "subtile": 1
+  },
+  "gpio_out_south[2]": {
+    "x": 2,
+    "y": 1,
+    "subtile": 2
+  },
+  "gpio_out_south[3]": {
+    "x": 2,
+    "y": 1,
+    "subtile": 3
+  },
+  "gpio_out_south[4]": {
+    "x": 2,
+    "y": 1,
+    "subtile": 4
+  },
+  "gpio_out_south[5]": {
+    "x": 2,
+    "y": 1,
+    "subtile": 5
+  },
+  "gpio_out_south[6]": {
+    "x": 2,
+    "y": 1,
+    "subtile": 6
+  },
+  "gpio_out_south[7]": {
+    "x": 2,
+    "y": 1,
+    "subtile": 7
+  },
+  "gpio_out_south[8]": {
+    "x": 2,
+    "y": 1,
+    "subtile": 8
+  },
+  "gpio_out_south[9]": {
+    "x": 2,
+    "y": 1,
+    "subtile": 9
+  },
+  "gpio_out_south[10]": {
+    "x": 2,
+    "y": 1,
+    "subtile": 10
+  },
+  "gpio_out_south[11]": {
+    "x": 2,
+    "y": 1,
+    "subtile": 11
+  },
+  "gpio_out_south[12]": {
+    "x": 2,
+    "y": 1,
+    "subtile": 12
+  },
+  "gpio_out_south[13]": {
+    "x": 2,
+    "y": 1,
+    "subtile": 13
+  },
+  "gpio_out_south[14]": {
+    "x": 2,
+    "y": 1,
+    "subtile": 14
+  },
+  "gpio_out_south[15]": {
+    "x": 2,
+    "y": 1,
+    "subtile": 15
+  },
+  "gpio_out_south[16]": {
+    "x": 3,
+    "y": 1,
+    "subtile": 0
+  },
+  "gpio_out_south[17]": {
+    "x": 3,
+    "y": 1,
+    "subtile": 1
+  },
+  "gpio_out_south[18]": {
+    "x": 3,
+    "y": 1,
+    "subtile": 2
+  },
+  "gpio_out_south[19]": {
+    "x": 3,
+    "y": 1,
+    "subtile": 3
+  },
+  "gpio_out_south[20]": {
+    "x": 3,
+    "y": 1,
+    "subtile": 4
+  },
+  "gpio_out_south[21]": {
+    "x": 3,
+    "y": 1,
+    "subtile": 5
+  },
+  "gpio_out_south[22]": {
+    "x": 3,
+    "y": 1,
+    "subtile": 6
+  },
+  "gpio_out_south[23]": {
+    "x": 3,
+    "y": 1,
+    "subtile": 7
+  },
+  "gpio_out_south[24]": {
+    "x": 3,
+    "y": 1,
+    "subtile": 8
+  },
+  "gpio_out_south[25]": {
+    "x": 3,
+    "y": 1,
+    "subtile": 9
+  },
+  "gpio_out_south[26]": {
+    "x": 3,
+    "y": 1,
+    "subtile": 10
+  },
+  "gpio_out_south[27]": {
+    "x": 3,
+    "y": 1,
+    "subtile": 11
+  },
+  "gpio_out_south[28]": {
+    "x": 3,
+    "y": 1,
+    "subtile": 12
+  },
+  "gpio_out_south[29]": {
+    "x": 3,
+    "y": 1,
+    "subtile": 13
+  },
+  "gpio_out_south[30]": {
+    "x": 3,
+    "y": 1,
+    "subtile": 14
+  },
+  "gpio_out_south[31]": {
+    "x": 3,
+    "y": 1,
+    "subtile": 15
+  },
+  "gpio_out_south[32]": {
+    "x": 4,
+    "y": 1,
+    "subtile": 0
+  },
+  "gpio_out_south[33]": {
+    "x": 4,
+    "y": 1,
+    "subtile": 1
+  },
+  "gpio_out_south[34]": {
+    "x": 4,
+    "y": 1,
+    "subtile": 2
+  },
+  "gpio_out_south[35]": {
+    "x": 4,
+    "y": 1,
+    "subtile": 3
+  },
+  "gpio_out_south[36]": {
+    "x": 4,
+    "y": 1,
+    "subtile": 4
+  },
+  "gpio_out_south[37]": {
+    "x": 4,
+    "y": 1,
+    "subtile": 5
+  },
+  "gpio_out_south[38]": {
+    "x": 4,
+    "y": 1,
+    "subtile": 6
+  },
+  "gpio_out_south[39]": {
+    "x": 4,
+    "y": 1,
+    "subtile": 7
+  },
+  "gpio_out_south[40]": {
+    "x": 4,
+    "y": 1,
+    "subtile": 8
+  },
+  "gpio_out_south[41]": {
+    "x": 4,
+    "y": 1,
+    "subtile": 9
+  },
+  "gpio_out_south[42]": {
+    "x": 4,
+    "y": 1,
+    "subtile": 10
+  },
+  "gpio_out_south[43]": {
+    "x": 4,
+    "y": 1,
+    "subtile": 11
+  },
+  "gpio_out_south[44]": {
+    "x": 4,
+    "y": 1,
+    "subtile": 12
+  },
+  "gpio_out_south[45]": {
+    "x": 4,
+    "y": 1,
+    "subtile": 13
+  },
+  "gpio_out_south[46]": {
+    "x": 4,
+    "y": 1,
+    "subtile": 14
+  },
+  "gpio_out_south[47]": {
+    "x": 4,
+    "y": 1,
+    "subtile": 15
+  },
+  "gpio_out_south[48]": {
+    "x": 5,
+    "y": 1,
+    "subtile": 0
+  },
+  "gpio_out_south[49]": {
+    "x": 5,
+    "y": 1,
+    "subtile": 1
+  },
+  "gpio_out_south[50]": {
+    "x": 5,
+    "y": 1,
+    "subtile": 2
+  },
+  "gpio_out_south[51]": {
+    "x": 5,
+    "y": 1,
+    "subtile": 3
+  },
+  "gpio_out_south[52]": {
+    "x": 5,
+    "y": 1,
+    "subtile": 4
+  },
+  "gpio_out_south[53]": {
+    "x": 5,
+    "y": 1,
+    "subtile": 5
+  },
+  "gpio_out_south[54]": {
+    "x": 5,
+    "y": 1,
+    "subtile": 6
+  },
+  "gpio_out_south[55]": {
+    "x": 5,
+    "y": 1,
+    "subtile": 7
+  },
+  "gpio_out_south[56]": {
+    "x": 5,
+    "y": 1,
+    "subtile": 8
+  },
+  "gpio_out_south[57]": {
+    "x": 5,
+    "y": 1,
+    "subtile": 9
+  },
+  "gpio_out_south[58]": {
+    "x": 5,
+    "y": 1,
+    "subtile": 10
+  },
+  "gpio_out_south[59]": {
+    "x": 5,
+    "y": 1,
+    "subtile": 11
+  },
+  "gpio_out_south[60]": {
+    "x": 5,
+    "y": 1,
+    "subtile": 12
+  },
+  "gpio_out_south[61]": {
+    "x": 5,
+    "y": 1,
+    "subtile": 13
+  },
+  "gpio_out_south[62]": {
+    "x": 5,
+    "y": 1,
+    "subtile": 14
+  },
+  "gpio_out_south[63]": {
+    "x": 5,
+    "y": 1,
+    "subtile": 15
+  },
+  "gpio_out_south[64]": {
+    "x": 6,
+    "y": 1,
+    "subtile": 0
+  },
+  "gpio_out_south[65]": {
+    "x": 6,
+    "y": 1,
+    "subtile": 1
+  },
+  "gpio_out_south[66]": {
+    "x": 6,
+    "y": 1,
+    "subtile": 2
+  },
+  "gpio_out_south[67]": {
+    "x": 6,
+    "y": 1,
+    "subtile": 3
+  },
+  "gpio_out_south[68]": {
+    "x": 6,
+    "y": 1,
+    "subtile": 4
+  },
+  "gpio_out_south[69]": {
+    "x": 6,
+    "y": 1,
+    "subtile": 5
+  },
+  "gpio_out_south[70]": {
+    "x": 6,
+    "y": 1,
+    "subtile": 6
+  },
+  "gpio_out_south[71]": {
+    "x": 6,
+    "y": 1,
+    "subtile": 7
+  },
+  "gpio_out_south[72]": {
+    "x": 6,
+    "y": 1,
+    "subtile": 8
+  },
+  "gpio_out_south[73]": {
+    "x": 6,
+    "y": 1,
+    "subtile": 9
+  },
+  "gpio_out_south[74]": {
+    "x": 6,
+    "y": 1,
+    "subtile": 10
+  },
+  "gpio_out_south[75]": {
+    "x": 6,
+    "y": 1,
+    "subtile": 11
+  },
+  "gpio_out_south[76]": {
+    "x": 6,
+    "y": 1,
+    "subtile": 12
+  },
+  "gpio_out_south[77]": {
+    "x": 6,
+    "y": 1,
+    "subtile": 13
+  },
+  "gpio_out_south[78]": {
+    "x": 6,
+    "y": 1,
+    "subtile": 14
+  },
+  "gpio_out_south[79]": {
+    "x": 6,
+    "y": 1,
+    "subtile": 15
+  },
+  "gpio_out_south[80]": {
+    "x": 7,
+    "y": 1,
+    "subtile": 0
+  },
+  "gpio_out_south[81]": {
+    "x": 7,
+    "y": 1,
+    "subtile": 1
+  },
+  "gpio_out_south[82]": {
+    "x": 7,
+    "y": 1,
+    "subtile": 2
+  },
+  "gpio_out_south[83]": {
+    "x": 7,
+    "y": 1,
+    "subtile": 3
+  },
+  "gpio_out_south[84]": {
+    "x": 7,
+    "y": 1,
+    "subtile": 4
+  },
+  "gpio_out_south[85]": {
+    "x": 7,
+    "y": 1,
+    "subtile": 5
+  },
+  "gpio_out_south[86]": {
+    "x": 7,
+    "y": 1,
+    "subtile": 6
+  },
+  "gpio_out_south[87]": {
+    "x": 7,
+    "y": 1,
+    "subtile": 7
+  },
+  "gpio_out_south[88]": {
+    "x": 7,
+    "y": 1,
+    "subtile": 8
+  },
+  "gpio_out_south[89]": {
+    "x": 7,
+    "y": 1,
+    "subtile": 9
+  },
+  "gpio_out_south[90]": {
+    "x": 7,
+    "y": 1,
+    "subtile": 10
+  },
+  "gpio_out_south[91]": {
+    "x": 7,
+    "y": 1,
+    "subtile": 11
+  },
+  "gpio_out_south[92]": {
+    "x": 7,
+    "y": 1,
+    "subtile": 12
+  },
+  "gpio_out_south[93]": {
+    "x": 7,
+    "y": 1,
+    "subtile": 13
+  },
+  "gpio_out_south[94]": {
+    "x": 7,
+    "y": 1,
+    "subtile": 14
+  },
+  "gpio_out_south[95]": {
+    "x": 7,
+    "y": 1,
+    "subtile": 15
+  },
+  "gpio_out_south[96]": {
+    "x": 8,
+    "y": 1,
+    "subtile": 0
+  },
+  "gpio_out_south[97]": {
+    "x": 8,
+    "y": 1,
+    "subtile": 1
+  },
+  "gpio_out_south[98]": {
+    "x": 8,
+    "y": 1,
+    "subtile": 2
+  },
+  "gpio_out_south[99]": {
+    "x": 8,
+    "y": 1,
+    "subtile": 3
+  },
+  "gpio_out_south[100]": {
+    "x": 8,
+    "y": 1,
+    "subtile": 4
+  },
+  "gpio_out_south[101]": {
+    "x": 8,
+    "y": 1,
+    "subtile": 5
+  },
+  "gpio_out_south[102]": {
+    "x": 8,
+    "y": 1,
+    "subtile": 6
+  },
+  "gpio_out_south[103]": {
+    "x": 8,
+    "y": 1,
+    "subtile": 7
+  },
+  "gpio_out_south[104]": {
+    "x": 8,
+    "y": 1,
+    "subtile": 8
+  },
+  "gpio_out_south[105]": {
+    "x": 8,
+    "y": 1,
+    "subtile": 9
+  },
+  "gpio_out_south[106]": {
+    "x": 8,
+    "y": 1,
+    "subtile": 10
+  },
+  "gpio_out_south[107]": {
+    "x": 8,
+    "y": 1,
+    "subtile": 11
+  },
+  "gpio_out_south[108]": {
+    "x": 8,
+    "y": 1,
+    "subtile": 12
+  },
+  "gpio_out_south[109]": {
+    "x": 8,
+    "y": 1,
+    "subtile": 13
+  },
+  "gpio_out_south[110]": {
+    "x": 8,
+    "y": 1,
+    "subtile": 14
+  },
+  "gpio_out_south[111]": {
+    "x": 8,
+    "y": 1,
+    "subtile": 15
+  },
+  "gpio_out_south[112]": {
+    "x": 9,
+    "y": 1,
+    "subtile": 0
+  },
+  "gpio_out_south[113]": {
+    "x": 9,
+    "y": 1,
+    "subtile": 1
+  },
+  "gpio_out_south[114]": {
+    "x": 9,
+    "y": 1,
+    "subtile": 2
+  },
+  "gpio_out_south[115]": {
+    "x": 9,
+    "y": 1,
+    "subtile": 3
+  },
+  "gpio_out_south[116]": {
+    "x": 9,
+    "y": 1,
+    "subtile": 4
+  },
+  "gpio_out_south[117]": {
+    "x": 9,
+    "y": 1,
+    "subtile": 5
+  },
+  "gpio_out_south[118]": {
+    "x": 9,
+    "y": 1,
+    "subtile": 6
+  },
+  "gpio_out_south[119]": {
+    "x": 9,
+    "y": 1,
+    "subtile": 7
+  },
+  "gpio_out_south[120]": {
+    "x": 9,
+    "y": 1,
+    "subtile": 8
+  },
+  "gpio_out_south[121]": {
+    "x": 9,
+    "y": 1,
+    "subtile": 9
+  },
+  "gpio_out_south[122]": {
+    "x": 9,
+    "y": 1,
+    "subtile": 10
+  },
+  "gpio_out_south[123]": {
+    "x": 9,
+    "y": 1,
+    "subtile": 11
+  },
+  "gpio_out_south[124]": {
+    "x": 9,
+    "y": 1,
+    "subtile": 12
+  },
+  "gpio_out_south[125]": {
+    "x": 9,
+    "y": 1,
+    "subtile": 13
+  },
+  "gpio_out_south[126]": {
+    "x": 9,
+    "y": 1,
+    "subtile": 14
+  },
+  "gpio_out_south[127]": {
+    "x": 9,
+    "y": 1,
+    "subtile": 15
+  },
+  "gpio_out_south[128]": {
+    "x": 10,
+    "y": 1,
+    "subtile": 0
+  },
+  "gpio_out_south[129]": {
+    "x": 10,
+    "y": 1,
+    "subtile": 1
+  },
+  "gpio_out_south[130]": {
+    "x": 10,
+    "y": 1,
+    "subtile": 2
+  },
+  "gpio_out_south[131]": {
+    "x": 10,
+    "y": 1,
+    "subtile": 3
+  },
+  "gpio_out_south[132]": {
+    "x": 10,
+    "y": 1,
+    "subtile": 4
+  },
+  "gpio_out_south[133]": {
+    "x": 10,
+    "y": 1,
+    "subtile": 5
+  },
+  "gpio_out_south[134]": {
+    "x": 10,
+    "y": 1,
+    "subtile": 6
+  },
+  "gpio_out_south[135]": {
+    "x": 10,
+    "y": 1,
+    "subtile": 7
+  },
+  "gpio_out_south[136]": {
+    "x": 10,
+    "y": 1,
+    "subtile": 8
+  },
+  "gpio_out_south[137]": {
+    "x": 10,
+    "y": 1,
+    "subtile": 9
+  },
+  "gpio_out_south[138]": {
+    "x": 10,
+    "y": 1,
+    "subtile": 10
+  },
+  "gpio_out_south[139]": {
+    "x": 10,
+    "y": 1,
+    "subtile": 11
+  },
+  "gpio_out_south[140]": {
+    "x": 10,
+    "y": 1,
+    "subtile": 12
+  },
+  "gpio_out_south[141]": {
+    "x": 10,
+    "y": 1,
+    "subtile": 13
+  },
+  "gpio_out_south[142]": {
+    "x": 10,
+    "y": 1,
+    "subtile": 14
+  },
+  "gpio_out_south[143]": {
+    "x": 10,
+    "y": 1,
+    "subtile": 15
+  },
+  "gpio_out_south[144]": {
+    "x": 11,
+    "y": 1,
+    "subtile": 0
+  },
+  "gpio_out_south[145]": {
+    "x": 11,
+    "y": 1,
+    "subtile": 1
+  },
+  "gpio_out_south[146]": {
+    "x": 11,
+    "y": 1,
+    "subtile": 2
+  },
+  "gpio_out_south[147]": {
+    "x": 11,
+    "y": 1,
+    "subtile": 3
+  },
+  "gpio_out_south[148]": {
+    "x": 11,
+    "y": 1,
+    "subtile": 4
+  },
+  "gpio_out_south[149]": {
+    "x": 11,
+    "y": 1,
+    "subtile": 5
+  },
+  "gpio_out_south[150]": {
+    "x": 11,
+    "y": 1,
+    "subtile": 6
+  },
+  "gpio_out_south[151]": {
+    "x": 11,
+    "y": 1,
+    "subtile": 7
+  },
+  "gpio_out_south[152]": {
+    "x": 11,
+    "y": 1,
+    "subtile": 8
+  },
+  "gpio_out_south[153]": {
+    "x": 11,
+    "y": 1,
+    "subtile": 9
+  },
+  "gpio_out_south[154]": {
+    "x": 11,
+    "y": 1,
+    "subtile": 10
+  },
+  "gpio_out_south[155]": {
+    "x": 11,
+    "y": 1,
+    "subtile": 11
+  },
+  "gpio_out_south[156]": {
+    "x": 11,
+    "y": 1,
+    "subtile": 12
+  },
+  "gpio_out_south[157]": {
+    "x": 11,
+    "y": 1,
+    "subtile": 13
+  },
+  "gpio_out_south[158]": {
+    "x": 11,
+    "y": 1,
+    "subtile": 14
+  },
+  "gpio_out_south[159]": {
+    "x": 11,
+    "y": 1,
+    "subtile": 15
+  },
+  "gpio_out_south[160]": {
+    "x": 12,
+    "y": 1,
+    "subtile": 0
+  },
+  "gpio_out_south[161]": {
+    "x": 12,
+    "y": 1,
+    "subtile": 1
+  },
+  "gpio_out_south[162]": {
+    "x": 12,
+    "y": 1,
+    "subtile": 2
+  },
+  "gpio_out_south[163]": {
+    "x": 12,
+    "y": 1,
+    "subtile": 3
+  },
+  "gpio_out_south[164]": {
+    "x": 12,
+    "y": 1,
+    "subtile": 4
+  },
+  "gpio_out_south[165]": {
+    "x": 12,
+    "y": 1,
+    "subtile": 5
+  },
+  "gpio_out_south[166]": {
+    "x": 12,
+    "y": 1,
+    "subtile": 6
+  },
+  "gpio_out_south[167]": {
+    "x": 12,
+    "y": 1,
+    "subtile": 7
+  },
+  "gpio_out_south[168]": {
+    "x": 12,
+    "y": 1,
+    "subtile": 8
+  },
+  "gpio_out_south[169]": {
+    "x": 12,
+    "y": 1,
+    "subtile": 9
+  },
+  "gpio_out_south[170]": {
+    "x": 12,
+    "y": 1,
+    "subtile": 10
+  },
+  "gpio_out_south[171]": {
+    "x": 12,
+    "y": 1,
+    "subtile": 11
+  },
+  "gpio_out_south[172]": {
+    "x": 12,
+    "y": 1,
+    "subtile": 12
+  },
+  "gpio_out_south[173]": {
+    "x": 12,
+    "y": 1,
+    "subtile": 13
+  },
+  "gpio_out_south[174]": {
+    "x": 12,
+    "y": 1,
+    "subtile": 14
+  },
+  "gpio_out_south[175]": {
+    "x": 12,
+    "y": 1,
+    "subtile": 15
+  },
+  "gpio_out_south[176]": {
+    "x": 13,
+    "y": 1,
+    "subtile": 0
+  },
+  "gpio_out_south[177]": {
+    "x": 13,
+    "y": 1,
+    "subtile": 1
+  },
+  "gpio_out_south[178]": {
+    "x": 13,
+    "y": 1,
+    "subtile": 2
+  },
+  "gpio_out_south[179]": {
+    "x": 13,
+    "y": 1,
+    "subtile": 3
+  },
+  "gpio_out_south[180]": {
+    "x": 13,
+    "y": 1,
+    "subtile": 4
+  },
+  "gpio_out_south[181]": {
+    "x": 13,
+    "y": 1,
+    "subtile": 5
+  },
+  "gpio_out_south[182]": {
+    "x": 13,
+    "y": 1,
+    "subtile": 6
+  },
+  "gpio_out_south[183]": {
+    "x": 13,
+    "y": 1,
+    "subtile": 7
+  },
+  "gpio_out_south[184]": {
+    "x": 13,
+    "y": 1,
+    "subtile": 8
+  },
+  "gpio_out_south[185]": {
+    "x": 13,
+    "y": 1,
+    "subtile": 9
+  },
+  "gpio_out_south[186]": {
+    "x": 13,
+    "y": 1,
+    "subtile": 10
+  },
+  "gpio_out_south[187]": {
+    "x": 13,
+    "y": 1,
+    "subtile": 11
+  },
+  "gpio_out_south[188]": {
+    "x": 13,
+    "y": 1,
+    "subtile": 12
+  },
+  "gpio_out_south[189]": {
+    "x": 13,
+    "y": 1,
+    "subtile": 13
+  },
+  "gpio_out_south[190]": {
+    "x": 13,
+    "y": 1,
+    "subtile": 14
+  },
+  "gpio_out_south[191]": {
+    "x": 13,
+    "y": 1,
+    "subtile": 15
+  },
+  "gpio_out_south[192]": {
+    "x": 14,
+    "y": 1,
+    "subtile": 0
+  },
+  "gpio_out_south[193]": {
+    "x": 14,
+    "y": 1,
+    "subtile": 1
+  },
+  "gpio_out_south[194]": {
+    "x": 14,
+    "y": 1,
+    "subtile": 2
+  },
+  "gpio_out_south[195]": {
+    "x": 14,
+    "y": 1,
+    "subtile": 3
+  },
+  "gpio_out_south[196]": {
+    "x": 14,
+    "y": 1,
+    "subtile": 4
+  },
+  "gpio_out_south[197]": {
+    "x": 14,
+    "y": 1,
+    "subtile": 5
+  },
+  "gpio_out_south[198]": {
+    "x": 14,
+    "y": 1,
+    "subtile": 6
+  },
+  "gpio_out_south[199]": {
+    "x": 14,
+    "y": 1,
+    "subtile": 7
+  },
+  "gpio_out_south[200]": {
+    "x": 14,
+    "y": 1,
+    "subtile": 8
+  },
+  "gpio_out_south[201]": {
+    "x": 14,
+    "y": 1,
+    "subtile": 9
+  },
+  "gpio_out_south[202]": {
+    "x": 14,
+    "y": 1,
+    "subtile": 10
+  },
+  "gpio_out_south[203]": {
+    "x": 14,
+    "y": 1,
+    "subtile": 11
+  },
+  "gpio_out_south[204]": {
+    "x": 14,
+    "y": 1,
+    "subtile": 12
+  },
+  "gpio_out_south[205]": {
+    "x": 14,
+    "y": 1,
+    "subtile": 13
+  },
+  "gpio_out_south[206]": {
+    "x": 14,
+    "y": 1,
+    "subtile": 14
+  },
+  "gpio_out_south[207]": {
+    "x": 14,
+    "y": 1,
+    "subtile": 15
+  },
+  "gpio_out_south[208]": {
+    "x": 15,
+    "y": 1,
+    "subtile": 0
+  },
+  "gpio_out_south[209]": {
+    "x": 15,
+    "y": 1,
+    "subtile": 1
+  },
+  "gpio_out_south[210]": {
+    "x": 15,
+    "y": 1,
+    "subtile": 2
+  },
+  "gpio_out_south[211]": {
+    "x": 15,
+    "y": 1,
+    "subtile": 3
+  },
+  "gpio_out_south[212]": {
+    "x": 15,
+    "y": 1,
+    "subtile": 4
+  },
+  "gpio_out_south[213]": {
+    "x": 15,
+    "y": 1,
+    "subtile": 5
+  },
+  "gpio_out_south[214]": {
+    "x": 15,
+    "y": 1,
+    "subtile": 6
+  },
+  "gpio_out_south[215]": {
+    "x": 15,
+    "y": 1,
+    "subtile": 7
+  },
+  "gpio_out_south[216]": {
+    "x": 15,
+    "y": 1,
+    "subtile": 8
+  },
+  "gpio_out_south[217]": {
+    "x": 15,
+    "y": 1,
+    "subtile": 9
+  },
+  "gpio_out_south[218]": {
+    "x": 15,
+    "y": 1,
+    "subtile": 10
+  },
+  "gpio_out_south[219]": {
+    "x": 15,
+    "y": 1,
+    "subtile": 11
+  },
+  "gpio_out_south[220]": {
+    "x": 15,
+    "y": 1,
+    "subtile": 12
+  },
+  "gpio_out_south[221]": {
+    "x": 15,
+    "y": 1,
+    "subtile": 13
+  },
+  "gpio_out_south[222]": {
+    "x": 15,
+    "y": 1,
+    "subtile": 14
+  },
+  "gpio_out_south[223]": {
+    "x": 15,
+    "y": 1,
+    "subtile": 15
+  },
+  "gpio_out_south[224]": {
+    "x": 16,
+    "y": 1,
+    "subtile": 0
+  },
+  "gpio_out_south[225]": {
+    "x": 16,
+    "y": 1,
+    "subtile": 1
+  },
+  "gpio_out_south[226]": {
+    "x": 16,
+    "y": 1,
+    "subtile": 2
+  },
+  "gpio_out_south[227]": {
+    "x": 16,
+    "y": 1,
+    "subtile": 3
+  },
+  "gpio_out_south[228]": {
+    "x": 16,
+    "y": 1,
+    "subtile": 4
+  },
+  "gpio_out_south[229]": {
+    "x": 16,
+    "y": 1,
+    "subtile": 5
+  },
+  "gpio_out_south[230]": {
+    "x": 16,
+    "y": 1,
+    "subtile": 6
+  },
+  "gpio_out_south[231]": {
+    "x": 16,
+    "y": 1,
+    "subtile": 7
+  },
+  "gpio_out_south[232]": {
+    "x": 16,
+    "y": 1,
+    "subtile": 8
+  },
+  "gpio_out_south[233]": {
+    "x": 16,
+    "y": 1,
+    "subtile": 9
+  },
+  "gpio_out_south[234]": {
+    "x": 16,
+    "y": 1,
+    "subtile": 10
+  },
+  "gpio_out_south[235]": {
+    "x": 16,
+    "y": 1,
+    "subtile": 11
+  },
+  "gpio_out_south[236]": {
+    "x": 16,
+    "y": 1,
+    "subtile": 12
+  },
+  "gpio_out_south[237]": {
+    "x": 16,
+    "y": 1,
+    "subtile": 13
+  },
+  "gpio_out_south[238]": {
+    "x": 16,
+    "y": 1,
+    "subtile": 14
+  },
+  "gpio_out_south[239]": {
+    "x": 16,
+    "y": 1,
+    "subtile": 15
+  },
+  "gpio_out_south[240]": {
+    "x": 17,
+    "y": 1,
+    "subtile": 0
+  },
+  "gpio_out_south[241]": {
+    "x": 17,
+    "y": 1,
+    "subtile": 1
+  },
+  "gpio_out_south[242]": {
+    "x": 17,
+    "y": 1,
+    "subtile": 2
+  },
+  "gpio_out_south[243]": {
+    "x": 17,
+    "y": 1,
+    "subtile": 3
+  },
+  "gpio_out_south[244]": {
+    "x": 17,
+    "y": 1,
+    "subtile": 4
+  },
+  "gpio_out_south[245]": {
+    "x": 17,
+    "y": 1,
+    "subtile": 5
+  },
+  "gpio_out_south[246]": {
+    "x": 17,
+    "y": 1,
+    "subtile": 6
+  },
+  "gpio_out_south[247]": {
+    "x": 17,
+    "y": 1,
+    "subtile": 7
+  },
+  "gpio_out_south[248]": {
+    "x": 17,
+    "y": 1,
+    "subtile": 8
+  },
+  "gpio_out_south[249]": {
+    "x": 17,
+    "y": 1,
+    "subtile": 9
+  },
+  "gpio_out_south[250]": {
+    "x": 17,
+    "y": 1,
+    "subtile": 10
+  },
+  "gpio_out_south[251]": {
+    "x": 17,
+    "y": 1,
+    "subtile": 11
+  },
+  "gpio_out_south[252]": {
+    "x": 17,
+    "y": 1,
+    "subtile": 12
+  },
+  "gpio_out_south[253]": {
+    "x": 17,
+    "y": 1,
+    "subtile": 13
+  },
+  "gpio_out_south[254]": {
+    "x": 17,
+    "y": 1,
+    "subtile": 14
+  },
+  "gpio_out_south[255]": {
+    "x": 17,
+    "y": 1,
+    "subtile": 15
+  },
+  "gpio_in_south[0]": {
+    "x": 2,
+    "y": 1,
+    "subtile": 0
+  },
+  "gpio_in_south[1]": {
+    "x": 2,
+    "y": 1,
+    "subtile": 1
+  },
+  "gpio_in_south[2]": {
+    "x": 2,
+    "y": 1,
+    "subtile": 2
+  },
+  "gpio_in_south[3]": {
+    "x": 2,
+    "y": 1,
+    "subtile": 3
+  },
+  "gpio_in_south[4]": {
+    "x": 2,
+    "y": 1,
+    "subtile": 4
+  },
+  "gpio_in_south[5]": {
+    "x": 2,
+    "y": 1,
+    "subtile": 5
+  },
+  "gpio_in_south[6]": {
+    "x": 2,
+    "y": 1,
+    "subtile": 6
+  },
+  "gpio_in_south[7]": {
+    "x": 2,
+    "y": 1,
+    "subtile": 7
+  },
+  "gpio_in_south[8]": {
+    "x": 2,
+    "y": 1,
+    "subtile": 8
+  },
+  "gpio_in_south[9]": {
+    "x": 2,
+    "y": 1,
+    "subtile": 9
+  },
+  "gpio_in_south[10]": {
+    "x": 2,
+    "y": 1,
+    "subtile": 10
+  },
+  "gpio_in_south[11]": {
+    "x": 2,
+    "y": 1,
+    "subtile": 11
+  },
+  "gpio_in_south[12]": {
+    "x": 2,
+    "y": 1,
+    "subtile": 12
+  },
+  "gpio_in_south[13]": {
+    "x": 2,
+    "y": 1,
+    "subtile": 13
+  },
+  "gpio_in_south[14]": {
+    "x": 2,
+    "y": 1,
+    "subtile": 14
+  },
+  "gpio_in_south[15]": {
+    "x": 2,
+    "y": 1,
+    "subtile": 15
+  },
+  "gpio_in_south[16]": {
+    "x": 3,
+    "y": 1,
+    "subtile": 0
+  },
+  "gpio_in_south[17]": {
+    "x": 3,
+    "y": 1,
+    "subtile": 1
+  },
+  "gpio_in_south[18]": {
+    "x": 3,
+    "y": 1,
+    "subtile": 2
+  },
+  "gpio_in_south[19]": {
+    "x": 3,
+    "y": 1,
+    "subtile": 3
+  },
+  "gpio_in_south[20]": {
+    "x": 3,
+    "y": 1,
+    "subtile": 4
+  },
+  "gpio_in_south[21]": {
+    "x": 3,
+    "y": 1,
+    "subtile": 5
+  },
+  "gpio_in_south[22]": {
+    "x": 3,
+    "y": 1,
+    "subtile": 6
+  },
+  "gpio_in_south[23]": {
+    "x": 3,
+    "y": 1,
+    "subtile": 7
+  },
+  "gpio_in_south[24]": {
+    "x": 3,
+    "y": 1,
+    "subtile": 8
+  },
+  "gpio_in_south[25]": {
+    "x": 3,
+    "y": 1,
+    "subtile": 9
+  },
+  "gpio_in_south[26]": {
+    "x": 3,
+    "y": 1,
+    "subtile": 10
+  },
+  "gpio_in_south[27]": {
+    "x": 3,
+    "y": 1,
+    "subtile": 11
+  },
+  "gpio_in_south[28]": {
+    "x": 3,
+    "y": 1,
+    "subtile": 12
+  },
+  "gpio_in_south[29]": {
+    "x": 3,
+    "y": 1,
+    "subtile": 13
+  },
+  "gpio_in_south[30]": {
+    "x": 3,
+    "y": 1,
+    "subtile": 14
+  },
+  "gpio_in_south[31]": {
+    "x": 3,
+    "y": 1,
+    "subtile": 15
+  },
+  "gpio_in_south[32]": {
+    "x": 4,
+    "y": 1,
+    "subtile": 0
+  },
+  "gpio_in_south[33]": {
+    "x": 4,
+    "y": 1,
+    "subtile": 1
+  },
+  "gpio_in_south[34]": {
+    "x": 4,
+    "y": 1,
+    "subtile": 2
+  },
+  "gpio_in_south[35]": {
+    "x": 4,
+    "y": 1,
+    "subtile": 3
+  },
+  "gpio_in_south[36]": {
+    "x": 4,
+    "y": 1,
+    "subtile": 4
+  },
+  "gpio_in_south[37]": {
+    "x": 4,
+    "y": 1,
+    "subtile": 5
+  },
+  "gpio_in_south[38]": {
+    "x": 4,
+    "y": 1,
+    "subtile": 6
+  },
+  "gpio_in_south[39]": {
+    "x": 4,
+    "y": 1,
+    "subtile": 7
+  },
+  "gpio_in_south[40]": {
+    "x": 4,
+    "y": 1,
+    "subtile": 8
+  },
+  "gpio_in_south[41]": {
+    "x": 4,
+    "y": 1,
+    "subtile": 9
+  },
+  "gpio_in_south[42]": {
+    "x": 4,
+    "y": 1,
+    "subtile": 10
+  },
+  "gpio_in_south[43]": {
+    "x": 4,
+    "y": 1,
+    "subtile": 11
+  },
+  "gpio_in_south[44]": {
+    "x": 4,
+    "y": 1,
+    "subtile": 12
+  },
+  "gpio_in_south[45]": {
+    "x": 4,
+    "y": 1,
+    "subtile": 13
+  },
+  "gpio_in_south[46]": {
+    "x": 4,
+    "y": 1,
+    "subtile": 14
+  },
+  "gpio_in_south[47]": {
+    "x": 4,
+    "y": 1,
+    "subtile": 15
+  },
+  "gpio_in_south[48]": {
+    "x": 5,
+    "y": 1,
+    "subtile": 0
+  },
+  "gpio_in_south[49]": {
+    "x": 5,
+    "y": 1,
+    "subtile": 1
+  },
+  "gpio_in_south[50]": {
+    "x": 5,
+    "y": 1,
+    "subtile": 2
+  },
+  "gpio_in_south[51]": {
+    "x": 5,
+    "y": 1,
+    "subtile": 3
+  },
+  "gpio_in_south[52]": {
+    "x": 5,
+    "y": 1,
+    "subtile": 4
+  },
+  "gpio_in_south[53]": {
+    "x": 5,
+    "y": 1,
+    "subtile": 5
+  },
+  "gpio_in_south[54]": {
+    "x": 5,
+    "y": 1,
+    "subtile": 6
+  },
+  "gpio_in_south[55]": {
+    "x": 5,
+    "y": 1,
+    "subtile": 7
+  },
+  "gpio_in_south[56]": {
+    "x": 5,
+    "y": 1,
+    "subtile": 8
+  },
+  "gpio_in_south[57]": {
+    "x": 5,
+    "y": 1,
+    "subtile": 9
+  },
+  "gpio_in_south[58]": {
+    "x": 5,
+    "y": 1,
+    "subtile": 10
+  },
+  "gpio_in_south[59]": {
+    "x": 5,
+    "y": 1,
+    "subtile": 11
+  },
+  "gpio_in_south[60]": {
+    "x": 5,
+    "y": 1,
+    "subtile": 12
+  },
+  "gpio_in_south[61]": {
+    "x": 5,
+    "y": 1,
+    "subtile": 13
+  },
+  "gpio_in_south[62]": {
+    "x": 5,
+    "y": 1,
+    "subtile": 14
+  },
+  "gpio_in_south[63]": {
+    "x": 5,
+    "y": 1,
+    "subtile": 15
+  },
+  "gpio_in_south[64]": {
+    "x": 6,
+    "y": 1,
+    "subtile": 0
+  },
+  "gpio_in_south[65]": {
+    "x": 6,
+    "y": 1,
+    "subtile": 1
+  },
+  "gpio_in_south[66]": {
+    "x": 6,
+    "y": 1,
+    "subtile": 2
+  },
+  "gpio_in_south[67]": {
+    "x": 6,
+    "y": 1,
+    "subtile": 3
+  },
+  "gpio_in_south[68]": {
+    "x": 6,
+    "y": 1,
+    "subtile": 4
+  },
+  "gpio_in_south[69]": {
+    "x": 6,
+    "y": 1,
+    "subtile": 5
+  },
+  "gpio_in_south[70]": {
+    "x": 6,
+    "y": 1,
+    "subtile": 6
+  },
+  "gpio_in_south[71]": {
+    "x": 6,
+    "y": 1,
+    "subtile": 7
+  },
+  "gpio_in_south[72]": {
+    "x": 6,
+    "y": 1,
+    "subtile": 8
+  },
+  "gpio_in_south[73]": {
+    "x": 6,
+    "y": 1,
+    "subtile": 9
+  },
+  "gpio_in_south[74]": {
+    "x": 6,
+    "y": 1,
+    "subtile": 10
+  },
+  "gpio_in_south[75]": {
+    "x": 6,
+    "y": 1,
+    "subtile": 11
+  },
+  "gpio_in_south[76]": {
+    "x": 6,
+    "y": 1,
+    "subtile": 12
+  },
+  "gpio_in_south[77]": {
+    "x": 6,
+    "y": 1,
+    "subtile": 13
+  },
+  "gpio_in_south[78]": {
+    "x": 6,
+    "y": 1,
+    "subtile": 14
+  },
+  "gpio_in_south[79]": {
+    "x": 6,
+    "y": 1,
+    "subtile": 15
+  },
+  "gpio_in_south[80]": {
+    "x": 7,
+    "y": 1,
+    "subtile": 0
+  },
+  "gpio_in_south[81]": {
+    "x": 7,
+    "y": 1,
+    "subtile": 1
+  },
+  "gpio_in_south[82]": {
+    "x": 7,
+    "y": 1,
+    "subtile": 2
+  },
+  "gpio_in_south[83]": {
+    "x": 7,
+    "y": 1,
+    "subtile": 3
+  },
+  "gpio_in_south[84]": {
+    "x": 7,
+    "y": 1,
+    "subtile": 4
+  },
+  "gpio_in_south[85]": {
+    "x": 7,
+    "y": 1,
+    "subtile": 5
+  },
+  "gpio_in_south[86]": {
+    "x": 7,
+    "y": 1,
+    "subtile": 6
+  },
+  "gpio_in_south[87]": {
+    "x": 7,
+    "y": 1,
+    "subtile": 7
+  },
+  "gpio_in_south[88]": {
+    "x": 7,
+    "y": 1,
+    "subtile": 8
+  },
+  "gpio_in_south[89]": {
+    "x": 7,
+    "y": 1,
+    "subtile": 9
+  },
+  "gpio_in_south[90]": {
+    "x": 7,
+    "y": 1,
+    "subtile": 10
+  },
+  "gpio_in_south[91]": {
+    "x": 7,
+    "y": 1,
+    "subtile": 11
+  },
+  "gpio_in_south[92]": {
+    "x": 7,
+    "y": 1,
+    "subtile": 12
+  },
+  "gpio_in_south[93]": {
+    "x": 7,
+    "y": 1,
+    "subtile": 13
+  },
+  "gpio_in_south[94]": {
+    "x": 7,
+    "y": 1,
+    "subtile": 14
+  },
+  "gpio_in_south[95]": {
+    "x": 7,
+    "y": 1,
+    "subtile": 15
+  },
+  "gpio_in_south[96]": {
+    "x": 8,
+    "y": 1,
+    "subtile": 0
+  },
+  "gpio_in_south[97]": {
+    "x": 8,
+    "y": 1,
+    "subtile": 1
+  },
+  "gpio_in_south[98]": {
+    "x": 8,
+    "y": 1,
+    "subtile": 2
+  },
+  "gpio_in_south[99]": {
+    "x": 8,
+    "y": 1,
+    "subtile": 3
+  },
+  "gpio_in_south[100]": {
+    "x": 8,
+    "y": 1,
+    "subtile": 4
+  },
+  "gpio_in_south[101]": {
+    "x": 8,
+    "y": 1,
+    "subtile": 5
+  },
+  "gpio_in_south[102]": {
+    "x": 8,
+    "y": 1,
+    "subtile": 6
+  },
+  "gpio_in_south[103]": {
+    "x": 8,
+    "y": 1,
+    "subtile": 7
+  },
+  "gpio_in_south[104]": {
+    "x": 8,
+    "y": 1,
+    "subtile": 8
+  },
+  "gpio_in_south[105]": {
+    "x": 8,
+    "y": 1,
+    "subtile": 9
+  },
+  "gpio_in_south[106]": {
+    "x": 8,
+    "y": 1,
+    "subtile": 10
+  },
+  "gpio_in_south[107]": {
+    "x": 8,
+    "y": 1,
+    "subtile": 11
+  },
+  "gpio_in_south[108]": {
+    "x": 8,
+    "y": 1,
+    "subtile": 12
+  },
+  "gpio_in_south[109]": {
+    "x": 8,
+    "y": 1,
+    "subtile": 13
+  },
+  "gpio_in_south[110]": {
+    "x": 8,
+    "y": 1,
+    "subtile": 14
+  },
+  "gpio_in_south[111]": {
+    "x": 8,
+    "y": 1,
+    "subtile": 15
+  },
+  "gpio_in_south[112]": {
+    "x": 9,
+    "y": 1,
+    "subtile": 0
+  },
+  "gpio_in_south[113]": {
+    "x": 9,
+    "y": 1,
+    "subtile": 1
+  },
+  "gpio_in_south[114]": {
+    "x": 9,
+    "y": 1,
+    "subtile": 2
+  },
+  "gpio_in_south[115]": {
+    "x": 9,
+    "y": 1,
+    "subtile": 3
+  },
+  "gpio_in_south[116]": {
+    "x": 9,
+    "y": 1,
+    "subtile": 4
+  },
+  "gpio_in_south[117]": {
+    "x": 9,
+    "y": 1,
+    "subtile": 5
+  },
+  "gpio_in_south[118]": {
+    "x": 9,
+    "y": 1,
+    "subtile": 6
+  },
+  "gpio_in_south[119]": {
+    "x": 9,
+    "y": 1,
+    "subtile": 7
+  },
+  "gpio_in_south[120]": {
+    "x": 9,
+    "y": 1,
+    "subtile": 8
+  },
+  "gpio_in_south[121]": {
+    "x": 9,
+    "y": 1,
+    "subtile": 9
+  },
+  "gpio_in_south[122]": {
+    "x": 9,
+    "y": 1,
+    "subtile": 10
+  },
+  "gpio_in_south[123]": {
+    "x": 9,
+    "y": 1,
+    "subtile": 11
+  },
+  "gpio_in_south[124]": {
+    "x": 9,
+    "y": 1,
+    "subtile": 12
+  },
+  "gpio_in_south[125]": {
+    "x": 9,
+    "y": 1,
+    "subtile": 13
+  },
+  "gpio_in_south[126]": {
+    "x": 9,
+    "y": 1,
+    "subtile": 14
+  },
+  "gpio_in_south[127]": {
+    "x": 9,
+    "y": 1,
+    "subtile": 15
+  },
+  "gpio_in_south[128]": {
+    "x": 10,
+    "y": 1,
+    "subtile": 0
+  },
+  "gpio_in_south[129]": {
+    "x": 10,
+    "y": 1,
+    "subtile": 1
+  },
+  "gpio_in_south[130]": {
+    "x": 10,
+    "y": 1,
+    "subtile": 2
+  },
+  "gpio_in_south[131]": {
+    "x": 10,
+    "y": 1,
+    "subtile": 3
+  },
+  "gpio_in_south[132]": {
+    "x": 10,
+    "y": 1,
+    "subtile": 4
+  },
+  "gpio_in_south[133]": {
+    "x": 10,
+    "y": 1,
+    "subtile": 5
+  },
+  "gpio_in_south[134]": {
+    "x": 10,
+    "y": 1,
+    "subtile": 6
+  },
+  "gpio_in_south[135]": {
+    "x": 10,
+    "y": 1,
+    "subtile": 7
+  },
+  "gpio_in_south[136]": {
+    "x": 10,
+    "y": 1,
+    "subtile": 8
+  },
+  "gpio_in_south[137]": {
+    "x": 10,
+    "y": 1,
+    "subtile": 9
+  },
+  "gpio_in_south[138]": {
+    "x": 10,
+    "y": 1,
+    "subtile": 10
+  },
+  "gpio_in_south[139]": {
+    "x": 10,
+    "y": 1,
+    "subtile": 11
+  },
+  "gpio_in_south[140]": {
+    "x": 10,
+    "y": 1,
+    "subtile": 12
+  },
+  "gpio_in_south[141]": {
+    "x": 10,
+    "y": 1,
+    "subtile": 13
+  },
+  "gpio_in_south[142]": {
+    "x": 10,
+    "y": 1,
+    "subtile": 14
+  },
+  "gpio_in_south[143]": {
+    "x": 10,
+    "y": 1,
+    "subtile": 15
+  },
+  "gpio_in_south[144]": {
+    "x": 11,
+    "y": 1,
+    "subtile": 0
+  },
+  "gpio_in_south[145]": {
+    "x": 11,
+    "y": 1,
+    "subtile": 1
+  },
+  "gpio_in_south[146]": {
+    "x": 11,
+    "y": 1,
+    "subtile": 2
+  },
+  "gpio_in_south[147]": {
+    "x": 11,
+    "y": 1,
+    "subtile": 3
+  },
+  "gpio_in_south[148]": {
+    "x": 11,
+    "y": 1,
+    "subtile": 4
+  },
+  "gpio_in_south[149]": {
+    "x": 11,
+    "y": 1,
+    "subtile": 5
+  },
+  "gpio_in_south[150]": {
+    "x": 11,
+    "y": 1,
+    "subtile": 6
+  },
+  "gpio_in_south[151]": {
+    "x": 11,
+    "y": 1,
+    "subtile": 7
+  },
+  "gpio_in_south[152]": {
+    "x": 11,
+    "y": 1,
+    "subtile": 8
+  },
+  "gpio_in_south[153]": {
+    "x": 11,
+    "y": 1,
+    "subtile": 9
+  },
+  "gpio_in_south[154]": {
+    "x": 11,
+    "y": 1,
+    "subtile": 10
+  },
+  "gpio_in_south[155]": {
+    "x": 11,
+    "y": 1,
+    "subtile": 11
+  },
+  "gpio_in_south[156]": {
+    "x": 11,
+    "y": 1,
+    "subtile": 12
+  },
+  "gpio_in_south[157]": {
+    "x": 11,
+    "y": 1,
+    "subtile": 13
+  },
+  "gpio_in_south[158]": {
+    "x": 11,
+    "y": 1,
+    "subtile": 14
+  },
+  "gpio_in_south[159]": {
+    "x": 11,
+    "y": 1,
+    "subtile": 15
+  },
+  "gpio_in_south[160]": {
+    "x": 12,
+    "y": 1,
+    "subtile": 0
+  },
+  "gpio_in_south[161]": {
+    "x": 12,
+    "y": 1,
+    "subtile": 1
+  },
+  "gpio_in_south[162]": {
+    "x": 12,
+    "y": 1,
+    "subtile": 2
+  },
+  "gpio_in_south[163]": {
+    "x": 12,
+    "y": 1,
+    "subtile": 3
+  },
+  "gpio_in_south[164]": {
+    "x": 12,
+    "y": 1,
+    "subtile": 4
+  },
+  "gpio_in_south[165]": {
+    "x": 12,
+    "y": 1,
+    "subtile": 5
+  },
+  "gpio_in_south[166]": {
+    "x": 12,
+    "y": 1,
+    "subtile": 6
+  },
+  "gpio_in_south[167]": {
+    "x": 12,
+    "y": 1,
+    "subtile": 7
+  },
+  "gpio_in_south[168]": {
+    "x": 12,
+    "y": 1,
+    "subtile": 8
+  },
+  "gpio_in_south[169]": {
+    "x": 12,
+    "y": 1,
+    "subtile": 9
+  },
+  "gpio_in_south[170]": {
+    "x": 12,
+    "y": 1,
+    "subtile": 10
+  },
+  "gpio_in_south[171]": {
+    "x": 12,
+    "y": 1,
+    "subtile": 11
+  },
+  "gpio_in_south[172]": {
+    "x": 12,
+    "y": 1,
+    "subtile": 12
+  },
+  "gpio_in_south[173]": {
+    "x": 12,
+    "y": 1,
+    "subtile": 13
+  },
+  "gpio_in_south[174]": {
+    "x": 12,
+    "y": 1,
+    "subtile": 14
+  },
+  "gpio_in_south[175]": {
+    "x": 12,
+    "y": 1,
+    "subtile": 15
+  },
+  "gpio_in_south[176]": {
+    "x": 13,
+    "y": 1,
+    "subtile": 0
+  },
+  "gpio_in_south[177]": {
+    "x": 13,
+    "y": 1,
+    "subtile": 1
+  },
+  "gpio_in_south[178]": {
+    "x": 13,
+    "y": 1,
+    "subtile": 2
+  },
+  "gpio_in_south[179]": {
+    "x": 13,
+    "y": 1,
+    "subtile": 3
+  },
+  "gpio_in_south[180]": {
+    "x": 13,
+    "y": 1,
+    "subtile": 4
+  },
+  "gpio_in_south[181]": {
+    "x": 13,
+    "y": 1,
+    "subtile": 5
+  },
+  "gpio_in_south[182]": {
+    "x": 13,
+    "y": 1,
+    "subtile": 6
+  },
+  "gpio_in_south[183]": {
+    "x": 13,
+    "y": 1,
+    "subtile": 7
+  },
+  "gpio_in_south[184]": {
+    "x": 13,
+    "y": 1,
+    "subtile": 8
+  },
+  "gpio_in_south[185]": {
+    "x": 13,
+    "y": 1,
+    "subtile": 9
+  },
+  "gpio_in_south[186]": {
+    "x": 13,
+    "y": 1,
+    "subtile": 10
+  },
+  "gpio_in_south[187]": {
+    "x": 13,
+    "y": 1,
+    "subtile": 11
+  },
+  "gpio_in_south[188]": {
+    "x": 13,
+    "y": 1,
+    "subtile": 12
+  },
+  "gpio_in_south[189]": {
+    "x": 13,
+    "y": 1,
+    "subtile": 13
+  },
+  "gpio_in_south[190]": {
+    "x": 13,
+    "y": 1,
+    "subtile": 14
+  },
+  "gpio_in_south[191]": {
+    "x": 13,
+    "y": 1,
+    "subtile": 15
+  },
+  "gpio_in_south[192]": {
+    "x": 14,
+    "y": 1,
+    "subtile": 0
+  },
+  "gpio_in_south[193]": {
+    "x": 14,
+    "y": 1,
+    "subtile": 1
+  },
+  "gpio_in_south[194]": {
+    "x": 14,
+    "y": 1,
+    "subtile": 2
+  },
+  "gpio_in_south[195]": {
+    "x": 14,
+    "y": 1,
+    "subtile": 3
+  },
+  "gpio_in_south[196]": {
+    "x": 14,
+    "y": 1,
+    "subtile": 4
+  },
+  "gpio_in_south[197]": {
+    "x": 14,
+    "y": 1,
+    "subtile": 5
+  },
+  "gpio_in_south[198]": {
+    "x": 14,
+    "y": 1,
+    "subtile": 6
+  },
+  "gpio_in_south[199]": {
+    "x": 14,
+    "y": 1,
+    "subtile": 7
+  },
+  "gpio_in_south[200]": {
+    "x": 14,
+    "y": 1,
+    "subtile": 8
+  },
+  "gpio_in_south[201]": {
+    "x": 14,
+    "y": 1,
+    "subtile": 9
+  },
+  "gpio_in_south[202]": {
+    "x": 14,
+    "y": 1,
+    "subtile": 10
+  },
+  "gpio_in_south[203]": {
+    "x": 14,
+    "y": 1,
+    "subtile": 11
+  },
+  "gpio_in_south[204]": {
+    "x": 14,
+    "y": 1,
+    "subtile": 12
+  },
+  "gpio_in_south[205]": {
+    "x": 14,
+    "y": 1,
+    "subtile": 13
+  },
+  "gpio_in_south[206]": {
+    "x": 14,
+    "y": 1,
+    "subtile": 14
+  },
+  "gpio_in_south[207]": {
+    "x": 14,
+    "y": 1,
+    "subtile": 15
+  },
+  "gpio_in_south[208]": {
+    "x": 15,
+    "y": 1,
+    "subtile": 0
+  },
+  "gpio_in_south[209]": {
+    "x": 15,
+    "y": 1,
+    "subtile": 1
+  },
+  "gpio_in_south[210]": {
+    "x": 15,
+    "y": 1,
+    "subtile": 2
+  },
+  "gpio_in_south[211]": {
+    "x": 15,
+    "y": 1,
+    "subtile": 3
+  },
+  "gpio_in_south[212]": {
+    "x": 15,
+    "y": 1,
+    "subtile": 4
+  },
+  "gpio_in_south[213]": {
+    "x": 15,
+    "y": 1,
+    "subtile": 5
+  },
+  "gpio_in_south[214]": {
+    "x": 15,
+    "y": 1,
+    "subtile": 6
+  },
+  "gpio_in_south[215]": {
+    "x": 15,
+    "y": 1,
+    "subtile": 7
+  },
+  "gpio_in_south[216]": {
+    "x": 15,
+    "y": 1,
+    "subtile": 8
+  },
+  "gpio_in_south[217]": {
+    "x": 15,
+    "y": 1,
+    "subtile": 9
+  },
+  "gpio_in_south[218]": {
+    "x": 15,
+    "y": 1,
+    "subtile": 10
+  },
+  "gpio_in_south[219]": {
+    "x": 15,
+    "y": 1,
+    "subtile": 11
+  },
+  "gpio_in_south[220]": {
+    "x": 15,
+    "y": 1,
+    "subtile": 12
+  },
+  "gpio_in_south[221]": {
+    "x": 15,
+    "y": 1,
+    "subtile": 13
+  },
+  "gpio_in_south[222]": {
+    "x": 15,
+    "y": 1,
+    "subtile": 14
+  },
+  "gpio_in_south[223]": {
+    "x": 15,
+    "y": 1,
+    "subtile": 15
+  },
+  "gpio_in_south[224]": {
+    "x": 16,
+    "y": 1,
+    "subtile": 0
+  },
+  "gpio_in_south[225]": {
+    "x": 16,
+    "y": 1,
+    "subtile": 1
+  },
+  "gpio_in_south[226]": {
+    "x": 16,
+    "y": 1,
+    "subtile": 2
+  },
+  "gpio_in_south[227]": {
+    "x": 16,
+    "y": 1,
+    "subtile": 3
+  },
+  "gpio_in_south[228]": {
+    "x": 16,
+    "y": 1,
+    "subtile": 4
+  },
+  "gpio_in_south[229]": {
+    "x": 16,
+    "y": 1,
+    "subtile": 5
+  },
+  "gpio_in_south[230]": {
+    "x": 16,
+    "y": 1,
+    "subtile": 6
+  },
+  "gpio_in_south[231]": {
+    "x": 16,
+    "y": 1,
+    "subtile": 7
+  },
+  "gpio_in_south[232]": {
+    "x": 16,
+    "y": 1,
+    "subtile": 8
+  },
+  "gpio_in_south[233]": {
+    "x": 16,
+    "y": 1,
+    "subtile": 9
+  },
+  "gpio_in_south[234]": {
+    "x": 16,
+    "y": 1,
+    "subtile": 10
+  },
+  "gpio_in_south[235]": {
+    "x": 16,
+    "y": 1,
+    "subtile": 11
+  },
+  "gpio_in_south[236]": {
+    "x": 16,
+    "y": 1,
+    "subtile": 12
+  },
+  "gpio_in_south[237]": {
+    "x": 16,
+    "y": 1,
+    "subtile": 13
+  },
+  "gpio_in_south[238]": {
+    "x": 16,
+    "y": 1,
+    "subtile": 14
+  },
+  "gpio_in_south[239]": {
+    "x": 16,
+    "y": 1,
+    "subtile": 15
+  },
+  "gpio_in_south[240]": {
+    "x": 17,
+    "y": 1,
+    "subtile": 0
+  },
+  "gpio_in_south[241]": {
+    "x": 17,
+    "y": 1,
+    "subtile": 1
+  },
+  "gpio_in_south[242]": {
+    "x": 17,
+    "y": 1,
+    "subtile": 2
+  },
+  "gpio_in_south[243]": {
+    "x": 17,
+    "y": 1,
+    "subtile": 3
+  },
+  "gpio_in_south[244]": {
+    "x": 17,
+    "y": 1,
+    "subtile": 4
+  },
+  "gpio_in_south[245]": {
+    "x": 17,
+    "y": 1,
+    "subtile": 5
+  },
+  "gpio_in_south[246]": {
+    "x": 17,
+    "y": 1,
+    "subtile": 6
+  },
+  "gpio_in_south[247]": {
+    "x": 17,
+    "y": 1,
+    "subtile": 7
+  },
+  "gpio_in_south[248]": {
+    "x": 17,
+    "y": 1,
+    "subtile": 8
+  },
+  "gpio_in_south[249]": {
+    "x": 17,
+    "y": 1,
+    "subtile": 9
+  },
+  "gpio_in_south[250]": {
+    "x": 17,
+    "y": 1,
+    "subtile": 10
+  },
+  "gpio_in_south[251]": {
+    "x": 17,
+    "y": 1,
+    "subtile": 11
+  },
+  "gpio_in_south[252]": {
+    "x": 17,
+    "y": 1,
+    "subtile": 12
+  },
+  "gpio_in_south[253]": {
+    "x": 17,
+    "y": 1,
+    "subtile": 13
+  },
+  "gpio_in_south[254]": {
+    "x": 17,
+    "y": 1,
+    "subtile": 14
+  },
+  "gpio_in_south[255]": {
+    "x": 17,
+    "y": 1,
+    "subtile": 15
+  },
+  "gpio_out_north[0]": {
+    "x": 2,
+    "y": 18,
+    "subtile": 0
+  },
+  "gpio_out_north[1]": {
+    "x": 2,
+    "y": 18,
+    "subtile": 1
+  },
+  "gpio_out_north[2]": {
+    "x": 2,
+    "y": 18,
+    "subtile": 2
+  },
+  "gpio_out_north[3]": {
+    "x": 2,
+    "y": 18,
+    "subtile": 3
+  },
+  "gpio_out_north[4]": {
+    "x": 2,
+    "y": 18,
+    "subtile": 4
+  },
+  "gpio_out_north[5]": {
+    "x": 2,
+    "y": 18,
+    "subtile": 5
+  },
+  "gpio_out_north[6]": {
+    "x": 2,
+    "y": 18,
+    "subtile": 6
+  },
+  "gpio_out_north[7]": {
+    "x": 2,
+    "y": 18,
+    "subtile": 7
+  },
+  "gpio_out_north[8]": {
+    "x": 2,
+    "y": 18,
+    "subtile": 8
+  },
+  "gpio_out_north[9]": {
+    "x": 2,
+    "y": 18,
+    "subtile": 9
+  },
+  "gpio_out_north[10]": {
+    "x": 2,
+    "y": 18,
+    "subtile": 10
+  },
+  "gpio_out_north[11]": {
+    "x": 2,
+    "y": 18,
+    "subtile": 11
+  },
+  "gpio_out_north[12]": {
+    "x": 2,
+    "y": 18,
+    "subtile": 12
+  },
+  "gpio_out_north[13]": {
+    "x": 2,
+    "y": 18,
+    "subtile": 13
+  },
+  "gpio_out_north[14]": {
+    "x": 2,
+    "y": 18,
+    "subtile": 14
+  },
+  "gpio_out_north[15]": {
+    "x": 2,
+    "y": 18,
+    "subtile": 15
+  },
+  "gpio_out_north[16]": {
+    "x": 3,
+    "y": 18,
+    "subtile": 0
+  },
+  "gpio_out_north[17]": {
+    "x": 3,
+    "y": 18,
+    "subtile": 1
+  },
+  "gpio_out_north[18]": {
+    "x": 3,
+    "y": 18,
+    "subtile": 2
+  },
+  "gpio_out_north[19]": {
+    "x": 3,
+    "y": 18,
+    "subtile": 3
+  },
+  "gpio_out_north[20]": {
+    "x": 3,
+    "y": 18,
+    "subtile": 4
+  },
+  "gpio_out_north[21]": {
+    "x": 3,
+    "y": 18,
+    "subtile": 5
+  },
+  "gpio_out_north[22]": {
+    "x": 3,
+    "y": 18,
+    "subtile": 6
+  },
+  "gpio_out_north[23]": {
+    "x": 3,
+    "y": 18,
+    "subtile": 7
+  },
+  "gpio_out_north[24]": {
+    "x": 3,
+    "y": 18,
+    "subtile": 8
+  },
+  "gpio_out_north[25]": {
+    "x": 3,
+    "y": 18,
+    "subtile": 9
+  },
+  "gpio_out_north[26]": {
+    "x": 3,
+    "y": 18,
+    "subtile": 10
+  },
+  "gpio_out_north[27]": {
+    "x": 3,
+    "y": 18,
+    "subtile": 11
+  },
+  "gpio_out_north[28]": {
+    "x": 3,
+    "y": 18,
+    "subtile": 12
+  },
+  "gpio_out_north[29]": {
+    "x": 3,
+    "y": 18,
+    "subtile": 13
+  },
+  "gpio_out_north[30]": {
+    "x": 3,
+    "y": 18,
+    "subtile": 14
+  },
+  "gpio_out_north[31]": {
+    "x": 3,
+    "y": 18,
+    "subtile": 15
+  },
+  "gpio_out_north[32]": {
+    "x": 4,
+    "y": 18,
+    "subtile": 0
+  },
+  "gpio_out_north[33]": {
+    "x": 4,
+    "y": 18,
+    "subtile": 1
+  },
+  "gpio_out_north[34]": {
+    "x": 4,
+    "y": 18,
+    "subtile": 2
+  },
+  "gpio_out_north[35]": {
+    "x": 4,
+    "y": 18,
+    "subtile": 3
+  },
+  "gpio_out_north[36]": {
+    "x": 4,
+    "y": 18,
+    "subtile": 4
+  },
+  "gpio_out_north[37]": {
+    "x": 4,
+    "y": 18,
+    "subtile": 5
+  },
+  "gpio_out_north[38]": {
+    "x": 4,
+    "y": 18,
+    "subtile": 6
+  },
+  "gpio_out_north[39]": {
+    "x": 4,
+    "y": 18,
+    "subtile": 7
+  },
+  "gpio_out_north[40]": {
+    "x": 4,
+    "y": 18,
+    "subtile": 8
+  },
+  "gpio_out_north[41]": {
+    "x": 4,
+    "y": 18,
+    "subtile": 9
+  },
+  "gpio_out_north[42]": {
+    "x": 4,
+    "y": 18,
+    "subtile": 10
+  },
+  "gpio_out_north[43]": {
+    "x": 4,
+    "y": 18,
+    "subtile": 11
+  },
+  "gpio_out_north[44]": {
+    "x": 4,
+    "y": 18,
+    "subtile": 12
+  },
+  "gpio_out_north[45]": {
+    "x": 4,
+    "y": 18,
+    "subtile": 13
+  },
+  "gpio_out_north[46]": {
+    "x": 4,
+    "y": 18,
+    "subtile": 14
+  },
+  "gpio_out_north[47]": {
+    "x": 4,
+    "y": 18,
+    "subtile": 15
+  },
+  "gpio_out_north[48]": {
+    "x": 5,
+    "y": 18,
+    "subtile": 0
+  },
+  "gpio_out_north[49]": {
+    "x": 5,
+    "y": 18,
+    "subtile": 1
+  },
+  "gpio_out_north[50]": {
+    "x": 5,
+    "y": 18,
+    "subtile": 2
+  },
+  "gpio_out_north[51]": {
+    "x": 5,
+    "y": 18,
+    "subtile": 3
+  },
+  "gpio_out_north[52]": {
+    "x": 5,
+    "y": 18,
+    "subtile": 4
+  },
+  "gpio_out_north[53]": {
+    "x": 5,
+    "y": 18,
+    "subtile": 5
+  },
+  "gpio_out_north[54]": {
+    "x": 5,
+    "y": 18,
+    "subtile": 6
+  },
+  "gpio_out_north[55]": {
+    "x": 5,
+    "y": 18,
+    "subtile": 7
+  },
+  "gpio_out_north[56]": {
+    "x": 5,
+    "y": 18,
+    "subtile": 8
+  },
+  "gpio_out_north[57]": {
+    "x": 5,
+    "y": 18,
+    "subtile": 9
+  },
+  "gpio_out_north[58]": {
+    "x": 5,
+    "y": 18,
+    "subtile": 10
+  },
+  "gpio_out_north[59]": {
+    "x": 5,
+    "y": 18,
+    "subtile": 11
+  },
+  "gpio_out_north[60]": {
+    "x": 5,
+    "y": 18,
+    "subtile": 12
+  },
+  "gpio_out_north[61]": {
+    "x": 5,
+    "y": 18,
+    "subtile": 13
+  },
+  "gpio_out_north[62]": {
+    "x": 5,
+    "y": 18,
+    "subtile": 14
+  },
+  "gpio_out_north[63]": {
+    "x": 5,
+    "y": 18,
+    "subtile": 15
+  },
+  "gpio_out_north[64]": {
+    "x": 6,
+    "y": 18,
+    "subtile": 0
+  },
+  "gpio_out_north[65]": {
+    "x": 6,
+    "y": 18,
+    "subtile": 1
+  },
+  "gpio_out_north[66]": {
+    "x": 6,
+    "y": 18,
+    "subtile": 2
+  },
+  "gpio_out_north[67]": {
+    "x": 6,
+    "y": 18,
+    "subtile": 3
+  },
+  "gpio_out_north[68]": {
+    "x": 6,
+    "y": 18,
+    "subtile": 4
+  },
+  "gpio_out_north[69]": {
+    "x": 6,
+    "y": 18,
+    "subtile": 5
+  },
+  "gpio_out_north[70]": {
+    "x": 6,
+    "y": 18,
+    "subtile": 6
+  },
+  "gpio_out_north[71]": {
+    "x": 6,
+    "y": 18,
+    "subtile": 7
+  },
+  "gpio_out_north[72]": {
+    "x": 6,
+    "y": 18,
+    "subtile": 8
+  },
+  "gpio_out_north[73]": {
+    "x": 6,
+    "y": 18,
+    "subtile": 9
+  },
+  "gpio_out_north[74]": {
+    "x": 6,
+    "y": 18,
+    "subtile": 10
+  },
+  "gpio_out_north[75]": {
+    "x": 6,
+    "y": 18,
+    "subtile": 11
+  },
+  "gpio_out_north[76]": {
+    "x": 6,
+    "y": 18,
+    "subtile": 12
+  },
+  "gpio_out_north[77]": {
+    "x": 6,
+    "y": 18,
+    "subtile": 13
+  },
+  "gpio_out_north[78]": {
+    "x": 6,
+    "y": 18,
+    "subtile": 14
+  },
+  "gpio_out_north[79]": {
+    "x": 6,
+    "y": 18,
+    "subtile": 15
+  },
+  "gpio_out_north[80]": {
+    "x": 7,
+    "y": 18,
+    "subtile": 0
+  },
+  "gpio_out_north[81]": {
+    "x": 7,
+    "y": 18,
+    "subtile": 1
+  },
+  "gpio_out_north[82]": {
+    "x": 7,
+    "y": 18,
+    "subtile": 2
+  },
+  "gpio_out_north[83]": {
+    "x": 7,
+    "y": 18,
+    "subtile": 3
+  },
+  "gpio_out_north[84]": {
+    "x": 7,
+    "y": 18,
+    "subtile": 4
+  },
+  "gpio_out_north[85]": {
+    "x": 7,
+    "y": 18,
+    "subtile": 5
+  },
+  "gpio_out_north[86]": {
+    "x": 7,
+    "y": 18,
+    "subtile": 6
+  },
+  "gpio_out_north[87]": {
+    "x": 7,
+    "y": 18,
+    "subtile": 7
+  },
+  "gpio_out_north[88]": {
+    "x": 7,
+    "y": 18,
+    "subtile": 8
+  },
+  "gpio_out_north[89]": {
+    "x": 7,
+    "y": 18,
+    "subtile": 9
+  },
+  "gpio_out_north[90]": {
+    "x": 7,
+    "y": 18,
+    "subtile": 10
+  },
+  "gpio_out_north[91]": {
+    "x": 7,
+    "y": 18,
+    "subtile": 11
+  },
+  "gpio_out_north[92]": {
+    "x": 7,
+    "y": 18,
+    "subtile": 12
+  },
+  "gpio_out_north[93]": {
+    "x": 7,
+    "y": 18,
+    "subtile": 13
+  },
+  "gpio_out_north[94]": {
+    "x": 7,
+    "y": 18,
+    "subtile": 14
+  },
+  "gpio_out_north[95]": {
+    "x": 7,
+    "y": 18,
+    "subtile": 15
+  },
+  "gpio_out_north[96]": {
+    "x": 8,
+    "y": 18,
+    "subtile": 0
+  },
+  "gpio_out_north[97]": {
+    "x": 8,
+    "y": 18,
+    "subtile": 1
+  },
+  "gpio_out_north[98]": {
+    "x": 8,
+    "y": 18,
+    "subtile": 2
+  },
+  "gpio_out_north[99]": {
+    "x": 8,
+    "y": 18,
+    "subtile": 3
+  },
+  "gpio_out_north[100]": {
+    "x": 8,
+    "y": 18,
+    "subtile": 4
+  },
+  "gpio_out_north[101]": {
+    "x": 8,
+    "y": 18,
+    "subtile": 5
+  },
+  "gpio_out_north[102]": {
+    "x": 8,
+    "y": 18,
+    "subtile": 6
+  },
+  "gpio_out_north[103]": {
+    "x": 8,
+    "y": 18,
+    "subtile": 7
+  },
+  "gpio_out_north[104]": {
+    "x": 8,
+    "y": 18,
+    "subtile": 8
+  },
+  "gpio_out_north[105]": {
+    "x": 8,
+    "y": 18,
+    "subtile": 9
+  },
+  "gpio_out_north[106]": {
+    "x": 8,
+    "y": 18,
+    "subtile": 10
+  },
+  "gpio_out_north[107]": {
+    "x": 8,
+    "y": 18,
+    "subtile": 11
+  },
+  "gpio_out_north[108]": {
+    "x": 8,
+    "y": 18,
+    "subtile": 12
+  },
+  "gpio_out_north[109]": {
+    "x": 8,
+    "y": 18,
+    "subtile": 13
+  },
+  "gpio_out_north[110]": {
+    "x": 8,
+    "y": 18,
+    "subtile": 14
+  },
+  "gpio_out_north[111]": {
+    "x": 8,
+    "y": 18,
+    "subtile": 15
+  },
+  "gpio_out_north[112]": {
+    "x": 9,
+    "y": 18,
+    "subtile": 0
+  },
+  "gpio_out_north[113]": {
+    "x": 9,
+    "y": 18,
+    "subtile": 1
+  },
+  "gpio_out_north[114]": {
+    "x": 9,
+    "y": 18,
+    "subtile": 2
+  },
+  "gpio_out_north[115]": {
+    "x": 9,
+    "y": 18,
+    "subtile": 3
+  },
+  "gpio_out_north[116]": {
+    "x": 9,
+    "y": 18,
+    "subtile": 4
+  },
+  "gpio_out_north[117]": {
+    "x": 9,
+    "y": 18,
+    "subtile": 5
+  },
+  "gpio_out_north[118]": {
+    "x": 9,
+    "y": 18,
+    "subtile": 6
+  },
+  "gpio_out_north[119]": {
+    "x": 9,
+    "y": 18,
+    "subtile": 7
+  },
+  "gpio_out_north[120]": {
+    "x": 9,
+    "y": 18,
+    "subtile": 8
+  },
+  "gpio_out_north[121]": {
+    "x": 9,
+    "y": 18,
+    "subtile": 9
+  },
+  "gpio_out_north[122]": {
+    "x": 9,
+    "y": 18,
+    "subtile": 10
+  },
+  "gpio_out_north[123]": {
+    "x": 9,
+    "y": 18,
+    "subtile": 11
+  },
+  "gpio_out_north[124]": {
+    "x": 9,
+    "y": 18,
+    "subtile": 12
+  },
+  "gpio_out_north[125]": {
+    "x": 9,
+    "y": 18,
+    "subtile": 13
+  },
+  "gpio_out_north[126]": {
+    "x": 9,
+    "y": 18,
+    "subtile": 14
+  },
+  "gpio_out_north[127]": {
+    "x": 9,
+    "y": 18,
+    "subtile": 15
+  },
+  "gpio_out_north[128]": {
+    "x": 10,
+    "y": 18,
+    "subtile": 0
+  },
+  "gpio_out_north[129]": {
+    "x": 10,
+    "y": 18,
+    "subtile": 1
+  },
+  "gpio_out_north[130]": {
+    "x": 10,
+    "y": 18,
+    "subtile": 2
+  },
+  "gpio_out_north[131]": {
+    "x": 10,
+    "y": 18,
+    "subtile": 3
+  },
+  "gpio_out_north[132]": {
+    "x": 10,
+    "y": 18,
+    "subtile": 4
+  },
+  "gpio_out_north[133]": {
+    "x": 10,
+    "y": 18,
+    "subtile": 5
+  },
+  "gpio_out_north[134]": {
+    "x": 10,
+    "y": 18,
+    "subtile": 6
+  },
+  "gpio_out_north[135]": {
+    "x": 10,
+    "y": 18,
+    "subtile": 7
+  },
+  "gpio_out_north[136]": {
+    "x": 10,
+    "y": 18,
+    "subtile": 8
+  },
+  "gpio_out_north[137]": {
+    "x": 10,
+    "y": 18,
+    "subtile": 9
+  },
+  "gpio_out_north[138]": {
+    "x": 10,
+    "y": 18,
+    "subtile": 10
+  },
+  "gpio_out_north[139]": {
+    "x": 10,
+    "y": 18,
+    "subtile": 11
+  },
+  "gpio_out_north[140]": {
+    "x": 10,
+    "y": 18,
+    "subtile": 12
+  },
+  "gpio_out_north[141]": {
+    "x": 10,
+    "y": 18,
+    "subtile": 13
+  },
+  "gpio_out_north[142]": {
+    "x": 10,
+    "y": 18,
+    "subtile": 14
+  },
+  "gpio_out_north[143]": {
+    "x": 10,
+    "y": 18,
+    "subtile": 15
+  },
+  "gpio_out_north[144]": {
+    "x": 11,
+    "y": 18,
+    "subtile": 0
+  },
+  "gpio_out_north[145]": {
+    "x": 11,
+    "y": 18,
+    "subtile": 1
+  },
+  "gpio_out_north[146]": {
+    "x": 11,
+    "y": 18,
+    "subtile": 2
+  },
+  "gpio_out_north[147]": {
+    "x": 11,
+    "y": 18,
+    "subtile": 3
+  },
+  "gpio_out_north[148]": {
+    "x": 11,
+    "y": 18,
+    "subtile": 4
+  },
+  "gpio_out_north[149]": {
+    "x": 11,
+    "y": 18,
+    "subtile": 5
+  },
+  "gpio_out_north[150]": {
+    "x": 11,
+    "y": 18,
+    "subtile": 6
+  },
+  "gpio_out_north[151]": {
+    "x": 11,
+    "y": 18,
+    "subtile": 7
+  },
+  "gpio_out_north[152]": {
+    "x": 11,
+    "y": 18,
+    "subtile": 8
+  },
+  "gpio_out_north[153]": {
+    "x": 11,
+    "y": 18,
+    "subtile": 9
+  },
+  "gpio_out_north[154]": {
+    "x": 11,
+    "y": 18,
+    "subtile": 10
+  },
+  "gpio_out_north[155]": {
+    "x": 11,
+    "y": 18,
+    "subtile": 11
+  },
+  "gpio_out_north[156]": {
+    "x": 11,
+    "y": 18,
+    "subtile": 12
+  },
+  "gpio_out_north[157]": {
+    "x": 11,
+    "y": 18,
+    "subtile": 13
+  },
+  "gpio_out_north[158]": {
+    "x": 11,
+    "y": 18,
+    "subtile": 14
+  },
+  "gpio_out_north[159]": {
+    "x": 11,
+    "y": 18,
+    "subtile": 15
+  },
+  "gpio_out_north[160]": {
+    "x": 12,
+    "y": 18,
+    "subtile": 0
+  },
+  "gpio_out_north[161]": {
+    "x": 12,
+    "y": 18,
+    "subtile": 1
+  },
+  "gpio_out_north[162]": {
+    "x": 12,
+    "y": 18,
+    "subtile": 2
+  },
+  "gpio_out_north[163]": {
+    "x": 12,
+    "y": 18,
+    "subtile": 3
+  },
+  "gpio_out_north[164]": {
+    "x": 12,
+    "y": 18,
+    "subtile": 4
+  },
+  "gpio_out_north[165]": {
+    "x": 12,
+    "y": 18,
+    "subtile": 5
+  },
+  "gpio_out_north[166]": {
+    "x": 12,
+    "y": 18,
+    "subtile": 6
+  },
+  "gpio_out_north[167]": {
+    "x": 12,
+    "y": 18,
+    "subtile": 7
+  },
+  "gpio_out_north[168]": {
+    "x": 12,
+    "y": 18,
+    "subtile": 8
+  },
+  "gpio_out_north[169]": {
+    "x": 12,
+    "y": 18,
+    "subtile": 9
+  },
+  "gpio_out_north[170]": {
+    "x": 12,
+    "y": 18,
+    "subtile": 10
+  },
+  "gpio_out_north[171]": {
+    "x": 12,
+    "y": 18,
+    "subtile": 11
+  },
+  "gpio_out_north[172]": {
+    "x": 12,
+    "y": 18,
+    "subtile": 12
+  },
+  "gpio_out_north[173]": {
+    "x": 12,
+    "y": 18,
+    "subtile": 13
+  },
+  "gpio_out_north[174]": {
+    "x": 12,
+    "y": 18,
+    "subtile": 14
+  },
+  "gpio_out_north[175]": {
+    "x": 12,
+    "y": 18,
+    "subtile": 15
+  },
+  "gpio_out_north[176]": {
+    "x": 13,
+    "y": 18,
+    "subtile": 0
+  },
+  "gpio_out_north[177]": {
+    "x": 13,
+    "y": 18,
+    "subtile": 1
+  },
+  "gpio_out_north[178]": {
+    "x": 13,
+    "y": 18,
+    "subtile": 2
+  },
+  "gpio_out_north[179]": {
+    "x": 13,
+    "y": 18,
+    "subtile": 3
+  },
+  "gpio_out_north[180]": {
+    "x": 13,
+    "y": 18,
+    "subtile": 4
+  },
+  "gpio_out_north[181]": {
+    "x": 13,
+    "y": 18,
+    "subtile": 5
+  },
+  "gpio_out_north[182]": {
+    "x": 13,
+    "y": 18,
+    "subtile": 6
+  },
+  "gpio_out_north[183]": {
+    "x": 13,
+    "y": 18,
+    "subtile": 7
+  },
+  "gpio_out_north[184]": {
+    "x": 13,
+    "y": 18,
+    "subtile": 8
+  },
+  "gpio_out_north[185]": {
+    "x": 13,
+    "y": 18,
+    "subtile": 9
+  },
+  "gpio_out_north[186]": {
+    "x": 13,
+    "y": 18,
+    "subtile": 10
+  },
+  "gpio_out_north[187]": {
+    "x": 13,
+    "y": 18,
+    "subtile": 11
+  },
+  "gpio_out_north[188]": {
+    "x": 13,
+    "y": 18,
+    "subtile": 12
+  },
+  "gpio_out_north[189]": {
+    "x": 13,
+    "y": 18,
+    "subtile": 13
+  },
+  "gpio_out_north[190]": {
+    "x": 13,
+    "y": 18,
+    "subtile": 14
+  },
+  "gpio_out_north[191]": {
+    "x": 13,
+    "y": 18,
+    "subtile": 15
+  },
+  "gpio_out_north[192]": {
+    "x": 14,
+    "y": 18,
+    "subtile": 0
+  },
+  "gpio_out_north[193]": {
+    "x": 14,
+    "y": 18,
+    "subtile": 1
+  },
+  "gpio_out_north[194]": {
+    "x": 14,
+    "y": 18,
+    "subtile": 2
+  },
+  "gpio_out_north[195]": {
+    "x": 14,
+    "y": 18,
+    "subtile": 3
+  },
+  "gpio_out_north[196]": {
+    "x": 14,
+    "y": 18,
+    "subtile": 4
+  },
+  "gpio_out_north[197]": {
+    "x": 14,
+    "y": 18,
+    "subtile": 5
+  },
+  "gpio_out_north[198]": {
+    "x": 14,
+    "y": 18,
+    "subtile": 6
+  },
+  "gpio_out_north[199]": {
+    "x": 14,
+    "y": 18,
+    "subtile": 7
+  },
+  "gpio_out_north[200]": {
+    "x": 14,
+    "y": 18,
+    "subtile": 8
+  },
+  "gpio_out_north[201]": {
+    "x": 14,
+    "y": 18,
+    "subtile": 9
+  },
+  "gpio_out_north[202]": {
+    "x": 14,
+    "y": 18,
+    "subtile": 10
+  },
+  "gpio_out_north[203]": {
+    "x": 14,
+    "y": 18,
+    "subtile": 11
+  },
+  "gpio_out_north[204]": {
+    "x": 14,
+    "y": 18,
+    "subtile": 12
+  },
+  "gpio_out_north[205]": {
+    "x": 14,
+    "y": 18,
+    "subtile": 13
+  },
+  "gpio_out_north[206]": {
+    "x": 14,
+    "y": 18,
+    "subtile": 14
+  },
+  "gpio_out_north[207]": {
+    "x": 14,
+    "y": 18,
+    "subtile": 15
+  },
+  "gpio_out_north[208]": {
+    "x": 15,
+    "y": 18,
+    "subtile": 0
+  },
+  "gpio_out_north[209]": {
+    "x": 15,
+    "y": 18,
+    "subtile": 1
+  },
+  "gpio_out_north[210]": {
+    "x": 15,
+    "y": 18,
+    "subtile": 2
+  },
+  "gpio_out_north[211]": {
+    "x": 15,
+    "y": 18,
+    "subtile": 3
+  },
+  "gpio_out_north[212]": {
+    "x": 15,
+    "y": 18,
+    "subtile": 4
+  },
+  "gpio_out_north[213]": {
+    "x": 15,
+    "y": 18,
+    "subtile": 5
+  },
+  "gpio_out_north[214]": {
+    "x": 15,
+    "y": 18,
+    "subtile": 6
+  },
+  "gpio_out_north[215]": {
+    "x": 15,
+    "y": 18,
+    "subtile": 7
+  },
+  "gpio_out_north[216]": {
+    "x": 15,
+    "y": 18,
+    "subtile": 8
+  },
+  "gpio_out_north[217]": {
+    "x": 15,
+    "y": 18,
+    "subtile": 9
+  },
+  "gpio_out_north[218]": {
+    "x": 15,
+    "y": 18,
+    "subtile": 10
+  },
+  "gpio_out_north[219]": {
+    "x": 15,
+    "y": 18,
+    "subtile": 11
+  },
+  "gpio_out_north[220]": {
+    "x": 15,
+    "y": 18,
+    "subtile": 12
+  },
+  "gpio_out_north[221]": {
+    "x": 15,
+    "y": 18,
+    "subtile": 13
+  },
+  "gpio_out_north[222]": {
+    "x": 15,
+    "y": 18,
+    "subtile": 14
+  },
+  "gpio_out_north[223]": {
+    "x": 15,
+    "y": 18,
+    "subtile": 15
+  },
+  "gpio_out_north[224]": {
+    "x": 16,
+    "y": 18,
+    "subtile": 0
+  },
+  "gpio_out_north[225]": {
+    "x": 16,
+    "y": 18,
+    "subtile": 1
+  },
+  "gpio_out_north[226]": {
+    "x": 16,
+    "y": 18,
+    "subtile": 2
+  },
+  "gpio_out_north[227]": {
+    "x": 16,
+    "y": 18,
+    "subtile": 3
+  },
+  "gpio_out_north[228]": {
+    "x": 16,
+    "y": 18,
+    "subtile": 4
+  },
+  "gpio_out_north[229]": {
+    "x": 16,
+    "y": 18,
+    "subtile": 5
+  },
+  "gpio_out_north[230]": {
+    "x": 16,
+    "y": 18,
+    "subtile": 6
+  },
+  "gpio_out_north[231]": {
+    "x": 16,
+    "y": 18,
+    "subtile": 7
+  },
+  "gpio_out_north[232]": {
+    "x": 16,
+    "y": 18,
+    "subtile": 8
+  },
+  "gpio_out_north[233]": {
+    "x": 16,
+    "y": 18,
+    "subtile": 9
+  },
+  "gpio_out_north[234]": {
+    "x": 16,
+    "y": 18,
+    "subtile": 10
+  },
+  "gpio_out_north[235]": {
+    "x": 16,
+    "y": 18,
+    "subtile": 11
+  },
+  "gpio_out_north[236]": {
+    "x": 16,
+    "y": 18,
+    "subtile": 12
+  },
+  "gpio_out_north[237]": {
+    "x": 16,
+    "y": 18,
+    "subtile": 13
+  },
+  "gpio_out_north[238]": {
+    "x": 16,
+    "y": 18,
+    "subtile": 14
+  },
+  "gpio_out_north[239]": {
+    "x": 16,
+    "y": 18,
+    "subtile": 15
+  },
+  "gpio_out_north[240]": {
+    "x": 17,
+    "y": 18,
+    "subtile": 0
+  },
+  "gpio_out_north[241]": {
+    "x": 17,
+    "y": 18,
+    "subtile": 1
+  },
+  "gpio_out_north[242]": {
+    "x": 17,
+    "y": 18,
+    "subtile": 2
+  },
+  "gpio_out_north[243]": {
+    "x": 17,
+    "y": 18,
+    "subtile": 3
+  },
+  "gpio_out_north[244]": {
+    "x": 17,
+    "y": 18,
+    "subtile": 4
+  },
+  "gpio_out_north[245]": {
+    "x": 17,
+    "y": 18,
+    "subtile": 5
+  },
+  "gpio_out_north[246]": {
+    "x": 17,
+    "y": 18,
+    "subtile": 6
+  },
+  "gpio_out_north[247]": {
+    "x": 17,
+    "y": 18,
+    "subtile": 7
+  },
+  "gpio_out_north[248]": {
+    "x": 17,
+    "y": 18,
+    "subtile": 8
+  },
+  "gpio_out_north[249]": {
+    "x": 17,
+    "y": 18,
+    "subtile": 9
+  },
+  "gpio_out_north[250]": {
+    "x": 17,
+    "y": 18,
+    "subtile": 10
+  },
+  "gpio_out_north[251]": {
+    "x": 17,
+    "y": 18,
+    "subtile": 11
+  },
+  "gpio_out_north[252]": {
+    "x": 17,
+    "y": 18,
+    "subtile": 12
+  },
+  "gpio_out_north[253]": {
+    "x": 17,
+    "y": 18,
+    "subtile": 13
+  },
+  "gpio_out_north[254]": {
+    "x": 17,
+    "y": 18,
+    "subtile": 14
+  },
+  "gpio_out_north[255]": {
+    "x": 17,
+    "y": 18,
+    "subtile": 15
+  },
+  "gpio_in_north[0]": {
+    "x": 2,
+    "y": 18,
+    "subtile": 0
+  },
+  "gpio_in_north[1]": {
+    "x": 2,
+    "y": 18,
+    "subtile": 1
+  },
+  "gpio_in_north[2]": {
+    "x": 2,
+    "y": 18,
+    "subtile": 2
+  },
+  "gpio_in_north[3]": {
+    "x": 2,
+    "y": 18,
+    "subtile": 3
+  },
+  "gpio_in_north[4]": {
+    "x": 2,
+    "y": 18,
+    "subtile": 4
+  },
+  "gpio_in_north[5]": {
+    "x": 2,
+    "y": 18,
+    "subtile": 5
+  },
+  "gpio_in_north[6]": {
+    "x": 2,
+    "y": 18,
+    "subtile": 6
+  },
+  "gpio_in_north[7]": {
+    "x": 2,
+    "y": 18,
+    "subtile": 7
+  },
+  "gpio_in_north[8]": {
+    "x": 2,
+    "y": 18,
+    "subtile": 8
+  },
+  "gpio_in_north[9]": {
+    "x": 2,
+    "y": 18,
+    "subtile": 9
+  },
+  "gpio_in_north[10]": {
+    "x": 2,
+    "y": 18,
+    "subtile": 10
+  },
+  "gpio_in_north[11]": {
+    "x": 2,
+    "y": 18,
+    "subtile": 11
+  },
+  "gpio_in_north[12]": {
+    "x": 2,
+    "y": 18,
+    "subtile": 12
+  },
+  "gpio_in_north[13]": {
+    "x": 2,
+    "y": 18,
+    "subtile": 13
+  },
+  "gpio_in_north[14]": {
+    "x": 2,
+    "y": 18,
+    "subtile": 14
+  },
+  "gpio_in_north[15]": {
+    "x": 2,
+    "y": 18,
+    "subtile": 15
+  },
+  "gpio_in_north[16]": {
+    "x": 3,
+    "y": 18,
+    "subtile": 0
+  },
+  "gpio_in_north[17]": {
+    "x": 3,
+    "y": 18,
+    "subtile": 1
+  },
+  "gpio_in_north[18]": {
+    "x": 3,
+    "y": 18,
+    "subtile": 2
+  },
+  "gpio_in_north[19]": {
+    "x": 3,
+    "y": 18,
+    "subtile": 3
+  },
+  "gpio_in_north[20]": {
+    "x": 3,
+    "y": 18,
+    "subtile": 4
+  },
+  "gpio_in_north[21]": {
+    "x": 3,
+    "y": 18,
+    "subtile": 5
+  },
+  "gpio_in_north[22]": {
+    "x": 3,
+    "y": 18,
+    "subtile": 6
+  },
+  "gpio_in_north[23]": {
+    "x": 3,
+    "y": 18,
+    "subtile": 7
+  },
+  "gpio_in_north[24]": {
+    "x": 3,
+    "y": 18,
+    "subtile": 8
+  },
+  "gpio_in_north[25]": {
+    "x": 3,
+    "y": 18,
+    "subtile": 9
+  },
+  "gpio_in_north[26]": {
+    "x": 3,
+    "y": 18,
+    "subtile": 10
+  },
+  "gpio_in_north[27]": {
+    "x": 3,
+    "y": 18,
+    "subtile": 11
+  },
+  "gpio_in_north[28]": {
+    "x": 3,
+    "y": 18,
+    "subtile": 12
+  },
+  "gpio_in_north[29]": {
+    "x": 3,
+    "y": 18,
+    "subtile": 13
+  },
+  "gpio_in_north[30]": {
+    "x": 3,
+    "y": 18,
+    "subtile": 14
+  },
+  "gpio_in_north[31]": {
+    "x": 3,
+    "y": 18,
+    "subtile": 15
+  },
+  "gpio_in_north[32]": {
+    "x": 4,
+    "y": 18,
+    "subtile": 0
+  },
+  "gpio_in_north[33]": {
+    "x": 4,
+    "y": 18,
+    "subtile": 1
+  },
+  "gpio_in_north[34]": {
+    "x": 4,
+    "y": 18,
+    "subtile": 2
+  },
+  "gpio_in_north[35]": {
+    "x": 4,
+    "y": 18,
+    "subtile": 3
+  },
+  "gpio_in_north[36]": {
+    "x": 4,
+    "y": 18,
+    "subtile": 4
+  },
+  "gpio_in_north[37]": {
+    "x": 4,
+    "y": 18,
+    "subtile": 5
+  },
+  "gpio_in_north[38]": {
+    "x": 4,
+    "y": 18,
+    "subtile": 6
+  },
+  "gpio_in_north[39]": {
+    "x": 4,
+    "y": 18,
+    "subtile": 7
+  },
+  "gpio_in_north[40]": {
+    "x": 4,
+    "y": 18,
+    "subtile": 8
+  },
+  "gpio_in_north[41]": {
+    "x": 4,
+    "y": 18,
+    "subtile": 9
+  },
+  "gpio_in_north[42]": {
+    "x": 4,
+    "y": 18,
+    "subtile": 10
+  },
+  "gpio_in_north[43]": {
+    "x": 4,
+    "y": 18,
+    "subtile": 11
+  },
+  "gpio_in_north[44]": {
+    "x": 4,
+    "y": 18,
+    "subtile": 12
+  },
+  "gpio_in_north[45]": {
+    "x": 4,
+    "y": 18,
+    "subtile": 13
+  },
+  "gpio_in_north[46]": {
+    "x": 4,
+    "y": 18,
+    "subtile": 14
+  },
+  "gpio_in_north[47]": {
+    "x": 4,
+    "y": 18,
+    "subtile": 15
+  },
+  "gpio_in_north[48]": {
+    "x": 5,
+    "y": 18,
+    "subtile": 0
+  },
+  "gpio_in_north[49]": {
+    "x": 5,
+    "y": 18,
+    "subtile": 1
+  },
+  "gpio_in_north[50]": {
+    "x": 5,
+    "y": 18,
+    "subtile": 2
+  },
+  "gpio_in_north[51]": {
+    "x": 5,
+    "y": 18,
+    "subtile": 3
+  },
+  "gpio_in_north[52]": {
+    "x": 5,
+    "y": 18,
+    "subtile": 4
+  },
+  "gpio_in_north[53]": {
+    "x": 5,
+    "y": 18,
+    "subtile": 5
+  },
+  "gpio_in_north[54]": {
+    "x": 5,
+    "y": 18,
+    "subtile": 6
+  },
+  "gpio_in_north[55]": {
+    "x": 5,
+    "y": 18,
+    "subtile": 7
+  },
+  "gpio_in_north[56]": {
+    "x": 5,
+    "y": 18,
+    "subtile": 8
+  },
+  "gpio_in_north[57]": {
+    "x": 5,
+    "y": 18,
+    "subtile": 9
+  },
+  "gpio_in_north[58]": {
+    "x": 5,
+    "y": 18,
+    "subtile": 10
+  },
+  "gpio_in_north[59]": {
+    "x": 5,
+    "y": 18,
+    "subtile": 11
+  },
+  "gpio_in_north[60]": {
+    "x": 5,
+    "y": 18,
+    "subtile": 12
+  },
+  "gpio_in_north[61]": {
+    "x": 5,
+    "y": 18,
+    "subtile": 13
+  },
+  "gpio_in_north[62]": {
+    "x": 5,
+    "y": 18,
+    "subtile": 14
+  },
+  "gpio_in_north[63]": {
+    "x": 5,
+    "y": 18,
+    "subtile": 15
+  },
+  "gpio_in_north[64]": {
+    "x": 6,
+    "y": 18,
+    "subtile": 0
+  },
+  "gpio_in_north[65]": {
+    "x": 6,
+    "y": 18,
+    "subtile": 1
+  },
+  "gpio_in_north[66]": {
+    "x": 6,
+    "y": 18,
+    "subtile": 2
+  },
+  "gpio_in_north[67]": {
+    "x": 6,
+    "y": 18,
+    "subtile": 3
+  },
+  "gpio_in_north[68]": {
+    "x": 6,
+    "y": 18,
+    "subtile": 4
+  },
+  "gpio_in_north[69]": {
+    "x": 6,
+    "y": 18,
+    "subtile": 5
+  },
+  "gpio_in_north[70]": {
+    "x": 6,
+    "y": 18,
+    "subtile": 6
+  },
+  "gpio_in_north[71]": {
+    "x": 6,
+    "y": 18,
+    "subtile": 7
+  },
+  "gpio_in_north[72]": {
+    "x": 6,
+    "y": 18,
+    "subtile": 8
+  },
+  "gpio_in_north[73]": {
+    "x": 6,
+    "y": 18,
+    "subtile": 9
+  },
+  "gpio_in_north[74]": {
+    "x": 6,
+    "y": 18,
+    "subtile": 10
+  },
+  "gpio_in_north[75]": {
+    "x": 6,
+    "y": 18,
+    "subtile": 11
+  },
+  "gpio_in_north[76]": {
+    "x": 6,
+    "y": 18,
+    "subtile": 12
+  },
+  "gpio_in_north[77]": {
+    "x": 6,
+    "y": 18,
+    "subtile": 13
+  },
+  "gpio_in_north[78]": {
+    "x": 6,
+    "y": 18,
+    "subtile": 14
+  },
+  "gpio_in_north[79]": {
+    "x": 6,
+    "y": 18,
+    "subtile": 15
+  },
+  "gpio_in_north[80]": {
+    "x": 7,
+    "y": 18,
+    "subtile": 0
+  },
+  "gpio_in_north[81]": {
+    "x": 7,
+    "y": 18,
+    "subtile": 1
+  },
+  "gpio_in_north[82]": {
+    "x": 7,
+    "y": 18,
+    "subtile": 2
+  },
+  "gpio_in_north[83]": {
+    "x": 7,
+    "y": 18,
+    "subtile": 3
+  },
+  "gpio_in_north[84]": {
+    "x": 7,
+    "y": 18,
+    "subtile": 4
+  },
+  "gpio_in_north[85]": {
+    "x": 7,
+    "y": 18,
+    "subtile": 5
+  },
+  "gpio_in_north[86]": {
+    "x": 7,
+    "y": 18,
+    "subtile": 6
+  },
+  "gpio_in_north[87]": {
+    "x": 7,
+    "y": 18,
+    "subtile": 7
+  },
+  "gpio_in_north[88]": {
+    "x": 7,
+    "y": 18,
+    "subtile": 8
+  },
+  "gpio_in_north[89]": {
+    "x": 7,
+    "y": 18,
+    "subtile": 9
+  },
+  "gpio_in_north[90]": {
+    "x": 7,
+    "y": 18,
+    "subtile": 10
+  },
+  "gpio_in_north[91]": {
+    "x": 7,
+    "y": 18,
+    "subtile": 11
+  },
+  "gpio_in_north[92]": {
+    "x": 7,
+    "y": 18,
+    "subtile": 12
+  },
+  "gpio_in_north[93]": {
+    "x": 7,
+    "y": 18,
+    "subtile": 13
+  },
+  "gpio_in_north[94]": {
+    "x": 7,
+    "y": 18,
+    "subtile": 14
+  },
+  "gpio_in_north[95]": {
+    "x": 7,
+    "y": 18,
+    "subtile": 15
+  },
+  "gpio_in_north[96]": {
+    "x": 8,
+    "y": 18,
+    "subtile": 0
+  },
+  "gpio_in_north[97]": {
+    "x": 8,
+    "y": 18,
+    "subtile": 1
+  },
+  "gpio_in_north[98]": {
+    "x": 8,
+    "y": 18,
+    "subtile": 2
+  },
+  "gpio_in_north[99]": {
+    "x": 8,
+    "y": 18,
+    "subtile": 3
+  },
+  "gpio_in_north[100]": {
+    "x": 8,
+    "y": 18,
+    "subtile": 4
+  },
+  "gpio_in_north[101]": {
+    "x": 8,
+    "y": 18,
+    "subtile": 5
+  },
+  "gpio_in_north[102]": {
+    "x": 8,
+    "y": 18,
+    "subtile": 6
+  },
+  "gpio_in_north[103]": {
+    "x": 8,
+    "y": 18,
+    "subtile": 7
+  },
+  "gpio_in_north[104]": {
+    "x": 8,
+    "y": 18,
+    "subtile": 8
+  },
+  "gpio_in_north[105]": {
+    "x": 8,
+    "y": 18,
+    "subtile": 9
+  },
+  "gpio_in_north[106]": {
+    "x": 8,
+    "y": 18,
+    "subtile": 10
+  },
+  "gpio_in_north[107]": {
+    "x": 8,
+    "y": 18,
+    "subtile": 11
+  },
+  "gpio_in_north[108]": {
+    "x": 8,
+    "y": 18,
+    "subtile": 12
+  },
+  "gpio_in_north[109]": {
+    "x": 8,
+    "y": 18,
+    "subtile": 13
+  },
+  "gpio_in_north[110]": {
+    "x": 8,
+    "y": 18,
+    "subtile": 14
+  },
+  "gpio_in_north[111]": {
+    "x": 8,
+    "y": 18,
+    "subtile": 15
+  },
+  "gpio_in_north[112]": {
+    "x": 9,
+    "y": 18,
+    "subtile": 0
+  },
+  "gpio_in_north[113]": {
+    "x": 9,
+    "y": 18,
+    "subtile": 1
+  },
+  "gpio_in_north[114]": {
+    "x": 9,
+    "y": 18,
+    "subtile": 2
+  },
+  "gpio_in_north[115]": {
+    "x": 9,
+    "y": 18,
+    "subtile": 3
+  },
+  "gpio_in_north[116]": {
+    "x": 9,
+    "y": 18,
+    "subtile": 4
+  },
+  "gpio_in_north[117]": {
+    "x": 9,
+    "y": 18,
+    "subtile": 5
+  },
+  "gpio_in_north[118]": {
+    "x": 9,
+    "y": 18,
+    "subtile": 6
+  },
+  "gpio_in_north[119]": {
+    "x": 9,
+    "y": 18,
+    "subtile": 7
+  },
+  "gpio_in_north[120]": {
+    "x": 9,
+    "y": 18,
+    "subtile": 8
+  },
+  "gpio_in_north[121]": {
+    "x": 9,
+    "y": 18,
+    "subtile": 9
+  },
+  "gpio_in_north[122]": {
+    "x": 9,
+    "y": 18,
+    "subtile": 10
+  },
+  "gpio_in_north[123]": {
+    "x": 9,
+    "y": 18,
+    "subtile": 11
+  },
+  "gpio_in_north[124]": {
+    "x": 9,
+    "y": 18,
+    "subtile": 12
+  },
+  "gpio_in_north[125]": {
+    "x": 9,
+    "y": 18,
+    "subtile": 13
+  },
+  "gpio_in_north[126]": {
+    "x": 9,
+    "y": 18,
+    "subtile": 14
+  },
+  "gpio_in_north[127]": {
+    "x": 9,
+    "y": 18,
+    "subtile": 15
+  },
+  "gpio_in_north[128]": {
+    "x": 10,
+    "y": 18,
+    "subtile": 0
+  },
+  "gpio_in_north[129]": {
+    "x": 10,
+    "y": 18,
+    "subtile": 1
+  },
+  "gpio_in_north[130]": {
+    "x": 10,
+    "y": 18,
+    "subtile": 2
+  },
+  "gpio_in_north[131]": {
+    "x": 10,
+    "y": 18,
+    "subtile": 3
+  },
+  "gpio_in_north[132]": {
+    "x": 10,
+    "y": 18,
+    "subtile": 4
+  },
+  "gpio_in_north[133]": {
+    "x": 10,
+    "y": 18,
+    "subtile": 5
+  },
+  "gpio_in_north[134]": {
+    "x": 10,
+    "y": 18,
+    "subtile": 6
+  },
+  "gpio_in_north[135]": {
+    "x": 10,
+    "y": 18,
+    "subtile": 7
+  },
+  "gpio_in_north[136]": {
+    "x": 10,
+    "y": 18,
+    "subtile": 8
+  },
+  "gpio_in_north[137]": {
+    "x": 10,
+    "y": 18,
+    "subtile": 9
+  },
+  "gpio_in_north[138]": {
+    "x": 10,
+    "y": 18,
+    "subtile": 10
+  },
+  "gpio_in_north[139]": {
+    "x": 10,
+    "y": 18,
+    "subtile": 11
+  },
+  "gpio_in_north[140]": {
+    "x": 10,
+    "y": 18,
+    "subtile": 12
+  },
+  "gpio_in_north[141]": {
+    "x": 10,
+    "y": 18,
+    "subtile": 13
+  },
+  "gpio_in_north[142]": {
+    "x": 10,
+    "y": 18,
+    "subtile": 14
+  },
+  "gpio_in_north[143]": {
+    "x": 10,
+    "y": 18,
+    "subtile": 15
+  },
+  "gpio_in_north[144]": {
+    "x": 11,
+    "y": 18,
+    "subtile": 0
+  },
+  "gpio_in_north[145]": {
+    "x": 11,
+    "y": 18,
+    "subtile": 1
+  },
+  "gpio_in_north[146]": {
+    "x": 11,
+    "y": 18,
+    "subtile": 2
+  },
+  "gpio_in_north[147]": {
+    "x": 11,
+    "y": 18,
+    "subtile": 3
+  },
+  "gpio_in_north[148]": {
+    "x": 11,
+    "y": 18,
+    "subtile": 4
+  },
+  "gpio_in_north[149]": {
+    "x": 11,
+    "y": 18,
+    "subtile": 5
+  },
+  "gpio_in_north[150]": {
+    "x": 11,
+    "y": 18,
+    "subtile": 6
+  },
+  "gpio_in_north[151]": {
+    "x": 11,
+    "y": 18,
+    "subtile": 7
+  },
+  "gpio_in_north[152]": {
+    "x": 11,
+    "y": 18,
+    "subtile": 8
+  },
+  "gpio_in_north[153]": {
+    "x": 11,
+    "y": 18,
+    "subtile": 9
+  },
+  "gpio_in_north[154]": {
+    "x": 11,
+    "y": 18,
+    "subtile": 10
+  },
+  "gpio_in_north[155]": {
+    "x": 11,
+    "y": 18,
+    "subtile": 11
+  },
+  "gpio_in_north[156]": {
+    "x": 11,
+    "y": 18,
+    "subtile": 12
+  },
+  "gpio_in_north[157]": {
+    "x": 11,
+    "y": 18,
+    "subtile": 13
+  },
+  "gpio_in_north[158]": {
+    "x": 11,
+    "y": 18,
+    "subtile": 14
+  },
+  "gpio_in_north[159]": {
+    "x": 11,
+    "y": 18,
+    "subtile": 15
+  },
+  "gpio_in_north[160]": {
+    "x": 12,
+    "y": 18,
+    "subtile": 0
+  },
+  "gpio_in_north[161]": {
+    "x": 12,
+    "y": 18,
+    "subtile": 1
+  },
+  "gpio_in_north[162]": {
+    "x": 12,
+    "y": 18,
+    "subtile": 2
+  },
+  "gpio_in_north[163]": {
+    "x": 12,
+    "y": 18,
+    "subtile": 3
+  },
+  "gpio_in_north[164]": {
+    "x": 12,
+    "y": 18,
+    "subtile": 4
+  },
+  "gpio_in_north[165]": {
+    "x": 12,
+    "y": 18,
+    "subtile": 5
+  },
+  "gpio_in_north[166]": {
+    "x": 12,
+    "y": 18,
+    "subtile": 6
+  },
+  "gpio_in_north[167]": {
+    "x": 12,
+    "y": 18,
+    "subtile": 7
+  },
+  "gpio_in_north[168]": {
+    "x": 12,
+    "y": 18,
+    "subtile": 8
+  },
+  "gpio_in_north[169]": {
+    "x": 12,
+    "y": 18,
+    "subtile": 9
+  },
+  "gpio_in_north[170]": {
+    "x": 12,
+    "y": 18,
+    "subtile": 10
+  },
+  "gpio_in_north[171]": {
+    "x": 12,
+    "y": 18,
+    "subtile": 11
+  },
+  "gpio_in_north[172]": {
+    "x": 12,
+    "y": 18,
+    "subtile": 12
+  },
+  "gpio_in_north[173]": {
+    "x": 12,
+    "y": 18,
+    "subtile": 13
+  },
+  "gpio_in_north[174]": {
+    "x": 12,
+    "y": 18,
+    "subtile": 14
+  },
+  "gpio_in_north[175]": {
+    "x": 12,
+    "y": 18,
+    "subtile": 15
+  },
+  "gpio_in_north[176]": {
+    "x": 13,
+    "y": 18,
+    "subtile": 0
+  },
+  "gpio_in_north[177]": {
+    "x": 13,
+    "y": 18,
+    "subtile": 1
+  },
+  "gpio_in_north[178]": {
+    "x": 13,
+    "y": 18,
+    "subtile": 2
+  },
+  "gpio_in_north[179]": {
+    "x": 13,
+    "y": 18,
+    "subtile": 3
+  },
+  "gpio_in_north[180]": {
+    "x": 13,
+    "y": 18,
+    "subtile": 4
+  },
+  "gpio_in_north[181]": {
+    "x": 13,
+    "y": 18,
+    "subtile": 5
+  },
+  "gpio_in_north[182]": {
+    "x": 13,
+    "y": 18,
+    "subtile": 6
+  },
+  "gpio_in_north[183]": {
+    "x": 13,
+    "y": 18,
+    "subtile": 7
+  },
+  "gpio_in_north[184]": {
+    "x": 13,
+    "y": 18,
+    "subtile": 8
+  },
+  "gpio_in_north[185]": {
+    "x": 13,
+    "y": 18,
+    "subtile": 9
+  },
+  "gpio_in_north[186]": {
+    "x": 13,
+    "y": 18,
+    "subtile": 10
+  },
+  "gpio_in_north[187]": {
+    "x": 13,
+    "y": 18,
+    "subtile": 11
+  },
+  "gpio_in_north[188]": {
+    "x": 13,
+    "y": 18,
+    "subtile": 12
+  },
+  "gpio_in_north[189]": {
+    "x": 13,
+    "y": 18,
+    "subtile": 13
+  },
+  "gpio_in_north[190]": {
+    "x": 13,
+    "y": 18,
+    "subtile": 14
+  },
+  "gpio_in_north[191]": {
+    "x": 13,
+    "y": 18,
+    "subtile": 15
+  },
+  "gpio_in_north[192]": {
+    "x": 14,
+    "y": 18,
+    "subtile": 0
+  },
+  "gpio_in_north[193]": {
+    "x": 14,
+    "y": 18,
+    "subtile": 1
+  },
+  "gpio_in_north[194]": {
+    "x": 14,
+    "y": 18,
+    "subtile": 2
+  },
+  "gpio_in_north[195]": {
+    "x": 14,
+    "y": 18,
+    "subtile": 3
+  },
+  "gpio_in_north[196]": {
+    "x": 14,
+    "y": 18,
+    "subtile": 4
+  },
+  "gpio_in_north[197]": {
+    "x": 14,
+    "y": 18,
+    "subtile": 5
+  },
+  "gpio_in_north[198]": {
+    "x": 14,
+    "y": 18,
+    "subtile": 6
+  },
+  "gpio_in_north[199]": {
+    "x": 14,
+    "y": 18,
+    "subtile": 7
+  },
+  "gpio_in_north[200]": {
+    "x": 14,
+    "y": 18,
+    "subtile": 8
+  },
+  "gpio_in_north[201]": {
+    "x": 14,
+    "y": 18,
+    "subtile": 9
+  },
+  "gpio_in_north[202]": {
+    "x": 14,
+    "y": 18,
+    "subtile": 10
+  },
+  "gpio_in_north[203]": {
+    "x": 14,
+    "y": 18,
+    "subtile": 11
+  },
+  "gpio_in_north[204]": {
+    "x": 14,
+    "y": 18,
+    "subtile": 12
+  },
+  "gpio_in_north[205]": {
+    "x": 14,
+    "y": 18,
+    "subtile": 13
+  },
+  "gpio_in_north[206]": {
+    "x": 14,
+    "y": 18,
+    "subtile": 14
+  },
+  "gpio_in_north[207]": {
+    "x": 14,
+    "y": 18,
+    "subtile": 15
+  },
+  "gpio_in_north[208]": {
+    "x": 15,
+    "y": 18,
+    "subtile": 0
+  },
+  "gpio_in_north[209]": {
+    "x": 15,
+    "y": 18,
+    "subtile": 1
+  },
+  "gpio_in_north[210]": {
+    "x": 15,
+    "y": 18,
+    "subtile": 2
+  },
+  "gpio_in_north[211]": {
+    "x": 15,
+    "y": 18,
+    "subtile": 3
+  },
+  "gpio_in_north[212]": {
+    "x": 15,
+    "y": 18,
+    "subtile": 4
+  },
+  "gpio_in_north[213]": {
+    "x": 15,
+    "y": 18,
+    "subtile": 5
+  },
+  "gpio_in_north[214]": {
+    "x": 15,
+    "y": 18,
+    "subtile": 6
+  },
+  "gpio_in_north[215]": {
+    "x": 15,
+    "y": 18,
+    "subtile": 7
+  },
+  "gpio_in_north[216]": {
+    "x": 15,
+    "y": 18,
+    "subtile": 8
+  },
+  "gpio_in_north[217]": {
+    "x": 15,
+    "y": 18,
+    "subtile": 9
+  },
+  "gpio_in_north[218]": {
+    "x": 15,
+    "y": 18,
+    "subtile": 10
+  },
+  "gpio_in_north[219]": {
+    "x": 15,
+    "y": 18,
+    "subtile": 11
+  },
+  "gpio_in_north[220]": {
+    "x": 15,
+    "y": 18,
+    "subtile": 12
+  },
+  "gpio_in_north[221]": {
+    "x": 15,
+    "y": 18,
+    "subtile": 13
+  },
+  "gpio_in_north[222]": {
+    "x": 15,
+    "y": 18,
+    "subtile": 14
+  },
+  "gpio_in_north[223]": {
+    "x": 15,
+    "y": 18,
+    "subtile": 15
+  },
+  "gpio_in_north[224]": {
+    "x": 16,
+    "y": 18,
+    "subtile": 0
+  },
+  "gpio_in_north[225]": {
+    "x": 16,
+    "y": 18,
+    "subtile": 1
+  },
+  "gpio_in_north[226]": {
+    "x": 16,
+    "y": 18,
+    "subtile": 2
+  },
+  "gpio_in_north[227]": {
+    "x": 16,
+    "y": 18,
+    "subtile": 3
+  },
+  "gpio_in_north[228]": {
+    "x": 16,
+    "y": 18,
+    "subtile": 4
+  },
+  "gpio_in_north[229]": {
+    "x": 16,
+    "y": 18,
+    "subtile": 5
+  },
+  "gpio_in_north[230]": {
+    "x": 16,
+    "y": 18,
+    "subtile": 6
+  },
+  "gpio_in_north[231]": {
+    "x": 16,
+    "y": 18,
+    "subtile": 7
+  },
+  "gpio_in_north[232]": {
+    "x": 16,
+    "y": 18,
+    "subtile": 8
+  },
+  "gpio_in_north[233]": {
+    "x": 16,
+    "y": 18,
+    "subtile": 9
+  },
+  "gpio_in_north[234]": {
+    "x": 16,
+    "y": 18,
+    "subtile": 10
+  },
+  "gpio_in_north[235]": {
+    "x": 16,
+    "y": 18,
+    "subtile": 11
+  },
+  "gpio_in_north[236]": {
+    "x": 16,
+    "y": 18,
+    "subtile": 12
+  },
+  "gpio_in_north[237]": {
+    "x": 16,
+    "y": 18,
+    "subtile": 13
+  },
+  "gpio_in_north[238]": {
+    "x": 16,
+    "y": 18,
+    "subtile": 14
+  },
+  "gpio_in_north[239]": {
+    "x": 16,
+    "y": 18,
+    "subtile": 15
+  },
+  "gpio_in_north[240]": {
+    "x": 17,
+    "y": 18,
+    "subtile": 0
+  },
+  "gpio_in_north[241]": {
+    "x": 17,
+    "y": 18,
+    "subtile": 1
+  },
+  "gpio_in_north[242]": {
+    "x": 17,
+    "y": 18,
+    "subtile": 2
+  },
+  "gpio_in_north[243]": {
+    "x": 17,
+    "y": 18,
+    "subtile": 3
+  },
+  "gpio_in_north[244]": {
+    "x": 17,
+    "y": 18,
+    "subtile": 4
+  },
+  "gpio_in_north[245]": {
+    "x": 17,
+    "y": 18,
+    "subtile": 5
+  },
+  "gpio_in_north[246]": {
+    "x": 17,
+    "y": 18,
+    "subtile": 6
+  },
+  "gpio_in_north[247]": {
+    "x": 17,
+    "y": 18,
+    "subtile": 7
+  },
+  "gpio_in_north[248]": {
+    "x": 17,
+    "y": 18,
+    "subtile": 8
+  },
+  "gpio_in_north[249]": {
+    "x": 17,
+    "y": 18,
+    "subtile": 9
+  },
+  "gpio_in_north[250]": {
+    "x": 17,
+    "y": 18,
+    "subtile": 10
+  },
+  "gpio_in_north[251]": {
+    "x": 17,
+    "y": 18,
+    "subtile": 11
+  },
+  "gpio_in_north[252]": {
+    "x": 17,
+    "y": 18,
+    "subtile": 12
+  },
+  "gpio_in_north[253]": {
+    "x": 17,
+    "y": 18,
+    "subtile": 13
+  },
+  "gpio_in_north[254]": {
+    "x": 17,
+    "y": 18,
+    "subtile": 14
+  },
+  "gpio_in_north[255]": {
+    "x": 17,
+    "y": 18,
+    "subtile": 15
+  },
+  "gpio_out_east[0]": {
+    "x": 18,
+    "y": 2,
+    "subtile": 0
+  },
+  "gpio_out_east[1]": {
+    "x": 18,
+    "y": 2,
+    "subtile": 1
+  },
+  "gpio_out_east[2]": {
+    "x": 18,
+    "y": 2,
+    "subtile": 2
+  },
+  "gpio_out_east[3]": {
+    "x": 18,
+    "y": 2,
+    "subtile": 3
+  },
+  "gpio_out_east[4]": {
+    "x": 18,
+    "y": 2,
+    "subtile": 4
+  },
+  "gpio_out_east[5]": {
+    "x": 18,
+    "y": 2,
+    "subtile": 5
+  },
+  "gpio_out_east[6]": {
+    "x": 18,
+    "y": 2,
+    "subtile": 6
+  },
+  "gpio_out_east[7]": {
+    "x": 18,
+    "y": 2,
+    "subtile": 7
+  },
+  "gpio_out_east[8]": {
+    "x": 18,
+    "y": 2,
+    "subtile": 8
+  },
+  "gpio_out_east[9]": {
+    "x": 18,
+    "y": 2,
+    "subtile": 9
+  },
+  "gpio_out_east[10]": {
+    "x": 18,
+    "y": 2,
+    "subtile": 10
+  },
+  "gpio_out_east[11]": {
+    "x": 18,
+    "y": 2,
+    "subtile": 11
+  },
+  "gpio_out_east[12]": {
+    "x": 18,
+    "y": 2,
+    "subtile": 12
+  },
+  "gpio_out_east[13]": {
+    "x": 18,
+    "y": 2,
+    "subtile": 13
+  },
+  "gpio_out_east[14]": {
+    "x": 18,
+    "y": 2,
+    "subtile": 14
+  },
+  "gpio_out_east[15]": {
+    "x": 18,
+    "y": 2,
+    "subtile": 15
+  },
+  "gpio_out_east[16]": {
+    "x": 18,
+    "y": 3,
+    "subtile": 0
+  },
+  "gpio_out_east[17]": {
+    "x": 18,
+    "y": 3,
+    "subtile": 1
+  },
+  "gpio_out_east[18]": {
+    "x": 18,
+    "y": 3,
+    "subtile": 2
+  },
+  "gpio_out_east[19]": {
+    "x": 18,
+    "y": 3,
+    "subtile": 3
+  },
+  "gpio_out_east[20]": {
+    "x": 18,
+    "y": 3,
+    "subtile": 4
+  },
+  "gpio_out_east[21]": {
+    "x": 18,
+    "y": 3,
+    "subtile": 5
+  },
+  "gpio_out_east[22]": {
+    "x": 18,
+    "y": 3,
+    "subtile": 6
+  },
+  "gpio_out_east[23]": {
+    "x": 18,
+    "y": 3,
+    "subtile": 7
+  },
+  "gpio_out_east[24]": {
+    "x": 18,
+    "y": 3,
+    "subtile": 8
+  },
+  "gpio_out_east[25]": {
+    "x": 18,
+    "y": 3,
+    "subtile": 9
+  },
+  "gpio_out_east[26]": {
+    "x": 18,
+    "y": 3,
+    "subtile": 10
+  },
+  "gpio_out_east[27]": {
+    "x": 18,
+    "y": 3,
+    "subtile": 11
+  },
+  "gpio_out_east[28]": {
+    "x": 18,
+    "y": 3,
+    "subtile": 12
+  },
+  "gpio_out_east[29]": {
+    "x": 18,
+    "y": 3,
+    "subtile": 13
+  },
+  "gpio_out_east[30]": {
+    "x": 18,
+    "y": 3,
+    "subtile": 14
+  },
+  "gpio_out_east[31]": {
+    "x": 18,
+    "y": 3,
+    "subtile": 15
+  },
+  "gpio_out_east[32]": {
+    "x": 18,
+    "y": 4,
+    "subtile": 0
+  },
+  "gpio_out_east[33]": {
+    "x": 18,
+    "y": 4,
+    "subtile": 1
+  },
+  "gpio_out_east[34]": {
+    "x": 18,
+    "y": 4,
+    "subtile": 2
+  },
+  "gpio_out_east[35]": {
+    "x": 18,
+    "y": 4,
+    "subtile": 3
+  },
+  "gpio_out_east[36]": {
+    "x": 18,
+    "y": 4,
+    "subtile": 4
+  },
+  "gpio_out_east[37]": {
+    "x": 18,
+    "y": 4,
+    "subtile": 5
+  },
+  "gpio_out_east[38]": {
+    "x": 18,
+    "y": 4,
+    "subtile": 6
+  },
+  "gpio_out_east[39]": {
+    "x": 18,
+    "y": 4,
+    "subtile": 7
+  },
+  "gpio_out_east[40]": {
+    "x": 18,
+    "y": 4,
+    "subtile": 8
+  },
+  "gpio_out_east[41]": {
+    "x": 18,
+    "y": 4,
+    "subtile": 9
+  },
+  "gpio_out_east[42]": {
+    "x": 18,
+    "y": 4,
+    "subtile": 10
+  },
+  "gpio_out_east[43]": {
+    "x": 18,
+    "y": 4,
+    "subtile": 11
+  },
+  "gpio_out_east[44]": {
+    "x": 18,
+    "y": 4,
+    "subtile": 12
+  },
+  "gpio_out_east[45]": {
+    "x": 18,
+    "y": 4,
+    "subtile": 13
+  },
+  "gpio_out_east[46]": {
+    "x": 18,
+    "y": 4,
+    "subtile": 14
+  },
+  "gpio_out_east[47]": {
+    "x": 18,
+    "y": 4,
+    "subtile": 15
+  },
+  "gpio_out_east[48]": {
+    "x": 18,
+    "y": 5,
+    "subtile": 0
+  },
+  "gpio_out_east[49]": {
+    "x": 18,
+    "y": 5,
+    "subtile": 1
+  },
+  "gpio_out_east[50]": {
+    "x": 18,
+    "y": 5,
+    "subtile": 2
+  },
+  "gpio_out_east[51]": {
+    "x": 18,
+    "y": 5,
+    "subtile": 3
+  },
+  "gpio_out_east[52]": {
+    "x": 18,
+    "y": 5,
+    "subtile": 4
+  },
+  "gpio_out_east[53]": {
+    "x": 18,
+    "y": 5,
+    "subtile": 5
+  },
+  "gpio_out_east[54]": {
+    "x": 18,
+    "y": 5,
+    "subtile": 6
+  },
+  "gpio_out_east[55]": {
+    "x": 18,
+    "y": 5,
+    "subtile": 7
+  },
+  "gpio_out_east[56]": {
+    "x": 18,
+    "y": 5,
+    "subtile": 8
+  },
+  "gpio_out_east[57]": {
+    "x": 18,
+    "y": 5,
+    "subtile": 9
+  },
+  "gpio_out_east[58]": {
+    "x": 18,
+    "y": 5,
+    "subtile": 10
+  },
+  "gpio_out_east[59]": {
+    "x": 18,
+    "y": 5,
+    "subtile": 11
+  },
+  "gpio_out_east[60]": {
+    "x": 18,
+    "y": 5,
+    "subtile": 12
+  },
+  "gpio_out_east[61]": {
+    "x": 18,
+    "y": 5,
+    "subtile": 13
+  },
+  "gpio_out_east[62]": {
+    "x": 18,
+    "y": 5,
+    "subtile": 14
+  },
+  "gpio_out_east[63]": {
+    "x": 18,
+    "y": 5,
+    "subtile": 15
+  },
+  "gpio_out_east[64]": {
+    "x": 18,
+    "y": 6,
+    "subtile": 0
+  },
+  "gpio_out_east[65]": {
+    "x": 18,
+    "y": 6,
+    "subtile": 1
+  },
+  "gpio_out_east[66]": {
+    "x": 18,
+    "y": 6,
+    "subtile": 2
+  },
+  "gpio_out_east[67]": {
+    "x": 18,
+    "y": 6,
+    "subtile": 3
+  },
+  "gpio_out_east[68]": {
+    "x": 18,
+    "y": 6,
+    "subtile": 4
+  },
+  "gpio_out_east[69]": {
+    "x": 18,
+    "y": 6,
+    "subtile": 5
+  },
+  "gpio_out_east[70]": {
+    "x": 18,
+    "y": 6,
+    "subtile": 6
+  },
+  "gpio_out_east[71]": {
+    "x": 18,
+    "y": 6,
+    "subtile": 7
+  },
+  "gpio_out_east[72]": {
+    "x": 18,
+    "y": 6,
+    "subtile": 8
+  },
+  "gpio_out_east[73]": {
+    "x": 18,
+    "y": 6,
+    "subtile": 9
+  },
+  "gpio_out_east[74]": {
+    "x": 18,
+    "y": 6,
+    "subtile": 10
+  },
+  "gpio_out_east[75]": {
+    "x": 18,
+    "y": 6,
+    "subtile": 11
+  },
+  "gpio_out_east[76]": {
+    "x": 18,
+    "y": 6,
+    "subtile": 12
+  },
+  "gpio_out_east[77]": {
+    "x": 18,
+    "y": 6,
+    "subtile": 13
+  },
+  "gpio_out_east[78]": {
+    "x": 18,
+    "y": 6,
+    "subtile": 14
+  },
+  "gpio_out_east[79]": {
+    "x": 18,
+    "y": 6,
+    "subtile": 15
+  },
+  "gpio_out_east[80]": {
+    "x": 18,
+    "y": 7,
+    "subtile": 0
+  },
+  "gpio_out_east[81]": {
+    "x": 18,
+    "y": 7,
+    "subtile": 1
+  },
+  "gpio_out_east[82]": {
+    "x": 18,
+    "y": 7,
+    "subtile": 2
+  },
+  "gpio_out_east[83]": {
+    "x": 18,
+    "y": 7,
+    "subtile": 3
+  },
+  "gpio_out_east[84]": {
+    "x": 18,
+    "y": 7,
+    "subtile": 4
+  },
+  "gpio_out_east[85]": {
+    "x": 18,
+    "y": 7,
+    "subtile": 5
+  },
+  "gpio_out_east[86]": {
+    "x": 18,
+    "y": 7,
+    "subtile": 6
+  },
+  "gpio_out_east[87]": {
+    "x": 18,
+    "y": 7,
+    "subtile": 7
+  },
+  "gpio_out_east[88]": {
+    "x": 18,
+    "y": 7,
+    "subtile": 8
+  },
+  "gpio_out_east[89]": {
+    "x": 18,
+    "y": 7,
+    "subtile": 9
+  },
+  "gpio_out_east[90]": {
+    "x": 18,
+    "y": 7,
+    "subtile": 10
+  },
+  "gpio_out_east[91]": {
+    "x": 18,
+    "y": 7,
+    "subtile": 11
+  },
+  "gpio_out_east[92]": {
+    "x": 18,
+    "y": 7,
+    "subtile": 12
+  },
+  "gpio_out_east[93]": {
+    "x": 18,
+    "y": 7,
+    "subtile": 13
+  },
+  "gpio_out_east[94]": {
+    "x": 18,
+    "y": 7,
+    "subtile": 14
+  },
+  "gpio_out_east[95]": {
+    "x": 18,
+    "y": 7,
+    "subtile": 15
+  },
+  "gpio_out_east[96]": {
+    "x": 18,
+    "y": 8,
+    "subtile": 0
+  },
+  "gpio_out_east[97]": {
+    "x": 18,
+    "y": 8,
+    "subtile": 1
+  },
+  "gpio_out_east[98]": {
+    "x": 18,
+    "y": 8,
+    "subtile": 2
+  },
+  "gpio_out_east[99]": {
+    "x": 18,
+    "y": 8,
+    "subtile": 3
+  },
+  "gpio_out_east[100]": {
+    "x": 18,
+    "y": 8,
+    "subtile": 4
+  },
+  "gpio_out_east[101]": {
+    "x": 18,
+    "y": 8,
+    "subtile": 5
+  },
+  "gpio_out_east[102]": {
+    "x": 18,
+    "y": 8,
+    "subtile": 6
+  },
+  "gpio_out_east[103]": {
+    "x": 18,
+    "y": 8,
+    "subtile": 7
+  },
+  "gpio_out_east[104]": {
+    "x": 18,
+    "y": 8,
+    "subtile": 8
+  },
+  "gpio_out_east[105]": {
+    "x": 18,
+    "y": 8,
+    "subtile": 9
+  },
+  "gpio_out_east[106]": {
+    "x": 18,
+    "y": 8,
+    "subtile": 10
+  },
+  "gpio_out_east[107]": {
+    "x": 18,
+    "y": 8,
+    "subtile": 11
+  },
+  "gpio_out_east[108]": {
+    "x": 18,
+    "y": 8,
+    "subtile": 12
+  },
+  "gpio_out_east[109]": {
+    "x": 18,
+    "y": 8,
+    "subtile": 13
+  },
+  "gpio_out_east[110]": {
+    "x": 18,
+    "y": 8,
+    "subtile": 14
+  },
+  "gpio_out_east[111]": {
+    "x": 18,
+    "y": 8,
+    "subtile": 15
+  },
+  "gpio_out_east[112]": {
+    "x": 18,
+    "y": 9,
+    "subtile": 0
+  },
+  "gpio_out_east[113]": {
+    "x": 18,
+    "y": 9,
+    "subtile": 1
+  },
+  "gpio_out_east[114]": {
+    "x": 18,
+    "y": 9,
+    "subtile": 2
+  },
+  "gpio_out_east[115]": {
+    "x": 18,
+    "y": 9,
+    "subtile": 3
+  },
+  "gpio_out_east[116]": {
+    "x": 18,
+    "y": 9,
+    "subtile": 4
+  },
+  "gpio_out_east[117]": {
+    "x": 18,
+    "y": 9,
+    "subtile": 5
+  },
+  "gpio_out_east[118]": {
+    "x": 18,
+    "y": 9,
+    "subtile": 6
+  },
+  "gpio_out_east[119]": {
+    "x": 18,
+    "y": 9,
+    "subtile": 7
+  },
+  "gpio_out_east[120]": {
+    "x": 18,
+    "y": 9,
+    "subtile": 8
+  },
+  "gpio_out_east[121]": {
+    "x": 18,
+    "y": 9,
+    "subtile": 9
+  },
+  "gpio_out_east[122]": {
+    "x": 18,
+    "y": 9,
+    "subtile": 10
+  },
+  "gpio_out_east[123]": {
+    "x": 18,
+    "y": 9,
+    "subtile": 11
+  },
+  "gpio_out_east[124]": {
+    "x": 18,
+    "y": 9,
+    "subtile": 12
+  },
+  "gpio_out_east[125]": {
+    "x": 18,
+    "y": 9,
+    "subtile": 13
+  },
+  "gpio_out_east[126]": {
+    "x": 18,
+    "y": 9,
+    "subtile": 14
+  },
+  "gpio_out_east[127]": {
+    "x": 18,
+    "y": 9,
+    "subtile": 15
+  },
+  "gpio_out_east[128]": {
+    "x": 18,
+    "y": 10,
+    "subtile": 0
+  },
+  "gpio_out_east[129]": {
+    "x": 18,
+    "y": 10,
+    "subtile": 1
+  },
+  "gpio_out_east[130]": {
+    "x": 18,
+    "y": 10,
+    "subtile": 2
+  },
+  "gpio_out_east[131]": {
+    "x": 18,
+    "y": 10,
+    "subtile": 3
+  },
+  "gpio_out_east[132]": {
+    "x": 18,
+    "y": 10,
+    "subtile": 4
+  },
+  "gpio_out_east[133]": {
+    "x": 18,
+    "y": 10,
+    "subtile": 5
+  },
+  "gpio_out_east[134]": {
+    "x": 18,
+    "y": 10,
+    "subtile": 6
+  },
+  "gpio_out_east[135]": {
+    "x": 18,
+    "y": 10,
+    "subtile": 7
+  },
+  "gpio_out_east[136]": {
+    "x": 18,
+    "y": 10,
+    "subtile": 8
+  },
+  "gpio_out_east[137]": {
+    "x": 18,
+    "y": 10,
+    "subtile": 9
+  },
+  "gpio_out_east[138]": {
+    "x": 18,
+    "y": 10,
+    "subtile": 10
+  },
+  "gpio_out_east[139]": {
+    "x": 18,
+    "y": 10,
+    "subtile": 11
+  },
+  "gpio_out_east[140]": {
+    "x": 18,
+    "y": 10,
+    "subtile": 12
+  },
+  "gpio_out_east[141]": {
+    "x": 18,
+    "y": 10,
+    "subtile": 13
+  },
+  "gpio_out_east[142]": {
+    "x": 18,
+    "y": 10,
+    "subtile": 14
+  },
+  "gpio_out_east[143]": {
+    "x": 18,
+    "y": 10,
+    "subtile": 15
+  },
+  "gpio_out_east[144]": {
+    "x": 18,
+    "y": 11,
+    "subtile": 0
+  },
+  "gpio_out_east[145]": {
+    "x": 18,
+    "y": 11,
+    "subtile": 1
+  },
+  "gpio_out_east[146]": {
+    "x": 18,
+    "y": 11,
+    "subtile": 2
+  },
+  "gpio_out_east[147]": {
+    "x": 18,
+    "y": 11,
+    "subtile": 3
+  },
+  "gpio_out_east[148]": {
+    "x": 18,
+    "y": 11,
+    "subtile": 4
+  },
+  "gpio_out_east[149]": {
+    "x": 18,
+    "y": 11,
+    "subtile": 5
+  },
+  "gpio_out_east[150]": {
+    "x": 18,
+    "y": 11,
+    "subtile": 6
+  },
+  "gpio_out_east[151]": {
+    "x": 18,
+    "y": 11,
+    "subtile": 7
+  },
+  "gpio_out_east[152]": {
+    "x": 18,
+    "y": 11,
+    "subtile": 8
+  },
+  "gpio_out_east[153]": {
+    "x": 18,
+    "y": 11,
+    "subtile": 9
+  },
+  "gpio_out_east[154]": {
+    "x": 18,
+    "y": 11,
+    "subtile": 10
+  },
+  "gpio_out_east[155]": {
+    "x": 18,
+    "y": 11,
+    "subtile": 11
+  },
+  "gpio_out_east[156]": {
+    "x": 18,
+    "y": 11,
+    "subtile": 12
+  },
+  "gpio_out_east[157]": {
+    "x": 18,
+    "y": 11,
+    "subtile": 13
+  },
+  "gpio_out_east[158]": {
+    "x": 18,
+    "y": 11,
+    "subtile": 14
+  },
+  "gpio_out_east[159]": {
+    "x": 18,
+    "y": 11,
+    "subtile": 15
+  },
+  "gpio_out_east[160]": {
+    "x": 18,
+    "y": 12,
+    "subtile": 0
+  },
+  "gpio_out_east[161]": {
+    "x": 18,
+    "y": 12,
+    "subtile": 1
+  },
+  "gpio_out_east[162]": {
+    "x": 18,
+    "y": 12,
+    "subtile": 2
+  },
+  "gpio_out_east[163]": {
+    "x": 18,
+    "y": 12,
+    "subtile": 3
+  },
+  "gpio_out_east[164]": {
+    "x": 18,
+    "y": 12,
+    "subtile": 4
+  },
+  "gpio_out_east[165]": {
+    "x": 18,
+    "y": 12,
+    "subtile": 5
+  },
+  "gpio_out_east[166]": {
+    "x": 18,
+    "y": 12,
+    "subtile": 6
+  },
+  "gpio_out_east[167]": {
+    "x": 18,
+    "y": 12,
+    "subtile": 7
+  },
+  "gpio_out_east[168]": {
+    "x": 18,
+    "y": 12,
+    "subtile": 8
+  },
+  "gpio_out_east[169]": {
+    "x": 18,
+    "y": 12,
+    "subtile": 9
+  },
+  "gpio_out_east[170]": {
+    "x": 18,
+    "y": 12,
+    "subtile": 10
+  },
+  "gpio_out_east[171]": {
+    "x": 18,
+    "y": 12,
+    "subtile": 11
+  },
+  "gpio_out_east[172]": {
+    "x": 18,
+    "y": 12,
+    "subtile": 12
+  },
+  "gpio_out_east[173]": {
+    "x": 18,
+    "y": 12,
+    "subtile": 13
+  },
+  "gpio_out_east[174]": {
+    "x": 18,
+    "y": 12,
+    "subtile": 14
+  },
+  "gpio_out_east[175]": {
+    "x": 18,
+    "y": 12,
+    "subtile": 15
+  },
+  "gpio_out_east[176]": {
+    "x": 18,
+    "y": 13,
+    "subtile": 0
+  },
+  "gpio_out_east[177]": {
+    "x": 18,
+    "y": 13,
+    "subtile": 1
+  },
+  "gpio_out_east[178]": {
+    "x": 18,
+    "y": 13,
+    "subtile": 2
+  },
+  "gpio_out_east[179]": {
+    "x": 18,
+    "y": 13,
+    "subtile": 3
+  },
+  "gpio_out_east[180]": {
+    "x": 18,
+    "y": 13,
+    "subtile": 4
+  },
+  "gpio_out_east[181]": {
+    "x": 18,
+    "y": 13,
+    "subtile": 5
+  },
+  "gpio_out_east[182]": {
+    "x": 18,
+    "y": 13,
+    "subtile": 6
+  },
+  "gpio_out_east[183]": {
+    "x": 18,
+    "y": 13,
+    "subtile": 7
+  },
+  "gpio_out_east[184]": {
+    "x": 18,
+    "y": 13,
+    "subtile": 8
+  },
+  "gpio_out_east[185]": {
+    "x": 18,
+    "y": 13,
+    "subtile": 9
+  },
+  "gpio_out_east[186]": {
+    "x": 18,
+    "y": 13,
+    "subtile": 10
+  },
+  "gpio_out_east[187]": {
+    "x": 18,
+    "y": 13,
+    "subtile": 11
+  },
+  "gpio_out_east[188]": {
+    "x": 18,
+    "y": 13,
+    "subtile": 12
+  },
+  "gpio_out_east[189]": {
+    "x": 18,
+    "y": 13,
+    "subtile": 13
+  },
+  "gpio_out_east[190]": {
+    "x": 18,
+    "y": 13,
+    "subtile": 14
+  },
+  "gpio_out_east[191]": {
+    "x": 18,
+    "y": 13,
+    "subtile": 15
+  },
+  "gpio_out_east[192]": {
+    "x": 18,
+    "y": 14,
+    "subtile": 0
+  },
+  "gpio_out_east[193]": {
+    "x": 18,
+    "y": 14,
+    "subtile": 1
+  },
+  "gpio_out_east[194]": {
+    "x": 18,
+    "y": 14,
+    "subtile": 2
+  },
+  "gpio_out_east[195]": {
+    "x": 18,
+    "y": 14,
+    "subtile": 3
+  },
+  "gpio_out_east[196]": {
+    "x": 18,
+    "y": 14,
+    "subtile": 4
+  },
+  "gpio_out_east[197]": {
+    "x": 18,
+    "y": 14,
+    "subtile": 5
+  },
+  "gpio_out_east[198]": {
+    "x": 18,
+    "y": 14,
+    "subtile": 6
+  },
+  "gpio_out_east[199]": {
+    "x": 18,
+    "y": 14,
+    "subtile": 7
+  },
+  "gpio_out_east[200]": {
+    "x": 18,
+    "y": 14,
+    "subtile": 8
+  },
+  "gpio_out_east[201]": {
+    "x": 18,
+    "y": 14,
+    "subtile": 9
+  },
+  "gpio_out_east[202]": {
+    "x": 18,
+    "y": 14,
+    "subtile": 10
+  },
+  "gpio_out_east[203]": {
+    "x": 18,
+    "y": 14,
+    "subtile": 11
+  },
+  "gpio_out_east[204]": {
+    "x": 18,
+    "y": 14,
+    "subtile": 12
+  },
+  "gpio_out_east[205]": {
+    "x": 18,
+    "y": 14,
+    "subtile": 13
+  },
+  "gpio_out_east[206]": {
+    "x": 18,
+    "y": 14,
+    "subtile": 14
+  },
+  "gpio_out_east[207]": {
+    "x": 18,
+    "y": 14,
+    "subtile": 15
+  },
+  "gpio_out_east[208]": {
+    "x": 18,
+    "y": 15,
+    "subtile": 0
+  },
+  "gpio_out_east[209]": {
+    "x": 18,
+    "y": 15,
+    "subtile": 1
+  },
+  "gpio_out_east[210]": {
+    "x": 18,
+    "y": 15,
+    "subtile": 2
+  },
+  "gpio_out_east[211]": {
+    "x": 18,
+    "y": 15,
+    "subtile": 3
+  },
+  "gpio_out_east[212]": {
+    "x": 18,
+    "y": 15,
+    "subtile": 4
+  },
+  "gpio_out_east[213]": {
+    "x": 18,
+    "y": 15,
+    "subtile": 5
+  },
+  "gpio_out_east[214]": {
+    "x": 18,
+    "y": 15,
+    "subtile": 6
+  },
+  "gpio_out_east[215]": {
+    "x": 18,
+    "y": 15,
+    "subtile": 7
+  },
+  "gpio_out_east[216]": {
+    "x": 18,
+    "y": 15,
+    "subtile": 8
+  },
+  "gpio_out_east[217]": {
+    "x": 18,
+    "y": 15,
+    "subtile": 9
+  },
+  "gpio_out_east[218]": {
+    "x": 18,
+    "y": 15,
+    "subtile": 10
+  },
+  "gpio_out_east[219]": {
+    "x": 18,
+    "y": 15,
+    "subtile": 11
+  },
+  "gpio_out_east[220]": {
+    "x": 18,
+    "y": 15,
+    "subtile": 12
+  },
+  "gpio_out_east[221]": {
+    "x": 18,
+    "y": 15,
+    "subtile": 13
+  },
+  "gpio_out_east[222]": {
+    "x": 18,
+    "y": 15,
+    "subtile": 14
+  },
+  "gpio_out_east[223]": {
+    "x": 18,
+    "y": 15,
+    "subtile": 15
+  },
+  "gpio_out_east[224]": {
+    "x": 18,
+    "y": 16,
+    "subtile": 0
+  },
+  "gpio_out_east[225]": {
+    "x": 18,
+    "y": 16,
+    "subtile": 1
+  },
+  "gpio_out_east[226]": {
+    "x": 18,
+    "y": 16,
+    "subtile": 2
+  },
+  "gpio_out_east[227]": {
+    "x": 18,
+    "y": 16,
+    "subtile": 3
+  },
+  "gpio_out_east[228]": {
+    "x": 18,
+    "y": 16,
+    "subtile": 4
+  },
+  "gpio_out_east[229]": {
+    "x": 18,
+    "y": 16,
+    "subtile": 5
+  },
+  "gpio_out_east[230]": {
+    "x": 18,
+    "y": 16,
+    "subtile": 6
+  },
+  "gpio_out_east[231]": {
+    "x": 18,
+    "y": 16,
+    "subtile": 7
+  },
+  "gpio_out_east[232]": {
+    "x": 18,
+    "y": 16,
+    "subtile": 8
+  },
+  "gpio_out_east[233]": {
+    "x": 18,
+    "y": 16,
+    "subtile": 9
+  },
+  "gpio_out_east[234]": {
+    "x": 18,
+    "y": 16,
+    "subtile": 10
+  },
+  "gpio_out_east[235]": {
+    "x": 18,
+    "y": 16,
+    "subtile": 11
+  },
+  "gpio_out_east[236]": {
+    "x": 18,
+    "y": 16,
+    "subtile": 12
+  },
+  "gpio_out_east[237]": {
+    "x": 18,
+    "y": 16,
+    "subtile": 13
+  },
+  "gpio_out_east[238]": {
+    "x": 18,
+    "y": 16,
+    "subtile": 14
+  },
+  "gpio_out_east[239]": {
+    "x": 18,
+    "y": 16,
+    "subtile": 15
+  },
+  "gpio_out_east[240]": {
+    "x": 18,
+    "y": 17,
+    "subtile": 0
+  },
+  "gpio_out_east[241]": {
+    "x": 18,
+    "y": 17,
+    "subtile": 1
+  },
+  "gpio_out_east[242]": {
+    "x": 18,
+    "y": 17,
+    "subtile": 2
+  },
+  "gpio_out_east[243]": {
+    "x": 18,
+    "y": 17,
+    "subtile": 3
+  },
+  "gpio_out_east[244]": {
+    "x": 18,
+    "y": 17,
+    "subtile": 4
+  },
+  "gpio_out_east[245]": {
+    "x": 18,
+    "y": 17,
+    "subtile": 5
+  },
+  "gpio_out_east[246]": {
+    "x": 18,
+    "y": 17,
+    "subtile": 6
+  },
+  "gpio_out_east[247]": {
+    "x": 18,
+    "y": 17,
+    "subtile": 7
+  },
+  "gpio_out_east[248]": {
+    "x": 18,
+    "y": 17,
+    "subtile": 8
+  },
+  "gpio_out_east[249]": {
+    "x": 18,
+    "y": 17,
+    "subtile": 9
+  },
+  "gpio_out_east[250]": {
+    "x": 18,
+    "y": 17,
+    "subtile": 10
+  },
+  "gpio_out_east[251]": {
+    "x": 18,
+    "y": 17,
+    "subtile": 11
+  },
+  "gpio_out_east[252]": {
+    "x": 18,
+    "y": 17,
+    "subtile": 12
+  },
+  "gpio_out_east[253]": {
+    "x": 18,
+    "y": 17,
+    "subtile": 13
+  },
+  "gpio_out_east[254]": {
+    "x": 18,
+    "y": 17,
+    "subtile": 14
+  },
+  "gpio_out_east[255]": {
+    "x": 18,
+    "y": 17,
+    "subtile": 15
+  },
+  "gpio_in_east[0]": {
+    "x": 18,
+    "y": 2,
+    "subtile": 0
+  },
+  "gpio_in_east[1]": {
+    "x": 18,
+    "y": 2,
+    "subtile": 1
+  },
+  "gpio_in_east[2]": {
+    "x": 18,
+    "y": 2,
+    "subtile": 2
+  },
+  "gpio_in_east[3]": {
+    "x": 18,
+    "y": 2,
+    "subtile": 3
+  },
+  "gpio_in_east[4]": {
+    "x": 18,
+    "y": 2,
+    "subtile": 4
+  },
+  "gpio_in_east[5]": {
+    "x": 18,
+    "y": 2,
+    "subtile": 5
+  },
+  "gpio_in_east[6]": {
+    "x": 18,
+    "y": 2,
+    "subtile": 6
+  },
+  "gpio_in_east[7]": {
+    "x": 18,
+    "y": 2,
+    "subtile": 7
+  },
+  "gpio_in_east[8]": {
+    "x": 18,
+    "y": 2,
+    "subtile": 8
+  },
+  "gpio_in_east[9]": {
+    "x": 18,
+    "y": 2,
+    "subtile": 9
+  },
+  "gpio_in_east[10]": {
+    "x": 18,
+    "y": 2,
+    "subtile": 10
+  },
+  "gpio_in_east[11]": {
+    "x": 18,
+    "y": 2,
+    "subtile": 11
+  },
+  "gpio_in_east[12]": {
+    "x": 18,
+    "y": 2,
+    "subtile": 12
+  },
+  "gpio_in_east[13]": {
+    "x": 18,
+    "y": 2,
+    "subtile": 13
+  },
+  "gpio_in_east[14]": {
+    "x": 18,
+    "y": 2,
+    "subtile": 14
+  },
+  "gpio_in_east[15]": {
+    "x": 18,
+    "y": 2,
+    "subtile": 15
+  },
+  "gpio_in_east[16]": {
+    "x": 18,
+    "y": 3,
+    "subtile": 0
+  },
+  "gpio_in_east[17]": {
+    "x": 18,
+    "y": 3,
+    "subtile": 1
+  },
+  "gpio_in_east[18]": {
+    "x": 18,
+    "y": 3,
+    "subtile": 2
+  },
+  "gpio_in_east[19]": {
+    "x": 18,
+    "y": 3,
+    "subtile": 3
+  },
+  "gpio_in_east[20]": {
+    "x": 18,
+    "y": 3,
+    "subtile": 4
+  },
+  "gpio_in_east[21]": {
+    "x": 18,
+    "y": 3,
+    "subtile": 5
+  },
+  "gpio_in_east[22]": {
+    "x": 18,
+    "y": 3,
+    "subtile": 6
+  },
+  "gpio_in_east[23]": {
+    "x": 18,
+    "y": 3,
+    "subtile": 7
+  },
+  "gpio_in_east[24]": {
+    "x": 18,
+    "y": 3,
+    "subtile": 8
+  },
+  "gpio_in_east[25]": {
+    "x": 18,
+    "y": 3,
+    "subtile": 9
+  },
+  "gpio_in_east[26]": {
+    "x": 18,
+    "y": 3,
+    "subtile": 10
+  },
+  "gpio_in_east[27]": {
+    "x": 18,
+    "y": 3,
+    "subtile": 11
+  },
+  "gpio_in_east[28]": {
+    "x": 18,
+    "y": 3,
+    "subtile": 12
+  },
+  "gpio_in_east[29]": {
+    "x": 18,
+    "y": 3,
+    "subtile": 13
+  },
+  "gpio_in_east[30]": {
+    "x": 18,
+    "y": 3,
+    "subtile": 14
+  },
+  "gpio_in_east[31]": {
+    "x": 18,
+    "y": 3,
+    "subtile": 15
+  },
+  "gpio_in_east[32]": {
+    "x": 18,
+    "y": 4,
+    "subtile": 0
+  },
+  "gpio_in_east[33]": {
+    "x": 18,
+    "y": 4,
+    "subtile": 1
+  },
+  "gpio_in_east[34]": {
+    "x": 18,
+    "y": 4,
+    "subtile": 2
+  },
+  "gpio_in_east[35]": {
+    "x": 18,
+    "y": 4,
+    "subtile": 3
+  },
+  "gpio_in_east[36]": {
+    "x": 18,
+    "y": 4,
+    "subtile": 4
+  },
+  "gpio_in_east[37]": {
+    "x": 18,
+    "y": 4,
+    "subtile": 5
+  },
+  "gpio_in_east[38]": {
+    "x": 18,
+    "y": 4,
+    "subtile": 6
+  },
+  "gpio_in_east[39]": {
+    "x": 18,
+    "y": 4,
+    "subtile": 7
+  },
+  "gpio_in_east[40]": {
+    "x": 18,
+    "y": 4,
+    "subtile": 8
+  },
+  "gpio_in_east[41]": {
+    "x": 18,
+    "y": 4,
+    "subtile": 9
+  },
+  "gpio_in_east[42]": {
+    "x": 18,
+    "y": 4,
+    "subtile": 10
+  },
+  "gpio_in_east[43]": {
+    "x": 18,
+    "y": 4,
+    "subtile": 11
+  },
+  "gpio_in_east[44]": {
+    "x": 18,
+    "y": 4,
+    "subtile": 12
+  },
+  "gpio_in_east[45]": {
+    "x": 18,
+    "y": 4,
+    "subtile": 13
+  },
+  "gpio_in_east[46]": {
+    "x": 18,
+    "y": 4,
+    "subtile": 14
+  },
+  "gpio_in_east[47]": {
+    "x": 18,
+    "y": 4,
+    "subtile": 15
+  },
+  "gpio_in_east[48]": {
+    "x": 18,
+    "y": 5,
+    "subtile": 0
+  },
+  "gpio_in_east[49]": {
+    "x": 18,
+    "y": 5,
+    "subtile": 1
+  },
+  "gpio_in_east[50]": {
+    "x": 18,
+    "y": 5,
+    "subtile": 2
+  },
+  "gpio_in_east[51]": {
+    "x": 18,
+    "y": 5,
+    "subtile": 3
+  },
+  "gpio_in_east[52]": {
+    "x": 18,
+    "y": 5,
+    "subtile": 4
+  },
+  "gpio_in_east[53]": {
+    "x": 18,
+    "y": 5,
+    "subtile": 5
+  },
+  "gpio_in_east[54]": {
+    "x": 18,
+    "y": 5,
+    "subtile": 6
+  },
+  "gpio_in_east[55]": {
+    "x": 18,
+    "y": 5,
+    "subtile": 7
+  },
+  "gpio_in_east[56]": {
+    "x": 18,
+    "y": 5,
+    "subtile": 8
+  },
+  "gpio_in_east[57]": {
+    "x": 18,
+    "y": 5,
+    "subtile": 9
+  },
+  "gpio_in_east[58]": {
+    "x": 18,
+    "y": 5,
+    "subtile": 10
+  },
+  "gpio_in_east[59]": {
+    "x": 18,
+    "y": 5,
+    "subtile": 11
+  },
+  "gpio_in_east[60]": {
+    "x": 18,
+    "y": 5,
+    "subtile": 12
+  },
+  "gpio_in_east[61]": {
+    "x": 18,
+    "y": 5,
+    "subtile": 13
+  },
+  "gpio_in_east[62]": {
+    "x": 18,
+    "y": 5,
+    "subtile": 14
+  },
+  "gpio_in_east[63]": {
+    "x": 18,
+    "y": 5,
+    "subtile": 15
+  },
+  "gpio_in_east[64]": {
+    "x": 18,
+    "y": 6,
+    "subtile": 0
+  },
+  "gpio_in_east[65]": {
+    "x": 18,
+    "y": 6,
+    "subtile": 1
+  },
+  "gpio_in_east[66]": {
+    "x": 18,
+    "y": 6,
+    "subtile": 2
+  },
+  "gpio_in_east[67]": {
+    "x": 18,
+    "y": 6,
+    "subtile": 3
+  },
+  "gpio_in_east[68]": {
+    "x": 18,
+    "y": 6,
+    "subtile": 4
+  },
+  "gpio_in_east[69]": {
+    "x": 18,
+    "y": 6,
+    "subtile": 5
+  },
+  "gpio_in_east[70]": {
+    "x": 18,
+    "y": 6,
+    "subtile": 6
+  },
+  "gpio_in_east[71]": {
+    "x": 18,
+    "y": 6,
+    "subtile": 7
+  },
+  "gpio_in_east[72]": {
+    "x": 18,
+    "y": 6,
+    "subtile": 8
+  },
+  "gpio_in_east[73]": {
+    "x": 18,
+    "y": 6,
+    "subtile": 9
+  },
+  "gpio_in_east[74]": {
+    "x": 18,
+    "y": 6,
+    "subtile": 10
+  },
+  "gpio_in_east[75]": {
+    "x": 18,
+    "y": 6,
+    "subtile": 11
+  },
+  "gpio_in_east[76]": {
+    "x": 18,
+    "y": 6,
+    "subtile": 12
+  },
+  "gpio_in_east[77]": {
+    "x": 18,
+    "y": 6,
+    "subtile": 13
+  },
+  "gpio_in_east[78]": {
+    "x": 18,
+    "y": 6,
+    "subtile": 14
+  },
+  "gpio_in_east[79]": {
+    "x": 18,
+    "y": 6,
+    "subtile": 15
+  },
+  "gpio_in_east[80]": {
+    "x": 18,
+    "y": 7,
+    "subtile": 0
+  },
+  "gpio_in_east[81]": {
+    "x": 18,
+    "y": 7,
+    "subtile": 1
+  },
+  "gpio_in_east[82]": {
+    "x": 18,
+    "y": 7,
+    "subtile": 2
+  },
+  "gpio_in_east[83]": {
+    "x": 18,
+    "y": 7,
+    "subtile": 3
+  },
+  "gpio_in_east[84]": {
+    "x": 18,
+    "y": 7,
+    "subtile": 4
+  },
+  "gpio_in_east[85]": {
+    "x": 18,
+    "y": 7,
+    "subtile": 5
+  },
+  "gpio_in_east[86]": {
+    "x": 18,
+    "y": 7,
+    "subtile": 6
+  },
+  "gpio_in_east[87]": {
+    "x": 18,
+    "y": 7,
+    "subtile": 7
+  },
+  "gpio_in_east[88]": {
+    "x": 18,
+    "y": 7,
+    "subtile": 8
+  },
+  "gpio_in_east[89]": {
+    "x": 18,
+    "y": 7,
+    "subtile": 9
+  },
+  "gpio_in_east[90]": {
+    "x": 18,
+    "y": 7,
+    "subtile": 10
+  },
+  "gpio_in_east[91]": {
+    "x": 18,
+    "y": 7,
+    "subtile": 11
+  },
+  "gpio_in_east[92]": {
+    "x": 18,
+    "y": 7,
+    "subtile": 12
+  },
+  "gpio_in_east[93]": {
+    "x": 18,
+    "y": 7,
+    "subtile": 13
+  },
+  "gpio_in_east[94]": {
+    "x": 18,
+    "y": 7,
+    "subtile": 14
+  },
+  "gpio_in_east[95]": {
+    "x": 18,
+    "y": 7,
+    "subtile": 15
+  },
+  "gpio_in_east[96]": {
+    "x": 18,
+    "y": 8,
+    "subtile": 0
+  },
+  "gpio_in_east[97]": {
+    "x": 18,
+    "y": 8,
+    "subtile": 1
+  },
+  "gpio_in_east[98]": {
+    "x": 18,
+    "y": 8,
+    "subtile": 2
+  },
+  "gpio_in_east[99]": {
+    "x": 18,
+    "y": 8,
+    "subtile": 3
+  },
+  "gpio_in_east[100]": {
+    "x": 18,
+    "y": 8,
+    "subtile": 4
+  },
+  "gpio_in_east[101]": {
+    "x": 18,
+    "y": 8,
+    "subtile": 5
+  },
+  "gpio_in_east[102]": {
+    "x": 18,
+    "y": 8,
+    "subtile": 6
+  },
+  "gpio_in_east[103]": {
+    "x": 18,
+    "y": 8,
+    "subtile": 7
+  },
+  "gpio_in_east[104]": {
+    "x": 18,
+    "y": 8,
+    "subtile": 8
+  },
+  "gpio_in_east[105]": {
+    "x": 18,
+    "y": 8,
+    "subtile": 9
+  },
+  "gpio_in_east[106]": {
+    "x": 18,
+    "y": 8,
+    "subtile": 10
+  },
+  "gpio_in_east[107]": {
+    "x": 18,
+    "y": 8,
+    "subtile": 11
+  },
+  "gpio_in_east[108]": {
+    "x": 18,
+    "y": 8,
+    "subtile": 12
+  },
+  "gpio_in_east[109]": {
+    "x": 18,
+    "y": 8,
+    "subtile": 13
+  },
+  "gpio_in_east[110]": {
+    "x": 18,
+    "y": 8,
+    "subtile": 14
+  },
+  "gpio_in_east[111]": {
+    "x": 18,
+    "y": 8,
+    "subtile": 15
+  },
+  "gpio_in_east[112]": {
+    "x": 18,
+    "y": 9,
+    "subtile": 0
+  },
+  "gpio_in_east[113]": {
+    "x": 18,
+    "y": 9,
+    "subtile": 1
+  },
+  "gpio_in_east[114]": {
+    "x": 18,
+    "y": 9,
+    "subtile": 2
+  },
+  "gpio_in_east[115]": {
+    "x": 18,
+    "y": 9,
+    "subtile": 3
+  },
+  "gpio_in_east[116]": {
+    "x": 18,
+    "y": 9,
+    "subtile": 4
+  },
+  "gpio_in_east[117]": {
+    "x": 18,
+    "y": 9,
+    "subtile": 5
+  },
+  "gpio_in_east[118]": {
+    "x": 18,
+    "y": 9,
+    "subtile": 6
+  },
+  "gpio_in_east[119]": {
+    "x": 18,
+    "y": 9,
+    "subtile": 7
+  },
+  "gpio_in_east[120]": {
+    "x": 18,
+    "y": 9,
+    "subtile": 8
+  },
+  "gpio_in_east[121]": {
+    "x": 18,
+    "y": 9,
+    "subtile": 9
+  },
+  "gpio_in_east[122]": {
+    "x": 18,
+    "y": 9,
+    "subtile": 10
+  },
+  "gpio_in_east[123]": {
+    "x": 18,
+    "y": 9,
+    "subtile": 11
+  },
+  "gpio_in_east[124]": {
+    "x": 18,
+    "y": 9,
+    "subtile": 12
+  },
+  "gpio_in_east[125]": {
+    "x": 18,
+    "y": 9,
+    "subtile": 13
+  },
+  "gpio_in_east[126]": {
+    "x": 18,
+    "y": 9,
+    "subtile": 14
+  },
+  "gpio_in_east[127]": {
+    "x": 18,
+    "y": 9,
+    "subtile": 15
+  },
+  "gpio_in_east[128]": {
+    "x": 18,
+    "y": 10,
+    "subtile": 0
+  },
+  "gpio_in_east[129]": {
+    "x": 18,
+    "y": 10,
+    "subtile": 1
+  },
+  "gpio_in_east[130]": {
+    "x": 18,
+    "y": 10,
+    "subtile": 2
+  },
+  "gpio_in_east[131]": {
+    "x": 18,
+    "y": 10,
+    "subtile": 3
+  },
+  "gpio_in_east[132]": {
+    "x": 18,
+    "y": 10,
+    "subtile": 4
+  },
+  "gpio_in_east[133]": {
+    "x": 18,
+    "y": 10,
+    "subtile": 5
+  },
+  "gpio_in_east[134]": {
+    "x": 18,
+    "y": 10,
+    "subtile": 6
+  },
+  "gpio_in_east[135]": {
+    "x": 18,
+    "y": 10,
+    "subtile": 7
+  },
+  "gpio_in_east[136]": {
+    "x": 18,
+    "y": 10,
+    "subtile": 8
+  },
+  "gpio_in_east[137]": {
+    "x": 18,
+    "y": 10,
+    "subtile": 9
+  },
+  "gpio_in_east[138]": {
+    "x": 18,
+    "y": 10,
+    "subtile": 10
+  },
+  "gpio_in_east[139]": {
+    "x": 18,
+    "y": 10,
+    "subtile": 11
+  },
+  "gpio_in_east[140]": {
+    "x": 18,
+    "y": 10,
+    "subtile": 12
+  },
+  "gpio_in_east[141]": {
+    "x": 18,
+    "y": 10,
+    "subtile": 13
+  },
+  "gpio_in_east[142]": {
+    "x": 18,
+    "y": 10,
+    "subtile": 14
+  },
+  "gpio_in_east[143]": {
+    "x": 18,
+    "y": 10,
+    "subtile": 15
+  },
+  "gpio_in_east[144]": {
+    "x": 18,
+    "y": 11,
+    "subtile": 0
+  },
+  "gpio_in_east[145]": {
+    "x": 18,
+    "y": 11,
+    "subtile": 1
+  },
+  "gpio_in_east[146]": {
+    "x": 18,
+    "y": 11,
+    "subtile": 2
+  },
+  "gpio_in_east[147]": {
+    "x": 18,
+    "y": 11,
+    "subtile": 3
+  },
+  "gpio_in_east[148]": {
+    "x": 18,
+    "y": 11,
+    "subtile": 4
+  },
+  "gpio_in_east[149]": {
+    "x": 18,
+    "y": 11,
+    "subtile": 5
+  },
+  "gpio_in_east[150]": {
+    "x": 18,
+    "y": 11,
+    "subtile": 6
+  },
+  "gpio_in_east[151]": {
+    "x": 18,
+    "y": 11,
+    "subtile": 7
+  },
+  "gpio_in_east[152]": {
+    "x": 18,
+    "y": 11,
+    "subtile": 8
+  },
+  "gpio_in_east[153]": {
+    "x": 18,
+    "y": 11,
+    "subtile": 9
+  },
+  "gpio_in_east[154]": {
+    "x": 18,
+    "y": 11,
+    "subtile": 10
+  },
+  "gpio_in_east[155]": {
+    "x": 18,
+    "y": 11,
+    "subtile": 11
+  },
+  "gpio_in_east[156]": {
+    "x": 18,
+    "y": 11,
+    "subtile": 12
+  },
+  "gpio_in_east[157]": {
+    "x": 18,
+    "y": 11,
+    "subtile": 13
+  },
+  "gpio_in_east[158]": {
+    "x": 18,
+    "y": 11,
+    "subtile": 14
+  },
+  "gpio_in_east[159]": {
+    "x": 18,
+    "y": 11,
+    "subtile": 15
+  },
+  "gpio_in_east[160]": {
+    "x": 18,
+    "y": 12,
+    "subtile": 0
+  },
+  "gpio_in_east[161]": {
+    "x": 18,
+    "y": 12,
+    "subtile": 1
+  },
+  "gpio_in_east[162]": {
+    "x": 18,
+    "y": 12,
+    "subtile": 2
+  },
+  "gpio_in_east[163]": {
+    "x": 18,
+    "y": 12,
+    "subtile": 3
+  },
+  "gpio_in_east[164]": {
+    "x": 18,
+    "y": 12,
+    "subtile": 4
+  },
+  "gpio_in_east[165]": {
+    "x": 18,
+    "y": 12,
+    "subtile": 5
+  },
+  "gpio_in_east[166]": {
+    "x": 18,
+    "y": 12,
+    "subtile": 6
+  },
+  "gpio_in_east[167]": {
+    "x": 18,
+    "y": 12,
+    "subtile": 7
+  },
+  "gpio_in_east[168]": {
+    "x": 18,
+    "y": 12,
+    "subtile": 8
+  },
+  "gpio_in_east[169]": {
+    "x": 18,
+    "y": 12,
+    "subtile": 9
+  },
+  "gpio_in_east[170]": {
+    "x": 18,
+    "y": 12,
+    "subtile": 10
+  },
+  "gpio_in_east[171]": {
+    "x": 18,
+    "y": 12,
+    "subtile": 11
+  },
+  "gpio_in_east[172]": {
+    "x": 18,
+    "y": 12,
+    "subtile": 12
+  },
+  "gpio_in_east[173]": {
+    "x": 18,
+    "y": 12,
+    "subtile": 13
+  },
+  "gpio_in_east[174]": {
+    "x": 18,
+    "y": 12,
+    "subtile": 14
+  },
+  "gpio_in_east[175]": {
+    "x": 18,
+    "y": 12,
+    "subtile": 15
+  },
+  "gpio_in_east[176]": {
+    "x": 18,
+    "y": 13,
+    "subtile": 0
+  },
+  "gpio_in_east[177]": {
+    "x": 18,
+    "y": 13,
+    "subtile": 1
+  },
+  "gpio_in_east[178]": {
+    "x": 18,
+    "y": 13,
+    "subtile": 2
+  },
+  "gpio_in_east[179]": {
+    "x": 18,
+    "y": 13,
+    "subtile": 3
+  },
+  "gpio_in_east[180]": {
+    "x": 18,
+    "y": 13,
+    "subtile": 4
+  },
+  "gpio_in_east[181]": {
+    "x": 18,
+    "y": 13,
+    "subtile": 5
+  },
+  "gpio_in_east[182]": {
+    "x": 18,
+    "y": 13,
+    "subtile": 6
+  },
+  "gpio_in_east[183]": {
+    "x": 18,
+    "y": 13,
+    "subtile": 7
+  },
+  "gpio_in_east[184]": {
+    "x": 18,
+    "y": 13,
+    "subtile": 8
+  },
+  "gpio_in_east[185]": {
+    "x": 18,
+    "y": 13,
+    "subtile": 9
+  },
+  "gpio_in_east[186]": {
+    "x": 18,
+    "y": 13,
+    "subtile": 10
+  },
+  "gpio_in_east[187]": {
+    "x": 18,
+    "y": 13,
+    "subtile": 11
+  },
+  "gpio_in_east[188]": {
+    "x": 18,
+    "y": 13,
+    "subtile": 12
+  },
+  "gpio_in_east[189]": {
+    "x": 18,
+    "y": 13,
+    "subtile": 13
+  },
+  "gpio_in_east[190]": {
+    "x": 18,
+    "y": 13,
+    "subtile": 14
+  },
+  "gpio_in_east[191]": {
+    "x": 18,
+    "y": 13,
+    "subtile": 15
+  },
+  "gpio_in_east[192]": {
+    "x": 18,
+    "y": 14,
+    "subtile": 0
+  },
+  "gpio_in_east[193]": {
+    "x": 18,
+    "y": 14,
+    "subtile": 1
+  },
+  "gpio_in_east[194]": {
+    "x": 18,
+    "y": 14,
+    "subtile": 2
+  },
+  "gpio_in_east[195]": {
+    "x": 18,
+    "y": 14,
+    "subtile": 3
+  },
+  "gpio_in_east[196]": {
+    "x": 18,
+    "y": 14,
+    "subtile": 4
+  },
+  "gpio_in_east[197]": {
+    "x": 18,
+    "y": 14,
+    "subtile": 5
+  },
+  "gpio_in_east[198]": {
+    "x": 18,
+    "y": 14,
+    "subtile": 6
+  },
+  "gpio_in_east[199]": {
+    "x": 18,
+    "y": 14,
+    "subtile": 7
+  },
+  "gpio_in_east[200]": {
+    "x": 18,
+    "y": 14,
+    "subtile": 8
+  },
+  "gpio_in_east[201]": {
+    "x": 18,
+    "y": 14,
+    "subtile": 9
+  },
+  "gpio_in_east[202]": {
+    "x": 18,
+    "y": 14,
+    "subtile": 10
+  },
+  "gpio_in_east[203]": {
+    "x": 18,
+    "y": 14,
+    "subtile": 11
+  },
+  "gpio_in_east[204]": {
+    "x": 18,
+    "y": 14,
+    "subtile": 12
+  },
+  "gpio_in_east[205]": {
+    "x": 18,
+    "y": 14,
+    "subtile": 13
+  },
+  "gpio_in_east[206]": {
+    "x": 18,
+    "y": 14,
+    "subtile": 14
+  },
+  "gpio_in_east[207]": {
+    "x": 18,
+    "y": 14,
+    "subtile": 15
+  },
+  "gpio_in_east[208]": {
+    "x": 18,
+    "y": 15,
+    "subtile": 0
+  },
+  "gpio_in_east[209]": {
+    "x": 18,
+    "y": 15,
+    "subtile": 1
+  },
+  "gpio_in_east[210]": {
+    "x": 18,
+    "y": 15,
+    "subtile": 2
+  },
+  "gpio_in_east[211]": {
+    "x": 18,
+    "y": 15,
+    "subtile": 3
+  },
+  "gpio_in_east[212]": {
+    "x": 18,
+    "y": 15,
+    "subtile": 4
+  },
+  "gpio_in_east[213]": {
+    "x": 18,
+    "y": 15,
+    "subtile": 5
+  },
+  "gpio_in_east[214]": {
+    "x": 18,
+    "y": 15,
+    "subtile": 6
+  },
+  "gpio_in_east[215]": {
+    "x": 18,
+    "y": 15,
+    "subtile": 7
+  },
+  "gpio_in_east[216]": {
+    "x": 18,
+    "y": 15,
+    "subtile": 8
+  },
+  "gpio_in_east[217]": {
+    "x": 18,
+    "y": 15,
+    "subtile": 9
+  },
+  "gpio_in_east[218]": {
+    "x": 18,
+    "y": 15,
+    "subtile": 10
+  },
+  "gpio_in_east[219]": {
+    "x": 18,
+    "y": 15,
+    "subtile": 11
+  },
+  "gpio_in_east[220]": {
+    "x": 18,
+    "y": 15,
+    "subtile": 12
+  },
+  "gpio_in_east[221]": {
+    "x": 18,
+    "y": 15,
+    "subtile": 13
+  },
+  "gpio_in_east[222]": {
+    "x": 18,
+    "y": 15,
+    "subtile": 14
+  },
+  "gpio_in_east[223]": {
+    "x": 18,
+    "y": 15,
+    "subtile": 15
+  },
+  "gpio_in_east[224]": {
+    "x": 18,
+    "y": 16,
+    "subtile": 0
+  },
+  "gpio_in_east[225]": {
+    "x": 18,
+    "y": 16,
+    "subtile": 1
+  },
+  "gpio_in_east[226]": {
+    "x": 18,
+    "y": 16,
+    "subtile": 2
+  },
+  "gpio_in_east[227]": {
+    "x": 18,
+    "y": 16,
+    "subtile": 3
+  },
+  "gpio_in_east[228]": {
+    "x": 18,
+    "y": 16,
+    "subtile": 4
+  },
+  "gpio_in_east[229]": {
+    "x": 18,
+    "y": 16,
+    "subtile": 5
+  },
+  "gpio_in_east[230]": {
+    "x": 18,
+    "y": 16,
+    "subtile": 6
+  },
+  "gpio_in_east[231]": {
+    "x": 18,
+    "y": 16,
+    "subtile": 7
+  },
+  "gpio_in_east[232]": {
+    "x": 18,
+    "y": 16,
+    "subtile": 8
+  },
+  "gpio_in_east[233]": {
+    "x": 18,
+    "y": 16,
+    "subtile": 9
+  },
+  "gpio_in_east[234]": {
+    "x": 18,
+    "y": 16,
+    "subtile": 10
+  },
+  "gpio_in_east[235]": {
+    "x": 18,
+    "y": 16,
+    "subtile": 11
+  },
+  "gpio_in_east[236]": {
+    "x": 18,
+    "y": 16,
+    "subtile": 12
+  },
+  "gpio_in_east[237]": {
+    "x": 18,
+    "y": 16,
+    "subtile": 13
+  },
+  "gpio_in_east[238]": {
+    "x": 18,
+    "y": 16,
+    "subtile": 14
+  },
+  "gpio_in_east[239]": {
+    "x": 18,
+    "y": 16,
+    "subtile": 15
+  },
+  "gpio_in_east[240]": {
+    "x": 18,
+    "y": 17,
+    "subtile": 0
+  },
+  "gpio_in_east[241]": {
+    "x": 18,
+    "y": 17,
+    "subtile": 1
+  },
+  "gpio_in_east[242]": {
+    "x": 18,
+    "y": 17,
+    "subtile": 2
+  },
+  "gpio_in_east[243]": {
+    "x": 18,
+    "y": 17,
+    "subtile": 3
+  },
+  "gpio_in_east[244]": {
+    "x": 18,
+    "y": 17,
+    "subtile": 4
+  },
+  "gpio_in_east[245]": {
+    "x": 18,
+    "y": 17,
+    "subtile": 5
+  },
+  "gpio_in_east[246]": {
+    "x": 18,
+    "y": 17,
+    "subtile": 6
+  },
+  "gpio_in_east[247]": {
+    "x": 18,
+    "y": 17,
+    "subtile": 7
+  },
+  "gpio_in_east[248]": {
+    "x": 18,
+    "y": 17,
+    "subtile": 8
+  },
+  "gpio_in_east[249]": {
+    "x": 18,
+    "y": 17,
+    "subtile": 9
+  },
+  "gpio_in_east[250]": {
+    "x": 18,
+    "y": 17,
+    "subtile": 10
+  },
+  "gpio_in_east[251]": {
+    "x": 18,
+    "y": 17,
+    "subtile": 11
+  },
+  "gpio_in_east[252]": {
+    "x": 18,
+    "y": 17,
+    "subtile": 12
+  },
+  "gpio_in_east[253]": {
+    "x": 18,
+    "y": 17,
+    "subtile": 13
+  },
+  "gpio_in_east[254]": {
+    "x": 18,
+    "y": 17,
+    "subtile": 14
+  },
+  "gpio_in_east[255]": {
+    "x": 18,
+    "y": 17,
+    "subtile": 15
+  }
+}

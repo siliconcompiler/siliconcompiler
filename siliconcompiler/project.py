@@ -12,7 +12,7 @@ from inspect import getfullargspec
 from typing import Set, Union, List, Tuple, Type, Callable, TextIO
 
 from siliconcompiler.schema import BaseSchema, NamedSchema, EditableSchema, Parameter, Scope, \
-    SCHEMA_VERSION
+    __version__ as schema_version
 from siliconcompiler.schema.parametervalue import NodeListValue, NodeSetValue
 from siliconcompiler.schema.utils import trim
 
@@ -21,7 +21,7 @@ from siliconcompiler import FlowgraphSchema
 from siliconcompiler import RecordSchema
 from siliconcompiler import MetricSchema
 from siliconcompiler import ChecklistSchema
-from siliconcompiler import ToolSchema, TaskSchema
+from siliconcompiler import TaskSchema
 from siliconcompiler import ShowTaskSchema, ScreenshotTaskSchema
 from siliconcompiler import OptionSchema
 
@@ -34,6 +34,7 @@ from siliconcompiler.scheduler import Scheduler
 from siliconcompiler.utils.logging import SCColorLoggerFormatter, SCLoggerFormatter
 from siliconcompiler.utils import FilterDirectories, get_file_ext
 from siliconcompiler.utils.multiprocessing import MPManager
+from siliconcompiler.flows.showflow import ShowFlow
 
 
 class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
@@ -52,15 +53,14 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
 
         # Version
         schema.insert(
-            'schemaversion',
+            BaseSchema._version_key,
             Parameter(
                 'str',
                 scope=Scope.GLOBAL,
-                defvalue=SCHEMA_VERSION,
+                defvalue=schema_version,
                 require=True,
                 shorthelp="Schema version number",
                 lock=True,
-                switch="-schemaversion <str>",
                 example=["api: chip.get('schemaversion')"],
                 schelp="""SiliconCompiler schema version number."""))
 
@@ -102,7 +102,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         schema.insert("flowgraph", "default", FlowgraphSchema())
         schema.insert("metric", MetricSchema())
         schema.insert("record", RecordSchema())
-        schema.insert("tool", "default", ToolSchema())
+        schema.insert("tool", "default", "task", "default", TaskSchema())
 
         # Add options
         schema.insert("option", OptionSchema())
@@ -338,6 +338,11 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         # Restore dependencies
         self.__populate_deps()
 
+        # Preserve logger in history
+        for history in self.getkeys("history"):
+            hist = self.get("history", history, field="schema")
+            hist.__logger = self.__logger
+
         return ret
 
     def load_target(self, target: Union[str, Callable[["Project"], None]], **kwargs):
@@ -466,9 +471,6 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         # Instantiate tasks
         for task_cls in flow.get_all_tasks():
             task = task_cls()
-            # TODO: this is not needed once tool moves
-            if not self.valid("tool", task.tool()):
-                edit_schema.insert("tool", task.tool(), ToolSchema())
             if not self.valid("tool", task.tool(), "task", task.task()):
                 edit_schema.insert("tool", task.tool(), "task", task.task(), task)
 
@@ -583,6 +585,18 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                 self.logger.warning(f"Setting design fileset to: {fileset}")
                 self.set("option", "fileset", fileset)
 
+        if self.__dashboard and self.get("option", "flow"):
+            breakpoints = set()
+            flow = self.get("flowgraph", self.get("option", "flow"), field="schema")
+            for step, index in flow.get_nodes():
+                if self.get("option", "breakpoint", step=step, index=index):
+                    breakpoints.add((step, index))
+            print(breakpoints)
+            if breakpoints and self.__dashboard.is_running():
+                self.logger.info("Disabling dashboard due to breakpoints at: "
+                                 f"{', '.join([f'{step}/{index}' for step, index in breakpoints])}")
+                self.__dashboard.stop()
+
     def run(self, raise_exception=False):
         '''
         Executes tasks in a flowgraph.
@@ -641,7 +655,17 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                 self.__dashboard.update_manifest()
                 self.__dashboard.end_of_run()
 
+        self.__reset_job_params()
+
         return True
+
+    def __reset_job_params(self):
+        for key in self.allkeys():
+            if key[0] == "history":
+                continue
+            param = self.get(*key, field=None)
+            if param.get(field="scope") != Scope.GLOBAL:
+                param.reset()
 
     def _getbuilddir(self) -> str:
         """
@@ -879,6 +903,9 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         job = self.get("option", "jobname")
         proj = self.copy()
 
+        # Preserve logger
+        proj.__logger = self.__logger
+
         # Remove history from proj
         EditableSchema(proj).insert("history", BaseSchema(), clobber=True)
 
@@ -898,9 +925,16 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         # Remove dashboard
         del state["_Project__dashboard"]
 
+        # Pass along manager address
+        state["__manager__"] = MPManager._get_manager_address()
+
         return state
 
     def __setstate__(self, state):
+        # Retrieve manager address
+        MPManager._set_manager_address(state["__manager__"])
+        del state["__manager__"]
+
         self.__dict__ = state
 
         # Reinitialize logger on restore
@@ -1260,6 +1294,11 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             self.logger.warning(f"{org_job} not found in history, picking {jobname}")
 
         history = self.history(jobname)
+
+        if not fd:
+            if self.__dashboard and self.__dashboard.is_running():
+                self.__dashboard.stop()
+
         history.get("metric", field='schema').summary(
             headers=history._summary_headers(),
             fd=fd)
@@ -1330,7 +1369,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
 
         return None
 
-    def snapshot(self, path: str = None, display: bool = True) -> None:
+    def snapshot(self, path: str = None, jobname: str = None, display: bool = True) -> None:
         '''
         Creates a snapshot image summarizing the job's progress and key information.
 
@@ -1342,6 +1381,8 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             path (str, optional): The file path where the snapshot image should be saved.
                                   If not provided, it defaults to
                                   `<job_directory>/<design_name>.png`.
+            jobname (str, optional): If provided prints uses this job to print summary,
+                                   otherwise the value in :keypath:`option,jobname` will be used.
             display (bool, optional): If True, the generated image will be opened for viewing
                                       if the system supports it and `option,nodisplay` is False.
                                       Defaults to True.
@@ -1352,13 +1393,27 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         '''
         from siliconcompiler.report import generate_summary_image, _open_summary_image
 
+        histories = self.getkeys("history")
+
+        if not histories:
+            raise ValueError("no history to snapshot")
+
+        if jobname is None:
+            jobname = self.get("option", "jobname")
+        if jobname not in histories:
+            org_job = jobname
+            jobname = histories[0]
+            self.logger.warning(f"{org_job} not found in history, picking {jobname}")
+
+        history = self.history(jobname)
+
         if not path:
-            path = os.path.join(self.getworkdir(), f'{self.design.name}.png')
+            path = os.path.join(history.getworkdir(), f'{history.design.name}.png')
 
         if os.path.exists(path):
             os.remove(path)
 
-        generate_summary_image(self, path, self._snapshot_info())
+        generate_summary_image(history, path, history._snapshot_info())
 
         if os.path.isfile(path) and not self.get('option', 'nodisplay') and display:
             _open_summary_image(path)
@@ -1466,20 +1521,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
 
         # Create copy of project to avoid changing user project
         proj = self.copy()
-
-        nodename = "screenshot" if screenshot else "show"
-
-        class ShowFlow(FlowgraphSchema):
-            """
-            Small auto created flow to build a single node show/screenshot flow
-            """
-            def __init__(self, nodename, task):
-                super().__init__()
-                self.set_name("showflow")
-
-                self.node(nodename, task)
-
-        proj.set_flow(ShowFlow(nodename, task))
+        proj.set_flow(ShowFlow(task))
 
         # Setup options:
         for option, value in [
@@ -1496,7 +1538,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         proj.unset("option", "prune")
         proj.unset("option", "from")
 
-        jobname = f"_{nodename}_{sc_jobname}_{sc_step}_{sc_index}_{task.tool()}"
+        jobname = f"_{task.task()}_{sc_jobname}_{sc_step}_{sc_index}_{task.tool()}"
         proj.set("option", "jobname", jobname)
 
         # Setup in task variables
@@ -1508,4 +1550,12 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         # run show flow
         proj.run(raise_exception=True)
         if screenshot:
-            return proj.find_result('png', step=nodename)
+            return proj.find_result('png', step=task.task())
+
+
+class SimProject(Project):
+    pass
+
+
+class LintProject(Project):
+    pass

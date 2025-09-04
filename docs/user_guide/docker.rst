@@ -1,58 +1,61 @@
-Docker
-======
+Using SiliconCompiler with Docker
+=================================
 
-To use the docker based running image SiliconCompiler provides, you will need to ensure that docker is installed on your machine.
-If you need to install docker, please follow the instructions for your OS: :ref:`linux`, :ref:`Windows`, or :ref:`macOS`.
+To run SiliconCompiler flows using our pre-built Docker image, you first need to have Docker installed and running on your system.
 
-Linux
------
+1. Install Docker Desktop
+-------------------------
 
-Download and Install Docker Desktop for Linux as detailed in `dockers installation instructions <https://docs.docker.com/desktop/install/linux-install/>`__.
-After installation, start Docker Desktop and use recommended settings if possible
+The first step is to install Docker Desktop, which provides an easy-to-use environment for managing containers.
+Please follow the official installation instructions for your operating system:
 
-On a terminal, run the following commands:
+* `Install on Linux <https://docs.docker.com/desktop/setup/install/linux/>`_
+* `Install on Windows <https://docs.docker.com/desktop/setup/install/windows-install/>`_
+* `Install on macOS <https://docs.docker.com/desktop/setup/install/mac-install/>`_
+
+After installation, start Docker Desktop. We recommend using the default settings when prompted.
+
+2. Set Up Your Project
+----------------------
+
+Next, open your preferred command-line terminal and run the commands below that correspond to your operating system.
+These commands will create a Python virtual environment, activate it, and install siliconcompiler.
+
+Linux / macOS
+^^^^^^^^^^^^^
+On a standard terminal (`bash` or `zsh`):
 
 .. code-block:: bash
 
-    $ python3 -m venv .venv
-    $ source .venv/bin/activate
+    # Create and activate a Python virtual environment
+    python3 -m venv .venv
+    source .venv/bin/activate
 
-    $ python3 -m pip install siliconcompiler
-
-    $ sc -target asic_demo -scheduler docker
-
+    # Install SiliconCompiler
+    python3 -m pip install siliconcompiler
 
 Windows
--------
+^^^^^^^
+On a PowerShell terminal:
 
-Download and Install Docker Desktop for Windows as detailed in `dockers installation instructions <https://docs.docker.com/desktop/install/windows-install/>`__.
-After installation, start docker.
+# Create and activate a Python virtual environment
 
-On powershell terminal, run the following commands:
+.. code-block:: shell
 
-.. code-block:: bash
+    python3 -m venv .venv
+    .venv\Scripts\activate
 
-    $ python3 -m venv .venv
-    $ .venv/Script/activate
+    # Install SiliconCompiler
+    python3 -m pip install siliconcompiler
 
-    $ python3 -m pip install siliconcompiler
+3. Run a Test Compilation
+-------------------------
+With your environment activated and SiliconCompiler installed, you can test your setup by running a simple compilation that uses the Docker scheduler. This command will automatically pull the necessary Docker image and run the flow inside a container.
 
-    $ siliconcompiler -target asic_demo -scheduler docker
-
-
-macOS
------
-
-Download and Install Docker Desktop for macOS as detailed in `dockers installation instructions <https://docs.docker.com/desktop/install/mac-install/>`_.
-After installation, start Docker Desktop and use recommended settings if possible
-
-On a Mac terminal, run the following commands:
+Execute the following command in the same terminal:
 
 .. code-block:: bash
 
-    $ python -m venv .venv
-    $ source .venv/bin/activate
+    sc -target asic_demo -scheduler docker
 
-    $ python -m pip install siliconcompiler
-
-    $ sc -target asic_demo -scheduler docker
+If the setup is successful, you will see compilation output in your terminal as SiliconCompiler executes the demonstration flow.

@@ -1,66 +1,83 @@
-import siliconcompiler
-
 from siliconcompiler.tools.openroad import rcx_bench
 from siliconcompiler.tools.openroad import rcx_extract
 from siliconcompiler.tools.builtin import nop
-from siliconcompiler.flows._common import _make_docs
+
+from siliconcompiler import FlowgraphSchema, TaskSchema
 
 
-############################################################################
-# DOCS
-############################################################################
-def make_docs(chip):
-    _make_docs(chip)
-    return setup(corners=5)
+class GenerateOpenRCXFlow(FlowgraphSchema):
+    '''A flow to generate OpenRCX parasitic extraction decks for OpenROAD.
 
+    This flow automates the process of characterizing a parasitic extraction
+    tool to generate the necessary configuration files (RCX decks) for
+    OpenROAD's built-in OpenRCX engine. It works by comparing the output of a
+    third-party "golden" extraction tool against OpenRCX's results and
+    calibrating OpenRCX accordingly.
 
-###########################################################################
-# Flowgraph Setup
-############################################################################
-def setup(extraction_task=None, corners=1, serial_extraction=False):
+    The flow consists of the following main steps for each specified corner:
+
+    1. **bench**: A benchmark design with simple structures is created.
+    2. **pex**: A user-provided third-party PEX tool is run on the benchmark
+       to generate a "golden" SPEF file.
+    3. **extract**: The golden SPEF is used to generate a calibrated OpenRCX
+       deck.
     '''
-    Flow to generate the OpenRCX decks needed by OpenROAD to do parasitic
-    extraction.
-    '''
+    def __init__(self, extraction_task: TaskSchema = None, corners: int = 1,
+                 serial_extraction: bool = False):
+        """
+        Initializes the GenerateOpenRCXFlow.
 
-    flowname = 'generate_rcx'
-    flow = siliconcompiler.Flow(flowname)
+        Args:
+            extraction_task (TaskSchema): The SiliconCompiler task schema for the
+                third-party PEX tool that will be used to generate the golden
+                SPEF files. This is a required parameter.
+            corners (int): The number of process corners to generate RCX decks
+                for. A separate 'pex' and 'extract' step will be created for
+                each corner.
+            serial_extraction (bool): If True, forces the 'pex' steps for each
+                corner to run sequentially rather than in parallel. This can be
+                useful when the PEX tool has license limitations that prevent
+                multiple concurrent runs.
 
-    if not extraction_task:
-        flow.logger.warning('Valid extraction not specified, defaulting to builtin/nop')
-        extraction_task = nop
+        Raises:
+            ValueError: If `extraction_task` is not provided.
+        """
+        super().__init__("generate_rcx")
 
-    flow.node(flowname, 'bench', rcx_bench)
-    prev = 'bench'
-    for corner in range(corners):
-        # For each corner generate a pex step to build the reference SPEF file
-        # and the extract step to use the SPEF file to build the new OpenRCX deck
-        flow.node(flowname, 'pex', extraction_task, index=corner)
-        flow.node(flowname, 'extract', rcx_extract, index=corner)
+        if extraction_task is None:
+            raise ValueError("extraction_task is required")
 
-        if corner == 0:
-            prev = 'bench'
-            prev_index = 0
-        else:
-            prev = 'pex'
-            prev_index = corner - 1
+        self.node("bench", rcx_bench.ORXBenchTask())
+        for n in range(corners):
+            # For each corner generate a pex step to build the reference SPEF file
+            # and the extract step to use the SPEF file to build the new OpenRCX deck
+            self.node('pex', extraction_task, index=n)
+            self.edge('bench', 'pex', head_index=n)
 
-        flow.edge(flowname, 'bench', 'pex', head_index=corner, tail_index=0)
-        flow.edge(flowname, 'pex', 'extract', head_index=corner, tail_index=corner)
-        flow.edge(flowname, 'bench', 'extract', head_index=corner, tail_index=0)
+            self.node('extract', rcx_extract.ORXExtractTask(), index=n)
+            self.edge('pex', 'extract', head_index=n, tail_index=n)
+            self.edge('bench', 'extract', head_index=n)
 
-        if serial_extraction and corner > 0:
-            # For license restrictions make each pex step dependent on the previous pex step
-            flow.edge(flowname, prev, 'pex', head_index=corner, tail_index=prev_index)
+            if serial_extraction and n > 0:
+                # For license restrictions make each pex step dependent on the previous pex step
 
-    flow.node(flowname, 'bench', rcx_bench)
+                if n == 0:
+                    prev = 'bench'
+                    prev_index = 0
+                else:
+                    prev = 'pex'
+                    prev_index = n - 1
 
-    return flow
+                self.edge(prev, 'pex', head_index=n, tail_index=prev_index)
+
+    @classmethod
+    def make_docs(cls):
+        from siliconcompiler.tools.builtin.nop import NOPTask
+        return [GenerateOpenRCXFlow(NOPTask(), corners=3, serial_extraction=False),
+                GenerateOpenRCXFlow(NOPTask(), corners=3, serial_extraction=True)]
 
 
 ##################################################
 if __name__ == "__main__":
-    chip = siliconcompiler.Chip('design')
-    flow = make_docs(chip)
-    chip.use(flow)
-    chip.write_flowgraph(f"{flow.top()}.png", flow=flow.top())
+    flow = GenerateOpenRCXFlow(nop.NOPTask(), corners=3, serial_extraction=True)
+    flow.write_flowgraph(f"{flow.name}.png", background="white")

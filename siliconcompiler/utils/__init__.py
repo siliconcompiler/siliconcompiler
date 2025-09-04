@@ -44,30 +44,6 @@ def link_copy(srcfile, dstfile):
             pass
 
 
-def terminate_process(pid, timeout=3):
-    '''Terminates a process and all its (grand+)children.
-
-    Based on https://psutil.readthedocs.io/en/latest/#psutil.wait_procs and
-    https://psutil.readthedocs.io/en/latest/#kill-process-tree.
-    '''
-    assert pid != os.getpid(), "won't terminate myself"
-    parent = psutil.Process(pid)
-    children = parent.children(recursive=True)
-    children.append(parent)
-    for p in children:
-        try:
-            p.terminate()
-        except psutil.NoSuchProcess:
-            # Process may have terminated on its own in the meantime
-            pass
-
-    _, alive = psutil.wait_procs(children, timeout=timeout)
-    for p in alive:
-        # If processes are still alive after timeout seconds, send more
-        # aggressive signal.
-        p.kill()
-
-
 def get_file_ext(filename):
     '''Get base file extension for a given path, disregarding .gz.'''
     if filename.lower().endswith('.gz'):
@@ -227,6 +203,7 @@ def default_email_credentials_file():
 def sc_open(path, *args, **kwargs):
     if 'errors' not in kwargs:
         kwargs['errors'] = 'ignore'
+    kwargs["newline"] = "\n"
     fobj = open(path, *args, **kwargs)
     try:
         with contextlib.closing(fobj):
@@ -253,7 +230,7 @@ def get_file_template(path,
 
 
 #######################################
-def safecompare(chip, value, op, goal):
+def safecompare(value, op, goal):
     # supported relational operations
     # >, >=, <=, <. ==, !=
     if op == ">":
@@ -380,7 +357,7 @@ def get_hashed_filename(path, package=None):
     return PathNodeValue.generate_hashed_path(path, package)
 
 
-def get_cores(chip, physical=False):
+def get_cores(physical=False):
     '''
     Get max number of cores for this machine.
 

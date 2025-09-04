@@ -19,10 +19,10 @@ import re
 from typing import List, Union
 
 from siliconcompiler import sc_open
-from siliconcompiler.tools._common import get_tool_task, record_metric
 
 from siliconcompiler import StdCellLibrarySchema
 from siliconcompiler import FPGASchema
+from siliconcompiler import TaskSchema
 
 
 class YosysStdCellLibrary(StdCellLibrarySchema):
@@ -61,6 +61,8 @@ class YosysStdCellLibrary(StdCellLibrarySchema):
 
         self.define_tool_parameter("yosys", "synthesis_fileset", "[str]",
                                    "name of the filesets to use for yosys synthesis")
+        self.define_tool_parameter("yosys", "skip_abc_liberty", "bool",
+                                   "if True, the liberty files will not be passed to abc")
         self.define_tool_parameter("yosys", "blackbox_fileset", "[str]",
                                    "A list of fileset names that contain blackbox definitions.")
 
@@ -140,6 +142,18 @@ class YosysStdCellLibrary(StdCellLibrarySchema):
             dataroot = self._get_active("package")
         with self.active_dataroot(dataroot):
             self.set("tool", "yosys", "addermap", map)
+
+    def set_yosys_skip_abc_liberty(self, value: bool):
+        """Configures the 'skip_abc_liberty' option in Yosys.
+
+        This setting controls whether Yosys, during synthesis, skips running
+        the ABC logic synthesis pass on the provided liberty file.
+
+        Args:
+            value (bool): If True, directs Yosys to skip running ABC on the
+                liberty file. Defaults to False in a standard flow.
+        """
+        self.set("tool", "yosys", "skip_abc_liberty", value)
 
     def add_yosys_tech_map(self,
                            map: Union[str, List[str]],
@@ -387,109 +401,67 @@ class YosysFPGA(FPGASchema):
             return self.add("tool", "yosys", "dsps", name)
 
 
-######################################################################
-# Make Docs
-######################################################################
-def make_docs(chip):
-    from siliconcompiler.targets import asap7_demo
-    chip.use(asap7_demo)
+class YosysTask(TaskSchema):
+    def tool(self):
+        return "yosys"
 
+    def setup(self):
+        super().setup()
 
-################################
-# Setup Tool (pre executable)
-################################
-def setup(chip):
-    ''' Tool specific function to run before step execution
-    '''
+        self.set_exe("yosys", vswitch="--version", format="tcl")
+        self.add_version(">=0.48")
 
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    tool, task = get_tool_task(chip, step, index)
+        if self.has_breakpoint():
+            self.add_commandline_option("-C")
+        self.add_commandline_option("-c")
 
-    # Standard Setup
-    chip.set('tool', tool, 'exe', 'yosys')
-    chip.set('tool', tool, 'vswitch', '--version')
-    chip.set('tool', tool, 'version', '>=0.48', clobber=False)
-    chip.set('tool', tool, 'format', 'tcl', clobber=False)
+        self.set_dataroot("siliconcompiler-yosys", __file__)
 
-    # Task Setup
-    # common to all
-    option = []
-    if chip.get('option', 'breakpoint', step=step, index=index):
-        option.append('-C')
-    option.append('-c')
-    chip.set('tool', tool, 'task', task, 'option', option, step=step, index=index, clobber=False)
-    chip.set('tool', tool, 'task', task, 'refdir', os.path.join('tools', tool, 'scripts'),
-             step=step, index=index,
-             package='siliconcompiler', clobber=False)
-    chip.set('tool', tool, 'task', task, 'regex', 'warnings', "Warning:",
-             step=step, index=index, clobber=False)
-    chip.set('tool', tool, 'task', task, 'regex', 'errors', "^ERROR",
-             step=step, index=index, clobber=False)
+        with self.active_dataroot("siliconcompiler-yosys"):
+            self.set_refdir("scripts")
 
+        self.add_regex("warnings", "Warning:")
+        self.add_regex("errors", "^ERROR")
 
-################################
-# Version Check
-################################
-def parse_version(stdout):
-    # Yosys 0.9+3672 (git sha1 014c7e26, gcc 7.5.0-3ubuntu1~18.04 -fPIC -Os)
-    return stdout.split()[1]
+    def parse_version(self, stdout):
+        # Yosys 0.9+3672 (git sha1 014c7e26, gcc 7.5.0-3ubuntu1~18.04 -fPIC -Os)
+        return stdout.split()[1]
 
+    def normalize_version(self, version):
+        # Replace '+', which represents a "local version label", with '-', which is
+        # an "implicit post release number".
+        return version.replace('+', '-')
 
-def normalize_version(version):
-    # Replace '+', which represents a "local version label", with '-', which is
-    # an "implicit post release number".
-    return version.replace('+', '-')
+    def _synthesis_post_process(self):
+        stat_json = "reports/stat.json"
+        if os.path.exists(stat_json):
+            with sc_open(stat_json) as f:
+                metrics = json.load(f)
+                if "design" in metrics:
+                    metrics = metrics["design"]
 
+                if "area" in metrics:
+                    self.record_metric("cellarea", float(metrics["area"]),
+                                       source_file=stat_json, source_unit="um^2")
+                if "num_cells" in metrics:
+                    self.record_metric("cells", metrics["num_cells"],
+                                       source_file=stat_json)
+                if "num_wire_bits" in metrics:
+                    self.record_metric("nets", metrics["num_wire_bits"],
+                                       source_file=stat_json)
+                if "num_port_bits" in metrics:
+                    self.record_metric("pins", float(metrics["num_port_bits"]),
+                                       source_file=stat_json)
+        else:
+            self.logger.warning("Yosys cell statistics are missing")
 
-##################################################
-def synth_post_process(chip):
-    ''' Tool specific function to run after step execution
-    '''
-
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-
-    if os.path.exists("reports/stat.json"):
-        with sc_open("reports/stat.json") as f:
-            metrics = json.load(f)
-            if "design" in metrics:
-                metrics = metrics["design"]
-
-            if "area" in metrics:
-                record_metric(chip, step, index, 'cellarea',
-                              float(metrics["area"]),
-                              "reports/stat.json",
-                              source_unit='um^2')
-            if "num_cells" in metrics:
-                record_metric(chip, step, index, 'cells',
-                              metrics["num_cells"],
-                              "reports/stat.json")
-            if "num_wire_bits" in metrics:
-                record_metric(chip, step, index, 'nets',
-                              metrics["num_wire_bits"],
-                              "reports/stat.json")
-            if "num_port_bits" in metrics:
-                record_metric(chip, step, index, 'pins',
-                              metrics["num_port_bits"],
-                              "reports/stat.json")
-    else:
-        chip.logger.warning("Yosys cell statistics are missing")
-
-    registers = None
-    with sc_open(f"{step}.log") as f:
-        for line in f:
-            line_registers = re.findall(r"^\s*mapped ([0-9]+) \$_DFF.*", line)
-            if line_registers:
-                if registers is None:
-                    registers = 0
-                registers += int(line_registers[0])
-    if registers is not None:
-        record_metric(chip, step, index, 'registers', registers, f"{step}.log")
-
-
-##################################################
-if __name__ == "__main__":
-
-    chip = make_docs()
-    chip.write_manifest("yosys.json")
+        registers = None
+        with sc_open(self.get_logpath("exe")) as f:
+            for line in f:
+                line_registers = re.findall(r"^\s*mapped ([0-9]+) \$_DFF.*", line)
+                if line_registers:
+                    if registers is None:
+                        registers = 0
+                    registers += int(line_registers[0])
+        if registers is not None:
+            self.record_metric("registers", registers, source_file=self.get_logpath("exe"))

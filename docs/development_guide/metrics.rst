@@ -1,28 +1,68 @@
-Metrics
-===================================
+Working with Metrics
+====================
 
-The SiliconCompiler schema includes a :keypath:`metric` dictionary with a large number of parameters to be tracked on a per step and per index basis.
+In SiliconCompiler, metrics are the key performance indicators (KPIs) that measure the quality of a compilation run.
+They are numerical values—like area, power, timing, and error counts—that are tracked for each step of the flow.
 
-The metric values are used in the :meth:`.minimum()` and :meth:`.maximum()` functions to select the best compilation based on the associated :keypath:`flowgraph, <flow>, <step>, <index>, goal` and :keypath:`flowgraph, <flow>, <step>, <index>, weight` set for the step and index within the flowgraph.
-For a complete description of the :meth:`.minimum()` function, see the :ref:`Core API` section of the reference manual.
+Metrics serve three primary purposes:
 
-The default :ref:`asicflow` demonstrates a traditional ASIC optimization function, with hard requirements set up for hold, setup, warnings, and errors and soft requirements for area and power. ::
+* **Automated Optimization:** To automatically select the best compilation result from multiple runs.
+* **Reporting:** To display a high-level summary of a run's performance.
+* **Custom Scripting:** To allow you to build custom analysis and optimization loops.
 
-  if metric in ('errors', 'warnings', 'drvs', 'holdwns', 'setupwns', 'holdtns', 'setuptns'):
-      chip.set('flowgraph', flow, step, index, 'weight', metric, 1.0)
-      chip.set('flowgraph', flow, step, index, metric, 'goal', 0)
-  elif metric in ('cellarea', 'peakpower', 'standbypower'):
-      chip.set('flowgraph', flow, step, index, 'weight', metric, 1.0)
-  else:
-      chip.set('flowgraph', flow, step, index, 'weight', metric, 0.001)
+1. Automated Optimization with Goals and Weights
+------------------------------------------------
 
-In addition to step wise minimization, metrics are used by the :meth:`Chip.summary()` function to present a dashboard view of the compilation results, and can be accessed through :meth:`Chip.set()` / :meth:`Chip.get()` by the user to create custom reporting and optimization loops.
-The metrics are cleared before each step/index run and then updated by the :ref:`post_process() <task_post_process>` function for each tool.
-For an example of post_process setup, see the
-`openroad module <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/tools/openroad/__init__.py>`_.
+SiliconCompiler's minimum task uses metrics to find the optimal design result.
+To guide this process, you can configure two parameters for any given metric in the flowgraph:
 
-The following table shows a summary of all the available metrics.
-For a complete descriptions, refer to the :ref:`Schema<SiliconCompiler Schema>` section of the reference manual.
+* ``goal:`` The target value for a metric. This defines a hard requirement.
+* ``weight:`` A value that tells the optimizer how much to prioritize one metric over another.
 
-.. schema_category_summary::
-   :category: metric
+The default ``asicflow`` provides a great example of a typical optimization strategy. Let's break it down:
+
+.. code-block:: python
+
+    # For critical metrics, set a high weight and a strict goal of 0.
+    if metric in ('errors', 'warnings', 'drvs', 'holdwns', 'setupwns', 'holdtns', 'setuptns'):
+        project.set('flowgraph', flow, step, index, 'weight', metric, 1.0)
+        project.set('flowgraph', flow, step, index, 'goal', metric, 0)
+
+    # For "soft" optimization metrics, set a high weight but no specific goal.
+    elif metric in ('cellarea', 'peakpower', 'standbypower'):
+        project.set('flowgraph', flow, step, index, 'weight', metric, 1.0)
+
+This configuration establishes:
+
+* **Hard Constraints:** Critical violations like errors, DRCs, and setup/hold time violations have a weight of 1.0 and a goal of 0. Any run that fails to meet this goal is considered a failure.
+* **Soft Constraints:** Key optimization targets like area and power also have a high weight of 1.0. The optimizer will work to minimize these values, but there is no single pass/fail number.
+
+
+2. Reporting and Analysis
+-------------------------
+
+Metrics are used by the :meth:`.Project.summary()` function to generate a dashboard view of the compilation results.
+You can also access them directly with :meth:`.Project.get()` to create custom reports or to feed into your own analysis scripts.
+
+.. code-block:: python
+
+    # Example: Get the cell area after the 'place' step
+    cell_area = proj.history("job0").get('metric', 'cellarea', step='place', index='0')
+    print(f"Cell area after placement: {cell_area} um^2")
+
+The Metric Lifecycle
+--------------------
+
+Metrics are populated automatically during a run. For each task (step and index):
+
+1. All metric values in the schema are cleared.
+2. The tool (e.g., OpenROAD, Yosys) is executed.
+3. The tool's :meth:`.TaskSchema.post_process()` function runs, which parses the tool's log files and reports to extract the new metric values and save them to the schema.
+
+If you are adding a new tool, you will need to implement a :meth:`.TaskSchema.post_process()` function to parse its outputs.
+
+List of Available Metrics
+-------------------------
+
+The following table summarizes all metrics available in the SiliconCompiler schema.
+For detailed descriptions of each, please refer to the `Schema<_schema>` section of the reference manual.

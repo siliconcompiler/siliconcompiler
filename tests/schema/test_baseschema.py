@@ -454,7 +454,7 @@ def test_getdict():
                     'notes': None,
                     'pernode': 'never',
                     'require': False,
-                    'scope': 'job',
+                    'scope': 'global',
                     'shorthelp': None,
                     'switch': [],
                     'type': 'str',
@@ -496,7 +496,7 @@ def test_getdict_meta():
                     'notes': None,
                     'pernode': 'never',
                     'require': False,
-                    'scope': 'job',
+                    'scope': 'global',
                     'shorthelp': None,
                     'switch': [],
                     'type': 'str',
@@ -537,7 +537,7 @@ def test_getdict_meta_imncomplete():
                     'notes': None,
                     'pernode': 'never',
                     'require': False,
-                    'scope': 'job',
+                    'scope': 'global',
                     'shorthelp': None,
                     'switch': [],
                     'type': 'str',
@@ -570,7 +570,7 @@ def test_getdict_with_set():
                     'notes': None,
                     'pernode': 'never',
                     'require': False,
-                    'scope': 'job',
+                    'scope': 'global',
                     'shorthelp': None,
                     'switch': [],
                     'type': '{str}',
@@ -644,7 +644,7 @@ def test_getdict_keypath():
                 'notes': None,
                 'pernode': 'never',
                 'require': False,
-                'scope': 'job',
+                'scope': 'global',
                 'shorthelp': None,
                 'switch': [],
                 'type': 'str',
@@ -710,7 +710,7 @@ def test_getdict_from_dict_unmatched():
                 'test1': {
                     'type': 'str',
                     'require': False,
-                    'scope': 'job',
+                    'scope': 'global',
                     'lock': False,
                     'switch': [],
                     'shorthelp': None,
@@ -941,7 +941,7 @@ def test_from_manifest_cfg_no_meta():
             'test1': {
                 'type': 'str',
                 'require': False,
-                'scope': 'job',
+                'scope': 'global',
                 'lock': False,
                 'switch': [],
                 'shorthelp': None,
@@ -983,7 +983,7 @@ def test_from_manifest_cfg_different_base_correct_base_class():
                 'test1': {
                     'type': 'str',
                     'require': False,
-                    'scope': 'job',
+                    'scope': 'global',
                     'lock': False,
                     'switch': [],
                     'shorthelp': None,
@@ -1833,7 +1833,7 @@ def test_getdict_with_journal():
                 'notes': None,
                 'pernode': 'never',
                 'require': False,
-                'scope': 'job',
+                'scope': 'global',
                 'shorthelp': None,
                 'switch': [],
                 'type': 'str',
@@ -2194,7 +2194,7 @@ def test_from_dict_composite_type_names():
                     'string': {
                         'type': 'str',
                         'require': False,
-                        'scope': 'job',
+                        'scope': 'global',
                         'lock': False,
                         'switch': [],
                         'shorthelp': None,
@@ -2214,7 +2214,7 @@ def test_from_dict_composite_type_names():
                 'default': {
                     'type': 'str',
                     'require': False,
-                    'scope': 'job',
+                    'scope': 'global',
                     'lock': False,
                     'switch': [],
                     'shorthelp': None,
@@ -2227,7 +2227,7 @@ def test_from_dict_composite_type_names():
                 'newbase': {
                     'type': 'str',
                     'require': False,
-                    'scope': 'job',
+                    'scope': 'global',
                     'lock': False,
                     'switch': [],
                     'shorthelp': None,
@@ -2310,7 +2310,7 @@ def test_from_dict_composite_nested():
                             'string': {
                                 'type': 'str',
                                 'require': False,
-                                'scope': 'job',
+                                'scope': 'global',
                                 'lock': False,
                                 'switch': [],
                                 'shorthelp': None,
@@ -2379,7 +2379,7 @@ def test_from_dict_composite_type_names_use_default():
                     'string': {
                         'type': 'str',
                         'require': False,
-                        'scope': 'job',
+                        'scope': 'global',
                         'lock': False,
                         'switch': [],
                         'shorthelp': None,
@@ -2399,7 +2399,7 @@ def test_from_dict_composite_type_names_use_default():
                 'default': {
                     'type': 'str',
                     'require': False,
-                    'scope': 'job',
+                    'scope': 'global',
                     'lock': False,
                     'switch': [],
                     'shorthelp': None,
@@ -2412,7 +2412,7 @@ def test_from_dict_composite_type_names_use_default():
                 'newbase': {
                     'type': 'str',
                     'require': False,
-                    'scope': 'job',
+                    'scope': 'global',
                     'lock': False,
                     'switch': [],
                     'shorthelp': None,
@@ -2473,7 +2473,7 @@ def test_from_dict_composite_type_load_via_class_name():
                     'string': {
                         'type': 'str',
                         'require': False,
-                        'scope': 'job',
+                        'scope': 'global',
                         'lock': False,
                         'switch': [],
                         'shorthelp': None,
@@ -2493,7 +2493,7 @@ def test_from_dict_composite_type_load_via_class_name():
                 'default': {
                     'type': 'str',
                     'require': False,
-                    'scope': 'job',
+                    'scope': 'global',
                     'lock': False,
                     'switch': [],
                     'shorthelp': None,
@@ -2506,7 +2506,7 @@ def test_from_dict_composite_type_load_via_class_name():
                 'newbase': {
                     'type': 'str',
                     'require': False,
-                    'scope': 'job',
+                    'scope': 'global',
                     'lock': False,
                     'switch': [],
                     'shorthelp': None,
@@ -2566,7 +2566,7 @@ def test_from_dict_composite_using_cls_name():
                     'string': {
                         'type': 'str',
                         'require': False,
-                        'scope': 'job',
+                        'scope': 'global',
                         'lock': False,
                         'switch': [],
                         'shorthelp': None,
@@ -2586,7 +2586,7 @@ def test_from_dict_composite_using_cls_name():
                 'default': {
                     'type': 'str',
                     'require': False,
-                    'scope': 'job',
+                    'scope': 'global',
                     'lock': False,
                     'switch': [],
                     'shorthelp': None,
@@ -2599,7 +2599,7 @@ def test_from_dict_composite_using_cls_name():
                 'newbase': {
                     'type': 'str',
                     'require': False,
-                    'scope': 'job',
+                    'scope': 'global',
                     'lock': False,
                     'switch': [],
                     'shorthelp': None,
@@ -2643,7 +2643,7 @@ def test_from_dict_composite_no_meta():
                 'newdummy': {
                     'type': 'str',
                     'require': False,
-                    'scope': 'job',
+                    'scope': 'global',
                     'lock': False,
                     'switch': [],
                     'shorthelp': None,
@@ -2659,7 +2659,7 @@ def test_from_dict_composite_no_meta():
                 'newbase': {
                     'type': 'str',
                     'require': False,
-                    'scope': 'job',
+                    'scope': 'global',
                     'lock': False,
                     'switch': [],
                     'shorthelp': None,
@@ -3263,3 +3263,77 @@ def test_hash_files_list_dir_empty():
     edit.insert("directory", param)
 
     assert schema.hash_files("directory") == []
+
+
+def test_generate_doc_detailed():
+    pytest.importorskip("sphinx")
+    from docutils import nodes
+
+    class Document:
+        def note_explicit_target(*args):
+            pass
+
+    class State:
+        document = Document()
+
+    class Doc:
+        state = State()
+
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("str")
+    edit.insert("param", param)
+
+    with patch("sphinx.util.nodes.nested_parse_with_titles") as nested_parse_with_titles:
+        doc = schema._generate_doc(Doc())
+        assert len(doc) == 1
+        assert isinstance(doc[0], nodes.section)
+        nested_parse_with_titles.assert_called_once()
+
+
+def test_generate_doc_not_detailed_empty():
+    pytest.importorskip("sphinx")
+
+    class Document:
+        def note_explicit_target(*args):
+            pass
+
+    class State:
+        document = Document()
+
+    class Doc:
+        state = State()
+
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("str")
+    edit.insert("param", param)
+
+    assert schema._generate_doc(Doc(), detailed=False) is None
+
+
+def test_generate_doc_not_detailed():
+    pytest.importorskip("sphinx")
+    from docutils import nodes
+    from sphinx.addnodes import tabular_col_spec
+
+    class Document:
+        def note_explicit_target(*args):
+            pass
+
+    class State:
+        document = Document()
+
+    class Doc:
+        state = State()
+
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("str")
+    edit.insert("param", param)
+    schema.set("param", "something")
+
+    doc = schema._generate_doc(Doc(), detailed=False)
+    assert len(doc) == 2
+    assert isinstance(doc[0], tabular_col_spec)
+    assert isinstance(doc[1], nodes.table)

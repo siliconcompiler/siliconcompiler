@@ -1,70 +1,51 @@
-import siliconcompiler
-from siliconcompiler.flows import asicflow, asictopflow, signoffflow, synflow
-from siliconcompiler.checklists import oh_tapeout
+from siliconcompiler import ASICProject
 
-from lambdapdk import sky130
-from lambdapdk.sky130.libs import sky130sc
+from siliconcompiler.flows import asicflow, synflow
+
+from lambdapdk.sky130.libs.sky130sc import Sky130_SCHDLibrary
+from lambdapdk.sky130.libs.sky130sram import Sky130Lambdalib_SinglePort
 
 
 ####################################################
 # Target Setup
 ####################################################
-def setup(chip, syn_np=1, floorplan_np=1, physyn_np=1, place_np=1, cts_np=1, route_np=1,
+def setup(project: ASICProject, syn_np=1, floorplan_np=1, physyn_np=1, place_np=1, cts_np=1,
+          route_np=1,
           timing_np=1):
     '''
     Skywater130 Demo Target
     '''
 
-    asic_flow_args = {
-        "syn_np": syn_np,
-        "floorplan_np": floorplan_np,
-        "physyn_np": physyn_np,
-        "place_np": place_np,
-        "cts_np": cts_np,
-        "route_np": route_np
-    }
+    # 1. Load Libraries
+    project.set_mainlib(Sky130_SCHDLibrary())
 
-    # 1. Load PDK, flow, libs
-    chip.use(sky130)
-    chip.use(sky130sc)
-    chip.use(asicflow, **asic_flow_args)
-    chip.use(synflow, syn_np=syn_np, timing_np=timing_np)
-    chip.use(asictopflow)
-    chip.use(signoffflow)
-    chip.use(oh_tapeout)
+    # 2. Load flows
+    project.set_flow(asicflow.ASICFlow())
+    project.add_dep(synflow.SynthesisFlow())
 
-    # 2. Set default targets
-    chip.set('option', 'flow', 'asicflow', clobber=False)
-    chip.set('option', 'pdk', 'skywater130', clobber=False)
-    chip.set('option', 'stackup', '5M1LI', clobber=False)
+    # 3. Set default targets
+    project.set_pdk("skywater130")
 
-    # 3. Set project specific design choices
-    chip.set('asic', 'logiclib', 'sky130hd', clobber=False)
+    # 4. Timing corners
+    scenario = project.get_timingconstraints().make_scenario("slow")
+    scenario.add_libcorner(["slow", "generic"])
+    scenario.set_pexcorner("typical")
+    scenario.add_check("setup")
+    scenario = project.get_timingconstraints().make_scenario("typical")
+    scenario.add_libcorner(["typical", "generic"])
+    scenario.set_pexcorner("typical")
+    scenario.add_check("power")
+    scenario = project.get_timingconstraints().make_scenario("fast")
+    scenario.add_libcorner(["fast", "generic"])
+    scenario.set_pexcorner("typical")
+    scenario.add_check("hold")
 
-    # 4. get project specific design choices
-    chip.set('asic', 'delaymodel', 'nldm', clobber=False)
-    chip.set('constraint', 'density', 40, clobber=False)
-    chip.set('constraint', 'coremargin', 1, clobber=False)
+    project.set_asic_delaymodel("nldm")
 
-    # 5. Timing corners
-    chip.set('constraint', 'timing', 'slow', 'libcorner', 'slow', clobber=False)
-    chip.set('constraint', 'timing', 'slow', 'pexcorner', 'maximum', clobber=False)
-    chip.set('constraint', 'timing', 'slow', 'mode', 'func', clobber=False)
-    chip.set('constraint', 'timing', 'slow', 'check', ['setup', 'hold'], clobber=False)
+    # 5. Physical constraints
+    area = project.get_areaconstraints()
+    area.set_density(40)
+    area.set_coremargin(1)
 
-    chip.set('constraint', 'timing', 'fast', 'libcorner', 'fast', clobber=False)
-    chip.set('constraint', 'timing', 'fast', 'pexcorner', 'minimum', clobber=False)
-    chip.set('constraint', 'timing', 'fast', 'mode', 'func', clobber=False)
-    chip.set('constraint', 'timing', 'fast', 'check', ['setup', 'hold'], clobber=False)
-
-    chip.set('constraint', 'timing', 'typical', 'libcorner', 'typical', clobber=False)
-    chip.set('constraint', 'timing', 'typical', 'pexcorner', 'typical', clobber=False)
-    chip.set('constraint', 'timing', 'typical', 'mode', 'func', clobber=False)
-    chip.set('constraint', 'timing', 'typical', 'check', ['power'], clobber=False)
-
-
-#########################
-if __name__ == "__main__":
-    target = siliconcompiler.Chip('<target>')
-    setup(target)
-    target.write_manifest('skywater130_demo.json')
+    # 5. Assign Lambdalib aliases
+    Sky130Lambdalib_SinglePort.alias(project)

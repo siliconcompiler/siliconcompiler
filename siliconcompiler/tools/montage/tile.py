@@ -1,8 +1,7 @@
-from siliconcompiler.tools.montage import montage
-from siliconcompiler.tools._common import get_tool_task
+from siliconcompiler import TaskSchema
 
 
-def setup(chip):
+class TileTask(TaskSchema):
     '''
     Tiles input images into a single output image.
 
@@ -18,49 +17,47 @@ def setup(chip):
     the final image.
     '''
 
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    tool, task = get_tool_task(chip, step, index)
-    design = chip.top()
+    def __init__(self):
+        super().__init__()
 
-    montage.setup(chip)
+        self.add_parameter("bins", "(int,int)", "Number of bins along the (x, y)-axis",
+                           defvalue=(2, 2))
 
-    chip.set('tool', tool, 'task', task, 'var', 'xbins', '2',
-             step=step, index=index, clobber=False)
-    chip.set('tool', tool, 'task', task, 'var', 'ybins', '2',
-             step=step, index=index, clobber=False)
+    def tool(self):
+        return "montage"
 
-    chip.set('tool', tool, 'task', task, 'var', 'xbins',
-             'Number of bins along the x-axis',
-             field='help')
-    chip.set('tool', tool, 'task', task, 'var', 'ybins',
-             'Number of bins along the y-axis',
-             field='help')
+    def task(self):
+        return "tile"
 
-    xbins = int(chip.get('tool', tool, 'task', task, 'var', 'xbins',
-                         step=step, index=index)[0])
-    ybins = int(chip.get('tool', tool, 'task', task, 'var', 'ybins',
-                         step=step, index=index)[0])
+    def parse_version(self, stdout):
+        first_line = stdout.splitlines()[0]
+        return first_line.split(' ')[2]
 
-    for x in range(xbins):
-        for y in range(ybins):
-            chip.add('tool', tool, 'task', task, 'input', f'{design}_X{x}_Y{y}.png',
-                     step=step, index=index)
+    def setup(self):
+        super().setup()
 
-    chip.set('tool', tool, 'task', task, 'output', f'{design}.png',
-             step=step, index=index)
+        self.set_exe("montage", vswitch="-version")
+        self.add_version(">=6.9.0")
 
-    options = []
+        xbins, ybins = self.get("var", "bins")
 
-    for y in range(ybins):
         for x in range(xbins):
-            options.append(f'inputs/{design}_X{x}_Y{y}.png')
+            for y in range(ybins):
+                self.add_input_file(f'{self.design_topmodule}_X{x}_Y{y}.png')
 
-    options.append('-tile')
-    options.append(f'{xbins}x{ybins}')
-    options.append('-geometry')
-    options.append('+0+0')
-    options.append(f'outputs/{design}.png')
+        self.add_output_file(ext="png")
 
-    chip.set('tool', tool, 'task', task, 'option', options,
-             step=step, index=index)
+    def runtime_options(self):
+        options = super().runtime_options()
+
+        xbins, ybins = self.get("var", "bins")
+        for y in range(ybins):
+            for x in range(xbins):
+                options.append(f'inputs/{self.design_topmodule}_X{x}_Y{y}.png')
+
+        options.append('-tile')
+        options.append(f'{xbins}x{ybins}')
+        options.append('-geometry')
+        options.append('+0+0')
+        options.append(f'outputs/{self.design_topmodule}.png')
+        return options

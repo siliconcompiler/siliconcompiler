@@ -1,40 +1,94 @@
+import docker
+import os
 import pytest
+import sys
 
-from siliconcompiler import Chip, Flow
-from siliconcompiler.tools.builtin import nop
+import os.path
+
+from siliconcompiler import Project, FlowgraphSchema, DesignSchema
+from siliconcompiler.tools.builtin.nop import NOPTask
 
 from siliconcompiler.scheduler import DockerSchedulerNode
+from siliconcompiler import __version__, NodeStatus
 
 
 @pytest.fixture
-def chip():
-    flow = Flow("testflow")
+def docker_image(scroot):
+    # Build image for test
+    buildargs = {
+        'SC_VERSION': __version__
+    }
+    scimage = os.getenv('SC_IMAGE', None)
+    if scimage:
+        buildargs['SC_IMAGE'] = scimage
 
-    flow.node("testflow", "stepone", nop)
-    flow.node("testflow", "steptwo", nop)
-    flow.edge("testflow", "stepone", "steptwo")
+    client = docker.from_env()
+    image = client.images.build(
+        path=scroot,
+        buildargs=buildargs,
+        dockerfile=f'{scroot}/setup/docker/sc_local_runner.docker')
 
-    chip = Chip("dummy")
-    chip.use(flow)
-    chip.set("option", "flow", "testflow")
-    chip.set("tool", "builtin", "task", "nop", "threads", 1)
-
-    return chip
+    return image[0].id
 
 
-def test_init(chip):
-    node = DockerSchedulerNode(chip, "stepone", "0")
+@pytest.fixture
+def project():
+    flow = FlowgraphSchema("testflow")
+
+    flow.node("stepone", NOPTask())
+    flow.node("steptwo", NOPTask())
+    flow.edge("stepone", "steptwo")
+
+    design = DesignSchema("testdesign")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+
+    proj = Project(design)
+    proj.add_fileset("rtl")
+    proj.set_flow(flow)
+
+    return proj
+
+
+def test_init(project):
+    node = DockerSchedulerNode(project, "stepone", "0")
     assert node.queue.startswith(
         "ghcr.io/siliconcompiler/sc_runner:v")
 
 
-def test_init_specify_queue(chip):
-    chip.set("option", "scheduler", "queue", "docker:v1", step="stepone", index="0")
-    node = DockerSchedulerNode(chip, "stepone", "0")
+def test_init_specify_queue(project):
+    project.set("option", "scheduler", "queue", "docker:v1", step="stepone", index="0")
+    node = DockerSchedulerNode(project, "stepone", "0")
     assert node.queue == "docker:v1"
 
 
-def test_init_specify_env(chip, monkeypatch):
+def test_init_specify_env(project, monkeypatch):
     monkeypatch.setenv("SC_DOCKER_IMAGE", "image:v2")
-    node = DockerSchedulerNode(chip, "stepone", "0")
+    node = DockerSchedulerNode(project, "stepone", "0")
     assert node.queue == "image:v2"
+
+
+@pytest.mark.docker
+@pytest.mark.quick
+@pytest.mark.ready
+@pytest.mark.timeout(300)
+@pytest.mark.skipif(sys.platform != 'linux', reason='Not supported in testing')
+def test_docker_run(docker_image, project):
+    project.set('option', 'scheduler', 'name', 'docker')
+    project.set('option', 'scheduler', 'queue', docker_image)
+    project.set("option", "nodashboard", True)
+    assert project.run()
+
+    assert os.path.isfile(f'{project.getworkdir()}/testdesign.pkg.json')
+    assert os.path.isfile(
+        f'{project.getworkdir(step="stepone", index="0")}/outputs/testdesign.pkg.json')
+    assert os.path.isfile(
+        f'{project.getworkdir(step="steptwo", index="0")}/outputs/testdesign.pkg.json')
+
+    # assert "Running in docker container:" in output.out
+    # assert output.out.count("Running in docker container:") == 2
+
+    assert project.history("job0").get("record", "status", step="stepone", index="0") == \
+        NodeStatus.SUCCESS
+    assert project.history("job0").get("record", "status", step="steptwo", index="0") == \
+        NodeStatus.SUCCESS

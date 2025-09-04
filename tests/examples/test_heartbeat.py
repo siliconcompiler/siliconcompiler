@@ -1,5 +1,6 @@
 import os
 import pytest
+import shutil
 
 
 @pytest.mark.eda
@@ -79,7 +80,7 @@ def test_py_parallel():
 
 @pytest.mark.eda
 @pytest.mark.timeout(300)
-@pytest.mark.skip(reason="Vivado is not available in CI")
+@pytest.mark.skipif(shutil.which("vivado") is None, reason="Vivado is not available in CI")
 def test_py_heartbeat_fpga():
     from heartbeat import heartbeat_fpga
     heartbeat_fpga.main()

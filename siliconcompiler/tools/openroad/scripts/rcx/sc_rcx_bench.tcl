@@ -16,5 +16,5 @@ bench_wires \
 
 # Writes the verilog netlist
 # of the patterns
-bench_verilog "outputs/${sc_design}.vg"
-write_def "outputs/${sc_design}.def"
+bench_verilog "outputs/${sc_topmodule}.vg"
+write_def "outputs/${sc_topmodule}.def"

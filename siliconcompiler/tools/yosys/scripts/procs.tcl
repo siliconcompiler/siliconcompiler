@@ -31,24 +31,26 @@ proc sc_map_memory { lib_file techmap_file do_rom } {
 }
 
 proc sc_apply_params { } {
-    global sc_design
+    global sc_topmodule
+    set fileset [lindex [sc_cfg_get option fileset] 0]
+    if { ![sc_cfg_exists library [sc_cfg_get option design] fileset $fileset param] } {
+        return
+    }
 
-    yosys chparam -list $sc_design
-    if { [sc_cfg_exists option param] } {
-        yosys echo off
-        set module_params [yosys tee -q -s result.string chparam -list $sc_design]
-        yosys echo on
+    yosys chparam -list $sc_topmodule
+    yosys echo off
+    set module_params [yosys tee -q -s result.string chparam -list $sc_topmodule]
+    yosys echo on
 
-        dict for {key value} [sc_cfg_get option param] {
-            if { ![string is integer $value] } {
-                set value [concat \"$value\"]
-            }
+    dict for {key value} [sc_cfg_get library [sc_cfg_get option design] fileset $fileset param] {
+        if { ![string is integer $value] } {
+            set value [concat \"$value\"]
+        }
 
-            if { [string first $key $module_params] != -1 } {
-                yosys chparam -set $key $value $sc_design
-            } else {
-                puts "Warning: $key is not a defined parameter in $sc_design"
-            }
+        if { [string first $key $module_params] != -1 } {
+            yosys chparam -set $key $value $sc_topmodule
+        } else {
+            puts "Warning: $key is not a defined parameter in $sc_topmodule"
         }
     }
 }

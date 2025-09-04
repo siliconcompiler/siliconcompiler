@@ -1,34 +1,37 @@
 import pytest
 import logging
 
+import os.path
+
 from unittest.mock import patch
 
 from siliconcompiler import FlowgraphSchema
 from siliconcompiler import RecordSchema, NodeStatus
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 from siliconcompiler.schema import BaseSchema
-from siliconcompiler.tools.builtin import nop, join
+from siliconcompiler.tools.builtin.nop import NOPTask
+from siliconcompiler.tools.builtin.join import JoinTask
 
 
 @pytest.fixture
 def large_flow():
     flow = FlowgraphSchema("testflow")
 
-    flow.node("joinone", "siliconcompiler.tools.builtin.join")
+    flow.node("joinone", "siliconcompiler.tools.builtin.join/JoinTask")
     for n in range(3):
-        flow.node("stepone", "siliconcompiler.tools.builtin.nop", index=n)
+        flow.node("stepone", "siliconcompiler.tools.builtin.nop/NOPTask", index=n)
         flow.edge("stepone", "joinone", tail_index=n)
 
-    flow.node("jointwo", "siliconcompiler.tools.builtin.join")
+    flow.node("jointwo", "siliconcompiler.tools.builtin.join/JoinTask")
     for n in range(3):
-        flow.node("steptwo", "siliconcompiler.tools.builtin.nop", index=n)
+        flow.node("steptwo", "siliconcompiler.tools.builtin.nop/NOPTask", index=n)
 
         flow.edge("joinone", "steptwo", head_index=n)
         flow.edge("steptwo", "jointwo", tail_index=n)
 
-    flow.node("jointhree", "siliconcompiler.tools.builtin.join")
+    flow.node("jointhree", "siliconcompiler.tools.builtin.join/JoinTask")
     for n in range(3):
-        flow.node("stepthree", "siliconcompiler.tools.builtin.nop", index=n)
+        flow.node("stepthree", "siliconcompiler.tools.builtin.nop/NOPTask", index=n)
 
         flow.edge("jointwo", "stepthree", head_index=n)
         flow.edge("stepthree", "jointhree", tail_index=n)
@@ -43,20 +46,29 @@ def test_init():
 
 def test_node():
     flow = FlowgraphSchema("testflow")
-    flow.node("teststep", nop)
+    flow.node("teststep", NOPTask())
 
     assert flow.get("teststep", "0", "tool") == "builtin"
     assert flow.get("teststep", "0", "task") == "nop"
-    assert flow.get("teststep", "0", "taskmodule") == "siliconcompiler.tools.builtin.nop"
+    assert flow.get("teststep", "0", "taskmodule") == "siliconcompiler.tools.builtin.nop/NOPTask"
+
+
+def test_node_class():
+    flow = FlowgraphSchema("testflow")
+    flow.node("teststep", NOPTask)
+
+    assert flow.get("teststep", "0", "tool") == "builtin"
+    assert flow.get("teststep", "0", "task") == "nop"
+    assert flow.get("teststep", "0", "taskmodule") == "siliconcompiler.tools.builtin.nop/NOPTask"
 
 
 def test_node_str():
     flow = FlowgraphSchema("testflow")
-    flow.node("teststep", "siliconcompiler.tools.builtin.nop")
+    flow.node("teststep", "siliconcompiler.tools.builtin.nop/NOPTask")
 
     assert flow.get("teststep", "0", "tool") == "builtin"
     assert flow.get("teststep", "0", "task") == "nop"
-    assert flow.get("teststep", "0", "taskmodule") == "siliconcompiler.tools.builtin.nop"
+    assert flow.get("teststep", "0", "taskmodule") == "siliconcompiler.tools.builtin.nop/NOPTask"
 
 
 def test_node_invalid_task():
@@ -67,39 +79,31 @@ def test_node_invalid_task():
         flow.node("teststep", 12)
 
 
-def test_node_invalid_tool_task():
-    flow = FlowgraphSchema("testflow")
-
-    with pytest.raises(ValueError, match="nop is not a valid task, it must be associated "
-                                         "with a tool '<tool>.<task>'"):
-        flow.node("teststep", "nop")
-
-
 def test_node_step_name():
     flow = FlowgraphSchema("testflow")
 
     # Valid step
-    flow.node("teststep", nop)
+    flow.node("teststep", NOPTask())
 
     # Invalid step
     with pytest.raises(ValueError, match="teststep/ is not a valid step, it cannot contain '/'"):
-        flow.node("teststep/", nop)
+        flow.node("teststep/", NOPTask())
 
 
 def test_node_index_name():
     flow = FlowgraphSchema("testflow")
 
     # Valid index
-    flow.node("teststep", nop, index="index")
+    flow.node("teststep", NOPTask(), index="index")
 
     # Invalid index
     with pytest.raises(ValueError, match="index/ is not a valid index, it cannot contain '/'"):
-        flow.node("teststep", nop, index="index/")
+        flow.node("teststep", NOPTask(), index="index/")
 
 
 def test_node_index():
     flow = FlowgraphSchema("testflow")
-    flow.node("teststep", "siliconcompiler.tools.builtin.nop", index=1)
+    flow.node("teststep", "siliconcompiler.tools.builtin.nop/NOPTask", index=1)
 
     assert flow.get("teststep", "0", "tool") is None
     assert flow.get("teststep", "0", "task") is None
@@ -107,7 +111,7 @@ def test_node_index():
 
     assert flow.get("teststep", "1", "tool") == "builtin"
     assert flow.get("teststep", "1", "task") == "nop"
-    assert flow.get("teststep", "1", "taskmodule") == "siliconcompiler.tools.builtin.nop"
+    assert flow.get("teststep", "1", "taskmodule") == "siliconcompiler.tools.builtin.nop/NOPTask"
 
 
 @pytest.mark.parametrize("step", ["global", "global", "sc_collected_files"])
@@ -115,7 +119,7 @@ def test_node_reserved_step(step):
     flow = FlowgraphSchema("testflow")
 
     with pytest.raises(ValueError, match=f"{step} is a reserved name"):
-        flow.node(step, "siliconcompiler.tools.builtin.nop")
+        flow.node(step, "siliconcompiler.tools.builtin.nop/NOPTask")
 
 
 @pytest.mark.parametrize("index", ["global", "global"])
@@ -123,13 +127,13 @@ def test_node_reserved_index(index):
     flow = FlowgraphSchema("testflow")
 
     with pytest.raises(ValueError, match=f"{index} is a reserved name"):
-        flow.node("teststep", "siliconcompiler.tools.builtin.nop", index=index)
+        flow.node("teststep", "siliconcompiler.tools.builtin.nop/NOPTask", index=index)
 
 
 def test_edge():
     flow = FlowgraphSchema("testflow")
-    flow.node("stepone", "siliconcompiler.tools.builtin.nop")
-    flow.node("steptwo", "siliconcompiler.tools.builtin.nop")
+    flow.node("stepone", "siliconcompiler.tools.builtin.nop/NOPTask")
+    flow.node("steptwo", "siliconcompiler.tools.builtin.nop/NOPTask")
 
     flow.edge("stepone", "steptwo")
 
@@ -138,8 +142,8 @@ def test_edge():
 
 def test_edge_double():
     flow = FlowgraphSchema("testflow")
-    flow.node("stepone", "siliconcompiler.tools.builtin.nop")
-    flow.node("steptwo", "siliconcompiler.tools.builtin.nop")
+    flow.node("stepone", "siliconcompiler.tools.builtin.nop/NOPTask")
+    flow.node("steptwo", "siliconcompiler.tools.builtin.nop/NOPTask")
 
     flow.edge("stepone", "steptwo")
     flow.edge("stepone", "steptwo")
@@ -149,10 +153,10 @@ def test_edge_double():
 
 def test_edge_multiple_inputs():
     flow = FlowgraphSchema("testflow")
-    flow.node("stepone", "siliconcompiler.tools.builtin.nop", index=0)
-    flow.node("stepone", "siliconcompiler.tools.builtin.nop", index=1)
-    flow.node("steptwo", "siliconcompiler.tools.builtin.nop", index=0)
-    flow.node("steptwo", "siliconcompiler.tools.builtin.nop", index=1)
+    flow.node("stepone", "siliconcompiler.tools.builtin.nop/NOPTask", index=0)
+    flow.node("stepone", "siliconcompiler.tools.builtin.nop/NOPTask", index=1)
+    flow.node("steptwo", "siliconcompiler.tools.builtin.nop/NOPTask", index=0)
+    flow.node("steptwo", "siliconcompiler.tools.builtin.nop/NOPTask", index=1)
 
     flow.edge("stepone", "steptwo", tail_index=0)
     flow.edge("stepone", "steptwo", tail_index=1)
@@ -163,10 +167,10 @@ def test_edge_multiple_inputs():
 
 def test_edge_multiple_outputs():
     flow = FlowgraphSchema("testflow")
-    flow.node("stepone", "siliconcompiler.tools.builtin.nop", index=0)
-    flow.node("stepone", "siliconcompiler.tools.builtin.nop", index=1)
-    flow.node("steptwo", "siliconcompiler.tools.builtin.nop", index=0)
-    flow.node("steptwo", "siliconcompiler.tools.builtin.nop", index=1)
+    flow.node("stepone", "siliconcompiler.tools.builtin.nop/NOPTask", index=0)
+    flow.node("stepone", "siliconcompiler.tools.builtin.nop/NOPTask", index=1)
+    flow.node("steptwo", "siliconcompiler.tools.builtin.nop/NOPTask", index=0)
+    flow.node("steptwo", "siliconcompiler.tools.builtin.nop/NOPTask", index=1)
 
     flow.edge("stepone", "steptwo", head_index=0)
     flow.edge("stepone", "steptwo", head_index=1)
@@ -177,7 +181,7 @@ def test_edge_multiple_outputs():
 
 def test_edge_undefined():
     flow = FlowgraphSchema("testflow")
-    flow.node("stepone", "siliconcompiler.tools.builtin.nop")
+    flow.node("stepone", "siliconcompiler.tools.builtin.nop/NOPTask")
 
     with pytest.raises(ValueError, match="steptwo/0 is not a defined node in testflow"):
         flow.edge("stepone", "steptwo")
@@ -212,7 +216,7 @@ def test_remove_node_no_index(large_flow):
 
 def test_insert_node(large_flow):
     large_flow.insert_node(
-        "newnode", "siliconcompiler.tools.builtin.nop", before_step="joinone"
+        "newnode", "siliconcompiler.tools.builtin.nop/NOPTask", before_step="joinone"
     )
 
     assert ("newnode", "0") in large_flow.get_nodes()
@@ -231,7 +235,9 @@ def test_insert_node(large_flow):
 
 def test_insert_node_branch(large_flow):
     large_flow.insert_node(
-        "newnode", "siliconcompiler.tools.builtin.nop", before_step="stepone", before_index=2
+        "newnode", "siliconcompiler.tools.builtin.nop/NOPTask",
+        before_step="stepone",
+        before_index=2
     )
 
     assert ("newnode", "0") in large_flow.get_nodes()
@@ -253,7 +259,7 @@ def test_insert_node_branch(large_flow):
 def test_insert_node_invalid(large_flow):
     with pytest.raises(ValueError, match="invalid/0 is not a valid node in testflow"):
         large_flow.insert_node(
-            "newnode", "siliconcompiler.tools.builtin.nop", before_step="invalid"
+            "newnode", "siliconcompiler.tools.builtin.nop/NOPTask", before_step="invalid"
         )
 
 
@@ -275,7 +281,7 @@ def test_get_nodes_cache_update(large_flow):
         ('stepthree', '0'), ('stepthree', '1'), ('stepthree', '2'),
         ('steptwo', '0'), ('steptwo', '1'), ('steptwo', '2'))
 
-    large_flow.node("testnode", "test.nop")
+    large_flow.node("testnode", NOPTask())
 
     assert large_flow.get_nodes() == (
         ('joinone', '0'), ('jointhree', '0'), ('jointwo', '0'),
@@ -286,7 +292,7 @@ def test_get_nodes_cache_update(large_flow):
 
 
 def test_get_entry_nodes(large_flow):
-    large_flow.node("testnode", "test.nop")
+    large_flow.node("testnode", NOPTask())
 
     assert large_flow.get_entry_nodes() == (('stepone', '0'), ('stepone', '1'), ('stepone', '2'),
                                             ('testnode', '0'))
@@ -296,7 +302,7 @@ def test_get_entry_nodes(large_flow):
 
 
 def test_get_exit_nodes(large_flow):
-    large_flow.node("testnode", "test.nop")
+    large_flow.node("testnode", NOPTask())
 
     assert large_flow.get_exit_nodes() == (('jointhree', '0'), ('testnode', '0'))
 
@@ -305,7 +311,7 @@ def test_get_exit_nodes(large_flow):
 
 
 def test_get_execution_order_forward(large_flow):
-    large_flow.node("testnode", "test.nop")
+    large_flow.node("testnode", NOPTask())
 
     assert large_flow.get_execution_order() == (
         (('stepone', '0'), ('stepone', '1'), ('stepone', '2'), ('testnode', '0')),
@@ -321,7 +327,7 @@ def test_get_execution_order_forward(large_flow):
 
 
 def test_get_execution_order_reverse(large_flow):
-    large_flow.node("testnode", "test.nop")
+    large_flow.node("testnode", NOPTask())
 
     assert large_flow.get_execution_order(reverse=True) == (
         (('jointhree', '0'), ('testnode', '0')),
@@ -338,7 +344,7 @@ def test_get_execution_order_reverse(large_flow):
 
 
 def test_get_node_outputs(large_flow):
-    large_flow.node("testnode", "test.nop")
+    large_flow.node("testnode", NOPTask())
 
     assert large_flow.get_node_outputs("testnode", "0") == tuple()
     assert large_flow.get_node_outputs("stepone", "0") == (("joinone", "0"),)
@@ -368,25 +374,25 @@ def test_get_node_outputs_invalid(large_flow):
 
 def test_graph():
     rtl_flow = FlowgraphSchema("rtl")
-    rtl_flow.node("import", "rtl.import")
-    rtl_flow.node("syn", "rtl.syn")
-    rtl_flow.node("export", "rtl.export")
+    rtl_flow.node("import", NOPTask())
+    rtl_flow.node("syn", NOPTask())
+    rtl_flow.node("export", NOPTask())
     rtl_flow.edge("import", "syn")
     rtl_flow.edge("syn", "export")
 
     apr_flow = FlowgraphSchema("apr")
-    apr_flow.node("floorplan", "apr.floorplan")
-    apr_flow.node("place", "apr.place")
-    apr_flow.node("cts", "apr.cts")
-    apr_flow.node("route", "apr.route")
+    apr_flow.node("floorplan", NOPTask())
+    apr_flow.node("place", NOPTask())
+    apr_flow.node("cts", NOPTask())
+    apr_flow.node("route", NOPTask())
     apr_flow.edge("floorplan", "place")
     apr_flow.edge("place", "cts")
     apr_flow.edge("cts", "route")
 
     signoff_flow = FlowgraphSchema("signoff")
-    signoff_flow.node("extspice", "signoff.extspice")
-    signoff_flow.node("drc", "signoff.drc")
-    signoff_flow.node("lvs", "signoff.lvs")
+    signoff_flow.node("extspice", NOPTask())
+    signoff_flow.node("drc", NOPTask())
+    signoff_flow.node("lvs", NOPTask())
     signoff_flow.edge("drc", "lvs")
 
     flow = FlowgraphSchema("composite")
@@ -412,25 +418,25 @@ def test_graph():
 
 def test_graph_no_names():
     rtl_flow = FlowgraphSchema("rtl")
-    rtl_flow.node("import", "rtl.import")
-    rtl_flow.node("syn", "rtl.syn")
-    rtl_flow.node("export", "rtl.export")
+    rtl_flow.node("import", NOPTask())
+    rtl_flow.node("syn", NOPTask())
+    rtl_flow.node("export", NOPTask())
     rtl_flow.edge("import", "syn")
     rtl_flow.edge("syn", "export")
 
     apr_flow = FlowgraphSchema("apr")
-    apr_flow.node("floorplan", "apr.floorplan")
-    apr_flow.node("place", "apr.place")
-    apr_flow.node("cts", "apr.cts")
-    apr_flow.node("route", "apr.route")
+    apr_flow.node("floorplan", NOPTask())
+    apr_flow.node("place", NOPTask())
+    apr_flow.node("cts", NOPTask())
+    apr_flow.node("route", NOPTask())
     apr_flow.edge("floorplan", "place")
     apr_flow.edge("place", "cts")
     apr_flow.edge("cts", "route")
 
     signoff_flow = FlowgraphSchema("signoff")
-    signoff_flow.node("extspice", "signoff.extspice")
-    signoff_flow.node("drc", "signoff.drc")
-    signoff_flow.node("lvs", "signoff.lvs")
+    signoff_flow.node("extspice", NOPTask())
+    signoff_flow.node("drc", NOPTask())
+    signoff_flow.node("lvs", NOPTask())
     signoff_flow.edge("drc", "lvs")
 
     flow = FlowgraphSchema("composite")
@@ -456,10 +462,10 @@ def test_graph_no_names():
 
 def test_graph_overlapping_names():
     rtl_flow = FlowgraphSchema("rtl")
-    rtl_flow.node("import", "rtl.import")
+    rtl_flow.node("import", NOPTask())
 
     apr_flow = FlowgraphSchema("apr")
-    apr_flow.node("import", "apr.import")
+    apr_flow.node("import", NOPTask())
 
     flow = FlowgraphSchema("composite")
     flow.graph(rtl_flow)
@@ -470,7 +476,7 @@ def test_graph_overlapping_names():
 
 def test_graph_invalid_subgraph_type():
     rtl_flow = FlowgraphSchema("rtl")
-    rtl_flow.node("import", "rtl.import")
+    rtl_flow.node("import", NOPTask())
 
     apr_flow = BaseSchema()
 
@@ -522,10 +528,10 @@ def test_runtime_init():
 
 def test_runtime_nodes_from():
     apr_flow = FlowgraphSchema("apr")
-    apr_flow.node("floorplan", "apr.floorplan")
-    apr_flow.node("place", "apr.place")
-    apr_flow.node("cts", "apr.cts")
-    apr_flow.node("route", "apr.route")
+    apr_flow.node("floorplan", NOPTask())
+    apr_flow.node("place", NOPTask())
+    apr_flow.node("cts", NOPTask())
+    apr_flow.node("route", NOPTask())
     apr_flow.edge("floorplan", "place")
     apr_flow.edge("place", "cts")
     apr_flow.edge("cts", "route")
@@ -537,10 +543,10 @@ def test_runtime_nodes_from():
 
 def test_runtime_nodes_to():
     apr_flow = FlowgraphSchema("apr")
-    apr_flow.node("floorplan", "apr.floorplan")
-    apr_flow.node("place", "apr.place")
-    apr_flow.node("cts", "apr.cts")
-    apr_flow.node("route", "apr.route")
+    apr_flow.node("floorplan", NOPTask())
+    apr_flow.node("place", NOPTask())
+    apr_flow.node("cts", NOPTask())
+    apr_flow.node("route", NOPTask())
     apr_flow.edge("floorplan", "place")
     apr_flow.edge("place", "cts")
     apr_flow.edge("cts", "route")
@@ -552,10 +558,10 @@ def test_runtime_nodes_to():
 
 def test_runtime_nodes_from_to():
     apr_flow = FlowgraphSchema("apr")
-    apr_flow.node("floorplan", "apr.floorplan")
-    apr_flow.node("place", "apr.place")
-    apr_flow.node("cts", "apr.cts")
-    apr_flow.node("route", "apr.route")
+    apr_flow.node("floorplan", NOPTask())
+    apr_flow.node("place", NOPTask())
+    apr_flow.node("cts", NOPTask())
+    apr_flow.node("route", NOPTask())
     apr_flow.edge("floorplan", "place")
     apr_flow.edge("place", "cts")
     apr_flow.edge("cts", "route")
@@ -677,15 +683,15 @@ def test_runtime_get_nodes_flows():
     ----------------
     '''
     flow = FlowgraphSchema('test')
-    flow.node('A', join)
+    flow.node('A', JoinTask())
 
-    flow.node('B', join)
+    flow.node('B', JoinTask())
     flow.edge('A', 'B')
 
-    flow.node('C', join)
+    flow.node('C', JoinTask())
     flow.edge('B', 'C')
 
-    flow.node('D', join)
+    flow.node('D', JoinTask())
     flow.edge('A', 'D')
     flow.edge('C', 'D')
 
@@ -704,8 +710,8 @@ def test_runtime_get_nodes_flows_to():
 
     prev = None
     for n in ('A', 'B', 'C', 'D'):
-        flow.node(n, nop)
-        flow.node(n + 'a', nop)
+        flow.node(n, NOPTask())
+        flow.node(n + 'a', NOPTask())
         flow.edge(n, n + 'a')
 
         if prev:
@@ -731,8 +737,8 @@ def test_runtime_get_nodes_flows_to_multiple():
 
     prev = None
     for n in ('A', 'B', 'C', 'D'):
-        flow.node(n, nop)
-        flow.node(n + 'a', nop)
+        flow.node(n, NOPTask())
+        flow.node(n + 'a', NOPTask())
         flow.edge(n, n + 'a')
 
         if prev:
@@ -761,8 +767,8 @@ def test_runtime_get_nodes_flows_from():
 
     prev = None
     for n in ('A', 'B', 'C', 'D'):
-        flow.node(n, nop)
-        flow.node(n + 'a', nop)
+        flow.node(n, NOPTask())
+        flow.node(n + 'a', NOPTask())
         flow.edge(n, n + 'a')
 
         if prev:
@@ -791,8 +797,8 @@ def test_runtime_get_nodes_flows_from_to():
 
     prev = None
     for n in ('A', 'B', 'C', 'D'):
-        flow.node(n, nop)
-        flow.node(n + 'a', nop)
+        flow.node(n, NOPTask())
+        flow.node(n + 'a', NOPTask())
         flow.edge(n, n + 'a')
 
         if prev:
@@ -818,7 +824,7 @@ def test_runtime_get_nodes_flows_disjoint_graph_from():
 
     prev = None
     for n in ('A', 'B', 'C', 'D'):
-        flow.node(n, nop)
+        flow.node(n, NOPTask())
 
         if prev:
             flow.edge(prev, n)
@@ -827,7 +833,7 @@ def test_runtime_get_nodes_flows_disjoint_graph_from():
 
     prev = None
     for n in ('E', 'F', 'G', 'H'):
-        flow.node(n, nop)
+        flow.node(n, NOPTask())
 
         if prev:
             flow.edge(prev, n)
@@ -852,7 +858,7 @@ def test_runtime_get_nodes_flows_disjoint_graph_to():
 
     prev = None
     for n in ('A', 'B', 'C', 'D'):
-        flow.node(n, nop)
+        flow.node(n, NOPTask())
 
         if prev:
             flow.edge(prev, n)
@@ -861,7 +867,7 @@ def test_runtime_get_nodes_flows_disjoint_graph_to():
 
     prev = None
     for n in ('E', 'F', 'G', 'H'):
-        flow.node(n, nop)
+        flow.node(n, NOPTask())
 
         if prev:
             flow.edge(prev, n)
@@ -886,7 +892,7 @@ def test_runtime_get_nodes_flows_disjoint_graph_from_to():
 
     prev = None
     for n in ('A', 'B', 'C', 'D'):
-        flow.node(n, nop)
+        flow.node(n, NOPTask())
 
         if prev:
             flow.edge(prev, n)
@@ -895,7 +901,7 @@ def test_runtime_get_nodes_flows_disjoint_graph_from_to():
 
     prev = None
     for n in ('E', 'F', 'G', 'H'):
-        flow.node(n, nop)
+        flow.node(n, NOPTask())
 
         if prev:
             flow.edge(prev, n)
@@ -917,7 +923,7 @@ def test_runtime_get_nodes_flows_cut_middle():
 
     prev = None
     for n in ('A', 'B', 'C', 'D'):
-        flow.node(n, nop)
+        flow.node(n, NOPTask())
 
         if prev:
             flow.edge(prev, n)
@@ -1025,8 +1031,8 @@ def test_runtime_validate_prune_path(large_flow, caplog):
 def test_runtime_validate_disjoint(caplog):
     flow = FlowgraphSchema("testflow")
 
-    flow.node("stepone", "siliconcompiler.tools.builtin.nop")
-    flow.node("steptwo", "siliconcompiler.tools.builtin.nop")
+    flow.node("stepone", "siliconcompiler.tools.builtin.nop/NOPTask")
+    flow.node("steptwo", "siliconcompiler.tools.builtin.nop/NOPTask")
 
     assert RuntimeFlowgraph.validate(
         flow,
@@ -1042,24 +1048,54 @@ def test_get_task_module_invalid():
 
 
 def test_get_task_module(large_flow):
-    assert large_flow.get_task_module("joinone", "0") is join
-    assert large_flow.get_task_module("stepone", "0") is nop
+    assert large_flow.get_task_module("joinone", "0") is JoinTask
+    assert large_flow.get_task_module("stepone", "0") is NOPTask
 
 
 def test_get_task_module_ensure_cache(large_flow):
-    assert large_flow.get_task_module("joinone", "0") is join
+    assert large_flow.get_task_module("joinone", "0") is JoinTask
 
-    with patch.dict(large_flow._FlowgraphSchema__cache_tasks, {join.__name__: None}):
+    with patch.dict(large_flow._FlowgraphSchema__cache_tasks,
+                    {"siliconcompiler.tools.builtin.join/JoinTask": None}):
         assert large_flow.get_task_module("joinone", "0") is None
 
 
 def test_get_task_module_error(large_flow):
-    assert large_flow.set("joinone", "0", "taskmodule", "notvalid.module")
+    assert large_flow.set("joinone", "0", "taskmodule", "notvalid.module/cls")
     with pytest.raises(ModuleNotFoundError):
         large_flow.get_task_module("joinone", "0")
 
 
+def test_get_task_cls_not_found(large_flow):
+    assert large_flow.set("joinone", "0", "taskmodule", "siliconcompiler/notaclass")
+    with pytest.raises(AttributeError):
+        large_flow.get_task_module("joinone", "0")
+
+
+def test_get_task_formatting_error(large_flow):
+    assert large_flow.set("joinone", "0", "taskmodule", "notvalid.module")
+    with pytest.raises(ValueError, match="task is not correctly formatted as <module>/<class>"):
+        large_flow.get_task_module("joinone", "0")
+
+
 def test_get_all_tasks(large_flow):
-    assert large_flow.get_all_tasks() == set([
-        nop, join
+    assert set(large_flow.get_all_tasks()) == set([
+        NOPTask, JoinTask
     ])
+
+
+def test_write_flowgraph(large_flow, has_graphviz):
+    large_flow.write_flowgraph("test.png")
+    assert os.path.isfile("test.png")
+
+
+def test_get_task_module_invalid_format():
+    with pytest.raises(ValueError,
+                       match="task is not correctly formatted as <module>/<class>: something"):
+        FlowgraphSchema()._FlowgraphSchema__get_task_module("something")
+
+
+def test_get_task_module_invalid_type():
+    with pytest.raises(ValueError,
+                       match="task is not correctly formatted as <module>/<class>: None"):
+        FlowgraphSchema()._FlowgraphSchema__get_task_module(None)

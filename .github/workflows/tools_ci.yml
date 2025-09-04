@@ -50,7 +50,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       # Read-only credentials, can be accessed by external contributors
       - name: Log in to the Container registry
@@ -283,7 +283,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
@@ -324,7 +324,7 @@ jobs:
     steps:
 
       - name: Checkout current SiliconCompiler
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup tests
         run: |
@@ -379,7 +379,7 @@ jobs:
         python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
     steps:
       - name: Checkout SiliconCompiler
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up Python ${{ matrix.python-version }}
         id: setup-python
@@ -428,7 +428,7 @@ jobs:
       changed: ${{ steps.changes.outputs.tools }}
     steps:
       - name: Checkout current SiliconCompiler
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Check tool updates
         uses: dorny/paths-filter@v3

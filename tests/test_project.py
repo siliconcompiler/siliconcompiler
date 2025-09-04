@@ -20,6 +20,30 @@ from siliconcompiler.utils.logging import SCColorLoggerFormatter, SCLoggerFormat
 from siliconcompiler.project import SCColorLoggerFormatter as dut_sc_color_logger
 
 
+class FauxTask0(TaskSchema):
+    def tool(self):
+        return "tool0"
+
+    def task(self):
+        return "task0"
+
+
+class FauxTask1(TaskSchema):
+    def tool(self):
+        return "tool1"
+
+    def task(self):
+        return "task1"
+
+
+class FauxTask2(TaskSchema):
+    def tool(self):
+        return "tool1"
+
+    def task(self):
+        return "task2"
+
+
 def test_key_groups():
     assert Project().getkeys() == (
         'arg',
@@ -341,6 +365,29 @@ def test_add_dep_design():
     assert proj.get("library", "test", field="schema") is design
 
 
+def test_add_dep_self_reference():
+    class Heartbeat(DesignSchema):
+        def __init__(self):
+            super().__init__('heartbeat')
+
+            with self.active_fileset("rtl.increment"):
+                self.add_file("increment.v")
+
+            with self.active_fileset("rtl"):
+                self.add_file("heartbeat_increment.v")
+                self.add_depfileset(self, "rtl.increment")
+
+            with self.active_fileset("testbench"):
+                self.add_file("tb.v")
+
+    dut = Heartbeat()
+
+    proj = Project()
+    proj.add_dep(dut)
+    assert proj.getkeys("library") == ("heartbeat",)
+    assert proj.get("library", "heartbeat", field="schema") is dut
+
+
 def test_add_dep_invalid():
     with pytest.raises(NotImplementedError):
         Project().add_dep(str("this"))
@@ -397,46 +444,6 @@ def test_add_dep_flowgraph():
     proj.add_dep(flow)
     assert proj.getkeys("flowgraph") == ("test",)
     assert proj.get("flowgraph", "test", field="schema") is flow
-
-
-@pytest.mark.skip(reason="flowgraph needs to be updated")
-def test_add_dep_flowgraph_with_tasks():
-    class Task0(TaskSchema):
-        def tool(self):
-            return "tool0"
-
-        def task(self):
-            return "task0"
-
-    class Task1(TaskSchema):
-        def tool(self):
-            return "tool1"
-
-        def task(self):
-            return "task1"
-
-    class Task2(TaskSchema):
-        def tool(self):
-            return "tool1"
-
-        def task(self):
-            return "task2"
-
-    flow = FlowgraphSchema("test")
-    flow.node("step0", Task0())
-    flow.node("step1", Task1())
-    flow.node("step2", Task2())
-
-    proj = Project()
-    proj.add_dep(flow)
-    assert proj.getkeys("flowgraph") == ("test",)
-    assert proj.get("flowgraph", "test", field="schema") is flow
-    assert proj.getkeys("tools") == ("tool0", "tool1")
-    assert proj.getkeys("tools", "tool0", "task") == ("task0",)
-    assert proj.getkeys("tools", "tool1", "task") == ("task1", "task2")
-    assert isinstance(proj.get("tools", "tool0", "task", "task0", field="schema"), Task0)
-    assert isinstance(proj.get("tools", "tool1", "task", "task1", field="schema"), Task1)
-    assert isinstance(proj.get("tools", "tool1", "task", "task2", field="schema"), Task2)
 
 
 def test_add_dep_checklist():
@@ -871,6 +878,38 @@ def test_summary_select_job():
         proj.summary()
 
         history.assert_called_once_with("thatjob")
+
+
+def test_summary_stop_dashboard():
+    proj = Project(DesignSchema("testdesign"))
+    proj._record_history()
+
+    with patch("siliconcompiler.report.dashboard.cli.CliDashboard.is_running") as is_running, \
+            patch("siliconcompiler.report.dashboard.cli.CliDashboard.stop") as stop, \
+            patch("siliconcompiler.Project.history") as history:
+        history.return_value = proj
+        is_running.return_value = True
+        proj.summary()
+
+        is_running.assert_called_once()
+        stop.assert_called_once()
+        history.assert_called_once_with("job0")
+
+
+def test_summary_stop_dashboard_not_running():
+    proj = Project(DesignSchema("testdesign"))
+    proj._record_history()
+
+    with patch("siliconcompiler.report.dashboard.cli.CliDashboard.is_running") as is_running, \
+            patch("siliconcompiler.report.dashboard.cli.CliDashboard.stop") as stop, \
+            patch("siliconcompiler.Project.history") as history:
+        history.return_value = proj
+        is_running.return_value = False
+        proj.summary()
+
+        is_running.assert_called_once()
+        stop.assert_not_called()
+        history.assert_called_once_with("job0")
 
 
 def test_summary_select_job_user():
@@ -1445,6 +1484,14 @@ def test_find_result():
         getworkdir.assert_called_once_with("thisstep", "0")
 
 
+def test_snapshot_info():
+    proj = Project(DesignSchema("testdesign"))
+
+    assert proj._snapshot_info() == [
+        ("Design", "testdesign")
+    ]
+
+
 def test_snapshot(caplog):
     image = Image.new('RGB', (1024, 1024))
     image.save("test.png")
@@ -1453,6 +1500,7 @@ def test_snapshot(caplog):
     setattr(proj, "_Project__logger", logging.getLogger())
     proj.logger.setLevel(logging.INFO)
     proj.set("option", "design", "testdesign")
+    proj._record_history()
 
     assert not os.path.isfile("testing.png")
 
@@ -1468,6 +1516,25 @@ def test_snapshot(caplog):
     assert "Generated summary image at " in caplog.text
 
 
+def test_snapshot_no_jobs():
+    with pytest.raises(ValueError, match="no history to snapshot"):
+        Project().snapshot()
+
+
+def test_snapshot_select_job():
+    proj = Project(DesignSchema("testdesign"))
+    proj.set("option", "jobname", "thisjob")
+    proj._record_history()
+    proj.set("option", "jobname", "thatjob")
+    proj._record_history()
+
+    with patch("siliconcompiler.Project.history") as history:
+        history.return_value = proj
+        proj.snapshot()
+
+        history.assert_called_once_with("thatjob")
+
+
 def test_snapshot_default_path(caplog):
     image = Image.new('RGB', (1024, 1024))
     image.save("test.png")
@@ -1476,6 +1543,7 @@ def test_snapshot_default_path(caplog):
     setattr(proj, "_Project__logger", logging.getLogger())
     proj.logger.setLevel(logging.INFO)
     proj.set("option", "design", "testdesign")
+    proj._record_history()
 
     os.makedirs(proj.getworkdir(), exist_ok=True)
     path = os.path.join(proj.getworkdir(), "testdesign.png")
@@ -1502,6 +1570,7 @@ def test_snapshot_display_false(caplog):
     setattr(proj, "_Project__logger", logging.getLogger())
     proj.logger.setLevel(logging.INFO)
     proj.set("option", "design", "testdesign")
+    proj._record_history()
 
     assert not os.path.isfile("testing.png")
 
@@ -1526,6 +1595,7 @@ def test_snapshot_nodisplay(caplog):
     proj.logger.setLevel(logging.INFO)
     proj.set("option", "design", "testdesign")
     proj.set("option", "nodisplay", True)
+    proj._record_history()
 
     assert not os.path.isfile("testing.png")
 
@@ -1770,6 +1840,54 @@ def test_init_run(caplog):
     assert proj.get("option", "fileset") == ["rtl"]
 
     assert "Setting design fileset to: rtl" in caplog.text
+
+
+def test_init_run_disable_dashboard_breakpoint(caplog):
+    design = DesignSchema("testdesign")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+        design.add_file("top.v")
+
+    proj = Project(design)
+
+    flow = FlowgraphSchema("testflow")
+    flow.node("faux", FauxTask0())
+    proj.set_flow(flow)
+
+    setattr(proj, "_Project__logger", logging.getLogger())
+    proj.logger.setLevel(logging.INFO)
+    setattr(proj, "__Project_dashboard", True)
+
+    proj.set("option", "breakpoint", True, step="faux")
+
+    with patch("siliconcompiler.report.dashboard.cli.CliDashboard.is_running") as is_running, \
+            patch("siliconcompiler.report.dashboard.cli.CliDashboard.stop") as stop:
+        is_running.return_value = True
+        proj._init_run()
+        is_running.assert_called_once()
+        stop.assert_called_once()
+
+    assert "Disabling dashboard due to breakpoints at: faux/0" in caplog.text
+
+
+def test_init_run_disable_dashboard_no_breakpoint():
+    design = DesignSchema("testdesign")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+        design.add_file("top.v")
+
+    proj = Project(design)
+
+    flow = FlowgraphSchema("testflow")
+    flow.node("faux", FauxTask0())
+    proj.set_flow(flow)
+
+    setattr(proj, "__Project_dashboard", True)
+
+    with patch("siliconcompiler.report.dashboard.cli.CliDashboard.is_running") as is_running:
+        is_running.return_value = True
+        proj._init_run()
+        is_running.assert_not_called()
 
 
 def test_init_run_do_nothing(caplog):

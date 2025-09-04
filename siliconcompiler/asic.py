@@ -1,15 +1,19 @@
-from typing import Union
+import json
+import re
 
-from siliconcompiler.schema import BaseSchema
-from siliconcompiler.schema import EditableSchema, Parameter, PerNode, Scope
+from typing import Union, Tuple
+
+from siliconcompiler.schema import EditableSchema, Parameter, Scope
 from siliconcompiler.schema.utils import trim
 
-from siliconcompiler import Project
+from siliconcompiler import Project, TaskSchema, sc_open
 
 from siliconcompiler.constraints import \
     ASICTimingConstraintSchema, ASICAreaConstraint, \
     ASICComponentConstraints, ASICPinConstraints
 from siliconcompiler.metrics import ASICMetricsSchema
+from siliconcompiler.flowgraph import RuntimeFlowgraph
+from siliconcompiler.utils import units
 
 from siliconcompiler import PDKSchema
 from siliconcompiler import StdCellLibrarySchema
@@ -26,8 +30,8 @@ class ASICProject(Project):
     additional ASIC libraries, delay models, and routing layer limits.
     """
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, design=None):
+        super().__init__(design)
 
         schema = EditableSchema(self)
         schema.insert("constraint", "timing", ASICTimingConstraintSchema())
@@ -390,7 +394,8 @@ class ASICProject(Project):
         if self.get("asic", "mainlib") not in self.get("asic", "asiclib"):
             # Ensure mainlib is added to asiclib
             self.logger.warning(f'Adding {self.get("asic", "mainlib")} to [asic,asiclib]')
-            self.add("asic", "asiclib", self.get("asic", "mainlib"))
+            asiclibs = [self.get("asic", "mainlib"), *self.get("asic", "asiclib")]
+            self.set("asic", "asiclib", asiclibs)
 
     def _summary_headers(self):
         """
@@ -416,127 +421,271 @@ class ASICProject(Project):
 
         return headers
 
+    def _snapshot_info(self):
+        info = super()._snapshot_info()
 
-class ASICSchema(BaseSchema):
+        if self.get("asic", "pdk"):
+            info.append(("PDK", self.get("asic", "pdk")))
+
+        # get search ordering
+        flow_name = self.get("option", 'flow')
+        flow = self.get("flowgraph", flow_name, field="schema")
+        to_steps = self.get('option', 'to')
+        prune_nodes = self.get('option', 'prune')
+        run_nodes = RuntimeFlowgraph(flow, to_steps=to_steps, prune_nodes=prune_nodes).get_nodes()
+        nodes = []
+        for node_group in flow.get_execution_order(reverse=True):
+            for node in node_group:
+                if node in run_nodes:
+                    nodes.append(node)
+
+        def format_area(value, unit):
+            prefix = units.get_si_prefix(unit)
+            mm_area = units.convert(value, from_unit=prefix, to_unit='mm^2')
+            if mm_area < 10:
+                return units.format_si(value, 'um') + 'um^2'
+            else:
+                return units.format_si(mm_area, 'mm') + 'mm^2'
+
+        def format_freq(value, unit):
+            value = units.convert(value, from_unit=unit)
+            return units.format_si(value, 'Hz') + 'Hz'
+
+        for text, metric, formatter in (
+                ("Area", "totalarea", format_area),
+                ("Fmax", "fmax", format_freq)):
+            for step, index in nodes:
+                value = self.get("metric", metric, step=step, index=index)
+                if value is None:
+                    continue
+                if formatter:
+                    value = formatter(value, self.get("metric", metric, field="unit"))
+                else:
+                    value = str(value)
+                info.append((text, value))
+                break
+
+        return info
+
+
+class ASICTaskSchema(TaskSchema):
+    """
+    A TaskSchema with helper methods for tasks in a standard ASIC flow,
+    providing easy access to PDK and standard cell library information.
+    """
+    @property
+    def mainlib(self) -> StdCellLibrarySchema:
+        """The main standard cell library schema object."""
+        mainlib = self.schema().get("asic", "mainlib")
+        if not mainlib:
+            raise ValueError("mainlib has not been defined in [asic,mainlib]")
+        if mainlib not in self.schema().getkeys("library"):
+            raise LookupError(f"{mainlib} has not been loaded")
+        return self.schema().get("library", mainlib, field="schema")
+
+    @property
+    def pdk(self) -> PDKSchema:
+        """The Process Design Kit (PDK) schema object."""
+        pdk = self.schema().get("asic", "pdk")
+        if not pdk:
+            raise ValueError("pdk has not been defined in [asic,pdk]")
+        if pdk not in self.schema().getkeys("library"):
+            raise LookupError(f"{pdk} has not been loaded")
+        return self.schema().get("library", pdk, field="schema")
+
+    def set_asic_var(self,
+                     key: str,
+                     defvalue=None,
+                     check_pdk: bool = True,
+                     require_pdk: bool = False,
+                     pdk_key: str = None,
+                     check_mainlib: bool = True,
+                     require_mainlib: bool = False,
+                     mainlib_key: str = None,
+                     require: bool = False):
+        '''
+        Set an ASIC parameter based on a prioritized lookup order.
+
+        This method attempts to set a parameter identified by `key` by checking
+        values in a specific order:
+        1. The main library
+        2. The PDK
+        3. A provided default value (`defvalue`)
+
+        The first non-empty or non-None value found in this hierarchy will be
+        used to set the parameter. If no value is found and `defvalue` is not
+        provided, the parameter will not be set unless explicitly required.
+
+        Args:
+            key: The string key for the parameter to be set. This key is used
+                to identify the parameter within the current object (`self`)
+                and, by default, within the main library and PDK.
+            defvalue: An optional default value to use if the parameter is not
+                found in the main library or PDK. If `None` and the parameter
+                is not found, it will not be set unless `require` is True.
+            check_pdk: If `True`, the method will attempt to retrieve the
+                parameter from the PDK. Defaults to `True`.
+            require_pdk: If `True`, the parameter *must* be defined in the PDK.
+                An error will be raised if it's not found and `check_pdk` is `True`.
+                Defaults to `False`.
+            pdk_key: The specific key to use when looking up the parameter in the
+                PDK. If `None`, `key` will be used.
+            check_mainlib: If `True`, the method will attempt to retrieve the
+                parameter from the main library. Defaults to `True`.
+            require_mainlib: If `True`, the parameter *must* be defined in the
+                main library. An error will be raised if it's not found and
+                `check_mainlib` is `True`. Defaults to `False`.
+            mainlib_key: The specific key to use when looking up the parameter in
+                the main library. If `None`, `key` will be used.
+            require: If `True`, the parameter *must* be set by this method (either
+                from a source or `defvalue`). An error will be raised if it cannot
+                be set. Defaults to `False`.
+        '''
+        check_keys = []
+        if check_pdk:
+            if not pdk_key:
+                pdk_key = key
+            if self.pdk.valid("tool", self.tool(), pdk_key):
+                check_keys.append((self.pdk, ("tool", self.tool(), pdk_key)))
+        if check_mainlib:
+            if not mainlib_key:
+                mainlib_key = key
+            if self.mainlib.valid("tool", self.tool(), mainlib_key):
+                check_keys.append((self.mainlib, ("tool", self.tool(), mainlib_key)))
+        check_keys.append((self, ("var", key)))
+
+        if require_pdk:
+            self.add_required_key(self.pdk, "tool", self.tool(), pdk_key)
+        if require_mainlib:
+            self.add_required_key(self.mainlib, "tool", self.tool(), mainlib_key)
+        if require or defvalue is not None:
+            self.add_required_key(self, "var", key)
+
+        if self.get("var", key, field=None).is_set(self.step, self.index):
+            return
+
+        for obj, keypath in reversed(check_keys):
+            if not obj.valid(*keypath):
+                continue
+
+            value = obj.get(*keypath)
+            if isinstance(value, (list, set, tuple)):
+                if not value:
+                    continue
+            else:
+                if value is None:
+                    continue
+            self.add_required_key(obj, *keypath)
+            self.add_required_key(self, "var", key)
+            return self.set("var", key, value)
+        if defvalue is not None:
+            return self.set("var", key, defvalue)
+
+    def __parse_sdc_clock(self, file: str) -> Tuple[str, float]:
+        period = None
+        with sc_open(file) as f:
+            lines = f.read().splitlines()
+
+        # collect simple variables in case clock is specified with a variable
+        re_var = r"[A-Za-z0-9_]+"
+        re_num = r"[0-9\.]+"
+        sdc_vars = {}
+        for line in lines:
+            tcl_variable = re.findall(fr"^\s*set\s+({re_var})\s+({re_num}|\${re_var})",
+                                      line)
+            if tcl_variable:
+                var_name, var_value = tcl_variable[0]
+                sdc_vars[f'${var_name}'] = var_value
+
+        # TODO: handle line continuations
+        for line in lines:
+            clock_period = re.findall(fr"create_clock\s.*-period\s+({re_num}|\${re_var})",
+                                      line)
+            if clock_period:
+                convert_period = clock_period[0]
+                while isinstance(convert_period, str) and convert_period[0] == "$":
+                    if convert_period in sdc_vars:
+                        convert_period = sdc_vars[convert_period]
+                    else:
+                        break
+                if isinstance(convert_period, str) and convert_period[0] == "$":
+                    self.logger.warning('Unable to identify clock period from '
+                                        f'{clock_period[0]}.')
+                    continue
+                else:
+                    try:
+                        clock_period = float(convert_period)
+                    except TypeError:
+                        continue
+
+                if period is None:
+                    period = clock_period
+                else:
+                    period = min(period, clock_period)
+        return None, period
+
+    def get_clock(self, clock_units_multiplier: float = 1.0) -> Tuple[str, float]:
+        name = None
+        period = None
+
+        for lib, fileset in self.schema().get_filesets():
+            for sdc in lib.get_file(fileset=fileset, filetype="sdc"):
+                new_name, new_period = self.__parse_sdc_clock(sdc)
+                if new_period is not None:
+                    if period is None or new_period < period:
+                        period = new_period
+                        name = new_name
+
+        if period is not None:
+            period *= clock_units_multiplier
+
+        # TODO: get SDCs from constraints
+        # TODO: get from schema
+
+        return name, period
+
+
+class CellArea:
     def __init__(self):
-        super().__init__()
+        self.__areas = {}
 
-        schema_asic(self)
+    def add_cell(self, name=None, module=None,
+                 cellarea=None, cellcount=None,
+                 macroarea=None, macrocount=None,
+                 stdcellarea=None, stdcellcount=None):
+        if not name and not module:
+            return
 
-    @classmethod
-    def _getdict_type(cls) -> str:
-        """
-        Returns the meta data for getdict
-        """
+        if all([metric is None for metric in (
+                cellarea, cellcount,
+                macroarea, macrocount,
+                stdcellarea, stdcellcount)]):
+            return
 
-        return ASICSchema.__name__
+        if not name:
+            name = module
 
+        # ensure name is unique
+        check_name = name
+        idx = 0
+        while check_name in self.__areas:
+            check_name = f'{name}{idx}'
+            idx += 1
+        name = check_name
 
-###############################################################################
-# ASIC
-###############################################################################
-def schema_asic(schema):
-    schema = EditableSchema(schema)
+        self.__areas[name] = {
+            "module": module,
+            "cellarea": cellarea,
+            "cellcount": cellcount,
+            "macroarea": macroarea,
+            "macrocount": macrocount,
+            "stdcellarea": stdcellarea,
+            "stdcellcount": stdcellcount
+        }
 
-    schema.insert(
-        'logiclib',
-        Parameter(
-            '[str]',
-            scope=Scope.JOB,
-            pernode=PerNode.OPTIONAL,
-            shorthelp="ASIC: logic libraries",
-            switch="-asic_logiclib <str>",
-            example=["cli: -asic_logiclib nangate45",
-                     "api: chip.set('asic', 'logiclib', 'nangate45')"],
-            help=trim("""List of all selected logic libraries libraries
-            to use for optimization for a given library architecture
-            (9T, 11T, etc).""")))
+    def size(self):
+        return len(self.__areas)
 
-    schema.insert(
-        'macrolib',
-        Parameter(
-            '[str]',
-            scope=Scope.JOB,
-            pernode=PerNode.OPTIONAL,
-            shorthelp="ASIC: macro libraries",
-            switch="-asic_macrolib <str>",
-            example=["cli: -asic_macrolib sram64x1024",
-                     "api: chip.set('asic', 'macrolib', 'sram64x1024')"],
-            help=trim("""
-            List of macro libraries to be linked in during synthesis and place
-            and route. Macro libraries are used for resolving instances but are
-            not used as targets for logic synthesis.""")))
-
-    schema.insert(
-        'delaymodel',
-        Parameter(
-            'str',
-            scope=Scope.JOB,
-            pernode=PerNode.OPTIONAL,
-            shorthelp="ASIC: delay model",
-            switch="-asic_delaymodel <str>",
-            example=["cli: -asic_delaymodel ccs",
-                     "api: chip.set('asic', 'delaymodel', 'ccs')"],
-            help=trim("""
-            Delay model to use for the target libs. Commonly supported values
-            are nldm and ccs.""")))
-
-    # TODO: Expand on the exact definitions of these types of cells.
-    # minimize typing
-    names = ['decap',
-             'tie',
-             'hold',
-             'clkbuf',
-             'clkgate',
-             'clklogic',
-             'dontuse',
-             'filler',
-             'tap',
-             'endcap',
-             'antenna']
-
-    for item in names:
-        schema.insert(
-            'cells', item,
-            Parameter(
-                '[str]',
-                pernode=PerNode.OPTIONAL,
-                shorthelp=f"ASIC: {item} cell list",
-                switch=f"-asic_cells_{item} '<str>'",
-                example=[
-                    f"cli: -asic_cells_{item} '*eco*'",
-                    f"api: chip.set('asic', 'cells', '{item}', '*eco*')"],
-                help=trim("""
-                List of cells grouped by a property that can be accessed
-                directly by the designer and tools. The example below shows how
-                all cells containing the string 'eco' could be marked as dont use
-                for the tool.""")))
-
-    schema.insert(
-        'libarch',
-        Parameter(
-            'str',
-            pernode=PerNode.OPTIONAL,
-            shorthelp="ASIC: library architecture",
-            switch="-asic_libarch '<str>'",
-            example=[
-                "cli: -asic_libarch '12track'",
-                "api: chip.set('asic', 'libarch', '12track')"],
-            help=trim("""
-            The library architecture (e.g. library height) used to build the
-            design. For example a PDK with support for 9 and 12 track libraries
-            might have 'libarchs' called 9t and 12t.""")))
-
-    libarch = 'default'
-    schema.insert(
-        'site', libarch,
-        Parameter(
-            '[str]',
-            pernode=PerNode.OPTIONAL,
-            shorthelp="ASIC: library sites",
-            switch="-asic_site 'libarch <str>'",
-            example=[
-                "cli: -asic_site '12track Site_12T'",
-                "api: chip.set('asic', 'site', '12track', 'Site_12T')"],
-            help=trim("""
-            Site names for a given library architecture.""")))
+    def write_report(self, path):
+        with open(path, 'w') as f:
+            json.dump(self.__areas, f, indent=4)

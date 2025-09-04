@@ -1,29 +1,78 @@
-from siliconcompiler.tools._common import get_tool_task
-from siliconcompiler.tools.nextpnr.nextpnr import runtime_options as tool_runtime_options
+from siliconcompiler import TaskSchema
 
 
-def setup(chip):
+class APRTask(TaskSchema):
     '''
     Perform automated place and route on FPGAs
     '''
+    def __init__(self):
+        super().__init__()
 
-    tool = 'nextpnr'
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    _, task = get_tool_task(chip, step, index)
+    def tool(self):
+        return "nextpnr"
 
-    topmodule = chip.top()
+    def task(self):
+        return "apr"
 
-    clobber = False
-    chip.set('tool', tool, 'exe', 'nextpnr-ice40')
-    chip.set('tool', tool, 'vswitch', '--version')
-    chip.set('tool', tool, 'version', '>=0.2', clobber=clobber)
+    def parse_version(self, stdout):
+        # Examples:
+        # nextpnr-ice40 -- Next Generation Place and Route (Version c73d4cf6)
+        # nextpnr-ice40 -- Next Generation Place and Route (Version nextpnr-0.2)
+        version = stdout.split()[-1].rstrip(')')
+        if version.startswith('nextpnr-'):
+            return version.split('-')[1]
+        else:
+            return version
 
-    chip.set('tool', tool, 'task', task, 'option', [], step=step, index=index, clobber=clobber)
-    chip.set('tool', tool, 'task', task, 'input', f'{topmodule}.netlist.json',
-             step=step, index=index)
-    chip.set('tool', tool, 'task', task, 'output', f'{topmodule}.asc', step=step, index=index)
+    def setup(self):
+        super().setup()
 
+        self.set_exe("nextpnr-ice40", vswitch="--version")
+        self.add_version(">=0.2")
 
-def runtime_options(chip):
-    return tool_runtime_options(chip)
+        self.add_input_file(ext="netlist.json")
+        self.add_output_file(ext="asc")
+
+        self.add_required_key("fpga", "device")
+        self.add_required_key("library", self.schema().get("fpga", "device"), "fpga", "partname")
+
+        # Mark required
+        for lib, fileset in self.schema().get_filesets():
+            if lib.get_file(fileset=fileset, filetype="pcf"):
+                self.add_required_key(lib, "fileset", fileset, "file", "pcf")
+
+    def runtime_options(self):
+        options = super().runtime_options()
+
+        partname = self.schema().get("library",
+                                     self.schema().get("fpga", "device"), "fpga", "partname")
+
+        options.extend(['--json', f'inputs/{self.design_topmodule}.netlist.json'])
+        options.extend(['--asc', f'outputs/{self.design_topmodule}.asc'])
+
+        if partname == 'ice40up5k-sg48':
+            options.extend(['--up5k', '--package', 'sg48'])
+
+        for lib, fileset in self.schema().get_filesets():
+            for pcf in lib.get_file(fileset=fileset, filetype="pcf"):
+                options.extend(['--pcf', pcf])
+
+        return options
+
+    @classmethod
+    def make_docs(cls):
+        from siliconcompiler import FlowgraphSchema, DesignSchema, FPGAProject, FPGASchema
+        from siliconcompiler.scheduler import SchedulerNode
+        design = DesignSchema("<design>")
+        with design.active_fileset("docs"):
+            design.set_topmodule("top")
+        proj = FPGAProject(design)
+        proj.add_fileset("docs")
+        flow = FlowgraphSchema("docsflow")
+        flow.node("<step>", cls(), index="<index>")
+        proj.set_flow(flow)
+        proj.set_fpga(FPGASchema("<fpga>"))
+
+        node = SchedulerNode(proj, "<step>", "<index>")
+        node.setup()
+        return node.task

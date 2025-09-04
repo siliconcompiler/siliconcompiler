@@ -12,7 +12,7 @@ class OptionSchema(BaseSchema):
             'remote',
             Parameter(
                 'bool',
-                scope=Scope.JOB,
+                scope=Scope.GLOBAL,
                 shorthelp="Option: enable remote processing",
                 switch="-remote <bool>",
                 example=[
@@ -28,7 +28,7 @@ class OptionSchema(BaseSchema):
             'credentials',
             Parameter(
                 'file',
-                scope=Scope.JOB,
+                scope=Scope.GLOBAL,
                 shorthelp="Option: user credentials file",
                 switch="-credentials <file>",
                 example=[
@@ -51,10 +51,10 @@ class OptionSchema(BaseSchema):
         schema.insert(
             'cachedir',
             Parameter(
-                'file',
-                scope=Scope.JOB,
+                'dir',
+                scope=Scope.GLOBAL,
                 shorthelp="Option: user cache directory",
-                switch="-cachedir <file>",
+                switch="-cachedir <dir>",
                 example=[
                     "cli: -cachedir /home/user/.sc/cache",
                     "api: chip.set('cachedir', '/home/user/.sc/cache')"],
@@ -67,7 +67,7 @@ class OptionSchema(BaseSchema):
             'nice',
             Parameter(
                 'int',
-                scope=Scope.JOB,
+                scope=Scope.GLOBAL,
                 pernode=PerNode.OPTIONAL,
                 shorthelp="Option: tool scheduling priority",
                 switch="-nice <int>",
@@ -83,7 +83,7 @@ class OptionSchema(BaseSchema):
             'flow',
             Parameter(
                 'str',
-                scope=Scope.JOB,
+                scope=Scope.GLOBAL,
                 shorthelp="Option: flow target",
                 switch="-flow <str>",
                 example=["cli: -flow asicflow",
@@ -97,13 +97,13 @@ class OptionSchema(BaseSchema):
             Parameter(
                 'int',
                 pernode=PerNode.OPTIONAL,
-                scope=Scope.JOB,
+                scope=Scope.GLOBAL,
                 defvalue=0,
                 shorthelp="Option: optimization mode",
                 switch=["-O<str>",
                         "-optmode <str>"],
                 example=["cli: -O3",
-                         "cli: -optmode O3",
+                         "cli: -optmode 3",
                          "api: chip.set('optmode', 'O3')"],
                 help="""
                 The compiler has modes to prioritize run time and ppa. Modes
@@ -122,7 +122,7 @@ class OptionSchema(BaseSchema):
             Parameter(
                 '<info,warning,error,critical,debug,quiet>',
                 pernode=PerNode.OPTIONAL,
-                scope=Scope.JOB,
+                scope=Scope.GLOBAL,
                 defvalue='info',
                 shorthelp="Option: logging level",
                 switch="-loglevel <str>",
@@ -136,7 +136,7 @@ class OptionSchema(BaseSchema):
             'builddir',
             Parameter(
                 'dir',
-                scope=Scope.JOB,
+                scope=Scope.GLOBAL,
                 defvalue='build',
                 shorthelp="Option: build directory",
                 switch="-builddir <dir>",
@@ -152,7 +152,7 @@ class OptionSchema(BaseSchema):
             'jobname',
             Parameter(
                 'str',
-                scope=Scope.JOB,
+                scope=Scope.GLOBAL,
                 defvalue='job0',
                 shorthelp="Option: job name",
                 switch="-jobname <str>",
@@ -228,7 +228,7 @@ class OptionSchema(BaseSchema):
             'clean',
             Parameter(
                 'bool',
-                scope=Scope.JOB,
+                scope=Scope.GLOBAL,
                 shorthelp="Option: cleanup previous job",
                 switch="-clean <bool>",
                 example=["cli: -clean",
@@ -243,7 +243,7 @@ class OptionSchema(BaseSchema):
             'hash',
             Parameter(
                 'bool',
-                scope=Scope.JOB,
+                scope=Scope.GLOBAL,
                 shorthelp="Option: file hashing",
                 switch="-hash <bool>",
                 example=["cli: -hash",
@@ -257,7 +257,7 @@ class OptionSchema(BaseSchema):
             'nodisplay',
             Parameter(
                 'bool',
-                scope=Scope.JOB,
+                scope=Scope.GLOBAL,
                 shorthelp="Option: headless execution",
                 switch="-nodisplay <bool>",
                 example=["cli: -nodisplay",
@@ -271,7 +271,7 @@ class OptionSchema(BaseSchema):
             Parameter(
                 'bool',
                 pernode=PerNode.OPTIONAL,
-                scope=Scope.JOB,
+                scope=Scope.GLOBAL,
                 shorthelp="Option: quiet execution",
                 switch="-quiet <bool>",
                 example=["cli: -quiet",
@@ -303,7 +303,7 @@ class OptionSchema(BaseSchema):
                 'bool',
                 pernode=PerNode.OPTIONAL,
                 defvalue=False,
-                scope=Scope.JOB,
+                scope=Scope.GLOBAL,
                 shorthelp="Option: disable version checking",
                 switch="-novercheck <bool>",
                 example=["cli: -novercheck",
@@ -318,7 +318,7 @@ class OptionSchema(BaseSchema):
             Parameter(
                 'bool',
                 pernode=PerNode.OPTIONAL,
-                scope=Scope.JOB,
+                scope=Scope.GLOBAL,
                 shorthelp="Option: enable provenance tracking",
                 switch="-track <bool>",
                 example=["cli: -track",
@@ -335,6 +335,7 @@ class OptionSchema(BaseSchema):
             Parameter(
                 'bool',
                 pernode=PerNode.OPTIONAL,
+                scope=Scope.GLOBAL,
                 shorthelp='Option: continue-on-error',
                 switch='-continue <bool>',
                 example=["cli: -continue",
@@ -352,7 +353,7 @@ class OptionSchema(BaseSchema):
             Parameter(
                 'float',
                 pernode=PerNode.OPTIONAL,
-                scope=Scope.JOB,
+                scope=Scope.GLOBAL,
                 unit='s',
                 shorthelp="Option: timeout value",
                 switch="-timeout <float>",
@@ -382,7 +383,7 @@ class OptionSchema(BaseSchema):
             'scheduler', 'name',
             Parameter(
                 '<slurm,lsf,sge,docker>',
-                scope=Scope.JOB,
+                scope=Scope.GLOBAL,
                 pernode=PerNode.OPTIONAL,
                 shorthelp="Option: scheduler platform",
                 switch="-scheduler <str>",
@@ -402,7 +403,7 @@ class OptionSchema(BaseSchema):
             'scheduler', 'cores',
             Parameter(
                 'int',
-                scope=Scope.JOB,
+                scope=Scope.GLOBAL,
                 pernode=PerNode.OPTIONAL,
                 shorthelp="Option: Scheduler core constraint",
                 switch="-cores <int>",
@@ -419,7 +420,7 @@ class OptionSchema(BaseSchema):
             Parameter(
                 'int',
                 unit='MB',
-                scope=Scope.JOB,
+                scope=Scope.GLOBAL,
                 pernode=PerNode.OPTIONAL,
                 shorthelp="Option: scheduler memory constraint",
                 switch="-memory <int>",
@@ -435,7 +436,7 @@ class OptionSchema(BaseSchema):
             'scheduler', 'queue',
             Parameter(
                 'str',
-                scope=Scope.JOB,
+                scope=Scope.GLOBAL,
                 pernode=PerNode.OPTIONAL,
                 shorthelp="Option: scheduler queue",
                 switch="-queue <str>",
@@ -451,7 +452,7 @@ class OptionSchema(BaseSchema):
             'scheduler', 'defer',
             Parameter(
                 'str',
-                scope=Scope.JOB,
+                scope=Scope.GLOBAL,
                 pernode=PerNode.OPTIONAL,
                 shorthelp="Option: scheduler start time",
                 switch="-defer <str>",
@@ -469,6 +470,7 @@ class OptionSchema(BaseSchema):
             'scheduler', 'options',
             Parameter(
                 '[str]',
+                scope=Scope.GLOBAL,
                 pernode=PerNode.OPTIONAL,
                 shorthelp="Option: scheduler arguments",
                 switch="-scheduler_options <str>",
@@ -485,7 +487,7 @@ class OptionSchema(BaseSchema):
             'scheduler', 'msgevent',
             Parameter(
                 '{<all,summary,begin,end,timeout,fail>}',
-                scope=Scope.JOB,
+                scope=Scope.GLOBAL,
                 pernode=PerNode.OPTIONAL,
                 shorthelp="Option: message event trigger",
                 switch="-msgevent <str>",
@@ -509,7 +511,7 @@ class OptionSchema(BaseSchema):
             'scheduler', 'msgcontact',
             Parameter(
                 '{str}',
-                scope=Scope.JOB,
+                scope=Scope.GLOBAL,
                 pernode=PerNode.OPTIONAL,
                 shorthelp="Option: message contact",
                 switch="-msgcontact <str>",
@@ -525,6 +527,7 @@ class OptionSchema(BaseSchema):
             'scheduler', 'maxnodes',
             Parameter(
                 'int',
+                scope=Scope.GLOBAL,
                 shorthelp="Option: maximum concurrent nodes",
                 switch="-maxnodes <int>",
                 example=["cli: -maxnodes 4",

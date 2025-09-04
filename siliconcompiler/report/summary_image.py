@@ -6,51 +6,7 @@ import os.path
 from PIL import Image, ImageFont, ImageDraw
 
 import siliconcompiler
-from siliconcompiler.utils import units
-from siliconcompiler.report.utils import _find_summary_image, _find_summary_metrics
-
-
-def _generate_summary_image(chip, output_path):
-    '''
-    Takes a layout screenshot and generates a design summary image
-    featuring a layout thumbnail and several metrics.
-    '''
-
-    # Extract metrics for display
-    metrics = {
-        'Chip': chip.design,
-    }
-
-    pdk = chip.get('option', 'pdk')
-    if pdk:
-        metrics['Node'] = pdk
-    else:
-        fpga_partname = chip.get('fpga', 'partname')
-        if fpga_partname:
-            metrics['FPGA'] = fpga_partname
-
-    def format_area(value, unit):
-        prefix = units.get_si_prefix(unit)
-        mm_area = units.convert(value, from_unit=prefix, to_unit='mm^2')
-        if mm_area < 10:
-            return units.format_si(value, 'um') + 'um^2'
-        else:
-            return units.format_si(mm_area, 'mm') + 'mm^2'
-
-    def format_freq(value, unit):
-        value = units.convert(value, from_unit=unit)
-        return units.format_si(value, 'Hz') + 'Hz'
-
-    metrics.update(_find_summary_metrics(chip, {
-        'Area': ('totalarea', format_area),
-        'LUTs': ('luts', None),
-        'Fmax': ('fmax', format_freq)}))
-
-    info = []
-    for metric, value in metrics.items():
-        info.append((metric, value))
-
-    generate_summary_image(chip, output_path, info)
+from siliconcompiler.report.utils import _find_summary_image
 
 
 def generate_summary_image(project, output_path, info):

@@ -1,113 +1,115 @@
 .. _dev_targets:
 
-Targets
-===================================
+Defining a Target
+=================
 
-To facilitate encapsulation and reuse of schema parameters related to design targets, SiliconCompiler implements a :meth:`Chip.use()` function which can run scripts that set up common combinations of :class:`.Flow`, :class:`.PDK`, :class:`.Library`, and :class:`.Checklist` modules.
+A target in SiliconCompiler is a reusable "build configuration" for a specific type of chip. Think of it as a master recipe that bundles together everything needed to compile a design for a particular goal, such as creating a low-power IoT chip on the Skywater 130nm process or a high-performance block on FreePDK45.
 
-SiliconCompiler comes with a set of built-in targets, which can be pulled in using the :meth:`.use()` function.
+Targets are implemented as simple Python functions that configure a Project object. They are loaded with a single call to :meth:`.Project.load_target()`, making it incredibly easy to set up a complex build.
+
 A full list of built-in targets can be found on the :ref:`builtin_targets` page.
 
-The following example calls the :meth:`.use()` function to load the built-in :ref:`freepdk45_demo` target.
+Why Create a Target?
+--------------------
+
+While you can configure a project's PDK, flow, and libraries manually, creating a target is the recommended approach for any serious project. The benefits include:
+
+* **Encapsulation**: It bundles all technology-specific and flow-specific settings into one place.
+* **Reusability**: The same target can be used across multiple designs, ensuring consistency.
+* **Simplicity**: It reduces a complex setup process to a single line of code in your build script.
+
+Anatomy of a Target Function
+----------------------------
+
+A target is a Python function that accepts a :class:`.Project` object as its first argument. Inside this function, you will typically perform the following actions:
+
+1. **Load Core Components**: Set the fundamental building blocks of your compilation:
+
+   * **PDK**: The process design kit for the manufacturing technology.
+   * **Flow**: The sequence of EDA tool steps to run (e.g., synthesis, place-and-route).
+   * **Libraries**: The standard cell libraries and/or macros to use.
+
+2. **Set Default Constraints**: Define the default goals and physical constraints for the design.
+
+   * **Timing Constraints**: Clock speeds, I/O delays, and other performance goals.
+   * **Physical Constraints**: Desired die area, core utilization (density), and pin placement.
+
+3. **Configure Tool Options**: Set default options for specific tools in the flow, such as the number of cores to use for a given step.
+
+Example: A Target for a Simple ASIC
+-----------------------------------
+
+Let's create a target for a generic ASIC design. This function will load a standard ASIC flow, a fictional PDK and library, and set some common physical and timing constraints.
 
 .. code-block:: python
 
-  from siliconcompiler.targets import freepdk45_demo
+  from siliconcompiler import ASICProject
+  from siliconcompiler.flows import asicflow
+  from siliconcompiler.tools.yosys import syn_asic
 
-  chip.use(freepdk45_demo)
+  # It's common practice to import the PDK and library schemas
+  # that your target will use.
+  from my_designs.pdks import my_freepdk45
+  from my_designs.libs import my_nangate45
 
-The following example demonstrates the functional equivalent at the command line:
+  def my_asic_target(project: ASICProject,
+                     # Targets can be parameterized. Here, we allow the user
+                     # to specify the number of cores for parallelizable steps.
+                     place_np=1,
+                     route_np=1):
+      '''
+      A simple target for a generic 45nm ASIC design.
+      '''
 
-.. code-block:: bash
+      # 1. Load Core Components
+      # The order is important: load libraries and PDK first, then the flow.
+      project.set_mainlib(my_nangate45.Nangate45())
+      project.set_pdk(my_freepdk45.FreePDK45())
+      project.set_flow(asicflow.ASICFlow(place_np=place_np, route_np=route_np))
 
-   sc hello.v -target "freepdk45_demo"
+      # 2. Set Default Constraints
 
-Targets can also be dedicated to individual projects or use cases, rather than general-purpose processing.
-For example, we ship a self-test target with SiliconCompiler, which builds a simple 8-bit counter to verify that everything is installed and configured correctly.
+      # Timing Constraints: Define a "typical" corner for setup/hold analysis.
+      # This sets the performance goals for the design.
+      scenario = project.get_timingconstraints().make_scenario("typical")
+      scenario.add_libcorner("typical")
+      scenario.set_pexcorner("typical")
+      scenario.add_check(["setup", "hold"])
 
-.. code-block:: bash
+      # Physical Constraints: Define the physical layout goals.
+      # Here, we aim for 40% core utilization and a 1-micron margin.
+      area = project.get_areaconstraints()
+      area.set_density(40)
+      area.set_coremargin(1)
 
-    sc -target "asic_demo"
-
-Functions
----------
-
-The table below shows the function interfaces for setting up Flow objects.
-
-.. list-table::
-   :widths: 10 10 10 10 10 10
-   :header-rows: 1
-
-   * - Function
-     - Description
-     - Arg
-     - Returns
-     - Used by
-     - Required
-
-   * - :ref:`setup() <target_setup>`
-     - Target setup function
-     - :class:`.Chip` and optional keyword arguments
-     - N/A
-     - :meth:`.use()`
-     - yes
-
-   * - :ref:`make_docs() <target_make_docs>`
-     - Doc generator
-     - :class:`.Chip`
-     - N/A
-     - sphinx
-     - no
+      # 3. Configure Tool Options
+      project.get_task(filter=syn_asic.ASICSynthesis).set_strategy("AREA3")
 
 
-.. _target_setup:
+How to Use the Target
+---------------------
 
-setup(chip)
------------
-
-All target modules must contain a function called ``setup()``, which takes in a :class:`.Chip` object and can modify the Chip's schema parameters in any way.
-It's common for targets to load at least one flow, a PDK and at least one standard cell library if the design is being built as an ASIC.
-They can also set up default design parameters and tool options.
-
-SC supports additional levels of encapsulation through PDK, library, and flow modules.
-See the :ref:`PDK<dev_pdks>`, :ref:`Library<dev_libraries>`, and :ref:`Flow<dev_flows>` pages to learn more about what is expected to be configured in each of these modules.
-
-Generally, these functions will be called by targets, and then a user will only have to call :meth:`.use()` in their build script.
-However, the :meth:`run()` function requires all mandatory flowgraph, pdk, and tool settings to be defined prior to execution, so if a partial target is loaded, additional setup may be required.
-
-An example is shown below.
+Once the target function is defined, you can load it into your project like this:
 
 .. code-block:: python
 
-    from siliconcompiler.pdk import asap7
-    from siliconcompiler.libs import asap7sc7p5t
-    from siliconcompiler.flows import asicflow
+  import siliconcompiler
 
-    # Load a PDK
-    chip.use(asap7)
-    chip.set('option', 'pdk', 'asap7')
-    chip.set('option', 'stackup', '10M')
+  # Create a project
+  project = siliconcompiler.ASICProject()
 
-    # Load a library
-    chip.use(asap7sc7p5t)
-    chip.add('asic', 'logiclib', 'asap7sc7p5t_rvt')
+  # Load the entire configuration by calling the target function.
+  # We can also pass values for the parameterized arguments.
+  project.load_target(my_asic_target, place_np=4, route_np=4)
 
-    # Load flow
-    chip.use(asicflow)
-    chip.set('option', 'flow', 'asicflow')
+  # Now the project is fully configured and ready to run!
+  # project.run()
 
-    ...
+Next Steps
+----------
 
-.. _target_make_docs:
+A target is composed of other SiliconCompiler modules. To build effective targets, you will need to understand how to define these components:
 
-make_docs(chip)
----------------
-The ``make_docs()`` function is used by the projects auto-doc generation.
-This function is only needed if the target requires additional inputs to be setup correctly.
-The function should include a call to the setup function to populate the schema with all settings as shown below.
-The input to this function ``chip`` is a chip object created by the auto-doc generator.
-
-.. code-block:: python
-
-  def make_docs(chip):
-    setup(chip)
+* **PDKs**: Learn how to define a PDK in the :ref:`PDK<dev_pdks>` documentation.
+* **Libraries**: Learn how to define a standard cell library in the :ref:`Library<dev_libraries>` documentation.
+* **Flows**: Learn how to build a custom flow in the :ref:`Flow<dev_flows>` documentation.

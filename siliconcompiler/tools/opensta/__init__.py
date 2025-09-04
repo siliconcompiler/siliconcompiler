@@ -8,95 +8,97 @@ Sources: https://github.com/The-OpenROAD-Project/OpenSTA
 Installation: https://github.com/The-OpenROAD-Project/OpenSTA (also installed with OpenROAD)
 '''
 
-from siliconcompiler import utils
-from siliconcompiler.tools.openroad._apr import get_library_timing_keypaths
-from siliconcompiler.tools._common import get_tool_task
-from siliconcompiler.tools._common.asic import get_libraries
+
+from siliconcompiler import TaskSchema
+
+from siliconcompiler import FPGASchema
 
 
-####################################################################
-# Make Docs
-####################################################################
-def make_docs(chip):
-    from siliconcompiler.targets import asap7_demo
-    chip.use(asap7_demo)
+class OpenSTATask(TaskSchema):
+    def __init__(self):
+        super().__init__()
+
+    def tool(self):
+        return "opensta"
+
+    def parse_version(self, stdout):
+        return stdout.strip()
+
+    def setup(self):
+        super().setup()
+
+        self.set_exe("sta", vswitch="-version", format="tcl")
+        self.add_version(">=2.6.2")
+
+        self.set_dataroot("refdir-root", __file__)
+        with self.active_dataroot("refdir-root"):
+            self.set_refdir("scripts")
+
+        self.set_threads()
+
+        self.add_regex("warnings", r'^\[WARNING|^Warning')
+        self.add_regex("errors", r'^\[ERROR')
+
+    def runtime_options(self):
+        options = super().runtime_options()
+        options.append("-no_init")
+        if not self.has_breakpoint():
+            options.append("-exit")
+
+        options.extend(["-threads", self.get_threads()])
+
+        return options
+
+    @classmethod
+    def make_docs(cls):
+        from siliconcompiler import FlowgraphSchema, DesignSchema, ASICProject
+        from siliconcompiler.scheduler import SchedulerNode
+        from siliconcompiler.targets import freepdk45_demo
+        design = DesignSchema("<design>")
+        with design.active_fileset("docs"):
+            design.set_topmodule("top")
+        proj = ASICProject(design)
+        proj.add_fileset("docs")
+        proj.load_target(freepdk45_demo.setup)
+        flow = FlowgraphSchema("docsflow")
+        flow.node("<step>", cls(), index="<index>")
+        proj.set_flow(flow)
+
+        node = SchedulerNode(proj, "<step>", "<index>")
+        node.setup()
+        return node.task
 
 
-################################
-# Setup Tool (pre executable)
-################################
-def setup(chip):
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    tool, task = get_tool_task(chip, step, index)
+class OpenSTAFPGA(FPGASchema):
+    """
+    Schema for defining library parameters specifically for the
+    OpenSTA tool when targeting an FPGA.
 
-    chip.set('tool', tool, 'exe', 'sta')
-    chip.set('tool', tool, 'vswitch', '-version')
-    chip.set('tool', tool, 'version', '>=v2.6.2', clobber=False)
-    chip.set('tool', tool, 'format', 'tcl')
+    This class extends the base FPGASchema to manage various settings
+    related to OpenSTA, specifically for passing liberty filesets.
+    """
+    def __init__(self):
+        super().__init__()
 
-    targetlibs = get_libraries(chip, 'logic')
-    macrolibs = get_libraries(chip, 'macro')
-    delaymodel = chip.get('asic', 'delaymodel', step=step, index=index)
+        self.define_tool_parameter("opensta", "liberty_filesets", "{str}",
+                                   "A set of liberty filesets to read to perform STA.")
 
-    # Input/Output requirements for default asicflow steps
-    chip.set('tool', tool, 'task', task, 'refdir', 'tools/opensta/scripts',
-             step=step, index=index,
-             package='siliconcompiler', clobber=False)
-    chip.set('tool', tool, 'task', task, 'threads', utils.get_cores(chip),
-             step=step, index=index, clobber=False)
+    def add_opensta_liberty_fileset(self, fileset: str = None, clobber: bool = False):
+        """
+        Adds the given fileset to the set of liberty files which will be used
+        for STA.
 
-    if delaymodel != 'nldm':
-        chip.logger.error(f'{delaymodel} delay model is not supported by {tool}, only nldm')
+        Args:
+            fileset (str): name of the fileset
+            clobber (bool, optional): If True, overwrites existing list.
+                                      If False, adds to the list. Defaults to False.
+        """
+        if not fileset:
+            fileset = self._get_active("fileset")
 
-    if targetlibs:
-        # Note: only one footprint supported in mainlib
-        chip.add('tool', tool, 'task', task, 'require',
-                 ",".join(['asic', 'logiclib']),
-                 step=step, index=index)
+        self._assert_fileset(fileset)
 
-        for lib in targetlibs:
-            for timing_key in get_library_timing_keypaths(chip, lib).values():
-                chip.add('tool', tool, 'task', task, 'require', ",".join(timing_key),
-                         step=step, index=index)
-        for lib in macrolibs:
-            for timing_key in get_library_timing_keypaths(chip, lib).values():
-                if chip.valid(*timing_key):
-                    chip.add('tool', tool, 'task', task, 'require', ",".join(timing_key),
-                             step=step, index=index)
-    else:
-        chip.error('logiclib parameters required for OpenSTA.')
-
-    # basic warning and error grep check on logfile
-    chip.set('tool', tool, 'task', task, 'regex', 'warnings', r'^\[WARNING|^Warning',
-             step=step, index=index, clobber=False)
-    chip.set('tool', tool, 'task', task, 'regex', 'errors', r'^\[ERROR',
-             step=step, index=index, clobber=False)
-
-
-################################
-# Version Check
-################################
-def parse_version(stdout):
-    return stdout.strip()
-
-
-################################
-# Runtime options
-################################
-def runtime_options(chip):
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-
-    # exit automatically in batch mode and not breakpoint
-    option = []
-    if not chip.get('option', 'breakpoint', step=step, index=index):
-        option.append("-exit")
-
-    tool, task = get_tool_task(chip, step, index)
-    option.extend([
-        '-threads',
-        str(chip.get('tool', tool, 'task', task, 'threads', step=step, index=index))
-    ])
-
-    return option
+        if clobber:
+            return self.set("tool", "opensta", "liberty_filesets", fileset)
+        else:
+            return self.add("tool", "opensta", "liberty_filesets", fileset)

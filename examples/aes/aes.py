@@ -1,42 +1,39 @@
 #!/usr/bin/env python3
 
-from siliconcompiler import Chip
+from siliconcompiler import ASICProject, DesignSchema
 from siliconcompiler.targets import freepdk45_demo
 
 
-def rtl2gds(target=freepdk45_demo,
-            sdc=None,
-            rtl=None,
-            width=200,
-            height=200):
+def main():
     '''RTL2GDS flow'''
 
-    # CREATE OBJECT
-    chip = Chip("aes")
+    # Create design
+    design = DesignSchema("aes")
+    design.set_dataroot("aes", __file__)
+    with design.active_dataroot("aes"), design.active_fileset("rtl"):
+        design.set_topmodule("aes")
+        design.add_file("aes.v")
+    with design.active_dataroot("aes"), design.active_fileset("sdc"):
+        design.add_file("aes.sdc")
 
-    # TARGET
-    chip.use(target)
+    # Create project
+    project = ASICProject(design)
 
-    # FLOW OVERLOAD
-    chip.register_source("aes-example", __file__)
-    if rtl is None:
-        chip.input("aes.v", package="aes-example")
-    if sdc is None:
-        chip.input("aes.sdc", package="aes-example")
+    # Define filesets
+    project.add_fileset("rtl")
+    project.add_fileset("sdc")
 
-    chip.set('option', 'quiet', True)
+    # Load target
+    project.load_target(freepdk45_demo.setup)
 
-    chip.set('constraint', 'outline', [(0, 0), (width, height)])
-    chip.set('constraint', 'corearea', [(10, 10), (width - 10, height - 10)])
+    # Run
+    project.run()
 
-    # RUN
-    chip.run()
+    # Analyze
+    project.summary()
 
-    # ANALYZE
-    chip.summary()
-
-    return chip
+    return project
 
 
 if __name__ == '__main__':
-    rtl2gds()
+    main()

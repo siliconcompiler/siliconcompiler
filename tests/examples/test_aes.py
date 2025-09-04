@@ -1,13 +1,14 @@
 import pytest
-import os
+
+import os.path
 
 
 @pytest.mark.eda
+@pytest.mark.ready
 @pytest.mark.nocpulimit
 @pytest.mark.timeout(1800)
 def test_py_aes():
     from aes import aes
-    aes.rtl2gds()
+    aes.main()
 
-    gds = 'build/aes/job0/write.gds/0/outputs/aes.gds'
-    assert os.path.isfile(gds)
+    assert os.path.isfile('build/aes/job0/write.gds/0/outputs/aes.gds')

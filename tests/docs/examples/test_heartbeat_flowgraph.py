@@ -1,13 +1,7 @@
-import os
-
-import pytest
+import os.path
 
 
-@pytest.mark.eda
-@pytest.mark.quick
 def test_py(setup_docs_test):
     import heartbeat_flowgraph  # noqa: F401
 
     assert os.path.isfile('heartbeat_flowgraph.svg')
-    # check if netlist exists
-    assert os.path.isfile('build/heartbeat/job0/syn/0/outputs/heartbeat.vg')

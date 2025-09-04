@@ -17,9 +17,9 @@ source "$sc_refdir/apr/preamble.tcl"
 
 sc_detailed_placement
 
-if { [lindex [sc_cfg_tool_task_get var dpo_enable] 0] == "true" } {
+if { [sc_cfg_tool_task_get var dpo_enable] } {
     improve_placement \
-        -max_displacement [lindex [sc_cfg_tool_task_get var dpo_max_displacement] 0]
+        -max_displacement [sc_cfg_tool_task_get var dpo_max_displacement]
 
     # Do another detailed placement in case DPO leaves violations behind
     sc_detailed_placement

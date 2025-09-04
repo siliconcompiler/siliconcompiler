@@ -1,19 +1,26 @@
-from siliconcompiler import Chip
-from siliconcompiler.apps import sc_remote
-from siliconcompiler.remote import Client
-from siliconcompiler.remote import JobStatus
 import itertools
 import json
 import os
 import pytest
 import requests
-import uuid
 import sys
+import time
+import uuid
+
+import os.path
+
 from unittest.mock import patch
 from pathlib import Path
+
 from siliconcompiler.utils import default_credentials_file
-from siliconcompiler.targets import freepdk45_demo
 from siliconcompiler._metadata import default_server
+
+from siliconcompiler import FlowgraphSchema, Project
+from siliconcompiler.tools.builtin.nop import NOPTask
+
+from siliconcompiler.apps import sc_remote
+from siliconcompiler.remote import Client
+from siliconcompiler.remote import JobStatus
 
 
 @pytest.fixture(autouse=True)
@@ -21,6 +28,33 @@ def patch_home(monkeypatch):
     def new_home():
         return os.getcwd()
     monkeypatch.setattr(Path, 'home', new_home)
+
+
+@pytest.fixture
+def gcd_nop_project(gcd_design):
+    project = Project(gcd_design)
+    project.add_fileset("rtl")
+    project.add_fileset("sdc")
+
+    flow = FlowgraphSchema("nopflow")
+    flow.node("stepone", NOPTask())
+    flow.node("steptwo", NOPTask())
+    flow.edge("stepone", "steptwo")
+    project.set_flow(flow)
+
+    project.set('option', 'nodisplay', True)
+    project.set('option', 'quiet', True)
+
+    return project
+
+
+class PausedNOP(NOPTask):
+    def task(self):
+        return "paused"
+
+    def run(self):
+        time.sleep(5)
+        return super().run()
 
 
 ###########################
@@ -116,9 +150,8 @@ def test_sc_remote_auth(monkeypatch, scserver, scserver_users, scserver_credenti
 
 
 ###########################
-@pytest.mark.eda
-@pytest.mark.quick
-def test_sc_remote_check_progress(monkeypatch, unused_tcp_port, scroot, scserver_credential):
+def test_sc_remote_check_progress(gcd_nop_project, monkeypatch, unused_tcp_port,
+                                  scserver_credential):
     '''Test that sc-remote can get info about a running job.
     '''
 
@@ -133,15 +166,11 @@ def test_sc_remote_check_progress(monkeypatch, unused_tcp_port, scroot, scserver
     tmp_creds = scserver_credential(unused_tcp_port)
 
     # Start a small remote job.
-    chip = Chip('gcd')
-    chip.input(f"{scroot}/examples/gcd/gcd.v")
-    chip.input(f"{scroot}/examples/gcd/gcd.sdc")
-    chip.set('option', 'remote', True)
-    chip.set('option', 'credentials', tmp_creds)
-    chip.set('option', 'nodisplay', True)
-    chip.use(freepdk45_demo)
+    gcd_nop_project.set('option', 'remote', True)
+    gcd_nop_project.set('option', 'credentials', tmp_creds)
+    gcd_nop_project.set('option', 'nodisplay', True)
     # Start the run, but don't wait for it to finish.
-    Client(chip).run()
+    Client(gcd_nop_project).run()
 
     # Check job progress.
     monkeypatch.setattr("sys.argv", ['sc-remote',
@@ -152,11 +181,15 @@ def test_sc_remote_check_progress(monkeypatch, unused_tcp_port, scroot, scserver
 
 
 ###########################
-@pytest.mark.eda
-@pytest.mark.quick
-def test_sc_remote_reconnect(monkeypatch, unused_tcp_port, scroot, scserver_credential):
+def test_sc_remote_reconnect(gcd_nop_project, monkeypatch, unused_tcp_port, scserver_credential):
     '''Test that sc-remote can reconnect to a running job.
     '''
+
+    flow = FlowgraphSchema("pausedflow")
+    flow.node("stepone", PausedNOP())
+    flow.node("steptwo", NOPTask())
+    flow.edge("stepone", "steptwo")
+    gcd_nop_project.set_flow(flow)
 
     def mock_run(self):
         return
@@ -172,15 +205,11 @@ def test_sc_remote_reconnect(monkeypatch, unused_tcp_port, scroot, scserver_cred
     tmp_creds = scserver_credential(unused_tcp_port)
 
     # Start a small remote job.
-    chip = Chip('gcd')
-    chip.input(f"{scroot}/examples/gcd/gcd.v")
-    chip.input(f"{scroot}/examples/gcd/gcd.sdc")
-    chip.set('option', 'remote', True)
-    chip.set('option', 'credentials', tmp_creds)
-    chip.set('option', 'nodisplay', True)
-    chip.use(freepdk45_demo)
+    gcd_nop_project.set('option', 'remote', True)
+    gcd_nop_project.set('option', 'credentials', tmp_creds)
+    gcd_nop_project.set('option', 'nodisplay', True)
     # Start the run, but don't wait for it to finish.
-    client = Client(chip)
+    client = Client(gcd_nop_project)
     client.run()
 
     monkeypatch.setattr(Client, '_run_loop', tmp)
@@ -192,16 +221,20 @@ def test_sc_remote_reconnect(monkeypatch, unused_tcp_port, scroot, scserver_cred
                                      '-cfg', client.remote_manifest()])
 
     def mock_finalize_run(*args, **kwargs):
-        final_manifest = os.path.join(chip.getworkdir(), f"{chip.get('design')}.pkg.json")
+        final_manifest = os.path.join(gcd_nop_project.getworkdir(),
+                                      f"{gcd_nop_project.design.name}.pkg.json")
         with open(final_manifest, 'w') as wf:
             wf.write('{"mocked": "manifest"}')
     monkeypatch.setattr("siliconcompiler.remote.client.Client._finalize_loop", mock_finalize_run)
     # Reconnect to the job.
-    retcode = sc_remote.main()
+    with patch("siliconcompiler.Project.summary") as summary:
+        retcode = sc_remote.main()
+        summary.assert_called_once()
 
     assert retcode == 0
     assert os.path.isfile('mock_result.txt')
-    assert os.path.isfile(os.path.join(chip.getworkdir(), f"{chip.get('design')}.pkg.json"))
+    assert os.path.isfile(os.path.join(gcd_nop_project.getworkdir(),
+                                       f"{gcd_nop_project.design.name}.pkg.json"))
 
 
 def test_configure_default(monkeypatch):
@@ -499,7 +532,8 @@ def test_configure_update_whitelist_multiple(credentials_file, monkeypatch):
     monkeypatch.setattr('sys.argv', ['sc-remote',
                                      '-configure',
                                      '-credentials', credentials_file,
-                                     '-add', './add_this', 'add_this_too'])
+                                     '-add', './add_this',
+                                     '-add', 'add_this_too'])
 
     sc_remote.main()
 
@@ -514,7 +548,8 @@ def test_configure_update_whitelist_multiple(credentials_file, monkeypatch):
     monkeypatch.setattr('sys.argv', ['sc-remote',
                                      '-configure',
                                      '-credentials', credentials_file,
-                                     '-remove', './add_this', 'add_this_too'])
+                                     '-remove', './add_this',
+                                     '-remove', 'add_this_too'])
 
     sc_remote.main()
 
@@ -530,7 +565,8 @@ def test_configure_add_add_whitelist_multiple(credentials_file, monkeypatch):
     monkeypatch.setattr('sys.argv', ['sc-remote',
                                      '-configure',
                                      '-credentials', credentials_file,
-                                     '-add', './add_this', 'add_this_too'])
+                                     '-add', './add_this',
+                                     '-add', 'add_this_too'])
 
     sc_remote.main()
 
@@ -545,7 +581,8 @@ def test_configure_add_add_whitelist_multiple(credentials_file, monkeypatch):
     monkeypatch.setattr('sys.argv', ['sc-remote',
                                      '-configure',
                                      '-credentials', credentials_file,
-                                     '-add', './add_this', 'add_this_too'])
+                                     '-add', './add_this',
+                                     '-add', 'add_this_too'])
 
     sc_remote.main()
 
@@ -605,8 +642,8 @@ def test_configure_list(monkeypatch):
         assert mock.called
 
 
-def test_cancel(monkeypatch, gcd_chip):
-    gcd_chip.write_manifest('test.json')
+def test_cancel(monkeypatch, gcd_nop_project):
+    gcd_nop_project.write_manifest('test.json')
     monkeypatch.setattr('sys.argv', ['sc-remote',
                                      '-cancel',
                                      '-cfg', 'test.json'])
@@ -620,8 +657,8 @@ def test_cancel(monkeypatch, gcd_chip):
             assert mock.called
 
 
-def test_delete(monkeypatch, gcd_chip):
-    gcd_chip.write_manifest('test.json')
+def test_delete(monkeypatch, gcd_nop_project):
+    gcd_nop_project.write_manifest('test.json')
     monkeypatch.setattr('sys.argv', ['sc-remote',
                                      '-delete',
                                      '-cfg', 'test.json'])
@@ -635,8 +672,8 @@ def test_delete(monkeypatch, gcd_chip):
             assert mock.called
 
 
-def test_empty_call(monkeypatch, gcd_chip):
-    gcd_chip.write_manifest('test.json')
+def test_empty_call(monkeypatch, gcd_nop_project):
+    gcd_nop_project.write_manifest('test.json')
     monkeypatch.setattr('sys.argv', ['sc-remote',
                                      '-cfg', 'test.json'])
 

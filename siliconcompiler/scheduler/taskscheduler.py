@@ -7,7 +7,6 @@ import os.path
 from logging.handlers import QueueListener
 
 from siliconcompiler import NodeStatus
-from siliconcompiler import SiliconCompilerError
 from siliconcompiler import utils
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 
@@ -62,17 +61,17 @@ class TaskScheduler:
         self.__chip = chip
         self.__logger = self.__chip.logger
         self.__logger_console_handler = self.__chip._logger_console
-        self.__schema = self.__chip.schema
+        self.__schema = self.__chip
         self.__flow = self.__schema.get("flowgraph", self.__chip.get('option', 'flow'),
                                         field="schema")
         self.__record = self.__schema.get("record", field="schema")
-        self.__dashboard = chip._dash
+        self.__dashboard = chip._Project__dashboard
 
-        self.__max_cores = utils.get_cores(chip)
-        self.__max_threads = utils.get_cores(chip)
+        self.__max_cores = utils.get_cores()
+        self.__max_threads = utils.get_cores()
         self.__max_parallel_run = self.__chip.get('option', 'scheduler', 'maxnodes')
         if not self.__max_parallel_run:
-            self.__max_parallel_run = utils.get_cores(chip)
+            self.__max_parallel_run = utils.get_cores()
         # clip max parallel jobs to 1 <= jobs <= max_cores
         self.__max_parallel_run = max(1, min(self.__max_parallel_run, self.__max_cores))
 
@@ -215,9 +214,8 @@ class TaskScheduler:
             # stuck in an infinite loop if it does, so we want to break out
             # with an explicit error.
             if len(self.get_nodes_waiting_to_run()) > 0 and len(running_nodes) == 0:
-                raise SiliconCompilerError(
-                    'Nodes left to run, but no running nodes. From/to may be invalid.',
-                    chip=self.__chip)
+                raise RuntimeError(
+                    'Nodes left to run, but no running nodes. From/to may be invalid.')
 
             if len(running_nodes) == 1:
                 # if there is only one node running, just join the thread

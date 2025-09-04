@@ -3,9 +3,8 @@ import sys
 
 import os.path
 
-from siliconcompiler import Chip
-from siliconcompiler.utils import get_default_iomap, get_file_ext
-from siliconcompiler.apps._common import manifest_switches, pick_manifest, UNSET_DESIGN
+from siliconcompiler import Project
+from siliconcompiler.apps._common import pick_manifest
 
 
 def main():
@@ -34,7 +33,7 @@ def main():
     sc-show -design adder -jobname rtl2gds
     (displays build/adder/rtl2gds/write.gds/0/outputs/adder.gds)
 
-    sc-show -cfg build/adder/rtl2gds/adder.pkg.json
+    sc-show build/adder/rtl2gds/adder.pkg.json
     (displays build/adder/rtl2gds/write.gds/0/outputs/adder.gds)
 
     sc-show -design adder -ext odb
@@ -44,106 +43,67 @@ def main():
     (displays build/adder/job0/route/1/outputs/adder.def)
     """
 
-    # Create a base chip class.
-    chip = Chip(UNSET_DESIGN)
+    class ShowProject(Project):
+        def __init__(self):
+            super().__init__()
 
-    # Fill input map with default mapping only for showable files
-    input_map = {}
-    default_input_map = get_default_iomap()
-    for ext in chip._showtools:
-        if ext in default_input_map:
-            input_map[ext] = default_input_map[ext]
+            self._add_commandline_argument(
+                "cfg", "file", "configuration manifest")
+            self._add_commandline_argument(
+                "extension", "str", "Specify the extension of the file to show.",
+                "-ext <str>")
+            self._add_commandline_argument(
+                "screenshot", "bool", "Generate a screenshot and exit.")
 
-    extension_arg = {
-        'metavar': '<ext>',
-        'help': '(optional) Specify the extension of the file to show.',
-        'sc_print': False
-    }
-    screenshot_arg = {
-        'action': 'store_true',
-        'help': '(optional) Will generate a screenshot and exit.',
-        'sc_print': False
-    }
+    show = ShowProject.create_cmdline(
+        progname,
+        description=description,
+        switchlist=[
+            '-design',
+            '-arg_step',
+            '-arg_index',
+            '-jobname',
+            '-cfg',
+            '-ext',
+            '-screenshot'])
 
-    try:
-        args = chip.create_cmdline(
-            progname,
-            switchlist=[*manifest_switches(),
-                        '-input',
-                        '-loglevel'],
-            description=description,
-            input_map=input_map,
-            additional_args={
-                '-ext': extension_arg,
-                '-screenshot': screenshot_arg
-            })
-    except Exception as e:
-        chip.logger.error(e)
-        return 1
-
-    # Search input keys for files
-    input_mode = []
-    for fileset in chip.getkeys('input'):
-        for mode in chip.getkeys('input', fileset):
-            if chip.get('input', fileset, mode, field=None).getvalues():
-                input_mode.append(('input', fileset, mode))
-
+    manifest = None
     filename = None
-    if input_mode:
-        check_ext = list(chip._showtools.keys())
-
-        if args['ext']:
-            check_ext = [args['ext']]
-
-        def get_file_from_keys():
-            for ext in check_ext:
-                for key in input_mode:
-                    for files, _, _ in chip.get(*key, field=None).getvalues():
-                        for file in files:
-                            if get_file_ext(file) == ext:
-                                return file
-            return None
-
-        filename = get_file_from_keys()
+    if show.get("cmdarg", "input"):
+        for file in show.get("cmdarg", "input"):
+            if not manifest and file.lower().endswith(".pkg.json"):
+                manifest = file
+            elif not filename:
+                filename = file
 
     # Attempt to load a manifest
-    if not chip.get('option', 'cfg'):
-        manifest = pick_manifest(chip, src_file=filename)
-        if manifest:
-            chip.logger.info(f'Loading manifest: {manifest}')
-            chip.read_manifest(manifest)
-    else:
-        manifest = chip.get('option', 'cfg')
-
-    # Error checking
-    design = chip.get('design')
-    design_set = design != UNSET_DESIGN
-    if not (design_set or input_mode):
-        chip.logger.error('Nothing to load: please define a target with '
-                          '-cfg, -design, and/or inputs.')
-        return 1
+    if not manifest:
+        manifest = pick_manifest(show, src_file=filename)
 
     if not manifest:
-        chip.logger.error('Unable to determine job manifest')
-        return 2
+        show.logger.error("Unable to find manifest")
+        return 1
+
+    show.logger.info(f'Loading manifest: {manifest}')
+    project = Project.from_manifest(filepath=manifest)
 
     # Read in file
     if filename:
-        chip.logger.info(f"Displaying {filename}")
+        project.logger.info(f"Displaying {filename}")
 
-    if not chip.find_files('option', 'builddir', missing_ok=True):
-        chip.logger.warning("Unable to access original build directory "
-                            f"\"{chip.get('option', 'builddir')}\", using \"build\" instead")
-        chip.set('option', 'builddir', 'build')
+    if not project.find_files('option', 'builddir', missing_ok=True):
+        project.logger.warning("Unable to access original build directory "
+                               f"\"{project.get('option', 'builddir')}\", using \"build\" instead")
+        project.set('option', 'builddir', 'build')
 
-    success = chip.show(filename,
-                        extension=args['ext'],
-                        screenshot=args['screenshot'])
+    success = project.show(filename,
+                           extension=show.get("cmdarg", "extension"),
+                           screenshot=show.get("cmdarg", "screenshot"))
 
-    if args['screenshot'] and os.path.isfile(success):
-        chip.logger.info(f'Screenshot file: {success}')
+    if os.path.isfile(success) and show.get("cmdarg", "screenshot"):
+        project.logger.info(f'Screenshot file: {success}')
 
-    return 0 if success else 1
+    return 0
 
 
 #########################

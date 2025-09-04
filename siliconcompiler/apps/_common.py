@@ -10,11 +10,6 @@ import os
 import os.path
 
 
-# A placeholder to detect if the design name has not been set by the user.
-# Legal design names are unlikely to contain spaces.
-UNSET_DESIGN = '  unset  '
-
-
 def manifest_switches():
     """
     Returns a list of command-line switches used to identify a manifest.
@@ -91,7 +86,7 @@ def _get_manifests(cwd):
     return organized_manifest
 
 
-def pick_manifest_from_file(chip, src_file, all_manifests):
+def pick_manifest_from_file(cliproject, src_file, all_manifests):
     """
     Tries to find a manifest located in the same directory as a given source file.
 
@@ -112,7 +107,7 @@ def pick_manifest_from_file(chip, src_file, all_manifests):
         return None
 
     if not os.path.exists(src_file):
-        chip.logger.error(f'{src_file} cannot be found.')
+        cliproject.logger.error(f'{src_file} cannot be found.')
         return None
 
     src_dir = os.path.abspath(os.path.dirname(src_file))
@@ -125,7 +120,7 @@ def pick_manifest_from_file(chip, src_file, all_manifests):
     return None
 
 
-def pick_manifest(chip, src_file=None):
+def pick_manifest(cliproject, src_file=None):
     """
     Selects the most appropriate manifest based on the chip's configuration.
 
@@ -149,36 +144,38 @@ def pick_manifest(chip, src_file=None):
     all_manifests = _get_manifests(os.getcwd())
 
     # 1. Try to find based on source file location.
-    manifest = pick_manifest_from_file(chip, src_file, all_manifests)
+    manifest = pick_manifest_from_file(cliproject, src_file, all_manifests)
     if manifest:
         return manifest
 
     # 2. Infer design if unset and only one option exists.
-    if chip.design == UNSET_DESIGN:
+    if not cliproject.get("option", "design"):
         if len(all_manifests) == 1:
-            chip.set('design', list(all_manifests.keys())[0])
+            cliproject.set("option", "design", list(all_manifests.keys())[0])
         else:
-            chip.logger.error('Design name is not set and could not be inferred.')
+            cliproject.logger.error('Design name is not set and could not be inferred.')
             return None
 
-    if chip.design not in all_manifests:
-        chip.logger.error(f'Could not find any manifests for design "{chip.design}".')
+    design = cliproject.get("option", "design")
+
+    if design not in all_manifests:
+        cliproject.logger.error(f'Could not find any manifests for design "{design}".')
         return None
 
-    # 3. Infer jobname if unset and only one option exists.
-    jobname = chip.get('option', 'jobname')
-    if jobname not in all_manifests[chip.design]:
-        if len(all_manifests[chip.design]) == 1:
-            jobname = list(all_manifests[chip.design].keys())[0]
-        else:
-            chip.logger.error(f'Could not determine jobname for design "{chip.design}".')
-            return None
+    jobname = cliproject.get('option', 'jobname')
+    if jobname not in all_manifests[design] and \
+            len(all_manifests[design]) != 1:
+        cliproject.logger.error(f'Could not determine jobname for {design}')
+        return None
+
+    if jobname not in all_manifests[design]:
+        jobname = list(all_manifests[design].keys())[0]
 
     # 4. Find specific node manifest if step/index are provided.
-    step, index = chip.get('arg', 'step'), chip.get('arg', 'index')
+    step, index = cliproject.get('arg', 'step'), cliproject.get('arg', 'index')
     # Auto-complete index if only step is provided
     if step and not index:
-        all_nodes = list(all_manifests[chip.design][jobname].keys())
+        all_nodes = list(all_manifests[design][jobname].keys())
         try:
             all_nodes.remove((None, None))  # Exclude top-level
         except ValueError:
@@ -191,16 +188,16 @@ def pick_manifest(chip, src_file=None):
             index = '0'  # Default to '0' if no match found
 
     if step and index:
-        if (step, index) in all_manifests[chip.design][jobname]:
-            return all_manifests[chip.design][jobname][(step, index)]
+        if (step, index) in all_manifests[design][jobname]:
+            return all_manifests[design][jobname][(step, index)]
         else:
-            chip.logger.error(f'Node "{step}/{index}" is not a valid node.')
+            cliproject.logger.error(f'Node "{step}/{index}" is not a valid node.')
             return None
 
     # 5. Return top-level job manifest if it exists.
-    if (None, None) in all_manifests[chip.design][jobname]:
-        return all_manifests[chip.design][jobname][(None, None)]
+    if (None, None) in all_manifests[design][jobname]:
+        return all_manifests[design][jobname][(None, None)]
 
     # 6. Fallback: return the most recently modified manifest in the job.
-    return list(sorted(all_manifests[chip.design][jobname].values(),
+    return list(sorted(all_manifests[design][jobname].values(),
                        key=lambda file: os.stat(file).st_ctime))[-1]

@@ -1,26 +1,22 @@
-from siliconcompiler.targets import asap7_demo
-from siliconcompiler.targets import asic_demo
-from siliconcompiler.targets import fpgaflow_demo
-from siliconcompiler.targets import freepdk45_demo
-from siliconcompiler.targets import gf180_demo
-from siliconcompiler.targets import ihp130_demo
-from siliconcompiler.targets import interposer_demo
-from siliconcompiler.targets import skywater130_demo
+from . import asap7_demo
+from . import freepdk45_demo
+from . import gf180_demo
+from . import ihp130_demo
+from . import skywater130_demo
+
+from siliconcompiler import ASICProject
 
 
-def get_targets():
-    '''
-    Returns a dict of builtin targets
-    '''
-    return {
-        module.__name__.split(".")[-1]: module for module in (
-            asap7_demo,
-            asic_demo,
-            fpgaflow_demo,
-            freepdk45_demo,
-            gf180_demo,
-            ihp130_demo,
-            interposer_demo,
-            skywater130_demo
-        )
-    }
+def asic_target(proj: ASICProject, pdk: str = None):
+    if pdk == "asap7":
+        proj.load_target(asap7_demo.setup)
+    elif pdk == "freepdk45":
+        proj.load_target(freepdk45_demo.setup)
+    elif pdk == "gf180":
+        proj.load_target(gf180_demo.setup)
+    elif pdk == "ihp130":
+        proj.load_target(ihp130_demo.setup)
+    elif pdk == "skywater130":
+        proj.load_target(skywater130_demo.setup)
+    else:
+        raise ValueError(f"pdk not supported: {pdk}")

@@ -1,151 +1,83 @@
 import shutil
-from siliconcompiler import utils
-from siliconcompiler import SiliconCompilerError
-from siliconcompiler.tools.vpr import vpr
+
+from siliconcompiler.tools.vpr import VPRTask
 from siliconcompiler.tools.vpr._json_constraint import load_constraints_map
 from siliconcompiler.tools.vpr._json_constraint import load_json_constraints
 from siliconcompiler.tools.vpr._json_constraint import map_constraints
 from siliconcompiler.tools.vpr._xml_constraint import generate_vpr_constraints_xml_file
-from siliconcompiler.tools._common import get_tool_task
 
 
-def setup(chip, clobber=True):
+class PlaceTask(VPRTask):
     '''
-    Perform automated place and route with VPR
+    Perform automated place with VPR
     '''
+    def __init__(self):
+        super().__init__()
 
-    tool = 'vpr'
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    _, task = get_tool_task(chip, step, index)
+    def task(self):
+        return "place"
 
-    vpr.setup_tool(chip, clobber=clobber)
+    def setup(self):
+        super().setup()
 
-    chip.set('tool', tool, 'task', task, 'threads', utils.get_cores(chip),
-             step=step, index=index, clobber=False)
+        self.add_input_file(ext="blif")
 
-    design = chip.top()
-    chip.set('tool', tool, 'task', task, 'input', design + '.blif', step=step, index=index)
+        self.add_output_file(ext="blif")
+        self.add_output_file(ext="net")
+        self.add_output_file(ext="place")
 
-    chip.set('tool', tool, 'task', task, 'output', design + '.blif', step=step, index=index)
-    chip.add('tool', tool, 'task', task, 'output', design + '.net', step=step, index=index)
-    chip.add('tool', tool, 'task', task, 'output', design + '.place', step=step, index=index)
+        for lib, fileset in self.schema().get_filesets():
+            if lib.get_file(fileset=fileset, filetype="vpr_pins"):
+                self.add_required_key(lib, "fileset", fileset, "file", "vpr_pins")
+            if lib.get_file(fileset=fileset, filetype="pcf"):
+                self.add_required_key(lib, "fileset", fileset, "file", "pcf")
+                self.add_required_key("library", self.schema().get("fpga", "device"),
+                                      "tool", "vpr", "constraintsmap")
 
-    chip.set('tool', tool, 'task', task, 'var', 'placement', 'component placement constraints',
-             field='help')
+    def pre_process(self):
+        super().pre_process()
 
+        for lib, fileset in self.schema().get_filesets():
+            files = lib.get_file(fileset=fileset, filetype="vpr_pins")
+            if files:
+                shutil.copy2(files[0], self.auto_constraints_file())
+                return
 
-def runtime_options(chip):
-    '''Command line options to vpr for the place step
-    '''
+        for lib, fileset in self.schema().get_filesets():
+            files = lib.get_file(fileset=fileset, filetype="pcf")
+            if files:
+                pcf_file = files[0]
 
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    tool, task = get_tool_task(chip, step, index)
+                fpga = self.schema().get("library", self.schema().get("fpga", "device"),
+                                         field="schema")
+                map_file = fpga.find_files("tool", "vpr", "constraintsmap")
 
-    design = chip.top()
+                constraints_map = load_constraints_map(map_file)
+                json_constraints = load_json_constraints(pcf_file)
+                all_place_constraints, missing_pins = map_constraints(self.logger,
+                                                                      json_constraints,
+                                                                      constraints_map)
+                if missing_pins > 0:
+                    raise ValueError(
+                        "Pin constraints specify I/O ports not in this architecture")
 
-    options = vpr.runtime_options(chip)
+                generate_vpr_constraints_xml_file(all_place_constraints,
+                                                  self.auto_constraints_file())
 
-    blif = f"inputs/{design}.blif"
-    options.append(blif)
+    def runtime_options(self):
+        options = super().runtime_options()
 
-    options.append('--pack')
-    options.append('--place')
+        options.append(f"inputs/{self.design_topmodule}.blif")
 
-    enable_images = chip.get('tool', tool, 'task', task, 'var', 'enable_images',
-                             step=step, index=index)[0]
+        options.append("--pack")
+        options.append("--place")
 
-    if enable_images == 'true':
-        graphics_commands = vpr.get_common_graphics(chip)
+        if self.get("var", "enable_images"):
+            options.extend(["--graphics_commands", " ".join(self._get_common_graphics())])
 
-        graphics_command_str = " ".join(graphics_commands)
+        return options
 
-        options.append("--graphics_commands")
-        options.append(graphics_command_str)
+    def post_process(self):
+        super().post_process()
 
-    return options
-
-
-################################
-# Pre_process (pre executable)
-################################
-
-
-def pre_process(chip):
-    ''' Tool specific function to run before step execution
-    '''
-
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    tool, task = get_tool_task(chip, step, index)
-
-    part_name = chip.get('fpga', 'partname')
-
-    # If the user explicitly provides an XML constraints file, give that
-    # priority over other constraints input types:
-    if chip.valid('input', 'constraint', 'vpr_pins'):
-        constraint_file = vpr.find_single_file(chip, 'input', 'constraint', 'vpr_pins',
-                                               step=step, index=index,
-                                               file_not_found_msg="VPR constraints file not found")
-
-        if (constraint_file is not None):
-            shutil.copy2(constraint_file, vpr.auto_constraints())
-
-    elif chip.valid('input', 'constraint', 'pcf'):
-        constraint_file = vpr.find_single_file(chip, 'input', 'constraint', 'pcf',
-                                               step=step, index=index,
-                                               file_not_found_msg="PCF constraints file not found")
-
-        map_file = vpr.find_single_file(chip, 'fpga', part_name, 'file', 'constraints_map',
-                                        file_not_found_msg="constraints map not found")
-
-        if not map_file:
-            raise SiliconCompilerError('FPGA does not have required constraints map', chip=chip)
-
-        constraints_map = load_constraints_map(map_file)
-        json_constraints = load_json_constraints(constraint_file)
-        all_place_constraints, missing_pins = map_constraints(chip,
-                                                              json_constraints,
-                                                              constraints_map)
-        if (missing_pins > 0):
-            raise SiliconCompilerError(
-                "Pin constraints specify I/O ports not in this architecture", chip=chip)
-
-        generate_vpr_constraints_xml_file(all_place_constraints, vpr.auto_constraints())
-
-    else:
-        all_component_constraints = chip.get('tool', tool, 'task', task, 'var', 'placement',
-                                             step=step, index=index)
-
-        all_place_constraints = {}
-        for constraint in all_component_constraints:
-            component, *place_constraint = constraint.split(",")
-            place_constraint = tuple([int(loc) for loc in place_constraint])
-            chip.logger.info(f'Place constraint for {component} at {place_constraint}')
-            all_place_constraints[component] = place_constraint
-
-        if all_place_constraints:
-            generate_vpr_constraints_xml_file(all_place_constraints, vpr.auto_constraints())
-
-
-def add_placement_constraint(chip, component, location, step=None, index=None):
-    tool = 'vpr'
-    task = 'place'
-
-    constraint = f"{component},{','.join([str(loc) for loc in location])}"
-
-    chip.add('tool', tool, 'task', task, 'var', 'placement', constraint, step=step, index=index)
-
-################################
-# Post_process (post executable)
-################################
-
-
-def post_process(chip):
-    ''' Tool specific function to run after step execution
-    '''
-    vpr.vpr_post_process(chip)
-
-    design = chip.top()
-    shutil.copy2(f'inputs/{design}.blif', 'outputs')
+        shutil.copy2(f'inputs/{self.design_topmodule}.blif', 'outputs')

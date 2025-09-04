@@ -1,7 +1,7 @@
 {
   "openroad": {
     "git-url": "https://github.com/The-OpenROAD-Project/OpenROAD.git",
-    "git-commit": "dd67e17194d4821df266a38e1d25e0934b86558a",
+    "git-commit": "cd030ca6642ae3352b299cbd58b4574f6f6fe0d2",
     "docker-cmds": [
       "# Remove OR-Tools files",
       "RUN rm -f $SC_PREFIX/Makefile $SC_PREFIX/README.md",
@@ -12,12 +12,12 @@
   },
   "surelog": {
     "git-url": "https://github.com/chipsalliance/Surelog.git",
-    "git-commit": "v1.84",
+    "git-commit": "v1.86",
     "auto-update": true
   },
   "opensta": {
     "git-url": "https://github.com/parallaxsw/OpenSTA.git",
-    "git-commit": "5b56558e7a314a57ef0b55f0074705b027db9e65",
+    "git-commit": "45a8a1bcc002a6981b209702fe4876fb5a641817",
     "auto-update": true
   },
   "netgen": {
@@ -112,8 +112,7 @@
     "auto-update": true
   },
   "xdm": {
-    "git-url": "https://github.com/Xyce/XDM.git",
-    "git-commit": "Release-2.7.0",
+    "version": "2.7.0",
     "auto-update": false
   },
   "slurm": {
@@ -146,7 +145,7 @@
   },
   "yosys-slang": {
     "git-url": "https://github.com/povik/yosys-slang.git",
-    "git-commit": "fd77b320b865ee75560edab4258ced1e1dd47ecf",
+    "git-commit": "c962a6e68f8cff48bf5d4d84c371eee883567803",
     "docker-depends": "yosys",
     "auto-update": true
   },

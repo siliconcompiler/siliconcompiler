@@ -1,71 +1,60 @@
-from siliconcompiler import NodeStatus
-
-from siliconcompiler.tools._common import get_tool_task, has_pre_post_script
-from siliconcompiler.tools._common.asic import set_tool_task_var
-
-from siliconcompiler.tools.openroad._apr import setup as apr_setup
-from siliconcompiler.tools.openroad._apr import set_reports, set_pnr_inputs, set_pnr_outputs
-from siliconcompiler.tools.openroad._apr import \
-    define_ord_params, define_sta_params, define_sdc_params, \
-    define_pdn_params, define_psm_params
-from siliconcompiler.tools.openroad._apr import build_pex_corners, \
-    define_ord_files, define_pdn_files
-from siliconcompiler.tools.openroad._apr import extract_metrics
+from siliconcompiler.tools.openroad._apr import APRTask
+from siliconcompiler.tools.openroad._apr import OpenROADSTAParameter, OpenROADPSMParameter
 
 
-def setup(chip):
+class PowerGridTask(APRTask, OpenROADSTAParameter, OpenROADPSMParameter):
     '''
     Perform power grid insertion and connectivity analysis
     '''
+    def __init__(self):
+        super().__init__()
 
-    # Generic apr tool setup.
-    apr_setup(chip)
+        self.add_parameter("fixed_pin_keepout", "float",
+                           "if > 0, applies a blockage in multiples of the routing pitch to each "
+                           "fixed pin to ensure there is room for routing.", defvalue=0)
+        self.add_parameter("psm_allow_missing_terminal_nets", "[str]",
+                           "list of nets where a missing terminal is acceptable")
 
-    # Task setup
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    tool, task = get_tool_task(chip, step, index)
+        self.add_parameter("pdn_enable", "bool", "enable power grid generation", defvalue=True)
+        self.add_parameter("pdn_config", "[file]", "power grid definition files")
 
-    chip.set('tool', tool, 'task', task, 'script', 'apr/sc_power_grid.tcl',
-             step=step, index=index)
+    def task(self):
+        return "power_grid"
 
-    # Setup task IO
-    set_pnr_inputs(chip)
-    set_pnr_outputs(chip)
+    def setup(self):
+        super().setup()
 
-    # set default values for openroad
-    define_ord_params(chip)
-    define_sta_params(chip)
-    define_sdc_params(chip)
-    define_pdn_params(chip)
-    define_psm_params(chip)
+        self.set_script("apr/sc_power_grid.tcl")
 
-    set_tool_task_var(chip, param_key='fixed_pin_keepout',
-                      default_value=0,
-                      schelp='if > 0, applies a blockage in multiples of the routing pitch '
-                             'to each fixed pin to ensure there is room for routing.')
+        self._set_reports([])
 
-    set_reports(chip, [])
+        self.add_required_tool_key("var", "fixed_pin_keepout")
+        if self.get("var", "psm_allow_missing_terminal_nets"):
+            self.add_required_tool_key("var", "psm_allow_missing_terminal_nets")
+        self.add_required_tool_key("var", "pdn_enable")
+        if self.get("var", "pdn_config"):
+            self.add_required_tool_key("var", "pdn_config")
 
+    def pre_process(self):
+        super().pre_process()
 
-def pre_process(chip):
-    step = chip.get('arg', 'step')
-    index = chip.get('arg', 'index')
-    tool, task = get_tool_task(chip, step, index)
+        # Setup power grid scripts
+        if self.get("var", "pdn_config"):
+            # Already set so do nothing
+            return
 
-    define_pdn_files(chip)
-    pdncfg = [file for file in chip.find_files('tool', tool, 'task', task, 'file', 'pdn_config',
-                                               step=step, index=index) if file]
-    if not has_pre_post_script(chip) and \
-            (chip.get('tool', tool, 'task', task, 'var', 'pdn_enable',
-                      step=step, index=index)[0] == 'false' or len(pdncfg) == 0):
-        chip.set('record', 'status', NodeStatus.SKIPPED, step=step, index=index)
-        chip.logger.warning(f'{step}/{index} will be skipped since power grid is disabled.')
-        return
+        for lib in self.schema().get("asic", "asiclib"):
+            libobj = self.schema().get("library", lib, field="schema")
+            if libobj.valid("tool", "openroad", "power_grid"):
+                self.add("var", "pdn_config", libobj.find_files("tool", "openroad", "power_grid"))
 
-    define_ord_files(chip)
-    build_pex_corners(chip)
-
-
-def post_process(chip):
-    extract_metrics(chip)
+        # define_pdn_files(chip)
+        # pdncfg = [file for file in chip.find_files('tool', tool, 'task', task, 'file',
+        # 'pdn_config',
+        #                                         step=step, index=index) if file]
+        # if not has_pre_post_script(chip) and \
+        #         (chip.get('tool', tool, 'task', task, 'var', 'pdn_enable',
+        #                 step=step, index=index)[0] == 'false' or len(pdncfg) == 0):
+        #     chip.set('record', 'status', NodeStatus.SKIPPED, step=step, index=index)
+        #     chip.logger.warning(f'{step}/{index} will be skipped since power grid is disabled.')
+        #     return

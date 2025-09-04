@@ -33,17 +33,16 @@ from packaging.specifiers import SpecifierSet, InvalidSpecifier
 
 from typing import List, Dict, Tuple, Union
 
-from siliconcompiler.schema import BaseSchema, NamedSchema, Journal
+from siliconcompiler.schema import BaseSchema, NamedSchema, Journal, DocsSchema
 from siliconcompiler.schema import EditableSchema, Parameter, PerNode, Scope
 from siliconcompiler.schema.parametertype import NodeType
 from siliconcompiler.schema.utils import trim
 
 from siliconcompiler import utils, NodeStatus
 from siliconcompiler import sc_open
-from siliconcompiler import Schema
 
+from siliconcompiler.pathschema import PathSchema
 from siliconcompiler.record import RecordTool
-from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 
 
@@ -87,7 +86,7 @@ class TaskSkip(TaskError):
         return self.__why
 
 
-class TaskSchema(NamedSchema):
+class TaskSchema(NamedSchema, PathSchema, DocsSchema):
     """
     A schema class that defines the parameters and methods for a single task
     in a compilation flow.
@@ -116,6 +115,7 @@ class TaskSchema(NamedSchema):
         super().__init__()
 
         schema_task(self)
+        schema_tool(self)
 
         self.__set_runtime(None)
 
@@ -162,6 +162,7 @@ class TaskSchema(NamedSchema):
         Args:
             node (SchedulerNode): The scheduler node for this runtime context.
         """
+        from siliconcompiler.scheduler import SchedulerNode
         if node and not isinstance(node, SchedulerNode):
             raise TypeError("node must be a scheduler node")
 
@@ -169,7 +170,7 @@ class TaskSchema(NamedSchema):
         obj_copy.__set_runtime(node, step=step, index=index, relpath=relpath)
         yield obj_copy
 
-    def __set_runtime(self, node: SchedulerNode, step=None, index=None, relpath=None):
+    def __set_runtime(self, node, step=None, index=None, relpath=None):
         """
         Private helper to set the runtime information for executing a task.
 
@@ -177,28 +178,20 @@ class TaskSchema(NamedSchema):
             node (SchedulerNode): The scheduler node for this runtime.
         """
         self.__node = node
-        self.__chip = None
         self.__schema_full = None
         self.__logger = None
         self.__design_name = None
         self.__design_top = None
-        self.__design_top_global = None
-        self.__cwd = None
         self.__relpath = relpath
-        self.__collection_path = None
         self.__jobdir = None
         if node:
             if step is not None or index is not None:
                 raise RuntimeError("step and index cannot be provided with node")
 
-            self.__chip = node.chip
-            self.__schema_full = node.chip.schema
-            self.__logger = node.chip.logger
+            self.__schema_full = node.project
+            self.__logger = node.project.logger
             self.__design_name = node.name
             self.__design_top = node.topmodule
-            self.__design_top_global = node.topmodule_global
-            self.__cwd = node.project_cwd
-            self.__collection_path = node.collection_dir
             self.__jobdir = node.workdir
 
             self.__step = node.step
@@ -211,11 +204,9 @@ class TaskSchema(NamedSchema):
         self.__schema_metric = None
         self.__schema_flow = None
         self.__schema_flow_runtime = None
-        self.__schema_tool = None
         if self.__schema_full:
             self.__schema_record = self.__schema_full.get("record", field="schema")
             self.__schema_metric = self.__schema_full.get("metric", field="schema")
-            self.__schema_tool = self._parent()._parent()
 
             if not self.__step:
                 self.__step = self.__schema_full.get('arg', 'step')
@@ -246,7 +237,7 @@ class TaskSchema(NamedSchema):
         return self.__design_top
 
     @property
-    def node(self) -> SchedulerNode:
+    def node(self):
         """SchedulerNode: The scheduler node for the current runtime."""
         return self.__node
 
@@ -260,14 +251,20 @@ class TaskSchema(NamedSchema):
         """str: The index for the current runtime."""
         return self.__index
 
+    @property
+    def name(self) -> str:
+        """str: The name of this task."""
+        try:
+            return self.task()
+        except NotImplementedError:
+            return super().name
+
     def tool(self) -> str:
         """str: The name of the tool associated with this task."""
         raise NotImplementedError("tool name must be implemented by the child class")
 
     def task(self) -> str:
         """str: The name of this task."""
-        if self.name:
-            return self.name
         raise NotImplementedError("task name must be implemented by the child class")
 
     @property
@@ -302,8 +299,6 @@ class TaskSchema(NamedSchema):
             return self.__schema_flow
         elif type == "runtimeflow":
             return self.__schema_flow_runtime
-        elif type == "tool":
-            return self.__schema_tool
         else:
             raise ValueError(f"{type} is not a schema section")
 
@@ -339,7 +334,7 @@ class TaskSchema(NamedSchema):
             str: The absolute path to the executable, or None if not specified.
         """
 
-        exe = self.schema("tool").get('exe')
+        exe = self.get('exe')
 
         if exe is None:
             return None
@@ -366,7 +361,7 @@ class TaskSchema(NamedSchema):
             str: The parsed version string.
         """
 
-        veropt = self.schema("tool").get('vswitch')
+        veropt = self.get('vswitch')
         if not veropt:
             return None
 
@@ -419,7 +414,7 @@ class TaskSchema(NamedSchema):
             bool: True if the version is acceptable, False otherwise.
         """
 
-        spec_sets = self.schema("tool").get('version', step=self.__step, index=self.__index)
+        spec_sets = self.get('version')
         if not spec_sets:
             # No requirement, so always true
             return True
@@ -497,18 +492,13 @@ class TaskSchema(NamedSchema):
             envvars[env] = self.__schema_full.get('option', 'env', env)
 
         # Add tool-specific license server vars
-        for lic_env in self.schema("tool").getkeys('licenseserver'):
-            license_file = self.schema("tool").get('licenseserver', lic_env,
-                                                   step=self.__step, index=self.__index)
+        for lic_env in self.getkeys('licenseserver'):
+            license_file = self.get('licenseserver', lic_env)
             if license_file:
                 envvars[lic_env] = ':'.join(license_file)
 
         if include_path:
-            path = self.schema("tool").find_files(
-                "path", step=self.__step, index=self.__index,
-                cwd=self.__cwd,
-                collection_dir=self.__collection_path,
-                missing_ok=True)
+            path = self.find_files("path", missing_ok=True)
 
             envvars["PATH"] = os.getenv("PATH", os.defpath)
 
@@ -537,16 +527,22 @@ class TaskSchema(NamedSchema):
 
         cmdargs = []
         try:
+            usr_args = self.runtime_options()
+            if usr_args is None:
+                raise RuntimeError("runtime_options() returned None")
+            if not isinstance(usr_args, (list, set, tuple)):
+                raise RuntimeError("runtime_options() must return a list")
+
             if self.__relpath:
                 args = []
-                for arg in self.runtime_options():
+                for arg in usr_args:
                     arg = str(arg)
                     if os.path.isabs(arg) and os.path.exists(arg):
                         args.append(os.path.relpath(arg, self.__relpath))
                     else:
                         args.append(arg)
             else:
-                args = self.runtime_options()
+                args = usr_args
 
             cmdargs.extend(args)
         except Exception as e:
@@ -571,13 +567,13 @@ class TaskSchema(NamedSchema):
         replay_opts["work_dir"] = workdir
         replay_opts["exports"] = self.get_runtime_environmental_variables(include_path=include_path)
 
-        replay_opts["executable"] = self.schema("tool").get('exe')
+        replay_opts["executable"] = self.get('exe')
         replay_opts["step"] = self.__step
         replay_opts["index"] = self.__index
         replay_opts["cfg_file"] = f"inputs/{self.__design_name}.pkg.json"
         replay_opts["node_only"] = 0 if replay_opts["executable"] else 1
 
-        vswitch = self.schema("tool").get('vswitch')
+        vswitch = self.get('vswitch')
         if vswitch:
             replay_opts["version_flag"] = shlex.join(vswitch)
 
@@ -658,7 +654,8 @@ class TaskSchema(NamedSchema):
         vars = {
             "sc_tool": NodeType.to_tcl(self.tool(), "str"),
             "sc_task": NodeType.to_tcl(self.task(), "str"),
-            "sc_topmodule": NodeType.to_tcl(self.design_topmodule, "str")
+            "sc_topmodule": NodeType.to_tcl(self.design_topmodule, "str"),
+            "sc_designlib": NodeType.to_tcl(self.design_name, "str")
         }
 
         refdir = manifest.get("tool", self.tool(), "task", self.task(), "refdir", field=None)
@@ -697,7 +694,7 @@ class TaskSchema(NamedSchema):
                                            os.path.join(os.path.dirname(__file__))),
                                        toolvars=self.get_tcl_variables(manifest),
                                        record_access="get" in Journal.access(self).get_types(),
-                                       record_access_id=Schema._RECORD_ACCESS_IDENTIFIER))
+                                       record_access_id="TODO"))
         else:
             for cmd in tcl_set_cmds:
                 fout.write(cmd + '\n')
@@ -731,7 +728,7 @@ class TaskSchema(NamedSchema):
             backup (bool): If True, backs up an existing manifest.
         """
 
-        suffix = self.schema("tool").get('format')
+        suffix = self.get('format')
         if not suffix:
             return
 
@@ -791,9 +788,12 @@ class TaskSchema(NamedSchema):
                 else:
                     if self.__relpath:
                         if isinstance(abspaths, (set, list)):
-                            abspaths = [os.path.relpath(path, self.__relpath) for path in abspaths]
-                        else:
+                            abspaths = [os.path.relpath(path, self.__relpath) for path in abspaths
+                                        if path]
+                        elif abspaths:
                             abspaths = os.path.relpath(abspaths, self.__relpath)
+                        else:
+                            abspaths = None
                     schema.set(*keypath, abspaths, step=step, index=index)
 
         root.set("option", "strict", strict)
@@ -816,7 +816,7 @@ class TaskSchema(NamedSchema):
             io_file = f"{self.__step}.{suffix}"
             io_log = True
         elif destination == 'output':
-            io_file = os.path.join('outputs', f"{self.__design_top_global}.{suffix}")
+            io_file = os.path.join('outputs', f"{self.__design_top}.{suffix}")
         elif destination == 'none':
             io_file = os.devnull
 
@@ -1189,7 +1189,7 @@ class TaskSchema(NamedSchema):
             clobber (bool): overwrite existing value
         """
         if max_threads is None or max_threads <= 0:
-            max_threads = utils.get_cores(None)
+            max_threads = utils.get_cores()
 
         return self.set("threads", max_threads, step=step, index=index, clobber=clobber)
 
@@ -1270,11 +1270,48 @@ class TaskSchema(NamedSchema):
     def set_environmentalvariable(self, name: str, value: str,
                                   step: str = None, index: str = None,
                                   clobber: bool = False):
+        '''Sets an environment variable for the tool's execution context.
+
+        The specified variable will be set in the shell environment before the
+        tool's executable is launched.
+
+        Args:
+            name (str): The name of the environment variable (e.g., 'PATH').
+            value (str): The value to assign to the variable.
+            step (str, optional): The step associated with this setting.
+                Defaults to the current step.
+            index (str, optional): The index associated with this setting.
+                Defaults to the current index.
+            clobber (bool): If True, overwrite existing values. Otherwise,
+                append to them.
+
+        Returns:
+            The schema key that was set.
+        '''
         return self.set("env", name, value, step=step, index=index, clobber=clobber)
 
     def add_prescript(self, script: str, dataroot: str = None,
                       step: str = None, index: str = None,
                       clobber: bool = False):
+        '''Adds a script to be executed *before* the main tool command.
+
+        This is useful for pre-processing files or setting up the environment
+        in ways that go beyond simple environment variables.
+
+        Args:
+            script (str): The path to the pre-execution script.
+            dataroot (str, optional): The data root this path is relative to.
+                Defaults to the active package.
+            step (str, optional): The step associated with this setting.
+                Defaults to the current step.
+            index (str, optional): The index associated with this setting.
+                Defaults to the current index.
+            clobber (bool): If True, overwrite existing values. Otherwise,
+                append to them.
+
+        Returns:
+            The schema key that was set.
+        '''
         if not dataroot:
             dataroot = self._get_active("package")
         with self._active(package=dataroot):
@@ -1286,6 +1323,25 @@ class TaskSchema(NamedSchema):
     def add_postscript(self, script: str, dataroot: str = None,
                        step: str = None, index: str = None,
                        clobber: bool = False):
+        '''Adds a script to be executed *after* the main tool command.
+
+        This is useful for post-processing tool outputs or performing cleanup
+        actions.
+
+        Args:
+            script (str): The path to the post-execution script.
+            dataroot (str, optional): The data root this path is relative to.
+                Defaults to the active package.
+            step (str, optional): The step associated with this setting.
+                Defaults to the current step.
+            index (str, optional): The index associated with this setting.
+                Defaults to the current index.
+            clobber (bool): If True, overwrite existing values. Otherwise,
+                append to them.
+
+        Returns:
+            The schema key that was set.
+        '''
         if not dataroot:
             dataroot = self._get_active("package")
         with self._active(package=dataroot):
@@ -1295,11 +1351,29 @@ class TaskSchema(NamedSchema):
                 return self.add("postscript", script, step=step, index=index)
 
     def has_prescript(self, step: str = None, index: str = None) -> bool:
+        '''Checks if any pre-execution scripts are configured for the task.
+
+        Args:
+            step (str, optional): The step to check. Defaults to the current step.
+            index (str, optional): The index to check. Defaults to the current index.
+
+        Returns:
+            True if one or more pre-scripts are set, False otherwise.
+        '''
         if self.get("prescript", step=step, index=index):
             return True
         return False
 
     def has_postscript(self, step: str = None, index: str = None) -> bool:
+        '''Checks if any post-execution scripts are configured for the task.
+
+        Args:
+            step (str, optional): The step to check. Defaults to the current step.
+            index (str, optional): The index to check. Defaults to the current index.
+
+        Returns:
+            True if one or more post-scripts are set, False otherwise.
+        '''
         if self.get("postscript", step=step, index=index):
             return True
         return False
@@ -1307,6 +1381,24 @@ class TaskSchema(NamedSchema):
     def set_refdir(self, dir: str, dataroot: str = None,
                    step: str = None, index: str = None,
                    clobber: bool = False):
+        '''Sets the reference directory for tool scripts and auxiliary files.
+
+        This is often used by script-based tools to find helper scripts or
+        resource files relative to the main entry script.
+
+        Args:
+            dir (str): The path to the reference directory.
+            dataroot (str, optional): The data root this path is relative to.
+                Defaults to the active package.
+            step (str, optional): The step associated with this setting.
+                Defaults to the current step.
+            index (str, optional): The index associated with this setting.
+                Defaults to the current index.
+            clobber (bool): If True, overwrite existing values.
+
+        Returns:
+            The schema key that was set.
+        '''
         if not dataroot:
             dataroot = self._get_active("package")
         with self._active(package=dataroot):
@@ -1315,6 +1407,21 @@ class TaskSchema(NamedSchema):
     def set_script(self, script: str, dataroot: str = None,
                    step: str = None, index: str = None,
                    clobber: bool = False):
+        '''Sets the main entry script for a script-based tool (e.g., a TCL script).
+
+        Args:
+            script (str): The path to the entry script.
+            dataroot (str, optional): The data root this path is relative to.
+                Defaults to the active package.
+            step (str, optional): The step associated with this setting.
+                Defaults to the current step.
+            index (str, optional): The index associated with this setting.
+                Defaults to the current index.
+            clobber (bool): If True, overwrite existing values.
+
+        Returns:
+            The schema key that was set.
+        '''
         if not dataroot:
             dataroot = self._get_active("package")
         with self._active(package=dataroot):
@@ -1323,6 +1430,24 @@ class TaskSchema(NamedSchema):
     def add_regex(self, type: str, regex: str,
                   step: str = None, index: str = None,
                   clobber: bool = False):
+        '''Adds a regular expression for parsing the tool's log file.
+
+        These regexes are used by the framework to identify errors, warnings,
+        and metrics from the tool's standard output.
+
+        Args:
+            type (str): The category of the regex (e.g., 'error', 'warning').
+            regex (str): The regular expression pattern.
+            step (str, optional): The step associated with this setting.
+                Defaults to the current step.
+            index (str, optional): The index associated with this setting.
+                Defaults to the current index.
+            clobber (bool): If True, overwrite existing values. Otherwise,
+                append to them.
+
+        Returns:
+            The schema key that was set.
+        '''
         if clobber:
             return self.set("regex", type, regex, step=step, index=index)
         else:
@@ -1331,6 +1456,24 @@ class TaskSchema(NamedSchema):
     def set_logdestination(self, type: str, dest: str, suffix: str = None,
                            step: str = None, index: str = None,
                            clobber: bool = False):
+        '''Configures the destination for log files.
+
+        This method sets where log files are written ('file' or 'api') and
+        can specify a custom file suffix.
+
+        Args:
+            type (str): The type of log (e.g., 'report', 'metric').
+            dest (str): The destination, either 'file' or 'api'.
+            suffix (str, optional): A custom suffix for the log file name.
+            step (str, optional): The step associated with this setting.
+                Defaults to the current step.
+            index (str, optional): The index associated with this setting.
+                Defaults to the current index.
+            clobber (bool): If True, overwrite existing values.
+
+        Returns:
+            A list of the schema keys that were set.
+        '''
         rets = []
         rets.append(self.set(type, "destination", dest, step=step, index=index, clobber=clobber))
         if suffix:
@@ -1338,6 +1481,23 @@ class TaskSchema(NamedSchema):
         return rets
 
     def add_warningoff(self, type: str, step: str = None, index: str = None, clobber: bool = False):
+        '''Adds a warning message or code to be suppressed during log parsing.
+
+        Any warning that matches a regex in this list will be ignored by the
+        framework.
+
+        Args:
+            type (str): The warning message or code to suppress.
+            step (str, optional): The step associated with this setting.
+                Defaults to the current step.
+            index (str, optional): The index associated with this setting.
+                Defaults to the current index.
+            clobber (bool): If True, overwrite existing values. Otherwise,
+                append to them.
+
+        Returns:
+            The schema key that was set.
+        '''
         if clobber:
             return self.set("warningoff", type, step=step, index=index)
         else:
@@ -1349,54 +1509,159 @@ class TaskSchema(NamedSchema):
     def set_exe(self, exe: str = None, vswitch: List[str] = None, format: str = None,
                 step: str = None, index: str = None,
                 clobber: bool = False):
+        '''Sets the executable, version switch, and script format for a tool.
+
+        This is a convenience method that bundles the configuration of a tool's
+        core executable properties.
+
+        Args:
+            exe (str, optional): The name of the tool's executable binary.
+            vswitch (List[str], optional): The command-line switch used to
+                make the executable print its version (e.g., '--version').
+            format (str, optional): The format of the entry script, if any
+                (e.g., 'tcl', 'python').
+            step (str, optional): The step associated with this setting.
+                Defaults to the current step.
+            index (str, optional): The index associated with this setting.
+                Defaults to the current index.
+            clobber (bool): If True, overwrite existing values. Otherwise,
+                append to them.
+
+        Returns:
+            A list of the schema keys that were set.
+        '''
         rets = []
         if exe:
-            rets.append(self.schema("tool").set("exe", exe, clobber=clobber))
+            rets.append(self.set("exe", exe, clobber=clobber))
         if vswitch:
             switches = self.add_vswitch(vswitch, clobber=clobber)
             if not isinstance(switches, list):
                 switches = list(switches)
             rets.extend(switches)
         if format:
-            rets.append(self.schema("tool").set("format", format, clobber=clobber))
+            rets.append(self.set("format", format, clobber=clobber))
         return rets
 
     def set_path(self, path: str, dataroot: str = None,
                  step: str = None, index: str = None,
                  clobber: bool = False):
+        '''Sets the directory path where the tool's executable is located.
+
+        This path is prepended to the system's PATH environment variable
+        during execution.
+
+        Args:
+            path (str): The directory path to the tool's executable.
+            dataroot (str, optional): The data root this path is relative to.
+                Defaults to the active package.
+            step (str, optional): The step associated with this setting.
+                Defaults to the current step.
+            index (str, optional): The index associated with this setting.
+                Defaults to the current index.
+            clobber (bool): If True, overwrite existing values. Otherwise,
+                append to them.
+
+        Returns:
+            The schema key that was set.
+        '''
         if not dataroot:
-            dataroot = self.schema("tool")._get_active("package")
-        with self.schema("tool")._active(package=dataroot):
-            return self.schema("tool").set("path", path, step=step, index=index, clobber=clobber)
+            dataroot = self._get_active("package")
+        with self._active(package=dataroot):
+            return self.set("path", path, step=step, index=index, clobber=clobber)
 
     def add_version(self, version: str, step: str = None, index: str = None, clobber: bool = False):
+        '''Adds a supported version specifier for the tool.
+
+        SiliconCompiler checks the tool's actual version against these
+        specifiers to ensure compatibility. Versions should follow the
+        PEP-440 standard (e.g., '>=5.6', '==1.2.3').
+
+        Args:
+            version (str): The version specifier string.
+            step (str, optional): The step associated with this setting.
+                Defaults to the current step.
+            index (str, optional): The index associated with this setting.
+                Defaults to the current index.
+            clobber (bool): If True, overwrite existing values. Otherwise,
+                append to them.
+
+        Returns:
+            The schema key that was set.
+        '''
         if clobber:
-            return self.schema("tool").set("version", version, step=step, index=index)
+            return self.set("version", version, step=step, index=index)
         else:
-            return self.schema("tool").add("version", version, step=step, index=index)
+            return self.add("version", version, step=step, index=index)
 
     def add_vswitch(self, switch: str, clobber: bool = False):
+        '''Adds the command-line switch used to print the tool's version.
+
+        This switch is passed to the executable to get its version string
+        for checking.
+
+        Args:
+            switch (str): The version switch (e.g., '-v', '--version').
+            clobber (bool): If True, overwrite existing values. Otherwise,
+                append to them.
+
+        Returns:
+            The schema key that was set.
+        '''
         if clobber:
-            return self.schema("tool").set("vswitch", switch)
+            return self.set("vswitch", switch)
         else:
-            return self.schema("tool").add("vswitch", switch)
+            return self.add("vswitch", switch)
 
     def add_licenseserver(self, name: str, server: str,
                           step: str = None, index: str = None,
                           clobber: bool = False):
+        '''Configures a license server connection for the tool.
+
+        This sets the environment variables that commercial EDA tools use
+        to find their license server.
+
+        Args:
+            name (str): The name of the license variable (e.g., 'LM_LICENSE_FILE').
+            server (str): The server address (e.g., 'port@host').
+            step (str, optional): The step associated with this setting.
+                Defaults to the current step.
+            index (str, optional): The index associated with this setting.
+                Defaults to the current index.
+            clobber (bool): If True, overwrite existing values. Otherwise,
+                append to them.
+
+        Returns:
+            The schema key that was set.
+        '''
         if clobber:
-            return self.schema("tool").set("licenseserver", name, server, step=step, index=index)
+            return self.set("licenseserver", name, server, step=step, index=index)
         else:
-            return self.schema("tool").add("licenseserver", name, server, step=step, index=index)
+            return self.add("licenseserver", name, server, step=step, index=index)
 
     def add_sbom(self, version: str, sbom: str, dataroot: str = None, clobber: bool = False):
+        '''Adds a Software Bill of Materials (SBOM) file for a tool version.
+
+        Associates a specific tool version with its corresponding SBOM file,
+        typically in SPDX or CycloneDX format.
+
+        Args:
+            version (str): The exact tool version this SBOM corresponds to.
+            sbom (str): The path to the SBOM file.
+            dataroot (str, optional): The data root this path is relative to.
+                Defaults to the active package.
+            clobber (bool): If True, overwrite existing values. Otherwise,
+                append to them.
+
+        Returns:
+            The schema key that was set.
+        '''
         if not dataroot:
-            dataroot = self.schema("tool")._get_active("package")
-        with self.schema("tool")._active(package=dataroot):
+            dataroot = self._get_active("package")
+        with self._active(package=dataroot):
             if clobber:
-                return self.schema("tool").set("sbom", version, sbom)
+                return self.set("sbom", version, sbom)
             else:
-                return self.schema("tool").add("sbom", version, sbom)
+                return self.add("sbom", version, sbom)
 
     def record_metric(self, metric, value, source_file=None, source_unit=None, quiet=False):
         '''
@@ -1481,9 +1746,7 @@ class TaskSchema(NamedSchema):
         if not index:
             index = self.__index
         return super().find_files(*keypath, missing_ok=missing_ok,
-                                  step=step, index=index,
-                                  collection_dir=self.__collection_path,
-                                  cwd=self.__cwd)
+                                  step=step, index=index)
 
     def _find_files_search_paths(self, keypath, step, index):
         paths = super()._find_files_search_paths(keypath, step, index)
@@ -1500,9 +1763,69 @@ class TaskSchema(NamedSchema):
                                       "outputs"))
         return paths
 
+    def _generate_doc(self, doc, ref_root, detailed=True):
+        from .schema.docs.utils import build_section, strong, keypath, code, para, \
+            build_table, build_schema_value_table
+        from docutils import nodes
+
+        docs = []
+
+        # Show dataroot
+        dataroot = PathSchema._generate_doc(self, doc, ref_root)
+        if dataroot:
+            docs.append(dataroot)
+
+        # Show var definitions
+        table = [[strong('Parameters'), strong('Type'), strong('Help')]]
+        for key in self.getkeys("var"):
+            key_node = nodes.paragraph()
+            key_node += keypath(list(self._keypath) + [key], doc.env.docname,
+                                key_text=["...", "var", key])
+            table.append([
+                key_node,
+                code(self.get("var", key, field="type")),
+                para(self.get("var", key, field="help"))
+            ])
+
+        if len(table) > 1:
+            vars = build_section("Variables", f"{ref_root}-variables")
+            colspec = r'{|\X{2}{5}|\X{1}{5}|\X{2}{5}|}'
+            vars += build_table(table, colspec=colspec)
+            docs.append(vars)
+
+        # Show tool information
+        params = {}
+        for key in self.allkeys(include_default=False):
+            if key[0] == "dataroot":  # data root already handled
+                continue
+            params[key] = self.get(*key, field=None)
+        table = build_schema_value_table(params, "", self._keypath)
+        setup_info = build_section("Configuration", f"{ref_root}-config")
+        setup_info += table
+        docs.append(setup_info)
+
+        return docs
+
     ###############################################################
     # Task methods
     ###############################################################
+    @classmethod
+    def make_docs(cls):
+        from siliconcompiler import FlowgraphSchema, DesignSchema, Project
+        from siliconcompiler.scheduler import SchedulerNode
+        design = DesignSchema("<design>")
+        with design.active_fileset("docs"):
+            design.set_topmodule("top")
+        proj = Project(design)
+        proj.add_fileset("docs")
+        flow = FlowgraphSchema("docsflow")
+        flow.node("<step>", cls(), index="<index>")
+        proj.set_flow(flow)
+
+        node = SchedulerNode(proj, "<step>", "<index>")
+        node.setup()
+        return node.task
+
     def parse_version(self, stdout):
         """
         Parses the tool's version from its stdout. Must be implemented by subclasses.
@@ -1642,6 +1965,7 @@ class ShowTaskSchema(TaskSchema):
             return subclss
 
         classes = recurse(cls)
+
         # Support non-SC defined tasks from plugins
         for plugin in utils.get_plugins('showtask'):  # TODO rename
             plugin()
@@ -1730,7 +2054,7 @@ class ShowTaskSchema(TaskSchema):
                 self.set("var", "showfiletype", ext)
 
         if not self.get("var", "showfilepath"):
-            exts = self.preferred_show_extensions()
+            exts = self.get_supported_show_extentions()
 
             if not self.get("var", "showfiletype"):
                 input_files = {utils.get_file_ext(f): f.lower()
@@ -1803,121 +2127,6 @@ class ScreenshotTaskSchema(ShowTaskSchema):
         return vars
 
 
-class ASICTaskSchema(TaskSchema):
-    """
-    A TaskSchema with helper methods for tasks in a standard ASIC flow,
-    providing easy access to PDK and standard cell library information.
-    """
-    @property
-    def mainlib(self):
-        """The main standard cell library schema object."""
-        mainlib = self.schema().get("asic", "mainlib")
-        if not mainlib:
-            raise ValueError("mainlib has not been defined in [asic,mainlib]")
-        if mainlib not in self.schema().getkeys("library"):
-            raise LookupError(f"{mainlib} has not been loaded")
-        return self.schema().get("library", mainlib, field="schema")
-
-    @property
-    def pdk(self):
-        """The Process Design Kit (PDK) schema object."""
-        pdk = self.mainlib.get("asic", "pdk")
-        if not pdk:
-            raise ValueError("pdk has not been defined in "
-                             f"[{','.join([*self.mainlib._keypath, 'asic', 'pdk'])}]")
-        if pdk not in self.schema().getkeys("library"):
-            raise LookupError(f"{pdk} has not been loaded")
-        return self.schema().get("library", pdk, field="schema")
-
-    def set_asic_var(self,
-                     key: str,
-                     defvalue=None,
-                     check_pdk: bool = True,
-                     require_pdk: bool = False,
-                     pdk_key: str = None,
-                     check_mainlib: bool = True,
-                     require_mainlib: bool = False,
-                     mainlib_key: str = None,
-                     require: bool = False):
-        '''
-        Set an ASIC parameter based on a prioritized lookup order.
-
-        This method attempts to set a parameter identified by `key` by checking
-        values in a specific order:
-        1. The main library
-        2. The PDK
-        3. A provided default value (`defvalue`)
-
-        The first non-empty or non-None value found in this hierarchy will be
-        used to set the parameter. If no value is found and `defvalue` is not
-        provided, the parameter will not be set unless explicitly required.
-
-        Args:
-            key: The string key for the parameter to be set. This key is used
-                to identify the parameter within the current object (`self`)
-                and, by default, within the main library and PDK.
-            defvalue: An optional default value to use if the parameter is not
-                found in the main library or PDK. If `None` and the parameter
-                is not found, it will not be set unless `require` is True.
-            check_pdk: If `True`, the method will attempt to retrieve the
-                parameter from the PDK. Defaults to `True`.
-            require_pdk: If `True`, the parameter *must* be defined in the PDK.
-                An error will be raised if it's not found and `check_pdk` is `True`.
-                Defaults to `False`.
-            pdk_key: The specific key to use when looking up the parameter in the
-                PDK. If `None`, `key` will be used.
-            check_mainlib: If `True`, the method will attempt to retrieve the
-                parameter from the main library. Defaults to `True`.
-            require_mainlib: If `True`, the parameter *must* be defined in the
-                main library. An error will be raised if it's not found and
-                `check_mainlib` is `True`. Defaults to `False`.
-            mainlib_key: The specific key to use when looking up the parameter in
-                the main library. If `None`, `key` will be used.
-            require: If `True`, the parameter *must* be set by this method (either
-                from a source or `defvalue`). An error will be raised if it cannot
-                be set. Defaults to `False`.
-        '''
-        check_keys = []
-        if check_pdk:
-            if not pdk_key:
-                pdk_key = key
-            if self.pdk.valid("tool", self.tool(), pdk_key):
-                check_keys.append((self.pdk, ("tool", self.tool(), pdk_key)))
-        if check_mainlib:
-            if not mainlib_key:
-                mainlib_key = key
-            if self.mainlib.valid("tool", self.tool(), mainlib_key):
-                check_keys.append((self.mainlib, ("tool", self.tool(), mainlib_key)))
-        check_keys.append((self, ("var", key)))
-
-        if require_pdk:
-            self.add_required_key(self.pdk, "tool", self.tool(), pdk_key)
-        if require_mainlib:
-            self.add_required_key(self.mainlib, "tool", self.tool(), mainlib_key)
-        if require or defvalue is not None:
-            self.add_required_key(self, "var", key)
-
-        if self.get("var", key, field=None).is_set(self.step, self.index):
-            return
-
-        for obj, keypath in reversed(check_keys):
-            if not obj.valid(*keypath):
-                continue
-
-            value = obj.get(*keypath)
-            if isinstance(value, (list, set, tuple)):
-                if not value:
-                    continue
-            else:
-                if value is None:
-                    continue
-            self.add_required_key(obj, *keypath)
-            self.add_required_key(self, "var", key)
-            return self.set("var", key, value)
-        if defvalue is not None:
-            return self.set("var", key, defvalue)
-
-
 class ToolSchema(NamedSchema):
     """
     A schema class that defines the parameters for a single tool, which can
@@ -1937,162 +2146,6 @@ class ToolSchema(NamedSchema):
 
 
 ###########################################################################
-# Migration helper
-###########################################################################
-class ToolSchemaTmp(NamedSchema):
-    def __init__(self):
-        super().__init__()
-
-        schema_tool(self)
-
-        schema = EditableSchema(self)
-        schema.insert("task", "default", TaskSchemaTmp())
-
-    @classmethod
-    def _getdict_type(cls) -> str:
-        """
-        Returns the meta data for getdict
-        """
-
-        return ToolSchemaTmp.__name__
-
-
-class TaskSchemaTmp(TaskSchema):
-    def __init__(self):
-        super().__init__()
-
-    def __module_func(self, name, modules):
-        for module in modules:
-            method = getattr(module, name, None)
-            if method:
-                return method
-        return None
-
-    def __tool_task_modules(self):
-        flow = self._TaskSchema__chip.get('option', 'flow')
-        return \
-            self._TaskSchema__chip._get_tool_module(self.step, self.index, flow=flow), \
-            self._TaskSchema__chip._get_task_module(self.step, self.index, flow=flow)
-
-    @contextlib.contextmanager
-    def __in_step_index(self):
-        prev_step, prev_index = self._TaskSchema__chip.get('arg', 'step'), \
-            self._TaskSchema__chip.get('arg', 'index')
-        self._TaskSchema__chip.set('arg', 'step', self.step)
-        self._TaskSchema__chip.set('arg', 'index', self.index)
-        yield
-        self._TaskSchema__chip.set('arg', 'step', prev_step)
-        self._TaskSchema__chip.set('arg', 'index', prev_index)
-
-    def tool(self):
-        return self.schema("flow").get(self.step, self.index, 'tool')
-
-    def task(self):
-        return self.schema("flow").get(self.step, self.index, 'task')
-
-    def get_exe(self):
-        if self.tool() == "execute" and self.task() == "exec_input":
-            return self.schema("tool").get("exe")
-        return super().get_exe()
-
-    def schema(self, type=None):
-        if type is None:
-            return self._TaskSchema__chip
-        return super().schema(type)
-
-    def get_output_files(self):
-        _, task = self.__tool_task_modules()
-        method = self.__module_func("_gather_outputs", [task])
-        if method:
-            return method(self._TaskSchema__chip, self.step, self.index)
-        return TaskSchema.get_output_files(self)
-
-    def parse_version(self, stdout):
-        tool, _ = self.__tool_task_modules()
-        method = self.__module_func("parse_version", [tool])
-        if method:
-            return method(stdout)
-        return TaskSchema.parse_version(self, stdout)
-
-    def normalize_version(self, version):
-        tool, _ = self.__tool_task_modules()
-        method = self.__module_func("normalize_version", [tool])
-        if method:
-            return method(version)
-        return TaskSchema.normalize_version(self, version)
-
-    def generate_replay_script(self, filepath, workdir, include_path=True):
-        with self.__in_step_index():
-            ret = TaskSchema.generate_replay_script(self, filepath, workdir,
-                                                    include_path=include_path)
-        return ret
-
-    def setup(self):
-        _, task = self.__tool_task_modules()
-        method = self.__module_func("setup", [task])
-        if method:
-            with self.__in_step_index():
-                ret = method(self._TaskSchema__chip)
-            if ret:
-                raise TaskSkip(ret)
-        TaskSchema.setup(self)
-
-    def select_input_nodes(self):
-        _, task = self.__tool_task_modules()
-        method = self.__module_func("_select_inputs", [task])
-        if method:
-            with self.__in_step_index():
-                ret = method(self._TaskSchema__chip, self.step, self.index)
-            return ret
-        return TaskSchema.select_input_nodes(self)
-
-    def pre_process(self):
-        _, task = self.__tool_task_modules()
-        method = self.__module_func("pre_process", [task])
-        if method:
-            with self.__in_step_index():
-                ret = method(self._TaskSchema__chip)
-            if ret:
-                raise TaskSkip(ret)
-        TaskSchema.pre_process(self)
-
-    def runtime_options(self):
-        tool, task = self.__tool_task_modules()
-        method = self.__module_func("runtime_options", [task, tool])
-        if method:
-            with self.__in_step_index():
-                ret = TaskSchema.runtime_options(self)
-                ret.extend(method(self._TaskSchema__chip))
-            return ret
-        return TaskSchema.runtime_options(self)
-
-    def run(self):
-        _, task = self.__tool_task_modules()
-        method = self.__module_func("run", [task])
-        if method:
-            # Handle logger stdout suppression if quiet
-            stdout_handler_level = self._TaskSchema__chip._logger_console.level
-            if self._TaskSchema__chip.get('option', 'quiet', step=self.step, index=self.index):
-                self._TaskSchema__chip._logger_console.setLevel(logging.CRITICAL)
-
-            with self.__in_step_index():
-                retcode = method(self._TaskSchema__chip)
-
-            self._TaskSchema__chip._logger_console.setLevel(stdout_handler_level)
-
-            return retcode
-        return TaskSchema.run(self)
-
-    def post_process(self):
-        _, task = self.__tool_task_modules()
-        method = self.__module_func("post_process", [task])
-        if method:
-            with self.__in_step_index():
-                method(self._TaskSchema__chip)
-        TaskSchema.post_process(self)
-
-
-###########################################################################
 # Tool Setup
 ###########################################################################
 def schema_tool(schema):
@@ -2108,7 +2161,8 @@ def schema_tool(schema):
         'exe',
         Parameter(
             'str',
-            scope=Scope.GLOBAL,
+            scope=Scope.JOB,
+            pernode=PerNode.OPTIONAL,
             shorthelp="Tool: executable name",
             switch="-tool_exe 'tool <str>'",
             example=["cli: -tool_exe 'openroad openroad'",
@@ -2119,7 +2173,7 @@ def schema_tool(schema):
         'sbom', 'default',
         Parameter(
             '[file]',
-            scope=Scope.GLOBAL,
+            scope=Scope.JOB,
             pernode=PerNode.OPTIONAL,
             shorthelp="Tool: software BOM",
             switch="-tool_sbom 'tool version <file>'",
@@ -2137,7 +2191,7 @@ def schema_tool(schema):
         'path',
         Parameter(
             'dir',
-            scope=Scope.GLOBAL,
+            scope=Scope.JOB,
             pernode=PerNode.OPTIONAL,
             shorthelp="Tool: executable path",
             switch="-tool_path 'tool <dir>'",
@@ -2154,7 +2208,8 @@ def schema_tool(schema):
         'vswitch',
         Parameter(
             '[str]',
-            scope=Scope.GLOBAL,
+            scope=Scope.JOB,
+            pernode=PerNode.OPTIONAL,
             shorthelp="Tool: executable version switch",
             switch="-tool_vswitch 'tool <str>'",
             example=["cli: -tool_vswitch 'openroad -version'",
@@ -2168,7 +2223,7 @@ def schema_tool(schema):
         'vendor',
         Parameter(
             'str',
-            scope=Scope.GLOBAL,
+            scope=Scope.JOB,
             shorthelp="Tool: vendor",
             switch="-tool_vendor 'tool <str>'",
             example=["cli: -tool_vendor 'yosys yosys'",
@@ -2183,7 +2238,7 @@ def schema_tool(schema):
         'version',
         Parameter(
             '[str]',
-            scope=Scope.GLOBAL,
+            scope=Scope.JOB,
             pernode=PerNode.OPTIONAL,
             shorthelp="Tool: version",
             switch="-tool_version 'tool <str>'",
@@ -2205,7 +2260,8 @@ def schema_tool(schema):
         'format',
         Parameter(
             '<json,tcl,yaml>',
-            scope=Scope.GLOBAL,
+            scope=Scope.JOB,
+            pernode=PerNode.OPTIONAL,
             shorthelp="Tool: file format",
             switch="-tool_format 'tool <str>'",
             example=["cli: -tool_format 'yosys tcl'",
@@ -2217,7 +2273,7 @@ def schema_tool(schema):
         'licenseserver', 'default',
         Parameter(
             '[str]',
-            scope=Scope.GLOBAL,
+            scope=Scope.JOB,
             pernode=PerNode.OPTIONAL,
             shorthelp="Tool: license servers",
             switch="-tool_licenseserver 'name key <str>'",

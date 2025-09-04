@@ -1,56 +1,41 @@
-from siliconcompiler import Chip
-from siliconcompiler.flows import interposerflow, drcflow
+from siliconcompiler import ASICProject
 
-from lambdapdk import interposer
-from lambdapdk.interposer.libs import bumps
+from lambdapdk.interposer import Interposer_3ML_0400
+from lambdapdk.interposer.libs.bumps import BumpLibrary
+
+from siliconcompiler.flows import interposerflow
+from siliconcompiler.flows import drcflow
 
 
 ####################################################
 # Target Setup
 ####################################################
-def setup(chip):
+def setup(project: ASICProject):
     '''
     Interposer Demo Target
     '''
 
-    # 1. Load PDK, flow, libs
-    chip.use(interposer)
-    chip.use(bumps)
-    chip.use(interposerflow)
-    chip.use(drcflow)
+    # 1. Load PDK and Libraries
+    project.set_pdk(Interposer_3ML_0400())
+    project.set_mainlib(BumpLibrary())
 
-    # 2. Set default targets
-    chip.set('option', 'flow', 'interposerflow', clobber=False)
-    chip.set('option', 'pdk', 'interposer', clobber=False)
-    chip.set('option', 'stackup', '3ML_0400', clobber=False)
-    chip.set('option', 'var', 'openroad_libtype', 'none', clobber=False)
-    chip.set('option', 'var', 'klayout_libtype', 'none', clobber=False)
+    # 2. Load flows
+    project.set_flow(interposerflow.InterposerFlow())
+    project.add_dep(drcflow.DRCFlow())
 
-    # 3. Set project specific design choices
-    chip.set('asic', 'macrolib', 'interposer_bumps', clobber=False)
+    # 3. Set default targets
 
-    # 4. get project specific design choices
-    chip.set('asic', 'delaymodel', 'nldm', clobber=False)
+    # 4. Timing corners
+    scenario = project.get_timingconstraints().make_scenario("typical")
+    scenario.add_libcorner("typical")
+    scenario.set_pexcorner("typical")
+    scenario.add_check(["setup", "hold", "power"])
 
-    # 5. Timing corners
-    chip.set('constraint', 'timing', 'slow', 'libcorner', 'slow', clobber=False)
-    chip.set('constraint', 'timing', 'slow', 'pexcorner', 'maximum', clobber=False)
-    chip.set('constraint', 'timing', 'slow', 'mode', 'func', clobber=False)
-    chip.set('constraint', 'timing', 'slow', 'check', ['setup', 'hold'], clobber=False)
+    project.set_asic_delaymodel("nldm")
 
-    chip.set('constraint', 'timing', 'fast', 'libcorner', 'fast', clobber=False)
-    chip.set('constraint', 'timing', 'fast', 'pexcorner', 'minimum', clobber=False)
-    chip.set('constraint', 'timing', 'fast', 'mode', 'func', clobber=False)
-    chip.set('constraint', 'timing', 'fast', 'check', ['setup', 'hold'], clobber=False)
+    # 5. Physical constraints
+    area = project.get_areaconstraints()
+    area.set_density(40)
+    area.set_coremargin(1)
 
-    chip.set('constraint', 'timing', 'typical', 'libcorner', 'typ', clobber=False)
-    chip.set('constraint', 'timing', 'typical', 'pexcorner', 'typical', clobber=False)
-    chip.set('constraint', 'timing', 'typical', 'mode', 'func', clobber=False)
-    chip.set('constraint', 'timing', 'typical', 'check', ['setup', 'hold'], clobber=False)
-
-
-#########################
-if __name__ == "__main__":
-    target = Chip('<target>')
-    setup(target)
-    target.write_manifest('interposer_demo.json')
+    # 5. Assign Lambdalib aliases
