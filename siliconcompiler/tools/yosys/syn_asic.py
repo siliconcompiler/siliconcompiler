@@ -63,7 +63,7 @@ class _ASICTask(ASICTaskSchema, YosysTask):
 
         delaymodel = self.schema().get("asic", "delaymodel")
 
-        # Generate synthesis_libraries and synthesis_macro_libraries for Yosys use
+        # Generate synthesis_libraries for Yosys use
         fileset_map = []
         for lib in self.schema().get("asic", "asiclib"):
             lib_obj = self.schema().get("library", lib, field="schema")
@@ -72,7 +72,11 @@ class _ASICTask(ASICTaskSchema, YosysTask):
                     fileset_map.append((lib_obj, fileset))
 
         lib_file_map = {}
-        for lib, fileset in set(fileset_map):
+        processed = set()
+        for lib, fileset in fileset_map:
+            if (lib, fileset) in processed:
+                continue
+            processed.add((lib, fileset))
             lib_content = {}
             lib_map = {}
             # Mark dont use
