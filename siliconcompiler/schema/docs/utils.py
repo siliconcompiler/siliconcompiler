@@ -3,6 +3,7 @@ import sphinx.addnodes
 
 from docutils.statemachine import ViewList
 from sphinx.util.nodes import nested_parse_with_titles
+from siliconcompiler import Project, ASICProject, FPGAProject
 
 
 # Docutils helpers
@@ -130,9 +131,41 @@ def keypath(key_path, refdoc, key_text=None):
     '''Helper function for displaying Schema keypaths.'''
     text_parts = []
     key_parts = []
+
+    if key_path[0][0].upper() == key_path[0][0]:
+        schema_name = key_path[0]
+        key_path = key_path[1:]
+        if schema_name == "ASICProject":
+            schema = ASICProject()
+        elif schema_name == "FPGAProject":
+            schema = FPGAProject()
+        elif schema_name == "Project":
+            schema = Project()
+        else:
+            raise ValueError(f"{schema_name} not suppported")
+    else:
+        schema = Project()
+
     for key in key_path:
-        key_parts.append(key)
-        text_parts.append(key)
+        if schema.valid(*key_parts, "default", default_valid=True):
+            key_parts.append("default")
+            if key.startswith('<') and key.endswith('>'):
+                # Placeholder
+                text_parts.append(key)
+            else:
+                # Fully-qualified
+                text_parts.append(f"'{key}'")
+        else:
+            key_parts.append(key)
+            text_parts.append(f"'{key}'")
+
+        if not schema.valid(*key_parts, default_valid=True):
+            print(f"WARNING: Invalid keypath {key_path}")
+            # raise ValueError(f'Invalid keypath {key_path}')
+
+    if not schema.valid(*key_parts, default_valid=True, check_complete=True):
+        # Not leaf
+        text_parts.append('...')
 
     if key_text:
         text_parts = key_text
