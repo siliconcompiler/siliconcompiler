@@ -5,7 +5,7 @@ import os.path
 
 from unittest.mock import patch
 
-from siliconcompiler import ASICProject, ASICTaskSchema, ToolLibrarySchema, Project, \
+from siliconcompiler import ASICProject, ASICTaskSchema, ToolLibrarySchema, \
     DesignSchema, FlowgraphSchema
 
 from siliconcompiler.asic import CellArea
