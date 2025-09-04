@@ -68,8 +68,8 @@ class _ASICTask(ASICTaskSchema, YosysTask):
         fileset_map = []
         for lib in self.schema().get("asic", "asiclib"):
             lib_obj = self.schema().get("library", lib, field="schema")
-            for corner in sorted(self.get("var", "synthesis_corner")):
-                for fileset in sorted(lib_obj.get("asic", "libcornerfileset", corner, delaymodel)):
+            for corner in self.get("var", "synthesis_corner"):
+                for fileset in lib_obj.get("asic", "libcornerfileset", corner, delaymodel):
                     fileset_map.append((lib_obj, fileset))
 
         lib_file_map = {}
