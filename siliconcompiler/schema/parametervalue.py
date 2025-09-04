@@ -227,7 +227,7 @@ class NodeSetValue:
             if field is None:
                 continue
 
-            value = self.get(field=field, ordered=True)
+            value = self.get(field=field)
             manifest.setdefault(field, []).extend(value)
 
             if field == "author":
@@ -261,13 +261,12 @@ class NodeSetValue:
                     continue
                 param.set(manifest[field][n], field=field)
 
-    def get(self, field='value', ordered: bool = False):
+    def get(self, field='value'):
         """
         Returns the value in the specified field
 
         Args:
             field (str): name of schema field.
-            ordered (bool): if true, returns a list instead of set for values
         """
 
         vals = []
@@ -280,8 +279,6 @@ class NodeSetValue:
         else:
             vals.append(self.__base.get(field=field))
 
-        if not ordered and field == "value":
-            return set(vals)
         return vals
 
     def gettcl(self):
@@ -291,7 +288,7 @@ class NodeSetValue:
         Args:
             field (str): name of schema field.
         """
-        return NodeType.to_tcl(self.get(ordered=True), [self.__base.type])
+        return NodeType.to_tcl(self.get(), [self.__base.type])
 
     def set(self, value, field='value'):
         value = NodeType.normalize(value, [self.__base.type])

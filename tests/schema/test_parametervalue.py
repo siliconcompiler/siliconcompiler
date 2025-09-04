@@ -1263,30 +1263,28 @@ def test_nodeset_set_type():
 def test_nodeset_get_ordering():
     value = NodeSetValue(NodeValue("str"))
     value.set(["test0", "test1", "test1", "test3"])
-    assert value.get() == set(["test0", "test1", "test3"])
-    assert value.get(ordered=True) == ["test0", "test1", "test3"]
+    assert value.get() == ["test0", "test1", "test3"]
 
 
 def test_nodeset_set_reject_dups():
     value = NodeSetValue(NodeValue("str"))
     value.set(["test0", "test1", "test1", "test3"])
-    assert value.get() == set(["test0", "test1", "test3"])
+    assert value.get() == ["test0", "test1", "test3"]
 
 
 def test_nodeset_add_reject_dups():
     value = NodeSetValue(NodeValue("str"))
     value.add(["test0", "test1", "test1", "test3"])
-    assert value.get() == set(["test0", "test1", "test3"])
+    assert value.get() == ["test0", "test1", "test3"]
     value.add(["test0", "test1", "test1", "test3", "test4"])
-    assert value.get() == set(["test0", "test1", "test3", "test4"])
+    assert value.get() == ["test0", "test1", "test3", "test4"]
 
 
 def test_nodeset_get_defvalue():
     defvalue = NodeValue("str")
     defvalue.set("this")
     value = NodeSetValue(defvalue)
-    assert value.get() == set(["this"])
-    assert value.get(ordered=True) == ["this"]
+    assert value.get() == ["this"]
 
 
 def test_nodeset_gettcl():

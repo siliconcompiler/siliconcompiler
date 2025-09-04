@@ -111,6 +111,8 @@ def test_cli_examples(monkeypatch, root):
                 args.append(value)
 
             if expected_val:
+                if typestr[0] == "{":
+                    typestr = f"[{typestr[1:-1]}]"
                 nodetype = NodeType(typestr)
                 expected = (replaced_keypath, step, index,
                             NodeType.normalize(cast_value, nodetype))

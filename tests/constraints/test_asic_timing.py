@@ -47,29 +47,29 @@ def test_timing_scanario_libcorner():
     assert scene.add_libcorner("slow0")
     assert scene.add_libcorner("slow1")
     assert scene.add_libcorner("slow2", step="step0", index="1")
-    assert scene.get("libcorner") == set(["slow0", "slow1"])
-    assert scene.get_libcorner() == set(["slow0", "slow1"])
-    assert scene.get("libcorner", step="step0", index="1") == set(["slow2"])
-    assert scene.get_libcorner(step="step0", index="1") == set(["slow2"])
+    assert scene.get("libcorner") == ["slow0", "slow1"]
+    assert scene.get_libcorner() == ["slow0", "slow1"]
+    assert scene.get("libcorner", step="step0", index="1") == ["slow2"]
+    assert scene.get_libcorner(step="step0", index="1") == ["slow2"]
 
 
 def test_timing_scanario_libcorner_clobber():
     scene = ASICTimingScenarioSchema()
     assert scene.add_libcorner("slow0")
-    assert scene.get_libcorner() == set(["slow0"])
+    assert scene.get_libcorner() == ["slow0"]
     assert scene.add_libcorner("slow1", clobber=True)
-    assert scene.get_libcorner() == set(["slow1"])
+    assert scene.get_libcorner() == ["slow1"]
 
 
 def test_timing_scanario_libcorner_clobber_step_index():
     scene = ASICTimingScenarioSchema()
     assert scene.add_libcorner("slow0")
     assert scene.add_libcorner("slow1", step="step0", index="1")
-    assert scene.get_libcorner() == set(["slow0"])
-    assert scene.get_libcorner(step="step0", index="1") == set(["slow1"])
+    assert scene.get_libcorner() == ["slow0"]
+    assert scene.get_libcorner(step="step0", index="1") == ["slow1"]
     assert scene.add_libcorner("slow2", step="step0", index="1", clobber=True)
-    assert scene.get_libcorner() == set(["slow0"])
-    assert scene.get_libcorner(step="step0", index="1") == set(["slow2"])
+    assert scene.get_libcorner() == ["slow0"]
+    assert scene.get_libcorner(step="step0", index="1") == ["slow2"]
 
 
 def test_timing_scanario_pexcorner():
@@ -116,29 +116,29 @@ def test_timing_scanario_check():
     scene = ASICTimingScenarioSchema()
     assert scene.add_check("setup")
     assert scene.add_check("hold", step="step0", index="1")
-    assert scene.get("check") == set(["setup"])
-    assert scene.get_check() == set(["setup"])
-    assert scene.get("check", step="step0", index="1") == set(["hold"])
-    assert scene.get_check(step="step0", index="1") == set(["hold"])
+    assert scene.get("check") == ["setup"]
+    assert scene.get_check() == ["setup"]
+    assert scene.get("check", step="step0", index="1") == ["hold"]
+    assert scene.get_check(step="step0", index="1") == ["hold"]
 
 
 def test_timing_scanario_check_clobber():
     scene = ASICTimingScenarioSchema()
     assert scene.add_check("setup")
-    assert scene.get_check() == set(["setup"])
+    assert scene.get_check() == ["setup"]
     assert scene.add_check("hold", clobber=True)
-    assert scene.get_check() == set(["hold"])
+    assert scene.get_check() == ["hold"]
 
 
 def test_timing_scanario_check_clobber_step_index():
     scene = ASICTimingScenarioSchema()
     assert scene.add_check("setup")
     assert scene.add_check("hold", step="step0", index="1")
-    assert scene.get_check() == set(["setup"])
-    assert scene.get_check(step="step0", index="1") == set(["hold"])
+    assert scene.get_check() == ["setup"]
+    assert scene.get_check(step="step0", index="1") == ["hold"]
     assert scene.add_check("power", step="step0", index="1", clobber=True)
-    assert scene.get_check() == set(["setup"])
-    assert scene.get_check(step="step0", index="1") == set(["power"])
+    assert scene.get_check() == ["setup"]
+    assert scene.get_check(step="step0", index="1") == ["power"]
 
 
 def test_timing_scanario_sdcfileset_invalid_type_design():
