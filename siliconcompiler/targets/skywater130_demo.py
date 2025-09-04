@@ -4,6 +4,7 @@ from siliconcompiler.flows import asicflow, synflow
 
 from lambdapdk.sky130.libs.sky130sc import Sky130_SCHDLibrary
 from lambdapdk.sky130.libs.sky130sram import Sky130Lambdalib_SinglePort
+from lambdapdk.sky130.libs.sky130io import Sky130LambdaLib_IO
 
 
 ####################################################
@@ -49,3 +50,4 @@ def setup(project: ASICProject, syn_np=1, floorplan_np=1, physyn_np=1, place_np=
 
     # 5. Assign Lambdalib aliases
     Sky130Lambdalib_SinglePort.alias(project)
+    Sky130LambdaLib_IO.alias(project)

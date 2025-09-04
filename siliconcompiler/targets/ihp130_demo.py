@@ -3,6 +3,7 @@ from siliconcompiler.flows import asicflow, synflow
 
 from lambdapdk.ihp130.libs.sg13g2_stdcell import IHP130StdCell_1p2
 from lambdapdk.ihp130.libs.sg13g2_sram import IHP130Lambdalib_SinglePort
+from lambdapdk.ihp130.libs.sg13g2_io import IHP130LambdaLib_IO_1p2
 
 
 ####################################################
@@ -48,3 +49,4 @@ def setup(project: ASICProject, syn_np=1, floorplan_np=1, physyn_np=1, place_np=
 
     # 5. Assign Lambdalib aliases
     IHP130Lambdalib_SinglePort.alias(project)
+    IHP130LambdaLib_IO_1p2.alias(project)
