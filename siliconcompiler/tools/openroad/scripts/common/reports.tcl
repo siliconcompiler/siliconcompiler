@@ -57,7 +57,8 @@ if { [sc_cfg_tool_task_check_in_list hold var reports] } {
 if { [sc_cfg_tool_task_check_in_list unconstrained var reports] } {
     puts "$PREFIX unconstrained"
     tee -file reports/timing/unconstrained.rpt \
-        "report_checks -fields $fields -unconstrained -format full_clock_expanded"
+        "report_checks -fields $fields -unconstrained -format full_clock_expanded \
+        -path_group unconstrained"
     tee -file reports/timing/unconstrained.topN.rpt -quiet \
         "report_checks -fields $fields -unconstrained -group_count $sta_top_n_paths"
 }

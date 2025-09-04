@@ -239,7 +239,7 @@ puts "$PREFIX holdtns"
 puts "tns [sta::time_sta_ui [sta::total_negative_slack_cmd min]]"
 
 report_checks -fields $fields -unconstrained -format full_clock_expanded \
-    > reports/unconstrained.rpt
+    -path_group unconstrained > reports/unconstrained.rpt
 sc_display_report reports/unconstrained.rpt
 report_checks -unconstrained -group_count $opensta_top_n_paths \
     > reports/unconstrained.topN.rpt
