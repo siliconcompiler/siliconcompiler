@@ -436,15 +436,16 @@ if { [file exists $sc_abc_constraints] } {
 if { $script != "" } {
     lappend abc_args "-script" $script
 }
-foreach lib_file [sc_cfg_tool_task_get var abc_libraries] {
-    lappend abc_args "-liberty" $lib_file
+# Synthesize to main library only
+foreach lib_file [sc_cfg_tool_task_get var synthesis_libraries] {
+    if { [string first "sc_${sc_mainlib}_" [lindex [file split $lib_file] end]] == 0 } {
+        lappend abc_args "-liberty" $lib_file
+    }
 }
 set abc_dont_use []
-foreach lib $sc_logiclibs {
-    foreach group "dontuse hold clkbuf clkgate clklogic" {
-        foreach cell [sc_cfg_get library $lib asic cells $group] {
-            lappend abc_dont_use -dont_use $cell
-        }
+foreach group "dontuse hold clkbuf clkgate clklogic" {
+    foreach cell [sc_cfg_get library $sc_mainlib asic cells $group] {
+        lappend abc_dont_use -dont_use $cell
     }
 }
 
