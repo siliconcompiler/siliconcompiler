@@ -329,12 +329,12 @@ def test_add_fields_enum():
 def test_set_add_set():
     param = Parameter("{str}")
 
-    assert param.get() == set()
+    assert param.get() == []
     assert param.set("test0")
-    assert param.get() == set(["test0"])
+    assert param.get() == ["test0"]
 
     assert param.add("test1")
-    assert param.get() == set(["test0", "test1"])
+    assert param.get() == ["test0", "test1"]
 
 
 def test_from_dict_round_trip():
@@ -1860,7 +1860,7 @@ def test_defvalue_file_list_package():
 
 def test_defvalue_file_set_package():
     param = Parameter("{file}", defvalue="thisfile", package="thispackage")
-    assert param.default.get() == set(["thisfile"])
+    assert param.default.get() == ["thisfile"]
     assert param.default.get(field="package") == ["thispackage"]
 
 

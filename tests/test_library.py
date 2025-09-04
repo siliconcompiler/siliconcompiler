@@ -287,7 +287,7 @@ def test_add_asic_libcornerfileset():
     with lib.active_fileset("models"):
         lib.add_file("test.lib")
         assert lib.add_asic_libcornerfileset("slow", "nldm")
-    assert lib.get("asic", "libcornerfileset", "slow", "nldm") == set(["models"])
+    assert lib.get("asic", "libcornerfileset", "slow", "nldm") == ["models"]
 
 
 def test_add_asic_libcornerfileset_multiple():
@@ -298,7 +298,7 @@ def test_add_asic_libcornerfileset_multiple():
     with lib.active_fileset("models2"):
         lib.add_file("test.lib")
         assert lib.add_asic_libcornerfileset("slow", "nldm")
-    assert lib.get("asic", "libcornerfileset", "slow", "nldm") == set(["models1", "models2"])
+    assert lib.get("asic", "libcornerfileset", "slow", "nldm") == ["models1", "models2"]
 
 
 def test_add_asic_libcornerfileset_without_active():
@@ -306,7 +306,7 @@ def test_add_asic_libcornerfileset_without_active():
     with lib.active_fileset("models"):
         lib.add_file("test.lib")
     assert lib.add_asic_libcornerfileset("slow", "nldm", "models")
-    assert lib.get("asic", "libcornerfileset", "slow", "nldm") == set(["models"])
+    assert lib.get("asic", "libcornerfileset", "slow", "nldm") == ["models"]
 
 
 def test_add_asic_libcornerfileset_missing_fileset():
@@ -329,7 +329,7 @@ def test_add_asic_pexcornerfileset():
     with lib.active_fileset("models"):
         lib.add_file("test.sp")
         assert lib.add_asic_pexcornerfileset("slow", "spice")
-    assert lib.get("asic", "pexcornerfileset", "slow", "spice") == set(["models"])
+    assert lib.get("asic", "pexcornerfileset", "slow", "spice") == ["models"]
 
 
 def test_add_asic_pexcornerfileset_multiple():
@@ -340,7 +340,7 @@ def test_add_asic_pexcornerfileset_multiple():
     with lib.active_fileset("models2"):
         lib.add_file("test.sp")
         assert lib.add_asic_pexcornerfileset("slow", "spice")
-    assert lib.get("asic", "pexcornerfileset", "slow", "spice") == set(["models1", "models2"])
+    assert lib.get("asic", "pexcornerfileset", "slow", "spice") == ["models1", "models2"]
 
 
 def test_add_asic_pexcornerfileset_without_active():
@@ -348,7 +348,7 @@ def test_add_asic_pexcornerfileset_without_active():
     with lib.active_fileset("models"):
         lib.add_file("test.sp")
     assert lib.add_asic_pexcornerfileset("slow", "spice", "models")
-    assert lib.get("asic", "pexcornerfileset", "slow", "spice") == set(["models"])
+    assert lib.get("asic", "pexcornerfileset", "slow", "spice") == ["models"]
 
 
 def test_add_asic_pexcornerfileset_missing_fileset():
@@ -371,7 +371,7 @@ def test_add_asic_aprfileset():
     with lib.active_fileset("models"):
         lib.add_file("test.lef")
         assert lib.add_asic_aprfileset()
-    assert lib.get("asic", "aprfileset") == set(["models"])
+    assert lib.get("asic", "aprfileset") == ["models"]
 
 
 def test_add_asic_aprfileset_multiple():
@@ -382,7 +382,7 @@ def test_add_asic_aprfileset_multiple():
     with lib.active_fileset("models2"):
         lib.add_file("test.gds")
         assert lib.add_asic_aprfileset()
-    assert lib.get("asic", "aprfileset") == set(["models1", "models2"])
+    assert lib.get("asic", "aprfileset") == ["models1", "models2"]
 
 
 def test_add_asic_aprfileset_without_active():
@@ -390,7 +390,7 @@ def test_add_asic_aprfileset_without_active():
     with lib.active_fileset("models"):
         lib.add_file("test.lef")
     assert lib.add_asic_aprfileset("models")
-    assert lib.get("asic", "aprfileset") == set(["models"])
+    assert lib.get("asic", "aprfileset") == ["models"]
 
 
 def test_add_asic_aprfileset_missing_fileset():
@@ -422,7 +422,7 @@ def test_add_asic_pdk():
     pdk.set_stackup("10M")
     lib.add_asic_pdk(pdk)
     assert lib.get("asic", "pdk") == "test"
-    assert lib.get("asic", "stackup") == set(["10M"])
+    assert lib.get("asic", "stackup") == ["10M"]
 
 
 def test_add_asic_pdk_notdefault():
@@ -454,6 +454,6 @@ def test_add_asic_pdk_string_invalid():
 def test_add_asic_stackup():
     lib = StdCellLibrarySchema("lib")
     lib.add_asic_stackup("10M")
-    assert lib.get("asic", "stackup") == set(["10M"])
+    assert lib.get("asic", "stackup") == ["10M"]
     lib.add_asic_stackup("11M")
-    assert lib.get("asic", "stackup") == set(["10M", "11M"])
+    assert lib.get("asic", "stackup") == ["10M", "11M"]
