@@ -12,6 +12,8 @@ from siliconcompiler.constraints import \
     ASICTimingConstraintSchema, ASICAreaConstraint, \
     ASICComponentConstraints, ASICPinConstraints
 from siliconcompiler.metrics import ASICMetricsSchema
+from siliconcompiler.flowgraph import RuntimeFlowgraph
+from siliconcompiler.utils import units
 
 from siliconcompiler import PDKSchema
 from siliconcompiler import StdCellLibrarySchema
@@ -418,6 +420,52 @@ class ASICProject(Project):
             headers.append(("asiclib", ", ".join(asiclib)))
 
         return headers
+
+    def _snapshot_info(self):
+        info = super()._snapshot_info()
+
+        if self.get("asic", "pdk"):
+            info.append(("PDK", self.get("asic", "pdk")))
+
+        # get search ordering
+        flow_name = self.get("option", 'flow')
+        flow = self.get("flowgraph", flow_name, field="schema")
+        to_steps = self.get('option', 'to')
+        prune_nodes = self.get('option', 'prune')
+        run_nodes = RuntimeFlowgraph(flow, to_steps=to_steps, prune_nodes=prune_nodes).get_nodes()
+        nodes = []
+        for node_group in flow.get_execution_order(reverse=True):
+            for node in node_group:
+                if node in run_nodes:
+                    nodes.append(node)
+
+        def format_area(value, unit):
+            prefix = units.get_si_prefix(unit)
+            mm_area = units.convert(value, from_unit=prefix, to_unit='mm^2')
+            if mm_area < 10:
+                return units.format_si(value, 'um') + 'um^2'
+            else:
+                return units.format_si(mm_area, 'mm') + 'mm^2'
+
+        def format_freq(value, unit):
+            value = units.convert(value, from_unit=unit)
+            return units.format_si(value, 'Hz') + 'Hz'
+
+        for text, metric, formatter in (
+                ("Area", "totalarea", format_area),
+                ("Fmax", "fmax", format_freq)):
+            for step, index in nodes:
+                value = self.get("metric", metric, step=step, index=index)
+                if value is None:
+                    continue
+                if formatter:
+                    value = formatter(value, self.get("metric", metric, field="unit"))
+                else:
+                    value = str(value)
+                info.append((text, value))
+                break
+
+        return info
 
 
 class ASICTaskSchema(TaskSchema):
