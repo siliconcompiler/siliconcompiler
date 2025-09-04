@@ -1517,7 +1517,7 @@ def test_snapshot(caplog):
 
 
 def test_snapshot_no_jobs():
-    with pytest.raises(ValueError, match="no history to snapsnot"):
+    with pytest.raises(ValueError, match="no history to snapshot"):
         Project().snapshot()
 
 

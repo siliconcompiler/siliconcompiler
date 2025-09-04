@@ -1396,7 +1396,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         histories = self.getkeys("history")
 
         if not histories:
-            raise ValueError("no history to snapsnot")
+            raise ValueError("no history to snapshot")
 
         if jobname is None:
             jobname = self.get("option", "jobname")
