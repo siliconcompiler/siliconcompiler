@@ -22,12 +22,6 @@ class _ASICTask(ASICTaskSchema, YosysTask):
             copy=False
         )
         self.add_parameter(
-            "abc_libraries",
-            "[file]",
-            "generated liberty files for use with synthesis for standard cell libraries",
-            copy=False
-        )
-        self.add_parameter(
             "synthesis_corner",
             "{str}",
             "Timing corners to use for synthesis")
@@ -67,9 +61,10 @@ class _ASICTask(ASICTaskSchema, YosysTask):
         mark cells dont use and format liberty files for yosys and abc
         """
 
+        self.unset("var", "synthesis_libraries")
         delaymodel = self.schema().get("asic", "delaymodel")
 
-        # Generate synthesis_libraries and synthesis_macro_libraries for Yosys use
+        # Generate synthesis_libraries for Yosys use
         fileset_map = []
         for lib in self.schema().get("asic", "asiclib"):
             lib_obj = self.schema().get("library", lib, field="schema")
@@ -78,7 +73,11 @@ class _ASICTask(ASICTaskSchema, YosysTask):
                     fileset_map.append((lib_obj, fileset))
 
         lib_file_map = {}
-        for lib, fileset in set(fileset_map):
+        processed = set()
+        for lib, fileset in fileset_map:
+            if (lib, fileset) in processed:
+                continue
+            processed.add((lib, fileset))
             lib_content = {}
             lib_map = {}
             # Mark dont use
@@ -117,9 +116,6 @@ class _ASICTask(ASICTaskSchema, YosysTask):
                     f.write(content)
 
                 self.add("var", 'synthesis_libraries', output_file)
-                if lib.valid("tool", "yosys", "skip_abc_liberty") and \
-                        not lib.get("tool", "yosys", "skip_abc_liberty"):
-                    self.add("var", 'abc_libraries', output_file)
 
     def add_synthesis_corner(self, corner, step=None, index=None, clobber=True):
         if clobber:
