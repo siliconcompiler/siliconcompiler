@@ -20,6 +20,8 @@ from siliconcompiler.project import Project
 from siliconcompiler.asic import ASICProject, ASICTaskSchema
 from siliconcompiler.fpga import FPGASchema, FPGAProject
 
+from siliconcompiler.schematic import Schematic
+
 from siliconcompiler._metadata import version as __version__
 
 __all__ = [
@@ -39,7 +41,7 @@ __all__ = [
     "FPGASchema",
     "PackageSchema",
     "OptionSchema",
-
+    "Schematic",
     "Project",
     "ASICProject",
     "FPGAProject",
