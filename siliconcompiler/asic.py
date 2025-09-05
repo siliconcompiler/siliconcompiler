@@ -61,7 +61,7 @@ class ASICProject(Project):
         schema.insert(
             "asic", "asiclib",
             Parameter(
-                "[str]",
+                "{str}",
                 scope=Scope.GLOBAL,
                 shorthelp="ASIC: logic libraries",
                 example=["api: chip.set('asic', 'asiclib', 'nangate45')"],

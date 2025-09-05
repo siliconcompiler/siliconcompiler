@@ -439,8 +439,14 @@ class APRTask(OpenROADTask):
                            "used to indicate if global routing information should be loaded",
                            defvalue=False)
 
-        self.add_parameter("global_connect", "[file]",
-                           "list of files to use for specifying global connections")
+        self.add_parameter("global_connect_fileset", "[(str,str)]",
+                           "list of libraries and filesets to generate connects from")
+
+    def add_openroad_globalconnectfileset(self, library, fileset, clobber=False):
+        if clobber:
+            self.set("var", "global_connect_fileset", (library, fileset))
+        else:
+            self.add("var", "global_connect_fileset", (library, fileset))
 
     def setup(self):
         super().setup()
@@ -462,21 +468,24 @@ class APRTask(OpenROADTask):
         self.add_required_tool_key("var", "ord_heatmap_bins")
         self.add_required_tool_key("var", "load_grt_setup")
 
+        if not self.get("var", "global_connect_fileset"):
+            self.__import_globalconnect_filesets()
+
+        if self.get("var", "global_connect_fileset"):
+            self.add_required_tool_key("var", "global_connect_fileset")
+            for lib, fileset in self.get("var", "global_connect_fileset"):
+                self.add_required_key("library", lib, "fileset", fileset, "file", "tcl")
+
     def pre_process(self):
         super().pre_process()
-
         self._build_pex_estimation_file()
 
-        # Setup global connect scripts
-        if self.get("var", "global_connect"):
-            # Already set so do nothing
-            return
-
+    def __import_globalconnect_filesets(self):
         for lib in self.schema().get("asic", "asiclib"):
             libobj = self.schema().get("library", lib, field="schema")
-            if libobj.valid("tool", "openroad", "global_connect"):
-                self.add("var", "global_connect",
-                         libobj.find_files("tool", "openroad", "global_connect"))
+            if libobj.valid("tool", "openroad", "global_connect_fileset"):
+                for fileset in libobj.get("tool", "openroad", "global_connect_fileset"):
+                    self.add_openroad_globalconnectfileset(lib, fileset)
 
     def _set_reports(self, task_reports: List[str]):
         self.set("var", "reports", set(task_reports).difference(self.get("var", "skip_reports")))

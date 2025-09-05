@@ -152,14 +152,14 @@ class OpenROADStdCellLibrary(StdCellLibrarySchema):
                                    "The file containing track definitions for routing.")
         self.define_tool_parameter("openroad", "tapcells", "file",
                                    "The file containing tap cell definitions.")
-        self.define_tool_parameter("openroad", "global_connect", "[file]",
+        self.define_tool_parameter("openroad", "global_connect_fileset", "{str}",
                                    "A list of global connect files.")
-        self.define_tool_parameter("openroad", "power_grid", "[file]",
+        self.define_tool_parameter("openroad", "power_grid_fileset", "{str}",
                                    "A list of power grid files.")
 
-        self.define_tool_parameter("openroad", "scan_chain_cells", "[str]",
+        self.define_tool_parameter("openroad", "scan_chain_cells", "{str}",
                                    "A list of cells used for scan chain insertion.")
-        self.define_tool_parameter("openroad", "multibit_ff_cells", "[str]",
+        self.define_tool_parameter("openroad", "multibit_ff_cells", "{str}",
                                    "A list of multibit flip-flop cells.")
 
     def set_openroad_tiehigh_cell(self, cell: str, output_port: str):
@@ -238,41 +238,51 @@ class OpenROADStdCellLibrary(StdCellLibrarySchema):
         with self.active_dataroot(dataroot):
             self.set("tool", "openroad", "tapcells", file)
 
-    def add_openroad_global_connect_file(self, file: Union[str, List[str]], dataroot: str = None,
-                                         clobber: bool = False):
-        """
-        Adds a global connect file to the list.
+    def add_openroad_globalconnectfileset(self, fileset: Union[str, List[str]] = None,
+                                          clobber: bool = False):
+        """Configures the global connect fileset for the OpenROAD tool.
+
+        This method defines the fileset used for global pin connections
+        (e.g., tying power/ground pins) in the OpenROAD flow.
 
         Args:
-            file (Union[str, List[str]]): The path to the global connect file or a list of paths.
-            dataroot (str, optional): The data root directory. Defaults to the active package.
-            clobber (bool, optional): If True, overwrites existing values. Defaults to False.
+            fileset (Union[str, List[str]]): The name of the fileset to use.
+                If not provided, the active fileset is used.
+            clobber (bool, optional): If True, overwrites any existing
+                configuration. If False, adds to it. Defaults to False.
         """
-        if not dataroot:
-            dataroot = self._get_active("package")
-        with self.active_dataroot(dataroot):
-            if clobber:
-                self.set("tool", "openroad", "global_connect", file)
-            else:
-                self.add("tool", "openroad", "global_connect", file)
+        if not fileset:
+            fileset = self._get_active("fileset")
 
-    def add_openroad_power_grid_file(self, file: Union[str, List[str]], dataroot: str = None,
-                                     clobber: bool = False):
-        """
-        Adds a power grid file to the list.
+        self._assert_fileset(fileset)
+
+        if clobber:
+            self.set("tool", "openroad", "global_connect_fileset", fileset)
+        else:
+            self.add("tool", "openroad", "global_connect_fileset", fileset)
+
+    def add_openroad_powergridfileset(self, fileset: Union[str, List[str]] = None,
+                                      clobber: bool = False):
+        """Configures the power grid definition fileset for the OpenROAD tool.
+
+        This method defines the fileset used for generating the power grid
+        (e.g., PDN configuration files) in the OpenROAD flow.
 
         Args:
-            file (Union[str, List[str]]): The path to the power grid file or a list of paths.
-            dataroot (str, optional): The data root directory. Defaults to the active package.
-            clobber (bool, optional): If True, overwrites existing values. Defaults to False.
+            fileset (Union[str, List[str]]): The name of the fileset to use.
+                If not provided, the active fileset is used.
+            clobber (bool, optional): If True, overwrites any existing
+                configuration. If False, adds to it. Defaults to False.
         """
-        if not dataroot:
-            dataroot = self._get_active("package")
-        with self.active_dataroot(dataroot):
-            if clobber:
-                self.set("tool", "openroad", "power_grid", file)
-            else:
-                self.add("tool", "openroad", "power_grid", file)
+        if not fileset:
+            fileset = self._get_active("fileset")
+
+        self._assert_fileset(fileset)
+
+        if clobber:
+            self.set("tool", "openroad", "power_grid_fileset", fileset)
+        else:
+            self.add("tool", "openroad", "power_grid_fileset", fileset)
 
     def add_openroad_scan_chain_cells(self, cells: Union[str, List[str]], clobber: bool = False):
         """

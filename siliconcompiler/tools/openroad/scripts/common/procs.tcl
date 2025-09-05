@@ -856,14 +856,17 @@ proc sc_global_connections { args } {
     sta::check_argc_eq0 "sc_global_connections" $args
 
     set global_connect_files []
-    foreach global_connect [sc_cfg_tool_task_get var global_connect] {
-        if { [lsearch -exact $global_connect_files $global_connect] != -1 } {
-            continue
-        }
-        puts "Loading global connect configuration: ${global_connect}"
-        source $global_connect
+    foreach global_connect_set [sc_cfg_tool_task_get var global_connect_fileset] {
+        lassign $global_connect_set lib fileset
+        foreach global_connect [sc_cfg_get_fileset $lib $fileset tcl] {
+            if { [lsearch -exact $global_connect_files $global_connect] != -1 } {
+                continue
+            }
+            puts "Loading global connect configuration: ${global_connect}"
+            source $global_connect
 
-        lappend global_connect_files $global_connect
+            lappend global_connect_files $global_connect
+        }
     }
     tee -file reports/global_connections.rpt {report_global_connect}
 }

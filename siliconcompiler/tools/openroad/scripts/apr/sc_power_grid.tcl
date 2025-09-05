@@ -66,14 +66,17 @@ if { $pdn_pin_keepout > 0 } {
 ###############################
 
 set pdn_files []
-foreach pdnconfig [sc_cfg_tool_task_get var pdn_config] {
-    if { [lsearch -exact $pdn_files $pdnconfig] != -1 } {
-        continue
-    }
-    puts "Sourcing PDNGEN configuration: ${pdnconfig}"
-    source $pdnconfig
+foreach pdnconfig_set [sc_cfg_tool_task_get var pdn_fileset] {
+    lassign $pdnconfig_set lib fileset
+    foreach pdnconfig [sc_cfg_get_fileset $lib $fileset tcl] {
+        if { [lsearch -exact $pdn_files $pdnconfig] != -1 } {
+            continue
+        }
+        puts "Sourcing PDNGEN configuration: ${pdnconfig}"
+        source $pdnconfig
 
-    lappend pdn_files $pdnconfig
+        lappend pdn_files $pdnconfig
+    }
 }
 tee -quiet -file reports/power_grid_configuration.rpt {pdngen -report_only}
 pdngen -failed_via_report "reports/${sc_topmodule}_pdngen_failed_vias.rpt"
