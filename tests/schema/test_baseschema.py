@@ -12,6 +12,25 @@ from siliconcompiler.schema import Parameter, PerNode
 from siliconcompiler.schema import Journal
 
 
+@pytest.fixture
+def sphinx_doc():
+    class Document:
+        def note_explicit_target(*args):
+            pass
+
+    class Env:
+        docname = "blah"
+
+    class State:
+        document = Document()
+
+    class Doc:
+        state = State()
+        env = Env()
+
+    return Doc()
+
+
 def test_copy():
     schema = BaseSchema()
     check_copy = schema.copy()
@@ -3291,41 +3310,21 @@ def test_generate_doc_detailed():
         nested_parse_with_titles.assert_called_once()
 
 
-def test_generate_doc_not_detailed_empty():
+def test_generate_doc_not_detailed_empty(sphinx_doc):
     pytest.importorskip("sphinx")
-
-    class Document:
-        def note_explicit_target(*args):
-            pass
-
-    class State:
-        document = Document()
-
-    class Doc:
-        state = State()
 
     schema = BaseSchema()
     edit = EditableSchema(schema)
     param = Parameter("str")
     edit.insert("param", param)
 
-    assert schema._generate_doc(Doc(), detailed=False) is None
+    assert schema._generate_doc(sphinx_doc, detailed=False) is None
 
 
-def test_generate_doc_not_detailed():
+def test_generate_doc_not_detailed(sphinx_doc):
     pytest.importorskip("sphinx")
     from docutils import nodes
     from sphinx.addnodes import tabular_col_spec
-
-    class Document:
-        def note_explicit_target(*args):
-            pass
-
-    class State:
-        document = Document()
-
-    class Doc:
-        state = State()
 
     schema = BaseSchema()
     edit = EditableSchema(schema)
@@ -3333,7 +3332,7 @@ def test_generate_doc_not_detailed():
     edit.insert("param", param)
     schema.set("param", "something")
 
-    doc = schema._generate_doc(Doc(), detailed=False)
+    doc = schema._generate_doc(sphinx_doc, detailed=False)
     assert len(doc) == 2
     assert isinstance(doc[0], tabular_col_spec)
     assert isinstance(doc[1], nodes.table)
