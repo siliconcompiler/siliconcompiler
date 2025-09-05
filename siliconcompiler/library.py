@@ -123,41 +123,43 @@ class ToolLibrarySchema(LibrarySchema):
         if not key_offset:
             key_offset = []
 
-        tools_sec = build_section("Tools", f"{ref_root}-tools")
         tools_added = False
-        for tool in self.getkeys("tool"):
-            tool_sec = build_section(tool, f"{ref_root}-tools-{tool}")
+        if "tool" in self.getkeys():
+            tools_sec = build_section("Tools", f"{ref_root}-tools")
+            for tool in self.getkeys("tool"):
+                tool_sec = build_section(tool, f"{ref_root}-tools-{tool}")
 
-            # Show var definitions
-            table = [[strong('Parameters'), strong('Type'), strong('Help')]]
-            for key in self.getkeys("tool", tool):
-                key_node = nodes.paragraph()
-                key_node += keypath(list(key_offset) + list(self._keypath) + ["tool", tool, key],
-                                    doc.env.docname)
-                table.append([
-                    key_node,
-                    code(self.get("tool", tool, key, field="type")),
-                    para(self.get("tool", tool, key, field="help"))
-                ])
-            if len(table) > 1:
-                tool_defs = build_section("Variables", f"{ref_root}-tools-{tool}-defns")
-                colspec = r'{|\X{2}{5}|\X{1}{5}|\X{2}{5}|}'
-                tool_defs += build_table(table, colspec=colspec)
-                tool_sec += tool_defs
+                # Show var definitions
+                table = [[strong('Parameters'), strong('Type'), strong('Help')]]
+                for key in self.getkeys("tool", tool):
+                    key_node = nodes.paragraph()
+                    key_node += keypath(list(key_offset) + list(self._keypath) +
+                                        ["tool", tool, key],
+                                        doc.env.docname)
+                    table.append([
+                        key_node,
+                        code(self.get("tool", tool, key, field="type")),
+                        para(self.get("tool", tool, key, field="help"))
+                    ])
+                if len(table) > 1:
+                    tool_defs = build_section("Variables", f"{ref_root}-tools-{tool}-defns")
+                    colspec = r'{|\X{2}{5}|\X{1}{5}|\X{2}{5}|}'
+                    tool_defs += build_table(table, colspec=colspec)
+                    tool_sec += tool_defs
 
-            tool_param = BaseSchema._generate_doc(self.get("tool", tool, field="schema"),
-                                                  doc,
-                                                  ref_root=f"{ref_root}-tools-{tool}-configs",
-                                                  key_offset=key_offset,
-                                                  detailed=False)
-            if not tool_param:
-                continue
+                tool_param = BaseSchema._generate_doc(self.get("tool", tool, field="schema"),
+                                                      doc,
+                                                      ref_root=f"{ref_root}-tools-{tool}-configs",
+                                                      key_offset=key_offset,
+                                                      detailed=False)
+                if not tool_param:
+                    continue
 
-            tool_cfg = build_section("Configuration", f"{ref_root}-tools-{tool}-configs")
-            tool_cfg += tool_param
-            tool_sec += tool_cfg
-            tools_sec += tool_sec
-            tools_added = True
+                tool_cfg = build_section("Configuration", f"{ref_root}-tools-{tool}-configs")
+                tool_cfg += tool_param
+                tool_sec += tool_cfg
+                tools_sec += tool_sec
+                tools_added = True
 
         if tools_added:
             return tools_sec

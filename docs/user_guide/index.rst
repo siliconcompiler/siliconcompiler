@@ -31,11 +31,11 @@ You will also want to look at API References for details.
    :maxdepth: 1
 
    Hardware design frontends <tutorials/hw_frontends>
-   Multi-job flows and automation <tutorials/multi_job_flows>
-   Parallel job execution <tutorials/parallel>
-   Building a simple SoC <tutorials/picorv32_ram>
    Using the dashboard <tutorials/dashboard_tutorial>
    Job status emails <tutorials/emails>
+..   Multi-job flows and automation <tutorials/multi_job_flows>
+..   Parallel job execution <tutorials/parallel>
+..   Building a simple SoC <tutorials/picorv32_ram>
 
 .. toctree::
    :caption: Appendix

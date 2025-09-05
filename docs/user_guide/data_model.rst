@@ -4,7 +4,7 @@
 Design and Compilation Data
 ######################################
 
-SiliconCompiler uses a data structure object, called :class:`.Schema`, also referred to as "the schema" in subsequent docs, to store all information associated with the compilation process and the design that's being compiled.
+SiliconCompiler uses a data structure object, called the schema, to store all information associated with the compilation process and the design that's being compiled.
 
 The types of information stored by the schema include, but is not limited to:
 
@@ -19,8 +19,6 @@ This data is stored in Schema parameters, and accessed through Schema methods.
    :align: center
 
 The diagram above shows a few examples of Schema parameters and methods for an overview of how data is stored and accessed.
-
-.. rst-class:: page-break
 
 The following sections provide more detail on how information in the schema is initialized and manipulated.
 
@@ -54,7 +52,7 @@ While all the design and compilation information are stored in the Schema object
 .. _chip_obj:
 
 The Chip Object
-+++++++++++++++++++
++++++++++++++++
 
 This separate data structure is different from the :class:`.Schema` since it instantiates the Schema object and is used to define methods that manipulate the compilation process.
 

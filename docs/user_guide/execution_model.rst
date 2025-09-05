@@ -7,8 +7,6 @@ Compilation Process
 The complete SiliconCompiler compilation is handled by a single call to the :meth:`.run()` function.
 Within that function call, a static data :term:`flowgraph`, consisting of :term:`nodes <node>` and :term:`edges <edge>` is traversed and "executed."
 
-.. rst-class:: page-break
-
 The static flowgraph approach was chosen for a number reasons:
 
 * Performance scalability ("cloud-scale")
@@ -35,13 +33,11 @@ Tasks
 ^^^^^
 SiliconCompiler breaks down a "task" into an atomic combination of a step and an index, where:
 
-1.
-A :term:`step` is defined as discrete function performed within compilation flow such as synthesis, linting, placement, routing, etc, and
-2.
-An :term:`index` is defined as variant of a step operating on identical data.
+1. A :term:`step` is defined as discrete function performed within compilation flow such as synthesis, linting, placement, routing, etc, and
+2. An :term:`index` is defined as variant of a step operating on identical data.
 
 An example of this might be two parallel synthesis runs with different settings after an import task.
-The two synthesis "tasks" might be called ``syn0`` and ``syn1``, where:
+The two synthesis "tasks" might be called ``syn/0`` and ``syn/1``, where:
 
 .. image:: _images/flowgraph_step_index_diagram.png
    :scale: 40%
@@ -52,18 +48,16 @@ See :ref:`using index for optimization` for more information on why using indice
 Execution
 ^^^^^^^^^
 
-Flowgraph execution is done through the :meth:`.run()` function which checks the flowgraph for correctness and then executes all tasks in the flowgraph from start to finish.
+Flowgraph execution is done through the :meth:`.Project.run()` function which checks the flowgraph for correctness and then executes all tasks in the flowgraph from start to finish.
 
 Flowgraph Examples
 ------------------
 
-The flowgraph, used in the :ref:`asic demo`, is a built-in compilation flow, called :ref:`asicflow <flows-asicflow-ref>`. This compilation flow is a pre-defined flowgraph customized for an ASIC build flow, and is called through the :meth:`.use()` function, which calls a :ref:`pre-defined PDK module <pdks>` that `uses the asicflow flowgraph <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/targets/skywater130_demo.py>`_.
-
-.. rst-class:: page-break
+The flowgraph, used in the :ref:`asic demo`, is a built-in compilation flow, called :ref:`asicflow <flows-asicflow-ref>`. This compilation flow is a pre-defined flowgraph customized for an ASIC build flow, and is called through the :meth:`.Project.add_dep()` function, which calls a :ref:`pre-defined PDK module <pdks>` that `uses the asicflow flowgraph <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/targets/skywater130_demo.py>`_.
 
 You can design your own chip compilation build flows by easily creating custom flowgraphs through:
 
-* :meth:`.node()`/:meth:`.edge()` methods
+* :meth:`.FlowgraphSchema.node()` / :meth:`.FlowgraphSchema.edge()` methods
 
 The user is free to construct a flowgraph by defining any reasonable combination of steps and indices based on available tools and PDKs.
 
@@ -98,11 +92,7 @@ Using Index for Optimization
 
 The previous example did not include any mention of :term:`index`, so the index defaults to ``0``.
 
-.. rst-class:: page-break
-
-While not essential to basic execution, the 'index' is fundamental to searching and optimizing tool and design options.
-
-.. rst-class:: page-break
+While not essential to basic execution, the ':term:`index`' is fundamental to searching and optimizing tool and design options.
 
 One example use case for the index feature would be to run a design through synthesis with a range of settings and then selecting the optimal settings based on power, performance, and area.
 The snippet below shows how a massively parallel optimization flow can be programmed using the SiliconCompiler Python API.
@@ -116,4 +106,3 @@ The snippet below shows how a massively parallel optimization flow can be progra
 
 .. note::
    **[In Progress]** Provide pointer to a tutorial on optimizing a metric
-
