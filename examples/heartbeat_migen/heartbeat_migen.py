@@ -11,6 +11,7 @@ from siliconcompiler import ASICProject
 # Import a pre-defined target for the FreePDK45 process.
 from siliconcompiler.targets import freepdk45_demo
 
+
 # --- Migen Hardware Description ---
 # This class defines the 'Heartbeat' hardware module using Migen's syntax.
 class Heartbeat(Module):
@@ -33,7 +34,7 @@ class Heartbeat(Module):
         # Declare an N-bit register to be used as a counter.
         self.counter_reg = Signal(N)
 
-        ### COMBINATORIAL AND SEQUENTIAL LOGIC ###
+        # COMBINATORIAL AND SEQUENTIAL LOGIC #
 
         # The 'self.sync' domain is used to describe synchronous logic
         # that updates on the positive edge of the 'sys' clock.

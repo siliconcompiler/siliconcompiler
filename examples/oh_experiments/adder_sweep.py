@@ -91,7 +91,8 @@ def main():
         # and suggest installing it for a visual plot.
         proj.logger.info(f'Datawidths: {datawidths}')
         proj.logger.info(f'Areas: {area}')
-        proj.logger.warning('Install matplotlib (`pip install matplotlib`) to automatically plot this data!')
+        proj.logger.warning('Install matplotlib (`pip install matplotlib`) '
+                            'to automatically plot this data!')
         return area
 
 
