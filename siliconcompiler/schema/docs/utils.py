@@ -139,7 +139,7 @@ def keypath(key_path, refdoc, key_text=None):
         elif schema_name == "Project":
             schema = Project()
         else:
-            raise ValueError(f"{schema_name} not suppported")
+            raise ValueError(f"{schema_name} not supported")
     else:
         schema = Project()
 
