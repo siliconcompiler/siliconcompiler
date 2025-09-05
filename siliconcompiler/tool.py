@@ -1785,7 +1785,8 @@ class TaskSchema(NamedSchema, PathSchema, DocsSchema):
         table = [[strong('Parameters'), strong('Type'), strong('Help')]]
         for key in self.getkeys("var"):
             key_node = nodes.paragraph()
-            key_node += keypath(list(key_offset) + list(self._keypath) + [key], doc.env.docname,
+            key_node += keypath(list(key_offset) + list(self._keypath) + ["var", key],
+                                doc.env.docname,
                                 key_text=["...", "var", key])
             table.append([
                 key_node,

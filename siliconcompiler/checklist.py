@@ -236,12 +236,15 @@ class ChecklistSchema(NamedSchema):
         from .schema.docs.utils import build_section
         settings = build_section('Configuration', f"{ref_root}-config")
 
+        if not key_offset:
+            key_offset = []
+
         for key in self.getkeys():
             criteria = build_section(key, f"{ref_root}-config-{key}")
             params = BaseSchema._generate_doc(self.get(key, field="schema"),
                                               doc,
                                               ref_root=f"{ref_root}-config-{key}",
-                                              key_offset=key_offset,
+                                              key_offset=(*key_offset, "checklist", self.name),
                                               detailed=False)
             if params:
                 criteria += params

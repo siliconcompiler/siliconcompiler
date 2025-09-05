@@ -72,8 +72,10 @@ def build_section_with_target(text, ref, ctx):
     return sec
 
 
-def get_key_ref(key_path):
-    return 'param-' + '-'.join([key for key in key_path if key != "default"])
+def get_key_ref(key_path, ref=None):
+    if not ref:
+        ref = "Project"
+    return f'param-{ref}-{"-".join([key for key in key_path if key != "default"])}'
 
 
 def para(text):
@@ -175,7 +177,7 @@ def keypath(key_path, refdoc, key_text=None):
            'refexplicit': True,
            'refwarn': True}
     refnode = sphinx.addnodes.pending_xref('keypath', **opt)
-    refnode['reftarget'] = nodes.make_id(get_key_ref(key_path))
+    refnode['reftarget'] = nodes.make_id(get_key_ref(key_parts))
     refnode += code(text)
 
     return refnode

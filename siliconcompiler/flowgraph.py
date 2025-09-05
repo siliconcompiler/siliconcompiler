@@ -844,6 +844,9 @@ class FlowgraphSchema(NamedSchema, DocsSchema):
                       detailed: bool = True):
         from .schema.docs.utils import image, build_section
 
+        if not key_offset:
+            key_offset = []
+
         docs = []
         image_sec = build_section("Graph", f"{ref_root}-flow-{self.name}-graph")
         image_path_root = os.path.join(doc.env.app.outdir, f"_images/gen/flows/{self.name}.svg")
@@ -867,7 +870,7 @@ class FlowgraphSchema(NamedSchema, DocsSchema):
                     self.get(step, index, field="schema"),
                     doc,
                     ref_root=f"{ref_root}-flow-{self.name}-nodes-{step}-{index}",
-                    key_offset=key_offset,
+                    key_offset=(*key_offset, "flowgraph", self.name),
                     detailed=False)
                 config += sec
         docs.append(config)
