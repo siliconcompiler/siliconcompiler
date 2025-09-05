@@ -3,6 +3,8 @@ import logging
 
 import os.path
 
+from typing import Tuple
+
 from siliconcompiler.schema.baseschema import BaseSchema
 from siliconcompiler.schema.editableschema import EditableSchema
 from siliconcompiler.schema.parameter import Parameter, Scope
@@ -371,7 +373,10 @@ class PathSchema(PathSchemaBase):
         with self._active(package=dataroot):
             yield
 
-    def _generate_doc(self, doc, ref_root, detailed=True):
+    def _generate_doc(self, doc,
+                      ref_root: str = "",
+                      key_offset: Tuple[str] = None,
+                      detailed: bool = True):
         from .schema.docs.utils import build_section, strong, build_table, build_list, \
             code, para
         from docutils import nodes

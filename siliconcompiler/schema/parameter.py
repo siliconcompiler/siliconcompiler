@@ -10,6 +10,7 @@ import re
 import shlex
 
 from enum import Enum
+from typing import Tuple
 
 from .parametervalue import NodeValue, DirectoryNodeValue, FileNodeValue, NodeListValue, \
     NodeSetValue
@@ -157,7 +158,10 @@ class Parameter:
     def __str__(self):
         return str(self.getvalues())
 
-    def _generate_doc(self, doc, keyprefix):
+    def _generate_doc(self, doc,
+                      ref_root: str = "",
+                      key_offset: Tuple[str] = None,
+                      detailed: bool = True):
         from .docs.utils import strong, para, code, build_list, build_table
         from docutils.statemachine import ViewList
         from docutils import nodes

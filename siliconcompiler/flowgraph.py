@@ -4,6 +4,8 @@ import inspect
 
 import os.path
 
+from typing import Tuple
+
 from siliconcompiler.schema import BaseSchema, NamedSchema, DocsSchema
 from siliconcompiler.schema import EditableSchema, Parameter, Scope
 from siliconcompiler.schema.utils import trim
@@ -836,10 +838,17 @@ class FlowgraphSchema(NamedSchema, DocsSchema):
 
         dot.render(filename=fileroot, cleanup=True)
 
-    def _generate_doc(self, doc, ref_root, detailed=True):
+    def _generate_doc(self, doc,
+                      ref_root: str = "",
+                      key_offset: Tuple[str] = None,
+                      detailed: bool = True):
         from .schema.docs.utils import image, build_section
 
+        if not key_offset:
+            key_offset = []
+
         docs = []
+        image_sec = build_section("Graph", f"{ref_root}-flow-{self.name}-graph")
         image_path_root = os.path.join(doc.env.app.outdir, f"_images/gen/flows/{self.name}.svg")
         image_path = image_path_root
         idx = 0
@@ -849,17 +858,20 @@ class FlowgraphSchema(NamedSchema, DocsSchema):
             idx += 1
         os.makedirs(os.path.dirname(image_path), exist_ok=True)
         self.write_flowgraph(image_path)
-        docs.append(image(image_path, center=True))
+        image_sec += image(image_path, center=True)
+        docs.append(image_sec)
 
         config = build_section("Nodes", f"{ref_root}-flow-{self.name}-nodes")
         for nodes in self.get_execution_order():
             for step, index in nodes:
                 sec = build_section(f"{step}/{index}",
                                     f"{ref_root}-flow-{self.name}-nodes-{step}-{index}")
-                sec += BaseSchema._generate_doc(self.get(step, index, field="schema"),
-                                                doc,
-                                                ref_root=ref_root,
-                                                detailed=False)
+                sec += BaseSchema._generate_doc(
+                    self.get(step, index, field="schema"),
+                    doc,
+                    ref_root=f"{ref_root}-flow-{self.name}-nodes-{step}-{index}",
+                    key_offset=(*key_offset, "flowgraph", self.name),
+                    detailed=False)
                 config += sec
         docs.append(config)
 
