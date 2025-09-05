@@ -53,8 +53,8 @@ project.summary()                                      # print summary
 project.show()                                         # show layout
 ```
 
-[!NOTE]
-The required files can be found at: [heartbeat example](https://github.com/siliconcompiler/siliconcompiler/tree/main/examples/heartbeat)
+> [!NOTE]
+> The required files can be found at: [heartbeat example](https://github.com/siliconcompiler/siliconcompiler/tree/main/examples/heartbeat)
 
 # Why SiliconCompiler?
 
