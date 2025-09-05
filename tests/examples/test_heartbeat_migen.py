@@ -1,9 +1,11 @@
 import pytest
-import os
+
+import os.path
 
 
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.ready
 @pytest.mark.timeout(600)
 def test_py_heartbeat_migen():
     from heartbeat_migen import heartbeat_migen
