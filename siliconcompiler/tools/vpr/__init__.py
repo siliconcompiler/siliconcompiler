@@ -240,11 +240,16 @@ class VPRTask(TaskSchema):
 
         # Grab the revision. Which will be of the form:
         #       v8.0.0-7887-gc4156f225
+        #               or
+        #       v8.0.0-7887-gc4156f225-dirty (if modified locally)
         revision = stdout.split()[8]
 
         # VTR infrequently makes even minor releases, use the number of commits
         # since the last release of VTR as another part of the release segment.
         pieces = revision.split("-")
+        if len(pieces) == 4:
+            # Strip off the hash and "dirty" if they exists.
+            return "-".join(pieces[:-2])
         if len(pieces) == 3:
             # Strip off the hash if it exists.
             return "-".join(pieces[:-1])

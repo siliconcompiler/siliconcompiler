@@ -29,6 +29,6 @@ if [ ! -z ${PREFIX} ]; then
     args="-DCMAKE_INSTALL_PREFIX=$PREFIX"
 fi
 
-make CMAKE_PARAMS="$args -DWITH_PARMYS=OFF -DWITH_ABC=OFF -DYOSYS_F4PGA_PLUGINS=OFF" -j$(nproc)
+make CMAKE_PARAMS="$args -DWITH_PARMYS=OFF -DWITH_ABC=OFF -DSLANG_SYSTEMVERILOG=OFF" -j$(nproc)
 cd build
 $SUDO_INSTALL make install
