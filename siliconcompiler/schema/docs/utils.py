@@ -3,7 +3,6 @@ import sphinx.addnodes
 
 from docutils.statemachine import ViewList
 from sphinx.util.nodes import nested_parse_with_titles
-from siliconcompiler import Project, ASICProject, FPGAProject
 
 
 # Docutils helpers
@@ -75,6 +74,10 @@ def build_section_with_target(text, ref, ctx):
 def get_key_ref(key_path, ref=None):
     if not ref:
         ref = "Project"
+    elif isinstance(ref, str):
+        ref = ref
+    else:
+        ref = ref.__class__.__name__
     return f'param-{ref}-{"-".join([key for key in key_path if key != "default"])}'
 
 
@@ -128,6 +131,8 @@ def build_list(items, enumerated=False):
 
 def keypath(key_path, refdoc, key_text=None):
     '''Helper function for displaying Schema keypaths.'''
+    from siliconcompiler import Project, ASICProject, FPGAProject
+
     text_parts = []
     key_parts = []
 
@@ -177,7 +182,7 @@ def keypath(key_path, refdoc, key_text=None):
            'refexplicit': True,
            'refwarn': True}
     refnode = sphinx.addnodes.pending_xref('keypath', **opt)
-    refnode['reftarget'] = nodes.make_id(get_key_ref(key_parts))
+    refnode['reftarget'] = nodes.make_id(get_key_ref(key_parts, ref=schema))
     refnode += code(text)
 
     return refnode
