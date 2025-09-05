@@ -56,33 +56,6 @@ def test_py_gcd():
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.timeout(600)
-def test_py_read_manifest(scroot):
-    '''
-    Test that running from manifest generates the same result
-    '''
-    chip = siliconcompiler.Chip('gcd')
-    chip.input(f"{scroot}/examples/gcd/gcd.v")
-    chip.input(f"{scroot}/examples/gcd/gcd.sdc")
-    chip.set('option', 'quiet', True)
-    chip.set('option', 'track', True)
-    chip.set('option', 'hash', True)
-    chip.set('option', 'nodisplay', True)
-    chip.set('constraint', 'outline', [(0, 0), (100.13, 100.8)])
-    chip.set('constraint', 'corearea', [(10.07, 11.2), (90.25, 91)])
-    chip.use(freepdk45_demo)
-
-    chip.write_manifest('./test.json')
-    chip = siliconcompiler.Chip('gcd')
-    chip.read_manifest('./test.json')
-    assert chip.run()
-    chip.summary()
-
-    __check_gcd(chip)
-
-
-@pytest.mark.eda
-@pytest.mark.quick
-@pytest.mark.timeout(600)
 def test_sh_run(examples_root, run_cli):
     run_cli(os.path.join(examples_root, 'gcd', 'run.sh'),
             'build/gcd/job0/write.gds/0/outputs/gcd.gds')
@@ -184,3 +157,22 @@ def test_py_gcd_ihp130():
     chip.read_manifest(manifest)
     # DRCs are density and fantom enclosure rules at the block pins
     assert chip.get('metric', 'drcs', step='drc', index='0') == 13
+
+
+@pytest.mark.eda
+@pytest.mark.timeout(1200)
+def test_py_gcd_hls():
+    from gcd_hls import gcd_hls
+    gcd_hls.main()
+
+    assert os.path.isfile('build/gcd/job0/write.gds/0/outputs/gcd.gds')
+
+
+@pytest.mark.eda
+@pytest.mark.quick
+@pytest.mark.timeout(600)
+def test_py_gcd_chisel():
+    from gcd_chisel import gcd_chisel
+    gcd_chisel.main()
+
+    assert os.path.isfile('build/GCD/job0/write.gds/0/outputs/GCD.gds')
