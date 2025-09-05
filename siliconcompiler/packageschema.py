@@ -1,4 +1,4 @@
-from typing import Union, Dict, List
+from typing import Union, Dict, List, Tuple
 
 from siliconcompiler.pathschema import PathSchema
 from siliconcompiler.schema import EditableSchema, Parameter, Scope, BaseSchema
@@ -198,11 +198,22 @@ class PackageSchema(PathSchema):
 
         return PackageSchema.__name__
 
-    def _generate_doc(self, doc, ref_root, detailed=True):
-        return BaseSchema._generate_doc(self.get("package", field="schema"),
-                                        doc,
-                                        ref_root=ref_root,
-                                        detailed=False)
+    def _generate_doc(self, doc,
+                      ref_root: str = "",
+                      key_offset: Tuple[str] = None,
+                      detailed: bool = True):
+        from .schema.docs.utils import build_section
+        section = build_section("Package", f"{ref_root}-package")
+        params = BaseSchema._generate_doc(self.get("package", field="schema"),
+                                          doc,
+                                          ref_root=f"{ref_root}-package",
+                                          key_offset=key_offset,
+                                          detailed=False)
+        if not params:
+            return None
+
+        section += params
+        return section
 
 
 ############################################

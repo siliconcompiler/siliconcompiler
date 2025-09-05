@@ -1135,31 +1135,39 @@ class BaseSchema:
             for param in nodevalues:
                 param.set(value, field=field)
 
-    def _generate_doc(self, doc, ref_root: str = None, detailed: bool = True):
+    def _generate_doc(self, doc,
+                      ref_root: str = "",
+                      key_offset: Tuple[str] = None,
+                      detailed: bool = True):
         from .docs.utils import build_section_with_target, build_schema_value_table, get_key_ref
         from docutils import nodes
+
+        if not key_offset:
+            key_offset = []
 
         if detailed:
             sections = []
             if self.__default:
                 if isinstance(self.__default, Parameter):
-                    sections.extend(Parameter._generate_doc(self.__default, doc,
-                                                            list(self._keypath) + ["default"]))
+                    sections.extend(Parameter._generate_doc(self.__default, doc))
                 else:
                     sections.extend(BaseSchema._generate_doc(self.__default,
                                                              doc,
                                                              ref_root=ref_root,
+                                                             key_offset=key_offset,
                                                              detailed=detailed))
             for name, obj in self.__manifest.items():
-                key_path = list(self._keypath) + [name]
-                section = build_section_with_target(name, get_key_ref(key_path), doc.state.document)
+                section = build_section_with_target(name,
+                                                    get_key_ref(list(self._keypath) + [name]),
+                                                    doc.state.document)
                 if isinstance(obj, Parameter):
-                    for n in Parameter._generate_doc(obj, doc, key_path):
+                    for n in Parameter._generate_doc(obj, doc):
                         section += n
                 else:
                     for n in BaseSchema._generate_doc(obj,
                                                       doc,
                                                       ref_root=ref_root,
+                                                      key_offset=key_offset,
                                                       detailed=detailed):
                         section += n
                 sections.append(section)

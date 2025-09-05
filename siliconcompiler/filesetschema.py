@@ -1,6 +1,6 @@
 import contextlib
 
-from typing import List
+from typing import List, Tuple
 
 from siliconcompiler import utils
 
@@ -249,7 +249,10 @@ class FileSetSchema(PathSchema):
 
         return fileset in self.getkeys("fileset")
 
-    def _generate_doc(self, doc, ref_root, detailed=True):
+    def _generate_doc(self, doc,
+                      ref_root: str = "",
+                      key_offset: Tuple[str] = None,
+                      detailed: bool = True):
         from .schema.docs.utils import build_section
 
         filesets_sec = build_section("Filesets", f"{ref_root}-filesets")
@@ -259,7 +262,8 @@ class FileSetSchema(PathSchema):
 
             params = BaseSchema._generate_doc(self.get("fileset", fileset, field="schema"),
                                               doc,
-                                              ref_root=ref_root,
+                                              ref_root=f"{ref_root}-filesets-{fileset}",
+                                              key_offset=key_offset,
                                               detailed=False)
             if not params:
                 continue

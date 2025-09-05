@@ -1763,15 +1763,21 @@ class TaskSchema(NamedSchema, PathSchema, DocsSchema):
                                       "outputs"))
         return paths
 
-    def _generate_doc(self, doc, ref_root, detailed=True):
+    def _generate_doc(self, doc,
+                      ref_root: str = "",
+                      key_offset: Tuple[str] = None,
+                      detailed: bool = True):
         from .schema.docs.utils import build_section, strong, keypath, code, para, \
             build_table, build_schema_value_table
         from docutils import nodes
 
         docs = []
 
+        if not key_offset:
+            key_offset = []
+
         # Show dataroot
-        dataroot = PathSchema._generate_doc(self, doc, ref_root)
+        dataroot = PathSchema._generate_doc(self, doc, ref_root=ref_root, key_offset=key_offset)
         if dataroot:
             docs.append(dataroot)
 
@@ -1779,7 +1785,7 @@ class TaskSchema(NamedSchema, PathSchema, DocsSchema):
         table = [[strong('Parameters'), strong('Type'), strong('Help')]]
         for key in self.getkeys("var"):
             key_node = nodes.paragraph()
-            key_node += keypath(list(self._keypath) + [key], doc.env.docname,
+            key_node += keypath(list(key_offset) + list(self._keypath) + [key], doc.env.docname,
                                 key_text=["...", "var", key])
             table.append([
                 key_node,
@@ -1799,7 +1805,7 @@ class TaskSchema(NamedSchema, PathSchema, DocsSchema):
             if key[0] == "dataroot":  # data root already handled
                 continue
             params[key] = self.get(*key, field=None)
-        table = build_schema_value_table(params, "", self._keypath)
+        table = build_schema_value_table(params, "", key_offset + list(self._keypath))
         setup_info = build_section("Configuration", f"{ref_root}-config")
         setup_info += table
         docs.append(setup_info)

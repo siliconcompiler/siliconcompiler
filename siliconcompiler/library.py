@@ -1,4 +1,4 @@
-from typing import final, Union, List
+from typing import final, Union, List, Tuple
 
 from siliconcompiler import PackageSchema
 
@@ -113,9 +113,15 @@ class ToolLibrarySchema(LibrarySchema):
 
         return super()._from_dict(manifest, keypath, version)
 
-    def _generate_doc(self, doc, ref_root, detailed=True):
+    def _generate_doc(self, doc,
+                      ref_root: str = "",
+                      key_offset: Tuple[str] = None,
+                      detailed: bool = True):
         from .schema.docs.utils import build_section, strong, keypath, code, para, build_table
         from docutils import nodes
+
+        if not key_offset:
+            key_offset = []
 
         tools_sec = build_section("Tools", f"{ref_root}-tools")
         tools_added = False
@@ -126,7 +132,8 @@ class ToolLibrarySchema(LibrarySchema):
             table = [[strong('Parameters'), strong('Type'), strong('Help')]]
             for key in self.getkeys("tool", tool):
                 key_node = nodes.paragraph()
-                key_node += keypath(list(self._keypath) + ["tool", tool, key], doc.env.docname)
+                key_node += keypath(list(key_offset) + list(self._keypath) + ["tool", tool, key],
+                                    doc.env.docname)
                 table.append([
                     key_node,
                     code(self.get("tool", tool, key, field="type")),
@@ -140,7 +147,8 @@ class ToolLibrarySchema(LibrarySchema):
 
             tool_param = BaseSchema._generate_doc(self.get("tool", tool, field="schema"),
                                                   doc,
-                                                  ref_root=ref_root,
+                                                  ref_root=f"{ref_root}-tools-{tool}-configs",
+                                                  key_offset=key_offset,
                                                   detailed=False)
             if not tool_param:
                 continue
@@ -373,24 +381,25 @@ class StdCellLibrarySchema(ToolLibrarySchema, DependencySchema):
 
         return StdCellLibrarySchema.__name__
 
-    def _generate_doc(self, doc, ref_root, detailed=True):
+    def _generate_doc(self, doc,
+                      ref_root: str = "",
+                      key_offset: Tuple[str] = None,
+                      detailed: bool = True):
         from .schema.docs.utils import build_section
         docs = []
 
         # Show dataroot
-        dataroot = PathSchema._generate_doc(self, doc, ref_root)
+        dataroot = PathSchema._generate_doc(self, doc, ref_root=ref_root, key_offset=key_offset)
         if dataroot:
             docs.append(dataroot)
 
         # Show package information
-        package_sec = build_section("Package", f"{ref_root}-package")
-        package = PackageSchema._generate_doc(self, doc, ref_root)
+        package = PackageSchema._generate_doc(self, doc, ref_root=ref_root, key_offset=key_offset)
         if package:
-            package_sec += package
-            docs.append(package_sec)
+            docs.append(package)
 
         # Show filesets
-        fileset = FileSetSchema._generate_doc(self, doc, ref_root)
+        fileset = FileSetSchema._generate_doc(self, doc, ref_root=ref_root, key_offset=key_offset)
         if fileset:
             docs.append(fileset)
 
@@ -398,12 +407,15 @@ class StdCellLibrarySchema(ToolLibrarySchema, DependencySchema):
         asic_sec = build_section("ASIC", f"{ref_root}-asic")
         asic_sec += BaseSchema._generate_doc(self.get("asic", field="schema"),
                                              doc,
-                                             ref_root=ref_root,
+                                             ref_root=f"{ref_root}-asic",
+                                             key_offset=key_offset,
                                              detailed=False)
         docs.append(asic_sec)
 
         # Show tool information
-        tools_sec = ToolLibrarySchema._generate_doc(self, doc, ref_root)
+        tools_sec = ToolLibrarySchema._generate_doc(self, doc,
+                                                    ref_root=ref_root,
+                                                    key_offset=key_offset)
         if tools_sec:
             docs.append(tools_sec)
 

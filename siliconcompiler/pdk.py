@@ -1,5 +1,7 @@
 import math
 
+from typing import Tuple
+
 from siliconcompiler.schema import EditableSchema, Parameter, Scope, BaseSchema
 from siliconcompiler.schema.utils import trim
 
@@ -705,7 +707,10 @@ class PDKSchema(ToolLibrarySchema):
 
         return dies
 
-    def _generate_doc(self, doc, ref_root, detailed=True):
+    def _generate_doc(self, doc,
+                      ref_root: str = "",
+                      key_offset: Tuple[str] = None,
+                      detailed: bool = True):
         from .schema.docs.utils import build_section
         docs = []
 
@@ -715,14 +720,12 @@ class PDKSchema(ToolLibrarySchema):
             docs.append(dataroot)
 
         # Show package information
-        package_sec = build_section("Package", f"{ref_root}-package")
-        package = PackageSchema._generate_doc(self, doc, ref_root)
+        package = PackageSchema._generate_doc(self, doc, ref_root=ref_root, key_offset=key_offset)
         if package:
-            package_sec += package
-            docs.append(package_sec)
+            docs.append(package)
 
         # Show filesets
-        fileset = FileSetSchema._generate_doc(self, doc, ref_root)
+        fileset = FileSetSchema._generate_doc(self, doc, ref_root=ref_root, key_offset=key_offset)
         if fileset:
             docs.append(fileset)
 
@@ -730,12 +733,15 @@ class PDKSchema(ToolLibrarySchema):
         pdk_sec = build_section("PDK", f"{ref_root}-pdkinfo")
         pdk_sec += BaseSchema._generate_doc(self.get("pdk", field="schema"),
                                             doc,
-                                            ref_root=ref_root,
+                                            ref_root=f"{ref_root}-pdkinfo",
+                                            key_offset=key_offset,
                                             detailed=False)
         docs.append(pdk_sec)
 
         # Show tool information
-        tools_sec = ToolLibrarySchema._generate_doc(self, doc, ref_root)
+        tools_sec = ToolLibrarySchema._generate_doc(self, doc,
+                                                    ref_root=ref_root,
+                                                    key_offset=key_offset)
         if tools_sec:
             docs.append(tools_sec)
 
