@@ -8,7 +8,7 @@ from siliconcompiler.project import LintProject
 from siliconcompiler.flows.lintflow import LintFlow
 from siliconcompiler.targets import asic_target
 
-from lambdapdk.ramlib import Spram
+from lambdalib.ramlib import Spram
 
 
 class PicoRV32Design(DesignSchema):
