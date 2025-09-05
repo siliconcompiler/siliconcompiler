@@ -5,7 +5,6 @@ import sys
 import pytest
 
 
-@pytest.mark.skip(reason="examples needs to be rewritten")
 def test_all_examples_have_test_file(scroot):
     test_folder = os.path.dirname(__file__)
     ex_dir = os.path.join(scroot, 'examples')
@@ -35,13 +34,11 @@ def test_all_examples_have_test_file(scroot):
 
 @pytest.mark.skipif(sys.platform == 'win32',
                     reason='Execution checks do not work on windows.')
-@pytest.mark.skip(reason="examples needs to be rewritten")
 def test_all_examples_have_defs(scroot):
     test_folder = os.path.dirname(__file__)
     ex_dir = os.path.join(scroot, 'examples')
 
     exempt = {
-        "picorv32_ram": ["sky130_sram_2k.py"]
     }
 
     tests = {}
@@ -70,12 +67,13 @@ def test_all_examples_have_defs(scroot):
 
             assert is_exec, f"{shell} is not marked as executable"
 
-            func_suffix, _ = os.path.splitext(shell_name)
-            functions.append(f'test_{ext}_{func_suffix}')
-
             with open(shell) as f:
                 content = f.read().splitlines()
                 assert content[0] == f"#!/usr/bin/env {shell_type}", f"{shell} cannot be executed"
+
+            func_suffix, _ = os.path.splitext(shell_name)
+            if func_suffix != "make":
+                functions.append(f'test_{ext}_{func_suffix}')
 
         return functions
 
