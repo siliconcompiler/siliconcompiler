@@ -16,8 +16,7 @@ class InitFloorplanTask(APRTask, OpenROADSTAParameter, OpenROADPPLLayersParamete
         self.add_parameter("remove_dead_logic", "bool",
                            "remove logic which does not drive a primary output", defvalue=True)
 
-        self.add_parameter("padring", "[file]", "script to generate a padring using ICeWall in "
-                           "OpenROAD")
+        self.add_parameter("padringfileset", "[str]", "filesets to generate a padring")
 
     def task(self):
         return "init_floorplan"
@@ -55,11 +54,17 @@ class InitFloorplanTask(APRTask, OpenROADSTAParameter, OpenROADPPLLayersParamete
         self.add_required_tool_key("var", "remove_synth_buffers")
         self.add_required_tool_key("var", "remove_dead_logic")
 
-        if self.get("var", "padring"):
-            self.add_required_tool_key("var", "padring")
+        if self.get("var", "padringfileset"):
+            self.add_required_tool_key("var", "padringfileset")
 
-    def add_openroad_padring(self, file: str):
-        self.add("var", "padring", file)
+            for fileset in self.get("var", "padringfileset"):
+                self.add_required_key(self.schema().design, "fileset", fileset, "file", "tcl")
+
+    def add_openroad_padringfileset(self, fileset: str, clobber=False):
+        if clobber:
+            self.set("var", "padringfileset", fileset)
+        else:
+            self.add("var", "padringfileset", fileset)
 
 
 # def setup(chip):
