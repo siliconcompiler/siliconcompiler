@@ -1,4 +1,4 @@
-#!/usr/-bin/env python3
+#!/usr/bin/env python3
 
 # Import the core classes from the siliconcompiler library.
 from siliconcompiler import ASICProject, DesignSchema
