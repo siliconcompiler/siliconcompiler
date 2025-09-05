@@ -104,8 +104,8 @@ Default values for each field are stored under the special keys ``"default", "de
     value
         Parameter value
 
-Parameters
------------------------------
+Project Parameters
+------------------
 
 .. schema::
   :root: siliconcompiler/Project
@@ -122,48 +122,64 @@ Parameters
   :add_class:
   :ref_root: FPGAProject
 
-Nested Schemas
-----------------
+Library Parameters
+------------------
 
-The SC schema has two special top-level categories that store nested subsets of the schema rather than unique parameters.
+General
+^^^^^^^
 
-history
-+++++++
+.. schema::
+  :root: siliconcompiler/DesignSchema
+  :add_class:
+  :ref_root: DesignSchema
 
-The "history" prefix stores configuration from past runs, indexed by jobname.
-Values are stored automatically at the end of :meth:`run()`, and only parameters tagged with the 'job' scope are stored.
-This can be used to go back and inspect the results of old runs.
-As a shortcut for accessing these stored values, most of the schema access functions support an optional ``job`` keyword arg.
-For example, the following line returns the number of errors from a synthesis step run as part of a job called "job0"::
+.. schema::
+  :root: siliconcompiler/LibrarySchema
+  :add_class:
+  :ref_root: LibrarySchema
 
-    chip.get('metric', 'error', job='job0', step='syn', index='0')
+.. schema::
+  :root: siliconcompiler/Schematic
+  :add_class:
+  :ref_root: Schematic
 
-library
-+++++++
+ASIC Specific
+^^^^^^^^^^^^^
 
-The "library" prefix stores the schema parameters of library chip objects that have been imported into the current chip object, keyed by library name.
-These values are accessed directly using the schema access functions.
-For example, the following line returns the path to a LEF file associated with a library called "mylib"::
+.. schema::
+  :root: siliconcompiler/StdCellLibrarySchema
+  :add_class:
+  :ref_root: StdCellLibrarySchema
 
-    chip.find_files('library', 'mylib', 'output', stackup, 'lef')
+.. schema::
+  :root: siliconcompiler/PDKSchema
+  :add_class:
+  :ref_root: PDKSchema
+
+FPGA Specific
+^^^^^^^^^^^^^
+.. schema::
+  :root: siliconcompiler/FPGASchema
+  :add_class:
+  :ref_root: FPGASchema
+
 
 meta data
-++++++++++
+---------
 
-The schema can record the class type of a section in the schema., this is recorded in cfg['__meta__'].
-The cfg['__meta__'] contains two keys, `sctype` and `class` , which represent the type of the section and exact python class respectively.
-If no cfg['__meta__'] is found, the section is assumed to be a regular schema class.
+The schema can record the class type of a section in the schema., this is recorded in ``cfg['__meta__']``.
+The ``cfg['__meta__']`` contains two keys, ``sctype`` and ``class`` , which represent the type of the section and exact python class respectively.
+If no ``cfg['__meta__']`` is found, the section is assumed to be a regular schema class.
 
 
 Journaling
-++++++++++
+----------
 
 The schema can support tracking of schema transactions which modify the data in the schema.
-The transactions are recorded in the schema in cfg['__journal__'], which is a list of the transactions since recording began.
+The transactions are recorded in the schema in ``cfg['__journal__']``, which is a list of the transactions since recording began.
 Each record for the journal contains:
 
 .. glossary::
-
     type
         Type of transactions performed, can be one of: set, add, remove, and unset
 
@@ -181,12 +197,3 @@ Each record for the journal contains:
 
     index
         Index that was modified, in record types which are destructive, this is None
-
-
-To control the journaling:
-
-.. code-block:: python
-
-    chip.schema._start_journal()  # To start recording transactions
-    chip.schema._stop_journal()  # To stop recording transactions and remove all records of transactions
-    chip.schema._import_journal(other_schema)  # To import and playback transactions, usually used to merge together a node manifest with the main manifest in SiliconCompiler

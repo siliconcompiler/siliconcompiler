@@ -152,7 +152,7 @@ Now that you have installed SiliconCompiler, you can test your installation by r
 
 .. code-block:: bash
 
-    sc -target asic_demo -remote
+    python3 -m siliconcompiler.demos.asic_demo -remote
 
 
 Your remote job should only take a few minutes to run if the servers aren't too busy.

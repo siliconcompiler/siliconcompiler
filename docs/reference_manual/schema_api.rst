@@ -36,7 +36,7 @@ Useful APIs
     EditableSchema.search
 
 Schema Classes
-===============
+==============
 
 .. autoclass:: siliconcompiler.DesignSchema
     :members:
@@ -98,6 +98,12 @@ Schema Classes
     :show-inheritance:
     :inherited-members:
 
+.. autoclass:: siliconcompiler.Schematic
+    :members:
+    :show-inheritance:
+    :inherited-members:
+
+
 ASIC Constraint Classes
 =======================
 
@@ -132,6 +138,29 @@ ASIC Constraint Classes
     :inherited-members:
 
 .. autoclass:: siliconcompiler.constraints.ASICComponentConstraint
+    :members:
+    :show-inheritance:
+    :inherited-members:
+
+FPGA Constraint Classes
+=======================
+
+.. autoclass:: siliconcompiler.constraints.FPGATimingConstraintSchema
+    :members:
+    :show-inheritance:
+    :inherited-members:
+
+.. autoclass:: siliconcompiler.constraints.FPGATimingScenarioSchema
+    :members:
+    :show-inheritance:
+    :inherited-members:
+
+.. autoclass:: siliconcompiler.constraints.FPGAComponentConstraints
+    :members:
+    :show-inheritance:
+    :inherited-members:
+
+.. autoclass:: siliconcompiler.constraints.FPGAPinConstraints
     :members:
     :show-inheritance:
     :inherited-members:

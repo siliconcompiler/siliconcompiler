@@ -27,24 +27,37 @@ How do I...
 
     See :ref:`Targets`
 
-... create a chip object?
+... create a design object?
 
    .. code-block:: python
 
-      from siliconcompiler import Chip
-      chip = Chip('<design>')
+      from siliconcompiler import DesignSchema
+      design = DesignSchema('<design>')
+
+... create an asic project object?
+
+   .. code-block:: python
+
+      from siliconcompiler import ASICProject
+      project = ASICProject(design)
+
+... active filesets?
+
+   .. code-block:: python
+
+      project.add_fileset("rtl")
 
 ... run a compilation?
 
    .. code-block:: python
 
-      chip.run()
+      project.run()
 
 ... display my layout?
 
    .. code-block:: python
 
-       chip.show()
+       project.show()
 
 ... display a previous run from the command line?
 
@@ -56,82 +69,67 @@ How do I...
 
     .. code-block:: python
 
-        chip = Chip('<design>', loglevel=<info|debug|warning|error|quiet>)
-        chip.set('option', 'loglevel', <loglevel>)
+        project.logger.getLevel(<info|debug|warning|error|quiet>)
 
 ... check my setup before running?
 
     .. code-block:: python
 
-        chip.check_manifest()
+        project.check_manifest()
 
 ... change the build directory?
 
     .. code-block:: python
 
-       chip.set('option', 'builddir', <dirpath>)
+        project.set('option', 'builddir', <dirpath>)
 
 ... change the caching directory?
 
     .. code-block:: python
 
-       chip.set('option', 'cachedir', <dirpath>)
+        project.set('option', 'cachedir', <dirpath>)
 
 ... use the setup json manifest file from a previous run?
 
     .. code-block:: python
 
-       chip.read_manifest(<filepath>)
-
-... drive custom TCL code into the a target EDA flow?
-
-    .. code-block:: python
-
-       chip.add('tool', <tool>, 'task', <task>, 'prescript', <file>, step=<step>, index=<index>)
-       chip.add('tool', <tool>, 'task', <task>, 'postscript', <file>, step=<step>, index=<index>)
+        project = Project.from_manifest(<filepath>)
 
 ... control the thread parallelism for a task?
 
     .. code-block:: python
 
-       chip.set('tool', <tool>, 'task', <task>, 'threads', <n>, step=<step>, index=<index>)
+       project.set('tool', <tool>, 'task', <task>, 'threads', <n>, step=<step>, index=<index>)
 
 ... start a fresh run?
 
     .. code-block:: python
 
-       chip.set('option', 'clean', True)
+       project.set('option', 'clean', True)
 
 ... start a fresh run and keep the old one?
 
     .. code-block:: python
 
-       chip.set('option', 'clean', True)
-       chip.set('option', 'jobincr', True)
+       project.set('option', 'clean', True)
+       project.set('option', 'jobincr', True)
 
 ... start a fresh run using the previous run information?
 
     .. code-block:: python
 
-       chip.set('option', 'clean', True)
-       chip.set('option', 'jobincr', True)
-       chip.set('option', 'from', 'floorplan')
+       project.set('option', 'clean', True)
+       project.set('option', 'jobincr', True)
+       project.set('option', 'from', 'floorplan')
 
 ... register a new source of files?
 
     .. code-block:: python
 
-       chip.register_source('<name>', '<path>')
-       chip.register_source('<name>', '<path>', '<reference>')
+       design.set_dataroot("<name>", "<path>", "<reference>")
 
 ... register a new source of files relative to my current file?
 
     .. code-block:: python
 
-       chip.register_source('<name>', __file__)
-
-... print the description of a parameter?
-
-    .. code-block:: python
-
-       print(chip.help(keypath))
+       design.set_dataroot('<name>', __file__)

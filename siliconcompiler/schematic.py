@@ -67,7 +67,7 @@ class Schematic(BaseSchema):
     components.
     '''
 
-    def __init__(self, name: str):
+    def __init__(self, name: str = None):
         # in memory object lookup for pythonic access
         # golden truth database is the SC schema
         self.name = name

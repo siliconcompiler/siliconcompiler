@@ -29,7 +29,6 @@ To learn how to use SiliconCompiler, see the :ref:`user guide`.
    :numbered:
 
    schema
-   core_api
    schema_api
    apps
    server_api
