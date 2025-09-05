@@ -1181,7 +1181,7 @@ class BaseSchema:
             params = {}
             for key in self.allkeys(include_default=False):
                 params[key] = self.get(*key, field=None)
-            table = build_schema_value_table(params, "", (*key_offset, *self._keypath))
+            table = build_schema_value_table(params, doc.env.docname, (*key_offset, *self._keypath))
             if table:
                 return table
             return None
