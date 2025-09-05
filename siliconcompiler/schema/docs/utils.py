@@ -54,16 +54,15 @@ def build_table(items, colwidths=None, colspec=None):
     return return_nodes
 
 
-def build_section(text, key):
-    sec = nodes.section(ids=[get_ref_id(key)])
+def build_section(text, ref):
+    sec = nodes.section(ids=[nodes.make_id(ref)])
     sec += nodes.title(text=text)
     return sec
 
 
-def build_section_with_target(text, key, ctx):
-    id = get_ref_id(key)
-    target = nodes.target('', '', ids=[id], names=[id])
-    sec = nodes.section(ids=[id])
+def build_section_with_target(text, ref, ctx):
+    target = nodes.target('', '', ids=[nodes.make_id(ref)], names=[nodes.make_id(ref)])
+    sec = nodes.section(ids=[nodes.make_id(ref)])
     sec += nodes.title(text=text)
 
     # We don't need to add target node to hierarchy, just need to call this
@@ -73,10 +72,8 @@ def build_section_with_target(text, key, ctx):
     return sec
 
 
-def get_ref_id(key):
-    if key[-4:] == "-ref":
-        return key
-    return nodes.make_id(key + "-ref")
+def get_key_ref(key_path):
+    return 'param-' + '-'.join([key for key in key_path if key != "default"])
 
 
 def para(text):
@@ -146,6 +143,7 @@ def keypath(key_path, refdoc, key_text=None):
     else:
         schema = Project()
 
+    valid = True
     for key in key_path:
         if schema.valid(*key_parts, "default", default_valid=True):
             key_parts.append("default")
@@ -154,31 +152,30 @@ def keypath(key_path, refdoc, key_text=None):
                 text_parts.append(key)
             else:
                 # Fully-qualified
-                text_parts.append(f"'{key}'")
+                text_parts.append(key)
         else:
             key_parts.append(key)
-            text_parts.append(f"'{key}'")
+            text_parts.append(key)
 
-        if not schema.valid(*key_parts, default_valid=True):
+        if valid and not schema.valid(*key_parts, default_valid=True):
             print(f"WARNING: Invalid keypath {key_path}")
+            valid = False
             # raise ValueError(f'Invalid keypath {key_path}')
 
-    if not schema.valid(*key_parts, default_valid=True, check_complete=True):
+    if valid and not schema.valid(*key_parts, default_valid=True, check_complete=True):
         # Not leaf
         text_parts.append('...')
 
     if key_text:
         text_parts = key_text
     text = f"[{','.join(text_parts)}]"
-    refid = get_ref_id('param-' + '-'.join([key for key in key_parts if key != "default"]))
-
     opt = {'refdoc': refdoc,
            'refdomain': 'sc',
            'reftype': 'ref',
            'refexplicit': True,
            'refwarn': True}
     refnode = sphinx.addnodes.pending_xref('keypath', **opt)
-    refnode['reftarget'] = refid
+    refnode['reftarget'] = nodes.make_id(get_key_ref(key_path))
     refnode += code(text)
 
     return refnode

@@ -1136,7 +1136,7 @@ class BaseSchema:
                 param.set(value, field=field)
 
     def _generate_doc(self, doc, ref_root: str = None, detailed: bool = True):
-        from .docs.utils import build_section_with_target, build_schema_value_table
+        from .docs.utils import build_section_with_target, build_schema_value_table, get_key_ref
         from docutils import nodes
 
         if detailed:
@@ -1152,8 +1152,7 @@ class BaseSchema:
                                                              detailed=detailed))
             for name, obj in self.__manifest.items():
                 key_path = list(self._keypath) + [name]
-                section_key = 'param-' + '-'.join([key for key in key_path if key != "default"])
-                section = build_section_with_target(name, section_key, doc.state.document)
+                section = build_section_with_target(name, get_key_ref(key_path), doc.state.document)
                 if isinstance(obj, Parameter):
                     for n in Parameter._generate_doc(obj, doc, key_path):
                         section += n
