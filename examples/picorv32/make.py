@@ -2,16 +2,13 @@
 # Copyright 2025 Silicon Compiler Authors. All Rights Reserved.
 
 from siliconcompiler import DesignSchema
-from siliconcompiler.project import LintProject, FPGAProject
 from siliconcompiler import ASICProject
+from siliconcompiler.project import LintProject
 
 from siliconcompiler.flows.lintflow import LintFlow
-from siliconcompiler.flows.synflow import SynthesisFlow
-from siliconcompiler.flows.asicflow import ASICFlow
-from siliconcompiler.flows.fpgaflow import FPGAFlow
+from siliconcompiler.targets import asic_target
 
-from siliconcompiler._dummy import target, Spram
-from siliconcompiler._dummy import ICE40FPGA, K6_N8_28x28_BDFPGA, K4_N8_6x6FPGA
+from lambdapdk.ramlib import Spram
 
 
 class PicoRV32Design(DesignSchema):
@@ -57,7 +54,7 @@ def lint(fileset: str = "rtl"):
     project.add_fileset(fileset)
     project.set_flow(LintFlow())
 
-    project.run(raise_exception=True)
+    project.run()
     project.summary()
 
 
@@ -66,11 +63,11 @@ def syn(fileset: str = "rtl", pdk: str = "freepdk45"):
 
     project.set_design(PicoRV32Design())
     project.add_fileset(fileset)
-    project.set_flow(SynthesisFlow())
 
-    project.load_target(target, pdk=pdk)
+    project.load_target(asic_target, pdk=pdk)
+    project.set_flow("synflow")
 
-    project.run(raise_exception=True)
+    project.run()
     project.summary()
 
 
@@ -80,28 +77,12 @@ def asic(fileset: str = "rtl", pdk: str = "freepdk45"):
     project.set_design(PicoRV32Design())
     project.add_fileset(fileset)
     project.add_fileset(f"sdc.{pdk}")
-    project.set_flow(ASICFlow())
 
-    project.load_target(target, pdk=pdk)
+    project.load_target(asic_target, pdk=pdk)
 
-    project.run(raise_exception=True)
+    project.run()
     project.summary()
-
-
-def fpga(fileset: str = "rtl", fpga: str = "K4_N8"):
-    project = FPGAProject()
-
-    project.set_design(PicoRV32Design())
-    project.add_fileset(fileset)
-    project.set_flow(FPGAFlow())
-
-    project.add_dep(ICE40FPGA())
-    project.add_dep(K6_N8_28x28_BDFPGA())
-    project.add_dep(K4_N8_6x6FPGA())
-    project.set_fpga(fpga)
-
-    project.run(raise_exception=True)
-    project.summary()
+    project.snapshot()
 
 
 def check():
