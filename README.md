@@ -35,26 +35,26 @@ Linux platforms. For working Python 3.9-3.13 environment, just use pip.
 python3 -m pip install --upgrade siliconcompiler
 ```
 
-Converting RTL into DRC clean GDS takes 10 lines of simple Python code.
+Converting RTL into DRC clean GDS takes 13 lines of simple Python code.
 
 ```python
-from siliconcompiler import Chip                   # import python package
+from siliconcompiler import ASICProject, DesignSchema  # import python package
 from siliconcompiler.targets import skywater130_demo
-chip = Chip('heartbeat')                           # create chip object
-chip.use(skywater130_demo)                         # load a pre-defined target
-chip.input('heartbeat.v')                          # set input sources
-chip.clock('clk', period=10)                       # set constraints
-chip.set('option','remote', True)                  # enable remote execution
-chip.run()                                         # run compilation
-chip.summary()                                     # print summary
-chip.show()                                        # show layout
+design = DesignSchema("heartbeat")                     # create design object
+design.set_topmodule("heartbeat", fileset="rtl")       # set top module
+design.add_file("heartbeat.v", fileset="rtl")          # add input sources
+design.add_file("heartbeat.sdc", fileset="sdc")        # add input sources
+project = ASICProject(design)                          # create project
+project.add_fileset(["rtl", "sdc"])                    # enable filesets
+project.load_target(skywater130_demo.setup)            # load a pre-defined target
+project.set('option','remote', True)                   # enable remote execution
+project.run()                                          # run compilation
+project.summary()                                      # print summary
+project.show()                                         # show layout
 ```
 
-Simple designs can be compiled in a single line using the built in command line 'sc' app:
-
-```sh
-sc -remote -target "asic_demo"
-```
+[!NOTE]
+The required files can be found at: [heartbeat example](https://github.com/siliconcompiler/siliconcompiler/tree/main/examples/heartbeat)
 
 # Why SiliconCompiler?
 
