@@ -13762,7 +13762,7 @@
         }
       },
       "asiclib": {
-        "type": "[str]",
+        "type": "{str}",
         "require": false,
         "scope": "global",
         "lock": false,
