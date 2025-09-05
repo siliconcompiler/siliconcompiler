@@ -61,8 +61,6 @@ class YosysStdCellLibrary(StdCellLibrarySchema):
 
         self.define_tool_parameter("yosys", "synthesis_fileset", "[str]",
                                    "name of the filesets to use for yosys synthesis")
-        self.define_tool_parameter("yosys", "skip_abc_liberty", "bool",
-                                   "if True, the liberty files will not be passed to abc")
         self.define_tool_parameter("yosys", "blackbox_fileset", "[str]",
                                    "A list of fileset names that contain blackbox definitions.")
 
@@ -142,18 +140,6 @@ class YosysStdCellLibrary(StdCellLibrarySchema):
             dataroot = self._get_active("package")
         with self.active_dataroot(dataroot):
             self.set("tool", "yosys", "addermap", map)
-
-    def set_yosys_skip_abc_liberty(self, value: bool):
-        """Configures the 'skip_abc_liberty' option in Yosys.
-
-        This setting controls whether Yosys, during synthesis, skips running
-        the ABC logic synthesis pass on the provided liberty file.
-
-        Args:
-            value (bool): If True, directs Yosys to skip running ABC on the
-                liberty file. Defaults to False in a standard flow.
-        """
-        self.set("tool", "yosys", "skip_abc_liberty", value)
 
     def add_yosys_tech_map(self,
                            map: Union[str, List[str]],

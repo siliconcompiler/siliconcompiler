@@ -106,6 +106,9 @@ def get_default_iomap():
     report_drc = ('lyrdb', 'ascii')
     report_log = ('log',)
 
+    # Scripts
+    tcl = ('tcl',)
+
     # Images
     image_dot = ('dot', 'xdot')
     image_png = ('png',)
@@ -155,6 +158,8 @@ def get_default_iomap():
     default_iomap.update({ext: ('image', 'png') for ext in image_png})
     default_iomap.update({ext: ('image', 'jpeg') for ext in image_jpg})
     default_iomap.update({ext: ('image', 'bitmap') for ext in image_bmp})
+
+    default_iomap.update({ext: ('script', 'tcl') for ext in tcl})
 
     return default_iomap
 

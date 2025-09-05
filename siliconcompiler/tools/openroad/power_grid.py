@@ -1,6 +1,8 @@
 from siliconcompiler.tools.openroad._apr import APRTask
 from siliconcompiler.tools.openroad._apr import OpenROADSTAParameter, OpenROADPSMParameter
 
+from siliconcompiler.tool import TaskSkip
+
 
 class PowerGridTask(APRTask, OpenROADSTAParameter, OpenROADPSMParameter):
     '''
@@ -16,7 +18,13 @@ class PowerGridTask(APRTask, OpenROADSTAParameter, OpenROADPSMParameter):
                            "list of nets where a missing terminal is acceptable")
 
         self.add_parameter("pdn_enable", "bool", "enable power grid generation", defvalue=True)
-        self.add_parameter("pdn_config", "[file]", "power grid definition files")
+        self.add_parameter("pdn_fileset", "[(str,str)]", "power grid definition filesets")
+
+    def add_openroad_powergridfileset(self, library, fileset, clobber=False):
+        if clobber:
+            self.set("var", "pdn_fileset", (library, fileset))
+        else:
+            self.add("var", "pdn_fileset", (library, fileset))
 
     def task(self):
         return "power_grid"
@@ -31,30 +39,25 @@ class PowerGridTask(APRTask, OpenROADSTAParameter, OpenROADPSMParameter):
         self.add_required_tool_key("var", "fixed_pin_keepout")
         if self.get("var", "psm_allow_missing_terminal_nets"):
             self.add_required_tool_key("var", "psm_allow_missing_terminal_nets")
+
         self.add_required_tool_key("var", "pdn_enable")
-        if self.get("var", "pdn_config"):
-            self.add_required_tool_key("var", "pdn_config")
+        if not self.get("var", "pdn_fileset"):
+            self.__import_pdn_filesets()
+
+        if self.get("var", "pdn_fileset"):
+            self.add_required_tool_key("var", "pdn_fileset")
+            for lib, fileset in self.get("var", "pdn_fileset"):
+                self.add_required_key("library", lib, "fileset", fileset, "file", "tcl")
+
+    def __import_pdn_filesets(self):
+        for lib in self.schema().get("asic", "asiclib"):
+            libobj = self.schema().get("library", lib, field="schema")
+            if libobj.valid("tool", "openroad", "power_grid_fileset"):
+                for fileset in libobj.get("tool", "openroad", "power_grid_fileset"):
+                    self.add_openroad_powergridfileset(lib, fileset)
 
     def pre_process(self):
         super().pre_process()
 
-        # Setup power grid scripts
-        if self.get("var", "pdn_config"):
-            # Already set so do nothing
-            return
-
-        for lib in self.schema().get("asic", "asiclib"):
-            libobj = self.schema().get("library", lib, field="schema")
-            if libobj.valid("tool", "openroad", "power_grid"):
-                self.add("var", "pdn_config", libobj.find_files("tool", "openroad", "power_grid"))
-
-        # define_pdn_files(chip)
-        # pdncfg = [file for file in chip.find_files('tool', tool, 'task', task, 'file',
-        # 'pdn_config',
-        #                                         step=step, index=index) if file]
-        # if not has_pre_post_script(chip) and \
-        #         (chip.get('tool', tool, 'task', task, 'var', 'pdn_enable',
-        #                 step=step, index=index)[0] == 'false' or len(pdncfg) == 0):
-        #     chip.set('record', 'status', NodeStatus.SKIPPED, step=step, index=index)
-        #     chip.logger.warning(f'{step}/{index} will be skipped since power grid is disabled.')
-        #     return
+        if not self.get("var", "pdn_enable"):
+            raise TaskSkip("power grid is disabled")
