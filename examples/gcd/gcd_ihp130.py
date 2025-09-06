@@ -1,4 +1,4 @@
-#!/usr/-bin/env python3
+#!/usr/bin/env python3
 # Copyright 2024-2025 Silicon Compiler Authors. All Rights Reserved.
 
 from siliconcompiler import ASICProject, DesignSchema
