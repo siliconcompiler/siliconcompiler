@@ -43,7 +43,7 @@ dependencies = [
     "Pillow == 11.3.0",
     "GitPython >= 3.1.44, < 3.2",
     "lambdapdk == 0.2.0-rc5",
-    "PyGithub == 2.7.0",
+    "PyGithub == 2.8.1",
     "urllib3 >= 1.26.0", # Required for PyGithub
     "fasteners == 0.20",
     "fastjsonschema == 2.21.2",
@@ -97,11 +97,11 @@ linkcode = "siliconcompiler.schema.docs:get_codeurl"
 
 [project.optional-dependencies]
 test = [
-    "pytest == 8.4.1",
+    "pytest == 8.4.2",
     "pytest-xdist == 3.8.0",
     "pytest-timeout == 2.4.0",
     "pytest-asyncio == 1.1.0",
-    "pytest-cov == 6.2.1",
+    "pytest-cov == 6.3.0",
     "responses == 0.25.8",
     "PyVirtualDisplay == 3.0",
     "logiklib == 0.1.0"
