@@ -115,7 +115,7 @@ jobs:
 
     - name: Setup python
       id: python
-      uses: actions/setup-python@v5.1.1
+      uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python-version }}
 
