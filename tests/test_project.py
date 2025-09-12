@@ -1622,6 +1622,17 @@ def test_check_manifest_empty(caplog):
     assert "[option,flow] has not been set" in caplog.text
 
 
+def test_check_manifest_empty_with_design(caplog):
+    proj = Project(DesignSchema("testdesign"))
+    setattr(proj, "_Project__logger", logging.getLogger())
+    proj.logger.setLevel(logging.INFO)
+
+    assert proj.check_manifest() is False
+    assert "[option,design] has not been set" not in caplog.text
+    assert "[option,fileset] has not been set" in caplog.text
+    assert "[option,flow] has not been set" in caplog.text
+
+
 def test_check_manifest_design_set_not_loaded(caplog):
     proj = Project()
     proj.set("option", "design", "testdesign")
@@ -1922,3 +1933,70 @@ def test_init_run_no_design(caplog):
     assert proj.get("option", "fileset") == []
 
     assert caplog.text == ""
+
+
+def test_archive_no_jobs():
+    with pytest.raises(ValueError, match="no history to archive"):
+        Project().archive()
+
+
+def test_archive_select_job():
+    proj = Project(DesignSchema("testdesign"))
+    proj.set("option", "jobname", "thisjob")
+    proj._record_history()
+    proj.set("option", "jobname", "thatjob")
+    proj._record_history()
+
+    with patch("siliconcompiler.Project.history") as history:
+        history.return_value = proj
+        proj.archive()
+
+        history.assert_called_once_with("thatjob")
+
+
+def test_archive_default_archive(caplog):
+    proj = Project(DesignSchema("testdesign"))
+    setattr(proj, "_Project__logger", logging.getLogger())
+    proj.logger.setLevel(logging.INFO)
+    proj._record_history()
+
+    proj.archive()
+
+    assert "Creating archive testdesign_job0.tgz..." in caplog.text
+    assert os.path.isfile("testdesign_job0.tgz")
+
+
+def test_archive_archive_name(caplog):
+    proj = Project(DesignSchema("testdesign"))
+    setattr(proj, "_Project__logger", logging.getLogger())
+    proj.logger.setLevel(logging.INFO)
+    proj._record_history()
+
+    proj.archive(archive_name="test.tar.gz")
+
+    assert "Creating archive test.tar.gz..." in caplog.text
+    assert os.path.isfile("test.tar.gz")
+
+
+def test_archive(caplog):
+    design = DesignSchema("testdesign")
+    design.set_topmodule("top", fileset="test")
+    proj = Project(design)
+    proj.add_fileset("test")
+    setattr(proj, "_Project__logger", logging.getLogger())
+    proj.logger.setLevel(logging.INFO)
+
+    flow = FlowgraphSchema("testflow")
+    flow.node("stepone", FauxTask0())
+    flow.node("steptwo", FauxTask0())
+    flow.edge("stepone", "steptwo")
+    proj.set_flow(flow)
+
+    proj._record_history()
+
+    with patch("siliconcompiler.scheduler.SchedulerNode.archive") as archive:
+        proj.archive()
+        assert archive.call_count == 2
+
+    assert "Creating archive testdesign_job0.tgz..." in caplog.text
+    assert os.path.isfile("testdesign_job0.tgz")
