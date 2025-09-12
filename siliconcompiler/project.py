@@ -593,7 +593,6 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             for step, index in flow.get_nodes():
                 if self.get("option", "breakpoint", step=step, index=index):
                     breakpoints.add((step, index))
-            print(breakpoints)
             if breakpoints and self.__dashboard.is_running():
                 self.logger.info("Disabling dashboard due to breakpoints at: "
                                  f"{', '.join([f'{step}/{index}' for step, index in breakpoints])}")
