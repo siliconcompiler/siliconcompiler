@@ -594,6 +594,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                 if self.get("option", "breakpoint", step=step, index=index):
                     breakpoints.add((step, index))
             if breakpoints and self.__dashboard.is_running():
+                breakpoints = sorted(breakpoints)
                 self.logger.info("Disabling dashboard due to breakpoints at: "
                                  f"{', '.join([f'{step}/{index}' for step, index in breakpoints])}")
                 self.__dashboard.stop()
