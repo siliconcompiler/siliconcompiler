@@ -4,6 +4,7 @@ import logging
 import os
 import shutil
 import sys
+import tarfile
 import uuid
 
 import os.path
@@ -30,11 +31,12 @@ from siliconcompiler.dependencyschema import DependencySchema
 from siliconcompiler.pathschema import PathSchemaBase
 
 from siliconcompiler.report.dashboard.cli import CliDashboard
-from siliconcompiler.scheduler import Scheduler
+from siliconcompiler.scheduler import Scheduler, SchedulerNode
 from siliconcompiler.utils.logging import SCColorLoggerFormatter, SCLoggerFormatter
 from siliconcompiler.utils import FilterDirectories, get_file_ext
 from siliconcompiler.utils.multiprocessing import MPManager
 from siliconcompiler.flows.showflow import ShowFlow
+from siliconcompiler.flowgraph import RuntimeFlowgraph
 
 
 class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
@@ -1551,6 +1553,53 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         proj.run(raise_exception=True)
         if screenshot:
             return proj.find_result('png', step=task.task())
+
+    def archive(self, jobname: str = None, include: List[str] = None, archive_name: str = None):
+        '''Archive a job directory.
+
+        Creates a single compressed archive (.tgz) based on the design,
+        jobname, and flowgraph in the current chip manifest. Individual
+        steps and/or indices can be archived based on arguments specified.
+        By default, only outputs, reports, log files, and the final manifest
+        are archived.
+
+        Args:
+            jobs (list of str): List of jobs to archive. By default, archives only the current job.
+            include (list of str): Override of default inclusion rules. Accepts list of glob
+                patterns that are matched from the root of individual step/index directories. To
+                capture all files, supply "*".
+            archive_name (str): Path to the archive
+        '''
+
+        histories = self.getkeys("history")
+
+        if not histories:
+            raise ValueError("no history to archive")
+
+        if jobname is None:
+            jobname = self.get("option", "jobname")
+        if jobname not in histories:
+            org_job = jobname
+            jobname = histories[0]
+            self.logger.warning(f"{org_job} not found in history, picking {jobname}")
+
+        history = self.history(jobname)
+
+        flow = history.get('option', 'flow')
+        flowgraph_nodes = RuntimeFlowgraph(
+            history.get("flowgraph", flow, field='schema'),
+            from_steps=history.get('option', 'from'),
+            to_steps=history.get('option', 'to'),
+            prune_nodes=history.get('option', 'prune')).get_nodes()
+
+        if not archive_name:
+            archive_name = f"{history.name}_{jobname}.tgz"
+
+        self.logger.info(f'Creating archive {archive_name}...')
+
+        with tarfile.open(archive_name, "w:gz") as tar:
+            for step, index in flowgraph_nodes:
+                SchedulerNode(history, step, index).archive(tar, include, True)
 
 
 class SimProject(Project):

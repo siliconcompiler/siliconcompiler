@@ -1247,7 +1247,7 @@ class SchedulerNode:
         if os.path.exists(self.__workdir):
             shutil.rmtree(self.__workdir)
 
-    def archive(self, tar: tarfile.TarFile, include: List[str] = None, verbose: bool = None):
+    def archive(self, tar: tarfile.TarFile, include: List[str] = None, verbose: bool = False):
         """
         Archives the node's results into a tar file.
 
