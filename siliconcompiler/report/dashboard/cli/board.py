@@ -6,6 +6,8 @@ import re
 import time
 import threading
 
+import os.path
+
 from collections import deque
 from dataclasses import dataclass, field
 from enum import Enum
@@ -950,6 +952,9 @@ class Board:
 
         chip_id = f"{job_data.design}/{job_data.jobname}"
         with self._job_data_lock:
+            if complete and chip_id in self._job_data and self._job_data[chip_id].complete:
+                # Dont update again, requires a start of a new run
+                return
             self._job_data[chip_id] = job_data
             self._board_info.data_modified = True
             self._render_event.set()
