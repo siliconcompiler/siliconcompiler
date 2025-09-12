@@ -1622,6 +1622,17 @@ def test_check_manifest_empty(caplog):
     assert "[option,flow] has not been set" in caplog.text
 
 
+def test_check_manifest_empty_with_design(caplog):
+    proj = Project(DesignSchema("testdesign"))
+    setattr(proj, "_Project__logger", logging.getLogger())
+    proj.logger.setLevel(logging.INFO)
+
+    assert proj.check_manifest() is False
+    assert "[option,design] has not been set" not in caplog.text
+    assert "[option,fileset] has not been set" in caplog.text
+    assert "[option,flow] has not been set" in caplog.text
+
+
 def test_check_manifest_design_set_not_loaded(caplog):
     proj = Project()
     proj.set("option", "design", "testdesign")
