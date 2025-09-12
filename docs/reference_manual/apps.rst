@@ -1,5 +1,5 @@
 CLI apps
-----------
+--------
 
 .. scapp::
   :app: sc-dashboard
@@ -21,3 +21,14 @@ CLI apps
 
 .. scapp::
   :app: smake
+
+Support apps
+^^^^^^^^^^^^
+
+.. scapp::
+  :app: python3 -m siliconcompiler.apps.utils.summarize
+  :title: summarize
+
+.. scapp::
+  :app: python3 -m siliconcompiler.apps.utils.replay
+  :title: replay

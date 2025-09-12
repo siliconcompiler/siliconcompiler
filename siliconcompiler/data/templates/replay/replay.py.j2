@@ -11,7 +11,7 @@ import sys
 
 from io import BytesIO
 
-from siliconcompiler import Chip
+from siliconcompiler import Project
 
 # Input files as a tarball encoded as base64
 INPUT_FILES = \{% for line in src_file %}
@@ -19,10 +19,14 @@ INPUT_FILES = \{% for line in src_file %}
 
 
 if __name__ == "__main__":
-    chip = Chip("{{ design }}")
-    chip.read_manifest(os.path.join(os.path.dirname(__file__), "sc_manifest.json"))
+    project = Project.from_manifest(os.path.join(os.path.dirname(__file__), "sc_manifest.json"))
 
-    args = chip.create_cmdline(
+    class CLIProject(Project):
+        def __init__(self):
+            super().__init__()
+            self._add_commandline_argument("check_files", "bool", "Do not run, just check files")
+
+    cli_proj = CLIProject.create_cmdline(
         progname="{{ design }}",
         description="Replay script for {{ design }} / {{ jobname }}",
         switchlist=[
@@ -32,31 +36,23 @@ if __name__ == "__main__":
             "-to",
             "-from",
             "-novercheck",
-            "-continue"
-        ],
-        additional_args={
-            "-check_files": {
-                "action": "store_true",
-                "help": "Do not run, just check files"
-            }
-        })
+            "-continue",
+            "-check_files"
+        ])
 
     # Extract input files
     with BytesIO(base64.b64decode(INPUT_FILES.encode())) as fd:
         with tarfile.open(fileobj=fd, mode='r:gz') as tar:
-            tar.extractall(path=chip._getcollectdir())
+            tar.extractall(path=project.getcollectiondir())
 
-    # Set tool versions{% for node, tool, version in tool_versions %}
-    chip.set("tool", "{{ tool }}", "version", "=={{ version }}", step="{{ node[0] }}", index="{{ node[1] }}"){% endfor %}
-
-    if args["check_files"]:
-        if chip.check_filepaths():
+    if cli_proj.get("cmdarg", "check_files"):
+        if project.check_filepaths():
             sys.exit(0)
         else:
             sys.exit(1)
 
     # Run
-    chip.run()
+    project.run()
 
     # Report summary
-    chip.summary()
+    project.summary()

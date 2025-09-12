@@ -1,5 +1,6 @@
 import importlib
 import inspect
+import shlex
 import subprocess
 
 import os.path
@@ -274,15 +275,20 @@ class TargetGen(SchemaGen):
 class AppGen(SphinxDirective):
 
     option_spec = {
-        'app': str
+        'app': str,
+        'title': str
     }
 
     def run(self):
         app = self.options['app']
 
-        output = subprocess.check_output([app, '--help']).decode('utf-8')
+        output = subprocess.check_output([*shlex.split(app), '--help']).decode('utf-8')
 
-        section = build_section_with_target(app, f"app-{app}", self.state.document)
+        title = self.options.get("title", app)
+
+        section = build_section_with_target(title, f"app-{title}", self.state.document)
+        if title != app:
+            section += literalblock(app)
         section += literalblock(output)
 
         return [section]
