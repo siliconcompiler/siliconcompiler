@@ -41,11 +41,10 @@ def wrap_text(data):
 
 ###########################
 def main():
-    progname = "summarize"
+    progname = "replay"
     description = """
     ------------------------------------------------------------
-    Utility script to print job record information from a manifest
-    needed to replay that manifest.
+    Utility script to generate a replay script from a previous run.
     ------------------------------------------------------------
     """
 
