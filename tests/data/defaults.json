@@ -318,8 +318,8 @@
           }
         },
         "__meta__": {
-          "class": "siliconcompiler.checklist/ChecklistSchema",
-          "sctype": "ChecklistSchema"
+          "class": "siliconcompiler.checklist/Checklist",
+          "sctype": "Checklist"
         }
       }
     },
@@ -1079,8 +1079,8 @@
           }
         },
         "__meta__": {
-          "class": "siliconcompiler.design/DesignSchema",
-          "sctype": "DesignSchema"
+          "class": "siliconcompiler.design/Design",
+          "sctype": "Design"
         }
       }
     },
@@ -1274,8 +1274,8 @@
           }
         },
         "__meta__": {
-          "class": "siliconcompiler.flowgraph/FlowgraphSchema",
-          "sctype": "FlowgraphSchema"
+          "class": "siliconcompiler.flowgraph/Flowgraph",
+          "sctype": "Flowgraph"
         }
       }
     },
@@ -4128,8 +4128,8 @@
           }
         },
         "__meta__": {
-          "class": "siliconcompiler.checklist/ChecklistSchema",
-          "sctype": "ChecklistSchema"
+          "class": "siliconcompiler.checklist/Checklist",
+          "sctype": "Checklist"
         }
       }
     },
@@ -4889,8 +4889,8 @@
           }
         },
         "__meta__": {
-          "class": "siliconcompiler.design/DesignSchema",
-          "sctype": "DesignSchema"
+          "class": "siliconcompiler.design/Design",
+          "sctype": "Design"
         }
       }
     },
@@ -5084,8 +5084,8 @@
           }
         },
         "__meta__": {
-          "class": "siliconcompiler.flowgraph/FlowgraphSchema",
-          "sctype": "FlowgraphSchema"
+          "class": "siliconcompiler.flowgraph/Flowgraph",
+          "sctype": "Flowgraph"
         }
       }
     },
@@ -8697,8 +8697,8 @@
           }
         },
         "__meta__": {
-          "class": "siliconcompiler.checklist/ChecklistSchema",
-          "sctype": "ChecklistSchema"
+          "class": "siliconcompiler.checklist/Checklist",
+          "sctype": "Checklist"
         }
       }
     },
@@ -9458,8 +9458,8 @@
           }
         },
         "__meta__": {
-          "class": "siliconcompiler.design/DesignSchema",
-          "sctype": "DesignSchema"
+          "class": "siliconcompiler.design/Design",
+          "sctype": "Design"
         }
       }
     },
@@ -9653,8 +9653,8 @@
           }
         },
         "__meta__": {
-          "class": "siliconcompiler.flowgraph/FlowgraphSchema",
-          "sctype": "FlowgraphSchema"
+          "class": "siliconcompiler.flowgraph/Flowgraph",
+          "sctype": "Flowgraph"
         }
       }
     },
