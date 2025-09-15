@@ -29,6 +29,10 @@ class ExportTask(KLayoutTask, ScreenshotParams):
                     self.add_required_key(lib, "fileset", fileset, "file", "def")
                     break
 
+        self.add_required_tool_key("var", "stream")
+        self.add_required_tool_key("var", "timestamps")
+        self.add_required_tool_key("var", "screenshot")
+
         default_stream = self.get("var", "stream")
 
         self.add_output_file(ext=default_stream)

@@ -11,7 +11,9 @@ def show(schema, tech, input_path, output_path, screenshot=False, report=None):
     index = schema.get('arg', 'index')
     task = schema.get('flowgraph', flow, step, index, 'task')
 
-    sc_hide_layers = schema.get("tool", "klayout", "task", task, "var", "hide_layers")
+    pdk = schema.get("asic", "pdk")
+
+    sc_hide_layers = schema.get("library", pdk, "tool", "klayout", "hide_layers")
 
     # Load KLayout technology file
     layout_options = tech.load_layout_options
