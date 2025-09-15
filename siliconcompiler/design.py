@@ -309,13 +309,17 @@ class Design(LibrarySchema, DependencySchema):
         return self.get('fileset', fileset, 'param', name)
 
     ###############################################
-    def add_depfileset(self, dep: Union["Design", str], depfileset: str, fileset: str = None):
+    def add_depfileset(self, dep: Union["Design", str],
+                       depfileset: str = None,
+                       fileset: str = None):
         """
         Record a reference to an imported dependency's fileset.
 
         Args:
            dep (:class:`Design` or str): Dependency name or object.
-           depfileset (str): Dependency fileset.
+           depfileset (str): Dependency fileset, if not specified, the fileset will
+            default to the same as the fileset or if only one fileset is present in
+            the dep that will be chosen.
            fileset (str): Fileset name. If not provided, the active fileset is
             used.
 
@@ -341,6 +345,16 @@ class Design(LibrarySchema, DependencySchema):
 
         if not isinstance(dep, Design):
             raise ValueError(f"cannot associate fileset ({depfileset}) with {dep.name}")
+
+        if depfileset is None:
+            if dep.has_fileset(fileset):
+                depfileset = fileset
+            else:
+                filesets = dep.getkeys("fileset")
+                if len(filesets) == 1:
+                    depfileset = filesets[0]
+                else:
+                    raise ValueError(f"depfileset must be specified for {dep.name}")
 
         if not dep.has_fileset(depfileset):
             raise ValueError(f"{dep.name} does not have {depfileset} as a fileset")
