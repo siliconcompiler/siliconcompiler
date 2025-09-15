@@ -110,12 +110,7 @@ class FileSetSchema(PathSchema):
         # map extension to default filetype/fileset
         if not filetype:
             ext = utils.get_file_ext(filename)
-            iomap = utils.get_default_iomap()
-            if ext in iomap:
-                _, default_filetype = iomap[ext]
-                filetype = default_filetype
-            else:
-                raise ValueError(f"Unrecognized file extension: {ext}")
+            filetype = utils.get_default_iomap().get(ext, ext)
 
         if not dataroot:
             dataroot = self._get_active("package")

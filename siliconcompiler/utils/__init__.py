@@ -1,5 +1,4 @@
 import contextlib
-import os
 import re
 import pathlib
 import psutil
@@ -7,11 +6,13 @@ import shutil
 import stat
 import traceback
 
+import os.path
+
 from io import StringIO
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
 
-from siliconcompiler.schema.parametervalue import PathNodeValue
+from typing import Dict
 
 import sys
 if sys.version_info < (3, 10):
@@ -44,7 +45,7 @@ def link_copy(srcfile, dstfile):
             pass
 
 
-def get_file_ext(filename):
+def get_file_ext(filename: str) -> str:
     '''Get base file extension for a given path, disregarding .gz.'''
     if filename.lower().endswith('.gz'):
         filename = os.path.splitext(filename)[0]
@@ -52,7 +53,7 @@ def get_file_ext(filename):
     return filetype
 
 
-def get_default_iomap():
+def get_default_iomap() -> Dict[str, str]:
     """
     Default input file map for SC with filesets and extensions
     """
@@ -117,88 +118,66 @@ def get_default_iomap():
 
     # Build default map with fileset and type
     default_iomap = {}
-    default_iomap.update({ext: ('hll', 'c') for ext in hll_c})
-    default_iomap.update({ext: ('hll', 'llvm') for ext in hll_llvm})
-    default_iomap.update({ext: ('hll', 'bsv') for ext in hll_bsv})
-    default_iomap.update({ext: ('hll', 'scala') for ext in hll_scala})
-    default_iomap.update({ext: ('hll', 'python') for ext in hll_python})
-    default_iomap.update({ext: ('config', 'chisel') for ext in config_chisel})
+    default_iomap.update({ext: "c" for ext in hll_c})
+    default_iomap.update({ext: "llvm" for ext in hll_llvm})
+    default_iomap.update({ext: "bsv" for ext in hll_bsv})
+    default_iomap.update({ext: "scala" for ext in hll_scala})
+    default_iomap.update({ext: "python" for ext in hll_python})
+    default_iomap.update({ext: "chisel" for ext in config_chisel})
 
-    default_iomap.update({ext: ('rtl', 'verilog') for ext in rtl_verilog})
-    default_iomap.update({ext: ('rtl', 'systemverilog') for ext in rtl_systemverilog})
-    default_iomap.update({ext: ('rtl', 'vhdl') for ext in rtl_vhdl})
+    default_iomap.update({ext: "verilog" for ext in rtl_verilog})
+    default_iomap.update({ext: "systemverilog" for ext in rtl_systemverilog})
+    default_iomap.update({ext: "vhdl" for ext in rtl_vhdl})
 
-    default_iomap.update({ext: ('timing', 'liberty') for ext in timing_liberty})
+    default_iomap.update({ext: "liberty" for ext in timing_liberty})
 
-    default_iomap.update({ext: ('layout', 'def') for ext in layout_def})
-    default_iomap.update({ext: ('layout', 'lef') for ext in layout_lef})
-    default_iomap.update({ext: ('layout', 'gds') for ext in layout_gds})
-    default_iomap.update({ext: ('layout', 'oas') for ext in layout_oas})
-    default_iomap.update({ext: ('layout', 'gerber') for ext in layout_gerber})
-    default_iomap.update({ext: ('layout', 'odb') for ext in layout_odb})
+    default_iomap.update({ext: "def" for ext in layout_def})
+    default_iomap.update({ext: "lef" for ext in layout_lef})
+    default_iomap.update({ext: "gds" for ext in layout_gds})
+    default_iomap.update({ext: "oas" for ext in layout_oas})
+    default_iomap.update({ext: "gerber" for ext in layout_gerber})
+    default_iomap.update({ext: "odb" for ext in layout_odb})
 
-    default_iomap.update({ext: ('netlist', 'cdl') for ext in netlist_cdl})
-    default_iomap.update({ext: ('netlist', 'sp') for ext in netlist_sp})
-    default_iomap.update({ext: ('netlist', 'verilog') for ext in netlist_verilog})
+    default_iomap.update({ext: "cdl" for ext in netlist_cdl})
+    default_iomap.update({ext: "sp" for ext in netlist_sp})
+    default_iomap.update({ext: "verilog" for ext in netlist_verilog})
 
-    default_iomap.update({ext: ('waveform', 'vcd') for ext in waveform_vcd})
+    default_iomap.update({ext: "vcd" for ext in waveform_vcd})
 
-    default_iomap.update({ext: ('constraint', 'sdc') for ext in constraint_sdc})
-    default_iomap.update({ext: ('constraint', 'upf') for ext in constraint_upf})
-    default_iomap.update({ext: ('constraint', 'pcf') for ext in constraint_pcf})
+    default_iomap.update({ext: "sdc" for ext in constraint_sdc})
+    default_iomap.update({ext: "upf" for ext in constraint_upf})
+    default_iomap.update({ext: "pcf" for ext in constraint_pcf})
 
-    default_iomap.update({ext: ('fpga', 'xdc') for ext in fpga_xdc})
-    default_iomap.update({ext: ('fpga', 'vpr_place') for ext in fpga_vpr_place})
-    default_iomap.update({ext: ('fpga', 'vpr_route') for ext in fpga_vpr_route})
+    default_iomap.update({ext: "xdc" for ext in fpga_xdc})
+    default_iomap.update({ext: "vpr_place" for ext in fpga_vpr_place})
+    default_iomap.update({ext: "vpr_route" for ext in fpga_vpr_route})
 
-    default_iomap.update({ext: ('report', 'drc') for ext in report_drc})
-    default_iomap.update({ext: ('report', 'log') for ext in report_log})
+    default_iomap.update({ext: "drc" for ext in report_drc})
+    default_iomap.update({ext: "log" for ext in report_log})
 
-    default_iomap.update({ext: ('image', 'dot') for ext in image_dot})
-    default_iomap.update({ext: ('image', 'png') for ext in image_png})
-    default_iomap.update({ext: ('image', 'jpeg') for ext in image_jpg})
-    default_iomap.update({ext: ('image', 'bitmap') for ext in image_bmp})
+    default_iomap.update({ext: "dot" for ext in image_dot})
+    default_iomap.update({ext: "png" for ext in image_png})
+    default_iomap.update({ext: "jpeg" for ext in image_jpg})
+    default_iomap.update({ext: "bitmap" for ext in image_bmp})
 
-    default_iomap.update({ext: ('script', 'tcl') for ext in tcl})
+    default_iomap.update({ext: "tcl" for ext in tcl})
 
     return default_iomap
 
 
-def format_fileset_type_table(indent=12):
-    '''
-    Generate a table to use in the __doc__ of the input function which auto
-    updates based on the iomap
-    '''
-    table = "filetype      | fileset    | suffix (case insensitive)\n"
-    indent = " " * indent
-    table += f"{indent}--------------|------------|---------------------------------------------\n"
-
-    iobytype = {}
-    for ext, settype in get_default_iomap().items():
-        fileset, filetype = settype
-        iobytype.setdefault((fileset, filetype), []).append(ext)
-
-    for settype, exts in iobytype.items():
-        fileset, filetype = settype
-        ext = ",".join(exts)
-        table += f"{indent}{filetype:<14}| {fileset:<11}| {ext}\n"
-
-    return table
-
-
-def default_credentials_file():
+def default_credentials_file() -> str:
     cfg_file = os.path.join(Path.home(), '.sc', 'credentials')
 
     return cfg_file
 
 
-def default_cache_dir():
+def default_cache_dir() -> str:
     cfg_file = os.path.join(Path.home(), '.sc', 'cache')
 
     return cfg_file
 
 
-def default_email_credentials_file():
+def default_email_credentials_file() -> str:
     cfg_file = os.path.join(Path.home(), '.sc', 'email.json')
 
     return cfg_file
@@ -350,16 +329,6 @@ def truncate_text(text, width):
         text = text[:break_at-1] + '...' + text[break_at+3:]
 
     return text
-
-
-def get_hashed_filename(path, package=None):
-    '''
-    Utility to map collected file to an unambiguous name based on its path.
-
-    The mapping looks like:
-    path/to/file.ext => file_<hash('path/to')>.ext
-    '''
-    return PathNodeValue.generate_hashed_path(path, package)
 
 
 def get_cores(physical=False):
