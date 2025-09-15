@@ -73,17 +73,7 @@ Schema Classes
     :show-inheritance:
     :inherited-members:
 
-.. autoclass:: siliconcompiler.ToolSchema
-    :members:
-    :show-inheritance:
-    :inherited-members:
-
-.. autoclass:: siliconcompiler.TaskSchema
-    :members:
-    :show-inheritance:
-    :inherited-members:
-
-.. autoclass:: siliconcompiler.ASICSchema
+.. autoclass:: siliconcompiler.tool.TaskSchema
     :members:
     :show-inheritance:
     :inherited-members:

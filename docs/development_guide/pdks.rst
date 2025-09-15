@@ -95,7 +95,7 @@ Useful APIs
 
 The PDKSchema class provides a comprehensive API for defining all aspects of a PDK.
 
-.. currentmodule:: siliconcompiler.PDKSchema
+.. currentmodule:: siliconcompiler.PDK
 
 Setting Process Metadata
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -144,7 +144,8 @@ These methods use the defined metadata to compute key manufacturing metrics.
 Class Reference
 ---------------
 
-.. autoclass:: siliconcompiler.PDKSchema
+.. autoclass:: siliconcompiler.PDK
+    :no-index:
     :members:
     :show-inheritance:
     :inherited-members:

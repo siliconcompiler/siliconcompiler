@@ -183,7 +183,7 @@ API Quick Reference
 
 The :class:`.TaskSchema` class provides a rich API for defining and controlling how a tool operates. The methods are grouped below by their primary function.
 
-.. currentmodule:: siliconcompiler.TaskSchema
+.. currentmodule:: siliconcompiler.tool.TaskSchema
 
 Task __init__ methods
 ^^^^^^^^^^^^^^^^^^^^^
@@ -300,7 +300,7 @@ These methods are used for auto-generating documentation for your tool.
 Class Reference
 ---------------
 
-.. autoclass:: siliconcompiler.TaskSchema
+.. autoclass:: siliconcompiler.tool.TaskSchema
     :members:
     :show-inheritance:
     :inherited-members:
