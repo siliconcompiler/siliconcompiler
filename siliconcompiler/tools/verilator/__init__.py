@@ -89,6 +89,8 @@ class VerilatorTask(TaskSchema):
         return stdout.split()[1]
 
     def runtime_options(self):
+        filesets = self.schema().get_filesets()
+
         options = super().runtime_options()
 
         options.append("-sv")
@@ -104,7 +106,10 @@ class VerilatorTask(TaskSchema):
         for cmdfile in self.find_files("var", "config"):
             options.append(cmdfile)
 
-        filesets = self.schema().get_filesets()
+        for lib, fileset in filesets:
+            for value in lib.get_file(fileset=fileset, filetype="verilatorctrlfile"):
+                options.append(value)
+
         idirs = []
         defines = []
         params = []
@@ -116,10 +121,6 @@ class VerilatorTask(TaskSchema):
         design = self.schema().design
         for param in design.getkeys("fileset", fileset, "param"):
             params.append((param, design.get("fileset", fileset, "param", param)))
-
-        for lib, fileset in filesets:
-            for value in lib.get_file(fileset=fileset, filetype="config"):
-                options.append(value)
 
         fileset = self.schema().get("option", "fileset")[0]
         design = self.schema().design

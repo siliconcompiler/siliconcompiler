@@ -110,6 +110,9 @@ def get_default_iomap() -> Dict[str, str]:
     # Scripts
     tcl = ('tcl',)
 
+    # Verilator control file
+    verilator = ('vlt',)
+
     # Images
     image_dot = ('dot', 'xdot')
     image_png = ('png',)
@@ -161,6 +164,8 @@ def get_default_iomap() -> Dict[str, str]:
     default_iomap.update({ext: "bitmap" for ext in image_bmp})
 
     default_iomap.update({ext: "tcl" for ext in tcl})
+
+    default_iomap.update({ext: "verilatorctrlfile" for ext in verilator})
 
     return default_iomap
 
