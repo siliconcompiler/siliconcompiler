@@ -5,12 +5,13 @@ import os.path
 
 from unittest.mock import patch
 
-from siliconcompiler import ASICProject, ASICTaskSchema, ToolLibrarySchema, \
-    DesignSchema, FlowgraphSchema
+from siliconcompiler import ASICProject, Design, Flowgraph
+from siliconcompiler.asic import ASICTaskSchema
+from siliconcompiler.library import ToolLibrarySchema
 
 from siliconcompiler.asic import CellArea
 
-from siliconcompiler import StdCellLibrarySchema, PDKSchema
+from siliconcompiler import StdCellLibrary, PDK
 from siliconcompiler.metrics import ASICMetricsSchema
 from siliconcompiler.constraints import ASICTimingConstraintSchema, \
     ASICPinConstraints, ASICAreaConstraint, ASICComponentConstraints
@@ -26,7 +27,7 @@ def running_project():
         def __init__(self):
             super().__init__()
 
-            design = DesignSchema("testdesign")
+            design = Design("testdesign")
             with design.active_fileset("rtl"):
                 design.set_topmodule("designtop")
             self.set_design(design)
@@ -35,7 +36,7 @@ def running_project():
             self._Project__logger = logging.getLogger()
             self.logger.setLevel(logging.INFO)
 
-            flow = FlowgraphSchema("testflow")
+            flow = Flowgraph("testflow")
             flow.node("running", NOPTask())
             flow.node("notrunning", NOPTask())
             flow.edge("running", "notrunning")
@@ -109,7 +110,7 @@ def test_set_mainlib_string():
 
 
 def test_set_mainlib_obj():
-    lib = StdCellLibrarySchema("thislib")
+    lib = StdCellLibrary("thislib")
     proj = ASICProject()
 
     assert proj.get("asic", "mainlib") is None
@@ -134,7 +135,7 @@ def test_set_pdk_string():
 
 
 def test_set_pdk_obj():
-    pdk = PDKSchema("thispdk")
+    pdk = PDK("thispdk")
     proj = ASICProject()
 
     assert proj.get("asic", "pdk") is None
@@ -159,7 +160,7 @@ def test_add_asiclib_string():
 
 
 def test_add_asiclib_obj():
-    lib = StdCellLibrarySchema("thislib")
+    lib = StdCellLibrary("thislib")
     proj = ASICProject()
 
     assert proj.get("asic", "asiclib") == []
@@ -234,8 +235,8 @@ def test_set_asic_delaymodel():
 
 
 def test_add_dep_list():
-    lib0 = StdCellLibrarySchema("thislib")
-    lib1 = StdCellLibrarySchema("thatlib")
+    lib0 = StdCellLibrary("thislib")
+    lib1 = StdCellLibrary("thatlib")
     proj = ASICProject()
 
     proj.add_dep([lib0, lib1])
@@ -288,7 +289,7 @@ def test_check_manifest_incorrect_type_pdk(caplog):
     setattr(proj, "_Project__logger", logging.getLogger())
     proj.logger.setLevel(logging.INFO)
 
-    proj.add_dep(StdCellLibrarySchema("thislib"))
+    proj.add_dep(StdCellLibrary("thislib"))
     proj.set("asic", "pdk", "thislib")
 
     with patch("siliconcompiler.Project.check_manifest") as check_manifest:
@@ -306,7 +307,7 @@ def test_check_manifest_main_libmissing(caplog):
     setattr(proj, "_Project__logger", logging.getLogger())
     proj.logger.setLevel(logging.INFO)
 
-    proj.set_pdk(PDKSchema("thispdk"))
+    proj.set_pdk(PDK("thispdk"))
     proj.set("asic", "mainlib", "thislib")
 
     with patch("siliconcompiler.Project.check_manifest") as check_manifest:
@@ -324,7 +325,7 @@ def test_check_manifest_asiclib_missing(caplog):
     setattr(proj, "_Project__logger", logging.getLogger())
     proj.logger.setLevel(logging.INFO)
 
-    proj.set_pdk(PDKSchema("thispdk"))
+    proj.set_pdk(PDK("thispdk"))
     proj.set("asic", "asiclib", "thislib")
 
     with patch("siliconcompiler.Project.check_manifest") as check_manifest:
@@ -341,8 +342,8 @@ def test_check_manifest_pass(caplog):
     setattr(proj, "_Project__logger", logging.getLogger())
     proj.logger.setLevel(logging.INFO)
 
-    proj.set_pdk(PDKSchema("thispdk"))
-    proj.set_mainlib(StdCellLibrarySchema("thislib"))
+    proj.set_pdk(PDK("thispdk"))
+    proj.set_mainlib(StdCellLibrary("thislib"))
     proj.add_asiclib("thislib")
     proj.set_asic_delaymodel("nldm")
 
@@ -358,8 +359,8 @@ def test_check_manifest_pass_missing_mainlib(caplog):
     setattr(proj, "_Project__logger", logging.getLogger())
     proj.logger.setLevel(logging.INFO)
 
-    proj.set_pdk(PDKSchema("thispdk"))
-    proj.add_asiclib(StdCellLibrarySchema("thislib"))
+    proj.set_pdk(PDK("thispdk"))
+    proj.add_asiclib(StdCellLibrary("thislib"))
     proj.set_asic_delaymodel("nldm")
 
     with patch("siliconcompiler.Project.check_manifest") as check_manifest:
@@ -374,8 +375,8 @@ def test_init_run_set_mainlib(caplog):
     setattr(proj, "_Project__logger", logging.getLogger())
     proj.logger.setLevel(logging.INFO)
 
-    proj.set_pdk(PDKSchema("thispdk"))
-    proj.add_asiclib(StdCellLibrarySchema("thislib"))
+    proj.set_pdk(PDK("thispdk"))
+    proj.add_asiclib(StdCellLibrary("thislib"))
 
     assert proj.get("asic", "mainlib") is None
     with patch("siliconcompiler.Project._init_run") as pinit:
@@ -391,8 +392,8 @@ def test_init_run_set_pdk_asiclib(caplog):
     setattr(proj, "_Project__logger", logging.getLogger())
     proj.logger.setLevel(logging.INFO)
 
-    lib = StdCellLibrarySchema("thislib")
-    lib.add_asic_pdk(PDKSchema("thispdk"))
+    lib = StdCellLibrary("thislib")
+    lib.add_asic_pdk(PDK("thispdk"))
 
     proj.set_mainlib(lib)
 
@@ -894,7 +895,7 @@ def test_get_clock_none(running_project, running_node):
 
 
 def test_snapshot_info_empty():
-    proj = ASICProject(DesignSchema("testdesign"))
+    proj = ASICProject(Design("testdesign"))
 
     assert proj._snapshot_info() == [
         ("Design", "testdesign")
@@ -902,7 +903,7 @@ def test_snapshot_info_empty():
 
 
 def test_snapshot_info_pdk():
-    proj = ASICProject(DesignSchema("testdesign"))
+    proj = ASICProject(Design("testdesign"))
     proj.set("asic", "pdk", "testpdk")
 
     assert proj._snapshot_info() == [

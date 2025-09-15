@@ -129,12 +129,12 @@ General
 ^^^^^^^
 
 .. schema::
-  :root: siliconcompiler/DesignSchema
+  :root: siliconcompiler/Design
   :add_class:
-  :ref_root: DesignSchema
+  :ref_root: Design
 
 .. schema::
-  :root: siliconcompiler/LibrarySchema
+  :root: siliconcompiler.library/LibrarySchema
   :add_class:
   :ref_root: LibrarySchema
 
@@ -147,21 +147,21 @@ ASIC Specific
 ^^^^^^^^^^^^^
 
 .. schema::
-  :root: siliconcompiler/StdCellLibrarySchema
+  :root: siliconcompiler/StdCellLibrary
   :add_class:
-  :ref_root: StdCellLibrarySchema
+  :ref_root: StdCellLibrary
 
 .. schema::
-  :root: siliconcompiler/PDKSchema
+  :root: siliconcompiler/PDK
   :add_class:
-  :ref_root: PDKSchema
+  :ref_root: PDK
 
 FPGA Specific
 ^^^^^^^^^^^^^
 .. schema::
-  :root: siliconcompiler/FPGASchema
+  :root: siliconcompiler/FPGA
   :add_class:
-  :ref_root: FPGASchema
+  :ref_root: FPGA
 
 
 meta data

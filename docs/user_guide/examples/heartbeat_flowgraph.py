@@ -3,7 +3,7 @@
 #
 ##
 
-from siliconcompiler import FlowgraphSchema
+from siliconcompiler import Flowgraph
 
 # import pre-defined python packages for setting up tools used in flowgraph
 from siliconcompiler.tools.slang import elaborate
@@ -11,7 +11,7 @@ from siliconcompiler.tools.yosys import syn_asic
 
 # modify flowgraph:
 # start of flowgraph setup <docs reference>
-flow = FlowgraphSchema('synonlyflow')
+flow = Flowgraph('synonlyflow')
 flow.node('elaborate', elaborate.Elaborate())               # use surelog for import
 flow.node('syn', syn_asic.ASICSynthesis())               # use yosys for synthesis
 flow.edge('elaborate', 'syn')               # perform syn after import

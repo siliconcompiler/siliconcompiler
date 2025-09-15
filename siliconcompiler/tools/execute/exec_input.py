@@ -3,7 +3,7 @@ import stat
 
 import os.path
 
-from siliconcompiler import TaskSchema
+from siliconcompiler.tool import TaskSchema
 
 
 class ExecInputTask(TaskSchema):
@@ -48,15 +48,15 @@ class ExecInputTask(TaskSchema):
 
     @classmethod
     def make_docs(cls):
-        from siliconcompiler import FlowgraphSchema, DesignSchema, Project
+        from siliconcompiler import Flowgraph, Design, Project
         from siliconcompiler.scheduler import SchedulerNode
         from siliconcompiler.tools.builtin.nop import NOPTask
-        design = DesignSchema("<design>")
+        design = Design("<design>")
         with design.active_fileset("docs"):
             design.set_topmodule("top")
         proj = Project(design)
         proj.add_fileset("docs")
-        flow = FlowgraphSchema("docsflow")
+        flow = Flowgraph("docsflow")
         flow.node("<in>", NOPTask())
         flow.node("<step>", cls(), index="<index>")
         flow.edge("<in>", "<step>", head_index="<index>")

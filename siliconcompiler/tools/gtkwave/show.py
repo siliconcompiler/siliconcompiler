@@ -1,6 +1,6 @@
 import os.path
 
-from siliconcompiler import ShowTaskSchema
+from siliconcompiler.tool import ShowTaskSchema
 
 
 class ShowTask(ShowTaskSchema):

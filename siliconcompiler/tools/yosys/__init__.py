@@ -20,16 +20,16 @@ from typing import List, Union
 
 from siliconcompiler import sc_open
 
-from siliconcompiler import StdCellLibrarySchema
-from siliconcompiler import FPGASchema
-from siliconcompiler import TaskSchema
+from siliconcompiler import StdCellLibrary
+from siliconcompiler import FPGA
+from siliconcompiler.tool import TaskSchema
 
 
-class YosysStdCellLibrary(StdCellLibrarySchema):
+class YosysStdCellLibrary(StdCellLibrary):
     """
     Schema for a standard cell library specifically for the Yosys tool.
 
-    This class extends the base StdCellLibrarySchema to define and manage
+    This class extends the base StdCellLibrary to define and manage
     a variety of tool-specific parameters required by Yosys for synthesis
     and technology mapping.
     """
@@ -189,11 +189,11 @@ class YosysStdCellLibrary(StdCellLibrarySchema):
             self.add("tool", "yosys", "blackbox_fileset", fileset)
 
 
-class YosysFPGA(FPGASchema):
+class YosysFPGA(FPGA):
     """
     Schema for defining FPGA-specific parameters for the Yosys tool.
 
-    This class extends the base FPGASchema to manage various configurations
+    This class extends the base FPGA to manage various configurations
     and technology-specific files required for synthesizing designs onto
     an FPGA using Yosys, including macro libraries, technology maps, and
     feature sets.

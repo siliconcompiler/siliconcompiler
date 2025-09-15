@@ -4,7 +4,7 @@ import os.path
 
 from pathlib import Path
 
-from siliconcompiler.packageschema import PackageSchema
+from siliconcompiler.schema_support.packageschema import PackageSchema
 
 
 def test_keys():

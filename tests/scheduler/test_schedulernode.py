@@ -11,9 +11,9 @@ from pathlib import Path
 from multiprocessing import Queue
 from unittest.mock import patch
 
-from siliconcompiler import Project, FlowgraphSchema, DesignSchema
+from siliconcompiler import Project, Flowgraph, Design
 from siliconcompiler import NodeStatus
-from siliconcompiler import TaskSchema
+from siliconcompiler.tool import TaskSchema
 from siliconcompiler.tool import TaskSkip
 from siliconcompiler.tools.builtin.nop import NOPTask
 from siliconcompiler.tools.builtin.join import JoinTask
@@ -24,12 +24,12 @@ from siliconcompiler.scheduler import SchedulerNode
 
 @pytest.fixture
 def project():
-    flow = FlowgraphSchema("testflow")
+    flow = Flowgraph("testflow")
     flow.node("stepone", NOPTask())
     flow.node("steptwo", NOPTask())
     flow.edge("stepone", "steptwo")
 
-    design = DesignSchema("testdesign")
+    design = Design("testdesign")
     with design.active_fileset("rtl"):
         design.set_topmodule("top")
 
@@ -42,12 +42,12 @@ def project():
 
 @pytest.fixture
 def echo_project():
-    flow = FlowgraphSchema("testflow")
+    flow = Flowgraph("testflow")
     flow.node("stepone", EchoTask())
     flow.node("steptwo", EchoTask())
     flow.edge("stepone", "steptwo")
 
-    design = DesignSchema("testdesign")
+    design = Design("testdesign")
     with design.active_fileset("rtl"):
         design.set_topmodule("top")
 
@@ -393,7 +393,7 @@ def test_check_previous_run_status_flow(project, caplog):
     setattr(project, "_Project__logger", logging.getLogger())
     project.logger.setLevel(logging.DEBUG)
     node = SchedulerNode(project, "steptwo", "0")
-    flow = FlowgraphSchema("testflow0")
+    flow = Flowgraph("testflow0")
     flow.node("stepone", NOPTask())
     flow.node("steptwo", NOPTask())
     flow.edge("stepone", "steptwo")
@@ -410,7 +410,7 @@ def test_check_previous_run_status_tool(project, caplog):
     setattr(project, "_Project__logger", logging.getLogger())
     project.logger.setLevel(logging.DEBUG)
     node = SchedulerNode(project, "steptwo", "0")
-    flow = FlowgraphSchema("testflow")
+    flow = Flowgraph("testflow")
     flow.node("stepone", NOPTask())
     flow.node("steptwo", EchoTask())
     flow.edge("stepone", "steptwo")
@@ -429,7 +429,7 @@ def test_check_previous_run_status_task(project, caplog):
     project.logger.setLevel(logging.DEBUG)
     node = SchedulerNode(project, "steptwo", "0")
 
-    flow = FlowgraphSchema("testflow")
+    flow = Flowgraph("testflow")
     flow.node("stepone", NOPTask())
     flow.node("steptwo", JoinTask())
     flow.edge("stepone", "steptwo")
@@ -1304,9 +1304,11 @@ def test_report_output_files_extra_outputs(echo_project, caplog):
 def test_run_pass(project):
     node = SchedulerNode(project, "stepone", "0")
     node.task.setup_work_directory(node.workdir)
-    with patch("siliconcompiler.record.RecordSchema.record_userinformation") as call_track, \
-         patch("siliconcompiler.record.RecordSchema.record_version") as call_version, \
-         patch("siliconcompiler.pathschema.PathSchemaBase.hash_files") as call_hash:
+    with patch("siliconcompiler.schema_support.record.RecordSchema.record_userinformation") \
+            as call_track, \
+         patch("siliconcompiler.schema_support.record.RecordSchema.record_version") \
+            as call_version, \
+         patch("siliconcompiler.schema_support.pathschema.PathSchemaBase.hash_files") as call_hash:
         node.run()
         call_track.assert_not_called()
         call_version.assert_called_once()
@@ -1323,9 +1325,11 @@ def test_run_pass_record(project):
     node = SchedulerNode(project, "stepone", "0")
     node.task.setup_work_directory(node.workdir)
 
-    with patch("siliconcompiler.record.RecordSchema.record_userinformation") as call_track, \
-         patch("siliconcompiler.record.RecordSchema.record_version") as call_version, \
-         patch("siliconcompiler.pathschema.PathSchemaBase.hash_files") as call_hash:
+    with patch("siliconcompiler.schema_support.record.RecordSchema.record_userinformation") \
+            as call_track, \
+         patch("siliconcompiler.schema_support.record.RecordSchema.record_version") \
+            as call_version, \
+         patch("siliconcompiler.schema_support.pathschema.PathSchemaBase.hash_files") as call_hash:
         node.run()
         call_track.assert_called_once()
         call_version.assert_called_once()
@@ -1348,7 +1352,7 @@ def test_run_pass_restore_env(project):
         assert "THISVALUE" == os.environ["TEST"]
         return 0
 
-    with patch("siliconcompiler.TaskSchema.run_task") as run_task, \
+    with patch("siliconcompiler.tool.TaskSchema.run_task") as run_task, \
             patch("siliconcompiler.scheduler.SchedulerNode.check_logfile") as check_logfile:
         run_task.side_effect = check_run
         node.run()
@@ -1364,9 +1368,11 @@ def test_run_pass_hash(project):
     node = SchedulerNode(project, "stepone", "0")
     node.task.setup_work_directory(node.workdir)
 
-    with patch("siliconcompiler.record.RecordSchema.record_userinformation") as call_track, \
-         patch("siliconcompiler.record.RecordSchema.record_version") as call_version, \
-         patch("siliconcompiler.pathschema.PathSchemaBase.hash_files") as call_hash:
+    with patch("siliconcompiler.schema_support.record.RecordSchema.record_userinformation") \
+            as call_track, \
+         patch("siliconcompiler.schema_support.record.RecordSchema.record_version") \
+            as call_version, \
+         patch("siliconcompiler.schema_support.pathschema.PathSchemaBase.hash_files") as call_hash:
         node.run()
         call_track.assert_not_called()
         call_version.assert_called_once()
@@ -1446,7 +1452,7 @@ def test_run_failed_to_execute_initial_save_has_error(project):
 
     assert node._SchedulerNode__generate_test_case is True
 
-    with patch("siliconcompiler.TaskSchema.run_task") as run_task, \
+    with patch("siliconcompiler.tool.TaskSchema.run_task") as run_task, \
             patch("siliconcompiler.scheduler.SchedulerNode.halt") as halt, \
             patch("siliconcompiler.scheduler.SchedulerNode._SchedulerNode__generate_testcase") as \
             testcase:
@@ -1476,7 +1482,7 @@ def test_run_failed_to_execute_generate_issue(project, caplog):
 
     assert node._SchedulerNode__generate_test_case is True
 
-    with patch("siliconcompiler.TaskSchema.run_task") as run_task, \
+    with patch("siliconcompiler.tool.TaskSchema.run_task") as run_task, \
             patch("siliconcompiler.scheduler.SchedulerNode._SchedulerNode__generate_testcase") as \
             testcase:
         run_task.return_value = 1

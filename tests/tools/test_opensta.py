@@ -3,7 +3,7 @@ import pytest
 
 import os.path
 
-from siliconcompiler import ASICProject, DesignSchema, FlowgraphSchema
+from siliconcompiler import ASICProject, Design, Flowgraph
 from siliconcompiler.tools.opensta import timing
 
 from siliconcompiler.targets import freepdk45_demo
@@ -15,7 +15,7 @@ from tools.inputimporter import ImporterTask
 @pytest.mark.quick
 @pytest.mark.ready
 def test_opensta(datadir):
-    design = DesignSchema("testdesign")
+    design = Design("testdesign")
     design.set_dataroot("root", datadir)
     with design.active_dataroot("root"), design.active_fileset("rtl"):
         design.set_topmodule("foo")
@@ -26,7 +26,7 @@ def test_opensta(datadir):
     proj.add_fileset(["rtl", "sdc"])
     proj.load_target(freepdk45_demo.setup)
 
-    flow = FlowgraphSchema("timing")
+    flow = Flowgraph("timing")
     flow.node("opensta", timing.TimingTask())
     proj.set_flow(flow)
 
@@ -42,7 +42,7 @@ def test_opensta(datadir):
 @pytest.mark.quick
 @pytest.mark.ready
 def test_opensta_sdf(datadir):
-    design = DesignSchema("testdesign")
+    design = Design("testdesign")
     design.set_dataroot("root", datadir)
     with design.active_dataroot("root"), design.active_fileset("rtl"):
         design.set_topmodule("foo")
@@ -53,7 +53,7 @@ def test_opensta_sdf(datadir):
     proj.add_fileset(["rtl", "sdc"])
     proj.load_target(freepdk45_demo.setup)
 
-    flow = FlowgraphSchema("timing")
+    flow = Flowgraph("timing")
     flow.node('import', ImporterTask())
     flow.node("opensta", timing.TimingTask())
     flow.edge('import', 'opensta')

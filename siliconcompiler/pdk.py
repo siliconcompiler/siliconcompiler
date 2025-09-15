@@ -5,13 +5,13 @@ from typing import Tuple
 from siliconcompiler.schema import EditableSchema, Parameter, Scope, BaseSchema
 from siliconcompiler.schema.utils import trim
 
-from siliconcompiler import ToolLibrarySchema
-from siliconcompiler.pathschema import PathSchema
-from siliconcompiler.filesetschema import FileSetSchema
-from siliconcompiler.packageschema import PackageSchema
+from siliconcompiler.library import ToolLibrarySchema
+from siliconcompiler.schema_support.pathschema import PathSchema
+from siliconcompiler.schema_support.filesetschema import FileSetSchema
+from siliconcompiler.schema_support.packageschema import PackageSchema
 
 
-class PDKSchema(ToolLibrarySchema):
+class PDK(ToolLibrarySchema):
     """
     A schema for managing and validating Process Design Kit (PDK) configurations.
 
@@ -23,7 +23,7 @@ class PDKSchema(ToolLibrarySchema):
     """
     def __init__(self, name: str = None):
         """
-        Initializes a PDKSchema object.
+        Initializes a PDK object.
 
         Args:
             name (str, optional): The name of the PDK. Defaults to None.
@@ -577,7 +577,7 @@ class PDKSchema(ToolLibrarySchema):
         Returns the meta data for getdict
         """
 
-        return PDKSchema.__name__
+        return PDK.__name__
 
     def calc_yield(self, diearea: float, model: str = 'poisson') -> float:
         '''Calculates raw die yield.

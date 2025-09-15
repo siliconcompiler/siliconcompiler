@@ -8,7 +8,7 @@ from siliconcompiler.schema import EditableSchema, Parameter, PerNode, Scope
 from siliconcompiler.schema.utils import trim
 
 from siliconcompiler.utils import truncate_text, units
-from siliconcompiler.record import RecordTime
+from siliconcompiler.schema_support.record import RecordTime
 
 
 class MetricSchema(BaseSchema):
@@ -182,7 +182,7 @@ class MetricSchema(BaseSchema):
         Args:
             step (str): The step of the node.
             index (str or int): The index of the node.
-            flow (FlowgraphSchema): The flowgraph containing the nodes.
+            flow (Flowgraph): The flowgraph containing the nodes.
             record (RecordSchema): The record schema containing timing data.
 
         Returns:

@@ -9,13 +9,13 @@ from unittest.mock import patch
 
 from siliconcompiler.apps import sc_issue
 
-from siliconcompiler import FlowgraphSchema, Project
+from siliconcompiler import Flowgraph, Project
 from siliconcompiler.tools.builtin.nop import NOPTask
 
 
 @pytest.fixture
 def project(heartbeat_design):
-    flow = FlowgraphSchema("testflow")
+    flow = Flowgraph("testflow")
 
     flow.node("stepone", NOPTask())
     flow.node("steptwo", NOPTask())

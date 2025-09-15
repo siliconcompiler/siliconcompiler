@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # Import the core classes from the siliconcompiler library.
-from siliconcompiler import ASICProject, DesignSchema
+from siliconcompiler import ASICProject, Design
 # Import a pre-defined target for the FreePDK45 process.
 from siliconcompiler.targets import freepdk45_demo
 # Import the base ASIC flow to customize it.
@@ -20,7 +20,7 @@ def main():
 
     # --- Design Setup ---
     # Create a design schema to hold the project's configuration.
-    design = DesignSchema("fibone")
+    design = Design("fibone")
     # Set up a 'dataroot' to easily reference local files.
     design.set_dataroot("fibone", __file__)
 

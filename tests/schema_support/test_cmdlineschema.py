@@ -7,7 +7,7 @@ from siliconcompiler.schema import BaseSchema
 from siliconcompiler.schema import EditableSchema
 from siliconcompiler.schema import Parameter
 from siliconcompiler.schema import PerNode
-from siliconcompiler.cmdlineschema import CommandLineSchema
+from siliconcompiler.schema_support.cmdlineschema import CommandLineSchema
 
 
 @pytest.fixture

@@ -1,6 +1,6 @@
 import pytest
 
-from siliconcompiler import Project, FlowgraphSchema
+from siliconcompiler import Project, Flowgraph
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.tools.xdm import convert
 from siliconcompiler.tools.xyce import simulate
@@ -13,7 +13,7 @@ def test_xdm_version(gcd_design):
     proj = Project(gcd_design)
     proj.add_fileset("rtl")
 
-    flow = FlowgraphSchema("testflow")
+    flow = Flowgraph("testflow")
     flow.node("version", convert.ConvertTask())
     proj.set_flow(flow)
 
@@ -30,7 +30,7 @@ def test_xyce_version(gcd_design):
     proj = Project(gcd_design)
     proj.add_fileset("rtl")
 
-    flow = FlowgraphSchema("testflow")
+    flow = Flowgraph("testflow")
     flow.node("version", simulate.SimulateTask())
     proj.set_flow(flow)
 

@@ -13,14 +13,14 @@ Sources: https://github.com/ferrandi/PandA-bambu
 
 Installation: https://panda.dei.polimi.it/?page_id=88
 '''
-from siliconcompiler import StdCellLibrarySchema
+from siliconcompiler import StdCellLibrary
 
 
-class BambuStdCellLibrary(StdCellLibrarySchema):
+class BambuStdCellLibrary(StdCellLibrary):
     """
     Schema for a standard cell library specifically for the Bambu tool.
 
-    This class extends the base StdCellLibrarySchema to define and manage
+    This class extends the base StdCellLibrary to define and manage
     tool-specific parameters required by Bambu, such as the device name
     and a clock multiplier factor.
     """

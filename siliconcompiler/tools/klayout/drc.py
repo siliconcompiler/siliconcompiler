@@ -5,7 +5,7 @@ import os.path
 from xml.etree import ElementTree
 
 from siliconcompiler.tools.klayout import KLayoutTask
-from siliconcompiler import ASICTaskSchema
+from siliconcompiler.asic import ASICTaskSchema
 
 
 class DRCTask(KLayoutTask):

@@ -2,10 +2,11 @@ from siliconcompiler.tools.openroad import rcx_bench
 from siliconcompiler.tools.openroad import rcx_extract
 from siliconcompiler.tools.builtin import nop
 
-from siliconcompiler import FlowgraphSchema, TaskSchema
+from siliconcompiler import Flowgraph
+from siliconcompiler.tool import TaskSchema
 
 
-class GenerateOpenRCXFlow(FlowgraphSchema):
+class GenerateOpenRCXFlow(Flowgraph):
     '''A flow to generate OpenRCX parasitic extraction decks for OpenROAD.
 
     This flow automates the process of characterizing a parasitic extraction

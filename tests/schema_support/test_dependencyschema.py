@@ -6,7 +6,7 @@ import os.path
 from unittest.mock import patch
 
 from siliconcompiler.schema import NamedSchema, BaseSchema
-from siliconcompiler.dependencyschema import DependencySchema
+from siliconcompiler.schema_support.dependencyschema import DependencySchema
 
 
 def test_init():

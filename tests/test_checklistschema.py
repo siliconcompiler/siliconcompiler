@@ -3,15 +3,15 @@ import os
 import pytest
 
 from siliconcompiler import Project, NodeStatus
-from siliconcompiler import FlowgraphSchema, DesignSchema
+from siliconcompiler import Flowgraph, Design
 from siliconcompiler.schema import EditableSchema, Parameter, PerNode
 
-from siliconcompiler.checklist import ChecklistSchema
+from siliconcompiler.checklist import Checklist
 
 
 @pytest.fixture
 def project():
-    class TestFlow(FlowgraphSchema):
+    class TestFlow(Flowgraph):
         def __init__(self):
             super().__init__("testflow")
 
@@ -19,7 +19,7 @@ def project():
 
     class TestProject(Project):
         def __init__(self):
-            super().__init__(DesignSchema("testdesign"))
+            super().__init__(Design("testdesign"))
 
             self.set_flow(TestFlow())
 
@@ -43,7 +43,7 @@ def test_check_fail_unmet_spec(project, caplog):
                 'build/testdesign/job0/teststep/0/testtask.log',
                 step='teststep', index='0')
 
-    checklist = ChecklistSchema("testchecklist")
+    checklist = Checklist("testchecklist")
     checklist.set("d0", "criteria", "errors==0")
     checklist.set("d0", "task", ('job0', 'teststep', '0'))
 
@@ -68,7 +68,7 @@ def test_check_fail_invalid_node(project, caplog):
                 'build/testdesign/job0/teststep/0/testtask.log',
                 step='teststep', index='0')
 
-    checklist = ChecklistSchema("testchecklist")
+    checklist = Checklist("testchecklist")
     checklist.set("d0", "criteria", "errors==0")
     checklist.set("d0", "task", ('job0', 'notvalid', '0'))
 
@@ -84,7 +84,7 @@ def test_check_fail_invalid_node(project, caplog):
 def test_check_fail_invalid_missing_docs(project, caplog):
     project.set('metric', 'errors', 1, step='teststep', index='0')
 
-    checklist = ChecklistSchema("testchecklist")
+    checklist = Checklist("testchecklist")
     checklist.set("d0", "criteria", "errors==1")
     checklist.set("d0", "task", ('job0', 'teststep', '0'))
 
@@ -112,7 +112,7 @@ def test_check_pass(project, caplog):
                 'build/testdesign/job0/teststep/0/testtask.log',
                 step='teststep', index='0')
 
-    checklist = ChecklistSchema("testchecklist")
+    checklist = Checklist("testchecklist")
     checklist.set("d1", "criteria", "errors<2")
     checklist.set("d1", "task", ('job0', 'teststep', '0'))
 
@@ -138,7 +138,7 @@ def test_check_item_missing(project, caplog):
                 'build/testdesign/job0/teststep/0/testtask.log',
                 step='teststep', index='0')
 
-    checklist = ChecklistSchema("testchecklist")
+    checklist = Checklist("testchecklist")
     checklist.set("d1", "criteria", "errors<2")
     checklist.set("d1", "task", ('job0', 'teststep', '0'))
 
@@ -164,7 +164,7 @@ def test_check_node_skipped(project, caplog):
                 step='teststep', index='0')
     project.set("record", "status", NodeStatus.SKIPPED, step="teststep", index="0")
 
-    checklist = ChecklistSchema("testchecklist")
+    checklist = Checklist("testchecklist")
     checklist.set("d1", "criteria", "errors<2")
     checklist.set("d1", "task", ('job0', 'teststep', '0'))
 
@@ -189,7 +189,7 @@ def test_check_non_metric(project, caplog):
                 'build/testdesign/job0/teststep/0/testtask.log',
                 step='teststep', index='0')
 
-    checklist = ChecklistSchema("testchecklist")
+    checklist = Checklist("testchecklist")
     checklist.set("d1", "criteria", "error<2")
     checklist.set("d1", "task", ('job0', 'teststep', '0'))
 
@@ -214,7 +214,7 @@ def test_check_criteria_formatting_float_fail(project, criteria):
     EditableSchema(project).insert("metric", "fmax", Parameter("float", pernode=PerNode.REQUIRED))
     project.set('metric', 'fmax', 5, step='teststep', index='0')
 
-    checklist = ChecklistSchema("testchecklist")
+    checklist = Checklist("testchecklist")
     checklist.set("d1", "criteria", f'fmax=={criteria}')
     checklist.set("d1", "task", ('job0', 'teststep', '0'))
 
@@ -248,7 +248,7 @@ def test_check_criteria_formatting_float_pass(project, criteria):
                 'build/testdesign/job0/teststep/0/testtask.log',
                 step='teststep', index='0')
 
-    checklist = ChecklistSchema("testchecklist")
+    checklist = Checklist("testchecklist")
     checklist.set("d1", "criteria", f'fmax=={criteria}')
     checklist.set("d1", "task", ('job0', 'teststep', '0'))
 

@@ -5,8 +5,8 @@ import os.path
 
 from unittest.mock import patch
 
-from siliconcompiler import Project, ASICProject, DesignSchema, PDKSchema
-from siliconcompiler import ShowTaskSchema, ScreenshotTaskSchema
+from siliconcompiler import Project, ASICProject, Design, PDK
+from siliconcompiler.tool import ShowTaskSchema, ScreenshotTaskSchema
 
 from siliconcompiler.tools.klayout import show as klayout_show
 from siliconcompiler.tools.openroad import show as openroad_show
@@ -33,7 +33,7 @@ def exit_on_show(monkeypatch):
 
     monkeypatch.setattr(ShowTaskSchema, "setup", mock_setup)
 
-    with patch.dict("siliconcompiler.ShowTaskSchema._ShowTaskSchema__TASKS", clear=True):
+    with patch.dict("siliconcompiler.tool.ShowTaskSchema._ShowTaskSchema__TASKS", clear=True):
         yield
 
 
@@ -46,7 +46,7 @@ def exit_on_show(monkeypatch):
                          [(freepdk45_demo, 'heartbeat_freepdk45.def'),
                           (skywater130_demo, 'heartbeat_sky130.def')])
 def test_show_def(target, testfile, task, datadir, display):
-    design = DesignSchema("heartbeat")
+    design = Design("heartbeat")
     with design.active_fileset("rtl"):
         design.set_topmodule("heartbeat")
     proj = ASICProject(design)
@@ -68,7 +68,7 @@ def test_show_def(target, testfile, task, datadir, display):
                          [(freepdk45_demo, 'heartbeat_freepdk45.def'),
                           (skywater130_demo, 'heartbeat_sky130.def')])
 def test_screenshot_def(target, testfile, task, datadir, display):
-    design = DesignSchema("heartbeat")
+    design = Design("heartbeat")
     with design.active_fileset("rtl"):
         design.set_topmodule("heartbeat")
     proj = ASICProject(design)
@@ -86,12 +86,12 @@ def test_screenshot_def(target, testfile, task, datadir, display):
 @pytest.mark.ready
 def test_show_lyp_tool_klayout(datadir, display):
     ''' Test sc-show with only a KLayout .lyp file for layer properties '''
-    design = DesignSchema("heartbeat")
+    design = Design("heartbeat")
     with design.active_fileset("rtl"):
         design.set_topmodule("heartbeat")
     proj = ASICProject(design)
     proj.load_target(freepdk45_demo.setup)
-    pdk: PDKSchema = proj.get("library", "freepdk45", field="schema")
+    pdk: PDK = proj.get("library", "freepdk45", field="schema")
     pdk.set("pdk", "layermapfileset", "klayout", "def", "klayout", [], clobber=True)
 
     ShowTaskSchema.register_task(klayout_show.ShowTask)
@@ -104,7 +104,7 @@ def test_show_lyp_tool_klayout(datadir, display):
 @pytest.mark.quick
 @pytest.mark.ready
 def test_show_nopdk_tool_klayout(datadir, display):
-    design = DesignSchema("heartbeat")
+    design = Design("heartbeat")
     with design.active_fileset("rtl"):
         design.set_topmodule("heartbeat")
     proj = ASICProject(design)

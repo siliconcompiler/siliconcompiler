@@ -16,7 +16,7 @@ from datetime import datetime
 
 from siliconcompiler import Project
 from siliconcompiler import utils
-from siliconcompiler.record import RecordTime
+from siliconcompiler.schema_support.record import RecordTime
 
 
 def make_bytes(data):

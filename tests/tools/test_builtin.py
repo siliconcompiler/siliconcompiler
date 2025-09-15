@@ -3,7 +3,7 @@ import pytest
 
 from unittest.mock import patch
 
-from siliconcompiler import FlowgraphSchema, DesignSchema, Project
+from siliconcompiler import Flowgraph, Design, Project
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.tools.builtin.nop import NOPTask
 from siliconcompiler.tools.builtin.join import JoinTask
@@ -16,13 +16,13 @@ from siliconcompiler.tools.builtin.verify import VerifyTask
 @pytest.fixture
 def minmax_project():
     def minmax(cls, parallel: int = 10):
-        design = DesignSchema("testdesign")
+        design = Design("testdesign")
         with design.active_fileset("rtl"):
             design.set_topmodule("top")
 
         proj = Project(design)
 
-        flow = FlowgraphSchema("test")
+        flow = Flowgraph("test")
 
         flow.node("end", cls())
         for n in range(parallel):
@@ -71,11 +71,11 @@ def test_verify_name():
 
 
 def test_nop_select_inputs(caplog):
-    design = DesignSchema("testdesign")
+    design = Design("testdesign")
     with design.active_fileset("rtl"):
         design.set_topmodule("top")
 
-    flow = FlowgraphSchema("test")
+    flow = Flowgraph("test")
     flow.node("start", NOPTask())
     flow.node("end", NOPTask())
     flow.edge("start", "end")
@@ -95,11 +95,11 @@ def test_nop_select_inputs(caplog):
 
 
 def test_join_select_inputs(caplog):
-    design = DesignSchema("testdesign")
+    design = Design("testdesign")
     with design.active_fileset("rtl"):
         design.set_topmodule("top")
 
-    flow = FlowgraphSchema("test")
+    flow = Flowgraph("test")
     flow.node("start", NOPTask())
     flow.node("end", JoinTask())
     flow.edge("start", "end")
@@ -313,11 +313,11 @@ def test_verify_input_fail(minmax_project):
 
 @pytest.mark.parametrize("cls", [NOPTask, JoinTask, MinimumTask, MaximumTask, MuxTask, VerifyTask])
 def tets_run(cls):
-    design = DesignSchema("testdesign")
+    design = Design("testdesign")
     with design.active_fileset("rtl"):
         design.set_topmodule("top")
 
-    flow = FlowgraphSchema("test")
+    flow = Flowgraph("test")
     flow.node("start", cls())
 
     proj = Project(design)
@@ -331,11 +331,11 @@ def tets_run(cls):
 
 @pytest.mark.parametrize("cls", [NOPTask, JoinTask, MinimumTask, MaximumTask, MuxTask, VerifyTask])
 def test_post_process(cls):
-    design = DesignSchema("testdesign")
+    design = Design("testdesign")
     with design.active_fileset("rtl"):
         design.set_topmodule("top")
 
-    flow = FlowgraphSchema("test")
+    flow = Flowgraph("test")
     flow.node("start", cls())
 
     proj = Project(design)
@@ -351,13 +351,13 @@ def test_post_process(cls):
 
 @pytest.mark.parametrize("cls", [NOPTask, JoinTask, MinimumTask, MaximumTask, MuxTask])
 def test_setup_copies_inputs(cls):
-    design = DesignSchema("testdesign")
+    design = Design("testdesign")
     with design.active_fileset("rtl"):
         design.set_topmodule("top")
 
     task_name = cls().task()
 
-    flow = FlowgraphSchema("test")
+    flow = Flowgraph("test")
     flow.node("start", NOPTask())
     flow.node("end", cls())
     flow.edge("start", "end")
@@ -383,13 +383,13 @@ def test_setup_copies_inputs(cls):
 
 
 def test_setup_copies_inputs_verify():
-    design = DesignSchema("testdesign")
+    design = Design("testdesign")
     with design.active_fileset("rtl"):
         design.set_topmodule("top")
 
     task_name = VerifyTask().task()
 
-    flow = FlowgraphSchema("test")
+    flow = Flowgraph("test")
     flow.node("start", NOPTask())
     flow.node("end", VerifyTask())
     flow.edge("start", "end")
@@ -417,13 +417,13 @@ def test_setup_copies_inputs_verify():
 
 @pytest.mark.parametrize("cls", [NOPTask, JoinTask, MinimumTask, MaximumTask, MuxTask])
 def test_setup_copies_inputs_multiple(cls):
-    design = DesignSchema("testdesign")
+    design = Design("testdesign")
     with design.active_fileset("rtl"):
         design.set_topmodule("top")
 
     task_name = cls().task()
 
-    flow = FlowgraphSchema("test")
+    flow = Flowgraph("test")
     flow.node("start", NOPTask())
     flow.node("otherstart", NOPTask())
     flow.node("end", cls())

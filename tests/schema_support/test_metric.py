@@ -4,9 +4,10 @@ from datetime import datetime, timezone
 from io import StringIO
 from unittest.mock import patch
 
-from siliconcompiler import MetricSchema
-from siliconcompiler import RecordSchema, FlowgraphSchema
-from siliconcompiler.record import RecordTime
+from siliconcompiler import Flowgraph
+from siliconcompiler.schema_support.metric import MetricSchema
+from siliconcompiler.schema_support.record import RecordSchema
+from siliconcompiler.schema_support.record import RecordTime
 from siliconcompiler.schema import PerNode, Scope
 from siliconcompiler.tools.builtin.nop import NOPTask
 
@@ -92,10 +93,10 @@ def test_record_tasktime_no_data():
 
 def test_record_tasktime():
     record = RecordSchema()
-    with patch("siliconcompiler.record.datetime") as mock_datetime:
+    with patch("siliconcompiler.schema_support.record.datetime") as mock_datetime:
         mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 0, tzinfo=timezone.utc)
         record.record_time("testone", "0", RecordTime.START)
-    with patch("siliconcompiler.record.datetime") as mock_datetime:
+    with patch("siliconcompiler.schema_support.record.datetime") as mock_datetime:
         mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 10, tzinfo=timezone.utc)
         record.record_time("testone", "0", RecordTime.END)
 
@@ -105,7 +106,7 @@ def test_record_tasktime():
 
 
 def test_record_totaltime_no_data():
-    flow = FlowgraphSchema("testflow")
+    flow = Flowgraph("testflow")
     flow.node("testone", NOPTask(), index="0")
     flow.node("testone", NOPTask(), index="1")
     flow.node("testone", NOPTask(), index="2")
@@ -129,7 +130,7 @@ def test_record_totaltime_no_data():
 
 
 def test_record_totaltime_linear():
-    flow = FlowgraphSchema("testflow")
+    flow = Flowgraph("testflow")
     flow.node("testone", NOPTask(), index="0")
     flow.node("testone", NOPTask(), index="1")
     flow.node("testone", NOPTask(), index="2")
@@ -143,28 +144,28 @@ def test_record_totaltime_linear():
                [("testone", "0"), ("testone", "1"), ("testone", "2")],
                step="testtwo", index="0")
 
-    with patch("siliconcompiler.record.datetime") as mock_datetime:
+    with patch("siliconcompiler.schema_support.record.datetime") as mock_datetime:
         mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 0, tzinfo=timezone.utc)
         record.record_time("testone", "0", RecordTime.START)
-    with patch("siliconcompiler.record.datetime") as mock_datetime:
+    with patch("siliconcompiler.schema_support.record.datetime") as mock_datetime:
         mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 10, tzinfo=timezone.utc)
         record.record_time("testone", "0", RecordTime.END)
-    with patch("siliconcompiler.record.datetime") as mock_datetime:
+    with patch("siliconcompiler.schema_support.record.datetime") as mock_datetime:
         mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 15, tzinfo=timezone.utc)
         record.record_time("testone", "1", RecordTime.START)
-    with patch("siliconcompiler.record.datetime") as mock_datetime:
+    with patch("siliconcompiler.schema_support.record.datetime") as mock_datetime:
         mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 30, tzinfo=timezone.utc)
         record.record_time("testone", "1", RecordTime.END)
-    with patch("siliconcompiler.record.datetime") as mock_datetime:
+    with patch("siliconcompiler.schema_support.record.datetime") as mock_datetime:
         mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 30, tzinfo=timezone.utc)
         record.record_time("testone", "2", RecordTime.START)
-    with patch("siliconcompiler.record.datetime") as mock_datetime:
+    with patch("siliconcompiler.schema_support.record.datetime") as mock_datetime:
         mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 50, tzinfo=timezone.utc)
         record.record_time("testone", "2", RecordTime.END)
-    with patch("siliconcompiler.record.datetime") as mock_datetime:
+    with patch("siliconcompiler.schema_support.record.datetime") as mock_datetime:
         mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 1, 0, tzinfo=timezone.utc)
         record.record_time("testtwo", "0", RecordTime.START)
-    with patch("siliconcompiler.record.datetime") as mock_datetime:
+    with patch("siliconcompiler.schema_support.record.datetime") as mock_datetime:
         mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 1, 5, tzinfo=timezone.utc)
         record.record_time("testtwo", "0", RecordTime.END)
 
@@ -181,7 +182,7 @@ def test_record_totaltime_linear():
 
 
 def test_record_totaltime_overlap():
-    flow = FlowgraphSchema("testflow")
+    flow = Flowgraph("testflow")
     flow.node("testone", NOPTask(), index="0")
     flow.node("testone", NOPTask(), index="1")
     flow.node("testone", NOPTask(), index="2")
@@ -195,28 +196,28 @@ def test_record_totaltime_overlap():
                [("testone", "0"), ("testone", "1"), ("testone", "2")],
                step="testtwo", index="0")
 
-    with patch("siliconcompiler.record.datetime") as mock_datetime:
+    with patch("siliconcompiler.schema_support.record.datetime") as mock_datetime:
         mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 0, tzinfo=timezone.utc)
         record.record_time("testone", "0", RecordTime.START)
-    with patch("siliconcompiler.record.datetime") as mock_datetime:
+    with patch("siliconcompiler.schema_support.record.datetime") as mock_datetime:
         mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 10, tzinfo=timezone.utc)
         record.record_time("testone", "0", RecordTime.END)
-    with patch("siliconcompiler.record.datetime") as mock_datetime:
+    with patch("siliconcompiler.schema_support.record.datetime") as mock_datetime:
         mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 0, tzinfo=timezone.utc)
         record.record_time("testone", "1", RecordTime.START)
-    with patch("siliconcompiler.record.datetime") as mock_datetime:
+    with patch("siliconcompiler.schema_support.record.datetime") as mock_datetime:
         mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 30, tzinfo=timezone.utc)
         record.record_time("testone", "1", RecordTime.END)
-    with patch("siliconcompiler.record.datetime") as mock_datetime:
+    with patch("siliconcompiler.schema_support.record.datetime") as mock_datetime:
         mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 0, tzinfo=timezone.utc)
         record.record_time("testone", "2", RecordTime.START)
-    with patch("siliconcompiler.record.datetime") as mock_datetime:
+    with patch("siliconcompiler.schema_support.record.datetime") as mock_datetime:
         mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 50, tzinfo=timezone.utc)
         record.record_time("testone", "2", RecordTime.END)
-    with patch("siliconcompiler.record.datetime") as mock_datetime:
+    with patch("siliconcompiler.schema_support.record.datetime") as mock_datetime:
         mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 1, 0, tzinfo=timezone.utc)
         record.record_time("testtwo", "0", RecordTime.START)
-    with patch("siliconcompiler.record.datetime") as mock_datetime:
+    with patch("siliconcompiler.schema_support.record.datetime") as mock_datetime:
         mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 1, 5, tzinfo=timezone.utc)
         record.record_time("testtwo", "0", RecordTime.END)
 
@@ -233,7 +234,7 @@ def test_record_totaltime_overlap():
 
 
 def test_record_totaltime_overlap_staggered():
-    flow = FlowgraphSchema("testflow")
+    flow = Flowgraph("testflow")
     flow.node("testone", NOPTask(), index="0")
     flow.node("testone", NOPTask(), index="1")
     flow.node("testone", NOPTask(), index="2")
@@ -247,28 +248,28 @@ def test_record_totaltime_overlap_staggered():
                [("testone", "0"), ("testone", "1"), ("testone", "2")],
                step="testtwo", index="0")
 
-    with patch("siliconcompiler.record.datetime") as mock_datetime:
+    with patch("siliconcompiler.schema_support.record.datetime") as mock_datetime:
         mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 0, tzinfo=timezone.utc)
         record.record_time("testone", "0", RecordTime.START)
-    with patch("siliconcompiler.record.datetime") as mock_datetime:
+    with patch("siliconcompiler.schema_support.record.datetime") as mock_datetime:
         mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 10, tzinfo=timezone.utc)
         record.record_time("testone", "0", RecordTime.END)
-    with patch("siliconcompiler.record.datetime") as mock_datetime:
+    with patch("siliconcompiler.schema_support.record.datetime") as mock_datetime:
         mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 5, tzinfo=timezone.utc)
         record.record_time("testone", "1", RecordTime.START)
-    with patch("siliconcompiler.record.datetime") as mock_datetime:
+    with patch("siliconcompiler.schema_support.record.datetime") as mock_datetime:
         mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 30, tzinfo=timezone.utc)
         record.record_time("testone", "1", RecordTime.END)
-    with patch("siliconcompiler.record.datetime") as mock_datetime:
+    with patch("siliconcompiler.schema_support.record.datetime") as mock_datetime:
         mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 10, tzinfo=timezone.utc)
         record.record_time("testone", "2", RecordTime.START)
-    with patch("siliconcompiler.record.datetime") as mock_datetime:
+    with patch("siliconcompiler.schema_support.record.datetime") as mock_datetime:
         mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 50, tzinfo=timezone.utc)
         record.record_time("testone", "2", RecordTime.END)
-    with patch("siliconcompiler.record.datetime") as mock_datetime:
+    with patch("siliconcompiler.schema_support.record.datetime") as mock_datetime:
         mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 1, 0, tzinfo=timezone.utc)
         record.record_time("testtwo", "0", RecordTime.START)
-    with patch("siliconcompiler.record.datetime") as mock_datetime:
+    with patch("siliconcompiler.schema_support.record.datetime") as mock_datetime:
         mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 1, 5, tzinfo=timezone.utc)
         record.record_time("testtwo", "0", RecordTime.END)
 
@@ -285,7 +286,7 @@ def test_record_totaltime_overlap_staggered():
 
 
 def test_record_totaltime_overlap_staggered_with_gap():
-    flow = FlowgraphSchema("testflow")
+    flow = Flowgraph("testflow")
     flow.node("testone", NOPTask(), index="0")
     flow.node("testone", NOPTask(), index="1")
     flow.node("testone", NOPTask(), index="2")
@@ -299,28 +300,28 @@ def test_record_totaltime_overlap_staggered_with_gap():
                [("testone", "0"), ("testone", "1"), ("testone", "2")],
                step="testtwo", index="0")
 
-    with patch("siliconcompiler.record.datetime") as mock_datetime:
+    with patch("siliconcompiler.schema_support.record.datetime") as mock_datetime:
         mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 0, tzinfo=timezone.utc)
         record.record_time("testone", "0", RecordTime.START)
-    with patch("siliconcompiler.record.datetime") as mock_datetime:
+    with patch("siliconcompiler.schema_support.record.datetime") as mock_datetime:
         mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 10, tzinfo=timezone.utc)
         record.record_time("testone", "0", RecordTime.END)
-    with patch("siliconcompiler.record.datetime") as mock_datetime:
+    with patch("siliconcompiler.schema_support.record.datetime") as mock_datetime:
         mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 5, tzinfo=timezone.utc)
         record.record_time("testone", "1", RecordTime.START)
-    with patch("siliconcompiler.record.datetime") as mock_datetime:
+    with patch("siliconcompiler.schema_support.record.datetime") as mock_datetime:
         mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 30, tzinfo=timezone.utc)
         record.record_time("testone", "1", RecordTime.END)
-    with patch("siliconcompiler.record.datetime") as mock_datetime:
+    with patch("siliconcompiler.schema_support.record.datetime") as mock_datetime:
         mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 31, tzinfo=timezone.utc)
         record.record_time("testone", "2", RecordTime.START)
-    with patch("siliconcompiler.record.datetime") as mock_datetime:
+    with patch("siliconcompiler.schema_support.record.datetime") as mock_datetime:
         mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 50, tzinfo=timezone.utc)
         record.record_time("testone", "2", RecordTime.END)
-    with patch("siliconcompiler.record.datetime") as mock_datetime:
+    with patch("siliconcompiler.schema_support.record.datetime") as mock_datetime:
         mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 1, 0, tzinfo=timezone.utc)
         record.record_time("testtwo", "0", RecordTime.START)
-    with patch("siliconcompiler.record.datetime") as mock_datetime:
+    with patch("siliconcompiler.schema_support.record.datetime") as mock_datetime:
         mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 1, 5, tzinfo=timezone.utc)
         record.record_time("testtwo", "0", RecordTime.END)
 
@@ -337,7 +338,7 @@ def test_record_totaltime_overlap_staggered_with_gap():
 
 
 def test_record_totaltime_overlap_staggered_with_all_contained():
-    flow = FlowgraphSchema("testflow")
+    flow = Flowgraph("testflow")
     flow.node("testone", NOPTask(), index="0")
     flow.node("testone", NOPTask(), index="1")
     flow.node("testone", NOPTask(), index="2")
@@ -351,28 +352,28 @@ def test_record_totaltime_overlap_staggered_with_all_contained():
                [("testone", "0"), ("testone", "1"), ("testone", "2")],
                step="testtwo", index="0")
 
-    with patch("siliconcompiler.record.datetime") as mock_datetime:
+    with patch("siliconcompiler.schema_support.record.datetime") as mock_datetime:
         mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 0, tzinfo=timezone.utc)
         record.record_time("testone", "0", RecordTime.START)
-    with patch("siliconcompiler.record.datetime") as mock_datetime:
+    with patch("siliconcompiler.schema_support.record.datetime") as mock_datetime:
         mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 10, tzinfo=timezone.utc)
         record.record_time("testone", "0", RecordTime.END)
-    with patch("siliconcompiler.record.datetime") as mock_datetime:
+    with patch("siliconcompiler.schema_support.record.datetime") as mock_datetime:
         mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 1, tzinfo=timezone.utc)
         record.record_time("testone", "1", RecordTime.START)
-    with patch("siliconcompiler.record.datetime") as mock_datetime:
+    with patch("siliconcompiler.schema_support.record.datetime") as mock_datetime:
         mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 2, tzinfo=timezone.utc)
         record.record_time("testone", "1", RecordTime.END)
-    with patch("siliconcompiler.record.datetime") as mock_datetime:
+    with patch("siliconcompiler.schema_support.record.datetime") as mock_datetime:
         mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 3, tzinfo=timezone.utc)
         record.record_time("testone", "2", RecordTime.START)
-    with patch("siliconcompiler.record.datetime") as mock_datetime:
+    with patch("siliconcompiler.schema_support.record.datetime") as mock_datetime:
         mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 4, tzinfo=timezone.utc)
         record.record_time("testone", "2", RecordTime.END)
-    with patch("siliconcompiler.record.datetime") as mock_datetime:
+    with patch("siliconcompiler.schema_support.record.datetime") as mock_datetime:
         mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 1, 0, tzinfo=timezone.utc)
         record.record_time("testtwo", "0", RecordTime.START)
-    with patch("siliconcompiler.record.datetime") as mock_datetime:
+    with patch("siliconcompiler.schema_support.record.datetime") as mock_datetime:
         mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 1, 5, tzinfo=timezone.utc)
         record.record_time("testtwo", "0", RecordTime.END)
 

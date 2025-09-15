@@ -4,7 +4,7 @@ import os.path
 
 from pathlib import Path
 
-from siliconcompiler.filesetschema import FileSetSchema
+from siliconcompiler.schema_support.filesetschema import FileSetSchema
 from siliconcompiler.schema import NamedSchema
 
 

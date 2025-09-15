@@ -1,4 +1,4 @@
-from siliconcompiler import TaskSchema
+from siliconcompiler.tool import TaskSchema
 
 
 class EchoTask(TaskSchema):

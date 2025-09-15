@@ -11,7 +11,7 @@ from siliconcompiler.tools.klayout import convert_drc_db
 
 from siliconcompiler.targets import freepdk45_demo
 
-from siliconcompiler import ASICProject, FlowgraphSchema, DesignSchema
+from siliconcompiler import ASICProject, Flowgraph, Design
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.tools.klayout.export import ExportTask
 from siliconcompiler.tools.klayout import KLayoutLibrary
@@ -29,7 +29,7 @@ def setup_pdk_test(monkeypatch, datadir):
 @pytest.mark.quick
 @pytest.mark.ready
 def test_version(asic_gcd):
-    flow = FlowgraphSchema("testflow")
+    flow = Flowgraph("testflow")
     flow.node("version", ExportTask())
     asic_gcd.set_flow(flow)
 
@@ -50,7 +50,7 @@ def test_export(datadir):
         lib.add_file(os.path.join(datadir, 'heartbeat.lef'))
         lib.add_asic_aprfileset()
 
-    design = DesignSchema("testdesign")
+    design = Design("testdesign")
     with design.active_fileset("layout"):
         design.set_topmodule("heartbeat_wrapper")
 
@@ -59,7 +59,7 @@ def test_export(datadir):
     proj.load_target(freepdk45_demo.setup)
     proj.add_asiclib(lib)
 
-    flow = FlowgraphSchema("testflow")
+    flow = Flowgraph("testflow")
     flow.node('import', ImporterTask())
     flow.node("export", export.ExportTask())
     flow.edge('import', 'export')
@@ -82,7 +82,7 @@ def test_export(datadir):
 @pytest.mark.quick
 @pytest.mark.ready
 def test_klayout_operations(datadir):
-    design = DesignSchema("heartbeat")
+    design = Design("heartbeat")
     with design.active_fileset("layout"):
         design.set_topmodule("heartbeat")
 
@@ -90,7 +90,7 @@ def test_klayout_operations(datadir):
     proj.add_fileset(["layout"])
     proj.load_target(freepdk45_demo.setup)
 
-    flow = FlowgraphSchema("testflow")
+    flow = Flowgraph("testflow")
     flow.node('import', ImporterTask())
     flow.node("ops1", operations.OperationsTask())
     flow.node("ops2", operations.OperationsTask())
@@ -163,7 +163,7 @@ def test_pdk(setup_pdk_test):
 def test_drc_pass(setup_pdk_test, datadir):
     import klayout_pdk
 
-    design = DesignSchema("testdesign")
+    design = Design("testdesign")
     with design.active_fileset("layout"):
         design.set_topmodule("interposer")
 
@@ -173,7 +173,7 @@ def test_drc_pass(setup_pdk_test, datadir):
     proj.set_asic_delaymodel("nldm")
     proj.set_mainlib("testdesign")
 
-    flow = FlowgraphSchema("testflow")
+    flow = Flowgraph("testflow")
     flow.node('import', ImporterTask())
     flow.node("drc", drc.DRCTask())
     flow.edge('import', 'drc')
@@ -193,7 +193,7 @@ def test_drc_pass(setup_pdk_test, datadir):
 def test_drc_fail(setup_pdk_test, datadir):
     import klayout_pdk
 
-    design = DesignSchema("testdesign")
+    design = Design("testdesign")
     with design.active_fileset("layout"):
         design.set_topmodule("interposer")
 
@@ -203,7 +203,7 @@ def test_drc_fail(setup_pdk_test, datadir):
     proj.set_asic_delaymodel("nldm")
     proj.set_mainlib("testdesign")
 
-    flow = FlowgraphSchema("testflow")
+    flow = Flowgraph("testflow")
     flow.node('import', ImporterTask())
     flow.node("drc", drc.DRCTask())
     flow.edge('import', 'drc')
@@ -223,7 +223,7 @@ def test_drc_fail(setup_pdk_test, datadir):
 def test_convert_drc(setup_pdk_test, datadir):
     import klayout_pdk
 
-    design = DesignSchema("testdesign")
+    design = Design("testdesign")
     with design.active_fileset("layout"):
         design.set_topmodule("interposer")
 
@@ -233,7 +233,7 @@ def test_convert_drc(setup_pdk_test, datadir):
     proj.set_asic_delaymodel("nldm")
     proj.set_mainlib("testdesign")
 
-    flow = FlowgraphSchema("testflow")
+    flow = Flowgraph("testflow")
     flow.node('import', ImporterTask())
     flow.node("drc", drc.DRCTask())
     flow.node("convert", convert_drc_db.ConvertDRCDBTask())

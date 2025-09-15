@@ -3,11 +3,11 @@ from siliconcompiler.tools.opensta import timing
 
 from siliconcompiler.tools.builtin import minimum
 
-from siliconcompiler import FlowgraphSchema
+from siliconcompiler import Flowgraph
 from siliconcompiler.tools.slang import elaborate
 
 
-class SynthesisFlow(FlowgraphSchema):
+class SynthesisFlow(Flowgraph):
     '''A configurable ASIC synthesis flow with static timing analysis.
 
     This flow translates RTL designs into a gate-level netlist and then

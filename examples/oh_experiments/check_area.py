@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # Import necessary classes from the siliconcompiler library.
-from siliconcompiler import ASICProject, DesignSchema
+from siliconcompiler import ASICProject, Design
 # Import a pre-defined target, which sets up the PDK, libraries, and toolchain.
 from siliconcompiler.targets import freepdk45_demo
 
@@ -14,7 +14,7 @@ import os.path
 from typing import Callable, List
 
 
-def checkarea(design: DesignSchema, filesets: List[str], target: Callable):
+def checkarea(design: Design, filesets: List[str], target: Callable):
     '''Runs synthesis for a list of designs and reports the area.
 
     This function iterates through a provided list of filesets (each representing
@@ -22,7 +22,7 @@ def checkarea(design: DesignSchema, filesets: List[str], target: Callable):
     resulting cell count and area in CSV format.
 
     Args:
-        design (DesignSchema): The master design object containing all filesets.
+        design (Design): The master design object containing all filesets.
         filesets (List[str]): A list of fileset names to process.
         target (Callable): A SiliconCompiler target setup function, such as
             freepdk45_demo.setup.
@@ -73,8 +73,8 @@ def main(limit: int = -1):
             which means all modules will be processed. Useful for quick tests.
     '''
     # --- Design Setup ---
-    # Create a master DesignSchema to hold all our module configurations.
-    design = DesignSchema("oh")
+    # Create a master Design to hold all our module configurations.
+    design = Design("oh")
     # Set up a 'dataroot' to fetch the design sources from a GitHub repository.
     # SiliconCompiler clones the repo and uses the specific commit for reproducibility.
     design.set_dataroot("oh",

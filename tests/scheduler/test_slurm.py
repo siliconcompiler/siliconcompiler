@@ -4,7 +4,7 @@ import os.path
 
 from unittest.mock import patch
 
-from siliconcompiler import Project, FlowgraphSchema, DesignSchema, NodeStatus
+from siliconcompiler import Project, Flowgraph, Design, NodeStatus
 from siliconcompiler.tools.builtin.nop import NOPTask
 
 from siliconcompiler.scheduler import SlurmSchedulerNode
@@ -12,13 +12,13 @@ from siliconcompiler.scheduler import SlurmSchedulerNode
 
 @pytest.fixture
 def project():
-    flow = FlowgraphSchema("testflow")
+    flow = Flowgraph("testflow")
 
     flow.node("stepone", NOPTask())
     flow.node("steptwo", NOPTask())
     flow.edge("stepone", "steptwo")
 
-    design = DesignSchema("testdesign")
+    design = Design("testdesign")
     with design.active_fileset("rtl"):
         design.set_topmodule("top")
 

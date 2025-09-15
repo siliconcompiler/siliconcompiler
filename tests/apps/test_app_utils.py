@@ -3,7 +3,7 @@ import sys
 
 import os.path
 
-from siliconcompiler import FlowgraphSchema, Project
+from siliconcompiler import Flowgraph, Project
 from siliconcompiler.tools.builtin.nop import NOPTask
 from siliconcompiler.apps.utils import summarize, replay
 
@@ -14,7 +14,7 @@ def gcd_nop_project_run(gcd_design):
     project.add_fileset("rtl")
     project.add_fileset("sdc")
 
-    flow = FlowgraphSchema("nopflow")
+    flow = Flowgraph("nopflow")
     flow.node("stepone", NOPTask())
     flow.node("steptwo", NOPTask())
     flow.edge("stepone", "steptwo")

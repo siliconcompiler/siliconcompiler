@@ -377,7 +377,7 @@ class PathSchema(PathSchemaBase):
                       ref_root: str = "",
                       key_offset: Tuple[str] = None,
                       detailed: bool = True):
-        from .schema.docs.utils import build_section, strong, build_table, build_list, \
+        from ..schema.docs.utils import build_section, strong, build_table, build_list, \
             code, para
         from docutils import nodes
 

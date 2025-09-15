@@ -13,12 +13,12 @@ import pip._internal.operations.freeze
 
 from siliconcompiler import _metadata
 
-from siliconcompiler.record import RecordSchema, RecordTime, RecordTool
+from siliconcompiler.schema_support.record import RecordSchema, RecordTime, RecordTool
 
 
 @pytest.fixture()
 def mock_datetime_now(monkeypatch):
-    with patch("siliconcompiler.record.datetime") as mock_datetime:
+    with patch("siliconcompiler.schema_support.record.datetime") as mock_datetime:
         mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 0, tzinfo=timezone.utc)
         mock_datetime.strptime = datetime.strptime
         yield
@@ -122,11 +122,11 @@ def test_get_recorded_time_no_record(type):
 def test_get_earliest_time(type):
     schema = RecordSchema()
 
-    with patch("siliconcompiler.record.datetime") as mock_datetime:
+    with patch("siliconcompiler.schema_support.record.datetime") as mock_datetime:
         mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 0, tzinfo=timezone.utc)
         schema.record_time("stepone", "1", type)
 
-    with patch("siliconcompiler.record.datetime") as mock_datetime:
+    with patch("siliconcompiler.schema_support.record.datetime") as mock_datetime:
         mock_datetime.now.return_value = datetime(2020, 3, 11, 15, 0, 0, tzinfo=timezone.utc)
         schema.record_time("steptwo", "1", type)
 
@@ -142,11 +142,11 @@ def test_get_earliest_time_no_data(type):
 def test_get_latest_time(type):
     schema = RecordSchema()
 
-    with patch("siliconcompiler.record.datetime") as mock_datetime:
+    with patch("siliconcompiler.schema_support.record.datetime") as mock_datetime:
         mock_datetime.now.return_value = datetime(2020, 3, 11, 14, 0, 0, tzinfo=timezone.utc)
         schema.record_time("stepone", "1", type)
 
-    with patch("siliconcompiler.record.datetime") as mock_datetime:
+    with patch("siliconcompiler.schema_support.record.datetime") as mock_datetime:
         mock_datetime.now.return_value = datetime(2020, 3, 11, 15, 0, 0, tzinfo=timezone.utc)
         schema.record_time("steptwo", "1", type)
 

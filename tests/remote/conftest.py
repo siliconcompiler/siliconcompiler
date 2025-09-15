@@ -1,7 +1,7 @@
 import pytest
 
 
-from siliconcompiler import FlowgraphSchema, Project
+from siliconcompiler import Flowgraph, Project
 from siliconcompiler.tools.builtin.nop import NOPTask
 
 
@@ -11,7 +11,7 @@ def gcd_nop_project(gcd_design):
     project.add_fileset("rtl")
     project.add_fileset("sdc")
 
-    flow = FlowgraphSchema("nopflow")
+    flow = Flowgraph("nopflow")
     flow.node("stepone", NOPTask())
     flow.node("steptwo", NOPTask())
     flow.edge("stepone", "steptwo")

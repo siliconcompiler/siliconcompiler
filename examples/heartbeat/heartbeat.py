@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Copyright 2020-2025 Silicon Compiler Authors. All Rights Reserved.
 
-from siliconcompiler import ASICProject, DesignSchema
+from siliconcompiler import ASICProject, Design
 from siliconcompiler.targets import skywater130_demo
 
 
@@ -14,7 +14,7 @@ def main():
     runs the compilation flow, and displays a summary and the final layout.
     """
     # Create a design object to hold the configuration.
-    design = DesignSchema("heartbeat")
+    design = Design("heartbeat")
 
     # Set the root directory for the design's source files.
     design.set_dataroot("heartbeat", __file__)

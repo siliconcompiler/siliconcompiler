@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # Import necessary classes from the siliconcompiler library.
-from siliconcompiler import ASICProject, DesignSchema
+from siliconcompiler import ASICProject, Design
 # Import a pre-defined target, which sets up the process technology (PDK),
 # standard cell libraries, and toolchain.
 from siliconcompiler.targets import freepdk45_demo
@@ -19,9 +19,9 @@ def main():
     datawidths = [8, 16, 32, 64]
 
     # --- Design Setup ---
-    # A DesignSchema encapsulates all the source files, parameters, and
+    # A Design encapsulates all the source files, parameters, and
     # settings for a specific hardware design.
-    design = DesignSchema("oh_add")
+    design = Design("oh_add")
 
     # Set up a 'dataroot' to fetch the design's source files directly from a
     # GitHub repository. SiliconCompiler will clone this repo. We pin it to a

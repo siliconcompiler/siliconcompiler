@@ -129,7 +129,7 @@ Useful APIs
 Core Configuration
 ^^^^^^^^^^^^^^^^^^^
 
-.. currentmodule:: siliconcompiler.DesignSchema
+.. currentmodule:: siliconcompiler.Design
 
 .. autosummary::
     :nosignatures:
@@ -140,7 +140,7 @@ Core Configuration
 PDK and Physical Views
 ^^^^^^^^^^^^^^^^^^^^^^
 
-.. currentmodule:: siliconcompiler.StdCellLibrarySchema
+.. currentmodule:: siliconcompiler.StdCellLibrary
 
 .. autosummary::
     :nosignatures:
@@ -155,12 +155,12 @@ Class Reference
 ---------------
 For a complete list of all available methods, please see the full class documentation.
 
-.. autoclass:: siliconcompiler.DesignSchema
+.. autoclass:: siliconcompiler.Design
     :members:
     :show-inheritance:
     :inherited-members:
 
-.. autoclass:: siliconcompiler.StdCellLibrarySchema
+.. autoclass:: siliconcompiler.StdCellLibrary
     :members:
     :show-inheritance:
     :inherited-members:

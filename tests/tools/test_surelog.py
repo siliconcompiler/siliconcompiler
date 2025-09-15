@@ -2,7 +2,7 @@ import pytest
 
 import os.path
 
-from siliconcompiler import Project, FlowgraphSchema, DesignSchema
+from siliconcompiler import Project, Flowgraph, Design
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.tools.surelog.parse import ElaborateTask
 
@@ -14,7 +14,7 @@ def test_version(gcd_design):
     proj = Project(gcd_design)
     proj.add_fileset("rtl")
 
-    flow = FlowgraphSchema("testflow")
+    flow = Flowgraph("testflow")
     flow.node("version", ElaborateTask())
     proj.set_flow(flow)
 
@@ -31,7 +31,7 @@ def test_surelog(gcd_design):
     proj = Project(gcd_design)
     proj.add_fileset("rtl")
 
-    flow = FlowgraphSchema("testflow")
+    flow = Flowgraph("testflow")
     flow.node("elaborate", ElaborateTask())
     proj.set_flow(flow)
 
@@ -48,7 +48,7 @@ def test_surelog(gcd_design):
 @pytest.mark.quick
 @pytest.mark.ready
 def test_surelog_preproc_regression(datadir):
-    design = DesignSchema("testdesign")
+    design = Design("testdesign")
     with design.active_fileset("rtl"):
         design.set_topmodule("test_preproc")
         design.add_file(os.path.join(datadir, 'test_preproc.v'))
@@ -57,7 +57,7 @@ def test_surelog_preproc_regression(datadir):
     proj = Project(design)
     proj.add_fileset("rtl")
 
-    flow = FlowgraphSchema("testflow")
+    flow = Flowgraph("testflow")
     flow.node("elaborate", ElaborateTask())
     proj.set_flow(flow)
 
@@ -76,7 +76,7 @@ def test_surelog_preproc_regression(datadir):
 @pytest.mark.quick
 @pytest.mark.ready
 def test_github_issue_1789(datadir):
-    design = DesignSchema("testdesign")
+    design = Design("testdesign")
     with design.active_fileset("rtl"):
         design.set_topmodule("encode_stream_sc_module_8")
         design.add_file(os.path.join(datadir, 'gh1789', 'encode_stream_sc_module_8.v'))
@@ -85,7 +85,7 @@ def test_github_issue_1789(datadir):
     proj = Project(design)
     proj.add_fileset("rtl")
 
-    flow = FlowgraphSchema("testflow")
+    flow = Flowgraph("testflow")
     flow.node("elaborate", ElaborateTask())
     proj.set_flow(flow)
 

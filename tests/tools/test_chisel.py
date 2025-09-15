@@ -2,7 +2,7 @@ import pytest
 
 import os.path
 
-from siliconcompiler import Project, FlowgraphSchema, DesignSchema
+from siliconcompiler import Project, Flowgraph, Design
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.tools.chisel import convert
 
@@ -14,7 +14,7 @@ def test_version(gcd_design):
     proj = Project(gcd_design)
     proj.add_fileset("rtl")
 
-    flow = FlowgraphSchema("testflow")
+    flow = Flowgraph("testflow")
     flow.node("version", convert.ConvertTask())
     proj.set_flow(flow)
 
@@ -28,7 +28,7 @@ def test_version(gcd_design):
 @pytest.mark.quick
 @pytest.mark.ready
 def test_chisel(datadir):
-    design = DesignSchema("gcd")
+    design = Design("gcd")
     design.set_dataroot("root", datadir)
     with design.active_dataroot("root"), design.active_fileset("rtl"):
         design.set_topmodule("GCD")
@@ -37,7 +37,7 @@ def test_chisel(datadir):
     proj = Project(design)
     proj.add_fileset("rtl")
 
-    flow = FlowgraphSchema("testflow")
+    flow = Flowgraph("testflow")
     flow.node("convert", convert.ConvertTask())
     proj.set_flow(flow)
 

@@ -12,11 +12,11 @@ from siliconcompiler.tools.vivado import bitstream as vivado_bitstream
 from siliconcompiler.tools.nextpnr import apr as nextpnr_apr
 
 
-from siliconcompiler import FlowgraphSchema
+from siliconcompiler import Flowgraph
 from siliconcompiler.tools.slang import elaborate
 
 
-class FPGAXilinxFlow(FlowgraphSchema):
+class FPGAXilinxFlow(Flowgraph):
     '''An FPGA compilation flow targeting Xilinx devices using Vivado.
 
     This flow uses the commercial Vivado toolchain for synthesis, placement,
@@ -49,7 +49,7 @@ class FPGAXilinxFlow(FlowgraphSchema):
         self.edge("route", "bitstream")
 
 
-class FPGANextPNRFlow(FlowgraphSchema):
+class FPGANextPNRFlow(Flowgraph):
     '''An open-source FPGA flow using Yosys and NextPNR.
 
     This flow is tailored for FPGAs supported by the NextPNR tool, which
@@ -77,7 +77,7 @@ class FPGANextPNRFlow(FlowgraphSchema):
         self.edge("syn_fpga", "apr")
 
 
-class FPGAVPRFlow(FlowgraphSchema):
+class FPGAVPRFlow(Flowgraph):
     '''An open-source FPGA flow using Yosys, VPR, and GenFasm.
 
     This flow is designed for academic and research FPGAs, utilizing VPR
