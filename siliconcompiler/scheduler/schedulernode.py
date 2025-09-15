@@ -19,7 +19,7 @@ from siliconcompiler.utils.logging import get_console_formatter, SCInRunLoggerFo
 from siliconcompiler.schema import utils as schema_utils
 
 from siliconcompiler.package import Resolver
-from siliconcompiler.record import RecordTime, RecordTool
+from siliconcompiler.schema_support.record import RecordTime, RecordTool
 from siliconcompiler.schema import Journal
 from siliconcompiler.scheduler import send_messages
 

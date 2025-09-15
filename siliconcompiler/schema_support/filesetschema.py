@@ -4,7 +4,7 @@ from typing import List, Tuple
 
 from siliconcompiler import utils
 
-from siliconcompiler.pathschema import PathSchema
+from siliconcompiler.schema_support.pathschema import PathSchema
 from siliconcompiler.schema import EditableSchema, Parameter, Scope, BaseSchema
 from siliconcompiler.schema.utils import trim
 
@@ -253,7 +253,7 @@ class FileSetSchema(PathSchema):
                       ref_root: str = "",
                       key_offset: Tuple[str] = None,
                       detailed: bool = True):
-        from .schema.docs.utils import build_section
+        from ..schema.docs.utils import build_section
 
         filesets_sec = build_section("Filesets", f"{ref_root}-filesets")
         filesets_added = False

@@ -1304,9 +1304,9 @@ def test_report_output_files_extra_outputs(echo_project, caplog):
 def test_run_pass(project):
     node = SchedulerNode(project, "stepone", "0")
     node.task.setup_work_directory(node.workdir)
-    with patch("siliconcompiler.record.RecordSchema.record_userinformation") as call_track, \
-         patch("siliconcompiler.record.RecordSchema.record_version") as call_version, \
-         patch("siliconcompiler.pathschema.PathSchemaBase.hash_files") as call_hash:
+    with patch("siliconcompiler.schema_support.record.RecordSchema.record_userinformation") as call_track, \
+         patch("siliconcompiler.schema_support.record.RecordSchema.record_version") as call_version, \
+         patch("siliconcompiler.schema_support.pathschema.PathSchemaBase.hash_files") as call_hash:
         node.run()
         call_track.assert_not_called()
         call_version.assert_called_once()
@@ -1323,9 +1323,9 @@ def test_run_pass_record(project):
     node = SchedulerNode(project, "stepone", "0")
     node.task.setup_work_directory(node.workdir)
 
-    with patch("siliconcompiler.record.RecordSchema.record_userinformation") as call_track, \
-         patch("siliconcompiler.record.RecordSchema.record_version") as call_version, \
-         patch("siliconcompiler.pathschema.PathSchemaBase.hash_files") as call_hash:
+    with patch("siliconcompiler.schema_support.record.RecordSchema.record_userinformation") as call_track, \
+         patch("siliconcompiler.schema_support.record.RecordSchema.record_version") as call_version, \
+         patch("siliconcompiler.schema_support.pathschema.PathSchemaBase.hash_files") as call_hash:
         node.run()
         call_track.assert_called_once()
         call_version.assert_called_once()
@@ -1364,9 +1364,9 @@ def test_run_pass_hash(project):
     node = SchedulerNode(project, "stepone", "0")
     node.task.setup_work_directory(node.workdir)
 
-    with patch("siliconcompiler.record.RecordSchema.record_userinformation") as call_track, \
-         patch("siliconcompiler.record.RecordSchema.record_version") as call_version, \
-         patch("siliconcompiler.pathschema.PathSchemaBase.hash_files") as call_hash:
+    with patch("siliconcompiler.schema_support.record.RecordSchema.record_userinformation") as call_track, \
+         patch("siliconcompiler.schema_support.record.RecordSchema.record_version") as call_version, \
+         patch("siliconcompiler.schema_support.pathschema.PathSchemaBase.hash_files") as call_hash:
         node.run()
         call_track.assert_not_called()
         call_version.assert_called_once()

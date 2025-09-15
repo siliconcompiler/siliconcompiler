@@ -41,8 +41,8 @@ from siliconcompiler.schema.utils import trim
 from siliconcompiler import utils, NodeStatus
 from siliconcompiler import sc_open
 
-from siliconcompiler.pathschema import PathSchema
-from siliconcompiler.record import RecordTool
+from siliconcompiler.schema_support.pathschema import PathSchema
+from siliconcompiler.schema_support.record import RecordTool
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 
 

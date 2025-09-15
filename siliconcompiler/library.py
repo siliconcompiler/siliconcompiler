@@ -1,10 +1,10 @@
 from typing import final, Union, List, Tuple
 
-from siliconcompiler.packageschema import PackageSchema
+from siliconcompiler.schema_support.packageschema import PackageSchema
 
-from siliconcompiler.dependencyschema import DependencySchema
-from siliconcompiler.filesetschema import FileSetSchema
-from siliconcompiler.pathschema import PathSchema
+from siliconcompiler.schema_support.dependencyschema import DependencySchema
+from siliconcompiler.schema_support.filesetschema import FileSetSchema
+from siliconcompiler.schema_support.pathschema import PathSchema
 from siliconcompiler.schema import NamedSchema, BaseSchema
 
 from siliconcompiler.schema import EditableSchema, Parameter, Scope, PerNode

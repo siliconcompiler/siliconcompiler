@@ -8,7 +8,7 @@ from siliconcompiler import utils
 
 from siliconcompiler.library import LibrarySchema
 
-from siliconcompiler.dependencyschema import DependencySchema
+from siliconcompiler.schema_support.dependencyschema import DependencySchema
 from siliconcompiler.schema import NamedSchema
 from siliconcompiler.schema import EditableSchema, Parameter, Scope
 from siliconcompiler.schema.utils import trim

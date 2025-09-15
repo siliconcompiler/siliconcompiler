@@ -8,7 +8,7 @@ from siliconcompiler.schema import EditableSchema, Parameter, PerNode, Scope
 from siliconcompiler.schema.utils import trim
 
 from siliconcompiler.utils import truncate_text, units
-from siliconcompiler.record import RecordTime
+from siliconcompiler.schema_support.record import RecordTime
 
 
 class MetricSchema(BaseSchema):

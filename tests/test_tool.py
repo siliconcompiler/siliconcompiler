@@ -12,8 +12,8 @@ from unittest.mock import patch, ANY
 
 from siliconcompiler import FlowgraphSchema
 from siliconcompiler.tool import ShowTaskSchema, ScreenshotTaskSchema
-from siliconcompiler.metric import MetricSchema
-from siliconcompiler.record import RecordSchema
+from siliconcompiler.schema_support.metric import MetricSchema
+from siliconcompiler.schema_support.record import RecordSchema
 from siliconcompiler.tool import TaskSchema
 from siliconcompiler import DesignSchema, Project
 from siliconcompiler.schema import BaseSchema, EditableSchema, Parameter, SafeSchema

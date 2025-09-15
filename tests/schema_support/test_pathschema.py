@@ -7,7 +7,7 @@ from pathlib import Path
 
 from siliconcompiler.schema import BaseSchema
 from siliconcompiler.schema import EditableSchema, Parameter
-from siliconcompiler.pathschema import PathSchemaBase, PathSchema, PathSchemaSimpleBase
+from siliconcompiler.schema_support.pathschema import PathSchemaBase, PathSchema, PathSchemaSimpleBase
 
 
 def test_init():

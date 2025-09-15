@@ -8,7 +8,7 @@ import time
 import tempfile
 from datetime import datetime, timezone
 from siliconcompiler.utils import get_file_template
-from siliconcompiler.record import RecordSchema
+from siliconcompiler.schema_support.record import RecordSchema
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.schema import __version__ as schema_version
 from siliconcompiler import __version__ as sc_version

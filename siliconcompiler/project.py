@@ -21,16 +21,16 @@ from siliconcompiler import DesignSchema
 from siliconcompiler import FlowgraphSchema
 from siliconcompiler import ChecklistSchema
 
-from siliconcompiler.record import RecordSchema
-from siliconcompiler.metric import MetricSchema
+from siliconcompiler.schema_support.record import RecordSchema
+from siliconcompiler.schema_support.metric import MetricSchema
 from siliconcompiler.tool import TaskSchema
 from siliconcompiler.tool import ShowTaskSchema, ScreenshotTaskSchema
-from siliconcompiler.option import OptionSchema
+from siliconcompiler.schema_support.option import OptionSchema
 from siliconcompiler.library import LibrarySchema
 
-from siliconcompiler.cmdlineschema import CommandLineSchema
-from siliconcompiler.dependencyschema import DependencySchema
-from siliconcompiler.pathschema import PathSchemaBase
+from siliconcompiler.schema_support.cmdlineschema import CommandLineSchema
+from siliconcompiler.schema_support.dependencyschema import DependencySchema
+from siliconcompiler.schema_support.pathschema import PathSchemaBase
 
 from siliconcompiler.report.dashboard.cli import CliDashboard
 from siliconcompiler.scheduler import Scheduler, SchedulerNode

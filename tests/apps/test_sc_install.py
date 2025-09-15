@@ -4,7 +4,7 @@ import sys
 from unittest import mock
 from pathlib import Path
 from siliconcompiler.apps import sc_install
-from siliconcompiler.record import RecordSchema
+from siliconcompiler.schema_support.record import RecordSchema
 from siliconcompiler.apps.sc_install import os as os_imported
 
 

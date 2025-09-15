@@ -1,6 +1,6 @@
 from typing import Union, Dict, List, Tuple
 
-from siliconcompiler.pathschema import PathSchema
+from siliconcompiler.schema_support.pathschema import PathSchema
 from siliconcompiler.schema import EditableSchema, Parameter, Scope, BaseSchema
 from siliconcompiler.schema.utils import trim
 
@@ -202,7 +202,7 @@ class PackageSchema(PathSchema):
                       ref_root: str = "",
                       key_offset: Tuple[str] = None,
                       detailed: bool = True):
-        from .schema.docs.utils import build_section
+        from ..schema.docs.utils import build_section
         section = build_section("Package", f"{ref_root}-package")
         params = BaseSchema._generate_doc(self.get("package", field="schema"),
                                           doc,

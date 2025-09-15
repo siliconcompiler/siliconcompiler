@@ -1,4 +1,4 @@
-from siliconcompiler.metric import MetricSchema
+from siliconcompiler.schema_support.metric import MetricSchema
 
 from siliconcompiler.schema import EditableSchema, Parameter, Scope, PerNode
 from siliconcompiler.schema.utils import trim

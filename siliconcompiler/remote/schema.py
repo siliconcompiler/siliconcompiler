@@ -1,5 +1,5 @@
 from siliconcompiler.schema import BaseSchema, EditableSchema, Parameter, Scope
-from siliconcompiler.cmdlineschema import CommandLineSchema
+from siliconcompiler.schema_support.cmdlineschema import CommandLineSchema
 
 
 SCHEMA_VERSION = '0.0.3'

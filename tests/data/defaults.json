@@ -1435,7 +1435,7 @@
         "unit": "s"
       },
       "__meta__": {
-        "class": "siliconcompiler.metric/MetricSchema",
+        "class": "siliconcompiler.schema_support.metric/MetricSchema",
         "sctype": "MetricSchema"
       }
     },
@@ -2016,7 +2016,7 @@
         }
       },
       "__meta__": {
-        "class": "siliconcompiler.record/RecordSchema",
+        "class": "siliconcompiler.schema_support.record/RecordSchema",
         "sctype": "RecordSchema"
       }
     },
@@ -3799,7 +3799,7 @@
         }
       },
       "__meta__": {
-        "class": "siliconcompiler.option/OptionSchema",
+        "class": "siliconcompiler.schema_support.option/OptionSchema",
         "sctype": "BaseSchema"
       }
     },
@@ -6514,7 +6514,7 @@
         }
       },
       "__meta__": {
-        "class": "siliconcompiler.record/RecordSchema",
+        "class": "siliconcompiler.schema_support.record/RecordSchema",
         "sctype": "RecordSchema"
       }
     },
@@ -8297,7 +8297,7 @@
         }
       },
       "__meta__": {
-        "class": "siliconcompiler.option/OptionSchema",
+        "class": "siliconcompiler.schema_support.option/OptionSchema",
         "sctype": "BaseSchema"
       }
     },
@@ -11315,7 +11315,7 @@
         }
       },
       "__meta__": {
-        "class": "siliconcompiler.record/RecordSchema",
+        "class": "siliconcompiler.schema_support.record/RecordSchema",
         "sctype": "RecordSchema"
       }
     },
@@ -13098,7 +13098,7 @@
         }
       },
       "__meta__": {
-        "class": "siliconcompiler.option/OptionSchema",
+        "class": "siliconcompiler.schema_support.option/OptionSchema",
         "sctype": "BaseSchema"
       }
     },
