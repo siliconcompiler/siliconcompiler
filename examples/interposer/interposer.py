@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Copyright 2024 Silicon Compiler Authors. All Rights Reserved.
 
-from siliconcompiler import ASICProject, DesignSchema, FlowgraphSchema
+from siliconcompiler import ASICProject, Design, Flowgraph
 # Import a specialized target for interposer designs. This target is configured
 # with a technology setup (like layer stack) suitable for routing on an
 # interposer, which typically lacks standard cells.
@@ -23,7 +23,7 @@ def main():
 
     # --- Design Setup ---
     # Create a design schema for the interposer.
-    design = DesignSchema("interposer")
+    design = Design("interposer")
     # Set up a 'dataroot' for local files, relative to this script's location.
     design.set_dataroot("interposer", __file__)
     # The input is a Verilog netlist that defines the connectivity of the interposer.
@@ -50,8 +50,8 @@ def main():
 
     # --- Custom Flowgraph Creation ---
     # We will build a custom flow by combining two pre-defined flows.
-    # 'FlowgraphSchema' allows for programmatic creation of flows.
-    flow = FlowgraphSchema("compositeflow")
+    # 'Flowgraph' allows for programmatic creation of flows.
+    flow = Flowgraph("compositeflow")
 
     # 1. Import the entire 'interposerflow' from the target. This flow handles
     #    floorplanning and routing the redistribution layers (RDL).

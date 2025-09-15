@@ -3,7 +3,7 @@ import pytest
 
 import os.path
 
-from siliconcompiler import FlowgraphSchema
+from siliconcompiler import Flowgraph
 from siliconcompiler import Project
 from siliconcompiler.tools.slang import lint
 from siliconcompiler.tools.slang import elaborate
@@ -38,7 +38,7 @@ def test_lint(heartbeat_design):
     proj = Project(heartbeat_design)
     proj.add_fileset("rtl")
 
-    flow = FlowgraphSchema("lint")
+    flow = Flowgraph("lint")
     flow.node("lint", lint.Lint())
     proj.set_flow(flow)
 
@@ -52,7 +52,7 @@ def test_elaborate(heartbeat_design):
     proj = Project(heartbeat_design)
     proj.add_fileset("rtl")
 
-    flow = FlowgraphSchema("elaborate")
+    flow = Flowgraph("elaborate")
     flow.node("elaborate", elaborate.Elaborate())
     proj.set_flow(flow)
 
@@ -72,7 +72,7 @@ def test_slang_duplicate_inputs(heartbeat_design):
     proj = Project(heartbeat_design)
     proj.add_fileset("rtl_double")
 
-    flow = FlowgraphSchema("lint")
+    flow = Flowgraph("lint")
     flow.node("lint", lint.Lint())
     proj.set_flow(flow)
 

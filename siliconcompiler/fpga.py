@@ -19,7 +19,7 @@ from siliconcompiler.constraints import \
 from siliconcompiler.metrics import FPGAMetricsSchema
 
 
-class FPGASchema(ToolLibrarySchema):
+class FPGA(ToolLibrarySchema):
     """
     A schema for configuring FPGA-related parameters.
 
@@ -28,7 +28,7 @@ class FPGASchema(ToolLibrarySchema):
     """
     def __init__(self, name: str = None):
         """
-        Initializes the FPGASchema.
+        Initializes the FPGA.
 
         Args:
             name (str, optional): The name of the schema. Defaults to None.
@@ -98,7 +98,7 @@ class FPGASchema(ToolLibrarySchema):
             str: The name of the class.
         """
 
-        return FPGASchema.__name__
+        return FPGA.__name__
 
 
 class FPGAProject(Project):
@@ -139,11 +139,11 @@ class FPGAProject(Project):
         """
         Adds a dependency to the project.
 
-        If the dependency is an FPGASchema object, it is registered as a library.
+        If the dependency is an FPGA object, it is registered as a library.
         Otherwise, the request is passed to the parent class's implementation.
 
         Args:
-            obj: The dependency object to add. Can be an FPGASchema instance
+            obj: The dependency object to add. Can be an FPGA instance
                  or another type supported by the base Project class.
         """
         if isinstance(obj, (list, set, tuple)):
@@ -151,7 +151,7 @@ class FPGAProject(Project):
                 self.add_dep(iobj)
             return
 
-        if isinstance(obj, FPGASchema):
+        if isinstance(obj, FPGA):
             EditableSchema(self).insert("library", obj.name, obj, clobber=True)
         else:
             return super().add_dep(obj)
@@ -162,21 +162,21 @@ class FPGAProject(Project):
         """
         Sets the target FPGA device for the project.
 
-        This method can accept either an FPGASchema object or a string
+        This method can accept either an FPGA object or a string
         representing the name of the FPGA device. If an object is provided,
         it is first added as a dependency.
 
         Args:
-            fpga (FPGASchema or str): The FPGA device to target.
+            fpga (FPGA or str): The FPGA device to target.
 
         Raises:
-            TypeError: If the provided fpga is not an FPGASchema object or a string.
+            TypeError: If the provided fpga is not an FPGA object or a string.
         """
-        if isinstance(fpga, FPGASchema):
+        if isinstance(fpga, FPGA):
             self.add_dep(fpga)
             fpga = fpga.name
         elif not isinstance(fpga, str):
-            raise TypeError("fpga must be an FPGASchema object or a string.")
+            raise TypeError("fpga must be an FPGA object or a string.")
 
         return self.set("fpga", "device", fpga)
 

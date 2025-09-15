@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Copyright 2025 Silicon Compiler Authors. All Rights Reserved.
 
-from siliconcompiler import DesignSchema, FPGASchema
+from siliconcompiler import Design, FPGA
 from siliconcompiler.project import LintProject, SimProject
 from siliconcompiler import ASICProject, FPGAProject
 
@@ -12,7 +12,7 @@ from siliconcompiler.flows.fpgaflow import FPGAXilinxFlow
 from siliconcompiler.targets import asic_target
 
 
-class HeartbeatDesign(DesignSchema):
+class HeartbeatDesign(Design):
     """Heartbeat design schema setup.
 
     This class defines the project structure for the 'heartbeat' design,
@@ -243,7 +243,7 @@ def fpga(N: str = None):
     project.set_flow(FPGAXilinxFlow())
 
     # Configure the specific FPGA part details.
-    fpga = FPGASchema("xc7")
+    fpga = FPGA("xc7")
     fpga.set_partname("xc7a100tcsg324")
     project.set_fpga(fpga)
 

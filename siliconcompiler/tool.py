@@ -1818,14 +1818,14 @@ class TaskSchema(NamedSchema, PathSchema, DocsSchema):
     ###############################################################
     @classmethod
     def make_docs(cls):
-        from siliconcompiler import FlowgraphSchema, DesignSchema, Project
+        from siliconcompiler import Flowgraph, Design, Project
         from siliconcompiler.scheduler import SchedulerNode
-        design = DesignSchema("<design>")
+        design = Design("<design>")
         with design.active_fileset("docs"):
             design.set_topmodule("top")
         proj = Project(design)
         proj.add_fileset("docs")
-        flow = FlowgraphSchema("docsflow")
+        flow = Flowgraph("docsflow")
         flow.node("<step>", cls(), index="<index>")
         proj.set_flow(flow)
 

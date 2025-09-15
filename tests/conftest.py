@@ -17,7 +17,7 @@ from pathlib import Path
 from pyvirtualdisplay import Display
 from unittest.mock import patch
 
-from siliconcompiler import utils, ASICProject, DesignSchema
+from siliconcompiler import utils, ASICProject, Design
 from siliconcompiler.tools.openroad._apr import APRTask
 from siliconcompiler.flows.asicflow import ASICFlow
 from siliconcompiler.targets import freepdk45_demo
@@ -180,7 +180,7 @@ def datadir(request):
 
 @pytest.fixture
 def heartbeat_design(examples_root):
-    design = DesignSchema("heartbeat")
+    design = Design("heartbeat")
     design.set_dataroot("heartbeat-pytest-example", os.path.join(examples_root, 'heartbeat'))
     with design.active_fileset("rtl"), design.active_dataroot("heartbeat-pytest-example"):
         design.set_topmodule("heartbeat")
@@ -211,7 +211,7 @@ def asic_heartbeat(heartbeat_design):
 
 @pytest.fixture
 def gcd_design(examples_root):
-    design = DesignSchema("gcd")
+    design = Design("gcd")
     design.set_dataroot("gcd-pytest-example", os.path.join(examples_root, 'gcd'))
     with design.active_fileset("rtl"), design.active_dataroot("gcd-pytest-example"):
         design.set_topmodule("gcd")

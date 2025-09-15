@@ -10,12 +10,12 @@ import os.path
 
 from unittest.mock import patch, ANY
 
-from siliconcompiler import FlowgraphSchema
+from siliconcompiler import Flowgraph
 from siliconcompiler.tool import ShowTaskSchema, ScreenshotTaskSchema
 from siliconcompiler.schema_support.metric import MetricSchema
 from siliconcompiler.schema_support.record import RecordSchema
 from siliconcompiler.tool import TaskSchema
-from siliconcompiler import DesignSchema, Project
+from siliconcompiler import Design, Project
 from siliconcompiler.schema import BaseSchema, EditableSchema, Parameter, SafeSchema
 from siliconcompiler.schema.parameter import PerNode, Scope
 from siliconcompiler.tool import TaskExecutableNotFound, TaskError, TaskTimeout
@@ -78,7 +78,7 @@ def running_project():
         def __init__(self):
             super().__init__()
 
-            design = DesignSchema("testdesign")
+            design = Design("testdesign")
             with design.active_fileset("rtl"):
                 design.set_topmodule("designtop")
             self.set_design(design)
@@ -87,7 +87,7 @@ def running_project():
             self._Project__logger = logging.getLogger()
             self.logger.setLevel(logging.INFO)
 
-            flow = FlowgraphSchema("testflow")
+            flow = Flowgraph("testflow")
             flow.node("running", NOPTask())
             flow.node("notrunning", NOPTask())
             flow.edge("running", "notrunning")
@@ -226,7 +226,7 @@ def test_schema_access(running_node):
         assert runtool.schema() is running_node.project
         assert isinstance(runtool.schema("record"), RecordSchema)
         assert isinstance(runtool.schema("metric"), MetricSchema)
-        assert isinstance(runtool.schema("flow"), FlowgraphSchema)
+        assert isinstance(runtool.schema("flow"), Flowgraph)
         assert isinstance(runtool.schema("runtimeflow"), RuntimeFlowgraph)
 
 

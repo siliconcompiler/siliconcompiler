@@ -1,4 +1,4 @@
-from siliconcompiler import ASICProject, DesignSchema
+from siliconcompiler import ASICProject, Design
 from siliconcompiler.targets import skywater130_demo
 
 
@@ -14,7 +14,7 @@ class ASICDemo(ASICProject):
     def __init__(self):
         super().__init__()
 
-        design = DesignSchema("heartbeat")
+        design = Design("heartbeat")
         design.set_dataroot("heartbeat", "python://siliconcompiler")
         with design.active_dataroot("heartbeat"), design.active_fileset("rtl"):
             design.set_topmodule("heartbeat")

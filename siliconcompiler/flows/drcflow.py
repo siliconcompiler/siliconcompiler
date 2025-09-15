@@ -1,8 +1,8 @@
-from siliconcompiler import FlowgraphSchema
+from siliconcompiler import Flowgraph
 from siliconcompiler.tools.klayout import drc
 
 
-class DRCFlow(FlowgraphSchema):
+class DRCFlow(Flowgraph):
     '''A design rule check (DRC) flow.
 
     This flow is designed to perform a DRC run on an input GDSII file using

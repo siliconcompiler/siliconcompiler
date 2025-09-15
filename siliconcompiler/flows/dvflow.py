@@ -5,10 +5,10 @@ from siliconcompiler.tools.xyce import simulate as xyce_simulate
 from siliconcompiler.tools.xdm import convert as xdm_convert
 
 
-from siliconcompiler import FlowgraphSchema
+from siliconcompiler import Flowgraph
 
 
-class DVFlow(FlowgraphSchema):
+class DVFlow(Flowgraph):
     '''
     A configurable constrained random stimulus DV flow.
 

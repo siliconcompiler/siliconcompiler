@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from io import StringIO
 from unittest.mock import patch
 
-from siliconcompiler import FlowgraphSchema
+from siliconcompiler import Flowgraph
 from siliconcompiler.schema_support.metric import MetricSchema
 from siliconcompiler.schema_support.record import RecordSchema
 from siliconcompiler.schema_support.record import RecordTime
@@ -106,7 +106,7 @@ def test_record_tasktime():
 
 
 def test_record_totaltime_no_data():
-    flow = FlowgraphSchema("testflow")
+    flow = Flowgraph("testflow")
     flow.node("testone", NOPTask(), index="0")
     flow.node("testone", NOPTask(), index="1")
     flow.node("testone", NOPTask(), index="2")
@@ -130,7 +130,7 @@ def test_record_totaltime_no_data():
 
 
 def test_record_totaltime_linear():
-    flow = FlowgraphSchema("testflow")
+    flow = Flowgraph("testflow")
     flow.node("testone", NOPTask(), index="0")
     flow.node("testone", NOPTask(), index="1")
     flow.node("testone", NOPTask(), index="2")
@@ -182,7 +182,7 @@ def test_record_totaltime_linear():
 
 
 def test_record_totaltime_overlap():
-    flow = FlowgraphSchema("testflow")
+    flow = Flowgraph("testflow")
     flow.node("testone", NOPTask(), index="0")
     flow.node("testone", NOPTask(), index="1")
     flow.node("testone", NOPTask(), index="2")
@@ -234,7 +234,7 @@ def test_record_totaltime_overlap():
 
 
 def test_record_totaltime_overlap_staggered():
-    flow = FlowgraphSchema("testflow")
+    flow = Flowgraph("testflow")
     flow.node("testone", NOPTask(), index="0")
     flow.node("testone", NOPTask(), index="1")
     flow.node("testone", NOPTask(), index="2")
@@ -286,7 +286,7 @@ def test_record_totaltime_overlap_staggered():
 
 
 def test_record_totaltime_overlap_staggered_with_gap():
-    flow = FlowgraphSchema("testflow")
+    flow = Flowgraph("testflow")
     flow.node("testone", NOPTask(), index="0")
     flow.node("testone", NOPTask(), index="1")
     flow.node("testone", NOPTask(), index="2")
@@ -338,7 +338,7 @@ def test_record_totaltime_overlap_staggered_with_gap():
 
 
 def test_record_totaltime_overlap_staggered_with_all_contained():
-    flow = FlowgraphSchema("testflow")
+    flow = Flowgraph("testflow")
     flow.node("testone", NOPTask(), index="0")
     flow.node("testone", NOPTask(), index="1")
     flow.node("testone", NOPTask(), index="2")

@@ -4,11 +4,11 @@ from siliconcompiler.utils import sc_open
 from siliconcompiler._metadata import version as __version__
 
 # User classes
-from siliconcompiler.design import DesignSchema
-from siliconcompiler.pdk import PDKSchema
-from siliconcompiler.flowgraph import FlowgraphSchema
-from siliconcompiler.checklist import ChecklistSchema
-from siliconcompiler.library import StdCellLibrarySchema
+from siliconcompiler.design import Design
+from siliconcompiler.pdk import PDK
+from siliconcompiler.flowgraph import Flowgraph
+from siliconcompiler.checklist import Checklist
+from siliconcompiler.library import StdCellLibrary
 from siliconcompiler.schematic import Schematic
 
 # Projects
@@ -18,20 +18,20 @@ from siliconcompiler.fpga import FPGAProject
 from siliconcompiler.project import LintProject
 from siliconcompiler.project import SimProject
 
-from siliconcompiler.fpga import FPGASchema
+from siliconcompiler.fpga import FPGA
 
 __all__ = [
     "__version__",
     "NodeStatus",
     "sc_open",
 
-    "DesignSchema",
-    "PDKSchema",
-    "FlowgraphSchema",
-    "ChecklistSchema",
-    "FPGASchema",
+    "Design",
+    "PDK",
+    "Flowgraph",
+    "Checklist",
+    "FPGA",
     "Schematic",
-    "StdCellLibrarySchema",
+    "StdCellLibrary",
 
     "Project",
     "ASICProject",

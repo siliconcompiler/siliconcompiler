@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # Import necessary classes from the siliconcompiler library.
-from siliconcompiler import ASICProject, DesignSchema
+from siliconcompiler import ASICProject, Design
 # Import a pre-defined target, which sets up the PDK, libraries, and toolchain.
 from siliconcompiler.targets import freepdk45_demo
 # Import the specialized High-Level Synthesis (HLS) flow.
@@ -10,9 +10,9 @@ from siliconcompiler.flows.asicflow import HLSASICFlow
 
 def main():
     # --- Design Setup ---
-    # A DesignSchema encapsulates all the source files, parameters, and
+    # A Design encapsulates all the source files, parameters, and
     # settings for a specific hardware design.
-    design = DesignSchema("mlir")
+    design = Design("mlir")
 
     # Set up a 'dataroot' for local files. `__file__` makes the path
     # relative to the location of this Python script.

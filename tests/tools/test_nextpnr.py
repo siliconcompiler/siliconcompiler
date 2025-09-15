@@ -1,6 +1,6 @@
 import pytest
 
-from siliconcompiler import FPGAProject, FlowgraphSchema
+from siliconcompiler import FPGAProject, Flowgraph
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.tools.nextpnr.apr import APRTask
 
@@ -13,7 +13,7 @@ def test_version(gcd_design):
     proj.add_fileset("rtl")
     proj.set("fpga", "device", "ice40")
 
-    flow = FlowgraphSchema("testflow")
+    flow = Flowgraph("testflow")
     flow.node("version", APRTask())
     proj.set_flow(flow)
 

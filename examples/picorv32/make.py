@@ -2,7 +2,7 @@
 # Copyright 2025 Silicon Compiler Authors. All Rights Reserved.
 
 # Import necessary classes from the siliconcompiler library.
-from siliconcompiler import DesignSchema
+from siliconcompiler import Design
 from siliconcompiler import ASICProject
 from siliconcompiler.project import LintProject
 
@@ -14,14 +14,14 @@ from siliconcompiler.targets import asic_target
 from lambdalib.ramlib import Spram
 
 
-class PicoRV32Design(DesignSchema):
+class PicoRV32Design(Design):
     """
     This class defines the design sources and constraints for the PicoRV32 core.
-    It inherits from DesignSchema, which is a base class for encapsulating
+    It inherits from Design, which is a base class for encapsulating
     all design-specific information.
     """
     def __init__(self):
-        # Initialize the parent DesignSchema class.
+        # Initialize the parent Design class.
         super().__init__()
         # Set the name of the design. This is used for file naming and organization.
         self.set_name("picorv32")

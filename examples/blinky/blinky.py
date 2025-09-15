@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
 # Import the necessary classes for an FPGA project. Note the use of
-# FPGAProject and FPGASchema, which are specific to FPGA flows.
-from siliconcompiler import FPGAProject, DesignSchema, FPGASchema
+# FPGAProject and FPGA, which are specific to FPGA flows.
+from siliconcompiler import FPGAProject, Design, FPGA
 # Import a pre-defined flow for FPGAs.
 from siliconcompiler.flows import fpgaflow
 
@@ -19,7 +19,7 @@ def main():
 
     # --- Design Setup ---
     # Create a design schema to hold the project's configuration.
-    design = DesignSchema("blinky")
+    design = Design("blinky")
     # Set up a 'dataroot' to easily reference local files.
     design.set_dataroot("blinky", __file__)
 
@@ -44,7 +44,7 @@ def main():
 
     # --- FPGA Target Configuration ---
     # Define the specific FPGA chip we are targeting.
-    fpga = FPGASchema("ice40")
+    fpga = FPGA("ice40")
     # The partname is a vendor-specific code that uniquely identifies the FPGA.
     # This tells the tools about the chip's resources (LUTs, BRAM, etc.) and package.
     fpga.set_partname("ice40up5k-sg48")

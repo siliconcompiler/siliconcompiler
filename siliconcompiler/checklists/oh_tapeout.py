@@ -1,7 +1,7 @@
-from siliconcompiler import ChecklistSchema
+from siliconcompiler import Checklist
 
 
-class OHTapeoutChecklist(ChecklistSchema):
+class OHTapeoutChecklist(Checklist):
     '''
     Subset of OH! library tapeout checklist.
 

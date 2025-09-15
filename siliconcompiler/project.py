@@ -17,9 +17,9 @@ from siliconcompiler.schema import BaseSchema, NamedSchema, EditableSchema, Para
 from siliconcompiler.schema.parametervalue import NodeListValue, NodeSetValue
 from siliconcompiler.schema.utils import trim
 
-from siliconcompiler import DesignSchema
-from siliconcompiler import FlowgraphSchema
-from siliconcompiler import ChecklistSchema
+from siliconcompiler import Design
+from siliconcompiler import Flowgraph
+from siliconcompiler import Checklist
 
 from siliconcompiler.schema_support.record import RecordSchema
 from siliconcompiler.schema_support.metric import MetricSchema
@@ -49,7 +49,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
     and reporting.
     """
 
-    def __init__(self, design: Union[DesignSchema, str] = None):
+    def __init__(self, design: Union[Design, str] = None):
         super().__init__()
 
         # Initialize schema
@@ -101,9 +101,9 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                 'index'. The parameter is used the :meth:`.run()` function and
                 is not intended for external use."""))
 
-        schema.insert("checklist", "default", ChecklistSchema())
-        schema.insert("library", "default", DesignSchema())
-        schema.insert("flowgraph", "default", FlowgraphSchema())
+        schema.insert("checklist", "default", Checklist())
+        schema.insert("library", "default", Design())
+        schema.insert("flowgraph", "default", Flowgraph())
         schema.insert("metric", MetricSchema())
         schema.insert("record", RecordSchema())
         schema.insert("tool", "default", "task", "default", TaskSchema())
@@ -239,7 +239,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         return self.get("option", "design")
 
     @property
-    def design(self) -> DesignSchema:
+    def design(self) -> Design:
         """
         Returns the design object
         """
@@ -407,15 +407,15 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
 
     def add_dep(self, obj):
         """
-        Adds a dependency object (e.g., a DesignSchema, FlowgraphSchema, LibrarySchema,
-        or ChecklistSchema) to the project.
+        Adds a dependency object (e.g., a Design, Flowgraph, LibrarySchema,
+        or Checklist) to the project.
 
         This method intelligently adds various types of schema objects to the
         project's internal structure. It also handles recursive addition of
         dependencies if the added object itself is a `DependencySchema`.
 
         Args:
-            obj (Union[DesignSchema, FlowgraphSchema, LibrarySchema, ChecklistSchema,
+            obj (Union[Design, Flowgraph, LibrarySchema, Checklist,
                        List, Set, Tuple]):
                 The dependency object(s) to add. Can be a single schema object
                 or a collection (list, set, tuple) of schema objects.
@@ -428,15 +428,15 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                 self.add_dep(iobj)
             return
 
-        if isinstance(obj, DesignSchema):
+        if isinstance(obj, Design):
             if not self.has_library(obj.name):
                 EditableSchema(self).insert("library", obj.name, obj)
-        elif isinstance(obj, FlowgraphSchema):
+        elif isinstance(obj, Flowgraph):
             self.__import_flow(obj)
         elif isinstance(obj, LibrarySchema):
             if not self.has_library(obj.name):
                 EditableSchema(self).insert("library", obj.name, obj)
-        elif isinstance(obj, ChecklistSchema):
+        elif isinstance(obj, Checklist):
             if obj.name not in self.getkeys("checklist"):
                 EditableSchema(self).insert("checklist", obj.name, obj)
         else:
@@ -454,9 +454,9 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             # Rebuild dependencies to ensure instances are correct
             self.__populate_deps(obj)
 
-    def __import_flow(self, flow: FlowgraphSchema):
+    def __import_flow(self, flow: Flowgraph):
         """
-        Imports a FlowgraphSchema into the project.
+        Imports a Flowgraph into the project.
 
         If the flowgraph with the given name is not already present, it is
         added to the project's flowgraph schema. This method also instantiates
@@ -464,7 +464,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         that the necessary tool and task schemas are available.
 
         Args:
-            flow (FlowgraphSchema): The flowgraph schema object to import.
+            flow (Flowgraph): The flowgraph schema object to import.
         """
         if flow.name in self.getkeys("flowgraph"):
             return
@@ -1018,22 +1018,22 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             return list(tasks)[0]
         return tasks
 
-    def set_design(self, design: Union[DesignSchema, str]):
+    def set_design(self, design: Union[Design, str]):
         """
         Sets the active design for this project.
 
         This method allows you to specify the primary design that the project
-        will operate on. If a `DesignSchema` object is provided, it is first
+        will operate on. If a `Design` object is provided, it is first
         added as a dependency.
 
         Args:
-            design (Union[DesignSchema, str]): The design object or its name (string)
+            design (Union[Design, str]): The design object or its name (string)
                                                to be set as the current design.
 
         Raises:
-            TypeError: If the provided `design` is not a string or a `DesignSchema` object.
+            TypeError: If the provided `design` is not a string or a `Design` object.
         """
-        if isinstance(design, DesignSchema):
+        if isinstance(design, Design):
             self.add_dep(design)
             design = design.name
         elif not isinstance(design, str):
@@ -1041,22 +1041,22 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
 
         return self.set("option", "design", design)
 
-    def set_flow(self, flow: Union[FlowgraphSchema, str]):
+    def set_flow(self, flow: Union[Flowgraph, str]):
         """
         Sets the active flowgraph for this project.
 
         This method allows you to specify the sequence of steps and tasks
-        (the flow) that the project will execute. If a `FlowgraphSchema` object
+        (the flow) that the project will execute. If a `Flowgraph` object
         is provided, it is first added as a dependency.
 
         Args:
-            flow (Union[FlowgraphSchema, str]): The flowgraph object or its name (string)
+            flow (Union[Flowgraph, str]): The flowgraph object or its name (string)
                                                 to be set as the current flow.
 
         Raises:
-            TypeError: If the provided `flow` is not a string or a `FlowgraphSchema` object.
+            TypeError: If the provided `flow` is not a string or a `Flowgraph` object.
         """
-        if isinstance(flow, FlowgraphSchema):
+        if isinstance(flow, Flowgraph):
             self.add_dep(flow)
             flow = flow.name
         elif not isinstance(flow, str):
@@ -1104,9 +1104,9 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             return self.add("option", "fileset", fileset)
 
     def add_alias(self,
-                  src_dep: Union[DesignSchema, str],
+                  src_dep: Union[Design, str],
                   src_fileset: str,
-                  alias_dep: Union[DesignSchema, str],
+                  alias_dep: Union[Design, str],
                   alias_fileset: str,
                   clobber: bool = False):
         """
@@ -1118,10 +1118,10 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         modifying the original design.
 
         Args:
-            src_dep (Union[DesignSchema, str]): The source design library (object or name)
+            src_dep (Union[Design, str]): The source design library (object or name)
                                                 from which the fileset is being aliased.
             src_fileset (str): The name of the source fileset to alias.
-            alias_dep (Union[DesignSchema, str]): The destination design library (object or name)
+            alias_dep (Union[Design, str]): The destination design library (object or name)
                                                   to which the fileset is being redirected.
                                                   Can be None or an empty string to indicate
                                                   deletion.
@@ -1132,7 +1132,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                             the same source). Defaults to False.
 
         Raises:
-            TypeError: If `src_dep` or `alias_dep` are not valid types (string or DesignSchema).
+            TypeError: If `src_dep` or `alias_dep` are not valid types (string or Design).
             KeyError: If `alias_dep` is a string but the corresponding library is not loaded.
             ValueError: If `src_fileset` is not found in `src_dep`, or if `alias_fileset` is
                         not found in `alias_dep` (when `alias_fileset` is not None).
@@ -1146,7 +1146,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                 src_dep = None
 
         if src_dep is not None:
-            if isinstance(src_dep, DesignSchema):
+            if isinstance(src_dep, Design):
                 src_dep_name = src_dep.name
                 if not self.has_library(src_dep_name):
                     self.add_dep(src_dep)
@@ -1174,7 +1174,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                 alias_dep = self.get("library", alias_dep, field="schema")
 
         if alias_dep is not None:
-            if isinstance(alias_dep, DesignSchema):
+            if isinstance(alias_dep, Design):
                 alias_dep_name = alias_dep.name
                 if not self.has_library(alias_dep_name):
                     self.add_dep(alias_dep)

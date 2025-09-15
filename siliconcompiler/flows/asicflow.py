@@ -24,11 +24,11 @@ from siliconcompiler.tools.chisel.convert import ConvertTask as ChiselConvertTas
 
 from siliconcompiler.tools.builtin import minimum
 
-from siliconcompiler import FlowgraphSchema
+from siliconcompiler import Flowgraph
 from siliconcompiler.tools.slang import elaborate
 
 
-class ASICFlow(FlowgraphSchema):
+class ASICFlow(Flowgraph):
     '''A configurable ASIC compilation flow.
 
     This flow targets ASIC designs, taking RTL through a complete synthesis,

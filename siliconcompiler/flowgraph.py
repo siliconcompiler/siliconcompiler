@@ -13,7 +13,7 @@ from siliconcompiler.schema.utils import trim
 from siliconcompiler import NodeStatus
 
 
-class FlowgraphSchema(NamedSchema, DocsSchema):
+class Flowgraph(NamedSchema, DocsSchema):
     '''
     Schema for defining and interacting with a flowgraph.
 
@@ -26,7 +26,7 @@ class FlowgraphSchema(NamedSchema, DocsSchema):
 
     def __init__(self, name=None):
         '''
-        Initializes a new FlowgraphSchema object.
+        Initializes a new Flowgraph object.
 
         Args:
             name (str, optional): The name of the flowgraph. Defaults to None.
@@ -238,16 +238,16 @@ class FlowgraphSchema(NamedSchema, DocsSchema):
         Instantiates a sub-flowgraph within the current flowgraph.
 
         Args:
-            subflow (FlowgraphSchema): The flowgraph to instantiate.
+            subflow (Flowgraph): The flowgraph to instantiate.
             name (str, optional): A prefix to add to the names of the
                 instantiated steps to ensure they are unique. Defaults to None.
 
         Raises:
-            ValueError: If `subflow` is not a `FlowgraphSchema` object, or if
+            ValueError: If `subflow` is not a `Flowgraph` object, or if
                 a step from the sub-flowgraph already exists in the current graph.
         '''
-        if not isinstance(subflow, FlowgraphSchema):
-            raise ValueError(f"subflow must a FlowgraphSchema, not: {type(subflow)}")
+        if not isinstance(subflow, Flowgraph):
+            raise ValueError(f"subflow must a Flowgraph, not: {type(subflow)}")
 
         for step in subflow.getkeys():
             # uniquify each step
@@ -613,7 +613,7 @@ class FlowgraphSchema(NamedSchema, DocsSchema):
         Returns the metadata type for `getdict` serialization.
         """
 
-        return FlowgraphSchema.__name__
+        return Flowgraph.__name__
 
     def __get_graph_information(self):
         # Setup nodes
@@ -893,7 +893,7 @@ class RuntimeFlowgraph:
         Initializes a new RuntimeFlowgraph.
 
         Args:
-            base (FlowgraphSchema): The base flowgraph to create a view of.
+            base (Flowgraph): The base flowgraph to create a view of.
             args (tuple[str, str], optional): A specific `(step, index)` to run.
                 If provided, this overrides `from_steps` and `to_steps`.
                 Defaults to None.
@@ -904,8 +904,8 @@ class RuntimeFlowgraph:
             prune_nodes (list[tuple(str,str)], optional): A list of `(step, index)`
                 nodes to exclude from the graph. Defaults to None.
         '''
-        if not all([hasattr(base, attr) for attr in dir(FlowgraphSchema)]):
-            raise ValueError(f"base must a FlowgraphSchema, not: {type(base)}")
+        if not all([hasattr(base, attr) for attr in dir(Flowgraph)]):
+            raise ValueError(f"base must a Flowgraph, not: {type(base)}")
 
         self.__base = base
 
@@ -1151,7 +1151,7 @@ class RuntimeFlowgraph:
         the graph by removing all entry/exit points or creating disjoint paths.
 
         Args:
-            flow (FlowgraphSchema): The flowgraph to validate against.
+            flow (Flowgraph): The flowgraph to validate against.
             from_steps (list[str], optional): List of start steps. Defaults to None.
             to_steps (list[str], optional): List of end steps. Defaults to None.
             prune_nodes (list[tuple(str,str)], optional): List of nodes to prune.

@@ -1,7 +1,7 @@
 # Copyright 2023 Silicon Compiler Authors. All Rights Reserved.
 import sys
 
-from siliconcompiler import Project, DesignSchema
+from siliconcompiler import Project, Design
 from siliconcompiler.remote import Client, ConfigureClient
 
 
@@ -45,7 +45,7 @@ To delete a job, use:
         def __init__(self):
             super().__init__()
 
-            self.set_design(DesignSchema("dummy"))
+            self.set_design(Design("dummy"))
 
             self._add_commandline_argument("cfg", "file",
                                            "configuration manifest")

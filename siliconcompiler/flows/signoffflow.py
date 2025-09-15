@@ -3,10 +3,10 @@ from siliconcompiler.tools.magic import drc
 from siliconcompiler.tools.netgen import lvs
 from siliconcompiler.tools.builtin import join
 
-from siliconcompiler import FlowgraphSchema
+from siliconcompiler import Flowgraph
 
 
-class SignoffFlow(FlowgraphSchema):
+class SignoffFlow(Flowgraph):
     '''A flow for running LVS/DRC signoff on a GDS layout.
 
     This flow performs two key physical verification steps in parallel:

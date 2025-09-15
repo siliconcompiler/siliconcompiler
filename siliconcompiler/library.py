@@ -166,13 +166,13 @@ class ToolLibrarySchema(LibrarySchema):
         return None
 
 
-class StdCellLibrarySchema(ToolLibrarySchema, DependencySchema):
+class StdCellLibrary(ToolLibrarySchema, DependencySchema):
     """
     A class for managing standard cell library schemas.
     """
     def __init__(self, name: str = None):
         """
-        Initializes a StdCellLibrarySchema object.
+        Initializes a StdCellLibrary object.
 
         Args:
             name (str, optional): The name of the standard cell library. Defaults to None.
@@ -273,11 +273,11 @@ class StdCellLibrarySchema(ToolLibrarySchema, DependencySchema):
         Adds the PDK associated with this library.
 
         Args:
-            pdk (class:`PDKSchema`): pdk to associate
+            pdk (class:`PDK`): pdk to associate
             default (bool): if True, sets this PDK in [asic,pdk]
         """
-        from siliconcompiler import PDKSchema
-        if isinstance(pdk, PDKSchema):
+        from siliconcompiler import PDK
+        if isinstance(pdk, PDK):
             pdk_name = pdk.name
             self.add_dep(pdk)
 
@@ -381,7 +381,7 @@ class StdCellLibrarySchema(ToolLibrarySchema, DependencySchema):
         Returns the meta data for getdict.
         """
 
-        return StdCellLibrarySchema.__name__
+        return StdCellLibrary.__name__
 
     def _generate_doc(self, doc,
                       ref_root: str = "",

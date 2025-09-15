@@ -5,7 +5,7 @@ import pytest
 from threading import Lock
 
 from siliconcompiler import NodeStatus
-from siliconcompiler import Project, FlowgraphSchema, DesignSchema
+from siliconcompiler import Project, Flowgraph, Design
 from siliconcompiler.scheduler import TaskScheduler
 from siliconcompiler.scheduler.taskscheduler import utils as imported_utils
 from siliconcompiler.scheduler import SchedulerNode
@@ -16,7 +16,7 @@ from siliconcompiler.tools.builtin.join import JoinTask
 
 @pytest.fixture
 def large_flow():
-    flow = FlowgraphSchema("testflow")
+    flow = Flowgraph("testflow")
 
     flow.node("joinone", JoinTask())
     for n in range(3):
@@ -37,7 +37,7 @@ def large_flow():
         flow.edge("jointwo", "stepthree", head_index=n)
         flow.edge("stepthree", "jointhree", tail_index=n)
 
-    design = DesignSchema("testdesign")
+    design = Design("testdesign")
     with design.active_fileset("rtl"):
         design.set_topmodule("top")
 

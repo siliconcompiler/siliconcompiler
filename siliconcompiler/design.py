@@ -15,7 +15,7 @@ from siliconcompiler.schema.utils import trim
 
 
 ###########################################################################
-class DesignSchema(LibrarySchema, DependencySchema):
+class Design(LibrarySchema, DependencySchema):
     '''
     Schema for a 'design', which is a chip object that can be compiled.
 
@@ -27,7 +27,7 @@ class DesignSchema(LibrarySchema, DependencySchema):
 
     def __init__(self, name: str = None):
         '''
-        Initializes a new DesignSchema object.
+        Initializes a new Design object.
 
         Args:
             name (str, optional): The name of the design. Defaults to None.
@@ -309,12 +309,12 @@ class DesignSchema(LibrarySchema, DependencySchema):
         return self.get('fileset', fileset, 'param', name)
 
     ###############################################
-    def add_depfileset(self, dep: Union["DesignSchema", str], depfileset: str, fileset: str = None):
+    def add_depfileset(self, dep: Union["Design", str], depfileset: str, fileset: str = None):
         """
         Record a reference to an imported dependency's fileset.
 
         Args:
-           dep (:class:`DesignSchema` or str): Dependency name or object.
+           dep (:class:`Design` or str): Dependency name or object.
            depfileset (str): Dependency fileset.
            fileset (str): Fileset name. If not provided, the active fileset is
             used.
@@ -332,14 +332,14 @@ class DesignSchema(LibrarySchema, DependencySchema):
                 dep = self.get_dep(dep_name)
             else:
                 dep = self
-        elif isinstance(dep, DesignSchema):
+        elif isinstance(dep, Design):
             dep_name = dep.name
             if dep is not self:
                 self.add_dep(dep, clobber=True)
         else:
             raise TypeError("dep is not a valid type")
 
-        if not isinstance(dep, DesignSchema):
+        if not isinstance(dep, Design):
             raise ValueError(f"cannot associate fileset ({depfileset}) with {dep.name}")
 
         if not dep.has_fileset(depfileset):
@@ -666,7 +666,7 @@ class DesignSchema(LibrarySchema, DependencySchema):
         This is used to identify the object type during serialization.
         """
 
-        return DesignSchema.__name__
+        return Design.__name__
 
     def get_fileset(self,
                     filesets: Union[List[str], str],
@@ -712,7 +712,7 @@ class DesignSchema(LibrarySchema, DependencySchema):
                         dep_obj = self
                     else:
                         dep_obj = self.get_dep(dep)
-                if not isinstance(dep_obj, DesignSchema):
+                if not isinstance(dep_obj, Design):
                     raise TypeError(f"{dep} must be a design object.")
 
                 mapping.extend(dep_obj.get_fileset(depfileset, alias))
@@ -732,12 +732,12 @@ def schema_design(schema):
     '''
     Defines the schema parameters specific to a design.
 
-    This function is called by the `DesignSchema` constructor to set up
+    This function is called by the `Design` constructor to set up
     its unique schema elements, such as `topmodule`, `idir`, `define`, etc.,
     under the `fileset` key.
 
     Args:
-        schema (DesignSchema): The schema object to configure.
+        schema (Design): The schema object to configure.
     '''
 
     schema = EditableSchema(schema)

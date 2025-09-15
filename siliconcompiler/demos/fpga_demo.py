@@ -1,6 +1,6 @@
 # Copyright 2025 Zero ASIC Corporation
 
-from siliconcompiler import FPGAProject, DesignSchema
+from siliconcompiler import FPGAProject, Design
 from siliconcompiler.flows.fpgaflow import FPGAVPROpenSTAFlow
 
 from siliconcompiler.tools.vpr import VPRFPGA
@@ -57,7 +57,7 @@ class FPGADemo(FPGAProject):
     def __init__(self):
         super().__init__()
 
-        design = DesignSchema("heartbeat")
+        design = Design("heartbeat")
         design.set_dataroot("heartbeat", "python://siliconcompiler")
         with design.active_dataroot("heartbeat"), design.active_fileset("rtl"):
             design.set_topmodule("heartbeat")

@@ -2,7 +2,7 @@ import pytest
 
 import os.path
 
-from siliconcompiler import Project, FlowgraphSchema, DesignSchema
+from siliconcompiler import Project, Flowgraph, Design
 from siliconcompiler.tools.slang.elaborate import Elaborate
 from siliconcompiler.tools.verilator import lint, compile
 from siliconcompiler.scheduler import SchedulerNode
@@ -15,7 +15,7 @@ def test_lint_post_slang(heartbeat_design):
     proj = Project(heartbeat_design)
     proj.add_fileset("rtl")
 
-    flow = FlowgraphSchema("testflow")
+    flow = Flowgraph("testflow")
     flow.node("elaborate", Elaborate())
     flow.node("lint", lint.LintTask())
     flow.edge("elaborate", "lint")
@@ -38,7 +38,7 @@ def test_compile(heartbeat_design, datadir, run_cli):
     proj.add_fileset("rtl")
     proj.add_fileset("tb_test_cpp")
 
-    flow = FlowgraphSchema("testflow")
+    flow = Flowgraph("testflow")
     flow.node("elaborate", Elaborate())
     flow.node("compile", compile.CompileTask())
     flow.edge("elaborate", "compile")
@@ -71,7 +71,7 @@ def test_assert(heartbeat_design, datadir, run_cli):
     proj.add_fileset("assert")
     proj.add_fileset("tb_test_cpp")
 
-    flow = FlowgraphSchema("testflow")
+    flow = Flowgraph("testflow")
     flow.node("elaborate", Elaborate())
     flow.node("compile", compile.CompileTask())
     flow.edge("elaborate", "compile")
@@ -96,7 +96,7 @@ def test_config_files_from_libs(gcd_design):
     with open('test.cfg', 'w') as f:
         f.write('test')
 
-    dep_design = DesignSchema("libdep")
+    dep_design = Design("libdep")
     with dep_design.active_fileset("config"):
         dep_design.add_file('test.cfg', filetype="config")
 
@@ -106,7 +106,7 @@ def test_config_files_from_libs(gcd_design):
     proj = Project(gcd_design)
     proj.add_fileset("rtl")
 
-    flow = FlowgraphSchema("testflow")
+    flow = Flowgraph("testflow")
     flow.node("lint", lint.LintTask())
     proj.set_flow(flow)
 
@@ -126,7 +126,7 @@ def test_random_reset(gcd_design):
     proj = Project(gcd_design)
     proj.add_fileset("rtl")
 
-    flow = FlowgraphSchema("testflow")
+    flow = Flowgraph("testflow")
     flow.node("compile", compile.CompileTask())
     proj.set_flow(flow)
 
@@ -154,7 +154,7 @@ def test_version(gcd_design):
     proj = Project(gcd_design)
     proj.add_fileset("rtl")
 
-    flow = FlowgraphSchema("testflow")
+    flow = Flowgraph("testflow")
     flow.node("version", compile.CompileTask())
     proj.set_flow(flow)
 
@@ -171,7 +171,7 @@ def test_lintflow(heartbeat_design):
     proj = Project(heartbeat_design)
     proj.add_fileset("rtl")
 
-    flow = FlowgraphSchema("testflow")
+    flow = Flowgraph("testflow")
     flow.node("lint", lint.LintTask())
     proj.set_flow(flow)
 

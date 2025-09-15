@@ -1,6 +1,6 @@
 import pytest
 
-from siliconcompiler import Project, FlowgraphSchema
+from siliconcompiler import Project, Flowgraph
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.tools.magic import drc
 
@@ -12,7 +12,7 @@ def test_version(gcd_design):
     proj = Project(gcd_design)
     proj.add_fileset("rtl")
 
-    flow = FlowgraphSchema("testflow")
+    flow = Flowgraph("testflow")
     flow.node("version", drc.DRCTask())
     proj.set_flow(flow)
 

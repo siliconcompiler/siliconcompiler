@@ -15,7 +15,7 @@ from pathlib import Path
 from siliconcompiler.utils import default_credentials_file
 from siliconcompiler._metadata import default_server
 
-from siliconcompiler import FlowgraphSchema, Project
+from siliconcompiler import Flowgraph, Project
 from siliconcompiler.tools.builtin.nop import NOPTask
 
 from siliconcompiler.apps import sc_remote
@@ -36,7 +36,7 @@ def gcd_nop_project(gcd_design):
     project.add_fileset("rtl")
     project.add_fileset("sdc")
 
-    flow = FlowgraphSchema("nopflow")
+    flow = Flowgraph("nopflow")
     flow.node("stepone", NOPTask())
     flow.node("steptwo", NOPTask())
     flow.edge("stepone", "steptwo")
@@ -185,7 +185,7 @@ def test_sc_remote_reconnect(gcd_nop_project, monkeypatch, unused_tcp_port, scse
     '''Test that sc-remote can reconnect to a running job.
     '''
 
-    flow = FlowgraphSchema("pausedflow")
+    flow = Flowgraph("pausedflow")
     flow.node("stepone", PausedNOP())
     flow.node("steptwo", NOPTask())
     flow.edge("stepone", "steptwo")

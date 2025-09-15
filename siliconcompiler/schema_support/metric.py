@@ -182,7 +182,7 @@ class MetricSchema(BaseSchema):
         Args:
             step (str): The step of the node.
             index (str or int): The index of the node.
-            flow (FlowgraphSchema): The flowgraph containing the nodes.
+            flow (Flowgraph): The flowgraph containing the nodes.
             record (RecordSchema): The record schema containing timing data.
 
         Returns:

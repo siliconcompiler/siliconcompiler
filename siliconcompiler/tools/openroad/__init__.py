@@ -12,16 +12,16 @@ Installation: https://github.com/The-OpenROAD-Project/OpenROAD
 '''
 from typing import List, Union
 
-from siliconcompiler import StdCellLibrarySchema
-from siliconcompiler import PDKSchema
+from siliconcompiler import StdCellLibrary
+from siliconcompiler import PDK
 from siliconcompiler.asic import ASICTaskSchema
 
 
-class OpenROADPDK(PDKSchema):
+class OpenROADPDK(PDK):
     """
     Schema for defining technology-specific parameters for the OpenROAD tool.
 
-    This class extends the base PDKSchema to manage various settings related
+    This class extends the base PDK to manage various settings related
     to physical design, such as routing layers, pin layers, and global
     routing derating factors, specifically for the OpenROAD tool.
     """
@@ -118,11 +118,11 @@ class OpenROADPDK(PDKSchema):
         self.set("tool", "openroad", "rcx_maxlayer", layer)
 
 
-class OpenROADStdCellLibrary(StdCellLibrarySchema):
+class OpenROADStdCellLibrary(StdCellLibrary):
     """
     Schema for defining standard cell library parameters for the OpenROAD tool.
 
-    This class extends the base StdCellLibrarySchema to manage various settings
+    This class extends the base StdCellLibrary to manage various settings
     related to physical design, such as tie cells, placement settings, routing,
     and power grid configuration, specifically for the OpenROAD tool.
     """
@@ -384,16 +384,16 @@ class OpenROADTask(ASICTaskSchema):
 
     @classmethod
     def make_docs(cls):
-        from siliconcompiler import FlowgraphSchema, DesignSchema, ASICProject
+        from siliconcompiler import Flowgraph, Design, ASICProject
         from siliconcompiler.scheduler import SchedulerNode
         from siliconcompiler.targets import freepdk45_demo
-        design = DesignSchema("<design>")
+        design = Design("<design>")
         with design.active_fileset("docs"):
             design.set_topmodule("top")
         proj = ASICProject(design)
         proj.add_fileset("docs")
         proj.load_target(freepdk45_demo.setup)
-        flow = FlowgraphSchema("docsflow")
+        flow = Flowgraph("docsflow")
         flow.node("<step>", cls(), index="<index>")
         proj.set_flow(flow)
 

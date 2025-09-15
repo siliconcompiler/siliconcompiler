@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # Import the core classes from the siliconcompiler library.
-from siliconcompiler import ASICProject, DesignSchema
+from siliconcompiler import ASICProject, Design
 # Import a pre-defined "target" which sets up a specific PDK,
 # standard cell library, and tool flow.
 from siliconcompiler.targets import freepdk45_demo
@@ -15,9 +15,9 @@ def main():
     '''
 
     # --- Design Setup ---
-    # The DesignSchema object is a blueprint that holds all the configuration
+    # The Design object is a blueprint that holds all the configuration
     # for a specific hardware design.
-    design = DesignSchema("aes")
+    design = Design("aes")
 
     # Set up a 'dataroot' to easily reference local files. `__file__` makes
     # the path relative to this Python script's location.

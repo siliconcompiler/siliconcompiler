@@ -125,16 +125,16 @@ class _ASICTask(ASICTaskSchema, YosysTask):
 
     @classmethod
     def make_docs(cls):
-        from siliconcompiler import FlowgraphSchema, DesignSchema, ASICProject
+        from siliconcompiler import Flowgraph, Design, ASICProject
         from siliconcompiler.scheduler import SchedulerNode
         from siliconcompiler.targets import freepdk45_demo
-        design = DesignSchema("<design>")
+        design = Design("<design>")
         with design.active_fileset("docs"):
             design.set_topmodule("top")
         proj = ASICProject(design)
         proj.add_fileset("docs")
         proj.load_target(freepdk45_demo.setup)
-        flow = FlowgraphSchema("docsflow")
+        flow = Flowgraph("docsflow")
         flow.node("<step>", cls(), index="<index>")
         proj.set_flow(flow)
 

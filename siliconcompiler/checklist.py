@@ -11,13 +11,13 @@ from siliconcompiler.schema.utils import trim
 from siliconcompiler import NodeStatus, utils
 
 
-class ChecklistSchema(NamedSchema):
+class Checklist(NamedSchema):
     """
     A class for managing design checklists and their verification.
     """
     def __init__(self, name=None):
         """
-        Initializes the ChecklistSchema object.
+        Initializes the Checklist object.
 
         Args:
             name (str, optional): The name of the checklist standard. Defaults to None.
@@ -227,7 +227,7 @@ class ChecklistSchema(NamedSchema):
         Returns the meta data for getdict
         """
 
-        return ChecklistSchema.__name__
+        return Checklist.__name__
 
     def _generate_doc(self, doc,
                       ref_root: str = "",

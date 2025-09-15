@@ -11,7 +11,7 @@ from pathlib import Path
 from multiprocessing import Queue
 from unittest.mock import patch
 
-from siliconcompiler import Project, FlowgraphSchema, DesignSchema
+from siliconcompiler import Project, Flowgraph, Design
 from siliconcompiler import NodeStatus
 from siliconcompiler.tool import TaskSchema
 from siliconcompiler.tool import TaskSkip
@@ -24,12 +24,12 @@ from siliconcompiler.scheduler import SchedulerNode
 
 @pytest.fixture
 def project():
-    flow = FlowgraphSchema("testflow")
+    flow = Flowgraph("testflow")
     flow.node("stepone", NOPTask())
     flow.node("steptwo", NOPTask())
     flow.edge("stepone", "steptwo")
 
-    design = DesignSchema("testdesign")
+    design = Design("testdesign")
     with design.active_fileset("rtl"):
         design.set_topmodule("top")
 
@@ -42,12 +42,12 @@ def project():
 
 @pytest.fixture
 def echo_project():
-    flow = FlowgraphSchema("testflow")
+    flow = Flowgraph("testflow")
     flow.node("stepone", EchoTask())
     flow.node("steptwo", EchoTask())
     flow.edge("stepone", "steptwo")
 
-    design = DesignSchema("testdesign")
+    design = Design("testdesign")
     with design.active_fileset("rtl"):
         design.set_topmodule("top")
 
@@ -393,7 +393,7 @@ def test_check_previous_run_status_flow(project, caplog):
     setattr(project, "_Project__logger", logging.getLogger())
     project.logger.setLevel(logging.DEBUG)
     node = SchedulerNode(project, "steptwo", "0")
-    flow = FlowgraphSchema("testflow0")
+    flow = Flowgraph("testflow0")
     flow.node("stepone", NOPTask())
     flow.node("steptwo", NOPTask())
     flow.edge("stepone", "steptwo")
@@ -410,7 +410,7 @@ def test_check_previous_run_status_tool(project, caplog):
     setattr(project, "_Project__logger", logging.getLogger())
     project.logger.setLevel(logging.DEBUG)
     node = SchedulerNode(project, "steptwo", "0")
-    flow = FlowgraphSchema("testflow")
+    flow = Flowgraph("testflow")
     flow.node("stepone", NOPTask())
     flow.node("steptwo", EchoTask())
     flow.edge("stepone", "steptwo")
@@ -429,7 +429,7 @@ def test_check_previous_run_status_task(project, caplog):
     project.logger.setLevel(logging.DEBUG)
     node = SchedulerNode(project, "steptwo", "0")
 
-    flow = FlowgraphSchema("testflow")
+    flow = Flowgraph("testflow")
     flow.node("stepone", NOPTask())
     flow.node("steptwo", JoinTask())
     flow.edge("stepone", "steptwo")

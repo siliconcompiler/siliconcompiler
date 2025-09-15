@@ -13,7 +13,7 @@ from siliconcompiler.package import Resolver, RemoteResolver
 from siliconcompiler.package import FileResolver, PythonPathResolver, KeyPathResolver
 from siliconcompiler.package import InterProcessLock as dut_ipl
 
-from siliconcompiler import Project, DesignSchema
+from siliconcompiler import Project, Design
 
 
 def test_init():
@@ -640,7 +640,7 @@ def test_python_path_resolver():
 
 
 def test_keypath_resolver():
-    design = DesignSchema("testdesign")
+    design = Design("testdesign")
     with design.active_fileset("rtl"):
         design.add_idir(".")
 

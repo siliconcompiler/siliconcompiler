@@ -1,8 +1,8 @@
-from siliconcompiler import FlowgraphSchema
+from siliconcompiler import Flowgraph
 from siliconcompiler.tool import ShowTaskSchema
 
 
-class ShowFlow(FlowgraphSchema):
+class ShowFlow(Flowgraph):
     """A minimal flow to display a design file using its associated viewer.
 
     This flow is automatically generated and consists of a single node that

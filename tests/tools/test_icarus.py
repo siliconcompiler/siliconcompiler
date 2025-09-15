@@ -4,7 +4,7 @@ import pytest
 
 import os.path
 
-from siliconcompiler import Project, FlowgraphSchema
+from siliconcompiler import Project, Flowgraph
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.tools.icarus import compile
 
@@ -16,7 +16,7 @@ def test_compile(gcd_design):
     proj = Project(gcd_design)
     proj.add_fileset("rtl")
 
-    flow = FlowgraphSchema("testflow")
+    flow = Flowgraph("testflow")
     flow.node("compile", compile.CompileTask())
     proj.set_flow(flow)
 
@@ -34,7 +34,7 @@ def test_version(gcd_design):
     proj = Project(gcd_design)
     proj.add_fileset("rtl")
 
-    flow = FlowgraphSchema("testflow")
+    flow = Flowgraph("testflow")
     flow.node("version", compile.CompileTask())
     proj.set_flow(flow)
 
@@ -49,7 +49,7 @@ def test_runtime_args(heartbeat_design):
     heartbeat_design.set_param("N", "8", "rtl")
     proj.add_fileset("rtl")
 
-    flow = FlowgraphSchema("testflow")
+    flow = Flowgraph("testflow")
     flow.node("version", compile.CompileTask())
     proj.set_flow(flow)
 

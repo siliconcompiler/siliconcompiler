@@ -1,6 +1,6 @@
 import pytest
 
-from siliconcompiler import Project, FlowgraphSchema
+from siliconcompiler import Project, Flowgraph
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.tools.montage import tile
 
@@ -12,7 +12,7 @@ def test_version(gcd_design):
     proj = Project(gcd_design)
     proj.add_fileset("rtl")
 
-    flow = FlowgraphSchema("testflow")
+    flow = Flowgraph("testflow")
     flow.node("version", tile.TileTask())
     proj.set_flow(flow)
 
@@ -26,7 +26,7 @@ def test_runtime_opts(gcd_design):
     proj = Project(gcd_design)
     proj.add_fileset("rtl")
 
-    flow = FlowgraphSchema("testflow")
+    flow = Flowgraph("testflow")
     flow.node("tile", tile.TileTask())
     proj.set_flow(flow)
 

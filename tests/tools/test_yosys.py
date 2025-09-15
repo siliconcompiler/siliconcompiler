@@ -6,7 +6,7 @@ from siliconcompiler.targets import freepdk45_demo
 
 from tools.inputimporter import ImporterTask
 
-from siliconcompiler import ASICProject, DesignSchema, FlowgraphSchema
+from siliconcompiler import ASICProject, Design, Flowgraph
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.tools.yosys.lec_asic import ASICLECTask
 
@@ -18,7 +18,7 @@ def test_version(gcd_design):
     proj = ASICProject(gcd_design)
     proj.add_fileset("rtl")
 
-    flow = FlowgraphSchema("testflow")
+    flow = Flowgraph("testflow")
     flow.node("version", ASICLECTask())
     proj.set_flow(flow)
 
@@ -32,7 +32,7 @@ def test_version(gcd_design):
 @pytest.mark.quick
 @pytest.mark.ready
 def test_yosys_lec(datadir):
-    design = DesignSchema("testdesign")
+    design = Design("testdesign")
     with design.active_fileset("rtl"):
         design.set_topmodule("foo")
 
@@ -40,7 +40,7 @@ def test_yosys_lec(datadir):
     proj.add_fileset(["rtl"])
     proj.load_target(freepdk45_demo.setup)
 
-    flow = FlowgraphSchema("lec")
+    flow = Flowgraph("lec")
     flow.node('import', ImporterTask())
     flow.node("lec", ASICLECTask())
     flow.edge('import', 'lec')
@@ -59,7 +59,7 @@ def test_yosys_lec(datadir):
 @pytest.mark.quick
 @pytest.mark.ready
 def test_yosys_lec_broken(datadir):
-    design = DesignSchema("testdesign")
+    design = Design("testdesign")
     with design.active_fileset("rtl"):
         design.set_topmodule("foo")
 
@@ -67,7 +67,7 @@ def test_yosys_lec_broken(datadir):
     proj.add_fileset(["rtl"])
     proj.load_target(freepdk45_demo.setup)
 
-    flow = FlowgraphSchema("lec")
+    flow = Flowgraph("lec")
     flow.node('import', ImporterTask())
     flow.node("lec", ASICLECTask())
     flow.edge('import', 'lec')

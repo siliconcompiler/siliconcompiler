@@ -6,7 +6,7 @@ from migen import Module, Signal, Cat, Replicate
 from migen.fhdl.verilog import convert
 
 # Import the core classes from the siliconcompiler library.
-from siliconcompiler import DesignSchema
+from siliconcompiler import Design
 from siliconcompiler import ASICProject
 # Import a pre-defined target for the FreePDK45 process.
 from siliconcompiler.targets import freepdk45_demo
@@ -66,7 +66,7 @@ def main():
 
     # --- SiliconCompiler Design Setup ---
     # Create a design object to hold the configuration.
-    design = DesignSchema("heartbeat")
+    design = Design("heartbeat")
 
     # Set the root directory for this design's source files using its filepath.
     design.set_dataroot("heartbeat", __file__)

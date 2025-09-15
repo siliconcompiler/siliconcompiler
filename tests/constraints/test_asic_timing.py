@@ -1,6 +1,6 @@
 import pytest
 
-from siliconcompiler import DesignSchema
+from siliconcompiler import Design
 from siliconcompiler.schema import PerNode, Scope
 
 from siliconcompiler.constraints import ASICTimingScenarioSchema, ASICTimingConstraintSchema
@@ -154,7 +154,7 @@ def test_timing_scanario_sdcfileset_invalid_type_fileset():
 def test_timing_scanario_sdcfileset_design_obj():
     scene = ASICTimingScenarioSchema()
 
-    design = DesignSchema("test")
+    design = Design("test")
     assert scene.add_sdcfileset(design, "rtl")
     assert scene.get("sdcfileset") == [("test", "rtl")]
     assert scene.get_sdcfileset() == [("test", "rtl")]
