@@ -89,11 +89,11 @@ def test_add_file_with_filetype():
     assert d.get('fileset', 'testbench', 'file', 'verilog') == ['tb.v', 'dut.v']
 
 
-def test_add_file_invalid_filetype():
+def test_add_file_default_to_ext():
     d = FileSetSchema()
 
-    with pytest.raises(ValueError, match="Unrecognized file extension: ver"):
-        d.add_file('tb.ver', 'testbench')
+    assert d.add_file('tb.ver', 'testbench')
+    assert d.get("fileset", "testbench", "file", "ver") == ["tb.ver"]
 
 
 def test_add_file_invalid_fileset():
