@@ -1,6 +1,6 @@
 from typing import final, Union, List, Tuple
 
-from siliconcompiler import PackageSchema
+from siliconcompiler.packageschema import PackageSchema
 
 from siliconcompiler.dependencyschema import DependencySchema
 from siliconcompiler.filesetschema import FileSetSchema

@@ -13,7 +13,7 @@ from unittest.mock import patch
 
 from siliconcompiler import Project, FlowgraphSchema, DesignSchema
 from siliconcompiler import NodeStatus
-from siliconcompiler import TaskSchema
+from siliconcompiler.tool import TaskSchema
 from siliconcompiler.tool import TaskSkip
 from siliconcompiler.tools.builtin.nop import NOPTask
 from siliconcompiler.tools.builtin.join import JoinTask
@@ -1348,7 +1348,7 @@ def test_run_pass_restore_env(project):
         assert "THISVALUE" == os.environ["TEST"]
         return 0
 
-    with patch("siliconcompiler.TaskSchema.run_task") as run_task, \
+    with patch("siliconcompiler.tool.TaskSchema.run_task") as run_task, \
             patch("siliconcompiler.scheduler.SchedulerNode.check_logfile") as check_logfile:
         run_task.side_effect = check_run
         node.run()
@@ -1446,7 +1446,7 @@ def test_run_failed_to_execute_initial_save_has_error(project):
 
     assert node._SchedulerNode__generate_test_case is True
 
-    with patch("siliconcompiler.TaskSchema.run_task") as run_task, \
+    with patch("siliconcompiler.tool.TaskSchema.run_task") as run_task, \
             patch("siliconcompiler.scheduler.SchedulerNode.halt") as halt, \
             patch("siliconcompiler.scheduler.SchedulerNode._SchedulerNode__generate_testcase") as \
             testcase:
@@ -1476,7 +1476,7 @@ def test_run_failed_to_execute_generate_issue(project, caplog):
 
     assert node._SchedulerNode__generate_test_case is True
 
-    with patch("siliconcompiler.TaskSchema.run_task") as run_task, \
+    with patch("siliconcompiler.tool.TaskSchema.run_task") as run_task, \
             patch("siliconcompiler.scheduler.SchedulerNode._SchedulerNode__generate_testcase") as \
             testcase:
         run_task.return_value = 1

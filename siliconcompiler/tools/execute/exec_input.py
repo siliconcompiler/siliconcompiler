@@ -3,7 +3,7 @@ import stat
 
 import os.path
 
-from siliconcompiler import TaskSchema
+from siliconcompiler.tool import TaskSchema
 
 
 class ExecInputTask(TaskSchema):

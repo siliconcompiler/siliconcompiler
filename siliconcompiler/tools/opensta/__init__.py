@@ -9,7 +9,7 @@ Installation: https://github.com/The-OpenROAD-Project/OpenSTA (also installed wi
 '''
 
 
-from siliconcompiler import TaskSchema
+from siliconcompiler.tool import TaskSchema
 
 from siliconcompiler import FPGASchema
 

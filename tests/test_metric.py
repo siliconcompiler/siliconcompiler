@@ -4,8 +4,9 @@ from datetime import datetime, timezone
 from io import StringIO
 from unittest.mock import patch
 
-from siliconcompiler import MetricSchema
-from siliconcompiler import RecordSchema, FlowgraphSchema
+from siliconcompiler import FlowgraphSchema
+from siliconcompiler.metric import MetricSchema
+from siliconcompiler.record import RecordSchema
 from siliconcompiler.record import RecordTime
 from siliconcompiler.schema import PerNode, Scope
 from siliconcompiler.tools.builtin.nop import NOPTask

@@ -12,7 +12,7 @@ from siliconcompiler import Project
 from siliconcompiler.schema import EditableSchema, Parameter, Scope
 from siliconcompiler.schema.utils import trim
 
-from siliconcompiler import ToolLibrarySchema
+from siliconcompiler.library import ToolLibrarySchema
 
 from siliconcompiler.constraints import \
     FPGATimingConstraintSchema, FPGAComponentConstraints, FPGAPinConstraints

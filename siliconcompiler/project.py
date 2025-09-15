@@ -17,14 +17,16 @@ from siliconcompiler.schema import BaseSchema, NamedSchema, EditableSchema, Para
 from siliconcompiler.schema.parametervalue import NodeListValue, NodeSetValue
 from siliconcompiler.schema.utils import trim
 
-from siliconcompiler import DesignSchema, LibrarySchema
+from siliconcompiler import DesignSchema
 from siliconcompiler import FlowgraphSchema
-from siliconcompiler import RecordSchema
-from siliconcompiler import MetricSchema
 from siliconcompiler import ChecklistSchema
-from siliconcompiler import TaskSchema
-from siliconcompiler import ShowTaskSchema, ScreenshotTaskSchema
-from siliconcompiler import OptionSchema
+
+from siliconcompiler.record import RecordSchema
+from siliconcompiler.metric import MetricSchema
+from siliconcompiler.tool import TaskSchema
+from siliconcompiler.tool import ShowTaskSchema, ScreenshotTaskSchema
+from siliconcompiler.option import OptionSchema
+from siliconcompiler.library import LibrarySchema
 
 from siliconcompiler.cmdlineschema import CommandLineSchema
 from siliconcompiler.dependencyschema import DependencySchema

@@ -6,7 +6,8 @@ from typing import Union, Tuple
 from siliconcompiler.schema import EditableSchema, Parameter, Scope
 from siliconcompiler.schema.utils import trim
 
-from siliconcompiler import Project, TaskSchema, sc_open
+from siliconcompiler import Project, sc_open
+from siliconcompiler.tool import TaskSchema
 
 from siliconcompiler.constraints import \
     ASICTimingConstraintSchema, ASICAreaConstraint, \

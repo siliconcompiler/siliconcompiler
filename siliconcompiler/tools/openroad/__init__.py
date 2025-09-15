@@ -14,7 +14,7 @@ from typing import List, Union
 
 from siliconcompiler import StdCellLibrarySchema
 from siliconcompiler import PDKSchema
-from siliconcompiler import ASICTaskSchema
+from siliconcompiler.asic import ASICTaskSchema
 
 
 class OpenROADPDK(PDKSchema):

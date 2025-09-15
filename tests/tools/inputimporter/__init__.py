@@ -2,7 +2,7 @@ import shutil
 
 import os.path
 
-from siliconcompiler import TaskSchema
+from siliconcompiler.tool import TaskSchema
 
 
 class ImporterTask(TaskSchema):

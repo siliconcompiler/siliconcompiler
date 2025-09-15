@@ -6,7 +6,7 @@ from typing import List, Union, Tuple, Dict
 
 from siliconcompiler import utils
 
-from siliconcompiler import LibrarySchema
+from siliconcompiler.library import LibrarySchema
 
 from siliconcompiler.dependencyschema import DependencySchema
 from siliconcompiler.schema import NamedSchema

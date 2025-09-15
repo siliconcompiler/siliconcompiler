@@ -10,8 +10,9 @@ from PIL import Image
 from unittest.mock import patch
 
 from siliconcompiler import Project
-from siliconcompiler import DesignSchema, FlowgraphSchema, TaskSchema, \
-    ToolSchema, ChecklistSchema, LibrarySchema
+from siliconcompiler import DesignSchema, FlowgraphSchema, ChecklistSchema
+from siliconcompiler.tool import TaskSchema, ToolSchema
+from siliconcompiler.library import LibrarySchema
 
 from siliconcompiler.schema import NamedSchema, EditableSchema, Parameter
 

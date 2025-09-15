@@ -5,7 +5,7 @@ from typing import Tuple
 from siliconcompiler.schema import EditableSchema, Parameter, Scope, BaseSchema
 from siliconcompiler.schema.utils import trim
 
-from siliconcompiler import ToolLibrarySchema
+from siliconcompiler.library import ToolLibrarySchema
 from siliconcompiler.pathschema import PathSchema
 from siliconcompiler.filesetschema import FileSetSchema
 from siliconcompiler.packageschema import PackageSchema

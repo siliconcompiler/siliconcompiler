@@ -6,7 +6,7 @@ import os.path
 
 from siliconcompiler.utils import sc_open
 
-from siliconcompiler import TaskSchema
+from siliconcompiler.tool import TaskSchema
 from siliconcompiler.asic import ASICTaskSchema
 
 

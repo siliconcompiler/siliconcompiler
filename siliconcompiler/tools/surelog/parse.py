@@ -6,7 +6,7 @@ import os.path
 from siliconcompiler import sc_open
 from siliconcompiler import utils
 
-from siliconcompiler import TaskSchema
+from siliconcompiler.tool import TaskSchema
 
 
 class ElaborateTask(TaskSchema):

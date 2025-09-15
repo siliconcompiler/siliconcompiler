@@ -6,7 +6,8 @@ import os.path
 from unittest.mock import patch
 
 from siliconcompiler import FlowgraphSchema
-from siliconcompiler import RecordSchema, NodeStatus
+from siliconcompiler import NodeStatus
+from siliconcompiler.record import RecordSchema
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 from siliconcompiler.schema import BaseSchema
 from siliconcompiler.tools.builtin.nop import NOPTask

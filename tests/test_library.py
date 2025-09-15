@@ -1,6 +1,7 @@
 import pytest
 
-from siliconcompiler import LibrarySchema, ToolLibrarySchema, StdCellLibrarySchema, PDKSchema
+from siliconcompiler import PDKSchema
+from siliconcompiler.library import LibrarySchema, ToolLibrarySchema, StdCellLibrarySchema
 from siliconcompiler.schema import PerNode, Scope
 
 

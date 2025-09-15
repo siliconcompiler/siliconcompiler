@@ -1,4 +1,4 @@
-from siliconcompiler import ScreenshotTaskSchema, TaskSchema
+from siliconcompiler.tool import ScreenshotTaskSchema, TaskSchema
 from siliconcompiler.tools.klayout.show import ShowTask
 
 

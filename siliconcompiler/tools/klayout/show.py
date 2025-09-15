@@ -2,7 +2,7 @@ import shutil
 
 import os.path
 
-from siliconcompiler import ShowTaskSchema
+from siliconcompiler.tool import ShowTaskSchema
 from siliconcompiler.tools.klayout import KLayoutTask
 
 

@@ -13,7 +13,7 @@ from pathlib import Path
 
 import siliconcompiler
 
-from siliconcompiler import RecordSchema
+from siliconcompiler.record import RecordSchema
 
 
 class ChoiceOptional(Container):

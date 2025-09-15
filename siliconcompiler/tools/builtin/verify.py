@@ -1,7 +1,7 @@
 import re
 
 from siliconcompiler.schema.parametertype import NodeType
-from siliconcompiler import TaskSchema, utils
+from siliconcompiler.tool import TaskSchema, utils
 
 from siliconcompiler.tools.builtin import BuiltinTask
 

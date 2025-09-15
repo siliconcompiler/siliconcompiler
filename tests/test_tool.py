@@ -10,10 +10,12 @@ import os.path
 
 from unittest.mock import patch, ANY
 
-from siliconcompiler import RecordSchema, MetricSchema, FlowgraphSchema, \
-    ShowTaskSchema, ScreenshotTaskSchema
-from siliconcompiler import TaskSchema, Project
-from siliconcompiler import DesignSchema
+from siliconcompiler import FlowgraphSchema
+from siliconcompiler.tool import ShowTaskSchema, ScreenshotTaskSchema
+from siliconcompiler.metric import MetricSchema
+from siliconcompiler.record import RecordSchema
+from siliconcompiler.tool import TaskSchema
+from siliconcompiler import DesignSchema, Project
 from siliconcompiler.schema import BaseSchema, EditableSchema, Parameter, SafeSchema
 from siliconcompiler.schema.parameter import PerNode, Scope
 from siliconcompiler.tool import TaskExecutableNotFound, TaskError, TaskTimeout
@@ -1969,7 +1971,7 @@ def test_show_check_task_none(cls):
 
 @pytest.mark.parametrize("cls", [ShowTaskSchema, ScreenshotTaskSchema])
 def test_show_tcl_vars(cls):
-    with patch("siliconcompiler.TaskSchema.get_tcl_variables") as tcl_vars:
+    with patch("siliconcompiler.tool.TaskSchema.get_tcl_variables") as tcl_vars:
         tcl_vars.return_value = {}
         assert cls().get_tcl_variables() == {
             "sc_do_screenshot": "true" if cls is ScreenshotTaskSchema else "false"}
@@ -2016,7 +2018,8 @@ def test_show_register_task():
     class Test(ShowTaskSchema):
         pass
 
-    with patch.dict("siliconcompiler.ShowTaskSchema._ShowTaskSchema__TASKS", clear=True) as tasks:
+    with patch.dict("siliconcompiler.tool.ShowTaskSchema._ShowTaskSchema__TASKS", clear=True) \
+            as tasks:
         assert len(tasks) == 0
         ShowTaskSchema.register_task(Test)
         assert len(tasks) == 1
@@ -2029,7 +2032,7 @@ def test_show_get_task():
             return ["ext"]
         pass
 
-    with patch.dict("siliconcompiler.ShowTaskSchema._ShowTaskSchema__TASKS", clear=True), \
+    with patch.dict("siliconcompiler.tool.ShowTaskSchema._ShowTaskSchema__TASKS", clear=True), \
             patch("siliconcompiler.utils.showtools.showtasks") as showtasks:
         assert ShowTaskSchema.get_task("ext").__class__ is Test
         showtasks.assert_called_once()

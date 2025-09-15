@@ -17,7 +17,8 @@ import os.path
 from pathlib import Path
 from typing import List, Union
 
-from siliconcompiler import PDKSchema, ASICTaskSchema, StdCellLibrarySchema, sc_open
+from siliconcompiler import PDKSchema, StdCellLibrarySchema, sc_open
+from siliconcompiler.asic import ASICTaskSchema
 
 
 class KLayoutPDK(PDKSchema):
