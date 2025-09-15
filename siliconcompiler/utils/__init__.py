@@ -14,8 +14,6 @@ from jinja2 import Environment, FileSystemLoader
 
 from typing import Dict
 
-from siliconcompiler.schema.parametervalue import PathNodeValue
-
 import sys
 if sys.version_info < (3, 10):
     from importlib_metadata import entry_points
