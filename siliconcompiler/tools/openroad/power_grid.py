@@ -50,8 +50,8 @@ class PowerGridTask(APRTask, OpenROADSTAParameter, OpenROADPSMParameter):
                 self.add_required_key("library", lib, "fileset", fileset, "file", "tcl")
 
     def __import_pdn_filesets(self):
-        for lib in self.schema().get("asic", "asiclib"):
-            libobj = self.schema().get("library", lib, field="schema")
+        for lib in self.project.get("asic", "asiclib"):
+            libobj = self.project.get("library", lib, field="schema")
             if libobj.valid("tool", "openroad", "power_grid_fileset"):
                 for fileset in libobj.get("tool", "openroad", "power_grid_fileset"):
                     self.add_openroad_powergridfileset(lib, fileset)

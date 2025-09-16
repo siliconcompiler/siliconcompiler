@@ -48,7 +48,7 @@ class ShowTask(ShowTaskSchema, APRTask, OpenROADSTAParameter):
         dst_file = f"inputs/{self.design_topmodule}.{show_type}"
         shutil.copy2(show_file, dst_file)
 
-        job_root = self.schema()
+        job_root = self.project
         if show_job:
             try:
                 job_root = job_root.history(show_job)

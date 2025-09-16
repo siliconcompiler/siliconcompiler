@@ -44,11 +44,11 @@ class ConvertTask(TaskSchema):
 
         self.add_required_key("option", "design")
         self.add_required_key("option", "fileset")
-        if self.schema().get("option", "alias"):
+        if self.project.get("option", "alias"):
             self.add_required_key("option", "alias")
 
         # Mark required
-        for lib, fileset in self.schema().get_filesets():
+        for lib, fileset in self.project.get_filesets():
             if lib.get("fileset", fileset, "define"):
                 self.add_required_key(lib, "fileset", fileset, "define")
             if lib.get_file(fileset=fileset, filetype="vhdl"):
@@ -71,7 +71,7 @@ class ConvertTask(TaskSchema):
         if self.get("var", "use_latches"):
             options.append('--latches')
 
-        filesets = self.schema().get_filesets()
+        filesets = self.project.get_filesets()
         defines = []
         for lib, fileset in filesets:
             defines.extend(lib.get("fileset", fileset, "define"))

@@ -274,7 +274,7 @@ class VPRTask(TaskSchema):
         self.add_required_key("var", "timing_paths")
         self.add_required_key("var", "timing_report_type")
         self.add_required_key("var", "enable_timing_analysis")
-        for lib, fileset in self.schema().get_filesets():
+        for lib, fileset in self.project.get_filesets():
             if lib.get_file(fileset=fileset, filetype="sdc"):
                 self.add_required_key(lib, "fileset", fileset, "file", "sdc")
                 self.set("var", "enable_timing_analysis", True)
@@ -284,7 +284,7 @@ class VPRTask(TaskSchema):
     def runtime_options(self):
         options = super().runtime_options()
 
-        fpga = self.schema().get("library", self.schema().get("fpga", "device"), field="schema")
+        fpga = self.project.get("library", self.project.get("fpga", "device"), field="schema")
 
         options.extend(["--device", fpga.get("tool", "vpr", "devicecode")])
 
@@ -335,7 +335,7 @@ class VPRTask(TaskSchema):
                             fpga.get("tool", "vpr", "router_lookahead")])
 
         sdc_file = None
-        for lib, fileset in self.schema().get_filesets():
+        for lib, fileset in self.project.get_filesets():
             files = lib.get_file(fileset=fileset, filetype="sdc")
             if files:
                 sdc_file = files[0]
@@ -390,17 +390,17 @@ class VPRTask(TaskSchema):
         for report in glob.glob("*.rpt"):
             shutil.move(report, 'reports')
 
-        fpga = self.schema().get("fpga", "device")
+        fpga = self.project.get("fpga", "device")
 
         dff_cells = []
-        if self.schema().valid("library", fpga, "tool", "yosys", "registers"):
-            dff_cells = self.schema().get("library", fpga, "tool", "yosys", "registers")
+        if self.project.valid("library", fpga, "tool", "yosys", "registers"):
+            dff_cells = self.project.get("library", fpga, "tool", "yosys", "registers")
         brams_cells = []
-        if self.schema().valid("library", fpga, "tool", "yosys", "brams"):
-            brams_cells = self.schema().get("library", fpga, "tool", "yosys", "brams")
+        if self.project.valid("library", fpga, "tool", "yosys", "brams"):
+            brams_cells = self.project.get("library", fpga, "tool", "yosys", "brams")
         dsps_cells = []
-        if self.schema().valid("library", fpga, "tool", "yosys", "dsps"):
-            dsps_cells = self.schema().get("library", fpga, "tool", "yosys", "dsps")
+        if self.project.valid("library", fpga, "tool", "yosys", "dsps"):
+            dsps_cells = self.project.get("library", fpga, "tool", "yosys", "dsps")
 
         stat_extract = re.compile(r'  \s*(.*)\s*:\s*([0-9]+)')
         lut_match = re.compile(r'([0-9]+)-LUT')
@@ -458,7 +458,7 @@ class VPRTask(TaskSchema):
                 data = json.load(f)
 
                 if "num_nets" in data and \
-                        self.schema("metric").get('nets', step=self.step, index=self.index) is None:
+                        self.schema_metric.get('nets', step=self.step, index=self.index) is None:
                     self.record_metric("nets", int(data["num_nets"]), VPRTask.__block_file)
 
                 io = 0

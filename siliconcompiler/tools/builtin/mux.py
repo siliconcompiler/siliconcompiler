@@ -33,7 +33,7 @@ class MuxTask(BuiltinTask):
             failed[step][index] = False
 
             failed[step][index] = NodeStatus.is_error(
-                self.schema("record").get('status', step=step, index=index))
+                self.schema_record.get('status', step=step, index=index))
 
         candidates = [(step, index) for step, index in nodelist if not failed[step][index]]
         if candidates:
@@ -42,7 +42,7 @@ class MuxTask(BuiltinTask):
                 if op not in ('minimum', 'maximum'):
                     raise ValueError(f'Invalid operation: {op}')
 
-                values = [self.schema("metric").get(metric, step=step, index=index)
+                values = [self.schema_metric.get(metric, step=step, index=index)
                           for step, index in candidates]
 
                 if op == 'minimum':
@@ -67,7 +67,7 @@ class MuxTask(BuiltinTask):
 
     def select_input_nodes(self):
         nodes = super().select_input_nodes()
-        arguments = self.schema("flow").get(self.step, self.index, 'args')
+        arguments = self.schema_flow.get(self.step, self.index, 'args')
 
         operations = []
         for criteria in arguments:
@@ -77,7 +77,7 @@ class MuxTask(BuiltinTask):
 
             op = m.group(1)
             metric = m.group(2)
-            if metric not in self.schema("metric").getkeys():
+            if metric not in self.schema_metric.getkeys():
                 raise ValueError(
                     f"Criteria must use legal metrics only: {criteria}")
 

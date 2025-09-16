@@ -37,7 +37,7 @@ class _ASICTask(ASICTaskSchema, YosysTask):
             return
 
         # determine corner based on setup corner from constraints
-        scenarios = self.schema().get("constraint", "timing", field="schema")
+        scenarios = self.project.get("constraint", "timing", field="schema")
         for scenario in scenarios.get_scenario().values():
             if not scenario.get_libcorner():
                 continue
@@ -62,12 +62,12 @@ class _ASICTask(ASICTaskSchema, YosysTask):
         """
 
         self.unset("var", "synthesis_libraries")
-        delaymodel = self.schema().get("asic", "delaymodel")
+        delaymodel = self.project.get("asic", "delaymodel")
 
         # Generate synthesis_libraries for Yosys use
         fileset_map = []
-        for lib in self.schema().get("asic", "asiclib"):
-            lib_obj = self.schema().get("library", lib, field="schema")
+        for lib in self.project.get("asic", "asiclib"):
+            lib_obj = self.project.get("library", lib, field="schema")
             for corner in self.get("var", "synthesis_corner"):
                 for fileset in lib_obj.get("asic", "libcornerfileset", corner, delaymodel):
                     fileset_map.append((lib_obj, fileset))
@@ -301,8 +301,8 @@ class ASICSynthesis(_ASICTask, YosysTask):
         self.add_required_key("asic", "asiclib")
         self.add_required_key("asic", "delaymodel")
 
-        design = self.schema().design
-        fileset = self.schema().get("option", "fileset")[0]
+        design = self.project.design
+        fileset = self.project.get("option", "fileset")[0]
 
         if f"{self.design_topmodule}.v" in self.get_files_from_input_nodes():
             self.add_input_file(ext="v")
@@ -324,7 +324,7 @@ class ASICSynthesis(_ASICTask, YosysTask):
         self.add_output_file(ext="vg", clobber=True)
         self.add_output_file(ext="netlist.json")
 
-        mainlib = self.schema().get("library", self.schema().get("asic", "mainlib"), field="schema")
+        mainlib = self.project.get("library", self.project.get("asic", "mainlib"), field="schema")
 
         if self.get('var', 'abc_constraint_driver') is not None:
             self.add_required_key("var", "abc_constraint_driver")
@@ -372,8 +372,8 @@ class ASICSynthesis(_ASICTask, YosysTask):
         return period
 
     def _get_clock_period(self):
-        mainlib = self.schema().get("asic", "mainlib")
-        clock_units_multiplier = self.schema().get("library", mainlib, field="schema").get(
+        mainlib = self.project.get("asic", "mainlib")
+        clock_units_multiplier = self.project.get("library", mainlib, field="schema").get(
             "tool", "yosys", "abc_clock_multiplier") / 1000
 
         _, period = self.get_clock()

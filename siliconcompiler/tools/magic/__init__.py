@@ -49,7 +49,7 @@ class MagicTask(TaskSchema):
         if f"{self.design_topmodule}.gds" in self.get_files_from_input_nodes():
             self.add_input_file(ext="gds")
         else:
-            for lib, fileset in self.schema().get_filesets():
+            for lib, fileset in self.project.get_filesets():
                 if lib.get_file(fileset=fileset, filetype="gds"):
                     self.add_required_key(lib, "fileset", fileset, "file", "gds")
 

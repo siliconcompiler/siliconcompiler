@@ -36,11 +36,11 @@ class CompileTask(TaskSchema):
 
         self.add_required_key("option", "design")
         self.add_required_key("option", "fileset")
-        if self.schema().get("option", "alias"):
+        if self.project.get("option", "alias"):
             self.add_required_key("option", "alias")
 
         # Mark required
-        for lib, fileset in self.schema().get_filesets():
+        for lib, fileset in self.project.get_filesets():
             if lib.get("fileset", fileset, "idir"):
                 self.add_required_key(lib, "fileset", fileset, "idir")
             if lib.get("fileset", fileset, "define"):
@@ -52,8 +52,8 @@ class CompileTask(TaskSchema):
             if lib.get_file(fileset=fileset, filetype="verilog"):
                 self.add_required_key(lib, "fileset", fileset, "file", "verilog")
 
-        fileset = self.schema().get("option", "fileset")[0]
-        design = self.schema().design
+        fileset = self.project.get("option", "fileset")[0]
+        design = self.project.design
         for param in design.getkeys("fileset", fileset, "param"):
             self.add_required_key(design, "fileset", fileset, "param", param)
 
@@ -70,16 +70,16 @@ class CompileTask(TaskSchema):
         if verilog_gen:
             options.append(f'-g{verilog_gen}')
 
-        filesets = self.schema().get_filesets()
+        filesets = self.project.get_filesets()
         idirs = []
         defines = []
         params = []
         for lib, fileset in filesets:
             idirs.extend(lib.find_files("fileset", fileset, "idir"))
             defines.extend(lib.get("fileset", fileset, "define"))
-        fileset = self.schema().get("option", "fileset")[0]
+        fileset = self.project.get("option", "fileset")[0]
 
-        design = self.schema().design
+        design = self.project.design
         for param in design.getkeys("fileset", fileset, "param"):
             params.append((param, design.get("fileset", fileset, "param", param)))
 

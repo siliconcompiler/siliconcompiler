@@ -74,10 +74,10 @@ class WriteViewsTask(APRTask, OpenROADSTAParameter, OpenROADPSMParameter):
             for corner in self.get("var", "pex_corners"):
                 self.add_output_file(ext=f"{corner}.spef")
         if self.get("var", "write_liberty"):
-            for corner in self.schema().getkeys("constraint", "timing"):
+            for corner in self.project.getkeys("constraint", "timing"):
                 self.add_output_file(ext=f"{corner}.lib")
         if self.get("var", "write_sdf"):
-            for corner in self.schema().getkeys("constraint", "timing"):
+            for corner in self.project.getkeys("constraint", "timing"):
                 self.add_output_file(ext=f"{corner}.sdf")
 
         self.add_required_key("var", "ord_abstract_lef_bloat_layers")

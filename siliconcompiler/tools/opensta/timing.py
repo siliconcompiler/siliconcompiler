@@ -147,7 +147,7 @@ class TimingTaskBase(OpenSTATask):
             self.record_metric("drvs", drv_count, source_file=[drv_report])
 
     def __report_map(self, metric):
-        corners = self.schema().getkeys('constraint', 'timing')
+        corners = self.project.getkeys('constraint', 'timing')
         mapping = {
             "power": [f"reports/power.{corner}.rpt" for corner in corners],
             "unconstrained": ["reports/unconstrained.rpt", "reports/unconstrained.topN.rpt"],
@@ -198,7 +198,7 @@ class TimingTask(TimingTaskBase):
                 self.add_required_key(obj, *key)
 
         added_spef = False
-        for scenario in self.schema().get_timingconstraints().get_scenario().values():
+        for scenario in self.project.get_timingconstraints().get_scenario().values():
             if scenario.get("pexcorner") is None:
                 continue
             if f"{self.design_topmodule}.{scenario.get('pexcorner')}.spef" in \
@@ -206,7 +206,7 @@ class TimingTask(TimingTaskBase):
                 self.add_input_file(ext=f"{scenario.get('pexcorner')}.spef")
                 added_spef = True
         if not added_spef:
-            for scenario in self.schema().get_timingconstraints().get_scenario().values():
+            for scenario in self.project.get_timingconstraints().get_scenario().values():
                 if scenario.get("pexcorner") is None:
                     continue
                 if f"{self.design_topmodule}.{scenario.get('pexcorner')}.sdf" in \

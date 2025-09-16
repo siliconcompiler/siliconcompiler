@@ -41,11 +41,11 @@ class ConvertTask(ASICTaskSchema, TaskSchema):
 
         self.add_required_key("option", "design")
         self.add_required_key("option", "fileset")
-        if self.schema().get("option", "alias"):
+        if self.project.get("option", "alias"):
             self.add_required_key("option", "alias")
 
         # Mark required
-        for lib, fileset in self.schema().get_filesets():
+        for lib, fileset in self.project.get_filesets():
             if lib.get("fileset", fileset, "idir"):
                 self.add_required_key(lib, "fileset", fileset, "idir")
             if lib.get("fileset", fileset, "define"):
@@ -58,7 +58,7 @@ class ConvertTask(ASICTaskSchema, TaskSchema):
     def runtime_options(self):
         options = super().runtime_options()
 
-        filesets = self.schema().get_filesets()
+        filesets = self.project.get_filesets()
         idirs = []
         defines = []
         for lib, fileset in filesets:
@@ -99,9 +99,9 @@ class ConvertTask(ASICTaskSchema, TaskSchema):
 
         options.append('--disable-function-proxy')
 
-        if self.schema().valid("asic", "mainlib"):
-            device = self.schema().get("library",
-                                       self.schema().get("asic", "mainlib"),
+        if self.project.valid("asic", "mainlib"):
+            device = self.project.get("library",
+                                       self.project.get("asic", "mainlib"),
                                        "tool", "bambu", "device")
             if device:
                 options.append(f'--device={device}')

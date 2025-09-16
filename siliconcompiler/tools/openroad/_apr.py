@@ -281,10 +281,10 @@ class OpenROADGRTGeneralParameter(OpenROADTask):
     def setup(self):
         super().setup()
 
-        min_layer = self.schema().get("asic", "minlayer")
+        min_layer = self.project.get("asic", "minlayer")
         if not min_layer:
             min_layer = self.pdk.get("pdk", "minlayer")
-        max_layer = self.schema().get("asic", "maxlayer")
+        max_layer = self.project.get("asic", "maxlayer")
         if not max_layer:
             max_layer = self.pdk.get("pdk", "maxlayer")
 
@@ -477,11 +477,11 @@ class APRTask(OpenROADTask):
                 self.add_required_key("library", lib, "fileset", fileset, "file", "tcl")
 
         libcorners = set()
-        for scenario in self.schema().get_timingconstraints().get_scenario().values():
+        for scenario in self.project.get_timingconstraints().get_scenario().values():
             libcorners.update(scenario.get_libcorner(self.step, self.index))
-        delay_model = self.schema().get("asic", "delaymodel")
-        for asiclib in self.schema().get("asic", "asiclib"):
-            lib = self.schema().get("library", asiclib, field="schema")
+        delay_model = self.project.get("asic", "delaymodel")
+        for asiclib in self.project.get("asic", "asiclib"):
+            lib = self.project.get("library", asiclib, field="schema")
             for corner in libcorners:
                 if not lib.valid("asic", "libcornerfileset", corner, delay_model):
                     continue
@@ -494,8 +494,8 @@ class APRTask(OpenROADTask):
         self._build_pex_estimation_file()
 
     def __import_globalconnect_filesets(self):
-        for lib in self.schema().get("asic", "asiclib"):
-            libobj = self.schema().get("library", lib, field="schema")
+        for lib in self.project.get("asic", "asiclib"):
+            libobj = self.project.get("library", lib, field="schema")
             if libobj.valid("tool", "openroad", "global_connect_fileset"):
                 for fileset in libobj.get("tool", "openroad", "global_connect_fileset"):
                     self.add_openroad_globalconnectfileset(lib, fileset)
@@ -510,7 +510,7 @@ class APRTask(OpenROADTask):
         if f"{self.design_topmodule}.sdc" in self.get_files_from_input_nodes():
             self.add_input_file(ext="sdc")
         else:
-            for lib, fileset in self.schema().get_filesets():
+            for lib, fileset in self.project.get_filesets():
                 if lib.get_file(fileset=fileset, filetype="sdc"):
                     self.add_required_key(lib, "fileset", fileset, "file", "sdc")
 
@@ -529,8 +529,8 @@ class APRTask(OpenROADTask):
 
     def _get_pex_mapping(self):
         corners = {}
-        for constraint in self.schema().getkeys('constraint', 'timing'):
-            pexcorner = self.schema().get('constraint', 'timing', constraint, 'pexcorner',
+        for constraint in self.project.getkeys('constraint', 'timing'):
+            pexcorner = self.project.get('constraint', 'timing', constraint, 'pexcorner',
                                           step=self.step, index=self.index)
             if pexcorner:
                 corners[constraint] = pexcorner
@@ -538,13 +538,13 @@ class APRTask(OpenROADTask):
         return corners
 
     def _get_constraint_by_check(self, check: str) -> str:
-        for constraint in self.schema().getkeys('constraint', 'timing'):
-            if check in self.schema().get('constraint', 'timing', constraint, 'check',
+        for constraint in self.project.getkeys('constraint', 'timing'):
+            if check in self.project.get('constraint', 'timing', constraint, 'check',
                                           step=self.step, index=self.index):
                 return constraint
 
         # if not specified, just pick the first constraint available
-        return self.schema().getkeys('constraint', 'timing')[0]
+        return self.project.getkeys('constraint', 'timing')[0]
 
     def _build_pex_estimation_file(self):
         corners = self._get_pex_mapping()
@@ -650,9 +650,9 @@ class APRTask(OpenROADTask):
             ],
             "peakpower": [
                 *[f"power/{corner}.rpt"
-                  for corner in self.schema().getkeys('constraint', 'timing')],
+                  for corner in self.project.getkeys('constraint', 'timing')],
                 *[f"images/heatmap/power_density/{corner}.png"
-                    for corner in self.schema().getkeys('constraint', 'timing')]
+                    for corner in self.project.getkeys('constraint', 'timing')]
             ],
             "drvs": [
                 "timing/drv_violators.rpt",
@@ -791,21 +791,21 @@ class APRTask(OpenROADTask):
             # setup wns and hold wns can be computed from setup slack and hold slack
             if 'sc__metric__timing__setup__ws' in metrics and \
                     has_timing and \
-                    self.schema("metric").get('setupslack', step=self.step, index=self.index) \
+                    self.schema_metric.get('setupslack', step=self.step, index=self.index) \
                     is not None:
-                wns = min(0.0, self.schema("metric").get('setupslack',
+                wns = min(0.0, self.schema_metric.get('setupslack',
                                                          step=self.step, index=self.index))
-                wns_units = self.schema("metric").get('setupslack', field='unit')
+                wns_units = self.schema_metric.get('setupslack', field='unit')
                 self.record_metric("setupwns", wns, source_file=get_metric_sources('setupslack'),
                                    source_unit=wns_units)
 
             if 'sc__metric__timing__hold__ws' in metrics and \
                     has_timing and \
-                    self.schema("metric").get('holdslack', step=self.step, index=self.index) \
+                    self.schema_metric.get('holdslack', step=self.step, index=self.index) \
                     is not None:
-                wns = min(0.0, self.schema("metric").get('holdslack',
+                wns = min(0.0, self.schema_metric.get('holdslack',
                                                          step=self.step, index=self.index))
-                wns_units = self.schema("metric").get('holdslack', field='unit')
+                wns_units = self.schema_metric.get('holdslack', field='unit')
                 self.record_metric("holdwns", wns, source_file=get_metric_sources('holdslack'),
                                    source_unit=wns_units)
 
