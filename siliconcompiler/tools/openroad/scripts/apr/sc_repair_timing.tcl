@@ -50,7 +50,7 @@ set total_insts [llength [[ord::get_db_block] getInsts]]
 remove_fillers
 set removed_fillers [expr { $total_insts - [llength [[ord::get_db_block] getInsts]] }]
 
-if { [sc_cfg_tool_task_get var rsz_skip_drv_repair] } {
+if { ![sc_cfg_tool_task_get var rsz_skip_drv_repair] } {
     ###############################
     # DRV Repair
     ###############################
@@ -71,7 +71,7 @@ if { [sc_cfg_tool_task_get var rsz_skip_drv_repair] } {
     sc_set_dont_use
 }
 
-if { [sc_cfg_tool_task_get var rsz_skip_setup_repair] } {
+if { ![sc_cfg_tool_task_get var rsz_skip_setup_repair] } {
     ###############################
     # Setup Repair
     ###############################
@@ -96,7 +96,7 @@ if { [sc_cfg_tool_task_get var rsz_skip_setup_repair] } {
     sc_set_dont_use
 }
 
-if { [sc_cfg_tool_task_get var rsz_skip_hold_repair] } {
+if { ![sc_cfg_tool_task_get var rsz_skip_hold_repair] } {
     ###############################
     # Hold Repair
     ###############################
@@ -121,7 +121,7 @@ if { [sc_cfg_tool_task_get var rsz_skip_hold_repair] } {
     sc_set_dont_use
 }
 
-if { [sc_cfg_tool_task_get var rsz_skip_recover_power] } {
+if { ![sc_cfg_tool_task_get var rsz_skip_recover_power] } {
     ###############################
     # Recover power
     ###############################
