@@ -1162,7 +1162,7 @@ class TaskSchema(NamedSchema, PathSchema, DocsSchema):
             key = (*obj._keypath, *key)
         else:
             key = (obj, *key)
-            if self.valid(*key):
+            if self.valid(*key, check_complete=True):
                 key = (*self._keypath, *key)
 
         if any([not isinstance(k, str) for k in key]):

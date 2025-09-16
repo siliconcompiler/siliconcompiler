@@ -1569,6 +1569,12 @@ def test_add_required_key_tool(running_node):
                                           "tool,builtin,task,nop,path"]
 
 
+def test_add_required_key_not_tool(running_node):
+    with running_node.task.runtime(running_node) as runtool:
+        assert runtool.add_required_key("option", "design")
+        assert runtool.get("require") == ["option,design"]
+
+
 def test_add_required_key_invalid(running_node):
     with running_node.task.runtime(running_node) as runtool:
         with pytest.raises(ValueError, match="key can only contain strings"):
