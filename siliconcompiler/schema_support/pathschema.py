@@ -395,6 +395,9 @@ class PathSchema(PathSchemaBase):
             ValueError: If multiple dataroots are defined and the choice is
                 ambiguous (i.e., not specified by the user or set as active).
         """
+        if user_dataroot is ...:
+            return None
+
         if user_dataroot is not None:
             return user_dataroot
 

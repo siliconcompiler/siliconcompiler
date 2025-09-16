@@ -539,8 +539,9 @@ def test_get_active_dataroot_use_user():
     assert PathSchema()._get_active_dataroot("user") == "user"
 
 
-def test_get_active_dataroot_use_none():
-    assert PathSchema()._get_active_dataroot(None) is None
+@pytest.mark.parametrize("input", [None, ...])
+def test_get_active_dataroot_use_none(input):
+    assert PathSchema()._get_active_dataroot(input) is None
 
 
 def test_get_active_dataroot_use_active():

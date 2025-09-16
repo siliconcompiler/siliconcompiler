@@ -1398,7 +1398,7 @@ class TaskSchema(NamedSchema, PathSchema, DocsSchema):
         with self.active_dataroot(self._get_active_dataroot(dataroot)):
             return self.set("refdir", dir, step=step, index=index, clobber=clobber)
 
-    def set_script(self, script: str, dataroot: str = None,
+    def set_script(self, script: str, dataroot: str = ...,
                    step: str = None, index: str = None,
                    clobber: bool = False):
         '''Sets the main entry script for a script-based tool (e.g., a TCL script).
