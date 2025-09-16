@@ -477,22 +477,22 @@ class ASICTaskSchema(TaskSchema):
     @property
     def mainlib(self) -> StdCellLibrary:
         """The main standard cell library schema object."""
-        mainlib = self.schema().get("asic", "mainlib")
+        mainlib = self.project.get("asic", "mainlib")
         if not mainlib:
             raise ValueError("mainlib has not been defined in [asic,mainlib]")
-        if mainlib not in self.schema().getkeys("library"):
+        if mainlib not in self.project.getkeys("library"):
             raise LookupError(f"{mainlib} has not been loaded")
-        return self.schema().get("library", mainlib, field="schema")
+        return self.project.get("library", mainlib, field="schema")
 
     @property
     def pdk(self) -> PDK:
         """The Process Design Kit (PDK) schema object."""
-        pdk = self.schema().get("asic", "pdk")
+        pdk = self.project.get("asic", "pdk")
         if not pdk:
             raise ValueError("pdk has not been defined in [asic,pdk]")
-        if pdk not in self.schema().getkeys("library"):
+        if pdk not in self.project.getkeys("library"):
             raise LookupError(f"{pdk} has not been loaded")
-        return self.schema().get("library", pdk, field="schema")
+        return self.project.get("library", pdk, field="schema")
 
     def set_asic_var(self,
                      key: str,
@@ -629,7 +629,7 @@ class ASICTaskSchema(TaskSchema):
         name = None
         period = None
 
-        for lib, fileset in self.schema().get_filesets():
+        for lib, fileset in self.project.get_filesets():
             for sdc in lib.get_file(fileset=fileset, filetype="sdc"):
                 new_name, new_period = self.__parse_sdc_clock(sdc)
                 if new_period is not None:

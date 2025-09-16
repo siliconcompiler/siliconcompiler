@@ -38,7 +38,7 @@ class ConvertTask(TaskSchema):
         elif f"{self.design_topmodule}.spice" in self.get_files_from_input_nodes():
             self.add_input_file(ext="spice")
         else:
-            for lib, fileset in self.schema().get_filesets():
+            for lib, fileset in self.project.get_filesets():
                 if lib.get_file(fileset=fileset, filetype="spice"):
                     self.add_required_key(lib, "fileset", fileset, "file", "spice")
 
@@ -48,7 +48,7 @@ class ConvertTask(TaskSchema):
         elif os.path.exists(f"inputs/{self.design_topmodule}.spice"):
             return f"inputs/{self.design_topmodule}.spice"
         else:
-            for lib, fileset in self.schema().get_filesets():
+            for lib, fileset in self.project.get_filesets():
                 files = lib.get_file(fileset=fileset, filetype="spice")
                 if files:
                     return files[0]

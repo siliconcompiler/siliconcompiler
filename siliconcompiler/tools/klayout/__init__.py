@@ -129,7 +129,7 @@ class KLayoutTask(ASICTaskSchema):
         super().setup()
 
         klayout_exe = 'klayout'
-        if self.schema().get('option', 'scheduler', 'name', step=self.step, index=self.index) != \
+        if self.project.get('option', 'scheduler', 'name', step=self.step, index=self.index) != \
                 'docker':
             if platform.system() == 'Windows':
                 klayout_exe = 'klayout_app.exe'
@@ -172,7 +172,7 @@ class KLayoutTask(ASICTaskSchema):
         with self.active_dataroot("refdir"):
             self.set_refdir("scripts")
 
-        if self.schema().get('option', 'nodisplay'):
+        if self.project.get('option', 'nodisplay'):
             # Tells QT to use the offscreen platform if nodisplay is used
             self.set_environmentalvariable('QT_QPA_PLATFORM', 'offscreen')
 

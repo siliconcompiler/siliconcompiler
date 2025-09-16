@@ -39,7 +39,7 @@ class RDLRouteTask(OpenROADTask):
         elif f"{self.design_topmodule}.v" in self.get_files_from_input_nodes():
             self.add_input_file(ext="v")
         else:
-            for lib, fileset in self.schema().get_filesets():
+            for lib, fileset in self.project.get_filesets():
                 if lib.get_file(fileset=fileset, filetype="verilog"):
                     self.add_required_key(lib, "fileset", fileset, "file", "verilog")
 

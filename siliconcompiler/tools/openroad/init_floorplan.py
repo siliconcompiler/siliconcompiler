@@ -58,7 +58,7 @@ class InitFloorplanTask(APRTask, OpenROADSTAParameter, OpenROADPPLLayersParamete
             self.add_required_key("var", "padringfileset")
 
             for fileset in self.get("var", "padringfileset"):
-                self.add_required_key(self.schema().design, "fileset", fileset, "file", "tcl")
+                self.add_required_key(self.project.design, "fileset", fileset, "file", "tcl")
 
     def add_openroad_padringfileset(self, fileset: str, clobber=False):
         if clobber:

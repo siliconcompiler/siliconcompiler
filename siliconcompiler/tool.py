@@ -38,11 +38,12 @@ from siliconcompiler.schema import EditableSchema, Parameter, PerNode, Scope
 from siliconcompiler.schema.parametertype import NodeType
 from siliconcompiler.schema.utils import trim
 
-from siliconcompiler import utils, NodeStatus
+from siliconcompiler import utils, NodeStatus, Flowgraph
 from siliconcompiler import sc_open
 
 from siliconcompiler.schema_support.pathschema import PathSchema
-from siliconcompiler.schema_support.record import RecordTool
+from siliconcompiler.schema_support.record import RecordTool, RecordSchema
+from siliconcompiler.schema_support.metric import MetricSchema
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 
 
@@ -277,30 +278,25 @@ class TaskSchema(NamedSchema, PathSchema, DocsSchema):
         """str: The path to the node's working directory."""
         return self.__jobdir
 
-    def schema(self, type=None):
-        """
-        Gets a specific section of the schema.
+    @property
+    def schema_record(self) -> RecordSchema:
+        return self.__schema_record
 
-        Args:
-            type (str, optional): The schema section to retrieve. If None,
-                returns the root schema. Valid types include "record",
-                "metric", "flow", "runtimeflow", and "tool".
+    @property
+    def schema_metric(self) -> MetricSchema:
+        return self.__schema_metric
 
-        Returns:
-            The requested schema section object.
-        """
-        if type is None:
-            return self.__schema_full
-        elif type == "record":
-            return self.__schema_record
-        elif type == "metric":
-            return self.__schema_metric
-        elif type == "flow":
-            return self.__schema_flow
-        elif type == "runtimeflow":
-            return self.__schema_flow_runtime
-        else:
-            raise ValueError(f"{type} is not a schema section")
+    @property
+    def project(self):
+        return self.__schema_full
+
+    @property
+    def schema_flow(self) -> Flowgraph:
+        return self.__schema_flow
+
+    @property
+    def schema_flowruntime(self) -> RuntimeFlowgraph:
+        return self.__schema_flow_runtime
 
     def get_logpath(self, log: str) -> str:
         """
@@ -321,7 +317,7 @@ class TaskSchema(NamedSchema, PathSchema, DocsSchema):
         Returns:
             bool: True if a breakpoint is active, False otherwise.
         """
-        return self.schema().get("option", "breakpoint", step=self.__step, index=self.__index)
+        return self.project.get("option", "breakpoint", step=self.__step, index=self.__index)
 
     def get_exe(self) -> str:
         """
@@ -649,7 +645,7 @@ class TaskSchema(NamedSchema, PathSchema, DocsSchema):
         """
 
         if manifest is None:
-            manifest = self.schema()
+            manifest = self.project
 
         vars = {
             "sc_tool": NodeType.to_tcl(self.tool(), "str"),
@@ -768,7 +764,7 @@ class TaskSchema(NamedSchema, PathSchema, DocsSchema):
         Private helper to create a copy of the schema with all file/dir paths
         converted to absolute paths.
         """
-        root = self.schema()
+        root = self.project
         schema = root.copy()
 
         strict = root.get("option", "strict")
@@ -947,7 +943,7 @@ class TaskSchema(NamedSchema, PathSchema, DocsSchema):
             cmdlist = self.get_runtime_arguments()
 
             # Record tool options
-            self.schema("record").record_tool(
+            self.schema_record.record_tool(
                 self.__step, self.__index,
                 cmdlist, RecordTool.ARGS)
 
@@ -1041,14 +1037,14 @@ class TaskSchema(NamedSchema, PathSchema, DocsSchema):
                     retcode = proc.returncode
 
         # Record metrics
-        self.schema("record").record_tool(
+        self.schema_record.record_tool(
             self.__step, self.__index,
             retcode, RecordTool.EXITCODE)
 
-        self.schema("metric").record(
+        self.schema_metric.record(
             self.__step, self.__index,
             'exetime', time.time() - cpu_start, unit='s')
-        self.schema("metric").record(
+        self.schema_metric.record(
             self.__step, self.__index,
             'memory', max_mem_bytes, unit='B')
 
@@ -1076,17 +1072,17 @@ class TaskSchema(NamedSchema, PathSchema, DocsSchema):
         Returns a dictionary of files from input nodes, mapped to the node
         they originated from.
         """
-        nodes = self.schema("runtimeflow").get_nodes()
+        nodes = self.schema_flowruntime.get_nodes()
         inputs = {}
-        for in_step, in_index in self.schema("flow").get(self.step, self.index, 'input'):
+        for in_step, in_index in self.schema_flow.get(self.step, self.index, 'input'):
             if (in_step, in_index) not in nodes:
                 continue
 
-            in_tool = self.schema("flow").get(in_step, in_index, "tool")
-            in_task = self.schema("flow").get(in_step, in_index, "task")
-            task_obj = self.schema().get("tool", in_tool, "task", in_task, field="schema")
+            in_tool = self.schema_flow.get(in_step, in_index, "tool")
+            in_task = self.schema_flow.get(in_step, in_index, "task")
+            task_obj = self.project.get("tool", in_tool, "task", in_task, field="schema")
 
-            if self.schema("record").get('status', step=in_step, index=in_index) == \
+            if self.schema_record.get('status', step=in_step, index=in_index) == \
                     NodeStatus.SKIPPED:
                 with task_obj.runtime(self.__node.switch_node(in_step, in_index)) as task:
                     for file, nodes in task.get_files_from_input_nodes().items():
@@ -1674,12 +1670,12 @@ class TaskSchema(NamedSchema, PathSchema, DocsSchema):
             Records the metric cell area and notes the source as 'reports/metrics.json'
         '''
 
-        if metric not in self.schema("metric").getkeys():
+        if metric not in self.schema_metric.getkeys():
             if not quiet:
                 self.logger.warning(f"{metric} is not a valid metric")
             return
 
-        self.schema("metric").record(self.__step, self.__index, metric, value, unit=source_unit)
+        self.schema_metric.record(self.__step, self.__index, metric, value, unit=source_unit)
         if source_file:
             self.add("report", metric, source_file)
 
@@ -1697,7 +1693,7 @@ class TaskSchema(NamedSchema, PathSchema, DocsSchema):
             raise TypeError("filetype must be a string")
 
         keys = []
-        for obj, fileset in self.schema().get_filesets():
+        for obj, fileset in self.project.get_filesets():
             key = ("fileset", fileset, "file", filetype)
             if obj.valid(*key, check_complete=True):
                 keys.append((obj, key))
@@ -1879,8 +1875,8 @@ class TaskSchema(NamedSchema, PathSchema, DocsSchema):
         """
         Determines which preceding nodes are inputs to this task.
         """
-        return self.schema("runtimeflow").get_node_inputs(
-            self.__step, self.__index, record=self.schema("record"))
+        return self.schema_flowruntime.get_node_inputs(
+            self.__step, self.__index, record=self.schema_record)
 
     def pre_process(self):
         """

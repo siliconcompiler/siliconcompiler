@@ -26,30 +26,30 @@ class PlaceTask(VPRTask):
         self.add_output_file(ext="net")
         self.add_output_file(ext="place")
 
-        for lib, fileset in self.schema().get_filesets():
+        for lib, fileset in self.project.get_filesets():
             if lib.get_file(fileset=fileset, filetype="vpr_pins"):
                 self.add_required_key(lib, "fileset", fileset, "file", "vpr_pins")
             if lib.get_file(fileset=fileset, filetype="pcf"):
                 self.add_required_key(lib, "fileset", fileset, "file", "pcf")
-                self.add_required_key("library", self.schema().get("fpga", "device"),
+                self.add_required_key("library", self.project.get("fpga", "device"),
                                       "tool", "vpr", "constraintsmap")
 
     def pre_process(self):
         super().pre_process()
 
-        for lib, fileset in self.schema().get_filesets():
+        for lib, fileset in self.project.get_filesets():
             files = lib.get_file(fileset=fileset, filetype="vpr_pins")
             if files:
                 shutil.copy2(files[0], self.auto_constraints_file())
                 return
 
-        for lib, fileset in self.schema().get_filesets():
+        for lib, fileset in self.project.get_filesets():
             files = lib.get_file(fileset=fileset, filetype="pcf")
             if files:
                 pcf_file = files[0]
 
-                fpga = self.schema().get("library", self.schema().get("fpga", "device"),
-                                         field="schema")
+                fpga = self.project.get("library", self.project.get("fpga", "device"),
+                                        field="schema")
                 map_file = fpga.find_files("tool", "vpr", "constraintsmap")
 
                 constraints_map = load_constraints_map(map_file)

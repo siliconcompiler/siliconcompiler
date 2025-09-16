@@ -51,11 +51,11 @@ class ConvertTask(TaskSchema):
 
         self.add_required_key("option", "design")
         self.add_required_key("option", "fileset")
-        if self.schema().get("option", "alias"):
+        if self.project.get("option", "alias"):
             self.add_required_key("option", "alias")
 
         # Mark required
-        for lib, fileset in self.schema().get_filesets():
+        for lib, fileset in self.project.get_filesets():
             if lib.get_file(fileset=fileset, filetype="chisel"):
                 self.add_required_key(lib, "fileset", fileset, "file", "chisel")
             elif lib.get_file(fileset=fileset, filetype="scala"):
@@ -72,7 +72,7 @@ class ConvertTask(TaskSchema):
         refdir = self.find_files('refdir')[0]
 
         chisel = None
-        for lib, fileset in self.schema().get_filesets():
+        for lib, fileset in self.project.get_filesets():
             if lib.get_file(fileset=fileset, filetype="chisel"):
                 chisel = lib.get_file(fileset=fileset, filetype="chisel")
             if chisel:
@@ -99,7 +99,7 @@ class ConvertTask(TaskSchema):
             shutil.copyfile(src, dst)
 
         # Chisel driver relies on Scala files being collected into '$CWD/inputs'
-        for lib, fileset in self.schema().get_filesets():
+        for lib, fileset in self.project.get_filesets():
             if lib.get_file(fileset=fileset, filetype="scala"):
                 for file in lib.get_file(fileset=fileset, filetype="scala"):
                     shutil.copy2(file, "inputs/")
@@ -113,7 +113,7 @@ class ConvertTask(TaskSchema):
         run_main = ["runMain"]
 
         chisel = None
-        for lib, fileset in self.schema().get_filesets():
+        for lib, fileset in self.project.get_filesets():
             if lib.get_file(fileset=fileset, filetype="chisel"):
                 chisel = lib.get_file(fileset=fileset, filetype="chisel")
             if chisel:

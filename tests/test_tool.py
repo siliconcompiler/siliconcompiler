@@ -116,7 +116,7 @@ def test_init():
     assert tool.step is None
     assert tool.index is None
     assert tool.logger is None
-    assert tool.schema() is None
+    assert tool.project is None
 
 
 def test_tool():
@@ -173,7 +173,7 @@ def test_runtime(running_node):
         assert runtool.index == '0'
         assert runtool.node is running_node
         assert runtool.logger is running_node.project.logger
-        assert runtool.schema() is running_node.project
+        assert runtool.project is running_node.project
 
 
 def test_runtime_node_only(running_node):
@@ -182,7 +182,7 @@ def test_runtime_node_only(running_node):
         assert runtool.index == '0'
         assert runtool.node is None
         assert runtool.logger is None
-        assert runtool.schema() is None
+        assert runtool.project is None
 
 
 def test_runtime_same_task(running_node):
@@ -194,12 +194,12 @@ def test_runtime_same_task(running_node):
         assert runtool0.index == '0'
         assert runtool0.node is running_node
         assert runtool0.logger is running_node.project.logger
-        assert runtool0.schema() is running_node.project
+        assert runtool0.project is running_node.project
         assert runtool1.step == 'notrunning'
         assert runtool1.index == '0'
         assert runtool1.node is running1
         assert runtool1.logger is running_node.project.logger
-        assert runtool1.schema() is running_node.project
+        assert runtool1.project is running_node.project
 
         assert runtool0.set("option", "tool0_opt")
         assert runtool1.set("option", "tool1_opt")
@@ -218,22 +218,16 @@ def test_runtime_different(running_node):
         assert runtool.step == 'notrunning'
         assert runtool.index == '0'
         assert runtool.logger is running_node.project.logger
-        assert runtool.schema() is running_node.project
+        assert runtool.project is running_node.project
 
 
 def test_schema_access(running_node):
     with running_node.task.runtime(running_node) as runtool:
-        assert runtool.schema() is running_node.project
-        assert isinstance(runtool.schema("record"), RecordSchema)
-        assert isinstance(runtool.schema("metric"), MetricSchema)
-        assert isinstance(runtool.schema("flow"), Flowgraph)
-        assert isinstance(runtool.schema("runtimeflow"), RuntimeFlowgraph)
-
-
-def test_schema_access_invalid(running_node):
-    with running_node.task.runtime(running_node) as runtool:
-        with pytest.raises(ValueError, match="invalid is not a schema section"):
-            runtool.schema("invalid")
+        assert runtool.project is running_node.project
+        assert isinstance(runtool.schema_record, RecordSchema)
+        assert isinstance(runtool.schema_metric, MetricSchema)
+        assert isinstance(runtool.schema_flow, Flowgraph)
+        assert isinstance(runtool.schema_flowruntime, RuntimeFlowgraph)
 
 
 def test_design_name(running_node):
@@ -905,10 +899,10 @@ def test_post_process():
 def test_resetting_state_in_copy(running_node):
     tool = TaskSchema()
     with running_node.task.runtime(running_node) as runtool:
-        assert runtool.schema() is not None
+        assert runtool.project is not None
 
         tool = copy.deepcopy(runtool)
-        assert tool.schema() is None
+        assert tool.project is None
 
 
 def test_generate_replay_script(running_node, monkeypatch):

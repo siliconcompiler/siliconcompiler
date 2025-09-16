@@ -42,7 +42,7 @@ class FPGASynthesis(YosysTask):
                 self.get_fileset_file_keys("verilog")
             if not filekeys:
                 self.add_required_key("library", self.design_name, "fileset",
-                                      self.schema().get("option", "fileset")[0], "file", "verilog")
+                                      self.project.get("option", "fileset")[0], "file", "verilog")
             else:
                 for lib, key in filekeys:
                     self.add_required_key(lib, *key)
@@ -57,7 +57,7 @@ class FPGASynthesis(YosysTask):
 
         self._synthesis_post_process()
 
-        fpga = self.schema().get("fpga", "device")
+        fpga = self.project.get("fpga", "device")
 
         with sc_open("reports/stat.json") as f:
             metrics = json.load(f)
@@ -72,14 +72,14 @@ class FPGASynthesis(YosysTask):
                 return
 
             dff_cells = []
-            if self.schema().valid("library", fpga, "tool", "yosys", "registers"):
-                dff_cells = self.schema().get("library", fpga, "tool", "yosys", "registers")
+            if self.project.valid("library", fpga, "tool", "yosys", "registers"):
+                dff_cells = self.project.get("library", fpga, "tool", "yosys", "registers")
             brams_cells = []
-            if self.schema().valid("library", fpga, "tool", "yosys", "brams"):
-                brams_cells = self.schema().get("library", fpga, "tool", "yosys", "brams")
+            if self.project.valid("library", fpga, "tool", "yosys", "brams"):
+                brams_cells = self.project.get("library", fpga, "tool", "yosys", "brams")
             dsps_cells = []
-            if self.schema().valid("library", fpga, "tool", "yosys", "dsps"):
-                dsps_cells = self.schema().get("library", fpga, "tool", "yosys", "dsps")
+            if self.project.valid("library", fpga, "tool", "yosys", "dsps"):
+                dsps_cells = self.project.get("library", fpga, "tool", "yosys", "dsps")
 
             data = {
                 "registers": 0,

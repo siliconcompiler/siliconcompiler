@@ -51,13 +51,13 @@ class CompileTask(VerilatorTask):
         self.add_required_key("var", "initialize_random")
 
         added_key = False
-        for lib, fileset in self.schema().get_filesets():
+        for lib, fileset in self.project.get_filesets():
             if lib.get_file(fileset=fileset, filetype="c"):
                 self.add_required_key(lib, "fileset", fileset, "file", "c")
                 added_key = True
         if not added_key:
-            self.add_required_key(self.schema().design, "fileset",
-                                  self.schema().get("option", "fileset")[0], "file", "c")
+            self.add_required_key(self.project.design, "fileset",
+                                  self.project.get("option", "fileset")[0], "file", "c")
 
         if self.get("var", "cincludes"):
             self.add_required_key("var", "cincludes")
@@ -124,7 +124,7 @@ class CompileTask(VerilatorTask):
         if ld_flags:
             options.extend(['-LDFLAGS', shlex.join(ld_flags)])
 
-        for lib, fileset in self.schema().get_filesets():
+        for lib, fileset in self.project.get_filesets():
             for value in lib.get_file(fileset=fileset, filetype="c"):
                 options.append(value)
 

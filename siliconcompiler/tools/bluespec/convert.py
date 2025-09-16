@@ -39,11 +39,11 @@ class ConvertTask(TaskSchema):
 
         self.add_required_key("option", "design")
         self.add_required_key("option", "fileset")
-        if self.schema().get("option", "alias"):
+        if self.project.get("option", "alias"):
             self.add_required_key("option", "alias")
 
         # Mark required
-        for lib, fileset in self.schema().get_filesets():
+        for lib, fileset in self.project.get_filesets():
             if lib.get("fileset", fileset, "idir"):
                 self.add_required_key(lib, "fileset", fileset, "idir")
             if lib.get("fileset", fileset, "define"):
@@ -74,7 +74,7 @@ class ConvertTask(TaskSchema):
 
         options.extend(['-g', self.design_topmodule])
 
-        filesets = self.schema().get_filesets()
+        filesets = self.project.get_filesets()
         idirs = []
         defines = []
         for lib, fileset in filesets:
@@ -111,7 +111,7 @@ class ConvertTask(TaskSchema):
         if os.path.exists(use_file):
             bsc_tool_path = os.path.dirname(
                 os.path.dirname(
-                    self.schema("record").get('toolpath', step=self.step, index=self.index)))
+                    self.schema_record.get('toolpath', step=self.step, index=self.index)))
             bsc_lib = os.path.join(bsc_tool_path, "lib", "Verilog")
 
             with sc_open(use_file) as f:

@@ -54,7 +54,7 @@ class VerilatorTask(TaskSchema):
 
         self.add_required_key("option", "design")
         self.add_required_key("option", "fileset")
-        if self.schema().get("option", "alias"):
+        if self.project.get("option", "alias"):
             self.add_required_key("option", "alias")
 
         add_inputs = False
@@ -66,7 +66,7 @@ class VerilatorTask(TaskSchema):
             add_inputs = True
 
         # Mark required
-        for lib, fileset in self.schema().get_filesets():
+        for lib, fileset in self.project.get_filesets():
             if lib.get("fileset", fileset, "idir"):
                 self.add_required_key(lib, "fileset", fileset, "idir")
             if lib.get("fileset", fileset, "define"):
@@ -79,8 +79,8 @@ class VerilatorTask(TaskSchema):
                 if lib.get_file(fileset=fileset, filetype="verilog"):
                     self.add_required_key(lib, "fileset", fileset, "file", "verilog")
 
-        fileset = self.schema().get("option", "fileset")[0]
-        design = self.schema().design
+        fileset = self.project.get("option", "fileset")[0]
+        design = self.project.design
         for param in design.getkeys("fileset", fileset, "param"):
             self.add_required_key(design, "fileset", fileset, "param", param)
 
@@ -89,7 +89,7 @@ class VerilatorTask(TaskSchema):
         return stdout.split()[1]
 
     def runtime_options(self):
-        filesets = self.schema().get_filesets()
+        filesets = self.project.get_filesets()
 
         options = super().runtime_options()
 
@@ -116,14 +116,14 @@ class VerilatorTask(TaskSchema):
         for lib, fileset in filesets:
             idirs.extend(lib.find_files("fileset", fileset, "idir"))
             defines.extend(lib.get("fileset", fileset, "define"))
-        fileset = self.schema().get("option", "fileset")[0]
+        fileset = self.project.get("option", "fileset")[0]
 
-        design = self.schema().design
+        design = self.project.design
         for param in design.getkeys("fileset", fileset, "param"):
             params.append((param, design.get("fileset", fileset, "param", param)))
 
-        fileset = self.schema().get("option", "fileset")[0]
-        design = self.schema().design
+        fileset = self.project.get("option", "fileset")[0]
+        design = self.project.design
         for param in design.getkeys("fileset", fileset, "param"):
             value = design.get("fileset", fileset, "param", param)
             value = value.replace('"', '\\"')
