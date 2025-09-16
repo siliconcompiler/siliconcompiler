@@ -410,7 +410,7 @@ class PathSchema(PathSchemaBase):
         if len(roots) == 1:
             return roots[0]
 
-        raise ValueError(f"dataroot must be speficied, multiple are defined: {', '.join(roots)}")
+        raise ValueError(f"dataroot must be specified, multiple are defined: {', '.join(roots)}")
 
     def _generate_doc(self, doc,
                       ref_root: str = "",
