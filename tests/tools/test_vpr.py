@@ -199,7 +199,7 @@ def test_vpr_place_with_constraint(gcd_design, monkeypatch):
 
 def test_vpr_gen_post_implementation_netlist(gcd_design):
     with gcd_design.active_fileset("sdc-test"):
-        gcd_design.add_file("test.sdc")
+        gcd_design.add_file(os.path.abspath("test.sdc"))
     with open('test.sdc', 'w') as f:
         f.write('test')
 
