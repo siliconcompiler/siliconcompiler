@@ -250,7 +250,7 @@ def generate_testcase(chip,
         with open(run_path, 'w') as f:
             replay_dir = os.path.relpath(chip.getworkdir(step=step, index=index),
                                          chip.cwd)
-            issue_title = f'{chip.design} for {step}/{index} using {tool}/{task}'
+            issue_title = f'{chip.design.name} for {step}/{index} using {tool}/{task}'
             f.write(get_file_template('issue/run.sh').render(
                 title=issue_title,
                 exec_dir=replay_dir

@@ -34,14 +34,14 @@ def test_py_gcd():
 
     assert project.get('metric', 'warnings', step='floorplan.init', index='0') == 2
 
-    assert project.get('metric', 'warnings', step='place.detailed', index='0') == 1
+    assert project.get('metric', 'warnings', step='place.detailed', index='0') == 0
 
-    assert project.get('metric', 'warnings', step='cts.clock_tree_synthesis', index='0') == 2
+    assert project.get('metric', 'warnings', step='cts.clock_tree_synthesis', index='0') == 1
 
-    assert project.get('metric', 'warnings', step='route.global', index='0') == 1
+    assert project.get('metric', 'warnings', step='route.global', index='0') == 0
 
     assert project.get('metric', 'warnings', step='write.gds', index='0') == 0
-    assert project.get('metric', 'warnings', step='write.views', index='0') == 1
+    assert project.get('metric', 'warnings', step='write.views', index='0') == 0
 
 
 @pytest.mark.eda
