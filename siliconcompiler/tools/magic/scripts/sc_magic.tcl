@@ -1,8 +1,8 @@
 source ./sc_manifest.tcl
 
-set sc_stackup [sc_cfg_get option stackup]
-set sc_pdk [sc_cfg_get option pdk]
-set sc_runset [sc_cfg_get pdk $sc_pdk drc runset magic $sc_stackup basic]
+set sc_pdk [sc_cfg_get asic pdk]
+set fileset [sc_cfg_get library $sc_pdk pdk drc runsetfileset magic basic]
+set sc_runset [sc_cfg_get_fileset $sc_pdk $fileset tech]
 
 # Put grid on 0.005 pitch.  This is important, as some commands don't
 # rescale the grid automatically (such as lef read?).
@@ -36,10 +36,9 @@ if { $sc_pdk == "skywater130" } {
     cif istyle sky130(vendor)
 }
 
-set mydir [file dirname [file normalize [info script]]]
 set sc_step [sc_cfg_get arg step]
 
-if { [catch { source "$mydir/sc_${sc_step}.tcl" } err] } {
+if { [catch { source "$sc_refdir/sc_${sc_step}.tcl" } err] } {
     puts $err
     exit 1
 }
