@@ -62,10 +62,10 @@ class ConvertTask(TaskSchema):
                 self.add_required_key(lib, "fileset", fileset, "file", "scala")
 
         if self.get("var", "application"):
-            self.add_required_tool_key("var", "application")
+            self.add_required_key("var", "application")
         if self.get("var", "argument"):
-            self.add_required_tool_key("var", "argument")
-        self.add_required_tool_key("var", "targetdir")
+            self.add_required_key("var", "argument")
+        self.add_required_key("var", "targetdir")
 
     def pre_process(self):
         super().pre_process()

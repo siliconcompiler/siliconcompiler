@@ -43,6 +43,6 @@ class RepairDesignTask(APRTask, OpenROADSTAParameter, OpenROADRSZDRVParameter):
             'module_view'
         ])
 
-        self.add_required_tool_key("var", "ifp_tie_separation")
-        self.add_required_tool_key("var", "rsz_buffer_inputs")
-        self.add_required_tool_key("var", "rsz_buffer_outputs")
+        self.add_required_key("var", "ifp_tie_separation")
+        self.add_required_key("var", "rsz_buffer_inputs")
+        self.add_required_key("var", "rsz_buffer_outputs")

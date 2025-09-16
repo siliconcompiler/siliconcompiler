@@ -48,7 +48,7 @@ class RDLRouteTask(OpenROADTask):
         self.add_output_file(ext="odb")
 
         if self.get("var", "rdlroute"):
-            self.add_required_tool_key("var", "rdlroute")
-        self.add_required_tool_key("var", "fin_add_fill")
+            self.add_required_key("var", "rdlroute")
+        self.add_required_key("var", "fin_add_fill")
 
         self.set("var", "fin_add_fill", False)

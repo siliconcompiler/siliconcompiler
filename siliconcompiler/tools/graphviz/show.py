@@ -28,7 +28,7 @@ class ShowTask(ShowTaskSchema):
         elif f"{self.design_topmodule}.xdot" in self.get_files_from_input_nodes():
             self.add_input_file(ext="xdot")
         else:
-            self.add_required_tool_key("var", "showfilepath")
+            self.add_required_key("var", "showfilepath")
 
         self.add_output_file(ext="png")
 

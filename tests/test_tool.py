@@ -1560,13 +1560,19 @@ def test_add_required_key_obj(running_node):
                                           "tool,builtin,task,nop,this,key,is,required,too"]
 
 
-def test_add_required_tool_key(running_node):
+def test_add_required_key_tool(running_node):
     with running_node.task.runtime(running_node) as runtool:
-        assert runtool.add_required_tool_key("this", "key", "is", "required")
-        assert runtool.get("require") == ["tool,builtin,task,nop,this,key,is,required"]
-        assert runtool.add_required_tool_key("this", "key", "is", "required", "too")
-        assert runtool.get("require") == ["tool,builtin,task,nop,this,key,is,required",
-                                          "tool,builtin,task,nop,this,key,is,required,too"]
+        assert runtool.add_required_key("exe")
+        assert runtool.get("require") == ["tool,builtin,task,nop,exe"]
+        assert runtool.add_required_key("path")
+        assert runtool.get("require") == ["tool,builtin,task,nop,exe",
+                                          "tool,builtin,task,nop,path"]
+
+
+def test_add_required_key_not_tool(running_node):
+    with running_node.task.runtime(running_node) as runtool:
+        assert runtool.add_required_key("option", "design")
+        assert runtool.get("require") == ["option,design"]
 
 
 def test_add_required_key_invalid(running_node):

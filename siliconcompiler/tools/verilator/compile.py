@@ -45,10 +45,10 @@ class CompileTask(VerilatorTask):
         self.add_output_file(ext="vexe")
 
         # Mark required
-        self.add_required_tool_key("var", "mode")
-        self.add_required_tool_key("var", "trace")
-        self.add_required_tool_key("var", "trace_type")
-        self.add_required_tool_key("var", "initialize_random")
+        self.add_required_key("var", "mode")
+        self.add_required_key("var", "trace")
+        self.add_required_key("var", "trace_type")
+        self.add_required_key("var", "initialize_random")
 
         added_key = False
         for lib, fileset in self.schema().get_filesets():
@@ -60,14 +60,14 @@ class CompileTask(VerilatorTask):
                                   self.schema().get("option", "fileset")[0], "file", "c")
 
         if self.get("var", "cincludes"):
-            self.add_required_tool_key("var", "cincludes")
+            self.add_required_key("var", "cincludes")
         if self.get("var", "cflags"):
-            self.add_required_tool_key("var", "cflags")
+            self.add_required_key("var", "cflags")
         if self.get("var", "ldflags"):
-            self.add_required_tool_key("var", "ldflags")
+            self.add_required_key("var", "ldflags")
 
         if self.get("var", "pins_bv") is not None:
-            self.add_required_tool_key("var", "pins_bv")
+            self.add_required_key("var", "pins_bv")
 
     def runtime_options(self):
         options = super().runtime_options()

@@ -31,7 +31,7 @@ class Elaborate(SlangTask):
 
         self.add_output_file(self._output_file())
 
-        self.add_required_tool_key("var", "include_source_paths")
+        self.add_required_key("var", "include_source_paths")
 
     def runtime_options(self):
         options = super().runtime_options()

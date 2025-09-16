@@ -48,7 +48,7 @@ class RepairTimingTask(APRTask, OpenROADSTAParameter, OpenROADDPLParameter,
             'module_view'
         ])
 
-        self.add_required_tool_key("var", "rsz_skip_drv_repair")
-        self.add_required_tool_key("var", "rsz_skip_setup_repair")
-        self.add_required_tool_key("var", "rsz_skip_hold_repair")
-        self.add_required_tool_key("var", "rsz_skip_recover_power")
+        self.add_required_key("var", "rsz_skip_drv_repair")
+        self.add_required_key("var", "rsz_skip_setup_repair")
+        self.add_required_key("var", "rsz_skip_hold_repair")
+        self.add_required_key("var", "rsz_skip_recover_power")

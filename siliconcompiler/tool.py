@@ -1145,19 +1145,11 @@ class TaskSchema(NamedSchema, PathSchema, DocsSchema):
     ###############################################################
     # Task settings
     ###############################################################
-    def add_required_tool_key(self, *key: str, step: str = None, index: str = None):
-        '''
-        Adds a required tool keypath to the task driver.
-
-        Args:
-            key (list of str): required key path
-        '''
-        return self.add_required_key(self, *key, step=step, index=index)
-
     def add_required_key(self, obj: Union[BaseSchema, str], *key: str,
                          step: str = None, index: str = None):
         '''
-        Adds a required keypath to the task driver.
+        Adds a required keypath to the task driver. If the key is valid relative to the task object
+            the key will be assumed as a task key.
 
         Args:
             obj (:class:`BaseSchema` or str): if this is a string it will be considered
@@ -1170,6 +1162,8 @@ class TaskSchema(NamedSchema, PathSchema, DocsSchema):
             key = (*obj._keypath, *key)
         else:
             key = (obj, *key)
+            if self.valid(*key, check_complete=True):
+                key = (*self._keypath, *key)
 
         if any([not isinstance(k, str) for k in key]):
             raise ValueError("key can only contain strings")
@@ -2029,15 +2023,15 @@ class ShowTaskSchema(TaskSchema):
 
         self._set_filetype()
 
-        self.add_required_tool_key("var", "showexit")
+        self.add_required_key("var", "showexit")
 
         if self.get("var", "shownode"):
-            self.add_required_tool_key("var", "shownode")
+            self.add_required_key("var", "shownode")
 
         if self.get("var", "showfilepath"):
-            self.add_required_tool_key("var", "showfilepath")
+            self.add_required_key("var", "showfilepath")
         elif self.get("var", "showfiletype"):
-            self.add_required_tool_key("var", "showfiletype")
+            self.add_required_key("var", "showfiletype")
         else:
             raise ValueError("no file information provided to show")
 

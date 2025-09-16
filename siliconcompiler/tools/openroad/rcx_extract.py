@@ -20,7 +20,7 @@ class ORXExtractTask(OpenROADTask):
 
         self.set_script("sc_rcx.tcl")
 
-        self.add_required_tool_key("var", "corner")
+        self.add_required_key("var", "corner")
 
         corner = self.get("var", "corner")
 

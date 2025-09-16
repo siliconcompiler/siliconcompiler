@@ -23,7 +23,7 @@ class ASICLECTask(_ASICTask):
 
         self.set_script("sc_lec.tcl")
 
-        self.add_required_tool_key("var", "induction_steps")
+        self.add_required_key("var", "induction_steps")
 
         if f"{self.design_topmodule}.lec.vg" in self.get_files_from_input_nodes():
             self.add_input_file(ext="lec.vg")

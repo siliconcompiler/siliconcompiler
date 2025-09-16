@@ -38,7 +38,7 @@ class ShowTask(ShowTaskSchema):
         if f"{self.design_topmodule}.vcd" in self.get_files_from_input_nodes():
             self.add_input_file(ext="vcd")
         else:
-            self.add_required_tool_key("var", "showfilepath")
+            self.add_required_key("var", "showfilepath")
 
     def runtime_options(self):
         options = []

@@ -37,10 +37,10 @@ class TimingTaskBase(OpenSTATask):
             self.add_input_file(ext="vg")
 
         if self.get("var", "timing_mode"):
-            self.add_required_tool_key("var", "timing_mode")
-        self.add_required_tool_key("var", "top_n_paths")
-        self.add_required_tool_key("var", "unique_path_groups_per_clock")
-        self.add_required_tool_key("var", "opensta_generic_sdc")
+            self.add_required_key("var", "timing_mode")
+        self.add_required_key("var", "top_n_paths")
+        self.add_required_key("var", "unique_path_groups_per_clock")
+        self.add_required_key("var", "opensta_generic_sdc")
 
     def post_process(self):
         super().post_process()

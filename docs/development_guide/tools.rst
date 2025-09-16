@@ -243,7 +243,6 @@ Task settings
     add_prescript
     add_regex
     add_required_key
-    add_required_tool_key
     add_warningoff
     set_environmentalvariable
     set_logdestination

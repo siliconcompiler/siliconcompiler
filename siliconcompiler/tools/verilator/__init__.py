@@ -48,9 +48,9 @@ class VerilatorTask(TaskSchema):
         self.add_regex("warnings", r"^\%Warning")
         self.add_regex("errors", r"^\%Error")
 
-        self.add_required_tool_key("var", "enable_assert")
+        self.add_required_key("var", "enable_assert")
         if self.get("var", "config"):
-            self.add_required_tool_key("var", "config")
+            self.add_required_key("var", "config")
 
         self.add_required_key("option", "design")
         self.add_required_key("option", "fileset")

@@ -46,8 +46,8 @@ class AntennaRepairTask(APRTask, OpenROADSTAParameter, OpenROADGRTParameter, Ope
             'module_view'
         ])
 
-        self.add_required_tool_key("var", "ant_check")
-        self.add_required_tool_key("var", "ant_repair")
+        self.add_required_key("var", "ant_check")
+        self.add_required_key("var", "ant_repair")
 
     def pre_process(self):
         if not self.get("var", "ant_check"):

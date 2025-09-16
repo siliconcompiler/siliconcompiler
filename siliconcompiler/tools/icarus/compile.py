@@ -58,7 +58,7 @@ class CompileTask(TaskSchema):
             self.add_required_key(design, "fileset", fileset, "param", param)
 
         if self.get("var", "verilog_generation"):
-            self.add_required_tool_key("var", "verilog_generation")
+            self.add_required_key("var", "verilog_generation")
 
     def runtime_options(self):
         options = super().runtime_options()

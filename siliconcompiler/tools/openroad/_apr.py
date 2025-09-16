@@ -34,12 +34,12 @@ class OpenROADSTAParameter(OpenROADTask):
     def setup(self):
         super().setup()
 
-        self.add_required_tool_key("var", "sta_early_timing_derate")
-        self.add_required_tool_key("var", "sta_late_timing_derate")
-        self.add_required_tool_key("var", "sta_top_n_paths")
-        self.add_required_tool_key("var", "sta_define_path_groups")
-        self.add_required_tool_key("var", "sta_unique_path_groups_per_clock")
-        self.add_required_tool_key("var", "opensta_generic_sdc")
+        self.add_required_key("var", "sta_early_timing_derate")
+        self.add_required_key("var", "sta_late_timing_derate")
+        self.add_required_key("var", "sta_top_n_paths")
+        self.add_required_key("var", "sta_define_path_groups")
+        self.add_required_key("var", "sta_unique_path_groups_per_clock")
+        self.add_required_key("var", "opensta_generic_sdc")
 
 
 class OpenROADPSMParameter(OpenROADTask):
@@ -53,9 +53,9 @@ class OpenROADPSMParameter(OpenROADTask):
     def setup(self):
         super().setup()
 
-        self.add_required_tool_key("var", "psm_enable")
+        self.add_required_key("var", "psm_enable")
         if self.get("var", "psm_skip_nets"):
-            self.add_required_tool_key("var", "psm_skip_nets")
+            self.add_required_key("var", "psm_skip_nets")
 
 
 class OpenROADPPLLayersParameter(OpenROADTask):
@@ -84,10 +84,10 @@ class OpenROADPPLParameter(OpenROADPPLLayersParameter):
         super().setup()
 
         if self.get("var", "ppl_arguments"):
-            self.add_required_tool_key("var", "ppl_arguments")
+            self.add_required_key("var", "ppl_arguments")
 
         if self.get("var", "ppl_constraints"):
-            self.add_required_tool_key("var", "ppl_constraints")
+            self.add_required_key("var", "ppl_constraints")
 
 
 class OpenROADGPLParameter(OpenROADTask):
@@ -119,11 +119,11 @@ class OpenROADGPLParameter(OpenROADTask):
     def setup(self):
         super().setup()
 
-        self.add_required_tool_key("var", "gpl_enable_skip_io")
-        self.add_required_tool_key("var", "gpl_enable_skip_initial_place")
-        self.add_required_tool_key("var", "gpl_uniform_placement_adjustment")
-        self.add_required_tool_key("var", "gpl_timing_driven")
-        self.add_required_tool_key("var", "gpl_routability_driven")
+        self.add_required_key("var", "gpl_enable_skip_io")
+        self.add_required_key("var", "gpl_enable_skip_initial_place")
+        self.add_required_key("var", "gpl_uniform_placement_adjustment")
+        self.add_required_key("var", "gpl_timing_driven")
+        self.add_required_key("var", "gpl_routability_driven")
 
         self.set_asic_var("place_density", require=True)
         self.set_asic_var("pad_global_place", check_pdk=False, mainlib_key="global_cell_padding")
@@ -143,8 +143,8 @@ class OpenROADRSZDRVParameter(OpenROADTask):
     def setup(self):
         super().setup()
 
-        self.add_required_tool_key("var", "rsz_cap_margin")
-        self.add_required_tool_key("var", "rsz_slew_margin")
+        self.add_required_key("var", "rsz_cap_margin")
+        self.add_required_key("var", "rsz_slew_margin")
 
 
 class OpenROADRSZTimingParameter(OpenROADTask):
@@ -172,12 +172,12 @@ class OpenROADRSZTimingParameter(OpenROADTask):
     def setup(self):
         super().setup()
 
-        self.add_required_tool_key("var", "rsz_setup_slack_margin")
-        self.add_required_tool_key("var", "rsz_hold_slack_margin")
-        self.add_required_tool_key("var", "rsz_skip_pin_swap")
-        self.add_required_tool_key("var", "rsz_skip_gate_cloning")
-        self.add_required_tool_key("var", "rsz_repair_tns")
-        self.add_required_tool_key("var", "rsz_recover_power")
+        self.add_required_key("var", "rsz_setup_slack_margin")
+        self.add_required_key("var", "rsz_hold_slack_margin")
+        self.add_required_key("var", "rsz_skip_pin_swap")
+        self.add_required_key("var", "rsz_skip_gate_cloning")
+        self.add_required_key("var", "rsz_repair_tns")
+        self.add_required_key("var", "rsz_recover_power")
 
 
 class OpenROADDPLParameter(OpenROADTask):
@@ -196,9 +196,9 @@ class OpenROADDPLParameter(OpenROADTask):
     def setup(self):
         super().setup()
 
-        self.add_required_tool_key("var", "pad_detail_place")
-        self.add_required_tool_key("var", "dpl_max_displacement")
-        self.add_required_tool_key("var", "dpl_disallow_one_site")
+        self.add_required_key("var", "pad_detail_place")
+        self.add_required_key("var", "dpl_max_displacement")
+        self.add_required_key("var", "dpl_disallow_one_site")
 
 
 class OpenROADFillCellsParameter(OpenROADTask):
@@ -212,7 +212,7 @@ class OpenROADFillCellsParameter(OpenROADTask):
     def setup(self):
         super().setup()
 
-        self.add_required_tool_key("var", "dpl_use_decap_fillers")
+        self.add_required_key("var", "dpl_use_decap_fillers")
 
 
 class OpenROADDPOParameter(OpenROADTask):
@@ -230,8 +230,8 @@ class OpenROADDPOParameter(OpenROADTask):
     def setup(self):
         super().setup()
 
-        self.add_required_tool_key("var", "dpo_enable")
-        self.add_required_tool_key("var", "dpo_max_displacement")
+        self.add_required_key("var", "dpo_enable")
+        self.add_required_key("var", "dpo_max_displacement")
 
 
 class OpenROADCTSParameter(OpenROADTask):
@@ -255,11 +255,11 @@ class OpenROADCTSParameter(OpenROADTask):
     def setup(self):
         super().setup()
 
-        self.add_required_tool_key("var", "cts_distance_between_buffers")
-        self.add_required_tool_key("var", "cts_cluster_diameter")
-        self.add_required_tool_key("var", "cts_cluster_size")
-        self.add_required_tool_key("var", "cts_balance_levels")
-        self.add_required_tool_key("var", "cts_obstruction_aware")
+        self.add_required_key("var", "cts_distance_between_buffers")
+        self.add_required_key("var", "cts_cluster_diameter")
+        self.add_required_key("var", "cts_cluster_size")
+        self.add_required_key("var", "cts_balance_levels")
+        self.add_required_key("var", "cts_obstruction_aware")
 
 
 class OpenROADGRTGeneralParameter(OpenROADTask):
@@ -294,11 +294,11 @@ class OpenROADGRTGeneralParameter(OpenROADTask):
         self.set("var", "grt_signal_max_layer", max_layer, clobber=False)
         self.set("var", "grt_clock_max_layer", max_layer, clobber=False)
 
-        self.add_required_tool_key("var", "grt_macro_extension")
-        self.add_required_tool_key("var", "grt_signal_min_layer")
-        self.add_required_tool_key("var", "grt_clock_min_layer")
-        self.add_required_tool_key("var", "grt_signal_max_layer")
-        self.add_required_tool_key("var", "grt_clock_max_layer")
+        self.add_required_key("var", "grt_macro_extension")
+        self.add_required_key("var", "grt_signal_min_layer")
+        self.add_required_key("var", "grt_clock_min_layer")
+        self.add_required_key("var", "grt_signal_max_layer")
+        self.add_required_key("var", "grt_clock_max_layer")
 
 
 class OpenROADGRTParameter(OpenROADGRTGeneralParameter):
@@ -315,8 +315,8 @@ class OpenROADGRTParameter(OpenROADGRTGeneralParameter):
     def setup(self):
         super().setup()
 
-        self.add_required_tool_key("var", "grt_allow_congestion")
-        self.add_required_tool_key("var", "grt_overflow_iter")
+        self.add_required_key("var", "grt_allow_congestion")
+        self.add_required_key("var", "grt_overflow_iter")
 
 
 class OpenROADANTParameter(OpenROADTask):
@@ -332,8 +332,8 @@ class OpenROADANTParameter(OpenROADTask):
     def setup(self):
         super().setup()
 
-        self.add_required_tool_key("var", "ant_iterations")
-        self.add_required_tool_key("var", "ant_margin")
+        self.add_required_key("var", "ant_iterations")
+        self.add_required_key("var", "ant_margin")
 
 
 class _OpenROADDRTCommonParameter(OpenROADTask):
@@ -353,11 +353,11 @@ class _OpenROADDRTCommonParameter(OpenROADTask):
         super().setup()
 
         if self.get("var", "drt_process_node"):
-            self.add_required_tool_key("var", "drt_process_node")
+            self.add_required_key("var", "drt_process_node")
         if self.get("var", "detailed_route_default_via"):
-            self.add_required_tool_key("var", "detailed_route_default_via")
+            self.add_required_key("var", "detailed_route_default_via")
         if self.get("var", "detailed_route_unidirectional_layer"):
-            self.add_required_tool_key("var", "detailed_route_unidirectional_layer")
+            self.add_required_key("var", "detailed_route_unidirectional_layer")
 
 
 class OpenROADDRTPinAccessParameter(_OpenROADDRTCommonParameter):
@@ -384,16 +384,16 @@ class OpenROADDRTParameter(_OpenROADDRTCommonParameter):
     def setup(self):
         super().setup()
 
-        self.add_required_tool_key("var", "drt_disable_via_gen")
+        self.add_required_key("var", "drt_disable_via_gen")
         if self.get("var", "drt_via_in_pin_bottom_layer"):
-            self.add_required_tool_key("var", "drt_via_in_pin_bottom_layer")
+            self.add_required_key("var", "drt_via_in_pin_bottom_layer")
         if self.get("var", "drt_via_in_pin_top_layer"):
-            self.add_required_tool_key("var", "drt_via_in_pin_top_layer")
+            self.add_required_key("var", "drt_via_in_pin_top_layer")
         if self.get("var", "drt_repair_pdn_vias"):
-            self.add_required_tool_key("var", "drt_repair_pdn_vias")
+            self.add_required_key("var", "drt_repair_pdn_vias")
         if self.get("var", "drt_end_iteration"):
-            self.add_required_tool_key("var", "drt_end_iteration")
-        self.add_required_tool_key("var", "drt_report_interval")
+            self.add_required_key("var", "drt_end_iteration")
+        self.add_required_key("var", "drt_report_interval")
 
 
 class APRTask(OpenROADTask):
@@ -460,19 +460,19 @@ class APRTask(OpenROADTask):
         self.set("var", "power_corner", self._get_constraint_by_check("power"), clobber=False)
 
         if self.get("var", "reports"):
-            self.add_required_tool_key("var", "reports")
+            self.add_required_key("var", "reports")
         if self.get("var", "skip_reports"):
-            self.add_required_tool_key("var", "skip_reports")
+            self.add_required_key("var", "skip_reports")
 
-        self.add_required_tool_key("var", "ord_enable_images")
-        self.add_required_tool_key("var", "ord_heatmap_bins")
-        self.add_required_tool_key("var", "load_grt_setup")
+        self.add_required_key("var", "ord_enable_images")
+        self.add_required_key("var", "ord_heatmap_bins")
+        self.add_required_key("var", "load_grt_setup")
 
         if not self.get("var", "global_connect_fileset"):
             self.__import_globalconnect_filesets()
 
         if self.get("var", "global_connect_fileset"):
-            self.add_required_tool_key("var", "global_connect_fileset")
+            self.add_required_key("var", "global_connect_fileset")
             for lib, fileset in self.get("var", "global_connect_fileset"):
                 self.add_required_key("library", lib, "fileset", fileset, "file", "tcl")
 
@@ -504,7 +504,7 @@ class APRTask(OpenROADTask):
         self.set("var", "reports", set(task_reports).difference(self.get("var", "skip_reports")))
 
         if "power" in self.get("var", "reports"):
-            self.add_required_tool_key("var", "power_corner")
+            self.add_required_key("var", "power_corner")
 
     def _add_pnr_inputs(self):
         if f"{self.design_topmodule}.sdc" in self.get_files_from_input_nodes():

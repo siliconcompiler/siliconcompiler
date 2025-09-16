@@ -25,7 +25,7 @@ class DRCTask(KLayoutTask):
         self.add_input_file(ext="gds")
         self.add_output_file(ext="lyrdb")
 
-        self.add_required_tool_key("var", "drc_name")
+        self.add_required_key("var", "drc_name")
 
     def runtime_options(self):
         options = ASICTaskSchema.runtime_options(self)

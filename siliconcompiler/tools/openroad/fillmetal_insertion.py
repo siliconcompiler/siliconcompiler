@@ -40,7 +40,7 @@ class FillMetalTask(APRTask, OpenROADSTAParameter):
             'clock_trees'
         ])
 
-        self.add_required_tool_key("var", "fin_add_fill")
+        self.add_required_key("var", "fin_add_fill")
 
         if self.get("var", "fin_add_fill"):
             found = False
