@@ -161,6 +161,45 @@ class FileSetSchema(PathSchema):
 
         return filelist
 
+    ###############################################
+    def has_file(self, fileset: str = None, filetype: str = None) -> bool:
+        """Returns true if the fileset contains files.
+
+        Args:
+            fileset (str or list[str]): Fileset(s) to query. If not provided,
+                the active fileset is used.
+            filetype (str or list[str], optional): File type(s) to filter by
+                (e.g., 'verilog'). If not provided, all filetypes in the
+                fileset are returned.
+
+        Returns:
+            bool: True if the fileset contains files.
+        """
+
+        if fileset is None:
+            fileset = self._get_active("fileset")
+
+        if not isinstance(fileset, list):
+            fileset = [fileset]
+
+        if filetype and not isinstance(filetype, list):
+            filetype = [filetype]
+
+        for fs in fileset:
+            if not isinstance(fs, str):
+                raise ValueError("fileset key must be a string")
+            if not self.has_fileset(fs):
+                continue
+            # handle scalar+list in argument
+            if not filetype:
+                filetype = self.getkeys('fileset', fs, 'file')
+            # grab the files
+            for ftype in filetype:
+                if self.get('fileset', fs, 'file', ftype):
+                    return True
+
+        return False
+
     @contextlib.contextmanager
     def active_fileset(self, fileset: str):
         """

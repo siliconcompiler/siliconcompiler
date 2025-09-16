@@ -50,7 +50,7 @@ class MagicTask(TaskSchema):
             self.add_input_file(ext="gds")
         else:
             for lib, fileset in self.project.get_filesets():
-                if lib.get_file(fileset=fileset, filetype="gds"):
+                if lib.has_file(fileset=fileset, filetype="gds"):
                     self.add_required_key(lib, "fileset", fileset, "file", "gds")
 
         self.add_regex("errors", r'^Error')

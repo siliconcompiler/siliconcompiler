@@ -40,7 +40,7 @@ class RDLRouteTask(OpenROADTask):
             self.add_input_file(ext="v")
         else:
             for lib, fileset in self.project.get_filesets():
-                if lib.get_file(fileset=fileset, filetype="verilog"):
+                if lib.has_file(fileset=fileset, filetype="verilog"):
                     self.add_required_key(lib, "fileset", fileset, "file", "verilog")
 
         self.add_output_file(ext="vg")

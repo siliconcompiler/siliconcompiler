@@ -45,7 +45,7 @@ class LVSTask(TaskSchema):
             self.add_input_file(ext="vg")
         else:
             for lib, fileset in self.project.get_filesets():
-                if lib.get_file(fileset=fileset, filetype="verilog"):
+                if lib.has_file(fileset=fileset, filetype="verilog"):
                     self.add_required_key(lib, "fileset", fileset, "file", "verilog")
 
         self.set_logdestination("stderr", "log", suffix="errors")

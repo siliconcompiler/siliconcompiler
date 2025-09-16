@@ -46,13 +46,13 @@ class ConvertTask(ASICTaskSchema, TaskSchema):
 
         # Mark required
         for lib, fileset in self.project.get_filesets():
-            if lib.get("fileset", fileset, "idir"):
+            if lib.has_idir(fileset):
                 self.add_required_key(lib, "fileset", fileset, "idir")
             if lib.get("fileset", fileset, "define"):
                 self.add_required_key(lib, "fileset", fileset, "define")
-            if lib.get_file(fileset=fileset, filetype="c"):
+            if lib.has_file(fileset=fileset, filetype="c"):
                 self.add_required_key(lib, "fileset", fileset, "file", "c")
-            elif lib.get_file(fileset=fileset, filetype="llvm"):
+            elif lib.has_file(fileset=fileset, filetype="llvm"):
                 self.add_required_key(lib, "fileset", fileset, "file", "llvm")
 
     def runtime_options(self):
@@ -62,7 +62,7 @@ class ConvertTask(ASICTaskSchema, TaskSchema):
         idirs = []
         defines = []
         for lib, fileset in filesets:
-            idirs.extend(lib.find_files("fileset", fileset, "idir"))
+            idirs.extend(lib.get_idir(fileset))
             defines.extend(lib.get("fileset", fileset, "define"))
 
         for idir in idirs:
