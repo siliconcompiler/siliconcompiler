@@ -93,12 +93,12 @@ def test_assert(heartbeat_design, datadir, run_cli):
 
 
 def test_config_files_from_libs(gcd_design):
-    with open('test.cfg', 'w') as f:
+    with open('test.vlt', 'w') as f:
         f.write('test')
 
     dep_design = Design("libdep")
     with dep_design.active_fileset("config"):
-        dep_design.add_file('test.cfg', filetype="config")
+        dep_design.add_file('test.vlt')
 
     with gcd_design.active_fileset("rtl"):
         gcd_design.add_depfileset(dep_design, "config")
@@ -118,7 +118,7 @@ def test_config_files_from_libs(gcd_design):
         del arguments[4]
         assert arguments == [
             '-sv', '--top-module', 'gcd',
-            os.path.abspath("test.cfg"),
+            os.path.abspath("test.vlt"),
             '--lint-only', '--no-timing']
 
 
