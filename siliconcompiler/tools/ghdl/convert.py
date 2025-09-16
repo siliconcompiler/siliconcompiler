@@ -51,7 +51,7 @@ class ConvertTask(TaskSchema):
         for lib, fileset in self.project.get_filesets():
             if lib.get("fileset", fileset, "define"):
                 self.add_required_key(lib, "fileset", fileset, "define")
-            if lib.get_file(fileset=fileset, filetype="vhdl"):
+            if lib.has_file(fileset=fileset, filetype="vhdl"):
                 self.add_required_key(lib, "fileset", fileset, "file", "vhdl")
 
         self.add_required_key("var", "use_fsynopsys")

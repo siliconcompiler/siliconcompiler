@@ -38,7 +38,7 @@ class APRTask(TaskSchema):
 
         # Mark required
         for lib, fileset in self.project.get_filesets():
-            if lib.get_file(fileset=fileset, filetype="pcf"):
+            if lib.has_file(fileset=fileset, filetype="pcf"):
                 self.add_required_key(lib, "fileset", fileset, "file", "pcf")
 
     def runtime_options(self):

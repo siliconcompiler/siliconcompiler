@@ -275,7 +275,7 @@ class VPRTask(TaskSchema):
         self.add_required_key("var", "timing_report_type")
         self.add_required_key("var", "enable_timing_analysis")
         for lib, fileset in self.project.get_filesets():
-            if lib.get_file(fileset=fileset, filetype="sdc"):
+            if lib.has_file(fileset=fileset, filetype="sdc"):
                 self.add_required_key(lib, "fileset", fileset, "file", "sdc")
                 self.set("var", "enable_timing_analysis", True)
         if self.get("var", "router_lookahead"):

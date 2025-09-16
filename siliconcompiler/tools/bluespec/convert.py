@@ -44,11 +44,11 @@ class ConvertTask(TaskSchema):
 
         # Mark required
         for lib, fileset in self.project.get_filesets():
-            if lib.get("fileset", fileset, "idir"):
+            if lib.has_idir(fileset):
                 self.add_required_key(lib, "fileset", fileset, "idir")
             if lib.get("fileset", fileset, "define"):
                 self.add_required_key(lib, "fileset", fileset, "define")
-            if lib.get_file(fileset=fileset, filetype="bsv"):
+            if lib.has_file(fileset=fileset, filetype="bsv"):
                 self.add_required_key(lib, "fileset", fileset, "file", "bsv")
 
     def pre_process(self):
@@ -78,7 +78,7 @@ class ConvertTask(TaskSchema):
         idirs = []
         defines = []
         for lib, fileset in filesets:
-            idirs.extend(lib.find_files("fileset", fileset, "idir"))
+            idirs.extend(lib.get_idir(fileset))
             defines.extend(lib.get("fileset", fileset, "define"))
 
         bsc_path = ':'.join(idirs + ['%/Libraries'])

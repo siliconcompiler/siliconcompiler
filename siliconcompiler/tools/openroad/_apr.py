@@ -511,7 +511,7 @@ class APRTask(OpenROADTask):
             self.add_input_file(ext="sdc")
         else:
             for lib, fileset in self.project.get_filesets():
-                if lib.get_file(fileset=fileset, filetype="sdc"):
+                if lib.has_file(fileset=fileset, filetype="sdc"):
                     self.add_required_key(lib, "fileset", fileset, "file", "sdc")
 
         if f"{self.design_topmodule}.odb" in self.get_files_from_input_nodes():

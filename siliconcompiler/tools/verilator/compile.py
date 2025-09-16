@@ -52,7 +52,7 @@ class CompileTask(VerilatorTask):
 
         added_key = False
         for lib, fileset in self.project.get_filesets():
-            if lib.get_file(fileset=fileset, filetype="c"):
+            if lib.has_file(fileset=fileset, filetype="c"):
                 self.add_required_key(lib, "fileset", fileset, "file", "c")
                 added_key = True
         if not added_key:

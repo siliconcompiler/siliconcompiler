@@ -27,9 +27,9 @@ class PlaceTask(VPRTask):
         self.add_output_file(ext="place")
 
         for lib, fileset in self.project.get_filesets():
-            if lib.get_file(fileset=fileset, filetype="vpr_pins"):
+            if lib.has_file(fileset=fileset, filetype="vpr_pins"):
                 self.add_required_key(lib, "fileset", fileset, "file", "vpr_pins")
-            if lib.get_file(fileset=fileset, filetype="pcf"):
+            if lib.has_file(fileset=fileset, filetype="pcf"):
                 self.add_required_key(lib, "fileset", fileset, "file", "pcf")
                 self.add_required_key("library", self.project.get("fpga", "device"),
                                       "tool", "vpr", "constraintsmap")

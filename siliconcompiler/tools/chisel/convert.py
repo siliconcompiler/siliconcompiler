@@ -56,9 +56,9 @@ class ConvertTask(TaskSchema):
 
         # Mark required
         for lib, fileset in self.project.get_filesets():
-            if lib.get_file(fileset=fileset, filetype="chisel"):
+            if lib.has_file(fileset=fileset, filetype="chisel"):
                 self.add_required_key(lib, "fileset", fileset, "file", "chisel")
-            elif lib.get_file(fileset=fileset, filetype="scala"):
+            elif lib.has_file(fileset=fileset, filetype="scala"):
                 self.add_required_key(lib, "fileset", fileset, "file", "scala")
 
         if self.get("var", "application"):

@@ -25,7 +25,7 @@ class ExportTask(KLayoutTask, ScreenshotParams):
             self.add_input_file(ext="def")
         else:
             for lib, fileset in self.project.get_filesets():
-                if lib.get_file(fileset=fileset, filetype="def"):
+                if lib.has_file(fileset=fileset, filetype="def"):
                     self.add_required_key(lib, "fileset", fileset, "file", "def")
                     break
 
