@@ -348,6 +348,9 @@ class BaseSchema:
                                       use_default=use_default,
                                       require_leaf=require_leaf,
                                       complete_path=complete_path)
+        elif len(keypath) != 1:
+            # Key extends beyond parameter
+            raise KeyError
         return key_param
 
     def get(self, *keypath: str, field: str = 'value',
@@ -595,6 +598,9 @@ class BaseSchema:
         try:
             param = self.__search(*keypath, use_default=default_valid, require_leaf=False)
         except KeyError:
+            return False
+
+        if param is None:
             return False
 
         if check_complete:

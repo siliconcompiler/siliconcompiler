@@ -329,42 +329,37 @@ def test_add_asic_pexcornerfileset():
     lib = StdCellLibrary("lib")
     with lib.active_fileset("models"):
         lib.add_file("test.sp")
-        assert lib.add_asic_pexcornerfileset("slow", "spice")
-    assert lib.get("asic", "pexcornerfileset", "slow", "spice") == ["models"]
+        assert lib.add_asic_pexcornerfileset("slow")
+    assert lib.get("asic", "pexcornerfileset", "slow") == ["models"]
 
 
 def test_add_asic_pexcornerfileset_multiple():
     lib = StdCellLibrary("lib")
     with lib.active_fileset("models1"):
         lib.add_file("test.sp")
-        assert lib.add_asic_pexcornerfileset("slow", "spice")
+        assert lib.add_asic_pexcornerfileset("slow")
     with lib.active_fileset("models2"):
         lib.add_file("test.sp")
-        assert lib.add_asic_pexcornerfileset("slow", "spice")
-    assert lib.get("asic", "pexcornerfileset", "slow", "spice") == ["models1", "models2"]
+        assert lib.add_asic_pexcornerfileset("slow")
+    assert lib.get("asic", "pexcornerfileset", "slow") == ["models1", "models2"]
 
 
 def test_add_asic_pexcornerfileset_without_active():
     lib = StdCellLibrary("lib")
     with lib.active_fileset("models"):
         lib.add_file("test.sp")
-    assert lib.add_asic_pexcornerfileset("slow", "spice", "models")
-    assert lib.get("asic", "pexcornerfileset", "slow", "spice") == ["models"]
+    assert lib.add_asic_pexcornerfileset("slow", "models")
+    assert lib.get("asic", "pexcornerfileset", "slow") == ["models"]
 
 
 def test_add_asic_pexcornerfileset_missing_fileset():
     with pytest.raises(LookupError, match="models is not defined"):
-        StdCellLibrary("lib").add_asic_pexcornerfileset("slow", "spice", "models")
-
-
-def test_add_asic_pexcornerfileset_invalid_model():
-    with pytest.raises(TypeError, match="model must be a string"):
-        StdCellLibrary("lib").add_asic_pexcornerfileset("slow", 8, "models")
+        StdCellLibrary("lib").add_asic_pexcornerfileset("slow", "models")
 
 
 def test_add_asic_pexcornerfileset_invalid_fileset():
     with pytest.raises(TypeError, match="fileset must be a string"):
-        StdCellLibrary("lib").add_asic_pexcornerfileset("slow", "spice", 8)
+        StdCellLibrary("lib").add_asic_pexcornerfileset("slow", 8)
 
 
 def test_add_asic_aprfileset():
