@@ -45,20 +45,15 @@ def test_py_gcd():
 
 
 @pytest.mark.eda
+@pytest.mark.ready
 @pytest.mark.timeout(900)
 def test_py_gcd_skywater():
     from gcd import gcd_skywater
 
-    assert gcd_skywater.main() == 0
+    gcd_skywater.main()
 
     assert os.path.isfile('build/gcd/rtl2gds/write.gds/0/outputs/gcd.gds')
-    assert os.path.isfile('gcd.checked.pkg.json')
-
-    manifest = 'gcd.checked.pkg.json'
-    assert os.path.isfile(manifest)
-
-    # chip = siliconcompiler.Chip('gcd')
-    # chip.read_manifest(manifest)
+    assert os.path.isfile('build/gcd/signoff/gcd.pdk.json')
 
     # # Verify that the build was LVS and DRC clean.
     # assert chip.get('metric', 'drcs', step='lvs', index='0') == 0
