@@ -116,6 +116,8 @@ def test_options_idir():
     for item in ["incdir1", "incdir2"]:
         assert d.add_idir(item, 'rtl')
     assert d.get_idir('rtl') == [os.path.abspath("incdir1"), os.path.abspath("incdir2")]
+    assert d.has_idir('rtl0') is False
+    assert d.has_idir('rtl') is True
 
 
 def test_options_idir_with_fileset():
@@ -161,6 +163,8 @@ def test_options_libdir():
     for item in ["lib1", "lib2"]:
         assert d.add_libdir(item, 'rtl')
     assert d.get_libdir('rtl') == [os.path.abspath("lib1"), os.path.abspath("lib2")]
+    assert d.has_libdir('rtl0') is False
+    assert d.has_libdir('rtl') is True
 
 
 def test_options_libdir_with_none():

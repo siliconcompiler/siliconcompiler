@@ -304,3 +304,74 @@ def test_has_fileset_found():
         assert schema.add_file("top.v")
     assert schema.has_fileset("test") is False
     assert schema.has_fileset("rtl") is True
+
+
+def test_has_file_multiple_filesets():
+    d = FileSetSchema()
+
+    Path("one.v").touch()
+    Path("tb.v").touch()
+    Path("one.vhdl").touch()
+
+    d.add_file(['one.v'], 'rtl', filetype='verilog')
+    d.add_file(['tb.v'], 'testbench')
+    d.add_file(['one.vhdl'], 'rtl')
+
+    assert d.has_file(fileset=['rtl', 'testbench']) is True
+
+
+def test_has_file_one_fileset():
+    d = FileSetSchema()
+
+    Path("one.v").touch()
+    Path("one.vhdl").touch()
+
+    d.add_file(['one.v'], 'rtl', filetype='verilog')
+    d.add_file(['tb.v'], 'testbench')
+    d.add_file(['one.vhdl'], 'rtl')
+
+    assert d.has_file(fileset='rtl') is True
+
+
+def test_has_file_filetype():
+    d = FileSetSchema()
+
+    Path("one.v").touch()
+
+    d.add_file(['one.v'], 'rtl', filetype='verilog')
+    d.add_file(['tb.v'], 'testbench')
+    d.add_file(['one.vhdl'], 'rtl')
+
+    # get verilog rtl only
+    assert d.has_file(fileset='rtl', filetype='verilog') is True
+
+
+def test_has_file_no_files():
+    d = FileSetSchema()
+
+    Path("one.v").touch()
+
+    d.add_file(['one.v'], 'rtl', filetype='verilog')
+    d.add_file(['tb.v'], 'testbench')
+    d.add_file(['one.vhdl'], 'rtl')
+
+    # get verilog rtl only
+    assert d.has_file(fileset='rtl0') is False
+
+
+def test_has_file_filetype_vhdl():
+    d = FileSetSchema()
+
+    Path("one.vhdl").touch()
+
+    d.add_file(['one.v'], 'rtl', filetype='verilog')
+    d.add_file(['tb.v'], 'testbench')
+    d.add_file(['one.vhdl'], 'rtl')
+
+    # get verilog rtl only
+    assert d.has_file(fileset=['rtl', 'testbench'], filetype='vhdl') is True
+
+
+def test_has_file_one_invalid_fileset():
+    with pytest.raises(ValueError, match="fileset key must be a string"):
+        FileSetSchema().has_file(fileset=4)

@@ -135,6 +135,18 @@ class Design(LibrarySchema, DependencySchema):
         """
         return self.__get(fileset, 'idir', is_file=True)
 
+    def has_idir(self, fileset: str = None) -> bool:
+        """Returns true if idirs are defined for the fileset
+
+        Args:
+            fileset (str or list[str]): Fileset(s) to query. If not provided,
+                the active fileset is used.
+
+        Returns:
+            bool: True if the fileset contains directories.
+        """
+        return bool(self.__get(fileset, 'idir', is_file=False))
+
     ##############################################
     def add_define(self,
                    value: str,
@@ -229,6 +241,18 @@ class Design(LibrarySchema, DependencySchema):
            list[str]: List of library directories.
         """
         return self.__get(fileset, 'libdir', is_file=True)
+
+    def has_libdir(self, fileset: str = None) -> bool:
+        """Returns true if library directories are defined for the fileset
+
+        Args:
+            fileset (str or list[str]): Fileset(s) to query. If not provided,
+                the active fileset is used.
+
+        Returns:
+            bool: True if the fileset contains directories.
+        """
+        return bool(self.__get(fileset, 'libdir', is_file=False))
 
     ###############################################
     def add_lib(self,
@@ -636,7 +660,7 @@ class Design(LibrarySchema, DependencySchema):
 
         return params
 
-    def __get(self, fileset, option, is_file=False):
+    def __get(self, fileset: str, option: str, is_file: bool = False) -> List[str]:
         '''
         Internal helper to get a parameter value from the schema.
 
