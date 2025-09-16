@@ -531,7 +531,7 @@ class APRTask(OpenROADTask):
         corners = {}
         for constraint in self.project.getkeys('constraint', 'timing'):
             pexcorner = self.project.get('constraint', 'timing', constraint, 'pexcorner',
-                                          step=self.step, index=self.index)
+                                         step=self.step, index=self.index)
             if pexcorner:
                 corners[constraint] = pexcorner
 
@@ -540,7 +540,7 @@ class APRTask(OpenROADTask):
     def _get_constraint_by_check(self, check: str) -> str:
         for constraint in self.project.getkeys('constraint', 'timing'):
             if check in self.project.get('constraint', 'timing', constraint, 'check',
-                                          step=self.step, index=self.index):
+                                         step=self.step, index=self.index):
                 return constraint
 
         # if not specified, just pick the first constraint available
@@ -794,7 +794,7 @@ class APRTask(OpenROADTask):
                     self.schema_metric.get('setupslack', step=self.step, index=self.index) \
                     is not None:
                 wns = min(0.0, self.schema_metric.get('setupslack',
-                                                         step=self.step, index=self.index))
+                                                      step=self.step, index=self.index))
                 wns_units = self.schema_metric.get('setupslack', field='unit')
                 self.record_metric("setupwns", wns, source_file=get_metric_sources('setupslack'),
                                    source_unit=wns_units)
@@ -804,7 +804,7 @@ class APRTask(OpenROADTask):
                     self.schema_metric.get('holdslack', step=self.step, index=self.index) \
                     is not None:
                 wns = min(0.0, self.schema_metric.get('holdslack',
-                                                         step=self.step, index=self.index))
+                                                      step=self.step, index=self.index))
                 wns_units = self.schema_metric.get('holdslack', field='unit')
                 self.record_metric("holdwns", wns, source_file=get_metric_sources('holdslack'),
                                    source_unit=wns_units)

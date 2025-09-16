@@ -46,7 +46,7 @@ class ElaborateTask(TaskSchema):
         super().setup()
 
         is_docker = self.project.get('option', 'scheduler', 'name',
-                                      step=self.step, index=self.index) == 'docker'
+                                     step=self.step, index=self.index) == 'docker'
         if not is_docker:
             exe = 'surelog'
             if sys.platform.startswith("win32"):

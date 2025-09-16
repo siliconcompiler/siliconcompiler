@@ -45,7 +45,7 @@ class APRTask(TaskSchema):
         options = super().runtime_options()
 
         partname = self.project.get("library",
-                                     self.project.get("fpga", "device"), "fpga", "partname")
+                                    self.project.get("fpga", "device"), "fpga", "partname")
 
         options.extend(['--json', f'inputs/{self.design_topmodule}.netlist.json'])
         options.extend(['--asc', f'outputs/{self.design_topmodule}.asc'])

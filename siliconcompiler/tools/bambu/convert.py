@@ -101,8 +101,8 @@ class ConvertTask(ASICTaskSchema, TaskSchema):
 
         if self.project.valid("asic", "mainlib"):
             device = self.project.get("library",
-                                       self.project.get("asic", "mainlib"),
-                                       "tool", "bambu", "device")
+                                      self.project.get("asic", "mainlib"),
+                                      "tool", "bambu", "device")
             if device:
                 options.append(f'--device={device}')
 

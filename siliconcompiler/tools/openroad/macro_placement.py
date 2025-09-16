@@ -125,8 +125,8 @@ class MacroPlacementTask(APRTask, OpenROADSTAParameter, OpenROADGPLParameter):
         if all([
                 self.schema_metric.get('macros', step=in_step, index=in_index) == 0
                 for in_step, in_index in self.schema_record.get('inputnode',
-                                                                   step=self.step,
-                                                                   index=self.index)
+                                                                step=self.step,
+                                                                index=self.index)
                 ]):
             raise TaskSkip('no macros to place.')
 
