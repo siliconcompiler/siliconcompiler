@@ -323,24 +323,20 @@ class StdCellLibrary(ToolLibrarySchema, DependencySchema):
 
         return self.add("asic", "libcornerfileset", corner, model, fileset)
 
-    def add_asic_pexcornerfileset(self, corner: str, model: str, fileset: str = None):
+    def add_asic_pexcornerfileset(self, corner: str, fileset: str = None):
         """
         Adds a mapping between filesets a corners defined in the library.
 
         Args:
             corner (str): name of the timing or parasitic corner
-            model(str): type of delay modeling used, eg. spice, etc.
             fileset (str): name of the fileset
         """
         if not fileset:
             fileset = self._get_active("fileset")
 
-        if not isinstance(model, str):
-            raise TypeError("model must be a string")
-
         self._assert_fileset(fileset)
 
-        return self.add("asic", "pexcornerfileset", corner, model, fileset)
+        return self.add("asic", "pexcornerfileset", corner, fileset)
 
     def add_asic_aprfileset(self, fileset: str = None):
         """

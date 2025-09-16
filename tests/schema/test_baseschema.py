@@ -100,6 +100,15 @@ def test_get_invalid_key():
         schema.get("test0", "test2")
 
 
+def test_get_invalid_key_depth():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("test0", "test1", Parameter("str"))
+
+    with pytest.raises(KeyError, match=r"\[test0,test1,test2\] is not a valid keypath"):
+        schema.get("test0", "test1", "test2")
+
+
 def test_get_invalid_key_from_child():
     schema = BaseSchema()
     edit = EditableSchema(schema)
@@ -2273,7 +2282,7 @@ def test_from_dict_composite_type_names():
         ("dummy", "default")
 
     assert schema.get("dummy", "newdummy", "string") == "teststring"
-    assert schema.get("base", "newbase", "string") == "teststring"
+    assert schema.get("base", "newbase") == "teststring"
 
 
 def test_from_dict_composite_nested():
@@ -2458,7 +2467,7 @@ def test_from_dict_composite_type_names_use_default():
         ("dummy", "default")
 
     assert schema.get("dummy", "newdummy", "string") == "teststring"
-    assert schema.get("base", "newbase", "string") == "teststring"
+    assert schema.get("base", "newbase") == "teststring"
 
 
 def test_from_dict_composite_type_load_via_class_name():
@@ -2552,7 +2561,7 @@ def test_from_dict_composite_type_load_via_class_name():
         ("dummy", "default")
 
     assert schema.get("dummy", "newdummy", "string") == "teststring"
-    assert schema.get("base", "newbase", "string") == "teststring"
+    assert schema.get("base", "newbase") == "teststring"
 
 
 def test_from_dict_composite_using_cls_name():
@@ -2645,7 +2654,7 @@ def test_from_dict_composite_using_cls_name():
         ("dummy", "default")
 
     assert schema.get("dummy", "newdummy", "string") == "teststring"
-    assert schema.get("base", "newbase", "string") == "teststring"
+    assert schema.get("base", "newbase") == "teststring"
 
 
 def test_from_dict_composite_no_meta():
