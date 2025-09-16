@@ -1782,10 +1782,39 @@ class TaskSchema(NamedSchema, PathSchema, DocsSchema):
             key_node += keypath(list(key_offset) + list(self._keypath) + ["var", key],
                                 doc.env.docname,
                                 key_text=["...", "var", key])
+
+            param = self.get("var", key, field=None)
+            help_str = param.get(field="help")
+
+            val_type = param.get(field="type")
+            if "<" in val_type:
+                encode_type = NodeType.parse(val_type)
+                try:
+                    if val_type.startswith('['):
+                        allowed = list(encode_type)[0].values
+                        val_type = "[enum]"
+                    elif val_type.startswith('{'):
+                        allowed = list(encode_type)[0].values
+                        val_type = "{enum}"
+                    elif val_type.startswith('('):
+                        allowed = []
+                        val_type = val_type
+                    else:
+                        allowed = encode_type.values
+                        val_type = "enum"
+                except:  # noqa E722
+                    allowed = []
+                    val_type = val_type
+
+                if allowed:
+                    if help_str[-1] != ".":
+                        help_str += "."
+                    help_str = f"{help_str} Allowed values: {', '.join(sorted(allowed))}"
+
             table.append([
                 key_node,
-                code(self.get("var", key, field="type")),
-                para(self.get("var", key, field="help"))
+                code(val_type),
+                para(help_str)
             ])
 
         if len(table) > 1:
@@ -1800,7 +1829,8 @@ class TaskSchema(NamedSchema, PathSchema, DocsSchema):
             if key[0] == "dataroot":  # data root already handled
                 continue
             params[key] = self.get(*key, field=None)
-        table = build_schema_value_table(params, "", key_offset + list(self._keypath))
+        table = build_schema_value_table(params, "", key_offset + list(self._keypath),
+                                         trim_prefix=key_offset + list(self._keypath))
         setup_info = build_section("Configuration", f"{ref_root}-config")
         setup_info += table
         docs.append(setup_info)

@@ -197,7 +197,7 @@ def parse_rst(state, content, dest):
     nested_parse_with_titles(state, rst, dest)
 
 
-def build_schema_value_table(params, refdoc, keypath_prefix=None):
+def build_schema_value_table(params, refdoc, keypath_prefix=None, trim_prefix=None):
     '''Helper function for displaying values set in schema as a docutils table.'''
     table = [[strong('Keypath'), strong('Type'), strong('Value')]]
 
@@ -257,11 +257,24 @@ def build_schema_value_table(params, refdoc, keypath_prefix=None):
             else:
                 val_node = format_value(val_type.startswith('['), val_type.startswith('{'), value)
 
+            if "<" in val_type:
+                if val_type.startswith('['):
+                    val_type = "[enum]"
+                elif val_type.startswith('{'):
+                    val_type = "{enum}"
+                else:
+                    val_type = "enum"
+
             # HTML builder fails if we don't make a text node the parent of the
             # reference node returned by keypath()
             p = nodes.paragraph()
-            p += keypath([*keypath_prefix, *key], refdoc)
-            table.append([p, code(param.get(field="type")), val_node])
+            if trim_prefix:
+                full_key = [*keypath_prefix, *key]
+                key_text = ["...", *full_key[len(trim_prefix):]]
+                p += keypath(full_key, refdoc, key_text)
+            else:
+                p += keypath([*keypath_prefix, *key], refdoc)
+            table.append([p, code(val_type), val_node])
 
     if len(table) > 1:
         # This colspec creates two columns of equal width that fill the entire
