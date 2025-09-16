@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Copyright 2024-2025 Silicon Compiler Authors. All Rights Reserved.
 
-from siliconcompiler import ASICProject, DesignSchema
+from siliconcompiler import ASICProject, Design
 # Import the target for the IHP 130nm open source PDK.
 from siliconcompiler.targets import ihp130_demo
 # Import the specialized flow for running only DRC.
@@ -21,7 +21,7 @@ def main():
 
     # --- Design Setup ---
     # Create a design object to hold the configuration.
-    design = DesignSchema("gcd")
+    design = Design("gcd")
 
     # Set up a 'dataroot' to easily reference local files.
     design.set_dataroot("gcd", __file__)
@@ -61,7 +61,7 @@ def main():
     # *input* for our next step.
     with design.active_fileset("layout"):
         design.set_topmodule("gcd")
-        design.add_file(project.find_result('gds', step='write_gds'))
+        design.add_file(project.find_result('gds', step='write.gds'))
 
     # Add the new 'layout' fileset to the project for the next run.
     # `clobber=True` ensures it overwrites any previous configuration.

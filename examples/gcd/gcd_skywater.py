@@ -1,94 +1,86 @@
 #!/usr/bin/env python3
 
-import siliconcompiler
-
-import os
-import sys
+from siliconcompiler import ASICProject, Design
+# Import the target for the Skywater 130nm open source PDK.
 from siliconcompiler.targets import skywater130_demo
+# Import the specialized flow for running signoff checks (DRC and LVS).
+from siliconcompiler.flows.signoffflow import SignoffFlow
 
 
 def main():
-    '''GCD example with custom floorplan and signoff steps.'''
-    root = os.path.dirname(__file__)
+    """
+    Demonstrates a two-stage process using the Skywater 130nm PDK:
+    1. A full RTL-to-GDSII compilation for the 'gcd' design.
+    2. Standalone signoff (LVS and DRC) on the resulting GDSII layout.
+    """
 
-    # Create instance of Chip class
-    chip = siliconcompiler.Chip("gcd")
+    # --- Part 1: RTL-to-GDSII Compilation ---
 
-    chip.input(os.path.join(root, "gcd.v"))
-    chip.set('option', 'quiet', True)
+    # --- Design Setup ---
+    # Create a design object to hold the configuration.
+    design = Design("gcd")
 
-    chip.clock('clk', period=20)
+    # Set up a 'dataroot' to easily reference local files.
+    design.set_dataroot("gcd", __file__)
 
-    chip.use(skywater130_demo)
+    # Configure the "rtl" (Verilog) fileset.
+    with design.active_dataroot("gcd"), design.active_fileset("rtl"):
+        design.set_topmodule("gcd")
+        design.add_file("gcd.v")
 
-    chip.set('datasheet', 'pin', 'vdd', 'type', 'global', 'supply')
-    chip.set('datasheet', 'pin', 'vss', 'type', 'global', 'ground')
+    # Configure the "sdc" (timing constraints) fileset.
+    with design.active_dataroot("gcd"), design.active_fileset("sdc"):
+        design.add_file("gcd.sdc")
 
-    # 1) RTL2GDS
+    # --- Project Setup ---
+    # Create an ASIC project from the design configuration.
+    project = ASICProject(design)
 
-    # Disabled due to segfault in sky130
-    # def_path = make_floorplan(chip)
-    # chip.set('input', 'asic', 'floorplan.def', def_path)
+    # Tell the project which filesets are needed for the compilation flow.
+    project.add_fileset(["rtl", "sdc"])
 
-    chip.set('option', 'jobname', 'rtl2gds')
-    chip.run()
-    chip.summary()
+    # Load the pre-defined target for the Skywater 130nm demo process.
+    # This configures the project with the correct PDK, standard cell libraries,
+    # and the default RTL-to-GDSII tool flow.
+    project.load_target(skywater130_demo.setup)
 
-    gds_path = chip.find_result('gds', step='write.gds')
-    vg_path = chip.find_result('vg', step='write.views')
+    # Set a unique name for this job run.
+    project.set("option", "jobname", "rtl2gds")
 
-    # 2) Signoff
+    # --- Execution & Analysis ---
+    # Execute the complete ASIC compilation flow (synthesis, place, route, etc.).
+    project.run()
 
-    chip.set('option', 'jobname', 'signoff')
-    chip.set('option', 'flow', 'signoffflow')
+    # Print a summary of the results (timing, area, power, etc.).
+    project.summary()
 
-    chip.input(gds_path)
-    chip.input(vg_path)
+    # --- Part 2: Standalone LVS and DRC Verification ---
 
-    chip.run()
-    chip.summary()
+    # After the first run, we find the paths to the output GDSII and netlist files...
+    # ...and add them to a new 'layout' fileset. These files will be the
+    # *inputs* for our next signoff step.
+    with design.active_fileset("layout"):
+        design.set_topmodule("gcd")
+        design.add_file(project.find_result('gds', step='write.gds'))
+        design.add_file(project.find_result('vg', step='write.views'))
 
-    # 3) Checklist
-    # Manual reports
-    spec_path = os.path.join(os.path.dirname(__file__), 'spec.txt')
-    chip.add('checklist', 'oh_tapeout', 'spec', 'report', spec_path)
-    waiver_path = os.path.join(os.path.dirname(__file__), 'route_waiver.txt')
+    # Add the new 'layout' fileset to the project for the next run.
+    # `clobber=True` ensures it overwrites the fileset if it already exists.
+    project.add_fileset("layout", clobber=True)
 
-    chip.add('checklist', 'oh_tapeout', 'errors_warnings', 'waiver', 'warnings', waiver_path)
+    # Explicitly switch the project's flow to `SignoffFlow`, a pre-built flow
+    # designed for running DRC and LVS checks on a layout.
+    project.set_flow(SignoffFlow())
 
-    chip.set('checklist', 'oh_tapeout', 'drc_clean', 'task', ('signoff', 'drc', '0'))
-    chip.set('checklist', 'oh_tapeout', 'lvs_clean', 'task', ('signoff', 'lvs', '0'))
-    chip.set('checklist', 'oh_tapeout', 'setup_time', 'task', ('rtl2gds', 'write.views', '0'))
+    # Set a unique name for this job run.
+    project.set("option", "jobname", "signoff")
 
-    for step in chip.getkeys('flowgraph', 'asicflow'):
-        for index in chip.getkeys('flowgraph', 'asicflow', step):
-            tool = chip.get('flowgraph', 'asicflow', step, index, 'tool')
-            if tool != 'builtin':
-                chip.add('checklist', 'oh_tapeout', 'errors_warnings', 'task',
-                         ('rtl2gds', step, index))
-    for step in chip.getkeys('flowgraph', 'signoffflow'):
-        for index in chip.getkeys('flowgraph', 'signoffflow', step):
-            tool = chip.get('flowgraph', 'signoffflow', step, index, 'tool')
-            if tool != 'builtin':
-                chip.add('checklist', 'oh_tapeout', 'errors_warnings', 'task',
-                         ('signoff', step, index))
+    # Execute the signoff flow.
+    project.run()
 
-    status = chip.check_checklist('oh_tapeout', require_reports=False)
-    if not status:
-        return 1
-
-    # Mark 'ok'
-    for item in chip.getkeys('checklist', 'oh_tapeout'):
-        chip.set('checklist', 'oh_tapeout', item, 'ok', True)
-
-    status = chip.check_checklist('oh_tapeout', check_ok=True, require_reports=False)
-    if not status:
-        return 1
-
-    chip.write_manifest('gcd.checked.pkg.json')
-
-    return 0
+    # Print a summary of the signoff results.
+    project.summary()
 
 
 if __name__ == '__main__':
-    sys.exit(main())
+    main()

@@ -41,7 +41,12 @@ class LVSTask(TaskSchema):
         self.add_commandline_option("source")
 
         self.add_input_file(ext="spice")
-        self.add_input_file(ext="vg")
+        if f"{self.design_topmodule}.vg" in self.get_files_from_input_nodes():
+            self.add_input_file(ext="vg")
+        else:
+            for lib, fileset in self.schema().get_filesets():
+                if lib.get_file(fileset=fileset, filetype="verilog"):
+                    self.add_required_key(lib, "fileset", fileset, "file", "verilog")
 
         self.set_logdestination("stderr", "log", suffix="errors")
         self.add_regex("warnings", '^Warning:')

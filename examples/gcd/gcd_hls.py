@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Copyright 2020-2025 Silicon Compiler Authors. All Rights Reserved.
 
-from siliconcompiler import ASICProject, DesignSchema
+from siliconcompiler import ASICProject, Design
 from siliconcompiler.targets import freepdk45_demo
 # Import a specialized flow designed to handle High-Level Synthesis.
 from siliconcompiler.flows.asicflow import HLSASICFlow
@@ -18,7 +18,7 @@ def main():
     """
     # --- Design Setup ---
     # Create a design object to hold the configuration.
-    design = DesignSchema("gcd")
+    design = Design("gcd")
 
     # Set up a 'dataroot' to easily reference local files.
     design.set_dataroot("gcd", __file__)

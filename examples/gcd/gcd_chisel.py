@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # Import the core classes from the siliconcompiler library.
-from siliconcompiler import ASICProject, DesignSchema
+from siliconcompiler import ASICProject, Design
 # Import a pre-defined target for the FreePDK45 process.
 from siliconcompiler.targets import freepdk45_demo
 # Import a specialized flow designed to handle Chisel source files.
@@ -19,7 +19,7 @@ def main():
     """
     # --- Design Setup ---
     # Create a design object to hold the configuration.
-    design = DesignSchema("gcd")
+    design = Design("gcd")
 
     # Set up a 'dataroot' to easily reference local files.
     design.set_dataroot("gcd", __file__)

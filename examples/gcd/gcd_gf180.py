@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Copyright 2020-2025 Silicon Compiler Authors. All Rights Reserved.
 
-from siliconcompiler import ASICProject, DesignSchema
+from siliconcompiler import ASICProject, Design
 # Import the target for the GlobalFoundries 180nm open source PDK.
 from siliconcompiler.targets import gf180_demo
 
@@ -16,7 +16,7 @@ def main():
     """
     # --- Design Setup ---
     # Create a design object to hold the configuration.
-    design = DesignSchema("gcd")
+    design = Design("gcd")
 
     # Set up a 'dataroot' to easily reference local files. This makes it
     # convenient to specify file paths relative to this script's location.
