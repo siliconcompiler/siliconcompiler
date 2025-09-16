@@ -167,8 +167,24 @@ class Parameter:
         from docutils import nodes
         from sphinx.util.nodes import nested_parse_with_titles
 
-        entries = [[strong('Description'), para(self.__shorthelp)],
-                   [strong('Type'), para(NodeType.encode(self.__type))]]
+        entries = [[strong('Description'), para(self.__shorthelp)]]
+        type_str = NodeType.encode(self.__type)
+        allowed = []
+        if NodeType.contains(self.__type, NodeEnumType):
+            type_str = "enum"
+            if self.is_list():
+                type_str = "[enum]"
+                values = list(self.__type)[0].values
+            elif self.is_set():
+                type_str = "{enum}"
+                values = list(self.__type)[0].values
+            else:
+                values = self.__type.values
+            allowed = sorted(values)
+
+        entries.append([strong('Type'), para(type_str)])
+        if allowed:
+            entries.append([strong('Allowed values'), build_list([para(a) for a in allowed])])
 
         if self.get(field='pernode').is_never():
             entries.append([strong('Per step/index'), para(str(self.__pernode.value).lower())])
