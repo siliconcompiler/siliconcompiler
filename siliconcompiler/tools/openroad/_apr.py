@@ -476,6 +476,19 @@ class APRTask(OpenROADTask):
             for lib, fileset in self.get("var", "global_connect_fileset"):
                 self.add_required_key("library", lib, "fileset", fileset, "file", "tcl")
 
+        libcorners = set()
+        for scenario in self.schema().get_timingconstraints().get_scenario().values():
+            libcorners.update(scenario.get_libcorner(self.step, self.index))
+        delay_model = self.schema().get("asic", "delaymodel")
+        for asiclib in self.schema().get("asic", "asiclib"):
+            lib = self.schema().get("library", asiclib, field="schema")
+            for corner in libcorners:
+                if not lib.valid("asic", "libcornerfileset", corner, delay_model):
+                    continue
+                self.add_required_key(lib, "asic", "libcornerfileset", corner, delay_model)
+                for fileset in lib.get("asic", "libcornerfileset", corner, delay_model):
+                    self.add_required_key(lib, "fileset", fileset, "file", "liberty")
+
     def pre_process(self):
         super().pre_process()
         self._build_pex_estimation_file()
@@ -497,7 +510,9 @@ class APRTask(OpenROADTask):
         if f"{self.design_topmodule}.sdc" in self.get_files_from_input_nodes():
             self.add_input_file(ext="sdc")
         else:
-            pass
+            for lib, fileset in self.schema().get_filesets():
+                if lib.get_file(fileset=fileset, filetype="sdc"):
+                    self.add_required_key(lib, "fileset", fileset, "file", "sdc")
 
         if f"{self.design_topmodule}.odb" in self.get_files_from_input_nodes():
             self.add_input_file(ext="odb")
