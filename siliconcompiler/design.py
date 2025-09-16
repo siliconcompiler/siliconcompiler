@@ -603,7 +603,7 @@ class Design(LibrarySchema, DependencySchema):
     ################################################
     # Helper Functions
     ################################################
-    def __set_add(self, fileset, option, value, clobber=False, typelist=None, dataroot=None):
+    def __set_add(self, fileset, option, value, clobber=False, typelist=None, dataroot=...):
         '''
         Internal helper to set or add a parameter value in the schema.
 
@@ -639,8 +639,10 @@ class Design(LibrarySchema, DependencySchema):
         if value is None:
             raise ValueError(f"None is an illegal {option} value")
 
-        if not dataroot:
-            dataroot = self._get_active("package")
+        if dataroot is ...:
+            dataroot = None
+        else:
+            dataroot = self._get_active_dataroot(dataroot)
 
         with self.active_dataroot(dataroot):
             if list in typelist and not clobber:

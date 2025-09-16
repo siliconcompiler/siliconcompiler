@@ -90,9 +90,7 @@ class PackageSchema(PathSchema):
             dataroot (str, optional): The data reference for the package. Defaults to None,
                                     which uses the active package.
         """
-        if not dataroot:
-            dataroot = self._get_active("package")
-        with self.active_dataroot(dataroot):
+        with self.active_dataroot(self._get_active_dataroot(dataroot)):
             return self.add("package", "licensefile", file)
 
     def get_license(self) -> List[str]:
@@ -167,9 +165,7 @@ class PackageSchema(PathSchema):
         Returns:
             The result of the `add` operation.
         """
-        if not dataroot:
-            dataroot = self._get_active("package")
-        with self.active_dataroot(dataroot):
+        with self.active_dataroot(self._get_active_dataroot(dataroot)):
             return self.add("package", "doc", type, path)
 
     def get_doc(self, type: str = None) -> Union[List[str], Dict[str, List[str]]]:

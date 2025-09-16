@@ -143,9 +143,7 @@ class VPRFPGA(FPGA):
             file (str): The path to the architecture file.
             dataroot (str, optional): The data root directory. Defaults to the active package.
         """
-        if not dataroot:
-            dataroot = self._get_active("package")
-        with self.active_dataroot(dataroot):
+        with self.active_dataroot(self._get_active_dataroot(dataroot)):
             return self.set("tool", "vpr", "archfile", file)
 
     def set_vpr_graphfile(self, file: str, dataroot: str = None):
@@ -156,9 +154,7 @@ class VPRFPGA(FPGA):
             file (str): The path to the routing graph file.
             dataroot (str, optional): The data root directory. Defaults to the active package.
         """
-        if not dataroot:
-            dataroot = self._get_active("package")
-        with self.active_dataroot(dataroot):
+        with self.active_dataroot(self._get_active_dataroot(dataroot)):
             return self.set("tool", "vpr", "graphfile", file)
 
     def set_vpr_constraintsmap(self, file: str, dataroot: str = None):
@@ -169,9 +165,7 @@ class VPRFPGA(FPGA):
             file (str): The path to the constraints map file.
             dataroot (str, optional): The data root directory. Defaults to the active package.
         """
-        if not dataroot:
-            dataroot = self._get_active("package")
-        with self.active_dataroot(dataroot):
+        with self.active_dataroot(self._get_active_dataroot(dataroot)):
             return self.set("tool", "vpr", "constraintsmap", file)
 
     def set_vpr_clockmodel(self, model: str):

@@ -117,11 +117,8 @@ class FileSetSchema(PathSchema):
             else:
                 raise ValueError(f"Unrecognized file extension: {ext}")
 
-        if not dataroot:
-            dataroot = self._get_active("package")
-
         # adding files to dictionary
-        with self.active_dataroot(dataroot):
+        with self.active_dataroot(self._get_active_dataroot(dataroot)):
             if clobber:
                 return self.set('fileset', fileset, 'file', filetype, filename)
             else:

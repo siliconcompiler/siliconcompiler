@@ -1312,9 +1312,7 @@ class TaskSchema(NamedSchema, PathSchema, DocsSchema):
         Returns:
             The schema key that was set.
         '''
-        if not dataroot:
-            dataroot = self._get_active("package")
-        with self._active(package=dataroot):
+        with self.active_dataroot(self._get_active_dataroot(dataroot)):
             if clobber:
                 return self.set("prescript", script, step=step, index=index)
             else:
@@ -1342,9 +1340,7 @@ class TaskSchema(NamedSchema, PathSchema, DocsSchema):
         Returns:
             The schema key that was set.
         '''
-        if not dataroot:
-            dataroot = self._get_active("package")
-        with self._active(package=dataroot):
+        with self.active_dataroot(self._get_active_dataroot(dataroot)):
             if clobber:
                 return self.set("postscript", script, step=step, index=index)
             else:
@@ -1399,9 +1395,7 @@ class TaskSchema(NamedSchema, PathSchema, DocsSchema):
         Returns:
             The schema key that was set.
         '''
-        if not dataroot:
-            dataroot = self._get_active("package")
-        with self._active(package=dataroot):
+        with self.active_dataroot(self._get_active_dataroot(dataroot)):
             return self.set("refdir", dir, step=step, index=index, clobber=clobber)
 
     def set_script(self, script: str, dataroot: str = None,
@@ -1422,9 +1416,7 @@ class TaskSchema(NamedSchema, PathSchema, DocsSchema):
         Returns:
             The schema key that was set.
         '''
-        if not dataroot:
-            dataroot = self._get_active("package")
-        with self._active(package=dataroot):
+        with self.active_dataroot(self._get_active_dataroot(dataroot)):
             return self.set("script", script, step=step, index=index, clobber=clobber)
 
     def add_regex(self, type: str, regex: str,
@@ -1564,9 +1556,7 @@ class TaskSchema(NamedSchema, PathSchema, DocsSchema):
         Returns:
             The schema key that was set.
         '''
-        if not dataroot:
-            dataroot = self._get_active("package")
-        with self._active(package=dataroot):
+        with self.active_dataroot(self._get_active_dataroot(dataroot)):
             return self.set("path", path, step=step, index=index, clobber=clobber)
 
     def add_version(self, version: str, step: str = None, index: str = None, clobber: bool = False):
@@ -1655,9 +1645,7 @@ class TaskSchema(NamedSchema, PathSchema, DocsSchema):
         Returns:
             The schema key that was set.
         '''
-        if not dataroot:
-            dataroot = self._get_active("package")
-        with self._active(package=dataroot):
+        with self.active_dataroot(self._get_active_dataroot(dataroot)):
             if clobber:
                 return self.set("sbom", version, sbom)
             else:
