@@ -22,8 +22,8 @@ class ORXBenchTask(OpenROADTask):
 
         self.set_script("sc_rcx.tcl")
 
-        self.add_required_tool_key("var", "max_layer")
-        self.add_required_tool_key("var", "bench_length")
+        self.add_required_key("var", "max_layer")
+        self.add_required_key("var", "bench_length")
 
         self.add_output_file(ext="def")
         self.add_output_file(ext="vg")

@@ -23,7 +23,7 @@ class ImporterTask(TaskSchema):
     def setup(self):
         super().setup()
 
-        self.add_required_tool_key("var", "input_files")
+        self.add_required_key("var", "input_files")
 
         for file in self.get("var", "input_files"):
             self.add_output_file(os.path.basename(file))

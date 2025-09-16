@@ -20,5 +20,5 @@ class SynthesisTask(VivadoTask):
         self.add_output_file(ext="dcp")
         self.add_output_file(ext="xdc")
 
-        self.add_required_tool_key("var", "synth_directive")
-        self.add_required_tool_key("var", "synth_mode")
+        self.add_required_key("var", "synth_directive")
+        self.add_required_key("var", "synth_mode")

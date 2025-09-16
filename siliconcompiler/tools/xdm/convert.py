@@ -31,7 +31,7 @@ class ConvertTask(TaskSchema):
         self.add_version(">=v2.7.0")
 
         # Mark required
-        self.add_required_tool_key("var", "rename")
+        self.add_required_key("var", "rename")
 
         if f"{self.design_topmodule}.cir" in self.get_files_from_input_nodes():
             self.add_input_file(ext="cir")

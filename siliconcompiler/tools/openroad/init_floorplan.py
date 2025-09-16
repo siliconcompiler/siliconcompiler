@@ -50,12 +50,12 @@ class InitFloorplanTask(APRTask, OpenROADSTAParameter, OpenROADPPLLayersParamete
             'power'
         ])
 
-        self.add_required_tool_key("var", "ifp_snap_strategy")
-        self.add_required_tool_key("var", "remove_synth_buffers")
-        self.add_required_tool_key("var", "remove_dead_logic")
+        self.add_required_key("var", "ifp_snap_strategy")
+        self.add_required_key("var", "remove_synth_buffers")
+        self.add_required_key("var", "remove_dead_logic")
 
         if self.get("var", "padringfileset"):
-            self.add_required_tool_key("var", "padringfileset")
+            self.add_required_key("var", "padringfileset")
 
             for fileset in self.get("var", "padringfileset"):
                 self.add_required_key(self.schema().design, "fileset", fileset, "file", "tcl")

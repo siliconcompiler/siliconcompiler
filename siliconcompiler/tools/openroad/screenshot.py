@@ -37,5 +37,5 @@ class ScreenshotTask(ScreenshotTaskSchema, ShowTask):
             'optimization_placement'
         ])
 
-        self.add_required_tool_key("var", "show_vertical_resolution")
-        self.add_required_tool_key("var", "include_report_images")
+        self.add_required_key("var", "show_vertical_resolution")
+        self.add_required_key("var", "include_report_images")

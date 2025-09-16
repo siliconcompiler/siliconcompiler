@@ -63,10 +63,10 @@ class ElaborateTask(TaskSchema):
             self.add_regex("warnings", f"-v {warning}")
         self.add_regex("errors", r'^\[(ERR|FTL|SNT):')
 
-        self.add_required_tool_key("var", "enable_lowmem")
-        self.add_required_tool_key("var", "disable_write_cache")
-        self.add_required_tool_key("var", "disable_info")
-        self.add_required_tool_key("var", "disable_note")
+        self.add_required_key("var", "enable_lowmem")
+        self.add_required_key("var", "disable_write_cache")
+        self.add_required_key("var", "disable_info")
+        self.add_required_key("var", "disable_note")
 
         self.add_required_key("option", "design")
         self.add_required_key("option", "fileset")

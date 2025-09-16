@@ -36,16 +36,16 @@ class PowerGridTask(APRTask, OpenROADSTAParameter, OpenROADPSMParameter):
 
         self._set_reports([])
 
-        self.add_required_tool_key("var", "fixed_pin_keepout")
+        self.add_required_key("var", "fixed_pin_keepout")
         if self.get("var", "psm_allow_missing_terminal_nets"):
-            self.add_required_tool_key("var", "psm_allow_missing_terminal_nets")
+            self.add_required_key("var", "psm_allow_missing_terminal_nets")
 
-        self.add_required_tool_key("var", "pdn_enable")
+        self.add_required_key("var", "pdn_enable")
         if not self.get("var", "pdn_fileset"):
             self.__import_pdn_filesets()
 
         if self.get("var", "pdn_fileset"):
-            self.add_required_tool_key("var", "pdn_fileset")
+            self.add_required_key("var", "pdn_fileset")
             for lib, fileset in self.get("var", "pdn_fileset"):
                 self.add_required_key("library", lib, "fileset", fileset, "file", "tcl")
 

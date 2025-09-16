@@ -29,7 +29,7 @@ class _ASICTask(ASICTaskSchema, YosysTask):
     def setup(self):
         super().setup()
 
-        self.add_required_tool_key("var", "synthesis_corner")
+        self.add_required_key("var", "synthesis_corner")
         self._determine_synthesis_corner()
 
     def _determine_synthesis_corner(self):
@@ -327,12 +327,12 @@ class ASICSynthesis(_ASICTask, YosysTask):
         mainlib = self.schema().get("library", self.schema().get("asic", "mainlib"), field="schema")
 
         if self.get('var', 'abc_constraint_driver') is not None:
-            self.add_required_tool_key("var", "abc_constraint_driver")
+            self.add_required_key("var", "abc_constraint_driver")
         else:
             lib_driver = mainlib.get("tool", "yosys", "driver_cell")
             if lib_driver:
                 self.add_required_key(mainlib, "tool", "yosys", "driver_cell")
-                self.add_required_tool_key("var", "abc_constraint_driver")
+                self.add_required_key("var", "abc_constraint_driver")
                 self.set("var", "abc_constraint_driver", lib_driver)
 
     def pre_process(self):

@@ -57,7 +57,7 @@ class MagicTask(TaskSchema):
         self.add_regex("warnings", r'warning')
 
         if self.get("var", "read_lef"):
-            self.add_required_tool_key("var", "read_lef")
+            self.add_required_key("var", "read_lef")
         self.add_required_key("asic", "pdk")
 
     def pre_process(self):

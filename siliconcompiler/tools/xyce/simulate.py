@@ -32,8 +32,8 @@ class SimulateTask(TaskSchema):
 
         self.set_threads(1)
 
-        self.add_required_tool_key("var", "trace")
-        self.add_required_tool_key("var", "trace_format")
+        self.add_required_key("var", "trace")
+        self.add_required_key("var", "trace_format")
 
         if f"{self.design_topmodule}.xyce" in self.get_files_from_input_nodes():
             self.add_input_file(ext="xyce")

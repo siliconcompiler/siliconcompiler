@@ -270,16 +270,16 @@ class VPRTask(TaskSchema):
 
         self.set_threads()
 
-        self.add_required_tool_key("var", "enable_images")
-        self.add_required_tool_key("var", "timing_paths")
-        self.add_required_tool_key("var", "timing_report_type")
-        self.add_required_tool_key("var", "enable_timing_analysis")
+        self.add_required_key("var", "enable_images")
+        self.add_required_key("var", "timing_paths")
+        self.add_required_key("var", "timing_report_type")
+        self.add_required_key("var", "enable_timing_analysis")
         for lib, fileset in self.schema().get_filesets():
             if lib.get_file(fileset=fileset, filetype="sdc"):
                 self.add_required_key(lib, "fileset", fileset, "file", "sdc")
                 self.set("var", "enable_timing_analysis", True)
         if self.get("var", "router_lookahead"):
-            self.add_required_tool_key("var", "router_lookahead")
+            self.add_required_key("var", "router_lookahead")
 
     def runtime_options(self):
         options = super().runtime_options()

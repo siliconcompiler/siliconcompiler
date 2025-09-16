@@ -54,8 +54,8 @@ class ConvertTask(TaskSchema):
             if lib.get_file(fileset=fileset, filetype="vhdl"):
                 self.add_required_key(lib, "fileset", fileset, "file", "vhdl")
 
-        self.add_required_tool_key("var", "use_fsynopsys")
-        self.add_required_tool_key("var", "use_latches")
+        self.add_required_key("var", "use_fsynopsys")
+        self.add_required_key("var", "use_latches")
 
     def runtime_options(self):
         options = super().runtime_options()

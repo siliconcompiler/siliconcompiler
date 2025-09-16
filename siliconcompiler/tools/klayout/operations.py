@@ -123,9 +123,9 @@ class OperationsTask(KLayoutTask):
         self.add_input_file(ext=default_stream)
         self.add_output_file(ext=default_stream)
 
-        self.add_required_tool_key("var", "operations")
-        self.add_required_tool_key("var", "stream")
-        self.add_required_tool_key("var", "timestamps")
+        self.add_required_key("var", "operations")
+        self.add_required_key("var", "stream")
+        self.add_required_key("var", "timestamps")
 
         for klayout_op, args in self.get("var", "operations"):
             if args is None:
@@ -133,7 +133,7 @@ class OperationsTask(KLayoutTask):
 
             if klayout_op in ('add', 'merge'):
                 if ',' in args:
-                    self.add_required_tool_key(*args.split(","))
+                    self.add_required_key(*args.split(","))
                 elif args:
                     self.add_input_file(args)
                 else:
@@ -146,7 +146,7 @@ class OperationsTask(KLayoutTask):
                                 'merge_shapes',
                                 'delete_layers',
                                 'rename_cell'):
-                self.add_required_tool_key(*args.split(","))
+                self.add_required_key(*args.split(","))
             elif klayout_op in ('rotate', 'flatten'):
                 if args:
                     raise ValueError('rotate does not take any arguments')
