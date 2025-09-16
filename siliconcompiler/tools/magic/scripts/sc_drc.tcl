@@ -13,44 +13,43 @@
 # limitations under the License.
 # SPDX-License-Identifier: Apache-2.0
 
-source ./sc_manifest.tcl
-
-set sc_step [sc_cfg_get arg step]
-set sc_index [sc_cfg_get arg index]
-set sc_task $sc_step
-
-set sc_design [sc_top]
-set sc_macrolibs [sc_get_asic_libraries macro]
-set sc_stackup [sc_cfg_get option stackup]
-
-foreach sc_lef [sc_cfg_tool_task_get file read_lef] {
+foreach sc_lef [sc_cfg_tool_task_get var read_lef] {
+    puts "Reading LEF $sc_lef"
     lef read $sc_lef
 }
 
 gds noduplicates true
 
-if { [file exists "inputs/$sc_design.gds"] } {
-    set gds_path "inputs/$sc_design.gds"
+if { [file exists "inputs/${sc_topmodule}.gds"] } {
+    set gds_path "inputs/${sc_topmodule}.gds"
 } else {
-    set gds_path [sc_cfg_get input layout gds]
+    set gds_path []
+    foreach fileset [sc_cfg_get option fileset] {
+        foreach file [sc_cfg_get_fileset $sc_designlib $fileset gds] {
+            lappend gds_path $file
+        }
+    }
 }
 
-gds read $gds_path
-puts $sc_design.gds
-set fout [open reports/$sc_design.drc w]
+foreach gds $gds_path {
+    puts "Reading: ${gds}"
+    gds read $gds
+}
+
+set fout [open reports/${sc_topmodule}.drc w]
 set oscale [cif scale out]
-set cell_name $sc_design
+set cell_name $sc_topmodule
 magic::suspendall
-puts stdout "\[INFO\]: Loading ${sc_design}\n"
+puts stdout "\[INFO\]: Loading ${sc_topmodule}\n"
 flush stdout
-load $sc_design
+load $sc_topmodule
 select top cell
 drc euclidean on
 drc style drc(full)
 drc check
 set drcresult [drc listall why]
 set count 0
-puts $fout "$sc_design"
+puts $fout "$sc_topmodule"
 puts $fout "----------------------------------------"
 foreach {errtype coordlist} $drcresult {
     puts $fout $errtype
@@ -73,14 +72,13 @@ puts $fout "\[INFO\]: Should be divided by 3 or 4"
 puts $fout ""
 close $fout
 
-puts stdout "\[INFO\]: COUNT: $count"
-puts stdout "\[INFO\]: Should be divided by 3 or 4"
-puts stdout "\[INFO\]: DRC Checking DONE (outputs/${sc_design}.drc)"
-flush stdout
+puts "\[INFO\]: COUNT: $count"
+puts "\[INFO\]: Should be divided by 3 or 4"
+puts "\[INFO\]: DRC Checking DONE (outputs/${sc_topmodule}.drc)"
 
-puts stdout "\[INFO\]: Saving mag view with DRC errors(outputs/${sc_design}.drc.mag)"
+puts "\[INFO\]: Saving mag view with DRC errors (outputs/${sc_topmodule}.drc.mag)"
 # WARNING: changes the name of the cell; keep as last step
-save outputs/${sc_design}.drc.mag
-puts stdout "\[INFO\]: Saved"
+save outputs/${sc_topmodule}.drc.mag
+puts "\[INFO\]: Saved"
 
 exit 0
