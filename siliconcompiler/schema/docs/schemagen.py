@@ -24,6 +24,7 @@ class SchemaGen(SphinxDirective):
         'root': str,
         'add_class': directives.flag,
         'add_methods': directives.flag,
+        'schema_only': directives.flag,
         'reference_class': str,
         'ref_root': str
     }
@@ -84,7 +85,7 @@ class SchemaGen(SphinxDirective):
             if docstring:
                 parse_rst(self.state, docstring, schema_sec)
 
-            if self.options.get("add_class", False):
+            if "add_class" in self.options:
                 # Add reference to class docs
                 cls_ref = nodes.inline('')
                 parse_rst(self.state, f'Class: :class:`{cls}<{module}.{cls}>`', cls_ref)
@@ -102,7 +103,7 @@ class SchemaGen(SphinxDirective):
                 p += link(src_link, text=os.path.basename(src_file))
                 schema_sec += p
 
-            if self.options.get("add_methods", False):
+            if "add_methods" in self.options:
                 reference_class = self.options.get("reference_class", None)
                 methods = [name for name, _ in inspect.getmembers(schema_cls, inspect.isfunction)
                            if not name.startswith('_')]
@@ -128,7 +129,10 @@ class SchemaGen(SphinxDirective):
                         methods_sec += cls_ref
                     schema_sec += methods_sec
 
-            section = schema._generate_doc(self, ref_root=schema_sec_ref)
+            if "schema_only" in self.options:
+                section = BaseSchema._generate_doc(schema, self, ref_root=schema_sec_ref)
+            else:
+                section = schema._generate_doc(self, ref_root=schema_sec_ref)
             if section:
                 if isinstance(section, list):
                     for subsec in section:
