@@ -267,7 +267,8 @@ class TargetGen(SchemaGen):
         EditableSchema(proj).remove("tool")
 
         params = BaseSchema._generate_doc(proj, self, f"target-{root}-{method}-config",
-                                          detailed=False)
+                                          detailed=False,
+                                          key_offset=[proj.__class__.__name__])
         if params:
             cfg_sec = build_section("Configuration", f"target-{root}-{method}-config")
             cfg_sec += params
