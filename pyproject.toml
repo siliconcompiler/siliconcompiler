@@ -32,25 +32,30 @@ classifiers = [
 requires-python = ">= 3.9"
 dependencies = [
     "aiohttp >= 3.10.11, < 3.13.0",
-    "requests == 2.32.5",
-    "PyYAML == 6.0.2",
-    "pandas >= 1.1.5",
-    "Jinja2 >= 2.11.3",
-    "graphviz == 0.21",
-    "distro == 1.9.0",
-    "packaging >= 21.3, < 25",
-    "psutil >= 5.8.0",
-    "Pillow == 11.3.0",
-    "GitPython >= 3.1.44, < 3.2",
-    "lambdapdk == 0.2.0-rc6",
-    "PyGithub == 2.8.1",
-    "urllib3 >= 1.26.0", # Required for PyGithub
-    "fasteners == 0.20",
-    "fastjsonschema == 2.21.2",
-    "docker == 7.1.0",
-    "importlib_metadata; python_version < '3.10'",
+    "distro >= 1.9.0, < 2.0.0",
+    "docker >= 7.1.0, < 8.0.0",
+    "fastjsonschema >= 2.20.0, < 2.22.0",
+    "graphviz >= 0.20, < 0.22",
     "orjson >= 3.11.0, < 4",
+    "packaging >= 21.3, < 25",
+    "requests >= 2.32.0, < 2.33.0",
+    "Pillow >= 11.3.0, < 11.4.0",
+    "PyYAML >= 6.0.0, < 7.0.0",
+    "GitPython >= 3.1.44, < 3.2",
+
+    "PyGithub >= 2.8.0, < 2.9.0",
+    "urllib3 >= 1.26.0", # Required for PyGithub
+
+    "lambdapdk == 0.2.0-rc6",
+
+    "fasteners >= 0.20",
+    "pandas >= 1.1.5",
+    "psutil >= 5.8.0",
+    "Jinja2 >= 2.11.3",
+
     "pyslang == 9.0.0",
+
+    "importlib_metadata; python_version < '3.10'",
 
     # dashboard, streamlit does not support 3.9.7
     "streamlit == 1.46.1; python_full_version != '3.9.7'",
