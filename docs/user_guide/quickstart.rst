@@ -28,13 +28,11 @@ The following code snippet below shows how the :ref:`demo design <ASIC Demo>` wa
 
     #!/usr/bin/env python3
 
-    from siliconcompiler import ASICProject, DesignSchema  # import python package
+    from siliconcompiler import ASICProject, Design  # import python package
     from siliconcompiler.targets import skywater130_demo
 
     if __name__ == "__main__":
-        from siliconcompiler import ASICProject, DesignSchema  # import python package
-        from siliconcompiler.targets import skywater130_demo
-        design = DesignSchema("heartbeat")                     # create design object
+        design = Design("heartbeat")                           # create design object
         design.set_topmodule("heartbeat", fileset="rtl")       # set top module
         design.add_file("heartbeat.v", fileset="rtl")          # add input sources
         design.add_file("heartbeat.sdc", fileset="sdc")        # add input sources
@@ -52,13 +50,13 @@ The following sub-sections will describe each line in more detail.
 Project and Design Creation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The hardware build flow centers around two main objects: the :class:`.DesignSchema`, which holds design-specific information, and the :class:`.ASICProject`, which manages project settings and execution.
+The hardware build flow centers around two main objects: the :class:`.Design`, which holds design-specific information, and the :class:`.ASICProject`, which manages project settings and execution.
 
 .. code-block:: python
 
-    from siliconcompiler import ASICProject, DesignSchema
+    from siliconcompiler import ASICProject, Design
 
-    design = DesignSchema("heartbeat")
+    design = Design("heartbeat")
     project = ASICProject(design)
 
 Defining the Design

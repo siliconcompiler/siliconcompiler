@@ -38,9 +38,9 @@ python3 -m pip install --upgrade siliconcompiler
 Converting RTL into DRC clean GDS takes 13 lines of simple Python code.
 
 ```python
-from siliconcompiler import ASICProject, DesignSchema  # import python package
+from siliconcompiler import ASICProject, Design        # import python package
 from siliconcompiler.targets import skywater130_demo
-design = DesignSchema("heartbeat")                     # create design object
+design = Design("heartbeat")                           # create design object
 design.set_topmodule("heartbeat", fileset="rtl")       # set top module
 design.add_file("heartbeat.v", fileset="rtl")          # add input sources
 design.add_file("heartbeat.sdc", fileset="sdc")        # add input sources

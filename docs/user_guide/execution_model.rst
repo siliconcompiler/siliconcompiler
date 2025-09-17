@@ -57,7 +57,7 @@ The flowgraph, used in the :ref:`asic demo`, is a built-in compilation flow, cal
 
 You can design your own chip compilation build flows by easily creating custom flowgraphs through:
 
-* :meth:`.FlowgraphSchema.node()` / :meth:`.FlowgraphSchema.edge()` methods
+* :meth:`.Flowgraph.node()` / :meth:`.Flowgraph.edge()` methods
 
 The user is free to construct a flowgraph by defining any reasonable combination of steps and indices based on available tools and PDKs.
 
