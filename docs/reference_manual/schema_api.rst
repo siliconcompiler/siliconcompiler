@@ -38,12 +38,12 @@ Useful APIs
 Schema Classes
 ==============
 
-.. autoclass:: siliconcompiler.DesignSchema
+.. autoclass:: siliconcompiler.Design
     :members:
     :show-inheritance:
     :inherited-members:
 
-.. autoclass:: siliconcompiler.LibrarySchema
+.. autoclass:: siliconcompiler.library.LibrarySchema
     :members:
     :show-inheritance:
     :inherited-members:
@@ -58,17 +58,17 @@ Schema Classes
     :show-inheritance:
     :inherited-members:
 
-.. autoclass:: siliconcompiler.PDKSchema
+.. autoclass:: siliconcompiler.PDK
     :members:
     :show-inheritance:
     :inherited-members:
 
-.. autoclass:: siliconcompiler.FlowgraphSchema
+.. autoclass:: siliconcompiler.Flowgraph
     :members:
     :show-inheritance:
     :inherited-members:
 
-.. autoclass:: siliconcompiler.ChecklistSchema
+.. autoclass:: siliconcompiler.Checklist
     :members:
     :show-inheritance:
     :inherited-members:
@@ -78,12 +78,12 @@ Schema Classes
     :show-inheritance:
     :inherited-members:
 
-.. autoclass:: siliconcompiler.FPGASchema
+.. autoclass:: siliconcompiler.FPGA
     :members:
     :show-inheritance:
     :inherited-members:
 
-.. autoclass:: siliconcompiler.StdCellLibrarySchema
+.. autoclass:: siliconcompiler.StdCellLibrary
     :members:
     :show-inheritance:
     :inherited-members:
@@ -263,7 +263,7 @@ Supporting Classes
     :show-inheritance:
     :inherited-members:
 
-.. autoclass:: siliconcompiler.PackageSchema
+.. autoclass:: siliconcompiler.schema_support.packageschema.PackageSchema
     :members:
     :show-inheritance:
     :inherited-members:

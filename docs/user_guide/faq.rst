@@ -31,8 +31,8 @@ How do I...
 
    .. code-block:: python
 
-      from siliconcompiler import DesignSchema
-      design = DesignSchema('<design>')
+      from siliconcompiler import Design
+      design = Design('<design>')
 
 ... create an asic project object?
 

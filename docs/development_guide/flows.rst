@@ -7,8 +7,8 @@ A flowgraph in SiliconCompiler defines the sequence of steps, or tasks, required
 
 Flowgraphs are highly flexible and allow you to create custom compilation flows tailored to your specific needs. You can build them in two primary ways:
 
-1. **Instantiate FlowgraphSchema**: For simple or dynamically generated flows, you can create an object directly from the :class:`.FlowgraphSchema` class and configure it.
-2. **Subclass FlowgraphSchema**: For creating reusable, complex flows, you can define your own Python class that inherits from :class:`.FlowgraphSchema`.
+1. **Instantiate Flowgraph**: For simple or dynamically generated flows, you can create an object directly from the :class:`.Flowgraph` class and configure it.
+2. **Subclass Flowgraph**: For creating reusable, complex flows, you can define your own Python class that inherits from :class:`.Flowgraph`.
 
 Once defined, you load your flowgraph into a project using the :meth:`.Project.set_flow()` method before starting a run. This tells SiliconCompiler which set of tasks to execute.
 
@@ -28,17 +28,17 @@ Example: A Basic Synthesis Flow
 Here's how to build a simple flow that elaborates Verilog, runs synthesis, and then performs a timing analysis.
 This example demonstrates the fundamental :meth:`.node()` and :meth:`.edge()` API calls.
 
-We'll create a new class called SynthesisFlow that inherits from :class:`.FlowgraphSchema`.
+We'll create a new class called SynthesisFlow that inherits from :class:`.Flowgraph`.
 
 .. code-block:: python
 
   # Import the base class and the specific tool tasks we need.
-  from siliconcompiler import FlowgraphSchema
+  from siliconcompiler import Flowgraph
   from siliconcompiler.tools.yosys import syn_asic
   from siliconcompiler.tools.opensta import timing
   from siliconcompiler.tools.slang import elaborate
 
-  class SynthesisFlow(FlowgraphSchema):
+  class SynthesisFlow(Flowgraph):
       """
       A simple synthesis flow that demonstrates the basic principles
       of creating a SiliconCompiler flowgraph.
@@ -81,9 +81,9 @@ To use this flow, you would instantiate it and set it in your project:
 Useful APIs
 -----------
 
-The :class:`.FlowgraphSchema` class provides a rich API for creating, modifying, and inspecting flowgraphs.
+The :class:`.Flowgraph` class provides a rich API for creating, modifying, and inspecting flowgraphs.
 
-.. currentmodule:: siliconcompiler.FlowgraphSchema
+.. currentmodule:: siliconcompiler.Flowgraph
 
 Create a Flowgraph
 ^^^^^^^^^^^^^^^^^^
@@ -141,7 +141,7 @@ Class Reference
 
 For more detailed information, refer to the full API documentation for the primary classes involved in creating and managing flowgraphs.
 
-.. autoclass:: siliconcompiler.FlowgraphSchema
+.. autoclass:: siliconcompiler.Flowgraph
     :members:
     :show-inheritance:
     :inherited-members:

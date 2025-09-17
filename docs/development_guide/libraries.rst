@@ -4,11 +4,11 @@ Defining a Library
 ==================
 
 In hardware design, a library is a collection of reusable components.
-SiliconCompiler generalizes this concept with the :class:`.DesignSchema` object, which acts as a standardized "manifest" for any piece of IP (Intellectual Property) you want to include in your design.
+SiliconCompiler generalizes this concept with the :class:`.Design` object, which acts as a standardized "manifest" for any piece of IP (Intellectual Property) you want to include in your design.
 
 This could be a hard macro with pre-defined physical layouts (GDS, LEF), a standard cell library from a foundry, or a soft IP delivered as RTL source code (Verilog, VHDL).
 
-By packaging IP into a :class:`.DesignSchema`, you make it easy to manage, version, and reuse across different projects.
+By packaging IP into a :class:`.Design`, you make it easy to manage, version, and reuse across different projects.
 Libraries are loaded into a project using the :meth:`.Project.add_dep()` method.
 
 Types of Libraries
@@ -16,22 +16,22 @@ Types of Libraries
 
 There are two primary categories of libraries you can define:
 
-* **Hard Libraries (StdCellLibrarySchema)**: These represent foundational, physical IP. This includes standard cell libraries, I/O cells, or hard macros (like SRAMs or SERDES) that have fixed layouts. They are defined using the specialized :class:`.StdCellLibrarySchema` class, which has extra features for handling physical and timing models.
-* **Soft Libraries (DesignSchema)**: These represent synthesizable IP delivered as source code. This is common for digital IP cores that you want to integrate into your design before synthesis. They are defined using the base :class:`.DesignSchema` class.
+* **Hard Libraries (StdCellLibrary)**: These represent foundational, physical IP. This includes standard cell libraries, I/O cells, or hard macros (like SRAMs or SERDES) that have fixed layouts. They are defined using the specialized :class:`.StdCellLibrary` class, which has extra features for handling physical and timing models.
+* **Soft Libraries (Design)**: These represent synthesizable IP delivered as source code. This is common for digital IP cores that you want to integrate into your design before synthesis. They are defined using the base :class:`.Design` class.
 
 Example 1: Hard IP Library
 --------------------------
 
 This example demonstrates how to define a library for a hard macro. This macro is a pre-designed block with its own physical layout (LEF, GDS) and timing models (.lib).
-We will use the :class:`.StdCellLibrarySchema` because it is a physical, foundational component.
+We will use the :class:`.StdCellLibrary` because it is a physical, foundational component.
 
 .. code-block:: python
 
   from pathlib import Path
-  from siliconcompiler import StdCellLibrarySchema
+  from siliconcompiler import StdCellLibrary
   from my_pdk import FakePDK # Assuming a PDK is defined elsewhere
 
-  class FakeHardIPLibrary(StdCellLibrarySchema):
+  class FakeHardIPLibrary(StdCellLibrary):
       def __init__(self):
           # 1. Call the parent constructor with a unique name for the library.
           super().__init__("fakeip")
@@ -82,13 +82,13 @@ To use either of these libraries in your design, you would instantiate the class
 Example 2: Soft IP Library
 --------------------------
 
-This example shows how to define a library for a soft IP core, which is just a reusable block of RTL code. Since there are no physical or timing views, we use the :class:`.DesignSchema`.
+This example shows how to define a library for a soft IP core, which is just a reusable block of RTL code. Since there are no physical or timing views, we use the :class:`.Design`.
 
 .. code-block:: python
 
-  from siliconcompiler import DesignSchema
+  from siliconcompiler import Design
 
-  class FakeSoftIP(DesignSchema):
+  class FakeSoftIP(Design):
       def __init__(self):
           # 1. Call the parent constructor with a unique name.
           super().__init__("fakesoftip")

@@ -6,14 +6,14 @@ Defining a Process Design Kit (PDK)
 In semiconductor design, a Process Design Kit (PDK) contains all the technology-specific data—such as transistor models, layout rules, and standard cell libraries—required to manufacture a chip on a particular process node.
 These kits are often complex and vary significantly between foundries.
 
-SiliconCompiler simplifies this by providing a standardized Python object, the :class:`.PDKSchema`, to define and package a PDK.
+SiliconCompiler simplifies this by providing a standardized Python object, the :class:`.PDK`, to define and package a PDK.
 This object acts as a structured "manifest" that describes the PDK's properties and points to all the necessary files.
 Once defined, a PDK can be easily reused and loaded into any project with a single command: :meth:`.ASICProject.set_pdk()`.
 
 Key Concepts
 ------------
 
-A :class:`.PDKSchema` is built around two main concepts:
+A :class:`.PDK` is built around two main concepts:
 
 * **Metadata**: High-level information that describes the manufacturing process, such as the foundry, process node (e.g., 28nm), and metal stackup. This data is essential for design tools and for calculating manufacturing metrics.
 * **Filesets**: A "fileset" is a named group of files that serve a specific purpose. For example, a views.lef fileset contains all the LEF files needed for abstract layout views, while a models.spice fileset would contain SPICE models for simulation. This organization ensures that each tool gets exactly the files it needs.
@@ -21,16 +21,16 @@ A :class:`.PDKSchema` is built around two main concepts:
 Example: Defining a Virtual PDK
 -------------------------------
 
-The following example demonstrates how to create a basic PDK definition by subclassing :class:`.PDKSchema`. We will define a fictional 28nm process.
+The following example demonstrates how to create a basic PDK definition by subclassing :class:`.PDK`. We will define a fictional 28nm process.
 
 .. code-block:: python
 
   from pathlib import Path
-  from siliconcompiler import PDKSchema
+  from siliconcompiler import PDK
 
-  class ExamplePDK(PDKSchema):
+  class ExamplePDK(PDK):
       """
-      A demonstration PDKSchema for a fictional 28nm process.
+      A demonstration PDK for a fictional 28nm process.
       """
       def __init__(self):
           super().__init__()
@@ -93,7 +93,7 @@ To use this PDK, you would instantiate it and pass it to your project:
 Useful APIs
 -----------
 
-The PDKSchema class provides a comprehensive API for defining all aspects of a PDK.
+The PDK class provides a comprehensive API for defining all aspects of a PDK.
 
 .. currentmodule:: siliconcompiler.PDK
 
