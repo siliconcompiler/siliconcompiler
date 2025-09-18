@@ -2071,9 +2071,11 @@ def test_run_with_dashboard_running():
 
     with patch("siliconcompiler.scheduler.Scheduler.run") as run, \
             patch("siliconcompiler.report.dashboard.cli.CliDashboard.is_running") as is_running, \
-            patch("siliconcompiler.report.dashboard.cli.CliDashboard.open_dashboard") as open_dashboard, \
+            patch("siliconcompiler.report.dashboard.cli.CliDashboard.open_dashboard") as \
+            open_dashboard, \
             patch("siliconcompiler.report.dashboard.cli.CliDashboard.set_logger") as set_logger, \
-            patch("siliconcompiler.report.dashboard.cli.CliDashboard.update_manifest") as update_manifest, \
+            patch("siliconcompiler.report.dashboard.cli.CliDashboard.update_manifest") as \
+            update_manifest, \
             patch("siliconcompiler.report.dashboard.cli.CliDashboard.end_of_run") as end_of_run:
         is_running.return_value = True
         proj._record_history()
@@ -2106,9 +2108,11 @@ def test_run_with_dashboard_notrunning():
 
     with patch("siliconcompiler.scheduler.Scheduler.run") as run, \
             patch("siliconcompiler.report.dashboard.cli.CliDashboard.is_running") as is_running, \
-            patch("siliconcompiler.report.dashboard.cli.CliDashboard.open_dashboard") as open_dashboard, \
+            patch("siliconcompiler.report.dashboard.cli.CliDashboard.open_dashboard") as \
+            open_dashboard, \
             patch("siliconcompiler.report.dashboard.cli.CliDashboard.set_logger") as set_logger, \
-            patch("siliconcompiler.report.dashboard.cli.CliDashboard.update_manifest") as update_manifest, \
+            patch("siliconcompiler.report.dashboard.cli.CliDashboard.update_manifest") as \
+            update_manifest, \
             patch("siliconcompiler.report.dashboard.cli.CliDashboard.end_of_run") as end_of_run:
         is_running.return_value = False
         proj._record_history()
@@ -2141,9 +2145,11 @@ def test_run_with_nodashboard():
 
     with patch("siliconcompiler.scheduler.Scheduler.run") as run, \
             patch("siliconcompiler.report.dashboard.cli.CliDashboard.is_running") as is_running, \
-            patch("siliconcompiler.report.dashboard.cli.CliDashboard.open_dashboard") as open_dashboard, \
+            patch("siliconcompiler.report.dashboard.cli.CliDashboard.open_dashboard") as \
+            open_dashboard, \
             patch("siliconcompiler.report.dashboard.cli.CliDashboard.set_logger") as set_logger, \
-            patch("siliconcompiler.report.dashboard.cli.CliDashboard.update_manifest") as update_manifest, \
+            patch("siliconcompiler.report.dashboard.cli.CliDashboard.update_manifest") as \
+            update_manifest, \
             patch("siliconcompiler.report.dashboard.cli.CliDashboard.end_of_run") as end_of_run:
         is_running.return_value = False
         proj._record_history()
