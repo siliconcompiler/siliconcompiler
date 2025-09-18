@@ -125,6 +125,18 @@ Project Parameters
   :schema_only:
   :ref_root: FPGAProject
 
+.. schema::
+  :root: siliconcompiler/LintProject
+  :add_class:
+  :schema_only:
+  :ref_root: LintProject
+
+.. schema::
+  :root: siliconcompiler/SimProject
+  :add_class:
+  :schema_only:
+  :ref_root: SimProject
+
 Library Parameters
 ------------------
 

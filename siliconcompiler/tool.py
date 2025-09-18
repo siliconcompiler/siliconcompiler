@@ -2228,8 +2228,8 @@ def schema_tool(schema):
             help=trim("""
             File system path to tool executable. The path is prepended to the
             system PATH environment variable for batch and interactive runs. The
-            path parameter can be left blank if the :keypath:`tool,<tool>,exe` is already in the
-            environment search path.""")))
+            path parameter can be left blank if the :keypath:`tool,<tool>,task,<task>,exe` is
+            already in the environment search path.""")))
 
     schema.insert(
         'vswitch',

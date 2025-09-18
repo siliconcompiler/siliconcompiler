@@ -9,23 +9,23 @@ How do I...
 
 ... set up a new tool?
 
-    See :ref:`Tools`
+    See :ref:`Tools <dev_tools>`
 
 ... set up a new flow?
 
-    See :ref:`Flows`
+    See :ref:`Flows <dev_flows>`
 
 ... set up a new pdk?
 
-    See :ref:`PDKs`
+    See :ref:`PDKs <dev_pdks>`
 
 ... set up a new library?
 
-    See :ref:`Libraries`
+    See :ref:`Libraries <dev_libraries>`
 
 ... set up a new target?
 
-    See :ref:`Targets`
+    See :ref:`Targets <dev_targets>`
 
 ... create a design object?
 

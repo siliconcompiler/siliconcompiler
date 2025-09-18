@@ -165,9 +165,9 @@ Other Ways to Run
 The :ref:`ASIC Demo` was run in public beta server in the cloud.
 SiliconCompiler also supports running on :ref:`private <private-server>` servers or also local runs on your own machine.
 
-See :ref:`docker` to see details on how to use the SiliconCompiler docker image to run on tools on your local machine without needing to maintain the tools.
+See :ref:`docker <docker>` to see details on how to use the SiliconCompiler docker image to run on tools on your local machine without needing to maintain the tools.
 
-See :ref:`remote processing` to see details on how to run on a private server, and see :ref:`external tools` to see the additional tool installation requirements for running on your machine locally.
+See :ref:`remote processing <remote-processing>` to see details on how to run on a private server, and see :ref:`external tools` to see the additional tool installation requirements for running on your machine locally.
 
 Local Run Results
 ^^^^^^^^^^^^^^^^^

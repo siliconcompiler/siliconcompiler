@@ -1,3 +1,5 @@
+.. _docker:
+
 Using SiliconCompiler with Docker
 =================================
 

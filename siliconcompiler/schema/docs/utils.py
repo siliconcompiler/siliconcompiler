@@ -131,7 +131,8 @@ def build_list(items, enumerated=False):
 
 def keypath(key_path, refdoc, key_text=None):
     '''Helper function for displaying Schema keypaths.'''
-    from siliconcompiler import Project, ASICProject, FPGAProject
+    from siliconcompiler import Project, ASICProject, FPGAProject, LintProject, SimProject
+    from siliconcompiler import PDK, StdCellLibrary, Schematic, Design
 
     text_parts = []
     key_parts = []
@@ -143,8 +144,20 @@ def keypath(key_path, refdoc, key_text=None):
             schema = ASICProject()
         elif schema_name == "FPGAProject":
             schema = FPGAProject()
+        elif schema_name == "LintProject":
+            schema = LintProject()
+        elif schema_name == "SimProject":
+            schema = SimProject()
         elif schema_name == "Project":
             schema = Project()
+        elif schema_name == "PDK":
+            schema = PDK()
+        elif schema_name == "StdCellLibrary":
+            schema = StdCellLibrary()
+        elif schema_name == "Schematic":
+            schema = Schematic()
+        elif schema_name == "Design":
+            schema = Design()
         else:
             raise ValueError(f"{schema_name} not supported")
     else:

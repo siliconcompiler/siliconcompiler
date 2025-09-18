@@ -1,3 +1,5 @@
+.. _remote-processing:
+
 Guide to Remote Compilation
 ===========================
 
@@ -9,6 +11,7 @@ SiliconCompiler supports a remote compilation model, allowing you to leverage cl
     During periods of high traffic, your job may be queued, which could result in processing delays.
     When you run a remote job, SiliconCompiler will remind you that your design is being uploaded to a public service.
 
+.. _private-server:
 Step 1: Configure Your Remote Server
 ------------------------------------
 
