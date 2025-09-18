@@ -112,11 +112,8 @@ class FileSetSchema(PathSchema):
             ext = utils.get_file_ext(filename)
             filetype = utils.get_default_iomap().get(ext, ext)
 
-        if not dataroot:
-            dataroot = self._get_active("package")
-
         # adding files to dictionary
-        with self.active_dataroot(dataroot):
+        with self.active_dataroot(self._get_active_dataroot(dataroot)):
             if clobber:
                 return self.set('fileset', fileset, 'file', filetype, filename)
             else:

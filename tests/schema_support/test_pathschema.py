@@ -533,3 +533,46 @@ def test_hash_files_list_dir():
             "0ebe9064753ebf28a96a7ef4bf6a2b707091acf7f0063566d1c339aeeb64c759",
             "c7e3c20a832a68749bd28d790d5fa1cbf5168a80fd38989f2cceefd8b1a69a46"
         ]
+
+
+def test_get_active_dataroot_use_user():
+    assert PathSchema()._get_active_dataroot("user") == "user"
+
+
+@pytest.mark.parametrize("input", [None, ...])
+def test_get_active_dataroot_use_none(input):
+    assert PathSchema()._get_active_dataroot(input) is None
+
+
+def test_get_active_dataroot_use_active():
+    schema = PathSchema()
+    schema.set_dataroot("active", "file://")
+
+    with schema.active_dataroot("active"):
+        assert schema._get_active_dataroot(None) == "active"
+
+
+def test_get_active_dataroot_use_active_user():
+    schema = PathSchema()
+    schema.set_dataroot("active", "file://")
+
+    with schema.active_dataroot("active"):
+        assert schema._get_active_dataroot("user") == "user"
+
+
+def test_get_active_dataroot_use_defined():
+    schema = PathSchema()
+    schema.set_dataroot("defined", "file://")
+
+    assert schema._get_active_dataroot(None) == "defined"
+
+
+def test_get_active_dataroot_multiple_defined():
+    schema = PathSchema()
+    schema.set_dataroot("defined0", "file://")
+    schema.set_dataroot("defined1", "file://")
+
+    with pytest.raises(ValueError,
+                       match="dataroot must be specified, multiple are defined: "
+                             "defined0, defined1"):
+        schema._get_active_dataroot(None)

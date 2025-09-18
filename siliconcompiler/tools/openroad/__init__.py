@@ -220,9 +220,7 @@ class OpenROADStdCellLibrary(StdCellLibrary):
             file (str): The path to the tracks file.
             dataroot (str, optional): The data root directory. Defaults to the active package.
         """
-        if not dataroot:
-            dataroot = self._get_active("package")
-        with self.active_dataroot(dataroot):
+        with self.active_dataroot(self._get_active_dataroot(dataroot)):
             self.set("tool", "openroad", "tracks", file)
 
     def set_openroad_tapcells_file(self, file: str, dataroot: str = None):
@@ -233,9 +231,7 @@ class OpenROADStdCellLibrary(StdCellLibrary):
             file (str): The path to the tap cells file.
             dataroot (str, optional): The data root directory. Defaults to the active package.
         """
-        if not dataroot:
-            dataroot = self._get_active("package")
-        with self.active_dataroot(dataroot):
+        with self.active_dataroot(self._get_active_dataroot(dataroot)):
             self.set("tool", "openroad", "tapcells", file)
 
     def add_openroad_globalconnectfileset(self, fileset: Union[str, List[str]] = None,

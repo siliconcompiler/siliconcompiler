@@ -313,6 +313,36 @@ def test_options_depfileset_with_object():
     assert d.get("fileset", "rtl", "depfileset") == [("thisdep", "rtl")]
 
 
+def test_options_depfileset_with_same_fileset():
+    dep = Design("thisdep")
+    dep.set_topmodule("test", "rtl")
+
+    d = Design("test")
+    assert d.add_depfileset(dep, fileset="rtl")
+    assert d.get_dep("thisdep") is dep
+    assert d.get("fileset", "rtl", "depfileset") == [("thisdep", "rtl")]
+
+
+def test_options_depfileset_with_default_one():
+    dep = Design("thisdep")
+    dep.set_topmodule("test", "rtl0")
+
+    d = Design("test")
+    assert d.add_depfileset(dep, fileset="rtl")
+    assert d.get_dep("thisdep") is dep
+    assert d.get("fileset", "rtl", "depfileset") == [("thisdep", "rtl0")]
+
+
+def test_options_depfileset_with_too_many_deps():
+    dep = Design("thisdep")
+    dep.set_topmodule("test", "rtl0")
+    dep.set_topmodule("test", "rtl1")
+
+    d = Design("test")
+    with pytest.raises(ValueError, match="depfileset must be specified for thisdep"):
+        d.add_depfileset(dep, fileset="rtl")
+
+
 def test_options_depfileset_with_self():
     d = Design("test")
     d.set_topmodule("test", "rtl")

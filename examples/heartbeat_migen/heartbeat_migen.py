@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+import os.path
+
 # Import the necessary components from the Migen library for hardware design.
 # Migen allows you to describe hardware circuits using Python.
 from migen import Module, Signal, Cat, Replicate
@@ -77,7 +79,7 @@ def main():
         # Set the name of the top-level module.
         design.set_topmodule("heartbeat")
         # Add the Verilog file we just generated.
-        design.add_file("heartbeat.v")
+        design.add_file(os.path.abspath("heartbeat.v"))
 
     # Configure the SDC (Synopsys Design Constraints) file for timing.
     # This fileset is separate from the RTL.

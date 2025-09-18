@@ -373,6 +373,48 @@ class PathSchema(PathSchemaBase):
         with self._active(package=dataroot):
             yield
 
+    def _get_active_dataroot(self, user_dataroot: str) -> str:
+        """Resolves and returns the active dataroot to use.
+
+        This method determines the appropriate dataroot based on a specific
+        order of precedence:
+
+        1. The dataroot explicitly provided by the user (`user_dataroot`).
+        2. The globally active dataroot for the package.
+        3. A single, unambiguously defined dataroot.
+
+        Args:
+            user_dataroot (str): A dataroot path or name explicitly provided by the
+                user. If not None, this value is always returned.
+
+        Returns:
+            str | None: The name of the active dataroot. Returns `None` if no
+            dataroots are defined and none is required.
+
+        Raises:
+            ValueError: If multiple dataroots are defined and the choice is
+                ambiguous (i.e., not specified by the user or set as active).
+        """
+        if user_dataroot is ...:
+            return None
+
+        if user_dataroot is not None:
+            return user_dataroot
+
+        active_dataroot = self._get_active("package")
+        if active_dataroot:
+            return active_dataroot
+
+        roots = self.getkeys("dataroot")
+        if not roots:
+            # No roots defined, so assume no root is needed
+            return None
+
+        if len(roots) == 1:
+            return roots[0]
+
+        raise ValueError(f"dataroot must be specified, multiple are defined: {', '.join(roots)}")
+
     def _generate_doc(self, doc,
                       ref_root: str = "",
                       key_offset: Tuple[str] = None,

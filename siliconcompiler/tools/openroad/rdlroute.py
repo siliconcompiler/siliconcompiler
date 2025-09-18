@@ -15,10 +15,7 @@ class RDLRouteTask(OpenROADTask):
                            "if enabled by the PDK, to the design", defvalue=True)
 
     def add_openroad_rdlroute(self, file, dataroot=None, step=None, index=None, clobber=False):
-        if not dataroot:
-            dataroot = self._get_active("package")
-
-        with self.active_dataroot(dataroot):
+        with self.active_dataroot(self._get_active_dataroot(dataroot)):
             if clobber:
                 self.set("var", "rdlroute", file, step=step, index=index)
             else:
