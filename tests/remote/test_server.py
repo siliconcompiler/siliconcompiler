@@ -67,7 +67,7 @@ def test_server_not_authenticated(gcd_nop_project, scserver, scserver_users,
 
     # Run remote build. It should fail, so catch the expected exception.
     with pytest.raises(RuntimeError, match="Server responded with 403: Authentication error."):
-        gcd_nop_project.run(raise_exception=True)
+        gcd_nop_project.run()
 
 
 def test_server(gcd_remote_test):
@@ -131,7 +131,7 @@ def test_server_slurm(gcd_remote_test):
     gcd_project = gcd_remote_test(use_slurm=True)
 
     # Run the remote job.
-    gcd_project.run(raise_exception=True)
+    gcd_project.run()
 
     assert os.path.isfile('build/gcd/job0/gcd.pkg.json')
     assert os.path.isfile('build/gcd/job0/stepone/0/outputs/gcd.pkg.json')

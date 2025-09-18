@@ -601,7 +601,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                                  f"{', '.join([f'{step}/{index}' for step, index in breakpoints])}")
                 self.__dashboard.stop()
 
-    def run(self, raise_exception=False):
+    def run(self) -> "Project":
         '''
         Executes tasks in a flowgraph.
 
@@ -619,15 +619,11 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         as defined by the flowgraph 'inputs' parameter. Once a all inputs
         are ready, previous steps are checked for errors before the
         process entered a local working directory and starts to run
-        a tool or to execute a built in Chip function.
+        a tool.
 
         Fatal errors within a step/index process cause all subsequent
         processes to exit before start, returning control to the the main
         program which can then exit.
-
-        Args:
-            raise_exception (bool): if True, will rethrow errors that the flow raises,
-                otherwise will report the error and return False
 
         Examples:
             >>> run()
@@ -648,11 +644,6 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             else:
                 scheduler = Scheduler(self)
             scheduler.run()
-        except Exception as e:
-            if raise_exception:
-                raise e
-            self.logger.error(str(e))
-            return False
         finally:
             if self.__dashboard:
                 # Update dashboard
@@ -661,7 +652,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
 
         self.__reset_job_params()
 
-        return True
+        return self.history(self.get("option", "jobname"))
 
     def __reset_job_params(self):
         for key in self.allkeys():
@@ -1552,7 +1543,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         task.set_shownode(jobname=sc_jobname, step=sc_step, index=sc_index)
 
         # run show flow
-        proj.run(raise_exception=True)
+        proj.run()
         if screenshot:
             return proj.find_result('png', step=task.task())
 
