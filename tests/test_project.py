@@ -14,7 +14,7 @@ from siliconcompiler import Design, Flowgraph, Checklist
 from siliconcompiler.tool import TaskSchema, ToolSchema
 from siliconcompiler.library import LibrarySchema
 
-from siliconcompiler.schema import NamedSchema, EditableSchema, Parameter
+from siliconcompiler.schema import NamedSchema, EditableSchema, Parameter, Scope
 
 from siliconcompiler.utils.logging import SCColorLoggerFormatter, SCLoggerFormatter
 
@@ -132,7 +132,7 @@ def test_set_design_str():
 
 
 def test_set_design_not_valid():
-    with pytest.raises(TypeError, match="design must be string or Design object"):
+    with pytest.raises(TypeError, match="design must be a string or a Design object"):
         Project().set_design(2)
 
 
@@ -153,7 +153,7 @@ def test_set_flow_str():
 
 
 def test_set_flow_not_valid():
-    with pytest.raises(TypeError, match="flow must be string or Flowgraph object"):
+    with pytest.raises(TypeError, match="flow must be a string or a Flowgraph object"):
         Project().set_flow(2)
 
 
@@ -2001,3 +2001,180 @@ def test_archive(caplog):
 
     assert "Creating archive testdesign_job0.tgz..." in caplog.text
     assert os.path.isfile("testdesign_job0.tgz")
+
+
+def test_run():
+    design = Design("testdesign")
+    design.set_topmodule("top", fileset="test")
+    proj = Project(design)
+    proj.add_fileset("test")
+
+    flow = Flowgraph("testflow")
+    flow.node("stepone", FauxTask0())
+    flow.node("steptwo", FauxTask0())
+    flow.edge("stepone", "steptwo")
+    proj.set_flow(flow)
+
+    def mock_run():
+        proj._record_history()
+
+    with patch("siliconcompiler.scheduler.Scheduler.run") as run, \
+            patch("siliconcompiler.Project._Project__reset_job_params") as reset:
+        run.side_effect = mock_run
+        hist = proj.run()
+        assert isinstance(hist, Project)
+        assert hist is proj.get("history", "job0", field="schema")
+        run.assert_called_once()
+        reset.assert_called_once()
+
+
+def test_run_remote():
+    design = Design("testdesign")
+    design.set_topmodule("top", fileset="test")
+    proj = Project(design)
+    proj.add_fileset("test")
+
+    flow = Flowgraph("testflow")
+    flow.node("stepone", FauxTask0())
+    flow.node("steptwo", FauxTask0())
+    flow.edge("stepone", "steptwo")
+    proj.set_flow(flow)
+
+    proj.set("option", "remote", True)
+
+    def mock_run():
+        proj._record_history()
+
+    with patch("siliconcompiler.remote.ClientScheduler.run") as run, \
+            patch("siliconcompiler.Project._Project__reset_job_params") as reset:
+        run.side_effect = mock_run
+        hist = proj.run()
+        assert isinstance(hist, Project)
+        assert hist is proj.get("history", "job0", field="schema")
+        run.assert_called_once()
+        reset.assert_called_once()
+
+
+def test_run_with_dashboard_running():
+    design = Design("testdesign")
+    design.set_topmodule("top", fileset="test")
+    proj = Project(design)
+    proj.add_fileset("test")
+
+    flow = Flowgraph("testflow")
+    flow.node("stepone", FauxTask0())
+    flow.node("steptwo", FauxTask0())
+    flow.edge("stepone", "steptwo")
+    proj.set_flow(flow)
+
+    assert proj._Project__dashboard is not None
+
+    with patch("siliconcompiler.scheduler.Scheduler.run") as run, \
+            patch("siliconcompiler.report.dashboard.cli.CliDashboard.is_running") as is_running, \
+            patch("siliconcompiler.report.dashboard.cli.CliDashboard.open_dashboard") as open_dashboard, \
+            patch("siliconcompiler.report.dashboard.cli.CliDashboard.set_logger") as set_logger, \
+            patch("siliconcompiler.report.dashboard.cli.CliDashboard.update_manifest") as update_manifest, \
+            patch("siliconcompiler.report.dashboard.cli.CliDashboard.end_of_run") as end_of_run:
+        is_running.return_value = True
+        proj._record_history()
+
+        proj.run()
+
+        run.assert_called_once()
+        is_running.assert_called()
+        assert is_running.call_count == 2
+        open_dashboard.assert_not_called()
+        set_logger.assert_called()
+        assert set_logger.call_count == 2
+        update_manifest.assert_called_once()
+        end_of_run.assert_called_once()
+
+
+def test_run_with_dashboard_notrunning():
+    design = Design("testdesign")
+    design.set_topmodule("top", fileset="test")
+    proj = Project(design)
+    proj.add_fileset("test")
+
+    flow = Flowgraph("testflow")
+    flow.node("stepone", FauxTask0())
+    flow.node("steptwo", FauxTask0())
+    flow.edge("stepone", "steptwo")
+    proj.set_flow(flow)
+
+    assert proj._Project__dashboard is not None
+
+    with patch("siliconcompiler.scheduler.Scheduler.run") as run, \
+            patch("siliconcompiler.report.dashboard.cli.CliDashboard.is_running") as is_running, \
+            patch("siliconcompiler.report.dashboard.cli.CliDashboard.open_dashboard") as open_dashboard, \
+            patch("siliconcompiler.report.dashboard.cli.CliDashboard.set_logger") as set_logger, \
+            patch("siliconcompiler.report.dashboard.cli.CliDashboard.update_manifest") as update_manifest, \
+            patch("siliconcompiler.report.dashboard.cli.CliDashboard.end_of_run") as end_of_run:
+        is_running.return_value = False
+        proj._record_history()
+
+        proj.run()
+
+        run.assert_called_once()
+        is_running.assert_called()
+        assert is_running.call_count == 2
+        open_dashboard.assert_called_once()
+        set_logger.assert_called_once()
+        update_manifest.assert_called_once()
+        end_of_run.assert_called_once()
+
+
+def test_run_with_nodashboard():
+    design = Design("testdesign")
+    design.set_topmodule("top", fileset="test")
+    proj = Project(design)
+    proj.add_fileset("test")
+
+    flow = Flowgraph("testflow")
+    flow.node("stepone", FauxTask0())
+    flow.node("steptwo", FauxTask0())
+    flow.edge("stepone", "steptwo")
+    proj.set_flow(flow)
+
+    proj.set("option", "nodashboard", True)
+    assert proj._Project__dashboard is None
+
+    with patch("siliconcompiler.scheduler.Scheduler.run") as run, \
+            patch("siliconcompiler.report.dashboard.cli.CliDashboard.is_running") as is_running, \
+            patch("siliconcompiler.report.dashboard.cli.CliDashboard.open_dashboard") as open_dashboard, \
+            patch("siliconcompiler.report.dashboard.cli.CliDashboard.set_logger") as set_logger, \
+            patch("siliconcompiler.report.dashboard.cli.CliDashboard.update_manifest") as update_manifest, \
+            patch("siliconcompiler.report.dashboard.cli.CliDashboard.end_of_run") as end_of_run:
+        is_running.return_value = False
+        proj._record_history()
+
+        proj.run()
+
+        run.assert_called_once()
+        is_running.assert_not_called()
+        open_dashboard.assert_not_called()
+        set_logger.assert_not_called()
+        update_manifest.assert_not_called()
+        end_of_run.assert_not_called()
+
+
+def test_reset_job_params():
+    proj = Project()
+
+    assert proj.get("arg", "step", field="scope") == Scope.SCRATCH
+    assert proj.get("option", "breakpoint", field="scope") == Scope.JOB
+    assert proj.get("option", "design", field="scope") == Scope.GLOBAL
+
+    assert proj.set("arg", "step", "teststep")
+    assert proj.set("option", "breakpoint", True)
+    assert proj.set("option", "design", "testdesign")
+
+    assert proj.get("arg", "step") == "teststep"
+    assert proj.get("option", "breakpoint") is True
+    assert proj.get("option", "design") == "testdesign"
+
+    proj._Project__reset_job_params()
+
+    assert proj.get("arg", "step") is None
+    assert proj.get("option", "breakpoint") is False
+    assert proj.get("option", "design") == "testdesign"
