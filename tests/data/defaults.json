@@ -993,7 +993,7 @@
                 "example": [
                   "api: chip.set('fileset', 'rtl, 'libdir', '/usr/lib')"
                 ],
-                "help": "Specifies directories to scan for libraries provided with the\n:keypath:`Design,fileset,<fileset>,lib` parameter. If multiple paths are provided, they are\nsearched based on the order of the libdir list.",
+                "help": "Specifies directories to scan for libraries provided with the\n:keypath:`Design,fileset,<fileset>,lib` parameter. If multiple paths are provided,\nthey are searched based on the order of the libdir list.",
                 "notes": null,
                 "pernode": "never",
                 "node": {
@@ -4803,7 +4803,7 @@
                 "example": [
                   "api: chip.set('fileset', 'rtl, 'libdir', '/usr/lib')"
                 ],
-                "help": "Specifies directories to scan for libraries provided with the\n:keypath:`Design,fileset,<fileset>,lib` parameter. If multiple paths are provided, they are\nsearched based on the order of the libdir list.",
+                "help": "Specifies directories to scan for libraries provided with the\n:keypath:`Design,fileset,<fileset>,lib` parameter. If multiple paths are provided,\nthey are searched based on the order of the libdir list.",
                 "notes": null,
                 "pernode": "never",
                 "node": {
@@ -9372,7 +9372,7 @@
                 "example": [
                   "api: chip.set('fileset', 'rtl, 'libdir', '/usr/lib')"
                 ],
-                "help": "Specifies directories to scan for libraries provided with the\n:keypath:`Design,fileset,<fileset>,lib` parameter. If multiple paths are provided, they are\nsearched based on the order of the libdir list.",
+                "help": "Specifies directories to scan for libraries provided with the\n:keypath:`Design,fileset,<fileset>,lib` parameter. If multiple paths are provided,\nthey are searched based on the order of the libdir list.",
                 "notes": null,
                 "pernode": "never",
                 "node": {
@@ -14849,7 +14849,7 @@
                 "example": [
                   "api: chip.set('fileset', 'rtl, 'libdir', '/usr/lib')"
                 ],
-                "help": "Specifies directories to scan for libraries provided with the\n:keypath:`Design,fileset,<fileset>,lib` parameter. If multiple paths are provided, they are\nsearched based on the order of the libdir list.",
+                "help": "Specifies directories to scan for libraries provided with the\n:keypath:`Design,fileset,<fileset>,lib` parameter. If multiple paths are provided,\nthey are searched based on the order of the libdir list.",
                 "notes": null,
                 "pernode": "never",
                 "node": {
@@ -18659,7 +18659,7 @@
                 "example": [
                   "api: chip.set('fileset', 'rtl, 'libdir', '/usr/lib')"
                 ],
-                "help": "Specifies directories to scan for libraries provided with the\n:keypath:`Design,fileset,<fileset>,lib` parameter. If multiple paths are provided, they are\nsearched based on the order of the libdir list.",
+                "help": "Specifies directories to scan for libraries provided with the\n:keypath:`Design,fileset,<fileset>,lib` parameter. If multiple paths are provided,\nthey are searched based on the order of the libdir list.",
                 "notes": null,
                 "pernode": "never",
                 "node": {
@@ -22146,7 +22146,7 @@
             "example": [
               "api: chip.set('fileset', 'rtl, 'libdir', '/usr/lib')"
             ],
-            "help": "Specifies directories to scan for libraries provided with the\n:keypath:`Design,fileset,<fileset>,lib` parameter. If multiple paths are provided, they are\nsearched based on the order of the libdir list.",
+            "help": "Specifies directories to scan for libraries provided with the\n:keypath:`Design,fileset,<fileset>,lib` parameter. If multiple paths are provided,\nthey are searched based on the order of the libdir list.",
             "notes": null,
             "pernode": "never",
             "node": {

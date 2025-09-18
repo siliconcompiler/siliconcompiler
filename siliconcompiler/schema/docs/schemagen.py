@@ -263,7 +263,8 @@ class TargetGen(SchemaGen):
         for key in sorted(loaded.keys()):
             sec = build_section(key, f"target-{root}-{method}-lib-{key}")
             modlist = nodes.bullet_list()
-            for library, ref in sorted([(lib_obj.name, SchemaGen.default_target(lib_obj.__class__)) for lib_obj in loaded[key]]):
+            for library, ref in sorted([(lib_obj.name, SchemaGen.default_target(lib_obj.__class__))
+                                        for lib_obj in loaded[key]]):
                 list_item = nodes.list_item()
                 list_text = para("")
                 parse_rst(self.state, f":ref:`{library} <{ref}>`", list_text)
