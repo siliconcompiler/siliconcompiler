@@ -1413,7 +1413,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         if os.path.isfile(path) and not self.get('option', 'nodisplay') and display:
             _open_summary_image(path)
 
-    def show(self, filename=None, screenshot=False, extension=None) -> str:
+    def show(self, filename: str = None, screenshot: bool = False, extension: str = None) -> str:
         '''
         Opens a graphical viewer for a specified file or the last generated layout.
 
