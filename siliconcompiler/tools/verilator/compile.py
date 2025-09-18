@@ -6,8 +6,8 @@ from siliconcompiler.tools.verilator import VerilatorTask
 class CompileTask(VerilatorTask):
     '''
     Compiles Verilog and C/C++ sources into an executable. In addition to the
-    standard RTL inputs, this task reads C/C++ sources from :keypath:`input,
-    hll, c`.  Outputs an executable in ``outputs/<design>.vexe``.
+    standard RTL inputs, this task reads C/C++ sources.
+    Outputs an executable in ``outputs/<design>.vexe``.
     '''
     def __init__(self):
         super().__init__()

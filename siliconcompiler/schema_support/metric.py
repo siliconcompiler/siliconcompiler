@@ -72,7 +72,8 @@ class MetricSchema(BaseSchema):
                     "api: chip.set('metric', 'exetime', 10.0, step='dfm', index=0)"],
                 pernode=PerNode.REQUIRED,
                 help=trim("""
-                Metric tracking time spent by the EDA executable :keypath:`tool,<tool>,exe` on a
+                Metric tracking time spent by the EDA executable
+                :keypath:`tool,<tool>,task,<task>,exe` on a
                 per step and index basis. It does not include the SiliconCompiler
                 runtime overhead or time waiting for I/O operations and
                 inter-processor communication to complete.""")))

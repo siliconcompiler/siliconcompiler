@@ -386,6 +386,9 @@ class StdCellLibrary(ToolLibrarySchema, DependencySchema):
         from .schema.docs.utils import build_section
         docs = []
 
+        if not key_offset:
+            key_offset = ["StdCellLibrary"]
+
         # Show dataroot
         dataroot = PathSchema._generate_doc(self, doc, ref_root=ref_root, key_offset=key_offset)
         if dataroot:

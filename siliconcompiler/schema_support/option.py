@@ -311,7 +311,7 @@ class OptionSchema(BaseSchema):
                 help="""
                 Disables strict version checking on all invoked tools if True.
                 The list of supported version numbers is defined in the
-                :keypath:`tool,<tool>,version`."""))
+                :keypath:`tool,<tool>,task,<task>,version`."""))
 
         schema.insert(
             'track',

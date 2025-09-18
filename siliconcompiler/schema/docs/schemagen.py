@@ -29,6 +29,10 @@ class SchemaGen(SphinxDirective):
         'ref_root': str
     }
 
+    @staticmethod
+    def default_target(cls):
+        return nodes.make_id(f"schema-{cls.__module__}.{cls.__name__}")
+
     def run(self):
         root = self.options['root']
 
@@ -58,7 +62,7 @@ class SchemaGen(SphinxDirective):
         else:
             schemas = [schema_cls()]
 
-        ref_root = self.options.get("ref_root", f"schema-{module}.{cls}")
+        ref_root = self.options.get("ref_root", SchemaGen.default_target(schema_cls))
 
         secs = []
         for n, schema in enumerate(schemas):
@@ -248,23 +252,26 @@ class TargetGen(SchemaGen):
             target_doc += p
 
         loaded = {}
-        for lib in proj.getkeys("library"):
-            lib_obj = proj.get("library", lib, field="schema")
-            loaded.setdefault(lib_obj._getdict_type(), set()).add(lib_obj)
+        for root in ["library", "flowgraph", "checklist"]:
+            for lib in proj.getkeys(root):
+                lib_obj = proj.get(root, lib, field="schema")
+                loaded.setdefault(lib_obj._getdict_type(), set()).add(lib_obj)
+            EditableSchema(proj).remove(root)
+
+        EditableSchema(proj).remove("tool")
 
         for key in sorted(loaded.keys()):
             sec = build_section(key, f"target-{root}-{method}-lib-{key}")
             modlist = nodes.bullet_list()
-            for library in sorted([lib_obj.name for lib_obj in loaded[key]]):
+            for library, ref in sorted([(lib_obj.name, SchemaGen.default_target(lib_obj.__class__))
+                                        for lib_obj in loaded[key]]):
                 list_item = nodes.list_item()
-                list_item += para(library)
+                list_text = para("")
+                parse_rst(self.state, f":ref:`{library} <{ref}>`", list_text)
+                list_item += list_text
                 modlist += list_item
             sec += modlist
             target_doc += sec
-
-        EditableSchema(proj).remove("library")
-        EditableSchema(proj).remove("flowgraph")
-        EditableSchema(proj).remove("tool")
 
         params = BaseSchema._generate_doc(proj, self, f"target-{root}-{method}-config",
                                           detailed=False,

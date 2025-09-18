@@ -80,6 +80,10 @@ class Schematic(BaseSchema):
         super().__init__()
         schema_schematic(self)
 
+    @classmethod
+    def _getdict_type(cls):
+        return Schematic.__name__
+
     ######################################################################
     def add_pin(self, name: str, direction: str) -> Pin:
         """

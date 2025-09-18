@@ -48,12 +48,12 @@ Schema Classes
     :show-inheritance:
     :inherited-members:
 
-.. autoclass:: siliconcompiler.RecordSchema
+.. autoclass:: siliconcompiler.schema_support.record.RecordSchema
     :members:
     :show-inheritance:
     :inherited-members:
 
-.. autoclass:: siliconcompiler.MetricSchema
+.. autoclass:: siliconcompiler.schema_support.metric.MetricSchema
     :members:
     :show-inheritance:
     :inherited-members:
@@ -222,20 +222,20 @@ Core Schema Classes
 Supporting Classes
 ==================
 
-.. autoclass:: siliconcompiler.dependencyschema.DependencySchema
+.. autoclass:: siliconcompiler.schema_support.dependencyschema.DependencySchema
     :members:
     :show-inheritance:
     :inherited-members:
 
-.. autoclass:: siliconcompiler.cmdlineschema.CommandLineSchema
+.. autoclass:: siliconcompiler.schema_support.cmdlineschema.CommandLineSchema
     :members:
 
-.. autoclass:: siliconcompiler.pathschema.PathSchema
+.. autoclass:: siliconcompiler.schema_support.pathschema.PathSchema
     :members:
     :show-inheritance:
     :inherited-members:
 
-.. autoclass:: siliconcompiler.filesetschema.FileSetSchema
+.. autoclass:: siliconcompiler.schema_support.filesetschema.FileSetSchema
     :members:
     :show-inheritance:
     :inherited-members:

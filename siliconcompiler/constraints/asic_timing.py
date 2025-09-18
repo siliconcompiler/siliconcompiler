@@ -65,7 +65,8 @@ class ASICTimingScenarioSchema(NamedSchema):
                 switch="-constraint_timing_pexcorner 'scenario <str>'",
                 example=["api: chip.set('constraint', 'timing', 'worst', 'pexcorner', 'max')"],
                 help="""Parasitic corner applied to the scenario. The
-                'pexcorner' string must match a corner found in :keypath:`pdk,<pdk>,pexmodel`."""))
+                'pexcorner' string must match a corner found in
+                :keypath:`PDK,pdk,pexmodelfileset`."""))
 
         schema.insert(
             'opcond',
@@ -78,7 +79,7 @@ class ASICTimingScenarioSchema(NamedSchema):
                 example=["api: chip.set('constraint', 'timing', 'worst', 'opcond', 'typical_1.0')"],
                 help="""Operating condition applied to the scenario. The value
                 can be used to access specific conditions within the library
-                timing models from the :keypath:`asic,logiclib` timing models."""))
+                timing models from the :keypath:`ASICProject,asic,asiclib` timing models."""))
 
         schema.insert(
             'mode',

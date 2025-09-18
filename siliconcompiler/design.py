@@ -833,8 +833,8 @@ def schema_design(schema):
                 "api: chip.set('fileset', 'rtl, 'libdir', '/usr/lib')"],
             help=trim("""
             Specifies directories to scan for libraries provided with the
-            :keypath:`lib` parameter. If multiple paths are provided, they are
-            searched based on the order of the libdir list.""")))
+            :keypath:`Design,fileset,<fileset>,lib` parameter. If multiple paths are provided,
+            they are searched based on the order of the libdir list.""")))
 
     schema.insert(
         'fileset', fileset, 'lib',
@@ -847,7 +847,7 @@ def schema_design(schema):
             help=trim("""
             Specifies libraries to use during compilation. The compiler searches for
             library in the compiler standard library paths and in the
-            paths specified by :keypath:`libdir` parameter.""")))
+            paths specified by :keypath:`Design,fileset,<fileset>,libdir` parameter.""")))
 
     name = 'default'
     schema.insert(
