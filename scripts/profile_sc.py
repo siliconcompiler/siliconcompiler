@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-from siliconcompiler import Chip, Flow
 import cProfile
 import pstats
 from pstats import SortKey
@@ -9,7 +8,9 @@ import argparse
 import tempfile
 import os
 import gprof2dot
-from siliconcompiler.targets import freepdk45_demo, skywater130_demo, asap7_demo, asic_demo
+
+from siliconcompiler import ASICProject, Project, Flowgraph, Design
+from siliconcompiler.demos import asic_demo
 
 
 def print_stats(pr):
@@ -38,86 +39,55 @@ def generate_graph(pr, name):
 def run_read_manifest(pr, extra):
     remove_path = False
     if not extra:
-        chip = Chip('write')
-        chip.use(freepdk45_demo)
-        chip.use(skywater130_demo)
-        chip.use(asap7_demo)
+        demo = asic_demo.ASICDemo()
 
         fd, path = tempfile.mkstemp(prefix='read_manifest', suffix='.json')
         os.close(fd)
 
-        chip.write_manifest(path)
+        demo.write_manifest(path)
         remove_path = True
     else:
         path = extra
 
-    chip = Chip('read')
+    proj = ASICProject()
 
     pr.enable()
-    chip.read_manifest(path)
+    proj.read_manifest(path)
     pr.disable()
 
     if remove_path:
         os.remove(path)
 
 
-def run_write_manifest_abspath(pr, extra):
-    run_write_manifest(pr, extra, True)
-
-
-def run_write_manifest(pr, extra, abspath=False):
-    chip = Chip('write')
-    chip.use(freepdk45_demo)
-    chip.use(skywater130_demo)
-    chip.use(asap7_demo)
-    if extra:
-        chip.use(chip._load_module(extra))
+def run_write_manifest(pr, extra):
+    proj = asic_demo.ASICDemo()
 
     fd, path = tempfile.mkstemp(prefix='write_manifest', suffix='.json')
     os.close(fd)
 
     pr.enable()
-    chip.write_manifest(path, abspath=abspath)
+    proj.write_manifest(path)
     pr.disable()
 
     os.remove(path)
 
 
 def run_check_filepaths(pr, extra):
-    chip = Chip('write')
-    chip.use(freepdk45_demo)
-    chip.use(skywater130_demo)
-    chip.use(asap7_demo)
-    if extra:
-        chip.use(chip._load_module(extra))
+    proj = asic_demo.ASICDemo()
 
-    chip.check_filepaths()
+    proj.check_filepaths()
     pr.enable()
     for _ in range(10):
-        chip.check_filepaths()
-    pr.disable()
-
-
-def run_load_target(pr, extra):
-    chip = Chip('write')
-
-    pr.enable()
-    if extra:
-        chip.use(chip._load_module(extra))
-    else:
-        chip.use(freepdk45_demo)
-        chip.use(skywater130_demo)
-        chip.use(asap7_demo)
+        proj.check_filepaths()
     pr.disable()
 
 
 def run_asic_demo(pr, extra):
-    chip = Chip('')
 
     pr.enable()
-    chip.use(asic_demo)
-    chip.run()
-    chip.summary()
+    proj = asic_demo.ASICDemo()
+    proj.run()
+    proj.summary()
     pr.disable()
 
 
@@ -131,28 +101,29 @@ def run_large_flowgraph(pr, extra):
 
     print(f'Setting up {2 + 2 * simulations} nodes')
 
-    flow_name = 'large_flowgraph'
-
     pr.enable()
-    chip = Chip('test')
-    flow = Flow(flow_name)
-    chip.set('option', 'flow', flow_name)
+    design = Design("dummy")
+    design.set_topmodule("top", "rtl")
+    proj = Project(design)
+    proj.add_fileset("rtl")
 
-    flow.node(flow_name, 'comp', nop)
-    flow.node(flow_name, 'elab', nop)
-    flow.edge(flow_name, tail='comp', head='elab')
+    flow = Flowgraph("large_flowgraph")
+
+    flow.node('comp', nop.NOPTask())
+    flow.node('elab', nop.NOPTask())
+    flow.edge(tail='comp', head='elab')
 
     for i in range(simulations):
-        flow.node(flow_name, step='pre_sim', task=nop, index=i)
+        flow.node(step='pre_sim', task=nop.NOPTask(), index=i)
 
     for i in range(simulations):
-        flow.node(flow_name, step='sim', task=nop, index=i)
-        flow.edge(flow_name, tail='pre_sim', head='sim', tail_index=i, head_index=i)
-        flow.edge(flow_name, tail='elab', head='sim', tail_index=0, head_index=i)
+        flow.node(step='sim', task=nop.NOPTask(), index=i)
+        flow.edge(tail='pre_sim', head='sim', tail_index=i, head_index=i)
+        flow.edge(tail='elab', head='sim', tail_index=0, head_index=i)
 
-    chip.use(flow)
+    proj.set_flow(flow)
 
-    chip.run()
+    proj.run()
     pr.disable()
 
 
@@ -160,8 +131,6 @@ if __name__ == "__main__":
     tests = {
         'read_manifest': run_read_manifest,
         'write_manifest': run_write_manifest,
-        'write_manifest_abspath': run_write_manifest_abspath,
-        'load_target': run_load_target,
         'asic_demo': run_asic_demo,
         'check_filepaths': run_check_filepaths,
         'large_flowgraph': run_large_flowgraph,

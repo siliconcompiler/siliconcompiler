@@ -122,9 +122,6 @@ docs = [
     "pydata-sphinx-theme == 0.16.1",
     "sc-leflib >= 0.2.0"
 ]
-profile = [
-    "gprof2dot == 2025.4.14"
-]
 optimizer = [
     "google-vizier[jax] == 0.1.21; python_version >= '3.10'"
 ]
