@@ -27,5 +27,4 @@ python:
         - test
         - lint
         - docs
-        - profile
         - optimizer
