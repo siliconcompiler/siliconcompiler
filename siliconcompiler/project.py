@@ -1004,8 +1004,8 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         """
         Returns the filesets selected for this project, resolving any aliases.
 
-        This method retrieves the filesets defined in `['option', 'fileset']`
-        and applies any aliases specified in `['option', 'alias']` to return
+        This method retrieves the filesets defined in :keypath:`option,fileset`
+        and applies any aliases specified in :keypath:`option,alias` to return
         the effective list of filesets and their parent libraries.
 
         Returns:
@@ -1621,7 +1621,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
 
         Args:
             jobname (str, optional): The job to archive. By default, archives the job specified
-                in `['option', 'jobname']`.
+                in :keypath:`option,jobname`.
             include (List[str], optional): Overrides default inclusion rules. Accepts a list of glob
                 patterns matched from the root of individual step/index directories.
                 To capture all files, supply `["*"]`.
