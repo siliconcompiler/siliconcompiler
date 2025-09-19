@@ -10,9 +10,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "siliconcompiler"
-authors = [
-    {name = "Andreas Olofsson", email="andreas.d.olofsson@gmail.com"}
-]
+authors = [{name = "Zero ASIC"}]
 description = "A compiler framework that automates translation from source code to silicon."
 readme = {file = "README.md", content-type = "text/markdown"}
 classifiers = [
