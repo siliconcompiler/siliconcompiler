@@ -33,6 +33,7 @@ To learn how to use SiliconCompiler, see the :ref:`user guide`.
    apps
    server_api
    floorplan_api
+   api
 
 .. toctree::
    :caption: Appendix
