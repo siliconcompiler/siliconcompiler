@@ -144,8 +144,6 @@ These methods use the defined metadata to compute key manufacturing metrics.
 Class Reference
 ---------------
 
-.. autoclass:: siliconcompiler.PDK
-    :members:
-    :show-inheritance:
-    :inherited-members:
-    :no-index:
+.. scclassautosummary::
+    :class: siliconcompiler/PDK
+    :noschema:

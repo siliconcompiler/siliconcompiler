@@ -141,25 +141,19 @@ Class Reference
 
 For more detailed information, refer to the full API documentation for the primary classes involved in creating and managing flowgraphs.
 
-.. autoclass:: siliconcompiler.Flowgraph
-    :members:
-    :show-inheritance:
-    :inherited-members:
-    :no-index:
+.. scclassautosummary::
+    :class: siliconcompiler/Flowgraph
+    :noschema:
 
 Supporting Classes
 ------------------
 
 These classes are used internally by the flowgraph but can be useful to understand.
 
-.. autoclass:: siliconcompiler.flowgraph.FlowgraphNodeSchema
-    :members:
-    :show-inheritance:
-    :inherited-members:
-    :no-index:
+.. scclassautosummary::
+    :class: siliconcompiler.flowgraph/FlowgraphNodeSchema
+    :noschema:
 
-.. autoclass:: siliconcompiler.flowgraph.RuntimeFlowgraph
-    :members:
-    :show-inheritance:
-    :inherited-members:
-    :no-index:
+.. scclassautosummary::
+    :class: siliconcompiler.flowgraph/RuntimeFlowgraph
+    :noschema:

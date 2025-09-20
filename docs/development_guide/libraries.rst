@@ -155,14 +155,10 @@ Class Reference
 ---------------
 For a complete list of all available methods, please see the full class documentation.
 
-.. autoclass:: siliconcompiler.Design
-    :members:
-    :show-inheritance:
-    :inherited-members:
-    :no-index:
+.. scclassautosummary::
+    :class: siliconcompiler/Design
+    :noschema:
 
-.. autoclass:: siliconcompiler.StdCellLibrary
-    :members:
-    :show-inheritance:
-    :inherited-members:
-    :no-index:
+.. scclassautosummary::
+    :class: siliconcompiler/StdCellLibrary
+    :noschema:
