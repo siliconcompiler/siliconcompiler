@@ -299,8 +299,6 @@ These methods are used for auto-generating documentation for your tool.
 Class Reference
 ---------------
 
-.. autoclass:: siliconcompiler.tool.TaskSchema
-    :members:
-    :show-inheritance:
-    :inherited-members:
-    :no-index:
+.. scclassautosummary::
+    :class: siliconcompiler.tool/TaskSchema
+    :noschema:

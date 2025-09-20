@@ -376,6 +376,50 @@ class InheritanceGen(SphinxDirective):
         return [image(f"{filename}.png", center=True)]
 
 
+class AutoSummaryGen(SphinxDirective):
+
+    option_spec = {
+        'class': str,
+        'noschema': directives.flag
+    }
+
+    def run(self):
+        module, cls = self.options['class'].split("/")
+        schema_cls = getattr(importlib.import_module(module), cls)
+
+        methods = set()
+        for name, bind in inspect.getmembers(schema_cls, predicate=callable):
+            if name[0] == "_":
+                continue
+
+            if "noschema" in self.options:
+                if inspect.getmodule(bind).__name__.startswith("siliconcompiler.schema."):
+                    continue
+
+            methods.add(name)
+        methods = sorted([f"{cls}.{meth}" for meth in methods])
+
+        autosum = [
+            f".. currentmodule:: {module}",
+            "",
+            f"Class :class:`{module}.{cls}`",
+            "",
+            ".. autosummary::",
+            "    :nosignatures:",
+            ""]
+        for meth in methods:
+            autosum.append(f"    {meth}")
+        autosum.append("")
+
+        p = para("")
+        parse_rst(self.state, "\n".join(autosum), p)
+
+        section = build_section(cls, "autosummary" + self.options['class'])
+        section += p
+
+        return [section]
+
+
 class SCDomain(StandardDomain):
     name = 'sc'
 
@@ -434,6 +478,7 @@ def setup(app):
     app.add_directive('sctool', ToolGen)
     app.add_directive('sctarget', TargetGen)
     app.add_directive('scclassinherit', InheritanceGen)
+    app.add_directive('scclassautosummary', AutoSummaryGen)
 
     app.add_role('keypath', keypath_role)
 
