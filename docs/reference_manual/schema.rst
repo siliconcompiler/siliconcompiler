@@ -109,31 +109,26 @@ Project Parameters
 
 .. schema::
   :root: siliconcompiler/Project
-  :add_class:
   :schema_only:
   :ref_root: Project
 
 .. schema::
   :root: siliconcompiler/ASICProject
-  :add_class:
   :schema_only:
   :ref_root: ASICProject
 
 .. schema::
   :root: siliconcompiler/FPGAProject
-  :add_class:
   :schema_only:
   :ref_root: FPGAProject
 
 .. schema::
   :root: siliconcompiler/LintProject
-  :add_class:
   :schema_only:
   :ref_root: LintProject
 
 .. schema::
   :root: siliconcompiler/SimProject
-  :add_class:
   :schema_only:
   :ref_root: SimProject
 
@@ -145,19 +140,16 @@ General
 
 .. schema::
   :root: siliconcompiler/Design
-  :add_class:
   :schema_only:
   :ref_root: Design
 
 .. schema::
   :root: siliconcompiler.library/LibrarySchema
-  :add_class:
   :schema_only:
   :ref_root: LibrarySchema
 
 .. schema::
   :root: siliconcompiler/Schematic
-  :add_class:
   :schema_only:
   :ref_root: Schematic
 
@@ -166,13 +158,11 @@ ASIC Specific
 
 .. schema::
   :root: siliconcompiler/StdCellLibrary
-  :add_class:
   :schema_only:
   :ref_root: StdCellLibrary
 
 .. schema::
   :root: siliconcompiler/PDK
-  :add_class:
   :schema_only:
   :ref_root: PDK
 
@@ -180,7 +170,6 @@ FPGA Specific
 ^^^^^^^^^^^^^
 .. schema::
   :root: siliconcompiler/FPGA
-  :add_class:
   :schema_only:
   :ref_root: FPGA
 
