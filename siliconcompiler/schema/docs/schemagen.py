@@ -25,7 +25,6 @@ class SchemaGen(SphinxDirective):
 
     option_spec = {
         'root': str,
-        'add_class': directives.flag,
         'add_methods': directives.flag,
         'schema_only': directives.flag,
         'reference_class': str,
@@ -92,12 +91,6 @@ class SchemaGen(SphinxDirective):
             if docstring:
                 parse_rst(self.state, docstring, schema_sec)
 
-            if "add_class" in self.options:
-                # Add reference to class docs
-                cls_ref = nodes.inline('')
-                parse_rst(self.state, f'Class: :class:`{cls}<{module}.{cls}>`', cls_ref)
-                schema_sec += cls_ref
-
             src_link = None
             src_file = inspect.getfile(schema_cls)
             for docs_link in get_plugins("docs", name="linkcode"):
@@ -163,7 +156,6 @@ class ToolGen(SchemaGen):
 
     def run(self):
         root = self.options["root"]
-        self.options["add_class"] = True
         self.options["add_methods"] = True
         self.options["reference_class"] = "siliconcompiler.tool/TaskSchema"
 
