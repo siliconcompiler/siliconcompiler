@@ -1,3 +1,5 @@
+import graphviz
+import hashlib
 import importlib
 import inspect
 import shlex
@@ -14,7 +16,8 @@ from docutils.parsers.rst import directives
 from siliconcompiler.schema import utils, BaseSchema, Parameter, NamedSchema, EditableSchema
 from siliconcompiler.schema.docschema import DocsSchema
 from siliconcompiler.schema.docs.utils import parse_rst, link, para, \
-    literalblock, build_section_with_target, keypath, build_section
+    literalblock, build_section_with_target, keypath, build_section, \
+    image
 from siliconcompiler.utils import get_plugins
 
 
@@ -306,6 +309,81 @@ class AppGen(SphinxDirective):
         return [section]
 
 
+class InheritanceGen(SphinxDirective):
+
+    option_spec = {
+        'classes': str,
+        'user_cls': str
+    }
+
+    def walk_cls(self, cls):
+        bases = set()
+        conns = set()
+        for base in cls.__bases__:
+            if base.__name__ == "object":
+                continue
+            conns.add((base.__name__, cls.__name__))
+            bases.add(base)
+        for base in bases:
+            conns.update(self.walk_cls(base))
+        return conns
+
+    def run(self):
+        classes = set()
+        for cls in self.options['classes'].split(","):
+            module, cls = cls.strip().split("/")
+            classes.add(getattr(importlib.import_module(module), cls))
+        user_cls = set()
+        for cls in self.options.get("user_cls", self.options['classes']).split(","):
+            module, cls = cls.strip().split("/")
+            cls = getattr(importlib.import_module(module), cls)
+            user_cls.add(cls.__name__)
+
+        dot = graphviz.Digraph(format="png")
+        dot.graph_attr['rankdir'] = "TB"
+        dot.attr(bgcolor="white")
+
+        conns = set()
+        for cls in classes:
+            conns.update(self.walk_cls(cls))
+        conns = sorted(conns)
+        nodes = set()
+        for cls0, cls1 in conns:
+            nodes.add(cls0)
+            nodes.add(cls1)
+        nodes = sorted(nodes)
+
+        for cls in nodes:
+            if cls in user_cls:
+                continue
+            dot.node(cls, cls, shape="Mdiamond")
+
+        with dot.subgraph(name="userclasses") as user_graph:
+            user_graph.graph_attr["cluster"] = "true"
+            user_graph.graph_attr["color"] = "black"
+            for cls in nodes:
+                if cls not in user_cls:
+                    continue
+                user_graph.node(cls, cls, shape="oval")
+
+        for cls0, cls1 in conns:
+            dot.edge(cls0, cls1)
+
+        fhash = hashlib.md5()
+        for cls in nodes:
+            fhash.update(cls.encode())
+        for cls0, cls1 in conns:
+            fhash.update(cls0.encode())
+            fhash.update(cls1.encode())
+
+        filename = os.path.join(self.env.app.outdir,
+                                f"_images/gen/inherit/{fhash.hexdigest()}")
+
+        dot.render(filename=filename, cleanup=True)
+
+        return [image(f"{filename}.png", center=True)]
+
+
 class SCDomain(StandardDomain):
     name = 'sc'
 
@@ -363,6 +441,7 @@ def setup(app):
     app.add_directive('scapp', AppGen)
     app.add_directive('sctool', ToolGen)
     app.add_directive('sctarget', TargetGen)
+    app.add_directive('scclassinherit', InheritanceGen)
 
     app.add_role('keypath', keypath_role)
 
