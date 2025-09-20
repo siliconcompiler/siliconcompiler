@@ -1158,7 +1158,8 @@ class BaseSchema:
                 cls_info = nodes.paragraph()
                 parse_rst(
                     doc.state,
-                    f"Class :class:`{self.__class__.__name__} <{self.__class__.__module__}.{self.__class__.__name__}>`",
+                    f"Class :class:`{self.__class__.__name__} "
+                    f"<{self.__class__.__module__}.{self.__class__.__name__}>`",
                     cls_info)
                 sections.append(cls_info)
             if self.__default:
