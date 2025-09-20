@@ -267,3 +267,12 @@ Supporting Classes
     :members:
     :show-inheritance:
     :inherited-members:
+
+Inheritance
+===========
+
+.. scclassinherit::
+    :classes: siliconcompiler/ASICProject,siliconcompiler/FPGAProject,siliconcompiler/LintProject,siliconcompiler/SimProject
+
+.. scclassinherit::
+    :classes: siliconcompiler/Design,siliconcompiler/PDK,siliconcompiler/FPGA,siliconcompiler/StdCellLibrary,siliconcompiler/Flowgraph,siliconcompiler/Checklist,siliconcompiler.tool/TaskSchema
