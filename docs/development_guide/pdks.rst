@@ -145,7 +145,7 @@ Class Reference
 ---------------
 
 .. autoclass:: siliconcompiler.PDK
-    :no-index:
     :members:
     :show-inheritance:
     :inherited-members:
+    :no-index:

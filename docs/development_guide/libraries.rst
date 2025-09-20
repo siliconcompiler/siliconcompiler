@@ -159,8 +159,10 @@ For a complete list of all available methods, please see the full class document
     :members:
     :show-inheritance:
     :inherited-members:
+    :no-index:
 
 .. autoclass:: siliconcompiler.StdCellLibrary
     :members:
     :show-inheritance:
     :inherited-members:
+    :no-index:

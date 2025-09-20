@@ -1145,7 +1145,8 @@ class BaseSchema:
                       ref_root: str = "",
                       key_offset: Tuple[str] = None,
                       detailed: bool = True):
-        from .docs.utils import build_section_with_target, build_schema_value_table, get_key_ref
+        from .docs.utils import build_section_with_target, build_schema_value_table, get_key_ref, \
+            parse_rst
         from docutils import nodes
 
         if not key_offset:
@@ -1153,6 +1154,14 @@ class BaseSchema:
 
         if detailed:
             sections = []
+            if not self.__class__.__module__.startswith("siliconcompiler.schema."):
+                cls_info = nodes.paragraph()
+                parse_rst(
+                    doc.state,
+                    f"Class :class:`{self.__class__.__name__} "
+                    f"<{self.__class__.__module__}.{self.__class__.__name__}>`",
+                    cls_info)
+                sections.append(cls_info)
             if self.__default:
                 if isinstance(self.__default, Parameter):
                     sections.extend(Parameter._generate_doc(self.__default, doc))

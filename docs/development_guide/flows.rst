@@ -145,6 +145,7 @@ For more detailed information, refer to the full API documentation for the prima
     :members:
     :show-inheritance:
     :inherited-members:
+    :no-index:
 
 Supporting Classes
 ------------------
@@ -155,8 +156,10 @@ These classes are used internally by the flowgraph but can be useful to understa
     :members:
     :show-inheritance:
     :inherited-members:
+    :no-index:
 
 .. autoclass:: siliconcompiler.flowgraph.RuntimeFlowgraph
     :members:
     :show-inheritance:
     :inherited-members:
+    :no-index:
