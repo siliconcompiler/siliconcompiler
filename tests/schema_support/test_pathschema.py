@@ -23,22 +23,50 @@ def test_get_registered_sources():
 
 def test_set_dataroot():
     schema = PathSchema()
-    schema.set_dataroot("testsource", "file://.")
+    schema.set_dataroot(name="testsource", path="file://.")
     assert schema.get("dataroot", "testsource", "path") == "file://."
     assert schema.get("dataroot", "testsource", "tag") is None
 
 
+def test_set_dataroot_positional():
+    schema = PathSchema()
+    with pytest.raises(ValueError, match="positional arguments are not supported."):
+        schema.set_dataroot(__file__)
+
+
+def test_set_dataroot_empty():
+    schema = PathSchema()
+    with pytest.raises(ValueError, match="path argument is required"):
+        schema.set_dataroot()
+
+
+def test_set_dataroot_just_path():
+    schema = PathSchema()
+    schema.set_dataroot(path="file://.")
+    assert schema.get("dataroot", "root", "path") == "file://."
+    assert schema.get("dataroot", "root", "tag") is None
+
+
 def test_set_dataroot_overwrite():
     schema = PathSchema()
-    schema.set_dataroot("testsource", "file://.")
-    schema.set_dataroot("testsource", "file://test")
+    schema.set_dataroot(name="testsource", path="file://.")
+    schema.set_dataroot(name="testsource", path="file://test", clobber=True)
     assert schema.get("dataroot", "testsource", "path") == "file://test"
+    assert schema.get("dataroot", "testsource", "tag") is None
+
+
+def test_set_dataroot_overwrite_noclobber():
+    schema = PathSchema()
+    schema.set_dataroot(name="testsource", path="file://.")
+    with pytest.raises(ValueError, match="testsource is already defined"):
+        schema.set_dataroot(name="testsource", path="file://test", clobber=False)
+    assert schema.get("dataroot", "testsource", "path") == "file://."
     assert schema.get("dataroot", "testsource", "tag") is None
 
 
 def test_set_dataroot_with_ref():
     schema = PathSchema()
-    schema.set_dataroot("testsource", "file://.", "ref")
+    schema.set_dataroot(name="testsource", path="file://.", tag="ref")
     assert schema.get("dataroot", "testsource", "path") == "file://."
     assert schema.get("dataroot", "testsource", "tag") == "ref"
 
@@ -48,7 +76,7 @@ def test_set_dataroot_with_file():
     with open("test.txt", "w") as f:
         f.write("test")
 
-    schema.set_dataroot("testsource", "test.txt")
+    schema.set_dataroot(name="testsource", path="test.txt")
     assert schema.get("dataroot", "testsource", "path") == os.path.abspath(".")
     assert schema.get("dataroot", "testsource", "tag") is None
 
@@ -62,7 +90,7 @@ def test_find_files():
             schema.insert("file", Parameter("file"))
 
     test = Test()
-    test.set_dataroot("testsource", "file://.")
+    test.set_dataroot(name="testsource", path="file://.")
     param = test.set("file", "test.txt")
     param.set("testsource", field="package")
 
@@ -97,7 +125,7 @@ def test_find_files_dir():
             schema.insert("dir", Parameter("dir"))
 
     test = Test()
-    test.set_dataroot("testsource", "file://.")
+    test.set_dataroot(name="testsource", path="file://.")
     param = test.set("dir", "test")
     param.set("testsource", field="package")
 
@@ -183,7 +211,7 @@ def test_find_files_keypath():
 
     root = Root()
     test = root.get("test", field="schema")
-    test.set_dataroot("keyref", "key://ref")
+    test.set_dataroot(name="keyref", path="key://ref")
     assert root.set("ref", "test")
     os.makedirs("test", exist_ok=True)
     param = test.set("file", "test.txt")
@@ -197,7 +225,7 @@ def test_find_files_keypath():
 
 def test_get_dataroot():
     schema = PathSchema()
-    schema.set_dataroot("testsource", "file://.")
+    schema.set_dataroot(name="testsource", path="file://.")
     assert schema.get_dataroot("testsource") == os.path.abspath(".")
 
 
@@ -226,7 +254,7 @@ def test_get_dataroot_keypath():
 
     root = Root()
     test = root.get("test", field="schema")
-    test.set_dataroot("keyref", "key://ref")
+    test.set_dataroot(name="keyref", path="key://ref")
     assert root.set("ref", "test")
     os.makedirs("test", exist_ok=True)
 
@@ -326,7 +354,7 @@ def test_check_filepaths_collection_dir():
 def test_active_dataroot():
     schema = PathSchema()
 
-    schema.set_dataroot("testpack", __file__)
+    schema.set_dataroot(name="testpack", path=__file__)
 
     assert schema._get_active(None) is None
     with schema.active_dataroot("testpack"):
@@ -356,7 +384,7 @@ def test_simple_find_files():
             schema.insert("file", Parameter("file"))
 
     test = Test()
-    test.set_dataroot("testsource", "file://.")
+    test.set_dataroot(name="testsource", path="file://.")
     param = test.set("file", "test.txt")
     param.set("testsource", field="package")
 
@@ -391,7 +419,7 @@ def test_simple_find_files_dir():
             schema.insert("dir", Parameter("dir"))
 
     test = Test()
-    test.set_dataroot("testsource", "file://.")
+    test.set_dataroot(name="testsource", path="file://.")
     param = test.set("dir", "test")
     param.set("testsource", field="package")
 
@@ -546,7 +574,7 @@ def test_get_active_dataroot_use_none(input):
 
 def test_get_active_dataroot_use_active():
     schema = PathSchema()
-    schema.set_dataroot("active", "file://")
+    schema.set_dataroot(name="active", path="file://")
 
     with schema.active_dataroot("active"):
         assert schema._get_active_dataroot(None) == "active"
@@ -554,7 +582,7 @@ def test_get_active_dataroot_use_active():
 
 def test_get_active_dataroot_use_active_user():
     schema = PathSchema()
-    schema.set_dataroot("active", "file://")
+    schema.set_dataroot(name="active", path="file://")
 
     with schema.active_dataroot("active"):
         assert schema._get_active_dataroot("user") == "user"
@@ -562,15 +590,15 @@ def test_get_active_dataroot_use_active_user():
 
 def test_get_active_dataroot_use_defined():
     schema = PathSchema()
-    schema.set_dataroot("defined", "file://")
+    schema.set_dataroot(name="defined", path="file://")
 
     assert schema._get_active_dataroot(None) == "defined"
 
 
 def test_get_active_dataroot_multiple_defined():
     schema = PathSchema()
-    schema.set_dataroot("defined0", "file://")
-    schema.set_dataroot("defined1", "file://")
+    schema.set_dataroot(name="defined0", path="file://")
+    schema.set_dataroot(name="defined1", path="file://")
 
     with pytest.raises(ValueError,
                        match="dataroot must be specified, multiple are defined: "

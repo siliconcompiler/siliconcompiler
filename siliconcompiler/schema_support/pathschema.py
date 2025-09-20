@@ -283,28 +283,62 @@ class PathSchema(PathSchemaBase):
                     of the file that will be downloaded.
                     """)))
 
-    def set_dataroot(self, name: str, path: str, tag: str = None):
+    def set_dataroot(self, *args,
+                     name: str = "root",
+                     path: str = None,
+                     tag: str = None,
+                     clobber: bool = False):
         """
-        Registers a data directory by its name with the root and associated tag. If the path
-        provided is a file, the path recorded will be the directory the file is located in.
+        Registers a data directory by its name and associated path and tag.
+
+        This method adds or updates a data root entry in the schema. The `name` serves as a unique
+        identifier for the data directory. The `path` can be a local directory, a path to a file,
+        a Git repository URL, or an archive URL (like a `.zip` or `.tar.gz`). If the path is a file,
+        the method automatically resolves it to the file's parent directory. The `tag` is used
+        to specify a version reference, such as a Git commit ID, branch name, or release tag.
+        By default, an error is raised if a `name` already exists, but this can be overridden with
+        the `clobber` argument. A `ValueError` is raised if `path` is not provided.
 
         Args:
-            name (str): Data directory name
-            path (str): Path to the root of the data directory, can be directory, git url,
-                archive url, or path to a file
-            tag (str): Reference of the sources, can be commitid, branch name, tag
+            name (str): The unique name for the data directory. Defaults to "root".
+            path (str): The path to the data directory. Can be a local path (file or directory),
+                        a Git URL, or an archive URL.
+            tag (str): An optional version reference for the data source (e.g., Git commit ID,
+                       branch, or tag).
+            clobber (bool): If True, overwrites an existing entry with the same name. Defaults to
+                            False.
+
+        Raises:
+            ValueError: If `path` is None or an entry with the same `name` already exists and
+                        `clobber` is False.
 
         Examples:
-            >>> schema.set_dataroot('siliconcompiler_data',
-                    'git+https://github.com/siliconcompiler/siliconcompiler',
-                    'v1.0.0')
-            Records the data directory for siliconcompiler_data as a git clone for tag v1.0.0
-            >>> schema.set_dataroot('file_data', __file__)
-            Records the data directory for file_data as the directory that __file__ is found in.
+            >>> schema.set_dataroot(path='/path/to/local/data')
+            Registers a local data directory named 'root'.
+
+            >>> schema.set_dataroot(name='my_data', path='/path/to/local/data')
+            Registers a local data directory named 'my_data'.
+
+            >>> schema.set_dataroot(name='git_repo',
+                                    path='git+https://github.com/example/repo',
+                                    tag='v1.2.3')
+            Registers a data directory from a specific version of a Git repository.
+
+            >>> schema.set_dataroot(name='project_files', path=__file__)
+            Registers the directory containing the current script.
         """
+
+        if args:
+            raise ValueError("positional arguments are not supported.")
+
+        if path is None:
+            raise ValueError("path argument is required")
 
         if os.path.isfile(path):
             path = os.path.dirname(os.path.abspath(path))
+
+        if not clobber and name in self.getkeys("dataroot"):
+            raise ValueError(f"{name} is already defined")
 
         BaseSchema.set(self, "dataroot", name, "path", path)
         if tag:
