@@ -243,7 +243,7 @@ class DockerSchedulerNode(SchedulerNode):
             user = None
 
             volumes = [
-                f"{self.project._Project__cwd}:{cwd}:rw",
+                f"{self.project_cwd}:{cwd}:rw",
                 f"{RemoteResolver.determine_cache_dir(self.project)}:{cache_dir}:rw"
             ]
             self.logger.debug(f'Volumes: {volumes}')
@@ -256,7 +256,7 @@ class DockerSchedulerNode(SchedulerNode):
                 volumes.append(f'{os.path.dirname(email_file)}:/sc_home/.sc:ro')
         else:
             cache_dir = RemoteResolver.determine_cache_dir(self.project)
-            cwd = self.project._Project__cwd
+            cwd = self.project_cwd
             builddir = self.project.find_files('option', 'builddir')
 
             local_cfg = os.path.abspath('sc_docker.json')
