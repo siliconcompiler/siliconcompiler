@@ -1316,3 +1316,13 @@ def test_copy_fileset_overwrite():
     schema.copy_fileset("rtl.other", "rtl", clobber=True)
     assert schema.get("fileset", "rtl", "topmodule") == "test"
     assert schema.get("fileset", "rtl.other", "topmodule") == "test"
+
+
+def test_path_object(datadir):
+    d = Design()
+    basedir = Path(__file__)
+    with d.active_fileset("rtl"):
+        d.add_idir(basedir)
+        d.add_libdir(basedir)
+    assert d.get_idir(fileset='rtl') == [str(basedir)]
+    assert d.get_libdir(fileset='rtl') == [str(basedir)]
