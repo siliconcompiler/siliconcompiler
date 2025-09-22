@@ -1,7 +1,7 @@
 import io
 import re
-
 import os.path
+from pathlib import Path
 
 from typing import List, Union, Tuple, Dict
 
@@ -121,7 +121,8 @@ class Design(LibrarySchema, DependencySchema):
         Returns:
            list[str]: List of include directories
         """
-        return self.__set_add(fileset, 'idir', value, clobber, typelist=[str, list],
+        return self.__set_add(fileset, 'idir', value, clobber,
+                              typelist=[str, list, Path],
                               dataroot=dataroot)
 
     def get_idir(self, fileset: str = None) -> List[str]:
@@ -228,7 +229,8 @@ class Design(LibrarySchema, DependencySchema):
         Returns:
            list[str]: List of library directories.
         """
-        return self.__set_add(fileset, 'libdir', value, clobber, typelist=[str, list],
+        return self.__set_add(fileset, 'libdir', value, clobber,
+                              typelist=[str, list, Path],
                               dataroot=dataroot)
 
     def get_libdir(self, fileset: str = None) -> List[str]:
