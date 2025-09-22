@@ -140,11 +140,11 @@ def test_find_files_cwd():
     assert test.find_files("dir") == os.path.abspath("cwd/test")
 
 
-def test_find_files_collection_dir():
+def test_find_files_getcollectiondir():
     class Test(PathSchemaBase):
         calls = 0
 
-        def collection_dir(self):
+        def getcollectiondir(self):
             self.calls += 1
             return os.path.abspath("collect")
 
@@ -300,11 +300,11 @@ def test_check_filepaths_cwd():
     assert test.check_filepaths() is True
 
 
-def test_check_filepaths_collection_dir():
+def test_check_filepaths_getcollectiondir():
     class Test(PathSchemaBase):
         calls = 0
 
-        def collection_dir(self):
+        def getcollectiondir(self):
             self.calls += 1
             return os.path.abspath("collect")
 
@@ -434,11 +434,11 @@ def test_simple_find_files_cwd():
     assert test.find_files("dir") == os.path.abspath("cwd/test")
 
 
-def test_simple_find_files_collection_dir():
+def test_simple_find_files_getcollectiondir():
     class Test(PathSchemaSimpleBase):
         calls = 0
 
-        def collection_dir(self):
+        def getcollectiondir(self):
             self.calls += 1
             return os.path.abspath("collect")
 

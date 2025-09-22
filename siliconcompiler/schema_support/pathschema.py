@@ -50,8 +50,7 @@ class PathSchemaBase(BaseSchema):
         """
         schema_root = self._parent(root=True)
         cwd = getattr(schema_root, "cwd", os.getcwd())
-        collection_dir = getattr(schema_root, "collection_dir",
-                                 getattr(schema_root, "getcollectiondir", None))
+        collection_dir = getattr(schema_root, "getcollectiondir", None)
         if collection_dir:
             collection_dir = collection_dir()
 
@@ -76,9 +75,7 @@ class PathSchemaBase(BaseSchema):
         logger = getattr(schema_root,
                          "logger",
                          logging.getLogger("siliconcompiler.check_filepaths"))
-        collection_dir = getattr(schema_root, "collection_dir",
-                                 getattr(schema_root, "getcollectiondir",
-                                         None))
+        collection_dir = getattr(schema_root, "getcollectiondir", None)
         if collection_dir:
             collection_dir = collection_dir()
 
@@ -127,11 +124,10 @@ class PathSchemaBase(BaseSchema):
         '''
         schema_root = self._parent(root=True)
         cwd = getattr(schema_root, "cwd", os.getcwd())
-        collection_dir = getattr(schema_root, "collection_dir",
-                                 getattr(schema_root, "getcollectiondir", None))
         logger = getattr(schema_root,
                          "logger",
-                         logging.getLogger("siliconcompiler.check_filepaths"))
+                         logging.getLogger("siliconcompiler.hash_files"))
+        collection_dir = getattr(schema_root, "getcollectiondir", None)
         if collection_dir:
             collection_dir = collection_dir()
 
