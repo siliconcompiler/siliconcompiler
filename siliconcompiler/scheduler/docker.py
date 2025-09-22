@@ -11,6 +11,7 @@ from siliconcompiler.package import RemoteResolver
 from siliconcompiler.utils import default_email_credentials_file
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.utils.logging import SCBlankLoggerFormatter
+from siliconcompiler.utils.collect import collect
 
 
 def get_image(project, step, index):
@@ -163,7 +164,7 @@ class DockerSchedulerNode(SchedulerNode):
         On Windows, this method forces all file/directory parameters to be
         copied rather than linked, which avoids issues with differing
         filesystem types between the host and the Linux-based container.
-        It then triggers `project.collect()` to ensure all files are staged.
+        It then triggers :meth:`.collect()` to ensure all files are staged.
 
         Args:
             project (Chip): The Chip object to perform pre-processing on.
@@ -177,7 +178,7 @@ class DockerSchedulerNode(SchedulerNode):
                 sc_type = project.get(*key, field='type')
                 if 'dir' in sc_type or 'file' in sc_type:
                     project.set(*key, True, field='copy')
-            project.collect()
+            collect(project)
 
     def run(self):
         """

@@ -12,6 +12,7 @@ import sys
 from io import BytesIO
 
 from siliconcompiler import Project
+from siliconcompiler.utils.collect import getcollectiondir
 
 # Input files as a tarball encoded as base64
 INPUT_FILES = \{% for line in src_file %}
@@ -43,7 +44,7 @@ if __name__ == "__main__":
     # Extract input files
     with BytesIO(base64.b64decode(INPUT_FILES.encode())) as fd:
         with tarfile.open(fileobj=fd, mode='r:gz') as tar:
-            tar.extractall(path=project.getcollectiondir())
+            tar.extractall(path=getcollectiondir(project))
 
     if cli_proj.get("cmdarg", "check_files"):
         if project.check_filepaths():

@@ -8,6 +8,7 @@ import time
 import tempfile
 from datetime import datetime, timezone
 from siliconcompiler.utils import get_file_template
+from siliconcompiler.utils.collect import getcollectiondir, collect
 from siliconcompiler.schema_support.record import RecordSchema
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.schema import __version__ as schema_version
@@ -138,7 +139,7 @@ def generate_testcase(chip,
     # Get new directories
     job_dir = chip.getworkdir()
     new_work_dir = chip.getworkdir(step=step, index=index)
-    collection_dir = chip.getcollectiondir()
+    collection_dir = getcollectiondir(chip)
 
     # Restore current directory
     chip._Project__cwd = original_cwd
@@ -146,7 +147,7 @@ def generate_testcase(chip,
     # Copy in issue run files
     shutil.copytree(work_dir, new_work_dir, dirs_exist_ok=True)
     # Copy in source files
-    chip.collect(directory=collection_dir, verbose=verbose_collect)
+    collect(chip, directory=collection_dir, verbose=verbose_collect)
 
     # Set relative path to generate runnable files
     chip._Project__cwd = issue_dir.name

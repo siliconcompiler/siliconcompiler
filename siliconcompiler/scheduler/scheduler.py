@@ -17,6 +17,7 @@ from siliconcompiler.scheduler import DockerSchedulerNode
 from siliconcompiler.scheduler import TaskScheduler
 
 from siliconcompiler import utils
+from siliconcompiler.utils.collect import getcollectiondir
 from siliconcompiler.utils.logging import SCLoggerFormatter
 from siliconcompiler.utils.multiprocessing import MPManager
 from siliconcompiler.scheduler import send_messages
@@ -363,9 +364,9 @@ class Scheduler:
             # Copy collection directory
             curret_job = self.__project.get("option", "jobname")
             self.__project.set("option", "jobname", self.__org_job_name)
-            copy_from = self.__project.getcollectiondir()
+            copy_from = getcollectiondir(self.__project)
             self.__project.set("option", "jobname", curret_job)
-            copy_to = self.__project.getcollectiondir()
+            copy_to = getcollectiondir(self.__project)
             if os.path.exists(copy_from):
                 shutil.copytree(copy_from, copy_to,
                                 dirs_exist_ok=True,

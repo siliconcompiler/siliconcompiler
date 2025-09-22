@@ -11,6 +11,7 @@ from siliconcompiler.schema.parameter import Parameter, Scope
 from siliconcompiler.schema.utils import trim
 
 from siliconcompiler.package import Resolver
+from siliconcompiler.utils.collect import getcollectiondir
 
 
 class PathSchemaBase(BaseSchema):
@@ -49,10 +50,8 @@ class PathSchemaBase(BaseSchema):
             the schema.
         """
         schema_root = self._parent(root=True)
-        cwd = getattr(schema_root, "cwd", os.getcwd())
-        collection_dir = getattr(schema_root, "getcollectiondir", None)
-        if collection_dir:
-            collection_dir = collection_dir()
+        cwd = getattr(schema_root, "_Project__cwd", os.getcwd())
+        collection_dir = getcollectiondir(schema_root)
 
         return super().find_files(*keypath,
                                   missing_ok=missing_ok,
@@ -71,13 +70,11 @@ class PathSchemaBase(BaseSchema):
             True if all file paths are valid, otherwise False.
         '''
         schema_root = self._parent(root=True)
-        cwd = getattr(schema_root, "cwd", os.getcwd())
+        cwd = getattr(schema_root, "_Project__cwd", os.getcwd())
         logger = getattr(schema_root,
                          "logger",
                          logging.getLogger("siliconcompiler.check_filepaths"))
-        collection_dir = getattr(schema_root, "getcollectiondir", None)
-        if collection_dir:
-            collection_dir = collection_dir()
+        collection_dir = getcollectiondir(schema_root)
 
         return super().check_filepaths(
             ignore_keys=ignore_keys,
@@ -123,13 +120,11 @@ class PathSchemaBase(BaseSchema):
             Computes, stores, and returns hashes of files in :keypath:`input, rtl, verilog`.
         '''
         schema_root = self._parent(root=True)
-        cwd = getattr(schema_root, "cwd", os.getcwd())
+        cwd = getattr(schema_root, "_Project__cwd", os.getcwd())
         logger = getattr(schema_root,
                          "logger",
                          logging.getLogger("siliconcompiler.hash_files"))
-        collection_dir = getattr(schema_root, "getcollectiondir", None)
-        if collection_dir:
-            collection_dir = collection_dir()
+        collection_dir = getcollectiondir(schema_root)
 
         if verbose:
             logger.info(f"Computing hash value for [{','.join([*self._keypath, *keypath])}]")
