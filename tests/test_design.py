@@ -594,6 +594,17 @@ def test_write_fileset(datadir):
     ]
 
 
+def test_write_fileset_error_no_file():
+    d = Design("test")
+    d.add_file('heartbeat.v', 'rtl')
+
+    with pytest.raises(
+            FileNotFoundError,
+            match=r'Could not find "heartbeat.v" \[fileset,rtl,file,verilog\]: .*'):
+        d.write_fileset(filename="heartbeat.f", fileset=['rtl'])
+    assert not os.path.exists("heartbeat.f")
+
+
 def test_write_fileset_using_fileformat(datadir):
     d = Design("test")
     d.cwd = os.path.dirname(datadir)

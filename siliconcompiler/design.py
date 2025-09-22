@@ -1,3 +1,4 @@
+import io
 import re
 
 import os.path
@@ -422,33 +423,37 @@ class Design(LibrarySchema, DependencySchema):
         '''
         written_cmd = set()
 
+        content = io.StringIO()
+
+        def write(cmd):
+            if cmd in written_cmd:
+                content.write(f"// {cmd}\n")
+            else:
+                written_cmd.add(cmd)
+                content.write(f"{cmd}\n")
+
+        def write_header(header):
+            content.write(f"// {header}\n")
+
+        for lib, fileset in self.get_fileset(filesets, depalias):
+            if lib.get('fileset', fileset, 'idir'):
+                write_header(f"{lib.name} / {fileset} / include directories")
+                for idir in lib.find_files('fileset', fileset, 'idir'):
+                    write(f"+incdir+{idir}")
+
+            if lib.get('fileset', fileset, 'define'):
+                write_header(f"{lib.name} / {fileset} / defines")
+                for define in lib.get('fileset', fileset, 'define'):
+                    write(f"+define+{define}")
+
+            for filetype in lib.getkeys('fileset', fileset, 'file'):
+                if lib.get('fileset', fileset, 'file', filetype):
+                    write_header(f"{lib.name} / {fileset} / {filetype} files")
+                    for file in lib.find_files('fileset', fileset, 'file', filetype):
+                        write(file)
+
         with open(filename, "w") as f:
-            def write(cmd):
-                if cmd in written_cmd:
-                    f.write(f"// {cmd}\n")
-                else:
-                    written_cmd.add(cmd)
-                    f.write(f"{cmd}\n")
-
-            def write_header(header):
-                f.write(f"// {header}\n")
-
-            for lib, fileset in self.get_fileset(filesets, depalias):
-                if lib.get('fileset', fileset, 'idir'):
-                    write_header(f"{lib.name} / {fileset} / include directories")
-                    for idir in lib.find_files('fileset', fileset, 'idir'):
-                        write(f"+incdir+{idir}")
-
-                if lib.get('fileset', fileset, 'define'):
-                    write_header(f"{lib.name} / {fileset} / defines")
-                    for define in lib.get('fileset', fileset, 'define'):
-                        write(f"+define+{define}")
-
-                for filetype in lib.getkeys('fileset', fileset, 'file'):
-                    if lib.get('fileset', fileset, 'file', filetype):
-                        write_header(f"{lib.name} / {fileset} / {filetype} files")
-                        for file in lib.find_files('fileset', fileset, 'file', filetype):
-                            write(file)
+            f.write(content.getvalue())
 
     def __map_fileformat(self, path):
         '''
