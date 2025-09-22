@@ -1,6 +1,5 @@
-import chisel3.stage.ChiselStage
-
 import chisel3._
+import chisel3.stage.ChiselStage
 
 object SCDriver extends App {
   (new ChiselStage).execute(

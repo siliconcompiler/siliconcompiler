@@ -32,6 +32,8 @@ class ConvertTask(TaskSchema):
             line = line.strip()
             if 'sbt script version:' in line:
                 return line.split()[-1]
+            if 'sbt runner version:' in line:
+                return line.split()[-1]
 
         return None
 
