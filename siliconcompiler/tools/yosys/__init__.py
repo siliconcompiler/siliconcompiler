@@ -22,7 +22,7 @@ from siliconcompiler import sc_open
 
 from siliconcompiler import StdCellLibrary
 from siliconcompiler import FPGA
-from siliconcompiler.tool import TaskSchema
+from siliconcompiler import TaskSchema
 
 
 class YosysStdCellLibrary(StdCellLibrary):

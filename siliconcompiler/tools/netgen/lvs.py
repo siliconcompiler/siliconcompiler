@@ -3,7 +3,7 @@ import os.path
 from siliconcompiler.tools.netgen import count_lvs
 from siliconcompiler import sc_open
 
-from siliconcompiler.tool import TaskSchema
+from siliconcompiler import TaskSchema
 
 
 class LVSTask(TaskSchema):

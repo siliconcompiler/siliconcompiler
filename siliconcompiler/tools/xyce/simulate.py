@@ -1,6 +1,6 @@
 import os.path
 
-from siliconcompiler.tool import TaskSchema
+from siliconcompiler import TaskSchema
 
 
 class SimulateTask(TaskSchema):

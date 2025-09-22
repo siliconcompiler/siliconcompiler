@@ -1,5 +1,5 @@
 from siliconcompiler import Flowgraph
-from siliconcompiler.tool import ShowTaskSchema
+from siliconcompiler import ShowTaskSchema
 
 
 class ShowFlow(Flowgraph):

@@ -13,8 +13,8 @@ from unittest.mock import patch
 
 from siliconcompiler import Project, Flowgraph, Design
 from siliconcompiler import NodeStatus
-from siliconcompiler.tool import TaskSchema
-from siliconcompiler.tool import TaskSkip
+from siliconcompiler import TaskSchema
+from siliconcompiler import TaskSkip
 from siliconcompiler.tools.builtin.nop import NOPTask
 from siliconcompiler.tools.builtin.join import JoinTask
 from scheduler.tools.echo import EchoTask
@@ -1343,7 +1343,7 @@ def test_run_pass_restore_env(project):
         assert "THISVALUE" == os.environ["TEST"]
         return 0
 
-    with patch("siliconcompiler.tool.TaskSchema.run_task") as run_task, \
+    with patch("siliconcompiler.TaskSchema.run_task") as run_task, \
             patch("siliconcompiler.scheduler.SchedulerNode.check_logfile") as check_logfile:
         run_task.side_effect = check_run
         node.run()
@@ -1402,7 +1402,7 @@ def test_run_failed_select_input(project, monkeypatch, caplog):
     node = SchedulerNode(project, "steptwo", "0")
     node.task.setup_work_directory(node.workdir)
 
-    with patch("siliconcompiler.tool.TaskSchema.select_input_nodes") as call_input_select:
+    with patch("siliconcompiler.TaskSchema.select_input_nodes") as call_input_select:
         call_input_select.return_value = []
         with pytest.raises(SystemExit):
             node.run()
@@ -1443,7 +1443,7 @@ def test_run_failed_to_execute_initial_save_has_error(project):
 
     assert node._SchedulerNode__generate_test_case is True
 
-    with patch("siliconcompiler.tool.TaskSchema.run_task") as run_task, \
+    with patch("siliconcompiler.TaskSchema.run_task") as run_task, \
             patch("siliconcompiler.scheduler.SchedulerNode.halt") as halt, \
             patch("siliconcompiler.scheduler.SchedulerNode._SchedulerNode__generate_testcase") as \
             testcase:
@@ -1473,7 +1473,7 @@ def test_run_failed_to_execute_generate_issue(project, monkeypatch, caplog):
 
     assert node._SchedulerNode__generate_test_case is True
 
-    with patch("siliconcompiler.tool.TaskSchema.run_task") as run_task, \
+    with patch("siliconcompiler.TaskSchema.run_task") as run_task, \
             patch("siliconcompiler.scheduler.SchedulerNode._SchedulerNode__generate_testcase") as \
             testcase:
         run_task.return_value = 1

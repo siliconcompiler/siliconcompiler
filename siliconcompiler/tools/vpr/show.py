@@ -1,7 +1,7 @@
 import os.path
 
 from siliconcompiler.tools.vpr import VPRTask
-from siliconcompiler.tool import ShowTaskSchema
+from siliconcompiler import ShowTaskSchema
 
 
 class ShowTask(ShowTaskSchema, VPRTask):

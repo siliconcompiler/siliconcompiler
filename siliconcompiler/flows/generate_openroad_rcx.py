@@ -3,7 +3,7 @@ from siliconcompiler.tools.openroad import rcx_extract
 from siliconcompiler.tools.builtin import nop
 
 from siliconcompiler import Flowgraph
-from siliconcompiler.tool import TaskSchema
+from siliconcompiler import TaskSchema
 
 
 class GenerateOpenRCXFlow(Flowgraph):

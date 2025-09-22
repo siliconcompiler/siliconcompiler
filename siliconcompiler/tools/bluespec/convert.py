@@ -5,7 +5,7 @@ import os.path
 
 from siliconcompiler import sc_open
 
-from siliconcompiler.tool import TaskSchema
+from siliconcompiler import TaskSchema
 
 
 class ConvertTask(TaskSchema):

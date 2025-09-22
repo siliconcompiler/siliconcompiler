@@ -1,4 +1,4 @@
-from siliconcompiler.tool import ScreenshotTaskSchema
+from siliconcompiler import ScreenshotTaskSchema
 from siliconcompiler.tools.graphviz.show import ShowTask
 
 

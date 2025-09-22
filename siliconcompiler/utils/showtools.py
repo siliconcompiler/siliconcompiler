@@ -1,6 +1,6 @@
 from shutil import which
 
-from siliconcompiler.tool import ShowTaskSchema, ScreenshotTaskSchema
+from siliconcompiler import ShowTaskSchema, ScreenshotTaskSchema
 
 from siliconcompiler.tools.klayout.show import ShowTask as KlayoutShow
 from siliconcompiler.tools.klayout.screenshot import ScreenshotTask as KlayoutScreenshot

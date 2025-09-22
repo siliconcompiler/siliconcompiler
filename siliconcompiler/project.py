@@ -23,8 +23,8 @@ from siliconcompiler import Checklist
 
 from siliconcompiler.schema_support.record import RecordSchema
 from siliconcompiler.schema_support.metric import MetricSchema
-from siliconcompiler.tool import TaskSchema
-from siliconcompiler.tool import ShowTaskSchema, ScreenshotTaskSchema
+from siliconcompiler import TaskSchema
+from siliconcompiler import ShowTaskSchema, ScreenshotTaskSchema
 from siliconcompiler.schema_support.option import OptionSchema
 from siliconcompiler.library import LibrarySchema
 

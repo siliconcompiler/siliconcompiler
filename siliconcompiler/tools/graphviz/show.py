@@ -5,7 +5,7 @@ import os.path
 from PIL import Image
 
 from siliconcompiler import sc_open
-from siliconcompiler.tool import ShowTaskSchema
+from siliconcompiler import ShowTaskSchema
 
 
 class ShowTask(ShowTaskSchema):

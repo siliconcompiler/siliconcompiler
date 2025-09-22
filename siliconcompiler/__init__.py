@@ -11,6 +11,9 @@ from siliconcompiler.checklist import Checklist
 from siliconcompiler.library import StdCellLibrary
 from siliconcompiler.schematic import Schematic
 
+# Tasks
+from siliconcompiler.tool import TaskSchema, ShowTaskSchema, ScreenshotTaskSchema, TaskSkip
+
 # Projects
 from siliconcompiler.project import Project
 from siliconcompiler.asic import ASICProject
@@ -19,6 +22,7 @@ from siliconcompiler.project import LintProject
 from siliconcompiler.project import SimProject
 
 from siliconcompiler.fpga import FPGA
+
 
 __all__ = [
     "__version__",
@@ -32,6 +36,11 @@ __all__ = [
     "FPGA",
     "Schematic",
     "StdCellLibrary",
+
+    "TaskSchema",
+    "TaskSkip",
+    "ShowTaskSchema",
+    "ScreenshotTaskSchema",
 
     "Project",
     "ASICProject",

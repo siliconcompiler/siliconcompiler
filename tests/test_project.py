@@ -11,7 +11,8 @@ from unittest.mock import patch
 
 from siliconcompiler import Project
 from siliconcompiler import Design, Flowgraph, Checklist
-from siliconcompiler.tool import TaskSchema, ToolSchema
+from siliconcompiler import TaskSchema
+from siliconcompiler.tool import ToolSchema
 from siliconcompiler.library import LibrarySchema
 
 from siliconcompiler.schema import NamedSchema, EditableSchema, Parameter, Scope

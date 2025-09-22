@@ -1,5 +1,5 @@
 from siliconcompiler.tools.vpr.show import ShowTask
-from siliconcompiler.tool import ScreenshotTaskSchema
+from siliconcompiler import ScreenshotTaskSchema
 
 
 class ScreenshotTask(ScreenshotTaskSchema, ShowTask):

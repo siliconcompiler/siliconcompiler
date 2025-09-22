@@ -6,7 +6,7 @@ import os.path
 from unittest.mock import patch
 
 from siliconcompiler import Project, ASICProject, Design, PDK
-from siliconcompiler.tool import ShowTaskSchema, ScreenshotTaskSchema
+from siliconcompiler import ShowTaskSchema, ScreenshotTaskSchema
 
 from siliconcompiler.tools.klayout import show as klayout_show
 from siliconcompiler.tools.openroad import show as openroad_show
@@ -33,7 +33,7 @@ def exit_on_show(monkeypatch):
 
     monkeypatch.setattr(ShowTaskSchema, "setup", mock_setup)
 
-    with patch.dict("siliconcompiler.tool.ShowTaskSchema._ShowTaskSchema__TASKS", clear=True):
+    with patch.dict("siliconcompiler.ShowTaskSchema._ShowTaskSchema__TASKS", clear=True):
         yield
 
 

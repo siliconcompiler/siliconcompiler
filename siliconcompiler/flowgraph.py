@@ -82,7 +82,7 @@ class Flowgraph(NamedSchema, DocsSchema):
             # Creates a node for the 'place' task in the 'openroad' tool,
             # identified by step='place' and index=0.
         '''
-        from siliconcompiler.tool import TaskSchema
+        from siliconcompiler import TaskSchema
 
         if step in (Parameter.GLOBAL_KEY, 'default', 'sc_collected_files'):
             raise ValueError(f"{step} is a reserved name")

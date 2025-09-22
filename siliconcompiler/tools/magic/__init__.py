@@ -15,7 +15,7 @@ import shutil
 import os.path
 
 from siliconcompiler.schema.parametervalue import PathNodeValue
-from siliconcompiler.tool import TaskSchema
+from siliconcompiler import TaskSchema
 
 
 class MagicTask(TaskSchema):

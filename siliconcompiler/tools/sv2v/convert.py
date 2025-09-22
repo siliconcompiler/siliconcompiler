@@ -1,4 +1,4 @@
-from siliconcompiler.tool import TaskSchema
+from siliconcompiler import TaskSchema
 
 
 class ConvertTask(TaskSchema):

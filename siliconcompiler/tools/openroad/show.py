@@ -4,7 +4,7 @@ import os
 import os.path
 
 
-from siliconcompiler.tool import ShowTaskSchema
+from siliconcompiler import ShowTaskSchema
 from siliconcompiler.tools.openroad._apr import APRTask, OpenROADSTAParameter
 
 

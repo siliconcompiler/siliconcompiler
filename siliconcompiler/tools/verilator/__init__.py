@@ -15,7 +15,7 @@ Installation: https://verilator.org/guide/latest/install.html
 
 import os.path
 
-from siliconcompiler.tool import TaskSchema
+from siliconcompiler import TaskSchema
 
 
 class VerilatorTask(TaskSchema):

@@ -5,7 +5,7 @@ import shutil
 
 from siliconcompiler import NodeStatus
 
-from siliconcompiler.tool import TaskSchema
+from siliconcompiler import TaskSchema
 from siliconcompiler import utils
 
 
