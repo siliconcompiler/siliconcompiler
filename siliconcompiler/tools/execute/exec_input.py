@@ -3,10 +3,10 @@ import stat
 
 import os.path
 
-from siliconcompiler.tool import TaskSchema
+from siliconcompiler import Task
 
 
-class ExecInputTask(TaskSchema):
+class ExecInputTask(Task):
     '''
     Execute the output of the previous step directly.
     This only works if the task receives a single file.

@@ -6,10 +6,10 @@ import os.path
 from siliconcompiler import sc_open
 from siliconcompiler import utils
 
-from siliconcompiler.tool import TaskSchema
+from siliconcompiler import Task
 
 
-class ElaborateTask(TaskSchema):
+class ElaborateTask(Task):
     def __init__(self):
         super().__init__()
 

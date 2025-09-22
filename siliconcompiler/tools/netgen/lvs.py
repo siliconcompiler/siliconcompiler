@@ -3,10 +3,10 @@ import os.path
 from siliconcompiler.tools.netgen import count_lvs
 from siliconcompiler import sc_open
 
-from siliconcompiler.tool import TaskSchema
+from siliconcompiler import Task
 
 
-class LVSTask(TaskSchema):
+class LVSTask(Task):
     '''
     Perform LVS on the supplied netlists
     '''

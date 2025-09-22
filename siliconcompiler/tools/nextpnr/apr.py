@@ -1,7 +1,7 @@
-from siliconcompiler.tool import TaskSchema
+from siliconcompiler import Task
 
 
-class APRTask(TaskSchema):
+class APRTask(Task):
     '''
     Perform automated place and route on FPGAs
     '''

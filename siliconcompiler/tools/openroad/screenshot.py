@@ -1,8 +1,8 @@
-from siliconcompiler.tool import ScreenshotTaskSchema
+from siliconcompiler import ScreenshotTask
 from siliconcompiler.tools.openroad.show import ShowTask
 
 
-class ScreenshotTask(ScreenshotTaskSchema, ShowTask):
+class ScreenshotTask(ScreenshotTask, ShowTask):
     '''
     Generate a PNG file from a layout file
     '''

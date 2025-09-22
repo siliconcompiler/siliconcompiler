@@ -1,10 +1,10 @@
 import os.path
 
 from siliconcompiler.tools.vpr import VPRTask
-from siliconcompiler.tool import ShowTaskSchema
+from siliconcompiler import ShowTask
 
 
-class ShowTask(ShowTaskSchema, VPRTask):
+class ShowTask(ShowTask, VPRTask):
     '''
     Show placed and/or routed designs in VPR GUI
     '''

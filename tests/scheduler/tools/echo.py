@@ -1,7 +1,7 @@
-from siliconcompiler.tool import TaskSchema
+from siliconcompiler import Task
 
 
-class EchoTask(TaskSchema):
+class EchoTask(Task):
     def __init__(self):
         super().__init__()
 

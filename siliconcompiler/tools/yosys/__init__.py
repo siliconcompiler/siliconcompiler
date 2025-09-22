@@ -22,7 +22,7 @@ from siliconcompiler import sc_open
 
 from siliconcompiler import StdCellLibrary
 from siliconcompiler import FPGA
-from siliconcompiler.tool import TaskSchema
+from siliconcompiler import Task
 
 
 class YosysStdCellLibrary(StdCellLibrary):
@@ -369,7 +369,7 @@ class YosysFPGA(FPGA):
             return self.add("tool", "yosys", "dsps", name)
 
 
-class YosysTask(TaskSchema):
+class YosysTask(Task):
     def tool(self):
         return "yosys"
 

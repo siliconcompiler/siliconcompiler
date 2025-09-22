@@ -1,7 +1,7 @@
 from siliconcompiler.tools.openroad._apr import APRTask
 from siliconcompiler.tools.openroad._apr import OpenROADSTAParameter, OpenROADPSMParameter
 
-from siliconcompiler.tool import TaskSkip
+from siliconcompiler import TaskSkip
 
 
 class PowerGridTask(APRTask, OpenROADSTAParameter, OpenROADPSMParameter):
