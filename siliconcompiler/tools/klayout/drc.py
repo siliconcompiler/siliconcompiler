@@ -5,7 +5,7 @@ import os.path
 from xml.etree import ElementTree
 
 from siliconcompiler.tools.klayout import KLayoutTask
-from siliconcompiler.asic import ASICTaskSchema
+from siliconcompiler.asic import ASICTask
 
 
 class DRCTask(KLayoutTask):
@@ -28,7 +28,7 @@ class DRCTask(KLayoutTask):
         self.add_required_key("var", "drc_name")
 
     def runtime_options(self):
-        options = ASICTaskSchema.runtime_options(self)
+        options = ASICTask.runtime_options(self)
 
         layout = None
         for file in [f'inputs/{self.design_topmodule}.gds', f'inputs/{self.design_topmodule}.oas']:

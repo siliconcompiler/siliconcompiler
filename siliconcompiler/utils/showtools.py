@@ -1,6 +1,6 @@
 from shutil import which
 
-from siliconcompiler.tool import ShowTaskSchema, ScreenshotTaskSchema
+from siliconcompiler import ShowTask, ScreenshotTask
 
 from siliconcompiler.tools.klayout.show import ShowTask as KlayoutShow
 from siliconcompiler.tools.klayout.screenshot import ScreenshotTask as KlayoutScreenshot
@@ -19,16 +19,16 @@ from siliconcompiler.tools.surfer.show import ShowTask as SurferShow
 
 
 def showtasks():
-    ShowTaskSchema.register_task(KlayoutShow)
-    ShowTaskSchema.register_task(OpenROADShow)
-    ShowTaskSchema.register_task(GraphvizShow)
-    ShowTaskSchema.register_task(VPRShow)
+    ShowTask.register_task(KlayoutShow)
+    ShowTask.register_task(OpenROADShow)
+    ShowTask.register_task(GraphvizShow)
+    ShowTask.register_task(VPRShow)
     if which('surfer') is not None:
-        ShowTaskSchema.register_task(SurferShow)
+        ShowTask.register_task(SurferShow)
     else:
-        ShowTaskSchema.register_task(GTKWaveShow)
+        ShowTask.register_task(GTKWaveShow)
 
-    ScreenshotTaskSchema.register_task(KlayoutScreenshot)
-    ScreenshotTaskSchema.register_task(OpenROADScreenshot)
-    ScreenshotTaskSchema.register_task(GraphvizScreenshot)
-    ScreenshotTaskSchema.register_task(VPRSScreenshot)
+    ScreenshotTask.register_task(KlayoutScreenshot)
+    ScreenshotTask.register_task(OpenROADScreenshot)
+    ScreenshotTask.register_task(GraphvizScreenshot)
+    ScreenshotTask.register_task(VPRSScreenshot)

@@ -6,11 +6,11 @@ import os.path
 
 from siliconcompiler.utils import sc_open
 
-from siliconcompiler.tool import TaskSchema
-from siliconcompiler.asic import ASICTaskSchema
+from siliconcompiler import Task
+from siliconcompiler.asic import ASICTask
 
 
-class ConvertTask(ASICTaskSchema, TaskSchema):
+class ConvertTask(ASICTask, Task):
     def __init__(self):
         super().__init__()
 

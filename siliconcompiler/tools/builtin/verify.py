@@ -1,7 +1,7 @@
 import re
 
 from siliconcompiler.schema.parametertype import NodeType
-from siliconcompiler.tool import TaskSchema, utils
+from siliconcompiler import Task, utils
 
 from siliconcompiler.tools.builtin import BuiltinTask
 
@@ -19,7 +19,7 @@ class VerifyTask(BuiltinTask):
     def setup(self):
         super().setup()
 
-        len_inputs = len(TaskSchema.select_input_nodes(self))
+        len_inputs = len(Task.select_input_nodes(self))
         if len_inputs != 1:
             raise ValueError(f'{self.step}/{self.index} receives {len_inputs} inputs, but only '
                              'supports one')

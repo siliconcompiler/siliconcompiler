@@ -18,10 +18,10 @@ try:
 except ModuleNotFoundError:
     pyslang = None
 
-from siliconcompiler.tool import TaskSchema
+from siliconcompiler import Task
 
 
-class SlangTask(TaskSchema):
+class SlangTask(Task):
     def __init__(self):
         super().__init__()
 

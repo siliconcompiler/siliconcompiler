@@ -354,7 +354,7 @@ class SchedulerNode:
         Raises:
             Exception: Propagates any exception from the task's setup() method.
         """
-        from siliconcompiler.tool import TaskSkip
+        from siliconcompiler import TaskSkip
 
         with self.__task.runtime(self) as task:
             # Run node setup.
@@ -865,7 +865,7 @@ class SchedulerNode:
         steps for the node's task. It manages the tool's environment, checks
         for return codes, and handles log file parsing and error reporting.
         """
-        from siliconcompiler.tool import TaskSkip
+        from siliconcompiler import TaskSkip
 
         self.logger.info(f'Running in {self.__workdir}')
 

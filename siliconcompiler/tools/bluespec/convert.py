@@ -5,10 +5,10 @@ import os.path
 
 from siliconcompiler import sc_open
 
-from siliconcompiler.tool import TaskSchema
+from siliconcompiler import Task
 
 
-class ConvertTask(TaskSchema):
+class ConvertTask(Task):
     VLOGDIR = "verilog"
     BSCDIR = "bluespec"
 

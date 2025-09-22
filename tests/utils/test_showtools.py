@@ -6,7 +6,7 @@ import os.path
 from unittest.mock import patch
 
 from siliconcompiler import Project, ASICProject, Design, PDK
-from siliconcompiler.tool import ShowTaskSchema, ScreenshotTaskSchema
+from siliconcompiler import ShowTask, ScreenshotTask
 
 from siliconcompiler.tools.klayout import show as klayout_show
 from siliconcompiler.tools.openroad import show as openroad_show
@@ -25,15 +25,15 @@ def generate_id(cls):
 
 @pytest.fixture(autouse=True)
 def exit_on_show(monkeypatch):
-    org_setup = ShowTaskSchema.setup
+    org_setup = ShowTask.setup
 
     def mock_setup(self):
         org_setup(self)
         self.set("var", "showexit", True, clobber=True)
 
-    monkeypatch.setattr(ShowTaskSchema, "setup", mock_setup)
+    monkeypatch.setattr(ShowTask, "setup", mock_setup)
 
-    with patch.dict("siliconcompiler.tool.ShowTaskSchema._ShowTaskSchema__TASKS", clear=True):
+    with patch.dict("siliconcompiler.ShowTask._ShowTask__TASKS", clear=True):
         yield
 
 
@@ -52,8 +52,8 @@ def test_show_def(target, testfile, task, datadir, display):
     proj = ASICProject(design)
     proj.load_target(target.setup)
 
-    ShowTaskSchema.register_task(task)
-    assert isinstance(ShowTaskSchema.get_task("def"), task)
+    ShowTask.register_task(task)
+    assert isinstance(ShowTask.get_task("def"), task)
 
     proj.show(os.path.join(datadir, testfile))
 
@@ -74,8 +74,8 @@ def test_screenshot_def(target, testfile, task, datadir, display):
     proj = ASICProject(design)
     proj.load_target(target.setup)
 
-    ScreenshotTaskSchema.register_task(task)
-    assert isinstance(ScreenshotTaskSchema.get_task("def"), task)
+    ScreenshotTask.register_task(task)
+    assert isinstance(ScreenshotTask.get_task("def"), task)
 
     path = proj.show(os.path.join(datadir, testfile), screenshot=True)
     assert os.path.isfile(path)
@@ -94,8 +94,8 @@ def test_show_lyp_tool_klayout(datadir, display):
     pdk: PDK = proj.get("library", "freepdk45", field="schema")
     pdk.set("pdk", "layermapfileset", "klayout", "def", "klayout", [], clobber=True)
 
-    ShowTaskSchema.register_task(klayout_show.ShowTask)
-    assert isinstance(ShowTaskSchema.get_task("def"), klayout_show.ShowTask)
+    ShowTask.register_task(klayout_show.ShowTask)
+    assert isinstance(ShowTask.get_task("def"), klayout_show.ShowTask)
 
     proj.show(os.path.join(datadir, 'heartbeat_freepdk45.def'))
 
@@ -110,7 +110,7 @@ def test_show_nopdk_tool_klayout(datadir, display):
     proj = ASICProject(design)
     proj.load_target(freepdk45_demo.setup)
 
-    assert isinstance(ShowTaskSchema.get_task("gds"), klayout_show.ShowTask)
+    assert isinstance(ShowTask.get_task("gds"), klayout_show.ShowTask)
     testfile = os.path.join(datadir, 'heartbeat.gds.gz')
 
     proj.show(testfile)
@@ -124,8 +124,8 @@ def test_show_vcd_surfer(datadir, display, gcd_design):
     proj = Project(gcd_design)
     proj.add_fileset("rtl")
 
-    ShowTaskSchema.register_task(SurferShow)
-    assert isinstance(ShowTaskSchema.get_task("vcd"), SurferShow)
+    ShowTask.register_task(SurferShow)
+    assert isinstance(ShowTask.get_task("vcd"), SurferShow)
 
     proj.show(os.path.join(datadir, 'random.vcd'))
 
@@ -137,8 +137,8 @@ def test_show_vcd_gtkwave(datadir, display, gcd_design):
     proj = Project(gcd_design)
     proj.add_fileset("rtl")
 
-    ShowTaskSchema.register_task(GtkwaveShow)
-    assert isinstance(ShowTaskSchema.get_task("vcd"), GtkwaveShow)
+    ShowTask.register_task(GtkwaveShow)
+    assert isinstance(ShowTask.get_task("vcd"), GtkwaveShow)
 
     proj.show(os.path.join(datadir, 'random.vcd'))
 
@@ -149,6 +149,6 @@ def test_show_vcd_gtkwave(datadir, display, gcd_design):
 def test_screenshot_dot(datadir, gcd_design):
     proj = Project(gcd_design)
     proj.add_fileset("rtl")
-    assert isinstance(ScreenshotTaskSchema.get_task("dot"), GraphvizScreenshot)
+    assert isinstance(ScreenshotTask.get_task("dot"), GraphvizScreenshot)
     file = proj.show(os.path.join(datadir, 'mkDotProduct_nt_Int32.dot'), screenshot=True)
     assert os.path.isfile(file)

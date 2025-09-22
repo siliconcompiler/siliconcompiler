@@ -16,13 +16,13 @@ A complete list of built-in tools can be found in the :ref:`Tools <builtin_tools
 The Structure of a Tool Driver
 ------------------------------
 
-A tool driver is a Python module that typically defines at least one :class:`.TaskSchema` class.
+A tool driver is a Python module that typically defines at least one :class:`.Task` class.
 
 .. code-block:: python
 
-  from siliconcompiler import TaskSchema
+  from siliconcompiler import Task
 
-  class MyTask(TaskSchema):
+  class MyTask(Task):
       """A task for running the tool in a specific way."""
       # Task-level implementation goes here.
 
@@ -35,7 +35,7 @@ A tool driver is a Python module that typically defines at least one :class:`.Ta
 The setup() Method: Core Configuration
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The :meth:`.TaskSchema.setup()` method is the heart of the driver. It's called for each step in the flow and is responsible for configuring all aspects of the tool and task.
+The :meth:`.Task.setup()` method is the heart of the driver. It's called for each step in the flow and is responsible for configuring all aspects of the tool and task.
 Inside this method, you have access to the project object to define your settings.
 
 Step 1: Basic Tool Configuration
@@ -88,14 +88,14 @@ Next, you define what the specific task needs to run and what it will produce.
 Execution Lifecycle Methods
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Beyond the initial setup, a :class:`.TaskSchema` class implements several methods that are called at different points during the :meth:`.TaskSchema.run()` process.
+Beyond the initial setup, a :class:`.Task` class implements several methods that are called at different points during the :meth:`.Task.run()` process.
 
 runtime_options()
 """""""""""""""""
 
 This method generates the command-line options for the tool. It is called at execution time, which is critical for distributed systems where absolute file paths are only known on the execution machine.
 
-**Why is this separate from setup()?** :meth:`.TaskSchema.setup()` is run early to validate the entire flow, while :meth:`.TaskSchema.runtime_options()` runs just-in-time to build the command, ensuring all paths are resolved correctly.
+**Why is this separate from setup()?** :meth:`.Task.setup()` is run early to validate the entire flow, while :meth:`.Task.runtime_options()` runs just-in-time to build the command, ensuring all paths are resolved correctly.
 
 .. code-block:: python
 
@@ -141,16 +141,16 @@ This method is called after the tool executable has finished. Its primary purpos
 pre_process() and run()
 """""""""""""""""""""""
 
-* :meth:`.TaskSchema.pre_process()`: A hook that runs immediately before the tool executable is launched. Useful for last-minute adjustments based on results from prior steps.
-* :meth:`.TaskSchema.pre_process()`: For pure-Python tools. If this method is defined, SiliconCompiler will execute this Python function instead of an external command-line executable. It should return 0 on success.
+* :meth:`.Task.pre_process()`: A hook that runs immediately before the tool executable is launched. Useful for last-minute adjustments based on results from prior steps.
+* :meth:`.Task.pre_process()`: For pure-Python tools. If this method is defined, SiliconCompiler will execute this Python function instead of an external command-line executable. It should return 0 on success.
 
 Version Handling
 ^^^^^^^^^^^^^^^^
 
 To ensure reproducible builds, SiliconCompiler has a robust version-checking system. You may need to implement these helper methods in your Tool class.
 
-* :meth:`.TaskSchema.parse_version()`: The output of exe --version can be messy. This function parses the raw stdout string and returns a clean version number (e.g., "2.1.3").
-* :meth:`.TaskSchema.normalize_version()`: SC's version checker uses the Python PEP-440 standard. If your tool uses a non-standard versioning scheme (e.g., 2.1+a4b8c1), this function should convert it to a compatible format (e.g., 2.1.post0.dev-a4b8c1).
+* :meth:`.Task.parse_version()`: The output of exe --version can be messy. This function parses the raw stdout string and returns a clean version number (e.g., "2.1.3").
+* :meth:`.Task.normalize_version()`: SC's version checker uses the Python PEP-440 standard. If your tool uses a non-standard versioning scheme (e.g., 2.1+a4b8c1), this function should convert it to a compatible format (e.g., 2.1.post0.dev-a4b8c1).
 
 Interface for TCL-Based Tools
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -181,9 +181,9 @@ Your TCL script is responsible for reading from this dictionary and applying the
 API Quick Reference
 -------------------
 
-The :class:`.TaskSchema` class provides a rich API for defining and controlling how a tool operates. The methods are grouped below by their primary function.
+The :class:`.Task` class provides a rich API for defining and controlling how a tool operates. The methods are grouped below by their primary function.
 
-.. currentmodule:: siliconcompiler.tool.TaskSchema
+.. currentmodule:: siliconcompiler.Task
 
 Task __init__ methods
 ^^^^^^^^^^^^^^^^^^^^^
@@ -196,7 +196,7 @@ Task __init__ methods
 Core Implementation Methods
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-These are the main methods you will implement in your :class:`.TaskSchema` subclass to define its behavior.
+These are the main methods you will implement in your :class:`.Task` subclass to define its behavior.
 
 .. autosummary::
     :nosignatures:
@@ -214,7 +214,7 @@ These are the main methods you will implement in your :class:`.TaskSchema` subcl
 Configuration Methods
 ^^^^^^^^^^^^^^^^^^^^^
 
-These methods are called within your :meth:`.TaskSchema.setup()` implementation to configure the task's properties.
+These methods are called within your :meth:`.Task.setup()` implementation to configure the task's properties.
 
 Tools settings
 """"""""""""""
@@ -253,7 +253,7 @@ Task settings
 Runtime Accessor Methods
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-These methods are used to get information about the current state of the flow during execution (e.g., inside :meth:`.TaskSchema.runtime_options()` or :meth:`.TaskSchema.post_process()`).
+These methods are used to get information about the current state of the flow during execution (e.g., inside :meth:`.Task.runtime_options()` or :meth:`.Task.post_process()`).
 
 .. autosummary::
     :nosignatures:
@@ -300,5 +300,5 @@ Class Reference
 ---------------
 
 .. scclassautosummary::
-    :class: siliconcompiler.tool/TaskSchema
+    :class: siliconcompiler/Task
     :noschema:

@@ -1,8 +1,8 @@
-from siliconcompiler.tool import ScreenshotTaskSchema, TaskSchema
+from siliconcompiler import ScreenshotTask, Task
 from siliconcompiler.tools.klayout.show import ShowTask
 
 
-class ScreenshotParams(TaskSchema):
+class ScreenshotParams(Task):
     '''
     Generate a PNG file from a layout file
     '''
@@ -40,7 +40,7 @@ class ScreenshotParams(TaskSchema):
                     self.add_output_file(f"{self.design_topmodule}_X{x}_Y{y}.png")
 
 
-class ScreenshotTask(ShowTask, ScreenshotTaskSchema, ScreenshotParams):
+class ScreenshotTask(ShowTask, ScreenshotTask, ScreenshotParams):
     def setup(self):
         super().setup()
 

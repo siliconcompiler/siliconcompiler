@@ -11,10 +11,10 @@ import os.path
 from unittest.mock import patch, ANY
 
 from siliconcompiler import Flowgraph
-from siliconcompiler.tool import ShowTaskSchema, ScreenshotTaskSchema
+from siliconcompiler import ShowTask, ScreenshotTask
 from siliconcompiler.schema_support.metric import MetricSchema
 from siliconcompiler.schema_support.record import RecordSchema
-from siliconcompiler.tool import TaskSchema
+from siliconcompiler import Task
 from siliconcompiler import Design, Project
 from siliconcompiler.schema import BaseSchema, EditableSchema, Parameter, SafeSchema
 from siliconcompiler.schema.parameter import PerNode, Scope
@@ -112,7 +112,7 @@ def test_tasktimeout_init():
 
 
 def test_init():
-    tool = TaskSchema()
+    tool = Task()
     assert tool.step is None
     assert tool.index is None
     assert tool.logger is None
@@ -122,17 +122,17 @@ def test_init():
 def test_tool():
     with pytest.raises(NotImplementedError,
                        match="tool name must be implemented by the child class"):
-        TaskSchema().tool()
+        Task().tool()
 
 
 def test_task():
     with pytest.raises(NotImplementedError,
                        match="task name must be implemented by the child class"):
-        TaskSchema().task()
+        Task().task()
 
 
 def test_task_name():
-    class NameTask(TaskSchema):
+    class NameTask(Task):
         def task(self):
             return "thistask"
     task = NameTask()
@@ -142,28 +142,26 @@ def test_task_name():
 
 def test_runtime_invalid_type():
     with pytest.raises(TypeError, match="node must be a scheduler node"):
-        with TaskSchema().runtime(BaseSchema()):
+        with Task().runtime(BaseSchema()):
             pass
 
 
 def test_runtime_step_override(running_project):
     with pytest.raises(RuntimeError, match="step and index cannot be provided with node"):
-        with TaskSchema().runtime(SchedulerNode(running_project, "step", "index"),
-                                  step="step"):
+        with Task().runtime(SchedulerNode(running_project, "step", "index"), step="step"):
             pass
 
 
 def test_runtime_index_override(running_project):
     with pytest.raises(RuntimeError, match="step and index cannot be provided with node"):
-        with TaskSchema().runtime(SchedulerNode(running_project, "step", "index"),
-                                  index="index"):
+        with Task().runtime(SchedulerNode(running_project, "step", "index"), index="index"):
             pass
 
 
 def test_set_runtime_invalid_flow(running_node):
     running_node.project.unset('option', 'flow')
     with pytest.raises(RuntimeError, match="flow not specified"):
-        with TaskSchema().runtime(running_node):
+        with Task().runtime(running_node):
             pass
 
 
@@ -696,7 +694,7 @@ def test_get_runtime_arguments_all(running_node, monkeypatch):
 
     with running_node.task.runtime(running_node) as runtool:
         def runtime_options():
-            options = TaskSchema.runtime_options(runtool)
+            options = Task.runtime_options(runtool)
             options.append("--arg3")
             return options
         monkeypatch.setattr(runtool, 'runtime_options', runtime_options)
@@ -780,7 +778,7 @@ def test_get_runtime_arguments_all_relative(running_node, monkeypatch):
 
     with running_node.task.runtime(running_node, relpath=os.getcwd()) as runtool:
         def runtime_options():
-            options = TaskSchema.runtime_options(runtool)
+            options = Task.runtime_options(runtool)
             options.append("--arg3")
             return options
         monkeypatch.setattr(runtool, 'runtime_options', runtime_options)
@@ -828,22 +826,22 @@ def test_get_output_files(running_node):
 def test_parse_version_not_implemented():
     with pytest.raises(NotImplementedError,
                        match="must be implemented by the implementation class"):
-        TaskSchema().parse_version("nothing")
+        Task().parse_version("nothing")
 
 
 def test_normalize_version():
-    tool = TaskSchema()
+    tool = Task()
     assert tool.normalize_version("nothing") == "nothing"
     assert tool.normalize_version(None) is None
 
 
 def test_setup():
-    tool = TaskSchema()
+    tool = Task()
     assert tool.setup() is None
 
 
 def test_pre_process():
-    tool = TaskSchema()
+    tool = Task()
     assert tool.pre_process() is None
 
 
@@ -888,16 +886,16 @@ def test_runtime_options_with_aruments_with_refdir(running_node):
 def test_run_not_implemented():
     with pytest.raises(NotImplementedError,
                        match="must be implemented by the implementation class"):
-        TaskSchema().run()
+        Task().run()
 
 
 def test_post_process():
-    tool = TaskSchema()
+    tool = Task()
     assert tool.post_process() is None
 
 
 def test_resetting_state_in_copy(running_node):
-    tool = TaskSchema()
+    tool = Task()
     with running_node.task.runtime(running_node) as runtool:
         assert runtool.project is not None
 
@@ -949,7 +947,7 @@ def test_generate_replay_script_no_path(running_node, monkeypatch):
 
 
 def test_setup_work_directory():
-    tool = TaskSchema()
+    tool = Task()
 
     os.makedirs("testwork", exist_ok=True)
 
@@ -965,7 +963,7 @@ def test_setup_work_directory():
 
 
 def test_setup_work_directory_ensure_clean():
-    tool = TaskSchema()
+    tool = Task()
 
     os.makedirs("testwork", exist_ok=True)
 
@@ -984,7 +982,7 @@ def test_setup_work_directory_ensure_clean():
 
 
 def test_setup_work_directory_ensure_keep():
-    tool = TaskSchema()
+    tool = Task()
 
     os.makedirs("testwork", exist_ok=True)
 
@@ -1397,7 +1395,7 @@ def test_select_input_nodes_entry_has_input(running_node):
 
 
 def test_task_add_parameter():
-    task = TaskSchema()
+    task = Task()
 
     assert task.getkeys("var") == tuple()
 
@@ -1433,14 +1431,14 @@ def test_task_add_parameter():
 
 
 def test_task_add_parameter_recovered():
-    task = TaskSchema()
+    task = Task()
     assert task.add_parameter("teststr", "str", "long form help")
     assert task.add_parameter("testbool", "bool", "long form help")
     assert task.add_parameter("testlist", "[str]", "long form help")
 
     assert task.getkeys("var") == ("testbool", "testlist", "teststr")
 
-    new_task = TaskSchema.from_manifest(name="newtask", cfg=task.getdict())
+    new_task = Task.from_manifest(name="newtask", cfg=task.getdict())
 
     assert new_task.getkeys("var") == ("testbool", "testlist", "teststr")
 
@@ -1470,7 +1468,7 @@ def test_task_add_parameter_recovered():
 
 
 def test_task_add_parameter_defvalue():
-    task = TaskSchema()
+    task = Task()
 
     task.add_parameter("teststr", "str", "long form help", defvalue="checkthis")
 
@@ -1483,7 +1481,7 @@ def test_task_add_parameter_defvalue():
     ("file.ext0.ext1.ext2", "instep", "inindex", "file.instepinindex.ext0.ext1.ext2"),
 ])
 def test_compute_input_file_node_name(filename, step, index, expect):
-    assert TaskSchema().compute_input_file_node_name(filename, step, index) == expect
+    assert Task().compute_input_file_node_name(filename, step, index) == expect
 
 
 def test_get_files_from_input_nodes_entry(running_node):
@@ -1959,86 +1957,86 @@ def test_get_fileset_file_keys_invalid(running_node):
             runtool.get_fileset_file_keys(["verilog"])
 
 
-@pytest.mark.parametrize("cls", [ShowTaskSchema, ScreenshotTaskSchema])
+@pytest.mark.parametrize("cls", [ShowTask, ScreenshotTask])
 def test_show_keys(cls):
     assert cls().getkeys("var") == ('showexit', 'showfilepath', 'showfiletype', 'shownode')
 
 
-@pytest.mark.parametrize("cls", [ShowTaskSchema, ScreenshotTaskSchema])
+@pytest.mark.parametrize("cls", [ShowTask, ScreenshotTask])
 def test_show_check_task_none(cls):
-    assert cls._ShowTaskSchema__check_task(None) is None
+    assert cls._ShowTask__check_task(None) is None
 
 
-@pytest.mark.parametrize("cls", [ShowTaskSchema, ScreenshotTaskSchema])
+@pytest.mark.parametrize("cls", [ShowTask, ScreenshotTask])
 def test_show_tcl_vars(cls):
-    with patch("siliconcompiler.tool.TaskSchema.get_tcl_variables") as tcl_vars:
+    with patch("siliconcompiler.Task.get_tcl_variables") as tcl_vars:
         tcl_vars.return_value = {}
         assert cls().get_tcl_variables() == {
-            "sc_do_screenshot": "true" if cls is ScreenshotTaskSchema else "false"}
+            "sc_do_screenshot": "true" if cls is ScreenshotTask else "false"}
 
 
 def test_show_task_name():
-    assert ShowTaskSchema().task() == "show"
-    assert ScreenshotTaskSchema().task() == "screenshot"
+    assert ShowTask().task() == "show"
+    assert ScreenshotTask().task() == "screenshot"
 
 
 def test_show_check_task_invalid():
-    class Test(ShowTaskSchema):
+    class Test(ShowTask):
         pass
 
-    with pytest.raises(TypeError, match="class must be ShowTaskSchema or ScreenshotTaskSchema"):
-        Test._ShowTaskSchema__check_task(None)
+    with pytest.raises(TypeError, match="class must be ShowTask or ScreenshotTask"):
+        Test._ShowTask__check_task(None)
 
 
 def test_show_check_task_is_showtask():
-    class Test(ShowTaskSchema):
+    class Test(ShowTask):
         pass
 
-    assert ShowTaskSchema._ShowTaskSchema__check_task(Test) is True
-    assert ScreenshotTaskSchema._ShowTaskSchema__check_task(Test) is False
+    assert ShowTask._ShowTask__check_task(Test) is True
+    assert ScreenshotTask._ShowTask__check_task(Test) is False
 
 
 def test_show_check_task_is_screenshottask():
-    class Test(ScreenshotTaskSchema):
+    class Test(ScreenshotTask):
         pass
 
-    assert ShowTaskSchema._ShowTaskSchema__check_task(Test) is False
-    assert ScreenshotTaskSchema._ShowTaskSchema__check_task(Test) is True
+    assert ShowTask._ShowTask__check_task(Test) is False
+    assert ScreenshotTask._ShowTask__check_task(Test) is True
 
 
 def test_show_register_task_invalid():
     class Test:
         pass
 
-    with pytest.raises(TypeError, match="task must be a subclass of ShowTaskSchema"):
-        ShowTaskSchema.register_task(Test)
+    with pytest.raises(TypeError, match="task must be a subclass of ShowTask"):
+        ShowTask.register_task(Test)
 
 
 def test_show_register_task():
-    class Test(ShowTaskSchema):
+    class Test(ShowTask):
         pass
 
-    with patch.dict("siliconcompiler.tool.ShowTaskSchema._ShowTaskSchema__TASKS", clear=True) \
+    with patch.dict("siliconcompiler.ShowTask._ShowTask__TASKS", clear=True) \
             as tasks:
         assert len(tasks) == 0
-        ShowTaskSchema.register_task(Test)
+        ShowTask.register_task(Test)
         assert len(tasks) == 1
-        assert tasks[ShowTaskSchema] == set([Test])
+        assert tasks[ShowTask] == set([Test])
 
 
 def test_show_get_task():
-    class Test(ShowTaskSchema):
+    class Test(ShowTask):
         def get_supported_show_extentions(self):
             return ["ext"]
         pass
 
-    with patch.dict("siliconcompiler.tool.ShowTaskSchema._ShowTaskSchema__TASKS", clear=True), \
+    with patch.dict("siliconcompiler.ShowTask._ShowTask__TASKS", clear=True), \
             patch("siliconcompiler.utils.showtools.showtasks") as showtasks:
-        assert ShowTaskSchema.get_task("ext").__class__ is Test
+        assert ShowTask.get_task("ext").__class__ is Test
         showtasks.assert_called_once()
 
 
-@pytest.mark.parametrize("cls", [ShowTaskSchema, ScreenshotTaskSchema])
+@pytest.mark.parametrize("cls", [ShowTask, ScreenshotTask])
 def test_show_get_supported_show_extentions(cls):
     with pytest.raises(NotImplementedError,
                        match="get_supported_show_extentions must be "
