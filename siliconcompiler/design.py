@@ -668,7 +668,7 @@ class Design(LibrarySchema, DependencySchema):
         if value is None:
             raise ValueError(f"None is an illegal {option} value")
 
-        # Accomodating string adjacent objects (like Path)
+        # Handling string like objects (like Path)
         value = [str(x) for x in value] if isinstance(value, list) else [str(value)]
 
         if dataroot is ...:
