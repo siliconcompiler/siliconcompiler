@@ -1,9 +1,9 @@
 import os.path
 
-from siliconcompiler import ShowTaskSchema
+from siliconcompiler import ShowTask
 
 
-class ShowTask(ShowTaskSchema):
+class ShowTask(ShowTask):
     def tool(self):
         return "surfer"
 

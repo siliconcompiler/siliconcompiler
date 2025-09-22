@@ -5,11 +5,11 @@ import shutil
 
 from siliconcompiler import NodeStatus
 
-from siliconcompiler import TaskSchema
+from siliconcompiler import Task
 from siliconcompiler import utils
 
 
-class BuiltinTask(TaskSchema):
+class BuiltinTask(Task):
     def __init__(self):
         super().__init__()
 

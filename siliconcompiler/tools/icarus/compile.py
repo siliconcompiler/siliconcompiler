@@ -1,7 +1,7 @@
-from siliconcompiler import TaskSchema
+from siliconcompiler import Task
 
 
-class CompileTask(TaskSchema):
+class CompileTask(Task):
     '''
     Compile the input verilog into a vvp file that can be simulated.
     '''

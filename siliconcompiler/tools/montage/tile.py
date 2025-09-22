@@ -1,7 +1,7 @@
-from siliconcompiler import TaskSchema
+from siliconcompiler import Task
 
 
-class TileTask(TaskSchema):
+class TileTask(Task):
     '''
     Tiles input images into a single output image.
 

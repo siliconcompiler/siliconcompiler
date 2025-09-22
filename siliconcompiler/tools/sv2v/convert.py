@@ -1,7 +1,7 @@
-from siliconcompiler import TaskSchema
+from siliconcompiler import Task
 
 
-class ConvertTask(TaskSchema):
+class ConvertTask(Task):
     '''
     Convert SystemVerilog to verilog
     '''

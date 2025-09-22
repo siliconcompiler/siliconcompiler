@@ -14,7 +14,7 @@ from typing import List, Union
 
 from siliconcompiler import StdCellLibrary
 from siliconcompiler import PDK
-from siliconcompiler.asic import ASICTaskSchema
+from siliconcompiler.asic import ASICTask
 
 
 class OpenROADPDK(PDK):
@@ -307,7 +307,7 @@ class OpenROADStdCellLibrary(StdCellLibrary):
             self.add("tool", "openroad", "multibit_ff_cells", cells)
 
 
-class OpenROADTask(ASICTaskSchema):
+class OpenROADTask(ASICTask):
     def __init__(self):
         super().__init__()
 

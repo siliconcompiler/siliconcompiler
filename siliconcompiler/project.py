@@ -23,8 +23,8 @@ from siliconcompiler import Checklist
 
 from siliconcompiler.schema_support.record import RecordSchema
 from siliconcompiler.schema_support.metric import MetricSchema
-from siliconcompiler import TaskSchema
-from siliconcompiler import ShowTaskSchema, ScreenshotTaskSchema
+from siliconcompiler import Task
+from siliconcompiler import ShowTask, ScreenshotTask
 from siliconcompiler.schema_support.option import OptionSchema
 from siliconcompiler.library import LibrarySchema
 
@@ -118,7 +118,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         schema.insert("flowgraph", "default", Flowgraph())
         schema.insert("metric", MetricSchema())
         schema.insert("record", RecordSchema())
-        schema.insert("tool", "default", "task", "default", TaskSchema())
+        schema.insert("tool", "default", "task", "default", Task())
 
         # Add options
         schema.insert("option", OptionSchema())
@@ -1033,32 +1033,32 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
     def get_task(self,
                  tool: str = None,
                  task: str = None,
-                 filter: Union[Type[TaskSchema], Callable[[TaskSchema], bool]] = None) -> \
-            Union[Set[TaskSchema], TaskSchema]:
+                 filter: Union[Type[Task], Callable[[Task], bool]] = None) -> \
+            Union[Set[Task], Task]:
         """Retrieves tasks based on specified criteria.
 
         This method allows you to fetch tasks by tool name, task name, or by applying a custom
         filter. If a single task matches the criteria, that task object is returned directly.
-        If multiple tasks match, a set of :class:`TaskSchema` objects is returned.
+        If multiple tasks match, a set of :class:`Task` objects is returned.
         If no criteria are provided, all available tasks are returned.
 
         Args:
             tool (str, optional): The name of the tool to filter tasks by. Defaults to None.
             task (str, optional): The name of the task to filter by. Defaults to None.
-            filter (Union[Type[TaskSchema], Callable[[TaskSchema], bool]], optional):
+            filter (Union[Type[Task], Callable[[Task], bool]], optional):
                 A filter to apply to the tasks. This can be:
-                - A `Type[TaskSchema]`: Only tasks that are instances of this type will be returned.
-                - A `Callable[[TaskSchema], bool]`: A function that takes a `TaskSchema` object
+                - A `Type[Task]`: Only tasks that are instances of this type will be returned.
+                - A `Callable[[Task], bool]`: A function that takes a `Task` object
                 and returns `True` if the task should be included, `False` otherwise.
                 Defaults to None.
 
         Returns:
-            Union[Set[TaskSchema], TaskSchema]:
-                - If exactly one task matches the criteria, returns that single `TaskSchema` object.
+            Union[Set[Task], Task]:
+                - If exactly one task matches the criteria, returns that single `Task` object.
                 - If multiple tasks match or no specific tool/task is provided (and thus all tasks
-                are considered), returns a `Set[TaskSchema]` containing the matching tasks.
+                are considered), returns a `Set[Task]` containing the matching tasks.
         """
-        all_tasks: Set[TaskSchema] = set()
+        all_tasks: Set[Task] = set()
         for tool_name in self.getkeys("tool"):
             for task_name in self.getkeys("tool", tool_name, "task"):
                 all_tasks.add(self.get("tool", tool_name, "task", task_name, field="schema"))
@@ -1496,7 +1496,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                                       the system attempts to find the most recent
                                       layout file. Defaults to None.
             screenshot (bool): If True, the operation is treated as a screenshot request,
-                               using `ScreenshotTaskSchema` instead of `ShowTaskSchema`.
+                               using `ScreenshotTask` instead of `ShowTask`.
                                Defaults to False.
             extension (str, optional): The specific file extension to search for when
                                        automatically finding a file (e.g., 'gds', 'lef').
@@ -1513,7 +1513,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             >>> # Automatically find and show the last generated layout
             >>> chip.show()
         '''
-        tool_cls = ScreenshotTaskSchema if screenshot else ShowTaskSchema
+        tool_cls = ScreenshotTask if screenshot else ShowTask
 
         sc_jobname = self.get("option", "jobname")
         sc_step, sc_index = None, None
@@ -1602,7 +1602,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         proj.set("option", "jobname", jobname)
 
         # Setup in task variables
-        task: ShowTaskSchema = proj.get_task(filter=task.__class__)
+        task: ShowTask = proj.get_task(filter=task.__class__)
         task.set_showfilepath(filename)
         task.set_showfiletype(filetype)
         task.set_shownode(jobname=sc_jobname, step=sc_step, index=sc_index)

@@ -7,7 +7,7 @@ from siliconcompiler.schema import EditableSchema, Parameter, Scope
 from siliconcompiler.schema.utils import trim
 
 from siliconcompiler import Project, sc_open
-from siliconcompiler import TaskSchema
+from siliconcompiler import Task
 
 from siliconcompiler.constraints import \
     ASICTimingConstraintSchema, ASICAreaConstraint, \
@@ -469,9 +469,9 @@ class ASICProject(Project):
         return info
 
 
-class ASICTaskSchema(TaskSchema):
+class ASICTask(Task):
     """
-    A TaskSchema with helper methods for tasks in a standard ASIC flow,
+    A Task with helper methods for tasks in a standard ASIC flow,
     providing easy access to PDK and standard cell library information.
     """
     @property

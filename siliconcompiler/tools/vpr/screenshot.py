@@ -1,8 +1,8 @@
 from siliconcompiler.tools.vpr.show import ShowTask
-from siliconcompiler import ScreenshotTaskSchema
+from siliconcompiler import ScreenshotTask
 
 
-class ScreenshotTask(ScreenshotTaskSchema, ShowTask):
+class ScreenshotTask(ScreenshotTask, ShowTask):
     '''
     Screenshot placed and/or routed designs
     '''

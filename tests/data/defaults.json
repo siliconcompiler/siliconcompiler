@@ -2854,8 +2854,8 @@
                 }
               },
               "__meta__": {
-                "class": "siliconcompiler.tool/TaskSchema",
-                "sctype": "TaskSchema"
+                "class": "siliconcompiler.tool/Task",
+                "sctype": "Task"
               }
             }
           }
@@ -7352,8 +7352,8 @@
                 }
               },
               "__meta__": {
-                "class": "siliconcompiler.tool/TaskSchema",
-                "sctype": "TaskSchema"
+                "class": "siliconcompiler.tool/Task",
+                "sctype": "Task"
               }
             }
           }
@@ -12153,8 +12153,8 @@
                 }
               },
               "__meta__": {
-                "class": "siliconcompiler.tool/TaskSchema",
-                "sctype": "TaskSchema"
+                "class": "siliconcompiler.tool/Task",
+                "sctype": "Task"
               }
             }
           }
@@ -16710,8 +16710,8 @@
                 }
               },
               "__meta__": {
-                "class": "siliconcompiler.tool/TaskSchema",
-                "sctype": "TaskSchema"
+                "class": "siliconcompiler.tool/Task",
+                "sctype": "Task"
               }
             }
           }
@@ -20520,8 +20520,8 @@
                 }
               },
               "__meta__": {
-                "class": "siliconcompiler.tool/TaskSchema",
-                "sctype": "TaskSchema"
+                "class": "siliconcompiler.tool/Task",
+                "sctype": "Task"
               }
             }
           }

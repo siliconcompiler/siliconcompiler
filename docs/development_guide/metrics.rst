@@ -57,9 +57,9 @@ Metrics are populated automatically during a run. For each task (step and index)
 
 1. All metric values in the schema are cleared.
 2. The tool (e.g., OpenROAD, Yosys) is executed.
-3. The tool's :meth:`.TaskSchema.post_process()` function runs, which parses the tool's log files and reports to extract the new metric values and save them to the schema.
+3. The tool's :meth:`.Task.post_process()` function runs, which parses the tool's log files and reports to extract the new metric values and save them to the schema.
 
-If you are adding a new tool, you will need to implement a :meth:`.TaskSchema.post_process()` function to parse its outputs.
+If you are adding a new tool, you will need to implement a :meth:`.Task.post_process()` function to parse its outputs.
 
 List of Available Metrics
 -------------------------

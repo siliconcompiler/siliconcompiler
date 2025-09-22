@@ -1,7 +1,7 @@
-from siliconcompiler import TaskSchema
+from siliconcompiler import Task
 
 
-class ConvertTask(TaskSchema):
+class ConvertTask(Task):
     '''
     Imports VHDL and converts it to verilog
     '''

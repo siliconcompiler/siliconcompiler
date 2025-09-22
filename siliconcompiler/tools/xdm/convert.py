@@ -2,10 +2,10 @@ import shutil
 
 import os.path
 
-from siliconcompiler import TaskSchema
+from siliconcompiler import Task
 
 
-class ConvertTask(TaskSchema):
+class ConvertTask(Task):
     def __init__(self):
         super().__init__()
 

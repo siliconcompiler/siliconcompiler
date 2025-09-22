@@ -25,7 +25,7 @@ import os.path
 
 from siliconcompiler import sc_open
 
-from siliconcompiler import TaskSchema
+from siliconcompiler import Task
 
 from typing import List, Union
 
@@ -191,7 +191,7 @@ class VPRFPGA(FPGA):
         return self.set("tool", "vpr", "router_lookahead", lookahead)
 
 
-class VPRTask(TaskSchema):
+class VPRTask(Task):
     __block_file = "reports/block_usage.json"
 
     def __init__(self):

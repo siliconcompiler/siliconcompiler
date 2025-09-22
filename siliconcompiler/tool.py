@@ -87,7 +87,7 @@ class TaskSkip(TaskError):
         return self.__why
 
 
-class TaskSchema(NamedSchema, PathSchema, DocsSchema):
+class Task(NamedSchema, PathSchema, DocsSchema):
     """
     A schema class that defines the parameters and methods for a single task
     in a compilation flow.
@@ -123,7 +123,7 @@ class TaskSchema(NamedSchema, PathSchema, DocsSchema):
     @classmethod
     def _getdict_type(cls) -> str:
         """Returns the metadata for getdict."""
-        return TaskSchema.__name__
+        return Task.__name__
 
     def _from_dict(self, manifest, keypath, version=None):
         """
@@ -419,7 +419,7 @@ class TaskSchema(NamedSchema, PathSchema, DocsSchema):
             split_specs = [s.strip() for s in spec_set.split(",") if s.strip()]
             specs_list = []
             for spec in split_specs:
-                match = re.match(TaskSchema.__parse_version_check, spec)
+                match = re.match(Task.__parse_version_check, spec)
                 if match is None:
                     self.__logger.warning(f'Invalid version specifier {spec}. '
                                           f'Defaulting to =={spec}.')
@@ -1054,7 +1054,7 @@ class TaskSchema(NamedSchema, PathSchema, DocsSchema):
         """Custom state for pickling, removing runtime info."""
         state = self.__dict__.copy()
         for key in list(state.keys()):
-            if key.startswith("_TaskSchema__"):
+            if key.startswith("_Task__"):
                 del state[key]
         return state
 
@@ -1896,9 +1896,9 @@ class TaskSchema(NamedSchema, PathSchema, DocsSchema):
         pass
 
 
-class ShowTaskSchema(TaskSchema):
+class ShowTask(Task):
     """
-    A specialized TaskSchema for tasks that display files (e.g., in a GUI viewer).
+    A specialized Task for tasks that display files (e.g., in a GUI viewer).
 
     This class provides a framework for dynamically finding and configuring
     viewer applications based on file types. It includes parameters for
@@ -1910,7 +1910,7 @@ class ShowTaskSchema(TaskSchema):
     __TASKS = {}
 
     def __init__(self):
-        """Initializes a ShowTaskSchema, adding specific parameters for show tasks."""
+        """Initializes a ShowTask, adding specific parameters for show tasks."""
         super().__init__()
         self.add_parameter("showfilepath", "file", "path to show")
         self.add_parameter("showfiletype", "str", "filetype to show")
@@ -1923,16 +1923,16 @@ class ShowTaskSchema(TaskSchema):
         """
         Private helper to validate if a task is a valid ShowTask or ScreenshotTask.
         """
-        if cls is not ShowTaskSchema and cls is not ScreenshotTaskSchema:
-            raise TypeError("class must be ShowTaskSchema or ScreenshotTaskSchema")
+        if cls is not ShowTask and cls is not ScreenshotTask:
+            raise TypeError("class must be ShowTask or ScreenshotTask")
 
         if task is None:
             return
 
-        if cls is ShowTaskSchema:
-            check, task_filter = ShowTaskSchema, ScreenshotTaskSchema
+        if cls is ShowTask:
+            check, task_filter = ShowTask, ScreenshotTask
         else:
-            check, task_filter = ScreenshotTaskSchema, None
+            check, task_filter = ScreenshotTask, None
 
         if not issubclass(task, check):
             return False
@@ -1988,8 +1988,8 @@ class ShowTaskSchema(TaskSchema):
         if not classes:
             return
 
-        with ShowTaskSchema.__TASKS_LOCK:
-            ShowTaskSchema.__TASKS.setdefault(cls, set()).update(classes)
+        with ShowTask.__TASKS_LOCK:
+            ShowTask.__TASKS.setdefault(cls, set()).update(classes)
 
     @classmethod
     def get_task(cls, ext):
@@ -2000,18 +2000,18 @@ class ShowTaskSchema(TaskSchema):
             ext (str): The file extension to find a viewer for.
 
         Returns:
-            An instance of a compatible ShowTaskSchema subclass, or None if
+            An instance of a compatible ShowTask subclass, or None if
             no suitable task is found.
         """
         cls.__check_task(None)
 
-        if cls not in ShowTaskSchema.__TASKS:
+        if cls not in ShowTask.__TASKS:
             cls.__populate_tasks()
 
-        with ShowTaskSchema.__TASKS_LOCK:
-            if cls not in ShowTaskSchema.__TASKS:
+        with ShowTask.__TASKS_LOCK:
+            if cls not in ShowTask.__TASKS:
                 return None
-            tasks = ShowTaskSchema.__TASKS[cls].copy()
+            tasks = ShowTask.__TASKS[cls].copy()
 
         # TODO: add user preference lookup (ext -> task)
 
@@ -2111,11 +2111,11 @@ class ShowTaskSchema(TaskSchema):
         return vars
 
 
-class ScreenshotTaskSchema(ShowTaskSchema):
+class ScreenshotTask(ShowTask):
     """
-    A specialized TaskSchema for tasks that generate screenshots of files.
+    A specialized Task for tasks that generate screenshots of files.
 
-    This class inherits from `ShowTaskSchema` and is specifically for tasks
+    This class inherits from `ShowTask` and is specifically for tasks
     that need to open a file, generate an image, and then exit. It automatically
     sets the 'showexit' parameter to True.
     """
@@ -2152,7 +2152,7 @@ class ToolSchema(NamedSchema):
         self.set_name(name)
         schema_tool(self)
         schema = EditableSchema(self)
-        schema.insert("task", "default", TaskSchema())
+        schema.insert("task", "default", Task())
 
     @classmethod
     def _getdict_type(cls) -> str:

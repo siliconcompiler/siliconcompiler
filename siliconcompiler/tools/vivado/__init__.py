@@ -12,10 +12,10 @@ import os.path
 
 from siliconcompiler import sc_open
 
-from siliconcompiler import TaskSchema
+from siliconcompiler import Task
 
 
-class VivadoTask(TaskSchema):
+class VivadoTask(Task):
     def __init__(self):
         super().__init__()
 

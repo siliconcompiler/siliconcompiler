@@ -2,11 +2,11 @@ import shutil
 
 import os.path
 
-from siliconcompiler import ShowTaskSchema
+from siliconcompiler import ShowTask
 from siliconcompiler.tools.klayout import KLayoutTask
 
 
-class ShowTask(ShowTaskSchema, KLayoutTask):
+class ShowTask(ShowTask, KLayoutTask):
     '''
     Show a layout in kLayout
     '''

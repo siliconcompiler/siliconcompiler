@@ -73,7 +73,7 @@ Schema Classes
     :show-inheritance:
     :inherited-members:
 
-.. autoclass:: siliconcompiler.TaskSchema
+.. autoclass:: siliconcompiler.Task
     :members:
     :show-inheritance:
     :inherited-members:
@@ -275,4 +275,4 @@ Inheritance
     :classes: siliconcompiler/ASICProject,siliconcompiler/FPGAProject,siliconcompiler/LintProject,siliconcompiler/SimProject
 
 .. scclassinherit::
-    :classes: siliconcompiler/Design,siliconcompiler/PDK,siliconcompiler/FPGA,siliconcompiler/StdCellLibrary,siliconcompiler/Flowgraph,siliconcompiler/Checklist,siliconcompiler/TaskSchema
+    :classes: siliconcompiler/Design,siliconcompiler/PDK,siliconcompiler/FPGA,siliconcompiler/StdCellLibrary,siliconcompiler/Flowgraph,siliconcompiler/Checklist,siliconcompiler/Task

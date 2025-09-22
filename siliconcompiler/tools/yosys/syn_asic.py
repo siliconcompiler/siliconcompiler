@@ -5,13 +5,13 @@ import os.path
 from siliconcompiler.tools.yosys.prepareLib import process_liberty_file
 from siliconcompiler import sc_open
 from siliconcompiler import utils
-from siliconcompiler.asic import CellArea, ASICTaskSchema
+from siliconcompiler.asic import CellArea, ASICTask
 
 
 from siliconcompiler.tools.yosys import YosysTask
 
 
-class _ASICTask(ASICTaskSchema, YosysTask):
+class _ASICTask(ASICTask, YosysTask):
     def __init__(self):
         super().__init__()
 

@@ -1,7 +1,7 @@
-from siliconcompiler import TaskSchema
+from siliconcompiler import Task
 
 
-class BitstreamTask(TaskSchema):
+class BitstreamTask(Task):
     '''
     Generate a bitstream for the ICE40 FPGA
     '''

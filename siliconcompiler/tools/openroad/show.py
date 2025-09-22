@@ -4,11 +4,11 @@ import os
 import os.path
 
 
-from siliconcompiler import ShowTaskSchema
+from siliconcompiler import ShowTask
 from siliconcompiler.tools.openroad._apr import APRTask, OpenROADSTAParameter
 
 
-class ShowTask(ShowTaskSchema, APRTask, OpenROADSTAParameter):
+class ShowTask(ShowTask, APRTask, OpenROADSTAParameter):
     '''
     Show a design in openroad
     '''

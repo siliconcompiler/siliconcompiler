@@ -157,7 +157,7 @@ class ToolGen(SchemaGen):
     def run(self):
         root = self.options["root"]
         self.options["add_methods"] = True
-        self.options["reference_class"] = "siliconcompiler/TaskSchema"
+        self.options["reference_class"] = "siliconcompiler/Task"
 
         print(f'Generating docs for tool {root}...')
 

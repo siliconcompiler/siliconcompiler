@@ -5,10 +5,10 @@ import os.path
 from PIL import Image
 
 from siliconcompiler import sc_open
-from siliconcompiler import ShowTaskSchema
+from siliconcompiler import ShowTask
 
 
-class ShowTask(ShowTaskSchema):
+class ShowTask(ShowTask):
     '''
     Show a graphviz dot file
     '''

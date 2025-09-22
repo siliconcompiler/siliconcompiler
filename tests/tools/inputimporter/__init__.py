@@ -2,10 +2,10 @@ import shutil
 
 import os.path
 
-from siliconcompiler import TaskSchema
+from siliconcompiler import Task
 
 
-class ImporterTask(TaskSchema):
+class ImporterTask(Task):
     '''
     Import (copy) files into the output folder.
     '''

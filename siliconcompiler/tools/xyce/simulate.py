@@ -1,9 +1,9 @@
 import os.path
 
-from siliconcompiler import TaskSchema
+from siliconcompiler import Task
 
 
-class SimulateTask(TaskSchema):
+class SimulateTask(Task):
     def __init__(self):
         super().__init__()
 

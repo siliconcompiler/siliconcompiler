@@ -9,12 +9,12 @@ Installation: https://github.com/The-OpenROAD-Project/OpenSTA (also installed wi
 '''
 
 
-from siliconcompiler import TaskSchema
+from siliconcompiler import Task
 
 from siliconcompiler import FPGA
 
 
-class OpenSTATask(TaskSchema):
+class OpenSTATask(Task):
     def __init__(self):
         super().__init__()
 

@@ -15,10 +15,10 @@ Installation: https://verilator.org/guide/latest/install.html
 
 import os.path
 
-from siliconcompiler import TaskSchema
+from siliconcompiler import Task
 
 
-class VerilatorTask(TaskSchema):
+class VerilatorTask(Task):
     def __init__(self):
         super().__init__()
 

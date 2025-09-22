@@ -11,7 +11,7 @@ from unittest.mock import patch
 
 from siliconcompiler import Project
 from siliconcompiler import Design, Flowgraph, Checklist
-from siliconcompiler import TaskSchema
+from siliconcompiler import Task
 from siliconcompiler.tool import ToolSchema
 from siliconcompiler.library import LibrarySchema
 
@@ -22,7 +22,7 @@ from siliconcompiler.utils.logging import SCColorLoggerFormatter, SCLoggerFormat
 from siliconcompiler.project import SCColorLoggerFormatter as dut_sc_color_logger
 
 
-class FauxTask0(TaskSchema):
+class FauxTask0(Task):
     def tool(self):
         return "tool0"
 
@@ -30,7 +30,7 @@ class FauxTask0(TaskSchema):
         return "task0"
 
 
-class FauxTask1(TaskSchema):
+class FauxTask1(Task):
     def tool(self):
         return "tool1"
 
@@ -38,7 +38,7 @@ class FauxTask1(TaskSchema):
         return "task1"
 
 
-class FauxTask2(TaskSchema):
+class FauxTask2(Task):
     def tool(self):
         return "tool1"
 
@@ -1212,7 +1212,7 @@ def test_collect_file_whitelist_pass():
 
 
 def test_get_task():
-    class FauxTask(TaskSchema):
+    class FauxTask(Task):
         def tool(self):
             return "faux"
 
@@ -1224,7 +1224,7 @@ def test_get_task():
         def task(self):
             return "task1"
 
-    class FauxTask2(TaskSchema):
+    class FauxTask2(Task):
         def tool(self):
             return "anotherfaux"
 

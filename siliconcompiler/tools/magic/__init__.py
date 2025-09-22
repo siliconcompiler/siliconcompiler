@@ -15,10 +15,10 @@ import shutil
 import os.path
 
 from siliconcompiler.schema.parametervalue import PathNodeValue
-from siliconcompiler import TaskSchema
+from siliconcompiler import Task
 
 
-class MagicTask(TaskSchema):
+class MagicTask(Task):
     def __init__(self):
         super().__init__()
 

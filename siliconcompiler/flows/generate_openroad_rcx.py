@@ -3,7 +3,7 @@ from siliconcompiler.tools.openroad import rcx_extract
 from siliconcompiler.tools.builtin import nop
 
 from siliconcompiler import Flowgraph
-from siliconcompiler import TaskSchema
+from siliconcompiler import Task
 
 
 class GenerateOpenRCXFlow(Flowgraph):
@@ -23,13 +23,13 @@ class GenerateOpenRCXFlow(Flowgraph):
     3. **extract**: The golden SPEF is used to generate a calibrated OpenRCX
        deck.
     '''
-    def __init__(self, extraction_task: TaskSchema = None, corners: int = 1,
+    def __init__(self, extraction_task: Task = None, corners: int = 1,
                  serial_extraction: bool = False):
         """
         Initializes the GenerateOpenRCXFlow.
 
         Args:
-            extraction_task (TaskSchema): The SiliconCompiler task schema for the
+            extraction_task (Task): The SiliconCompiler task schema for the
                 third-party PEX tool that will be used to generate the golden
                 SPEF files. This is a required parameter.
             corners (int): The number of process corners to generate RCX decks
