@@ -4,10 +4,6 @@ set -ex
 
 src_path=$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P)/..
 
-if [ ! -z ${PREFIX} ]; then
-    export PATH="$PREFIX/bin:$PATH"
-fi
-
 sudo yum install -y git gcc-c++ wget
 sudo yum install -y tcl-tclreadline-devel \
     bison flex zlib-devel automake autoconf

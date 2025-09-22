@@ -44,6 +44,9 @@ def install_tool(tool, script, build_dir, prefix):
 
     # setup environment
     env = os.environ.copy()
+    path = env.get("PATH", "").split(":")
+    path.insert(0, prefix)
+    env["PATH"] = ":".join(path)
     env["PREFIX"] = prefix
     env["USE_SUDO_INSTALL"] = "no"
     try:
