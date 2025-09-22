@@ -1,8 +1,10 @@
 from siliconcompiler.tools.openroad._apr import APRTask
-from siliconcompiler.tools.openroad._apr import OpenROADSTAParameter, OpenROADPPLLayersParameter
+from siliconcompiler.tools.openroad._apr import OpenROADSTAParameter, OpenROADPPLParameter
 
 
-class InitFloorplanTask(APRTask, OpenROADSTAParameter, OpenROADPPLLayersParameter):
+class InitFloorplanTask(APRTask,
+                        OpenROADSTAParameter,
+                        OpenROADPPLParameter):
     '''
     Perform floorplanning and initial pin placements
     '''

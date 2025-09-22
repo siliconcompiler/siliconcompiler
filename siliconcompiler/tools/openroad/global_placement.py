@@ -1,10 +1,10 @@
 from siliconcompiler.tools.openroad._apr import APRTask
 from siliconcompiler.tools.openroad._apr import OpenROADSTAParameter, OpenROADGPLParameter, \
-    OpenROADGRTGeneralParameter
+    OpenROADGRTGeneralParameter, OpenROADPPLParameter
 
 
 class GlobalPlacementTask(APRTask, OpenROADSTAParameter, OpenROADGPLParameter,
-                          OpenROADGRTGeneralParameter):
+                          OpenROADGRTGeneralParameter, OpenROADPPLParameter):
     '''
     Perform global placement
     '''
