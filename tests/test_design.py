@@ -565,17 +565,18 @@ def test_write_fileset_invalid_fileformat():
 
 def test_write_fileset(datadir):
     d = Design("test")
-    d.cwd = os.path.dirname(datadir)
+    d.set_dataroot(name="root", path=datadir)
 
-    fileset = 'rtl'
-    d.add_file(['data/heartbeat.v', 'data/increment.v'], fileset)
-    d.add_define('ASIC', fileset)
-    d.add_idir('./data', fileset)
-    d.set_topmodule('heartbeat', fileset)
+    with d.active_dataroot("root"):
+        fileset = 'rtl'
+        d.add_file(['heartbeat.v', 'increment.v'], fileset)
+        d.add_define('ASIC', fileset)
+        d.add_idir('.', fileset)
+        d.set_topmodule('heartbeat', fileset)
 
-    fileset = 'tb'
-    d.add_file('data/heartbeat_tb.v', fileset)
-    d.add_define('VERILATOR', fileset)
+        fileset = 'tb'
+        d.add_file('heartbeat_tb.v', fileset)
+        d.add_define('VERILATOR', fileset)
 
     d.write_fileset(filename="heartbeat.f", fileset=['rtl', 'tb'])
 
@@ -607,17 +608,19 @@ def test_write_fileset_error_no_file():
 
 def test_write_fileset_using_fileformat(datadir):
     d = Design("test")
-    d.cwd = os.path.dirname(datadir)
 
-    fileset = 'rtl'
-    d.add_file(['data/heartbeat.v', 'data/increment.v'], fileset)
-    d.add_define('ASIC', fileset)
-    d.add_idir('./data', fileset)
-    d.set_topmodule('heartbeat', fileset)
+    d.set_dataroot(name="root", path=datadir)
 
-    fileset = 'tb'
-    d.add_file('data/heartbeat_tb.v', fileset)
-    d.add_define('VERILATOR', fileset)
+    with d.active_dataroot("root"):
+        fileset = 'rtl'
+        d.add_file(['heartbeat.v', 'increment.v'], fileset)
+        d.add_define('ASIC', fileset)
+        d.add_idir('.', fileset)
+        d.set_topmodule('heartbeat', fileset)
+
+        fileset = 'tb'
+        d.add_file('heartbeat_tb.v', fileset)
+        d.add_define('VERILATOR', fileset)
 
     d.write_fileset(filename="heartbeat.cmd", fileset=['rtl', 'tb'], fileformat="flist")
 
@@ -638,18 +641,19 @@ def test_write_fileset_using_fileformat(datadir):
 
 def test_write_fileset_duplicate(datadir):
     d = Design("test")
-    d.cwd = os.path.dirname(datadir)
+    d.set_dataroot(name="root", path=datadir)
 
-    fileset = 'rtl'
-    d.add_file(['data/heartbeat.v', 'data/increment.v'], fileset)
-    d.add_define('ASIC', fileset)
-    d.add_define('VERILATOR', fileset)
-    d.add_idir('./data', fileset)
-    d.set_topmodule('heartbeat', fileset)
+    with d.active_dataroot("root"):
+        fileset = 'rtl'
+        d.add_file(['heartbeat.v', 'increment.v'], fileset)
+        d.add_define('ASIC', fileset)
+        d.add_define('VERILATOR', fileset)
+        d.add_idir('.', fileset)
+        d.set_topmodule('heartbeat', fileset)
 
-    fileset = 'tb'
-    d.add_file('data/heartbeat_tb.v', fileset)
-    d.add_define('VERILATOR', fileset)
+        fileset = 'tb'
+        d.add_file('heartbeat_tb.v', fileset)
+        d.add_define('VERILATOR', fileset)
 
     d.write_fileset(filename="heartbeat.f", fileset=['rtl', 'tb'])
 
@@ -671,13 +675,14 @@ def test_write_fileset_duplicate(datadir):
 
 def test_write_fileset_with_fileset(datadir):
     d = Design("test")
-    d.cwd = os.path.dirname(datadir)
+    d.set_dataroot(name="root", path=datadir)
 
-    fileset = 'rtl'
-    d.add_file(['data/heartbeat.v', 'data/increment.v'], fileset)
-    d.add_define('ASIC', fileset)
-    d.add_idir('./data', fileset)
-    d.set_topmodule('heartbeat', fileset)
+    with d.active_dataroot("root"):
+        fileset = 'rtl'
+        d.add_file(['heartbeat.v', 'increment.v'], fileset)
+        d.add_define('ASIC', fileset)
+        d.add_idir('.', fileset)
+        d.set_topmodule('heartbeat', fileset)
 
     with d.active_fileset("rtl"):
         d.write_fileset(filename="heartbeat.f")
