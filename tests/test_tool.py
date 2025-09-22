@@ -148,15 +148,13 @@ def test_runtime_invalid_type():
 
 def test_runtime_step_override(running_project):
     with pytest.raises(RuntimeError, match="step and index cannot be provided with node"):
-        with Task().runtime(SchedulerNode(running_project, "step", "index"),
-                                  step="step"):
+        with Task().runtime(SchedulerNode(running_project, "step", "index"), step="step"):
             pass
 
 
 def test_runtime_index_override(running_project):
     with pytest.raises(RuntimeError, match="step and index cannot be provided with node"):
-        with Task().runtime(SchedulerNode(running_project, "step", "index"),
-                                  index="index"):
+        with Task().runtime(SchedulerNode(running_project, "step", "index"), index="index"):
             pass
 
 
