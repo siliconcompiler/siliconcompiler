@@ -120,9 +120,9 @@ def test_project_add_dep_handoff():
         add_dep.assert_called_once_with(None)
 
 
-def test_project_check_manifest_empty(caplog):
+def test_project_check_manifest_empty(monkeypatch, caplog):
     proj = FPGAProject()
-    setattr(proj, "_Project__logger", logging.getLogger())
+    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
     proj.logger.setLevel(logging.INFO)
 
     with patch("siliconcompiler.Project.check_manifest") as check_manifest:
@@ -132,9 +132,9 @@ def test_project_check_manifest_empty(caplog):
     assert "[fpga,device] has not been set." in caplog.text
 
 
-def test_project_check_manifest_missing_fpga(caplog):
+def test_project_check_manifest_missing_fpga(monkeypatch, caplog):
     proj = FPGAProject()
-    setattr(proj, "_Project__logger", logging.getLogger())
+    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
     proj.logger.setLevel(logging.INFO)
 
     proj.set_fpga("thisfpga")
@@ -146,9 +146,9 @@ def test_project_check_manifest_missing_fpga(caplog):
     assert "FPGA library 'thisfpga' has not been loaded." in caplog.text
 
 
-def test_project_check_manifest_pass(caplog):
+def test_project_check_manifest_pass(monkeypatch, caplog):
     proj = FPGAProject()
-    setattr(proj, "_Project__logger", logging.getLogger())
+    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
     proj.logger.setLevel(logging.INFO)
 
     proj.set_fpga(FPGA("thisfpga"))
@@ -162,8 +162,6 @@ def test_project_check_manifest_pass(caplog):
 
 def test_project_summary_headers():
     proj = FPGAProject()
-    setattr(proj, "_Project__logger", logging.getLogger())
-    proj.logger.setLevel(logging.INFO)
 
     proj.set_fpga("thisfpga")
 

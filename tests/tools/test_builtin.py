@@ -14,7 +14,7 @@ from siliconcompiler.tools.builtin.verify import VerifyTask
 
 
 @pytest.fixture
-def minmax_project():
+def minmax_project(monkeypatch):
     def minmax(cls, parallel: int = 10):
         design = Design("testdesign")
         with design.active_fileset("rtl"):
@@ -36,7 +36,7 @@ def minmax_project():
             proj.set("metric", "errors", 1000 - n * 1 + 42.0, step="start", index=n)
             proj.set("metric", "warnings", 0, step="start", index=n)
 
-        setattr(proj, "_Project__logger", logging.getLogger())
+        monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
         proj.logger.setLevel(logging.INFO)
         proj.add_fileset("rtl")
         proj.set_flow(flow)
@@ -70,7 +70,7 @@ def test_verify_name():
     assert VerifyTask().task() == "verify"
 
 
-def test_nop_select_inputs(caplog):
+def test_nop_select_inputs(monkeypatch, caplog):
     design = Design("testdesign")
     with design.active_fileset("rtl"):
         design.set_topmodule("top")
@@ -81,7 +81,7 @@ def test_nop_select_inputs(caplog):
     flow.edge("start", "end")
 
     proj = Project(design)
-    setattr(proj, "_Project__logger", logging.getLogger())
+    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
     proj.logger.setLevel(logging.INFO)
     proj.add_fileset("rtl")
     proj.set_flow(flow)
@@ -94,7 +94,7 @@ def test_nop_select_inputs(caplog):
     assert "Running builtin task 'nop'" in caplog.text
 
 
-def test_join_select_inputs(caplog):
+def test_join_select_inputs(monkeypatch, caplog):
     design = Design("testdesign")
     with design.active_fileset("rtl"):
         design.set_topmodule("top")
@@ -105,7 +105,7 @@ def test_join_select_inputs(caplog):
     flow.edge("start", "end")
 
     proj = Project(design)
-    setattr(proj, "_Project__logger", logging.getLogger())
+    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
     proj.logger.setLevel(logging.INFO)
     proj.add_fileset("rtl")
     proj.set_flow(flow)

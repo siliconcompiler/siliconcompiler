@@ -101,10 +101,10 @@ def test_check_display_run(basic_project):
 
 
 @patch('sys.platform', 'linux')
-def test_check_display_nodisplay(basic_project, remove_display_environment, caplog):
+def test_check_display_nodisplay(basic_project, remove_display_environment, monkeypatch, caplog):
     # Checks if the nodisplay option is set
     # On linux system without display
-    setattr(basic_project, "_Project__logger", logging.getLogger())
+    monkeypatch.setattr(basic_project, "_Project__logger", logging.getLogger())
     basic_project.logger.setLevel(logging.INFO)
 
     basic_project.set("option", "nodisplay", False)
@@ -301,8 +301,8 @@ def test_check_manifest_fail(basic_project):
         call.assert_called_once()
 
 
-def test_check_flowgraph_io_basic(basic_project, caplog):
-    setattr(basic_project, "_Project__logger", logging.getLogger())
+def test_check_flowgraph_io_basic(basic_project, monkeypatch, caplog):
+    monkeypatch.setattr(basic_project, "_Project__logger", logging.getLogger())
     basic_project.logger.setLevel(logging.INFO)
 
     scheduler = Scheduler(basic_project)
@@ -311,14 +311,14 @@ def test_check_flowgraph_io_basic(basic_project, caplog):
     assert caplog.text == ""
 
 
-def test_check_flowgraph_io_with_files(basic_project_no_flow, caplog):
+def test_check_flowgraph_io_with_files(basic_project_no_flow, monkeypatch, caplog):
     flow = Flowgraph("testflow")
     flow.node("stepone", NOPTask())
     flow.node("steptwo", NOPTask())
     flow.edge("stepone", "steptwo")
     basic_project_no_flow.set_flow(flow)
 
-    setattr(basic_project_no_flow, "_Project__logger", logging.getLogger())
+    monkeypatch.setattr(basic_project_no_flow, "_Project__logger", logging.getLogger())
     basic_project_no_flow.logger.setLevel(logging.INFO)
 
     scheduler = Scheduler(basic_project_no_flow)
@@ -331,7 +331,7 @@ def test_check_flowgraph_io_with_files(basic_project_no_flow, caplog):
     assert caplog.text == ""
 
 
-def test_check_flowgraph_io_with_files_join(basic_project_no_flow, caplog):
+def test_check_flowgraph_io_with_files_join(basic_project_no_flow, monkeypatch, caplog):
     flow = Flowgraph("testflow")
     flow.node("stepone", NOPTask())
     flow.node("steptwo", NOPTask())
@@ -342,7 +342,7 @@ def test_check_flowgraph_io_with_files_join(basic_project_no_flow, caplog):
     flow.edge("dojoin", "postjoin")
     basic_project_no_flow.set_flow(flow)
 
-    setattr(basic_project_no_flow, "_Project__logger", logging.getLogger())
+    monkeypatch.setattr(basic_project_no_flow, "_Project__logger", logging.getLogger())
     basic_project_no_flow.logger.setLevel(logging.INFO)
 
     scheduler = Scheduler(basic_project_no_flow)
@@ -361,7 +361,7 @@ def test_check_flowgraph_io_with_files_join(basic_project_no_flow, caplog):
     assert caplog.text == ""
 
 
-def test_check_flowgraph_io_with_files_join_extra_files(basic_project_no_flow, caplog):
+def test_check_flowgraph_io_with_files_join_extra_files(basic_project_no_flow, monkeypatch, caplog):
     flow = Flowgraph("testflow")
     flow.node("stepone", NOPTask())
     flow.node("steptwo", NOPTask())
@@ -372,7 +372,7 @@ def test_check_flowgraph_io_with_files_join_extra_files(basic_project_no_flow, c
     flow.edge("dojoin", "postjoin")
     basic_project_no_flow.set_flow(flow)
 
-    setattr(basic_project_no_flow, "_Project__logger", logging.getLogger())
+    monkeypatch.setattr(basic_project_no_flow, "_Project__logger", logging.getLogger())
     basic_project_no_flow.logger.setLevel(logging.INFO)
 
     scheduler = Scheduler(basic_project_no_flow)
@@ -390,14 +390,14 @@ def test_check_flowgraph_io_with_files_join_extra_files(basic_project_no_flow, c
     assert caplog.text == ""
 
 
-def test_check_flowgraph_io_with_files_missing_input(basic_project_no_flow, caplog):
+def test_check_flowgraph_io_with_files_missing_input(basic_project_no_flow, monkeypatch, caplog):
     flow = Flowgraph("testflow")
     flow.node("stepone", NOPTask())
     flow.node("steptwo", NOPTask())
     flow.edge("stepone", "steptwo")
     basic_project_no_flow.set_flow(flow)
 
-    setattr(basic_project_no_flow, "_Project__logger", logging.getLogger())
+    monkeypatch.setattr(basic_project_no_flow, "_Project__logger", logging.getLogger())
     basic_project_no_flow.logger.setLevel(logging.INFO)
 
     scheduler = Scheduler(basic_project_no_flow)
@@ -411,7 +411,7 @@ def test_check_flowgraph_io_with_files_missing_input(basic_project_no_flow, capl
     assert "Invalid flow: steptwo/0 will not receive required input missing.v" in caplog.text
 
 
-def test_check_flowgraph_io_with_files_multple_input(basic_project_no_flow, caplog):
+def test_check_flowgraph_io_with_files_multple_input(basic_project_no_flow, monkeypatch, caplog):
     flow = Flowgraph("testflow")
     flow.node("stepone", NOPTask(), index=0)
     flow.node("stepone", NOPTask(), index=1)
@@ -420,7 +420,7 @@ def test_check_flowgraph_io_with_files_multple_input(basic_project_no_flow, capl
     flow.edge("stepone", "steptwo", tail_index=1)
     basic_project_no_flow.set_flow(flow)
 
-    setattr(basic_project_no_flow, "_Project__logger", logging.getLogger())
+    monkeypatch.setattr(basic_project_no_flow, "_Project__logger", logging.getLogger())
     basic_project_no_flow.logger.setLevel(logging.INFO)
 
     scheduler = Scheduler(basic_project_no_flow)
