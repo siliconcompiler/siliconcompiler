@@ -1226,7 +1226,26 @@ def test_find_files_scalar_file_not_found():
 
     assert schema.set("file", "test.txt")
 
-    with pytest.raises(FileNotFoundError, match=r"Could not find \"test.txt\" \[file\]"):
+    with pytest.raises(FileNotFoundError, match=r"Could not find \"test.txt\" \[file\]: .*"):
+        schema.find_files("file")
+
+
+def test_find_files_scalar_file_not_found_multiple_search():
+    class CustomFiles(BaseSchema):
+        def __init__(self):
+            super().__init__()
+            EditableSchema(self).insert("file", Parameter("file"))
+
+        def _find_files_search_paths(self, keypath, step, index):
+            return ["path0", "path1"]
+
+    schema = CustomFiles()
+
+    assert schema.set("file", "test.txt")
+
+    with pytest.raises(
+            FileNotFoundError,
+            match=r"Could not find \"test.txt\" \[file\]: .*, .*, .*"):
         schema.find_files("file")
 
 
@@ -1238,7 +1257,7 @@ def test_find_files_scalar_dir_not_found():
 
     assert schema.set("directory", "test")
 
-    with pytest.raises(FileNotFoundError, match=r"Could not find \"test\" \[directory\]"):
+    with pytest.raises(FileNotFoundError, match=r"Could not find \"test\" \[directory\]: .*"):
         schema.find_files("directory")
 
 
@@ -1312,7 +1331,7 @@ def test_find_files_list_file_not_found():
 
     assert schema.set("file", ["test0.txt", "test1.txt"])
 
-    with pytest.raises(FileNotFoundError, match=r"Could not find \"test1.txt\" \[file\]"):
+    with pytest.raises(FileNotFoundError, match=r"Could not find \"test1.txt\" \[file\]: .*"):
         schema.find_files("file")
 
 
@@ -1326,7 +1345,7 @@ def test_find_files_list_dir_not_found():
 
     assert schema.set("directory", ["test0", "test1"])
 
-    with pytest.raises(FileNotFoundError, match=r"Could not find \"test1\" \[directory\]"):
+    with pytest.raises(FileNotFoundError, match=r"Could not find \"test1\" \[directory\]: .*"):
         schema.find_files("directory")
 
 
@@ -1447,7 +1466,7 @@ def test_find_files_with_package_not_found():
     }
 
     with pytest.raises(FileNotFoundError,
-                       match=r"Could not find \"test1.txt\" in this_package \[package,file\]"):
+                       match=r"Could not find \"test1.txt\" in this_package \[package,file\]: .*"):
         schema.find_files("package", "file", packages=package_map)
 
     assert resolve0.called == 2
@@ -2915,7 +2934,7 @@ def test_hash_files_scalar_file_not_found():
 
     assert schema.set("file", "test.txt")
 
-    with pytest.raises(FileNotFoundError, match=r"Could not find \"test.txt\" \[file\]"):
+    with pytest.raises(FileNotFoundError, match=r"Could not find \"test.txt\" \[file\]: .*"):
         schema.hash_files("file")
 
 
@@ -2927,7 +2946,7 @@ def test_hash_files_scalar_dir_not_found():
 
     assert schema.set("directory", "test")
 
-    with pytest.raises(FileNotFoundError, match=r"Could not find \"test\" \[directory\]"):
+    with pytest.raises(FileNotFoundError, match=r"Could not find \"test\" \[directory\]: .*"):
         schema.hash_files("directory")
 
 
@@ -3003,7 +3022,7 @@ def test_hash_files_list_file_not_found():
 
     assert schema.set("file", ["test0.txt", "test1.txt"])
 
-    with pytest.raises(FileNotFoundError, match=r"Could not find \"test1.txt\" \[file\]"):
+    with pytest.raises(FileNotFoundError, match=r"Could not find \"test1.txt\" \[file\]: .*"):
         schema.hash_files("file")
 
 
@@ -3017,7 +3036,7 @@ def test_hash_files_list_dir_not_found():
 
     assert schema.set("directory", ["test0", "test1"])
 
-    with pytest.raises(FileNotFoundError, match=r"Could not find \"test1\" \[directory\]"):
+    with pytest.raises(FileNotFoundError, match=r"Could not find \"test1\" \[directory\]: .*"):
         schema.hash_files("directory")
 
 
@@ -3140,8 +3159,9 @@ def test_hash_files_with_package_not_found():
         "that_package": resolve1.resolve,
     }
 
-    with pytest.raises(FileNotFoundError,
-                       match=r"Could not find \"test1.txt\" in this_package \[package,file\]"):
+    with pytest.raises(
+            FileNotFoundError,
+            match=r"Could not find \"test1.txt\" in this_package \[package,file\]: .*"):
         schema.hash_files("package", "file", packages=package_map)
 
     assert resolve0.called == 2
