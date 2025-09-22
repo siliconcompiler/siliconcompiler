@@ -61,7 +61,7 @@ def test_key_groups():
 
 
 def test_cwd():
-    assert Project().cwd == os.path.abspath(".")
+    assert Project()._Project__cwd == os.path.abspath(".")
 
 
 def test_init_logger(monkeypatch):

@@ -132,7 +132,7 @@ def generate_testcase(chip,
         chip.set('option', 'builddir', os.path.basename(builddir))
 
     # Temporarily change current directory to appear to be issue_dir
-    original_cwd = chip.cwd
+    original_cwd = chip._Project__cwd
     chip._Project__cwd = issue_dir.name
 
     # Get new directories
@@ -249,7 +249,7 @@ def generate_testcase(chip,
         run_path = os.path.join(issue_dir.name, 'run.sh')
         with open(run_path, 'w') as f:
             replay_dir = os.path.relpath(chip.getworkdir(step=step, index=index),
-                                         chip.cwd)
+                                         chip._Project__cwd)
             issue_title = f'{chip.design.name} for {step}/{index} using {tool}/{task}'
             f.write(get_file_template('issue/run.sh').render(
                 title=issue_title,

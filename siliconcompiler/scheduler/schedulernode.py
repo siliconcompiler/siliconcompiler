@@ -84,7 +84,7 @@ class SchedulerNode:
         self.__is_entry_node = (self.__step, self.__index) in \
             self.__project.get("flowgraph", flow, field="schema").get_entry_nodes()
 
-        self.__cwd = self.__project.cwd
+        self.__cwd = self.__project._Project__cwd
         self.__jobworkdir = self.__project.getworkdir()
         self.__workdir = self.__project.getworkdir(step=self.__step, index=self.__index)
         self.__manifests = {
