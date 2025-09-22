@@ -1,7 +1,7 @@
 import io
 import re
-
 import os.path
+from pathlib import Path
 
 from typing import List, Union, Tuple, Dict
 
@@ -112,7 +112,7 @@ class Design(LibrarySchema, DependencySchema):
         """Adds include directories to a fileset.
 
         Args:
-           value (str or Path): Include directory name.
+           value (Path or list[Path]): Include path(s).
            fileset (str, optional): Fileset name. If not provided, the active
             fileset is used.
            clobber (bool, optional): Clears existing list before adding item.
@@ -121,7 +121,8 @@ class Design(LibrarySchema, DependencySchema):
         Returns:
            list[str]: List of include directories
         """
-        return self.__set_add(fileset, 'idir', value, clobber, typelist=[str, list],
+        return self.__set_add(fileset, 'idir', value, clobber,
+                              typelist=[str, list, Path],
                               dataroot=dataroot)
 
     def get_idir(self, fileset: str = None) -> List[str]:
@@ -219,7 +220,7 @@ class Design(LibrarySchema, DependencySchema):
         """Adds dynamic library directories to a fileset.
 
         Args:
-           value (str or List[str]): Library directories.
+           value (Path or list[Path]): Library path(s).
            fileset (str, optional): Fileset name. If not provided, the active
             fileset is used.
            clobber (bool, optional): Clears existing list before adding item.
@@ -228,7 +229,8 @@ class Design(LibrarySchema, DependencySchema):
         Returns:
            list[str]: List of library directories.
         """
-        return self.__set_add(fileset, 'libdir', value, clobber, typelist=[str, list],
+        return self.__set_add(fileset, 'libdir', value, clobber,
+                              typelist=[str, list, Path],
                               dataroot=dataroot)
 
     def get_libdir(self, fileset: str = None) -> List[str]:
@@ -667,6 +669,9 @@ class Design(LibrarySchema, DependencySchema):
         # None is illegal for all setters
         if value is None:
             raise ValueError(f"None is an illegal {option} value")
+
+        # Handling string like objects (like Path)
+        value = [str(x) for x in value] if isinstance(value, list) else [str(value)]
 
         if dataroot is ...:
             dataroot = None
