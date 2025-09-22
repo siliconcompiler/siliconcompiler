@@ -9,6 +9,7 @@ import uuid
 import os.path
 
 from siliconcompiler import utils
+from siliconcompiler.utils.collect import getcollectiondir, collect
 from siliconcompiler.package import RemoteResolver
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 from siliconcompiler.scheduler import SchedulerNode
@@ -51,18 +52,18 @@ class SlurmSchedulerNode(SchedulerNode):
         A static pre-processing hook for the Slurm scheduler.
 
         This method checks if the compilation flow starts from an entry node.
-        If so, it calls `chip.collect()` to gather all necessary source files
+        If so, it calls :meth:`.collect()` to gather all necessary source files
         into a central location before any remote jobs are submitted. This
         ensures that compute nodes have access to all required source files.
 
         Args:
             chip (Chip): The Chip object to perform pre-processing on.
         """
-        if os.path.exists(project.getcollectiondir()):
+        if os.path.exists(getcollectiondir(project)):
             # nothing to do
             return
 
-        collect = False
+        do_collect = False
         flow = project.get('option', 'flow')
         entry_nodes = project.get("flowgraph", flow, field="schema").get_entry_nodes()
 
@@ -74,10 +75,10 @@ class SlurmSchedulerNode(SchedulerNode):
 
         for (step, index) in runtime.get_nodes():
             if (step, index) in entry_nodes:
-                collect = True
+                do_collect = True
 
-        if collect:
-            project.collect()
+        if do_collect:
+            collect(project)
 
     @property
     def is_local(self):

@@ -21,6 +21,7 @@ from siliconcompiler.scheduler import Scheduler
 from siliconcompiler.schema import Journal
 
 from siliconcompiler.utils.logging import get_console_formatter
+from siliconcompiler.utils.collect import getcollectiondir, collect
 
 from siliconcompiler.remote import JobStatus, NodeStatus
 
@@ -522,7 +523,7 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
             upload_file.flush()
 
             # We no longer need the collected files
-            shutil.rmtree(self.__chip.getcollectiondir())
+            shutil.rmtree(getcollectiondir(self.__chip))
 
         if 'pre_upload' in remote_status:
             self.__logger.info(remote_status['pre_upload']['message'])
@@ -590,7 +591,7 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
 
         # Collect inputs into a collection directory only for remote runs, since
         # we need to send inputs up to the server.
-        self.__chip.collect(whitelist=self.__config.setdefault('directory_whitelist', []))
+        collect(self.__chip, whitelist=self.__config.setdefault('directory_whitelist', []))
 
     def _run_loop(self):
         # Wrapper to allow for capturing of Ctrl+C

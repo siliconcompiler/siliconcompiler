@@ -16,6 +16,7 @@ from datetime import datetime
 
 from siliconcompiler import Project
 from siliconcompiler import utils
+from siliconcompiler.utils.collect import collect
 from siliconcompiler.schema_support.record import RecordTime
 
 
@@ -139,12 +140,12 @@ def main():
         fd.flush()
         requirements_file = fd.getvalue()
 
-    with tempfile.TemporaryDirectory() as collect:
-        job.collect(directory=collect, verbose=True)
+    with tempfile.TemporaryDirectory() as collectdir:
+        collect(job, directory=collectdir, verbose=True)
 
         with io.BytesIO() as fd:
             with tarfile.open(fileobj=fd, mode='w:gz') as tar:
-                tar.add(collect, arcname='')
+                tar.add(collectdir, arcname='')
             fd.flush()
             collect_files = convert_base64(fd.getvalue())
 

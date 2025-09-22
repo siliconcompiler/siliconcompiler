@@ -22,6 +22,7 @@ from siliconcompiler.package import Resolver
 from siliconcompiler.schema_support.record import RecordTime, RecordTool
 from siliconcompiler.schema import Journal
 from siliconcompiler.scheduler import send_messages
+from siliconcompiler.utils.collect import getcollectiondir
 
 
 class SchedulerNode:
@@ -96,7 +97,7 @@ class SchedulerNode:
             "exe": os.path.join(self.__workdir, f"{self.__step}.log")
         }
         self.__replay_script = os.path.join(self.__workdir, "replay.sh")
-        self.__collection_path = self.__project.getcollectiondir()
+        self.__collection_path = getcollectiondir(self.__project)
 
         self.set_queue(None, None)
         self.__setup_schema_access()
