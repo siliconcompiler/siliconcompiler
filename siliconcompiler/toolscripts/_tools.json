@@ -90,7 +90,7 @@
     "docker-depends": "icepack"
   },
   "chisel": {
-    "version": "1.8.0",
+    "version": "1.11.6",
     "git-url": "https://github.com/sbt/sbt.git",
     "auto-update": false
   },
