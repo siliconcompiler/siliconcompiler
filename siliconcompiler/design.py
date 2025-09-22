@@ -121,7 +121,6 @@ class Design(LibrarySchema, DependencySchema):
         Returns:
            list[str]: List of include directories
         """
-        value = str(value)
         return self.__set_add(fileset, 'idir', value, clobber, typelist=[str, list],
                               dataroot=dataroot)
 
@@ -229,7 +228,6 @@ class Design(LibrarySchema, DependencySchema):
         Returns:
            list[str]: List of library directories.
         """
-        value = str(value)
         return self.__set_add(fileset, 'libdir', value, clobber, typelist=[str, list],
                               dataroot=dataroot)
 
@@ -669,6 +667,9 @@ class Design(LibrarySchema, DependencySchema):
         # None is illegal for all setters
         if value is None:
             raise ValueError(f"None is an illegal {option} value")
+
+        # Accomodating Path Values
+        value = str(value)
 
         if dataroot is ...:
             dataroot = None
