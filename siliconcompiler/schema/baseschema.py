@@ -930,7 +930,8 @@ class BaseSchema:
                             f'{self.__format_key(*keypath)}: {report_paths}')
                     else:
                         raise FileNotFoundError(
-                            f'Could not find "{path.get()}" {self.__format_key(*keypath)}: {report_paths}')
+                            f'Could not find "{path.get()}" {self.__format_key(*keypath)}: '
+                            f'{report_paths}')
             resolved_paths.append(resolved)
 
         if not is_list:
