@@ -668,7 +668,7 @@ class Design(LibrarySchema, DependencySchema):
         if value is None:
             raise ValueError(f"None is an illegal {option} value")
 
-        # Accomodating Path Values
+        # Accommodating Path Values
         value = str(value)
 
         if dataroot is ...:
