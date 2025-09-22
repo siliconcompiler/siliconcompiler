@@ -112,7 +112,7 @@ class Design(LibrarySchema, DependencySchema):
         """Adds include directories to a fileset.
 
         Args:
-           value (str or Path): Include directory name.
+           value (Path or list[Path]): Include path(s).
            fileset (str, optional): Fileset name. If not provided, the active
             fileset is used.
            clobber (bool, optional): Clears existing list before adding item.
@@ -121,6 +121,7 @@ class Design(LibrarySchema, DependencySchema):
         Returns:
            list[str]: List of include directories
         """
+        value = str(value)
         return self.__set_add(fileset, 'idir', value, clobber, typelist=[str, list],
                               dataroot=dataroot)
 
@@ -219,7 +220,7 @@ class Design(LibrarySchema, DependencySchema):
         """Adds dynamic library directories to a fileset.
 
         Args:
-           value (str or List[str]): Library directories.
+           value (Path or list[Path]): Library path(s).
            fileset (str, optional): Fileset name. If not provided, the active
             fileset is used.
            clobber (bool, optional): Clears existing list before adding item.
@@ -228,6 +229,7 @@ class Design(LibrarySchema, DependencySchema):
         Returns:
            list[str]: List of library directories.
         """
+        value = str(value)
         return self.__set_add(fileset, 'libdir', value, clobber, typelist=[str, list],
                               dataroot=dataroot)
 
