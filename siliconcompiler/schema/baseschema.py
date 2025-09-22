@@ -923,13 +923,14 @@ class BaseSchema:
             except FileNotFoundError:
                 resolved = None
                 if not missing_ok:
+                    report_paths = ", ".join(search_paths)
                     if package:
                         raise FileNotFoundError(
                             f'Could not find "{path.get()}" in {package} '
-                            f'{self.__format_key(*keypath)}')
+                            f'{self.__format_key(*keypath)}: {report_paths}')
                     else:
                         raise FileNotFoundError(
-                            f'Could not find "{path.get()}" {self.__format_key(*keypath)}')
+                            f'Could not find "{path.get()}" {self.__format_key(*keypath)}: {report_paths}')
             resolved_paths.append(resolved)
 
         if not is_list:
