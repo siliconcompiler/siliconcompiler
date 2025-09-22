@@ -716,7 +716,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         if os.path.isabs(builddir):
             return builddir
 
-        return os.path.join(self.cwd, builddir)
+        return os.path.join(self.__cwd, builddir)
 
     def getworkdir(self, step: str = None, index: Union[int, str] = None) -> str:
         """

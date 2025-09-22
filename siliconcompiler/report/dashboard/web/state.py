@@ -164,7 +164,7 @@ def init():
             graph_chip.unset('arg', 'index')
 
             if graph_info['cwd']:
-                graph_chip.cwd = graph_info['cwd']
+                graph_chip._Project__cwd = graph_info['cwd']
 
             add_chip(os.path.basename(file_path), graph_chip)
 

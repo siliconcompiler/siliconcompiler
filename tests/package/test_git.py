@@ -73,9 +73,9 @@ def test_git_path_default():
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="Appears to cause issues on windows machines")
-def test_dirty_warning(caplog, tmp_path):
+def test_dirty_warning(monkeypatch, caplog, tmp_path):
     proj = Project("testproj")
-    setattr(proj, "_Project__logger", logging.getLogger())
+    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
     proj.logger.setLevel(logging.INFO)
 
     assert Path(tmp_path).exists()

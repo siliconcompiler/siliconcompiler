@@ -98,16 +98,16 @@ def test_logger_no_enable(monkeypatch):
     assert len(logger.handlers) == 0
 
 
-def test_error_no_msg(caplog):
-    setattr(MPManager(), "_MPManager__logger", logging.getLogger())
+def test_error_no_msg(monkeypatch, caplog):
+    monkeypatch.setattr(MPManager(), "_MPManager__logger", logging.getLogger())
     assert MPManager()._MPManager__error is False
     MPManager().error()
     assert MPManager()._MPManager__error is True
     assert "Error occurred" in caplog.text
 
 
-def test_error_with_msg(caplog):
-    setattr(MPManager(), "_MPManager__logger", logging.getLogger())
+def test_error_with_msg(monkeypatch, caplog):
+    monkeypatch.setattr(MPManager(), "_MPManager__logger", logging.getLogger())
     assert MPManager()._MPManager__error is False
     MPManager().error("This error happened here")
     assert MPManager()._MPManager__error is True

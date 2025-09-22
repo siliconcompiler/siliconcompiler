@@ -202,7 +202,7 @@ class SlurmSchedulerNode(SchedulerNode):
         schedule_cmd = ['srun',
                         '--exclusive',
                         '--partition', partition,
-                        '--chdir', self.project.cwd,
+                        '--chdir', self.project_cwd,
                         '--job-name', SlurmSchedulerNode.get_job_name(self.__job_hash,
                                                                       self.step, self.index),
                         '--output', log_file]

@@ -1133,13 +1133,13 @@ class Board:
                     "log": [os.path.join(
                         os.path.relpath(
                             chip.getworkdir(step=step, index=index),
-                            chip.cwd,
+                            chip._Project__cwd,
                         ),
                         f"{step}.log"),
                         os.path.join(
                             os.path.relpath(
                                 chip.getworkdir(step=step, index=index),
-                                chip.cwd,
+                                chip._Project__cwd,
                             ),
                             f"sc_{step}_{index}.log")],
                     "print": {

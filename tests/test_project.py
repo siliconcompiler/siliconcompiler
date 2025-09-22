@@ -61,7 +61,7 @@ def test_key_groups():
 
 
 def test_cwd():
-    assert Project().cwd == os.path.abspath(".")
+    assert Project()._Project__cwd == os.path.abspath(".")
 
 
 def test_init_logger(monkeypatch):
@@ -247,9 +247,9 @@ def test_record_history_recursive_history():
     assert proj.get("history", "job1", field="schema").getkeys("history") == tuple()
 
 
-def test_record_history_warn(caplog):
+def test_record_history_warn(monkeypatch, caplog):
     proj = Project("testname")
-    setattr(proj, "_Project__logger", logging.getLogger())
+    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
     proj.logger.setLevel(logging.WARNING)
     proj._record_history()
     proj._record_history()
@@ -927,9 +927,9 @@ def test_summary_select_job_user():
         history.assert_called_once_with("thisjob")
 
 
-def test_summary_select_unknownjob(caplog):
+def test_summary_select_unknownjob(monkeypatch, caplog):
     proj = Project(Design("testdesign"))
-    setattr(proj, "_Project__logger", logging.getLogger())
+    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
     proj.logger.setLevel(logging.WARNING)
 
     proj.set("option", "jobname", "thisjob")
@@ -946,7 +946,7 @@ def test_summary_select_unknownjob(caplog):
     assert "job0 not found in history, picking thatjob" in caplog.text
 
 
-def test_collect_file_verbose(caplog):
+def test_collect_file_verbose(monkeypatch, caplog):
     design = Design("testdesign")
     with design.active_fileset("rtl"):
         with design._active(copy=True):
@@ -955,7 +955,7 @@ def test_collect_file_verbose(caplog):
         f.write("test")
 
     proj = Project(design)
-    setattr(proj, "_Project__logger", logging.getLogger())
+    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
     proj.logger.setLevel(logging.INFO)
 
     proj.collect()
@@ -964,7 +964,7 @@ def test_collect_file_verbose(caplog):
     assert f"  Collecting file: {os.path.abspath('top.v')}" in caplog.text
 
 
-def test_collect_file_not_verbose(caplog):
+def test_collect_file_not_verbose(monkeypatch, caplog):
     design = Design("testdesign")
     with design.active_fileset("rtl"):
         with design._active(copy=True):
@@ -973,7 +973,7 @@ def test_collect_file_not_verbose(caplog):
         f.write("test")
 
     proj = Project(design)
-    setattr(proj, "_Project__logger", logging.getLogger())
+    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
     proj.logger.setLevel(logging.INFO)
 
     proj.collect(verbose=False)
@@ -1493,12 +1493,12 @@ def test_snapshot_info():
     ]
 
 
-def test_snapshot(caplog):
+def test_snapshot(monkeypatch, caplog):
     image = Image.new('RGB', (1024, 1024))
     image.save("test.png")
 
     proj = Project(Design("testdesign"))
-    setattr(proj, "_Project__logger", logging.getLogger())
+    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
     proj.logger.setLevel(logging.INFO)
     proj.set("option", "design", "testdesign")
     proj._record_history()
@@ -1536,12 +1536,12 @@ def test_snapshot_select_job():
         history.assert_called_once_with("thatjob")
 
 
-def test_snapshot_default_path(caplog):
+def test_snapshot_default_path(monkeypatch, caplog):
     image = Image.new('RGB', (1024, 1024))
     image.save("test.png")
 
     proj = Project(Design("testdesign"))
-    setattr(proj, "_Project__logger", logging.getLogger())
+    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
     proj.logger.setLevel(logging.INFO)
     proj.set("option", "design", "testdesign")
     proj._record_history()
@@ -1563,12 +1563,12 @@ def test_snapshot_default_path(caplog):
     assert "Generated summary image at " in caplog.text
 
 
-def test_snapshot_display_false(caplog):
+def test_snapshot_display_false(monkeypatch, caplog):
     image = Image.new('RGB', (1024, 1024))
     image.save("test.png")
 
     proj = Project(Design("testdesign"))
-    setattr(proj, "_Project__logger", logging.getLogger())
+    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
     proj.logger.setLevel(logging.INFO)
     proj.set("option", "design", "testdesign")
     proj._record_history()
@@ -1587,12 +1587,12 @@ def test_snapshot_display_false(caplog):
     assert "Generated summary image at " in caplog.text
 
 
-def test_snapshot_nodisplay(caplog):
+def test_snapshot_nodisplay(monkeypatch, caplog):
     image = Image.new('RGB', (1024, 1024))
     image.save("test.png")
 
     proj = Project(Design("testdesign"))
-    setattr(proj, "_Project__logger", logging.getLogger())
+    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
     proj.logger.setLevel(logging.INFO)
     proj.set("option", "design", "testdesign")
     proj.set("option", "nodisplay", True)
@@ -1612,9 +1612,9 @@ def test_snapshot_nodisplay(caplog):
     assert "Generated summary image at " in caplog.text
 
 
-def test_check_manifest_empty(caplog):
+def test_check_manifest_empty(monkeypatch, caplog):
     proj = Project()
-    setattr(proj, "_Project__logger", logging.getLogger())
+    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
     proj.logger.setLevel(logging.INFO)
 
     assert proj.check_manifest() is False
@@ -1623,9 +1623,9 @@ def test_check_manifest_empty(caplog):
     assert "[option,flow] has not been set" in caplog.text
 
 
-def test_check_manifest_empty_with_design(caplog):
+def test_check_manifest_empty_with_design(monkeypatch, caplog):
     proj = Project(Design("testdesign"))
-    setattr(proj, "_Project__logger", logging.getLogger())
+    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
     proj.logger.setLevel(logging.INFO)
 
     assert proj.check_manifest() is False
@@ -1634,10 +1634,10 @@ def test_check_manifest_empty_with_design(caplog):
     assert "[option,flow] has not been set" in caplog.text
 
 
-def test_check_manifest_design_set_not_loaded(caplog):
+def test_check_manifest_design_set_not_loaded(monkeypatch, caplog):
     proj = Project()
     proj.set("option", "design", "testdesign")
-    setattr(proj, "_Project__logger", logging.getLogger())
+    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
     proj.logger.setLevel(logging.INFO)
 
     assert proj.check_manifest() is False
@@ -1646,11 +1646,11 @@ def test_check_manifest_design_set_not_loaded(caplog):
     assert "[option,flow] has not been set" in caplog.text
 
 
-def test_check_manifest_with_missing_fileset(caplog):
+def test_check_manifest_with_missing_fileset(monkeypatch, caplog):
     design = Design("testdesign")
     proj = Project(design)
     proj.set("option", "fileset", "rtl")
-    setattr(proj, "_Project__logger", logging.getLogger())
+    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
     proj.logger.setLevel(logging.INFO)
 
     assert proj.check_manifest() is False
@@ -1658,13 +1658,13 @@ def test_check_manifest_with_missing_fileset(caplog):
     assert "[option,flow] has not been set" in caplog.text
 
 
-def test_check_manifest_with_missing_topmodule(caplog):
+def test_check_manifest_with_missing_topmodule(monkeypatch, caplog):
     design = Design("testdesign")
     with design.active_fileset("rtl"):
         design.add_file("top.v")
     proj = Project(design)
     proj.set("option", "fileset", "rtl")
-    setattr(proj, "_Project__logger", logging.getLogger())
+    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
     proj.logger.setLevel(logging.INFO)
 
     assert proj.check_manifest() is False
@@ -1672,7 +1672,7 @@ def test_check_manifest_with_missing_topmodule(caplog):
     assert "[option,flow] has not been set" in caplog.text
 
 
-def test_check_manifest_with_missing_flow(caplog):
+def test_check_manifest_with_missing_flow(monkeypatch, caplog):
     design = Design("testdesign")
     with design.active_fileset("rtl"):
         design.set_topmodule("top")
@@ -1680,14 +1680,14 @@ def test_check_manifest_with_missing_flow(caplog):
     proj = Project(design)
     proj.set("option", "fileset", "rtl")
     proj.set("option", "flow", "testflow")
-    setattr(proj, "_Project__logger", logging.getLogger())
+    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
     proj.logger.setLevel(logging.INFO)
 
     assert proj.check_manifest() is False
     assert "testflow has not been loaded" in caplog.text
 
 
-def test_check_manifest_pass(caplog):
+def test_check_manifest_pass(monkeypatch, caplog):
     design = Design("testdesign")
     with design.active_fileset("rtl"):
         design.set_topmodule("top")
@@ -1696,14 +1696,14 @@ def test_check_manifest_pass(caplog):
     proj = Project(design)
     proj.set("option", "fileset", "rtl")
     proj.set_flow(flow)
-    setattr(proj, "_Project__logger", logging.getLogger())
+    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
     proj.logger.setLevel(logging.INFO)
 
     assert proj.check_manifest() is True
     assert caplog.text == ""
 
 
-def test_check_manifest_with_alias_missing_src(caplog):
+def test_check_manifest_with_alias_missing_src(monkeypatch, caplog):
     design = Design("testdesign")
     with design.active_fileset("rtl"):
         design.set_topmodule("top")
@@ -1715,14 +1715,14 @@ def test_check_manifest_with_alias_missing_src(caplog):
 
     proj.set("option", "alias", ("nothere", "rtl", None, None))
 
-    setattr(proj, "_Project__logger", logging.getLogger())
+    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
     proj.logger.setLevel(logging.INFO)
 
     assert proj.check_manifest() is True
     assert caplog.text == ""
 
 
-def test_check_manifest_with_alias_empty_src(caplog):
+def test_check_manifest_with_alias_empty_src(monkeypatch, caplog):
     design = Design("testdesign")
     with design.active_fileset("rtl"):
         design.set_topmodule("top")
@@ -1734,14 +1734,14 @@ def test_check_manifest_with_alias_empty_src(caplog):
 
     proj.set("option", "alias", (None, "rtl", None, None))
 
-    setattr(proj, "_Project__logger", logging.getLogger())
+    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
     proj.logger.setLevel(logging.INFO)
 
     assert proj.check_manifest() is False
     assert "source library in [option,alias] must be set" in caplog.text
 
 
-def test_check_manifest_with_alias_missing_src_fileset(caplog):
+def test_check_manifest_with_alias_missing_src_fileset(monkeypatch, caplog):
     design = Design("testdesign")
     with design.active_fileset("rtl"):
         design.set_topmodule("top")
@@ -1753,14 +1753,14 @@ def test_check_manifest_with_alias_missing_src_fileset(caplog):
 
     proj.set("option", "alias", ("testdesign", "rtl2", None, None))
 
-    setattr(proj, "_Project__logger", logging.getLogger())
+    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
     proj.logger.setLevel(logging.INFO)
 
     assert proj.check_manifest() is False
     assert "rtl2 is not a valid fileset in testdesign" in caplog.text
 
 
-def test_check_manifest_with_alias_missing_dst(caplog):
+def test_check_manifest_with_alias_missing_dst(monkeypatch, caplog):
     design = Design("testdesign")
     with design.active_fileset("rtl"):
         design.set_topmodule("top")
@@ -1772,14 +1772,14 @@ def test_check_manifest_with_alias_missing_dst(caplog):
 
     proj.set("option", "alias", ("testdesign", "rtl", None, None))
 
-    setattr(proj, "_Project__logger", logging.getLogger())
+    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
     proj.logger.setLevel(logging.INFO)
 
     assert proj.check_manifest() is True
     assert caplog.text == ""
 
 
-def test_check_manifest_with_alias_empty_dst_fileset(caplog):
+def test_check_manifest_with_alias_empty_dst_fileset(monkeypatch, caplog):
     design = Design("testdesign")
     with design.active_fileset("rtl"):
         design.set_topmodule("top")
@@ -1791,14 +1791,14 @@ def test_check_manifest_with_alias_empty_dst_fileset(caplog):
 
     proj.set("option", "alias", ("testdesign", "rtl", "testdesign", None))
 
-    setattr(proj, "_Project__logger", logging.getLogger())
+    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
     proj.logger.setLevel(logging.INFO)
 
     assert proj.check_manifest() is True
     assert caplog.text == ""
 
 
-def test_check_manifest_with_alias_missing_dst_lib(caplog):
+def test_check_manifest_with_alias_missing_dst_lib(monkeypatch, caplog):
     design = Design("testdesign")
     with design.active_fileset("rtl"):
         design.set_topmodule("top")
@@ -1810,14 +1810,14 @@ def test_check_manifest_with_alias_missing_dst_lib(caplog):
 
     proj.set("option", "alias", ("testdesign", "rtl", "testdesign1", None))
 
-    setattr(proj, "_Project__logger", logging.getLogger())
+    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
     proj.logger.setLevel(logging.INFO)
 
     assert proj.check_manifest() is False
     assert " testdesign1 has not been loaded" in caplog.text
 
 
-def test_check_manifest_with_alias_missing_dst_fileset(caplog):
+def test_check_manifest_with_alias_missing_dst_fileset(monkeypatch, caplog):
     design = Design("testdesign")
     with design.active_fileset("rtl"):
         design.set_topmodule("top")
@@ -1829,14 +1829,14 @@ def test_check_manifest_with_alias_missing_dst_fileset(caplog):
 
     proj.set("option", "alias", ("testdesign", "rtl", "testdesign", "rtl2"))
 
-    setattr(proj, "_Project__logger", logging.getLogger())
+    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
     proj.logger.setLevel(logging.INFO)
 
     assert proj.check_manifest() is False
     assert "rtl2 is not a valid fileset in testdesign" in caplog.text
 
 
-def test_init_run(caplog):
+def test_init_run(monkeypatch, caplog):
     design = Design("testdesign")
     with design.active_fileset("rtl"):
         design.set_topmodule("top")
@@ -1844,7 +1844,7 @@ def test_init_run(caplog):
 
     proj = Project(design)
 
-    setattr(proj, "_Project__logger", logging.getLogger())
+    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
     proj.logger.setLevel(logging.INFO)
 
     assert proj.get("option", "fileset") == []
@@ -1854,7 +1854,7 @@ def test_init_run(caplog):
     assert "Setting design fileset to: rtl" in caplog.text
 
 
-def test_init_run_disable_dashboard_breakpoint(caplog):
+def test_init_run_disable_dashboard_breakpoint(monkeypatch, caplog):
     design = Design("testdesign")
     with design.active_fileset("rtl"):
         design.set_topmodule("top")
@@ -1866,9 +1866,9 @@ def test_init_run_disable_dashboard_breakpoint(caplog):
     flow.node("faux", FauxTask0())
     proj.set_flow(flow)
 
-    setattr(proj, "_Project__logger", logging.getLogger())
+    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
     proj.logger.setLevel(logging.INFO)
-    setattr(proj, "__Project_dashboard", True)
+    assert proj._Project__dashboard is not None
 
     proj.set("option", "breakpoint", True, step="faux")
 
@@ -1882,7 +1882,7 @@ def test_init_run_disable_dashboard_breakpoint(caplog):
     assert "Disabling dashboard due to breakpoints at: faux/0" in caplog.text
 
 
-def test_init_run_disable_dashboard_no_breakpoint():
+def test_init_run_disable_dashboard_no_breakpoint(monkeypatch):
     design = Design("testdesign")
     with design.active_fileset("rtl"):
         design.set_topmodule("top")
@@ -1894,7 +1894,7 @@ def test_init_run_disable_dashboard_no_breakpoint():
     flow.node("faux", FauxTask0())
     proj.set_flow(flow)
 
-    setattr(proj, "__Project_dashboard", True)
+    assert proj._Project__dashboard is not None
 
     with patch("siliconcompiler.report.dashboard.cli.CliDashboard.is_running") as is_running:
         is_running.return_value = True
@@ -1902,7 +1902,7 @@ def test_init_run_disable_dashboard_no_breakpoint():
         is_running.assert_not_called()
 
 
-def test_init_run_do_nothing(caplog):
+def test_init_run_do_nothing(monkeypatch, caplog):
     design = Design("testdesign")
     with design.active_fileset("rtl"):
         design.set_topmodule("top")
@@ -1913,7 +1913,7 @@ def test_init_run_do_nothing(caplog):
 
     proj = Project(design)
 
-    setattr(proj, "_Project__logger", logging.getLogger())
+    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
     proj.logger.setLevel(logging.INFO)
 
     assert proj.get("option", "fileset") == []
@@ -1923,10 +1923,10 @@ def test_init_run_do_nothing(caplog):
     assert caplog.text == ""
 
 
-def test_init_run_no_design(caplog):
+def test_init_run_no_design(monkeypatch, caplog):
     proj = Project()
 
-    setattr(proj, "_Project__logger", logging.getLogger())
+    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
     proj.logger.setLevel(logging.INFO)
 
     assert proj.get("option", "fileset") == []
@@ -1955,9 +1955,9 @@ def test_archive_select_job():
         history.assert_called_once_with("thatjob")
 
 
-def test_archive_default_archive(caplog):
+def test_archive_default_archive(monkeypatch, caplog):
     proj = Project(Design("testdesign"))
-    setattr(proj, "_Project__logger", logging.getLogger())
+    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
     proj.logger.setLevel(logging.INFO)
     proj._record_history()
 
@@ -1967,9 +1967,9 @@ def test_archive_default_archive(caplog):
     assert os.path.isfile("testdesign_job0.tgz")
 
 
-def test_archive_archive_name(caplog):
+def test_archive_archive_name(monkeypatch, caplog):
     proj = Project(Design("testdesign"))
-    setattr(proj, "_Project__logger", logging.getLogger())
+    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
     proj.logger.setLevel(logging.INFO)
     proj._record_history()
 
@@ -1979,12 +1979,12 @@ def test_archive_archive_name(caplog):
     assert os.path.isfile("test.tar.gz")
 
 
-def test_archive(caplog):
+def test_archive(monkeypatch, caplog):
     design = Design("testdesign")
     design.set_topmodule("top", fileset="test")
     proj = Project(design)
     proj.add_fileset("test")
-    setattr(proj, "_Project__logger", logging.getLogger())
+    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
     proj.logger.setLevel(logging.INFO)
 
     flow = Flowgraph("testflow")
