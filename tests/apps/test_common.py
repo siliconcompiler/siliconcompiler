@@ -126,7 +126,7 @@ def test_pick_manifest(asic_gcd, monkeypatch, caplog):
         return None
     monkeypatch.setattr(_common, 'pick_manifest_from_file', pick_manifest_from_file)
 
-    setattr(asic_gcd, "_Project__logger", logging.getLogger())
+    monkeypatch.setattr(asic_gcd, "_Project__logger", logging.getLogger())
     asic_gcd.logger.setLevel(logging.INFO)
     assert _common.pick_manifest(asic_gcd) is None
 
@@ -142,7 +142,7 @@ def test_pick_manifest_noset_design(asic_gcd, monkeypatch, caplog):
         return None
     monkeypatch.setattr(_common, 'pick_manifest_from_file', pick_manifest_from_file)
 
-    setattr(asic_gcd, "_Project__logger", logging.getLogger())
+    monkeypatch.setattr(asic_gcd, "_Project__logger", logging.getLogger())
     asic_gcd.logger.setLevel(logging.INFO)
     asic_gcd.unset("option", "design")
     assert _common.pick_manifest(asic_gcd) is None
@@ -159,7 +159,7 @@ def test_pick_manifest_design_mismatch(asic_gcd, monkeypatch, caplog):
         return None
     monkeypatch.setattr(_common, 'pick_manifest_from_file', pick_manifest_from_file)
 
-    setattr(asic_gcd, "_Project__logger", logging.getLogger())
+    monkeypatch.setattr(asic_gcd, "_Project__logger", logging.getLogger())
     asic_gcd.logger.setLevel(logging.INFO)
     assert _common.pick_manifest(asic_gcd) is None
 
@@ -233,7 +233,7 @@ def test_pick_manifest_step_index_invalid(asic_gcd, monkeypatch, caplog):
         return None
     monkeypatch.setattr(_common, 'pick_manifest_from_file', pick_manifest_from_file)
 
-    setattr(asic_gcd, "_Project__logger", logging.getLogger())
+    monkeypatch.setattr(asic_gcd, "_Project__logger", logging.getLogger())
     asic_gcd.logger.setLevel(logging.INFO)
     asic_gcd.unset("option", "design")
     asic_gcd.set('arg', 'step', 'syn')
@@ -303,7 +303,7 @@ def test_pick_manifest_step_index_invalid_combo(asic_gcd, monkeypatch, caplog):
         return None
     monkeypatch.setattr(_common, 'pick_manifest_from_file', pick_manifest_from_file)
 
-    setattr(asic_gcd, "_Project__logger", logging.getLogger())
+    monkeypatch.setattr(asic_gcd, "_Project__logger", logging.getLogger())
     asic_gcd.logger.setLevel(logging.INFO)
     asic_gcd.unset("option", "design")
     asic_gcd.set('arg', "step", 'syn')

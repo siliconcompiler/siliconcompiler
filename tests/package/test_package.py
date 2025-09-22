@@ -132,7 +132,7 @@ def test_cache_id_different_source():
     assert res0.cache_id != res1.cache_id
 
 
-def test_get_path_new_data(caplog):
+def test_get_path_new_data(monkeypatch, caplog):
     class AlwaysNew(RemoteResolver):
         def check_cache(self):
             return False
@@ -147,7 +147,7 @@ def test_get_path_new_data(caplog):
     os.makedirs("path", exist_ok=True)
 
     proj = Project("testproj")
-    setattr(proj, "_Project__logger", logging.getLogger())
+    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
     proj.logger.setLevel(logging.INFO)
 
     resolver = AlwaysNew("alwaysnew", proj, "notused", "notused")
@@ -156,7 +156,7 @@ def test_get_path_new_data(caplog):
     assert "Saved alwaysnew data to " in caplog.text
 
 
-def test_get_path_old_data(caplog):
+def test_get_path_old_data(monkeypatch, caplog):
     class AlwaysOld(RemoteResolver):
         def check_cache(self):
             return True
@@ -171,7 +171,7 @@ def test_get_path_old_data(caplog):
     os.makedirs("path", exist_ok=True)
 
     proj = Project("testproj")
-    setattr(proj, "_Project__logger", logging.getLogger())
+    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
     proj.logger.setLevel(logging.INFO)
 
     resolver = AlwaysOld("alwaysold", proj, "notused", "notused")
@@ -180,7 +180,7 @@ def test_get_path_old_data(caplog):
     assert "Found alwaysold data at " in caplog.text
 
 
-def test_get_path_usecache(caplog):
+def test_get_path_usecache(monkeypatch, caplog):
     class AlwaysCache(RemoteResolver):
         def check_cache(self):
             return True
@@ -195,7 +195,7 @@ def test_get_path_usecache(caplog):
     os.makedirs("path", exist_ok=True)
 
     proj = Project("testproj")
-    setattr(proj, "_Project__logger", logging.getLogger())
+    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
     proj.logger.setLevel(logging.INFO)
 
     resolver = AlwaysCache("alwayscache", proj, "notused", "notused")
@@ -218,8 +218,6 @@ def test_get_path_not_found():
             pass
 
     proj = Project("testproj")
-    setattr(proj, "_Project__logger", logging.getLogger())
-    proj.logger.setLevel(logging.INFO)
 
     resolver = AlwaysOld("alwaysmissing", proj, "notused", "notused")
     with pytest.raises(FileNotFoundError, match="Unable to locate 'alwaysmissing' at .*path"):
