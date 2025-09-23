@@ -1132,16 +1132,10 @@ class Board:
                     },
                     "metrics": node_metrics,
                     "log": [os.path.join(
-                        os.path.relpath(
-                            workdir(chip, step=step, index=index),
-                            chip._Project__cwd,
-                        ),
+                        workdir(chip, step=step, index=index, relpath=True),
                         f"{step}.log"),
                         os.path.join(
-                            os.path.relpath(
-                                workdir(chip, step=step, index=index),
-                                chip._Project__cwd,
-                            ),
+                            workdir(chip, step=step, index=index, relpath=True),
                             f"sc_{step}_{index}.log")],
                     "print": {
                         "order": nodeorder[(step, index)],

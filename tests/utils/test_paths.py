@@ -65,6 +65,11 @@ def test_workdir_step_index():
         os.path.abspath(os.path.join("build", "testname", "job0", "thisstep", "thisindex"))
 
 
+def test_workdir_relpath():
+    assert workdir(Project("testname"), step="thisstep", index="thisindex", relpath=True) == \
+        os.path.join("build", "testname", "job0", "thisstep", "thisindex")
+
+
 def test_collectiondir():
     assert collectiondir(Project("testname")) == \
         os.path.abspath(os.path.join("build", "testname", "job0", "sc_collected_files"))

@@ -44,7 +44,7 @@ def jobdir(project) -> str:
         project.get('option', 'jobname'))
 
 
-def workdir(project, step: str = None, index: Union[int, str] = None) -> str:
+def workdir(project, step: str = None, index: Union[int, str] = None, relpath: bool = False) -> str:
     """
     Returns the absolute path to the working directory for a given
     step and index within the project's job structure.
@@ -76,7 +76,12 @@ def workdir(project, step: str = None, index: Union[int, str] = None) -> str:
             index = '0'
 
         dirlist.append(str(index))
-    return os.path.join(jobdir(project), *dirlist)
+
+    path = os.path.join(jobdir(project), *dirlist)
+    if relpath:
+        return os.path.relpath(path, project._Project__cwd)
+
+    return path
 
 
 def collectiondir(project) -> str:
