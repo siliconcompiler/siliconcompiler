@@ -8,6 +8,7 @@ from siliconcompiler.tools.vpr.place import PlaceTask
 from siliconcompiler.tools.vpr.route import RouteTask
 from siliconcompiler.tools.vpr import VPRFPGA
 from siliconcompiler.tools.genfasm.bitstream import BitstreamTask
+from siliconcompiler.tools import get_task
 
 from tools.inputimporter import ImporterTask
 
@@ -61,8 +62,8 @@ def test_run(datadir):
     fpga.set_vpr_graphfile(os.path.join(datadir, "fpga", "K6_N8_3x3_rr_graph.xml"))
     proj.set_fpga(fpga)
 
-    proj.get_task(filter=ImporterTask).set("var", "input_files",
-                                           os.path.join(datadir, "adder.blif"))
+    get_task(proj, filter=ImporterTask).set("var", "input_files",
+                                            os.path.join(datadir, "adder.blif"))
 
     assert proj.run()
 
@@ -94,7 +95,7 @@ def test_vpr_max_router_iterations(gcd_design):
 
     proj.set_fpga(fpga)
 
-    proj.get_task(filter=RouteTask).set("var", "max_router_iterations", 300)
+    get_task(proj, filter=RouteTask).set("var", "max_router_iterations", 300)
 
     node = SchedulerNode(proj, step='route', index='0')
     with node.runtime():
@@ -225,7 +226,7 @@ def test_vpr_gen_post_implementation_netlist(gcd_design):
 
     proj.set_fpga(fpga)
 
-    proj.get_task(filter=RouteTask).set("var", "timing_corner", "slow")
+    get_task(proj, filter=RouteTask).set("var", "timing_corner", "slow")
 
     node = SchedulerNode(proj, step='route', index='0')
     with node.runtime():

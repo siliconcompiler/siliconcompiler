@@ -11,6 +11,7 @@ from siliconcompiler.tools.builtin.minimum import MinimumTask
 from siliconcompiler.tools.builtin.maximum import MaximumTask
 from siliconcompiler.tools.builtin.mux import MuxTask
 from siliconcompiler.tools.builtin.verify import VerifyTask
+from siliconcompiler.tools import get_task
 
 
 @pytest.fixture
@@ -85,7 +86,7 @@ def test_nop_select_inputs(monkeypatch, caplog):
     proj.logger.setLevel(logging.INFO)
     proj.add_fileset("rtl")
     proj.set_flow(flow)
-    proj.get_task(filter=NOPTask).add_output_file("test.out", step="start", index="0")
+    get_task(proj, filter=NOPTask).add_output_file("test.out", step="start", index="0")
 
     node = SchedulerNode(proj, "end", "0")
     with node.runtime():
@@ -109,7 +110,7 @@ def test_join_select_inputs(monkeypatch, caplog):
     proj.logger.setLevel(logging.INFO)
     proj.add_fileset("rtl")
     proj.set_flow(flow)
-    proj.get_task(filter=NOPTask).add_output_file("test.out", step="start", index="0")
+    get_task(proj, filter=NOPTask).add_output_file("test.out", step="start", index="0")
 
     node = SchedulerNode(proj, "end", "0")
     with node.runtime():
@@ -365,7 +366,7 @@ def test_setup_copies_inputs(cls):
     proj = Project(design)
     proj.add_fileset("rtl")
     proj.set_flow(flow)
-    proj.get_task(filter=NOPTask).add_output_file("test.out", step="start", index="0")
+    get_task(proj, filter=NOPTask).add_output_file("test.out", step="start", index="0")
 
     assert proj.get("tool", "builtin", "task", task_name, "input", step="end", index="0") == []
     assert proj.get("tool", "builtin", "task", task_name, "output", step="end", index="0") == []
@@ -397,7 +398,7 @@ def test_setup_copies_inputs_verify():
     proj = Project(design)
     proj.add_fileset("rtl")
     proj.set_flow(flow)
-    proj.get_task(filter=NOPTask).add_output_file("test.out", step="start", index="0")
+    get_task(proj, filter=NOPTask).add_output_file("test.out", step="start", index="0")
     proj.set('flowgraph', "test", 'end', '0', 'args', 'errors==1042')
 
     assert proj.get("tool", "builtin", "task", task_name, "input", step="end", index="0") == []
@@ -433,8 +434,8 @@ def test_setup_copies_inputs_multiple(cls):
     proj = Project(design)
     proj.add_fileset("rtl")
     proj.set_flow(flow)
-    proj.get_task(filter=NOPTask).add_output_file("test.out", step="start", index="0")
-    proj.get_task(filter=NOPTask).add_output_file("other.out", step="otherstart", index="0")
+    get_task(proj, filter=NOPTask).add_output_file("test.out", step="start", index="0")
+    get_task(proj, filter=NOPTask).add_output_file("other.out", step="otherstart", index="0")
 
     assert proj.get("tool", "builtin", "task", task_name, "input", step="end", index="0") == []
     assert proj.get("tool", "builtin", "task", task_name, "output", step="end", index="0") == []

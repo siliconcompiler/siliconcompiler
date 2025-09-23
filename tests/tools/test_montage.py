@@ -3,6 +3,7 @@ import pytest
 from siliconcompiler import Project, Flowgraph
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.tools.montage import tile
+from siliconcompiler.tools import get_task
 
 
 @pytest.mark.eda
@@ -30,7 +31,7 @@ def test_runtime_opts(gcd_design):
     flow.node("tile", tile.TileTask())
     proj.set_flow(flow)
 
-    assert proj.get_task(filter=tile.TileTask).set("var", "bins", (4, 3))
+    assert get_task(proj, filter=tile.TileTask).set("var", "bins", (4, 3))
 
     node = SchedulerNode(proj, "tile", "0")
     with node.runtime():

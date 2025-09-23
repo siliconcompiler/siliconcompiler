@@ -17,6 +17,7 @@ from siliconcompiler.targets import freepdk45_demo, skywater130_demo
 from siliconcompiler.tools.graphviz.screenshot import ScreenshotTask as GraphvizScreenshot
 from siliconcompiler.tools.gtkwave.show import ShowTask as GtkwaveShow
 from siliconcompiler.tools.surfer.show import ShowTask as SurferShow
+from siliconcompiler.tools import get_task
 
 
 def generate_id(cls):
@@ -53,7 +54,7 @@ def test_show_def(target, testfile, task, datadir, display):
     proj.load_target(target.setup)
 
     ShowTask.register_task(task)
-    assert isinstance(ShowTask.get_task("def"), task)
+    assert isinstance(get_task(ShowTask, "def"), task)
 
     proj.show(os.path.join(datadir, testfile))
 
@@ -75,7 +76,7 @@ def test_screenshot_def(target, testfile, task, datadir, display):
     proj.load_target(target.setup)
 
     ScreenshotTask.register_task(task)
-    assert isinstance(ScreenshotTask.get_task("def"), task)
+    assert isinstance(get_task(ScreenshotTask, "def"), task)
 
     path = proj.show(os.path.join(datadir, testfile), screenshot=True)
     assert os.path.isfile(path)
@@ -95,7 +96,7 @@ def test_show_lyp_tool_klayout(datadir, display):
     pdk.set("pdk", "layermapfileset", "klayout", "def", "klayout", [], clobber=True)
 
     ShowTask.register_task(klayout_show.ShowTask)
-    assert isinstance(ShowTask.get_task("def"), klayout_show.ShowTask)
+    assert isinstance(get_task(ShowTask, "def"), klayout_show.ShowTask)
 
     proj.show(os.path.join(datadir, 'heartbeat_freepdk45.def'))
 
@@ -110,7 +111,7 @@ def test_show_nopdk_tool_klayout(datadir, display):
     proj = ASICProject(design)
     proj.load_target(freepdk45_demo.setup)
 
-    assert isinstance(ShowTask.get_task("gds"), klayout_show.ShowTask)
+    assert isinstance(get_task(ShowTask, "gds"), klayout_show.ShowTask)
     testfile = os.path.join(datadir, 'heartbeat.gds.gz')
 
     proj.show(testfile)
@@ -125,7 +126,7 @@ def test_show_vcd_surfer(datadir, display, gcd_design):
     proj.add_fileset("rtl")
 
     ShowTask.register_task(SurferShow)
-    assert isinstance(ShowTask.get_task("vcd"), SurferShow)
+    assert isinstance(get_task(ShowTask, "vcd"), SurferShow)
 
     proj.show(os.path.join(datadir, 'random.vcd'))
 
@@ -138,7 +139,7 @@ def test_show_vcd_gtkwave(datadir, display, gcd_design):
     proj.add_fileset("rtl")
 
     ShowTask.register_task(GtkwaveShow)
-    assert isinstance(ShowTask.get_task("vcd"), GtkwaveShow)
+    assert isinstance(get_task(ShowTask, "vcd"), GtkwaveShow)
 
     proj.show(os.path.join(datadir, 'random.vcd'))
 
@@ -149,6 +150,6 @@ def test_show_vcd_gtkwave(datadir, display, gcd_design):
 def test_screenshot_dot(datadir, gcd_design):
     proj = Project(gcd_design)
     proj.add_fileset("rtl")
-    assert isinstance(ScreenshotTask.get_task("dot"), GraphvizScreenshot)
+    assert isinstance(get_task(ScreenshotTask, "dot"), GraphvizScreenshot)
     file = proj.show(os.path.join(datadir, 'mkDotProduct_nt_Int32.dot'), screenshot=True)
     assert os.path.isfile(file)

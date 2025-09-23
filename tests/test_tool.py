@@ -30,6 +30,7 @@ from siliconcompiler.tool import subprocess as imported_subprocess
 from siliconcompiler.tool import os as imported_os
 from siliconcompiler.tool import psutil as imported_psutil
 from siliconcompiler.tool import resource as imported_resource
+from siliconcompiler.tools import get_task
 
 
 @pytest.fixture
@@ -2032,7 +2033,7 @@ def test_show_get_task():
 
     with patch.dict("siliconcompiler.ShowTask._ShowTask__TASKS", clear=True), \
             patch("siliconcompiler.utils.showtools.showtasks") as showtasks:
-        assert ShowTask.get_task("ext").__class__ is Test
+        assert get_task(ShowTask, "ext").__class__ is Test
         showtasks.assert_called_once()
 
 

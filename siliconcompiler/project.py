@@ -1,5 +1,4 @@
 import importlib
-import inspect
 import logging
 import os
 import sys
@@ -8,7 +7,7 @@ import uuid
 import os.path
 
 from inspect import getfullargspec
-from typing import Set, Union, List, Tuple, Type, Callable, TextIO
+from typing import Union, List, Tuple, Callable, TextIO
 
 from siliconcompiler.schema import BaseSchema, NamedSchema, EditableSchema, Parameter, Scope, \
     __version__ as schema_version
@@ -36,6 +35,7 @@ from siliconcompiler.utils import get_file_ext
 from siliconcompiler.utils.multiprocessing import MPManager
 from siliconcompiler.utils.paths import jobdir, workdir
 from siliconcompiler.flows.showflow import ShowFlow
+from siliconcompiler.tools import get_task
 
 
 class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
@@ -1259,7 +1259,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                     search_nodes.extend(nodes)
 
             exts = set()
-            for cls in tool_cls.get_task(None):
+            for cls in get_task(tool_cls, None):
                 try:
                     exts.update(cls().get_supported_show_extentions())
                 except NotImplementedError:
@@ -1297,7 +1297,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
 
         filetype = get_file_ext(filepath)
 
-        task = tool_cls.get_task(filetype)
+        task = get_task(tool_cls, filetype)
         if task is None:
             self.logger.error(f"Filetype '{filetype}' not available in the registered showtools.")
             return False
@@ -1325,7 +1325,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         proj.set("option", "jobname", jobname)
 
         # Setup in task variables
-        task: ShowTask = proj.get_task(filter=task.__class__)
+        task: ShowTask = get_task(proj, filter=task.__class__)
         task.set_showfilepath(filename)
         task.set_showfiletype(filetype)
         task.set_shownode(jobname=sc_jobname, step=sc_step, index=sc_index)
