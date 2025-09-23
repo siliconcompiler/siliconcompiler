@@ -135,10 +135,10 @@ class ASICProject(Project):
             return
 
         if isinstance(obj, StdCellLibrary):
-            if not self.has_library(obj.name):
+            if not self._has_library(obj.name):
                 EditableSchema(self).insert("library", obj.name, obj)
         elif isinstance(obj, PDK):
-            if not self.has_library(obj.name):
+            if not self._has_library(obj.name):
                 EditableSchema(self).insert("library", obj.name, obj)
         else:
             return super().add_dep(obj)
@@ -383,7 +383,7 @@ class ASICProject(Project):
 
         if not self.get("asic", "pdk") and self.get("asic", "mainlib"):
             mainlib = None
-            if self.has_library(self.get("asic", "mainlib")):
+            if self._has_library(self.get("asic", "mainlib")):
                 mainlib = self.get("library", self.get("asic", "mainlib"), field="schema")
             if mainlib:
                 mainlib_pdk = mainlib.get("asic", "pdk")

@@ -450,12 +450,12 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             return
 
         if isinstance(obj, Design):
-            if not self.has_library(obj.name):
+            if not self._has_library(obj.name):
                 EditableSchema(self).insert("library", obj.name, obj)
         elif isinstance(obj, Flowgraph):
             self.__import_flow(obj)
         elif isinstance(obj, LibrarySchema):
-            if not self.has_library(obj.name):
+            if not self._has_library(obj.name):
                 EditableSchema(self).insert("library", obj.name, obj)
         elif isinstance(obj, Checklist):
             if obj.name not in self.getkeys("checklist"):
@@ -533,7 +533,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             error = True
         else:
             # Assert design is a library
-            if not self.has_library(design):
+            if not self._has_library(design):
                 self.logger.error(f"{design} has not been loaded")
                 error = True
 
@@ -574,7 +574,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                 error = True
                 continue
 
-            if not self.has_library(src_lib):
+            if not self._has_library(src_lib):
                 continue
 
             if not self.get("library", src_lib, field="schema").has_fileset(src_fileset):
@@ -585,7 +585,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             if not dst_lib:
                 continue
 
-            if not self.has_library(dst_lib):
+            if not self._has_library(dst_lib):
                 self.logger.error(f"{dst_lib} has not been loaded")
                 error = True
                 continue
@@ -607,7 +607,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         """
         # Automatically select fileset if only one is available in the design
         if not self.get("option", "fileset") and self.get("option", "design") and \
-                self.has_library(self.get("option", "design")):
+                self._has_library(self.get("option", "design")):
             filesets = self.design.getkeys("fileset")
             if len(filesets) == 1:
                 fileset = filesets[0]
@@ -791,7 +791,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         alias = {}
         for src_lib, src_fileset, dst_lib, dst_fileset in self.get("option", "alias"):
             if dst_lib:
-                if not self.has_library(dst_lib):
+                if not self._has_library(dst_lib):
                     raise KeyError(f"{dst_lib} is not a loaded library")
                 dst_obj = self.get("library", dst_lib, field="schema")
             else:
@@ -921,7 +921,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         """
 
         if isinstance(src_dep, str):
-            if self.has_library(src_dep):
+            if self._has_library(src_dep):
                 src_dep = self.get("library", src_dep, field="schema")
             else:
                 src_dep_name = src_dep
@@ -930,7 +930,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         if src_dep is not None:
             if isinstance(src_dep, Design):
                 src_dep_name = src_dep.name
-                if not self.has_library(src_dep_name):
+                if not self._has_library(src_dep_name):
                     self.add_dep(src_dep)
             else:
                 raise TypeError("source dep is not a valid type")
@@ -950,7 +950,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                 alias_dep_name = None
                 alias_fileset = None
             else:
-                if not self.has_library(alias_dep):
+                if not self._has_library(alias_dep):
                     raise KeyError(f"{alias_dep} has not been loaded")
 
                 alias_dep = self.get("library", alias_dep, field="schema")
@@ -958,7 +958,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         if alias_dep is not None:
             if isinstance(alias_dep, Design):
                 alias_dep_name = alias_dep.name
-                if not self.has_library(alias_dep_name):
+                if not self._has_library(alias_dep_name):
                     self.add_dep(alias_dep)
             else:
                 raise TypeError("alias dep is not a valid type")
@@ -973,6 +973,9 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             return self.add("option", "alias", alias)
 
     def has_library(self, library: Union[str, NamedSchema]) -> bool:
+        return self._has_library(library)
+
+    def _has_library(self, library: Union[str, NamedSchema]) -> bool:
         """
         Checks if a library with the given name exists and is loaded in the project.
 
@@ -1003,9 +1006,9 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
 
         alias = []
         for src, src_fs, dst, dst_fs in self.get("option", "alias"):
-            if not self.has_library(src):
+            if not self._has_library(src):
                 continue
-            if dst and not self.has_library(dst):
+            if dst and not self._has_library(dst):
                 continue
 
             aliased = f"{src} ({src_fs}) -> "

@@ -463,9 +463,9 @@ def test_add_alias_src_name_not_loaded():
         dst.set_topmodule("top")
 
     proj = Project()
-    assert proj.has_library("test0") is False
+    assert proj._has_library("test0") is False
     proj.add_alias("test0", "rtl", dst, "rtl")
-    assert proj.has_library("test0") is False
+    assert proj._has_library("test0") is False
     assert proj.get("option", "alias") == [
         ("test0", "rtl", "dst", "rtl")
     ]
@@ -480,9 +480,9 @@ def test_add_alias_src_dep_not_loaded():
         dst.set_topmodule("top")
 
     proj = Project()
-    assert proj.has_library(design) is False
+    assert proj._has_library(design) is False
     proj.add_alias(design, "rtl", dst, "rtl")
-    assert proj.has_library(design) is True
+    assert proj._has_library(design) is True
     assert proj.get("option", "alias") == [
         ("test", "rtl", "dst", "rtl")
     ]
@@ -731,21 +731,21 @@ def test_get_filesets_with_alias_missing():
 
 def test_has_library_not_found():
     proj = Project()
-    assert proj.has_library("test") is False
+    assert proj._has_library("test") is False
 
     proj.add_dep(Design("test"))
-    assert proj.has_library("notfound") is False
-    assert proj.has_library("test") is True
+    assert proj._has_library("notfound") is False
+    assert proj._has_library("test") is True
 
 
 def test_has_library_not_found_with_object():
     proj = Project()
     design = Design("test")
-    assert proj.has_library(design) is False
+    assert proj._has_library(design) is False
 
     proj.add_dep(design)
-    assert proj.has_library("notfound") is False
-    assert proj.has_library(design) is True
+    assert proj._has_library("notfound") is False
+    assert proj._has_library(design) is True
 
 
 def test_summary_headers():
