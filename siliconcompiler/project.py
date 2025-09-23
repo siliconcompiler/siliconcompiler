@@ -274,16 +274,6 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
 
         return self.get("library", design_name, field="schema")
 
-    @property
-    def cwd(self) -> str:
-        """
-        Returns the working directory for the project.
-
-        Returns:
-            str: The absolute path of the current working directory.
-        """
-        return self.__cwd
-
     @classmethod
     def convert(cls, obj: "Project") -> "Project":
         """
