@@ -21,7 +21,8 @@ from siliconcompiler.scheduler import Scheduler
 from siliconcompiler.schema import Journal
 
 from siliconcompiler.utils.logging import get_console_formatter
-from siliconcompiler.utils.collect import getcollectiondir, collect
+from siliconcompiler.utils.collect import collect
+from siliconcompiler.utils.paths import collectiondir, jobdir, workdir
 
 from siliconcompiler.remote import JobStatus, NodeStatus
 
@@ -132,7 +133,7 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
         return urllib.parse.urljoin(self.__url, action)
 
     def remote_manifest(self):
-        return f'{self.__chip.getworkdir()}/sc_remote.pkg.json'
+        return f'{jobdir(self.__chip)}/sc_remote.pkg.json'
 
     def print_configuration(self):
         self.__logger.info(f'Server: {self.__url}')
@@ -518,12 +519,12 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
         if not remote_resume:
             upload_file = tempfile.TemporaryFile(prefix='sc', suffix='remote.tar.gz')
             with tarfile.open(fileobj=upload_file, mode='w:gz') as tar:
-                tar.add(self.__chip.getworkdir(), arcname='')
+                tar.add(jobdir(self.__chip), arcname='')
             # Flush file to ensure everything is written
             upload_file.flush()
 
             # We no longer need the collected files
-            shutil.rmtree(getcollectiondir(self.__chip))
+            shutil.rmtree(collectiondir(self.__chip))
 
         if 'pre_upload' in remote_status:
             self.__logger.info(remote_status['pre_upload']['message'])
@@ -609,7 +610,7 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
     def __import_run_manifests(self, starttimes):
         if not self.__setup_information_loaded:
             if self.__setup_information_fetched:
-                manifest = os.path.join(self.__chip.getworkdir(), f'{self.__name}.pkg.json')
+                manifest = os.path.join(jobdir(self.__chip), f'{self.__name}.pkg.json')
                 if os.path.exists(manifest):
                     try:
                         Journal.replay_file(self.__chip, manifest)
@@ -629,7 +630,7 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
                 continue
 
             manifest = os.path.join(
-                self.__chip.getworkdir(step=node_info["step"], index=node_info["index"]),
+                workdir(self.__chip, step=node_info["step"], index=node_info["index"]),
                 'outputs',
                 f'{self.__name}.pkg.json')
             if os.path.exists(manifest):

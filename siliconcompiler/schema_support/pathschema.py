@@ -11,7 +11,7 @@ from siliconcompiler.schema.parameter import Parameter, Scope
 from siliconcompiler.schema.utils import trim
 
 from siliconcompiler.package import Resolver
-from siliconcompiler.utils.collect import getcollectiondir
+from siliconcompiler.utils.paths import collectiondir
 
 
 class PathSchemaBase(BaseSchema):
@@ -51,7 +51,7 @@ class PathSchemaBase(BaseSchema):
         """
         schema_root = self._parent(root=True)
         cwd = getattr(schema_root, "_Project__cwd", os.getcwd())
-        collection_dir = getcollectiondir(schema_root)
+        collection_dir = collectiondir(schema_root)
 
         return super().find_files(*keypath,
                                   missing_ok=missing_ok,
@@ -74,7 +74,7 @@ class PathSchemaBase(BaseSchema):
         logger = getattr(schema_root,
                          "logger",
                          logging.getLogger("siliconcompiler.check_filepaths"))
-        collection_dir = getcollectiondir(schema_root)
+        collection_dir = collectiondir(schema_root)
 
         return super().check_filepaths(
             ignore_keys=ignore_keys,
@@ -124,7 +124,7 @@ class PathSchemaBase(BaseSchema):
         logger = getattr(schema_root,
                          "logger",
                          logging.getLogger("siliconcompiler.hash_files"))
-        collection_dir = getcollectiondir(schema_root)
+        collection_dir = collectiondir(schema_root)
 
         if verbose:
             logger.info(f"Computing hash value for [{','.join([*self._keypath, *keypath])}]")

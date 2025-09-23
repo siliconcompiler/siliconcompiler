@@ -24,6 +24,7 @@ from rich.padding import Padding
 
 from siliconcompiler import NodeStatus
 from siliconcompiler.utils.logging import SCColorLoggerFormatter
+from siliconcompiler.utils.paths import workdir
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 
 
@@ -1131,16 +1132,10 @@ class Board:
                     },
                     "metrics": node_metrics,
                     "log": [os.path.join(
-                        os.path.relpath(
-                            chip.getworkdir(step=step, index=index),
-                            chip._Project__cwd,
-                        ),
+                        workdir(chip, step=step, index=index, relpath=True),
                         f"{step}.log"),
                         os.path.join(
-                            os.path.relpath(
-                                chip.getworkdir(step=step, index=index),
-                                chip._Project__cwd,
-                            ),
+                            workdir(chip, step=step, index=index, relpath=True),
                             f"sc_{step}_{index}.log")],
                     "print": {
                         "order": nodeorder[(step, index)],

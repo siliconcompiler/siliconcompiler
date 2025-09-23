@@ -12,6 +12,7 @@ from siliconcompiler.scheduler import Scheduler
 from siliconcompiler.schema import EditableSchema, Parameter
 
 from siliconcompiler.tools.builtin.nop import NOPTask
+from siliconcompiler.utils.paths import jobdir
 
 
 @pytest.fixture
@@ -192,7 +193,7 @@ def test_increment_job_name_default(basic_project):
 
     scheduler = Scheduler(basic_project)
 
-    os.makedirs(basic_project.getworkdir(), exist_ok=True)
+    os.makedirs(jobdir(basic_project), exist_ok=True)
 
     assert basic_project.get("option", "jobname") == "job0"
     assert scheduler._Scheduler__increment_job_name() is True
@@ -224,7 +225,7 @@ def test_increment_job_name(basic_project, prev_name, new_name):
     basic_project.set('option', 'jobname', prev_name)
     scheduler = Scheduler(basic_project)
 
-    os.makedirs(basic_project.getworkdir(), exist_ok=True)
+    os.makedirs(jobdir(basic_project), exist_ok=True)
 
     assert basic_project.get("option", "jobname") == prev_name
     assert scheduler._Scheduler__increment_job_name() is True
@@ -236,7 +237,7 @@ def test_clean_build_dir(basic_project):
 
     scheduler = Scheduler(basic_project)
 
-    os.makedirs(basic_project.getworkdir(), exist_ok=True)
+    os.makedirs(jobdir(basic_project), exist_ok=True)
 
     with patch("shutil.rmtree", autospec=True) as call:
         scheduler._Scheduler__clean_build_dir()
@@ -249,8 +250,8 @@ def test_clean_build_dir_with_from(basic_project):
 
     scheduler = Scheduler(basic_project)
 
-    os.makedirs(basic_project.getworkdir(), exist_ok=True)
-    assert os.path.isdir(basic_project.getworkdir())
+    os.makedirs(jobdir(basic_project), exist_ok=True)
+    assert os.path.isdir(jobdir(basic_project))
 
     with patch("shutil.rmtree", autospec=True) as call:
         scheduler._Scheduler__clean_build_dir()
@@ -262,7 +263,7 @@ def test_clean_build_dir_do_nothing(basic_project):
 
     scheduler = Scheduler(basic_project)
 
-    os.makedirs(basic_project.getworkdir(), exist_ok=True)
+    os.makedirs(jobdir(basic_project), exist_ok=True)
 
     with patch("shutil.rmtree", autospec=True) as call:
         scheduler._Scheduler__clean_build_dir()
@@ -275,7 +276,7 @@ def test_clean_build_dir_remote(basic_project):
 
     scheduler = Scheduler(basic_project)
 
-    os.makedirs(basic_project.getworkdir(), exist_ok=True)
+    os.makedirs(jobdir(basic_project), exist_ok=True)
 
     with patch("shutil.rmtree", autospec=True) as call:
         scheduler._Scheduler__clean_build_dir()

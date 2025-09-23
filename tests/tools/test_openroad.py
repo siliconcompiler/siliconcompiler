@@ -6,6 +6,7 @@ from siliconcompiler.flows.asicflow import ASICFlow
 
 from siliconcompiler.tools.openroad._apr import APRTask
 from siliconcompiler.tools.openroad import metrics
+from siliconcompiler.utils.paths import workdir
 
 
 @pytest.mark.eda
@@ -30,13 +31,13 @@ def test_openroad_images(asic_gcd):
         count = 0
         all_files = set()
         for dirpath, _, files in os.walk(
-                os.path.join(asic_gcd.getworkdir(step=step, index='0'),
+                os.path.join(workdir(asic_gcd, step=step, index='0'),
                              'reports',
                              'images')):
             count += len(files)
             all_files.update([os.path.relpath(
                 os.path.join(dirpath, f),
-                asic_gcd.getworkdir(step=step, index='0')) for f in files])
+                workdir(asic_gcd, step=step, index='0')) for f in files])
 
         assert images_count[step] == count, f'{step} images do not match: ' \
                                             f'{images_count[step]} == {count}: {all_files}'

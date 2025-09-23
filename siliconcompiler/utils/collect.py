@@ -6,22 +6,7 @@ from typing import List
 
 from siliconcompiler.schema.parametervalue import NodeListValue, NodeSetValue
 from siliconcompiler.utils import FilterDirectories
-
-
-def getcollectiondir(project) -> str:
-    """
-    Returns the absolute path to the directory where collected files are stored.
-
-    This directory is typically located within the project's working directory
-    and is used to consolidate files marked for collection.
-
-    Returns:
-        str: The absolute path to the collected files directory.
-    """
-    from siliconcompiler import Project
-    if not isinstance(project, Project):
-        return None
-    return os.path.join(project.getworkdir(), "sc_collected_files")
+from siliconcompiler.utils.paths import collectiondir
 
 
 def collect(project,
@@ -35,7 +20,7 @@ def collect(project,
 
     Args:
         directory (str, optional): The output directory for collected files.
-            Defaults to the path from :meth:`.getcollectiondir`.
+            Defaults to the path from :meth:`.collectiondir`.
         verbose (bool): If True, logs information about each collected file/directory.
             Defaults to True.
         whitelist (List[str], optional): A list of absolute paths that are
@@ -51,7 +36,7 @@ def collect(project,
         raise TypeError("project must be a Project")
 
     if not directory:
-        directory = getcollectiondir(project)
+        directory = collectiondir(project)
     directory = os.path.abspath(directory)
 
     # Remove existing directory

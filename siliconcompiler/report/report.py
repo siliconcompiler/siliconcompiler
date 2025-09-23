@@ -4,6 +4,8 @@ from siliconcompiler.schema import PerNode, Parameter
 from siliconcompiler.report import utils
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 
+from siliconcompiler.utils.paths import workdir
+
 
 def make_metric_dataframe(chip):
     '''
@@ -354,7 +356,7 @@ def get_files(chip, step, index):
     # could combine filters, but slightly more efficient to separate them
     # Is remaking the list with sets instead of list worth it?
     logs_and_reports = []
-    all_paths = os.walk(chip.getworkdir(step=step, index=index))
+    all_paths = os.walk(workdir(chip, step=step, index=index))
     for path_name, folders, files in all_paths:
         logs_and_reports.append((path_name, set(folders), set(files)))
     return logs_and_reports

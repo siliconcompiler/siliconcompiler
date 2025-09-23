@@ -40,6 +40,7 @@ from siliconcompiler.schema.utils import trim
 
 from siliconcompiler import utils, NodeStatus, Flowgraph
 from siliconcompiler import sc_open
+from siliconcompiler.utils import paths
 
 from siliconcompiler.schema_support.pathschema import PathSchema
 from siliconcompiler.schema_support.record import RecordTool, RecordSchema
@@ -1727,19 +1728,19 @@ class Task(NamedSchema, PathSchema, DocsSchema):
                                   step=step, index=index)
 
     def _find_files_search_paths(self, keypath, step, index):
-        paths = super()._find_files_search_paths(keypath, step, index)
+        search_paths = super()._find_files_search_paths(keypath, step, index)
         if keypath == "script":
-            paths.extend(self.find_files("refdir", step=step, index=index))
+            search_paths.extend(self.find_files("refdir", step=step, index=index))
         elif keypath == "input":
-            paths.append(os.path.join(self._parent(root=True).getworkdir(step=step, index=index),
-                                      "inputs"))
+            search_paths.append(os.path.join(
+                paths.workdir(self._parent(root=True), step=step, index=index), "inputs"))
         elif keypath == "report":
-            paths.append(os.path.join(self._parent(root=True).getworkdir(step=step, index=index),
-                                      "report"))
+            search_paths.append(os.path.join(
+                paths.workdir(self._parent(root=True), step=step, index=index), "report"))
         elif keypath == "output":
-            paths.append(os.path.join(self._parent(root=True).getworkdir(step=step, index=index),
-                                      "outputs"))
-        return paths
+            search_paths.append(os.path.join(
+                paths.workdir(self._parent(root=True), step=step, index=index), "outputs"))
+        return search_paths
 
     def _generate_doc(self, doc,
                       ref_root: str = "",

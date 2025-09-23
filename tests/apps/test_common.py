@@ -5,6 +5,7 @@ import pytest
 
 import os.path
 from siliconcompiler.apps import _common
+from siliconcompiler.utils.paths import workdir, jobdir
 
 
 @pytest.fixture
@@ -13,11 +14,11 @@ def make_manifests():
         for nodes in project.get("flowgraph", "asicflow", field="schema").get_execution_order():
             for step, index in nodes:
                 for d in ('inputs', 'outputs'):
-                    path = os.path.join(project.getworkdir(step=step, index=index), d)
+                    path = os.path.join(workdir(project, step=step, index=index), d)
                     os.makedirs(path, exist_ok=True)
                     with open(os.path.join(path, f"{project.design.name}.pkg.json"), "w") as f:
                         f.write('nothing')
-        with open(os.path.join(project.getworkdir(), f"{project.design.name}.pkg.json"), "w") as f:
+        with open(os.path.join(jobdir(project), f"{project.design.name}.pkg.json"), "w") as f:
             f.write('nothing')
 
     return impl

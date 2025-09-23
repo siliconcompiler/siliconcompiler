@@ -17,10 +17,10 @@ from siliconcompiler.scheduler import DockerSchedulerNode
 from siliconcompiler.scheduler import TaskScheduler
 
 from siliconcompiler import utils
-from siliconcompiler.utils.collect import getcollectiondir
 from siliconcompiler.utils.logging import SCLoggerFormatter
 from siliconcompiler.utils.multiprocessing import MPManager
 from siliconcompiler.scheduler import send_messages
+from siliconcompiler.utils.paths import collectiondir, jobdir, workdir
 
 
 class Scheduler:
@@ -199,8 +199,8 @@ class Scheduler:
         self.__clean_build_dir()
 
         # Install job file logger
-        os.makedirs(self.__project.getworkdir(), exist_ok=True)
-        file_log = os.path.join(self.__project.getworkdir(), "job.log")
+        os.makedirs(jobdir(self.__project), exist_ok=True)
+        file_log = os.path.join(jobdir(self.__project), "job.log")
         bak_count = 0
         bak_file_log = f"{file_log}.bak"
         while os.path.exists(bak_file_log):
@@ -232,7 +232,7 @@ class Scheduler:
         self.__project._record_history()
 
         # Record final manifest
-        filepath = os.path.join(self.__project.getworkdir(), f"{self.__name}.pkg.json")
+        filepath = os.path.join(jobdir(self.__project), f"{self.__name}.pkg.json")
         self.__project.write_manifest(filepath)
 
         send_messages.send(self.__project, 'summary', None, None)
@@ -265,8 +265,8 @@ class Scheduler:
                     # If we're not running the input step, the required
                     # inputs need to already be copied into the build
                     # directory.
-                    workdir = self.__project.getworkdir(step=in_step, index=in_index)
-                    in_step_out_dir = os.path.join(workdir, 'outputs')
+                    in_step_out_dir = os.path.join(
+                        workdir(self.__project, step=in_step, index=in_index), 'outputs')
 
                     if not os.path.isdir(in_step_out_dir):
                         # This means this step hasn't been run, but that
@@ -364,9 +364,9 @@ class Scheduler:
             # Copy collection directory
             curret_job = self.__project.get("option", "jobname")
             self.__project.set("option", "jobname", self.__org_job_name)
-            copy_from = getcollectiondir(self.__project)
+            copy_from = collectiondir(self.__project)
             self.__project.set("option", "jobname", curret_job)
-            copy_to = getcollectiondir(self.__project)
+            copy_to = collectiondir(self.__project)
             if os.path.exists(copy_from):
                 shutil.copytree(copy_from, copy_to,
                                 dirs_exist_ok=True,
@@ -403,7 +403,7 @@ class Scheduler:
         if self.__project.get('option', 'clean') and not self.__project.get('option', 'from'):
             # If no step or nodes to start from were specified, the whole flow is being run
             # start-to-finish. Delete the build dir to clear stale results.
-            cur_job_dir = self.__project.getworkdir()
+            cur_job_dir = jobdir(self.__project)
             if os.path.isdir(cur_job_dir):
                 shutil.rmtree(cur_job_dir)
 
@@ -444,7 +444,7 @@ class Scheduler:
                 # Node will be run so no need to load
                 continue
 
-            manifest = os.path.join(self.__project.getworkdir(step=step, index=index),
+            manifest = os.path.join(workdir(self.__project, step=step, index=index),
                                     'outputs',
                                     f'{self.__name}.pkg.json')
             if os.path.exists(manifest):
@@ -502,8 +502,8 @@ class Scheduler:
 
         self.__print_status("After ensure")
 
-        os.makedirs(self.__project.getworkdir(), exist_ok=True)
-        self.__project.write_manifest(os.path.join(self.__project.getworkdir(),
+        os.makedirs(jobdir(self.__project), exist_ok=True)
+        self.__project.write_manifest(os.path.join(jobdir(self.__project),
                                                    f"{self.__name}.pkg.json"))
         journal.stop()
 
@@ -544,7 +544,7 @@ class Scheduler:
         if not self.__project.get('option', 'jobincr'):
             return False
 
-        workdir = self.__project.getworkdir()
+        workdir = jobdir(self.__project)
         if os.path.isdir(workdir):
             # Strip off digits following jobname, if any
             stem = self.__project.get('option', 'jobname').rstrip('0123456789')

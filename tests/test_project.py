@@ -18,6 +18,7 @@ from siliconcompiler.library import LibrarySchema
 from siliconcompiler.schema import NamedSchema, EditableSchema, Parameter, Scope
 
 from siliconcompiler.utils.logging import SCColorLoggerFormatter, SCLoggerFormatter
+from siliconcompiler.utils.paths import jobdir
 
 from siliconcompiler.project import SCColorLoggerFormatter as dut_sc_color_logger
 
@@ -177,50 +178,6 @@ def test_pickling(monkeypatch):
     assert isinstance(new_prj._logger_console, logging.StreamHandler)
     assert isinstance(new_prj._logger_console.formatter, SCColorLoggerFormatter)
     assert new_prj._logger_console in new_prj.logger.handlers
-
-
-def test_builddir():
-    assert Project()._getbuilddir() == os.path.abspath("build")
-
-
-def test_builddir_abspath():
-    project = Project()
-    project.set("option", "builddir", os.path.abspath("diffdir/buildhere"))
-
-    assert project._getbuilddir() == \
-        Path(os.path.abspath("diffdir/buildhere")).as_posix()
-
-
-def test_builddir_diff_build():
-    project = Project()
-    project.set("option", "builddir", "testbuild")
-    assert project._getbuilddir() == os.path.abspath("testbuild")
-
-
-def test_getworkdir_no_name():
-    with pytest.raises(ValueError, match="name has not been set"):
-        Project().getworkdir()
-
-
-def test_getworkdir():
-    assert Project("testname").getworkdir() == \
-        os.path.abspath(os.path.join("build", "testname", "job0"))
-
-
-def test_getworkdir_diff_jobname():
-    prj = Project("testname")
-    prj.set("option", "jobname", "thisjob")
-    assert prj.getworkdir() == os.path.abspath(os.path.join("build", "testname", "thisjob"))
-
-
-def test_getworkdir_step():
-    assert Project("testname").getworkdir(step="thisstep") == \
-        os.path.abspath(os.path.join("build", "testname", "job0", "thisstep", "0"))
-
-
-def test_getworkdir_step_index():
-    assert Project("testname").getworkdir(step="thisstep", index="thisindex") == \
-        os.path.abspath(os.path.join("build", "testname", "job0", "thisstep", "thisindex"))
 
 
 def test_record_history():
@@ -1177,44 +1134,44 @@ def test_find_result():
     proj = Project(design)
     proj.add_fileset("rtl")
 
-    with patch("siliconcompiler.Project.getworkdir") as getworkdir:
-        getworkdir.return_value = os.path.abspath(".")
+    with patch("siliconcompiler.project.workdir") as workdir:
+        workdir.return_value = os.path.abspath(".")
         assert proj.find_result("vg", "thisstep") == os.path.abspath("outputs/top.vg")
-        getworkdir.assert_called_once_with("thisstep", "0")
+        workdir.assert_called_once_with(proj, "thisstep", "0")
 
-    with patch("siliconcompiler.Project.getworkdir") as getworkdir:
-        getworkdir.return_value = os.path.abspath(".")
+    with patch("siliconcompiler.project.workdir") as workdir:
+        workdir.return_value = os.path.abspath(".")
         assert proj.find_result("not", "thisstep") is None
-        getworkdir.assert_called_once_with("thisstep", "0")
+        workdir.assert_called_once_with(proj, "thisstep", "0")
 
-    with patch("siliconcompiler.Project.getworkdir") as getworkdir:
-        getworkdir.return_value = os.path.abspath(".")
+    with patch("siliconcompiler.project.workdir") as workdir:
+        workdir.return_value = os.path.abspath(".")
         assert proj.find_result("vg", "thisstep", index="5") == os.path.abspath("outputs/top.vg")
-        getworkdir.assert_called_once_with("thisstep", "5")
+        workdir.assert_called_once_with(proj, "thisstep", "5")
 
-    with patch("siliconcompiler.Project.getworkdir") as getworkdir:
-        getworkdir.return_value = os.path.abspath(".")
+    with patch("siliconcompiler.project.workdir") as workdir:
+        workdir.return_value = os.path.abspath(".")
         assert proj.find_result("def", "thisstep") == os.path.abspath("outputs/top.def.gz")
-        getworkdir.assert_called_once_with("thisstep", "0")
+        workdir.assert_called_once_with(proj, "thisstep", "0")
 
-    with patch("siliconcompiler.Project.getworkdir") as getworkdir:
-        getworkdir.return_value = os.path.abspath(".")
+    with patch("siliconcompiler.project.workdir") as workdir:
+        workdir.return_value = os.path.abspath(".")
         assert proj.find_result("rpt", "thisstep", directory="reports") == \
             os.path.abspath("reports/top.rpt")
-        getworkdir.assert_called_once_with("thisstep", "0")
+        workdir.assert_called_once_with(proj, "thisstep", "0")
 
-    with patch("siliconcompiler.Project.getworkdir") as getworkdir:
-        getworkdir.return_value = os.path.abspath(".")
+    with patch("siliconcompiler.project.workdir") as workdir:
+        workdir.return_value = os.path.abspath(".")
         assert proj.find_result("rpt", "thisstep", directory="reports",
                                 filename="report_this.rpt") \
             == os.path.abspath("reports/report_this.rpt")
-        getworkdir.assert_called_once_with("thisstep", "0")
+        workdir.assert_called_once_with(proj, "thisstep", "0")
 
-    with patch("siliconcompiler.Project.getworkdir") as getworkdir:
-        getworkdir.return_value = os.path.abspath(".")
+    with patch("siliconcompiler.project.workdir") as workdir:
+        workdir.return_value = os.path.abspath(".")
         assert proj.find_result("thisstep", filename="other.def") == \
             os.path.abspath("outputs/other.def")
-        getworkdir.assert_called_once_with("thisstep", "0")
+        workdir.assert_called_once_with(proj, "thisstep", "0")
 
 
 def test_snapshot_info():
@@ -1278,8 +1235,8 @@ def test_snapshot_default_path(monkeypatch, caplog):
     proj.set("option", "design", "testdesign")
     proj._record_history()
 
-    os.makedirs(proj.getworkdir(), exist_ok=True)
-    path = os.path.join(proj.getworkdir(), "testdesign.png")
+    os.makedirs(jobdir(proj), exist_ok=True)
+    path = os.path.join(jobdir(proj), "testdesign.png")
 
     assert not os.path.isfile(path)
 
