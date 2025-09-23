@@ -35,25 +35,43 @@ Useful APIs
     EditableSchema.remove
     EditableSchema.search
 
-Schema Classes
-==============
+Project Classes
+===============
+
+.. autoclass:: siliconcompiler.project.Project
+    :members:
+    :show-inheritance:
+    :inherited-members:
+
+
+.. autoclass:: siliconcompiler.ASICProject
+    :members:
+    :show-inheritance:
+    :inherited-members:
+
+
+.. autoclass:: siliconcompiler.FPGAProject
+    :members:
+    :show-inheritance:
+    :inherited-members:
+
+
+.. autoclass:: siliconcompiler.LintProject
+    :members:
+    :show-inheritance:
+    :inherited-members:
+
+
+.. autoclass:: siliconcompiler.SimProject
+    :members:
+    :show-inheritance:
+    :inherited-members:
+
+
+User Classes
+============
 
 .. autoclass:: siliconcompiler.Design
-    :members:
-    :show-inheritance:
-    :inherited-members:
-
-.. autoclass:: siliconcompiler.library.LibrarySchema
-    :members:
-    :show-inheritance:
-    :inherited-members:
-
-.. autoclass:: siliconcompiler.schema_support.record.RecordSchema
-    :members:
-    :show-inheritance:
-    :inherited-members:
-
-.. autoclass:: siliconcompiler.schema_support.metric.MetricSchema
     :members:
     :show-inheritance:
     :inherited-members:
@@ -84,11 +102,6 @@ Schema Classes
     :inherited-members:
 
 .. autoclass:: siliconcompiler.StdCellLibrary
-    :members:
-    :show-inheritance:
-    :inherited-members:
-
-.. autoclass:: siliconcompiler.Schematic
     :members:
     :show-inheritance:
     :inherited-members:
@@ -219,6 +232,10 @@ Core Schema Classes
     :members:
     :undoc-members:
 
+.. autoclass:: siliconcompiler.schema.DocsSchema
+    :members:
+    :show-inheritance:
+
 Supporting Classes
 ==================
 
@@ -227,8 +244,18 @@ Supporting Classes
     :show-inheritance:
     :inherited-members:
 
+.. autoclass:: siliconcompiler.schema_support.option.OptionSchema
+    :members:
+    :show-inheritance:
+    :inherited-members:
+
 .. autoclass:: siliconcompiler.schema_support.cmdlineschema.CommandLineSchema
     :members:
+
+.. autoclass:: siliconcompiler.schema_support.pathschema.PathSchemaBase
+    :members:
+    :show-inheritance:
+    :inherited-members:
 
 .. autoclass:: siliconcompiler.schema_support.pathschema.PathSchema
     :members:
@@ -243,10 +270,10 @@ Supporting Classes
 .. autoclass:: siliconcompiler.flowgraph.FlowgraphNodeSchema
     :members:
     :show-inheritance:
-    :inherited-members:
 
 .. autoclass:: siliconcompiler.flowgraph.RuntimeFlowgraph
     :members:
+    :show-inheritance:
 
 .. autoclass:: siliconcompiler.tool.TaskError
     :members:
@@ -264,6 +291,26 @@ Supporting Classes
     :inherited-members:
 
 .. autoclass:: siliconcompiler.schema_support.packageschema.PackageSchema
+    :members:
+    :show-inheritance:
+
+.. autoclass:: siliconcompiler.library.LibrarySchema
+    :members:
+    :show-inheritance:
+
+.. autoclass:: siliconcompiler.library.ToolLibrarySchema
+    :members:
+    :show-inheritance:
+
+.. autoclass:: siliconcompiler.schema_support.record.RecordSchema
+    :members:
+    :show-inheritance:
+
+.. autoclass:: siliconcompiler.schema_support.metric.MetricSchema
+    :members:
+    :show-inheritance:
+
+.. autoclass:: siliconcompiler.Schematic
     :members:
     :show-inheritance:
     :inherited-members:
