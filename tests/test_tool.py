@@ -2033,7 +2033,7 @@ def test_show_get_task():
 
     with patch.dict("siliconcompiler.ShowTask._ShowTask__TASKS", clear=True), \
             patch("siliconcompiler.utils.showtools.showtasks") as showtasks:
-        assert get_task(ShowTask, "ext").__class__ is Test
+        assert ShowTask.get_task("ext").__class__ is Test
         showtasks.assert_called_once()
 
 
