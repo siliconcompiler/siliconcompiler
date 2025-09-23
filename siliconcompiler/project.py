@@ -1259,7 +1259,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                     search_nodes.extend(nodes)
 
             exts = set()
-            for cls in get_task(tool_cls, None):
+            for cls in tool_cls.get_task(None):
                 try:
                     exts.update(cls().get_supported_show_extentions())
                 except NotImplementedError:
@@ -1297,7 +1297,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
 
         filetype = get_file_ext(filepath)
 
-        task = get_task(tool_cls, filetype)
+        task = tool_cls.get_task(filetype)
         if task is None:
             self.logger.error(f"Filetype '{filetype}' not available in the registered showtools.")
             return False
