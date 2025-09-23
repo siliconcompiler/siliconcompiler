@@ -6,6 +6,9 @@ import sys
 import tarfile
 import time
 import tempfile
+
+import os.path
+
 from datetime import datetime, timezone
 from siliconcompiler.utils import get_file_template
 from siliconcompiler.utils.collect import collect
