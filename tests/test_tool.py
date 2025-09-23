@@ -30,7 +30,6 @@ from siliconcompiler.tool import subprocess as imported_subprocess
 from siliconcompiler.tool import os as imported_os
 from siliconcompiler.tool import psutil as imported_psutil
 from siliconcompiler.tool import resource as imported_resource
-from siliconcompiler.tools import get_task
 
 
 @pytest.fixture
