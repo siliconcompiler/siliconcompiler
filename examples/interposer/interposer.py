@@ -9,6 +9,7 @@ from siliconcompiler.targets import interposer_demo
 # Import specific task definitions to allow for direct configuration.
 from siliconcompiler.tools.openroad.rdlroute import RDLRouteTask
 from siliconcompiler.tools.klayout.drc import DRCTask
+from siliconcompiler.tools import get_task
 
 
 def main():

@@ -8,6 +8,7 @@ from siliconcompiler.targets import freepdk45_demo
 from siliconcompiler.flows.asicflow import VHDLASICFlow
 # Import the specific task for GHDL to configure it.
 from siliconcompiler.tools.ghdl.convert import ConvertTask
+from siliconcompiler.tools import get_task
 
 
 def main():

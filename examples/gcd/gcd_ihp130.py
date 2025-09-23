@@ -8,6 +8,7 @@ from siliconcompiler.targets import ihp130_demo
 from siliconcompiler.flows.drcflow import DRCFlow
 # Import the KLayout DRC task to configure it.
 from siliconcompiler.tools.klayout.drc import DRCTask
+from siliconcompiler.tools import get_task
 
 
 def main():
