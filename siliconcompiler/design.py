@@ -368,7 +368,7 @@ class Design(LibrarySchema, DependencySchema):
             if dep is not self:
                 self.add_dep(dep, clobber=True)
         else:
-            raise TypeError("dep is not a valid type")
+            raise TypeError(f"dep is not a valid type: {dep}")
 
         if not isinstance(dep, Design):
             raise ValueError(f"cannot associate fileset ({depfileset}) with {dep.name}")
