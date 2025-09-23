@@ -24,6 +24,7 @@ from siliconcompiler.targets import freepdk45_demo
 from siliconcompiler.scheduler import TaskScheduler
 from siliconcompiler.utils.multiprocessing import _ManagerSingleton, MPManager
 from siliconcompiler.apps import sc_server
+from siliconcompiler.tools import get_task
 
 
 def pytest_addoption(parser):
@@ -140,7 +141,7 @@ def disable_or_images(monkeypatch, request):
     old_init = siliconcompiler.Project._init_run
 
     def mock_init(self: siliconcompiler.Project):
-        tasks = self.get_task(filter=APRTask)
+        tasks = get_task(self, filter=APRTask)
         if not isinstance(tasks, set):
             tasks = [tasks]
         for task in tasks:

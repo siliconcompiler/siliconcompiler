@@ -83,7 +83,7 @@ Let's create a target for a generic ASIC design. This function will load a stand
       area.set_coremargin(1)
 
       # 3. Configure Tool Options
-      project.get_task(filter=syn_asic.ASICSynthesis).set_strategy("AREA3")
+      get_task(project, filter=syn_asic.ASICSynthesis).set_strategy("AREA3")
 
 
 How to Use the Target

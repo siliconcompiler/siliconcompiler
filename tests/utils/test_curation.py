@@ -4,10 +4,27 @@ import pytest
 import os.path
 
 from pathlib import Path
+from unittest.mock import patch
 
-from siliconcompiler import Project, Design
-from siliconcompiler.utils.collect import collect
+from siliconcompiler import Project, Design, Flowgraph, Task
+from siliconcompiler.utils.curation import collect, archive
 from siliconcompiler.utils.paths import collectiondir
+
+
+class FauxTask0(Task):
+    def tool(self):
+        return "tool0"
+
+    def task(self):
+        return "task0"
+
+
+class FauxTask1(Task):
+    def tool(self):
+        return "tool1"
+
+    def task(self):
+        return "task1"
 
 
 @pytest.mark.parametrize("arg", [None, Design(), "string"])
@@ -278,3 +295,76 @@ def test_collect_file_whitelist_pass():
     collect(proj, whitelist=[os.path.abspath('test')])
 
     assert len(os.listdir(collectiondir(proj))) == 1
+
+
+@pytest.mark.parametrize("arg", [None, Design(), "string"])
+def test_archive_notproject(arg):
+    with pytest.raises(TypeError, match="project must be a Project"):
+        archive(arg)
+
+
+def test_archive_no_jobs():
+    with pytest.raises(ValueError, match="no history to archive"):
+        archive(Project())
+
+
+def test_archive_select_job():
+    proj = Project(Design("testdesign"))
+    proj.set("option", "jobname", "thisjob")
+    proj._record_history()
+    proj.set("option", "jobname", "thatjob")
+    proj._record_history()
+
+    with patch("siliconcompiler.Project.history") as history:
+        history.return_value = proj
+        archive(proj)
+
+        history.assert_called_once_with("thatjob")
+
+
+def test_archive_default_archive(monkeypatch, caplog):
+    proj = Project(Design("testdesign"))
+    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    proj.logger.setLevel(logging.INFO)
+    proj._record_history()
+
+    archive(proj)
+
+    assert "Creating archive testdesign_job0.tgz..." in caplog.text
+    assert os.path.isfile("testdesign_job0.tgz")
+
+
+def test_archive_archive_name(monkeypatch, caplog):
+    proj = Project(Design("testdesign"))
+    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    proj.logger.setLevel(logging.INFO)
+    proj._record_history()
+
+    archive(proj, archive_name="test.tar.gz")
+
+    assert "Creating archive test.tar.gz..." in caplog.text
+    assert os.path.isfile("test.tar.gz")
+
+
+def test_archive(monkeypatch, caplog):
+    design = Design("testdesign")
+    design.set_topmodule("top", fileset="test")
+    proj = Project(design)
+    proj.add_fileset("test")
+    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    proj.logger.setLevel(logging.INFO)
+
+    flow = Flowgraph("testflow")
+    flow.node("stepone", FauxTask0())
+    flow.node("steptwo", FauxTask0())
+    flow.edge("stepone", "steptwo")
+    proj.set_flow(flow)
+
+    proj._record_history()
+
+    with patch("siliconcompiler.scheduler.SchedulerNode.archive") as node_archive:
+        archive(proj)
+        assert node_archive.call_count == 2
+
+    assert "Creating archive testdesign_job0.tgz..." in caplog.text
+    assert os.path.isfile("testdesign_job0.tgz")

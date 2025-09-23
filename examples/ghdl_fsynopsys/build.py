@@ -8,6 +8,7 @@ from siliconcompiler.targets import freepdk45_demo
 from siliconcompiler.flows.asicflow import VHDLASICFlow
 # Import the specific task for GHDL to configure it.
 from siliconcompiler.tools.ghdl.convert import ConvertTask
+from siliconcompiler.tools import get_task
 
 
 def main():
@@ -50,7 +51,7 @@ def main():
     # We then set a tool-specific option on it. The `set_usefsynopsys(True)`
     # option tells GHDL to add a `use` clause for Synopsys libraries, which
     # helps ensure the generated Verilog is compatible with synthesis tools.
-    project.get_task(filter=ConvertTask).set_usefsynopsys(True)
+    get_task(project, filter=ConvertTask).set_usefsynopsys(True)
 
     # --- Execution & Analysis ---
     # Run the complete flow. SC will first run GHDL to convert the VHDL

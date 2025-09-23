@@ -1,15 +1,13 @@
 import importlib
-import inspect
 import logging
 import os
 import sys
-import tarfile
 import uuid
 
 import os.path
 
 from inspect import getfullargspec
-from typing import Set, Union, List, Tuple, Type, Callable, TextIO
+from typing import Union, List, Tuple, Callable, TextIO
 
 from siliconcompiler.schema import BaseSchema, NamedSchema, EditableSchema, Parameter, Scope, \
     __version__ as schema_version
@@ -31,13 +29,13 @@ from siliconcompiler.schema_support.dependencyschema import DependencySchema
 from siliconcompiler.schema_support.pathschema import PathSchemaBase
 
 from siliconcompiler.report.dashboard.cli import CliDashboard
-from siliconcompiler.scheduler import Scheduler, SchedulerNode
+from siliconcompiler.scheduler import Scheduler
 from siliconcompiler.utils.logging import SCColorLoggerFormatter, SCLoggerFormatter
 from siliconcompiler.utils import get_file_ext
 from siliconcompiler.utils.multiprocessing import MPManager
 from siliconcompiler.utils.paths import jobdir, workdir
 from siliconcompiler.flows.showflow import ShowFlow
-from siliconcompiler.flowgraph import RuntimeFlowgraph
+from siliconcompiler.tools import get_task
 
 
 class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
@@ -452,12 +450,12 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             return
 
         if isinstance(obj, Design):
-            if not self.has_library(obj.name):
+            if not self._has_library(obj.name):
                 EditableSchema(self).insert("library", obj.name, obj)
         elif isinstance(obj, Flowgraph):
             self.__import_flow(obj)
         elif isinstance(obj, LibrarySchema):
-            if not self.has_library(obj.name):
+            if not self._has_library(obj.name):
                 EditableSchema(self).insert("library", obj.name, obj)
         elif isinstance(obj, Checklist):
             if obj.name not in self.getkeys("checklist"):
@@ -535,7 +533,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             error = True
         else:
             # Assert design is a library
-            if not self.has_library(design):
+            if not self._has_library(design):
                 self.logger.error(f"{design} has not been loaded")
                 error = True
 
@@ -576,7 +574,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                 error = True
                 continue
 
-            if not self.has_library(src_lib):
+            if not self._has_library(src_lib):
                 continue
 
             if not self.get("library", src_lib, field="schema").has_fileset(src_fileset):
@@ -587,7 +585,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             if not dst_lib:
                 continue
 
-            if not self.has_library(dst_lib):
+            if not self._has_library(dst_lib):
                 self.logger.error(f"{dst_lib} has not been loaded")
                 error = True
                 continue
@@ -609,7 +607,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         """
         # Automatically select fileset if only one is available in the design
         if not self.get("option", "fileset") and self.get("option", "design") and \
-                self.has_library(self.get("option", "design")):
+                self._has_library(self.get("option", "design")):
             filesets = self.design.getkeys("fileset")
             if len(filesets) == 1:
                 fileset = filesets[0]
@@ -793,7 +791,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         alias = {}
         for src_lib, src_fileset, dst_lib, dst_fileset in self.get("option", "alias"):
             if dst_lib:
-                if not self.has_library(dst_lib):
+                if not self._has_library(dst_lib):
                     raise KeyError(f"{dst_lib} is not a loaded library")
                 dst_obj = self.get("library", dst_lib, field="schema")
             else:
@@ -803,58 +801,6 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             alias[(src_lib, src_fileset)] = (dst_obj, dst_fileset)
 
         return self.design.get_fileset(self.get("option", "fileset"), alias=alias)
-
-    def get_task(self,
-                 tool: str = None,
-                 task: str = None,
-                 filter: Union[Type[Task], Callable[[Task], bool]] = None) -> \
-            Union[Set[Task], Task]:
-        """Retrieves tasks based on specified criteria.
-
-        This method allows you to fetch tasks by tool name, task name, or by applying a custom
-        filter. If a single task matches the criteria, that task object is returned directly.
-        If multiple tasks match, a set of :class:`Task` objects is returned.
-        If no criteria are provided, all available tasks are returned.
-
-        Args:
-            tool (str, optional): The name of the tool to filter tasks by. Defaults to None.
-            task (str, optional): The name of the task to filter by. Defaults to None.
-            filter (Union[Type[Task], Callable[[Task], bool]], optional):
-                A filter to apply to the tasks. This can be:
-                - A `Type[Task]`: Only tasks that are instances of this type will be returned.
-                - A `Callable[[Task], bool]`: A function that takes a `Task` object
-                and returns `True` if the task should be included, `False` otherwise.
-                Defaults to None.
-
-        Returns:
-            Union[Set[Task], Task]:
-                - If exactly one task matches the criteria, returns that single `Task` object.
-                - If multiple tasks match or no specific tool/task is provided (and thus all tasks
-                are considered), returns a `Set[Task]` containing the matching tasks.
-        """
-        all_tasks: Set[Task] = set()
-        for tool_name in self.getkeys("tool"):
-            for task_name in self.getkeys("tool", tool_name, "task"):
-                all_tasks.add(self.get("tool", tool_name, "task", task_name, field="schema"))
-
-        tasks = set()
-        for task_obj in all_tasks:
-            if tool and task_obj.tool() != tool:
-                continue
-            if task and task_obj.task() != task:
-                continue
-            if filter:
-                if inspect.isclass(filter):
-                    if not isinstance(task_obj, filter):
-                        continue
-                elif callable(filter):
-                    if not filter(task_obj):
-                        continue
-            tasks.add(task_obj)
-
-        if len(tasks) == 1:
-            return list(tasks)[0]
-        return tasks
 
     def set_design(self, design: Union[Design, str]):
         """
@@ -975,7 +921,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         """
 
         if isinstance(src_dep, str):
-            if self.has_library(src_dep):
+            if self._has_library(src_dep):
                 src_dep = self.get("library", src_dep, field="schema")
             else:
                 src_dep_name = src_dep
@@ -984,7 +930,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         if src_dep is not None:
             if isinstance(src_dep, Design):
                 src_dep_name = src_dep.name
-                if not self.has_library(src_dep_name):
+                if not self._has_library(src_dep_name):
                     self.add_dep(src_dep)
             else:
                 raise TypeError("source dep is not a valid type")
@@ -1004,7 +950,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                 alias_dep_name = None
                 alias_fileset = None
             else:
-                if not self.has_library(alias_dep):
+                if not self._has_library(alias_dep):
                     raise KeyError(f"{alias_dep} has not been loaded")
 
                 alias_dep = self.get("library", alias_dep, field="schema")
@@ -1012,7 +958,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         if alias_dep is not None:
             if isinstance(alias_dep, Design):
                 alias_dep_name = alias_dep.name
-                if not self.has_library(alias_dep_name):
+                if not self._has_library(alias_dep_name):
                     self.add_dep(alias_dep)
             else:
                 raise TypeError("alias dep is not a valid type")
@@ -1027,6 +973,9 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             return self.add("option", "alias", alias)
 
     def has_library(self, library: Union[str, NamedSchema]) -> bool:
+        return self._has_library(library)
+
+    def _has_library(self, library: Union[str, NamedSchema]) -> bool:
         """
         Checks if a library with the given name exists and is loaded in the project.
 
@@ -1057,9 +1006,9 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
 
         alias = []
         for src, src_fs, dst, dst_fs in self.get("option", "alias"):
-            if not self.has_library(src):
+            if not self._has_library(src):
                 continue
-            if dst and not self.has_library(dst):
+            if dst and not self._has_library(dst):
                 continue
 
             aliased = f"{src} ({src_fs}) -> "
@@ -1376,7 +1325,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         proj.set("option", "jobname", jobname)
 
         # Setup in task variables
-        task: ShowTask = proj.get_task(filter=task.__class__)
+        task: ShowTask = get_task(proj, filter=task.__class__)
         task.set_showfilepath(filename)
         task.set_showfiletype(filetype)
         task.set_shownode(jobname=sc_jobname, step=sc_step, index=sc_index)
@@ -1385,51 +1334,6 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         proj.run()
         if screenshot:
             return proj.find_result('png', step=task.task())
-
-    def archive(self, jobname: str = None, include: List[str] = None, archive_name: str = None):
-        '''Archive a job directory into a compressed tarball.
-
-        Creates a single compressed archive (.tgz) based on the specified job.
-        By default, only outputs, reports, log files, and the final manifest
-        are archived.
-
-        Args:
-            jobname (str, optional): The job to archive. By default, archives the job specified
-                in :keypath:`option,jobname`.
-            include (List[str], optional): Overrides default inclusion rules. Accepts a list of glob
-                patterns matched from the root of individual step/index directories.
-                To capture all files, supply `["*"]`.
-            archive_name (str, optional): The path to the output archive file. Defaults to
-                `<design>_<jobname>.tgz`.
-        '''
-        histories = self.getkeys("history")
-        if not histories:
-            raise ValueError("no history to archive")
-
-        if jobname is None:
-            jobname = self.get("option", "jobname")
-        if jobname not in histories:
-            org_job = jobname
-            jobname = histories[0]
-            self.logger.warning(f"{org_job} not found in history, picking {jobname}")
-
-        history = self.history(jobname)
-
-        flow = history.get('option', 'flow')
-        flowgraph_nodes = RuntimeFlowgraph(
-            history.get("flowgraph", flow, field='schema'),
-            from_steps=history.get('option', 'from'),
-            to_steps=history.get('option', 'to'),
-            prune_nodes=history.get('option', 'prune')).get_nodes()
-
-        if not archive_name:
-            archive_name = f"{history.name}_{jobname}.tgz"
-
-        self.logger.info(f'Creating archive {archive_name}...')
-
-        with tarfile.open(archive_name, "w:gz") as tar:
-            for step, index in flowgraph_nodes:
-                SchedulerNode(history, step, index).archive(tar, include, True)
 
 
 class SimProject(Project):

@@ -9,6 +9,7 @@ from siliconcompiler.targets import interposer_demo
 # Import specific task definitions to allow for direct configuration.
 from siliconcompiler.tools.openroad.rdlroute import RDLRouteTask
 from siliconcompiler.tools.klayout.drc import DRCTask
+from siliconcompiler.tools import get_task
 
 
 def main():
@@ -72,7 +73,7 @@ def main():
 
     # 1. Configure the RDL Router (OpenROAD).
     # Get the specific task object for RDL routing from the project's flow.
-    route: RDLRouteTask = project.get_task(filter=RDLRouteTask)
+    route: RDLRouteTask = get_task(project, filter=RDLRouteTask)
     # Set a dataroot for task-specific files.
     route.set_dataroot("interposer", __file__)
     with route.active_dataroot("interposer"):
@@ -83,7 +84,7 @@ def main():
 
     # 2. Configure the DRC tool (KLayout).
     # Get the DRC task object and set a variable to specify which DRC deck to use.
-    project.get_task(filter=DRCTask).set("var", "drc_name", "drc")
+    get_task(project, filter=DRCTask).set("var", "drc_name", "drc")
 
     # --- Execution & Analysis ---
     # Run the entire composite flow.

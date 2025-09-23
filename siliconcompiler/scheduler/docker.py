@@ -11,7 +11,7 @@ from siliconcompiler.package import RemoteResolver
 from siliconcompiler.utils import default_email_credentials_file
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.utils.logging import SCBlankLoggerFormatter
-from siliconcompiler.utils.collect import collect
+from siliconcompiler.utils.curation import collect
 
 
 def get_image(project, step, index):

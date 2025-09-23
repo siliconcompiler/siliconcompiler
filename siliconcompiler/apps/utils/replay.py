@@ -16,7 +16,7 @@ from datetime import datetime
 
 from siliconcompiler import Project
 from siliconcompiler import utils
-from siliconcompiler.utils.collect import collect
+from siliconcompiler.utils.curation import collect
 from siliconcompiler.schema_support.record import RecordTime
 
 

@@ -198,7 +198,7 @@ class FPGAProject(Project):
             error = True
         else:
             fpga_device = self.get("fpga", "device")
-            if not self.has_library(fpga_device):
+            if not self._has_library(fpga_device):
                 self.logger.error(f"FPGA library '{fpga_device}' has not been loaded.")
                 error = True
 
