@@ -17,7 +17,6 @@ from siliconcompiler.targets import freepdk45_demo, skywater130_demo
 from siliconcompiler.tools.graphviz.screenshot import ScreenshotTask as GraphvizScreenshot
 from siliconcompiler.tools.gtkwave.show import ShowTask as GtkwaveShow
 from siliconcompiler.tools.surfer.show import ShowTask as SurferShow
-from siliconcompiler.tools import get_task
 
 
 def generate_id(cls):
