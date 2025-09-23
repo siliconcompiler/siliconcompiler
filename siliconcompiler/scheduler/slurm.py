@@ -9,7 +9,7 @@ import uuid
 import os.path
 
 from siliconcompiler import utils
-from siliconcompiler.utils.collect import collect
+from siliconcompiler.utils.curation import collect
 from siliconcompiler.utils.paths import collectiondir, jobdir
 from siliconcompiler.package import RemoteResolver
 from siliconcompiler.flowgraph import RuntimeFlowgraph

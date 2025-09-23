@@ -21,7 +21,7 @@ from siliconcompiler.scheduler import Scheduler
 from siliconcompiler.schema import Journal
 
 from siliconcompiler.utils.logging import get_console_formatter
-from siliconcompiler.utils.collect import collect
+from siliconcompiler.utils.curation import collect
 from siliconcompiler.utils.paths import collectiondir, jobdir, workdir
 
 from siliconcompiler.remote import JobStatus, NodeStatus
