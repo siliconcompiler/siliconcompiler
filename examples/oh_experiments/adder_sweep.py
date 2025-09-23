@@ -51,7 +51,7 @@ def main():
     proj = ASICProject(design)
     # Load the freepdk45_demo target, which configures the project for the
     # FreePDK45 technology and a demonstration tool setup.
-    proj.load_target(freepdk45_demo.setup)
+    freepdk45_demo.setup(proj)
     # Set the flow to 'synflow', a pre-defined sequence of steps for running synthesis.
     proj.set_flow("synflow")
 

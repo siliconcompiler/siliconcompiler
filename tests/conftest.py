@@ -202,7 +202,7 @@ def asic_heartbeat(heartbeat_design):
 
     project.set_flow(ASICFlow())
 
-    project.load_target(freepdk45_demo.setup)
+    freepdk45_demo.setup(project)
 
     project.set('option', 'nodisplay', True)
     project.set('option', 'quiet', True)
@@ -233,7 +233,7 @@ def asic_gcd(gcd_design):
 
     project.set_flow(ASICFlow())
 
-    project.load_target(freepdk45_demo.setup)
+    freepdk45_demo.setup(project)
 
     project.set('option', 'nodisplay', True)
     project.set('option', 'quiet', True)

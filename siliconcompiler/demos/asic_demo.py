@@ -29,7 +29,7 @@ class ASICDemo(ASICProject):
         self.add_fileset("sdc")
 
         # Load the Sky130 PDK/standard cell library target.
-        self.load_target(skywater130_demo.setup)
+        skywater130_demo.setup(self)
 
 
 if __name__ == "__main__":

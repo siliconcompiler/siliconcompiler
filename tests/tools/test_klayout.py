@@ -58,7 +58,7 @@ def test_export(datadir):
 
     proj = ASICProject(design)
     proj.add_fileset(["layout"])
-    proj.load_target(freepdk45_demo.setup)
+    freepdk45_demo.setup(proj)
     proj.add_asiclib(lib)
 
     flow = Flowgraph("testflow")
@@ -90,7 +90,7 @@ def test_klayout_operations(datadir):
 
     proj = ASICProject(design)
     proj.add_fileset(["layout"])
-    proj.load_target(freepdk45_demo.setup)
+    freepdk45_demo.setup(proj)
 
     flow = Flowgraph("testflow")
     flow.node('import', ImporterTask())

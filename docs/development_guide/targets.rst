@@ -5,7 +5,7 @@ Defining a Target
 
 A target in SiliconCompiler is a reusable "build configuration" for a specific type of chip. Think of it as a master recipe that bundles together everything needed to compile a design for a particular goal, such as creating a low-power IoT chip on the Skywater 130nm process or a high-performance block on FreePDK45.
 
-Targets are implemented as simple Python functions that configure a Project object. They are loaded with a single call to :meth:`.Project.load_target()`, making it incredibly easy to set up a complex build.
+Targets are implemented as simple Python functions that configure a Project object. They are loaded by directly calling the function and passing in the project to configure, making it incredibly easy to set up a complex build.
 
 A full list of built-in targets can be found on the :ref:`builtin_targets` page.
 
@@ -100,7 +100,7 @@ Once the target function is defined, you can load it into your project like this
 
   # Load the entire configuration by calling the target function.
   # We can also pass values for the parameterized arguments.
-  project.load_target(my_asic_target, place_np=4, route_np=4)
+  my_asic_target(project, place_np=4, route_np=4)
 
   # Now the project is fully configured and ready to run!
   # project.run()

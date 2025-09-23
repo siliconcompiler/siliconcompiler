@@ -38,7 +38,7 @@ def main():
 
     # Load the target configuration. This sets up the project for the
     # FreePDK45 technology and its associated libraries and tools.
-    project.load_target(freepdk45_demo.setup)
+    freepdk45_demo.setup(project)
 
     # --- Flow Configuration ---
     # Set the flow to 'HLSASICFlow'. This is the key step. Instead of a

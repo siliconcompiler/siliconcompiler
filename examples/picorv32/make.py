@@ -111,7 +111,7 @@ def syn(fileset: str = "rtl", pdk: str = "freepdk45"):
 
     # Load the target technology settings. This includes PDK information,
     # standard cell libraries, and tool configurations.
-    project.load_target(asic_target, pdk=pdk)
+    asic_target(project, pdk=pdk)
     # Specify the 'synflow', which is a pre-defined flow for synthesis.
     project.set_flow("synflow")
 
@@ -136,7 +136,7 @@ def asic(fileset: str = "rtl", pdk: str = "freepdk45"):
     project.add_fileset(f"sdc.{pdk}")
 
     # Load the target technology settings for the chosen PDK.
-    project.load_target(asic_target, pdk=pdk)
+    asic_target(project, pdk=pdk)
 
     # Run the default flow defined in the target (usually a full ASIC flow).
     project.run()
