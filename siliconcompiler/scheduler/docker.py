@@ -205,7 +205,7 @@ class DockerSchedulerNode(SchedulerNode):
 
         is_windows = sys.platform == 'win32'
 
-        workdir = self.project.getworkdir()
+        workdir = self.jobworkdir
         start_cwd = os.getcwd()
 
         # Change working directory since the run may delete this folder
