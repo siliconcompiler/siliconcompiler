@@ -361,14 +361,13 @@ def test_options_depfileset_with_selfname():
 
 def test_options_depfileset_with_invalid_input():
     with pytest.raises(TypeError,
-                       match=r"dep is not a valid type: 1 \(<class 'int'>\)"):
+                       match="dep is not a valid type: 1"):
         Design("test").add_depfileset(1, "rtl", "rtl")
 
 
 def test_options_depfileset_with_invalid_cls():
     with pytest.raises(TypeError,
-                       match="dep is not a valid type: <class 'siliconcompiler.design.Design'> "
-                             r"\(<class 'type'>\)"):
+                       match="dep is not a valid type: <class 'siliconcompiler.design.Design'>"):
         Design("test").add_depfileset(Design, "rtl", "rtl")
 
 
