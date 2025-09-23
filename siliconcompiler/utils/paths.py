@@ -8,10 +8,17 @@ def builddir(project) -> str:
     Returns the absolute path to the project's build directory.
 
     This directory is the root for all intermediate and final compilation
-    artifacts.
+    artifacts. If a relative path is configured, it is resolved relative to the
+    project's current working directory.
+
+    Args:
+        project (Project): The SiliconCompiler project object.
 
     Returns:
         str: The absolute path to the build directory.
+
+    Raises:
+        TypeError: If the provided project is not a valid Project object.
     """
     from siliconcompiler import Project
     if not isinstance(project, Project):
@@ -26,10 +33,20 @@ def builddir(project) -> str:
 
 def jobdir(project) -> str:
     """
-    Returns the absolute path to the job directory.
+    Returns the absolute path to the current job directory.
 
     The directory structure is typically:
     `<build_dir>/<design_name>/<job_name>/`
+
+    Args:
+        project (Project): The SiliconCompiler project object.
+
+    Returns:
+        str: The absolute path to the job directory.
+
+    Raises:
+        TypeError: If the provided project is not a valid Project object.
+        ValueError: If the project name has not been set.
     """
     from siliconcompiler import Project
     if not isinstance(project, Project):
@@ -46,26 +63,30 @@ def jobdir(project) -> str:
 
 def workdir(project, step: str = None, index: Union[int, str] = None, relpath: bool = False) -> str:
     """
-    Returns the absolute path to the working directory for a given
-    step and index within the project's job structure.
+    Returns path to the working directory for a given step and index.
 
     The directory structure is typically:
     `<build_dir>/<design_name>/<job_name>/<step>/<index>/`
 
-    If `step` and `index` are not provided, the job directory is returned.
-    If `step` is provided but `index` is not, index '0' is assumed.
+    If `step` and `index` are not provided, this function returns the job
+    directory. If `step` is provided but `index` is not, index '0' is assumed.
 
     Args:
-        step (str, optional): The name of the flowgraph step (e.g., 'syn', 'place').
-                                Defaults to None.
-        index (Union[int, str], optional): The index of the task within the step.
-                                            Defaults to None (implies '0' if step is set).
+        project (Project): The SiliconCompiler project object.
+        step (str, optional): The name of the flowgraph step (e.g., 'syn',
+            'place'). Defaults to None.
+        index (Union[int, str], optional): The index of the task within the
+            step. Defaults to '0' if step is specified.
+        relpath (bool, optional): If True, returns a path relative to the
+            project's current working directory. Otherwise, returns an absolute
+            path. Defaults to False.
 
     Returns:
-        str: The absolute path to the specified working directory.
+        str: The path to the specified working directory.
 
     Raises:
-        ValueError: If the design name is not set in the project.
+        TypeError: If the provided project is not a valid Project object.
+        ValueError: If the project name has not been set.
     """
 
     dirlist = []
@@ -86,13 +107,17 @@ def workdir(project, step: str = None, index: Union[int, str] = None, relpath: b
 
 def collectiondir(project) -> str:
     """
-    Returns the absolute path to the directory where collected files are stored.
+    Returns the absolute path to the file collection directory.
 
-    This directory is typically located within the project's working directory
-    and is used to consolidate files marked for collection.
+    This directory is located within the job directory and is used to
+    consolidate files marked for collection.
+
+    Args:
+        project (Project): The SiliconCompiler project object.
 
     Returns:
-        str: The absolute path to the collected files directory.
+        str or None: The absolute path to the collected files directory, or
+        None if the path cannot be resolved.
     """
     try:
         return os.path.join(jobdir(project), "sc_collected_files")
