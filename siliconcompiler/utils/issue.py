@@ -8,11 +8,12 @@ import time
 import tempfile
 from datetime import datetime, timezone
 from siliconcompiler.utils import get_file_template
-from siliconcompiler.utils.collect import getcollectiondir, collect
+from siliconcompiler.utils.collect import collect
 from siliconcompiler.schema_support.record import RecordSchema
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.schema import __version__ as schema_version
 from siliconcompiler import __version__ as sc_version
+from siliconcompiler.utils.paths import workdir, jobdir, collectiondir
 
 
 def generate_testcase(chip,
@@ -125,7 +126,7 @@ def generate_testcase(chip,
                  field='copy')
 
     # Collect files
-    work_dir = chip.getworkdir(step=step, index=index)
+    work_dir = workdir(chip, step=step, index=index)
 
     builddir = chip.get('option', 'builddir')
     if os.path.isabs(builddir):
@@ -137,9 +138,9 @@ def generate_testcase(chip,
     chip._Project__cwd = issue_dir.name
 
     # Get new directories
-    job_dir = chip.getworkdir()
-    new_work_dir = chip.getworkdir(step=step, index=index)
-    collection_dir = getcollectiondir(chip)
+    job_dir = jobdir(chip)
+    new_work_dir = workdir(chip, step=step, index=index)
+    collection_dir = collectiondir(chip)
 
     # Restore current directory
     chip._Project__cwd = original_cwd
@@ -173,7 +174,7 @@ def generate_testcase(chip,
         is_python_tool = task_obj.get_exe() is None
         if not is_python_tool:
             task_obj.generate_replay_script(
-                f'{chip.getworkdir(step=step, index=index)}/replay.sh',
+                f'{workdir(chip, step=step, index=index)}/replay.sh',
                 '.',
                 include_path=False)
 
@@ -249,7 +250,7 @@ def generate_testcase(chip,
     if not is_python_tool:
         run_path = os.path.join(issue_dir.name, 'run.sh')
         with open(run_path, 'w') as f:
-            replay_dir = os.path.relpath(chip.getworkdir(step=step, index=index),
+            replay_dir = os.path.relpath(workdir(chip, step=step, index=index),
                                          chip._Project__cwd)
             issue_title = f'{chip.design.name} for {step}/{index} using {tool}/{task}'
             f.write(get_file_template('issue/run.sh').render(

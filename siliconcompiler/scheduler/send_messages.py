@@ -25,6 +25,7 @@ from siliconcompiler.utils import default_email_credentials_file, get_file_templ
 from siliconcompiler.report import utils as report_utils
 from siliconcompiler.schema import Parameter
 from siliconcompiler.flowgraph import RuntimeFlowgraph
+from siliconcompiler.utils.paths import workdir
 
 
 # Compile validation code for API request bodies.
@@ -156,7 +157,7 @@ def send(chip, msg_type, step, index):
             # Handle general node message: attach log files and node-specific data
             # Attach logs
             for log in (f'sc_{step}_{index}.log', f'{step}.log'):
-                log_file = f'{chip.getworkdir(step=step, index=index)}/{log}'
+                log_file = f'{workdir(chip, step=step, index=index)}/{log}'
                 if os.path.exists(log_file):
                     with sc_open(log_file) as f:
                         file_content = f.read().splitlines()

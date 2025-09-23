@@ -6,6 +6,7 @@ import os.path
 from unittest.mock import patch
 
 from siliconcompiler.apps import sc_show
+from siliconcompiler.utils.paths import workdir, jobdir
 
 
 @pytest.fixture
@@ -14,10 +15,10 @@ def make_manifests():
         for nodes in project.get("flowgraph", "asicflow", field="schema").get_execution_order():
             for step, index in nodes:
                 for d in ('inputs', 'outputs'):
-                    path = os.path.join(project.getworkdir(step=step, index=index), d)
+                    path = os.path.join(workdir(project, step=step, index=index), d)
                     os.makedirs(path, exist_ok=True)
                     project.write_manifest(os.path.join(path, f"{project.design.name}.pkg.json"))
-        project.write_manifest(os.path.join(project.getworkdir(),
+        project.write_manifest(os.path.join(jobdir(project),
                                             f"{project.design.name}.pkg.json"))
 
     return impl

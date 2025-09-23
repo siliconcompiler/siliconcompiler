@@ -35,6 +35,7 @@ from siliconcompiler.scheduler import Scheduler, SchedulerNode
 from siliconcompiler.utils.logging import SCColorLoggerFormatter, SCLoggerFormatter
 from siliconcompiler.utils import get_file_ext
 from siliconcompiler.utils.multiprocessing import MPManager
+from siliconcompiler.utils.paths import jobdir, workdir
 from siliconcompiler.flows.showflow import ShowFlow
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 
@@ -690,61 +691,6 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             if param.get(field="scope") != Scope.GLOBAL:
                 param.reset()
 
-    def _getbuilddir(self) -> str:
-        """
-        Returns the absolute path to the project's build directory.
-
-        This directory is the root for all intermediate and final compilation
-        artifacts.
-
-        Returns:
-            str: The absolute path to the build directory.
-        """
-        builddir = self.get('option', 'builddir')
-        if os.path.isabs(builddir):
-            return builddir
-
-        return os.path.join(self.__cwd, builddir)
-
-    def getworkdir(self, step: str = None, index: Union[int, str] = None) -> str:
-        """
-        Returns the absolute path to the working directory for a given
-        step and index within the project's job structure.
-
-        The directory structure is typically:
-        `<build_dir>/<design_name>/<job_name>/<step>/<index>/`
-
-        If `step` and `index` are not provided, the job directory is returned.
-        If `step` is provided but `index` is not, index '0' is assumed.
-
-        Args:
-            step (str, optional): The name of the flowgraph step (e.g., 'syn', 'place').
-                                  Defaults to None.
-            index (Union[int, str], optional): The index of the task within the step.
-                                               Defaults to None (implies '0' if step is set).
-
-        Returns:
-            str: The absolute path to the specified working directory.
-
-        Raises:
-            ValueError: If the design name is not set in the project.
-        """
-        if not self.name:
-            raise ValueError("name has not been set")
-
-        dirlist = [self._getbuilddir(),
-                   self.name,
-                   self.get('option', 'jobname')]
-
-        if step is not None:
-            dirlist.append(step)
-
-            if index is None:
-                index = '0'
-
-            dirlist.append(str(index))
-        return os.path.join(*dirlist)
-
     def history(self, job: str) -> "Project":
         '''
         Returns a *mutable* reference to a historical job record as a Project object.
@@ -1134,7 +1080,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             headers.append(("filesets", ", ".join(filesets)))
         if alias:
             headers.append(("alias", ", ".join(alias)))
-        headers.append(("jobdir", self.getworkdir()))
+        headers.append(("jobdir", jobdir(self)))
 
         return headers
 
@@ -1233,7 +1179,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         if step is None:
             raise ValueError("step is required")
 
-        workdir = self.getworkdir(step, index)
+        workingdir = workdir(self, step, index)
 
         if not filename:
             fileset = self.get("option", "fileset")
@@ -1242,11 +1188,11 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             design_name = self.design.get_topmodule(fileset[0])
 
             checkfiles = [
-                os.path.join(workdir, directory, f'{design_name}.{filetype}'),
-                os.path.join(workdir, directory, f'{design_name}.{filetype}.gz')
+                os.path.join(workingdir, directory, f'{design_name}.{filetype}'),
+                os.path.join(workingdir, directory, f'{design_name}.{filetype}.gz')
             ]
         else:
-            checkfiles = [os.path.join(workdir, directory, filename)]
+            checkfiles = [os.path.join(workingdir, directory, filename)]
 
         for f in checkfiles:
             self.logger.debug(f"Finding node file: {f}")
@@ -1295,7 +1241,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         history = self.history(jobname)
 
         if not path:
-            path = os.path.join(history.getworkdir(), f'{history.design.name}.png')
+            path = os.path.join(jobdir(history), f'{history.design.name}.png')
 
         if os.path.exists(path):
             os.remove(path)

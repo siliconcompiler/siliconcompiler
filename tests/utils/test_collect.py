@@ -6,17 +6,8 @@ import os.path
 from pathlib import Path
 
 from siliconcompiler import Project, Design
-from siliconcompiler.utils.collect import getcollectiondir, collect
-
-
-def test_getcollectiondir():
-    assert getcollectiondir(Project("testname")) == \
-        os.path.abspath(os.path.join("build", "testname", "job0", "sc_collected_files"))
-
-
-@pytest.mark.parametrize("arg", [None, Design(), "string"])
-def test_getcollectiondir_notproject(arg):
-    assert getcollectiondir(arg) is None
+from siliconcompiler.utils.collect import collect
+from siliconcompiler.utils.paths import collectiondir
 
 
 @pytest.mark.parametrize("arg", [None, Design(), "string"])
@@ -39,7 +30,7 @@ def test_collect_file_verbose(monkeypatch, caplog):
 
     collect(proj)
 
-    assert f"Collecting files to: {getcollectiondir(proj)}" in caplog.text
+    assert f"Collecting files to: {collectiondir(proj)}" in caplog.text
     assert f"  Collecting file: {os.path.abspath('top.v')}" in caplog.text
 
 
@@ -78,8 +69,8 @@ def test_collect_file_update():
 
     filename = design.get_file(fileset="rtl", filetype="verilog")[0]
 
-    assert len(os.listdir(getcollectiondir(proj))) == 1
-    with open(os.path.join(getcollectiondir(proj), os.path.basename(filename)), 'r') as f:
+    assert len(os.listdir(collectiondir(proj))) == 1
+    with open(os.path.join(collectiondir(proj), os.path.basename(filename)), 'r') as f:
         assert f.readline() == 'fake'
 
     # Edit file
@@ -88,8 +79,8 @@ def test_collect_file_update():
 
     # Rerun collect
     collect(proj, )
-    assert len(os.listdir(getcollectiondir(proj))) == 1
-    with open(os.path.join(getcollectiondir(proj), os.path.basename(filename)), 'r') as f:
+    assert len(os.listdir(collectiondir(proj))) == 1
+    with open(os.path.join(collectiondir(proj), os.path.basename(filename)), 'r') as f:
         assert f.readline() == 'newfake'
 
 
@@ -109,13 +100,13 @@ def test_collect_directory():
     proj = Project(design)
     collect(proj, )
 
-    assert len(os.listdir(getcollectiondir(proj))) == 1
+    assert len(os.listdir(collectiondir(proj))) == 1
 
     path = design.get_idir(fileset="rtl")[0]
-    assert path.startswith(getcollectiondir(proj))
+    assert path.startswith(collectiondir(proj))
     assert os.listdir(path) == ['test.v']
     assert design.get_file(fileset="rtl",
-                           filetype="verilog")[0].startswith(getcollectiondir(proj))
+                           filetype="verilog")[0].startswith(collectiondir(proj))
 
 
 def test_collect_subdirectory():
@@ -134,14 +125,14 @@ def test_collect_subdirectory():
     proj = Project(design)
     collect(proj)
 
-    assert len(os.listdir(getcollectiondir(proj))) == 1
+    assert len(os.listdir(collectiondir(proj))) == 1
 
     path = design.get_idir(fileset="rtl")[0]
-    assert path.startswith(getcollectiondir(proj))
+    assert path.startswith(collectiondir(proj))
     assert os.listdir(path) == ['subdir']
     assert os.listdir(os.path.join(path, "subdir")) == ['test.v']
     assert design.get_file(fileset="rtl",
-                           filetype="verilog")[0].startswith(getcollectiondir(proj))
+                           filetype="verilog")[0].startswith(collectiondir(proj))
 
 
 def test_collect_file_with_false():
@@ -159,7 +150,7 @@ def test_collect_file_with_false():
     collect(proj, )
 
     # No files should have been collected
-    assert len(os.listdir(getcollectiondir(proj))) == 0
+    assert len(os.listdir(collectiondir(proj))) == 0
 
 
 def test_collect_file_home(monkeypatch):
@@ -183,8 +174,8 @@ def test_collect_file_home(monkeypatch):
     collect(proj, )
 
     # No files should have been collected
-    assert len(os.listdir(getcollectiondir(proj))) == 1
-    subdir = os.path.join(getcollectiondir(proj), os.listdir(getcollectiondir(proj))[0])
+    assert len(os.listdir(collectiondir(proj))) == 1
+    subdir = os.path.join(collectiondir(proj), os.listdir(collectiondir(proj))[0])
     assert len(os.listdir(subdir)) == 0
 
 
@@ -204,8 +195,8 @@ def test_collect_file_build():
     collect(proj, )
 
     # No files should have been collected
-    assert len(os.listdir(getcollectiondir(proj))) == 1
-    subdir = os.path.join(getcollectiondir(proj), os.listdir(getcollectiondir(proj))[0])
+    assert len(os.listdir(collectiondir(proj))) == 1
+    subdir = os.path.join(collectiondir(proj), os.listdir(collectiondir(proj))[0])
     assert len(os.listdir(subdir)) == 0
 
 
@@ -225,8 +216,8 @@ def test_collect_file_hidden_dir():
     collect(proj, )
 
     # No files should have been collected
-    assert len(os.listdir(getcollectiondir(proj))) == 1
-    subdir = os.path.join(getcollectiondir(proj), os.listdir(getcollectiondir(proj))[0])
+    assert len(os.listdir(collectiondir(proj))) == 1
+    subdir = os.path.join(collectiondir(proj), os.listdir(collectiondir(proj))[0])
     assert len(os.listdir(subdir)) == 0
 
 
@@ -246,8 +237,8 @@ def test_collect_file_hidden_file():
     collect(proj, )
 
     # No files should have been collected
-    assert len(os.listdir(getcollectiondir(proj))) == 1
-    subdir = os.path.join(getcollectiondir(proj), os.listdir(getcollectiondir(proj))[0])
+    assert len(os.listdir(collectiondir(proj))) == 1
+    subdir = os.path.join(collectiondir(proj), os.listdir(collectiondir(proj))[0])
     assert len(os.listdir(subdir)) == 0
 
 
@@ -268,7 +259,7 @@ def test_collect_file_whitelist_error():
     with pytest.raises(RuntimeError, match=".* is not on the approved collection list"):
         collect(proj, whitelist=[os.path.abspath('not_test_folder')])
 
-    assert len(os.listdir(getcollectiondir(proj))) == 0
+    assert len(os.listdir(collectiondir(proj))) == 0
 
 
 def test_collect_file_whitelist_pass():
@@ -286,4 +277,4 @@ def test_collect_file_whitelist_pass():
     proj = Project(design)
     collect(proj, whitelist=[os.path.abspath('test')])
 
-    assert len(os.listdir(getcollectiondir(proj))) == 1
+    assert len(os.listdir(collectiondir(proj))) == 1

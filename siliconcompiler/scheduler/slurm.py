@@ -9,7 +9,8 @@ import uuid
 import os.path
 
 from siliconcompiler import utils
-from siliconcompiler.utils.collect import getcollectiondir, collect
+from siliconcompiler.utils.collect import collect
+from siliconcompiler.utils.paths import collectiondir, jobdir
 from siliconcompiler.package import RemoteResolver
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 from siliconcompiler.scheduler import SchedulerNode
@@ -59,7 +60,7 @@ class SlurmSchedulerNode(SchedulerNode):
         Args:
             chip (Chip): The Chip object to perform pre-processing on.
         """
-        if os.path.exists(getcollectiondir(project)):
+        if os.path.exists(collectiondir(project)):
             # nothing to do
             return
 
@@ -96,7 +97,7 @@ class SlurmSchedulerNode(SchedulerNode):
             str: The path to the configuration directory.
         """
 
-        return os.path.join(project.getworkdir(), 'sc_configs')
+        return os.path.join(jobdir(project), 'sc_configs')
 
     @staticmethod
     def get_job_name(jobhash, step, index):

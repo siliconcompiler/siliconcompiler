@@ -10,6 +10,7 @@ from siliconcompiler.tools.builtin.nop import NOPTask
 
 from siliconcompiler.scheduler import DockerSchedulerNode
 from siliconcompiler import __version__, NodeStatus
+from siliconcompiler.utils.paths import jobdir, workdir
 
 
 @pytest.fixture
@@ -79,11 +80,11 @@ def test_docker_run(docker_image, project):
     project.set("option", "nodashboard", True)
     assert project.run()
 
-    assert os.path.isfile(f'{project.getworkdir()}/testdesign.pkg.json')
+    assert os.path.isfile(f'{jobdir(project)}/testdesign.pkg.json')
     assert os.path.isfile(
-        f'{project.getworkdir(step="stepone", index="0")}/outputs/testdesign.pkg.json')
+        f'{workdir(project, step="stepone", index="0")}/outputs/testdesign.pkg.json')
     assert os.path.isfile(
-        f'{project.getworkdir(step="steptwo", index="0")}/outputs/testdesign.pkg.json')
+        f'{workdir(project, step="steptwo", index="0")}/outputs/testdesign.pkg.json')
 
     # assert "Running in docker container:" in output.out
     # assert output.out.count("Running in docker container:") == 2

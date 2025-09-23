@@ -12,6 +12,7 @@ from siliconcompiler.report.dashboard.web import utils
 from siliconcompiler.report.dashboard.web.utils import file_utils
 from siliconcompiler.report.dashboard.web.layouts import _common
 import streamlit_antd_components as sac
+from siliconcompiler.utils.paths import jobdir
 
 
 def layout():
@@ -44,7 +45,7 @@ def layout():
         sac.TabsItem("File Viewer",
                      icon=file_utils.get_file_icon(state.get_key(state.SELECTED_FILE))),
         sac.TabsItem("Design Preview", icon=file_utils.get_file_icon('design.png'),
-                     disabled=not os.path.isfile(f'{chip.getworkdir()}/{chip.design.name}.png')),
+                     disabled=not os.path.isfile(f'{jobdir(chip)}/{chip.design.name}.png')),
         sac.TabsItem("Graphs", icon='graph-up',
                      disabled=len(state.get_key(state.LOADED_CHIPS)) <= 1)
     ]
@@ -108,7 +109,7 @@ def layout():
             page_key=state.SELECTED_FILE_PAGE)
 
     elif tab_selected == "Design Preview":
-        components.file_viewer(chip, f'{chip.getworkdir()}/{chip.design.name}.png')
+        components.file_viewer(chip, f'{jobdir(chip)}/{chip.design.name}.png')
 
     elif tab_selected == "Graphs":
         graph.viewer(node_to_step_index_map)

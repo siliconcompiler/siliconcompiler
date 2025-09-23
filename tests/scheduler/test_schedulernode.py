@@ -20,6 +20,7 @@ from siliconcompiler.tools.builtin.join import JoinTask
 from scheduler.tools.echo import EchoTask
 
 from siliconcompiler.scheduler import SchedulerNode
+from siliconcompiler.utils.paths import jobdir, workdir
 
 
 @pytest.fixture
@@ -98,7 +99,7 @@ def test_init(project):
     assert node.jobname == "job0"
     assert node.is_replay is False
     assert isinstance(node.task, Task)
-    assert node.jobworkdir == project.getworkdir()
+    assert node.jobworkdir == jobdir(project)
     assert node.workdir == os.path.join(node.jobworkdir, "stepone", "0")
     assert node.project_cwd == os.path.abspath(".")
     assert node.collection_dir == os.path.join(node.jobworkdir, "sc_collected_files")
@@ -125,7 +126,7 @@ def test_init_replay(project):
     assert node.jobname == "job0"
     assert node.is_replay is True
     assert isinstance(node.task, Task)
-    assert node.jobworkdir == project.getworkdir()
+    assert node.jobworkdir == jobdir(project)
     assert node.workdir == os.path.join(node.jobworkdir, "stepone", "0")
     assert node.project_cwd == os.path.abspath(".")
     assert node.collection_dir == os.path.join(node.jobworkdir, "sc_collected_files")
@@ -152,7 +153,7 @@ def test_init_not_entry(project):
     assert node.jobname == "job0"
     assert node.is_replay is False
     assert isinstance(node.task, Task)
-    assert node.jobworkdir == project.getworkdir()
+    assert node.jobworkdir == jobdir(project)
     assert node.workdir == os.path.join(node.jobworkdir, "steptwo", "0")
     assert node.project_cwd == os.path.abspath(".")
     assert node.collection_dir == os.path.join(node.jobworkdir, "sc_collected_files")
@@ -1009,8 +1010,8 @@ def test_setup_input_directory_do_nothing(project):
 
 
 def test_setup_input_directory(project):
-    output_dir = Path(project.getworkdir(step="stepone", index="0")) / "outputs"
-    input_dir = Path(project.getworkdir(step="steptwo", index="0")) / "inputs"
+    output_dir = Path(workdir(project, step="stepone", index="0")) / "outputs"
+    input_dir = Path(workdir(project, step="steptwo", index="0")) / "inputs"
     os.makedirs(output_dir, exist_ok=True)
     os.makedirs(input_dir, exist_ok=True)
 
@@ -1034,8 +1035,8 @@ def test_setup_input_directory(project):
 
 
 def test_setup_input_directory_directory(project):
-    output_dir = Path(project.getworkdir(step="stepone", index="0")) / "outputs"
-    input_dir = Path(project.getworkdir(step="steptwo", index="0")) / "inputs"
+    output_dir = Path(workdir(project, step="stepone", index="0")) / "outputs"
+    input_dir = Path(workdir(project, step="steptwo", index="0")) / "inputs"
     os.makedirs(output_dir, exist_ok=True)
     os.makedirs(input_dir, exist_ok=True)
 
@@ -1056,8 +1057,8 @@ def test_setup_input_directory_directory(project):
 
 
 def test_setup_input_directory_renames_dir(project):
-    output_dir = Path(project.getworkdir(step="stepone", index="0")) / "outputs"
-    input_dir = Path(project.getworkdir(step="steptwo", index="0")) / "inputs"
+    output_dir = Path(workdir(project, step="stepone", index="0")) / "outputs"
+    input_dir = Path(workdir(project, step="steptwo", index="0")) / "inputs"
     os.makedirs(output_dir, exist_ok=True)
     os.makedirs(input_dir, exist_ok=True)
 
@@ -1080,8 +1081,8 @@ def test_setup_input_directory_renames_dir(project):
 
 
 def test_setup_input_directory_renames_file(project):
-    output_dir = Path(project.getworkdir(step="stepone", index="0")) / "outputs"
-    input_dir = Path(project.getworkdir(step="steptwo", index="0")) / "inputs"
+    output_dir = Path(workdir(project, step="stepone", index="0")) / "outputs"
+    input_dir = Path(workdir(project, step="steptwo", index="0")) / "inputs"
     os.makedirs(output_dir, exist_ok=True)
     os.makedirs(input_dir, exist_ok=True)
 
@@ -1108,9 +1109,9 @@ def test_setup_input_directory_renames_file(project):
 def test_setup_input_directory_no_input_dir(project, monkeypatch, caplog):
     monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
 
-    input_dir = Path(project.getworkdir(step="steptwo", index="0")) / "inputs"
+    input_dir = Path(workdir(project, step="steptwo", index="0")) / "inputs"
     os.makedirs(input_dir, exist_ok=True)
-    output_dir = Path(project.getworkdir(step="steptwo", index="0")) / "outputs"
+    output_dir = Path(workdir(project, step="steptwo", index="0")) / "outputs"
     os.makedirs(output_dir, exist_ok=True)
 
     project.set("record", "inputnode", ("stepone", "0"), step="steptwo", index="0")
@@ -1129,9 +1130,9 @@ def test_setup_input_directory_no_input_dir(project, monkeypatch, caplog):
 def test_setup_input_directory_input_error(project, error, monkeypatch, caplog):
     monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
 
-    input_dir = Path(project.getworkdir(step="steptwo", index="0")) / "inputs"
+    input_dir = Path(workdir(project, step="steptwo", index="0")) / "inputs"
     os.makedirs(input_dir, exist_ok=True)
-    output_dir = Path(project.getworkdir(step="steptwo", index="0")) / "outputs"
+    output_dir = Path(workdir(project, step="steptwo", index="0")) / "outputs"
     os.makedirs(output_dir, exist_ok=True)
 
     project.set("record", "status", error, step="stepone", index="0")

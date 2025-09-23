@@ -143,7 +143,7 @@ def test_find_files_cwd(monkeypatch):
     assert test.find_files("test", "dir") == os.path.abspath("cwd/test")
 
 
-def test_find_files_getcollectiondir():
+def test_find_files_collectiondir():
     class Test(Project):
         def __init__(self):
             super().__init__(Design("testdesign"))
@@ -160,7 +160,7 @@ def test_find_files_getcollectiondir():
 
     os.makedirs("collect/test_3a52ce780950d4d969792a2559cd519d7ee8c727", exist_ok=True)
 
-    with patch("siliconcompiler.schema_support.pathschema.getcollectiondir") as collect:
+    with patch("siliconcompiler.schema_support.pathschema.collectiondir") as collect:
         collect.return_value = os.path.abspath("collect")
         assert test.find_files("test", "dir") == \
             os.path.abspath("collect/test_3a52ce780950d4d969792a2559cd519d7ee8c727")
@@ -304,7 +304,7 @@ def test_check_filepaths_cwd(monkeypatch):
     assert test.get("test", field="schema").check_filepaths() is True
 
 
-def test_check_filepaths_getcollectiondir():
+def test_check_filepaths_collectiondir():
     class Test(Project):
         def __init__(self):
             super().__init__(Design("testdesign"))
@@ -321,7 +321,7 @@ def test_check_filepaths_getcollectiondir():
 
     os.makedirs("collect/test_3a52ce780950d4d969792a2559cd519d7ee8c727", exist_ok=True)
 
-    with patch("siliconcompiler.schema_support.pathschema.getcollectiondir") as collect:
+    with patch("siliconcompiler.schema_support.pathschema.collectiondir") as collect:
         collect.return_value = os.path.abspath("collect")
         assert test.get("test", field="schema").check_filepaths() is True
         collect.assert_called_once()
@@ -439,7 +439,7 @@ def test_simple_find_files_cwd(monkeypatch):
     assert test.find_files("test", "dir") == os.path.abspath("cwd/test")
 
 
-def test_simple_find_files_getcollectiondir():
+def test_simple_find_files_collectiondir():
     class Test(Project):
         def __init__(self):
             super().__init__(Design("testdesign"))
@@ -456,7 +456,7 @@ def test_simple_find_files_getcollectiondir():
 
     os.makedirs("collect/test_3a52ce780950d4d969792a2559cd519d7ee8c727", exist_ok=True)
 
-    with patch("siliconcompiler.schema_support.pathschema.getcollectiondir") as collect:
+    with patch("siliconcompiler.schema_support.pathschema.collectiondir") as collect:
         collect.return_value = os.path.abspath("collect")
         assert test.find_files("test", "dir") == \
             os.path.abspath("collect/test_3a52ce780950d4d969792a2559cd519d7ee8c727")

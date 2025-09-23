@@ -17,6 +17,7 @@ from siliconcompiler.tools.klayout.export import ExportTask
 from siliconcompiler.tools.klayout import KLayoutLibrary
 
 from tools.inputimporter import ImporterTask
+from siliconcompiler.utils.paths import workdir
 
 
 @pytest.fixture
@@ -128,7 +129,7 @@ def test_klayout_operations(datadir):
 
     assert proj.run()
 
-    ops1_result = proj.getworkdir(step='ops1')
+    ops1_result = workdir(proj, step='ops1')
     for op_file, op_hash in [('rotate.gds', '0048802f8d2fedf038cb6cfdc5ebc989'),
                              ('outline.gds', '4bf006f5f465ec9c42cd1ef80677424e'),
                              ('rename.gds', '4991f2267811517b8f7e73924b92128e')]:
@@ -138,7 +139,7 @@ def test_klayout_operations(datadir):
             data = gds_file.read()
             assert hashlib.md5(data).hexdigest() == op_hash
 
-    ops2_result = proj.getworkdir(step='ops2')
+    ops2_result = workdir(proj, step='ops2')
     for op_file, op_hash in [('rotate.gds', 'ee2e5b9646ca4f7e941dd1767af47188'),
                              ('outline.gds', '753e1a252baaa6c9dbb3e9528a3eef3c'),
                              ('add_top.gds', '2c6f39ff49088278bafa51adfd761e61'),

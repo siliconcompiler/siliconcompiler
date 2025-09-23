@@ -29,6 +29,7 @@ from siliconcompiler.scheduler import TaskScheduler
 
 from siliconcompiler.remote import JobStatus, NodeStatus
 from siliconcompiler.remote.schema import ServerSchema
+from siliconcompiler.utils.paths import jobdir
 
 
 # Compile validation code for API request bodies.
@@ -102,7 +103,7 @@ class Server(ServerSchema):
         start_tar = os.path.join(self.nfs_mount, job_hash, f'{job_hash}_None.tar.gz')
         start_status = NodeStatus.SUCCESS
         with tarfile.open(start_tar, "w:gz") as tf:
-            start_manifest = os.path.join(chip.getworkdir(), f"{chip.design.name}.pkg.json")
+            start_manifest = os.path.join(jobdir(chip), f"{chip.design.name}.pkg.json")
             tf.add(start_manifest, arcname=os.path.relpath(start_manifest, self.nfs_mount))
 
         with self.sc_jobs_lock:

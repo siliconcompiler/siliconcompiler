@@ -20,6 +20,8 @@ if sys.version_info < (3, 10):
 else:
     from importlib.metadata import entry_points
 
+from siliconcompiler.utils.paths import builddir
+
 
 def link_symlink_copy(srcfile, dstfile):
     # first try hard linking, then symbolic linking,
@@ -380,7 +382,7 @@ class FilterDirectories:
 
     @property
     def builddir(self):
-        return self.project._getbuilddir()
+        return builddir(self.project)
 
     def filter(self, path, files):
         if pathlib.Path(path) == pathlib.Path.home():

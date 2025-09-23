@@ -25,6 +25,7 @@ from siliconcompiler.report.dashboard.web import state
 from siliconcompiler.report.dashboard.web import layouts
 from siliconcompiler.report.dashboard.web.utils import file_utils
 from siliconcompiler.report.dashboard.web.components import flowgraph
+from siliconcompiler.utils.paths import workdir, jobdir
 
 
 # --- Constants for Page Configuration ---
@@ -206,7 +207,7 @@ def file_viewer(chip, path, page_key=None, header_col_width=0.89):
         return
 
     # --- File Header and Download Button ---
-    relative_path = os.path.relpath(path, chip.getworkdir())
+    relative_path = os.path.relpath(path, jobdir(chip))
     filename = os.path.basename(path)
     file_extension = utils.get_file_ext(path)
 
@@ -375,7 +376,7 @@ def node_image_viewer(chip, step, index):
         streamlit.markdown("No images to show")
         return
 
-    work_dir = chip.getworkdir(step=step, index=index)
+    work_dir = workdir(chip, step=step, index=index)
     columns = streamlit.slider(
         "Image columns",
         min_value=1, max_value=min(len(images), 10),
@@ -416,7 +417,7 @@ def node_file_tree_viewer(chip, step, index):
     lookup = {}
     tree_items = []
     metrics_source, file_metrics = report.get_metrics_source(chip, step, index)
-    work_dir = chip.getworkdir(step=step, index=index)
+    work_dir = workdir(chip, step=step, index=index)
 
     def make_item(file):
         """Recursively builds a tree item for the antd component."""

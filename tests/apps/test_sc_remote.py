@@ -21,6 +21,7 @@ from siliconcompiler.tools.builtin.nop import NOPTask
 from siliconcompiler.apps import sc_remote
 from siliconcompiler.remote import Client
 from siliconcompiler.remote import JobStatus
+from siliconcompiler.utils.paths import jobdir
 
 
 @pytest.fixture(autouse=True)
@@ -221,7 +222,7 @@ def test_sc_remote_reconnect(gcd_nop_project, monkeypatch, unused_tcp_port, scse
                                      '-cfg', client.remote_manifest()])
 
     def mock_finalize_run(*args, **kwargs):
-        final_manifest = os.path.join(gcd_nop_project.getworkdir(),
+        final_manifest = os.path.join(jobdir(gcd_nop_project),
                                       f"{gcd_nop_project.design.name}.pkg.json")
         with open(final_manifest, 'w') as wf:
             wf.write('{"mocked": "manifest"}')
@@ -233,7 +234,7 @@ def test_sc_remote_reconnect(gcd_nop_project, monkeypatch, unused_tcp_port, scse
 
     assert retcode == 0
     assert os.path.isfile('mock_result.txt')
-    assert os.path.isfile(os.path.join(gcd_nop_project.getworkdir(),
+    assert os.path.isfile(os.path.join(jobdir(gcd_nop_project),
                                        f"{gcd_nop_project.design.name}.pkg.json"))
 
 

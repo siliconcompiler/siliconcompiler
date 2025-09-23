@@ -22,7 +22,7 @@ from siliconcompiler.package import Resolver
 from siliconcompiler.schema_support.record import RecordTime, RecordTool
 from siliconcompiler.schema import Journal
 from siliconcompiler.scheduler import send_messages
-from siliconcompiler.utils.collect import getcollectiondir
+from siliconcompiler.utils.paths import workdir, jobdir, collectiondir
 
 
 class SchedulerNode:
@@ -86,8 +86,8 @@ class SchedulerNode:
             self.__project.get("flowgraph", flow, field="schema").get_entry_nodes()
 
         self.__cwd = self.__project._Project__cwd
-        self.__jobworkdir = self.__project.getworkdir()
-        self.__workdir = self.__project.getworkdir(step=self.__step, index=self.__index)
+        self.__jobworkdir = jobdir(self.__project)
+        self.__workdir = workdir(self.__project, step=self.__step, index=self.__index)
         self.__manifests = {
             "input": os.path.join(self.__workdir, "inputs", f"{self.__name}.pkg.json"),
             "output": os.path.join(self.__workdir, "outputs", f"{self.__name}.pkg.json")
@@ -97,7 +97,7 @@ class SchedulerNode:
             "exe": os.path.join(self.__workdir, f"{self.__step}.log")
         }
         self.__replay_script = os.path.join(self.__workdir, "replay.sh")
-        self.__collection_path = getcollectiondir(self.__project)
+        self.__collection_path = collectiondir(self.__project)
 
         self.set_queue(None, None)
         self.__setup_schema_access()
@@ -668,7 +668,7 @@ class SchedulerNode:
                 self.halt(f'Halting step due to previous error in {in_step}/{in_index}')
 
             output_dir = os.path.join(
-                self.__project.getworkdir(step=in_step, index=in_index), "outputs")
+                workdir(self.__project, step=in_step, index=in_index), "outputs")
             if not os.path.isdir(output_dir):
                 self.halt(f'Unable to locate outputs directory for {in_step}/{in_index}: '
                           f'{output_dir}')
@@ -886,7 +886,7 @@ class SchedulerNode:
             for in_step, in_index in self.__record.get('inputnode',
                                                        step=self.__step, index=self.__index):
                 required_outputs = set(self.__task.get('output'))
-                in_workdir = self.__project.getworkdir(step=in_step, index=in_index)
+                in_workdir = workdir(self.__project, step=in_step, index=in_index)
                 for outfile in os.scandir(f"{in_workdir}/outputs"):
                     if outfile.name == f'{self.__name}.pkg.json':
                         # Dont forward manifest
@@ -1215,7 +1215,7 @@ class SchedulerNode:
 
         org_name = self.__project.get("option", "jobname")
         self.__project.set("option", "jobname", source)
-        copy_from = self.__project.getworkdir(step=self.__step, index=self.__index)
+        copy_from = workdir(self.__project, step=self.__step, index=self.__index)
         self.__project.set("option", "jobname", org_name)
 
         if not os.path.exists(copy_from):
