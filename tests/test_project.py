@@ -12,7 +12,6 @@ from unittest.mock import patch
 from siliconcompiler import Project
 from siliconcompiler import Design, Flowgraph, Checklist
 from siliconcompiler import Task
-from siliconcompiler.tool import ToolSchema
 from siliconcompiler.library import LibrarySchema
 
 from siliconcompiler.schema import NamedSchema, EditableSchema, Parameter, Scope
@@ -897,54 +896,6 @@ def test_summary_select_unknownjob(monkeypatch, caplog):
 
         history.assert_called_once_with("thatjob")  # will call with first alphabetical job
     assert "job0 not found in history, picking thatjob" in caplog.text
-
-
-def test_get_task():
-    class FauxTask(Task):
-        def tool(self):
-            return "faux"
-
-    class FauxTask0(FauxTask):
-        def task(self):
-            return "task0"
-
-    class FauxTask1(FauxTask):
-        def task(self):
-            return "task1"
-
-    class FauxTask2(Task):
-        def tool(self):
-            return "anotherfaux"
-
-        def task(self):
-            return "task1"
-
-    faux0 = FauxTask0()
-    faux1 = FauxTask1()
-    faux2 = FauxTask2()
-
-    proj = Project()
-    EditableSchema(proj).insert("tool", "faux", ToolSchema())
-    EditableSchema(proj).insert("tool", "faux", "task", "task0", faux0)
-    EditableSchema(proj).insert("tool", "faux", "task", "task1", faux1)
-    EditableSchema(proj).insert("tool", "anotherfaux", ToolSchema())
-    EditableSchema(proj).insert("tool", "anotherfaux", "task", "task1", faux2)
-
-    assert proj.get_task() == set([faux0, faux1, faux2])
-    assert proj.get_task(tool="faux") == set([faux0, faux1])
-    assert proj.get_task(task="task1") == set([faux1, faux2])
-    assert proj.get_task(tool="faux", task="task1") is faux1
-    assert proj.get_task(filter=lambda t: isinstance(t, FauxTask)) == set([faux0, faux1])
-    assert proj.get_task(filter=lambda t: isinstance(t, FauxTask2)) is faux2
-    assert proj.get_task(filter=FauxTask2) is faux2
-
-
-def test_get_task_missing():
-    assert Project().get_task("tool0", "task0") == set()
-
-
-def test_get_task_empty():
-    assert Project().get_task() == set()
 
 
 def test_load_target():

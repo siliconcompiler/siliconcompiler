@@ -802,58 +802,6 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
 
         return self.design.get_fileset(self.get("option", "fileset"), alias=alias)
 
-    def get_task(self,
-                 tool: str = None,
-                 task: str = None,
-                 filter: Union[Type[Task], Callable[[Task], bool]] = None) -> \
-            Union[Set[Task], Task]:
-        """Retrieves tasks based on specified criteria.
-
-        This method allows you to fetch tasks by tool name, task name, or by applying a custom
-        filter. If a single task matches the criteria, that task object is returned directly.
-        If multiple tasks match, a set of :class:`Task` objects is returned.
-        If no criteria are provided, all available tasks are returned.
-
-        Args:
-            tool (str, optional): The name of the tool to filter tasks by. Defaults to None.
-            task (str, optional): The name of the task to filter by. Defaults to None.
-            filter (Union[Type[Task], Callable[[Task], bool]], optional):
-                A filter to apply to the tasks. This can be:
-                - A `Type[Task]`: Only tasks that are instances of this type will be returned.
-                - A `Callable[[Task], bool]`: A function that takes a `Task` object
-                and returns `True` if the task should be included, `False` otherwise.
-                Defaults to None.
-
-        Returns:
-            Union[Set[Task], Task]:
-                - If exactly one task matches the criteria, returns that single `Task` object.
-                - If multiple tasks match or no specific tool/task is provided (and thus all tasks
-                are considered), returns a `Set[Task]` containing the matching tasks.
-        """
-        all_tasks: Set[Task] = set()
-        for tool_name in self.getkeys("tool"):
-            for task_name in self.getkeys("tool", tool_name, "task"):
-                all_tasks.add(self.get("tool", tool_name, "task", task_name, field="schema"))
-
-        tasks = set()
-        for task_obj in all_tasks:
-            if tool and task_obj.tool() != tool:
-                continue
-            if task and task_obj.task() != task:
-                continue
-            if filter:
-                if inspect.isclass(filter):
-                    if not isinstance(task_obj, filter):
-                        continue
-                elif callable(filter):
-                    if not filter(task_obj):
-                        continue
-            tasks.add(task_obj)
-
-        if len(tasks) == 1:
-            return list(tasks)[0]
-        return tasks
-
     def set_design(self, design: Union[Design, str]):
         """
         Sets the active design for this project.
