@@ -130,7 +130,7 @@ def syn(pdk: str = "freepdk45", N: str = None):
         hb.set_param("N", N, fileset="rtl")
 
     # Load the target configuration for the specified PDK.
-    project.load_target(asic_target, pdk=pdk)
+    asic_target(project, pdk=pdk)
     # Specify the synthesis flow.
     project.set_flow("synflow")
 
@@ -167,7 +167,7 @@ def asic(pdk: str = "freepdk45", N: str = None):
         hb.set_param("N", N, fileset="rtl")
 
     # Load the target, which automatically selects the default 'asicflow'.
-    project.load_target(asic_target, pdk=pdk)
+    asic_target(project, pdk=pdk)
 
     # Run the full place-and-route flow.
     project.run()

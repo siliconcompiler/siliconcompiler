@@ -38,7 +38,7 @@ The following code snippet below shows how the :ref:`demo design <ASIC Demo>` wa
         design.add_file("heartbeat.sdc", fileset="sdc")        # add input sources
         project = ASICProject(design)                          # create project
         project.add_fileset(["rtl", "sdc"])                    # enable filesets
-        project.load_target(skywater130_demo.setup)            # load a pre-defined target
+        skywater130_demo.setup(project)                        # load a pre-defined target
         project.set('option','remote', True)                   # enable remote execution
         project.run()                                          # run compilation
         project.summary()                                      # print summary
@@ -74,13 +74,13 @@ Once the objects are created, we specify the design's top module and add its sou
 Loading a Target
 ^^^^^^^^^^^^^^^^
 
-Next, we load a **target**, which bundles a Process Design Kit (PDK), standard cell libraries, and a pre-configured compilation flow. The :meth:`.Project.load_target()` method loads the predefined `skywater130_demo` target.
+Next, we load a **target**, which bundles a Process Design Kit (PDK), standard cell libraries, and a pre-configured compilation flow.
 
 .. code-block:: python
 
     from siliconcompiler.targets import skywater130_demo
 
-    project.load_target(skywater130_demo.setup)
+    skywater130_demo.setup(project)
 
 Configuring the Run
 ^^^^^^^^^^^^^^^^^^^

@@ -220,7 +220,7 @@ class TargetGen(SchemaGen):
         required_type = func_spec.annotations.get(func_spec.args[0], Project)
 
         proj: Project = required_type()
-        proj.load_target(target)
+        target(proj)
 
         name = self.options.get("name", self.options["root"])
 

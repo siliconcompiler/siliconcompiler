@@ -59,7 +59,7 @@ class OpenSTATask(Task):
             design.set_topmodule("top")
         proj = ASICProject(design)
         proj.add_fileset("docs")
-        proj.load_target(freepdk45_demo.setup)
+        freepdk45_demo.setup(proj)
         flow = Flowgraph("docsflow")
         flow.node("<step>", cls(), index="<index>")
         proj.set_flow(flow)

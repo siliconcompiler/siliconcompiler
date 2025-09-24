@@ -33,7 +33,7 @@ def main():
     project.add_fileset(["rtl", "sdc"])
 
     # Load the pre-defined target for the Skywater130 demo process.
-    project.load_target(skywater130_demo.setup)
+    skywater130_demo.setup(project)
 
     # Execute the compilation flow.
     project.run()

@@ -43,7 +43,7 @@ def main():
     project.add_fileset(["rtl", "sdc"])
 
     # Load the pre-defined target for the FreePDK45 demo process.
-    project.load_target(freepdk45_demo.setup)
+    freepdk45_demo.setup(project)
 
     # Set the project to use the ChiselASICFlow. This pre-built flow
     # automatically inserts a Chisel-to-Verilog conversion step at the

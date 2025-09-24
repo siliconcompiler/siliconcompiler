@@ -39,7 +39,7 @@ def test_yosys_lec(datadir):
 
     proj = ASICProject(design)
     proj.add_fileset(["rtl"])
-    proj.load_target(freepdk45_demo.setup)
+    freepdk45_demo.setup(proj)
 
     flow = Flowgraph("lec")
     flow.node('import', ImporterTask())
@@ -66,7 +66,7 @@ def test_yosys_lec_broken(datadir):
 
     proj = ASICProject(design)
     proj.add_fileset(["rtl"])
-    proj.load_target(freepdk45_demo.setup)
+    freepdk45_demo.setup(proj)
 
     flow = Flowgraph("lec")
     flow.node('import', ImporterTask())

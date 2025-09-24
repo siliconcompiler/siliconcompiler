@@ -42,7 +42,7 @@ def main():
     # Load the pre-defined target for the Skywater 130nm demo process.
     # This configures the project with the correct PDK, standard cell libraries,
     # and the default RTL-to-GDSII tool flow.
-    project.load_target(skywater130_demo.setup)
+    skywater130_demo.setup(project)
 
     # Set a unique name for this job run.
     project.set("option", "jobname", "rtl2gds")

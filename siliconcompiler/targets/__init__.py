@@ -9,14 +9,14 @@ from siliconcompiler import ASICProject
 
 def asic_target(proj: ASICProject, pdk: str = None):
     if pdk == "asap7":
-        proj.load_target(asap7_demo.setup)
+        asap7_demo.setup(proj)
     elif pdk == "freepdk45":
-        proj.load_target(freepdk45_demo.setup)
+        freepdk45_demo.setup(proj)
     elif pdk == "gf180":
-        proj.load_target(gf180_demo.setup)
+        gf180_demo.setup(proj)
     elif pdk == "ihp130":
-        proj.load_target(ihp130_demo.setup)
+        ihp130_demo.setup(proj)
     elif pdk == "skywater130":
-        proj.load_target(skywater130_demo.setup)
+        skywater130_demo.setup(proj)
     else:
         raise ValueError(f"pdk not supported: {pdk}")

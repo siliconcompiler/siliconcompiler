@@ -41,7 +41,7 @@ def main():
     project.add_fileset("netlist")
 
     # Load the specialized interposer target.
-    project.load_target(interposer_demo.setup)
+    interposer_demo.setup(project)
 
     # --- Physical Constraints ---
     # Explicitly define the physical dimensions of the interposer die.

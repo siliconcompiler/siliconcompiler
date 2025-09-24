@@ -40,7 +40,7 @@ def checkarea(design: Design, filesets: List[str], target: Callable):
         proj.add_fileset(fileset)
 
         # Load the target configuration (PDK, libs, tools).
-        proj.load_target(target)
+        target(proj)
 
         # Set a unique jobname for this run based on the fileset name. This helps
         # organize the output directories (e.g., build/oh_add/).
