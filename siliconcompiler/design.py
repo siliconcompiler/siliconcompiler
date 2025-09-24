@@ -411,7 +411,7 @@ class Design(LibrarySchema, DependencySchema):
                       filename: str,
                       filesets: List[str],
                       depalias: Dict[str, Tuple[NamedSchema, str]],
-                      comments: bool = True):
+                      comments: bool = False):
         '''
         Internal helper to write a Verilog-style file list (`.f` file).
 
@@ -489,7 +489,7 @@ class Design(LibrarySchema, DependencySchema):
                       fileset: str = None,
                       fileformat: str = None,
                       depalias: Dict[str, Tuple[NamedSchema, str]] = None,
-                      comments: bool = True) -> None:
+                      comments: bool = False) -> None:
         """Exports filesets to a standard formatted text file.
 
         Currently supports Verilog `flist` format only.

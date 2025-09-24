@@ -585,7 +585,39 @@ def test_write_fileset(datadir):
         d.add_file('heartbeat_tb.v', fileset)
         d.add_define('VERILATOR', fileset)
 
-    d.write_fileset(filename="heartbeat.f", fileset=['rtl', 'tb'])
+    d.write_fileset(filename="heartbeat.f", fileset=['rtl', 'tb'], comments=True)
+
+    assert Path("heartbeat.f").read_text().splitlines() == [
+        '// test / rtl / include directories',
+        f'+incdir+{os.path.abspath(datadir)}',
+        '// test / rtl / defines',
+        '+define+ASIC',
+        '// test / rtl / verilog files',
+        f'{os.path.abspath(os.path.join(datadir, "heartbeat.v"))}',
+        f'{os.path.abspath(os.path.join(datadir, "increment.v"))}',
+        '// test / tb / defines',
+        '+define+VERILATOR',
+        '// test / tb / verilog files',
+        f'{os.path.abspath(os.path.join(datadir, "heartbeat_tb.v"))}',
+    ]
+
+
+def test_write_fileset_nocomments(datadir):
+    d = Design("test")
+    d.set_dataroot(name="root", path=datadir)
+
+    with d.active_dataroot("root"):
+        fileset = 'rtl'
+        d.add_file(['heartbeat.v', 'increment.v'], fileset)
+        d.add_define('ASIC', fileset)
+        d.add_idir('.', fileset)
+        d.set_topmodule('heartbeat', fileset)
+
+        fileset = 'tb'
+        d.add_file('heartbeat_tb.v', fileset)
+        d.add_define('VERILATOR', fileset)
+
+    d.write_fileset(filename="heartbeat.f", fileset=['rtl', 'tb'], comments=True)
 
     assert Path("heartbeat.f").read_text().splitlines() == [
         '// test / rtl / include directories',
@@ -609,7 +641,7 @@ def test_write_fileset_error_no_file():
     with pytest.raises(
             FileNotFoundError,
             match=r'Could not find "heartbeat.v" \[fileset,rtl,file,verilog\]: .*'):
-        d.write_fileset(filename="heartbeat.f", fileset=['rtl'])
+        d.write_fileset(filename="heartbeat.f", fileset=['rtl'], comments=True)
     assert not os.path.exists("heartbeat.f")
 
 
@@ -629,7 +661,8 @@ def test_write_fileset_using_fileformat(datadir):
         d.add_file('heartbeat_tb.v', fileset)
         d.add_define('VERILATOR', fileset)
 
-    d.write_fileset(filename="heartbeat.cmd", fileset=['rtl', 'tb'], fileformat="flist")
+    d.write_fileset(filename="heartbeat.cmd", fileset=['rtl', 'tb'], fileformat="flist",
+                    comments=True)
 
     assert Path("heartbeat.cmd").read_text().splitlines() == [
         '// test / rtl / include directories',
@@ -662,7 +695,7 @@ def test_write_fileset_duplicate(datadir):
         d.add_file('heartbeat_tb.v', fileset)
         d.add_define('VERILATOR', fileset)
 
-    d.write_fileset(filename="heartbeat.f", fileset=['rtl', 'tb'])
+    d.write_fileset(filename="heartbeat.f", fileset=['rtl', 'tb'], comments=True)
 
     assert Path("heartbeat.f").read_text().splitlines() == [
         '// test / rtl / include directories',
@@ -692,7 +725,7 @@ def test_write_fileset_with_fileset(datadir):
         d.set_topmodule('heartbeat', fileset)
 
     with d.active_fileset("rtl"):
-        d.write_fileset(filename="heartbeat.f")
+        d.write_fileset(filename="heartbeat.f", comments=True)
 
     assert Path("heartbeat.f").read_text().splitlines() == [
         '// test / rtl / include directories',
@@ -730,7 +763,7 @@ def test_read_fileset(datadir):
 def test_read_fileset_with_abspath(datadir):
     d = Design("test")
     d.add_file([datadir + '/heartbeat.v', datadir + '/increment.v'], "rtl")
-    d.write_fileset("test.f", fileset="rtl")
+    d.write_fileset("test.f", fileset="rtl", comments=True)
 
     d = Design("new")
     d.read_fileset("test.f", fileset="test")
@@ -836,7 +869,7 @@ def test_heartbeat_example(datadir):
     dut = Heartbeat()
     assert dut.get("deps") == ["increment"]
 
-    dut.write_fileset(filename="heartbeat.f", fileset=['rtl', 'testbench'])
+    dut.write_fileset(filename="heartbeat.f", fileset=['rtl', 'testbench'], comments=True)
 
     assert Path("heartbeat.f").read_text().splitlines() == [
         '// heartbeat / rtl / verilog files',
@@ -1176,7 +1209,7 @@ def test_write_fileset_alias(datadir):
     dut.write_fileset(
         "fileset.f",
         ["rtl", "testbench"],
-        depalias={("increment", "rtl.increment"): (alias, "rtl.alias")})
+        depalias={("increment", "rtl.increment"): (alias, "rtl.alias")}, comments=True)
 
     assert Path("fileset.f").read_text().splitlines() == [
         '// heartbeat / rtl / verilog files',
@@ -1190,7 +1223,8 @@ def test_write_fileset_alias(datadir):
     dut.write_fileset(
         "fileset_double.f",
         ["rtl", "testbench"],
-        depalias={("increment", "rtl.increment"): (alias, ["rtl.alias", "rtl.alias_other"])})
+        depalias={("increment", "rtl.increment"): (alias, ["rtl.alias", "rtl.alias_other"])},
+        comments=True)
 
     assert Path("fileset_double.f").read_text().splitlines() == [
         '// heartbeat / rtl / verilog files',
@@ -1238,7 +1272,7 @@ def test_write_fileset_same_datroot_name(datadir):
 
     assert dut.get("dataroot", "root", "path") != incr_object.get("dataroot", "root", "path")
 
-    dut.write_fileset("fileset.f",  ["rtl", "testbench"])
+    dut.write_fileset("fileset.f",  ["rtl", "testbench"], comments=True)
 
     assert Path("fileset.f").read_text().splitlines() == [
         '// heartbeat / rtl / verilog files',
