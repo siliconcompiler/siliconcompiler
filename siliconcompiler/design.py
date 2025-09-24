@@ -410,7 +410,8 @@ class Design(LibrarySchema, DependencySchema):
     def __write_flist(self,
                       filename: str,
                       filesets: List[str],
-                      depalias: Dict[str, Tuple[NamedSchema, str]]):
+                      depalias: Dict[str, Tuple[NamedSchema, str]],
+                      comments: bool = True):
         '''
         Internal helper to write a Verilog-style file list (`.f` file).
 
@@ -422,6 +423,7 @@ class Design(LibrarySchema, DependencySchema):
             filename (str): The path to the output file list.
             filesets (List[str]): A list of fileset names to include.
             depalias (Dict): A dictionary for aliasing dependencies.
+            comments (bool, optional): Add comments in output file.
         '''
         written_cmd = set()
 
@@ -439,18 +441,21 @@ class Design(LibrarySchema, DependencySchema):
 
         for lib, fileset in self.get_fileset(filesets, depalias):
             if lib.get('fileset', fileset, 'idir'):
-                write_header(f"{lib.name} / {fileset} / include directories")
+                if (comments):
+                    write_header(f"{lib.name} / {fileset} / include directories")
                 for idir in lib.find_files('fileset', fileset, 'idir'):
                     write(f"+incdir+{idir}")
 
             if lib.get('fileset', fileset, 'define'):
-                write_header(f"{lib.name} / {fileset} / defines")
+                if (comments):
+                    write_header(f"{lib.name} / {fileset} / defines")
                 for define in lib.get('fileset', fileset, 'define'):
                     write(f"+define+{define}")
 
             for filetype in lib.getkeys('fileset', fileset, 'file'):
                 if lib.get('fileset', fileset, 'file', filetype):
-                    write_header(f"{lib.name} / {fileset} / {filetype} files")
+                    if (comments):
+                        write_header(f"{lib.name} / {fileset} / {filetype} files")
                     for file in lib.find_files('fileset', fileset, 'file', filetype):
                         write(file)
 
@@ -483,7 +488,8 @@ class Design(LibrarySchema, DependencySchema):
                       filename: str,
                       fileset: str = None,
                       fileformat: str = None,
-                      depalias: Dict[str, Tuple[NamedSchema, str]] = None) -> None:
+                      depalias: Dict[str, Tuple[NamedSchema, str]] = None,
+                      comments: bool = True) -> None:
         """Exports filesets to a standard formatted text file.
 
         Currently supports Verilog `flist` format only.
@@ -496,6 +502,7 @@ class Design(LibrarySchema, DependencySchema):
                 the active fileset is used.
             fileformat (str, optional): Export format.
             depalias (dict of schema objects): Map of aliased objects.
+            comments (bool, optional): Add comments in output file.
         """
 
         if filename is None:
@@ -516,7 +523,7 @@ class Design(LibrarySchema, DependencySchema):
             fileformat = self.__map_fileformat(filename)
 
         if fileformat == "flist":
-            self.__write_flist(filename, fileset, depalias)
+            self.__write_flist(filename, fileset, depalias, comments)
         else:
             raise ValueError(f"{fileformat} is not a supported filetype")
 
