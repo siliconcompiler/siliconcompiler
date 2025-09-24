@@ -61,14 +61,14 @@ def gf180_demo(
 
     # Slow corner: Checks for setup time violations at worst-case conditions
     # (slow process, low voltage).
-    scenario = project.get_timingconstraints().make_scenario("slow")
+    scenario = project.constraint.timing.make_scenario("slow")
     scenario.add_libcorner("slow")
     scenario.set_pexcorner("wst")
     scenario.add_check("setup")
     scenario.set_pin_voltage("VDD", 4.5)
 
     # Typical corner: Used for power analysis under nominal conditions.
-    scenario = project.get_timingconstraints().make_scenario("typical")
+    scenario = project.constraint.timing.make_scenario("typical")
     scenario.add_libcorner("typical")
     scenario.set_pexcorner("typ")
     scenario.add_check("power")
@@ -76,7 +76,7 @@ def gf180_demo(
 
     # Fast corner: Checks for hold time violations at best-case conditions
     # (fast process, high voltage).
-    scenario = project.get_timingconstraints().make_scenario("fast")
+    scenario = project.constraint.timing.make_scenario("fast")
     scenario.add_libcorner("fast")
     scenario.set_pexcorner("bst")
     scenario.add_check("hold")
@@ -87,7 +87,7 @@ def gf180_demo(
 
     # 4. Define Physical Design Constraints
     # These constraints guide the place-and-route tools.
-    area = project.get_areaconstraints()
+    area = project.constraint.area
     # Target a core utilization of 40%.
     area.set_density(40)
     # Set a margin of 1 micron around the core area.

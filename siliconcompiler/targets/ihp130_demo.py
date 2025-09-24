@@ -60,19 +60,19 @@ def ihp130_demo(
     # process, voltage, and temperature (PVT) conditions.
 
     # Slow corner: Checks for setup time violations at worst-case conditions.
-    scenario = project.get_timingconstraints().make_scenario("slow")
+    scenario = project.constraint.timing.make_scenario("slow")
     scenario.add_libcorner("slow")
     scenario.set_pexcorner("typical")
     scenario.add_check("setup")
 
     # Typical corner: Used for power analysis under nominal conditions.
-    scenario = project.get_timingconstraints().make_scenario("typical")
+    scenario = project.constraint.timing.make_scenario("typical")
     scenario.add_libcorner("typical")
     scenario.set_pexcorner("typical")
     scenario.add_check("power")
 
     # Fast corner: Checks for hold time violations at best-case conditions.
-    scenario = project.get_timingconstraints().make_scenario("fast")
+    scenario = project.constraint.timing.make_scenario("fast")
     scenario.add_libcorner("fast")
     scenario.set_pexcorner("typical")
     scenario.add_check("hold")
@@ -82,7 +82,7 @@ def ihp130_demo(
 
     # 5. Define Physical Design Constraints
     # These constraints guide the place-and-route tools.
-    area = project.get_areaconstraints()
+    area = project.constraint.area
     # Target a core utilization of 40%.
     area.set_density(40)
     # Set a margin of 4.8 microns around the core area.

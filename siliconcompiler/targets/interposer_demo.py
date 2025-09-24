@@ -44,7 +44,7 @@ def interposer_demo(project: ASICProject):
     # While passive interposers do not have active logic for traditional setup/hold
     # timing analysis, a basic scenario is defined. This can be used for signal
     # integrity analysis, delay extraction, or to satisfy tool requirements.
-    scenario = project.get_timingconstraints().make_scenario("typical")
+    scenario = project.constraint.timing.make_scenario("typical")
     scenario.add_libcorner("typical")
     scenario.set_pexcorner("typical")
     # Checks for setup, hold, and power are included mainly for tool compatibility.
@@ -55,7 +55,7 @@ def interposer_demo(project: ASICProject):
 
     # 4. Define Physical Design Constraints
     # These constraints guide the routing tools.
-    area = project.get_areaconstraints()
+    area = project.constraint.area
     # Target a routing density of 40%.
     area.set_density(40)
     # Set a margin of 1 unit (e.g., microns) around the interposer area.
