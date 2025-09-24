@@ -246,12 +246,17 @@ class TargetGen(SchemaGen):
             p += link(src_link, text=os.path.basename(src_file))
             target_doc += p
 
+        src_code, _ = inspect.getsourcelines(target)
+        code_sec = build_section("Code", f"target-{root}-{method}-code")
+        code_sec += literalblock("".join(src_code))
+        target_doc += code_sec
+
         loaded = {}
-        for root in ["library", "flowgraph", "checklist"]:
-            for lib in proj.getkeys(root):
-                lib_obj = proj.get(root, lib, field="schema")
+        for key in ["library", "flowgraph", "checklist"]:
+            for lib in proj.getkeys(key):
+                lib_obj = proj.get(key, lib, field="schema")
                 loaded.setdefault(lib_obj._getdict_type(), set()).add(lib_obj)
-            EditableSchema(proj).remove(root)
+            EditableSchema(proj).remove(key)
 
         EditableSchema(proj).remove("tool")
 
