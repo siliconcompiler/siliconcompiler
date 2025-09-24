@@ -617,19 +617,14 @@ def test_write_fileset_nocomments(datadir):
         d.add_file('heartbeat_tb.v', fileset)
         d.add_define('VERILATOR', fileset)
 
-    d.write_fileset(filename="heartbeat.f", fileset=['rtl', 'tb'], comments=True)
+    d.write_fileset(filename="heartbeat.f", fileset=['rtl', 'tb'])
 
     assert Path("heartbeat.f").read_text().splitlines() == [
-        '// test / rtl / include directories',
         f'+incdir+{os.path.abspath(datadir)}',
-        '// test / rtl / defines',
         '+define+ASIC',
-        '// test / rtl / verilog files',
         f'{os.path.abspath(os.path.join(datadir, "heartbeat.v"))}',
         f'{os.path.abspath(os.path.join(datadir, "increment.v"))}',
-        '// test / tb / defines',
         '+define+VERILATOR',
-        '// test / tb / verilog files',
         f'{os.path.abspath(os.path.join(datadir, "heartbeat_tb.v"))}',
     ]
 
