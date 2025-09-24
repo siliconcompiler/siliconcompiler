@@ -26,7 +26,7 @@ def setup(project: ASICProject, syn_np=1, floorplan_np=1, physyn_np=1, place_np=
     project.set_pdk("freepdk45")
 
     # 4. Timing corners
-    scenario = project.get_timingconstraints().make_scenario("typical")
+    scenario = project.constraint.timing.make_scenario("typical")
     scenario.add_libcorner(["typical", "generic"])
     scenario.set_pexcorner("typical")
     scenario.add_check(["setup", "hold"])
@@ -34,7 +34,7 @@ def setup(project: ASICProject, syn_np=1, floorplan_np=1, physyn_np=1, place_np=
     project.set_asic_delaymodel("nldm")
 
     # 5. Physical constraints
-    area = project.get_areaconstraints()
+    area = project.constraint.area
     area.set_density(40)
     area.set_coremargin(1)
 

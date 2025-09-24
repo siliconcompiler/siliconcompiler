@@ -9,7 +9,7 @@ tool-library and temporary configurations.
 
 from siliconcompiler import Project
 
-from siliconcompiler.schema import EditableSchema, Parameter, Scope
+from siliconcompiler.schema import EditableSchema, Parameter, Scope, BaseSchema
 from siliconcompiler.schema.utils import trim
 
 from siliconcompiler.library import ToolLibrarySchema
@@ -17,6 +17,49 @@ from siliconcompiler.library import ToolLibrarySchema
 from siliconcompiler.constraints import \
     FPGATimingConstraintSchema, FPGAComponentConstraints, FPGAPinConstraints
 from siliconcompiler.metrics import FPGAMetricsSchema
+
+
+class FPGAConstraint(BaseSchema):
+    """A container for FPGA (Field-Programmable Gate Array) design constraints.
+
+    This class aggregates various types of constraints necessary for the FPGA
+    implementation flow, such as timing, component placement, and pin assignments.
+    """
+    def __init__(self):
+        """Initializes the FPGAConstraint schema."""
+        super().__init__()
+
+        schema = EditableSchema(self)
+        schema.insert("timing", FPGATimingConstraintSchema())
+        schema.insert("component", FPGAComponentConstraints())
+        schema.insert("pin", FPGAPinConstraints())
+
+    @property
+    def timing(self) -> FPGATimingConstraintSchema:
+        """Provides access to the timing constraints.
+
+        Returns:
+            FPGATimingConstraintSchema: The schema object for timing constraints.
+        """
+        return self.get("timing", field="schema")
+
+    @property
+    def component(self) -> FPGAComponentConstraints:
+        """Provides access to the component placement constraints.
+
+        Returns:
+            FPGAComponentConstraints: The schema object for component constraints.
+        """
+        return self.get("component", field="schema")
+
+    @property
+    def pin(self) -> FPGAPinConstraints:
+        """Provides access to pin assignment constraints.
+
+        Returns:
+            FPGAPinConstraints: The schema object for pin constraints.
+        """
+        return self.get("pin", field="schema")
 
 
 class FPGA(ToolLibrarySchema):
@@ -123,9 +166,7 @@ class FPGAProject(Project):
         super().__init__(design)
 
         schema = EditableSchema(self)
-        schema.insert("constraint", "timing", FPGATimingConstraintSchema())
-        schema.insert("constraint", "component", FPGAComponentConstraints())
-        schema.insert("constraint", "pin", FPGAPinConstraints())
+        schema.insert("constraint", FPGAConstraint())
 
         schema.insert("metric", FPGAMetricsSchema(), clobber=True)
 
@@ -204,32 +245,14 @@ class FPGAProject(Project):
 
         return not error
 
-    def get_timingconstraints(self) -> FPGATimingConstraintSchema:
-        """
-        Retrieves the FPGA timing constraint schema for the project.
+    @property
+    def constraint(self) -> FPGAConstraint:
+        """Provides access to the project's FPGA design constraints.
 
         Returns:
-            FPGATimingConstraintSchema: The timing constraint schema object.
+            FPGAConstraint: The schema object containing all design constraints.
         """
-        return self.get("constraint", "timing", field="schema")
-
-    def get_pinconstraints(self) -> FPGAPinConstraints:
-        """
-        Retrieves the FPGA pin constraint schema for the project.
-
-        Returns:
-            FPGAPinConstraints: The pin constraint schema object.
-        """
-        return self.get("constraint", "pin", field="schema")
-
-    def get_componentconstraints(self) -> FPGAComponentConstraints:
-        """
-        Retrieves the FPGA component constraint schema for the project.
-
-        Returns:
-            FPGAComponentConstraints: The component constraint schema object.
-        """
-        return self.get("constraint", "component", field="schema")
+        return self.get("constraint", field="schema")
 
     def _summary_headers(self):
         """

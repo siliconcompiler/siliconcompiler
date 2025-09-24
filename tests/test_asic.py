@@ -6,7 +6,7 @@ import os.path
 from unittest.mock import patch
 
 from siliconcompiler import ASICProject, Design, Flowgraph
-from siliconcompiler.asic import ASICTask
+from siliconcompiler.asic import ASICTask, ASICConstraint
 from siliconcompiler.library import ToolLibrarySchema
 
 from siliconcompiler.asic import CellArea
@@ -78,6 +78,7 @@ def test_keys_asic():
 
 
 def test_keys_constraint():
+    assert isinstance(ASICProject().get("constraint", field="schema"), ASICConstraint)
     assert ASICProject().getkeys("constraint") == (
         'area',
         'component',
@@ -197,28 +198,10 @@ def test_add_asiclib_clobber():
     assert proj.get("asic", "asiclib") == ["lib2"]
 
 
-def test_get_timingconstraints():
+def test_constraint():
     proj = ASICProject()
-    assert isinstance(proj.get_timingconstraints(), ASICTimingConstraintSchema)
-    assert proj.get("constraint", "timing", field="schema") is proj.get_timingconstraints()
-
-
-def test_get_pinconstraints():
-    proj = ASICProject()
-    assert isinstance(proj.get_pinconstraints(), ASICPinConstraints)
-    assert proj.get("constraint", "pin", field="schema") is proj.get_pinconstraints()
-
-
-def test_get_componentconstraints():
-    proj = ASICProject()
-    assert isinstance(proj.get_componentconstraints(), ASICComponentConstraints)
-    assert proj.get("constraint", "component", field="schema") is proj.get_componentconstraints()
-
-
-def test_get_areaconstraints():
-    proj = ASICProject()
-    assert isinstance(proj.get_areaconstraints(), ASICAreaConstraint)
-    assert proj.get("constraint", "area", field="schema") is proj.get_areaconstraints()
+    assert isinstance(proj.constraint, ASICConstraint)
+    assert proj.get("constraint", field="schema") is proj.constraint
 
 
 def test_set_asic_routinglayers():
@@ -937,3 +920,27 @@ def test_snapshot_info_metrics_mixed_nodes(running_project):
         ("Area", "20.000um^2"),
         ("Fmax", "5.000Hz")
     ]
+
+
+def test_constraint_timing():
+    const = ASICConstraint()
+    assert isinstance(const.timing, ASICTimingConstraintSchema)
+    assert const.get("timing", field="schema") is const.timing
+
+
+def test_constraint_pin():
+    const = ASICConstraint()
+    assert isinstance(const.pin, ASICPinConstraints)
+    assert const.get("pin", field="schema") is const.pin
+
+
+def test_constraint_component():
+    const = ASICConstraint()
+    assert isinstance(const.component, ASICComponentConstraints)
+    assert const.get("component", field="schema") is const.component
+
+
+def test_constraint_area():
+    const = ASICConstraint()
+    assert isinstance(const.area, ASICAreaConstraint)
+    assert const.get("area", field="schema") is const.area

@@ -26,7 +26,7 @@ def setup(project: ASICProject):
     # 3. Set default targets
 
     # 4. Timing corners
-    scenario = project.get_timingconstraints().make_scenario("typical")
+    scenario = project.constraint.timing.make_scenario("typical")
     scenario.add_libcorner("typical")
     scenario.set_pexcorner("typical")
     scenario.add_check(["setup", "hold", "power"])
@@ -34,7 +34,7 @@ def setup(project: ASICProject):
     project.set_asic_delaymodel("nldm")
 
     # 5. Physical constraints
-    area = project.get_areaconstraints()
+    area = project.constraint.area
     area.set_density(40)
     area.set_coremargin(1)
 

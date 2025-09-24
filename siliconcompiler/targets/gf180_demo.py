@@ -29,17 +29,17 @@ def setup(project: ASICProject, syn_np=1, floorplan_np=1, physyn_np=1, place_np=
     # 3. Set default targets
 
     # 4. Timing corners
-    scenario = project.get_timingconstraints().make_scenario("slow")
+    scenario = project.constraint.timing.make_scenario("slow")
     scenario.add_libcorner("slow")
     scenario.set_pexcorner("wst")
     scenario.add_check("setup")
     scenario.set_pin_voltage("VDD", 4.5)
-    scenario = project.get_timingconstraints().make_scenario("typical")
+    scenario = project.constraint.timing.make_scenario("typical")
     scenario.add_libcorner("typical")
     scenario.set_pexcorner("typ")
     scenario.add_check("power")
     scenario.set_pin_voltage("VDD", 5.0)
-    scenario = project.get_timingconstraints().make_scenario("fast")
+    scenario = project.constraint.timing.make_scenario("fast")
     scenario.add_libcorner("fast")
     scenario.set_pexcorner("bst")
     scenario.add_check("hold")
@@ -48,7 +48,7 @@ def setup(project: ASICProject, syn_np=1, floorplan_np=1, physyn_np=1, place_np=
     project.set_asic_delaymodel("nldm")
 
     # 5. Physical constraints
-    area = project.get_areaconstraints()
+    area = project.constraint.area
     area.set_density(40)
     area.set_coremargin(1)
 

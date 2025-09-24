@@ -198,7 +198,7 @@ class TimingTask(TimingTaskBase):
                 self.add_required_key(obj, *key)
 
         added_spef = False
-        for scenario in self.project.get_timingconstraints().get_scenario().values():
+        for scenario in self.project.constraint.timing.get_scenario().values():
             if scenario.get("pexcorner") is None:
                 continue
             if f"{self.design_topmodule}.{scenario.get('pexcorner')}.spef" in \
@@ -206,7 +206,7 @@ class TimingTask(TimingTaskBase):
                 self.add_input_file(ext=f"{scenario.get('pexcorner')}.spef")
                 added_spef = True
         if not added_spef:
-            for scenario in self.project.get_timingconstraints().get_scenario().values():
+            for scenario in self.project.constraint.timing.get_scenario().values():
                 if scenario.get("pexcorner") is None:
                     continue
                 if f"{self.design_topmodule}.{scenario.get('pexcorner')}.sdf" in \

@@ -8350,6 +8350,10 @@
             "class": "siliconcompiler.constraints/FPGAPinConstraints",
             "sctype": "BaseSchema"
           }
+        },
+        "__meta__": {
+          "class": "siliconcompiler.fpga/FPGAConstraint",
+          "sctype": "BaseSchema"
         }
       },
       "fpga": {
@@ -13715,6 +13719,10 @@
             "class": "siliconcompiler.constraints.asic_floorplan/ASICAreaConstraint",
             "sctype": "BaseSchema"
           }
+        },
+        "__meta__": {
+          "class": "siliconcompiler.asic/ASICConstraint",
+          "sctype": "BaseSchema"
         }
       },
       "asic": {
