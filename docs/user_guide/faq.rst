@@ -69,7 +69,7 @@ How do I...
 
     .. code-block:: python
 
-        project.logger.getLevel(<info|debug|warning|error|quiet>)
+        project.logger.setLevel(<INFO|DEBUG|WARNING|ERROR>)
 
 ... check my setup before running?
 
