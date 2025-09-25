@@ -235,9 +235,9 @@ class Server(ServerSchema):
                 # Get the job parameters.
                 params = await part.json()
 
-                if 'project_cfg' not in params:
+                if 'cfg' not in params:
                     return self.__response('Manifest not provided.', status=400)
-                project_cfg = params['project_cfg']
+                project_cfg = params['cfg']
 
         # Process input parameters
         job_params, response = self._check_request(params['params'],

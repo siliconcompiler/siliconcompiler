@@ -534,7 +534,7 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
         # Redirected POST requests are translated to GETs. This is actually
         # part of the HTTP spec, so we need to manually follow the trail.
         post_params = {
-            'project_cfg': self.__project.getdict(),
+            'cfg': self.__project.getdict(),
             'params': self.__get_post_params(include_job_id=True)
         }
 
