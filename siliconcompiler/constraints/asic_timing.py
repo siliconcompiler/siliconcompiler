@@ -450,8 +450,8 @@ class ASICTimingConstraintSchema(BaseSchema):
         """
         if scenario is None:
             scenarios = {}
-            for scenario in self.getkeys():
-                scenarios[scenario] = self.get(scenario, field="schema")
+            for name in self.getkeys():
+                scenarios[name] = self.get(name, field="schema")
             return scenarios
 
         if not self.valid(scenario):
