@@ -9,8 +9,12 @@ the chip's configuration (design, jobname, step, index) or other clues.
 import os
 import os.path
 
+from typing import List, Dict, Optional
 
-def manifest_switches():
+from siliconcompiler import Project
+
+
+def manifest_switches() -> List[str]:
     """
     Returns a list of command-line switches used to identify a manifest.
 
@@ -27,7 +31,7 @@ def manifest_switches():
             '-jobname']
 
 
-def _get_manifests(cwd):
+def _get_manifests(cwd: str) -> Dict:
     """
     Scans a directory tree to find all SiliconCompiler manifest files.
 
@@ -86,7 +90,7 @@ def _get_manifests(cwd):
     return organized_manifest
 
 
-def pick_manifest_from_file(cliproject, src_file, all_manifests):
+def pick_manifest_from_file(cliproject: Project, src_file: str, all_manifests: Dict):
     """
     Tries to find a manifest located in the same directory as a given source file.
 
@@ -94,10 +98,10 @@ def pick_manifest_from_file(cliproject, src_file, all_manifests):
     file from a larger project, and we need to infer the associated manifest.
 
     Args:
-        chip (Chip): The chip object, used for logging.
+        cliproject (Project): The SiliconCompiler project object, used for logging.
         src_file (str): The path to the source file provided by the user.
-        all_manifests (dict): The dictionary of all discovered manifests from
-            `_get_manifests`.
+        all_manifests (dict): A dictionary of all discovered manifests, typically
+            from an internal discovery function like `_get_manifests`.
 
     Returns:
         str or None: The path to the found manifest, or None if no manifest
@@ -111,6 +115,7 @@ def pick_manifest_from_file(cliproject, src_file, all_manifests):
         return None
 
     src_dir = os.path.abspath(os.path.dirname(src_file))
+    # Iterate through all discovered manifests to find one in the same directory.
     for _, jobs in all_manifests.items():
         for _, nodes in jobs.items():
             for manifest in nodes.values():
@@ -120,9 +125,9 @@ def pick_manifest_from_file(cliproject, src_file, all_manifests):
     return None
 
 
-def pick_manifest(cliproject, src_file=None):
+def pick_manifest(cliproject: Project, src_file: Optional[str] = None):
     """
-    Selects the most appropriate manifest based on the chip's configuration.
+    Selects the most appropriate manifest based on the project's configuration.
 
     This function implements the selection logic in the following order of priority:
     1. Find a manifest in the same directory as `src_file`, if provided.
@@ -133,7 +138,7 @@ def pick_manifest(cliproject, src_file=None):
     6. As a last resort, return the most recently modified manifest for the job.
 
     Args:
-        chip (Chip): The chip object containing the configuration.
+        cliproject (Project): The SiliconCompiler project object containing the configuration.
         src_file (str, optional): A path to a source file to help locate the
             manifest. Defaults to None.
 
@@ -162,6 +167,7 @@ def pick_manifest(cliproject, src_file=None):
         cliproject.logger.error(f'Could not find any manifests for design "{design}".')
         return None
 
+    # 3. Infer jobname if unset and only one option exists for the design.
     jobname = cliproject.get('option', 'jobname')
     if jobname not in all_manifests[design] and \
             len(all_manifests[design]) != 1:
@@ -173,19 +179,19 @@ def pick_manifest(cliproject, src_file=None):
 
     # 4. Find specific node manifest if step/index are provided.
     step, index = cliproject.get('arg', 'step'), cliproject.get('arg', 'index')
-    # Auto-complete index if only step is provided
+    # Auto-complete index if only step is provided and a unique match is found.
     if step and not index:
         all_nodes = list(all_manifests[design][jobname].keys())
         try:
-            all_nodes.remove((None, None))  # Exclude top-level
+            all_nodes.remove((None, None))  # Exclude top-level manifest from search
         except ValueError:
-            pass
+            pass  # Top-level manifest might not exist
         for found_step, found_index in sorted(all_nodes):
             if found_step == step:
                 index = found_index
                 break  # Take the first matching index
         if index is None:
-            index = '0'  # Default to '0' if no match found
+            index = '0'  # Default to '0' if no match is found
 
     if step and index:
         if (step, index) in all_manifests[design][jobname]:

@@ -21,7 +21,7 @@ def test_server_authenticated(gcd_nop_project, scserver, scserver_users, scserve
     port = scserver(auth=True)
 
     # Create the temporary credentials file, and set the Chip to use it.
-    scserver_credential(port, user, user_pwd, chip=gcd_nop_project)
+    scserver_credential(port, user, user_pwd, project=gcd_nop_project)
 
     gcd_nop_project.set('option', 'nodisplay', True)
 
