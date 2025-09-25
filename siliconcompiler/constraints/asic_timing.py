@@ -167,7 +167,7 @@ class ASICTimingScenarioSchema(NamedSchema):
         Adds a library corner to the design.
 
         Args:
-            libcorner (str): The name of the library corner to add.
+            libcorner (Union[List[str], str]): One or more library corners to add.
             clobber (bool): If True, existing library corners at the specified step/index will
                     be overwritten.
                     If False (default), the library corner will be added.
@@ -359,7 +359,7 @@ class ASICTimingScenarioSchema(NamedSchema):
         Adds a check to the design process.
 
         Args:
-            check (str): The name of the check to add.
+            check (Union[List[str], str]): One or more checks to add.
             clobber (bool): If True, existing checks at the specified step/index will
                     be overwritten.
                     If False (default), the check will be added.
