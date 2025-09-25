@@ -24,13 +24,14 @@ def gf180_demo(
     physical design parameters for a GF180 target.
 
     Args:
-        project (ASICProject): The siliconcompiler project to configure.
-        syn_np (int): Number of parallel processes for synthesis.
-        floorplan_np (int): Number of parallel processes for floorplanning.
-        place_np (int): Number of parallel processes for placement.
-        cts_np (int): Number of parallel processes for clock tree synthesis.
-        route_np (int): Number of parallel processes for routing.
-        timing_np (int): Number of parallel processes for timing analysis.
+
+        * project (:class:`ASICProject`): The siliconcompiler project to configure.
+        * syn_np (int): Number of parallel processes for synthesis.
+        * floorplan_np (int): Number of parallel processes for floorplanning.
+        * place_np (int): Number of parallel processes for placement.
+        * cts_np (int): Number of parallel processes for clock tree synthesis.
+        * route_np (int): Number of parallel processes for routing.
+        * timing_np (int): Number of parallel processes for timing analysis.
     '''
 
     # 1. Load PDK and Standard Cell Libraries

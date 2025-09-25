@@ -21,7 +21,8 @@ def interposer_demo(project: ASICProject):
     layers and the microbumps used for die-to-die and die-to-package connections.
 
     Args:
-        project (ASICProject): The siliconcompiler project to configure.
+
+        * project (:class:`ASICProject`): The siliconcompiler project to configure.
     '''
 
     # 1. Load Interposer PDK and Bump Library
