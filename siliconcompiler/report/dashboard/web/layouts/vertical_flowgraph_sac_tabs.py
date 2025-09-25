@@ -40,7 +40,8 @@ def layout():
         sac.TabsItem("File Viewer",
                      icon=file_utils.get_file_icon(state.get_key(state.SELECTED_FILE))),
         sac.TabsItem("Design Preview", icon=file_utils.get_file_icon('design.png'),
-                     disabled=not os.path.isfile(f'{jobdir(project)}/{project.name}.png')),
+                     disabled=not os.path.isfile(os.path.join(jobdir(project),
+                                                              f'{project.name}.png'))),
         sac.TabsItem("Graphs", icon='graph-up',
                      disabled=len(state.get_key(state.LOADED_PROJECTS)) <= 1)
     ]
@@ -105,7 +106,7 @@ def layout():
             page_key=state.SELECTED_FILE_PAGE)
 
     elif tab_selected == "Design Preview":
-        components.file_viewer(project, f'{jobdir(project)}/{project.name}.png')
+        components.file_viewer(project, os.path.join(jobdir(project), f'{project.name}.png'))
 
     elif tab_selected == "Graphs":
         graph.viewer(node_to_step_index_map)

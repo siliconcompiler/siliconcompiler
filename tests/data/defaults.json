@@ -3491,7 +3491,7 @@
             "shorthelp": "Option: Scheduler core constraint",
             "example": [
               "cli: -cores 48",
-              "api: option.set('scheduler', 'cores', '48')"
+              "api: option.set('scheduler', 'cores', 48)"
             ],
             "help": "\n                Specifies the number CPU cores required to run the job.\n                For the slurm scheduler, this translates to the '-c'\n                switch. For more information, see the job scheduler\n                documentation",
             "notes": null,
@@ -3516,7 +3516,7 @@
             "shorthelp": "Option: scheduler memory constraint",
             "example": [
               "cli: -memory 8000",
-              "api: option.set('scheduler', 'memory', '8000')"
+              "api: option.set('scheduler', 'memory', 8000)"
             ],
             "help": "\n                Specifies the amount of memory required to run the job,\n                specified in MB. For the slurm scheduler, this translates to\n                the '--mem' switch. For more information, see the job\n                scheduler documentation",
             "notes": null,
@@ -7989,7 +7989,7 @@
             "shorthelp": "Option: Scheduler core constraint",
             "example": [
               "cli: -cores 48",
-              "api: option.set('scheduler', 'cores', '48')"
+              "api: option.set('scheduler', 'cores', 48)"
             ],
             "help": "\n                Specifies the number CPU cores required to run the job.\n                For the slurm scheduler, this translates to the '-c'\n                switch. For more information, see the job scheduler\n                documentation",
             "notes": null,
@@ -8014,7 +8014,7 @@
             "shorthelp": "Option: scheduler memory constraint",
             "example": [
               "cli: -memory 8000",
-              "api: option.set('scheduler', 'memory', '8000')"
+              "api: option.set('scheduler', 'memory', 8000)"
             ],
             "help": "\n                Specifies the amount of memory required to run the job,\n                specified in MB. For the slurm scheduler, this translates to\n                the '--mem' switch. For more information, see the job\n                scheduler documentation",
             "notes": null,
@@ -12790,7 +12790,7 @@
             "shorthelp": "Option: Scheduler core constraint",
             "example": [
               "cli: -cores 48",
-              "api: option.set('scheduler', 'cores', '48')"
+              "api: option.set('scheduler', 'cores', 48)"
             ],
             "help": "\n                Specifies the number CPU cores required to run the job.\n                For the slurm scheduler, this translates to the '-c'\n                switch. For more information, see the job scheduler\n                documentation",
             "notes": null,
@@ -12815,7 +12815,7 @@
             "shorthelp": "Option: scheduler memory constraint",
             "example": [
               "cli: -memory 8000",
-              "api: option.set('scheduler', 'memory', '8000')"
+              "api: option.set('scheduler', 'memory', 8000)"
             ],
             "help": "\n                Specifies the amount of memory required to run the job,\n                specified in MB. For the slurm scheduler, this translates to\n                the '--mem' switch. For more information, see the job\n                scheduler documentation",
             "notes": null,
@@ -17347,7 +17347,7 @@
             "shorthelp": "Option: Scheduler core constraint",
             "example": [
               "cli: -cores 48",
-              "api: option.set('scheduler', 'cores', '48')"
+              "api: option.set('scheduler', 'cores', 48)"
             ],
             "help": "\n                Specifies the number CPU cores required to run the job.\n                For the slurm scheduler, this translates to the '-c'\n                switch. For more information, see the job scheduler\n                documentation",
             "notes": null,
@@ -17372,7 +17372,7 @@
             "shorthelp": "Option: scheduler memory constraint",
             "example": [
               "cli: -memory 8000",
-              "api: option.set('scheduler', 'memory', '8000')"
+              "api: option.set('scheduler', 'memory', 8000)"
             ],
             "help": "\n                Specifies the amount of memory required to run the job,\n                specified in MB. For the slurm scheduler, this translates to\n                the '--mem' switch. For more information, see the job\n                scheduler documentation",
             "notes": null,
@@ -21157,7 +21157,7 @@
             "shorthelp": "Option: Scheduler core constraint",
             "example": [
               "cli: -cores 48",
-              "api: option.set('scheduler', 'cores', '48')"
+              "api: option.set('scheduler', 'cores', 48)"
             ],
             "help": "\n                Specifies the number CPU cores required to run the job.\n                For the slurm scheduler, this translates to the '-c'\n                switch. For more information, see the job scheduler\n                documentation",
             "notes": null,
@@ -21182,7 +21182,7 @@
             "shorthelp": "Option: scheduler memory constraint",
             "example": [
               "cli: -memory 8000",
-              "api: option.set('scheduler', 'memory', '8000')"
+              "api: option.set('scheduler', 'memory', 8000)"
             ],
             "help": "\n                Specifies the amount of memory required to run the job,\n                specified in MB. For the slurm scheduler, this translates to\n                the '--mem' switch. For more information, see the job\n                scheduler documentation",
             "notes": null,

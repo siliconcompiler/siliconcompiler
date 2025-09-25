@@ -110,9 +110,9 @@ def send(project, msg_type, step, index):
     msg = MIMEMultipart()
 
     if step and index:
-        subject = f'SiliconCompiler : {project.design} | {jobname} | {step} | {index} | {msg_type}'
+        subject = f'SiliconCompiler : {project.name} | {jobname} | {step} | {index} | {msg_type}'
     else:
-        subject = f'SiliconCompiler : {project.design} | {jobname} | {msg_type}'
+        subject = f'SiliconCompiler : {project.name} | {jobname} | {msg_type}'
 
     # Setup email header
     msg['Subject'] = subject
@@ -147,7 +147,7 @@ def send(project, msg_type, step, index):
                                            flowgraph_nodes=runtime.get_nodes())
 
             text_msg = get_file_template('email/summary.j2').render(
-                design=project.design,
+                design=project.name,
                 nodes=nodes,
                 errors=errors,
                 metrics=metrics,
@@ -191,7 +191,7 @@ def send(project, msg_type, step, index):
 
             # Render the general email template
             text_msg = get_file_template('email/general.j2').render(
-                design=project.design,
+                design=project.name,
                 job=jobname,
                 step=step,
                 index=index,

@@ -75,7 +75,7 @@ def get_flowgraph_nodes(project, step, index):
 
 def get_flowgraph_edges(project):
     '''
-    Returns a dicitionary where each key is one node, a tuple in the form
+    Returns a dictionary where each key is one node, a tuple in the form
     (step, index) and the value of each key is a set of tuples in the form
     (step, index). The value of each key represents all the nodes that are
     inputs to the key node.
@@ -186,7 +186,7 @@ def make_manifest(project):
         project (Project) : The project object that contains the schema read from.
 
     Example:
-        >>> make_manifest(Project)
+        >>> make_manifest(project)
         Returns tree/json of manifest.
     '''
     manifest = project.getdict()
@@ -203,7 +203,7 @@ def get_flowgraph_path(project):
         project (Project) : The project object that contains the schema read from.
 
     Example:
-        >>> get_flowgraph_path(Project)
+        >>> get_flowgraph_path(project)
         Returns the "winning" path for that job.
     '''
     flow = project.get('option', 'flow')
@@ -239,7 +239,7 @@ def search_manifest_values(manifest, value):
     Function is a recursive helper to search_manifest, more info there.
 
     Args:
-        manifest (dictionary) : A dicitionary representing the manifest.
+        manifest (dictionary) : A dictionary representing the manifest.
         value (string) : Searches all values for partial matches on this
             string.
     '''
@@ -269,7 +269,7 @@ def search_manifest(manifest, key_search=None, value_search=None):
     the original manifest is returned.
 
     Args:
-        manifest (dictionary) : A dicitionary representing the manifest.
+        manifest (dictionary) : A dictionary representing the manifest.
         key_search (string) : Searches all keys for partial matches on this
             string
         value_search(string) : Searches all values for partial matches
@@ -298,7 +298,7 @@ def get_total_manifest_key_count(manifest):
     Returns (int) the number of keys
 
     Args:
-        manifest (dictionary) : A dicitionary representing the manifest.
+        manifest (dictionary) : A dictionary representing the manifest.
         acc (int) : An accumulator of the current number of folders and files.
     '''
     acc = len(manifest)

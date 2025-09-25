@@ -32,7 +32,7 @@ def layout():
 
     # --- Dynamically create tabs based on available data ---
     tab_headings = ["Metrics", "Manifest", "File Viewer"]
-    if os.path.isfile(f'{jobdir(project)}/{project.name}.png'):
+    if os.path.isfile(os.path.join(jobdir(project), f'{project.name}.png')):
         tab_headings.append("Design Preview")
 
     has_graphs = len(state.get_key(state.LOADED_PROJECTS)) > 1
@@ -99,7 +99,7 @@ def layout():
     # --- Populate conditional tabs ---
     if "Design Preview" in tabs:
         with tabs["Design Preview"]:
-            components.file_viewer(project, f'{jobdir(project)}/{project.name}.png')
+            components.file_viewer(project, os.path.join(jobdir(project), f'{project.name}.png'))
 
     if "Graphs" in tabs:
         with tabs["Graphs"]:

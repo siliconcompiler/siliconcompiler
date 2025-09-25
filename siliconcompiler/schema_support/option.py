@@ -408,7 +408,7 @@ class OptionSchema(BaseSchema):
                 shorthelp="Option: Scheduler core constraint",
                 switch="-cores <int>",
                 example=["cli: -cores 48",
-                         "api: option.set('scheduler', 'cores', '48')"],
+                         "api: option.set('scheduler', 'cores', 48)"],
                 help="""
                 Specifies the number CPU cores required to run the job.
                 For the slurm scheduler, this translates to the '-c'
@@ -425,7 +425,7 @@ class OptionSchema(BaseSchema):
                 shorthelp="Option: scheduler memory constraint",
                 switch="-memory <int>",
                 example=["cli: -memory 8000",
-                         "api: option.set('scheduler', 'memory', '8000')"],
+                         "api: option.set('scheduler', 'memory', 8000)"],
                 help="""
                 Specifies the amount of memory required to run the job,
                 specified in MB. For the slurm scheduler, this translates to

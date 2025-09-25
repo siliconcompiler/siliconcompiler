@@ -214,6 +214,7 @@ class Server(ServerSchema):
 
         # Set up a multipart reader to read in the large file, and param data.
         reader = await request.multipart()
+        params = {}
         while True:
             # Get the next part; if it doesn't exist, we're done.
             part = await reader.next()
