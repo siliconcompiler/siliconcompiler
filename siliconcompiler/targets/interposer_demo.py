@@ -11,7 +11,7 @@ from siliconcompiler.flows import drcflow
 ####################################################
 # Target Setup Function
 ####################################################
-def setup(project: ASICProject):
+def interposer_demo(project: ASICProject):
     '''
     Configures a siliconcompiler project for a passive interposer target.
 

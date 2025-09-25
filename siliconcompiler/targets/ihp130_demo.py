@@ -10,10 +10,11 @@ from lambdapdk.ihp130.libs.sg13g2_io import IHP130LambdaLib_IO_1p2
 ####################################################
 # Target Setup Function
 ####################################################
-def setup(project: ASICProject,
-          syn_np: int = 1,
-          floorplan_np: int = 1, place_np: int = 1, cts_np: int = 1, route_np: int = 1,
-          timing_np: int = 1):
+def ihp130_demo(
+        project: ASICProject,
+        syn_np: int = 1,
+        floorplan_np: int = 1, place_np: int = 1, cts_np: int = 1, route_np: int = 1,
+        timing_np: int = 1):
     '''
     Configures a siliconcompiler project for the IHP 130nm process development kit (PDK).
 

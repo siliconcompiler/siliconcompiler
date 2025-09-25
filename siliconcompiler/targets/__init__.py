@@ -1,8 +1,8 @@
-from .asap7_demo import setup as asap7_demo
-from .freepdk45_demo import setup as freepdk45_demo
-from .gf180_demo import setup as gf180_demo
-from .ihp130_demo import setup as ihp130_demo
-from .skywater130_demo import setup as skywater130_demo
+from .asap7_demo import asap7_demo
+from .freepdk45_demo import freepdk45_demo
+from .gf180_demo import gf180_demo
+from .ihp130_demo import ihp130_demo
+from .skywater130_demo import skywater130_demo
 
 from siliconcompiler import ASICProject
 

@@ -9,10 +9,11 @@ from lambdapdk.freepdk45.libs.fakeram45 import FakeRAM45Lambdalib_SinglePort
 ####################################################
 # Target Setup Function
 ####################################################
-def setup(project: ASICProject,
-          syn_np: int = 1,
-          floorplan_np: int = 1, place_np: int = 1, cts_np: int = 1, route_np: int = 1,
-          timing_np: int = 1):
+def freepdk45_demo(
+        project: ASICProject,
+        syn_np: int = 1,
+        floorplan_np: int = 1, place_np: int = 1, cts_np: int = 1, route_np: int = 1,
+        timing_np: int = 1):
     '''
     Configures a siliconcompiler project for the FreePDK45 process development kit.
 

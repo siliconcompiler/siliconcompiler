@@ -11,10 +11,11 @@ from lambdapdk.gf180.libs.gf180io import GF180Lambdalib_IO_5LM
 ####################################################
 # Target Setup Function
 ####################################################
-def setup(project: ASICProject,
-          syn_np: int = 1,
-          floorplan_np: int = 1, place_np: int = 1, cts_np: int = 1, route_np: int = 1,
-          timing_np: int = 1):
+def gf180_demo(
+        project: ASICProject,
+        syn_np: int = 1,
+        floorplan_np: int = 1, place_np: int = 1, cts_np: int = 1, route_np: int = 1,
+        timing_np: int = 1):
     '''
     Configures a siliconcompiler project for the GlobalFoundries 180nm process (GF180).
 
@@ -57,7 +58,8 @@ def setup(project: ASICProject,
     # process, voltage, and temperature (PVT) conditions. Note the specific
     # voltages set for each corner.
 
-    # Slow corner: Checks for setup time violations at worst-case conditions (slow process, low voltage).
+    # Slow corner: Checks for setup time violations at worst-case conditions
+    # (slow process, low voltage).
     scenario = project.get_timingconstraints().make_scenario("slow")
     scenario.add_libcorner("slow")
     scenario.set_pexcorner("wst")
@@ -71,7 +73,8 @@ def setup(project: ASICProject,
     scenario.add_check("power")
     scenario.set_pin_voltage("VDD", 5.0)
 
-    # Fast corner: Checks for hold time violations at best-case conditions (fast process, high voltage).
+    # Fast corner: Checks for hold time violations at best-case conditions
+    # (fast process, high voltage).
     scenario = project.get_timingconstraints().make_scenario("fast")
     scenario.add_libcorner("fast")
     scenario.set_pexcorner("bst")

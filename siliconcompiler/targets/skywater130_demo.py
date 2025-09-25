@@ -11,10 +11,11 @@ from lambdapdk.sky130.libs.sky130io import Sky130LambdaLib_IO
 ####################################################
 # Target Setup Function
 ####################################################
-def setup(project: ASICProject,
-          syn_np: int = 1,
-          floorplan_np: int = 1, place_np: int = 1, cts_np: int = 1, route_np: int = 1,
-          timing_np: int = 1):
+def skywater130_demo(
+        project: ASICProject,
+        syn_np: int = 1,
+        floorplan_np: int = 1, place_np: int = 1, cts_np: int = 1, route_np: int = 1,
+        timing_np: int = 1):
     '''
     Configures a siliconcompiler project for the Skywater130 process development kit (PDK).
 

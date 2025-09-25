@@ -1,6 +1,6 @@
 # Import necessary classes from the siliconcompiler framework and the LambdaPDK.
 from siliconcompiler import ASICProject
-from siliconcompiler memorable.flows import asicflow, synflow
+from siliconcompiler.flows import asicflow, synflow
 
 from lambdapdk.asap7.libs.asap7sc7p5t import ASAP7SC7p5RVT, ASAP7SC7p5SLVT, ASAP7SC7p5LVT
 from lambdapdk.asap7.libs.fakeram7 import FakeRAM7Lambdalib_SinglePort, FakeRAM7Lambdalib_DoublePort
@@ -10,10 +10,11 @@ from lambdapdk.asap7.libs.fakeio7 import FakeIO7Lambdalib_IO
 ####################################################
 # Target Setup Function
 ####################################################
-def setup(project: ASICProject,
-          syn_np: int = 1,
-          floorplan_np: int = 1, place_np: int = 1, cts_np: int = 1, route_np: int = 1,
-          timing_np: int = 1):
+def asap7_demo(
+        project: ASICProject,
+        syn_np: int = 1,
+        floorplan_np: int = 1, place_np: int = 1, cts_np: int = 1, route_np: int = 1,
+        timing_np: int = 1):
     '''
     Configures a siliconcompiler project for the ASAP7 process development kit.
 
