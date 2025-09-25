@@ -214,7 +214,7 @@ Running SiliconCompiler on a Cluster
 
 To run a SiliconCompiler job on your cluster, all you need to do is set the :keypath:`option,scheduler,name` schema parameter to `slurm`. If you are using the Python API::
 
-    chip.set('option', 'scheduler', 'name', 'slurm')
+    project.set('option', 'scheduler', 'name', 'slurm')
 
 If you are running a job from the command-line, simply add `-scheduler slurm` to the command.
 

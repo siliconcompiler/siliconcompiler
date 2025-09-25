@@ -1,3 +1,5 @@
+.. _schema_api:
+
 Schema API
 ----------
 

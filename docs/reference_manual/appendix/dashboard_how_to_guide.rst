@@ -17,7 +17,7 @@ If you don't provide one, the port will default an auto selected one or to 8501:
     sc-dashboard -cfg <path to manifest> -port <port number>
 
 
-And/or you can include extra chips by adding one or multiple ``-graph_cfg`` flags.
+And/or you can include extra projects by adding one or multiple ``-graph_cfg`` flags.
 The name of the manifest is optional.
 If you don't provide one, the name will default to the path to manifest:
 
@@ -30,7 +30,7 @@ If you don't provide one, the name will default to the path to manifest:
 Header
 ======
 
-In the header, you can select any of the chips that are part of the history of the chip loaded in and any of the other chips loaded in through the ``-graph_cfg`` flag (see arrow below).
+In the header, you can select any of the projects that are part of the history of the project loaded in and any of the other projects loaded in through the ``-graph_cfg`` flag (see arrow below).
 
 .. image::  ../../_images/dashboard_images/dashboard_header.png
 
@@ -159,7 +159,7 @@ You can view the raw manifest by clicking the checkbox to the right of the searc
 Display Preview Tab
 ===================
 
-This displays the preview image of the chip if there is one in the directory (example given below). If not, this tab will not be included.
+This displays the preview image of the project if there is one in the directory (example given below). If not, this tab will not be included.
 
 .. image::  ../../_images/dashboard_images/dashboard_design_preview.png
 
@@ -167,10 +167,10 @@ This displays the preview image of the chip if there is one in the directory (ex
 Graphs Tab
 ==========
 
-This tab is meant to make comparisons between nodes for a given metric over many chip objects.
+This tab is meant to make comparisons between nodes for a given metric across many projects.
 
 At the top of the panel, select which runs/jobs to include for all the graphs (arrow A in image below). These are the runs
-from the chip's history and the runs included with the ``-graph_cfg`` flag.
+from the project's history and the runs included with the ``-graph_cfg`` flag.
 
 Move the slider to add more graphs or remove old ones (arrow B in image below). Removing old graphs will remove them in the reverse order in which they were added.
 

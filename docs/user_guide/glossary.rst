@@ -48,7 +48,7 @@ The following set of terms represents fundamental SiliconCompiler definitions us
        Instance of SiliconCompiler Project class used to compile a design.
 
     program
-       User specified program with one (or more) chip instances.
+       User specified program with one (or more) project instances.
 
     schema
        Nested dictionary of parameters.
