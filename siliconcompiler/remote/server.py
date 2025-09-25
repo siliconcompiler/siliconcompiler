@@ -91,23 +91,23 @@ class Server(ServerSchema):
         # Set up a dictionary to track running jobs.
         self.sc_jobs_lock = threading.Lock()
         self.sc_jobs = {}
-        self.sc_chip_lookup = {}
+        self.sc_project_lookup = {}
 
-    def __run_start(self, chip):
-        flow = chip.get("option", "flow")
-        nodes = chip.get("flowgraph", flow, field="schema").get_nodes()
+    def __run_start(self, project):
+        flow = project.get("option", "flow")
+        nodes = project.get("flowgraph", flow, field="schema").get_nodes()
 
         with self.sc_jobs_lock:
-            job_hash = self.sc_chip_lookup[chip]["jobhash"]
+            job_hash = self.sc_project_lookup[project]["jobhash"]
 
         start_tar = os.path.join(self.nfs_mount, job_hash, f'{job_hash}_None.tar.gz')
         start_status = NodeStatus.SUCCESS
         with tarfile.open(start_tar, "w:gz") as tf:
-            start_manifest = os.path.join(jobdir(chip), f"{chip.design.name}.pkg.json")
+            start_manifest = os.path.join(jobdir(project), f"{project.name}.pkg.json")
             tf.add(start_manifest, arcname=os.path.relpath(start_manifest, self.nfs_mount))
 
         with self.sc_jobs_lock:
-            job_name = self.sc_chip_lookup[chip]["name"]
+            job_name = self.sc_project_lookup[project]["name"]
 
             self.sc_jobs[job_name][None]["status"] = start_status
 
@@ -116,29 +116,29 @@ class Server(ServerSchema):
                 if name not in self.sc_jobs[job_name]:
                     continue
                 self.sc_jobs[job_name][name]["status"] = \
-                    chip.get('record', 'status', step=step, index=index)
+                    project.get('record', 'status', step=step, index=index)
 
-    def __node_start(self, chip, step, index):
+    def __node_start(self, project, step, index):
         with self.sc_jobs_lock:
-            job_name = self.sc_chip_lookup[chip]["name"]
+            job_name = self.sc_project_lookup[project]["name"]
             self.sc_jobs[job_name][f"{step}{index}"]["status"] = NodeStatus.RUNNING
 
-    def __node_end(self, chip, step, index):
+    def __node_end(self, project, step, index):
         with self.sc_jobs_lock:
-            job_hash = self.sc_chip_lookup[chip]["jobhash"]
-            job_name = self.sc_chip_lookup[chip]["name"]
+            job_hash = self.sc_project_lookup[project]["jobhash"]
+            job_name = self.sc_project_lookup[project]["name"]
 
-        chip = chip.copy()
-        chip._Project__cwd = os.path.join(chip.get('option', 'builddir'), '..')
+        project = project.copy()
+        project._Project__cwd = os.path.join(project.get('option', 'builddir'), '..')
         with tarfile.open(os.path.join(self.nfs_mount,
                                        job_hash,
                                        f'{job_hash}_{step}{index}.tar.gz'),
                           mode='w:gz') as tf:
-            SchedulerNode(chip, step, index).archive(tf, include="*")
+            SchedulerNode(project, step, index).archive(tf, include="*")
 
         with self.sc_jobs_lock:
             self.sc_jobs[job_name][f"{step}{index}"]["status"] = \
-                chip.get('record', 'status', step=step, index=index)
+                project.get('record', 'status', step=step, index=index)
 
     def run(self):
         if not os.path.exists(self.nfs_mount):
@@ -206,7 +206,7 @@ class Server(ServerSchema):
     async def handle_remote_run(self, request):
         '''
         API handler for 'remote_run' commands. This method delegates
-        a 'Chip.run(...)' method to a compute node using slurm.
+        a 'Project.run(...)' method to a compute node using slurm.
         '''
 
         # Temporary file path to store streamed data.
@@ -214,6 +214,7 @@ class Server(ServerSchema):
 
         # Set up a multipart reader to read in the large file, and param data.
         reader = await request.multipart()
+        params = {}
         while True:
             # Get the next part; if it doesn't exist, we're done.
             part = await reader.next()
@@ -235,9 +236,9 @@ class Server(ServerSchema):
                 # Get the job parameters.
                 params = await part.json()
 
-                if 'chip_cfg' not in params:
+                if 'cfg' not in params:
                     return self.__response('Manifest not provided.', status=400)
-                chip_cfg = params['chip_cfg']
+                project_cfg = params['cfg']
 
         # Process input parameters
         job_params, response = self._check_request(params['params'],
@@ -245,15 +246,15 @@ class Server(ServerSchema):
         if response is not None:
             return response
 
-        # Create a dummy Chip object to make schema traversal easier.
+        # Create a dummy Project object to make schema traversal easier.
         # start with a dummy name, as this will be overwritten
-        project = Project.from_manifest(cfg=chip_cfg)
+        project = Project.from_manifest(cfg=project_cfg)
 
         # Remove dashboard from server runs
         project.set('option', 'nodashboard', True)
 
         # Fetch some common values.
-        design = project.design.name
+        design = project.name
         job_name = project.get('option', 'jobname')
         job_hash = uuid.uuid4().hex
         project.set('record', 'remoteid', job_hash)
@@ -434,27 +435,27 @@ class Server(ServerSchema):
             return job_hash
 
     ####################
-    def remote_sc(self, chip, username):
+    def remote_sc(self, project, username):
         '''
         Async method to delegate an '.run()' command to a host,
         and send an email notification when the job completes.
         '''
 
         # Assemble core job parameters.
-        job_hash = chip.get('record', 'remoteid')
+        job_hash = project.get('record', 'remoteid')
 
         runtime = RuntimeFlowgraph(
-            chip.get("flowgraph", chip.get('option', 'flow'), field='schema'),
-            from_steps=chip.get('option', 'from'),
-            to_steps=chip.get('option', 'to'),
-            prune_nodes=chip.get('option', 'prune'))
+            project.get("flowgraph", project.get('option', 'flow'), field='schema'),
+            from_steps=project.get('option', 'from'),
+            to_steps=project.get('option', 'to'),
+            prune_nodes=project.get('option', 'prune'))
 
         nodes = {}
         nodes[None] = {
             "status": SCNodeStatus.PENDING
         }
         for step, index in runtime.get_nodes():
-            status = chip.get('record', 'status', step=step, index=index)
+            status = project.get('record', 'status', step=step, index=index)
             if not status:
                 status = SCNodeStatus.PENDING
             if SCNodeStatus.is_done(status):
@@ -466,27 +467,27 @@ class Server(ServerSchema):
         # Mark the job run as busy.
         sc_job_name = self.job_name(username, job_hash)
         with self.sc_jobs_lock:
-            self.sc_chip_lookup[chip] = {
+            self.sc_project_lookup[project] = {
                 "name": sc_job_name,
                 "jobhash": job_hash
             }
             self.sc_jobs[sc_job_name] = nodes
 
         build_dir = os.path.join(self.nfs_mount, job_hash)
-        chip.set('option', 'builddir', build_dir)
-        chip.set('option', 'remote', False)
+        project.set('option', 'builddir', build_dir)
+        project.set('option', 'remote', False)
 
         if self.get('option', 'cluster') == 'slurm':
             # Run the job with slurm clustering.
-            chip.set('option', 'scheduler', 'name', 'slurm')
+            project.set('option', 'scheduler', 'name', 'slurm')
 
         # Run the job.
-        chip.run()
+        project.run()
 
         # Mark the job hash as being done.
         with self.sc_jobs_lock:
             self.sc_jobs.pop(sc_job_name)
-            self.sc_chip_lookup.pop(chip)
+            self.sc_project_lookup.pop(project)
 
     ####################
     def __auth_password(self, username, password):

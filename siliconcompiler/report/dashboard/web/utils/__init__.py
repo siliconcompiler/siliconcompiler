@@ -1,32 +1,32 @@
 """
 Utility functions for the SiliconCompiler web dashboard.
 
-This module provides helper functions for processing chip data, formatting it
+This module provides helper functions for processing project data, formatting it
 for display, and checking the status of a run. These functions are used by
-the main dashboard application to interact with the chip object and prepare
+the main dashboard application to interact with the project object and prepare
 data for UI components.
 """
 from siliconcompiler import NodeStatus
 from pathlib import Path
 
 
-def get_chip_cwd(chip, manifest):
+def get_project_cwd(project, manifest):
     """
-    Determines the original chip working directory from a manifest path.
+    Determines the original project working directory from a manifest path.
 
     This function is useful for resolving relative paths when the dashboard
     is run from a different location than the original compilation. It traverses
     up from the manifest's location to find the parent of the build directory.
 
     Args:
-        chip (Chip): The chip object.
-        manifest (str): The absolute path to the chip's manifest file.
+        project (Project): The project object.
+        manifest (str): The absolute path to the project's manifest file.
 
     Returns:
-        str or None: The absolute path to the chip's original working
+        str or None: The absolute path to the project's original working
                      directory, or None if it cannot be determined.
     """
-    build_dir = Path(chip.get('option', 'builddir'))
+    build_dir = Path(project.get('option', 'builddir'))
 
     manifest_path = Path(manifest)
     for path in manifest_path.parents:
@@ -36,14 +36,14 @@ def get_chip_cwd(chip, manifest):
     return None
 
 
-def make_node_to_step_index_map(chip, metric_dataframe):
+def make_node_to_step_index_map(project, metric_dataframe):
     """
     Creates a mapping from a node's string representation to its (step, index) tuple.
 
     It also renames the columns of the metric dataframe to the 'step/index' format.
 
     Args:
-        chip (Chip): The chip object.
+        project (Project): The project object.
         metric_dataframe (pandas.DataFrame): The dataframe of metrics, with
             multi-level columns of (step, index).
 
@@ -53,9 +53,9 @@ def make_node_to_step_index_map(chip, metric_dataframe):
             - pandas.DataFrame: The modified metric dataframe.
     """
     node_to_step_index_map = {}
-    if chip.get('option', 'flow'):
-        for step, index in chip.get("flowgraph", chip.get('option', 'flow'),
-                                    field="schema").get_nodes():
+    if project.get('option', 'flow'):
+        for step, index in project.get("flowgraph", project.get('option', 'flow'),
+                                       field="schema").get_nodes():
             node_to_step_index_map[f'{step}/{index}'] = (step, index)
 
     # Concatenate step and index in the DataFrame columns
@@ -92,28 +92,28 @@ def make_metric_to_metric_unit_map(metric_dataframe):
     return metric_to_metric_unit_map, metric_dataframe
 
 
-def is_running(chip):
+def is_running(project):
     """
-    Checks if any node in the chip's flowgraph is still running.
+    Checks if any node in the project's flowgraph is still running.
 
     Args:
-        chip (Chip): The chip object to check.
+        project (Project): The project object to check.
 
     Returns:
         bool: True if any node is not in a 'done' state, False otherwise.
     """
-    if not chip.get('option', 'flow'):
+    if not project.get('option', 'flow'):
         return False
 
-    for step, index in chip.get("flowgraph", chip.get('option', 'flow'),
-                                field="schema").get_nodes():
-        state = chip.get('record', 'status', step=step, index=index)
+    for step, index in project.get("flowgraph", project.get('option', 'flow'),
+                                   field="schema").get_nodes():
+        state = project.get('record', 'status', step=step, index=index)
         if not NodeStatus.is_done(state):
             return True
     return False
 
 
-def generate_metric_dataframe(chip):
+def generate_metric_dataframe(project):
     """
     Generates a fully processed metric dataframe and associated mappings.
 
@@ -121,7 +121,7 @@ def generate_metric_dataframe(chip):
     helper dictionaries needed to easily look up nodes and metrics in the UI.
 
     Args:
-        chip (Chip): The chip object from which to generate the report.
+        project (Project): The project object from which to generate the report.
 
     Returns:
         tuple: A tuple containing:
@@ -131,9 +131,9 @@ def generate_metric_dataframe(chip):
     """
     from siliconcompiler.report import report
 
-    metric_dataframe = report.make_metric_dataframe(chip)
+    metric_dataframe = report.make_metric_dataframe(project)
     node_to_step_index_map, metric_dataframe = \
-        make_node_to_step_index_map(chip, metric_dataframe)
+        make_node_to_step_index_map(project, metric_dataframe)
     metric_to_metric_unit_map, metric_dataframe = \
         make_metric_to_metric_unit_map(metric_dataframe)
 

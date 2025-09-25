@@ -10,18 +10,18 @@ from siliconcompiler.report import report
 from siliconcompiler.report.dashboard.web import state
 
 
-def _get_report_chips():
+def _get_report_projects():
     """
-    Gathers all loaded chip objects and their names for reporting.
+    Gathers all loaded project objects and their names for reporting.
 
     Returns:
         list[dict]: A list of dictionaries, where each dictionary contains
-                    'chip_object' and 'chip_name'.
+                    'project_object' and 'project_name'.
     """
-    chips = []
-    for job in state.get_chips():
-        chips.append({'chip_object': state.get_chip(job), 'chip_name': job})
-    return chips
+    projects = []
+    for job in state.get_projects():
+        projects.append({'project_object': state.get_project(job), 'project_name': job})
+    return projects
 
 
 def job_selector():
@@ -33,7 +33,7 @@ def job_selector():
     """
     from pandas import DataFrame
 
-    jobs = state.get_chips()
+    jobs = state.get_projects()
 
     all_jobs_df = DataFrame({
         'job names': jobs,
@@ -162,7 +162,7 @@ def graph(metrics, nodes, node_to_step_index_map, graph_number):
 
     y_axis_label = metric
     data, metric_unit = report.get_chart_data(
-        _get_report_chips(), metric, nodes_as_step_and_index)
+        _get_report_projects(), metric, nodes_as_step_and_index)
     if metric_unit:
         y_axis_label = f'{metric} ({metric_unit})'
 
@@ -226,12 +226,12 @@ def viewer(node_to_step_index_map):
         node_to_step_index_map (dict): A mapping from node names to
             (step, index) tuples, passed down to the graph components.
     """
-    nodes, metrics = report.get_chart_selection_options(_get_report_chips())
+    nodes, metrics = report.get_chart_selection_options(_get_report_projects())
     metrics = sorted(metrics)
 
     # Initialize selected jobs if not already set
     if state.get_key(state.GRAPH_JOBS) is None:
-        state.set_key(state.GRAPH_JOBS, state.get_chips())
+        state.set_key(state.GRAPH_JOBS, state.get_projects())
 
     # --- UI Layout ---
     job_selector_col, graph_adder_col = streamlit.columns(2, gap='large')

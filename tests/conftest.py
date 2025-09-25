@@ -17,7 +17,9 @@ from pathlib import Path
 from pyvirtualdisplay import Display
 from unittest.mock import patch
 
-from siliconcompiler import utils, ASICProject, Design
+from typing import Optional
+
+from siliconcompiler import utils, ASICProject, Design, Project
 from siliconcompiler.tools.openroad._apr import APRTask
 from siliconcompiler.flows.asicflow import ASICFlow
 from siliconcompiler.targets import freepdk45_demo
@@ -193,7 +195,7 @@ def heartbeat_design(examples_root):
 
 @pytest.fixture
 def asic_heartbeat(heartbeat_design):
-    '''Returns a fully configured chip object that will compile the GCD example
+    '''Returns a fully configured project object that will compile the heartbeat example
     design using freepdk45 and the asicflow.'''
 
     project = ASICProject(heartbeat_design)
@@ -224,7 +226,7 @@ def gcd_design(examples_root):
 
 @pytest.fixture
 def asic_gcd(gcd_design):
-    '''Returns a fully configured chip object that will compile the GCD example
+    '''Returns a fully configured project object that will compile the GCD example
     design using freepdk45 and the asicflow.'''
 
     project = ASICProject(gcd_design)
@@ -301,9 +303,9 @@ def scserver(scserver_nfs_path, unused_tcp_port, request, wait_for_port, monkeyp
 
 @pytest.fixture
 def wait_for_port():
-    def is_open(port, timeout=1):
+    def is_open(port: int, timeout: int = 1):
         test_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        test_socket.settimeout(1)
+        test_socket.settimeout(timeout)
 
         try:
             test_socket.connect(('localhost', port))
@@ -314,7 +316,7 @@ def wait_for_port():
         finally:
             test_socket.close()
 
-    def wait(port, timeout=20):
+    def wait(port: int, timeout: int = 20):
         for _ in range(timeout):
             if is_open(port):
                 return
@@ -329,7 +331,10 @@ def wait_for_port():
 def scserver_credential():
     cred_file = "scserver_test_credentials.json"
 
-    def write(port, username=None, password=None, chip=None):
+    def write(port: int,
+              username: Optional[str] = None,
+              password: Optional[str] = None,
+              project: Optional[Project] = None):
         creds = {
             'address': 'localhost',
             'port': port
@@ -342,9 +347,9 @@ def scserver_credential():
         with open(cred_file, 'w') as f:
             f.write(json.dumps(creds))
 
-        if chip:
-            chip.set('option', 'remote', True)
-            chip.set('option', 'credentials', cred_file)
+        if project:
+            project.set('option', 'remote', True)
+            project.set('option', 'credentials', cred_file)
 
         return cred_file
 

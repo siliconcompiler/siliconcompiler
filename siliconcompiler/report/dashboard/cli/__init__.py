@@ -8,11 +8,11 @@ class CliDashboard(AbstractDashboard):
     A command-line interface (CLI) implementation of the AbstractDashboard.
 
     This class provides a concrete dashboard that renders progress and logs
-    directly in the terminal. It acts as a bridge between the core `chip` object
+    directly in the terminal. It acts as a bridge between the core `project` object
     and the `Board` class, which handles the actual `rich`-based rendering.
 
     It manages the lifecycle of the dashboard, including starting, stopping,
-    and updating it with data from the chip. A key feature is its ability to
+    and updating it with data from the project. A key feature is its ability to
     "hijack" the standard logger to redirect log messages to its own display area.
 
     Attributes:
@@ -23,16 +23,16 @@ class CliDashboard(AbstractDashboard):
                           handler of the logger before it's replaced.
     """
 
-    def __init__(self, chip):
+    def __init__(self, project):
         """
         Initializes the CliDashboard.
 
         Args:
-            chip: The SiliconCompiler chip object this dashboard is associated with.
+            project: The SiliconCompiler project object this dashboard is associated with.
         """
         from siliconcompiler.utils.multiprocessing import MPManager
 
-        super().__init__(chip)
+        super().__init__(project)
 
         self._dashboard = MPManager.get_dashboard()
 
@@ -42,7 +42,7 @@ class CliDashboard(AbstractDashboard):
 
         if self.is_running():
             # Attach logger when already running
-            self.set_logger(self._chip.logger)
+            self.set_logger(self._project.logger)
 
         # Ensure the dashboard is properly stopped on program exit
         self.__exit_registered = True
@@ -52,7 +52,7 @@ class CliDashboard(AbstractDashboard):
         """
         Sets the logger for the dashboard and hijacks its console handler.
 
-        This method replaces the chip's default console log handler with one
+        This method replaces the project's default console log handler with one
         that directs log messages to the dashboard's internal log buffer.
         The original handler is saved so it can be restored later.
 
@@ -65,11 +65,11 @@ class CliDashboard(AbstractDashboard):
         self._logger = logger
         if self._logger and self._dashboard._active:
             # Hijack the console handler to redirect logs to the dashboard
-            self._logger.removeHandler(self._chip._logger_console)
-            self.__logger_console = self._chip._logger_console
-            self._chip._logger_console = self._dashboard.make_log_hander()
-            self._logger.addHandler(self._chip._logger_console)
-            self._chip._logger_console.setFormatter(self.__logger_console.formatter)
+            self._logger.removeHandler(self._project._logger_console)
+            self.__logger_console = self._project._logger_console
+            self._project._logger_console = self._dashboard.make_log_hander()
+            self._logger.addHandler(self._project._logger_console)
+            self._project._logger_console.setFormatter(self.__logger_console.formatter)
 
     def open_dashboard(self):
         """
@@ -84,13 +84,13 @@ class CliDashboard(AbstractDashboard):
             self.__exit_registered = True
             atexit.register(self.stop)
 
-        self.set_logger(self._chip.logger)
+        self.set_logger(self._project.logger)
 
         self._dashboard.open_dashboard()
 
     def update_manifest(self, payload=None):
         """
-        Updates the dashboard with the latest data from the chip's manifest.
+        Updates the dashboard with the latest data from the project's manifest.
 
         This method is called to refresh the dashboard's display with the
         current state of the compilation flow.
@@ -102,7 +102,7 @@ class CliDashboard(AbstractDashboard):
         starttimes = None
         if payload and "starttimes" in payload:
             starttimes = payload["starttimes"]
-        self._dashboard.update_manifest(self._chip, starttimes=starttimes)
+        self._dashboard.update_manifest(self._project, starttimes=starttimes)
 
     def update_graph_manifests(self):
         """Placeholder method for updating graph manifests. Currently not implemented."""
@@ -123,7 +123,7 @@ class CliDashboard(AbstractDashboard):
 
         This triggers a final update of the dashboard to show the completed state.
         """
-        self._dashboard.end_of_run(self._chip)
+        self._dashboard.end_of_run(self._project)
 
     def stop(self):
         """
@@ -132,15 +132,15 @@ class CliDashboard(AbstractDashboard):
         This method performs a final update, stops the rendering thread, and
         restores the original console handler to the logger.
         """
-        self._dashboard.end_of_run(self._chip)
+        self._dashboard.end_of_run(self._project)
 
         self._dashboard.stop()
 
         # Restore the original logger handler
         if self.__logger_console and self._logger:
-            self._logger.removeHandler(self._chip._logger_console)
-            formatter = self._chip._logger_console.formatter
-            self._chip._logger_console = self.__logger_console
+            self._logger.removeHandler(self._project._logger_console)
+            formatter = self._project._logger_console.formatter
+            self._project._logger_console = self.__logger_console
             self._logger.addHandler(self.__logger_console)
             self.__logger_console.setFormatter(formatter)
             self.__logger_console = None

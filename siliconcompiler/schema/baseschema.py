@@ -621,7 +621,7 @@ class BaseSchema:
             tuple of keys found for the keypath provided.
 
         Examples:
-            >>> keylist = chip.getkeys('pdk')
+            >>> keylist = schema.getkeys('pdk')
             Returns all keys for the [pdk] keypath.
         """
 
@@ -808,7 +808,7 @@ class BaseSchema:
             entry, depending on whether it is found.
 
         Examples:
-            >>> chip.find_files('input', 'verilog')
+            >>> schema.find_files('input', 'verilog')
             Returns a list of absolute paths to source files, as specified in
             the schema.
         """
@@ -854,7 +854,7 @@ class BaseSchema:
             entry, depending on whether it is found.
 
         Examples:
-            >>> chip.find_files('input', 'verilog')
+            >>> schema.find_files('input', 'verilog')
             Returns a list of absolute paths to source files, as specified in
             the schema.
         """

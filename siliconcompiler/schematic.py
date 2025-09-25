@@ -467,7 +467,7 @@ def schema_schematic(schema):
             'str',
             scope=Scope.GLOBAL,
             shorthelp="Schematic hierarchy character",
-            example=["api: chip.set('schematic', 'hierchar', '/')"],
+            example=["api: schematic.set('schematic', 'hierchar', '/')"],
             help=trim("""
             Specifies the character used to express hierarchy. If
             the hierarchy character is used as part of a name, it must be
@@ -480,7 +480,7 @@ def schema_schematic(schema):
             'str',
             scope=Scope.GLOBAL,
             shorthelp="Schematic bus character",
-            example=["api: chip.set('schematic', 'buschar', '[]')"],
+            example=["api: schematic.set('schematic', 'buschar', '[]')"],
             help=trim("""
             Specifies the character used to express bus bits. If the
             bus character is used as part of a name, it must be
@@ -494,7 +494,7 @@ def schema_schematic(schema):
             scope=Scope.GLOBAL,
             shorthelp="Pin direction",
             example=[
-                "api: chip.set('schematic','pin', 'A', 'direction', 'input')"],
+                "api: schematic.set('schematic','pin', 'A', 'direction', 'input')"],
             help=trim("""
             Direction of pin specified on a per pin basis.""")))
 
@@ -506,7 +506,7 @@ def schema_schematic(schema):
             scope=Scope.GLOBAL,
             shorthelp="Pin bitrange",
             example=[
-                "api: chip.set('schematic','pin', 'A', 'bitrange', (7,0)"],
+                "api: schematic.set('schematic','pin', 'A', 'bitrange', (7,0)"],
             help=trim("""
             Pin vector size, specified as a (max,min) tuple. A range of (0,0)
             indicates a scalar single bit pin.""")))
@@ -519,7 +519,7 @@ def schema_schematic(schema):
             scope=Scope.GLOBAL,
             shorthelp="Net bit range",
             example=[
-                "api: chip.set('schematic', 'net', 'net0', 'bitrange', (7,0)"],
+                "api: schematic.set('schematic', 'net', 'net0', 'bitrange', (7,0)"],
             help=trim("""
             Net vector bit range specified as (max,min) tuple.""")))
 
@@ -531,7 +531,7 @@ def schema_schematic(schema):
             scope=Scope.GLOBAL,
             shorthelp="Library part pin bitrange",
             example=[
-                "api: chip.set('schematic', 'part', 'INV', 'pin', 'A', 'bitrange', (7,0)"],
+                "api: schematic.set('schematic', 'part', 'INV', 'pin', 'A', 'bitrange', (7,0)"],
             help=trim("""
             Part pin vector size, specified as a (max,min) tuple. A range of (0,0)
             indicates a scalar single bit pin.""")))
@@ -544,7 +544,7 @@ def schema_schematic(schema):
             scope=Scope.GLOBAL,
             shorthelp="Component part name",
             example=[
-                "api: chip.set('schematic','component','i0','partname','INV')"],
+                "api: schematic.set('schematic','component','i0','partname','INV')"],
             help=trim("""
             Partname (cellname) of a component (instance) specified on a
             per instance basis.""")))
@@ -557,8 +557,8 @@ def schema_schematic(schema):
             scope=Scope.GLOBAL,
             shorthelp="Component pin connections",
             example=[
-                "api: chip.set('schematic','component','i0','connection', 'A[0]', 'in[0]')",
-                "api: chip.set('schematic','component','i0','connection', 'CLK', 'clk_in')"],
+                "api: schematic.set('schematic','component','i0','connection', 'A[0]', 'in[0]')",
+                "api: schematic.set('schematic','component','i0','connection', 'CLK', 'clk_in')"],
             help=trim("""
             Net connections specified on a per instance and per instance-pin basis.
             Pin and net names must include the appropriate bit index in cases of pin or

@@ -27,7 +27,7 @@ class ASICPinConstraint(NamedSchema):
                 pernode=PerNode.OPTIONAL,
                 scope=Scope.GLOBAL,
                 shorthelp="Constraint: pin placement",
-                example=["api: chip.set('constraint', 'pin', 'nreset', 'placement', (2.0, 3.0))"],
+                example=["api: asic.set('constraint', 'pin', 'nreset', 'placement', (2.0, 3.0))"],
                 help="""
                 Placement location of a named pin, specified as a (x,y) tuple of
                 floats with respect to the lower left corner of the substrate. The location
@@ -44,7 +44,7 @@ class ASICPinConstraint(NamedSchema):
                 pernode=PerNode.OPTIONAL,
                 scope=Scope.GLOBAL,
                 shorthelp="Constraint: pin width",
-                example=["api: chip.set('constraint', 'pin', 'nreset', 'width', 1.0)"],
+                example=["api: asic.set('constraint', 'pin', 'nreset', 'width', 1.0)"],
                 help="""
                 Pin width constraint.  Package pin width is the lateral
                 (side-to-side) thickness of a pin on a physical component.
@@ -61,7 +61,7 @@ class ASICPinConstraint(NamedSchema):
                 pernode=PerNode.OPTIONAL,
                 scope=Scope.GLOBAL,
                 shorthelp="Constraint: pin length",
-                example=["api: chip.set('constraint', 'pin', 'nreset', 'length', 1.0)"],
+                example=["api: asic.set('constraint', 'pin', 'nreset', 'length', 1.0)"],
                 help="""
                 Pin length constraint.  Package pin length refers to the
                 length of the electrical pins extending out from (or into)
@@ -77,7 +77,7 @@ class ASICPinConstraint(NamedSchema):
                 pernode=PerNode.OPTIONAL,
                 scope=Scope.GLOBAL,
                 shorthelp="Constraint: pin shape",
-                example=["api: chip.set('constraint', 'pin', 'nreset', 'shape', 'circle')"],
+                example=["api: asic.set('constraint', 'pin', 'nreset', 'shape', 'circle')"],
                 help="""
                 Pin shape constraint specified on a per pin basis. In 3D design systems,
                 the pin shape represents the cross section of the pin in the direction
@@ -92,7 +92,7 @@ class ASICPinConstraint(NamedSchema):
                 pernode=PerNode.OPTIONAL,
                 scope=Scope.GLOBAL,
                 shorthelp="Constraint: pin layer",
-                example=["api: chip.set('constraint', 'pin', 'nreset', 'layer', 'm4')"],
+                example=["api: asic.set('constraint', 'pin', 'nreset', 'layer', 'm4')"],
                 help="""
                 Pin metal layer constraint specified on a per pin basis.
                 Metal names should either be the PDK specific metal stack name or
@@ -105,7 +105,7 @@ class ASICPinConstraint(NamedSchema):
                 pernode=PerNode.OPTIONAL,
                 scope=Scope.GLOBAL,
                 shorthelp="Constraint: pin side",
-                example=["api: chip.set('constraint', 'pin', 'nreset', 'side', 1)"],
+                example=["api: asic.set('constraint', 'pin', 'nreset', 'side', 1)"],
                 help="""
                 Side of block where the named pin should be placed. Sides are
                 enumerated as integers with '1' being the lower left side,
@@ -121,7 +121,7 @@ class ASICPinConstraint(NamedSchema):
                 pernode=PerNode.OPTIONAL,
                 scope=Scope.GLOBAL,
                 shorthelp="Constraint: pin order",
-                example=["api: chip.set('constraint', 'pin', 'nreset', 'order', 1)"],
+                example=["api: asic.set('constraint', 'pin', 'nreset', 'order', 1)"],
                 help="""
                 The relative position of the named pin in a vector of pins
                 on the side specified by the 'side' option. Pin order counting
@@ -391,7 +391,7 @@ class ASICPinConstraints(BaseSchema):
                         that the pin constraint does not have a defined name.
         """
         if not isinstance(pin, ASICPinConstraint):
-            raise TypeError("pin must be a pin copnstraint object")
+            raise TypeError("pin must be a pin constraint object")
 
         if pin.name is None:
             raise ValueError("pin constraint must have a name")

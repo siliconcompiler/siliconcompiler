@@ -25,19 +25,19 @@ class SlurmSchedulerNode(SchedulerNode):
     to execute the step on a compute node.
     """
 
-    def __init__(self, chip, step, index, replay=False):
+    def __init__(self, project, step, index, replay=False):
         """Initializes a SlurmSchedulerNode.
 
         Args:
-            chip (Chip): The parent Chip object.
+            project (Project): The parent project object.
             step (str): The step name in the flowgraph.
             index (str): The index for the step.
             replay (bool): If True, sets up the node to replay a previous run.
         """
-        super().__init__(chip, step, index, replay=replay)
+        super().__init__(project, step, index, replay=replay)
 
         # Get the temporary UID associated with this job run.
-        self.__job_hash = chip.get('record', 'remoteid')
+        self.__job_hash = project.get('record', 'remoteid')
         if not self.__job_hash:
             # Generate a new uuid since it was not set
             self.__job_hash = uuid.uuid4().hex
@@ -58,7 +58,7 @@ class SlurmSchedulerNode(SchedulerNode):
         ensures that compute nodes have access to all required source files.
 
         Args:
-            chip (Chip): The Chip object to perform pre-processing on.
+            project (Project): The project object to perform pre-processing on.
         """
         if os.path.exists(collectiondir(project)):
             # nothing to do
@@ -91,7 +91,7 @@ class SlurmSchedulerNode(SchedulerNode):
         """Gets the directory for storing Slurm-related configuration files.
 
         Args:
-            chip (Chip): The Chip object.
+            project (Project): The project object.
 
         Returns:
             str: The path to the configuration directory.

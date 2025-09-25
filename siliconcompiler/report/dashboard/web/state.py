@@ -3,7 +3,7 @@ Manages the session state for the SiliconCompiler web dashboard.
 
 This module defines the keys used in Streamlit's session state and provides
 a set of utility functions to initialize, access, and modify that state.
-It is the central point for managing UI state, loaded data (chip manifests),
+It is the central point for managing UI state, loaded data (project manifests),
 and application configuration throughout the user's session.
 
 The main functions are:
@@ -43,7 +43,7 @@ TAB_INDEX = "tab-index"
 TAB_STATE = "tab-state"
 
 # Data State
-LOADED_CHIPS = "loaded_chips"
+LOADED_PROJECTS = "loaded_projects"
 MANIFEST_FILE = "manifest_file"
 MANIFEST_LOCK = "manifest_lock"
 MANIFEST_TIME = "manifest_time"
@@ -80,7 +80,7 @@ def update_manifest():
     Checks for updates to the main manifest file and reloads it if necessary.
 
     Compares the current file modification time with the stored time. If they
-    differ, it re-reads the manifest, re-populates the chip objects (including
+    differ, it re-reads the manifest, re-populates the project objects (including
     history), and updates the timestamp in the session state.
 
     Returns:
@@ -94,11 +94,11 @@ def update_manifest():
         set_key(MANIFEST_TIME, file_time)
         debug_print("Read manifest", get_key(MANIFEST_FILE))
 
-        add_chip("default", proj)
+        add_project("default", proj)
 
         # Load historical runs from the manifest
         for history in proj.getkeys('history'):
-            add_chip(history, proj.history(history).copy())
+            add_project(history, proj.history(history).copy())
 
         return True
     return False
@@ -110,7 +110,7 @@ def init():
 
     This function sets default values for all state keys, parses command-line
     arguments to find the dashboard configuration file, and loads the initial
-    set of chip manifests.
+    set of project manifests.
     """
     # Set default values for all session state keys.
     _add_default(DISPLAY_FLOWGRAPH, True)
@@ -121,7 +121,7 @@ def init():
     _add_default(NODE_SOURCE, None)
     _add_default(SELECTED_FILE, None)
     _add_default(SELECTED_FILE_PAGE, None)
-    _add_default(LOADED_CHIPS, {})
+    _add_default(LOADED_PROJECTS, {})
     _add_default(MANIFEST_FILE, None)
     _add_default(MANIFEST_LOCK, None)
     _add_default(MANIFEST_TIME, None)
@@ -146,7 +146,7 @@ def init():
         raise ValueError('Dashboard configuration not provided via command line.')
 
     # On the very first run, load the configuration and initial data.
-    if not get_key(LOADED_CHIPS):
+    if not get_key(LOADED_PROJECTS):
         with open(args.cfg, 'r') as f:
             config = json.load(f)
 
@@ -154,30 +154,30 @@ def init():
         set_key(MANIFEST_LOCK, fasteners.InterProcessLock(config["lock"]))
 
         update_manifest()
-        chip = get_chip("default")
+        project = get_project("default")
 
-        # Load any additional graph-related chips specified in the config.
-        for graph_info in config['graph_chips']:
+        # Load any additional graph-related projects specified in the config.
+        for graph_info in config['graph_projects']:
             file_path = graph_info['path']
-            graph_chip = Project.from_manifest(filepath=file_path)
-            graph_chip.unset('arg', 'step')
-            graph_chip.unset('arg', 'index')
+            graph_project = Project.from_manifest(filepath=file_path)
+            graph_project.unset('arg', 'step')
+            graph_project.unset('arg', 'index')
 
             if graph_info['cwd']:
-                graph_chip._Project__cwd = graph_info['cwd']
+                graph_project._Project__cwd = graph_info['cwd']
 
-            add_chip(os.path.basename(file_path), graph_chip)
+            add_project(os.path.basename(file_path), graph_project)
 
-        # Pre-select a node if specified in the chip's arguments.
-        chip_step = chip.get('arg', 'step')
-        chip_index = chip.get('arg', 'index')
-        if chip_step and chip_index:
-            set_key(SELECTED_NODE, f'{chip_step}/{chip_index}')
+        # Pre-select a node if specified in the project's arguments.
+        project_step = project.get('arg', 'step')
+        project_index = project.get('arg', 'index')
+        if project_step and project_index:
+            set_key(SELECTED_NODE, f'{project_step}/{project_index}')
 
     # Clean up args for subsequent runs.
-    chip = get_chip("default")
-    chip.unset('arg', 'step')
-    chip.unset('arg', 'index')
+    project = get_project("default")
+    project.unset('arg', 'step')
+    project.unset('arg', 'index')
 
     # Ensure a job is selected.
     if not get_key(SELECTED_JOB):
@@ -198,44 +198,44 @@ def setup():
     set_key(NODE_SOURCE, None)
 
 
-def get_chip(job=None):
+def get_project(job=None):
     """
-    Retrieves a loaded Chip object from the session state.
+    Retrieves a loaded project object from the session state.
 
     Args:
-        job (str, optional): The name of the job/chip to retrieve.
+        job (str, optional): The name of the job/project to retrieve.
                              Defaults to the currently selected job.
 
     Returns:
-        Chip: The requested Chip object.
+        project: The requested project object.
     """
     if not job:
         job = get_key(SELECTED_JOB)
-    return get_key(LOADED_CHIPS)[job]
+    return get_key(LOADED_PROJECTS)[job]
 
 
-def add_chip(name, chip):
+def add_project(name, project):
     """
-    Adds a Chip object to the session state.
+    Adds a project object to the session state.
 
     Args:
-        name (str): The name to associate with the chip (e.g., 'default' or a history ID).
-        chip (Chip): The Chip object to store.
+        name (str): The name to associate with the project (e.g., 'default' or a history ID).
+        project (Project): The project object to store.
     """
-    streamlit.session_state[LOADED_CHIPS][name] = chip
+    streamlit.session_state[LOADED_PROJECTS][name] = project
 
 
-def get_chips():
+def get_projects():
     """
-    Gets a list of all loaded chip names.
+    Gets a list of all loaded project names.
 
     Returns:
         list: A list of strings, with 'default' guaranteed to be the first element.
     """
-    chips = list(get_key(LOADED_CHIPS).keys())
-    chips.remove('default')
-    chips.insert(0, 'default')
-    return chips
+    projects = list(get_key(LOADED_PROJECTS).keys())
+    projects.remove('default')
+    projects.insert(0, 'default')
+    return projects
 
 
 def get_selected_node():

@@ -462,7 +462,7 @@ def schema_record(schema):
                 switch=f"-record_{key} 'step index <str>'",
                 example=[
                     f"cli: -record_{key} 'dfm 0 {example}'",
-                    f"api: chip.set('record', '{key}', '{example}', step='dfm', index=0)"],
+                    f"api: schema.set('record', '{key}', '{example}', step='dfm', index=0)"],
                 pernode=PerNode.REQUIRED,
                 help=f'Record tracking the {shorthelp} per step and index basis.'
                      f'{" " + trim(longhelp) if longhelp else ""}'
@@ -477,7 +477,7 @@ def schema_record(schema):
             switch="-record_toolexitcode 'step index <int>'",
             example=[
                 "cli: -record_toolexitcode 'dfm 0 0'",
-                "api: chip.set('record', 'toolexitcode', 0, step='dfm', index=0)"],
+                "api: schema.set('record', 'toolexitcode', 0, step='dfm', index=0)"],
             pernode=PerNode.REQUIRED,
             help='Record tracking the tool exit code per step and index basis.'
         ))
@@ -492,7 +492,7 @@ def schema_record(schema):
             switch="-record_remoteid '<str>'",
             example=[
                 "cli: -record_remoteid '0123456789abcdeffedcba9876543210'",
-                "api: chip.set('record', 'remoteid', '0123456789abcdeffedcba9876543210')"],
+                "api: schema.set('record', 'remoteid', '0123456789abcdeffedcba9876543210')"],
             help='Record tracking the job ID for a remote run.'
         ))
 
@@ -505,7 +505,7 @@ def schema_record(schema):
             switch="-record_pythonpackage '<str>'",
             example=[
                 "cli: -record_pythonpackage 'siliconcompiler==0.28.0'",
-                "api: chip.set('record', 'pythonpackage', 'siliconcompiler==0.28.0')"],
+                "api: schema.set('record', 'pythonpackage', 'siliconcompiler==0.28.0')"],
             help='Record tracking for the python packages installed.'
         ))
 
@@ -520,7 +520,7 @@ def schema_record(schema):
             switch="-record_status 'step index <str>'",
             example=[
                 "cli: -record_status 'syn 0 success'",
-                "api: chip.set('record', 'status', 'success', step='syn', index='0')"],
+                "api: schema.set('record', 'status', 'success', step='syn', index='0')"],
             help="""Record tracking for the status of a node."""
         ))
 
@@ -535,7 +535,7 @@ def schema_record(schema):
             switch="-record_inputnode 'step index <(str,str)>'",
             example=[
                 "cli: -record_inputnode 'cts 0 (place,42)'",
-                "api: chip.set('record', 'inputnode', ('place', '42'), step='syn', index='0')"],
+                "api: schema.set('record', 'inputnode', ('place', '42'), step='syn', index='0')"],
             help=trim("""
             List of selected inputs for the current step/index specified as
             (in_step, in_index) tuple.""")

@@ -102,7 +102,7 @@ class PathSchemaBase(BaseSchema):
         Args:
             *keypath(str): Keypath to parameter.
             update (bool): If True, the hash values are recorded in the
-                chip object manifest.
+                project object manifest.
             check (bool): If True, checks the newly computed hash against
                 the stored hash.
             verbose (bool): If True, generates log messages.
@@ -200,7 +200,7 @@ class PathSchemaSimpleBase(PathSchemaBase):
         Args:
             *keypath(str): Keypath to parameter.
             update (bool): If True, the hash values are recorded in the
-                chip object manifest.
+                project object manifest.
             check (bool): If True, checks the newly computed hash against
                 the stored hash.
             verbose (bool): If True, generates log messages.
@@ -240,7 +240,7 @@ class PathSchema(PathSchemaBase):
                 scope=Scope.GLOBAL,
                 shorthelp="Data directory path",
                 example=[
-                    "api: chip.set('dataroot', "
+                    "api: project.set('dataroot', "
                     "'freepdk45_data', 'path', 'ssh://git@github.com/siliconcompiler/freepdk45/')"],
                 help=trim("""
                     Data directory path, this points the location where the data can be
@@ -266,7 +266,7 @@ class PathSchema(PathSchemaBase):
                 scope=Scope.GLOBAL,
                 shorthelp="Data directory reference tag/version",
                 example=[
-                    "api: chip.set('dataroot', 'freepdk45_data', 'tag', '07ec4aa')"],
+                    "api: project.set('dataroot', 'freepdk45_data', 'tag', '07ec4aa')"],
                 help=trim("""
                     Data directory reference tag. The meaning of the this tag depends on the
                     context of the path.

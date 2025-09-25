@@ -65,7 +65,7 @@ class ASICProject(Project):
                 "{str}",
                 scope=Scope.GLOBAL,
                 shorthelp="ASIC: logic libraries",
-                example=["api: chip.set('asic', 'asiclib', 'nangate45')"],
+                example=["api: asic.set('asic', 'asiclib', 'nangate45')"],
                 help=trim("""List of all selected logic libraries
                     to use for optimization for a given library architecture
                     (9T, 11T, etc).""")))
@@ -75,7 +75,7 @@ class ASICProject(Project):
                 "str",
                 scope=Scope.GLOBAL,
                 shorthelp="ASIC: delay model",
-                example=["api: chip.set('asic', 'delaymodel', 'ccs')"],
+                example=["api: asic.set('asic', 'delaymodel', 'ccs')"],
                 help=trim("""Delay model to use for the target libs. Commonly supported values
                     are nldm and ccs.""")))
 

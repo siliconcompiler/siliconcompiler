@@ -19,7 +19,7 @@ from siliconcompiler import __version__ as sc_version
 from siliconcompiler.utils.paths import workdir, jobdir, collectiondir
 
 
-def generate_testcase(chip,
+def generate_testcase(project,
                       step,
                       index,
                       archive_name=None,
@@ -31,13 +31,13 @@ def generate_testcase(chip,
                       hash_files=False,
                       verbose_collect=True):
     # Save original schema since it will be modified
-    chip = chip.copy()
+    project = project.copy()
 
     issue_dir = tempfile.TemporaryDirectory(prefix='sc_issue_')
 
-    chip.set('option', 'continue', True)
+    project.set('option', 'continue', True)
     if hash_files:
-        for key in chip.allkeys():
+        for key in project.allkeys():
             if key[0] == 'history':
                 continue
             if len(key) > 1:
@@ -45,26 +45,27 @@ def generate_testcase(chip,
                     continue
                 if key[-2] == 'option' and key[-1] == 'cachedir':
                     continue
-            sc_type = chip.get(*key, field='type')
+            sc_type = project.get(*key, field='type')
             if 'file' not in sc_type and 'dir' not in sc_type:
                 continue
-            for _, key_step, key_index in chip.get(*key, field=None).getvalues():
-                chip.hash_files(*key,
-                                check=False,
-                                allow_cache=True,
-                                verbose=False,
-                                skip_missing=True,
-                                step=key_step, index=key_index)
+            for _, key_step, key_index in project.get(*key, field=None).getvalues():
+                project.hash_files(
+                    *key,
+                    check=False,
+                    allow_cache=True,
+                    verbose=False,
+                    skip_missing=True,
+                    step=key_step, index=key_index)
 
     manifest_path = os.path.join(issue_dir.name, 'orig_manifest.json')
-    chip.write_manifest(manifest_path)
+    project.write_manifest(manifest_path)
 
-    flow = chip.get('option', 'flow')
-    tool = chip.get('flowgraph', flow, step, index, 'tool')
-    task = chip.get('flowgraph', flow, step, index, 'task')
+    flow = project.get('option', 'flow')
+    tool = project.get('flowgraph', flow, step, index, 'tool')
+    task = project.get('flowgraph', flow, step, index, 'task')
 
-    task_requires = chip.get('tool', tool, 'task', task, 'require',
-                             step=step, index=index)
+    task_requires = project.get('tool', tool, 'task', task, 'require',
+                                step=step, index=index)
 
     def determine_copy(*keypath, in_require):
         copy = in_require
@@ -115,69 +116,70 @@ def generate_testcase(chip,
 
         return copy
 
-    for keypath in chip.allkeys():
+    for keypath in project.allkeys():
         if 'default' in keypath:
             continue
 
-        sctype = chip.get(*keypath, field='type')
+        sctype = project.get(*keypath, field='type')
         if 'file' not in sctype and 'dir' not in sctype:
             continue
 
-        chip.set(*keypath,
-                 determine_copy(*keypath,
-                                in_require=','.join(keypath) in task_requires),
-                 field='copy')
+        project.set(
+            *keypath,
+            determine_copy(*keypath,
+                           in_require=','.join(keypath) in task_requires),
+            field='copy')
 
     # Collect files
-    work_dir = workdir(chip, step=step, index=index)
+    work_dir = workdir(project, step=step, index=index)
 
-    builddir = chip.get('option', 'builddir')
+    builddir = project.get('option', 'builddir')
     if os.path.isabs(builddir):
         # If build is an abs path, grab last directory
-        chip.set('option', 'builddir', os.path.basename(builddir))
+        project.set('option', 'builddir', os.path.basename(builddir))
 
     # Temporarily change current directory to appear to be issue_dir
-    original_cwd = chip._Project__cwd
-    chip._Project__cwd = issue_dir.name
+    original_cwd = project._Project__cwd
+    project._Project__cwd = issue_dir.name
 
     # Get new directories
-    job_dir = jobdir(chip)
-    new_work_dir = workdir(chip, step=step, index=index)
-    collection_dir = collectiondir(chip)
+    job_dir = jobdir(project)
+    new_work_dir = workdir(project, step=step, index=index)
+    collection_dir = collectiondir(project)
 
     # Restore current directory
-    chip._Project__cwd = original_cwd
+    project._Project__cwd = original_cwd
 
     # Copy in issue run files
     shutil.copytree(work_dir, new_work_dir, dirs_exist_ok=True)
     # Copy in source files
-    collect(chip, directory=collection_dir, verbose=verbose_collect)
+    collect(project, directory=collection_dir, verbose=verbose_collect)
 
     # Set relative path to generate runnable files
-    chip._Project__cwd = issue_dir.name
+    project._Project__cwd = issue_dir.name
 
     current_work_dir = os.getcwd()
     os.chdir(new_work_dir)
 
-    flow = chip.get('option', 'flow')
+    flow = project.get('option', 'flow')
 
-    task_class = chip.get("tool", tool, "task", task, field="schema")
+    task_class = project.get("tool", tool, "task", task, field="schema")
 
-    with task_class.runtime(SchedulerNode(chip, step, index), relpath=new_work_dir) as task_obj:
+    with task_class.runtime(SchedulerNode(project, step, index), relpath=new_work_dir) as task_obj:
         # Rewrite replay.sh
-        prev_quiet = chip.get('option', 'quiet', step=step, index=index)
-        chip.set('option', 'quiet', True, step=step, index=index)
+        prev_quiet = project.get('option', 'quiet', step=step, index=index)
+        project.set('option', 'quiet', True, step=step, index=index)
         try:
             # Rerun pre_process
             task_obj.pre_process()
         except Exception:
             pass
-        chip.set('option', 'quiet', prev_quiet, step=step, index=index)
+        project.set('option', 'quiet', prev_quiet, step=step, index=index)
 
         is_python_tool = task_obj.get_exe() is None
         if not is_python_tool:
             task_obj.generate_replay_script(
-                f'{workdir(chip, step=step, index=index)}/replay.sh',
+                f'{workdir(project, step=step, index=index)}/replay.sh',
                 '.',
                 include_path=False)
 
@@ -185,13 +187,13 @@ def generate_testcase(chip,
         task_obj.write_task_manifest('.')
 
     # Restore current directory
-    chip._Project__cwd = original_cwd
+    project._Project__cwd = original_cwd
     os.chdir(current_work_dir)
 
     git_data = {}
     try:
         # Check git information
-        repo = git.Repo(path=os.path.join(chip.scroot, '..'))
+        repo = git.Repo(path=os.path.join(project.scroot, '..'))
         commit = repo.head.commit
         git_data['commit'] = commit.hexsha
         git_data['date'] = time.strftime('%Y-%m-%d %H:%M:%S',
@@ -199,7 +201,7 @@ def generate_testcase(chip,
         git_data['author'] = f'{commit.author.name} <{commit.author.email}>'
         git_data['msg'] = commit.message
         # Count number of commits ahead of version
-        version_tag = repo.tag(f'v{chip.scversion}')
+        version_tag = repo.tag(f'v{project.scversion}')
         count = 0
         for c in commit.iter_parents():
             count += 1
@@ -224,16 +226,16 @@ def generate_testcase(chip,
                                 'libraries_included': include_libraries,
                                 'pdks_included': include_pdks,
                                 'tool': tool,
-                                'toolversion': chip.get('record', 'toolversion',
-                                                        step=step, index=index),
+                                'toolversion': project.get('record', 'toolversion',
+                                                           step=step, index=index),
                                 'task': task}
     issue_information['version'] = {'schema': schema_version,
                                     'sc': sc_version,
                                     'git': git_data}
 
     if not archive_name:
-        design = chip.design.name
-        job = chip.get('option', 'jobname')
+        design = project.name
+        job = project.get('option', 'jobname')
         file_time = datetime.fromtimestamp(issue_time, timezone.utc).strftime('%Y%m%d-%H%M%S')
         archive_name = f'sc_issue_{design}_{job}_{step}_{index}_{file_time}.tar.gz'
 
@@ -253,8 +255,8 @@ def generate_testcase(chip,
     if not is_python_tool:
         run_path = os.path.join(issue_dir.name, 'run.sh')
         with open(run_path, 'w') as f:
-            replay_dir = workdir(chip, step=step, index=index, relpath=True)
-            issue_title = f'{chip.design.name} for {step}/{index} using {tool}/{task}'
+            replay_dir = workdir(project, step=step, index=index, relpath=True)
+            issue_title = f'{project.name} for {step}/{index} using {tool}/{task}'
             f.write(get_file_template('issue/run.sh').render(
                 title=issue_title,
                 exec_dir=replay_dir
@@ -288,5 +290,5 @@ def generate_testcase(chip,
 
     issue_dir.cleanup()
 
-    chip.logger.info(f'Generated testcase for {step}/{index} in: '
-                     f'{full_archive_path}')
+    project.logger.info(f'Generated testcase for {step}/{index} in: '
+                        f'{full_archive_path}')

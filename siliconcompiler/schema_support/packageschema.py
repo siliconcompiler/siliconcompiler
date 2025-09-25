@@ -233,7 +233,7 @@ def schema_package(schema):
             switch="-package_version <str>",
             example=[
                 "cli: -package_version 1.0",
-                "api: chip.set('package', 'version', '1.0')"],
+                "api: schema.set('package', 'version', '1.0')"],
             help=trim("""Package version. Can be a branch, tag, commit hash,
             or a semver compatible version.""")))
 
@@ -246,7 +246,7 @@ def schema_package(schema):
             switch="-package_vendor <str>",
             example=[
                 "cli: -package_vendor acme",
-                "api: chip.set('package', 'vendor', 'acme')"],
+                "api: schema.set('package', 'vendor', 'acme')"],
             help=trim("""Package vendor.""")))
 
     schema.insert(
@@ -258,7 +258,7 @@ def schema_package(schema):
             switch="-package_description <str>",
             example=[
                 "cli: -package_description 'Yet another cpu'",
-                "api: chip.set('package', 'description', 'Yet another cpu')"],
+                "api: schema.set('package', 'description', 'Yet another cpu')"],
             help=trim("""Package short one line description for package
             managers and summary reports.""")))
 
@@ -280,7 +280,7 @@ def schema_package(schema):
                 switch=f"-package_doc_{item} <file>",
                 example=[
                     f"cli: -package_doc_{item} {item}.pdf",
-                    f"api: chip.set('package', 'doc', '{item}', '{item}.pdf')"],
+                    f"api: schema.set('package', 'doc', '{item}', '{item}.pdf')"],
                 help=trim(f"""Package list of {item} documents.""")))
 
     schema.insert(
@@ -292,7 +292,7 @@ def schema_package(schema):
             switch="-package_license <str>",
             example=[
                 "cli: -package_license 'Apache-2.0'",
-                "api: chip.set('package', 'license', 'Apache-2.0')"],
+                "api: schema.set('package', 'license', 'Apache-2.0')"],
             help=trim("""Package list of SPDX license identifiers.""")))
 
     schema.insert(
@@ -304,7 +304,7 @@ def schema_package(schema):
             switch="-package_licensefile <file>",
             example=[
                 "cli: -package_licensefile './LICENSE'",
-                "api: chip.set('package', 'licensefile', './LICENSE')"],
+                "api: schema.set('package', 'licensefile', './LICENSE')"],
             help=trim("""Package list of license files for to be
             applied in cases when a SPDX identifier is not available.
             (eg. proprietary licenses).""")))
@@ -322,6 +322,6 @@ def schema_package(schema):
                 switch=f"-package_author_{item} 'userid <str>'",
                 example=[
                     f"cli: -package_author_{item} 'wiley wiley@acme.com'",
-                    f"api: chip.set('package', 'author', 'wiley', '{item}', 'wiley@acme.com')"],
+                    f"api: schema.set('package', 'author', 'wiley', '{item}', 'wiley@acme.com')"],
                 help=trim(f"""Package author {item} provided with full name as key and
                 {item} as value.""")))

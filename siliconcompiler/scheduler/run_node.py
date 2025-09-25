@@ -6,7 +6,7 @@ SiliconCompiler flowgraph.
 This script is designed to be called by a scheduler (like Slurm, Docker, or
 a local process manager) to run a specific task in isolation. It takes all
 necessary configuration information via command-line arguments, sets up a
-Chip object, and executes the specified node's `run()` method.
+project object, and executes the specified node's `run()` method.
 """
 
 import argparse
@@ -23,7 +23,7 @@ from siliconcompiler import __version__
 
 ##########################
 def main():
-    # Can't use chip.cmdline because we don't want a bunch of extra logger information
+    # Can't use Project.cmdline because we don't want a bunch of extra logger information
     parser = argparse.ArgumentParser(prog='run_node',
                                      formatter_class=argparse.RawDescriptionHelpFormatter,
                                      description='Script to run a single node in an SC flowgraph')
@@ -82,10 +82,10 @@ def main():
     # from the host.
     os.chdir(os.path.abspath(args.cwd))
 
-    # Create the Chip object.
+    # Create the project object.
     proj = Project.from_manifest(filepath=args.cfg)
 
-    # Configure the chip object based on command-line arguments.
+    # Configure the project object based on command-line arguments.
     proj.set('arg', 'step', args.step)
     proj.set('arg', 'index', args.index)
     proj.set('option', 'builddir', os.path.abspath(args.builddir))
@@ -110,7 +110,7 @@ def main():
             Resolver.set_cache(proj, package, path)
 
     # Ensure all package caches are populated before running the node.
-    # for resolver in chip.get('package', field='schema').get_resolvers().values():
+    # for resolver in project.get('package', field='schema').get_resolvers().values():
     #     resolver()
 
     # Instantiate the SchedulerNode for the specified step and index.

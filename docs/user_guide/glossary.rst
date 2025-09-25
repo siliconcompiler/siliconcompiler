@@ -5,9 +5,6 @@ The following set of terms represents fundamental SiliconCompiler definitions us
 
 .. glossary::
 
-    chip
-       Instance of SiliconCompiler Chip() class used to compile a design.
-
     default
        Reserved SiliconCompiler schema key that can be replaced by any legal string.
 
@@ -46,6 +43,9 @@ The following set of terms represents fundamental SiliconCompiler definitions us
 
     parameter
        Schema leaf cell with a set of pre-defined key/value pairs.
+
+    project
+       Instance of SiliconCompiler Project class used to compile a design.
 
     program
        User specified program with one (or more) chip instances.

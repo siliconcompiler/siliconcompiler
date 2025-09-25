@@ -23,19 +23,19 @@ def layout():
     node information. Other views like the Manifest, File Viewer, and Graphs
     are in separate, conditionally rendered tabs.
     """
-    chip = state.get_chip()
+    project = state.get_project()
     metric_dataframe, node_to_step_index_map, metric_to_metric_unit_map = \
-        utils.generate_metric_dataframe(chip)
+        utils.generate_metric_dataframe(project)
 
     # Render the main page header (title, job selector, settings)
     components.page_header()
 
     # --- Dynamically create tabs based on available data ---
     tab_headings = ["Metrics", "Manifest", "File Viewer"]
-    if os.path.isfile(f'{jobdir(chip)}/{chip.design.name}.png'):
+    if os.path.isfile(os.path.join(jobdir(project), f'{project.name}.png')):
         tab_headings.append("Design Preview")
 
-    has_graphs = len(state.get_key(state.LOADED_CHIPS)) > 1
+    has_graphs = len(state.get_key(state.LOADED_PROJECTS)) > 1
     if has_graphs:
         tab_headings.append("Graphs")
 
@@ -58,7 +58,7 @@ def layout():
 
             with flowgraph_col:
                 streamlit.header('Flowgraph')
-                components.flowgraph_viewer(chip)
+                components.flowgraph_viewer(project)
         else:
             metrics_container = streamlit.container()
 
@@ -83,23 +83,23 @@ def layout():
 
             if state.get_selected_node():
                 step, index = node_to_step_index_map[state.get_selected_node()]
-                components.node_viewer(chip, step, index, metric_dataframe)
+                components.node_viewer(project, step, index, metric_dataframe)
 
     # --- Populate the "Manifest" tab ---
     with tabs["Manifest"]:
-        components.manifest_viewer(chip)
+        components.manifest_viewer(project)
 
     # --- Populate the "File Viewer" tab ---
     with tabs["File Viewer"]:
         components.file_viewer(
-            chip,
+            project,
             state.get_key(state.SELECTED_FILE),
             page_key=state.SELECTED_FILE_PAGE)
 
     # --- Populate conditional tabs ---
     if "Design Preview" in tabs:
         with tabs["Design Preview"]:
-            components.file_viewer(chip, f'{jobdir(chip)}/{chip.design.name}.png')
+            components.file_viewer(project, os.path.join(jobdir(project), f'{project.name}.png'))
 
     if "Graphs" in tabs:
         with tabs["Graphs"]:

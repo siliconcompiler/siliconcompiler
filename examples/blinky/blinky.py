@@ -31,7 +31,7 @@ def main():
 
     # Configure the "pcf" (Physical Constraints File) fileset.
     # This is a crucial file for FPGAs. It maps the ports in the Verilog
-    # design (e.g., 'clk', 'led') to the physical pins on the FPGA chip.
+    # design (e.g., 'clk', 'led') to the physical pins on the FPGA.
     with design.active_dataroot("blinky"), design.active_fileset("pcf"):
         design.add_file("icebreaker.pcf")
 

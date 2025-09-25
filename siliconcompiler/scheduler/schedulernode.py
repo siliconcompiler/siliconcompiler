@@ -57,7 +57,7 @@ class SchedulerNode:
         self.__index = index
         self.__project = project
 
-        self.__name = self.__project.design.name
+        self.__name = self.__project.name
         self.__topmodule = self.__project.get(
             "library",
             self.__name,
@@ -126,7 +126,7 @@ class SchedulerNode:
         Creates a new SchedulerNode for a different step/index.
 
         This allows for context switching to inspect or interact with other nodes
-        within the same chip context.
+        within the same project context.
 
         Args:
             step (str): The step name of the new node.
@@ -784,7 +784,7 @@ class SchedulerNode:
 
         Note: Since this method may run in its own process with a separate
         address space, any changes made to the schema are communicated through
-        reading/writing the chip manifest to the filesystem.
+        reading/writing the project manifest to the filesystem.
         """
 
         # Setup logger

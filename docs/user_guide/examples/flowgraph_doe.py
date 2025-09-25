@@ -3,7 +3,7 @@
 #
 ##
 
-# import python package and create chip object
+# import python package and create flow object
 from siliconcompiler import Flowgraph
 
 # import pre-defined python packages for setting up tools used in flowgraph
@@ -11,7 +11,7 @@ from siliconcompiler.tools.slang import elaborate
 from siliconcompiler.tools.yosys import syn_asic
 from siliconcompiler.tools.builtin import minimum
 
-# create chip object
+# create flow object
 flow = Flowgraph("synparallel")
 
 # create elaboration node

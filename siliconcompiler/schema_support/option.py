@@ -17,7 +17,7 @@ class OptionSchema(BaseSchema):
                 switch="-remote <bool>",
                 example=[
                     "cli: -remote",
-                    "api: chip.set('remote', True)"],
+                    "api: option.set('remote', True)"],
                 help="""
                 Sends job for remote processing if set to true. The remote
                 option requires a credentials file to be placed in the home
@@ -33,7 +33,7 @@ class OptionSchema(BaseSchema):
                 switch="-credentials <file>",
                 example=[
                     "cli: -credentials /home/user/.sc/credentials",
-                    "api: chip.set('credentials', '/home/user/.sc/credentials')"],
+                    "api: option.set('credentials', '/home/user/.sc/credentials')"],
                 help="""
                 Filepath to credentials used for remote processing. If the
                 credentials parameter is empty, the remote processing client program
@@ -57,7 +57,7 @@ class OptionSchema(BaseSchema):
                 switch="-cachedir <dir>",
                 example=[
                     "cli: -cachedir /home/user/.sc/cache",
-                    "api: chip.set('cachedir', '/home/user/.sc/cache')"],
+                    "api: option.set('cachedir', '/home/user/.sc/cache')"],
                 help="""
                 Filepath to cache used for package data sources. If the
                 cache parameter is empty, ".sc/cache" directory in the user's home
@@ -73,7 +73,7 @@ class OptionSchema(BaseSchema):
                 switch="-nice <int>",
                 example=[
                     "cli: -nice 5",
-                    "api: chip.set('nice', 5)"],
+                    "api: option.set('nice', 5)"],
                 help="""
                 Sets the type of execution priority of each individual flowgraph steps.
                 If the parameter is undefined, nice will not be used. For more information see
@@ -87,7 +87,7 @@ class OptionSchema(BaseSchema):
                 shorthelp="Option: flow target",
                 switch="-flow <str>",
                 example=["cli: -flow asicflow",
-                         "api: chip.set('flow', 'asicflow')"],
+                         "api: option.set('flow', 'asicflow')"],
                 help="""
                 Sets the flow for the current run. The flow name
                 must match up with a 'flow' in the flowgraph"""))
@@ -104,7 +104,7 @@ class OptionSchema(BaseSchema):
                         "-optmode <str>"],
                 example=["cli: -O3",
                          "cli: -optmode 3",
-                         "api: chip.set('optmode', 'O3')"],
+                         "api: option.set('optmode', 'O3')"],
                 help="""
                 The compiler has modes to prioritize run time and ppa. Modes
                 include.
@@ -128,7 +128,7 @@ class OptionSchema(BaseSchema):
                 switch="-loglevel <str>",
                 example=[
                     "cli: -loglevel info",
-                    "api: chip.set('loglevel', 'info')"],
+                    "api: option.set('loglevel', 'info')"],
                 help="""
                 Provides explicit control over the level of debug logging printed."""))
 
@@ -142,7 +142,7 @@ class OptionSchema(BaseSchema):
                 switch="-builddir <dir>",
                 example=[
                     "cli: -builddir ./build_the_future",
-                    "api: chip.set('builddir', './build_the_future')"],
+                    "api: option.set('builddir', './build_the_future')"],
                 help="""
                 The default build directory is in the local './build' where SC was
                 executed. This can be used to set an alternate
@@ -158,7 +158,7 @@ class OptionSchema(BaseSchema):
                 switch="-jobname <str>",
                 example=[
                     "cli: -jobname may1",
-                    "api: chip.set('jobname', 'may1')"],
+                    "api: option.set('jobname', 'may1')"],
                 help="""
                 Jobname during invocation of :meth:`.run()`. The jobname combined with a
                 defined director structure (<dir>/<design>/<jobname>/<step>/<index>)
@@ -174,7 +174,7 @@ class OptionSchema(BaseSchema):
                 switch="-from <str>",
                 example=[
                     "cli: -from 'import'",
-                    "api: chip.set('from', 'import')"],
+                    "api: option.set('from', 'import')"],
                 help="""
                 Inclusive list of steps to start execution from. The default is to start
                 at all entry steps in the flow graph."""))
@@ -188,7 +188,7 @@ class OptionSchema(BaseSchema):
                 switch="-to <str>",
                 example=[
                     "cli: -to 'syn'",
-                    "api: chip.set('to', 'syn')"],
+                    "api: option.set('to', 'syn')"],
                 help="""
                 Inclusive list of steps to end execution with. The default is to go
                 to all exit steps in the flow graph."""))
@@ -202,7 +202,7 @@ class OptionSchema(BaseSchema):
                 switch="-prune 'node <(str,str)>'",
                 example=[
                     "cli: -prune (syn,0)",
-                    "api: chip.set('prune', ('syn', '0'))"],
+                    "api: option.set('prune', ('syn', '0'))"],
                 help="""
                 List of starting nodes for branches to be pruned.
                 The default is to not prune any nodes/branches."""))
@@ -217,7 +217,7 @@ class OptionSchema(BaseSchema):
                 switch="-breakpoint <bool>",
                 example=[
                     "cli: -breakpoint true",
-                    "api: chip.set('option, 'breakpoint', True)"],
+                    "api: option.set('option', 'breakpoint', True)"],
                 help="""
                 Set a breakpoint on specific steps. If the step is a TCL
                 based tool, then the breakpoints stops the flow inside the
@@ -232,7 +232,7 @@ class OptionSchema(BaseSchema):
                 shorthelp="Option: cleanup previous job",
                 switch="-clean <bool>",
                 example=["cli: -clean",
-                         "api: chip.set('clean', True)"],
+                         "api: option.set('clean', True)"],
                 help="""
                 Run a job from the start and do not use any of the previous job.
                 If :keypath:`option, jobincr` is True, the old job is preserved and
@@ -247,7 +247,7 @@ class OptionSchema(BaseSchema):
                 shorthelp="Option: file hashing",
                 switch="-hash <bool>",
                 example=["cli: -hash",
-                         "api: chip.set('hash', True)"],
+                         "api: option.set('hash', True)"],
                 help="""
                 Enables hashing of all inputs and outputs during
                 compilation. The hash values are stored in the hashvalue
@@ -261,7 +261,7 @@ class OptionSchema(BaseSchema):
                 shorthelp="Option: headless execution",
                 switch="-nodisplay <bool>",
                 example=["cli: -nodisplay",
-                         "api: chip.set('nodisplay', True)"],
+                         "api: option.set('nodisplay', True)"],
                 help="""
                 This flag prevents SiliconCompiler from opening GUI windows such as
                 the final metrics report."""))
@@ -275,7 +275,7 @@ class OptionSchema(BaseSchema):
                 shorthelp="Option: quiet execution",
                 switch="-quiet <bool>",
                 example=["cli: -quiet",
-                         "api: chip.set('quiet', True)"],
+                         "api: option.set('quiet', True)"],
                 help="""
                 The -quiet option forces all steps to print to a log file.
                 This can be useful with Modern EDA tools which print
@@ -289,7 +289,7 @@ class OptionSchema(BaseSchema):
                 shorthelp="Option: autoincrement jobname",
                 switch="-jobincr <bool>",
                 example=["cli: -jobincr",
-                         "api: chip.set('jobincr', True)"],
+                         "api: option.set('jobincr', True)"],
                 help="""
                 Forces an auto-update of the jobname parameter if a directory
                 matching the jobname is found in the build directory. If the
@@ -307,7 +307,7 @@ class OptionSchema(BaseSchema):
                 shorthelp="Option: disable version checking",
                 switch="-novercheck <bool>",
                 example=["cli: -novercheck",
-                         "api: chip.set('novercheck', True)"],
+                         "api: option.set('novercheck', True)"],
                 help="""
                 Disables strict version checking on all invoked tools if True.
                 The list of supported version numbers is defined in the
@@ -322,7 +322,7 @@ class OptionSchema(BaseSchema):
                 shorthelp="Option: enable provenance tracking",
                 switch="-track <bool>",
                 example=["cli: -track",
-                         "api: chip.set('track', True)"],
+                         "api: option.set('track', True)"],
                 help="""
                 Turns on tracking of all 'record' parameters during each
                 task, otherwise only tool and runtime information will be recorded.
@@ -339,7 +339,7 @@ class OptionSchema(BaseSchema):
                 shorthelp='Option: continue-on-error',
                 switch='-continue <bool>',
                 example=["cli: -continue",
-                         "api: chip.set('continue', True)"],
+                         "api: option.set('continue', True)"],
                 help="""
                 Attempt to continue even when errors are encountered in the SC
                 implementation. The default behavior is to quit executing the flow
@@ -358,7 +358,7 @@ class OptionSchema(BaseSchema):
                 shorthelp="Option: timeout value",
                 switch="-timeout <float>",
                 example=["cli: -timeout 3600",
-                         "api: chip.set('timeout', 3600)"],
+                         "api: option.set('timeout', 3600)"],
                 help="""
                 Timeout value in seconds. The timeout value is compared
                 against the wall time tracked by the SC runtime to determine
@@ -371,7 +371,7 @@ class OptionSchema(BaseSchema):
                 shorthelp="Option: strict checking",
                 switch="-strict <bool>",
                 example=["cli: -strict true",
-                         "api: chip.set('strict', True)"],
+                         "api: option.set('strict', True)"],
                 help="""
                 Enable additional strict checking in the SC Python API. When this
                 parameter is set to True, users must provide step and index keyword
@@ -389,7 +389,7 @@ class OptionSchema(BaseSchema):
                 switch="-scheduler <str>",
                 example=[
                     "cli: -scheduler slurm",
-                    "api: chip.set('scheduler', 'name', 'slurm')"],
+                    "api: option.set('scheduler', 'name', 'slurm')"],
                 help="""
                 Sets the type of job scheduler to be used for each individual
                 flowgraph steps. If the parameter is undefined, the steps are executed
@@ -408,7 +408,7 @@ class OptionSchema(BaseSchema):
                 shorthelp="Option: Scheduler core constraint",
                 switch="-cores <int>",
                 example=["cli: -cores 48",
-                         "api: chip.set('scheduler', 'cores', '48')"],
+                         "api: option.set('scheduler', 'cores', 48)"],
                 help="""
                 Specifies the number CPU cores required to run the job.
                 For the slurm scheduler, this translates to the '-c'
@@ -425,7 +425,7 @@ class OptionSchema(BaseSchema):
                 shorthelp="Option: scheduler memory constraint",
                 switch="-memory <int>",
                 example=["cli: -memory 8000",
-                         "api: chip.set('scheduler', 'memory', '8000')"],
+                         "api: option.set('scheduler', 'memory', 8000)"],
                 help="""
                 Specifies the amount of memory required to run the job,
                 specified in MB. For the slurm scheduler, this translates to
@@ -441,7 +441,7 @@ class OptionSchema(BaseSchema):
                 shorthelp="Option: scheduler queue",
                 switch="-queue <str>",
                 example=["cli: -queue nightrun",
-                         "api: chip.set('scheduler', 'queue', 'nightrun')"],
+                         "api: option.set('scheduler', 'queue', 'nightrun')"],
                 help="""
                 Send the job to the specified queue. With slurm, this
                 translates to 'partition'. The queue name must match
@@ -457,7 +457,7 @@ class OptionSchema(BaseSchema):
                 shorthelp="Option: scheduler start time",
                 switch="-defer <str>",
                 example=["cli: -defer 16:00",
-                         "api: chip.set('scheduler', 'defer', '16:00')"],
+                         "api: option.set('scheduler', 'defer', '16:00')"],
                 help="""
                 Defer initiation of job until the specified time. The parameter
                 is pass through string for remote job scheduler such as slurm.
@@ -476,7 +476,7 @@ class OptionSchema(BaseSchema):
                 switch="-scheduler_options <str>",
                 example=[
                     "cli: -scheduler_options \"--pty\"",
-                    "api: chip.set('scheduler', 'options', \"--pty\")"],
+                    "api: option.set('scheduler', 'options', \"--pty\")"],
                 help="""
                 Advanced/export options passed through unchanged to the job
                 scheduler as-is. (The user specified options must be compatible
@@ -493,7 +493,7 @@ class OptionSchema(BaseSchema):
                 switch="-msgevent <str>",
                 example=[
                     "cli: -msgevent all",
-                    "api: chip.set('scheduler', 'msgevent', 'all')"],
+                    "api: option.set('scheduler', 'msgevent', 'all')"],
                 help="""
                 Directs job scheduler to send a message to the user in
                 :keypath:`option,scheduler,msgcontact` when certain events occur
@@ -517,7 +517,7 @@ class OptionSchema(BaseSchema):
                 switch="-msgcontact <str>",
                 example=[
                     "cli: -msgcontact 'wile.e.coyote@acme.com'",
-                    "api: chip.set('scheduler', 'msgcontact', 'wiley@acme.com')"],
+                    "api: option.set('scheduler', 'msgcontact', 'wiley@acme.com')"],
                 help="""
                 List of email addresses to message on a :keypath:`option,scheduler,msgevent`.
                 Support for email messages relies on job scheduler daemon support.
@@ -531,7 +531,7 @@ class OptionSchema(BaseSchema):
                 shorthelp="Option: maximum concurrent nodes",
                 switch="-maxnodes <int>",
                 example=["cli: -maxnodes 4",
-                          "api: chip.set('scheduler', 'maxnodes', 4)"],
+                          "api: option.set('scheduler', 'maxnodes', 4)"],
                 help="""
                 Maximum number of concurrent nodes to run in a job. If not set this will default
                 to the number of cpu cores available."""))

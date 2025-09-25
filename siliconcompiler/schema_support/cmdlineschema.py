@@ -115,10 +115,10 @@ class CommandLineSchema(BaseSchema):
             new project object
 
         Examples:
-            >>> chip.create_cmdline(progname='sc-show',switchlist=['-input','-cfg'])
+            >>> schema.create_cmdline(progname='sc-show',switchlist=['-input','-cfg'])
             Creates a command line interface for 'sc-show' app.
 
-            >>> chip.create_cmdline(progname='sc')
+            >>> schema.create_cmdline(progname='sc')
         """
 
         if progname and os.path.isfile(progname):

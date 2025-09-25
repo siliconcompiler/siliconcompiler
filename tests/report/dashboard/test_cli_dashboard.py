@@ -466,7 +466,7 @@ def test_render_log_basic(mock_running_job_lg, dashboard_medium):
 
     with patch.object(Board, "_get_job") as mock_job_data:
         mock_job_data.return_value = mock_running_job_lg
-        dashboard._update_render_data(dashboard_medium._chip)
+        dashboard._update_render_data(dashboard_medium._project)
 
     dashboard._update_rendable_data()
     dashboard._update_layout()
@@ -504,7 +504,7 @@ def test_render_log_truncate(mock_running_job_lg, dashboard_medium):
 
     with patch.object(Board, "_get_job") as mock_job_data:
         mock_job_data.return_value = mock_running_job_lg
-        dashboard._update_render_data(dashboard_medium._chip)
+        dashboard._update_render_data(dashboard_medium._project)
 
     dashboard._update_layout()
 
@@ -547,7 +547,7 @@ def test_render_job_dashboard(mock_running_job_lg, dashboard_medium):
 
     with patch.object(Board, "_get_job") as mock_job_data:
         mock_job_data.return_value = mock_running_job_lg
-        dashboard._update_render_data(dashboard_medium._chip)
+        dashboard._update_render_data(dashboard_medium._project)
 
     dashboard._update_rendable_data()
     dashboard._update_layout()
@@ -645,11 +645,11 @@ def test_render_job_dashboard_multi_job(mock_running_job_lg, mock_running_job_lg
 
     with patch.object(Board, "_get_job") as mock_job_data:
         mock_job_data.return_value = mock_running_job_lg
-        dashboard._update_render_data(dashboard_medium._chip)
+        dashboard._update_render_data(dashboard_medium._project)
 
     with patch.object(Board, "_get_job") as mock_job_data:
         mock_job_data.return_value = mock_running_job_lg_second
-        dashboard._update_render_data(dashboard_medium._chip)
+        dashboard._update_render_data(dashboard_medium._project)
 
     dashboard._update_rendable_data()
     dashboard._update_layout()
@@ -763,11 +763,11 @@ def test_render_job_dashboard_multi_job_limit_progress(
 
     with patch.object(Board, "_get_job") as mock_job_data:
         mock_job_data.return_value = mock_running_job_lg
-        dashboard._update_render_data(dashboard_xsmall._chip)
+        dashboard._update_render_data(dashboard_xsmall._project)
 
     with patch.object(Board, "_get_job") as mock_job_data:
         mock_job_data.return_value = mock_running_job_lg_second
-        dashboard._update_render_data(dashboard_xsmall._chip)
+        dashboard._update_render_data(dashboard_xsmall._project)
 
     dashboard._update_rendable_data()
     dashboard._update_layout()
@@ -794,7 +794,7 @@ def test_get_rendable_xsmall_dashboard_running(mock_running_job_lg, dashboard_xs
     with patch.object(Board, "_get_job") as mock_job_data:
         mock_job_data.return_value = mock_running_job_lg
         dashboard_xsmall.set_logger(None)
-        dashboard._update_render_data(dashboard_xsmall._chip)
+        dashboard._update_render_data(dashboard_xsmall._project)
 
     dashboard._update_rendable_data()
     rendable = dashboard._get_rendable()
@@ -821,7 +821,7 @@ def test_get_rendable_small_dashboard_running(mock_running_job_lg, dashboard_sma
     with patch.object(Board, "_get_job") as mock_job_data:
         mock_job_data.return_value = mock_running_job_lg
         dashboard_small.set_logger(None)
-        dashboard._update_render_data(dashboard_small._chip)
+        dashboard._update_render_data(dashboard_small._project)
 
     logger = logging.getLogger("test")
     logger.setLevel(logging.INFO)
@@ -864,7 +864,7 @@ def test_get_rendable_medium_dashboard_running(mock_running_job_lg, dashboard_me
     with patch.object(Board, "_get_job") as mock_job_data:
         mock_job_data.return_value = mock_running_job_lg
         dashboard_medium.set_logger(None)
-        dashboard._update_render_data(dashboard_medium._chip)
+        dashboard._update_render_data(dashboard_medium._project)
 
     logger = logging.getLogger("test")
     logger.setLevel(logging.INFO)
@@ -905,7 +905,7 @@ def test_get_rendable_xsmall_dashboard_finished_success(mock_finished_job_passed
 
     with patch.object(Board, "_get_job") as mock_job_data:
         mock_job_data.return_value = mock_finished_job_passed
-        dashboard._update_render_data(dashboard_xsmall._chip)
+        dashboard._update_render_data(dashboard_xsmall._project)
 
     dashboard._update_rendable_data()
     rendable = dashboard._get_rendable()
@@ -922,7 +922,7 @@ def test_get_rendable_small_dashboard_finished_success(mock_finished_job_passed,
 
     with patch.object(Board, "_get_job") as mock_job_data:
         mock_job_data.return_value = mock_finished_job_passed
-        dashboard._update_render_data(dashboard_small._chip)
+        dashboard._update_render_data(dashboard_small._project)
 
     dashboard._update_rendable_data()
     rendable = dashboard._get_rendable()
@@ -946,7 +946,7 @@ def test_get_rendable_medium_dashboard_finished_success(mock_finished_job_passed
 
     with patch.object(Board, "_get_job") as mock_job_data:
         mock_job_data.return_value = mock_finished_job_passed
-        dashboard._update_render_data(dashboard_medium._chip)
+        dashboard._update_render_data(dashboard_medium._project)
 
     dashboard._update_rendable_data()
     rendable = dashboard._get_rendable()
@@ -970,7 +970,7 @@ def test_get_rendable_xsmall_dashboard_finished_fail(mock_finished_job_fail, das
 
     with patch.object(Board, "_get_job") as mock_job_data:
         mock_job_data.return_value = mock_finished_job_fail
-        dashboard._update_render_data(dashboard_xsmall._chip)
+        dashboard._update_render_data(dashboard_xsmall._project)
 
     dashboard._update_rendable_data()
     rendable = dashboard._get_rendable()

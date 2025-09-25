@@ -23,7 +23,7 @@ class ASICMetricsSchema(MetricSchema):
                     switch=f"-metric_{item} 'step index <int>'",
                     example=[
                         f"cli: -metric_{item} 'dfm 0 0'",
-                        f"api: chip.set('metric', '{item}', 0, step='dfm', index=0)"],
+                        f"api: asic.set('metric', '{item}', 0, step='dfm', index=0)"],
                     pernode=PerNode.REQUIRED,
                     help=trim(f"""Metric tracking the total number of {description} on a
                     per step and index basis.""")))
@@ -44,7 +44,7 @@ class ASICMetricsSchema(MetricSchema):
                     switch=f"-metric_{item} 'step index <float>'",
                     example=[
                         f"cli: -metric_{item} 'place 0 100.00'",
-                        f"api: chip.set('metric', '{item}', 100.00, step='place', index=0)"],
+                        f"api: asic.set('metric', '{item}', 100.00, step='place', index=0)"],
                     pernode=PerNode.REQUIRED,
                     help=trim(f"""
                     Metric tracking the total {description} occupied by the design.""")))
@@ -59,7 +59,7 @@ class ASICMetricsSchema(MetricSchema):
                 switch="-metric_utilization 'step index <float>'",
                 example=[
                     "cli: -metric_utilization 'place 0 50.00'",
-                    "api: chip.set('metric', 'utilization', 50.00, step='place', index=0)"],
+                    "api: asic.set('metric', 'utilization', 50.00, step='place', index=0)"],
                 pernode=PerNode.REQUIRED,
                 help=trim("""
                 Metric tracking the area utilization of the design calculated as
@@ -74,7 +74,7 @@ class ASICMetricsSchema(MetricSchema):
                 switch="-metric_logicdepth 'step index <int>'",
                 example=[
                     "cli: -metric_logicdepth 'place 0 8'",
-                    "api: chip.set('metric', 'logicdepth', 8, step='place', index=0)"],
+                    "api: asic.set('metric', 'logicdepth', 8, step='place', index=0)"],
                 pernode=PerNode.REQUIRED,
                 help=trim("""
                 Metric tracking the logic depth of the design. This is determined
@@ -96,7 +96,7 @@ class ASICMetricsSchema(MetricSchema):
                     switch=f"-metric_{item} 'step index <float>'",
                     example=[
                         f"cli: -metric_{item} 'place 0 0.01'",
-                        f"api: chip.set('metric', '{item}', 0.01, step='place', index=0)"],
+                        f"api: asic.set('metric', '{item}', 0.01, step='place', index=0)"],
                     pernode=PerNode.REQUIRED,
                     help=trim(f"""
                     Metric tracking the {description} of the design specified on a per step
@@ -117,7 +117,7 @@ class ASICMetricsSchema(MetricSchema):
                 switch="-metric_irdrop 'step index <float>'",
                 example=[
                     "cli: -metric_irdrop 'place 0 0.05'",
-                    "api: chip.set('metric', 'irdrop', 0.05, step='place', index=0)"],
+                    "api: asic.set('metric', 'irdrop', 0.05, step='place', index=0)"],
                 pernode=PerNode.REQUIRED,
                 help=trim("""
                 Metric tracking the peak IR drop in the design based on extracted
@@ -138,7 +138,7 @@ class ASICMetricsSchema(MetricSchema):
                     switch=f"-metric_{item} 'step index <int>'",
                     example=[
                         f"cli: -metric_{item} 'place 0 10'",
-                        f"api: chip.set('metric', '{item}', 10, step='place', index=0)"],
+                        f"api: asic.set('metric', '{item}', 10, step='place', index=0)"],
                     pernode=PerNode.REQUIRED,
                     help=trim(f"""
                     Metric tracking the total number of timing paths violating {description}
@@ -163,7 +163,7 @@ class ASICMetricsSchema(MetricSchema):
                     switch=f"-metric_{item} 'step index <float>'",
                     example=[
                         f"cli: -metric_{item} 'place 0 0.01'",
-                        f"api: chip.set('metric', '{item}', 0.01, step='place', index=0)"],
+                        f"api: asic.set('metric', '{item}', 0.01, step='place', index=0)"],
                     pernode=PerNode.REQUIRED,
                     help=trim(f"""
                     Metric tracking the {description} on a per step and index basis.""")))
@@ -180,7 +180,7 @@ class ASICMetricsSchema(MetricSchema):
                     switch=f"-metric_{item} 'step index <float>'",
                     example=[
                         f"cli: -metric_{item} 'place 0 100e6'",
-                        f"api: chip.set('metric', '{item}', 100e6, step='place', index=0)"],
+                        f"api: asic.set('metric', '{item}', 100e6, step='place', index=0)"],
                     pernode=PerNode.REQUIRED,
                     help=trim(f"""
                     Metric tracking the {description} on a per step and index basis.""")))
@@ -204,7 +204,7 @@ class ASICMetricsSchema(MetricSchema):
                     switch=f"-metric_{item} 'step index <int>'",
                     example=[
                         f"cli: -metric_{item} 'place 0 100'",
-                        f"api: chip.set('metric', '{item}', 50, step='place', index=0)"],
+                        f"api: asic.set('metric', '{item}', 50, step='place', index=0)"],
                     pernode=PerNode.REQUIRED,
                     help=trim(f"""
                     Metric tracking the total number of {description} in the design
@@ -220,7 +220,7 @@ class ASICMetricsSchema(MetricSchema):
                 switch="-metric_wirelength 'step index <float>'",
                 example=[
                     "cli: -metric_wirelength 'place 0 100.0'",
-                    "api: chip.set('metric', 'wirelength', 50.0, step='place', index=0)"],
+                    "api: asic.set('metric', 'wirelength', 50.0, step='place', index=0)"],
                 pernode=PerNode.REQUIRED,
                 help=trim("""
                 Metric tracking the total wirelength of the design on a per step
@@ -235,7 +235,7 @@ class ASICMetricsSchema(MetricSchema):
                 switch="-metric_overflow 'step index <int>'",
                 example=[
                     "cli: -metric_overflow 'place 0 0'",
-                    "api: chip.set('metric', 'overflow', 50, step='place', index=0)"],
+                    "api: asic.set('metric', 'overflow', 50, step='place', index=0)"],
                 pernode=PerNode.REQUIRED,
                 help=trim("""
                 Metric tracking the total number of overflow tracks for the routing

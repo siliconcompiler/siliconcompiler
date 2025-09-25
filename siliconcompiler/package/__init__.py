@@ -30,32 +30,6 @@ from urllib import parse as url_parse
 from siliconcompiler.utils import get_plugins
 
 
-def path(chip, package):
-    """DEPRECATED: Use chip.get_resolver(package).get_path() instead."""
-    import warnings
-    warnings.warn("The 'path' method has been deprecated",
-                  DeprecationWarning)
-    return chip.get("package", field="schema").get_resolver(package).get_path()
-
-
-def register_python_data_source(chip,
-                                package_name,
-                                python_module,
-                                alternative_path,
-                                alternative_ref=None,
-                                python_module_path_append=None):
-    """DEPRECATED: Use PythonPathResolver.register_source() instead."""
-    import warnings
-    warnings.warn("The 'register_python_data_source' method was renamed "
-                  "PythonPathResolver.register_source",
-                  DeprecationWarning)
-
-    PythonPathResolver.register_source(
-        chip, package_name, python_module, alternative_path,
-        alternative_ref=alternative_ref,
-        python_module_path_append=python_module_path_append)
-
-
 class Resolver:
     """
     Abstract base class for all data source resolvers.
@@ -66,7 +40,7 @@ class Resolver:
 
     Attributes:
         name (str): The name of the data package being resolved.
-        root (object): The root object (typically a Chip) providing context,
+        root (object): The root object (typically a Project) providing context,
             such as environment variables and the working directory.
         source (str): The URI or path specifying the data source.
         reference (str): A version, commit hash, or tag for remote sources.
@@ -149,7 +123,7 @@ class Resolver:
 
     @property
     def root(self):
-        """The root object (e.g., Chip) providing context."""
+        """The root object (e.g., Project) providing context."""
         return self.__root
 
     @property
@@ -234,7 +208,7 @@ class Resolver:
         Gets a cached path for a given root object and resolver name.
 
         Args:
-            root: The root object (e.g., Chip).
+            root: The root object (e.g., Project).
             name (str, optional): The name of the resolver cache to retrieve.
                 If None, returns a copy of the entire cache for the root.
 
@@ -257,7 +231,7 @@ class Resolver:
         Sets a cached path for a given root object and resolver name.
 
         Args:
-            root: The root object (e.g., Chip).
+            root: The root object (e.g., Project).
             name (str): The name of the resolver cache to set.
             path (str): The path to cache.
         """
@@ -366,7 +340,7 @@ class RemoteResolver(Resolver):
         it defaults to `~/.sc/cache`.
 
         Args:
-            root: The root Chip object.
+            root: The root Project object.
 
         Returns:
             Path: The path to the cache directory.
@@ -553,7 +527,7 @@ class FileResolver(Resolver):
     """
     A resolver for local file system paths.
 
-    It handles both absolute paths and paths relative to the chip's CWD.
+    It handles both absolute paths and paths relative to the project's CWD.
     It normalizes the source string to a `file://` URI.
     """
 
@@ -670,7 +644,7 @@ class PythonPathResolver(Resolver):
         `alternative_ref` are used.
 
         Args:
-            root (Chip): The chip object to register the source with.
+            root (Project): The project object to register the source with.
             package_name (str): The name of the package to register.
             python_module (str): The Python module to check for.
             alternative_path (str): The fallback source path.
@@ -728,10 +702,10 @@ class PythonPathResolver(Resolver):
 
 class KeyPathResolver(Resolver):
     """
-    A resolver for finding file paths stored within the Chip schema itself.
+    A resolver for finding file paths stored within the project schema itself.
 
     This resolver takes a keypath (e.g., 'tool,openroad,exe') and uses the
-    `find_files` method of the root Chip object to locate the corresponding file.
+    `find_files` method of the root project object to locate the corresponding file.
     """
 
     def __init__(self, name, root, source, reference=None):
@@ -739,13 +713,13 @@ class KeyPathResolver(Resolver):
 
     def resolve(self):
         """
-        Resolves the path by looking up the keypath in the Chip schema.
+        Resolves the path by looking up the keypath in the project schema.
 
         Returns:
             str: The file path found in the schema.
 
         Raises:
-            RuntimeError: If the resolver does not have a root Chip object defined.
+            RuntimeError: If the resolver does not have a root project object defined.
         """
         if not self.root:
             raise RuntimeError(f"A root schema has not been defined for '{self.name}'")

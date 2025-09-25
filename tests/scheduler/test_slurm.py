@@ -84,7 +84,7 @@ def test_slurm_local_py(project):
     # Inserting value into configuration
     project.set('option', 'scheduler', 'name', 'slurm')
 
-    # Run the chip's build process synchronously.
+    # Run the project's build process synchronously.
     assert project.run()
 
     assert os.path.isfile('build/testdesign/job0/testdesign.pkg.json')

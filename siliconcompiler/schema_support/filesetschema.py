@@ -33,8 +33,8 @@ class FileSetSchema(PathSchema):
                 scope=Scope.GLOBAL,
                 shorthelp="Fileset files",
                 example=[
-                    "api: chip.set('fileset', 'rtl', 'file', 'verilog', 'mytop.v')",
-                    "api: chip.set('fileset', 'testbench', 'file', 'verilog', 'tb.v')"],
+                    "api: schema.set('fileset', 'rtl', 'file', 'verilog', 'mytop.v')",
+                    "api: schema.set('fileset', 'testbench', 'file', 'verilog', 'tb.v')"],
                 help=trim("""
                 List of files grouped as a named set ('fileset'). The exact names of
                 filetypes and filesets must match the names used in tasks

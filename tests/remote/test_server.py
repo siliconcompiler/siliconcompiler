@@ -20,8 +20,8 @@ def test_server_authenticated(gcd_nop_project, scserver, scserver_users, scserve
     # Start running an sc-server instance.
     port = scserver(auth=True)
 
-    # Create the temporary credentials file, and set the Chip to use it.
-    scserver_credential(port, user, user_pwd, chip=gcd_nop_project)
+    # Create the temporary credentials file, and set the project to use it.
+    scserver_credential(port, user, user_pwd, project=gcd_nop_project)
 
     gcd_nop_project.set('option', 'nodisplay', True)
 
@@ -58,7 +58,7 @@ def test_server_not_authenticated(gcd_nop_project, scserver, scserver_users,
     # Ensure that klayout doesn't open its GUI after results are retrieved.
     gcd_nop_project.set('option', 'nodisplay', True)
 
-    # Create the temporary credentials file, and set the Chip to use it.
+    # Create the temporary credentials file, and set the project to use it.
     tmp_creds = scserver_credential(port, user, user_pwd + '1')
 
     # Add remote parameters.
@@ -75,7 +75,7 @@ def test_server(gcd_remote_test):
        example using loopback network calls to that server.
     '''
 
-    # Get the partially-configured GCD Chip object from the fixture.
+    # Get the partially-configured GCD project object from the fixture.
     gcd_project = gcd_remote_test()
 
     # Run the remote job.
@@ -100,7 +100,7 @@ def test_server_partial(gcd_remote_test):
        This test runs a partial flowgraph on the remote server.
     '''
 
-    # Get the partially-configured GCD Chip object from the fixture.
+    # Get the partially-configured GCD project object from the fixture.
     gcd_project = gcd_remote_test()
 
     # Set from/to to limit how many steps are run on the remote host.
@@ -127,7 +127,7 @@ def test_server_slurm(gcd_remote_test):
        example using loopback network calls to that server.
     '''
 
-    # Get the partially-configured GCD Chip object from the fixture.
+    # Get the partially-configured GCD project object from the fixture.
     gcd_project = gcd_remote_test(use_slurm=True)
 
     # Run the remote job.

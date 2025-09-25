@@ -20,15 +20,15 @@ class WebDashboard(AbstractDashboard):
     A web-based dashboard for SiliconCompiler that uses the Streamlit framework.
 
     This class launches a Streamlit server in a separate process to provide a
-    real-time, interactive web UI for monitoring a chip's compilation flow.
+    real-time, interactive web UI for monitoring a project's compilation flow.
     It manages a temporary directory for passing manifests and configuration
     between the main SC process and the Streamlit dashboard process.
 
     Args:
-        chip (Chip): The main chip object to display.
+        project (Project): The main project object to display.
         port (int, optional): The port to run the Streamlit server on. If not
             provided, it will search for an available port.
-        graph_chips (list, optional): A list of other chip objects to include
+        graph_projs (list, optional): A list of other project objects to include
             for comparison or display in the dashboard.
     """
     __port = 8501
@@ -39,7 +39,7 @@ class WebDashboard(AbstractDashboard):
         # used to avoid issues during shutdown
         pass
 
-    def __init__(self, chip, port=None, graph_chips=None):
+    def __init__(self, project, port=None, graph_projs=None):
         """
         Initializes the WebDashboard.
         """
@@ -48,7 +48,7 @@ class WebDashboard(AbstractDashboard):
         except ModuleNotFoundError:
             raise NotImplementedError('streamlit is not available for dashboard')
 
-        super().__init__(chip)
+        super().__init__(project)
 
         if not port:
             port = WebDashboard.get_next_port()
@@ -56,9 +56,9 @@ class WebDashboard(AbstractDashboard):
             port = WebDashboard.__port
 
         self.__dashboard = None
-        self.__chip = chip
+        self.__project = project
         self.__directory = tempfile.mkdtemp(prefix='sc_dashboard_',
-                                            suffix=f'_{self.__chip.design.name}')
+                                            suffix=f'_{self.__project.name}')
         self.__manifest = os.path.join(self.__directory, 'manifest.json')
         self.__manifest_lock = os.path.join(self.__directory, 'manifest.lock')
         self.__port = port
@@ -77,30 +77,30 @@ class WebDashboard(AbstractDashboard):
         if "PYTEST_CURRENT_TEST" in os.environ:
             self.__streamlit_args.append(("server.headless", True))
 
-        # Prepare configuration for any additional chips to be displayed
-        self.__graph_chips = []
-        graph_chips_config = []
-        if graph_chips:
-            for chip_object_and_name in graph_chips:
-                chip_file_path = \
+        # Prepare configuration for any additional projects to be displayed
+        self.__graph_projects = []
+        graph_projects_config = []
+        if graph_projs:
+            for project_object_and_name in graph_projs:
+                project_file_path = \
                     os.path.join(self.__directory,
-                                 f"{chip_object_and_name['name']}.json")
-                self.__graph_chips.append({
-                    'chip': chip_object_and_name['chip'],
-                    'name': chip_file_path
+                                 f"{project_object_and_name['name']}.json")
+                self.__graph_projects.append({
+                    'project': project_object_and_name['project'],
+                    'name': project_file_path
                 })
-                graph_chips_config.append({
-                    "path": chip_file_path,
-                    "cwd": utils.get_chip_cwd(
-                        chip_object_and_name['chip'],
-                        chip_object_and_name['cfg_path'])
+                graph_projects_config.append({
+                    "path": project_file_path,
+                    "cwd": utils.get_project_cwd(
+                        project_object_and_name['project'],
+                        project_object_and_name['cfg_path'])
                 })
 
         # Final configuration object to be passed to the Streamlit process
         self.__config = {
             "manifest": self.__manifest,
             "lock": self.__manifest_lock,
-            "graph_chips": graph_chips_config
+            "graph_projects": graph_projects_config
         }
 
         self.__sleep_time = 0.5
@@ -136,7 +136,7 @@ class WebDashboard(AbstractDashboard):
 
     def update_manifest(self, payload=None):
         """
-        Writes the main chip's manifest to the shared temporary directory.
+        Writes the main project's manifest to the shared temporary directory.
 
         This method is the primary way data is passed from the main process
         to the dashboard process. It uses a file lock to prevent race conditions.
@@ -146,19 +146,19 @@ class WebDashboard(AbstractDashboard):
 
         # Write to a new file and then move it to be atomic
         new_file = f"{self.__manifest}.new.json"
-        self.__chip.write_manifest(new_file)
+        self.__project.write_manifest(new_file)
 
         with self.__lock:
             shutil.move(new_file, self.__manifest)
 
     def update_graph_manifests(self):
         """
-        Writes the manifests for all additional graph chips to the shared directory.
+        Writes the manifests for all additional graph projects to the shared directory.
         """
-        for chip_object_and_name in self.__graph_chips:
-            chip = chip_object_and_name['chip']
-            file_path = chip_object_and_name['name']
-            chip.write_manifest(file_path)
+        for project_object_and_name in self.__graph_projects:
+            project = project_object_and_name['project']
+            file_path = project_object_and_name['name']
+            project.write_manifest(file_path)
 
     def __get_config_file(self):
         """Returns the path to the dashboard's JSON configuration file."""

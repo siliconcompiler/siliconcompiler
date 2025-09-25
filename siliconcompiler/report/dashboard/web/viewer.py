@@ -26,7 +26,7 @@ if __name__ == "__main__":
 
     # Configure the page's title, icon, and other basic properties.
     components.setup_page()
-    # Set up the application state, loading data from the chip object.
+    # Set up the application state, loading data from the project object.
     state.setup()
 
     # Dynamically select the layout function based on the current state
@@ -37,8 +37,8 @@ if __name__ == "__main__":
     # Determine if a full page reload is needed.
     reload = False
     if state.get_key(state.SELECTED_JOB) == 'default':
-        # Check if the underlying chip process is running and update the state.
-        reload = state.set_key(state.IS_RUNNING, utils.is_running(state.get_chip()))
+        # Check if the underlying project process is running and update the state.
+        reload = state.set_key(state.IS_RUNNING, utils.is_running(state.get_project()))
 
     # Set the refresh interval based on the run status.
     # Use a faster refresh rate when a job is running, and a slower one when stopped.

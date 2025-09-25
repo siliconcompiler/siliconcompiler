@@ -23,7 +23,7 @@ def get_image(project, step, index):
     3. A default image name constructed as 'ghcr.io/siliconcompiler/sc_runner:v<version>'.
 
     Args:
-        project (Chip): The Chip object.
+        project (Project): The project object.
         step (str): The step name of the node.
         index (str): The index of the node.
 
@@ -52,7 +52,7 @@ def get_volumes_directories(project, cache_dir, workdir, step, index):
     (RW) and read-only (RO) sets.
 
     Args:
-        project (Chip): The Chip object.
+        project (Project): The project object.
         cache_dir (str): The path to the cache directory.
         workdir (str): The path to the node's working directory.
         step (str): The step name of the current node.
@@ -142,7 +142,7 @@ class DockerSchedulerNode(SchedulerNode):
         """Initializes a DockerSchedulerNode.
 
         Args:
-            chprojectip (Project): The parent Project object.
+            project (Project): The parent Project object.
             step (str): The step name in the flowgraph.
             index (str): The index for the step.
             replay (bool): If True, sets up the node to replay a previous run.
@@ -167,7 +167,7 @@ class DockerSchedulerNode(SchedulerNode):
         It then triggers :meth:`.collect()` to ensure all files are staged.
 
         Args:
-            project (Chip): The Chip object to perform pre-processing on.
+            project (Project): The project object to perform pre-processing on.
         """
         if sys.platform == 'win32':
             # this avoids the issue of different file system types
