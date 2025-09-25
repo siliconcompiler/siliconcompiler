@@ -1,31 +1,18 @@
-from siliconcompiler import Chip, FPGA
+from siliconcompiler import FPGA
 
 
-####################################################
-# Setup for ICE40 Family FPGAs
-####################################################
-def setup():
+class ICE40Up5k_sg48(FPGA):
     '''
-    Lattice ICE40 FPGAs are a family of small parts
-    made by Lattice Semiconductor.  A fully open source
-    RTL to bitstream flow for ICE40 is available using
-    yosys + nextpnr
+    SiliconCompiler object for the Lattice iCE40UP5K FPGA with the SG48 package.
+
+    This class configures the SiliconCompiler framework to target the iCE40UP5K,
+    a small, low-power FPGA from Lattice Semiconductor. It leverages the fully
+    open-source RTL-to-bitstream toolchain consisting of Yosys for synthesis
+    and nextpnr for place-and-route.
     '''
 
-    all_fpgas = []
-
-    for part_name in ("ice40up5k-sg48",):
-        fpga = FPGA(part_name)
-
-        fpga.set('fpga', part_name, 'vendor', 'lattice')
-        fpga.set('fpga', part_name, 'lutsize', 4)
-
-        all_fpgas.append(fpga)
-
-    return all_fpgas
-
-
-#########################
-if __name__ == "__main__":
-    for fpga in setup(Chip('<fpga>')):
-        fpga.write_manifest(f'{fpga.design}.json')
+    def __init__(self):
+        super().__init__("ice40up5k-sg48")
+        self.set_vendor("lattice")
+        self.set_partname("ice40up5k-sg48")
+        self.set_lutsize(4)

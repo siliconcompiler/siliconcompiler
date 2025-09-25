@@ -160,14 +160,14 @@ class ASICTimingScenarioSchema(NamedSchema):
         return self.get("voltage", pin, step=step, index=index)
 
     def add_libcorner(self,
-                      libcorner: str,
+                      libcorner: Union[List[str], str],
                       clobber: bool = False,
                       step: str = None, index: Union[str, int] = None):
         """
         Adds a library corner to the design.
 
         Args:
-            libcorner (str): The name of the library corner to add.
+            libcorner (Union[List[str], str]): One or more library corners to add.
             clobber (bool): If True, existing library corners at the specified step/index will
                     be overwritten.
                     If False (default), the library corner will be added.
@@ -352,14 +352,14 @@ class ASICTimingScenarioSchema(NamedSchema):
         return self.get("sdcfileset", step=step, index=index)
 
     def add_check(self,
-                  check: str,
+                  check: Union[List[str], str],
                   clobber: bool = False,
                   step: str = None, index: Union[str, int] = None):
         """
         Adds a check to the design process.
 
         Args:
-            check (str): The name of the check to add.
+            check (Union[List[str], str]): One or more checks to add.
             clobber (bool): If True, existing checks at the specified step/index will
                     be overwritten.
                     If False (default), the check will be added.
@@ -450,8 +450,8 @@ class ASICTimingConstraintSchema(BaseSchema):
         """
         if scenario is None:
             scenarios = {}
-            for scenario in self.getkeys():
-                scenarios[scenario] = self.get(scenario, field="schema")
+            for name in self.getkeys():
+                scenarios[name] = self.get(name, field="schema")
             return scenarios
 
         if not self.valid(scenario):

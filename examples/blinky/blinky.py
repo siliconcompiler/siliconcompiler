@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 
 # Import the necessary classes for an FPGA project. Note the use of
-# FPGAProject and FPGA, which are specific to FPGA flows.
-from siliconcompiler import FPGAProject, Design, FPGA
+# FPGAProject, which is specific to FPGA flows.
+from siliconcompiler import FPGAProject, Design
 # Import a pre-defined flow for FPGAs.
 from siliconcompiler.flows import fpgaflow
+from siliconcompiler.fpgas.lattice_ice40 import ICE40Up5k_sg48
 
 
 def main():
@@ -43,13 +44,8 @@ def main():
     project.add_fileset("pcf")
 
     # --- FPGA Target Configuration ---
-    # Define the specific FPGA chip we are targeting.
-    fpga = FPGA("ice40")
-    # The partname is a vendor-specific code that uniquely identifies the FPGA.
-    # This tells the tools about the chip's resources (LUTs, BRAM, etc.) and package.
-    fpga.set_partname("ice40up5k-sg48")
     # Apply this FPGA configuration to the project.
-    project.set_fpga(fpga)
+    project.set_fpga(ICE40Up5k_sg48())
 
     # --- Flow Loading ---
     # Set the compilation flow. The FPGANextPNRFlow is a pre-built flow

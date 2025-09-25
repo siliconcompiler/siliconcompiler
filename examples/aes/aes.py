@@ -51,7 +51,7 @@ def main():
     # project with all the necessary settings for the FreePDK45 technology,
     # including the process design kit (PDK), standard cell libraries,
     # and a default tool flow.
-    freepdk45_demo.setup(project)
+    freepdk45_demo(project)
 
     # --- Execution ---
     # The run() command executes the entire pre-defined flow, which typically

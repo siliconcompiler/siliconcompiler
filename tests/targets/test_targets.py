@@ -15,7 +15,7 @@ from siliconcompiler import ASICProject
         skywater130_demo))
 def test_target_loading_asic(target):
     proj = ASICProject()
-    target.setup(proj)
+    target(proj)
 
     assert len(proj.getkeys('library')) != 0
     assert proj.get("asic", "mainlib") is not None

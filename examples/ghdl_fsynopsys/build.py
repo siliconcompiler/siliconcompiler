@@ -38,7 +38,7 @@ def main():
     project.add_fileset("rtl")
 
     # Load the target configuration for the FreePDK45 technology.
-    freepdk45_demo.setup(project)
+    freepdk45_demo(project)
 
     # --- Flow Configuration ---
     # Set the project to use the VHDLASICFlow. This is a pre-built flow

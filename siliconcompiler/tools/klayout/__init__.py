@@ -209,7 +209,7 @@ class KLayoutTask(ASICTask):
             design.set_topmodule("top")
         proj = ASICProject(design)
         proj.add_fileset("docs")
-        freepdk45_demo.setup(proj)
+        freepdk45_demo(proj)
         flow = Flowgraph("docsflow")
         flow.node("<step>", cls(), index="<index>")
         proj.set_flow(flow)

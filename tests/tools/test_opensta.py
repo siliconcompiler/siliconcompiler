@@ -25,7 +25,7 @@ def test_opensta(datadir):
         design.add_file(os.path.join("lec", "foo.sdc"))
     proj = ASICProject(design)
     proj.add_fileset(["rtl", "sdc"])
-    freepdk45_demo.setup(proj)
+    freepdk45_demo(proj)
 
     flow = Flowgraph("timing")
     flow.node("opensta", timing.TimingTask())
@@ -52,7 +52,7 @@ def test_opensta_sdf(datadir):
         design.add_file(os.path.join("lec", "foo.sdc"))
     proj = ASICProject(design)
     proj.add_fileset(["rtl", "sdc"])
-    freepdk45_demo.setup(proj)
+    freepdk45_demo(proj)
 
     flow = Flowgraph("timing")
     flow.node('import', ImporterTask())

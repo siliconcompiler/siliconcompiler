@@ -14,7 +14,7 @@ import os.path
 from typing import Callable, List
 
 
-def checkarea(design: Design, filesets: List[str], target: Callable):
+def checkarea(design: Design, filesets: List[str], target: Callable[[ASICProject], None]):
     '''Runs synthesis for a list of designs and reports the area.
 
     This function iterates through a provided list of filesets (each representing
@@ -24,8 +24,8 @@ def checkarea(design: Design, filesets: List[str], target: Callable):
     Args:
         design (Design): The master design object containing all filesets.
         filesets (List[str]): A list of fileset names to process.
-        target (Callable): A SiliconCompiler target setup function, such as
-            freepdk45_demo.setup.
+        target (Callable[[ASICProject], None]): A SiliconCompiler target setup function, such as
+            freepdk45_demo.
     '''
 
     # Print a header for the CSV output.
@@ -117,7 +117,7 @@ def main(limit: int = -1):
     filesets = sorted([key for key in design.getkeys("fileset") if key.startswith('rtl')])[0:limit]
 
     # Call the main processing function with the fully configured design object.
-    checkarea(design, filesets, freepdk45_demo.setup)
+    checkarea(design, filesets, freepdk45_demo)
 
     return 0
 
