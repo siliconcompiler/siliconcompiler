@@ -38,77 +38,77 @@ class OperationsTask(KLayoutTask):
 
         To rotate:
 
-        >>> chip.add('tool', 'klayout, 'task', 'operations', 'var', 'operations', 'rotate')
+        >>> project.add('tool', 'klayout, 'task', 'operations', 'var', 'operations', 'rotate')
 
         To rename:
 
-        >>> chip.add('tool', 'klayout, 'task', 'operations', 'var', 'operations', \\
+        >>> project.add('tool', 'klayout, 'task', 'operations', 'var', 'operations', \\
             'rename:tool,klayout,task,operations,var,new_name')
-        >>> chip.set('tool', 'klayout, 'task', 'operations', 'var', 'new_name', \\
+        >>> project.set('tool', 'klayout, 'task', 'operations', 'var', 'new_name', \\
             'chip_top')
 
         To merge streams:
 
-        >>> chip.add('tool', 'klayout, 'task', 'operations', 'var', 'operations', \\
+        >>> project.add('tool', 'klayout, 'task', 'operations', 'var', 'operations', \\
             'merge:tool,klayout,task,operations,file,fill_stream')
-        >>> chip.set('tool', 'klayout, 'task', 'operations', 'file', 'fill_stream', \\
+        >>> project.set('tool', 'klayout, 'task', 'operations', 'file', 'fill_stream', \\
             './fill.gds')
 
         or to get it from the inputs to this task:
 
-        >>> chip.add('tool', 'klayout, 'task', 'operations', 'var', 'operations', \\
+        >>> project.add('tool', 'klayout, 'task', 'operations', 'var', 'operations', \\
             'merge:fill.gds')
 
         To add streams:
 
-        >>> chip.add('tool', 'klayout, 'task', 'operations', 'var', 'operations', \\
+        >>> project.add('tool', 'klayout, 'task', 'operations', 'var', 'operations', \\
             'add:tool,klayout,task,operations,file,fill_stream')
-        >>> chip.set('tool', 'klayout, 'task', 'operations', 'file', 'fill_stream', \\
+        >>> project.set('tool', 'klayout, 'task', 'operations', 'file', 'fill_stream', \\
             './fill.gds')
 
         or to get it from the inputs to this task:
 
-        >>> chip.add('tool', 'klayout, 'task', 'operations', 'var', 'operations', \\
+        >>> project.add('tool', 'klayout, 'task', 'operations', 'var', 'operations', \\
             'add:fill.gds')
 
         To add outline:
 
-        >>> chip.add('tool', 'klayout, 'task', 'operations', 'var', 'operations', \\
+        >>> project.add('tool', 'klayout, 'task', 'operations', 'var', 'operations', \\
             'outline:tool,klayout,task,operations,var,outline')
-        >>> chip.set('tool', 'klayout, 'task', 'operations', 'var', 'outline', \\
+        >>> project.set('tool', 'klayout, 'task', 'operations', 'var', 'outline', \\
             ['10', '1'])  # layer / purpose pair
 
         To swap layout cells:
 
-        >>> chip.add('tool', 'klayout, 'task', 'operations', 'var', 'operations', \\
+        >>> project.add('tool', 'klayout, 'task', 'operations', 'var', 'operations', \\
             'swap:tool,klayout,task,operations,var,cell_swap')
-        >>> chip.set('tool', 'klayout, 'task', 'operations', 'var', 'cell_swap', \\
+        >>> project.set('tool', 'klayout, 'task', 'operations', 'var', 'cell_swap', \\
             ['dummy_ANDX2=ANDX2', 'dummy_NANDX2=NANDX2'])
 
         To rename cells:
 
-        >>> chip.add('tool', 'klayout, 'task', 'operations', 'var', 'operations', \\
+        >>> project.add('tool', 'klayout, 'task', 'operations', 'var', 'operations', \\
             'rename_cell:tool,klayout,task,operations,var,rename_cell')
-        >>> chip.set('tool', 'klayout, 'task', 'operations', 'var', 'rename_cell', \\
+        >>> project.set('tool', 'klayout, 'task', 'operations', 'var', 'rename_cell', \\
             ['dummy_ANDX2=ANDX2', 'dummy_NANDX2=NANDX2'])
 
         To add new top cell:
 
-        >>> chip.add('tool', 'klayout, 'task', 'operations', 'var', 'operations', \\
+        >>> project.add('tool', 'klayout, 'task', 'operations', 'var', 'operations', \\
             'add_top:tool,klayout,task,operations,var,new_name')
-        >>> chip.set('tool', 'klayout, 'task', 'operations', 'var', 'new_name', \\
+        >>> project.set('tool', 'klayout, 'task', 'operations', 'var', 'new_name', \\
             'chip_top')
 
         To write out a new file:
 
-        >>> chip.add('tool', 'klayout, 'task', 'operations', 'var', 'operations', \\
+        >>> project.add('tool', 'klayout, 'task', 'operations', 'var', 'operations', \\
             'write:combined.gds')
 
         To convert stream properties to text labels:
 
-        >>> chip.add('tool', 'klayout, 'task', 'operations', 'var', 'operations', \\
+        >>> project.add('tool', 'klayout, 'task', 'operations', 'var', 'operations', \\
             'convert_property:tool,klayout,task,operations,var,convert_c4_bumps')
-        >>> chip.set('tool', 'klayout, 'task', 'operations', 'var', 'convert_c4_bumps', \\
+        >>> project.set('tool', 'klayout, 'task', 'operations', 'var', 'convert_c4_bumps', \\
             ['10', '2', \\  # layer / purpose pair for the source of the labels
             '3' \\  # stream property number
             '85', '5'])  #  (optional) destination layer / purpose pair, if not provided
