@@ -26,7 +26,14 @@ class FPGAConstraint(BaseSchema):
     implementation flow, such as timing, component placement, and pin assignments.
     """
     def __init__(self):
-        """Initializes the FPGAConstraint schema."""
+        """
+        Create the FPGAConstraint schema and populate it with timing, component, and pin sub-schemas.
+        
+        Initializes an EditableSchema for this FPGAConstraint and inserts the following child schemas:
+        - "timing": FPGATimingConstraintSchema
+        - "component": FPGAComponentConstraints
+        - "pin": FPGAPinConstraints
+        """
         super().__init__()
 
         schema = EditableSchema(self)
@@ -45,19 +52,21 @@ class FPGAConstraint(BaseSchema):
 
     @property
     def component(self) -> FPGAComponentConstraints:
-        """Provides access to the component placement constraints.
-
+        """
+        Access the component placement constraints schema.
+        
         Returns:
-            FPGAComponentConstraints: The schema object for component constraints.
+            FPGAComponentConstraints: Component placement constraints schema.
         """
         return self.get("component", field="schema")
 
     @property
     def pin(self) -> FPGAPinConstraints:
-        """Provides access to pin assignment constraints.
-
+        """
+        Access the schema containing pin assignment constraints.
+        
         Returns:
-            FPGAPinConstraints: The schema object for pin constraints.
+            FPGAPinConstraints: The schema for pin assignment constraints.
         """
         return self.get("pin", field="schema")
 
@@ -156,12 +165,14 @@ class FPGAProject(Project):
 
     def __init__(self, design=None):
         """
-        Initializes the FPGAProject.
-
-        This constructor sets up the project by calling the parent constructor
-        and then inserting FPGA-specific schema definitions for timing, component,
-        and pin constraints, as well as FPGA-specific metrics. It also adds
-        a parameter for specifying the target FPGA device.
+        Initialize an FPGAProject with FPGA-specific schemas and parameters.
+        
+        Creates the base Project, inserts an FPGAConstraint container at "constraint",
+        adds FPGA metrics under "metric" (clobber allowed), and registers the
+        string parameter "fpga.device" for selecting the target FPGA device.
+        
+        Parameters:
+            design (optional): Optional project design data passed to the base Project.
         """
         super().__init__(design)
 
@@ -223,14 +234,12 @@ class FPGAProject(Project):
 
     def check_manifest(self):
         """
-        Validates the project's manifest to ensure it is configured correctly.
-
-        This method performs the base project checks and then verifies that a
-        target FPGA device has been set and that the corresponding library
-        has been loaded into the project.
-
+        Validate the project manifest for FPGA configuration and library availability.
+        
+        Runs the base project manifest checks, verifies that the "fpga.device" parameter is set, and confirms the corresponding FPGA library has been loaded into the project.
+        
         Returns:
-            bool: True if the manifest is valid, False otherwise.
+            bool: `True` if the manifest is valid, `False` otherwise.
         """
         error = not super().check_manifest()
 

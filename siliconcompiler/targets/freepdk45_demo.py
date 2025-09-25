@@ -14,23 +14,18 @@ def freepdk45_demo(
         syn_np: int = 1,
         floorplan_np: int = 1, place_np: int = 1, cts_np: int = 1, route_np: int = 1,
         timing_np: int = 1):
-    '''
-    Configures a siliconcompiler project for the FreePDK45 process development kit.
-
-    This function sets up the entire compilation pipeline, including the
-    Nangate45 standard cell library, compilation flows, a simplified set of
-    timing constraints, and physical design parameters for a FreePDK45 target.
-
-    Args:
-
-        * project (:class:`ASICProject`): The siliconcompiler project to configure.
-        * syn_np (int): Number of parallel processes for synthesis.
-        * floorplan_np (int): Number of parallel processes for floorplanning.
-        * place_np (int): Number of parallel processes for placement.
-        * cts_np (int): Number of parallel processes for clock tree synthesis.
-        * route_np (int): Number of parallel processes for routing.
-        * timing_np (int): Number of parallel processes for timing analysis.
-    '''
+    """
+        Configure an ASICProject for the FreePDK45 process: load Nangate45 standard-cell library, set synthesis/implementation flows, select the PDK, apply a typical timing scenario and NLDM delay model, set area constraints, and alias the fake RAM library.
+        
+        Parameters:
+            project (ASICProject): Project to configure.
+            syn_np (int): Parallelism (number of worker processes) for synthesis.
+            floorplan_np (int): Parallelism for floorplanning.
+            place_np (int): Parallelism for placement.
+            cts_np (int): Parallelism for clock-tree synthesis.
+            route_np (int): Parallelism for routing.
+            timing_np (int): Parallelism for timing analysis.
+        """
 
     # 1. Load Standard Cell Library
     # Sets the Nangate45 open-source standard cell library as the primary

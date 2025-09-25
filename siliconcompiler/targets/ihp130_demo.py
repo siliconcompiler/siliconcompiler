@@ -15,23 +15,20 @@ def ihp130_demo(
         syn_np: int = 1,
         floorplan_np: int = 1, place_np: int = 1, cts_np: int = 1, route_np: int = 1,
         timing_np: int = 1):
-    '''
-    Configures a siliconcompiler project for the IHP 130nm process development kit (PDK).
-
-    This function sets up the entire compilation pipeline, including the
-    standard cell library, compilation flows, timing constraints, and
-    physical design parameters for an IHP 130nm target.
-
-    Args:
-
-        * project (:class:`ASICProject`): The siliconcompiler project to configure.
-        * syn_np (int): Number of parallel processes for synthesis.
-        * floorplan_np (int): Number of parallel processes for floorplanning.
-        * place_np (int): Number of parallel processes for placement.
-        * cts_np (int): Number of parallel processes for clock tree synthesis.
-        * route_np (int): Number of parallel processes for routing.
-        * timing_np (int): Number of parallel processes for timing analysis.
-    '''
+    """
+        Configure a siliconcompiler ASICProject for the IHP 130nm PDK, including libraries, flows, timing scenarios, and basic physical constraints.
+        
+        Sets the project's main standard-cell library, configures full ASIC and synthesis-only flows with provided parallelism, selects the "ihp130" PDK, creates slow/typical/fast STA scenarios, sets the ASIC delay model to "nldm", applies core area density and margin constraints, and registers the IHP130 SRAM and IO libraries.
+        
+        Parameters:
+            project (ASICProject): The siliconcompiler project to configure.
+            syn_np (int): Parallelism for synthesis-related steps.
+            floorplan_np (int): Parallelism for floorplanning.
+            place_np (int): Parallelism for placement.
+            cts_np (int): Parallelism for clock-tree synthesis.
+            route_np (int): Parallelism for routing.
+            timing_np (int): Parallelism for timing analysis (synthesis-only flow).
+        """
 
     # 1. Load Standard Cell Library
     # Sets the primary standard cell library for the design. This library

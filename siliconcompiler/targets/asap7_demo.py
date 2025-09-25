@@ -15,23 +15,20 @@ def asap7_demo(
         syn_np: int = 1,
         floorplan_np: int = 1, place_np: int = 1, cts_np: int = 1, route_np: int = 1,
         timing_np: int = 1):
-    '''
-    Configures a siliconcompiler project for the ASAP7 process development kit.
-
-    This function sets up the entire compilation pipeline, including multiple
-    threshold voltage (multi-Vt) standard cell libraries, compilation flows,
-    timing constraints, and physical design parameters for an ASAP7 target.
-
-    Args:
-
-        * project (:class:`ASICProject`): The siliconcompiler project to configure.
-        * syn_np (int): Number of parallel processes for synthesis.
-        * floorplan_np (int): Number of parallel processes for floorplanning.
-        * place_np (int): Number of parallel processes for placement.
-        * cts_np (int): Number of parallel processes for clock tree synthesis.
-        * route_np (int): Number of parallel processes for routing.
-        * timing_np (int): Number of parallel processes for timing analysis.
-    '''
+    """
+        Configure an ASICProject for the ASAP7 PDK with multi-Vt libraries, flows, timing corners, and physical constraints.
+        
+        Sets the main and additional standard-cell libraries (RVT, LVT, SLVT), installs synthesis and full ASIC flows, selects the "asap7" PDK, creates slow/typical/fast STA scenarios using NLDM delay model, applies area constraints (40% core density, 1 µm core margin), and registers example IP/macro library aliases.
+        
+        Parameters:
+        	project (ASICProject): The siliconcompiler project to configure.
+        	syn_np (int): Parallel process count for synthesis.
+        	floorplan_np (int): Parallel process count for floorplanning.
+        	place_np (int): Parallel process count for placement.
+        	cts_np (int): Parallel process count for clock-tree synthesis.
+        	route_np (int): Parallel process count for routing.
+        	timing_np (int): Parallel process count for timing-analysis synthesis.
+        """
 
     # 1. Load Standard Cell Libraries
     # ASAP7 provides cells with different threshold voltages (Vt) to allow for
