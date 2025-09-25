@@ -22,17 +22,17 @@ NODE_COLORS = {
 }
 
 
-def get_nodes_and_edges(chip):
+def get_nodes_and_edges(project):
     """
-    Constructs the nodes and edges for the flowgraph from a chip object.
+    Constructs the nodes and edges for the flowgraph from a project object.
 
-    This function traverses the chip's flowgraph, creating styled `Node` and
+    This function traverses the project's flowgraph, creating styled `Node` and
     `Edge` objects for `streamlit-agraph`. Node colors are based on status,
     and edge styles (width, color, dashes) indicate the execution path and
     dependencies.
 
     Args:
-        chip (Chip): The chip object containing the flowgraph data.
+        project (Project): The project object containing the flowgraph data.
 
     Returns:
         tuple: A tuple containing two lists:
@@ -42,7 +42,7 @@ def get_nodes_and_edges(chip):
     nodes = []
     edges = []
 
-    if not chip.get('option', 'flow'):
+    if not project.get('option', 'flow'):
         return nodes, edges
 
     # --- Style Configuration ---
@@ -52,10 +52,10 @@ def get_nodes_and_edges(chip):
     successful_path_edge_width = 5
 
     # --- Data Extraction ---
-    node_dependencies = report.get_flowgraph_edges(chip)
-    successful_path = report.get_flowgraph_path(chip)
-    flow = chip.get('option', 'flow')
-    flowgraph_schema = chip.get("flowgraph", flow, field="schema")
+    node_dependencies = report.get_flowgraph_edges(project)
+    successful_path = report.get_flowgraph_path(project)
+    flow = project.get('option', 'flow')
+    flowgraph_schema = project.get("flowgraph", flow, field="schema")
     entry_exit_nodes = flowgraph_schema.get_entry_nodes() + flowgraph_schema.get_exit_nodes()
 
     # --- Node and Edge Creation ---
@@ -65,7 +65,7 @@ def get_nodes_and_edges(chip):
         if (step, index) in entry_exit_nodes:
             node_border_width = successful_path_node_width
 
-        node_status = chip.get('record', 'status', step=step, index=index)
+        node_status = project.get('record', 'status', step=step, index=index)
         node_color = NODE_COLORS.get(node_status, NODE_COLORS["Unknown"])
 
         tool = flowgraph_schema.get(step, index, "tool")
@@ -84,7 +84,7 @@ def get_nodes_and_edges(chip):
             fixed=True))
 
         # 2. Build Edges to this Node
-        path_taken = set(chip.get('record', 'inputnode', step=step, index=index) or [])
+        path_taken = set(project.get('record', 'inputnode', step=step, index=index) or [])
         all_possible_inputs = set(node_dependencies.get((step, index), []))
         all_edges = all_possible_inputs.union(path_taken)
 

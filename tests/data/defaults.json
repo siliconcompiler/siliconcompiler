@@ -356,7 +356,7 @@
                 "switch": [],
                 "shorthelp": "Data directory path",
                 "example": [
-                  "api: chip.set('dataroot', 'freepdk45_data', 'path', 'ssh://git@github.com/siliconcompiler/freepdk45/')"
+                  "api: project.set('dataroot', 'freepdk45_data', 'path', 'ssh://git@github.com/siliconcompiler/freepdk45/')"
                 ],
                 "help": "Data directory path, this points the location where the data can be\nretrieved or accessed.\nAllowed roots:\n\n* /path/on/network/drive\n* file:///path/on/network/drive\n* git+https://github.com/xyz/xyz\n* git://github.com/xyz/xyz\n* git+ssh://github.com/xyz/xyz\n* ssh://github.com/xyz/xyz\n* https://github.com/xyz/xyz/archive\n* https://zeroasic.com/xyz.tar.gz\n* github://siliconcompiler/lambdapdk/v1.0/asap7.tar.gz\n* python://siliconcompiler",
                 "notes": null,
@@ -378,7 +378,7 @@
                 "switch": [],
                 "shorthelp": "Data directory reference tag/version",
                 "example": [
-                  "api: chip.set('dataroot', 'freepdk45_data', 'tag', '07ec4aa')"
+                  "api: project.set('dataroot', 'freepdk45_data', 'tag', '07ec4aa')"
                 ],
                 "help": "Data directory reference tag. The meaning of the this tag depends on the\ncontext of the path.\nFor git, this can be a tag, branch, or commit id. For https this is the version\nof the file that will be downloaded.",
                 "notes": null,
@@ -2035,7 +2035,7 @@
                     "switch": [],
                     "shorthelp": "Data directory path",
                     "example": [
-                      "api: chip.set('dataroot', 'freepdk45_data', 'path', 'ssh://git@github.com/siliconcompiler/freepdk45/')"
+                      "api: project.set('dataroot', 'freepdk45_data', 'path', 'ssh://git@github.com/siliconcompiler/freepdk45/')"
                     ],
                     "help": "Data directory path, this points the location where the data can be\nretrieved or accessed.\nAllowed roots:\n\n* /path/on/network/drive\n* file:///path/on/network/drive\n* git+https://github.com/xyz/xyz\n* git://github.com/xyz/xyz\n* git+ssh://github.com/xyz/xyz\n* ssh://github.com/xyz/xyz\n* https://github.com/xyz/xyz/archive\n* https://zeroasic.com/xyz.tar.gz\n* github://siliconcompiler/lambdapdk/v1.0/asap7.tar.gz\n* python://siliconcompiler",
                     "notes": null,
@@ -2057,7 +2057,7 @@
                     "switch": [],
                     "shorthelp": "Data directory reference tag/version",
                     "example": [
-                      "api: chip.set('dataroot', 'freepdk45_data', 'tag', '07ec4aa')"
+                      "api: project.set('dataroot', 'freepdk45_data', 'tag', '07ec4aa')"
                     ],
                     "help": "Data directory reference tag. The meaning of the this tag depends on the\ncontext of the path.\nFor git, this can be a tag, branch, or commit id. For https this is the version\nof the file that will be downloaded.",
                     "notes": null,
@@ -4166,7 +4166,7 @@
                 "switch": [],
                 "shorthelp": "Data directory path",
                 "example": [
-                  "api: chip.set('dataroot', 'freepdk45_data', 'path', 'ssh://git@github.com/siliconcompiler/freepdk45/')"
+                  "api: project.set('dataroot', 'freepdk45_data', 'path', 'ssh://git@github.com/siliconcompiler/freepdk45/')"
                 ],
                 "help": "Data directory path, this points the location where the data can be\nretrieved or accessed.\nAllowed roots:\n\n* /path/on/network/drive\n* file:///path/on/network/drive\n* git+https://github.com/xyz/xyz\n* git://github.com/xyz/xyz\n* git+ssh://github.com/xyz/xyz\n* ssh://github.com/xyz/xyz\n* https://github.com/xyz/xyz/archive\n* https://zeroasic.com/xyz.tar.gz\n* github://siliconcompiler/lambdapdk/v1.0/asap7.tar.gz\n* python://siliconcompiler",
                 "notes": null,
@@ -4188,7 +4188,7 @@
                 "switch": [],
                 "shorthelp": "Data directory reference tag/version",
                 "example": [
-                  "api: chip.set('dataroot', 'freepdk45_data', 'tag', '07ec4aa')"
+                  "api: project.set('dataroot', 'freepdk45_data', 'tag', '07ec4aa')"
                 ],
                 "help": "Data directory reference tag. The meaning of the this tag depends on the\ncontext of the path.\nFor git, this can be a tag, branch, or commit id. For https this is the version\nof the file that will be downloaded.",
                 "notes": null,
@@ -6533,7 +6533,7 @@
                     "switch": [],
                     "shorthelp": "Data directory path",
                     "example": [
-                      "api: chip.set('dataroot', 'freepdk45_data', 'path', 'ssh://git@github.com/siliconcompiler/freepdk45/')"
+                      "api: project.set('dataroot', 'freepdk45_data', 'path', 'ssh://git@github.com/siliconcompiler/freepdk45/')"
                     ],
                     "help": "Data directory path, this points the location where the data can be\nretrieved or accessed.\nAllowed roots:\n\n* /path/on/network/drive\n* file:///path/on/network/drive\n* git+https://github.com/xyz/xyz\n* git://github.com/xyz/xyz\n* git+ssh://github.com/xyz/xyz\n* ssh://github.com/xyz/xyz\n* https://github.com/xyz/xyz/archive\n* https://zeroasic.com/xyz.tar.gz\n* github://siliconcompiler/lambdapdk/v1.0/asap7.tar.gz\n* python://siliconcompiler",
                     "notes": null,
@@ -6555,7 +6555,7 @@
                     "switch": [],
                     "shorthelp": "Data directory reference tag/version",
                     "example": [
-                      "api: chip.set('dataroot', 'freepdk45_data', 'tag', '07ec4aa')"
+                      "api: project.set('dataroot', 'freepdk45_data', 'tag', '07ec4aa')"
                     ],
                     "help": "Data directory reference tag. The meaning of the this tag depends on the\ncontext of the path.\nFor git, this can be a tag, branch, or commit id. For https this is the version\nof the file that will be downloaded.",
                     "notes": null,
@@ -8735,7 +8735,7 @@
                 "switch": [],
                 "shorthelp": "Data directory path",
                 "example": [
-                  "api: chip.set('dataroot', 'freepdk45_data', 'path', 'ssh://git@github.com/siliconcompiler/freepdk45/')"
+                  "api: project.set('dataroot', 'freepdk45_data', 'path', 'ssh://git@github.com/siliconcompiler/freepdk45/')"
                 ],
                 "help": "Data directory path, this points the location where the data can be\nretrieved or accessed.\nAllowed roots:\n\n* /path/on/network/drive\n* file:///path/on/network/drive\n* git+https://github.com/xyz/xyz\n* git://github.com/xyz/xyz\n* git+ssh://github.com/xyz/xyz\n* ssh://github.com/xyz/xyz\n* https://github.com/xyz/xyz/archive\n* https://zeroasic.com/xyz.tar.gz\n* github://siliconcompiler/lambdapdk/v1.0/asap7.tar.gz\n* python://siliconcompiler",
                 "notes": null,
@@ -8757,7 +8757,7 @@
                 "switch": [],
                 "shorthelp": "Data directory reference tag/version",
                 "example": [
-                  "api: chip.set('dataroot', 'freepdk45_data', 'tag', '07ec4aa')"
+                  "api: project.set('dataroot', 'freepdk45_data', 'tag', '07ec4aa')"
                 ],
                 "help": "Data directory reference tag. The meaning of the this tag depends on the\ncontext of the path.\nFor git, this can be a tag, branch, or commit id. For https this is the version\nof the file that will be downloaded.",
                 "notes": null,
@@ -11334,7 +11334,7 @@
                     "switch": [],
                     "shorthelp": "Data directory path",
                     "example": [
-                      "api: chip.set('dataroot', 'freepdk45_data', 'path', 'ssh://git@github.com/siliconcompiler/freepdk45/')"
+                      "api: project.set('dataroot', 'freepdk45_data', 'path', 'ssh://git@github.com/siliconcompiler/freepdk45/')"
                     ],
                     "help": "Data directory path, this points the location where the data can be\nretrieved or accessed.\nAllowed roots:\n\n* /path/on/network/drive\n* file:///path/on/network/drive\n* git+https://github.com/xyz/xyz\n* git://github.com/xyz/xyz\n* git+ssh://github.com/xyz/xyz\n* ssh://github.com/xyz/xyz\n* https://github.com/xyz/xyz/archive\n* https://zeroasic.com/xyz.tar.gz\n* github://siliconcompiler/lambdapdk/v1.0/asap7.tar.gz\n* python://siliconcompiler",
                     "notes": null,
@@ -11356,7 +11356,7 @@
                     "switch": [],
                     "shorthelp": "Data directory reference tag/version",
                     "example": [
-                      "api: chip.set('dataroot', 'freepdk45_data', 'tag', '07ec4aa')"
+                      "api: project.set('dataroot', 'freepdk45_data', 'tag', '07ec4aa')"
                     ],
                     "help": "Data directory reference tag. The meaning of the this tag depends on the\ncontext of the path.\nFor git, this can be a tag, branch, or commit id. For https this is the version\nof the file that will be downloaded.",
                     "notes": null,
@@ -14212,7 +14212,7 @@
                 "switch": [],
                 "shorthelp": "Data directory path",
                 "example": [
-                  "api: chip.set('dataroot', 'freepdk45_data', 'path', 'ssh://git@github.com/siliconcompiler/freepdk45/')"
+                  "api: project.set('dataroot', 'freepdk45_data', 'path', 'ssh://git@github.com/siliconcompiler/freepdk45/')"
                 ],
                 "help": "Data directory path, this points the location where the data can be\nretrieved or accessed.\nAllowed roots:\n\n* /path/on/network/drive\n* file:///path/on/network/drive\n* git+https://github.com/xyz/xyz\n* git://github.com/xyz/xyz\n* git+ssh://github.com/xyz/xyz\n* ssh://github.com/xyz/xyz\n* https://github.com/xyz/xyz/archive\n* https://zeroasic.com/xyz.tar.gz\n* github://siliconcompiler/lambdapdk/v1.0/asap7.tar.gz\n* python://siliconcompiler",
                 "notes": null,
@@ -14234,7 +14234,7 @@
                 "switch": [],
                 "shorthelp": "Data directory reference tag/version",
                 "example": [
-                  "api: chip.set('dataroot', 'freepdk45_data', 'tag', '07ec4aa')"
+                  "api: project.set('dataroot', 'freepdk45_data', 'tag', '07ec4aa')"
                 ],
                 "help": "Data directory reference tag. The meaning of the this tag depends on the\ncontext of the path.\nFor git, this can be a tag, branch, or commit id. For https this is the version\nof the file that will be downloaded.",
                 "notes": null,
@@ -15891,7 +15891,7 @@
                     "switch": [],
                     "shorthelp": "Data directory path",
                     "example": [
-                      "api: chip.set('dataroot', 'freepdk45_data', 'path', 'ssh://git@github.com/siliconcompiler/freepdk45/')"
+                      "api: project.set('dataroot', 'freepdk45_data', 'path', 'ssh://git@github.com/siliconcompiler/freepdk45/')"
                     ],
                     "help": "Data directory path, this points the location where the data can be\nretrieved or accessed.\nAllowed roots:\n\n* /path/on/network/drive\n* file:///path/on/network/drive\n* git+https://github.com/xyz/xyz\n* git://github.com/xyz/xyz\n* git+ssh://github.com/xyz/xyz\n* ssh://github.com/xyz/xyz\n* https://github.com/xyz/xyz/archive\n* https://zeroasic.com/xyz.tar.gz\n* github://siliconcompiler/lambdapdk/v1.0/asap7.tar.gz\n* python://siliconcompiler",
                     "notes": null,
@@ -15913,7 +15913,7 @@
                     "switch": [],
                     "shorthelp": "Data directory reference tag/version",
                     "example": [
-                      "api: chip.set('dataroot', 'freepdk45_data', 'tag', '07ec4aa')"
+                      "api: project.set('dataroot', 'freepdk45_data', 'tag', '07ec4aa')"
                     ],
                     "help": "Data directory reference tag. The meaning of the this tag depends on the\ncontext of the path.\nFor git, this can be a tag, branch, or commit id. For https this is the version\nof the file that will be downloaded.",
                     "notes": null,
@@ -18022,7 +18022,7 @@
                 "switch": [],
                 "shorthelp": "Data directory path",
                 "example": [
-                  "api: chip.set('dataroot', 'freepdk45_data', 'path', 'ssh://git@github.com/siliconcompiler/freepdk45/')"
+                  "api: project.set('dataroot', 'freepdk45_data', 'path', 'ssh://git@github.com/siliconcompiler/freepdk45/')"
                 ],
                 "help": "Data directory path, this points the location where the data can be\nretrieved or accessed.\nAllowed roots:\n\n* /path/on/network/drive\n* file:///path/on/network/drive\n* git+https://github.com/xyz/xyz\n* git://github.com/xyz/xyz\n* git+ssh://github.com/xyz/xyz\n* ssh://github.com/xyz/xyz\n* https://github.com/xyz/xyz/archive\n* https://zeroasic.com/xyz.tar.gz\n* github://siliconcompiler/lambdapdk/v1.0/asap7.tar.gz\n* python://siliconcompiler",
                 "notes": null,
@@ -18044,7 +18044,7 @@
                 "switch": [],
                 "shorthelp": "Data directory reference tag/version",
                 "example": [
-                  "api: chip.set('dataroot', 'freepdk45_data', 'tag', '07ec4aa')"
+                  "api: project.set('dataroot', 'freepdk45_data', 'tag', '07ec4aa')"
                 ],
                 "help": "Data directory reference tag. The meaning of the this tag depends on the\ncontext of the path.\nFor git, this can be a tag, branch, or commit id. For https this is the version\nof the file that will be downloaded.",
                 "notes": null,
@@ -19701,7 +19701,7 @@
                     "switch": [],
                     "shorthelp": "Data directory path",
                     "example": [
-                      "api: chip.set('dataroot', 'freepdk45_data', 'path', 'ssh://git@github.com/siliconcompiler/freepdk45/')"
+                      "api: project.set('dataroot', 'freepdk45_data', 'path', 'ssh://git@github.com/siliconcompiler/freepdk45/')"
                     ],
                     "help": "Data directory path, this points the location where the data can be\nretrieved or accessed.\nAllowed roots:\n\n* /path/on/network/drive\n* file:///path/on/network/drive\n* git+https://github.com/xyz/xyz\n* git://github.com/xyz/xyz\n* git+ssh://github.com/xyz/xyz\n* ssh://github.com/xyz/xyz\n* https://github.com/xyz/xyz/archive\n* https://zeroasic.com/xyz.tar.gz\n* github://siliconcompiler/lambdapdk/v1.0/asap7.tar.gz\n* python://siliconcompiler",
                     "notes": null,
@@ -19723,7 +19723,7 @@
                     "switch": [],
                     "shorthelp": "Data directory reference tag/version",
                     "example": [
-                      "api: chip.set('dataroot', 'freepdk45_data', 'tag', '07ec4aa')"
+                      "api: project.set('dataroot', 'freepdk45_data', 'tag', '07ec4aa')"
                     ],
                     "help": "Data directory reference tag. The meaning of the this tag depends on the\ncontext of the path.\nFor git, this can be a tag, branch, or commit id. For https this is the version\nof the file that will be downloaded.",
                     "notes": null,
@@ -21509,7 +21509,7 @@
             "switch": [],
             "shorthelp": "Data directory path",
             "example": [
-              "api: chip.set('dataroot', 'freepdk45_data', 'path', 'ssh://git@github.com/siliconcompiler/freepdk45/')"
+              "api: project.set('dataroot', 'freepdk45_data', 'path', 'ssh://git@github.com/siliconcompiler/freepdk45/')"
             ],
             "help": "Data directory path, this points the location where the data can be\nretrieved or accessed.\nAllowed roots:\n\n* /path/on/network/drive\n* file:///path/on/network/drive\n* git+https://github.com/xyz/xyz\n* git://github.com/xyz/xyz\n* git+ssh://github.com/xyz/xyz\n* ssh://github.com/xyz/xyz\n* https://github.com/xyz/xyz/archive\n* https://zeroasic.com/xyz.tar.gz\n* github://siliconcompiler/lambdapdk/v1.0/asap7.tar.gz\n* python://siliconcompiler",
             "notes": null,
@@ -21531,7 +21531,7 @@
             "switch": [],
             "shorthelp": "Data directory reference tag/version",
             "example": [
-              "api: chip.set('dataroot', 'freepdk45_data', 'tag', '07ec4aa')"
+              "api: project.set('dataroot', 'freepdk45_data', 'tag', '07ec4aa')"
             ],
             "help": "Data directory reference tag. The meaning of the this tag depends on the\ncontext of the path.\nFor git, this can be a tag, branch, or commit id. For https this is the version\nof the file that will be downloaded.",
             "notes": null,
@@ -22248,7 +22248,7 @@
             "switch": [],
             "shorthelp": "Data directory path",
             "example": [
-              "api: chip.set('dataroot', 'freepdk45_data', 'path', 'ssh://git@github.com/siliconcompiler/freepdk45/')"
+              "api: project.set('dataroot', 'freepdk45_data', 'path', 'ssh://git@github.com/siliconcompiler/freepdk45/')"
             ],
             "help": "Data directory path, this points the location where the data can be\nretrieved or accessed.\nAllowed roots:\n\n* /path/on/network/drive\n* file:///path/on/network/drive\n* git+https://github.com/xyz/xyz\n* git://github.com/xyz/xyz\n* git+ssh://github.com/xyz/xyz\n* ssh://github.com/xyz/xyz\n* https://github.com/xyz/xyz/archive\n* https://zeroasic.com/xyz.tar.gz\n* github://siliconcompiler/lambdapdk/v1.0/asap7.tar.gz\n* python://siliconcompiler",
             "notes": null,
@@ -22270,7 +22270,7 @@
             "switch": [],
             "shorthelp": "Data directory reference tag/version",
             "example": [
-              "api: chip.set('dataroot', 'freepdk45_data', 'tag', '07ec4aa')"
+              "api: project.set('dataroot', 'freepdk45_data', 'tag', '07ec4aa')"
             ],
             "help": "Data directory reference tag. The meaning of the this tag depends on the\ncontext of the path.\nFor git, this can be a tag, branch, or commit id. For https this is the version\nof the file that will be downloaded.",
             "notes": null,
@@ -23439,7 +23439,7 @@
             "switch": [],
             "shorthelp": "Data directory path",
             "example": [
-              "api: chip.set('dataroot', 'freepdk45_data', 'path', 'ssh://git@github.com/siliconcompiler/freepdk45/')"
+              "api: project.set('dataroot', 'freepdk45_data', 'path', 'ssh://git@github.com/siliconcompiler/freepdk45/')"
             ],
             "help": "Data directory path, this points the location where the data can be\nretrieved or accessed.\nAllowed roots:\n\n* /path/on/network/drive\n* file:///path/on/network/drive\n* git+https://github.com/xyz/xyz\n* git://github.com/xyz/xyz\n* git+ssh://github.com/xyz/xyz\n* ssh://github.com/xyz/xyz\n* https://github.com/xyz/xyz/archive\n* https://zeroasic.com/xyz.tar.gz\n* github://siliconcompiler/lambdapdk/v1.0/asap7.tar.gz\n* python://siliconcompiler",
             "notes": null,
@@ -23461,7 +23461,7 @@
             "switch": [],
             "shorthelp": "Data directory reference tag/version",
             "example": [
-              "api: chip.set('dataroot', 'freepdk45_data', 'tag', '07ec4aa')"
+              "api: project.set('dataroot', 'freepdk45_data', 'tag', '07ec4aa')"
             ],
             "help": "Data directory reference tag. The meaning of the this tag depends on the\ncontext of the path.\nFor git, this can be a tag, branch, or commit id. For https this is the version\nof the file that will be downloaded.",
             "notes": null,
@@ -24062,7 +24062,7 @@
             "switch": [],
             "shorthelp": "Data directory path",
             "example": [
-              "api: chip.set('dataroot', 'freepdk45_data', 'path', 'ssh://git@github.com/siliconcompiler/freepdk45/')"
+              "api: project.set('dataroot', 'freepdk45_data', 'path', 'ssh://git@github.com/siliconcompiler/freepdk45/')"
             ],
             "help": "Data directory path, this points the location where the data can be\nretrieved or accessed.\nAllowed roots:\n\n* /path/on/network/drive\n* file:///path/on/network/drive\n* git+https://github.com/xyz/xyz\n* git://github.com/xyz/xyz\n* git+ssh://github.com/xyz/xyz\n* ssh://github.com/xyz/xyz\n* https://github.com/xyz/xyz/archive\n* https://zeroasic.com/xyz.tar.gz\n* github://siliconcompiler/lambdapdk/v1.0/asap7.tar.gz\n* python://siliconcompiler",
             "notes": null,
@@ -24084,7 +24084,7 @@
             "switch": [],
             "shorthelp": "Data directory reference tag/version",
             "example": [
-              "api: chip.set('dataroot', 'freepdk45_data', 'tag', '07ec4aa')"
+              "api: project.set('dataroot', 'freepdk45_data', 'tag', '07ec4aa')"
             ],
             "help": "Data directory reference tag. The meaning of the this tag depends on the\ncontext of the path.\nFor git, this can be a tag, branch, or commit id. For https this is the version\nof the file that will be downloaded.",
             "notes": null,

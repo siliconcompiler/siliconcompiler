@@ -29,12 +29,12 @@ class SCDebugLoggerFormatter(logging.Formatter):
 
 
 class SCDebugInRunLoggerFormatter(logging.Formatter):
-    def __init__(self, chip, jobname, step, index):
+    def __init__(self, project, jobname, step, index):
         super().__init__(
             SCInRunLoggerFormatter.configureFormat(
                 "| %(levelname)-8s | %(filename)-20s : %(funcName)-10s | %(lineno)-4s |"
                 " {} | {} | {} | %(message)s",
-                chip, step, index))
+                project, step, index))
 
 
 class SCLoggerFormatter(logging.Formatter):
@@ -43,21 +43,21 @@ class SCLoggerFormatter(logging.Formatter):
 
 
 class SCInRunLoggerFormatter(logging.Formatter):
-    def __init__(self, chip, jobname, step, index):
+    def __init__(self, project, jobname, step, index):
         super().__init__(
             SCInRunLoggerFormatter.configure_format(
                 "| %(levelname)-8s | {} | {} | {} | %(message)s",
-                chip, step, index))
+                project, step, index))
 
     @staticmethod
-    def configure_format(fmt, chip, step, index):
+    def configure_format(fmt, project, step, index):
         from siliconcompiler.remote import client
 
         max_width = 20
 
-        flow = chip.get('option', 'flow')
+        flow = project.get('option', 'flow')
         if flow:
-            nodes_to_run = list(chip.get("flowgraph", flow, field="schema").get_nodes())
+            nodes_to_run = list(project.get("flowgraph", flow, field="schema").get_nodes())
         else:
             nodes_to_run = []
 
@@ -65,7 +65,7 @@ class SCInRunLoggerFormatter(logging.Formatter):
         max_step_len = 1
         max_index_len = 1
 
-        if chip.get('option', 'remote'):
+        if project.get('option', 'remote'):
             nodes_to_run.append((client.remote_step_name, '0'))
         for future_step, future_index in nodes_to_run:
             max_step_len = max(len(future_step), max_step_len)
@@ -73,7 +73,7 @@ class SCInRunLoggerFormatter(logging.Formatter):
         max_step_len = min(max_step_len, max_width)
         max_index_len = min(max_index_len, max_width)
 
-        jobname = chip.get('option', 'jobname')
+        jobname = project.get('option', 'jobname')
 
         if step is None:
             step = '-' * max(max_step_len // 4, 1)
@@ -132,22 +132,22 @@ class SCColorLoggerFormatter(logging.Formatter):
         return supported_platform and is_a_tty
 
 
-def get_console_formatter(chip, in_run, step, index):
-    loglevel = chip.get('option', 'loglevel',
-                        step=step, index=index)
+def get_console_formatter(project, in_run, step, index):
+    loglevel = project.get('option', 'loglevel',
+                           step=step, index=index)
 
     if loglevel == 'quiet':
         base_format = SCBlankLoggerFormatter()
     elif in_run:
         if loglevel == 'debug':
             base_format = SCDebugInRunLoggerFormatter(
-                chip,
-                chip.get('option', 'jobname'),
+                project,
+                project.get('option', 'jobname'),
                 step, index)
         else:
             base_format = SCInRunLoggerFormatter(
-                chip,
-                chip.get('option', 'jobname'),
+                project,
+                project.get('option', 'jobname'),
                 step, index)
     else:
         if loglevel == 'debug':

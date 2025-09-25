@@ -59,7 +59,7 @@ class PausedNOP(NOPTask):
 
 
 ###########################
-def mock_results(chip, node):
+def mock_results(project, node):
     '''Mocked 'fetch_results' method which imitates a successful quick job run.
     '''
 
@@ -120,7 +120,7 @@ def test_sc_remote_noauth(monkeypatch, scserver, scserver_credential):
     # Start running an sc-server instance.
     port = scserver()
 
-    # Create the temporary credentials file, and set the Chip to use it.
+    # Create the temporary credentials file, and set the project to use it.
     tmp_creds = scserver_credential(port)
 
     monkeypatch.setattr("sys.argv", ['sc-remote', '-credentials', tmp_creds])
@@ -141,7 +141,7 @@ def test_sc_remote_auth(monkeypatch, scserver, scserver_users, scserver_credenti
 
     port = scserver(auth=True)
 
-    # Create the temporary credentials file, and set the Chip to use it.
+    # Create the temporary credentials file, and set the project to use it.
     tmp_creds = scserver_credential(port, user, user_pwd)
 
     monkeypatch.setattr("sys.argv", ['sc-remote', '-credentials', tmp_creds])
@@ -163,7 +163,7 @@ def test_sc_remote_check_progress(gcd_nop_project, monkeypatch, unused_tcp_port,
     monkeypatch.setattr(requests, 'post', mock_post)
     monkeypatch.setattr(Client, '_run_loop', mock_run)
 
-    # Create the temporary credentials file, and set the Chip to use it.
+    # Create the temporary credentials file, and set the project to use it.
     tmp_creds = scserver_credential(unused_tcp_port)
 
     # Start a small remote job.
@@ -202,7 +202,7 @@ def test_sc_remote_reconnect(gcd_nop_project, monkeypatch, unused_tcp_port, scse
     monkeypatch.setattr(Client, '_run_loop', mock_run)
     monkeypatch.setattr(Client, '_Client__schedule_fetch_result', mock_results)
 
-    # Create the temporary credentials file, and set the Chip to use it.
+    # Create the temporary credentials file, and set the project to use it.
     tmp_creds = scserver_credential(unused_tcp_port)
 
     # Start a small remote job.

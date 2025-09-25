@@ -32,7 +32,7 @@ def gcd_remote_test(gcd_nop_project, scserver, scserver_credential):
             cluster = "slurm"
         port = scserver(cluster=cluster)
 
-        # Create the temporary credentials file, and set the Chip to use it.
+        # Create the temporary credentials file, and set the project to use it.
         gcd_nop_project.set('option', 'credentials', scserver_credential(port))
         gcd_nop_project.set('option', 'remote', True)
 

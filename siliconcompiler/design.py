@@ -18,7 +18,7 @@ from siliconcompiler.schema.utils import trim
 ###########################################################################
 class Design(LibrarySchema, DependencySchema):
     '''
-    Schema for a 'design', which is a chip object that can be compiled.
+    Schema for a 'design'.
 
     This class inherits from :class:`~siliconcompiler.LibrarySchema` and
     :class:`~siliconcompiler.DependencySchema`, and adds parameters and methods

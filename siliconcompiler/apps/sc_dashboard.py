@@ -28,7 +28,7 @@ To open by specifying design and optionally jobname:
 To specify a different port than the default:
     sc-dashboard -cfg <path to manifest> -port 10000
 
-To include another chip object to compare to:
+To include another project object to compare to:
     sc-dashboard -cfg <path to manifest> -graph_cfg <name of manifest> <path to other manifest>
         -graph_cfg <path to other manifest> ...
 -----------------------------------------------------------
@@ -40,8 +40,8 @@ To include another chip object to compare to:
 
             self._add_commandline_argument("cfg", "file", "configuration manifest")
             self._add_commandline_argument("port", "int", "port to open the dashboard app on")
-            self._add_commandline_argument("graph_cfg", "[str]",
-                                           "chip name - optional, path to chip manifest (json)")
+            self._add_commandline_argument(
+                "graph_cfg", "[str]", "project name - optional, path to project manifest (json)")
 
     cli = DashboardProject.create_cmdline(
         progname,
@@ -69,7 +69,7 @@ To include another chip object to compare to:
     cli.logger.info(f'Loading manifest: {manifest}')
     project = Project.from_manifest(filepath=manifest)
 
-    graph_chips = []
+    graph_projs = []
     if cli.get("cmdarg", "graph_cfg"):
         for i, name_and_file_path in enumerate(cli.get("cmdarg", "graph_cfg")):
             name_and_file_path = shlex.split(name_and_file_path)
@@ -88,13 +88,13 @@ To include another chip object to compare to:
             if not os.path.isfile(file_path):
                 raise ValueError(f'not a valid file path: {file_path}')
             graph_proj = Project.from_manifest(filepath=file_path)
-            graph_chips.append({
-                'chip': graph_proj,
+            graph_projs.append({
+                'project': graph_proj,
                 'name': name,
                 'cfg_path': os.path.abspath(file_path)
             })
 
-    dashboard = WebDashboard(project, port=cli.get("cmdarg", "port"), graph_chips=graph_chips)
+    dashboard = WebDashboard(project, port=cli.get("cmdarg", "port"), graph_projs=graph_projs)
     dashboard.open_dashboard()
     dashboard.wait()
 

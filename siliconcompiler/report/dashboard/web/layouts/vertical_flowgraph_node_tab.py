@@ -23,16 +23,16 @@ def layout():
     navigating between different views:
     - Metrics: Shows the flowgraph alongside a table of key metrics.
     - Node Information: Provides a detailed view of a selected node's data and files.
-    - Manifest: A searchable viewer for the chip's manifest.
+    - Manifest: A searchable viewer for the project's manifest.
     - File Viewer: Displays the content of a selected file.
     - Design Preview: Shows a preview image of the design, if available.
     - Graphs: Interactive charts for comparing metrics across runs.
 
     It handles the logic for displaying the content of the currently selected tab.
     """
-    chip = state.get_chip()
+    project = state.get_project()
     metric_dataframe, node_to_step_index_map, metric_to_metric_unit_map = \
-        utils.generate_metric_dataframe(chip)
+        utils.generate_metric_dataframe(project)
 
     # Render the main page header (title, job selector, settings)
     components.page_header()
@@ -45,9 +45,9 @@ def layout():
         sac.TabsItem("File Viewer",
                      icon=file_utils.get_file_icon(state.get_key(state.SELECTED_FILE))),
         sac.TabsItem("Design Preview", icon=file_utils.get_file_icon('design.png'),
-                     disabled=not os.path.isfile(f'{jobdir(chip)}/{chip.design.name}.png')),
+                     disabled=not os.path.isfile(f'{jobdir(project)}/{project.design.name}.png')),
         sac.TabsItem("Graphs", icon='graph-up',
-                     disabled=len(state.get_key(state.LOADED_CHIPS)) <= 1)
+                     disabled=len(state.get_key(state.LOADED_PROJECTS)) <= 1)
     ]
 
     # Render the tabs and get the user's selection
@@ -68,7 +68,7 @@ def layout():
 
             with flowgraph_col:
                 streamlit.header('Flowgraph')
-                components.flowgraph_viewer(chip)
+                components.flowgraph_viewer(project)
         else:
             metrics_container = streamlit.container()
 
@@ -94,22 +94,22 @@ def layout():
         if state.get_selected_node():
             step, index = node_to_step_index_map[state.get_selected_node()]
             current_file = state.get_key(state.SELECTED_FILE)
-            components.node_viewer(chip, step, index, metric_dataframe, height=1000)
+            components.node_viewer(project, step, index, metric_dataframe, height=1000)
             # Check if a file was selected within the node viewer
             if current_file != state.get_key(state.SELECTED_FILE):
                 state.set_key(state.APP_RERUN, "File")
 
     elif tab_selected == "Manifest":
-        components.manifest_viewer(chip)
+        components.manifest_viewer(project)
 
     elif tab_selected == "File Viewer":
         components.file_viewer(
-            chip,
+            project,
             state.get_key(state.SELECTED_FILE),
             page_key=state.SELECTED_FILE_PAGE)
 
     elif tab_selected == "Design Preview":
-        components.file_viewer(chip, f'{jobdir(chip)}/{chip.design.name}.png')
+        components.file_viewer(project, f'{jobdir(project)}/{project.design.name}.png')
 
     elif tab_selected == "Graphs":
         graph.viewer(node_to_step_index_map)

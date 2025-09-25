@@ -129,7 +129,7 @@ To delete a job, use:
     client = Client(project)
     # Main logic.
     # If no job-related options are specified, fetch and report basic info.
-    # Create temporary Chip object and check on the server.
+    # Create temporary project object and check on the server.
     client.check()
 
     # If the -cancel flag is specified, cancel the job.

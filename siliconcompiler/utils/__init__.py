@@ -241,7 +241,7 @@ def safecompare(value, op, goal):
 
 
 ###########################################################################
-def grep(chip, args, line):
+def grep(project, args, line):
     """
     Emulates the Unix grep command on a string.
 
@@ -291,7 +291,7 @@ def grep(chip, args, line):
         elif switches[i] in options.keys():
             options[switches[i]] = True
         elif switches[i] != '':
-            chip.logger.error(switches[i])
+            project.logger.error(switches[i])
 
     # REGEX
     # TODO: add all the other optinos

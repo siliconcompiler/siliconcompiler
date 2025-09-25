@@ -27,7 +27,7 @@ def test_dashboard_cfg(monkeypatch):
         wait.assert_called_once()
 
         assert init.call_args.kwargs["port"] is None
-        assert init.call_args.kwargs["graph_chips"] == []
+        assert init.call_args.kwargs["graph_projs"] == []
 
 
 def test_dashboard_port(monkeypatch):
@@ -45,7 +45,7 @@ def test_dashboard_port(monkeypatch):
         wait.assert_called_once()
 
         assert init.call_args.kwargs["port"] == 1000
-        assert init.call_args.kwargs["graph_chips"] == []
+        assert init.call_args.kwargs["graph_projs"] == []
 
 
 def test_dashboard_graph_cfg_file_not_found(monkeypatch):
@@ -74,7 +74,7 @@ def test_dashboard_graph_cfg(monkeypatch):
         wait.assert_called_once()
 
         assert init.call_args.kwargs["port"] is None
-        assert len(init.call_args.kwargs["graph_chips"]) == 1
+        assert len(init.call_args.kwargs["graph_projs"]) == 1
 
 
 def test_dashboard_graph_cfg_names(monkeypatch):
@@ -93,7 +93,7 @@ def test_dashboard_graph_cfg_names(monkeypatch):
         wait.assert_called_once()
 
         assert init.call_args.kwargs["port"] is None
-        assert len(init.call_args.kwargs["graph_chips"]) == 1
+        assert len(init.call_args.kwargs["graph_projs"]) == 1
 
 
 def test_dashboard_graph_cfg_names_invalid(monkeypatch):

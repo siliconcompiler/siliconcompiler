@@ -4,7 +4,7 @@ SiliconCompiler manifest file (`.pkg.json`) within a project directory.
 
 This module provides logic to automatically find manifests based on a standard
 build directory structure, and then select the most appropriate one based on
-the chip's configuration (design, jobname, step, index) or other clues.
+the project's configuration (design, jobname, step, index) or other clues.
 """
 import os
 import os.path
@@ -18,7 +18,7 @@ def manifest_switches() -> List[str]:
     """
     Returns a list of command-line switches used to identify a manifest.
 
-    These switches correspond to chip parameters that can specify a unique
+    These switches correspond to project parameters that can specify a unique
     run or node within a project.
 
     Returns:

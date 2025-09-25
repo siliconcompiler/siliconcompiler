@@ -7,7 +7,7 @@ from siliconcompiler.flowgraph import RuntimeFlowgraph
 from siliconcompiler.utils.paths import workdir
 
 
-def make_metric_dataframe(chip):
+def make_metric_dataframe(project):
     '''
     Returns a pandas dataframe to display in the data metrics table. All nodes
     (steps and indices) are included on the x-axis while the metrics tracked
@@ -15,15 +15,15 @@ def make_metric_dataframe(chip):
     the first element is the metric tracked and the second element is the unit.
 
     Args:
-        chip (Chip) : The chip object that contains the schema read from.
+        project (Project) : The project object that contains the schema read from.
 
     Example:
-        >>> make_metric_dataframe(chip)
+        >>> make_metric_dataframe(project)
         Returns pandas dataframe of tracked metrics.
     '''
     from pandas import DataFrame
 
-    nodes, errors, metrics, metrics_unit, metrics_to_show, reports = utils._collect_data(chip)
+    _, _, metrics, metrics_unit, metrics_to_show, _ = utils._collect_data(project)
     # converts from 2d dictionary to pandas DataFrame, transposes so
     # orientation is correct, and filters based on the metrics we track
     data = (DataFrame.from_dict(metrics, orient='index').transpose())
@@ -33,37 +33,37 @@ def make_metric_dataframe(chip):
     return data
 
 
-def get_flowgraph_nodes(chip, step, index):
+def get_flowgraph_nodes(project, step, index):
     '''
     Returns a dictionary to display in the data metrics table. One node
     (step and index) is included on the x-axis while all the metrics tracked
     are on the y-axis. Removes all key value pairs where the value is None.
 
     Args:
-        chip (Chip) : The chip object that contains the schema read from.
+        project (Project) : The project object that contains the schema read from.
         step (string) : Step of node.
         index (string) : Index of node.
 
     Example:
-        >>> get_flowgraph_nodes(chip, [(import, 0), (syn, 0)])
+        >>> get_flowgraph_nodes(project, [(import, 0), (syn, 0)])
         Returns pandas dataframe of tracked metrics.
     '''
     nodes = {}
 
-    flow = chip.get('option', 'flow')
+    flow = project.get('option', 'flow')
 
-    tool = chip.get('flowgraph', flow, step, index, 'tool')
-    task = chip.get('flowgraph', flow, step, index, 'task')
+    tool = project.get('flowgraph', flow, step, index, 'tool')
+    task = project.get('flowgraph', flow, step, index, 'task')
 
     if tool is not None:
         nodes['tool'] = tool
     if task is not None:
         nodes['task'] = task
-    for key in chip.getkeys('record'):
-        if chip.get('record', key, field='pernode').is_never():
-            value = chip.get('record', key)
+    for key in project.getkeys('record'):
+        if project.get('record', key, field='pernode').is_never():
+            value = project.get('record', key)
         else:
-            value = chip.get('record', key, step=step, index=index)
+            value = project.get('record', key, step=step, index=index)
         if value is not None:
             if key == 'inputnode':
                 value = ", ".join([f'{step}/{index}' for step, index in value])
@@ -73,7 +73,7 @@ def get_flowgraph_nodes(chip, step, index):
     return nodes
 
 
-def get_flowgraph_edges(chip):
+def get_flowgraph_edges(project):
     '''
     Returns a dicitionary where each key is one node, a tuple in the form
     (step, index) and the value of each key is a set of tuples in the form
@@ -81,18 +81,18 @@ def get_flowgraph_edges(chip):
     inputs to the key node.
 
     Args:
-        chip (Chip) : The chip object that contains the schema read from.
+        project (Project) : The project object that contains the schema read from.
 
     Example:
-        >>> get_flowgraph_edges(chip)
+        >>> get_flowgraph_edges(Project)
         Returns dictionary where the values of the keys are the edges.
     '''
     flowgraph_edges = {}
-    flow = chip.get('option', 'flow')
-    for step in chip.getkeys('flowgraph', flow):
-        for index in chip.getkeys('flowgraph', flow, step):
+    flow = project.get('option', 'flow')
+    for step in project.getkeys('flowgraph', flow):
+        for index in project.getkeys('flowgraph', flow, step):
             flowgraph_edges[step, index] = set()
-            for in_step, in_index in chip.get('flowgraph', flow, step, index, 'input'):
+            for in_step, in_index in project.get('flowgraph', flow, step, index, 'input'):
                 flowgraph_edges[step, index].add((in_step, in_index))
     return flowgraph_edges
 
@@ -178,41 +178,41 @@ def make_manifest_helper(manifest_subsect, modified_manifest_subsect):
                 make_manifest_helper(key_dict, modified_manifest_subsect[key])
 
 
-def make_manifest(chip):
+def make_manifest(project):
     '''
     Returns a dictionary of dictionaries/json
 
     Args:
-        chip (Chip) : The chip object that contains the schema read from.
+        project (Project) : The project object that contains the schema read from.
 
     Example:
-        >>> make_manifest(chip)
+        >>> make_manifest(Project)
         Returns tree/json of manifest.
     '''
-    manifest = chip.getdict()
+    manifest = project.getdict()
     modified_manifest = {}
     make_manifest_helper(manifest, modified_manifest)
     return modified_manifest
 
 
-def get_flowgraph_path(chip):
+def get_flowgraph_path(project):
     '''
     Returns a set of all the nodes in the 'winning' path.
 
     Args:
-        chip (Chip) : The chip object that contains the schema read from.
+        project (Project) : The project object that contains the schema read from.
 
     Example:
-        >>> get_flowgraph_path(chip)
+        >>> get_flowgraph_path(Project)
         Returns the "winning" path for that job.
     '''
-    flow = chip.get('option', 'flow')
+    flow = project.get('option', 'flow')
     runtime = RuntimeFlowgraph(
-        chip.get("flowgraph", flow, field='schema'),
-        from_steps=chip.get('option', 'from'),
-        to_steps=chip.get('option', 'to'),
-        prune_nodes=chip.get('option', 'prune'))
-    return utils._get_flowgraph_path(chip, flow, runtime.get_nodes())
+        project.get("flowgraph", flow, field='schema'),
+        from_steps=project.get('option', 'from'),
+        to_steps=project.get('option', 'to'),
+        prune_nodes=project.get('option', 'prune'))
+    return utils._get_flowgraph_path(project, flow, runtime.get_nodes())
 
 
 def search_manifest_keys(manifest, key):
@@ -308,7 +308,7 @@ def get_total_manifest_key_count(manifest):
     return acc
 
 
-def get_metrics_source(chip, step, index):
+def get_metrics_source(project, step, index):
     '''
     Returns a dictionary where the keys are files in the logs and reports for
     a given step and index. The values are a list of the metrics that come from
@@ -316,25 +316,25 @@ def get_metrics_source(chip, step, index):
     come from it.
 
     Args:
-        chip (Chip) : The chip object that contains the schema read from.
+        project (Project) : The project object that contains the schema read from.
         step (string) : Step of node.
         index (string) : Index of node.
     '''
     file_to_metric = {}
     metric_primary_source = {}
 
-    flow = chip.get('option', 'flow')
+    flow = project.get('option', 'flow')
 
-    tool = chip.get('flowgraph', flow, step, index, 'tool')
-    task = chip.get('flowgraph', flow, step, index, 'task')
+    tool = project.get('flowgraph', flow, step, index, 'tool')
+    task = project.get('flowgraph', flow, step, index, 'task')
 
-    if not chip.valid('tool', tool, 'task', task, 'report'):
+    if not project.valid('tool', tool, 'task', task, 'report'):
         return metric_primary_source, file_to_metric
 
-    metrics = chip.getkeys('tool', tool, 'task', task, 'report')
+    metrics = project.getkeys('tool', tool, 'task', task, 'report')
 
     for metric in metrics:
-        sources = chip.get('tool', tool, 'task', task, 'report', metric, step=step, index=index)
+        sources = project.get('tool', tool, 'task', task, 'report', metric, step=step, index=index)
         if sources:
             metric_primary_source.setdefault(sources[0], []).append(metric)
         for source in sources:
@@ -342,65 +342,65 @@ def get_metrics_source(chip, step, index):
     return metric_primary_source, file_to_metric
 
 
-def get_files(chip, step, index):
+def get_files(project, step, index):
     '''
     Returns a list of 3-tuple that contain the path name of how to get to that
     folder, the subfolders of that directory, and it's files. The list is
     ordered by layer of directory.
 
     Args:
-        chip (Chip) : The chip object that contains the schema read from.
+        project (Project) : The project object that contains the schema read from.
         step (string) : Step of node.
         index (string) : Index of node.
     '''
     # could combine filters, but slightly more efficient to separate them
     # Is remaking the list with sets instead of list worth it?
     logs_and_reports = []
-    all_paths = os.walk(workdir(chip, step=step, index=index))
+    all_paths = os.walk(workdir(project, step=step, index=index))
     for path_name, folders, files in all_paths:
         logs_and_reports.append((path_name, set(folders), set(files)))
     return logs_and_reports
 
 
-def get_chart_selection_options(chips):
+def get_chart_selection_options(projects):
     '''
-    Returns all the nodes and metrics available in the provided chips
+    Returns all the nodes and metrics available in the provided projects
 
     Args:
-        chips (list) : A list of dictionaries with the form
-            {'chip_object': chip, 'chip_name': name}.
+        projects (list) : A list of dictionaries with the form
+            {'project_object': project, 'project_name': name}.
     '''
     nodes = set()
     metrics = set()
-    for chip_and_chip_name in chips:
-        chip = chip_and_chip_name['chip_object']
-        nodes_list, _, _, _, chip_metrics, _ = \
-            utils._collect_data(chip, format_as_string=False)
+    for project_and_project_name in projects:
+        project = project_and_project_name['project_object']
+        nodes_list, _, _, _, project_metrics, _ = \
+            utils._collect_data(project, format_as_string=False)
         nodes.update(set([f'{step}/{index}' for step, index in nodes_list]))
-        metrics.update(set(chip_metrics))
+        metrics.update(set(project_metrics))
     return nodes, metrics
 
 
-def get_chart_data(chips, metric, nodes):
+def get_chart_data(projects, metric, nodes):
     '''
     Returns returns a tuple where the first element is a 2d dictionary of
-    data points, following the forms {step+index: {chip_name: value}} where
+    data points, following the forms {step+index: {project_name: value}} where
     each dictionary can have many keys. The second element is a string that represents the unit.
 
     Args:
-        chips (list) : A list of dictionaries with the form
-            {'chip_object': chip, 'chip_name': name}.
+        projects (list) : A list of dictionaries with the form
+            {'project_object': project, 'project_name': name}.
         metric (string) : The metric that the user is searching.
         nodes (list) : A list of dictionaries with the form (step, index).
     '''
     metric_units = set()  # the set of all units for this metric (hopefully, it's length is 0 or 1)
     metric_datapoints = {}
     metric_unit = ''
-    for chip_and_chip_name in chips:
-        chip = chip_and_chip_name['chip_object']
-        chip_name = chip_and_chip_name['chip_name']
-        nodes_list, errors, metrics, metrics_unit, metrics_to_show, reports = \
-            utils._collect_data(chip, format_as_string=False)
+    for project_and_project_name in projects:
+        project = project_and_project_name['project_object']
+        project_name = project_and_project_name['project_name']
+        _, _, metrics, metrics_unit, _, _ = \
+            utils._collect_data(project, format_as_string=False)
         if metric in metrics_unit:
             metric_unit = metrics_unit[metric]
             metric_units.add(metric_unit)
@@ -411,9 +411,9 @@ def get_chart_data(chips, metric, nodes):
             if value is None:
                 continue
             if node in metric_datapoints:
-                metric_datapoints[node][chip_name] = value
+                metric_datapoints[node][project_name] = value
             else:
-                metric_datapoints[node] = {chip_name: value}
+                metric_datapoints[node] = {project_name: value}
     if len(metric_units) > 1:
         raise ValueError('Not all measurements were made with the same units')
     return metric_datapoints, metric_unit

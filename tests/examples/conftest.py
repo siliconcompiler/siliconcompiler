@@ -14,7 +14,7 @@ def setup_example_test(examples_root, monkeypatch, request):
 
     1) Let you directly import any Python modules that are part of the example.
     2) Ensure that relative paths referenced in the example resolve properly.
-    3) Mock up chip.show() so that it can be freely used in the example without
+    3) Mock up Project.show() so that it can be freely used in the example without
        causing CI to hang.
 
     setup_example_test returns the path to that example's directory as a
@@ -26,5 +26,5 @@ def setup_example_test(examples_root, monkeypatch, request):
 
     # pytest's monkeypatch lets us modify sys.path for this test only.
     monkeypatch.syspath_prepend(examples_root)
-    # Mock chip.show() so it doesn't run.
+    # Mock Project.show() so it doesn't run.
     monkeypatch.setattr(Project, 'show', _mock_show)

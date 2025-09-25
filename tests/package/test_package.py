@@ -66,13 +66,13 @@ def test_init_with_env(monkeypatch):
     assert resolver.cache_id == "44aae5e357af88c30de3ad29ee77f70bb8aa9b9d"
 
 
-def test_init_with_env_chip():
-    chip = Project("testproj")
-    chip.set("option", "env", "FILE_PATH", "this")
-    resolver = Resolver("testpath", chip, "source://${FILE_PATH}", reference="ref")
+def test_init_with_env_project():
+    project = Project("testproj")
+    project.set("option", "env", "FILE_PATH", "this")
+    resolver = Resolver("testpath", project, "source://${FILE_PATH}", reference="ref")
 
     assert resolver.name == "testpath"
-    assert resolver.root is chip
+    assert resolver.root is project
     assert resolver.source == "source://${FILE_PATH}"
     assert resolver.reference == "ref"
     assert resolver.urlscheme == "source"
@@ -263,17 +263,17 @@ def test_remote_cache_dir_no_root():
 
 
 def test_remote_cache_dir_from_schema():
-    chip = Project("testproj")
-    chip.set("option", "cachedir", os.path.abspath("."))
-    resolver = RemoteResolver("thisname", chip, "https://filepath", "ref")
+    project = Project("testproj")
+    project.set("option", "cachedir", os.path.abspath("."))
+    resolver = RemoteResolver("thisname", project, "https://filepath", "ref")
     assert resolver.cache_dir == Path(os.path.abspath("."))
 
 
 def test_remote_cache_dir_from_schema_not_found():
-    chip = Project("testproj")
-    chip.set("option", "cachedir", "thispath")
+    project = Project("testproj")
+    project.set("option", "cachedir", "thispath")
 
-    resolver = RemoteResolver("thisname", chip, "https://filepath", "ref")
+    resolver = RemoteResolver("thisname", project, "https://filepath", "ref")
     assert resolver.cache_dir == Path(os.path.abspath("thispath"))
 
 
@@ -283,10 +283,10 @@ def test_remote_cache_name():
 
 
 def test_remote_cache_path():
-    chip = Project("testproj")
-    chip.set("option", "cachedir", "thispath")
+    project = Project("testproj")
+    project.set("option", "cachedir", "thispath")
 
-    resolver = RemoteResolver("thisname", chip, "https://filepath", "ref")
+    resolver = RemoteResolver("thisname", project, "https://filepath", "ref")
     with patch("os.makedirs") as mkdir:
         assert resolver.cache_path == \
             Path(os.path.abspath("thispath/thisname-ref-c7a4a1c3dfc3975e"))
@@ -294,20 +294,20 @@ def test_remote_cache_path():
 
 
 def test_remote_cache_path_cache_exist():
-    chip = Project("testproj")
-    chip.set("option", "cachedir", ".")
+    project = Project("testproj")
+    project.set("option", "cachedir", ".")
 
-    resolver = RemoteResolver("thisname", chip, "https://filepath", "ref")
+    resolver = RemoteResolver("thisname", project, "https://filepath", "ref")
     with patch("os.makedirs") as mkdir:
         assert resolver.cache_path == Path(os.path.abspath("thisname-ref-c7a4a1c3dfc3975e"))
         mkdir.assert_not_called()
 
 
 def test_remote_lock_file():
-    chip = Project("testproj")
-    chip.set("option", "cachedir", "thispath")
+    project = Project("testproj")
+    project.set("option", "cachedir", "thispath")
 
-    resolver = RemoteResolver("thisname", chip, "https://filepath", "ref")
+    resolver = RemoteResolver("thisname", project, "https://filepath", "ref")
     with patch("os.makedirs") as mkdir:
         assert resolver.lock_file == \
             Path(os.path.abspath("thispath/thisname-ref-c7a4a1c3dfc3975e.lock"))
@@ -315,10 +315,10 @@ def test_remote_lock_file():
 
 
 def test_remote_sc_lock_file():
-    chip = Project("testproj")
-    chip.set("option", "cachedir", "thispath")
+    project = Project("testproj")
+    project.set("option", "cachedir", "thispath")
 
-    resolver = RemoteResolver("thisname", chip, "https://filepath", "ref")
+    resolver = RemoteResolver("thisname", project, "https://filepath", "ref")
     with patch("os.makedirs") as mkdir:
         assert resolver.sc_lock_file == \
             Path(os.path.abspath("thispath/thisname-ref-c7a4a1c3dfc3975e.sc_lock"))
@@ -326,10 +326,10 @@ def test_remote_sc_lock_file():
 
 
 def test_remote_resolve_cached():
-    chip = Project("testproj")
-    chip.set("option", "cachedir", ".")
+    project = Project("testproj")
+    project.set("option", "cachedir", ".")
 
-    resolver = RemoteResolver("thisname", chip, "https://filepath", "ref")
+    resolver = RemoteResolver("thisname", project, "https://filepath", "ref")
 
     with patch("siliconcompiler.package.RemoteResolver.lock") as lock, \
          patch("siliconcompiler.package.RemoteResolver.check_cache") as check_cache, \
@@ -342,10 +342,10 @@ def test_remote_resolve_cached():
 
 
 def test_remote_resolve():
-    chip = Project("testproj")
-    chip.set("option", "cachedir", ".")
+    project = Project("testproj")
+    project.set("option", "cachedir", ".")
 
-    resolver = RemoteResolver("thisname", chip, "https://filepath", "ref")
+    resolver = RemoteResolver("thisname", project, "https://filepath", "ref")
 
     with patch("siliconcompiler.package.RemoteResolver.lock") as lock, \
          patch("siliconcompiler.package.RemoteResolver.check_cache") as check_cache, \
@@ -358,10 +358,10 @@ def test_remote_resolve():
 
 
 def test_remote_resolve_cached_different_name():
-    chip = Project("testproj")
-    chip.set("option", "cachedir", ".")
+    project = Project("testproj")
+    project.set("option", "cachedir", ".")
 
-    resolver = RemoteResolver("thisname", chip, "https://filepath", "ref")
+    resolver = RemoteResolver("thisname", project, "https://filepath", "ref")
 
     with patch("siliconcompiler.package.RemoteResolver.lock") as lock, \
          patch("siliconcompiler.package.RemoteResolver.check_cache") as check_cache, \
@@ -374,7 +374,7 @@ def test_remote_resolve_cached_different_name():
         resolve_remote.assert_called_once()
         assert resolver.get_path() == Path(os.path.abspath("thisname-ref-c7a4a1c3dfc3975e"))
 
-    resolver = RemoteResolver("thisname1", chip, "https://filepath", "ref")
+    resolver = RemoteResolver("thisname1", project, "https://filepath", "ref")
     with patch("siliconcompiler.package.RemoteResolver.lock") as lock, \
          patch("siliconcompiler.package.RemoteResolver.check_cache") as check_cache, \
          patch("siliconcompiler.package.RemoteResolver.resolve_remote") as resolve_remote:
@@ -387,10 +387,10 @@ def test_remote_resolve_cached_different_name():
 
 
 def test_remote_lock():
-    chip = Project("testproj")
-    chip.set("option", "cachedir", ".")
+    project = Project("testproj")
+    project.set("option", "cachedir", ".")
 
-    resolver = RemoteResolver("thisname", chip, "https://filepath", "ref")
+    resolver = RemoteResolver("thisname", project, "https://filepath", "ref")
 
     with resolver.lock():
         assert os.path.exists(resolver.lock_file)
@@ -401,10 +401,10 @@ def test_remote_lock():
 
 
 def test_remote_lock_after_lock():
-    chip = Project("testproj")
-    chip.set("option", "cachedir", ".")
+    project = Project("testproj")
+    project.set("option", "cachedir", ".")
 
-    resolver = RemoteResolver("thisname", chip, "https://filepath", "ref")
+    resolver = RemoteResolver("thisname", project, "https://filepath", "ref")
 
     with resolver.lock():
         assert os.path.exists(resolver.lock_file)
@@ -422,11 +422,11 @@ def test_remote_lock_after_lock():
 
 
 def test_remote_lock_within_lock_thread():
-    chip = Project("testproj")
-    chip.set("option", "cachedir", ".")
+    project = Project("testproj")
+    project.set("option", "cachedir", ".")
 
-    resolver0 = RemoteResolver("thisname", chip, "https://filepath", "ref")
-    resolver1 = RemoteResolver("thisname", chip, "https://filepath", "ref")
+    resolver0 = RemoteResolver("thisname", project, "https://filepath", "ref")
+    resolver1 = RemoteResolver("thisname", project, "https://filepath", "ref")
 
     # change second resolver to wait 1 second
     resolver1.set_timeout(1)
@@ -446,11 +446,11 @@ def test_remote_lock_within_lock_thread():
 
 
 def test_remote_lock_within_lock_thread_multiple_tries(monkeypatch):
-    chip = Project("testproj")
-    chip.set("option", "cachedir", ".")
+    project = Project("testproj")
+    project.set("option", "cachedir", ".")
 
-    resolver0 = RemoteResolver("thisname", chip, "https://filepath", "ref")
-    resolver1 = RemoteResolver("thisname", chip, "https://filepath", "ref")
+    resolver0 = RemoteResolver("thisname", project, "https://filepath", "ref")
+    resolver1 = RemoteResolver("thisname", project, "https://filepath", "ref")
 
     # change second resolver to wait 10 second
     resolver1.set_timeout(10)
@@ -492,11 +492,11 @@ def test_remote_lock_within_lock_thread_multiple_tries(monkeypatch):
 
 
 def test_remote_lock_within_lock_file(monkeypatch):
-    chip = Project("testproj")
-    chip.set("option", "cachedir", ".")
+    project = Project("testproj")
+    project.set("option", "cachedir", ".")
 
-    resolver0 = RemoteResolver("thisname", chip, "https://filepath", "ref")
-    resolver1 = RemoteResolver("thisname", chip, "https://filepath", "ref")
+    resolver0 = RemoteResolver("thisname", project, "https://filepath", "ref")
+    resolver1 = RemoteResolver("thisname", project, "https://filepath", "ref")
 
     # change second resolver to wait 1 second
     resolver1.set_timeout(1)
@@ -525,10 +525,10 @@ def test_remote_lock_within_lock_file(monkeypatch):
 
 
 def test_remote_lock_exception():
-    chip = Project("testproj")
-    chip.set("option", "cachedir", ".")
+    project = Project("testproj")
+    project.set("option", "cachedir", ".")
 
-    resolver = RemoteResolver("thisname", chip, "https://filepath", "ref")
+    resolver = RemoteResolver("thisname", project, "https://filepath", "ref")
 
     with pytest.raises(ValueError):
         with resolver.lock():
@@ -548,10 +548,10 @@ def test_remote_lock_exception():
 
 
 def test_remote_lock_failed():
-    chip = Project("testproj")
-    chip.set("option", "cachedir", ".")
+    project = Project("testproj")
+    project.set("option", "cachedir", ".")
 
-    resolver = RemoteResolver("thisname", chip, "https://filepath", "ref")
+    resolver = RemoteResolver("thisname", project, "https://filepath", "ref")
     resolver.set_timeout(1)
 
     with patch("fasteners.InterProcessLock.acquire") as acquire:
@@ -568,10 +568,10 @@ def test_remote_lock_failed():
 
 
 def test_remote_lock_revert_to_file():
-    chip = Project("testproj")
-    chip.set("option", "cachedir", ".")
+    project = Project("testproj")
+    project.set("option", "cachedir", ".")
 
-    resolver = RemoteResolver("thisname", chip, "https://filepath", "ref")
+    resolver = RemoteResolver("thisname", project, "https://filepath", "ref")
 
     with patch("fasteners.InterProcessLock.acquire") as acquire:
         def fail_lock(*args, **kwargs):
@@ -587,10 +587,10 @@ def test_remote_lock_revert_to_file():
 
 
 def test_remote_lock_revert_to_file_failed():
-    chip = Project("testproj")
-    chip.set("option", "cachedir", ".")
+    project = Project("testproj")
+    project.set("option", "cachedir", ".")
 
-    resolver = RemoteResolver("thisname", chip, "https://filepath", "ref")
+    resolver = RemoteResolver("thisname", project, "https://filepath", "ref")
 
     with patch("fasteners.InterProcessLock.acquire") as acquire, \
          patch("time.sleep") as sleep:
@@ -656,63 +656,63 @@ def test_keypath_resolver_no_root():
 
 
 def test_get_cache():
-    chip = Project("testproj")
-    assert Resolver.get_cache(chip) == {}
-    assert getattr(chip, "__Resolver_cache_id")
+    project = Project("testproj")
+    assert Resolver.get_cache(project) == {}
+    assert getattr(project, "__Resolver_cache_id")
 
 
 def test_set_cache():
-    chip = Project("testproj")
-    assert Resolver.get_cache(chip) == {}
-    assert getattr(chip, "__Resolver_cache_id")
+    project = Project("testproj")
+    assert Resolver.get_cache(project) == {}
+    assert getattr(project, "__Resolver_cache_id")
 
-    Resolver.set_cache(chip, "test", "path")
-    assert Resolver.get_cache(chip) == {
+    Resolver.set_cache(project, "test", "path")
+    assert Resolver.get_cache(project) == {
         "test": "path"
     }
-    Resolver.set_cache(chip, "test0", "path0")
-    assert Resolver.get_cache(chip) == {
+    Resolver.set_cache(project, "test0", "path0")
+    assert Resolver.get_cache(project) == {
         "test": "path",
         "test0": "path0",
     }
 
 
-def test_set_cache_different_chips():
-    chip0 = Project("testproj")
-    chip1 = Project("testproj")
+def test_set_cache_different_projects():
+    project0 = Project("testproj")
+    project1 = Project("testproj")
 
-    assert Resolver.get_cache(chip0) == {}
-    assert Resolver.get_cache(chip1) == {}
+    assert Resolver.get_cache(project0) == {}
+    assert Resolver.get_cache(project1) == {}
 
-    assert getattr(chip0, "__Resolver_cache_id")
-    assert getattr(chip1, "__Resolver_cache_id")
+    assert getattr(project0, "__Resolver_cache_id")
+    assert getattr(project1, "__Resolver_cache_id")
 
-    Resolver.set_cache(chip0, "test", "path")
-    assert Resolver.get_cache(chip0) == {
+    Resolver.set_cache(project0, "test", "path")
+    assert Resolver.get_cache(project0) == {
         "test": "path"
     }
-    assert Resolver.get_cache(chip1) == {}
+    assert Resolver.get_cache(project1) == {}
 
-    Resolver.set_cache(chip1, "test0", "path0")
-    assert Resolver.get_cache(chip0) == {
+    Resolver.set_cache(project1, "test0", "path0")
+    assert Resolver.get_cache(project0) == {
         "test": "path"
     }
-    assert Resolver.get_cache(chip1) == {
+    assert Resolver.get_cache(project1) == {
         "test0": "path0",
     }
 
 
 def test_reset_cache():
-    chip = Project("testproj")
+    project = Project("testproj")
 
-    assert Resolver.get_cache(chip) == {}
+    assert Resolver.get_cache(project) == {}
 
-    Resolver.set_cache(chip, "test", "path")
-    assert Resolver.get_cache(chip) == {
+    Resolver.set_cache(project, "test", "path")
+    assert Resolver.get_cache(project) == {
         "test": "path"
     }
 
-    assert getattr(chip, "__Resolver_cache_id")
+    assert getattr(project, "__Resolver_cache_id")
 
-    Resolver.reset_cache(chip)
-    assert Resolver.get_cache(chip) == {}
+    Resolver.reset_cache(project)
+    assert Resolver.get_cache(project) == {}

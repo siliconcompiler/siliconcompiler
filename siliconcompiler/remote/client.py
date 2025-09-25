@@ -45,11 +45,11 @@ class Client():
     # Step name to use while logging
     STEP_NAME = "remote"
 
-    def __init__(self, chip, default_server=default_server):
-        self.__chip = chip
-        self.__logger = self.__chip.logger.getChild('remote-client')
-        self.__dashboard = self.__chip._Project__dashboard
-        self.__name = self.__chip.design.name
+    def __init__(self, project, default_server=default_server):
+        self.__project = project
+        self.__logger = self.__project.logger.getChild('remote-client')
+        self.__dashboard = self.__project._Project__dashboard
+        self.__name = self.__project.design.name
 
         self.__default_server = default_server
 
@@ -76,9 +76,9 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
         self.__node_information = None
 
     def __get_remote_config_file(self, fail=True):
-        if self.__chip.get('option', 'credentials'):
+        if self.__project.get('option', 'credentials'):
             # Use the provided remote credentials file.
-            cfg_file = os.path.abspath(self.__chip.get('option', 'credentials'))
+            cfg_file = os.path.abspath(self.__project.get('option', 'credentials'))
 
             if fail and not os.path.isfile(cfg_file) and \
                getattr(self, '_error_on_missing_file', True):
@@ -133,7 +133,7 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
         return urllib.parse.urljoin(self.__url, action)
 
     def remote_manifest(self):
-        return f'{jobdir(self.__chip)}/sc_remote.pkg.json'
+        return f'{jobdir(self.__project)}/sc_remote.pkg.json'
 
     def print_configuration(self):
         self.__logger.info(f'Server: {self.__url}')
@@ -151,11 +151,11 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
         # Use authentication if necessary.
         post_params = {}
 
-        if include_job_id and self.__chip.get('record', 'remoteid'):
-            post_params['job_hash'] = self.__chip.get('record', 'remoteid')
+        if include_job_id and self.__project.get('record', 'remoteid'):
+            post_params['job_hash'] = self.__project.get('record', 'remoteid')
 
-        if include_job_name and self.__chip.get('option', 'jobname'):
-            post_params['job_id'] = self.__chip.get('option', 'jobname')
+        if include_job_name and self.__project.get('option', 'jobname'):
+            post_params['job_id'] = self.__project.get('option', 'jobname')
 
         # Forward authentication information
         if ('username' in self.__config) and ('password' in self.__config) and \
@@ -355,9 +355,9 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
             nodes_to_log.setdefault(status, []).append((node, node_info))
 
             if self.__node_information and node in self.__node_information:
-                self.__chip.set('record', 'status', status,
-                                step=self.__node_information[node]["step"],
-                                index=self.__node_information[node]["index"])
+                self.__project.set('record', 'status', status,
+                                   step=self.__node_information[node]["step"],
+                                   index=self.__node_information[node]["index"])
 
         nodes_to_log = {key: nodes_to_log[key] for key in sorted(nodes_to_log.keys())}
 
@@ -465,18 +465,18 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
 
     def run(self):
         '''
-        Dispatch the Chip to a remote server for processing.
+        Dispatch the project to a remote server for processing.
         '''
-        should_resume = not self.__chip.get('option', 'clean')
-        remote_resume = should_resume and self.__chip.get('record', 'remoteid')
+        should_resume = not self.__project.get('option', 'clean')
+        remote_resume = should_resume and self.__project.get('record', 'remoteid')
 
         # Pre-process: Run an starting nodes locally, and upload the
         # in-progress build directory to the remote server.
         # Data is encrypted if user / key were specified.
         # run remote process
-        if self.__chip.get('arg', 'step'):
+        if self.__project.get('arg', 'step'):
             raise ValueError('Cannot pass [arg,step] parameter into remote flow.')
-        if self.__chip.get('arg', 'index'):
+        if self.__project.get('arg', 'index'):
             raise ValueError('Cannot pass [arg,index] parameter into remote flow.')
 
         # Only run the pre-process step if the job doesn't already have a remote ID.
@@ -485,8 +485,8 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
 
         # Run the job on the remote server, and wait for it to finish.
         # Set logger to indicate remote run
-        self.__chip._logger_console.setFormatter(
-            get_console_formatter(self.__chip, True, self.STEP_NAME, None))
+        self.__project._logger_console.setFormatter(
+            get_console_formatter(self.__project, True, self.STEP_NAME, None))
 
         # Ask the remote server to start processing the requested step.
         self.__request_run()
@@ -498,8 +498,8 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
             # Restore logger
             if self.__dashboard:
                 self.__dashboard.end_of_run()
-                self.__chip._logger_console.setFormatter(
-                    get_console_formatter(self.__chip, False, None, None))
+                self.__project._logger_console.setFormatter(
+                    get_console_formatter(self.__project, False, None, None))
 
     def __request_run(self):
         '''
@@ -513,18 +513,18 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
 
         self.__print_tos(remote_status)
 
-        remote_resume = not self.__chip.get('option', 'clean') and \
-            self.__chip.get('record', 'remoteid')
+        remote_resume = not self.__project.get('option', 'clean') and \
+            self.__project.get('record', 'remoteid')
         # Only package and upload the entry steps if starting a new job.
         if not remote_resume:
             upload_file = tempfile.TemporaryFile(prefix='sc', suffix='remote.tar.gz')
             with tarfile.open(fileobj=upload_file, mode='w:gz') as tar:
-                tar.add(jobdir(self.__chip), arcname='')
+                tar.add(jobdir(self.__project), arcname='')
             # Flush file to ensure everything is written
             upload_file.flush()
 
             # We no longer need the collected files
-            shutil.rmtree(collectiondir(self.__chip))
+            shutil.rmtree(collectiondir(self.__project))
 
         if 'pre_upload' in remote_status:
             self.__logger.info(remote_status['pre_upload']['message'])
@@ -534,7 +534,7 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
         # Redirected POST requests are translated to GETs. This is actually
         # part of the HTTP spec, so we need to manually follow the trail.
         post_params = {
-            'chip_cfg': self.__chip.getdict(),
+            'project_cfg': self.__project.getdict(),
             'params': self.__get_post_params(include_job_id=True)
         }
 
@@ -558,9 +558,9 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
 
         if 'message' in resp and resp['message']:
             self.__logger.info(resp['message'])
-        self.__chip.set('record', 'remoteid', resp['job_hash'])
+        self.__project.set('record', 'remoteid', resp['job_hash'])
 
-        self.__chip.write_manifest(self.remote_manifest())
+        self.__project.write_manifest(self.remote_manifest())
 
         self.__logger.info(f"Your job's reference ID is: {resp['job_hash']}")
 
@@ -572,13 +572,13 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
         '''
 
         # Ensure packages with python sources are copied
-        for key in self.__chip.allkeys():
-            key_type = self.__chip.get(*key, field='type')
+        for key in self.__project.allkeys():
+            key_type = self.__project.get(*key, field='type')
 
             if 'dir' in key_type or 'file' in key_type:
-                for _, step, index in self.__chip.get(*key, field=None).getvalues(
+                for _, step, index in self.__project.get(*key, field=None).getvalues(
                         return_defvalue=False):
-                    packages = self.__chip.get(*key, field='package', step=step, index=index)
+                    packages = self.__project.get(*key, field='package', step=step, index=index)
                     if not isinstance(packages, list):
                         packages = [packages]
                     force_copy = False
@@ -588,11 +588,11 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
                         if package.startswith('python://'):
                             force_copy = True
                     if force_copy:
-                        self.__chip.set(*key, True, field='copy', step=step, index=index)
+                        self.__project.set(*key, True, field='copy', step=step, index=index)
 
         # Collect inputs into a collection directory only for remote runs, since
         # we need to send inputs up to the server.
-        collect(self.__chip, whitelist=self.__config.setdefault('directory_whitelist', []))
+        collect(self.__project, whitelist=self.__config.setdefault('directory_whitelist', []))
 
     def _run_loop(self):
         # Wrapper to allow for capturing of Ctrl+C
@@ -610,10 +610,10 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
     def __import_run_manifests(self, starttimes):
         if not self.__setup_information_loaded:
             if self.__setup_information_fetched:
-                manifest = os.path.join(jobdir(self.__chip), f'{self.__name}.pkg.json')
+                manifest = os.path.join(jobdir(self.__project), f'{self.__name}.pkg.json')
                 if os.path.exists(manifest):
                     try:
-                        Journal.replay_file(self.__chip, manifest)
+                        Journal.replay_file(self.__project, manifest)
                         self.__setup_information_loaded = True
                         changed = True
                     except:  # noqa E722
@@ -630,19 +630,19 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
                 continue
 
             manifest = os.path.join(
-                workdir(self.__chip, step=node_info["step"], index=node_info["index"]),
+                workdir(self.__project, step=node_info["step"], index=node_info["index"]),
                 'outputs',
                 f'{self.__name}.pkg.json')
             if os.path.exists(manifest):
                 try:
-                    Journal.replay_file(self.__chip, manifest)
+                    Journal.replay_file(self.__project, manifest)
                     node_info["imported"] = True
                     changed = True
                 except:  # noqa E722
                     # Import may fail if file is still getting written
                     pass
-            elif self.__chip.get('record', 'status',
-                                 step=node_info["step"], index=node_info["index"]) \
+            elif self.__project.get('record', 'status',
+                                    step=node_info["step"], index=node_info["index"]) \
                     == SCNodeStatus.SKIPPED:
                 node_info["imported"] = True
                 changed = True
@@ -654,8 +654,8 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
         return changed
 
     def __ensure_run_loop_information(self):
-        self.__chip._logger_console.setFormatter(
-            get_console_formatter(self.__chip, True, self.STEP_NAME, None))
+        self.__project._logger_console.setFormatter(
+            get_console_formatter(self.__project, True, self.STEP_NAME, None))
         if not self.__download_pool:
             self.__download_pool = multiprocessing.Pool()
 
@@ -668,13 +668,14 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
 
         self.__node_information = {}
         runtime = RuntimeFlowgraph(
-            self.__chip.get("flowgraph", self.__chip.get('option', 'flow'), field='schema'),
-            from_steps=self.__chip.get('option', 'from'),
-            to_steps=self.__chip.get('option', 'to'),
-            prune_nodes=self.__chip.get('option', 'prune'))
+            self.__project.get("flowgraph", self.__project.get('option', 'flow'), field='schema'),
+            from_steps=self.__project.get('option', 'from'),
+            to_steps=self.__project.get('option', 'to'),
+            prune_nodes=self.__project.get('option', 'prune'))
 
         for step, index in runtime.get_nodes():
-            done = SCNodeStatus.is_done(self.__chip.get('record', 'status', step=step, index=index))
+            done = SCNodeStatus.is_done(self.__project.get('record', 'status',
+                                                           step=step, index=index))
             node_info = {
                 "step": step,
                 "index": index,
@@ -741,7 +742,7 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
         self._finalize_loop()
 
         # Un-set the 'remote' option to avoid from/to-based summary/show errors
-        self.__chip.unset('option', 'remote')
+        self.__project.unset('option', 'remote')
 
         if self.__dashboard:
             self.__dashboard.update_manifest()
@@ -771,8 +772,8 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
         '''
 
         # Collect local values.
-        job_hash = self.__chip.get('record', 'remoteid')
-        local_dir = self.__chip.get('option', 'builddir')
+        job_hash = self.__project.get('record', 'remoteid')
+        local_dir = self.__project.get('option', 'builddir')
 
         # Set default results archive path if necessary, and fetch it.
         with tempfile.TemporaryDirectory(prefix=f'sc_{job_hash}_', suffix=f'_{node}') as tmpdir:
@@ -963,8 +964,8 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
 
 
 class ConfigureClient(Client):
-    def __init__(self, chip):
+    def __init__(self, project):
         self._print_server_warning = False
         self._error_on_missing_file = False
 
-        super().__init__(chip)
+        super().__init__(project)

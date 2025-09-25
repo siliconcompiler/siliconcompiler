@@ -481,19 +481,19 @@ class Board:
 
                     self._render_thread.start()
 
-    def update_manifest(self, chip, starttimes=None):
+    def update_manifest(self, project, starttimes=None):
         """
-        Updates the dashboard with the latest data from a chip object's manifest.
+        Updates the dashboard with the latest data from a project object's manifest.
 
         Args:
-            chip: The SiliconCompiler chip object.
+            project: The SiliconCompiler project object.
             starttimes (dict, optional): A dictionary mapping (step, index) tuples
                                          to their start times. Defaults to None.
         """
         if not self._active:
             return
 
-        self._update_render_data(chip, starttimes=starttimes)
+        self._update_render_data(project, starttimes=starttimes)
 
     def is_running(self) -> bool:
         """
@@ -517,17 +517,17 @@ class Board:
 
             return self._render_thread.is_alive()
 
-    def end_of_run(self, chip):
+    def end_of_run(self, project):
         """
         Signals that the run has completed, performing a final update.
 
         Args:
-            chip: The SiliconCompiler chip object at the end of the run.
+            project: The SiliconCompiler project object at the end of the run.
         """
         if not self.is_running():
             return
 
-        self._update_render_data(chip, complete=True)
+        self._update_render_data(project, complete=True)
 
     def stop(self):
         """
@@ -668,10 +668,10 @@ class Board:
 
         # jobname, node index, priority, node order
         table_data_select = []
-        for chipid, job in job_data.items():
+        for projectid, job in job_data.items():
             for n, node in enumerate(job.nodes):
                 table_data_select.append(
-                    (chipid, n, node["print"]["priority"], node["print"]["order"])
+                    (projectid, n, node["print"]["priority"], node["print"]["order"])
                 )
 
         # sort for priority
@@ -685,8 +685,8 @@ class Board:
 
         table_data = []
 
-        for chipid, node_idx, _, _ in table_data_select:
-            job = job_data[chipid]
+        for projectid, node_idx, _, _ in table_data_select:
+            job = job_data[projectid]
             node = job.nodes[node_idx]
 
             log_file = None
@@ -931,45 +931,45 @@ class Board:
 
         return Group(*items)
 
-    def _update_render_data(self, chip, starttimes=None, complete=False):
+    def _update_render_data(self, project, starttimes=None, complete=False):
         """
-        Extracts job and node information from a chip object and updates the
+        Extracts job and node information from a project object and updates the
         shared job data dictionary, triggering a render event.
 
         Args:
-            chip: The SiliconCompiler chip object.
+            project: The SiliconCompiler project object.
             starttimes (dict, optional): Dictionary of node start times. Defaults to None.
             complete (bool, optional): Flag indicating if the job is complete. Defaults to False.
         """
 
-        if not chip:
+        if not project:
             return
 
-        job_data = self._get_job(chip, starttimes=starttimes)
+        job_data = self._get_job(project, starttimes=starttimes)
         job_data.complete = complete
 
         if not job_data.nodes:
             return
 
-        chip_id = f"{job_data.design}/{job_data.jobname}"
+        project_id = f"{job_data.design}/{job_data.jobname}"
         with self._job_data_lock:
-            if complete and chip_id in self._job_data and self._job_data[chip_id].complete:
+            if complete and project_id in self._job_data and self._job_data[project_id].complete:
                 # Dont update again, requires a start of a new run
                 return
-            self._job_data[chip_id] = job_data
+            self._job_data[project_id] = job_data
             self._board_info.data_modified = True
             self._render_event.set()
 
-    def _get_job(self, chip, starttimes=None) -> JobData:
+    def _get_job(self, project, starttimes=None) -> JobData:
         """
-        Parses a chip object to extract detailed information about the flowgraph,
+        Parses a project object to extract detailed information about the flowgraph,
         node statuses, timings, and metrics.
 
         This method calculates node display priority based on run status and
         dependencies.
 
         Args:
-            chip: The SiliconCompiler chip object to parse.
+            project: The SiliconCompiler project object to parse.
             starttimes (dict, optional): A dictionary of node start times.
                                          Defaults to None.
 
@@ -988,15 +988,15 @@ class Board:
         try:
             node_inputs = {}
             node_outputs = {}
-            flow = chip.get("option", "flow")
+            flow = project.get("option", "flow")
             if not flow:
                 raise RuntimeError("dummy error")
 
             runtime_flow = RuntimeFlowgraph(
-                chip.get("flowgraph", flow, field='schema'),
-                to_steps=chip.get('option', 'to'),
-                prune_nodes=chip.get('option', 'prune'))
-            record = chip.get("record", field='schema')
+                project.get("flowgraph", flow, field='schema'),
+                to_steps=project.get('option', 'to'),
+                prune_nodes=project.get('option', 'prune'))
+            record = project.get("record", field='schema')
 
             execnodes = runtime_flow.get_nodes()
             lowest_priority = 3 * len(execnodes)  # 2x + 1 is lowest computed, so 3x will be lower
@@ -1008,18 +1008,18 @@ class Board:
 
                     node_priority[node] = lowest_priority
 
-                    status = chip.get("record", "status", step=node[0], index=node[1])
+                    status = project.get("record", "status", step=node[0], index=node[1])
                     if status is None:
                         status = NodeStatus.PENDING
                     nodestatus[node] = status
                     nodeorder[node] = (n, m)
 
                     node_inputs[node] = runtime_flow.get_node_inputs(*node, record=record)
-                    for in_node in chip.get('flowgraph', flow, node[0], node[1], 'input'):
+                    for in_node in project.get('flowgraph', flow, node[0], node[1], 'input'):
                         node_outputs.setdefault(in_node, set()).add(node)
 
             flow_entry_nodes = set(
-                chip.get("flowgraph", flow, field="schema").get_entry_nodes())
+                project.get("flowgraph", flow, field="schema").get_entry_nodes())
             flow_exit_nodes = set(runtime_flow.get_exit_nodes())
 
             running_nodes = set([node for node in nodes if NodeStatus.is_running(nodestatus[node])])
@@ -1071,14 +1071,14 @@ class Board:
         except RuntimeError:
             pass
 
-        design = chip.get("option", "design")
-        jobname = chip.get("option", "jobname")
+        design = project.get("option", "design")
+        jobname = project.get("option", "jobname")
 
         job_data = JobData()
         job_data.jobname = jobname
         job_data.design = design
         totaltimes = [
-            chip.get("metric", "totaltime", step=step, index=index) or 0
+            project.get("metric", "totaltime", step=step, index=index) or 0
             for step, index in nodes
         ]
         if not totaltimes:
@@ -1103,13 +1103,13 @@ class Board:
             starttime = None
             duration = None
             if NodeStatus.is_done(status):
-                duration = chip.get("metric", "tasktime", step=step, index=index)
+                duration = project.get("metric", "tasktime", step=step, index=index)
             if (step, index) in starttimes:
                 starttime = starttimes[(step, index)]
 
             node_metrics = []
             for metric in self._metrics:
-                value = chip.get('metric', metric, step=step, index=index)
+                value = project.get('metric', metric, step=step, index=index)
                 if value is None:
                     node_metrics.append("")
                 else:
@@ -1132,10 +1132,10 @@ class Board:
                     },
                     "metrics": node_metrics,
                     "log": [os.path.join(
-                        workdir(chip, step=step, index=index, relpath=True),
+                        workdir(project, step=step, index=index, relpath=True),
                         f"{step}.log"),
                         os.path.join(
-                            workdir(chip, step=step, index=index, relpath=True),
+                            workdir(project, step=step, index=index, relpath=True),
                             f"sc_{step}_{index}.log")],
                     "print": {
                         "order": nodeorder[(step, index)],

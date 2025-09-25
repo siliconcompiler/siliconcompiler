@@ -119,11 +119,11 @@ def test_pick_manifest_from_file_empty_list(asic_gcd):
 
 
 def test_pick_manifest(asic_gcd, monkeypatch, caplog):
-    def get_manifests(pwd):
+    def get_manifests(*args):
         return {}
     monkeypatch.setattr(_common, '_get_manifests', get_manifests)
 
-    def pick_manifest_from_file(chip, src_file, manifests):
+    def pick_manifest_from_file(*args):
         return None
     monkeypatch.setattr(_common, 'pick_manifest_from_file', pick_manifest_from_file)
 
@@ -135,11 +135,11 @@ def test_pick_manifest(asic_gcd, monkeypatch, caplog):
 
 
 def test_pick_manifest_noset_design(asic_gcd, monkeypatch, caplog):
-    def get_manifests(pwd):
+    def get_manifests(*args):
         return {}
     monkeypatch.setattr(_common, '_get_manifests', get_manifests)
 
-    def pick_manifest_from_file(chip, src_file, manifests):
+    def pick_manifest_from_file(*args):
         return None
     monkeypatch.setattr(_common, 'pick_manifest_from_file', pick_manifest_from_file)
 
@@ -152,11 +152,11 @@ def test_pick_manifest_noset_design(asic_gcd, monkeypatch, caplog):
 
 
 def test_pick_manifest_design_mismatch(asic_gcd, monkeypatch, caplog):
-    def get_manifests(pwd):
+    def get_manifests(*args):
         return {"gcd0": {}}
     monkeypatch.setattr(_common, '_get_manifests', get_manifests)
 
-    def pick_manifest_from_file(chip, src_file, manifests):
+    def pick_manifest_from_file(*args):
         return None
     monkeypatch.setattr(_common, 'pick_manifest_from_file', pick_manifest_from_file)
 
@@ -170,11 +170,11 @@ def test_pick_manifest_design_mismatch(asic_gcd, monkeypatch, caplog):
 
 
 def test_pick_manifest_set_design(asic_gcd, monkeypatch):
-    def get_manifests(pwd):
+    def get_manifests(*args):
         return {"gcd": {"job0": {('syn', '0'): 'file'}}}
     monkeypatch.setattr(_common, '_get_manifests', get_manifests)
 
-    def pick_manifest_from_file(chip, src_file, manifests):
+    def pick_manifest_from_file(*args):
         return None
     monkeypatch.setattr(_common, 'pick_manifest_from_file', pick_manifest_from_file)
 
@@ -188,11 +188,11 @@ def test_pick_manifest_set_design(asic_gcd, monkeypatch):
 
 
 def test_pick_manifest_newest_file(asic_gcd, monkeypatch):
-    def get_manifests(pwd):
+    def get_manifests(*args):
         return {"gcd": {"job0": {('syn', '0'): 'file', ('syn', '1'): 'file0'}}}
     monkeypatch.setattr(_common, '_get_manifests', get_manifests)
 
-    def pick_manifest_from_file(chip, src_file, manifests):
+    def pick_manifest_from_file(*args):
         return None
     monkeypatch.setattr(_common, 'pick_manifest_from_file', pick_manifest_from_file)
 
@@ -211,11 +211,11 @@ def test_pick_manifest_newest_file(asic_gcd, monkeypatch):
 
 
 def test_pick_manifest_final_manifest(asic_gcd, monkeypatch):
-    def get_manifests(pwd):
+    def get_manifests(*args):
         return {"gcd": {"job0": {(None, None): 'file', ('syn', '1'): 'file0'}}}
     monkeypatch.setattr(_common, '_get_manifests', get_manifests)
 
-    def pick_manifest_from_file(chip, src_file, manifests):
+    def pick_manifest_from_file(*args):
         return None
     monkeypatch.setattr(_common, 'pick_manifest_from_file', pick_manifest_from_file)
 
@@ -226,11 +226,11 @@ def test_pick_manifest_final_manifest(asic_gcd, monkeypatch):
 
 
 def test_pick_manifest_step_index_invalid(asic_gcd, monkeypatch, caplog):
-    def get_manifests(pwd):
+    def get_manifests(*args):
         return {"gcd": {"job0": {(None, None): 'file', ('syn', '1'): 'file0'}}}
     monkeypatch.setattr(_common, '_get_manifests', get_manifests)
 
-    def pick_manifest_from_file(chip, src_file, manifests):
+    def pick_manifest_from_file(*args):
         return None
     monkeypatch.setattr(_common, 'pick_manifest_from_file', pick_manifest_from_file)
 
@@ -247,11 +247,11 @@ def test_pick_manifest_step_index_invalid(asic_gcd, monkeypatch, caplog):
 
 
 def test_pick_manifest_step_index_manifest(asic_gcd, monkeypatch):
-    def get_manifests(pwd):
+    def get_manifests(*args):
         return {"gcd": {"job0": {(None, None): 'file', ('syn', '1'): 'file0'}}}
     monkeypatch.setattr(_common, '_get_manifests', get_manifests)
 
-    def pick_manifest_from_file(chip, src_file, manifests):
+    def pick_manifest_from_file(*args):
         return None
     monkeypatch.setattr(_common, 'pick_manifest_from_file', pick_manifest_from_file)
 
@@ -264,11 +264,11 @@ def test_pick_manifest_step_index_manifest(asic_gcd, monkeypatch):
 
 
 def test_pick_manifest_step_index_invalid_default_index(asic_gcd, monkeypatch):
-    def get_manifests(pwd):
+    def get_manifests(*args):
         return {"gcd": {"job0": {(None, None): 'file', ('syn', '0'): 'file0'}}}
     monkeypatch.setattr(_common, '_get_manifests', get_manifests)
 
-    def pick_manifest_from_file(chip, src_file, manifests):
+    def pick_manifest_from_file(*args):
         return None
     monkeypatch.setattr(_common, 'pick_manifest_from_file', pick_manifest_from_file)
 
@@ -280,11 +280,11 @@ def test_pick_manifest_step_index_invalid_default_index(asic_gcd, monkeypatch):
 
 
 def test_pick_manifest_step_index_found_index(asic_gcd, monkeypatch):
-    def get_manifests(pwd):
+    def get_manifests(*args):
         return {"gcd": {"job0": {(None, None): 'file', ('syn', '1'): 'file0'}}}
     monkeypatch.setattr(_common, '_get_manifests', get_manifests)
 
-    def pick_manifest_from_file(chip, src_file, manifests):
+    def pick_manifest_from_file(*args):
         return None
     monkeypatch.setattr(_common, 'pick_manifest_from_file', pick_manifest_from_file)
 
@@ -296,11 +296,11 @@ def test_pick_manifest_step_index_found_index(asic_gcd, monkeypatch):
 
 
 def test_pick_manifest_step_index_invalid_combo(asic_gcd, monkeypatch, caplog):
-    def get_manifests(pwd):
+    def get_manifests(*args):
         return {"gcd": {"job0": {(None, None): 'file', ('syn1', '1'): 'file0'}}}
     monkeypatch.setattr(_common, '_get_manifests', get_manifests)
 
-    def pick_manifest_from_file(chip, src_file, manifests):
+    def pick_manifest_from_file(*args):
         return None
     monkeypatch.setattr(_common, 'pick_manifest_from_file', pick_manifest_from_file)
 

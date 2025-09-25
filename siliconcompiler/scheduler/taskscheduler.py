@@ -26,10 +26,10 @@ class TaskScheduler:
     main Scheduler and executes them in a loop until the flow is complete.
     """
     __callbacks = {
-        "pre_run": lambda chip: None,
-        "pre_node": lambda chip, step, index: None,
-        "post_node": lambda chip, step, index: None,
-        "post_run": lambda chip: None,
+        "pre_run": lambda project: None,
+        "pre_node": lambda project, step, index: None,
+        "post_node": lambda project, step, index: None,
+        "post_run": lambda project: None,
     }
 
     @staticmethod
@@ -41,7 +41,7 @@ class TaskScheduler:
         Args:
             hook (str): The name of the hook to register the callback for.
             func (function): The function to be called. It should accept the
-                chip object and, for node hooks, the step and index as arguments.
+                project object and, for node hooks, the step and index as arguments.
 
         Raises:
             ValueError: If the specified hook is not valid.
@@ -50,26 +50,26 @@ class TaskScheduler:
             raise ValueError(f"{hook} is not a valid callback")
         TaskScheduler.__callbacks[hook] = func
 
-    def __init__(self, chip, tasks):
+    def __init__(self, project, tasks):
         """Initializes the TaskScheduler.
 
         Args:
-            chip (Chip): The Chip object containing the configuration.
+            project (Project): The project object containing the configuration.
             tasks (dict): A dictionary of SchedulerNode objects keyed by
                 (step, index) tuples.
         """
-        self.__chip = chip
-        self.__logger = self.__chip.logger
-        self.__logger_console_handler = self.__chip._logger_console
-        self.__schema = self.__chip
-        self.__flow = self.__schema.get("flowgraph", self.__chip.get('option', 'flow'),
+        self.__project = project
+        self.__logger = self.__project.logger
+        self.__logger_console_handler = self.__project._logger_console
+        self.__schema = self.__project
+        self.__flow = self.__schema.get("flowgraph", self.__project.get('option', 'flow'),
                                         field="schema")
         self.__record = self.__schema.get("record", field="schema")
-        self.__dashboard = chip._Project__dashboard
+        self.__dashboard = project._Project__dashboard
 
         self.__max_cores = utils.get_cores()
         self.__max_threads = utils.get_cores()
-        self.__max_parallel_run = self.__chip.get('option', 'scheduler', 'maxnodes')
+        self.__max_parallel_run = self.__project.get('option', 'scheduler', 'maxnodes')
         if not self.__max_parallel_run:
             self.__max_parallel_run = utils.get_cores()
         # clip max parallel jobs to 1 <= jobs <= max_cores
@@ -77,9 +77,9 @@ class TaskScheduler:
 
         self.__runtime_flow = RuntimeFlowgraph(
             self.__flow,
-            from_steps=self.__chip.get('option', 'from'),
-            to_steps=self.__chip.get('option', 'to'),
-            prune_nodes=self.__chip.get('option', 'prune'))
+            from_steps=self.__project.get('option', 'from'),
+            to_steps=self.__project.get('option', 'to'),
+            prune_nodes=self.__project.get('option', 'prune'))
 
         self.__log_queue = MPManager.get_manager().Queue()
 
@@ -103,7 +103,7 @@ class TaskScheduler:
         runtime = RuntimeFlowgraph(
             self.__flow,
             from_steps=set([step for step, _ in self.__flow.get_entry_nodes()]),
-            prune_nodes=self.__chip.get('option', 'prune'))
+            prune_nodes=self.__project.get('option', 'prune'))
 
         init_funcs = set()
 
@@ -138,7 +138,7 @@ class TaskScheduler:
 
         # Call preprocessing for schedulers
         for init_func in init_funcs:
-            init_func(self.__chip)
+            init_func(self.__project)
 
     def run(self, job_log_handler):
         """
@@ -169,11 +169,11 @@ class TaskScheduler:
         if self.__dashboard:
             self.__dashboard.update_manifest()
 
-        TaskScheduler.__callbacks["pre_run"](self.__chip)
+        TaskScheduler.__callbacks["pre_run"](self.__project)
 
         try:
             self.__run_loop()
-            TaskScheduler.__callbacks["post_run"](self.__chip)
+            TaskScheduler.__callbacks["post_run"](self.__project)
         except KeyboardInterrupt:
             # exit immediately
             log_listener.stop()
@@ -262,7 +262,7 @@ class TaskScheduler:
 
         This method iterates through running nodes, checks if their process has
         terminated, and if so, merges their results (manifest and package cache)
-        back into the main chip object. It updates the node's status based on
+        back into the main project object. It updates the node's status based on
         the process exit code.
 
         Returns:
@@ -288,7 +288,7 @@ class TaskScheduler:
                         packages = info["parent_pipe"].recv()
                         if isinstance(packages, dict):
                             for package, path in packages.items():
-                                Resolver.set_cache(self.__chip, package, path)
+                                Resolver.set_cache(self.__project, package, path)
                     except:  # noqa E722
                         pass
 
@@ -307,7 +307,7 @@ class TaskScheduler:
 
                 changed = True
 
-                TaskScheduler.__callbacks['post_node'](self.__chip, step, index)
+                TaskScheduler.__callbacks['post_node'](self.__project, step, index)
 
         return changed
 
@@ -394,7 +394,7 @@ class TaskScheduler:
             if ready and self.__allow_start(node):
                 self.__logger.debug(f'Launching {info["name"]}')
 
-                TaskScheduler.__callbacks['pre_node'](self.__chip, step, index)
+                TaskScheduler.__callbacks['pre_node'](self.__project, step, index)
 
                 self.__record.set('status', NodeStatus.RUNNING, step=step, index=index)
                 self.__startTimes[node] = time.time()

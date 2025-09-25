@@ -12,7 +12,7 @@ def main():
     Utility script to print job summary from a manifest
     ------------------------------------------------------------
     """
-    # Read command-line inputs and generate Chip objects to run the flow on.
+    # Read command-line inputs and generate project objects to run the flow on.
     proj = Project.create_cmdline(
         progname,
         description=description,

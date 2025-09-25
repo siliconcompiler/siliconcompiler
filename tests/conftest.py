@@ -195,7 +195,7 @@ def heartbeat_design(examples_root):
 
 @pytest.fixture
 def asic_heartbeat(heartbeat_design):
-    '''Returns a fully configured chip object that will compile the GCD example
+    '''Returns a fully configured project object that will compile the GCD example
     design using freepdk45 and the asicflow.'''
 
     project = ASICProject(heartbeat_design)
@@ -226,7 +226,7 @@ def gcd_design(examples_root):
 
 @pytest.fixture
 def asic_gcd(gcd_design):
-    '''Returns a fully configured chip object that will compile the GCD example
+    '''Returns a fully configured project object that will compile the GCD example
     design using freepdk45 and the asicflow.'''
 
     project = ASICProject(gcd_design)

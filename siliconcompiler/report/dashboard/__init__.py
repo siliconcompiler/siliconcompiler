@@ -29,15 +29,15 @@ class AbstractDashboard(ABC):
     """
 
     @abstractmethod
-    def __init__(self, chip):
+    def __init__(self, project):
         """
-        Initializes the dashboard with a reference to the chip object.
+        Initializes the dashboard with a reference to the project object.
 
         Args:
-            chip: The SiliconCompiler chip object whose data will be displayed
+            project: The SiliconCompiler project object whose data will be displayed
                   by the dashboard.
         """
-        self._chip = chip
+        self._project = project
 
     @abstractmethod
     def open_dashboard(self):
@@ -52,7 +52,7 @@ class AbstractDashboard(ABC):
     @abstractmethod
     def update_manifest(self, payload=None):
         """
-        Updates the dashboard with the latest information from the chip's manifest.
+        Updates the dashboard with the latest information from the project's manifest.
 
         This method is the primary mechanism for pushing new data to the
         dashboard as the compilation flow progresses.
@@ -67,10 +67,10 @@ class AbstractDashboard(ABC):
     @abstractmethod
     def update_graph_manifests(self):
         """
-        Updates the manifest files for all associated graph chips.
+        Updates the manifest files for all associated graph projects.
 
         This is intended for scenarios where a dashboard might need to display
-        data from multiple, related chip objects (e.g., in a multi-job run).
+        data from multiple, related project objects (e.g., in a multi-job run).
         """
         pass
 

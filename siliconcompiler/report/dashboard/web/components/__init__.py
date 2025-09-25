@@ -64,7 +64,7 @@ def page_header(title_col_width=0.7):
             streamlit.columns([title_col_width, 1 - title_col_width], gap="large")
 
     with title_col:
-        design_title(design=state.get_chip().design.name)
+        design_title(design=state.get_project().design.name)
     with job_select_col:
         job_selector()
 
@@ -162,7 +162,7 @@ def job_selector():
     """
     job = streamlit.selectbox(
         'pick a job',
-        state.get_chips(),
+        state.get_projects(),
         label_visibility='collapsed')
 
     if state.set_key(state.SELECTED_JOB, job):
@@ -178,13 +178,13 @@ def setup_page():
     title, icon, layout, and custom menu items.
     """
     streamlit.set_page_config(
-        page_title=f'{state.get_chip().design.name} dashboard',
+        page_title=f'{state.get_project().design.name} dashboard',
         page_icon=Image.open(SC_LOGO_PATH),
         layout="wide",
         menu_items=SC_MENU)
 
 
-def file_viewer(chip, path, page_key=None, header_col_width=0.89):
+def file_viewer(project, path, page_key=None, header_col_width=0.89):
     """
     Renders a viewer for a specified file.
 
@@ -192,7 +192,7 @@ def file_viewer(chip, path, page_key=None, header_col_width=0.89):
     and pagination.
 
     Args:
-        chip (Chip): The chip object, used for context (e.g., workdir).
+        project (Project): The project object, used for context (e.g., workdir).
         path (str): The absolute path to the file to display.
         page_key (str, optional): The state key to use for storing the current
             page number for paginated text files.
@@ -207,7 +207,7 @@ def file_viewer(chip, path, page_key=None, header_col_width=0.89):
         return
 
     # --- File Header and Download Button ---
-    relative_path = os.path.relpath(path, jobdir(chip))
+    relative_path = os.path.relpath(path, jobdir(project))
     filename = os.path.basename(path)
     file_extension = utils.get_file_ext(path)
 
@@ -265,12 +265,12 @@ def file_viewer(chip, path, page_key=None, header_col_width=0.89):
         streamlit.error(f'Error occurred reading file: {e}')
 
 
-def manifest_viewer(chip, header_col_width=0.70):
+def manifest_viewer(project, header_col_width=0.70):
     """
-    Displays the chip's manifest with search and filtering options.
+    Displays the project's manifest with search and filtering options.
 
     Args:
-        chip (Chip): The chip object whose manifest will be displayed.
+        project (Project): The project object whose manifest will be displayed.
         header_col_width (float): The percentage of width for the header.
     """
     # --- Header and Settings ---
@@ -286,9 +286,9 @@ def manifest_viewer(chip, header_col_width=0.70):
         with streamlit.popover("Settings", use_container_width=True):
             # Filtering options
             if streamlit.checkbox('Raw manifest', help='View raw, unprocessed manifest'):
-                manifest_to_show = json.loads(json.dumps(chip.getdict(), sort_keys=True))
+                manifest_to_show = json.loads(json.dumps(project.getdict(), sort_keys=True))
             else:
-                manifest_to_show = report.make_manifest(chip)
+                manifest_to_show = report.make_manifest(project)
 
             if streamlit.checkbox('Hide empty values', value=True):
                 manifest_to_show = report.search_manifest(manifest_to_show, value_search='*')
@@ -302,7 +302,7 @@ def manifest_viewer(chip, header_col_width=0.70):
         streamlit.markdown(' ')  # Aligns with title
         streamlit.download_button(
             label='Download', file_name='manifest.json',
-            data=json.dumps(chip.getdict(), indent=2),
+            data=json.dumps(project.getdict(), indent=2),
             mime="application/json", use_container_width=True)
 
     # --- Manifest Display ---
@@ -358,25 +358,25 @@ def metrics_viewer(metric_dataframe, metric_to_metric_unit_map, header_col_width
     streamlit.dataframe(filtered_df, use_container_width=True, height=height)
 
 
-def node_image_viewer(chip, step, index):
+def node_image_viewer(project, step, index):
     """
     Displays a gallery of all image files associated with a given node.
 
     Args:
-        chip (Chip): The chip object.
+        project (Project): The project object.
         step (str): The step of the node.
         index (str): The index of the node.
     """
     exts = ('png', 'jpg', 'jpeg')
     images = []
-    for path, _, files in report.get_files(chip, step, index):
+    for path, _, files in report.get_files(project, step, index):
         images.extend([os.path.join(path, f) for f in files if utils.get_file_ext(f) in exts])
 
     if not images:
         streamlit.markdown("No images to show")
         return
 
-    work_dir = workdir(chip, step=step, index=index)
+    work_dir = workdir(project, step=step, index=index)
     columns = streamlit.slider(
         "Image columns",
         min_value=1, max_value=min(len(images), 10),
@@ -393,7 +393,7 @@ def node_image_viewer(chip, step, index):
                 use_column_width=True)
 
 
-def node_file_tree_viewer(chip, step, index):
+def node_file_tree_viewer(project, step, index):
     """
     Displays an interactive file tree for a given node.
 
@@ -402,12 +402,12 @@ def node_file_tree_viewer(chip, step, index):
     in the file viewer.
 
     Args:
-        chip (Chip): The chip object.
+        project (Project): The project object.
         step (str): The step of the node.
         index (str): The index of the node.
     """
     logs_and_reports = file_utils.convert_filepaths_to_select_tree(
-        report.get_files(chip, step, index))
+        report.get_files(project, step, index))
 
     if not logs_and_reports:
         streamlit.markdown("No files to show")
@@ -416,8 +416,8 @@ def node_file_tree_viewer(chip, step, index):
     # --- Prepare data for the tree component ---
     lookup = {}
     tree_items = []
-    metrics_source, file_metrics = report.get_metrics_source(chip, step, index)
-    work_dir = workdir(chip, step=step, index=index)
+    metrics_source, file_metrics = report.get_metrics_source(project, step, index)
+    work_dir = workdir(project, step=step, index=index)
 
     def make_item(file):
         """Recursively builds a tree item for the antd component."""
@@ -463,12 +463,12 @@ def node_file_tree_viewer(chip, step, index):
         state.set_key(state.SELECTED_FILE_PAGE, 1)
 
 
-def node_viewer(chip, step, index, metric_dataframe, height=None):
+def node_viewer(project, step, index, metric_dataframe, height=None):
     """
     Displays a summary view for a single node, including metrics, records, and files.
 
     Args:
-        chip (Chip): The chip object.
+        project (Project): The project object.
         step (str): The step of the node.
         index (str): The index of the node.
         metric_dataframe (pandas.DataFrame): The dataframe of all metrics.
@@ -487,25 +487,25 @@ def node_viewer(chip, step, index, metric_dataframe, height=None):
                 use_container_width=True, height=height)
     with records_col:
         streamlit.subheader(f'{node_name} details')
-        nodes = {step + index: report.get_flowgraph_nodes(chip, step, index)}
+        nodes = {step + index: report.get_flowgraph_nodes(project, step, index)}
         streamlit.dataframe(
             DataFrame.from_dict(nodes),
             use_container_width=True, height=height)
     with logs_and_reports_col:
         streamlit.subheader(f'{node_name} files')
-        node_file_tree_viewer(chip, step, index)
+        node_file_tree_viewer(project, step, index)
 
 
-def flowgraph_viewer(chip):
+def flowgraph_viewer(project):
     """
     Displays the interactive flowgraph for the current job.
 
     Selecting a node in the graph updates the application state.
 
     Args:
-        chip (Chip): The chip object containing the flowgraph to display.
+        project (Project): The project object containing the flowgraph to display.
     """
-    nodes, edges = flowgraph.get_nodes_and_edges(chip)
+    nodes, edges = flowgraph.get_nodes_and_edges(project)
     selected_node = agraph(
         nodes=nodes,
         edges=edges,

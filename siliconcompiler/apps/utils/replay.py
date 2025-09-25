@@ -58,7 +58,7 @@ def main():
                 "cfg", "file", "configuration manifest")
             self.unset("option", "jobname")
 
-    # Read command-line inputs and generate Chip objects to run the flow on.
+    # Read command-line inputs and generate project objects to run the flow on.
     proj = ReplayProject.create_cmdline(
         progname,
         description=description,
