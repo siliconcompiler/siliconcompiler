@@ -11,9 +11,24 @@ from lambdapdk.freepdk45.libs.fakeram45 import FakeRAM45Lambdalib_SinglePort
 def setup(project: ASICProject, syn_np=1, floorplan_np=1, physyn_np=1, place_np=1, cts_np=1,
           route_np=1,
           timing_np=1):
-    '''
-    FreePDK45 demo target
-    '''
+    """
+          Configure an ASICProject instance for a FreePDK45 demo target.
+          
+          Sets the project's main library to Nangate45, configures the primary and dependent flows,
+          selects the "freepdk45" PDK, creates a "typical" timing scenario with library corners
+          and setup/hold checks, sets the ASIC delay model to "nldm", applies area constraints
+          (routing density and core margin), and registers the FakeRAM45 single-port lambdalib alias.
+          
+          Parameters:
+              project (ASICProject): The project to configure.
+              syn_np (int): Parallelism (number of processes/threads) intended for synthesis.
+              floorplan_np (int): Parallelism intended for floorplanning.
+              physyn_np (int): Parallelism intended for physical synthesis.
+              place_np (int): Parallelism intended for placement.
+              cts_np (int): Parallelism intended for clock-tree synthesis.
+              route_np (int): Parallelism intended for routing.
+              timing_np (int): Parallelism intended for timing analysis.
+          """
 
     # 1. Load Libraries
     project.set_mainlib(Nangate45())

@@ -12,9 +12,14 @@ from lambdapdk.ihp130.libs.sg13g2_io import IHP130LambdaLib_IO_1p2
 def setup(project: ASICProject, syn_np=1, floorplan_np=1, physyn_np=1, place_np=1, cts_np=1,
           route_np=1,
           timing_np=1):
-    '''
-    IHP130 Demo Target
-    '''
+    """
+          Configure an ASICProject for the IHP130 demo target.
+          
+          Sets the project's main standard-cell library, selects ASIC and synthesis flows, sets the PDK to "ihp130",
+          creates three timing scenarios ("slow", "typical", "fast") with corresponding library corners, PEX corner "typical",
+          and checks ("setup", "power", "hold"), sets the ASIC delay model to "nldm", applies area constraints (density and core margin),
+          and registers IHP130 lambdalib aliases with the project.
+          """
 
     # 1. Load Libraries
     project.set_mainlib(IHP130StdCell_1p2())

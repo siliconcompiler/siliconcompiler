@@ -28,7 +28,15 @@ class ASICConstraint(BaseSchema):
     floorplan area.
     """
     def __init__(self):
-        """Initializes the ASICConstraint schema."""
+        """
+        Create and populate the ASICConstraint schema container.
+        
+        Inserts an EditableSchema bound to this object and populates it with the following sub-schemas:
+        - "timing": ASICTimingConstraintSchema
+        - "component": ASICComponentConstraints
+        - "pin": ASICPinConstraints
+        - "area": ASICAreaConstraint
+        """
         super().__init__()
 
         schema = EditableSchema(self)
@@ -48,28 +56,31 @@ class ASICConstraint(BaseSchema):
 
     @property
     def component(self) -> ASICComponentConstraints:
-        """Provides access to the component placement constraints.
-
+        """
+        Get the component placement constraints schema.
+        
         Returns:
-            ASICComponentConstraints: The schema object for component constraints.
+            ASICComponentConstraints: The schema object representing component placement constraints.
         """
         return self.get("component", field="schema")
 
     @property
     def pin(self) -> ASICPinConstraints:
-        """Provides access to pin assignment constraints.
-
+        """
+        Access the pin assignment constraints schema.
+        
         Returns:
-            ASICPinConstraints: The schema object for pin constraints.
+            ASICPinConstraints: The schema object representing pin constraints.
         """
         return self.get("pin", field="schema")
 
     @property
     def area(self) -> ASICAreaConstraint:
-        """Provides access to the floorplan/area constraints.
-
+        """
+        Provides access to floorplan and area constraints.
+        
         Returns:
-            ASICAreaConstraint: The schema object for area constraints.
+            The area constraints schema.
         """
         return self.get("area", field="schema")
 
@@ -86,6 +97,17 @@ class ASICProject(Project):
     """
 
     def __init__(self, design=None):
+        """
+        Initialize the ASICProject and register ASIC-specific schema, metrics, and configuration parameters.
+        
+        This constructor sets up an EditableSchema for the project and populates it with:
+        - a consolidated `constraint` schema container for timing, component, pin, and area constraints,
+        - an ASIC-specific metrics schema (replacing the default metrics),
+        - ASIC configuration parameters: `pdk`, `mainlib`, `asiclib`, `delaymodel`, `minlayer`, and `maxlayer`.
+        
+        Parameters:
+            design (optional): Initial design object to bind to the project; may be None.
+        """
         super().__init__(design)
 
         schema = EditableSchema(self)
@@ -383,19 +405,19 @@ class ASICProject(Project):
 
     @property
     def constraint(self) -> ASICConstraint:
-        """Provides access to the project's ASIC design constraints.
-
+        """
+        Access the project's ASIC design constraints schema.
+        
         Returns:
-            ASICConstraint: The schema object containing all design constraints.
+            ASICConstraint: The schema object aggregating timing, component, pin, and area constraints.
         """
         return self.get("constraint", field="schema")
 
     def _init_run(self):
         """
-        This method ensures that if `[asic,mainlib]` or `[asic,pdk]` are not
-        explicitly set but can be inferred (e.g., from `asiclib` or the main
-        library's PDK), they are automatically configured. It also verifies
-        that the `mainlib` is included in the `asiclib` list.
+        Initialize run-time ASIC settings by inferring and populating missing ASIC project keys.
+        
+        If [asic,mainlib] is unset and [asic,asiclib] contains entries, sets [asic,mainlib] to the first asiclib entry. If [asic,pdk] is unset and the mainlib schema declares a PDK, sets [asic,pdk] to that value. Ensures the declared mainlib is present in [asic,asiclib] and adds it if missing. Side effects: updates project ASIC keys and emits warnings when values are inferred or modified.
         """
         super()._init_run()
 

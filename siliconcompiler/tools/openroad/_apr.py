@@ -449,6 +449,11 @@ class APRTask(OpenROADTask):
             self.add("var", "global_connect_fileset", (library, fileset))
 
     def setup(self):
+        """
+        Configure the APR task environment and register required inputs, outputs, and project keys.
+        
+        Performs task initialization steps including setting thread count, adding place-and-route inputs/outputs, and ensuring required variables and files are declared for report generation, image/heatmap options, and global-connect filesets. Sets the power corner from constraint checks (without clobbering existing value) and records required liberty files for each library based on timing scenarios and the project's delay model.
+        """
         super().setup()
 
         self.set_threads()

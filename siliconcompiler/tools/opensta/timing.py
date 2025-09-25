@@ -189,6 +189,13 @@ class TimingTask(TimingTaskBase):
         return vars
 
     def setup(self):
+        """
+        Configure timing-related input files and required keys for the task.
+        
+        If a file named "<design_topmodule>.sdc" exists in the project's input nodes, add it as an SDC input; otherwise mark SDC fileset entries as required keys. Then scan timing scenarios for any defined `pexcorner` values and:
+        - If a "<design_topmodule>.<pexcorner>.spef" file is present, add it as an input (one or more SPEF files may be added).
+        - If no SPEF files were added, look for "<design_topmodule>.<pexcorner>.sdf" files and add any found as inputs.
+        """
         super().setup()
 
         if f"{self.design_topmodule}.sdc" in self.get_files_from_input_nodes():

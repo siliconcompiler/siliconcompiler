@@ -11,9 +11,16 @@ from siliconcompiler.flows import drcflow
 # Target Setup
 ####################################################
 def setup(project: ASICProject):
-    '''
-    Interposer Demo Target
-    '''
+    """
+    Configure an ASICProject for the Interposer demo target.
+    
+    Sets the PDK and main library, installs the interposer and DRC flows, creates a "typical"
+    timing scenario (adds the typical lib and PEX corners and setup/hold/power checks, and
+    sets the ASIC delay model to "nldm"), and applies basic physical constraints
+    (die area density and core margin).
+    Parameters:
+        project (ASICProject): The project instance to configure.
+    """
 
     # 1. Load PDK and Libraries
     project.set_pdk(Interposer_3ML_0400())

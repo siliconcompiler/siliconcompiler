@@ -12,9 +12,24 @@ from lambdapdk.asap7.libs.fakeio7 import FakeIO7Lambdalib_IO
 def setup(project: ASICProject, syn_np=1, floorplan_np=1, physyn_np=1, place_np=1, cts_np=1,
           route_np=1,
           timing_np=1):
-    '''
-    ASAP7 Demo Target
-    '''
+    """
+          Configure an ASICProject for the ASAP7 demo target.
+          
+          This applies ASAP7 libraries, sets ASIC and synthesis flows, configures the PDK to "asap7",
+          creates three timing scenarios ("slow", "typical", "fast") with associated library and PEX corners
+          and checks, sets the ASIC delay model to "nldm", configures area constraints (density 40, core margin 1),
+          and registers FakeRAM/FakeIO lambdalib aliases on the project.
+          
+          Parameters:
+              project (ASICProject): Project instance to configure.
+              syn_np (int): Compatibility no-parallel parameter for synthesis (accepted but not used).
+              floorplan_np (int): Compatibility no-parallel parameter for floorplanning (accepted but not used).
+              physyn_np (int): Compatibility no-parallel parameter for physical synthesis (accepted but not used).
+              place_np (int): Compatibility no-parallel parameter for placement (accepted but not used).
+              cts_np (int): Compatibility no-parallel parameter for clock tree synthesis (accepted but not used).
+              route_np (int): Compatibility no-parallel parameter for routing (accepted but not used).
+              timing_np (int): Compatibility no-parallel parameter for timing (accepted but not used).
+          """
 
     # 1. Load Libraries
     project.set_mainlib(ASAP7SC7p5RVT())

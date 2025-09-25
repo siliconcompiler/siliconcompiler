@@ -13,9 +13,21 @@ from lambdapdk.gf180.libs.gf180io import GF180Lambdalib_IO_5LM
 def setup(project: ASICProject, syn_np=1, floorplan_np=1, physyn_np=1, place_np=1, cts_np=1,
           route_np=1,
           timing_np=1):
-    '''
-    Global foundries 180 Demo Target
-    '''
+    """
+          Configure an ASICProject for the GlobalFoundries 180nm demo target.
+          
+          Sets the PDK and ASIC libraries, configures the ASIC and synthesis flows, creates three timing scenarios (slow, typical, fast) with associated corners and pin voltages, sets the ASIC delay model, applies area constraints (density and core margin), and registers Lambdalib aliases.
+          
+          Parameters:
+              project (ASICProject): Project instance to configure.
+              syn_np (int): Suggested parallelism for synthesis stages (default 1).
+              floorplan_np (int): Suggested parallelism for floorplanning stages (default 1).
+              physyn_np (int): Suggested parallelism for physical synthesis stages (default 1).
+              place_np (int): Suggested parallelism for placement stages (default 1).
+              cts_np (int): Suggested parallelism for clock-tree synthesis stages (default 1).
+              route_np (int): Suggested parallelism for routing stages (default 1).
+              timing_np (int): Suggested parallelism for timing analysis stages (default 1).
+          """
 
     # 1. Load PDK and Libraries
     project.set_pdk(GF180_5LM_1TM_9K_9t())
