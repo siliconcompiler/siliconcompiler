@@ -42,7 +42,7 @@ def main():
     project.add_fileset(["rtl", "sdc"])
 
     # Load the pre-defined target for the FreePDK45 demo process.
-    freepdk45_demo.setup(project)
+    freepdk45_demo(project)
 
     # Set the project to use the HLSASICFlow. This is a pre-built flow
     # that automatically inserts an HLS step (using a tool like Bambu) at the

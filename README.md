@@ -46,7 +46,7 @@ design.add_file("heartbeat.v", fileset="rtl")          # add input sources
 design.add_file("heartbeat.sdc", fileset="sdc")        # add input sources
 project = ASICProject(design)                          # create project
 project.add_fileset(["rtl", "sdc"])                    # enable filesets
-skywater130_demo.setup(project)                        # load a pre-defined target
+skywater130_demo(project)                              # load a pre-defined target
 project.set('option','remote', True)                   # enable remote execution
 project.run()                                          # run compilation
 project.summary()                                      # print summary

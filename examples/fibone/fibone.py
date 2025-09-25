@@ -40,7 +40,7 @@ def main():
     project.add_fileset("rtl")
 
     # Load the target configuration for the FreePDK45 technology.
-    freepdk45_demo.setup(project)
+    freepdk45_demo(project)
 
     # --- Custom Flow Definition ---
     # This is the key part of the example. We will modify the standard

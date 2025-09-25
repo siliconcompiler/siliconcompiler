@@ -43,7 +43,7 @@ def main():
     # Load the pre-defined target for the GlobalFoundries 180nm demo process.
     # This configures the project with the correct PDK, standard cell libraries,
     # and tool flow for this technology.
-    gf180_demo.setup(project)
+    gf180_demo(project)
 
     # --- Execution & Analysis ---
     # Execute the complete ASIC compilation flow (synthesis, place, route, etc.).

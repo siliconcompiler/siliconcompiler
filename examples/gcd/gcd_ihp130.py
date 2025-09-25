@@ -46,7 +46,7 @@ def main():
     # Load the pre-defined target for the IHP 130nm demo process.
     # This configures the project with the correct PDK, standard cell libraries,
     # and the default RTL-to-GDSII tool flow.
-    ihp130_demo.setup(project)
+    ihp130_demo(project)
 
     # --- Execution & Analysis ---
     # Execute the complete ASIC compilation flow (synthesis, place, route, etc.).

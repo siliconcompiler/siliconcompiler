@@ -42,7 +42,7 @@ def main():
     # Load the pre-defined target for the FreePDK45 demo process.
     # This configures the project with the correct PDK, standard cell libraries,
     # and tool flow for this technology.
-    freepdk45_demo.setup(project)
+    freepdk45_demo(project)
 
     # --- Execution & Analysis ---
     # Execute the complete ASIC compilation flow (synthesis, place, route, etc.).
