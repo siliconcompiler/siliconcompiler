@@ -3,7 +3,7 @@
 Building a Flowgraph
 ====================
 
-A flowgraph in SiliconCompiler defines the sequence of steps, or tasks, required to transform your hardware design from source code into a physical layout.
+A flowgraph in SiliconCompiler defines the sequence of steps (or tasks) required to transform your hardware design from source code into a physical layout.
 Think of it as a recipe for your project, where each step is a specific tool run (like synthesis or place-and-route).
 
 Flowgraphs are highly flexible and allow you to create custom compilation flows tailored to your specific needs. You can build them in two primary ways:

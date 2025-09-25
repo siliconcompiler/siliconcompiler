@@ -167,7 +167,7 @@ This displays the preview image of the project if there is one in the directory 
 Graphs Tab
 ==========
 
-This tab is meant to make comparisons between nodes for a given metric over many project objects.
+This tab is meant to make comparisons between nodes for a given metric across many projects.
 
 At the top of the panel, select which runs/jobs to include for all the graphs (arrow A in image below). These are the runs
 from the project's history and the runs included with the ``-graph_cfg`` flag.

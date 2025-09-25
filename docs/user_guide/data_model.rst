@@ -53,7 +53,7 @@ The following example shows how to create a project object and manipulate the :k
    >>> print(project.get('option', 'fileset'))
    ['rtl']
 
-   >>> project.set('option', 'fileset', 'sdc')
+   >>> project.add('option', 'fileset', 'sdc')
    >>> print(project.get('option', 'fileset'))
    ['rtl', 'sdc']
 
@@ -111,4 +111,4 @@ The :meth:`.BaseSchema.write_manifest()` method above writes out the JSON file b
 
 Additional Schema Information
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Refer to the :ref:`Schema <SiliconCompiler Schema>` and :ref:`Python API<Schema API>` sections of the reference manual for more information.
+Refer to the :ref:`Schema <SiliconCompiler Schema>` and :ref:`Python API<schema_api>` sections of the reference manual for more information.

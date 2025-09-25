@@ -15,7 +15,7 @@ The code snippet below shows a minimal sequence leveraging the multi-job feature
 
 Complex iterative compilation flows can be created with Python programs that:
 
-1. Calls run() multiple times using a different jobname, and
+1. Calls :meth:`.Project.run()` multiple times using a different jobname, and
 2. Leverages Python logic to query per job metrics to control the compilation flow decision, for automation
 
 .. image:: ../../_images/complex.png

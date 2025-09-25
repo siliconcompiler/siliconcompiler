@@ -21,7 +21,7 @@ Our Approach
 
 The SiliconCompiler project is based on a standardized :ref:`Schema <SiliconCompiler Schema>` that supports orthogonal combinations of design, tools, and Process Design Kits (PDKs). The schema design philosophy is to "make the complex possible while keeping the simple simple".
 
-To simplify flow development, the project incorporates a simple object oriented :ref:`Python API<Schema API>`. The API includes abstracted set/get access to the Schema, a flowgraph based parallel programming model, and a suite of utility functions for compilation setup and metric tracking.
+To simplify flow development, the project incorporates a simple object oriented :ref:`Python API<schema_api>`. The API includes abstracted set/get access to the Schema, a flowgraph based parallel programming model, and a suite of utility functions for compilation setup and metric tracking.
 
 .. image:: /_images/sc_overview.png
    :scale: 60%

@@ -46,6 +46,7 @@ Let's create a target for a generic ASIC design. This function will load a stand
   from siliconcompiler import ASICProject
   from siliconcompiler.flows import asicflow
   from siliconcompiler.tools.yosys import syn_asic
+  from siliconcompiler.tools import get_task
 
   # It's common practice to import the PDK and library schemas
   # that your target will use.
