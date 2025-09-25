@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
 # Import the necessary classes for an FPGA project. Note the use of
-# FPGAProject and FPGA, which are specific to FPGA flows.
-from siliconcompiler import FPGAProject, Design, FPGA
+# FPGAProject, which is specific to FPGA flows.
+from siliconcompiler import FPGAProject, Design
 # Import a pre-defined flow for FPGAs.
 from siliconcompiler.flows import fpgaflow
 from siliconcompiler.fpgas.lattice_ice40 import ICE40Up5k_sg48
