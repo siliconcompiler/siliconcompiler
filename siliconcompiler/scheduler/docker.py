@@ -142,7 +142,7 @@ class DockerSchedulerNode(SchedulerNode):
         """Initializes a DockerSchedulerNode.
 
         Args:
-            chprojectip (Project): The parent Project object.
+            project (Project): The parent Project object.
             step (str): The step name in the flowgraph.
             index (str): The index for the step.
             replay (bool): If True, sets up the node to replay a previous run.

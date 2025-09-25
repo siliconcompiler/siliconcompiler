@@ -314,7 +314,7 @@ def schema_checklist(schema):
         Parameter(
             '[str]',
             scope=Scope.GLOBAL,
-            shorthelp="Checklist: item rational",
+            shorthelp="Checklist: item rationale",
             switch="-checklist_rationale 'standard item <str>'",
             example=[
                 "cli: -checklist_rationale 'ISO D000 reliability'",

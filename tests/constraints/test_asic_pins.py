@@ -228,7 +228,7 @@ def test_add_pinconstraint(pin_constraints_collection):
     assert pin_constraints_collection.get_pinconstraint("new_pin") is updated_pin
 
     # Test adding invalid type
-    with pytest.raises(TypeError, match="pin must be a pin copnstraint object"):
+    with pytest.raises(TypeError, match="pin must be a pin constraint object"):
         pin_constraints_collection.add_pinconstraint("not_a_pin")
 
     # Test adding pin without a name

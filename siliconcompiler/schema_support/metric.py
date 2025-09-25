@@ -38,7 +38,7 @@ class MetricSchema(BaseSchema):
                     switch=f"-metric_{item} 'step index <int>'",
                     example=[
                         f"cli: -metric_{item} 'dfm 0 0'",
-                        f"api: proj.set('metric', '{item}', 0, step='dfm', index=0)"],
+                        f"api: project.set('metric', '{item}', 0, step='dfm', index=0)"],
                     pernode=PerNode.REQUIRED,
                     help=trim(f"""Metric tracking the total number of {description} on a
                     per step and index basis.""")))
@@ -53,7 +53,7 @@ class MetricSchema(BaseSchema):
                 switch="-metric_memory 'step index <float>'",
                 example=[
                     "cli: -metric_memory 'dfm 0 10e9'",
-                    "api: proj.set('metric', 'memory', 10e9, step='dfm', index=0)"],
+                    "api: project.set('metric', 'memory', 10e9, step='dfm', index=0)"],
                 pernode=PerNode.REQUIRED,
                 help=trim("""
                 Metric tracking total peak program memory footprint on a per
@@ -69,7 +69,7 @@ class MetricSchema(BaseSchema):
                 switch="-metric_exetime 'step index <float>'",
                 example=[
                     "cli: -metric_exetime 'dfm 0 10.0'",
-                    "api: proj.set('metric', 'exetime', 10.0, step='dfm', index=0)"],
+                    "api: project.set('metric', 'exetime', 10.0, step='dfm', index=0)"],
                 pernode=PerNode.REQUIRED,
                 help=trim("""
                 Metric tracking time spent by the EDA executable
@@ -88,7 +88,7 @@ class MetricSchema(BaseSchema):
                 switch="-metric_tasktime 'step index <float>'",
                 example=[
                     "cli: -metric_tasktime 'dfm 0 10.0'",
-                    "api: proj.set('metric', 'tasktime', 10.0, step='dfm', index=0)"],
+                    "api: project.set('metric', 'tasktime', 10.0, step='dfm', index=0)"],
                 pernode=PerNode.REQUIRED,
                 help=trim("""
                 Metric tracking the total amount of time spent on a task from
@@ -105,7 +105,7 @@ class MetricSchema(BaseSchema):
                 switch="-metric_totaltime 'step index <float>'",
                 example=[
                     "cli: -metric_totaltime 'dfm 0 10.0'",
-                    "api: proj.set('metric', 'totaltime', 10.0, step='dfm', index=0)"],
+                    "api: project.set('metric', 'totaltime', 10.0, step='dfm', index=0)"],
                 pernode=PerNode.REQUIRED,
                 help=trim("""
                 Metric tracking the total amount of time spent from the beginning

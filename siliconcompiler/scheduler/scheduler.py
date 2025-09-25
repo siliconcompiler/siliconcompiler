@@ -48,7 +48,7 @@ class Scheduler:
         """
         self.__project = project
         self.__logger: logging.Logger = project.logger
-        self.__name = project.design.name
+        self.__name = project.name
 
         flow = self.__project.get("option", "flow")
         if not flow:

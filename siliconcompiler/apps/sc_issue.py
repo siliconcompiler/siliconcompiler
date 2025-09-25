@@ -125,7 +125,7 @@ To run a testcase, use:
         else:
             sc_source = 'installed'
 
-        project.logger.info(f"Design: {project.design.name}")
+        project.logger.info(f"Design: {project.name}")
         project.logger.info(f"SiliconCompiler version: {sc_version} / {sc_source}")
         project.logger.info(f"Schema version: {issue_info['version']['schema']}")
         project.logger.info(f"Python version: {issue_info['python']['version']}")

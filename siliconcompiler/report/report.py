@@ -84,7 +84,7 @@ def get_flowgraph_edges(project):
         project (Project) : The project object that contains the schema read from.
 
     Example:
-        >>> get_flowgraph_edges(Project)
+        >>> get_flowgraph_edges(project)
         Returns dictionary where the values of the keys are the edges.
     '''
     flowgraph_edges = {}

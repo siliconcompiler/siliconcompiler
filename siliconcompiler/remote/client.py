@@ -49,7 +49,7 @@ class Client():
         self.__project = project
         self.__logger = self.__project.logger.getChild('remote-client')
         self.__dashboard = self.__project._Project__dashboard
-        self.__name = self.__project.design.name
+        self.__name = self.__project.name
 
         self.__default_server = default_server
 

@@ -207,7 +207,8 @@ class PDK(ToolLibrarySchema):
                 switch="-pdk_devmodel 'pdkname tool simtype stackup <file>'",
                 example=[
                     "cli: -pdk_devmodel 'asap7 xyce spice M10 asap7.sp'",
-                    "api: pdk.set('devmodel', 'xyce', 'spice', 'M10', 'asap7.sp')"],
+                    "api: pdk.set('pdk', 'asap7', 'devmodelfileset', 'xyce', 'spice', "
+                    "'M10', 'asap7.sp')"],
                 help=trim("""
                 List of filepaths to PDK device models for different simulation
                 purposes and for different tools. Examples of device model types

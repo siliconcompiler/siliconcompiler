@@ -195,7 +195,7 @@ def heartbeat_design(examples_root):
 
 @pytest.fixture
 def asic_heartbeat(heartbeat_design):
-    '''Returns a fully configured project object that will compile the GCD example
+    '''Returns a fully configured project object that will compile the heartbeat example
     design using freepdk45 and the asicflow.'''
 
     project = ASICProject(heartbeat_design)
@@ -305,7 +305,7 @@ def scserver(scserver_nfs_path, unused_tcp_port, request, wait_for_port, monkeyp
 def wait_for_port():
     def is_open(port: int, timeout: int = 1):
         test_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        test_socket.settimeout(1)
+        test_socket.settimeout(timeout)
 
         try:
             test_socket.connect(('localhost', port))

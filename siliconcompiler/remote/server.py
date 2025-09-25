@@ -103,7 +103,7 @@ class Server(ServerSchema):
         start_tar = os.path.join(self.nfs_mount, job_hash, f'{job_hash}_None.tar.gz')
         start_status = NodeStatus.SUCCESS
         with tarfile.open(start_tar, "w:gz") as tf:
-            start_manifest = os.path.join(jobdir(project), f"{project.design.name}.pkg.json")
+            start_manifest = os.path.join(jobdir(project), f"{project.name}.pkg.json")
             tf.add(start_manifest, arcname=os.path.relpath(start_manifest, self.nfs_mount))
 
         with self.sc_jobs_lock:
@@ -253,7 +253,7 @@ class Server(ServerSchema):
         project.set('option', 'nodashboard', True)
 
         # Fetch some common values.
-        design = project.design.name
+        design = project.name
         job_name = project.get('option', 'jobname')
         job_hash = uuid.uuid4().hex
         project.set('record', 'remoteid', job_hash)

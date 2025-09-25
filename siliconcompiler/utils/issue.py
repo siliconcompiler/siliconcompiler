@@ -234,7 +234,7 @@ def generate_testcase(project,
                                     'git': git_data}
 
     if not archive_name:
-        design = project.design.name
+        design = project.name
         job = project.get('option', 'jobname')
         file_time = datetime.fromtimestamp(issue_time, timezone.utc).strftime('%Y%m%d-%H%M%S')
         archive_name = f'sc_issue_{design}_{job}_{step}_{index}_{file_time}.tar.gz'
@@ -256,7 +256,7 @@ def generate_testcase(project,
         run_path = os.path.join(issue_dir.name, 'run.sh')
         with open(run_path, 'w') as f:
             replay_dir = workdir(project, step=step, index=index, relpath=True)
-            issue_title = f'{project.design.name} for {step}/{index} using {tool}/{task}'
+            issue_title = f'{project.name} for {step}/{index} using {tool}/{task}'
             f.write(get_file_template('issue/run.sh').render(
                 title=issue_title,
                 exec_dir=replay_dir

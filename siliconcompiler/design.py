@@ -824,7 +824,7 @@ def schema_design(schema):
             scope=Scope.GLOBAL,
             shorthelp="Include file search paths",
             example=[
-                "api: design.set('fileset', 'rtl, 'idir', './rtl')",
+                "api: design.set('fileset', 'rtl', 'idir', './rtl')",
                 "api: design.set('fileset', 'testbench', 'idir', '/testbench')"],
             help=trim("""
             Include paths specify directories to scan for header files during
@@ -863,7 +863,7 @@ def schema_design(schema):
             scope=Scope.GLOBAL,
             shorthelp="Library search paths",
             example=[
-                "api: design.set('fileset', 'rtl, 'libdir', '/usr/lib')"],
+                "api: design.set('fileset', 'rtl', 'libdir', '/usr/lib')"],
             help=trim("""
             Specifies directories to scan for libraries provided with the
             :keypath:`Design,fileset,<fileset>,lib` parameter. If multiple paths are provided,
@@ -890,7 +890,7 @@ def schema_design(schema):
             scope=Scope.GLOBAL,
             shorthelp="Design parameters",
             example=[
-                "api: design.set('fileset', 'rtl, 'param', 'N', '64'"],
+                "api: design.set('fileset', 'rtl', 'param', 'N', '64'"],
             help=trim("""
             Sets a named parameter to a string value. The value is limited to basic
             data literals. The types of parameters and values supported is tightly
@@ -904,5 +904,5 @@ def schema_design(schema):
             scope=Scope.GLOBAL,
             shorthelp="Design dependency fileset",
             example=[
-                "api: design.set('fileset', 'rtl, 'depfileset', ('lambdalib', 'rtl')"],
+                "api: design.set('fileset', 'rtl', 'depfileset', ('lambdalib', 'rtl')"],
             help=trim("""Sets the mapping for dependency filesets.""")))

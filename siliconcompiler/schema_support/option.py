@@ -217,7 +217,7 @@ class OptionSchema(BaseSchema):
                 switch="-breakpoint <bool>",
                 example=[
                     "cli: -breakpoint true",
-                    "api: option.set('option, 'breakpoint', True)"],
+                    "api: option.set('option', 'breakpoint', True)"],
                 help="""
                 Set a breakpoint on specific steps. If the step is a TCL
                 based tool, then the breakpoints stops the flow inside the

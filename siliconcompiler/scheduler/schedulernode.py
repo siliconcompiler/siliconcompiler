@@ -57,7 +57,7 @@ class SchedulerNode:
         self.__index = index
         self.__project = project
 
-        self.__name = self.__project.design.name
+        self.__name = self.__project.name
         self.__topmodule = self.__project.get(
             "library",
             self.__name,

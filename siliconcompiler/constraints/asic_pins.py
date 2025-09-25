@@ -391,7 +391,7 @@ class ASICPinConstraints(BaseSchema):
                         that the pin constraint does not have a defined name.
         """
         if not isinstance(pin, ASICPinConstraint):
-            raise TypeError("pin must be a pin copnstraint object")
+            raise TypeError("pin must be a pin constraint object")
 
         if pin.name is None:
             raise ValueError("pin constraint must have a name")

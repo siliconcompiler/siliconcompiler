@@ -145,7 +145,8 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                 "[(str,str,str,str)]",
                 scope=Scope.GLOBAL,
                 shorthelp="Option: Fileset alias mapping",
-                example=["api: project.set('option', 'alias', ('design', 'rtl', 'lambda', 'rtl')"],
+                example=[
+                    "api: project.set('option', 'alias', ('design', 'rtl', 'lambda', 'rtl'))"],
                 help=trim("""List of filesets to alias during a run. When an alias is specific
                     it will be used instead of the source fileset. It is useful when you
                     want to substitute a fileset from one library with a fileset from another,
@@ -1235,14 +1236,14 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         # Check that file exists
         if not os.path.exists(filepath):
             self.logger.error(f"Invalid filepath {filepath}.")
-            return
+            return None
 
         filetype = get_file_ext(filepath)
 
         task = tool_cls.get_task(filetype)
         if task is None:
             self.logger.error(f"Filetype '{filetype}' not available in the registered showtools.")
-            return False
+            return None
 
         # Create copy of project to avoid changing user project
         proj = self.copy()

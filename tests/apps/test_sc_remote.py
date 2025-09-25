@@ -223,7 +223,7 @@ def test_sc_remote_reconnect(gcd_nop_project, monkeypatch, unused_tcp_port, scse
 
     def mock_finalize_run(*args, **kwargs):
         final_manifest = os.path.join(jobdir(gcd_nop_project),
-                                      f"{gcd_nop_project.design.name}.pkg.json")
+                                      f"{gcd_nop_project.name}.pkg.json")
         with open(final_manifest, 'w') as wf:
             wf.write('{"mocked": "manifest"}')
     monkeypatch.setattr("siliconcompiler.remote.client.Client._finalize_loop", mock_finalize_run)
@@ -235,7 +235,7 @@ def test_sc_remote_reconnect(gcd_nop_project, monkeypatch, unused_tcp_port, scse
     assert retcode == 0
     assert os.path.isfile('mock_result.txt')
     assert os.path.isfile(os.path.join(jobdir(gcd_nop_project),
-                                       f"{gcd_nop_project.design.name}.pkg.json"))
+                                       f"{gcd_nop_project.name}.pkg.json"))
 
 
 def test_configure_default(monkeypatch):

@@ -161,7 +161,7 @@
               "switch": [
                 "-checklist_rationale 'standard item <str>'"
               ],
-              "shorthelp": "Checklist: item rational",
+              "shorthelp": "Checklist: item rationale",
               "example": [
                 "cli: -checklist_rationale 'ISO D000 reliability'",
                 "api: check.set('checklist', 'ISO', 'D000', 'rationale', 'reliability')"
@@ -920,7 +920,7 @@
                 "switch": [],
                 "shorthelp": "Include file search paths",
                 "example": [
-                  "api: design.set('fileset', 'rtl, 'idir', './rtl')",
+                  "api: design.set('fileset', 'rtl', 'idir', './rtl')",
                   "api: design.set('fileset', 'testbench', 'idir', '/testbench')"
                 ],
                 "help": "Include paths specify directories to scan for header files during\ncompilation. If multiple paths are provided, they are searched\nin the order given.",
@@ -991,7 +991,7 @@
                 "switch": [],
                 "shorthelp": "Library search paths",
                 "example": [
-                  "api: design.set('fileset', 'rtl, 'libdir', '/usr/lib')"
+                  "api: design.set('fileset', 'rtl', 'libdir', '/usr/lib')"
                 ],
                 "help": "Specifies directories to scan for libraries provided with the\n:keypath:`Design,fileset,<fileset>,lib` parameter. If multiple paths are provided,\nthey are searched based on the order of the libdir list.",
                 "notes": null,
@@ -1040,7 +1040,7 @@
                   "switch": [],
                   "shorthelp": "Design parameters",
                   "example": [
-                    "api: design.set('fileset', 'rtl, 'param', 'N', '64'"
+                    "api: design.set('fileset', 'rtl', 'param', 'N', '64'"
                   ],
                   "help": "Sets a named parameter to a string value. The value is limited to basic\ndata literals. The types of parameters and values supported is tightly\ncoupled to tools being used. For example, in Verilog only integer\nliterals (64'h4, 2'b0, 4) and strings are supported.",
                   "notes": null,
@@ -1063,7 +1063,7 @@
                 "switch": [],
                 "shorthelp": "Design dependency fileset",
                 "example": [
-                  "api: design.set('fileset', 'rtl, 'depfileset', ('lambdalib', 'rtl')"
+                  "api: design.set('fileset', 'rtl', 'depfileset', ('lambdalib', 'rtl')"
                 ],
                 "help": "Sets the mapping for dependency filesets.",
                 "notes": null,
@@ -1292,7 +1292,7 @@
           "shorthelp": "Metric: total errors",
           "example": [
             "cli: -metric_errors 'dfm 0 0'",
-            "api: proj.set('metric', 'errors', 0, step='dfm', index=0)"
+            "api: project.set('metric', 'errors', 0, step='dfm', index=0)"
           ],
           "help": "Metric tracking the total number of errors on a\nper step and index basis.",
           "notes": null,
@@ -1317,7 +1317,7 @@
           "shorthelp": "Metric: total warnings",
           "example": [
             "cli: -metric_warnings 'dfm 0 0'",
-            "api: proj.set('metric', 'warnings', 0, step='dfm', index=0)"
+            "api: project.set('metric', 'warnings', 0, step='dfm', index=0)"
           ],
           "help": "Metric tracking the total number of warnings on a\nper step and index basis.",
           "notes": null,
@@ -1342,7 +1342,7 @@
           "shorthelp": "Metric: memory",
           "example": [
             "cli: -metric_memory 'dfm 0 10e9'",
-            "api: proj.set('metric', 'memory', 10e9, step='dfm', index=0)"
+            "api: project.set('metric', 'memory', 10e9, step='dfm', index=0)"
           ],
           "help": "Metric tracking total peak program memory footprint on a per\nstep and index basis.",
           "notes": null,
@@ -1368,7 +1368,7 @@
           "shorthelp": "Metric: exetime",
           "example": [
             "cli: -metric_exetime 'dfm 0 10.0'",
-            "api: proj.set('metric', 'exetime', 10.0, step='dfm', index=0)"
+            "api: project.set('metric', 'exetime', 10.0, step='dfm', index=0)"
           ],
           "help": "Metric tracking time spent by the EDA executable\n:keypath:`tool,<tool>,task,<task>,exe` on a\nper step and index basis. It does not include the SiliconCompiler\nruntime overhead or time waiting for I/O operations and\ninter-processor communication to complete.",
           "notes": null,
@@ -1394,7 +1394,7 @@
           "shorthelp": "Metric: tasktime",
           "example": [
             "cli: -metric_tasktime 'dfm 0 10.0'",
-            "api: proj.set('metric', 'tasktime', 10.0, step='dfm', index=0)"
+            "api: project.set('metric', 'tasktime', 10.0, step='dfm', index=0)"
           ],
           "help": "Metric tracking the total amount of time spent on a task from\nbeginning to end, including data transfers and pre/post\nprocessing.",
           "notes": null,
@@ -1420,7 +1420,7 @@
           "shorthelp": "Metric: totaltime",
           "example": [
             "cli: -metric_totaltime 'dfm 0 10.0'",
-            "api: proj.set('metric', 'totaltime', 10.0, step='dfm', index=0)"
+            "api: project.set('metric', 'totaltime', 10.0, step='dfm', index=0)"
           ],
           "help": "Metric tracking the total amount of time spent from the beginning\nof the run up to and including the current step and index.",
           "notes": null,
@@ -3189,7 +3189,7 @@
           "shorthelp": "Option: breakpoint list",
           "example": [
             "cli: -breakpoint true",
-            "api: option.set('option, 'breakpoint', True)"
+            "api: option.set('option', 'breakpoint', True)"
           ],
           "help": "\n                Set a breakpoint on specific steps. If the step is a TCL\n                based tool, then the breakpoints stops the flow inside the\n                EDA tool. If the step is a command line tool, then the flow\n                drops into a Python interpreter.",
           "notes": null,
@@ -3739,7 +3739,7 @@
           "switch": [],
           "shorthelp": "Option: Fileset alias mapping",
           "example": [
-            "api: project.set('option', 'alias', ('design', 'rtl', 'lambda', 'rtl')"
+            "api: project.set('option', 'alias', ('design', 'rtl', 'lambda', 'rtl'))"
           ],
           "help": "List of filesets to alias during a run. When an alias is specific\nit will be used instead of the source fileset. It is useful when you\nwant to substitute a fileset from one library with a fileset from another,\nwithout changing the original design's code.\nFor example, you might use it to swap in a different version of an IP\nblock or a specific test environment.",
           "notes": null,
@@ -3971,7 +3971,7 @@
               "switch": [
                 "-checklist_rationale 'standard item <str>'"
               ],
-              "shorthelp": "Checklist: item rational",
+              "shorthelp": "Checklist: item rationale",
               "example": [
                 "cli: -checklist_rationale 'ISO D000 reliability'",
                 "api: check.set('checklist', 'ISO', 'D000', 'rationale', 'reliability')"
@@ -4730,7 +4730,7 @@
                 "switch": [],
                 "shorthelp": "Include file search paths",
                 "example": [
-                  "api: design.set('fileset', 'rtl, 'idir', './rtl')",
+                  "api: design.set('fileset', 'rtl', 'idir', './rtl')",
                   "api: design.set('fileset', 'testbench', 'idir', '/testbench')"
                 ],
                 "help": "Include paths specify directories to scan for header files during\ncompilation. If multiple paths are provided, they are searched\nin the order given.",
@@ -4801,7 +4801,7 @@
                 "switch": [],
                 "shorthelp": "Library search paths",
                 "example": [
-                  "api: design.set('fileset', 'rtl, 'libdir', '/usr/lib')"
+                  "api: design.set('fileset', 'rtl', 'libdir', '/usr/lib')"
                 ],
                 "help": "Specifies directories to scan for libraries provided with the\n:keypath:`Design,fileset,<fileset>,lib` parameter. If multiple paths are provided,\nthey are searched based on the order of the libdir list.",
                 "notes": null,
@@ -4850,7 +4850,7 @@
                   "switch": [],
                   "shorthelp": "Design parameters",
                   "example": [
-                    "api: design.set('fileset', 'rtl, 'param', 'N', '64'"
+                    "api: design.set('fileset', 'rtl', 'param', 'N', '64'"
                   ],
                   "help": "Sets a named parameter to a string value. The value is limited to basic\ndata literals. The types of parameters and values supported is tightly\ncoupled to tools being used. For example, in Verilog only integer\nliterals (64'h4, 2'b0, 4) and strings are supported.",
                   "notes": null,
@@ -4873,7 +4873,7 @@
                 "switch": [],
                 "shorthelp": "Design dependency fileset",
                 "example": [
-                  "api: design.set('fileset', 'rtl, 'depfileset', ('lambdalib', 'rtl')"
+                  "api: design.set('fileset', 'rtl', 'depfileset', ('lambdalib', 'rtl')"
                 ],
                 "help": "Sets the mapping for dependency filesets.",
                 "notes": null,
@@ -5102,7 +5102,7 @@
           "shorthelp": "Metric: total errors",
           "example": [
             "cli: -metric_errors 'dfm 0 0'",
-            "api: proj.set('metric', 'errors', 0, step='dfm', index=0)"
+            "api: project.set('metric', 'errors', 0, step='dfm', index=0)"
           ],
           "help": "Metric tracking the total number of errors on a\nper step and index basis.",
           "notes": null,
@@ -5127,7 +5127,7 @@
           "shorthelp": "Metric: total warnings",
           "example": [
             "cli: -metric_warnings 'dfm 0 0'",
-            "api: proj.set('metric', 'warnings', 0, step='dfm', index=0)"
+            "api: project.set('metric', 'warnings', 0, step='dfm', index=0)"
           ],
           "help": "Metric tracking the total number of warnings on a\nper step and index basis.",
           "notes": null,
@@ -5152,7 +5152,7 @@
           "shorthelp": "Metric: memory",
           "example": [
             "cli: -metric_memory 'dfm 0 10e9'",
-            "api: proj.set('metric', 'memory', 10e9, step='dfm', index=0)"
+            "api: project.set('metric', 'memory', 10e9, step='dfm', index=0)"
           ],
           "help": "Metric tracking total peak program memory footprint on a per\nstep and index basis.",
           "notes": null,
@@ -5178,7 +5178,7 @@
           "shorthelp": "Metric: exetime",
           "example": [
             "cli: -metric_exetime 'dfm 0 10.0'",
-            "api: proj.set('metric', 'exetime', 10.0, step='dfm', index=0)"
+            "api: project.set('metric', 'exetime', 10.0, step='dfm', index=0)"
           ],
           "help": "Metric tracking time spent by the EDA executable\n:keypath:`tool,<tool>,task,<task>,exe` on a\nper step and index basis. It does not include the SiliconCompiler\nruntime overhead or time waiting for I/O operations and\ninter-processor communication to complete.",
           "notes": null,
@@ -5204,7 +5204,7 @@
           "shorthelp": "Metric: tasktime",
           "example": [
             "cli: -metric_tasktime 'dfm 0 10.0'",
-            "api: proj.set('metric', 'tasktime', 10.0, step='dfm', index=0)"
+            "api: project.set('metric', 'tasktime', 10.0, step='dfm', index=0)"
           ],
           "help": "Metric tracking the total amount of time spent on a task from\nbeginning to end, including data transfers and pre/post\nprocessing.",
           "notes": null,
@@ -5230,7 +5230,7 @@
           "shorthelp": "Metric: totaltime",
           "example": [
             "cli: -metric_totaltime 'dfm 0 10.0'",
-            "api: proj.set('metric', 'totaltime', 10.0, step='dfm', index=0)"
+            "api: project.set('metric', 'totaltime', 10.0, step='dfm', index=0)"
           ],
           "help": "Metric tracking the total amount of time spent from the beginning\nof the run up to and including the current step and index.",
           "notes": null,
@@ -7687,7 +7687,7 @@
           "shorthelp": "Option: breakpoint list",
           "example": [
             "cli: -breakpoint true",
-            "api: option.set('option, 'breakpoint', True)"
+            "api: option.set('option', 'breakpoint', True)"
           ],
           "help": "\n                Set a breakpoint on specific steps. If the step is a TCL\n                based tool, then the breakpoints stops the flow inside the\n                EDA tool. If the step is a command line tool, then the flow\n                drops into a Python interpreter.",
           "notes": null,
@@ -8237,7 +8237,7 @@
           "switch": [],
           "shorthelp": "Option: Fileset alias mapping",
           "example": [
-            "api: project.set('option', 'alias', ('design', 'rtl', 'lambda', 'rtl')"
+            "api: project.set('option', 'alias', ('design', 'rtl', 'lambda', 'rtl'))"
           ],
           "help": "List of filesets to alias during a run. When an alias is specific\nit will be used instead of the source fileset. It is useful when you\nwant to substitute a fileset from one library with a fileset from another,\nwithout changing the original design's code.\nFor example, you might use it to swap in a different version of an IP\nblock or a specific test environment.",
           "notes": null,
@@ -8540,7 +8540,7 @@
               "switch": [
                 "-checklist_rationale 'standard item <str>'"
               ],
-              "shorthelp": "Checklist: item rational",
+              "shorthelp": "Checklist: item rationale",
               "example": [
                 "cli: -checklist_rationale 'ISO D000 reliability'",
                 "api: check.set('checklist', 'ISO', 'D000', 'rationale', 'reliability')"
@@ -9299,7 +9299,7 @@
                 "switch": [],
                 "shorthelp": "Include file search paths",
                 "example": [
-                  "api: design.set('fileset', 'rtl, 'idir', './rtl')",
+                  "api: design.set('fileset', 'rtl', 'idir', './rtl')",
                   "api: design.set('fileset', 'testbench', 'idir', '/testbench')"
                 ],
                 "help": "Include paths specify directories to scan for header files during\ncompilation. If multiple paths are provided, they are searched\nin the order given.",
@@ -9370,7 +9370,7 @@
                 "switch": [],
                 "shorthelp": "Library search paths",
                 "example": [
-                  "api: design.set('fileset', 'rtl, 'libdir', '/usr/lib')"
+                  "api: design.set('fileset', 'rtl', 'libdir', '/usr/lib')"
                 ],
                 "help": "Specifies directories to scan for libraries provided with the\n:keypath:`Design,fileset,<fileset>,lib` parameter. If multiple paths are provided,\nthey are searched based on the order of the libdir list.",
                 "notes": null,
@@ -9419,7 +9419,7 @@
                   "switch": [],
                   "shorthelp": "Design parameters",
                   "example": [
-                    "api: design.set('fileset', 'rtl, 'param', 'N', '64'"
+                    "api: design.set('fileset', 'rtl', 'param', 'N', '64'"
                   ],
                   "help": "Sets a named parameter to a string value. The value is limited to basic\ndata literals. The types of parameters and values supported is tightly\ncoupled to tools being used. For example, in Verilog only integer\nliterals (64'h4, 2'b0, 4) and strings are supported.",
                   "notes": null,
@@ -9442,7 +9442,7 @@
                 "switch": [],
                 "shorthelp": "Design dependency fileset",
                 "example": [
-                  "api: design.set('fileset', 'rtl, 'depfileset', ('lambdalib', 'rtl')"
+                  "api: design.set('fileset', 'rtl', 'depfileset', ('lambdalib', 'rtl')"
                 ],
                 "help": "Sets the mapping for dependency filesets.",
                 "notes": null,
@@ -9671,7 +9671,7 @@
           "shorthelp": "Metric: total errors",
           "example": [
             "cli: -metric_errors 'dfm 0 0'",
-            "api: proj.set('metric', 'errors', 0, step='dfm', index=0)"
+            "api: project.set('metric', 'errors', 0, step='dfm', index=0)"
           ],
           "help": "Metric tracking the total number of errors on a\nper step and index basis.",
           "notes": null,
@@ -9696,7 +9696,7 @@
           "shorthelp": "Metric: total warnings",
           "example": [
             "cli: -metric_warnings 'dfm 0 0'",
-            "api: proj.set('metric', 'warnings', 0, step='dfm', index=0)"
+            "api: project.set('metric', 'warnings', 0, step='dfm', index=0)"
           ],
           "help": "Metric tracking the total number of warnings on a\nper step and index basis.",
           "notes": null,
@@ -9721,7 +9721,7 @@
           "shorthelp": "Metric: memory",
           "example": [
             "cli: -metric_memory 'dfm 0 10e9'",
-            "api: proj.set('metric', 'memory', 10e9, step='dfm', index=0)"
+            "api: project.set('metric', 'memory', 10e9, step='dfm', index=0)"
           ],
           "help": "Metric tracking total peak program memory footprint on a per\nstep and index basis.",
           "notes": null,
@@ -9747,7 +9747,7 @@
           "shorthelp": "Metric: exetime",
           "example": [
             "cli: -metric_exetime 'dfm 0 10.0'",
-            "api: proj.set('metric', 'exetime', 10.0, step='dfm', index=0)"
+            "api: project.set('metric', 'exetime', 10.0, step='dfm', index=0)"
           ],
           "help": "Metric tracking time spent by the EDA executable\n:keypath:`tool,<tool>,task,<task>,exe` on a\nper step and index basis. It does not include the SiliconCompiler\nruntime overhead or time waiting for I/O operations and\ninter-processor communication to complete.",
           "notes": null,
@@ -9773,7 +9773,7 @@
           "shorthelp": "Metric: tasktime",
           "example": [
             "cli: -metric_tasktime 'dfm 0 10.0'",
-            "api: proj.set('metric', 'tasktime', 10.0, step='dfm', index=0)"
+            "api: project.set('metric', 'tasktime', 10.0, step='dfm', index=0)"
           ],
           "help": "Metric tracking the total amount of time spent on a task from\nbeginning to end, including data transfers and pre/post\nprocessing.",
           "notes": null,
@@ -9799,7 +9799,7 @@
           "shorthelp": "Metric: totaltime",
           "example": [
             "cli: -metric_totaltime 'dfm 0 10.0'",
-            "api: proj.set('metric', 'totaltime', 10.0, step='dfm', index=0)"
+            "api: project.set('metric', 'totaltime', 10.0, step='dfm', index=0)"
           ],
           "help": "Metric tracking the total amount of time spent from the beginning\nof the run up to and including the current step and index.",
           "notes": null,
@@ -12488,7 +12488,7 @@
           "shorthelp": "Option: breakpoint list",
           "example": [
             "cli: -breakpoint true",
-            "api: option.set('option, 'breakpoint', True)"
+            "api: option.set('option', 'breakpoint', True)"
           ],
           "help": "\n                Set a breakpoint on specific steps. If the step is a TCL\n                based tool, then the breakpoints stops the flow inside the\n                EDA tool. If the step is a command line tool, then the flow\n                drops into a Python interpreter.",
           "notes": null,
@@ -13038,7 +13038,7 @@
           "switch": [],
           "shorthelp": "Option: Fileset alias mapping",
           "example": [
-            "api: project.set('option', 'alias', ('design', 'rtl', 'lambda', 'rtl')"
+            "api: project.set('option', 'alias', ('design', 'rtl', 'lambda', 'rtl'))"
           ],
           "help": "List of filesets to alias during a run. When an alias is specific\nit will be used instead of the source fileset. It is useful when you\nwant to substitute a fileset from one library with a fileset from another,\nwithout changing the original design's code.\nFor example, you might use it to swap in a different version of an IP\nblock or a specific test environment.",
           "notes": null,
@@ -14017,7 +14017,7 @@
               "switch": [
                 "-checklist_rationale 'standard item <str>'"
               ],
-              "shorthelp": "Checklist: item rational",
+              "shorthelp": "Checklist: item rationale",
               "example": [
                 "cli: -checklist_rationale 'ISO D000 reliability'",
                 "api: check.set('checklist', 'ISO', 'D000', 'rationale', 'reliability')"
@@ -14776,7 +14776,7 @@
                 "switch": [],
                 "shorthelp": "Include file search paths",
                 "example": [
-                  "api: design.set('fileset', 'rtl, 'idir', './rtl')",
+                  "api: design.set('fileset', 'rtl', 'idir', './rtl')",
                   "api: design.set('fileset', 'testbench', 'idir', '/testbench')"
                 ],
                 "help": "Include paths specify directories to scan for header files during\ncompilation. If multiple paths are provided, they are searched\nin the order given.",
@@ -14847,7 +14847,7 @@
                 "switch": [],
                 "shorthelp": "Library search paths",
                 "example": [
-                  "api: design.set('fileset', 'rtl, 'libdir', '/usr/lib')"
+                  "api: design.set('fileset', 'rtl', 'libdir', '/usr/lib')"
                 ],
                 "help": "Specifies directories to scan for libraries provided with the\n:keypath:`Design,fileset,<fileset>,lib` parameter. If multiple paths are provided,\nthey are searched based on the order of the libdir list.",
                 "notes": null,
@@ -14896,7 +14896,7 @@
                   "switch": [],
                   "shorthelp": "Design parameters",
                   "example": [
-                    "api: design.set('fileset', 'rtl, 'param', 'N', '64'"
+                    "api: design.set('fileset', 'rtl', 'param', 'N', '64'"
                   ],
                   "help": "Sets a named parameter to a string value. The value is limited to basic\ndata literals. The types of parameters and values supported is tightly\ncoupled to tools being used. For example, in Verilog only integer\nliterals (64'h4, 2'b0, 4) and strings are supported.",
                   "notes": null,
@@ -14919,7 +14919,7 @@
                 "switch": [],
                 "shorthelp": "Design dependency fileset",
                 "example": [
-                  "api: design.set('fileset', 'rtl, 'depfileset', ('lambdalib', 'rtl')"
+                  "api: design.set('fileset', 'rtl', 'depfileset', ('lambdalib', 'rtl')"
                 ],
                 "help": "Sets the mapping for dependency filesets.",
                 "notes": null,
@@ -15148,7 +15148,7 @@
           "shorthelp": "Metric: total errors",
           "example": [
             "cli: -metric_errors 'dfm 0 0'",
-            "api: proj.set('metric', 'errors', 0, step='dfm', index=0)"
+            "api: project.set('metric', 'errors', 0, step='dfm', index=0)"
           ],
           "help": "Metric tracking the total number of errors on a\nper step and index basis.",
           "notes": null,
@@ -15173,7 +15173,7 @@
           "shorthelp": "Metric: total warnings",
           "example": [
             "cli: -metric_warnings 'dfm 0 0'",
-            "api: proj.set('metric', 'warnings', 0, step='dfm', index=0)"
+            "api: project.set('metric', 'warnings', 0, step='dfm', index=0)"
           ],
           "help": "Metric tracking the total number of warnings on a\nper step and index basis.",
           "notes": null,
@@ -15198,7 +15198,7 @@
           "shorthelp": "Metric: memory",
           "example": [
             "cli: -metric_memory 'dfm 0 10e9'",
-            "api: proj.set('metric', 'memory', 10e9, step='dfm', index=0)"
+            "api: project.set('metric', 'memory', 10e9, step='dfm', index=0)"
           ],
           "help": "Metric tracking total peak program memory footprint on a per\nstep and index basis.",
           "notes": null,
@@ -15224,7 +15224,7 @@
           "shorthelp": "Metric: exetime",
           "example": [
             "cli: -metric_exetime 'dfm 0 10.0'",
-            "api: proj.set('metric', 'exetime', 10.0, step='dfm', index=0)"
+            "api: project.set('metric', 'exetime', 10.0, step='dfm', index=0)"
           ],
           "help": "Metric tracking time spent by the EDA executable\n:keypath:`tool,<tool>,task,<task>,exe` on a\nper step and index basis. It does not include the SiliconCompiler\nruntime overhead or time waiting for I/O operations and\ninter-processor communication to complete.",
           "notes": null,
@@ -15250,7 +15250,7 @@
           "shorthelp": "Metric: tasktime",
           "example": [
             "cli: -metric_tasktime 'dfm 0 10.0'",
-            "api: proj.set('metric', 'tasktime', 10.0, step='dfm', index=0)"
+            "api: project.set('metric', 'tasktime', 10.0, step='dfm', index=0)"
           ],
           "help": "Metric tracking the total amount of time spent on a task from\nbeginning to end, including data transfers and pre/post\nprocessing.",
           "notes": null,
@@ -15276,7 +15276,7 @@
           "shorthelp": "Metric: totaltime",
           "example": [
             "cli: -metric_totaltime 'dfm 0 10.0'",
-            "api: proj.set('metric', 'totaltime', 10.0, step='dfm', index=0)"
+            "api: project.set('metric', 'totaltime', 10.0, step='dfm', index=0)"
           ],
           "help": "Metric tracking the total amount of time spent from the beginning\nof the run up to and including the current step and index.",
           "notes": null,
@@ -17045,7 +17045,7 @@
           "shorthelp": "Option: breakpoint list",
           "example": [
             "cli: -breakpoint true",
-            "api: option.set('option, 'breakpoint', True)"
+            "api: option.set('option', 'breakpoint', True)"
           ],
           "help": "\n                Set a breakpoint on specific steps. If the step is a TCL\n                based tool, then the breakpoints stops the flow inside the\n                EDA tool. If the step is a command line tool, then the flow\n                drops into a Python interpreter.",
           "notes": null,
@@ -17595,7 +17595,7 @@
           "switch": [],
           "shorthelp": "Option: Fileset alias mapping",
           "example": [
-            "api: project.set('option', 'alias', ('design', 'rtl', 'lambda', 'rtl')"
+            "api: project.set('option', 'alias', ('design', 'rtl', 'lambda', 'rtl'))"
           ],
           "help": "List of filesets to alias during a run. When an alias is specific\nit will be used instead of the source fileset. It is useful when you\nwant to substitute a fileset from one library with a fileset from another,\nwithout changing the original design's code.\nFor example, you might use it to swap in a different version of an IP\nblock or a specific test environment.",
           "notes": null,
@@ -17827,7 +17827,7 @@
               "switch": [
                 "-checklist_rationale 'standard item <str>'"
               ],
-              "shorthelp": "Checklist: item rational",
+              "shorthelp": "Checklist: item rationale",
               "example": [
                 "cli: -checklist_rationale 'ISO D000 reliability'",
                 "api: check.set('checklist', 'ISO', 'D000', 'rationale', 'reliability')"
@@ -18586,7 +18586,7 @@
                 "switch": [],
                 "shorthelp": "Include file search paths",
                 "example": [
-                  "api: design.set('fileset', 'rtl, 'idir', './rtl')",
+                  "api: design.set('fileset', 'rtl', 'idir', './rtl')",
                   "api: design.set('fileset', 'testbench', 'idir', '/testbench')"
                 ],
                 "help": "Include paths specify directories to scan for header files during\ncompilation. If multiple paths are provided, they are searched\nin the order given.",
@@ -18657,7 +18657,7 @@
                 "switch": [],
                 "shorthelp": "Library search paths",
                 "example": [
-                  "api: design.set('fileset', 'rtl, 'libdir', '/usr/lib')"
+                  "api: design.set('fileset', 'rtl', 'libdir', '/usr/lib')"
                 ],
                 "help": "Specifies directories to scan for libraries provided with the\n:keypath:`Design,fileset,<fileset>,lib` parameter. If multiple paths are provided,\nthey are searched based on the order of the libdir list.",
                 "notes": null,
@@ -18706,7 +18706,7 @@
                   "switch": [],
                   "shorthelp": "Design parameters",
                   "example": [
-                    "api: design.set('fileset', 'rtl, 'param', 'N', '64'"
+                    "api: design.set('fileset', 'rtl', 'param', 'N', '64'"
                   ],
                   "help": "Sets a named parameter to a string value. The value is limited to basic\ndata literals. The types of parameters and values supported is tightly\ncoupled to tools being used. For example, in Verilog only integer\nliterals (64'h4, 2'b0, 4) and strings are supported.",
                   "notes": null,
@@ -18729,7 +18729,7 @@
                 "switch": [],
                 "shorthelp": "Design dependency fileset",
                 "example": [
-                  "api: design.set('fileset', 'rtl, 'depfileset', ('lambdalib', 'rtl')"
+                  "api: design.set('fileset', 'rtl', 'depfileset', ('lambdalib', 'rtl')"
                 ],
                 "help": "Sets the mapping for dependency filesets.",
                 "notes": null,
@@ -18958,7 +18958,7 @@
           "shorthelp": "Metric: total errors",
           "example": [
             "cli: -metric_errors 'dfm 0 0'",
-            "api: proj.set('metric', 'errors', 0, step='dfm', index=0)"
+            "api: project.set('metric', 'errors', 0, step='dfm', index=0)"
           ],
           "help": "Metric tracking the total number of errors on a\nper step and index basis.",
           "notes": null,
@@ -18983,7 +18983,7 @@
           "shorthelp": "Metric: total warnings",
           "example": [
             "cli: -metric_warnings 'dfm 0 0'",
-            "api: proj.set('metric', 'warnings', 0, step='dfm', index=0)"
+            "api: project.set('metric', 'warnings', 0, step='dfm', index=0)"
           ],
           "help": "Metric tracking the total number of warnings on a\nper step and index basis.",
           "notes": null,
@@ -19008,7 +19008,7 @@
           "shorthelp": "Metric: memory",
           "example": [
             "cli: -metric_memory 'dfm 0 10e9'",
-            "api: proj.set('metric', 'memory', 10e9, step='dfm', index=0)"
+            "api: project.set('metric', 'memory', 10e9, step='dfm', index=0)"
           ],
           "help": "Metric tracking total peak program memory footprint on a per\nstep and index basis.",
           "notes": null,
@@ -19034,7 +19034,7 @@
           "shorthelp": "Metric: exetime",
           "example": [
             "cli: -metric_exetime 'dfm 0 10.0'",
-            "api: proj.set('metric', 'exetime', 10.0, step='dfm', index=0)"
+            "api: project.set('metric', 'exetime', 10.0, step='dfm', index=0)"
           ],
           "help": "Metric tracking time spent by the EDA executable\n:keypath:`tool,<tool>,task,<task>,exe` on a\nper step and index basis. It does not include the SiliconCompiler\nruntime overhead or time waiting for I/O operations and\ninter-processor communication to complete.",
           "notes": null,
@@ -19060,7 +19060,7 @@
           "shorthelp": "Metric: tasktime",
           "example": [
             "cli: -metric_tasktime 'dfm 0 10.0'",
-            "api: proj.set('metric', 'tasktime', 10.0, step='dfm', index=0)"
+            "api: project.set('metric', 'tasktime', 10.0, step='dfm', index=0)"
           ],
           "help": "Metric tracking the total amount of time spent on a task from\nbeginning to end, including data transfers and pre/post\nprocessing.",
           "notes": null,
@@ -19086,7 +19086,7 @@
           "shorthelp": "Metric: totaltime",
           "example": [
             "cli: -metric_totaltime 'dfm 0 10.0'",
-            "api: proj.set('metric', 'totaltime', 10.0, step='dfm', index=0)"
+            "api: project.set('metric', 'totaltime', 10.0, step='dfm', index=0)"
           ],
           "help": "Metric tracking the total amount of time spent from the beginning\nof the run up to and including the current step and index.",
           "notes": null,
@@ -20855,7 +20855,7 @@
           "shorthelp": "Option: breakpoint list",
           "example": [
             "cli: -breakpoint true",
-            "api: option.set('option, 'breakpoint', True)"
+            "api: option.set('option', 'breakpoint', True)"
           ],
           "help": "\n                Set a breakpoint on specific steps. If the step is a TCL\n                based tool, then the breakpoints stops the flow inside the\n                EDA tool. If the step is a command line tool, then the flow\n                drops into a Python interpreter.",
           "notes": null,
@@ -21405,7 +21405,7 @@
           "switch": [],
           "shorthelp": "Option: Fileset alias mapping",
           "example": [
-            "api: project.set('option', 'alias', ('design', 'rtl', 'lambda', 'rtl')"
+            "api: project.set('option', 'alias', ('design', 'rtl', 'lambda', 'rtl'))"
           ],
           "help": "List of filesets to alias during a run. When an alias is specific\nit will be used instead of the source fileset. It is useful when you\nwant to substitute a fileset from one library with a fileset from another,\nwithout changing the original design's code.\nFor example, you might use it to swap in a different version of an IP\nblock or a specific test environment.",
           "notes": null,
@@ -22073,7 +22073,7 @@
             "switch": [],
             "shorthelp": "Include file search paths",
             "example": [
-              "api: design.set('fileset', 'rtl, 'idir', './rtl')",
+              "api: design.set('fileset', 'rtl', 'idir', './rtl')",
               "api: design.set('fileset', 'testbench', 'idir', '/testbench')"
             ],
             "help": "Include paths specify directories to scan for header files during\ncompilation. If multiple paths are provided, they are searched\nin the order given.",
@@ -22144,7 +22144,7 @@
             "switch": [],
             "shorthelp": "Library search paths",
             "example": [
-              "api: design.set('fileset', 'rtl, 'libdir', '/usr/lib')"
+              "api: design.set('fileset', 'rtl', 'libdir', '/usr/lib')"
             ],
             "help": "Specifies directories to scan for libraries provided with the\n:keypath:`Design,fileset,<fileset>,lib` parameter. If multiple paths are provided,\nthey are searched based on the order of the libdir list.",
             "notes": null,
@@ -22193,7 +22193,7 @@
               "switch": [],
               "shorthelp": "Design parameters",
               "example": [
-                "api: design.set('fileset', 'rtl, 'param', 'N', '64'"
+                "api: design.set('fileset', 'rtl', 'param', 'N', '64'"
               ],
               "help": "Sets a named parameter to a string value. The value is limited to basic\ndata literals. The types of parameters and values supported is tightly\ncoupled to tools being used. For example, in Verilog only integer\nliterals (64'h4, 2'b0, 4) and strings are supported.",
               "notes": null,
@@ -22216,7 +22216,7 @@
             "switch": [],
             "shorthelp": "Design dependency fileset",
             "example": [
-              "api: design.set('fileset', 'rtl, 'depfileset', ('lambdalib', 'rtl')"
+              "api: design.set('fileset', 'rtl', 'depfileset', ('lambdalib', 'rtl')"
             ],
             "help": "Sets the mapping for dependency filesets.",
             "notes": null,
@@ -23052,7 +23052,7 @@
               "shorthelp": "PDK: device models",
               "example": [
                 "cli: -pdk_devmodel 'asap7 xyce spice M10 asap7.sp'",
-                "api: pdk.set('devmodel', 'xyce', 'spice', 'M10', 'asap7.sp')"
+                "api: pdk.set('pdk', 'asap7', 'devmodelfileset', 'xyce', 'spice', 'M10', 'asap7.sp')"
               ],
               "help": "List of filepaths to PDK device models for different simulation\npurposes and for different tools. Examples of device model types\ninclude spice, aging, electromigration, radiation. An example of a\n'spice' tool is xyce. Device models are specified on a per metal stack\nbasis. Process nodes with a single device model across all stacks will\nhave a unique parameter record per metal stack pointing to the same\ndevice model file. Device types and tools are dynamic entries\nthat depend on the tool setup and device technology. Pseudo-standardized\ndevice types include spice, em (electromigration), and aging.",
               "notes": null,

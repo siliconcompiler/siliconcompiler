@@ -232,9 +232,9 @@ def send(project, msg_type, step, index):
 
 if __name__ == "__main__":
     # Example usage for testing the send function
-    from siliconcompiler import project
+    from siliconcompiler import Project
     from siliconcompiler.targets import freepdk45_demo
-    project = project('test')
+    project = Project('test')
     project.use(freepdk45_demo)
     project.set('option', 'scheduler', 'msgevent', 'ALL')
     # To test, uncomment the following line and fill in a valid email address

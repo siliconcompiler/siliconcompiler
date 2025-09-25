@@ -31,7 +31,7 @@ class SCDebugLoggerFormatter(logging.Formatter):
 class SCDebugInRunLoggerFormatter(logging.Formatter):
     def __init__(self, project, jobname, step, index):
         super().__init__(
-            SCInRunLoggerFormatter.configureFormat(
+            SCInRunLoggerFormatter.configure_format(
                 "| %(levelname)-8s | %(filename)-20s : %(funcName)-10s | %(lineno)-4s |"
                 " {} | {} | {} | %(message)s",
                 project, step, index))
@@ -83,7 +83,7 @@ class SCInRunLoggerFormatter(logging.Formatter):
         return fmt.format(
             utils.truncate_text(jobname, max_width),
             f'{utils.truncate_text(step, max_step_len): <{max_step_len}}',
-            f'{utils.truncate_text(index, max_step_len): >{max_index_len}}')
+            f'{utils.truncate_text(index, max_index_len): >{max_index_len}}')
 
 
 class SCColorLoggerFormatter(logging.Formatter):

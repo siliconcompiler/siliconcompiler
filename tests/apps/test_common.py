@@ -16,9 +16,9 @@ def make_manifests():
                 for d in ('inputs', 'outputs'):
                     path = os.path.join(workdir(project, step=step, index=index), d)
                     os.makedirs(path, exist_ok=True)
-                    with open(os.path.join(path, f"{project.design.name}.pkg.json"), "w") as f:
+                    with open(os.path.join(path, f"{project.name}.pkg.json"), "w") as f:
                         f.write('nothing')
-        with open(os.path.join(jobdir(project), f"{project.design.name}.pkg.json"), "w") as f:
+        with open(os.path.join(jobdir(project), f"{project.name}.pkg.json"), "w") as f:
             f.write('nothing')
 
     return impl

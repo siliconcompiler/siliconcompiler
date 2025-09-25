@@ -58,7 +58,7 @@ class WebDashboard(AbstractDashboard):
         self.__dashboard = None
         self.__project = project
         self.__directory = tempfile.mkdtemp(prefix='sc_dashboard_',
-                                            suffix=f'_{self.__project.design.name}')
+                                            suffix=f'_{self.__project.name}')
         self.__manifest = os.path.join(self.__directory, 'manifest.json')
         self.__manifest_lock = os.path.join(self.__directory, 'manifest.lock')
         self.__port = port
