@@ -109,7 +109,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                 is not intended for external use."""))
 
         schema.insert("checklist", "default", Checklist())
-        schema.insert("library", "default", Design())
+        schema.insert("library", BaseSchema())
         schema.insert("flowgraph", "default", Flowgraph())
         schema.insert("metric", MetricSchema())
         schema.insert("record", RecordSchema())
