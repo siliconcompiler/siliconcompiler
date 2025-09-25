@@ -4,7 +4,7 @@
 Compilation Process
 ###################
 
-The complete SiliconCompiler compilation is handled by a single call to the :meth:`.run()` function.
+The complete SiliconCompiler compilation is handled by a single call to the :meth:`.Project.run()` function.
 Within that function call, a static data :term:`flowgraph`, consisting of :term:`nodes <node>` and :term:`edges <edge>` is traversed and "executed."
 
 The static flowgraph approach was chosen for a number reasons:
@@ -53,9 +53,9 @@ Flowgraph execution is done through the :meth:`.Project.run()` function which ch
 Flowgraph Examples
 ------------------
 
-The flowgraph, used in the :ref:`asic demo`, is a built-in compilation flow, called :ref:`asicflow <flows-asicflow-ref>`. This compilation flow is a pre-defined flowgraph customized for an ASIC build flow, and is called through the :meth:`.Project.add_dep()` function, which calls a :ref:`pre-defined PDK module <pdks>` that `uses the asicflow flowgraph <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/targets/skywater130_demo.py>`_.
+The flowgraph, used in the :ref:`asic demo`, is a built-in compilation flow, called :ref:`asicflow <schema-siliconcompiler-flows-asicflow-asicflow>`. This compilation flow is a pre-defined flowgraph customized for an ASIC build flow, and is called through the :meth:`.Project.add_dep()` function, which calls a :ref:`pre-defined PDK module <builtin_pdks>` that :ref:`uses the asicflow flowgraph <schema-siliconcompiler-flows-asicflow-asicflow>`.
 
-You can design your own chip compilation build flows by easily creating custom flowgraphs through:
+You can design your own project compilation build flows by easily creating custom flowgraphs through:
 
 * :meth:`.Flowgraph.node()` / :meth:`.Flowgraph.edge()` methods
 
@@ -76,9 +76,9 @@ The example below shows a snippet which creates a simple two-step (import + synt
    :end-before: end of flowgraph setup
 
 
-At this point, you can visually examine your flowgraph by using :meth:`.write_flowgraph()`. This function is very useful in debugging graph definitions. ::
+At this point, you can visually examine your flowgraph by using :meth:`.Flowgraph.write_flowgraph()`. This function is very useful in debugging graph definitions. ::
 
-  chip.write_flowgraph("flowgraph.svg", landscape=True)
+  flow.write_flowgraph("flowgraph.svg", landscape=True)
 
 .. image:: _images/flowgraph.svg
        :align: center

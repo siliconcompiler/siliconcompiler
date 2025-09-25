@@ -1,8 +1,8 @@
-====================
+==================
 Dashboard Tutorial
-====================
+==================
 
-At this point, you should have built a chip on your computer.
+At this point, you should have built a project on your computer.
 
 To start, run the command:
 
