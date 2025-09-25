@@ -50,7 +50,7 @@ def test_show_def(target, testfile, task, datadir, display):
     with design.active_fileset("rtl"):
         design.set_topmodule("heartbeat")
     proj = ASICProject(design)
-    target.setup(proj)
+    target(proj)
 
     ShowTask.register_task(task)
     assert isinstance(ShowTask.get_task("def"), task)
@@ -72,7 +72,7 @@ def test_screenshot_def(target, testfile, task, datadir, display):
     with design.active_fileset("rtl"):
         design.set_topmodule("heartbeat")
     proj = ASICProject(design)
-    target.setup(proj)
+    target(proj)
 
     ScreenshotTask.register_task(task)
     assert isinstance(ScreenshotTask.get_task("def"), task)
