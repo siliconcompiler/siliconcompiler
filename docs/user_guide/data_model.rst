@@ -25,12 +25,12 @@ The following sections provide more detail on how information in the schema is i
 Schema Configuration
 ^^^^^^^^^^^^^^^^^^^^
 
-The schema is "configured," or defined, based on its parameters. These can be seen in detailed :ref:`here <schema>`
+The schema is "configured," or defined, based on its parameters. These are documented in detail :ref:`in the schema reference <schema>`
 
 Accessing Schema Parameters
 ---------------------------
 
-All the design and compilation information are stored in Schema objects, which are manipulated through the class called :class:`.BaseSchema`.
+All design and compilation information is stored in Schema objects, which you manipulate through the :class:`.BaseSchema` class.
 
 The Schema Object
 +++++++++++++++++
