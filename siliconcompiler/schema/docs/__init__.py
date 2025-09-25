@@ -19,12 +19,11 @@ def relpath(file):
 def get_codeurl(file=None):
     blob = f"v{sc_version}"
     if os.getenv("READTHEDOCS"):
+        # Use git commit
+        blob = os.getenv("READTHEDOCS_GIT_COMMIT_HASH", blob)
         if os.getenv("READTHEDOCS_VERSION") == "stable":
             # use git identifier name
-            blob = os.getenv("READTHEDOCS_GIT_IDENTIFIER")
-        else:
-            # Use git commit
-            blob = os.getenv("READTHEDOCS_GIT_COMMIT_HASH")
+            blob = os.getenv("READTHEDOCS_GIT_IDENTIFIER", blob)
 
     base_url = f"https://github.com/siliconcompiler/siliconcompiler/blob/{blob}"
 
