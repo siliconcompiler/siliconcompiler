@@ -56,7 +56,7 @@ class Checklist(NamedSchema):
             Status of item check.
 
         Examples:
-            >>> status = chip.check_checklist('d000')
+            >>> status = check.check_checklist('d000')
             Returns status.
         '''
         error = False
@@ -277,7 +277,7 @@ def schema_checklist(schema):
             switch="-checklist_description 'standard item <str>'",
             example=[
                 "cli: -checklist_description 'ISO D000 A-DESCRIPTION'",
-                "api: chip.set('checklist', 'ISO', 'D000', 'description', 'A-DESCRIPTION')"],
+                "api: check.set('checklist', 'ISO', 'D000', 'description', 'A-DESCRIPTION')"],
             help=trim("""
             A short one line description of the checklist item.""")))
 
@@ -290,7 +290,7 @@ def schema_checklist(schema):
             switch="-checklist_requirement 'standard item <str>'",
             example=[
                 "cli: -checklist_requirement 'ISO D000 DOCSTRING'",
-                "api: chip.set('checklist', 'ISO', 'D000', 'requirement', 'DOCSTRING')"],
+                "api: check.set('checklist', 'ISO', 'D000', 'requirement', 'DOCSTRING')"],
             help=trim("""
             A complete requirement description of the checklist item
             entered as a multi-line string.""")))
@@ -304,7 +304,7 @@ def schema_checklist(schema):
             switch="-checklist_dataformat 'standard item <str>'",
             example=[
                 "cli: -checklist_dataformat 'ISO D000 README'",
-                "api: chip.set('checklist', 'ISO', 'D000', 'dataformat', 'README')"],
+                "api: check.set('checklist', 'ISO', 'D000', 'dataformat', 'README')"],
             help=trim("""
             Free text description of the type of data files acceptable as
             checklist signoff validation.""")))
@@ -318,7 +318,7 @@ def schema_checklist(schema):
             switch="-checklist_rationale 'standard item <str>'",
             example=[
                 "cli: -checklist_rationale 'ISO D000 reliability'",
-                "api: chip.set('checklist', 'ISO', 'D000', 'rationale', 'reliability')"],
+                "api: check.set('checklist', 'ISO', 'D000', 'rationale', 'reliability')"],
             help=trim("""
             Rationale for the the checklist item. Rationale should be a
             unique alphanumeric code used by the standard or a short one line
@@ -333,7 +333,7 @@ def schema_checklist(schema):
             switch="-checklist_criteria 'standard item <str>'",
             example=[
                 "cli: -checklist_criteria 'ISO D000 errors==0'",
-                "api: chip.set('checklist', 'ISO', 'D000', 'criteria', 'errors==0')"],
+                "api: check.set('checklist', 'ISO', 'D000', 'criteria', 'errors==0')"],
             help=trim("""
             Simple list of signoff criteria for checklist item which
             must all be met for signoff. Each signoff criteria consists of
@@ -349,7 +349,7 @@ def schema_checklist(schema):
             switch="-checklist_task 'standard item <(str,str,str)>'",
             example=[
                 "cli: -checklist_task 'ISO D000 (job0,place,0)'",
-                "api: chip.set('checklist', 'ISO', 'D000', 'task', ('job0', 'place', '0'))"],
+                "api: check.set('checklist', 'ISO', 'D000', 'task', ('job0', 'place', '0'))"],
             help=trim("""
             Flowgraph job and task used to verify the checklist item.
             The parameter should be left empty for manual and for tool
@@ -364,7 +364,7 @@ def schema_checklist(schema):
             switch="-checklist_report 'standard item <file>'",
             example=[
                 "cli: -checklist_report 'ISO D000 my.rpt'",
-                "api: chip.set('checklist', 'ISO', 'D000', 'report', 'my.rpt')"],
+                "api: check.set('checklist', 'ISO', 'D000', 'report', 'my.rpt')"],
             help=trim("""
             Filepath to report(s) of specified type documenting the successful
             validation of the checklist item.""")))
@@ -378,7 +378,7 @@ def schema_checklist(schema):
             switch="-checklist_waiver 'standard item metric <file>'",
             example=[
                 "cli: -checklist_waiver 'ISO D000 bold my.txt'",
-                "api: chip.set('checklist', 'ISO', 'D000', 'waiver', 'hold', 'my.txt')"],
+                "api: check.set('checklist', 'ISO', 'D000', 'waiver', 'hold', 'my.txt')"],
             help=trim("""
             Filepath to report(s) documenting waivers for the checklist
             item specified on a per metric basis.""")))
@@ -392,7 +392,7 @@ def schema_checklist(schema):
             switch="-checklist_ok 'standard item <bool>'",
             example=[
                 "cli: -checklist_ok 'ISO D000 true'",
-                "api: chip.set('checklist', 'ISO', 'D000', 'ok', True)"],
+                "api: check.set('checklist', 'ISO', 'D000', 'ok', True)"],
             help=trim("""
             Boolean check mark for the checklist item. A value of
             True indicates a human has inspected the all item dictionary

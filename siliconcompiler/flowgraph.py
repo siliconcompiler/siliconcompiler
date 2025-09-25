@@ -136,7 +136,7 @@ class Flowgraph(NamedSchema, DocsSchema):
             head_index (int or str): Index of the head node. Defaults to 0.
 
         Examples:
-            >>> chip.edge('place', 'cts')
+            >>> flow.edge('place', 'cts')
             # Creates a directed edge from ('place', '0') to ('cts', '0').
         '''
         head_index = str(head_index)
@@ -687,7 +687,7 @@ class Flowgraph(NamedSchema, DocsSchema):
         r'''
         Renders and saves the compilation flowgraph to a file.
 
-        The chip object flowgraph is traversed to create a graphviz (\*.dot)
+        The flow object flowgraph is traversed to create a graphviz (\*.dot)
         file comprised of node, edges, and labels. The dot file is a
         graphical representation of the flowgraph useful for validating the
         correctness of the execution flow graph. The dot file is then
@@ -706,7 +706,7 @@ class Flowgraph(NamedSchema, DocsSchema):
             landscape (bool): Renders graph in landscape layout if True
 
         Examples:
-            >>> chip.write_flowgraph('mydump.png')
+            >>> flow.write_flowgraph('mydump.png')
             Renders the object flowgraph and writes the result to a png file.
         '''
 
@@ -1299,7 +1299,7 @@ def schema_flowgraph(schema):
             switch="-flowgraph_input 'flow step index <(str,str)>'",
             example=[
                 "cli: -flowgraph_input 'asicflow cts 0 (place,0)'",
-                "api: chip.set('flowgraph', 'asicflow', 'cts', '0', 'input', ('place', '0'))"],
+                "api: flow.set('flowgraph', 'asicflow', 'cts', '0', 'input', ('place', '0'))"],
             help=trim("""A list of inputs for the current step and index, specified as a
             (step, index) tuple.""")))
 
@@ -1315,7 +1315,7 @@ def schema_flowgraph(schema):
             switch="-flowgraph_weight 'flow step index metric <float>'",
             example=[
                 "cli: -flowgraph_weight 'asicflow cts 0 area_cells 1.0'",
-                "api: chip.set('flowgraph', 'asicflow', 'cts', '0', 'weight', 'area_cells', 1.0)"],
+                "api: flow.set('flowgraph', 'asicflow', 'cts', '0', 'weight', 'area_cells', 1.0)"],
             help=trim("""Weights specified on a per step and per metric basis used to give
             effective "goodness" score for a step by calculating the sum all step
             real metrics results by the corresponding per step weights.""")))
@@ -1329,7 +1329,7 @@ def schema_flowgraph(schema):
             switch="-flowgraph_goal 'flow step index metric <float>'",
             example=[
                 "cli: -flowgraph_goal 'asicflow cts 0 area_cells 1.0'",
-                "api: chip.set('flowgraph', 'asicflow', 'cts', '0', 'goal', 'errors', 0)"],
+                "api: flow.set('flowgraph', 'asicflow', 'cts', '0', 'goal', 'errors', 0)"],
             help=trim("""Goals specified on a per step and per metric basis used to
             determine whether a certain task can be considered when merging
             multiple tasks at a minimum or maximum node. A task is considered
@@ -1346,7 +1346,7 @@ def schema_flowgraph(schema):
             switch="-flowgraph_tool 'flow step index <str>'",
             example=[
                 "cli: -flowgraph_tool 'asicflow place 0 openroad'",
-                "api: chip.set('flowgraph', 'asicflow', 'place', '0', 'tool', 'openroad')"],
+                "api: flow.set('flowgraph', 'asicflow', 'place', '0', 'tool', 'openroad')"],
             help=trim("""Name of the tool name used for task execution.""")))
 
     # task (belonging to tool)
@@ -1359,7 +1359,7 @@ def schema_flowgraph(schema):
             switch="-flowgraph_task 'flow step index <str>'",
             example=[
                 "cli: -flowgraph_task 'asicflow myplace 0 place'",
-                "api: chip.set('flowgraph', 'asicflow', 'myplace', '0', 'task', 'place')"],
+                "api: flow.set('flowgraph', 'asicflow', 'myplace', '0', 'task', 'place')"],
             help=trim("""Name of the tool associated task used for step execution.""")))
 
     schema.insert(
@@ -1372,7 +1372,7 @@ def schema_flowgraph(schema):
             example=[
                 "cli: -flowgraph_taskmodule 'asicflow place 0 "
                 "siliconcompiler.tools.openroad.place'",
-                "api: chip.set('flowgraph', 'asicflow', 'place', '0', 'taskmodule', "
+                "api: flow.set('flowgraph', 'asicflow', 'place', '0', 'taskmodule', "
                 "'siliconcompiler.tools.openroad.place')"],
             help=trim("""
             Full python module name of the task module used for task setup and execution.
@@ -1388,6 +1388,6 @@ def schema_flowgraph(schema):
             switch="-flowgraph_args 'flow step index <str>'",
             example=[
                 "cli: -flowgraph_args 'asicflow cts 0 0'",
-                "api: chip.add('flowgraph', 'asicflow', 'cts', '0', 'args', '0')"],
+                "api: flow.add('flowgraph', 'asicflow', 'cts', '0', 'args', '0')"],
             help=trim("""User specified flowgraph string arguments specified on a per
             step and per index basis.""")))

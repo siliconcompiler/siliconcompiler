@@ -98,6 +98,6 @@ class ServerSchema(CommandLineSchema, BaseSchema):
                 shorthelp="Interval for client",
                 switch="-checkinterval <int>",
                 example=["cli: -checkinterval 10",
-                         "api: chip.set('option', 'checkinterval', 10)"],
+                         "api: server.set('option', 'checkinterval', 10)"],
                 help="""
                 Interval between checks to announce to clients"""))

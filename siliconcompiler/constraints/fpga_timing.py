@@ -25,7 +25,7 @@ class FPGATimingScenarioSchema(NamedSchema):
                 scope=Scope.GLOBAL,
                 shorthelp="Constraint: operating mode",
                 switch="-constraint_timing_mode 'scenario <str>'",
-                example=["api: chip.set('constraint', 'timing', 'worst', 'mode', 'test')"],
+                example=["api: fpga.set('constraint', 'timing', 'worst', 'mode', 'test')"],
                 help="""Operating mode for the scenario. Operating mode strings
                 can be values such as test, functional, standby."""))
 

@@ -41,7 +41,7 @@ class PDK(ToolLibrarySchema):
                 shorthelp="PDK: foundry name",
                 switch="-pdk_foundry 'pdkname <str>'",
                 example=["cli: -pdk_foundry 'asap7 virtual'",
-                         "api: chip.set('pdk', 'asap7', 'foundry', 'virtual')"],
+                         "api: pdk.set('pdk', 'asap7', 'foundry', 'virtual')"],
                 help=trim("""
                 Name of foundry corporation. Examples include intel, gf, tsmc,
                 samsung, skywater, virtual. The 'virtual' keyword is reserved for
@@ -56,7 +56,7 @@ class PDK(ToolLibrarySchema):
                 shorthelp="PDK: process node",
                 switch="-pdk_node 'pdkname <float>'",
                 example=["cli: -pdk_node 'asap7 130'",
-                         "api: chip.set('pdk', 'asap7', 'node', 130)"],
+                         "api: pdk.set('pdk', 'asap7', 'node', 130)"],
                 help=trim("""
                 Approximate relative minimum dimension of the process target specified
                 in nanometers. The parameter is required for flows and tools that
@@ -72,7 +72,7 @@ class PDK(ToolLibrarySchema):
                 shorthelp="PDK: metal stackups",
                 switch="-pdk_stackup 'pdkname <str>'",
                 example=["cli: -pdk_stackup 'asap7 2MA4MB2MC'",
-                         "api: chip.add('pdk', 'asap7', 'stackup', '2MA4MB2MC')"],
+                         "api: pdk.add('pdk', 'asap7', 'stackup', '2MA4MB2MC')"],
                 help=trim("""
                 List of all metal stackups offered in the process node. Older process
                 nodes may only offer a single metal stackup, while advanced nodes
@@ -95,7 +95,7 @@ class PDK(ToolLibrarySchema):
                 switch="-pdk_minlayer 'pdk stackup <str>'",
                 example=[
                     "cli: -pdk_minlayer 'asap7 2MA4MB2MC M2'",
-                    "api: chip.set('pdk', 'asap7', 'minlayer', '2MA4MB2MC', 'M2')"],
+                    "api: pdk.set('pdk', 'asap7', 'minlayer', '2MA4MB2MC', 'M2')"],
                 help=trim("""
                 Minimum metal layer to be used for automated place and route
                 specified on a per stackup basis.""")))
@@ -109,7 +109,7 @@ class PDK(ToolLibrarySchema):
                 switch="-pdk_maxlayer 'pdk stackup <str>'",
                 example=[
                     "cli: -pdk_maxlayer 'asap7 2MA4MB2MC M8'",
-                    "api: chip.set('pdk', 'asap7', 'maxlayer', 'MA4MB2MC', 'M8')"],
+                    "api: pdk.set('pdk', 'asap7', 'maxlayer', 'MA4MB2MC', 'M8')"],
                 help=trim("""
                 Maximum metal layer to be used for automated place and route
                 specified on a per stackup basis.""")))
@@ -123,7 +123,7 @@ class PDK(ToolLibrarySchema):
                 shorthelp="PDK: wafer size",
                 switch="-pdk_wafersize 'pdkname <float>'",
                 example=["cli: -pdk_wafersize 'asap7 300'",
-                         "api: chip.set('pdk', 'asap7', 'wafersize', 300)"],
+                         "api: pdk.set('pdk', 'asap7', 'wafersize', 300)"],
                 help=trim("""
                 Wafer diameter used in wafer based manufacturing process.
                 The standard diameter for leading edge manufacturing is 300mm. For
@@ -140,7 +140,7 @@ class PDK(ToolLibrarySchema):
                 shorthelp="PDK: unit cost",
                 switch="-pdk_unitcost 'pdkname <float>'",
                 example=["cli: -pdk_unitcost 'asap7 10000'",
-                         "api: chip.set('pdk', 'asap7', 'unitcost', 10000)"],
+                         "api: pdk.set('pdk', 'asap7', 'unitcost', 10000)"],
                 help=trim("""
                 Raw cost per unit shipped by the factory, not accounting for yield
                 loss.""")))
@@ -153,7 +153,7 @@ class PDK(ToolLibrarySchema):
                 shorthelp="PDK: process defect density",
                 switch="-pdk_d0 'pdkname <float>'",
                 example=["cli: -pdk_d0 'asap7 0.1'",
-                         "api: chip.set('pdk', 'asap7', 'd0', 0.1)"],
+                         "api: pdk.set('pdk', 'asap7', 'd0', 0.1)"],
                 help=trim("""
                 Process defect density (d0) expressed as random defects per cm^2. The
                 value is used to calculate yield losses as a function of area, which in
@@ -171,7 +171,7 @@ class PDK(ToolLibrarySchema):
                 shorthelp="PDK: horizontal scribe line width",
                 switch="-pdk_scribe 'pdkname <(float,float)>'",
                 example=["cli: -pdk_scribe 'asap7 (0.1,0.1)'",
-                         "api: chip.set('pdk', 'asap7', 'scribe', (0.1, 0.1))"],
+                         "api: pdk.set('pdk', 'asap7', 'scribe', (0.1, 0.1))"],
                 help=trim("""
                 Width of the horizontal and vertical scribe line used during die separation.
                 The process is generally completed using a mechanical saw, but can be
@@ -189,7 +189,7 @@ class PDK(ToolLibrarySchema):
                 switch="-pdk_edgemargin 'pdkname <float>'",
                 example=[
                     "cli: -pdk_edgemargin 'asap7 1'",
-                    "api: chip.set('pdk', 'asap7', 'edgemargin', 1)"],
+                    "api: pdk.set('pdk', 'asap7', 'edgemargin', 1)"],
                 help=trim("""
                 Keep-out distance/margin from the edge inwards. The edge
                 is prone to chipping and need special treatment that preclude
@@ -207,7 +207,7 @@ class PDK(ToolLibrarySchema):
                 switch="-pdk_devmodel 'pdkname tool simtype stackup <file>'",
                 example=[
                     "cli: -pdk_devmodel 'asap7 xyce spice M10 asap7.sp'",
-                    "api: chip.set('devmodel', 'xyce', 'spice', 'M10', 'asap7.sp')"],
+                    "api: pdk.set('devmodel', 'xyce', 'spice', 'M10', 'asap7.sp')"],
                 help=trim("""
                 List of filepaths to PDK device models for different simulation
                 purposes and for different tools. Examples of device model types
@@ -229,7 +229,7 @@ class PDK(ToolLibrarySchema):
                 switch="-pdk_pexmodel 'pdkname tool stackup corner <file>'",
                 example=[
                     "cli: -pdk_pexmodel 'asap7 fastcap M10 max wire.mod'",
-                    "api: chip.set('pdk', 'asap7', 'pexmodel', 'fastcap', 'M10', 'max', "
+                    "api: pdk.set('pdk', 'asap7', 'pexmodel', 'fastcap', 'M10', 'max', "
                     "'wire.mod')"],
                 help=trim("""
                 List of filepaths to PDK wire TCAD models used during automated
@@ -251,7 +251,7 @@ class PDK(ToolLibrarySchema):
                 switch="-pdk_layermap 'pdkname tool src dst stackup <file>'",
                 example=[
                     "cli: -pdk_layermap 'asap7 klayout db gds M10 asap7.map'",
-                    "api: chip.set('pdk', 'asap7', 'layermap', 'klayout', 'db', 'gds', 'M10', "
+                    "api: pdk.set('pdk', 'asap7', 'layermap', 'klayout', 'db', 'gds', 'M10', "
                     "'asap7.map')"],
                 help=trim("""
                 Files describing input/output mapping for streaming layout data from
@@ -274,7 +274,7 @@ class PDK(ToolLibrarySchema):
                 switch="-pdk_display 'pdkname tool stackup <file>'",
                 example=[
                     "cli: -pdk_display 'asap7 klayout M10 display.lyt'",
-                    "api: chip.set('pdk', 'asap7', 'display', 'klayout', 'M10', 'display.cfg')"],
+                    "api: pdk.set('pdk', 'asap7', 'display', 'klayout', 'M10', 'display.cfg')"],
                 help=trim("""
                 Display configuration files describing colors and pattern schemes for
                 all layers in the PDK. The display configuration file is entered on a
@@ -290,7 +290,7 @@ class PDK(ToolLibrarySchema):
                 switch="-pdk_aprtech 'pdkname tool stackup libarch filetype <file>'",
                 example=[
                     "cli: -pdk_aprtech 'asap7 openroad M10 12t lef tech.lef'",
-                    "api: chip.set('pdk', 'asap7', 'aprtech', 'openroad', 'M10', '12t', 'lef', "
+                    "api: pdk.set('pdk', 'asap7', 'aprtech', 'openroad', 'M10', '12t', 'lef', "
                     "'tech.lef')"],
                 help=trim("""
                 Technology file containing setup information needed to enable DRC clean APR
@@ -315,7 +315,7 @@ class PDK(ToolLibrarySchema):
                     switch=f"-pdk_{item}_runset 'pdkname tool stackup name <file>'",
                     example=[
                         f"cli: -pdk_{item}_runset 'asap7 magic M10 basic $PDK/{item}.rs'",
-                        f"api: chip.set('{item}', 'runset', 'magic', 'M10', 'basic', "
+                        f"api: pdk.set('{item}', 'runset', 'magic', 'M10', 'basic', "
                         f"'$PDK/{item}.rs')"],
                     help=trim(f"""Runset files for {item.upper()} task.""")))
 
@@ -328,7 +328,7 @@ class PDK(ToolLibrarySchema):
                     switch=f"-pdk_{item}_waiver 'pdkname tool stackup name <file>'",
                     example=[
                         f"cli: -pdk_{item}_waiver 'asap7 magic M10 basic $PDK/{item}.txt'",
-                        f"api: chip.set('{item}', 'waiver', 'magic', 'M10', 'basic', "
+                        f"api: pdk.set('{item}', 'waiver', 'magic', 'M10', 'basic', "
                         f"'$PDK/{item}.txt')"],
                     help=trim(f"""Waiver files for {item.upper()} task.""")))
 
@@ -585,7 +585,7 @@ class PDK(ToolLibrarySchema):
         Calculates the raw yield of the design as a function of design area
         and d0 defect density. Calculation can be done based on the poisson
         model (default) or the murphy model. The die area and the d0
-        parameters are taken from the chip dictionary.
+        parameters are taken from the pdk dictionary.
 
         * Poisson model: dy = exp(-area * d0/100).
         * Murphy model: dy = ((1-exp(-area * d0/100))/(area * d0/100))^2.
@@ -598,7 +598,7 @@ class PDK(ToolLibrarySchema):
             float: Design yield percentage.
 
         Examples:
-            >>> yield = chip.calc_yield(1500.0)
+            >>> yield = pdk.calc_yield(1500.0)
             # Calculates yield for a 1500 um^2 die.
         '''
         d0 = self.get('pdk', 'd0')
@@ -637,7 +637,7 @@ class PDK(ToolLibrarySchema):
             int: Number of gross dies per wafer.
 
         Examples:
-            >>> dpw = chip.calc_dpw(1000.0, 1500.0)
+            >>> dpw = pdk.calc_dpw(1000.0, 1500.0)
             # Calculates dies per wafer for a 1000x1500 um die.
         '''
         # PDK information

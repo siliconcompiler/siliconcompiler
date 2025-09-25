@@ -72,7 +72,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                 require=True,
                 shorthelp="Schema version number",
                 lock=True,
-                example=["api: chip.get('schemaversion')"],
+                example=["api: project.get('schemaversion')"],
                 schelp="""SiliconCompiler schema version number."""))
 
         # Runtime arg
@@ -84,7 +84,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                 shorthelp="ARG: step argument",
                 switch="-arg_step <str>",
                 example=["cli: -arg_step 'route'",
-                         "api: chip.set('arg', 'step', 'route')"],
+                         "api: project.set('arg', 'step', 'route')"],
                 schelp="""
                 Dynamic parameter passed in by the SC runtime as an argument to
                 a runtime task. The parameter enables configuration code
@@ -100,7 +100,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                 shorthelp="ARG: index argument",
                 switch="-arg_index <str>",
                 example=["cli: -arg_index 0",
-                         "api: chip.set('arg', 'index', '0')"],
+                         "api: project.set('arg', 'index', '0')"],
                 schelp="""
                 Dynamic parameter passed in by the SC runtime as an argument to
                 a runtime task. The parameter enables configuration code
@@ -1004,7 +1004,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             ValueError: If there is no history to summarize.
 
         Examples:
-            >>> chip.summary()
+            >>> project.summary()
             # Prints a summary of the last run to stdout.
         '''
         histories = self.getkeys("history")
@@ -1061,7 +1061,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
 
         Examples:
             >>> # Get path to gate-level Verilog from synthesis step
-            >>> vg_filepath = chip.find_result('vg', step='syn')
+            >>> vg_filepath = project.find_result('vg', step='syn')
         """
 
         if filename and step is None:
@@ -1113,7 +1113,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             ValueError: If there is no history to snapshot.
 
         Examples:
-            >>> chip.snapshot()
+            >>> project.snapshot()
             # Creates a snapshot image in the default location for the last run.
         '''
         from siliconcompiler.report import generate_summary_image, _open_summary_image
@@ -1173,10 +1173,10 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
 
         Examples:
             >>> # Display a specific GDS file
-            >>> chip.show('build/my_design/job0/write_gds/0/outputs/my_design.gds')
+            >>> project.show('build/my_design/job0/write_gds/0/outputs/my_design.gds')
 
             >>> # Automatically find and show the last generated layout
-            >>> chip.show()
+            >>> project.show()
         '''
         tool_cls = ScreenshotTask if screenshot else ShowTask
 

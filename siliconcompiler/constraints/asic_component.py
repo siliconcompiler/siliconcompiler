@@ -27,7 +27,7 @@ class ASICComponentConstraint(NamedSchema):
                 pernode=PerNode.OPTIONAL,
                 scope=Scope.GLOBAL,
                 shorthelp="Constraint: component placement",
-                example=["api: chip.set('constraint', 'component', 'i0', 'placement', (2.0, 3.0))"],
+                example=["api: asic.set('constraint', 'component', 'i0', 'placement', (2.0, 3.0))"],
                 schelp="""
                 Placement location of a named instance, specified as a (x, y) tuple of
                 floats. The location refers to the distance from the substrate origin to
@@ -41,7 +41,7 @@ class ASICComponentConstraint(NamedSchema):
                 pernode=PerNode.OPTIONAL,
                 scope=Scope.GLOBAL,
                 shorthelp="Constraint: component part name",
-                example=["api: chip.set('constraint', 'component', 'i0', 'partname', 'filler_x1')"],
+                example=["api: asic.set('constraint', 'component', 'i0', 'partname', 'filler_x1')"],
                 schelp="""
                 Name of the model, type, or variant of the placed component. In the chip
                 design domain, 'partname' is synonymous to 'cellname' or 'cell'. The
@@ -59,7 +59,7 @@ class ASICComponentConstraint(NamedSchema):
                 switch="-constraint_component_halo 'inst <(float,float)>'",
                 example=[
                     "cli: -constraint_component_halo 'i0 (1,1)'",
-                    "api: chip.set('constraint', 'component', 'i0', 'halo', (1, 1))"],
+                    "api: asic.set('constraint', 'component', 'i0', 'halo', (1, 1))"],
                 schelp="""
                 Placement keepout halo around the named component, specified as a
                 (horizontal, vertical) tuple."""))
@@ -81,7 +81,7 @@ class ASICComponentConstraint(NamedSchema):
                 switch="-constraint_component_rotation 'inst <str>'",
                 example=[
                     "cli: -constraint_component_rotation 'i0 R90'",
-                    "api: chip.set('constraint', 'component', 'i0', 'rotation', 'R90')"],
+                    "api: asic.set('constraint', 'component', 'i0', 'rotation', 'R90')"],
                 schelp="""
                 Placement rotation of the component. Components are always placed
                 such that the lower left corner of the cell is at the anchor point

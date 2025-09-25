@@ -812,8 +812,8 @@ def schema_design(schema):
             scope=Scope.GLOBAL,
             shorthelp="Top module name",
             example=[
-                "api: chip.set('fileset', 'rtl', 'topmodule', 'mytop')",
-                "api: chip.set('fileset', 'testbench', 'topmodule', 'tb')"],
+                "api: design.set('fileset', 'rtl', 'topmodule', 'mytop')",
+                "api: design.set('fileset', 'testbench', 'topmodule', 'tb')"],
             help=trim("""
             Name of top module specified on a per fileset basis.""")))
 
@@ -824,8 +824,8 @@ def schema_design(schema):
             scope=Scope.GLOBAL,
             shorthelp="Include file search paths",
             example=[
-                "api: chip.set('fileset', 'rtl, 'idir', './rtl')",
-                "api: chip.set('fileset', 'testbench', 'idir', '/testbench')"],
+                "api: design.set('fileset', 'rtl, 'idir', './rtl')",
+                "api: design.set('fileset', 'testbench', 'idir', '/testbench')"],
             help=trim("""
             Include paths specify directories to scan for header files during
             compilation. If multiple paths are provided, they are searched
@@ -838,7 +838,7 @@ def schema_design(schema):
             scope=Scope.GLOBAL,
             shorthelp="Preprocessor macro definitions",
             example=[
-                "api: chip.set('fileset', 'rtl', 'define', 'CFG_TARGET=FPGA')"],
+                "api: design.set('fileset', 'rtl', 'define', 'CFG_TARGET=FPGA')"],
             help=trim("""
             Defines macros at compile time for design languages that support
             preprocessing, such as Verilog, C, and C++. The macro format is
@@ -851,7 +851,7 @@ def schema_design(schema):
             scope=Scope.GLOBAL,
             shorthelp="Preprocessor macro undefine",
             example=[
-                "api: chip.set('fileset', 'rtl', 'undefine', 'CFG_TARGET')"],
+                "api: design.set('fileset', 'rtl', 'undefine', 'CFG_TARGET')"],
             help=trim("""
             Undefines a macro that may have been previously defined via the
             compiler, options, or header files.""")))
@@ -863,7 +863,7 @@ def schema_design(schema):
             scope=Scope.GLOBAL,
             shorthelp="Library search paths",
             example=[
-                "api: chip.set('fileset', 'rtl, 'libdir', '/usr/lib')"],
+                "api: design.set('fileset', 'rtl, 'libdir', '/usr/lib')"],
             help=trim("""
             Specifies directories to scan for libraries provided with the
             :keypath:`Design,fileset,<fileset>,lib` parameter. If multiple paths are provided,
@@ -876,7 +876,7 @@ def schema_design(schema):
             scope=Scope.GLOBAL,
             shorthelp="Design libraries to include",
             example=[
-                "api: chip.set('fileset', 'rtl', 'lib', 'mylib')"],
+                "api: design.set('fileset', 'rtl', 'lib', 'mylib')"],
             help=trim("""
             Specifies libraries to use during compilation. The compiler searches for
             library in the compiler standard library paths and in the
@@ -890,7 +890,7 @@ def schema_design(schema):
             scope=Scope.GLOBAL,
             shorthelp="Design parameters",
             example=[
-                "api: chip.set('fileset', 'rtl, 'param', 'N', '64'"],
+                "api: design.set('fileset', 'rtl, 'param', 'N', '64'"],
             help=trim("""
             Sets a named parameter to a string value. The value is limited to basic
             data literals. The types of parameters and values supported is tightly
@@ -904,5 +904,5 @@ def schema_design(schema):
             scope=Scope.GLOBAL,
             shorthelp="Design dependency fileset",
             example=[
-                "api: chip.set('fileset', 'rtl, 'depfileset', ('lambdalib', 'rtl')"],
+                "api: design.set('fileset', 'rtl, 'depfileset', ('lambdalib', 'rtl')"],
             help=trim("""Sets the mapping for dependency filesets.""")))

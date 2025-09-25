@@ -28,7 +28,7 @@ class ASICAreaConstraint(BaseSchema):
                 unit='um',
                 shorthelp="Constraint: die area outline",
                 switch="-constraint_diearea <(float,float)>",
-                example=["api: chip.set('constraint', 'diearea', (0, 0))"],
+                example=["api: asic.set('constraint', 'diearea', (0, 0))"],
                 schelp="""
                 List of (x, y) points that define the outline of the physical
                 design's die area. Simple rectangular areas can be defined with
@@ -44,7 +44,7 @@ class ASICAreaConstraint(BaseSchema):
                 unit='um',
                 shorthelp="Constraint: layout core area",
                 switch="-constraint_corearea <(float,float)>",
-                example=["api: chip.set('constraint', 'corearea', (0, 0))"],
+                example=["api: asic.set('constraint', 'corearea', (0, 0))"],
                 schelp="""
                 List of (x, y) points that define the outline of the core area for the
                 physical design. The core area is where standard cells are placed.
@@ -60,7 +60,7 @@ class ASICAreaConstraint(BaseSchema):
                 unit='um',
                 shorthelp="Constraint: layout core margin",
                 switch="-constraint_coremargin <float>",
-                example=["api: chip.set('constraint', 'coremargin', 1)"],
+                example=["api: asic.set('constraint', 'coremargin', 1)"],
                 schelp="""
                 Specifies the halo or margin between the die area outline and the
                 core area. This is used for fully automated layout sizing and
@@ -73,7 +73,7 @@ class ASICAreaConstraint(BaseSchema):
                 scope=Scope.GLOBAL,
                 shorthelp="Constraint: layout density",
                 switch="-constraint_density <float>",
-                example=["api: chip.set('constraint', 'density', 30)"],
+                example=["api: asic.set('constraint', 'density', 30)"],
                 schelp="""
                 Target density for automated floorplanning, calculated based on the
                 total area of standard cells after synthesis. This number is used
@@ -89,7 +89,7 @@ class ASICAreaConstraint(BaseSchema):
                 scope=Scope.GLOBAL,
                 shorthelp="Constraint: layout aspect ratio",
                 switch="-constraint_aspectratio <float>",
-                example=["api: chip.set('constraint', 'aspectratio', 2.0)"],
+                example=["api: asic.set('constraint', 'aspectratio', 2.0)"],
                 schelp="""
                 Height-to-width ratio of the core area for automated floorplanning.
                 Values below 0.1 and above 10 should be avoided as they will likely
@@ -468,8 +468,8 @@ class ASICAreaConstraint(BaseSchema):
             float: The calculated design area in square schema units.
 
         Examples:
-            >>> # In the context of a 'chip' object
-            >>> area = chip.get('constraint').calc_diearea()
+            >>> # In the context of a 'pdk' object
+            >>> area = asic.get('constraint').calc_diearea()
         '''
         vertices = self.get('diearea', step=step, index=index)
 

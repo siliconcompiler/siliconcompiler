@@ -45,7 +45,7 @@ class FPGA(ToolLibrarySchema):
                 shorthelp="FPGA: part name",
                 switch="-fpga_partname <str>",
                 example=["cli: -fpga_partname fpga64k",
-                         "api: chip.set('fpga', 'partname', 'fpga64k')"],
+                         "api: fpga.set('fpga', 'partname', 'fpga64k')"],
                 help=trim("""
                 Complete part name used as a device target by the FPGA compilation
                 tool. The part name must be an exact string match to the partname
@@ -59,7 +59,7 @@ class FPGA(ToolLibrarySchema):
                 shorthelp="FPGA: lutsize",
                 switch="-fpga_lutsize 'partname <int>'",
                 example=["cli: -fpga_lutsize 'fpga64k 4'",
-                         "api: chip.set('fpga', 'fpga64k', 'lutsize', '4')"],
+                         "api: fpga.set('fpga', 'fpga64k', 'lutsize', '4')"],
                 help=trim("""
                 Specify the number of inputs in each lookup table (LUT) for the
                 FPGA partname.  For architectures with fracturable LUTs, this is
