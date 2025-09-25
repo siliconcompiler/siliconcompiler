@@ -160,7 +160,7 @@ class ASICTimingScenarioSchema(NamedSchema):
         return self.get("voltage", pin, step=step, index=index)
 
     def add_libcorner(self,
-                      libcorner: str,
+                      libcorner: Union[List[str], str],
                       clobber: bool = False,
                       step: str = None, index: Union[str, int] = None):
         """
@@ -352,7 +352,7 @@ class ASICTimingScenarioSchema(NamedSchema):
         return self.get("sdcfileset", step=step, index=index)
 
     def add_check(self,
-                  check: str,
+                  check: Union[List[str], str],
                   clobber: bool = False,
                   step: str = None, index: Union[str, int] = None):
         """

@@ -5,10 +5,12 @@ from .ihp130_demo import ihp130_demo
 from .skywater130_demo import skywater130_demo
 from .interposer_demo import interposer_demo
 
+from typing import Optional
+
 from siliconcompiler import ASICProject
 
 
-def asic_target(proj: ASICProject, pdk: str = None):
+def asic_target(proj: ASICProject, pdk: Optional[str] = None):
     '''A factory function to configure an ASICProject for a given PDK.
 
     This function acts as a dispatcher, calling the appropriate setup function

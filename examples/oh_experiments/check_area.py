@@ -25,7 +25,7 @@ def checkarea(design: Design, filesets: List[str], target: Callable):
         design (Design): The master design object containing all filesets.
         filesets (List[str]): A list of fileset names to process.
         target (Callable): A SiliconCompiler target setup function, such as
-            freepdk45_demo.setup.
+            freepdk45_demo.
     '''
 
     # Print a header for the CSV output.
@@ -117,7 +117,7 @@ def main(limit: int = -1):
     filesets = sorted([key for key in design.getkeys("fileset") if key.startswith('rtl')])[0:limit]
 
     # Call the main processing function with the fully configured design object.
-    checkarea(design, filesets, freepdk45_demo.setup)
+    checkarea(design, filesets, freepdk45_demo)
 
     return 0
 
