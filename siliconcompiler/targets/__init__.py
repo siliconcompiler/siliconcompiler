@@ -43,10 +43,10 @@ def asic_target(proj: ASICProject, pdk: str = None):
 
 
 __all__ = [
-    asap7_demo,
-    freepdk45_demo,
-    gf180_demo,
-    ihp130_demo,
-    skywater130_demo,
-    interposer_demo
+    "asap7_demo",
+    "freepdk45_demo",
+    "gf180_demo",
+    "ihp130_demo",
+    "skywater130_demo",
+    "interposer_demo"
 ]
