@@ -30,12 +30,10 @@ The schema is "configured," or defined, based on its parameters. These can be se
 Accessing Schema Parameters
 ---------------------------
 
-While all the design and compilation information are stored in the Schema object, this information is manipulated through a separate data structured called :class:`.BaseSchema`.
+All the design and compilation information are stored in Schema objects, which are manipulated through the class called :class:`.BaseSchema`.
 
 The Schema Object
 +++++++++++++++++
-
-This separate data structure is different from the :class:`.BaseSchema` since it instantiates the Schema object and is used to define methods that manipulate the compilation process.
 
 Project Creation and Schema Parameter Access
 ++++++++++++++++++++++++++++++++++++++++++++
