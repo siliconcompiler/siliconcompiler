@@ -117,7 +117,7 @@ class FPGAProject(Project):
 
         Creates the base Project, inserts an FPGAConstraint container at "constraint",
         adds FPGA metrics under "metric" (clobber allowed), and registers the
-        string parameter "fpga.device" for selecting the target FPGA device.
+        string parameter :keypath:`FPGAProject,fpga,device` for selecting the target FPGA device.
 
         Parameters:
             design (optional): Optional project design data passed to the base Project.
