@@ -189,6 +189,20 @@ class TimingTask(TimingTaskBase):
         return vars
 
     def setup(self):
+        """
+        Prepare timing-related input files for an ASIC timing task by registering SDC,
+        SPEF, or SDF files as inputs or required keys.
+
+        If a top-module SDC file is present in the input nodes, it is added as an input;
+        otherwise, SDC file keys from the fileset are marked required.
+        For each timing scenario with a `pexcorner`, the method adds a matching SPEF file
+        (named `<topmodule>.<pexcorner>.spef`) if present. If no SPEF files were added,
+        it falls back to adding matching SDF files (named `<topmodule>.<pexcorner>.sdf`
+        when present.
+
+        Notes:
+        - Uses :meth:`.Task.design_topmodule` to locate per-corner SPEF/SDF files.
+        """
         super().setup()
 
         if f"{self.design_topmodule}.sdc" in self.get_files_from_input_nodes():

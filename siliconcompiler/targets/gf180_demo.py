@@ -16,23 +16,20 @@ def gf180_demo(
         syn_np: int = 1,
         floorplan_np: int = 1, place_np: int = 1, cts_np: int = 1, route_np: int = 1,
         timing_np: int = 1):
-    '''
-    Configures a siliconcompiler project for the GlobalFoundries 180nm process (GF180).
+    """
+        Configure an ASICProject for the GlobalFoundries 180nm (GF180) process by registering
+        the PDK and standard-cell/IP libraries, installing compilation flows, creating STA
+        timing corners, and setting physical area constraints.
 
-    This function sets up the entire compilation pipeline, including the
-    PDK, standard cell library, compilation flows, timing constraints, and
-    physical design parameters for a GF180 target.
-
-    Args:
-
-        * project (:class:`ASICProject`): The siliconcompiler project to configure.
-        * syn_np (int): Number of parallel processes for synthesis.
-        * floorplan_np (int): Number of parallel processes for floorplanning.
-        * place_np (int): Number of parallel processes for placement.
-        * cts_np (int): Number of parallel processes for clock tree synthesis.
-        * route_np (int): Number of parallel processes for routing.
-        * timing_np (int): Number of parallel processes for timing analysis.
-    '''
+        Parameters:
+            * project (ASICProject): The siliconcompiler project to configure.
+            * syn_np (int): Parallelism for synthesis.
+            * floorplan_np (int): Parallelism for floorplanning.
+            * place_np (int): Parallelism for placement.
+            * cts_np (int): Parallelism for clock-tree synthesis.
+            * route_np (int): Parallelism for routing.
+            * timing_np (int): Parallelism for timing analysis.
+        """
 
     # 1. Load PDK and Standard Cell Libraries
     # Sets the process development kit and the standard cell libraries

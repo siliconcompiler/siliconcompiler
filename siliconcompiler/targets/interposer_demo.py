@@ -12,18 +12,18 @@ from siliconcompiler.flows import drcflow
 # Target Setup Function
 ####################################################
 def interposer_demo(project: ASICProject):
-    '''
-    Configures a siliconcompiler project for a passive interposer target.
+    """
+    Configure a siliconcompiler project for generating a passive interposer layout.
 
-    An interposer is a silicon or organic substrate used in advanced packaging
-    to connect multiple dies (chiplets) together. This target does not involve
-    standard cells or active logic; instead, it focuses on the metal routing
-    layers and the microbumps used for die-to-die and die-to-package connections.
+    This configures the project for a passive interposer target by selecting the interposer PDK
+    and bump library, setting an interposer-focused flow with DRC dependency, creating a basic
+    "typical" timing scenario (libcorner, pexcorner, and setup/hold/power checks), setting the
+    ASIC delay model to "nldm", and applying physical area constraints
+    (40% routing density and 1 unit core margin). No lambdalib/IP aliases are defined.
 
-    Args:
-
-        * project (:class:`ASICProject`): The siliconcompiler project to configure.
-    '''
+    Parameters:
+        * project (ASICProject): The siliconcompiler project to configure.
+    """
 
     # 1. Load Interposer PDK and Bump Library
     # Sets the process development kit specifically designed for the interposer's

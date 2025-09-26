@@ -449,6 +449,26 @@ class APRTask(OpenROADTask):
             self.add("var", "global_connect_fileset", (library, fileset))
 
     def setup(self):
+        """
+        Configure APRTask prerequisites and required project keys for an OpenROAD run.
+
+        Performs task-wide setup: configures threading, declares PNR inputs and outputs, sets the
+        default power corner from timing constraints (without clobbering existing values), and
+        declares required variables and file dependencies used later in the flow. Specifically, it:
+        - Ensures ord_enable_images, ord_heatmap_bins, and load_grt_setup are present as
+            required keys.
+        - Adds reports and skip_reports as required keys when they are present in the
+            project variables.
+        - Imports and registers global_connect_fileset entries when absent or present, and declares
+            per-library fileset TCL file requirements for each entry.
+        - Aggregates libcorner names from timing scenarios and, for each ASIC library and matching
+            delay model, declares required libcorner filesets and per-fileset liberty file
+            requirements.
+
+        Side effects:
+        - Mutates the task/project state by setting variables, adding required keys, and
+            possibly importing global connect filesets.
+        """
         super().setup()
 
         self.set_threads()

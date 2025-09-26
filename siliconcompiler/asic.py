@@ -32,6 +32,20 @@ class ASICProject(Project):
     """
 
     def __init__(self, design=None):
+        """
+        Initialize an ASICProject and register ASIC-specific schemas, metrics, and
+        global ASIC parameters.
+
+        This constructor sets up an EditableSchema for the project that:
+        - Adds an aggregated `constraint` schema for timing, component, pin, and area constraints.
+        - Replaces the default `metric` schema with ASIC-specific metrics.
+        - Registers global ASIC parameters: `pdk`, `mainlib`, `asiclib`, `delaymodel`, `minlayer`,
+            and `maxlayer`.
+
+        Parameters:
+            design (optional): Initial design context passed to the base Project initializer;
+                               may be a design object or identifier used by Project.
+        """
         super().__init__(design)
 
         schema = EditableSchema(self)
@@ -323,10 +337,10 @@ class ASICProject(Project):
 
     def set_asic_delaymodel(self, model: str):
         """
-        Sets the delay model for timing analysis.
+        Set the timing delay model used for ASIC timing analysis.
 
-        Args:
-            model (str): The delay model to use (e.g., 'nldm', 'ccs').
+        Parameters:
+            model (str): Delay model name (e.g., "nldm", "ccs").
         """
         self.set("asic", "delaymodel", model)
 
@@ -368,10 +382,15 @@ class ASICProject(Project):
 
     def _init_run(self):
         """
-        This method ensures that if `[asic,mainlib]` or `[asic,pdk]` are not
-        explicitly set but can be inferred (e.g., from `asiclib` or the main
-        library's PDK), they are automatically configured. It also verifies
-        that the `mainlib` is included in the `asiclib` list.
+        Infer and ensure ASIC project main library and PDK are configured, and make sure the
+        main library is listed in `asiclib`.
+
+        If :keypath:`ASICProject,asic,mainlib` is unset but :keypath:`ASICProject,asic,asiclib`
+        contains entries, sets `mainlib` from the first `asiclib` entry.
+        If :keypath:`ASICProject,asic,pdk` is unset but the resolved main library declares a PDK,
+        sets :keypath:`ASICProject,asic,pdk` from that declaration.
+        Ensures the value of :keypath:`ASICProject,asic,mainlib` is present in
+        :keypath:`ASICProject,asic,asiclib` and adds it if missing.
         """
         super()._init_run()
 

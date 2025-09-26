@@ -113,12 +113,14 @@ class FPGAProject(Project):
 
     def __init__(self, design=None):
         """
-        Initializes the FPGAProject.
+        Initialize an FPGAProject with FPGA-specific schemas and parameters.
 
-        This constructor sets up the project by calling the parent constructor
-        and then inserting FPGA-specific schema definitions for timing, component,
-        and pin constraints, as well as FPGA-specific metrics. It also adds
-        a parameter for specifying the target FPGA device.
+        Creates the base Project, inserts an FPGAConstraint container at "constraint",
+        adds FPGA metrics under "metric" (clobber allowed), and registers the
+        string parameter "fpga.device" for selecting the target FPGA device.
+
+        Parameters:
+            design (optional): Optional project design data passed to the base Project.
         """
         super().__init__(design)
 
@@ -182,14 +184,14 @@ class FPGAProject(Project):
 
     def check_manifest(self):
         """
-        Validates the project's manifest to ensure it is configured correctly.
+        Validate the project manifest for FPGA configuration and library availability.
 
-        This method performs the base project checks and then verifies that a
-        target FPGA device has been set and that the corresponding library
-        has been loaded into the project.
+        Runs the base project manifest checks, verifies that the :keypath:`FPGAProject,fpga,device`
+        parameter is set, and confirms the corresponding FPGA library has been
+        loaded into the project.
 
         Returns:
-            bool: True if the manifest is valid, False otherwise.
+            bool: `True` if the manifest is valid, `False` otherwise.
         """
         error = not super().check_manifest()
 
