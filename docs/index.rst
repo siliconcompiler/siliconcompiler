@@ -37,8 +37,6 @@ like flow building blocks, the schema and other API references.
 Help
 ----
 
-.. rst-class:: page-break
-
 - Search :ref:`glossary`,
 - Review :ref:`faq`, or
 - `File an issue <https://github.com/siliconcompiler/siliconcompiler/issues>`_: if you can't find something, or something is not working, the SiliconCompiler team is happy to help!
