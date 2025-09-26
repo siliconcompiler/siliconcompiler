@@ -21,8 +21,6 @@ cd openroad
 git checkout $(python3 ${src_path}/_tools.py --tool openroad --field git-commit)
 git submodule update --init --recursive
 
-git revert -n 4dd38568531f3cde084a5a1102d1d6531ee0ef9d
-
 # Install missing dependencies
 sudo yum install -y bison byacc
 
