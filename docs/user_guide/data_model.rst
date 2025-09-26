@@ -1,112 +1,108 @@
 .. _data_model:
 
-######################################
-Design and Compilation Data
-######################################
+##############################################
+The Schema: A Centralized Data Model
+##############################################
 
-SiliconCompiler uses a data structure object, called the schema, to store all information associated with the compilation process and the design that's being compiled.
+At the core of every SiliconCompiler project is the Schema, a centralized data structure that holds all information about the design and the compilation process.
+Think of it as the single source of truth or the digital blueprint for your hardware compilation project.
 
-The types of information stored by the schema include, but is not limited to:
+The Schema is designed to capture everything needed to produce a repeatable build. This includes, but is not limited to:
 
-- How the design is defined (i.e. HW architectural definitions)
-- How the design is compiled (i.e. Build tools and technology specifics)
-- How the design is optimized (i.e. Different tool options for build experiments)
+* **Design Definition**: Hardware sources, top-level module, and clock specifications.
+* **Compilation Strategy**: The sequence of tools to run (the "flow"), and settings for each tool.
+* **Target Technology**: Information about the target process design kit (PDK).
+* **Metrics & Results**: Data gathered from the compilation, such as cell area, timing, and power.
 
-This data is stored in Schema parameters, and accessed through Schema methods.
+This data is stored in Schema parameters, which are accessed through a simple and consistent set of API methods.
 
 .. image:: _images/schema_diagram.png
    :scale: 50%
    :align: center
 
-The diagram above shows a few examples of Schema parameters and methods for an overview of how data is stored and accessed.
+The diagram above illustrates how different types of data are organized within the Schema and accessed via methods.
 
-The following sections provide more detail on how information in the schema is initialized and manipulated.
+The following sections detail how to interact with the Schema.
 
-Schema Configuration
-^^^^^^^^^^^^^^^^^^^^
+Working with the Schema
+^^^^^^^^^^^^^^^^^^^^^^^
 
-The schema is "configured," or defined, based on its parameters. These are documented in detail :ref:`in the schema reference <schema>`
+You interact with the Schema's parameters through a Project object.
+Parameters are organized hierarchically and accessed using a "keypath"—a list of strings that specifies the unique location of a parameter.
 
-Accessing Schema Parameters
----------------------------
-
-All design and compilation information is stored in Schema objects, which you manipulate through the :class:`.BaseSchema` class.
-
-The Schema Object
-+++++++++++++++++
-
-Project Creation and Schema Parameter Access
-++++++++++++++++++++++++++++++++++++++++++++
-
-.. currentmodule:: siliconcompiler.schema
-
-The following example shows how to create a project object and manipulate the :keypath:`option,fileset` schema parameter in Python by setting the parameter with the :meth:`.BaseSchema.set()` method, accessing it with the :meth:`.BaseSchema.get()` method, and appending to the parameter field with the :meth:`.BaseSchema.add()` method.
+The following example demonstrates how to create a Project object and manipulate the :keypath:`option,fileset` parameter, which tracks the types of input files for the compilation.
 
 .. code-block:: python
 
-   >>> from siliconcompiler import Project
-   >>> project = Project()
+    >>> from siliconcompiler import Project
 
-   >>> project.set('option', 'fileset', 'rtl')
-   >>> print(project.get('option', 'fileset'))
-   ['rtl']
+    # Create a project, which contains a schema.
+    >>> project = Project()
 
-   >>> project.add('option', 'fileset', 'sdc')
-   >>> print(project.get('option', 'fileset'))
-   ['rtl', 'sdc']
+    # The 'fileset' parameter is initially empty.
+    >>> print(project.get('option', 'fileset'))
+    []
 
-Manifest
-^^^^^^^^
+    # Use the set() method to assign a value.
+    >>> project.set('option', 'fileset', 'rtl')
+    >>> print(project.get('option', 'fileset'))
+    ['rtl']
 
-The Schema is recorded to a :term:`manifest`. This file serves not only as a reference of all the design and compilation parameters, it also provides a mechanism to reload a design.
+    # Use the add() method to append a new value to the list.
+    >>> project.add('option', 'fileset', 'sdc')
+    >>> print(project.get('option', 'fileset'))
+    ['rtl', 'sdc']
 
-If you ran the :ref:`asic demo`, you should have a manifest written out to ::
+The Manifest: Saving and Loading the Schema
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-  build/<design>/job0/<design>.pkg.json
+The entire state of the Schema can be saved to a file called a manifest. This file, typically in JSON format, serves two critical purposes:
 
-The :meth:`.BaseSchema.read_manifest()` and :meth:`.BaseSchema.write_manifest()` Python API methods handle reading and writing the Schema to/from disk.
-Besides `JSON <https://en.wikipedia.org/wiki/JSON>`_, other supported export file formats include `Tcl <https://en.wikipedia.org/wiki/Tcl>`_, `YAML <https://en.wikipedia.org/wiki/YAML>`_, and `csv <https://en.wikipedia.org/wiki/Comma-separated_values>`_.
+1. **Reference**: It provides a complete, human-readable record of every setting used in a compilation.
+2. **Reproducibility**: It allows you to reload the exact configuration of a previous run, ensuring that builds are repeatable and shareable.
+
+If you ran the :ref:`asic demo`, you can find the project manifest here: ::
+
+build/<design>/job0/<design>.pkg.json
+
+The :meth:`.BaseSchema.write_manifest`, :meth:`.BaseSchema.read_manifest`, and :meth:`.BaseSchema.from_manifest` methods handle serializing the Schema to and from disk.
+While JSON is the default, other supported formats include Tcl, YAML, and CSV.
+
+Writing and Reading a Manifest
+------------------------------
 
 .. code-block:: python
 
-   >>> from siliconcompiler import Project
-   >>> project = Project()
+    >>> from siliconcompiler import Project
 
-   >>> project.write_manifest('manifest.json')
+    # Create and configure a project.
+    >>> project = Project()
+    >>> project.set('option', 'design', 'my_design')
+    >>> project.set('option', 'flow', 'asicflow')
 
-The :meth:`.BaseSchema.write_manifest()` method above writes out the JSON file below, showing the standardized key/value pairs ("fields") associated with the :keypath:`option,design` parameter.
+    # Write the entire schema configuration to a file.
+    >>> project.write_manifest('manifest.json')
 
-.. code-block:: json
+    # You can later reload this configuration into a new project.
+    >>> new_project = Project()
+    >>> new_project.read_manifest('manifest.json')
+    >>> print(new_project.get('option', 'design'))
+    my_design
 
-    "design": {
-        "lock": false,
-        "node": {
-            "default": {
-               "default": {
-                    "signature": null,
-                    "value": null
-               }
-            },
-            "global": {
-                "global": {
-                    "signature": null,
-                    "value": "hello_world"
-                }
-            }
-        },
-        "notes": null,
-        "pernode": "never",
-        "require": "all",
-        "scope": "global",
-        "shorthelp": "Design top module name",
-        "switch": [
-            "-design <str>"
-        ],
-        "type": "str"
-    },
+    # Or you can directly load it
+    >>> new_project = Project.from_manifest('manifest.json')
+    >>> print(new_project.get('option', 'design'))
+    my_design
 
+The manifest.json file written by the code above would contain a record of all schema parameters, including the design name we configured:
 
+.. scdict::
+    :class: siliconcompiler/Project
+    :keypath: option
+    :select: design
 
-Additional Schema Information
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Refer to the :ref:`Schema <SiliconCompiler Schema>` and :ref:`Python API<schema_api>` sections of the reference manual for more information.
+Further Reading
+^^^^^^^^^^^^^^^
+
+For a comprehensive list of all parameters and their definitions, refer to the :ref:`Schema Reference <schema>`.
+For more details on the API methods, see the :ref:`Python API <schema_api>` documentation.

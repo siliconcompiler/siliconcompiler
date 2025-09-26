@@ -2,6 +2,7 @@ import graphviz
 import hashlib
 import importlib
 import inspect
+import json
 import shlex
 import subprocess
 
@@ -425,6 +426,36 @@ class AutoSummaryGen(SphinxDirective):
         return [section]
 
 
+class DictGen(SphinxDirective):
+
+    option_spec = {
+        'class': str,
+        'keypath': str,
+        'select': str
+    }
+
+    def run(self):
+        module, cls = self.options['class'].split("/")
+        schema_cls = getattr(importlib.import_module(module), cls)
+
+        schema = schema_cls()
+
+        cfg = schema.getdict(*self.options.get("keypath", "").split(","))
+
+        sel_cfg = self.options.get("select", "").split(",")
+        if sel_cfg:
+            for key in list(cfg):
+                if key not in sel_cfg:
+                    del cfg[key]
+
+        block = nodes.literal_block(text=json.dumps(cfg, indent=2, sort_keys=True))
+        block['language'] = 'json'
+        block['force'] = False
+        block['highlight_args'] = {}
+
+        return [block]
+
+
 class SCDomain(StandardDomain):
     name = 'sc'
 
@@ -484,6 +515,7 @@ def setup(app):
     app.add_directive('sctarget', TargetGen)
     app.add_directive('scclassinherit', InheritanceGen)
     app.add_directive('scclassautosummary', AutoSummaryGen)
+    app.add_directive('scdict', DictGen)
 
     app.add_role('keypath', keypath_role)
 
