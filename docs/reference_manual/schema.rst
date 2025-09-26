@@ -189,7 +189,6 @@ The schema can support tracking of schema transactions which modify the data in 
 The transactions are recorded in the schema in ``cfg['__journal__']``, which is a list of the transactions since recording began.
 Each record for the journal contains:
 
-.. glossary::
     type
         Type of transactions performed, can be one of: set, add, remove, and unset
 

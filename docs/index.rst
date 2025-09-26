@@ -29,7 +29,7 @@ The fastest way to get started, after :ref:`installation <installation>`, is to 
 A more complete introduction for new users, the :ref:`Introductory User Guide <User Guide>`
 section is intended for those who want to use their own designs using pre-defined build flows.
 
-:ref:`Reference Manual <References>` section contains useful lookup information,
+:ref:`Reference Manual <reference_manual>` section contains useful lookup information,
 like flow building blocks, the schema and other API references.
 
 :ref:`Advanced Guide <Advanced Guide>` is intended for users who are already familiar with the basics in User Guide and would like to build their own flows or add additional functionality.

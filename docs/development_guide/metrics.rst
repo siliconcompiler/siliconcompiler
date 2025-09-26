@@ -65,4 +65,4 @@ List of Available Metrics
 -------------------------
 
 The following table summarizes all metrics available in the SiliconCompiler schema.
-For detailed descriptions of each, please refer to the `Schema<_schema>` section of the reference manual.
+For detailed descriptions of each, please refer to the :ref:`Schema <schema>` section of the reference manual.
