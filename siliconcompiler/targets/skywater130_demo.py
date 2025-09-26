@@ -24,7 +24,6 @@ def skywater130_demo(
     physical design parameters for a Skywater130 target.
 
     Args:
-
         * project (:class:`ASICProject`): The siliconcompiler project to configure.
         * syn_np (int): Number of parallel processes for synthesis.
         * floorplan_np (int): Number of parallel processes for floorplanning.
