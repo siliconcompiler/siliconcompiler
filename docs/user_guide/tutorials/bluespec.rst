@@ -16,11 +16,6 @@ For example, to build this fibonacci example adapted from the `bsc smoke test <h
    :language: systemverilog
    :caption: examples/fibone/FibOne.bsv
 
-.. note::
-
-    SC's Bluespec driver script selects the module to build based on the :keypath:`design` parameter.
-    You must ensure that the single file passed in via the 'source' parameter contains a module name that matches the value in 'design'.
-
 This design can then be quickly compiled to a GDS using Python:
 
 .. literalinclude:: examples/fibone/fibone.py
