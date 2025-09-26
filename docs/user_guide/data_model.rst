@@ -96,34 +96,10 @@ Writing and Reading a Manifest
 
 The manifest.json file written by the code above would contain a record of all schema parameters, including the design name we configured:
 
-.. code-block:: json
-
-    "design": {
-        "lock": false,
-        "node": {
-            "default": {
-               "default": {
-                    "signature": null,
-                    "value": null
-               }
-            },
-            "global": {
-                "global": {
-                    "signature": null,
-                    "value": "hello_world"
-                }
-            }
-        },
-        "notes": null,
-        "pernode": "never",
-        "require": "all",
-        "scope": "global",
-        "shorthelp": "Design top module name",
-        "switch": [
-            "-design <str>"
-        ],
-        "type": "str"
-    },
+.. scdict::
+    :class: siliconcompiler/Project
+    :keypath: option
+    :select: design
 
 Further Reading
 ^^^^^^^^^^^^^^^
