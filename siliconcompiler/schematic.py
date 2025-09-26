@@ -140,7 +140,7 @@ class Schematic(BaseSchema):
         Get the vector bit range of a pin.
 
         Args:
-            name (str | Pin): Pin  The name of the pin, or a Pin
+            name (str | Pin): The name of the pin, or a Pin
                 object with a `name` attribute.
 
         Returns:
