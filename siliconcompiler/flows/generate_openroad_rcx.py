@@ -17,11 +17,11 @@ class GenerateOpenRCXFlow(Flowgraph):
 
     The flow consists of the following main steps for each specified corner:
 
-    1. **bench**: A benchmark design with simple structures is created.
-    2. **pex**: A user-provided third-party PEX tool is run on the benchmark
-       to generate a "golden" SPEF file.
-    3. **extract**: The golden SPEF is used to generate a calibrated OpenRCX
-       deck.
+        1. **bench**: A benchmark design with simple structures is created.
+        2. **pex**: A user-provided third-party PEX tool is run on the benchmark
+                    to generate a "golden" SPEF file.
+        3. **extract**: The golden SPEF is used to generate a calibrated OpenRCX
+                        deck.
     '''
     def __init__(self, extraction_task: Task = None, corners: int = 1,
                  serial_extraction: bool = False):
@@ -29,13 +29,13 @@ class GenerateOpenRCXFlow(Flowgraph):
         Initializes the GenerateOpenRCXFlow.
 
         Args:
-            extraction_task (Task): The SiliconCompiler task schema for the
+            * extraction_task (Task): The SiliconCompiler task schema for the
                 third-party PEX tool that will be used to generate the golden
                 SPEF files. This is a required parameter.
-            corners (int): The number of process corners to generate RCX decks
+            * corners (int): The number of process corners to generate RCX decks
                 for. A separate 'pex' and 'extract' step will be created for
                 each corner.
-            serial_extraction (bool): If True, forces the 'pex' steps for each
+            * serial_extraction (bool): If True, forces the 'pex' steps for each
                 corner to run sequentially rather than in parallel. This can be
                 useful when the PEX tool has license limitations that prevent
                 multiple concurrent runs.

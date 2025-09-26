@@ -13,8 +13,8 @@ class InterposerFlow(Flowgraph):
 
     The flow consists of the following steps:
 
-    * **rdlroute**: Performs RDL routing on the input design.
-    * **write_gds**: Exports the routed design to a GDSII file.
+        * **rdlroute**: Performs RDL routing on the input design.
+        * **write_gds**: Exports the routed design to a GDSII file.
     '''
     def __init__(self):
         """

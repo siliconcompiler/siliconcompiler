@@ -200,4 +200,4 @@ If you want to have this window pop up automatically at the end of your script, 
 What Next?
 -----------
 
-Now that you've quickly run a simple example, you can proceed to a larger example like :ref:`building your own soc`, or you can dive deeper into the SiliconCompiler build flow you ran from this quickstart (`asic_demo <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/targets/asic_demo.py>`_) by looking through how the flow is constructed with the :ref:`Design and Compilation Data` and :ref:`Compilation Process` in the Fundamentals section.
+Now that you've quickly run a simple example, you can proceed to a larger example like :ref:`building your own soc`, or you can dive deeper into the SiliconCompiler build flow you ran from this quickstart (`asic_demo <https://github.com/siliconcompiler/siliconcompiler/blob/main/siliconcompiler/targets/asic_demo.py>`_) by looking through how the flow is constructed with the :ref:`Design and Compilation Data<data_model>` and :ref:`Compilation Process` in the Fundamentals section.

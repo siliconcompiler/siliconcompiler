@@ -11,8 +11,8 @@ class SignoffFlow(Flowgraph):
 
     This flow performs two key physical verification steps in parallel:
 
-    1. Design Rule Checking (DRC) using Magic.
-    2. Layout Versus Schematic (LVS) checking using Netgen.
+        1. Design Rule Checking (DRC) using Magic.
+        2. Layout Versus Schematic (LVS) checking using Netgen.
 
     The LVS step first requires extracting a SPICE netlist from the layout,
     which is also handled by Magic. A final 'join' step ensures that both

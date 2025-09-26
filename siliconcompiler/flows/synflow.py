@@ -19,9 +19,9 @@ class SynthesisFlow(Flowgraph):
     The flow consists of the following steps:
         * **elaborate**: Elaborates the RTL design from its source files.
         * **synthesis**: Translates the elaborated RTL into a gate-level netlist
-        using Yosys.
+                         using Yosys.
         * **timing**: Performs static timing analysis on the synthesized netlist
-        using OpenSTA.
+                      using OpenSTA.
     '''
 
     def __init__(self, name: str = "synflow", syn_np: int = 1, timing_np: int = 1):
@@ -29,11 +29,11 @@ class SynthesisFlow(Flowgraph):
         Initializes the SynthesisFlowgraph.
 
         Args:
-            name (str): The name of the flow.
-            syn_np (int): The number of parallel synthesis jobs to launch. If
+            * name (str): The name of the flow.
+            * syn_np (int): The number of parallel synthesis jobs to launch. If
                 greater than 1, a 'minimum' step is added to select the best
                 result.
-            timing_np (int): The number of parallel timing analysis jobs to
+            * timing_np (int): The number of parallel timing analysis jobs to
                 launch.
         """
         super().__init__()

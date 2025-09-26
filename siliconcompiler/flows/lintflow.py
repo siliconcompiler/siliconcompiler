@@ -13,8 +13,8 @@ class LintFlow(Flowgraph):
 
     Supported tools:
 
-    * 'slang': A linter based on the Slang compiler.
-    * 'verilator': A linter based on the Verilator tool.
+        * 'slang': A linter based on the Slang compiler.
+        * 'verilator': A linter based on the Verilator tool.
     '''
     def __init__(self, name: str = None, tool: str = "slang"):
         """
