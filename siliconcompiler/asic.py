@@ -139,7 +139,10 @@ class ASICProject(Project):
         imported.
 
         Args:
-            obj (Union[StdCellLibrary, PDK, Design, Flowgraph, LibrarySchema, Checklist, List, Set, Tuple]):
+            obj (Union[
+                StdCellLibrary, PDK, Design, Flowgraph,
+                LibrarySchema, Checklist, List, Set, Tuple
+            ]):
                 The dependency object(s) to add.
         """
         if isinstance(obj, (list, set, tuple)):
@@ -170,7 +173,7 @@ class ASICProject(Project):
                 loaded PDK library.
             - Checks if :keypath:`ASICProject,asic,mainlib` is set and refers to a loaded
                 library (warns if not set).
-            - Asserts that :keypath:`ASICProject,asic,asiclib` contains at least one library 
+            - Asserts that :keypath:`ASICProject,asic,asiclib` contains at least one library
                 and all listed libraries are loaded.
             - Ensures that the `mainlib` is included in the `asiclib` list if both are set.
             - Asserts that :keypath:`ASICProject,asic,delaymodel` is set.

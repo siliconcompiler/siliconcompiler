@@ -192,7 +192,7 @@ class RecordSchema(BaseSchema):
 
         Returns:
             {
-            "machine": str,
+            "name": str,
             "system": str,
             "distro": str,
             "osversion": str,

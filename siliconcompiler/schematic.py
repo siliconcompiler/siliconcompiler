@@ -1,5 +1,5 @@
 import re
-from typing import List, Union, Optional
+from typing import List, Union, Optional, Tuple
 
 from siliconcompiler.schema import BaseSchema
 from siliconcompiler.schema import EditableSchema, Parameter, Scope
@@ -135,7 +135,7 @@ class Schematic(BaseSchema):
             name = name.name
         return self.get('schematic', 'pin', name, 'direction')
 
-    def get_pinrange(self, name: Union[str, Pin]) -> str:
+    def get_pinrange(self, name: Union[str, Pin]) -> Tuple[int, int]:
         """
         Get the vector bit range of a pin.
 
@@ -193,7 +193,7 @@ class Schematic(BaseSchema):
 
         return net
 
-    def get_netrange(self, name: Union[str, Net]) -> List[str]:
+    def get_netrange(self, name: Union[str, Net]) -> Tuple[int, int]:
         """
         Get the vector bit range of a named net.
 
@@ -241,7 +241,7 @@ class Schematic(BaseSchema):
             if m:
                 pin = m.group(1)
                 bitrange = (int(m.group(2)), int(m.group(3)))
-                for i in range(bitrange[1], bitrange[0]):
+                for i in range(bitrange[1], bitrange[0] + 1):
                     pins_blasted.append(f"{pin}[{i}]")
             else:
                 pins_blasted.append(pin)

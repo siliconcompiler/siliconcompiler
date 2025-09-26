@@ -435,8 +435,8 @@ class ASICTimingConstraintSchema(BaseSchema):
 
         Args:
             scenario (str, optional): The name (string) of the specific timing scenario to retrieve.
-                                      If this argument is omitted or set to None, the method will return
-                                      a dictionary containing all available timing scenarios.
+                                      If this argument is omitted or set to None, the method will
+                                      return a dictionary containing all available timing scenarios.
 
         Returns:
             If `scenario` is provided: The :class:`ASICTimingScenarioSchema` object corresponding

@@ -13,6 +13,7 @@ from sphinx.util.docutils import SphinxDirective
 from sphinx.domains.std import StandardDomain
 from sphinx.addnodes import pending_xref
 from docutils.parsers.rst import directives
+from sphinx.util import logging as sphinx_logging
 
 from siliconcompiler.schema import utils, BaseSchema, Parameter, NamedSchema, EditableSchema
 from siliconcompiler.schema.docschema import DocsSchema
@@ -20,6 +21,9 @@ from siliconcompiler.schema.docs.utils import parse_rst, link, para, \
     literalblock, build_section_with_target, keypath, build_section, \
     image
 from siliconcompiler.utils import get_plugins
+
+# near top-level scope
+logger = sphinx_logging.getLogger(__name__)
 
 
 class SchemaGen(SphinxDirective):
@@ -39,7 +43,7 @@ class SchemaGen(SphinxDirective):
     def run(self):
         root = self.options['root']
 
-        print(f'Generating docs for {root}...')
+        logger.info(f'Generating docs for {root}...')
 
         module, cls = root.split("/")
         schema_cls = getattr(importlib.import_module(module), cls)
@@ -88,7 +92,10 @@ class SchemaGen(SphinxDirective):
             for mro_cls in schema_cls.mro():
                 docstring = inspect.getdoc(schema_cls)
                 if docstring:
-                    docsfile = inspect.getfile(schema_cls)
+                    try:
+                        docsfile = inspect.getfile(schema_cls)
+                    except TypeError:
+                        docsfile = None
                     break
 
             if docstring:
@@ -128,7 +135,10 @@ class SchemaGen(SphinxDirective):
                     methods_sec = build_section("Methods", f"{schema_sec_ref}-methods")
                     for method in sorted(doc_methods):
                         cls_ref = nodes.inline('')
-                        parse_rst(self.state, f".. automethod:: {module}.{cls}.{method}", cls_ref, __file__)
+                        parse_rst(self.state,
+                                  f".. automethod:: {module}.{cls}.{method}",
+                                  cls_ref,
+                                  __file__)
                         methods_sec += cls_ref
                     schema_sec += methods_sec
 
@@ -162,7 +172,7 @@ class ToolGen(SchemaGen):
         self.options["add_methods"] = True
         self.options["reference_class"] = "siliconcompiler/Task"
 
-        print(f'Generating docs for tool {root}...')
+        logger.info(f'Generating docs for tool {root}...')
 
         tool_mod = importlib.import_module(root)
         tool_name = root.split(".")[-1]
@@ -211,7 +221,7 @@ class TargetGen(SchemaGen):
         method = root.split(".")[-1]
         root = ".".join(root.split(".")[0:-1])
 
-        print(f'Generating docs for target {root} -> {method}...')
+        logger.info(f'Generating docs for target {root} -> {method}...')
         module = importlib.import_module(root)
         target = getattr(module, method)
 
@@ -302,7 +312,7 @@ class AppGen(SphinxDirective):
 
         app: str = self.options['app']
 
-        print(f"Generating docs for app \"{app}\"")
+        logger.info(f"Generating docs for app \"{app}\"")
 
         # Mark dependencies
         try:
@@ -347,7 +357,7 @@ class InheritanceGen(SphinxDirective):
         return conns
 
     def run(self):
-        print(f"Generating inheritance graph for: {self.options['classes']}")
+        logger.info(f"Generating inheritance graph for: {self.options['classes']}")
 
         classes = set()
         for cls in self.options['classes'].split(","):
@@ -363,7 +373,10 @@ class InheritanceGen(SphinxDirective):
 
         # Mark dependencies
         for cls in dep_cls:
-            self.env.note_dependency(inspect.getfile(cls))
+            try:
+                self.env.note_dependency(inspect.getfile(cls))
+            except TypeError:
+                pass
         self.env.note_dependency(__file__)
         self.env.note_dependency(utils.__file__)
 
@@ -420,7 +433,7 @@ class AutoSummaryGen(SphinxDirective):
     }
 
     def run(self):
-        print(f"Generating auto summary for: {self.options['class']}")
+        logger.info(f"Generating auto summary for: {self.options['class']}")
 
         module, cls = self.options['class'].split("/")
         schema_cls = getattr(importlib.import_module(module), cls)
@@ -476,7 +489,7 @@ class DictGen(SphinxDirective):
     }
 
     def run(self):
-        print(f"Generating dict for: {self.options['class']}")
+        logger.info(f"Generating dict for: {self.options['class']}")
         module, cls = self.options['class'].split("/")
         schema_cls = getattr(importlib.import_module(module), cls)
 

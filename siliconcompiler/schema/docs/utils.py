@@ -1,8 +1,12 @@
 from docutils import nodes
 import sphinx.addnodes
 
+from sphinx.util import logging as sphinx_logging
 from docutils.statemachine import ViewList
 from sphinx.util.nodes import nested_parse_with_titles
+
+# near top-level scope
+logger = sphinx_logging.getLogger(__name__)
 
 
 # Docutils helpers
@@ -178,7 +182,7 @@ def keypath(key_path, refdoc, key_text=None):
             text_parts.append(key)
 
         if valid and not schema.valid(*key_parts, default_valid=True):
-            print(f"WARNING: Invalid keypath {key_path}")
+            logger.warning(f"Invalid keypath {key_path}")
             valid = False
             # raise ValueError(f'Invalid keypath {key_path}')
 
