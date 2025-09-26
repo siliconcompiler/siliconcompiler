@@ -411,10 +411,10 @@ class ASICPinConstraints(BaseSchema):
                                  a dictionary containing all available pin constraints.
 
         Returns:
-            - If `pin` is provided: The :class:`ASICPinConstraint` object corresponding
-              to the specified pin constraint name.
-            - If `pin` is None: A dictionary where keys are pin constraint names (str) and
-              values are their respective :class:`ASICPinConstraint` objects.
+            If `pin` is provided: The :class:`ASICPinConstraint` object corresponding
+                to the specified pin constraint name.
+            If `pin` is None: A dictionary where keys are pin constraint names (str) and
+                values are their respective :class:`ASICPinConstraint` objects.
 
         Raises:
             LookupError: If a specific `pin` name is provided but no pin constraint with

@@ -300,10 +300,10 @@ class ASICComponentConstraints(BaseSchema):
                                        a dictionary containing all available component constraints.
 
         Returns:
-            - If `component` is provided: The :class:`ASICComponentConstraint` object
-              corresponding to the specified component name.
-            - If `component` is None: A dictionary where keys are component names (str) and
-              values are their respective :class:`ASICComponentConstraint` objects.
+            If `component` is provided: The :class:`ASICComponentConstraint` object
+                corresponding to the specified component name.
+            If `component` is None: A dictionary where keys are component names (str) and
+                values are their respective :class:`ASICComponentConstraint` objects.
 
         Raises:
             LookupError: If a specific `component` name is provided but no component

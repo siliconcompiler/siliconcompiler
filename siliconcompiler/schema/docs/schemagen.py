@@ -84,13 +84,15 @@ class SchemaGen(SphinxDirective):
 
             # Add docstrings
             docstring = None
+            docsfile = None
             for mro_cls in schema_cls.mro():
                 docstring = inspect.getdoc(schema_cls)
                 if docstring:
+                    docsfile = inspect.getfile(schema_cls)
                     break
 
             if docstring:
-                parse_rst(self.state, docstring, schema_sec)
+                parse_rst(self.state, docstring, schema_sec, docsfile)
 
             src_link = None
             src_file = inspect.getfile(schema_cls)
@@ -126,7 +128,7 @@ class SchemaGen(SphinxDirective):
                     methods_sec = build_section("Methods", f"{schema_sec_ref}-methods")
                     for method in sorted(doc_methods):
                         cls_ref = nodes.inline('')
-                        parse_rst(self.state, f".. automethod:: {module}.{cls}.{method}", cls_ref)
+                        parse_rst(self.state, f".. automethod:: {module}.{cls}.{method}", cls_ref, __file__)
                         methods_sec += cls_ref
                     schema_sec += methods_sec
 
@@ -169,7 +171,7 @@ class ToolGen(SchemaGen):
         # Add docstrings
         docstring = inspect.getdoc(tool_mod)
         if docstring:
-            parse_rst(self.state, docstring, sec)
+            parse_rst(self.state, docstring, sec, inspect.getfile(tool_mod))
 
         src_link = None
         src_file = inspect.getfile(tool_mod)
@@ -213,6 +215,7 @@ class TargetGen(SchemaGen):
         module = importlib.import_module(root)
         target = getattr(module, method)
 
+        # Mark dependencies
         self.env.note_dependency(inspect.getfile(target))
         self.env.note_dependency(__file__)
         self.env.note_dependency(utils.__file__)
@@ -229,11 +232,13 @@ class TargetGen(SchemaGen):
 
         # Add docstrings
         docstring = inspect.getdoc(target)
+        docsfile = inspect.getfile(target)
         if not docstring:
             docstring = inspect.getdoc(module)
+            docsfile = inspect.getfile(module)
 
         if docstring:
-            parse_rst(self.state, docstring, target_doc)
+            parse_rst(self.state, docstring, target_doc, docsfile)
 
         src_link = None
         src_file = inspect.getfile(target)
@@ -268,7 +273,7 @@ class TargetGen(SchemaGen):
                                         for lib_obj in loaded[key]]):
                 list_item = nodes.list_item()
                 list_text = para("")
-                parse_rst(self.state, f":ref:`{library} <{ref}>`", list_text)
+                parse_rst(self.state, f":ref:`{library} <{ref}>`", list_text, __file__)
                 list_item += list_text
                 modlist += list_item
             sec += modlist
@@ -293,7 +298,22 @@ class AppGen(SphinxDirective):
     }
 
     def run(self):
-        app = self.options['app']
+        from siliconcompiler import apps
+
+        app: str = self.options['app']
+
+        print(f"Generating docs for app \"{app}\"")
+
+        # Mark dependencies
+        try:
+            app_mod = importlib.import_module(f"{apps.__name__}.{app.replace('-', '_')}")
+        except ModuleNotFoundError:
+            app_mod = importlib.import_module(app.split()[-1])
+        if not app_mod:
+            return []
+        self.env.note_dependency(inspect.getfile(app_mod))
+        self.env.note_dependency(__file__)
+        self.env.note_dependency(utils.__file__)
 
         output = subprocess.check_output([*shlex.split(app), '--help']).decode('utf-8')
 
@@ -327,15 +347,25 @@ class InheritanceGen(SphinxDirective):
         return conns
 
     def run(self):
+        print(f"Generating inheritance graph for: {self.options['classes']}")
+
         classes = set()
         for cls in self.options['classes'].split(","):
             module, cls = cls.strip().split("/")
             classes.add(getattr(importlib.import_module(module), cls))
         user_cls = set()
+        dep_cls = set(classes)
         for cls in self.options.get("user_cls", self.options['classes']).split(","):
             module, cls = cls.strip().split("/")
             cls = getattr(importlib.import_module(module), cls)
             user_cls.add(cls.__name__)
+            dep_cls.add(cls)
+
+        # Mark dependencies
+        for cls in dep_cls:
+            self.env.note_dependency(inspect.getfile(cls))
+        self.env.note_dependency(__file__)
+        self.env.note_dependency(utils.__file__)
 
         dot = graphviz.Digraph(format="png")
         dot.graph_attr['rankdir'] = "TB"
@@ -390,8 +420,19 @@ class AutoSummaryGen(SphinxDirective):
     }
 
     def run(self):
+        print(f"Generating auto summary for: {self.options['class']}")
+
         module, cls = self.options['class'].split("/")
         schema_cls = getattr(importlib.import_module(module), cls)
+
+        # Mark dependencies
+        for mro_cls in schema_cls.mro():
+            try:
+                self.env.note_dependency(inspect.getfile(mro_cls))
+            except TypeError:
+                pass
+        self.env.note_dependency(__file__)
+        self.env.note_dependency(utils.__file__)
 
         methods = set()
         for name, bind in inspect.getmembers(schema_cls, predicate=callable):
@@ -418,7 +459,7 @@ class AutoSummaryGen(SphinxDirective):
         autosum.append("")
 
         p = para("")
-        parse_rst(self.state, "\n".join(autosum), p)
+        parse_rst(self.state, "\n".join(autosum), p, __file__)
 
         section = build_section(cls, "autosummary" + self.options['class'])
         section += p
@@ -435,8 +476,19 @@ class DictGen(SphinxDirective):
     }
 
     def run(self):
+        print(f"Generating dict for: {self.options['class']}")
         module, cls = self.options['class'].split("/")
         schema_cls = getattr(importlib.import_module(module), cls)
+
+        # Mark dependencies
+        self.env.note_dependency(inspect.getfile(Parameter))
+        for mro_cls in schema_cls.mro():
+            try:
+                self.env.note_dependency(inspect.getfile(mro_cls))
+            except TypeError:
+                pass
+        self.env.note_dependency(__file__)
+        self.env.note_dependency(utils.__file__)
 
         schema = schema_cls()
 

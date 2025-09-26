@@ -95,12 +95,12 @@ class Schematic(BaseSchema):
         the bit range is automatically extracted.
 
         Args:
-        name (str): The name of the pin. Can include a vector range
-            (e.g., "in", "sel", or "data[7:0]").
-        direction (str): The pin direction; one of "input", "output", or "inout".
+            name (str): The name of the pin. Can include a vector range
+                (e.g., "in", "sel", or "data[7:0]").
+            direction (str): The pin direction; one of "input", "output", or "inout".
 
         Returns:
-        Pin: The created pin object.
+            Pin: The created pin object.
         """
 
         # handle buses/vectors in names
@@ -125,11 +125,11 @@ class Schematic(BaseSchema):
         Get the direction of a named pin.
 
         Args:
-        name (str | Pin): The name of the pin (e.g., "in", "sel")
-            or a Pin object with a `name` attribute.
+            name (str | Pin): The name of the pin (e.g., "in", "sel")
+                or a Pin object with a `name` attribute.
 
         Returns:
-        str: The direction of the pin ("input", "output", or "inout").
+            str: The direction of the pin ("input", "output", or "inout").
         """
         if isinstance(name, Pin):
             name = name.name
@@ -140,11 +140,11 @@ class Schematic(BaseSchema):
         Get the vector bit range of a pin.
 
         Args:
-        name (str | Pin): Pin  The name of the pin, or a Pin
-            object with a `name` attribute.
+            name (str | Pin): Pin  The name of the pin, or a Pin
+                object with a `name` attribute.
 
         Returns:
-        str: The vector bit range of the pin (e.g., "[7:0]").
+            str: The vector bit range of the pin (e.g., "[7:0]").
         """
         if isinstance(name, Pin):
             name = name.name
@@ -155,7 +155,7 @@ class Schematic(BaseSchema):
         Get a list of all pins in the schematic.
 
         Returns:
-        list[str]: A list of pin names defined in the schematic.
+            list[str]: A list of pin names defined in the schematic.
         """
         return self.getkeys('schematic', 'pin')
 
@@ -170,11 +170,11 @@ class Schematic(BaseSchema):
         extracted.
 
         Args:
-        name (str): The name of the net. Can include a vector range
-            in the form "netname[max:min]" (e.g., "data[7:0]").
+            name (str): The name of the net. Can include a vector range
+                in the form "netname[max:min]" (e.g., "data[7:0]").
 
         Returns:
-        Net: The created net object.
+            Net: The created net object.
         """
         # handle buses/vectors in names
         m = re.match(r"^([^\[]+)\[(\d+):(\d+)\]$", name)
@@ -198,20 +198,12 @@ class Schematic(BaseSchema):
         Get the vector bit range of a named net.
 
         Args:
-        name (str | Net): The name of the net, or a Net
-            object with a `name` attribute.
+            name (str | Net): The name of the net, or a Net
+                object with a `name` attribute.
 
         Returns:
-        tuple[int, int]: The bit range of the net as `(max, min)`.
-        For scalar nets, this defaults to `(0, 0)`.
-        """
-
-        """
-        Returns of vector bit range (max,min) of named net.
-        Args:
-            name (str): Net name
-        Returns:
-            str: Tuple (max,min) of net vector bit range.
+            tuple[int, int]: The bit range of the net as `(max, min)`.
+            For scalar nets, this defaults to `(0, 0)`.
         """
 
         if isinstance(name, Net):
@@ -236,6 +228,7 @@ class Schematic(BaseSchema):
             name (str): Part name (e.g., NAND2).
             pins (list str): List of all part pins.
                 Vector pins use bus character [] (eg. in[7:0])
+
         Returns:
             str: Part object
         """
@@ -285,9 +278,11 @@ class Schematic(BaseSchema):
     def add_component(self, name: str, part: Part) -> Component:
         """
         Adds component (instance) to the schematic object.
+
         Args:
             name (str): Instance name
             part (str, obj): Instance partname/cellname.
+
         Returns:
             str: Pin direction
         """
@@ -408,7 +403,6 @@ class Schematic(BaseSchema):
         Args:
             filename (str or Path):
                 Path to the output netlist file.
-
         """
 
         # TODO: use pyslang to stuff content into common data structure
@@ -426,13 +420,13 @@ class Schematic(BaseSchema):
         (legacy style).
 
         Args:
-        pin_obj (object): The pin object to resolve. Can be:
-           - An object with a `.pin` attribute
-           - An object with a `.name` attribute
-           - Other types (may return None)
+            pin_obj (object): The pin object to resolve. Can be:
+                - An object with a `.pin` attribute
+                - An object with a `.name` attribute
+                - Other types (may return None)
 
         Returns:
-        str or None: The pin name string if found, otherwise None.
+            str or None: The pin name string if found, otherwise None.
         """
         if hasattr(pin_obj, "pin"):
             return pin_obj.pin

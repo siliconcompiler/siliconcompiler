@@ -111,10 +111,10 @@ class FPGATimingConstraintSchema(BaseSchema):
                       a dictionary containing all available timing scenarios.
 
         Returns:
-            - If `scenario` is provided: The :class:`FPGATimingScenarioSchema` object corresponding
-              to the specified scenario name.
-            - If `scenario` is None: A dictionary where keys are scenario names (str) and
-              values are their respective :class:`FPGATimingScenarioSchema` objects.
+            If `scenario` is provided: The :class:`FPGATimingScenarioSchema` object corresponding
+                to the specified scenario name.
+            If `scenario` is None: A dictionary where keys are scenario names (str) and
+                values are their respective :class:`FPGATimingScenarioSchema` objects.
 
         Raises:
             LookupError: If a specific `scenario` name is provided but no scenario with

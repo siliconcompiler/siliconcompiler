@@ -127,9 +127,10 @@ class RecordSchema(BaseSchema):
         '''
         Return information about the cloud environment.
 
-        Return format: {
+        Returns:
+            {
             "region": str
-        }
+            }
         '''
         # TODO: add logic to figure out if we're running on a remote cluster and
         # extract the region in a provider-specific way.
@@ -140,10 +141,11 @@ class RecordSchema(BaseSchema):
         '''
         Return information about the ip and mac address of this machine.
 
-        Return format: {
+        Returns:
+            {
             "ip": str,
             "mac": str
-        }
+            }
         '''
         try:
             for interface, addrs in psutil.net_if_addrs().items():
@@ -188,14 +190,15 @@ class RecordSchema(BaseSchema):
         '''
         Return information about the machine.
 
-        Return format: {
+        Returns:
+            {
             "machine": str,
             "system": str,
             "distro": str,
             "osversion": str,
             "kernelversion": str,
             "arch": str
-        }
+            }
         '''
         system = platform.system()
         if system == 'Darwin':

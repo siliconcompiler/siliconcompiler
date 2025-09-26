@@ -63,7 +63,7 @@ The entire state of the Schema can be saved to a file called a manifest. This fi
 
 If you ran the :ref:`asic demo`, you can find the project manifest here: ::
 
-build/<design>/job0/<design>.pkg.json
+    build/<design>/job0/<design>.pkg.json
 
 The :meth:`.BaseSchema.write_manifest`, :meth:`.BaseSchema.read_manifest`, and :meth:`.BaseSchema.from_manifest` methods handle serializing the Schema to and from disk.
 While JSON is the default, other supported formats include Tcl, YAML, and CSV.

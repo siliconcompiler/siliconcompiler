@@ -8,7 +8,8 @@ from siliconcompiler.tools.slang import elaborate
 
 
 class SynthesisFlow(Flowgraph):
-    '''A configurable ASIC synthesis flow with static timing analysis.
+    '''
+    A configurable ASIC synthesis flow with static timing analysis.
 
     This flow translates RTL designs into a gate-level netlist and then
     performs static timing analysis (STA) on the result. It allows for
@@ -16,12 +17,13 @@ class SynthesisFlow(Flowgraph):
     strategies or speed up execution.
 
     The flow consists of the following steps:
-    * **elaborate**: Elaborates the RTL design from its source files.
-    * **synthesis**: Translates the elaborated RTL into a gate-level netlist
-      using Yosys.
-    * **timing**: Performs static timing analysis on the synthesized netlist
-      using OpenSTA.
+        * **elaborate**: Elaborates the RTL design from its source files.
+        * **synthesis**: Translates the elaborated RTL into a gate-level netlist
+        using Yosys.
+        * **timing**: Performs static timing analysis on the synthesized netlist
+        using OpenSTA.
     '''
+
     def __init__(self, name: str = "synflow", syn_np: int = 1, timing_np: int = 1):
         """
         Initializes the SynthesisFlowgraph.

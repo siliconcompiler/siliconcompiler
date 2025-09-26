@@ -201,11 +201,10 @@ def keypath(key_path, refdoc, key_text=None):
     return refnode
 
 
-def parse_rst(state, content, dest):
+def parse_rst(state, content, dest, errorloc):
     rst = ViewList()
-    # use fake filename 'inline' for error # reporting
     for i, line in enumerate(content.splitlines()):
-        rst.append(line, 'inline', i)
+        rst.append(line, errorloc or "unknown", i)
 
     nested_parse_with_titles(state, rst, dest)
 
