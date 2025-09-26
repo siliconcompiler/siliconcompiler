@@ -182,7 +182,7 @@ class FPGAProject(Project):
 
         return self.set("fpga", "device", fpga)
 
-    def check_manifest(self):
+    def check_manifest(self) -> bool:
         """
         Validate the project manifest for FPGA configuration and library availability.
 

@@ -160,7 +160,7 @@ class OptionSchema(BaseSchema):
                     "cli: -jobname may1",
                     "api: option.set('jobname', 'may1')"],
                 help="""
-                Jobname during invocation of :meth:`.run()`. The jobname combined with a
+                Jobname during invocation of :meth:`.Project.run()`. The jobname combined with a
                 defined director structure (<dir>/<design>/<jobname>/<step>/<index>)
                 enables multiple levels of transparent job, step, and index
                 introspection."""))

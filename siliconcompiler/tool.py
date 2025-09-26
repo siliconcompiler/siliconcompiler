@@ -2300,7 +2300,7 @@ def schema_tool(schema):
             Defines a set of tool specific environment variables used by the executable
             that depend on license key servers to control access. For multiple servers,
             separate each server by a 'colon'. The named license variable are read at
-            runtime (:meth:`.run()`) and the environment variables are set.
+            runtime (:meth:`.Task.run()`) and the environment variables are set.
             """)))
 
 
@@ -2575,8 +2575,8 @@ def schema_task(schema):
                 "api: task.set('tool', 'openroad', 'task', 'cts', 'require', 'design')"],
             help=trim("""
             List of keypaths to required task parameters. The list is used
-            by :meth:`.check_manifest()` to verify that all parameters have been set up before
-            step execution begins.""")))
+            by :meth:`.Project.check_manifest()` to verify that all parameters have been set up
+            before step execution begins.""")))
 
     schema.insert(
         'report', 'default',
