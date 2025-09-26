@@ -7,12 +7,12 @@ class TileTask(Task):
 
     Notes:
         Need to make ensure that /etc/ImageMagick-6/policy.xml
-            <policy domain="resource" name="memory" value="8GiB"/>
-            <policy domain="resource" name="map" value="8GiB"/>
-            <policy domain="resource" name="width" value="32KP"/>
-            <policy domain="resource" name="height" value="32KP"/>
-            <policy domain="resource" name="area" value="1GP"/>
-            <policy domain="resource" name="disk" value="8GiB"/>
+        <policy domain="resource" name="memory" value="8GiB"/>
+        <policy domain="resource" name="map" value="8GiB"/>
+        <policy domain="resource" name="width" value="32KP"/>
+        <policy domain="resource" name="height" value="32KP"/>
+        <policy domain="resource" name="area" value="1GP"/>
+        <policy domain="resource" name="disk" value="8GiB"/>
         This ensures there are enough resources available to generate
         the final image.
     '''
