@@ -144,7 +144,7 @@ class Schematic(BaseSchema):
                 object with a `name` attribute.
 
         Returns:
-            str: The vector bit range of the pin (e.g., "[7:0]").
+            tuple[int, int]: The vector bit range of the pin as `(max, min)`.
         """
         if isinstance(name, Pin):
             name = name.name

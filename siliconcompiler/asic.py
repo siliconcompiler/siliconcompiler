@@ -170,11 +170,11 @@ class ASICProject(Project):
         Then, it performs additional ASIC-specific validations:
 
             - Asserts that :keypath:`ASICProject,asic,pdk` is set and refers to a
-                loaded PDK library.
+              loaded PDK library.
             - Checks if :keypath:`ASICProject,asic,mainlib` is set and refers to a loaded
-                library (warns if not set).
+              library (warns if not set).
             - Asserts that :keypath:`ASICProject,asic,asiclib` contains at least one library
-                and all listed libraries are loaded.
+              and all listed libraries are loaded.
             - Ensures that the `mainlib` is included in the `asiclib` list if both are set.
             - Asserts that :keypath:`ASICProject,asic,delaymodel` is set.
 
