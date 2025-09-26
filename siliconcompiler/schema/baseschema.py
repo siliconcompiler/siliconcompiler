@@ -1162,7 +1162,8 @@ class BaseSchema:
                     doc.state,
                     f"Class :class:`{self.__class__.__name__} "
                     f"<{self.__class__.__module__}.{self.__class__.__name__}>`",
-                    cls_info)
+                    cls_info,
+                    __file__)
                 sections.append(cls_info)
             if self.__default:
                 if isinstance(self.__default, Parameter):

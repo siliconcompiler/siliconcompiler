@@ -6,7 +6,7 @@ To get started using Bluespec with SC, ensure that SC is installed following the
 See for links to helpful build :ref:`scripts <External Tools>`.
 
 To build a Bluespec design, the only thing you need to do differently from a configuration perspective is:
-Add the Bluespec top-level package as an 'input', and add all directories containing imported modules as entries in :keypath:`option,ydir`. Keep in mind that the Bluespec integration only supports specifying a single top-level source file, so you must use :keypath:`option,ydir` for all other sources.
+Add the Bluespec top-level package as an 'input', and add all directories containing imported modules as entries in :keypath:`Design,fileset,<fileset>,idir`.
 
 Otherwise, you can configure the build as normal.
 
@@ -15,11 +15,6 @@ For example, to build this fibonacci example adapted from the `bsc smoke test <h
 .. literalinclude:: examples/fibone/FibOne.bsv
    :language: systemverilog
    :caption: examples/fibone/FibOne.bsv
-
-.. note::
-
-    SC's Bluespec driver script selects the module to build based on the :keypath:`design` parameter.
-    You must ensure that the single file passed in via the 'source' parameter contains a module name that matches the value in 'design'.
 
 This design can then be quickly compiled to a GDS using Python:
 

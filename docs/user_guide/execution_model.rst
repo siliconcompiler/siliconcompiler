@@ -99,7 +99,7 @@ The snippet below shows how a massively parallel optimization flow can be progra
 
 .. literalinclude:: examples/flowgraph_doe.py
    :caption: Snippet from `examples/flowgraph_doe.py <https://github.com/siliconcompiler/siliconcompiler/blob/main/docs/user_guide/examples/flowgraph_doe.py>`_ that sets up parallel synthesis runs for optimization
-   :start-after: # set synthesis strategies
+   :start-after: # create node for optimized (or minimum in this case) metric
    :end-before: write_flowgraph
 
 .. image:: _images/flowgraph_doe.svg

@@ -8,6 +8,7 @@ The following sections provides details on the functions, modules and objects in
 To learn how to use SiliconCompiler, see the :ref:`user guide`.
 
 .. _building_blocks:
+
 .. toctree::
    :caption: Building Blocks
    :maxdepth: 1

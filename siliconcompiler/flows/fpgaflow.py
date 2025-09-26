@@ -24,10 +24,10 @@ class FPGAXilinxFlow(Flowgraph):
 
     The flow consists of the following steps:
 
-    * **syn_fpga**: Synthesize RTL into a device-specific netlist.
-    * **place**: Place the synthesized netlist onto the FPGA fabric.
-    * **route**: Route the connections between placed components.
-    * **bitstream**: Generate the final bitstream for device programming.
+        * **syn_fpga**: Synthesize RTL into a device-specific netlist.
+        * **place**: Place the synthesized netlist onto the FPGA fabric.
+        * **route**: Route the connections between placed components.
+        * **bitstream**: Generate the final bitstream for device programming.
     '''
     def __init__(self, name: str = "fpgaflow-xilinx"):
         """
@@ -57,9 +57,9 @@ class FPGANextPNRFlow(Flowgraph):
 
     The flow consists of the following steps:
 
-    * **syn_fpga**: Synthesize RTL into a device-specific netlist using Yosys.
-    * **apr**: Perform automatic place and route (APR) and generate the
-      bitstream using NextPNR.
+        * **syn_fpga**: Synthesize RTL into a device-specific netlist using Yosys.
+        * **apr**: Perform automatic place and route (APR) and generate the
+                   bitstream using NextPNR.
     '''
     def __init__(self, name: str = "fpgaflow-nextpnr"):
         """
@@ -85,11 +85,11 @@ class FPGAVPRFlow(Flowgraph):
 
     The flow consists of the following steps:
 
-    * **elaborate**: Elaborate the RTL design from sources.
-    * **synthesis**: Synthesize the elaborated design into a netlist using Yosys.
-    * **place**: Place the netlist components onto the FPGA architecture using VPR.
-    * **route**: Route the connections between placed components using VPR.
-    * **bitstream**: Generate the final bitstream using GenFasm.
+        * **elaborate**: Elaborate the RTL design from sources.
+        * **synthesis**: Synthesize the elaborated design into a netlist using Yosys.
+        * **place**: Place the netlist components onto the FPGA architecture using VPR.
+        * **route**: Route the connections between placed components using VPR.
+        * **bitstream**: Generate the final bitstream using GenFasm.
     '''
     def __init__(self, name: str = "fpgaflow-vpr"):
         """
@@ -120,12 +120,12 @@ class FPGAVPROpenSTAFlow(FPGAVPRFlow):
 
     The flow consists of the following steps:
 
-    * **elaborate**: Elaborate the RTL design from sources.
-    * **synthesis**: Synthesize the elaborated design into a netlist using Yosys.
-    * **place**: Place the netlist components onto the FPGA architecture using VPR.
-    * **route**: Route the connections between placed components using VPR.
-    * **bitstream**: Generate the final bitstream using GenFasm.
-    * **timing**: Perform post-implementation static timing analysis of the design.
+        * **elaborate**: Elaborate the RTL design from sources.
+        * **synthesis**: Synthesize the elaborated design into a netlist using Yosys.
+        * **place**: Place the netlist components onto the FPGA architecture using VPR.
+        * **route**: Route the connections between placed components using VPR.
+        * **bitstream**: Generate the final bitstream using GenFasm.
+        * **timing**: Perform post-implementation static timing analysis of the design.
     '''
     def __init__(self, name: str = "fpgaflow-vpr-open-sta"):
         """

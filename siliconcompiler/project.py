@@ -379,8 +379,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         dependencies if the added object itself is a `DependencySchema`.
 
         Args:
-            obj (Union[Design, Flowgraph, LibrarySchema, Checklist,
-                       List, Set, Tuple]):
+            obj (Union[Design, Flowgraph, LibrarySchema, Checklist, List, Set, Tuple]):
                 The dependency object(s) to add. Can be a single schema object
                 or a collection (list, set, tuple) of schema objects.
 

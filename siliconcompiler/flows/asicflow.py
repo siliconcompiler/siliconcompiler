@@ -36,26 +36,26 @@ class ASICFlow(Flowgraph):
 
     The flow is divided into the following major steps:
 
-    * **elaborate**: RTL elaboration using Slang.
-    * **synthesis**: RTL synthesis using Yosys.
-    * **floorplan**: Floorplanning, including macro placement, tapcell/endcap
-      insertion, power grid generation, and pin placement.
-    * **place**: Global and detailed placement.
-    * **cts**: Clock tree synthesis and post-CTS timing repair.
-    * **route**: Global and detailed routing.
-    * **dfm**: Design-for-manufacturing steps, primarily metal fill.
-    * **write**: Writing out final views of the design (GDSII, etc.).
+        * **elaborate**: RTL elaboration using Slang.
+        * **synthesis**: RTL synthesis using Yosys.
+        * **floorplan**: Floorplanning, including macro placement, tapcell/endcap
+            insertion, power grid generation, and pin placement.
+        * **place**: Global and detailed placement.
+        * **cts**: Clock tree synthesis and post-CTS timing repair.
+        * **route**: Global and detailed routing.
+        * **dfm**: Design-for-manufacturing steps, primarily metal fill.
+        * **write**: Writing out final views of the design (GDSII, etc.).
 
     The synthesis, floorplan, place, cts, and route steps support parallel
     execution to explore different strategies. This can be configured by
     setting the corresponding '_np' argument to a value greater than 1.
 
     Args:
-        syn_np (int): Number of parallel synthesis jobs to launch.
-        floorplan_np (int): Number of parallel floorplan jobs to launch.
-        place_np (int): Number of parallel placement jobs to launch.
-        cts_np (int): Number of parallel clock tree synthesis jobs to launch.
-        route_np (int): Number of parallel routing jobs to launch.
+        * syn_np (int): Number of parallel synthesis jobs to launch.
+        * floorplan_np (int): Number of parallel floorplan jobs to launch.
+        * place_np (int): Number of parallel placement jobs to launch.
+        * cts_np (int): Number of parallel clock tree synthesis jobs to launch.
+        * route_np (int): Number of parallel routing jobs to launch.
     '''
 
     def __init__(self, name: str = 'asicflow',
@@ -67,12 +67,12 @@ class ASICFlow(Flowgraph):
         """Initializes the ASICFlow with configurable parallel execution.
 
         Args:
-            name (str): The name of the flow.
-            syn_np (int): The number of parallel synthesis jobs to launch.
-            floorplan_np (int): The number of parallel floorplan jobs to launch.
-            place_np (int): The number of parallel placement jobs to launch.
-            cts_np (int): The number of parallel clock tree synthesis jobs to launch.
-            route_np (int): The number of parallel routing jobs to launch.
+            * name (str): The name of the flow.
+            * syn_np (int): The number of parallel synthesis jobs to launch.
+            * floorplan_np (int): The number of parallel floorplan jobs to launch.
+            * place_np (int): The number of parallel placement jobs to launch.
+            * cts_np (int): The number of parallel clock tree synthesis jobs to launch.
+            * route_np (int): The number of parallel routing jobs to launch.
         """
         super().__init__()
         self.set_name(name)
@@ -199,12 +199,12 @@ class SV2VASICFlow(ASICFlow):
         """Initializes the SV2VASICFlow.
 
         Args:
-            name (str): The name of the flow.
-            syn_np (int): The number of parallel synthesis jobs to launch.
-            floorplan_np (int): The number of parallel floorplan jobs to launch.
-            place_np (int): The number of parallel placement jobs to launch.
-            cts_np (int): The number of parallel clock tree synthesis jobs to launch.
-            route_np (int): The number of parallel routing jobs to launch.
+            * name (str): The name of the flow.
+            * syn_np (int): The number of parallel synthesis jobs to launch.
+            * floorplan_np (int): The number of parallel floorplan jobs to launch.
+            * place_np (int): The number of parallel placement jobs to launch.
+            * cts_np (int): The number of parallel clock tree synthesis jobs to launch.
+            * route_np (int): The number of parallel routing jobs to launch.
         """
         super().__init__(name,
                          syn_np=syn_np,
@@ -233,12 +233,12 @@ class HLSASICFlow(ASICFlow):
         """Initializes the HLSASICFlow.
 
         Args:
-            name (str): The name of the flow.
-            syn_np (int): The number of parallel synthesis jobs to launch.
-            floorplan_np (int): The number of parallel floorplan jobs to launch.
-            place_np (int): The number of parallel placement jobs to launch.
-            cts_np (int): The number of parallel clock tree synthesis jobs to launch.
-            route_np (int): The number of parallel routing jobs to launch.
+            * name (str): The name of the flow.
+            * syn_np (int): The number of parallel synthesis jobs to launch.
+            * floorplan_np (int): The number of parallel floorplan jobs to launch.
+            * place_np (int): The number of parallel placement jobs to launch.
+            * cts_np (int): The number of parallel clock tree synthesis jobs to launch.
+            * route_np (int): The number of parallel routing jobs to launch.
         """
         super().__init__(name,
                          syn_np=syn_np,
@@ -272,17 +272,17 @@ class VHDLASICFlow(ASICFlow):
 
         This method sets up the flow graph for VHDL designs by:
 
-        1. Removing the default 'elaborate' node.
-        2. Adding a 'convert' node that runs the GHDLConvertTask.
-        3. Connecting the new 'convert' node to the 'synthesis' node(s).
+            1. Removing the default 'elaborate' node.
+            2. Adding a 'convert' node that runs the GHDLConvertTask.
+            3. Connecting the new 'convert' node to the 'synthesis' node(s).
 
         Args:
-            name (str): The name of the flow.
-            syn_np (int): The number of parallel synthesis jobs to launch.
-            floorplan_np (int): The number of parallel floorplan jobs to launch.
-            place_np (int): The number of parallel placement jobs to launch.
-            cts_np (int): The number of parallel clock tree synthesis jobs to launch.
-            route_np (int): The number of parallel routing jobs to launch.
+            * name (str): The name of the flow.
+            * syn_np (int): The number of parallel synthesis jobs to launch.
+            * floorplan_np (int): The number of parallel floorplan jobs to launch.
+            * place_np (int): The number of parallel placement jobs to launch.
+            * cts_np (int): The number of parallel clock tree synthesis jobs to launch.
+            * route_np (int): The number of parallel routing jobs to launch.
         '''
         super().__init__(name,
                          syn_np=syn_np,
@@ -315,12 +315,12 @@ class ChiselASICFlow(ASICFlow):
         """Initializes the ChiselASICFlow.
 
         Args:
-            name (str): The name of the flow.
-            syn_np (int): The number of parallel synthesis jobs to launch.
-            floorplan_np (int): The number of parallel floorplan jobs to launch.
-            place_np (int): The number of parallel placement jobs to launch.
-            cts_np (int): The number of parallel clock tree synthesis jobs to launch.
-            route_np (int): The number of parallel routing jobs to launch.
+            * name (str): The name of the flow.
+            * syn_np (int): The number of parallel synthesis jobs to launch.
+            * floorplan_np (int): The number of parallel floorplan jobs to launch.
+            * place_np (int): The number of parallel placement jobs to launch.
+            * cts_np (int): The number of parallel clock tree synthesis jobs to launch.
+            * route_np (int): The number of parallel routing jobs to launch.
         """
         super().__init__(name,
                          syn_np=syn_np,

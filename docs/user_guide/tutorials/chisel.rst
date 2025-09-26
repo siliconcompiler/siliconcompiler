@@ -13,19 +13,14 @@ Otherwise, you can configure the build as normal.
 
 For example, to build the GCD example from the `Chisel project template repo <https://github.com/chipsalliance/chisel-template>`_, first copy the following code into a file called "GCD.scala".
 
-.. literalinclude:: examples/gcd_chisel/GCD.scala
+.. literalinclude:: examples/gcd/GCD.scala
    :language: scala
-   :caption: examples/gcd_chisel/GCD.scala
-
-.. note::
-
-    SC's Chisel driver script selects the module to build based on the :keypath:`design` parameter.
-    You must ensure that top-level module's class name matches the :keypath:`design` parameter you have set, and that this module does not include a ``package`` statement.
+   :caption: examples/gcd/GCD.scala
 
 This design can then be quickly compiled to a GDS using Python:
 
-.. literalinclude:: examples/gcd_chisel/gcd_chisel.py
+.. literalinclude:: examples/gcd/gcd_chisel.py
    :language: python
-   :caption: examples/gcd_chisel/gcd_chisel.py
+   :caption: examples/gcd/gcd_chisel.py
 
 For more information on creating designs using Chisel, see the `Chisel docs <https://www.chisel-lang.org/docs>`_.
