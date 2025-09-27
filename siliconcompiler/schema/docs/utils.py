@@ -1,3 +1,5 @@
+import contextlib
+
 from docutils import nodes
 import sphinx.addnodes
 
@@ -133,76 +135,95 @@ def build_list(items, enumerated=False):
     return list
 
 
-def keypath(key_path, refdoc, key_text=None):
-    '''Helper function for displaying Schema keypaths.'''
-    from siliconcompiler import Project, ASICProject, FPGAProject, LintProject, SimProject
-    from siliconcompiler import PDK, StdCellLibrary, Schematic, Design
+class KeyPath:
+    fallback_ref = None
 
-    text_parts = []
-    key_parts = []
+    @staticmethod
+    @contextlib.contextmanager
+    def fallback(fallback):
+        curr_fall_back = KeyPath.fallback_ref
+        KeyPath.fallback_ref = fallback
+        yield
+        KeyPath.fallback_ref = curr_fall_back
 
-    if key_path[0][0].upper() == key_path[0][0]:
-        schema_name = key_path[0]
-        key_path = key_path[1:]
-        if schema_name == "ASICProject":
-            schema = ASICProject()
-        elif schema_name == "FPGAProject":
-            schema = FPGAProject()
-        elif schema_name == "LintProject":
-            schema = LintProject()
-        elif schema_name == "SimProject":
-            schema = SimProject()
-        elif schema_name == "Project":
-            schema = Project()
-        elif schema_name == "PDK":
-            schema = PDK()
-        elif schema_name == "StdCellLibrary":
-            schema = StdCellLibrary()
-        elif schema_name == "Schematic":
-            schema = Schematic()
-        elif schema_name == "Design":
-            schema = Design()
-        else:
-            raise ValueError(f"{schema_name} not supported")
-    else:
-        schema = Project()
+    @staticmethod
+    def keypath(key_path, refdoc, key_text=None):
+        '''Helper function for displaying Schema keypaths.'''
+        from siliconcompiler import Project, ASICProject, FPGAProject, LintProject, SimProject
+        from siliconcompiler import PDK, StdCellLibrary, Schematic, Design
 
-    valid = True
-    for key in key_path:
-        if schema.valid(*key_parts, "default", default_valid=True):
-            key_parts.append("default")
-            if key.startswith('<') and key.endswith('>'):
-                # Placeholder
-                text_parts.append(key)
+        text_parts = []
+        key_parts = []
+
+        if key_path[0][0].upper() == key_path[0][0]:
+            schema_name = key_path[0]
+            key_path = key_path[1:]
+            if schema_name == "ASICProject":
+                schema = ASICProject()
+            elif schema_name == "FPGAProject":
+                schema = FPGAProject()
+            elif schema_name == "LintProject":
+                schema = LintProject()
+            elif schema_name == "SimProject":
+                schema = SimProject()
+            elif schema_name == "Project":
+                schema = Project()
+            elif schema_name == "PDK":
+                schema = PDK()
+            elif schema_name == "StdCellLibrary":
+                schema = StdCellLibrary()
+            elif schema_name == "Schematic":
+                schema = Schematic()
+            elif schema_name == "Design":
+                schema = Design()
             else:
-                # Fully-qualified
-                text_parts.append(key)
+                raise ValueError(f"{schema_name} not supported")
         else:
-            key_parts.append(key)
-            text_parts.append(key)
+            schema = Project()
 
-        if valid and not schema.valid(*key_parts, default_valid=True):
-            logger.warning(f"Invalid keypath {key_path}")
-            valid = False
-            # raise ValueError(f'Invalid keypath {key_path}')
+        valid = True
+        for key in key_path:
+            if schema.valid(*key_parts, "default", default_valid=True):
+                key_parts.append("default")
+                if key.startswith('<') and key.endswith('>'):
+                    # Placeholder
+                    text_parts.append(key)
+                else:
+                    # Fully-qualified
+                    text_parts.append(key)
+            else:
+                key_parts.append(key)
+                text_parts.append(key)
 
-    if valid and not schema.valid(*key_parts, default_valid=True, check_complete=True):
-        # Not leaf
-        text_parts.append('...')
+            if valid and not schema.valid(*key_parts, default_valid=True):
+                if not KeyPath.fallback_ref:
+                    raise ValueError(f'Invalid keypath {key_path} in {schema}')
+                valid = False
 
-    if key_text:
-        text_parts = key_text
-    text = f"[{','.join(text_parts)}]"
-    opt = {'refdoc': refdoc,
-           'refdomain': 'sc',
-           'reftype': 'ref',
-           'refexplicit': True,
-           'refwarn': True}
-    refnode = sphinx.addnodes.pending_xref('keypath', **opt)
-    refnode['reftarget'] = nodes.make_id(get_key_ref(key_parts, ref=schema))
-    refnode += code(text)
+        if valid and not schema.valid(*key_parts, default_valid=True, check_complete=True):
+            # Not leaf
+            text_parts.append('...')
 
-    return refnode
+        if key_text:
+            text_parts = key_text
+        text = f"[{','.join(text_parts)}]"
+        opt = {
+            'refdoc': refdoc,
+            'refdomain': 'sc',
+            'reftype': 'ref',
+            'refexplicit': True,
+            'refwarn': True
+        }
+        refnode = sphinx.addnodes.pending_xref('keypath', **opt)
+        if not valid and KeyPath.fallback_ref:
+            if KeyPath.fallback_ref is ...:
+                return code(text)
+            refnode['reftarget'] = nodes.make_id(KeyPath.fallback_ref)
+        else:
+            refnode['reftarget'] = nodes.make_id(get_key_ref(key_parts, ref=schema))
+        refnode += code(text)
+
+        return refnode
 
 
 def parse_rst(state, content, dest, errorloc):
@@ -287,9 +308,9 @@ def build_schema_value_table(params, refdoc, keypath_prefix=None, trim_prefix=No
             if trim_prefix:
                 full_key = [*keypath_prefix, *key]
                 key_text = ["...", *full_key[len(trim_prefix):]]
-                p += keypath(full_key, refdoc, key_text)
+                p += KeyPath.keypath(full_key, refdoc, key_text)
             else:
-                p += keypath([*keypath_prefix, *key], refdoc)
+                p += KeyPath.keypath([*keypath_prefix, *key], refdoc)
             table.append([p, code(val_type), val_node])
 
     if len(table) > 1:

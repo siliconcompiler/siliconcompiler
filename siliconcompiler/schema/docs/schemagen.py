@@ -18,7 +18,7 @@ from sphinx.util import logging as sphinx_logging
 from siliconcompiler.schema import utils, BaseSchema, Parameter, NamedSchema, EditableSchema
 from siliconcompiler.schema.docschema import DocsSchema
 from siliconcompiler.schema.docs.utils import parse_rst, link, para, \
-    literalblock, build_section_with_target, keypath, build_section, \
+    literalblock, build_section_with_target, KeyPath, build_section, \
     image
 from siliconcompiler.utils import get_plugins
 
@@ -33,7 +33,8 @@ class SchemaGen(SphinxDirective):
         'add_methods': directives.flag,
         'schema_only': directives.flag,
         'reference_class': str,
-        'ref_root': str
+        'ref_root': str,
+        'key_offset': str
     }
 
     @staticmethod
@@ -142,10 +143,23 @@ class SchemaGen(SphinxDirective):
                         methods_sec += cls_ref
                     schema_sec += methods_sec
 
+            key_offset = [key_part
+                          for key_part in self.options.get("key_offset", "").split(",")
+                          if key_part]
+            if not key_offset:
+                key_offset = None
+
             if "schema_only" in self.options:
-                section = BaseSchema._generate_doc(schema, self, ref_root=schema_sec_ref)
+                section = BaseSchema._generate_doc(
+                    schema,
+                    self,
+                    ref_root=schema_sec_ref,
+                    key_offset=key_offset)
             else:
-                section = schema._generate_doc(self, ref_root=schema_sec_ref)
+                section = schema._generate_doc(
+                    self,
+                    ref_root=schema_sec_ref,
+                    key_offset=key_offset)
             if section:
                 if isinstance(section, list):
                     for subsec in section:
@@ -567,7 +581,7 @@ def keypath_role(name, rawtext, text, lineno, inliner, options=None, content=Non
     # Split and clean up keypath
     keys = [key.strip() for key in text.split(',')]
     try:
-        return [keypath(keys, env.docname)], []
+        return [KeyPath.keypath(keys, env.docname)], []
     except ValueError as e:
         msg = inliner.reporter.error(f'{rawtext}: {e}', line=lineno)
         prb = inliner.problematic(rawtext, rawtext, msg)

@@ -1746,7 +1746,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
                       ref_root: str = "",
                       key_offset: Tuple[str] = None,
                       detailed: bool = True):
-        from .schema.docs.utils import build_section, strong, keypath, code, para, \
+        from .schema.docs.utils import build_section, strong, KeyPath, code, para, \
             build_table, build_schema_value_table
         from docutils import nodes
 
@@ -1764,9 +1764,10 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         table = [[strong('Parameters'), strong('Type'), strong('Help')]]
         for key in self.getkeys("var"):
             key_node = nodes.paragraph()
-            key_node += keypath(list(key_offset) + list(self._keypath) + ["var", key],
-                                doc.env.docname,
-                                key_text=["...", "var", key])
+            key_node += KeyPath.keypath(
+                list(key_offset) + list(self._keypath) + ["var", key],
+                doc.env.docname,
+                key_text=["...", "var", key])
 
             param = self.get("var", key, field=None)
             help_str = param.get(field="help")
