@@ -143,8 +143,10 @@ class KeyPath:
     def fallback(fallback):
         curr_fall_back = KeyPath.fallback_ref
         KeyPath.fallback_ref = fallback
-        yield
-        KeyPath.fallback_ref = curr_fall_back
+        try:
+            yield
+        finally:
+            KeyPath.fallback_ref = curr_fall_back
 
     @staticmethod
     def keypath(key_path, refdoc, key_text=None):

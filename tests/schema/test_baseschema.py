@@ -3354,6 +3354,7 @@ def test_generate_doc_not_detailed(sphinx_doc):
     pytest.importorskip("sphinx")
     from docutils import nodes
     from sphinx.addnodes import tabular_col_spec
+    from siliconcompiler.schema.docs.utils import KeyPath
 
     schema = BaseSchema()
     edit = EditableSchema(schema)
@@ -3361,7 +3362,8 @@ def test_generate_doc_not_detailed(sphinx_doc):
     edit.insert("param", param)
     schema.set("param", "something")
 
-    doc = schema._generate_doc(sphinx_doc, detailed=False)
+    with KeyPath.fallback(...):
+        doc = schema._generate_doc(sphinx_doc, detailed=False)
     assert len(doc) == 2
     assert isinstance(doc[0], tabular_col_spec)
     assert isinstance(doc[1], nodes.table)
