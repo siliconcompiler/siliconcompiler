@@ -7,6 +7,7 @@ from siliconcompiler import FPGA, FPGAProject
 from siliconcompiler.metrics import FPGAMetricsSchema
 from siliconcompiler.constraints import FPGAComponentConstraints, \
     FPGAPinConstraints, FPGATimingConstraintSchema
+from siliconcompiler.fpga import FPGAConstraint
 
 
 def test_set_add():
@@ -69,6 +70,7 @@ def test_project_keys_fpga():
 
 
 def test_project_keys_constraint():
+    assert isinstance(FPGAProject().get("constraint", field="schema"), FPGAConstraint)
     assert FPGAProject().getkeys("constraint") == (
         'component',
         'pin',
@@ -84,22 +86,10 @@ def test_project_getdict_type():
     assert FPGAProject._getdict_type() == "FPGAProject"
 
 
-def test_project_get_timingconstraints():
+def test_project_constraint():
     proj = FPGAProject()
-    assert isinstance(proj.get_timingconstraints(), FPGATimingConstraintSchema)
-    assert proj.get("constraint", "timing", field="schema") is proj.get_timingconstraints()
-
-
-def test_project_get_pinconstraints():
-    proj = FPGAProject()
-    assert isinstance(proj.get_pinconstraints(), FPGAPinConstraints)
-    assert proj.get("constraint", "pin", field="schema") is proj.get_pinconstraints()
-
-
-def test_project_get_componentconstraints():
-    proj = FPGAProject()
-    assert isinstance(proj.get_componentconstraints(), FPGAComponentConstraints)
-    assert proj.get("constraint", "component", field="schema") is proj.get_componentconstraints()
+    assert isinstance(proj.constraint, FPGAConstraint)
+    assert proj.get("constraint", field="schema") is proj.constraint
 
 
 def test_project_add_dep_list():
@@ -197,3 +187,21 @@ def test_project_set_fpga_obj():
     proj.set_fpga(fpga)
     assert proj.get("fpga", "device") == "thisfpga"
     assert proj.get("library", "thisfpga", field="schema") is fpga
+
+
+def test_constraint_timing():
+    const = FPGAConstraint()
+    assert isinstance(const.timing, FPGATimingConstraintSchema)
+    assert const.get("timing", field="schema") is const.timing
+
+
+def test_constraint_pin():
+    const = FPGAConstraint()
+    assert isinstance(const.pin, FPGAPinConstraints)
+    assert const.get("pin", field="schema") is const.pin
+
+
+def test_constraint_component():
+    const = FPGAConstraint()
+    assert isinstance(const.component, FPGAComponentConstraints)
+    assert const.get("component", field="schema") is const.component

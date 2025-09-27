@@ -112,6 +112,11 @@ User Classes
 ASIC Constraint Classes
 =======================
 
+.. autoclass:: siliconcompiler.asic.ASICConstraint
+    :members:
+    :show-inheritance:
+    :inherited-members:
+
 .. autoclass:: siliconcompiler.constraints.ASICTimingConstraintSchema
     :members:
     :show-inheritance:
@@ -149,6 +154,11 @@ ASIC Constraint Classes
 
 FPGA Constraint Classes
 =======================
+
+.. autoclass:: siliconcompiler.fpga.FPGAConstraint
+    :members:
+    :show-inheritance:
+    :inherited-members:
 
 .. autoclass:: siliconcompiler.constraints.FPGATimingConstraintSchema
     :members:

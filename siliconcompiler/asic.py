@@ -3,7 +3,7 @@ import re
 
 from typing import Union, Tuple
 
-from siliconcompiler.schema import EditableSchema, Parameter, Scope
+from siliconcompiler.schema import EditableSchema, Parameter, Scope, BaseSchema
 from siliconcompiler.schema.utils import trim
 
 from siliconcompiler import Project, sc_open
@@ -18,6 +18,60 @@ from siliconcompiler.utils import units
 
 from siliconcompiler import PDK
 from siliconcompiler import StdCellLibrary
+
+
+class ASICConstraint(BaseSchema):
+    """A container for ASIC (Application-Specific Integrated Circuit) design constraints.
+
+    This class aggregates various types of constraints necessary for the physical
+    design flow, such as timing, component placement, pin assignments, and
+    floorplan area.
+    """
+    def __init__(self):
+        """Initializes the ASICConstraint schema."""
+        super().__init__()
+
+        schema = EditableSchema(self)
+        schema.insert("timing", ASICTimingConstraintSchema())
+        schema.insert("component", ASICComponentConstraints())
+        schema.insert("pin", ASICPinConstraints())
+        schema.insert("area", ASICAreaConstraint())
+
+    @property
+    def timing(self) -> ASICTimingConstraintSchema:
+        """Provides access to the timing constraints.
+
+        Returns:
+            ASICTimingConstraintSchema: The schema object for timing constraints.
+        """
+        return self.get("timing", field="schema")
+
+    @property
+    def component(self) -> ASICComponentConstraints:
+        """Provides access to the component placement constraints.
+
+        Returns:
+            ASICComponentConstraints: The schema object for component constraints.
+        """
+        return self.get("component", field="schema")
+
+    @property
+    def pin(self) -> ASICPinConstraints:
+        """Provides access to pin assignment constraints.
+
+        Returns:
+            ASICPinConstraints: The schema object for pin constraints.
+        """
+        return self.get("pin", field="schema")
+
+    @property
+    def area(self) -> ASICAreaConstraint:
+        """Provides access to the floorplan/area constraints.
+
+        Returns:
+            ASICAreaConstraint: The schema object for area constraints.
+        """
+        return self.get("area", field="schema")
 
 
 class ASICProject(Project):
@@ -49,10 +103,7 @@ class ASICProject(Project):
         super().__init__(design)
 
         schema = EditableSchema(self)
-        schema.insert("constraint", "timing", ASICTimingConstraintSchema())
-        schema.insert("constraint", "component", ASICComponentConstraints())
-        schema.insert("constraint", "pin", ASICPinConstraints())
-        schema.insert("constraint", "area", ASICAreaConstraint())
+        schema.insert("constraint", ASICConstraint())
 
         # Replace metrics with asic metrics
         schema.insert("metric", ASICMetricsSchema(), clobber=True)
@@ -349,41 +400,14 @@ class ASICProject(Project):
         """
         self.set("asic", "delaymodel", model)
 
-    def get_timingconstraints(self) -> ASICTimingConstraintSchema:
-        """
-        Retrieves the ASIC timing constraint schema for the project.
+    @property
+    def constraint(self) -> ASICConstraint:
+        """Provides access to the project's ASIC design constraints.
 
         Returns:
-            ASICTimingConstraintSchema: The timing constraint schema object.
+            ASICConstraint: The schema object containing all design constraints.
         """
-        return self.get("constraint", "timing", field="schema")
-
-    def get_pinconstraints(self) -> ASICPinConstraints:
-        """
-        Retrieves the ASIC pin constraint schema for the project.
-
-        Returns:
-            ASICPinConstraints: The pin constraint schema object.
-        """
-        return self.get("constraint", "pin", field="schema")
-
-    def get_componentconstraints(self) -> ASICComponentConstraints:
-        """
-        Retrieves the ASIC component constraint schema for the project.
-
-        Returns:
-            ASICComponentConstraints: The component constraint schema object.
-        """
-        return self.get("constraint", "component", field="schema")
-
-    def get_areaconstraints(self) -> ASICAreaConstraint:
-        """
-        Retrieves the ASIC area constraint schema for the project.
-
-        Returns:
-            ASICAreaConstraint: The area constraint schema object.
-        """
-        return self.get("constraint", "area", field="schema")
+        return self.get("constraint", field="schema")
 
     def _init_run(self):
         """

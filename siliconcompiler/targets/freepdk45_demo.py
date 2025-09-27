@@ -55,7 +55,7 @@ def freepdk45_demo(
     # For this demonstration target, a single "typical" timing corner is
     # configured to check for both setup and hold violations. In a real
     # production flow, separate slow and fast corners would be used.
-    scenario = project.get_timingconstraints().make_scenario("typical")
+    scenario = project.constraint.timing.make_scenario("typical")
     scenario.add_libcorner(["typical", "generic"])
     scenario.set_pexcorner("typical")
     scenario.add_check(["setup", "hold"])
@@ -65,7 +65,7 @@ def freepdk45_demo(
 
     # 5. Define Physical Design Constraints
     # These constraints guide the place-and-route tools.
-    area = project.get_areaconstraints()
+    area = project.constraint.area
     # Target a core utilization of 40%.
     area.set_density(40)
     # Set a margin of 1 micron around the core area.

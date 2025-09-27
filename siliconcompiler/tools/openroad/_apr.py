@@ -497,7 +497,7 @@ class APRTask(OpenROADTask):
                 self.add_required_key("library", lib, "fileset", fileset, "file", "tcl")
 
         libcorners = set()
-        for scenario in self.project.get_timingconstraints().get_scenario().values():
+        for scenario in self.project.constraint.timing.get_scenario().values():
             libcorners.update(scenario.get_libcorner(self.step, self.index))
         delay_model = self.project.get("asic", "delaymodel")
         for asiclib in self.project.get("asic", "asiclib"):
