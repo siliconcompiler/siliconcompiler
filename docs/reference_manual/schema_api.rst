@@ -4,7 +4,7 @@ Schema API
 ----------
 
 This chapter describes all public methods in the SiliconCompiler Schema Python API.
-Refer to the User Guide for architecture concepts and the :ref:`glossary` for terminology and keyword definitions.
+Refer to the User Guide for architecture concepts and the :ref:`glossary <glossary>` for terminology and keyword definitions.
 
 Useful APIs
 ===========

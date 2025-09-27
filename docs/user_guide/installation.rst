@@ -11,7 +11,7 @@ Before installing the SiliconCompiler package you will need to set up a Python e
 The following sections will walk you through how to install the appropriate python dependencies and start a [Python virtual environment](https://docs.python.org/3/library/venv.html).
 Note that at any time, if you need to exit the Python virtual environment, type 'deactivate' and hit enter.
 
-.. _Python install:
+.. _python_install:
 
 Ubuntu (>=18.04)
 ^^^^^^^^^^^^^^^^
@@ -30,7 +30,7 @@ Open up a terminal and enter the following command sequence.
    If you plan to generate any docs or create any flowgraphs, you'll also need to install Graphviz.
    You can make sure you have this dependency by running ``sudo apt install graphviz xdot``.
 
-Skip ahead to `SC Install`_.
+Skip ahead to `SC Install <sc_install>`_.
 
 RHEL (>=RHEL 7)
 ^^^^^^^^^^^^^^^
@@ -56,7 +56,7 @@ Open up a terminal and enter the following command sequence.
    You can make sure you have this dependency by running ``sudo yum install graphviz xdot``
 
 
-Skip ahead to `SC Install`_.
+Skip ahead to `SC Install <sc_install>`_.
 
 macOS (>=10.15)
 ^^^^^^^^^^^^^^^
@@ -77,7 +77,7 @@ Open up a terminal and enter the following command sequence.
    You can make sure you have this dependency by running ``brew install graphviz xdot``
 
 
-Skip ahead to `SC Install`_.
+Skip ahead to `SC Install <sc_install>`_.
 
 Windows (>= Windows 10)
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -99,7 +99,7 @@ From the command shell, enter the following sequence to create and activate a vi
    If you plan to generate any docs or create any flowgraphs, you'll also need to `install Graphviz <https://graphviz.org/download/#windows>`_.
 
 
-.. _SC Install:
+.. _sc_install:
 
 Installing SiliconCompiler
 --------------------------
@@ -107,10 +107,10 @@ Installing SiliconCompiler
 After you've got the python dependencies installed, you will need to install SiliconCompiler.
 There are a few different ways to do this:
 
-1. The `recommended method`_ is to install the last stable version published to `pypi.org <https://pypi.org/project/siliconcompiler/>`_, or
-2. You can install `directly from the git repository`_ (best for developers).
+1. The `recommended method <install_recommended_method>`_ is to install the last stable version published to `pypi.org <https://pypi.org/project/siliconcompiler/>`_, or
+2. You can install `directly from the git repository <install_from_git>`_ (best for developers).
 
-.. _recommended method:
+.. _install_recommended_method:
 
 Install from pypi.org
 ^^^^^^^^^^^^^^^^^^^^^
@@ -127,7 +127,7 @@ Activate your `Python Virtual Environment <https://docs.python.org/3/library/ven
 
 Skip to `asic demo`_.
 
-.. _directly from the git repository:
+.. _install_from_git:
 
 Install from GitHub Repo (Linux/MacOS)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -146,10 +146,10 @@ Finally, to clone and install SiliconCompiler, run the following:
 .. include:: installation/installation_confirm_version.inc
 
 
-.. _asic demo:
+.. _asic_demo:
 
 ASIC Demo
------------------
+---------
 Now that you have installed SiliconCompiler, you can test your installation by running a quick demo through the ASIC design flow in the cloud.
 
 .. code-block:: bash
