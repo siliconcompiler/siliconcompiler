@@ -117,7 +117,7 @@ class ToolLibrarySchema(LibrarySchema):
                       ref_root: str = "",
                       key_offset: Tuple[str] = None,
                       detailed: bool = True):
-        from .schema.docs.utils import build_section, strong, keypath, code, para, build_table
+        from .schema.docs.utils import build_section, strong, KeyPath, code, para, build_table
         from docutils import nodes
 
         if not key_offset:
@@ -130,28 +130,33 @@ class ToolLibrarySchema(LibrarySchema):
                 tool_sec = build_section(tool, f"{ref_root}-tools-{tool}")
 
                 # Show var definitions
-                table = [[strong('Parameters'), strong('Type'), strong('Help')]]
-                for key in self.getkeys("tool", tool):
-                    key_node = nodes.paragraph()
-                    key_node += keypath(list(key_offset) + list(self._keypath) +
-                                        ["tool", tool, key],
-                                        doc.env.docname)
-                    table.append([
-                        key_node,
-                        code(self.get("tool", tool, key, field="type")),
-                        para(self.get("tool", tool, key, field="help"))
-                    ])
+                with KeyPath.fallback(...):
+                    table = [[strong('Parameters'), strong('Type'), strong('Help')]]
+                    for key in self.getkeys("tool", tool):
+                        key_node = nodes.paragraph()
+                        key_node += KeyPath.keypath(
+                            list(key_offset) + list(self._keypath) +
+                            ["tool", tool, key],
+                            doc.env.docname)
+                        table.append([
+                            key_node,
+                            code(self.get("tool", tool, key, field="type")),
+                            para(self.get("tool", tool, key, field="help"))
+                        ])
                 if len(table) > 1:
                     tool_defs = build_section("Variables", f"{ref_root}-tools-{tool}-defns")
                     colspec = r'{|\X{2}{5}|\X{1}{5}|\X{2}{5}|}'
                     tool_defs += build_table(table, colspec=colspec)
                     tool_sec += tool_defs
 
-                tool_param = BaseSchema._generate_doc(self.get("tool", tool, field="schema"),
-                                                      doc,
-                                                      ref_root=f"{ref_root}-tools-{tool}-configs",
-                                                      key_offset=key_offset,
-                                                      detailed=False)
+                with KeyPath.fallback(...):
+                    tool_param = BaseSchema._generate_doc(
+                        self.get("tool", tool, field="schema"),
+                        doc,
+                        ref_root=f"{ref_root}-tools-{tool}-configs",
+                        key_offset=key_offset,
+                        detailed=False)
+
                 if not tool_param:
                     continue
 

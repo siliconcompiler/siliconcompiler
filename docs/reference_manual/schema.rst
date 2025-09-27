@@ -1,18 +1,10 @@
-.. _SiliconCompiler Schema:
 .. _schema:
 
 Schema
 =====================
 
-Keywords
----------
-
-.. glossary::
-   default
-       Reserved SiliconCompiler schema key that can be replaced by any legal string.
-
 Parameter Fields
------------------
+----------------
 
 .. glossary::
 
@@ -38,7 +30,7 @@ Parameter Fields
 
     node
         Dictionary containing fields whose values may vary on a per-step/index basis.
-        Sub-fields are described in :ref:`Per-node Parameter Fields`
+        Sub-fields are described in :ref:`Per-node Parameter Fields <schema_pernode_fields>`
 
     notes
         User entered 'notes'/'disclaimers' about value being set.
@@ -77,6 +69,7 @@ Parameter Fields
     unit
         Implied unit for parameter value.
 
+.. _schema_pernode_fields:
 
 Per-node Parameter Fields
 ---------------------------
@@ -85,6 +78,7 @@ The following fields are specified inside the ``node`` dictionary on a per-step/
 Default values for each field are stored under the special keys ``"default", "default"``, and global values are specified under the special keys ``"global", "global"``.
 
 .. glossary::
+
     author
         File author.
         The author string records the person/entity that authored/created each item in the list of files within 'value' parameter field.
@@ -189,7 +183,6 @@ The schema can support tracking of schema transactions which modify the data in 
 The transactions are recorded in the schema in ``cfg['__journal__']``, which is a list of the transactions since recording began.
 Each record for the journal contains:
 
-.. glossary::
     type
         Type of transactions performed, can be one of: set, add, remove, and unset
 

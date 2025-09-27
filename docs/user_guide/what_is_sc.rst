@@ -19,7 +19,7 @@ In this work, we take a distributed systems approach to compilers, with the goal
 Our Approach
 -------------
 
-The SiliconCompiler project is based on a standardized :ref:`Schema <SiliconCompiler Schema>` that supports orthogonal combinations of design, tools, and Process Design Kits (PDKs). The schema design philosophy is to "make the complex possible while keeping the simple simple".
+The SiliconCompiler project is based on a standardized :ref:`Schema <schema>` that supports orthogonal combinations of design, tools, and Process Design Kits (PDKs). The schema design philosophy is to "make the complex possible while keeping the simple simple".
 
 To simplify flow development, the project incorporates a simple object oriented :ref:`Python API<schema_api>`. The API includes abstracted set/get access to the Schema, a flowgraph based parallel programming model, and a suite of utility functions for compilation setup and metric tracking.
 
@@ -31,7 +31,7 @@ The expansive data schema, standardized plug-in interfaces, and built-in dynamic
 The reference manual serves as a good starting point for folks who want to add their own PDKs and tools.
 
 
-To further reduce design access barriers, the project also supports a :ref:`client-server <remote-processing>` execution model that leverages the cloud to: 1) reduce tool installation barriers, 2) reduce the barrier to massively parallel elastic compute, and 3) address the NDA barrier for PDK and EDA tools.
+To further reduce design access barriers, the project also supports a :ref:`client-server <remote_processing>` execution model that leverages the cloud to: 1) reduce tool installation barriers, 2) reduce the barrier to massively parallel elastic compute, and 3) address the NDA barrier for PDK and EDA tools.
 
 .. image:: /_images/sc_arch.svg
    :scale: 75%

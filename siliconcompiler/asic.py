@@ -166,7 +166,7 @@ class ASICProject(Project):
         Performs a comprehensive check of the ASIC project's manifest
         for consistency and validity, extending the base Project checks.
 
-        This method first calls the `Project.check_manifest` method.
+        This method first calls the :meth:`.Project.check_manifest()` method.
         Then, it performs additional ASIC-specific validations:
 
             - Asserts that :keypath:`ASICProject,asic,pdk` is set and refers to a

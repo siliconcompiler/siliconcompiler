@@ -5,19 +5,19 @@ In addition to traditional hardware description languages like Verilog and Syste
 
 Here are some tutorials of a few different types of high-level hardware design frontends:
 
-* :ref:`Python-based frontends (Migen) <python frontends>`
+* :ref:`Python-based frontends (Migen) <python_frontends>`
 
-* :ref:`chisel frontend`
+* :ref:`chisel frontend <chisel_frontend>`
 
-* :ref:`C HLS Frontend (Bambu) <c hls frontend>`
+* :ref:`C HLS frontend (Bambu) <c_hls_frontend>`
 
-* :ref:`bluespec frontend`
+* :ref:`bluespec frontend <bluespec_frontend>`
 
 
-.. include:: migen.rst
+.. include:: migen.inc
 
-.. include:: chisel.rst
+.. include:: chisel.inc
 
-.. include:: bambu.rst
+.. include:: bambu.inc
 
-.. include:: bluespec.rst
+.. include:: bluespec.inc

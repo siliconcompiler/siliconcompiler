@@ -1,9 +1,11 @@
-Bluespec frontend
---------------------
+.. _bluespec_frontend:
 
-SiliconCompiler has a Bluespec frontend that enables you to build :ref:`bluespec` designs for any supported SC target.
-To get started using Bluespec with SC, ensure that SC is installed following the directions from the :ref:`Installation` section, and download bsc or install it from source following the directions `here <https://github.com/B-Lang-org/bsc#download>`_.
-See for links to helpful build :ref:`scripts <External Tools>`.
+Bluespec frontend
+-----------------
+
+SiliconCompiler has a Bluespec frontend that enables you to build :ref:`bluespec <tool-bluespec>` designs for any supported SC target.
+To get started using Bluespec with SC, ensure that SC is installed following the directions from the :ref:`Installation <installation>` section, and download bsc or install it from source following the directions `here <https://github.com/B-Lang-org/bsc#download>`_.
+See the :ref:`External Tools <external_tools>` section for helpful build scripts.
 
 To build a Bluespec design, the only thing you need to do differently from a configuration perspective is:
 Add the Bluespec top-level package as an 'input', and add all directories containing imported modules as entries in :keypath:`Design,fileset,<fileset>,idir`.

@@ -1,5 +1,7 @@
+.. _installation:
+
 Installation
-===================================
+============
 
 
 Installing Python
@@ -121,7 +123,7 @@ Activate your `Python Virtual Environment <https://docs.python.org/3/library/ven
  (venv) pip install --upgrade siliconcompiler    # install SiliconCompiler in venv
  (venv) pip show siliconcompiler                 # will display SiliconCompiler package information
 
-.. include:: installation/installation_confirm_version.rst
+.. include:: installation/installation_confirm_version.inc
 
 Skip to `asic demo`_.
 
@@ -141,7 +143,7 @@ Finally, to clone and install SiliconCompiler, run the following:
    (venv) cd siliconcompiler
    (venv) python3 -m pip install -e .
 
-.. include:: installation/installation_confirm_version.rst
+.. include:: installation/installation_confirm_version.inc
 
 
 .. _asic demo:
@@ -161,20 +163,20 @@ It should look something like this:
 
 .. image:: ../_images/selftest_screenshot.png
 
-See :ref:`Quickstart guide` next to go through the design and run details of the quick demo above.
+See :ref:`Quickstart guide <quickstart_guide>` next to go through the design and run details of the quick demo above.
 
-.. _External Tools:
+.. _external_tools:
 
 External Tools
 --------------
 
 If you wish to run on your machine instead of remotely in the cloud as in the quick `asic demo`_ target above, there will be some tools you need to install first.
-You can use the provided :ref:`sc-install` application to install the tools or view the scripts directly in the list below.
+You can use the provided :ref:`sc-install <app-sc-install>` application to install the tools or view the scripts directly in the list below.
 
 .. note::
 
    To install the recommended tools for an asic flow, use: ``sc-install -group asic`` or for an fpga flow ``sc-install -group fpga``.
-   To see a full list of supported groups see :ref:`sc-install`.
+   To see a full list of supported groups see :ref:`sc-install <app-sc-install>`.
    Links to individual tool installation instructions and platform limitations can be found in the :ref:`pre-defined tool drivers <builtin_tools>`.
 
    We have provided the following helper install scripts for this minimum toolset for the ASIC flow as well as other external tools, but keep in mind that they are for reference only.
@@ -184,4 +186,4 @@ You can use the provided :ref:`sc-install` application to install the tools or v
 .. installscripts::
 
 
-See :ref:`Quickstart guide` next to see how to run locally on your machine with these tools.
+See :ref:`Quickstart guide <quickstart_guide>` next to see how to run locally on your machine with these tools.

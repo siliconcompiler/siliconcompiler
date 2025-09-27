@@ -1,8 +1,10 @@
 Design Glossary
-===============================
+===============
+
+.. _gloss_arch:
 
 Architecture
-------------------
+------------
 
 * `ADC <https://en.wikipedia.org/wiki/Analog-to-digital_converter>`_: Analog to Digital Converter
 * `AES <https://en.wikipedia.org/wiki/Advanced_Encryption_Standard>`_: Advanced encryption standard
@@ -89,8 +91,10 @@ Architecture
 * `WIFI <https://en.wikipedia.org/wiki/Wi-Fi>`_: Wireless local area network
 * `8b10b <https://en.wikipedia.org/wiki/8b/10b_encoding>`_: Code that maps 8-bits to 10bit DC balanced symbols
 
+.. _gloss_design:
+
 Design
----------------
+------
 
 * `Antenna effect <https://en.wikipedia.org/wiki/Antenna_effect>`_: Plasma induced gate oxide damage that can occur during semiconductor processing.
 * `Asynchronous logic <https://en.wikipedia.org/wiki/Asynchronous_circuit>`_: Logic not governed by a clock circuit or global clock.
@@ -173,8 +177,10 @@ Design
 * `Von Neumann architecture <https://en.wikipedia.org/wiki/Von_Neumann_architecture>`_: Computer architecture in which instructions and data are stored in the same memory.
 * `UVM <https://en.wikipedia.org/wiki/Universal_Verification_Methodology>`_: Universal Verification Methodology
 
+.. _gloss_manu:
+
 Manufacturing
------------------
+-------------
 
 * `BEOL <https://en.wikipedia.org/wiki/Back_end_of_line>`_: Back end of line processing for connecting together devices using metal interconnects.
 * `Dicing <https://en.wikipedia.org/wiki/CMOS>`_: Act of cutting up wafer into individual dies.
@@ -190,8 +196,10 @@ Manufacturing
 * `Wafer <https://en.wikipedia.org/wiki/Wafer_(electronics)>`_:: Thin slice of semiconductor material used in electronics for the fabrication of integrated circuits.
 * `Wafer thinning <https://en.wikipedia.org/wiki/Wafer_backgrinding>`_: Wafer thickness reduction to allow for stacking and high density packaging.
 
+.. _gloss_pack:
+
 Packaging
-----------
+---------
 
 * `3D IC's <https://en.wikipedia.org/wiki/Three-dimensional_integrated_circuit>`_: The process of stacking integrated circuits and connecting them through TSVs.
 * `BGA <https://en.wikipedia.org/wiki/Ball_grid_array>`_: Ball grid array is a type of surface-mount packaging (a chip carrier) used for integrated circuits.
@@ -212,8 +220,10 @@ Packaging
 * `Wirebond <https://en.wikipedia.org/wiki/Wire_bonding>`_: Method of bonding a silicon die to a package using wires.
 * `WSI <https://en.wikipedia.org/wiki/Wafer-scale_integration>`_: Wafer scale integration
 
+.. _gloss_test:
+
 Test
-------
+----
 
 * `Arbitrary Waveform Generator <https://en.wikipedia.org/wiki/Arbitrary_waveform_generator>`_: Electronic instrument used to generate arbitrary signal waveforms.
 * `ATE <https://en.wikipedia.org/wiki/Automatic_test_equipment>`_: Automatic Test Equipment for testing integrated circuits.

@@ -61,6 +61,8 @@ We will use the :class:`.StdCellLibrary` because it is a physical, foundational 
                   # Helper to associate the file with a specific corner.
                   self.add_asic_libcornerfileset("typical", "nldm")
 
+.. _lib_example1_using:
+
 Using the Library
 ^^^^^^^^^^^^^^^^^
 
@@ -72,9 +74,9 @@ To use either of these libraries in your design, you would instantiate the class
 
   project = siliconcompiler.ASICProject()
 
-  # Instantiate and add the soft IP library.
-  soft_ip_lib = FakeHardIPLibrary()
-  project.add_asiclib(soft_ip_lib)
+  # Instantiate and add the hard IP library.
+  hard_ip_lib = FakeHardIPLibrary()
+  project.add_asiclib(hard_ip_lib)
 
   # Now, the 'fakeip' will be included during compilation.
   # project.run()
@@ -104,6 +106,8 @@ This example shows how to define a library for a soft IP core, which is just a r
           # will be passed to the synthesis tool.
           with self.active_dataroot("fakedata"), self.active_fileset("rtl"):
                   self.add_file("rtl/fakeip.v")
+
+.. _lib_example2_using:
 
 Using the Library
 ^^^^^^^^^^^^^^^^^

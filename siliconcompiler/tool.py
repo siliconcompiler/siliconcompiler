@@ -1746,7 +1746,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
                       ref_root: str = "",
                       key_offset: Tuple[str] = None,
                       detailed: bool = True):
-        from .schema.docs.utils import build_section, strong, keypath, code, para, \
+        from .schema.docs.utils import build_section, strong, KeyPath, code, para, \
             build_table, build_schema_value_table
         from docutils import nodes
 
@@ -1764,9 +1764,10 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         table = [[strong('Parameters'), strong('Type'), strong('Help')]]
         for key in self.getkeys("var"):
             key_node = nodes.paragraph()
-            key_node += keypath(list(key_offset) + list(self._keypath) + ["var", key],
-                                doc.env.docname,
-                                key_text=["...", "var", key])
+            key_node += KeyPath.keypath(
+                list(key_offset) + list(self._keypath) + ["var", key],
+                doc.env.docname,
+                key_text=["...", "var", key])
 
             param = self.get("var", key, field=None)
             help_str = param.get(field="help")
@@ -2297,10 +2298,10 @@ def schema_tool(schema):
                 "cli: -tool_licenseserver 'atask ACME_LICENSE 1700@server'",
                 "api: task.set('tool', 'acme', 'licenseserver', 'ACME_LICENSE', '1700@server')"],
             help=trim("""
-            Defines a set of tool specific environment variables used by the executable
+            Defines a set of tool-specific environment variables used by the executable
             that depend on license key servers to control access. For multiple servers,
-            separate each server by a 'colon'. The named license variable are read at
-            runtime (:meth:`.run()`) and the environment variables are set.
+            separate servers with a colon. The named license variables are read at
+            runtime (:meth:`.Task.run()`) and the environment variables are set.
             """)))
 
 
@@ -2575,8 +2576,8 @@ def schema_task(schema):
                 "api: task.set('tool', 'openroad', 'task', 'cts', 'require', 'design')"],
             help=trim("""
             List of keypaths to required task parameters. The list is used
-            by :meth:`.check_manifest()` to verify that all parameters have been set up before
-            step execution begins.""")))
+            by :meth:`.Project.check_manifest()` to verify that all parameters have been set up
+            before step execution begins.""")))
 
     schema.insert(
         'report', 'default',

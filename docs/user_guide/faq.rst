@@ -1,5 +1,7 @@
+.. _faq:
+
 FAQ
-===================================
+===
 
 This is a list of Frequently Asked Questions about SiliconCompiler.
 Feel free to suggest new entries!

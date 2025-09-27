@@ -1,3 +1,5 @@
+.. _picorv32_example:
+
 Building Your Own SoC
 =====================
 
@@ -8,7 +10,7 @@ This tutorial will walk you through the process of building an ASIC containing o
 We will walk through the process of downloading the design files and writing a build script, but for your reference, you can find complete example designs which reflect the contents of this tutorial in the public SiliconCompiler repository.
 The first part of the tutorial will cover building the CPU core `without RAM <https://github.com/siliconcompiler/siliconcompiler/tree/main/examples/picorv32>`_, and the second part will describe how to `add an SRAM block <https://github.com/siliconcompiler/siliconcompiler/tree/main/examples/picorv32>`_.
 
-See the :ref:`Installation <Installation>` section for information on how to install SiliconCompiler, and the :ref:`Remote Processing <Remote Processing>` section for instructions on setting up the remote workflow.
+See the :ref:`Installation <installation>` section for information on how to install SiliconCompiler, and the :ref:`Remote Processing <remote_processing>` section for instructions on setting up the remote workflow.
 
 Download PicoRV32 Verilog Code
 ------------------------------
@@ -22,14 +24,14 @@ Its source code, license, and various tooling can be found `in its GitHub reposi
 Build the PicoRV32 Core using SiliconCompiler
 ---------------------------------------------
 
-Before we add the complexity of a RAM macro block, let's build the core design using the open-source :ref:`Skywater 130 <skywater130_demo>` PDK.
+Before we add the complexity of a RAM macro block, let's build the core design using the open-source :ref:`Skywater 130 <schema-lambdapdk-sky130-sky130pdk>` PDK.
 Copy the following build script into the same directory which you copied ``picorv32.v`` into:
 
 .. literalinclude:: examples/picorv32/picorv32.py
    :language: python
    :caption: <project_dir>/picorv32.py
 
-Note in the code snippet above that :ref:`remote` is set to ``False``. If this is set to ``True``, this means it is set up for :ref:`remote processing`, and if you run this example as a Python script, it should take approximately 20 minutes to run if the servers are not too busy.
+Note in the code snippet above that :keypath:`option,remote` is set to ``False``. If this is set to ``True``, this means it is set up for :ref:`remote processing <remote_processing>`, and if you run this example as a Python script, it should take approximately 20 minutes to run if the servers are not too busy.
 We have not added a RAM macro yet, but this script will build the CPU core with I/O signals placed pseudo-randomly around the edges of the die area.
 Once the job finishes, you should receive a screenshot of your final design, and view the dashboard with ``sc-dashboard -cfg build/picorv32/job0/picorv32.cfg``.
 SiliconCompiler will try to open the file after the job completes, but it may not be able to do so if you are running in a headless environment.
@@ -37,7 +39,7 @@ SiliconCompiler will try to open the file after the job completes, but it may no
 .. image:: ../../_images/picorv32_screenshot.png
 
 For the full GDS-II results and intermediate build artifacts, you can run the build locally.
-See the :ref:`local run` section for more information.
+See the :ref:`local run <start_the_flow>` section for more information.
 
 Adding an SRAM block
 --------------------

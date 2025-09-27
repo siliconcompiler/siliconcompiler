@@ -2,7 +2,7 @@
 Multi-Job Flows and Automation
 ###############################
 
-As an extension of :ref:`compilation process`, which describes setting up only one job, you can link together different jobs and Python manipulation code for your own purposes.
+As an extension of :ref:`compilation process <execution_model>`, which describes setting up only one job, you can link together different jobs and Python manipulation code for your own purposes.
 
 At the end of each :meth:`.Project.run()` call, the current in-memory job schema entries are copied into a job history dictionary for reference later.
 The user can access these to create more complex, non-linear flows that take into account run history and gradients.

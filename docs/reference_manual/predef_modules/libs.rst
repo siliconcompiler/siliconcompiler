@@ -117,9 +117,11 @@ Memory Libraries
 
 .. schema::
   :root: lambdapdk.asap7.libs.fakeram7/FakeRAM7Lambdalib_SinglePort
+  :key_offset: Design
 
 .. schema::
   :root: lambdapdk.asap7.libs.fakeram7/FakeRAM7Lambdalib_DoublePort
+  :key_offset: Design
 
 IO Libraries
 ^^^^^^^^^^^^
@@ -165,6 +167,7 @@ Memory Libraries
 
 .. schema::
   :root: lambdapdk.freepdk45.libs.fakeram45/FakeRAM45Lambdalib_SinglePort
+  :key_offset: Design
 
 gf180
 -----
@@ -213,6 +216,7 @@ Memory Libraries
 
 .. schema::
   :root: lambdapdk.gf180.libs.gf180sram/GF180Lambdalib_SinglePort
+  :key_offset: Design
 
 IO Libraries
 ^^^^^^^^^^^^
@@ -261,6 +265,7 @@ Memory Libraries
 
 .. schema::
   :root: lambdapdk.ihp130.libs.sg13g2_sram/IHP130Lambdalib_SinglePort
+  :key_offset: Design
 
 IO Libraries
 ^^^^^^^^^^^^
@@ -300,6 +305,7 @@ Memory Libraries
 
 .. schema::
   :root: lambdapdk.sky130.libs.sky130sram/Sky130Lambdalib_SinglePort
+  :key_offset: Design
 
 IO Libraries
 ^^^^^^^^^^^^

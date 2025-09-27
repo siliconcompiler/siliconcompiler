@@ -89,7 +89,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                 Dynamic parameter passed in by the SC runtime as an argument to
                 a runtime task. The parameter enables configuration code
                 (usually TCL) to use control flow that depend on the current
-                'step'. The parameter is used the :meth:`.run()` function and
+                'step'. The parameter is used by the :meth:`.Project.run()` function and
                 is not intended for external use."""))
 
         schema.insert(
@@ -105,7 +105,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                 Dynamic parameter passed in by the SC runtime as an argument to
                 a runtime task. The parameter enables configuration code
                 (usually TCL) to use control flow that depend on the current
-                'index'. The parameter is used the :meth:`.run()` function and
+                'index'. The parameter is used by the :meth:`.Project.run()` function and
                 is not intended for external use."""))
 
         schema.insert("checklist", "default", Checklist())
@@ -544,7 +544,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
 
     def _init_run(self):
         """
-        Method called before :meth:`.check_manifest` to provide a mechanism to
+        Method called before :meth:`.Project.check_manifest()` to provide a mechanism to
         setup the project correctly for a run.
         """
         # Automatically select fileset if only one is available in the design

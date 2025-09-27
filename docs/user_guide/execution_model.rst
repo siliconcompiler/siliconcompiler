@@ -43,7 +43,7 @@ The two synthesis "tasks" might be called ``syn/0`` and ``syn/1``, where:
    :scale: 40%
    :align: center
 
-See :ref:`using index for optimization` for more information on why using indices to build your flowgraph are helpful.
+See :ref:`using index for optimization <using_index_for_opt>` for more information on why using indices to build your flowgraph are helpful.
 
 Execution
 ^^^^^^^^^
@@ -86,6 +86,8 @@ At this point, you can visually examine your flowgraph by using :meth:`.Flowgrap
 .. note::
 
    **[In Progress]** Insert link to tutorial which has step-by-step instruction on how to set up this flow with libs and pdk through run and execution.
+
+.. _using_index_for_opt:
 
 Using Index for Optimization
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^

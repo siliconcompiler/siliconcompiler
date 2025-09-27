@@ -1,11 +1,11 @@
-.. _advanced:
+.. _advanced_guide:
 
 ###############
 Advanced Guide
 ###############
 
 The following sections describe how to build your own custom modules in SiliconCompiler so that you can customize your own flow.
-If you don't plan to build your own modules and just want to use SiliconCompiler with pre-defined modules, see the :ref:`Reference Manual <reference>`.
+If you don't plan to build your own modules and just want to use SiliconCompiler with pre-defined modules, see the :ref:`Reference Manual <reference_manual>`.
 
 
 .. toctree::

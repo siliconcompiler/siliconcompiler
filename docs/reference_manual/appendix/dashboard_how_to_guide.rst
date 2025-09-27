@@ -39,7 +39,7 @@ In the header, you can select any of the projects that are part of the history o
 Metrics Tab
 ===========
 
-You will load into the metrics tab similar to the one below upon running :ref:`sc-dashboard`.
+You will load into the metrics tab similar to the one below upon running :ref:`sc-dashboard <app-sc-dashboard>`.
 
 .. image::  ../../_images/dashboard_images/dashboard_metrics.png
 

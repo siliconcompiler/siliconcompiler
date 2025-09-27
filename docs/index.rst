@@ -24,20 +24,20 @@ Welcome to SiliconCompiler's Documentation!
 Getting started
 ###################################
 
-The fastest way to get started, after :ref:`installation <installation>`, is to :ref:`walk through a simple demo! <Quickstart guide>`
+The fastest way to get started, after :ref:`installation <installation>`, is to :ref:`walk through a simple demo! <quickstart_guide>`
 
-A more complete introduction for new users, the :ref:`Introductory User Guide <User Guide>`
+A more complete introduction for new users, the :ref:`Introductory User Guide <user_guide>`
 section is intended for those who want to use their own designs using pre-defined build flows.
 
-:ref:`Reference Manual <References>` section contains useful lookup information,
+:ref:`Reference Manual <reference_manual>` section contains useful lookup information,
 like flow building blocks, the schema and other API references.
 
-:ref:`Advanced Guide <Advanced Guide>` is intended for users who are already familiar with the basics in User Guide and would like to build their own flows or add additional functionality.
+:ref:`Advanced Guide <advanced_guide>` is intended for users who are already familiar with the basics in the User Guide and would like to build their own flows or add additional functionality.
 
 Help
 ----
 
-- Search :ref:`glossary`,
-- Review :ref:`faq`, or
+- Search :ref:`glossary <glossary>`,
+- Review :ref:`faq <faq>`, or
 - `File an issue <https://github.com/siliconcompiler/siliconcompiler/issues>`_: if you can't find something, or something is not working, the SiliconCompiler team is happy to help!
 

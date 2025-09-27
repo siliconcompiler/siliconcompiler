@@ -72,7 +72,7 @@ class InstallScripts(SphinxDirective):
 
             rst = ViewList()
             # use fake filename 'inline' for error # reporting
-            rst.append(f':ref:`{tool} <{tool}>`', 'inline', 0)
+            rst.append(f':ref:`{tool} <tool-{tool}>`', 'inline', 0)
             nested_parse_with_titles(self.state, rst, entryrow)
 
             row += entryrow

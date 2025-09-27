@@ -1,3 +1,5 @@
+.. _glossary:
+
 Glossary
 ===================================
 
@@ -37,9 +39,6 @@ The following set of terms represents fundamental SiliconCompiler definitions us
 
     manifest
        JSON file representation of the SiliconCompiler schema.
-
-    node
-       An task in the flowgraph.
 
     parameter
        Schema leaf cell with a set of pre-defined key/value pairs.
