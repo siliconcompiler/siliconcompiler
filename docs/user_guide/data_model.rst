@@ -61,7 +61,7 @@ The entire state of the Schema can be saved to a file called a manifest. This fi
 1. **Reference**: It provides a complete, human-readable record of every setting used in a compilation.
 2. **Reproducibility**: It allows you to reload the exact configuration of a previous run, ensuring that builds are repeatable and shareable.
 
-If you ran the :ref:`asic demo`, you can find the project manifest here: ::
+If you ran the :ref:`asic demo <asic_demo>`, you can find the project manifest here: ::
 
     build/<design>/job0/<design>.pkg.json
 

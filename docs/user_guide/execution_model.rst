@@ -53,7 +53,7 @@ Flowgraph execution is done through the :meth:`.Project.run()` function which ch
 Flowgraph Examples
 ------------------
 
-The flowgraph, used in the :ref:`asic demo`, is a built-in compilation flow, called :ref:`asicflow <schema-siliconcompiler-flows-asicflow-asicflow>`. This compilation flow is a pre-defined flowgraph customized for an ASIC build flow, and is called through the :meth:`.Project.add_dep()` function, which calls a :ref:`pre-defined PDK module <builtin_pdks>` that :ref:`uses the asicflow flowgraph <schema-siliconcompiler-flows-asicflow-asicflow>`.
+The flowgraph, used in the :ref:`asic demo <asic_demo>`, is a built-in compilation flow, called :ref:`asicflow <schema-siliconcompiler-flows-asicflow-asicflow>`. This compilation flow is a pre-defined flowgraph customized for an ASIC build flow, and is called through the :meth:`.Project.add_dep()` function, which calls a :ref:`pre-defined PDK module <builtin_pdks>` that :ref:`uses the asicflow flowgraph <schema-siliconcompiler-flows-asicflow-asicflow>`.
 
 You can design your own project compilation build flows by easily creating custom flowgraphs through:
 

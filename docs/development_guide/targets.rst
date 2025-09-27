@@ -7,7 +7,7 @@ A target in SiliconCompiler is a reusable "build configuration" for a specific t
 
 Targets are implemented as simple Python functions that configure a Project object. They are loaded by directly calling the function and passing in the project to configure, making it incredibly easy to set up a complex build.
 
-A full list of built-in targets can be found on the :ref:`builtin_targets` page.
+A full list of built-in targets can be found on the :ref:`targets <builtin_targets>` page.
 
 Why Create a Target?
 --------------------
@@ -111,6 +111,6 @@ Next Steps
 
 A target is composed of other SiliconCompiler modules. To build effective targets, you will need to understand how to define these components:
 
-* **PDKs**: Learn how to define a PDK in the :ref:`PDK<dev_pdks>` documentation.
-* **Libraries**: Learn how to define a standard cell library in the :ref:`Library<dev_libraries>` documentation.
-* **Flows**: Learn how to build a custom flow in the :ref:`Flow<dev_flows>` documentation.
+* **PDKs**: Learn how to define a PDK in the :ref:`PDK <dev_pdks>` documentation.
+* **Libraries**: Learn how to define a standard cell library in the :ref:`Library <dev_libraries>` documentation.
+* **Flows**: Learn how to build a custom flow in the :ref:`Flow <dev_flows>` documentation.
