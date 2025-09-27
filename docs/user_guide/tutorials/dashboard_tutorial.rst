@@ -85,6 +85,7 @@ Node Details Subsection
 
 The node details subsection consists of all of the characteristics about this node that are not reflected in the metrics section.
 
+.. _web_dashboard_node_files:
 
 Node Files Subsection
 +++++++++++++++++++++
@@ -100,7 +101,7 @@ Selecting a node will display a list of the metrics that the file informs below 
 File Viewer Tab
 ===============
 
-The selected node you clicked in the `Node Files Subsection`_ will appear here.
+The selected node you clicked in the :ref:`Node Files Subsection <web_dashboard_node_files>` will appear here.
 You may download the file by clicking the download button as shown below.
 
 .. image::  ../../_images/dashboard_images/dashboard_file_viewer_download_button.png

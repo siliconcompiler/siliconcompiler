@@ -74,7 +74,7 @@ To activate the flowgraph, click on it once.
 This allows you to interact with the flowgraph.
 You can drag nodes around, pan the view, and zoom in/out.
 You can also click nodes to select
-them for the `Node Information Section`_.
+them for the :ref:`Node Information Section <web_dashboard_node_information>`.
 You can see a node is selected by it becoming bolded
 (in the image below, that's floorplan0). Double clicking nodes will send you to a blank html page.
 We are aware of this bug.
@@ -82,6 +82,7 @@ We are aware of this bug.
 .. image::  ../../_images/dashboard_images/dashboard_metrics_flowgraph_node_selected.png
     :width: 200
 
+.. _web_dashboard_node_information:
 
 Node Information Section
 ------------------------
@@ -123,7 +124,7 @@ In the picture below, no metrics can be found in the floorplan.log file.
 File Viewer Tab
 ===============
 
-The selected node you clicked in the `Node Files Subsection`_ will appear here.
+The selected node you clicked in the :ref:`Node Information Section <web_dashboard_node_information>` will appear here.
 The header is the name of the file selected.
 You can download the file by clicking the download button (as by the arrow in the image below).
 

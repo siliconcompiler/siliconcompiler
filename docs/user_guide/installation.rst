@@ -125,7 +125,7 @@ Activate your `Python Virtual Environment <https://docs.python.org/3/library/ven
 
 .. include:: installation/installation_confirm_version.inc
 
-Skip to `asic demo`_.
+Skip to :ref:`asic demo <asic_demo>`.
 
 .. _install_from_git:
 
@@ -170,7 +170,7 @@ See :ref:`Quickstart guide <quickstart_guide>` next to go through the design and
 External Tools
 --------------
 
-If you wish to run on your machine instead of remotely in the cloud as in the quick `asic demo`_ target above, there will be some tools you need to install first.
+If you wish to run on your machine instead of remotely in the cloud as in the quick :ref:`asic demo <asic_demo>` target above, there will be some tools you need to install first.
 You can use the provided :ref:`sc-install <app-sc-install>` application to install the tools or view the scripts directly in the list below.
 
 .. note::
