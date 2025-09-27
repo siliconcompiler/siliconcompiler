@@ -9,7 +9,7 @@ Here are some tutorials of a few different types of high-level hardware design f
 
 * :ref:`chisel frontend <chisel_frontend>`
 
-* :ref:`C HLS Frontend (Bambu) <c_hls_frontend>`
+* :ref:`C HLS frontend (Bambu) <c_hls_frontend>`
 
 * :ref:`bluespec frontend <bluespec_frontend>`
 

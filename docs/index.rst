@@ -32,7 +32,7 @@ section is intended for those who want to use their own designs using pre-define
 :ref:`Reference Manual <reference_manual>` section contains useful lookup information,
 like flow building blocks, the schema and other API references.
 
-:ref:`Advanced Guide <advanced_guide>` is intended for users who are already familiar with the basics in User Guide and would like to build their own flows or add additional functionality.
+:ref:`Advanced Guide <advanced_guide>` is intended for users who are already familiar with the basics in the User Guide and would like to build their own flows or add additional functionality.
 
 Help
 ----

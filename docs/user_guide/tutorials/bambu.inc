@@ -5,7 +5,7 @@ C HLS frontend
 
 SiliconCompiler supports high-level synthesis of C code to any supported SC target, implemented using the :ref:`Bambu <tool-bambu>` HLS tool.
 To get started compiling C code with SC, ensure that SC is installed following the directions from the :ref:`Installation <installation>` section, and `build Bambu from source <https://panda.dei.polimi.it/?page_id=88>`_.
-See for links to helpful build :ref:`scripts <External Tools>`.
+See the :ref:`External Tools <external_tools>` section for helpful build scripts.
 
 To build a C design, the only thing you need to do differently from a configuration perspective is:
 Add all required C files as inputs.

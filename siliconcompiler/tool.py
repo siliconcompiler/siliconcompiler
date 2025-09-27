@@ -2298,9 +2298,9 @@ def schema_tool(schema):
                 "cli: -tool_licenseserver 'atask ACME_LICENSE 1700@server'",
                 "api: task.set('tool', 'acme', 'licenseserver', 'ACME_LICENSE', '1700@server')"],
             help=trim("""
-            Defines a set of tool specific environment variables used by the executable
+            Defines a set of tool-specific environment variables used by the executable
             that depend on license key servers to control access. For multiple servers,
-            separate each server by a 'colon'. The named license variable are read at
+            separate servers with a colon. The named license variables are read at
             runtime (:meth:`.Task.run()`) and the environment variables are set.
             """)))
 

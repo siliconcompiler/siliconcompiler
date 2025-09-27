@@ -165,7 +165,7 @@ It should look something like this:
 
 See :ref:`Quickstart guide <quickstart_guide>` next to go through the design and run details of the quick demo above.
 
-.. _External Tools:
+.. _external_tools:
 
 External Tools
 --------------

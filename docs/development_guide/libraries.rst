@@ -74,9 +74,9 @@ To use either of these libraries in your design, you would instantiate the class
 
   project = siliconcompiler.ASICProject()
 
-  # Instantiate and add the soft IP library.
-  soft_ip_lib = FakeHardIPLibrary()
-  project.add_asiclib(soft_ip_lib)
+  # Instantiate and add the hard IP library.
+  hard_ip_lib = FakeHardIPLibrary()
+  project.add_asiclib(hard_ip_lib)
 
   # Now, the 'fakeip' will be included during compilation.
   # project.run()
