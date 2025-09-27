@@ -48,7 +48,6 @@ rst_epilog = f"""
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinx.ext.autosectionlabel',
     'sphinx.ext.autodoc',
     'sphinx.ext.napoleon',
     'sphinx.ext.imgconverter',
@@ -71,7 +70,7 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store', '.venv/**']
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = 'friendly'
 
-suppress_warnings = ['autosectionlabel.*']
+suppress_warnings = []
 
 # -- Options for HTML output -------------------------------------------------
 

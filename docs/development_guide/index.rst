@@ -1,4 +1,4 @@
-.. _advanced:
+.. _advanced_guide:
 
 ###############
 Advanced Guide

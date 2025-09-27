@@ -1,4 +1,4 @@
-.. _remote-processing:
+.. _remote_processing:
 
 Guide to Remote Compilation
 ===========================
@@ -97,4 +97,4 @@ Troubleshooting
 For Developers: Custom Servers
 ------------------------------
 
-If you are interested in deploying your own custom server, we provide a minimal example development server that can be used as a starting point: ``sc-server`` using the :ref:`remote API <Server API>`.
+If you are interested in deploying your own custom server, we provide a minimal example development server that can be used as a starting point: :ref:`sc-server <app-sc-server>` using the :ref:`remote API <server_api>`.

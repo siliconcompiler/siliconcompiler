@@ -61,6 +61,8 @@ We will use the :class:`.StdCellLibrary` because it is a physical, foundational 
                   # Helper to associate the file with a specific corner.
                   self.add_asic_libcornerfileset("typical", "nldm")
 
+.. _lib_example1_using:
+
 Using the Library
 ^^^^^^^^^^^^^^^^^
 
@@ -104,6 +106,8 @@ This example shows how to define a library for a soft IP core, which is just a r
           # will be passed to the synthesis tool.
           with self.active_dataroot("fakedata"), self.active_fileset("rtl"):
                   self.add_file("rtl/fakeip.v")
+
+.. _lib_example2_using:
 
 Using the Library
 ^^^^^^^^^^^^^^^^^

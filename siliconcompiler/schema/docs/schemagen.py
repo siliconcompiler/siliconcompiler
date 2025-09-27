@@ -429,7 +429,8 @@ class AutoSummaryGen(SphinxDirective):
 
     option_spec = {
         'class': str,
-        'noschema': directives.flag
+        'noschema': directives.flag,
+        'title': str
     }
 
     def run(self):
@@ -474,7 +475,9 @@ class AutoSummaryGen(SphinxDirective):
         p = para("")
         parse_rst(self.state, "\n".join(autosum), p, __file__)
 
-        section = build_section(cls, "autosummary" + self.options['class'])
+        title = self.options.get("title", cls) or cls
+
+        section = build_section(title, "autosummary" + self.options['class'])
         section += p
 
         return [section]
