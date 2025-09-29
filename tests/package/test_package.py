@@ -159,8 +159,10 @@ def test_file_env_var_with_scheme():
 def test_file_env_var_start_with_root():
     class Project:
         __cwd = "thiscwd"
+
         def valid(*_args, **_kwargs):  # keep interface, silence linters
             return False
+
     resolver = FileResolver("test", Project(), "$THIS_PATH/hello")
     assert resolver.source == "file://$THIS_PATH/hello"
     assert resolver.urlpath == "$THIS_PATH/hello"
@@ -170,6 +172,7 @@ def test_file_env_var_brace_form():
     resolver = FileResolver("test", None, "${THIS_PATH}/hello")
     assert resolver.source == "file://${THIS_PATH}/hello"
     assert resolver.urlpath == "${THIS_PATH}/hello"
+
 
 def test_cache_id_different_name():
     res0 = Resolver("testpath0", Project("testproj"), "file://.", reference="ref")
