@@ -399,7 +399,7 @@ class PathSchema(PathSchemaBase):
         if dataroot and dataroot not in schema.getkeys("dataroot"):
             raise ValueError(f"{dataroot} is not a recognized dataroot")
 
-        with self._active(package=dataroot):
+        with schema._active(package=dataroot):
             yield
 
     def _get_active_dataroot(self, user_dataroot: str) -> str:
@@ -430,11 +430,11 @@ class PathSchema(PathSchemaBase):
         if user_dataroot is not None:
             return user_dataroot
 
-        active_dataroot = self._get_active("package")
+        schema = self.__dataroot_section()
+
+        active_dataroot = schema._get_active("package")
         if active_dataroot:
             return active_dataroot
-
-        schema = self.__dataroot_section()
 
         if not schema.valid("dataroot"):
             return None

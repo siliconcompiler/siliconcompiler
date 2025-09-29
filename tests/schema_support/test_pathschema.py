@@ -634,8 +634,12 @@ def test_dataroot_section_above_active():
     schema_base.set_dataroot("test", __file__)
 
     with schema.active_dataroot("test"):
-        assert schema_base._get_active("package") is None
-        assert schema._get_active("package") == "test"
+        assert schema_base._get_active("package") == "test"
+        assert schema._get_active("package") is None
+
+    with schema_base.active_dataroot("test"):
+        assert schema_base._get_active("package") == "test"
+        assert schema._get_active("package") is None
 
 
 def test_find_files_dataroot_resolvers_no_roots():
