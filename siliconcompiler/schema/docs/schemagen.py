@@ -174,14 +174,14 @@ class SchemaGen(SphinxDirective):
         mod = importlib.import_module(module)
 
         schema_clss = []
-        if "*" in cls:
+        if any(ch in cls for ch in "*?[]"):
             for attr in dir(mod):
                 if fnmatch.fnmatch(attr, cls):
                     candidate = getattr(mod, attr)
                     if inspect.isclass(candidate) and issubclass(candidate, BaseSchema):
                         schema_clss.append(candidate)
 
-            schema_clss = sorted(schema_clss, key=lambda cls: cls.__name__)
+            schema_clss = sorted(schema_clss, key=lambda c: c.__name__)
 
             if not schema_clss:
                 raise AttributeError(
