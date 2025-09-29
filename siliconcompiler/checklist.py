@@ -320,7 +320,7 @@ def schema_checklist(schema):
                 "cli: -checklist_rationale 'ISO D000 reliability'",
                 "api: check.set('checklist', 'ISO', 'D000', 'rationale', 'reliability')"],
             help=trim("""
-            Rationale for the the checklist item. Rationale should be a
+            Rationale for the checklist item. Rationale should be a
             unique alphanumeric code used by the standard or a short one line
             or single word description.""")))
 
