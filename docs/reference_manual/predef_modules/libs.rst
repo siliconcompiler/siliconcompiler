@@ -116,11 +116,7 @@ Memory Libraries
   :root: lambdapdk.asap7.libs.fakeram7/FakeRAM7_sp_8192x64
 
 .. schema::
-  :root: lambdapdk.asap7.libs.fakeram7/FakeRAM7Lambdalib_SinglePort
-  :key_offset: Design
-
-.. schema::
-  :root: lambdapdk.asap7.libs.fakeram7/FakeRAM7Lambdalib_DoublePort
+  :root: lambdapdk.asap7.libs.fakeram7/FakeRAM7Lambdalib_*
   :key_offset: Design
 
 IO Libraries
@@ -128,6 +124,10 @@ IO Libraries
 
 .. schema::
   :root: lambdapdk.asap7.libs.fakeio7/FakeIO7Library
+
+.. schema::
+  :root: lambdapdk.asap7.libs.fakeio7/FakeIO7Lambdalib_la_*
+  :key_offset: Design
 
 Chip Kit Libraries
 ^^^^^^^^^^^^^^^^^^
@@ -230,6 +230,10 @@ IO Libraries
 .. schema::
   :root: lambdapdk.gf180.libs.gf180io/GF180_IO_5LM
 
+.. schema::
+  :root: lambdapdk.gf180.libs.gf180io/GF180Lambdalib_la_*
+  :key_offset: Design
+
 ihp130
 ------
 
@@ -276,6 +280,10 @@ IO Libraries
 .. schema::
   :root: lambdapdk.ihp130.libs.sg13g2_io/IHP130_IO_1p5
 
+.. schema::
+  :root: lambdapdk.ihp130.libs.sg13g2_io/IHP130Lambdalib_la_*
+  :key_offset: Design
+
 interposer
 ----------
 
@@ -312,3 +320,7 @@ IO Libraries
 
 .. schema::
   :root: lambdapdk.sky130.libs.sky130io/Sky130_IOLibrary
+
+.. schema::
+  :root: lambdapdk.sky130.libs.sky130io/Sky130Lambdalib_la_*
+  :key_offset: Design

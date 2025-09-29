@@ -1,3 +1,4 @@
+import fnmatch
 import graphviz
 import hashlib
 import importlib
@@ -41,16 +42,7 @@ class SchemaGen(SphinxDirective):
     def default_target(cls):
         return nodes.make_id(f"schema-{cls.__module__}.{cls.__name__}")
 
-    def run(self):
-        root = self.options['root']
-
-        logger.info(f'Generating docs for {root}...')
-
-        module, cls = root.split("/")
-        schema_cls = getattr(importlib.import_module(module), cls)
-
-        assert issubclass(schema_cls, BaseSchema)
-
+    def build_cls(self, schema_cls):
         # Mark dependencies
         self.env.note_dependency(inspect.getfile(Parameter))
         for mro_cls in schema_cls.mro():
@@ -78,7 +70,7 @@ class SchemaGen(SphinxDirective):
             if isinstance(schema, NamedSchema):
                 name = schema.name
             if not name:
-                name = cls
+                name = schema_cls.__name__
             if len(schemas) > 1:
                 name = f"{name} / {n}"
                 schema_sec_ref = f"{ref_root}-{n}"
@@ -91,10 +83,10 @@ class SchemaGen(SphinxDirective):
             docstring = None
             docsfile = None
             for mro_cls in schema_cls.mro():
-                docstring = inspect.getdoc(schema_cls)
+                docstring = inspect.getdoc(mro_cls)
                 if docstring:
                     try:
-                        docsfile = inspect.getfile(schema_cls)
+                        docsfile = inspect.getfile(mro_cls)
                     except TypeError:
                         docsfile = None
                     break
@@ -137,7 +129,8 @@ class SchemaGen(SphinxDirective):
                     for method in sorted(doc_methods):
                         cls_ref = nodes.inline('')
                         parse_rst(self.state,
-                                  f".. automethod:: {module}.{cls}.{method}",
+                                  ".. automethod:: "
+                                  f"{schema_cls.__module__}.{schema_cls.__name__}.{method}",
                                   cls_ref,
                                   __file__)
                         methods_sec += cls_ref
@@ -169,6 +162,41 @@ class SchemaGen(SphinxDirective):
                 else:
                     schema_sec += section
             secs.append(schema_sec)
+        return secs
+
+    def run(self):
+        root = self.options['root']
+
+        logger.info(f'Generating docs for {root}...')
+
+        module, cls = root.split("/")
+
+        mod = importlib.import_module(module)
+
+        schema_clss = []
+        if any(ch in cls for ch in "*?[]"):
+            for attr in dir(mod):
+                if fnmatch.fnmatch(attr, cls):
+                    candidate = getattr(mod, attr)
+                    if inspect.isclass(candidate) and issubclass(candidate, BaseSchema):
+                        schema_clss.append(candidate)
+
+            schema_clss = sorted(schema_clss, key=lambda c: c.__name__)
+
+            if not schema_clss:
+                raise AttributeError(
+                    f'No BaseSchema subclasses in module "{module}" match pattern "{cls}"')
+        else:
+            schema_cls = getattr(mod, cls)
+
+            assert issubclass(schema_cls, BaseSchema)
+
+            schema_clss.append(schema_cls)
+
+        secs = []
+
+        for schema_cls in schema_clss:
+            secs.extend(self.build_cls(schema_cls))
 
         return secs
 
