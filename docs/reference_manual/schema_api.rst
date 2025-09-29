@@ -98,7 +98,7 @@ User Classes
     :show-inheritance:
     :inherited-members:
 
-.. autoclass:: siliconcompiler.FPGA
+.. autoclass:: siliconcompiler.FPGADevice
     :members:
     :show-inheritance:
     :inherited-members:

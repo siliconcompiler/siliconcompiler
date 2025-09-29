@@ -232,7 +232,7 @@ def send(project, msg_type, step, index):
 
 if __name__ == "__main__":
     # Example usage for testing the send function
-    from siliconcompiler import Project
+    from siliconcompiler.project import Project
     from siliconcompiler.targets import freepdk45_demo
     project = Project('test')
     project.use(freepdk45_demo)

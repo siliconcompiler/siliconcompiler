@@ -15,7 +15,7 @@ import sys
 import tarfile
 import os.path
 
-from siliconcompiler import Project
+from siliconcompiler.project import Project
 from siliconcompiler.package import Resolver
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler import __version__

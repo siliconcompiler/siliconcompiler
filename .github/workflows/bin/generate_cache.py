@@ -2,7 +2,7 @@ import os
 import sys
 from pathlib import Path
 
-from siliconcompiler import Project
+from siliconcompiler.project import Project
 from lambdapdk.asap7 import ASAP7PDK
 from lambdapdk.ihp130 import IHP130PDK
 # from logiklib.demo.K4_N8_6x6 import K4_N8_6x6

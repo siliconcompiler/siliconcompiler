@@ -257,7 +257,7 @@ class TargetGen(SchemaGen):
     }
 
     def run(self):
-        from siliconcompiler import Project
+        from siliconcompiler.project import Project
 
         root = self.options["root"]
         method = root.split(".")[-1]

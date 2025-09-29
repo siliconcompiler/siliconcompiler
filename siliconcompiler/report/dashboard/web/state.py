@@ -20,7 +20,7 @@ import os
 import streamlit
 import streamlit_javascript
 
-from siliconcompiler import Project
+from siliconcompiler.project import Project
 
 # --- State Keys ---
 # These constants define the keys used to store and access data in

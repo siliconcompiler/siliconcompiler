@@ -5,7 +5,7 @@ from argparse import ArgumentParser
 
 import pandas as pd
 
-from siliconcompiler import Project, ASICProject, FPGAProject, LintProject, SimProject
+from siliconcompiler.project import Project, ASICProject, FPGAProject, LintProject, SimProject
 from siliconcompiler import Design, PDK, Flowgraph, Checklist, StdCellLibrary, FPGADevice
 from siliconcompiler.tool import Task, ShowTask, ScreenshotTask
 from siliconcompiler.asic import ASICTask

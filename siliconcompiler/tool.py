@@ -1828,7 +1828,8 @@ class Task(NamedSchema, PathSchema, DocsSchema):
     ###############################################################
     @classmethod
     def make_docs(cls):
-        from siliconcompiler import Flowgraph, Design, Project
+        from siliconcompiler.project import Project
+        from siliconcompiler import Flowgraph, Design
         from siliconcompiler.scheduler import SchedulerNode
         design = Design("<design>")
         with design.active_fileset("docs"):
