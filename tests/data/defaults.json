@@ -17755,468 +17755,6 @@
           }
         }
       },
-      "package": {
-        "version": {
-          "type": "str",
-          "require": false,
-          "scope": "global",
-          "lock": false,
-          "switch": [
-            "-package_version <str>"
-          ],
-          "shorthelp": "Package: version",
-          "example": [
-            "cli: -package_version 1.0",
-            "api: schema.set('package', 'version', '1.0')"
-          ],
-          "help": "Package version. Can be a branch, tag, commit hash,\nor a semver compatible version.",
-          "notes": null,
-          "pernode": "never",
-          "node": {
-            "default": {
-              "default": {
-                "value": null,
-                "signature": null
-              }
-            }
-          }
-        },
-        "vendor": {
-          "type": "str",
-          "require": false,
-          "scope": "global",
-          "lock": false,
-          "switch": [
-            "-package_vendor <str>"
-          ],
-          "shorthelp": "Package: vendor",
-          "example": [
-            "cli: -package_vendor acme",
-            "api: schema.set('package', 'vendor', 'acme')"
-          ],
-          "help": "Package vendor.",
-          "notes": null,
-          "pernode": "never",
-          "node": {
-            "default": {
-              "default": {
-                "value": null,
-                "signature": null
-              }
-            }
-          }
-        },
-        "description": {
-          "type": "str",
-          "require": false,
-          "scope": "global",
-          "lock": false,
-          "switch": [
-            "-package_description <str>"
-          ],
-          "shorthelp": "Package: description",
-          "example": [
-            "cli: -package_description 'Yet another cpu'",
-            "api: schema.set('package', 'description', 'Yet another cpu')"
-          ],
-          "help": "Package short one line description for package\nmanagers and summary reports.",
-          "notes": null,
-          "pernode": "never",
-          "node": {
-            "default": {
-              "default": {
-                "value": null,
-                "signature": null
-              }
-            }
-          }
-        },
-        "doc": {
-          "datasheet": {
-            "type": "[file]",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-package_doc_datasheet <file>"
-            ],
-            "shorthelp": "Package: datasheet document",
-            "example": [
-              "cli: -package_doc_datasheet datasheet.pdf",
-              "api: schema.set('package', 'doc', 'datasheet', 'datasheet.pdf')"
-            ],
-            "help": "Package list of datasheet documents.",
-            "notes": null,
-            "pernode": "never",
-            "node": {
-              "default": {
-                "default": {
-                  "value": [],
-                  "signature": [],
-                  "filehash": [],
-                  "package": [],
-                  "date": [],
-                  "author": []
-                }
-              }
-            },
-            "hashalgo": "sha256",
-            "copy": false
-          },
-          "reference": {
-            "type": "[file]",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-package_doc_reference <file>"
-            ],
-            "shorthelp": "Package: reference document",
-            "example": [
-              "cli: -package_doc_reference reference.pdf",
-              "api: schema.set('package', 'doc', 'reference', 'reference.pdf')"
-            ],
-            "help": "Package list of reference documents.",
-            "notes": null,
-            "pernode": "never",
-            "node": {
-              "default": {
-                "default": {
-                  "value": [],
-                  "signature": [],
-                  "filehash": [],
-                  "package": [],
-                  "date": [],
-                  "author": []
-                }
-              }
-            },
-            "hashalgo": "sha256",
-            "copy": false
-          },
-          "userguide": {
-            "type": "[file]",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-package_doc_userguide <file>"
-            ],
-            "shorthelp": "Package: userguide document",
-            "example": [
-              "cli: -package_doc_userguide userguide.pdf",
-              "api: schema.set('package', 'doc', 'userguide', 'userguide.pdf')"
-            ],
-            "help": "Package list of userguide documents.",
-            "notes": null,
-            "pernode": "never",
-            "node": {
-              "default": {
-                "default": {
-                  "value": [],
-                  "signature": [],
-                  "filehash": [],
-                  "package": [],
-                  "date": [],
-                  "author": []
-                }
-              }
-            },
-            "hashalgo": "sha256",
-            "copy": false
-          },
-          "quickstart": {
-            "type": "[file]",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-package_doc_quickstart <file>"
-            ],
-            "shorthelp": "Package: quickstart document",
-            "example": [
-              "cli: -package_doc_quickstart quickstart.pdf",
-              "api: schema.set('package', 'doc', 'quickstart', 'quickstart.pdf')"
-            ],
-            "help": "Package list of quickstart documents.",
-            "notes": null,
-            "pernode": "never",
-            "node": {
-              "default": {
-                "default": {
-                  "value": [],
-                  "signature": [],
-                  "filehash": [],
-                  "package": [],
-                  "date": [],
-                  "author": []
-                }
-              }
-            },
-            "hashalgo": "sha256",
-            "copy": false
-          },
-          "releasenotes": {
-            "type": "[file]",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-package_doc_releasenotes <file>"
-            ],
-            "shorthelp": "Package: releasenotes document",
-            "example": [
-              "cli: -package_doc_releasenotes releasenotes.pdf",
-              "api: schema.set('package', 'doc', 'releasenotes', 'releasenotes.pdf')"
-            ],
-            "help": "Package list of releasenotes documents.",
-            "notes": null,
-            "pernode": "never",
-            "node": {
-              "default": {
-                "default": {
-                  "value": [],
-                  "signature": [],
-                  "filehash": [],
-                  "package": [],
-                  "date": [],
-                  "author": []
-                }
-              }
-            },
-            "hashalgo": "sha256",
-            "copy": false
-          },
-          "testplan": {
-            "type": "[file]",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-package_doc_testplan <file>"
-            ],
-            "shorthelp": "Package: testplan document",
-            "example": [
-              "cli: -package_doc_testplan testplan.pdf",
-              "api: schema.set('package', 'doc', 'testplan', 'testplan.pdf')"
-            ],
-            "help": "Package list of testplan documents.",
-            "notes": null,
-            "pernode": "never",
-            "node": {
-              "default": {
-                "default": {
-                  "value": [],
-                  "signature": [],
-                  "filehash": [],
-                  "package": [],
-                  "date": [],
-                  "author": []
-                }
-              }
-            },
-            "hashalgo": "sha256",
-            "copy": false
-          },
-          "signoff": {
-            "type": "[file]",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-package_doc_signoff <file>"
-            ],
-            "shorthelp": "Package: signoff document",
-            "example": [
-              "cli: -package_doc_signoff signoff.pdf",
-              "api: schema.set('package', 'doc', 'signoff', 'signoff.pdf')"
-            ],
-            "help": "Package list of signoff documents.",
-            "notes": null,
-            "pernode": "never",
-            "node": {
-              "default": {
-                "default": {
-                  "value": [],
-                  "signature": [],
-                  "filehash": [],
-                  "package": [],
-                  "date": [],
-                  "author": []
-                }
-              }
-            },
-            "hashalgo": "sha256",
-            "copy": false
-          },
-          "tutorial": {
-            "type": "[file]",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-package_doc_tutorial <file>"
-            ],
-            "shorthelp": "Package: tutorial document",
-            "example": [
-              "cli: -package_doc_tutorial tutorial.pdf",
-              "api: schema.set('package', 'doc', 'tutorial', 'tutorial.pdf')"
-            ],
-            "help": "Package list of tutorial documents.",
-            "notes": null,
-            "pernode": "never",
-            "node": {
-              "default": {
-                "default": {
-                  "value": [],
-                  "signature": [],
-                  "filehash": [],
-                  "package": [],
-                  "date": [],
-                  "author": []
-                }
-              }
-            },
-            "hashalgo": "sha256",
-            "copy": false
-          }
-        },
-        "license": {
-          "type": "[str]",
-          "require": false,
-          "scope": "global",
-          "lock": false,
-          "switch": [
-            "-package_license <str>"
-          ],
-          "shorthelp": "Package: license identifiers",
-          "example": [
-            "cli: -package_license 'Apache-2.0'",
-            "api: schema.set('package', 'license', 'Apache-2.0')"
-          ],
-          "help": "Package list of SPDX license identifiers.",
-          "notes": null,
-          "pernode": "never",
-          "node": {
-            "default": {
-              "default": {
-                "value": [],
-                "signature": []
-              }
-            }
-          }
-        },
-        "licensefile": {
-          "type": "[file]",
-          "require": false,
-          "scope": "global",
-          "lock": false,
-          "switch": [
-            "-package_licensefile <file>"
-          ],
-          "shorthelp": "Package: license files",
-          "example": [
-            "cli: -package_licensefile './LICENSE'",
-            "api: schema.set('package', 'licensefile', './LICENSE')"
-          ],
-          "help": "Package list of license files for to be\napplied in cases when a SPDX identifier is not available.\n(eg. proprietary licenses).",
-          "notes": null,
-          "pernode": "never",
-          "node": {
-            "default": {
-              "default": {
-                "value": [],
-                "signature": [],
-                "filehash": [],
-                "package": [],
-                "date": [],
-                "author": []
-              }
-            }
-          },
-          "hashalgo": "sha256",
-          "copy": false
-        },
-        "author": {
-          "default": {
-            "name": {
-              "type": "str",
-              "require": false,
-              "scope": "global",
-              "lock": false,
-              "switch": [
-                "-package_author_name 'userid <str>'"
-              ],
-              "shorthelp": "Package: author name",
-              "example": [
-                "cli: -package_author_name 'wiley wiley@acme.com'",
-                "api: schema.set('package', 'author', 'wiley', 'name', 'wiley@acme.com')"
-              ],
-              "help": "Package author name provided with full name as key and\nname as value.",
-              "notes": null,
-              "pernode": "never",
-              "node": {
-                "default": {
-                  "default": {
-                    "value": null,
-                    "signature": null
-                  }
-                }
-              }
-            },
-            "email": {
-              "type": "str",
-              "require": false,
-              "scope": "global",
-              "lock": false,
-              "switch": [
-                "-package_author_email 'userid <str>'"
-              ],
-              "shorthelp": "Package: author email",
-              "example": [
-                "cli: -package_author_email 'wiley wiley@acme.com'",
-                "api: schema.set('package', 'author', 'wiley', 'email', 'wiley@acme.com')"
-              ],
-              "help": "Package author email provided with full name as key and\nemail as value.",
-              "notes": null,
-              "pernode": "never",
-              "node": {
-                "default": {
-                  "default": {
-                    "value": null,
-                    "signature": null
-                  }
-                }
-              }
-            },
-            "organization": {
-              "type": "str",
-              "require": false,
-              "scope": "global",
-              "lock": false,
-              "switch": [
-                "-package_author_organization 'userid <str>'"
-              ],
-              "shorthelp": "Package: author organization",
-              "example": [
-                "cli: -package_author_organization 'wiley wiley@acme.com'",
-                "api: schema.set('package', 'author', 'wiley', 'organization', 'wiley@acme.com')"
-              ],
-              "help": "Package author organization provided with full name as key and\norganization as value.",
-              "notes": null,
-              "pernode": "never",
-              "node": {
-                "default": {
-                  "default": {
-                    "value": null,
-                    "signature": null
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
       "fileset": {
         "default": {
           "file": {
@@ -18440,6 +17978,472 @@
           }
         }
       },
+      "package": {
+        "version": {
+          "type": "str",
+          "require": false,
+          "scope": "global",
+          "lock": false,
+          "switch": [
+            "-package_version <str>"
+          ],
+          "shorthelp": "Package: version",
+          "example": [
+            "cli: -package_version 1.0",
+            "api: schema.set('version', '1.0')"
+          ],
+          "help": "Package version. Can be a branch, tag, commit hash,\nor a semver compatible version.",
+          "notes": null,
+          "pernode": "never",
+          "node": {
+            "default": {
+              "default": {
+                "value": null,
+                "signature": null
+              }
+            }
+          }
+        },
+        "vendor": {
+          "type": "str",
+          "require": false,
+          "scope": "global",
+          "lock": false,
+          "switch": [
+            "-package_vendor <str>"
+          ],
+          "shorthelp": "Package: vendor",
+          "example": [
+            "cli: -package_vendor acme",
+            "api: schema.set('vendor', 'acme')"
+          ],
+          "help": "Package vendor.",
+          "notes": null,
+          "pernode": "never",
+          "node": {
+            "default": {
+              "default": {
+                "value": null,
+                "signature": null
+              }
+            }
+          }
+        },
+        "description": {
+          "type": "str",
+          "require": false,
+          "scope": "global",
+          "lock": false,
+          "switch": [
+            "-package_description <str>"
+          ],
+          "shorthelp": "Package: description",
+          "example": [
+            "cli: -package_description 'Yet another cpu'",
+            "api: schema.set('description', 'Yet another cpu')"
+          ],
+          "help": "Package short one line description for package\nmanagers and summary reports.",
+          "notes": null,
+          "pernode": "never",
+          "node": {
+            "default": {
+              "default": {
+                "value": null,
+                "signature": null
+              }
+            }
+          }
+        },
+        "doc": {
+          "datasheet": {
+            "type": "[file]",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-package_doc_datasheet <file>"
+            ],
+            "shorthelp": "Package: datasheet document",
+            "example": [
+              "cli: -package_doc_datasheet datasheet.pdf",
+              "api: schema.set('doc', 'datasheet', 'datasheet.pdf')"
+            ],
+            "help": "Package list of datasheet documents.",
+            "notes": null,
+            "pernode": "never",
+            "node": {
+              "default": {
+                "default": {
+                  "value": [],
+                  "signature": [],
+                  "filehash": [],
+                  "package": [],
+                  "date": [],
+                  "author": []
+                }
+              }
+            },
+            "hashalgo": "sha256",
+            "copy": false
+          },
+          "reference": {
+            "type": "[file]",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-package_doc_reference <file>"
+            ],
+            "shorthelp": "Package: reference document",
+            "example": [
+              "cli: -package_doc_reference reference.pdf",
+              "api: schema.set('doc', 'reference', 'reference.pdf')"
+            ],
+            "help": "Package list of reference documents.",
+            "notes": null,
+            "pernode": "never",
+            "node": {
+              "default": {
+                "default": {
+                  "value": [],
+                  "signature": [],
+                  "filehash": [],
+                  "package": [],
+                  "date": [],
+                  "author": []
+                }
+              }
+            },
+            "hashalgo": "sha256",
+            "copy": false
+          },
+          "userguide": {
+            "type": "[file]",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-package_doc_userguide <file>"
+            ],
+            "shorthelp": "Package: userguide document",
+            "example": [
+              "cli: -package_doc_userguide userguide.pdf",
+              "api: schema.set('doc', 'userguide', 'userguide.pdf')"
+            ],
+            "help": "Package list of userguide documents.",
+            "notes": null,
+            "pernode": "never",
+            "node": {
+              "default": {
+                "default": {
+                  "value": [],
+                  "signature": [],
+                  "filehash": [],
+                  "package": [],
+                  "date": [],
+                  "author": []
+                }
+              }
+            },
+            "hashalgo": "sha256",
+            "copy": false
+          },
+          "quickstart": {
+            "type": "[file]",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-package_doc_quickstart <file>"
+            ],
+            "shorthelp": "Package: quickstart document",
+            "example": [
+              "cli: -package_doc_quickstart quickstart.pdf",
+              "api: schema.set('doc', 'quickstart', 'quickstart.pdf')"
+            ],
+            "help": "Package list of quickstart documents.",
+            "notes": null,
+            "pernode": "never",
+            "node": {
+              "default": {
+                "default": {
+                  "value": [],
+                  "signature": [],
+                  "filehash": [],
+                  "package": [],
+                  "date": [],
+                  "author": []
+                }
+              }
+            },
+            "hashalgo": "sha256",
+            "copy": false
+          },
+          "releasenotes": {
+            "type": "[file]",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-package_doc_releasenotes <file>"
+            ],
+            "shorthelp": "Package: releasenotes document",
+            "example": [
+              "cli: -package_doc_releasenotes releasenotes.pdf",
+              "api: schema.set('doc', 'releasenotes', 'releasenotes.pdf')"
+            ],
+            "help": "Package list of releasenotes documents.",
+            "notes": null,
+            "pernode": "never",
+            "node": {
+              "default": {
+                "default": {
+                  "value": [],
+                  "signature": [],
+                  "filehash": [],
+                  "package": [],
+                  "date": [],
+                  "author": []
+                }
+              }
+            },
+            "hashalgo": "sha256",
+            "copy": false
+          },
+          "testplan": {
+            "type": "[file]",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-package_doc_testplan <file>"
+            ],
+            "shorthelp": "Package: testplan document",
+            "example": [
+              "cli: -package_doc_testplan testplan.pdf",
+              "api: schema.set('doc', 'testplan', 'testplan.pdf')"
+            ],
+            "help": "Package list of testplan documents.",
+            "notes": null,
+            "pernode": "never",
+            "node": {
+              "default": {
+                "default": {
+                  "value": [],
+                  "signature": [],
+                  "filehash": [],
+                  "package": [],
+                  "date": [],
+                  "author": []
+                }
+              }
+            },
+            "hashalgo": "sha256",
+            "copy": false
+          },
+          "signoff": {
+            "type": "[file]",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-package_doc_signoff <file>"
+            ],
+            "shorthelp": "Package: signoff document",
+            "example": [
+              "cli: -package_doc_signoff signoff.pdf",
+              "api: schema.set('doc', 'signoff', 'signoff.pdf')"
+            ],
+            "help": "Package list of signoff documents.",
+            "notes": null,
+            "pernode": "never",
+            "node": {
+              "default": {
+                "default": {
+                  "value": [],
+                  "signature": [],
+                  "filehash": [],
+                  "package": [],
+                  "date": [],
+                  "author": []
+                }
+              }
+            },
+            "hashalgo": "sha256",
+            "copy": false
+          },
+          "tutorial": {
+            "type": "[file]",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-package_doc_tutorial <file>"
+            ],
+            "shorthelp": "Package: tutorial document",
+            "example": [
+              "cli: -package_doc_tutorial tutorial.pdf",
+              "api: schema.set('doc', 'tutorial', 'tutorial.pdf')"
+            ],
+            "help": "Package list of tutorial documents.",
+            "notes": null,
+            "pernode": "never",
+            "node": {
+              "default": {
+                "default": {
+                  "value": [],
+                  "signature": [],
+                  "filehash": [],
+                  "package": [],
+                  "date": [],
+                  "author": []
+                }
+              }
+            },
+            "hashalgo": "sha256",
+            "copy": false
+          }
+        },
+        "license": {
+          "type": "[str]",
+          "require": false,
+          "scope": "global",
+          "lock": false,
+          "switch": [
+            "-package_license <str>"
+          ],
+          "shorthelp": "Package: license identifiers",
+          "example": [
+            "cli: -package_license 'Apache-2.0'",
+            "api: schema.set('license', 'Apache-2.0')"
+          ],
+          "help": "Package list of SPDX license identifiers.",
+          "notes": null,
+          "pernode": "never",
+          "node": {
+            "default": {
+              "default": {
+                "value": [],
+                "signature": []
+              }
+            }
+          }
+        },
+        "licensefile": {
+          "type": "[file]",
+          "require": false,
+          "scope": "global",
+          "lock": false,
+          "switch": [
+            "-package_licensefile <file>"
+          ],
+          "shorthelp": "Package: license files",
+          "example": [
+            "cli: -package_licensefile './LICENSE'",
+            "api: schema.set('licensefile', './LICENSE')"
+          ],
+          "help": "Package list of license files for to be\napplied in cases when a SPDX identifier is not available.\n(eg. proprietary licenses).",
+          "notes": null,
+          "pernode": "never",
+          "node": {
+            "default": {
+              "default": {
+                "value": [],
+                "signature": [],
+                "filehash": [],
+                "package": [],
+                "date": [],
+                "author": []
+              }
+            }
+          },
+          "hashalgo": "sha256",
+          "copy": false
+        },
+        "author": {
+          "default": {
+            "name": {
+              "type": "str",
+              "require": false,
+              "scope": "global",
+              "lock": false,
+              "switch": [
+                "-package_author_name 'userid <str>'"
+              ],
+              "shorthelp": "Package: author name",
+              "example": [
+                "cli: -package_author_name 'wiley wiley@acme.com'",
+                "api: schema.set('author', 'wiley', 'name', 'wiley@acme.com')"
+              ],
+              "help": "Package author name provided with full name as key and\nname as value.",
+              "notes": null,
+              "pernode": "never",
+              "node": {
+                "default": {
+                  "default": {
+                    "value": null,
+                    "signature": null
+                  }
+                }
+              }
+            },
+            "email": {
+              "type": "str",
+              "require": false,
+              "scope": "global",
+              "lock": false,
+              "switch": [
+                "-package_author_email 'userid <str>'"
+              ],
+              "shorthelp": "Package: author email",
+              "example": [
+                "cli: -package_author_email 'wiley wiley@acme.com'",
+                "api: schema.set('author', 'wiley', 'email', 'wiley@acme.com')"
+              ],
+              "help": "Package author email provided with full name as key and\nemail as value.",
+              "notes": null,
+              "pernode": "never",
+              "node": {
+                "default": {
+                  "default": {
+                    "value": null,
+                    "signature": null
+                  }
+                }
+              }
+            },
+            "organization": {
+              "type": "str",
+              "require": false,
+              "scope": "global",
+              "lock": false,
+              "switch": [
+                "-package_author_organization 'userid <str>'"
+              ],
+              "shorthelp": "Package: author organization",
+              "example": [
+                "cli: -package_author_organization 'wiley wiley@acme.com'",
+                "api: schema.set('author', 'wiley', 'organization', 'wiley@acme.com')"
+              ],
+              "help": "Package author organization provided with full name as key and\norganization as value.",
+              "notes": null,
+              "pernode": "never",
+              "node": {
+                "default": {
+                  "default": {
+                    "value": null,
+                    "signature": null
+                  }
+                }
+              }
+            }
+          }
+        },
+        "__meta__": {
+          "class": "siliconcompiler.schema_support.packageschema/PackageSchema",
+          "sctype": "PackageSchema"
+        }
+      },
       "__meta__": {
         "class": "siliconcompiler.design/Design",
         "sctype": "Design"
@@ -18494,468 +18498,6 @@
           }
         }
       },
-      "package": {
-        "version": {
-          "type": "str",
-          "require": false,
-          "scope": "global",
-          "lock": false,
-          "switch": [
-            "-package_version <str>"
-          ],
-          "shorthelp": "Package: version",
-          "example": [
-            "cli: -package_version 1.0",
-            "api: schema.set('package', 'version', '1.0')"
-          ],
-          "help": "Package version. Can be a branch, tag, commit hash,\nor a semver compatible version.",
-          "notes": null,
-          "pernode": "never",
-          "node": {
-            "default": {
-              "default": {
-                "value": null,
-                "signature": null
-              }
-            }
-          }
-        },
-        "vendor": {
-          "type": "str",
-          "require": false,
-          "scope": "global",
-          "lock": false,
-          "switch": [
-            "-package_vendor <str>"
-          ],
-          "shorthelp": "Package: vendor",
-          "example": [
-            "cli: -package_vendor acme",
-            "api: schema.set('package', 'vendor', 'acme')"
-          ],
-          "help": "Package vendor.",
-          "notes": null,
-          "pernode": "never",
-          "node": {
-            "default": {
-              "default": {
-                "value": null,
-                "signature": null
-              }
-            }
-          }
-        },
-        "description": {
-          "type": "str",
-          "require": false,
-          "scope": "global",
-          "lock": false,
-          "switch": [
-            "-package_description <str>"
-          ],
-          "shorthelp": "Package: description",
-          "example": [
-            "cli: -package_description 'Yet another cpu'",
-            "api: schema.set('package', 'description', 'Yet another cpu')"
-          ],
-          "help": "Package short one line description for package\nmanagers and summary reports.",
-          "notes": null,
-          "pernode": "never",
-          "node": {
-            "default": {
-              "default": {
-                "value": null,
-                "signature": null
-              }
-            }
-          }
-        },
-        "doc": {
-          "datasheet": {
-            "type": "[file]",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-package_doc_datasheet <file>"
-            ],
-            "shorthelp": "Package: datasheet document",
-            "example": [
-              "cli: -package_doc_datasheet datasheet.pdf",
-              "api: schema.set('package', 'doc', 'datasheet', 'datasheet.pdf')"
-            ],
-            "help": "Package list of datasheet documents.",
-            "notes": null,
-            "pernode": "never",
-            "node": {
-              "default": {
-                "default": {
-                  "value": [],
-                  "signature": [],
-                  "filehash": [],
-                  "package": [],
-                  "date": [],
-                  "author": []
-                }
-              }
-            },
-            "hashalgo": "sha256",
-            "copy": false
-          },
-          "reference": {
-            "type": "[file]",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-package_doc_reference <file>"
-            ],
-            "shorthelp": "Package: reference document",
-            "example": [
-              "cli: -package_doc_reference reference.pdf",
-              "api: schema.set('package', 'doc', 'reference', 'reference.pdf')"
-            ],
-            "help": "Package list of reference documents.",
-            "notes": null,
-            "pernode": "never",
-            "node": {
-              "default": {
-                "default": {
-                  "value": [],
-                  "signature": [],
-                  "filehash": [],
-                  "package": [],
-                  "date": [],
-                  "author": []
-                }
-              }
-            },
-            "hashalgo": "sha256",
-            "copy": false
-          },
-          "userguide": {
-            "type": "[file]",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-package_doc_userguide <file>"
-            ],
-            "shorthelp": "Package: userguide document",
-            "example": [
-              "cli: -package_doc_userguide userguide.pdf",
-              "api: schema.set('package', 'doc', 'userguide', 'userguide.pdf')"
-            ],
-            "help": "Package list of userguide documents.",
-            "notes": null,
-            "pernode": "never",
-            "node": {
-              "default": {
-                "default": {
-                  "value": [],
-                  "signature": [],
-                  "filehash": [],
-                  "package": [],
-                  "date": [],
-                  "author": []
-                }
-              }
-            },
-            "hashalgo": "sha256",
-            "copy": false
-          },
-          "quickstart": {
-            "type": "[file]",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-package_doc_quickstart <file>"
-            ],
-            "shorthelp": "Package: quickstart document",
-            "example": [
-              "cli: -package_doc_quickstart quickstart.pdf",
-              "api: schema.set('package', 'doc', 'quickstart', 'quickstart.pdf')"
-            ],
-            "help": "Package list of quickstart documents.",
-            "notes": null,
-            "pernode": "never",
-            "node": {
-              "default": {
-                "default": {
-                  "value": [],
-                  "signature": [],
-                  "filehash": [],
-                  "package": [],
-                  "date": [],
-                  "author": []
-                }
-              }
-            },
-            "hashalgo": "sha256",
-            "copy": false
-          },
-          "releasenotes": {
-            "type": "[file]",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-package_doc_releasenotes <file>"
-            ],
-            "shorthelp": "Package: releasenotes document",
-            "example": [
-              "cli: -package_doc_releasenotes releasenotes.pdf",
-              "api: schema.set('package', 'doc', 'releasenotes', 'releasenotes.pdf')"
-            ],
-            "help": "Package list of releasenotes documents.",
-            "notes": null,
-            "pernode": "never",
-            "node": {
-              "default": {
-                "default": {
-                  "value": [],
-                  "signature": [],
-                  "filehash": [],
-                  "package": [],
-                  "date": [],
-                  "author": []
-                }
-              }
-            },
-            "hashalgo": "sha256",
-            "copy": false
-          },
-          "testplan": {
-            "type": "[file]",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-package_doc_testplan <file>"
-            ],
-            "shorthelp": "Package: testplan document",
-            "example": [
-              "cli: -package_doc_testplan testplan.pdf",
-              "api: schema.set('package', 'doc', 'testplan', 'testplan.pdf')"
-            ],
-            "help": "Package list of testplan documents.",
-            "notes": null,
-            "pernode": "never",
-            "node": {
-              "default": {
-                "default": {
-                  "value": [],
-                  "signature": [],
-                  "filehash": [],
-                  "package": [],
-                  "date": [],
-                  "author": []
-                }
-              }
-            },
-            "hashalgo": "sha256",
-            "copy": false
-          },
-          "signoff": {
-            "type": "[file]",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-package_doc_signoff <file>"
-            ],
-            "shorthelp": "Package: signoff document",
-            "example": [
-              "cli: -package_doc_signoff signoff.pdf",
-              "api: schema.set('package', 'doc', 'signoff', 'signoff.pdf')"
-            ],
-            "help": "Package list of signoff documents.",
-            "notes": null,
-            "pernode": "never",
-            "node": {
-              "default": {
-                "default": {
-                  "value": [],
-                  "signature": [],
-                  "filehash": [],
-                  "package": [],
-                  "date": [],
-                  "author": []
-                }
-              }
-            },
-            "hashalgo": "sha256",
-            "copy": false
-          },
-          "tutorial": {
-            "type": "[file]",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-package_doc_tutorial <file>"
-            ],
-            "shorthelp": "Package: tutorial document",
-            "example": [
-              "cli: -package_doc_tutorial tutorial.pdf",
-              "api: schema.set('package', 'doc', 'tutorial', 'tutorial.pdf')"
-            ],
-            "help": "Package list of tutorial documents.",
-            "notes": null,
-            "pernode": "never",
-            "node": {
-              "default": {
-                "default": {
-                  "value": [],
-                  "signature": [],
-                  "filehash": [],
-                  "package": [],
-                  "date": [],
-                  "author": []
-                }
-              }
-            },
-            "hashalgo": "sha256",
-            "copy": false
-          }
-        },
-        "license": {
-          "type": "[str]",
-          "require": false,
-          "scope": "global",
-          "lock": false,
-          "switch": [
-            "-package_license <str>"
-          ],
-          "shorthelp": "Package: license identifiers",
-          "example": [
-            "cli: -package_license 'Apache-2.0'",
-            "api: schema.set('package', 'license', 'Apache-2.0')"
-          ],
-          "help": "Package list of SPDX license identifiers.",
-          "notes": null,
-          "pernode": "never",
-          "node": {
-            "default": {
-              "default": {
-                "value": [],
-                "signature": []
-              }
-            }
-          }
-        },
-        "licensefile": {
-          "type": "[file]",
-          "require": false,
-          "scope": "global",
-          "lock": false,
-          "switch": [
-            "-package_licensefile <file>"
-          ],
-          "shorthelp": "Package: license files",
-          "example": [
-            "cli: -package_licensefile './LICENSE'",
-            "api: schema.set('package', 'licensefile', './LICENSE')"
-          ],
-          "help": "Package list of license files for to be\napplied in cases when a SPDX identifier is not available.\n(eg. proprietary licenses).",
-          "notes": null,
-          "pernode": "never",
-          "node": {
-            "default": {
-              "default": {
-                "value": [],
-                "signature": [],
-                "filehash": [],
-                "package": [],
-                "date": [],
-                "author": []
-              }
-            }
-          },
-          "hashalgo": "sha256",
-          "copy": false
-        },
-        "author": {
-          "default": {
-            "name": {
-              "type": "str",
-              "require": false,
-              "scope": "global",
-              "lock": false,
-              "switch": [
-                "-package_author_name 'userid <str>'"
-              ],
-              "shorthelp": "Package: author name",
-              "example": [
-                "cli: -package_author_name 'wiley wiley@acme.com'",
-                "api: schema.set('package', 'author', 'wiley', 'name', 'wiley@acme.com')"
-              ],
-              "help": "Package author name provided with full name as key and\nname as value.",
-              "notes": null,
-              "pernode": "never",
-              "node": {
-                "default": {
-                  "default": {
-                    "value": null,
-                    "signature": null
-                  }
-                }
-              }
-            },
-            "email": {
-              "type": "str",
-              "require": false,
-              "scope": "global",
-              "lock": false,
-              "switch": [
-                "-package_author_email 'userid <str>'"
-              ],
-              "shorthelp": "Package: author email",
-              "example": [
-                "cli: -package_author_email 'wiley wiley@acme.com'",
-                "api: schema.set('package', 'author', 'wiley', 'email', 'wiley@acme.com')"
-              ],
-              "help": "Package author email provided with full name as key and\nemail as value.",
-              "notes": null,
-              "pernode": "never",
-              "node": {
-                "default": {
-                  "default": {
-                    "value": null,
-                    "signature": null
-                  }
-                }
-              }
-            },
-            "organization": {
-              "type": "str",
-              "require": false,
-              "scope": "global",
-              "lock": false,
-              "switch": [
-                "-package_author_organization 'userid <str>'"
-              ],
-              "shorthelp": "Package: author organization",
-              "example": [
-                "cli: -package_author_organization 'wiley wiley@acme.com'",
-                "api: schema.set('package', 'author', 'wiley', 'organization', 'wiley@acme.com')"
-              ],
-              "help": "Package author organization provided with full name as key and\norganization as value.",
-              "notes": null,
-              "pernode": "never",
-              "node": {
-                "default": {
-                  "default": {
-                    "value": null,
-                    "signature": null
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
       "fileset": {
         "default": {
           "file": {
@@ -18989,6 +18531,472 @@
               "copy": false
             }
           }
+        }
+      },
+      "package": {
+        "version": {
+          "type": "str",
+          "require": false,
+          "scope": "global",
+          "lock": false,
+          "switch": [
+            "-package_version <str>"
+          ],
+          "shorthelp": "Package: version",
+          "example": [
+            "cli: -package_version 1.0",
+            "api: schema.set('version', '1.0')"
+          ],
+          "help": "Package version. Can be a branch, tag, commit hash,\nor a semver compatible version.",
+          "notes": null,
+          "pernode": "never",
+          "node": {
+            "default": {
+              "default": {
+                "value": null,
+                "signature": null
+              }
+            }
+          }
+        },
+        "vendor": {
+          "type": "str",
+          "require": false,
+          "scope": "global",
+          "lock": false,
+          "switch": [
+            "-package_vendor <str>"
+          ],
+          "shorthelp": "Package: vendor",
+          "example": [
+            "cli: -package_vendor acme",
+            "api: schema.set('vendor', 'acme')"
+          ],
+          "help": "Package vendor.",
+          "notes": null,
+          "pernode": "never",
+          "node": {
+            "default": {
+              "default": {
+                "value": null,
+                "signature": null
+              }
+            }
+          }
+        },
+        "description": {
+          "type": "str",
+          "require": false,
+          "scope": "global",
+          "lock": false,
+          "switch": [
+            "-package_description <str>"
+          ],
+          "shorthelp": "Package: description",
+          "example": [
+            "cli: -package_description 'Yet another cpu'",
+            "api: schema.set('description', 'Yet another cpu')"
+          ],
+          "help": "Package short one line description for package\nmanagers and summary reports.",
+          "notes": null,
+          "pernode": "never",
+          "node": {
+            "default": {
+              "default": {
+                "value": null,
+                "signature": null
+              }
+            }
+          }
+        },
+        "doc": {
+          "datasheet": {
+            "type": "[file]",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-package_doc_datasheet <file>"
+            ],
+            "shorthelp": "Package: datasheet document",
+            "example": [
+              "cli: -package_doc_datasheet datasheet.pdf",
+              "api: schema.set('doc', 'datasheet', 'datasheet.pdf')"
+            ],
+            "help": "Package list of datasheet documents.",
+            "notes": null,
+            "pernode": "never",
+            "node": {
+              "default": {
+                "default": {
+                  "value": [],
+                  "signature": [],
+                  "filehash": [],
+                  "package": [],
+                  "date": [],
+                  "author": []
+                }
+              }
+            },
+            "hashalgo": "sha256",
+            "copy": false
+          },
+          "reference": {
+            "type": "[file]",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-package_doc_reference <file>"
+            ],
+            "shorthelp": "Package: reference document",
+            "example": [
+              "cli: -package_doc_reference reference.pdf",
+              "api: schema.set('doc', 'reference', 'reference.pdf')"
+            ],
+            "help": "Package list of reference documents.",
+            "notes": null,
+            "pernode": "never",
+            "node": {
+              "default": {
+                "default": {
+                  "value": [],
+                  "signature": [],
+                  "filehash": [],
+                  "package": [],
+                  "date": [],
+                  "author": []
+                }
+              }
+            },
+            "hashalgo": "sha256",
+            "copy": false
+          },
+          "userguide": {
+            "type": "[file]",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-package_doc_userguide <file>"
+            ],
+            "shorthelp": "Package: userguide document",
+            "example": [
+              "cli: -package_doc_userguide userguide.pdf",
+              "api: schema.set('doc', 'userguide', 'userguide.pdf')"
+            ],
+            "help": "Package list of userguide documents.",
+            "notes": null,
+            "pernode": "never",
+            "node": {
+              "default": {
+                "default": {
+                  "value": [],
+                  "signature": [],
+                  "filehash": [],
+                  "package": [],
+                  "date": [],
+                  "author": []
+                }
+              }
+            },
+            "hashalgo": "sha256",
+            "copy": false
+          },
+          "quickstart": {
+            "type": "[file]",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-package_doc_quickstart <file>"
+            ],
+            "shorthelp": "Package: quickstart document",
+            "example": [
+              "cli: -package_doc_quickstart quickstart.pdf",
+              "api: schema.set('doc', 'quickstart', 'quickstart.pdf')"
+            ],
+            "help": "Package list of quickstart documents.",
+            "notes": null,
+            "pernode": "never",
+            "node": {
+              "default": {
+                "default": {
+                  "value": [],
+                  "signature": [],
+                  "filehash": [],
+                  "package": [],
+                  "date": [],
+                  "author": []
+                }
+              }
+            },
+            "hashalgo": "sha256",
+            "copy": false
+          },
+          "releasenotes": {
+            "type": "[file]",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-package_doc_releasenotes <file>"
+            ],
+            "shorthelp": "Package: releasenotes document",
+            "example": [
+              "cli: -package_doc_releasenotes releasenotes.pdf",
+              "api: schema.set('doc', 'releasenotes', 'releasenotes.pdf')"
+            ],
+            "help": "Package list of releasenotes documents.",
+            "notes": null,
+            "pernode": "never",
+            "node": {
+              "default": {
+                "default": {
+                  "value": [],
+                  "signature": [],
+                  "filehash": [],
+                  "package": [],
+                  "date": [],
+                  "author": []
+                }
+              }
+            },
+            "hashalgo": "sha256",
+            "copy": false
+          },
+          "testplan": {
+            "type": "[file]",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-package_doc_testplan <file>"
+            ],
+            "shorthelp": "Package: testplan document",
+            "example": [
+              "cli: -package_doc_testplan testplan.pdf",
+              "api: schema.set('doc', 'testplan', 'testplan.pdf')"
+            ],
+            "help": "Package list of testplan documents.",
+            "notes": null,
+            "pernode": "never",
+            "node": {
+              "default": {
+                "default": {
+                  "value": [],
+                  "signature": [],
+                  "filehash": [],
+                  "package": [],
+                  "date": [],
+                  "author": []
+                }
+              }
+            },
+            "hashalgo": "sha256",
+            "copy": false
+          },
+          "signoff": {
+            "type": "[file]",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-package_doc_signoff <file>"
+            ],
+            "shorthelp": "Package: signoff document",
+            "example": [
+              "cli: -package_doc_signoff signoff.pdf",
+              "api: schema.set('doc', 'signoff', 'signoff.pdf')"
+            ],
+            "help": "Package list of signoff documents.",
+            "notes": null,
+            "pernode": "never",
+            "node": {
+              "default": {
+                "default": {
+                  "value": [],
+                  "signature": [],
+                  "filehash": [],
+                  "package": [],
+                  "date": [],
+                  "author": []
+                }
+              }
+            },
+            "hashalgo": "sha256",
+            "copy": false
+          },
+          "tutorial": {
+            "type": "[file]",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-package_doc_tutorial <file>"
+            ],
+            "shorthelp": "Package: tutorial document",
+            "example": [
+              "cli: -package_doc_tutorial tutorial.pdf",
+              "api: schema.set('doc', 'tutorial', 'tutorial.pdf')"
+            ],
+            "help": "Package list of tutorial documents.",
+            "notes": null,
+            "pernode": "never",
+            "node": {
+              "default": {
+                "default": {
+                  "value": [],
+                  "signature": [],
+                  "filehash": [],
+                  "package": [],
+                  "date": [],
+                  "author": []
+                }
+              }
+            },
+            "hashalgo": "sha256",
+            "copy": false
+          }
+        },
+        "license": {
+          "type": "[str]",
+          "require": false,
+          "scope": "global",
+          "lock": false,
+          "switch": [
+            "-package_license <str>"
+          ],
+          "shorthelp": "Package: license identifiers",
+          "example": [
+            "cli: -package_license 'Apache-2.0'",
+            "api: schema.set('license', 'Apache-2.0')"
+          ],
+          "help": "Package list of SPDX license identifiers.",
+          "notes": null,
+          "pernode": "never",
+          "node": {
+            "default": {
+              "default": {
+                "value": [],
+                "signature": []
+              }
+            }
+          }
+        },
+        "licensefile": {
+          "type": "[file]",
+          "require": false,
+          "scope": "global",
+          "lock": false,
+          "switch": [
+            "-package_licensefile <file>"
+          ],
+          "shorthelp": "Package: license files",
+          "example": [
+            "cli: -package_licensefile './LICENSE'",
+            "api: schema.set('licensefile', './LICENSE')"
+          ],
+          "help": "Package list of license files for to be\napplied in cases when a SPDX identifier is not available.\n(eg. proprietary licenses).",
+          "notes": null,
+          "pernode": "never",
+          "node": {
+            "default": {
+              "default": {
+                "value": [],
+                "signature": [],
+                "filehash": [],
+                "package": [],
+                "date": [],
+                "author": []
+              }
+            }
+          },
+          "hashalgo": "sha256",
+          "copy": false
+        },
+        "author": {
+          "default": {
+            "name": {
+              "type": "str",
+              "require": false,
+              "scope": "global",
+              "lock": false,
+              "switch": [
+                "-package_author_name 'userid <str>'"
+              ],
+              "shorthelp": "Package: author name",
+              "example": [
+                "cli: -package_author_name 'wiley wiley@acme.com'",
+                "api: schema.set('author', 'wiley', 'name', 'wiley@acme.com')"
+              ],
+              "help": "Package author name provided with full name as key and\nname as value.",
+              "notes": null,
+              "pernode": "never",
+              "node": {
+                "default": {
+                  "default": {
+                    "value": null,
+                    "signature": null
+                  }
+                }
+              }
+            },
+            "email": {
+              "type": "str",
+              "require": false,
+              "scope": "global",
+              "lock": false,
+              "switch": [
+                "-package_author_email 'userid <str>'"
+              ],
+              "shorthelp": "Package: author email",
+              "example": [
+                "cli: -package_author_email 'wiley wiley@acme.com'",
+                "api: schema.set('author', 'wiley', 'email', 'wiley@acme.com')"
+              ],
+              "help": "Package author email provided with full name as key and\nemail as value.",
+              "notes": null,
+              "pernode": "never",
+              "node": {
+                "default": {
+                  "default": {
+                    "value": null,
+                    "signature": null
+                  }
+                }
+              }
+            },
+            "organization": {
+              "type": "str",
+              "require": false,
+              "scope": "global",
+              "lock": false,
+              "switch": [
+                "-package_author_organization 'userid <str>'"
+              ],
+              "shorthelp": "Package: author organization",
+              "example": [
+                "cli: -package_author_organization 'wiley wiley@acme.com'",
+                "api: schema.set('author', 'wiley', 'organization', 'wiley@acme.com')"
+              ],
+              "help": "Package author organization provided with full name as key and\norganization as value.",
+              "notes": null,
+              "pernode": "never",
+              "node": {
+                "default": {
+                  "default": {
+                    "value": null,
+                    "signature": null
+                  }
+                }
+              }
+            }
+          }
+        },
+        "__meta__": {
+          "class": "siliconcompiler.schema_support.packageschema/PackageSchema",
+          "sctype": "PackageSchema"
         }
       },
       "pdk": {
@@ -19685,468 +19693,6 @@
           }
         }
       },
-      "package": {
-        "version": {
-          "type": "str",
-          "require": false,
-          "scope": "global",
-          "lock": false,
-          "switch": [
-            "-package_version <str>"
-          ],
-          "shorthelp": "Package: version",
-          "example": [
-            "cli: -package_version 1.0",
-            "api: schema.set('package', 'version', '1.0')"
-          ],
-          "help": "Package version. Can be a branch, tag, commit hash,\nor a semver compatible version.",
-          "notes": null,
-          "pernode": "never",
-          "node": {
-            "default": {
-              "default": {
-                "value": null,
-                "signature": null
-              }
-            }
-          }
-        },
-        "vendor": {
-          "type": "str",
-          "require": false,
-          "scope": "global",
-          "lock": false,
-          "switch": [
-            "-package_vendor <str>"
-          ],
-          "shorthelp": "Package: vendor",
-          "example": [
-            "cli: -package_vendor acme",
-            "api: schema.set('package', 'vendor', 'acme')"
-          ],
-          "help": "Package vendor.",
-          "notes": null,
-          "pernode": "never",
-          "node": {
-            "default": {
-              "default": {
-                "value": null,
-                "signature": null
-              }
-            }
-          }
-        },
-        "description": {
-          "type": "str",
-          "require": false,
-          "scope": "global",
-          "lock": false,
-          "switch": [
-            "-package_description <str>"
-          ],
-          "shorthelp": "Package: description",
-          "example": [
-            "cli: -package_description 'Yet another cpu'",
-            "api: schema.set('package', 'description', 'Yet another cpu')"
-          ],
-          "help": "Package short one line description for package\nmanagers and summary reports.",
-          "notes": null,
-          "pernode": "never",
-          "node": {
-            "default": {
-              "default": {
-                "value": null,
-                "signature": null
-              }
-            }
-          }
-        },
-        "doc": {
-          "datasheet": {
-            "type": "[file]",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-package_doc_datasheet <file>"
-            ],
-            "shorthelp": "Package: datasheet document",
-            "example": [
-              "cli: -package_doc_datasheet datasheet.pdf",
-              "api: schema.set('package', 'doc', 'datasheet', 'datasheet.pdf')"
-            ],
-            "help": "Package list of datasheet documents.",
-            "notes": null,
-            "pernode": "never",
-            "node": {
-              "default": {
-                "default": {
-                  "value": [],
-                  "signature": [],
-                  "filehash": [],
-                  "package": [],
-                  "date": [],
-                  "author": []
-                }
-              }
-            },
-            "hashalgo": "sha256",
-            "copy": false
-          },
-          "reference": {
-            "type": "[file]",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-package_doc_reference <file>"
-            ],
-            "shorthelp": "Package: reference document",
-            "example": [
-              "cli: -package_doc_reference reference.pdf",
-              "api: schema.set('package', 'doc', 'reference', 'reference.pdf')"
-            ],
-            "help": "Package list of reference documents.",
-            "notes": null,
-            "pernode": "never",
-            "node": {
-              "default": {
-                "default": {
-                  "value": [],
-                  "signature": [],
-                  "filehash": [],
-                  "package": [],
-                  "date": [],
-                  "author": []
-                }
-              }
-            },
-            "hashalgo": "sha256",
-            "copy": false
-          },
-          "userguide": {
-            "type": "[file]",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-package_doc_userguide <file>"
-            ],
-            "shorthelp": "Package: userguide document",
-            "example": [
-              "cli: -package_doc_userguide userguide.pdf",
-              "api: schema.set('package', 'doc', 'userguide', 'userguide.pdf')"
-            ],
-            "help": "Package list of userguide documents.",
-            "notes": null,
-            "pernode": "never",
-            "node": {
-              "default": {
-                "default": {
-                  "value": [],
-                  "signature": [],
-                  "filehash": [],
-                  "package": [],
-                  "date": [],
-                  "author": []
-                }
-              }
-            },
-            "hashalgo": "sha256",
-            "copy": false
-          },
-          "quickstart": {
-            "type": "[file]",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-package_doc_quickstart <file>"
-            ],
-            "shorthelp": "Package: quickstart document",
-            "example": [
-              "cli: -package_doc_quickstart quickstart.pdf",
-              "api: schema.set('package', 'doc', 'quickstart', 'quickstart.pdf')"
-            ],
-            "help": "Package list of quickstart documents.",
-            "notes": null,
-            "pernode": "never",
-            "node": {
-              "default": {
-                "default": {
-                  "value": [],
-                  "signature": [],
-                  "filehash": [],
-                  "package": [],
-                  "date": [],
-                  "author": []
-                }
-              }
-            },
-            "hashalgo": "sha256",
-            "copy": false
-          },
-          "releasenotes": {
-            "type": "[file]",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-package_doc_releasenotes <file>"
-            ],
-            "shorthelp": "Package: releasenotes document",
-            "example": [
-              "cli: -package_doc_releasenotes releasenotes.pdf",
-              "api: schema.set('package', 'doc', 'releasenotes', 'releasenotes.pdf')"
-            ],
-            "help": "Package list of releasenotes documents.",
-            "notes": null,
-            "pernode": "never",
-            "node": {
-              "default": {
-                "default": {
-                  "value": [],
-                  "signature": [],
-                  "filehash": [],
-                  "package": [],
-                  "date": [],
-                  "author": []
-                }
-              }
-            },
-            "hashalgo": "sha256",
-            "copy": false
-          },
-          "testplan": {
-            "type": "[file]",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-package_doc_testplan <file>"
-            ],
-            "shorthelp": "Package: testplan document",
-            "example": [
-              "cli: -package_doc_testplan testplan.pdf",
-              "api: schema.set('package', 'doc', 'testplan', 'testplan.pdf')"
-            ],
-            "help": "Package list of testplan documents.",
-            "notes": null,
-            "pernode": "never",
-            "node": {
-              "default": {
-                "default": {
-                  "value": [],
-                  "signature": [],
-                  "filehash": [],
-                  "package": [],
-                  "date": [],
-                  "author": []
-                }
-              }
-            },
-            "hashalgo": "sha256",
-            "copy": false
-          },
-          "signoff": {
-            "type": "[file]",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-package_doc_signoff <file>"
-            ],
-            "shorthelp": "Package: signoff document",
-            "example": [
-              "cli: -package_doc_signoff signoff.pdf",
-              "api: schema.set('package', 'doc', 'signoff', 'signoff.pdf')"
-            ],
-            "help": "Package list of signoff documents.",
-            "notes": null,
-            "pernode": "never",
-            "node": {
-              "default": {
-                "default": {
-                  "value": [],
-                  "signature": [],
-                  "filehash": [],
-                  "package": [],
-                  "date": [],
-                  "author": []
-                }
-              }
-            },
-            "hashalgo": "sha256",
-            "copy": false
-          },
-          "tutorial": {
-            "type": "[file]",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-package_doc_tutorial <file>"
-            ],
-            "shorthelp": "Package: tutorial document",
-            "example": [
-              "cli: -package_doc_tutorial tutorial.pdf",
-              "api: schema.set('package', 'doc', 'tutorial', 'tutorial.pdf')"
-            ],
-            "help": "Package list of tutorial documents.",
-            "notes": null,
-            "pernode": "never",
-            "node": {
-              "default": {
-                "default": {
-                  "value": [],
-                  "signature": [],
-                  "filehash": [],
-                  "package": [],
-                  "date": [],
-                  "author": []
-                }
-              }
-            },
-            "hashalgo": "sha256",
-            "copy": false
-          }
-        },
-        "license": {
-          "type": "[str]",
-          "require": false,
-          "scope": "global",
-          "lock": false,
-          "switch": [
-            "-package_license <str>"
-          ],
-          "shorthelp": "Package: license identifiers",
-          "example": [
-            "cli: -package_license 'Apache-2.0'",
-            "api: schema.set('package', 'license', 'Apache-2.0')"
-          ],
-          "help": "Package list of SPDX license identifiers.",
-          "notes": null,
-          "pernode": "never",
-          "node": {
-            "default": {
-              "default": {
-                "value": [],
-                "signature": []
-              }
-            }
-          }
-        },
-        "licensefile": {
-          "type": "[file]",
-          "require": false,
-          "scope": "global",
-          "lock": false,
-          "switch": [
-            "-package_licensefile <file>"
-          ],
-          "shorthelp": "Package: license files",
-          "example": [
-            "cli: -package_licensefile './LICENSE'",
-            "api: schema.set('package', 'licensefile', './LICENSE')"
-          ],
-          "help": "Package list of license files for to be\napplied in cases when a SPDX identifier is not available.\n(eg. proprietary licenses).",
-          "notes": null,
-          "pernode": "never",
-          "node": {
-            "default": {
-              "default": {
-                "value": [],
-                "signature": [],
-                "filehash": [],
-                "package": [],
-                "date": [],
-                "author": []
-              }
-            }
-          },
-          "hashalgo": "sha256",
-          "copy": false
-        },
-        "author": {
-          "default": {
-            "name": {
-              "type": "str",
-              "require": false,
-              "scope": "global",
-              "lock": false,
-              "switch": [
-                "-package_author_name 'userid <str>'"
-              ],
-              "shorthelp": "Package: author name",
-              "example": [
-                "cli: -package_author_name 'wiley wiley@acme.com'",
-                "api: schema.set('package', 'author', 'wiley', 'name', 'wiley@acme.com')"
-              ],
-              "help": "Package author name provided with full name as key and\nname as value.",
-              "notes": null,
-              "pernode": "never",
-              "node": {
-                "default": {
-                  "default": {
-                    "value": null,
-                    "signature": null
-                  }
-                }
-              }
-            },
-            "email": {
-              "type": "str",
-              "require": false,
-              "scope": "global",
-              "lock": false,
-              "switch": [
-                "-package_author_email 'userid <str>'"
-              ],
-              "shorthelp": "Package: author email",
-              "example": [
-                "cli: -package_author_email 'wiley wiley@acme.com'",
-                "api: schema.set('package', 'author', 'wiley', 'email', 'wiley@acme.com')"
-              ],
-              "help": "Package author email provided with full name as key and\nemail as value.",
-              "notes": null,
-              "pernode": "never",
-              "node": {
-                "default": {
-                  "default": {
-                    "value": null,
-                    "signature": null
-                  }
-                }
-              }
-            },
-            "organization": {
-              "type": "str",
-              "require": false,
-              "scope": "global",
-              "lock": false,
-              "switch": [
-                "-package_author_organization 'userid <str>'"
-              ],
-              "shorthelp": "Package: author organization",
-              "example": [
-                "cli: -package_author_organization 'wiley wiley@acme.com'",
-                "api: schema.set('package', 'author', 'wiley', 'organization', 'wiley@acme.com')"
-              ],
-              "help": "Package author organization provided with full name as key and\norganization as value.",
-              "notes": null,
-              "pernode": "never",
-              "node": {
-                "default": {
-                  "default": {
-                    "value": null,
-                    "signature": null
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
       "fileset": {
         "default": {
           "file": {
@@ -20180,6 +19726,472 @@
               "copy": false
             }
           }
+        }
+      },
+      "package": {
+        "version": {
+          "type": "str",
+          "require": false,
+          "scope": "global",
+          "lock": false,
+          "switch": [
+            "-package_version <str>"
+          ],
+          "shorthelp": "Package: version",
+          "example": [
+            "cli: -package_version 1.0",
+            "api: schema.set('version', '1.0')"
+          ],
+          "help": "Package version. Can be a branch, tag, commit hash,\nor a semver compatible version.",
+          "notes": null,
+          "pernode": "never",
+          "node": {
+            "default": {
+              "default": {
+                "value": null,
+                "signature": null
+              }
+            }
+          }
+        },
+        "vendor": {
+          "type": "str",
+          "require": false,
+          "scope": "global",
+          "lock": false,
+          "switch": [
+            "-package_vendor <str>"
+          ],
+          "shorthelp": "Package: vendor",
+          "example": [
+            "cli: -package_vendor acme",
+            "api: schema.set('vendor', 'acme')"
+          ],
+          "help": "Package vendor.",
+          "notes": null,
+          "pernode": "never",
+          "node": {
+            "default": {
+              "default": {
+                "value": null,
+                "signature": null
+              }
+            }
+          }
+        },
+        "description": {
+          "type": "str",
+          "require": false,
+          "scope": "global",
+          "lock": false,
+          "switch": [
+            "-package_description <str>"
+          ],
+          "shorthelp": "Package: description",
+          "example": [
+            "cli: -package_description 'Yet another cpu'",
+            "api: schema.set('description', 'Yet another cpu')"
+          ],
+          "help": "Package short one line description for package\nmanagers and summary reports.",
+          "notes": null,
+          "pernode": "never",
+          "node": {
+            "default": {
+              "default": {
+                "value": null,
+                "signature": null
+              }
+            }
+          }
+        },
+        "doc": {
+          "datasheet": {
+            "type": "[file]",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-package_doc_datasheet <file>"
+            ],
+            "shorthelp": "Package: datasheet document",
+            "example": [
+              "cli: -package_doc_datasheet datasheet.pdf",
+              "api: schema.set('doc', 'datasheet', 'datasheet.pdf')"
+            ],
+            "help": "Package list of datasheet documents.",
+            "notes": null,
+            "pernode": "never",
+            "node": {
+              "default": {
+                "default": {
+                  "value": [],
+                  "signature": [],
+                  "filehash": [],
+                  "package": [],
+                  "date": [],
+                  "author": []
+                }
+              }
+            },
+            "hashalgo": "sha256",
+            "copy": false
+          },
+          "reference": {
+            "type": "[file]",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-package_doc_reference <file>"
+            ],
+            "shorthelp": "Package: reference document",
+            "example": [
+              "cli: -package_doc_reference reference.pdf",
+              "api: schema.set('doc', 'reference', 'reference.pdf')"
+            ],
+            "help": "Package list of reference documents.",
+            "notes": null,
+            "pernode": "never",
+            "node": {
+              "default": {
+                "default": {
+                  "value": [],
+                  "signature": [],
+                  "filehash": [],
+                  "package": [],
+                  "date": [],
+                  "author": []
+                }
+              }
+            },
+            "hashalgo": "sha256",
+            "copy": false
+          },
+          "userguide": {
+            "type": "[file]",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-package_doc_userguide <file>"
+            ],
+            "shorthelp": "Package: userguide document",
+            "example": [
+              "cli: -package_doc_userguide userguide.pdf",
+              "api: schema.set('doc', 'userguide', 'userguide.pdf')"
+            ],
+            "help": "Package list of userguide documents.",
+            "notes": null,
+            "pernode": "never",
+            "node": {
+              "default": {
+                "default": {
+                  "value": [],
+                  "signature": [],
+                  "filehash": [],
+                  "package": [],
+                  "date": [],
+                  "author": []
+                }
+              }
+            },
+            "hashalgo": "sha256",
+            "copy": false
+          },
+          "quickstart": {
+            "type": "[file]",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-package_doc_quickstart <file>"
+            ],
+            "shorthelp": "Package: quickstart document",
+            "example": [
+              "cli: -package_doc_quickstart quickstart.pdf",
+              "api: schema.set('doc', 'quickstart', 'quickstart.pdf')"
+            ],
+            "help": "Package list of quickstart documents.",
+            "notes": null,
+            "pernode": "never",
+            "node": {
+              "default": {
+                "default": {
+                  "value": [],
+                  "signature": [],
+                  "filehash": [],
+                  "package": [],
+                  "date": [],
+                  "author": []
+                }
+              }
+            },
+            "hashalgo": "sha256",
+            "copy": false
+          },
+          "releasenotes": {
+            "type": "[file]",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-package_doc_releasenotes <file>"
+            ],
+            "shorthelp": "Package: releasenotes document",
+            "example": [
+              "cli: -package_doc_releasenotes releasenotes.pdf",
+              "api: schema.set('doc', 'releasenotes', 'releasenotes.pdf')"
+            ],
+            "help": "Package list of releasenotes documents.",
+            "notes": null,
+            "pernode": "never",
+            "node": {
+              "default": {
+                "default": {
+                  "value": [],
+                  "signature": [],
+                  "filehash": [],
+                  "package": [],
+                  "date": [],
+                  "author": []
+                }
+              }
+            },
+            "hashalgo": "sha256",
+            "copy": false
+          },
+          "testplan": {
+            "type": "[file]",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-package_doc_testplan <file>"
+            ],
+            "shorthelp": "Package: testplan document",
+            "example": [
+              "cli: -package_doc_testplan testplan.pdf",
+              "api: schema.set('doc', 'testplan', 'testplan.pdf')"
+            ],
+            "help": "Package list of testplan documents.",
+            "notes": null,
+            "pernode": "never",
+            "node": {
+              "default": {
+                "default": {
+                  "value": [],
+                  "signature": [],
+                  "filehash": [],
+                  "package": [],
+                  "date": [],
+                  "author": []
+                }
+              }
+            },
+            "hashalgo": "sha256",
+            "copy": false
+          },
+          "signoff": {
+            "type": "[file]",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-package_doc_signoff <file>"
+            ],
+            "shorthelp": "Package: signoff document",
+            "example": [
+              "cli: -package_doc_signoff signoff.pdf",
+              "api: schema.set('doc', 'signoff', 'signoff.pdf')"
+            ],
+            "help": "Package list of signoff documents.",
+            "notes": null,
+            "pernode": "never",
+            "node": {
+              "default": {
+                "default": {
+                  "value": [],
+                  "signature": [],
+                  "filehash": [],
+                  "package": [],
+                  "date": [],
+                  "author": []
+                }
+              }
+            },
+            "hashalgo": "sha256",
+            "copy": false
+          },
+          "tutorial": {
+            "type": "[file]",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-package_doc_tutorial <file>"
+            ],
+            "shorthelp": "Package: tutorial document",
+            "example": [
+              "cli: -package_doc_tutorial tutorial.pdf",
+              "api: schema.set('doc', 'tutorial', 'tutorial.pdf')"
+            ],
+            "help": "Package list of tutorial documents.",
+            "notes": null,
+            "pernode": "never",
+            "node": {
+              "default": {
+                "default": {
+                  "value": [],
+                  "signature": [],
+                  "filehash": [],
+                  "package": [],
+                  "date": [],
+                  "author": []
+                }
+              }
+            },
+            "hashalgo": "sha256",
+            "copy": false
+          }
+        },
+        "license": {
+          "type": "[str]",
+          "require": false,
+          "scope": "global",
+          "lock": false,
+          "switch": [
+            "-package_license <str>"
+          ],
+          "shorthelp": "Package: license identifiers",
+          "example": [
+            "cli: -package_license 'Apache-2.0'",
+            "api: schema.set('license', 'Apache-2.0')"
+          ],
+          "help": "Package list of SPDX license identifiers.",
+          "notes": null,
+          "pernode": "never",
+          "node": {
+            "default": {
+              "default": {
+                "value": [],
+                "signature": []
+              }
+            }
+          }
+        },
+        "licensefile": {
+          "type": "[file]",
+          "require": false,
+          "scope": "global",
+          "lock": false,
+          "switch": [
+            "-package_licensefile <file>"
+          ],
+          "shorthelp": "Package: license files",
+          "example": [
+            "cli: -package_licensefile './LICENSE'",
+            "api: schema.set('licensefile', './LICENSE')"
+          ],
+          "help": "Package list of license files for to be\napplied in cases when a SPDX identifier is not available.\n(eg. proprietary licenses).",
+          "notes": null,
+          "pernode": "never",
+          "node": {
+            "default": {
+              "default": {
+                "value": [],
+                "signature": [],
+                "filehash": [],
+                "package": [],
+                "date": [],
+                "author": []
+              }
+            }
+          },
+          "hashalgo": "sha256",
+          "copy": false
+        },
+        "author": {
+          "default": {
+            "name": {
+              "type": "str",
+              "require": false,
+              "scope": "global",
+              "lock": false,
+              "switch": [
+                "-package_author_name 'userid <str>'"
+              ],
+              "shorthelp": "Package: author name",
+              "example": [
+                "cli: -package_author_name 'wiley wiley@acme.com'",
+                "api: schema.set('author', 'wiley', 'name', 'wiley@acme.com')"
+              ],
+              "help": "Package author name provided with full name as key and\nname as value.",
+              "notes": null,
+              "pernode": "never",
+              "node": {
+                "default": {
+                  "default": {
+                    "value": null,
+                    "signature": null
+                  }
+                }
+              }
+            },
+            "email": {
+              "type": "str",
+              "require": false,
+              "scope": "global",
+              "lock": false,
+              "switch": [
+                "-package_author_email 'userid <str>'"
+              ],
+              "shorthelp": "Package: author email",
+              "example": [
+                "cli: -package_author_email 'wiley wiley@acme.com'",
+                "api: schema.set('author', 'wiley', 'email', 'wiley@acme.com')"
+              ],
+              "help": "Package author email provided with full name as key and\nemail as value.",
+              "notes": null,
+              "pernode": "never",
+              "node": {
+                "default": {
+                  "default": {
+                    "value": null,
+                    "signature": null
+                  }
+                }
+              }
+            },
+            "organization": {
+              "type": "str",
+              "require": false,
+              "scope": "global",
+              "lock": false,
+              "switch": [
+                "-package_author_organization 'userid <str>'"
+              ],
+              "shorthelp": "Package: author organization",
+              "example": [
+                "cli: -package_author_organization 'wiley wiley@acme.com'",
+                "api: schema.set('author', 'wiley', 'organization', 'wiley@acme.com')"
+              ],
+              "help": "Package author organization provided with full name as key and\norganization as value.",
+              "notes": null,
+              "pernode": "never",
+              "node": {
+                "default": {
+                  "default": {
+                    "value": null,
+                    "signature": null
+                  }
+                }
+              }
+            }
+          }
+        },
+        "__meta__": {
+          "class": "siliconcompiler.schema_support.packageschema/PackageSchema",
+          "sctype": "PackageSchema"
         }
       },
       "fpga": {
@@ -20308,468 +20320,6 @@
           }
         }
       },
-      "package": {
-        "version": {
-          "type": "str",
-          "require": false,
-          "scope": "global",
-          "lock": false,
-          "switch": [
-            "-package_version <str>"
-          ],
-          "shorthelp": "Package: version",
-          "example": [
-            "cli: -package_version 1.0",
-            "api: schema.set('package', 'version', '1.0')"
-          ],
-          "help": "Package version. Can be a branch, tag, commit hash,\nor a semver compatible version.",
-          "notes": null,
-          "pernode": "never",
-          "node": {
-            "default": {
-              "default": {
-                "value": null,
-                "signature": null
-              }
-            }
-          }
-        },
-        "vendor": {
-          "type": "str",
-          "require": false,
-          "scope": "global",
-          "lock": false,
-          "switch": [
-            "-package_vendor <str>"
-          ],
-          "shorthelp": "Package: vendor",
-          "example": [
-            "cli: -package_vendor acme",
-            "api: schema.set('package', 'vendor', 'acme')"
-          ],
-          "help": "Package vendor.",
-          "notes": null,
-          "pernode": "never",
-          "node": {
-            "default": {
-              "default": {
-                "value": null,
-                "signature": null
-              }
-            }
-          }
-        },
-        "description": {
-          "type": "str",
-          "require": false,
-          "scope": "global",
-          "lock": false,
-          "switch": [
-            "-package_description <str>"
-          ],
-          "shorthelp": "Package: description",
-          "example": [
-            "cli: -package_description 'Yet another cpu'",
-            "api: schema.set('package', 'description', 'Yet another cpu')"
-          ],
-          "help": "Package short one line description for package\nmanagers and summary reports.",
-          "notes": null,
-          "pernode": "never",
-          "node": {
-            "default": {
-              "default": {
-                "value": null,
-                "signature": null
-              }
-            }
-          }
-        },
-        "doc": {
-          "datasheet": {
-            "type": "[file]",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-package_doc_datasheet <file>"
-            ],
-            "shorthelp": "Package: datasheet document",
-            "example": [
-              "cli: -package_doc_datasheet datasheet.pdf",
-              "api: schema.set('package', 'doc', 'datasheet', 'datasheet.pdf')"
-            ],
-            "help": "Package list of datasheet documents.",
-            "notes": null,
-            "pernode": "never",
-            "node": {
-              "default": {
-                "default": {
-                  "value": [],
-                  "signature": [],
-                  "filehash": [],
-                  "package": [],
-                  "date": [],
-                  "author": []
-                }
-              }
-            },
-            "hashalgo": "sha256",
-            "copy": false
-          },
-          "reference": {
-            "type": "[file]",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-package_doc_reference <file>"
-            ],
-            "shorthelp": "Package: reference document",
-            "example": [
-              "cli: -package_doc_reference reference.pdf",
-              "api: schema.set('package', 'doc', 'reference', 'reference.pdf')"
-            ],
-            "help": "Package list of reference documents.",
-            "notes": null,
-            "pernode": "never",
-            "node": {
-              "default": {
-                "default": {
-                  "value": [],
-                  "signature": [],
-                  "filehash": [],
-                  "package": [],
-                  "date": [],
-                  "author": []
-                }
-              }
-            },
-            "hashalgo": "sha256",
-            "copy": false
-          },
-          "userguide": {
-            "type": "[file]",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-package_doc_userguide <file>"
-            ],
-            "shorthelp": "Package: userguide document",
-            "example": [
-              "cli: -package_doc_userguide userguide.pdf",
-              "api: schema.set('package', 'doc', 'userguide', 'userguide.pdf')"
-            ],
-            "help": "Package list of userguide documents.",
-            "notes": null,
-            "pernode": "never",
-            "node": {
-              "default": {
-                "default": {
-                  "value": [],
-                  "signature": [],
-                  "filehash": [],
-                  "package": [],
-                  "date": [],
-                  "author": []
-                }
-              }
-            },
-            "hashalgo": "sha256",
-            "copy": false
-          },
-          "quickstart": {
-            "type": "[file]",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-package_doc_quickstart <file>"
-            ],
-            "shorthelp": "Package: quickstart document",
-            "example": [
-              "cli: -package_doc_quickstart quickstart.pdf",
-              "api: schema.set('package', 'doc', 'quickstart', 'quickstart.pdf')"
-            ],
-            "help": "Package list of quickstart documents.",
-            "notes": null,
-            "pernode": "never",
-            "node": {
-              "default": {
-                "default": {
-                  "value": [],
-                  "signature": [],
-                  "filehash": [],
-                  "package": [],
-                  "date": [],
-                  "author": []
-                }
-              }
-            },
-            "hashalgo": "sha256",
-            "copy": false
-          },
-          "releasenotes": {
-            "type": "[file]",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-package_doc_releasenotes <file>"
-            ],
-            "shorthelp": "Package: releasenotes document",
-            "example": [
-              "cli: -package_doc_releasenotes releasenotes.pdf",
-              "api: schema.set('package', 'doc', 'releasenotes', 'releasenotes.pdf')"
-            ],
-            "help": "Package list of releasenotes documents.",
-            "notes": null,
-            "pernode": "never",
-            "node": {
-              "default": {
-                "default": {
-                  "value": [],
-                  "signature": [],
-                  "filehash": [],
-                  "package": [],
-                  "date": [],
-                  "author": []
-                }
-              }
-            },
-            "hashalgo": "sha256",
-            "copy": false
-          },
-          "testplan": {
-            "type": "[file]",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-package_doc_testplan <file>"
-            ],
-            "shorthelp": "Package: testplan document",
-            "example": [
-              "cli: -package_doc_testplan testplan.pdf",
-              "api: schema.set('package', 'doc', 'testplan', 'testplan.pdf')"
-            ],
-            "help": "Package list of testplan documents.",
-            "notes": null,
-            "pernode": "never",
-            "node": {
-              "default": {
-                "default": {
-                  "value": [],
-                  "signature": [],
-                  "filehash": [],
-                  "package": [],
-                  "date": [],
-                  "author": []
-                }
-              }
-            },
-            "hashalgo": "sha256",
-            "copy": false
-          },
-          "signoff": {
-            "type": "[file]",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-package_doc_signoff <file>"
-            ],
-            "shorthelp": "Package: signoff document",
-            "example": [
-              "cli: -package_doc_signoff signoff.pdf",
-              "api: schema.set('package', 'doc', 'signoff', 'signoff.pdf')"
-            ],
-            "help": "Package list of signoff documents.",
-            "notes": null,
-            "pernode": "never",
-            "node": {
-              "default": {
-                "default": {
-                  "value": [],
-                  "signature": [],
-                  "filehash": [],
-                  "package": [],
-                  "date": [],
-                  "author": []
-                }
-              }
-            },
-            "hashalgo": "sha256",
-            "copy": false
-          },
-          "tutorial": {
-            "type": "[file]",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-package_doc_tutorial <file>"
-            ],
-            "shorthelp": "Package: tutorial document",
-            "example": [
-              "cli: -package_doc_tutorial tutorial.pdf",
-              "api: schema.set('package', 'doc', 'tutorial', 'tutorial.pdf')"
-            ],
-            "help": "Package list of tutorial documents.",
-            "notes": null,
-            "pernode": "never",
-            "node": {
-              "default": {
-                "default": {
-                  "value": [],
-                  "signature": [],
-                  "filehash": [],
-                  "package": [],
-                  "date": [],
-                  "author": []
-                }
-              }
-            },
-            "hashalgo": "sha256",
-            "copy": false
-          }
-        },
-        "license": {
-          "type": "[str]",
-          "require": false,
-          "scope": "global",
-          "lock": false,
-          "switch": [
-            "-package_license <str>"
-          ],
-          "shorthelp": "Package: license identifiers",
-          "example": [
-            "cli: -package_license 'Apache-2.0'",
-            "api: schema.set('package', 'license', 'Apache-2.0')"
-          ],
-          "help": "Package list of SPDX license identifiers.",
-          "notes": null,
-          "pernode": "never",
-          "node": {
-            "default": {
-              "default": {
-                "value": [],
-                "signature": []
-              }
-            }
-          }
-        },
-        "licensefile": {
-          "type": "[file]",
-          "require": false,
-          "scope": "global",
-          "lock": false,
-          "switch": [
-            "-package_licensefile <file>"
-          ],
-          "shorthelp": "Package: license files",
-          "example": [
-            "cli: -package_licensefile './LICENSE'",
-            "api: schema.set('package', 'licensefile', './LICENSE')"
-          ],
-          "help": "Package list of license files for to be\napplied in cases when a SPDX identifier is not available.\n(eg. proprietary licenses).",
-          "notes": null,
-          "pernode": "never",
-          "node": {
-            "default": {
-              "default": {
-                "value": [],
-                "signature": [],
-                "filehash": [],
-                "package": [],
-                "date": [],
-                "author": []
-              }
-            }
-          },
-          "hashalgo": "sha256",
-          "copy": false
-        },
-        "author": {
-          "default": {
-            "name": {
-              "type": "str",
-              "require": false,
-              "scope": "global",
-              "lock": false,
-              "switch": [
-                "-package_author_name 'userid <str>'"
-              ],
-              "shorthelp": "Package: author name",
-              "example": [
-                "cli: -package_author_name 'wiley wiley@acme.com'",
-                "api: schema.set('package', 'author', 'wiley', 'name', 'wiley@acme.com')"
-              ],
-              "help": "Package author name provided with full name as key and\nname as value.",
-              "notes": null,
-              "pernode": "never",
-              "node": {
-                "default": {
-                  "default": {
-                    "value": null,
-                    "signature": null
-                  }
-                }
-              }
-            },
-            "email": {
-              "type": "str",
-              "require": false,
-              "scope": "global",
-              "lock": false,
-              "switch": [
-                "-package_author_email 'userid <str>'"
-              ],
-              "shorthelp": "Package: author email",
-              "example": [
-                "cli: -package_author_email 'wiley wiley@acme.com'",
-                "api: schema.set('package', 'author', 'wiley', 'email', 'wiley@acme.com')"
-              ],
-              "help": "Package author email provided with full name as key and\nemail as value.",
-              "notes": null,
-              "pernode": "never",
-              "node": {
-                "default": {
-                  "default": {
-                    "value": null,
-                    "signature": null
-                  }
-                }
-              }
-            },
-            "organization": {
-              "type": "str",
-              "require": false,
-              "scope": "global",
-              "lock": false,
-              "switch": [
-                "-package_author_organization 'userid <str>'"
-              ],
-              "shorthelp": "Package: author organization",
-              "example": [
-                "cli: -package_author_organization 'wiley wiley@acme.com'",
-                "api: schema.set('package', 'author', 'wiley', 'organization', 'wiley@acme.com')"
-              ],
-              "help": "Package author organization provided with full name as key and\norganization as value.",
-              "notes": null,
-              "pernode": "never",
-              "node": {
-                "default": {
-                  "default": {
-                    "value": null,
-                    "signature": null
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
       "fileset": {
         "default": {
           "file": {
@@ -20803,6 +20353,472 @@
               "copy": false
             }
           }
+        }
+      },
+      "package": {
+        "version": {
+          "type": "str",
+          "require": false,
+          "scope": "global",
+          "lock": false,
+          "switch": [
+            "-package_version <str>"
+          ],
+          "shorthelp": "Package: version",
+          "example": [
+            "cli: -package_version 1.0",
+            "api: schema.set('version', '1.0')"
+          ],
+          "help": "Package version. Can be a branch, tag, commit hash,\nor a semver compatible version.",
+          "notes": null,
+          "pernode": "never",
+          "node": {
+            "default": {
+              "default": {
+                "value": null,
+                "signature": null
+              }
+            }
+          }
+        },
+        "vendor": {
+          "type": "str",
+          "require": false,
+          "scope": "global",
+          "lock": false,
+          "switch": [
+            "-package_vendor <str>"
+          ],
+          "shorthelp": "Package: vendor",
+          "example": [
+            "cli: -package_vendor acme",
+            "api: schema.set('vendor', 'acme')"
+          ],
+          "help": "Package vendor.",
+          "notes": null,
+          "pernode": "never",
+          "node": {
+            "default": {
+              "default": {
+                "value": null,
+                "signature": null
+              }
+            }
+          }
+        },
+        "description": {
+          "type": "str",
+          "require": false,
+          "scope": "global",
+          "lock": false,
+          "switch": [
+            "-package_description <str>"
+          ],
+          "shorthelp": "Package: description",
+          "example": [
+            "cli: -package_description 'Yet another cpu'",
+            "api: schema.set('description', 'Yet another cpu')"
+          ],
+          "help": "Package short one line description for package\nmanagers and summary reports.",
+          "notes": null,
+          "pernode": "never",
+          "node": {
+            "default": {
+              "default": {
+                "value": null,
+                "signature": null
+              }
+            }
+          }
+        },
+        "doc": {
+          "datasheet": {
+            "type": "[file]",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-package_doc_datasheet <file>"
+            ],
+            "shorthelp": "Package: datasheet document",
+            "example": [
+              "cli: -package_doc_datasheet datasheet.pdf",
+              "api: schema.set('doc', 'datasheet', 'datasheet.pdf')"
+            ],
+            "help": "Package list of datasheet documents.",
+            "notes": null,
+            "pernode": "never",
+            "node": {
+              "default": {
+                "default": {
+                  "value": [],
+                  "signature": [],
+                  "filehash": [],
+                  "package": [],
+                  "date": [],
+                  "author": []
+                }
+              }
+            },
+            "hashalgo": "sha256",
+            "copy": false
+          },
+          "reference": {
+            "type": "[file]",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-package_doc_reference <file>"
+            ],
+            "shorthelp": "Package: reference document",
+            "example": [
+              "cli: -package_doc_reference reference.pdf",
+              "api: schema.set('doc', 'reference', 'reference.pdf')"
+            ],
+            "help": "Package list of reference documents.",
+            "notes": null,
+            "pernode": "never",
+            "node": {
+              "default": {
+                "default": {
+                  "value": [],
+                  "signature": [],
+                  "filehash": [],
+                  "package": [],
+                  "date": [],
+                  "author": []
+                }
+              }
+            },
+            "hashalgo": "sha256",
+            "copy": false
+          },
+          "userguide": {
+            "type": "[file]",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-package_doc_userguide <file>"
+            ],
+            "shorthelp": "Package: userguide document",
+            "example": [
+              "cli: -package_doc_userguide userguide.pdf",
+              "api: schema.set('doc', 'userguide', 'userguide.pdf')"
+            ],
+            "help": "Package list of userguide documents.",
+            "notes": null,
+            "pernode": "never",
+            "node": {
+              "default": {
+                "default": {
+                  "value": [],
+                  "signature": [],
+                  "filehash": [],
+                  "package": [],
+                  "date": [],
+                  "author": []
+                }
+              }
+            },
+            "hashalgo": "sha256",
+            "copy": false
+          },
+          "quickstart": {
+            "type": "[file]",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-package_doc_quickstart <file>"
+            ],
+            "shorthelp": "Package: quickstart document",
+            "example": [
+              "cli: -package_doc_quickstart quickstart.pdf",
+              "api: schema.set('doc', 'quickstart', 'quickstart.pdf')"
+            ],
+            "help": "Package list of quickstart documents.",
+            "notes": null,
+            "pernode": "never",
+            "node": {
+              "default": {
+                "default": {
+                  "value": [],
+                  "signature": [],
+                  "filehash": [],
+                  "package": [],
+                  "date": [],
+                  "author": []
+                }
+              }
+            },
+            "hashalgo": "sha256",
+            "copy": false
+          },
+          "releasenotes": {
+            "type": "[file]",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-package_doc_releasenotes <file>"
+            ],
+            "shorthelp": "Package: releasenotes document",
+            "example": [
+              "cli: -package_doc_releasenotes releasenotes.pdf",
+              "api: schema.set('doc', 'releasenotes', 'releasenotes.pdf')"
+            ],
+            "help": "Package list of releasenotes documents.",
+            "notes": null,
+            "pernode": "never",
+            "node": {
+              "default": {
+                "default": {
+                  "value": [],
+                  "signature": [],
+                  "filehash": [],
+                  "package": [],
+                  "date": [],
+                  "author": []
+                }
+              }
+            },
+            "hashalgo": "sha256",
+            "copy": false
+          },
+          "testplan": {
+            "type": "[file]",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-package_doc_testplan <file>"
+            ],
+            "shorthelp": "Package: testplan document",
+            "example": [
+              "cli: -package_doc_testplan testplan.pdf",
+              "api: schema.set('doc', 'testplan', 'testplan.pdf')"
+            ],
+            "help": "Package list of testplan documents.",
+            "notes": null,
+            "pernode": "never",
+            "node": {
+              "default": {
+                "default": {
+                  "value": [],
+                  "signature": [],
+                  "filehash": [],
+                  "package": [],
+                  "date": [],
+                  "author": []
+                }
+              }
+            },
+            "hashalgo": "sha256",
+            "copy": false
+          },
+          "signoff": {
+            "type": "[file]",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-package_doc_signoff <file>"
+            ],
+            "shorthelp": "Package: signoff document",
+            "example": [
+              "cli: -package_doc_signoff signoff.pdf",
+              "api: schema.set('doc', 'signoff', 'signoff.pdf')"
+            ],
+            "help": "Package list of signoff documents.",
+            "notes": null,
+            "pernode": "never",
+            "node": {
+              "default": {
+                "default": {
+                  "value": [],
+                  "signature": [],
+                  "filehash": [],
+                  "package": [],
+                  "date": [],
+                  "author": []
+                }
+              }
+            },
+            "hashalgo": "sha256",
+            "copy": false
+          },
+          "tutorial": {
+            "type": "[file]",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-package_doc_tutorial <file>"
+            ],
+            "shorthelp": "Package: tutorial document",
+            "example": [
+              "cli: -package_doc_tutorial tutorial.pdf",
+              "api: schema.set('doc', 'tutorial', 'tutorial.pdf')"
+            ],
+            "help": "Package list of tutorial documents.",
+            "notes": null,
+            "pernode": "never",
+            "node": {
+              "default": {
+                "default": {
+                  "value": [],
+                  "signature": [],
+                  "filehash": [],
+                  "package": [],
+                  "date": [],
+                  "author": []
+                }
+              }
+            },
+            "hashalgo": "sha256",
+            "copy": false
+          }
+        },
+        "license": {
+          "type": "[str]",
+          "require": false,
+          "scope": "global",
+          "lock": false,
+          "switch": [
+            "-package_license <str>"
+          ],
+          "shorthelp": "Package: license identifiers",
+          "example": [
+            "cli: -package_license 'Apache-2.0'",
+            "api: schema.set('license', 'Apache-2.0')"
+          ],
+          "help": "Package list of SPDX license identifiers.",
+          "notes": null,
+          "pernode": "never",
+          "node": {
+            "default": {
+              "default": {
+                "value": [],
+                "signature": []
+              }
+            }
+          }
+        },
+        "licensefile": {
+          "type": "[file]",
+          "require": false,
+          "scope": "global",
+          "lock": false,
+          "switch": [
+            "-package_licensefile <file>"
+          ],
+          "shorthelp": "Package: license files",
+          "example": [
+            "cli: -package_licensefile './LICENSE'",
+            "api: schema.set('licensefile', './LICENSE')"
+          ],
+          "help": "Package list of license files for to be\napplied in cases when a SPDX identifier is not available.\n(eg. proprietary licenses).",
+          "notes": null,
+          "pernode": "never",
+          "node": {
+            "default": {
+              "default": {
+                "value": [],
+                "signature": [],
+                "filehash": [],
+                "package": [],
+                "date": [],
+                "author": []
+              }
+            }
+          },
+          "hashalgo": "sha256",
+          "copy": false
+        },
+        "author": {
+          "default": {
+            "name": {
+              "type": "str",
+              "require": false,
+              "scope": "global",
+              "lock": false,
+              "switch": [
+                "-package_author_name 'userid <str>'"
+              ],
+              "shorthelp": "Package: author name",
+              "example": [
+                "cli: -package_author_name 'wiley wiley@acme.com'",
+                "api: schema.set('author', 'wiley', 'name', 'wiley@acme.com')"
+              ],
+              "help": "Package author name provided with full name as key and\nname as value.",
+              "notes": null,
+              "pernode": "never",
+              "node": {
+                "default": {
+                  "default": {
+                    "value": null,
+                    "signature": null
+                  }
+                }
+              }
+            },
+            "email": {
+              "type": "str",
+              "require": false,
+              "scope": "global",
+              "lock": false,
+              "switch": [
+                "-package_author_email 'userid <str>'"
+              ],
+              "shorthelp": "Package: author email",
+              "example": [
+                "cli: -package_author_email 'wiley wiley@acme.com'",
+                "api: schema.set('author', 'wiley', 'email', 'wiley@acme.com')"
+              ],
+              "help": "Package author email provided with full name as key and\nemail as value.",
+              "notes": null,
+              "pernode": "never",
+              "node": {
+                "default": {
+                  "default": {
+                    "value": null,
+                    "signature": null
+                  }
+                }
+              }
+            },
+            "organization": {
+              "type": "str",
+              "require": false,
+              "scope": "global",
+              "lock": false,
+              "switch": [
+                "-package_author_organization 'userid <str>'"
+              ],
+              "shorthelp": "Package: author organization",
+              "example": [
+                "cli: -package_author_organization 'wiley wiley@acme.com'",
+                "api: schema.set('author', 'wiley', 'organization', 'wiley@acme.com')"
+              ],
+              "help": "Package author organization provided with full name as key and\norganization as value.",
+              "notes": null,
+              "pernode": "never",
+              "node": {
+                "default": {
+                  "default": {
+                    "value": null,
+                    "signature": null
+                  }
+                }
+              }
+            }
+          }
+        },
+        "__meta__": {
+          "class": "siliconcompiler.schema_support.packageschema/PackageSchema",
+          "sctype": "PackageSchema"
         }
       },
       "asic": {

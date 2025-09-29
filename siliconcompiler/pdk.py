@@ -8,7 +8,6 @@ from siliconcompiler.schema.utils import trim
 from siliconcompiler.library import ToolLibrarySchema
 from siliconcompiler.schema_support.pathschema import PathSchema
 from siliconcompiler.schema_support.filesetschema import FileSetSchema
-from siliconcompiler.schema_support.packageschema import PackageSchema
 
 
 class PDK(ToolLibrarySchema):
@@ -724,7 +723,7 @@ class PDK(ToolLibrarySchema):
             docs.append(dataroot)
 
         # Show package information
-        package = PackageSchema._generate_doc(self, doc, ref_root=ref_root, key_offset=key_offset)
+        package = self.package._generate_doc(doc, ref_root=ref_root, key_offset=key_offset)
         if package:
             docs.append(package)
 
