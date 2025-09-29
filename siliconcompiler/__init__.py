@@ -20,7 +20,7 @@ from siliconcompiler.fpga import FPGAProject
 from siliconcompiler.project import LintProject
 from siliconcompiler.project import SimProject
 
-from siliconcompiler.fpga import FPGA
+from siliconcompiler.fpga import FPGADevice
 
 
 __all__ = [
@@ -32,7 +32,7 @@ __all__ = [
     "PDK",
     "Flowgraph",
     "Checklist",
-    "FPGA",
+    "FPGADevice",
     "Schematic",
     "StdCellLibrary",
 

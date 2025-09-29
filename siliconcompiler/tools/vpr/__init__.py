@@ -29,10 +29,10 @@ from siliconcompiler import Task
 
 from typing import List, Union
 
-from siliconcompiler import FPGA
+from siliconcompiler import FPGADevice
 
 
-class VPRFPGA(FPGA):
+class VPRFPGA(FPGADevice):
     """
     Schema for defining library parameters specifically for the
     VPR (Verilog Place and Route) tool.

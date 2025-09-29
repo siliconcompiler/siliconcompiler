@@ -3,26 +3,26 @@ import pytest
 
 from unittest.mock import patch
 
-from siliconcompiler import FPGA, FPGAProject
+from siliconcompiler import FPGADevice, FPGAProject
 from siliconcompiler.metrics import FPGAMetricsSchema
 from siliconcompiler.constraints import FPGAComponentConstraints, \
     FPGAPinConstraints, FPGATimingConstraintSchema
 
 
 def test_set_add():
-    schema = FPGA("testfpga")
+    schema = FPGADevice("testfpga")
     assert schema.name == "testfpga"
 
 
 def test_fpga_keys():
-    assert FPGA().allkeys("fpga") == {
+    assert FPGADevice().allkeys("fpga") == {
         ('lutsize',),
         ('partname',)
     }
 
 
 def test_keys():
-    assert FPGA().getkeys() == (
+    assert FPGADevice().getkeys() == (
         'dataroot',
         'fileset',
         'fpga',
@@ -31,18 +31,18 @@ def test_keys():
 
 
 def test_getdict_type():
-    assert FPGA._getdict_type() == "FPGA"
+    assert FPGADevice._getdict_type() == "FPGA"
 
 
 def test_set_partname():
-    schema = FPGA()
+    schema = FPGADevice()
     assert schema.get("fpga", "partname") is None
     schema.set_partname("fpga123")
     assert schema.get("fpga", "partname") == "fpga123"
 
 
 def test_set_lutsize():
-    schema = FPGA()
+    schema = FPGADevice()
     assert schema.get("fpga", "lutsize") is None
     schema.set_lutsize(6)
     assert schema.get("fpga", "lutsize") == 6

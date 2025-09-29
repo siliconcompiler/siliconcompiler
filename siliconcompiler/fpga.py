@@ -19,7 +19,7 @@ from siliconcompiler.constraints import \
 from siliconcompiler.metrics import FPGAMetricsSchema
 
 
-class FPGA(ToolLibrarySchema):
+class FPGADevice(ToolLibrarySchema):
     """
     A schema for configuring FPGA-related parameters.
 
@@ -98,7 +98,7 @@ class FPGA(ToolLibrarySchema):
             str: The name of the class.
         """
 
-        return FPGA.__name__
+        return FPGADevice.__name__
 
 
 class FPGAProject(Project):
@@ -153,7 +153,7 @@ class FPGAProject(Project):
                 self.add_dep(iobj)
             return
 
-        if isinstance(obj, FPGA):
+        if isinstance(obj, FPGADevice):
             EditableSchema(self).insert("library", obj.name, obj, clobber=True)
         else:
             return super().add_dep(obj)
@@ -174,7 +174,7 @@ class FPGAProject(Project):
         Raises:
             TypeError: If the provided fpga is not an FPGA object or a string.
         """
-        if isinstance(fpga, FPGA):
+        if isinstance(fpga, FPGADevice):
             self.add_dep(fpga)
             fpga = fpga.name
         elif not isinstance(fpga, str):
