@@ -16,7 +16,7 @@ from siliconcompiler.tool import Task, ShowTask, ScreenshotTask, TaskSkip
 
 # Projects
 from siliconcompiler.asic import ASICProject
-from siliconcompiler.fpga import FPGAProject
+from siliconcompiler.fpga import FPGA
 from siliconcompiler.project import LintProject
 from siliconcompiler.project import SimProject
 
@@ -42,7 +42,7 @@ __all__ = [
     "ScreenshotTask",
 
     "ASICProject",
-    "FPGAProject",
+    "FPGA",
     "LintProject",
     "SimProject"
 ]

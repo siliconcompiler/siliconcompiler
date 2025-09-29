@@ -52,7 +52,7 @@ Project Classes
     :inherited-members:
 
 
-.. autoclass:: siliconcompiler.FPGAProject
+.. autoclass:: siliconcompiler.FPGA
     :members:
     :show-inheritance:
     :inherited-members:
@@ -321,7 +321,7 @@ Inheritance
 ===========
 
 .. scclassinherit::
-    :classes: siliconcompiler/ASICProject,siliconcompiler/FPGAProject,siliconcompiler/LintProject,siliconcompiler/SimProject
+    :classes: siliconcompiler/ASICProject,siliconcompiler/FPGA,siliconcompiler/LintProject,siliconcompiler/SimProject
 
 .. scclassinherit::
     :classes: siliconcompiler/Design,siliconcompiler/PDK,siliconcompiler/FPGADevice,siliconcompiler/StdCellLibrary,siliconcompiler/Flowgraph,siliconcompiler/Checklist,siliconcompiler/Task

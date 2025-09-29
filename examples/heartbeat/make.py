@@ -3,7 +3,7 @@
 
 from siliconcompiler import Design, FPGADevice
 from siliconcompiler.project import LintProject, SimProject
-from siliconcompiler import ASICProject, FPGAProject
+from siliconcompiler import ASICProject, FPGA
 
 from siliconcompiler.flows.lintflow import LintFlow
 from siliconcompiler.flows.dvflow import DVFlow
@@ -230,7 +230,7 @@ def fpga(N: str = None):
             Defaults to None, which uses the value set in the design schema.
     """
     # Create a project instance for an FPGA flow.
-    project = FPGAProject()
+    project = FPGA()
 
     # Instantiate and configure the design.
     hb = HeartbeatDesign()

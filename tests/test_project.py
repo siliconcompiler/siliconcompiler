@@ -290,7 +290,7 @@ def test_convert():
 
             EditableSchema(self).insert("asic", Parameter("str"))
 
-    class FPGAProject(Project):
+    class FPGA(Project):
         def __init__(self, design=None):
             super().__init__(design)
 
@@ -299,7 +299,7 @@ def test_convert():
     design = Design("design0")
     proj0 = ASICProject(design)
 
-    proj1 = FPGAProject.convert(proj0)
+    proj1 = FPGA.convert(proj0)
 
     assert proj0.allkeys("library") == proj1.allkeys("library")
     assert proj0.allkeys("library") == proj1.allkeys("library")

@@ -2,7 +2,7 @@ import pytest
 
 import os.path
 
-from siliconcompiler import FPGAProject, Flowgraph, Design
+from siliconcompiler import FPGA, Flowgraph, Design
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.tools.vpr.place import PlaceTask
 from siliconcompiler.tools.vpr.route import RouteTask
@@ -17,7 +17,7 @@ from tools.inputimporter import ImporterTask
 @pytest.mark.quick
 @pytest.mark.ready
 def test_version(gcd_design):
-    proj = FPGAProject(gcd_design)
+    proj = FPGA(gcd_design)
     proj.add_fileset("rtl")
 
     flow = Flowgraph("testflow")
@@ -38,7 +38,7 @@ def test_run(datadir):
     with design.active_fileset("rtl"):
         design.set_topmodule("adder")
 
-    proj = FPGAProject(design)
+    proj = FPGA(design)
     proj.add_fileset("rtl")
 
     flow = Flowgraph("testflow")
@@ -73,7 +73,7 @@ def test_run(datadir):
 
 
 def test_vpr_max_router_iterations(gcd_design):
-    proj = FPGAProject(gcd_design)
+    proj = FPGA(gcd_design)
     proj.add_fileset("rtl")
 
     flow = Flowgraph("testflow")
@@ -135,7 +135,7 @@ def test_vpr_max_router_iterations(gcd_design):
 
 
 def test_vpr_place_with_constraint(gcd_design, monkeypatch):
-    proj = FPGAProject(gcd_design)
+    proj = FPGA(gcd_design)
     proj.add_fileset("rtl")
 
     flow = Flowgraph("testflow")
@@ -204,7 +204,7 @@ def test_vpr_gen_post_implementation_netlist(gcd_design):
     with open('test.sdc', 'w') as f:
         f.write('test')
 
-    proj = FPGAProject(gcd_design)
+    proj = FPGA(gcd_design)
     proj.add_fileset(["rtl", "sdc-test"])
 
     flow = Flowgraph("testflow")

@@ -112,9 +112,9 @@ Project Parameters
   :ref_root: ASICProject
 
 .. schema::
-  :root: siliconcompiler/FPGAProject
+  :root: siliconcompiler/FPGA
   :schema_only:
-  :ref_root: FPGAProject
+  :ref_root: FPGA
 
 .. schema::
   :root: siliconcompiler/LintProject

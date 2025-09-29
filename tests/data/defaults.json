@@ -6855,8 +6855,8 @@
         }
       },
       "__meta__": {
-        "class": "siliconcompiler.fpga/FPGAProject",
-        "sctype": "FPGAProject"
+        "class": "siliconcompiler.fpga/FPGA",
+        "sctype": "FPGA"
       }
     },
     "asicproject": {
@@ -20227,8 +20227,8 @@
         }
       },
       "__meta__": {
-        "class": "siliconcompiler.fpga/FPGA",
-        "sctype": "FPGA"
+        "class": "siliconcompiler.fpga/FPGADevice",
+        "sctype": "FPGADevice"
       }
     },
     "stdcelllibrary": {

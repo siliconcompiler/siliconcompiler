@@ -151,7 +151,7 @@ class KeyPath:
     @staticmethod
     def keypath(key_path, refdoc, key_text=None):
         '''Helper function for displaying Schema keypaths.'''
-        from siliconcompiler import ASICProject, FPGAProject, LintProject, SimProject
+        from siliconcompiler import ASICProject, FPGA, LintProject, SimProject
         from siliconcompiler.project import Project
         from siliconcompiler import PDK, StdCellLibrary, Schematic, Design
 
@@ -163,8 +163,8 @@ class KeyPath:
             key_path = key_path[1:]
             if schema_name == "ASICProject":
                 schema = ASICProject()
-            elif schema_name == "FPGAProject":
-                schema = FPGAProject()
+            elif schema_name == "FPGA":
+                schema = FPGA()
             elif schema_name == "LintProject":
                 schema = LintProject()
             elif schema_name == "SimProject":

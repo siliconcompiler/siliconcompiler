@@ -9,7 +9,7 @@ from siliconcompiler.schema import BaseSchema, EditableSchema, PerNode
 from siliconcompiler.schema.parametertype import NodeType
 
 from siliconcompiler.project import Project
-from siliconcompiler import FPGAProject, ASICProject, SimProject, LintProject
+from siliconcompiler import FPGA, ASICProject, SimProject, LintProject
 from siliconcompiler import Design, PDK, StdCellLibrary, FPGADevice, Schematic
 
 
@@ -19,7 +19,7 @@ class CompositeProject(BaseSchema):
         super().__init__()
 
         EditableSchema(self).insert("project", "project", Project())
-        EditableSchema(self).insert("project", "fpgaproject", FPGAProject())
+        EditableSchema(self).insert("project", "fpgaproject", FPGA())
         EditableSchema(self).insert("project", "asicproject", ASICProject())
         EditableSchema(self).insert("project", "simproject", SimProject())
         EditableSchema(self).insert("project", "lintproject", LintProject())
@@ -55,7 +55,7 @@ def test_modified_schema(datadir, cleanup_manifest):
     assert check == expected, "Golden manifest does not match"
 
 
-@pytest.mark.parametrize("root", [Project, ASICProject, FPGAProject])
+@pytest.mark.parametrize("root", [Project, ASICProject, FPGA])
 def test_cli_examples(monkeypatch, root):
     did_something = True
     example_index = 0
