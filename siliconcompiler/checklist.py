@@ -63,7 +63,7 @@ class Checklist(NamedSchema):
 
         schema_root = self._parent(root=True)
         logger = getattr(schema_root, "logger", None)
-        cwd = getattr(schema_root, "cwd", os.getcwd())
+        cwd = getattr(schema_root, "_Project__cwd", os.getcwd())
 
         assert hasattr(schema_root, "history"), f"{schema_root}"
 
