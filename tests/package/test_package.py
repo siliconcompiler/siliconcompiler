@@ -111,6 +111,42 @@ def test_find_resolver_python():
     assert Resolver.find_resolver("python://siliconcompiler") is PythonPathResolver
 
 
+def test_file_env_var():
+    resolver = FileResolver("test", None, "$THIS_PATH/hello")
+    assert resolver.source == "file://$THIS_PATH/hello"
+    assert resolver.urlpath == "$THIS_PATH/hello"
+
+
+def test_file_env_var_cwd():
+    class Project:
+        __cwd = "thiscwd"
+
+        def valid(*args, **kwargs):
+            return False
+
+    resolver = FileResolver("test", Project(), "THIS_PATH/$hello")
+    assert resolver.source == "file://thiscwd/THIS_PATH/$hello"
+    assert resolver.urlpath == "thiscwd/THIS_PATH/$hello"
+
+
+def test_file_source_rel_cwd():
+    class Project:
+        __cwd = "thiscwd"
+
+        def valid(*args, **kwargs):
+            return False
+
+    resolver = FileResolver("test", Project(), "THIS_PATH/hello")
+    assert resolver.source == "file://thiscwd/THIS_PATH/hello"
+    assert resolver.urlpath == "thiscwd/THIS_PATH/hello"
+
+
+def test_file_source_abs():
+    resolver = FileResolver("test", None, "/abs")
+    assert resolver.source == "file:///abs"
+    assert resolver.urlpath == "/abs"
+
+
 def test_cache_id_different_name():
     res0 = Resolver("testpath0", Project("testproj"), "file://.", reference="ref")
     res1 = Resolver("testpath1", Project("testproj"), "file://.", reference="ref")

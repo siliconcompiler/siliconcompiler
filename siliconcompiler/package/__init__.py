@@ -355,7 +355,7 @@ class RemoteResolver(Resolver):
             if path:
                 path = root.find_files('option', 'cachedir', missing_ok=True)
                 if not path:
-                    path = os.path.join(getattr(root, "cwd", os.getcwd()),
+                    path = os.path.join(getattr(root, "_Project__cwd", os.getcwd()),
                                         root.get('option', 'cachedir'))
         if not path:
             path = default_path
@@ -534,8 +534,8 @@ class FileResolver(Resolver):
     def __init__(self, name, root, source, reference=None):
         if source.startswith("file://"):
             source = source[7:]
-        if not os.path.isabs(source):
-            source = os.path.join(getattr(root, "cwd", os.getcwd()), source)
+        if source[0] != "$" and not os.path.isabs(source):
+            source = os.path.join(getattr(root, "_Project__cwd", os.getcwd()), source)
 
         super().__init__(name, root, f"file://{source}", None)
 
