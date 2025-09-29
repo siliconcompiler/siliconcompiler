@@ -83,10 +83,10 @@ class SchemaGen(SphinxDirective):
             docstring = None
             docsfile = None
             for mro_cls in schema_cls.mro():
-                docstring = inspect.getdoc(schema_cls)
+                docstring = inspect.getdoc(mro_cls)
                 if docstring:
                     try:
-                        docsfile = inspect.getfile(schema_cls)
+                        docsfile = inspect.getfile(mro_cls)
                     except TypeError:
                         docsfile = None
                     break
@@ -177,14 +177,15 @@ class SchemaGen(SphinxDirective):
         if "*" in cls:
             for attr in dir(mod):
                 if fnmatch.fnmatch(attr, cls):
-                    schema_cls = getattr(mod, attr)
-                    if issubclass(schema_cls, BaseSchema):
-                        schema_clss.append(schema_cls)
+                    candidate = getattr(mod, attr)
+                    if inspect.isclass(candidate) and issubclass(candidate, BaseSchema):
+                        schema_clss.append(candidate)
 
             schema_clss = sorted(schema_clss, key=lambda cls: cls.__name__)
 
             if not schema_clss:
-                raise AttributeError(f"{cls} not found")
+                raise AttributeError(
+                    f'No BaseSchema subclasses in module "{module}" match pattern "{cls}"')
         else:
             schema_cls = getattr(mod, cls)
 

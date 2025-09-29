@@ -147,7 +147,7 @@ The :ref:`sc-remote <app-sc-remote>` app also accepts a `-credentials` input par
 Run Results
 -----------
 
-Your run will first show the the SiliconCompiler banner/info, followed by design INFO messages.
+Your run will first show the SiliconCompiler banner/info, followed by design INFO messages.
 
 As the run goes through each step of the flow, a message will be printed to the screen every 30 seconds.
 
