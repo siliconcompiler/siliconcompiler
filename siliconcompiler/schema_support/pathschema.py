@@ -274,6 +274,30 @@ class PathSchema(PathSchemaBase):
                     of the file that will be downloaded.
                     """)))
 
+    def __dataroot_section(self) -> "PathSchema":
+        """Finds the schema section that defines the 'dataroot'.
+
+        This method traverses up the hierarchy of schema objects, starting from the
+        current instance (`self`). It returns the first ancestor schema (or self)
+        that contains a valid 'dataroot' configuration.
+
+        The search stops when a valid 'dataroot' is found or when the top-level
+        root of the schema tree is reached.
+
+        Returns:
+            PathSchema: The nearest schema in the hierarchy (including self) that
+                defines a valid 'dataroot'.
+        """
+        root = self._parent(root=True)
+
+        schema = self
+        while not schema.valid("dataroot"):
+            schema = schema._parent()
+            if schema is root:
+                break
+
+        return schema
+
     def set_dataroot(self, name: str, path: str, tag: str = None):
         """
         Registers a data directory by its name with the root and associated tag. If the path
@@ -297,9 +321,11 @@ class PathSchema(PathSchemaBase):
         if os.path.isfile(path):
             path = os.path.dirname(os.path.abspath(path))
 
-        BaseSchema.set(self, "dataroot", name, "path", path)
+        schema = self.__dataroot_section()
+
+        BaseSchema.set(schema, "dataroot", name, "path", path)
         if tag:
-            BaseSchema.set(self, "dataroot", name, "tag", tag)
+            BaseSchema.set(schema, "dataroot", name, "tag", tag)
 
     def get_dataroot(self, name: str) -> str:
         """
@@ -319,27 +345,34 @@ class PathSchema(PathSchemaBase):
             Returns the path to the root of the siliconcompiler data directory.
         """
 
-        if not BaseSchema.valid(self, "dataroot", name):
+        schema = self.__dataroot_section()
+
+        if not BaseSchema.valid(schema, "dataroot", name):
             raise ValueError(f"{name} is not a recognized source")
 
-        path = BaseSchema.get(self, "dataroot", name, "path")
-        tag = BaseSchema.get(self, "dataroot", name, "tag")
+        path = BaseSchema.get(schema, "dataroot", name, "path")
+        tag = BaseSchema.get(schema, "dataroot", name, "tag")
 
         resolver = Resolver.find_resolver(path)
-        return resolver(name, self._parent(root=True), path, tag).get_path()
+        return resolver(name, schema._parent(root=True), path, tag).get_path()
 
     def _find_files_dataroot_resolvers(self):
         """
-        Returns a dictionary of path resolevrs data directory handling for find_files
+        Returns a dictionary of path resolvers data directory handling for find_files
 
         Returns:
             dictionary of str to resolver mapping
         """
         schema_root = self._parent(root=True)
+        schema = self.__dataroot_section()
+
+        if not schema.valid("dataroot"):
+            return {}
+
         resolver_map = {}
-        for dataroot in self.getkeys("dataroot"):
-            path = BaseSchema.get(self, "dataroot", dataroot, "path")
-            tag = BaseSchema.get(self, "dataroot", dataroot, "tag")
+        for dataroot in schema.getkeys("dataroot"):
+            path = BaseSchema.get(schema, "dataroot", dataroot, "path")
+            tag = BaseSchema.get(schema, "dataroot", dataroot, "tag")
             resolver = Resolver.find_resolver(path)
             resolver_map[dataroot] = resolver(dataroot, schema_root, path, tag).get_path
         return resolver_map
@@ -358,10 +391,15 @@ class PathSchema(PathSchemaBase):
             Sets the file to top.v and associates lambdalib as the dataroot.
         '''
 
-        if dataroot and dataroot not in self.getkeys("dataroot"):
+        schema = self.__dataroot_section()
+
+        if dataroot and not schema.valid("dataroot"):
             raise ValueError(f"{dataroot} is not a recognized dataroot")
 
-        with self._active(package=dataroot):
+        if dataroot and dataroot not in schema.getkeys("dataroot"):
+            raise ValueError(f"{dataroot} is not a recognized dataroot")
+
+        with schema._active(package=dataroot):
             yield
 
     def _get_active_dataroot(self, user_dataroot: str) -> str:
@@ -392,11 +430,16 @@ class PathSchema(PathSchemaBase):
         if user_dataroot is not None:
             return user_dataroot
 
-        active_dataroot = self._get_active("package")
+        schema = self.__dataroot_section()
+
+        active_dataroot = schema._get_active("package")
         if active_dataroot:
             return active_dataroot
 
-        roots = self.getkeys("dataroot")
+        if not schema.valid("dataroot"):
+            return None
+
+        roots = schema.getkeys("dataroot")
         if not roots:
             # No roots defined, so assume no root is needed
             return None
@@ -422,9 +465,10 @@ class PathSchema(PathSchemaBase):
         colspec = r'{|\X{1}{3}|\X{2}{3}|}'
 
         table = [[strong('Root'), strong('Specifications')]]
-        for dataroot in self.getkeys("dataroot"):
-            path = self.get('dataroot', dataroot, 'path')
-            tag = self.get('dataroot', dataroot, 'tag')
+        schema = self.__dataroot_section()
+        for dataroot in schema.getkeys("dataroot"):
+            path = schema.get('dataroot', dataroot, 'path')
+            tag = schema.get('dataroot', dataroot, 'tag')
 
             specs = [nodes.paragraph('', 'Path: ', code(path))]
             if tag:

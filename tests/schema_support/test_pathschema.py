@@ -351,6 +351,17 @@ def test_active_dataroot_missing():
     assert schema._get_active(None) is None
 
 
+def test_active_dataroot_no_root():
+    schema = PathSchema()
+    EditableSchema(schema).remove("dataroot")
+
+    assert schema._get_active(None) is None
+    with pytest.raises(ValueError, match="testpack is not a recognized dataroot"):
+        with schema.active_dataroot("testpack"):
+            pass
+    assert schema._get_active(None) is None
+
+
 def test_simple_find_files():
     class Test(PathSchema, PathSchemaSimpleBase):
         def __init__(self):
@@ -565,6 +576,13 @@ def test_get_active_dataroot_use_active_user():
         assert schema._get_active_dataroot("user") == "user"
 
 
+def test_get_active_dataroot_no_roots():
+    schema = PathSchema()
+    EditableSchema(schema).remove("dataroot")
+
+    assert schema._get_active_dataroot(None) is None
+
+
 def test_get_active_dataroot_use_defined():
     schema = PathSchema()
     schema.set_dataroot("defined", "file://")
@@ -581,3 +599,51 @@ def test_get_active_dataroot_multiple_defined():
                        match="dataroot must be specified, multiple are defined: "
                              "defined0, defined1"):
         schema._get_active_dataroot(None)
+
+
+def test_dataroot_section_normal():
+    schema_base = PathSchema()
+
+    assert schema_base._PathSchema__dataroot_section() is schema_base
+
+
+def test_dataroot_section_above():
+    schema = PathSchema()
+    EditableSchema(schema).remove("dataroot")
+
+    schema_base = PathSchema()
+    EditableSchema(schema_base).insert("test", schema)
+
+    assert schema._PathSchema__dataroot_section() is schema_base
+
+
+def test_dataroot_section_not_above():
+    schema = PathSchema()
+    schema_base = PathSchema()
+    EditableSchema(schema_base).insert("test", schema)
+
+    assert schema._PathSchema__dataroot_section() is schema
+
+
+def test_dataroot_section_above_active():
+    schema = PathSchema()
+    EditableSchema(schema).remove("dataroot")
+
+    schema_base = PathSchema()
+    EditableSchema(schema_base).insert("test", schema)
+    schema_base.set_dataroot("test", __file__)
+
+    with schema.active_dataroot("test"):
+        assert schema_base._get_active("package") == "test"
+        assert schema._get_active("package") is None
+
+    with schema_base.active_dataroot("test"):
+        assert schema_base._get_active("package") == "test"
+        assert schema._get_active("package") is None
+
+
+def test_find_files_dataroot_resolvers_no_roots():
+    schema = PathSchema()
+    EditableSchema(schema).remove("dataroot")
+
+    assert schema._find_files_dataroot_resolvers() == {}
