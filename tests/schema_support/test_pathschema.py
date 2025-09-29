@@ -581,3 +581,32 @@ def test_get_active_dataroot_multiple_defined():
                        match="dataroot must be specified, multiple are defined: "
                              "defined0, defined1"):
         schema._get_active_dataroot(None)
+
+
+def test_dataroot_section_normal():
+    schema_base = PathSchema()
+
+    assert schema_base._PathSchema__dataroot_section() is schema_base
+
+
+def test_dataroot_section_above():
+    schema = PathSchema()
+    EditableSchema(schema).remove("dataroot")
+
+    schema_base = PathSchema()
+    EditableSchema(schema_base).insert("test", schema)
+
+    assert schema._PathSchema__dataroot_section() is schema_base
+
+
+def test_dataroot_section_above_active():
+    schema = PathSchema()
+    EditableSchema(schema).remove("dataroot")
+
+    schema_base = PathSchema()
+    EditableSchema(schema_base).insert("test", schema)
+    schema_base.set_dataroot("test", __file__)
+
+    with schema.active_dataroot("test"):
+        assert schema_base._get_active("package") is None
+        assert schema._get_active("package") == "test"
