@@ -125,8 +125,9 @@ def test_file_env_var_cwd():
             return False
 
     resolver = FileResolver("test", Project(), "THIS_PATH/$hello")
-    assert resolver.source == "file://thiscwd/THIS_PATH/$hello"
-    assert resolver.urlpath == "thiscwd/THIS_PATH/$hello"
+    path = os.path.join("thiscwd", "THIS_PATH/$hello")
+    assert resolver.source == f"file://{path}"
+    assert resolver.urlpath == path
 
 
 def test_file_source_rel_cwd():
@@ -137,8 +138,9 @@ def test_file_source_rel_cwd():
             return False
 
     resolver = FileResolver("test", Project(), "THIS_PATH/hello")
-    assert resolver.source == "file://thiscwd/THIS_PATH/hello"
-    assert resolver.urlpath == "thiscwd/THIS_PATH/hello"
+    path = os.path.join("thiscwd", "THIS_PATH/hello")
+    assert resolver.source == f"file://{path}"
+    assert resolver.urlpath == path
 
 
 def test_file_source_abs():
