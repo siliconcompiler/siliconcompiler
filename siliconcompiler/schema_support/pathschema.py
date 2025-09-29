@@ -345,13 +345,16 @@ class PathSchema(PathSchemaBase):
 
     def _find_files_dataroot_resolvers(self):
         """
-        Returns a dictionary of path resolevrs data directory handling for find_files
+        Returns a dictionary of path resolvers data directory handling for find_files
 
         Returns:
             dictionary of str to resolver mapping
         """
         schema_root = self._parent(root=True)
         schema = self.__dataroot_section()
+
+        if not schema.valid("dataroot"):
+            return {}
 
         resolver_map = {}
         for dataroot in schema.getkeys("dataroot"):
@@ -376,6 +379,9 @@ class PathSchema(PathSchemaBase):
         '''
 
         schema = self.__dataroot_section()
+
+        if dataroot and not schema.valid("dataroot"):
+            raise ValueError(f"{dataroot} is not a recognized dataroot")
 
         if dataroot and dataroot not in schema.getkeys("dataroot"):
             raise ValueError(f"{dataroot} is not a recognized dataroot")
@@ -416,6 +422,9 @@ class PathSchema(PathSchemaBase):
             return active_dataroot
 
         schema = self.__dataroot_section()
+
+        if not schema.valid("dataroot"):
+            return None
 
         roots = schema.getkeys("dataroot")
         if not roots:
