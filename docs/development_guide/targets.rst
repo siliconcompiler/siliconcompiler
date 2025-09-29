@@ -72,14 +72,14 @@ Let's create a target for a generic ASIC design. This function will load a stand
 
       # Timing Constraints: Define a "typical" corner for setup/hold analysis.
       # This sets the performance goals for the design.
-      scenario = project.get_timingconstraints().make_scenario("typical")
+      scenario = project.constraint.timing.make_scenario("typical")
       scenario.add_libcorner("typical")
       scenario.set_pexcorner("typical")
       scenario.add_check(["setup", "hold"])
 
       # Physical Constraints: Define the physical layout goals.
       # Here, we aim for 40% core utilization and a 1-micron margin.
-      area = project.get_areaconstraints()
+      area = project.constraint.area
       area.set_density(40)
       area.set_coremargin(1)
 
