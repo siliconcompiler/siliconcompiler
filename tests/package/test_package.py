@@ -121,7 +121,7 @@ def test_file_env_var_cwd():
     class Project:
         __cwd = "thiscwd"
 
-        def valid(*args, **kwargs):
+        def valid(*_args, **_kwargs):
             return False
 
     resolver = FileResolver("test", Project(), "THIS_PATH/$hello")
@@ -134,7 +134,7 @@ def test_file_source_rel_cwd():
     class Project:
         __cwd = "thiscwd"
 
-        def valid(*args, **kwargs):
+        def valid(*_args, **_kwargs):
             return False
 
     resolver = FileResolver("test", Project(), "THIS_PATH/hello")
@@ -144,10 +144,32 @@ def test_file_source_rel_cwd():
 
 
 def test_file_source_abs():
-    resolver = FileResolver("test", None, "/abs")
-    assert resolver.source == "file:///abs"
-    assert resolver.urlpath == "/abs"
+    abspath = os.path.abspath("abs")
+    resolver = FileResolver("test", None, abspath)
+    assert resolver.source == f"file://{abspath}"
+    assert resolver.urlpath == abspath
 
+
+def test_file_env_var_with_scheme():
+    resolver = FileResolver("test", None, "file://$THIS_PATH/hello")
+    assert resolver.source == "file://$THIS_PATH/hello"
+    assert resolver.urlpath == "$THIS_PATH/hello"
+
+
+def test_file_env_var_start_with_root():
+    class Project:
+        __cwd = "thiscwd"
+        def valid(*_args, **_kwargs):  # keep interface, silence linters
+            return False
+    resolver = FileResolver("test", Project(), "$THIS_PATH/hello")
+    assert resolver.source == "file://$THIS_PATH/hello"
+    assert resolver.urlpath == "$THIS_PATH/hello"
+
+
+def test_file_env_var_brace_form():
+    resolver = FileResolver("test", None, "${THIS_PATH}/hello")
+    assert resolver.source == "file://${THIS_PATH}/hello"
+    assert resolver.urlpath == "${THIS_PATH}/hello"
 
 def test_cache_id_different_name():
     res0 = Resolver("testpath0", Project("testproj"), "file://.", reference="ref")
