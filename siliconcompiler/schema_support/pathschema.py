@@ -274,7 +274,7 @@ class PathSchema(PathSchemaBase):
                     of the file that will be downloaded.
                     """)))
 
-    def __dataroot_section(self)-> "PathSchema":
+    def __dataroot_section(self) -> "PathSchema":
         root = self._parent(root=True)
 
         schema = self
