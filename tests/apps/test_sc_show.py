@@ -40,7 +40,7 @@ def test_sc_show_design_only(flags, monkeypatch, make_manifests, asic_gcd):
     make_manifests(asic_gcd)
 
     monkeypatch.setattr('sys.argv', ['sc-show'] + flags)
-    with patch('siliconcompiler.Project.show') as show:
+    with patch('siliconcompiler.project.Project.show') as show:
         assert sc_show.main() == 0
         show.assert_called_once_with(None, extension=None, screenshot=False)
 
@@ -63,7 +63,7 @@ def test_sc_show_design_only_screenshot(flags, monkeypatch, make_manifests, asic
         f.write("test")
 
     monkeypatch.setattr('sys.argv', ['sc-show', '-screenshot'] + flags)
-    with patch('siliconcompiler.Project.show') as show:
+    with patch('siliconcompiler.project.Project.show') as show:
         show.return_value = "test.png"
         assert sc_show.main() == 0
         show.assert_called_once_with(None, extension=None, screenshot=True)
@@ -83,7 +83,7 @@ def test_sc_show(flags, monkeypatch, make_manifests, asic_gcd):
     make_manifests(asic_gcd)
 
     monkeypatch.setattr('sys.argv', ['sc-show'] + flags)
-    with patch('siliconcompiler.Project.show') as show:
+    with patch('siliconcompiler.project.Project.show') as show:
         assert sc_show.main() == 0
         show.assert_called_once_with(flags[0], extension=None, screenshot=False)
 
@@ -103,7 +103,7 @@ def test_sc_show_ext(flags, monkeypatch, make_manifests, asic_gcd):
     make_manifests(asic_gcd)
 
     monkeypatch.setattr('sys.argv', ['sc-show'] + flags)
-    with patch('siliconcompiler.Project.show') as show:
+    with patch('siliconcompiler.project.Project.show') as show:
         assert sc_show.main() == 0
         show.assert_called_once_with(None, extension=flags[-1], screenshot=False)
 

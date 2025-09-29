@@ -2,7 +2,8 @@ import logging
 import os
 import pytest
 
-from siliconcompiler import Project, NodeStatus
+from siliconcompiler.project import Project
+from siliconcompiler import NodeStatus
 from siliconcompiler import Flowgraph, Design
 from siliconcompiler.schema import EditableSchema, Parameter, PerNode
 

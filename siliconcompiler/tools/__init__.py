@@ -32,7 +32,7 @@ def get_task(
             - If multiple tasks match or no specific tool/task is provided (and thus all tasks
             are considered), returns a `Set[Task]` containing the matching tasks.
     """
-    from siliconcompiler import Project
+    from siliconcompiler.project import Project
     if not isinstance(project, Project):
         raise TypeError("project must be a Project")
 

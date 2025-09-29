@@ -1,7 +1,7 @@
 import pytest
 
-
-from siliconcompiler import Flowgraph, Project
+from siliconcompiler.project import Project
+from siliconcompiler import Flowgraph
 from siliconcompiler.tools.builtin.nop import NOPTask
 
 

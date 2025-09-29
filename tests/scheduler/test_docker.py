@@ -5,7 +5,8 @@ import sys
 
 import os.path
 
-from siliconcompiler import Project, Flowgraph, Design
+from siliconcompiler.project import Project
+from siliconcompiler import Flowgraph, Design
 from siliconcompiler.tools.builtin.nop import NOPTask
 
 from siliconcompiler.scheduler import DockerSchedulerNode

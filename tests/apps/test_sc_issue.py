@@ -9,7 +9,8 @@ from unittest.mock import patch
 
 from siliconcompiler.apps import sc_issue
 
-from siliconcompiler import Flowgraph, Project
+from siliconcompiler.project import Project
+from siliconcompiler import Flowgraph
 from siliconcompiler.tools.builtin.nop import NOPTask
 
 

@@ -2,7 +2,8 @@ import pytest
 
 import os.path
 
-from siliconcompiler import Project, Flowgraph, Design
+from siliconcompiler.project import Project
+from siliconcompiler import Flowgraph, Design
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.tools.chisel import convert
 

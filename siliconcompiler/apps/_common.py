@@ -11,7 +11,7 @@ import os.path
 
 from typing import List, Dict, Optional
 
-from siliconcompiler import Project
+from siliconcompiler.project import Project
 
 
 def manifest_switches() -> List[str]:

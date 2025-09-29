@@ -102,7 +102,7 @@ Project Parameters
 ------------------
 
 .. schema::
-  :root: siliconcompiler/Project
+  :root: siliconcompiler.project/Project
   :schema_only:
   :ref_root: Project
 

@@ -97,7 +97,7 @@ Writing and Reading a Manifest
 The manifest.json file written by the code above would contain a record of all schema parameters, including the design name we configured:
 
 .. scdict::
-    :class: siliconcompiler/Project
+    :class: siliconcompiler.project/Project
     :keypath: option
     :select: design
 

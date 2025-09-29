@@ -1,6 +1,7 @@
 import pytest
 
-from siliconcompiler import Project, Flowgraph
+from siliconcompiler.project import Project
+from siliconcompiler import Flowgraph
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.tools.montage import tile
 from siliconcompiler.tools import get_task

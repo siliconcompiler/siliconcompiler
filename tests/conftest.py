@@ -19,7 +19,8 @@ from unittest.mock import patch
 
 from typing import Optional
 
-from siliconcompiler import utils, ASICProject, Design, Project
+from siliconcompiler.project import Project
+from siliconcompiler import utils, ASICProject, Design
 from siliconcompiler.tools.openroad._apr import APRTask
 from siliconcompiler.flows.asicflow import ASICFlow
 from siliconcompiler.targets import freepdk45_demo
@@ -73,7 +74,7 @@ def use_cache(monkeypatch, request):
     if not cachedir:
         return
 
-    old_init = siliconcompiler.Project._init_run
+    old_init = siliconcompiler.project.Project._init_run
 
     def mock_init(self):
         self.set('option', 'cachedir', cachedir)
@@ -140,7 +141,7 @@ def disable_or_images(monkeypatch, request):
     '''
     if 'eda' not in request.keywords:
         return
-    old_init = siliconcompiler.Project._init_run
+    old_init = siliconcompiler.project.Project._init_run
 
     def mock_init(self: siliconcompiler.Project):
         tasks = get_task(self, filter=APRTask)

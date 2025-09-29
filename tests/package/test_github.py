@@ -2,8 +2,8 @@ import pytest
 
 from unittest.mock import patch
 
+from siliconcompiler.project import Project
 from siliconcompiler.package.github import GithubResolver
-from siliconcompiler import Project
 
 
 def test_init_incorrect():

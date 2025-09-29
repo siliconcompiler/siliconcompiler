@@ -2,8 +2,8 @@ import pytest
 
 from unittest.mock import patch
 
+from siliconcompiler.project import Project
 from siliconcompiler.apps import sc_dashboard
-from siliconcompiler import Project
 
 
 def test_dashboard_no_cfg(monkeypatch):

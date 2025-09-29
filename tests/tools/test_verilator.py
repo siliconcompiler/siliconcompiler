@@ -2,7 +2,8 @@ import pytest
 
 import os.path
 
-from siliconcompiler import Project, Flowgraph, Design
+from siliconcompiler.project import Project
+from siliconcompiler import Flowgraph, Design
 from siliconcompiler.tools.slang.elaborate import Elaborate
 from siliconcompiler.tools.verilator import lint, compile
 from siliconcompiler.scheduler import SchedulerNode

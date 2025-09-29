@@ -6,7 +6,8 @@ import os.path
 from pathlib import Path
 from unittest.mock import patch
 
-from siliconcompiler import Project, Design, Flowgraph, Task
+from siliconcompiler.project import Project
+from siliconcompiler import Design, Flowgraph, Task
 from siliconcompiler.utils.curation import collect, archive
 from siliconcompiler.utils.paths import collectiondir
 
@@ -315,7 +316,7 @@ def test_archive_select_job():
     proj.set("option", "jobname", "thatjob")
     proj._record_history()
 
-    with patch("siliconcompiler.Project.history") as history:
+    with patch("siliconcompiler.project.Project.history") as history:
         history.return_value = proj
         archive(proj)
 

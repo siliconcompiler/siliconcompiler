@@ -34,7 +34,7 @@ def collect(project,
         RuntimeError: If a file or directory to be collected is not in the `whitelist`.
         FileNotFoundError: If a specified file or directory cannot be found.
     '''
-    from siliconcompiler import Project
+    from siliconcompiler.project import Project
     if not isinstance(project, Project):
         raise TypeError("project must be a Project")
 
@@ -181,7 +181,7 @@ def archive(project, jobname: str = None, include: List[str] = None, archive_nam
         archive_name (str, optional): The path to the output archive file. Defaults to
             `<design>_<jobname>.tgz`.
     '''
-    from siliconcompiler import Project
+    from siliconcompiler.project import Project
     if not isinstance(project, Project):
         raise TypeError("project must be a Project")
 

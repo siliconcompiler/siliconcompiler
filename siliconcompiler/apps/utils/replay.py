@@ -14,7 +14,7 @@ import os.path
 
 from datetime import datetime
 
-from siliconcompiler import Project
+from siliconcompiler.project import Project
 from siliconcompiler import utils
 from siliconcompiler.utils.curation import collect
 from siliconcompiler.schema_support.record import RecordTime

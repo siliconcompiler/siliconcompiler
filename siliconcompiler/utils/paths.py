@@ -20,7 +20,7 @@ def builddir(project) -> str:
     Raises:
         TypeError: If the provided project is not a valid Project object.
     """
-    from siliconcompiler import Project
+    from siliconcompiler.project import Project
     if not isinstance(project, Project):
         raise TypeError("project must be a Project type")
 
@@ -48,7 +48,7 @@ def jobdir(project) -> str:
         TypeError: If the provided project is not a valid Project object.
         ValueError: If the project name has not been set.
     """
-    from siliconcompiler import Project
+    from siliconcompiler.project import Project
     if not isinstance(project, Project):
         raise TypeError("project must be a Project type")
 

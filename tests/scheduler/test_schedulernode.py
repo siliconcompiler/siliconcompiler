@@ -11,7 +11,8 @@ from pathlib import Path
 from multiprocessing import Queue
 from unittest.mock import patch
 
-from siliconcompiler import Project, Flowgraph, Design
+from siliconcompiler.project import Project
+from siliconcompiler import Flowgraph, Design
 from siliconcompiler import NodeStatus
 from siliconcompiler import Task
 from siliconcompiler import TaskSkip

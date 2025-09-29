@@ -1,6 +1,7 @@
 import pytest
 
-from siliconcompiler import Project, Task, Design
+from siliconcompiler.project import Project
+from siliconcompiler import Task, Design
 from siliconcompiler.schema import EditableSchema
 from siliconcompiler.tool import ToolSchema
 from siliconcompiler.tools import get_task

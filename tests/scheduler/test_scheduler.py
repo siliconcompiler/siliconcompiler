@@ -7,7 +7,8 @@ import os.path
 
 from unittest.mock import patch
 
-from siliconcompiler import Project, Flowgraph, Design, NodeStatus
+from siliconcompiler.project import Project
+from siliconcompiler import Flowgraph, Design, NodeStatus
 from siliconcompiler.scheduler import Scheduler
 from siliconcompiler.schema import EditableSchema, Parameter
 

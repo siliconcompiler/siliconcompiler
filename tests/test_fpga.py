@@ -115,7 +115,7 @@ def test_project_add_dep_list():
 def test_project_add_dep_handoff():
     proj = FPGAProject()
 
-    with patch("siliconcompiler.Project.add_dep") as add_dep:
+    with patch("siliconcompiler.project.Project.add_dep") as add_dep:
         proj.add_dep(None)
         add_dep.assert_called_once_with(None)
 
@@ -125,7 +125,7 @@ def test_project_check_manifest_empty(monkeypatch, caplog):
     monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
     proj.logger.setLevel(logging.INFO)
 
-    with patch("siliconcompiler.Project.check_manifest") as check_manifest:
+    with patch("siliconcompiler.project.Project.check_manifest") as check_manifest:
         check_manifest.return_value = True
         assert proj.check_manifest() is False
 
@@ -139,7 +139,7 @@ def test_project_check_manifest_missing_fpga(monkeypatch, caplog):
 
     proj.set_fpga("thisfpga")
 
-    with patch("siliconcompiler.Project.check_manifest") as check_manifest:
+    with patch("siliconcompiler.project.Project.check_manifest") as check_manifest:
         check_manifest.return_value = True
         assert proj.check_manifest() is False
 
@@ -153,7 +153,7 @@ def test_project_check_manifest_pass(monkeypatch, caplog):
 
     proj.set_fpga(FPGA("thisfpga"))
 
-    with patch("siliconcompiler.Project.check_manifest") as check_manifest:
+    with patch("siliconcompiler.project.Project.check_manifest") as check_manifest:
         check_manifest.return_value = True
         assert proj.check_manifest() is True
 
@@ -165,7 +165,7 @@ def test_project_summary_headers():
 
     proj.set_fpga("thisfpga")
 
-    with patch("siliconcompiler.Project._summary_headers") as parent:
+    with patch("siliconcompiler.project.Project._summary_headers") as parent:
         parent.return_value = [("parent", "stuff")]
         assert proj._summary_headers() == [
             ("parent", "stuff"),

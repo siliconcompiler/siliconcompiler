@@ -15,7 +15,6 @@ from siliconcompiler.schematic import Schematic
 from siliconcompiler.tool import Task, ShowTask, ScreenshotTask, TaskSkip
 
 # Projects
-from siliconcompiler.project import Project
 from siliconcompiler.asic import ASICProject
 from siliconcompiler.fpga import FPGAProject
 from siliconcompiler.project import LintProject
@@ -42,7 +41,6 @@ __all__ = [
     "ShowTask",
     "ScreenshotTask",
 
-    "Project",
     "ASICProject",
     "FPGAProject",
     "LintProject",

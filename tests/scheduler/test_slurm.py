@@ -4,7 +4,8 @@ import os.path
 
 from unittest.mock import patch
 
-from siliconcompiler import Project, Flowgraph, Design, NodeStatus
+from siliconcompiler.project import Project
+from siliconcompiler import Flowgraph, Design, NodeStatus
 from siliconcompiler.tools.builtin.nop import NOPTask
 
 from siliconcompiler.scheduler import SlurmSchedulerNode

@@ -7,8 +7,8 @@ import os.path
 
 from pathlib import Path
 
+from siliconcompiler.project import Project
 from siliconcompiler.package.https import HTTPResolver
-from siliconcompiler import Project
 
 
 @pytest.mark.parametrize('path,ref,cache_id', [

@@ -416,7 +416,7 @@ class Scheduler:
         results from previous runs, checks for any modifications to parameters
         or input files, and marks nodes for re-run accordingly.
         """
-        from siliconcompiler import Project
+        from siliconcompiler.project import Project
 
         from_nodes = []
         extra_setup_nodes = {}

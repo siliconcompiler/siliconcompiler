@@ -1,7 +1,7 @@
 # Copyright 2024 Silicon Compiler Authors. All Rights Reserved.
 import sys
 
-from siliconcompiler import Project
+from siliconcompiler.project import Project
 
 
 ###########################

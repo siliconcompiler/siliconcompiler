@@ -3,8 +3,8 @@ import pytest
 
 import os.path
 
+from siliconcompiler.project import Project
 from siliconcompiler import Flowgraph
-from siliconcompiler import Project
 from siliconcompiler.tools.slang import lint
 from siliconcompiler.tools.slang import elaborate
 

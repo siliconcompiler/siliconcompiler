@@ -247,7 +247,7 @@ def test_add_dep_list():
 def test_add_dep_handoff():
     proj = ASICProject()
 
-    with patch("siliconcompiler.Project.add_dep") as add_dep:
+    with patch("siliconcompiler.project.Project.add_dep") as add_dep:
         proj.add_dep(None)
         add_dep.assert_called_once_with(None)
 
@@ -257,7 +257,7 @@ def test_check_manifest_empty(monkeypatch, caplog):
     monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
     proj.logger.setLevel(logging.INFO)
 
-    with patch("siliconcompiler.Project.check_manifest") as check_manifest:
+    with patch("siliconcompiler.project.Project.check_manifest") as check_manifest:
         check_manifest.return_value = True
         assert proj.check_manifest() is False
 
@@ -274,7 +274,7 @@ def test_check_manifest_missing_pdk(monkeypatch, caplog):
 
     proj.set("asic", "pdk", "thispdk")
 
-    with patch("siliconcompiler.Project.check_manifest") as check_manifest:
+    with patch("siliconcompiler.project.Project.check_manifest") as check_manifest:
         check_manifest.return_value = True
         assert proj.check_manifest() is False
 
@@ -292,7 +292,7 @@ def test_check_manifest_incorrect_type_pdk(monkeypatch, caplog):
     proj.add_dep(StdCellLibrary("thislib"))
     proj.set("asic", "pdk", "thislib")
 
-    with patch("siliconcompiler.Project.check_manifest") as check_manifest:
+    with patch("siliconcompiler.project.Project.check_manifest") as check_manifest:
         check_manifest.return_value = True
         assert proj.check_manifest() is False
 
@@ -310,7 +310,7 @@ def test_check_manifest_main_libmissing(monkeypatch, caplog):
     proj.set_pdk(PDK("thispdk"))
     proj.set("asic", "mainlib", "thislib")
 
-    with patch("siliconcompiler.Project.check_manifest") as check_manifest:
+    with patch("siliconcompiler.project.Project.check_manifest") as check_manifest:
         check_manifest.return_value = True
         assert proj.check_manifest() is False
 
@@ -328,7 +328,7 @@ def test_check_manifest_asiclib_missing(monkeypatch, caplog):
     proj.set_pdk(PDK("thispdk"))
     proj.set("asic", "asiclib", "thislib")
 
-    with patch("siliconcompiler.Project.check_manifest") as check_manifest:
+    with patch("siliconcompiler.project.Project.check_manifest") as check_manifest:
         check_manifest.return_value = True
         assert proj.check_manifest() is False
 
@@ -347,7 +347,7 @@ def test_check_manifest_pass(monkeypatch, caplog):
     proj.add_asiclib("thislib")
     proj.set_asic_delaymodel("nldm")
 
-    with patch("siliconcompiler.Project.check_manifest") as check_manifest:
+    with patch("siliconcompiler.project.Project.check_manifest") as check_manifest:
         check_manifest.return_value = True
         assert proj.check_manifest() is True
 
@@ -363,7 +363,7 @@ def test_check_manifest_pass_missing_mainlib(monkeypatch, caplog):
     proj.add_asiclib(StdCellLibrary("thislib"))
     proj.set_asic_delaymodel("nldm")
 
-    with patch("siliconcompiler.Project.check_manifest") as check_manifest:
+    with patch("siliconcompiler.project.Project.check_manifest") as check_manifest:
         check_manifest.return_value = True
         assert proj.check_manifest() is True
 
@@ -379,7 +379,7 @@ def test_init_run_set_mainlib(monkeypatch, caplog):
     proj.add_asiclib(StdCellLibrary("thislib"))
 
     assert proj.get("asic", "mainlib") is None
-    with patch("siliconcompiler.Project._init_run") as pinit:
+    with patch("siliconcompiler.project.Project._init_run") as pinit:
         proj._init_run()
         pinit.assert_called_once()
     assert proj.get("asic", "mainlib") == "thislib"
@@ -399,7 +399,7 @@ def test_init_run_set_pdk_asiclib(monkeypatch, caplog):
 
     assert proj.get("asic", "asiclib") == []
     assert proj.get("asic", "pdk") is None
-    with patch("siliconcompiler.Project._init_run") as pinit:
+    with patch("siliconcompiler.project.Project._init_run") as pinit:
         proj._init_run()
         pinit.assert_called_once()
     assert proj.get("asic", "pdk") == "thispdk"
@@ -418,7 +418,7 @@ def test_init_run_handling_missing_lib(monkeypatch, caplog):
 
     assert proj.get("asic", "asiclib") == []
     assert proj.get("asic", "pdk") is None
-    with patch("siliconcompiler.Project._init_run") as pinit:
+    with patch("siliconcompiler.project.Project._init_run") as pinit:
         proj._init_run()
         pinit.assert_called_once()
     assert proj.get("asic", "pdk") is None
@@ -434,7 +434,7 @@ def test_summary_headers():
     proj.set_mainlib("thislib")
     proj.add_asiclib(["thislib", "thatlib"])
 
-    with patch("siliconcompiler.Project._summary_headers") as parent:
+    with patch("siliconcompiler.project.Project._summary_headers") as parent:
         parent.return_value = [("parent", "stuff")]
         assert proj._summary_headers() == [
             ("parent", "stuff"),

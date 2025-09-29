@@ -7,7 +7,7 @@ within the SiliconCompiler schema. It includes schemas for both
 tool-library and temporary configurations.
 """
 
-from siliconcompiler import Project
+from siliconcompiler.project import Project
 
 from siliconcompiler.schema import EditableSchema, Parameter, Scope
 from siliconcompiler.schema.utils import trim

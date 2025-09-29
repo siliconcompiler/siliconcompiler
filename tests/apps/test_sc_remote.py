@@ -15,7 +15,8 @@ from pathlib import Path
 from siliconcompiler.utils import default_credentials_file
 from siliconcompiler._metadata import default_server
 
-from siliconcompiler import Flowgraph, Project
+from siliconcompiler.project import Project
+from siliconcompiler import Flowgraph
 from siliconcompiler.tools.builtin.nop import NOPTask
 
 from siliconcompiler.apps import sc_remote
@@ -228,7 +229,7 @@ def test_sc_remote_reconnect(gcd_nop_project, monkeypatch, unused_tcp_port, scse
             wf.write('{"mocked": "manifest"}')
     monkeypatch.setattr("siliconcompiler.remote.client.Client._finalize_loop", mock_finalize_run)
     # Reconnect to the job.
-    with patch("siliconcompiler.Project.summary") as summary:
+    with patch("siliconcompiler.project.Project.summary") as summary:
         retcode = sc_remote.main()
         summary.assert_called_once()
 

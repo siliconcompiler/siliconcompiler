@@ -3,7 +3,8 @@ import pytest
 
 from unittest.mock import patch
 
-from siliconcompiler import Flowgraph, Design, Project
+from siliconcompiler.project import Project
+from siliconcompiler import Flowgraph, Design
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.tools.builtin.nop import NOPTask
 from siliconcompiler.tools.builtin.join import JoinTask

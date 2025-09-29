@@ -4,8 +4,9 @@ import pytest
 
 from threading import Lock
 
+from siliconcompiler.project import Project
 from siliconcompiler import NodeStatus
-from siliconcompiler import Project, Flowgraph, Design
+from siliconcompiler import Flowgraph, Design
 from siliconcompiler.scheduler import TaskScheduler
 from siliconcompiler.scheduler.taskscheduler import utils as imported_utils
 from siliconcompiler.scheduler import SchedulerNode

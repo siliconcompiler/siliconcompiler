@@ -1,4 +1,4 @@
-from siliconcompiler import Project
+from siliconcompiler.project import Project
 import pytest
 
 

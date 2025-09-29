@@ -9,7 +9,7 @@ from PIL import Image
 
 from unittest.mock import patch
 
-from siliconcompiler import Project
+from siliconcompiler.project import Project
 from siliconcompiler import Design, Flowgraph, Checklist
 from siliconcompiler import Task
 from siliconcompiler.library import LibrarySchema
@@ -826,7 +826,7 @@ def test_summary_select_job():
     proj.set("option", "jobname", "thatjob")
     proj._record_history()
 
-    with patch("siliconcompiler.Project.history") as history:
+    with patch("siliconcompiler.project.Project.history") as history:
         history.return_value = proj
         proj.summary()
 
@@ -839,7 +839,7 @@ def test_summary_stop_dashboard():
 
     with patch("siliconcompiler.report.dashboard.cli.CliDashboard.is_running") as is_running, \
             patch("siliconcompiler.report.dashboard.cli.CliDashboard.stop") as stop, \
-            patch("siliconcompiler.Project.history") as history:
+            patch("siliconcompiler.project.Project.history") as history:
         history.return_value = proj
         is_running.return_value = True
         proj.summary()
@@ -855,7 +855,7 @@ def test_summary_stop_dashboard_not_running():
 
     with patch("siliconcompiler.report.dashboard.cli.CliDashboard.is_running") as is_running, \
             patch("siliconcompiler.report.dashboard.cli.CliDashboard.stop") as stop, \
-            patch("siliconcompiler.Project.history") as history:
+            patch("siliconcompiler.project.Project.history") as history:
         history.return_value = proj
         is_running.return_value = False
         proj.summary()
@@ -872,7 +872,7 @@ def test_summary_select_job_user():
     proj.set("option", "jobname", "thatjob")
     proj._record_history()
 
-    with patch("siliconcompiler.Project.history") as history:
+    with patch("siliconcompiler.project.Project.history") as history:
         history.return_value = proj
         proj.summary("thisjob")
 
@@ -890,7 +890,7 @@ def test_summary_select_unknownjob(monkeypatch, caplog):
     proj._record_history()
     proj.set("option", "jobname", "job0")
 
-    with patch("siliconcompiler.Project.history") as history:
+    with patch("siliconcompiler.project.Project.history") as history:
         history.return_value = proj
         proj.summary()
 
@@ -1046,7 +1046,7 @@ def test_snapshot_select_job():
     proj.set("option", "jobname", "thatjob")
     proj._record_history()
 
-    with patch("siliconcompiler.Project.history") as history:
+    with patch("siliconcompiler.project.Project.history") as history:
         history.return_value = proj
         proj.snapshot()
 
@@ -1469,7 +1469,7 @@ def test_run():
         proj._record_history()
 
     with patch("siliconcompiler.scheduler.Scheduler.run") as run, \
-            patch("siliconcompiler.Project._Project__reset_job_params") as reset:
+            patch("siliconcompiler.project.Project._Project__reset_job_params") as reset:
         run.side_effect = mock_run
         hist = proj.run()
         assert isinstance(hist, Project)
@@ -1496,7 +1496,7 @@ def test_run_remote():
         proj._record_history()
 
     with patch("siliconcompiler.remote.ClientScheduler.run") as run, \
-            patch("siliconcompiler.Project._Project__reset_job_params") as reset:
+            patch("siliconcompiler.project.Project._Project__reset_job_params") as reset:
         run.side_effect = mock_run
         hist = proj.run()
         assert isinstance(hist, Project)

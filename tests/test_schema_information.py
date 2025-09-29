@@ -8,7 +8,7 @@ import os.path
 from siliconcompiler.schema import BaseSchema, EditableSchema, PerNode
 from siliconcompiler.schema.parametertype import NodeType
 
-from siliconcompiler import Project
+from siliconcompiler.project import Project
 from siliconcompiler import FPGAProject, ASICProject, SimProject, LintProject
 from siliconcompiler import Design, PDK, StdCellLibrary, FPGA, Schematic
 

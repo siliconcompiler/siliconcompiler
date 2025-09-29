@@ -586,7 +586,7 @@ class SchedulerNode:
         Returns:
             bool: True if a re-run is required, False otherwise.
         """
-        from siliconcompiler import Project
+        from siliconcompiler.project import Project
 
         if self.__breakpoint:
             # Breakpoint is set to must run
@@ -1211,7 +1211,7 @@ class SchedulerNode:
         Args:
             source (str): The jobname of the source run to copy from.
         """
-        from siliconcompiler import Project
+        from siliconcompiler.project import Project
 
         org_name = self.__project.get("option", "jobname")
         self.__project.set("option", "jobname", source)

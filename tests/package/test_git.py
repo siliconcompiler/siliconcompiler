@@ -7,8 +7,8 @@ import os.path
 from git import Repo, Actor
 from pathlib import Path
 
+from siliconcompiler.project import Project
 from siliconcompiler.package.git import GitResolver
-from siliconcompiler import Project
 
 
 @pytest.fixture(autouse=True)

@@ -4,7 +4,7 @@ import shlex
 
 import os.path
 
-from siliconcompiler import Project
+from siliconcompiler.project import Project
 from siliconcompiler.apps._common import pick_manifest
 from siliconcompiler.report.dashboard.web import WebDashboard
 

@@ -5,7 +5,8 @@ import os.path
 
 from unittest.mock import patch
 
-from siliconcompiler import Project, ASICProject, Design, PDK
+from siliconcompiler.project import Project
+from siliconcompiler import ASICProject, Design, PDK
 from siliconcompiler import ShowTask, ScreenshotTask
 
 from siliconcompiler.tools.klayout import show as klayout_show

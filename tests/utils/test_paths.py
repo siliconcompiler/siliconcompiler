@@ -4,7 +4,8 @@ import os.path
 
 from pathlib import Path
 
-from siliconcompiler import Project, Design
+from siliconcompiler.project import Project
+from siliconcompiler import Design
 
 from siliconcompiler.utils.paths import builddir, jobdir, workdir, collectiondir
 

@@ -6,7 +6,8 @@ import os.path
 from pathlib import Path
 from unittest.mock import patch
 
-from siliconcompiler import Project, Design
+from siliconcompiler.project import Project
+from siliconcompiler import Design
 from siliconcompiler.schema import BaseSchema
 from siliconcompiler.schema import EditableSchema, Parameter
 from siliconcompiler.schema_support.pathschema import PathSchemaBase, PathSchema, \

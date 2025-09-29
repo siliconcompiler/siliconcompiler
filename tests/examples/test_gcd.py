@@ -2,7 +2,7 @@ import pytest
 
 import os.path
 
-from siliconcompiler import Project
+from siliconcompiler.project import Project
 
 
 @pytest.mark.eda

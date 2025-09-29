@@ -3,7 +3,8 @@ import sys
 
 import os.path
 
-from siliconcompiler import Flowgraph, Project
+from siliconcompiler.project import Project
+from siliconcompiler import Flowgraph
 from siliconcompiler.tools.builtin.nop import NOPTask
 from siliconcompiler.apps.utils import summarize, replay
 

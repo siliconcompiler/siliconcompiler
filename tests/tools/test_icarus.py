@@ -4,7 +4,8 @@ import pytest
 
 import os.path
 
-from siliconcompiler import Project, Flowgraph
+from siliconcompiler.project import Project
+from siliconcompiler import Flowgraph
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.tools.icarus import compile
 

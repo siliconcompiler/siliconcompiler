@@ -16,7 +16,7 @@ from fastjsonschema import JsonSchemaException
 
 import os.path
 
-from siliconcompiler import Project
+from siliconcompiler.project import Project
 from siliconcompiler import NodeStatus as SCNodeStatus
 from siliconcompiler._metadata import version as sc_version
 

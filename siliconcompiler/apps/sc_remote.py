@@ -1,7 +1,8 @@
 # Copyright 2023 Silicon Compiler Authors. All Rights Reserved.
 import sys
 
-from siliconcompiler import Project, Design
+from siliconcompiler.project import Project
+from siliconcompiler import Design
 from siliconcompiler.remote import Client, ConfigureClient
 
 

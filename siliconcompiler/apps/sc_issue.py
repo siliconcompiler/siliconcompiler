@@ -5,7 +5,7 @@ import tarfile
 
 import os.path
 
-from siliconcompiler import Project
+from siliconcompiler.project import Project
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.utils.issue import generate_testcase
 

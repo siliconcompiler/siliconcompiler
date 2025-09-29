@@ -151,7 +151,8 @@ class KeyPath:
     @staticmethod
     def keypath(key_path, refdoc, key_text=None):
         '''Helper function for displaying Schema keypaths.'''
-        from siliconcompiler import Project, ASICProject, FPGAProject, LintProject, SimProject
+        from siliconcompiler import ASICProject, FPGAProject, LintProject, SimProject
+        from siliconcompiler.project import Project
         from siliconcompiler import PDK, StdCellLibrary, Schematic, Design
 
         text_parts = []
