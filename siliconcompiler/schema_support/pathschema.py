@@ -275,6 +275,19 @@ class PathSchema(PathSchemaBase):
                     """)))
 
     def __dataroot_section(self) -> "PathSchema":
+        """Finds the schema section that defines the 'dataroot'.
+
+        This method traverses up the hierarchy of schema objects, starting from the
+        current instance (`self`). It returns the first ancestor schema (or self)
+        that contains a valid 'dataroot' configuration.
+
+        The search stops when a valid 'dataroot' is found or when the top-level
+        root of the schema tree is reached.
+
+        Returns:
+            PathSchema: The nearest schema in the hierarchy (including self) that
+                defines a valid 'dataroot'.
+        """
         root = self._parent(root=True)
 
         schema = self
