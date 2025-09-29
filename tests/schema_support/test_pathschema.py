@@ -599,6 +599,14 @@ def test_dataroot_section_above():
     assert schema._PathSchema__dataroot_section() is schema_base
 
 
+def test_dataroot_section_not_above():
+    schema = PathSchema()
+    schema_base = PathSchema()
+    EditableSchema(schema_base).insert("test", schema)
+
+    assert schema._PathSchema__dataroot_section() is schema
+
+
 def test_dataroot_section_above_active():
     schema = PathSchema()
     EditableSchema(schema).remove("dataroot")
