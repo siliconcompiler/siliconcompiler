@@ -166,7 +166,7 @@
                 "cli: -checklist_rationale 'ISO D000 reliability'",
                 "api: check.set('checklist', 'ISO', 'D000', 'rationale', 'reliability')"
               ],
-              "help": "Rationale for the the checklist item. Rationale should be a\nunique alphanumeric code used by the standard or a short one line\nor single word description.",
+              "help": "Rationale for the checklist item. Rationale should be a\nunique alphanumeric code used by the standard or a short one line\nor single word description.",
               "notes": null,
               "pernode": "never",
               "node": {
@@ -3216,7 +3216,7 @@
                 "cli: -checklist_rationale 'ISO D000 reliability'",
                 "api: check.set('checklist', 'ISO', 'D000', 'rationale', 'reliability')"
               ],
-              "help": "Rationale for the the checklist item. Rationale should be a\nunique alphanumeric code used by the standard or a short one line\nor single word description.",
+              "help": "Rationale for the checklist item. Rationale should be a\nunique alphanumeric code used by the standard or a short one line\nor single word description.",
               "notes": null,
               "pernode": "never",
               "node": {
@@ -7025,7 +7025,7 @@
                 "cli: -checklist_rationale 'ISO D000 reliability'",
                 "api: check.set('checklist', 'ISO', 'D000', 'rationale', 'reliability')"
               ],
-              "help": "Rationale for the the checklist item. Rationale should be a\nunique alphanumeric code used by the standard or a short one line\nor single word description.",
+              "help": "Rationale for the checklist item. Rationale should be a\nunique alphanumeric code used by the standard or a short one line\nor single word description.",
               "notes": null,
               "pernode": "never",
               "node": {
@@ -11742,7 +11742,7 @@
                 "cli: -checklist_rationale 'ISO D000 reliability'",
                 "api: check.set('checklist', 'ISO', 'D000', 'rationale', 'reliability')"
               ],
-              "help": "Rationale for the the checklist item. Rationale should be a\nunique alphanumeric code used by the standard or a short one line\nor single word description.",
+              "help": "Rationale for the checklist item. Rationale should be a\nunique alphanumeric code used by the standard or a short one line\nor single word description.",
               "notes": null,
               "pernode": "never",
               "node": {
@@ -14792,7 +14792,7 @@
                 "cli: -checklist_rationale 'ISO D000 reliability'",
                 "api: check.set('checklist', 'ISO', 'D000', 'rationale', 'reliability')"
               ],
-              "help": "Rationale for the the checklist item. Rationale should be a\nunique alphanumeric code used by the standard or a short one line\nor single word description.",
+              "help": "Rationale for the checklist item. Rationale should be a\nunique alphanumeric code used by the standard or a short one line\nor single word description.",
               "notes": null,
               "pernode": "never",
               "node": {
