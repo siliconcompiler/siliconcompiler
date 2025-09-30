@@ -13,6 +13,6 @@ class ICE40Up5k_sg48(FPGADevice):
 
     def __init__(self):
         super().__init__("ice40up5k-sg48")
-        self.set_vendor("lattice")
+        self.package.set_vendor("lattice")
         self.set_partname("ice40up5k-sg48")
         self.set_lutsize(4)
