@@ -52,3 +52,4 @@ __all__ = [
 
 # Back-compat: will be removed in future PR
 ASICProject = ASIC
+LintProject = Lint

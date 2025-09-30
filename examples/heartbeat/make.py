@@ -249,7 +249,7 @@ def fpga(N: str = None):
 
     # Optionally override the 'N' parameter.
     if N is not None:
-        hb.set_param("N", N, fileset="testbench")
+        hb.set_param("N", N, fileset="rtl")
 
     # Run the FPGA flow (synthesis, place, route, bitstream generation).
     project.run()
