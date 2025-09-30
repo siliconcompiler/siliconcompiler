@@ -2030,6 +2030,57 @@ def test_active_compounded():
     assert schema._get_active(None) is None
 
 
+def test_active_compounded_depth():
+    schema = BaseSchema()
+    schema1 = BaseSchema()
+    EditableSchema(schema1).insert("dummy", Parameter("str"))
+    EditableSchema(schema).insert("dummy", schema1)
+
+    assert schema._get_active(None) is None
+    assert schema1._get_active(None) is None
+    with schema._active(package="testpack"):
+        assert schema._get_active(None) == {
+            "package": "testpack"
+        }
+        assert schema1._get_active(None) == {
+            "package": "testpack"
+        }
+
+        with schema1._active(lock=True):
+            assert schema._get_active(None) == {
+                "package": "testpack"
+            }
+            assert schema1._get_active(None) == {
+                "package": "testpack",
+                "lock": True
+            }
+            with schema._active(lock=False):
+                assert schema._get_active(None) == {
+                    "package": "testpack",
+                    "lock": False
+                }
+                assert schema1._get_active(None) == {
+                    "package": "testpack",
+                    "lock": False
+                }
+            assert schema._get_active(None) == {
+                "package": "testpack"
+            }
+            assert schema1._get_active(None) == {
+                "package": "testpack",
+                "lock": True
+            }
+        assert schema._get_active(None) == {
+            "package": "testpack"
+        }
+        assert schema1._get_active(None) == {
+            "package": "testpack"
+        }
+
+    assert schema._get_active(None) is None
+    assert schema1._get_active(None) is None
+
+
 def test_active_compounded_set():
     schema = BaseSchema()
     EditableSchema(schema).insert("teststr", Parameter("str"))
