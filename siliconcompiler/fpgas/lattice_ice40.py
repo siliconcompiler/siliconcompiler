@@ -1,7 +1,7 @@
-from siliconcompiler import FPGA
+from siliconcompiler import FPGADevice
 
 
-class ICE40Up5k_sg48(FPGA):
+class ICE40Up5k_sg48(FPGADevice):
     '''
     SiliconCompiler object for the Lattice iCE40UP5K FPGA with the SG48 package.
 
