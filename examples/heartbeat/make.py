@@ -2,7 +2,7 @@
 # Copyright 2025 Silicon Compiler Authors. All Rights Reserved.
 
 from siliconcompiler import Design, FPGADevice
-from siliconcompiler.project import Lint, Sim
+from siliconcompiler import Lint, Sim
 from siliconcompiler import ASIC, FPGA
 
 from siliconcompiler.flows.lintflow import LintFlow

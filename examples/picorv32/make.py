@@ -4,7 +4,7 @@
 # Import necessary classes from the siliconcompiler library.
 from siliconcompiler import Design
 from siliconcompiler import ASIC
-from siliconcompiler.project import Lint
+from siliconcompiler import Lint
 
 # Import pre-defined flows and targets.
 from siliconcompiler.flows.lintflow import LintFlow
