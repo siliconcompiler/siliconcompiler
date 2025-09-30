@@ -12,6 +12,8 @@ else
     SUDO_INSTALL=""
 fi
 
+sudo apt-get update
+
 sudo apt-get install -y build-essential m4 tcsh csh libx11-dev tcl-dev tk-dev
 
 sudo apt-get install -y git

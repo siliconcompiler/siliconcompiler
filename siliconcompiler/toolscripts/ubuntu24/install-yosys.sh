@@ -12,6 +12,8 @@ else
     SUDO_INSTALL=""
 fi
 
+sudo apt-get update
+
 # From: https://github.com/YosysHQ/yosys/blob/f2c689403ace0637b7455bac8f1e8d4bc312e74f/README.md
 sudo apt-get install -y build-essential clang bison flex \
 	libreadline-dev gawk tcl-dev libffi-dev git libfl-dev \

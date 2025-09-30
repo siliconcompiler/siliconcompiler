@@ -8,6 +8,8 @@ src_path=$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P)/..
 mkdir -p deps
 cd deps
 
+sudo apt-get update
+
 sudo apt-get install -y curl git
 
 haskell_args=""

@@ -12,6 +12,8 @@ else
     SUDO_INSTALL=""
 fi
 
+sudo apt-get update
+
 sudo apt-get install -y build-essential bison flex gperf libreadline-dev libncurses-dev \
     autotools-dev automake
 

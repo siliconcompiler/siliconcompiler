@@ -12,6 +12,8 @@ else
     SUDO_INSTALL=""
 fi
 
+sudo apt-get update
+
 sudo apt-get install -y git perl python3 make autoconf g++ flex bison ccache
 sudo apt-get install -y libgoogle-perftools-dev numactl perl-doc help2man
 sudo apt-get install -y libfl2

@@ -4,6 +4,8 @@ set -ex
 
 src_path=$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P)/..
 
+sudo apt-get update
+
 sudo apt-get install -y git build-essential wget
 sudo apt-get install -y tcl-dev tcl-tclreadline \
     bison flex libfl-dev zlib1g-dev automake autotools-dev

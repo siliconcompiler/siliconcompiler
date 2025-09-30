@@ -12,6 +12,8 @@ else
     SUDO_INSTALL=""
 fi
 
+sudo apt-get update
+
 sudo apt-get install -y ghc libghc-regex-compat-dev libghc-syb-dev \
     libghc-old-time-dev libghc-split-dev tcl-dev build-essential pkg-config \
     autoconf gperf flex bison

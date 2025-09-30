@@ -2,6 +2,8 @@
 
 set -ex
 
+sudo apt-get update
+
 sudo apt-get install -y munge libmunge-dev build-essential libmariadb-dev lbzip2 libjson-c-dev
 sudo apt-get install -y libdbus-1-dev
 
