@@ -3,7 +3,7 @@ import pytest
 
 import os.path
 
-from siliconcompiler import ASICProject, Design, Flowgraph
+from siliconcompiler import ASIC, Design, Flowgraph
 from siliconcompiler.tools.opensta import timing
 
 from siliconcompiler.targets import freepdk45_demo
@@ -23,7 +23,7 @@ def test_opensta(datadir):
         design.add_file(os.path.join("lec", "foo.vg"))
     with design.active_dataroot("root"), design.active_fileset("sdc"):
         design.add_file(os.path.join("lec", "foo.sdc"))
-    proj = ASICProject(design)
+    proj = ASIC(design)
     proj.add_fileset(["rtl", "sdc"])
     freepdk45_demo(proj)
 
@@ -50,7 +50,7 @@ def test_opensta_sdf(datadir):
         design.add_file(os.path.join("lec", "foo.vg"))
     with design.active_dataroot("root"), design.active_fileset("sdc"):
         design.add_file(os.path.join("lec", "foo.sdc"))
-    proj = ASICProject(design)
+    proj = ASIC(design)
     proj.add_fileset(["rtl", "sdc"])
     freepdk45_demo(proj)
 

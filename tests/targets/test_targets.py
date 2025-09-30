@@ -3,7 +3,7 @@ from siliconcompiler.targets import \
     asap7_demo, freepdk45_demo, \
     gf180_demo, ihp130_demo, interposer_demo, skywater130_demo
 
-from siliconcompiler import ASICProject
+from siliconcompiler import ASIC
 
 
 @pytest.mark.parametrize("target", (
@@ -14,7 +14,7 @@ from siliconcompiler import ASICProject
         interposer_demo,
         skywater130_demo))
 def test_target_loading_asic(target):
-    proj = ASICProject()
+    proj = ASIC()
     target(proj)
 
     assert len(proj.getkeys('library')) != 0

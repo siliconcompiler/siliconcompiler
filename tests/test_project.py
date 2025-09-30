@@ -10,6 +10,7 @@ from PIL import Image
 from unittest.mock import patch
 
 from siliconcompiler import Project
+from siliconcompiler import Lint, Sim
 from siliconcompiler import Design, Flowgraph, Checklist
 from siliconcompiler import Task
 from siliconcompiler.library import LibrarySchema
@@ -284,22 +285,22 @@ def test_add_fileset_invalid():
 
 
 def test_convert():
-    class ASICProject(Project):
+    class ASIC(Project):
         def __init__(self, design=None):
             super().__init__(design)
 
             EditableSchema(self).insert("asic", Parameter("str"))
 
-    class FPGAProject(Project):
+    class FPGA(Project):
         def __init__(self, design=None):
             super().__init__(design)
 
             EditableSchema(self).insert("fpga", Parameter("str"))
 
     design = Design("design0")
-    proj0 = ASICProject(design)
+    proj0 = ASIC(design)
 
-    proj1 = FPGAProject.convert(proj0)
+    proj1 = FPGA.convert(proj0)
 
     assert proj0.allkeys("library") == proj1.allkeys("library")
     assert proj0.allkeys("library") == proj1.allkeys("library")
@@ -1634,3 +1635,11 @@ def test_reset_job_params():
     assert proj.get("arg", "step") is None
     assert proj.get("option", "breakpoint") is False
     assert proj.get("option", "design") == "testdesign"
+
+
+def test_lint_getdict_type():
+    assert Lint._getdict_type() == "Lint"
+
+
+def test_sim_getdict_type():
+    assert Sim._getdict_type() == "Sim"

@@ -3,7 +3,7 @@ import pytest
 
 from unittest.mock import patch
 
-from siliconcompiler import FPGADevice, FPGAProject
+from siliconcompiler import FPGADevice, FPGA
 from siliconcompiler.metrics import FPGAMetricsSchema
 from siliconcompiler.constraints import FPGAComponentConstraints, \
     FPGAPinConstraints, FPGATimingConstraintSchema
@@ -50,7 +50,7 @@ def test_set_lutsize():
 
 
 def test_project_keys():
-    assert FPGAProject().getkeys() == (
+    assert FPGA().getkeys() == (
         'arg',
         'checklist',
         'constraint',
@@ -66,12 +66,12 @@ def test_project_keys():
 
 
 def test_project_keys_fpga():
-    assert FPGAProject().getkeys("fpga") == ('device',)
+    assert FPGA().getkeys("fpga") == ('device',)
 
 
 def test_project_keys_constraint():
-    assert isinstance(FPGAProject().get("constraint", field="schema"), FPGAConstraint)
-    assert FPGAProject().getkeys("constraint") == (
+    assert isinstance(FPGA().get("constraint", field="schema"), FPGAConstraint)
+    assert FPGA().getkeys("constraint") == (
         'component',
         'pin',
         'timing'
@@ -79,15 +79,15 @@ def test_project_keys_constraint():
 
 
 def test_project_metrics():
-    assert isinstance(FPGAProject().get("metric", field="schema"), FPGAMetricsSchema)
+    assert isinstance(FPGA().get("metric", field="schema"), FPGAMetricsSchema)
 
 
 def test_project_getdict_type():
-    assert FPGAProject._getdict_type() == "FPGAProject"
+    assert FPGA._getdict_type() == "FPGA"
 
 
 def test_project_constraint():
-    proj = FPGAProject()
+    proj = FPGA()
     assert isinstance(proj.constraint, FPGAConstraint)
     assert proj.get("constraint", field="schema") is proj.constraint
 
@@ -95,7 +95,7 @@ def test_project_constraint():
 def test_project_add_dep_list():
     fpga0 = FPGADevice("thisfpga")
     fpga1 = FPGADevice("thatfpga")
-    proj = FPGAProject()
+    proj = FPGA()
 
     proj.add_dep([fpga0, fpga1])
     assert proj.get("library", "thisfpga", field="schema") is fpga0
@@ -103,7 +103,7 @@ def test_project_add_dep_list():
 
 
 def test_project_add_dep_handoff():
-    proj = FPGAProject()
+    proj = FPGA()
 
     with patch("siliconcompiler.Project.add_dep") as add_dep:
         proj.add_dep(None)
@@ -111,7 +111,7 @@ def test_project_add_dep_handoff():
 
 
 def test_project_check_manifest_empty(monkeypatch, caplog):
-    proj = FPGAProject()
+    proj = FPGA()
     monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
     proj.logger.setLevel(logging.INFO)
 
@@ -123,7 +123,7 @@ def test_project_check_manifest_empty(monkeypatch, caplog):
 
 
 def test_project_check_manifest_missing_fpga(monkeypatch, caplog):
-    proj = FPGAProject()
+    proj = FPGA()
     monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
     proj.logger.setLevel(logging.INFO)
 
@@ -137,7 +137,7 @@ def test_project_check_manifest_missing_fpga(monkeypatch, caplog):
 
 
 def test_project_check_manifest_pass(monkeypatch, caplog):
-    proj = FPGAProject()
+    proj = FPGA()
     monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
     proj.logger.setLevel(logging.INFO)
 
@@ -151,7 +151,7 @@ def test_project_check_manifest_pass(monkeypatch, caplog):
 
 
 def test_project_summary_headers():
-    proj = FPGAProject()
+    proj = FPGA()
 
     proj.set_fpga("thisfpga")
 
@@ -168,11 +168,11 @@ def test_project_summary_headers():
 def test_project_set_fpga_invalid(type):
     with pytest.raises(TypeError,
                        match=r"^fpga must be an FPGADevice object or a string\.$"):
-        FPGAProject().set_fpga(type)
+        FPGA().set_fpga(type)
 
 
 def test_project_set_fpga_string():
-    proj = FPGAProject()
+    proj = FPGA()
 
     assert proj.get("fpga", "device") is None
     proj.set_fpga("thisfpga")
@@ -181,7 +181,7 @@ def test_project_set_fpga_string():
 
 def test_project_set_fpga_obj():
     fpga = FPGADevice("thisfpga")
-    proj = FPGAProject()
+    proj = FPGA()
 
     assert proj.get("fpga", "device") is None
     proj.set_fpga(fpga)

@@ -275,7 +275,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
     @classmethod
     def convert(cls, obj: "Project") -> "Project":
         """
-        Converts a project from one type to another (e.g., Project to SimProject).
+        Converts a project from one type to another (e.g., Project to Sim).
 
         Args:
             obj (Project): Source object to convert from.
@@ -1278,21 +1278,27 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             return proj.find_result('png', step=task.task())
 
 
-class SimProject(Project):
+class Sim(Project):
     """
     A specialized Project class tailored for simulation tasks.
 
     This class can be extended with simulation-specific schema parameters,
     methods, and flows.
     """
-    pass
+
+    @classmethod
+    def _getdict_type(cls) -> str:
+        return Sim.__name__
 
 
-class LintProject(Project):
+class Lint(Project):
     """
     A specialized Project class tailored for linting tasks.
 
     This class can be extended with linting-specific schema parameters,
     methods, and flows.
     """
-    pass
+
+    @classmethod
+    def _getdict_type(cls) -> str:
+        return Lint.__name__

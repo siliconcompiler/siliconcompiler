@@ -1,5 +1,5 @@
 # Import necessary classes from the siliconcompiler framework and the LambdaPDK.
-from siliconcompiler import ASICProject
+from siliconcompiler import ASIC
 from siliconcompiler.flows import asicflow, synflow
 
 from lambdapdk.asap7.libs.asap7sc7p5t import ASAP7SC7p5RVT, ASAP7SC7p5SLVT, ASAP7SC7p5LVT
@@ -11,12 +11,12 @@ from lambdapdk.asap7.libs.fakeio7 import FakeIO7Lambdalib_IO
 # Target Setup Function
 ####################################################
 def asap7_demo(
-        project: ASICProject,
+        project: ASIC,
         syn_np: int = 1,
         floorplan_np: int = 1, place_np: int = 1, cts_np: int = 1, route_np: int = 1,
         timing_np: int = 1):
     """
-        Configure an ASICProject for the ASAP7 PDK with multi-Vt libraries, flows, timing corners,
+        Configure an ASIC for the ASAP7 PDK with multi-Vt libraries, flows, timing corners,
         and physical constraints.
 
         Sets the main and additional standard-cell libraries (RVT, LVT, SLVT), installs synthesis
@@ -25,7 +25,7 @@ def asap7_demo(
         and registers example IP/macro library aliases.
 
         Parameters:
-            * project (ASICProject): The siliconcompiler project to configure.
+            * project (ASIC): The siliconcompiler project to configure.
             * syn_np (int): Parallel process count for synthesis.
             * floorplan_np (int): Parallel process count for floorplanning.
             * place_np (int): Parallel process count for placement.

@@ -5,7 +5,7 @@ from argparse import ArgumentParser
 
 import pandas as pd
 
-from siliconcompiler import Project, ASICProject, FPGAProject, LintProject, SimProject
+from siliconcompiler import Project, ASIC, FPGA, Lint, Sim
 from siliconcompiler import Design, PDK, Flowgraph, Checklist, StdCellLibrary, FPGA
 from siliconcompiler.tool import Task, ShowTask, ScreenshotTask
 from siliconcompiler.asic import ASICTask
@@ -32,7 +32,7 @@ if __name__ == "__main__":
         classes = [schema_cls]
     else:
         classes = [
-            Project, ASICProject, FPGAProject, LintProject, SimProject,
+            Project, ASIC, FPGA, Lint, Sim,
             Design, PDK, Flowgraph, Checklist, StdCellLibrary, FPGA,
             Task, ShowTask, ScreenshotTask,
             ASICTask,

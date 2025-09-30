@@ -107,24 +107,24 @@ Project Parameters
   :ref_root: Project
 
 .. schema::
-  :root: siliconcompiler/ASICProject
+  :root: siliconcompiler/ASIC
   :schema_only:
-  :ref_root: ASICProject
+  :ref_root: ASIC
 
 .. schema::
-  :root: siliconcompiler/FPGAProject
+  :root: siliconcompiler/FPGA
   :schema_only:
-  :ref_root: FPGAProject
+  :ref_root: FPGA
 
 .. schema::
-  :root: siliconcompiler/LintProject
+  :root: siliconcompiler/Lint
   :schema_only:
-  :ref_root: LintProject
+  :ref_root: Lint
 
 .. schema::
-  :root: siliconcompiler/SimProject
+  :root: siliconcompiler/Sim
   :schema_only:
-  :ref_root: SimProject
+  :ref_root: Sim
 
 Library Parameters
 ------------------

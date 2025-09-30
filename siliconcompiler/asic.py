@@ -74,9 +74,9 @@ class ASICConstraint(BaseSchema):
         return self.get("area", field="schema")
 
 
-class ASICProject(Project):
+class ASIC(Project):
     """
-    The ASICProject class extends the base Project class to provide
+    The ASIC class extends the base Project class to provide
     specialized functionality and schema parameters for Application-Specific
     Integrated Circuit (ASIC) design flows.
 
@@ -87,7 +87,7 @@ class ASICProject(Project):
 
     def __init__(self, design=None):
         """
-        Initialize an ASICProject and register ASIC-specific schemas, metrics, and
+        Initialize an ASIC and register ASIC-specific schemas, metrics, and
         global ASIC parameters.
 
         This constructor sets up an EditableSchema for the project that:
@@ -165,17 +165,17 @@ class ASICProject(Project):
     def _getdict_type(cls) -> str:
         """
         Returns the meta data for getdict, specifically the class name
-        'ASICProject'.
+        'ASIC'.
 
         This method overrides the parent `Project._getdict_type` to ensure
-        that when an `ASICProject` instance is serialized or deserialized,
-        it is correctly identified as an `ASICProject` type.
+        that when an `ASIC` instance is serialized or deserialized,
+        it is correctly identified as an `ASIC` type.
 
         Returns:
-            str: The name of the `ASICProject` class.
+            str: The name of the `ASIC` class.
         """
 
-        return ASICProject.__name__
+        return ASIC.__name__
 
     def add_dep(self, obj):
         """
@@ -220,14 +220,14 @@ class ASICProject(Project):
         This method first calls the :meth:`.Project.check_manifest()` method.
         Then, it performs additional ASIC-specific validations:
 
-            - Asserts that :keypath:`ASICProject,asic,pdk` is set and refers to a
+            - Asserts that :keypath:`ASIC,asic,pdk` is set and refers to a
               loaded PDK library.
-            - Checks if :keypath:`ASICProject,asic,mainlib` is set and refers to a loaded
+            - Checks if :keypath:`ASIC,asic,mainlib` is set and refers to a loaded
               library (warns if not set).
-            - Asserts that :keypath:`ASICProject,asic,asiclib` contains at least one library
+            - Asserts that :keypath:`ASIC,asic,asiclib` contains at least one library
               and all listed libraries are loaded.
             - Ensures that the `mainlib` is included in the `asiclib` list if both are set.
-            - Asserts that :keypath:`ASICProject,asic,delaymodel` is set.
+            - Asserts that :keypath:`ASIC,asic,delaymodel` is set.
 
         Returns:
             bool: True if the manifest is valid and all checks pass, False otherwise.
@@ -414,12 +414,12 @@ class ASICProject(Project):
         Infer and ensure ASIC project main library and PDK are configured, and make sure the
         main library is listed in `asiclib`.
 
-        If :keypath:`ASICProject,asic,mainlib` is unset but :keypath:`ASICProject,asic,asiclib`
+        If :keypath:`ASIC,asic,mainlib` is unset but :keypath:`ASIC,asic,asiclib`
         contains entries, sets `mainlib` from the first `asiclib` entry.
-        If :keypath:`ASICProject,asic,pdk` is unset but the resolved main library declares a PDK,
-        sets :keypath:`ASICProject,asic,pdk` from that declaration.
-        Ensures the value of :keypath:`ASICProject,asic,mainlib` is present in
-        :keypath:`ASICProject,asic,asiclib` and adds it if missing.
+        If :keypath:`ASIC,asic,pdk` is unset but the resolved main library declares a PDK,
+        sets :keypath:`ASIC,asic,pdk` from that declaration.
+        Ensures the value of :keypath:`ASIC,asic,mainlib` is present in
+        :keypath:`ASIC,asic,asiclib` and adds it if missing.
         """
         super()._init_run()
 

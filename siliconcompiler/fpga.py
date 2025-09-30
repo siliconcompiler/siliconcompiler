@@ -146,7 +146,7 @@ class FPGADevice(ToolLibrarySchema):
         return FPGADevice.__name__
 
 
-class FPGAProject(Project):
+class FPGA(Project):
     """
     A class for managing FPGA projects, inheriting from the base Project class.
 
@@ -158,11 +158,11 @@ class FPGAProject(Project):
 
     def __init__(self, design=None):
         """
-        Initialize an FPGAProject with FPGA-specific schemas and parameters.
+        Initialize an FPGA with FPGA-specific schemas and parameters.
 
         Creates the base Project, inserts an FPGAConstraint container at "constraint",
         adds FPGA metrics under "metric" (clobber allowed), and registers the
-        string parameter :keypath:`FPGAProject,fpga,device` for selecting the target FPGA device.
+        string parameter :keypath:`FPGA,fpga,device` for selecting the target FPGA device.
 
         Parameters:
             design (optional): Optional project design data passed to the base Project.
@@ -177,8 +177,8 @@ class FPGAProject(Project):
         schema.insert("fpga", "device", Parameter("str"))
 
     @classmethod
-    def _getdict_type(cls):
-        return FPGAProject.__name__
+    def _getdict_type(cls) -> str:
+        return FPGA.__name__
 
     def add_dep(self, obj):
         """
@@ -229,7 +229,7 @@ class FPGAProject(Project):
         """
         Validate the project manifest for FPGA configuration and library availability.
 
-        Runs the base project manifest checks, verifies that the :keypath:`FPGAProject,fpga,device`
+        Runs the base project manifest checks, verifies that the :keypath:`FPGA,fpga,device`
         parameter is set, and confirms the corresponding FPGA library has been
         loaded into the project.
 

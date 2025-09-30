@@ -1,6 +1,6 @@
 # Copyright 2025 Zero ASIC Corporation
 
-from siliconcompiler import FPGAProject, Design
+from siliconcompiler import FPGA, Design
 from siliconcompiler.flows.fpgaflow import FPGAVPROpenSTAFlow
 
 from siliconcompiler.tools.vpr import VPRFPGA
@@ -45,7 +45,7 @@ class Z1000(YosysFPGA, VPRFPGA, OpenSTAFPGA):
                 self.add_opensta_liberty_fileset()
 
 
-class FPGADemo(FPGAProject):
+class FPGADemo(FPGA):
     '''
     "Self-test" target which builds a small 8-bit counter design as an FPGA,
     targeting the z1000.

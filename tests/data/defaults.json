@@ -3050,7 +3050,7 @@
         "sctype": "Project"
       }
     },
-    "fpgaproject": {
+    "fpga": {
       "schemaversion": {
         "type": "str",
         "require": true,
@@ -6859,11 +6859,11 @@
         }
       },
       "__meta__": {
-        "class": "siliconcompiler.fpga/FPGAProject",
-        "sctype": "FPGAProject"
+        "class": "siliconcompiler.fpga/FPGA",
+        "sctype": "FPGA"
       }
     },
-    "asicproject": {
+    "asic": {
       "schemaversion": {
         "type": "str",
         "require": true,
@@ -10943,7 +10943,7 @@
               "example": [
                 "api: asic.set('constraint', 'timing', 'worst', 'opcond', 'typical_1.0')"
               ],
-              "help": "Operating condition applied to the scenario. The value\n                can be used to access specific conditions within the library\n                timing models from the :keypath:`ASICProject,asic,asiclib` timing models.",
+              "help": "Operating condition applied to the scenario. The value\n                can be used to access specific conditions within the library\n                timing models from the :keypath:`ASIC,asic,asiclib` timing models.",
               "notes": null,
               "pernode": "optional",
               "node": {
@@ -11580,11 +11580,11 @@
         }
       },
       "__meta__": {
-        "class": "siliconcompiler.asic/ASICProject",
-        "sctype": "ASICProject"
+        "class": "siliconcompiler.asic/ASIC",
+        "sctype": "ASIC"
       }
     },
-    "simproject": {
+    "sm": {
       "schemaversion": {
         "type": "str",
         "require": true,
@@ -14630,11 +14630,11 @@
       },
       "history": {},
       "__meta__": {
-        "class": "siliconcompiler.project/SimProject",
-        "sctype": "Project"
+        "class": "siliconcompiler.project/Sim",
+        "sctype": "Sim"
       }
     },
-    "lintproject": {
+    "lint": {
       "schemaversion": {
         "type": "str",
         "require": true,
@@ -17680,8 +17680,8 @@
       },
       "history": {},
       "__meta__": {
-        "class": "siliconcompiler.project/LintProject",
-        "sctype": "Project"
+        "class": "siliconcompiler.project/Lint",
+        "sctype": "Lint"
       }
     }
   },

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from siliconcompiler import ASICProject, Design
+from siliconcompiler import ASIC, Design
 # Import the target for the Skywater 130nm open source PDK.
 from siliconcompiler.targets import skywater130_demo
 # Import the specialized flow for running signoff checks (DRC and LVS).
@@ -34,7 +34,7 @@ def main():
 
     # --- Project Setup ---
     # Create an ASIC project from the design configuration.
-    project = ASICProject(design)
+    project = ASIC(design)
 
     # Tell the project which filesets are needed for the compilation flow.
     project.add_fileset(["rtl", "sdc"])

@@ -11,15 +11,13 @@ import time
 
 import os.path
 
-import siliconcompiler
-
 from pathlib import Path
 from pyvirtualdisplay import Display
 from unittest.mock import patch
 
 from typing import Optional
 
-from siliconcompiler import utils, ASICProject, Design, Project
+from siliconcompiler import utils, ASIC, Design, Project
 from siliconcompiler.tools.openroad._apr import APRTask
 from siliconcompiler.flows.asicflow import ASICFlow
 from siliconcompiler.targets import freepdk45_demo
@@ -73,14 +71,14 @@ def use_cache(monkeypatch, request):
     if not cachedir:
         return
 
-    old_init = siliconcompiler.Project._init_run
+    old_init = Project._init_run
 
     def mock_init(self):
         self.set('option', 'cachedir', cachedir)
 
         return old_init(self)
 
-    monkeypatch.setattr(siliconcompiler.Project, '_init_run', mock_init)
+    monkeypatch.setattr(Project, '_init_run', mock_init)
 
 
 @pytest.fixture(autouse=True)
@@ -140,9 +138,9 @@ def disable_or_images(monkeypatch, request):
     '''
     if 'eda' not in request.keywords:
         return
-    old_init = siliconcompiler.Project._init_run
+    old_init = Project._init_run
 
-    def mock_init(self: siliconcompiler.Project):
+    def mock_init(self: Project):
         tasks = get_task(self, filter=APRTask)
         if not isinstance(tasks, set):
             tasks = [tasks]
@@ -151,7 +149,7 @@ def disable_or_images(monkeypatch, request):
 
         return old_init(self)
 
-    monkeypatch.setattr(siliconcompiler.Project, '_init_run', mock_init)
+    monkeypatch.setattr(Project, '_init_run', mock_init)
 
 
 @pytest.fixture(scope='session')
@@ -198,7 +196,7 @@ def asic_heartbeat(heartbeat_design):
     '''Returns a fully configured project object that will compile the heartbeat example
     design using freepdk45 and the asicflow.'''
 
-    project = ASICProject(heartbeat_design)
+    project = ASIC(heartbeat_design)
     project.add_fileset("rtl")
     project.add_fileset("sdc")
 
@@ -229,7 +227,7 @@ def asic_gcd(gcd_design):
     '''Returns a fully configured project object that will compile the GCD example
     design using freepdk45 and the asicflow.'''
 
-    project = ASICProject(gcd_design)
+    project = ASIC(gcd_design)
     project.add_fileset("rtl")
     project.add_fileset("sdc")
 

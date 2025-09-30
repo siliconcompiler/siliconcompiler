@@ -7,11 +7,11 @@ from .interposer_demo import interposer_demo
 
 from typing import Optional
 
-from siliconcompiler import ASICProject
+from siliconcompiler import ASIC
 
 
-def asic_target(proj: ASICProject, pdk: Optional[str] = None):
-    '''A factory function to configure an ASICProject for a given PDK.
+def asic_target(proj: ASIC, pdk: Optional[str] = None):
+    '''A factory function to configure an ASIC for a given PDK.
 
     This function acts as a dispatcher, calling the appropriate setup function
     (e.g., `skywater130_demo`, `asap7_demo`) based on the provided PDK name.
@@ -19,7 +19,7 @@ def asic_target(proj: ASICProject, pdk: Optional[str] = None):
     processes by centralizing the selection logic.
 
     Args:
-        proj (ASICProject): The siliconcompiler project to configure.
+        proj (ASIC): The siliconcompiler project to configure.
         pdk (Optional[str]): The name of the Process Design Kit to target. Supported
             values are "asap7", "freepdk45", "gf180", "ihp130", and
             "skywater130".

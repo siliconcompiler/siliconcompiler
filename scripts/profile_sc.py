@@ -9,7 +9,7 @@ import tempfile
 import os
 import gprof2dot
 
-from siliconcompiler import ASICProject, Project, Flowgraph, Design
+from siliconcompiler import ASIC, Project, Flowgraph, Design
 from siliconcompiler.demos import asic_demo
 
 
@@ -49,7 +49,7 @@ def run_read_manifest(pr, extra):
     else:
         path = extra
 
-    proj = ASICProject()
+    proj = ASIC()
 
     pr.enable()
     proj.read_manifest(path)

@@ -1,8 +1,8 @@
-from siliconcompiler import ASICProject, Design
+from siliconcompiler import ASIC, Design
 from siliconcompiler.targets import skywater130_demo
 
 
-class ASICDemo(ASICProject):
+class ASICDemo(ASIC):
     '''
     "Self-test" target which builds a small 8-bit counter design as an ASIC,
     targeting the Skywater130 PDK.

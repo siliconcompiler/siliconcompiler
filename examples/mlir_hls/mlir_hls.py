@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # Import necessary classes from the siliconcompiler library.
-from siliconcompiler import ASICProject, Design
+from siliconcompiler import ASIC, Design
 # Import a pre-defined target, which sets up the PDK, libraries, and toolchain.
 from siliconcompiler.targets import freepdk45_demo
 # Import the specialized High-Level Synthesis (HLS) flow.
@@ -29,9 +29,9 @@ def main():
         design.add_file("main_kernel.ll")
 
     # --- Project Setup ---
-    # An ASICProject links the design's sources to a specific physical
+    # An ASIC links the design's sources to a specific physical
     # implementation flow and target technology.
-    project = ASICProject(design)
+    project = ASIC(design)
 
     # Tell the project which fileset to use for the run.
     project.add_fileset("rtl")

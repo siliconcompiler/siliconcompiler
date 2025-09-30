@@ -1,5 +1,5 @@
 # Import necessary classes from the siliconcompiler framework and the LambdaPDK.
-from siliconcompiler import ASICProject
+from siliconcompiler import ASIC
 
 from siliconcompiler.flows import asicflow, synflow
 
@@ -12,7 +12,7 @@ from lambdapdk.sky130.libs.sky130io import Sky130LambdaLib_IO
 # Target Setup Function
 ####################################################
 def skywater130_demo(
-        project: ASICProject,
+        project: ASIC,
         syn_np: int = 1,
         floorplan_np: int = 1, place_np: int = 1, cts_np: int = 1, route_np: int = 1,
         timing_np: int = 1):
@@ -24,7 +24,7 @@ def skywater130_demo(
     physical design parameters for a Skywater130 target.
 
     Args:
-        * project (:class:`ASICProject`): The siliconcompiler project to configure.
+        * project (:class:`ASIC`): The siliconcompiler project to configure.
         * syn_np (int): Number of parallel processes for synthesis.
         * floorplan_np (int): Number of parallel processes for floorplanning.
         * place_np (int): Number of parallel processes for placement.

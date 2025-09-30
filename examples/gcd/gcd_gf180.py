@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Copyright 2020-2025 Silicon Compiler Authors. All Rights Reserved.
 
-from siliconcompiler import ASICProject, Design
+from siliconcompiler import ASIC, Design
 # Import the target for the GlobalFoundries 180nm open source PDK.
 from siliconcompiler.targets import gf180_demo
 
@@ -35,7 +35,7 @@ def main():
 
     # --- Project Setup ---
     # Create an ASIC project from the design configuration.
-    project = ASICProject(design)
+    project = ASIC(design)
 
     # Tell the project which filesets are needed for the compilation flow.
     project.add_fileset(["rtl", "sdc"])

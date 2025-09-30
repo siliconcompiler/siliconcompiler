@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Copyright 2020-2025 Silicon Compiler Authors. All Rights Reserved.
 
-from siliconcompiler import ASICProject, Design
+from siliconcompiler import ASIC, Design
 from siliconcompiler.targets import freepdk45_demo
 # Import a specialized flow designed to handle High-Level Synthesis.
 from siliconcompiler.flows.asicflow import HLSASICFlow
@@ -36,7 +36,7 @@ def main():
 
     # --- Project Setup ---
     # Create an ASIC project from the design configuration.
-    project = ASICProject(design)
+    project = ASIC(design)
 
     # Enable the necessary filesets for the compilation flow.
     project.add_fileset(["rtl", "sdc"])

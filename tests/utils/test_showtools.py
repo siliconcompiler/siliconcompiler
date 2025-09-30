@@ -5,7 +5,7 @@ import os.path
 
 from unittest.mock import patch
 
-from siliconcompiler import Project, ASICProject, Design, PDK
+from siliconcompiler import Project, ASIC, Design, PDK
 from siliconcompiler import ShowTask, ScreenshotTask
 
 from siliconcompiler.tools.klayout import show as klayout_show
@@ -49,7 +49,7 @@ def test_show_def(target, testfile, task, datadir, display):
     design = Design("heartbeat")
     with design.active_fileset("rtl"):
         design.set_topmodule("heartbeat")
-    proj = ASICProject(design)
+    proj = ASIC(design)
     target(proj)
 
     ShowTask.register_task(task)
@@ -71,7 +71,7 @@ def test_screenshot_def(target, testfile, task, datadir, display):
     design = Design("heartbeat")
     with design.active_fileset("rtl"):
         design.set_topmodule("heartbeat")
-    proj = ASICProject(design)
+    proj = ASIC(design)
     target(proj)
 
     ScreenshotTask.register_task(task)
@@ -89,7 +89,7 @@ def test_show_lyp_tool_klayout(datadir, display):
     design = Design("heartbeat")
     with design.active_fileset("rtl"):
         design.set_topmodule("heartbeat")
-    proj = ASICProject(design)
+    proj = ASIC(design)
     freepdk45_demo(proj)
     pdk: PDK = proj.get("library", "freepdk45", field="schema")
     pdk.set("pdk", "layermapfileset", "klayout", "def", "klayout", [], clobber=True)
@@ -107,7 +107,7 @@ def test_show_nopdk_tool_klayout(datadir, display):
     design = Design("heartbeat")
     with design.active_fileset("rtl"):
         design.set_topmodule("heartbeat")
-    proj = ASICProject(design)
+    proj = ASIC(design)
     freepdk45_demo(proj)
 
     assert isinstance(ShowTask.get_task("gds"), klayout_show.ShowTask)

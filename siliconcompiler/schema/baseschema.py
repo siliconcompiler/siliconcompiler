@@ -93,7 +93,7 @@ class BaseSchema:
                         found = True
                         break
                 if not found:
-                    raise RuntimeError(f"fatal error at: {cls_type}")
+                    raise RuntimeError(f"fatal error at: {cls_type}: {clss}")
             else:
                 cls_map[cls_type] = list(clss)[0]
         return cls_map

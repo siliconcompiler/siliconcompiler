@@ -1,5 +1,5 @@
 # Import necessary classes from the siliconcompiler framework and the LambdaPDK.
-from siliconcompiler import ASICProject
+from siliconcompiler import ASIC
 from siliconcompiler.flows import asicflow, synflow
 
 from lambdapdk.freepdk45.libs.nangate45 import Nangate45
@@ -10,17 +10,17 @@ from lambdapdk.freepdk45.libs.fakeram45 import FakeRAM45Lambdalib_SinglePort
 # Target Setup Function
 ####################################################
 def freepdk45_demo(
-        project: ASICProject,
+        project: ASIC,
         syn_np: int = 1,
         floorplan_np: int = 1, place_np: int = 1, cts_np: int = 1, route_np: int = 1,
         timing_np: int = 1):
     """
-        Configure an ASICProject for the FreePDK45 process: load Nangate45 standard-cell library,
+        Configure an ASIC for the FreePDK45 process: load Nangate45 standard-cell library,
         set synthesis/implementation flows, select the PDK, apply a typical timing scenario and
         NLDM delay model, set area constraints, and alias the fake RAM library.
 
         Parameters:
-            * project (ASICProject): Project to configure.
+            * project (ASIC): Project to configure.
             * syn_np (int): Parallelism (number of worker processes) for synthesis.
             * floorplan_np (int): Parallelism for floorplanning.
             * place_np (int): Parallelism for placement.

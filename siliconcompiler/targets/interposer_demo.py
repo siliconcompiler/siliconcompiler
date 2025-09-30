@@ -1,5 +1,5 @@
 # Import necessary classes from the siliconcompiler framework and the LambdaPDK.
-from siliconcompiler import ASICProject
+from siliconcompiler import ASIC
 
 from lambdapdk.interposer import Interposer_3ML_0400
 from lambdapdk.interposer.libs.bumps import BumpLibrary
@@ -11,7 +11,7 @@ from siliconcompiler.flows import drcflow
 ####################################################
 # Target Setup Function
 ####################################################
-def interposer_demo(project: ASICProject):
+def interposer_demo(project: ASIC):
     """
     Configure a siliconcompiler project for generating a passive interposer layout.
 
@@ -22,7 +22,7 @@ def interposer_demo(project: ASICProject):
     (40% routing density and 1 unit core margin). No lambdalib/IP aliases are defined.
 
     Parameters:
-        * project (ASICProject): The siliconcompiler project to configure.
+        * project (ASIC): The siliconcompiler project to configure.
     """
 
     # 1. Load Interposer PDK and Bump Library

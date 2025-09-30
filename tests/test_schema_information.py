@@ -9,7 +9,7 @@ from siliconcompiler.schema import BaseSchema, EditableSchema, PerNode
 from siliconcompiler.schema.parametertype import NodeType
 
 from siliconcompiler import Project
-from siliconcompiler import FPGAProject, ASICProject, SimProject, LintProject
+from siliconcompiler import FPGA, ASIC, Sim, Lint
 from siliconcompiler import Design, PDK, StdCellLibrary, FPGADevice, Schematic
 
 
@@ -19,10 +19,10 @@ class CompositeProject(BaseSchema):
         super().__init__()
 
         EditableSchema(self).insert("project", "project", Project())
-        EditableSchema(self).insert("project", "fpgaproject", FPGAProject())
-        EditableSchema(self).insert("project", "asicproject", ASICProject())
-        EditableSchema(self).insert("project", "simproject", SimProject())
-        EditableSchema(self).insert("project", "lintproject", LintProject())
+        EditableSchema(self).insert("project", "fpga", FPGA())
+        EditableSchema(self).insert("project", "asic", ASIC())
+        EditableSchema(self).insert("project", "sm", Sim())
+        EditableSchema(self).insert("project", "lint", Lint())
 
         EditableSchema(self).insert("library", "design", Design())
         EditableSchema(self).insert("library", "pdk", PDK())
@@ -55,7 +55,7 @@ def test_modified_schema(datadir, cleanup_manifest):
     assert check == expected, "Golden manifest does not match"
 
 
-@pytest.mark.parametrize("root", [Project, ASICProject, FPGAProject])
+@pytest.mark.parametrize("root", [Project, ASIC, FPGA])
 def test_cli_examples(monkeypatch, root):
     did_something = True
     example_index = 0

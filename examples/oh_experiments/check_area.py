@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # Import necessary classes from the siliconcompiler library.
-from siliconcompiler import ASICProject, Design
+from siliconcompiler import ASIC, Design
 # Import a pre-defined target, which sets up the PDK, libraries, and toolchain.
 from siliconcompiler.targets import freepdk45_demo
 
@@ -14,7 +14,7 @@ import os.path
 from typing import Callable, List
 
 
-def checkarea(design: Design, filesets: List[str], target: Callable[[ASICProject], None]):
+def checkarea(design: Design, filesets: List[str], target: Callable[[ASIC], None]):
     '''Runs synthesis for a list of designs and reports the area.
 
     This function iterates through a provided list of filesets (each representing
@@ -24,7 +24,7 @@ def checkarea(design: Design, filesets: List[str], target: Callable[[ASICProject
     Args:
         design (Design): The master design object containing all filesets.
         filesets (List[str]): A list of fileset names to process.
-        target (Callable[[ASICProject], None]): A SiliconCompiler target setup function, such as
+        target (Callable[[ASIC], None]): A SiliconCompiler target setup function, such as
             freepdk45_demo.
     '''
 
@@ -33,9 +33,9 @@ def checkarea(design: Design, filesets: List[str], target: Callable[[ASICProject
 
     # Loop through each fileset (i.e., each module) provided.
     for fileset in filesets:
-        # Create a new, clean ASICProject for each module. This is important
+        # Create a new, clean ASIC for each module. This is important
         # to ensure that the settings from one run do not affect the next.
-        proj = ASICProject(design)
+        proj = ASIC(design)
         # Add the specific fileset for the current module to the project.
         proj.add_fileset(fileset)
 

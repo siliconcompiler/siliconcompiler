@@ -2,8 +2,8 @@
 # Copyright 2025 Silicon Compiler Authors. All Rights Reserved.
 
 from siliconcompiler import Design, FPGADevice
-from siliconcompiler.project import LintProject, SimProject
-from siliconcompiler import ASICProject, FPGAProject
+from siliconcompiler.project import Lint, Sim
+from siliconcompiler import ASIC, FPGA
 
 from siliconcompiler.flows.lintflow import LintFlow
 from siliconcompiler.flows.dvflow import DVFlow
@@ -79,7 +79,7 @@ def lint(N: str = None):
             Defaults to None, which uses the value set in the design schema.
     """
     # Create a project instance tailored for linting.
-    project = LintProject()
+    project = Lint()
 
     # Instantiate the design configuration.
     hb = HeartbeatDesign()
@@ -115,7 +115,7 @@ def syn(pdk: str = "freepdk45", N: str = None):
             Defaults to None, which uses the value set in the design schema.
     """
     # Create a project instance for an ASIC flow.
-    project = ASICProject()
+    project = ASIC()
 
     # Instantiate and configure the design.
     hb = HeartbeatDesign()
@@ -152,7 +152,7 @@ def asic(pdk: str = "freepdk45", N: str = None):
             Defaults to None, which uses the value set in the design schema.
     """
     # Create a project instance for an ASIC flow.
-    project = ASICProject()
+    project = ASIC()
 
     # Instantiate and configure the design.
     hb = HeartbeatDesign()
@@ -190,7 +190,7 @@ def sim(N: str = None, tool: str = "verilator"):
             'icarus'). Defaults to "verilator".
     """
     # Create a project instance tailored for simulation.
-    project = SimProject()
+    project = Sim()
 
     # Instantiate and configure the design.
     hb = HeartbeatDesign()
@@ -230,7 +230,7 @@ def fpga(N: str = None):
             Defaults to None, which uses the value set in the design schema.
     """
     # Create a project instance for an FPGA flow.
-    project = FPGAProject()
+    project = FPGA()
 
     # Instantiate and configure the design.
     hb = HeartbeatDesign()

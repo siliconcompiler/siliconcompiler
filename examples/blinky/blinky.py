@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
 # Import the necessary classes for an FPGA project. Note the use of
-# FPGAProject, which is specific to FPGA flows.
-from siliconcompiler import FPGAProject, Design
+# FPGA, which is specific to FPGA flows.
+from siliconcompiler import FPGA, Design
 # Import a pre-defined flow for FPGAs.
 from siliconcompiler.flows import fpgaflow
 from siliconcompiler.fpgas.lattice_ice40 import ICE40Up5k_sg48
@@ -36,8 +36,8 @@ def main():
         design.add_file("icebreaker.pcf")
 
     # --- Project Setup ---
-    # Create an FPGAProject, which is tailored for FPGA-specific needs.
-    project = FPGAProject(design)
+    # Create an FPGA, which is tailored for FPGA-specific needs.
+    project = FPGA(design)
 
     # Tell the project which filesets are required for this compilation.
     project.add_fileset("rtl")

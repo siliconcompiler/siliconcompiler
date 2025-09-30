@@ -1,6 +1,6 @@
 import pytest
 
-from siliconcompiler import FPGAProject, Flowgraph
+from siliconcompiler import FPGA, Flowgraph
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.tools.nextpnr.apr import APRTask
 
@@ -9,7 +9,7 @@ from siliconcompiler.tools.nextpnr.apr import APRTask
 @pytest.mark.quick
 @pytest.mark.ready
 def test_version(gcd_design):
-    proj = FPGAProject(gcd_design)
+    proj = FPGA(gcd_design)
     proj.add_fileset("rtl")
     proj.set("fpga", "device", "ice40")
 
