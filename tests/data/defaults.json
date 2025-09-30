@@ -11584,7 +11584,7 @@
         "sctype": "ASIC"
       }
     },
-    "sm": {
+    "sim": {
       "schemaversion": {
         "type": "str",
         "require": true,

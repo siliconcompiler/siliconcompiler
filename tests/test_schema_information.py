@@ -21,7 +21,7 @@ class CompositeProject(BaseSchema):
         EditableSchema(self).insert("project", "project", Project())
         EditableSchema(self).insert("project", "fpga", FPGA())
         EditableSchema(self).insert("project", "asic", ASIC())
-        EditableSchema(self).insert("project", "sm", Sim())
+        EditableSchema(self).insert("project", "sim", Sim())
         EditableSchema(self).insert("project", "lint", Lint())
 
         EditableSchema(self).insert("library", "design", Design())
