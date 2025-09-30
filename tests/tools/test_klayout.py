@@ -11,7 +11,7 @@ from siliconcompiler.tools.klayout import convert_drc_db
 
 from siliconcompiler.targets import freepdk45_demo
 
-from siliconcompiler import ASICProject, Flowgraph, Design
+from siliconcompiler import ASIC, Flowgraph, Design
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.tools.klayout.export import ExportTask
 from siliconcompiler.tools.klayout import KLayoutLibrary
@@ -56,7 +56,7 @@ def test_export(datadir):
     with design.active_fileset("layout"):
         design.set_topmodule("heartbeat_wrapper")
 
-    proj = ASICProject(design)
+    proj = ASIC(design)
     proj.add_fileset(["layout"])
     freepdk45_demo(proj)
     proj.add_asiclib(lib)
@@ -88,7 +88,7 @@ def test_klayout_operations(datadir):
     with design.active_fileset("layout"):
         design.set_topmodule("heartbeat")
 
-    proj = ASICProject(design)
+    proj = ASIC(design)
     proj.add_fileset(["layout"])
     freepdk45_demo(proj)
 
@@ -169,7 +169,7 @@ def test_drc_pass(setup_pdk_test, datadir):
     with design.active_fileset("layout"):
         design.set_topmodule("interposer")
 
-    proj = ASICProject(design)
+    proj = ASIC(design)
     proj.add_fileset(["layout"])
     proj.set_pdk(klayout_pdk.FauxPDK())
     proj.set_asic_delaymodel("nldm")
@@ -199,7 +199,7 @@ def test_drc_fail(setup_pdk_test, datadir):
     with design.active_fileset("layout"):
         design.set_topmodule("interposer")
 
-    proj = ASICProject(design)
+    proj = ASIC(design)
     proj.add_fileset(["layout"])
     proj.set_pdk(klayout_pdk.FauxPDK())
     proj.set_asic_delaymodel("nldm")
@@ -229,7 +229,7 @@ def test_convert_drc(setup_pdk_test, datadir):
     with design.active_fileset("layout"):
         design.set_topmodule("interposer")
 
-    proj = ASICProject(design)
+    proj = ASIC(design)
     proj.add_fileset(["layout"])
     proj.set_pdk(klayout_pdk.FauxPDK())
     proj.set_asic_delaymodel("nldm")

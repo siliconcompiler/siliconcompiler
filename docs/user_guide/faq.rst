@@ -40,8 +40,8 @@ How do I...
 
    .. code-block:: python
 
-      from siliconcompiler import ASICProject
-      project = ASICProject(design)
+      from siliconcompiler import ASIC
+      project = ASIC(design)
 
 ... active filesets?
 

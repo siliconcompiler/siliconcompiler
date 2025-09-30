@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # Import the core classes from the siliconcompiler library.
-from siliconcompiler import ASICProject, Design
+from siliconcompiler import ASIC, Design
 # Import a pre-defined "target" which sets up a specific PDK,
 # standard cell library, and tool flow.
 from siliconcompiler.targets import freepdk45_demo
@@ -37,9 +37,9 @@ def main():
         design.add_file("aes.sdc")
 
     # --- Project Setup ---
-    # The ASICProject object links the design blueprint to a specific
+    # The ASIC object links the design blueprint to a specific
     # technology target and compilation flow.
-    project = ASICProject(design)
+    project = ASIC(design)
 
     # Tell the project which filesets to use for this compilation run.
     # Both the RTL source and the SDC constraints are needed.

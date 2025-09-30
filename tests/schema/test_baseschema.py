@@ -2807,7 +2807,10 @@ def test___get_child_classes_invalid_child(monkeypatch):
     with patch("siliconcompiler.schema.BaseSchema.__subclasses__") as subclasses:
         subclasses.return_value = set([DummySchema0, DummySchema1])
 
-        with pytest.raises(RuntimeError, match="fatal error at: dummy_schema"):
+        with pytest.raises(RuntimeError,
+                           match=r"^Ambiguous schema type 'dummy_schema'\. "
+                                 r"Candidates: test_baseschema/DummySchema0, "
+                                 r"test_baseschema/DummySchema1$"):
             BaseSchema._BaseSchema__get_child_classes.cache_clear()
             BaseSchema._BaseSchema__get_child_classes()
         subclasses.assert_called_once()

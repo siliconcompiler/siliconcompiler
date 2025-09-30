@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # Import necessary classes from the siliconcompiler library.
-from siliconcompiler import ASICProject, Design
+from siliconcompiler import ASIC, Design
 # Import a pre-defined target, which sets up the process technology (PDK),
 # standard cell libraries, and toolchain.
 from siliconcompiler.targets import freepdk45_demo
@@ -47,8 +47,8 @@ def main():
             design.set_param("N", str(n))
 
     # --- Project Setup ---
-    # An ASICProject links a design schema to a specific flow and target.
-    proj = ASICProject(design)
+    # An ASIC links a design schema to a specific flow and target.
+    proj = ASIC(design)
     # Load the freepdk45_demo target, which configures the project for the
     # FreePDK45 technology and a demonstration tool setup.
     freepdk45_demo(proj)

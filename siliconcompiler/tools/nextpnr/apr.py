@@ -61,12 +61,12 @@ class APRTask(Task):
 
     @classmethod
     def make_docs(cls):
-        from siliconcompiler import Flowgraph, Design, FPGAProject, FPGADevice
+        from siliconcompiler import Flowgraph, Design, FPGA, FPGADevice
         from siliconcompiler.scheduler import SchedulerNode
         design = Design("<design>")
         with design.active_fileset("docs"):
             design.set_topmodule("top")
-        proj = FPGAProject(design)
+        proj = FPGA(design)
         proj.add_fileset("docs")
         flow = Flowgraph("docsflow")
         flow.node("<step>", cls(), index="<index>")

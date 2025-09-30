@@ -3,8 +3,8 @@
 
 # Import necessary classes from the siliconcompiler library.
 from siliconcompiler import Design
-from siliconcompiler import ASICProject
-from siliconcompiler.project import LintProject
+from siliconcompiler import ASIC
+from siliconcompiler import Lint
 
 # Import pre-defined flows and targets.
 from siliconcompiler.flows.lintflow import LintFlow
@@ -81,7 +81,7 @@ def lint(fileset: str = "rtl"):
     Linting checks the code for stylistic errors, syntax issues, and common mistakes.
     """
     # Create a project specifically for linting.
-    project = LintProject()
+    project = Lint()
 
     # Load the design configuration defined in the PicoRV32Design class.
     project.set_design(PicoRV32Design())
@@ -102,7 +102,7 @@ def syn(fileset: str = "rtl", pdk: str = "freepdk45"):
     Synthesis converts the RTL code into a gate-level netlist using a specific PDK.
     """
     # Create a standard ASIC project.
-    project = ASICProject()
+    project = ASIC()
 
     # Load the design configuration.
     project.set_design(PicoRV32Design())
@@ -126,7 +126,7 @@ def asic(fileset: str = "rtl", pdk: str = "freepdk45"):
     Configures and runs the full default ASIC flow (synthesis, place-and-route, etc.).
     """
     # Create a standard ASIC project.
-    project = ASICProject()
+    project = ASIC()
 
     # Load the design configuration.
     project.set_design(PicoRV32Design())

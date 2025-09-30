@@ -93,7 +93,10 @@ class BaseSchema:
                         found = True
                         break
                 if not found:
-                    raise RuntimeError(f"fatal error at: {cls_type}")
+                    candidates = sorted(f"{c.__module__}/{c.__name__}" for c in clss)
+                    raise RuntimeError(
+                        f"Ambiguous schema type '{cls_type}'. Candidates: {', '.join(candidates)}"
+                    )
             else:
                 cls_map[cls_type] = list(clss)[0]
         return cls_map

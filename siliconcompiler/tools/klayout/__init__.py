@@ -201,13 +201,13 @@ class KLayoutTask(ASICTask):
 
     @classmethod
     def make_docs(cls):
-        from siliconcompiler import Flowgraph, Design, ASICProject
+        from siliconcompiler import Flowgraph, Design, ASIC
         from siliconcompiler.scheduler import SchedulerNode
         from siliconcompiler.targets import freepdk45_demo
         design = Design("<design>")
         with design.active_fileset("docs"):
             design.set_topmodule("top")
-        proj = ASICProject(design)
+        proj = ASIC(design)
         proj.add_fileset("docs")
         freepdk45_demo(proj)
         flow = Flowgraph("docsflow")

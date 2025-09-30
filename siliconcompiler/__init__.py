@@ -16,10 +16,10 @@ from siliconcompiler.tool import Task, ShowTask, ScreenshotTask, TaskSkip
 
 # Projects
 from siliconcompiler.project import Project
-from siliconcompiler.asic import ASICProject
-from siliconcompiler.fpga import FPGAProject
-from siliconcompiler.project import LintProject
-from siliconcompiler.project import SimProject
+from siliconcompiler.asic import ASIC
+from siliconcompiler.fpga import FPGA
+from siliconcompiler.project import Lint
+from siliconcompiler.project import Sim
 
 from siliconcompiler.fpga import FPGADevice
 
@@ -43,8 +43,13 @@ __all__ = [
     "ScreenshotTask",
 
     "Project",
-    "ASICProject",
-    "FPGAProject",
-    "LintProject",
-    "SimProject"
+    "ASIC",
+    "FPGA",
+    "Lint",
+    "Sim"
 ]
+
+
+# Back-compat: will be removed in future PR
+ASICProject = ASIC
+LintProject = Lint

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 # Import the core classes from the siliconcompiler library.
-from siliconcompiler import ASICProject, Design
+from siliconcompiler import ASIC, Design
 # Import a pre-defined target for the FreePDK45 process.
 from siliconcompiler.targets import freepdk45_demo
 # Import the base ASIC flow to customize it.
@@ -34,7 +34,7 @@ def main():
 
     # --- Project Setup ---
     # Create a standard ASIC project.
-    project = ASICProject(design)
+    project = ASIC(design)
 
     # Tell the project to use the "rtl" fileset we defined.
     project.add_fileset("rtl")

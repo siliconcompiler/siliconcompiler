@@ -43,7 +43,7 @@ Let's create a target for a generic ASIC design. This function will load a stand
 
 .. code-block:: python
 
-  from siliconcompiler import ASICProject
+  from siliconcompiler import ASIC
   from siliconcompiler.flows import asicflow
   from siliconcompiler.tools.yosys import syn_asic
   from siliconcompiler.tools import get_task
@@ -53,7 +53,7 @@ Let's create a target for a generic ASIC design. This function will load a stand
   from my_designs.pdks import my_freepdk45
   from my_designs.libs import my_nangate45
 
-  def my_asic_target(project: ASICProject,
+  def my_asic_target(project: ASIC,
                      # Targets can be parameterized. Here, we allow the user
                      # to specify the number of cores for parallelizable steps.
                      place_np=1,
@@ -97,7 +97,7 @@ Once the target function is defined, you can load it into your project like this
   import siliconcompiler
 
   # Create a project
-  project = siliconcompiler.ASICProject()
+  project = siliconcompiler.ASIC()
 
   # Load the entire configuration by calling the target function.
   # We can also pass values for the parameterized arguments.

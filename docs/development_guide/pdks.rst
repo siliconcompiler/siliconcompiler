@@ -8,7 +8,7 @@ These kits are often complex and vary significantly between foundries.
 
 SiliconCompiler simplifies this by providing a standardized Python object, the :class:`.PDK`, to define and package a PDK.
 This object acts as a structured "manifest" that describes the PDK's properties and points to all the necessary files.
-Once defined, a PDK can be easily reused and loaded into any project with a single command: :meth:`.ASICProject.set_pdk()`.
+Once defined, a PDK can be easily reused and loaded into any project with a single command: :meth:`.ASIC.set_pdk()`.
 
 Key Concepts
 ------------
@@ -81,7 +81,7 @@ To use this PDK, you would instantiate it and pass it to your project:
   import siliconcompiler
 
   # Create a project
-  project = siliconcompiler.ASICProject()
+  project = siliconcompiler.ASIC()
 
   # Instantiate and set the PDK
   pdk = ExamplePDK()

@@ -1,5 +1,5 @@
 # Import necessary classes from the siliconcompiler framework and the LambdaPDK.
-from siliconcompiler import ASICProject
+from siliconcompiler import ASIC
 from siliconcompiler.flows import asicflow, synflow
 
 from lambdapdk.ihp130.libs.sg13g2_stdcell import IHP130StdCell_1p2
@@ -11,12 +11,12 @@ from lambdapdk.ihp130.libs.sg13g2_io import IHP130LambdaLib_IO_1p2
 # Target Setup Function
 ####################################################
 def ihp130_demo(
-        project: ASICProject,
+        project: ASIC,
         syn_np: int = 1,
         floorplan_np: int = 1, place_np: int = 1, cts_np: int = 1, route_np: int = 1,
         timing_np: int = 1):
     """
-        Configure a siliconcompiler ASICProject for the IHP 130nm PDK, including libraries,
+        Configure a siliconcompiler ASIC for the IHP 130nm PDK, including libraries,
         flows, timing scenarios, and basic physical constraints.
 
         Sets the project's main standard-cell library, configures full ASIC and synthesis-only
@@ -25,7 +25,7 @@ def ihp130_demo(
         constraints, and registers the IHP130 SRAM and IO libraries.
 
         Parameters:
-            * project (ASICProject): The siliconcompiler project to configure.
+            * project (ASIC): The siliconcompiler project to configure.
             * syn_np (int): Parallelism for synthesis-related steps.
             * floorplan_np (int): Parallelism for floorplanning.
             * place_np (int): Parallelism for placement.

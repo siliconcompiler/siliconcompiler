@@ -9,7 +9,7 @@ from migen.fhdl.verilog import convert
 
 # Import the core classes from the siliconcompiler library.
 from siliconcompiler import Design
-from siliconcompiler import ASICProject
+from siliconcompiler import ASIC
 # Import a pre-defined target for the FreePDK45 process.
 from siliconcompiler.targets import freepdk45_demo
 
@@ -88,7 +88,7 @@ def main():
 
     # --- SiliconCompiler Project Setup ---
     # Create an ASIC project from the design configuration.
-    project = ASICProject(design)
+    project = ASIC(design)
 
     # Tell the project which filesets are needed for the compilation flow.
     project.add_fileset(["rtl", "sdc"])

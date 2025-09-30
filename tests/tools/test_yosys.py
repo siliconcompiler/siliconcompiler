@@ -6,7 +6,7 @@ from siliconcompiler.targets import freepdk45_demo
 
 from tools.inputimporter import ImporterTask
 
-from siliconcompiler import ASICProject, Design, Flowgraph
+from siliconcompiler import ASIC, Design, Flowgraph
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.tools.yosys.lec_asic import ASICLECTask
 from siliconcompiler.tools import get_task
@@ -16,7 +16,7 @@ from siliconcompiler.tools import get_task
 @pytest.mark.quick
 @pytest.mark.ready
 def test_version(gcd_design):
-    proj = ASICProject(gcd_design)
+    proj = ASIC(gcd_design)
     proj.add_fileset("rtl")
 
     flow = Flowgraph("testflow")
@@ -37,7 +37,7 @@ def test_yosys_lec(datadir):
     with design.active_fileset("rtl"):
         design.set_topmodule("foo")
 
-    proj = ASICProject(design)
+    proj = ASIC(design)
     proj.add_fileset(["rtl"])
     freepdk45_demo(proj)
 
@@ -64,7 +64,7 @@ def test_yosys_lec_broken(datadir):
     with design.active_fileset("rtl"):
         design.set_topmodule("foo")
 
-    proj = ASICProject(design)
+    proj = ASIC(design)
     proj.add_fileset(["rtl"])
     freepdk45_demo(proj)
 

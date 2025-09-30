@@ -1,5 +1,5 @@
 # Import necessary classes from the siliconcompiler framework and the LambdaPDK.
-from siliconcompiler import ASICProject
+from siliconcompiler import ASIC
 from siliconcompiler.flows import asicflow, synflow
 
 from lambdapdk.gf180 import GF180_5LM_1TM_9K_9t
@@ -12,17 +12,17 @@ from lambdapdk.gf180.libs.gf180io import GF180Lambdalib_IO_5LM
 # Target Setup Function
 ####################################################
 def gf180_demo(
-        project: ASICProject,
+        project: ASIC,
         syn_np: int = 1,
         floorplan_np: int = 1, place_np: int = 1, cts_np: int = 1, route_np: int = 1,
         timing_np: int = 1):
     """
-        Configure an ASICProject for the GlobalFoundries 180nm (GF180) process by registering
+        Configure an ASIC for the GlobalFoundries 180nm (GF180) process by registering
         the PDK and standard-cell/IP libraries, installing compilation flows, creating STA
         timing corners, and setting physical area constraints.
 
         Parameters:
-            * project (ASICProject): The siliconcompiler project to configure.
+            * project (ASIC): The siliconcompiler project to configure.
             * syn_np (int): Parallelism for synthesis.
             * floorplan_np (int): Parallelism for floorplanning.
             * place_np (int): Parallelism for placement.

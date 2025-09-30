@@ -72,7 +72,7 @@ To use either of these libraries in your design, you would instantiate the class
 
   import siliconcompiler
 
-  project = siliconcompiler.ASICProject()
+  project = siliconcompiler.ASIC()
 
   # Instantiate and add the hard IP library.
   hard_ip_lib = FakeHardIPLibrary()

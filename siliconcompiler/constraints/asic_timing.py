@@ -79,7 +79,7 @@ class ASICTimingScenarioSchema(NamedSchema):
                 example=["api: asic.set('constraint', 'timing', 'worst', 'opcond', 'typical_1.0')"],
                 help="""Operating condition applied to the scenario. The value
                 can be used to access specific conditions within the library
-                timing models from the :keypath:`ASICProject,asic,asiclib` timing models."""))
+                timing models from the :keypath:`ASIC,asic,asiclib` timing models."""))
 
         schema.insert(
             'mode',

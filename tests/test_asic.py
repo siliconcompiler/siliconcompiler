@@ -5,7 +5,7 @@ import os.path
 
 from unittest.mock import patch
 
-from siliconcompiler import ASICProject, Design, Flowgraph
+from siliconcompiler import ASIC, Design, Flowgraph
 from siliconcompiler.asic import ASICTask, ASICConstraint
 from siliconcompiler.library import ToolLibrarySchema
 
@@ -23,7 +23,7 @@ from siliconcompiler.scheduler import SchedulerNode
 
 @pytest.fixture
 def running_project():
-    class TestProject(ASICProject):
+    class TestProject(ASIC):
         def __init__(self):
             super().__init__()
 
@@ -52,7 +52,7 @@ def running_node(running_project):
 
 
 def test_keys():
-    assert ASICProject().getkeys() == (
+    assert ASIC().getkeys() == (
         'arg',
         'asic',
         'checklist',
@@ -68,7 +68,7 @@ def test_keys():
 
 
 def test_keys_asic():
-    assert ASICProject().getkeys("asic") == (
+    assert ASIC().getkeys("asic") == (
         'asiclib',
         'delaymodel',
         'mainlib',
@@ -78,8 +78,8 @@ def test_keys_asic():
 
 
 def test_keys_constraint():
-    assert isinstance(ASICProject().get("constraint", field="schema"), ASICConstraint)
-    assert ASICProject().getkeys("constraint") == (
+    assert isinstance(ASIC().get("constraint", field="schema"), ASICConstraint)
+    assert ASIC().getkeys("constraint") == (
         'area',
         'component',
         'pin',
@@ -88,22 +88,22 @@ def test_keys_constraint():
 
 
 def test_metrics():
-    assert isinstance(ASICProject().get("metric", field="schema"), ASICMetricsSchema)
+    assert isinstance(ASIC().get("metric", field="schema"), ASICMetricsSchema)
 
 
 def test_getdict_type():
-    assert ASICProject._getdict_type() == "ASICProject"
+    assert ASIC._getdict_type() == "ASIC"
 
 
 @pytest.mark.parametrize("type", [1, None])
 def test_set_mainlib_invalid(type):
     with pytest.raises(TypeError,
                        match="main library must be string or standard cell library object"):
-        ASICProject().set_mainlib(type)
+        ASIC().set_mainlib(type)
 
 
 def test_set_mainlib_string():
-    proj = ASICProject()
+    proj = ASIC()
 
     assert proj.get("asic", "mainlib") is None
     proj.set_mainlib("mainlib")
@@ -112,7 +112,7 @@ def test_set_mainlib_string():
 
 def test_set_mainlib_obj():
     lib = StdCellLibrary("thislib")
-    proj = ASICProject()
+    proj = ASIC()
 
     assert proj.get("asic", "mainlib") is None
     proj.set_mainlib(lib)
@@ -124,11 +124,11 @@ def test_set_mainlib_obj():
 def test_set_pdk_invalid(type):
     with pytest.raises(TypeError,
                        match="pdk must be string or PDK object"):
-        ASICProject().set_pdk(type)
+        ASIC().set_pdk(type)
 
 
 def test_set_pdk_string():
-    proj = ASICProject()
+    proj = ASIC()
 
     assert proj.get("asic", "pdk") is None
     proj.set_pdk("thispdk")
@@ -137,7 +137,7 @@ def test_set_pdk_string():
 
 def test_set_pdk_obj():
     pdk = PDK("thispdk")
-    proj = ASICProject()
+    proj = ASIC()
 
     assert proj.get("asic", "pdk") is None
     proj.set_pdk(pdk)
@@ -149,11 +149,11 @@ def test_set_pdk_obj():
 def test_add_asiclib_invalid(type):
     with pytest.raises(TypeError,
                        match="asic library must be string or standard cell library object"):
-        ASICProject().add_asiclib(type)
+        ASIC().add_asiclib(type)
 
 
 def test_add_asiclib_string():
-    proj = ASICProject()
+    proj = ASIC()
 
     assert proj.get("asic", "asiclib") == []
     proj.add_asiclib("thislib")
@@ -162,7 +162,7 @@ def test_add_asiclib_string():
 
 def test_add_asiclib_obj():
     lib = StdCellLibrary("thislib")
-    proj = ASICProject()
+    proj = ASIC()
 
     assert proj.get("asic", "asiclib") == []
     proj.add_asiclib(lib)
@@ -171,7 +171,7 @@ def test_add_asiclib_obj():
 
 
 def test_add_asiclib_list():
-    proj = ASICProject()
+    proj = ASIC()
 
     assert proj.get("asic", "asiclib") == []
     proj.add_asiclib(["lib0", "lib1"])
@@ -179,7 +179,7 @@ def test_add_asiclib_list():
 
 
 def test_add_asiclib_list_clobber():
-    proj = ASICProject()
+    proj = ASIC()
 
     assert proj.get("asic", "asiclib") == []
     proj.add_asiclib(["lib0", "lib1"])
@@ -189,7 +189,7 @@ def test_add_asiclib_list_clobber():
 
 
 def test_add_asiclib_clobber():
-    proj = ASICProject()
+    proj = ASIC()
 
     assert proj.get("asic", "asiclib") == []
     proj.add_asiclib(["lib0", "lib1"])
@@ -199,20 +199,20 @@ def test_add_asiclib_clobber():
 
 
 def test_constraint():
-    proj = ASICProject()
+    proj = ASIC()
     assert isinstance(proj.constraint, ASICConstraint)
     assert proj.get("constraint", field="schema") is proj.constraint
 
 
 def test_set_asic_routinglayers():
-    proj = ASICProject()
+    proj = ASIC()
     proj.set_asic_routinglayers("M1", "M5")
     assert proj.get("asic", "minlayer") == "M1"
     assert proj.get("asic", "maxlayer") == "M5"
 
 
 def test_set_asic_delaymodel():
-    proj = ASICProject()
+    proj = ASIC()
     proj.set_asic_delaymodel("ccs")
     assert proj.get("asic", "delaymodel") == "ccs"
 
@@ -220,7 +220,7 @@ def test_set_asic_delaymodel():
 def test_add_dep_list():
     lib0 = StdCellLibrary("thislib")
     lib1 = StdCellLibrary("thatlib")
-    proj = ASICProject()
+    proj = ASIC()
 
     proj.add_dep([lib0, lib1])
     assert proj.get("library", "thislib", field="schema") is lib0
@@ -228,7 +228,7 @@ def test_add_dep_list():
 
 
 def test_add_dep_handoff():
-    proj = ASICProject()
+    proj = ASIC()
 
     with patch("siliconcompiler.Project.add_dep") as add_dep:
         proj.add_dep(None)
@@ -236,7 +236,7 @@ def test_add_dep_handoff():
 
 
 def test_check_manifest_empty(monkeypatch, caplog):
-    proj = ASICProject()
+    proj = ASIC()
     monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
     proj.logger.setLevel(logging.INFO)
 
@@ -251,7 +251,7 @@ def test_check_manifest_empty(monkeypatch, caplog):
 
 
 def test_check_manifest_missing_pdk(monkeypatch, caplog):
-    proj = ASICProject()
+    proj = ASIC()
     monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
     proj.logger.setLevel(logging.INFO)
 
@@ -268,7 +268,7 @@ def test_check_manifest_missing_pdk(monkeypatch, caplog):
 
 
 def test_check_manifest_incorrect_type_pdk(monkeypatch, caplog):
-    proj = ASICProject()
+    proj = ASIC()
     monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
     proj.logger.setLevel(logging.INFO)
 
@@ -286,7 +286,7 @@ def test_check_manifest_incorrect_type_pdk(monkeypatch, caplog):
 
 
 def test_check_manifest_main_libmissing(monkeypatch, caplog):
-    proj = ASICProject()
+    proj = ASIC()
     monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
     proj.logger.setLevel(logging.INFO)
 
@@ -304,7 +304,7 @@ def test_check_manifest_main_libmissing(monkeypatch, caplog):
 
 
 def test_check_manifest_asiclib_missing(monkeypatch, caplog):
-    proj = ASICProject()
+    proj = ASIC()
     monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
     proj.logger.setLevel(logging.INFO)
 
@@ -321,7 +321,7 @@ def test_check_manifest_asiclib_missing(monkeypatch, caplog):
 
 
 def test_check_manifest_pass(monkeypatch, caplog):
-    proj = ASICProject()
+    proj = ASIC()
     monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
     proj.logger.setLevel(logging.INFO)
 
@@ -338,7 +338,7 @@ def test_check_manifest_pass(monkeypatch, caplog):
 
 
 def test_check_manifest_pass_missing_mainlib(monkeypatch, caplog):
-    proj = ASICProject()
+    proj = ASIC()
     monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
     proj.logger.setLevel(logging.INFO)
 
@@ -354,7 +354,7 @@ def test_check_manifest_pass_missing_mainlib(monkeypatch, caplog):
 
 
 def test_init_run_set_mainlib(monkeypatch, caplog):
-    proj = ASICProject()
+    proj = ASIC()
     monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
     proj.logger.setLevel(logging.INFO)
 
@@ -371,7 +371,7 @@ def test_init_run_set_mainlib(monkeypatch, caplog):
 
 
 def test_init_run_set_pdk_asiclib(monkeypatch, caplog):
-    proj = ASICProject()
+    proj = ASIC()
     monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
     proj.logger.setLevel(logging.INFO)
 
@@ -393,7 +393,7 @@ def test_init_run_set_pdk_asiclib(monkeypatch, caplog):
 
 
 def test_init_run_handling_missing_lib(monkeypatch, caplog):
-    proj = ASICProject()
+    proj = ASIC()
     monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
     proj.logger.setLevel(logging.INFO)
 
@@ -411,7 +411,7 @@ def test_init_run_handling_missing_lib(monkeypatch, caplog):
 
 
 def test_summary_headers():
-    proj = ASICProject()
+    proj = ASIC()
 
     proj.set_pdk("thispdk")
     proj.set_mainlib("thislib")
@@ -876,7 +876,7 @@ def test_get_clock_none(running_project, running_node):
 
 
 def test_snapshot_info_empty():
-    proj = ASICProject(Design("testdesign"))
+    proj = ASIC(Design("testdesign"))
 
     assert proj._snapshot_info() == [
         ("Design", "testdesign")
@@ -884,7 +884,7 @@ def test_snapshot_info_empty():
 
 
 def test_snapshot_info_pdk():
-    proj = ASICProject(Design("testdesign"))
+    proj = ASIC(Design("testdesign"))
     proj.set("asic", "pdk", "testpdk")
 
     assert proj._snapshot_info() == [

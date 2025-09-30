@@ -46,25 +46,25 @@ Project Classes
     :inherited-members:
 
 
-.. autoclass:: siliconcompiler.ASICProject
+.. autoclass:: siliconcompiler.ASIC
     :members:
     :show-inheritance:
     :inherited-members:
 
 
-.. autoclass:: siliconcompiler.FPGAProject
+.. autoclass:: siliconcompiler.FPGA
     :members:
     :show-inheritance:
     :inherited-members:
 
 
-.. autoclass:: siliconcompiler.LintProject
+.. autoclass:: siliconcompiler.Lint
     :members:
     :show-inheritance:
     :inherited-members:
 
 
-.. autoclass:: siliconcompiler.SimProject
+.. autoclass:: siliconcompiler.Sim
     :members:
     :show-inheritance:
     :inherited-members:
@@ -331,7 +331,7 @@ Inheritance
 ===========
 
 .. scclassinherit::
-    :classes: siliconcompiler/ASICProject,siliconcompiler/FPGAProject,siliconcompiler/LintProject,siliconcompiler/SimProject
+    :classes: siliconcompiler/ASIC,siliconcompiler/FPGA,siliconcompiler/Lint,siliconcompiler/Sim
 
 .. scclassinherit::
     :classes: siliconcompiler/Design,siliconcompiler/PDK,siliconcompiler/FPGADevice,siliconcompiler/StdCellLibrary,siliconcompiler/Flowgraph,siliconcompiler/Checklist,siliconcompiler/Task
