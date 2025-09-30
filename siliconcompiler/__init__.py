@@ -48,8 +48,3 @@ __all__ = [
     "Lint",
     "Sim"
 ]
-
-
-# Back-compat: will be removed in future PR
-ASICProject = ASIC
-LintProject = Lint

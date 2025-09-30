@@ -44,7 +44,7 @@ dependencies = [
     "PyGithub >= 2.8.0, < 2.9.0",
     "urllib3 >= 1.26.0", # Required for PyGithub
 
-    "lambdapdk == 0.2.0-rc6",
+    "lambdapdk == 0.2.0-rc7",
 
     "fasteners >= 0.20",
     "pandas >= 1.1.5",

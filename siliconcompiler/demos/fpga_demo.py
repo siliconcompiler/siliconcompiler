@@ -19,7 +19,7 @@ class Z1000(YosysFPGA, VPRFPGA, OpenSTAFPGA):
         self.set_name("z1000")
 
         self.set_dataroot("siliconcompiler", "python://siliconcompiler")
-        self.set_vendor("ZeroASIC")
+        self.package.set_vendor("ZeroASIC")
         self.set_lutsize(4)
 
         self.add_yosys_registertype(["dff", "dffr", "dffe", "dffer"])
