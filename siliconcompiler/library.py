@@ -47,39 +47,6 @@ class LibrarySchema(FileSetSchema, NamedSchema):
 
         return LibrarySchema.__name__
 
-    def set_version(self, version: str):
-        """
-        Set the version of the package.
-
-        Args:
-            version (str): The version string.
-        """
-        return self.package.set_version(version)
-
-    def add_doc(self, type: str, path: str, dataroot: str = None):
-        """
-        Add documentation to the package.
-
-        Args:
-            type (str): The type of documentation (e.g., "manual", "api").
-            path (str): The path to the documentation file.
-            dataroot (str, optional): The data reference for the package. Defaults to None,
-                                    which uses the active package.
-
-        Returns:
-            The result of the `add` operation.
-        """
-        return self.package.add_doc(type, path, dataroot=dataroot)
-
-    def set_vendor(self, vendor: str):
-        """
-        Set the vendor of the package.
-
-        Args:
-            vendor (str): The vendor name.
-        """
-        return self.package.set("vendor", vendor)
-
 
 class ToolLibrarySchema(LibrarySchema):
     """

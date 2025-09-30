@@ -914,9 +914,6 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         else:
             return self.add("option", "alias", alias)
 
-    def has_library(self, library: Union[str, NamedSchema]) -> bool:
-        return self._has_library(library)
-
     def _has_library(self, library: Union[str, NamedSchema]) -> bool:
         """
         Checks if a library with the given name exists and is loaded in the project.
