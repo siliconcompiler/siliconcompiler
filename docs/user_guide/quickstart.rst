@@ -29,7 +29,7 @@ The following code snippet below shows how the :ref:`demo design <asic_demo>` wa
 
     #!/usr/bin/env python3
 
-    from siliconcompiler import ASIC, Design  # import python package
+    from siliconcompiler import ASIC, Design                   # import python package
     from siliconcompiler.targets import skywater130_demo
 
     if __name__ == "__main__":
@@ -37,7 +37,7 @@ The following code snippet below shows how the :ref:`demo design <asic_demo>` wa
         design.set_topmodule("heartbeat", fileset="rtl")       # set top module
         design.add_file("heartbeat.v", fileset="rtl")          # add input sources
         design.add_file("heartbeat.sdc", fileset="sdc")        # add input sources
-        project = ASIC(design)                          # create project
+        project = ASIC(design)                                 # create project
         project.add_fileset(["rtl", "sdc"])                    # enable filesets
         skywater130_demo(project)                              # load a pre-defined target
         project.set('option','remote', True)                   # enable remote execution
