@@ -167,7 +167,7 @@ def test_project_summary_headers():
 @pytest.mark.parametrize("type", [1, None])
 def test_project_set_fpga_invalid(type):
     with pytest.raises(TypeError,
-                       match="fpga must be an FPGADevice object or a string."):
+                       match=r"^fpga must be an FPGADevice object or a string\.$"):
         FPGAProject().set_fpga(type)
 
 

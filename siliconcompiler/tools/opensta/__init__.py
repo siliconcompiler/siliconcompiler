@@ -74,7 +74,7 @@ class OpenSTAFPGA(FPGADevice):
     Schema for defining library parameters specifically for the
     OpenSTA tool when targeting an FPGA.
 
-    This class extends the base FPGA to manage various settings
+    This class extends the base FPGADevice to manage various settings
     related to OpenSTA, specifically for passing liberty filesets.
     """
     def __init__(self):
