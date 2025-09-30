@@ -11,43 +11,43 @@ def test_keys():
     assert PackageSchema().allkeys() == set([
         ('dataroot', 'default', 'path'),
         ('dataroot', 'default', 'tag'),
-        ('package', 'author', 'default', 'email'),
-        ('package', 'author', 'default', 'name'),
-        ('package', 'author', 'default', 'organization'),
-        ('package', 'description'),
-        ('package', 'doc', 'datasheet'),
-        ('package', 'doc', 'quickstart'),
-        ('package', 'doc', 'reference'),
-        ('package', 'doc', 'releasenotes'),
-        ('package', 'doc', 'signoff'),
-        ('package', 'doc', 'testplan'),
-        ('package', 'doc', 'tutorial'),
-        ('package', 'doc', 'userguide'),
-        ('package', 'license'),
-        ('package', 'licensefile'),
-        ('package', 'vendor'),
-        ('package', 'version'),
+        ('author', 'default', 'email'),
+        ('author', 'default', 'name'),
+        ('author', 'default', 'organization'),
+        ('description',),
+        ('doc', 'datasheet'),
+        ('doc', 'quickstart'),
+        ('doc', 'reference'),
+        ('doc', 'releasenotes'),
+        ('doc', 'signoff'),
+        ('doc', 'testplan'),
+        ('doc', 'tutorial'),
+        ('doc', 'userguide'),
+        ('license',),
+        ('licensefile',),
+        ('vendor',),
+        ('version',),
     ])
 
 
 def test_description():
     schema = PackageSchema()
     assert schema.set_description("this is the description")
-    assert schema.get("package", "description") == "this is the description"
+    assert schema.get("description") == "this is the description"
     assert schema.get_description() == "this is the description"
 
 
 def test_version():
     schema = PackageSchema()
     assert schema.set_version("1.0")
-    assert schema.get("package", "version") == "1.0"
+    assert schema.get("version") == "1.0"
     assert schema.get_version() == "1.0"
 
 
 def test_vendor():
     schema = PackageSchema()
     assert schema.set_vendor("acme")
-    assert schema.get("package", "vendor") == "acme"
+    assert schema.get("vendor") == "acme"
     assert schema.get_vendor() == "acme"
 
 
@@ -57,9 +57,9 @@ def test_author():
                                  name="Bob",
                                  email="bob@org.com",
                                  organization="Bob Inc.")) == 3
-    assert schema.get("package", "author", "person0", "name") == "Bob"
-    assert schema.get("package", "author", "person0", "email") == "bob@org.com"
-    assert schema.get("package", "author", "person0", "organization") == "Bob Inc."
+    assert schema.get("author", "person0", "name") == "Bob"
+    assert schema.get("author", "person0", "email") == "bob@org.com"
+    assert schema.get("author", "person0", "organization") == "Bob Inc."
 
     assert schema.get_author("person0") == {
         "email": "bob@org.com",
@@ -75,9 +75,9 @@ def test_author_overwrite():
                                  email="bob@org.com",
                                  organization="Bob Inc.")) == 3
     assert len(schema.add_author("person0", name="Bob0")) == 1
-    assert schema.get("package", "author", "person0", "name") == "Bob0"
-    assert schema.get("package", "author", "person0", "email") == "bob@org.com"
-    assert schema.get("package", "author", "person0", "organization") == "Bob Inc."
+    assert schema.get("author", "person0", "name") == "Bob0"
+    assert schema.get("author", "person0", "email") == "bob@org.com"
+    assert schema.get("author", "person0", "organization") == "Bob Inc."
 
 
 def test_author_multiple():
@@ -139,7 +139,7 @@ def test_add_doc():
     Path("doc").touch()
 
     assert schema.add_doc("userguide", "doc")
-    assert schema.get("package", "doc", "userguide") == ["doc"]
+    assert schema.get("doc", "userguide") == ["doc"]
     assert schema.get_doc("userguide") == [os.path.abspath("doc")]
 
 
@@ -153,7 +153,7 @@ def test_add_doc_with_dataroot():
 
     with schema.active_dataroot("testdata"):
         assert schema.add_doc("quickstart", "quick")
-    assert schema.get("package", "doc", "quickstart") == ["quick"]
+    assert schema.get("doc", "quickstart") == ["quick"]
     assert schema.get_doc("quickstart") == [os.path.abspath("docs/quick")]
 
 

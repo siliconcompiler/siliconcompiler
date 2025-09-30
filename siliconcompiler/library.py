@@ -11,7 +11,7 @@ from siliconcompiler.schema import EditableSchema, Parameter, Scope, PerNode
 from siliconcompiler.schema.utils import trim
 
 
-class LibrarySchema(FileSetSchema, PackageSchema, NamedSchema):
+class LibrarySchema(FileSetSchema, NamedSchema):
     """
     A class for managing library schemas.
     """
@@ -25,6 +25,20 @@ class LibrarySchema(FileSetSchema, PackageSchema, NamedSchema):
         super().__init__()
         self.set_name(name)
 
+        package = PackageSchema()
+        EditableSchema(package).remove("dataroot")
+        EditableSchema(self).insert("package", package)
+
+    @property
+    def package(self) -> PackageSchema:
+        """
+        Gets the package schema for the library.
+
+        Returns:
+            PackageSchema: The package schema associated with this library.
+        """
+        return self.get("package", field="schema")
+
     @classmethod
     def _getdict_type(cls) -> str:
         """
@@ -32,6 +46,39 @@ class LibrarySchema(FileSetSchema, PackageSchema, NamedSchema):
         """
 
         return LibrarySchema.__name__
+
+    def set_version(self, version: str):
+        """
+        Set the version of the package.
+
+        Args:
+            version (str): The version string.
+        """
+        return self.package.set_version(version)
+
+    def add_doc(self, type: str, path: str, dataroot: str = None):
+        """
+        Add documentation to the package.
+
+        Args:
+            type (str): The type of documentation (e.g., "manual", "api").
+            path (str): The path to the documentation file.
+            dataroot (str, optional): The data reference for the package. Defaults to None,
+                                    which uses the active package.
+
+        Returns:
+            The result of the `add` operation.
+        """
+        return self.package.add_doc(type, path, dataroot=dataroot)
+
+    def set_vendor(self, vendor: str):
+        """
+        Set the vendor of the package.
+
+        Args:
+            vendor (str): The vendor name.
+        """
+        return self.package.set("vendor", vendor)
 
 
 class ToolLibrarySchema(LibrarySchema):
@@ -400,7 +447,7 @@ class StdCellLibrary(ToolLibrarySchema, DependencySchema):
             docs.append(dataroot)
 
         # Show package information
-        package = PackageSchema._generate_doc(self, doc, ref_root=ref_root, key_offset=key_offset)
+        package = self.package._generate_doc(doc, ref_root=ref_root, key_offset=key_offset)
         if package:
             docs.append(package)
 

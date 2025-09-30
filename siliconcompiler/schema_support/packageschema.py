@@ -24,7 +24,7 @@ class PackageSchema(PathSchema):
         Args:
             desc (str): The description string.
         """
-        return self.set("package", "description", trim(desc))
+        return self.set("description", trim(desc))
 
     def get_description(self) -> str:
         """
@@ -34,7 +34,7 @@ class PackageSchema(PathSchema):
             str: The description string.
         """
 
-        return self.get("package", "description")
+        return self.get("description")
 
     def set_version(self, version: str):
         """
@@ -43,7 +43,7 @@ class PackageSchema(PathSchema):
         Args:
             version (str): The version string.
         """
-        return self.set("package", "version", version)
+        return self.set("version", version)
 
     def get_version(self) -> str:
         """
@@ -52,7 +52,7 @@ class PackageSchema(PathSchema):
         Returns:
             str: The version string.
         """
-        return self.get("package", "version")
+        return self.get("version")
 
     def set_vendor(self, vendor: str):
         """
@@ -61,7 +61,7 @@ class PackageSchema(PathSchema):
         Args:
             vendor (str): The vendor name.
         """
-        return self.set("package", "vendor", vendor)
+        return self.set("vendor", vendor)
 
     def get_vendor(self) -> str:
         """
@@ -70,7 +70,7 @@ class PackageSchema(PathSchema):
         Returns:
             str: The vendor name.
         """
-        return self.get("package", "vendor")
+        return self.get("vendor")
 
     def add_license(self, name: str):
         """
@@ -79,7 +79,7 @@ class PackageSchema(PathSchema):
         Args:
             name (str): The name of the license.
         """
-        return self.add("package", "license", name)
+        return self.add("license", name)
 
     def add_licensefile(self, file: str, dataroot: str = None):
         """
@@ -91,7 +91,7 @@ class PackageSchema(PathSchema):
                                     which uses the active package.
         """
         with self.active_dataroot(self._get_active_dataroot(dataroot)):
-            return self.add("package", "licensefile", file)
+            return self.add("licensefile", file)
 
     def get_license(self) -> List[str]:
         """
@@ -100,7 +100,7 @@ class PackageSchema(PathSchema):
         Returns:
             List[str]: A list of license names.
         """
-        return self.get("package", "license")
+        return self.get("license")
 
     def get_licensefile(self) -> List[str]:
         """
@@ -109,7 +109,7 @@ class PackageSchema(PathSchema):
         Returns:
             List[str]: A list of file paths.
         """
-        return self.find_files("package", "licensefile")
+        return self.find_files("licensefile")
 
     def add_author(self,
                    identifier: str,
@@ -127,11 +127,11 @@ class PackageSchema(PathSchema):
         """
         params = []
         if name:
-            params.append(self.set("package", "author", identifier, "name", name))
+            params.append(self.set("author", identifier, "name", name))
         if email:
-            params.append(self.set("package", "author", identifier, "email", email))
+            params.append(self.set("author", identifier, "email", email))
         if organization:
-            params.append(self.set("package", "author", identifier, "organization", organization))
+            params.append(self.set("author", identifier, "organization", organization))
         return [p for p in params if p]
 
     def get_author(self, identifier: str = None):
@@ -143,13 +143,13 @@ class PackageSchema(PathSchema):
         """
         if identifier is None:
             authors = []
-            for author in self.getkeys("package", "author"):
+            for author in self.getkeys("author"):
                 authors.append(self.get_author(author))
             return authors
         return {
-            "name": self.get("package", "author", identifier, "name"),
-            "email": self.get("package", "author", identifier, "email"),
-            "organization": self.get("package", "author", identifier, "organization")
+            "name": self.get("author", identifier, "name"),
+            "email": self.get("author", identifier, "email"),
+            "organization": self.get("author", identifier, "organization")
         }
 
     def add_doc(self, type: str, path: str, dataroot: str = None):
@@ -166,7 +166,7 @@ class PackageSchema(PathSchema):
             The result of the `add` operation.
         """
         with self.active_dataroot(self._get_active_dataroot(dataroot)):
-            return self.add("package", "doc", type, path)
+            return self.add("doc", type, path)
 
     def get_doc(self, type: str = None) -> Union[List[str], Dict[str, List[str]]]:
         """
@@ -177,11 +177,11 @@ class PackageSchema(PathSchema):
                                 returns all documentation organized by type. Defaults to None.
         """
         if type:
-            return self.find_files("package", "doc", type)
+            return self.find_files("doc", type)
 
         docs = {}
-        for type in self.getkeys("package", "doc"):
-            doc_files = self.find_files("package", "doc", type)
+        for type in self.getkeys("doc"):
+            doc_files = self.find_files("doc", type)
             if doc_files:
                 docs[type] = doc_files
         return docs
@@ -200,7 +200,7 @@ class PackageSchema(PathSchema):
                       detailed: bool = True):
         from ..schema.docs.utils import build_section
         section = build_section("Package", f"{ref_root}-package")
-        params = BaseSchema._generate_doc(self.get("package", field="schema"),
+        params = BaseSchema._generate_doc(self,
                                           doc,
                                           ref_root=f"{ref_root}-package",
                                           key_offset=key_offset,
@@ -225,7 +225,7 @@ def schema_package(schema):
     schema = EditableSchema(schema)
 
     schema.insert(
-        'package', 'version',
+        'version',
         Parameter(
             'str',
             scope=Scope.GLOBAL,
@@ -233,12 +233,12 @@ def schema_package(schema):
             switch="-package_version <str>",
             example=[
                 "cli: -package_version 1.0",
-                "api: schema.set('package', 'version', '1.0')"],
+                "api: schema.set('version', '1.0')"],
             help=trim("""Package version. Can be a branch, tag, commit hash,
             or a semver compatible version.""")))
 
     schema.insert(
-        'package', 'vendor',
+        'vendor',
         Parameter(
             'str',
             scope=Scope.GLOBAL,
@@ -246,11 +246,11 @@ def schema_package(schema):
             switch="-package_vendor <str>",
             example=[
                 "cli: -package_vendor acme",
-                "api: schema.set('package', 'vendor', 'acme')"],
+                "api: schema.set('vendor', 'acme')"],
             help=trim("""Package vendor.""")))
 
     schema.insert(
-        'package', 'description',
+        'description',
         Parameter(
             'str',
             scope=Scope.GLOBAL,
@@ -258,7 +258,7 @@ def schema_package(schema):
             switch="-package_description <str>",
             example=[
                 "cli: -package_description 'Yet another cpu'",
-                "api: schema.set('package', 'description', 'Yet another cpu')"],
+                "api: schema.set('description', 'Yet another cpu')"],
             help=trim("""Package short one line description for package
             managers and summary reports.""")))
 
@@ -272,7 +272,7 @@ def schema_package(schema):
             'signoff',
             'tutorial']:
         schema.insert(
-            'package', 'doc', item,
+            'doc', item,
             Parameter(
                 '[file]',
                 scope=Scope.GLOBAL,
@@ -280,11 +280,11 @@ def schema_package(schema):
                 switch=f"-package_doc_{item} <file>",
                 example=[
                     f"cli: -package_doc_{item} {item}.pdf",
-                    f"api: schema.set('package', 'doc', '{item}', '{item}.pdf')"],
+                    f"api: schema.set('doc', '{item}', '{item}.pdf')"],
                 help=trim(f"""Package list of {item} documents.""")))
 
     schema.insert(
-        'package', 'license',
+        'license',
         Parameter(
             '[str]',
             scope=Scope.GLOBAL,
@@ -292,11 +292,11 @@ def schema_package(schema):
             switch="-package_license <str>",
             example=[
                 "cli: -package_license 'Apache-2.0'",
-                "api: schema.set('package', 'license', 'Apache-2.0')"],
+                "api: schema.set('license', 'Apache-2.0')"],
             help=trim("""Package list of SPDX license identifiers.""")))
 
     schema.insert(
-        'package', 'licensefile',
+        'licensefile',
         Parameter(
             '[file]',
             scope=Scope.GLOBAL,
@@ -304,7 +304,7 @@ def schema_package(schema):
             switch="-package_licensefile <file>",
             example=[
                 "cli: -package_licensefile './LICENSE'",
-                "api: schema.set('package', 'licensefile', './LICENSE')"],
+                "api: schema.set('licensefile', './LICENSE')"],
             help=trim("""Package list of license files for to be
             applied in cases when a SPDX identifier is not available.
             (eg. proprietary licenses).""")))
@@ -314,7 +314,7 @@ def schema_package(schema):
             'email',
             'organization']:
         schema.insert(
-            'package', 'author', 'default', item,
+            'author', 'default', item,
             Parameter(
                 'str',
                 scope=Scope.GLOBAL,
@@ -322,6 +322,6 @@ def schema_package(schema):
                 switch=f"-package_author_{item} 'userid <str>'",
                 example=[
                     f"cli: -package_author_{item} 'wiley wiley@acme.com'",
-                    f"api: schema.set('package', 'author', 'wiley', '{item}', 'wiley@acme.com')"],
+                    f"api: schema.set('author', 'wiley', '{item}', 'wiley@acme.com')"],
                 help=trim(f"""Package author {item} provided with full name as key and
                 {item} as value.""")))

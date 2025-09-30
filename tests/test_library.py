@@ -3,6 +3,7 @@ import pytest
 from siliconcompiler import PDK
 from siliconcompiler.library import LibrarySchema, ToolLibrarySchema, StdCellLibrary
 from siliconcompiler.schema import PerNode, Scope
+from siliconcompiler.schema_support.packageschema import PackageSchema
 
 
 def test_allkeys():
@@ -36,6 +37,12 @@ def test_getdict_type():
 
 def test_toollib_getdict_type():
     assert ToolLibrarySchema._getdict_type() == "ToolLibrarySchema"
+
+
+def test_package_access():
+    lib = LibrarySchema()
+    assert lib.get("package", field="schema") is lib.package
+    assert isinstance(lib.package, PackageSchema)
 
 
 def test_allkeys_tool_library():
