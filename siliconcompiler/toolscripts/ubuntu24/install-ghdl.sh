@@ -12,6 +12,8 @@ else
     SUDO_INSTALL=""
 fi
 
+sudo apt-get update
+
 sudo apt-get install -y llvm-dev clang gnat libgnat-9 libz-dev
 
 sudo apt-get install -y git build-essential

@@ -12,6 +12,8 @@ else
     SUDO_INSTALL=""
 fi
 
+sudo apt-get update
+
 sudo apt-get install -y build-essential clang bison flex libreadline-dev \
                         gawk tcl-dev libffi-dev git mercurial graphviz   \
                         xdot pkg-config python3 libftdi-dev \

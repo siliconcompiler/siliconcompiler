@@ -12,6 +12,8 @@ else
     SUDO_INSTALL=""
 fi
 
+sudo apt-get update
+
 sudo apt-get install -y wget lsb-core
 
 mkdir -p deps

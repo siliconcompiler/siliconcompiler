@@ -12,6 +12,8 @@ else
     SUDO_INSTALL=""
 fi
 
+sudo apt-get update
+
 sudo apt-get install -y build-essential tcl-dev tk-dev
 
 sudo apt-get install -y git autotools-dev automake

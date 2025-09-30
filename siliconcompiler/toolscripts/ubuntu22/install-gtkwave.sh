@@ -12,6 +12,8 @@ else
     SUDO_INSTALL=""
 fi
 
+sudo apt-get update
+
 sudo apt-get install -y build-essential gperf libgtk-3-dev \
     libbz2-dev libjudy-dev liblzma-dev tcl-dev tk-dev
 

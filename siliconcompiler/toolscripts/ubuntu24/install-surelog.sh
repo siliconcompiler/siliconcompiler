@@ -5,6 +5,8 @@ set -ex
 # Get directory of script
 src_path=$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P)/..
 
+sudo apt-get update
+
 # These dependencies are up-to-date with instructions from the INSTALL.md from the commit we are pinned to below
 sudo apt-get install -y build-essential cmake git pkg-config \
     tclsh swig uuid-dev libgoogle-perftools-dev python3 \
