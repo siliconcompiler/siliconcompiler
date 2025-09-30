@@ -3,7 +3,7 @@ import pytest
 
 from unittest.mock import patch
 
-from siliconcompiler import FPGA, FPGAProject
+from siliconcompiler import FPGADevice, FPGAProject
 from siliconcompiler.metrics import FPGAMetricsSchema
 from siliconcompiler.constraints import FPGAComponentConstraints, \
     FPGAPinConstraints, FPGATimingConstraintSchema
@@ -11,19 +11,19 @@ from siliconcompiler.fpga import FPGAConstraint
 
 
 def test_set_add():
-    schema = FPGA("testfpga")
+    schema = FPGADevice("testfpga")
     assert schema.name == "testfpga"
 
 
 def test_fpga_keys():
-    assert FPGA().allkeys("fpga") == {
+    assert FPGADevice().allkeys("fpga") == {
         ('lutsize',),
         ('partname',)
     }
 
 
 def test_keys():
-    assert FPGA().getkeys() == (
+    assert FPGADevice().getkeys() == (
         'dataroot',
         'fileset',
         'fpga',
@@ -32,18 +32,18 @@ def test_keys():
 
 
 def test_getdict_type():
-    assert FPGA._getdict_type() == "FPGA"
+    assert FPGADevice._getdict_type() == "FPGADevice"
 
 
 def test_set_partname():
-    schema = FPGA()
+    schema = FPGADevice()
     assert schema.get("fpga", "partname") is None
     schema.set_partname("fpga123")
     assert schema.get("fpga", "partname") == "fpga123"
 
 
 def test_set_lutsize():
-    schema = FPGA()
+    schema = FPGADevice()
     assert schema.get("fpga", "lutsize") is None
     schema.set_lutsize(6)
     assert schema.get("fpga", "lutsize") == 6
@@ -93,8 +93,8 @@ def test_project_constraint():
 
 
 def test_project_add_dep_list():
-    fpga0 = FPGA("thisfpga")
-    fpga1 = FPGA("thatfpga")
+    fpga0 = FPGADevice("thisfpga")
+    fpga1 = FPGADevice("thatfpga")
     proj = FPGAProject()
 
     proj.add_dep([fpga0, fpga1])
@@ -141,7 +141,7 @@ def test_project_check_manifest_pass(monkeypatch, caplog):
     monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
     proj.logger.setLevel(logging.INFO)
 
-    proj.set_fpga(FPGA("thisfpga"))
+    proj.set_fpga(FPGADevice("thisfpga"))
 
     with patch("siliconcompiler.Project.check_manifest") as check_manifest:
         check_manifest.return_value = True
@@ -167,7 +167,7 @@ def test_project_summary_headers():
 @pytest.mark.parametrize("type", [1, None])
 def test_project_set_fpga_invalid(type):
     with pytest.raises(TypeError,
-                       match="fpga must be an FPGA object or a string."):
+                       match="fpga must be an FPGADevice object or a string."):
         FPGAProject().set_fpga(type)
 
 
@@ -180,7 +180,7 @@ def test_project_set_fpga_string():
 
 
 def test_project_set_fpga_obj():
-    fpga = FPGA("thisfpga")
+    fpga = FPGADevice("thisfpga")
     proj = FPGAProject()
 
     assert proj.get("fpga", "device") is None

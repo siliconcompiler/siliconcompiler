@@ -19644,7 +19644,7 @@
         "sctype": "PDK"
       }
     },
-    "fpga": {
+    "fpgadevice": {
       "dataroot": {
         "default": {
           "path": {
@@ -20247,8 +20247,8 @@
         }
       },
       "__meta__": {
-        "class": "siliconcompiler.fpga/FPGA",
-        "sctype": "FPGA"
+        "class": "siliconcompiler.fpga/FPGADevice",
+        "sctype": "FPGADevice"
       }
     },
     "stdcelllibrary": {

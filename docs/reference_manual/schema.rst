@@ -163,9 +163,9 @@ ASIC Specific
 FPGA Specific
 ^^^^^^^^^^^^^
 .. schema::
-  :root: siliconcompiler/FPGA
+  :root: siliconcompiler/FPGADevice
   :schema_only:
-  :ref_root: FPGA
+  :ref_root: FPGADevice
 
 
 meta data

@@ -10,7 +10,7 @@ from siliconcompiler.schema.parametertype import NodeType
 
 from siliconcompiler import Project
 from siliconcompiler import FPGAProject, ASICProject, SimProject, LintProject
-from siliconcompiler import Design, PDK, StdCellLibrary, FPGA, Schematic
+from siliconcompiler import Design, PDK, StdCellLibrary, FPGADevice, Schematic
 
 
 # Composite schema to allow for a single check
@@ -26,7 +26,7 @@ class CompositeProject(BaseSchema):
 
         EditableSchema(self).insert("library", "design", Design())
         EditableSchema(self).insert("library", "pdk", PDK())
-        EditableSchema(self).insert("library", "fpga", FPGA())
+        EditableSchema(self).insert("library", "fpgadevice", FPGADevice())
         EditableSchema(self).insert("library", "stdcelllibrary", StdCellLibrary())
         EditableSchema(self).insert("library", "schematic", Schematic())
 

@@ -7,6 +7,8 @@ within the SiliconCompiler schema. It includes schemas for both
 tool-library and temporary configurations.
 """
 
+from typing import Union
+
 from siliconcompiler import Project
 
 from siliconcompiler.schema import EditableSchema, Parameter, Scope, BaseSchema
@@ -62,7 +64,7 @@ class FPGAConstraint(BaseSchema):
         return self.get("pin", field="schema")
 
 
-class FPGA(ToolLibrarySchema):
+class FPGADevice(ToolLibrarySchema):
     """
     A schema for configuring FPGA-related parameters.
 
@@ -141,7 +143,7 @@ class FPGA(ToolLibrarySchema):
             str: The name of the class.
         """
 
-        return FPGA.__name__
+        return FPGADevice.__name__
 
 
 class FPGAProject(Project):
@@ -182,11 +184,11 @@ class FPGAProject(Project):
         """
         Adds a dependency to the project.
 
-        If the dependency is an FPGA object, it is registered as a library.
+        If the dependency is an FPGADevice object, it is registered as a library.
         Otherwise, the request is passed to the parent class's implementation.
 
         Args:
-            obj: The dependency object to add. Can be an FPGA instance
+            obj: The dependency object to add. Can be an FPGADevice instance
                  or another type supported by the base Project class.
         """
         if isinstance(obj, (list, set, tuple)):
@@ -194,32 +196,32 @@ class FPGAProject(Project):
                 self.add_dep(iobj)
             return
 
-        if isinstance(obj, FPGA):
+        if isinstance(obj, FPGADevice):
             EditableSchema(self).insert("library", obj.name, obj, clobber=True)
         else:
             return super().add_dep(obj)
 
         self._import_dep(obj)
 
-    def set_fpga(self, fpga):
+    def set_fpga(self, fpga: Union[str, FPGADevice]):
         """
         Sets the target FPGA device for the project.
 
-        This method can accept either an FPGA object or a string
+        This method can accept either an FPGADevice object or a string
         representing the name of the FPGA device. If an object is provided,
         it is first added as a dependency.
 
         Args:
-            fpga (FPGA or str): The FPGA device to target.
+            fpga (FPGADevice or str): The FPGADevice device to target.
 
         Raises:
-            TypeError: If the provided fpga is not an FPGA object or a string.
+            TypeError: If the provided fpga is not an FPGADevice object or a string.
         """
-        if isinstance(fpga, FPGA):
+        if isinstance(fpga, FPGADevice):
             self.add_dep(fpga)
             fpga = fpga.name
         elif not isinstance(fpga, str):
-            raise TypeError("fpga must be an FPGA object or a string.")
+            raise TypeError("fpga must be an FPGADevice object or a string.")
 
         return self.set("fpga", "device", fpga)
 

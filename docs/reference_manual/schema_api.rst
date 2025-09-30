@@ -98,7 +98,7 @@ User Classes
     :show-inheritance:
     :inherited-members:
 
-.. autoclass:: siliconcompiler.FPGA
+.. autoclass:: siliconcompiler.FPGADevice
     :members:
     :show-inheritance:
     :inherited-members:
@@ -334,4 +334,4 @@ Inheritance
     :classes: siliconcompiler/ASICProject,siliconcompiler/FPGAProject,siliconcompiler/LintProject,siliconcompiler/SimProject
 
 .. scclassinherit::
-    :classes: siliconcompiler/Design,siliconcompiler/PDK,siliconcompiler/FPGA,siliconcompiler/StdCellLibrary,siliconcompiler/Flowgraph,siliconcompiler/Checklist,siliconcompiler/Task
+    :classes: siliconcompiler/Design,siliconcompiler/PDK,siliconcompiler/FPGADevice,siliconcompiler/StdCellLibrary,siliconcompiler/Flowgraph,siliconcompiler/Checklist,siliconcompiler/Task

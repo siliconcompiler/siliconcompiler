@@ -11,7 +11,7 @@ Installation: https://github.com/The-OpenROAD-Project/OpenSTA (also installed wi
 
 from siliconcompiler import Task
 
-from siliconcompiler import FPGA
+from siliconcompiler import FPGADevice
 
 
 class OpenSTATask(Task):
@@ -69,7 +69,7 @@ class OpenSTATask(Task):
         return node.task
 
 
-class OpenSTAFPGA(FPGA):
+class OpenSTAFPGA(FPGADevice):
     """
     Schema for defining library parameters specifically for the
     OpenSTA tool when targeting an FPGA.
