@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Copyright 2025 Silicon Compiler Authors. All Rights Reserved.
 
-from siliconcompiler import Design, FPGA
+from siliconcompiler import Design, FPGADevice
 from siliconcompiler.project import LintProject, SimProject
 from siliconcompiler import ASICProject, FPGAProject
 
@@ -243,7 +243,7 @@ def fpga(N: str = None):
     project.set_flow(FPGAXilinxFlow())
 
     # Configure the specific FPGA part details.
-    fpga = FPGA("xc7")
+    fpga = FPGADevice("xc7")
     fpga.set_partname("xc7a100tcsg324")
     project.set_fpga(fpga)
 

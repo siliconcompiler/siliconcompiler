@@ -29,15 +29,15 @@ from siliconcompiler import Task
 
 from typing import List, Union
 
-from siliconcompiler import FPGA
+from siliconcompiler import FPGADevice
 
 
-class VPRFPGA(FPGA):
+class VPRFPGA(FPGADevice):
     """
     Schema for defining library parameters specifically for the
     VPR (Verilog Place and Route) tool.
 
-    This class extends the base FPGA to manage various settings
+    This class extends the base FPGADevice to manage various settings
     related to VPR, such as device information, channel width, resource types,
     and input file paths for the architecture and routing graph.
     """

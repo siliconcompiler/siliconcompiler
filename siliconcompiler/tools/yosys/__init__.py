@@ -21,7 +21,7 @@ from typing import List, Union
 from siliconcompiler import sc_open
 
 from siliconcompiler import StdCellLibrary
-from siliconcompiler import FPGA
+from siliconcompiler import FPGADevice
 from siliconcompiler import Task
 
 
@@ -183,11 +183,11 @@ class YosysStdCellLibrary(StdCellLibrary):
             self.add("tool", "yosys", "blackbox_fileset", fileset)
 
 
-class YosysFPGA(FPGA):
+class YosysFPGA(FPGADevice):
     """
     Schema for defining FPGA-specific parameters for the Yosys tool.
 
-    This class extends the base FPGA to manage various configurations
+    This class extends the base FPGADevice to manage various configurations
     and technology-specific files required for synthesizing designs onto
     an FPGA using Yosys, including macro libraries, technology maps, and
     feature sets.
