@@ -625,21 +625,31 @@ def test_dataroot_section_not_above():
     assert schema._PathSchema__dataroot_section() is schema
 
 
-def test_dataroot_section_above_active():
+def test_dataroot_section_above_active_at_base():
+    schema = PathSchema()
+    EditableSchema(schema).remove("dataroot")
+    EditableSchema(schema).insert("nothing", Parameter("str"))
+
+    schema_base = PathSchema()
+    EditableSchema(schema_base).insert("test", schema)
+    schema_base.set_dataroot("testroot", __file__)
+
+    with schema_base.active_dataroot("testroot"):
+        assert schema_base._get_active("package") == "testroot"
+        assert schema._get_active("package") == "testroot"
+
+
+def test_dataroot_section_above_active_at_leaf():
     schema = PathSchema()
     EditableSchema(schema).remove("dataroot")
 
     schema_base = PathSchema()
     EditableSchema(schema_base).insert("test", schema)
-    schema_base.set_dataroot("test", __file__)
+    schema_base.set_dataroot("testroot", __file__)
 
-    with schema.active_dataroot("test"):
-        assert schema_base._get_active("package") == "test"
-        assert schema._get_active("package") is None
-
-    with schema_base.active_dataroot("test"):
-        assert schema_base._get_active("package") == "test"
-        assert schema._get_active("package") is None
+    with schema.active_dataroot("testroot"):
+        assert schema_base._get_active("package") is None
+        assert schema._get_active("package") == "testroot"
 
 
 def test_find_files_dataroot_resolvers_no_roots():

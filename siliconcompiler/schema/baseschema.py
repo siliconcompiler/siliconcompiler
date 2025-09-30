@@ -1085,19 +1085,31 @@ class BaseSchema:
             ...     schema.set("file", "top.v")
             Sets the file to top.v and associates lambdalib as the package.
         '''
-        if self.__active:
-            orig_active = self.__active.copy()
-        else:
-            orig_active = None
 
-        if self.__active is None:
-            self.__active = {}
+        # Collect child schemas
+        subkeys = set()
+        for key in self.allkeys():
+            for n in range(len(key)):
+                subkeys.add(key[:n])
+        subschemas = set()
+        subschemas.add(self)
+        for key in subkeys:
+            subschemas.add(self.get(*key, field="schema"))
 
-        self.__active.update(kwargs)
+        orig_active = {}
+        for schema in subschemas:
+            if schema.__active:
+                orig_active[schema] = schema.__active.copy()
+            else:
+                orig_active[schema] = None
+                schema.__active = {}
+            schema.__active.update(kwargs)
+
         try:
             yield
         finally:
-            self.__active = orig_active
+            for schema, orig in orig_active.items():
+                schema.__active = orig
 
     def _get_active(self, field: str, defvalue=None):
         '''
