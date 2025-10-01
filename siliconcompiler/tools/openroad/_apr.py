@@ -358,7 +358,7 @@ class _OpenROADDRTCommonParameter(OpenROADTask):
         super().setup()
 
         if not self.get("var", "drt_process_node"):
-            if self.pdk.valid("tool", "openroad", "drt_process_node"):
+            if self.pdk.get("tool", "openroad", "drt_process_node"):
                 self.add_required_key(self.pdk, "tool", "openroad", "drt_process_node")
                 self.set("var", "drt_process_node",
                          self.pdk.get("tool", "openroad", "drt_process_node"))
@@ -396,13 +396,13 @@ class OpenROADDRTParameter(_OpenROADDRTCommonParameter):
         super().setup()
 
         if not self.get("var", "drt_disable_via_gen"):
-            if self.pdk.valid("tool", "openroad", "drt_disable_via_gen"):
+            if self.pdk.get("tool", "openroad", "drt_disable_via_gen"):
                 self.add_required_key(self.pdk, "tool", "openroad", "drt_disable_via_gen")
                 self.set("var", "drt_disable_via_gen",
                          self.pdk.get("tool", "openroad", "drt_disable_via_gen"))
 
         if not self.get("var", "drt_repair_pdn_vias"):
-            if self.pdk.valid("tool", "openroad", "drt_repair_pdn_vias"):
+            if self.pdk.get("tool", "openroad", "drt_repair_pdn_vias"):
                 self.add_required_key(self.pdk, "tool", "openroad", "drt_repair_pdn_vias")
                 self.set("var", "drt_repair_pdn_vias",
                          self.pdk.get("tool", "openroad", "drt_repair_pdn_vias"))
