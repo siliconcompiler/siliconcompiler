@@ -110,11 +110,6 @@ proc sc_detailed_placement { args } {
         -left $dpl_padding \
         -right $dpl_padding
 
-    set dpl_args []
-    if { [sc_cfg_tool_task_get var dpl_disallow_one_site] } {
-        lappend dpl_args "-disallow_one_site_gaps"
-    }
-
     set incremental_route [expr { [sc_check_version 20073] && [grt::have_routes] }]
 
     if { $incremental_route } {
