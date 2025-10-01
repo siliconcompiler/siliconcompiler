@@ -44,6 +44,17 @@ class OpenROADPDK(PDK):
         self.define_tool_parameter("openroad", "rcx_maxlayer", "str",
                                    "Max layer to generate an OpenRCX extraction bench for.")
 
+        self.define_tool_parameter("openroad", "drt_process_node", "str",
+                                   "Detailed routing node name")
+        self.define_tool_parameter("openroad", "drt_disable_via_gen", "bool",
+                                   "true/false, when true turns off via generation in detailed "
+                                   "router and only uses the specified tech vias")
+        self.define_tool_parameter("openroad", "drt_repair_pdn_vias", "str",
+                                   "Via layer to repair after detailed routing")
+
+        self.define_tool_parameter("openroad", "dpl_disallow_one_site", "bool",
+                                   "true/false, disallow single site gaps in detail placement")
+
     def set_openroad_rclayers(self, signal: str = None, clock: str = None):
         """
         Sets the signal and/or clock layers for RC extraction.
@@ -116,6 +127,47 @@ class OpenROADPDK(PDK):
             layer (str): The name of the top-most layer to be used for RC extraction.
         """
         self.set("tool", "openroad", "rcx_maxlayer", layer)
+
+    def set_openroad_processnode(self, node: str):
+        """Sets the detailed routing process node name.
+
+        Args:
+            node (str): The name of the process node.
+        """
+        self.set("tool", "openroad", "drt_process_node", node)
+
+    def set_openroad_detailedroutedisableviagen(self, value: bool):
+        """Enables or disables automatic via generation in the detailed router.
+
+        When set to True, the router will only use vias explicitly defined in the
+        technology LEF, rather than generating new ones.
+
+        Args:
+            value (bool): The boolean value to set. True disables via generation.
+        """
+        self.set("tool", "openroad", "drt_disable_via_gen", value)
+
+    def set_openroad_detailedrouteviarepair(self, layer: str):
+        """Specifies the via layer to repair after detailed routing.
+
+        This is used to fix issues on a specific via layer in the power delivery
+        network (PDN) post-routing.
+
+        Args:
+            layer (str): The name of the via layer to repair.
+        """
+        self.set("tool", "openroad", "drt_repair_pdn_vias", layer)
+
+    def set_openroad_disallowonesitegaps(self, value: bool):
+        """Disallows or allows single-site gaps in detailed placement.
+
+        Setting this to True can help prevent unroutable situations by avoiding
+        very small gaps between cells.
+
+        Args:
+            value (bool): The boolean value to set. True disallows single-site gaps.
+        """
+        self.set("tool", "openroad", "dpl_disallow_one_site", value)
 
 
 class OpenROADStdCellLibrary(StdCellLibrary):
