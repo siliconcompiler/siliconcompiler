@@ -116,11 +116,8 @@ proc sc_detailed_placement { args } {
         global_route -start_incremental
     }
 
-    sc_report_args -command detailed_placement -args $dpl_args
-
     detailed_placement \
-        -max_displacement [sc_cfg_tool_task_get var dpl_max_displacement] \
-        {*}$dpl_args
+        -max_displacement [sc_cfg_tool_task_get var dpl_max_displacement]
 
     if { $incremental_route } {
         global_route -end_incremental \
