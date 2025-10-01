@@ -56,6 +56,9 @@ def get_task(
                     continue
         tasks.add(task_obj)
 
+    if not tasks:
+        raise ValueError("No tasks found")
+
     if len(tasks) == 1:
         return list(tasks)[0]
     return tasks

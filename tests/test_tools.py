@@ -53,8 +53,10 @@ def test_get_task():
 
 
 def test_get_task_missing():
-    assert get_task(Project(), "tool0", "task0") == set()
+    with pytest.raises(ValueError, match="No tasks found"):
+        get_task(Project(), "tool0", "task0")
 
 
 def test_get_task_empty():
-    assert get_task(Project()) == set()
+    with pytest.raises(ValueError, match="No tasks found"):
+        assert get_task(Project())
