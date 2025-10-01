@@ -200,6 +200,11 @@ class OpenROADDPLParameter(OpenROADTask):
         self.add_required_key("var", "dpl_max_displacement")
         self.add_required_key("var", "dpl_disallow_one_site")
 
+        self.add_required_key(self.pdk, "tool", "openroad", "dpl_disallow_one_site")
+        self.set("var", "dpl_disallow_one_site",
+                 self.pdk.get("tool", "openroad", "dpl_disallow_one_site"),
+                 clobber=False)
+
 
 class OpenROADFillCellsParameter(OpenROADTask):
     def __init__(self):
@@ -352,6 +357,12 @@ class _OpenROADDRTCommonParameter(OpenROADTask):
     def setup(self):
         super().setup()
 
+        if not self.get("var", "drt_process_node"):
+            if self.pdk.valid("tool", "openroad", "drt_process_node"):
+                self.add_required_key(self.pdk, "tool", "openroad", "drt_process_node")
+                self.set("var", "drt_process_node",
+                         self.pdk.get("tool", "openroad", "drt_process_node"))
+
         if self.get("var", "drt_process_node"):
             self.add_required_key("var", "drt_process_node")
         if self.get("var", "detailed_route_default_via"):
@@ -383,6 +394,18 @@ class OpenROADDRTParameter(_OpenROADDRTCommonParameter):
 
     def setup(self):
         super().setup()
+
+        if not self.get("var", "drt_disable_via_gen"):
+            if self.pdk.valid("tool", "openroad", "drt_disable_via_gen"):
+                self.add_required_key(self.pdk, "tool", "openroad", "drt_disable_via_gen")
+                self.set("var", "drt_disable_via_gen",
+                         self.pdk.get("tool", "openroad", "drt_disable_via_gen"))
+
+        if not self.get("var", "drt_repair_pdn_vias"):
+            if self.pdk.valid("tool", "openroad", "drt_repair_pdn_vias"):
+                self.add_required_key(self.pdk, "tool", "openroad", "drt_repair_pdn_vias")
+                self.set("var", "drt_repair_pdn_vias",
+                         self.pdk.get("tool", "openroad", "drt_repair_pdn_vias"))
 
         self.add_required_key("var", "drt_disable_via_gen")
         if self.get("var", "drt_via_in_pin_bottom_layer"):
