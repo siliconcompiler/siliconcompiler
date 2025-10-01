@@ -144,12 +144,12 @@ def disable_or_images(monkeypatch, request):
     def mock_init(self: Project):
         try:
             tasks = get_task(self, filter=APRTask)
+            if not isinstance(tasks, set):
+                tasks = [tasks]
+            for task in tasks:
+                task.set('var', 'ord_enable_images', False, clobber=False)
         except ValueError:
             pass
-        if not isinstance(tasks, set):
-            tasks = [tasks]
-        for task in tasks:
-            task.set('var', 'ord_enable_images', False, clobber=False)
 
         return old_init(self)
 
