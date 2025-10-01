@@ -189,21 +189,12 @@ class OpenROADDPLParameter(OpenROADTask):
         self.add_parameter("dpl_max_displacement", "(float,float)",
                            "maximum cell movement in detailed placement in microns, 0 will result "
                            "in the tool default maximum displacement", defvalue=(0, 0))
-        self.add_parameter("dpl_disallow_one_site", "bool",
-                           "true/false, disallow single site gaps in detail placement",
-                           defvalue=False)
 
     def setup(self):
         super().setup()
 
         self.add_required_key("var", "pad_detail_place")
         self.add_required_key("var", "dpl_max_displacement")
-        self.add_required_key("var", "dpl_disallow_one_site")
-
-        self.add_required_key(self.pdk, "tool", "openroad", "dpl_disallow_one_site")
-        self.set("var", "dpl_disallow_one_site",
-                 self.pdk.get("tool", "openroad", "dpl_disallow_one_site"),
-                 clobber=False)
 
 
 class OpenROADFillCellsParameter(OpenROADTask):

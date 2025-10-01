@@ -52,9 +52,6 @@ class OpenROADPDK(PDK):
         self.define_tool_parameter("openroad", "drt_repair_pdn_vias", "str",
                                    "Via layer to repair after detailed routing")
 
-        self.define_tool_parameter("openroad", "dpl_disallow_one_site", "bool",
-                                   "true/false, disallow single site gaps in detail placement")
-
     def set_openroad_rclayers(self, signal: str = None, clock: str = None):
         """
         Sets the signal and/or clock layers for RC extraction.
@@ -157,17 +154,6 @@ class OpenROADPDK(PDK):
             layer (str): The name of the via layer to repair.
         """
         self.set("tool", "openroad", "drt_repair_pdn_vias", layer)
-
-    def set_openroad_disallowonesitegaps(self, value: bool):
-        """Disallows or allows single-site gaps in detailed placement.
-
-        Setting this to True can help prevent unroutable situations by avoiding
-        very small gaps between cells.
-
-        Args:
-            value (bool): The boolean value to set. True disallows single-site gaps.
-        """
-        self.set("tool", "openroad", "dpl_disallow_one_site", value)
 
 
 class OpenROADStdCellLibrary(StdCellLibrary):
