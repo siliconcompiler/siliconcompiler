@@ -516,11 +516,13 @@ class SchedulerNode:
                     return True
             else:
                 # check package values
-                check_val = self.__project.get(*key, field='package', step=step, index=index)
-                prev_val = previous_run.__project.get(*key, field='package', step=step, index=index)
+                check_val = self.__project.get(*key, field='dataroot',
+                                               step=step, index=index)
+                prev_val = previous_run.__project.get(*key, field='dataroot',
+                                                      step=step, index=index)
 
                 if check_val != prev_val:
-                    print_warning(key, "file package")
+                    print_warning(key, "file dataroot")
                     return True
 
                 files = self.__project.find_files(*key, step=step, index=index)

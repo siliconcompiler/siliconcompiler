@@ -196,7 +196,7 @@ class ASICSynthesis(_ASICTask, YosysTask):
             "[file]",
             "Files used in synthesis to perform additional techmapping",
             "techmaps/lcu_kogge_stone.v",
-            package="yosys-techmaps")
+            dataroot="yosys-techmaps")
 
     def __init_hierarchy_parameter(self):
         self.add_parameter(

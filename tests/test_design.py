@@ -749,7 +749,7 @@ def test_read_fileset(datadir):
         'heartbeat.v',
         'increment.v'
     ]
-    assert d.get("fileset", "rtl", "file", "verilog", field="package") == [
+    assert d.get("fileset", "rtl", "file", "verilog", field="dataroot") == [
         'flist-test-rtl-heartbeat.f-0',
         'flist-test-rtl-heartbeat.f-0'
     ]

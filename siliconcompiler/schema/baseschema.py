@@ -780,7 +780,7 @@ class BaseSchema:
 
     def find_files(self, *keypath: str, missing_ok: bool = False,
                    step: str = None, index: Union[int, str] = None,
-                   packages: Dict[str, Union[str, Callable]] = None,
+                   dataroots: Dict[str, Union[str, Callable]] = None,
                    collection_dir: str = None,
                    cwd: str = None) -> Union[str, List[str], Set[str]]:
         """
@@ -798,7 +798,7 @@ class BaseSchema:
                 on a per-node basis.
             index (str): Index name to access for parameters that may be specified
                 on a per-node basis.
-            packages (dict of resolvers): dirctionary of path resolvers for package
+            dataroots (dict of resolvers): dirctionary of path resolvers for dataroot
                 paths, these can either be a path or a callable function
             collection_dir (path): optional path to a collections directory
             cwd (path): optional path to current working directory, this will default
@@ -818,13 +818,13 @@ class BaseSchema:
         return self.__find_files_or_hash(
             *keypath, missing_ok=missing_ok,
             step=step, index=index,
-            packages=packages,
+            dataroots=dataroots,
             collection_dir=collection_dir,
             cwd=cwd, hash=False)
 
     def __find_files_or_hash(self, *keypath: str, missing_ok: bool = False,
                              step: str = None, index: Union[int, str] = None,
-                             packages: Dict[str, Union[str, Callable]] = None,
+                             dataroots: Dict[str, Union[str, Callable]] = None,
                              collection_dir: str = None,
                              cwd: str = None,
                              hash: bool = False) -> Union[str, List[str], Set[str]]:
@@ -843,7 +843,7 @@ class BaseSchema:
                 on a per-node basis.
             index (str): Index name to access for parameters that may be specified
                 on a per-node basis.
-            packages (dict of resolvers): dirctionary of path resolvers for package
+            dataroots (dict of resolvers): dirctionary of path resolvers for dataroot
                 paths, these can either be a path or a callable function
             collection_dir (path): optional path to a collections directory
             cwd (path): optional path to current working directory, this will default
@@ -890,26 +890,26 @@ class BaseSchema:
         if cwd is None:
             cwd = os.getcwd()
 
-        if packages is None:
-            packages = base_schema._find_files_dataroot_resolvers()
+        if dataroots is None:
+            dataroots = base_schema._find_files_dataroot_resolvers()
 
         resolved_paths = []
         root_search_paths = base_schema._find_files_search_paths(keypath[-1], step, index)
         for path in paths:
             search_paths = root_search_paths.copy()
 
-            package = path.get(field="package")
-            if package:
-                if package not in packages:
-                    raise ValueError(f"Resolver for {package} not provided: "
+            dataroot = path.get(field="dataroot")
+            if dataroot:
+                if dataroot not in dataroots:
+                    raise ValueError(f"Resolver for {dataroot} not provided: "
                                      f"{self.__format_key(*keypath)}")
-                package_path = packages[package]
-                if isinstance(package_path, str):
-                    search_paths.append(os.path.abspath(package_path))
-                elif callable(package_path):
-                    search_paths.append(package_path())
+                dataroot_path = dataroots[dataroot]
+                if isinstance(dataroot_path, str):
+                    search_paths.append(os.path.abspath(dataroot_path))
+                elif callable(dataroot_path):
+                    search_paths.append(dataroot_path())
                 else:
-                    raise TypeError(f"Resolver for {package} is not a recognized type: "
+                    raise TypeError(f"Resolver for {dataroot} is not a recognized type: "
                                     f"{self.__format_key(*keypath)}")
             else:
                 if cwd:
@@ -927,9 +927,9 @@ class BaseSchema:
                 resolved = None
                 if not missing_ok:
                     report_paths = ", ".join(search_paths)
-                    if package:
+                    if dataroot:
                         raise FileNotFoundError(
-                            f'Could not find "{path.get()}" in {package} '
+                            f'Could not find "{path.get()}" in {dataroot} '
                             f'{self.__format_key(*keypath)}: {report_paths}')
                     else:
                         raise FileNotFoundError(
@@ -945,7 +945,7 @@ class BaseSchema:
 
     def check_filepaths(self, ignore_keys: bool = None,
                         logger: logging.Logger = None,
-                        packages: Dict[str, Union[str, Callable]] = None,
+                        dataroots: Dict[str, Union[str, Callable]] = None,
                         collection_dir: str = None,
                         cwd: str = None) -> bool:
         '''
@@ -954,7 +954,7 @@ class BaseSchema:
         Args:
             ignore_keys (list of keypaths): list of keypaths to ignore while checking
             logger (:class:`logging.Logger`): optional logger to use to report errors
-            packages (dict of resolvers): dirctionary of path resolvers for package
+            dataroots (dict of resolvers): dirctionary of path resolvers for dataroot
                 paths, these can either be a path or a callable function
             collection_dir (path): optional path to a collections directory
             cwd (path): optional path to current working directory, this will default
@@ -990,7 +990,7 @@ class BaseSchema:
 
                 found_files = BaseSchema.find_files(
                     self, *keypath, missing_ok=True, step=step, index=index,
-                    packages=packages, collection_dir=collection_dir, cwd=cwd)
+                    dataroots=dataroots, collection_dir=collection_dir, cwd=cwd)
 
                 if not param.is_list():
                     check_files = [check_files]
@@ -1014,7 +1014,7 @@ class BaseSchema:
 
     def hash_files(self, *keypath, missing_ok: bool = False,
                    step: str = None, index: Union[int, str] = None,
-                   packages: Dict[str, Union[str, Callable]] = None,
+                   dataroots: Dict[str, Union[str, Callable]] = None,
                    collection_dir: str = None,
                    cwd: str = None):
         '''Generates hash values for a list of parameter files.
@@ -1040,7 +1040,7 @@ class BaseSchema:
                 on a per-node basis.
             index (str): Index name to access for parameters that may be specified
                 on a per-node basis.
-            packages (dict of resolvers): dirctionary of path resolvers for package
+            dataroots (dict of resolvers): dirctionary of path resolvers for dataroot
                 paths, these can either be a path or a callable function
             collection_dir (path): optional path to a collections directory
             cwd (path): optional path to current working directory, this will default
@@ -1056,7 +1056,7 @@ class BaseSchema:
         return self.__find_files_or_hash(
             *keypath, missing_ok=missing_ok,
             step=step, index=index,
-            packages=packages,
+            dataroots=dataroots,
             collection_dir=collection_dir,
             cwd=cwd, hash=True)
 
@@ -1084,9 +1084,9 @@ class BaseSchema:
             kwargs (dict of str): keyword arguments that are used for setting values
 
         Example:
-            >>> with schema._active(package="lambdalib"):
+            >>> with schema._active(dataroot="lambdalib"):
             ...     schema.set("file", "top.v")
-            Sets the file to top.v and associates lambdalib as the package.
+            Sets the file to top.v and associates lambdalib as the dataroot.
         '''
 
         # Collect child schemas
