@@ -172,6 +172,16 @@ def test_define_tool_parameter_invalid_help():
         )
 
 
+def test_define_tool_parameter_empty_help():
+    with pytest.raises(ValueError, match="help is required"):
+        ToolLibrarySchema("test").define_tool_parameter(
+            "yosys",
+            "timingcorner",
+            "str",
+            ""
+        )
+
+
 def test_define_tool_parameter_multiline_help_empty_first_line():
     lib = ToolLibrarySchema("test")
     lib.define_tool_parameter(

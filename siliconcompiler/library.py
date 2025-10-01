@@ -67,6 +67,10 @@ class ToolLibrarySchema(LibrarySchema):
         if isinstance(help, str):
             # grab first line for short help
             help = trim(help)
+
+            if not help:
+                raise ValueError("help is required")
+
             shorthelp = help.splitlines()[0].strip()
         else:
             raise TypeError("help must be a string")
