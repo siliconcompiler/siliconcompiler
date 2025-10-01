@@ -571,21 +571,21 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
         Helper method to run a local import stage for remote jobs.
         '''
 
-        # Ensure packages with python sources are copied
+        # Ensure dataroots with python sources are copied
         for key in self.__project.allkeys():
             key_type = self.__project.get(*key, field='type')
 
             if 'dir' in key_type or 'file' in key_type:
                 for _, step, index in self.__project.get(*key, field=None).getvalues(
                         return_defvalue=False):
-                    packages = self.__project.get(*key, field='package', step=step, index=index)
-                    if not isinstance(packages, list):
-                        packages = [packages]
+                    dataroots = self.__project.get(*key, field='dataroot', step=step, index=index)
+                    if not isinstance(dataroots, list):
+                        dataroots = [dataroots]
                     force_copy = False
-                    for package in packages:
-                        if not package:
+                    for dataroot in dataroots:
+                        if not dataroot:
                             continue
-                        if package.startswith('python://'):
+                        if dataroot.startswith('python://'):
                             force_copy = True
                     if force_copy:
                         self.__project.set(*key, True, field='copy', step=step, index=index)

@@ -70,7 +70,7 @@ def test_default_init_file():
             'author': [],
             'date': None,
             'filehash': None,
-            'package': None,
+            "dataroot": None,
             'value': None,
             'signature': None}}}
     }
@@ -93,7 +93,7 @@ def test_default_init_dir():
         'hashalgo': 'sha256',
         'node': {'default': {'default': {
             'filehash': None,
-            'package': None,
+            "dataroot": None,
             'value': None,
             'signature': None}}}
     }
@@ -1005,7 +1005,7 @@ def test_immutable_returns():
     ("md5", "hashalgo", "md5"),
     ("notes are here", "notes", "notes are here"),
     ("1235", "filehash", "1235"),
-    ("12356", "package", "12356"),
+    ("12356", "dataroot", "12356"),
     ("12357", "date", "12357"),
     ("12358", "author", ["12358"]),
     ("12359", "signature", "12359"),
@@ -1054,8 +1054,8 @@ def test_normalize_fields_scalar_errors_dir():
 def test_normalize_fields_scalar_errors_int():
     param = Parameter("int")
 
-    with pytest.raises(ValueError, match='"package" is not a valid field'):
-        param.set("test", field="package")
+    with pytest.raises(ValueError, match='"dataroot" is not a valid field'):
+        param.set("test", field="dataroot")
 
     with pytest.raises(ValueError, match='"filehash" is not a valid field'):
         param.set("test", field="filehash")
@@ -1080,7 +1080,7 @@ def test_normalize_fields_scalar_errors_int():
     ("md5", "hashalgo", "md5"),
     ("notes are here", "notes", "notes are here"),
     ("1235", "filehash", ["1235"]),
-    ("12356", "package", ["12356"]),
+    ("12356", "dataroot", ["12356"]),
     ("12357", "date", ["12357"]),
     ("12358", "author", [["12358"]]),
     ("12359", "signature", ["12359"]),
@@ -1139,8 +1139,8 @@ def test_add_normalize_fields_list_errors_dir():
 def test_add_normalize_fields_list_errors_int():
     param = Parameter("[int]")
 
-    with pytest.raises(ValueError, match='"package" is not a valid field'):
-        param.add("test", field="package")
+    with pytest.raises(ValueError, match='"dataroot" is not a valid field'):
+        param.add("test", field="dataroot")
 
     with pytest.raises(ValueError, match='"filehash" is not a valid field'):
         param.add("test", field="filehash")
@@ -1755,7 +1755,7 @@ def test_defvalue_file_getdict():
                     'author': [],
                     'date': None,
                     'filehash': None,
-                    'package': None,
+                    "dataroot": None,
                     'signature': None,
                     'value': 'thisfile',
                 },
@@ -1794,7 +1794,7 @@ def test_defvalue_file_list_getdict():
                     'filehash': [
                         None,
                     ],
-                    'package': [
+                    "dataroot": [
                         None,
                     ],
                     'signature': [
@@ -1817,13 +1817,13 @@ def test_defvalue_file_list_getdict():
 
 
 def test_defvalue_file_package():
-    param = Parameter("file", defvalue="thisfile", package="thispackage")
+    param = Parameter("file", defvalue="thisfile", dataroot="thispackage")
     assert param.default.get() == "thisfile"
-    assert param.default.get(field="package") == "thispackage"
+    assert param.default.get(field="dataroot") == "thispackage"
 
 
 def test_defvalue_file_package_getdict():
-    param = Parameter("file", defvalue="thisfile", package="thispackage")
+    param = Parameter("file", defvalue="thisfile", dataroot="thispackage")
     assert param.getdict() == {
         'copy': False,
         'example': [],
@@ -1836,7 +1836,7 @@ def test_defvalue_file_package_getdict():
                     'author': [],
                     'date': None,
                     'filehash': None,
-                    'package': "thispackage",
+                    "dataroot": "thispackage",
                     'signature': None,
                     'value': 'thisfile',
                 },
@@ -1853,19 +1853,19 @@ def test_defvalue_file_package_getdict():
 
 
 def test_defvalue_file_list_package():
-    param = Parameter("[file]", defvalue="thisfile", package="thispackage")
+    param = Parameter("[file]", defvalue="thisfile", dataroot="thispackage")
     assert param.default.get() == ["thisfile"]
-    assert param.default.get(field="package") == ["thispackage"]
+    assert param.default.get(field="dataroot") == ["thispackage"]
 
 
 def test_defvalue_file_set_package():
-    param = Parameter("{file}", defvalue="thisfile", package="thispackage")
+    param = Parameter("{file}", defvalue="thisfile", dataroot="thispackage")
     assert param.default.get() == ["thisfile"]
-    assert param.default.get(field="package") == ["thispackage"]
+    assert param.default.get(field="dataroot") == ["thispackage"]
 
 
 def test_defvalue_file_list_package_getdict():
-    param = Parameter("[file]", defvalue="thisfile", package="thispackage")
+    param = Parameter("[file]", defvalue="thisfile", dataroot="thispackage")
     assert param.getdict() == {
         'copy': False,
         'example': [],
@@ -1882,7 +1882,7 @@ def test_defvalue_file_list_package_getdict():
                     'filehash': [
                         None,
                     ],
-                    'package': [
+                    "dataroot": [
                         'thispackage',
                     ],
                     'signature': [
@@ -1905,19 +1905,19 @@ def test_defvalue_file_list_package_getdict():
 
 
 def test_defvalue_dir_package():
-    param = Parameter("dir", defvalue="thisdir", package="thispackage")
+    param = Parameter("dir", defvalue="thisdir", dataroot="thispackage")
     assert param.default.get() == "thisdir"
-    assert param.default.get(field="package") == "thispackage"
+    assert param.default.get(field="dataroot") == "thispackage"
 
 
 def test_defvalue_dir_list_package():
-    param = Parameter("[dir]", defvalue="thisdir", package="thispackage")
+    param = Parameter("[dir]", defvalue="thisdir", dataroot="thispackage")
     assert param.default.get() == ["thisdir"]
-    assert param.default.get(field="package") == ["thispackage"]
+    assert param.default.get(field="dataroot") == ["thispackage"]
 
 
 def test_defvalue_dir_list_package_getdict():
-    param = Parameter("[dir]", defvalue="thisdir", package="thispackage")
+    param = Parameter("[dir]", defvalue="thisdir", dataroot="thispackage")
     assert param.getdict() == {
         'copy': False,
         'example': [],
@@ -1930,7 +1930,7 @@ def test_defvalue_dir_list_package_getdict():
                     'filehash': [
                         None,
                     ],
-                    'package': [
+                    "dataroot": [
                         'thispackage',
                     ],
                     'signature': [

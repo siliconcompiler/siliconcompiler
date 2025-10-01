@@ -1,2 +1,2 @@
 # Version number following semver standard.
-version = '0.51.5'
+version = '0.52.0'

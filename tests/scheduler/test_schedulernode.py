@@ -590,7 +590,7 @@ def test_check_files_changed_package(project, monkeypatch, caplog):
         assert node.check_files_changed(
             node_other, now,
             [("library", "testdesign", "fileset", "rtl", "file", "verilog")]) is True
-    assert "[library,testdesign,fileset,rtl,file,verilog] (file package) in steptwo/0 has " \
+    assert "[library,testdesign,fileset,rtl,file,verilog] (file dataroot) in steptwo/0 has " \
         "been modified from previous run" in caplog.text
 
 

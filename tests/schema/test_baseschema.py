@@ -1413,7 +1413,7 @@ def test_find_files_with_package():
         f.write("test")
 
     assert schema.set("package", "file", ["test0.txt", "test1.txt"])
-    assert schema.set("package", "file", ["this_package", "this_package"], field="package")
+    assert schema.set("package", "file", ["this_package", "this_package"], field="dataroot")
 
     class Resolver:
         called = 0
@@ -1429,7 +1429,7 @@ def test_find_files_with_package():
         "that_package": resolve1.resolve,
     }
 
-    assert schema.find_files("package", "file", packages=package_map) == [
+    assert schema.find_files("package", "file", dataroots=package_map) == [
         os.path.abspath("package_path/test0.txt"),
         os.path.abspath("package_path/test1.txt"),
     ]
@@ -1449,7 +1449,7 @@ def test_find_files_with_package_not_found():
         f.write("test")
 
     assert schema.set("package", "file", ["test0.txt", "test1.txt"])
-    assert schema.set("package", "file", ["this_package", "this_package"], field="package")
+    assert schema.set("package", "file", ["this_package", "this_package"], field="dataroot")
 
     class Resolver:
         called = 0
@@ -1467,7 +1467,7 @@ def test_find_files_with_package_not_found():
 
     with pytest.raises(FileNotFoundError,
                        match=r"Could not find \"test1.txt\" in this_package \[package,file\]: .*"):
-        schema.find_files("package", "file", packages=package_map)
+        schema.find_files("package", "file", dataroots=package_map)
 
     assert resolve0.called == 2
     assert resolve1.called == 0
@@ -1484,10 +1484,10 @@ def test_find_files_with_package_missing():
         f.write("test")
 
     assert schema.set("package", "file", ["test0.txt", "test1.txt"])
-    assert schema.set("package", "file", ["this_package", "this_package"], field="package")
+    assert schema.set("package", "file", ["this_package", "this_package"], field="dataroot")
 
     with pytest.raises(ValueError, match=r"Resolver for this_package not provided"):
-        schema.find_files("package", "file", packages={})
+        schema.find_files("package", "file", dataroots={})
 
 
 def test_find_files_with_package_as_string():
@@ -1504,7 +1504,7 @@ def test_find_files_with_package_as_string():
         f.write("test")
 
     assert schema.set("package", "file", ["test0.txt", "test1.txt"])
-    assert schema.set("package", "file", ["this_package", "that_package"], field="package")
+    assert schema.set("package", "file", ["this_package", "that_package"], field="dataroot")
 
     class Resolver:
         called = 0
@@ -1519,7 +1519,7 @@ def test_find_files_with_package_as_string():
         "that_package": resolve.resolve,
     }
 
-    assert schema.find_files("package", "file", packages=package_map) == [
+    assert schema.find_files("package", "file", dataroots=package_map) == [
         os.path.abspath("package_path/test0.txt"),
         os.path.abspath("package_path/test1.txt"),
     ]
@@ -1538,14 +1538,14 @@ def test_find_files_with_package_as_invalid():
         f.write("test")
 
     assert schema.set("package", "file", "test0.txt")
-    assert schema.set("package", "file", "this_package", field="package")
+    assert schema.set("package", "file", "this_package", field="dataroot")
 
     package_map = {
         "this_package": 1
     }
 
     with pytest.raises(TypeError, match="Resolver for this_package is not a recognized type"):
-        schema.find_files("package", "file", packages=package_map)
+        schema.find_files("package", "file", dataroots=package_map)
 
 
 def test_find_files_with_collection_dir_not_found():
@@ -1983,11 +1983,11 @@ def test_active_package():
     schema = BaseSchema()
 
     assert schema._get_active(None) is None
-    with schema._active(package="testpack"):
+    with schema._active(dataroot="testpack"):
         assert schema._get_active(None) == {
-            "package": "testpack"
+            "dataroot": "testpack"
         }
-        assert schema._get_active("package") == "testpack"
+        assert schema._get_active("dataroot") == "testpack"
     assert schema._get_active(None) is None
 
 
@@ -1995,7 +1995,7 @@ def test_active_invalid_active():
     schema = BaseSchema()
 
     assert schema._get_active(None) is None
-    with schema._active(package="testpack"):
+    with schema._active(dataroot="testpack"):
         assert schema._get_active("package0") is None
     assert schema._get_active(None) is None
 
@@ -2004,27 +2004,27 @@ def test_active_compounded():
     schema = BaseSchema()
 
     assert schema._get_active(None) is None
-    with schema._active(package="testpack"):
+    with schema._active(dataroot="testpack"):
         assert schema._get_active(None) == {
-            "package": "testpack"
+            "dataroot": "testpack"
         }
 
         with schema._active(lock=True):
             assert schema._get_active(None) == {
-                "package": "testpack",
+                "dataroot": "testpack",
                 "lock": True
             }
             with schema._active(lock=False):
                 assert schema._get_active(None) == {
-                    "package": "testpack",
+                    "dataroot": "testpack",
                     "lock": False
                 }
             assert schema._get_active(None) == {
-                "package": "testpack",
+                "dataroot": "testpack",
                 "lock": True
             }
         assert schema._get_active(None) == {
-            "package": "testpack"
+            "dataroot": "testpack"
         }
 
     assert schema._get_active(None) is None
@@ -2038,43 +2038,43 @@ def test_active_compounded_depth():
 
     assert schema._get_active(None) is None
     assert schema1._get_active(None) is None
-    with schema._active(package="testpack"):
+    with schema._active(dataroot="testpack"):
         assert schema._get_active(None) == {
-            "package": "testpack"
+            "dataroot": "testpack"
         }
         assert schema1._get_active(None) == {
-            "package": "testpack"
+            "dataroot": "testpack"
         }
 
         with schema1._active(lock=True):
             assert schema._get_active(None) == {
-                "package": "testpack"
+                "dataroot": "testpack"
             }
             assert schema1._get_active(None) == {
-                "package": "testpack",
+                "dataroot": "testpack",
                 "lock": True
             }
             with schema._active(lock=False):
                 assert schema._get_active(None) == {
-                    "package": "testpack",
+                    "dataroot": "testpack",
                     "lock": False
                 }
                 assert schema1._get_active(None) == {
-                    "package": "testpack",
+                    "dataroot": "testpack",
                     "lock": False
                 }
             assert schema._get_active(None) == {
-                "package": "testpack"
+                "dataroot": "testpack"
             }
             assert schema1._get_active(None) == {
-                "package": "testpack",
+                "dataroot": "testpack",
                 "lock": True
             }
         assert schema._get_active(None) == {
-            "package": "testpack"
+            "dataroot": "testpack"
         }
         assert schema1._get_active(None) == {
-            "package": "testpack"
+            "dataroot": "testpack"
         }
 
     assert schema._get_active(None) is None
@@ -2087,17 +2087,17 @@ def test_active_compounded_set():
     EditableSchema(schema).insert("testfile", Parameter("file"))
     EditableSchema(schema).insert("testdir", Parameter("[dir]"))
 
-    with schema._active(package="testpack"):
+    with schema._active(dataroot="testpack"):
         assert schema.set("teststr", "thisstring")
         assert schema.get("teststr") == "thisstring"
 
         assert schema.set("testfile", "thisfile")
         assert schema.get("testfile") == "thisfile"
-        assert schema.get("testfile", field="package") == "testpack"
+        assert schema.get("testfile", field="dataroot") == "testpack"
 
         assert schema.set("testdir", "thisdir")
         assert schema.get("testdir") == ["thisdir"]
-        assert schema.get("testdir", field="package") == ["testpack"]
+        assert schema.get("testdir", field="dataroot") == ["testpack"]
 
         with schema._active(lock=True):
             assert schema.set("teststr", "thisnewstring")
@@ -2110,7 +2110,7 @@ def test_active_add():
     EditableSchema(schema).insert("teststr", Parameter("[str]"))
     EditableSchema(schema).insert("testdir", Parameter("[dir]"))
 
-    with schema._active(package="testpack"):
+    with schema._active(dataroot="testpack"):
         assert schema.add("teststr", "thisstring0")
         assert schema.get("teststr") == ["thisstring0"]
 
@@ -2119,12 +2119,12 @@ def test_active_add():
 
         assert schema.add("testdir", "thisdir0")
         assert schema.get("testdir") == ["thisdir0"]
-        assert schema.get("testdir", field="package") == ["testpack"]
+        assert schema.get("testdir", field="dataroot") == ["testpack"]
 
-        with schema._active(package="anotherpack"):
+        with schema._active(dataroot="anotherpack"):
             assert schema.add("testdir", "thisdir1")
             assert schema.get("testdir") == ["thisdir0", "thisdir1"]
-            assert schema.get("testdir", field="package") == [
+            assert schema.get("testdir", field="dataroot") == [
                 "testpack",
                 "anotherpack"]
 
@@ -2134,7 +2134,7 @@ def test_active_set_field():
     EditableSchema(schema).insert("teststr", Parameter("[str]"))
     EditableSchema(schema).insert("testdir", Parameter("[dir]"))
 
-    with schema._active(package="testpack"):
+    with schema._active(dataroot="testpack"):
         assert schema.add("teststr", "thisstring0")
         assert schema.set("teststr", True, field="lock")
 
@@ -2189,7 +2189,7 @@ def test_find_files_custom_class_package_resolution():
     custom = CustomFiles()
     schema = BaseSchema()
     EditableSchema(schema).insert("level-1", custom)
-    with schema._active(package="thispackage"):
+    with schema._active(dataroot="thispackage"):
         assert schema.set("level-1", "level0", "rootedfile", "thisfile.txt")
         assert schema.set("level-1", "level0", "level1", "unrootedfile", "thatfile.txt")
 
@@ -3161,7 +3161,7 @@ def test_hash_files_with_package():
         f.write("test")
 
     assert schema.set("package", "file", ["test0.txt", "test1.txt"])
-    assert schema.set("package", "file", ["this_package", "this_package"], field="package")
+    assert schema.set("package", "file", ["this_package", "this_package"], field="dataroot")
 
     class Resolver:
         called = 0
@@ -3177,7 +3177,7 @@ def test_hash_files_with_package():
         "that_package": resolve1.resolve,
     }
 
-    assert schema.hash_files("package", "file", packages=package_map) == [
+    assert schema.hash_files("package", "file", dataroots=package_map) == [
         "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
         "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
     ]
@@ -3197,7 +3197,7 @@ def test_hash_files_with_package_not_found():
         f.write("test")
 
     assert schema.set("package", "file", ["test0.txt", "test1.txt"])
-    assert schema.set("package", "file", ["this_package", "this_package"], field="package")
+    assert schema.set("package", "file", ["this_package", "this_package"], field="dataroot")
 
     class Resolver:
         called = 0
@@ -3216,7 +3216,7 @@ def test_hash_files_with_package_not_found():
     with pytest.raises(
             FileNotFoundError,
             match=r"Could not find \"test1.txt\" in this_package \[package,file\]: .*"):
-        schema.hash_files("package", "file", packages=package_map)
+        schema.hash_files("package", "file", dataroots=package_map)
 
     assert resolve0.called == 2
     assert resolve1.called == 0
@@ -3233,10 +3233,10 @@ def test_hash_files_with_package_missing():
         f.write("test")
 
     assert schema.set("package", "file", ["test0.txt", "test1.txt"])
-    assert schema.set("package", "file", ["this_package", "this_package"], field="package")
+    assert schema.set("package", "file", ["this_package", "this_package"], field="dataroot")
 
     with pytest.raises(ValueError, match=r"Resolver for this_package not provided"):
-        schema.hash_files("package", "file", packages={})
+        schema.hash_files("package", "file", dataroots={})
 
 
 def test_hash_files_with_package_as_string():
@@ -3253,7 +3253,7 @@ def test_hash_files_with_package_as_string():
         f.write("test")
 
     assert schema.set("package", "file", ["test0.txt", "test1.txt"])
-    assert schema.set("package", "file", ["this_package", "that_package"], field="package")
+    assert schema.set("package", "file", ["this_package", "that_package"], field="dataroot")
 
     class Resolver:
         called = 0
@@ -3268,7 +3268,7 @@ def test_hash_files_with_package_as_string():
         "that_package": resolve.resolve,
     }
 
-    assert schema.hash_files("package", "file", packages=package_map) == [
+    assert schema.hash_files("package", "file", dataroots=package_map) == [
         "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
         "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
     ]
@@ -3287,14 +3287,14 @@ def test_hash_files_with_package_as_invalid():
         f.write("test")
 
     assert schema.set("package", "file", "test0.txt")
-    assert schema.set("package", "file", "this_package", field="package")
+    assert schema.set("package", "file", "this_package", field="dataroot")
 
     package_map = {
         "this_package": 1
     }
 
     with pytest.raises(TypeError, match="Resolver for this_package is not a recognized type"):
-        schema.hash_files("package", "file", packages=package_map)
+        schema.hash_files("package", "file", dataroots=package_map)
 
 
 def test_hash_files_with_collection_dir_not_found():

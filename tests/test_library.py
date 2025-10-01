@@ -245,7 +245,7 @@ def test_define_tool_parameter_with_defvalue_file():
         "file",
         "liberty file for synthesis",
         defvalue="./this.lib",
-        package="sc"
+        dataroot="sc"
     )
 
     assert lib.allkeys("tool") == set([('yosys', 'liberty')])
@@ -254,7 +254,7 @@ def test_define_tool_parameter_with_defvalue_file():
     assert param.get(field="help") == "liberty file for synthesis"
     assert param.get(field="shorthelp") == "liberty file for synthesis"
     assert param.default.get() == "./this.lib"
-    assert param.default.get(field="package") == "sc"
+    assert param.default.get(field="dataroot") == "sc"
     assert param.get(field="copy") is False
 
 

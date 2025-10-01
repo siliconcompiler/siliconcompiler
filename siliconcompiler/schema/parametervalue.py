@@ -615,37 +615,37 @@ class PathNodeValue(NodeValue):
         value (any): default value for this parameter
     '''
 
-    def __init__(self, type, value=None, package=None):
+    def __init__(self, type, value=None, dataroot=None):
         super().__init__(type, value=value)
         self.__filehash = None
-        self.__package = package
+        self.__dataroot = dataroot
 
     def getdict(self):
         return {
             **super().getdict(),
             "filehash": self.get(field="filehash"),
-            "package": self.get(field="package")
+            "dataroot": self.get(field="dataroot")
         }
 
     def _from_dict(self, manifest, keypath, version):
         super()._from_dict(manifest, keypath, version)
 
         self.set(manifest["filehash"], field="filehash")
-        self.set(manifest["package"], field="package")
+        self.set(manifest["dataroot"], field="dataroot")
 
     def get(self, field='value'):
         if field == 'filehash':
             return self.__filehash
-        if field == 'package':
-            return self.__package
+        if field == 'dataroot':
+            return self.__dataroot
         return super().get(field=field)
 
     def set(self, value, field='value'):
         if field == 'filehash':
             self.__filehash = NodeType.normalize(value, "str")
             return self
-        if field == 'package':
-            self.__package = NodeType.normalize(value, "str")
+        if field == 'dataroot':
+            self.__dataroot = NodeType.normalize(value, "str")
             return self
         return super().set(value, field=field)
 
@@ -666,7 +666,7 @@ class PathNodeValue(NodeValue):
             basename = str(pathlib.PurePosixPath(*path_paths[0:n]))
             endname = str(pathlib.PurePosixPath(*path_paths[n:]))
 
-            import_name = PathNodeValue.generate_hashed_path(basename, self.__package)
+            import_name = PathNodeValue.generate_hashed_path(basename, self.__dataroot)
             if import_name not in collected_paths:
                 continue
 
@@ -715,7 +715,7 @@ class PathNodeValue(NodeValue):
         raise FileNotFoundError(value)
 
     @staticmethod
-    def generate_hashed_path(path, package):
+    def generate_hashed_path(path, dataroot):
         '''
         Utility to map file to an unambiguous name based on its path.
 
@@ -724,7 +724,7 @@ class PathNodeValue(NodeValue):
 
         Args:
             path (str): path to directory or file
-            package (str): name of package this file belongs to
+            dataroot (str): name of dataroot this file belongs to
         '''
         path = pathlib.PurePosixPath(path)
         ext = ''.join(path.suffixes)
@@ -735,12 +735,12 @@ class PathNodeValue(NodeValue):
             barepath = pathlib.PurePosixPath(barepath.stem)
         filename = str(barepath.parts[-1])
 
-        if not package:
-            package = ''
+        if not dataroot:
+            dataroot = ''
         else:
-            package = f'{package}:'
+            dataroot = f'{dataroot}:'
 
-        path_to_hash = f'{package}{str(path.parent)}'
+        path_to_hash = f'{dataroot}{str(path.parent)}'
 
         pathhash = hashlib.sha1(path_to_hash.encode('utf-8')).hexdigest()
 
@@ -753,7 +753,7 @@ class PathNodeValue(NodeValue):
         The mapping looks like:
         path/to/file.ext => file_<hash('path/to')>.ext
         '''
-        return PathNodeValue.generate_hashed_path(self.get(), self.__package)
+        return PathNodeValue.generate_hashed_path(self.get(), self.__dataroot)
 
     def hash(self, function, **kwargs):
         """
@@ -828,7 +828,7 @@ class PathNodeValue(NodeValue):
 
     @property
     def fields(self):
-        return (*super().fields, "filehash", "package")
+        return (*super().fields, "filehash", "dataroot")
 
     @property
     def type(self):
@@ -843,8 +843,8 @@ class DirectoryNodeValue(PathNodeValue):
         value (any): default value for this parameter
     '''
 
-    def __init__(self, value=None, package=None):
-        super().__init__("dir", value=value, package=package)
+    def __init__(self, value=None, dataroot=None):
+        super().__init__("dir", value=value, dataroot=dataroot)
 
     def hash(self, function, **kwargs):
         """
@@ -871,8 +871,8 @@ class FileNodeValue(PathNodeValue):
         value (any): default value for this parameter
     '''
 
-    def __init__(self, value=None, package=None):
-        super().__init__("file", value=value, package=package)
+    def __init__(self, value=None, dataroot=None):
+        super().__init__("file", value=value, dataroot=dataroot)
         self.__date = None
         self.__author = []
 
