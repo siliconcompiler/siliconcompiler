@@ -29,7 +29,7 @@ class OpenROADSTAParameter(OpenROADTask):
         self.set_dataroot("siliconcompiler", "python://siliconcompiler")
         self.add_parameter("opensta_generic_sdc", "file", "generic opensta SDC file",
                            defvalue="tools/_common/sdc/sc_constraints.sdc",
-                           package="siliconcompiler")
+                           dataroot="siliconcompiler")
 
     def setup(self):
         super().setup()

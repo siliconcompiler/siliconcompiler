@@ -261,7 +261,7 @@ def test_directory_get_dict():
         "value": "test",
         "signature": None,
         "filehash": None,
-        "package": None
+        "dataroot": None
     }
 
 
@@ -280,13 +280,13 @@ def test_directory_from_dict():
         "value": "test",
         "signature": "testsig",
         "filehash": "121324",
-        "package": "datasource"
+        "dataroot": "datasource"
     }, [], None, "str")
 
     assert value.get() == "test"
     assert value.get(field='signature') == "testsig"
     assert value.get(field='filehash') == "121324"
-    assert value.get(field='package') == "datasource"
+    assert value.get(field='dataroot') == "datasource"
 
 
 def test_directory_fields():
@@ -295,7 +295,7 @@ def test_directory_fields():
         "value",
         "signature",
         "filehash",
-        "package")
+        "dataroot")
 
 
 def test_directory_type():
@@ -344,7 +344,7 @@ def test_file_get_dict():
         "value": "test",
         "signature": None,
         "filehash": None,
-        "package": None,
+        "dataroot": None,
         "date": None,
         "author": []
     }
@@ -365,7 +365,7 @@ def test_file_from_dict():
         "value": "test",
         "signature": "testsig",
         "filehash": "121324",
-        "package": "datasource",
+        "dataroot": "datasource",
         "date": "today",
         "author": ["test"]
     }, [], None, "str")
@@ -373,7 +373,7 @@ def test_file_from_dict():
     assert value.get() == "test"
     assert value.get(field='signature') == "testsig"
     assert value.get(field='filehash') == "121324"
-    assert value.get(field='package') == "datasource"
+    assert value.get(field="dataroot") == "datasource"
     assert value.get(field='date') == "today"
     assert value.get(field='author') == ["test"]
 
@@ -384,7 +384,7 @@ def test_file_fields():
         "value",
         "signature",
         "filehash",
-        "package",
+        "dataroot",
         "date",
         "author")
 
@@ -466,7 +466,7 @@ def test_nodelist_file_getdict_empty():
     param = NodeListValue(FileNodeValue())
 
     assert param.getdict() == {
-        'signature': [], 'value': [], 'author': [], 'date': [], 'filehash': [], 'package': []}
+        'signature': [], 'value': [], 'author': [], 'date': [], 'filehash': [], "dataroot": []}
 
 
 def test_nodelist_file_getdict_author():
@@ -481,13 +481,13 @@ def test_nodelist_file_getdict_author():
         'author': [],
         'date': [None],
         'filehash': ["hash"],
-        'package': [None]}
+        "dataroot": [None]}
 
 
 def test_nodelist_dir_getdict_empty():
     param = NodeListValue(DirectoryNodeValue())
 
-    assert param.getdict() == {'signature': [], 'value': [], 'filehash': [], 'package': []}
+    assert param.getdict() == {'signature': [], 'value': [], 'filehash': [], "dataroot": []}
 
 
 def test_nodelist_type():
@@ -499,9 +499,9 @@ def test_nodelist_type():
 def test_nodelist_fields():
     assert NodeListValue(NodeValue("str")).fields == (None, 'value', 'signature')
     assert NodeListValue(FileNodeValue()).fields == \
-        (None, 'value', 'signature', 'filehash', 'package', 'date', 'author')
+        (None, 'value', 'signature', 'filehash', "dataroot", 'date', 'author')
     assert NodeListValue(DirectoryNodeValue()).fields == \
-        (None, 'value', 'signature', 'filehash', 'package')
+        (None, 'value', 'signature', 'filehash', "dataroot")
 
 
 def test_nodelist_set_str_value():
@@ -754,7 +754,7 @@ def test_generate_hashed_path_package(package, expect):
 def test_get_hashed_filename_file(package, expect):
     value = FileNodeValue()
     value.set("this/is/the/path.txt.gz")
-    value.set(package, field="package")
+    value.set(package, field="dataroot")
     assert value.get_hashed_filename() == expect
 
 
@@ -767,7 +767,7 @@ def test_get_hashed_filename_file(package, expect):
 def test_get_hashed_filename_dir(package, expect):
     value = DirectoryNodeValue()
     value.set("this/is/the/path")
-    value.set(package, field="package")
+    value.set(package, field="dataroot")
     assert value.get_hashed_filename() == expect
 
 
@@ -962,7 +962,7 @@ def test_defvalue_file_getdict():
         'author': [],
         'date': None,
         'filehash': None,
-        'package': None,
+        "dataroot": None,
         'signature': None,
         'value': 'thisfile'
     }
@@ -983,7 +983,7 @@ def test_defvalue_file_list_getdict():
         'filehash': [
             None,
         ],
-        'package': [
+        "dataroot": [
             None,
         ],
         'signature': [
@@ -996,31 +996,31 @@ def test_defvalue_file_list_getdict():
 
 
 def test_defvalue_file_package():
-    value = FileNodeValue(value="thisfile", package="thispackage")
+    value = FileNodeValue(value="thisfile", dataroot="thispackage")
     assert value.get() == "thisfile"
-    assert value.get(field="package") == "thispackage"
+    assert value.get(field="dataroot") == "thispackage"
 
 
 def test_defvalue_file_package_getdict():
-    value = FileNodeValue(value="thisfile", package="thispackage")
+    value = FileNodeValue(value="thisfile", dataroot="thispackage")
     assert value.getdict() == {
         'author': [],
         'date': None,
         'filehash': None,
-        'package': "thispackage",
+        "dataroot": "thispackage",
         'signature': None,
         'value': 'thisfile',
     }
 
 
 def test_defvalue_file_list_package():
-    value = NodeListValue(FileNodeValue(value="thisfile", package="thispackage"))
+    value = NodeListValue(FileNodeValue(value="thisfile", dataroot="thispackage"))
     assert value.get() == ["thisfile"]
-    assert value.get(field="package") == ["thispackage"]
+    assert value.get(field="dataroot") == ["thispackage"]
 
 
 def test_defvalue_file_list_package_getdict():
-    value = NodeListValue(FileNodeValue(value="thisfile", package="thispackage"))
+    value = NodeListValue(FileNodeValue(value="thisfile", dataroot="thispackage"))
     assert value.getdict() == {
         'author': [],
         'date': [
@@ -1029,7 +1029,7 @@ def test_defvalue_file_list_package_getdict():
         'filehash': [
             None,
         ],
-        'package': [
+        "dataroot": [
             'thispackage',
         ],
         'signature': [
@@ -1042,24 +1042,24 @@ def test_defvalue_file_list_package_getdict():
 
 
 def test_defvalue_dir_package():
-    value = DirectoryNodeValue(value="thisdir", package="thispackage")
+    value = DirectoryNodeValue(value="thisdir", dataroot="thispackage")
     assert value.get() == "thisdir"
-    assert value.get(field="package") == "thispackage"
+    assert value.get(field="dataroot") == "thispackage"
 
 
 def test_defvalue_dir_list_package():
-    value = NodeListValue(DirectoryNodeValue(value="thisdir", package="thispackage"))
+    value = NodeListValue(DirectoryNodeValue(value="thisdir", dataroot="thispackage"))
     assert value.get() == ["thisdir"]
-    assert value.get(field="package") == ["thispackage"]
+    assert value.get(field="dataroot") == ["thispackage"]
 
 
 def test_defvalue_dir_list_package_getdict():
-    value = NodeListValue(DirectoryNodeValue(value="thisdir", package="thispackage"))
+    value = NodeListValue(DirectoryNodeValue(value="thisdir", dataroot="thispackage"))
     assert value.getdict() == {
         'filehash': [
             None,
         ],
-        'package': [
+        "dataroot": [
             'thispackage',
         ],
         'signature': [
@@ -1102,7 +1102,7 @@ def test_nodeset_file_getdict_empty():
     param = NodeSetValue(FileNodeValue())
 
     assert param.getdict() == {
-        'signature': [], 'value': [], 'author': [], 'date': [], 'filehash': [], 'package': []}
+        'signature': [], 'value': [], 'author': [], 'date': [], 'filehash': [], "dataroot": []}
 
 
 def test_nodeset_file_getdict_author():
@@ -1117,13 +1117,13 @@ def test_nodeset_file_getdict_author():
         'author': [],
         'date': [None],
         'filehash': ["hash"],
-        'package': [None]}
+        "dataroot": [None]}
 
 
 def test_nodeset_dir_getdict_empty():
     param = NodeSetValue(DirectoryNodeValue())
 
-    assert param.getdict() == {'signature': [], 'value': [], 'filehash': [], 'package': []}
+    assert param.getdict() == {'signature': [], 'value': [], 'filehash': [], "dataroot": []}
 
 
 def test_nodeset_type():
@@ -1135,9 +1135,9 @@ def test_nodeset_type():
 def test_nodeset_fields():
     assert NodeSetValue(NodeValue("str")).fields == (None, 'value', 'signature')
     assert NodeSetValue(FileNodeValue()).fields == \
-        (None, 'value', 'signature', 'filehash', 'package', 'date', 'author')
+        (None, 'value', 'signature', 'filehash', "dataroot", 'date', 'author')
     assert NodeSetValue(DirectoryNodeValue()).fields == \
-        (None, 'value', 'signature', 'filehash', 'package')
+        (None, 'value', 'signature', 'filehash', "dataroot")
 
 
 def test_nodeset_set_str_value():

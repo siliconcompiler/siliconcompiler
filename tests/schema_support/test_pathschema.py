@@ -66,7 +66,7 @@ def test_find_files():
     test = Test()
     test.set_dataroot("testsource", "file://.")
     param = test.set("file", "test.txt")
-    param.set("testsource", field="package")
+    param.set("testsource", field="dataroot")
 
     with open("test.txt", "w") as f:
         f.write("test")
@@ -84,7 +84,7 @@ def test_find_files_no_source():
 
     test = Test()
     param = test.set("file", "test.txt")
-    param.set("testsource", field="package")
+    param.set("testsource", field="dataroot")
 
     with pytest.raises(ValueError, match="Resolver for testsource not provided"):
         test.find_files("file")
@@ -101,7 +101,7 @@ def test_find_files_dir():
     test = Test()
     test.set_dataroot("testsource", "file://.")
     param = test.set("dir", "test")
-    param.set("testsource", field="package")
+    param.set("testsource", field="dataroot")
 
     os.makedirs("test", exist_ok=True)
 
@@ -190,7 +190,7 @@ def test_find_files_keypath():
     assert root.set("ref", "test")
     os.makedirs("test", exist_ok=True)
     param = test.set("file", "test.txt")
-    param.set("keyref", field="package")
+    param.set("keyref", field="dataroot")
 
     with open("test/test.txt", "w") as f:
         f.write("test")
@@ -335,9 +335,9 @@ def test_active_dataroot():
     assert schema._get_active(None) is None
     with schema.active_dataroot("testpack"):
         assert schema._get_active(None) == {
-            "package": "testpack"
+            "dataroot": "testpack"
         }
-        assert schema._get_active("package") == "testpack"
+        assert schema._get_active("dataroot") == "testpack"
     assert schema._get_active(None) is None
 
 
@@ -373,7 +373,7 @@ def test_simple_find_files():
     test = Test()
     test.set_dataroot("testsource", "file://.")
     param = test.set("file", "test.txt")
-    param.set("testsource", field="package")
+    param.set("testsource", field="dataroot")
 
     with open("test.txt", "w") as f:
         f.write("test")
@@ -391,7 +391,7 @@ def test_simple_find_files_no_source():
 
     test = Test()
     param = test.set("file", "test.txt")
-    param.set("testsource", field="package")
+    param.set("testsource", field="dataroot")
 
     with pytest.raises(ValueError, match="Resolver for testsource not provided"):
         test.find_files("file")
@@ -408,7 +408,7 @@ def test_simple_find_files_dir():
     test = Test()
     test.set_dataroot("testsource", "file://.")
     param = test.set("dir", "test")
-    param.set("testsource", field="package")
+    param.set("testsource", field="dataroot")
 
     os.makedirs("test", exist_ok=True)
 
@@ -635,8 +635,8 @@ def test_dataroot_section_above_active_at_base():
     schema_base.set_dataroot("testroot", __file__)
 
     with schema_base.active_dataroot("testroot"):
-        assert schema_base._get_active("package") == "testroot"
-        assert schema._get_active("package") == "testroot"
+        assert schema_base._get_active("dataroot") == "testroot"
+        assert schema._get_active("dataroot") == "testroot"
 
 
 def test_dataroot_section_above_active_at_leaf():
@@ -648,8 +648,8 @@ def test_dataroot_section_above_active_at_leaf():
     schema_base.set_dataroot("testroot", __file__)
 
     with schema.active_dataroot("testroot"):
-        assert schema_base._get_active("package") is None
-        assert schema._get_active("package") == "testroot"
+        assert schema_base._get_active("dataroot") is None
+        assert schema._get_active("dataroot") == "testroot"
 
 
 def test_find_files_dataroot_resolvers_no_roots():

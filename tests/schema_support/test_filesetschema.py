@@ -66,7 +66,7 @@ def test_add_file_with_fileset_with_dataroot():
         with d.active_fileset("rtl"):
             assert d.add_file(['one.v', 'two.v'], filetype='verilog')
     assert d.get('fileset', 'rtl', 'file', 'verilog') == ['one.v', 'two.v']
-    assert d.get('fileset', 'rtl', 'file', 'verilog', field='package') == ['root', 'root']
+    assert d.get('fileset', 'rtl', 'file', 'verilog', field='dataroot') == ['root', 'root']
 
 
 def test_add_file_with_fileset_with_dataroot_passed():
@@ -79,7 +79,7 @@ def test_add_file_with_fileset_with_dataroot_passed():
         with d.active_fileset("rtl"):
             assert d.add_file(['one.v', 'two.v'], filetype='verilog', dataroot="test")
     assert d.get('fileset', 'rtl', 'file', 'verilog') == ['one.v', 'two.v']
-    assert d.get('fileset', 'rtl', 'file', 'verilog', field='package') == ['test', 'test']
+    assert d.get('fileset', 'rtl', 'file', 'verilog', field='dataroot') == ['test', 'test']
 
 
 def test_add_file_with_filetype():

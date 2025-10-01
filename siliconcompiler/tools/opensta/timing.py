@@ -23,7 +23,7 @@ class TimingTaskBase(OpenSTATask):
         self.set_dataroot("siliconcompiler", "python://siliconcompiler")
         self.add_parameter("opensta_generic_sdc", "file", "generic opensta SDC file",
                            defvalue="tools/_common/sdc/sc_constraints.sdc",
-                           package="siliconcompiler")
+                           dataroot="siliconcompiler")
 
     def set_timing_mode(self, mode: str, step: str = None, index: str = None):
         return self.set("var", "timing_mode", mode, step=step, index=index)
