@@ -68,7 +68,7 @@ def get_task(
             parts.append(f"task='{task}'")
         if filter:
             if inspect.isclass(filter):
-                parts.append(f"filter={filter}")
+                parts.append(f"filter={filter.__name__}")
         criteria = ", ".join(parts) if parts else "any criteria"
         raise ValueError(f"No tasks found matching {criteria}")
 

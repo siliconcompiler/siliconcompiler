@@ -63,8 +63,7 @@ def test_get_task_missing_class():
             return "faux"
 
     with pytest.raises(ValueError,
-                       match=r"No tasks found matching filter=<class "
-                             r"'test_tools\.test_get_task_missing_class\.<locals>\.FauxTask'>"):
+                       match="No tasks found matching filter=FauxTask"):
         get_task(Project(), filter=FauxTask)
 
 
