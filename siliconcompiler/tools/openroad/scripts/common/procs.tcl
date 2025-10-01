@@ -729,12 +729,17 @@ proc sc_setup_parasitics { } {
 }
 
 proc sc_insert_fillers { } {
-    global sc_mainlib
+    global sc_logiclibs
 
-    set fillers [sc_cfg_get library $sc_mainlib asic cells filler]
+    set fillers []
+    foreach lib $sc_logiclibs {
+        lappend fillers {*}[sc_cfg_get library $lib asic cells filler]
+    }
 
     if { [sc_cfg_tool_task_get var dpl_use_decap_fillers] } {
-        lappend fillers {*}[sc_cfg_get library $sc_mainlib asic cells decap]
+        foreach lib $sc_logiclibs {
+            lappend fillers {*}[sc_cfg_get library $lib asic cells decap]
+        }
     }
     if { $fillers != "" } {
         filler_placement $fillers
