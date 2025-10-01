@@ -138,14 +138,18 @@ def disable_or_images(monkeypatch, request):
     '''
     if 'eda' not in request.keywords:
         return
+
     old_init = Project._init_run
 
     def mock_init(self: Project):
-        tasks = get_task(self, filter=APRTask)
-        if not isinstance(tasks, set):
-            tasks = [tasks]
-        for task in tasks:
-            task.set('var', 'ord_enable_images', False, clobber=False)
+        try:
+            tasks = get_task(self, filter=APRTask)
+            if not isinstance(tasks, set):
+                tasks = [tasks]
+            for task in tasks:
+                task.set('var', 'ord_enable_images', False, clobber=False)
+        except ValueError:
+            pass
 
         return old_init(self)
 
