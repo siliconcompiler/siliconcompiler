@@ -51,9 +51,19 @@ def test_get_task():
     assert get_task(proj, filter=lambda t: isinstance(t, FauxTask2)) is faux2
     assert get_task(proj, filter=FauxTask2) is faux2
 
+    with pytest.raises(TypeError, match="filter is not a recognized type"):
+        get_task(proj, filter=12)
 
-def test_get_task_missing_filter():
-    with pytest.raises(ValueError, match="No tasks found matching any criteria"):
+
+def test_get_task_missing_filter_func():
+    def thisfunc(*args):
+        return False
+    with pytest.raises(ValueError, match="No tasks found matching filter=thisfunc"):
+        get_task(Project(), filter=thisfunc)
+
+
+def test_get_task_missing_filter_lambda():
+    with pytest.raises(ValueError, match="No tasks found matching filter=<lambda>"):
         get_task(Project(), filter=lambda _: False)
 
 
