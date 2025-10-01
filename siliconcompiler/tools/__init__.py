@@ -31,6 +31,10 @@ def get_task(
             - If exactly one task matches the criteria, returns that single `Task` object.
             - If multiple tasks match or no specific tool/task is provided (and thus all tasks
             are considered), returns a `Set[Task]` containing the matching tasks.
+
+    Raises:
+        ValueError: If no tasks match the specified criteria.
+        TypeError: If project is not a Project instance.
     """
     from siliconcompiler import Project
     if not isinstance(project, Project):
@@ -57,7 +61,16 @@ def get_task(
         tasks.add(task_obj)
 
     if not tasks:
-        raise ValueError("No tasks found")
+        parts = []
+        if tool:
+            parts.append(f"tool='{tool}'")
+        if task:
+            parts.append(f"task='{task}'")
+        if filter:
+            if inspect.isclass(filter):
+                parts.append(f"filter={filter}")
+        criteria = ", ".join(parts) if parts else "any criteria"
+        raise ValueError(f"No tasks found matching {criteria}")
 
     if len(tasks) == 1:
         return list(tasks)[0]

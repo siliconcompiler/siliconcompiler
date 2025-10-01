@@ -52,11 +52,27 @@ def test_get_task():
     assert get_task(proj, filter=FauxTask2) is faux2
 
 
+def test_get_task_missing_filter():
+    with pytest.raises(ValueError, match="No tasks found matching any criteria"):
+        get_task(Project(), filter=lambda _: False)
+
+
+def test_get_task_missing_class():
+    class FauxTask(Task):
+        def tool(self):
+            return "faux"
+
+    with pytest.raises(ValueError,
+                       match=r"No tasks found matching filter=<class "
+                             r"'test_tools\.test_get_task_missing_class\.<locals>\.FauxTask'>"):
+        get_task(Project(), filter=FauxTask)
+
+
 def test_get_task_missing():
-    with pytest.raises(ValueError, match="No tasks found"):
+    with pytest.raises(ValueError, match="No tasks found matching tool='tool0', task='task0'"):
         get_task(Project(), "tool0", "task0")
 
 
 def test_get_task_empty():
-    with pytest.raises(ValueError, match="No tasks found"):
-        assert get_task(Project())
+    with pytest.raises(ValueError, match="No tasks found matching any criteria"):
+        get_task(Project())
