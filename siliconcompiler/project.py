@@ -9,7 +9,6 @@ from typing import Union, List, Tuple, TextIO
 
 from siliconcompiler.schema import BaseSchema, NamedSchema, EditableSchema, Parameter, Scope, \
     __version__ as schema_version
-from siliconcompiler.schema.utils import trim
 
 from siliconcompiler import Design
 from siliconcompiler import Flowgraph

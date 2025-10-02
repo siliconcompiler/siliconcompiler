@@ -13,7 +13,7 @@ def test_keys():
         ('prune',),
         ('from',),
         ('jobincr',),
-        ('scheduler', 'maxthreads'), 
+        ('scheduler', 'maxthreads'),
         ('scheduler', 'maxnodes'),
         ('nodisplay',),
         ('scheduler', 'memory'),
