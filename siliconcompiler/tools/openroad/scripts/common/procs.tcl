@@ -734,7 +734,7 @@ proc sc_insert_fillers { } {
         }
     }
     if { $fillers != "" } {
-        filler_placement $fillers
+        filler_placement -verbose $fillers
     }
 
     check_placement -verbose
