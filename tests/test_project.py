@@ -904,7 +904,7 @@ def test_summary_select_unknownjob(monkeypatch, caplog):
         history.return_value = proj
         proj.summary()
 
-        history.assert_called_once_with("thatjob")  # will call with first alphabetical job
+        history.assert_called_once_with("thatjob")
     assert "job0 not found in history, picking thatjob" in caplog.text
 
 
@@ -1652,18 +1652,21 @@ def test_lint_getdict_type():
 
 def test_sim_getdict_type():
     assert Sim._getdict_type() == "Sim"
+
+
 # === Additional tests for Project (pytest + unittest.mock) ===
 # Testing library/framework: pytest + unittest.mock.patch
 # These tests expand coverage for Project behaviors: fileset mgmt, aliasing,
 # result discovery, snapshotting, logger uniqueness, job param reset, dashboard handling,
 # and FauxTask behavior.
 
+
 def test_init_logger_with_custom_name_uniqueness():
     project1 = Project()
     project2 = Project()
     assert project1.logger.name.startswith("siliconcompiler.project_")
     assert project2.logger.name.startswith("siliconcompiler.project_")
-    assert project1.logger.name \!= project2.logger.name
+    assert project1.logger.name != project2.logger.name
 
 
 def test_add_fileset_multiple_sequential_unique():
@@ -1868,4 +1871,4 @@ def test_faux_tasks_inheritance_and_behavior():
     assert task2.tool() == "tool1" and task2.task() == "task2"
     # Shared tool, different tasks
     assert task1.tool() == task2.tool()
-    assert task1.task() \!= task2.task()
+    assert task1.task() != task2.task()

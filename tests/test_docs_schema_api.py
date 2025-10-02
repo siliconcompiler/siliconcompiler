@@ -84,7 +84,7 @@ class TestDocumentStructure:
             if ln.strip() == 'Schema API':
                 assert i + 1 < len(docs_lines), "Title should have an underline line"
                 underline = docs_lines[i + 1].rstrip('\n')
-                assert underline.strip() \!= ''
+                assert underline.strip() != ''
                 assert set(underline.strip()) == {'-'}, "Title underline should use '-'"
                 assert len(underline.strip()) >= len('Schema API'), "Underline should match or exceed title length"
                 break
@@ -271,7 +271,7 @@ class TestCrossReferencesAndQuality:
     def test_currentmodule_before_first_autosummary(self, docs_content):
         i_mod = docs_content.find('.. currentmodule::')
         i_auto = docs_content.find('.. autosummary::')
-        assert i_mod \!= -1 and i_auto \!= -1 and i_mod < i_auto, \
+        assert i_mod != -1 and i_auto != -1 and i_mod < i_auto, \
             "currentmodule should appear before autosummary blocks"
 
     def test_autoclass_paths_look_valid(self, docs_content):

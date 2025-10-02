@@ -1,5 +1,6 @@
 import pytest
 
+
 from siliconcompiler.schema import Scope
 from siliconcompiler.schema_support.option import OptionSchema, SchedulerSchema
 
@@ -13,7 +14,7 @@ def test_keys():
         ('prune',),
         ('from',),
         ('jobincr',),
-        ('scheduler', 'maxthreads'), 
+        ('scheduler', 'maxthreads'),
         ('scheduler', 'maxnodes'),
         ('nodisplay',),
         ('scheduler', 'memory'),
@@ -74,6 +75,7 @@ def test_scheduler():
     opt = OptionSchema()
     assert isinstance(opt.scheduler, SchedulerSchema)
     assert opt.get("scheduler", field="schema") is opt.scheduler
+
 
 # Note: Tests leverage pytest, consistent with the project's use of pytest.
 
