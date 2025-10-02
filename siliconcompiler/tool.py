@@ -2496,7 +2496,7 @@ def schema_task(schema):
             shorthelp="Task: file suffix for redirected stdout",
             switch="-tool_task_stdout_suffix 'tool task <str>'",
             example=["cli: -tool_task_stdout_suffix 'ghdl import log'",
-                     "api: task.set('tool', ghdl', 'task', 'import', 'stdout', 'suffix', 'log')"],
+                     "api: task.set('tool', 'ghdl', 'task', 'import', 'stdout', 'suffix', 'log')"],
             help=trim("""
             Specifies the file extension for the content redirected from stdout.""")))
 
@@ -2510,7 +2510,7 @@ def schema_task(schema):
             shorthelp="Task: destination for stderr",
             switch="-tool_task_stderr_destination 'tool task <str>'",
             example=["cli: -tool_task_stderr_destination 'ghdl import log'",
-                     "api: task.set('tool', ghdl', 'task', 'import', 'stderr', 'destination', "
+                     "api: task.set('tool', 'ghdl', 'task', 'import', 'stderr', 'destination', "
                      "'log')"],
             help=trim("""
             Defines where to direct the output generated over stderr.

@@ -1313,6 +1313,220 @@
                   }
                 }
               },
+              "exe": {
+                "type": "str",
+                "require": false,
+                "scope": "job",
+                "lock": false,
+                "switch": [
+                  "-tool_exe 'tool <str>'"
+                ],
+                "shorthelp": "Tool: executable name",
+                "example": [
+                  "cli: -tool_exe 'openroad openroad'",
+                  "api: task.set('tool', 'openroad', 'exe', 'openroad')"
+                ],
+                "help": "Tool executable name.",
+                "notes": null,
+                "pernode": "optional",
+                "node": {
+                  "default": {
+                    "default": {
+                      "value": null,
+                      "signature": null
+                    }
+                  }
+                }
+              },
+              "sbom": {
+                "default": {
+                  "type": "[file]",
+                  "require": false,
+                  "scope": "job",
+                  "lock": false,
+                  "switch": [
+                    "-tool_sbom 'tool version <file>'"
+                  ],
+                  "shorthelp": "Tool: software BOM",
+                  "example": [
+                    "cli: -tool_sbom 'yosys 1.0.1 ys_sbom.json'",
+                    "api: task.set('tool', 'yosys', 'sbom', '1.0', 'ys_sbom.json')"
+                  ],
+                  "help": "Paths to software bill of material (SBOM) document file of the tool\nspecified on a per version basis. The SBOM includes critical\npackage information about the tool including the list of included\ncomponents, licenses, and copyright. The SBOM file is generally\nprovided as in a a standardized open data format such as SPDX.",
+                  "notes": null,
+                  "pernode": "optional",
+                  "node": {
+                    "default": {
+                      "default": {
+                        "value": [],
+                        "signature": [],
+                        "filehash": [],
+                        "dataroot": [],
+                        "date": [],
+                        "author": []
+                      }
+                    }
+                  },
+                  "hashalgo": "sha256",
+                  "copy": false
+                }
+              },
+              "path": {
+                "type": "dir",
+                "require": false,
+                "scope": "job",
+                "lock": false,
+                "switch": [
+                  "-tool_path 'tool <dir>'"
+                ],
+                "shorthelp": "Tool: executable path",
+                "example": [
+                  "cli: -tool_path 'openroad /usr/local/bin'",
+                  "api: task.set('tool', 'openroad', 'path', '/usr/local/bin')"
+                ],
+                "help": "File system path to tool executable. The path is prepended to the\nsystem PATH environment variable for batch and interactive runs. The\npath parameter can be left blank if the :keypath:`tool,<tool>,task,<task>,exe` is\nalready in the environment search path.",
+                "notes": null,
+                "pernode": "optional",
+                "node": {
+                  "default": {
+                    "default": {
+                      "value": null,
+                      "signature": null,
+                      "filehash": null,
+                      "dataroot": null
+                    }
+                  }
+                },
+                "hashalgo": "sha256",
+                "copy": false
+              },
+              "vswitch": {
+                "type": "[str]",
+                "require": false,
+                "scope": "job",
+                "lock": false,
+                "switch": [
+                  "-tool_vswitch 'tool <str>'"
+                ],
+                "shorthelp": "Tool: executable version switch",
+                "example": [
+                  "cli: -tool_vswitch 'openroad -version'",
+                  "api: task.set('tool', 'openroad', 'vswitch', '-version')"
+                ],
+                "help": "Command line switch to use with executable used to print out\nthe version number. Common switches include ``-v``, ``-version``,\n``--version``. Some tools may require extra flags to run in batch mode.",
+                "notes": null,
+                "pernode": "optional",
+                "node": {
+                  "default": {
+                    "default": {
+                      "value": [],
+                      "signature": []
+                    }
+                  }
+                }
+              },
+              "vendor": {
+                "type": "str",
+                "require": false,
+                "scope": "job",
+                "lock": false,
+                "switch": [
+                  "-tool_vendor 'tool <str>'"
+                ],
+                "shorthelp": "Tool: vendor",
+                "example": [
+                  "cli: -tool_vendor 'yosys yosys'",
+                  "api: task.set('tool', 'yosys', 'vendor', 'yosys')"
+                ],
+                "help": "Name of the tool vendor. Parameter can be used to set vendor\nspecific technology variables in the PDK and libraries. For\nopen source projects, the project name should be used in\nplace of vendor.",
+                "notes": null,
+                "pernode": "never",
+                "node": {
+                  "default": {
+                    "default": {
+                      "value": null,
+                      "signature": null
+                    }
+                  }
+                }
+              },
+              "version": {
+                "type": "[str]",
+                "require": false,
+                "scope": "job",
+                "lock": false,
+                "switch": [
+                  "-tool_version 'tool <str>'"
+                ],
+                "shorthelp": "Tool: version",
+                "example": [
+                  "cli: -tool_version 'openroad >=v2.0'",
+                  "api: task.set('tool', 'openroad', 'version', '>=v2.0')"
+                ],
+                "help": "List of acceptable versions of the tool executable to be used. Each\nentry in this list must be a version specifier as described by Python\n`PEP-440 <https://peps.python.org/pep-0440/#version-specifiers>`_.\nDuring task execution, the tool is called with the 'vswitch' to\ncheck the runtime executable version. If the version of the system\nexecutable is not allowed by any of the specifiers in 'version',\nthen the job is halted pre-execution. For backwards compatibility,\nentries that do not conform to the standard will be interpreted as a\nversion with an '==' specifier. This check can be disabled by\nsetting :keypath:`option,novercheck` to True.",
+                "notes": null,
+                "pernode": "optional",
+                "node": {
+                  "default": {
+                    "default": {
+                      "value": [],
+                      "signature": []
+                    }
+                  }
+                }
+              },
+              "format": {
+                "type": "<json,tcl,yaml>",
+                "require": false,
+                "scope": "job",
+                "lock": false,
+                "switch": [
+                  "-tool_format 'tool <str>'"
+                ],
+                "shorthelp": "Tool: file format",
+                "example": [
+                  "cli: -tool_format 'yosys tcl'",
+                  "api: task.set('tool', 'yosys', 'format', 'tcl')"
+                ],
+                "help": "File format for tool manifest handoff.",
+                "notes": null,
+                "pernode": "optional",
+                "node": {
+                  "default": {
+                    "default": {
+                      "value": null,
+                      "signature": null
+                    }
+                  }
+                }
+              },
+              "licenseserver": {
+                "default": {
+                  "type": "[str]",
+                  "require": false,
+                  "scope": "job",
+                  "lock": false,
+                  "switch": [
+                    "-tool_licenseserver 'name key <str>'"
+                  ],
+                  "shorthelp": "Tool: license servers",
+                  "example": [
+                    "cli: -tool_licenseserver 'atask ACME_LICENSE 1700@server'",
+                    "api: task.set('tool', 'acme', 'licenseserver', 'ACME_LICENSE', '1700@server')"
+                  ],
+                  "help": "Defines a set of tool-specific environment variables used by the executable\nthat depend on license key servers to control access. For multiple servers,\nseparate servers with a colon. The named license variables are read at\nruntime (:meth:`.Task.run()`) and the environment variables are set.",
+                  "notes": null,
+                  "pernode": "optional",
+                  "node": {
+                    "default": {
+                      "default": {
+                        "value": [],
+                        "signature": []
+                      }
+                    }
+                  }
+                }
+              },
               "warningoff": {
                 "type": "[str]",
                 "require": false,
@@ -1607,7 +1821,7 @@
                   "shorthelp": "Task: file suffix for redirected stdout",
                   "example": [
                     "cli: -tool_task_stdout_suffix 'ghdl import log'",
-                    "api: task.set('tool', ghdl', 'task', 'import', 'stdout', 'suffix', 'log')"
+                    "api: task.set('tool', 'ghdl', 'task', 'import', 'stdout', 'suffix', 'log')"
                   ],
                   "help": "Specifies the file extension for the content redirected from stdout.",
                   "notes": null,
@@ -1634,7 +1848,7 @@
                   "shorthelp": "Task: destination for stderr",
                   "example": [
                     "cli: -tool_task_stderr_destination 'ghdl import log'",
-                    "api: task.set('tool', ghdl', 'task', 'import', 'stderr', 'destination', 'log')"
+                    "api: task.set('tool', 'ghdl', 'task', 'import', 'stderr', 'destination', 'log')"
                   ],
                   "help": "Defines where to direct the output generated over stderr.\nSupported options are:\nnone: the stream generated to STDERR is ignored\nlog: the generated stream is stored in <step>.<suffix>; if not in quiet mode,\nit is additionally dumped to the display.\noutput: the generated stream is stored in outputs/<design>.<suffix>",
                   "notes": null,
@@ -1875,220 +2089,6 @@
                     "default": {
                       "value": null,
                       "signature": null
-                    }
-                  }
-                }
-              },
-              "exe": {
-                "type": "str",
-                "require": false,
-                "scope": "job",
-                "lock": false,
-                "switch": [
-                  "-tool_exe 'tool <str>'"
-                ],
-                "shorthelp": "Tool: executable name",
-                "example": [
-                  "cli: -tool_exe 'openroad openroad'",
-                  "api: task.set('tool', 'openroad', 'exe', 'openroad')"
-                ],
-                "help": "Tool executable name.",
-                "notes": null,
-                "pernode": "optional",
-                "node": {
-                  "default": {
-                    "default": {
-                      "value": null,
-                      "signature": null
-                    }
-                  }
-                }
-              },
-              "sbom": {
-                "default": {
-                  "type": "[file]",
-                  "require": false,
-                  "scope": "job",
-                  "lock": false,
-                  "switch": [
-                    "-tool_sbom 'tool version <file>'"
-                  ],
-                  "shorthelp": "Tool: software BOM",
-                  "example": [
-                    "cli: -tool_sbom 'yosys 1.0.1 ys_sbom.json'",
-                    "api: task.set('tool', 'yosys', 'sbom', '1.0', 'ys_sbom.json')"
-                  ],
-                  "help": "Paths to software bill of material (SBOM) document file of the tool\nspecified on a per version basis. The SBOM includes critical\npackage information about the tool including the list of included\ncomponents, licenses, and copyright. The SBOM file is generally\nprovided as in a a standardized open data format such as SPDX.",
-                  "notes": null,
-                  "pernode": "optional",
-                  "node": {
-                    "default": {
-                      "default": {
-                        "value": [],
-                        "signature": [],
-                        "filehash": [],
-                        "dataroot": [],
-                        "date": [],
-                        "author": []
-                      }
-                    }
-                  },
-                  "hashalgo": "sha256",
-                  "copy": false
-                }
-              },
-              "path": {
-                "type": "dir",
-                "require": false,
-                "scope": "job",
-                "lock": false,
-                "switch": [
-                  "-tool_path 'tool <dir>'"
-                ],
-                "shorthelp": "Tool: executable path",
-                "example": [
-                  "cli: -tool_path 'openroad /usr/local/bin'",
-                  "api: task.set('tool', 'openroad', 'path', '/usr/local/bin')"
-                ],
-                "help": "File system path to tool executable. The path is prepended to the\nsystem PATH environment variable for batch and interactive runs. The\npath parameter can be left blank if the :keypath:`tool,<tool>,task,<task>,exe` is\nalready in the environment search path.",
-                "notes": null,
-                "pernode": "optional",
-                "node": {
-                  "default": {
-                    "default": {
-                      "value": null,
-                      "signature": null,
-                      "filehash": null,
-                      "dataroot": null
-                    }
-                  }
-                },
-                "hashalgo": "sha256",
-                "copy": false
-              },
-              "vswitch": {
-                "type": "[str]",
-                "require": false,
-                "scope": "job",
-                "lock": false,
-                "switch": [
-                  "-tool_vswitch 'tool <str>'"
-                ],
-                "shorthelp": "Tool: executable version switch",
-                "example": [
-                  "cli: -tool_vswitch 'openroad -version'",
-                  "api: task.set('tool', 'openroad', 'vswitch', '-version')"
-                ],
-                "help": "Command line switch to use with executable used to print out\nthe version number. Common switches include ``-v``, ``-version``,\n``--version``. Some tools may require extra flags to run in batch mode.",
-                "notes": null,
-                "pernode": "optional",
-                "node": {
-                  "default": {
-                    "default": {
-                      "value": [],
-                      "signature": []
-                    }
-                  }
-                }
-              },
-              "vendor": {
-                "type": "str",
-                "require": false,
-                "scope": "job",
-                "lock": false,
-                "switch": [
-                  "-tool_vendor 'tool <str>'"
-                ],
-                "shorthelp": "Tool: vendor",
-                "example": [
-                  "cli: -tool_vendor 'yosys yosys'",
-                  "api: task.set('tool', 'yosys', 'vendor', 'yosys')"
-                ],
-                "help": "Name of the tool vendor. Parameter can be used to set vendor\nspecific technology variables in the PDK and libraries. For\nopen source projects, the project name should be used in\nplace of vendor.",
-                "notes": null,
-                "pernode": "never",
-                "node": {
-                  "default": {
-                    "default": {
-                      "value": null,
-                      "signature": null
-                    }
-                  }
-                }
-              },
-              "version": {
-                "type": "[str]",
-                "require": false,
-                "scope": "job",
-                "lock": false,
-                "switch": [
-                  "-tool_version 'tool <str>'"
-                ],
-                "shorthelp": "Tool: version",
-                "example": [
-                  "cli: -tool_version 'openroad >=v2.0'",
-                  "api: task.set('tool', 'openroad', 'version', '>=v2.0')"
-                ],
-                "help": "List of acceptable versions of the tool executable to be used. Each\nentry in this list must be a version specifier as described by Python\n`PEP-440 <https://peps.python.org/pep-0440/#version-specifiers>`_.\nDuring task execution, the tool is called with the 'vswitch' to\ncheck the runtime executable version. If the version of the system\nexecutable is not allowed by any of the specifiers in 'version',\nthen the job is halted pre-execution. For backwards compatibility,\nentries that do not conform to the standard will be interpreted as a\nversion with an '==' specifier. This check can be disabled by\nsetting :keypath:`option,novercheck` to True.",
-                "notes": null,
-                "pernode": "optional",
-                "node": {
-                  "default": {
-                    "default": {
-                      "value": [],
-                      "signature": []
-                    }
-                  }
-                }
-              },
-              "format": {
-                "type": "<json,tcl,yaml>",
-                "require": false,
-                "scope": "job",
-                "lock": false,
-                "switch": [
-                  "-tool_format 'tool <str>'"
-                ],
-                "shorthelp": "Tool: file format",
-                "example": [
-                  "cli: -tool_format 'yosys tcl'",
-                  "api: task.set('tool', 'yosys', 'format', 'tcl')"
-                ],
-                "help": "File format for tool manifest handoff.",
-                "notes": null,
-                "pernode": "optional",
-                "node": {
-                  "default": {
-                    "default": {
-                      "value": null,
-                      "signature": null
-                    }
-                  }
-                }
-              },
-              "licenseserver": {
-                "default": {
-                  "type": "[str]",
-                  "require": false,
-                  "scope": "job",
-                  "lock": false,
-                  "switch": [
-                    "-tool_licenseserver 'name key <str>'"
-                  ],
-                  "shorthelp": "Tool: license servers",
-                  "example": [
-                    "cli: -tool_licenseserver 'atask ACME_LICENSE 1700@server'",
-                    "api: task.set('tool', 'acme', 'licenseserver', 'ACME_LICENSE', '1700@server')"
-                  ],
-                  "help": "Defines a set of tool-specific environment variables used by the executable\nthat depend on license key servers to control access. For multiple servers,\nseparate servers with a colon. The named license variables are read at\nruntime (:meth:`.Task.run()`) and the environment variables are set.",
-                  "notes": null,
-                  "pernode": "optional",
-                  "node": {
-                    "default": {
-                      "default": {
-                        "value": [],
-                        "signature": []
-                      }
                     }
                   }
                 }
@@ -5051,6 +5051,220 @@
                   }
                 }
               },
+              "exe": {
+                "type": "str",
+                "require": false,
+                "scope": "job",
+                "lock": false,
+                "switch": [
+                  "-tool_exe 'tool <str>'"
+                ],
+                "shorthelp": "Tool: executable name",
+                "example": [
+                  "cli: -tool_exe 'openroad openroad'",
+                  "api: task.set('tool', 'openroad', 'exe', 'openroad')"
+                ],
+                "help": "Tool executable name.",
+                "notes": null,
+                "pernode": "optional",
+                "node": {
+                  "default": {
+                    "default": {
+                      "value": null,
+                      "signature": null
+                    }
+                  }
+                }
+              },
+              "sbom": {
+                "default": {
+                  "type": "[file]",
+                  "require": false,
+                  "scope": "job",
+                  "lock": false,
+                  "switch": [
+                    "-tool_sbom 'tool version <file>'"
+                  ],
+                  "shorthelp": "Tool: software BOM",
+                  "example": [
+                    "cli: -tool_sbom 'yosys 1.0.1 ys_sbom.json'",
+                    "api: task.set('tool', 'yosys', 'sbom', '1.0', 'ys_sbom.json')"
+                  ],
+                  "help": "Paths to software bill of material (SBOM) document file of the tool\nspecified on a per version basis. The SBOM includes critical\npackage information about the tool including the list of included\ncomponents, licenses, and copyright. The SBOM file is generally\nprovided as in a a standardized open data format such as SPDX.",
+                  "notes": null,
+                  "pernode": "optional",
+                  "node": {
+                    "default": {
+                      "default": {
+                        "value": [],
+                        "signature": [],
+                        "filehash": [],
+                        "dataroot": [],
+                        "date": [],
+                        "author": []
+                      }
+                    }
+                  },
+                  "hashalgo": "sha256",
+                  "copy": false
+                }
+              },
+              "path": {
+                "type": "dir",
+                "require": false,
+                "scope": "job",
+                "lock": false,
+                "switch": [
+                  "-tool_path 'tool <dir>'"
+                ],
+                "shorthelp": "Tool: executable path",
+                "example": [
+                  "cli: -tool_path 'openroad /usr/local/bin'",
+                  "api: task.set('tool', 'openroad', 'path', '/usr/local/bin')"
+                ],
+                "help": "File system path to tool executable. The path is prepended to the\nsystem PATH environment variable for batch and interactive runs. The\npath parameter can be left blank if the :keypath:`tool,<tool>,task,<task>,exe` is\nalready in the environment search path.",
+                "notes": null,
+                "pernode": "optional",
+                "node": {
+                  "default": {
+                    "default": {
+                      "value": null,
+                      "signature": null,
+                      "filehash": null,
+                      "dataroot": null
+                    }
+                  }
+                },
+                "hashalgo": "sha256",
+                "copy": false
+              },
+              "vswitch": {
+                "type": "[str]",
+                "require": false,
+                "scope": "job",
+                "lock": false,
+                "switch": [
+                  "-tool_vswitch 'tool <str>'"
+                ],
+                "shorthelp": "Tool: executable version switch",
+                "example": [
+                  "cli: -tool_vswitch 'openroad -version'",
+                  "api: task.set('tool', 'openroad', 'vswitch', '-version')"
+                ],
+                "help": "Command line switch to use with executable used to print out\nthe version number. Common switches include ``-v``, ``-version``,\n``--version``. Some tools may require extra flags to run in batch mode.",
+                "notes": null,
+                "pernode": "optional",
+                "node": {
+                  "default": {
+                    "default": {
+                      "value": [],
+                      "signature": []
+                    }
+                  }
+                }
+              },
+              "vendor": {
+                "type": "str",
+                "require": false,
+                "scope": "job",
+                "lock": false,
+                "switch": [
+                  "-tool_vendor 'tool <str>'"
+                ],
+                "shorthelp": "Tool: vendor",
+                "example": [
+                  "cli: -tool_vendor 'yosys yosys'",
+                  "api: task.set('tool', 'yosys', 'vendor', 'yosys')"
+                ],
+                "help": "Name of the tool vendor. Parameter can be used to set vendor\nspecific technology variables in the PDK and libraries. For\nopen source projects, the project name should be used in\nplace of vendor.",
+                "notes": null,
+                "pernode": "never",
+                "node": {
+                  "default": {
+                    "default": {
+                      "value": null,
+                      "signature": null
+                    }
+                  }
+                }
+              },
+              "version": {
+                "type": "[str]",
+                "require": false,
+                "scope": "job",
+                "lock": false,
+                "switch": [
+                  "-tool_version 'tool <str>'"
+                ],
+                "shorthelp": "Tool: version",
+                "example": [
+                  "cli: -tool_version 'openroad >=v2.0'",
+                  "api: task.set('tool', 'openroad', 'version', '>=v2.0')"
+                ],
+                "help": "List of acceptable versions of the tool executable to be used. Each\nentry in this list must be a version specifier as described by Python\n`PEP-440 <https://peps.python.org/pep-0440/#version-specifiers>`_.\nDuring task execution, the tool is called with the 'vswitch' to\ncheck the runtime executable version. If the version of the system\nexecutable is not allowed by any of the specifiers in 'version',\nthen the job is halted pre-execution. For backwards compatibility,\nentries that do not conform to the standard will be interpreted as a\nversion with an '==' specifier. This check can be disabled by\nsetting :keypath:`option,novercheck` to True.",
+                "notes": null,
+                "pernode": "optional",
+                "node": {
+                  "default": {
+                    "default": {
+                      "value": [],
+                      "signature": []
+                    }
+                  }
+                }
+              },
+              "format": {
+                "type": "<json,tcl,yaml>",
+                "require": false,
+                "scope": "job",
+                "lock": false,
+                "switch": [
+                  "-tool_format 'tool <str>'"
+                ],
+                "shorthelp": "Tool: file format",
+                "example": [
+                  "cli: -tool_format 'yosys tcl'",
+                  "api: task.set('tool', 'yosys', 'format', 'tcl')"
+                ],
+                "help": "File format for tool manifest handoff.",
+                "notes": null,
+                "pernode": "optional",
+                "node": {
+                  "default": {
+                    "default": {
+                      "value": null,
+                      "signature": null
+                    }
+                  }
+                }
+              },
+              "licenseserver": {
+                "default": {
+                  "type": "[str]",
+                  "require": false,
+                  "scope": "job",
+                  "lock": false,
+                  "switch": [
+                    "-tool_licenseserver 'name key <str>'"
+                  ],
+                  "shorthelp": "Tool: license servers",
+                  "example": [
+                    "cli: -tool_licenseserver 'atask ACME_LICENSE 1700@server'",
+                    "api: task.set('tool', 'acme', 'licenseserver', 'ACME_LICENSE', '1700@server')"
+                  ],
+                  "help": "Defines a set of tool-specific environment variables used by the executable\nthat depend on license key servers to control access. For multiple servers,\nseparate servers with a colon. The named license variables are read at\nruntime (:meth:`.Task.run()`) and the environment variables are set.",
+                  "notes": null,
+                  "pernode": "optional",
+                  "node": {
+                    "default": {
+                      "default": {
+                        "value": [],
+                        "signature": []
+                      }
+                    }
+                  }
+                }
+              },
               "warningoff": {
                 "type": "[str]",
                 "require": false,
@@ -5345,7 +5559,7 @@
                   "shorthelp": "Task: file suffix for redirected stdout",
                   "example": [
                     "cli: -tool_task_stdout_suffix 'ghdl import log'",
-                    "api: task.set('tool', ghdl', 'task', 'import', 'stdout', 'suffix', 'log')"
+                    "api: task.set('tool', 'ghdl', 'task', 'import', 'stdout', 'suffix', 'log')"
                   ],
                   "help": "Specifies the file extension for the content redirected from stdout.",
                   "notes": null,
@@ -5372,7 +5586,7 @@
                   "shorthelp": "Task: destination for stderr",
                   "example": [
                     "cli: -tool_task_stderr_destination 'ghdl import log'",
-                    "api: task.set('tool', ghdl', 'task', 'import', 'stderr', 'destination', 'log')"
+                    "api: task.set('tool', 'ghdl', 'task', 'import', 'stderr', 'destination', 'log')"
                   ],
                   "help": "Defines where to direct the output generated over stderr.\nSupported options are:\nnone: the stream generated to STDERR is ignored\nlog: the generated stream is stored in <step>.<suffix>; if not in quiet mode,\nit is additionally dumped to the display.\noutput: the generated stream is stored in outputs/<design>.<suffix>",
                   "notes": null,
@@ -5613,220 +5827,6 @@
                     "default": {
                       "value": null,
                       "signature": null
-                    }
-                  }
-                }
-              },
-              "exe": {
-                "type": "str",
-                "require": false,
-                "scope": "job",
-                "lock": false,
-                "switch": [
-                  "-tool_exe 'tool <str>'"
-                ],
-                "shorthelp": "Tool: executable name",
-                "example": [
-                  "cli: -tool_exe 'openroad openroad'",
-                  "api: task.set('tool', 'openroad', 'exe', 'openroad')"
-                ],
-                "help": "Tool executable name.",
-                "notes": null,
-                "pernode": "optional",
-                "node": {
-                  "default": {
-                    "default": {
-                      "value": null,
-                      "signature": null
-                    }
-                  }
-                }
-              },
-              "sbom": {
-                "default": {
-                  "type": "[file]",
-                  "require": false,
-                  "scope": "job",
-                  "lock": false,
-                  "switch": [
-                    "-tool_sbom 'tool version <file>'"
-                  ],
-                  "shorthelp": "Tool: software BOM",
-                  "example": [
-                    "cli: -tool_sbom 'yosys 1.0.1 ys_sbom.json'",
-                    "api: task.set('tool', 'yosys', 'sbom', '1.0', 'ys_sbom.json')"
-                  ],
-                  "help": "Paths to software bill of material (SBOM) document file of the tool\nspecified on a per version basis. The SBOM includes critical\npackage information about the tool including the list of included\ncomponents, licenses, and copyright. The SBOM file is generally\nprovided as in a a standardized open data format such as SPDX.",
-                  "notes": null,
-                  "pernode": "optional",
-                  "node": {
-                    "default": {
-                      "default": {
-                        "value": [],
-                        "signature": [],
-                        "filehash": [],
-                        "dataroot": [],
-                        "date": [],
-                        "author": []
-                      }
-                    }
-                  },
-                  "hashalgo": "sha256",
-                  "copy": false
-                }
-              },
-              "path": {
-                "type": "dir",
-                "require": false,
-                "scope": "job",
-                "lock": false,
-                "switch": [
-                  "-tool_path 'tool <dir>'"
-                ],
-                "shorthelp": "Tool: executable path",
-                "example": [
-                  "cli: -tool_path 'openroad /usr/local/bin'",
-                  "api: task.set('tool', 'openroad', 'path', '/usr/local/bin')"
-                ],
-                "help": "File system path to tool executable. The path is prepended to the\nsystem PATH environment variable for batch and interactive runs. The\npath parameter can be left blank if the :keypath:`tool,<tool>,task,<task>,exe` is\nalready in the environment search path.",
-                "notes": null,
-                "pernode": "optional",
-                "node": {
-                  "default": {
-                    "default": {
-                      "value": null,
-                      "signature": null,
-                      "filehash": null,
-                      "dataroot": null
-                    }
-                  }
-                },
-                "hashalgo": "sha256",
-                "copy": false
-              },
-              "vswitch": {
-                "type": "[str]",
-                "require": false,
-                "scope": "job",
-                "lock": false,
-                "switch": [
-                  "-tool_vswitch 'tool <str>'"
-                ],
-                "shorthelp": "Tool: executable version switch",
-                "example": [
-                  "cli: -tool_vswitch 'openroad -version'",
-                  "api: task.set('tool', 'openroad', 'vswitch', '-version')"
-                ],
-                "help": "Command line switch to use with executable used to print out\nthe version number. Common switches include ``-v``, ``-version``,\n``--version``. Some tools may require extra flags to run in batch mode.",
-                "notes": null,
-                "pernode": "optional",
-                "node": {
-                  "default": {
-                    "default": {
-                      "value": [],
-                      "signature": []
-                    }
-                  }
-                }
-              },
-              "vendor": {
-                "type": "str",
-                "require": false,
-                "scope": "job",
-                "lock": false,
-                "switch": [
-                  "-tool_vendor 'tool <str>'"
-                ],
-                "shorthelp": "Tool: vendor",
-                "example": [
-                  "cli: -tool_vendor 'yosys yosys'",
-                  "api: task.set('tool', 'yosys', 'vendor', 'yosys')"
-                ],
-                "help": "Name of the tool vendor. Parameter can be used to set vendor\nspecific technology variables in the PDK and libraries. For\nopen source projects, the project name should be used in\nplace of vendor.",
-                "notes": null,
-                "pernode": "never",
-                "node": {
-                  "default": {
-                    "default": {
-                      "value": null,
-                      "signature": null
-                    }
-                  }
-                }
-              },
-              "version": {
-                "type": "[str]",
-                "require": false,
-                "scope": "job",
-                "lock": false,
-                "switch": [
-                  "-tool_version 'tool <str>'"
-                ],
-                "shorthelp": "Tool: version",
-                "example": [
-                  "cli: -tool_version 'openroad >=v2.0'",
-                  "api: task.set('tool', 'openroad', 'version', '>=v2.0')"
-                ],
-                "help": "List of acceptable versions of the tool executable to be used. Each\nentry in this list must be a version specifier as described by Python\n`PEP-440 <https://peps.python.org/pep-0440/#version-specifiers>`_.\nDuring task execution, the tool is called with the 'vswitch' to\ncheck the runtime executable version. If the version of the system\nexecutable is not allowed by any of the specifiers in 'version',\nthen the job is halted pre-execution. For backwards compatibility,\nentries that do not conform to the standard will be interpreted as a\nversion with an '==' specifier. This check can be disabled by\nsetting :keypath:`option,novercheck` to True.",
-                "notes": null,
-                "pernode": "optional",
-                "node": {
-                  "default": {
-                    "default": {
-                      "value": [],
-                      "signature": []
-                    }
-                  }
-                }
-              },
-              "format": {
-                "type": "<json,tcl,yaml>",
-                "require": false,
-                "scope": "job",
-                "lock": false,
-                "switch": [
-                  "-tool_format 'tool <str>'"
-                ],
-                "shorthelp": "Tool: file format",
-                "example": [
-                  "cli: -tool_format 'yosys tcl'",
-                  "api: task.set('tool', 'yosys', 'format', 'tcl')"
-                ],
-                "help": "File format for tool manifest handoff.",
-                "notes": null,
-                "pernode": "optional",
-                "node": {
-                  "default": {
-                    "default": {
-                      "value": null,
-                      "signature": null
-                    }
-                  }
-                }
-              },
-              "licenseserver": {
-                "default": {
-                  "type": "[str]",
-                  "require": false,
-                  "scope": "job",
-                  "lock": false,
-                  "switch": [
-                    "-tool_licenseserver 'name key <str>'"
-                  ],
-                  "shorthelp": "Tool: license servers",
-                  "example": [
-                    "cli: -tool_licenseserver 'atask ACME_LICENSE 1700@server'",
-                    "api: task.set('tool', 'acme', 'licenseserver', 'ACME_LICENSE', '1700@server')"
-                  ],
-                  "help": "Defines a set of tool-specific environment variables used by the executable\nthat depend on license key servers to control access. For multiple servers,\nseparate servers with a colon. The named license variables are read at\nruntime (:meth:`.Task.run()`) and the environment variables are set.",
-                  "notes": null,
-                  "pernode": "optional",
-                  "node": {
-                    "default": {
-                      "default": {
-                        "value": [],
-                        "signature": []
-                      }
                     }
                   }
                 }
@@ -9096,6 +9096,220 @@
                   }
                 }
               },
+              "exe": {
+                "type": "str",
+                "require": false,
+                "scope": "job",
+                "lock": false,
+                "switch": [
+                  "-tool_exe 'tool <str>'"
+                ],
+                "shorthelp": "Tool: executable name",
+                "example": [
+                  "cli: -tool_exe 'openroad openroad'",
+                  "api: task.set('tool', 'openroad', 'exe', 'openroad')"
+                ],
+                "help": "Tool executable name.",
+                "notes": null,
+                "pernode": "optional",
+                "node": {
+                  "default": {
+                    "default": {
+                      "value": null,
+                      "signature": null
+                    }
+                  }
+                }
+              },
+              "sbom": {
+                "default": {
+                  "type": "[file]",
+                  "require": false,
+                  "scope": "job",
+                  "lock": false,
+                  "switch": [
+                    "-tool_sbom 'tool version <file>'"
+                  ],
+                  "shorthelp": "Tool: software BOM",
+                  "example": [
+                    "cli: -tool_sbom 'yosys 1.0.1 ys_sbom.json'",
+                    "api: task.set('tool', 'yosys', 'sbom', '1.0', 'ys_sbom.json')"
+                  ],
+                  "help": "Paths to software bill of material (SBOM) document file of the tool\nspecified on a per version basis. The SBOM includes critical\npackage information about the tool including the list of included\ncomponents, licenses, and copyright. The SBOM file is generally\nprovided as in a a standardized open data format such as SPDX.",
+                  "notes": null,
+                  "pernode": "optional",
+                  "node": {
+                    "default": {
+                      "default": {
+                        "value": [],
+                        "signature": [],
+                        "filehash": [],
+                        "dataroot": [],
+                        "date": [],
+                        "author": []
+                      }
+                    }
+                  },
+                  "hashalgo": "sha256",
+                  "copy": false
+                }
+              },
+              "path": {
+                "type": "dir",
+                "require": false,
+                "scope": "job",
+                "lock": false,
+                "switch": [
+                  "-tool_path 'tool <dir>'"
+                ],
+                "shorthelp": "Tool: executable path",
+                "example": [
+                  "cli: -tool_path 'openroad /usr/local/bin'",
+                  "api: task.set('tool', 'openroad', 'path', '/usr/local/bin')"
+                ],
+                "help": "File system path to tool executable. The path is prepended to the\nsystem PATH environment variable for batch and interactive runs. The\npath parameter can be left blank if the :keypath:`tool,<tool>,task,<task>,exe` is\nalready in the environment search path.",
+                "notes": null,
+                "pernode": "optional",
+                "node": {
+                  "default": {
+                    "default": {
+                      "value": null,
+                      "signature": null,
+                      "filehash": null,
+                      "dataroot": null
+                    }
+                  }
+                },
+                "hashalgo": "sha256",
+                "copy": false
+              },
+              "vswitch": {
+                "type": "[str]",
+                "require": false,
+                "scope": "job",
+                "lock": false,
+                "switch": [
+                  "-tool_vswitch 'tool <str>'"
+                ],
+                "shorthelp": "Tool: executable version switch",
+                "example": [
+                  "cli: -tool_vswitch 'openroad -version'",
+                  "api: task.set('tool', 'openroad', 'vswitch', '-version')"
+                ],
+                "help": "Command line switch to use with executable used to print out\nthe version number. Common switches include ``-v``, ``-version``,\n``--version``. Some tools may require extra flags to run in batch mode.",
+                "notes": null,
+                "pernode": "optional",
+                "node": {
+                  "default": {
+                    "default": {
+                      "value": [],
+                      "signature": []
+                    }
+                  }
+                }
+              },
+              "vendor": {
+                "type": "str",
+                "require": false,
+                "scope": "job",
+                "lock": false,
+                "switch": [
+                  "-tool_vendor 'tool <str>'"
+                ],
+                "shorthelp": "Tool: vendor",
+                "example": [
+                  "cli: -tool_vendor 'yosys yosys'",
+                  "api: task.set('tool', 'yosys', 'vendor', 'yosys')"
+                ],
+                "help": "Name of the tool vendor. Parameter can be used to set vendor\nspecific technology variables in the PDK and libraries. For\nopen source projects, the project name should be used in\nplace of vendor.",
+                "notes": null,
+                "pernode": "never",
+                "node": {
+                  "default": {
+                    "default": {
+                      "value": null,
+                      "signature": null
+                    }
+                  }
+                }
+              },
+              "version": {
+                "type": "[str]",
+                "require": false,
+                "scope": "job",
+                "lock": false,
+                "switch": [
+                  "-tool_version 'tool <str>'"
+                ],
+                "shorthelp": "Tool: version",
+                "example": [
+                  "cli: -tool_version 'openroad >=v2.0'",
+                  "api: task.set('tool', 'openroad', 'version', '>=v2.0')"
+                ],
+                "help": "List of acceptable versions of the tool executable to be used. Each\nentry in this list must be a version specifier as described by Python\n`PEP-440 <https://peps.python.org/pep-0440/#version-specifiers>`_.\nDuring task execution, the tool is called with the 'vswitch' to\ncheck the runtime executable version. If the version of the system\nexecutable is not allowed by any of the specifiers in 'version',\nthen the job is halted pre-execution. For backwards compatibility,\nentries that do not conform to the standard will be interpreted as a\nversion with an '==' specifier. This check can be disabled by\nsetting :keypath:`option,novercheck` to True.",
+                "notes": null,
+                "pernode": "optional",
+                "node": {
+                  "default": {
+                    "default": {
+                      "value": [],
+                      "signature": []
+                    }
+                  }
+                }
+              },
+              "format": {
+                "type": "<json,tcl,yaml>",
+                "require": false,
+                "scope": "job",
+                "lock": false,
+                "switch": [
+                  "-tool_format 'tool <str>'"
+                ],
+                "shorthelp": "Tool: file format",
+                "example": [
+                  "cli: -tool_format 'yosys tcl'",
+                  "api: task.set('tool', 'yosys', 'format', 'tcl')"
+                ],
+                "help": "File format for tool manifest handoff.",
+                "notes": null,
+                "pernode": "optional",
+                "node": {
+                  "default": {
+                    "default": {
+                      "value": null,
+                      "signature": null
+                    }
+                  }
+                }
+              },
+              "licenseserver": {
+                "default": {
+                  "type": "[str]",
+                  "require": false,
+                  "scope": "job",
+                  "lock": false,
+                  "switch": [
+                    "-tool_licenseserver 'name key <str>'"
+                  ],
+                  "shorthelp": "Tool: license servers",
+                  "example": [
+                    "cli: -tool_licenseserver 'atask ACME_LICENSE 1700@server'",
+                    "api: task.set('tool', 'acme', 'licenseserver', 'ACME_LICENSE', '1700@server')"
+                  ],
+                  "help": "Defines a set of tool-specific environment variables used by the executable\nthat depend on license key servers to control access. For multiple servers,\nseparate servers with a colon. The named license variables are read at\nruntime (:meth:`.Task.run()`) and the environment variables are set.",
+                  "notes": null,
+                  "pernode": "optional",
+                  "node": {
+                    "default": {
+                      "default": {
+                        "value": [],
+                        "signature": []
+                      }
+                    }
+                  }
+                }
+              },
               "warningoff": {
                 "type": "[str]",
                 "require": false,
@@ -9390,7 +9604,7 @@
                   "shorthelp": "Task: file suffix for redirected stdout",
                   "example": [
                     "cli: -tool_task_stdout_suffix 'ghdl import log'",
-                    "api: task.set('tool', ghdl', 'task', 'import', 'stdout', 'suffix', 'log')"
+                    "api: task.set('tool', 'ghdl', 'task', 'import', 'stdout', 'suffix', 'log')"
                   ],
                   "help": "Specifies the file extension for the content redirected from stdout.",
                   "notes": null,
@@ -9417,7 +9631,7 @@
                   "shorthelp": "Task: destination for stderr",
                   "example": [
                     "cli: -tool_task_stderr_destination 'ghdl import log'",
-                    "api: task.set('tool', ghdl', 'task', 'import', 'stderr', 'destination', 'log')"
+                    "api: task.set('tool', 'ghdl', 'task', 'import', 'stderr', 'destination', 'log')"
                   ],
                   "help": "Defines where to direct the output generated over stderr.\nSupported options are:\nnone: the stream generated to STDERR is ignored\nlog: the generated stream is stored in <step>.<suffix>; if not in quiet mode,\nit is additionally dumped to the display.\noutput: the generated stream is stored in outputs/<design>.<suffix>",
                   "notes": null,
@@ -9658,220 +9872,6 @@
                     "default": {
                       "value": null,
                       "signature": null
-                    }
-                  }
-                }
-              },
-              "exe": {
-                "type": "str",
-                "require": false,
-                "scope": "job",
-                "lock": false,
-                "switch": [
-                  "-tool_exe 'tool <str>'"
-                ],
-                "shorthelp": "Tool: executable name",
-                "example": [
-                  "cli: -tool_exe 'openroad openroad'",
-                  "api: task.set('tool', 'openroad', 'exe', 'openroad')"
-                ],
-                "help": "Tool executable name.",
-                "notes": null,
-                "pernode": "optional",
-                "node": {
-                  "default": {
-                    "default": {
-                      "value": null,
-                      "signature": null
-                    }
-                  }
-                }
-              },
-              "sbom": {
-                "default": {
-                  "type": "[file]",
-                  "require": false,
-                  "scope": "job",
-                  "lock": false,
-                  "switch": [
-                    "-tool_sbom 'tool version <file>'"
-                  ],
-                  "shorthelp": "Tool: software BOM",
-                  "example": [
-                    "cli: -tool_sbom 'yosys 1.0.1 ys_sbom.json'",
-                    "api: task.set('tool', 'yosys', 'sbom', '1.0', 'ys_sbom.json')"
-                  ],
-                  "help": "Paths to software bill of material (SBOM) document file of the tool\nspecified on a per version basis. The SBOM includes critical\npackage information about the tool including the list of included\ncomponents, licenses, and copyright. The SBOM file is generally\nprovided as in a a standardized open data format such as SPDX.",
-                  "notes": null,
-                  "pernode": "optional",
-                  "node": {
-                    "default": {
-                      "default": {
-                        "value": [],
-                        "signature": [],
-                        "filehash": [],
-                        "dataroot": [],
-                        "date": [],
-                        "author": []
-                      }
-                    }
-                  },
-                  "hashalgo": "sha256",
-                  "copy": false
-                }
-              },
-              "path": {
-                "type": "dir",
-                "require": false,
-                "scope": "job",
-                "lock": false,
-                "switch": [
-                  "-tool_path 'tool <dir>'"
-                ],
-                "shorthelp": "Tool: executable path",
-                "example": [
-                  "cli: -tool_path 'openroad /usr/local/bin'",
-                  "api: task.set('tool', 'openroad', 'path', '/usr/local/bin')"
-                ],
-                "help": "File system path to tool executable. The path is prepended to the\nsystem PATH environment variable for batch and interactive runs. The\npath parameter can be left blank if the :keypath:`tool,<tool>,task,<task>,exe` is\nalready in the environment search path.",
-                "notes": null,
-                "pernode": "optional",
-                "node": {
-                  "default": {
-                    "default": {
-                      "value": null,
-                      "signature": null,
-                      "filehash": null,
-                      "dataroot": null
-                    }
-                  }
-                },
-                "hashalgo": "sha256",
-                "copy": false
-              },
-              "vswitch": {
-                "type": "[str]",
-                "require": false,
-                "scope": "job",
-                "lock": false,
-                "switch": [
-                  "-tool_vswitch 'tool <str>'"
-                ],
-                "shorthelp": "Tool: executable version switch",
-                "example": [
-                  "cli: -tool_vswitch 'openroad -version'",
-                  "api: task.set('tool', 'openroad', 'vswitch', '-version')"
-                ],
-                "help": "Command line switch to use with executable used to print out\nthe version number. Common switches include ``-v``, ``-version``,\n``--version``. Some tools may require extra flags to run in batch mode.",
-                "notes": null,
-                "pernode": "optional",
-                "node": {
-                  "default": {
-                    "default": {
-                      "value": [],
-                      "signature": []
-                    }
-                  }
-                }
-              },
-              "vendor": {
-                "type": "str",
-                "require": false,
-                "scope": "job",
-                "lock": false,
-                "switch": [
-                  "-tool_vendor 'tool <str>'"
-                ],
-                "shorthelp": "Tool: vendor",
-                "example": [
-                  "cli: -tool_vendor 'yosys yosys'",
-                  "api: task.set('tool', 'yosys', 'vendor', 'yosys')"
-                ],
-                "help": "Name of the tool vendor. Parameter can be used to set vendor\nspecific technology variables in the PDK and libraries. For\nopen source projects, the project name should be used in\nplace of vendor.",
-                "notes": null,
-                "pernode": "never",
-                "node": {
-                  "default": {
-                    "default": {
-                      "value": null,
-                      "signature": null
-                    }
-                  }
-                }
-              },
-              "version": {
-                "type": "[str]",
-                "require": false,
-                "scope": "job",
-                "lock": false,
-                "switch": [
-                  "-tool_version 'tool <str>'"
-                ],
-                "shorthelp": "Tool: version",
-                "example": [
-                  "cli: -tool_version 'openroad >=v2.0'",
-                  "api: task.set('tool', 'openroad', 'version', '>=v2.0')"
-                ],
-                "help": "List of acceptable versions of the tool executable to be used. Each\nentry in this list must be a version specifier as described by Python\n`PEP-440 <https://peps.python.org/pep-0440/#version-specifiers>`_.\nDuring task execution, the tool is called with the 'vswitch' to\ncheck the runtime executable version. If the version of the system\nexecutable is not allowed by any of the specifiers in 'version',\nthen the job is halted pre-execution. For backwards compatibility,\nentries that do not conform to the standard will be interpreted as a\nversion with an '==' specifier. This check can be disabled by\nsetting :keypath:`option,novercheck` to True.",
-                "notes": null,
-                "pernode": "optional",
-                "node": {
-                  "default": {
-                    "default": {
-                      "value": [],
-                      "signature": []
-                    }
-                  }
-                }
-              },
-              "format": {
-                "type": "<json,tcl,yaml>",
-                "require": false,
-                "scope": "job",
-                "lock": false,
-                "switch": [
-                  "-tool_format 'tool <str>'"
-                ],
-                "shorthelp": "Tool: file format",
-                "example": [
-                  "cli: -tool_format 'yosys tcl'",
-                  "api: task.set('tool', 'yosys', 'format', 'tcl')"
-                ],
-                "help": "File format for tool manifest handoff.",
-                "notes": null,
-                "pernode": "optional",
-                "node": {
-                  "default": {
-                    "default": {
-                      "value": null,
-                      "signature": null
-                    }
-                  }
-                }
-              },
-              "licenseserver": {
-                "default": {
-                  "type": "[str]",
-                  "require": false,
-                  "scope": "job",
-                  "lock": false,
-                  "switch": [
-                    "-tool_licenseserver 'name key <str>'"
-                  ],
-                  "shorthelp": "Tool: license servers",
-                  "example": [
-                    "cli: -tool_licenseserver 'atask ACME_LICENSE 1700@server'",
-                    "api: task.set('tool', 'acme', 'licenseserver', 'ACME_LICENSE', '1700@server')"
-                  ],
-                  "help": "Defines a set of tool-specific environment variables used by the executable\nthat depend on license key servers to control access. For multiple servers,\nseparate servers with a colon. The named license variables are read at\nruntime (:meth:`.Task.run()`) and the environment variables are set.",
-                  "notes": null,
-                  "pernode": "optional",
-                  "node": {
-                    "default": {
-                      "default": {
-                        "value": [],
-                        "signature": []
-                      }
                     }
                   }
                 }
@@ -12897,6 +12897,220 @@
                   }
                 }
               },
+              "exe": {
+                "type": "str",
+                "require": false,
+                "scope": "job",
+                "lock": false,
+                "switch": [
+                  "-tool_exe 'tool <str>'"
+                ],
+                "shorthelp": "Tool: executable name",
+                "example": [
+                  "cli: -tool_exe 'openroad openroad'",
+                  "api: task.set('tool', 'openroad', 'exe', 'openroad')"
+                ],
+                "help": "Tool executable name.",
+                "notes": null,
+                "pernode": "optional",
+                "node": {
+                  "default": {
+                    "default": {
+                      "value": null,
+                      "signature": null
+                    }
+                  }
+                }
+              },
+              "sbom": {
+                "default": {
+                  "type": "[file]",
+                  "require": false,
+                  "scope": "job",
+                  "lock": false,
+                  "switch": [
+                    "-tool_sbom 'tool version <file>'"
+                  ],
+                  "shorthelp": "Tool: software BOM",
+                  "example": [
+                    "cli: -tool_sbom 'yosys 1.0.1 ys_sbom.json'",
+                    "api: task.set('tool', 'yosys', 'sbom', '1.0', 'ys_sbom.json')"
+                  ],
+                  "help": "Paths to software bill of material (SBOM) document file of the tool\nspecified on a per version basis. The SBOM includes critical\npackage information about the tool including the list of included\ncomponents, licenses, and copyright. The SBOM file is generally\nprovided as in a a standardized open data format such as SPDX.",
+                  "notes": null,
+                  "pernode": "optional",
+                  "node": {
+                    "default": {
+                      "default": {
+                        "value": [],
+                        "signature": [],
+                        "filehash": [],
+                        "dataroot": [],
+                        "date": [],
+                        "author": []
+                      }
+                    }
+                  },
+                  "hashalgo": "sha256",
+                  "copy": false
+                }
+              },
+              "path": {
+                "type": "dir",
+                "require": false,
+                "scope": "job",
+                "lock": false,
+                "switch": [
+                  "-tool_path 'tool <dir>'"
+                ],
+                "shorthelp": "Tool: executable path",
+                "example": [
+                  "cli: -tool_path 'openroad /usr/local/bin'",
+                  "api: task.set('tool', 'openroad', 'path', '/usr/local/bin')"
+                ],
+                "help": "File system path to tool executable. The path is prepended to the\nsystem PATH environment variable for batch and interactive runs. The\npath parameter can be left blank if the :keypath:`tool,<tool>,task,<task>,exe` is\nalready in the environment search path.",
+                "notes": null,
+                "pernode": "optional",
+                "node": {
+                  "default": {
+                    "default": {
+                      "value": null,
+                      "signature": null,
+                      "filehash": null,
+                      "dataroot": null
+                    }
+                  }
+                },
+                "hashalgo": "sha256",
+                "copy": false
+              },
+              "vswitch": {
+                "type": "[str]",
+                "require": false,
+                "scope": "job",
+                "lock": false,
+                "switch": [
+                  "-tool_vswitch 'tool <str>'"
+                ],
+                "shorthelp": "Tool: executable version switch",
+                "example": [
+                  "cli: -tool_vswitch 'openroad -version'",
+                  "api: task.set('tool', 'openroad', 'vswitch', '-version')"
+                ],
+                "help": "Command line switch to use with executable used to print out\nthe version number. Common switches include ``-v``, ``-version``,\n``--version``. Some tools may require extra flags to run in batch mode.",
+                "notes": null,
+                "pernode": "optional",
+                "node": {
+                  "default": {
+                    "default": {
+                      "value": [],
+                      "signature": []
+                    }
+                  }
+                }
+              },
+              "vendor": {
+                "type": "str",
+                "require": false,
+                "scope": "job",
+                "lock": false,
+                "switch": [
+                  "-tool_vendor 'tool <str>'"
+                ],
+                "shorthelp": "Tool: vendor",
+                "example": [
+                  "cli: -tool_vendor 'yosys yosys'",
+                  "api: task.set('tool', 'yosys', 'vendor', 'yosys')"
+                ],
+                "help": "Name of the tool vendor. Parameter can be used to set vendor\nspecific technology variables in the PDK and libraries. For\nopen source projects, the project name should be used in\nplace of vendor.",
+                "notes": null,
+                "pernode": "never",
+                "node": {
+                  "default": {
+                    "default": {
+                      "value": null,
+                      "signature": null
+                    }
+                  }
+                }
+              },
+              "version": {
+                "type": "[str]",
+                "require": false,
+                "scope": "job",
+                "lock": false,
+                "switch": [
+                  "-tool_version 'tool <str>'"
+                ],
+                "shorthelp": "Tool: version",
+                "example": [
+                  "cli: -tool_version 'openroad >=v2.0'",
+                  "api: task.set('tool', 'openroad', 'version', '>=v2.0')"
+                ],
+                "help": "List of acceptable versions of the tool executable to be used. Each\nentry in this list must be a version specifier as described by Python\n`PEP-440 <https://peps.python.org/pep-0440/#version-specifiers>`_.\nDuring task execution, the tool is called with the 'vswitch' to\ncheck the runtime executable version. If the version of the system\nexecutable is not allowed by any of the specifiers in 'version',\nthen the job is halted pre-execution. For backwards compatibility,\nentries that do not conform to the standard will be interpreted as a\nversion with an '==' specifier. This check can be disabled by\nsetting :keypath:`option,novercheck` to True.",
+                "notes": null,
+                "pernode": "optional",
+                "node": {
+                  "default": {
+                    "default": {
+                      "value": [],
+                      "signature": []
+                    }
+                  }
+                }
+              },
+              "format": {
+                "type": "<json,tcl,yaml>",
+                "require": false,
+                "scope": "job",
+                "lock": false,
+                "switch": [
+                  "-tool_format 'tool <str>'"
+                ],
+                "shorthelp": "Tool: file format",
+                "example": [
+                  "cli: -tool_format 'yosys tcl'",
+                  "api: task.set('tool', 'yosys', 'format', 'tcl')"
+                ],
+                "help": "File format for tool manifest handoff.",
+                "notes": null,
+                "pernode": "optional",
+                "node": {
+                  "default": {
+                    "default": {
+                      "value": null,
+                      "signature": null
+                    }
+                  }
+                }
+              },
+              "licenseserver": {
+                "default": {
+                  "type": "[str]",
+                  "require": false,
+                  "scope": "job",
+                  "lock": false,
+                  "switch": [
+                    "-tool_licenseserver 'name key <str>'"
+                  ],
+                  "shorthelp": "Tool: license servers",
+                  "example": [
+                    "cli: -tool_licenseserver 'atask ACME_LICENSE 1700@server'",
+                    "api: task.set('tool', 'acme', 'licenseserver', 'ACME_LICENSE', '1700@server')"
+                  ],
+                  "help": "Defines a set of tool-specific environment variables used by the executable\nthat depend on license key servers to control access. For multiple servers,\nseparate servers with a colon. The named license variables are read at\nruntime (:meth:`.Task.run()`) and the environment variables are set.",
+                  "notes": null,
+                  "pernode": "optional",
+                  "node": {
+                    "default": {
+                      "default": {
+                        "value": [],
+                        "signature": []
+                      }
+                    }
+                  }
+                }
+              },
               "warningoff": {
                 "type": "[str]",
                 "require": false,
@@ -13191,7 +13405,7 @@
                   "shorthelp": "Task: file suffix for redirected stdout",
                   "example": [
                     "cli: -tool_task_stdout_suffix 'ghdl import log'",
-                    "api: task.set('tool', ghdl', 'task', 'import', 'stdout', 'suffix', 'log')"
+                    "api: task.set('tool', 'ghdl', 'task', 'import', 'stdout', 'suffix', 'log')"
                   ],
                   "help": "Specifies the file extension for the content redirected from stdout.",
                   "notes": null,
@@ -13218,7 +13432,7 @@
                   "shorthelp": "Task: destination for stderr",
                   "example": [
                     "cli: -tool_task_stderr_destination 'ghdl import log'",
-                    "api: task.set('tool', ghdl', 'task', 'import', 'stderr', 'destination', 'log')"
+                    "api: task.set('tool', 'ghdl', 'task', 'import', 'stderr', 'destination', 'log')"
                   ],
                   "help": "Defines where to direct the output generated over stderr.\nSupported options are:\nnone: the stream generated to STDERR is ignored\nlog: the generated stream is stored in <step>.<suffix>; if not in quiet mode,\nit is additionally dumped to the display.\noutput: the generated stream is stored in outputs/<design>.<suffix>",
                   "notes": null,
@@ -13459,220 +13673,6 @@
                     "default": {
                       "value": null,
                       "signature": null
-                    }
-                  }
-                }
-              },
-              "exe": {
-                "type": "str",
-                "require": false,
-                "scope": "job",
-                "lock": false,
-                "switch": [
-                  "-tool_exe 'tool <str>'"
-                ],
-                "shorthelp": "Tool: executable name",
-                "example": [
-                  "cli: -tool_exe 'openroad openroad'",
-                  "api: task.set('tool', 'openroad', 'exe', 'openroad')"
-                ],
-                "help": "Tool executable name.",
-                "notes": null,
-                "pernode": "optional",
-                "node": {
-                  "default": {
-                    "default": {
-                      "value": null,
-                      "signature": null
-                    }
-                  }
-                }
-              },
-              "sbom": {
-                "default": {
-                  "type": "[file]",
-                  "require": false,
-                  "scope": "job",
-                  "lock": false,
-                  "switch": [
-                    "-tool_sbom 'tool version <file>'"
-                  ],
-                  "shorthelp": "Tool: software BOM",
-                  "example": [
-                    "cli: -tool_sbom 'yosys 1.0.1 ys_sbom.json'",
-                    "api: task.set('tool', 'yosys', 'sbom', '1.0', 'ys_sbom.json')"
-                  ],
-                  "help": "Paths to software bill of material (SBOM) document file of the tool\nspecified on a per version basis. The SBOM includes critical\npackage information about the tool including the list of included\ncomponents, licenses, and copyright. The SBOM file is generally\nprovided as in a a standardized open data format such as SPDX.",
-                  "notes": null,
-                  "pernode": "optional",
-                  "node": {
-                    "default": {
-                      "default": {
-                        "value": [],
-                        "signature": [],
-                        "filehash": [],
-                        "dataroot": [],
-                        "date": [],
-                        "author": []
-                      }
-                    }
-                  },
-                  "hashalgo": "sha256",
-                  "copy": false
-                }
-              },
-              "path": {
-                "type": "dir",
-                "require": false,
-                "scope": "job",
-                "lock": false,
-                "switch": [
-                  "-tool_path 'tool <dir>'"
-                ],
-                "shorthelp": "Tool: executable path",
-                "example": [
-                  "cli: -tool_path 'openroad /usr/local/bin'",
-                  "api: task.set('tool', 'openroad', 'path', '/usr/local/bin')"
-                ],
-                "help": "File system path to tool executable. The path is prepended to the\nsystem PATH environment variable for batch and interactive runs. The\npath parameter can be left blank if the :keypath:`tool,<tool>,task,<task>,exe` is\nalready in the environment search path.",
-                "notes": null,
-                "pernode": "optional",
-                "node": {
-                  "default": {
-                    "default": {
-                      "value": null,
-                      "signature": null,
-                      "filehash": null,
-                      "dataroot": null
-                    }
-                  }
-                },
-                "hashalgo": "sha256",
-                "copy": false
-              },
-              "vswitch": {
-                "type": "[str]",
-                "require": false,
-                "scope": "job",
-                "lock": false,
-                "switch": [
-                  "-tool_vswitch 'tool <str>'"
-                ],
-                "shorthelp": "Tool: executable version switch",
-                "example": [
-                  "cli: -tool_vswitch 'openroad -version'",
-                  "api: task.set('tool', 'openroad', 'vswitch', '-version')"
-                ],
-                "help": "Command line switch to use with executable used to print out\nthe version number. Common switches include ``-v``, ``-version``,\n``--version``. Some tools may require extra flags to run in batch mode.",
-                "notes": null,
-                "pernode": "optional",
-                "node": {
-                  "default": {
-                    "default": {
-                      "value": [],
-                      "signature": []
-                    }
-                  }
-                }
-              },
-              "vendor": {
-                "type": "str",
-                "require": false,
-                "scope": "job",
-                "lock": false,
-                "switch": [
-                  "-tool_vendor 'tool <str>'"
-                ],
-                "shorthelp": "Tool: vendor",
-                "example": [
-                  "cli: -tool_vendor 'yosys yosys'",
-                  "api: task.set('tool', 'yosys', 'vendor', 'yosys')"
-                ],
-                "help": "Name of the tool vendor. Parameter can be used to set vendor\nspecific technology variables in the PDK and libraries. For\nopen source projects, the project name should be used in\nplace of vendor.",
-                "notes": null,
-                "pernode": "never",
-                "node": {
-                  "default": {
-                    "default": {
-                      "value": null,
-                      "signature": null
-                    }
-                  }
-                }
-              },
-              "version": {
-                "type": "[str]",
-                "require": false,
-                "scope": "job",
-                "lock": false,
-                "switch": [
-                  "-tool_version 'tool <str>'"
-                ],
-                "shorthelp": "Tool: version",
-                "example": [
-                  "cli: -tool_version 'openroad >=v2.0'",
-                  "api: task.set('tool', 'openroad', 'version', '>=v2.0')"
-                ],
-                "help": "List of acceptable versions of the tool executable to be used. Each\nentry in this list must be a version specifier as described by Python\n`PEP-440 <https://peps.python.org/pep-0440/#version-specifiers>`_.\nDuring task execution, the tool is called with the 'vswitch' to\ncheck the runtime executable version. If the version of the system\nexecutable is not allowed by any of the specifiers in 'version',\nthen the job is halted pre-execution. For backwards compatibility,\nentries that do not conform to the standard will be interpreted as a\nversion with an '==' specifier. This check can be disabled by\nsetting :keypath:`option,novercheck` to True.",
-                "notes": null,
-                "pernode": "optional",
-                "node": {
-                  "default": {
-                    "default": {
-                      "value": [],
-                      "signature": []
-                    }
-                  }
-                }
-              },
-              "format": {
-                "type": "<json,tcl,yaml>",
-                "require": false,
-                "scope": "job",
-                "lock": false,
-                "switch": [
-                  "-tool_format 'tool <str>'"
-                ],
-                "shorthelp": "Tool: file format",
-                "example": [
-                  "cli: -tool_format 'yosys tcl'",
-                  "api: task.set('tool', 'yosys', 'format', 'tcl')"
-                ],
-                "help": "File format for tool manifest handoff.",
-                "notes": null,
-                "pernode": "optional",
-                "node": {
-                  "default": {
-                    "default": {
-                      "value": null,
-                      "signature": null
-                    }
-                  }
-                }
-              },
-              "licenseserver": {
-                "default": {
-                  "type": "[str]",
-                  "require": false,
-                  "scope": "job",
-                  "lock": false,
-                  "switch": [
-                    "-tool_licenseserver 'name key <str>'"
-                  ],
-                  "shorthelp": "Tool: license servers",
-                  "example": [
-                    "cli: -tool_licenseserver 'atask ACME_LICENSE 1700@server'",
-                    "api: task.set('tool', 'acme', 'licenseserver', 'ACME_LICENSE', '1700@server')"
-                  ],
-                  "help": "Defines a set of tool-specific environment variables used by the executable\nthat depend on license key servers to control access. For multiple servers,\nseparate servers with a colon. The named license variables are read at\nruntime (:meth:`.Task.run()`) and the environment variables are set.",
-                  "notes": null,
-                  "pernode": "optional",
-                  "node": {
-                    "default": {
-                      "default": {
-                        "value": [],
-                        "signature": []
-                      }
                     }
                   }
                 }
@@ -15947,6 +15947,220 @@
                   }
                 }
               },
+              "exe": {
+                "type": "str",
+                "require": false,
+                "scope": "job",
+                "lock": false,
+                "switch": [
+                  "-tool_exe 'tool <str>'"
+                ],
+                "shorthelp": "Tool: executable name",
+                "example": [
+                  "cli: -tool_exe 'openroad openroad'",
+                  "api: task.set('tool', 'openroad', 'exe', 'openroad')"
+                ],
+                "help": "Tool executable name.",
+                "notes": null,
+                "pernode": "optional",
+                "node": {
+                  "default": {
+                    "default": {
+                      "value": null,
+                      "signature": null
+                    }
+                  }
+                }
+              },
+              "sbom": {
+                "default": {
+                  "type": "[file]",
+                  "require": false,
+                  "scope": "job",
+                  "lock": false,
+                  "switch": [
+                    "-tool_sbom 'tool version <file>'"
+                  ],
+                  "shorthelp": "Tool: software BOM",
+                  "example": [
+                    "cli: -tool_sbom 'yosys 1.0.1 ys_sbom.json'",
+                    "api: task.set('tool', 'yosys', 'sbom', '1.0', 'ys_sbom.json')"
+                  ],
+                  "help": "Paths to software bill of material (SBOM) document file of the tool\nspecified on a per version basis. The SBOM includes critical\npackage information about the tool including the list of included\ncomponents, licenses, and copyright. The SBOM file is generally\nprovided as in a a standardized open data format such as SPDX.",
+                  "notes": null,
+                  "pernode": "optional",
+                  "node": {
+                    "default": {
+                      "default": {
+                        "value": [],
+                        "signature": [],
+                        "filehash": [],
+                        "dataroot": [],
+                        "date": [],
+                        "author": []
+                      }
+                    }
+                  },
+                  "hashalgo": "sha256",
+                  "copy": false
+                }
+              },
+              "path": {
+                "type": "dir",
+                "require": false,
+                "scope": "job",
+                "lock": false,
+                "switch": [
+                  "-tool_path 'tool <dir>'"
+                ],
+                "shorthelp": "Tool: executable path",
+                "example": [
+                  "cli: -tool_path 'openroad /usr/local/bin'",
+                  "api: task.set('tool', 'openroad', 'path', '/usr/local/bin')"
+                ],
+                "help": "File system path to tool executable. The path is prepended to the\nsystem PATH environment variable for batch and interactive runs. The\npath parameter can be left blank if the :keypath:`tool,<tool>,task,<task>,exe` is\nalready in the environment search path.",
+                "notes": null,
+                "pernode": "optional",
+                "node": {
+                  "default": {
+                    "default": {
+                      "value": null,
+                      "signature": null,
+                      "filehash": null,
+                      "dataroot": null
+                    }
+                  }
+                },
+                "hashalgo": "sha256",
+                "copy": false
+              },
+              "vswitch": {
+                "type": "[str]",
+                "require": false,
+                "scope": "job",
+                "lock": false,
+                "switch": [
+                  "-tool_vswitch 'tool <str>'"
+                ],
+                "shorthelp": "Tool: executable version switch",
+                "example": [
+                  "cli: -tool_vswitch 'openroad -version'",
+                  "api: task.set('tool', 'openroad', 'vswitch', '-version')"
+                ],
+                "help": "Command line switch to use with executable used to print out\nthe version number. Common switches include ``-v``, ``-version``,\n``--version``. Some tools may require extra flags to run in batch mode.",
+                "notes": null,
+                "pernode": "optional",
+                "node": {
+                  "default": {
+                    "default": {
+                      "value": [],
+                      "signature": []
+                    }
+                  }
+                }
+              },
+              "vendor": {
+                "type": "str",
+                "require": false,
+                "scope": "job",
+                "lock": false,
+                "switch": [
+                  "-tool_vendor 'tool <str>'"
+                ],
+                "shorthelp": "Tool: vendor",
+                "example": [
+                  "cli: -tool_vendor 'yosys yosys'",
+                  "api: task.set('tool', 'yosys', 'vendor', 'yosys')"
+                ],
+                "help": "Name of the tool vendor. Parameter can be used to set vendor\nspecific technology variables in the PDK and libraries. For\nopen source projects, the project name should be used in\nplace of vendor.",
+                "notes": null,
+                "pernode": "never",
+                "node": {
+                  "default": {
+                    "default": {
+                      "value": null,
+                      "signature": null
+                    }
+                  }
+                }
+              },
+              "version": {
+                "type": "[str]",
+                "require": false,
+                "scope": "job",
+                "lock": false,
+                "switch": [
+                  "-tool_version 'tool <str>'"
+                ],
+                "shorthelp": "Tool: version",
+                "example": [
+                  "cli: -tool_version 'openroad >=v2.0'",
+                  "api: task.set('tool', 'openroad', 'version', '>=v2.0')"
+                ],
+                "help": "List of acceptable versions of the tool executable to be used. Each\nentry in this list must be a version specifier as described by Python\n`PEP-440 <https://peps.python.org/pep-0440/#version-specifiers>`_.\nDuring task execution, the tool is called with the 'vswitch' to\ncheck the runtime executable version. If the version of the system\nexecutable is not allowed by any of the specifiers in 'version',\nthen the job is halted pre-execution. For backwards compatibility,\nentries that do not conform to the standard will be interpreted as a\nversion with an '==' specifier. This check can be disabled by\nsetting :keypath:`option,novercheck` to True.",
+                "notes": null,
+                "pernode": "optional",
+                "node": {
+                  "default": {
+                    "default": {
+                      "value": [],
+                      "signature": []
+                    }
+                  }
+                }
+              },
+              "format": {
+                "type": "<json,tcl,yaml>",
+                "require": false,
+                "scope": "job",
+                "lock": false,
+                "switch": [
+                  "-tool_format 'tool <str>'"
+                ],
+                "shorthelp": "Tool: file format",
+                "example": [
+                  "cli: -tool_format 'yosys tcl'",
+                  "api: task.set('tool', 'yosys', 'format', 'tcl')"
+                ],
+                "help": "File format for tool manifest handoff.",
+                "notes": null,
+                "pernode": "optional",
+                "node": {
+                  "default": {
+                    "default": {
+                      "value": null,
+                      "signature": null
+                    }
+                  }
+                }
+              },
+              "licenseserver": {
+                "default": {
+                  "type": "[str]",
+                  "require": false,
+                  "scope": "job",
+                  "lock": false,
+                  "switch": [
+                    "-tool_licenseserver 'name key <str>'"
+                  ],
+                  "shorthelp": "Tool: license servers",
+                  "example": [
+                    "cli: -tool_licenseserver 'atask ACME_LICENSE 1700@server'",
+                    "api: task.set('tool', 'acme', 'licenseserver', 'ACME_LICENSE', '1700@server')"
+                  ],
+                  "help": "Defines a set of tool-specific environment variables used by the executable\nthat depend on license key servers to control access. For multiple servers,\nseparate servers with a colon. The named license variables are read at\nruntime (:meth:`.Task.run()`) and the environment variables are set.",
+                  "notes": null,
+                  "pernode": "optional",
+                  "node": {
+                    "default": {
+                      "default": {
+                        "value": [],
+                        "signature": []
+                      }
+                    }
+                  }
+                }
+              },
               "warningoff": {
                 "type": "[str]",
                 "require": false,
@@ -16241,7 +16455,7 @@
                   "shorthelp": "Task: file suffix for redirected stdout",
                   "example": [
                     "cli: -tool_task_stdout_suffix 'ghdl import log'",
-                    "api: task.set('tool', ghdl', 'task', 'import', 'stdout', 'suffix', 'log')"
+                    "api: task.set('tool', 'ghdl', 'task', 'import', 'stdout', 'suffix', 'log')"
                   ],
                   "help": "Specifies the file extension for the content redirected from stdout.",
                   "notes": null,
@@ -16268,7 +16482,7 @@
                   "shorthelp": "Task: destination for stderr",
                   "example": [
                     "cli: -tool_task_stderr_destination 'ghdl import log'",
-                    "api: task.set('tool', ghdl', 'task', 'import', 'stderr', 'destination', 'log')"
+                    "api: task.set('tool', 'ghdl', 'task', 'import', 'stderr', 'destination', 'log')"
                   ],
                   "help": "Defines where to direct the output generated over stderr.\nSupported options are:\nnone: the stream generated to STDERR is ignored\nlog: the generated stream is stored in <step>.<suffix>; if not in quiet mode,\nit is additionally dumped to the display.\noutput: the generated stream is stored in outputs/<design>.<suffix>",
                   "notes": null,
@@ -16509,220 +16723,6 @@
                     "default": {
                       "value": null,
                       "signature": null
-                    }
-                  }
-                }
-              },
-              "exe": {
-                "type": "str",
-                "require": false,
-                "scope": "job",
-                "lock": false,
-                "switch": [
-                  "-tool_exe 'tool <str>'"
-                ],
-                "shorthelp": "Tool: executable name",
-                "example": [
-                  "cli: -tool_exe 'openroad openroad'",
-                  "api: task.set('tool', 'openroad', 'exe', 'openroad')"
-                ],
-                "help": "Tool executable name.",
-                "notes": null,
-                "pernode": "optional",
-                "node": {
-                  "default": {
-                    "default": {
-                      "value": null,
-                      "signature": null
-                    }
-                  }
-                }
-              },
-              "sbom": {
-                "default": {
-                  "type": "[file]",
-                  "require": false,
-                  "scope": "job",
-                  "lock": false,
-                  "switch": [
-                    "-tool_sbom 'tool version <file>'"
-                  ],
-                  "shorthelp": "Tool: software BOM",
-                  "example": [
-                    "cli: -tool_sbom 'yosys 1.0.1 ys_sbom.json'",
-                    "api: task.set('tool', 'yosys', 'sbom', '1.0', 'ys_sbom.json')"
-                  ],
-                  "help": "Paths to software bill of material (SBOM) document file of the tool\nspecified on a per version basis. The SBOM includes critical\npackage information about the tool including the list of included\ncomponents, licenses, and copyright. The SBOM file is generally\nprovided as in a a standardized open data format such as SPDX.",
-                  "notes": null,
-                  "pernode": "optional",
-                  "node": {
-                    "default": {
-                      "default": {
-                        "value": [],
-                        "signature": [],
-                        "filehash": [],
-                        "dataroot": [],
-                        "date": [],
-                        "author": []
-                      }
-                    }
-                  },
-                  "hashalgo": "sha256",
-                  "copy": false
-                }
-              },
-              "path": {
-                "type": "dir",
-                "require": false,
-                "scope": "job",
-                "lock": false,
-                "switch": [
-                  "-tool_path 'tool <dir>'"
-                ],
-                "shorthelp": "Tool: executable path",
-                "example": [
-                  "cli: -tool_path 'openroad /usr/local/bin'",
-                  "api: task.set('tool', 'openroad', 'path', '/usr/local/bin')"
-                ],
-                "help": "File system path to tool executable. The path is prepended to the\nsystem PATH environment variable for batch and interactive runs. The\npath parameter can be left blank if the :keypath:`tool,<tool>,task,<task>,exe` is\nalready in the environment search path.",
-                "notes": null,
-                "pernode": "optional",
-                "node": {
-                  "default": {
-                    "default": {
-                      "value": null,
-                      "signature": null,
-                      "filehash": null,
-                      "dataroot": null
-                    }
-                  }
-                },
-                "hashalgo": "sha256",
-                "copy": false
-              },
-              "vswitch": {
-                "type": "[str]",
-                "require": false,
-                "scope": "job",
-                "lock": false,
-                "switch": [
-                  "-tool_vswitch 'tool <str>'"
-                ],
-                "shorthelp": "Tool: executable version switch",
-                "example": [
-                  "cli: -tool_vswitch 'openroad -version'",
-                  "api: task.set('tool', 'openroad', 'vswitch', '-version')"
-                ],
-                "help": "Command line switch to use with executable used to print out\nthe version number. Common switches include ``-v``, ``-version``,\n``--version``. Some tools may require extra flags to run in batch mode.",
-                "notes": null,
-                "pernode": "optional",
-                "node": {
-                  "default": {
-                    "default": {
-                      "value": [],
-                      "signature": []
-                    }
-                  }
-                }
-              },
-              "vendor": {
-                "type": "str",
-                "require": false,
-                "scope": "job",
-                "lock": false,
-                "switch": [
-                  "-tool_vendor 'tool <str>'"
-                ],
-                "shorthelp": "Tool: vendor",
-                "example": [
-                  "cli: -tool_vendor 'yosys yosys'",
-                  "api: task.set('tool', 'yosys', 'vendor', 'yosys')"
-                ],
-                "help": "Name of the tool vendor. Parameter can be used to set vendor\nspecific technology variables in the PDK and libraries. For\nopen source projects, the project name should be used in\nplace of vendor.",
-                "notes": null,
-                "pernode": "never",
-                "node": {
-                  "default": {
-                    "default": {
-                      "value": null,
-                      "signature": null
-                    }
-                  }
-                }
-              },
-              "version": {
-                "type": "[str]",
-                "require": false,
-                "scope": "job",
-                "lock": false,
-                "switch": [
-                  "-tool_version 'tool <str>'"
-                ],
-                "shorthelp": "Tool: version",
-                "example": [
-                  "cli: -tool_version 'openroad >=v2.0'",
-                  "api: task.set('tool', 'openroad', 'version', '>=v2.0')"
-                ],
-                "help": "List of acceptable versions of the tool executable to be used. Each\nentry in this list must be a version specifier as described by Python\n`PEP-440 <https://peps.python.org/pep-0440/#version-specifiers>`_.\nDuring task execution, the tool is called with the 'vswitch' to\ncheck the runtime executable version. If the version of the system\nexecutable is not allowed by any of the specifiers in 'version',\nthen the job is halted pre-execution. For backwards compatibility,\nentries that do not conform to the standard will be interpreted as a\nversion with an '==' specifier. This check can be disabled by\nsetting :keypath:`option,novercheck` to True.",
-                "notes": null,
-                "pernode": "optional",
-                "node": {
-                  "default": {
-                    "default": {
-                      "value": [],
-                      "signature": []
-                    }
-                  }
-                }
-              },
-              "format": {
-                "type": "<json,tcl,yaml>",
-                "require": false,
-                "scope": "job",
-                "lock": false,
-                "switch": [
-                  "-tool_format 'tool <str>'"
-                ],
-                "shorthelp": "Tool: file format",
-                "example": [
-                  "cli: -tool_format 'yosys tcl'",
-                  "api: task.set('tool', 'yosys', 'format', 'tcl')"
-                ],
-                "help": "File format for tool manifest handoff.",
-                "notes": null,
-                "pernode": "optional",
-                "node": {
-                  "default": {
-                    "default": {
-                      "value": null,
-                      "signature": null
-                    }
-                  }
-                }
-              },
-              "licenseserver": {
-                "default": {
-                  "type": "[str]",
-                  "require": false,
-                  "scope": "job",
-                  "lock": false,
-                  "switch": [
-                    "-tool_licenseserver 'name key <str>'"
-                  ],
-                  "shorthelp": "Tool: license servers",
-                  "example": [
-                    "cli: -tool_licenseserver 'atask ACME_LICENSE 1700@server'",
-                    "api: task.set('tool', 'acme', 'licenseserver', 'ACME_LICENSE', '1700@server')"
-                  ],
-                  "help": "Defines a set of tool-specific environment variables used by the executable\nthat depend on license key servers to control access. For multiple servers,\nseparate servers with a colon. The named license variables are read at\nruntime (:meth:`.Task.run()`) and the environment variables are set.",
-                  "notes": null,
-                  "pernode": "optional",
-                  "node": {
-                    "default": {
-                      "default": {
-                        "value": [],
-                        "signature": []
-                      }
                     }
                   }
                 }
