@@ -2140,7 +2140,7 @@
             "cli: -credentials /home/user/.sc/credentials",
             "api: option.set('credentials', '/home/user/.sc/credentials')"
           ],
-          "help": "\n                Filepath to credentials used for remote processing. If the\n                credentials parameter is empty, the remote processing client program\n                tries to access the \".sc/credentials\" file in the user's home\n                directory. The file supports the following fields:\n\n                address=<server address>\n\n                port=<server port> (optional)\n\n                username=<user id> (optional)\n\n                password=<password / key used for authentication> (optional)",
+          "help": "\n                Filepath to credentials used for remote processing. If the\n                credentials parameter is empty, the remote processing client program\n                tries to access the \".sc/credentials\" file in the user's home\n                directory. The file supports the following fields:\n\n                address=<server address>\n                port=<server port> (optional)\n                username=<user id> (optional)\n                password=<password / key used for authentication> (optional)",
           "notes": null,
           "pernode": "never",
           "node": {
@@ -2506,7 +2506,7 @@
             "cli: -nodisplay",
             "api: option.set('nodisplay', True)"
           ],
-          "help": "\n                This flag prevents SiliconCompiler from opening GUI windows such as\n                the final metrics report.",
+          "help": "\n                This flag prevents SiliconCompiler from opening GUI windows.",
           "notes": null,
           "pernode": "never",
           "node": {
@@ -5904,7 +5904,7 @@
             "cli: -credentials /home/user/.sc/credentials",
             "api: option.set('credentials', '/home/user/.sc/credentials')"
           ],
-          "help": "\n                Filepath to credentials used for remote processing. If the\n                credentials parameter is empty, the remote processing client program\n                tries to access the \".sc/credentials\" file in the user's home\n                directory. The file supports the following fields:\n\n                address=<server address>\n\n                port=<server port> (optional)\n\n                username=<user id> (optional)\n\n                password=<password / key used for authentication> (optional)",
+          "help": "\n                Filepath to credentials used for remote processing. If the\n                credentials parameter is empty, the remote processing client program\n                tries to access the \".sc/credentials\" file in the user's home\n                directory. The file supports the following fields:\n\n                address=<server address>\n                port=<server port> (optional)\n                username=<user id> (optional)\n                password=<password / key used for authentication> (optional)",
           "notes": null,
           "pernode": "never",
           "node": {
@@ -6270,7 +6270,7 @@
             "cli: -nodisplay",
             "api: option.set('nodisplay', True)"
           ],
-          "help": "\n                This flag prevents SiliconCompiler from opening GUI windows such as\n                the final metrics report.",
+          "help": "\n                This flag prevents SiliconCompiler from opening GUI windows.",
           "notes": null,
           "pernode": "never",
           "node": {
@@ -9975,7 +9975,7 @@
             "cli: -credentials /home/user/.sc/credentials",
             "api: option.set('credentials', '/home/user/.sc/credentials')"
           ],
-          "help": "\n                Filepath to credentials used for remote processing. If the\n                credentials parameter is empty, the remote processing client program\n                tries to access the \".sc/credentials\" file in the user's home\n                directory. The file supports the following fields:\n\n                address=<server address>\n\n                port=<server port> (optional)\n\n                username=<user id> (optional)\n\n                password=<password / key used for authentication> (optional)",
+          "help": "\n                Filepath to credentials used for remote processing. If the\n                credentials parameter is empty, the remote processing client program\n                tries to access the \".sc/credentials\" file in the user's home\n                directory. The file supports the following fields:\n\n                address=<server address>\n                port=<server port> (optional)\n                username=<user id> (optional)\n                password=<password / key used for authentication> (optional)",
           "notes": null,
           "pernode": "never",
           "node": {
@@ -10341,7 +10341,7 @@
             "cli: -nodisplay",
             "api: option.set('nodisplay', True)"
           ],
-          "help": "\n                This flag prevents SiliconCompiler from opening GUI windows such as\n                the final metrics report.",
+          "help": "\n                This flag prevents SiliconCompiler from opening GUI windows.",
           "notes": null,
           "pernode": "never",
           "node": {
@@ -13802,7 +13802,7 @@
             "cli: -credentials /home/user/.sc/credentials",
             "api: option.set('credentials', '/home/user/.sc/credentials')"
           ],
-          "help": "\n                Filepath to credentials used for remote processing. If the\n                credentials parameter is empty, the remote processing client program\n                tries to access the \".sc/credentials\" file in the user's home\n                directory. The file supports the following fields:\n\n                address=<server address>\n\n                port=<server port> (optional)\n\n                username=<user id> (optional)\n\n                password=<password / key used for authentication> (optional)",
+          "help": "\n                Filepath to credentials used for remote processing. If the\n                credentials parameter is empty, the remote processing client program\n                tries to access the \".sc/credentials\" file in the user's home\n                directory. The file supports the following fields:\n\n                address=<server address>\n                port=<server port> (optional)\n                username=<user id> (optional)\n                password=<password / key used for authentication> (optional)",
           "notes": null,
           "pernode": "never",
           "node": {
@@ -14168,7 +14168,7 @@
             "cli: -nodisplay",
             "api: option.set('nodisplay', True)"
           ],
-          "help": "\n                This flag prevents SiliconCompiler from opening GUI windows such as\n                the final metrics report.",
+          "help": "\n                This flag prevents SiliconCompiler from opening GUI windows.",
           "notes": null,
           "pernode": "never",
           "node": {
@@ -16878,7 +16878,7 @@
             "cli: -credentials /home/user/.sc/credentials",
             "api: option.set('credentials', '/home/user/.sc/credentials')"
           ],
-          "help": "\n                Filepath to credentials used for remote processing. If the\n                credentials parameter is empty, the remote processing client program\n                tries to access the \".sc/credentials\" file in the user's home\n                directory. The file supports the following fields:\n\n                address=<server address>\n\n                port=<server port> (optional)\n\n                username=<user id> (optional)\n\n                password=<password / key used for authentication> (optional)",
+          "help": "\n                Filepath to credentials used for remote processing. If the\n                credentials parameter is empty, the remote processing client program\n                tries to access the \".sc/credentials\" file in the user's home\n                directory. The file supports the following fields:\n\n                address=<server address>\n                port=<server port> (optional)\n                username=<user id> (optional)\n                password=<password / key used for authentication> (optional)",
           "notes": null,
           "pernode": "never",
           "node": {
@@ -17244,7 +17244,7 @@
             "cli: -nodisplay",
             "api: option.set('nodisplay', True)"
           ],
-          "help": "\n                This flag prevents SiliconCompiler from opening GUI windows such as\n                the final metrics report.",
+          "help": "\n                This flag prevents SiliconCompiler from opening GUI windows.",
           "notes": null,
           "pernode": "never",
           "node": {

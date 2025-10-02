@@ -259,7 +259,10 @@ Supporting Classes
 .. autoclass:: siliconcompiler.schema_support.option.OptionSchema
     :members:
     :show-inheritance:
-    :inherited-members:
+
+.. autoclass:: siliconcompiler.schema_support.option.SchedulerSchema
+    :members:
+    :show-inheritance:
 
 .. autoclass:: siliconcompiler.schema_support.cmdlineschema.CommandLineSchema
     :members:
