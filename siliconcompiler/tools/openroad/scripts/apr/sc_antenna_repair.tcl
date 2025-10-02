@@ -29,6 +29,7 @@ if {
         # Remove filler cells before attempting to repair antennas
         remove_fillers
 
+        puts "Starting antenna repair with ${sc_antenna} cell"
         repair_antenna \
             $sc_antenna \
             -iterations [sc_cfg_tool_task_get var ant_iterations] \
