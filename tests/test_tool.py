@@ -1398,7 +1398,7 @@ def test_select_input_nodes_entry_has_input(running_node):
 def test_task_add_parameter():
     task = Task()
 
-    with pytest.raises(KeyError, match=r"\[var\] is not a valid keypath"):
+    with pytest.raises(KeyError, match=r"^'\[var\] is not a valid keypath'$"):
         task.getkeys("var")
 
     assert isinstance(task.add_parameter("teststr", "str", "long form help"), Parameter)
