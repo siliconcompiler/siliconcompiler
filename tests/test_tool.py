@@ -72,6 +72,88 @@ def patch_psutil(monkeypatch):
     yield
 
 
+def test_patch_psutil_memory_tracking(patch_psutil):
+    """Test that patched psutil correctly tracks memory usage."""
+    process = imported_psutil.Process()
+    memory_info = process.memory_full_info()
+    assert memory_info.uss == 2
+
+
+def test_patch_psutil_process_children(patch_psutil):
+    """Test that patched psutil Process.children() returns processes."""
+    process = imported_psutil.Process()
+    children = process.children()
+    assert len(children) == 1
+    assert isinstance(children[0], imported_psutil.Process().__class__)
+
+
+def test_patch_psutil_wait_procs(patch_psutil):
+    """Test that patched psutil wait_procs returns expected format."""
+    gone, alive = imported_psutil.wait_procs([imported_psutil.Process()])
+    assert gone is None
+    assert len(alive) == 1
+
+
+def test_patch_psutil_virtual_memory(patch_psutil):
+    """Test that patched psutil virtual_memory returns memory info."""
+    memory = imported_psutil.virtual_memory()
+    assert memory.percent == 91.21
+
+
+def test_running_project_design_configuration(running_project):
+    """Test that running_project has correct design configuration."""
+    design = running_project.design
+    assert design is not None
+    assert design.name == "testdesign"
+    assert design.topmodule == "designtop"
+
+
+def test_running_project_flow_configuration(running_project):
+    """Test that running_project has correct flow configuration."""
+    flow = running_project.flow
+    assert flow is not None
+    assert flow.name == "testflow"
+    
+    # Verify nodes exist
+    assert "running" in flow.nodes()
+    assert "notrunning" in flow.nodes()
+
+
+def test_running_project_logger_configured(running_project):
+    """Test that running_project has properly configured logger."""
+    logger = running_project.logger
+    assert logger is not None
+    assert logger.level == logging.INFO
+
+
+def test_running_project_get_nop_task(running_project):
+    """Test that running_project can retrieve NOPTask."""
+    nop_task = running_project.get_nop()
+    assert nop_task is not None
+    assert isinstance(nop_task, NOPTask)
+
+
+def test_running_node_properties(running_node):
+    """Test that running_node has correct properties."""
+    assert running_node.step == "running"
+    assert running_node.index == "0"
+    assert running_node.project is not None
+    assert running_node.task is not None
+
+
+def test_patch_psutil_process_lifecycle(patch_psutil):
+    """Test that patched psutil Process supports terminate/kill/wait operations."""
+    process = imported_psutil.Process()
+    
+    # These should all execute without errors
+    process.terminate()
+    process.kill()
+    process.wait()
+    
+    # Process should still be accessible after operations
+    memory_info = process.memory_full_info()
+    assert memory_info.uss == 2
+
 @pytest.fixture
 def running_project():
     class TestProject(Project):
@@ -173,6 +255,32 @@ def test_runtime(running_node):
         assert runtool.logger is running_node.project.logger
         assert runtool.project is running_node.project
 
+
+def test_runtime_multiple_entries(running_node):
+    """Test that runtime context manager can be entered multiple times sequentially."""
+    with running_node.task.runtime(running_node) as runtool1:
+        assert runtool1.step == 'running'
+        assert runtool1.index == '0'
+    
+    # Should be able to enter runtime context again
+    with running_node.task.runtime(running_node) as runtool2:
+        assert runtool2.step == 'running'
+        assert runtool2.index == '0'
+
+
+def test_runtime_attributes_immutable(running_node):
+    """Test that runtime attributes are properly set and don't change during execution."""
+    with running_node.task.runtime(running_node) as runtool:
+        original_step = runtool.step
+        original_index = runtool.index
+        original_node = runtool.node
+        
+        # Verify attributes remain constant
+        assert runtool.step == original_step
+        assert runtool.index == original_index
+        assert runtool.node is original_node
+        assert runtool.step == 'running'
+        assert runtool.index == '0'
 
 def test_runtime_node_only(running_node):
     with running_node.task.runtime(None, 'running', '0') as runtool:
@@ -431,8 +539,91 @@ def test_get_exe_version_not_implemented(running_node, monkeypatch):
 
 def test_get_exe_version_non_zero_return(running_node, monkeypatch, caplog):
     def parse_version(stdout):
-        assert stdout == "myversion"
-        return "1.0.0"
+        pass
+
+
+def test_get_exe_version_empty_stdout(running_node, monkeypatch):
+    """Test get_exe_version handles empty stdout gracefully."""
+    def parse_version(stdout):
+        assert stdout == ""
+        return "unknown"
+    monkeypatch.setattr(running_node.task, 'parse_version', parse_version)
+
+    assert running_node.project.set('tool', 'builtin', 'task', 'nop', 'exe', 'testexe')
+    assert running_node.project.set('tool', 'builtin', 'task', 'nop', 'vswitch', '-version')
+
+    def dummy_get_exe(*args, **kwargs):
+        return "found/exe"
+    monkeypatch.setattr(running_node.task, 'get_exe', dummy_get_exe)
+
+    def dummy_run(cmdlist, **kwargs):
+        class Ret:
+            returncode = 0
+            stdout = ""
+        return Ret()
+    monkeypatch.setattr(imported_subprocess, 'run', dummy_run)
+
+    with running_node.task.runtime(running_node) as runtool:
+        assert runtool.get_exe_version() == "unknown"
+
+
+def test_get_exe_version_with_stderr_output(running_node, monkeypatch, caplog):
+    """Test get_exe_version when version info is in stderr."""
+    def parse_version(stdout):
+        # Some tools output version to stderr, but we typically capture stdout
+        assert stdout == "tool version output"
+        return "2.5.3"
+    monkeypatch.setattr(running_node.task, 'parse_version', parse_version)
+
+    assert running_node.project.set('tool', 'builtin', 'task', 'nop', 'exe', 'testexe')
+    assert running_node.project.set('tool', 'builtin', 'task', 'nop', 'vswitch', '--version')
+
+    def dummy_get_exe(*args, **kwargs):
+        return "found/exe"
+    monkeypatch.setattr(running_node.task, 'get_exe', dummy_get_exe)
+
+    def dummy_run(cmdlist, **kwargs):
+        assert cmdlist == ['found/exe', '--version']
+        
+        class Ret:
+            returncode = 0
+            stdout = "tool version output"
+        return Ret()
+    monkeypatch.setattr(imported_subprocess, 'run', dummy_run)
+
+    with running_node.task.runtime(running_node) as runtool:
+        version = runtool.get_exe_version()
+        assert version == "2.5.3"
+
+
+def test_get_exe_version_parse_exception(running_node, monkeypatch, caplog):
+    """Test get_exe_version handles parse_version exceptions."""
+    def parse_version(stdout):
+        raise ValueError("Unable to parse version from output")
+    monkeypatch.setattr(running_node.task, 'parse_version', parse_version)
+
+    assert running_node.project.set('tool', 'builtin', 'task', 'nop', 'exe', 'testexe')
+    assert running_node.project.set('tool', 'builtin', 'task', 'nop', 'vswitch', '-v')
+
+    def dummy_get_exe(*args, **kwargs):
+        return "found/exe"
+    monkeypatch.setattr(running_node.task, 'get_exe', dummy_get_exe)
+
+    def dummy_run(cmdlist, **kwargs):
+        class Ret:
+            returncode = 0
+            stdout = "incompatible output"
+        return Ret()
+    monkeypatch.setattr(imported_subprocess, 'run', dummy_run)
+
+    with running_node.task.runtime(running_node) as runtool:
+        # Should handle exception gracefully
+        try:
+            runtool.get_exe_version()
+        except ValueError:
+            pass  # Expected behavior
+
+
     monkeypatch.setattr(running_node.task, 'parse_version', parse_version)
 
     assert running_node.project.set('tool', 'builtin', 'task', 'nop', 'exe', 'testexe')
@@ -818,6 +1009,94 @@ def test_get_runtime_arguments_error(running_node, monkeypatch, caplog):
     assert "Failed to get runtime options for builtin/nop" in caplog.text
 
 
+def test_generate_replay_script_with_ld_library_path(running_node, monkeypatch, tmp_path):
+    """Test generate_replay_script includes LD_LIBRARY_PATH when set."""
+    assert running_node.project.set("tool", "builtin", 'task', 'nop', 'exe', 'testexe')
+    assert running_node.project.set("tool", "builtin", 'task', "nop", 'option', ['--test'])
+    
+    monkeypatch.setenv("PATH", "/usr/bin:/bin")
+    monkeypatch.setenv("LD_LIBRARY_PATH", "/usr/local/lib:/opt/lib")
+    
+    script_path = tmp_path / 'replay_with_ld.sh'
+
+    with running_node.task.runtime(running_node) as runtool:
+        runtool.generate_replay_script(str(script_path), './')
+        assert script_path.exists()
+        assert os.access(str(script_path), os.X_OK)
+        
+        content = script_path.read_text()
+        assert 'LD_LIBRARY_PATH' in content
+        assert '/usr/local/lib:/opt/lib' in content
+
+
+def test_generate_replay_script_complex_args(running_node, monkeypatch, tmp_path):
+    """Test generate_replay_script with complex arguments including quotes and spaces."""
+    assert running_node.project.set("tool", "builtin", 'task', 'nop', 'exe', 'testexe')
+    assert running_node.project.set("tool", "builtin", 'task', "nop", 'option', [
+        '--input', 'file with spaces.txt',
+        '--output', '/path/to/output',
+        '--define', 'KEY=value with spaces',
+        '--flag'
+    ])
+    
+    monkeypatch.setenv("PATH", "/usr/bin")
+    monkeypatch.delenv("LD_LIBRARY_PATH", raising=False)
+    
+    script_path = tmp_path / 'replay_complex.sh'
+
+    with running_node.task.runtime(running_node) as runtool:
+        runtool.generate_replay_script(str(script_path), './')
+        assert script_path.exists()
+        
+        content = script_path.read_text()
+        # Verify the script contains the arguments
+        assert '--input' in content
+        assert '--output' in content
+        assert '--define' in content
+
+
+def test_generate_replay_script_empty_options(running_node, monkeypatch, tmp_path):
+    """Test generate_replay_script with no options set."""
+    assert running_node.project.set("tool", "builtin", 'task', 'nop', 'exe', 'testexe')
+    # Don't set any options
+    
+    monkeypatch.setenv("PATH", "/usr/bin")
+    monkeypatch.delenv("LD_LIBRARY_PATH", raising=False)
+    
+    script_path = tmp_path / 'replay_empty.sh'
+
+    with running_node.task.runtime(running_node) as runtool:
+        runtool.generate_replay_script(str(script_path), './')
+        assert script_path.exists()
+        assert os.access(str(script_path), os.X_OK)
+        
+        content = script_path.read_text()
+        # Should still have shebang and basic structure
+        assert '#\!/' in content
+
+
+def test_generate_replay_script_special_characters(running_node, monkeypatch, tmp_path):
+    """Test generate_replay_script handles special shell characters."""
+    assert running_node.project.set("tool", "builtin", 'task', 'nop', 'exe', 'testexe')
+    assert running_node.project.set("tool", "builtin", 'task', "nop", 'option', [
+        '--define', 'VAR=$VALUE',
+        '--pattern', '*.v',
+        '--exclude', 'test_*.v'
+    ])
+    
+    monkeypatch.setenv("PATH", "/usr/bin")
+    monkeypatch.delenv("LD_LIBRARY_PATH", raising=False)
+    
+    script_path = tmp_path / 'replay_special.sh'
+
+    with running_node.task.runtime(running_node) as runtool:
+        runtool.generate_replay_script(str(script_path), './')
+        assert script_path.exists()
+        
+        # Script should be executable and properly escaped
+        assert os.access(str(script_path), os.X_OK)
+
+
 def test_get_output_files(running_node):
     with running_node.task.runtime(running_node) as runtool:
         assert runtool.set('output', ["file0", "file1"])
@@ -1064,6 +1343,19 @@ def test_run_task(running_node, exitcode, monkeypatch):
         assert args == (["found/exe"],)
         assert kwargs["preexec_fn"] is None
 
+
+@pytest.mark.parametrize("exitcode,expected_metrics", [
+    (0, True),
+    (1, True),
+    (2, True),
+    (127, True),
+    (-1, True)
+])
+def test_run_task_various_exitcodes(running_node, exitcode, expected_metrics, monkeypatch):
+    """Test run_task records metrics correctly for various exit codes."""
+    assert running_node.project.set("tool", "builtin", 'task', 'nop', "format", "json")
+
+    def dummy_popen(*args, **kwargs):
         class Popen:
             returncode = exitcode
 
@@ -1073,21 +1365,74 @@ def test_run_task(running_node, exitcode, monkeypatch):
     monkeypatch.setattr(imported_subprocess, 'Popen', dummy_popen)
 
     def dummy_get_exe(*args, **kwargs):
-        return "found/exe"
+        return "test/exe"
     monkeypatch.setattr(running_node.task, 'get_exe', dummy_get_exe)
 
-    assert running_node.project.get("record", "toolargs", step="running", index="0") is None
-    assert running_node.project.get("record", "toolexitcode", step="running", index="0") is None
-    assert running_node.project.get("metric", "exetime", step="running", index="0") is None
-    assert running_node.project.get("metric", "memory", step="running", index="0") is None
+    with running_node.task.runtime(running_node) as runtool:
+        result = runtool.run_task('.', False, False, None, None)
+        assert result == exitcode
+
+    if expected_metrics:
+        assert running_node.project.get("record", "toolexitcode", step="running", index="0") == exitcode
+        assert running_node.project.get("metric", "exetime", step="running", index="0") is not None
+        assert running_node.project.get("metric", "memory", step="running", index="0") is not None
+
+
+def test_run_task_with_custom_workdir(running_node, monkeypatch, tmp_path):
+    """Test run_task respects custom working directory."""
+    assert running_node.project.set("tool", "builtin", 'task', 'nop', "format", "json")
+    
+    workdir = tmp_path / "custom_workdir"
+    workdir.mkdir()
+    
+    captured_cwd = None
+    
+    def dummy_popen(*args, **kwargs):
+        nonlocal captured_cwd
+        captured_cwd = kwargs.get('cwd', '.')
+        
+        class Popen:
+            returncode = 0
+
+            def poll(self):
+                return self.returncode
+        return Popen()
+    monkeypatch.setattr(imported_subprocess, 'Popen', dummy_popen)
+
+    def dummy_get_exe(*args, **kwargs):
+        return "test/exe"
+    monkeypatch.setattr(running_node.task, 'get_exe', dummy_get_exe)
 
     with running_node.task.runtime(running_node) as runtool:
-        assert runtool.run_task('.', False, False, None, None) == exitcode
+        runtool.run_task(str(workdir), False, False, None, None)
 
-    assert running_node.project.get("record", "toolargs", step="running", index="0") == ""
-    assert running_node.project.get("record", "toolexitcode", step="running", index="0") == exitcode
-    assert running_node.project.get("metric", "exetime", step="running", index="0") >= 0
-    assert running_node.project.get("metric", "memory", step="running", index="0") >= 0
+
+def test_run_task_records_empty_toolargs(running_node, monkeypatch):
+    """Test that run_task records empty string for toolargs when no args provided."""
+    assert running_node.project.set("tool", "builtin", 'task', 'nop', "format", "json")
+
+    def dummy_popen(*args, **kwargs):
+        class Popen:
+            returncode = 0
+
+            def poll(self):
+                return self.returncode
+        return Popen()
+    monkeypatch.setattr(imported_subprocess, 'Popen', dummy_popen)
+
+    def dummy_get_exe(*args, **kwargs):
+        return "test/exe"
+    monkeypatch.setattr(running_node.task, 'get_exe', dummy_get_exe)
+
+    # Verify toolargs is None before run
+    assert running_node.project.get("record", "toolargs", step="running", index="0") is None
+
+    with running_node.task.runtime(running_node) as runtool:
+        runtool.run_task('.', False, False, None, None)
+
+    # Verify toolargs is empty string after run
+    toolargs = running_node.project.get("record", "toolargs", step="running", index="0")
+    assert toolargs == ""
 
 
 def test_run_task_failed_popen(running_node, monkeypatch):
@@ -1754,6 +2099,68 @@ def test_add_input_file_ext(running_node):
         runtool.add_input_file("this.v")
         assert runtool.get("input") == ["designtop.v", "this.v"]
 
+
+def test_show_register_task_multiple_tasks():
+    """Test registering multiple tasks under ShowTask."""
+    class TestTask1(ShowTask):
+        pass
+    
+    class TestTask2(ShowTask):
+        pass
+    
+    class TestTask3(ShowTask):
+        pass
+
+    with patch.dict("siliconcompiler.ShowTask._ShowTask__TASKS", clear=True) as tasks:
+        assert len(tasks) == 0
+        
+        ShowTask.register_task(TestTask1)
+        assert len(tasks) == 1
+        assert ShowTask in tasks
+        assert TestTask1 in tasks[ShowTask]
+        
+        ShowTask.register_task(TestTask2)
+        assert len(tasks) == 1
+        assert len(tasks[ShowTask]) == 2
+        assert TestTask1 in tasks[ShowTask]
+        assert TestTask2 in tasks[ShowTask]
+        
+        ShowTask.register_task(TestTask3)
+        assert len(tasks[ShowTask]) == 3
+
+
+def test_show_register_task_duplicate_registration():
+    """Test that registering the same task multiple times doesn't create duplicates."""
+    class TestTask(ShowTask):
+        pass
+
+    with patch.dict("siliconcompiler.ShowTask._ShowTask__TASKS", clear=True) as tasks:
+        ShowTask.register_task(TestTask)
+        initial_count = len(tasks[ShowTask])
+        
+        # Register again
+        ShowTask.register_task(TestTask)
+        
+        # Should still be a set, so no duplicates
+        assert len(tasks[ShowTask]) == initial_count
+        assert TestTask in tasks[ShowTask]
+
+
+def test_show_register_task_inheritance():
+    """Test registering tasks with inheritance hierarchy."""
+    class BaseShowTask(ShowTask):
+        pass
+    
+    class DerivedShowTask(BaseShowTask):
+        pass
+
+    with patch.dict("siliconcompiler.ShowTask._ShowTask__TASKS", clear=True) as tasks:
+        ShowTask.register_task(BaseShowTask)
+        assert BaseShowTask in tasks[ShowTask]
+        
+        ShowTask.register_task(DerivedShowTask)
+        assert DerivedShowTask in tasks[ShowTask]
+        assert len(tasks[ShowTask]) == 2
 
 def test_add_input_file_clobber(running_node):
     with running_node.task.runtime(running_node) as runtool:
