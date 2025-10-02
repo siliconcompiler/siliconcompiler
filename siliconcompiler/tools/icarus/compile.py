@@ -8,7 +8,7 @@ class CompileTask(Task):
     def __init__(self):
         super().__init__()
 
-        self.add_parameter("verilog_genration", "<1995,2001,2001-noconfig,2005,2005-sv,2009,2012>",
+        self.add_parameter("verilog_generation", "<1995,2001,2001-noconfig,2005,2005-sv,2009,2012>",
                            'Select Verilog language generation for Icarus to use. Legal values are '
                            '"1995", "2001", "2001-noconfig", "2005", "2005-sv", "2009", or "2012". '
                            'See the corresponding "-g" flags in the Icarus manual for more "'
