@@ -77,154 +77,186 @@ def test_scheduler():
 ###########################
 # OptionSchema Tests
 ###########################
-def test_option_schema_simple_get_set():
-    """Test simple setters and getters for OptionSchema."""
-
+def test_remote():
     option = OptionSchema()
-
-    # remote
     option.set_remote(True)
     assert option.get_remote() is True
 
-    # credentials
+
+def test_credentials():
+    option = OptionSchema()
     option.set_credentials('/path/to/creds')
     assert option.get_credentials() == '/path/to/creds'
 
-    # cachedir
+
+def test_cachedir():
+    option = OptionSchema()
     option.set_cachedir('/path/to/cache')
     assert option.get_cachedir() == '/path/to/cache'
 
-    # flow
+
+def test_flow():
+    option = OptionSchema()
     option.set_flow('testflow')
     assert option.get_flow() == 'testflow'
 
-    # builddir
+
+def test_builddir():
+    option = OptionSchema()
     option.set_builddir('build_dir')
     assert option.get_builddir() == 'build_dir'
 
-    # jobname
+
+def test_jobname():
+    option = OptionSchema()
     option.set_jobname('testjob')
     assert option.get_jobname() == 'testjob'
 
-    # clean
+
+def test_clean():
+    option = OptionSchema()
     option.set_clean(True)
     assert option.get_clean() is True
 
-    # hash
+
+def test_hash():
+    option = OptionSchema()
     option.set_hash(True)
     assert option.get_hash() is True
 
-    # nodisplay
+
+def test_nodisplay():
+    option = OptionSchema()
     option.set_nodisplay(True)
     assert option.get_nodisplay() is True
 
-    # jobincr
+
+def test_jobincr():
+    option = OptionSchema()
     option.set_jobincr(True)
     assert option.get_jobincr() is True
 
-    # design
+
+def test_design():
+    option = OptionSchema()
     option.set_design('testdesign')
     assert option.get_design() == 'testdesign'
 
-    # nodashboard
+
+def test_nodashboard():
+    option = OptionSchema()
     option.set_nodashboard(True)
     assert option.get_nodashboard() is True
 
-    # env
+
+def test_env():
+    option = OptionSchema()
     option.set_env('PDK_VAR', '/path/to/pdk')
     assert option.get_env('PDK_VAR') == '/path/to/pdk'
 
 
-def test_option_schema_pernode():
-    """Test PerNode.OPTIONAL setters and getters for OptionSchema."""
-    step = 'syn'
-    index = '0'
-
+def test_nice():
     option = OptionSchema()
-
-    # nice
     option.set_nice(10)
-    option.set_nice(5, step=step, index=index)
+    option.set_nice(5, step="syn", index=1)
     assert option.get_nice() == 10
-    assert option.get_nice(step=step, index=index) == 5
-
-    # optmode
-    option.set_optmode(3)
-    option.set_optmode(1, step=step, index=index)
-    assert option.get_optmode() == 3
-    assert option.get_optmode(step=step, index=index) == 1
-
-    # breakpoint
-    option.set_breakpoint(True)
-    option.set_breakpoint(False, step=step, index=index)
-    assert option.get_breakpoint() is True
-    assert option.get_breakpoint(step=step, index=index) is False
-
-    # quiet
-    option.set_quiet(True)
-    option.set_quiet(False, step=step, index=index)
-    assert option.get_quiet() is True
-    assert option.get_quiet(step=step, index=index) is False
-
-    # novercheck
-    option.set_novercheck(True)
-    option.set_novercheck(False, step=step, index=index)
-    assert option.get_novercheck() is True
-    assert option.get_novercheck(step=step, index=index) is False
-
-    # track
-    option.set_track(True)
-    option.set_track(False, step=step, index=index)
-    assert option.get_track() is True
-    assert option.get_track(step=step, index=index) is False
-
-    # continue
-    option.set_continue(True)
-    option.set_continue(False, step=step, index=index)
-    assert option.get_continue() is True
-    assert option.get_continue(step=step, index=index) is False
-
-    # timeout
-    option.set_timeout(3600.0)
-    option.set_timeout(1800.0, step=step, index=index)
-    assert option.get_timeout() == 3600.0
-    assert option.get_timeout(step=step, index=index) == 1800.0
+    assert option.get_nice(step="syn", index=1) == 5
 
 
-def test_option_schema_adders():
-    """Test list-based adders for OptionSchema."""
-
+def test_optmode():
     option = OptionSchema()
+    option.set_optmode(3)
+    option.set_optmode(1, step="syn", index=1)
+    assert option.get_optmode() == 3
+    assert option.get_optmode(step="syn", index=1) == 1
 
-    # from
+
+def test_breakpoint():
+    option = OptionSchema()
+    option.set_breakpoint(True)
+    option.set_breakpoint(False, step="syn", index=1)
+    assert option.get_breakpoint() is True
+    assert option.get_breakpoint(step="syn", index=1) is False
+
+
+def test_quiet():
+    option = OptionSchema()
+    option.set_quiet(True)
+    option.set_quiet(False, step="syn", index=1)
+    assert option.get_quiet() is True
+    assert option.get_quiet(step="syn", index=1) is False
+
+
+def test_novercheck():
+    option = OptionSchema()
+    option.set_novercheck(True)
+    option.set_novercheck(False, step="syn", index=1)
+    assert option.get_novercheck() is True
+    assert option.get_novercheck(step="syn", index=1) is False
+
+
+def test_track():
+    option = OptionSchema()
+    option.set_track(True)
+    option.set_track(False, step="syn", index=1)
+    assert option.get_track() is True
+    assert option.get_track(step="syn", index=1) is False
+
+
+def test_continue():
+    option = OptionSchema()
+    option.set_continue(True)
+    option.set_continue(False, step="syn", index=1)
+    assert option.get_continue() is True
+    assert option.get_continue(step="syn", index=1) is False
+
+
+def test_timeout():
+    option = OptionSchema()
+    option.set_timeout(3600.0)
+    option.set_timeout(1800.0, step="syn", index=1)
+    assert option.get_timeout() == 3600.0
+    assert option.get_timeout(step="syn", index=1) == 1800.0
+
+
+def test_from():
+    option = OptionSchema()
     option.add_from('import')
     option.add_from(['syn', 'place'])
     assert option.get_from() == ['import', 'syn', 'place']
     option.add_from('route', clobber=True)
     assert option.get_from() == ['route']
 
-    # to
+
+def test_to():
+    option = OptionSchema()
     option.add_to('syn')
     option.add_to(['place', 'route'])
     assert option.get_to() == ['syn', 'place', 'route']
     option.add_to('cts', clobber=True)
     assert option.get_to() == ['cts']
 
-    # prune
+
+def test_prune():
+    option = OptionSchema()
     option.add_prune(('syn', '0'))
     option.add_prune([('place', '0'), ('route', '0')])
     assert option.get_prune() == [('syn', '0'), ('place', '0'), ('route', '0')]
     option.add_prune([('cts', '0')], clobber=True)
     assert option.get_prune() == [('cts', '0')]
 
-    # alias
+
+def test_alias():
+    option = OptionSchema()
     option.add_alias(('a', 'b', 'c', 'd'))
     option.add_alias([('e', 'f', 'g', 'h')])
     assert option.get_alias() == [('a', 'b', 'c', 'd'), ('e', 'f', 'g', 'h')]
     option.add_alias((('i', 'j', 'k', 'l'),), clobber=True)
     assert option.get_alias() == [('i', 'j', 'k', 'l')]
 
-    # fileset
+
+def test_fileset():
+    option = OptionSchema()
     option.add_fileset('rtl')
     option.add_fileset(['constraints', 'gds'])
     assert option.get_fileset() == ['rtl', 'constraints', 'gds']
@@ -235,88 +267,88 @@ def test_option_schema_adders():
 ###########################
 # SchedulerSchema Tests
 ###########################
-
-def test_scheduler_schema_pernode_set():
-    """Test PerNode.OPTIONAL setters and getters for SchedulerSchema."""
+def test_name():
     scheduler = OptionSchema().scheduler
-    step = 'syn'
-    index = '0'
-
-    # name
     scheduler.set_name('slurm')
-    scheduler.set_name('lsf', step=step, index=index)
+    scheduler.set_name('lsf', step="syn", index=1)
     assert scheduler.get_name() == 'slurm'
-    assert scheduler.get_name(step=step, index=index) == 'lsf'
+    assert scheduler.get_name(step="syn", index=1) == 'lsf'
 
-    # cores
+
+def test_cores():
+    scheduler = OptionSchema().scheduler
     scheduler.set_cores(48)
-    scheduler.set_cores(24, step=step, index=index)
+    scheduler.set_cores(24, step="syn", index=1)
     assert scheduler.get_cores() == 48
-    assert scheduler.get_cores(step=step, index=index) == 24
+    assert scheduler.get_cores(step="syn", index=1) == 24
 
-    # memory
+
+def test_memory():
+    scheduler = OptionSchema().scheduler
     scheduler.set_memory(8000)
-    scheduler.set_memory(4000, step=step, index=index)
+    scheduler.set_memory(4000, step="syn", index=1)
     assert scheduler.get_memory() == 8000
-    assert scheduler.get_memory(step=step, index=index) == 4000
+    assert scheduler.get_memory(step="syn", index=1) == 4000
 
-    # queue
+
+def test_queue():
+    scheduler = OptionSchema().scheduler
     scheduler.set_queue('night')
-    scheduler.set_queue('day', step=step, index=index)
+    scheduler.set_queue('day', step="syn", index=1)
     assert scheduler.get_queue() == 'night'
-    assert scheduler.get_queue(step=step, index=index) == 'day'
+    assert scheduler.get_queue(step="syn", index=1) == 'day'
 
-    # defer
+
+def test_defer():
+    scheduler = OptionSchema().scheduler
     scheduler.set_defer('16:00')
-    scheduler.set_defer('now+1h', step=step, index=index)
+    scheduler.set_defer('now+1h', step="syn", index=1)
     assert scheduler.get_defer() == '16:00'
-    assert scheduler.get_defer(step=step, index=index) == 'now+1h'
+    assert scheduler.get_defer(step="syn", index=1) == 'now+1h'
 
 
-def test_scheduler_schema_adders():
-    """Test list-based adders for SchedulerSchema."""
+def test_options():
     scheduler = OptionSchema().scheduler
-    step = 'syn'
-    index = '0'
-
-    # options
     scheduler.add_options('--pty')
-    scheduler.add_options(['-N 1'], step=step, index=index)
+    scheduler.add_options(['-N 1'], step="syn", index=1)
     assert scheduler.get_options() == ['--pty']
-    assert scheduler.get_options(step=step, index=index) == ['-N 1']
-    scheduler.add_options(['-N 2'], step=step, index=index)
-    assert scheduler.get_options(step=step, index=index) == ['-N 1', '-N 2']
-    scheduler.add_options(['--new'], step=step, index=index, clobber=True)
-    assert scheduler.get_options(step=step, index=index) == ['--new']
-
-    # msgevent
-    scheduler.add_msgevent('fail')
-    scheduler.add_msgevent(['begin', 'end'], step=step, index=index)
-    assert scheduler.get_msgevent() == ['fail']
-    assert scheduler.get_msgevent(step=step, index=index) == ['begin', 'end']
-    scheduler.add_msgevent('all', step=step, index=index, clobber=True)
-    assert scheduler.get_msgevent() == ['fail']  # global shouldn't be clobbered
-    assert scheduler.get_msgevent(step=step, index=index) == ['all']
-
-    # msgcontact
-    scheduler.add_msgcontact('test@example.com')
-    scheduler.add_msgcontact(['foo@bar.com'], step=step, index=index)
-    assert scheduler.get_msgcontact() == ['test@example.com']
-    assert scheduler.get_msgcontact(step=step, index=index) == ['foo@bar.com']
-    scheduler.add_msgcontact('another@email.com', step=step, index=index)
-    assert scheduler.get_msgcontact(step=step, index=index) == ['foo@bar.com', 'another@email.com']
-    scheduler.add_msgcontact(['new@email.com'], step=step, index=index, clobber=True)
-    assert scheduler.get_msgcontact(step=step, index=index) == ['new@email.com']
+    assert scheduler.get_options(step="syn", index=1) == ['-N 1']
+    scheduler.add_options(['-N 2'], step="syn", index=1)
+    assert scheduler.get_options(step="syn", index=1) == ['-N 1', '-N 2']
+    scheduler.add_options(['--new'], step="syn", index=1, clobber=True)
+    assert scheduler.get_options(step="syn", index=1) == ['--new']
 
 
-def test_scheduler_schema_global():
-    """Test global-only setters and getters for SchedulerSchema."""
+def test_msgevent():
     scheduler = OptionSchema().scheduler
+    scheduler.add_msgevent('fail')
+    scheduler.add_msgevent(['begin', 'end'], step="syn", index=1)
+    assert scheduler.get_msgevent() == ['fail']
+    assert scheduler.get_msgevent(step="syn", index=1) == ['begin', 'end']
+    scheduler.add_msgevent('all', step="syn", index=1, clobber=True)
+    assert scheduler.get_msgevent() == ['fail']  # global shouldn't be clobbered
+    assert scheduler.get_msgevent(step="syn", index=1) == ['all']
 
-    # maxnodes
+
+def test_msgcontact():
+    scheduler = OptionSchema().scheduler
+    scheduler.add_msgcontact('test@example.com')
+    scheduler.add_msgcontact(['foo@bar.com'], step="syn", index=1)
+    assert scheduler.get_msgcontact() == ['test@example.com']
+    assert scheduler.get_msgcontact(step="syn", index=1) == ['foo@bar.com']
+    scheduler.add_msgcontact('another@email.com', step="syn", index=1)
+    assert scheduler.get_msgcontact(step="syn", index=1) == ['foo@bar.com', 'another@email.com']
+    scheduler.add_msgcontact(['new@email.com'], step="syn", index=1, clobber=True)
+    assert scheduler.get_msgcontact(step="syn", index=1) == ['new@email.com']
+
+
+def test_maxnodes():
+    scheduler = OptionSchema().scheduler
     scheduler.set_maxnodes(4)
     assert scheduler.get_maxnodes() == 4
 
-    # maxthreads
+
+def test_maxthreads():
+    scheduler = OptionSchema().scheduler
     scheduler.set_maxthreads(8)
     assert scheduler.get_maxthreads() == 8
