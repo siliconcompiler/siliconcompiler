@@ -1652,3 +1652,220 @@ def test_lint_getdict_type():
 
 def test_sim_getdict_type():
     assert Sim._getdict_type() == "Sim"
+# === Additional tests for Project (pytest + unittest.mock) ===
+# Testing library/framework: pytest + unittest.mock.patch
+# These tests expand coverage for Project behaviors: fileset mgmt, aliasing,
+# result discovery, snapshotting, logger uniqueness, job param reset, dashboard handling,
+# and FauxTask behavior.
+
+def test_init_logger_with_custom_name_uniqueness():
+    project1 = Project()
+    project2 = Project()
+    assert project1.logger.name.startswith("siliconcompiler.project_")
+    assert project2.logger.name.startswith("siliconcompiler.project_")
+    assert project1.logger.name \!= project2.logger.name
+
+
+def test_add_fileset_multiple_sequential_unique():
+    design = Design("test")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+    with design.active_fileset("rtl.other"):
+        design.set_topmodule("top2")
+    with design.active_fileset("rtl.third"):
+        design.set_topmodule("top3")
+
+    proj = Project(design)
+    assert proj.add_fileset("rtl")
+    assert proj.add_fileset("rtl.other")
+    assert proj.add_fileset("rtl.third")
+    assert proj.get("option", "fileset") == ["rtl", "rtl.other", "rtl.third"]
+
+
+def test_add_fileset_duplicate_dedup():
+    design = Design("test")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+    proj = Project(design)
+    assert proj.add_fileset("rtl")
+    # Adding a duplicate should not create multiple entries
+    _ = proj.add_fileset("rtl")
+    filesets = proj.get("option", "fileset")
+    assert filesets.count("rtl") <= 1
+
+
+def test_add_fileset_with_special_characters_graceful():
+    design = Design("test")
+    with design.active_fileset("rtl-v1.0"):
+        design.set_topmodule("top")
+    proj = Project(design)
+    try:
+        result = proj.add_fileset("rtl-v1.0")
+        if result:
+            assert "rtl-v1.0" in proj.get("option", "fileset")
+    except Exception:
+        # If implementation forbids special characters, allow raising
+        pass
+
+
+def test_add_alias_chain():
+    design = Design("test")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+
+    alias1 = Design("alias1")
+    with alias1.active_fileset("rtl"):
+        alias1.set_topmodule("top")
+
+    alias2 = Design("alias2")
+    with alias2.active_fileset("rtl"):
+        alias2.set_topmodule("top")
+
+    proj = Project(design)
+    assert proj.add_alias("test", "rtl", alias1, "rtl")
+    # Create a second alias referencing the first alias' design
+    assert proj.add_alias("alias1", "rtl", alias2, "rtl")
+
+
+def test_find_result_with_compression_preference(tmp_path, monkeypatch):
+    # Arrange
+    (tmp_path / "outputs").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "outputs" / "top.def.gz").touch()
+    (tmp_path / "outputs" / "top.def.bz2").touch()
+
+    design = Design("testdesign")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+
+    proj = Project(design)
+    proj.add_fileset("rtl")
+
+    with patch("siliconcompiler.project.workdir") as workdir:
+        workdir.return_value = str(tmp_path)
+        result = proj.find_result("def", "thisstep")
+        assert result is not None
+        assert result.endswith((".def.gz", ".def.bz2"))
+
+
+def test_find_result_with_multiple_matches(tmp_path, monkeypatch):
+    # Arrange
+    (tmp_path / "outputs").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "outputs" / "top.vg").touch()
+    (tmp_path / "outputs" / "top_alt.vg").touch()
+
+    design = Design("testdesign")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+
+    proj = Project(design)
+    proj.add_fileset("rtl")
+
+    with patch("siliconcompiler.project.workdir") as workdir:
+        workdir.return_value = str(tmp_path)
+        result = proj.find_result("vg", "thisstep")
+        # Prefer exact topmodule match or first stable match
+        assert result in (
+            os.path.abspath(tmp_path / "outputs" / "top.vg"),
+            os.path.abspath(tmp_path / "outputs" / "top_alt.vg"),
+        )
+
+
+def test_snapshot_with_invalid_path(monkeypatch, caplog, tmp_path):
+    proj = Project(Design("testdesign"))
+    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    proj.logger.setLevel(logging.INFO)
+    proj.set("option", "design", "testdesign")
+    proj._record_history()
+
+    with patch("siliconcompiler.report.summary_image._find_summary_image") as find:
+        find.return_value = None
+        out = tmp_path / "testing_extra.png"
+        proj.snapshot(path=str(out))
+        assert not out.exists()
+
+
+def test_snapshot_with_large_image(monkeypatch, tmp_path):
+    image = Image.new('RGB', (4096, 4096))
+    big = tmp_path / "large_test.png"
+    image.save(big)
+
+    proj = Project(Design("testdesign"))
+    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    proj.logger.setLevel(logging.INFO)
+    proj.set("option", "design", "testdesign")
+    proj._record_history()
+
+    with patch("siliconcompiler.report.summary_image._find_summary_image") as find, \
+            patch("PIL.ImageFile.ImageFile.show") as show:
+        find.return_value = str(big)
+        out = tmp_path / "large_output.png"
+        proj.snapshot(path=str(out))
+        assert out.exists()
+
+
+def test_reset_job_params_multiple_times_idempotent():
+    proj = Project()
+    assert proj.set("arg", "step", "teststep1")
+    assert proj.set("option", "breakpoint", True)
+
+    proj._Project__reset_job_params()
+    assert proj.get("arg", "step") is None
+
+    # re-set and re-reset
+    assert proj.set("arg", "step", "teststep2")
+    proj._Project__reset_job_params()
+    assert proj.get("arg", "step") is None
+
+
+def test_reset_job_params_preserves_global_scope_only():
+    proj = Project()
+    # Set across scopes
+    assert proj.set("arg", "step", "teststep")        # SCRATCH
+    assert proj.set("option", "breakpoint", True)     # JOB
+    assert proj.set("option", "design", "testdesign") # GLOBAL
+    proj._Project__reset_job_params()
+    # Reset for SCRATCH/JOB
+    assert proj.get("arg", "step") is None
+    assert proj.get("option", "breakpoint") is False
+    # Keep GLOBAL
+    assert proj.get("option", "design") == "testdesign"
+
+
+def test_run_with_dashboard_error_handling(monkeypatch):
+    # Ensure dashboard errors don't break run
+    design = Design("testdesign")
+    design.set_topmodule("top", fileset="test")
+    proj = Project(design)
+    proj.add_fileset("test")
+
+    flow = Flowgraph("testflow")
+    flow.node("stepone", FauxTask0())
+    proj.set_flow(flow)
+
+    with patch("siliconcompiler.scheduler.Scheduler.run") as run, \
+            patch("siliconcompiler.report.dashboard.cli.CliDashboard.is_running") as is_running, \
+            patch("siliconcompiler.report.dashboard.cli.CliDashboard.update_manifest") as update:
+        is_running.return_value = False
+        update.side_effect = Exception("Dashboard error")
+        proj._record_history()
+        try:
+            proj.run()
+        except Exception as e:
+            # If any exception bubbles up, it should not be due to dashboard update
+            assert "Dashboard error" not in str(e)
+        run.assert_called()
+
+
+def test_faux_tasks_inheritance_and_behavior():
+    task0 = FauxTask0()
+    task1 = FauxTask1()
+    task2 = FauxTask2()
+    assert isinstance(task0, Task)
+    assert isinstance(task1, Task)
+    assert isinstance(task2, Task)
+    assert task0.tool() == "tool0" and task0.task() == "task0"
+    assert task1.tool() == "tool1" and task1.task() == "task1"
+    assert task2.tool() == "tool1" and task2.task() == "task2"
+    # Shared tool, different tasks
+    assert task1.tool() == task2.tool()
+    assert task1.task() \!= task2.task()

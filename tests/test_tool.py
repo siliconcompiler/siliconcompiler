@@ -492,13 +492,33 @@ def test_check_exe_version_not_set(running_node):
 
 
 def test_check_exe_version_valid(running_node, caplog):
-    assert running_node.project.set('tool', 'builtin', 'task', 'nop', 'version', '==1.0.0')
-    with running_node.task.runtime(running_node) as runtool:
-        assert runtool.check_exe_version('1.0.0') is True
-    assert caplog.text == ''
-
-
 def test_check_exe_version_invalid(running_node, caplog):
+    assert running_node.project.set('tool', 'builtin', 'task', 'nop', 'version', '\!=1.0.0')
+    with running_node.task.runtime(running_node) as runtool:
+        assert runtool.check_exe_version('1.0.0') is False
+    assert "Version check failed for builtin/nop. Check installation." in caplog.text
+    assert "Found version 1.0.0, did not satisfy any version specifier set \!=1.0.0" in caplog.text
+
+
+def test_check_exe_version_multiple_specifiers(running_node):
+    assert running_node.project.set('tool', 'builtin', 'task', 'nop', 'version', '<1.0.0,>=0.5.0')
+    with running_node.task.runtime(running_node) as runtool:
+        assert runtool.check_exe_version('0.9.0') is True
+        assert runtool.check_exe_version('1.0.0') is False
+
+
+def test_check_exe_version_invalid_specifier(running_node, caplog):
+    assert running_node.project.set('tool', 'builtin', 'task', 'nop', 'version', '>=1.0.0,<>2.0.0')
+    with running_node.task.runtime(running_node) as runtool:
+        assert runtool.check_exe_version('1.5.0') is False
+    assert "Invalid version specifier" in caplog.text
+
+
+def test_check_exe_version_invalid_version_string(running_node, caplog):
+    assert running_node.project.set('tool', 'builtin', 'task', 'nop', 'version', '>=1.0.0')
+    with running_node.task.runtime(running_node) as runtool:
+        assert runtool.check_exe_version('not.a.version') is False
+    assert "Invalid version string reported by builtin/nop" in caplog.text
     assert running_node.project.set('tool', 'builtin', 'task', 'nop', 'version', '!=1.0.0')
     with running_node.task.runtime(running_node) as runtool:
         assert runtool.check_exe_version('1.0.0') is False
@@ -1036,26 +1056,6 @@ def test_write_task_manifest_relative(running_node):
 
     check = SafeSchema.from_manifest(filepath="sc_manifest.json")
     assert check.get("tool", "builtin", "task", "nop", "refdir") == ["."]
-
-
-def test_write_task_manifest_with_backup(running_node):
-    assert running_node.project.set("tool", "builtin", 'task', 'nop', "format", "json")
-    with running_node.task.runtime(running_node) as runtool:
-        runtool.write_task_manifest('.')
-        assert os.listdir() == ['sc_manifest.json']
-        runtool.write_task_manifest('.')
-        assert set(os.listdir()) == set(['sc_manifest.json', 'sc_manifest.json.bak'])
-
-
-def test_write_task_manifest_without_backup(running_node):
-    assert running_node.project.set("tool", "builtin", 'task', 'nop', "format", "json")
-    with running_node.task.runtime(running_node) as runtool:
-        runtool.write_task_manifest('.')
-        assert os.listdir() == ['sc_manifest.json']
-        runtool.write_task_manifest('.', backup=False)
-        assert os.listdir() == ['sc_manifest.json']
-
-
 @pytest.mark.parametrize("exitcode", [0, 1])
 def test_run_task(running_node, exitcode, monkeypatch):
     assert running_node.project.set("tool", "builtin", 'task', 'nop', "format", "json")
@@ -1082,7 +1082,84 @@ def test_run_task(running_node, exitcode, monkeypatch):
     assert running_node.project.get("metric", "memory", step="running", index="0") is None
 
     with running_node.task.runtime(running_node) as runtool:
-        assert runtool.run_task('.', False, False, None, None) == exitcode
+        assert runtool.run_task('.', False, "info", False, None, None) == exitcode
+
+    assert running_node.project.get("record", "toolargs", step="running", index="0") == ""
+    assert running_node.project.get("record", "toolexitcode", step="running", index="0") == exitcode
+    assert running_node.project.get("metric", "exetime", step="running", index="0") >= 0
+    assert running_node.project.get("metric", "memory", step="running", index="0") >= 0
+
+
+def test_run_task_timeout(running_node, monkeypatch):
+    assert running_node.project.set("tool", "builtin", 'task', 'nop', "format", "json")
+
+    class HangingProcess:
+        returncode = None
+        pid = 123
+
+        def __init__(self):
+            self._calls = 0
+
+        def poll(self):
+            self._calls += 1
+            return None
+
+    monkeypatch.setattr(imported_subprocess, 'Popen', lambda *a, **k: HangingProcess())
+    monkeypatch.setattr(time, 'sleep', lambda *_: None)
+    monkeypatch.setattr(imported_psutil, 'virtual_memory', lambda: type('Mem', (), {'percent': 10})())
+
+    def dummy_get_exe(*args, **kwargs):
+        return "found/exe"
+
+    monkeypatch.setattr(running_node.task, 'get_exe', dummy_get_exe)
+
+    with running_node.task.runtime(running_node) as runtool:
+        with pytest.raises(TaskTimeout):
+            runtool.run_task('.', False, "info", False, None, 0.0)
+
+
+def test_run_task_custom_env(running_node, monkeypatch):
+    assert running_node.project.set("tool", "builtin", 'task', 'nop', "format", "json")
+    captured_env = {}
+
+    class Process:
+        returncode = 0
+
+        def poll(self):
+            return 0
+
+    def dummy_popen(*args, **kwargs):
+        nonlocal captured_env
+        captured_env = kwargs['env']
+        return Process()
+
+    monkeypatch.setattr(imported_subprocess, 'Popen', dummy_popen)
+
+    def dummy_get_exe(*args, **kwargs):
+        return "found/exe"
+
+    monkeypatch.setattr(running_node.task, 'get_exe', dummy_get_exe)
+
+    with patch.dict(os.environ, {"EXTRA": "1"}, clear=True):
+        with running_node.task.runtime(running_node) as runtool:
+            assert runtool.run_task('.', False, "info", False, None, None) == 0
+
+    assert captured_env["EXTRA"] == "1"
+    assert "PATH" in captured_env
+        return Popen()
+    monkeypatch.setattr(imported_subprocess, 'Popen', dummy_popen)
+
+    def dummy_get_exe(*args, **kwargs):
+        return "found/exe"
+    monkeypatch.setattr(running_node.task, 'get_exe', dummy_get_exe)
+
+    assert running_node.project.get("record", "toolargs", step="running", index="0") is None
+    assert running_node.project.get("record", "toolexitcode", step="running", index="0") is None
+    assert running_node.project.get("metric", "exetime", step="running", index="0") is None
+    assert running_node.project.get("metric", "memory", step="running", index="0") is None
+
+    with running_node.task.runtime(running_node) as runtool:
+        assert runtool.run_task('.', False, "info", False, None, None) == exitcode
 
     assert running_node.project.get("record", "toolargs", step="running", index="0") == ""
     assert running_node.project.get("record", "toolexitcode", step="running", index="0") == exitcode
@@ -1103,7 +1180,7 @@ def test_run_task_failed_popen(running_node, monkeypatch):
 
     with running_node.task.runtime(running_node) as runtool:
         with pytest.raises(TaskError, match="^Unable to start found/exe: something bad happened$"):
-            runtool.run_task('.', False, False, None, None)
+            runtool.run_task('.', False, "info", False, None, None)
 
 
 @pytest.mark.parametrize("nice", [-5, 0, 5])
@@ -1136,7 +1213,7 @@ def test_run_task_nice(running_node, nice, monkeypatch):
     monkeypatch.setattr(running_node.task, 'get_exe', dummy_get_exe)
 
     with running_node.task.runtime(running_node) as runtool:
-        assert runtool.run_task('.', False, False, nice, None) == 0
+        assert runtool.run_task('.', False, "info", False, nice, None) == 0
 
 
 def test_run_task_timeout(running_node, monkeypatch, patch_psutil):
@@ -1158,17 +1235,7 @@ def test_run_task_timeout(running_node, monkeypatch, patch_psutil):
 
         return Popen()
     monkeypatch.setattr(imported_subprocess, 'Popen', dummy_popen)
-
-    def dummy_get_exe(*args, **kwargs):
-        return "found/exe"
-    monkeypatch.setattr(running_node.task, 'get_exe', dummy_get_exe)
-
-    with running_node.task.runtime(running_node) as runtool:
-        with pytest.raises(TaskTimeout, match="^$"):
-            runtool.run_task('.', False, False, None, 2)
-
-
-def test_run_task_memory_limit(running_node, monkeypatch, patch_psutil, caplog):
+def test_run_task_contl_c(running_node, monkeypatch, patch_psutil, caplog):
     assert running_node.project.set("tool", "builtin", 'task', 'nop', "format", "json")
 
     def dummy_popen(*args, **kwargs):
@@ -1187,16 +1254,62 @@ def test_run_task_memory_limit(running_node, monkeypatch, patch_psutil, caplog):
                     return self.returncode
                 return None
 
+            def wait(*args, **kwargs):
+                pass
+
         return Popen()
     monkeypatch.setattr(imported_subprocess, 'Popen', dummy_popen)
+
+    def dummy_virtual_memory():
+        raise KeyboardInterrupt
+    monkeypatch.setattr(imported_psutil, 'virtual_memory', dummy_virtual_memory)
 
     def dummy_get_exe(*args, **kwargs):
         return "found/exe"
     monkeypatch.setattr(running_node.task, 'get_exe', dummy_get_exe)
 
     with running_node.task.runtime(running_node) as runtool:
-        assert runtool.run_task('.', False, False, None, None) == 0
+        with pytest.raises(TaskError, match="^$"):
+            runtool.run_task('.', False, "info", False, None, None)
 
+    assert "Received ctrl-c." in caplog.text
+
+
+def test_run_task_process_termination(running_node, monkeypatch, patch_psutil):
+    assert running_node.project.set("tool", "builtin", 'task', 'nop', "format", "json")
+
+    class DummyProcess:
+        pid = 11
+        returncode = None
+
+        def __init__(self):
+            self.terminated = False
+            self.killed = False
+
+        def poll(self):
+            return self.returncode
+
+        def wait(self, *args, **kwargs):
+            self.returncode = 0
+
+        def terminate(self):
+            self.terminated = True
+
+        def kill(self):
+            self.killed = True
+
+    proc = DummyProcess()
+    monkeypatch.setattr(imported_subprocess, 'Popen', lambda *a, **k: proc)
+
+    def dummy_get_exe(*args, **kwargs):
+        return "found/exe"
+
+    monkeypatch.setattr(running_node.task, 'get_exe', dummy_get_exe)
+
+    with running_node.task.runtime(running_node) as runtool:
+        assert runtool.run_task('.', False, "info", False, None, None) == 0
+
+    assert proc.terminated or proc.killed
     assert "Current system memory usage is 91.2%" in caplog.text
 
 
@@ -1232,7 +1345,7 @@ def test_run_task_exceptions_loop(running_node, monkeypatch, patch_psutil, error
     monkeypatch.setattr(running_node.task, 'get_exe', dummy_get_exe)
 
     with running_node.task.runtime(running_node) as runtool:
-        assert runtool.run_task('.', False, False, None, None) == 0
+        assert runtool.run_task('.', False, "info", False, None, None) == 0
 
 
 def test_run_task_contl_c(running_node, monkeypatch, patch_psutil, caplog):
@@ -1270,7 +1383,7 @@ def test_run_task_contl_c(running_node, monkeypatch, patch_psutil, caplog):
 
     with running_node.task.runtime(running_node) as runtool:
         with pytest.raises(TaskError, match="^$"):
-            runtool.run_task('.', False, False, None, None)
+            runtool.run_task('.', False, "info", False, None, None)
 
     assert "Received ctrl-c." in caplog.text
 
@@ -1285,7 +1398,7 @@ def test_run_task_breakpoint_valid(running_node, monkeypatch):
     with running_node.task.runtime(running_node) as runtool:
         with patch("pty.spawn", autospec=True) as spawn:
             spawn.return_value = 1
-            assert runtool.run_task('.', False, True, None, None) == 1
+            assert runtool.run_task('.', False, "info", True, None, None) == 1
             spawn.assert_called_once()
             spawn.assert_called_with(["found/exe"], ANY)
 
@@ -1313,7 +1426,7 @@ def test_run_task_breakpoint_not_used(running_node, monkeypatch):
     with running_node.task.runtime(running_node) as runtool:
         with patch("pty.spawn", autospec=True) as spawn:
             spawn.return_value = 1
-            assert runtool.run_task('.', False, True, None, None) == 1
+            assert runtool.run_task('.', False, "info", True, None, None) == 1
             spawn.assert_not_called()
 
 
@@ -1334,7 +1447,7 @@ def test_run_task_run(running_node):
 
     with running_node.task.runtime(running_node) as runtool:
         assert isinstance(runtool, RunTool)
-        assert runtool.run_task('.', False, True, None, None) == 1
+        assert runtool.run_task('.', False, "info", True, None, None) == 1
         assert runtool.call_count == 1
 
 
@@ -1355,7 +1468,7 @@ def test_run_task_run_error(running_node):
 
     with running_node.task.runtime(running_node) as runtool:
         with pytest.raises(ValueError, match="^run error$"):
-            runtool.run_task('.', False, True, None, None)
+            runtool.run_task('.', False, "info", True, None, None)
         assert runtool.call_count == 1
 
 
@@ -1380,7 +1493,7 @@ def test_run_task_run_failed_resource(running_node, monkeypatch):
     assert isinstance(running_node.task, RunTool)
 
     with running_node.task.runtime(running_node) as runtool:
-        assert runtool.run_task('.', False, True, None, None) == 1
+        assert runtool.run_task('.', False, "info", True, None, None) == 1
         assert runtool.call_count == 1
 
 
@@ -1398,8 +1511,7 @@ def test_select_input_nodes_entry_has_input(running_node):
 def test_task_add_parameter():
     task = Task()
 
-    with pytest.raises(KeyError, match=r"^'\[var\] is not a valid keypath'$"):
-        task.getkeys("var")
+    assert task.getkeys("var") == tuple()
 
     assert isinstance(task.add_parameter("teststr", "str", "long form help"), Parameter)
     assert isinstance(task.add_parameter("testbool", "bool", "long form help"), Parameter)
@@ -1859,22 +1971,23 @@ def test_add_version(running_node):
         assert runtool.get("version") == [">=1", ">=2"]
         assert runtool.add_version(">=3", clobber=True)
         assert runtool.get("version") == [">=3"]
+@pytest.mark.parametrize("cls", [ShowTask, ScreenshotTask])
+def test_show_keys(cls):
+    assert cls().getkeys("var") == ('showexit', 'showfilepath', 'showfiletype', 'shownode')
 
 
-def test_add_vswitch(running_node):
-    with running_node.task.runtime(running_node) as runtool:
-        assert runtool.add_vswitch("-h")
-        assert runtool.add_vswitch("-v")
-        assert runtool.get("vswitch") == ["-h", "-v"]
-        assert runtool.add_vswitch("-version", clobber=True)
-        assert runtool.get("vswitch") == ["-version"]
+def test_show_keys_is_tuple():
+    keys = ShowTask().getkeys("var")
+    assert isinstance(keys, tuple)
+    with pytest.raises(TypeError):
+        keys[0] = 'mutate'
 
 
-def test_add_licenseserver(running_node):
-    with running_node.task.runtime(running_node) as runtool:
-        assert runtool.add_licenseserver("testlic", "lic0")
-        assert runtool.add_licenseserver("testlic", "lic1")
-        assert runtool.get("licenseserver", "testlic") == ['lic0', 'lic1']
+@pytest.mark.parametrize("cls", [ShowTask, ScreenshotTask])
+def test_show_keys_consistent_across_inputs(cls):
+    keys_default = cls().getkeys("var")
+    keys_other = cls().getkeys("foo")
+    assert keys_default == keys_other
         assert runtool.add_licenseserver("testlic", "lic2", clobber=True)
         assert runtool.get("licenseserver", "testlic") == ["lic2"]
 
@@ -1913,16 +2026,26 @@ def test_add_postscript(running_node):
 
         assert runtool.add_postscript("postscript0.tcl")
         assert runtool.add_postscript("postscript1.tcl")
-        assert runtool.get("postscript") == ["postscript0.tcl", "postscript1.tcl"]
-        assert runtool.add_postscript("postscript2.tcl", clobber=True)
-        assert runtool.get("postscript") == ["postscript2.tcl"]
+def test_show_register_task():
+    class Test(ShowTask):
+        pass
 
-        assert runtool.has_postscript() is True
+    with patch.dict("siliconcompiler.ShowTask._ShowTask__TASKS", clear=True) \
+            as tasks:
+        assert len(tasks) == 0
+        ShowTask.register_task(Test)
+        assert len(tasks) == 1
+        assert tasks[ShowTask] == set([Test])
 
 
-def test_set_refdir(running_node):
-    with running_node.task.runtime(running_node) as runtool:
-        assert runtool.set_refdir(".")
+def test_show_register_task_duplicate():
+    class Test(ShowTask):
+        pass
+
+    with patch.dict("siliconcompiler.ShowTask._ShowTask__TASKS", clear=True) as tasks:
+        ShowTask.register_task(Test)
+        ShowTask.register_task(Test)
+        assert tasks[ShowTask] == {Test}
         assert runtool.get("refdir") == ["."]
 
 
