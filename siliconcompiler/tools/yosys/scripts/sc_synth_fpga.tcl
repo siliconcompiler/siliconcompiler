@@ -78,7 +78,7 @@ if { [string match {ice*} $sc_partname] } {
 } elseif {
     [sc_cfg_exists library $sc_designlib tool yosys fpga_config] &&
     [sc_cfg_get library $sc_designlib tool yosys fpga_config] != {} &&
-    [sc_load_plugin yosys-syn]
+    [sc_load_plugin wildebeest]
 } {
     set synth_fpga_args []
     if { [sc_cfg_tool_task_get var synth_opt_mode] != "none" } {
