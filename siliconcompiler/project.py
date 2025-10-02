@@ -218,14 +218,14 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
     @property
     def option(self) -> OptionSchema:
         """
-        Returns the design object associated with the project.
+        Provides access to the top-level options schema.
+
+        This property is the entry point for configuring global and job-specific
+        parameters that control the compiler's behavior, such as flow control,
+        logging, and build settings.
 
         Returns:
-            Design: The `Design` schema object for the current project.
-
-        Raises:
-            ValueError: If the design name is not set.
-            KeyError: If the design has not been loaded into the project's libraries.
+            OptionSchema: The schema object for top-level options.
         """
         return self.get("option", field="schema")
 
