@@ -378,7 +378,7 @@ class OptionSchema(BaseSchema):
                 arguments when reading from parameters with the pernode field set to
                 'optional'."""))
 
-    # job scheduler
+        # job scheduler
         schema.insert(
             'scheduler', 'name',
             Parameter(
