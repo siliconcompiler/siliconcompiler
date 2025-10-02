@@ -40,9 +40,3 @@ def trim(docstring: str) -> str:
         trimmed.pop(0)
     # Return a single string:
     return '\n'.join(trimmed)
-
-
-def translate_loglevel(level: str) -> str:
-    if level == "quiet":
-        level = "error"
-    return level.upper()

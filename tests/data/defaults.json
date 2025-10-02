@@ -1604,33 +1604,6 @@
                   }
                 }
               },
-              "var": {
-                "default": {
-                  "type": "[str]",
-                  "require": false,
-                  "scope": "job",
-                  "lock": false,
-                  "switch": [
-                    "-tool_task_var 'tool task key <str>'"
-                  ],
-                  "shorthelp": "Task: script variables",
-                  "example": [
-                    "cli: -tool_task_var 'openroad cts myvar 42'",
-                    "api: task.set('tool', 'openroad', 'task', 'cts', 'var', 'myvar', '42')"
-                  ],
-                  "help": "Task script variables specified as key value pairs. Variable\nnames and value types must match the name and type of task and reference\nscript consuming the variable.",
-                  "notes": null,
-                  "pernode": "optional",
-                  "node": {
-                    "default": {
-                      "default": {
-                        "value": [],
-                        "signature": []
-                      }
-                    }
-                  }
-                }
-              },
               "env": {
                 "default": {
                   "type": "str",
@@ -1656,70 +1629,6 @@
                       }
                     }
                   }
-                }
-              },
-              "file": {
-                "default": {
-                  "type": "[file]",
-                  "require": false,
-                  "scope": "job",
-                  "lock": false,
-                  "switch": [
-                    "-tool_task_file 'tool task key <file>'"
-                  ],
-                  "shorthelp": "Task: custom setup files",
-                  "example": [
-                    "cli: -tool_task_file 'openroad floorplan macroplace macroplace.tcl'",
-                    "api: task.set('tool', 'openroad', 'task', 'floorplan', 'file', 'macroplace', 'macroplace.tcl')"
-                  ],
-                  "help": "Paths to user supplied files mapped to keys. Keys and filetypes must\nmatch what's expected by the task/reference script consuming the\nfile.",
-                  "notes": null,
-                  "pernode": "optional",
-                  "node": {
-                    "default": {
-                      "default": {
-                        "value": [],
-                        "signature": [],
-                        "filehash": [],
-                        "dataroot": [],
-                        "date": [],
-                        "author": []
-                      }
-                    }
-                  },
-                  "hashalgo": "sha256",
-                  "copy": true
-                }
-              },
-              "dir": {
-                "default": {
-                  "type": "[dir]",
-                  "require": false,
-                  "scope": "job",
-                  "lock": false,
-                  "switch": [
-                    "-tool_task_dir 'tool task key <dir>'"
-                  ],
-                  "shorthelp": "Task: custom setup directories",
-                  "example": [
-                    "cli: -tool_task_dir 'verilator compile cincludes include'",
-                    "api: task.set('tool', 'verilator', 'task', 'compile', 'dir', 'cincludes', 'include')"
-                  ],
-                  "help": "Paths to user supplied directories mapped to keys. Keys must match\nwhat's expected by the task/reference script consuming the\ndirectory.",
-                  "notes": null,
-                  "pernode": "optional",
-                  "node": {
-                    "default": {
-                      "default": {
-                        "value": [],
-                        "signature": [],
-                        "filehash": [],
-                        "dataroot": []
-                      }
-                    }
-                  },
-                  "hashalgo": "sha256",
-                  "copy": true
                 }
               },
               "input": {
@@ -2264,31 +2173,6 @@
             }
           }
         },
-        "loglevel": {
-          "type": "<critical,debug,error,info,quiet,warning>",
-          "require": false,
-          "scope": "global",
-          "lock": false,
-          "switch": [
-            "-loglevel <str>"
-          ],
-          "shorthelp": "Option: logging level",
-          "example": [
-            "cli: -loglevel info",
-            "api: option.set('loglevel', 'info')"
-          ],
-          "help": "\n                Provides explicit control over the level of debug logging printed.",
-          "notes": null,
-          "pernode": "optional",
-          "node": {
-            "default": {
-              "default": {
-                "value": "info",
-                "signature": null
-              }
-            }
-          }
-        },
         "builddir": {
           "type": "dir",
           "require": false,
@@ -2668,31 +2552,6 @@
             }
           },
           "unit": "s"
-        },
-        "strict": {
-          "type": "bool",
-          "require": false,
-          "scope": "global",
-          "lock": false,
-          "switch": [
-            "-strict <bool>"
-          ],
-          "shorthelp": "Option: strict checking",
-          "example": [
-            "cli: -strict true",
-            "api: option.set('strict', True)"
-          ],
-          "help": "\n                Enable additional strict checking in the SC Python API. When this\n                parameter is set to True, users must provide step and index keyword\n                arguments when reading from parameters with the pernode field set to\n                'optional'.",
-          "notes": null,
-          "pernode": "never",
-          "node": {
-            "default": {
-              "default": {
-                "value": false,
-                "signature": null
-              }
-            }
-          }
         },
         "scheduler": {
           "name": {
@@ -5342,33 +5201,6 @@
                   }
                 }
               },
-              "var": {
-                "default": {
-                  "type": "[str]",
-                  "require": false,
-                  "scope": "job",
-                  "lock": false,
-                  "switch": [
-                    "-tool_task_var 'tool task key <str>'"
-                  ],
-                  "shorthelp": "Task: script variables",
-                  "example": [
-                    "cli: -tool_task_var 'openroad cts myvar 42'",
-                    "api: task.set('tool', 'openroad', 'task', 'cts', 'var', 'myvar', '42')"
-                  ],
-                  "help": "Task script variables specified as key value pairs. Variable\nnames and value types must match the name and type of task and reference\nscript consuming the variable.",
-                  "notes": null,
-                  "pernode": "optional",
-                  "node": {
-                    "default": {
-                      "default": {
-                        "value": [],
-                        "signature": []
-                      }
-                    }
-                  }
-                }
-              },
               "env": {
                 "default": {
                   "type": "str",
@@ -5394,70 +5226,6 @@
                       }
                     }
                   }
-                }
-              },
-              "file": {
-                "default": {
-                  "type": "[file]",
-                  "require": false,
-                  "scope": "job",
-                  "lock": false,
-                  "switch": [
-                    "-tool_task_file 'tool task key <file>'"
-                  ],
-                  "shorthelp": "Task: custom setup files",
-                  "example": [
-                    "cli: -tool_task_file 'openroad floorplan macroplace macroplace.tcl'",
-                    "api: task.set('tool', 'openroad', 'task', 'floorplan', 'file', 'macroplace', 'macroplace.tcl')"
-                  ],
-                  "help": "Paths to user supplied files mapped to keys. Keys and filetypes must\nmatch what's expected by the task/reference script consuming the\nfile.",
-                  "notes": null,
-                  "pernode": "optional",
-                  "node": {
-                    "default": {
-                      "default": {
-                        "value": [],
-                        "signature": [],
-                        "filehash": [],
-                        "dataroot": [],
-                        "date": [],
-                        "author": []
-                      }
-                    }
-                  },
-                  "hashalgo": "sha256",
-                  "copy": true
-                }
-              },
-              "dir": {
-                "default": {
-                  "type": "[dir]",
-                  "require": false,
-                  "scope": "job",
-                  "lock": false,
-                  "switch": [
-                    "-tool_task_dir 'tool task key <dir>'"
-                  ],
-                  "shorthelp": "Task: custom setup directories",
-                  "example": [
-                    "cli: -tool_task_dir 'verilator compile cincludes include'",
-                    "api: task.set('tool', 'verilator', 'task', 'compile', 'dir', 'cincludes', 'include')"
-                  ],
-                  "help": "Paths to user supplied directories mapped to keys. Keys must match\nwhat's expected by the task/reference script consuming the\ndirectory.",
-                  "notes": null,
-                  "pernode": "optional",
-                  "node": {
-                    "default": {
-                      "default": {
-                        "value": [],
-                        "signature": [],
-                        "filehash": [],
-                        "dataroot": []
-                      }
-                    }
-                  },
-                  "hashalgo": "sha256",
-                  "copy": true
                 }
               },
               "input": {
@@ -6002,31 +5770,6 @@
             }
           }
         },
-        "loglevel": {
-          "type": "<critical,debug,error,info,quiet,warning>",
-          "require": false,
-          "scope": "global",
-          "lock": false,
-          "switch": [
-            "-loglevel <str>"
-          ],
-          "shorthelp": "Option: logging level",
-          "example": [
-            "cli: -loglevel info",
-            "api: option.set('loglevel', 'info')"
-          ],
-          "help": "\n                Provides explicit control over the level of debug logging printed.",
-          "notes": null,
-          "pernode": "optional",
-          "node": {
-            "default": {
-              "default": {
-                "value": "info",
-                "signature": null
-              }
-            }
-          }
-        },
         "builddir": {
           "type": "dir",
           "require": false,
@@ -6406,31 +6149,6 @@
             }
           },
           "unit": "s"
-        },
-        "strict": {
-          "type": "bool",
-          "require": false,
-          "scope": "global",
-          "lock": false,
-          "switch": [
-            "-strict <bool>"
-          ],
-          "shorthelp": "Option: strict checking",
-          "example": [
-            "cli: -strict true",
-            "api: option.set('strict', True)"
-          ],
-          "help": "\n                Enable additional strict checking in the SC Python API. When this\n                parameter is set to True, users must provide step and index keyword\n                arguments when reading from parameters with the pernode field set to\n                'optional'.",
-          "notes": null,
-          "pernode": "never",
-          "node": {
-            "default": {
-              "default": {
-                "value": false,
-                "signature": null
-              }
-            }
-          }
         },
         "scheduler": {
           "name": {
@@ -9387,33 +9105,6 @@
                   }
                 }
               },
-              "var": {
-                "default": {
-                  "type": "[str]",
-                  "require": false,
-                  "scope": "job",
-                  "lock": false,
-                  "switch": [
-                    "-tool_task_var 'tool task key <str>'"
-                  ],
-                  "shorthelp": "Task: script variables",
-                  "example": [
-                    "cli: -tool_task_var 'openroad cts myvar 42'",
-                    "api: task.set('tool', 'openroad', 'task', 'cts', 'var', 'myvar', '42')"
-                  ],
-                  "help": "Task script variables specified as key value pairs. Variable\nnames and value types must match the name and type of task and reference\nscript consuming the variable.",
-                  "notes": null,
-                  "pernode": "optional",
-                  "node": {
-                    "default": {
-                      "default": {
-                        "value": [],
-                        "signature": []
-                      }
-                    }
-                  }
-                }
-              },
               "env": {
                 "default": {
                   "type": "str",
@@ -9439,70 +9130,6 @@
                       }
                     }
                   }
-                }
-              },
-              "file": {
-                "default": {
-                  "type": "[file]",
-                  "require": false,
-                  "scope": "job",
-                  "lock": false,
-                  "switch": [
-                    "-tool_task_file 'tool task key <file>'"
-                  ],
-                  "shorthelp": "Task: custom setup files",
-                  "example": [
-                    "cli: -tool_task_file 'openroad floorplan macroplace macroplace.tcl'",
-                    "api: task.set('tool', 'openroad', 'task', 'floorplan', 'file', 'macroplace', 'macroplace.tcl')"
-                  ],
-                  "help": "Paths to user supplied files mapped to keys. Keys and filetypes must\nmatch what's expected by the task/reference script consuming the\nfile.",
-                  "notes": null,
-                  "pernode": "optional",
-                  "node": {
-                    "default": {
-                      "default": {
-                        "value": [],
-                        "signature": [],
-                        "filehash": [],
-                        "dataroot": [],
-                        "date": [],
-                        "author": []
-                      }
-                    }
-                  },
-                  "hashalgo": "sha256",
-                  "copy": true
-                }
-              },
-              "dir": {
-                "default": {
-                  "type": "[dir]",
-                  "require": false,
-                  "scope": "job",
-                  "lock": false,
-                  "switch": [
-                    "-tool_task_dir 'tool task key <dir>'"
-                  ],
-                  "shorthelp": "Task: custom setup directories",
-                  "example": [
-                    "cli: -tool_task_dir 'verilator compile cincludes include'",
-                    "api: task.set('tool', 'verilator', 'task', 'compile', 'dir', 'cincludes', 'include')"
-                  ],
-                  "help": "Paths to user supplied directories mapped to keys. Keys must match\nwhat's expected by the task/reference script consuming the\ndirectory.",
-                  "notes": null,
-                  "pernode": "optional",
-                  "node": {
-                    "default": {
-                      "default": {
-                        "value": [],
-                        "signature": [],
-                        "filehash": [],
-                        "dataroot": []
-                      }
-                    }
-                  },
-                  "hashalgo": "sha256",
-                  "copy": true
                 }
               },
               "input": {
@@ -10047,31 +9674,6 @@
             }
           }
         },
-        "loglevel": {
-          "type": "<critical,debug,error,info,quiet,warning>",
-          "require": false,
-          "scope": "global",
-          "lock": false,
-          "switch": [
-            "-loglevel <str>"
-          ],
-          "shorthelp": "Option: logging level",
-          "example": [
-            "cli: -loglevel info",
-            "api: option.set('loglevel', 'info')"
-          ],
-          "help": "\n                Provides explicit control over the level of debug logging printed.",
-          "notes": null,
-          "pernode": "optional",
-          "node": {
-            "default": {
-              "default": {
-                "value": "info",
-                "signature": null
-              }
-            }
-          }
-        },
         "builddir": {
           "type": "dir",
           "require": false,
@@ -10451,31 +10053,6 @@
             }
           },
           "unit": "s"
-        },
-        "strict": {
-          "type": "bool",
-          "require": false,
-          "scope": "global",
-          "lock": false,
-          "switch": [
-            "-strict <bool>"
-          ],
-          "shorthelp": "Option: strict checking",
-          "example": [
-            "cli: -strict true",
-            "api: option.set('strict', True)"
-          ],
-          "help": "\n                Enable additional strict checking in the SC Python API. When this\n                parameter is set to True, users must provide step and index keyword\n                arguments when reading from parameters with the pernode field set to\n                'optional'.",
-          "notes": null,
-          "pernode": "never",
-          "node": {
-            "default": {
-              "default": {
-                "value": false,
-                "signature": null
-              }
-            }
-          }
         },
         "scheduler": {
           "name": {
@@ -13188,33 +12765,6 @@
                   }
                 }
               },
-              "var": {
-                "default": {
-                  "type": "[str]",
-                  "require": false,
-                  "scope": "job",
-                  "lock": false,
-                  "switch": [
-                    "-tool_task_var 'tool task key <str>'"
-                  ],
-                  "shorthelp": "Task: script variables",
-                  "example": [
-                    "cli: -tool_task_var 'openroad cts myvar 42'",
-                    "api: task.set('tool', 'openroad', 'task', 'cts', 'var', 'myvar', '42')"
-                  ],
-                  "help": "Task script variables specified as key value pairs. Variable\nnames and value types must match the name and type of task and reference\nscript consuming the variable.",
-                  "notes": null,
-                  "pernode": "optional",
-                  "node": {
-                    "default": {
-                      "default": {
-                        "value": [],
-                        "signature": []
-                      }
-                    }
-                  }
-                }
-              },
               "env": {
                 "default": {
                   "type": "str",
@@ -13240,70 +12790,6 @@
                       }
                     }
                   }
-                }
-              },
-              "file": {
-                "default": {
-                  "type": "[file]",
-                  "require": false,
-                  "scope": "job",
-                  "lock": false,
-                  "switch": [
-                    "-tool_task_file 'tool task key <file>'"
-                  ],
-                  "shorthelp": "Task: custom setup files",
-                  "example": [
-                    "cli: -tool_task_file 'openroad floorplan macroplace macroplace.tcl'",
-                    "api: task.set('tool', 'openroad', 'task', 'floorplan', 'file', 'macroplace', 'macroplace.tcl')"
-                  ],
-                  "help": "Paths to user supplied files mapped to keys. Keys and filetypes must\nmatch what's expected by the task/reference script consuming the\nfile.",
-                  "notes": null,
-                  "pernode": "optional",
-                  "node": {
-                    "default": {
-                      "default": {
-                        "value": [],
-                        "signature": [],
-                        "filehash": [],
-                        "dataroot": [],
-                        "date": [],
-                        "author": []
-                      }
-                    }
-                  },
-                  "hashalgo": "sha256",
-                  "copy": true
-                }
-              },
-              "dir": {
-                "default": {
-                  "type": "[dir]",
-                  "require": false,
-                  "scope": "job",
-                  "lock": false,
-                  "switch": [
-                    "-tool_task_dir 'tool task key <dir>'"
-                  ],
-                  "shorthelp": "Task: custom setup directories",
-                  "example": [
-                    "cli: -tool_task_dir 'verilator compile cincludes include'",
-                    "api: task.set('tool', 'verilator', 'task', 'compile', 'dir', 'cincludes', 'include')"
-                  ],
-                  "help": "Paths to user supplied directories mapped to keys. Keys must match\nwhat's expected by the task/reference script consuming the\ndirectory.",
-                  "notes": null,
-                  "pernode": "optional",
-                  "node": {
-                    "default": {
-                      "default": {
-                        "value": [],
-                        "signature": [],
-                        "filehash": [],
-                        "dataroot": []
-                      }
-                    }
-                  },
-                  "hashalgo": "sha256",
-                  "copy": true
                 }
               },
               "input": {
@@ -13848,31 +13334,6 @@
             }
           }
         },
-        "loglevel": {
-          "type": "<critical,debug,error,info,quiet,warning>",
-          "require": false,
-          "scope": "global",
-          "lock": false,
-          "switch": [
-            "-loglevel <str>"
-          ],
-          "shorthelp": "Option: logging level",
-          "example": [
-            "cli: -loglevel info",
-            "api: option.set('loglevel', 'info')"
-          ],
-          "help": "\n                Provides explicit control over the level of debug logging printed.",
-          "notes": null,
-          "pernode": "optional",
-          "node": {
-            "default": {
-              "default": {
-                "value": "info",
-                "signature": null
-              }
-            }
-          }
-        },
         "builddir": {
           "type": "dir",
           "require": false,
@@ -14252,31 +13713,6 @@
             }
           },
           "unit": "s"
-        },
-        "strict": {
-          "type": "bool",
-          "require": false,
-          "scope": "global",
-          "lock": false,
-          "switch": [
-            "-strict <bool>"
-          ],
-          "shorthelp": "Option: strict checking",
-          "example": [
-            "cli: -strict true",
-            "api: option.set('strict', True)"
-          ],
-          "help": "\n                Enable additional strict checking in the SC Python API. When this\n                parameter is set to True, users must provide step and index keyword\n                arguments when reading from parameters with the pernode field set to\n                'optional'.",
-          "notes": null,
-          "pernode": "never",
-          "node": {
-            "default": {
-              "default": {
-                "value": false,
-                "signature": null
-              }
-            }
-          }
         },
         "scheduler": {
           "name": {
@@ -16238,33 +15674,6 @@
                   }
                 }
               },
-              "var": {
-                "default": {
-                  "type": "[str]",
-                  "require": false,
-                  "scope": "job",
-                  "lock": false,
-                  "switch": [
-                    "-tool_task_var 'tool task key <str>'"
-                  ],
-                  "shorthelp": "Task: script variables",
-                  "example": [
-                    "cli: -tool_task_var 'openroad cts myvar 42'",
-                    "api: task.set('tool', 'openroad', 'task', 'cts', 'var', 'myvar', '42')"
-                  ],
-                  "help": "Task script variables specified as key value pairs. Variable\nnames and value types must match the name and type of task and reference\nscript consuming the variable.",
-                  "notes": null,
-                  "pernode": "optional",
-                  "node": {
-                    "default": {
-                      "default": {
-                        "value": [],
-                        "signature": []
-                      }
-                    }
-                  }
-                }
-              },
               "env": {
                 "default": {
                   "type": "str",
@@ -16290,70 +15699,6 @@
                       }
                     }
                   }
-                }
-              },
-              "file": {
-                "default": {
-                  "type": "[file]",
-                  "require": false,
-                  "scope": "job",
-                  "lock": false,
-                  "switch": [
-                    "-tool_task_file 'tool task key <file>'"
-                  ],
-                  "shorthelp": "Task: custom setup files",
-                  "example": [
-                    "cli: -tool_task_file 'openroad floorplan macroplace macroplace.tcl'",
-                    "api: task.set('tool', 'openroad', 'task', 'floorplan', 'file', 'macroplace', 'macroplace.tcl')"
-                  ],
-                  "help": "Paths to user supplied files mapped to keys. Keys and filetypes must\nmatch what's expected by the task/reference script consuming the\nfile.",
-                  "notes": null,
-                  "pernode": "optional",
-                  "node": {
-                    "default": {
-                      "default": {
-                        "value": [],
-                        "signature": [],
-                        "filehash": [],
-                        "dataroot": [],
-                        "date": [],
-                        "author": []
-                      }
-                    }
-                  },
-                  "hashalgo": "sha256",
-                  "copy": true
-                }
-              },
-              "dir": {
-                "default": {
-                  "type": "[dir]",
-                  "require": false,
-                  "scope": "job",
-                  "lock": false,
-                  "switch": [
-                    "-tool_task_dir 'tool task key <dir>'"
-                  ],
-                  "shorthelp": "Task: custom setup directories",
-                  "example": [
-                    "cli: -tool_task_dir 'verilator compile cincludes include'",
-                    "api: task.set('tool', 'verilator', 'task', 'compile', 'dir', 'cincludes', 'include')"
-                  ],
-                  "help": "Paths to user supplied directories mapped to keys. Keys must match\nwhat's expected by the task/reference script consuming the\ndirectory.",
-                  "notes": null,
-                  "pernode": "optional",
-                  "node": {
-                    "default": {
-                      "default": {
-                        "value": [],
-                        "signature": [],
-                        "filehash": [],
-                        "dataroot": []
-                      }
-                    }
-                  },
-                  "hashalgo": "sha256",
-                  "copy": true
                 }
               },
               "input": {
@@ -16898,31 +16243,6 @@
             }
           }
         },
-        "loglevel": {
-          "type": "<critical,debug,error,info,quiet,warning>",
-          "require": false,
-          "scope": "global",
-          "lock": false,
-          "switch": [
-            "-loglevel <str>"
-          ],
-          "shorthelp": "Option: logging level",
-          "example": [
-            "cli: -loglevel info",
-            "api: option.set('loglevel', 'info')"
-          ],
-          "help": "\n                Provides explicit control over the level of debug logging printed.",
-          "notes": null,
-          "pernode": "optional",
-          "node": {
-            "default": {
-              "default": {
-                "value": "info",
-                "signature": null
-              }
-            }
-          }
-        },
         "builddir": {
           "type": "dir",
           "require": false,
@@ -17302,31 +16622,6 @@
             }
           },
           "unit": "s"
-        },
-        "strict": {
-          "type": "bool",
-          "require": false,
-          "scope": "global",
-          "lock": false,
-          "switch": [
-            "-strict <bool>"
-          ],
-          "shorthelp": "Option: strict checking",
-          "example": [
-            "cli: -strict true",
-            "api: option.set('strict', True)"
-          ],
-          "help": "\n                Enable additional strict checking in the SC Python API. When this\n                parameter is set to True, users must provide step and index keyword\n                arguments when reading from parameters with the pernode field set to\n                'optional'.",
-          "notes": null,
-          "pernode": "never",
-          "node": {
-            "default": {
-              "default": {
-                "value": false,
-                "signature": null
-              }
-            }
-          }
         },
         "scheduler": {
           "name": {
