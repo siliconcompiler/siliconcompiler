@@ -923,6 +923,78 @@ def test_generate_replay_script(running_node, monkeypatch):
         replay_hash = hashlib.md5(replay_text.encode()).hexdigest()
 
     assert replay_hash == "d86d8d1a38c5acf8a8954670cb0f802c"
+def test_run_task_terminate_called_on_timeout(running_node, monkeypatch, patch_psutil, caplog):
+    """Ensure terminate/kill invoked when process exceeds timeout."""
+    assert running_node.project.set("tool", "builtin", "task", "nop", "format", "json")
+
+    class SlowPopen:
+        pid = 3210
+
+        def __init__(self):
+            self._polls = 0
+
+        def poll(self):
+            self._polls += 1
+            if self._polls > 5:
+                return None
+            time.sleep(0.05)
+            return None
+
+        def wait(self, timeout=None):
+            time.sleep(0.05)
+
+    def dummy_popen(cmd, **kwargs):
+        assert cmd == ["found/exe"]
+        return SlowPopen()
+
+    monkeypatch.setattr(imported_subprocess, "Popen", dummy_popen)
+    monkeypatch.setattr(running_node.task, "get_exe", lambda *_: "found/exe")
+
+    with running_node.task.runtime(running_node) as runtool:
+        with pytest.raises(TaskTimeout):
+            runtool.run_task(".", False, False, None, 0.1)
+
+    assert "terminate" in caplog.text.lower()
+
+
+def test_run_task_records_elapsed_time(running_node, monkeypatch):
+    """Verify run_task records elapsed execution time metric."""
+    assert running_node.project.set("tool", "builtin", "task", "nop", "format", "json")
+
+    class InstantPopen:
+        returncode = 0
+
+        def poll(self):
+            return self.returncode
+
+    monkeypatch.setattr(imported_subprocess, "Popen", lambda *_args, **_kwargs: InstantPopen())
+    monkeypatch.setattr(running_node.task, "get_exe", lambda *_: "found/exe")
+
+    with running_node.task.runtime(running_node) as runtool:
+        result = runtool.run_task(".", False, False, None, None)
+    assert result == 0
+
+    elapsed = running_node.project.get("metric", "exetime", step="running", index="0")
+    assert elapsed is not None
+    assert elapsed >= 0
+
+
+def test_generate_replay_script_handles_empty_environment(running_node, monkeypatch, tmp_path):
+    """Ensure replay script handles missing PATH/LD_LIBRARY_PATH gracefully."""
+    assert running_node.project.set("tool", "builtin", "task", "nop", "exe", "dummyexe")
+    assert running_node.project.set("tool", "builtin", "task", "nop", "vswitch", "--version")
+    monkeypatch.delenv("PATH", raising=False)
+    monkeypatch.delenv("LD_LIBRARY_PATH", raising=False)
+
+    script_path = tmp_path / "replay.sh"
+    with running_node.task.runtime(running_node) as runtool:
+        runtool.generate_replay_script(str(script_path), str(tmp_path))
+
+    assert script_path.exists()
+    content = script_path.read_text()
+    assert "PATH=${PATH:-}" in content
+    assert "LD_LIBRARY_PATH=${LD_LIBRARY_PATH:-}" in content
+
 
 
 def test_generate_replay_script_no_path(running_node, monkeypatch):
