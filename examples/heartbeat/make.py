@@ -56,11 +56,11 @@ class HeartbeatDesign(Design):
                 self.set_param("N", "8")
 
             # ASIC timing constraints for the FreePDK45 technology.
-            with self.active_fileset("rtl.freepdk45"):
+            with self.active_fileset("sdc.freepdk45"):
                 self.add_file("heartbeat.sdc")
 
             # ASIC timing constraints for the ASAP7 technology.
-            with self.active_fileset("rtl.asap7"):
+            with self.active_fileset("sdc.asap7"):
                 self.add_file("heartbeat_asap7.sdc")
 
             # FPGA timing and pin constraints for a Xilinx Artix-7 device.
@@ -123,7 +123,7 @@ def syn(pdk: str = "freepdk45", N: str = None):
 
     # Add the RTL source files and the technology-specific constraint files.
     project.add_fileset("rtl")
-    project.add_fileset(f"rtl.{pdk}")
+    project.add_fileset(f"sdc.{pdk}")
 
     # Optionally override the 'N' parameter.
     if N is not None:
@@ -160,7 +160,7 @@ def asic(pdk: str = "freepdk45", N: str = None):
 
     # Add the necessary filesets.
     project.add_fileset("rtl")
-    project.add_fileset(f"rtl.{pdk}")
+    project.add_fileset(f"sdc.{pdk}")
 
     # Optionally override the 'N' parameter.
     if N is not None:
