@@ -7,8 +7,6 @@ from siliconcompiler.schema_support.option import OptionSchema, SchedulerSchema
 def test_keys():
     assert OptionSchema().allkeys() == set([
         ('builddir',),
-        ('strict',),
-        ('loglevel',),
         ('flow',),
         ('prune',),
         ('from',),
