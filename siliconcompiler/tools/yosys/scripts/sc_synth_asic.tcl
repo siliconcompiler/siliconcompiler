@@ -45,15 +45,8 @@ foreach lib $sc_logiclibs {
     }
 }
 
-set sc_memory_libmap_files ""
-if { [sc_cfg_tool_task_exists file memory_libmap] } {
-    set sc_memory_libmap_files [sc_cfg_tool_task_get file memory_libmap]
-}
-
-set sc_memory_techmap_files ""
-if { [sc_cfg_tool_task_exists file memory_techmap] } {
-    set sc_memory_techmap_files [sc_cfg_tool_task_get file memory_techmap]
-}
+set sc_memory_libmap_files [sc_cfg_tool_task_get var memory_libmap]
+set sc_memory_techmap_files [sc_cfg_tool_task_get var memory_techmap]
 
 ########################################################
 # Read Libraries
@@ -123,18 +116,12 @@ if { [sc_cfg_tool_task_get var use_slang] && [sc_load_plugin slang] } {
 # Helper functions
 ####################
 proc preserve_modules { } {
-    global sc_cfg
-    global sc_tool
-    global sc_task
-
-    if { [sc_cfg_tool_task_exists var preserve_modules] } {
-        foreach pmodule [sc_cfg_tool_task_get var preserve_modules] {
-            foreach module [get_modules $pmodule] {
-                yosys log "Preserving module hierarchy: $module"
-                yosys select -module $module
-                yosys setattr -mod -set keep_hierarchy 1
-                yosys select -clear
-            }
+    foreach pmodule [sc_cfg_tool_task_get var preserve_modules] {
+        foreach module [get_modules $pmodule] {
+            yosys log "Preserving module hierarchy: $module"
+            yosys select -module $module
+            yosys setattr -mod -set keep_hierarchy 1
+            yosys select -clear
         }
     }
 }
@@ -249,10 +236,7 @@ preserve_modules
 
 # Handle tristate buffers
 set sc_tbuf "false"
-if {
-    [sc_cfg_exists library $sc_mainlib option file yosys_tbufmap] &&
-    [llength [sc_cfg_get library $sc_mainlib option file yosys_tbufmap]] != 0
-} {
+if { [sc_cfg_get library $sc_mainlib tool yosys tristatebuffermap] != {} } {
     set sc_tbuf "true"
 
     yosys tribuf
@@ -263,10 +247,8 @@ set synth_args []
 if { $flatten_design } {
     lappend synth_args "-flatten"
 }
-if { [sc_cfg_tool_task_exists file synth_extra_map] } {
-    foreach extra_map [sc_cfg_tool_task_get file synth_extra_map] {
-        lappend synth_args "-extra-map" $extra_map
-    }
+foreach extra_map [sc_cfg_tool_task_get var synth_extra_map] {
+    lappend synth_args "-extra-map" $extra_map
 }
 
 # Specify hierarchy separator
@@ -337,14 +319,14 @@ yosys opt -purge
 
 # Handle tristate buffers
 if { $sc_tbuf == "true" } {
-    set sc_tbuf_techmap [sc_cfg_get library $sc_mainlib option file yosys_tbufmap]
+    set sc_tbuf_techmap [sc_cfg_get library $sc_mainlib tool yosys tristatebuffermap]
     # Map tristate buffers
     yosys techmap -map $sc_tbuf_techmap
     post_techmap -fast
 }
 
 if { [sc_cfg_tool_task_get var map_adders] } {
-    set sc_adder_techmap [sc_cfg_get library $sc_mainlib option {file} yosys_addermap]
+    set sc_adder_techmap [sc_cfg_get library $sc_mainlib tool yosys addermap]
     # extract the full adders
     yosys extract_fa
     # map full adders
@@ -352,11 +334,9 @@ if { [sc_cfg_tool_task_get var map_adders] } {
     post_techmap -fast
 }
 
-if { [sc_cfg_tool_task_exists {file} techmap] } {
-    foreach mapfile [sc_cfg_tool_task_get {file} techmap] {
-        yosys techmap -map $mapfile
-        post_techmap -fast
-    }
+foreach mapfile [sc_cfg_get library $sc_mainlib tool yosys techmap] {
+    yosys techmap -map $mapfile
+    post_techmap -fast
 }
 
 if { [sc_cfg_tool_task_get var autoname] } {

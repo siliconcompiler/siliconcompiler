@@ -178,10 +178,6 @@ class ASICSynthesis(_ASICTask, YosysTask):
             "bool",
             "true/false, techmap adders in Yosys")
         self.add_parameter(
-            "techmap",
-            "[file]",
-            "File to use for techmapping in Yosys")
-        self.add_parameter(
             "memory_libmap",
             "file",
             "File used to map memories with yosys")
@@ -334,6 +330,47 @@ class ASICSynthesis(_ASICTask, YosysTask):
                 self.add_required_key(mainlib, "tool", "yosys", "driver_cell")
                 self.add_required_key("var", "abc_constraint_driver")
                 self.set("var", "abc_constraint_driver", lib_driver)
+
+        if mainlib.get("tool", "yosys", "tristatebuffermap"):
+            self.add_required_key(mainlib, "tool", "yosys", "tristatebuffermap")
+        if mainlib.get("tool", "yosys", "techmap"):
+            self.add_required_key(mainlib, "tool", "yosys", "techmap")
+
+        self.add_required_key("var", "map_adders")
+        if self.get("var", "map_adders"):
+            if mainlib.get("tool", "yosys", "addermap"):
+                self.add_required_key(mainlib, "tool", "yosys", "addermap")
+            else:
+                self.set("var", "map_adders", False)
+
+        if self.get("var", "memory_libmap"):
+            self.add_required_key("var", "memory_libmap")
+        if self.get("var", "memory_techmap"):
+            self.add_required_key("var", "memory_techmap")
+
+        if self.get("var", "synth_extra_map"):
+            self.add_required_key("var", "synth_extra_map")
+
+        if self.get("var", "preserve_modules"):
+            self.add_required_key("var", "preserve_modules")
+        if self.get("var", "blackbox_modules"):
+            self.add_required_key("var", "blackbox_modules")
+
+        self.add_required_key("var", "flatten")
+        self.add_required_key("var", "auto_flatten")
+        self.add_required_key("var", "hier_threshold")
+        self.add_required_key("var", "hierarchy_separator")
+
+        if self.get("var", "strategy"):
+            self.add_required_key("var", "strategy")
+
+        self.add_required_key("var", "map_clockgates")
+        self.add_required_key("var", "min_clockgate_fanout")
+
+        self.add_required_key("var", "lock_design")
+        if self.get("var", "lock_design"):
+            self.add_required_key("var", "lock_design_key")
+            self.add_required_key("var", "lock_design_port")
 
     def pre_process(self):
         super().pre_process()
