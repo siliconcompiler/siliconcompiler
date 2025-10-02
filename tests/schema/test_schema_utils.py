@@ -1,18 +1,7 @@
 import logging
 import pytest
 
-from siliconcompiler.schema.utils import translate_loglevel, trim
-
-
-@pytest.mark.parametrize("level,check", [
-    ("debug", logging.DEBUG),
-    ("info", logging.INFO),
-    ("warning", logging.WARNING),
-    ("error", logging.ERROR),
-    ("quiet", logging.ERROR)
-])
-def test_translate_loglevel(level, check):
-    assert translate_loglevel(level) == logging.getLevelName(check)
+from siliconcompiler.schema.utils import trim
 
 
 def test_trim_none():

@@ -118,21 +118,6 @@ class OptionSchema(BaseSchema):
                 """))
 
         schema.insert(
-            'loglevel',
-            Parameter(
-                '<info,warning,error,critical,debug,quiet>',
-                pernode=PerNode.OPTIONAL,
-                scope=Scope.GLOBAL,
-                defvalue='info',
-                shorthelp="Option: logging level",
-                switch="-loglevel <str>",
-                example=[
-                    "cli: -loglevel info",
-                    "api: option.set('loglevel', 'info')"],
-                help="""
-                Provides explicit control over the level of debug logging printed."""))
-
-        schema.insert(
             'builddir',
             Parameter(
                 'dir',
@@ -363,20 +348,6 @@ class OptionSchema(BaseSchema):
                 Timeout value in seconds. The timeout value is compared
                 against the wall time tracked by the SC runtime to determine
                 if an operation should continue."""))
-
-        schema.insert(
-            'strict',
-            Parameter(
-                'bool',
-                shorthelp="Option: strict checking",
-                switch="-strict <bool>",
-                example=["cli: -strict true",
-                         "api: option.set('strict', True)"],
-                help="""
-                Enable additional strict checking in the SC Python API. When this
-                parameter is set to True, users must provide step and index keyword
-                arguments when reading from parameters with the pernode field set to
-                'optional'."""))
 
         # job scheduler
         schema.insert(

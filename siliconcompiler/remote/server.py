@@ -73,7 +73,7 @@ class Server(ServerSchema):
     __version__ = '0.0.1'
 
     ####################
-    def __init__(self, loglevel="info"):
+    def __init__(self):
         '''
         Init method for Server object
         '''
@@ -86,7 +86,7 @@ class Server(ServerSchema):
         formatter = logging.Formatter('%(asctime)s | %(levelname)-8s | %(message)s')
         handler.setFormatter(formatter)
         self.logger.addHandler(handler)
-        self.logger.setLevel(schema_utils.translate_loglevel(loglevel))
+        self.logger.setLevel(logging.INFO)
 
         # Set up a dictionary to track running jobs.
         self.sc_jobs_lock = threading.Lock()

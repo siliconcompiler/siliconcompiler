@@ -133,27 +133,13 @@ class SCColorLoggerFormatter(logging.Formatter):
 
 
 def get_console_formatter(project, in_run, step, index):
-    loglevel = project.get('option', 'loglevel',
-                           step=step, index=index)
-
-    if loglevel == 'quiet':
-        base_format = SCBlankLoggerFormatter()
-    elif in_run:
-        if loglevel == 'debug':
-            base_format = SCDebugInRunLoggerFormatter(
-                project,
-                project.get('option', 'jobname'),
-                step, index)
-        else:
-            base_format = SCInRunLoggerFormatter(
-                project,
-                project.get('option', 'jobname'),
-                step, index)
+    if in_run:
+        base_format = SCInRunLoggerFormatter(
+            project,
+            project.get('option', 'jobname'),
+            step, index)
     else:
-        if loglevel == 'debug':
-            base_format = SCDebugLoggerFormatter()
-        else:
-            base_format = SCLoggerFormatter()
+        base_format = SCLoggerFormatter()
 
     support_color = SCColorLoggerFormatter.supports_color(sys.stdout)
     if support_color:

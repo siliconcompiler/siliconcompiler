@@ -307,10 +307,6 @@ class SchedulerNode:
         """
         self.__project._logger_console.setFormatter(
             get_console_formatter(self.__project, True, self.__step, self.__index))
-        self.logger.setLevel(
-            schema_utils.translate_loglevel(self.__project.get('option', 'loglevel',
-                                                               step=self.__step,
-                                                               index=self.__index)))
 
         if self.__queue:
             formatter = self.__project._logger_console.formatter
@@ -933,7 +929,6 @@ class SchedulerNode:
                 ret_code = self.__task.run_task(
                     self.__workdir,
                     self.__project.get('option', 'quiet', step=self.__step, index=self.__index),
-                    self.__project.get('option', 'loglevel', step=self.__step, index=self.__index),
                     self.__breakpoint,
                     self.__project.get('option', 'nice', step=self.__step, index=self.__index),
                     self.__project.get('option', 'timeout', step=self.__step, index=self.__index))
