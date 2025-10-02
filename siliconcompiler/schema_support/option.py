@@ -936,28 +936,6 @@ class OptionSchema(BaseSchema):
         """
         self.set('optmode', value, step=step, index=index)
 
-    def get_loglevel(self, step: str = None, index: str = None) -> str:
-        """Gets the logging level.
-
-        Args:
-            step (str, optional): The flowgraph step. Defaults to None.
-            index (str, optional): The flowgraph step index. Defaults to None.
-
-        Returns:
-            str: The logging level (e.g., 'info', 'debug').
-        """
-        return self.get('loglevel', step=step, index=index)
-
-    def set_loglevel(self, value: str, step: str = None, index: str = None):
-        """Sets the logging level.
-
-        Args:
-            value (str): The logging level to set.
-            step (str, optional): The flowgraph step. Defaults to None.
-            index (str, optional): The flowgraph step index. Defaults to None.
-        """
-        self.set('loglevel', value, step=step, index=index)
-
     def get_builddir(self) -> str:
         """Gets the build directory path.
 
@@ -1250,22 +1228,6 @@ class OptionSchema(BaseSchema):
             index (str, optional): The flowgraph step index. Defaults to None.
         """
         self.set('timeout', value, step=step, index=index)
-
-    def get_strict(self) -> bool:
-        """Gets the strict checking flag.
-
-        Returns:
-            bool: True if strict checking is enabled.
-        """
-        return self.get('strict')
-
-    def set_strict(self, value: bool):
-        """Sets the strict checking flag.
-
-        Args:
-            value (bool): The value for the strict flag.
-        """
-        self.set('strict', value)
 
     def get_env(self, key: str) -> str:
         """Gets an environment variable.
