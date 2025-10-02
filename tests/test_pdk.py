@@ -327,7 +327,7 @@ def test_calc_yield_murphy(d0, area, expect):
 
 
 def test_calc_yield_no_d0():
-    with pytest.raises(ValueError, match=r"\[pdk,d0\] has not been set"):
+    with pytest.raises(ValueError, match=r"^\[pdk,d0\] has not been set$"):
         PDK().calc_yield(1.0)
 
 
@@ -335,7 +335,7 @@ def test_calc_yield_wrong_model():
     pdk = PDK()
     pdk.set("pdk", "d0", 1.0)
 
-    with pytest.raises(ValueError, match="Unknown yield model: unknown"):
+    with pytest.raises(ValueError, match="^Unknown yield model: unknown$"):
         pdk.calc_yield(1.0, model="unknown")
 
 
@@ -361,5 +361,5 @@ def test_calc_dpw(wafer, edge, scribe, die, expect):
 
 
 def test_calc_dpw_no_wafer():
-    with pytest.raises(ValueError, match=r"\[pdk,wafersize\] has not been set"):
+    with pytest.raises(ValueError, match=r"^\[pdk,wafersize\] has not been set$"):
         PDK().calc_dpw(1.0, 1.0)

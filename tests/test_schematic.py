@@ -83,7 +83,9 @@ def test_add_pin():
     assert d.get_pinrange(pin0) == (0, 0)
 
     # failing testcase
-    with pytest.raises(ValueError, match="error"):
+    with pytest.raises(ValueError,
+                       match=r"^error while setting \[schematic,pin,input,direction\]: pin1 is "
+                             r"not a member of: inout, input, output$"):
         pin1 = d.add_pin("input", "pin1")
 
 
