@@ -2429,7 +2429,7 @@
           "shorthelp": "Option: breakpoint list",
           "example": [
             "cli: -breakpoint true",
-            "api: option.set('option', 'breakpoint', True)"
+            "api: option.set('breakpoint', True)"
           ],
           "help": "\n                Set a breakpoint on specific steps. If the step is a TCL\n                based tool, then the breakpoints stops the flow inside the\n                EDA tool. If the step is a command line tool, then the flow\n                drops into a Python interpreter.",
           "notes": null,
@@ -2694,234 +2694,6 @@
             }
           }
         },
-        "scheduler": {
-          "name": {
-            "type": "<docker,lsf,sge,slurm>",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-scheduler <str>"
-            ],
-            "shorthelp": "Option: scheduler platform",
-            "example": [
-              "cli: -scheduler slurm",
-              "api: option.set('scheduler', 'name', 'slurm')"
-            ],
-            "help": "\n                Sets the type of job scheduler to be used for each individual\n                flowgraph steps. If the parameter is undefined, the steps are executed\n                on the same machine that the SC was launched on. If 'slurm' is used,\n                the host running the 'sc' command must be running a 'slurmctld' daemon\n                managing a Slurm cluster. Additionally, the build directory\n                (:keypath:`option,builddir`) must be located in shared storage which\n                can be accessed by all hosts in the cluster.",
-            "notes": null,
-            "pernode": "optional",
-            "node": {
-              "default": {
-                "default": {
-                  "value": null,
-                  "signature": null
-                }
-              }
-            }
-          },
-          "cores": {
-            "type": "int",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-cores <int>"
-            ],
-            "shorthelp": "Option: Scheduler core constraint",
-            "example": [
-              "cli: -cores 48",
-              "api: option.set('scheduler', 'cores', 48)"
-            ],
-            "help": "\n                Specifies the number CPU cores required to run the job.\n                For the slurm scheduler, this translates to the '-c'\n                switch. For more information, see the job scheduler\n                documentation",
-            "notes": null,
-            "pernode": "optional",
-            "node": {
-              "default": {
-                "default": {
-                  "value": null,
-                  "signature": null
-                }
-              }
-            }
-          },
-          "memory": {
-            "type": "int",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-memory <int>"
-            ],
-            "shorthelp": "Option: scheduler memory constraint",
-            "example": [
-              "cli: -memory 8000",
-              "api: option.set('scheduler', 'memory', 8000)"
-            ],
-            "help": "\n                Specifies the amount of memory required to run the job,\n                specified in MB. For the slurm scheduler, this translates to\n                the '--mem' switch. For more information, see the job\n                scheduler documentation",
-            "notes": null,
-            "pernode": "optional",
-            "node": {
-              "default": {
-                "default": {
-                  "value": null,
-                  "signature": null
-                }
-              }
-            },
-            "unit": "MB"
-          },
-          "queue": {
-            "type": "str",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-queue <str>"
-            ],
-            "shorthelp": "Option: scheduler queue",
-            "example": [
-              "cli: -queue nightrun",
-              "api: option.set('scheduler', 'queue', 'nightrun')"
-            ],
-            "help": "\n                Send the job to the specified queue. With slurm, this\n                translates to 'partition'. The queue name must match\n                the name of an existing job scheduler queue. For more information,\n                see the job scheduler documentation",
-            "notes": null,
-            "pernode": "optional",
-            "node": {
-              "default": {
-                "default": {
-                  "value": null,
-                  "signature": null
-                }
-              }
-            }
-          },
-          "defer": {
-            "type": "str",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-defer <str>"
-            ],
-            "shorthelp": "Option: scheduler start time",
-            "example": [
-              "cli: -defer 16:00",
-              "api: option.set('scheduler', 'defer', '16:00')"
-            ],
-            "help": "\n                Defer initiation of job until the specified time. The parameter\n                is pass through string for remote job scheduler such as slurm.\n                For more information about the exact format specification, see\n                the job scheduler documentation. Examples of valid slurm specific\n                values include: now+1hour, 16:00, 010-01-20T12:34:00. For more\n                information, see the job scheduler documentation.",
-            "notes": null,
-            "pernode": "optional",
-            "node": {
-              "default": {
-                "default": {
-                  "value": null,
-                  "signature": null
-                }
-              }
-            }
-          },
-          "options": {
-            "type": "[str]",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-scheduler_options <str>"
-            ],
-            "shorthelp": "Option: scheduler arguments",
-            "example": [
-              "cli: -scheduler_options \"--pty\"",
-              "api: option.set('scheduler', 'options', \"--pty\")"
-            ],
-            "help": "\n                Advanced/export options passed through unchanged to the job\n                scheduler as-is. (The user specified options must be compatible\n                with the rest of the scheduler parameters entered.(memory etc).\n                For more information, see the job scheduler documentation.",
-            "notes": null,
-            "pernode": "optional",
-            "node": {
-              "default": {
-                "default": {
-                  "value": [],
-                  "signature": []
-                }
-              }
-            }
-          },
-          "msgevent": {
-            "type": "{<all,begin,end,fail,summary,timeout>}",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-msgevent <str>"
-            ],
-            "shorthelp": "Option: message event trigger",
-            "example": [
-              "cli: -msgevent all",
-              "api: option.set('scheduler', 'msgevent', 'all')"
-            ],
-            "help": "\n                Directs job scheduler to send a message to the user in\n                :keypath:`option,scheduler,msgcontact` when certain events occur\n                during a task.\n\n                * fail: send an email on failures\n                * timeout: send an email on timeouts\n                * begin: send an email at the start of a node task\n                * end: send an email at the end of a node task\n                * summary: send a summary email at the end of the run\n                * all: send an email on any event\n                ",
-            "notes": null,
-            "pernode": "optional",
-            "node": {
-              "default": {
-                "default": {
-                  "value": [],
-                  "signature": []
-                }
-              }
-            }
-          },
-          "msgcontact": {
-            "type": "{str}",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-msgcontact <str>"
-            ],
-            "shorthelp": "Option: message contact",
-            "example": [
-              "cli: -msgcontact 'wile.e.coyote@acme.com'",
-              "api: option.set('scheduler', 'msgcontact', 'wiley@acme.com')"
-            ],
-            "help": "\n                List of email addresses to message on a :keypath:`option,scheduler,msgevent`.\n                Support for email messages relies on job scheduler daemon support.\n                For more information, see the job scheduler documentation. ",
-            "notes": null,
-            "pernode": "optional",
-            "node": {
-              "default": {
-                "default": {
-                  "value": [],
-                  "signature": []
-                }
-              }
-            }
-          },
-          "maxnodes": {
-            "type": "int",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-maxnodes <int>"
-            ],
-            "shorthelp": "Option: maximum concurrent nodes",
-            "example": [
-              "cli: -maxnodes 4",
-              "api: option.set('scheduler', 'maxnodes', 4)"
-            ],
-            "help": "\n                Maximum number of concurrent nodes to run in a job. If not set this will default\n                to the number of cpu cores available.",
-            "notes": null,
-            "pernode": "never",
-            "node": {
-              "default": {
-                "default": {
-                  "value": null,
-                  "signature": null
-                }
-              }
-            }
-          }
-        },
         "env": {
           "default": {
             "type": "str",
@@ -2931,7 +2703,7 @@
             "switch": [],
             "shorthelp": "Option: environment variables",
             "example": [
-              "api: project.set('option', 'env', 'PDK_HOME', '/disk/mypdk')"
+              "api: option.set('env', 'PDK_HOME', '/disk/mypdk')"
             ],
             "help": "Certain tools and reference flows require global environment\nvariables to be set. These variables can be managed externally or\nspecified through the env variable.",
             "notes": null,
@@ -2957,7 +2729,7 @@
           "shorthelp": "Option: Design library name",
           "example": [
             "cli: -design hello_world",
-            "api: project.set('option', 'design', 'hello_world')"
+            "api: option.set('design', 'hello_world')"
           ],
           "help": "Name of the top level library",
           "notes": null,
@@ -2979,7 +2751,7 @@
           "switch": [],
           "shorthelp": "Option: Fileset alias mapping",
           "example": [
-            "api: project.set('option', 'alias', ('design', 'rtl', 'lambda', 'rtl'))"
+            "api: option.set('alias', ('design', 'rtl', 'lambda', 'rtl'))"
           ],
           "help": "List of filesets to alias during a run. When an alias is specific\nit will be used instead of the source fileset. It is useful when you\nwant to substitute a fileset from one library with a fileset from another,\nwithout changing the original design's code.\nFor example, you might use it to swap in a different version of an IP\nblock or a specific test environment.",
           "notes": null,
@@ -3001,7 +2773,7 @@
           "switch": [],
           "shorthelp": "Option: Selected design filesets",
           "example": [
-            "api: project.set('option', 'fileset', 'rtl')"
+            "api: option.set('fileset', 'rtl')"
           ],
           "help": "List of filesets to use from the selected design library",
           "notes": null,
@@ -3025,7 +2797,7 @@
           ],
           "shorthelp": "Option: Disables the dashboard",
           "example": [
-            "api: project.set('option', 'nodashboard', True)"
+            "api: option.set('nodashboard', True)"
           ],
           "help": "Disables the dashboard during execution",
           "notes": null,
@@ -3037,6 +2809,260 @@
                 "signature": null
               }
             }
+          }
+        },
+        "scheduler": {
+          "name": {
+            "type": "<docker,lsf,sge,slurm>",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-scheduler <str>"
+            ],
+            "shorthelp": "Option: scheduler platform",
+            "example": [
+              "cli: -scheduler slurm",
+              "api: option.set('name', 'slurm')"
+            ],
+            "help": "\n                Sets the type of job scheduler to be used for each individual\n                flowgraph steps. If the parameter is undefined, the steps are executed\n                on the same machine that the SC was launched on. If 'slurm' is used,\n                the host running the 'sc' command must be running a 'slurmctld' daemon\n                managing a Slurm cluster. Additionally, the build directory\n                (:keypath:`option,builddir`) must be located in shared storage which\n                can be accessed by all hosts in the cluster.",
+            "notes": null,
+            "pernode": "optional",
+            "node": {
+              "default": {
+                "default": {
+                  "value": null,
+                  "signature": null
+                }
+              }
+            }
+          },
+          "cores": {
+            "type": "int",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-cores <int>"
+            ],
+            "shorthelp": "Option: Scheduler core constraint",
+            "example": [
+              "cli: -cores 48",
+              "api: option.set('cores', 48)"
+            ],
+            "help": "\n                Specifies the number CPU cores required to run the job.\n                For the slurm scheduler, this translates to the '-c'\n                switch. For more information, see the job scheduler\n                documentation",
+            "notes": null,
+            "pernode": "optional",
+            "node": {
+              "default": {
+                "default": {
+                  "value": null,
+                  "signature": null
+                }
+              }
+            }
+          },
+          "memory": {
+            "type": "int",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-memory <int>"
+            ],
+            "shorthelp": "Option: scheduler memory constraint",
+            "example": [
+              "cli: -memory 8000",
+              "api: option.set('memory', 8000)"
+            ],
+            "help": "\n                Specifies the amount of memory required to run the job,\n                specified in MB. For the slurm scheduler, this translates to\n                the '--mem' switch. For more information, see the job\n                scheduler documentation",
+            "notes": null,
+            "pernode": "optional",
+            "node": {
+              "default": {
+                "default": {
+                  "value": null,
+                  "signature": null
+                }
+              }
+            },
+            "unit": "MB"
+          },
+          "queue": {
+            "type": "str",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-queue <str>"
+            ],
+            "shorthelp": "Option: scheduler queue",
+            "example": [
+              "cli: -queue nightrun",
+              "api: option.set('queue', 'nightrun')"
+            ],
+            "help": "\n                Send the job to the specified queue. With slurm, this\n                translates to 'partition'. The queue name must match\n                the name of an existing job scheduler queue. For more information,\n                see the job scheduler documentation",
+            "notes": null,
+            "pernode": "optional",
+            "node": {
+              "default": {
+                "default": {
+                  "value": null,
+                  "signature": null
+                }
+              }
+            }
+          },
+          "defer": {
+            "type": "str",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-defer <str>"
+            ],
+            "shorthelp": "Option: scheduler start time",
+            "example": [
+              "cli: -defer 16:00",
+              "api: option.set('defer', '16:00')"
+            ],
+            "help": "\n                Defer initiation of job until the specified time. The parameter\n                is pass through string for remote job scheduler such as slurm.\n                For more information about the exact format specification, see\n                the job scheduler documentation. Examples of valid slurm specific\n                values include: now+1hour, 16:00, 010-01-20T12:34:00. For more\n                information, see the job scheduler documentation.",
+            "notes": null,
+            "pernode": "optional",
+            "node": {
+              "default": {
+                "default": {
+                  "value": null,
+                  "signature": null
+                }
+              }
+            }
+          },
+          "options": {
+            "type": "[str]",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-scheduler_options <str>"
+            ],
+            "shorthelp": "Option: scheduler arguments",
+            "example": [
+              "cli: -scheduler_options \"--pty\"",
+              "api: option.set('options', \"--pty\")"
+            ],
+            "help": "\n                Advanced/export options passed through unchanged to the job\n                scheduler as-is. (The user specified options must be compatible\n                with the rest of the scheduler parameters entered.(memory etc).\n                For more information, see the job scheduler documentation.",
+            "notes": null,
+            "pernode": "optional",
+            "node": {
+              "default": {
+                "default": {
+                  "value": [],
+                  "signature": []
+                }
+              }
+            }
+          },
+          "msgevent": {
+            "type": "{<all,begin,end,fail,summary,timeout>}",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-msgevent <str>"
+            ],
+            "shorthelp": "Option: message event trigger",
+            "example": [
+              "cli: -msgevent all",
+              "api: option.set('msgevent', 'all')"
+            ],
+            "help": "\n                Directs job scheduler to send a message to the user in\n                :keypath:`option,scheduler,msgcontact` when certain events occur\n                during a task.\n\n                * fail: send an email on failures\n                * timeout: send an email on timeouts\n                * begin: send an email at the start of a node task\n                * end: send an email at the end of a node task\n                * summary: send a summary email at the end of the run\n                * all: send an email on any event\n                ",
+            "notes": null,
+            "pernode": "optional",
+            "node": {
+              "default": {
+                "default": {
+                  "value": [],
+                  "signature": []
+                }
+              }
+            }
+          },
+          "msgcontact": {
+            "type": "{str}",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-msgcontact <str>"
+            ],
+            "shorthelp": "Option: message contact",
+            "example": [
+              "cli: -msgcontact 'wile.e.coyote@acme.com'",
+              "api: option.set('msgcontact', 'wiley@acme.com')"
+            ],
+            "help": "\n                List of email addresses to message on a :keypath:`option,scheduler,msgevent`.\n                Support for email messages relies on job scheduler daemon support.\n                For more information, see the job scheduler documentation. ",
+            "notes": null,
+            "pernode": "optional",
+            "node": {
+              "default": {
+                "default": {
+                  "value": [],
+                  "signature": []
+                }
+              }
+            }
+          },
+          "maxnodes": {
+            "type": "int",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-maxnodes <int>"
+            ],
+            "shorthelp": "Option: maximum concurrent nodes",
+            "example": [
+              "cli: -maxnodes 4",
+              "api: option.set('maxnodes', 4)"
+            ],
+            "help": "\n                Maximum number of concurrent nodes to run in a job. If not set this will default\n                to the number of cpu cores available.",
+            "notes": null,
+            "pernode": "never",
+            "node": {
+              "default": {
+                "default": {
+                  "value": null,
+                  "signature": null
+                }
+              }
+            }
+          },
+          "maxthreads": {
+            "type": "int",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [],
+            "shorthelp": "Option: maximum number of threads to assign a task",
+            "example": [
+              "api: option.set('maxthreads', 4)"
+            ],
+            "help": "\n                Maximum number of threads for each task in a job. If not set this will default\n                to the number of cpu cores available.",
+            "notes": null,
+            "pernode": "never",
+            "node": {
+              "default": {
+                "default": {
+                  "value": null,
+                  "signature": null
+                }
+              }
+            }
+          },
+          "__meta__": {
+            "class": "siliconcompiler.schema_support.option/SchedulerSchema",
+            "sctype": "BaseSchema"
           }
         },
         "__meta__": {
@@ -6167,7 +6193,7 @@
           "shorthelp": "Option: breakpoint list",
           "example": [
             "cli: -breakpoint true",
-            "api: option.set('option', 'breakpoint', True)"
+            "api: option.set('breakpoint', True)"
           ],
           "help": "\n                Set a breakpoint on specific steps. If the step is a TCL\n                based tool, then the breakpoints stops the flow inside the\n                EDA tool. If the step is a command line tool, then the flow\n                drops into a Python interpreter.",
           "notes": null,
@@ -6432,234 +6458,6 @@
             }
           }
         },
-        "scheduler": {
-          "name": {
-            "type": "<docker,lsf,sge,slurm>",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-scheduler <str>"
-            ],
-            "shorthelp": "Option: scheduler platform",
-            "example": [
-              "cli: -scheduler slurm",
-              "api: option.set('scheduler', 'name', 'slurm')"
-            ],
-            "help": "\n                Sets the type of job scheduler to be used for each individual\n                flowgraph steps. If the parameter is undefined, the steps are executed\n                on the same machine that the SC was launched on. If 'slurm' is used,\n                the host running the 'sc' command must be running a 'slurmctld' daemon\n                managing a Slurm cluster. Additionally, the build directory\n                (:keypath:`option,builddir`) must be located in shared storage which\n                can be accessed by all hosts in the cluster.",
-            "notes": null,
-            "pernode": "optional",
-            "node": {
-              "default": {
-                "default": {
-                  "value": null,
-                  "signature": null
-                }
-              }
-            }
-          },
-          "cores": {
-            "type": "int",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-cores <int>"
-            ],
-            "shorthelp": "Option: Scheduler core constraint",
-            "example": [
-              "cli: -cores 48",
-              "api: option.set('scheduler', 'cores', 48)"
-            ],
-            "help": "\n                Specifies the number CPU cores required to run the job.\n                For the slurm scheduler, this translates to the '-c'\n                switch. For more information, see the job scheduler\n                documentation",
-            "notes": null,
-            "pernode": "optional",
-            "node": {
-              "default": {
-                "default": {
-                  "value": null,
-                  "signature": null
-                }
-              }
-            }
-          },
-          "memory": {
-            "type": "int",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-memory <int>"
-            ],
-            "shorthelp": "Option: scheduler memory constraint",
-            "example": [
-              "cli: -memory 8000",
-              "api: option.set('scheduler', 'memory', 8000)"
-            ],
-            "help": "\n                Specifies the amount of memory required to run the job,\n                specified in MB. For the slurm scheduler, this translates to\n                the '--mem' switch. For more information, see the job\n                scheduler documentation",
-            "notes": null,
-            "pernode": "optional",
-            "node": {
-              "default": {
-                "default": {
-                  "value": null,
-                  "signature": null
-                }
-              }
-            },
-            "unit": "MB"
-          },
-          "queue": {
-            "type": "str",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-queue <str>"
-            ],
-            "shorthelp": "Option: scheduler queue",
-            "example": [
-              "cli: -queue nightrun",
-              "api: option.set('scheduler', 'queue', 'nightrun')"
-            ],
-            "help": "\n                Send the job to the specified queue. With slurm, this\n                translates to 'partition'. The queue name must match\n                the name of an existing job scheduler queue. For more information,\n                see the job scheduler documentation",
-            "notes": null,
-            "pernode": "optional",
-            "node": {
-              "default": {
-                "default": {
-                  "value": null,
-                  "signature": null
-                }
-              }
-            }
-          },
-          "defer": {
-            "type": "str",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-defer <str>"
-            ],
-            "shorthelp": "Option: scheduler start time",
-            "example": [
-              "cli: -defer 16:00",
-              "api: option.set('scheduler', 'defer', '16:00')"
-            ],
-            "help": "\n                Defer initiation of job until the specified time. The parameter\n                is pass through string for remote job scheduler such as slurm.\n                For more information about the exact format specification, see\n                the job scheduler documentation. Examples of valid slurm specific\n                values include: now+1hour, 16:00, 010-01-20T12:34:00. For more\n                information, see the job scheduler documentation.",
-            "notes": null,
-            "pernode": "optional",
-            "node": {
-              "default": {
-                "default": {
-                  "value": null,
-                  "signature": null
-                }
-              }
-            }
-          },
-          "options": {
-            "type": "[str]",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-scheduler_options <str>"
-            ],
-            "shorthelp": "Option: scheduler arguments",
-            "example": [
-              "cli: -scheduler_options \"--pty\"",
-              "api: option.set('scheduler', 'options', \"--pty\")"
-            ],
-            "help": "\n                Advanced/export options passed through unchanged to the job\n                scheduler as-is. (The user specified options must be compatible\n                with the rest of the scheduler parameters entered.(memory etc).\n                For more information, see the job scheduler documentation.",
-            "notes": null,
-            "pernode": "optional",
-            "node": {
-              "default": {
-                "default": {
-                  "value": [],
-                  "signature": []
-                }
-              }
-            }
-          },
-          "msgevent": {
-            "type": "{<all,begin,end,fail,summary,timeout>}",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-msgevent <str>"
-            ],
-            "shorthelp": "Option: message event trigger",
-            "example": [
-              "cli: -msgevent all",
-              "api: option.set('scheduler', 'msgevent', 'all')"
-            ],
-            "help": "\n                Directs job scheduler to send a message to the user in\n                :keypath:`option,scheduler,msgcontact` when certain events occur\n                during a task.\n\n                * fail: send an email on failures\n                * timeout: send an email on timeouts\n                * begin: send an email at the start of a node task\n                * end: send an email at the end of a node task\n                * summary: send a summary email at the end of the run\n                * all: send an email on any event\n                ",
-            "notes": null,
-            "pernode": "optional",
-            "node": {
-              "default": {
-                "default": {
-                  "value": [],
-                  "signature": []
-                }
-              }
-            }
-          },
-          "msgcontact": {
-            "type": "{str}",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-msgcontact <str>"
-            ],
-            "shorthelp": "Option: message contact",
-            "example": [
-              "cli: -msgcontact 'wile.e.coyote@acme.com'",
-              "api: option.set('scheduler', 'msgcontact', 'wiley@acme.com')"
-            ],
-            "help": "\n                List of email addresses to message on a :keypath:`option,scheduler,msgevent`.\n                Support for email messages relies on job scheduler daemon support.\n                For more information, see the job scheduler documentation. ",
-            "notes": null,
-            "pernode": "optional",
-            "node": {
-              "default": {
-                "default": {
-                  "value": [],
-                  "signature": []
-                }
-              }
-            }
-          },
-          "maxnodes": {
-            "type": "int",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-maxnodes <int>"
-            ],
-            "shorthelp": "Option: maximum concurrent nodes",
-            "example": [
-              "cli: -maxnodes 4",
-              "api: option.set('scheduler', 'maxnodes', 4)"
-            ],
-            "help": "\n                Maximum number of concurrent nodes to run in a job. If not set this will default\n                to the number of cpu cores available.",
-            "notes": null,
-            "pernode": "never",
-            "node": {
-              "default": {
-                "default": {
-                  "value": null,
-                  "signature": null
-                }
-              }
-            }
-          }
-        },
         "env": {
           "default": {
             "type": "str",
@@ -6669,7 +6467,7 @@
             "switch": [],
             "shorthelp": "Option: environment variables",
             "example": [
-              "api: project.set('option', 'env', 'PDK_HOME', '/disk/mypdk')"
+              "api: option.set('env', 'PDK_HOME', '/disk/mypdk')"
             ],
             "help": "Certain tools and reference flows require global environment\nvariables to be set. These variables can be managed externally or\nspecified through the env variable.",
             "notes": null,
@@ -6695,7 +6493,7 @@
           "shorthelp": "Option: Design library name",
           "example": [
             "cli: -design hello_world",
-            "api: project.set('option', 'design', 'hello_world')"
+            "api: option.set('design', 'hello_world')"
           ],
           "help": "Name of the top level library",
           "notes": null,
@@ -6717,7 +6515,7 @@
           "switch": [],
           "shorthelp": "Option: Fileset alias mapping",
           "example": [
-            "api: project.set('option', 'alias', ('design', 'rtl', 'lambda', 'rtl'))"
+            "api: option.set('alias', ('design', 'rtl', 'lambda', 'rtl'))"
           ],
           "help": "List of filesets to alias during a run. When an alias is specific\nit will be used instead of the source fileset. It is useful when you\nwant to substitute a fileset from one library with a fileset from another,\nwithout changing the original design's code.\nFor example, you might use it to swap in a different version of an IP\nblock or a specific test environment.",
           "notes": null,
@@ -6739,7 +6537,7 @@
           "switch": [],
           "shorthelp": "Option: Selected design filesets",
           "example": [
-            "api: project.set('option', 'fileset', 'rtl')"
+            "api: option.set('fileset', 'rtl')"
           ],
           "help": "List of filesets to use from the selected design library",
           "notes": null,
@@ -6763,7 +6561,7 @@
           ],
           "shorthelp": "Option: Disables the dashboard",
           "example": [
-            "api: project.set('option', 'nodashboard', True)"
+            "api: option.set('nodashboard', True)"
           ],
           "help": "Disables the dashboard during execution",
           "notes": null,
@@ -6775,6 +6573,260 @@
                 "signature": null
               }
             }
+          }
+        },
+        "scheduler": {
+          "name": {
+            "type": "<docker,lsf,sge,slurm>",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-scheduler <str>"
+            ],
+            "shorthelp": "Option: scheduler platform",
+            "example": [
+              "cli: -scheduler slurm",
+              "api: option.set('name', 'slurm')"
+            ],
+            "help": "\n                Sets the type of job scheduler to be used for each individual\n                flowgraph steps. If the parameter is undefined, the steps are executed\n                on the same machine that the SC was launched on. If 'slurm' is used,\n                the host running the 'sc' command must be running a 'slurmctld' daemon\n                managing a Slurm cluster. Additionally, the build directory\n                (:keypath:`option,builddir`) must be located in shared storage which\n                can be accessed by all hosts in the cluster.",
+            "notes": null,
+            "pernode": "optional",
+            "node": {
+              "default": {
+                "default": {
+                  "value": null,
+                  "signature": null
+                }
+              }
+            }
+          },
+          "cores": {
+            "type": "int",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-cores <int>"
+            ],
+            "shorthelp": "Option: Scheduler core constraint",
+            "example": [
+              "cli: -cores 48",
+              "api: option.set('cores', 48)"
+            ],
+            "help": "\n                Specifies the number CPU cores required to run the job.\n                For the slurm scheduler, this translates to the '-c'\n                switch. For more information, see the job scheduler\n                documentation",
+            "notes": null,
+            "pernode": "optional",
+            "node": {
+              "default": {
+                "default": {
+                  "value": null,
+                  "signature": null
+                }
+              }
+            }
+          },
+          "memory": {
+            "type": "int",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-memory <int>"
+            ],
+            "shorthelp": "Option: scheduler memory constraint",
+            "example": [
+              "cli: -memory 8000",
+              "api: option.set('memory', 8000)"
+            ],
+            "help": "\n                Specifies the amount of memory required to run the job,\n                specified in MB. For the slurm scheduler, this translates to\n                the '--mem' switch. For more information, see the job\n                scheduler documentation",
+            "notes": null,
+            "pernode": "optional",
+            "node": {
+              "default": {
+                "default": {
+                  "value": null,
+                  "signature": null
+                }
+              }
+            },
+            "unit": "MB"
+          },
+          "queue": {
+            "type": "str",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-queue <str>"
+            ],
+            "shorthelp": "Option: scheduler queue",
+            "example": [
+              "cli: -queue nightrun",
+              "api: option.set('queue', 'nightrun')"
+            ],
+            "help": "\n                Send the job to the specified queue. With slurm, this\n                translates to 'partition'. The queue name must match\n                the name of an existing job scheduler queue. For more information,\n                see the job scheduler documentation",
+            "notes": null,
+            "pernode": "optional",
+            "node": {
+              "default": {
+                "default": {
+                  "value": null,
+                  "signature": null
+                }
+              }
+            }
+          },
+          "defer": {
+            "type": "str",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-defer <str>"
+            ],
+            "shorthelp": "Option: scheduler start time",
+            "example": [
+              "cli: -defer 16:00",
+              "api: option.set('defer', '16:00')"
+            ],
+            "help": "\n                Defer initiation of job until the specified time. The parameter\n                is pass through string for remote job scheduler such as slurm.\n                For more information about the exact format specification, see\n                the job scheduler documentation. Examples of valid slurm specific\n                values include: now+1hour, 16:00, 010-01-20T12:34:00. For more\n                information, see the job scheduler documentation.",
+            "notes": null,
+            "pernode": "optional",
+            "node": {
+              "default": {
+                "default": {
+                  "value": null,
+                  "signature": null
+                }
+              }
+            }
+          },
+          "options": {
+            "type": "[str]",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-scheduler_options <str>"
+            ],
+            "shorthelp": "Option: scheduler arguments",
+            "example": [
+              "cli: -scheduler_options \"--pty\"",
+              "api: option.set('options', \"--pty\")"
+            ],
+            "help": "\n                Advanced/export options passed through unchanged to the job\n                scheduler as-is. (The user specified options must be compatible\n                with the rest of the scheduler parameters entered.(memory etc).\n                For more information, see the job scheduler documentation.",
+            "notes": null,
+            "pernode": "optional",
+            "node": {
+              "default": {
+                "default": {
+                  "value": [],
+                  "signature": []
+                }
+              }
+            }
+          },
+          "msgevent": {
+            "type": "{<all,begin,end,fail,summary,timeout>}",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-msgevent <str>"
+            ],
+            "shorthelp": "Option: message event trigger",
+            "example": [
+              "cli: -msgevent all",
+              "api: option.set('msgevent', 'all')"
+            ],
+            "help": "\n                Directs job scheduler to send a message to the user in\n                :keypath:`option,scheduler,msgcontact` when certain events occur\n                during a task.\n\n                * fail: send an email on failures\n                * timeout: send an email on timeouts\n                * begin: send an email at the start of a node task\n                * end: send an email at the end of a node task\n                * summary: send a summary email at the end of the run\n                * all: send an email on any event\n                ",
+            "notes": null,
+            "pernode": "optional",
+            "node": {
+              "default": {
+                "default": {
+                  "value": [],
+                  "signature": []
+                }
+              }
+            }
+          },
+          "msgcontact": {
+            "type": "{str}",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-msgcontact <str>"
+            ],
+            "shorthelp": "Option: message contact",
+            "example": [
+              "cli: -msgcontact 'wile.e.coyote@acme.com'",
+              "api: option.set('msgcontact', 'wiley@acme.com')"
+            ],
+            "help": "\n                List of email addresses to message on a :keypath:`option,scheduler,msgevent`.\n                Support for email messages relies on job scheduler daemon support.\n                For more information, see the job scheduler documentation. ",
+            "notes": null,
+            "pernode": "optional",
+            "node": {
+              "default": {
+                "default": {
+                  "value": [],
+                  "signature": []
+                }
+              }
+            }
+          },
+          "maxnodes": {
+            "type": "int",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-maxnodes <int>"
+            ],
+            "shorthelp": "Option: maximum concurrent nodes",
+            "example": [
+              "cli: -maxnodes 4",
+              "api: option.set('maxnodes', 4)"
+            ],
+            "help": "\n                Maximum number of concurrent nodes to run in a job. If not set this will default\n                to the number of cpu cores available.",
+            "notes": null,
+            "pernode": "never",
+            "node": {
+              "default": {
+                "default": {
+                  "value": null,
+                  "signature": null
+                }
+              }
+            }
+          },
+          "maxthreads": {
+            "type": "int",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [],
+            "shorthelp": "Option: maximum number of threads to assign a task",
+            "example": [
+              "api: option.set('maxthreads', 4)"
+            ],
+            "help": "\n                Maximum number of threads for each task in a job. If not set this will default\n                to the number of cpu cores available.",
+            "notes": null,
+            "pernode": "never",
+            "node": {
+              "default": {
+                "default": {
+                  "value": null,
+                  "signature": null
+                }
+              }
+            }
+          },
+          "__meta__": {
+            "class": "siliconcompiler.schema_support.option/SchedulerSchema",
+            "sctype": "BaseSchema"
           }
         },
         "__meta__": {
@@ -10212,7 +10264,7 @@
           "shorthelp": "Option: breakpoint list",
           "example": [
             "cli: -breakpoint true",
-            "api: option.set('option', 'breakpoint', True)"
+            "api: option.set('breakpoint', True)"
           ],
           "help": "\n                Set a breakpoint on specific steps. If the step is a TCL\n                based tool, then the breakpoints stops the flow inside the\n                EDA tool. If the step is a command line tool, then the flow\n                drops into a Python interpreter.",
           "notes": null,
@@ -10477,234 +10529,6 @@
             }
           }
         },
-        "scheduler": {
-          "name": {
-            "type": "<docker,lsf,sge,slurm>",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-scheduler <str>"
-            ],
-            "shorthelp": "Option: scheduler platform",
-            "example": [
-              "cli: -scheduler slurm",
-              "api: option.set('scheduler', 'name', 'slurm')"
-            ],
-            "help": "\n                Sets the type of job scheduler to be used for each individual\n                flowgraph steps. If the parameter is undefined, the steps are executed\n                on the same machine that the SC was launched on. If 'slurm' is used,\n                the host running the 'sc' command must be running a 'slurmctld' daemon\n                managing a Slurm cluster. Additionally, the build directory\n                (:keypath:`option,builddir`) must be located in shared storage which\n                can be accessed by all hosts in the cluster.",
-            "notes": null,
-            "pernode": "optional",
-            "node": {
-              "default": {
-                "default": {
-                  "value": null,
-                  "signature": null
-                }
-              }
-            }
-          },
-          "cores": {
-            "type": "int",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-cores <int>"
-            ],
-            "shorthelp": "Option: Scheduler core constraint",
-            "example": [
-              "cli: -cores 48",
-              "api: option.set('scheduler', 'cores', 48)"
-            ],
-            "help": "\n                Specifies the number CPU cores required to run the job.\n                For the slurm scheduler, this translates to the '-c'\n                switch. For more information, see the job scheduler\n                documentation",
-            "notes": null,
-            "pernode": "optional",
-            "node": {
-              "default": {
-                "default": {
-                  "value": null,
-                  "signature": null
-                }
-              }
-            }
-          },
-          "memory": {
-            "type": "int",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-memory <int>"
-            ],
-            "shorthelp": "Option: scheduler memory constraint",
-            "example": [
-              "cli: -memory 8000",
-              "api: option.set('scheduler', 'memory', 8000)"
-            ],
-            "help": "\n                Specifies the amount of memory required to run the job,\n                specified in MB. For the slurm scheduler, this translates to\n                the '--mem' switch. For more information, see the job\n                scheduler documentation",
-            "notes": null,
-            "pernode": "optional",
-            "node": {
-              "default": {
-                "default": {
-                  "value": null,
-                  "signature": null
-                }
-              }
-            },
-            "unit": "MB"
-          },
-          "queue": {
-            "type": "str",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-queue <str>"
-            ],
-            "shorthelp": "Option: scheduler queue",
-            "example": [
-              "cli: -queue nightrun",
-              "api: option.set('scheduler', 'queue', 'nightrun')"
-            ],
-            "help": "\n                Send the job to the specified queue. With slurm, this\n                translates to 'partition'. The queue name must match\n                the name of an existing job scheduler queue. For more information,\n                see the job scheduler documentation",
-            "notes": null,
-            "pernode": "optional",
-            "node": {
-              "default": {
-                "default": {
-                  "value": null,
-                  "signature": null
-                }
-              }
-            }
-          },
-          "defer": {
-            "type": "str",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-defer <str>"
-            ],
-            "shorthelp": "Option: scheduler start time",
-            "example": [
-              "cli: -defer 16:00",
-              "api: option.set('scheduler', 'defer', '16:00')"
-            ],
-            "help": "\n                Defer initiation of job until the specified time. The parameter\n                is pass through string for remote job scheduler such as slurm.\n                For more information about the exact format specification, see\n                the job scheduler documentation. Examples of valid slurm specific\n                values include: now+1hour, 16:00, 010-01-20T12:34:00. For more\n                information, see the job scheduler documentation.",
-            "notes": null,
-            "pernode": "optional",
-            "node": {
-              "default": {
-                "default": {
-                  "value": null,
-                  "signature": null
-                }
-              }
-            }
-          },
-          "options": {
-            "type": "[str]",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-scheduler_options <str>"
-            ],
-            "shorthelp": "Option: scheduler arguments",
-            "example": [
-              "cli: -scheduler_options \"--pty\"",
-              "api: option.set('scheduler', 'options', \"--pty\")"
-            ],
-            "help": "\n                Advanced/export options passed through unchanged to the job\n                scheduler as-is. (The user specified options must be compatible\n                with the rest of the scheduler parameters entered.(memory etc).\n                For more information, see the job scheduler documentation.",
-            "notes": null,
-            "pernode": "optional",
-            "node": {
-              "default": {
-                "default": {
-                  "value": [],
-                  "signature": []
-                }
-              }
-            }
-          },
-          "msgevent": {
-            "type": "{<all,begin,end,fail,summary,timeout>}",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-msgevent <str>"
-            ],
-            "shorthelp": "Option: message event trigger",
-            "example": [
-              "cli: -msgevent all",
-              "api: option.set('scheduler', 'msgevent', 'all')"
-            ],
-            "help": "\n                Directs job scheduler to send a message to the user in\n                :keypath:`option,scheduler,msgcontact` when certain events occur\n                during a task.\n\n                * fail: send an email on failures\n                * timeout: send an email on timeouts\n                * begin: send an email at the start of a node task\n                * end: send an email at the end of a node task\n                * summary: send a summary email at the end of the run\n                * all: send an email on any event\n                ",
-            "notes": null,
-            "pernode": "optional",
-            "node": {
-              "default": {
-                "default": {
-                  "value": [],
-                  "signature": []
-                }
-              }
-            }
-          },
-          "msgcontact": {
-            "type": "{str}",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-msgcontact <str>"
-            ],
-            "shorthelp": "Option: message contact",
-            "example": [
-              "cli: -msgcontact 'wile.e.coyote@acme.com'",
-              "api: option.set('scheduler', 'msgcontact', 'wiley@acme.com')"
-            ],
-            "help": "\n                List of email addresses to message on a :keypath:`option,scheduler,msgevent`.\n                Support for email messages relies on job scheduler daemon support.\n                For more information, see the job scheduler documentation. ",
-            "notes": null,
-            "pernode": "optional",
-            "node": {
-              "default": {
-                "default": {
-                  "value": [],
-                  "signature": []
-                }
-              }
-            }
-          },
-          "maxnodes": {
-            "type": "int",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-maxnodes <int>"
-            ],
-            "shorthelp": "Option: maximum concurrent nodes",
-            "example": [
-              "cli: -maxnodes 4",
-              "api: option.set('scheduler', 'maxnodes', 4)"
-            ],
-            "help": "\n                Maximum number of concurrent nodes to run in a job. If not set this will default\n                to the number of cpu cores available.",
-            "notes": null,
-            "pernode": "never",
-            "node": {
-              "default": {
-                "default": {
-                  "value": null,
-                  "signature": null
-                }
-              }
-            }
-          }
-        },
         "env": {
           "default": {
             "type": "str",
@@ -10714,7 +10538,7 @@
             "switch": [],
             "shorthelp": "Option: environment variables",
             "example": [
-              "api: project.set('option', 'env', 'PDK_HOME', '/disk/mypdk')"
+              "api: option.set('env', 'PDK_HOME', '/disk/mypdk')"
             ],
             "help": "Certain tools and reference flows require global environment\nvariables to be set. These variables can be managed externally or\nspecified through the env variable.",
             "notes": null,
@@ -10740,7 +10564,7 @@
           "shorthelp": "Option: Design library name",
           "example": [
             "cli: -design hello_world",
-            "api: project.set('option', 'design', 'hello_world')"
+            "api: option.set('design', 'hello_world')"
           ],
           "help": "Name of the top level library",
           "notes": null,
@@ -10762,7 +10586,7 @@
           "switch": [],
           "shorthelp": "Option: Fileset alias mapping",
           "example": [
-            "api: project.set('option', 'alias', ('design', 'rtl', 'lambda', 'rtl'))"
+            "api: option.set('alias', ('design', 'rtl', 'lambda', 'rtl'))"
           ],
           "help": "List of filesets to alias during a run. When an alias is specific\nit will be used instead of the source fileset. It is useful when you\nwant to substitute a fileset from one library with a fileset from another,\nwithout changing the original design's code.\nFor example, you might use it to swap in a different version of an IP\nblock or a specific test environment.",
           "notes": null,
@@ -10784,7 +10608,7 @@
           "switch": [],
           "shorthelp": "Option: Selected design filesets",
           "example": [
-            "api: project.set('option', 'fileset', 'rtl')"
+            "api: option.set('fileset', 'rtl')"
           ],
           "help": "List of filesets to use from the selected design library",
           "notes": null,
@@ -10808,7 +10632,7 @@
           ],
           "shorthelp": "Option: Disables the dashboard",
           "example": [
-            "api: project.set('option', 'nodashboard', True)"
+            "api: option.set('nodashboard', True)"
           ],
           "help": "Disables the dashboard during execution",
           "notes": null,
@@ -10820,6 +10644,260 @@
                 "signature": null
               }
             }
+          }
+        },
+        "scheduler": {
+          "name": {
+            "type": "<docker,lsf,sge,slurm>",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-scheduler <str>"
+            ],
+            "shorthelp": "Option: scheduler platform",
+            "example": [
+              "cli: -scheduler slurm",
+              "api: option.set('name', 'slurm')"
+            ],
+            "help": "\n                Sets the type of job scheduler to be used for each individual\n                flowgraph steps. If the parameter is undefined, the steps are executed\n                on the same machine that the SC was launched on. If 'slurm' is used,\n                the host running the 'sc' command must be running a 'slurmctld' daemon\n                managing a Slurm cluster. Additionally, the build directory\n                (:keypath:`option,builddir`) must be located in shared storage which\n                can be accessed by all hosts in the cluster.",
+            "notes": null,
+            "pernode": "optional",
+            "node": {
+              "default": {
+                "default": {
+                  "value": null,
+                  "signature": null
+                }
+              }
+            }
+          },
+          "cores": {
+            "type": "int",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-cores <int>"
+            ],
+            "shorthelp": "Option: Scheduler core constraint",
+            "example": [
+              "cli: -cores 48",
+              "api: option.set('cores', 48)"
+            ],
+            "help": "\n                Specifies the number CPU cores required to run the job.\n                For the slurm scheduler, this translates to the '-c'\n                switch. For more information, see the job scheduler\n                documentation",
+            "notes": null,
+            "pernode": "optional",
+            "node": {
+              "default": {
+                "default": {
+                  "value": null,
+                  "signature": null
+                }
+              }
+            }
+          },
+          "memory": {
+            "type": "int",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-memory <int>"
+            ],
+            "shorthelp": "Option: scheduler memory constraint",
+            "example": [
+              "cli: -memory 8000",
+              "api: option.set('memory', 8000)"
+            ],
+            "help": "\n                Specifies the amount of memory required to run the job,\n                specified in MB. For the slurm scheduler, this translates to\n                the '--mem' switch. For more information, see the job\n                scheduler documentation",
+            "notes": null,
+            "pernode": "optional",
+            "node": {
+              "default": {
+                "default": {
+                  "value": null,
+                  "signature": null
+                }
+              }
+            },
+            "unit": "MB"
+          },
+          "queue": {
+            "type": "str",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-queue <str>"
+            ],
+            "shorthelp": "Option: scheduler queue",
+            "example": [
+              "cli: -queue nightrun",
+              "api: option.set('queue', 'nightrun')"
+            ],
+            "help": "\n                Send the job to the specified queue. With slurm, this\n                translates to 'partition'. The queue name must match\n                the name of an existing job scheduler queue. For more information,\n                see the job scheduler documentation",
+            "notes": null,
+            "pernode": "optional",
+            "node": {
+              "default": {
+                "default": {
+                  "value": null,
+                  "signature": null
+                }
+              }
+            }
+          },
+          "defer": {
+            "type": "str",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-defer <str>"
+            ],
+            "shorthelp": "Option: scheduler start time",
+            "example": [
+              "cli: -defer 16:00",
+              "api: option.set('defer', '16:00')"
+            ],
+            "help": "\n                Defer initiation of job until the specified time. The parameter\n                is pass through string for remote job scheduler such as slurm.\n                For more information about the exact format specification, see\n                the job scheduler documentation. Examples of valid slurm specific\n                values include: now+1hour, 16:00, 010-01-20T12:34:00. For more\n                information, see the job scheduler documentation.",
+            "notes": null,
+            "pernode": "optional",
+            "node": {
+              "default": {
+                "default": {
+                  "value": null,
+                  "signature": null
+                }
+              }
+            }
+          },
+          "options": {
+            "type": "[str]",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-scheduler_options <str>"
+            ],
+            "shorthelp": "Option: scheduler arguments",
+            "example": [
+              "cli: -scheduler_options \"--pty\"",
+              "api: option.set('options', \"--pty\")"
+            ],
+            "help": "\n                Advanced/export options passed through unchanged to the job\n                scheduler as-is. (The user specified options must be compatible\n                with the rest of the scheduler parameters entered.(memory etc).\n                For more information, see the job scheduler documentation.",
+            "notes": null,
+            "pernode": "optional",
+            "node": {
+              "default": {
+                "default": {
+                  "value": [],
+                  "signature": []
+                }
+              }
+            }
+          },
+          "msgevent": {
+            "type": "{<all,begin,end,fail,summary,timeout>}",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-msgevent <str>"
+            ],
+            "shorthelp": "Option: message event trigger",
+            "example": [
+              "cli: -msgevent all",
+              "api: option.set('msgevent', 'all')"
+            ],
+            "help": "\n                Directs job scheduler to send a message to the user in\n                :keypath:`option,scheduler,msgcontact` when certain events occur\n                during a task.\n\n                * fail: send an email on failures\n                * timeout: send an email on timeouts\n                * begin: send an email at the start of a node task\n                * end: send an email at the end of a node task\n                * summary: send a summary email at the end of the run\n                * all: send an email on any event\n                ",
+            "notes": null,
+            "pernode": "optional",
+            "node": {
+              "default": {
+                "default": {
+                  "value": [],
+                  "signature": []
+                }
+              }
+            }
+          },
+          "msgcontact": {
+            "type": "{str}",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-msgcontact <str>"
+            ],
+            "shorthelp": "Option: message contact",
+            "example": [
+              "cli: -msgcontact 'wile.e.coyote@acme.com'",
+              "api: option.set('msgcontact', 'wiley@acme.com')"
+            ],
+            "help": "\n                List of email addresses to message on a :keypath:`option,scheduler,msgevent`.\n                Support for email messages relies on job scheduler daemon support.\n                For more information, see the job scheduler documentation. ",
+            "notes": null,
+            "pernode": "optional",
+            "node": {
+              "default": {
+                "default": {
+                  "value": [],
+                  "signature": []
+                }
+              }
+            }
+          },
+          "maxnodes": {
+            "type": "int",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-maxnodes <int>"
+            ],
+            "shorthelp": "Option: maximum concurrent nodes",
+            "example": [
+              "cli: -maxnodes 4",
+              "api: option.set('maxnodes', 4)"
+            ],
+            "help": "\n                Maximum number of concurrent nodes to run in a job. If not set this will default\n                to the number of cpu cores available.",
+            "notes": null,
+            "pernode": "never",
+            "node": {
+              "default": {
+                "default": {
+                  "value": null,
+                  "signature": null
+                }
+              }
+            }
+          },
+          "maxthreads": {
+            "type": "int",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [],
+            "shorthelp": "Option: maximum number of threads to assign a task",
+            "example": [
+              "api: option.set('maxthreads', 4)"
+            ],
+            "help": "\n                Maximum number of threads for each task in a job. If not set this will default\n                to the number of cpu cores available.",
+            "notes": null,
+            "pernode": "never",
+            "node": {
+              "default": {
+                "default": {
+                  "value": null,
+                  "signature": null
+                }
+              }
+            }
+          },
+          "__meta__": {
+            "class": "siliconcompiler.schema_support.option/SchedulerSchema",
+            "sctype": "BaseSchema"
           }
         },
         "__meta__": {
@@ -14013,7 +14091,7 @@
           "shorthelp": "Option: breakpoint list",
           "example": [
             "cli: -breakpoint true",
-            "api: option.set('option', 'breakpoint', True)"
+            "api: option.set('breakpoint', True)"
           ],
           "help": "\n                Set a breakpoint on specific steps. If the step is a TCL\n                based tool, then the breakpoints stops the flow inside the\n                EDA tool. If the step is a command line tool, then the flow\n                drops into a Python interpreter.",
           "notes": null,
@@ -14278,234 +14356,6 @@
             }
           }
         },
-        "scheduler": {
-          "name": {
-            "type": "<docker,lsf,sge,slurm>",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-scheduler <str>"
-            ],
-            "shorthelp": "Option: scheduler platform",
-            "example": [
-              "cli: -scheduler slurm",
-              "api: option.set('scheduler', 'name', 'slurm')"
-            ],
-            "help": "\n                Sets the type of job scheduler to be used for each individual\n                flowgraph steps. If the parameter is undefined, the steps are executed\n                on the same machine that the SC was launched on. If 'slurm' is used,\n                the host running the 'sc' command must be running a 'slurmctld' daemon\n                managing a Slurm cluster. Additionally, the build directory\n                (:keypath:`option,builddir`) must be located in shared storage which\n                can be accessed by all hosts in the cluster.",
-            "notes": null,
-            "pernode": "optional",
-            "node": {
-              "default": {
-                "default": {
-                  "value": null,
-                  "signature": null
-                }
-              }
-            }
-          },
-          "cores": {
-            "type": "int",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-cores <int>"
-            ],
-            "shorthelp": "Option: Scheduler core constraint",
-            "example": [
-              "cli: -cores 48",
-              "api: option.set('scheduler', 'cores', 48)"
-            ],
-            "help": "\n                Specifies the number CPU cores required to run the job.\n                For the slurm scheduler, this translates to the '-c'\n                switch. For more information, see the job scheduler\n                documentation",
-            "notes": null,
-            "pernode": "optional",
-            "node": {
-              "default": {
-                "default": {
-                  "value": null,
-                  "signature": null
-                }
-              }
-            }
-          },
-          "memory": {
-            "type": "int",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-memory <int>"
-            ],
-            "shorthelp": "Option: scheduler memory constraint",
-            "example": [
-              "cli: -memory 8000",
-              "api: option.set('scheduler', 'memory', 8000)"
-            ],
-            "help": "\n                Specifies the amount of memory required to run the job,\n                specified in MB. For the slurm scheduler, this translates to\n                the '--mem' switch. For more information, see the job\n                scheduler documentation",
-            "notes": null,
-            "pernode": "optional",
-            "node": {
-              "default": {
-                "default": {
-                  "value": null,
-                  "signature": null
-                }
-              }
-            },
-            "unit": "MB"
-          },
-          "queue": {
-            "type": "str",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-queue <str>"
-            ],
-            "shorthelp": "Option: scheduler queue",
-            "example": [
-              "cli: -queue nightrun",
-              "api: option.set('scheduler', 'queue', 'nightrun')"
-            ],
-            "help": "\n                Send the job to the specified queue. With slurm, this\n                translates to 'partition'. The queue name must match\n                the name of an existing job scheduler queue. For more information,\n                see the job scheduler documentation",
-            "notes": null,
-            "pernode": "optional",
-            "node": {
-              "default": {
-                "default": {
-                  "value": null,
-                  "signature": null
-                }
-              }
-            }
-          },
-          "defer": {
-            "type": "str",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-defer <str>"
-            ],
-            "shorthelp": "Option: scheduler start time",
-            "example": [
-              "cli: -defer 16:00",
-              "api: option.set('scheduler', 'defer', '16:00')"
-            ],
-            "help": "\n                Defer initiation of job until the specified time. The parameter\n                is pass through string for remote job scheduler such as slurm.\n                For more information about the exact format specification, see\n                the job scheduler documentation. Examples of valid slurm specific\n                values include: now+1hour, 16:00, 010-01-20T12:34:00. For more\n                information, see the job scheduler documentation.",
-            "notes": null,
-            "pernode": "optional",
-            "node": {
-              "default": {
-                "default": {
-                  "value": null,
-                  "signature": null
-                }
-              }
-            }
-          },
-          "options": {
-            "type": "[str]",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-scheduler_options <str>"
-            ],
-            "shorthelp": "Option: scheduler arguments",
-            "example": [
-              "cli: -scheduler_options \"--pty\"",
-              "api: option.set('scheduler', 'options', \"--pty\")"
-            ],
-            "help": "\n                Advanced/export options passed through unchanged to the job\n                scheduler as-is. (The user specified options must be compatible\n                with the rest of the scheduler parameters entered.(memory etc).\n                For more information, see the job scheduler documentation.",
-            "notes": null,
-            "pernode": "optional",
-            "node": {
-              "default": {
-                "default": {
-                  "value": [],
-                  "signature": []
-                }
-              }
-            }
-          },
-          "msgevent": {
-            "type": "{<all,begin,end,fail,summary,timeout>}",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-msgevent <str>"
-            ],
-            "shorthelp": "Option: message event trigger",
-            "example": [
-              "cli: -msgevent all",
-              "api: option.set('scheduler', 'msgevent', 'all')"
-            ],
-            "help": "\n                Directs job scheduler to send a message to the user in\n                :keypath:`option,scheduler,msgcontact` when certain events occur\n                during a task.\n\n                * fail: send an email on failures\n                * timeout: send an email on timeouts\n                * begin: send an email at the start of a node task\n                * end: send an email at the end of a node task\n                * summary: send a summary email at the end of the run\n                * all: send an email on any event\n                ",
-            "notes": null,
-            "pernode": "optional",
-            "node": {
-              "default": {
-                "default": {
-                  "value": [],
-                  "signature": []
-                }
-              }
-            }
-          },
-          "msgcontact": {
-            "type": "{str}",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-msgcontact <str>"
-            ],
-            "shorthelp": "Option: message contact",
-            "example": [
-              "cli: -msgcontact 'wile.e.coyote@acme.com'",
-              "api: option.set('scheduler', 'msgcontact', 'wiley@acme.com')"
-            ],
-            "help": "\n                List of email addresses to message on a :keypath:`option,scheduler,msgevent`.\n                Support for email messages relies on job scheduler daemon support.\n                For more information, see the job scheduler documentation. ",
-            "notes": null,
-            "pernode": "optional",
-            "node": {
-              "default": {
-                "default": {
-                  "value": [],
-                  "signature": []
-                }
-              }
-            }
-          },
-          "maxnodes": {
-            "type": "int",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-maxnodes <int>"
-            ],
-            "shorthelp": "Option: maximum concurrent nodes",
-            "example": [
-              "cli: -maxnodes 4",
-              "api: option.set('scheduler', 'maxnodes', 4)"
-            ],
-            "help": "\n                Maximum number of concurrent nodes to run in a job. If not set this will default\n                to the number of cpu cores available.",
-            "notes": null,
-            "pernode": "never",
-            "node": {
-              "default": {
-                "default": {
-                  "value": null,
-                  "signature": null
-                }
-              }
-            }
-          }
-        },
         "env": {
           "default": {
             "type": "str",
@@ -14515,7 +14365,7 @@
             "switch": [],
             "shorthelp": "Option: environment variables",
             "example": [
-              "api: project.set('option', 'env', 'PDK_HOME', '/disk/mypdk')"
+              "api: option.set('env', 'PDK_HOME', '/disk/mypdk')"
             ],
             "help": "Certain tools and reference flows require global environment\nvariables to be set. These variables can be managed externally or\nspecified through the env variable.",
             "notes": null,
@@ -14541,7 +14391,7 @@
           "shorthelp": "Option: Design library name",
           "example": [
             "cli: -design hello_world",
-            "api: project.set('option', 'design', 'hello_world')"
+            "api: option.set('design', 'hello_world')"
           ],
           "help": "Name of the top level library",
           "notes": null,
@@ -14563,7 +14413,7 @@
           "switch": [],
           "shorthelp": "Option: Fileset alias mapping",
           "example": [
-            "api: project.set('option', 'alias', ('design', 'rtl', 'lambda', 'rtl'))"
+            "api: option.set('alias', ('design', 'rtl', 'lambda', 'rtl'))"
           ],
           "help": "List of filesets to alias during a run. When an alias is specific\nit will be used instead of the source fileset. It is useful when you\nwant to substitute a fileset from one library with a fileset from another,\nwithout changing the original design's code.\nFor example, you might use it to swap in a different version of an IP\nblock or a specific test environment.",
           "notes": null,
@@ -14585,7 +14435,7 @@
           "switch": [],
           "shorthelp": "Option: Selected design filesets",
           "example": [
-            "api: project.set('option', 'fileset', 'rtl')"
+            "api: option.set('fileset', 'rtl')"
           ],
           "help": "List of filesets to use from the selected design library",
           "notes": null,
@@ -14609,7 +14459,7 @@
           ],
           "shorthelp": "Option: Disables the dashboard",
           "example": [
-            "api: project.set('option', 'nodashboard', True)"
+            "api: option.set('nodashboard', True)"
           ],
           "help": "Disables the dashboard during execution",
           "notes": null,
@@ -14621,6 +14471,260 @@
                 "signature": null
               }
             }
+          }
+        },
+        "scheduler": {
+          "name": {
+            "type": "<docker,lsf,sge,slurm>",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-scheduler <str>"
+            ],
+            "shorthelp": "Option: scheduler platform",
+            "example": [
+              "cli: -scheduler slurm",
+              "api: option.set('name', 'slurm')"
+            ],
+            "help": "\n                Sets the type of job scheduler to be used for each individual\n                flowgraph steps. If the parameter is undefined, the steps are executed\n                on the same machine that the SC was launched on. If 'slurm' is used,\n                the host running the 'sc' command must be running a 'slurmctld' daemon\n                managing a Slurm cluster. Additionally, the build directory\n                (:keypath:`option,builddir`) must be located in shared storage which\n                can be accessed by all hosts in the cluster.",
+            "notes": null,
+            "pernode": "optional",
+            "node": {
+              "default": {
+                "default": {
+                  "value": null,
+                  "signature": null
+                }
+              }
+            }
+          },
+          "cores": {
+            "type": "int",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-cores <int>"
+            ],
+            "shorthelp": "Option: Scheduler core constraint",
+            "example": [
+              "cli: -cores 48",
+              "api: option.set('cores', 48)"
+            ],
+            "help": "\n                Specifies the number CPU cores required to run the job.\n                For the slurm scheduler, this translates to the '-c'\n                switch. For more information, see the job scheduler\n                documentation",
+            "notes": null,
+            "pernode": "optional",
+            "node": {
+              "default": {
+                "default": {
+                  "value": null,
+                  "signature": null
+                }
+              }
+            }
+          },
+          "memory": {
+            "type": "int",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-memory <int>"
+            ],
+            "shorthelp": "Option: scheduler memory constraint",
+            "example": [
+              "cli: -memory 8000",
+              "api: option.set('memory', 8000)"
+            ],
+            "help": "\n                Specifies the amount of memory required to run the job,\n                specified in MB. For the slurm scheduler, this translates to\n                the '--mem' switch. For more information, see the job\n                scheduler documentation",
+            "notes": null,
+            "pernode": "optional",
+            "node": {
+              "default": {
+                "default": {
+                  "value": null,
+                  "signature": null
+                }
+              }
+            },
+            "unit": "MB"
+          },
+          "queue": {
+            "type": "str",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-queue <str>"
+            ],
+            "shorthelp": "Option: scheduler queue",
+            "example": [
+              "cli: -queue nightrun",
+              "api: option.set('queue', 'nightrun')"
+            ],
+            "help": "\n                Send the job to the specified queue. With slurm, this\n                translates to 'partition'. The queue name must match\n                the name of an existing job scheduler queue. For more information,\n                see the job scheduler documentation",
+            "notes": null,
+            "pernode": "optional",
+            "node": {
+              "default": {
+                "default": {
+                  "value": null,
+                  "signature": null
+                }
+              }
+            }
+          },
+          "defer": {
+            "type": "str",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-defer <str>"
+            ],
+            "shorthelp": "Option: scheduler start time",
+            "example": [
+              "cli: -defer 16:00",
+              "api: option.set('defer', '16:00')"
+            ],
+            "help": "\n                Defer initiation of job until the specified time. The parameter\n                is pass through string for remote job scheduler such as slurm.\n                For more information about the exact format specification, see\n                the job scheduler documentation. Examples of valid slurm specific\n                values include: now+1hour, 16:00, 010-01-20T12:34:00. For more\n                information, see the job scheduler documentation.",
+            "notes": null,
+            "pernode": "optional",
+            "node": {
+              "default": {
+                "default": {
+                  "value": null,
+                  "signature": null
+                }
+              }
+            }
+          },
+          "options": {
+            "type": "[str]",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-scheduler_options <str>"
+            ],
+            "shorthelp": "Option: scheduler arguments",
+            "example": [
+              "cli: -scheduler_options \"--pty\"",
+              "api: option.set('options', \"--pty\")"
+            ],
+            "help": "\n                Advanced/export options passed through unchanged to the job\n                scheduler as-is. (The user specified options must be compatible\n                with the rest of the scheduler parameters entered.(memory etc).\n                For more information, see the job scheduler documentation.",
+            "notes": null,
+            "pernode": "optional",
+            "node": {
+              "default": {
+                "default": {
+                  "value": [],
+                  "signature": []
+                }
+              }
+            }
+          },
+          "msgevent": {
+            "type": "{<all,begin,end,fail,summary,timeout>}",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-msgevent <str>"
+            ],
+            "shorthelp": "Option: message event trigger",
+            "example": [
+              "cli: -msgevent all",
+              "api: option.set('msgevent', 'all')"
+            ],
+            "help": "\n                Directs job scheduler to send a message to the user in\n                :keypath:`option,scheduler,msgcontact` when certain events occur\n                during a task.\n\n                * fail: send an email on failures\n                * timeout: send an email on timeouts\n                * begin: send an email at the start of a node task\n                * end: send an email at the end of a node task\n                * summary: send a summary email at the end of the run\n                * all: send an email on any event\n                ",
+            "notes": null,
+            "pernode": "optional",
+            "node": {
+              "default": {
+                "default": {
+                  "value": [],
+                  "signature": []
+                }
+              }
+            }
+          },
+          "msgcontact": {
+            "type": "{str}",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-msgcontact <str>"
+            ],
+            "shorthelp": "Option: message contact",
+            "example": [
+              "cli: -msgcontact 'wile.e.coyote@acme.com'",
+              "api: option.set('msgcontact', 'wiley@acme.com')"
+            ],
+            "help": "\n                List of email addresses to message on a :keypath:`option,scheduler,msgevent`.\n                Support for email messages relies on job scheduler daemon support.\n                For more information, see the job scheduler documentation. ",
+            "notes": null,
+            "pernode": "optional",
+            "node": {
+              "default": {
+                "default": {
+                  "value": [],
+                  "signature": []
+                }
+              }
+            }
+          },
+          "maxnodes": {
+            "type": "int",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-maxnodes <int>"
+            ],
+            "shorthelp": "Option: maximum concurrent nodes",
+            "example": [
+              "cli: -maxnodes 4",
+              "api: option.set('maxnodes', 4)"
+            ],
+            "help": "\n                Maximum number of concurrent nodes to run in a job. If not set this will default\n                to the number of cpu cores available.",
+            "notes": null,
+            "pernode": "never",
+            "node": {
+              "default": {
+                "default": {
+                  "value": null,
+                  "signature": null
+                }
+              }
+            }
+          },
+          "maxthreads": {
+            "type": "int",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [],
+            "shorthelp": "Option: maximum number of threads to assign a task",
+            "example": [
+              "api: option.set('maxthreads', 4)"
+            ],
+            "help": "\n                Maximum number of threads for each task in a job. If not set this will default\n                to the number of cpu cores available.",
+            "notes": null,
+            "pernode": "never",
+            "node": {
+              "default": {
+                "default": {
+                  "value": null,
+                  "signature": null
+                }
+              }
+            }
+          },
+          "__meta__": {
+            "class": "siliconcompiler.schema_support.option/SchedulerSchema",
+            "sctype": "BaseSchema"
           }
         },
         "__meta__": {
@@ -17063,7 +17167,7 @@
           "shorthelp": "Option: breakpoint list",
           "example": [
             "cli: -breakpoint true",
-            "api: option.set('option', 'breakpoint', True)"
+            "api: option.set('breakpoint', True)"
           ],
           "help": "\n                Set a breakpoint on specific steps. If the step is a TCL\n                based tool, then the breakpoints stops the flow inside the\n                EDA tool. If the step is a command line tool, then the flow\n                drops into a Python interpreter.",
           "notes": null,
@@ -17328,234 +17432,6 @@
             }
           }
         },
-        "scheduler": {
-          "name": {
-            "type": "<docker,lsf,sge,slurm>",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-scheduler <str>"
-            ],
-            "shorthelp": "Option: scheduler platform",
-            "example": [
-              "cli: -scheduler slurm",
-              "api: option.set('scheduler', 'name', 'slurm')"
-            ],
-            "help": "\n                Sets the type of job scheduler to be used for each individual\n                flowgraph steps. If the parameter is undefined, the steps are executed\n                on the same machine that the SC was launched on. If 'slurm' is used,\n                the host running the 'sc' command must be running a 'slurmctld' daemon\n                managing a Slurm cluster. Additionally, the build directory\n                (:keypath:`option,builddir`) must be located in shared storage which\n                can be accessed by all hosts in the cluster.",
-            "notes": null,
-            "pernode": "optional",
-            "node": {
-              "default": {
-                "default": {
-                  "value": null,
-                  "signature": null
-                }
-              }
-            }
-          },
-          "cores": {
-            "type": "int",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-cores <int>"
-            ],
-            "shorthelp": "Option: Scheduler core constraint",
-            "example": [
-              "cli: -cores 48",
-              "api: option.set('scheduler', 'cores', 48)"
-            ],
-            "help": "\n                Specifies the number CPU cores required to run the job.\n                For the slurm scheduler, this translates to the '-c'\n                switch. For more information, see the job scheduler\n                documentation",
-            "notes": null,
-            "pernode": "optional",
-            "node": {
-              "default": {
-                "default": {
-                  "value": null,
-                  "signature": null
-                }
-              }
-            }
-          },
-          "memory": {
-            "type": "int",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-memory <int>"
-            ],
-            "shorthelp": "Option: scheduler memory constraint",
-            "example": [
-              "cli: -memory 8000",
-              "api: option.set('scheduler', 'memory', 8000)"
-            ],
-            "help": "\n                Specifies the amount of memory required to run the job,\n                specified in MB. For the slurm scheduler, this translates to\n                the '--mem' switch. For more information, see the job\n                scheduler documentation",
-            "notes": null,
-            "pernode": "optional",
-            "node": {
-              "default": {
-                "default": {
-                  "value": null,
-                  "signature": null
-                }
-              }
-            },
-            "unit": "MB"
-          },
-          "queue": {
-            "type": "str",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-queue <str>"
-            ],
-            "shorthelp": "Option: scheduler queue",
-            "example": [
-              "cli: -queue nightrun",
-              "api: option.set('scheduler', 'queue', 'nightrun')"
-            ],
-            "help": "\n                Send the job to the specified queue. With slurm, this\n                translates to 'partition'. The queue name must match\n                the name of an existing job scheduler queue. For more information,\n                see the job scheduler documentation",
-            "notes": null,
-            "pernode": "optional",
-            "node": {
-              "default": {
-                "default": {
-                  "value": null,
-                  "signature": null
-                }
-              }
-            }
-          },
-          "defer": {
-            "type": "str",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-defer <str>"
-            ],
-            "shorthelp": "Option: scheduler start time",
-            "example": [
-              "cli: -defer 16:00",
-              "api: option.set('scheduler', 'defer', '16:00')"
-            ],
-            "help": "\n                Defer initiation of job until the specified time. The parameter\n                is pass through string for remote job scheduler such as slurm.\n                For more information about the exact format specification, see\n                the job scheduler documentation. Examples of valid slurm specific\n                values include: now+1hour, 16:00, 010-01-20T12:34:00. For more\n                information, see the job scheduler documentation.",
-            "notes": null,
-            "pernode": "optional",
-            "node": {
-              "default": {
-                "default": {
-                  "value": null,
-                  "signature": null
-                }
-              }
-            }
-          },
-          "options": {
-            "type": "[str]",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-scheduler_options <str>"
-            ],
-            "shorthelp": "Option: scheduler arguments",
-            "example": [
-              "cli: -scheduler_options \"--pty\"",
-              "api: option.set('scheduler', 'options', \"--pty\")"
-            ],
-            "help": "\n                Advanced/export options passed through unchanged to the job\n                scheduler as-is. (The user specified options must be compatible\n                with the rest of the scheduler parameters entered.(memory etc).\n                For more information, see the job scheduler documentation.",
-            "notes": null,
-            "pernode": "optional",
-            "node": {
-              "default": {
-                "default": {
-                  "value": [],
-                  "signature": []
-                }
-              }
-            }
-          },
-          "msgevent": {
-            "type": "{<all,begin,end,fail,summary,timeout>}",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-msgevent <str>"
-            ],
-            "shorthelp": "Option: message event trigger",
-            "example": [
-              "cli: -msgevent all",
-              "api: option.set('scheduler', 'msgevent', 'all')"
-            ],
-            "help": "\n                Directs job scheduler to send a message to the user in\n                :keypath:`option,scheduler,msgcontact` when certain events occur\n                during a task.\n\n                * fail: send an email on failures\n                * timeout: send an email on timeouts\n                * begin: send an email at the start of a node task\n                * end: send an email at the end of a node task\n                * summary: send a summary email at the end of the run\n                * all: send an email on any event\n                ",
-            "notes": null,
-            "pernode": "optional",
-            "node": {
-              "default": {
-                "default": {
-                  "value": [],
-                  "signature": []
-                }
-              }
-            }
-          },
-          "msgcontact": {
-            "type": "{str}",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-msgcontact <str>"
-            ],
-            "shorthelp": "Option: message contact",
-            "example": [
-              "cli: -msgcontact 'wile.e.coyote@acme.com'",
-              "api: option.set('scheduler', 'msgcontact', 'wiley@acme.com')"
-            ],
-            "help": "\n                List of email addresses to message on a :keypath:`option,scheduler,msgevent`.\n                Support for email messages relies on job scheduler daemon support.\n                For more information, see the job scheduler documentation. ",
-            "notes": null,
-            "pernode": "optional",
-            "node": {
-              "default": {
-                "default": {
-                  "value": [],
-                  "signature": []
-                }
-              }
-            }
-          },
-          "maxnodes": {
-            "type": "int",
-            "require": false,
-            "scope": "global",
-            "lock": false,
-            "switch": [
-              "-maxnodes <int>"
-            ],
-            "shorthelp": "Option: maximum concurrent nodes",
-            "example": [
-              "cli: -maxnodes 4",
-              "api: option.set('scheduler', 'maxnodes', 4)"
-            ],
-            "help": "\n                Maximum number of concurrent nodes to run in a job. If not set this will default\n                to the number of cpu cores available.",
-            "notes": null,
-            "pernode": "never",
-            "node": {
-              "default": {
-                "default": {
-                  "value": null,
-                  "signature": null
-                }
-              }
-            }
-          }
-        },
         "env": {
           "default": {
             "type": "str",
@@ -17565,7 +17441,7 @@
             "switch": [],
             "shorthelp": "Option: environment variables",
             "example": [
-              "api: project.set('option', 'env', 'PDK_HOME', '/disk/mypdk')"
+              "api: option.set('env', 'PDK_HOME', '/disk/mypdk')"
             ],
             "help": "Certain tools and reference flows require global environment\nvariables to be set. These variables can be managed externally or\nspecified through the env variable.",
             "notes": null,
@@ -17591,7 +17467,7 @@
           "shorthelp": "Option: Design library name",
           "example": [
             "cli: -design hello_world",
-            "api: project.set('option', 'design', 'hello_world')"
+            "api: option.set('design', 'hello_world')"
           ],
           "help": "Name of the top level library",
           "notes": null,
@@ -17613,7 +17489,7 @@
           "switch": [],
           "shorthelp": "Option: Fileset alias mapping",
           "example": [
-            "api: project.set('option', 'alias', ('design', 'rtl', 'lambda', 'rtl'))"
+            "api: option.set('alias', ('design', 'rtl', 'lambda', 'rtl'))"
           ],
           "help": "List of filesets to alias during a run. When an alias is specific\nit will be used instead of the source fileset. It is useful when you\nwant to substitute a fileset from one library with a fileset from another,\nwithout changing the original design's code.\nFor example, you might use it to swap in a different version of an IP\nblock or a specific test environment.",
           "notes": null,
@@ -17635,7 +17511,7 @@
           "switch": [],
           "shorthelp": "Option: Selected design filesets",
           "example": [
-            "api: project.set('option', 'fileset', 'rtl')"
+            "api: option.set('fileset', 'rtl')"
           ],
           "help": "List of filesets to use from the selected design library",
           "notes": null,
@@ -17659,7 +17535,7 @@
           ],
           "shorthelp": "Option: Disables the dashboard",
           "example": [
-            "api: project.set('option', 'nodashboard', True)"
+            "api: option.set('nodashboard', True)"
           ],
           "help": "Disables the dashboard during execution",
           "notes": null,
@@ -17671,6 +17547,260 @@
                 "signature": null
               }
             }
+          }
+        },
+        "scheduler": {
+          "name": {
+            "type": "<docker,lsf,sge,slurm>",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-scheduler <str>"
+            ],
+            "shorthelp": "Option: scheduler platform",
+            "example": [
+              "cli: -scheduler slurm",
+              "api: option.set('name', 'slurm')"
+            ],
+            "help": "\n                Sets the type of job scheduler to be used for each individual\n                flowgraph steps. If the parameter is undefined, the steps are executed\n                on the same machine that the SC was launched on. If 'slurm' is used,\n                the host running the 'sc' command must be running a 'slurmctld' daemon\n                managing a Slurm cluster. Additionally, the build directory\n                (:keypath:`option,builddir`) must be located in shared storage which\n                can be accessed by all hosts in the cluster.",
+            "notes": null,
+            "pernode": "optional",
+            "node": {
+              "default": {
+                "default": {
+                  "value": null,
+                  "signature": null
+                }
+              }
+            }
+          },
+          "cores": {
+            "type": "int",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-cores <int>"
+            ],
+            "shorthelp": "Option: Scheduler core constraint",
+            "example": [
+              "cli: -cores 48",
+              "api: option.set('cores', 48)"
+            ],
+            "help": "\n                Specifies the number CPU cores required to run the job.\n                For the slurm scheduler, this translates to the '-c'\n                switch. For more information, see the job scheduler\n                documentation",
+            "notes": null,
+            "pernode": "optional",
+            "node": {
+              "default": {
+                "default": {
+                  "value": null,
+                  "signature": null
+                }
+              }
+            }
+          },
+          "memory": {
+            "type": "int",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-memory <int>"
+            ],
+            "shorthelp": "Option: scheduler memory constraint",
+            "example": [
+              "cli: -memory 8000",
+              "api: option.set('memory', 8000)"
+            ],
+            "help": "\n                Specifies the amount of memory required to run the job,\n                specified in MB. For the slurm scheduler, this translates to\n                the '--mem' switch. For more information, see the job\n                scheduler documentation",
+            "notes": null,
+            "pernode": "optional",
+            "node": {
+              "default": {
+                "default": {
+                  "value": null,
+                  "signature": null
+                }
+              }
+            },
+            "unit": "MB"
+          },
+          "queue": {
+            "type": "str",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-queue <str>"
+            ],
+            "shorthelp": "Option: scheduler queue",
+            "example": [
+              "cli: -queue nightrun",
+              "api: option.set('queue', 'nightrun')"
+            ],
+            "help": "\n                Send the job to the specified queue. With slurm, this\n                translates to 'partition'. The queue name must match\n                the name of an existing job scheduler queue. For more information,\n                see the job scheduler documentation",
+            "notes": null,
+            "pernode": "optional",
+            "node": {
+              "default": {
+                "default": {
+                  "value": null,
+                  "signature": null
+                }
+              }
+            }
+          },
+          "defer": {
+            "type": "str",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-defer <str>"
+            ],
+            "shorthelp": "Option: scheduler start time",
+            "example": [
+              "cli: -defer 16:00",
+              "api: option.set('defer', '16:00')"
+            ],
+            "help": "\n                Defer initiation of job until the specified time. The parameter\n                is pass through string for remote job scheduler such as slurm.\n                For more information about the exact format specification, see\n                the job scheduler documentation. Examples of valid slurm specific\n                values include: now+1hour, 16:00, 010-01-20T12:34:00. For more\n                information, see the job scheduler documentation.",
+            "notes": null,
+            "pernode": "optional",
+            "node": {
+              "default": {
+                "default": {
+                  "value": null,
+                  "signature": null
+                }
+              }
+            }
+          },
+          "options": {
+            "type": "[str]",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-scheduler_options <str>"
+            ],
+            "shorthelp": "Option: scheduler arguments",
+            "example": [
+              "cli: -scheduler_options \"--pty\"",
+              "api: option.set('options', \"--pty\")"
+            ],
+            "help": "\n                Advanced/export options passed through unchanged to the job\n                scheduler as-is. (The user specified options must be compatible\n                with the rest of the scheduler parameters entered.(memory etc).\n                For more information, see the job scheduler documentation.",
+            "notes": null,
+            "pernode": "optional",
+            "node": {
+              "default": {
+                "default": {
+                  "value": [],
+                  "signature": []
+                }
+              }
+            }
+          },
+          "msgevent": {
+            "type": "{<all,begin,end,fail,summary,timeout>}",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-msgevent <str>"
+            ],
+            "shorthelp": "Option: message event trigger",
+            "example": [
+              "cli: -msgevent all",
+              "api: option.set('msgevent', 'all')"
+            ],
+            "help": "\n                Directs job scheduler to send a message to the user in\n                :keypath:`option,scheduler,msgcontact` when certain events occur\n                during a task.\n\n                * fail: send an email on failures\n                * timeout: send an email on timeouts\n                * begin: send an email at the start of a node task\n                * end: send an email at the end of a node task\n                * summary: send a summary email at the end of the run\n                * all: send an email on any event\n                ",
+            "notes": null,
+            "pernode": "optional",
+            "node": {
+              "default": {
+                "default": {
+                  "value": [],
+                  "signature": []
+                }
+              }
+            }
+          },
+          "msgcontact": {
+            "type": "{str}",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-msgcontact <str>"
+            ],
+            "shorthelp": "Option: message contact",
+            "example": [
+              "cli: -msgcontact 'wile.e.coyote@acme.com'",
+              "api: option.set('msgcontact', 'wiley@acme.com')"
+            ],
+            "help": "\n                List of email addresses to message on a :keypath:`option,scheduler,msgevent`.\n                Support for email messages relies on job scheduler daemon support.\n                For more information, see the job scheduler documentation. ",
+            "notes": null,
+            "pernode": "optional",
+            "node": {
+              "default": {
+                "default": {
+                  "value": [],
+                  "signature": []
+                }
+              }
+            }
+          },
+          "maxnodes": {
+            "type": "int",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [
+              "-maxnodes <int>"
+            ],
+            "shorthelp": "Option: maximum concurrent nodes",
+            "example": [
+              "cli: -maxnodes 4",
+              "api: option.set('maxnodes', 4)"
+            ],
+            "help": "\n                Maximum number of concurrent nodes to run in a job. If not set this will default\n                to the number of cpu cores available.",
+            "notes": null,
+            "pernode": "never",
+            "node": {
+              "default": {
+                "default": {
+                  "value": null,
+                  "signature": null
+                }
+              }
+            }
+          },
+          "maxthreads": {
+            "type": "int",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [],
+            "shorthelp": "Option: maximum number of threads to assign a task",
+            "example": [
+              "api: option.set('maxthreads', 4)"
+            ],
+            "help": "\n                Maximum number of threads for each task in a job. If not set this will default\n                to the number of cpu cores available.",
+            "notes": null,
+            "pernode": "never",
+            "node": {
+              "default": {
+                "default": {
+                  "value": null,
+                  "signature": null
+                }
+              }
+            }
+          },
+          "__meta__": {
+            "class": "siliconcompiler.schema_support.option/SchedulerSchema",
+            "sctype": "BaseSchema"
           }
         },
         "__meta__": {

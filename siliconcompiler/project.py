@@ -115,63 +115,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         schema.insert("record", RecordSchema())
         schema.insert("tool", "default", "task", "default", Task())
 
-        # Add options
         schema.insert("option", OptionSchema())
-        schema.insert(
-            "option", "env", "default",
-            Parameter(
-                "str",
-                scope=Scope.GLOBAL,
-                shorthelp="Option: environment variables",
-                example=["api: project.set('option', 'env', 'PDK_HOME', '/disk/mypdk')"],
-                help=trim("""
-                    Certain tools and reference flows require global environment
-                    variables to be set. These variables can be managed externally or
-                    specified through the env variable.""")))
-
-        schema.insert(
-            "option", "design",
-            Parameter(
-                "str",
-                scope=Scope.GLOBAL,
-                shorthelp="Option: Design library name",
-                example=["cli: -design hello_world",
-                         "api: project.set('option', 'design', 'hello_world')"],
-                switch=["-design <str>"],
-                help="Name of the top level library"))
-        schema.insert(
-            "option", "alias",
-            Parameter(
-                "[(str,str,str,str)]",
-                scope=Scope.GLOBAL,
-                shorthelp="Option: Fileset alias mapping",
-                example=[
-                    "api: project.set('option', 'alias', ('design', 'rtl', 'lambda', 'rtl'))"],
-                help=trim("""List of filesets to alias during a run. When an alias is specific
-                    it will be used instead of the source fileset. It is useful when you
-                    want to substitute a fileset from one library with a fileset from another,
-                    without changing the original design's code.
-                    For example, you might use it to swap in a different version of an IP
-                    block or a specific test environment.""")))
-        schema.insert(
-            "option", "fileset",
-            Parameter(
-                "[str]",
-                scope=Scope.GLOBAL,
-                shorthelp="Option: Selected design filesets",
-                example=["api: project.set('option', 'fileset', 'rtl')"],
-                help=trim("""List of filesets to use from the selected design library""")))
-
-        schema.insert(
-            "option", "nodashboard",
-            Parameter(
-                "bool",
-                defvalue=False,
-                scope=Scope.GLOBAL,
-                switch=["-nodashboard <bool>"],
-                shorthelp="Option: Disables the dashboard",
-                example=["api: project.set('option', 'nodashboard', True)"],
-                help=trim("""Disables the dashboard during execution""")))
 
         # Add history
         schema.insert("history", BaseSchema())
@@ -271,6 +215,20 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             raise KeyError(f"{design_name} design has not been loaded")
 
         return self.get("library", design_name, field="schema")
+
+    @property
+    def option(self) -> OptionSchema:
+        """
+        Returns the design object associated with the project.
+
+        Returns:
+            Design: The `Design` schema object for the current project.
+
+        Raises:
+            ValueError: If the design name is not set.
+            KeyError: If the design has not been loaded into the project's libraries.
+        """
+        return self.get("option", field="schema")
 
     @classmethod
     def convert(cls, obj: "Project") -> "Project":

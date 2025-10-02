@@ -1,4 +1,182 @@
 from siliconcompiler.schema import BaseSchema, EditableSchema, Parameter, Scope, PerNode
+from siliconcompiler.schema.utils import trim
+
+
+class SchedulerSchema(BaseSchema):
+    def __init__(self):
+        super().__init__()
+
+        # Initialize schema
+        schema = EditableSchema(self)
+
+        # job scheduler
+        schema.insert(
+            'name',
+            Parameter(
+                '<slurm,lsf,sge,docker>',
+                scope=Scope.GLOBAL,
+                pernode=PerNode.OPTIONAL,
+                shorthelp="Option: scheduler platform",
+                switch="-scheduler <str>",
+                example=[
+                    "cli: -scheduler slurm",
+                    "api: option.set('name', 'slurm')"],
+                help="""
+                Sets the type of job scheduler to be used for each individual
+                flowgraph steps. If the parameter is undefined, the steps are executed
+                on the same machine that the SC was launched on. If 'slurm' is used,
+                the host running the 'sc' command must be running a 'slurmctld' daemon
+                managing a Slurm cluster. Additionally, the build directory
+                (:keypath:`option,builddir`) must be located in shared storage which
+                can be accessed by all hosts in the cluster."""))
+
+        schema.insert(
+            'cores',
+            Parameter(
+                'int',
+                scope=Scope.GLOBAL,
+                pernode=PerNode.OPTIONAL,
+                shorthelp="Option: Scheduler core constraint",
+                switch="-cores <int>",
+                example=["cli: -cores 48",
+                         "api: option.set('cores', 48)"],
+                help="""
+                Specifies the number CPU cores required to run the job.
+                For the slurm scheduler, this translates to the '-c'
+                switch. For more information, see the job scheduler
+                documentation"""))
+
+        schema.insert(
+            'memory',
+            Parameter(
+                'int',
+                unit='MB',
+                scope=Scope.GLOBAL,
+                pernode=PerNode.OPTIONAL,
+                shorthelp="Option: scheduler memory constraint",
+                switch="-memory <int>",
+                example=["cli: -memory 8000",
+                         "api: option.set('memory', 8000)"],
+                help="""
+                Specifies the amount of memory required to run the job,
+                specified in MB. For the slurm scheduler, this translates to
+                the '--mem' switch. For more information, see the job
+                scheduler documentation"""))
+
+        schema.insert(
+            'queue',
+            Parameter(
+                'str',
+                scope=Scope.GLOBAL,
+                pernode=PerNode.OPTIONAL,
+                shorthelp="Option: scheduler queue",
+                switch="-queue <str>",
+                example=["cli: -queue nightrun",
+                         "api: option.set('queue', 'nightrun')"],
+                help="""
+                Send the job to the specified queue. With slurm, this
+                translates to 'partition'. The queue name must match
+                the name of an existing job scheduler queue. For more information,
+                see the job scheduler documentation"""))
+
+        schema.insert(
+            'defer',
+            Parameter(
+                'str',
+                scope=Scope.GLOBAL,
+                pernode=PerNode.OPTIONAL,
+                shorthelp="Option: scheduler start time",
+                switch="-defer <str>",
+                example=["cli: -defer 16:00",
+                         "api: option.set('defer', '16:00')"],
+                help="""
+                Defer initiation of job until the specified time. The parameter
+                is pass through string for remote job scheduler such as slurm.
+                For more information about the exact format specification, see
+                the job scheduler documentation. Examples of valid slurm specific
+                values include: now+1hour, 16:00, 010-01-20T12:34:00. For more
+                information, see the job scheduler documentation."""))
+
+        schema.insert(
+            'options',
+            Parameter(
+                '[str]',
+                scope=Scope.GLOBAL,
+                pernode=PerNode.OPTIONAL,
+                shorthelp="Option: scheduler arguments",
+                switch="-scheduler_options <str>",
+                example=[
+                    "cli: -scheduler_options \"--pty\"",
+                    "api: option.set('options', \"--pty\")"],
+                help="""
+                Advanced/export options passed through unchanged to the job
+                scheduler as-is. (The user specified options must be compatible
+                with the rest of the scheduler parameters entered.(memory etc).
+                For more information, see the job scheduler documentation."""))
+
+        schema.insert(
+            'msgevent',
+            Parameter(
+                '{<all,summary,begin,end,timeout,fail>}',
+                scope=Scope.GLOBAL,
+                pernode=PerNode.OPTIONAL,
+                shorthelp="Option: message event trigger",
+                switch="-msgevent <str>",
+                example=[
+                    "cli: -msgevent all",
+                    "api: option.set('msgevent', 'all')"],
+                help="""
+                Directs job scheduler to send a message to the user in
+                :keypath:`option,scheduler,msgcontact` when certain events occur
+                during a task.
+
+                * fail: send an email on failures
+                * timeout: send an email on timeouts
+                * begin: send an email at the start of a node task
+                * end: send an email at the end of a node task
+                * summary: send a summary email at the end of the run
+                * all: send an email on any event
+                """))
+
+        schema.insert(
+            'msgcontact',
+            Parameter(
+                '{str}',
+                scope=Scope.GLOBAL,
+                pernode=PerNode.OPTIONAL,
+                shorthelp="Option: message contact",
+                switch="-msgcontact <str>",
+                example=[
+                    "cli: -msgcontact 'wile.e.coyote@acme.com'",
+                    "api: option.set('msgcontact', 'wiley@acme.com')"],
+                help="""
+                List of email addresses to message on a :keypath:`option,scheduler,msgevent`.
+                Support for email messages relies on job scheduler daemon support.
+                For more information, see the job scheduler documentation. """))
+
+        schema.insert(
+            'maxnodes',
+            Parameter(
+                'int',
+                scope=Scope.GLOBAL,
+                shorthelp="Option: maximum concurrent nodes",
+                switch="-maxnodes <int>",
+                example=["cli: -maxnodes 4",
+                          "api: option.set('maxnodes', 4)"],
+                help="""
+                Maximum number of concurrent nodes to run in a job. If not set this will default
+                to the number of cpu cores available."""))
+
+        schema.insert(
+            'maxthreads',
+            Parameter(
+                'int',
+                scope=Scope.GLOBAL,
+                shorthelp="Option: maximum number of threads to assign a task",
+                example=["api: option.set('maxthreads', 4)"],
+                help="""
+                Maximum number of threads for each task in a job. If not set this will default
+                to the number of cpu cores available."""))
 
 
 class OptionSchema(BaseSchema):
@@ -217,7 +395,7 @@ class OptionSchema(BaseSchema):
                 switch="-breakpoint <bool>",
                 example=[
                     "cli: -breakpoint true",
-                    "api: option.set('option', 'breakpoint', True)"],
+                    "api: option.set('breakpoint', True)"],
                 help="""
                 Set a breakpoint on specific steps. If the step is a TCL
                 based tool, then the breakpoints stops the flow inside the
@@ -378,160 +556,65 @@ class OptionSchema(BaseSchema):
                 arguments when reading from parameters with the pernode field set to
                 'optional'."""))
 
-        # job scheduler
         schema.insert(
-            'scheduler', 'name',
+            "env", "default",
             Parameter(
-                '<slurm,lsf,sge,docker>',
+                "str",
                 scope=Scope.GLOBAL,
-                pernode=PerNode.OPTIONAL,
-                shorthelp="Option: scheduler platform",
-                switch="-scheduler <str>",
+                shorthelp="Option: environment variables",
+                example=["api: option.set('env', 'PDK_HOME', '/disk/mypdk')"],
+                help=trim("""
+                    Certain tools and reference flows require global environment
+                    variables to be set. These variables can be managed externally or
+                    specified through the env variable.""")))
+
+        schema.insert(
+            "design",
+            Parameter(
+                "str",
+                scope=Scope.GLOBAL,
+                shorthelp="Option: Design library name",
+                example=["cli: -design hello_world",
+                         "api: option.set('design', 'hello_world')"],
+                switch=["-design <str>"],
+                help="Name of the top level library"))
+
+        schema.insert(
+            "alias",
+            Parameter(
+                "[(str,str,str,str)]",
+                scope=Scope.GLOBAL,
+                shorthelp="Option: Fileset alias mapping",
                 example=[
-                    "cli: -scheduler slurm",
-                    "api: option.set('scheduler', 'name', 'slurm')"],
-                help="""
-                Sets the type of job scheduler to be used for each individual
-                flowgraph steps. If the parameter is undefined, the steps are executed
-                on the same machine that the SC was launched on. If 'slurm' is used,
-                the host running the 'sc' command must be running a 'slurmctld' daemon
-                managing a Slurm cluster. Additionally, the build directory
-                (:keypath:`option,builddir`) must be located in shared storage which
-                can be accessed by all hosts in the cluster."""))
+                    "api: option.set('alias', ('design', 'rtl', 'lambda', 'rtl'))"],
+                help=trim("""List of filesets to alias during a run. When an alias is specific
+                    it will be used instead of the source fileset. It is useful when you
+                    want to substitute a fileset from one library with a fileset from another,
+                    without changing the original design's code.
+                    For example, you might use it to swap in a different version of an IP
+                    block or a specific test environment.""")))
+        schema.insert(
+            "fileset",
+            Parameter(
+                "[str]",
+                scope=Scope.GLOBAL,
+                shorthelp="Option: Selected design filesets",
+                example=["api: option.set('fileset', 'rtl')"],
+                help=trim("""List of filesets to use from the selected design library""")))
 
         schema.insert(
-            'scheduler', 'cores',
+            "nodashboard",
             Parameter(
-                'int',
+                "bool",
+                defvalue=False,
                 scope=Scope.GLOBAL,
-                pernode=PerNode.OPTIONAL,
-                shorthelp="Option: Scheduler core constraint",
-                switch="-cores <int>",
-                example=["cli: -cores 48",
-                         "api: option.set('scheduler', 'cores', 48)"],
-                help="""
-                Specifies the number CPU cores required to run the job.
-                For the slurm scheduler, this translates to the '-c'
-                switch. For more information, see the job scheduler
-                documentation"""))
+                switch=["-nodashboard <bool>"],
+                shorthelp="Option: Disables the dashboard",
+                example=["api: option.set('nodashboard', True)"],
+                help=trim("""Disables the dashboard during execution""")))
 
-        schema.insert(
-            'scheduler', 'memory',
-            Parameter(
-                'int',
-                unit='MB',
-                scope=Scope.GLOBAL,
-                pernode=PerNode.OPTIONAL,
-                shorthelp="Option: scheduler memory constraint",
-                switch="-memory <int>",
-                example=["cli: -memory 8000",
-                         "api: option.set('scheduler', 'memory', 8000)"],
-                help="""
-                Specifies the amount of memory required to run the job,
-                specified in MB. For the slurm scheduler, this translates to
-                the '--mem' switch. For more information, see the job
-                scheduler documentation"""))
+        schema.insert('scheduler', SchedulerSchema())
 
-        schema.insert(
-            'scheduler', 'queue',
-            Parameter(
-                'str',
-                scope=Scope.GLOBAL,
-                pernode=PerNode.OPTIONAL,
-                shorthelp="Option: scheduler queue",
-                switch="-queue <str>",
-                example=["cli: -queue nightrun",
-                         "api: option.set('scheduler', 'queue', 'nightrun')"],
-                help="""
-                Send the job to the specified queue. With slurm, this
-                translates to 'partition'. The queue name must match
-                the name of an existing job scheduler queue. For more information,
-                see the job scheduler documentation"""))
-
-        schema.insert(
-            'scheduler', 'defer',
-            Parameter(
-                'str',
-                scope=Scope.GLOBAL,
-                pernode=PerNode.OPTIONAL,
-                shorthelp="Option: scheduler start time",
-                switch="-defer <str>",
-                example=["cli: -defer 16:00",
-                         "api: option.set('scheduler', 'defer', '16:00')"],
-                help="""
-                Defer initiation of job until the specified time. The parameter
-                is pass through string for remote job scheduler such as slurm.
-                For more information about the exact format specification, see
-                the job scheduler documentation. Examples of valid slurm specific
-                values include: now+1hour, 16:00, 010-01-20T12:34:00. For more
-                information, see the job scheduler documentation."""))
-
-        schema.insert(
-            'scheduler', 'options',
-            Parameter(
-                '[str]',
-                scope=Scope.GLOBAL,
-                pernode=PerNode.OPTIONAL,
-                shorthelp="Option: scheduler arguments",
-                switch="-scheduler_options <str>",
-                example=[
-                    "cli: -scheduler_options \"--pty\"",
-                    "api: option.set('scheduler', 'options', \"--pty\")"],
-                help="""
-                Advanced/export options passed through unchanged to the job
-                scheduler as-is. (The user specified options must be compatible
-                with the rest of the scheduler parameters entered.(memory etc).
-                For more information, see the job scheduler documentation."""))
-
-        schema.insert(
-            'scheduler', 'msgevent',
-            Parameter(
-                '{<all,summary,begin,end,timeout,fail>}',
-                scope=Scope.GLOBAL,
-                pernode=PerNode.OPTIONAL,
-                shorthelp="Option: message event trigger",
-                switch="-msgevent <str>",
-                example=[
-                    "cli: -msgevent all",
-                    "api: option.set('scheduler', 'msgevent', 'all')"],
-                help="""
-                Directs job scheduler to send a message to the user in
-                :keypath:`option,scheduler,msgcontact` when certain events occur
-                during a task.
-
-                * fail: send an email on failures
-                * timeout: send an email on timeouts
-                * begin: send an email at the start of a node task
-                * end: send an email at the end of a node task
-                * summary: send a summary email at the end of the run
-                * all: send an email on any event
-                """))
-
-        schema.insert(
-            'scheduler', 'msgcontact',
-            Parameter(
-                '{str}',
-                scope=Scope.GLOBAL,
-                pernode=PerNode.OPTIONAL,
-                shorthelp="Option: message contact",
-                switch="-msgcontact <str>",
-                example=[
-                    "cli: -msgcontact 'wile.e.coyote@acme.com'",
-                    "api: option.set('scheduler', 'msgcontact', 'wiley@acme.com')"],
-                help="""
-                List of email addresses to message on a :keypath:`option,scheduler,msgevent`.
-                Support for email messages relies on job scheduler daemon support.
-                For more information, see the job scheduler documentation. """))
-
-        schema.insert(
-            'scheduler', 'maxnodes',
-            Parameter(
-                'int',
-                scope=Scope.GLOBAL,
-                shorthelp="Option: maximum concurrent nodes",
-                switch="-maxnodes <int>",
-                example=["cli: -maxnodes 4",
-                          "api: option.set('scheduler', 'maxnodes', 4)"],
-                help="""
-                Maximum number of concurrent nodes to run in a job. If not set this will default
-                to the number of cpu cores available."""))
+    @property
+    def scheduler(self) -> SchedulerSchema:
+        return self.get("scheduler", field="schema")

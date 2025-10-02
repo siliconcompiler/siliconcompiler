@@ -1174,7 +1174,11 @@ class Task(NamedSchema, PathSchema, DocsSchema):
             clobber (bool): overwrite existing value
         """
         if max_threads is None or max_threads <= 0:
-            max_threads = utils.get_cores()
+            max_schema_threads = self.project.option.scheduler.get("maxthreads")
+            if max_schema_threads:
+                max_threads = max_schema_threads
+            else:
+                max_threads = utils.get_cores()
 
         return self.set("threads", max_threads, step=step, index=index, clobber=clobber)
 

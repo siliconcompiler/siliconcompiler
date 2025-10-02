@@ -16,6 +16,7 @@ from siliconcompiler import Task
 from siliconcompiler.library import LibrarySchema
 
 from siliconcompiler.schema import NamedSchema, EditableSchema, Parameter, Scope
+from siliconcompiler.schema_support.option import OptionSchema
 
 from siliconcompiler.utils.logging import SCColorLoggerFormatter, SCLoggerFormatter
 from siliconcompiler.utils.paths import jobdir
@@ -64,6 +65,12 @@ def test_key_groups():
 
 def test_cwd():
     assert Project()._Project__cwd == os.path.abspath(".")
+
+
+def test_option():
+    proj = Project()
+    assert isinstance(proj.option, OptionSchema)
+    assert proj.get("option", field="schema") is proj.option
 
 
 def test_init_logger(monkeypatch):
