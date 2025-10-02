@@ -117,7 +117,6 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         super().__init__()
 
         schema_task(self)
-        schema_tool(self)
 
         self.__set_runtime(None)
 
@@ -768,9 +767,6 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         root = self.project
         schema = root.copy()
 
-        strict = root.get("option", "strict")
-        root.set("option", "strict", False)
-
         for keypath in root.allkeys():
             paramtype = schema.get(*keypath, field='type')
             if 'file' not in paramtype and 'dir' not in paramtype:
@@ -792,8 +788,6 @@ class Task(NamedSchema, PathSchema, DocsSchema):
                         else:
                             abspaths = None
                     schema.set(*keypath, abspaths, step=step, index=index)
-
-        root.set("option", "strict", strict)
 
         return schema
 
@@ -1761,53 +1755,55 @@ class Task(NamedSchema, PathSchema, DocsSchema):
             docs.append(dataroot)
 
         # Show var definitions
-        table = [[strong('Parameters'), strong('Type'), strong('Help')]]
-        for key in self.getkeys("var"):
-            key_node = nodes.paragraph()
-            key_node += KeyPath.keypath(
-                list(key_offset) + list(self._keypath) + ["var", key],
-                doc.env.docname,
-                key_text=["...", "var", key])
+        if self.valid("var"):
+            table = [[strong('Parameters'), strong('Type'), strong('Help')]]
+            for key in self.getkeys("var"):
+                key_node = nodes.paragraph()
+                with KeyPath.fallback(...):
+                    key_node += KeyPath.keypath(
+                        list(key_offset) + list(self._keypath) + ["var", key],
+                        doc.env.docname,
+                        key_text=["...", "var", key])
 
-            param = self.get("var", key, field=None)
-            help_str = param.get(field="help")
+                param = self.get("var", key, field=None)
+                help_str = param.get(field="help")
 
-            val_type = param.get(field="type")
-            if "<" in val_type:
-                encode_type = NodeType.parse(val_type)
-                try:
-                    if val_type.startswith('['):
-                        allowed = list(encode_type)[0].values
-                        val_type = "[enum]"
-                    elif val_type.startswith('{'):
-                        allowed = list(encode_type)[0].values
-                        val_type = "{enum}"
-                    elif val_type.startswith('('):
+                val_type = param.get(field="type")
+                if "<" in val_type:
+                    encode_type = NodeType.parse(val_type)
+                    try:
+                        if val_type.startswith('['):
+                            allowed = list(encode_type)[0].values
+                            val_type = "[enum]"
+                        elif val_type.startswith('{'):
+                            allowed = list(encode_type)[0].values
+                            val_type = "{enum}"
+                        elif val_type.startswith('('):
+                            allowed = []
+                            val_type = val_type
+                        else:
+                            allowed = encode_type.values
+                            val_type = "enum"
+                    except:  # noqa E722
                         allowed = []
                         val_type = val_type
-                    else:
-                        allowed = encode_type.values
-                        val_type = "enum"
-                except:  # noqa E722
-                    allowed = []
-                    val_type = val_type
 
-                if allowed:
-                    if help_str[-1] != ".":
-                        help_str += "."
-                    help_str = f"{help_str} Allowed values: {', '.join(sorted(allowed))}"
+                    if allowed:
+                        if help_str[-1] != ".":
+                            help_str += "."
+                        help_str = f"{help_str} Allowed values: {', '.join(sorted(allowed))}"
 
-            table.append([
-                key_node,
-                code(val_type),
-                para(help_str)
-            ])
+                table.append([
+                    key_node,
+                    code(val_type),
+                    para(help_str)
+                ])
 
-        if len(table) > 1:
-            vars = build_section("Variables", f"{ref_root}-variables")
-            colspec = r'{|\X{2}{5}|\X{1}{5}|\X{2}{5}|}'
-            vars += build_table(table, colspec=colspec)
-            docs.append(vars)
+            if len(table) > 1:
+                vars = build_section("Variables", f"{ref_root}-variables")
+                colspec = r'{|\X{2}{5}|\X{1}{5}|\X{2}{5}|}'
+                vars += build_table(table, colspec=colspec)
+                docs.append(vars)
 
         # Show tool information
         params = {}
@@ -1815,8 +1811,10 @@ class Task(NamedSchema, PathSchema, DocsSchema):
             if key[0] == "dataroot":  # data root already handled
                 continue
             params[key] = self.get(*key, field=None)
-        table = build_schema_value_table(params, "", key_offset + list(self._keypath),
-                                         trim_prefix=key_offset + list(self._keypath))
+
+        with KeyPath.fallback(...):
+            table = build_schema_value_table(params, "", key_offset + list(self._keypath),
+                                             trim_prefix=key_offset + list(self._keypath))
         setup_info = build_section("Configuration", f"{ref_root}-config")
         setup_info += table
         docs.append(setup_info)
@@ -2144,17 +2142,16 @@ class ScreenshotTask(ShowTask):
         return vars
 
 
-###########################################################################
-# Tool Setup
-###########################################################################
-def schema_tool(schema):
+def schema_task(schema):
     """
-    Defines the standard parameters for a tool within the schema.
+    Defines the standard parameters for a task within the schema.
 
     Args:
         schema (Schema): The schema object to add the parameters to.
     """
     schema = EditableSchema(schema)
+
+    # Tool
 
     schema.insert(
         'exe',
@@ -2286,15 +2283,7 @@ def schema_tool(schema):
             runtime (:meth:`.Task.run()`) and the environment variables are set.
             """)))
 
-
-def schema_task(schema):
-    """
-    Defines the standard parameters for a task within the schema.
-
-    Args:
-        schema (Schema): The schema object to add the parameters to.
-    """
-    schema = EditableSchema(schema)
+    # Task
 
     schema.insert(
         'warningoff',
