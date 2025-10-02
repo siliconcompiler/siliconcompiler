@@ -2,7 +2,6 @@ import pytest
 
 from siliconcompiler import Project, Task, Design
 from siliconcompiler.schema import EditableSchema
-from siliconcompiler.tool import ToolSchema
 from siliconcompiler.tools import get_task
 
 
@@ -37,10 +36,8 @@ def test_get_task():
     faux2 = FauxTask2()
 
     proj = Project()
-    EditableSchema(proj).insert("tool", "faux", ToolSchema())
     EditableSchema(proj).insert("tool", "faux", "task", "task0", faux0)
     EditableSchema(proj).insert("tool", "faux", "task", "task1", faux1)
-    EditableSchema(proj).insert("tool", "anotherfaux", ToolSchema())
     EditableSchema(proj).insert("tool", "anotherfaux", "task", "task1", faux2)
 
     assert get_task(proj) == set([faux0, faux1, faux2])

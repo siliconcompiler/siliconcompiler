@@ -2144,24 +2144,6 @@ class ScreenshotTask(ShowTask):
         return vars
 
 
-class ToolSchema(NamedSchema):
-    """
-    A schema class that defines the parameters for a single tool, which can
-    contain multiple tasks.
-    """
-    def __init__(self, name=None):
-        super().__init__()
-        self.set_name(name)
-        schema_tool(self)
-        schema = EditableSchema(self)
-        schema.insert("task", "default", Task())
-
-    @classmethod
-    def _getdict_type(cls) -> str:
-        """Returns the metadata for getdict."""
-        return ToolSchema.__name__
-
-
 ###########################################################################
 # Tool Setup
 ###########################################################################
