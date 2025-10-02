@@ -171,7 +171,7 @@ class NodeListValue:
         if self.__values:
             return True
         else:
-            return False
+            return self.__base.has_value
 
     @property
     def values(self):
@@ -359,7 +359,7 @@ class NodeSetValue:
         if self.__values:
             return True
         else:
-            return False
+            return self.__base.has_value
 
     @property
     def fields(self):
