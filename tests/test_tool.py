@@ -1082,7 +1082,7 @@ def test_run_task(running_node, exitcode, monkeypatch):
     assert running_node.project.get("metric", "memory", step="running", index="0") is None
 
     with running_node.task.runtime(running_node) as runtool:
-        assert runtool.run_task('.', False, "info", False, None, None) == exitcode
+        assert runtool.run_task('.', False, False, None, None) == exitcode
 
     assert running_node.project.get("record", "toolargs", step="running", index="0") == ""
     assert running_node.project.get("record", "toolexitcode", step="running", index="0") == exitcode
@@ -1103,7 +1103,7 @@ def test_run_task_failed_popen(running_node, monkeypatch):
 
     with running_node.task.runtime(running_node) as runtool:
         with pytest.raises(TaskError, match="^Unable to start found/exe: something bad happened$"):
-            runtool.run_task('.', False, "info", False, None, None)
+            runtool.run_task('.', False, False, None, None)
 
 
 @pytest.mark.parametrize("nice", [-5, 0, 5])
@@ -1136,7 +1136,7 @@ def test_run_task_nice(running_node, nice, monkeypatch):
     monkeypatch.setattr(running_node.task, 'get_exe', dummy_get_exe)
 
     with running_node.task.runtime(running_node) as runtool:
-        assert runtool.run_task('.', False, "info", False, nice, None) == 0
+        assert runtool.run_task('.', False, False, nice, None) == 0
 
 
 def test_run_task_timeout(running_node, monkeypatch, patch_psutil):
@@ -1165,7 +1165,7 @@ def test_run_task_timeout(running_node, monkeypatch, patch_psutil):
 
     with running_node.task.runtime(running_node) as runtool:
         with pytest.raises(TaskTimeout, match="^$"):
-            runtool.run_task('.', False, "info", False, None, 2)
+            runtool.run_task('.', False, False, None, 2)
 
 
 def test_run_task_memory_limit(running_node, monkeypatch, patch_psutil, caplog):
@@ -1195,7 +1195,7 @@ def test_run_task_memory_limit(running_node, monkeypatch, patch_psutil, caplog):
     monkeypatch.setattr(running_node.task, 'get_exe', dummy_get_exe)
 
     with running_node.task.runtime(running_node) as runtool:
-        assert runtool.run_task('.', False, "info", False, None, None) == 0
+        assert runtool.run_task('.', False, False, None, None) == 0
 
     assert "Current system memory usage is 91.2%" in caplog.text
 
@@ -1232,7 +1232,7 @@ def test_run_task_exceptions_loop(running_node, monkeypatch, patch_psutil, error
     monkeypatch.setattr(running_node.task, 'get_exe', dummy_get_exe)
 
     with running_node.task.runtime(running_node) as runtool:
-        assert runtool.run_task('.', False, "info", False, None, None) == 0
+        assert runtool.run_task('.', False, False, None, None) == 0
 
 
 def test_run_task_contl_c(running_node, monkeypatch, patch_psutil, caplog):
@@ -1270,7 +1270,7 @@ def test_run_task_contl_c(running_node, monkeypatch, patch_psutil, caplog):
 
     with running_node.task.runtime(running_node) as runtool:
         with pytest.raises(TaskError, match="^$"):
-            runtool.run_task('.', False, "info", False, None, None)
+            runtool.run_task('.', False, False, None, None)
 
     assert "Received ctrl-c." in caplog.text
 
@@ -1285,7 +1285,7 @@ def test_run_task_breakpoint_valid(running_node, monkeypatch):
     with running_node.task.runtime(running_node) as runtool:
         with patch("pty.spawn", autospec=True) as spawn:
             spawn.return_value = 1
-            assert runtool.run_task('.', False, "info", True, None, None) == 1
+            assert runtool.run_task('.', False, True, None, None) == 1
             spawn.assert_called_once()
             spawn.assert_called_with(["found/exe"], ANY)
 
@@ -1313,7 +1313,7 @@ def test_run_task_breakpoint_not_used(running_node, monkeypatch):
     with running_node.task.runtime(running_node) as runtool:
         with patch("pty.spawn", autospec=True) as spawn:
             spawn.return_value = 1
-            assert runtool.run_task('.', False, "info", True, None, None) == 1
+            assert runtool.run_task('.', False, True, None, None) == 1
             spawn.assert_not_called()
 
 
@@ -1334,7 +1334,7 @@ def test_run_task_run(running_node):
 
     with running_node.task.runtime(running_node) as runtool:
         assert isinstance(runtool, RunTool)
-        assert runtool.run_task('.', False, "info", True, None, None) == 1
+        assert runtool.run_task('.', False, True, None, None) == 1
         assert runtool.call_count == 1
 
 
@@ -1355,7 +1355,7 @@ def test_run_task_run_error(running_node):
 
     with running_node.task.runtime(running_node) as runtool:
         with pytest.raises(ValueError, match="^run error$"):
-            runtool.run_task('.', False, "info", True, None, None)
+            runtool.run_task('.', False, True, None, None)
         assert runtool.call_count == 1
 
 
@@ -1380,7 +1380,7 @@ def test_run_task_run_failed_resource(running_node, monkeypatch):
     assert isinstance(running_node.task, RunTool)
 
     with running_node.task.runtime(running_node) as runtool:
-        assert runtool.run_task('.', False, "info", True, None, None) == 1
+        assert runtool.run_task('.', False, True, None, None) == 1
         assert runtool.call_count == 1
 
 
@@ -1398,7 +1398,8 @@ def test_select_input_nodes_entry_has_input(running_node):
 def test_task_add_parameter():
     task = Task()
 
-    assert task.getkeys("var") == tuple()
+    with pytest.raises(KeyError, match=r"^'\[var\] is not a valid keypath'$"):
+        task.getkeys("var")
 
     assert isinstance(task.add_parameter("teststr", "str", "long form help"), Parameter)
     assert isinstance(task.add_parameter("testbool", "bool", "long form help"), Parameter)

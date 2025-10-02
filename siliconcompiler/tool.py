@@ -850,7 +850,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
                                       f'{TERMINATE_TIMEOUT} seconds. Terminating...')
                 terminate_process(proc.pid, timeout=TERMINATE_TIMEOUT)
 
-    def run_task(self, workdir, quiet, loglevel, breakpoint, nice, timeout):
+    def run_task(self, workdir, quiet, breakpoint, nice, timeout):
         """
         Executes the task's main process.
 
@@ -861,7 +861,6 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         Args:
             workdir (str): The path to the node's working directory.
             quiet (bool): If True, suppresses execution output.
-            loglevel (str): The logging level.
             breakpoint (bool): If True, attempts to run with a breakpoint.
             nice (int): The POSIX nice level for the process.
             timeout (int): The execution timeout in seconds.
@@ -885,9 +884,6 @@ class Task(NamedSchema, PathSchema, DocsSchema):
 
         stdout_print = self.__logger.info
         stderr_print = self.__logger.error
-        if loglevel == "quiet":
-            stdout_print = self.__logger.error
-            stderr_print = self.__logger.error
 
         def read_stdio(stdout_reader, stderr_reader):
             """Helper to read and print stdout/stderr streams."""
@@ -2364,22 +2360,6 @@ def schema_task(schema):
             """)))
 
     schema.insert(
-        'var', 'default',
-        Parameter(
-            '[str]',
-            scope=Scope.JOB,
-            pernode=PerNode.OPTIONAL,
-            shorthelp="Task: script variables",
-            switch="-tool_task_var 'tool task key <str>'",
-            example=[
-                "cli: -tool_task_var 'openroad cts myvar 42'",
-                "api: task.set('tool', 'openroad', 'task', 'cts', 'var', 'myvar', '42')"],
-            help=trim("""
-            Task script variables specified as key value pairs. Variable
-            names and value types must match the name and type of task and reference
-            script consuming the variable.""")))
-
-    schema.insert(
         'env', 'default',
         Parameter(
             'str',
@@ -2394,43 +2374,6 @@ def schema_task(schema):
             Environment variables to set for individual tasks. Keys and values
             should be set in accordance with the task's documentation. Most
             tasks do not require extra environment variables to function.""")))
-
-    schema.insert(
-        'file', 'default', Parameter(
-            '[file]',
-            scope=Scope.JOB,
-            pernode=PerNode.OPTIONAL,
-            copy=True,
-            shorthelp="Task: custom setup files",
-            switch="-tool_task_file 'tool task key <file>'",
-            example=[
-                "cli: -tool_task_file 'openroad floorplan macroplace macroplace.tcl'",
-                "api: task.set('tool', 'openroad', 'task', 'floorplan', 'file', 'macroplace', "
-                "'macroplace.tcl')"],
-            help=trim("""
-            Paths to user supplied files mapped to keys. Keys and filetypes must
-            match what's expected by the task/reference script consuming the
-            file.
-            """)))
-
-    schema.insert(
-        'dir', 'default',
-        Parameter(
-            '[dir]',
-            scope=Scope.JOB,
-            pernode=PerNode.OPTIONAL,
-            copy=True,
-            shorthelp="Task: custom setup directories",
-            switch="-tool_task_dir 'tool task key <dir>'",
-            example=[
-                "cli: -tool_task_dir 'verilator compile cincludes include'",
-                "api: task.set('tool', 'verilator', 'task', 'compile', 'dir', 'cincludes', "
-                "'include')"],
-            help=trim("""
-            Paths to user supplied directories mapped to keys. Keys must match
-            what's expected by the task/reference script consuming the
-            directory.
-            """)))
 
     # Definitions of inputs, outputs, requirements
     schema.insert(

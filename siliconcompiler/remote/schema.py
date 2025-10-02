@@ -77,20 +77,6 @@ class ServerSchema(CommandLineSchema, BaseSchema):
                 help="""Flag determining whether to enable authenticated and encrypted jobs."""))
 
         schema.insert(
-            'option', 'loglevel',
-            Parameter(
-                '<info,warning,error,critical,debug>',
-                scope=Scope.JOB,
-                defvalue='info',
-                shorthelp="Logging level",
-                switch="-loglevel <str>",
-                example=[
-                        "cli: -loglevel info",
-                        "api: server.set('option', 'loglevel', 'info')"],
-                help="""
-                Provides explicit control over the level of debug logging printed."""))
-
-        schema.insert(
             'option', 'checkinterval',
             Parameter(
                 'int',
