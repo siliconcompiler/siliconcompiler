@@ -1,6 +1,3 @@
-import logging
-import pytest
-
 from siliconcompiler.schema.utils import trim
 
 

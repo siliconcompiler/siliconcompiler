@@ -16,7 +16,6 @@ from typing import List
 from siliconcompiler import utils, sc_open
 from siliconcompiler import NodeStatus
 from siliconcompiler.utils.logging import get_console_formatter, SCInRunLoggerFormatter
-from siliconcompiler.schema import utils as schema_utils
 
 from siliconcompiler.package import Resolver
 from siliconcompiler.schema_support.record import RecordTime, RecordTool
