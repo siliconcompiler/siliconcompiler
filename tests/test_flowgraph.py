@@ -75,8 +75,8 @@ def test_node_str():
 def test_node_invalid_task():
     flow = Flowgraph("testflow")
 
-    with pytest.raises(ValueError, match="12 is not a string or module and cannot be used to "
-                                         "setup a task"):
+    with pytest.raises(ValueError, match=r"^12 is not a string or module and cannot be used to "
+                                         r"setup a task\.$"):
         flow.node("teststep", 12)
 
 
@@ -87,7 +87,7 @@ def test_node_step_name():
     flow.node("teststep", NOPTask())
 
     # Invalid step
-    with pytest.raises(ValueError, match="teststep/ is not a valid step, it cannot contain '/'"):
+    with pytest.raises(ValueError, match="^teststep/ is not a valid step, it cannot contain '/'$"):
         flow.node("teststep/", NOPTask())
 
 
@@ -98,7 +98,7 @@ def test_node_index_name():
     flow.node("teststep", NOPTask(), index="index")
 
     # Invalid index
-    with pytest.raises(ValueError, match="index/ is not a valid index, it cannot contain '/'"):
+    with pytest.raises(ValueError, match="^index/ is not a valid index, it cannot contain '/'$"):
         flow.node("teststep", NOPTask(), index="index/")
 
 
@@ -119,7 +119,7 @@ def test_node_index():
 def test_node_reserved_step(step):
     flow = Flowgraph("testflow")
 
-    with pytest.raises(ValueError, match=f"{step} is a reserved name"):
+    with pytest.raises(ValueError, match=f"^{step} is a reserved name$"):
         flow.node(step, "siliconcompiler.tools.builtin.nop/NOPTask")
 
 
@@ -127,7 +127,7 @@ def test_node_reserved_step(step):
 def test_node_reserved_index(index):
     flow = Flowgraph("testflow")
 
-    with pytest.raises(ValueError, match=f"{index} is a reserved name"):
+    with pytest.raises(ValueError, match=f"^{index} is a reserved name$"):
         flow.node("teststep", "siliconcompiler.tools.builtin.nop/NOPTask", index=index)
 
 
@@ -184,7 +184,7 @@ def test_edge_undefined():
     flow = Flowgraph("testflow")
     flow.node("stepone", "siliconcompiler.tools.builtin.nop/NOPTask")
 
-    with pytest.raises(ValueError, match="steptwo/0 is not a defined node in testflow"):
+    with pytest.raises(ValueError, match=r"^steptwo/0 is not a defined node in testflow\.$"):
         flow.edge("stepone", "steptwo")
 
 
@@ -205,13 +205,13 @@ def test_remove_node_all_index(large_flow):
 
 def test_remove_node_no_step(large_flow):
     with pytest.raises(ValueError,
-                       match='invalidstep is not a valid step in testflow'):
+                       match='^invalidstep is not a valid step in testflow$'):
         large_flow.remove_node("invalidstep")
 
 
 def test_remove_node_no_index(large_flow):
     with pytest.raises(ValueError,
-                       match='4 is not a valid index for steptwo in testflow'):
+                       match='^4 is not a valid index for steptwo in testflow$'):
         large_flow.remove_node('steptwo', 4)
 
 
@@ -258,7 +258,7 @@ def test_insert_node_branch(large_flow):
 
 
 def test_insert_node_invalid(large_flow):
-    with pytest.raises(ValueError, match="invalid/0 is not a valid node in testflow"):
+    with pytest.raises(ValueError, match="^invalid/0 is not a valid node in testflow$"):
         large_flow.insert_node(
             "newnode", "siliconcompiler.tools.builtin.nop/NOPTask", before_step="invalid"
         )
@@ -369,7 +369,7 @@ def test_get_node_outputs(large_flow):
 
 
 def test_get_node_outputs_invalid(large_flow):
-    with pytest.raises(ValueError, match="testnode/0 is not a valid node"):
+    with pytest.raises(ValueError, match="^testnode/0 is not a valid node$"):
         large_flow.get_node_outputs("testnode", "0")
 
 
@@ -471,7 +471,7 @@ def test_graph_overlapping_names():
     flow = Flowgraph("composite")
     flow.graph(rtl_flow)
 
-    with pytest.raises(ValueError, match="import is already defined"):
+    with pytest.raises(ValueError, match="^import is already defined$"):
         flow.graph(apr_flow)
 
 
@@ -484,8 +484,9 @@ def test_graph_invalid_subgraph_type():
     flow = Flowgraph("composite")
     flow.graph(rtl_flow)
 
-    with pytest.raises(ValueError, match="subflow must a Flowgraph, not: "
-                                         "<class 'siliconcompiler.schema.baseschema.BaseSchema'>"):
+    with pytest.raises(ValueError,
+                       match=r"^subflow must a Flowgraph, not: "
+                             r"<class 'siliconcompiler\.schema\.baseschema\.BaseSchema'>$"):
         flow.graph(apr_flow)
 
 
@@ -522,8 +523,9 @@ def test_validate_loop(large_flow, caplog):
 
 
 def test_runtime_init():
-    with pytest.raises(ValueError, match="base must a Flowgraph, not: "
-                                         "<class 'siliconcompiler.schema.baseschema.BaseSchema'>"):
+    with pytest.raises(ValueError,
+                       match=r"^base must a Flowgraph, not: "
+                             r"<class 'siliconcompiler\.schema\.baseschema\.BaseSchema'>$"):
         RuntimeFlowgraph(BaseSchema())
 
 
@@ -633,7 +635,7 @@ def test_runtime_get_entry_nodes_prune_from(large_flow):
 def test_runtime_get_nodes_starting_at_invalid(large_flow):
     runtime = RuntimeFlowgraph(large_flow, prune_nodes=[
         ("stepone", "0"), ("steptwo", "1"), ("stepthree", "2")])
-    with pytest.raises(ValueError, match="stepone/0 is not a valid node"):
+    with pytest.raises(ValueError, match="^stepone/0 is not a valid node$"):
         runtime.get_nodes_starting_at("stepone", "0")
 
 
@@ -958,7 +960,7 @@ def test_get_node_inputs_invalid(large_flow):
     runtime = RuntimeFlowgraph(large_flow, prune_nodes=[
         ("stepone", "0"), ("steptwo", "1"), ("stepthree", "2")])
 
-    with pytest.raises(ValueError, match="stepone/0 is not a valid node"):
+    with pytest.raises(ValueError, match="^stepone/0 is not a valid node$"):
         runtime.get_node_inputs("stepone", "0")
 
 
@@ -1044,7 +1046,7 @@ def test_runtime_validate_disjoint(caplog):
 
 
 def test_get_task_module_invalid():
-    with pytest.raises(ValueError, match="teststep/testindex is not a valid node in testflow"):
+    with pytest.raises(ValueError, match=r"^teststep/testindex is not a valid node in testflow\.$"):
         Flowgraph("testflow").get_task_module("teststep", "testindex")
 
 
@@ -1063,19 +1065,22 @@ def test_get_task_module_ensure_cache(large_flow):
 
 def test_get_task_module_error(large_flow):
     assert large_flow.set("joinone", "0", "taskmodule", "notvalid.module/cls")
-    with pytest.raises(ModuleNotFoundError):
+    with pytest.raises(ModuleNotFoundError, match="^No module named 'notvalid'$"):
         large_flow.get_task_module("joinone", "0")
 
 
 def test_get_task_cls_not_found(large_flow):
     assert large_flow.set("joinone", "0", "taskmodule", "siliconcompiler/notaclass")
-    with pytest.raises(AttributeError):
+    with pytest.raises(AttributeError,
+                       match="^module 'siliconcompiler' has no attribute 'notaclass'$"):
         large_flow.get_task_module("joinone", "0")
 
 
 def test_get_task_formatting_error(large_flow):
     assert large_flow.set("joinone", "0", "taskmodule", "notvalid.module")
-    with pytest.raises(ValueError, match="task is not correctly formatted as <module>/<class>"):
+    with pytest.raises(ValueError,
+                       match=r"^task is not correctly formatted as "
+                             r"<module>/<class>: notvalid\.module$"):
         large_flow.get_task_module("joinone", "0")
 
 
@@ -1092,11 +1097,11 @@ def test_write_flowgraph(large_flow, has_graphviz):
 
 def test_get_task_module_invalid_format():
     with pytest.raises(ValueError,
-                       match="task is not correctly formatted as <module>/<class>: something"):
+                       match="^task is not correctly formatted as <module>/<class>: something$"):
         Flowgraph()._Flowgraph__get_task_module("something")
 
 
 def test_get_task_module_invalid_type():
     with pytest.raises(ValueError,
-                       match="task is not correctly formatted as <module>/<class>: None"):
+                       match="^task is not correctly formatted as <module>/<class>: None$"):
         Flowgraph()._Flowgraph__get_task_module(None)

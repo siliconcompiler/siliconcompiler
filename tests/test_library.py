@@ -163,7 +163,7 @@ def test_define_tool_parameter_override_illegal():
 
 
 def test_define_tool_parameter_invalid_help():
-    with pytest.raises(TypeError, match="help must be a string"):
+    with pytest.raises(TypeError, match="^help must be a string$"):
         ToolLibrarySchema("test").define_tool_parameter(
             "yosys",
             "timingcorner",
@@ -173,7 +173,7 @@ def test_define_tool_parameter_invalid_help():
 
 
 def test_define_tool_parameter_empty_help():
-    with pytest.raises(ValueError, match="help is required"):
+    with pytest.raises(ValueError, match="^help is required$"):
         ToolLibrarySchema("test").define_tool_parameter(
             "yosys",
             "timingcorner",
@@ -328,17 +328,17 @@ def test_add_asic_libcornerfileset_without_active():
 
 
 def test_add_asic_libcornerfileset_missing_fileset():
-    with pytest.raises(LookupError, match="models is not defined in lib"):
+    with pytest.raises(LookupError, match="^models is not defined in lib$"):
         StdCellLibrary("lib").add_asic_libcornerfileset("slow", "nldm", "models")
 
 
 def test_add_asic_libcornerfileset_invalid_model():
-    with pytest.raises(TypeError, match="model must be a string"):
+    with pytest.raises(TypeError, match="^model must be a string$"):
         StdCellLibrary("lib").add_asic_libcornerfileset("slow", 8, "models")
 
 
 def test_add_asic_libcornerfileset_invalid_fileset():
-    with pytest.raises(TypeError, match="fileset must be a string"):
+    with pytest.raises(TypeError, match="^fileset must be a string$"):
         StdCellLibrary("lib").add_asic_libcornerfileset("slow", "nldm", 8)
 
 
@@ -370,12 +370,12 @@ def test_add_asic_pexcornerfileset_without_active():
 
 
 def test_add_asic_pexcornerfileset_missing_fileset():
-    with pytest.raises(LookupError, match="models is not defined"):
+    with pytest.raises(LookupError, match="^models is not defined in lib$"):
         StdCellLibrary("lib").add_asic_pexcornerfileset("slow", "models")
 
 
 def test_add_asic_pexcornerfileset_invalid_fileset():
-    with pytest.raises(TypeError, match="fileset must be a string"):
+    with pytest.raises(TypeError, match="^fileset must be a string$"):
         StdCellLibrary("lib").add_asic_pexcornerfileset("slow", 8)
 
 
@@ -407,12 +407,12 @@ def test_add_asic_aprfileset_without_active():
 
 
 def test_add_asic_aprfileset_missing_fileset():
-    with pytest.raises(LookupError, match="models is not defined"):
+    with pytest.raises(LookupError, match="^models is not defined in lib$"):
         StdCellLibrary("lib").add_asic_aprfileset("models")
 
 
 def test_add_asic_aprfileset_invalid_fileset():
-    with pytest.raises(TypeError, match="fileset must be a string"):
+    with pytest.raises(TypeError, match="^fileset must be a string$"):
         StdCellLibrary("lib").add_asic_aprfileset(8)
 
 
@@ -453,14 +453,14 @@ def test_add_asic_pdk_string():
 
 def test_add_asic_pdk_string_not_default():
     lib = StdCellLibrary("lib")
-    with pytest.raises(TypeError, match="pdk must be a PDK object"):
+    with pytest.raises(TypeError, match="^pdk must be a PDK object$"):
         lib.add_asic_pdk("test", default=False)
     assert lib.get("asic", "pdk") is None
 
 
 def test_add_asic_pdk_string_invalid():
     lib = StdCellLibrary("lib")
-    with pytest.raises(TypeError, match="pdk must be a PDK object or string"):
+    with pytest.raises(TypeError, match="^pdk must be a PDK object or string$"):
         lib.add_asic_pdk(1)
 
 
