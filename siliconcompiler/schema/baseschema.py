@@ -672,10 +672,17 @@ class BaseSchema:
     @classmethod
     def _getdict_type(cls) -> str:
         """
-        Returns the meta data for getdict
+        Returns the type data for getdict
         """
 
         return "BaseSchema"
+
+    def _getdict_meta(self) -> Dict[str, str]:
+        """
+        Returns the meta data for getdict
+        """
+
+        return {}
 
     def getdict(self, *keypath: str, include_default: bool = True,
                 values_only: bool = False) -> Dict:
@@ -722,9 +729,15 @@ class BaseSchema:
             manifest["__journal__"] = self.__journal.get()
 
         if not values_only and self.__class__ is not BaseSchema:
-            manifest["__meta__"] = {
-                "class": f"{self.__class__.__module__}/{self.__class__.__name__}"
-            }
+            manifest["__meta__"] = {}
+
+            try:
+                cls_meta = self._getdict_meta()
+                manifest["__meta__"].update(cls_meta)
+            except NotImplementedError:
+                pass
+
+            manifest["__meta__"]["class"] = f"{self.__class__.__module__}/{self.__class__.__name__}"
             try:
                 manifest["__meta__"]["sctype"] = self._getdict_type()
             except NotImplementedError:

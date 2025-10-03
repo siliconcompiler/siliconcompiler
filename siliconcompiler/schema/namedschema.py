@@ -66,17 +66,22 @@ class NamedSchema(BaseSchema):
 
         raise NotImplementedError("Must be implemented by the child classes.")
 
+    def _getdict_meta(self) -> Dict[str, str]:
+        info = super()._getdict_meta()
+        info["name"] = self.name
+        return info
+
     @classmethod
-    def from_manifest(cls, name: str, filepath: str = None, cfg: Dict = None):
+    def from_manifest(cls, filepath: str = None, cfg: Dict = None, name: str = None):
         '''
         Create a new schema based on the provided source files.
 
         The two arguments to this method are mutually exclusive.
 
         Args:
-            name (str): name of the schema
             filepath (path): Initial manifest.
             cfg (dict): Initial configuration dictionary.
+            name (str): name of the schema.
         '''
 
         if not filepath and cfg is None:
@@ -93,6 +98,8 @@ class NamedSchema(BaseSchema):
     def _from_dict(self, manifest: Dict, keypath: Tuple[str], version: str = None):
         if keypath:
             self.__name = keypath[-1]
+        elif not self.__name and "__meta__" in manifest and "name" in manifest["__meta__"]:
+            self.__name = manifest["__meta__"]["name"]
 
         return super()._from_dict(manifest, keypath, version=version)
 

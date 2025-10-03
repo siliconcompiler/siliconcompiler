@@ -2262,6 +2262,10 @@ def test_getdict_type():
     assert BaseSchema._getdict_type() == "BaseSchema"
 
 
+def test_getdict_meta_basecall():
+    assert BaseSchema()._getdict_meta() == {}
+
+
 def test_from_dict_composite_type_names():
     class DummySchema(BaseSchema):
         def __init__(self):
