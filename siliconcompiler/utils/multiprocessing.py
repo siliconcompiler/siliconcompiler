@@ -125,6 +125,7 @@ class MPManager(metaclass=_ManagerSingleton):
                 self.__manager.connect()
                 self.__manager_server = False
             except FileNotFoundError:  # error when address has been deleted by previous server
+                self.__logger.warning("Manager address file not found; falling back to server mode")
                 is_server = True  # fall back to create new manager
         if is_server:
             self.__manager = SyncManager(authkey=MPManager.__authkey)
