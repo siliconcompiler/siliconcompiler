@@ -204,9 +204,13 @@ class ASIC(Project):
         if isinstance(obj, StdCellLibrary):
             if not self._has_library(obj.name):
                 EditableSchema(self).insert("library", obj.name, obj)
+            else:
+                return
         elif isinstance(obj, PDK):
             if not self._has_library(obj.name):
                 EditableSchema(self).insert("library", obj.name, obj)
+            else:
+                return
         else:
             return super().add_dep(obj)
 

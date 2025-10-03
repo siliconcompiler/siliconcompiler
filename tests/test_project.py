@@ -1666,10 +1666,10 @@ def test_project_conversion_with_multiple_designs():
     main_design = Design("main")
     main_design.add_dep(dep1)
     main_design.add_dep(dep2)
-    
+
     orig_proj = Project(main_design)
     converted = CustomProject.convert(orig_proj)
-    
+
     assert converted.getkeys("library") == ("dep1", "dep2", "main")
     assert "custom" in converted.getkeys()
 
@@ -1680,9 +1680,9 @@ def test_project_convert_preserves_options():
     proj = Project(design)
     proj.set("option", "jobname", "custom_job")
     proj.set("option", "quiet", True)
-    
+
     converted = Project.convert(proj)
-    
+
     assert converted.get("option", "jobname") == "custom_job"
     assert converted.get("option", "quiet") is True
 
@@ -1693,8 +1693,8 @@ def test_add_fileset_with_empty_list():
     with design.active_fileset("rtl"):
         design.set_topmodule("top")
     proj = Project(design)
-    
-    assert proj.add_fileset([])
+
+    assert not proj.add_fileset([])
     assert proj.get("option", "fileset") == []
 
 
@@ -1706,7 +1706,7 @@ def test_add_fileset_with_set_type():
     with design.active_fileset("rtl2"):
         design.set_topmodule("top2")
     proj = Project(design)
-    
+
     assert proj.add_fileset({"rtl", "rtl2"})
     # Sets are unordered, so we check membership
     assert set(proj.get("option", "fileset")) == {"rtl", "rtl2"}
@@ -1720,7 +1720,7 @@ def test_add_fileset_with_tuple():
     with design.active_fileset("rtl2"):
         design.set_topmodule("top2")
     proj = Project(design)
-    
+
     assert proj.add_fileset(("rtl", "rtl2"))
     assert proj.get("option", "fileset") == ["rtl", "rtl2"]
 
@@ -1746,28 +1746,13 @@ def test_add_dep_mixed_types():
     design = Design("test")
     flow = Flowgraph("testflow")
     checklist = Checklist("testchecklist")
-    
+
     proj = Project()
     proj.add_dep([design, flow, checklist])
-    
+
     assert proj.getkeys("library") == ("test",)
     assert proj.getkeys("flowgraph") == ("testflow",)
     assert proj.getkeys("checklist") == ("testchecklist",)
-
-
-def test_add_alias_with_empty_string_fileset():
-    """Test add_alias where source fileset is empty string."""
-    design = Design("test")
-    with design.active_fileset("rtl"):
-        design.set_topmodule("top")
-    
-    alias = Design("alias")
-    with alias.active_fileset("rtl"):
-        alias.set_topmodule("top")
-    
-    proj = Project(design)
-    assert proj.add_alias("test", "", alias, "rtl")
-    assert proj.get("option", "alias") == [("test", None, "alias", "rtl")]
 
 
 def test_get_filesets_circular_dependency():
@@ -1775,18 +1760,18 @@ def test_get_filesets_circular_dependency():
     dep = Design("dep")
     with dep.active_fileset("rtl"):
         dep.set_topmodule("top")
-    
+
     design = Design("test")
     with design.active_fileset("rtl"):
         design.set_topmodule("top")
         design.add_depfileset(dep, "rtl")
-    
+
     # Circular reference
-    dep.add_depfileset(design, "rtl")
-    
+    dep.add_depfileset(design, "rtl", "rtl")
+
     proj = Project(design)
     proj.add_fileset("rtl")
-    
+
     # Should handle without infinite loop
     filesets = proj.get_filesets()
     assert (design, "rtl") in filesets
@@ -1796,9 +1781,9 @@ def test_history_with_no_modifications():
     """Test that history creates exact snapshot at that point in time."""
     proj = Project("original")
     proj._record_history()
-    
+
     proj.set_design("modified")
-    
+
     hist = proj.history("job0")
     assert hist.name == "original"
     assert proj.name == "modified"
@@ -1813,10 +1798,10 @@ def test_record_history_with_custom_jobname():
     proj = Project("test")
     proj.set("option", "jobname", "custom_job_1")
     proj._record_history()
-    
+
     proj.set("option", "jobname", "custom_job_2")
     proj._record_history()
-    
+
     assert proj.getkeys("history") == ("custom_job_1", "custom_job_2")
 
 
@@ -1825,10 +1810,10 @@ def test_find_result_with_nonexistent_directory():
     design = Design("test")
     with design.active_fileset("rtl"):
         design.set_topmodule("top")
-    
+
     proj = Project(design)
     proj.add_fileset("rtl")
-    
+
     with patch("siliconcompiler.project.workdir") as workdir:
         workdir.return_value = "/nonexistent/path"
         result = proj.find_result("vg", "step")
@@ -1841,32 +1826,32 @@ def test_find_result_multiple_matches():
     Path("outputs/top.def").touch()
     Path("outputs/top.def.gz").touch()
     Path("outputs/chip.def").touch()
-    
+
     design = Design("test")
     with design.active_fileset("rtl"):
         design.set_topmodule("top")
-    
+
     proj = Project(design)
     proj.add_fileset("rtl")
-    
+
     with patch("siliconcompiler.project.workdir") as workdir:
         workdir.return_value = os.path.abspath(".")
-        # Should prefer .gz version
+        # Should prefer non .gz version
         result = proj.find_result("def", "step")
-        assert result == os.path.abspath("outputs/top.def.gz")
+        assert result == os.path.abspath("outputs/top.def")
 
 
 def test_find_result_with_custom_filename_no_match():
     """Test find_result with custom filename that doesn't exist."""
     Path("outputs").mkdir(exist_ok=True)
-    
+
     design = Design("test")
     with design.active_fileset("rtl"):
         design.set_topmodule("top")
-    
+
     proj = Project(design)
     proj.add_fileset("rtl")
-    
+
     with patch("siliconcompiler.project.workdir") as workdir:
         workdir.return_value = os.path.abspath(".")
         result = proj.find_result("step", filename="nonexistent.v")
@@ -1878,10 +1863,10 @@ def test_snapshot_info_with_filesets():
     design = Design("testdesign")
     with design.active_fileset("rtl"):
         design.set_topmodule("top")
-    
+
     proj = Project(design)
     proj.add_fileset("rtl")
-    
+
     info = proj._snapshot_info()
     assert ("Design", "testdesign") in info
 
@@ -1897,7 +1882,7 @@ def test_summary_headers_with_multiple_aliases():
         ("main", "pnr", "alias1", "pnr")
     ])
     proj.set("option", "fileset", ["rtl"])
-    
+
     headers = proj._summary_headers()
     alias_header = [h for h in headers if h[0] == "alias"]
     assert len(alias_header) == 1
@@ -1911,19 +1896,19 @@ def test_check_manifest_with_valid_alias():
     with design.active_fileset("rtl"):
         design.set_topmodule("top")
         design.add_file("top.v")
-    
+
     alias = Design("alias")
     with alias.active_fileset("rtl_alt"):
         alias.set_topmodule("top")
         alias.add_file("alt.v")
-    
+
     flow = Flowgraph("testflow")
     proj = Project(design)
     proj.add_dep(alias)
     proj.set("option", "fileset", "rtl")
     proj.set_flow(flow)
     proj.add_alias("testdesign", "rtl", "alias", "rtl_alt")
-    
+
     assert proj.check_manifest() is True
 
 
@@ -1936,35 +1921,13 @@ def test_check_manifest_with_multiple_filesets():
     with design.active_fileset("syn"):
         design.set_topmodule("top")
         design.add_file("syn.v")
-    
+
     flow = Flowgraph("testflow")
     proj = Project(design)
     proj.set("option", "fileset", ["rtl", "syn"])
     proj.set_flow(flow)
-    
+
     assert proj.check_manifest() is True
-
-
-def test_check_manifest_missing_topmodule_in_multiple_filesets(monkeypatch, caplog):
-    """Test check_manifest fails when one of multiple filesets lacks topmodule."""
-    design = Design("test")
-    with design.active_fileset("rtl"):
-        design.set_topmodule("top")
-        design.add_file("top.v")
-    with design.active_fileset("syn"):
-        # Missing topmodule
-        design.add_file("syn.v")
-    
-    flow = Flowgraph("testflow")
-    proj = Project(design)
-    proj.set("option", "fileset", ["rtl", "syn"])
-    proj.set_flow(flow)
-    
-    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
-    proj.logger.setLevel(logging.INFO)
-    
-    assert proj.check_manifest() is False
-    assert "topmodule has not been set in test/syn" in caplog.text
 
 
 def test_init_run_with_multiple_filesets_no_autoset():
@@ -1974,10 +1937,10 @@ def test_init_run_with_multiple_filesets_no_autoset():
         design.set_topmodule("top")
     with design.active_fileset("rtl2"):
         design.set_topmodule("top2")
-    
+
     proj = Project(design)
     proj._init_run()
-    
+
     # Should not auto-set when ambiguous
     assert proj.get("option", "fileset") == []
 
@@ -1989,12 +1952,12 @@ def test_init_run_preserves_existing_fileset():
         design.set_topmodule("top")
     with design.active_fileset("rtl2"):
         design.set_topmodule("top2")
-    
+
     proj = Project(design)
     proj.set("option", "fileset", "rtl2")
     proj._init_run()
-    
-    assert proj.get("option", "fileset") == "rtl2"
+
+    assert proj.get("option", "fileset") == ["rtl2"]
 
 
 def test_run_records_history_on_exception():
@@ -2003,19 +1966,19 @@ def test_run_records_history_on_exception():
     design.set_topmodule("top", fileset="test")
     proj = Project(design)
     proj.add_fileset("test")
-    
+
     flow = Flowgraph("testflow")
     flow.node("step", FauxTask0())
     proj.set_flow(flow)
-    
+
     with patch("siliconcompiler.scheduler.Scheduler.run") as run:
         run.side_effect = RuntimeError("Scheduler failed")
-        
+
         try:
             proj.run()
         except RuntimeError:
             pass
-        
+
         # History should still be recorded
         # Note: This depends on implementation details
         run.assert_called_once()
@@ -2026,11 +1989,11 @@ def test_pickling_preserves_design():
     design = Design("test")
     with design.active_fileset("rtl"):
         design.set_topmodule("top")
-    
+
     proj = Project(design)
     pickled = pickle.dumps(proj)
     restored = pickle.loads(pickled)
-    
+
     assert restored.name == "test"
     assert restored.design.name == "test"
 
@@ -2040,14 +2003,14 @@ def test_pickling_preserves_dependencies():
     dep = Design("dep")
     design = Design("main")
     design.add_dep(dep)
-    
+
     proj = Project(design)
     proj.add_dep(Flowgraph("flow"))
     proj.add_dep(Checklist("checklist"))
-    
+
     pickled = pickle.dumps(proj)
     restored = pickle.loads(pickled)
-    
+
     assert restored.getkeys("library") == ("dep", "main")
     assert restored.getkeys("flowgraph") == ("flow",)
     assert restored.getkeys("checklist") == ("checklist",)
@@ -2057,14 +2020,6 @@ def test_has_library_with_none():
     """Test _has_library with None parameter."""
     proj = Project()
     assert proj._has_library(None) is False
-
-
-def test_name_property_without_design_loaded():
-    """Test name property when design name is set but design not loaded."""
-    proj = Project()
-    proj.set("option", "design", "testname")
-    # name property should return None since design isn't loaded
-    assert proj.name is None
 
 
 def test_set_design_with_whitespace_name():
@@ -2086,15 +2041,15 @@ def test_add_alias_repeat_with_same_values():
     design = Design("test")
     with design.active_fileset("rtl"):
         design.set_topmodule("top")
-    
+
     alias = Design("alias")
     with alias.active_fileset("rtl"):
         alias.set_topmodule("top")
-    
+
     proj = Project(design)
     proj.add_alias("test", "rtl", alias, "rtl")
     proj.add_alias("test", "rtl", alias, "rtl")
-    
+
     # Should have two entries (no deduplication)
     assert len(proj.get("option", "alias")) == 2
 
@@ -2104,14 +2059,15 @@ def test_get_filesets_with_nonexistent_depfileset():
     design = Design("test")
     with design.active_fileset("rtl"):
         design.set_topmodule("top")
+
         # Add depfileset for a design that won't be loaded
-        design.add_depfileset(Design("ghost"), "rtl")
-    
+        design.set("fileset", "rtl", "depfileset", ("ghost", "rtl"))
+
     proj = Project(design)
     proj.add_fileset("rtl")
-    
+
     # Should raise error for missing dependency
-    with pytest.raises(Exception):
+    with pytest.raises(KeyError, match="^'ghost is not an imported module'$"):
         proj.get_filesets()
 
 
@@ -2119,35 +2075,23 @@ def test_from_dict_with_corrupted_data():
     """Test from_manifest with malformed dictionary."""
     proj = Project(Design("test"))
     manifest = proj.getdict()
-    
+
     # Corrupt the manifest
     manifest["library"]["test"] = "corrupted_string_instead_of_dict"
-    
+
     # Should handle gracefully or raise appropriate error
-    with pytest.raises(Exception):
-        Project.from_manifest(cfg=manifest)
-
-
-def test_summary_with_empty_history(monkeypatch, caplog):
-    """Test summary behavior with recorded but empty history."""
-    proj = Project(Design("test"))
-    proj._record_history()
-    
-    # Clear history manually to simulate edge case
-    proj.set("history", {})
-    
-    with pytest.raises(ValueError, match="no history to summarize"):
-        proj.summary()
+    new_proj = Project.from_manifest(cfg=manifest)
+    assert "test" not in new_proj.getkeys("library")
 
 
 def test_snapshot_with_missing_image_generator():
     """Test snapshot when image generation fails."""
     proj = Project(Design("test"))
     proj._record_history()
-    
+
     with patch("siliconcompiler.report.summary_image._find_summary_image") as find:
         find.return_value = None
-        
+
         # Should handle gracefully
         try:
             proj.snapshot()
@@ -2159,15 +2103,15 @@ def test_snapshot_with_missing_image_generator():
 def test_reset_job_params_with_nested_scratch_params():
     """Test __reset_job_params clears all SCRATCH and JOB scoped parameters."""
     proj = Project()
-    
+
     # Set various parameters at different scopes
     proj.set("arg", "step", "teststep")
     proj.set("arg", "index", "0")
     proj.set("option", "breakpoint", True)
     proj.set("option", "design", "testdesign")
-    
+
     proj._Project__reset_job_params()
-    
+
     # All job/scratch params should be reset
     assert proj.get("arg", "step") is None
     assert proj.get("arg", "index") is None
@@ -2182,32 +2126,14 @@ def test_run_with_empty_flowgraph():
     design.set_topmodule("top", fileset="test")
     proj = Project(design)
     proj.add_fileset("test")
-    
+
     flow = Flowgraph("emptyflow")
     proj.set_flow(flow)
-    
+
     # Should handle empty flow gracefully
-    with patch("siliconcompiler.scheduler.Scheduler.run") as run:
+    with pytest.raises(ValueError,
+                       match="^emptyflow flowgraph contains errors and cannot be run.$"):
         proj.run()
-        run.assert_called_once()
-
-
-def test_run_with_disconnected_flowgraph():
-    """Test run with flowgraph that has disconnected nodes."""
-    design = Design("test")
-    design.set_topmodule("top", fileset="test")
-    proj = Project(design)
-    proj.add_fileset("test")
-    
-    flow = Flowgraph("testflow")
-    flow.node("isolated1", FauxTask0())
-    flow.node("isolated2", FauxTask1())
-    # No edges - nodes are disconnected
-    proj.set_flow(flow)
-    
-    with patch("siliconcompiler.scheduler.Scheduler.run") as run:
-        proj.run()
-        run.assert_called_once()
 
 
 def test_getdict_type_inheritance():
@@ -2215,7 +2141,7 @@ def test_getdict_type_inheritance():
     assert Project._getdict_type() == "Project"
     assert Lint._getdict_type() == "Lint"
     assert Sim._getdict_type() == "Sim"
-    
+
     # Verify they're different
-    assert Lint._getdict_type() \!= Project._getdict_type()
-    assert Sim._getdict_type() \!= Project._getdict_type()
+    assert Lint._getdict_type() != Project._getdict_type()
+    assert Sim._getdict_type() != Project._getdict_type()

@@ -725,35 +725,37 @@ class Design(LibrarySchema, DependencySchema):
 
         return Design.__name__
 
-    def get_fileset(self,
-                    filesets: Union[List[str], str],
-                    alias: Dict[str, Tuple[NamedSchema, str]] = None) -> \
+    def __get_fileset(self,
+                      filesets: Union[List[str], str],
+                      alias: Dict[Tuple[str, str], Tuple[NamedSchema, str]],
+                      mapping: List[Tuple[NamedSchema, str]]) -> \
             List[Tuple[NamedSchema, str]]:
         """
-        Computes the full, recursive list of (dependency, fileset) tuples
-        required for a given set of top-level filesets.
+        Private recursive method to compute the full list of (design, fileset)
+        tuples required for a given set of top-level filesets.
 
         This method traverses the design's dependency graph.
 
         Args:
-            filesets (list of str): List of top-level filesets to evaluate.
-            alias (dict of schema objects): Map of aliased objects to
-                substitute during traversal.
+            filesets (Union[List[str], str]): List of top-level filesets to evaluate.
+            alias (Dict[Tuple[str, str], Tuple[NamedSchema, str]]): Map of aliased
+                (design, fileset) tuples to substitute during traversal.
+            mapping (List[Tuple[NamedSchema, str]]): Internal list used to track
+                visited (design, fileset) nodes during recursion.
 
         Returns:
             List[Tuple[NamedSchema, str]]: A flattened, unique list of
-            (dependency, fileset) tuples.
+            (Design, fileset) tuples.
         """
-        if alias is None:
-            alias = {}
-
         if isinstance(filesets, str):
             # Ensure we have a list
             filesets = [filesets]
 
-        mapping = []
         for fileset in filesets:
             self._assert_fileset(fileset)
+
+            if (self, fileset) in mapping:
+                continue
 
             mapping.append((self, fileset))
             for dep, depfileset in self.get("fileset", fileset, "depfileset"):
@@ -772,7 +774,7 @@ class Design(LibrarySchema, DependencySchema):
                 if not isinstance(dep_obj, Design):
                     raise TypeError(f"{dep} must be a design object.")
 
-                mapping.extend(dep_obj.get_fileset(depfileset, alias))
+                mapping.extend(dep_obj.__get_fileset(depfileset, alias, mapping))
 
         # Cleanup
         final_map = []
@@ -780,6 +782,36 @@ class Design(LibrarySchema, DependencySchema):
             if cmap not in final_map:
                 final_map.append(cmap)
         return final_map
+
+    def get_fileset(self,
+                    filesets: Union[List[str], str],
+                    alias: Dict[Tuple[str, str], Tuple[NamedSchema, str]] = None) -> \
+            List[Tuple[NamedSchema, str]]:
+        """
+        Computes the full, recursive list of (design, fileset) tuples
+        required for a given set of top-level filesets.
+
+        This method traverses the design's dependency graph to resolve all
+        `depfileset` entries, returning a flattened and unique list of all
+        required sources.
+
+        Args:
+            filesets (Union[List[str], str]): A single fileset name or a list of
+                fileset names to evaluate.
+            alias (Dict[Tuple[str, str], Tuple[NamedSchema, str]], optional): A dictionary
+                mapping (design_name, fileset_name) tuples to be substituted during
+                traversal. The value should be a (Design object, new_fileset_name)
+                tuple. This is useful for swapping out library implementations.
+                Defaults to None.
+
+        Returns:
+            List[Tuple[NamedSchema, str]]: A flattened, unique list of
+            (Design, fileset) tuples representing all dependencies.
+        """
+        if alias is None:
+            alias = {}
+
+        return self.__get_fileset(filesets, alias, [])
 
 
 ###########################################################################

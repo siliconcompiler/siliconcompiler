@@ -351,14 +351,20 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         if isinstance(obj, Design):
             if not self._has_library(obj.name):
                 EditableSchema(self).insert("library", obj.name, obj)
+            else:
+                return
         elif isinstance(obj, Flowgraph):
             self.__import_flow(obj)
         elif isinstance(obj, LibrarySchema):
             if not self._has_library(obj.name):
                 EditableSchema(self).insert("library", obj.name, obj)
+            else:
+                return
         elif isinstance(obj, Checklist):
             if obj.name not in self.getkeys("checklist"):
                 EditableSchema(self).insert("checklist", obj.name, obj)
+            else:
+                return
         else:
             raise NotImplementedError
 
