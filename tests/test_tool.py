@@ -925,6 +925,62 @@ def test_generate_replay_script(running_node, monkeypatch):
     assert replay_hash == "d86d8d1a38c5acf8a8954670cb0f802c"
 
 
+def test_run_task_terminate_called_on_timeout(running_node, monkeypatch, patch_psutil, caplog):
+    """Ensure terminate/kill invoked when process exceeds timeout."""
+    assert running_node.project.set("tool", "builtin", "task", "nop", "format", "json")
+
+    class SlowPopen:
+        pid = 3210
+
+        def __init__(self):
+            self._polls = 0
+
+        def poll(self):
+            self._polls += 1
+            if self._polls > 5:
+                return None
+            time.sleep(0.05)
+            return None
+
+        def wait(self, timeout=None):
+            time.sleep(0.05)
+
+    def dummy_popen(cmd, **kwargs):
+        assert cmd == ["found/exe"]
+        return SlowPopen()
+
+    monkeypatch.setattr(imported_subprocess, "Popen", dummy_popen)
+    monkeypatch.setattr(running_node.task, "get_exe", lambda *_: "found/exe")
+
+    with running_node.task.runtime(running_node) as runtool:
+        with pytest.raises(TaskTimeout):
+            runtool.run_task(".", False, False, None, 0.1)
+
+    assert "Task timed out after" in caplog.text
+
+
+def test_run_task_records_elapsed_time(running_node, monkeypatch):
+    """Verify run_task records elapsed execution time metric."""
+    assert running_node.project.set("tool", "builtin", "task", "nop", "format", "json")
+
+    class InstantPopen:
+        returncode = 0
+
+        def poll(self):
+            return self.returncode
+
+    monkeypatch.setattr(imported_subprocess, "Popen", lambda *_args, **_kwargs: InstantPopen())
+    monkeypatch.setattr(running_node.task, "get_exe", lambda *_: "found/exe")
+
+    with running_node.task.runtime(running_node) as runtool:
+        result = runtool.run_task(".", False, False, None, None)
+    assert result == 0
+
+    elapsed = running_node.project.get("metric", "exetime", step="running", index="0")
+    assert elapsed is not None
+    assert elapsed >= 0
+
+
 def test_generate_replay_script_no_path(running_node, monkeypatch):
     assert running_node.project.set("tool", "builtin", 'task', 'nop', 'exe', 'testexe')
     assert running_node.project.set("tool", "builtin", 'task', 'nop', 'vswitch', '-version')

@@ -1362,3 +1362,22 @@ def test_path_object(datadir):
         d.add_libdir(basedir)
     assert d.get_idir(fileset='rtl') == [str(basedir)]
     assert d.get_libdir(fileset='rtl') == [str(basedir)]
+
+
+def test_get_fileset_circular_dependency():
+    """Test get_fileset with circular dependency (should handle gracefully)."""
+    dep = Design("dep")
+    with dep.active_fileset("rtl"):
+        dep.set_topmodule("top")
+
+    design = Design("test")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+        design.add_depfileset(dep, "rtl")
+
+    # Circular reference
+    dep.add_depfileset(design, "rtl", "rtl")
+
+    # Should handle without infinite loop
+    filesets = design.get_fileset("rtl")
+    assert (design, "rtl") in filesets
