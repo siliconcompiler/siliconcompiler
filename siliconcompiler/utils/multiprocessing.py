@@ -117,16 +117,20 @@ class MPManager(metaclass=_ManagerSingleton):
         self._init_logger()
 
         # Manager to handle shared data between processes
-        if MPManager._get_manager_address() is None:
+        is_server = MPManager._get_manager_address() is None
+        if not is_server:
+            try:
+                self.__manager = SyncManager(address=MPManager._get_manager_address(),
+                                             authkey=MPManager.__authkey)
+                self.__manager.connect()
+                self.__manager_server = False
+            except FileNotFoundError:  # error when address has been deleted by previous server
+                is_server = True  # fall back to create new manager
+        if is_server:
             self.__manager = SyncManager(authkey=MPManager.__authkey)
             self.__manager.start()
             MPManager._set_manager_address(self.__manager.address)
             self.__manager_server = True
-        else:
-            self.__manager = SyncManager(address=MPManager._get_manager_address(),
-                                         authkey=MPManager.__authkey)
-            self.__manager.connect()
-            self.__manager_server = False
 
         # Dashboard singleton setup
         self.__board_lock = self.__manager.Lock()
