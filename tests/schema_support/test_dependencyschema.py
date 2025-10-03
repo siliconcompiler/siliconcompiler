@@ -436,7 +436,7 @@ def test_populate_deps():
     assert schema.add_dep(dep00)
     assert schema.add_dep(dep01)
 
-    check = Test.from_manifest("test", cfg=schema.getdict())
+    check = Test.from_manifest(name="test", cfg=schema.getdict())
     assert check.get_dep() == []
     module_map = {obj.name: obj for obj in schema.get_dep()}
     check._populate_deps(module_map)
@@ -462,7 +462,7 @@ def test_populate_deps_missing():
     assert schema.add_dep(dep00)
     assert schema.add_dep(dep01)
 
-    check = Test.from_manifest("test", cfg=schema.getdict())
+    check = Test.from_manifest(name="test", cfg=schema.getdict())
     with pytest.raises(ValueError, match="level0-0 not available in map"):
         check._populate_deps({})
 

@@ -43,6 +43,14 @@ def test_type():
         NamedSchema().type()
 
 
+def test_getdict_meta_no_name():
+    assert NamedSchema()._getdict_meta() == {'name': None}
+
+
+def test_getdict_meta_with_name():
+    assert NamedSchema("myname")._getdict_meta() == {'name': "myname"}
+
+
 def test_name_no_init():
     class Test(NamedSchema):
         def __init__(self):
@@ -135,7 +143,7 @@ def test_inserting_name():
 
 def test_from_manifest_no_args():
     with pytest.raises(RuntimeError, match="filepath or dictionary is required"):
-        NamedSchema.from_manifest("name")
+        NamedSchema.from_manifest(name="name")
 
 
 def test_from_manifest_file():
@@ -151,10 +159,35 @@ def test_from_manifest_file():
     schema.write_manifest("test.json.gz")
     assert os.path.isfile("test.json.gz")
 
-    new_schema = NewSchema.from_manifest("newname", filepath="test.json.gz")
+    new_schema = NewSchema.from_manifest(name="newname", filepath="test.json.gz")
 
-    assert new_schema.getdict() == schema.getdict()
+    dict0 = new_schema.getdict()
+    dict1 = schema.getdict()
+    del dict0["__meta__"]["name"]
+    del dict1["__meta__"]["name"]
+    assert dict0 == dict1
     assert new_schema.name == "newname"
+
+
+def test_from_manifest_file_keep_name():
+    class NewSchema(NamedSchema):
+        def __init__(self, name=None):
+            super().__init__(name)
+            edit = EditableSchema(self)
+            edit.insert("test0", "test1", Parameter("str"))
+    schema = NewSchema("myname")
+    schema.set("test0", "test1", "testthis")
+
+    assert not os.path.isfile("test.json.gz")
+    schema.write_manifest("test.json.gz")
+    assert os.path.isfile("test.json.gz")
+
+    new_schema = NewSchema.from_manifest(filepath="test.json.gz")
+
+    dict0 = new_schema.getdict()
+    dict1 = schema.getdict()
+    assert dict0 == dict1
+    assert new_schema.name == "myname"
 
 
 def test_from_manifest_cfg():
@@ -166,7 +199,28 @@ def test_from_manifest_cfg():
     schema = NewSchema("name")
     schema.set("test0", "test1", "testthis")
 
-    new_schema = NewSchema.from_manifest("newname", cfg=schema.getdict())
+    new_schema = NewSchema.from_manifest(name="newname", cfg=schema.getdict())
 
-    assert new_schema.getdict() == schema.getdict()
+    dict0 = new_schema.getdict()
+    dict1 = schema.getdict()
+    del dict0["__meta__"]["name"]
+    del dict1["__meta__"]["name"]
+    assert dict0 == dict1
     assert new_schema.name == "newname"
+
+
+def test_from_manifest_cfg_keep_name():
+    class NewSchema(NamedSchema):
+        def __init__(self, name=None):
+            super().__init__(name)
+            edit = EditableSchema(self)
+            edit.insert("test0", "test1", Parameter("str"))
+    schema = NewSchema("name")
+    schema.set("test0", "test1", "testthis")
+
+    new_schema = NewSchema.from_manifest(cfg=schema.getdict())
+
+    dict0 = new_schema.getdict()
+    dict1 = schema.getdict()
+    assert dict0 == dict1
+    assert new_schema.name == "name"

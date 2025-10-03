@@ -319,6 +319,7 @@
             }
           },
           "__meta__": {
+            "name": null,
             "class": "siliconcompiler.checklist/Checklist",
             "sctype": "Checklist"
           }
@@ -515,6 +516,7 @@
             }
           },
           "__meta__": {
+            "name": null,
             "class": "siliconcompiler.flowgraph/Flowgraph",
             "sctype": "Flowgraph"
           }
@@ -2003,6 +2005,7 @@
                 }
               },
               "__meta__": {
+                "name": null,
                 "class": "siliconcompiler.tool/Task",
                 "sctype": "Task"
               }
@@ -3254,6 +3257,7 @@
             }
           },
           "__meta__": {
+            "name": null,
             "class": "siliconcompiler.checklist/Checklist",
             "sctype": "Checklist"
           }
@@ -3450,6 +3454,7 @@
             }
           },
           "__meta__": {
+            "name": null,
             "class": "siliconcompiler.flowgraph/Flowgraph",
             "sctype": "Flowgraph"
           }
@@ -5626,6 +5631,7 @@
                 }
               },
               "__meta__": {
+                "name": null,
                 "class": "siliconcompiler.tool/Task",
                 "sctype": "Task"
               }
@@ -6581,6 +6587,7 @@
               }
             },
             "__meta__": {
+              "name": null,
               "class": "siliconcompiler.constraints.fpga_timing/FPGATimingScenarioSchema"
             }
           },
@@ -6952,6 +6959,7 @@
             }
           },
           "__meta__": {
+            "name": null,
             "class": "siliconcompiler.checklist/Checklist",
             "sctype": "Checklist"
           }
@@ -7148,6 +7156,7 @@
             }
           },
           "__meta__": {
+            "name": null,
             "class": "siliconcompiler.flowgraph/Flowgraph",
             "sctype": "Flowgraph"
           }
@@ -9556,6 +9565,7 @@
                 }
               },
               "__meta__": {
+                "name": null,
                 "class": "siliconcompiler.tool/Task",
                 "sctype": "Task"
               }
@@ -10683,6 +10693,7 @@
               }
             },
             "__meta__": {
+              "name": null,
               "class": "siliconcompiler.constraints.asic_timing/ASICTimingScenarioSchema"
             }
           },
@@ -10790,6 +10801,7 @@
               }
             },
             "__meta__": {
+              "name": null,
               "class": "siliconcompiler.constraints.asic_component/ASICComponentConstraint"
             }
           },
@@ -10958,6 +10970,7 @@
               }
             },
             "__meta__": {
+              "name": null,
               "class": "siliconcompiler.constraints.asic_pins/ASICPinConstraint"
             }
           },
@@ -11558,6 +11571,7 @@
             }
           },
           "__meta__": {
+            "name": null,
             "class": "siliconcompiler.checklist/Checklist",
             "sctype": "Checklist"
           }
@@ -11754,6 +11768,7 @@
             }
           },
           "__meta__": {
+            "name": null,
             "class": "siliconcompiler.flowgraph/Flowgraph",
             "sctype": "Flowgraph"
           }
@@ -13242,6 +13257,7 @@
                 }
               },
               "__meta__": {
+                "name": null,
                 "class": "siliconcompiler.tool/Task",
                 "sctype": "Task"
               }
@@ -14493,6 +14509,7 @@
             }
           },
           "__meta__": {
+            "name": null,
             "class": "siliconcompiler.checklist/Checklist",
             "sctype": "Checklist"
           }
@@ -14689,6 +14706,7 @@
             }
           },
           "__meta__": {
+            "name": null,
             "class": "siliconcompiler.flowgraph/Flowgraph",
             "sctype": "Flowgraph"
           }
@@ -16177,6 +16195,7 @@
                 }
               },
               "__meta__": {
+                "name": null,
                 "class": "siliconcompiler.tool/Task",
                 "sctype": "Task"
               }
@@ -17870,6 +17889,7 @@
         }
       },
       "__meta__": {
+        "name": null,
         "class": "siliconcompiler.design/Design",
         "sctype": "Design"
       }
@@ -19065,6 +19085,7 @@
         }
       },
       "__meta__": {
+        "name": null,
         "class": "siliconcompiler.pdk/PDK",
         "sctype": "PDK"
       }
@@ -19672,6 +19693,7 @@
         }
       },
       "__meta__": {
+        "name": null,
         "class": "siliconcompiler.fpga/FPGADevice",
         "sctype": "FPGADevice"
       }
@@ -20631,6 +20653,7 @@
         }
       },
       "__meta__": {
+        "name": null,
         "class": "siliconcompiler.library/StdCellLibrary",
         "sctype": "StdCellLibrary"
       }
