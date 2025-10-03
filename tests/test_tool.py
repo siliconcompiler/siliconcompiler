@@ -1679,6 +1679,19 @@ def test_set_threads(running_node):
         get_cores.assert_called_once()
 
 
+def test_set_threads_with_scheduler_max(running_node):
+    running_node.project.option.scheduler.set("maxthreads", 4)
+    with patch("siliconcompiler.utils.get_cores") as get_cores:
+        get_cores.return_value = 15
+        with running_node.task.runtime(running_node) as runtool:
+            assert runtool.set_threads()
+            assert runtool.get("threads") == 4
+            assert BaseSchema.get(runtool, "threads", step="running", index="0") == 4
+            assert BaseSchema.get(runtool, "threads", step="notrunning", index="0") is None
+            assert runtool.get_threads() == 4
+        get_cores.assert_not_called()
+
+
 def test_set_threads_with_max(running_node):
     with patch("siliconcompiler.utils.get_cores") as get_cores:
         with running_node.task.runtime(running_node) as runtool:

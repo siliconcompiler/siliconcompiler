@@ -1,8 +1,431 @@
+from typing import Union, List, Tuple
+
 from siliconcompiler.schema import BaseSchema, EditableSchema, Parameter, Scope, PerNode
+from siliconcompiler.schema.utils import trim
+
+
+class SchedulerSchema(BaseSchema):
+    """
+    Schema for configuring job scheduler settings.
+
+    This class defines all parameters related to the job scheduler, such as
+    the scheduler type, resource constraints (cores, memory), and notification
+    settings. It provides getter and setter methods for each parameter to
+    allow for easy manipulation of the configuration.
+    """
+    def __init__(self):
+        """Initializes the scheduler schema and defines all its parameters."""
+        super().__init__()
+
+        # Initialize schema
+        schema = EditableSchema(self)
+
+        # job scheduler
+        schema.insert(
+            'name',
+            Parameter(
+                '<slurm,lsf,sge,docker>',
+                scope=Scope.GLOBAL,
+                pernode=PerNode.OPTIONAL,
+                shorthelp="Option: scheduler platform",
+                switch="-scheduler <str>",
+                example=[
+                    "cli: -scheduler slurm",
+                    "api: option.set('name', 'slurm')"],
+                help="""
+                Sets the type of job scheduler to be used for each individual
+                flowgraph steps. If the parameter is undefined, the steps are executed
+                on the same machine that the SC was launched on. If 'slurm' is used,
+                the host running the 'sc' command must be running a 'slurmctld' daemon
+                managing a Slurm cluster. Additionally, the build directory
+                (:keypath:`option,builddir`) must be located in shared storage which
+                can be accessed by all hosts in the cluster."""))
+
+        schema.insert(
+            'cores',
+            Parameter(
+                'int',
+                scope=Scope.GLOBAL,
+                pernode=PerNode.OPTIONAL,
+                shorthelp="Option: Scheduler core constraint",
+                switch="-cores <int>",
+                example=["cli: -cores 48",
+                         "api: option.set('cores', 48)"],
+                help="""
+                Specifies the number CPU cores required to run the job.
+                For the slurm scheduler, this translates to the '-c'
+                switch. For more information, see the job scheduler
+                documentation"""))
+
+        schema.insert(
+            'memory',
+            Parameter(
+                'int',
+                unit='MB',
+                scope=Scope.GLOBAL,
+                pernode=PerNode.OPTIONAL,
+                shorthelp="Option: scheduler memory constraint",
+                switch="-memory <int>",
+                example=["cli: -memory 8000",
+                         "api: option.set('memory', 8000)"],
+                help="""
+                Specifies the amount of memory required to run the job,
+                specified in MB. For the slurm scheduler, this translates to
+                the '--mem' switch. For more information, see the job
+                scheduler documentation"""))
+
+        schema.insert(
+            'queue',
+            Parameter(
+                'str',
+                scope=Scope.GLOBAL,
+                pernode=PerNode.OPTIONAL,
+                shorthelp="Option: scheduler queue",
+                switch="-queue <str>",
+                example=["cli: -queue nightrun",
+                         "api: option.set('queue', 'nightrun')"],
+                help="""
+                Send the job to the specified queue. With slurm, this
+                translates to 'partition'. The queue name must match
+                the name of an existing job scheduler queue. For more information,
+                see the job scheduler documentation"""))
+
+        schema.insert(
+            'defer',
+            Parameter(
+                'str',
+                scope=Scope.GLOBAL,
+                pernode=PerNode.OPTIONAL,
+                shorthelp="Option: scheduler start time",
+                switch="-defer <str>",
+                example=["cli: -defer 16:00",
+                         "api: option.set('defer', '16:00')"],
+                help="""
+                Defer initiation of job until the specified time. The parameter
+                is pass through string for remote job scheduler such as slurm.
+                For more information about the exact format specification, see
+                the job scheduler documentation. Examples of valid slurm specific
+                values include: now+1hour, 16:00, 010-01-20T12:34:00. For more
+                information, see the job scheduler documentation."""))
+
+        schema.insert(
+            'options',
+            Parameter(
+                '[str]',
+                scope=Scope.GLOBAL,
+                pernode=PerNode.OPTIONAL,
+                shorthelp="Option: scheduler arguments",
+                switch="-scheduler_options <str>",
+                example=[
+                    "cli: -scheduler_options \"--pty\"",
+                    "api: option.set('options', \"--pty\")"],
+                help="""
+                Advanced/export options passed through unchanged to the job
+                scheduler as-is. (The user specified options must be compatible
+                with the rest of the scheduler parameters entered.(memory etc).
+                For more information, see the job scheduler documentation."""))
+
+        schema.insert(
+            'msgevent',
+            Parameter(
+                '{<all,summary,begin,end,timeout,fail>}',
+                scope=Scope.GLOBAL,
+                pernode=PerNode.OPTIONAL,
+                shorthelp="Option: message event trigger",
+                switch="-msgevent <str>",
+                example=[
+                    "cli: -msgevent all",
+                    "api: option.set('msgevent', 'all')"],
+                help="""
+                Directs job scheduler to send a message to the user in
+                :keypath:`option,scheduler,msgcontact` when certain events occur
+                during a task.
+
+                * fail: send an email on failures
+                * timeout: send an email on timeouts
+                * begin: send an email at the start of a node task
+                * end: send an email at the end of a node task
+                * summary: send a summary email at the end of the run
+                * all: send an email on any event
+                """))
+
+        schema.insert(
+            'msgcontact',
+            Parameter(
+                '{str}',
+                scope=Scope.GLOBAL,
+                pernode=PerNode.OPTIONAL,
+                shorthelp="Option: message contact",
+                switch="-msgcontact <str>",
+                example=[
+                    "cli: -msgcontact 'wile.e.coyote@acme.com'",
+                    "api: option.set('msgcontact', 'wiley@acme.com')"],
+                help="""
+                List of email addresses to message on a :keypath:`option,scheduler,msgevent`.
+                Support for email messages relies on job scheduler daemon support.
+                For more information, see the job scheduler documentation. """))
+
+        schema.insert(
+            'maxnodes',
+            Parameter(
+                'int',
+                scope=Scope.GLOBAL,
+                shorthelp="Option: maximum concurrent nodes",
+                switch="-maxnodes <int>",
+                example=["cli: -maxnodes 4",
+                          "api: option.set('maxnodes', 4)"],
+                help="""
+                Maximum number of concurrent nodes to run in a job. If not set this will default
+                to the number of cpu cores available."""))
+
+        schema.insert(
+            'maxthreads',
+            Parameter(
+                'int',
+                scope=Scope.GLOBAL,
+                shorthelp="Option: maximum number of threads to assign a task",
+                example=["api: option.set('maxthreads', 4)"],
+                help="""
+                Maximum number of threads for each task in a job. If not set this will default
+                to the number of cpu cores available."""))
+
+    def get_name(self, step: str = None, index: str = None) -> str:
+        """Gets the scheduler platform name.
+
+        Args:
+            step (str, optional): The flowgraph step. Defaults to None.
+            index (str, optional): The flowgraph step index. Defaults to None.
+
+        Returns:
+            str: The name of the scheduler (e.g., 'slurm', 'lsf').
+        """
+        return self.get('name', step=step, index=index)
+
+    def set_name(self, value: str, step: str = None, index: str = None):
+        """Sets the scheduler platform name.
+
+        Args:
+            value (str): The name of the scheduler to set.
+            step (str, optional): The flowgraph step. Defaults to None.
+            index (str, optional): The flowgraph step index. Defaults to None.
+        """
+        self.set('name', value, step=step, index=index)
+
+    def get_cores(self, step: str = None, index: str = None) -> int:
+        """Gets the number of CPU cores required for the job.
+
+        Args:
+            step (str, optional): The flowgraph step. Defaults to None.
+            index (str, optional): The flowgraph step index. Defaults to None.
+
+        Returns:
+            int: The number of CPU cores.
+        """
+        return self.get('cores', step=step, index=index)
+
+    def set_cores(self, value: int, step: str = None, index: str = None):
+        """Sets the number of CPU cores required for the job.
+
+        Args:
+            value (int): The number of CPU cores to set.
+            step (str, optional): The flowgraph step. Defaults to None.
+            index (str, optional): The flowgraph step index. Defaults to None.
+        """
+        self.set('cores', value, step=step, index=index)
+
+    def get_memory(self, step: str = None, index: str = None) -> int:
+        """Gets the memory required for the job in megabytes.
+
+        Args:
+            step (str, optional): The flowgraph step. Defaults to None.
+            index (str, optional): The flowgraph step index. Defaults to None.
+
+        Returns:
+            int: The amount of memory in MB.
+        """
+        return self.get('memory', step=step, index=index)
+
+    def set_memory(self, value: int, step: str = None, index: str = None):
+        """Sets the memory required for the job in megabytes.
+
+        Args:
+            value (int): The amount of memory in MB to set.
+            step (str, optional): The flowgraph step. Defaults to None.
+            index (str, optional): The flowgraph step index. Defaults to None.
+        """
+        self.set('memory', value, step=step, index=index)
+
+    def get_queue(self, step: str = None, index: str = None) -> str:
+        """Gets the scheduler queue (or partition) for the job.
+
+        Args:
+            step (str, optional): The flowgraph step. Defaults to None.
+            index (str, optional): The flowgraph step index. Defaults to None.
+
+        Returns:
+            str: The name of the queue.
+        """
+        return self.get('queue', step=step, index=index)
+
+    def set_queue(self, value: str, step: str = None, index: str = None):
+        """Sets the scheduler queue (or partition) for the job.
+
+        Args:
+            value (str): The name of the queue to set.
+            step (str, optional): The flowgraph step. Defaults to None.
+            index (str, optional): The flowgraph step index. Defaults to None.
+        """
+        self.set('queue', value, step=step, index=index)
+
+    def get_defer(self, step: str = None, index: str = None) -> str:
+        """Gets the deferred start time for the job.
+
+        Args:
+            step (str, optional): The flowgraph step. Defaults to None.
+            index (str, optional): The flowgraph step index. Defaults to None.
+
+        Returns:
+            str: The defer time string (e.g., '16:00', 'now+1hour').
+        """
+        return self.get('defer', step=step, index=index)
+
+    def set_defer(self, value: str, step: str = None, index: str = None):
+        """Sets the deferred start time for the job.
+
+        Args:
+            value (str): The defer time string to set.
+            step (str, optional): The flowgraph step. Defaults to None.
+            index (str, optional): The flowgraph step index. Defaults to None.
+        """
+        self.set('defer', value, step=step, index=index)
+
+    def get_options(self, step: str = None, index: str = None) -> List[str]:
+        """Gets the advanced pass-through options for the scheduler.
+
+        Args:
+            step (str, optional): The flowgraph step. Defaults to None.
+            index (str, optional): The flowgraph step index. Defaults to None.
+
+        Returns:
+            List[str]: A list of scheduler options.
+        """
+        return self.get('options', step=step, index=index)
+
+    def add_options(self, value: Union[List[str], str], step: str = None, index: str = None,
+                    clobber: bool = False):
+        """Adds or sets advanced pass-through options for the scheduler.
+
+        Args:
+            value (Union[List[str], str]): A single option or a list of options.
+            step (str, optional): The flowgraph step. Defaults to None.
+            index (str, optional): The flowgraph step index. Defaults to None.
+            clobber (bool, optional): If True, replaces existing options.
+                If False, appends to them. Defaults to False.
+        """
+        if clobber:
+            self.set('options', value, step=step, index=index)
+        else:
+            self.add('options', value, step=step, index=index)
+
+    def get_msgevent(self, step: str = None, index: str = None) -> List[str]:
+        """Gets the event triggers for sending messages.
+
+        Args:
+            step (str, optional): The flowgraph step. Defaults to None.
+            index (str, optional): The flowgraph step index. Defaults to None.
+
+        Returns:
+            List[str]: A list of message event triggers (e.g., 'fail', 'end').
+        """
+        return self.get('msgevent', step=step, index=index)
+
+    def add_msgevent(self, value: Union[List[str], str], step: str = None, index: str = None,
+                     clobber: bool = False):
+        """Adds or sets the event triggers for sending messages.
+
+        Args:
+            value (Union[List[str], str]): A single event or a list of events.
+            step (str, optional): The flowgraph step. Defaults to None.
+            index (str, optional): The flowgraph step index. Defaults to None.
+            clobber (bool, optional): If True, replaces existing events.
+                If False, appends to them. Defaults to False.
+        """
+        if clobber:
+            self.set('msgevent', value, step=step, index=index)
+        else:
+            self.add('msgevent', value, step=step, index=index)
+
+    def get_msgcontact(self, step: str = None, index: str = None) -> List[str]:
+        """Gets the contact list for scheduler event messages.
+
+        Args:
+            step (str, optional): The flowgraph step. Defaults to None.
+            index (str, optional): The flowgraph step index. Defaults to None.
+
+        Returns:
+            List[str]: A list of email addresses.
+        """
+        return self.get('msgcontact', step=step, index=index)
+
+    def add_msgcontact(self, value: Union[List[str], str], step: str = None, index: str = None,
+                       clobber: bool = False):
+        """Adds or sets the contact list for scheduler event messages.
+
+        Args:
+            value (Union[List[str], str]): An email address or a list of them.
+            step (str, optional): The flowgraph step. Defaults to None.
+            index (str, optional): The flowgraph step index. Defaults to None.
+            clobber (bool, optional): If True, replaces the existing contact list.
+                If False, appends to it. Defaults to False.
+        """
+        if clobber:
+            self.set('msgcontact', value, step=step, index=index)
+        else:
+            self.add('msgcontact', value, step=step, index=index)
+
+    def get_maxnodes(self) -> int:
+        """Gets the maximum number of concurrent nodes for a job.
+
+        Returns:
+            int: The maximum number of nodes.
+        """
+        return self.get('maxnodes')
+
+    def set_maxnodes(self, value: int):
+        """Sets the maximum number of concurrent nodes for a job.
+
+        Args:
+            value (int): The maximum number of nodes to set.
+        """
+        self.set('maxnodes', value)
+
+    def get_maxthreads(self) -> int:
+        """Gets the maximum number of threads for each task in a job.
+
+        Returns:
+            int: The maximum number of threads.
+        """
+        return self.get('maxthreads')
+
+    def set_maxthreads(self, value: int):
+        """Sets the maximum number of threads for each task in a job.
+
+        Args:
+            value (int): The maximum number of threads to set.
+        """
+        self.set('maxthreads', value)
 
 
 class OptionSchema(BaseSchema):
+    """
+    Schema for top-level configuration options.
+
+    This class defines global and job-specific parameters that control the
+    compiler's behavior, such as flow control, logging, build settings, and
+    remote execution. It provides getter and setter methods for each parameter.
+    """
     def __init__(self):
+        """Initializes the options schema and defines all its parameters."""
         super().__init__()
 
         # Initialize schema
@@ -41,11 +464,8 @@ class OptionSchema(BaseSchema):
                 directory. The file supports the following fields:
 
                 address=<server address>
-
                 port=<server port> (optional)
-
                 username=<user id> (optional)
-
                 password=<password / key used for authentication> (optional)"""))
 
         schema.insert(
@@ -202,7 +622,7 @@ class OptionSchema(BaseSchema):
                 switch="-breakpoint <bool>",
                 example=[
                     "cli: -breakpoint true",
-                    "api: option.set('option', 'breakpoint', True)"],
+                    "api: option.set('breakpoint', True)"],
                 help="""
                 Set a breakpoint on specific steps. If the step is a TCL
                 based tool, then the breakpoints stops the flow inside the
@@ -248,8 +668,7 @@ class OptionSchema(BaseSchema):
                 example=["cli: -nodisplay",
                          "api: option.set('nodisplay', True)"],
                 help="""
-                This flag prevents SiliconCompiler from opening GUI windows such as
-                the final metrics report."""))
+                This flag prevents SiliconCompiler from opening GUI windows."""))
 
         schema.insert(
             'quiet',
@@ -349,160 +768,569 @@ class OptionSchema(BaseSchema):
                 against the wall time tracked by the SC runtime to determine
                 if an operation should continue."""))
 
-        # job scheduler
         schema.insert(
-            'scheduler', 'name',
+            "env", "default",
             Parameter(
-                '<slurm,lsf,sge,docker>',
+                "str",
                 scope=Scope.GLOBAL,
-                pernode=PerNode.OPTIONAL,
-                shorthelp="Option: scheduler platform",
-                switch="-scheduler <str>",
+                shorthelp="Option: environment variables",
+                example=["api: option.set('env', 'PDK_HOME', '/disk/mypdk')"],
+                help=trim("""
+                    Certain tools and reference flows require global environment
+                    variables to be set. These variables can be managed externally or
+                    specified through the env variable.""")))
+
+        schema.insert(
+            "design",
+            Parameter(
+                "str",
+                scope=Scope.GLOBAL,
+                shorthelp="Option: Design library name",
+                example=["cli: -design hello_world",
+                         "api: option.set('design', 'hello_world')"],
+                switch=["-design <str>"],
+                help="Name of the top level library"))
+
+        schema.insert(
+            "alias",
+            Parameter(
+                "[(str,str,str,str)]",
+                scope=Scope.GLOBAL,
+                shorthelp="Option: Fileset alias mapping",
                 example=[
-                    "cli: -scheduler slurm",
-                    "api: option.set('scheduler', 'name', 'slurm')"],
-                help="""
-                Sets the type of job scheduler to be used for each individual
-                flowgraph steps. If the parameter is undefined, the steps are executed
-                on the same machine that the SC was launched on. If 'slurm' is used,
-                the host running the 'sc' command must be running a 'slurmctld' daemon
-                managing a Slurm cluster. Additionally, the build directory
-                (:keypath:`option,builddir`) must be located in shared storage which
-                can be accessed by all hosts in the cluster."""))
+                    "api: option.set('alias', ('design', 'rtl', 'lambda', 'rtl'))"],
+                help=trim("""List of filesets to alias during a run. When an alias is specific
+                    it will be used instead of the source fileset. It is useful when you
+                    want to substitute a fileset from one library with a fileset from another,
+                    without changing the original design's code.
+                    For example, you might use it to swap in a different version of an IP
+                    block or a specific test environment.""")))
+        schema.insert(
+            "fileset",
+            Parameter(
+                "[str]",
+                scope=Scope.GLOBAL,
+                shorthelp="Option: Selected design filesets",
+                example=["api: option.set('fileset', 'rtl')"],
+                help=trim("""List of filesets to use from the selected design library""")))
 
         schema.insert(
-            'scheduler', 'cores',
+            "nodashboard",
             Parameter(
-                'int',
+                "bool",
+                defvalue=False,
                 scope=Scope.GLOBAL,
-                pernode=PerNode.OPTIONAL,
-                shorthelp="Option: Scheduler core constraint",
-                switch="-cores <int>",
-                example=["cli: -cores 48",
-                         "api: option.set('scheduler', 'cores', 48)"],
-                help="""
-                Specifies the number CPU cores required to run the job.
-                For the slurm scheduler, this translates to the '-c'
-                switch. For more information, see the job scheduler
-                documentation"""))
+                switch=["-nodashboard <bool>"],
+                shorthelp="Option: Disables the dashboard",
+                example=["api: option.set('nodashboard', True)"],
+                help=trim("""Disables the dashboard during execution""")))
 
-        schema.insert(
-            'scheduler', 'memory',
-            Parameter(
-                'int',
-                unit='MB',
-                scope=Scope.GLOBAL,
-                pernode=PerNode.OPTIONAL,
-                shorthelp="Option: scheduler memory constraint",
-                switch="-memory <int>",
-                example=["cli: -memory 8000",
-                         "api: option.set('scheduler', 'memory', 8000)"],
-                help="""
-                Specifies the amount of memory required to run the job,
-                specified in MB. For the slurm scheduler, this translates to
-                the '--mem' switch. For more information, see the job
-                scheduler documentation"""))
+        schema.insert('scheduler', SchedulerSchema())
 
-        schema.insert(
-            'scheduler', 'queue',
-            Parameter(
-                'str',
-                scope=Scope.GLOBAL,
-                pernode=PerNode.OPTIONAL,
-                shorthelp="Option: scheduler queue",
-                switch="-queue <str>",
-                example=["cli: -queue nightrun",
-                         "api: option.set('scheduler', 'queue', 'nightrun')"],
-                help="""
-                Send the job to the specified queue. With slurm, this
-                translates to 'partition'. The queue name must match
-                the name of an existing job scheduler queue. For more information,
-                see the job scheduler documentation"""))
+    # Getters and Setters
+    def get_remote(self) -> bool:
+        """Gets the remote processing flag.
 
-        schema.insert(
-            'scheduler', 'defer',
-            Parameter(
-                'str',
-                scope=Scope.GLOBAL,
-                pernode=PerNode.OPTIONAL,
-                shorthelp="Option: scheduler start time",
-                switch="-defer <str>",
-                example=["cli: -defer 16:00",
-                         "api: option.set('scheduler', 'defer', '16:00')"],
-                help="""
-                Defer initiation of job until the specified time. The parameter
-                is pass through string for remote job scheduler such as slurm.
-                For more information about the exact format specification, see
-                the job scheduler documentation. Examples of valid slurm specific
-                values include: now+1hour, 16:00, 010-01-20T12:34:00. For more
-                information, see the job scheduler documentation."""))
+        Returns:
+            bool: True if remote processing is enabled.
+        """
+        return self.get('remote')
 
-        schema.insert(
-            'scheduler', 'options',
-            Parameter(
-                '[str]',
-                scope=Scope.GLOBAL,
-                pernode=PerNode.OPTIONAL,
-                shorthelp="Option: scheduler arguments",
-                switch="-scheduler_options <str>",
-                example=[
-                    "cli: -scheduler_options \"--pty\"",
-                    "api: option.set('scheduler', 'options', \"--pty\")"],
-                help="""
-                Advanced/export options passed through unchanged to the job
-                scheduler as-is. (The user specified options must be compatible
-                with the rest of the scheduler parameters entered.(memory etc).
-                For more information, see the job scheduler documentation."""))
+    def set_remote(self, value: bool):
+        """Sets the remote processing flag.
 
-        schema.insert(
-            'scheduler', 'msgevent',
-            Parameter(
-                '{<all,summary,begin,end,timeout,fail>}',
-                scope=Scope.GLOBAL,
-                pernode=PerNode.OPTIONAL,
-                shorthelp="Option: message event trigger",
-                switch="-msgevent <str>",
-                example=[
-                    "cli: -msgevent all",
-                    "api: option.set('scheduler', 'msgevent', 'all')"],
-                help="""
-                Directs job scheduler to send a message to the user in
-                :keypath:`option,scheduler,msgcontact` when certain events occur
-                during a task.
+        Args:
+            value (bool): The value to set for the remote flag.
+        """
+        self.set('remote', value)
 
-                * fail: send an email on failures
-                * timeout: send an email on timeouts
-                * begin: send an email at the start of a node task
-                * end: send an email at the end of a node task
-                * summary: send a summary email at the end of the run
-                * all: send an email on any event
-                """))
+    def get_credentials(self) -> str:
+        """Gets the path to the user credentials file.
 
-        schema.insert(
-            'scheduler', 'msgcontact',
-            Parameter(
-                '{str}',
-                scope=Scope.GLOBAL,
-                pernode=PerNode.OPTIONAL,
-                shorthelp="Option: message contact",
-                switch="-msgcontact <str>",
-                example=[
-                    "cli: -msgcontact 'wile.e.coyote@acme.com'",
-                    "api: option.set('scheduler', 'msgcontact', 'wiley@acme.com')"],
-                help="""
-                List of email addresses to message on a :keypath:`option,scheduler,msgevent`.
-                Support for email messages relies on job scheduler daemon support.
-                For more information, see the job scheduler documentation. """))
+        Returns:
+            str: The filepath to the credentials file.
+        """
+        return self.get('credentials')
 
-        schema.insert(
-            'scheduler', 'maxnodes',
-            Parameter(
-                'int',
-                scope=Scope.GLOBAL,
-                shorthelp="Option: maximum concurrent nodes",
-                switch="-maxnodes <int>",
-                example=["cli: -maxnodes 4",
-                          "api: option.set('scheduler', 'maxnodes', 4)"],
-                help="""
-                Maximum number of concurrent nodes to run in a job. If not set this will default
-                to the number of cpu cores available."""))
+    def set_credentials(self, value: str):
+        """Sets the path to the user credentials file.
+
+        Args:
+            value (str): The filepath to the credentials file.
+        """
+        self.set('credentials', value)
+
+    def get_cachedir(self) -> str:
+        """Gets the path to the user cache directory.
+
+        Returns:
+            str: The filepath to the cache directory.
+        """
+        return self.get('cachedir')
+
+    def set_cachedir(self, value: str):
+        """Sets the path to the user cache directory.
+
+        Args:
+            value (str): The filepath to the cache directory.
+        """
+        self.set('cachedir', value)
+
+    def get_nice(self, step: str = None, index: str = None) -> int:
+        """Gets the tool scheduling priority (nice level).
+
+        Args:
+            step (str, optional): The flowgraph step. Defaults to None.
+            index (str, optional): The flowgraph step index. Defaults to None.
+
+        Returns:
+            int: The nice value.
+        """
+        return self.get('nice', step=step, index=index)
+
+    def set_nice(self, value: int, step: str = None, index: str = None):
+        """Sets the tool scheduling priority (nice level).
+
+        Args:
+            value (int): The nice value to set.
+            step (str, optional): The flowgraph step. Defaults to None.
+            index (str, optional): The flowgraph step index. Defaults to None.
+        """
+        self.set('nice', value, step=step, index=index)
+
+    def get_flow(self) -> str:
+        """Gets the target flow name.
+
+        Returns:
+            str: The name of the flow.
+        """
+        return self.get('flow')
+
+    def set_flow(self, value: str):
+        """Sets the target flow name.
+
+        Args:
+            value (str): The name of the flow to set.
+        """
+        self.set('flow', value)
+
+    def get_optmode(self, step: str = None, index: str = None) -> int:
+        """Gets the optimization mode.
+
+        Args:
+            step (str, optional): The flowgraph step. Defaults to None.
+            index (str, optional): The flowgraph step index. Defaults to None.
+
+        Returns:
+            int: The optimization mode level.
+        """
+        return self.get('optmode', step=step, index=index)
+
+    def set_optmode(self, value: int, step: str = None, index: str = None):
+        """Sets the optimization mode.
+
+        Args:
+            value (int): The optimization mode level to set.
+            step (str, optional): The flowgraph step. Defaults to None.
+            index (str, optional): The flowgraph step index. Defaults to None.
+        """
+        self.set('optmode', value, step=step, index=index)
+
+    def get_builddir(self) -> str:
+        """Gets the build directory path.
+
+        Returns:
+            str: The path to the build directory.
+        """
+        return self.get('builddir')
+
+    def set_builddir(self, value: str):
+        """Sets the build directory path.
+
+        Args:
+            value (str): The path to the build directory.
+        """
+        self.set('builddir', value)
+
+    def get_jobname(self) -> str:
+        """Gets the job name.
+
+        Returns:
+            str: The name of the job.
+        """
+        return self.get('jobname')
+
+    def set_jobname(self, value: str):
+        """Sets the job name.
+
+        Args:
+            value (str): The name of the job.
+        """
+        self.set('jobname', value)
+
+    def get_from(self) -> List[str]:
+        """Gets the list of starting steps for execution.
+
+        Returns:
+            List[str]: A list of step names.
+        """
+        return self.get('from')
+
+    def add_from(self, value: Union[List[str], str], clobber: bool = False):
+        """Adds or sets the starting step(s) for execution.
+
+        Args:
+            value (Union[List[str], str]): The step or steps to add.
+            clobber (bool, optional): If True, replaces existing steps.
+                If False, appends to them. Defaults to False.
+        """
+        if clobber:
+            self.set('from', value)
+        else:
+            self.add('from', value)
+
+    def get_to(self) -> List[str]:
+        """Gets the list of ending steps for execution.
+
+        Returns:
+            List[str]: A list of step names.
+        """
+        return self.get('to')
+
+    def add_to(self, value: Union[List[str], str], clobber: bool = False):
+        """Adds or sets the ending step(s) for execution.
+
+        Args:
+            value (Union[List[str], str]): The step or steps to add.
+            clobber (bool, optional): If True, replaces existing steps.
+                If False, appends to them. Defaults to False.
+        """
+        if clobber:
+            self.set('to', value)
+        else:
+            self.add('to', value)
+
+    def get_prune(self) -> List[Tuple[str, str]]:
+        """Gets the list of nodes to prune from the flowgraph.
+
+        Returns:
+            List[Tuple[str, str]]: A list of (step, index) tuples to prune.
+        """
+        return self.get('prune')
+
+    def add_prune(self, value: Union[List[Tuple[str, str]], Tuple[str, str]],
+                  clobber: bool = False):
+        """Adds or sets nodes to prune from the flowgraph.
+
+        Args:
+            value (Union[List[Tuple[str, str]], Tuple[str, str]]): The node or
+                nodes to add.
+            clobber (bool, optional): If True, replaces existing nodes.
+                If False, appends to them. Defaults to False.
+        """
+        if clobber:
+            self.set('prune', value)
+        else:
+            self.add('prune', value)
+
+    def get_breakpoint(self, step: str = None, index: str = None) -> bool:
+        """Checks if a breakpoint is set on a specific step.
+
+        Args:
+            step (str, optional): The flowgraph step. Defaults to None.
+            index (str, optional): The flowgraph step index. Defaults to None.
+
+        Returns:
+            bool: True if a breakpoint is set.
+        """
+        return self.get('breakpoint', step=step, index=index)
+
+    def set_breakpoint(self, value: bool, step: str = None, index: str = None):
+        """Sets a breakpoint on a specific step.
+
+        Args:
+            value (bool): The value to set for the breakpoint flag.
+            step (str, optional): The flowgraph step. Defaults to None.
+            index (str, optional): The flowgraph step index. Defaults to None.
+        """
+        self.set('breakpoint', value, step=step, index=index)
+
+    def get_clean(self) -> bool:
+        """Gets the clean job flag.
+
+        Returns:
+            bool: True if the previous job should be cleaned up.
+        """
+        return self.get('clean')
+
+    def set_clean(self, value: bool):
+        """Sets the clean job flag.
+
+        Args:
+            value (bool): The value to set for the clean flag.
+        """
+        self.set('clean', value)
+
+    def get_hash(self) -> bool:
+        """Gets the file hashing flag.
+
+        Returns:
+            bool: True if file hashing is enabled.
+        """
+        return self.get('hash')
+
+    def set_hash(self, value: bool):
+        """Sets the file hashing flag.
+
+        Args:
+            value (bool): The value to set for the hash flag.
+        """
+        self.set('hash', value)
+
+    def get_nodisplay(self) -> bool:
+        """Gets the headless execution (no-display) flag.
+
+        Returns:
+            bool: True if GUI windows are disabled.
+        """
+        return self.get('nodisplay')
+
+    def set_nodisplay(self, value: bool):
+        """Sets the headless execution (no-display) flag.
+
+        Args:
+            value (bool): The value to set for the no-display flag.
+        """
+        self.set('nodisplay', value)
+
+    def get_quiet(self, step: str = None, index: str = None) -> bool:
+        """Gets the quiet execution flag for a step.
+
+        Args:
+            step (str, optional): The flowgraph step. Defaults to None.
+            index (str, optional): The flowgraph step index. Defaults to None.
+
+        Returns:
+            bool: True if quiet execution is enabled.
+        """
+        return self.get('quiet', step=step, index=index)
+
+    def set_quiet(self, value: bool, step: str = None, index: str = None):
+        """Sets the quiet execution flag for a step.
+
+        Args:
+            value (bool): The value to set for the quiet flag.
+            step (str, optional): The flowgraph step. Defaults to None.
+            index (str, optional): The flowgraph step index. Defaults to None.
+        """
+        self.set('quiet', value, step=step, index=index)
+
+    def get_jobincr(self) -> bool:
+        """Gets the job name auto-increment flag.
+
+        Returns:
+            bool: True if job name auto-increment is enabled.
+        """
+        return self.get('jobincr')
+
+    def set_jobincr(self, value: bool):
+        """Sets the job name auto-increment flag.
+
+        Args:
+            value (bool): The value for the job-increment flag.
+        """
+        self.set('jobincr', value)
+
+    def get_novercheck(self, step: str = None, index: str = None) -> bool:
+        """Gets the version checking disable flag for a step.
+
+        Args:
+            step (str, optional): The flowgraph step. Defaults to None.
+            index (str, optional): The flowgraph step index. Defaults to None.
+
+        Returns:
+            bool: True if version checking is disabled.
+        """
+        return self.get('novercheck', step=step, index=index)
+
+    def set_novercheck(self, value: bool, step: str = None, index: str = None):
+        """Sets the version checking disable flag for a step.
+
+        Args:
+            value (bool): The value for the no-version-check flag.
+            step (str, optional): The flowgraph step. Defaults to None.
+            index (str, optional): The flowgraph step index. Defaults to None.
+        """
+        self.set('novercheck', value, step=step, index=index)
+
+    def get_track(self, step: str = None, index: str = None) -> bool:
+        """Gets the provenance tracking flag for a step.
+
+        Args:
+            step (str, optional): The flowgraph step. Defaults to None.
+            index (str, optional): The flowgraph step index. Defaults to None.
+
+        Returns:
+            bool: True if tracking is enabled.
+        """
+        return self.get('track', step=step, index=index)
+
+    def set_track(self, value: bool, step: str = None, index: str = None):
+        """Sets the provenance tracking flag for a step.
+
+        Args:
+            value (bool): The value for the track flag.
+            step (str, optional): The flowgraph step. Defaults to None.
+            index (str, optional): The flowgraph step index. Defaults to None.
+        """
+        self.set('track', value, step=step, index=index)
+
+    def get_continue(self, step: str = None, index: str = None) -> bool:
+        """Gets the continue-on-error flag for a step.
+
+        Args:
+            step (str, optional): The flowgraph step. Defaults to None.
+            index (str, optional): The flowgraph step index. Defaults to None.
+
+        Returns:
+            bool: True if the flow should continue on error.
+        """
+        return self.get('continue', step=step, index=index)
+
+    def set_continue(self, value: bool, step: str = None, index: str = None):
+        """Sets the continue-on-error flag for a step.
+
+        Args:
+            value (bool): The value for the continue flag.
+            step (str, optional): The flowgraph step. Defaults to None.
+            index (str, optional): The flowgraph step index. Defaults to None.
+        """
+        self.set('continue', value, step=step, index=index)
+
+    def get_timeout(self, step: str = None, index: str = None) -> float:
+        """Gets the timeout value for a step in seconds.
+
+        Args:
+            step (str, optional): The flowgraph step. Defaults to None.
+            index (str, optional): The flowgraph step index. Defaults to None.
+
+        Returns:
+            float: The timeout value in seconds.
+        """
+        return self.get('timeout', step=step, index=index)
+
+    def set_timeout(self, value: float, step: str = None, index: str = None):
+        """Sets the timeout value for a step in seconds.
+
+        Args:
+            value (float): The timeout value in seconds.
+            step (str, optional): The flowgraph step. Defaults to None.
+            index (str, optional): The flowgraph step index. Defaults to None.
+        """
+        self.set('timeout', value, step=step, index=index)
+
+    def get_env(self, key: str) -> str:
+        """Gets an environment variable.
+
+        Args:
+            key (str): The name of the environment variable.
+
+        Returns:
+            str: The value of the environment variable.
+        """
+        return self.get('env', key)
+
+    def set_env(self, key: str, value: str):
+        """Sets an environment variable.
+
+        Args:
+            key (str): The name of the environment variable.
+            value (str): The value to set.
+        """
+        self.set('env', key, value)
+
+    def get_design(self) -> str:
+        """Gets the top-level design library name.
+
+        Returns:
+            str: The name of the design.
+        """
+        return self.get('design')
+
+    def set_design(self, value: str):
+        """Sets the top-level design library name.
+
+        Args:
+            value (str): The name of the design.
+        """
+        self.set('design', value)
+
+    def get_alias(self) -> List[Tuple[str, str, str, str]]:
+        """Gets the list of fileset aliases.
+
+        Returns:
+            List[Tuple[str, str, str, str]]: A list of alias tuples.
+        """
+        return self.get('alias')
+
+    def add_alias(self,
+                  value: Union[List[Tuple[str, str, str, str]], Tuple[str, str, str, str]],
+                  clobber: bool = False):
+        """Adds or sets fileset aliases.
+
+        Args:
+            value (Union[List[Tuple[str, str, str, str]], Tuple[str, str, str, str]]):
+                The alias or aliases to add.
+            clobber (bool, optional): If True, replaces existing aliases.
+                If False, appends to them. Defaults to False.
+        """
+        if clobber:
+            self.set('alias', value)
+        else:
+            self.add('alias', value)
+
+    def get_fileset(self) -> List[str]:
+        """Gets the list of selected design filesets.
+
+        Returns:
+            List[str]: A list of fileset names.
+        """
+        return self.get('fileset')
+
+    def add_fileset(self, value: Union[List[str], str], clobber: bool = False):
+        """Adds or sets selected design filesets.
+
+        Args:
+            value (Union[List[str], str]): The fileset or filesets to add.
+            clobber (bool, optional): If True, replaces existing filesets.
+                If False, appends to them. Defaults to False.
+        """
+        if clobber:
+            self.set('fileset', value)
+        else:
+            self.add('fileset', value)
+
+    def get_nodashboard(self) -> bool:
+        """Gets the dashboard disable flag.
+
+        Returns:
+            bool: True if the dashboard is disabled.
+        """
+        return self.get('nodashboard')
+
+    def set_nodashboard(self, value: bool):
+        """Sets the dashboard disable flag.
+
+        Args:
+            value (bool): The value for the no-dashboard flag.
+        """
+        self.set('nodashboard', value)
+
+    @property
+    def scheduler(self) -> SchedulerSchema:
+        """Provides access to the scheduler sub-schema.
+
+        Returns:
+            SchedulerSchema: The schema object for scheduler settings.
+        """
+        return self.get("scheduler", field="schema")
