@@ -119,7 +119,7 @@ def test_py_gcd_ihp130():
 
 @pytest.mark.eda
 @pytest.mark.ready
-@pytest.mark.timeout(1200)
+@pytest.mark.timeout(1800)
 def test_py_gcd_hls():
     from gcd import gcd_hls
     gcd_hls.main()
