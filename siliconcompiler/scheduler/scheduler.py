@@ -190,58 +190,59 @@ class Scheduler:
         org_excepthook = sys.excepthook
         sys.excepthook = self.__excepthook
 
-        # Determine job name first so we can create a log
-        if not self.__increment_job_name():
-            # No need to copy, no remove org job name
-            self.__org_job_name = None
+        try:
+            # Determine job name first so we can create a log
+            if not self.__increment_job_name():
+                # No need to copy, no remove org job name
+                self.__org_job_name = None
 
-        # Clean the directory early if needed
-        self.__clean_build_dir()
+            # Clean the directory early if needed
+            self.__clean_build_dir()
 
-        # Install job file logger
-        os.makedirs(jobdir(self.__project), exist_ok=True)
-        file_log = os.path.join(jobdir(self.__project), "job.log")
-        bak_count = 0
-        bak_file_log = f"{file_log}.bak"
-        while os.path.exists(bak_file_log):
-            bak_count += 1
-            bak_file_log = f"{file_log}.bak.{bak_count}"
-        if os.path.exists(file_log):
-            os.rename(file_log, bak_file_log)
-        self.__joblog_handler = logging.FileHandler(file_log)
-        self.__joblog_handler.setFormatter(SCLoggerFormatter())
-        self.__logger.addHandler(self.__joblog_handler)
+            # Install job file logger
+            os.makedirs(jobdir(self.__project), exist_ok=True)
+            file_log = os.path.join(jobdir(self.__project), "job.log")
+            bak_count = 0
+            bak_file_log = f"{file_log}.bak"
+            while os.path.exists(bak_file_log):
+                bak_count += 1
+                bak_file_log = f"{file_log}.bak.{bak_count}"
+            if os.path.exists(file_log):
+                os.rename(file_log, bak_file_log)
+            self.__joblog_handler = logging.FileHandler(file_log)
+            self.__joblog_handler.setFormatter(SCLoggerFormatter())
+            self.__logger.addHandler(self.__joblog_handler)
 
-        # Configure run
-        self.__project._init_run()
+            # Configure run
+            self.__project._init_run()
 
-        # Check validity of setup
-        if not self.check_manifest():
-            raise RuntimeError("check_manifest() failed")
+            # Check validity of setup
+            if not self.check_manifest():
+                raise RuntimeError("check_manifest() failed")
 
-        self.__run_setup()
-        self.configure_nodes()
+            self.__run_setup()
+            self.configure_nodes()
 
-        # Check validity of flowgraphs IO
-        if not self.__check_flowgraph_io():
-            raise RuntimeError("Flowgraph file IO constrains errors")
+            # Check validity of flowgraphs IO
+            if not self.__check_flowgraph_io():
+                raise RuntimeError("Flowgraph file IO constrains errors")
 
-        self.run_core()
+            self.run_core()
 
-        # Store run in history
-        self.__project._record_history()
+            # Store run in history
+            self.__project._record_history()
 
-        # Record final manifest
-        filepath = os.path.join(jobdir(self.__project), f"{self.__name}.pkg.json")
-        self.__project.write_manifest(filepath)
+            # Record final manifest
+            filepath = os.path.join(jobdir(self.__project), f"{self.__name}.pkg.json")
+            self.__project.write_manifest(filepath)
 
-        send_messages.send(self.__project, 'summary', None, None)
+            send_messages.send(self.__project, 'summary', None, None)
 
-        self.__logger.removeHandler(self.__joblog_handler)
-        self.__joblog_handler = logging.NullHandler()
-
-        # Restore hook
-        sys.excepthook = org_excepthook
+            self.__logger.removeHandler(self.__joblog_handler)
+            self.__joblog_handler = logging.NullHandler()
+        finally:
+            # Restore hook
+            sys.excepthook = org_excepthook
 
     def __check_flowgraph_io(self):
         '''Check if flowgraph is valid in terms of input and output files.
