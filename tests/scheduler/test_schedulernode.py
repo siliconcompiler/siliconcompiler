@@ -1,13 +1,10 @@
 import logging
 import os
 import pytest
-import re
-import shutil
 import time
 
 import os.path
 
-from pathlib import Path
 from multiprocessing import Queue
 from unittest.mock import patch
 
@@ -20,8 +17,7 @@ from siliconcompiler.tools.builtin.join import JoinTask
 from scheduler.tools.echo import EchoTask
 
 from siliconcompiler.scheduler import SchedulerNode
-from siliconcompiler.scheduler.schedulernode import SchedulerFlowReset
-from siliconcompiler.utils.paths import jobdir, workdir
+from siliconcompiler.utils.paths import jobdir
 
 
 @pytest.fixture
@@ -448,7 +444,6 @@ def test_check_previous_run_status_task(project, monkeypatch, caplog):
 def test_check_previous_run_status_running(project, monkeypatch, caplog):
     monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
     project.logger.setLevel(logging.DEBUG)
-
     project.set("record", "status", NodeStatus.RUNNING, step="steptwo", index="0")
 
     node = SchedulerNode(project, "steptwo", "0")
@@ -460,7 +455,6 @@ def test_check_previous_run_status_running(project, monkeypatch, caplog):
 def test_check_previous_run_status_failed(project, monkeypatch, caplog):
     monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
     project.logger.setLevel(logging.DEBUG)
-
     project.set("record", "status", NodeStatus.ERROR, step="steptwo", index="0")
 
     node = SchedulerNode(project, "steptwo", "0")
@@ -472,7 +466,6 @@ def test_check_previous_run_status_failed(project, monkeypatch, caplog):
 def test_check_previous_run_status_inputs_changed(project, monkeypatch, caplog):
     monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
     project.logger.setLevel(logging.INFO)
-
     project.set("record", "status", NodeStatus.SUCCESS, step="steptwo", index="0")
     project.set("record", "inputnode", [("stepone", "0")], step="steptwo", index="0")
 
@@ -535,7 +528,6 @@ def test_check_files_changed_timestamp(project, monkeypatch, caplog):
 
 # ... Rest of file remains unchanged until the next modifications ...
 
-
 def test_run_pass_restore_env(project):
     node = SchedulerNode(project, "stepone", "0")
     node.task.setup_work_directory(node.workdir)
@@ -559,7 +551,6 @@ def test_run_pass_restore_env(project):
 
 
 # ... Later in file ...
-
 
 def test_run_failed_to_execute_initial_save_has_error(project):
     node = SchedulerNode(project, "stepone", "0")
@@ -589,7 +580,6 @@ def test_run_failed_to_execute_initial_save_has_error(project):
 
 
 # ... and ...
-
 
 def test_run_with_queue(project):
     node = SchedulerNode(project, "stepone", "0")
@@ -647,7 +637,6 @@ def test_copy_from(project, monkeypatch, caplog, has_graphviz):
 
 
 # SchedulerFlowReset exception tests
-
 
 def test_scheduler_flow_reset_exception_can_be_raised():
     """Test that SchedulerFlowReset can be raised with a message"""
@@ -714,8 +703,6 @@ def test_check_previous_run_status_flow_reset_message(project):
 
 def test_check_previous_run_status_same_flow_doesnt_raise(project):
     """Test that same flow name doesn't raise SchedulerFlowReset"""
-    from siliconcompiler.scheduler.schedulernode import SchedulerFlowReset
-
     node = SchedulerNode(project, "steptwo", "0")
 
     # Set up same flow with successful run

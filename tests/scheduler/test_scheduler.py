@@ -1,7 +1,6 @@
 import logging
 import os
 import pytest
-import time
 
 import os.path
 
@@ -9,11 +8,9 @@ from unittest.mock import patch
 
 from siliconcompiler import Project, Flowgraph, Design, NodeStatus
 from siliconcompiler.scheduler import Scheduler
-from siliconcompiler.schema import EditableSchema, Parameter
 
 from siliconcompiler.tools.builtin.nop import NOPTask
 from siliconcompiler.utils.paths import jobdir
-from siliconcompiler.tools import get_task
 
 
 @pytest.fixture
@@ -251,6 +248,7 @@ def test_clean_build_dir_full(basic_project):
 
 # ... rest of unchanged tests ...
 
+
 def test_run_setup_with_flow_reset(gcd_nop_project, monkeypatch):
     """Test that SchedulerFlowReset in __run_setup triggers full clean and marks all pending"""
     monkeypatch.setattr(gcd_nop_project, "_Project__logger", logging.getLogger())
@@ -265,7 +263,9 @@ def test_run_setup_with_flow_reset(gcd_nop_project, monkeypatch):
     flow.edge("stepone", "steptwo")
     gcd_nop_project.set_flow(flow)
 
-    with patch("siliconcompiler.scheduler.Scheduler._Scheduler__clean_build_dir_full") as clean_mock:
+    with patch(
+        "siliconcompiler.scheduler.Scheduler._Scheduler__clean_build_dir_full"
+    ) as clean_mock:
         assert gcd_nop_project.run()
         clean_mock.assert_any_call(recheck=True)
 
@@ -290,7 +290,9 @@ def test_run_setup_flow_reset_marks_all_pending(gcd_nop_project):
 
     assert gcd_nop_project.get("record", "status", step="stepone", index="0") == NodeStatus.SUCCESS
     assert gcd_nop_project.get("record", "status", step="steptwo", index="0") == NodeStatus.SUCCESS
-    assert gcd_nop_project.get("record", "status", step="stepthree", index="0") == NodeStatus.SUCCESS
+    assert gcd_nop_project.get(
+        "record", "status", step="stepthree", index="0"
+    ) == NodeStatus.SUCCESS
 
 
 def test_run_setup_flow_reset_interrupts_replay(gcd_nop_project):
@@ -335,5 +337,3 @@ def test_run_clean_order(basic_project):
     assert 'clean_incr' in call_order
     assert call_order.index('clean_full') < call_order.index('install_logger')
     assert call_order.index('install_logger') < call_order.index('clean_incr')
-
-# ... rest of unchanged tests ...
