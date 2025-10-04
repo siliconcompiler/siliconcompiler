@@ -234,6 +234,11 @@ def test_increment_job_name(basic_project, prev_name, new_name):
 
 
 def test_clean_build_dir_full(basic_project):
+    """
+    Verify that when the project's clean option is enabled, __clean_build_dir_full removes the job directory contents and the job log.
+    
+    Creates a job directory containing a subdirectory and a job.log file, sets the project's 'clean' option to True, patches shutil.rmtree and os.remove, invokes __clean_build_dir_full(), and asserts that rmtree and remove are each called exactly once.
+    """
     basic_project.set('option', 'clean', True)
 
     scheduler = Scheduler(basic_project)
@@ -313,6 +318,11 @@ def test_clean_build_dir_full_do_nothing(basic_project):
 
 
 def test_clean_build_dir_full_remote(basic_project):
+    """
+    Verifies that full build-directory cleanup is skipped for projects recorded as remote builds.
+    
+    Sets the project's clean option to True and assigns a remote record id, creates the job directory, runs the scheduler's full cleanup, and asserts that shutil.rmtree is not invoked.
+    """
     basic_project.set('option', 'clean', True)
     basic_project.set('record', 'remoteid', 'blah')
 

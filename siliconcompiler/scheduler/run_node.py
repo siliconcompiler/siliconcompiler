@@ -24,6 +24,14 @@ from siliconcompiler import __version__
 ##########################
 def main():
     # Can't use Project.cmdline because we don't want a bunch of extra logger information
+    """
+    Run a single SchedulerNode from a SiliconCompiler flowgraph using CLI-specified configuration and options.
+    
+    Parses command-line arguments, configures a Project from the provided manifest, optionally adjusts cache and scheduler settings, executes the specified step/index node, and optionally writes a tar.gz archive of the node outputs.
+    
+    Returns:
+        int: 0 on success, 1 on error.
+    """
     parser = argparse.ArgumentParser(prog='run_node',
                                      formatter_class=argparse.RawDescriptionHelpFormatter,
                                      description='Script to run a single node in an SC flowgraph')
