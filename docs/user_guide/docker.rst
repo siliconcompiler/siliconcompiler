@@ -34,7 +34,7 @@ On a standard terminal (`bash` or `zsh`):
     source .venv/bin/activate
 
     # Install SiliconCompiler
-    python3 -m pip install siliconcompiler
+    pip install siliconcompiler
 
 Windows
 ^^^^^^^
@@ -48,7 +48,7 @@ On a PowerShell terminal:
     .venv\Scripts\activate
 
     # Install SiliconCompiler
-    python3 -m pip install siliconcompiler
+    pip install siliconcompiler
 
 3. Run a Test Compilation
 -------------------------

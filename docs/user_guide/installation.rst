@@ -49,7 +49,6 @@ Open up a terminal and enter the following command sequence.
    python3 --version                                                  # check for Python 3
    python3 -m venv ./venv                                             # create a virtual env
    source ./venv/bin/activate                                         # active virtual env (bash/zsh)
-   pip install --upgrade pip                                          # upgrade Pip
 
 .. note::
    If you plan to generate any docs or create any flowgraphs, you'll also need to install Graphviz.
@@ -119,7 +118,6 @@ Activate your `Python Virtual Environment <https://docs.python.org/3/library/ven
 
 .. code-block:: bash
 
- (venv) pip install --upgrade pip                # upgrade pip in virtual env
  (venv) pip install --upgrade siliconcompiler    # install SiliconCompiler in venv
  (venv) pip show siliconcompiler                 # will display SiliconCompiler package information
 
@@ -141,7 +139,8 @@ Finally, to clone and install SiliconCompiler, run the following:
 
    (venv) git clone -b v\ |release| https://github.com/siliconcompiler/siliconcompiler
    (venv) cd siliconcompiler
-   (venv) python3 -m pip install -e .
+   (venv) pip install --upgrade pip
+   (venv) pip install -e .
 
 .. include:: installation/installation_confirm_version.inc
 

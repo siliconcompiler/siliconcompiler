@@ -32,7 +32,7 @@ SiliconCompiler is available as wheel packages on PyPI for macOS, Windows and
 Linux platforms. For working Python 3.9-3.13 environment, just use pip.
 
 ```sh
-python3 -m pip install --upgrade siliconcompiler
+pip install --upgrade siliconcompiler
 ```
 
 Converting RTL into DRC clean GDS takes 13 lines of simple Python code.
@@ -102,8 +102,12 @@ To install the project from source (recommended for developers only).
 ```bash
 git clone https://github.com/siliconcompiler/siliconcompiler
 cd siliconcompiler
-python3 -m pip install -e .             # Required install step
-python3 -m pip install -e .[docs,test]  # Optional install step for generating docs and running tests
+python3 -m venv .venv        # Setup virtual environment
+source .venv/bin/activate
+pip install --upgrade pip    # Update pip
+pip install -e .             # Required install step
+pip install -e .[test,lint]  # Optional install step for running tests and lint
+pip install -e .[docs]       # Optional install step for generating docs
 ```
 
 # EDA Tool Installation

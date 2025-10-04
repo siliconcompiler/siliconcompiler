@@ -17,6 +17,6 @@ ENV PATH="/venv/bin:$PATH"
 
 RUN git clone -b {{ release_version }} https://github.com/siliconcompiler/siliconcompiler.git && \
     cd siliconcompiler && \
-    pip3 install . && \
+    pip install . && \
     cd .. && \
     rm -rf siliconcompiler

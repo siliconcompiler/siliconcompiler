@@ -18,7 +18,6 @@ cd deps
 
 python3 -m venv .surelog --clear
 . .surelog/bin/activate
-python3 -m pip install --upgrade pip
 python3 -m pip install cmake==3.28.4
 python3 -m pip install orderedmultidict
 
