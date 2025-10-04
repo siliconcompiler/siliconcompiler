@@ -392,6 +392,11 @@ def test_check_values_changed_change_missing(project, monkeypatch, caplog):
 
 
 def test_check_previous_run_status_flow(project, monkeypatch):
+    """
+    Verify that check_previous_run_status raises SchedulerFlowReset when the flow name differs between the current node and a previous run node.
+    
+    Sets up two SchedulerNode runtimes with different Project flow configurations and asserts that comparing their previous run status triggers a full-reset error (`SchedulerFlowReset`) with the message "Flow name changed, require full reset".
+    """
     node = SchedulerNode(project, "steptwo", "0")
     flow = Flowgraph("testflow0")
     flow.node("stepone", NOPTask())
