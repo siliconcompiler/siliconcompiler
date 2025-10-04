@@ -144,10 +144,14 @@ class Scheduler:
 
     def __excepthook(self, exc_type, exc_value, exc_traceback):
         """
-        Custom exception hook to ensure all fatal errors are logged.
-
-        This captures unhandled exceptions, logs them to the job log file,
-        and prints a traceback for debugging before the program terminates.
+        Handle uncaught exceptions by logging the exception and traceback, stopping the dashboard if active, and recording an error.
+        
+        Logs a concise exception summary and the full traceback to the job log, delegates KeyboardInterrupt to the system excepthook, stops the project's dashboard when present, and marks an uncaught exception via MPManager.
+        
+        Parameters:
+            exc_type (Type[BaseException]): Exception class/type raised.
+            exc_value (BaseException): Exception instance or value.
+            exc_traceback (traceback): Traceback object associated with the exception.
         """
         if issubclass(exc_type, KeyboardInterrupt):
             sys.__excepthook__(exc_type, exc_value, exc_traceback)
@@ -176,6 +180,11 @@ class Scheduler:
         MPManager.error("uncaught exception")
 
     def __install_file_logger(self):
+        """
+        Ensure the job directory exists, rotate an existing job.log into a numbered .bak file, and attach a FileHandler for a new job.log to the scheduler's logger.
+        
+        This creates the job directory if missing, moves any existing job.log to job.log.bak or job.log.bak.N (incrementing N until an unused name is found), creates a new FileHandler configured with SCLoggerFormatter, assigns it to self.__joblog_handler, and adds it to self.__logger.
+        """
         os.makedirs(jobdir(self.__project), exist_ok=True)
         file_log = os.path.join(jobdir(self.__project), "job.log")
         bak_count = 0
@@ -191,15 +200,12 @@ class Scheduler:
 
     def run(self):
         """
-        The main entry point to start the compilation flow.
-
-        This method orchestrates the entire run, including:
-        - Setting up a custom exception hook for logging.
-        - Initializing the job directory and log files.
-        - Configuring and setting up all nodes in the flow.
-        - Validating the manifest.
-        - Executing the core run loop.
-        - Recording the final results and history.
+        Orchestrates a full compilation run for the scheduler.
+        
+        Performs run initialization, installs a file-based job logger and exception hook, configures and sets up flow nodes, validates flowgraph I/O, executes the core scheduling loop, records run history, and writes the final manifest and summary message. This method has observable side effects: it may modify sys.excepthook, create or rotate job log files, and write files into the job directory.
+        
+        Raises:
+        	RuntimeError: If manifest validation or flowgraph I/O checks fail.
         """
         # Install hook to ensure exception is logged
         org_excepthook = sys.excepthook
@@ -252,10 +258,14 @@ class Scheduler:
             sys.excepthook = org_excepthook
 
     def __check_flowgraph_io(self):
-        '''Check if flowgraph is valid in terms of input and output files.
-
-        Returns True if valid, False otherwise.
-        '''
+        """
+        Validate that every runtime node in the flowgraph will receive exactly the inputs it requires.
+        
+        Checks that each node's required input files are produced by its upstream nodes or are already present in upstream output directories. Logs an error for any required input missing or any input produced by multiple upstream sources.
+        
+        Returns:
+            bool: `True` if all nodes receive exactly the required inputs, `False` otherwise.
+        """
         nodes = self.__flow_runtime.get_nodes()
         error = False
 
@@ -384,10 +394,9 @@ class Scheduler:
 
     def __reset_flow_nodes(self):
         """
-        Private helper to reset the status and metrics for all nodes in the flow.
-
-        This prepares the schema for a new run by clearing out results from any
-        previous executions.
+        Reset per-node records and metrics in preparation for a new run.
+        
+        Clears each node's stored record fields except for `remoteid` and `pythonpackage`, sets the node's status to `PENDING`, and clears any collected metrics for the node.
         """
         # Reset record
         for step, index in self.__flow.get_nodes():
@@ -400,10 +409,12 @@ class Scheduler:
 
     def __clean_build_dir_full(self, recheck: bool = False):
         """
-        Private helper to clean the build directory if necessary.
-
-        If ['option', 'clean'] is True and the run starts from the beginning,
-        the entire build directory is removed to ensure a fresh start.
+        Remove files and directories in the current job build directory when a full clean is required.
+        
+        This performs a full build-directory cleanup when the run is starting from the beginning and the project's clean option is enabled; it does nothing for remote runs or when the run is resumed from a previous step. When recheck is True, the existing job.log file (if present) is preserved during cleanup.
+        
+        Parameters:
+            recheck (bool): If True, preserve "job.log" while removing other files and subdirectories.
         """
         if self.__record.get('remoteid'):
             return
@@ -426,6 +437,16 @@ class Scheduler:
 
     def __clean_build_dir_incr(self):
         # Remove steps not present in flow
+        """
+        Prunes the current job directory by removing build artifacts that are not part of the active flow and by cleaning directories for nodes marked as pending.
+        
+        This performs three actions:
+        - Removes step-level directories in the job directory that are not present in the current flow.
+        - Within remaining step directories, removes index-level subdirectories that do not correspond to nodes in the current flow.
+        - For nodes in the runtime flow whose status is waiting, invokes the node runtime's clean_directory() to remove or reset that node's working files.
+        
+        Side effects: deletes filesystem directories under the project's job directory and calls SchedulerNode runtime cleanup for pending nodes.
+        """
         keep_steps = set([step for step, _ in self.__flow.get_nodes()])
         cur_job_dir = jobdir(self.__project)
         for step in os.listdir(cur_job_dir):

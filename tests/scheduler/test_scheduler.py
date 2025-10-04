@@ -268,6 +268,11 @@ def test_clean_build_dir_full_keep_log(basic_project):
 
 
 def test_clean_build_dir_full_keep_log_rm_old_log(basic_project):
+    """
+    Verifies that full build-directory cleanup removes an old backup log file while keeping the current job log when rechecking.
+    
+    Prepares a job directory containing a subdirectory, a current "job.log", and an old "job.log.bak", enables clean mode on the project, runs __clean_build_dir_full(recheck=True), and asserts that the build directory is removed and only the backup log file is explicitly removed.
+    """
     basic_project.set('option', 'clean', True)
 
     scheduler = Scheduler(basic_project)
