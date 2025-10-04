@@ -144,10 +144,14 @@ class Scheduler:
 
     def __excepthook(self, exc_type, exc_value, exc_traceback):
         """
-        Custom exception hook to ensure all fatal errors are logged.
-
-        This captures unhandled exceptions, logs them to the job log file,
-        and prints a traceback for debugging before the program terminates.
+        Handle uncaught exceptions by logging a concise message and full traceback, stopping the dashboard if active, and marking an uncaught error for the multiprocessing manager.
+        
+        If the exception type is KeyboardInterrupt, delegate to the default system excepthook and return. Otherwise, log the exception type and message, log the full traceback to the scheduler logger, stop the project's dashboard if running, and notify MPManager of an uncaught exception.
+        
+        Parameters:
+            exc_type (type): Exception class of the uncaught exception.
+            exc_value (BaseException): Exception instance (may contain the error message).
+            exc_traceback (traceback): Traceback object for the exception.
         """
         if issubclass(exc_type, KeyboardInterrupt):
             sys.__excepthook__(exc_type, exc_value, exc_traceback)
@@ -176,6 +180,9 @@ class Scheduler:
         MPManager.error("uncaught exception")
 
     def __install_file_logger(self):
+        """
+        Ensure the project's job log directory exists, rotate an existing job.log to a sequential .bak file if present, create a new job.log FileHandler with the SCLoggerFormatter, attach it to the scheduler logger, and store the handler on self.__joblog_handler.
+        """
         os.makedirs(jobdir(self.__project), exist_ok=True)
         file_log = os.path.join(jobdir(self.__project), "job.log")
         bak_count = 0
@@ -191,15 +198,9 @@ class Scheduler:
 
     def run(self):
         """
-        The main entry point to start the compilation flow.
-
-        This method orchestrates the entire run, including:
-        - Setting up a custom exception hook for logging.
-        - Initializing the job directory and log files.
-        - Configuring and setting up all nodes in the flow.
-        - Validating the manifest.
-        - Executing the core run loop.
-        - Recording the final results and history.
+        Orchestrates and execute a full compilation run for the associated Project.
+        
+        Performs run lifecycle steps: installs a custom exception hook, prepares and (optionally) increments the job directory and log files, initializes run state, validates the manifest and flowgraph I/O, configures and sets up nodes, executes the core scheduling loop, records run history and writes the final manifest, and restores process-level state on completion.
         """
         # Install hook to ensure exception is logged
         org_excepthook = sys.excepthook
@@ -252,10 +253,14 @@ class Scheduler:
             sys.excepthook = org_excepthook
 
     def __check_flowgraph_io(self):
-        '''Check if flowgraph is valid in terms of input and output files.
-
-        Returns True if valid, False otherwise.
-        '''
+        """
+        Validate that each runtime node's declared input requirements are satisfied by upstream nodes or by existing outputs.
+        
+        Checks that every required input for each runtime node is produced by some upstream step or present in the upstream step's outputs directory, and that no input is provided by multiple sources. Logs an error for any missing required input or for inputs that come from more than one input node.
+        
+        Returns:
+            bool: `True` if every node's required inputs are available and uniquely provided, `False` otherwise.
+        """
         nodes = self.__flow_runtime.get_nodes()
         error = False
 
@@ -384,10 +389,9 @@ class Scheduler:
 
     def __reset_flow_nodes(self):
         """
-        Private helper to reset the status and metrics for all nodes in the flow.
-
-        This prepares the schema for a new run by clearing out results from any
-        previous executions.
+        Reset statuses and metrics of all flow nodes to prepare for a new run.
+        
+        Clears per-node record fields while preserving configured keys and sets each node's status to PENDING, then clears collected metrics for every node.
         """
         # Reset record
         for step, index in self.__flow.get_nodes():
@@ -400,10 +404,15 @@ class Scheduler:
 
     def __clean_build_dir_full(self, recheck: bool = False):
         """
-        Private helper to clean the build directory if necessary.
-
-        If ['option', 'clean'] is True and the run starts from the beginning,
-        the entire build directory is removed to ensure a fresh start.
+        Remove the current job's build directory contents when a fresh build is required.
+        
+        Parameters:
+            recheck (bool): If True, perform a secondary check that avoids deleting the active `job.log` file.
+        
+        Description:
+            If this scheduler run is local and the project's clean option is enabled and no start-from override is set,
+            delete all files and subdirectories inside the current job directory to ensure a fresh build. When `recheck`
+            is True, preserve `job.log`.
         """
         if self.__record.get('remoteid'):
             return
@@ -426,6 +435,11 @@ class Scheduler:
 
     def __clean_build_dir_incr(self):
         # Remove steps not present in flow
+        """
+        Remove obsolete and pending build directories for the current job.
+        
+        Deletes step directories and step/index subdirectories in the current job directory that are not present in the scheduler's current flow, and invokes each pending node's runtime clean routine to clean its build directory.
+        """
         keep_steps = set([step for step, _ in self.__flow.get_nodes()])
         cur_job_dir = jobdir(self.__project)
         for step in os.listdir(cur_job_dir):
@@ -450,12 +464,12 @@ class Scheduler:
 
     def configure_nodes(self):
         """
-        Configures all nodes before execution.
-
-        This is a critical step that determines the final state of each node
-        (SUCCESS, PENDING, SKIPPED) before the scheduler starts. It loads
-        results from previous runs, checks for any modifications to parameters
-        or input files, and marks nodes for re-run accordingly.
+        Prepare and configure all flow nodes before execution.
+        
+        Load prior run artifacts when appropriate, create and configure per-node task objects,
+        import previous node records when available, determine which nodes require re-execution
+        and mark downstream nodes as pending, replay preserved run data when applicable, and
+        persist the current run manifest.
         """
         from siliconcompiler import Project
 

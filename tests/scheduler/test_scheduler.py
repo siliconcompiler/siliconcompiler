@@ -287,6 +287,11 @@ def test_clean_build_dir_full_keep_log_rm_old_log(basic_project):
 
 
 def test_clean_build_dir_full_with_from(basic_project):
+    """
+    Verify that the scheduler does not remove the job directory when a `from` option is set.
+    
+    Creates a Scheduler with cleaning enabled and the `from` option pointing to a step, ensures the job directory exists, and asserts that a full clean does not invoke removal of the job directory.
+    """
     basic_project.set('option', 'clean', True)
     basic_project.set('option', 'from', 'stepone')
 
