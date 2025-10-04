@@ -49,7 +49,6 @@ Open up a terminal and enter the following command sequence.
    python3 --version                                                  # check for Python 3
    python3 -m venv ./venv                                             # create a virtual env
    source ./venv/bin/activate                                         # active virtual env (bash/zsh)
-   pip install --upgrade pip                                          # upgrade Pip
 
 .. note::
    If you plan to generate any docs or create any flowgraphs, you'll also need to install Graphviz.
