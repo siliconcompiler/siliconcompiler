@@ -326,6 +326,9 @@ def test_clean_build_dir_full_remote(basic_project):
 
 
 def test_check_manifest_pass(basic_project):
+    """
+    Verifies that Scheduler.run() invokes check_manifest() and proceeds when the manifest check returns `True`.
+    """
     scheduler = Scheduler(basic_project)
     with patch("siliconcompiler.scheduler.Scheduler.check_manifest",
                autospec=True) as call:
