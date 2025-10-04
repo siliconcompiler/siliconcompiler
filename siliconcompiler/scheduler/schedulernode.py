@@ -378,18 +378,18 @@ class SchedulerNode:
 
     def check_previous_run_status(self, previous_run):
         """
-        Checks if the previous run of this node completed successfully.
-
-        Compares tool/task names and status to determine if the prior result
-        is valid as a starting point for an incremental build.
-
-        Args:
-            previous_run (SchedulerNode): The node object from a previous run
-                loaded from a manifest.
-
+        Determine whether a previous run of this node is compatible for incremental reuse.
+        
+        Compares flow name, tool and task identity, completion status, success status, and recorded input-node list to decide if prior outputs can be reused. If the flow name differs, a full flow reset is required and SchedulerFlowReset is raised.
+        
+        Parameters:
+            previous_run (SchedulerNode): Node state loaded from a prior run's manifest to compare against.
+        
         Returns:
-            bool: True if the previous run was successful and compatible,
-                False otherwise.
+            bool: `true` if the previous run is compatible and its outputs may be reused, `false` otherwise.
+        
+        Raises:
+            SchedulerFlowReset: If the flow name in the previous run does not match the current flow.
         """
         # Assume modified if flow does not match
         if self.__flow.name != previous_run.__flow.name:

@@ -144,10 +144,14 @@ class Scheduler:
 
     def __excepthook(self, exc_type, exc_value, exc_traceback):
         """
-        Custom exception hook to ensure all fatal errors are logged.
-
-        This captures unhandled exceptions, logs them to the job log file,
-        and prints a traceback for debugging before the program terminates.
+        Handle uncaught exceptions by logging a concise summary and the full traceback, then signal shutdown to the dashboard and multiprocessing manager.
+        
+        This hook forwards KeyboardInterrupt to the default handler; for other exceptions it logs the exception type and message, emits the traceback to the logger, stops the dashboard if present, and marks an uncaught error in the multiprocessing manager.
+        
+        Parameters:
+            exc_type (Type[BaseException]): Exception class.
+            exc_value (BaseException): Exception instance.
+            exc_traceback (types.TracebackType): Traceback object for the exception.
         """
         if issubclass(exc_type, KeyboardInterrupt):
             sys.__excepthook__(exc_type, exc_value, exc_traceback)
@@ -176,6 +180,11 @@ class Scheduler:
         MPManager.error("uncaught exception")
 
     def __install_file_logger(self):
+        """
+        Set up a per-job file logger and attach it to the scheduler's logger.
+        
+        Ensures the job directory exists, rotates an existing "job.log" to "job.log.bak" (adding numeric suffixes if needed), creates a FileHandler using the SCLoggerFormatter, attaches it to the scheduler logger, and stores the handler on self.__joblog_handler.
+        """
         os.makedirs(jobdir(self.__project), exist_ok=True)
         file_log = os.path.join(jobdir(self.__project), "job.log")
         bak_count = 0
@@ -191,15 +200,12 @@ class Scheduler:
 
     def run(self):
         """
-        The main entry point to start the compilation flow.
-
-        This method orchestrates the entire run, including:
-        - Setting up a custom exception hook for logging.
-        - Initializing the job directory and log files.
-        - Configuring and setting up all nodes in the flow.
-        - Validating the manifest.
-        - Executing the core run loop.
-        - Recording the final results and history.
+        Execute the scheduler run for the project's flowgraph.
+        
+        Prepare runtime state and logging, configure and validate nodes, execute the task scheduler, and persist run history and final manifest. This method also installs a temporary global exception hook and a per-job file logger for the duration of the run.
+        
+        Raises:
+            RuntimeError: If manifest validation fails or flowgraph I/O validation fails.
         """
         # Install hook to ensure exception is logged
         org_excepthook = sys.excepthook
@@ -252,10 +258,14 @@ class Scheduler:
             sys.excepthook = org_excepthook
 
     def __check_flowgraph_io(self):
-        '''Check if flowgraph is valid in terms of input and output files.
-
-        Returns True if valid, False otherwise.
-        '''
+        """
+        Validate that every scheduled node will receive the input files it requires from upstream nodes or existing outputs.
+        
+        Checks that for each runtime node the set of input files provided by its input sources covers all required inputs declared by the node's task schema, and that no input file is supplied by more than one upstream source. Any inconsistency is logged as an error.
+        
+        Returns:
+            bool: `True` if all nodes have their required inputs and no duplicate input sources were detected, `False` otherwise.
+        """
         nodes = self.__flow_runtime.get_nodes()
         error = False
 
@@ -384,10 +394,9 @@ class Scheduler:
 
     def __reset_flow_nodes(self):
         """
-        Private helper to reset the status and metrics for all nodes in the flow.
-
-        This prepares the schema for a new run by clearing out results from any
-        previous executions.
+        Reset statuses and metrics for every node in the flow to prepare for a new run.
+        
+        Clears each node's record fields (preserving `remoteid`, `status`, and `pythonpackage`), sets the node `status` to `NodeStatus.PENDING`, and clears the node's metrics.
         """
         # Reset record
         for step, index in self.__flow.get_nodes():
@@ -400,10 +409,12 @@ class Scheduler:
 
     def __clean_build_dir_full(self, recheck: bool = False):
         """
-        Private helper to clean the build directory if necessary.
-
-        If ['option', 'clean'] is True and the run starts from the beginning,
-        the entire build directory is removed to ensure a fresh start.
+        Remove job-specific build artifacts when starting a fresh run or during a recheck.
+        
+        If the project is not a remote run, this deletes all files and subdirectories in the current job directory when cleaning is requested and the run starts from the beginning (no `from` option). When called with recheck=True, the method bypasses the project's `clean`/`from` checks and deletes most files but preserves "job.log". Files are removed with os.remove and directories with shutil.rmtree.
+        
+        Parameters:
+            recheck (bool): If True, perform deletion regardless of the project's `clean`/`from` options and preserve "job.log"; if False, only proceed when cleaning of a full run is requested.
         """
         if self.__record.get('remoteid'):
             return
@@ -426,6 +437,11 @@ class Scheduler:
 
     def __clean_build_dir_incr(self):
         # Remove steps not present in flow
+        """
+        Perform an incremental cleanup of the current job directory to remove stale steps, indexes, and pending node work directories.
+        
+        Removes any step-level directories that are not present in the configured flow and any index-level directories that are not present as flow nodes. For nodes whose recorded status indicates they are waiting, invoke the node runtime's clean_directory to remove that node's incremental build artifacts. This function mutates the job directory on disk and may delete files and directories.
+        """
         keep_steps = set([step for step, _ in self.__flow.get_nodes()])
         cur_job_dir = jobdir(self.__project)
         for step in os.listdir(cur_job_dir):
@@ -450,12 +466,9 @@ class Scheduler:
 
     def configure_nodes(self):
         """
-        Configures all nodes before execution.
-
-        This is a critical step that determines the final state of each node
-        (SUCCESS, PENDING, SKIPPED) before the scheduler starts. It loads
-        results from previous runs, checks for any modifications to parameters
-        or input files, and marks nodes for re-run accordingly.
+        Perform node setup and determine which nodes require execution for the current run.
+        
+        This configures each node's runtime environment, attempts to import prior run state when available, forwards preserved node statuses, marks nodes that must be rerun due to changed inputs or configuration, replays compatible previous outputs into the current project, handles flow reset requests by forcing a full rebuild, and writes the updated manifest for the job.
         """
         from siliconcompiler import Project
 
@@ -561,11 +574,9 @@ class Scheduler:
 
     def __check_display(self):
         """
-        Private helper to automatically disable GUI display on headless systems.
-
-        If running on Linux without a DISPLAY or WAYLAND_DISPLAY environment
-        variable, this sets ['option', 'nodisplay'] to True to prevent tools
-        from attempting to open a GUI.
+        Disable the project's GUI display option when running on a headless Linux environment.
+        
+        If executing on Linux and neither the DISPLAY nor WAYLAND_DISPLAY environment variable is set, sets the project's ['option','nodisplay'] to True and logs a warning before making the change.
         """
 
         if not self.__project.get('option', 'nodisplay') and sys.platform == 'linux' \
