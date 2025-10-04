@@ -109,10 +109,6 @@ def main():
             package, path = cachepair.split(':')
             Resolver.set_cache(proj, package, path)
 
-    # Ensure all package caches are populated before running the node.
-    # for resolver in project.get('package', field='schema').get_resolvers().values():
-    #     resolver()
-
     # Instantiate the SchedulerNode for the specified step and index.
     error = True
     node = SchedulerNode(
