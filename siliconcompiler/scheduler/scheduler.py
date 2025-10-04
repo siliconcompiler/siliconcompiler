@@ -398,7 +398,7 @@ class Scheduler:
         for step, index in self.__flow.get_nodes():
             self.__metrics.clear(step, index)
 
-    def __clean_build_dir_full(self, keep_log: bool = False):
+    def __clean_build_dir_full(self, recheck: bool = False):
         """
         Private helper to clean the build directory if necessary.
 
@@ -408,15 +408,16 @@ class Scheduler:
         if self.__record.get('remoteid'):
             return
 
-        if not self.__project.get('option', 'clean') or self.__project.get('option', 'from'):
-            return
+        if not recheck:
+            if not self.__project.get('option', 'clean') or self.__project.get('option', 'from'):
+                return
 
         # If no step or nodes to start from were specified, the whole flow is being run
         # start-to-finish. Delete the build dir to clear stale results.
         cur_job_dir = jobdir(self.__project)
         if os.path.isdir(cur_job_dir):
             for delfile in os.listdir(cur_job_dir):
-                if delfile == "job.log" and keep_log:
+                if delfile == "job.log" and recheck:
                     continue
                 if os.path.isfile(os.path.join(cur_job_dir, delfile)):
                     os.remove(os.path.join(cur_job_dir, delfile))
@@ -424,6 +425,15 @@ class Scheduler:
                     shutil.rmtree(os.path.join(cur_job_dir, delfile))
 
     def __clean_build_dir_incr(self):
+        # Remove steps not present in flow
+        keep_steps = set([step for step, _ in self.__flow.get_nodes()])
+        cur_job_dir = jobdir(self.__project)
+        for step in os.listdir(cur_job_dir):
+            if not os.path.isdir(os.path.join(cur_job_dir, step)):
+                continue
+            if step not in keep_steps:
+                shutil.rmtree(os.path.join(cur_job_dir, step))
+
         # Clean nodes marked pending
         for step, index in self.__flow_runtime.get_nodes():
             if NodeStatus.is_waiting(self.__record.get('status', step=step, index=index)):
@@ -520,7 +530,7 @@ class Scheduler:
                 Journal.access(extra_setup_nodes[(step, index)]).replay(self.__project)
         except SchedulerFlowReset:
             # Mark all nodes as pending
-            self.__clean_build_dir_full(keep_log=True)
+            self.__clean_build_dir_full(recheck=True)
 
             for step, index in self.__flow.get_nodes():
                 self.__mark_pending(step, index)
