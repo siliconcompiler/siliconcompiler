@@ -114,22 +114,6 @@ if { [string match {ice*} $sc_partname] } {
     yosys proc
     yosys flatten
 
-    # Note there are two possibilities for how macro mapping might be done:
-    # using the extract command (to pattern match user RTL against
-    # the techmap) or using the techmap command.  The latter is better
-    # for mapping simple multipliers; the former is better (for now)
-    # for mapping more complex DSP blocks (MAC, pipelined blocks, etc).
-    # and is also more easily extensible to arbitrary hard macros.
-    # Run separate passes of both to get best of both worlds
-
-    # An extract pass needs to happen prior to other optimizations,
-    # otherwise yosys can transform its internal model into something
-    # that doesn't match the patterns defined in the extract library
-    foreach extractlib [sc_cfg_get library $sc_designlib tool yosys extractlib] {
-        yosys log "Run extract with $extractlib"
-        yosys extract -map $extractlib
-    }
-
     # Other hard macro passes can happen after the generic optimization
     # passes take place.
 
@@ -149,7 +133,7 @@ if { [string match {ice*} $sc_partname] } {
     yosys opt_expr
     yosys opt_clean
 
-    # Here is a remaining customization pass for DSP tech mapping
+    # Here is a customization pass for DSP tech mapping
 
     #Map DSP blocks before doing anything else,
     #so that we don't convert any math blocks
