@@ -20,6 +20,7 @@ from siliconcompiler.tools.builtin.join import JoinTask
 from scheduler.tools.echo import EchoTask
 
 from siliconcompiler.scheduler import SchedulerNode
+from siliconcompiler.scheduler.schedulernode import SchedulerFlowReset
 from siliconcompiler.utils.paths import jobdir, workdir
 
 
@@ -390,9 +391,7 @@ def test_check_values_changed_change_missing(project, monkeypatch, caplog):
     assert "[option,params,N] in steptwo/0 has been modified from previous run" in caplog.text
 
 
-def test_check_previous_run_status_flow(project, monkeypatch, caplog):
-    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
-    project.logger.setLevel(logging.DEBUG)
+def test_check_previous_run_status_flow(project, monkeypatch):
     node = SchedulerNode(project, "steptwo", "0")
     flow = Flowgraph("testflow0")
     flow.node("stepone", NOPTask())
@@ -403,8 +402,9 @@ def test_check_previous_run_status_flow(project, monkeypatch, caplog):
     project.add_fileset("rtl")
     node_other = SchedulerNode(project, "steptwo", "0")
     with node.runtime(), node_other.runtime():
-        assert node.check_previous_run_status(node_other) is False
-    assert "Flow name changed" in caplog.text
+        with pytest.raises(SchedulerFlowReset,
+                           match="^Flow name changed, require full reset$"):
+            node.check_previous_run_status(node_other)
 
 
 def test_check_previous_run_status_tool(project, monkeypatch, caplog):

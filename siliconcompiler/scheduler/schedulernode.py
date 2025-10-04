@@ -24,6 +24,10 @@ from siliconcompiler.scheduler import send_messages
 from siliconcompiler.utils.paths import workdir, jobdir, collectiondir
 
 
+class SchedulerFlowReset(Exception):
+    pass
+
+
 class SchedulerNode:
     """
     A class for managing and executing a single node in the compilation flow graph.
@@ -389,8 +393,7 @@ class SchedulerNode:
         """
         # Assume modified if flow does not match
         if self.__flow.name != previous_run.__flow.name:
-            self.logger.debug("Flow name changed")
-            return False
+            raise SchedulerFlowReset("Flow name changed, require full reset")
 
         # Tool name
         if self.__task.tool() != previous_run.__task.tool():
