@@ -8,4 +8,4 @@ ENV VIRTUAL_ENV="/venv"
 ENV PATH="/venv/bin:$PATH"
 
 COPY ./ /siliconcompiler
-RUN pip3 install /siliconcompiler
+RUN pip install /siliconcompiler

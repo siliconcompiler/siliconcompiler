@@ -131,7 +131,7 @@ def test_replay_cfg_setup(monkeypatch, run_cli, gcd_nop_project_run):
     # Remove slow pip install
     with open("test_replay.sh", "r") as fin:
         script = fin.read().splitlines()
-    script[script.index("pip3 install -r requirements.txt")] = "# removed pip install"
+    script[script.index("pip install -r requirements.txt")] = "# removed pip install"
     with open("test_replay.sh", "w") as fout:
         fout.write("\n".join(script))
 

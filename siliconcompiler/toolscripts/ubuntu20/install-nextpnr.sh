@@ -19,7 +19,6 @@ cd deps
 
 python3 -m venv .nextpnr --clear
 . .nextpnr/bin/activate
-python3 -m pip install --upgrade pip
 python3 -m pip install cmake==3.28.4
 
 git clone $(python3 ${src_path}/_tools.py --tool nextpnr --field git-url) nextpnr

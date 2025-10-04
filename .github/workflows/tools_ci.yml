@@ -69,7 +69,7 @@ jobs:
         run: |
           python3 -m venv .venv
           . .venv/bin/activate
-          pip3 install .
+          pip install .
           builder_name=$(python3 setup/docker/builder.py --tool builder --registry ${{ env.REGISTRY }})
           sc_tools_name=$(python3 setup/docker/builder.py --tool tools --registry ${{ env.REGISTRY }})
           sc_runner_name=$(python3 setup/docker/builder.py --tool runner --registry ${{ env.REGISTRY }})
@@ -291,7 +291,7 @@ jobs:
         run: |
           python3 -m venv venv
           . venv/bin/activate
-          python3 -m pip install --upgrade pip
+
           python3 -m pip install -e .[test]
           python3 -m pip install -r ./examples/requirements.txt
 
@@ -330,7 +330,7 @@ jobs:
         run: |
           python3 -m venv clean_env
           source clean_env/bin/activate
-          python3 -m pip install --upgrade pip
+
           python3 -m pip install -e .[test]
           python3 -m pip install -r ./examples/requirements.txt
 

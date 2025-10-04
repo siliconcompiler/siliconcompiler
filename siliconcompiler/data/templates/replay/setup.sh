@@ -118,7 +118,7 @@ fi
 python3 -m venv $venv --clear
 
 . $venv/bin/activate
-pip3 install -r requirements.txt
+pip install -r requirements.txt
 
 echo "To enable run environment: . $path/$venv/bin/activate"
 echo "To replay: $path/replay.py"

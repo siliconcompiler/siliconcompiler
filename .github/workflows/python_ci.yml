@@ -73,8 +73,8 @@ jobs:
           ${{ steps.python.outputs.python-path }} -m venv .venv
           . .venv/bin/activate
           python3 --version
-          pip3 install --upgrade pip
-          pip3 install -e .[test]
+          pip install --upgrade pip
+          pip install -e .[test]
 
       - name: Run Python tests
         timeout-minutes: 15
@@ -96,7 +96,7 @@ jobs:
           .\venv\Scripts\activate
           python3 --version
           python.exe -m pip install --upgrade pip
-          pip3 install -e .[test]
+          pip install -e .[test]
 
       - name: Run Python tests (windows)
         if: runner.os == 'Windows'
@@ -136,8 +136,8 @@ jobs:
           python3 -m venv .venv
           . .venv/bin/activate
           python3 --version
-          pip3 install --upgrade pip
-          pip3 install -e .[test,docs]
+          pip install --upgrade pip
+          pip install -e .[test,docs]
 
       - name: Run Python tests
         timeout-minutes: 15
