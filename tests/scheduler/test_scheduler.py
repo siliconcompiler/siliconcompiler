@@ -233,19 +233,60 @@ def test_increment_job_name(basic_project, prev_name, new_name):
     assert basic_project.get("option", "jobname") == new_name
 
 
-def test_clean_build_dir(basic_project):
+def test_clean_build_dir_full(basic_project):
     basic_project.set('option', 'clean', True)
 
     scheduler = Scheduler(basic_project)
 
     os.makedirs(jobdir(basic_project), exist_ok=True)
+    os.makedirs(os.path.join(jobdir(basic_project), "rmthis"), exist_ok=True)
+    with open(os.path.join(jobdir(basic_project), "job.log"), "w") as f:
+        f.write("test")
 
-    with patch("shutil.rmtree", autospec=True) as call:
-        scheduler._Scheduler__clean_build_dir()
-        call.assert_called_once()
+    with patch("shutil.rmtree", autospec=True) as rmtree, \
+            patch("os.remove") as remove:
+        scheduler._Scheduler__clean_build_dir_full()
+        rmtree.assert_called_once()
+        remove.assert_called_once()
 
 
-def test_clean_build_dir_with_from(basic_project):
+def test_clean_build_dir_full_keep_log(basic_project):
+    basic_project.set('option', 'clean', True)
+
+    scheduler = Scheduler(basic_project)
+
+    os.makedirs(jobdir(basic_project), exist_ok=True)
+    os.makedirs(os.path.join(jobdir(basic_project), "rmthis"), exist_ok=True)
+    with open(os.path.join(jobdir(basic_project), "job.log"), "w") as f:
+        f.write("test")
+
+    with patch("shutil.rmtree", autospec=True) as rmtree, \
+            patch("os.remove") as remove:
+        scheduler._Scheduler__clean_build_dir_full(keep_log=True)
+        rmtree.assert_called_once()
+        remove.assert_not_called()
+
+
+def test_clean_build_dir_full_keep_log_rm_old_log(basic_project):
+    basic_project.set('option', 'clean', True)
+
+    scheduler = Scheduler(basic_project)
+
+    os.makedirs(jobdir(basic_project), exist_ok=True)
+    os.makedirs(os.path.join(jobdir(basic_project), "rmthis"), exist_ok=True)
+    with open(os.path.join(jobdir(basic_project), "job.log"), "w") as f:
+        f.write("test")
+    with open(os.path.join(jobdir(basic_project), "job.log.bak"), "w") as f:
+        f.write("test")
+
+    with patch("shutil.rmtree", autospec=True) as rmtree, \
+            patch("os.remove") as remove:
+        scheduler._Scheduler__clean_build_dir_full(keep_log=True)
+        rmtree.assert_called_once()
+        remove.assert_called_once_with(os.path.join(jobdir(basic_project), "job.log.bak"))
+
+
+def test_clean_build_dir_full_with_from(basic_project):
     basic_project.set('option', 'clean', True)
     basic_project.set('option', 'from', 'stepone')
 
@@ -254,24 +295,24 @@ def test_clean_build_dir_with_from(basic_project):
     os.makedirs(jobdir(basic_project), exist_ok=True)
     assert os.path.isdir(jobdir(basic_project))
 
-    with patch("shutil.rmtree", autospec=True) as call:
-        scheduler._Scheduler__clean_build_dir()
-        call.assert_not_called()
+    with patch("shutil.rmtree", autospec=True) as rmtree:
+        scheduler._Scheduler__clean_build_dir_full()
+        rmtree.assert_not_called()
 
 
-def test_clean_build_dir_do_nothing(basic_project):
+def test_clean_build_dir_full_do_nothing(basic_project):
     basic_project.set('option', 'clean', False)
 
     scheduler = Scheduler(basic_project)
 
     os.makedirs(jobdir(basic_project), exist_ok=True)
 
-    with patch("shutil.rmtree", autospec=True) as call:
-        scheduler._Scheduler__clean_build_dir()
-        call.assert_not_called()
+    with patch("shutil.rmtree", autospec=True) as rmtree:
+        scheduler._Scheduler__clean_build_dir_full()
+        rmtree.assert_not_called()
 
 
-def test_clean_build_dir_remote(basic_project):
+def test_clean_build_dir_full_remote(basic_project):
     basic_project.set('option', 'clean', True)
     basic_project.set('record', 'remoteid', 'blah')
 
@@ -279,9 +320,9 @@ def test_clean_build_dir_remote(basic_project):
 
     os.makedirs(jobdir(basic_project), exist_ok=True)
 
-    with patch("shutil.rmtree", autospec=True) as call:
-        scheduler._Scheduler__clean_build_dir()
-        call.assert_not_called()
+    with patch("shutil.rmtree", autospec=True) as rmtree:
+        scheduler._Scheduler__clean_build_dir_full()
+        rmtree.assert_not_called()
 
 
 def test_check_manifest_pass(basic_project):
