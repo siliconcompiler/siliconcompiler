@@ -433,6 +433,14 @@ class Scheduler:
                 continue
             if step not in keep_steps:
                 shutil.rmtree(os.path.join(cur_job_dir, step))
+        for step in os.listdir(cur_job_dir):
+            if not os.path.isdir(os.path.join(cur_job_dir, step)):
+                continue
+            for index in os.listdir(os.path.join(cur_job_dir, step)):
+                if not os.path.isdir(os.path.join(cur_job_dir, step, index)):
+                    continue
+                if (step, index) not in self.__flow.get_nodes():
+                    shutil.rmtree(os.path.join(cur_job_dir, step, index))
 
         # Clean nodes marked pending
         for step, index in self.__flow_runtime.get_nodes():
