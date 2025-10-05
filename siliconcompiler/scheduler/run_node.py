@@ -23,6 +23,18 @@ from siliconcompiler import __version__
 
 ##########################
 def main():
+    """
+    Run a single node (specified by step and index) from a SiliconCompiler project
+    using command-line arguments.
+
+    Parses CLI arguments to configure a Project (manifest, working directory, build/cache
+    directories, step, index, remote id, and optional cache mappings), optionally
+    unsets scheduler entries for local runs, executes the corresponding SchedulerNode,
+    and optionally writes a gzipped tar archive of results.
+
+    Returns:
+        int: Exit code — 0 on successful node execution, 1 if the node failed.
+    """
     # Can't use Project.cmdline because we don't want a bunch of extra logger information
     parser = argparse.ArgumentParser(prog='run_node',
                                      formatter_class=argparse.RawDescriptionHelpFormatter,
