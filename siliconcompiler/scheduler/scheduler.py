@@ -466,14 +466,20 @@ class Scheduler:
         node's runtime context and invokes its clean_directory method to perform
         node-specific cleanup.
         """
+        protected_dirs = {os.path.basename(collectiondir(self.__project))}
+
         keep_steps = set([step for step, _ in self.__flow.get_nodes()])
         cur_job_dir = jobdir(self.__project)
         for step in os.listdir(cur_job_dir):
+            if step in protected_dirs:
+                continue
             if not os.path.isdir(os.path.join(cur_job_dir, step)):
                 continue
             if step not in keep_steps:
                 shutil.rmtree(os.path.join(cur_job_dir, step))
         for step in os.listdir(cur_job_dir):
+            if step in protected_dirs:
+                continue
             if not os.path.isdir(os.path.join(cur_job_dir, step)):
                 continue
             for index in os.listdir(os.path.join(cur_job_dir, step)):
