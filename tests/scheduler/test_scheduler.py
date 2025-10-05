@@ -562,3 +562,79 @@ def test_resume_value_changed(gcd_nop_project):
         NodeStatus.SUCCESS
     assert gcd_nop_project.history("job0").get("record", "status", step="stepfour", index="0") == \
         NodeStatus.SUCCESS
+
+
+def test_install_file_logger(basic_project):
+    """Test that __install_file_logger creates job.log and handles backup files."""
+    scheduler = Scheduler(basic_project)
+
+    # Create job directory
+    os.makedirs(jobdir(basic_project), exist_ok=True)
+
+    # Create existing job.log
+    existing_log = os.path.join(jobdir(basic_project), "job.log")
+    with open(existing_log, "w") as f:
+        f.write("existing log content")
+
+    # Call __install_file_logger
+    scheduler._Scheduler__install_file_logger()
+
+    # Check that new log exists
+    assert os.path.exists(existing_log)
+
+    # Check that backup was created
+    backup_log = os.path.join(jobdir(basic_project), "job.log.bak")
+    assert os.path.exists(backup_log)
+
+    # Check backup content
+    with open(backup_log, "r") as f:
+        assert f.read() == "existing log content"
+
+
+def test_install_file_logger_multiple_backups(basic_project):
+    """Test that __install_file_logger handles multiple backup files."""
+    scheduler = Scheduler(basic_project)
+
+    # Create job directory
+    os.makedirs(jobdir(basic_project), exist_ok=True)
+
+    # Create existing job.log and backups
+    existing_log = os.path.join(jobdir(basic_project), "job.log")
+    with open(existing_log, "w") as f:
+        f.write("log 1")
+
+    backup1 = os.path.join(jobdir(basic_project), "job.log.bak")
+    with open(backup1, "w") as f:
+        f.write("backup 1")
+
+    backup2 = os.path.join(jobdir(basic_project), "job.log.bak.1")
+    with open(backup2, "w") as f:
+        f.write("backup 2")
+
+    # Call __install_file_logger
+    scheduler._Scheduler__install_file_logger()
+
+    # Check that new backup was created with correct number
+    backup3 = os.path.join(jobdir(basic_project), "job.log.bak.2")
+    assert os.path.exists(backup3)
+    with open(backup3, "r") as f:
+        assert f.read() == "log 1"
+
+
+def test_install_file_logger_no_existing_log(basic_project):
+    """Test that __install_file_logger works when no existing log file."""
+    scheduler = Scheduler(basic_project)
+
+    # Create job directory
+    os.makedirs(jobdir(basic_project), exist_ok=True)
+
+    # Call __install_file_logger
+    scheduler._Scheduler__install_file_logger()
+
+    # Check that new log exists
+    existing_log = os.path.join(jobdir(basic_project), "job.log")
+    assert os.path.exists(existing_log)
+
+    # Check that no backup was created
+    backup_log = os.path.join(jobdir(basic_project), "job.log.bak")
+    assert not os.path.exists(backup_log)

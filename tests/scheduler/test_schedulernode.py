@@ -1599,3 +1599,351 @@ def test_switch_node(project):
     assert node1.step == "steptwo"
     assert node1.index == "2"
     assert node0.project is node1.project
+
+
+def test_scheduler_flow_reset_exception_exists():
+    """Test that SchedulerFlowReset exception class exists and can be imported."""
+    from siliconcompiler.scheduler.schedulernode import SchedulerFlowReset
+
+    # Test that it's an Exception subclass
+    assert issubclass(SchedulerFlowReset, Exception)
+
+    # Test that it can be instantiated
+    exc = SchedulerFlowReset("test message")
+    assert str(exc) == "test message"
+
+
+def test_scheduler_flow_reset_exception_can_be_raised():
+    """Test that SchedulerFlowReset exception can be raised and caught."""
+    from siliconcompiler.scheduler.schedulernode import SchedulerFlowReset
+
+    msg = "Flow changed"
+    with pytest.raises(SchedulerFlowReset) as exc_info:
+        raise SchedulerFlowReset(msg)
+
+    assert "Flow changed" in str(exc_info.value)
+
+
+def test_check_previous_run_status_flow_raises_scheduler_flow_reset(project):
+    """Test that check_previous_run_status raises SchedulerFlowReset when flow name changes."""
+    node = SchedulerNode(project, "steptwo", "0")
+
+    # Create a different flow with different name
+    flow = Flowgraph("completely_different_flow")
+    flow.node("stepone", NOPTask())
+    flow.node("steptwo", NOPTask())
+    flow.edge("stepone", "steptwo")
+
+    other_project = Project(project.design)
+    other_project.set_flow(flow)
+    other_project.add_fileset("rtl")
+    node_other = SchedulerNode(other_project, "steptwo", "0")
+
+    with node.runtime(), node_other.runtime():
+        with pytest.raises(SchedulerFlowReset) as exc_info:
+            node.check_previous_run_status(node_other)
+
+    assert "Flow name changed" in str(exc_info.value)
+    assert "require full reset" in str(exc_info.value)
+
+
+def test_check_previous_run_status_flow_different_name_vs_original(project):
+    """Test check_previous_run_status with flow name that differs from original run."""
+    # Set up first node with original flow
+    node = SchedulerNode(project, "steptwo", "0")
+
+    # Create second project with different flow name
+    flow_new = Flowgraph("newflowname")
+    flow_new.node("stepone", NOPTask())
+    flow_new.node("steptwo", NOPTask())
+    flow_new.edge("stepone", "steptwo")
+
+    new_project = Project(project.design)
+    new_project.set_flow(flow_new)
+    new_project.add_fileset("rtl")
+    node_new = SchedulerNode(new_project, "steptwo", "0")
+
+    # Comparing nodes with different flow names should raise SchedulerFlowReset
+    with node.runtime(), node_new.runtime():
+        with pytest.raises(SchedulerFlowReset, match="Flow name changed, require full reset"):
+            node.check_previous_run_status(node_new)
+
+
+def test_check_previous_run_status_same_flow_name_passes(project, monkeypatch):
+    """Test that check_previous_run_status passes when flow names match."""
+    project.set("record", "status", NodeStatus.SUCCESS, step="steptwo", index="0")
+    project.set("record", "inputnode", [("stepone", "0")], step="steptwo", index="0")
+
+    node = SchedulerNode(project, "steptwo", "0")
+
+    def dummy_select(*_, **__):
+        return [("stepone", "0")]
+    monkeypatch.setattr(node.task, "select_input_nodes", dummy_select)
+
+    # Same flow should not raise SchedulerFlowReset
+    with node.runtime():
+        result = node.check_previous_run_status(node)
+
+    # Should return True (no changes detected)
+    assert result is True
+
+
+def test_check_previous_run_status_flow_name_case_sensitive(project):
+    """Test that flow name comparison is case-sensitive."""
+    node = SchedulerNode(project, "steptwo", "0")
+
+    # Create flow with different case
+    flow_case = Flowgraph("TESTFLOW")  # Original is "testflow"
+    flow_case.node("stepone", NOPTask())
+    flow_case.node("steptwo", NOPTask())
+    flow_case.edge("stepone", "steptwo")
+
+    other_project = Project(project.design)
+    other_project.set_flow(flow_case)
+    other_project.add_fileset("rtl")
+    node_other = SchedulerNode(other_project, "steptwo", "0")
+
+    with node.runtime(), node_other.runtime():
+        with pytest.raises(SchedulerFlowReset):
+            node.check_previous_run_status(node_other)
+
+
+def test_check_previous_run_status_flow_name_with_special_chars(project):
+    """Test check_previous_run_status with flow names containing special characters."""
+    node = SchedulerNode(project, "steptwo", "0")
+
+    # Create flow with special characters in name
+    flow_special = Flowgraph("test-flow_v20")
+    flow_special.node("stepone", NOPTask())
+    flow_special.node("steptwo", NOPTask())
+    flow_special.edge("stepone", "steptwo")
+
+    other_project = Project(project.design)
+    other_project.set_flow(flow_special)
+    other_project.add_fileset("rtl")
+    node_other = SchedulerNode(other_project, "steptwo", "0")
+
+    with node.runtime(), node_other.runtime():
+        with pytest.raises(SchedulerFlowReset):
+            node.check_previous_run_status(node_other)
+
+
+def test_check_previous_run_status_preserves_other_error_paths(project, monkeypatch, caplog):
+    """Test that check_previous_run_status still returns False for non-flow errors."""
+    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
+    project.logger.setLevel(logging.DEBUG)
+
+    # Set up node with RUNNING status (should still return False, not raise)
+    project.set("record", "status", NodeStatus.RUNNING, step="steptwo", index="0")
+
+    node = SchedulerNode(project, "steptwo", "0")
+
+    with node.runtime():
+        result = node.check_previous_run_status(node)
+
+    # Should return False (not raise exception)
+    assert result is False
+    assert "Previous step did not complete" in caplog.text
+
+
+def test_check_previous_run_status_error_status_returns_false(project, monkeypatch, caplog):
+    """Test that check_previous_run_status returns False for ERROR status."""
+    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
+    project.logger.setLevel(logging.DEBUG)
+
+    # Set up node with ERROR status
+    project.set("record", "status", NodeStatus.ERROR, step="steptwo", index="0")
+
+    node = SchedulerNode(project, "steptwo", "0")
+
+    with node.runtime():
+        result = node.check_previous_run_status(node)
+
+    # Should return False (not raise exception)
+    assert result is False
+    assert "Previous step was not successful" in caplog.text
+
+
+def test_check_previous_run_status_tool_change_returns_false(project, monkeypatch, caplog):
+    """Test that check_previous_run_status returns False when tool changes."""
+    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
+    project.logger.setLevel(logging.DEBUG)
+
+    node = SchedulerNode(project, "steptwo", "0")
+
+    # Create flow with different task (different tool)
+    flow = Flowgraph("testflow")  # Same flow name
+    flow.node("stepone", NOPTask())
+    flow.node("steptwo", EchoTask())  # Different task
+    flow.edge("stepone", "steptwo")
+
+    other_project = Project(project.design)
+    other_project.set_flow(flow)
+    other_project.add_fileset("rtl")
+    node_other = SchedulerNode(other_project, "steptwo", "0")
+
+    with node.runtime(), node_other.runtime():
+        result = node.check_previous_run_status(node_other)
+
+    # Should return False (not raise exception) since only tool changed
+    assert result is False
+    assert "Tool name changed" in caplog.text
+
+
+def test_check_previous_run_status_combined_flow_and_tool_change(project):
+    """Test behavior when both flow name and tool change."""
+    node = SchedulerNode(project, "steptwo", "0")
+
+    # Create flow with both different name AND different task
+    flow_new = Flowgraph("differentflow")
+    flow_new.node("stepone", NOPTask())
+    flow_new.node("steptwo", EchoTask())
+    flow_new.edge("stepone", "steptwo")
+
+    other_project = Project(project.design)
+    other_project.set_flow(flow_new)
+    other_project.add_fileset("rtl")
+    node_other = SchedulerNode(other_project, "steptwo", "0")
+
+    with node.runtime(), node_other.runtime():
+        # Flow name check happens first, so should raise SchedulerFlowReset
+        # before checking tool
+        with pytest.raises(SchedulerFlowReset):
+            node.check_previous_run_status(node_other)
+
+
+def test_check_previous_run_status_input_nodes_change_returns_false(project, monkeypatch, caplog):
+    """Test that check_previous_run_status returns False when input nodes change."""
+    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
+    project.logger.setLevel(logging.INFO)
+
+    project.set("record", "status", NodeStatus.SUCCESS, step="steptwo", index="0")
+    project.set("record", "inputnode", [("stepone", "0")], step="steptwo", index="0")
+
+    node = SchedulerNode(project, "steptwo", "0")
+
+    # Mock to return different input nodes
+    def dummy_select(*_, **__):
+        return [("stepone", "1")]  # Different index
+    monkeypatch.setattr(node.task, "select_input_nodes", dummy_select)
+
+    with node.runtime():
+        result = node.check_previous_run_status(node)
+
+    # Should return False (not raise exception)
+    assert result is False
+    assert "inputs to steptwo/0 has been modified from previous run" in caplog.text
+
+
+def test_scheduler_flow_reset_message_format():
+    """Test that SchedulerFlowReset has a descriptive message."""
+    from siliconcompiler.scheduler.schedulernode import SchedulerFlowReset
+
+    # Test with custom message
+    exc = SchedulerFlowReset("Custom reset message")
+    assert str(exc) == "Custom reset message"
+
+    # Test with default usage from code
+    exc = SchedulerFlowReset("Flow name changed, require full reset")
+    assert "Flow name changed" in str(exc)
+    assert "require full reset" in str(exc)
+
+
+def test_check_previous_run_status_unicode_flow_name(project):
+    """Test check_previous_run_status with unicode characters in flow name."""
+    node = SchedulerNode(project, "steptwo", "0")
+
+    # Create flow with unicode in name
+    flow_unicode = Flowgraph("test_流程_flow")
+    flow_unicode.node("stepone", NOPTask())
+    flow_unicode.node("steptwo", NOPTask())
+    flow_unicode.edge("stepone", "steptwo")
+
+    other_project = Project(project.design)
+    other_project.set_flow(flow_unicode)
+    other_project.add_fileset("rtl")
+    node_other = SchedulerNode(other_project, "steptwo", "0")
+
+    with node.runtime(), node_other.runtime():
+        with pytest.raises(SchedulerFlowReset):
+            node.check_previous_run_status(node_other)
+
+
+def test_check_previous_run_status_whitespace_in_flow_name(project):
+    """Test check_previous_run_status with whitespace differences in flow name."""
+    node = SchedulerNode(project, "steptwo", "0")
+
+    # Create flow with whitespace (should be different)
+    flow_ws = Flowgraph(" testflow")  # Leading space
+    flow_ws.node("stepone", NOPTask())
+    flow_ws.node("steptwo", NOPTask())
+    flow_ws.edge("stepone", "steptwo")
+
+    other_project = Project(project.design)
+    other_project.set_flow(flow_ws)
+    other_project.add_fileset("rtl")
+    node_other = SchedulerNode(other_project, "steptwo", "0")
+
+    with node.runtime(), node_other.runtime():
+        with pytest.raises(SchedulerFlowReset):
+            node.check_previous_run_status(node_other)
+
+
+def test_check_previous_run_status_long_flow_name(project):
+    """Test check_previous_run_status with very long flow name."""
+    node = SchedulerNode(project, "steptwo", "0")
+
+    # Create flow with very long name
+    long_name = "a" * 1000
+    flow_long = Flowgraph(long_name)
+    flow_long.node("stepone", NOPTask())
+    flow_long.node("steptwo", NOPTask())
+    flow_long.edge("stepone", "steptwo")
+
+    other_project = Project(project.design)
+    other_project.set_flow(flow_long)
+    other_project.add_fileset("rtl")
+    node_other = SchedulerNode(other_project, "steptwo", "0")
+
+    with node.runtime(), node_other.runtime():
+        with pytest.raises(SchedulerFlowReset):
+            node.check_previous_run_status(node_other)
+
+
+def test_check_previous_run_status_numeric_flow_name(project):
+    """Test check_previous_run_status with numeric flow name."""
+    node = SchedulerNode(project, "steptwo", "0")
+
+    # Create flow with numeric name
+    flow_num = Flowgraph("12345")
+    flow_num.node("stepone", NOPTask())
+    flow_num.node("steptwo", NOPTask())
+    flow_num.edge("stepone", "steptwo")
+
+    other_project = Project(project.design)
+    other_project.set_flow(flow_num)
+    other_project.add_fileset("rtl")
+    node_other = SchedulerNode(other_project, "steptwo", "0")
+
+    with node.runtime(), node_other.runtime():
+        with pytest.raises(SchedulerFlowReset):
+            node.check_previous_run_status(node_other)
+
+
+def test_check_previous_run_status_preserves_success_path(project, monkeypatch):
+    """Test that successful reuse path still works correctly."""
+    # Set up successful previous run
+    project.set("record", "status", NodeStatus.SUCCESS, step="steptwo", index="0")
+    project.set("record", "inputnode", [("stepone", "0")], step="steptwo", index="0")
+
+    node = SchedulerNode(project, "steptwo", "0")
+
+    # Mock to return same input nodes
+    def dummy_select(*_, **__):
+        return [("stepone", "0")]
+    monkeypatch.setattr(node.task, "select_input_nodes", dummy_select)
+
+    with node.runtime():
+        # Should succeed without raising exception
+        result = node.check_previous_run_status(node)
+        assert result is True
