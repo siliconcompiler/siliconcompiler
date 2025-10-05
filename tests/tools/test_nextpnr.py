@@ -7,7 +7,6 @@ from siliconcompiler.tools.nextpnr.apr import APRTask
 
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.ready
 def test_version(gcd_design):
     proj = FPGA(gcd_design)
     proj.add_fileset("rtl")

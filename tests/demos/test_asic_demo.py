@@ -7,7 +7,6 @@ from siliconcompiler.demos import asic_demo
 
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.ready
 @pytest.mark.timeout(300)
 def test_self_test():
     ''' Verify self-test functionality w/ Python build script '''

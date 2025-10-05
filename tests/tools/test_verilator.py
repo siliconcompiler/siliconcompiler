@@ -11,7 +11,6 @@ from siliconcompiler.tools import get_task
 
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.ready
 def test_lint_post_slang(heartbeat_design):
     proj = Project(heartbeat_design)
     proj.add_fileset("rtl")
@@ -30,7 +29,6 @@ def test_lint_post_slang(heartbeat_design):
 
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.ready
 def test_compile(heartbeat_design, datadir, run_cli):
     with heartbeat_design.active_fileset("tb_test_cpp"):
         heartbeat_design.add_file(os.path.join(datadir, 'verilator', 'heartbeat_tb.cpp'))
@@ -60,7 +58,6 @@ def test_compile(heartbeat_design, datadir, run_cli):
 
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.ready
 def test_assert(heartbeat_design, datadir, run_cli):
     with heartbeat_design.active_fileset("assert"):
         heartbeat_design.set_topmodule("heartbeat")
@@ -150,7 +147,6 @@ def test_random_reset(gcd_design):
 
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.ready
 def test_version(gcd_design):
     proj = Project(gcd_design)
     proj.add_fileset("rtl")
@@ -167,7 +163,6 @@ def test_version(gcd_design):
 
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.ready
 def test_lintflow(heartbeat_design):
     proj = Project(heartbeat_design)
     proj.add_fileset("rtl")
