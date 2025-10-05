@@ -2133,7 +2133,7 @@ def test_run_with_empty_flowgraph():
 
     # Should handle empty flow gracefully
     with pytest.raises(ValueError,
-                       match="^emptyflow flowgraph contains errors and cannot be run.$"):
+                       match=r"^emptyflow flowgraph contains errors and cannot be run\.$"):
         proj.run()
 
 

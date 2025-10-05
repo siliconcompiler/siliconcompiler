@@ -501,7 +501,7 @@ def test_remote_lock_within_lock_thread():
         assert not os.path.exists(resolver0.sc_lock_file)
 
         with pytest.raises(RuntimeError, match=r"^Failed to access .*\. "
-                                               r"Another thread is currently holding the lock.$"):
+                                               r"Another thread is currently holding the lock\.$"):
             with resolver1.lock():
                 assert False, "should not get here"
 

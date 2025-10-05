@@ -80,7 +80,8 @@ def test_init_flow_not_defined(basic_project):
 def test_init_flow_not_valid(basic_project):
     with patch("siliconcompiler.flowgraph.Flowgraph.validate") as call:
         call.return_value = False
-        with pytest.raises(ValueError, match="^test flowgraph contains errors and cannot be run.$"):
+        with pytest.raises(ValueError,
+                           match=r"^test flowgraph contains errors and cannot be run\.$"):
             Scheduler(basic_project)
 
 
@@ -89,7 +90,8 @@ def test_init_flow_runtime_not_valid(basic_project):
          patch("siliconcompiler.flowgraph.RuntimeFlowgraph.validate") as call1:
         call0.return_value = True
         call1.return_value = False
-        with pytest.raises(ValueError, match="^test flowgraph contains errors and cannot be run.$"):
+        with pytest.raises(ValueError,
+                           match=r"^test flowgraph contains errors and cannot be run\.$"):
             Scheduler(basic_project)
 
 

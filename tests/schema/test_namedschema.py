@@ -22,14 +22,14 @@ def test_set_name_repeat():
     assert schema.name is None
     schema.set_name("myname")
     assert schema.name == "myname"
-    with pytest.raises(RuntimeError, match="^Cannot call set_name more than once.$"):
+    with pytest.raises(RuntimeError, match=r"^Cannot call set_name more than once\.$"):
         schema.set_name("myname")
 
 
 def test_set_name_with_name():
     schema = NamedSchema("myname")
     assert schema.name == "myname"
-    with pytest.raises(RuntimeError, match="^Cannot call set_name more than once.$"):
+    with pytest.raises(RuntimeError, match=r"^Cannot call set_name more than once\.$"):
         schema.set_name("myname")
 
 
@@ -39,7 +39,8 @@ def test_set_name_with_invalid_name():
 
 
 def test_type():
-    with pytest.raises(NotImplementedError, match="^Must be implemented by the child classes.$"):
+    with pytest.raises(NotImplementedError,
+                       match=r"^Must be implemented by the child classes\.$"):
         NamedSchema().type()
 
 
