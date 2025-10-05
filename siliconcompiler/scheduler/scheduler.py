@@ -289,12 +289,15 @@ class Scheduler:
         error = False
 
         for (step, index) in nodes:
+            scheduler = self.__project.option.scheduler.get_name(step=step, index=index)
+            check_file_access = not self.__project.option.get_remote() and scheduler is None
+
             node = SchedulerNode(self.__project, step, index)
             requires = []
             with node.runtime():
                 requires = node.task.get('require')
 
-            for item in requires:
+            for item in sorted(set(requires)):
                 keypath = item.split(',')
                 if not self.__project.valid(*keypath):
                     self.__logger.error(f'Cannot resolve required keypath [{",".join(keypath)}] '
@@ -312,6 +315,24 @@ class Scheduler:
                                         f'[{",".join(keypath)}] for {step}/{index}.')
                     error = True
                     continue
+
+                paramtype = param.get(field='type')
+                if check_file_access and (('file' in paramtype) or ('dir' in paramtype)):
+                    abspath = self.__project.find_files(*keypath,
+                                                        missing_ok=True,
+                                                        step=check_step, index=check_index)
+
+                    unresolved_paths = param.get(step=check_step, index=check_index)
+                    if not isinstance(abspath, list):
+                        abspath = [abspath]
+                        unresolved_paths = [unresolved_paths]
+
+                    for path, setpath in zip(abspath, unresolved_paths):
+                        if path is None:
+                            self.__logger.error(f'Cannot resolve path {setpath} in '
+                                                f'required file keypath [{",".join(keypath)}] '
+                                                f'for {step}/{index}.')
+                            error = True
 
         return not error
 

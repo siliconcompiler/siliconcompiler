@@ -628,11 +628,13 @@ def test_resume_value_changed(gcd_nop_project):
         NodeStatus.SUCCESS
 
 
-def test_check_tool_requirements(gcd_nop_project, monkeypatch, caplog):
+def test_check_tool_requirements_local(gcd_nop_project, monkeypatch, caplog):
     monkeypatch.setattr(gcd_nop_project, "_Project__logger", logging.getLogger())
     gcd_nop_project.logger.setLevel(logging.INFO)
 
     EditableSchema(gcd_nop_project).insert("option", "testing", Parameter("str"))
+    EditableSchema(gcd_nop_project).insert("option", "testing_file", Parameter("file"))
+    assert gcd_nop_project.set("option", "testing_file", "thistest.txt")
 
     # Change set reqirement
     # Add unset key
@@ -641,10 +643,70 @@ def test_check_tool_requirements(gcd_nop_project, monkeypatch, caplog):
     # Add invalid key
     assert gcd_nop_project.add("tool", "builtin", "task", "nop", "require", "option1,testing",
                                step="stepthree", index="0")
+    # Add missing file
+    assert gcd_nop_project.add("tool", "builtin", "task", "nop", "require", "option,testing_file",
+                               step="stepthree", index="0")
     assert Scheduler(gcd_nop_project)._Scheduler__check_tool_requirements() is False
 
     assert "No value set for required keypath [option,testing] for stepthree/0." in caplog.text
     assert "Cannot resolve required keypath [option1,testing] for stepthree/0." in caplog.text
+    assert "Cannot resolve path thistest.txt in required file keypath [option,testing_file] " \
+        "for stepthree/0." in caplog.text
+
+
+def test_check_tool_requirements_remote(gcd_nop_project, monkeypatch, caplog):
+    monkeypatch.setattr(gcd_nop_project, "_Project__logger", logging.getLogger())
+    gcd_nop_project.logger.setLevel(logging.INFO)
+
+    EditableSchema(gcd_nop_project).insert("option", "testing", Parameter("str"))
+    EditableSchema(gcd_nop_project).insert("option", "testing_file", Parameter("file"))
+    assert gcd_nop_project.set("option", "testing_file", "thistest.txt")
+    gcd_nop_project.option.set_remote(True)
+
+    # Change set reqirement
+    # Add unset key
+    assert gcd_nop_project.set("tool", "builtin", "task", "nop", "require", "option,testing",
+                               step="stepthree", index="0")
+    # Add invalid key
+    assert gcd_nop_project.add("tool", "builtin", "task", "nop", "require", "option1,testing",
+                               step="stepthree", index="0")
+    # Add missing file
+    assert gcd_nop_project.add("tool", "builtin", "task", "nop", "require", "option,testing_file",
+                               step="stepthree", index="0")
+    assert Scheduler(gcd_nop_project)._Scheduler__check_tool_requirements() is False
+
+    assert "No value set for required keypath [option,testing] for stepthree/0." in caplog.text
+    assert "Cannot resolve required keypath [option1,testing] for stepthree/0." in caplog.text
+    assert "Cannot resolve path thistest.txt in required file keypath [option,testing_file] " \
+        "for stepthree/0." not in caplog.text
+
+
+@pytest.mark.parametrize("scheduler", ("docker", "slurm"))
+def test_check_tool_requirements_non_local(gcd_nop_project, monkeypatch, caplog, scheduler):
+    monkeypatch.setattr(gcd_nop_project, "_Project__logger", logging.getLogger())
+    gcd_nop_project.logger.setLevel(logging.INFO)
+
+    EditableSchema(gcd_nop_project).insert("option", "testing", Parameter("str"))
+    EditableSchema(gcd_nop_project).insert("option", "testing_file", Parameter("file"))
+    assert gcd_nop_project.set("option", "testing_file", "thistest.txt")
+    gcd_nop_project.option.scheduler.set_name(scheduler)
+
+    # Change set reqirement
+    # Add unset key
+    assert gcd_nop_project.set("tool", "builtin", "task", "nop", "require", "option,testing",
+                               step="stepthree", index="0")
+    # Add invalid key
+    assert gcd_nop_project.add("tool", "builtin", "task", "nop", "require", "option1,testing",
+                               step="stepthree", index="0")
+    # Add missing file
+    assert gcd_nop_project.add("tool", "builtin", "task", "nop", "require", "option,testing_file",
+                               step="stepthree", index="0")
+    assert Scheduler(gcd_nop_project)._Scheduler__check_tool_requirements() is False
+
+    assert "No value set for required keypath [option,testing] for stepthree/0." in caplog.text
+    assert "Cannot resolve required keypath [option1,testing] for stepthree/0." in caplog.text
+    assert "Cannot resolve path thistest.txt in required file keypath [option,testing_file] " \
+        "for stepthree/0." not in caplog.text
 
 
 def test_check_tool_requirements_pass(gcd_nop_project, monkeypatch, caplog):

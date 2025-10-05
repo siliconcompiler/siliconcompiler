@@ -110,8 +110,6 @@ def skip_eda(request):
         return
     if 'eda' in request.keywords:
         pytest.skip("EDA not ready")
-    if 'docker' in request.keywords:
-        pytest.skip("docker not ready")
 
 
 @pytest.fixture(autouse=True)
