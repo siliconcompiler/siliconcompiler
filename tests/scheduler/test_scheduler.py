@@ -349,7 +349,7 @@ def test_check_manifest_fail(basic_project):
             patch("siliconcompiler.scheduler.Scheduler._Scheduler__check_flowgraph_io") \
             as check_flowgraph_io:
         check_manifest.return_value = False
-        with pytest.raises(RuntimeError, match=r'^check_manifest\\(\\) failed$'):
+        with pytest.raises(RuntimeError, match=r'^check_manifest\(\) failed$'):
             scheduler.run()
         check_manifest.assert_called_once()
         run_setup.assert_not_called()
