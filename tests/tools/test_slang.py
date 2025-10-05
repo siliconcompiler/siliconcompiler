@@ -25,7 +25,7 @@ def test_version_fail(task, monkeypatch):
             return 10
 
     monkeypatch.setattr(pyslang, "VersionInfo", Version)
-    with pytest.raises(RuntimeError, match="incorrect pyslang version: 8.9.10"):
+    with pytest.raises(RuntimeError, match="^incorrect pyslang version: 8.9.10$"):
         task()
 
 

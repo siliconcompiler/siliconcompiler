@@ -272,7 +272,7 @@ def test_verify_fail(minmax_project, caplog):
 
     node = SchedulerNode(project, "end", "0")
     with node.runtime():
-        with pytest.raises(ValueError, match="end/0 fails 'errors' metric: 1042==1041"):
+        with pytest.raises(ValueError, match="^end/0 fails 'errors' metric: 1042==1041$"):
             node.task.select_input_nodes()
 
     assert "Running builtin task 'verify'" in caplog.text
@@ -297,7 +297,7 @@ def test_verify_fail_two(minmax_project, caplog):
 
     node = SchedulerNode(project, "end", "0")
     with node.runtime():
-        with pytest.raises(ValueError, match="end/0 fails 'warnings' metric: 0==1"):
+        with pytest.raises(ValueError, match="^end/0 fails 'warnings' metric: 0==1$"):
             node.task.select_input_nodes()
 
     assert "Running builtin task 'verify'" in caplog.text
@@ -308,7 +308,7 @@ def test_verify_input_fail(minmax_project):
 
     node = SchedulerNode(project, "end", "0")
     with node.runtime():
-        with pytest.raises(ValueError, match="end/0 receives 2 inputs, but only supports one"):
+        with pytest.raises(ValueError, match="^end/0 receives 2 inputs, but only supports one$"):
             node.task.setup()
 
 

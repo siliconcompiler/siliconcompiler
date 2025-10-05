@@ -22,24 +22,24 @@ def test_set_name_repeat():
     assert schema.name is None
     schema.set_name("myname")
     assert schema.name == "myname"
-    with pytest.raises(RuntimeError, match="Cannot call set_name more than once."):
+    with pytest.raises(RuntimeError, match="^Cannot call set_name more than once.$"):
         schema.set_name("myname")
 
 
 def test_set_name_with_name():
     schema = NamedSchema("myname")
     assert schema.name == "myname"
-    with pytest.raises(RuntimeError, match="Cannot call set_name more than once."):
+    with pytest.raises(RuntimeError, match="^Cannot call set_name more than once.$"):
         schema.set_name("myname")
 
 
 def test_set_name_with_invalid_name():
-    with pytest.raises(ValueError, match=r"Named schema object cannot contains: \."):
+    with pytest.raises(ValueError, match=r"^Named schema object cannot contains: \.$"):
         NamedSchema("myname.this")
 
 
 def test_type():
-    with pytest.raises(NotImplementedError, match="Must be implemented by the child classes."):
+    with pytest.raises(NotImplementedError, match="^Must be implemented by the child classes.$"):
         NamedSchema().type()
 
 
@@ -142,7 +142,7 @@ def test_inserting_name():
 
 
 def test_from_manifest_no_args():
-    with pytest.raises(RuntimeError, match="filepath or dictionary is required"):
+    with pytest.raises(RuntimeError, match="^filepath or dictionary is required$"):
         NamedSchema.from_manifest(name="name")
 
 

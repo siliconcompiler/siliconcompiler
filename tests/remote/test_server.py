@@ -66,7 +66,7 @@ def test_server_not_authenticated(gcd_nop_project, scserver, scserver_users,
     gcd_nop_project.set('option', 'credentials', tmp_creds)
 
     # Run remote build. It should fail, so catch the expected exception.
-    with pytest.raises(RuntimeError, match="Server responded with 403: Authentication error."):
+    with pytest.raises(RuntimeError, match="^Server responded with 403: Authentication error.$"):
         gcd_nop_project.run()
 
 

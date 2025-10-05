@@ -81,7 +81,7 @@ def test_record_unit_covert():
 def test_record_unit_mismatch():
     schema = MetricSchema()
     with pytest.raises(ValueError,
-                       match="errors does not have a unit, but ms was supplied"):
+                       match="^errors does not have a unit, but ms was supplied$"):
         schema.record("teststep", "testindex", "errors", 5, unit='ms')
 
 

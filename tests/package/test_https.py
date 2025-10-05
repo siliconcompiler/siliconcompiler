@@ -58,5 +58,7 @@ def test_dependency_path_download_http_failed():
         "main"
     )
 
-    with pytest.raises(FileNotFoundError, match="Failed to download sc-data data source."):
+    with pytest.raises(FileNotFoundError,
+                       match=r"^Failed to download sc-data data source from "
+                             r"https://.*\.tar\.gz\. Status code: 400$"):
         resolver.resolve()

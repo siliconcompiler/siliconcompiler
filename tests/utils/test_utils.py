@@ -71,7 +71,7 @@ def test_safecompare(a, op, b, expect):
 
 
 def test_safecompare_invalid_operator():
-    with pytest.raises(ValueError, match="Illegal comparison operation !"):
+    with pytest.raises(ValueError, match="^Illegal comparison operation !$"):
         safecompare(1, "!", 2)
 
 

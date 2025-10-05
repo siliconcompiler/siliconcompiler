@@ -8,8 +8,8 @@ from siliconcompiler import Project
 
 def test_init_incorrect():
     with pytest.raises(ValueError,
-                       match="'github://this' is not in the proper form: github://"
-                             "<owner>/<repository>/<version>/<artifact>"):
+                       match="^'github://this' is not in the proper form: github://"
+                             "<owner>/<repository>/<version>/<artifact>$"):
         GithubResolver("github", Project(), "github://this", "main")
 
 

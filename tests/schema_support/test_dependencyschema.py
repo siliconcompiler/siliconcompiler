@@ -19,8 +19,8 @@ def test_add_dep_invalid():
     schema = DependencySchema()
 
     with pytest.raises(TypeError,
-                       match="Cannot add an object of type: <class "
-                       "'siliconcompiler.schema.baseschema.BaseSchema'>"):
+                       match=r"^Cannot add an object of type: <class "
+                       r"'siliconcompiler\.schema\.baseschema\.BaseSchema'>$"):
         schema.add_dep(BaseSchema())
 
 
@@ -86,14 +86,14 @@ def test_add_dep_no_clobber():
 def test_add_dep_unnamed():
     schema = DependencySchema()
 
-    with pytest.raises(ValueError, match="Cannot add an unnamed dependency"):
+    with pytest.raises(ValueError, match="^Cannot add an unnamed dependency$"):
         schema.add_dep(NamedSchema())
 
 
 def test_get_dep_not_found():
     schema = DependencySchema()
 
-    with pytest.raises(KeyError, match="notthere is not an imported module"):
+    with pytest.raises(KeyError, match="^'notthere is not an imported module'$"):
         schema.get_dep("notthere")
 
 
@@ -262,7 +262,7 @@ def test_get_dep_hier_with_non_dep():
     assert schema.get_dep("level0-0.level0-1") is dep01
 
     with pytest.raises(KeyError,
-                       match="level0-1.notthis does not contain dependency information"):
+                       match=r"^'level0-1\.notthis does not contain dependency information'$"):
         schema.get_dep("level0-0.level0-1.notthis")
 
 
@@ -313,7 +313,9 @@ def test_write_depgraph_no_graphviz_exe():
             raise graphviz.ExecutableNotFound("args")
         render.side_effect = raise_error
 
-        with pytest.raises(RuntimeError, match="Unable to save flowgraph: failed to execute"):
+        with pytest.raises(RuntimeError,
+                           match="^Unable to save flowgraph: failed to execute 'a', make sure the "
+                                 "Graphviz executables are on your systems' PATH$"):
             schema.write_depgraph("test.png")
         render.assert_called_once()
 
@@ -463,7 +465,7 @@ def test_populate_deps_missing():
     assert schema.add_dep(dep01)
 
     check = Test.from_manifest(name="test", cfg=schema.getdict())
-    with pytest.raises(ValueError, match="level0-0 not available in map"):
+    with pytest.raises(ValueError, match="^level0-0 not available in map$"):
         check._populate_deps({})
 
 

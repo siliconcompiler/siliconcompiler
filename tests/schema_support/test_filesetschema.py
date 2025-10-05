@@ -29,7 +29,7 @@ def test_add_file_single():
 def test_add_file_none():
     d = FileSetSchema()
 
-    with pytest.raises(ValueError, match="add_file cannot process None"):
+    with pytest.raises(ValueError, match="^add_file cannot process None$"):
         d.add_file(None, "rtl")
 
 
@@ -99,7 +99,7 @@ def test_add_file_default_to_ext():
 def test_add_file_invalid_fileset():
     d = FileSetSchema()
 
-    with pytest.raises(ValueError, match="fileset key must be a string"):
+    with pytest.raises(ValueError, match="^fileset key must be a string$"):
         d.add_file('tb.ver', 3)
 
 
@@ -166,18 +166,18 @@ def test_get_file_filetype_vhdl():
 
 
 def test_get_file_one_invalid_fileset():
-    with pytest.raises(ValueError, match="fileset key must be a string"):
+    with pytest.raises(ValueError, match="^fileset key must be a string$"):
         FileSetSchema().get_file(fileset=4)
 
 
 def test_active_fileset_invalid_none():
-    with pytest.raises(TypeError, match="fileset must a string"):
+    with pytest.raises(TypeError, match="^fileset must a string$"):
         with FileSetSchema().active_fileset(None):
             pass
 
 
 def test_active_fileset_invalid_empty():
-    with pytest.raises(ValueError, match="fileset cannot be an empty string"):
+    with pytest.raises(ValueError, match="^fileset cannot be an empty string$"):
         with FileSetSchema().active_fileset(""):
             pass
 
@@ -236,7 +236,7 @@ def test_copy_fileset_fail_overwrite():
     with schema.active_fileset("rtl"):
         assert schema.add_file("top.v")
 
-    with pytest.raises(ValueError, match="rtl already exists"):
+    with pytest.raises(ValueError, match="^rtl already exists$"):
         schema.copy_fileset("rtl", "rtl")
 
 
@@ -373,5 +373,5 @@ def test_has_file_filetype_vhdl():
 
 
 def test_has_file_one_invalid_fileset():
-    with pytest.raises(ValueError, match="fileset key must be a string"):
+    with pytest.raises(ValueError, match="^fileset key must be a string$"):
         FileSetSchema().has_file(fileset=4)
