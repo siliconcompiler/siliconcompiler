@@ -15,6 +15,7 @@ from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.scheduler import SlurmSchedulerNode
 from siliconcompiler.scheduler import DockerSchedulerNode
 from siliconcompiler.scheduler import TaskScheduler
+from siliconcompiler.scheduler.schedulernode import SchedulerFlowReset
 
 from siliconcompiler import utils
 from siliconcompiler.utils.logging import SCLoggerFormatter
@@ -143,10 +144,18 @@ class Scheduler:
 
     def __excepthook(self, exc_type, exc_value, exc_traceback):
         """
-        Custom exception hook to ensure all fatal errors are logged.
+        Handle uncaught exceptions by recording them to the job log, emitting a full traceback,
+        stopping any running dashboard, and notifying the multiprocessing manager.
 
-        This captures unhandled exceptions, logs them to the job log file,
-        and prints a traceback for debugging before the program terminates.
+        Logs a concise exception summary and the full traceback to the scheduler's job logger,
+        forwards KeyboardInterrupt to the default system excepthook, invokes the
+        project's dashboard stop method when present, and signals an uncaught exception
+        to the multiprocessing manager.
+
+        Parameters:
+            exc_type (Type[BaseException]): Exception class of the uncaught exception.
+            exc_value (BaseException): Exception instance (may contain the message).
+            exc_traceback (types.TracebackType): Traceback object for the exception.
         """
         if issubclass(exc_type, KeyboardInterrupt):
             sys.__excepthook__(exc_type, exc_value, exc_traceback)
@@ -174,6 +183,29 @@ class Scheduler:
         # Mark error to keep logfile
         MPManager.error("uncaught exception")
 
+    def __install_file_logger(self):
+        """
+        Set up a per-job file logger for the current project and attach it to the
+        scheduler's logger.
+
+        Creates the job directory if needed, rotates an existing job.log to a .bak
+        (using incrementing numeric suffixes if necessary), installs a FileHandler
+        writing to job.log with the SCLoggerFormatter, and stores the handler on
+        self.__joblog_handler.
+        """
+        os.makedirs(jobdir(self.__project), exist_ok=True)
+        file_log = os.path.join(jobdir(self.__project), "job.log")
+        bak_count = 0
+        bak_file_log = f"{file_log}.bak"
+        while os.path.exists(bak_file_log):
+            bak_count += 1
+            bak_file_log = f"{file_log}.bak.{bak_count}"
+        if os.path.exists(file_log):
+            os.rename(file_log, bak_file_log)
+        self.__joblog_handler = logging.FileHandler(file_log)
+        self.__joblog_handler.setFormatter(SCLoggerFormatter())
+        self.__logger.addHandler(self.__joblog_handler)
+
     def run(self):
         """
         The main entry point to start the compilation flow.
@@ -190,64 +222,65 @@ class Scheduler:
         org_excepthook = sys.excepthook
         sys.excepthook = self.__excepthook
 
-        # Determine job name first so we can create a log
-        if not self.__increment_job_name():
-            # No need to copy, no remove org job name
-            self.__org_job_name = None
+        try:
+            # Determine job name first so we can create a log
+            if not self.__increment_job_name():
+                # No need to copy, no remove org job name
+                self.__org_job_name = None
 
-        # Clean the directory early if needed
-        self.__clean_build_dir()
+            # Clean the directory early if needed
+            self.__clean_build_dir_full()
 
-        # Install job file logger
-        os.makedirs(jobdir(self.__project), exist_ok=True)
-        file_log = os.path.join(jobdir(self.__project), "job.log")
-        bak_count = 0
-        bak_file_log = f"{file_log}.bak"
-        while os.path.exists(bak_file_log):
-            bak_count += 1
-            bak_file_log = f"{file_log}.bak.{bak_count}"
-        if os.path.exists(file_log):
-            os.rename(file_log, bak_file_log)
-        self.__joblog_handler = logging.FileHandler(file_log)
-        self.__joblog_handler.setFormatter(SCLoggerFormatter())
-        self.__logger.addHandler(self.__joblog_handler)
+            # Install job file logger
+            self.__install_file_logger()
 
-        # Configure run
-        self.__project._init_run()
+            # Configure run
+            self.__project._init_run()
 
-        # Check validity of setup
-        if not self.check_manifest():
-            raise RuntimeError("check_manifest() failed")
+            # Check validity of setup
+            if not self.check_manifest():
+                raise RuntimeError("check_manifest() failed")
 
-        self.__run_setup()
-        self.configure_nodes()
+            self.__run_setup()
+            self.configure_nodes()
 
-        # Check validity of flowgraphs IO
-        if not self.__check_flowgraph_io():
-            raise RuntimeError("Flowgraph file IO constrains errors")
+            # Cleanup build directory
+            self.__clean_build_dir_incr()
 
-        self.run_core()
+            # Check validity of flowgraphs IO
+            if not self.__check_flowgraph_io():
+                raise RuntimeError("Flowgraph file IO constrains errors")
 
-        # Store run in history
-        self.__project._record_history()
+            self.run_core()
 
-        # Record final manifest
-        filepath = os.path.join(jobdir(self.__project), f"{self.__name}.pkg.json")
-        self.__project.write_manifest(filepath)
+            # Store run in history
+            self.__project._record_history()
 
-        send_messages.send(self.__project, 'summary', None, None)
+            # Record final manifest
+            filepath = os.path.join(jobdir(self.__project), f"{self.__name}.pkg.json")
+            self.__project.write_manifest(filepath)
 
-        self.__logger.removeHandler(self.__joblog_handler)
-        self.__joblog_handler = logging.NullHandler()
-
-        # Restore hook
-        sys.excepthook = org_excepthook
+            send_messages.send(self.__project, 'summary', None, None)
+        finally:
+            if self.__joblog_handler is not None:
+                self.__logger.removeHandler(self.__joblog_handler)
+                self.__joblog_handler.close()
+                self.__joblog_handler = logging.NullHandler()
+            # Restore hook
+            sys.excepthook = org_excepthook
 
     def __check_flowgraph_io(self):
-        '''Check if flowgraph is valid in terms of input and output files.
+        """
+        Validate that every runtime node will receive its required input files and that no
+        input file is provided by more than one source.
 
-        Returns True if valid, False otherwise.
-        '''
+        Checks whether each node's required inputs are available either from upstream
+        tasks' declared outputs or from existing output directories, and logs errors
+        for missing or duplicated input sources.
+
+        Returns:
+            bool: `True` if the flowgraph satisfies input/output requirements, `False` otherwise.
+        """
         nodes = self.__flow_runtime.get_nodes()
         error = False
 
@@ -390,31 +423,92 @@ class Scheduler:
         for step, index in self.__flow.get_nodes():
             self.__metrics.clear(step, index)
 
-    def __clean_build_dir(self):
+    def __clean_build_dir_full(self, recheck: bool = False):
         """
-        Private helper to clean the build directory if necessary.
+        Remove stale build outputs from the current job directory to prepare for a fresh run.
 
-        If ['option', 'clean'] is True and the run starts from the beginning,
-        the entire build directory is removed to ensure a fresh start.
+        When executed, deletes all files and subdirectories under the job directory for the current
+        project. If recheck is True, the method preserves an existing job.log file and leaves it
+        untouched. The method is a no-op if the run is associated with a remote job
+        (record.remoteid). When recheck is False, the cleanup only proceeds if the
+        project's 'option.clean' is true and 'option.from' is not set; when recheck is
+        True those option checks are bypassed.
+
+        Parameters:
+            recheck (bool): If True, perform a recheck cleanup that preserves job.log;
+                            also bypasses the usual option checks. Defaults to False.
         """
         if self.__record.get('remoteid'):
             return
 
-        if self.__project.get('option', 'clean') and not self.__project.get('option', 'from'):
-            # If no step or nodes to start from were specified, the whole flow is being run
-            # start-to-finish. Delete the build dir to clear stale results.
-            cur_job_dir = jobdir(self.__project)
-            if os.path.isdir(cur_job_dir):
-                shutil.rmtree(cur_job_dir)
+        if not recheck:
+            if not self.__project.get('option', 'clean') or self.__project.get('option', 'from'):
+                return
+
+        # If no step or nodes to start from were specified, the whole flow is being run
+        # start-to-finish. Delete the build dir to clear stale results.
+        cur_job_dir = jobdir(self.__project)
+        if os.path.isdir(cur_job_dir):
+            for delfile in os.listdir(cur_job_dir):
+                if delfile == "job.log" and recheck:
+                    continue
+                if os.path.isfile(os.path.join(cur_job_dir, delfile)):
+                    os.remove(os.path.join(cur_job_dir, delfile))
+                else:
+                    shutil.rmtree(os.path.join(cur_job_dir, delfile))
+
+    def __clean_build_dir_incr(self):
+        """
+        Prune the job build directory to match the current flow and clean pending node directories.
+
+        Removes step directories and index subdirectories that are not present in the current
+        flow/runtime. For nodes whose recorded status indicates they are waiting, enters the
+        node's runtime context and invokes its clean_directory method to perform
+        node-specific cleanup.
+        """
+        protected_dirs = {os.path.basename(collectiondir(self.__project))}
+
+        keep_steps = set([step for step, _ in self.__flow.get_nodes()])
+        cur_job_dir = jobdir(self.__project)
+        for step in os.listdir(cur_job_dir):
+            if step in protected_dirs:
+                continue
+            if not os.path.isdir(os.path.join(cur_job_dir, step)):
+                continue
+            if step not in keep_steps:
+                shutil.rmtree(os.path.join(cur_job_dir, step))
+        for step in os.listdir(cur_job_dir):
+            if step in protected_dirs:
+                continue
+            if not os.path.isdir(os.path.join(cur_job_dir, step)):
+                continue
+            for index in os.listdir(os.path.join(cur_job_dir, step)):
+                if not os.path.isdir(os.path.join(cur_job_dir, step, index)):
+                    continue
+                if (step, index) not in self.__flow.get_nodes():
+                    shutil.rmtree(os.path.join(cur_job_dir, step, index))
+
+        # Clean nodes marked pending
+        for step, index in self.__flow_runtime.get_nodes():
+            if NodeStatus.is_waiting(self.__record.get('status', step=step, index=index)):
+                with self.__tasks[(step, index)].runtime():
+                    self.__tasks[(step, index)].clean_directory()
 
     def configure_nodes(self):
         """
-        Configures all nodes before execution.
+        Prepare and configure all flow nodes before execution, including loading prior run state,
+        running per-node setup, and marking nodes that require rerun.
 
-        This is a critical step that determines the final state of each node
-        (SUCCESS, PENDING, SKIPPED) before the scheduler starts. It loads
-        results from previous runs, checks for any modifications to parameters
-        or input files, and marks nodes for re-run accordingly.
+        This method:
+        - Loads available node manifests from previous jobs and uses them to populate setup data
+          where appropriate.
+        - Runs each node's setup routine to initialize tools and runtime state.
+        - For nodes whose parameters or inputs have changed, marks them and all downstream nodes
+          as pending so they will be re-executed.
+        - Replays preserved journaled results for nodes that remain valid to reuse previous outputs.
+        - On a SchedulerFlowReset, forces a full build-directory recheck and marks every node
+          as pending.
+        - Persists the resulting manifest for the current job before returning.
         """
         from siliconcompiler import Project
 
@@ -477,19 +571,30 @@ class Scheduler:
         self.__print_status("After setup")
 
         # Check for modified information
-        for layer_nodes in self.__flow.get_execution_order():
-            for step, index in layer_nodes:
-                # Only look at successful nodes
-                if self.__record.get("status", step=step, index=index) != NodeStatus.SUCCESS:
-                    continue
+        try:
+            replay = []
+            for layer_nodes in self.__flow.get_execution_order():
+                for step, index in layer_nodes:
+                    # Only look at successful nodes
+                    if self.__record.get("status", step=step, index=index) != NodeStatus.SUCCESS:
+                        continue
 
-                with self.__tasks[(step, index)].runtime():
-                    if self.__tasks[(step, index)].requires_run():
-                        # This node must be run
-                        self.__mark_pending(step, index)
-                    elif (step, index) in extra_setup_nodes:
-                        # import old information
-                        Journal.access(extra_setup_nodes[(step, index)]).replay(self.__project)
+                    with self.__tasks[(step, index)].runtime():
+                        if self.__tasks[(step, index)].requires_run():
+                            # This node must be run
+                            self.__mark_pending(step, index)
+                        elif (step, index) in extra_setup_nodes:
+                            # import old information
+                            replay.append((step, index))
+            # Replay previous information
+            for step, index in replay:
+                Journal.access(extra_setup_nodes[(step, index)]).replay(self.__project)
+        except SchedulerFlowReset:
+            # Mark all nodes as pending
+            self.__clean_build_dir_full(recheck=True)
+
+            for step, index in self.__flow.get_nodes():
+                self.__mark_pending(step, index)
 
         self.__print_status("After requires run")
 
@@ -506,12 +611,6 @@ class Scheduler:
         self.__project.write_manifest(os.path.join(jobdir(self.__project),
                                                    f"{self.__name}.pkg.json"))
         journal.stop()
-
-        # Clean nodes marked pending
-        for step, index in self.__flow_runtime.get_nodes():
-            if NodeStatus.is_waiting(self.__record.get('status', step=step, index=index)):
-                with self.__tasks[(step, index)].runtime():
-                    self.__tasks[(step, index)].clean_directory()
 
     def __check_display(self):
         """

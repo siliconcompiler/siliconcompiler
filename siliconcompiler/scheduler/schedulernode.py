@@ -24,6 +24,10 @@ from siliconcompiler.scheduler import send_messages
 from siliconcompiler.utils.paths import workdir, jobdir, collectiondir
 
 
+class SchedulerFlowReset(Exception):
+    pass
+
+
 class SchedulerNode:
     """
     A class for managing and executing a single node in the compilation flow graph.
@@ -374,23 +378,25 @@ class SchedulerNode:
 
     def check_previous_run_status(self, previous_run):
         """
-        Checks if the previous run of this node completed successfully.
+        Determine whether a prior run is compatible and completed successfully for use as
+        an incremental build starting point.
 
-        Compares tool/task names and status to determine if the prior result
-        is valid as a starting point for an incremental build.
+        Performs compatibility checks (flow name, tool/task identity, completion status,
+        and input-node set) against the provided previous run.
 
         Args:
-            previous_run (SchedulerNode): The node object from a previous run
-                loaded from a manifest.
+            previous_run (SchedulerNode): Node object loaded from a previous run's manifest
+                                          to compare against.
 
         Returns:
-            bool: True if the previous run was successful and compatible,
-                False otherwise.
+            `True` if the previous run completed and is compatible, `False` otherwise.
+
+        Raises:
+            SchedulerFlowReset: If the flow name differs and a full reset is required.
         """
         # Assume modified if flow does not match
         if self.__flow.name != previous_run.__flow.name:
-            self.logger.debug("Flow name changed")
-            return False
+            raise SchedulerFlowReset("Flow name changed, require full reset")
 
         # Tool name
         if self.__task.tool() != previous_run.__task.tool():
