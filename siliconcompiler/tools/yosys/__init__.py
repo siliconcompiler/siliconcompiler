@@ -199,8 +199,6 @@ class YosysFPGA(FPGADevice):
                                    "The main configuration file for the target FPGA.")
         self.define_tool_parameter("yosys", "macrolib", "[file]",
                                    "A list of macro library files to be used.")
-        self.define_tool_parameter("yosys", "extractlib", "[file]",
-                                   "A list of files used to extract a macro library.")
         self.define_tool_parameter("yosys", "dsp_techmap", "file",
                                    "The technology map file for DSP blocks.")
         self.define_tool_parameter("yosys", "dsp_options", "{str}",
@@ -249,23 +247,6 @@ class YosysFPGA(FPGADevice):
                 return self.set("tool", "yosys", "macrolib", file)
             else:
                 return self.add("tool", "yosys", "macrolib", file)
-
-    def add_yosys_extractlib(self, file: Union[str, List[str]], dataroot: str = None,
-                             clobber: bool = False):
-        """
-        Adds a file used to extract a macro library.
-
-        Args:
-            file (Union[str, List[str]]): The path to the extraction file or a list of paths.
-            dataroot (str, optional): The data root directory. Defaults to the active package.
-            clobber (bool, optional): If True, overwrites the existing list with the new file(s).
-                                      If False, appends the file(s) to the list. Defaults to False.
-        """
-        with self.active_dataroot(self._get_active_dataroot(dataroot)):
-            if clobber:
-                return self.set("tool", "yosys", "extractlib", file)
-            else:
-                return self.add("tool", "yosys", "extractlib", file)
 
     def set_yosys_dsptechmap(self, file: str, options: List[str] = None, dataroot: str = None):
         """
