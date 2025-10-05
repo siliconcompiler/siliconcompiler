@@ -26,7 +26,7 @@ def test_insert_duplicate():
     edit = EditableSchema(schema)
     edit.insert("test", BaseSchema())
     with pytest.raises(KeyError,
-                       match=r"\[test\] is already defined"):
+                       match=r"^'\[test\] is already defined'$"):
         edit.insert("test", BaseSchema())
 
 
@@ -88,7 +88,8 @@ def test_insert_illegal_type():
 
     edit = EditableSchema(schema)
     with pytest.raises(ValueError,
-                       match=r"Value \(<class 'str'>\) must be schema type: Parameter, BaseSchema"):
+                       match=r"^Value \(<class 'str'>\) must be schema type: "
+                             r"Parameter, BaseSchema$"):
         edit.insert("test", "123456")
 
 
@@ -181,7 +182,7 @@ def test_remove_unknown():
 
     edit = EditableSchema(schema)
     with pytest.raises(KeyError,
-                       match=r"\[test\] cannot be found"):
+                       match=r"^'\[test\] cannot be found'$"):
         edit.remove("test")
 
 
@@ -192,7 +193,7 @@ def test_insert_no_path():
 
     edit = EditableSchema(schema)
     with pytest.raises(ValueError,
-                       match=r"A keypath is required"):
+                       match=r"^A keypath is required$"):
         edit.insert(BaseSchema())
 
 
@@ -203,7 +204,7 @@ def test_remove_no_path():
 
     edit = EditableSchema(schema)
     with pytest.raises(ValueError,
-                       match=r"A keypath is required"):
+                       match=r"^A keypath is required$"):
         edit.remove()
 
 
@@ -214,7 +215,7 @@ def test_insert_invalid_keypath():
 
     edit = EditableSchema(schema)
     with pytest.raises(ValueError,
-                       match=r"Keypath must only be strings"):
+                       match=r"^Keypath must only be strings$"):
         edit.insert("test", 1, BaseSchema())
 
 
@@ -225,7 +226,7 @@ def test_remove_invalid_keypath():
 
     edit = EditableSchema(schema)
     with pytest.raises(ValueError,
-                       match=r"Keypath must only be strings"):
+                       match=r"^Keypath must only be strings$"):
         edit.remove("test", 1)
 
 
@@ -236,7 +237,7 @@ def test_search_no_path():
 
     edit = EditableSchema(schema)
     with pytest.raises(ValueError,
-                       match=r"A keypath is required"):
+                       match=r"^A keypath is required$"):
         edit.search()
 
 
@@ -247,7 +248,7 @@ def test_search_invalid_keypath():
 
     edit = EditableSchema(schema)
     with pytest.raises(ValueError,
-                       match=r"Keypath must only be strings"):
+                       match=r"^Keypath must only be strings$"):
         edit.search("test", 1)
 
 

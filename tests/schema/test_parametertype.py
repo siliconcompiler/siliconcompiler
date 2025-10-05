@@ -17,7 +17,7 @@ def test_node_enum_type_eq():
 
 
 def test_node_enum_type_empty():
-    with pytest.raises(ValueError, match="enum cannot be empty set"):
+    with pytest.raises(ValueError, match="^enum cannot be empty set$"):
         NodeEnumType()
 
 
@@ -100,7 +100,7 @@ def test_encode(type, expect):
 
 
 def test_encode_invalid():
-    with pytest.raises(ValueError, match="1 not a recognized type"):
+    with pytest.raises(ValueError, match="^1 not a recognized type$"):
         NodeType.encode(1)
 
 
@@ -221,7 +221,7 @@ def test_to_tcl(type, value, expect):
 
 
 def test_to_tcl_unsupported():
-    with pytest.raises(TypeError, match="invalid is not a supported type"):
+    with pytest.raises(TypeError, match="^invalid is not a supported type$"):
         NodeType.to_tcl(12, "invalid")
 
 
@@ -231,10 +231,10 @@ def test_normalize_value_enum():
     assert NodeType.normalize("test1", enum) == "test1"
     assert NodeType.normalize("test2", enum) == "test2"
 
-    with pytest.raises(ValueError, match="test3 is not a member of: test0, test1, test2"):
+    with pytest.raises(ValueError, match="^test3 is not a member of: test0, test1, test2$"):
         NodeType.normalize("test3", enum)
 
-    with pytest.raises(ValueError, match="enum must be a string, not a <class 'int'>"):
+    with pytest.raises(ValueError, match="^enum must be a string, not a <class 'int'>$"):
         NodeType.normalize(1, enum)
 
 
@@ -243,7 +243,7 @@ def test_normalize_value_file():
     assert NodeType.normalize("./test1", "file") == "test1"
     assert NodeType.normalize(Path("./test2"), "file") == "test2"
 
-    with pytest.raises(ValueError, match="file must be a string or Path, not <class 'int'>"):
+    with pytest.raises(ValueError, match="^file must be a string or Path, not <class 'int'>$"):
         NodeType.normalize(1, "file")
 
 
@@ -252,7 +252,7 @@ def test_normalize_value_dir():
     assert NodeType.normalize("./test1", "dir") == "test1"
     assert NodeType.normalize(Path("./test2"), "dir") == "test2"
 
-    with pytest.raises(ValueError, match="dir must be a string or Path, not <class 'int'>"):
+    with pytest.raises(ValueError, match="^dir must be a string or Path, not <class 'int'>$"):
         NodeType.normalize(1, "dir")
 
 
@@ -262,47 +262,47 @@ def test_normalize_value_nodetype():
 
 
 def test_normalize_invalid_type():
-    with pytest.raises(ValueError, match="Invalid type specifier: invalid"):
+    with pytest.raises(ValueError, match="^Invalid type specifier: invalid$"):
         NodeType.normalize('1235', 'invalid')
 
 
 def test_normalize_invalid_int():
-    with pytest.raises(ValueError, match="\"a\" unable to convert to int"):
+    with pytest.raises(ValueError, match="^\"a\" unable to convert to int$"):
         NodeType.normalize('a', 'int')
 
 
 def test_normalize_invalid_list_entry():
-    with pytest.raises(ValueError, match="\"a\" unable to convert to int"):
+    with pytest.raises(ValueError, match="^\"a\" unable to convert to int$"):
         NodeType.normalize(['a'], ['int'])
 
 
 def test_normalize_invalid_float():
-    with pytest.raises(ValueError, match="\"a\" unable to convert to float"):
+    with pytest.raises(ValueError, match="^\"a\" unable to convert to float$"):
         NodeType.normalize('a', 'float')
 
 
 def test_normalize_invalid_bool():
-    with pytest.raises(ValueError, match="\"a\" unable to convert to boolean"):
+    with pytest.raises(ValueError, match="^\"a\" unable to convert to boolean$"):
         NodeType.normalize('a', 'bool')
 
 
 def test_normalize_invalid_tuple():
-    with pytest.raises(ValueError, match=r"\(a\) does not have 2 entries"):
+    with pytest.raises(ValueError, match=r"^\(a\) does not have 2 entries$"):
         NodeType.normalize('(a)', ("int", "str"))
-    with pytest.raises(ValueError, match=r"\(a\) does not have 2 entries"):
+    with pytest.raises(ValueError, match=r"^\(a\) does not have 2 entries$"):
         NodeType.normalize('a', ("int", "str"))
-    with pytest.raises(ValueError, match=r"\(a\) \(<class 'set'>\) cannot be converted to tuple"):
+    with pytest.raises(ValueError, match=r"^\(a\) \(<class 'set'>\) cannot be converted to tuple$"):
         NodeType.normalize(set(['a']), ("int", "str"))
-    with pytest.raises(ValueError, match=r"\(1\) \(<class 'int'>\) cannot be converted to tuple"):
+    with pytest.raises(ValueError, match=r"^\(1\) \(<class 'int'>\) cannot be converted to tuple$"):
         NodeType.normalize(1, ("int", "str"))
 
 
 def test_normalize_invalid_str():
-    with pytest.raises(ValueError, match=r'"<class \'list\'>" unable to convert to str'):
+    with pytest.raises(ValueError, match=r'^"<class \'list\'>" unable to convert to str$'):
         NodeType.normalize(list(['a', 'b']), 'str')
-    with pytest.raises(ValueError, match=r'"<class \'set\'>" unable to convert to str'):
+    with pytest.raises(ValueError, match=r'^"<class \'set\'>" unable to convert to str$'):
         NodeType.normalize(set(['a', 'b']), 'str')
-    with pytest.raises(ValueError, match=r'"<class \'tuple\'>" unable to convert to str'):
+    with pytest.raises(ValueError, match=r'^"<class \'tuple\'>" unable to convert to str$'):
         NodeType.normalize(tuple(['a', 'b']), 'str')
 
 
@@ -322,7 +322,7 @@ def test_str(sctype):
 
 
 def test_str_invalid():
-    with pytest.raises(ValueError, match="<class 'int'> not a recognized type"):
+    with pytest.raises(ValueError, match="^<class 'int'> not a recognized type$"):
         str(NodeType(int))
 
 

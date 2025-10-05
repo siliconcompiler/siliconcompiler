@@ -67,20 +67,21 @@ def basic_project_no_flow():
 
 
 def test_init_no_flow():
-    with pytest.raises(ValueError, match="flow must be specified"):
+    with pytest.raises(ValueError, match="^flow must be specified$"):
         Scheduler(Project(Design("testdesign")))
 
 
 def test_init_flow_not_defined(basic_project):
     basic_project.set("option", "flow", "testflow")
-    with pytest.raises(ValueError, match="flow is not defined"):
+    with pytest.raises(ValueError, match="^flow is not defined$"):
         Scheduler(basic_project)
 
 
 def test_init_flow_not_valid(basic_project):
     with patch("siliconcompiler.flowgraph.Flowgraph.validate") as call:
         call.return_value = False
-        with pytest.raises(ValueError, match="test flowgraph contains errors and cannot be run."):
+        with pytest.raises(ValueError,
+                           match=r"^test flowgraph contains errors and cannot be run\.$"):
             Scheduler(basic_project)
 
 
@@ -89,7 +90,8 @@ def test_init_flow_runtime_not_valid(basic_project):
          patch("siliconcompiler.flowgraph.RuntimeFlowgraph.validate") as call1:
         call0.return_value = True
         call1.return_value = False
-        with pytest.raises(ValueError, match="test flowgraph contains errors and cannot be run."):
+        with pytest.raises(ValueError,
+                           match=r"^test flowgraph contains errors and cannot be run\.$"):
             Scheduler(basic_project)
 
 
@@ -339,7 +341,7 @@ def test_check_manifest_fail(basic_project):
     with patch("siliconcompiler.scheduler.Scheduler.check_manifest",
                autospec=True) as call:
         call.return_value = False
-        with pytest.raises(RuntimeError, match='check_manifest\\(\\) failed'):
+        with pytest.raises(RuntimeError, match='^check_manifest\\(\\) failed$'):
             scheduler.run()
         call.assert_called_once()
 

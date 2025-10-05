@@ -96,7 +96,7 @@ def test_get_invalid_key():
     edit = EditableSchema(schema)
     edit.insert("test0", "test1", Parameter("str"))
 
-    with pytest.raises(KeyError, match=r"\[test0,test2\] is not a valid keypath"):
+    with pytest.raises(KeyError, match=r"^'\[test0,test2\] is not a valid keypath'$"):
         schema.get("test0", "test2")
 
 
@@ -105,7 +105,7 @@ def test_get_invalid_key_depth():
     edit = EditableSchema(schema)
     edit.insert("test0", "test1", Parameter("str"))
 
-    with pytest.raises(KeyError, match=r"\[test0,test1,test2\] is not a valid keypath"):
+    with pytest.raises(KeyError, match=r"^'\[test0,test1,test2\] is not a valid keypath'$"):
         schema.get("test0", "test1", "test2")
 
 
@@ -114,7 +114,7 @@ def test_get_invalid_key_from_child():
     edit = EditableSchema(schema)
     edit.insert("test0", "test1", Parameter("str"))
 
-    with pytest.raises(KeyError, match=r"\[test0,test2\] is not a valid keypath"):
+    with pytest.raises(KeyError, match=r"^'\[test0,test2\] is not a valid keypath'$"):
         schema.get("test0", field="schema").get("test2")
 
 
@@ -160,7 +160,7 @@ def test_set_invalid_key():
     edit = EditableSchema(schema)
     edit.insert("test0", "test1", Parameter("str"))
 
-    with pytest.raises(KeyError, match=r"\[test0,test2\] is not a valid keypath"):
+    with pytest.raises(KeyError, match=r"^'\[test0,test2\] is not a valid keypath'$"):
         schema.set("test0", "test2", "hello")
 
 
@@ -169,7 +169,7 @@ def test_set_invalid_key_from_child():
     edit = EditableSchema(schema)
     edit.insert("test0", "test1", Parameter("str"))
 
-    with pytest.raises(KeyError, match=r"\[test0,test2\] is not a valid keypath"):
+    with pytest.raises(KeyError, match=r"^'\[test0,test2\] is not a valid keypath'$"):
         schema.get("test0", field="schema").set("test2", "hello")
 
 
@@ -178,7 +178,7 @@ def test_add_invalid_key():
     edit = EditableSchema(schema)
     edit.insert("test0", "test1", Parameter("str"))
 
-    with pytest.raises(KeyError, match=r"\[test0,test2\] is not a valid keypath"):
+    with pytest.raises(KeyError, match=r"^'\[test0,test2\] is not a valid keypath'$"):
         schema.add("test0", "test2", "hello")
 
 
@@ -187,7 +187,7 @@ def test_add_invalid_key_from_child():
     edit = EditableSchema(schema)
     edit.insert("test0", "test1", Parameter("str"))
 
-    with pytest.raises(KeyError, match=r"\[test0,test2\] is not a valid keypath"):
+    with pytest.raises(KeyError, match=r"^'\[test0,test2\] is not a valid keypath'$"):
         schema.get("test0", field="schema").add("test2", "hello")
 
 
@@ -196,7 +196,7 @@ def test_set_partial_key():
     edit = EditableSchema(schema)
     edit.insert("test0", "test1", Parameter("str"))
 
-    with pytest.raises(KeyError, match=r"\[test0\] is not a valid keypath"):
+    with pytest.raises(KeyError, match=r"^'\[test0\] is not a valid keypath'$"):
         schema.set("test0", "hello")
 
 
@@ -205,7 +205,7 @@ def test_set_partial_key_from_child():
     edit = EditableSchema(schema)
     edit.insert("test0", "test1", "test2", Parameter("str"))
 
-    with pytest.raises(KeyError, match=r"\[test0,test1\] is not a valid keypath"):
+    with pytest.raises(KeyError, match=r"^'\[test0,test1\] is not a valid keypath'$"):
         schema.get("test0", field="schema").set("test1", "hello")
 
 
@@ -214,7 +214,7 @@ def test_get_empty_key():
     edit = EditableSchema(schema)
     edit.insert("test0", "test1", Parameter("str"))
 
-    with pytest.raises(KeyError, match=r"\[\] is not a valid keypath"):
+    with pytest.raises(KeyError, match=r"^'\[\] is not a valid keypath'$"):
         schema.get()
 
 
@@ -231,7 +231,7 @@ def test_set_empty_key_no_value():
     edit = EditableSchema(schema)
     edit.insert("test0", "test1", Parameter("str"))
 
-    with pytest.raises(KeyError, match=r"keypath and value is required"):
+    with pytest.raises(KeyError, match=r"^'keypath and value is required'$"):
         schema.set()
 
 
@@ -240,7 +240,7 @@ def test_set_empty_key_with_value():
     edit = EditableSchema(schema)
     edit.insert("test0", "test1", Parameter("str"))
 
-    with pytest.raises(KeyError, match=r"keypath and value is required"):
+    with pytest.raises(KeyError, match=r"^'keypath and value is required'$"):
         schema.set("hello")
 
 
@@ -249,7 +249,7 @@ def test_add_empty_key_no_value():
     edit = EditableSchema(schema)
     edit.insert("test0", "test1", Parameter("str"))
 
-    with pytest.raises(KeyError, match=r"keypath and value is required"):
+    with pytest.raises(KeyError, match=r"^'keypath and value is required'$"):
         schema.add()
 
 
@@ -258,7 +258,7 @@ def test_add_empty_key_with_value():
     edit = EditableSchema(schema)
     edit.insert("test0", "test1", Parameter("str"))
 
-    with pytest.raises(KeyError, match=r"keypath and value is required"):
+    with pytest.raises(KeyError, match=r"^'keypath and value is required'$"):
         schema.add("hello")
 
 
@@ -267,7 +267,7 @@ def test_add_partial_key():
     edit = EditableSchema(schema)
     edit.insert("test0", "test1", Parameter("str"))
 
-    with pytest.raises(KeyError, match=r"\[test0\] is not a valid keypath"):
+    with pytest.raises(KeyError, match=r"^'\[test0\] is not a valid keypath'$"):
         schema.add("test0", "hello")
 
 
@@ -276,7 +276,7 @@ def test_add_partial_key_form_child():
     edit = EditableSchema(schema)
     edit.insert("test0", "test1", "test2", Parameter("str"))
 
-    with pytest.raises(KeyError, match=r"\[test0,test1\] is not a valid keypath"):
+    with pytest.raises(KeyError, match=r"^'\[test0,test1\] is not a valid keypath'$"):
         schema.get("test0", field="schema").add("test1", "hello")
 
 
@@ -285,7 +285,7 @@ def test_unset_invalid_key():
     edit = EditableSchema(schema)
     edit.insert("test0", "test1", Parameter("str"))
 
-    with pytest.raises(KeyError, match=r"\[test0,test3\] is not a valid keypath"):
+    with pytest.raises(KeyError, match=r"^'\[test0,test3\] is not a valid keypath'$"):
         schema.unset("test0", "test3")
 
 
@@ -294,7 +294,7 @@ def test_unset_invalid_key_from_child():
     edit = EditableSchema(schema)
     edit.insert("test0", "test1", "test2", Parameter("str"))
 
-    with pytest.raises(KeyError, match=r"\[test0,test3\] is not a valid keypath"):
+    with pytest.raises(KeyError, match=r"^'\[test0,test3\] is not a valid keypath'$"):
         schema.get("test0", field="schema").unset("test3")
 
 
@@ -344,7 +344,7 @@ def test_remove_invalid_key():
     edit = EditableSchema(schema)
     edit.insert("test0", "default", Parameter("str"))
 
-    with pytest.raises(KeyError, match=r"\[test1,test1\] is not a valid keypath"):
+    with pytest.raises(KeyError, match=r"^'\[test1,test1\] is not a valid keypath'$"):
         schema.remove("test1", "test1")
 
 
@@ -353,7 +353,7 @@ def test_remove_invalid_key_from_child():
     edit = EditableSchema(schema)
     edit.insert("test0", "test1", "default", Parameter("str"))
 
-    with pytest.raises(KeyError, match=r"\[test0,test0,test1\] is not a valid keypath"):
+    with pytest.raises(KeyError, match=r"^'\[test0,test0,test1\] is not a valid keypath'$"):
         schema.get("test0", field="schema").remove("test0", "test1")
 
 
@@ -416,7 +416,7 @@ def test_insert_locked_default():
 
     assert schema.set("test0", "test1", "test2", "hello")
     assert schema.set("test0", "test1", "default", True, field="lock")
-    with pytest.raises(KeyError, match=r"\[test0,test1,test3\] is not a valid keypath"):
+    with pytest.raises(KeyError, match=r"^'\[test0,test1,test3\] is not a valid keypath'$"):
         assert schema.set("test0", "test1", "test3", "hello")
     assert schema.set("test0", "test1", "default", False, field="lock")
     assert schema.set("test0", "test1", "test3", "hello")
@@ -779,15 +779,15 @@ def test_getkeys_unmatched():
     edit = EditableSchema(schema)
     edit.insert("test0", "test1", Parameter("str"))
 
-    with pytest.raises(KeyError, match=r"\[test1\] is not a valid keypath"):
+    with pytest.raises(KeyError, match=r"^'\[test1\] is not a valid keypath'$"):
         schema.getkeys("test1")
-    with pytest.raises(KeyError, match=r"\[test0,test0\] is not a valid keypath"):
+    with pytest.raises(KeyError, match=r"^'\[test0,test0\] is not a valid keypath'$"):
         schema.getkeys("test0", "test0")
     assert schema.getkeys("test0", "test1") == tuple()
 
 
 def test_from_manifest_no_args():
-    with pytest.raises(RuntimeError, match="filepath or dictionary is required"):
+    with pytest.raises(RuntimeError, match="^filepath or dictionary is required$"):
         BaseSchema.from_manifest()
 
 
@@ -844,7 +844,7 @@ def test_write_manifest_gz_no_gzip(monkeypatch):
     edit.insert("test0", "test1", Parameter("str"))
 
     assert not os.path.isfile("test.json.gz")
-    with pytest.raises(RuntimeError, match="gzip is not available"):
+    with pytest.raises(RuntimeError, match="^gzip is not available$"):
         schema.write_manifest("test.json.gz")
     assert not os.path.isfile("test.json.gz")
 
@@ -1100,7 +1100,7 @@ def test_getschema_invalid():
     edit = EditableSchema(schema)
     edit.insert("test0", "test1", Parameter("str"))
 
-    with pytest.raises(KeyError, match=r"\[test\] is not a valid keypath"):
+    with pytest.raises(KeyError, match=r"^'\[test\] is not a valid keypath'$"):
         schema.get("test", field='schema')
 
 
@@ -1109,11 +1109,11 @@ def test_getschema_parameter():
     edit = EditableSchema(schema)
     edit.insert("test0", "test1", Parameter("str"))
 
-    with pytest.raises(ValueError, match=r"\[test0,test1\] is a complete keypath"):
+    with pytest.raises(ValueError, match=r"^\[test0,test1\] is a complete keypath$"):
         schema.get("test0", "test1", field='schema')
 
 
-@pytest.mark.parametrize("error", (ValueError, RuntimeError, KeyError))
+@pytest.mark.parametrize("error", (ValueError, RuntimeError))
 def test_forward_exception_with_key_get(error, monkeypatch):
     schema = BaseSchema()
     edit = EditableSchema(schema)
@@ -1125,12 +1125,12 @@ def test_forward_exception_with_key_get(error, monkeypatch):
     monkeypatch.setattr(param, 'get', dummy_get)
 
     with pytest.raises(error,
-                       match=r"error while accessing \[test0,test1\]: "
-                             r"this is an error from the param"):
+                       match=r"^error while accessing \[test0,test1\]: "
+                             r"this is an error from the param$"):
         schema.get("test0", "test1")
 
 
-@pytest.mark.parametrize("error", (ValueError, RuntimeError, KeyError))
+@pytest.mark.parametrize("error", (ValueError, RuntimeError))
 def test_forward_exception_with_key_set(error, monkeypatch):
     schema = BaseSchema()
     edit = EditableSchema(schema)
@@ -1142,12 +1142,12 @@ def test_forward_exception_with_key_set(error, monkeypatch):
     monkeypatch.setattr(param, 'set', dummy_set)
 
     with pytest.raises(error,
-                       match=r"error while setting \[test0,test1\]: "
-                             r"this is an error from the param"):
+                       match=r"^error while setting \[test0,test1\]: "
+                             r"this is an error from the param$"):
         schema.set("test0", "test1", "value")
 
 
-@pytest.mark.parametrize("error", (ValueError, RuntimeError, KeyError))
+@pytest.mark.parametrize("error", (ValueError, RuntimeError))
 def test_forward_exception_with_key_add(error, monkeypatch):
     schema = BaseSchema()
     edit = EditableSchema(schema)
@@ -1159,12 +1159,12 @@ def test_forward_exception_with_key_add(error, monkeypatch):
     monkeypatch.setattr(param, 'add', dummy_add)
 
     with pytest.raises(error,
-                       match=r"error while adding to \[test0,test1\]: "
-                             r"this is an error from the param"):
+                       match=r"^error while adding to \[test0,test1\]: "
+                             r"this is an error from the param$"):
         schema.add("test0", "test1", "value")
 
 
-@pytest.mark.parametrize("error", (ValueError, RuntimeError, KeyError))
+@pytest.mark.parametrize("error", (ValueError, RuntimeError))
 def test_forward_exception_with_key_unset(error, monkeypatch):
     schema = BaseSchema()
     edit = EditableSchema(schema)
@@ -1176,8 +1176,8 @@ def test_forward_exception_with_key_unset(error, monkeypatch):
     monkeypatch.setattr(param, 'unset', dummy_unset)
 
     with pytest.raises(error,
-                       match=r"error while unsetting \[test0,test1\]: "
-                             r"this is an error from the param"):
+                       match=r"^error while unsetting \[test0,test1\]: "
+                             r"this is an error from the param$"):
         schema.unset("test0", "test1")
 
 
@@ -1187,7 +1187,7 @@ def test_find_files_non_path():
     param = Parameter("str")
     edit.insert("var", param)
 
-    with pytest.raises(TypeError, match=r"Cannot find files on \[var\], must be a path type"):
+    with pytest.raises(TypeError, match=r"^Cannot find files on \[var\], must be a path type$"):
         schema.find_files("var")
 
 
@@ -1226,7 +1226,7 @@ def test_find_files_scalar_file_not_found():
 
     assert schema.set("file", "test.txt")
 
-    with pytest.raises(FileNotFoundError, match=r"Could not find \"test.txt\" \[file\]: .*"):
+    with pytest.raises(FileNotFoundError, match=r"^Could not find \"test.txt\" \[file\]: .*$"):
         schema.find_files("file")
 
 
@@ -1245,7 +1245,7 @@ def test_find_files_scalar_file_not_found_multiple_search():
 
     with pytest.raises(
             FileNotFoundError,
-            match=r"Could not find \"test.txt\" \[file\]: .*, .*, .*"):
+            match=r"^Could not find \"test.txt\" \[file\]: .*, .*, .*$"):
         schema.find_files("file")
 
 
@@ -1257,7 +1257,7 @@ def test_find_files_scalar_dir_not_found():
 
     assert schema.set("directory", "test")
 
-    with pytest.raises(FileNotFoundError, match=r"Could not find \"test\" \[directory\]: .*"):
+    with pytest.raises(FileNotFoundError, match=r"^Could not find \"test\" \[directory\]: .*$"):
         schema.find_files("directory")
 
 
@@ -1331,7 +1331,7 @@ def test_find_files_list_file_not_found():
 
     assert schema.set("file", ["test0.txt", "test1.txt"])
 
-    with pytest.raises(FileNotFoundError, match=r"Could not find \"test1.txt\" \[file\]: .*"):
+    with pytest.raises(FileNotFoundError, match=r"^Could not find \"test1.txt\" \[file\]: .*$"):
         schema.find_files("file")
 
 
@@ -1345,7 +1345,7 @@ def test_find_files_list_dir_not_found():
 
     assert schema.set("directory", ["test0", "test1"])
 
-    with pytest.raises(FileNotFoundError, match=r"Could not find \"test1\" \[directory\]: .*"):
+    with pytest.raises(FileNotFoundError, match=r"^Could not find \"test1\" \[directory\]: .*$"):
         schema.find_files("directory")
 
 
@@ -1466,7 +1466,8 @@ def test_find_files_with_package_not_found():
     }
 
     with pytest.raises(FileNotFoundError,
-                       match=r"Could not find \"test1.txt\" in this_package \[package,file\]: .*"):
+                       match=r"^Could not find \"test1.txt\" in this_package "
+                             r"\[package,file\]: .*$"):
         schema.find_files("package", "file", dataroots=package_map)
 
     assert resolve0.called == 2
@@ -1486,7 +1487,8 @@ def test_find_files_with_package_missing():
     assert schema.set("package", "file", ["test0.txt", "test1.txt"])
     assert schema.set("package", "file", ["this_package", "this_package"], field="dataroot")
 
-    with pytest.raises(ValueError, match=r"Resolver for this_package not provided"):
+    with pytest.raises(ValueError, match=r"^Resolver for this_package not "
+                                         r"provided: \[package,file\]$"):
         schema.find_files("package", "file", dataroots={})
 
 
@@ -1544,7 +1546,8 @@ def test_find_files_with_package_as_invalid():
         "this_package": 1
     }
 
-    with pytest.raises(TypeError, match="Resolver for this_package is not a recognized type"):
+    with pytest.raises(TypeError, match=r"^Resolver for this_package is not a recognized "
+                                        r"type: \[package,file\]$"):
         schema.find_files("package", "file", dataroots=package_map)
 
 
@@ -2877,7 +2880,7 @@ def test___load_schema_class_forward_import_fails(error):
         import_module.side_effect = raises
 
         BaseSchema._BaseSchema__load_schema_class.cache_clear()
-        with pytest.raises(error, match="match this"):
+        with pytest.raises(error, match="^match this$"):
             BaseSchema._BaseSchema__load_schema_class("test/Class")
         import_module.assert_called_once()
 
@@ -2903,7 +2906,7 @@ def test___load_schema_class_class_invalid_class_type():
         import_module.return_value = Test
 
         BaseSchema._BaseSchema__load_schema_class.cache_clear()
-        with pytest.raises(TypeError, match="Class must be a BaseSchema type"):
+        with pytest.raises(TypeError, match="^Class must be a BaseSchema type$"):
             BaseSchema._BaseSchema__load_schema_class("test/Class")
         import_module.assert_called_once_with("test")
 
@@ -2950,7 +2953,7 @@ def test_hash_files_non_path():
     param = Parameter("str")
     edit.insert("var", param)
 
-    with pytest.raises(TypeError, match=r"Cannot find files on \[var\], must be a path type"):
+    with pytest.raises(TypeError, match=r"^Cannot find files on \[var\], must be a path type$"):
         schema.hash_files("var")
 
 
@@ -2992,7 +2995,7 @@ def test_hash_files_scalar_file_not_found():
 
     assert schema.set("file", "test.txt")
 
-    with pytest.raises(FileNotFoundError, match=r"Could not find \"test.txt\" \[file\]: .*"):
+    with pytest.raises(FileNotFoundError, match=r"^Could not find \"test.txt\" \[file\]: .*$"):
         schema.hash_files("file")
 
 
@@ -3004,7 +3007,7 @@ def test_hash_files_scalar_dir_not_found():
 
     assert schema.set("directory", "test")
 
-    with pytest.raises(FileNotFoundError, match=r"Could not find \"test\" \[directory\]: .*"):
+    with pytest.raises(FileNotFoundError, match=r"^Could not find \"test\" \[directory\]: .*$"):
         schema.hash_files("directory")
 
 
@@ -3080,7 +3083,7 @@ def test_hash_files_list_file_not_found():
 
     assert schema.set("file", ["test0.txt", "test1.txt"])
 
-    with pytest.raises(FileNotFoundError, match=r"Could not find \"test1.txt\" \[file\]: .*"):
+    with pytest.raises(FileNotFoundError, match=r"^Could not find \"test1.txt\" \[file\]: .*$"):
         schema.hash_files("file")
 
 
@@ -3094,7 +3097,7 @@ def test_hash_files_list_dir_not_found():
 
     assert schema.set("directory", ["test0", "test1"])
 
-    with pytest.raises(FileNotFoundError, match=r"Could not find \"test1\" \[directory\]: .*"):
+    with pytest.raises(FileNotFoundError, match=r"^Could not find \"test1\" \[directory\]: .*$"):
         schema.hash_files("directory")
 
 
@@ -3219,7 +3222,7 @@ def test_hash_files_with_package_not_found():
 
     with pytest.raises(
             FileNotFoundError,
-            match=r"Could not find \"test1.txt\" in this_package \[package,file\]: .*"):
+            match=r"^Could not find \"test1.txt\" in this_package \[package,file\]: .*$"):
         schema.hash_files("package", "file", dataroots=package_map)
 
     assert resolve0.called == 2
@@ -3239,7 +3242,8 @@ def test_hash_files_with_package_missing():
     assert schema.set("package", "file", ["test0.txt", "test1.txt"])
     assert schema.set("package", "file", ["this_package", "this_package"], field="dataroot")
 
-    with pytest.raises(ValueError, match=r"Resolver for this_package not provided"):
+    with pytest.raises(ValueError, match=r"^Resolver for this_package not provided: "
+                                         r"\[package,file\]$"):
         schema.hash_files("package", "file", dataroots={})
 
 
@@ -3297,7 +3301,9 @@ def test_hash_files_with_package_as_invalid():
         "this_package": 1
     }
 
-    with pytest.raises(TypeError, match="Resolver for this_package is not a recognized type"):
+    with pytest.raises(TypeError,
+                       match=r"^Resolver for this_package is not a recognized "
+                             r"type: \[package,file\]$"):
         schema.hash_files("package", "file", dataroots=package_map)
 
 

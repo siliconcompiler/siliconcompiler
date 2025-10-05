@@ -61,27 +61,27 @@ def echo_project():
 
 
 def test_init_invalid_step(project):
-    with pytest.raises(TypeError, match="step must be a string with a value"):
+    with pytest.raises(TypeError, match="^step must be a string with a value$"):
         SchedulerNode(project, None, "0")
 
 
 def test_init_invalid_step_empty(project):
-    with pytest.raises(TypeError, match="step must be a string with a value"):
+    with pytest.raises(TypeError, match="^step must be a string with a value$"):
         SchedulerNode(project, "", "0")
 
 
 def test_init_invalid_index(project):
-    with pytest.raises(TypeError, match="index must be a string with a value"):
+    with pytest.raises(TypeError, match="^index must be a string with a value$"):
         SchedulerNode(project, "step", None)
 
 
 def test_init_invalid_index_int(project):
-    with pytest.raises(TypeError, match="index must be a string with a value"):
+    with pytest.raises(TypeError, match="^index must be a string with a value$"):
         SchedulerNode(project, "step", 0)
 
 
 def test_init_invalid_index_empty(project):
-    with pytest.raises(TypeError, match="index must be a string with a value"):
+    with pytest.raises(TypeError, match="^index must be a string with a value$"):
         SchedulerNode(project, "step", "")
 
 
@@ -212,7 +212,7 @@ def test_get_log(project, type, expect_name):
 
 def test_get_log_invalid(project):
     node = SchedulerNode(project, "steptwo", "0")
-    with pytest.raises(ValueError, match="invalid is not a log"):
+    with pytest.raises(ValueError, match="^invalid is not a log$"):
         node.get_log("invalid")
 
 
@@ -254,7 +254,7 @@ def test_setup_error(project, monkeypatch, caplog):
     monkeypatch.setattr(node.task, "setup", dummy_setup)
 
     with node.runtime():
-        with pytest.raises(ValueError, match="Find this"):
+        with pytest.raises(ValueError, match="^Find this$"):
             node.setup()
     assert "Failed to run setup() for steptwo/0 with builtin/nop" in caplog.text
 
@@ -269,8 +269,8 @@ def test_setup_with_return(project, monkeypatch, caplog):
 
     with node.runtime():
         with pytest.raises(RuntimeError,
-                           match=r"setup\(\) returned a value, but should not have: "
-                           "This should not be there"):
+                           match=r"^setup\(\) returned a value, but should not have: "
+                           "This should not be there$"):
             node.setup()
     assert "Failed to run setup() for steptwo/0 with builtin/nop" in caplog.text
 
@@ -324,7 +324,7 @@ def test_get_check_changed_keys_with_invalid_require(project):
 
     node = SchedulerNode(project, "steptwo", "0")
     with node.runtime():
-        with pytest.raises(KeyError, match="\\[this,key\\] not found"):
+        with pytest.raises(KeyError, match="^'\\[this,key\\] not found'$"):
             node.get_check_changed_keys()
 
 
@@ -1665,7 +1665,7 @@ def test_check_previous_run_status_flow_different_name_vs_original(project):
 
     # Comparing nodes with different flow names should raise SchedulerFlowReset
     with node.runtime(), node_new.runtime():
-        with pytest.raises(SchedulerFlowReset, match="Flow name changed, require full reset"):
+        with pytest.raises(SchedulerFlowReset, match="^Flow name changed, require full reset$"):
             node.check_previous_run_status(node_new)
 
 

@@ -64,7 +64,7 @@ def test_sign_no_module(monkeypatch):
 
     value = NodeValue("str")
     value.set("signthis")
-    with pytest.raises(RuntimeError, match="encoding not available"):
+    with pytest.raises(RuntimeError, match="^encoding not available$"):
         value.sign(person="testing", key="123456", salt="0147258")
 
 
@@ -106,7 +106,7 @@ def test_verify_signature_no_module(monkeypatch):
     monkeypatch.setattr(parametervalue, "_has_sign", False)
     assert not parametervalue._has_sign
 
-    with pytest.raises(RuntimeError, match="encoding not available"):
+    with pytest.raises(RuntimeError, match="^encoding not available$"):
         value.verify_signature(person="testing", key="123456")
 
 
@@ -114,7 +114,7 @@ def test_verify_no_signature():
     value = NodeValue("str")
     value.set("signthis")
 
-    with pytest.raises(ValueError, match="no signature available"):
+    with pytest.raises(ValueError, match="^no signature available$"):
         value.verify_signature(person="testing", key="123456")
 
 
@@ -123,7 +123,7 @@ def test_verify_signature_person_mismatch():
     value.set("signthis")
     value.sign(person="testing", key="123456", salt="0147258")
 
-    with pytest.raises(ValueError, match="testing1 does not match signing person: testing"):
+    with pytest.raises(ValueError, match="^testing1 does not match signing person: testing$"):
         value.verify_signature(person="testing1", key="123456")
 
 
@@ -153,10 +153,10 @@ def test_value_get_dict():
 def test_value_get_set_invalid():
     value = NodeValue("str")
 
-    with pytest.raises(ValueError, match="invalid is not a valid field"):
+    with pytest.raises(ValueError, match="^invalid is not a valid field$"):
         value.get(field="invalid")
 
-    with pytest.raises(ValueError, match="invalid is not a valid field"):
+    with pytest.raises(ValueError, match="^invalid is not a valid field$"):
         value.set("test", field="invalid")
 
 
@@ -312,10 +312,10 @@ def test_directory_get_dict():
 def test_directory_get_set_invalid():
     value = DirectoryNodeValue()
 
-    with pytest.raises(ValueError, match="invalid is not a valid field"):
+    with pytest.raises(ValueError, match="^invalid is not a valid field$"):
         value.get(field="invalid")
 
-    with pytest.raises(ValueError, match="invalid is not a valid field"):
+    with pytest.raises(ValueError, match="^invalid is not a valid field$"):
         value.set("test", field="invalid")
 
 
@@ -353,13 +353,13 @@ def test_directory_resolve_path():
 
     value.set("testdir")
 
-    with pytest.raises(FileNotFoundError, match="testdir"):
+    with pytest.raises(FileNotFoundError, match="^testdir$"):
         assert value.resolve_path()
 
     os.makedirs("testdir", exist_ok=True)
     assert value.resolve_path() == os.path.abspath("testdir")
 
-    with pytest.raises(FileNotFoundError, match="testdir"):
+    with pytest.raises(FileNotFoundError, match="^testdir$"):
         assert value.resolve_path(search=[])
 
     assert value.resolve_path(search=["nothere", "notthere", "."]) == \
@@ -397,10 +397,10 @@ def test_file_get_dict():
 def test_file_get_set_invalid():
     value = FileNodeValue()
 
-    with pytest.raises(ValueError, match="invalid is not a valid field"):
+    with pytest.raises(ValueError, match="^invalid is not a valid field$"):
         value.get(field="invalid")
 
-    with pytest.raises(ValueError, match="invalid is not a valid field"):
+    with pytest.raises(ValueError, match="^invalid is not a valid field$"):
         value.set("test", field="invalid")
 
 
@@ -444,14 +444,14 @@ def test_file_resolve_path():
 
     value.set("test.txt")
 
-    with pytest.raises(FileNotFoundError, match="test.txt"):
+    with pytest.raises(FileNotFoundError, match="^test.txt$"):
         assert value.resolve_path()
 
     with open("test.txt", "w") as f:
         f.write("test")
     assert value.resolve_path() == os.path.abspath("test.txt")
 
-    with pytest.raises(FileNotFoundError, match="test.txt"):
+    with pytest.raises(FileNotFoundError, match="^test.txt$"):
         assert value.resolve_path(search=[])
 
     assert value.resolve_path(search=["nothere", "notthere", "."]) == \
@@ -601,7 +601,7 @@ def test_nodelist_set_str_signature():
         'signature': ["test3", "test4"],
         'value': ["test1", "test2"]}
 
-    with pytest.raises(ValueError, match="set on signature field must match number of value"):
+    with pytest.raises(ValueError, match="^set on signature field must match number of values$"):
         param.set(["test3"], field='signature')
 
 
@@ -630,7 +630,7 @@ def test_nodelist_add_str_non_value():
         'signature': [None, None],
         'value': ["test1", "test2"]}
 
-    with pytest.raises(ValueError, match="cannot add to signature field"):
+    with pytest.raises(ValueError, match="^cannot add to signature field$"):
         param.add(["test0", "test4", "test1"], field='signature')
 
 
@@ -669,7 +669,7 @@ def test_file_hash_invalid_algoritm():
     param.set('foo.txt')
 
     with pytest.raises(RuntimeError,
-                       match="Unable to hash file due to missing hash function: md56"):
+                       match="^Unable to hash file due to missing hash function: md56$"):
         param.hash('md56')
 
 
@@ -742,14 +742,14 @@ def test_directory_hash_invalid_algoritm():
     param.set('foo.txt')
 
     with pytest.raises(RuntimeError,
-                       match="Unable to hash directory due to missing hash function: md56"):
+                       match="^Unable to hash directory due to missing hash function: md56$"):
         param.hash('md56')
 
 
 def test_file_add_to_parent_field():
     param = FileNodeValue()
 
-    with pytest.raises(ValueError, match="cannot add to signature field"):
+    with pytest.raises(ValueError, match="^cannot add to signature field$"):
         param.add("notthis", field="signature")
 
 
@@ -826,7 +826,7 @@ def test_directory_resolve_path_collected_empty():
 
     value.set("one/two/three/four/testdir")
 
-    with pytest.raises(FileNotFoundError, match="one/two/three/four/testdir"):
+    with pytest.raises(FileNotFoundError, match="^one/two/three/four/testdir$"):
         value.resolve_path(collection_dir=coll_dir)
 
 
@@ -880,7 +880,7 @@ def test_directory_resolve_path_collected_dir_not_found():
 
     value.set("one/two/three/four/testdir")
 
-    with pytest.raises(FileNotFoundError, match="one/two/three/four/testdir"):
+    with pytest.raises(FileNotFoundError, match="^one/two/three/four/testdir$"):
         value.resolve_path(collection_dir=coll_dir)
 
 
@@ -899,7 +899,7 @@ def test_directory_resolve_path_collected_not_found():
 
     value.set("one/two/three/four/testdir0")
 
-    with pytest.raises(FileNotFoundError, match="one/two/three/four/testdir0"):
+    with pytest.raises(FileNotFoundError, match="^one/two/three/four/testdir0$"):
         value.resolve_path(collection_dir=coll_dir)
 
 
@@ -1249,7 +1249,7 @@ def test_nodeset_set_str_signature():
         'signature': ["test3", "test4"],
         'value': ["test1", "test2"]}
 
-    with pytest.raises(ValueError, match="set on signature field must match number of value"):
+    with pytest.raises(ValueError, match="^set on signature field must match number of values$"):
         param.set(["test3"], field='signature')
 
 
@@ -1279,7 +1279,7 @@ def test_nodeset_add_str_non_value():
         'value': ["test1", "test2"]}
 
     with pytest.raises(ValueError,
-                       match="cannot add to signature field"):
+                       match="^cannot add to signature field$"):
         param.add(["test0", "test4", "test1"], field='signature')
 
 

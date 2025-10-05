@@ -29,7 +29,7 @@ class FauxTask1(Task):
 
 @pytest.mark.parametrize("arg", [None, Design(), "string"])
 def test_collect_notproject(arg):
-    with pytest.raises(TypeError, match="project must be a Project"):
+    with pytest.raises(TypeError, match="^project must be a Project$"):
         collect(arg)
 
 
@@ -273,7 +273,8 @@ def test_collect_file_whitelist_error():
 
     proj = Project(design)
 
-    with pytest.raises(RuntimeError, match=".* is not on the approved collection list"):
+    with pytest.raises(RuntimeError,
+                       match=r"^.* is not on the approved collection list\.$"):
         collect(proj, whitelist=[os.path.abspath('not_test_folder')])
 
     assert len(os.listdir(collectiondir(proj))) == 0
@@ -299,12 +300,12 @@ def test_collect_file_whitelist_pass():
 
 @pytest.mark.parametrize("arg", [None, Design(), "string"])
 def test_archive_notproject(arg):
-    with pytest.raises(TypeError, match="project must be a Project"):
+    with pytest.raises(TypeError, match="^project must be a Project$"):
         archive(arg)
 
 
 def test_archive_no_jobs():
-    with pytest.raises(ValueError, match="no history to archive"):
+    with pytest.raises(ValueError, match="^no history to archive$"):
         archive(Project())
 
 

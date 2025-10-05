@@ -54,7 +54,7 @@ def test_dashboard_graph_cfg_file_not_found(monkeypatch):
     monkeypatch.setattr('sys.argv', [
         'sc-dashboard', '-cfg', 'test.json', '-graph_cfg', 'testing.json'])
 
-    with pytest.raises(ValueError, match="not a valid file path: testing.json"):
+    with pytest.raises(ValueError, match="^not a valid file path: testing.json$"):
         sc_dashboard.main()
 
 
@@ -103,8 +103,8 @@ def test_dashboard_graph_cfg_names_invalid(monkeypatch):
         'sc-dashboard', '-cfg', 'test.json', '-graph_cfg', 'testfile opt test.json'])
 
     with pytest.raises(ValueError,
-                       match='graph_cfg accepts a max of 2 values, you supplied 3 in '
-                             '"-graph_cfg \\[\'testfile\', \'opt\', \'test.json\'\\]"'):
+                       match=r'^graph_cfg accepts a max of 2 values, you supplied 3 in '
+                             r'"-graph_cfg \[\'testfile\', \'opt\', \'test\.json\'\]"$'):
         sc_dashboard.main()
 
 

@@ -102,7 +102,7 @@ def test_default_init_dir():
 def test_get_invalid_field():
     param = Parameter("str")
 
-    with pytest.raises(ValueError, match='"invalidfield" is not a valid field'):
+    with pytest.raises(ValueError, match="^\"invalidfield\" is not a valid field$"):
         param.get(field='invalidfield')
 
 
@@ -296,7 +296,7 @@ def test_get_fields_enum():
 def test_set_add_illegal():
     param = Parameter("<test0,test1>")
 
-    with pytest.raises(ValueError, match="add can only be used on lists or sets"):
+    with pytest.raises(ValueError, match="^add can only be used on lists or sets$"):
         param.add("test0")
 
 
@@ -322,7 +322,7 @@ def test_add_fields_enum():
     assert param.add("test3", field="example")
     assert param.get(field='example') == ["test3"]
 
-    with pytest.raises(ValueError, match='"invalid" is not a valid field'):
+    with pytest.raises(ValueError, match="^\"invalid\" is not a valid field$"):
         param.add("test3", field="invalid")
 
 
@@ -642,7 +642,7 @@ def test_pernode_mandatory_get():
 def test_pernode_mandatory_set():
     param = Parameter("str", pernode=PerNode.REQUIRED)
 
-    with pytest.raises(KeyError, match="'step and index are required'"):
+    with pytest.raises(KeyError, match="^'step and index are required'$"):
         param.set("foo")
 
     param.set("foo", step="test", index="0")
@@ -652,7 +652,7 @@ def test_pernode_mandatory_set():
 def test_pernode_mandatory_add():
     param = Parameter("[str]", pernode=PerNode.REQUIRED)
 
-    with pytest.raises(KeyError, match="'step and index are required'"):
+    with pytest.raises(KeyError, match="^'step and index are required'$"):
         param.add("foo")
 
     param.add("foo", step="test", index="0")
@@ -1031,33 +1031,33 @@ def test_normalize_fields_scalar(value, field, expect):
 def test_normalize_fields_scalar_errors_file():
     param = Parameter("file")
 
-    with pytest.raises(ValueError, match="invalid is not a member of: global, job, scratch"):
+    with pytest.raises(ValueError, match="^invalid is not a member of: global, job, scratch$"):
         param.set("invalid", field='scope')
 
-    with pytest.raises(ValueError, match="invalid is not a member of: never, optional, required"):
+    with pytest.raises(ValueError, match="^invalid is not a member of: never, optional, required$"):
         param.set("invalid", field='pernode')
 
-    with pytest.raises(ValueError, match='"invalid" is not a valid field'):
+    with pytest.raises(ValueError, match="^\"invalid\" is not a valid field$"):
         param.set("test", field="invalid")
 
 
 def test_normalize_fields_scalar_errors_dir():
     param = Parameter("dir")
 
-    with pytest.raises(ValueError, match='"date" is not a valid field'):
+    with pytest.raises(ValueError, match="^\"date\" is not a valid field$"):
         param.set("test", field="date")
 
-    with pytest.raises(ValueError, match='"author" is not a valid field'):
+    with pytest.raises(ValueError, match="^\"author\" is not a valid field$"):
         param.set("test", field="author")
 
 
 def test_normalize_fields_scalar_errors_int():
     param = Parameter("int")
 
-    with pytest.raises(ValueError, match='"dataroot" is not a valid field'):
+    with pytest.raises(ValueError, match="^\"dataroot\" is not a valid field$"):
         param.set("test", field="dataroot")
 
-    with pytest.raises(ValueError, match='"filehash" is not a valid field'):
+    with pytest.raises(ValueError, match="^\"filehash\" is not a valid field$"):
         param.set("test", field="filehash")
 
 
@@ -1109,50 +1109,50 @@ def test_normalize_fields_list(value, field, expect):
 def test_normalize_fields_list_errors():
     param = Parameter("[file]")
 
-    with pytest.raises(ValueError, match="invalid is not a member of: global, job, scratch"):
+    with pytest.raises(ValueError, match="^invalid is not a member of: global, job, scratch$"):
         param.set("invalid", field='scope')
 
-    with pytest.raises(ValueError, match="invalid is not a member of: never, optional, required"):
+    with pytest.raises(ValueError, match="^invalid is not a member of: never, optional, required$"):
         param.set("invalid", field='pernode')
 
-    with pytest.raises(ValueError, match='"invalid" is not a valid field'):
+    with pytest.raises(ValueError, match="^\"invalid\" is not a valid field$"):
         param.set("test", field="invalid")
 
 
 def test_add_normalize_fields_list_errors_file():
     param = Parameter("[file]")
 
-    with pytest.raises(ValueError, match='"invalid" is not a valid field'):
+    with pytest.raises(ValueError, match="^\"invalid\" is not a valid field$"):
         param.add("test", field="invalid")
 
 
 def test_add_normalize_fields_list_errors_dir():
     param = Parameter("[dir]")
 
-    with pytest.raises(ValueError, match='"date" is not a valid field'):
+    with pytest.raises(ValueError, match="^\"date\" is not a valid field$"):
         param.add("test", field="date")
 
-    with pytest.raises(ValueError, match='"author" is not a valid field'):
+    with pytest.raises(ValueError, match="^\"author\" is not a valid field$"):
         param.add("test", field="author")
 
 
 def test_add_normalize_fields_list_errors_int():
     param = Parameter("[int]")
 
-    with pytest.raises(ValueError, match='"dataroot" is not a valid field'):
+    with pytest.raises(ValueError, match="^\"dataroot\" is not a valid field$"):
         param.add("test", field="dataroot")
 
-    with pytest.raises(ValueError, match='"filehash" is not a valid field'):
+    with pytest.raises(ValueError, match="^\"filehash\" is not a valid field$"):
         param.add("test", field="filehash")
 
-    with pytest.raises(ValueError, match='"hashalgo" is not a valid field'):
+    with pytest.raises(ValueError, match="^\"hashalgo\" is not a valid field$"):
         param.add("test", field="hashalgo")
 
 
 def test_add_on_scalar():
     param = Parameter("int")
 
-    with pytest.raises(ValueError, match="add can only be used on lists"):
+    with pytest.raises(ValueError, match="^add can only be used on lists or sets$"):
         param.add("test")
 
 
@@ -1204,10 +1204,10 @@ def test_unlock():
 def test_step_index_required():
     param = Parameter("int", pernode=PerNode.REQUIRED)
 
-    with pytest.raises(KeyError, match='step and index are required'):
+    with pytest.raises(KeyError, match="^'step and index are required'$"):
         param.get()
 
-    with pytest.raises(KeyError, match='step and index are required'):
+    with pytest.raises(KeyError, match="^'step and index are required'$"):
         param.get(step="type")
 
     assert param.get(step="type", index="0") is None
@@ -1216,10 +1216,10 @@ def test_step_index_required():
 def test_step_index_never():
     param = Parameter("int", pernode=PerNode.NEVER)
 
-    with pytest.raises(KeyError, match='use of step and index are not valid'):
+    with pytest.raises(KeyError, match="^'use of step and index are not valid'$"):
         param.get(step="type", index="0")
 
-    with pytest.raises(KeyError, match='use of step and index are not valid'):
+    with pytest.raises(KeyError, match="^'use of step and index are not valid'$"):
         param.get(step="type")
 
     assert param.get() is None
@@ -1229,16 +1229,16 @@ def test_step_index_optional():
     param = Parameter("int", pernode=PerNode.OPTIONAL)
 
     with pytest.raises(KeyError,
-                       match='step and index are only valid for: value, signature'):
+                       match="^'step and index are only valid for: value, signature'$"):
         param.get(step="type", index="0", field="type")
 
-    with pytest.raises(KeyError, match='step is required if index is provided'):
+    with pytest.raises(KeyError, match="^'step is required if index is provided'$"):
         param.get(index="0")
 
-    with pytest.raises(KeyError, match='illegal step name: default is reserved'):
+    with pytest.raises(KeyError, match="^'illegal step name: default is reserved'$"):
         param.get(step="default", index="0")
 
-    with pytest.raises(KeyError, match='illegal index name: default is reserved'):
+    with pytest.raises(KeyError, match="^'illegal index name: default is reserved'$"):
         param.get(step="test", index="default")
 
 
@@ -1485,7 +1485,7 @@ def test_add_commandline_arguments_none():
 def test_add_commandline_arguments_invalid():
     param = Parameter("str", switch=["-testing:this"])
 
-    with pytest.raises(ValueError, match="unable to process switch information: -testing:this"):
+    with pytest.raises(ValueError, match="^unable to process switch information: -testing:this$"):
         param.add_commandline_arguments(argparse.ArgumentParser(), "test")
 
 
@@ -1616,16 +1616,16 @@ def test_parse_commandline_arguments_pernode_required():
     assert param.parse_commandline_arguments("step index 1", "key", "path") == \
         (("key", "path"), "step", "index", "1")
 
-    with pytest.raises(ValueError, match='Invalid value "step 1" for switch -test <int>: '
-                       'Requires step and index before final value'):
+    with pytest.raises(ValueError, match="^Invalid value \"step 1\" for switch -test <int>: "
+                       'Requires step and index before final value$'):
         param.parse_commandline_arguments("step 1", "key", "path")
 
-    with pytest.raises(ValueError, match='Invalid value "1" for switch -test <int>: '
-                       'Requires step and index before final value'):
+    with pytest.raises(ValueError, match="^Invalid value \"1\" for switch -test <int>: "
+                       'Requires step and index before final value$'):
         param.parse_commandline_arguments("1", "key", "path")
 
-    with pytest.raises(ValueError, match='Invalid value "step index 1 1" for switch -test <int>: '
-                       'Requires step and index before final value'):
+    with pytest.raises(ValueError, match="^Invalid value \"step index 1 1\" for switch -test "
+                       '<int>: Requires step and index before final value$'):
         param.parse_commandline_arguments("step index 1 1", "key", "path")
 
 
@@ -1640,7 +1640,7 @@ def test_add_commandline_arguments_with_quotes():
 def test_add_commandline_arguments_with_quote_mismatch():
     param = Parameter("str", switch=["-test '<str>"], pernode=PerNode.OPTIONAL)
 
-    with pytest.raises(ValueError, match="unable to process switch information: -test '<str>"):
+    with pytest.raises(ValueError, match="^unable to process switch information: -test '<str>$"):
         param.add_commandline_arguments(argparse.ArgumentParser(),
                                         "key", "path", switchlist="-test")
 
@@ -1683,8 +1683,8 @@ def test_parse_commandline_arguments_pernode_optional():
     assert param.parse_commandline_arguments("1", "key", "path") == \
         (("key", "path"), None, None, "1")
 
-    with pytest.raises(ValueError, match='Invalid value "step index 1 1" for switch -test <int>: '
-                       'Too many arguments'):
+    with pytest.raises(ValueError, match="^Invalid value \"step index 1 1\" for switch -test "
+                       '<int>: Too many arguments$'):
         param.parse_commandline_arguments("step index 1 1", "key", "path")
 
 
@@ -1728,11 +1728,12 @@ def test_parse_commandline_arguments_default_keys():
     assert param.parse_commandline_arguments("path \"1\"", "key", "default") == \
         (("key", "path"), None, None, "1")
 
-    with pytest.raises(ValueError, match='Invalid value "step index 1 1" for switch -test <int>'):
+    with pytest.raises(ValueError,
+                       match="^Invalid value \"step index 1 1\" for switch -test <int>$"):
         param.parse_commandline_arguments("step index 1 1", "key", "default")
 
     with pytest.raises(ValueError,
-                       match='Invalid value "test "step index 1"" for switch -test <int>'):
+                       match="^Invalid value \"test \"step index 1\"\" for switch -test <int>$"):
         param.parse_commandline_arguments("test \"step index 1\"", "key", "default", "default")
 
 

@@ -82,12 +82,13 @@ def test_init_with_env_project():
 
 def test_resolve():
     resolver = Resolver("testpath", Project("testproj"), "source://this")
-    with pytest.raises(NotImplementedError, match="child class must implement this"):
+    with pytest.raises(NotImplementedError, match="^child class must implement this$"):
         resolver.resolve()
 
 
 def test_find_resolver_not_found():
-    with pytest.raises(ValueError, match="Source URI 'nosupport://help.me/file' is not supported"):
+    with pytest.raises(ValueError,
+                       match="^Source URI 'nosupport://help.me/file' is not supported$"):
         Resolver.find_resolver("nosupport://help.me/file")
 
 
@@ -283,7 +284,7 @@ def test_get_path_not_found():
     proj = Project("testproj")
 
     resolver = AlwaysOld("alwaysmissing", proj, "notused", "notused")
-    with pytest.raises(FileNotFoundError, match="Unable to locate 'alwaysmissing' at .*path"):
+    with pytest.raises(FileNotFoundError, match="^Unable to locate 'alwaysmissing' at .*path$"):
         resolver.get_path()
 
 
@@ -300,17 +301,17 @@ def test_remote_init():
 
 def test_remote_init_no_ref():
     with pytest.raises(ValueError,
-                       match=r"A reference \(e.g., version, commit\) is required for thisname"):
+                       match=r"^A reference \(e.g., version, commit\) is required for thisname$"):
         RemoteResolver("thisname", Project("testproj"), "https://filepath")
 
 
 def test_remote_child_impl():
     resolver = RemoteResolver("thisname", Project("testproj"), "https://filepath", "ref")
 
-    with pytest.raises(NotImplementedError, match="child class must implement this"):
+    with pytest.raises(NotImplementedError, match="^child class must implement this$"):
         resolver.resolve_remote()
 
-    with pytest.raises(NotImplementedError, match="child class must implement this"):
+    with pytest.raises(NotImplementedError, match="^child class must implement this$"):
         resolver.check_cache()
 
 
@@ -499,8 +500,8 @@ def test_remote_lock_within_lock_thread():
         assert os.path.exists(resolver0.lock_file)
         assert not os.path.exists(resolver0.sc_lock_file)
 
-        with pytest.raises(RuntimeError, match="Failed to access .*. "
-                                               "Another thread is currently holding the lock."):
+        with pytest.raises(RuntimeError, match=r"^Failed to access .*\. "
+                                               r"Another thread is currently holding the lock\.$"):
             with resolver1.lock():
                 assert False, "should not get here"
 
@@ -578,8 +579,8 @@ def test_remote_lock_within_lock_file(monkeypatch):
         def dummy_lock(*args, **kwargs):
             return False
         monkeypatch.setattr(dut_ipl, "acquire", dummy_lock)
-        with pytest.raises(RuntimeError, match="Failed to access .*. .* is still locked. "
-                           "If this is a mistake, please delete the lock file."):
+        with pytest.raises(RuntimeError, match=r"^Failed to access .*\. .*\.lock is still locked. "
+                           r"If this is a mistake, please delete the lock file\.$"):
             with resolver1.lock():
                 pass
 
@@ -620,8 +621,8 @@ def test_remote_lock_failed():
     with patch("fasteners.InterProcessLock.acquire") as acquire:
         acquire.return_value = False
         with pytest.raises(RuntimeError,
-                           match="Failed to access .*.lock is still locked. "
-                           "If this is a mistake, please delete the lock file."):
+                           match=r"^Failed to access .*\. .*\.lock is still locked\. "
+                           r"If this is a mistake, please delete the lock file\.$"):
             with resolver.lock():
                 assert False, "Should not gain lock"
             acquire.assert_called_once()
@@ -665,7 +666,7 @@ def test_remote_lock_revert_to_file_failed():
         resolver.sc_lock_file.touch()
 
         with pytest.raises(RuntimeError,
-                           match="Failed to access .*. Lock .* still exists"):
+                           match=r"^Failed to access .*\. Lock .* still exists\.$"):
             with resolver.lock():
                 pass
 
@@ -714,7 +715,7 @@ def test_keypath_resolver():
 def test_keypath_resolver_no_root():
     resolver = KeyPathResolver("thisname", None, "key://option,dir,testdir")
     with pytest.raises(RuntimeError,
-                       match="A root schema has not been defined for 'thisname'"):
+                       match="^A root schema has not been defined for 'thisname'$"):
         resolver.resolve()
 
 

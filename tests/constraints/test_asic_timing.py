@@ -38,7 +38,7 @@ def test_timing_scanario_pin_voltage():
 
 def test_timing_scanario_pin_voltage_missing():
     scene = ASICTimingScenarioSchema()
-    with pytest.raises(LookupError, match="VDD does not have voltage"):
+    with pytest.raises(LookupError, match="^VDD does not have voltage$"):
         scene.get_pin_voltage("VDD")
 
 
@@ -142,12 +142,12 @@ def test_timing_scanario_check_clobber_step_index():
 
 
 def test_timing_scanario_sdcfileset_invalid_type_design():
-    with pytest.raises(TypeError, match="design must be a design object or string"):
+    with pytest.raises(TypeError, match="^design must be a design object or string$"):
         ASICTimingScenarioSchema().add_sdcfileset(1.0, "fileset")
 
 
 def test_timing_scanario_sdcfileset_invalid_type_fileset():
-    with pytest.raises(TypeError, match="fileset must be a string"):
+    with pytest.raises(TypeError, match="^fileset must be a string$"):
         ASICTimingScenarioSchema().add_sdcfileset("test", 1.0)
 
 
@@ -209,17 +209,17 @@ def test_timing_constraint_get_scenarios_empty():
 
 
 def test_timing_constraint_get_scenarios_missing():
-    with pytest.raises(LookupError, match="notfound is not defined"):
+    with pytest.raises(LookupError, match="^notfound is not defined$"):
         ASICTimingConstraintSchema().get_scenario("notfound")
 
 
 def test_timing_constraint_add_scenario_invalid_type():
-    with pytest.raises(TypeError, match="scenario must be a timing scenario object"):
+    with pytest.raises(TypeError, match="^scenario must be a timing scenario object$"):
         ASICTimingConstraintSchema().add_scenario(ASICTimingConstraintSchema())
 
 
 def test_timing_constraint_add_scenario_unnamed():
-    with pytest.raises(ValueError, match="scenario must have a name"):
+    with pytest.raises(ValueError, match="^scenario must have a name$"):
         ASICTimingConstraintSchema().add_scenario(ASICTimingScenarioSchema())
 
 
@@ -247,7 +247,7 @@ def test_timing_constraint_get_scenario():
 
 
 def test_timing_constraint_make_scenario_illegal():
-    with pytest.raises(ValueError, match="scenario name is required"):
+    with pytest.raises(ValueError, match="^scenario name is required$"):
         ASICTimingConstraintSchema().make_scenario(None)
 
 
@@ -255,7 +255,7 @@ def test_timing_constraint_make_scenario_exists():
     schema = ASICTimingConstraintSchema()
 
     schema.add_scenario(ASICTimingScenarioSchema("slow"))
-    with pytest.raises(LookupError, match="slow scenario already exists"):
+    with pytest.raises(LookupError, match="^slow scenario already exists$"):
         schema.make_scenario("slow")
 
 
@@ -269,7 +269,7 @@ def test_timing_constraint_make_scenario():
 
 
 def test_timing_constraint_remove_scenario_illegal():
-    with pytest.raises(ValueError, match="scenario name is required"):
+    with pytest.raises(ValueError, match="^scenario name is required$"):
         ASICTimingConstraintSchema().remove_scenario(None)
 
 

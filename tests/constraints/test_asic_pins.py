@@ -49,11 +49,11 @@ def test_set_get_width(pin_constraint):
     pin_constraint.set_width(5)  # Test integer
     assert pin_constraint.get_width() == 5
 
-    with pytest.raises(TypeError, match="width must be a number"):
+    with pytest.raises(TypeError, match="^width must be a number$"):
         pin_constraint.set_width("abc")
-    with pytest.raises(ValueError, match="width must be a positive value"):
+    with pytest.raises(ValueError, match="^width must be a positive value$"):
         pin_constraint.set_width(0)
-    with pytest.raises(ValueError, match="width must be a positive value"):
+    with pytest.raises(ValueError, match="^width must be a positive value$"):
         pin_constraint.set_width(-1.0)
 
 
@@ -74,11 +74,11 @@ def test_set_get_length(pin_constraint):
     pin_constraint.set_length(15)  # Test integer
     assert pin_constraint.get_length() == 15
 
-    with pytest.raises(TypeError, match="length must be a number"):
+    with pytest.raises(TypeError, match="^length must be a number$"):
         pin_constraint.set_length([1])
-    with pytest.raises(ValueError, match="length must be a positive value"):
+    with pytest.raises(ValueError, match="^length must be a positive value$"):
         pin_constraint.set_length(0.0)
-    with pytest.raises(ValueError, match="length must be a positive value"):
+    with pytest.raises(ValueError, match="^length must be a positive value$"):
         pin_constraint.set_length(-5)
 
 
@@ -99,9 +99,9 @@ def test_set_get_placement(pin_constraint):
     pin_constraint.set_placement(10, 20)  # Test integers
     assert pin_constraint.get_placement() == (10, 20)
 
-    with pytest.raises(TypeError, match="x must be a number"):
+    with pytest.raises(TypeError, match="^x must be a number$"):
         pin_constraint.set_placement("a", 1.0)
-    with pytest.raises(TypeError, match="y must be a number"):
+    with pytest.raises(TypeError, match="^y must be a number$"):
         pin_constraint.set_placement(1.0, "b")
 
 
@@ -164,13 +164,13 @@ def test_set_get_side(pin_constraint):
     pin_constraint.set_side("west")
     assert pin_constraint.get_side() == 1
 
-    with pytest.raises(TypeError, match="side must be an integer"):
+    with pytest.raises(TypeError, match="^side must be an integer$"):
         pin_constraint.set_side(3.5)
-    with pytest.raises(ValueError, match="side must be a positive integer"):
+    with pytest.raises(ValueError, match="^side must be a positive integer$"):
         pin_constraint.set_side(0)
-    with pytest.raises(ValueError, match="side must be a positive integer"):
+    with pytest.raises(ValueError, match="^side must be a positive integer$"):
         pin_constraint.set_side(-1)
-    with pytest.raises(ValueError, match="not a recognized side"):
+    with pytest.raises(ValueError, match="^invalid is a not a recognized side$"):
         pin_constraint.set_side("invalid")
 
 
@@ -228,12 +228,12 @@ def test_add_pinconstraint(pin_constraints_collection):
     assert pin_constraints_collection.get_pinconstraint("new_pin") is updated_pin
 
     # Test adding invalid type
-    with pytest.raises(TypeError, match="pin must be a pin constraint object"):
+    with pytest.raises(TypeError, match="^pin must be a pin constraint object$"):
         pin_constraints_collection.add_pinconstraint("not_a_pin")
 
     # Test adding pin without a name
     no_name_pin = ASICPinConstraint()
-    with pytest.raises(ValueError, match="pin constraint must have a name"):
+    with pytest.raises(ValueError, match="^pin constraint must have a name$"):
         pin_constraints_collection.add_pinconstraint(no_name_pin)
 
 
@@ -255,7 +255,7 @@ def test_get_pinconstraint(pin_constraints_collection):
     assert all_pins["pin2"] is pin2
 
     # Get non-existent
-    with pytest.raises(LookupError, match="non_existent_pin is not defined"):
+    with pytest.raises(LookupError, match="^non_existent_pin is not defined$"):
         pin_constraints_collection.get_pinconstraint("non_existent_pin")
 
 
@@ -267,13 +267,13 @@ def test_make_pinconstraint(pin_constraints_collection):
     assert pin_constraints_collection.get_pinconstraint("made_pin") is new_pin
 
     # Test creating existing
-    with pytest.raises(LookupError, match="made_pin constraint already exists"):
+    with pytest.raises(LookupError, match="^made_pin constraint already exists$"):
         pin_constraints_collection.make_pinconstraint("made_pin")
 
     # Test empty name
-    with pytest.raises(ValueError, match="pin name is required"):
+    with pytest.raises(ValueError, match="^pin name is required$"):
         pin_constraints_collection.make_pinconstraint("")
-    with pytest.raises(ValueError, match="pin name is required"):
+    with pytest.raises(ValueError, match="^pin name is required$"):
         pin_constraints_collection.make_pinconstraint(None)
 
 
@@ -284,14 +284,14 @@ def test_remove_pinconstraint(pin_constraints_collection):
 
     # Remove existing
     assert pin_constraints_collection.remove_pinconstraint("to_remove_pin") is True
-    with pytest.raises(LookupError, match="to_remove_pin is not defined"):
+    with pytest.raises(LookupError, match="^to_remove_pin is not defined$"):
         pin_constraints_collection.get_pinconstraint("to_remove_pin")
 
     # Remove non-existent
     assert pin_constraints_collection.remove_pinconstraint("non_existent_pin") is False
 
     # Test empty name
-    with pytest.raises(ValueError, match="pin name is required"):
+    with pytest.raises(ValueError, match="^pin name is required$"):
         pin_constraints_collection.remove_pinconstraint("")
-    with pytest.raises(ValueError, match="pin name is required"):
+    with pytest.raises(ValueError, match="^pin name is required$"):
         pin_constraints_collection.remove_pinconstraint(None)

@@ -61,7 +61,7 @@ def test_list(schema, monkeypatch):
 
 
 def test_invalid_argument_in_switchlist(schema):
-    with pytest.raises(ValueError, match="-invalid is/are not a valid commandline arguments"):
+    with pytest.raises(ValueError, match="^-invalid is/are not a valid commandline arguments$"):
         schema().create_cmdline("testprog", switchlist=["-invalid"])
 
 
@@ -199,7 +199,7 @@ def test_add_cmdarg_with_no_switch(schema):
 
 def test_add_cmdarg_with_missing_switch(schema):
     schema = schema()
-    with pytest.raises(ValueError, match="switch is required"):
+    with pytest.raises(ValueError, match="^switch is required$"):
         schema._add_commandline_argument("string", "str", "help string", "")
 
 
@@ -220,7 +220,7 @@ def test_wrong_cfg_read_fail(schema, monkeypatch):
             "BaseSchema": BaseSchema,
             "testschema": TestSchema
         }
-        with pytest.raises(TypeError, match="Schema is not a commandline class"):
+        with pytest.raises(TypeError, match="^Schema is not a commandline class$"):
             schema.create_cmdline("testprog", use_cfg=True)
 
 

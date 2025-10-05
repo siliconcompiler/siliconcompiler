@@ -83,7 +83,7 @@ def test_get_nodes_with_complete(large_flow, make_tasks):
 
 
 def test_register_callback_invalid():
-    with pytest.raises(ValueError, match="pre_run0 is not a valid callback"):
+    with pytest.raises(ValueError, match="^pre_run0 is not a valid callback$"):
         TaskScheduler.register_callback("pre_run0", lambda: None)
 
 
@@ -187,5 +187,5 @@ def test_check(large_flow, make_tasks):
 def test_check_invalid(large_flow, make_tasks):
     scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
 
-    with pytest.raises(RuntimeError, match="These final steps could not be reached: jointhree"):
+    with pytest.raises(RuntimeError, match="^These final steps could not be reached: jointhree$"):
         scheduler.check()

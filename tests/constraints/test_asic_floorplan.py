@@ -23,17 +23,17 @@ def test_key_params(key):
 
 
 def test_aspectratio_illegal():
-    with pytest.raises(TypeError, match="aspectratio must be a number"):
+    with pytest.raises(TypeError, match="^aspectratio must be a number$"):
         ASICAreaConstraint().set_aspectratio("abc")
 
 
 def test_aspectratio_negative():
-    with pytest.raises(ValueError, match="aspectratio cannot be zero or negative"):
+    with pytest.raises(ValueError, match="^aspectratio cannot be zero or negative$"):
         ASICAreaConstraint().set_aspectratio(-1)
 
 
 def test_aspectratio_zero():
-    with pytest.raises(ValueError, match="aspectratio cannot be zero or negative"):
+    with pytest.raises(ValueError, match="^aspectratio cannot be zero or negative$"):
         ASICAreaConstraint().set_aspectratio(0)
 
 
@@ -57,12 +57,12 @@ def test_aspectratio_step_index():
 
 
 def test_coremargin_illegal():
-    with pytest.raises(TypeError, match="coremargin must be a number"):
+    with pytest.raises(TypeError, match="^coremargin must be a number$"):
         ASICAreaConstraint().set_coremargin("abc")
 
 
 def test_coremargin_negative():
-    with pytest.raises(ValueError, match="coremargin cannot be negative"):
+    with pytest.raises(ValueError, match="^coremargin cannot be negative$"):
         ASICAreaConstraint().set_coremargin(-1)
 
 
@@ -83,22 +83,22 @@ def test_coremargin_step_index():
 
 
 def test_density_illegal():
-    with pytest.raises(TypeError, match="density must be a number"):
+    with pytest.raises(TypeError, match="^density must be a number$"):
         ASICAreaConstraint().set_density("abc")
 
 
 def test_density_negative():
-    with pytest.raises(ValueError, match=r"density must be between \(0, 100\]"):
+    with pytest.raises(ValueError, match=r"^density must be between \(0, 100\]$"):
         ASICAreaConstraint().set_density(-1)
 
 
 def test_density_zero():
-    with pytest.raises(ValueError, match=r"density must be between \(0, 100\]"):
+    with pytest.raises(ValueError, match=r"^density must be between \(0, 100\]$"):
         ASICAreaConstraint().set_density(0)
 
 
 def test_density_gt_100():
-    with pytest.raises(ValueError, match=r"density must be between \(0, 100\]"):
+    with pytest.raises(ValueError, match=r"^density must be between \(0, 100\]$"):
         ASICAreaConstraint().set_density(101)
 
 
@@ -134,69 +134,69 @@ def test_density_aspectratio_coremargin_step_index():
 
 
 def test_corearea_rectangle_illegal_height():
-    with pytest.raises(TypeError, match="height must be a number"):
+    with pytest.raises(TypeError, match="^height must be a number$"):
         ASICAreaConstraint().set_corearea_rectangle("abc", "abc", "abc")
 
 
 def test_corearea_rectangle_illegal_width():
-    with pytest.raises(TypeError, match="width must be a number"):
+    with pytest.raises(TypeError, match="^width must be a number$"):
         ASICAreaConstraint().set_corearea_rectangle(100.0, "abc", "abc")
 
 
 def test_corearea_rectangle_illegal_margin():
-    with pytest.raises(TypeError, match="coremargin must be a number or a tuple of two numbers"):
+    with pytest.raises(TypeError, match="^coremargin must be a number or a tuple of two numbers$"):
         ASICAreaConstraint().set_corearea_rectangle(100.0, 100.0, "abc")
 
 
 def test_corearea_rectangle_illegal_negative_height():
-    with pytest.raises(ValueError, match="height must be greater than zero"):
+    with pytest.raises(ValueError, match="^height must be greater than zero$"):
         ASICAreaConstraint().set_corearea_rectangle(-100.0, 100.0, 2.0)
 
 
 def test_corearea_rectangle_illegal_negative_width():
-    with pytest.raises(ValueError, match="width must be greater than zero"):
+    with pytest.raises(ValueError, match="^width must be greater than zero$"):
         ASICAreaConstraint().set_corearea_rectangle(100.0, -100.0, 2.0)
 
 
 def test_corearea_rectangle_illegal_negative_margin():
-    with pytest.raises(ValueError, match="x margin cannot be negative"):
+    with pytest.raises(ValueError, match="^x margin cannot be negative$"):
         ASICAreaConstraint().set_corearea_rectangle(100.0, 100.0, -2.0)
 
 
 def test_corearea_rectangle_illegal_negative_xmargin():
-    with pytest.raises(ValueError, match="x margin cannot be negative"):
+    with pytest.raises(ValueError, match="^x margin cannot be negative$"):
         ASICAreaConstraint().set_corearea_rectangle(100.0, 100.0, (-2.0, 2))
 
 
 def test_corearea_rectangle_illegal_extra_margin():
-    with pytest.raises(ValueError, match="coremargin must be a number or a tuple of two numbers"):
+    with pytest.raises(ValueError, match="^coremargin must be a number or a tuple of two numbers$"):
         ASICAreaConstraint().set_corearea_rectangle(100.0, 100.0, (2.0, 2, 2.0))
 
 
 def test_corearea_rectangle_illegal_negative_ymargin():
-    with pytest.raises(ValueError, match="y margin cannot be negative"):
+    with pytest.raises(ValueError, match="^y margin cannot be negative$"):
         ASICAreaConstraint().set_corearea_rectangle(100.0, 100.0, (2, -2.0))
 
 
 def test_corearea_rectangle_illegal_zero_height():
-    with pytest.raises(ValueError, match="height must be greater than zero"):
+    with pytest.raises(ValueError, match="^height must be greater than zero$"):
         ASICAreaConstraint().set_corearea_rectangle(0.0, 100.0, 2.0)
 
 
 def test_corearea_rectangle_illegal_zero_width():
-    with pytest.raises(ValueError, match="width must be greater than zero"):
+    with pytest.raises(ValueError, match="^width must be greater than zero$"):
         ASICAreaConstraint().set_corearea_rectangle(100.0, 0, 2.0)
 
 
 def test_corearea_rectangle_illegal_extra_xmargin():
     with pytest.raises(ValueError,
-                       match="x margin is greater than or equal to the die width"):
+                       match="^x margin is greater than or equal to the die width$"):
         ASICAreaConstraint().set_corearea_rectangle(100.0, 100.0, (50.0, 2))
 
 
 def test_corearea_rectangle_illegal_extra_ymargin():
     with pytest.raises(ValueError,
-                       match="y margin is greater than or equal to the die height"):
+                       match="^y margin is greater than or equal to the die height$"):
         ASICAreaConstraint().set_corearea_rectangle(100.0, 100.0, (2, 50.0))
 
 
@@ -225,22 +225,22 @@ def test_corearea_rectangle_step_index():
 
 
 def test_diearea_rectangle_illegal_height():
-    with pytest.raises(TypeError, match="height must be a number"):
+    with pytest.raises(TypeError, match="^height must be a number$"):
         ASICAreaConstraint().set_diearea_rectangle("abc", "abc", "abc")
 
 
 def test_diearea_rectangle_illegal_width():
-    with pytest.raises(TypeError, match="width must be a number"):
+    with pytest.raises(TypeError, match="^width must be a number$"):
         ASICAreaConstraint().set_diearea_rectangle(100.0, "abc", "abc")
 
 
 def test_diearea_rectangle_illegal_negative_height():
-    with pytest.raises(ValueError, match="height must be greater than zero"):
+    with pytest.raises(ValueError, match="^height must be greater than zero$"):
         ASICAreaConstraint().set_diearea_rectangle(-100.0, 100.0, 2.0)
 
 
 def test_diearea_rectangle_illegal_negative_width():
-    with pytest.raises(ValueError, match="width must be greater than zero"):
+    with pytest.raises(ValueError, match="^width must be greater than zero$"):
         ASICAreaConstraint().set_diearea_rectangle(100.0, -100.0, 2.0)
 
 

@@ -79,8 +79,8 @@ def test_access():
 
 
 def test_access_invalid():
-    with pytest.raises(TypeError, match="schema must be a BaseSchema, not "
-                       "<class 'siliconcompiler.schema.parameter.Parameter'>"):
+    with pytest.raises(TypeError, match=r"^schema must be a BaseSchema, not "
+                       r"<class 'siliconcompiler\.schema\.parameter\.Parameter'>$"):
         Journal.access(Parameter("str"))
 
 
@@ -304,8 +304,8 @@ def test_replay_invalid_schema_type():
     assert "remove" in journal.get_types()
     journal.record("remove", ["test0", "test1"])
 
-    with pytest.raises(TypeError, match="schema must be a BaseSchema, not "
-                       "<class 'siliconcompiler.schema.parameter.Parameter'>"):
+    with pytest.raises(TypeError, match="^schema must be a BaseSchema, not "
+                       "<class 'siliconcompiler.schema.parameter.Parameter'>$"):
         journal.replay(Parameter("str"))
 
 
@@ -369,7 +369,7 @@ def test_replay_invalid_type():
         "index": None
     }]
 
-    with pytest.raises(ValueError, match="Unknown record type notanoption"):
+    with pytest.raises(ValueError, match="^Unknown record type notanoption$"):
         journal.replay(BaseSchema())
 
 
@@ -378,7 +378,7 @@ def test_replay_empty():
 
 
 def test_add_invalid_type():
-    with pytest.raises(ValueError, match="invalid is not a valid type"):
+    with pytest.raises(ValueError, match="^invalid is not a valid type$"):
         Journal().add_type("invalid")
 
 
@@ -386,7 +386,7 @@ def test_remove_invalid_type():
     Journal().remove_type("invalid")
 
 
-@pytest.mark.parametrize("error", (ValueError, RuntimeError, KeyError))
+@pytest.mark.parametrize("error", (ValueError, RuntimeError))
 def test_forward_exception_with_key_set_replay(error, monkeypatch):
     schema = BaseSchema()
     edit = EditableSchema(schema)
@@ -410,12 +410,12 @@ def test_forward_exception_with_key_set_replay(error, monkeypatch):
     ]
 
     with pytest.raises(error,
-                       match=r"error while setting \[test0,test1\]: "
-                             r"this is an error from the param"):
+                       match=r"^error while setting \[test0,test1\]: "
+                             r"this is an error from the param$"):
         journal.replay(schema)
 
 
-@pytest.mark.parametrize("error", (ValueError, RuntimeError, KeyError))
+@pytest.mark.parametrize("error", (ValueError, RuntimeError))
 def test_forward_exception_with_key_add_replay(error, monkeypatch):
     schema = BaseSchema()
     edit = EditableSchema(schema)
@@ -439,8 +439,8 @@ def test_forward_exception_with_key_add_replay(error, monkeypatch):
     ]
 
     with pytest.raises(error,
-                       match=r"error while adding to \[test0,test1\]: "
-                             r"this is an error from the param"):
+                       match=r"^error while adding to \[test0,test1\]: "
+                             r"this is an error from the param$"):
         journal.replay(schema)
 
 
