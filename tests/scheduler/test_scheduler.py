@@ -339,11 +339,73 @@ def test_check_manifest_pass(basic_project):
 def test_check_manifest_fail(basic_project):
     scheduler = Scheduler(basic_project)
     with patch("siliconcompiler.scheduler.Scheduler.check_manifest",
-               autospec=True) as call:
-        call.return_value = False
+               autospec=True) as check_manifest, \
+            patch("siliconcompiler.scheduler.Scheduler._Scheduler__run_setup") as run_setup, \
+            patch("siliconcompiler.scheduler.Scheduler.configure_nodes") as configure_nodes, \
+            patch("siliconcompiler.scheduler.Scheduler._Scheduler__check_tool_requirements") \
+            as check_tool_requirements, \
+            patch("siliconcompiler.scheduler.Scheduler._Scheduler__clean_build_dir_incr") \
+            as clean_build_dir_incr, \
+            patch("siliconcompiler.scheduler.Scheduler._Scheduler__check_flowgraph_io") \
+            as check_flowgraph_io:
+        check_manifest.return_value = False
         with pytest.raises(RuntimeError, match='^check_manifest\\(\\) failed$'):
             scheduler.run()
-        call.assert_called_once()
+        check_manifest.assert_called_once()
+        run_setup.assert_not_called()
+        configure_nodes.assert_not_called()
+        check_tool_requirements.assert_not_called()
+        clean_build_dir_incr.assert_not_called()
+        check_flowgraph_io.assert_not_called()
+
+
+def test_flowgraphio_fail(basic_project):
+    scheduler = Scheduler(basic_project)
+    with patch("siliconcompiler.scheduler.Scheduler.check_manifest",
+               autospec=True) as check_manifest, \
+            patch("siliconcompiler.scheduler.Scheduler._Scheduler__run_setup") as run_setup, \
+            patch("siliconcompiler.scheduler.Scheduler.configure_nodes") as configure_nodes, \
+            patch("siliconcompiler.scheduler.Scheduler._Scheduler__check_tool_requirements") \
+            as check_tool_requirements, \
+            patch("siliconcompiler.scheduler.Scheduler._Scheduler__clean_build_dir_incr") \
+            as clean_build_dir_incr, \
+            patch("siliconcompiler.scheduler.Scheduler._Scheduler__check_flowgraph_io") \
+            as check_flowgraph_io:
+        check_manifest.return_value = True
+        check_tool_requirements.return_value = True
+        check_flowgraph_io.return_value = False
+        with pytest.raises(RuntimeError, match='^Flowgraph file IO constrains errors$'):
+            scheduler.run()
+        check_manifest.assert_called_once()
+        run_setup.assert_called_once()
+        configure_nodes.assert_called_once()
+        check_tool_requirements.assert_called_once()
+        clean_build_dir_incr.assert_called_once()
+        check_flowgraph_io.assert_called_once()
+
+
+def test_toolrequirement_fail(basic_project):
+    scheduler = Scheduler(basic_project)
+    with patch("siliconcompiler.scheduler.Scheduler.check_manifest",
+               autospec=True) as check_manifest, \
+            patch("siliconcompiler.scheduler.Scheduler._Scheduler__run_setup") as run_setup, \
+            patch("siliconcompiler.scheduler.Scheduler.configure_nodes") as configure_nodes, \
+            patch("siliconcompiler.scheduler.Scheduler._Scheduler__check_tool_requirements") \
+            as check_tool_requirements, \
+            patch("siliconcompiler.scheduler.Scheduler._Scheduler__clean_build_dir_incr") \
+            as clean_build_dir_incr, \
+            patch("siliconcompiler.scheduler.Scheduler._Scheduler__check_flowgraph_io") \
+            as check_flowgraph_io:
+        check_manifest.return_value = True
+        check_tool_requirements.return_value = False
+        with pytest.raises(RuntimeError, match='^Tools requirements not met$'):
+            scheduler.run()
+        check_manifest.assert_called_once()
+        run_setup.assert_called_once()
+        configure_nodes.assert_called_once()
+        check_tool_requirements.assert_called_once()
+        clean_build_dir_incr.assert_not_called()
+        check_flowgraph_io.assert_not_called()
 
 
 def test_check_flowgraph_io_basic(basic_project, monkeypatch, caplog):
@@ -564,6 +626,40 @@ def test_resume_value_changed(gcd_nop_project):
         NodeStatus.SUCCESS
     assert gcd_nop_project.history("job0").get("record", "status", step="stepfour", index="0") == \
         NodeStatus.SUCCESS
+
+
+def test_check_tool_requirements(gcd_nop_project, monkeypatch, caplog):
+    monkeypatch.setattr(gcd_nop_project, "_Project__logger", logging.getLogger())
+    gcd_nop_project.logger.setLevel(logging.INFO)
+
+    EditableSchema(gcd_nop_project).insert("option", "testing", Parameter("str"))
+
+    # Change set reqirement
+    # Add unset key
+    assert gcd_nop_project.set("tool", "builtin", "task", "nop", "require", "option,testing",
+                               step="stepthree", index="0")
+    # Add invalid key
+    assert gcd_nop_project.add("tool", "builtin", "task", "nop", "require", "option1,testing",
+                               step="stepthree", index="0")
+    assert Scheduler(gcd_nop_project)._Scheduler__check_tool_requirements() is False
+
+    assert "No value set for required keypath [option,testing] for stepthree/0." in caplog.text
+    assert "Cannot resolve required keypath [option1,testing] for stepthree/0." in caplog.text
+
+
+def test_check_tool_requirements_pass(gcd_nop_project, monkeypatch, caplog):
+    monkeypatch.setattr(gcd_nop_project, "_Project__logger", logging.getLogger())
+    gcd_nop_project.logger.setLevel(logging.INFO)
+
+    EditableSchema(gcd_nop_project).insert("option", "testing", Parameter("str"))
+    assert gcd_nop_project.set("option", "testing", "thistest")
+
+    # Change set reqirement
+    assert gcd_nop_project.set("tool", "builtin", "task", "nop", "require", "option,testing",
+                               step="stepthree", index="0")
+    assert Scheduler(gcd_nop_project)._Scheduler__check_tool_requirements() is True
+
+    assert caplog.text == ""
 
 
 def test_install_file_logger(basic_project):

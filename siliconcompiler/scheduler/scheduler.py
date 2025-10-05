@@ -244,6 +244,10 @@ class Scheduler:
             self.__run_setup()
             self.configure_nodes()
 
+            # Verify tool setups
+            if not self.__check_tool_requirements():
+                raise RuntimeError("Tools requirements not met")
+
             # Cleanup build directory
             self.__clean_build_dir_incr()
 
@@ -268,6 +272,48 @@ class Scheduler:
                 self.__joblog_handler = logging.NullHandler()
             # Restore hook
             sys.excepthook = org_excepthook
+
+    def __check_tool_requirements(self):
+        """
+        Performs pre-run validation checks.
+
+        This method ensures that all expected input files exist in the 'inputs/'
+        directory and that all required schema parameters have been set and can
+        be resolved correctly before the task is executed.
+
+        Returns:
+            bool: True if validation passes, False otherwise.
+        """
+        error = False
+        nodes = self.__flow_runtime.get_nodes()
+        error = False
+
+        for (step, index) in nodes:
+            node = SchedulerNode(self.__project, step, index)
+            requires = []
+            with node.runtime():
+                requires = node.task.get('require')
+
+            for item in requires:
+                keypath = item.split(',')
+                if not self.__project.valid(*keypath):
+                    self.__logger.error(f'Cannot resolve required keypath [{",".join(keypath)}] '
+                                        f'for {step}/{index}.')
+                    error = True
+                    continue
+
+                param = self.__project.get(*keypath, field=None)
+                check_step, check_index = step, index
+                if param.get(field='pernode').is_never():
+                    check_step, check_index = None, None
+
+                if not param.has_value(step=check_step, index=check_index):
+                    self.__logger.error('No value set for required keypath '
+                                        f'[{",".join(keypath)}] for {step}/{index}.')
+                    error = True
+                    continue
+
+        return not error
 
     def __check_flowgraph_io(self):
         """
