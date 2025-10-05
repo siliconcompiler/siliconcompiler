@@ -244,10 +244,11 @@ class Scheduler:
             self.__project.write_manifest(filepath)
 
             send_messages.send(self.__project, 'summary', None, None)
-
-            self.__logger.removeHandler(self.__joblog_handler)
-            self.__joblog_handler = logging.NullHandler()
         finally:
+            if self.__joblog_handler is not None:
+                self.__logger.removeHandler(self.__joblog_handler)
+                self.__joblog_handler.close()
+                self.__joblog_handler = logging.NullHandler()
             # Restore hook
             sys.excepthook = org_excepthook
 
