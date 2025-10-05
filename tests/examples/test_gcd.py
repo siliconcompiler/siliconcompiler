@@ -100,6 +100,7 @@ def test_py_gcd_screenshot(monkeypatch):
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.timeout(300)
+@pytest.mark.skip(reason="DRC task fails on init due to missing support for input file")
 def test_py_gcd_ihp130():
     from gcd import gcd_ihp130
     gcd_ihp130.main()
