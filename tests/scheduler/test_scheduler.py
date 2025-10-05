@@ -233,19 +233,60 @@ def test_increment_job_name(basic_project, prev_name, new_name):
     assert basic_project.get("option", "jobname") == new_name
 
 
-def test_clean_build_dir(basic_project):
+def test_clean_build_dir_full(basic_project):
     basic_project.set('option', 'clean', True)
 
     scheduler = Scheduler(basic_project)
 
     os.makedirs(jobdir(basic_project), exist_ok=True)
+    os.makedirs(os.path.join(jobdir(basic_project), "rmthis"), exist_ok=True)
+    with open(os.path.join(jobdir(basic_project), "job.log"), "w") as f:
+        f.write("test")
 
-    with patch("shutil.rmtree", autospec=True) as call:
-        scheduler._Scheduler__clean_build_dir()
-        call.assert_called_once()
+    with patch("shutil.rmtree", autospec=True) as rmtree, \
+            patch("os.remove") as remove:
+        scheduler._Scheduler__clean_build_dir_full()
+        rmtree.assert_called_once()
+        remove.assert_called_once()
 
 
-def test_clean_build_dir_with_from(basic_project):
+def test_clean_build_dir_full_keep_log(basic_project):
+    basic_project.set('option', 'clean', True)
+
+    scheduler = Scheduler(basic_project)
+
+    os.makedirs(jobdir(basic_project), exist_ok=True)
+    os.makedirs(os.path.join(jobdir(basic_project), "rmthis"), exist_ok=True)
+    with open(os.path.join(jobdir(basic_project), "job.log"), "w") as f:
+        f.write("test")
+
+    with patch("shutil.rmtree", autospec=True) as rmtree, \
+            patch("os.remove") as remove:
+        scheduler._Scheduler__clean_build_dir_full(recheck=True)
+        rmtree.assert_called_once()
+        remove.assert_not_called()
+
+
+def test_clean_build_dir_full_keep_log_rm_old_log(basic_project):
+    basic_project.set('option', 'clean', True)
+
+    scheduler = Scheduler(basic_project)
+
+    os.makedirs(jobdir(basic_project), exist_ok=True)
+    os.makedirs(os.path.join(jobdir(basic_project), "rmthis"), exist_ok=True)
+    with open(os.path.join(jobdir(basic_project), "job.log"), "w") as f:
+        f.write("test")
+    with open(os.path.join(jobdir(basic_project), "job.log.bak"), "w") as f:
+        f.write("test")
+
+    with patch("shutil.rmtree", autospec=True) as rmtree, \
+            patch("os.remove") as remove:
+        scheduler._Scheduler__clean_build_dir_full(recheck=True)
+        rmtree.assert_called_once()
+        remove.assert_called_once_with(os.path.join(jobdir(basic_project), "job.log.bak"))
+
+
+def test_clean_build_dir_full_with_from(basic_project):
     basic_project.set('option', 'clean', True)
     basic_project.set('option', 'from', 'stepone')
 
@@ -254,24 +295,24 @@ def test_clean_build_dir_with_from(basic_project):
     os.makedirs(jobdir(basic_project), exist_ok=True)
     assert os.path.isdir(jobdir(basic_project))
 
-    with patch("shutil.rmtree", autospec=True) as call:
-        scheduler._Scheduler__clean_build_dir()
-        call.assert_not_called()
+    with patch("shutil.rmtree", autospec=True) as rmtree:
+        scheduler._Scheduler__clean_build_dir_full()
+        rmtree.assert_not_called()
 
 
-def test_clean_build_dir_do_nothing(basic_project):
+def test_clean_build_dir_full_do_nothing(basic_project):
     basic_project.set('option', 'clean', False)
 
     scheduler = Scheduler(basic_project)
 
     os.makedirs(jobdir(basic_project), exist_ok=True)
 
-    with patch("shutil.rmtree", autospec=True) as call:
-        scheduler._Scheduler__clean_build_dir()
-        call.assert_not_called()
+    with patch("shutil.rmtree", autospec=True) as rmtree:
+        scheduler._Scheduler__clean_build_dir_full()
+        rmtree.assert_not_called()
 
 
-def test_clean_build_dir_remote(basic_project):
+def test_clean_build_dir_full_remote(basic_project):
     basic_project.set('option', 'clean', True)
     basic_project.set('record', 'remoteid', 'blah')
 
@@ -279,9 +320,9 @@ def test_clean_build_dir_remote(basic_project):
 
     os.makedirs(jobdir(basic_project), exist_ok=True)
 
-    with patch("shutil.rmtree", autospec=True) as call:
-        scheduler._Scheduler__clean_build_dir()
-        call.assert_not_called()
+    with patch("shutil.rmtree", autospec=True) as rmtree:
+        scheduler._Scheduler__clean_build_dir_full()
+        rmtree.assert_not_called()
 
 
 def test_check_manifest_pass(basic_project):
@@ -521,3 +562,79 @@ def test_resume_value_changed(gcd_nop_project):
         NodeStatus.SUCCESS
     assert gcd_nop_project.history("job0").get("record", "status", step="stepfour", index="0") == \
         NodeStatus.SUCCESS
+
+
+def test_install_file_logger(basic_project):
+    """Test that __install_file_logger creates job.log and handles backup files."""
+    scheduler = Scheduler(basic_project)
+
+    # Create job directory
+    os.makedirs(jobdir(basic_project), exist_ok=True)
+
+    # Create existing job.log
+    existing_log = os.path.join(jobdir(basic_project), "job.log")
+    with open(existing_log, "w") as f:
+        f.write("existing log content")
+
+    # Call __install_file_logger
+    scheduler._Scheduler__install_file_logger()
+
+    # Check that new log exists
+    assert os.path.exists(existing_log)
+
+    # Check that backup was created
+    backup_log = os.path.join(jobdir(basic_project), "job.log.bak")
+    assert os.path.exists(backup_log)
+
+    # Check backup content
+    with open(backup_log, "r") as f:
+        assert f.read() == "existing log content"
+
+
+def test_install_file_logger_multiple_backups(basic_project):
+    """Test that __install_file_logger handles multiple backup files."""
+    scheduler = Scheduler(basic_project)
+
+    # Create job directory
+    os.makedirs(jobdir(basic_project), exist_ok=True)
+
+    # Create existing job.log and backups
+    existing_log = os.path.join(jobdir(basic_project), "job.log")
+    with open(existing_log, "w") as f:
+        f.write("log 1")
+
+    backup1 = os.path.join(jobdir(basic_project), "job.log.bak")
+    with open(backup1, "w") as f:
+        f.write("backup 1")
+
+    backup2 = os.path.join(jobdir(basic_project), "job.log.bak.1")
+    with open(backup2, "w") as f:
+        f.write("backup 2")
+
+    # Call __install_file_logger
+    scheduler._Scheduler__install_file_logger()
+
+    # Check that new backup was created with correct number
+    backup3 = os.path.join(jobdir(basic_project), "job.log.bak.2")
+    assert os.path.exists(backup3)
+    with open(backup3, "r") as f:
+        assert f.read() == "log 1"
+
+
+def test_install_file_logger_no_existing_log(basic_project):
+    """Test that __install_file_logger works when no existing log file."""
+    scheduler = Scheduler(basic_project)
+
+    # Create job directory
+    os.makedirs(jobdir(basic_project), exist_ok=True)
+
+    # Call __install_file_logger
+    scheduler._Scheduler__install_file_logger()
+
+    # Check that new log exists
+    existing_log = os.path.join(jobdir(basic_project), "job.log")
+    assert os.path.exists(existing_log)
+
+    # Check that no backup was created
+    backup_log = os.path.join(jobdir(basic_project), "job.log.bak")
+    assert not os.path.exists(backup_log)
