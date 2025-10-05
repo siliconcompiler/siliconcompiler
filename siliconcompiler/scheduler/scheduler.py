@@ -144,10 +144,14 @@ class Scheduler:
 
     def __excepthook(self, exc_type, exc_value, exc_traceback):
         """
-        Handle uncaught exceptions by recording them to the job log, emitting a full traceback, stopping any running dashboard, and notifying the multiprocessing manager.
-        
-        Logs a concise exception summary and the full traceback to the scheduler's job logger, forwards KeyboardInterrupt to the default system excepthook, invokes the project's dashboard stop method when present, and signals an uncaught exception to the multiprocessing manager.
-        
+        Handle uncaught exceptions by recording them to the job log, emitting a full traceback,
+        stopping any running dashboard, and notifying the multiprocessing manager.
+
+        Logs a concise exception summary and the full traceback to the scheduler's job logger,
+        forwards KeyboardInterrupt to the default system excepthook, invokes the
+        project's dashboard stop method when present, and signals an uncaught exception
+        to the multiprocessing manager.
+
         Parameters:
             exc_type (Type[BaseException]): Exception class of the uncaught exception.
             exc_value (BaseException): Exception instance (may contain the message).
@@ -181,9 +185,13 @@ class Scheduler:
 
     def __install_file_logger(self):
         """
-        Set up a per-job file logger for the current project and attach it to the scheduler's logger.
-        
-        Creates the job directory if needed, rotates an existing job.log to a .bak (using incrementing numeric suffixes if necessary), installs a FileHandler writing to job.log with the SCLoggerFormatter, and stores the handler on self.__joblog_handler.
+        Set up a per-job file logger for the current project and attach it to the
+        scheduler's logger.
+
+        Creates the job directory if needed, rotates an existing job.log to a .bak
+        (using incrementing numeric suffixes if necessary), installs a FileHandler
+        writing to job.log with the SCLoggerFormatter, and stores the handler on
+        self.__joblog_handler.
         """
         os.makedirs(jobdir(self.__project), exist_ok=True)
         file_log = os.path.join(jobdir(self.__project), "job.log")
@@ -262,10 +270,13 @@ class Scheduler:
 
     def __check_flowgraph_io(self):
         """
-        Validate that every runtime node will receive its required input files and that no input file is provided by more than one source.
-        
-        Checks whether each node's required inputs are available either from upstream tasks' declared outputs or from existing output directories, and logs errors for missing or duplicated input sources.
-        
+        Validate that every runtime node will receive its required input files and that no
+        input file is provided by more than one source.
+
+        Checks whether each node's required inputs are available either from upstream
+        tasks' declared outputs or from existing output directories, and logs errors
+        for missing or duplicated input sources.
+
         Returns:
             bool: `True` if the flowgraph satisfies input/output requirements, `False` otherwise.
         """
@@ -414,11 +425,17 @@ class Scheduler:
     def __clean_build_dir_full(self, recheck: bool = False):
         """
         Remove stale build outputs from the current job directory to prepare for a fresh run.
-        
-        When executed, deletes all files and subdirectories under the job directory for the current project. If recheck is True, the method preserves an existing job.log file and leaves it untouched. The method is a no-op if the run is associated with a remote job (record.remoteid). When recheck is False, the cleanup only proceeds if the project's 'option.clean' is true and 'option.from' is not set; when recheck is True those option checks are bypassed.
-        
+
+        When executed, deletes all files and subdirectories under the job directory for the current
+        project. If recheck is True, the method preserves an existing job.log file and leaves it
+        untouched. The method is a no-op if the run is associated with a remote job
+        (record.remoteid). When recheck is False, the cleanup only proceeds if the
+        project's 'option.clean' is true and 'option.from' is not set; when recheck is
+        True those option checks are bypassed.
+
         Parameters:
-            recheck (bool): If True, perform a recheck cleanup that preserves job.log; also bypasses the usual option checks. Defaults to False.
+            recheck (bool): If True, perform a recheck cleanup that preserves job.log;
+                            also bypasses the usual option checks. Defaults to False.
         """
         if self.__record.get('remoteid'):
             return
@@ -440,11 +457,13 @@ class Scheduler:
                     shutil.rmtree(os.path.join(cur_job_dir, delfile))
 
     def __clean_build_dir_incr(self):
-        # Remove steps not present in flow
         """
         Prune the job build directory to match the current flow and clean pending node directories.
-        
-        Removes step directories and index subdirectories that are not present in the current flow/runtime. For nodes whose recorded status indicates they are waiting, enters the node's runtime context and invokes its clean_directory method to perform node-specific cleanup.
+
+        Removes step directories and index subdirectories that are not present in the current
+        flow/runtime. For nodes whose recorded status indicates they are waiting, enters the
+        node's runtime context and invokes its clean_directory method to perform
+        node-specific cleanup.
         """
         keep_steps = set([step for step, _ in self.__flow.get_nodes()])
         cur_job_dir = jobdir(self.__project)
@@ -470,14 +489,18 @@ class Scheduler:
 
     def configure_nodes(self):
         """
-        Prepare and configure all flow nodes before execution, including loading prior run state, running per-node setup, and marking nodes that require rerun.
-        
+        Prepare and configure all flow nodes before execution, including loading prior run state,
+        running per-node setup, and marking nodes that require rerun.
+
         This method:
-        - Loads available node manifests from previous jobs and uses them to populate setup data where appropriate.
+        - Loads available node manifests from previous jobs and uses them to populate setup data
+          where appropriate.
         - Runs each node's setup routine to initialize tools and runtime state.
-        - For nodes whose parameters or inputs have changed, marks them and all downstream nodes as pending so they will be re-executed.
+        - For nodes whose parameters or inputs have changed, marks them and all downstream nodes
+          as pending so they will be re-executed.
         - Replays preserved journaled results for nodes that remain valid to reuse previous outputs.
-        - On a SchedulerFlowReset, forces a full build-directory recheck and marks every node as pending.
+        - On a SchedulerFlowReset, forces a full build-directory recheck and marks every node
+          as pending.
         - Persists the resulting manifest for the current job before returning.
         """
         from siliconcompiler import Project
