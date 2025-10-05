@@ -349,7 +349,7 @@ def test_check_manifest_fail(basic_project):
             patch("siliconcompiler.scheduler.Scheduler._Scheduler__check_flowgraph_io") \
             as check_flowgraph_io:
         check_manifest.return_value = False
-        with pytest.raises(RuntimeError, match='^check_manifest\\(\\) failed$'):
+        with pytest.raises(RuntimeError, match=r'^check_manifest\\(\\) failed$'):
             scheduler.run()
         check_manifest.assert_called_once()
         run_setup.assert_not_called()
@@ -374,7 +374,7 @@ def test_flowgraphio_fail(basic_project):
         check_manifest.return_value = True
         check_tool_requirements.return_value = True
         check_flowgraph_io.return_value = False
-        with pytest.raises(RuntimeError, match='^Flowgraph file IO constrains errors$'):
+        with pytest.raises(RuntimeError, match=r'^Flowgraph file IO constrains errors$'):
             scheduler.run()
         check_manifest.assert_called_once()
         run_setup.assert_called_once()
@@ -398,7 +398,7 @@ def test_toolrequirement_fail(basic_project):
             as check_flowgraph_io:
         check_manifest.return_value = True
         check_tool_requirements.return_value = False
-        with pytest.raises(RuntimeError, match='^Tools requirements not met$'):
+        with pytest.raises(RuntimeError, match=r'^Tools requirements not met$'):
             scheduler.run()
         check_manifest.assert_called_once()
         run_setup.assert_called_once()
@@ -636,7 +636,7 @@ def test_check_tool_requirements_local(gcd_nop_project, monkeypatch, caplog):
     EditableSchema(gcd_nop_project).insert("option", "testing_file", Parameter("file"))
     assert gcd_nop_project.set("option", "testing_file", "thistest.txt")
 
-    # Change set reqirement
+    # Change set requirement
     # Add unset key
     assert gcd_nop_project.set("tool", "builtin", "task", "nop", "require", "option,testing",
                                step="stepthree", index="0")
@@ -663,7 +663,7 @@ def test_check_tool_requirements_remote(gcd_nop_project, monkeypatch, caplog):
     assert gcd_nop_project.set("option", "testing_file", "thistest.txt")
     gcd_nop_project.option.set_remote(True)
 
-    # Change set reqirement
+    # Change set requirement
     # Add unset key
     assert gcd_nop_project.set("tool", "builtin", "task", "nop", "require", "option,testing",
                                step="stepthree", index="0")
@@ -691,7 +691,7 @@ def test_check_tool_requirements_non_local(gcd_nop_project, monkeypatch, caplog,
     assert gcd_nop_project.set("option", "testing_file", "thistest.txt")
     gcd_nop_project.option.scheduler.set_name(scheduler)
 
-    # Change set reqirement
+    # Change set requirement
     # Add unset key
     assert gcd_nop_project.set("tool", "builtin", "task", "nop", "require", "option,testing",
                                step="stepthree", index="0")
@@ -716,7 +716,7 @@ def test_check_tool_requirements_pass(gcd_nop_project, monkeypatch, caplog):
     EditableSchema(gcd_nop_project).insert("option", "testing", Parameter("str"))
     assert gcd_nop_project.set("option", "testing", "thistest")
 
-    # Change set reqirement
+    # Change set requirement
     assert gcd_nop_project.set("tool", "builtin", "task", "nop", "require", "option,testing",
                                step="stepthree", index="0")
     assert Scheduler(gcd_nop_project)._Scheduler__check_tool_requirements() is True

@@ -285,10 +285,8 @@ class Scheduler:
             bool: True if validation passes, False otherwise.
         """
         error = False
-        nodes = self.__flow_runtime.get_nodes()
-        error = False
 
-        for (step, index) in nodes:
+        for (step, index) in self.__flow_runtime.get_nodes():
             scheduler = self.__project.option.scheduler.get_name(step=step, index=index)
             check_file_access = not self.__project.option.get_remote() and scheduler is None
 
