@@ -71,7 +71,6 @@ def test_init_specify_env(project, monkeypatch):
 
 @pytest.mark.docker
 @pytest.mark.quick
-@pytest.mark.ready
 @pytest.mark.timeout(300)
 @pytest.mark.skipif(sys.platform != 'linux', reason='Not supported in testing')
 def test_docker_run(docker_image, project):

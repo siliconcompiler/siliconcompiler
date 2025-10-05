@@ -6,7 +6,6 @@ import os.path
 # Only run daily -- these are kinda slow
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.ready
 @pytest.mark.timeout(300)
 def test_py_adder_sweep():
     from oh_experiments import adder_sweep
@@ -20,7 +19,6 @@ def test_py_adder_sweep():
 
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.ready
 @pytest.mark.timeout(300)
 def test_py_check_area():
     from oh_experiments import check_area

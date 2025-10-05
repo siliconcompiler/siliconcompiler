@@ -102,17 +102,6 @@ def limit_cpus(monkeypatch, request):
 
 
 @pytest.fixture(autouse=True)
-def skip_eda(request):
-    '''
-    Limit CPU core count for eda tests
-    '''
-    if 'ready' in request.keywords:
-        return
-    if 'eda' in request.keywords:
-        pytest.skip("EDA not ready")
-
-
-@pytest.fixture(autouse=True)
 def isolate_statics_in_testing(monkeypatch):
     '''
     Isolate static instances for testing

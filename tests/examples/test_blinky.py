@@ -4,7 +4,6 @@ import os.path
 
 
 @pytest.mark.eda
-@pytest.mark.ready
 @pytest.mark.quick
 def test_py_blinky():
     from blinky import blinky

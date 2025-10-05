@@ -14,7 +14,6 @@ from siliconcompiler.tools import get_task
 
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.ready
 def test_version(gcd_design):
     proj = ASIC(gcd_design)
     proj.add_fileset("rtl")
@@ -31,7 +30,6 @@ def test_version(gcd_design):
 
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.ready
 def test_yosys_lec(datadir):
     design = Design("testdesign")
     with design.active_fileset("rtl"):
@@ -58,7 +56,6 @@ def test_yosys_lec(datadir):
 
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.ready
 def test_yosys_lec_broken(datadir):
     design = Design("testdesign")
     with design.active_fileset("rtl"):
