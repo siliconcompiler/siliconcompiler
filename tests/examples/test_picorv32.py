@@ -18,7 +18,6 @@ def test_py_make_lint(fileset):
 
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.ready
 @pytest.mark.parametrize("fileset", ("rtl", "rtl.memory"))
 def test_py_make_syn(fileset):
     from picorv32 import make
@@ -28,7 +27,6 @@ def test_py_make_syn(fileset):
 
 
 @pytest.mark.eda
-@pytest.mark.ready
 @pytest.mark.timeout(2400)
 @pytest.mark.parametrize("fileset,top", (
     ("rtl", "picorv32"), ("rtl.memory", "picorv32_top")))

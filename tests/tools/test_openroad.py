@@ -12,7 +12,6 @@ from siliconcompiler.tools import get_task
 
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.ready
 @pytest.mark.timeout(300)
 def test_openroad_images(asic_gcd):
     for task in get_task(asic_gcd, filter=APRTask):
@@ -46,7 +45,6 @@ def test_openroad_images(asic_gcd):
 
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.ready
 @pytest.mark.timeout(300)
 def test_metrics_task(asic_gcd):
     class Flow(ASICFlow):

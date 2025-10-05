@@ -138,7 +138,6 @@ markers = [
     "eda: this test requires EDA tools installed to run. By default these tests will be run nightly, not on push.",
     "quick: always run this test on push, even if it requires EDA tools.",
     "nightly: run this test during nightly runs",
-    "ready: temp mark to indicate conversion",
     "nocpulimit: don't limit cpu count for this test.",
     "docker: test requires docker",
     "nocache: don't automatically set the cache directory",

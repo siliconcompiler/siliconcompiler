@@ -7,7 +7,6 @@ from siliconcompiler.tools.gtkwave import show
 
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.ready
 def test_version(gcd_design, display):
     proj = Project(gcd_design)
     proj.add_fileset("rtl")

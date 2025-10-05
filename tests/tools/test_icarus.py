@@ -11,7 +11,6 @@ from siliconcompiler.tools.icarus import compile
 
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.ready
 def test_compile(gcd_design):
     proj = Project(gcd_design)
     proj.add_fileset("rtl")
@@ -29,7 +28,6 @@ def test_compile(gcd_design):
 
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.ready
 def test_version(gcd_design):
     proj = Project(gcd_design)
     proj.add_fileset("rtl")

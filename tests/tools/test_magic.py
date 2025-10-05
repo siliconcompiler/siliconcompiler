@@ -7,7 +7,6 @@ from siliconcompiler.tools.magic import drc
 
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.ready
 def test_version(gcd_design):
     proj = Project(gcd_design)
     proj.add_fileset("rtl")

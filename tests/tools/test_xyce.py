@@ -8,7 +8,6 @@ from siliconcompiler.tools.xyce import simulate
 
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.ready
 def test_xdm_version(gcd_design):
     proj = Project(gcd_design)
     proj.add_fileset("rtl")
@@ -25,7 +24,6 @@ def test_xdm_version(gcd_design):
 
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.ready
 def test_xyce_version(gcd_design):
     proj = Project(gcd_design)
     proj.add_fileset("rtl")
