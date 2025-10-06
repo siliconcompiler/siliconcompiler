@@ -197,6 +197,6 @@ def test_check_invalid_with_error(large_flow, make_tasks):
     large_flow.set("record", "status", "error", step="stepone", index=1)
 
     with pytest.raises(SCRuntimeError,
-                       match=r"^Could not run final steps \(jointhree\) due to a errors "
+                       match=r"^Could not run final steps \(jointhree\) due to errors "
                              r"in: stepone/0, stepone/1$"):
         scheduler.check()
