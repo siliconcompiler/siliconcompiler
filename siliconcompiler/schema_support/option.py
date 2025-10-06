@@ -1324,7 +1324,12 @@ class OptionSchema(BaseSchema):
         Args:
             value (bool): The value for the no-dashboard flag.
         """
-        self.set('nodashboard', value)
+        from siliconcompiler.project import Project
+        if isinstance(self._parent(root=True), Project):
+            # Call from project to allow for override
+            self._parent(root=True).set("option", "nodashboard", value)
+        else:
+            self.set('nodashboard', value)
 
     @property
     def scheduler(self) -> SchedulerSchema:
