@@ -165,18 +165,12 @@ def test_autoissue():
     assert option.get_autoissue() is True
 
 
-def test_nodashboard_via_project():
-    proj = Project()
-
-    with patch("siliconcompiler.project.Project.set") as pset:
+def test_nodashboard_via_callback():
+    with patch("siliconcompiler.project.Project._Project__init_dashboard") as init:
+        proj = Project()
+        init.reset_mock()
         proj.option.set_nodashboard(True)
-        pset.assert_called_once_with('option', 'nodashboard', True)
-
-
-def test_nodashboard_not_via_project():
-    with patch("siliconcompiler.project.Project.set") as pset:
-        OptionSchema().set_nodashboard(True)
-        pset.assert_not_called()
+        init.assert_called_once()
 
 
 def test_env():
@@ -292,6 +286,40 @@ def test_fileset():
     assert option.get_fileset() == ['rtl', 'constraints', 'gds']
     option.add_fileset('netlist', clobber=True)
     assert option.get_fileset() == ['netlist']
+
+
+def test_callbacks():
+    class Callback:
+        calls_nodash = 0
+        calls_track = 0
+
+        @staticmethod
+        def nodashboard():
+            Callback.calls_nodash += 1
+
+        @staticmethod
+        def track():
+            Callback.calls_track += 1
+
+    option = OptionSchema()
+    assert option._OptionSchema__callbacks == {}
+
+    option._add_callback("nodashboard", Callback.nodashboard)
+    option._add_callback("track", Callback.track)
+
+    option.set_nodashboard(True)
+    option.set_nodashboard(False)
+    assert Callback.calls_nodash == 2
+    assert Callback.calls_track == 0
+
+    option.set_track(True)
+    assert Callback.calls_nodash == 2
+    assert Callback.calls_track == 1
+
+
+def test_callbacks_invalid():
+    with pytest.raises(KeyError, match=r"^'invalid is not supported for callbacks'$"):
+        OptionSchema()._add_callback("invalid", None)
 
 
 ###########################
