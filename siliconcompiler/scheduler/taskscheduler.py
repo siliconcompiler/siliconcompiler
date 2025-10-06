@@ -367,16 +367,16 @@ class TaskScheduler:
 
             ready = True
             inputs = []
+            able_to_run = True
             for in_step, in_index in info["inputs"]:
                 in_status = self.__record.get('status', step=in_step, index=in_index)
                 inputs.append(in_status)
 
                 if not NodeStatus.is_done(in_status):
                     ready = False
-                    break
                 if NodeStatus.is_error(in_status) and not info["node"].is_builtin:
                     # Fail if any dependency failed for non-builtin task
-                    self.__record.set("status", NodeStatus.ERROR, step=step, index=index)
+                    able_to_run = False
 
             # Fail if no dependency successfully finished for builtin task
             if inputs:
@@ -384,9 +384,9 @@ class TaskScheduler:
             else:
                 any_success = True
             if ready and info["node"].is_builtin and not any_success:
-                self.__record.set("status", NodeStatus.ERROR, step=step, index=index)
+                able_to_run = False
 
-            if self.__record.get('status', step=step, index=index) == NodeStatus.ERROR:
+            if not able_to_run:
                 info["proc"] = None
                 continue
 
