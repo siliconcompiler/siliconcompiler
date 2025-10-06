@@ -298,34 +298,56 @@ class PathSchema(PathSchemaBase):
 
         return schema
 
-    def set_dataroot(self, name: str, path: str, tag: str = None):
-        """
-        Registers a data directory by its name with the root and associated tag. If the path
-        provided is a file, the path recorded will be the directory the file is located in.
+    def set_dataroot(self, name: str = "root",
+                     path: str = None,
+                     tag: str = None,
+                     clobber: bool = False):
+        """Registers a data source by name, path, and optional version tag.
+
+        This method creates a reference to a data directory, which can be a local
+        path, a Git repository, or a remote archive. This allows other parts of
+        the application to refer to this data source by its unique `name`.
 
         Args:
-            name (str): Data directory name
-            path (str): Path to the root of the data directory, can be directory, git url,
-                archive url, or path to a file
-            tag (str): Reference of the sources, can be commitid, branch name, tag
+            name (str, optional): A unique name to identify the data source.
+                Defaults to "root".
+            path (str): The path to the data source. This is required. It can be
+                a local directory, a file path, a git URL, or an archive URL.
+                If a file path is provided, its parent directory is used as the root.
+            tag (str, optional): A version identifier for remote sources, such as
+                a git commit hash, branch, or tag. Defaults to None.
+            clobber (bool, optional): If True, allows overwriting an existing
+                data source with the same name. If False (default), attempting
+                to overwrite an existing entry will raise a ValueError.
+
+        Raises:
+            ValueError: If `path` is not specified.
+            ValueError: If a data source with the given `name` already exists
+                and `clobber` is False.
 
         Examples:
+            >>> # Register a remote git repository at a specific tag
             >>> schema.set_dataroot('siliconcompiler_data',
-                    'git+https://github.com/siliconcompiler/siliconcompiler',
-                    'v1.0.0')
-            Records the data directory for siliconcompiler_data as a git clone for tag v1.0.0
+            ...                     'git+https://github.com/siliconcompiler/siliconcompiler',
+            ...                     tag='v1.0.0')
+            >>>
+            >>> # Register a local directory based on the location of a file
             >>> schema.set_dataroot('file_data', __file__)
-            Records the data directory for file_data as the directory that __file__ is found in.
         """
+
+        if not path:
+            raise ValueError("path must be specified")
 
         if os.path.isfile(path):
             path = os.path.dirname(os.path.abspath(path))
 
         schema = self.__dataroot_section()
 
+        if name in schema.getkeys("dataroot") and not clobber:
+            raise ValueError(f"{name} has already been defined")
+
         BaseSchema.set(schema, "dataroot", name, "path", path)
-        if tag:
-            BaseSchema.set(schema, "dataroot", name, "tag", tag)
+        BaseSchema.set(schema, "dataroot", name, "tag", tag)
 
     def get_dataroot(self, name: str) -> str:
         """

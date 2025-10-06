@@ -30,10 +30,32 @@ def test_set_dataroot():
     assert schema.get("dataroot", "testsource", "tag") is None
 
 
+def test_set_dataroot_path_only():
+    schema = PathSchema()
+    schema.set_dataroot(path="file://.")
+    assert schema.get("dataroot", "root", "path") == "file://."
+    assert schema.get("dataroot", "root", "tag") is None
+
+
+def test_set_dataroot_require_path():
+    schema = PathSchema()
+    with pytest.raises(ValueError, match=r"^path must be specified$"):
+        schema.set_dataroot()
+
+
+def test_set_dataroot_not_overwrite():
+    schema = PathSchema()
+    schema.set_dataroot("testsource", "file://.")
+    with pytest.raises(ValueError, match=r"^testsource has already been defined$"):
+        schema.set_dataroot("testsource", "file://test")
+    assert schema.get("dataroot", "testsource", "path") == "file://."
+    assert schema.get("dataroot", "testsource", "tag") is None
+
+
 def test_set_dataroot_overwrite():
     schema = PathSchema()
     schema.set_dataroot("testsource", "file://.")
-    schema.set_dataroot("testsource", "file://test")
+    schema.set_dataroot("testsource", "file://test", clobber=True)
     assert schema.get("dataroot", "testsource", "path") == "file://test"
     assert schema.get("dataroot", "testsource", "tag") is None
 
