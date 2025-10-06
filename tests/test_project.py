@@ -2169,6 +2169,33 @@ def test_run_with_scruntimeerror(monkeypatch, caplog):
     assert "Run failed: this error" in caplog.text
 
 
+def test_run_with_with_loginfo(monkeypatch, caplog):
+    design = Design("test")
+    design.set_topmodule("top", fileset="test")
+    proj = Project(design)
+    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    proj.logger.setLevel(logging.INFO)
+    proj.add_fileset("test")
+
+    flow = Flowgraph("testflow")
+    flow.node("stepone", FauxTask0())
+    flow.node("steptwo", FauxTask0())
+    flow.edge("stepone", "steptwo")
+    proj.set_flow(flow)
+
+    def error():
+        raise SCRuntimeError("this error")
+
+    with patch("siliconcompiler.project.Project._init_run") as run:
+        run.side_effect = error
+        with pytest.raises(RuntimeError,
+                           match=r"^Run failed: this error$"):
+            proj.run()
+
+    assert "Run failed: this error" in caplog.text
+    assert f"Job log: {os.path.abspath('build/test/job0/job.log')}" in caplog.text
+
+
 def test_getdict_type_inheritance():
     """Test that _getdict_type returns correct type for subclasses."""
     assert Project._getdict_type() == "Project"

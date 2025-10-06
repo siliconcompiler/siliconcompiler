@@ -92,6 +92,14 @@ class Scheduler:
         # Create dummy handler
         self.__joblog_handler = logging.NullHandler()
         self.__org_job_name = self.__project.get("option", "jobname")
+        self.__logfile = None
+
+    @property
+    def log(self) -> str:
+        """
+        Returns path to the running job log
+        """
+        return self.__logfile
 
     @property
     def project(self):
@@ -202,6 +210,7 @@ class Scheduler:
             bak_file_log = f"{file_log}.bak.{bak_count}"
         if os.path.exists(file_log):
             os.rename(file_log, bak_file_log)
+        self.__logfile = file_log
         self.__joblog_handler = logging.FileHandler(file_log)
         self.__joblog_handler.setFormatter(SCLoggerFormatter())
         self.__logger.addHandler(self.__joblog_handler)
