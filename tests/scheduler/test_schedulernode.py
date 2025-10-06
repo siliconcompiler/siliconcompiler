@@ -1947,3 +1947,74 @@ def test_check_previous_run_status_preserves_success_path(project, monkeypatch):
         # Should succeed without raising exception
         result = node.check_previous_run_status(node)
         assert result is True
+
+
+def test_generate_testcase_autoissue(project, monkeypatch, caplog):
+    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
+    project.logger.setLevel(logging.INFO)
+
+    project.option.set_autoissue(True)
+    assert project.option.get_autoissue() is True
+
+    node = SchedulerNode(project, "stepone", "0")
+    node.task.setup_work_directory(node.workdir)
+
+    with patch("siliconcompiler.utils.issue.generate_testcase") as testcase:
+        node._SchedulerNode__generate_testcase()
+        testcase.assert_called_once()
+
+    assert caplog.text == ""
+
+
+def test_generate_testcase_no_autoissue_no_manifest(project, monkeypatch, caplog):
+    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
+    project.logger.setLevel(logging.INFO)
+
+    assert project.option.get_autoissue() is False
+
+    node = SchedulerNode(project, "stepone", "0")
+    node.task.setup_work_directory(node.workdir)
+
+    with patch("siliconcompiler.utils.issue.generate_testcase") as testcase:
+        node._SchedulerNode__generate_testcase()
+        testcase.assert_called_once()
+
+    assert caplog.text == ""
+
+
+def test_generate_testcase_no_autoissue_output_manifest(project, monkeypatch, caplog):
+    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
+    project.logger.setLevel(logging.INFO)
+
+    assert project.option.get_autoissue() is False
+
+    node = SchedulerNode(project, "stepone", "0")
+    node.task.setup_work_directory(node.workdir)
+    with open(node.get_manifest(input=False), "w"):
+        pass
+
+    with patch("siliconcompiler.utils.issue.generate_testcase") as testcase:
+        node._SchedulerNode__generate_testcase()
+        testcase.assert_not_called()
+
+    assert "sc-issue -cfg build/testdesign/job0/stepone/0/outputs/testdesign.pkg.json" in \
+        caplog.text
+
+
+def test_generate_testcase_no_autoissue_input_manifest(project, monkeypatch, caplog):
+    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
+    project.logger.setLevel(logging.INFO)
+
+    assert project.option.get_autoissue() is False
+
+    node = SchedulerNode(project, "stepone", "0")
+    node.task.setup_work_directory(node.workdir)
+    with open(node.get_manifest(input=True), "w"):
+        pass
+
+    with patch("siliconcompiler.utils.issue.generate_testcase") as testcase:
+        node._SchedulerNode__generate_testcase()
+        testcase.assert_not_called()
+
+    assert "sc-issue -cfg build/testdesign/job0/stepone/0/inputs/testdesign.pkg.json" in \
+        caplog.text

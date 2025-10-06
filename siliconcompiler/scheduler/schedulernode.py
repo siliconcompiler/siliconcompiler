@@ -1013,6 +1013,19 @@ class SchedulerNode:
         This method packages the failing state (including manifests, inputs,
         and logs) into a compressed archive for easier debugging.
         """
+
+        if not self.project.option.get_autoissue():
+            manifest = None
+            for node_manifest in self.__manifests.values():
+                if os.path.exists(node_manifest):
+                    manifest = node_manifest
+                    break
+
+            if manifest:
+                manifest = os.path.relpath(manifest, self.__cwd)
+                self.logger.error(f"sc-issue -cfg {manifest}")
+                return
+
         from siliconcompiler.utils.issue import generate_testcase
         import lambdapdk
 
