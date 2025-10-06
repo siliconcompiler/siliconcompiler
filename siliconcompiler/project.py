@@ -26,7 +26,7 @@ from siliconcompiler.schema_support.dependencyschema import DependencySchema
 from siliconcompiler.schema_support.pathschema import PathSchemaBase
 
 from siliconcompiler.report.dashboard.cli import CliDashboard
-from siliconcompiler.scheduler import Scheduler
+from siliconcompiler.scheduler import Scheduler, SCRuntimeError
 from siliconcompiler.utils.logging import SCColorLoggerFormatter, SCLoggerFormatter
 from siliconcompiler.utils import get_file_ext
 from siliconcompiler.utils.multiprocessing import MPManager
@@ -563,6 +563,9 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             else:
                 scheduler = Scheduler(self)
             scheduler.run()
+        except SCRuntimeError as e:
+            self.logger.error(f"Run failed: {e.msg}")
+            raise RuntimeError(f"Run failed: {e.msg}")
         finally:
             if self.__dashboard:
                 # Update dashboard

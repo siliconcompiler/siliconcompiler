@@ -20,7 +20,7 @@ from siliconcompiler.scheduler.schedulernode import SchedulerFlowReset
 from siliconcompiler import utils
 from siliconcompiler.utils.logging import SCLoggerFormatter
 from siliconcompiler.utils.multiprocessing import MPManager
-from siliconcompiler.scheduler import send_messages
+from siliconcompiler.scheduler import send_messages, SCRuntimeError
 from siliconcompiler.utils.paths import collectiondir, jobdir, workdir
 
 
@@ -45,7 +45,7 @@ class Scheduler:
             project (Project): The Project object containing the configuration and flowgraph.
 
         Raises:
-            ValueError: If the specified flow is not defined or fails validation.
+            SCRuntimeError: If the specified flow is not defined or fails validation.
         """
         self.__project = project
         self.__logger: logging.Logger = project.logger
@@ -53,10 +53,10 @@ class Scheduler:
 
         flow = self.__project.get("option", "flow")
         if not flow:
-            raise ValueError("flow must be specified")
+            raise SCRuntimeError("flow must be specified")
 
         if flow not in self.__project.getkeys("flowgraph"):
-            raise ValueError("flow is not defined")
+            raise SCRuntimeError("flow is not defined")
 
         self.__flow = self.__project.get("flowgraph", flow, field="schema")
         from_steps = self.__project.get('option', 'from')
@@ -64,14 +64,14 @@ class Scheduler:
         prune_nodes = self.__project.get('option', 'prune')
 
         if not self.__flow.validate(logger=self.__logger):
-            raise ValueError(f"{self.__flow.name} flowgraph contains errors and cannot be run.")
+            raise SCRuntimeError(f"{self.__flow.name} flowgraph contains errors and cannot be run.")
         if not RuntimeFlowgraph.validate(
                 self.__flow,
                 from_steps=from_steps,
                 to_steps=to_steps,
                 prune_nodes=prune_nodes,
                 logger=self.__logger):
-            raise ValueError(f"{self.__flow.name} flowgraph contains errors and cannot be run.")
+            raise SCRuntimeError(f"{self.__flow.name} flowgraph contains errors and cannot be run.")
 
         self.__flow_runtime = RuntimeFlowgraph(
             self.__flow,
@@ -239,21 +239,21 @@ class Scheduler:
 
             # Check validity of setup
             if not self.check_manifest():
-                raise RuntimeError("check_manifest() failed")
+                raise SCRuntimeError("check_manifest() failed")
 
             self.__run_setup()
             self.configure_nodes()
 
             # Verify tool setups
             if not self.__check_tool_requirements():
-                raise RuntimeError("Tools requirements not met")
+                raise SCRuntimeError("Tools requirements not met")
 
             # Cleanup build directory
             self.__clean_build_dir_incr()
 
             # Check validity of flowgraphs IO
             if not self.__check_flowgraph_io():
-                raise RuntimeError("Flowgraph file IO constrains errors")
+                raise SCRuntimeError("Flowgraph file IO constrains errors")
 
             self.run_core()
 

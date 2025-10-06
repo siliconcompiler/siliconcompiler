@@ -1,3 +1,4 @@
+from siliconcompiler.scheduler.error import SCRuntimeError
 from siliconcompiler.scheduler.schedulernode import SchedulerNode
 from siliconcompiler.scheduler.slurm import SlurmSchedulerNode
 from siliconcompiler.scheduler.docker import DockerSchedulerNode
@@ -9,5 +10,6 @@ __all__ = [
     "SchedulerNode",
     "TaskScheduler",
     "DockerSchedulerNode",
-    "SlurmSchedulerNode"
+    "SlurmSchedulerNode",
+    "SCRuntimeError"
 ]

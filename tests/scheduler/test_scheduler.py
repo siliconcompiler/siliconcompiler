@@ -8,7 +8,7 @@ import os.path
 from unittest.mock import patch
 
 from siliconcompiler import Project, Flowgraph, Design, NodeStatus
-from siliconcompiler.scheduler import Scheduler
+from siliconcompiler.scheduler import Scheduler, SCRuntimeError
 from siliconcompiler.schema import EditableSchema, Parameter
 
 from siliconcompiler.tools.builtin.nop import NOPTask
@@ -67,20 +67,20 @@ def basic_project_no_flow():
 
 
 def test_init_no_flow():
-    with pytest.raises(ValueError, match="^flow must be specified$"):
+    with pytest.raises(SCRuntimeError, match=r"^flow must be specified$"):
         Scheduler(Project(Design("testdesign")))
 
 
 def test_init_flow_not_defined(basic_project):
     basic_project.set("option", "flow", "testflow")
-    with pytest.raises(ValueError, match="^flow is not defined$"):
+    with pytest.raises(SCRuntimeError, match=r"^flow is not defined$"):
         Scheduler(basic_project)
 
 
 def test_init_flow_not_valid(basic_project):
     with patch("siliconcompiler.flowgraph.Flowgraph.validate") as call:
         call.return_value = False
-        with pytest.raises(ValueError,
+        with pytest.raises(SCRuntimeError,
                            match=r"^test flowgraph contains errors and cannot be run\.$"):
             Scheduler(basic_project)
 
@@ -90,7 +90,7 @@ def test_init_flow_runtime_not_valid(basic_project):
          patch("siliconcompiler.flowgraph.RuntimeFlowgraph.validate") as call1:
         call0.return_value = True
         call1.return_value = False
-        with pytest.raises(ValueError,
+        with pytest.raises(SCRuntimeError,
                            match=r"^test flowgraph contains errors and cannot be run\.$"):
             Scheduler(basic_project)
 
