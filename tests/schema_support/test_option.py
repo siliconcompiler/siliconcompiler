@@ -1,7 +1,10 @@
 import pytest
 
+from unittest.mock import patch
+
 from siliconcompiler.schema import Scope
 from siliconcompiler.schema_support.option import OptionSchema, SchedulerSchema
+from siliconcompiler.project import Project
 
 
 def test_keys():
@@ -147,6 +150,20 @@ def test_nodashboard():
     option = OptionSchema()
     option.set_nodashboard(True)
     assert option.get_nodashboard() is True
+
+
+def test_nodashboard_via_project():
+    proj = Project()
+
+    with patch("siliconcompiler.project.Project.set") as pset:
+        proj.option.set_nodashboard(True)
+        pset.assert_called_once_with('option', 'nodashboard', True)
+
+
+def test_nodashboard_not_via_project():
+    with patch("siliconcompiler.project.Project.set") as pset:
+        OptionSchema().set_nodashboard(True)
+        pset.assert_not_called()
 
 
 def test_env():
