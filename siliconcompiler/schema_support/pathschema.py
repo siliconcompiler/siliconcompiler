@@ -344,7 +344,9 @@ class PathSchema(PathSchemaBase):
         schema = self.__dataroot_section()
 
         if name in schema.getkeys("dataroot") and not clobber:
-            raise ValueError(f"{name} has already been defined")
+            if path != BaseSchema.get(schema, "dataroot", name, "path") or \
+                    tag != BaseSchema.get(schema, "dataroot", name, "tag"):
+                raise ValueError(f"{name} has already been defined")
 
         BaseSchema.set(schema, "dataroot", name, "path", path)
         BaseSchema.set(schema, "dataroot", name, "tag", tag)

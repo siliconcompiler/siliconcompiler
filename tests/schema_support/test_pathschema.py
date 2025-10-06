@@ -52,6 +52,23 @@ def test_set_dataroot_not_overwrite():
     assert schema.get("dataroot", "testsource", "tag") is None
 
 
+def test_set_dataroot_not_overwrite_same():
+    schema = PathSchema()
+    schema.set_dataroot("testsource", "file://.")
+    with pytest.raises(ValueError, match=r"^testsource has already been defined$"):
+        schema.set_dataroot("testsource", "file://.", tag="v0.1")
+    assert schema.get("dataroot", "testsource", "path") == "file://."
+    assert schema.get("dataroot", "testsource", "tag") is None
+
+
+def test_set_dataroot_not_overwrite_same_tag():
+    schema = PathSchema()
+    schema.set_dataroot("testsource", "file://.")
+    schema.set_dataroot("testsource", "file://.")
+    assert schema.get("dataroot", "testsource", "path") == "file://."
+    assert schema.get("dataroot", "testsource", "tag") is None
+
+
 def test_set_dataroot_overwrite():
     schema = PathSchema()
     schema.set_dataroot("testsource", "file://.")
