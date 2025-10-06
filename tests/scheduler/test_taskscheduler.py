@@ -8,7 +8,7 @@ from siliconcompiler import NodeStatus
 from siliconcompiler import Project, Flowgraph, Design
 from siliconcompiler.scheduler import TaskScheduler
 from siliconcompiler.scheduler.taskscheduler import utils as imported_utils
-from siliconcompiler.scheduler import SchedulerNode
+from siliconcompiler.scheduler import SchedulerNode, SCRuntimeError
 
 from siliconcompiler.tools.builtin.nop import NOPTask
 from siliconcompiler.tools.builtin.join import JoinTask
@@ -187,5 +187,16 @@ def test_check(large_flow, make_tasks):
 def test_check_invalid(large_flow, make_tasks):
     scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
 
-    with pytest.raises(RuntimeError, match="^These final steps could not be reached: jointhree$"):
+    with pytest.raises(SCRuntimeError, match=r"^Could not run final steps: jointhree$"):
+        scheduler.check()
+
+
+def test_check_invalid_with_error(large_flow, make_tasks):
+    scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
+    large_flow.set("record", "status", "error", step="stepone", index=0)
+    large_flow.set("record", "status", "error", step="stepone", index=1)
+
+    with pytest.raises(SCRuntimeError,
+                       match=r"^Could not run final steps \(jointhree\) due to errors "
+                             r"in: stepone/0, stepone/1$"):
         scheduler.check()

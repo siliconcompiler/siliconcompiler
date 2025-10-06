@@ -211,12 +211,10 @@ class TaskScheduler:
             running_nodes = self.get_running_nodes()
 
             # Check for situation where we have stuff left to run but don't
-            # have any nodes running. This shouldn't happen, but we will get
-            # stuck in an infinite loop if it does, so we want to break out
-            # with an explicit error.
+            # have any nodes running. This can happen when the flow generated an error
             if len(self.get_nodes_waiting_to_run()) > 0 and len(running_nodes) == 0:
-                raise SCRuntimeError(
-                    'Nodes left to run, but no running nodes. From/to may be invalid.')
+                # Stop execution loop and report error
+                break
 
             if len(running_nodes) == 1:
                 # if there is only one node running, just join the thread
@@ -367,16 +365,16 @@ class TaskScheduler:
 
             ready = True
             inputs = []
+            able_to_run = True
             for in_step, in_index in info["inputs"]:
                 in_status = self.__record.get('status', step=in_step, index=in_index)
                 inputs.append(in_status)
 
                 if not NodeStatus.is_done(in_status):
                     ready = False
-                    break
                 if NodeStatus.is_error(in_status) and not info["node"].is_builtin:
                     # Fail if any dependency failed for non-builtin task
-                    self.__record.set("status", NodeStatus.ERROR, step=step, index=index)
+                    able_to_run = False
 
             # Fail if no dependency successfully finished for builtin task
             if inputs:
@@ -384,9 +382,9 @@ class TaskScheduler:
             else:
                 any_success = True
             if ready and info["node"].is_builtin and not any_success:
-                self.__record.set("status", NodeStatus.ERROR, step=step, index=index)
+                able_to_run = False
 
-            if self.__record.get('status', step=step, index=index) == NodeStatus.ERROR:
+            if not able_to_run:
                 info["proc"] = None
                 continue
 
@@ -424,5 +422,12 @@ class TaskScheduler:
         unreached = set(exit_steps).difference(completed_steps)
 
         if unreached:
-            raise SCRuntimeError(
-                f'These final steps could not be reached: {", ".join(sorted(unreached))}')
+            errors = set([f"{step}/{index}" for step, index in self.__runtime_flow.get_nodes()
+                          if NodeStatus.is_error(self.__record.get("status",
+                                                                   step=step, index=index))])
+            if errors:
+                raise SCRuntimeError(
+                    f'Could not run final steps ({", ".join(sorted(unreached))}) '
+                    f'due to errors in: {", ".join(sorted(errors))}')
+            else:
+                raise SCRuntimeError(f'Could not run final steps: {", ".join(sorted(unreached))}')
