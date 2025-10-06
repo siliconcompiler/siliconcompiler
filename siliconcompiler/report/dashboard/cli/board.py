@@ -692,9 +692,13 @@ class Board:
             log_file = None
             if layout.job_board_show_log:
                 for log in node["log"]:
-                    if os.path.exists(log) and os.path.getsize(log):
-                        log_file = "[bright_black]{}[/]".format(log)
-                        break
+                    try:
+                        if os.path.getsize(log) > 0:
+                            log_file = "[bright_black]{}[/]".format(log)
+                            break
+                    except OSError:
+                        # File doesn't exist or inaccessible
+                        continue
 
             if node["time"]["duration"] is not None:
                 duration = f'{node["time"]["duration"]:.1f}s'
