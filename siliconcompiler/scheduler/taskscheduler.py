@@ -427,7 +427,7 @@ class TaskScheduler:
                                                                    step=step, index=index))])
             if errors:
                 raise SCRuntimeError(
-                    f'Could not run final steps ({", ".join(sorted(unreached))}) due to a errors in: '
-                    f'{", ".join(sorted(errors))}')
+                    f'Could not run final steps ({", ".join(sorted(unreached))}) due to a errors '
+                    f'in: {", ".join(sorted(errors))}')
             else:
                 raise SCRuntimeError(f'Could not run final steps: {", ".join(sorted(unreached))}')
