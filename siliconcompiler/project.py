@@ -125,6 +125,9 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         # Init fields
         self.__cwd = os.getcwd()
 
+        # Init options callbacks
+        self.__init_option_callbacks()
+
         if design:
             if isinstance(design, str):
                 self.set("option", "design", design)
@@ -166,14 +169,23 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         else:
             self.__dashboard = CliDashboard(self)
 
+    def __init_option_callbacks(self):
+        """Initializes and registers callback functions for schema options.
+
+        This internal method links specific configuration parameters to actions
+        that should be performed when those parameters change.
+
+        Currently, it registers a callback to initialize or re-initialize the
+        dashboard object whenever the 'option, nodashboard' key is modified.
+        """
+
+        self.option._add_callback("nodashboard", self.__init_dashboard)
+
     def set(self, *args, field='value', clobber=True, step=None, index=None):
-        ret = super().set(*args, field=field, clobber=clobber, step=step, index=index)
+        if args[0:1] == ("option",):
+            return self.option.set(*args[1:], field=field, clobber=clobber, step=step, index=index)
 
-        # Special handling for keys that affect project behavior
-        if args[0:2] == ("option", "nodashboard"):
-            self.__init_dashboard()
-
-        return ret
+        return super().set(*args, field=field, clobber=clobber, step=step, index=index)
 
     @property
     def logger(self) -> logging.Logger:
@@ -673,6 +685,9 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
 
         # Reinitialize logger on restore
         self.__init_logger()
+
+        # Restore callbacks
+        self.__init_option_callbacks()
 
         # Restore dashboard
         self.__init_dashboard()

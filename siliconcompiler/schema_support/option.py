@@ -1,4 +1,4 @@
-from typing import Union, List, Tuple
+from typing import Union, List, Tuple, Callable
 
 from siliconcompiler.schema import BaseSchema, EditableSchema, Parameter, Scope, PerNode
 from siliconcompiler.schema.utils import trim
@@ -427,6 +427,8 @@ class OptionSchema(BaseSchema):
     def __init__(self):
         """Initializes the options schema and defines all its parameters."""
         super().__init__()
+
+        self.__callbacks = {}
 
         # Initialize schema
         schema = EditableSchema(self)
@@ -1336,12 +1338,7 @@ class OptionSchema(BaseSchema):
         Args:
             value (bool): The value for the no-dashboard flag.
         """
-        from siliconcompiler.project import Project
-        if isinstance(self._parent(root=True), Project):
-            # Call from project to allow for override
-            self._parent(root=True).set("option", "nodashboard", value)
-        else:
-            self.set('nodashboard', value)
+        self.set('nodashboard', value)
 
     def get_autoissue(self) -> bool:
         """Gets the autoissue flag.
@@ -1367,3 +1364,58 @@ class OptionSchema(BaseSchema):
             SchedulerSchema: The schema object for scheduler settings.
         """
         return self.get("scheduler", field="schema")
+
+    def _add_callback(self, key: str, callback: Callable):
+        """Registers a callback function to be executed when a key is set.
+
+        Args:
+            key (str): The schema key to attach the callback to.
+            callback (Callable): The function to execute when the key is set.
+
+        Raises:
+            KeyError: If the provided key is not a valid schema parameter.
+        """
+        if key not in self.getkeys():
+            raise KeyError(f"{key} is not supported for callbacks")
+        self.__callbacks[key] = callback
+
+    def set(self, *args, field='value', clobber=True, step=None, index=None):
+        ret = super().set(*args, field=field, clobber=clobber, step=step, index=index)
+
+        if args[0] in self.__callbacks:
+            self.__callbacks[args[0]]()
+
+        return ret
+
+    def __getstate__(self):
+        """
+        Prepares the schema's state for serialization (pickling).
+
+        This method removes non-serializable objects, specifically the internal
+        `__callbacks` dictionary, before the object is pickled.
+
+        Returns:
+            dict: The serializable state of the object.
+        """
+        # Ensure a copy of the state is used
+        state = self.__dict__.copy()
+
+        # Remove callbacks since they are not serializable
+        del state["_OptionSchema__callbacks"]
+
+        return state
+
+    def __setstate__(self, state):
+        """
+        Restores the schema's state from a deserialized (unpickled) state.
+
+        This method restores the core object dictionary and then re-initializes
+        the `__callbacks` dictionary, as it was removed during serialization.
+
+        Args:
+            state (dict): The deserialized state of the object.
+        """
+        self.__dict__ = state
+
+        # Reinitialize callback object on restore
+        self.__callbacks = {}
