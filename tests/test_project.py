@@ -22,6 +22,7 @@ from siliconcompiler.utils.logging import SCColorLoggerFormatter, SCLoggerFormat
 from siliconcompiler.utils.paths import jobdir
 
 from siliconcompiler.project import SCColorLoggerFormatter as dut_sc_color_logger
+from siliconcompiler.scheduler import SCRuntimeError
 
 
 class FauxTask0(Task):
@@ -2121,20 +2122,51 @@ def test_reset_job_params_with_nested_scratch_params():
     assert proj.get("option", "design") == "testdesign"
 
 
-def test_run_with_empty_flowgraph():
+def test_run_with_empty_flowgraph(monkeypatch, caplog):
     """Test run with a flowgraph that has no nodes."""
     design = Design("test")
     design.set_topmodule("top", fileset="test")
     proj = Project(design)
+    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    proj.logger.setLevel(logging.INFO)
     proj.add_fileset("test")
 
     flow = Flowgraph("emptyflow")
     proj.set_flow(flow)
 
     # Should handle empty flow gracefully
-    with pytest.raises(ValueError,
-                       match=r"^emptyflow flowgraph contains errors and cannot be run\.$"):
+    with pytest.raises(RuntimeError,
+                       match=r"^Run failed: emptyflow flowgraph contains errors "
+                             r"and cannot be run\.$"):
         proj.run()
+
+    assert "Run failed: emptyflow flowgraph contains errors and cannot be run." in caplog.text
+
+
+def test_run_with_scruntimeerror(monkeypatch, caplog):
+    design = Design("test")
+    design.set_topmodule("top", fileset="test")
+    proj = Project(design)
+    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    proj.logger.setLevel(logging.INFO)
+    proj.add_fileset("test")
+
+    flow = Flowgraph("testflow")
+    flow.node("stepone", FauxTask0())
+    flow.node("steptwo", FauxTask0())
+    flow.edge("stepone", "steptwo")
+    proj.set_flow(flow)
+
+    def error(*args):
+        raise SCRuntimeError("this error")
+
+    with patch("siliconcompiler.scheduler.Scheduler.run") as run:
+        run.side_effect = error
+        with pytest.raises(RuntimeError,
+                           match=r"^Run failed: this error$"):
+            proj.run()
+
+    assert "Run failed: this error" in caplog.text
 
 
 def test_getdict_type_inheritance():

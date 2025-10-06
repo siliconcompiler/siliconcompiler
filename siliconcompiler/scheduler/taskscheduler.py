@@ -15,6 +15,7 @@ from siliconcompiler.schema import Journal
 
 from siliconcompiler.utils.logging import SCBlankLoggerFormatter, SCBlankColorlessLoggerFormatter
 from siliconcompiler.utils.multiprocessing import MPManager
+from siliconcompiler.scheduler import SCRuntimeError
 
 
 class TaskScheduler:
@@ -201,7 +202,7 @@ class TaskScheduler:
 
         while len(self.get_nodes_waiting_to_run()) > 0 or len(self.get_running_nodes()) > 0:
             changed = self.__process_completed_nodes()
-            changed |= self.__lanuch_nodes()
+            changed |= self.__launch_nodes()
 
             if changed and self.__dashboard:
                 # Update dashboard if the manifest changed
@@ -214,7 +215,7 @@ class TaskScheduler:
             # stuck in an infinite loop if it does, so we want to break out
             # with an explicit error.
             if len(self.get_nodes_waiting_to_run()) > 0 and len(running_nodes) == 0:
-                raise RuntimeError(
+                raise SCRuntimeError(
                     'Nodes left to run, but no running nodes. From/to may be invalid.')
 
             if len(running_nodes) == 1:
@@ -345,7 +346,7 @@ class TaskScheduler:
         # allow
         return True
 
-    def __lanuch_nodes(self):
+    def __launch_nodes(self):
         """
         Private helper to launch new nodes whose dependencies are met.
 
@@ -414,7 +415,7 @@ class TaskScheduler:
         flowgraph have been successfully completed.
 
         Raises:
-            RuntimeError: If any final steps in the flow were not reached.
+            SCRuntimeError: If any final steps in the flow were not reached.
         """
         exit_steps = set([step for step, _ in self.__runtime_flow.get_exit_nodes()])
         completed_steps = set([step for step, _ in
@@ -423,5 +424,5 @@ class TaskScheduler:
         unreached = set(exit_steps).difference(completed_steps)
 
         if unreached:
-            raise RuntimeError(
+            raise SCRuntimeError(
                 f'These final steps could not be reached: {", ".join(sorted(unreached))}')
