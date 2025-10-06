@@ -70,7 +70,7 @@ def mock_running_job_lg():
             "step": f"node{index + 1}",
             "index": index,
             "status": statuses[index % len(statuses)],
-            "log": [f"node{index + 1}.log"],
+            "log": [f"node{index + 1}.log", f"second_node{index + 1}.log"],
             "metrics": ["", ""],
             "time": {
                 "duration": None,
@@ -585,6 +585,191 @@ def test_render_job_dashboard(mock_running_job_lg, dashboard_medium):
             log = f'\x1b[90m{node["log"][0]}\x1b[0m'
         else:
             log = ""
+        status = node["status"].upper()
+        job_id = "/".join(
+            [
+                mock_running_job_lg.design,
+                mock_running_job_lg.jobname,
+                node["step"],
+                str(node["index"]),
+            ]
+        )
+        div = ""
+        expected_line = f"{status}{div}{job_id}{div}{div}{div}{div}{log}".translate(
+            str.maketrans("", "", " \t\n\r\f\v"))
+        expected_lines_all.append(expected_line)
+
+    actual_lines = actual_lines[2:]
+    assert len(actual_lines) == 19
+
+    expected_lines = [
+        expected_lines_all[0],
+        expected_lines_all[1],
+        expected_lines_all[2],
+        expected_lines_all[3],
+        expected_lines_all[4],
+        expected_lines_all[5],
+        expected_lines_all[6],
+        expected_lines_all[7],
+        expected_lines_all[8],
+        expected_lines_all[9],
+        expected_lines_all[10],
+        expected_lines_all[11],
+        expected_lines_all[12],
+        expected_lines_all[13],
+        expected_lines_all[16],
+        expected_lines_all[19],
+        expected_lines_all[22],
+        expected_lines_all[25],
+        expected_lines_all[28]
+    ]
+    assert len(actual_lines) == len(expected_lines)
+    for i, (actual, expected) in enumerate(zip(actual_lines, expected_lines)):
+        assert actual == expected, f"line {i} does not match"
+
+
+def test_render_job_dashboard_select_logs(mock_running_job_lg, dashboard_medium):
+    """Test that the job dashboard is created properly"""
+    dashboard = dashboard_medium._dashboard
+
+    for n in range(1, mock_running_job_lg.total+1):
+        if n % 2 == 0:
+            with open(f"node{n}.log", "w"):
+                pass
+            with open(f"second_node{n}.log", "w") as f:
+                f.write("test")
+
+    with patch.object(Board, "_get_job") as mock_job_data:
+        mock_job_data.return_value = mock_running_job_lg
+        dashboard._update_render_data(dashboard_medium._project)
+
+    dashboard._update_rendable_data()
+    dashboard._update_layout()
+
+    job_board = dashboard._render_job_dashboard(dashboard._layout)
+
+    assert isinstance(job_board, Group)
+
+    assert len(job_board.renderables) == 2
+
+    job_table = job_board.renderables[0]
+    assert isinstance(job_table, Table)
+
+    assert job_table.row_count == 19
+
+    # Check the content
+    io_file = io.StringIO()
+    console = Console(file=io_file, width=120)
+    logger = logging.getLogger("test")
+    logger.setLevel(logging.INFO)
+    console.print(job_table)
+
+    # Remove all white spaces
+    actual_output = console.file.getvalue()
+    actual_lines = [
+        line.translate(str.maketrans("", "", " \t\n\r\f\v"))
+        for line in actual_output.splitlines()
+    ]
+
+    expected_lines_all = []
+    for n, node in enumerate(mock_running_job_lg.nodes, start=1):
+        if node["status"] in [NodeStatus.SKIPPED]:
+            continue
+        if n % 2 == 0:
+            log = f'\x1b[90m{node["log"][1]}\x1b[0m'
+        else:
+            log = ""
+        status = node["status"].upper()
+        job_id = "/".join(
+            [
+                mock_running_job_lg.design,
+                mock_running_job_lg.jobname,
+                node["step"],
+                str(node["index"]),
+            ]
+        )
+        div = ""
+        expected_line = f"{status}{div}{job_id}{div}{div}{div}{div}{log}".translate(
+            str.maketrans("", "", " \t\n\r\f\v"))
+        expected_lines_all.append(expected_line)
+
+    actual_lines = actual_lines[2:]
+    assert len(actual_lines) == 19
+
+    expected_lines = [
+        expected_lines_all[0],
+        expected_lines_all[1],
+        expected_lines_all[2],
+        expected_lines_all[3],
+        expected_lines_all[4],
+        expected_lines_all[5],
+        expected_lines_all[6],
+        expected_lines_all[7],
+        expected_lines_all[8],
+        expected_lines_all[9],
+        expected_lines_all[10],
+        expected_lines_all[11],
+        expected_lines_all[12],
+        expected_lines_all[13],
+        expected_lines_all[16],
+        expected_lines_all[19],
+        expected_lines_all[22],
+        expected_lines_all[25],
+        expected_lines_all[28]
+    ]
+    assert len(actual_lines) == len(expected_lines)
+    for i, (actual, expected) in enumerate(zip(actual_lines, expected_lines)):
+        assert actual == expected, f"line {i} does not match"
+
+
+def test_render_job_dashboard_select_no_logs(mock_running_job_lg, dashboard_medium):
+    """Test that the job dashboard is created properly"""
+    dashboard = dashboard_medium._dashboard
+
+    for n in range(1, mock_running_job_lg.total+1):
+        if n % 2 == 0:
+            with open(f"node{n}.log", "w"):
+                pass
+            with open(f"second_node{n}.log", "w"):
+                pass
+
+    with patch.object(Board, "_get_job") as mock_job_data:
+        mock_job_data.return_value = mock_running_job_lg
+        dashboard._update_render_data(dashboard_medium._project)
+
+    dashboard._update_rendable_data()
+    dashboard._update_layout()
+
+    job_board = dashboard._render_job_dashboard(dashboard._layout)
+
+    assert isinstance(job_board, Group)
+
+    assert len(job_board.renderables) == 2
+
+    job_table = job_board.renderables[0]
+    assert isinstance(job_table, Table)
+
+    assert job_table.row_count == 19
+
+    # Check the content
+    io_file = io.StringIO()
+    console = Console(file=io_file, width=120)
+    logger = logging.getLogger("test")
+    logger.setLevel(logging.INFO)
+    console.print(job_table)
+
+    # Remove all white spaces
+    actual_output = console.file.getvalue()
+    actual_lines = [
+        line.translate(str.maketrans("", "", " \t\n\r\f\v"))
+        for line in actual_output.splitlines()
+    ]
+
+    expected_lines_all = []
+    for n, node in enumerate(mock_running_job_lg.nodes, start=1):
+        if node["status"] in [NodeStatus.SKIPPED]:
+            continue
+        log = ""
         status = node["status"].upper()
         job_id = "/".join(
             [
