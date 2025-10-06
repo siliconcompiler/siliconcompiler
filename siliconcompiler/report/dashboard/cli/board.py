@@ -692,7 +692,7 @@ class Board:
             log_file = None
             if layout.job_board_show_log:
                 for log in node["log"]:
-                    if os.path.exists(log):
+                    if os.path.exists(log) and os.path.getsize(log):
                         log_file = "[bright_black]{}[/]".format(log)
                         break
 
