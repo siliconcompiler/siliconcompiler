@@ -1997,8 +1997,9 @@ def test_generate_testcase_no_autoissue_output_manifest(project, monkeypatch, ca
         node._SchedulerNode__generate_testcase()
         testcase.assert_not_called()
 
-    assert "sc-issue -cfg build/testdesign/job0/stepone/0/outputs/testdesign.pkg.json" in \
-        caplog.text
+    assert "To generate a testcase, run: sc-issue -cfg " \
+        f"{os.path.relpath('build/testdesign/job0/stepone/0/outputs/testdesign.pkg.json', '.')}" \
+        in caplog.text
 
 
 def test_generate_testcase_no_autoissue_input_manifest(project, monkeypatch, caplog):
@@ -2016,5 +2017,6 @@ def test_generate_testcase_no_autoissue_input_manifest(project, monkeypatch, cap
         node._SchedulerNode__generate_testcase()
         testcase.assert_not_called()
 
-    assert "sc-issue -cfg build/testdesign/job0/stepone/0/inputs/testdesign.pkg.json" in \
-        caplog.text
+    assert "To generate a testcase, run: sc-issue -cfg " \
+        f"{os.path.relpath('build/testdesign/job0/stepone/0/inputs/testdesign.pkg.json', '.')}" \
+        in caplog.text

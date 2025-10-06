@@ -1023,7 +1023,7 @@ class SchedulerNode:
 
             if manifest:
                 manifest = os.path.relpath(manifest, self.__cwd)
-                self.logger.error(f"sc-issue -cfg {manifest}")
+                self.logger.error(f"To generate a testcase, run: sc-issue -cfg {manifest}")
                 return
 
         from siliconcompiler.utils.issue import generate_testcase
