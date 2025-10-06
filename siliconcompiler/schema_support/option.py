@@ -825,6 +825,18 @@ class OptionSchema(BaseSchema):
                 example=["api: option.set('nodashboard', True)"],
                 help=trim("""Disables the dashboard during execution""")))
 
+        schema.insert(
+            "autoissue",
+            Parameter(
+                "bool",
+                defvalue=False,
+                scope=Scope.GLOBAL,
+                switch=["-autoissue <bool>"],
+                shorthelp="Option: Enables automatic generation of testcases",
+                example=["api: option.set('autoissue', True)"],
+                help=trim("""Enables automatic generation of testcases
+                          if the specific node fails""")))
+
         schema.insert('scheduler', SchedulerSchema())
 
     # Getters and Setters
@@ -1330,6 +1342,22 @@ class OptionSchema(BaseSchema):
             self._parent(root=True).set("option", "nodashboard", value)
         else:
             self.set('nodashboard', value)
+
+    def get_autoissue(self) -> bool:
+        """Gets the autoissue flag.
+
+        Returns:
+            bool: The current value of the autoissue flag.
+        """
+        return self.get('autoissue')
+
+    def set_autoissue(self, value: bool):
+        """Sets the autoissue flag.
+
+        Args:
+            value (bool): The desired value for the autoissue flag.
+        """
+        self.set('autoissue', value)
 
     @property
     def scheduler(self) -> SchedulerSchema:

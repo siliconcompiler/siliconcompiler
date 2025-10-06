@@ -9,6 +9,7 @@ from siliconcompiler.project import Project
 
 def test_keys():
     assert OptionSchema().allkeys() == set([
+        ('autoissue',),
         ('builddir',),
         ('flow',),
         ('prune',),
@@ -118,24 +119,28 @@ def test_jobname():
 
 def test_clean():
     option = OptionSchema()
+    assert option.get_clean() is False
     option.set_clean(True)
     assert option.get_clean() is True
 
 
 def test_hash():
     option = OptionSchema()
+    assert option.get_hash() is False
     option.set_hash(True)
     assert option.get_hash() is True
 
 
 def test_nodisplay():
     option = OptionSchema()
+    assert option.get_nodisplay() is False
     option.set_nodisplay(True)
     assert option.get_nodisplay() is True
 
 
 def test_jobincr():
     option = OptionSchema()
+    assert option.get_jobincr() is False
     option.set_jobincr(True)
     assert option.get_jobincr() is True
 
@@ -148,8 +153,16 @@ def test_design():
 
 def test_nodashboard():
     option = OptionSchema()
+    assert option.get_nodashboard() is False
     option.set_nodashboard(True)
     assert option.get_nodashboard() is True
+
+
+def test_autoissue():
+    option = OptionSchema()
+    assert option.get_autoissue() is False
+    option.set_autoissue(True)
+    assert option.get_autoissue() is True
 
 
 def test_nodashboard_via_project():

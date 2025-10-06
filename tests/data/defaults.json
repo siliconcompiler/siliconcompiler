@@ -2673,6 +2673,30 @@
             }
           }
         },
+        "autoissue": {
+          "type": "bool",
+          "require": false,
+          "scope": "global",
+          "lock": false,
+          "switch": [
+            "-autoissue <bool>"
+          ],
+          "shorthelp": "Option: Enables automatic generation of testcases",
+          "example": [
+            "api: option.set('autoissue', True)"
+          ],
+          "help": "Enables automatic generation of testcases\nif the specific node fails",
+          "notes": null,
+          "pernode": "never",
+          "node": {
+            "default": {
+              "default": {
+                "value": false,
+                "signature": null
+              }
+            }
+          }
+        },
         "scheduler": {
           "name": {
             "type": "<docker,lsf,sge,slurm>",
@@ -6288,6 +6312,30 @@
             "api: option.set('nodashboard', True)"
           ],
           "help": "Disables the dashboard during execution",
+          "notes": null,
+          "pernode": "never",
+          "node": {
+            "default": {
+              "default": {
+                "value": false,
+                "signature": null
+              }
+            }
+          }
+        },
+        "autoissue": {
+          "type": "bool",
+          "require": false,
+          "scope": "global",
+          "lock": false,
+          "switch": [
+            "-autoissue <bool>"
+          ],
+          "shorthelp": "Option: Enables automatic generation of testcases",
+          "example": [
+            "api: option.set('autoissue', True)"
+          ],
+          "help": "Enables automatic generation of testcases\nif the specific node fails",
           "notes": null,
           "pernode": "never",
           "node": {
@@ -10233,6 +10281,30 @@
             }
           }
         },
+        "autoissue": {
+          "type": "bool",
+          "require": false,
+          "scope": "global",
+          "lock": false,
+          "switch": [
+            "-autoissue <bool>"
+          ],
+          "shorthelp": "Option: Enables automatic generation of testcases",
+          "example": [
+            "api: option.set('autoissue', True)"
+          ],
+          "help": "Enables automatic generation of testcases\nif the specific node fails",
+          "notes": null,
+          "pernode": "never",
+          "node": {
+            "default": {
+              "default": {
+                "value": false,
+                "signature": null
+              }
+            }
+          }
+        },
         "scheduler": {
           "name": {
             "type": "<docker,lsf,sge,slurm>",
@@ -13925,6 +13997,30 @@
             }
           }
         },
+        "autoissue": {
+          "type": "bool",
+          "require": false,
+          "scope": "global",
+          "lock": false,
+          "switch": [
+            "-autoissue <bool>"
+          ],
+          "shorthelp": "Option: Enables automatic generation of testcases",
+          "example": [
+            "api: option.set('autoissue', True)"
+          ],
+          "help": "Enables automatic generation of testcases\nif the specific node fails",
+          "notes": null,
+          "pernode": "never",
+          "node": {
+            "default": {
+              "default": {
+                "value": false,
+                "signature": null
+              }
+            }
+          }
+        },
         "scheduler": {
           "name": {
             "type": "<docker,lsf,sge,slurm>",
@@ -16852,6 +16948,30 @@
             "api: option.set('nodashboard', True)"
           ],
           "help": "Disables the dashboard during execution",
+          "notes": null,
+          "pernode": "never",
+          "node": {
+            "default": {
+              "default": {
+                "value": false,
+                "signature": null
+              }
+            }
+          }
+        },
+        "autoissue": {
+          "type": "bool",
+          "require": false,
+          "scope": "global",
+          "lock": false,
+          "switch": [
+            "-autoissue <bool>"
+          ],
+          "shorthelp": "Option: Enables automatic generation of testcases",
+          "example": [
+            "api: option.set('autoissue', True)"
+          ],
+          "help": "Enables automatic generation of testcases\nif the specific node fails",
           "notes": null,
           "pernode": "never",
           "node": {
