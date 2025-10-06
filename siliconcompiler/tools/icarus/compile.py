@@ -32,7 +32,7 @@ class CompileTask(Task):
 
         self.set_threads()
 
-        self.add_output_file(ext="vpp")
+        self.add_output_file(ext="vvp")
 
         self.add_required_key("option", "design")
         self.add_required_key("option", "fileset")
@@ -63,7 +63,7 @@ class CompileTask(Task):
     def runtime_options(self):
         options = super().runtime_options()
 
-        options.extend(["-o", f"outputs/{self.design_topmodule}.vpp"])
+        options.extend(["-o", f"outputs/{self.design_topmodule}.vvp"])
         options.extend(["-s", self.design_topmodule])
 
         verilog_gen = self.get("var", "verilog_generation")

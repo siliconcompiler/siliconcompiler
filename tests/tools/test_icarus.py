@@ -22,8 +22,8 @@ def test_compile(gcd_design):
     assert proj.run()
 
     # check that compilation succeeded
-    assert proj.find_result('vpp', step='compile') == \
-        os.path.abspath("build/gcd/job0/compile/0/outputs/gcd.vpp")
+    assert proj.find_result('vvp', step='compile') == \
+        os.path.abspath("build/gcd/job0/compile/0/outputs/gcd.vvp")
 
 
 @pytest.mark.eda
@@ -55,7 +55,7 @@ def test_runtime_args(heartbeat_design):
     with node.runtime():
         assert node.setup() is True
         assert node.task.get_runtime_arguments() == [
-            '-o', 'outputs/heartbeat.vpp',
+            '-o', 'outputs/heartbeat.vvp',
             '-s', 'heartbeat',
             '-Pheartbeat.N=8',
             '-DSILICONCOMPILER_TRACE_FILE="reports/heartbeat.vcd"',
