@@ -798,3 +798,20 @@ def test_install_file_logger_no_existing_log(basic_project):
     # Check that no backup was created
     backup_log = os.path.join(jobdir(basic_project), "job.log.bak")
     assert not os.path.exists(backup_log)
+
+
+def test_logfile_init(basic_project):
+    assert Scheduler(basic_project).log is None
+
+
+def test_logfile_post_install(basic_project):
+    scheduler = Scheduler(basic_project)
+
+    # Create job directory
+    os.makedirs(jobdir(basic_project), exist_ok=True)
+
+    assert scheduler.log is None
+    # Call __install_file_logger
+    scheduler._Scheduler__install_file_logger()
+
+    assert scheduler.log == os.path.join(jobdir(basic_project), "job.log")

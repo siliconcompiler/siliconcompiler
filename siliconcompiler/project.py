@@ -557,6 +557,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             # Attach logger
             self.__dashboard.set_logger(self.logger)
 
+        scheduler = None
         try:
             if self.get('option', 'remote'):
                 scheduler = ClientScheduler(self)
@@ -565,6 +566,8 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             scheduler.run()
         except SCRuntimeError as e:
             self.logger.error(f"Run failed: {e.msg}")
+            if scheduler and scheduler.log:
+                self.logger.error(f"Job log: {os.path.abspath(scheduler.log)}")
             raise RuntimeError(f"Run failed: {e.msg}")
         finally:
             if self.__dashboard:
