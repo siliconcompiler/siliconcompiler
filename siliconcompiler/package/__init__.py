@@ -630,41 +630,6 @@ class PythonPathResolver(Resolver):
         return is_editable
 
     @staticmethod
-    def register_source(root,
-                        package_name,
-                        python_module,
-                        alternative_path,
-                        alternative_ref=None,
-                        python_module_path_append=None):
-        """
-        Helper to conditionally register a Python module or a fallback path.
-
-        If the specified `python_module` is installed in editable mode, it's
-        registered as the source. Otherwise, the `alternative_path` and
-        `alternative_ref` are used.
-
-        Args:
-            root (Project): The project object to register the source with.
-            package_name (str): The name of the package to register.
-            python_module (str): The Python module to check for.
-            alternative_path (str): The fallback source path.
-            alternative_ref (str, optional): The fallback reference. Defaults to None.
-            python_module_path_append (str, optional): A subdirectory to append
-                to the resolved Python module path. Defaults to None.
-        """
-        if PythonPathResolver.is_python_module_editable(python_module):
-            path = f"python://{python_module}"
-            if python_module_path_append:
-                py_path = PythonPathResolver(python_module, root, path).resolve()
-                path = os.path.abspath(os.path.join(py_path, python_module_path_append))
-            ref = None
-        else:
-            path = alternative_path
-            ref = alternative_ref
-
-        root.register_source(name=package_name, path=path, ref=ref)
-
-    @staticmethod
     def set_dataroot(root,
                      package_name,
                      python_module,
@@ -672,7 +637,6 @@ class PythonPathResolver(Resolver):
                      alternative_ref=None,
                      python_module_path_append=None):
         """
-        DEPRECATED: Use register_source.
         Helper to conditionally set a dataroot to a Python module or a fallback path.
         """
         # check if installed in an editable state
