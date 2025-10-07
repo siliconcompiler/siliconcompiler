@@ -341,8 +341,38 @@ def test_get_exe_empty(running_node):
 def test_get_exe_not_found(running_node):
     assert running_node.project.set('tool', 'builtin', 'task', 'nop', 'exe', 'testexe')
     with running_node.task.runtime(running_node) as runtool:
-        with pytest.raises(TaskExecutableNotFound, match="^testexe could not be found$"):
-            runtool.get_exe()
+        with patch("siliconcompiler.Task._exe_not_found_handler") as exe_not_found_handler:
+            with pytest.raises(TaskExecutableNotFound, match="^testexe could not be found$"):
+                runtool.get_exe()
+            exe_not_found_handler.assert_called_once()
+
+
+def test_get_exe_not_found_suggestion(running_node, monkeypatch, caplog):
+    monkeypatch.setattr(running_node.project, "_Project__logger", logging.getLogger())
+    running_node.project.logger.setLevel("INFO")
+
+    assert running_node.project.set('tool', 'builtin', 'task', 'nop', 'exe', 'testexe')
+    with running_node.task.runtime(running_node) as runtool:
+        with patch("json.load") as load:
+            load.return_value = {"builtin": {}}
+            with pytest.raises(TaskExecutableNotFound, match="^testexe could not be found$"):
+                runtool.get_exe()
+            load.assert_called_once()
+    assert "Missing tool can be installed via: \"sc-install builtin\"" in caplog.text
+
+
+def test_get_exe_not_found_no_suggestion(running_node, monkeypatch, caplog):
+    monkeypatch.setattr(running_node.project, "_Project__logger", logging.getLogger())
+    running_node.project.logger.setLevel("INFO")
+
+    assert running_node.project.set('tool', 'builtin', 'task', 'nop', 'exe', 'testexe')
+    with running_node.task.runtime(running_node) as runtool:
+        with patch("json.load") as load:
+            load.return_value = {"nothis": {}}
+            with pytest.raises(TaskExecutableNotFound, match="^testexe could not be found$"):
+                runtool.get_exe()
+            load.assert_called_once()
+    assert caplog.text == ""
 
 
 def test_get_exe_found(running_node, monkeypatch):
