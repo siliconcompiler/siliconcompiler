@@ -791,11 +791,11 @@ class BaseSchema:
             return {}
         return self.__parent._find_files_dataroot_resolvers()
 
-    def find_files(self, *keypath: str, missing_ok: bool = False,
-                   step: str = None, index: Union[int, str] = None,
-                   dataroots: Dict[str, Union[str, Callable]] = None,
-                   collection_dir: str = None,
-                   cwd: str = None) -> Union[str, List[str], Set[str]]:
+    def _find_files(self, *keypath: str, missing_ok: bool = False,
+                    step: str = None, index: Union[int, str] = None,
+                    dataroots: Dict[str, Union[str, Callable]] = None,
+                    collection_dir: str = None,
+                    cwd: str = None) -> Union[str, List[str], Set[str]]:
         """
         Returns absolute paths to files or directories based on the keypath
         provided.
@@ -956,11 +956,11 @@ class BaseSchema:
             return resolved_paths[0]
         return resolved_paths
 
-    def check_filepaths(self, ignore_keys: bool = None,
-                        logger: logging.Logger = None,
-                        dataroots: Dict[str, Union[str, Callable]] = None,
-                        collection_dir: str = None,
-                        cwd: str = None) -> bool:
+    def _check_filepaths(self, ignore_keys: bool = None,
+                         logger: logging.Logger = None,
+                         dataroots: Dict[str, Union[str, Callable]] = None,
+                         collection_dir: str = None,
+                         cwd: str = None) -> bool:
         '''
         Verifies that paths to all files in manifest are valid.
 
@@ -1001,7 +1001,7 @@ class BaseSchema:
                     # nothing set so continue
                     continue
 
-                found_files = BaseSchema.find_files(
+                found_files = BaseSchema._find_files(
                     self, *keypath, missing_ok=True, step=step, index=index,
                     dataroots=dataroots, collection_dir=collection_dir, cwd=cwd)
 
@@ -1025,11 +1025,11 @@ class BaseSchema:
 
         return not error
 
-    def hash_files(self, *keypath, missing_ok: bool = False,
-                   step: str = None, index: Union[int, str] = None,
-                   dataroots: Dict[str, Union[str, Callable]] = None,
-                   collection_dir: str = None,
-                   cwd: str = None):
+    def _hash_files(self, *keypath, missing_ok: bool = False,
+                    step: str = None, index: Union[int, str] = None,
+                    dataroots: Dict[str, Union[str, Callable]] = None,
+                    collection_dir: str = None,
+                    cwd: str = None):
         '''Generates hash values for a list of parameter files.
 
         Generates a hash value for each file found in the keypath. If existing

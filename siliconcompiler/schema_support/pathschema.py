@@ -53,11 +53,11 @@ class PathSchemaBase(BaseSchema):
         cwd = getattr(schema_root, "_Project__cwd", os.getcwd())
         collection_dir = collectiondir(schema_root)
 
-        return super().find_files(*keypath,
-                                  missing_ok=missing_ok,
-                                  step=step, index=index,
-                                  collection_dir=collection_dir,
-                                  cwd=cwd)
+        return super()._find_files(*keypath,
+                                   missing_ok=missing_ok,
+                                   step=step, index=index,
+                                   collection_dir=collection_dir,
+                                   cwd=cwd)
 
     def check_filepaths(self, ignore_keys=None):
         '''
@@ -76,7 +76,7 @@ class PathSchemaBase(BaseSchema):
                          logging.getLogger("siliconcompiler.check_filepaths"))
         collection_dir = collectiondir(schema_root)
 
-        return super().check_filepaths(
+        return super()._check_filepaths(
             ignore_keys=ignore_keys,
             logger=logger,
             collection_dir=collection_dir,
@@ -129,11 +129,11 @@ class PathSchemaBase(BaseSchema):
         if verbose:
             logger.info(f"Computing hash value for [{','.join([*self._keypath, *keypath])}]")
 
-        hashes = super().hash_files(*keypath,
-                                    missing_ok=missing_ok,
-                                    step=step, index=index,
-                                    collection_dir=collection_dir,
-                                    cwd=cwd)
+        hashes = super()._hash_files(*keypath,
+                                     missing_ok=missing_ok,
+                                     step=step, index=index,
+                                     collection_dir=collection_dir,
+                                     cwd=cwd)
 
         if check:
             check_hashes = self.get(*keypath, field="filehash", step=step, index=index)

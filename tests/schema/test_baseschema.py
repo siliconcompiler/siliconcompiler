@@ -1188,7 +1188,7 @@ def test_find_files_non_path():
     edit.insert("var", param)
 
     with pytest.raises(TypeError, match=r"^Cannot find files on \[var\], must be a path type$"):
-        schema.find_files("var")
+        schema._find_files("var")
 
 
 def test_find_files_scalar_file():
@@ -1202,7 +1202,7 @@ def test_find_files_scalar_file():
 
     assert schema.set("file", "test.txt")
 
-    assert schema.find_files("file") == os.path.abspath("test.txt")
+    assert schema._find_files("file") == os.path.abspath("test.txt")
 
 
 def test_find_files_scalar_dir():
@@ -1215,7 +1215,7 @@ def test_find_files_scalar_dir():
 
     assert schema.set("directory", "test")
 
-    assert schema.find_files("directory") == os.path.abspath("test")
+    assert schema._find_files("directory") == os.path.abspath("test")
 
 
 def test_find_files_scalar_file_not_found():
@@ -1227,7 +1227,7 @@ def test_find_files_scalar_file_not_found():
     assert schema.set("file", "test.txt")
 
     with pytest.raises(FileNotFoundError, match=r"^Could not find \"test.txt\" \[file\]: .*$"):
-        schema.find_files("file")
+        schema._find_files("file")
 
 
 def test_find_files_scalar_file_not_found_multiple_search():
@@ -1246,7 +1246,7 @@ def test_find_files_scalar_file_not_found_multiple_search():
     with pytest.raises(
             FileNotFoundError,
             match=r"^Could not find \"test.txt\" \[file\]: .*, .*, .*$"):
-        schema.find_files("file")
+        schema._find_files("file")
 
 
 def test_find_files_scalar_dir_not_found():
@@ -1258,7 +1258,7 @@ def test_find_files_scalar_dir_not_found():
     assert schema.set("directory", "test")
 
     with pytest.raises(FileNotFoundError, match=r"^Could not find \"test\" \[directory\]: .*$"):
-        schema.find_files("directory")
+        schema._find_files("directory")
 
 
 def test_find_files_scalar_file_not_found_missing_ok():
@@ -1269,7 +1269,7 @@ def test_find_files_scalar_file_not_found_missing_ok():
 
     assert schema.set("file", "test.txt")
 
-    assert schema.find_files("file", missing_ok=True) is None
+    assert schema._find_files("file", missing_ok=True) is None
 
 
 def test_find_files_scalar_dir_not_found_missing_ok():
@@ -1280,7 +1280,7 @@ def test_find_files_scalar_dir_not_found_missing_ok():
 
     assert schema.set("directory", "test")
 
-    assert schema.find_files("directory", missing_ok=True) is None
+    assert schema._find_files("directory", missing_ok=True) is None
 
 
 def test_find_files_list_file():
@@ -1297,7 +1297,7 @@ def test_find_files_list_file():
 
     assert schema.set("file", ["test0.txt", "test1.txt"])
 
-    assert schema.find_files("file") == [
+    assert schema._find_files("file") == [
         os.path.abspath("test0.txt"),
         os.path.abspath("test1.txt")
     ]
@@ -1314,7 +1314,7 @@ def test_find_files_list_dir():
 
     assert schema.set("directory", ["test0", "test1"])
 
-    assert schema.find_files("directory") == [
+    assert schema._find_files("directory") == [
         os.path.abspath("test0"),
         os.path.abspath("test1")
     ]
@@ -1332,7 +1332,7 @@ def test_find_files_list_file_not_found():
     assert schema.set("file", ["test0.txt", "test1.txt"])
 
     with pytest.raises(FileNotFoundError, match=r"^Could not find \"test1.txt\" \[file\]: .*$"):
-        schema.find_files("file")
+        schema._find_files("file")
 
 
 def test_find_files_list_dir_not_found():
@@ -1346,7 +1346,7 @@ def test_find_files_list_dir_not_found():
     assert schema.set("directory", ["test0", "test1"])
 
     with pytest.raises(FileNotFoundError, match=r"^Could not find \"test1\" \[directory\]: .*$"):
-        schema.find_files("directory")
+        schema._find_files("directory")
 
 
 def test_find_files_list_file_not_found_missing_ok():
@@ -1360,7 +1360,7 @@ def test_find_files_list_file_not_found_missing_ok():
 
     assert schema.set("file", ["test0.txt", "test1.txt"])
 
-    assert schema.find_files("file", missing_ok=True) == [
+    assert schema._find_files("file", missing_ok=True) == [
         os.path.abspath("test0.txt"),
         None
     ]
@@ -1376,7 +1376,7 @@ def test_find_files_list_dir_not_found_missing_ok():
 
     assert schema.set("directory", ["test0", "test1"])
 
-    assert schema.find_files("directory", missing_ok=True) == [
+    assert schema._find_files("directory", missing_ok=True) == [
         os.path.abspath("test0"),
         None
     ]
@@ -1393,7 +1393,7 @@ def test_find_files_with_cwd():
 
     assert schema.set("directory", ["test0", "test1"])
 
-    assert schema.find_files("directory", cwd="./cwd") == [
+    assert schema._find_files("directory", cwd="./cwd") == [
         os.path.abspath("cwd/test0"),
         os.path.abspath("cwd/test1")
     ]
@@ -1429,7 +1429,7 @@ def test_find_files_with_package():
         "that_package": resolve1.resolve,
     }
 
-    assert schema.find_files("package", "file", dataroots=package_map) == [
+    assert schema._find_files("package", "file", dataroots=package_map) == [
         os.path.abspath("package_path/test0.txt"),
         os.path.abspath("package_path/test1.txt"),
     ]
@@ -1468,7 +1468,7 @@ def test_find_files_with_package_not_found():
     with pytest.raises(FileNotFoundError,
                        match=r"^Could not find \"test1.txt\" in this_package "
                              r"\[package,file\]: .*$"):
-        schema.find_files("package", "file", dataroots=package_map)
+        schema._find_files("package", "file", dataroots=package_map)
 
     assert resolve0.called == 2
     assert resolve1.called == 0
@@ -1489,7 +1489,7 @@ def test_find_files_with_package_missing():
 
     with pytest.raises(ValueError, match=r"^Resolver for this_package not "
                                          r"provided: \[package,file\]$"):
-        schema.find_files("package", "file", dataroots={})
+        schema._find_files("package", "file", dataroots={})
 
 
 def test_find_files_with_package_as_string():
@@ -1521,7 +1521,7 @@ def test_find_files_with_package_as_string():
         "that_package": resolve.resolve,
     }
 
-    assert schema.find_files("package", "file", dataroots=package_map) == [
+    assert schema._find_files("package", "file", dataroots=package_map) == [
         os.path.abspath("package_path/test0.txt"),
         os.path.abspath("package_path/test1.txt"),
     ]
@@ -1548,7 +1548,7 @@ def test_find_files_with_package_as_invalid():
 
     with pytest.raises(TypeError, match=r"^Resolver for this_package is not a recognized "
                                         r"type: \[package,file\]$"):
-        schema.find_files("package", "file", dataroots=package_map)
+        schema._find_files("package", "file", dataroots=package_map)
 
 
 def test_find_files_with_collection_dir_not_found():
@@ -1562,7 +1562,7 @@ def test_find_files_with_collection_dir_not_found():
 
     assert schema.set("package", "file", "test.txt")
 
-    assert schema.find_files("package", "file", collection_dir="nodirfound") == [
+    assert schema._find_files("package", "file", collection_dir="nodirfound") == [
         os.path.abspath("test.txt")
     ]
 
@@ -1580,7 +1580,7 @@ def test_find_files_with_collection_dir():
 
     assert schema.set("package", "file", "test.txt")
 
-    assert schema.find_files("package", "file", collection_dir="collections_dir") == [
+    assert schema._find_files("package", "file", collection_dir="collections_dir") == [
         os.path.abspath("collections_dir/test_3a52ce780950d4d969792a2559cd519d7ee8c727.txt")
     ]
 
@@ -1591,7 +1591,7 @@ def test_find_files_scalar_file_empty():
     param = Parameter("file")
     edit.insert("file", param)
 
-    assert schema.find_files("file") is None
+    assert schema._find_files("file") is None
 
 
 def test_find_files_scalar_dir_empty():
@@ -1600,7 +1600,7 @@ def test_find_files_scalar_dir_empty():
     param = Parameter("dir")
     edit.insert("directory", param)
 
-    assert schema.find_files("directory") is None
+    assert schema._find_files("directory") is None
 
 
 def test_find_files_list_file_empty():
@@ -1609,7 +1609,7 @@ def test_find_files_list_file_empty():
     param = Parameter("[file]")
     edit.insert("file", param)
 
-    assert schema.find_files("file") == []
+    assert schema._find_files("file") == []
 
 
 def test_find_files_list_dir_empty():
@@ -1618,7 +1618,7 @@ def test_find_files_list_dir_empty():
     param = Parameter("[dir]")
     edit.insert("directory", param)
 
-    assert schema.find_files("directory") == []
+    assert schema._find_files("directory") == []
 
 
 def test_check_filepaths_empty():
@@ -1627,7 +1627,7 @@ def test_check_filepaths_empty():
     param = Parameter("[dir]")
     edit.insert("directory", param)
 
-    assert schema.check_filepaths() is True
+    assert schema._check_filepaths() is True
 
 
 def test_check_filepaths_found():
@@ -1640,7 +1640,7 @@ def test_check_filepaths_found():
 
     assert schema.set("directory", "test0")
 
-    assert schema.check_filepaths() is True
+    assert schema._check_filepaths() is True
 
 
 def test_check_filepaths_found_file():
@@ -1654,7 +1654,7 @@ def test_check_filepaths_found_file():
 
     assert schema.set("file", "test0.txt")
 
-    assert schema.check_filepaths() is True
+    assert schema._check_filepaths() is True
 
 
 def test_check_filepaths_scalar_found():
@@ -1667,7 +1667,7 @@ def test_check_filepaths_scalar_found():
 
     assert schema.set("directory", "test0")
 
-    assert schema.check_filepaths() is True
+    assert schema._check_filepaths() is True
 
 
 def test_check_filepaths_with_non_path():
@@ -1681,7 +1681,7 @@ def test_check_filepaths_with_non_path():
 
     assert schema.set("directory", "test0")
 
-    assert schema.check_filepaths() is True
+    assert schema._check_filepaths() is True
 
 
 def test_check_filepaths_not_found_no_logger():
@@ -1692,7 +1692,7 @@ def test_check_filepaths_not_found_no_logger():
 
     assert schema.set("directory", "test0")
 
-    assert schema.check_filepaths() is False
+    assert schema._check_filepaths() is False
 
 
 def test_check_filepaths_not_found_logger(caplog):
@@ -1706,7 +1706,7 @@ def test_check_filepaths_not_found_logger(caplog):
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
 
-    assert schema.check_filepaths(logger=logger) is False
+    assert schema._check_filepaths(logger=logger) is False
     assert "Parameter [directory] path test0 is invalid" in caplog.text
 
 
@@ -1721,7 +1721,7 @@ def test_check_filepaths_not_found_logger_step_only(caplog):
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
 
-    assert schema.check_filepaths(logger=logger) is False
+    assert schema._check_filepaths(logger=logger) is False
     assert "Parameter [directory] (thisstep) path test0 is invalid" in caplog.text
 
 
@@ -1736,7 +1736,7 @@ def test_check_filepaths_not_found_logger_step_index(caplog):
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
 
-    assert schema.check_filepaths(logger=logger) is False
+    assert schema._check_filepaths(logger=logger) is False
     assert "Parameter [directory] (thisstep/0) path test0 is invalid" in caplog.text
 
 
@@ -1748,7 +1748,7 @@ def test_check_filepaths_not_found_ignored():
 
     assert schema.set("directory", "test0")
 
-    assert schema.check_filepaths(ignore_keys=[("directory",)]) is True
+    assert schema._check_filepaths(ignore_keys=[("directory",)]) is True
 
 
 def test_check_filepaths_not_found_ignored_list():
@@ -1759,7 +1759,7 @@ def test_check_filepaths_not_found_ignored_list():
 
     assert schema.set("directory", "test0")
 
-    assert schema.check_filepaths(ignore_keys=[["directory"]]) is True
+    assert schema._check_filepaths(ignore_keys=[["directory"]]) is True
 
 
 def test_get_no_with_journal():
@@ -2165,8 +2165,8 @@ def test_find_files_custom_class_search_paths():
     schema.set("rootedfile", "thisfile.txt")
     schema.set("unrootedfile", "thatfile.txt")
 
-    assert schema.find_files("rootedfile") == os.path.abspath("thisroot/thisfile.txt")
-    assert schema.find_files("unrootedfile") == os.path.abspath("thatfile.txt")
+    assert schema._find_files("rootedfile") == os.path.abspath("thisroot/thisfile.txt")
+    assert schema._find_files("unrootedfile") == os.path.abspath("thatfile.txt")
 
 
 def test_find_files_custom_class_package_resolution():
@@ -2198,11 +2198,11 @@ def test_find_files_custom_class_package_resolution():
 
     assert custom.calls == 0
 
-    assert schema.find_files("level-1", "level0", "rootedfile") == \
+    assert schema._find_files("level-1", "level0", "rootedfile") == \
         os.path.abspath("thisroot/thisfile.txt")
     assert custom.calls == 1
 
-    assert schema.find_files("level-1", "level0", "level1", "unrootedfile") == \
+    assert schema._find_files("level-1", "level0", "level1", "unrootedfile") == \
         os.path.abspath("thisroot/thatfile.txt")
     assert custom.calls == 2
 
@@ -2954,7 +2954,7 @@ def test_hash_files_non_path():
     edit.insert("var", param)
 
     with pytest.raises(TypeError, match=r"^Cannot find files on \[var\], must be a path type$"):
-        schema.hash_files("var")
+        schema._hash_files("var")
 
 
 def test_hash_files_scalar_file():
@@ -2968,7 +2968,7 @@ def test_hash_files_scalar_file():
 
     assert schema.set("file", "test.txt")
 
-    assert schema.hash_files("file") == \
+    assert schema._hash_files("file") == \
         "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
 
 
@@ -2983,7 +2983,7 @@ def test_hash_files_scalar_dir():
 
     assert schema.set("directory", "test")
 
-    assert schema.hash_files("directory") == \
+    assert schema._hash_files("directory") == \
         "3b9c358f36f0a31b6ad3e14f309c7cf198ac9246e8316f9ce543d5b19ac02b80"
 
 
@@ -2996,7 +2996,7 @@ def test_hash_files_scalar_file_not_found():
     assert schema.set("file", "test.txt")
 
     with pytest.raises(FileNotFoundError, match=r"^Could not find \"test.txt\" \[file\]: .*$"):
-        schema.hash_files("file")
+        schema._hash_files("file")
 
 
 def test_hash_files_scalar_dir_not_found():
@@ -3008,7 +3008,7 @@ def test_hash_files_scalar_dir_not_found():
     assert schema.set("directory", "test")
 
     with pytest.raises(FileNotFoundError, match=r"^Could not find \"test\" \[directory\]: .*$"):
-        schema.hash_files("directory")
+        schema._hash_files("directory")
 
 
 def test_hash_files_scalar_file_not_found_missing_ok():
@@ -3019,7 +3019,7 @@ def test_hash_files_scalar_file_not_found_missing_ok():
 
     assert schema.set("file", "test.txt")
 
-    assert schema.hash_files("file", missing_ok=True) is None
+    assert schema._hash_files("file", missing_ok=True) is None
 
 
 def test_hash_files_scalar_dir_not_found_missing_ok():
@@ -3030,7 +3030,7 @@ def test_hash_files_scalar_dir_not_found_missing_ok():
 
     assert schema.set("directory", "test")
 
-    assert schema.hash_files("directory", missing_ok=True) is None
+    assert schema._hash_files("directory", missing_ok=True) is None
 
 
 def test_hash_files_list_file():
@@ -3047,7 +3047,7 @@ def test_hash_files_list_file():
 
     assert schema.set("file", ["test0.txt", "test1.txt"])
 
-    assert schema.hash_files("file") == [
+    assert schema._hash_files("file") == [
         "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
         "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
     ]
@@ -3066,7 +3066,7 @@ def test_hash_files_list_dir():
 
     assert schema.set("directory", ["test0", "test1"])
 
-    assert schema.hash_files("directory") == [
+    assert schema._hash_files("directory") == [
         "590c9f8430c7435807df8ba9a476e3f1295d46ef210f6efae2043a4c085a569e",
         "1b4f0e9851971998e732078544c96b36c3d01cedf7caa332359d6f1d83567014"
     ]
@@ -3084,7 +3084,7 @@ def test_hash_files_list_file_not_found():
     assert schema.set("file", ["test0.txt", "test1.txt"])
 
     with pytest.raises(FileNotFoundError, match=r"^Could not find \"test1.txt\" \[file\]: .*$"):
-        schema.hash_files("file")
+        schema._hash_files("file")
 
 
 def test_hash_files_list_dir_not_found():
@@ -3098,7 +3098,7 @@ def test_hash_files_list_dir_not_found():
     assert schema.set("directory", ["test0", "test1"])
 
     with pytest.raises(FileNotFoundError, match=r"^Could not find \"test1\" \[directory\]: .*$"):
-        schema.hash_files("directory")
+        schema._hash_files("directory")
 
 
 def test_hash_files_list_file_not_found_missing_ok():
@@ -3112,7 +3112,7 @@ def test_hash_files_list_file_not_found_missing_ok():
 
     assert schema.set("file", ["test0.txt", "test1.txt"])
 
-    assert schema.hash_files("file", missing_ok=True) == [
+    assert schema._hash_files("file", missing_ok=True) == [
         "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
         None
     ]
@@ -3129,7 +3129,7 @@ def test_hash_files_list_dir_not_found_missing_ok():
 
     assert schema.set("directory", ["test0", "test1"])
 
-    assert schema.hash_files("directory", missing_ok=True) == [
+    assert schema._hash_files("directory", missing_ok=True) == [
         "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
         None
     ]
@@ -3148,7 +3148,7 @@ def test_hash_files_with_cwd():
 
     assert schema.set("directory", ["test0", "test1"])
 
-    assert schema.hash_files("directory", cwd="./cwd") == [
+    assert schema._hash_files("directory", cwd="./cwd") == [
         "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
         None
     ]
@@ -3184,7 +3184,7 @@ def test_hash_files_with_package():
         "that_package": resolve1.resolve,
     }
 
-    assert schema.hash_files("package", "file", dataroots=package_map) == [
+    assert schema._hash_files("package", "file", dataroots=package_map) == [
         "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
         "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
     ]
@@ -3223,7 +3223,7 @@ def test_hash_files_with_package_not_found():
     with pytest.raises(
             FileNotFoundError,
             match=r"^Could not find \"test1.txt\" in this_package \[package,file\]: .*$"):
-        schema.hash_files("package", "file", dataroots=package_map)
+        schema._hash_files("package", "file", dataroots=package_map)
 
     assert resolve0.called == 2
     assert resolve1.called == 0
@@ -3244,7 +3244,7 @@ def test_hash_files_with_package_missing():
 
     with pytest.raises(ValueError, match=r"^Resolver for this_package not provided: "
                                          r"\[package,file\]$"):
-        schema.hash_files("package", "file", dataroots={})
+        schema._hash_files("package", "file", dataroots={})
 
 
 def test_hash_files_with_package_as_string():
@@ -3276,7 +3276,7 @@ def test_hash_files_with_package_as_string():
         "that_package": resolve.resolve,
     }
 
-    assert schema.hash_files("package", "file", dataroots=package_map) == [
+    assert schema._hash_files("package", "file", dataroots=package_map) == [
         "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
         "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
     ]
@@ -3304,7 +3304,7 @@ def test_hash_files_with_package_as_invalid():
     with pytest.raises(TypeError,
                        match=r"^Resolver for this_package is not a recognized "
                              r"type: \[package,file\]$"):
-        schema.hash_files("package", "file", dataroots=package_map)
+        schema._hash_files("package", "file", dataroots=package_map)
 
 
 def test_hash_files_with_collection_dir_not_found():
@@ -3318,7 +3318,7 @@ def test_hash_files_with_collection_dir_not_found():
 
     assert schema.set("package", "file", "test.txt")
 
-    assert schema.hash_files("package", "file", collection_dir="nodirfound") == [
+    assert schema._hash_files("package", "file", collection_dir="nodirfound") == [
         "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
     ]
 
@@ -3336,7 +3336,7 @@ def test_hash_files_with_collection_dir():
 
     assert schema.set("package", "file", "test.txt")
 
-    assert schema.hash_files("package", "file", collection_dir="collections_dir") == [
+    assert schema._hash_files("package", "file", collection_dir="collections_dir") == [
         "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
     ]
 
@@ -3347,7 +3347,7 @@ def test_hash_files_scalar_file_empty():
     param = Parameter("file")
     edit.insert("file", param)
 
-    assert schema.hash_files("file") is None
+    assert schema._hash_files("file") is None
 
 
 def test_hash_files_scalar_dir_empty():
@@ -3356,7 +3356,7 @@ def test_hash_files_scalar_dir_empty():
     param = Parameter("dir")
     edit.insert("directory", param)
 
-    assert schema.hash_files("directory") is None
+    assert schema._hash_files("directory") is None
 
 
 def test_hash_files_list_file_empty():
@@ -3365,7 +3365,7 @@ def test_hash_files_list_file_empty():
     param = Parameter("[file]")
     edit.insert("file", param)
 
-    assert schema.hash_files("file") == []
+    assert schema._hash_files("file") == []
 
 
 def test_hash_files_list_dir_empty():
@@ -3374,7 +3374,7 @@ def test_hash_files_list_dir_empty():
     param = Parameter("[dir]")
     edit.insert("directory", param)
 
-    assert schema.hash_files("directory") == []
+    assert schema._hash_files("directory") == []
 
 
 def test_generate_doc_detailed():
