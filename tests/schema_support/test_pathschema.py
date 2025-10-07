@@ -224,6 +224,9 @@ def test_find_files_keypath():
             schema.insert("ref", Parameter("dir"))
             schema.insert("test", Test())
 
+        def find_files(self, *keypath, missing_ok=False, step=None, index=None):
+            return super()._find_files(*keypath, missing_ok=missing_ok, step=step, index=index)
+
     root = Root()
     test = root.get("test", field="schema")
     test.set_dataroot("keyref", "key://ref")
@@ -235,7 +238,7 @@ def test_find_files_keypath():
     with open("test/test.txt", "w") as f:
         f.write("test")
 
-    assert test.find_files("file") == os.path.abspath("test/test.txt")
+    assert test._find_files("file") == os.path.abspath("test/test.txt")
 
 
 def test_get_dataroot():
@@ -266,6 +269,9 @@ def test_get_dataroot_keypath():
             schema = EditableSchema(self)
             schema.insert("ref", Parameter("dir"))
             schema.insert("test", Test())
+
+        def find_files(self, *keypath, missing_ok=False, step=None, index=None):
+            return super()._find_files(*keypath, missing_ok=missing_ok, step=step, index=index)
 
     root = Root()
     test = root.get("test", field="schema")
