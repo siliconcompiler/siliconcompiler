@@ -101,19 +101,15 @@ def test_py_gcd_screenshot(monkeypatch):
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.timeout(300)
-@pytest.mark.skip(reason="DRC task fails on init due to missing support for input file")
 def test_py_gcd_ihp130():
     from gcd import gcd_ihp130
     gcd_ihp130.main()
 
     assert os.path.isfile('build/gcd/job0/write.gds/0/outputs/gcd.gds')
-    assert os.path.isfile('build/gcd/signoff/drc/0/outputs/gcd.lyrdb')
+    assert os.path.isfile('build/gcd/drc/drc/0/outputs/gcd.lyrdb')
 
-    # manifest = 'build/gcd/signoff/convert/0/outputs/gcd.pkg.json'
-    # chip = siliconcompiler.Chip('gcd')
-    # chip.read_manifest(manifest)
-    # # DRCs are density and fantom enclosure rules at the block pins
-    # assert chip.get('metric', 'drcs', step='drc', index='0') == 13
+    proj = Project.from_manifest('build/gcd/drc/gcd.pkg.json')
+    assert proj.get("metric", "drcs", step="drc", index="0") == 13
 
 
 @pytest.mark.eda

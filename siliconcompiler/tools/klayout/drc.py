@@ -22,7 +22,14 @@ class DRCTask(KLayoutTask):
 
         self.add_commandline_option(['-z', '-nc', '-rx'], clobber=True)
 
-        self.add_input_file(ext="gds")
+        if f"{self.design_topmodule}.gds" in self.get_files_from_input_nodes():
+            self.add_input_file(ext="gds")
+        else:
+            # Mark required
+            for lib, fileset in self.project.get_filesets():
+                if lib.has_file(fileset=fileset, filetype="gds"):
+                    self.add_required_key(lib, "fileset", fileset, "file", "gds")
+
         self.add_output_file(ext="lyrdb")
 
         self.add_required_key("var", "drc_name")
@@ -35,6 +42,10 @@ class DRCTask(KLayoutTask):
             if os.path.isfile(file):
                 layout = file
                 break
+        if not layout:
+            for lib, fileset in self.project.get_filesets():
+                if lib.has_file(fileset=fileset, filetype="gds"):
+                    layout = lib.get_file(fileset, filetype="gds")[0]
 
         drc_name = self.get("var", "drc_name")
 
