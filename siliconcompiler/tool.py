@@ -2,6 +2,7 @@ import contextlib
 import copy
 import csv
 import gzip
+import json
 import logging
 import os
 import psutil
@@ -341,9 +342,21 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         fullexe = shutil.which(exe, path=env["PATH"])
 
         if not fullexe:
+            self._exe_not_found_handler()
             raise TaskExecutableNotFound(f"{exe} could not be found")
 
         return fullexe
+
+    def _exe_not_found_handler(self) -> None:
+        """
+        Helper method to provide additional feedback to users for missing executables
+        """
+        tools = {}
+        with open(os.path.join(os.path.dirname(__file__), "toolscripts", "_tools.json")) as f:
+            tools = json.load(f)
+
+        if self.tool() in tools:
+            self.logger.info(f"Missing tool can be installed via: \"sc-install {self.tool()}\"")
 
     def get_exe_version(self) -> str:
         """
