@@ -5,7 +5,7 @@ import logging
 
 import os.path
 
-from typing import Tuple, Union, Optional, Dict, List, Type, Set, TYPE_CHECKING
+from typing import Tuple, Union, Optional, List, Type, Set, TYPE_CHECKING
 
 from siliconcompiler.schema import BaseSchema, NamedSchema, DocsSchema
 from siliconcompiler.schema import EditableSchema, Parameter, Scope
@@ -285,7 +285,7 @@ class Flowgraph(NamedSchema, DocsSchema):
 
         self.__clear_cache()
 
-    def get_nodes(self) -> Tuple[Tuple[str, str]]:
+    def get_nodes(self) -> Tuple[Tuple[str, str], ...]:
         '''
         Returns a sorted tuple of all nodes defined in this flowgraph.
 
@@ -306,7 +306,7 @@ class Flowgraph(NamedSchema, DocsSchema):
 
         return self.__cache_nodes
 
-    def get_entry_nodes(self) -> Tuple[Tuple[str, str]]:
+    def get_entry_nodes(self) -> Tuple[Tuple[str, str], ...]:
         '''
         Collects all nodes that are entry points to the flowgraph.
 
@@ -328,7 +328,7 @@ class Flowgraph(NamedSchema, DocsSchema):
 
         return self.__cache_nodes_entry
 
-    def get_exit_nodes(self) -> Tuple[Tuple[str, str]]:
+    def get_exit_nodes(self) -> Tuple[Tuple[str, str], ...]:
         '''
         Collects all nodes that are exit points of the flowgraph.
 
@@ -353,7 +353,8 @@ class Flowgraph(NamedSchema, DocsSchema):
 
         return self.__cache_nodes_exit
 
-    def get_execution_order(self, reverse: Optional[bool] = False) -> Tuple[Tuple[Tuple[str, str]]]:
+    def get_execution_order(self, reverse: Optional[bool] = False) \
+            -> Tuple[Tuple[Tuple[str, str], ...], ...]:
         '''
         Generates a topologically sorted list of nodes for execution.
 
@@ -437,7 +438,7 @@ class Flowgraph(NamedSchema, DocsSchema):
             self.__cache_execution_order_forward = ordering
             return self.__cache_execution_order_forward
 
-    def get_node_outputs(self, step: str, index: Union[str, int]) -> Tuple[Tuple[str, str]]:
+    def get_node_outputs(self, step: str, index: Union[str, int]) -> Tuple[Tuple[str, str], ...]:
         '''
         Returns the nodes that the given node provides input to.
 
@@ -975,7 +976,7 @@ class RuntimeFlowgraph:
 
     def __walk_graph(self, node: Tuple[str, str],
                      path: Optional[List[Tuple[str, str]]] = None,
-                     reverse: Optional[bool] = True) -> Set[Tuple[Tuple[str, str]]]:
+                     reverse: Optional[bool] = True) -> Set[Tuple[Tuple[str, str], ...]]:
         '''
         Internal helper to recursively walk the graph to find all connected nodes.
 
@@ -1049,7 +1050,7 @@ class RuntimeFlowgraph:
                 ordering.append(tuple(level_exec))
         self.__execution_order = tuple(ordering)
 
-    def get_nodes(self) -> Tuple[Tuple[str, str]]:
+    def get_nodes(self) -> Tuple[Tuple[str, str], ...]:
         '''
         Returns the nodes that are part of this runtime graph.
 
@@ -1058,7 +1059,7 @@ class RuntimeFlowgraph:
         '''
         return self.__nodes
 
-    def get_execution_order(self) -> Tuple[Tuple[Tuple[str, str]]]:
+    def get_execution_order(self) -> Tuple[Tuple[Tuple[str, str], ...], ...]:
         '''
         Returns the execution order of the nodes in this runtime graph.
 
@@ -1068,7 +1069,7 @@ class RuntimeFlowgraph:
         '''
         return self.__execution_order
 
-    def get_entry_nodes(self) -> Tuple[Tuple[str, str]]:
+    def get_entry_nodes(self) -> Tuple[Tuple[str, str], ...]:
         '''
         Returns the entry nodes for this runtime graph.
 
@@ -1077,7 +1078,7 @@ class RuntimeFlowgraph:
         '''
         return self.__from
 
-    def get_exit_nodes(self) -> Tuple[Tuple[str, str]]:
+    def get_exit_nodes(self) -> Tuple[Tuple[str, str], ...]:
         '''
         Returns the exit nodes for this runtime graph.
 
@@ -1086,7 +1087,8 @@ class RuntimeFlowgraph:
         '''
         return self.__to
 
-    def get_nodes_starting_at(self, step: str, index: Union[str, int]) -> Tuple[Tuple[str, str]]:
+    def get_nodes_starting_at(self, step: str, index: Union[str, int]) \
+            -> Tuple[Tuple[str, str], ...]:
         '''
         Returns all nodes reachable from a given starting node in this runtime graph.
 
