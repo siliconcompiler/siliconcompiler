@@ -1304,7 +1304,7 @@ class FlowgraphNodeSchema(BaseSchema):
 ###############################################################################
 # Flow Configuration
 ###############################################################################
-def schema_flowgraph(schema: Flowgraph):
+def schema_flowgraph(schema: FlowgraphNodeSchema):
     '''
     Defines the schema parameters for a flowgraph node.
 
