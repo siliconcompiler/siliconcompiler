@@ -15,6 +15,7 @@ from siliconcompiler import NodeStatus
 
 if TYPE_CHECKING:
     from siliconcompiler import Task
+    from siliconcompiler.schema_support.record import RecordSchema
 
 
 class Flowgraph(NamedSchema, DocsSchema):
@@ -903,7 +904,11 @@ class RuntimeFlowgraph:
     to be executed for a given run.
     '''
 
-    def __init__(self, base, args=None, from_steps=None, to_steps=None, prune_nodes=None):
+    def __init__(self, base: Flowgraph,
+                 args: Optional[Tuple[str, str]] = None,
+                 from_steps: Union[Set[str], List[str]] = None,
+                 to_steps: Union[Set[str], List[str]] = None,
+                 prune_nodes: Union[Set[Tuple[str, str]], List[Tuple[str, str]]] = None):
         '''
         Initializes a new RuntimeFlowgraph.
 
@@ -969,7 +974,9 @@ class RuntimeFlowgraph:
 
         self.__compute_graph()
 
-    def __walk_graph(self, node, path=None, reverse=True):
+    def __walk_graph(self, node: Tuple[str, str],
+                     path: Optional[List[Tuple[str, str]]] = None,
+                     reverse: Optional[bool] = True) -> Set[Tuple[Tuple[str, str]]]:
         '''
         Internal helper to recursively walk the graph to find all connected nodes.
 
@@ -1011,7 +1018,7 @@ class RuntimeFlowgraph:
                 nodes.update(self.__walk_graph(output_node, path=path, reverse=reverse))
         return nodes
 
-    def __compute_graph(self):
+    def __compute_graph(self) -> None:
         '''
         Internal helper to precompute the runtime graph information.
 
@@ -1043,7 +1050,7 @@ class RuntimeFlowgraph:
                 ordering.append(tuple(level_exec))
         self.__execution_order = tuple(ordering)
 
-    def get_nodes(self):
+    def get_nodes(self) -> Tuple[Tuple[str, str]]:
         '''
         Returns the nodes that are part of this runtime graph.
 
@@ -1052,7 +1059,7 @@ class RuntimeFlowgraph:
         '''
         return self.__nodes
 
-    def get_execution_order(self):
+    def get_execution_order(self) -> Tuple[Tuple[Tuple[str, str]]]:
         '''
         Returns the execution order of the nodes in this runtime graph.
 
@@ -1062,7 +1069,7 @@ class RuntimeFlowgraph:
         '''
         return self.__execution_order
 
-    def get_entry_nodes(self):
+    def get_entry_nodes(self) -> Tuple[Tuple[str, str]]:
         '''
         Returns the entry nodes for this runtime graph.
 
@@ -1071,7 +1078,7 @@ class RuntimeFlowgraph:
         '''
         return self.__from
 
-    def get_exit_nodes(self):
+    def get_exit_nodes(self) -> Tuple[Tuple[str, str]]:
         '''
         Returns the exit nodes for this runtime graph.
 
@@ -1080,7 +1087,7 @@ class RuntimeFlowgraph:
         '''
         return self.__to
 
-    def get_nodes_starting_at(self, step, index):
+    def get_nodes_starting_at(self, step: str, index: Union[str, int]) -> Tuple[Tuple[str, str]]:
         '''
         Returns all nodes reachable from a given starting node in this runtime graph.
 
@@ -1098,7 +1105,8 @@ class RuntimeFlowgraph:
 
         return tuple(sorted(self.__walk_graph((step, str(index)), reverse=False)))
 
-    def get_node_inputs(self, step, index, record=None):
+    def get_node_inputs(self, step: str, index: str, record: Optional[RecordSchema] = None) \
+            -> List[Tuple[str, str]]:
         '''
         Gets the inputs for a specific node in the runtime graph.
 
@@ -1136,7 +1144,7 @@ class RuntimeFlowgraph:
                 inputs.add((in_step, in_index))
         return sorted(inputs)
 
-    def get_completed_nodes(self, record=None):
+    def get_completed_nodes(self, record: Optional[RecordSchema] = None) -> List[Tuple[str, str]]:
         '''
         Finds all nodes in this runtime graph that have successfully completed.
 
@@ -1158,7 +1166,11 @@ class RuntimeFlowgraph:
         return sorted(nodes)
 
     @staticmethod
-    def validate(flow, from_steps=None, to_steps=None, prune_nodes=None, logger=None):
+    def validate(flow: Flowgraph,
+                 from_steps: Optional[Union[List[str], Set[str]]] = None,
+                 to_steps: Optional[Union[List[str], Set[str]]] = None,
+                 prune_nodes: Optional[Union[List[Tuple[str, str]], Set[Tuple[str, str]]]] = None,
+                 logger: Optional[logging.Logger] = None) -> bool:
         '''
         Validates runtime options against a flowgraph.
 
@@ -1291,7 +1303,7 @@ class FlowgraphNodeSchema(BaseSchema):
 ###############################################################################
 # Flow Configuration
 ###############################################################################
-def schema_flowgraph(schema):
+def schema_flowgraph(schema: Flowgraph):
     '''
     Defines the schema parameters for a flowgraph node.
 
