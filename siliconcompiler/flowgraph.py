@@ -61,7 +61,7 @@ class Flowgraph(NamedSchema, DocsSchema):
 
         self.__cache_tasks = None
 
-    def node(self, step: str, task: Task, index: Optional[Union[str, int]] = 0) -> None:
+    def node(self, step: str, task: "Task", index: Optional[Union[str, int]] = 0) -> None:
         '''
         Creates a flowgraph node.
 
@@ -205,7 +205,7 @@ class Flowgraph(NamedSchema, DocsSchema):
 
         self.__clear_cache()
 
-    def insert_node(self, step: str, task: Task, before_step: str,
+    def insert_node(self, step: str, task: "Task", before_step: str,
                     index: Optional[Union[str, int]] = 0,
                     before_index: Optional[Union[str, int]] = 0) -> None:
         '''
@@ -567,7 +567,7 @@ class Flowgraph(NamedSchema, DocsSchema):
 
         return not error
 
-    def __get_task_module(self, name: str) -> Type[Task]:
+    def __get_task_module(self, name: str) -> Type["Task"]:
         '''
         Internal helper to import and cache a task module by name.
         '''
@@ -587,7 +587,7 @@ class Flowgraph(NamedSchema, DocsSchema):
         self.__cache_tasks[name] = getattr(module, cls)
         return self.__cache_tasks[name]
 
-    def get_task_module(self, step: str, index: Union[str, int]) -> Type[Task]:
+    def get_task_module(self, step: str, index: Union[str, int]) -> Type["Task"]:
         """
         Returns the imported Python module for a given task node.
 
@@ -606,7 +606,7 @@ class Flowgraph(NamedSchema, DocsSchema):
 
         return self.__get_task_module(self.get(step, index, 'taskmodule'))
 
-    def get_all_tasks(self) -> Set[Type[Task]]:
+    def get_all_tasks(self) -> Set[Type["Task"]]:
         '''
         Returns all unique task modules used in this flowgraph.
 
@@ -1105,7 +1105,7 @@ class RuntimeFlowgraph:
 
         return tuple(sorted(self.__walk_graph((step, str(index)), reverse=False)))
 
-    def get_node_inputs(self, step: str, index: str, record: Optional[RecordSchema] = None) \
+    def get_node_inputs(self, step: str, index: str, record: Optional["RecordSchema"] = None) \
             -> List[Tuple[str, str]]:
         '''
         Gets the inputs for a specific node in the runtime graph.
@@ -1144,7 +1144,7 @@ class RuntimeFlowgraph:
                 inputs.add((in_step, in_index))
         return sorted(inputs)
 
-    def get_completed_nodes(self, record: Optional[RecordSchema] = None) -> List[Tuple[str, str]]:
+    def get_completed_nodes(self, record: Optional["RecordSchema"] = None) -> List[Tuple[str, str]]:
         '''
         Finds all nodes in this runtime graph that have successfully completed.
 
