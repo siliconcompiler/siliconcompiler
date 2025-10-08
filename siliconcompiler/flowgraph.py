@@ -906,9 +906,9 @@ class RuntimeFlowgraph:
 
     def __init__(self, base: Flowgraph,
                  args: Optional[Tuple[str, str]] = None,
-                 from_steps: Union[Set[str], List[str]] = None,
-                 to_steps: Union[Set[str], List[str]] = None,
-                 prune_nodes: Union[Set[Tuple[str, str]], List[Tuple[str, str]]] = None):
+                 from_steps: Optional[Union[Set[str], List[str]]] = None,
+                 to_steps: Optional[Union[Set[str], List[str]]] = None,
+                 prune_nodes: Optional[Union[Set[Tuple[str, str]], List[Tuple[str, str]]]] = None):
         '''
         Initializes a new RuntimeFlowgraph.
 
