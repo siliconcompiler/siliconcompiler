@@ -8,6 +8,28 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.35.0 (2025-10-08)
+=========================================
+
+This release introduces a major architectural overhaul to improve usability, flexibility, and error checking.
+These are changes that will require you to update all your existing scripts and workflows.
+This is a release towards reaching v1.0.0.
+
+**Major:**
+
+ * The monolithic `Chip` object has been replaced by a set of target-specific `Project` classes (`ASIC`, `FPGA`, `Sim`, and `Lint`). This change provides better type-hinting, validation, and isolates settings for different targets.
+ * The `Design` class is now the primary interface for managing sources. The old `.input()` calls have been replaced by a more structured "fileset" system, allowing you to group related files (e.g., RTL, SDC, etc.) and toggle them easily.
+ * The command-line dashboard, which shows real-time progress of a run, is now on by default for interactive sessions. This can be controlled via `.option.set_nodashboard(True)`.
+ * The `sc` command-line application has been removed in favor of using Python scripts directly for better reproducibility. The `.clock()` helper method has also been removed.
+ * While direct schema manipulation with `.set()` and `.add()` remains supported, we now recommend using a more "Pythonic" API with helper methods for common settings. This improves code readability and reduces errors from misspelled keys.
+ * All task drivers have been rewritten to the new API.
+ * The core API has been refactored to be more object-oriented. Instead of interacting with a single, monolithic `Chip` object, you now work with distinct objects that have clear responsibilities, such as `Project` and `Design`.
+
+**Minor:**
+
+ * Significantly expanded testing coverage of user facing methods to better support checks for backwards compatibility.
+
+
 SiliconCompiler 0.34.3 (2025-08-11)
 =========================================
 
