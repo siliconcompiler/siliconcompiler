@@ -1,16 +1,20 @@
 import graphviz
 import importlib
 import inspect
+import logging
 
 import os.path
 
-from typing import Tuple
+from typing import Tuple, Union, Optional, Dict, List, Type, Set, TYPE_CHECKING
 
 from siliconcompiler.schema import BaseSchema, NamedSchema, DocsSchema
 from siliconcompiler.schema import EditableSchema, Parameter, Scope
 from siliconcompiler.schema.utils import trim
 
 from siliconcompiler import NodeStatus
+
+if TYPE_CHECKING:
+    from siliconcompiler import Task
 
 
 class Flowgraph(NamedSchema, DocsSchema):
@@ -24,7 +28,7 @@ class Flowgraph(NamedSchema, DocsSchema):
     these tasks.
     '''
 
-    def __init__(self, name=None):
+    def __init__(self, name: Optional[str] = None):
         '''
         Initializes a new Flowgraph object.
 
@@ -39,7 +43,7 @@ class Flowgraph(NamedSchema, DocsSchema):
 
         self.__clear_cache()
 
-    def __clear_cache(self):
+    def __clear_cache(self) -> None:
         '''
         Clears the internal cache for memoized flowgraph properties.
 
@@ -56,7 +60,7 @@ class Flowgraph(NamedSchema, DocsSchema):
 
         self.__cache_tasks = None
 
-    def node(self, step, task, index=0):
+    def node(self, step: str, task: Task, index: Optional[Union[str, int]] = 0) -> None:
         '''
         Creates a flowgraph node.
 
@@ -118,7 +122,9 @@ class Flowgraph(NamedSchema, DocsSchema):
 
         self.__clear_cache()
 
-    def edge(self, tail, head, tail_index=0, head_index=0):
+    def edge(self, tail: str, head: str,
+             tail_index: Optional[Union[str, int]] = 0,
+             head_index: Optional[Union[str, int]] = 0) -> None:
         '''
         Creates a directed edge from a tail node to a head node.
 
@@ -154,7 +160,7 @@ class Flowgraph(NamedSchema, DocsSchema):
 
         self.__clear_cache()
 
-    def remove_node(self, step, index=None):
+    def remove_node(self, step: str, index: Optional[Union[str, int]] = None) -> None:
         '''
         Removes a flowgraph node and reconnects its inputs to its outputs.
 
@@ -198,7 +204,9 @@ class Flowgraph(NamedSchema, DocsSchema):
 
         self.__clear_cache()
 
-    def insert_node(self, step, task, before_step, index=0, before_index=0):
+    def insert_node(self, step: str, task: Task, before_step: str,
+                    index: Optional[Union[str, int]] = 0,
+                    before_index: Optional[Union[str, int]] = 0) -> None:
         '''
         Inserts a new node in the graph before a specified node.
 
@@ -233,7 +241,7 @@ class Flowgraph(NamedSchema, DocsSchema):
         self.__clear_cache()
 
     ###########################################################################
-    def graph(self, subflow, name=None):
+    def graph(self, subflow: "Flowgraph", name: Optional[str] = None) -> None:
         '''
         Instantiates a sub-flowgraph within the current flowgraph.
 
@@ -276,7 +284,7 @@ class Flowgraph(NamedSchema, DocsSchema):
 
         self.__clear_cache()
 
-    def get_nodes(self):
+    def get_nodes(self) -> Tuple[Tuple[str, str]]:
         '''
         Returns a sorted tuple of all nodes defined in this flowgraph.
 
@@ -297,7 +305,7 @@ class Flowgraph(NamedSchema, DocsSchema):
 
         return self.__cache_nodes
 
-    def get_entry_nodes(self):
+    def get_entry_nodes(self) -> Tuple[Tuple[str, str]]:
         '''
         Collects all nodes that are entry points to the flowgraph.
 
@@ -319,7 +327,7 @@ class Flowgraph(NamedSchema, DocsSchema):
 
         return self.__cache_nodes_entry
 
-    def get_exit_nodes(self):
+    def get_exit_nodes(self) -> Tuple[Tuple[str, str]]:
         '''
         Collects all nodes that are exit points of the flowgraph.
 
@@ -344,7 +352,7 @@ class Flowgraph(NamedSchema, DocsSchema):
 
         return self.__cache_nodes_exit
 
-    def get_execution_order(self, reverse=False):
+    def get_execution_order(self, reverse: Optional[bool] = False) -> Tuple[Tuple[Tuple[str, str]]]:
         '''
         Generates a topologically sorted list of nodes for execution.
 
@@ -428,7 +436,8 @@ class Flowgraph(NamedSchema, DocsSchema):
             self.__cache_execution_order_forward = ordering
             return self.__cache_execution_order_forward
 
-    def get_node_outputs(self, step, index):
+    def get_node_outputs(self, step: str, index: Union[str, int]) \
+            -> Dict[Tuple[str, str], Tuple[Tuple[str, str]]]:
         '''
         Returns the nodes that the given node provides input to.
 
@@ -467,7 +476,8 @@ class Flowgraph(NamedSchema, DocsSchema):
 
         return self.__cache_node_outputs[(step, index)]
 
-    def __find_loops(self, step, index, path=None):
+    def __find_loops(self, step: str, index: str, path: Optional[List[Tuple[str, str]]] = None) \
+            -> Union[List[Tuple[str, str]], None]:
         '''
         Internal helper to search for loops in the graph via depth-first search.
 
@@ -495,7 +505,7 @@ class Flowgraph(NamedSchema, DocsSchema):
 
         return None
 
-    def validate(self, logger=None):
+    def validate(self, logger: Optional[logging.Logger] = None) -> bool:
         '''
         Checks if the flowgraph is valid.
 
@@ -556,7 +566,7 @@ class Flowgraph(NamedSchema, DocsSchema):
 
         return not error
 
-    def __get_task_module(self, name):
+    def __get_task_module(self, name: str) -> Type[Task]:
         '''
         Internal helper to import and cache a task module by name.
         '''
@@ -576,7 +586,7 @@ class Flowgraph(NamedSchema, DocsSchema):
         self.__cache_tasks[name] = getattr(module, cls)
         return self.__cache_tasks[name]
 
-    def get_task_module(self, step, index):
+    def get_task_module(self, step: str, index: Union[str, int]) -> Type[Task]:
         """
         Returns the imported Python module for a given task node.
 
@@ -595,7 +605,7 @@ class Flowgraph(NamedSchema, DocsSchema):
 
         return self.__get_task_module(self.get(step, index, 'taskmodule'))
 
-    def get_all_tasks(self):
+    def get_all_tasks(self) -> Set[Type[Task]]:
         '''
         Returns all unique task modules used in this flowgraph.
 
@@ -680,10 +690,13 @@ class Flowgraph(NamedSchema, DocsSchema):
 
         return all_graph_inputs, nodes, edges
 
-    def write_flowgraph(self, filename,
-                        fillcolor='#ffffff', fontcolor='#000000',
-                        background='transparent', fontsize='14',
-                        border=True, landscape=False):
+    def write_flowgraph(self, filename: str,
+                        fillcolor: Optional[str] = '#ffffff',
+                        fontcolor: Optional[str] = '#000000',
+                        background: Optional[str] = 'transparent',
+                        fontsize: Optional[Union[int, str]] = 14,
+                        border: Optional[bool] = True,
+                        landscape: Optional[bool] = False) -> None:
         r'''
         Renders and saves the compilation flowgraph to a file.
 
@@ -713,6 +726,8 @@ class Flowgraph(NamedSchema, DocsSchema):
         filepath = os.path.abspath(filename)
         fileroot, ext = os.path.splitext(filepath)
         fileformat = ext.replace(".", "")
+
+        fontsize = str(fontsize)
 
         # controlling border width
         if border:
