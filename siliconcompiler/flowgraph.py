@@ -437,8 +437,7 @@ class Flowgraph(NamedSchema, DocsSchema):
             self.__cache_execution_order_forward = ordering
             return self.__cache_execution_order_forward
 
-    def get_node_outputs(self, step: str, index: Union[str, int]) \
-            -> Dict[Tuple[str, str], Tuple[Tuple[str, str]]]:
+    def get_node_outputs(self, step: str, index: Union[str, int]) -> Tuple[Tuple[str, str]]:
         '''
         Returns the nodes that the given node provides input to.
 
