@@ -6,7 +6,11 @@ from pathlib import Path
 
 from siliconcompiler import Project, Design
 
-from siliconcompiler.utils.paths import builddir, jobdir, workdir, collectiondir
+from siliconcompiler.utils.paths import cwdir, builddir, jobdir, workdir, collectiondir
+
+
+def test_cwdir():
+    assert cwdir(Project()) == os.path.abspath(".")
 
 
 def test_builddir():

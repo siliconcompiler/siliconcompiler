@@ -1,9 +1,19 @@
 import os.path
 
-from typing import Union
+from typing import Union, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from siliconcompiler.project import Project
 
 
-def builddir(project) -> str:
+def cwdir(project: "Project") -> str:
+    from siliconcompiler import Project
+    if not isinstance(project, Project):
+        raise TypeError("project must be a Project type")
+    return project._Project__cwd
+
+
+def builddir(project: "Project") -> str:
     """
     Returns the absolute path to the project's build directory.
 
@@ -24,14 +34,14 @@ def builddir(project) -> str:
     if not isinstance(project, Project):
         raise TypeError("project must be a Project type")
 
-    builddir = project.get('option', 'builddir')
+    builddir: str = project.get('option', 'builddir')
     if os.path.isabs(builddir):
         return builddir
 
-    return os.path.join(project._Project__cwd, builddir)
+    return os.path.join(cwdir(project), builddir)
 
 
-def jobdir(project) -> str:
+def jobdir(project: "Project") -> str:
     """
     Returns the absolute path to the current job directory.
 
@@ -55,13 +65,15 @@ def jobdir(project) -> str:
     if not project.name:
         raise ValueError("name has not been set")
 
-    return os.path.join(
-        builddir(project),
-        project.name,
-        project.get('option', 'jobname'))
+    jobname: str = project.get('option', 'jobname')
+
+    return os.path.join(builddir(project), project.name, jobname)
 
 
-def workdir(project, step: str = None, index: Union[int, str] = None, relpath: bool = False) -> str:
+def workdir(project: "Project",
+            step: Optional[str] = None,
+            index: Optional[Union[int, str]] = None,
+            relpath: Optional[bool] = False) -> str:
     """
     Returns path to the working directory for a given step and index.
 
@@ -100,12 +112,12 @@ def workdir(project, step: str = None, index: Union[int, str] = None, relpath: b
 
     path = os.path.join(jobdir(project), *dirlist)
     if relpath:
-        return os.path.relpath(path, project._Project__cwd)
+        return os.path.relpath(path, cwdir(project))
 
     return path
 
 
-def collectiondir(project) -> str:
+def collectiondir(project: "Project") -> Union[None, str]:
     """
     Returns the absolute path to the file collection directory.
 
