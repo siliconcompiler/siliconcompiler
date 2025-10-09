@@ -12,7 +12,7 @@ from io import StringIO
 from pathlib import Path
 from jinja2 import Environment, FileSystemLoader
 
-from typing import Dict
+from typing import Dict, Optional
 
 import sys
 if sys.version_info < (3, 10):
@@ -302,7 +302,7 @@ def grep(project, args, line):
         return line
 
 
-def get_plugins(system, name=None):
+def get_plugins(system: str, name: Optional[str] = None):
     '''
     Search for python modules with a specific function
     '''
@@ -338,7 +338,7 @@ def truncate_text(text, width):
     return text
 
 
-def get_cores(physical=False):
+def get_cores(physical: Optional[bool] = False):
     '''
     Get max number of cores for this machine.
 

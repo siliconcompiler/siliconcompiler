@@ -8,12 +8,47 @@ import sys
 
 import os.path
 
+from typing import Dict, Set, List
+
 from collections.abc import Container
 from pathlib import Path
 
 import siliconcompiler
 
 from siliconcompiler.schema_support.record import RecordSchema
+from siliconcompiler.utils import get_plugins
+
+
+def get_install_groups() -> Dict[str, Set[str]]:
+    """
+    Entry point for app groups
+    """
+    return {
+        "asic": {"sv2v", "yosys", "yosys-slang", "openroad", "klayout"},
+        "asic-hls": {"bambu", "yosys", "yosys-slang", "openroad", "klayout"},
+        "fpga": {"sv2v", "yosys", "yosys-slang", "vpr", "yosys-wildebeest"},
+        "digital-simulation": {"verilator", "icarus", "surfer"},
+        "analog-simulation": {"xyce"}
+    }
+
+
+def get_install_tools(osname: str) -> Dict[str, str]:
+    tools_root = _get_tool_script_dir()
+
+    script_dir = None
+    if osname:
+        script_dir = tools_root / osname
+        if not script_dir.exists():
+            script_dir = None
+
+    tools = {}
+    if script_dir:
+        for script in glob.glob(str(script_dir / "install-*.sh")):
+            tool = re.match(r"install-(.*)\.sh", os.path.basename(script).lower())
+            if tool:
+                tools[tool.group(1)] = script
+
+    return tools
 
 
 class ChoiceOptional(Container):
@@ -127,37 +162,23 @@ def __print_summary(successful, failed):
     print("#"*max_len)
 
 
-def _get_tool_script_dir():
+def _get_tool_script_dir() -> Path:
     return Path(siliconcompiler.__file__).parent / "toolscripts"
 
 
-def _get_tools_list():
-    tools_root = _get_tool_script_dir()
-
-    script_dir = None
-    os_dir = _get_os_name()
-    if os_dir:
-        script_dir = tools_root / os_dir
-        if not script_dir.exists():
-            script_dir = None
-
+def _get_tools_list() -> Dict[str, str]:
     tools = {}
-    if script_dir:
-        for script in glob.glob(str(script_dir / "install-*.sh")):
-            tool = re.match(r"install-(.*)\.sh", os.path.basename(script).lower())
-            tools[tool.group(1)] = script
+    os = _get_os_name()
+    for plugin in get_plugins("install", name="tools"):
+        tools.update(plugin(os))
 
     return tools
 
 
-def _recommended_tool_groups(tools):
-    groups = {
-        "asic": {"sv2v", "yosys", "yosys-slang", "openroad", "klayout"},
-        "asic-hls": {"bambu", "yosys", "yosys-slang", "openroad", "klayout"},
-        "fpga": {"sv2v", "yosys", "yosys-slang", "vpr"},
-        "digital-simulation": {"verilator", "icarus", "surfer"},
-        "analog-simulation": {"xyce"}
-    }
+def _recommended_tool_groups(tools) -> Dict[str, List[str]]:
+    groups = {}
+    for plugin in get_plugins("install", name="groups"):
+        groups.update(plugin())
 
     filter_groups = {}
     for group, group_tools in groups.items():

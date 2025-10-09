@@ -95,6 +95,10 @@ github = "siliconcompiler.package.github:get_resolver"
 [project.entry-points."siliconcompiler.docs"]
 linkcode = "siliconcompiler.schema.docs:get_codeurl"
 
+[project.entry-points."siliconcompiler.install"]
+groups = "siliconcompiler.apps.sc_install:get_install_groups"
+tools = "siliconcompiler.apps.sc_install:get_install_tools"
+
 [project.optional-dependencies]
 test = [
     "pytest == 8.4.2",
