@@ -5,6 +5,8 @@ import tempfile
 
 import os.path
 
+from typing import Union, Optional
+
 from datetime import datetime
 from multiprocessing.managers import SyncManager
 
@@ -29,7 +31,7 @@ class _ManagerSingleton(type):
     _lock = multiprocessing.Lock()
 
     @staticmethod
-    def has_cls(cls):
+    def has_cls(mcls):
         """
         Checks if a singleton instance exists for the given class.
 
@@ -39,10 +41,10 @@ class _ManagerSingleton(type):
         Returns:
             bool: True if an instance exists, False otherwise.
         """
-        return cls in _ManagerSingleton._instances
+        return mcls in _ManagerSingleton._instances
 
     @staticmethod
-    def remove_cls(cls):
+    def remove_cls(mcls):
         """
         Removes a class's singleton instance from the registry.
 
@@ -52,12 +54,12 @@ class _ManagerSingleton(type):
         Args:
             cls (type): The class whose instance should be removed.
         """
-        if not _ManagerSingleton.has_cls(cls):
+        if not _ManagerSingleton.has_cls(mcls):
             return
 
         with _ManagerSingleton._lock:
-            if cls in _ManagerSingleton._instances:
-                del _ManagerSingleton._instances[cls]
+            if mcls in _ManagerSingleton._instances:
+                del _ManagerSingleton._instances[mcls]
 
     def __call__(cls, *args, **kwargs):
         """
@@ -86,7 +88,7 @@ class MPManager(metaclass=_ManagerSingleton):
     It is designed to be instantiated once and accessed globally.
     """
     __ENABLE_LOGGER: bool = True
-    __address: str = None
+    __address: Union[None, str] = None
     __authkey: bytes = b'siliconcompiler-manager-authkey'  # arbitrary authkey value
 
     def __init__(self):
@@ -98,7 +100,7 @@ class MPManager(metaclass=_ManagerSingleton):
         """
         pass
 
-    def _init_singleton(self):
+    def _init_singleton(self) -> None:
         """
         Performs the one-time initialization of the singleton instance.
 
@@ -140,7 +142,7 @@ class MPManager(metaclass=_ManagerSingleton):
         # Register cleanup function to run at exit
         atexit.register(MPManager.stop)
 
-    def _init_logger(self):
+    def _init_logger(self) -> None:
         """
         Initializes the logging configuration for SiliconCompiler.
 
@@ -175,7 +177,7 @@ class MPManager(metaclass=_ManagerSingleton):
                 pass
 
     @staticmethod
-    def stop():
+    def stop() -> None:
         """
         Cleans up all managed resources as a static method.
 
@@ -220,7 +222,7 @@ class MPManager(metaclass=_ManagerSingleton):
         _ManagerSingleton.remove_cls(MPManager)
 
     @staticmethod
-    def error(msg: str = None):
+    def error(msg: Optional[str] = None):
         """
         Logs an error and flags the session as having an error.
 
@@ -238,7 +240,7 @@ class MPManager(metaclass=_ManagerSingleton):
         manager.__error = True
 
     @staticmethod
-    def get_manager():
+    def get_manager() -> SyncManager:
         """
         Provides access to the shared multiprocessing.Manager instance.
 
@@ -277,7 +279,7 @@ class MPManager(metaclass=_ManagerSingleton):
         return MPManager().__logger
 
     @staticmethod
-    def _set_manager_address(address: str):
+    def _set_manager_address(address: str) -> None:
         """
         Set the address of the manager
         """
@@ -285,7 +287,7 @@ class MPManager(metaclass=_ManagerSingleton):
             MPManager.__address = address
 
     @staticmethod
-    def _get_manager_address() -> str:
+    def _get_manager_address() -> Union[None, str]:
         """
         Get the address of the manager
         """

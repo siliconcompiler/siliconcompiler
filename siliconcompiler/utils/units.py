@@ -1,6 +1,8 @@
 import math
 import re
 
+from typing import Optional, Tuple
+
 SI_UNITS = (
     ('y', -24),
     ('z', -21),
@@ -51,7 +53,7 @@ BINARY_TYPES = (
 )
 
 
-def convert(value, from_unit=None, to_unit=None):
+def convert(value: float, from_unit: Optional[str] = None, to_unit: Optional[str] = None) -> float:
     '''
     Convert a value to from one SI power to another SI power
 
@@ -80,7 +82,7 @@ def convert(value, from_unit=None, to_unit=None):
     return value * scale
 
 
-def _get_scale(unit):
+def _get_scale(unit: Optional[str]) -> int:
     if not unit:
         unit = ''
     unit_prefix = get_si_prefix(unit)
@@ -91,7 +93,7 @@ def _get_scale(unit):
     return 1
 
 
-def get_si_prefix(unit):
+def get_si_prefix(unit: Optional[str]) -> str:
     '''
     Get the SI prefix of the specific unit.
 
@@ -107,8 +109,10 @@ def get_si_prefix(unit):
         if matches:
             return matches[0][0]
 
+    return ''
 
-def get_si_power(unit):
+
+def get_si_power(unit: Optional[str]) -> int:
     '''
     Get the SI power of the specific unit.
     This is mainly needed for area units.
@@ -129,28 +133,28 @@ def get_si_power(unit):
     return 1
 
 
-def is_base_si_unit(unit):
+def is_base_si_unit(unit: Optional[str]) -> bool:
     '''
     Check if a unit has no magnitude
     '''
     return unit in SI_TYPES
 
 
-def is_base_si_unit_power(unit):
+def is_base_si_unit_power(unit: Optional[str]) -> bool:
     '''
     Check if a unit has a power associated with it
     '''
     return get_si_power(unit) > 1
 
 
-def is_base_binary_unit(unit):
+def is_base_binary_unit(unit: Optional[str]) -> bool:
     '''
     Check if a unit is binary
     '''
     return unit in BINARY_TYPES
 
 
-def format_si(value, unit, margin=3, digits=3):
+def format_si(value: float, unit: str, margin: int = 3, digits: int = 3) -> str:
     '''
     Format a number as an SI number. Returns a string.
 
@@ -171,7 +175,7 @@ def format_si(value, unit, margin=3, digits=3):
     return f'{scaled_value:.{digits}f}{prefix}'
 
 
-def scale_si(value, unit, margin=3, digits=3):
+def scale_si(value: float, unit: str, margin: int = 3, digits: int = 3) -> Tuple[float, str]:
     '''
     Format a number as an SI number. Returns a float.
 
@@ -200,7 +204,7 @@ def scale_si(value, unit, margin=3, digits=3):
     return (float(f'{value:.{digits}f}'), '')
 
 
-def format_binary(value, unit, digits=3):
+def format_binary(value: float, unit: Optional[str], digits: int = 3) -> str:
     '''
     Format a number as a binary number. Returns a string.
 
@@ -214,7 +218,7 @@ def format_binary(value, unit, digits=3):
     return f'{scaled_value:.{digits}f}{prefix}'
 
 
-def scale_binary(value, unit, digits=3):
+def scale_binary(value: float, unit: Optional[str], digits: int = 3) -> Tuple[float, str]:
     '''
     Format a number as a binary number. Returns a float.
 
@@ -239,7 +243,7 @@ def scale_binary(value, unit, digits=3):
     return (float(f'{value:.{digits}f}'), '')
 
 
-def format_time(value):
+def format_time(value: float) -> str:
     '''
     Format a number as time.
     Prints as hh:mm:ss.ms (hours:minutes:seconds.milliseconds)
