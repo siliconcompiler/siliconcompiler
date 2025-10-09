@@ -702,6 +702,6 @@ class KeyPathResolver(Resolver):
                                          step=self.root.get('arg', 'step'),
                                          index=self.root.get('arg', 'index'))
 
-        if isinstance(paths, (str, list, tuple)):
+        if isinstance(paths, list):
             return paths[0]
         return paths
