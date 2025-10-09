@@ -11,7 +11,7 @@ import os.path
 
 from logging.handlers import QueueHandler
 
-from typing import List
+from typing import List, Optional
 
 from siliconcompiler import utils, sc_open
 from siliconcompiler import NodeStatus
@@ -1263,7 +1263,9 @@ class SchedulerNode:
         if os.path.exists(self.__workdir):
             shutil.rmtree(self.__workdir)
 
-    def archive(self, tar: tarfile.TarFile, include: List[str] = None, verbose: bool = False):
+    def archive(self, tar: tarfile.TarFile,
+                include: Optional[List[str]] = None,
+                verbose: bool = False):
         """
         Archives the node's results into a tar file.
 

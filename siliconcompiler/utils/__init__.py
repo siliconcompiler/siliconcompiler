@@ -1,4 +1,5 @@
 import contextlib
+import logging
 import re
 import pathlib
 import psutil
@@ -10,9 +11,9 @@ import os.path
 
 from io import StringIO
 from pathlib import Path
-from jinja2 import Environment, FileSystemLoader
+from jinja2 import Environment, FileSystemLoader, Template
 
-from typing import Dict, Optional
+from typing import Dict, Optional, Union, Callable, List, TYPE_CHECKING
 
 import sys
 if sys.version_info < (3, 10):
@@ -21,6 +22,9 @@ else:
     from importlib.metadata import entry_points
 
 from siliconcompiler.utils.paths import builddir
+
+if TYPE_CHECKING:
+    from siliconcompiler.project import Project
 
 
 def link_symlink_copy(srcfile, dstfile):
@@ -191,7 +195,7 @@ def default_email_credentials_file() -> str:
 
 
 @contextlib.contextmanager
-def sc_open(path, *args, **kwargs):
+def sc_open(path: str, *args, **kwargs):
     if 'errors' not in kwargs:
         kwargs['errors'] = 'ignore'
     kwargs["newline"] = "\n"
@@ -203,12 +207,12 @@ def sc_open(path, *args, **kwargs):
         pass
 
 
-def get_file_template(path,
-                      root=os.path.join(
+def get_file_template(path: str,
+                      root: str = os.path.join(
                           os.path.dirname(
                               os.path.dirname(os.path.abspath(__file__))),
                           'data',
-                          'templates')):
+                          'templates')) -> Template:
     if os.path.isabs(path):
         root = os.path.dirname(path)
         path = os.path.basename(path)
@@ -221,7 +225,7 @@ def get_file_template(path,
 
 
 #######################################
-def safecompare(value, op, goal):
+def safecompare(value: Union[int, float], op: str, goal: Union[int, float]) -> bool:
     # supported relational operations
     # >, >=, <=, <. ==, !=
     if op == ">":
@@ -241,7 +245,7 @@ def safecompare(value, op, goal):
 
 
 ###########################################################################
-def grep(project, args, line):
+def grep(project: "Project", args: str, line: str) -> Union[None, str]:
     """
     Emulates the Unix grep command on a string.
 
@@ -275,6 +279,9 @@ def grep(project, args, line):
     # Split into repeating switches and everything else
     match = re.match(r'\s*((?:\-\w\s)*)(.*)', args)
 
+    if not match:
+        return None
+
     pattern = match.group(2)
 
     # Split space separated switch string into list
@@ -302,7 +309,7 @@ def grep(project, args, line):
         return line
 
 
-def get_plugins(system: str, name: Optional[str] = None):
+def get_plugins(system: str, name: Optional[str] = None) -> List[Callable]:
     '''
     Search for python modules with a specific function
     '''
@@ -319,7 +326,7 @@ def get_plugins(system: str, name: Optional[str] = None):
     return plugins
 
 
-def truncate_text(text, width):
+def truncate_text(text: str, width: int) -> str:
     width = max(width, 5)
 
     if len(text) <= width:
@@ -338,7 +345,7 @@ def truncate_text(text, width):
     return text
 
 
-def get_cores(physical: Optional[bool] = False):
+def get_cores(physical: bool = False) -> int:
     '''
     Get max number of cores for this machine.
 
@@ -360,7 +367,7 @@ def get_cores(physical: Optional[bool] = False):
     return cores
 
 
-def print_traceback(logger, exception):
+def print_traceback(logger: logging.Logger, exception: Exception):
     logger.error(f'{exception}')
     trace = StringIO()
     traceback.print_tb(exception.__traceback__, file=trace)
@@ -370,21 +377,21 @@ def print_traceback(logger, exception):
 
 
 class FilterDirectories:
-    def __init__(self, project):
+    def __init__(self, project: "Project"):
         self.file_count = 0
         self.directory_file_limit = None
         self.abspath = None
         self.project = project
 
     @property
-    def logger(self):
+    def logger(self) -> logging.Logger:
         return self.project.logger
 
     @property
-    def builddir(self):
+    def builddir(self) -> str:
         return builddir(self.project)
 
-    def filter(self, path, files):
+    def filter(self, path: str, files: List[str]) -> List[str]:
         if pathlib.Path(path) == pathlib.Path.home():
             # refuse to collect home directory
             self.logger.error(f'Cannot collect user home directory: {path}')

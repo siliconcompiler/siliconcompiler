@@ -640,7 +640,7 @@ class BaseSchema:
 
         return tuple(sorted(key_param.__manifest.keys()))
 
-    def allkeys(self, *keypath: str, include_default: bool = True) -> Set[Tuple[str]]:
+    def allkeys(self, *keypath: str, include_default: bool = True) -> Set[Tuple[str, ...]]:
         '''
         Returns all keypaths in the schema as a set of tuples.
 
