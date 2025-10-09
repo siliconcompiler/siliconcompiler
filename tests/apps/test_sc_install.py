@@ -122,6 +122,7 @@ def test_install_groups(call, monkeypatch):
         return {
             "yosys": "yosys.sh",
             "yosys-slang": "yosys-slang.sh",
+            "yosys-wildebeest": "yosys-wildebeest.sh",
             "openroad": "openroad.sh",
             "sv2v": "sv2v.sh",
             "klayout": "klayout.sh",
@@ -133,7 +134,7 @@ def test_install_groups(call, monkeypatch):
 
     monkeypatch.setattr('sys.argv', ['sc-install', '-group', 'asic', 'fpga'])
     assert sc_install.main() == 0
-    assert call.call_count == 6
+    assert call.call_count == 7
 
 
 @pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
@@ -422,8 +423,12 @@ def test_groups(monkeypatch):
         return "<os>"
     monkeypatch.setattr(sc_install, '_get_os_name', os_info_name)
 
+    def get_plugins(*_args, **_kwargs):
+        return [sc_install.get_install_groups]
+    monkeypatch.setattr(sc_install, "get_plugins", get_plugins)
+
     tools_asic = ("sv2v", "yosys", "yosys-slang", "openroad", "klayout")
-    tools_fpga = ("sv2v", "yosys", "yosys-slang", "vpr")
+    tools_fpga = ("sv2v", "yosys", "yosys-slang", "vpr", "yosys-wildebeest")
 
     recommend = sc_install._recommended_tool_groups(tools_asic)
     assert 'asic' in recommend
@@ -431,7 +436,8 @@ def test_groups(monkeypatch):
 
     assert 'fpga' in recommend
     assert recommend["fpga"] == "fpga group is not available for "\
-        "<os> due to lack of support for the following tools: vpr"
+        "<os> due to lack of support for the following tools: vpr"\
+        ", yosys-wildebeest"
 
     recommend = sc_install._recommended_tool_groups(tools_fpga)
     assert 'fpga' in recommend
@@ -469,3 +475,20 @@ def test_show(monkeypatch, capsys, scroot):
 
     assert sc_install.main() == 0
     assert file_content in capsys.readouterr().out
+
+
+def test_get_tools_list(monkeypatch):
+    def get_plugins(*_args, **_kwargs):
+        def tools0(osname):
+            return {"tool0": "script0.sh", "tool1": "script1.sh"}
+
+        def tools1(osname):
+            return {"tool2": "script2.sh", "tool3": "script3.sh"}
+        return [tools0, tools1]
+    monkeypatch.setattr(sc_install, "get_plugins", get_plugins)
+    assert sc_install._get_tools_list() == {
+        "tool0": "script0.sh",
+        "tool1": "script1.sh",
+        "tool2": "script2.sh",
+        "tool3": "script3.sh"
+    }
