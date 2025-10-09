@@ -1228,6 +1228,7 @@ def test_report_output_files_builtin(project, monkeypatch, caplog):
     project.logger.setLevel(logging.INFO)
 
     node = SchedulerNode(project, "steptwo", "0")
+    node.set_builtin()
     with node.runtime():
         node._SchedulerNode__report_output_files()
     assert caplog.text == ""
