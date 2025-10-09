@@ -154,7 +154,7 @@ def _recommended_tool_groups(tools):
     groups = {
         "asic": {"sv2v", "yosys", "yosys-slang", "openroad", "klayout"},
         "asic-hls": {"bambu", "yosys", "yosys-slang", "openroad", "klayout"},
-        "fpga": {"sv2v", "yosys", "yosys-slang", "vpr"},
+        "fpga": {"sv2v", "yosys", "yosys-slang", "vpr", "yosys-wildebeest"},
         "digital-simulation": {"verilator", "icarus", "surfer"},
         "analog-simulation": {"xyce"}
     }
