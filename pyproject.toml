@@ -106,8 +106,7 @@ test = [
     "pytest-asyncio == 1.2.0",
     "pytest-cov == 7.0.0",
     "responses == 0.25.8",
-    "PyVirtualDisplay == 3.0",
-    "logiklib == 0.1.0"
+    "PyVirtualDisplay == 3.0"
 ]
 lint = [
     "flake8 == 7.3.0",
