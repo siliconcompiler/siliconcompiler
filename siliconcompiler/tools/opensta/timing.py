@@ -1,10 +1,13 @@
 import re
 
 import os.path
+import glob
 
 from siliconcompiler import sc_open
 
 from siliconcompiler.tools.opensta import OpenSTATask
+
+from siliconcompiler import TaskSkip
 
 
 class TimingTaskBase(OpenSTATask):
@@ -251,3 +254,14 @@ class FPGATimingTask(TimingTaskBase):
 
         self.add_input_file(ext="sdc")
         self.add_input_file(ext="typical.sdf")
+
+    def pre_process(self):
+        """
+        Skip this node if no non-empty sdc files in inputs
+        """
+        sdc_files = glob.glob("inputs/*.sdc")
+
+        if not sdc_files or all(os.path.getsize(f) == 0 for f in sdc_files):
+            raise TaskSkip("no incoming .sdc file")
+
+        super().pre_process()
