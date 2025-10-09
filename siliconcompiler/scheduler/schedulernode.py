@@ -11,7 +11,7 @@ import os.path
 
 from logging.handlers import QueueHandler
 
-from typing import List, Optional
+from typing import List, Optional, Set, Tuple, TYPE_CHECKING
 
 from siliconcompiler import utils, sc_open
 from siliconcompiler import NodeStatus
@@ -21,7 +21,13 @@ from siliconcompiler.package import Resolver
 from siliconcompiler.schema_support.record import RecordTime, RecordTool
 from siliconcompiler.schema import Journal
 from siliconcompiler.scheduler import send_messages
-from siliconcompiler.utils.paths import workdir, jobdir, collectiondir
+from siliconcompiler.utils.paths import workdir, jobdir, collectiondir, cwdir
+
+if TYPE_CHECKING:
+    from siliconcompiler.project import Project
+    from siliconcompiler import Flowgraph, Task
+    from siliconcompiler.schema_support.record import RecordSchema
+    from siliconcompiler.schema_support.metric import MetricSchema
 
 
 class SchedulerFlowReset(Exception):
@@ -38,7 +44,7 @@ class SchedulerNode:
 
     """
 
-    def __init__(self, project, step, index, replay=False):
+    def __init__(self, project: "Project", step: str, index: str, replay: bool = False):
         """
         Initializes a SchedulerNode.
 
@@ -61,16 +67,16 @@ class SchedulerNode:
         self.__project = project
 
         self.__name = self.__project.name
-        self.__topmodule = self.__project.get(
+        self.__topmodule: str = self.__project.get(
             "library",
             self.__name,
             "fileset",
             self.__project.get("option", "fileset")[0],
             "topmodule")
 
-        self.__job = self.__project.get('option', 'jobname')
-        self.__record_user_info = self.__project.get("option", "track",
-                                                     step=self.__step, index=self.__index)
+        self.__job: str = self.__project.get('option', 'jobname')
+        self.__record_user_info: bool = self.__project.get(
+            "option", "track", step=self.__step, index=self.__index)
         self.__pipe = None
         self.__failed_log_lines = 20
         self.__error = False
@@ -84,11 +90,11 @@ class SchedulerNode:
         self.__enforce_inputfiles = True
         self.__enforce_outputfiles = True
 
-        flow = self.__project.get('option', 'flow')
-        self.__is_entry_node = (self.__step, self.__index) in \
+        flow: str = self.__project.get('option', 'flow')
+        self.__is_entry_node: bool = (self.__step, self.__index) in \
             self.__project.get("flowgraph", flow, field="schema").get_entry_nodes()
 
-        self.__cwd = self.__project._Project__cwd
+        self.__cwd = cwdir(self.__project)
         self.__jobworkdir = jobdir(self.__project)
         self.__workdir = workdir(self.__project, step=self.__step, index=self.__index)
         self.__manifests = {
@@ -120,7 +126,7 @@ class SchedulerNode:
         self.__task = prev_task
 
     @staticmethod
-    def init(project):
+    def init(project: "Project") -> None:
         """Static placeholder for future initialization logic."""
         pass
 
@@ -150,7 +156,7 @@ class SchedulerNode:
         """bool: True if the node has encountered an error."""
         return self.__error
 
-    def set_builtin(self):
+    def set_builtin(self) -> None:
         """Flags this node as a 'builtin' node."""
         self.__builtin = True
 
@@ -165,7 +171,7 @@ class SchedulerNode:
         return self.project.logger
 
     @property
-    def project(self):
+    def project(self) -> "Project":
         """Project: The parent Project object."""
         return self.__project
 
@@ -220,11 +226,11 @@ class SchedulerNode:
         return self.__replay
 
     @property
-    def task(self):
+    def task(self) -> "Task":
         """Task: The task object associated with this node."""
         return self.__task
 
-    def get_manifest(self, input=False):
+    def get_manifest(self, input: bool = False) -> str:
         """
         Gets the path to the input or output manifest file for this node.
 
@@ -239,7 +245,7 @@ class SchedulerNode:
             return self.__manifests["input"]
         return self.__manifests["output"]
 
-    def get_log(self, type="exe"):
+    def get_log(self, type: str = "exe") -> str:
         """
         Gets the path to a specific log file for this node.
 
@@ -257,18 +263,18 @@ class SchedulerNode:
         return self.__logs[type]
 
     @property
-    def replay_script(self):
+    def replay_script(self) -> str:
         """str: The path to the shell script for replaying this node's execution."""
         return self.__replay_script
 
     @property
-    def threads(self):
+    def threads(self) -> int:
         """int: The number of threads allocated for this node's task."""
         with self.__task.runtime(self) as task:
             thread_count = task.get("threads")
         return thread_count
 
-    def set_queue(self, pipe, queue):
+    def set_queue(self, pipe, queue) -> None:
         """
         Configures the multiprocessing queue and pipe for inter-process communication.
 
@@ -284,7 +290,7 @@ class SchedulerNode:
         # Reinit
         self.__setup_schema_access()
 
-    def __setup_schema_access(self):
+    def __setup_schema_access(self) -> None:
         """
         Private helper to set up direct access to schema objects.
 
@@ -293,15 +299,15 @@ class SchedulerNode:
         access to configuration and results.
         """
         flow = self.__project.get('option', 'flow')
-        self.__flow = self.__project.get("flowgraph", flow, field="schema")
+        self.__flow: "Flowgraph" = self.__project.get("flowgraph", flow, field="schema")
 
         tool = self.__flow.get(self.__step, self.__index, 'tool')
         task = self.__flow.get(self.__step, self.__index, 'task')
-        self.__task = self.__project.get("tool", tool, "task", task, field="schema")
-        self.__record = self.__project.get("record", field="schema")
-        self.__metrics = self.__project.get("metric", field="schema")
+        self.__task: "Task" = self.__project.get("tool", tool, "task", task, field="schema")
+        self.__record: "RecordSchema" = self.__project.get("record", field="schema")
+        self.__metrics: "MetricSchema" = self.__project.get("metric", field="schema")
 
-    def _init_run_logger(self):
+    def _init_run_logger(self) -> None:
         """
         Initializes and configures the logger for the node's execution.
 
@@ -318,7 +324,7 @@ class SchedulerNode:
             self.__project._logger_console.setFormatter(formatter)
             self.logger.addHandler(self.__project._logger_console)
 
-    def halt(self, msg=None):
+    def halt(self, msg: Optional[str] = None) -> None:
         """
         Stops the node's execution due to an error.
 
@@ -341,7 +347,7 @@ class SchedulerNode:
         send_messages.send(self.__project, "fail", self.__step, self.__index)
         sys.exit(1)
 
-    def setup(self):
+    def setup(self) -> bool:
         """
         Runs the setup() method for the node's assigned task.
 
@@ -376,7 +382,7 @@ class SchedulerNode:
 
             return True
 
-    def check_previous_run_status(self, previous_run):
+    def check_previous_run_status(self, previous_run: "SchedulerNode") -> bool:
         """
         Determine whether a prior run is compatible and completed successfully for use as
         an incremental build starting point.
@@ -435,7 +441,8 @@ class SchedulerNode:
 
         return True
 
-    def check_values_changed(self, previous_run, keys):
+    def check_values_changed(self, previous_run: "SchedulerNode", keys: Set[Tuple[str, ...]]) \
+            -> bool:
         """
         Checks if any specified schema parameter values have changed.
 
@@ -470,7 +477,8 @@ class SchedulerNode:
 
         return False
 
-    def check_files_changed(self, previous_run, previous_time, keys):
+    def check_files_changed(self, previous_run: "SchedulerNode",
+                            previous_time: float, keys: Set[Tuple[str, ...]]) -> bool:
         """
         Checks if any specified file-based parameters have changed.
 
@@ -537,7 +545,7 @@ class SchedulerNode:
 
         return False
 
-    def get_check_changed_keys(self):
+    def get_check_changed_keys(self) -> Tuple[Set[Tuple[str, ...]], Set[Tuple[str, ...]]]:
         """
         Gathers all schema keys that could trigger a re-run if changed.
 
@@ -577,7 +585,7 @@ class SchedulerNode:
 
         return value_keys, path_keys
 
-    def requires_run(self):
+    def requires_run(self) -> bool:
         """
         Determines if the node needs to be re-run.
 
@@ -602,11 +610,11 @@ class SchedulerNode:
         if os.path.exists(self.__manifests["input"]):
             previous_node_time = os.path.getmtime(self.__manifests["input"])
             try:
-                project = Project.from_manifest(filepath=self.__manifests["input"])
+                i_project: Project = Project.from_manifest(filepath=self.__manifests["input"])
             except:  # noqa E722
                 self.logger.debug("Input manifest failed to load")
                 return True
-            previous_node = SchedulerNode(project, self.__step, self.__index)
+            previous_node = SchedulerNode(i_project, self.__step, self.__index)
         else:
             # No manifest found so assume rerun is needed
             self.logger.debug("Previous run did not generate input manifest")
@@ -615,11 +623,11 @@ class SchedulerNode:
         previous_node_end = None
         if os.path.exists(self.__manifests["output"]):
             try:
-                project = Project.from_manifest(filepath=self.__manifests["output"])
+                o_project = Project.from_manifest(filepath=self.__manifests["output"])
             except:  # noqa E722
                 self.logger.debug("Output manifest failed to load")
                 return True
-            previous_node_end = SchedulerNode(project, self.__step, self.__index)
+            previous_node_end = SchedulerNode(o_project, self.__step, self.__index)
         else:
             # No manifest found so assume rerun is needed
             self.logger.debug("Previous run did not generate output manifest")
@@ -655,7 +663,7 @@ class SchedulerNode:
 
         return False
 
-    def setup_input_directory(self):
+    def setup_input_directory(self) -> None:
         """
         Prepares the 'inputs/' directory for the node's execution.
 
@@ -700,7 +708,7 @@ class SchedulerNode:
                     os.rename(f'{self.__workdir}/inputs/{outfile.name}',
                               f'{self.__workdir}/inputs/{new_name}')
 
-    def validate(self):
+    def validate(self) -> bool:
         """
         Performs pre-run validation checks.
 
@@ -762,7 +770,7 @@ class SchedulerNode:
 
         return not error
 
-    def summarize(self):
+    def summarize(self) -> None:
         """Prints a post-run summary of metrics to the logger."""
         for metric in ['errors', 'warnings']:
             val = self.__metrics.get(metric, step=self.__step, index=self.__index)
@@ -772,7 +780,7 @@ class SchedulerNode:
         walltime = self.__metrics.get("tasktime", step=self.__step, index=self.__index)
         self.logger.info(f"Finished task in {walltime:.2f}s")
 
-    def run(self):
+    def run(self) -> None:
         """
         Executes the full lifecycle for this node.
 
@@ -861,7 +869,7 @@ class SchedulerNode:
         if self.__pipe:
             self.__pipe.send(Resolver.get_cache(self.__project))
 
-    def execute(self):
+    def execute(self) -> None:
         """
         Handles the core tool execution logic.
 
@@ -1006,7 +1014,7 @@ class SchedulerNode:
 
         send_messages.send(self.__project, "end", self.__step, self.__index)
 
-    def __generate_testcase(self):
+    def __generate_testcase(self) -> None:
         """
         Private helper to generate a test case upon failure.
 
@@ -1041,7 +1049,7 @@ class SchedulerNode:
             hash_files=self.__hash,
             verbose_collect=False)
 
-    def check_logfile(self):
+    def check_logfile(self) -> None:
         """
         Parses the tool execution log file for patterns.
 
@@ -1135,7 +1143,7 @@ class SchedulerNode:
 
                 self.__task.record_metric(metric, value, source_file=sources)
 
-    def __hash_files_pre_execute(self):
+    def __hash_files_pre_execute(self) -> None:
         """Private helper to hash all relevant input files before execution."""
         for task_key in ('refdir', 'prescript', 'postscript', 'script'):
             self.__project.hash_files('tool', self.__task.tool(),
@@ -1154,7 +1162,7 @@ class SchedulerNode:
                 self.__project.hash_files(*args, step=access_step, index=access_index,
                                           check=False, verbose=False)
 
-    def __hash_files_post_execute(self):
+    def __hash_files_post_execute(self) -> None:
         """Private helper to hash all output files after execution."""
         # hash all outputs
         self.__project.hash_files('tool', self.__task.tool(), 'task', self.__task.task(), 'output',
@@ -1173,14 +1181,14 @@ class SchedulerNode:
                 self.__project.hash_files(*args, step=access_step, index=access_index,
                                           check=False, verbose=False)
 
-    def __report_output_files(self):
+    def __report_output_files(self) -> None:
         """
         Private helper to check for missing or unexpected output files.
 
         Compares the files found in the 'outputs/' directory against the
         files expected by the task's schema. Reports errors if they don't match.
         """
-        if self.__task.tool() == 'builtin':
+        if self.is_builtin:
             return
 
         error = False
@@ -1215,7 +1223,7 @@ class SchedulerNode:
         if error and self.__enforce_outputfiles:
             self.halt()
 
-    def copy_from(self, source):
+    def copy_from(self, source: str) -> None:
         """
         Imports the results of this node from a different job run.
 
@@ -1258,14 +1266,14 @@ class SchedulerNode:
                 schema.set('option', 'jobname', self.__job)
                 schema.write_manifest(manifest)
 
-    def clean_directory(self):
+    def clean_directory(self) -> None:
         """Removes the working directory for this node."""
         if os.path.exists(self.__workdir):
             shutil.rmtree(self.__workdir)
 
     def archive(self, tar: tarfile.TarFile,
                 include: Optional[List[str]] = None,
-                verbose: bool = False):
+                verbose: bool = False) -> None:
         """
         Archives the node's results into a tar file.
 

@@ -8,6 +8,8 @@ import traceback
 
 import os.path
 
+from typing import Union, TYPE_CHECKING
+
 from siliconcompiler import NodeStatus
 from siliconcompiler.schema import Journal
 from siliconcompiler.flowgraph import RuntimeFlowgraph
@@ -23,6 +25,12 @@ from siliconcompiler.utils.multiprocessing import MPManager
 from siliconcompiler.scheduler import send_messages, SCRuntimeError
 from siliconcompiler.utils.paths import collectiondir, jobdir, workdir
 
+if TYPE_CHECKING:
+    from siliconcompiler.project import Project
+    from siliconcompiler import Flowgraph
+    from siliconcompiler.schema_support.record import RecordSchema
+    from siliconcompiler.schema_support.metric import MetricSchema
+
 
 class Scheduler:
     """
@@ -37,7 +45,7 @@ class Scheduler:
     and reporting results.
     """
 
-    def __init__(self, project):
+    def __init__(self, project: "Project"):
         """
         Initializes the Scheduler.
 
@@ -58,7 +66,7 @@ class Scheduler:
         if flow not in self.__project.getkeys("flowgraph"):
             raise SCRuntimeError("flow is not defined")
 
-        self.__flow = self.__project.get("flowgraph", flow, field="schema")
+        self.__flow: "Flowgraph" = self.__project.get("flowgraph", flow, field="schema")
         from_steps = self.__project.get('option', 'from')
         to_steps = self.__project.get('option', 'to')
         prune_nodes = self.__project.get('option', 'prune')
@@ -77,15 +85,15 @@ class Scheduler:
             self.__flow,
             from_steps=from_steps,
             to_steps=to_steps,
-            prune_nodes=self.__project.get('option', 'prune'))
+            prune_nodes=prune_nodes)
 
         self.__flow_load_runtime = RuntimeFlowgraph(
             self.__flow,
             to_steps=from_steps,
             prune_nodes=prune_nodes)
 
-        self.__record = self.__project.get("record", field="schema")
-        self.__metrics = self.__project.get("metric", field="schema")
+        self.__record: "RecordSchema" = self.__project.get("record", field="schema")
+        self.__metrics: "MetricSchema" = self.__project.get("metric", field="schema")
 
         self.__tasks = {}
 
@@ -95,14 +103,14 @@ class Scheduler:
         self.__logfile = None
 
     @property
-    def log(self) -> str:
+    def log(self) -> Union[None, str]:
         """
         Returns path to the running job log
         """
         return self.__logfile
 
     @property
-    def project(self):
+    def project(self) -> "Project":
         """
         Returns the Project object associated with this scheduler.
 
@@ -114,7 +122,7 @@ class Scheduler:
         """
         return self.__project
 
-    def __print_status(self, header):
+    def __print_status(self, header: str) -> None:
         """
         Private helper to print the current status of all nodes for debugging.
 
@@ -127,7 +135,7 @@ class Scheduler:
                                 f"{self.__record.get('status', step=step, index=index)}")
         self.__logger.debug("####")
 
-    def check_manifest(self):
+    def check_manifest(self) -> bool:
         """
         Checks the validity of the Project's manifest before a run.
 
@@ -137,7 +145,7 @@ class Scheduler:
         self.__logger.info("Checking manifest before running.")
         return self.__project.check_manifest()
 
-    def run_core(self):
+    def run_core(self) -> None:
         """
         Executes the core task scheduling loop.
 
@@ -191,7 +199,7 @@ class Scheduler:
         # Mark error to keep logfile
         MPManager.error("uncaught exception")
 
-    def __install_file_logger(self):
+    def __install_file_logger(self) -> None:
         """
         Set up a per-job file logger for the current project and attach it to the
         scheduler's logger.
@@ -215,7 +223,7 @@ class Scheduler:
         self.__joblog_handler.setFormatter(SCLoggerFormatter())
         self.__logger.addHandler(self.__joblog_handler)
 
-    def run(self):
+    def run(self) -> None:
         """
         The main entry point to start the compilation flow.
 
@@ -282,7 +290,7 @@ class Scheduler:
             # Restore hook
             sys.excepthook = org_excepthook
 
-    def __check_tool_requirements(self):
+    def __check_tool_requirements(self) -> bool:
         """
         Performs pre-run validation checks.
 
@@ -343,7 +351,7 @@ class Scheduler:
 
         return not error
 
-    def __check_flowgraph_io(self):
+    def __check_flowgraph_io(self) -> bool:
         """
         Validate that every runtime node will receive its required input files and that no
         input file is provided by more than one source.
@@ -415,7 +423,7 @@ class Scheduler:
 
         return not error
 
-    def __mark_pending(self, step, index):
+    def __mark_pending(self, step: str, index: str) -> None:
         """
         Private helper to recursively mark a node and its dependents as PENDING.
 
@@ -438,7 +446,7 @@ class Scheduler:
             # Mark following steps as pending
             self.__record.set('status', NodeStatus.PENDING, step=next_step, index=next_index)
 
-    def __run_setup(self):
+    def __run_setup(self) -> None:
         """
         Private helper to perform initial setup for the entire run.
 
@@ -481,7 +489,7 @@ class Scheduler:
 
         self.__reset_flow_nodes()
 
-    def __reset_flow_nodes(self):
+    def __reset_flow_nodes(self) -> None:
         """
         Private helper to reset the status and metrics for all nodes in the flow.
 
@@ -497,7 +505,7 @@ class Scheduler:
         for step, index in self.__flow.get_nodes():
             self.__metrics.clear(step, index)
 
-    def __clean_build_dir_full(self, recheck: bool = False):
+    def __clean_build_dir_full(self, recheck: bool = False) -> None:
         """
         Remove stale build outputs from the current job directory to prepare for a fresh run.
 
@@ -531,7 +539,7 @@ class Scheduler:
                 else:
                     shutil.rmtree(os.path.join(cur_job_dir, delfile))
 
-    def __clean_build_dir_incr(self):
+    def __clean_build_dir_incr(self) -> None:
         """
         Prune the job build directory to match the current flow and clean pending node directories.
 
@@ -568,7 +576,7 @@ class Scheduler:
                 with self.__tasks[(step, index)].runtime():
                     self.__tasks[(step, index)].clean_directory()
 
-    def configure_nodes(self):
+    def configure_nodes(self) -> None:
         """
         Prepare and configure all flow nodes before execution, including loading prior run state,
         running per-node setup, and marking nodes that require rerun.
@@ -686,7 +694,7 @@ class Scheduler:
                                                    f"{self.__name}.pkg.json"))
         journal.stop()
 
-    def __check_display(self):
+    def __check_display(self) -> None:
         """
         Private helper to automatically disable GUI display on headless systems.
 
@@ -701,7 +709,7 @@ class Scheduler:
             self.__logger.warning("Setting [option,nodisplay] to True")
             self.__project.set('option', 'nodisplay', True)
 
-    def __increment_job_name(self):
+    def __increment_job_name(self) -> bool:
         """
         Private helper to auto-increment the jobname if ['option', 'jobincr'] is True.
 
