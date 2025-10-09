@@ -87,9 +87,6 @@ smake = "siliconcompiler.apps.smake:main"
 [project.entry-points."siliconcompiler.showtask"]
 scsetup = "siliconcompiler.utils.showtools:showtasks"
 
-[project.entry-points."siliconcompiler.target"]
-targets = "siliconcompiler.targets:get_targets"
-
 [project.entry-points."siliconcompiler.path_resolver"]
 https = "siliconcompiler.package.https:get_resolver"
 git = "siliconcompiler.package.git:get_resolver"
