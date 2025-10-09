@@ -3,7 +3,7 @@ import tarfile
 
 import os.path
 
-from typing import List
+from typing import List, Optional, TYPE_CHECKING
 
 from siliconcompiler.schema.parametervalue import NodeListValue, NodeSetValue
 from siliconcompiler.utils import FilterDirectories
@@ -11,11 +11,14 @@ from siliconcompiler.utils.paths import collectiondir
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 
+if TYPE_CHECKING:
+    from siliconcompiler.project import Project
 
-def collect(project,
-            directory: str = None,
+
+def collect(project: "Project",
+            directory: Optional[str] = None,
             verbose: bool = True,
-            whitelist: List[str] = None):
+            whitelist: Optional[List[str]] = None) -> None:
     '''
     Collects files and directories specified in the schema and places
     them in a collection directory. The function only copies items that have
@@ -165,7 +168,10 @@ def collect(project,
             shutil.copy2(abs_path, import_path)
 
 
-def archive(project, jobname: str = None, include: List[str] = None, archive_name: str = None):
+def archive(project: "Project",
+            jobname: Optional[str] = None,
+            include: Optional[List[str]] = None,
+            archive_name: Optional[str] = None) -> None:
     '''Archive a job directory into a compressed tarball.
 
     Creates a single compressed archive (.tgz) based on the specified job.
