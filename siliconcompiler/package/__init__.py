@@ -22,7 +22,7 @@ import uuid
 
 import os.path
 
-from typing import Optional, List, Dict, Type, Union, TYPE_CHECKING
+from typing import Optional, List, Dict, Type, Union, TYPE_CHECKING, ClassVar
 
 from fasteners import InterProcessLock
 from importlib.metadata import distributions, distribution
@@ -51,11 +51,11 @@ class Resolver:
         source (str): The URI or path specifying the data source.
         reference (str): A version, commit hash, or tag for remote sources.
     """
-    _RESOLVERS_LOCK = threading.Lock()
-    _RESOLVERS: Dict[str, Type["Resolver"]] = {}
+    _RESOLVERS_LOCK: ClassVar[threading.Lock] = threading.Lock()
+    _RESOLVERS: ClassVar[Dict[str, Type["Resolver"]]] = {}
 
-    __CACHE_LOCK = threading.Lock()
-    __CACHE = {}
+    __CACHE_LOCK: ClassVar[threading.Lock] = threading.Lock()
+    __CACHE: ClassVar[Dict[str, Dict[str, str]]] = {}
 
     def __init__(self, name: str, root: "Project", source: str, reference: Optional[str] = None):
         """
