@@ -11,13 +11,15 @@ import zipfile
 
 import os.path
 
+from typing import Dict, Type
+
 from io import BytesIO
 from urllib.parse import urlparse
 
 from siliconcompiler.package import RemoteResolver
 
 
-def get_resolver():
+def get_resolver() -> Dict[str, Type["HTTPResolver"]]:
     """
     Returns a dictionary mapping HTTP schemes to the HTTPResolver class.
 
@@ -43,7 +45,7 @@ class HTTPResolver(RemoteResolver):
     of archives downloaded from GitHub.
     """
 
-    def check_cache(self):
+    def check_cache(self) -> bool:
         """
         Checks if the data has already been cached.
 
@@ -56,7 +58,7 @@ class HTTPResolver(RemoteResolver):
         return os.path.exists(self.cache_path)
 
     @property
-    def download_url(self):
+    def download_url(self) -> str:
         """
         Constructs the final download URL.
 
@@ -71,7 +73,7 @@ class HTTPResolver(RemoteResolver):
             data_url = f"{data_url}{self.reference}.tar.gz"
         return data_url
 
-    def resolve_remote(self):
+    def resolve_remote(self) -> None:
         """
         Fetches the remote archive, unpacks it, and stores it in the cache.
 

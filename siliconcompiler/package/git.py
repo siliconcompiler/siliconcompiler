@@ -8,11 +8,16 @@ branches, tags, or commit hashes), and managing the cached repository's state.
 import shutil
 import os.path
 
+from typing import Dict, Type, Optional, Union, TYPE_CHECKING
+
 from git import Repo, GitCommandError
 from siliconcompiler.package import RemoteResolver
 
+if TYPE_CHECKING:
+    from siliconcompiler.project import Project
 
-def get_resolver():
+
+def get_resolver() -> Dict[str, Type["GitResolver"]]:
     """
     Returns a dictionary mapping Git-related URI schemes to the GitResolver class.
 
@@ -40,13 +45,13 @@ class GitResolver(RemoteResolver):
     for SSH-based URLs.
     """
 
-    def __init__(self, name, root, source, reference=None):
+    def __init__(self, name: str, root: "Project", source: str, reference: Optional[str] = None):
         """
         Initializes the GitResolver.
         """
         super().__init__(name, root, source, reference)
 
-    def check_cache(self):
+    def check_cache(self) -> bool:
         """
         Checks if a valid, clean Git repository exists at the cache path.
 
@@ -69,7 +74,7 @@ class GitResolver(RemoteResolver):
                 return False
         return False
 
-    def __get_token_env(self):
+    def __get_token_env(self) -> Union[None, str]:
         """
         Searches for a Git authentication token in predefined environment variables.
 
@@ -99,7 +104,7 @@ class GitResolver(RemoteResolver):
         return None
 
     @property
-    def git_path(self):
+    def git_path(self) -> str:
         """
         Constructs the final Git URL for cloning.
 
@@ -123,7 +128,7 @@ class GitResolver(RemoteResolver):
         url = url._replace(scheme='https')
         return url.geturl()
 
-    def resolve_remote(self):
+    def resolve_remote(self) -> None:
         """
         Fetches the remote repository and checks out the specified reference.
 
