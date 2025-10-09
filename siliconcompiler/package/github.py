@@ -6,13 +6,18 @@ release assets from public or private GitHub repositories.
 """
 import os
 
+from typing import Dict, Type, Optional, Tuple, TYPE_CHECKING
+
 from github import Github, Auth
 from github.GithubException import UnknownObjectException
 
 from siliconcompiler.package.https import HTTPResolver
 
+if TYPE_CHECKING:
+    from siliconcompiler.project import Project
 
-def get_resolver():
+
+def get_resolver() -> Dict[str, Type["GithubResolver"]]:
     """
     Returns a dictionary mapping GitHub URI schemes to the GithubResolver class.
 
@@ -43,7 +48,7 @@ class GithubResolver(HTTPResolver):
     a GitHub token must be provided via environment variables.
     """
 
-    def __init__(self, name, root, source, reference=None):
+    def __init__(self, name: str, root: "Project", source: str, reference: Optional[str] = None):
         """
         Initializes the GithubResolver.
         """
@@ -55,7 +60,7 @@ class GithubResolver(HTTPResolver):
                 "github://<owner>/<repository>/<version>/<artifact>")
 
     @property
-    def gh_path(self):
+    def gh_path(self) -> Tuple[str, ...]:
         """
         Parses the source URL into its constituent GitHub parts.
 
@@ -65,7 +70,7 @@ class GithubResolver(HTTPResolver):
         return self.urlpath, *self.urlparse.path.split("/")[1:]
 
     @property
-    def download_url(self):
+    def download_url(self) -> str:
         """
         Determines the direct download URL for the GitHub release asset.
 
@@ -93,7 +98,7 @@ class GithubResolver(HTTPResolver):
             self.logger.info("Could not find public release, trying private.")
             return self.__get_release_url(repository, release, artifact, private=True)
 
-    def __get_release_url(self, repository, release, artifact, private: bool):
+    def __get_release_url(self, repository: str, release: str, artifact: str, private: bool) -> str:
         """
         Uses the GitHub API to find the download URL for a specific release asset.
 
@@ -133,7 +138,7 @@ class GithubResolver(HTTPResolver):
 
         raise ValueError(f'Unable to find release asset: {repository}/{release}/{artifact}')
 
-    def __get_gh_auth(self):
+    def __get_gh_auth(self) -> str:
         """
         Searches for a GitHub authentication token in predefined environment variables.
 

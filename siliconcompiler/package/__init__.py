@@ -22,12 +22,18 @@ import uuid
 
 import os.path
 
+from typing import Optional, List, Dict, Type, Union, TYPE_CHECKING, ClassVar
+
 from fasteners import InterProcessLock
 from importlib.metadata import distributions, distribution
 from pathlib import Path
 from urllib import parse as url_parse
 
 from siliconcompiler.utils import get_plugins
+
+if TYPE_CHECKING:
+    from siliconcompiler.project import Project
+    from siliconcompiler.schema_support.pathschema import PathSchema
 
 
 class Resolver:
@@ -45,13 +51,13 @@ class Resolver:
         source (str): The URI or path specifying the data source.
         reference (str): A version, commit hash, or tag for remote sources.
     """
-    _RESOLVERS_LOCK = threading.Lock()
-    _RESOLVERS = {}
+    _RESOLVERS_LOCK: ClassVar[threading.Lock] = threading.Lock()
+    _RESOLVERS: ClassVar[Dict[str, Type["Resolver"]]] = {}
 
-    __CACHE_LOCK = threading.Lock()
-    __CACHE = {}
+    __CACHE_LOCK: ClassVar[threading.Lock] = threading.Lock()
+    __CACHE: ClassVar[Dict[str, Dict[str, str]]] = {}
 
-    def __init__(self, name, root, source, reference=None):
+    def __init__(self, name: str, root: "Project", source: str, reference: Optional[str] = None):
         """
         Initializes the Resolver.
         """
@@ -137,7 +143,7 @@ class Resolver:
         return self.__source
 
     @property
-    def reference(self) -> str:
+    def reference(self) -> Union[None, str]:
         """A version, commit hash, or tag for the source."""
         return self.__reference
 
@@ -185,7 +191,7 @@ class Resolver:
         """Marks the resolved data as having been changed."""
         self.__changed = True
 
-    def resolve(self):
+    def resolve(self) -> Union[Path, str]:
         """
         Abstract method to perform the actual data resolution.
 
@@ -195,7 +201,7 @@ class Resolver:
         raise NotImplementedError("child class must implement this")
 
     @staticmethod
-    def __get_root_id(root):
+    def __get_root_id(root: "Project") -> str:
         """Generates or retrieves a unique ID for a root object."""
         STORAGE = "__Resolver_cache_id"
         if not getattr(root, STORAGE, None):
@@ -203,7 +209,7 @@ class Resolver:
         return getattr(root, STORAGE)
 
     @staticmethod
-    def get_cache(root, name: str = None):
+    def get_cache(root: "Project", name: Optional[str] = None) -> Union[None, str, Dict[str, str]]:
         """
         Gets a cached path for a given root object and resolver name.
 
@@ -226,7 +232,7 @@ class Resolver:
             return Resolver.__CACHE[root_id].copy()
 
     @staticmethod
-    def set_cache(root, name: str, path: str):
+    def set_cache(root: "Project", name: str, path: str):
         """
         Sets a cached path for a given root object and resolver name.
 
@@ -242,7 +248,7 @@ class Resolver:
             Resolver.__CACHE[root_id][name] = path
 
     @staticmethod
-    def reset_cache(root):
+    def reset_cache(root: "Project"):
         """
         Resets the entire cache for a given root object.
 
@@ -254,7 +260,7 @@ class Resolver:
             if root_id in Resolver.__CACHE:
                 del Resolver.__CACHE[root_id]
 
-    def get_path(self):
+    def get_path(self) -> str:
         """
         Resolves the data source and returns its local path.
 
@@ -283,7 +289,7 @@ class Resolver:
         Resolver.set_cache(self.__root, self.cache_id, path)
         return path
 
-    def __resolve_env(self, path):
+    def __resolve_env(self, path: str) -> str:
         """Expands environment variables and user home directory in a path."""
         env_save = os.environ.copy()
 
@@ -313,26 +319,26 @@ class RemoteResolver(Resolver):
     _CACHE_LOCKS = {}
     _CACHE_LOCK = threading.Lock()
 
-    def __init__(self, name, root, source, reference=None):
+    def __init__(self, name: str, root: "Project", source: str, reference: Optional[str] = None):
         if reference is None:
             raise ValueError(f'A reference (e.g., version, commit) is required for {name}')
 
         super().__init__(name, root, source, reference)
 
         # Wait a maximum of 10 minutes for other processes to finish
-        self.__max_lock_wait = 60 * 10
+        self.__max_lock_wait: int = 60 * 10
 
     @property
-    def timeout(self):
+    def timeout(self) -> int:
         """The maximum time in seconds to wait for a lock."""
         return self.__max_lock_wait
 
-    def set_timeout(self, value):
+    def set_timeout(self, value: int):
         """Sets the maximum time in seconds to wait for a lock."""
         self.__max_lock_wait = value
 
     @staticmethod
-    def determine_cache_dir(root) -> Path:
+    def determine_cache_dir(root: "Project") -> Path:
         """
         Determines the directory for the on-disk cache.
 
@@ -401,7 +407,7 @@ class RemoteResolver(Resolver):
 
         return self.cache_dir / f"{self.cache_name}.sc_lock"
 
-    def thread_lock(self):
+    def thread_lock(self) -> threading.Lock:
         """Gets a threading.Lock specific to this resolver instance."""
         with RemoteResolver._CACHE_LOCK:
             if self.name not in RemoteResolver._CACHE_LOCKS:
@@ -479,11 +485,11 @@ class RemoteResolver(Resolver):
             with self.__file_lock():
                 yield
 
-    def resolve_remote(self):
+    def resolve_remote(self) -> None:
         """Abstract method to fetch the remote data."""
         raise NotImplementedError("child class must implement this")
 
-    def check_cache(self):
+    def check_cache(self) -> bool:
         """
         Abstract method to check if the on-disk cache is valid.
 
@@ -492,7 +498,7 @@ class RemoteResolver(Resolver):
         """
         raise NotImplementedError("child class must implement this")
 
-    def resolve(self) -> Path:
+    def resolve(self) -> Union[str, Path]:
         """
         Resolves the remote data, using the on-disk cache if possible.
 
@@ -531,7 +537,7 @@ class FileResolver(Resolver):
     It normalizes the source string to a `file://` URI.
     """
 
-    def __init__(self, name, root, source, reference=None):
+    def __init__(self, name: str, root: "Project", source: str, reference: Optional[str] = None):
         if source.startswith("file://"):
             source = source[7:]
         if source[0] != "$" and not os.path.isabs(source):
@@ -540,12 +546,12 @@ class FileResolver(Resolver):
         super().__init__(name, root, f"file://{source}", None)
 
     @property
-    def urlpath(self):
+    def urlpath(self) -> str:
         """The absolute file path, stripped of the 'file://' prefix."""
         # Rebuild URL and remove scheme prefix
         return self.urlparse.geturl()[7:]
 
-    def resolve(self):
+    def resolve(self) -> str:
         """Returns the absolute path to the file."""
         return os.path.abspath(self.urlpath)
 
@@ -559,12 +565,12 @@ class PythonPathResolver(Resolver):
     determine if a package is installed in "editable" mode.
     """
 
-    def __init__(self, name, root, source, reference=None):
+    def __init__(self, name: str, root: "Project", source: str, reference: Optional[str] = None):
         super().__init__(name, root, source, None)
 
     @staticmethod
     @functools.lru_cache(maxsize=1)
-    def get_python_module_mapping():
+    def get_python_module_mapping() -> Dict[str, List[str]]:
         """
         Creates a mapping from importable module names to their distribution names.
 
@@ -598,7 +604,7 @@ class PythonPathResolver(Resolver):
         return mapping
 
     @staticmethod
-    def is_python_module_editable(module_name):
+    def is_python_module_editable(module_name: str) -> bool:
         """
         Checks if a Python module is installed in "editable" mode.
 
@@ -630,12 +636,12 @@ class PythonPathResolver(Resolver):
         return is_editable
 
     @staticmethod
-    def set_dataroot(root,
-                     package_name,
-                     python_module,
-                     alternative_path,
-                     alternative_ref=None,
-                     python_module_path_append=None):
+    def set_dataroot(root: "PathSchema",
+                     package_name: str,
+                     python_module: str,
+                     alternative_path: str,
+                     alternative_ref: Optional[str] = None,
+                     python_module_path_append: Optional[str] = None):
         """
         Helper to conditionally set a dataroot to a Python module or a fallback path.
         """
@@ -652,7 +658,7 @@ class PythonPathResolver(Resolver):
 
         root.set_dataroot(package_name, path=path, tag=ref)
 
-    def resolve(self):
+    def resolve(self) -> str:
         """
         Resolves the path to the specified Python module.
 
@@ -672,10 +678,10 @@ class KeyPathResolver(Resolver):
     `find_files` method of the root project object to locate the corresponding file.
     """
 
-    def __init__(self, name, root, source, reference=None):
+    def __init__(self, name: str, root: "Project", source: str, reference: Optional[str] = None):
         super().__init__(name, root, source, None)
 
-    def resolve(self):
+    def resolve(self) -> str:
         """
         Resolves the path by looking up the keypath in the project schema.
 
