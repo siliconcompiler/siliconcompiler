@@ -83,8 +83,8 @@ html_theme_options = {
     "collapse_navigation": True,
     "show_toc_level": 2,   # this automatically displays two levels
     "logo": {
-        "image_light": '_images/sc_logo_with_text.png',
-        "image_dark": '_images/sc_logo_with_text.png',
+        "image_light": 'sc_logo_with_text.png',
+        "image_dark": 'sc_logo_with_text.png',
     },
     "github_url": "https://github.com/siliconcompiler/siliconcompiler",  # these are top right
 
