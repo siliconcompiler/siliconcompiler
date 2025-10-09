@@ -14,7 +14,7 @@ body:
     attributes:
       label: Version
       description: "The version of siliconcompiler this bug was encountered on."
-      placeholder: "The output of `sc -version`"
+      placeholder: "The output of `python3 -c \"import siliconcompiler;print(siliconcompiler.__version__)\"`"
     validations:
       required: true
 
