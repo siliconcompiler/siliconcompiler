@@ -17,7 +17,6 @@ from tools.inputimporter import ImporterTask
 from siliconcompiler.utils import sc_open
 
 
-
 @pytest.mark.eda
 @pytest.mark.quick
 def test_version(gcd_design):
