@@ -1,7 +1,6 @@
 import re
 
 import os.path
-import glob
 
 from siliconcompiler import sc_open
 
@@ -261,7 +260,7 @@ class FPGATimingTask(TimingTaskBase):
         """
         file_path = f"inputs/{self.design_topmodule}.sdc"
 
-        if not os.path.isfile(file_path) or os.path.getsize(file_path) == 0:
-            raise TaskSkip(f"a missing or empty file {self.design_topmodule}.sdc file")
+        if os.path.getsize(file_path) == 0:
+            raise TaskSkip(f"an empty {self.design_topmodule}.sdc file")
 
         super().pre_process()
