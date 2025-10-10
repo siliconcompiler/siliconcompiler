@@ -1,0 +1,20 @@
+{
+        "version": 1,
+        "partname": "z1000",
+        "lut_size": 4,
+        "flipflops": {
+                "features": ["async_reset", "flop_enable"],
+                "models": {"dffer": "cad/techlib_custom_plugin/dffer.v", "dffr": "cad/techlib_custom_plugin/dffr.v", "dffe": "cad/techlib_custom_plugin/dffe.v", "dff": "cad/techlib_custom_plugin/dff.v"},
+                "legalize_list": ["$_DFF_PN0_", "$_DFF_P_", "$_DFFE_PP_", "$_DFFE_PN0P_"],
+                "techmap": "tech_flops.v"
+        },
+        "brams": {
+                "memory_libmap": [] ,
+                "techmap": [] 
+        },
+        "dsps": {
+                "family": "" ,
+                "techmap": "" ,
+                "techmap_parameters": {} 
+        }
+}
