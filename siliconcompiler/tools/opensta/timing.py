@@ -259,9 +259,9 @@ class FPGATimingTask(TimingTaskBase):
         """
         Skip this node if no non-empty sdc files in inputs
         """
-        sdc_files = glob.glob("inputs/*.sdc")
+        file_path = f"inputs/{self.design_topmodule}.sdc"
 
-        if not sdc_files or all(os.path.getsize(f) == 0 for f in sdc_files):
-            raise TaskSkip("no incoming .sdc file")
+        if not os.path.isfile(file_path) or os.path.getsize(file_path) == 0:
+            raise TaskSkip(f"a missing or empty file {self.design_topmodule}.sdc file")
 
         super().pre_process()
