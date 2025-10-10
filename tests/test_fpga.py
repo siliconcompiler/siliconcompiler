@@ -1,5 +1,6 @@
 import logging
 import pytest
+import os
 
 from unittest.mock import patch
 
@@ -8,6 +9,10 @@ from siliconcompiler.metrics import FPGAMetricsSchema
 from siliconcompiler.constraints import FPGAComponentConstraints, \
     FPGAPinConstraints, FPGATimingConstraintSchema
 from siliconcompiler.fpga import FPGAConstraint
+from siliconcompiler.flowgraph import Flowgraph
+from siliconcompiler.tools.opensta.timing import FPGATimingTask
+from siliconcompiler.scheduler import SchedulerNode
+from siliconcompiler import TaskSkip
 
 
 def test_set_add():
@@ -205,3 +210,45 @@ def test_constraint_component():
     const = FPGAConstraint()
     assert isinstance(const.component, FPGAComponentConstraints)
     assert const.get("component", field="schema") is const.component
+
+
+def test_skip_timing_with_no_sdc(heartbeat_design, monkeypatch):
+    proj = FPGA(heartbeat_design)
+    proj.add_fileset('rtl')
+
+    flow = Flowgraph("testflow")
+    flow.node("timing", FPGATimingTask())
+    proj.set_flow(flow)
+
+    node = SchedulerNode(proj, step='timing', index='0')
+
+    with node.runtime():
+        node.task.setup_work_directory(node.workdir)
+        monkeypatch.chdir(node.workdir)
+
+        open(os.path.join(node.workdir, 'inputs/heartbeat.sdc'), 'w').close()
+
+        with pytest.raises(TaskSkip, match=r"^an empty heartbeat\.sdc file$"):
+            node.task.pre_process()
+
+
+def test_dont_skip_timing_with_sdc(heartbeat_design, monkeypatch):
+    proj = FPGA(heartbeat_design)
+    proj.add_fileset('rtl')
+
+    flow = Flowgraph("testflow")
+    flow.node("timing", FPGATimingTask())
+    proj.set_flow(flow)
+
+    node = SchedulerNode(proj, step='timing', index='0')
+
+    with patch("siliconcompiler.tools.opensta.timing.TimingTaskBase.pre_process") as parent_pre:
+        with node.runtime():
+            node.task.setup_work_directory(node.workdir)
+            monkeypatch.chdir(node.workdir)
+
+            with open(os.path.join(node.workdir, 'inputs/heartbeat.sdc'), 'w') as f:
+                f.write("test")
+
+            node.task.pre_process()
+        parent_pre.assert_called_once()

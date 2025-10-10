@@ -17,12 +17,13 @@ class FPGASynthesis(YosysTask):
         self.add_parameter(
             "synth_opt_mode",
             "<none,delay,area>",
-            "blah",
+            "optimization mode: 'none' for a balanced optimization, 'delay' to"
+            " prioritize path delay, 'area' to prioritize utilization",
             "none")
         self.add_parameter(
             "synth_insert_buffers",
             "bool",
-            "blah",
+            "perform buffer insertion",
             True)
 
     def task(self):
