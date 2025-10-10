@@ -88,7 +88,7 @@ def test_yosys_lec_broken(datadir):
 class TestYosysFPGA(YosysFPGA):
     def __init__(self):
         super().__init__()
-        self.set_name("z1000")
+        self.set_name("test_z1000")
 
         self.set_dataroot("siliconcompiler", "python://siliconcompiler")
 
