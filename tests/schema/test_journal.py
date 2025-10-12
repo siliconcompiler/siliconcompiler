@@ -248,6 +248,22 @@ def test_add():
     }]
 
 
+def test_add_index_int():
+    journal = Journal()
+    journal.start()
+    assert "add" in journal.get_types()
+
+    journal.record("add", ["test0", "test1"], "hello", field="value", step="test", index=1)
+    assert journal.get() == [{
+        "type": "add",
+        "key": ("test0", "test1"),
+        "value": "hello",
+        "field": "value",
+        "step": "test",
+        "index": "1"
+    }]
+
+
 def test_unset():
     journal = Journal()
     journal.start()
