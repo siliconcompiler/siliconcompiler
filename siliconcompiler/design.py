@@ -3,7 +3,6 @@ import re
 import os.path
 from pathlib import Path
 
-from types import EllipsisType
 from typing import List, Union, Tuple, Dict, Optional, Iterable, Type
 
 from siliconcompiler import utils
@@ -410,7 +409,7 @@ class Design(LibrarySchema, DependencySchema):
 
     def __write_flist(self,
                       filename: str,
-                      filesets: str,
+                      filesets: Union[List[str], str],
                       depalias: Optional[Dict[Tuple[str, str], Tuple[NamedSchema, str]]],
                       comments: bool = False):
         '''
@@ -648,7 +647,7 @@ class Design(LibrarySchema, DependencySchema):
                   value: Union[List[str], str],
                   clobber: bool = False,
                   typelist: Optional[List[Union[Type[str], Type[List], Type[Path]]]] = None,
-                  dataroot: Optional[Union[str, EllipsisType]] = ...):
+                  dataroot: Optional[str] = ...):
         '''
         Internal helper to set or add a parameter value in the schema.
 

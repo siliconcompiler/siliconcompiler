@@ -419,8 +419,9 @@ class BaseSchema:
             e.args = (new_msg, *e.args[1:])
             raise e
 
-    def set(self, *args: str, field: str = 'value', clobber: bool = True,
-            step: Optional[str] = None, index: Optional[Union[int, str]] = None):
+    def set(self, *args, field: str = 'value', clobber: bool = True,
+            step: Optional[str] = None, index: Optional[Union[int, str]] = None) \
+            -> Optional[Union[List[NodeValue], NodeValue]]:
         '''
         Sets a schema parameter field.
 
@@ -448,7 +449,7 @@ class BaseSchema:
         *keypath, value = args
 
         try:
-            param = self.__search(*keypath, insert_defaults=True)
+            param: Parameter = self.__search(*keypath, insert_defaults=True)
         except KeyError:
             raise KeyError(f"{self.__format_key(*keypath)} is not a valid keypath")
 
@@ -465,8 +466,9 @@ class BaseSchema:
             e.args = (new_msg, *e.args[1:])
             raise e
 
-    def add(self, *args: str, field: str = 'value',
-            step: Optional[str] = None, index: Optional[Union[int, str]] = None):
+    def add(self, *args, field: str = 'value',
+            step: Optional[str] = None, index: Optional[Union[int, str]] = None) \
+            -> Optional[Union[List[NodeValue], NodeValue]]:
         '''
         Adds item(s) to a schema parameter list.
 
@@ -493,7 +495,7 @@ class BaseSchema:
         *keypath, value = args
 
         try:
-            param = self.__search(*keypath, insert_defaults=True)
+            param: Parameter = self.__search(*keypath, insert_defaults=True)
         except KeyError:
             raise KeyError(f"{self.__format_key(*keypath)} is not a valid keypath")
 
@@ -1157,7 +1159,11 @@ class BaseSchema:
 
         return self.__active.get(field, defvalue)
 
-    def __process_active(self, param, nodevalues):
+    def __process_active(self, param: Parameter,
+                         nodevalues: Optional[Union[List[NodeValue],
+                                                    Set[NodeValue],
+                                                    Tuple[NodeValue, ...],
+                                                    NodeValue]]) -> None:
         if not self.__active:
             return
 

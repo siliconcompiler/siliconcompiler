@@ -1743,7 +1743,7 @@ def test_search_path_resolution_input(running_node):
 
 def test_search_path_resolution_report(running_node):
     assert running_node.task._find_files_search_paths("report", "step", "index") == [
-        os.path.abspath("build/testdesign/job0/step/index/report")
+        os.path.abspath("build/testdesign/job0/step/index/reports")
     ]
 
 

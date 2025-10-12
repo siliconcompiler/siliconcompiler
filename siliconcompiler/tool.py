@@ -1743,7 +1743,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
                 paths.workdir(self._parent(root=True), step=step, index=index), "inputs"))
         elif key == "report":
             search_paths.append(os.path.join(
-                paths.workdir(self._parent(root=True), step=step, index=index), "report"))
+                paths.workdir(self._parent(root=True), step=step, index=index), "reports"))
         elif key == "output":
             search_paths.append(os.path.join(
                 paths.workdir(self._parent(root=True), step=step, index=index), "outputs"))
