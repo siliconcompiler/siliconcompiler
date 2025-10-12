@@ -101,7 +101,6 @@ def test_py_gcd_screenshot(monkeypatch):
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.timeout(300)
-@pytest.mark.skip(reason="requires update to IHP130 pdk")
 def test_py_gcd_ihp130():
     from gcd import gcd_ihp130
     gcd_ihp130.main()
