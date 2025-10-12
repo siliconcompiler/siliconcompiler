@@ -1,5 +1,7 @@
 import os.path
 
+from typing import Dict, Union, Tuple, List, Optional, Set
+
 from siliconcompiler.schema.baseschema import BaseSchema
 from siliconcompiler.schema.editableschema import EditableSchema
 from siliconcompiler.schema.parameter import Parameter, Scope
@@ -27,7 +29,10 @@ class DependencySchema(BaseSchema):
                 shorthelp="List of object dependencies",
                 help="List of named object dependencies included via add_dep()."))
 
-    def _from_dict(self, manifest, keypath, version=None):
+    def _from_dict(self, manifest: Dict,
+                   keypath: Union[List[str], Tuple[str, ...]],
+                   version: Optional[Tuple[int, ...]] = None) \
+            -> Tuple[Set[Tuple[str, ...]], Set[Tuple[str, ...]]]:
         '''
         Internal helper to load schema from a dictionary manifest.
 
@@ -152,7 +157,7 @@ class DependencySchema(BaseSchema):
         except graphviz.ExecutableNotFound as e:
             raise RuntimeError(f'Unable to save flowgraph: {e}')
 
-    def __get_all_deps(self, seen: set) -> list:
+    def __get_all_deps(self, seen: Set[str]) -> List[NamedSchema]:
         '''
         Recursively traverses the dependency tree to generate a flat list.
 
@@ -184,7 +189,7 @@ class DependencySchema(BaseSchema):
 
         return deps
 
-    def get_dep(self, name: str = None, hierarchy: bool = True) -> list:
+    def get_dep(self, name: Optional[str] = None, hierarchy: bool = True) -> List[NamedSchema]:
         '''
         Returns all dependencies associated with this object or a specific one if requested.
 
@@ -216,7 +221,7 @@ class DependencySchema(BaseSchema):
             return self.__get_all_deps(set())
         return list(self.__deps.values())
 
-    def has_dep(self, name: str) -> bool:
+    def has_dep(self, name: Union[NamedSchema, str]) -> bool:
         '''
         Checks if a specific dependency is present.
 
@@ -232,7 +237,7 @@ class DependencySchema(BaseSchema):
 
         return name in self.__deps
 
-    def remove_dep(self, name: str) -> bool:
+    def remove_dep(self, name: Union[str, NamedSchema]) -> bool:
         '''
         Removes a previously registered module.
 
@@ -260,7 +265,7 @@ class DependencySchema(BaseSchema):
 
         return True
 
-    def _populate_deps(self, module_map: dict):
+    def _populate_deps(self, module_map: Dict[str, NamedSchema]) -> None:
         '''
         Internal method to populate the internal dependency dictionary.
 
@@ -281,6 +286,6 @@ class DependencySchema(BaseSchema):
             if isinstance(self.__deps[module], DependencySchema):
                 self.__deps[module]._populate_deps(module_map)
 
-    def _reset_deps(self):
+    def _reset_deps(self) -> None:
         '''Resets the internal dependency dictionary.'''
         self.__deps = {}

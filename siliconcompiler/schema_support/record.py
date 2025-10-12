@@ -7,6 +7,8 @@ import psutil
 import shlex
 import socket
 
+from typing import Dict, Union, List, Optional, Set, Tuple
+
 from datetime import datetime, timezone
 from enum import Enum
 
@@ -49,7 +51,10 @@ class RecordSchema(BaseSchema):
 
         schema_record(self)
 
-    def _from_dict(self, manifest, keypath, version=None):
+    def _from_dict(self, manifest: Dict,
+                   keypath: Union[List[str], Tuple[str, ...]],
+                   version: Optional[Tuple[int, ...]] = None) \
+            -> Tuple[Set[Tuple[str, ...]], Set[Tuple[str, ...]]]:
         """
         Constructs a schema from a dictionary.
 
@@ -72,7 +77,7 @@ class RecordSchema(BaseSchema):
 
         return ret
 
-    def clear(self, step, index, keep=None):
+    def clear(self, step: str, index: Union[str, str], keep: Optional[List[str]] = None) -> None:
         '''
         Clear all saved metrics for a given step and index.
 
@@ -88,14 +93,14 @@ class RecordSchema(BaseSchema):
         for record in self.getkeys():
             if record in keep:
                 continue
-            param = self.get(record, field=None)
+            param: Parameter = self.get(record, field=None)
 
             if param.get(field='pernode').is_never():
                 param.unset()
             else:
                 param.unset(step=step, index=index)
 
-    def record_python_packages(self):
+    def record_python_packages(self) -> None:
         '''
         Record the python packages currently available in the environment.
         '''
@@ -111,7 +116,7 @@ class RecordSchema(BaseSchema):
             for pkg in freeze():
                 self.add('pythonpackage', pkg)
 
-    def record_version(self, step, index):
+    def record_version(self, step: str, index: Union[str, str]) -> None:
         '''
         Records the versions for SiliconCompiler and python.
 
@@ -123,7 +128,7 @@ class RecordSchema(BaseSchema):
         self.set('pythonversion', platform.python_version(), step=step, index=index)
 
     @staticmethod
-    def get_cloud_information():
+    def get_cloud_information() -> Dict[str, Optional[str]]:
         '''
         Return information about the cloud environment.
 
@@ -137,7 +142,7 @@ class RecordSchema(BaseSchema):
         return {"region": "local"}
 
     @staticmethod
-    def get_ip_information():
+    def get_ip_information() -> Dict[str, Optional[str]]:
         '''
         Return information about the ip and mac address of this machine.
 
@@ -186,7 +191,7 @@ class RecordSchema(BaseSchema):
         return {"ip": None, "mac": None}
 
     @staticmethod
-    def get_machine_information():
+    def get_machine_information() -> Dict[str, Optional[str]]:
         '''
         Return information about the machine.
 
@@ -234,7 +239,7 @@ class RecordSchema(BaseSchema):
                 'arch': platform.machine()}
 
     @staticmethod
-    def get_user_information():
+    def get_user_information() -> Dict[str, Optional[str]]:
         '''
         Return information about the user.
 
@@ -242,7 +247,7 @@ class RecordSchema(BaseSchema):
         '''
         return {'username': getpass.getuser()}
 
-    def record_userinformation(self, step, index):
+    def record_userinformation(self, step: str, index: Union[str, str]) -> None:
         '''
         Records information about the current machine and user.
         Uses information from :meth:`get_machine_information`, :meth:`get_user_information`,
@@ -273,7 +278,7 @@ class RecordSchema(BaseSchema):
         if ip_information['mac']:
             self.set('macaddr', ip_information['mac'], step=step, index=index)
 
-    def record_time(self, step, index, type):
+    def record_time(self, step: str, index: Union[str, str], type: RecordTime) -> float:
         '''
         Record the time of the record.
 
@@ -295,7 +300,8 @@ class RecordSchema(BaseSchema):
 
         return now.timestamp()
 
-    def get_recorded_time(self, step, index, type):
+    def get_recorded_time(self, step: str, index: Union[str, str],
+                          type: RecordTime) -> Optional[float]:
         '''
         Returns the time recorded for a given record, or None if nothing is recorded.
 
@@ -305,7 +311,7 @@ class RecordSchema(BaseSchema):
             type (:class:`RecordTime`): type of time to record
         '''
         type = RecordTime(type)
-        record_time = self.get(type.value, step=step, index=index)
+        record_time: Optional[str] = self.get(type.value, step=step, index=index)
         if record_time is None:
             return None
 
@@ -313,7 +319,7 @@ class RecordSchema(BaseSchema):
             record_time+"+0000",
             RecordSchema.__TIMEFORMAT+"%z").timestamp()
 
-    def get_earliest_time(self, type):
+    def get_earliest_time(self, type: RecordTime) -> Optional[float]:
         '''
         Returns the earliest recorded time.
 
@@ -332,7 +338,7 @@ class RecordSchema(BaseSchema):
 
         return min(times)
 
-    def get_latest_time(self, type):
+    def get_latest_time(self, type: RecordTime) -> Optional[float]:
         '''
         Returns the last recorded time.
 
@@ -351,7 +357,8 @@ class RecordSchema(BaseSchema):
 
         return max(times)
 
-    def record_tool(self, step, index, info, type):
+    def record_tool(self, step: str, index: Union[str, str],
+                    info: Union[str, List[str]], type: RecordTool) -> None:
         '''
         Record information about the tool used during this record.
 
