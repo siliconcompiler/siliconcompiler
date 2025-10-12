@@ -269,6 +269,23 @@ def test_assert_fileset_pass():
     schema._assert_fileset("rtl")
 
 
+def test_assert_fileset_pass_list():
+    schema = FileSetSchema()
+
+    with schema.active_fileset("rtl"):
+        assert schema.add_file("top.v")
+    schema._assert_fileset(["rtl"])
+
+
+def test_assert_fileset_fail_list():
+    schema = FileSetSchema()
+
+    with schema.active_fileset("rtl"):
+        assert schema.add_file("top.v")
+    with pytest.raises(LookupError, match="^rtl2 is not defined$"):
+        schema._assert_fileset(["rtl", "rtl2"])
+
+
 def test_assert_fileset_fail():
     with pytest.raises(LookupError, match="^rtl is not defined$"):
         FileSetSchema()._assert_fileset("rtl")

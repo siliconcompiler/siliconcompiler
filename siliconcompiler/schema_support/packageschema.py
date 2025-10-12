@@ -196,7 +196,7 @@ class PackageSchema(PathSchema):
 
     def _generate_doc(self, doc,
                       ref_root: str = "",
-                      key_offset: Tuple[str] = None,
+                      key_offset: Tuple[str, ...] = None,
                       detailed: bool = True):
         from ..schema.docs.utils import build_section
         section = build_section("Package", f"{ref_root}-package")

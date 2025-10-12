@@ -1,4 +1,4 @@
-from typing import final, Union, List, Tuple
+from typing import final, Union, List, Tuple, Optional, Dict, Set, TYPE_CHECKING
 
 from siliconcompiler.schema_support.packageschema import PackageSchema
 
@@ -11,11 +11,15 @@ from siliconcompiler.schema import EditableSchema, Parameter, Scope, PerNode
 from siliconcompiler.schema.utils import trim
 
 
+if TYPE_CHECKING:
+    from siliconcompiler import PDK
+
+
 class LibrarySchema(FileSetSchema, NamedSchema):
     """
     A class for managing library schemas.
     """
-    def __init__(self, name: str = None):
+    def __init__(self, name: Optional[str] = None):
         """
         Initializes a LibrarySchema object.
 
@@ -93,7 +97,10 @@ class ToolLibrarySchema(LibrarySchema):
 
         return ToolLibrarySchema.__name__
 
-    def _from_dict(self, manifest, keypath, version=None):
+    def _from_dict(self, manifest: Dict,
+                   keypath: Union[List[str], Tuple[str, ...]],
+                   version: Optional[Tuple[int, ...]] = None) \
+            -> Tuple[Set[Tuple[str, ...]], Set[Tuple[str, ...]]]:
         """
         Constructs a schema from a dictionary.
 
@@ -133,7 +140,7 @@ class ToolLibrarySchema(LibrarySchema):
 
     def _generate_doc(self, doc,
                       ref_root: str = "",
-                      key_offset: Tuple[str] = None,
+                      key_offset: Tuple[str, ...] = None,
                       detailed: bool = True):
         from .schema.docs.utils import build_section, strong, KeyPath, code, para, build_table
         from docutils import nodes
@@ -193,7 +200,7 @@ class StdCellLibrary(ToolLibrarySchema, DependencySchema):
     """
     A class for managing standard cell library schemas.
     """
-    def __init__(self, name: str = None):
+    def __init__(self, name: Optional[str] = None):
         """
         Initializes a StdCellLibrary object.
 
@@ -291,7 +298,7 @@ class StdCellLibrary(ToolLibrarySchema, DependencySchema):
                 example=["api: schema.set('asic', 'site', 'Site_12T')"],
                 help="Site names for a given library architecture."))
 
-    def add_asic_pdk(self, pdk, default: bool = True):
+    def add_asic_pdk(self, pdk: Union[str, "PDK"], default: bool = True):
         """
         Adds the PDK associated with this library.
 
@@ -327,7 +334,10 @@ class StdCellLibrary(ToolLibrarySchema, DependencySchema):
         """
         return self.add("asic", "stackup", stackup)
 
-    def add_asic_libcornerfileset(self, corner: str, model: str, fileset: str = None):
+    def add_asic_libcornerfileset(self,
+                                  corner: str,
+                                  model: str,
+                                  fileset: Optional[Union[List[str], str]] = None):
         """
         Adds a mapping between filesets a corners defined in the library.
 
@@ -346,7 +356,8 @@ class StdCellLibrary(ToolLibrarySchema, DependencySchema):
 
         return self.add("asic", "libcornerfileset", corner, model, fileset)
 
-    def add_asic_pexcornerfileset(self, corner: str, fileset: str = None):
+    def add_asic_pexcornerfileset(self, corner: str,
+                                  fileset: Optional[Union[List[str], str]] = None):
         """
         Adds a mapping between filesets a corners defined in the library.
 
@@ -404,7 +415,7 @@ class StdCellLibrary(ToolLibrarySchema, DependencySchema):
 
     def _generate_doc(self, doc,
                       ref_root: str = "",
-                      key_offset: Tuple[str] = None,
+                      key_offset: Tuple[str, ...] = None,
                       detailed: bool = True):
         from .schema.docs.utils import build_section
         docs = []
