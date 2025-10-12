@@ -1,14 +1,19 @@
 import shutil
 import sys
 
-from typing import List, Tuple, TextIO
+from typing import List, Tuple, TextIO, Union, Optional, TYPE_CHECKING
 
 from siliconcompiler.schema import BaseSchema
 from siliconcompiler.schema import EditableSchema, Parameter, PerNode, Scope
 from siliconcompiler.schema.utils import trim
 
 from siliconcompiler.utils import truncate_text, units
-from siliconcompiler.schema_support.record import RecordTime
+from siliconcompiler.schema_support.record import RecordTime, RecordSchema
+
+
+if TYPE_CHECKING:
+    from pandas import DataFrame
+    from siliconcompiler import Flowgraph
 
 
 class MetricSchema(BaseSchema):
@@ -111,7 +116,7 @@ class MetricSchema(BaseSchema):
                 Metric tracking the total amount of time spent from the beginning
                 of the run up to and including the current step and index.""")))
 
-    def clear(self, step, index):
+    def clear(self, step: str, index: Union[int, str]) -> None:
         '''
         Clears all saved metrics for a given step and index.
 
@@ -122,7 +127,11 @@ class MetricSchema(BaseSchema):
         for metric in self.getkeys():
             self.unset(metric, step=step, index=str(index))
 
-    def record(self, step, index, metric, value, unit=None):
+    def record(self,
+               step: str, index: Union[str, int],
+               metric: str,
+               value: Union[float, int],
+               unit: Optional[str] = None):
         """
         Records a metric value for a specific step and index.
 
@@ -141,7 +150,7 @@ class MetricSchema(BaseSchema):
         Returns:
             The recorded value after any unit conversion.
         """
-        metric_unit = self.get(metric, field='unit')
+        metric_unit: Optional[str] = self.get(metric, field='unit')
 
         if not metric_unit and unit:
             raise ValueError(f"{metric} does not have a unit, but {unit} was supplied")
@@ -151,7 +160,7 @@ class MetricSchema(BaseSchema):
 
         return self.set(metric, value, step=step, index=str(index))
 
-    def record_tasktime(self, step, index, record):
+    def record_tasktime(self, step: str, index: Union[str, int], record: RecordSchema):
         """
         Records the task time for a given node based on start and end times.
 
@@ -173,7 +182,10 @@ class MetricSchema(BaseSchema):
 
         return self.record(step, index, "tasktime", end_time-start_time, unit="s")
 
-    def record_totaltime(self, step, index, flow, record):
+    def record_totaltime(self,
+                         step: str, index: Union[str, int],
+                         flow: "Flowgraph",
+                         record: RecordSchema):
         """
         Records the cumulative total time up to the end of a given node.
 
@@ -237,7 +249,7 @@ class MetricSchema(BaseSchema):
 
         return self.record(step, index, "totaltime", total_time, unit="s")
 
-    def get_formatted_metric(self, metric: str, step: str, index: str) -> str:
+    def get_formatted_metric(self, metric: str, step: str, index: Union[int, str]) -> str:
         '''
         Retrieves and formats a metric for display.
 
@@ -264,10 +276,10 @@ class MetricSchema(BaseSchema):
                                    self.get(metric, field="unit"))
 
     def summary_table(self,
-                      nodes: List[Tuple[str, str]] = None,
+                      nodes: Optional[List[Tuple[str, str]]] = None,
                       column_width: int = 15,
                       formatted: bool = True,
-                      trim_empty_metrics: bool = True):
+                      trim_empty_metrics: bool = True) -> "DataFrame":
         '''
         Generates a summary of metrics as a pandas DataFrame.
 
@@ -289,11 +301,11 @@ class MetricSchema(BaseSchema):
         from pandas import DataFrame
 
         if not nodes:
-            nodes = set()
+            unique_nodes = set()
             for metric in self.getkeys():
-                for value, step, index in self.get(metric, field=None).getvalues():
-                    nodes.add((step, index))
-            nodes = list(sorted(nodes))
+                for _, step, index in self.get(metric, field=None).getvalues():
+                    unique_nodes.add((step, index))
+            nodes = list(sorted(unique_nodes))
 
         row_labels = list(self.getkeys())
         sort_map = {metric: 0 for metric in row_labels}
@@ -352,10 +364,10 @@ class MetricSchema(BaseSchema):
         return DataFrame(data, row_labels, column_labels)
 
     def summary(self,
-                headers: List[Tuple[str, str]],
-                nodes: List[Tuple[str, str]] = None,
+                headers: List[Tuple[str, Optional[str]]],
+                nodes: Optional[List[Tuple[str, str]]] = None,
                 column_width: int = 15,
-                fd: TextIO = None) -> None:
+                fd: Optional[TextIO] = None) -> None:
         '''
         Prints a formatted summary of metrics to a file descriptor.
 

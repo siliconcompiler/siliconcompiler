@@ -6,8 +6,10 @@
 
 import sys
 
+from typing import Optional
 
-def trim(docstring: str) -> str:
+
+def trim(docstring: Optional[str]) -> str:
     '''
     Helper function for cleaning up indentation of docstring.
 
