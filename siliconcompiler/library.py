@@ -120,7 +120,7 @@ class ToolLibrarySchema(LibrarySchema):
                 edit.insert("tool", tool, var,
                             Parameter.from_dict(
                                 manifest["tool"][tool][var],
-                                keypath=keypath + [tool, var],
+                                keypath=list(keypath) + [tool, var],
                                 version=version))
                 del manifest["tool"][tool][var]
                 if not manifest["tool"][tool]:

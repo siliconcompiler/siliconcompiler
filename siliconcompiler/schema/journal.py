@@ -1,7 +1,10 @@
 import copy
 import json
 
-from typing import Tuple, Set, Dict, List
+from typing import Tuple, Set, Dict, List, Optional, Union, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .baseschema import BaseSchema
 
 
 class Journal:
@@ -14,7 +17,7 @@ class Journal:
         keyprefix (list of str): keypath to prefix on to recorded path
     """
 
-    def __init__(self, keyprefix: Tuple[str] = None):
+    def __init__(self, keyprefix: Optional[Union[List[str], Tuple[str, ...]]] = None):
         if not keyprefix:
             self.__keyprefix = tuple()
         else:
@@ -26,14 +29,14 @@ class Journal:
         self.stop()
 
     @property
-    def keypath(self) -> Tuple[str]:
+    def keypath(self) -> Tuple[str, ...]:
         '''
         Returns the reference key path for this journal
         '''
 
         return self.__keyprefix
 
-    def get_child(self, *keypath: Tuple[str]):
+    def get_child(self, *keypath: str) -> "Journal":
         '''
         Get a child journal based on a new keypath
 
@@ -45,7 +48,7 @@ class Journal:
         child.__parent = self.__parent
         return child
 
-    def from_dict(self, manifest: Dict):
+    def from_dict(self, manifest: List[Dict]) -> None:
         '''
         Import a journal from a manifest dictionary
 
@@ -55,7 +58,7 @@ class Journal:
 
         self.__journal = manifest
 
-    def get(self) -> List[Dict]:
+    def get(self) -> Optional[List[Dict]]:
         """
         Returns a copy of the current journal
         """
@@ -109,11 +112,11 @@ class Journal:
 
     def record(self,
                record_type: str,
-               key: Tuple[str],
+               key: Union[List[str], Tuple[str, ...]],
                value=None,
-               field: str = None,
-               step: str = None,
-               index: str = None) -> None:
+               field: Optional[str] = None,
+               step: Optional[str] = None,
+               index: Optional[Union[int, str]] = None) -> None:
         '''
         Record the schema transaction
         '''
@@ -126,6 +129,9 @@ class Journal:
 
         if isinstance(value, set):
             value = list(value)
+
+        if index is not None and isinstance(index, int):
+            index = str(index)
 
         self.__parent.__journal.append({
             "type": record_type,
@@ -154,7 +160,7 @@ class Journal:
         self.__parent.__record_types.clear()
 
     @staticmethod
-    def replay_file(schema, filepath: str) -> None:
+    def replay_file(schema: "BaseSchema", filepath: str) -> None:
         '''
         Replay a journal into a schema from a manifest
 
@@ -171,7 +177,7 @@ class Journal:
         journal.from_dict(data["__journal__"])
         journal.replay(schema)
 
-    def replay(self, schema) -> None:
+    def replay(self, schema: "BaseSchema") -> None:
         '''
         Replay journal into a schema
 
@@ -207,7 +213,7 @@ class Journal:
                 raise ValueError(f'Unknown record type {record_type}')
 
     @staticmethod
-    def access(schema) -> "Journal":
+    def access(schema: "BaseSchema") -> "Journal":
         '''
         Access a journal from a schema
 

@@ -24,9 +24,9 @@ class EditableSchema:
         self.__schema = schema
 
     def __insert(self,
-                 keypath: Tuple[str],
+                 keypath: Tuple[str, ...],
                  value: Union[BaseSchema, Parameter],
-                 fullkey: Tuple[str],
+                 fullkey: Tuple[str, ...],
                  clobber: bool) -> None:
         key = keypath[0]
         keypath = keypath[1:]
@@ -57,7 +57,7 @@ class EditableSchema:
         new_schema._BaseSchema__key = key
         EditableSchema(new_schema).__insert(keypath, value, fullkey, clobber)
 
-    def __remove(self, keypath: Tuple[str], fullkey: Tuple[str]) -> None:
+    def __remove(self, keypath: Tuple[str, ...], fullkey: Tuple[str, ...]) -> None:
         key = keypath[0]
         keypath = keypath[1:]
 
@@ -77,7 +77,7 @@ class EditableSchema:
         else:
             EditableSchema(next_param).__remove(keypath, fullkey)
 
-    def insert(self, *args, clobber: bool = False) -> None:
+    def insert(self, *args: Union[str, BaseSchema, Parameter], clobber: bool = False) -> None:
         '''
         Inserts a :class:`Parameter` or a :class:`BaseSchema` to the schema,
         based on the keypath and value provided in the ``*args``.
@@ -93,7 +93,7 @@ class EditableSchema:
         '''
 
         value = args[-1]
-        keypath = args[0:-1]
+        keypath: Tuple[str, ...] = args[0:-1]
 
         if not keypath:
             raise ValueError("A keypath is required")

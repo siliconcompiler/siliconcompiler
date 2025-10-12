@@ -25,7 +25,7 @@ except ModuleNotFoundError:
 import os.path
 
 from functools import cache
-from typing import Dict, Type, Tuple, Union, Set, Callable, List
+from typing import Dict, Type, Tuple, Union, Set, Callable, List, Optional, TextIO, Iterable
 
 from .parameter import Parameter, NodeValue
 from .journal import Journal
@@ -50,7 +50,7 @@ class BaseSchema:
         self.__key = None
 
     @property
-    def _keypath(self):
+    def _keypath(self) -> Tuple[str, ...]:
         '''
         Returns the key to the current section of the schema
         '''
@@ -103,7 +103,7 @@ class BaseSchema:
 
     @staticmethod
     @cache
-    def __load_schema_class(cls_name: str) -> Type["BaseSchema"]:
+    def __load_schema_class(cls_name: str) -> Optional[Type["BaseSchema"]]:
         """
         Load a schema class from a string
         """
@@ -125,7 +125,7 @@ class BaseSchema:
         return cls
 
     @staticmethod
-    def __process_meta_section(meta: Dict[str, str]) -> Type["BaseSchema"]:
+    def __process_meta_section(meta: Dict[str, str]) -> Optional[Type["BaseSchema"]]:
         """
         Handle __meta__ section of the schema by loading the appropriate class
         """
@@ -143,21 +143,24 @@ class BaseSchema:
         return cls
 
     @staticmethod
-    def __extractversion(manifest: Dict):
+    def __extractversion(manifest: Dict) -> Optional[Tuple[int, ...]]:
         schema_version = manifest.get(BaseSchema._version_key, None)
         if schema_version:
             param = Parameter.from_dict(schema_version, [BaseSchema._version_key], None)
             return tuple([int(v) for v in param.get().split('.')])
         return None
 
-    def _from_dict(self, manifest: Dict, keypath: Tuple[str], version: str = None):
+    def _from_dict(self, manifest: Dict,
+                   keypath: Union[List[str], Tuple[str, ...]],
+                   version: Optional[Tuple[int, ...]] = None) \
+            -> Tuple[Set[Tuple[str, ...]], Set[Tuple[str, ...]]]:
         '''
         Decodes a dictionary into a schema object
 
         Args:
             manifest (dict): Manifest to decide.
             keypath (list of str): Path to the current keypath.
-            version (packaging.Version): Version of the dictionary schema
+            version ((int, int, int)): Version of the dictionary schema
         '''
         # find schema version
         if not version:
@@ -180,7 +183,7 @@ class BaseSchema:
             data = manifest.get("default", None)
             if data:
                 del manifest["default"]
-                self.__default._from_dict(data, keypath + ["default"], version=version)
+                self.__default._from_dict(data, list(keypath) + ["default"], version=version)
                 handled.add("default")
 
         for key, data in manifest.items():
@@ -190,7 +193,7 @@ class BaseSchema:
                 cls = BaseSchema.__process_meta_section(data["__meta__"])
                 if cls is BaseSchema and self.__default:
                     # Use default when BaseSchema is the class
-                    obj = self.__default.copy(key=keypath + [key])
+                    obj = self.__default.copy(key=list(keypath) + [key])
                     self.__manifest[key] = obj
                 elif cls:
                     # Create object and connect to schema
@@ -201,11 +204,11 @@ class BaseSchema:
 
             # Use default if it is available
             if not obj and self.__default:
-                obj = self.__default.copy(key=keypath + [key])
+                obj = self.__default.copy(key=list(keypath) + [key])
                 self.__manifest[key] = obj
 
             if obj:
-                obj._from_dict(data, keypath + [key], version=version)
+                obj._from_dict(data, list(keypath) + [key], version=version)
                 handled.add(key)
             else:
                 missing.add(key)
@@ -214,7 +217,9 @@ class BaseSchema:
 
     # Manifest methods
     @classmethod
-    def from_manifest(cls, filepath: str = None, cfg: Dict = None) -> "BaseSchema":
+    def from_manifest(cls,
+                      filepath: Union[None, str] = None,
+                      cfg: Union[None, Dict] = None) -> "BaseSchema":
         '''
         Create a new schema based on the provided source files.
 
@@ -240,12 +245,12 @@ class BaseSchema:
         else:
             schema = cls()
 
-        schema._from_dict(cfg, [])
+        schema._from_dict(cfg, tuple())
 
         return schema
 
     @staticmethod
-    def __open_file(filepath: str, is_read: bool = True):
+    def __open_file(filepath: str, is_read: bool = True) -> TextIO:
         _, ext = os.path.splitext(filepath)
         if ext.lower() == ".gz":
             if not _has_gzip:
@@ -257,7 +262,7 @@ class BaseSchema:
         return f"[{','.join([*self._keypath, *key])}]"
 
     @staticmethod
-    def _read_manifest(filepath: str):
+    def _read_manifest(filepath: str) -> Dict:
         """
         Reads a manifest from disk and returns dictionary.
 
@@ -273,7 +278,7 @@ class BaseSchema:
 
         return manifest
 
-    def read_manifest(self, filepath: str):
+    def read_manifest(self, filepath: str) -> None:
         """
         Reads a manifest from disk and replaces the current data with the data in the file.
 
@@ -287,7 +292,7 @@ class BaseSchema:
 
         self._from_dict(BaseSchema._read_manifest(filepath), [])
 
-    def write_manifest(self, filepath: str):
+    def write_manifest(self, filepath: str) -> None:
         '''
         Writes the manifest to a file.
 
@@ -301,13 +306,14 @@ class BaseSchema:
 
         fout = BaseSchema.__open_file(filepath, is_read=False)
 
-        if _has_orjson:
-            manifest_str = json.dumps(self.getdict(), option=json.OPT_INDENT_2).decode()
-        else:
-            manifest_str = json.dumps(self.getdict(), indent=2)
-        fout.write(manifest_str)
-
-        fout.close()
+        try:
+            if _has_orjson:
+                manifest_str = json.dumps(self.getdict(), option=json.OPT_INDENT_2).decode()
+            else:
+                manifest_str = json.dumps(self.getdict(), indent=2)
+            fout.write(manifest_str)
+        finally:
+            fout.close()
 
     # Accessor methods
     def __search(self,
@@ -315,7 +321,7 @@ class BaseSchema:
                  insert_defaults: bool = False,
                  use_default: bool = False,
                  require_leaf: bool = True,
-                 complete_path: bool = None) -> Union["BaseSchema", Parameter]:
+                 complete_path: Optional[List[str]] = None) -> Union["BaseSchema", Parameter]:
         if len(keypath) == 0:
             if require_leaf:
                 raise KeyError
@@ -356,8 +362,8 @@ class BaseSchema:
             raise KeyError
         return key_param
 
-    def get(self, *keypath: str, field: str = 'value',
-            step: str = None, index: Union[int, str] = None):
+    def get(self, *keypath: str, field: Optional[str] = 'value',
+            step: Optional[str] = None, index: Optional[Union[int, str]] = None):
         """
         Returns a parameter field from the schema.
 
@@ -414,7 +420,7 @@ class BaseSchema:
             raise e
 
     def set(self, *args: str, field: str = 'value', clobber: bool = True,
-            step: str = None, index: Union[int, str] = None):
+            step: Optional[str] = None, index: Optional[Union[int, str]] = None):
         '''
         Sets a schema parameter field.
 
@@ -460,7 +466,7 @@ class BaseSchema:
             raise e
 
     def add(self, *args: str, field: str = 'value',
-            step: str = None, index: Union[int, str] = None):
+            step: Optional[str] = None, index: Optional[Union[int, str]] = None):
         '''
         Adds item(s) to a schema parameter list.
 
@@ -503,7 +509,9 @@ class BaseSchema:
             e.args = (new_msg, *e.args[1:])
             raise e
 
-    def unset(self, *keypath: str, step: str = None, index: Union[int, str] = None):
+    def unset(self, *keypath: str,
+              step: Optional[str] = None,
+              index: Optional[Union[int, str]] = None) -> None:
         '''
         Unsets a schema parameter.
 
@@ -610,7 +618,7 @@ class BaseSchema:
             return isinstance(param, Parameter)
         return True
 
-    def getkeys(self, *keypath: str) -> Tuple[str]:
+    def getkeys(self, *keypath: str) -> Tuple[str, ...]:
         """
         Returns a tuple of schema dictionary keys.
 
@@ -677,7 +685,7 @@ class BaseSchema:
 
         return "BaseSchema"
 
-    def _getdict_meta(self) -> Dict[str, str]:
+    def _getdict_meta(self) -> Dict[str, Optional[Union[str, int, float]]]:
         """
         Returns the meta data for getdict
         """
@@ -746,7 +754,7 @@ class BaseSchema:
         return manifest
 
     # Utility functions
-    def copy(self, key: Tuple[str] = None):
+    def copy(self, key: Optional[Tuple[str, ...]] = None) -> "BaseSchema":
         """
         Returns a copy of this schema.
 
@@ -769,20 +777,22 @@ class BaseSchema:
 
         return schema_copy
 
-    def _find_files_search_paths(self, keypath: Tuple[str], step: str, index: str):
+    def _find_files_search_paths(self, key: str,
+                                 step: Optional[str],
+                                 index: Optional[Union[int, str]]) -> List[str]:
         """
         Returns a list of paths to search during find files.
 
         Args:
-            keypath (str): final component of keypath
+            key (str): final component of keypath
             step (str): Step name.
             index (str): Index name.
         """
         return []
 
-    def _find_files_dataroot_resolvers(self):
+    def _find_files_dataroot_resolvers(self) -> Dict[str, Union[str, Callable]]:
         """
-        Returns a dictionary of path resolevrs data directory handling for find_files
+        Returns a dictionary of path resolvers data directory handling for find_files
 
         Returns:
             dictionary of str to resolver mapping
@@ -792,10 +802,11 @@ class BaseSchema:
         return self.__parent._find_files_dataroot_resolvers()
 
     def _find_files(self, *keypath: str, missing_ok: bool = False,
-                    step: str = None, index: Union[int, str] = None,
-                    dataroots: Dict[str, Union[str, Callable]] = None,
-                    collection_dir: str = None,
-                    cwd: str = None) -> Union[str, List[str], Set[str]]:
+                    step: Optional[str] = None, index: Optional[Union[int, str]] = None,
+                    dataroots: Optional[Dict[str, Union[str, Callable]]] = None,
+                    collection_dir: Optional[str] = None,
+                    cwd: Optional[str] = None) \
+            -> Union[Optional[str], List[Optional[str]], Set[Optional[str]]]:
         """
         Returns absolute paths to files or directories based on the keypath
         provided.
@@ -836,11 +847,12 @@ class BaseSchema:
             cwd=cwd, hash=False)
 
     def __find_files_or_hash(self, *keypath: str, missing_ok: bool = False,
-                             step: str = None, index: Union[int, str] = None,
-                             dataroots: Dict[str, Union[str, Callable]] = None,
-                             collection_dir: str = None,
-                             cwd: str = None,
-                             hash: bool = False) -> Union[str, List[str], Set[str]]:
+                             step: Optional[str] = None, index: Optional[Union[int, str]] = None,
+                             dataroots: Optional[Dict[str, Union[str, Callable]]] = None,
+                             collection_dir: Optional[str] = None,
+                             cwd: Optional[str] = None,
+                             hash: bool = False) \
+            -> Union[Optional[str], List[Optional[str]], Set[Optional[str]]]:
         """
         Returns absolute paths to files or directories based on the keypath
         provided.
@@ -875,14 +887,15 @@ class BaseSchema:
             the schema.
         """
 
-        base_schema = self.get(*keypath[0:-1], field="schema")
+        base_schema: BaseSchema = self.get(*keypath[0:-1], field="schema")
 
-        param = base_schema.get(keypath[-1], field=None)
-        paramtype = param.get(field='type')
+        param: Parameter = base_schema.get(keypath[-1], field=None)
+        paramtype: str = param.get(field='type')
         if 'file' not in paramtype and 'dir' not in paramtype:
             raise TypeError(
                 f'Cannot find files on {self.__format_key(*keypath)}, must be a path type')
 
+        hashalgo: Optional[str] = None
         if hash:
             hashalgo = param.get(field="hashalgo")
 
@@ -911,7 +924,7 @@ class BaseSchema:
         for path in paths:
             search_paths = root_search_paths.copy()
 
-            dataroot = path.get(field="dataroot")
+            dataroot: Optional[str] = path.get(field="dataroot")
             if dataroot:
                 if dataroot not in dataroots:
                     raise ValueError(f"Resolver for {dataroot} not provided: "
@@ -956,11 +969,11 @@ class BaseSchema:
             return resolved_paths[0]
         return resolved_paths
 
-    def _check_filepaths(self, ignore_keys: bool = None,
-                         logger: logging.Logger = None,
-                         dataroots: Dict[str, Union[str, Callable]] = None,
-                         collection_dir: str = None,
-                         cwd: str = None) -> bool:
+    def _check_filepaths(self, ignore_keys: Optional[Iterable[Tuple[str, ...]]] = None,
+                         logger: Optional[logging.Logger] = None,
+                         dataroots: Optional[Dict[str, Union[str, Callable]]] = None,
+                         collection_dir: Optional[str] = None,
+                         cwd: Optional[str] = None) -> bool:
         '''
         Verifies that paths to all files in manifest are valid.
 
@@ -990,8 +1003,8 @@ class BaseSchema:
             if keypath in ignore_keys:
                 continue
 
-            param = self.get(*keypath, field=None)
-            paramtype = param.get(field='type')
+            param: Parameter = self.get(*keypath, field=None)
+            paramtype: str = param.get(field='type')
 
             if 'file' not in paramtype and 'dir' not in paramtype:
                 continue
@@ -1026,10 +1039,10 @@ class BaseSchema:
         return not error
 
     def _hash_files(self, *keypath, missing_ok: bool = False,
-                    step: str = None, index: Union[int, str] = None,
-                    dataroots: Dict[str, Union[str, Callable]] = None,
-                    collection_dir: str = None,
-                    cwd: str = None):
+                    step: Optional[str] = None, index: Optional[Union[int, str]] = None,
+                    dataroots: Optional[Dict[str, Union[str, Callable]]] = None,
+                    collection_dir: Optional[str] = None,
+                    cwd: Optional[str] = None):
         '''Generates hash values for a list of parameter files.
 
         Generates a hash value for each file found in the keypath. If existing
@@ -1173,7 +1186,7 @@ class BaseSchema:
 
     def _generate_doc(self, doc,
                       ref_root: str = "",
-                      key_offset: Tuple[str] = None,
+                      key_offset: Tuple[str, ...] = None,
                       detailed: bool = True):
         from .docs.utils import build_section_with_target, build_schema_value_table, get_key_ref, \
             parse_rst

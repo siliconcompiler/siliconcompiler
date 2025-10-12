@@ -4,7 +4,7 @@
 # SC dependencies outside of its directory, since it may be used by tool drivers
 # that have isolated Python environments.
 
-from typing import Dict, Tuple
+from typing import Dict, Tuple, Optional, Set, Union, List
 
 from .baseschema import BaseSchema
 
@@ -17,13 +17,13 @@ class NamedSchema(BaseSchema):
         name (str): name of the schema
     '''
 
-    def __init__(self, name: str = None):
+    def __init__(self, name: Optional[str] = None):
         super().__init__()
 
         self.set_name(name)
 
     @property
-    def name(self) -> str:
+    def name(self) -> Optional[str]:
         '''
         Returns the name of the schema
         '''
@@ -32,7 +32,7 @@ class NamedSchema(BaseSchema):
         except AttributeError:
             return None
 
-    def set_name(self, name: str) -> None:
+    def set_name(self, name: Optional[str]) -> None:
         """
         Set the name of this object
 
@@ -66,13 +66,16 @@ class NamedSchema(BaseSchema):
 
         raise NotImplementedError("Must be implemented by the child classes.")
 
-    def _getdict_meta(self) -> Dict[str, str]:
+    def _getdict_meta(self) -> Dict[str, Optional[Union[str, int, float]]]:
         info = super()._getdict_meta()
         info["name"] = self.name
         return info
 
     @classmethod
-    def from_manifest(cls, filepath: str = None, cfg: Dict = None, name: str = None):
+    def from_manifest(cls,
+                      filepath: Union[None, str] = None,
+                      cfg: Union[None, Dict] = None,
+                      name: Optional[str] = None):
         '''
         Create a new schema based on the provided source files.
 
@@ -92,10 +95,13 @@ class NamedSchema(BaseSchema):
         if filepath:
             schema.read_manifest(filepath)
         if cfg:
-            schema._from_dict(cfg, [])
+            schema._from_dict(cfg, tuple())
         return schema
 
-    def _from_dict(self, manifest: Dict, keypath: Tuple[str], version: str = None):
+    def _from_dict(self, manifest: Dict,
+                   keypath: Union[List[str], Tuple[str, ...]],
+                   version: Optional[Tuple[int, ...]] = None) \
+            -> Tuple[Set[Tuple[str, ...]], Set[Tuple[str, ...]]]:
         if keypath:
             self.__name = keypath[-1]
         elif not self.__name and "__meta__" in manifest and "name" in manifest["__meta__"]:
@@ -103,8 +109,8 @@ class NamedSchema(BaseSchema):
 
         return super()._from_dict(manifest, keypath, version=version)
 
-    def copy(self, key: Tuple[str] = None) -> "NamedSchema":
-        copy = super().copy(key=key)
+    def copy(self, key: Optional[Tuple[str, ...]] = None) -> "NamedSchema":
+        copy: NamedSchema = super().copy(key=key)
 
         if key and key[-1] != "default":
             copy.__name = key[-1]
