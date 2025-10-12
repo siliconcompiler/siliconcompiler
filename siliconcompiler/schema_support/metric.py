@@ -303,7 +303,7 @@ class MetricSchema(BaseSchema):
         if not nodes:
             unique_nodes = set()
             for metric in self.getkeys():
-                for value, step, index in self.get(metric, field=None).getvalues():
+                for _, step, index in self.get(metric, field=None).getvalues():
                     unique_nodes.add((step, index))
             nodes = list(sorted(unique_nodes))
 

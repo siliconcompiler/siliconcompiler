@@ -708,7 +708,7 @@ def test_file_hash_none_algoritm():
     with open('foo.txt', 'w', newline='\n') as f:
         f.write('foobar\n')
 
-    param = DirectoryNodeValue()
+    param = FileNodeValue()
     param.set('foo.txt')
 
     with pytest.raises(ValueError,
