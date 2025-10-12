@@ -3,7 +3,7 @@ import logging
 
 import os.path
 
-from typing import Tuple
+from typing import Tuple, Union, List, Optional, Dict, Callable
 
 from siliconcompiler.schema.baseschema import BaseSchema
 from siliconcompiler.schema.editableschema import EditableSchema
@@ -19,9 +19,10 @@ class PathSchemaBase(BaseSchema):
     Schema extension to add simpler find_files and check_filepaths
     '''
 
-    def find_files(self, *keypath,
-                   missing_ok=False,
-                   step=None, index=None):
+    def find_files(self, *keypath: str,
+                   missing_ok: bool = False,
+                   step: Optional[str] = None, index: Optional[Union[int, str]] = None) \
+            -> Union[List[Optional[str]], Optional[str]]:
         """
         Returns absolute paths to files or directories based on the keypath
         provided.
@@ -59,7 +60,7 @@ class PathSchemaBase(BaseSchema):
                                    collection_dir=collection_dir,
                                    cwd=cwd)
 
-    def check_filepaths(self, ignore_keys=None):
+    def check_filepaths(self, ignore_keys: Optional[List[Tuple[str, ...]]] = None) -> bool:
         '''
         Verifies that paths to all files in manifest are valid.
 
@@ -82,8 +83,13 @@ class PathSchemaBase(BaseSchema):
             collection_dir=collection_dir,
             cwd=cwd)
 
-    def hash_files(self, *keypath, update=True, check=True, verbose=True,
-                   missing_ok=False, step=None, index=None):
+    def hash_files(self, *keypath: str,
+                   update: bool = True,
+                   check: bool = True,
+                   verbose: bool = True,
+                   missing_ok: bool = False,
+                   step: Optional[str] = None, index: Optional[Union[str, int]] = None) \
+            -> Union[Optional[str], List[Optional[str]]]:
         '''Generates hash values for a list of parameter files.
 
         Generates a hash value for each file found in the keypath. If existing
@@ -157,7 +163,8 @@ class PathSchemaBase(BaseSchema):
 
 
 class PathSchemaSimpleBase(PathSchemaBase):
-    def find_files(self, *keypath, missing_ok=False):
+    def find_files(self, *keypath: str, missing_ok: bool = False) \
+            -> Union[List[Optional[str]], Optional[str]]:
         """
         Returns absolute paths to files or directories based on the keypath
         provided.
@@ -181,7 +188,12 @@ class PathSchemaSimpleBase(PathSchemaBase):
                                   missing_ok=missing_ok,
                                   step=None, index=None)
 
-    def hash_files(self, *keypath, update=True, check=True, verbose=True, missing_ok=False):
+    def hash_files(self, *keypath: str,
+                   update: bool = True,
+                   check: bool = True,
+                   verbose: bool = True,
+                   missing_ok: bool = False) \
+            -> Union[List[Optional[str]], Optional[str]]:
         '''Generates hash values for a list of parameter files.
 
         Generates a hash value for each file found in the keypath. If existing
@@ -299,9 +311,9 @@ class PathSchema(PathSchemaBase):
         return schema
 
     def set_dataroot(self, name: str = "root",
-                     path: str = None,
-                     tag: str = None,
-                     clobber: bool = False):
+                     path: Optional[str] = None,
+                     tag: Optional[str] = None,
+                     clobber: bool = False) -> None:
         """Registers a data source by name, path, and optional version tag.
 
         This method creates a reference to a data directory, which can be a local
@@ -374,13 +386,13 @@ class PathSchema(PathSchemaBase):
         if not BaseSchema.valid(schema, "dataroot", name):
             raise ValueError(f"{name} is not a recognized source")
 
-        path = BaseSchema.get(schema, "dataroot", name, "path")
-        tag = BaseSchema.get(schema, "dataroot", name, "tag")
+        path: str = BaseSchema.get(schema, "dataroot", name, "path")
+        tag: Optional[str] = BaseSchema.get(schema, "dataroot", name, "tag")
 
         resolver = Resolver.find_resolver(path)
         return resolver(name, schema._parent(root=True), path, tag).get_path()
 
-    def _find_files_dataroot_resolvers(self):
+    def _find_files_dataroot_resolvers(self) -> Dict[str, Union[str, Callable]]:
         """
         Returns a dictionary of path resolvers data directory handling for find_files
 
@@ -402,7 +414,7 @@ class PathSchema(PathSchemaBase):
         return resolver_map
 
     @contextlib.contextmanager
-    def active_dataroot(self, dataroot: str = None):
+    def active_dataroot(self, dataroot: Optional[str] = None):
         '''
         Use this context to set the dataroot parameter on files and directory parameters.
 
@@ -426,7 +438,7 @@ class PathSchema(PathSchemaBase):
         with self._active(dataroot=dataroot):
             yield
 
-    def _get_active_dataroot(self, user_dataroot: str) -> str:
+    def _get_active_dataroot(self, user_dataroot: Optional[str]) -> Optional[str]:
         """Resolves and returns the active dataroot to use.
 
         This method determines the appropriate dataroot based on a specific

@@ -620,7 +620,7 @@ class PythonPathResolver(Resolver):
 
             provides = dist.read_text('top_level.txt')
             if provides:
-                for module in dist.read_text('top_level.txt').split():
+                for module in provides.split():
                     mapping.setdefault(module, []).append(dist_name)
 
         return mapping
