@@ -10,7 +10,7 @@ import re
 import shlex
 
 from enum import Enum
-from typing import Tuple
+from typing import Tuple, Optional, Union, List, Dict, Any
 
 from .parametervalue import NodeValue, DirectoryNodeValue, FileNodeValue, NodeListValue, \
     NodeSetValue
@@ -67,20 +67,20 @@ class Parameter:
     GLOBAL_KEY = 'global'
 
     def __init__(self,
-                 type,
-                 require=False,
+                 type: str,
+                 require: bool = False,
                  defvalue=None,
-                 scope=Scope.GLOBAL,
-                 copy=False,
-                 lock=False,
-                 hashalgo='sha256',
-                 notes=None,
-                 unit=None,
-                 shorthelp=None,
-                 switch=None,
-                 example=None,
-                 help=None,
-                 pernode=PerNode.NEVER,
+                 scope: Scope = Scope.GLOBAL,
+                 copy: bool = False,
+                 lock: bool = False,
+                 hashalgo: str = 'sha256',
+                 notes: Optional[str] = None,
+                 unit: Optional[str] = None,
+                 shorthelp: Optional[str] = None,
+                 switch: Optional[Union[List[str], str]] = None,
+                 example: Optional[Union[List[str], str]] = None,
+                 help: Optional[str] = None,
+                 pernode: PerNode = PerNode.NEVER,
                  **kwargs):
 
         self.__type = NodeType.parse(type)
@@ -127,7 +127,7 @@ class Parameter:
             self.__hashalgo = str(hashalgo)
             self.__copy = bool(copy)
 
-    def __setdefvalue(self, defvalue, **kwargs):
+    def __setdefvalue(self, defvalue, **kwargs) -> None:
         if NodeType.contains(self.__type, 'file'):
             if isinstance(self.__type, list):
                 self.__defvalue = NodeListValue(FileNodeValue(defvalue, **kwargs))
@@ -155,7 +155,7 @@ class Parameter:
             else:
                 self.__defvalue = NodeValue(self.__type, value=defvalue, **kwargs)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return str(self.getvalues())
 
     def _generate_doc(self, doc,
@@ -228,7 +228,9 @@ class Parameter:
 
         return [body, table]
 
-    def get(self, field='value', step=None, index=None):
+    def get(self, field: Optional[str] = 'value',
+            step: Optional[str] = None,
+            index: Optional[Union[int, str]] = None):
         """
         Returns the value in a parameter field.
 
@@ -297,7 +299,9 @@ class Parameter:
 
         raise ValueError(f'"{field}" is not a valid field')
 
-    def __assert_step_index(self, field, step, index):
+    def __assert_step_index(self, field: Optional[str],
+                            step: Optional[str],
+                            index: Optional[Union[int, str]]) -> None:
         if field not in self.__defvalue.fields:
             if step is not None or index is not None:
                 raise KeyError(
@@ -321,7 +325,11 @@ class Parameter:
         if index == 'default':
             raise KeyError('illegal index name: default is reserved')
 
-    def set(self, value, field='value', step=None, index=None, clobber=True):
+    def set(self, value,
+            field: str = 'value',
+            step: Optional[str] = None,
+            index: Optional[Union[int, str]] = None,
+            clobber: bool = True) -> Union[bool, List[NodeValue], NodeValue]:
         '''
         Sets a parameter field.
 
@@ -401,7 +409,10 @@ class Parameter:
 
         return True
 
-    def add(self, value, field='value', step=None, index=None):
+    def add(self, value,
+            field: str = 'value',
+            step: Optional[str] = None,
+            index: Optional[Union[int, str]] = None) -> Union[bool, List[NodeValue], NodeValue]:
         '''
         Adds item(s) to a list.
 
@@ -448,7 +459,7 @@ class Parameter:
 
         return True
 
-    def unset(self, step=None, index=None):
+    def unset(self, step: Optional[str] = None, index: Optional[Union[int, str]] = None) -> bool:
         '''
         Unsets a schema parameter.
 
@@ -490,13 +501,13 @@ class Parameter:
 
         return True
 
-    def reset(self):
+    def reset(self) -> None:
         """
         Resets a parameter back to its default state
         """
         self.__node = {}
 
-    def getdict(self, include_default=True, values_only=False):
+    def getdict(self, include_default: bool = True, values_only: bool = False) -> Dict:
         """
         Returns a schema dictionary.
 
@@ -555,7 +566,10 @@ class Parameter:
         return dictvals
 
     @classmethod
-    def from_dict(cls, manifest, keypath, version):
+    def from_dict(cls,
+                  manifest: Dict,
+                  keypath: Tuple[str, ...],
+                  version: Optional[Tuple[int, ...]]) -> "Parameter":
         '''
         Create a new parameter based on the provided dictionary.
 
@@ -570,7 +584,10 @@ class Parameter:
         param._from_dict(manifest, keypath, version)
         return param
 
-    def _from_dict(self, manifest, keypath, version):
+    def _from_dict(self,
+                   manifest: Dict,
+                   keypath: Tuple[str, ...],
+                   version: Optional[Tuple[int, ...]]) -> None:
         '''
         Copies the information from the manifest into this parameter.
 
@@ -632,7 +649,8 @@ class Parameter:
                     value = param.get()
                     param.set(value)
 
-    def gettcl(self, step=None, index=None):
+    def gettcl(self, step: Optional[str] = None,
+               index: Optional[Union[str, int]] = None) -> Optional[str]:
         """
         Returns a tcl string for this parameter.
 
@@ -665,7 +683,10 @@ class Parameter:
         except KeyError:
             return self.__defvalue.gettcl()
 
-    def getvalues(self, return_defvalue=True, return_values=True):
+    def getvalues(self, return_defvalue: bool = True, return_values: bool = True) \
+            -> List[Tuple[Union[Any, NodeValue, NodeSetValue, NodeListValue],
+                          Optional[str],
+                          Optional[str]]]:
         """
         Returns all values (global and pernode) associated with a particular parameter.
 
@@ -696,7 +717,7 @@ class Parameter:
 
         return vals
 
-    def copy(self, key=None):
+    def copy(self, key: Optional[Tuple[str, ...]] = None) -> "Parameter":
         """
         Returns a copy of this parameter.
 
@@ -707,14 +728,14 @@ class Parameter:
         return copy.deepcopy(self)
 
     # Utility functions
-    def is_list(self):
+    def is_list(self) -> bool:
         """
         Returns true is this parameter is a list type
         """
 
         return isinstance(self.__type, (list, set))
 
-    def is_empty(self):
+    def is_empty(self) -> bool:
         '''
         Utility function to check key for an empty value.
         '''
@@ -724,7 +745,7 @@ class Parameter:
         values = self.getvalues()
         return all([value in empty for value, _, _ in values])
 
-    def is_set(self, step=None, index=None):
+    def is_set(self, step: Optional[str] = None, index: Optional[Union[str, int]] = None) -> bool:
         '''
         Returns whether a user has set a value for this parameter.
 
@@ -746,7 +767,8 @@ class Parameter:
             index in self.__node[step] and \
             self.__node[step][index]
 
-    def has_value(self, step=None, index=None) -> bool:
+    def has_value(self, step: Optional[str] = None,
+                  index: Optional[Union[str, int]] = None) -> bool:
         '''
         Returns whether the parameter as a value.
 
@@ -774,13 +796,17 @@ class Parameter:
             return self.__defvalue.has_value
 
     @property
-    def default(self):
+    def default(self) -> Union[NodeValue, NodeSetValue, NodeListValue]:
         """
         Gets a copy of the default value.
         """
         return self.__defvalue.copy()
 
-    def add_commandline_arguments(self, argparser, *keypath, switchlist=None):
+    def add_commandline_arguments(self,
+                                  argparser: argparse.ArgumentParser,
+                                  *keypath: str,
+                                  switchlist: Optional[Union[List[str], str]] = None) \
+            -> Tuple[Optional[str], Optional[List[str]]]:
         '''
         Adds commandline arguments for this parameter.
 
@@ -874,13 +900,14 @@ class Parameter:
 
         return dest, switches
 
-    def parse_commandline_arguments(self, value, *keypath):
+    def parse_commandline_arguments(self, value: str, *keypath: str) -> \
+            Tuple[Tuple[str, ...], Optional[str], Optional[str], str]:
         """
         Parse and set the values provided form the commandline parser.
 
         Args:
             value (str): string from commandline
-            keypath (list of str): leypath to this parameter
+            keypath (list of str): keypath to this parameter
         """
         num_free_keys = keypath.count('default')
 

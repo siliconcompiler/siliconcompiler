@@ -673,6 +673,18 @@ def test_file_hash_invalid_algoritm():
         param.hash('md56')
 
 
+def test_dir_hash_none_algoritm():
+    # Create foo and compute its hash
+    os.makedirs("foo", exist_ok=True)
+
+    param = DirectoryNodeValue()
+    param.set('foo')
+
+    with pytest.raises(ValueError,
+                       match=r"^hashfunction must be a string$"):
+        param.hash(None)
+
+
 @pytest.mark.parametrize('algorithm,expected', [
     ('md5', '14758f1afd44c09b7992073ccf00b43d'),
     ('sha1', '988881adc9fc3655077dc2d4d757d480b5ea0e11'),
@@ -689,6 +701,19 @@ def test_file_hash(algorithm, expected):
     param.set('foo.txt')
 
     assert param.hash(algorithm) == expected
+
+
+def test_file_hash_none_algoritm():
+    # Create foo.txt and compute its hash
+    with open('foo.txt', 'w', newline='\n') as f:
+        f.write('foobar\n')
+
+    param = DirectoryNodeValue()
+    param.set('foo.txt')
+
+    with pytest.raises(ValueError,
+                       match=r"^hashfunction must be a string$"):
+        param.hash(None)
 
 
 @pytest.mark.parametrize('algorithm,expected', [

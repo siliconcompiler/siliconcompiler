@@ -5,6 +5,8 @@ import pathlib
 
 import os.path
 
+from typing import Dict, List, Tuple, Union, Optional
+
 from .parametertype import NodeType
 
 try:
@@ -23,11 +25,11 @@ class NodeListValue:
         base (:class:`NodeValue`): base type for this list.
     '''
 
-    def __init__(self, base):
+    def __init__(self, base: Union["NodeValue", "FileNodeValue", "DirectoryNodeValue"]):
         self.__base = base
         self.__values = []
 
-    def getdict(self):
+    def getdict(self) -> Dict:
         """
         Returns a schema dictionary.
 
@@ -51,7 +53,10 @@ class NodeListValue:
                 manifest[field] = tmplist
         return manifest
 
-    def _from_dict(self, manifest, keypath, version):
+    def _from_dict(self,
+                   manifest: Dict,
+                   keypath: Tuple[str, ...],
+                   version: Optional[Tuple[int, ...]]) -> None:
         '''
         Create a new value based on the provided dictionary.
 
@@ -75,7 +80,7 @@ class NodeListValue:
                     continue
                 param.set(manifest[field][n], field=field)
 
-    def get(self, field='value'):
+    def get(self, field: Optional[str] = 'value'):
         """
         Returns the value in the specified field
 
@@ -93,7 +98,7 @@ class NodeListValue:
 
         return [self.__base.get(field=field)]
 
-    def gettcl(self):
+    def gettcl(self) -> str:
         """
         Returns the tcl representation for the value
 
@@ -102,7 +107,8 @@ class NodeListValue:
         """
         return NodeType.to_tcl(self.get(), self.type)
 
-    def set(self, value, field='value'):
+    def set(self, value, field: str = 'value') \
+            -> Tuple[Union["NodeValue", "FileNodeValue", "DirectoryNodeValue"], ...]:
         """
         Sets the value in a specific field and ensures it has been normalized.
 
@@ -130,7 +136,8 @@ class NodeListValue:
             modified.append(self.__values[n])
         return tuple(modified)
 
-    def add(self, value, field='value'):
+    def add(self, value, field: str = 'value') \
+            -> Tuple[Union["NodeValue", "FileNodeValue", "DirectoryNodeValue"], ...]:
         """
         Adds the value in a specific field and ensures it has been normalized.
 
@@ -157,14 +164,14 @@ class NodeListValue:
         return tuple(modified)
 
     @property
-    def fields(self):
+    def fields(self) -> Tuple[Optional[str], ...]:
         """
         Returns a list of valid fields for this value
         """
         return self.__base.fields
 
     @property
-    def has_value(self):
+    def has_value(self) -> bool:
         """
         Returns true if this node has a value.
         """
@@ -174,20 +181,20 @@ class NodeListValue:
             return self.__base.has_value
 
     @property
-    def values(self):
+    def values(self) -> List[Union["NodeValue", "FileNodeValue", "DirectoryNodeValue"]]:
         '''
         Returns a copy of the values stored in the list
         '''
         return self.__values.copy()
 
-    def copy(self):
+    def copy(self) -> "NodeListValue":
         """
         Returns a copy of this value.
         """
 
         return copy.deepcopy(self)
 
-    def _set_type(self, sctype):
+    def _set_type(self, sctype) -> None:
         sctype = NodeType.parse(sctype)[0]
         self.__base._set_type(sctype)
         for val in self.__values:
@@ -209,11 +216,11 @@ class NodeSetValue:
         base (:class:`NodeValue`): base type for this set.
     '''
 
-    def __init__(self, base):
+    def __init__(self, base: Union["NodeValue", "FileNodeValue", "DirectoryNodeValue"]):
         self.__base = base
         self.__values = []
 
-    def getdict(self):
+    def getdict(self) -> Dict:
         """
         Returns a schema dictionary.
 
@@ -237,7 +244,10 @@ class NodeSetValue:
                 manifest[field] = tmplist
         return manifest
 
-    def _from_dict(self, manifest, keypath, version):
+    def _from_dict(self,
+                   manifest: Dict,
+                   keypath: Tuple[str, ...],
+                   version: Optional[Tuple[int, ...]]) -> None:
         '''
         Create a new value based on the provided dictionary.
 
@@ -261,7 +271,7 @@ class NodeSetValue:
                     continue
                 param.set(manifest[field][n], field=field)
 
-    def get(self, field='value'):
+    def get(self, field: Optional[str] = 'value'):
         """
         Returns the value in the specified field
 
@@ -281,7 +291,7 @@ class NodeSetValue:
 
         return vals
 
-    def gettcl(self):
+    def gettcl(self) -> str:
         """
         Returns the tcl representation for the value
 
@@ -290,7 +300,8 @@ class NodeSetValue:
         """
         return NodeType.to_tcl(self.get(), [self.__base.type])
 
-    def set(self, value, field='value'):
+    def set(self, value, field: str = 'value') \
+            -> Tuple[Union["NodeValue", "FileNodeValue", "DirectoryNodeValue"], ...]:
         value = NodeType.normalize(value, [self.__base.type])
 
         if field == 'value':
@@ -317,7 +328,8 @@ class NodeSetValue:
             m += 1
         return tuple(modified)
 
-    def add(self, value, field='value'):
+    def add(self, value, field: str = 'value') \
+            -> Tuple[Union["NodeValue", "FileNodeValue", "DirectoryNodeValue"], ...]:
         """
         Adds the value in a specific field and ensures it has been normalized.
 
@@ -352,7 +364,7 @@ class NodeSetValue:
         return tuple(modified)
 
     @property
-    def has_value(self):
+    def has_value(self) -> bool:
         """
         Returns true if this node has a value.
         """
@@ -362,20 +374,20 @@ class NodeSetValue:
             return self.__base.has_value
 
     @property
-    def fields(self):
+    def fields(self) -> Tuple[Optional[str], ...]:
         """
         Returns a list of valid fields for this value
         """
         return self.__base.fields
 
     @property
-    def values(self):
+    def values(self) -> List[Union["NodeValue", "FileNodeValue", "DirectoryNodeValue"]]:
         '''
         Returns a copy of the values stored in the list
         '''
         return self.__values.copy()
 
-    def copy(self):
+    def copy(self) -> "NodeSetValue":
         """
         Returns a copy of this value.
         """
@@ -411,7 +423,11 @@ class NodeValue:
         self.__signature = None
 
     @classmethod
-    def from_dict(cls, manifest, keypath, version, sctype):
+    def from_dict(cls,
+                  manifest: Dict,
+                  keypath: Tuple[str, ...],
+                  version: Optional[Tuple[int, ...]],
+                  sctype):
         '''
         Create a new value based on the provided dictionary.
 
@@ -427,7 +443,7 @@ class NodeValue:
         nodeval._from_dict(manifest, keypath, version)
         return nodeval
 
-    def getdict(self):
+    def getdict(self) -> Dict:
         """
         Returns a schema dictionary.
 
@@ -441,7 +457,10 @@ class NodeValue:
             "signature": self.get(field="signature")
         }
 
-    def _from_dict(self, manifest, keypath, version):
+    def _from_dict(self,
+                   manifest: Dict,
+                   keypath: Tuple[str, ...],
+                   version: Optional[Tuple[int, ...]]) -> None:
         '''
         Copies the information from the manifest into this value.
 
@@ -454,7 +473,7 @@ class NodeValue:
         self.set(manifest["value"], field="value")
         self.set(manifest["signature"], field="signature")
 
-    def get(self, field='value'):
+    def get(self, field: Optional[str] = 'value'):
         """
         Returns the value in the specified field
 
@@ -469,7 +488,7 @@ class NodeValue:
             return self.__signature
         raise ValueError(f"{field} is not a valid field")
 
-    def gettcl(self):
+    def gettcl(self) -> str:
         """
         Returns the tcl representation for the value
 
@@ -478,7 +497,7 @@ class NodeValue:
         """
         return NodeType.to_tcl(self.get(), self.__type)
 
-    def set(self, value, field='value'):
+    def set(self, value, field: str = 'value') -> "NodeValue":
         """
         Sets the value in a specific field and ensures it has been normalized.
 
@@ -497,14 +516,14 @@ class NodeValue:
             return self
         raise ValueError(f"{field} is not a valid field")
 
-    def add(self, value, field='value'):
+    def add(self, value, field: str = 'value') -> "NodeValue":
         """
         Not valid for this datatype, will raise a ValueError
         """
         raise ValueError(f"cannot add to {field} field")
 
     @property
-    def has_value(self):
+    def has_value(self) -> bool:
         """
         Returns true if this node has a value.
         """
@@ -517,23 +536,23 @@ class NodeValue:
             return False
 
     @property
-    def fields(self):
+    def fields(self) -> Tuple[Optional[str], ...]:
         """
         Returns a list of valid fields for this value
         """
         return (None, "value", "signature")
 
-    def copy(self):
+    def copy(self) -> "NodeValue":
         """
         Returns a copy of this value.
         """
 
         return copy.deepcopy(self)
 
-    def _set_type(self, sctype):
+    def _set_type(self, sctype) -> None:
         self.__type = NodeType.parse(sctype)
 
-    def __compute_signature(self, person, key, salt):
+    def __compute_signature(self, person: bytes, key: bytes, salt: bytes) -> str:
         h = blake2b(key=key, salt=salt, person=person)
         for field in self.fields:
             if field is None:
@@ -544,7 +563,7 @@ class NodeValue:
             h.update(str(self.get(field=field)).encode("utf-8"))
         return h.hexdigest()
 
-    def sign(self, person, key, salt=None):
+    def sign(self, person: str, key: str, salt: Optional[str] = None) -> None:
         """
         Generate a signature for this value.
 
@@ -556,19 +575,19 @@ class NodeValue:
         if not _has_sign:
             raise RuntimeError("encoding not available")
 
-        person = person.encode("utf-8")
-        key = key.encode("utf-8")
+        bperson = person.encode("utf-8")
+        bkey = key.encode("utf-8")
         if not salt:
-            salt = os.urandom(blake2b.SALT_SIZE)
+            bsalt = os.urandom(blake2b.SALT_SIZE)
         else:
-            salt = salt.encode("utf-8")
+            bsalt = salt.encode("utf-8")
 
-        digest = self.__compute_signature(person=person, key=key, salt=salt)
-        encode_person = b64encode(person).decode("utf-8")
-        encode_salt = b64encode(salt).decode("utf-8")
+        digest = self.__compute_signature(person=bperson, key=bkey, salt=bsalt)
+        encode_person = b64encode(bperson).decode("utf-8")
+        encode_salt = b64encode(bsalt).decode("utf-8")
         self.__signature = f"{encode_person}:{encode_salt}:{digest}"
 
-    def verify_signature(self, person, key):
+    def verify_signature(self, person: str, key: str) -> bool:
         """
         Verify the signature of this value.
 
@@ -582,17 +601,17 @@ class NodeValue:
         if not _has_sign:
             raise RuntimeError("encoding not available")
 
-        key = key.encode("utf-8")
-        person = person.encode("utf-8")
+        bkey = key.encode("utf-8")
+        bperson = person.encode("utf-8")
         encode_person, encode_salt, digest = self.__signature.split(":")
-        check_person = b64encode(person).decode("utf-8")
+        check_person = b64encode(bperson).decode("utf-8")
 
         if check_person != encode_person:
-            raise ValueError(f"{person.decode('utf-8')} does not match signing "
+            raise ValueError(f"{person} does not match signing "
                              f"person: {b64decode(encode_person).decode('utf-8')}")
 
         decode_salt = b64decode(encode_salt)
-        check_digest = self.__compute_signature(person=person, key=key, salt=decode_salt)
+        check_digest = self.__compute_signature(person=bperson, key=bkey, salt=decode_salt)
 
         if check_digest == digest:
             return True
@@ -615,32 +634,36 @@ class PathNodeValue(NodeValue):
         value (any): default value for this parameter
     '''
 
-    def __init__(self, type, value=None, dataroot=None):
+    def __init__(self, type, value: Optional[Union[str, pathlib.Path]] = None,
+                 dataroot: Optional[str] = None):
         super().__init__(type, value=value)
         self.__filehash = None
         self.__dataroot = dataroot
 
-    def getdict(self):
+    def getdict(self) -> Dict:
         return {
             **super().getdict(),
             "filehash": self.get(field="filehash"),
             "dataroot": self.get(field="dataroot")
         }
 
-    def _from_dict(self, manifest, keypath, version):
+    def _from_dict(self,
+                   manifest: Dict,
+                   keypath: Tuple[str, ...],
+                   version: Optional[Tuple[int, ...]]) -> None:
         super()._from_dict(manifest, keypath, version)
 
         self.set(manifest["filehash"], field="filehash")
         self.set(manifest["dataroot"], field="dataroot")
 
-    def get(self, field='value'):
+    def get(self, field: Optional[str] = 'value'):
         if field == 'filehash':
             return self.__filehash
         if field == 'dataroot':
             return self.__dataroot
         return super().get(field=field)
 
-    def set(self, value, field='value'):
+    def set(self, value, field: str = 'value') -> "PathNodeValue":
         if field == 'filehash':
             self.__filehash = NodeType.normalize(value, "str")
             return self
@@ -649,7 +672,8 @@ class PathNodeValue(NodeValue):
             return self
         return super().set(value, field=field)
 
-    def __resolve_collection_path(self, path, collection_dir):
+    def __resolve_collection_path(self, path: Union[str, pathlib.Path],
+                                  collection_dir: str) -> Optional[str]:
         try:
             collected_paths = os.listdir(collection_dir)
             if not collected_paths:
@@ -679,7 +703,8 @@ class PathNodeValue(NodeValue):
 
         return None
 
-    def resolve_path(self, search=None, collection_dir=None) -> str:
+    def resolve_path(self, search: Optional[List[str]] = None,
+                     collection_dir: Optional[str] = None) -> Optional[str]:
         """
         Resolve the path of this value.
 
@@ -689,7 +714,7 @@ class PathNodeValue(NodeValue):
             search (list of paths): list of paths to search to check for the path.
             collection_dir (path): path to collection directory.
         """
-        value = self.get()
+        value: Optional[Union[str, pathlib.Path]] = self.get()
         if value is None:
             return None
 
@@ -715,7 +740,8 @@ class PathNodeValue(NodeValue):
         raise FileNotFoundError(value)
 
     @staticmethod
-    def generate_hashed_path(path, dataroot):
+    def generate_hashed_path(path: Optional[Union[str, pathlib.Path]],
+                             dataroot: Optional[str]) -> Optional[str]:
         '''
         Utility to map file to an unambiguous name based on its path.
 
@@ -726,11 +752,14 @@ class PathNodeValue(NodeValue):
             path (str): path to directory or file
             dataroot (str): name of dataroot this file belongs to
         '''
-        path = pathlib.PurePosixPath(path)
-        ext = ''.join(path.suffixes)
+        if path is None:
+            return None
+
+        pure_path = pathlib.PurePosixPath(path)
+        ext = ''.join(pure_path.suffixes)
 
         # strip off all file suffixes to get just the bare name
-        barepath = path
+        barepath = pure_path
         while barepath.suffix:
             barepath = pathlib.PurePosixPath(barepath.stem)
         filename = str(barepath.parts[-1])
@@ -740,13 +769,13 @@ class PathNodeValue(NodeValue):
         else:
             dataroot = f'{dataroot}:'
 
-        path_to_hash = f'{dataroot}{str(path.parent)}'
+        path_to_hash = f'{dataroot}{str(pure_path.parent)}'
 
         pathhash = hashlib.sha1(path_to_hash.encode('utf-8')).hexdigest()
 
         return f'{filename}_{pathhash}{ext}'
 
-    def get_hashed_filename(self):
+    def get_hashed_filename(self) -> Optional[str]:
         '''
         Utility to map file to an unambiguous name based on its path.
 
@@ -755,7 +784,7 @@ class PathNodeValue(NodeValue):
         '''
         return PathNodeValue.generate_hashed_path(self.get(), self.__dataroot)
 
-    def hash(self, function, **kwargs):
+    def hash(self, function: str, **kwargs) -> Optional[str]:
         """
         Compute the hash for this path.
 
@@ -767,7 +796,9 @@ class PathNodeValue(NodeValue):
         raise NotImplementedError
 
     @staticmethod
-    def hash_directory(dirname, hashobj=None, hashfunction=None):
+    def hash_directory(dirname: Optional[Union[str, pathlib.Path]],
+                       hashobj=None,
+                       hashfunction: Optional[str] = None) -> Optional[str]:
         """
         Compute the hash for this directory.
 
@@ -781,6 +812,9 @@ class PathNodeValue(NodeValue):
             return None
 
         if not hashobj:
+            if hashfunction is None:
+                raise ValueError("hashfunction must be a string")
+
             hashfunc = getattr(hashlib, hashfunction, None)
             if not hashfunc:
                 raise RuntimeError("Unable to hash directory due to missing "
@@ -801,7 +835,9 @@ class PathNodeValue(NodeValue):
         return dirhash
 
     @staticmethod
-    def hash_file(filename, hashobj=None, hashfunction=None):
+    def hash_file(filename: Optional[Union[str, pathlib.Path]],
+                  hashobj=None,
+                  hashfunction: Optional[str] = None) -> Optional[str]:
         """
         Compute the hash for this file.
 
@@ -815,6 +851,9 @@ class PathNodeValue(NodeValue):
             return None
 
         if not hashobj:
+            if hashfunction is None:
+                raise ValueError("hashfunction must be a string")
+
             hashfunc = getattr(hashlib, hashfunction, None)
             if not hashfunc:
                 raise RuntimeError("Unable to hash file due to missing "
@@ -827,11 +866,11 @@ class PathNodeValue(NodeValue):
         return hashobj.hexdigest()
 
     @property
-    def fields(self):
+    def fields(self) -> Tuple[Optional[str], ...]:
         return (*super().fields, "filehash", "dataroot")
 
     @property
-    def type(self):
+    def type(self) -> str:
         raise NotImplementedError
 
 
@@ -843,10 +882,12 @@ class DirectoryNodeValue(PathNodeValue):
         value (any): default value for this parameter
     '''
 
-    def __init__(self, value=None, dataroot=None):
+    def __init__(self,
+                 value: Optional[Union[str, pathlib.Path]] = None,
+                 dataroot: Optional[str] = None):
         super().__init__("dir", value=value, dataroot=dataroot)
 
-    def hash(self, function, **kwargs):
+    def hash(self, function: str, **kwargs) -> Optional[str]:
         """
         Compute the hash for this directory.
 
@@ -859,7 +900,7 @@ class DirectoryNodeValue(PathNodeValue):
             self.resolve_path(**kwargs), hashfunction=function)
 
     @property
-    def type(self):
+    def type(self) -> str:
         return "dir"
 
 
@@ -871,32 +912,37 @@ class FileNodeValue(PathNodeValue):
         value (any): default value for this parameter
     '''
 
-    def __init__(self, value=None, dataroot=None):
+    def __init__(self,
+                 value: Optional[Union[str, pathlib.Path]] = None,
+                 dataroot: Optional[str] = None):
         super().__init__("file", value=value, dataroot=dataroot)
         self.__date = None
         self.__author = []
 
-    def getdict(self):
+    def getdict(self) -> Dict:
         return {
             **super().getdict(),
             "date": self.get(field="date"),
             "author": self.get(field="author")
         }
 
-    def _from_dict(self, manifest, keypath, version):
+    def _from_dict(self,
+                   manifest: Dict,
+                   keypath: Tuple[str, ...],
+                   version: Optional[Tuple[int, ...]]) -> None:
         super()._from_dict(manifest, keypath, version)
 
         self.set(manifest["date"], field="date")
         self.set(manifest["author"], field="author")
 
-    def get(self, field='value'):
+    def get(self, field: Optional[str] = 'value'):
         if field == 'date':
             return self.__date
         if field == 'author':
             return self.__author.copy()
         return super().get(field=field)
 
-    def set(self, value, field='value'):
+    def set(self, value, field: str = 'value') -> "FileNodeValue":
         if field == 'date':
             self.__date = NodeType.normalize(value, "str")
             return self
@@ -905,7 +951,7 @@ class FileNodeValue(PathNodeValue):
             return self
         return super().set(value, field=field)
 
-    def add(self, value, field='value'):
+    def add(self, value, field: str = 'value') -> "FileNodeValue":
         """
         Adds the value in a specific field and ensures it has been normalized.
 
@@ -922,7 +968,7 @@ class FileNodeValue(PathNodeValue):
             return self
         return super().add(value, field=field)
 
-    def hash(self, function, **kwargs):
+    def hash(self, function: str, **kwargs) -> Optional[str]:
         """
         Compute the hash for this file.
 
@@ -935,9 +981,9 @@ class FileNodeValue(PathNodeValue):
             self.resolve_path(**kwargs), hashfunction=function)
 
     @property
-    def fields(self):
+    def fields(self) -> Tuple[Optional[str], ...]:
         return (*super().fields, "date", "author")
 
     @property
-    def type(self):
+    def type(self) -> str:
         return "file"
