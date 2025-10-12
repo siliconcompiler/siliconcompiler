@@ -3,7 +3,7 @@ import re
 import os.path
 from pathlib import Path
 
-from typing import List, Union, Tuple, Dict
+from typing import List, Union, Tuple, Dict, Optional, Iterable, Type
 
 from siliconcompiler import utils
 
@@ -26,7 +26,7 @@ class Design(LibrarySchema, DependencySchema):
     and compilation settings.
     '''
 
-    def __init__(self, name: str = None):
+    def __init__(self, name: Optional[str] = None):
         '''
         Initializes a new Design object.
 
@@ -68,7 +68,7 @@ class Design(LibrarySchema, DependencySchema):
     ############################################
     def set_topmodule(self,
                       value: str,
-                      fileset: str = None) -> str:
+                      fileset: Optional[str] = None) -> str:
         """Sets the topmodule of a fileset.
 
         Args:
@@ -91,7 +91,7 @@ class Design(LibrarySchema, DependencySchema):
 
         return self.__set_add(fileset, 'topmodule', value, typelist=[str])
 
-    def get_topmodule(self, fileset: str = None) -> str:
+    def get_topmodule(self, fileset: Optional[str] = None) -> str:
         """Returns the topmodule of a fileset.
 
         Args:
@@ -106,9 +106,9 @@ class Design(LibrarySchema, DependencySchema):
     ##############################################
     def add_idir(self,
                  value: str,
-                 fileset: str = None,
+                 fileset: Optional[str] = None,
                  clobber: bool = False,
-                 dataroot: str = None) -> List[str]:
+                 dataroot: Optional[str] = None) -> List[str]:
         """Adds include directories to a fileset.
 
         Args:
@@ -125,7 +125,7 @@ class Design(LibrarySchema, DependencySchema):
                               typelist=[str, list, Path],
                               dataroot=dataroot)
 
-    def get_idir(self, fileset: str = None) -> List[str]:
+    def get_idir(self, fileset: Optional[str] = None) -> List[str]:
         """Returns include directories for a fileset.
 
         Args:
@@ -137,7 +137,7 @@ class Design(LibrarySchema, DependencySchema):
         """
         return self.__get(fileset, 'idir', is_file=True)
 
-    def has_idir(self, fileset: str = None) -> bool:
+    def has_idir(self, fileset: Optional[str] = None) -> bool:
         """Returns true if idirs are defined for the fileset
 
         Args:
@@ -152,7 +152,7 @@ class Design(LibrarySchema, DependencySchema):
     ##############################################
     def add_define(self,
                    value: str,
-                   fileset: str = None,
+                   fileset: Optional[str] = None,
                    clobber: bool = False) -> List[str]:
         """Adds preprocessor macro definitions to a fileset.
 
@@ -168,7 +168,7 @@ class Design(LibrarySchema, DependencySchema):
         """
         return self.__set_add(fileset, 'define', value, clobber, typelist=[str, list])
 
-    def get_define(self, fileset: str = None) -> List[str]:
+    def get_define(self, fileset: Optional[str] = None) -> List[str]:
         """Returns defined macros for a fileset.
 
         Args:
@@ -183,7 +183,7 @@ class Design(LibrarySchema, DependencySchema):
     ##############################################
     def add_undefine(self,
                      value: str,
-                     fileset: str = None,
+                     fileset: Optional[str] = None,
                      clobber: bool = False) -> List[str]:
         """Adds preprocessor macro (un)definitions to a fileset.
 
@@ -198,7 +198,7 @@ class Design(LibrarySchema, DependencySchema):
         """
         return self.__set_add(fileset, 'undefine', value, clobber, typelist=[str, list])
 
-    def get_undefine(self, fileset: str = None) -> List[str]:
+    def get_undefine(self, fileset: Optional[str] = None) -> List[str]:
         """Returns undefined macros for a fileset.
 
         Args:
@@ -214,9 +214,9 @@ class Design(LibrarySchema, DependencySchema):
     ###############################################
     def add_libdir(self,
                    value: str,
-                   fileset: str = None,
+                   fileset: Optional[str] = None,
                    clobber: bool = False,
-                   dataroot: str = None) -> List[str]:
+                   dataroot: Optional[str] = None) -> List[str]:
         """Adds dynamic library directories to a fileset.
 
         Args:
@@ -233,7 +233,7 @@ class Design(LibrarySchema, DependencySchema):
                               typelist=[str, list, Path],
                               dataroot=dataroot)
 
-    def get_libdir(self, fileset: str = None) -> List[str]:
+    def get_libdir(self, fileset: Optional[str] = None) -> List[str]:
         """Returns dynamic library directories for a fileset.
 
         Args:
@@ -245,7 +245,7 @@ class Design(LibrarySchema, DependencySchema):
         """
         return self.__get(fileset, 'libdir', is_file=True)
 
-    def has_libdir(self, fileset: str = None) -> bool:
+    def has_libdir(self, fileset: Optional[str] = None) -> bool:
         """Returns true if library directories are defined for the fileset
 
         Args:
@@ -260,7 +260,7 @@ class Design(LibrarySchema, DependencySchema):
     ###############################################
     def add_lib(self,
                 value: str,
-                fileset: str = None,
+                fileset: Optional[str] = None,
                 clobber: bool = False) -> List[str]:
         """Adds dynamic libraries to a fileset.
 
@@ -275,7 +275,7 @@ class Design(LibrarySchema, DependencySchema):
         """
         return self.__set_add(fileset, 'lib', value, clobber, typelist=[str, list])
 
-    def get_lib(self, fileset: str = None) -> List[str]:
+    def get_lib(self, fileset: Optional[str] = None) -> List[str]:
         """Returns list of dynamic libraries for a fileset.
 
         Args:
@@ -291,7 +291,7 @@ class Design(LibrarySchema, DependencySchema):
     def set_param(self,
                   name: str,
                   value: str,
-                  fileset: str = None) -> str:
+                  fileset: Optional[str] = None) -> str:
         """Sets a named parameter for a fileset.
 
         Args:
@@ -317,7 +317,7 @@ class Design(LibrarySchema, DependencySchema):
 
     def get_param(self,
                   name: str,
-                  fileset: str = None) -> str:
+                  fileset: Optional[str] = None) -> str:
         """Returns value of a named fileset parameter.
 
         Args:
@@ -337,8 +337,8 @@ class Design(LibrarySchema, DependencySchema):
 
     ###############################################
     def add_depfileset(self, dep: Union["Design", str],
-                       depfileset: str = None,
-                       fileset: str = None):
+                       depfileset: Optional[str] = None,
+                       fileset: Optional[str] = None):
         """
         Record a reference to an imported dependency's fileset.
 
@@ -388,7 +388,7 @@ class Design(LibrarySchema, DependencySchema):
 
         return self.add("fileset", fileset, "depfileset", (dep_name, depfileset))
 
-    def get_depfileset(self, fileset: str = None):
+    def get_depfileset(self, fileset: Optional[str] = None):
         """
         Returns list of dependency filesets.
 
@@ -409,8 +409,8 @@ class Design(LibrarySchema, DependencySchema):
 
     def __write_flist(self,
                       filename: str,
-                      filesets: List[str],
-                      depalias: Dict[str, Tuple[NamedSchema, str]],
+                      filesets: Union[List[str], str],
+                      depalias: Optional[Dict[Tuple[str, str], Tuple[NamedSchema, str]]],
                       comments: bool = False):
         '''
         Internal helper to write a Verilog-style file list (`.f` file).
@@ -462,7 +462,7 @@ class Design(LibrarySchema, DependencySchema):
         with open(filename, "w") as f:
             f.write(content.getvalue())
 
-    def __map_fileformat(self, path):
+    def __map_fileformat(self, path: str) -> str:
         '''
         Internal helper to determine file format from a file extension.
 
@@ -486,9 +486,9 @@ class Design(LibrarySchema, DependencySchema):
     ###############################################
     def write_fileset(self,
                       filename: str,
-                      fileset: str = None,
-                      fileformat: str = None,
-                      depalias: Dict[str, Tuple[NamedSchema, str]] = None,
+                      fileset: Optional[Union[Iterable[str], str]] = None,
+                      fileformat: Optional[str] = None,
+                      depalias: Optional[Dict[Tuple[str, str], Tuple[NamedSchema, str]]] = None,
                       comments: bool = False) -> None:
         """Exports filesets to a standard formatted text file.
 
@@ -583,7 +583,7 @@ class Design(LibrarySchema, DependencySchema):
                 self.set_dataroot(dataroot_name, path_dir)
                 dataroots[path_dir] = dataroot_name
 
-        def get_dataroot(path):
+        def get_dataroot(path: str) -> Tuple[Optional[str], Optional[str]]:
             for pdir, name in dataroots.items():
                 if path.startswith(pdir):
                     return name, pdir
@@ -609,8 +609,8 @@ class Design(LibrarySchema, DependencySchema):
     ################################################
     def read_fileset(self,
                      filename: str,
-                     fileset: str = None,
-                     fileformat=None) -> None:
+                     fileset: Optional[str] = None,
+                     fileformat: Optional[str] = None) -> None:
         """Imports filesets from a standard formatted text file.
 
         Currently supports Verilog `flist` format only.
@@ -641,7 +641,13 @@ class Design(LibrarySchema, DependencySchema):
     ################################################
     # Helper Functions
     ################################################
-    def __set_add(self, fileset, option, value, clobber=False, typelist=None, dataroot=...):
+    def __set_add(self,
+                  fileset: str,
+                  option: str,
+                  value: Union[List[str], str],
+                  clobber: bool = False,
+                  typelist: Optional[List[Union[Type[str], Type[List], Type[Path]]]] = None,
+                  dataroot: Optional[str] = ...):
         '''
         Internal helper to set or add a parameter value in the schema.
 
@@ -693,7 +699,7 @@ class Design(LibrarySchema, DependencySchema):
 
         return params
 
-    def __get(self, fileset: str, option: str, is_file: bool = False) -> List[str]:
+    def __get(self, fileset: Optional[str], option: str, is_file: bool = False) -> List[str]:
         '''
         Internal helper to get a parameter value from the schema.
 
@@ -785,7 +791,7 @@ class Design(LibrarySchema, DependencySchema):
 
     def get_fileset(self,
                     filesets: Union[List[str], str],
-                    alias: Dict[Tuple[str, str], Tuple[NamedSchema, str]] = None) -> \
+                    alias: Optional[Dict[Tuple[str, str], Tuple[NamedSchema, str]]] = None) -> \
             List[Tuple[NamedSchema, str]]:
         """
         Computes the full, recursive list of (design, fileset) tuples
@@ -817,7 +823,7 @@ class Design(LibrarySchema, DependencySchema):
 ###########################################################################
 # Schema
 ###########################################################################
-def schema_design(schema):
+def schema_design(schema: Design):
     '''
     Defines the schema parameters specific to a design.
 
@@ -829,7 +835,7 @@ def schema_design(schema):
         schema (Design): The schema object to configure.
     '''
 
-    schema = EditableSchema(schema)
+    edit = EditableSchema(schema)
 
     fileset = 'default'
 
@@ -837,7 +843,7 @@ def schema_design(schema):
     # Options
     ###########################
 
-    schema.insert(
+    edit.insert(
         'fileset', fileset, 'topmodule',
         Parameter(
             'str',
@@ -849,7 +855,7 @@ def schema_design(schema):
             help=trim("""
             Name of top module specified on a per fileset basis.""")))
 
-    schema.insert(
+    edit.insert(
         'fileset', fileset, 'idir',
         Parameter(
             ['dir'],
@@ -863,7 +869,7 @@ def schema_design(schema):
             compilation. If multiple paths are provided, they are searched
             in the order given.""")))
 
-    schema.insert(
+    edit.insert(
         'fileset', fileset, 'define',
         Parameter(
             ['str'],
@@ -876,7 +882,7 @@ def schema_design(schema):
             preprocessing, such as Verilog, C, and C++. The macro format is
             is `MACRONAME[=value]`, where [=value] is optional.""")))
 
-    schema.insert(
+    edit.insert(
         'fileset', fileset, 'undefine',
         Parameter(
             ['str'],
@@ -888,7 +894,7 @@ def schema_design(schema):
             Undefines a macro that may have been previously defined via the
             compiler, options, or header files.""")))
 
-    schema.insert(
+    edit.insert(
         'fileset', fileset, 'libdir',
         Parameter(
             ['dir'],
@@ -901,7 +907,7 @@ def schema_design(schema):
             :keypath:`Design,fileset,<fileset>,lib` parameter. If multiple paths are provided,
             they are searched based on the order of the libdir list.""")))
 
-    schema.insert(
+    edit.insert(
         'fileset', fileset, 'lib',
         Parameter(
             ['str'],
@@ -915,7 +921,7 @@ def schema_design(schema):
             paths specified by :keypath:`Design,fileset,<fileset>,libdir` parameter.""")))
 
     name = 'default'
-    schema.insert(
+    edit.insert(
         'fileset', fileset, 'param', name,
         Parameter(
             'str',
@@ -929,7 +935,7 @@ def schema_design(schema):
             coupled to tools being used. For example, in Verilog only integer
             literals (64'h4, 2'b0, 4) and strings are supported.""")))
 
-    schema.insert(
+    edit.insert(
         'fileset', fileset, 'depfileset',
         Parameter(
             '[(str,str)]',

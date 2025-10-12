@@ -1,6 +1,6 @@
 import contextlib
 
-from typing import List, Tuple
+from typing import List, Tuple, Optional, Union, Iterable
 
 from siliconcompiler import utils
 
@@ -44,10 +44,10 @@ class FileSetSchema(PathSchema):
     ###############################################
     def add_file(self,
                  filename: str,
-                 fileset: str = None,
-                 filetype: str = None,
+                 fileset: Optional[str] = None,
+                 filetype: Optional[str] = None,
                  clobber: bool = False,
-                 dataroot: str = None) -> List[str]:
+                 dataroot: Optional[str] = None) -> List[str]:
         """
         Adds files to a fileset.
 
@@ -121,8 +121,8 @@ class FileSetSchema(PathSchema):
 
     ###############################################
     def get_file(self,
-                 fileset: str = None,
-                 filetype: str = None):
+                 fileset: Optional[str] = None,
+                 filetype: Optional[str] = None) -> List[str]:
         """Returns a list of files from one or more filesets.
 
         Args:
@@ -159,7 +159,7 @@ class FileSetSchema(PathSchema):
         return filelist
 
     ###############################################
-    def has_file(self, fileset: str = None, filetype: str = None) -> bool:
+    def has_file(self, fileset: Optional[str] = None, filetype: Optional[str] = None) -> bool:
         """Returns true if the fileset contains files.
 
         Args:
@@ -225,7 +225,7 @@ class FileSetSchema(PathSchema):
         with self._active(fileset=fileset):
             yield
 
-    def copy_fileset(self, src_fileset: str, dst_fileset: str, clobber: bool = False):
+    def copy_fileset(self, src_fileset: str, dst_fileset: str, clobber: bool = False) -> None:
         """
         Creates a new copy of a source fileset.
 
@@ -248,7 +248,7 @@ class FileSetSchema(PathSchema):
         new_fs = self.get("fileset", src_fileset, field="schema").copy()
         EditableSchema(self).insert("fileset", dst_fileset, new_fs, clobber=True)
 
-    def _assert_fileset(self, fileset: str) -> None:
+    def _assert_fileset(self, fileset: Union[Iterable[str], str]) -> None:
         """
         Raises an error if the specified fileset does not exist.
 
@@ -256,6 +256,11 @@ class FileSetSchema(PathSchema):
             TypeError: If `fileset` is not a string.
             LookupError: If the fileset is not found.
         """
+
+        if isinstance(fileset, (list, set, tuple)):
+            for fs in fileset:
+                self._assert_fileset(fs)
+            return
 
         if not isinstance(fileset, str):
             raise TypeError("fileset must be a string")
@@ -282,7 +287,7 @@ class FileSetSchema(PathSchema):
 
     def _generate_doc(self, doc,
                       ref_root: str = "",
-                      key_offset: Tuple[str] = None,
+                      key_offset: Tuple[str, ...] = None,
                       detailed: bool = True):
         from ..schema.docs.utils import build_section
 

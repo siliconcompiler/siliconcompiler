@@ -1236,7 +1236,7 @@ def test_find_files_scalar_file_not_found_multiple_search():
             super().__init__()
             EditableSchema(self).insert("file", Parameter("file"))
 
-        def _find_files_search_paths(self, keypath, step, index):
+        def _find_files_search_paths(self, key, step, index):
             return ["path0", "path1"]
 
     schema = CustomFiles()
@@ -2149,9 +2149,9 @@ def test_find_files_custom_class_search_paths():
             EditableSchema(self).insert("rootedfile", Parameter("file"))
             EditableSchema(self).insert("unrootedfile", Parameter("file"))
 
-        def _find_files_search_paths(self, keypath, step, index):
-            paths = super()._find_files_search_paths(keypath, step, index)
-            if keypath == "rootedfile":
+        def _find_files_search_paths(self, key, step, index):
+            paths = super()._find_files_search_paths(key, step, index)
+            if key == "rootedfile":
                 paths.append(os.path.abspath("thisroot"))
             return paths
 

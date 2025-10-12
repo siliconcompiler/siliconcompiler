@@ -231,7 +231,7 @@ class Checklist(NamedSchema):
 
     def _generate_doc(self, doc,
                       ref_root: str = "",
-                      key_offset: Tuple[str] = None,
+                      key_offset: Tuple[str, ...] = None,
                       detailed: bool = True):
         from .schema.docs.utils import build_section
         settings = build_section('Configuration', f"{ref_root}-config")

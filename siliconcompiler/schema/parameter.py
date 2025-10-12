@@ -160,7 +160,7 @@ class Parameter:
 
     def _generate_doc(self, doc,
                       ref_root: str = "",
-                      key_offset: Tuple[str] = None,
+                      key_offset: Tuple[str, ...] = None,
                       detailed: bool = True):
         from .docs.utils import strong, para, code, build_list, build_table
         from docutils.statemachine import ViewList

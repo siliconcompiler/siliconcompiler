@@ -142,7 +142,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
                 edit.insert("var", var,
                             Parameter.from_dict(
                                 manifest["var"][var],
-                                keypath=keypath + [var],
+                                keypath=list(keypath) + [var],
                                 version=version))
                 del manifest["var"][var]
 
@@ -1734,24 +1734,24 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         return super().find_files(*keypath, missing_ok=missing_ok,
                                   step=step, index=index)
 
-    def _find_files_search_paths(self, keypath, step, index):
-        search_paths = super()._find_files_search_paths(keypath, step, index)
-        if keypath == "script":
+    def _find_files_search_paths(self, key, step, index):
+        search_paths = super()._find_files_search_paths(key, step, index)
+        if key == "script":
             search_paths.extend(self.find_files("refdir", step=step, index=index))
-        elif keypath == "input":
+        elif key == "input":
             search_paths.append(os.path.join(
                 paths.workdir(self._parent(root=True), step=step, index=index), "inputs"))
-        elif keypath == "report":
+        elif key == "report":
             search_paths.append(os.path.join(
-                paths.workdir(self._parent(root=True), step=step, index=index), "report"))
-        elif keypath == "output":
+                paths.workdir(self._parent(root=True), step=step, index=index), "reports"))
+        elif key == "output":
             search_paths.append(os.path.join(
                 paths.workdir(self._parent(root=True), step=step, index=index), "outputs"))
         return search_paths
 
     def _generate_doc(self, doc,
                       ref_root: str = "",
-                      key_offset: Tuple[str] = None,
+                      key_offset: Tuple[str, ...] = None,
                       detailed: bool = True):
         from .schema.docs.utils import build_section, strong, KeyPath, code, para, \
             build_table, build_schema_value_table
