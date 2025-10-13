@@ -1192,7 +1192,7 @@ class BaseSchema:
 
     def _generate_doc(self, doc,
                       ref_root: str = "",
-                      key_offset: Tuple[str, ...] = None,
+                      key_offset: Optional[Tuple[str, ...]] = None,
                       detailed: bool = True):
         from .docs.utils import build_section_with_target, build_schema_value_table, get_key_ref, \
             parse_rst

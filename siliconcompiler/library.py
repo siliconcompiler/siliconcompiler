@@ -140,7 +140,7 @@ class ToolLibrarySchema(LibrarySchema):
 
     def _generate_doc(self, doc,
                       ref_root: str = "",
-                      key_offset: Tuple[str, ...] = None,
+                      key_offset: Optional[Tuple[str, ...]] = None,
                       detailed: bool = True):
         from .schema.docs.utils import build_section, strong, KeyPath, code, para, build_table
         from docutils import nodes
@@ -415,7 +415,7 @@ class StdCellLibrary(ToolLibrarySchema, DependencySchema):
 
     def _generate_doc(self, doc,
                       ref_root: str = "",
-                      key_offset: Tuple[str, ...] = None,
+                      key_offset: Optional[Tuple[str, ...]] = None,
                       detailed: bool = True):
         from .schema.docs.utils import build_section
         docs = []

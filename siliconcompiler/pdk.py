@@ -1,6 +1,6 @@
 import math
 
-from typing import Tuple
+from typing import Tuple, Optional, Union, List
 
 from siliconcompiler.schema import EditableSchema, Parameter, Scope, BaseSchema
 from siliconcompiler.schema.utils import trim
@@ -20,7 +20,7 @@ class PDK(ToolLibrarySchema):
     ToolLibrarySchema to provide a standardized way of describing and
     accessing PDK data within the SiliconCompiler framework.
     """
-    def __init__(self, name: str = None):
+    def __init__(self, name: Optional[str] = None):
         """
         Initializes a PDK object.
 
@@ -405,7 +405,7 @@ class PDK(ToolLibrarySchema):
         """
         return self.set("pdk", "edgemargin", margin)
 
-    def set_aprroutinglayers(self, min: str = None, max: str = None):
+    def set_aprroutinglayers(self, min: Optional[str] = None, max: Optional[str] = None):
         """
         Sets the minimum and maximum routing layers for the PDK.
 
@@ -418,7 +418,8 @@ class PDK(ToolLibrarySchema):
         if max:
             self.set("pdk", "maxlayer", max)
 
-    def add_aprtechfileset(self, tool: str, fileset: str = None, clobber: bool = False):
+    def add_aprtechfileset(self, tool: str, fileset: Optional[Union[List[str], str]] = None,
+                           clobber: bool = False):
         """
         Adds a fileset containing APR technology files.
 
@@ -438,7 +439,8 @@ class PDK(ToolLibrarySchema):
         else:
             return self.add("pdk", "aprtechfileset", tool, fileset)
 
-    def add_layermapfileset(self, tool: str, src: str, dst: str, fileset: str = None,
+    def add_layermapfileset(self, tool: str, src: str, dst: str,
+                            fileset: Optional[Union[List[str], str]] = None,
                             clobber: bool = False):
         """
         Adds a fileset containing layer map files.
@@ -461,7 +463,8 @@ class PDK(ToolLibrarySchema):
         else:
             return self.add("pdk", "layermapfileset", tool, src, dst, fileset)
 
-    def add_displayfileset(self, tool: str, fileset: str = None, clobber: bool = False):
+    def add_displayfileset(self, tool: str, fileset: Optional[Union[List[str], str]] = None,
+                           clobber: bool = False):
         """
         Adds a fileset containing display configuration files.
 
@@ -481,7 +484,8 @@ class PDK(ToolLibrarySchema):
         else:
             return self.add("pdk", "displayfileset", tool, fileset)
 
-    def add_devmodelfileset(self, tool: str, type: str, fileset: str = None,
+    def add_devmodelfileset(self, tool: str, type: str,
+                            fileset: Optional[Union[List[str], str]] = None,
                             clobber: bool = False):
         """
         Adds a fileset containing device model files.
@@ -503,7 +507,8 @@ class PDK(ToolLibrarySchema):
         else:
             return self.add("pdk", "devmodelfileset", tool, type, fileset)
 
-    def add_pexmodelfileset(self, tool: str, corner: str, fileset: str = None,
+    def add_pexmodelfileset(self, tool: str, corner: str,
+                            fileset: Optional[Union[List[str], str]] = None,
                             clobber: bool = False):
         """
         Adds a fileset containing parasitic extraction (pex) model files.
@@ -525,7 +530,8 @@ class PDK(ToolLibrarySchema):
         else:
             return self.add("pdk", "pexmodelfileset", tool, corner, fileset)
 
-    def add_runsetfileset(self, type: str, tool: str, name: str, fileset: str = None,
+    def add_runsetfileset(self, type: str, tool: str, name: str,
+                          fileset: Optional[Union[List[str], str]] = None,
                           clobber: bool = False):
         """
         Adds a fileset containing a runset for a specific verification task.
@@ -548,7 +554,8 @@ class PDK(ToolLibrarySchema):
         else:
             return self.add("pdk", type, "runsetfileset", tool, name, fileset)
 
-    def add_waiverfileset(self, type: str, tool: str, name: str, fileset: str = None,
+    def add_waiverfileset(self, type: str, tool: str, name: str,
+                          fileset: Optional[Union[List[str], str]] = None,
                           clobber: bool = False):
         """
         Adds a fileset containing waiver files for a specific verification task.
@@ -601,7 +608,7 @@ class PDK(ToolLibrarySchema):
             >>> yield = pdk.calc_yield(1500.0)
             # Calculates yield for a 1500 um^2 die.
         '''
-        d0 = self.get('pdk', 'd0')
+        d0: Optional[float] = self.get('pdk', 'd0')
         if d0 is None:
             raise ValueError(f"[{','.join([*self._keypath, 'pdk', 'd0'])}] has not been set")
 
@@ -641,16 +648,16 @@ class PDK(ToolLibrarySchema):
             # Calculates dies per wafer for a 1000x1500 um die.
         '''
         # PDK information
-        wafersize = self.get('pdk', 'wafersize')
+        wafersize: Optional[float] = self.get('pdk', 'wafersize')
 
         if wafersize is None:
             raise ValueError(f"[{','.join([*self._keypath, 'pdk', 'wafersize'])}] has not been set")
 
-        edgemargin = self.get('pdk', 'edgemargin')
+        edgemargin: Optional[float] = self.get('pdk', 'edgemargin')
         if edgemargin is None:
             edgemargin = 0.0
 
-        scribe = self.get('pdk', 'scribe')
+        scribe: Tuple[Optional[float], Optional[float]] = self.get('pdk', 'scribe')
         if scribe:
             hscribe, vscribe = scribe
         else:
@@ -709,7 +716,7 @@ class PDK(ToolLibrarySchema):
 
     def _generate_doc(self, doc,
                       ref_root: str = "",
-                      key_offset: Tuple[str, ...] = None,
+                      key_offset: Optional[Tuple[str, ...]] = None,
                       detailed: bool = True):
         from .schema.docs.utils import build_section
         docs = []

@@ -856,7 +856,7 @@ class Flowgraph(NamedSchema, DocsSchema):
 
     def _generate_doc(self, doc,
                       ref_root: str = "",
-                      key_offset: Tuple[str, ...] = None,
+                      key_offset: Optional[Tuple[str, ...]] = None,
                       detailed: bool = True):
         from .schema.docs.utils import image, build_section
 

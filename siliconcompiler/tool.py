@@ -32,7 +32,7 @@ import os.path
 from packaging.version import Version, InvalidVersion
 from packaging.specifiers import SpecifierSet, InvalidSpecifier
 
-from typing import List, Dict, Tuple, Union
+from typing import List, Dict, Tuple, Union, Optional
 
 from siliconcompiler.schema import BaseSchema, NamedSchema, Journal, DocsSchema
 from siliconcompiler.schema import EditableSchema, Parameter, PerNode, Scope
@@ -1675,7 +1675,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         if source_file:
             self.add("report", metric, source_file)
 
-    def get_fileset_file_keys(self, filetype: str) -> List[Tuple[NamedSchema, Tuple[str]]]:
+    def get_fileset_file_keys(self, filetype: str) -> List[Tuple[NamedSchema, Tuple[str, ...]]]:
         """
         Collect a set of keys for a particular filetype.
 
@@ -1751,7 +1751,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
 
     def _generate_doc(self, doc,
                       ref_root: str = "",
-                      key_offset: Tuple[str, ...] = None,
+                      key_offset: Optional[Tuple[str, ...]] = None,
                       detailed: bool = True):
         from .schema.docs.utils import build_section, strong, KeyPath, code, para, \
             build_table, build_schema_value_table
