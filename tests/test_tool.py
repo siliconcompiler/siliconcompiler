@@ -2065,7 +2065,7 @@ def test_show_keys(cls):
 
 @pytest.mark.parametrize("cls", [ShowTask, ScreenshotTask])
 def test_show_check_task_none(cls):
-    assert cls._ShowTask__check_task(None) is None
+    assert cls._ShowTask__check_task(None) is False
 
 
 @pytest.mark.parametrize("cls", [ShowTask, ScreenshotTask])

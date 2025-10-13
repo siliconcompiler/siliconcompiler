@@ -248,7 +248,7 @@ class FileSetSchema(PathSchema):
         new_fs = self.get("fileset", src_fileset, field="schema").copy()
         EditableSchema(self).insert("fileset", dst_fileset, new_fs, clobber=True)
 
-    def _assert_fileset(self, fileset: Union[Iterable[str], str]) -> None:
+    def _assert_fileset(self, fileset: Union[None, Iterable[str], str]) -> None:
         """
         Raises an error if the specified fileset does not exist.
 
@@ -287,7 +287,7 @@ class FileSetSchema(PathSchema):
 
     def _generate_doc(self, doc,
                       ref_root: str = "",
-                      key_offset: Tuple[str, ...] = None,
+                      key_offset: Optional[Tuple[str, ...]] = None,
                       detailed: bool = True):
         from ..schema.docs.utils import build_section
 
