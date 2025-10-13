@@ -1743,42 +1743,42 @@ class Task(NamedSchema, PathSchema, DocsSchema):
     ###############################################################
     def get(self, *keypath: str, field: Optional[str] = 'value',
             step: Optional[str] = None, index: Optional[Union[str, int]] = None):
-        if not step:
+        if step is None:
             step = self.__step
-        if not index:
+        if index is None:
             index = self.__index
         return super().get(*keypath, field=field, step=step, index=index)
 
     def set(self, *args, field: str = 'value',
             step: Optional[str] = None, index: Optional[Union[str, int]] = None,
             clobber: bool = True):
-        if not step:
+        if step is None:
             step = self.__step
-        if not index:
+        if index is None:
             index = self.__index
         return super().set(*args, field=field, clobber=clobber, step=step, index=index)
 
     def add(self, *args, field: str = 'value',
             step: Optional[str] = None, index: Optional[Union[str, int]] = None):
-        if not step:
+        if step is None:
             step = self.__step
-        if not index:
+        if index is None:
             index = self.__index
         return super().add(*args, field=field, step=step, index=index)
 
     def unset(self, *args: str,
               step: Optional[str] = None, index: Optional[Union[str, int]] = None):
-        if not step:
+        if step is None:
             step = self.__step
-        if not index:
+        if index is None:
             index = self.__index
         return super().unset(*args, step=step, index=index)
 
     def find_files(self, *keypath: str, missing_ok: bool = False,
                    step: Optional[str] = None, index: Optional[Union[str, int]] = None):
-        if not step:
+        if step is None:
             step = self.__step
-        if not index:
+        if index is None:
             index = self.__index
         return super().find_files(*keypath, missing_ok=missing_ok,
                                   step=step, index=index)
