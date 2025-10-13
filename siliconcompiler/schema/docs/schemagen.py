@@ -136,9 +136,10 @@ class SchemaGen(SphinxDirective):
                         methods_sec += cls_ref
                     schema_sec += methods_sec
 
-            key_offset = [key_part
-                          for key_part in self.options.get("key_offset", "").split(",")
-                          if key_part]
+            key_offset = tuple(
+                [key_part
+                 for key_part in self.options.get("key_offset", "").split(",")
+                 if key_part])
             if not key_offset:
                 key_offset = None
 

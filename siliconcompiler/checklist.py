@@ -237,7 +237,7 @@ class Checklist(NamedSchema):
         settings = build_section('Configuration', f"{ref_root}-config")
 
         if not key_offset:
-            key_offset = []
+            key_offset = tuple()
 
         for key in self.getkeys():
             criteria = build_section(key, f"{ref_root}-config-{key}")

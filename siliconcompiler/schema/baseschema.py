@@ -1199,7 +1199,7 @@ class BaseSchema:
         from docutils import nodes
 
         if not key_offset:
-            key_offset = []
+            key_offset = tuple()
 
         if detailed:
             sections = []

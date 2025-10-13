@@ -83,7 +83,7 @@ class RecordSchema(BaseSchema):
 
         Args:
             step (str): Step name to clear.
-            index (str): Index name to clear.
+            index (str or int): Index name to clear.
             keep (list of str): list of records to keep.
         '''
 
@@ -122,7 +122,7 @@ class RecordSchema(BaseSchema):
 
         Args:
             step (str): Step name to associate.
-            index (str): Index name to associate.
+            index (str or int): Index name to associate.
         '''
         self.set('scversion', _metadata.version, step=step, index=index)
         self.set('pythonversion', platform.python_version(), step=step, index=index)
@@ -255,7 +255,7 @@ class RecordSchema(BaseSchema):
 
         Args:
             step (str): Step name to associate.
-            index (str): Index name to associate.
+            index (str or int): Index name to associate.
         '''
         machine_info = RecordSchema.get_machine_information()
         user_info = RecordSchema.get_user_information()
@@ -287,7 +287,7 @@ class RecordSchema(BaseSchema):
 
         Args:
             step (str): Step name to associate.
-            index (str): Index name to associate.
+            index (str or int): Index name to associate.
             type (:class:`RecordTime`): type of time to record
         '''
         type = RecordTime(type)
@@ -307,7 +307,7 @@ class RecordSchema(BaseSchema):
 
         Args:
             step (str): Step name to associate.
-            index (str): Index name to associate.
+            index (str or int): Index name to associate.
             type (:class:`RecordTime`): type of time to record
         '''
         type = RecordTime(type)
@@ -364,7 +364,7 @@ class RecordSchema(BaseSchema):
 
         Args:
             step (str): Step name to associate.
-            index (str): Index name to associate.
+            index (str or int): Index name to associate.
             info (any): Information to record.
             type (:class:`RecordTool`): type of tool information being recorded
         '''

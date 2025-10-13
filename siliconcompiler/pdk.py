@@ -722,7 +722,7 @@ class PDK(ToolLibrarySchema):
         docs = []
 
         if not key_offset:
-            key_offset = ["PDK"]
+            key_offset = ("PDK",)
 
         # Show dataroot
         dataroot = PathSchema._generate_doc(self, doc, ref_root)

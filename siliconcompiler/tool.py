@@ -1811,7 +1811,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         docs = []
 
         if not key_offset:
-            key_offset = []
+            key_offset = tuple()
 
         # Show dataroot
         dataroot = PathSchema._generate_doc(self, doc, ref_root=ref_root, key_offset=key_offset)
@@ -1877,8 +1877,8 @@ class Task(NamedSchema, PathSchema, DocsSchema):
             params[key] = self.get(*key, field=None)
 
         with KeyPath.fallback(...):
-            table = build_schema_value_table(params, "", key_offset + list(self._keypath),
-                                             trim_prefix=key_offset + list(self._keypath))
+            table = build_schema_value_table(params, "", list(key_offset) + list(self._keypath),
+                                             trim_prefix=list(key_offset) + list(self._keypath))
         setup_info = build_section("Configuration", f"{ref_root}-config")
         setup_info += table
         docs.append(setup_info)
@@ -2056,7 +2056,7 @@ class ShowTask(Task):
             ShowTask.__TASKS.setdefault(cls, set()).update(classes)
 
     @classmethod
-    def get_task(cls, ext: str) -> Optional["ShowTask"]:
+    def get_task(cls, ext: Optional[str]) -> Union[Optional["ShowTask"], Set[Type["ShowTask"]]]:
         """
         Retrieves a suitable show task instance for a given file extension.
 

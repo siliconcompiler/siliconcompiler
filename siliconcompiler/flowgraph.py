@@ -861,7 +861,7 @@ class Flowgraph(NamedSchema, DocsSchema):
         from .schema.docs.utils import image, build_section
 
         if not key_offset:
-            key_offset = []
+            key_offset = tuple()
 
         docs = []
         image_sec = build_section("Graph", f"{ref_root}-flow-{self.name}-graph")

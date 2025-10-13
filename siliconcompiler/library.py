@@ -146,7 +146,7 @@ class ToolLibrarySchema(LibrarySchema):
         from docutils import nodes
 
         if not key_offset:
-            key_offset = []
+            key_offset = tuple()
 
         tools_added = False
         if "tool" in self.getkeys():
@@ -421,7 +421,7 @@ class StdCellLibrary(ToolLibrarySchema, DependencySchema):
         docs = []
 
         if not key_offset:
-            key_offset = ["StdCellLibrary"]
+            key_offset = ("StdCellLibrary",)
 
         # Show dataroot
         dataroot = PathSchema._generate_doc(self, doc, ref_root=ref_root, key_offset=key_offset)
