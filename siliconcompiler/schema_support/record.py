@@ -77,7 +77,7 @@ class RecordSchema(BaseSchema):
 
         return ret
 
-    def clear(self, step: str, index: Union[str, str], keep: Optional[List[str]] = None) -> None:
+    def clear(self, step: str, index: Union[str, int], keep: Optional[List[str]] = None) -> None:
         '''
         Clear all saved metrics for a given step and index.
 
@@ -116,7 +116,7 @@ class RecordSchema(BaseSchema):
             for pkg in freeze():
                 self.add('pythonpackage', pkg)
 
-    def record_version(self, step: str, index: Union[str, str]) -> None:
+    def record_version(self, step: str, index: Union[str, int]) -> None:
         '''
         Records the versions for SiliconCompiler and python.
 
@@ -247,7 +247,7 @@ class RecordSchema(BaseSchema):
         '''
         return {'username': getpass.getuser()}
 
-    def record_userinformation(self, step: str, index: Union[str, str]) -> None:
+    def record_userinformation(self, step: str, index: Union[str, int]) -> None:
         '''
         Records information about the current machine and user.
         Uses information from :meth:`get_machine_information`, :meth:`get_user_information`,
@@ -278,7 +278,7 @@ class RecordSchema(BaseSchema):
         if ip_information['mac']:
             self.set('macaddr', ip_information['mac'], step=step, index=index)
 
-    def record_time(self, step: str, index: Union[str, str], type: RecordTime) -> float:
+    def record_time(self, step: str, index: Union[str, int], type: RecordTime) -> float:
         '''
         Record the time of the record.
 
@@ -300,7 +300,7 @@ class RecordSchema(BaseSchema):
 
         return now.timestamp()
 
-    def get_recorded_time(self, step: str, index: Union[str, str],
+    def get_recorded_time(self, step: str, index: Union[str, int],
                           type: RecordTime) -> Optional[float]:
         '''
         Returns the time recorded for a given record, or None if nothing is recorded.
@@ -346,7 +346,7 @@ class RecordSchema(BaseSchema):
             type (:class:`RecordTime`): type of time to record
         '''
         type = RecordTime(type)
-        record_param = self.get(type.value, field=None)
+        record_param: Parameter = self.get(type.value, field=None)
 
         times = set()
         for _, step, index in record_param.getvalues():
@@ -357,8 +357,8 @@ class RecordSchema(BaseSchema):
 
         return max(times)
 
-    def record_tool(self, step: str, index: Union[str, str],
-                    info: Union[str, List[str]], type: RecordTool) -> None:
+    def record_tool(self, step: str, index: Union[str, int],
+                    info: Union[str, List[str], int], type: RecordTool) -> None:
         '''
         Record information about the tool used during this record.
 

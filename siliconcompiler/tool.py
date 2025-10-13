@@ -202,7 +202,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         self.__relpath: Optional[str] = relpath
         self.__jobdir: Optional[str] = None
         self.__step: Optional[str] = None
-        self.__index: Optional[Union[str, int]] = None
+        self.__index: Optional[str] = None
         if node:
             if step is not None or index is not None:
                 raise RuntimeError("step and index cannot be provided with node")
@@ -217,6 +217,8 @@ class Task(NamedSchema, PathSchema, DocsSchema):
             self.__index = node.index
         else:
             self.__step = step
+            if isinstance(index, int):
+                index = str(index)
             self.__index = index
 
         self.__schema_record: Optional[RecordSchema] = None
@@ -348,7 +350,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
             str: The absolute path to the executable, or None if not specified.
         """
 
-        exe = self.get('exe')
+        exe: Optional[str] = self.get('exe')
 
         if exe is None:
             return None
@@ -514,18 +516,18 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         """
 
         # Add global environmental vars
-        envvars = {}
+        envvars: Dict[str, str] = {}
         for env in self.__schema_full.getkeys('option', 'env'):
             envvars[env] = self.__schema_full.get('option', 'env', env)
 
         # Add tool-specific license server vars
         for lic_env in self.getkeys('licenseserver'):
-            license_file = self.get('licenseserver', lic_env)
+            license_file: List[str] = self.get('licenseserver', lic_env)
             if license_file:
                 envvars[lic_env] = ':'.join(license_file)
 
         if include_path:
-            path = self.find_files("path", missing_ok=True)
+            path: Optional[str] = self.find_files("path", missing_ok=True)
 
             envvars["PATH"] = os.getenv("PATH", os.defpath)
 
@@ -591,7 +593,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
             workdir (str): The path to the run's working directory.
             include_path (bool): If True, includes PATH information.
         """
-        replay_opts: Dict[str, Optional[str]] = {}
+        replay_opts: Dict[str, Optional[Union[Dict[str, str], str, int]]] = {}
         replay_opts["work_dir"] = workdir
         replay_opts["exports"] = self.get_runtime_environmental_variables(include_path=include_path)
 
@@ -610,7 +612,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         file_test = re.compile(r'^[/\.]')
 
         if replay_opts["executable"]:
-            format_cmd = [replay_opts["executable"]]
+            format_cmd: List[str] = [replay_opts["executable"]]
 
             for cmdarg in self.get_runtime_arguments():
                 add_new_line = len(format_cmd) == 1
@@ -686,7 +688,8 @@ class Task(NamedSchema, PathSchema, DocsSchema):
             "sc_designlib": NodeType.to_tcl(self.design_name, "str")
         }
 
-        refdir = manifest.get("tool", self.tool(), "task", self.task(), "refdir", field=None)
+        refdir: Parameter = manifest.get("tool", self.tool(), "task", self.task(), "refdir",
+                                         field=None)
         if refdir.get(step=self.__step, index=self.__index):
             vars["sc_refdir"] = refdir.gettcl(step=self.__step, index=self.__index)
 
@@ -735,7 +738,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
 
         for key in sorted(manifest.allkeys()):
             keypath = ','.join(key)
-            param = manifest.get(*key, field=None)
+            param: Parameter = manifest.get(*key, field=None)
             if param.get(field="pernode").is_never():
                 value = param.get()
             else:
@@ -799,7 +802,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         schema = root.copy()
 
         for keypath in root.allkeys():
-            paramtype = schema.get(*keypath, field='type')
+            paramtype: str = schema.get(*keypath, field='type')
             if 'file' not in paramtype and 'dir' not in paramtype:
                 continue
 
@@ -971,7 +974,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
 
             # Record tool options
             self.schema_record.record_tool(
-                self.__step, self.__index,
+                self.step, self.index,
                 cmdlist, RecordTool.ARGS)
 
             self.logger.info(shlex.join([os.path.basename(exe), *cmdlist]))
@@ -981,7 +984,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
 
             if breakpoint and sys.platform in ('darwin', 'linux'):
                 # Use pty for interactive breakpoint sessions on POSIX systems
-                with open(f"{self.__step}.log", 'wb') as log_writer:
+                with open(f"{self.step}.log", 'wb') as log_writer:
                     def read(fd):
                         data = os.read(fd, 1024)
                         log_writer.write(data)
@@ -1064,14 +1067,14 @@ class Task(NamedSchema, PathSchema, DocsSchema):
 
         # Record metrics
         self.schema_record.record_tool(
-            self.__step, self.__index,
+            self.step, self.index,
             retcode, RecordTool.EXITCODE)
 
         self.schema_metric.record(
-            self.__step, self.__index,
+            self.step, self.index,
             'exetime', time.time() - cpu_start, unit='s')
         self.schema_metric.record(
-            self.__step, self.__index,
+            self.step, self.index,
             'memory', max_mem_bytes, unit='B')
 
         return retcode
@@ -1527,7 +1530,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
     ###############################################################
     # Tool settings
     ###############################################################
-    def set_exe(self, exe: Optional[str] = None, vswitch: Optional[List[str]] = None,
+    def set_exe(self, exe: Optional[str] = None, vswitch: Optional[Union[str, List[str]]] = None,
                 format: Optional[str] = None,
                 step: Optional[str] = None, index: Optional[Union[str, int]] = None,
                 clobber: bool = False):
@@ -1589,7 +1592,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         with self.active_dataroot(self._get_active_dataroot(dataroot)):
             return self.set("path", path, step=step, index=index, clobber=clobber)
 
-    def add_version(self, version: str,
+    def add_version(self, version: Union[List[str], str],
                     step: Optional[str] = None, index: Optional[Union[str, int]] = None,
                     clobber: bool = False):
         '''Adds a supported version specifier for the tool.
@@ -1615,7 +1618,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         else:
             return self.add("version", version, step=step, index=index)
 
-    def add_vswitch(self, switch: str,
+    def add_vswitch(self, switch: Union[List[str], str],
                     step: Optional[str] = None, index: Optional[Union[str, int]] = None,
                     clobber: bool = False):
         '''Adds the command-line switch used to print the tool's version.
@@ -1662,7 +1665,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         else:
             return self.add("licenseserver", name, server, step=step, index=index)
 
-    def add_sbom(self, version: str, sbom: str, dataroot: Optional[str] = None,
+    def add_sbom(self, version: str, sbom: Union[str, List[str]], dataroot: Optional[str] = None,
                  step: Optional[str] = None, index: Optional[Union[str, int]] = None,
                  clobber: bool = False):
         '''Adds a Software Bill of Materials (SBOM) file for a tool version.
@@ -1711,7 +1714,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
                 self.logger.warning(f"{metric} is not a valid metric")
             return
 
-        self.schema_metric.record(self.__step, self.__index, metric, value, unit=source_unit)
+        self.schema_metric.record(self.step, self.index, metric, value, unit=source_unit)
         if source_file:
             self.add("report", metric, source_file)
 
@@ -1925,7 +1928,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         Determines which preceding nodes are inputs to this task.
         """
         return self.schema_flowruntime.get_node_inputs(
-            self.__step, self.__index, record=self.schema_record)
+            self.step, self.index, record=self.schema_record)
 
     def pre_process(self) -> None:
         """
@@ -1937,9 +1940,9 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         """
         Constructs the default runtime options for the task. Can be extended.
         """
-        cmdargs = []
+        cmdargs: List[Union[int, str, Path]] = []
         cmdargs.extend(self.get("option"))
-        script = self.find_files('script', missing_ok=True)
+        script: List[str] = self.find_files('script', missing_ok=True)
         if script:
             cmdargs.extend(script)
         return cmdargs
