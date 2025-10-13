@@ -34,6 +34,7 @@ from siliconcompiler.utils import get_plugins
 if TYPE_CHECKING:
     from siliconcompiler.project import Project
     from siliconcompiler.schema_support.pathschema import PathSchema
+    from siliconcompiler.schema import BaseSchema
 
 
 class Resolver:
@@ -53,11 +54,15 @@ class Resolver:
     """
     _RESOLVERS_LOCK: ClassVar[threading.Lock] = threading.Lock()
     _RESOLVERS: ClassVar[Dict[str, Type["Resolver"]]] = {}
+    __STORAGE: str = "__Resolver_cache_id"
 
     __CACHE_LOCK: ClassVar[threading.Lock] = threading.Lock()
     __CACHE: ClassVar[Dict[str, Dict[str, str]]] = {}
 
-    def __init__(self, name: str, root: "Project", source: str, reference: Optional[str] = None):
+    def __init__(self, name: str,
+                 root: Optional[Union["Project", "BaseSchema"]],
+                 source: str,
+                 reference: Optional[str] = None):
         """
         Initializes the Resolver.
         """
@@ -74,7 +79,7 @@ class Resolver:
             self.__logger = logging.getLogger(f"resolver-{self.name}")
 
     @staticmethod
-    def populate_resolvers():
+    def populate_resolvers() -> None:
         """
         Scans for and registers all available resolver plugins.
 
@@ -96,7 +101,7 @@ class Resolver:
                 Resolver._RESOLVERS.update(resolver())
 
     @staticmethod
-    def find_resolver(source):
+    def find_resolver(source: str) -> Type["Resolver"]:
         """
         Finds the appropriate resolver class for a given source URI.
 
@@ -128,7 +133,7 @@ class Resolver:
         return self.__name
 
     @property
-    def root(self):
+    def root(self) -> Optional[Union["Project", "BaseSchema"]]:
         """The root object (e.g., Project) providing context."""
         return self.__root
 
@@ -201,15 +206,15 @@ class Resolver:
         raise NotImplementedError("child class must implement this")
 
     @staticmethod
-    def __get_root_id(root: "Project") -> str:
+    def __get_root_id(root: Union["Project", "BaseSchema"]) -> str:
         """Generates or retrieves a unique ID for a root object."""
-        STORAGE = "__Resolver_cache_id"
-        if not getattr(root, STORAGE, None):
-            setattr(root, STORAGE, uuid.uuid4().hex)
-        return getattr(root, STORAGE)
+        if not getattr(root, Resolver.__STORAGE, None):
+            setattr(root, Resolver.__STORAGE, uuid.uuid4().hex)
+        return getattr(root, Resolver.__STORAGE)
 
     @staticmethod
-    def get_cache(root: "Project", name: Optional[str] = None) -> Union[None, str, Dict[str, str]]:
+    def get_cache(root: Optional[Union["Project", "BaseSchema"]], name: Optional[str] = None) \
+            -> Union[None, str, Dict[str, str]]:
         """
         Gets a cached path for a given root object and resolver name.
 
@@ -221,6 +226,9 @@ class Resolver:
         Returns:
             str or dict or None: The cached path, a copy of the cache, or None.
         """
+        if root is None:
+            return None
+
         with Resolver.__CACHE_LOCK:
             root_id = Resolver.__get_root_id(root)
             if root_id not in Resolver.__CACHE:
@@ -232,7 +240,9 @@ class Resolver:
             return Resolver.__CACHE[root_id].copy()
 
     @staticmethod
-    def set_cache(root: "Project", name: str, path: str):
+    def set_cache(root: Optional[Union["Project", "BaseSchema"]],
+                  name: str,
+                  path: Union[Path, str]) -> None:
         """
         Sets a cached path for a given root object and resolver name.
 
@@ -241,20 +251,26 @@ class Resolver:
             name (str): The name of the resolver cache to set.
             path (str): The path to cache.
         """
+        if root is None:
+            return
+
         with Resolver.__CACHE_LOCK:
             root_id = Resolver.__get_root_id(root)
             if root_id not in Resolver.__CACHE:
                 Resolver.__CACHE[root_id] = {}
-            Resolver.__CACHE[root_id][name] = path
+            Resolver.__CACHE[root_id][name] = str(path)
 
     @staticmethod
-    def reset_cache(root: "Project"):
+    def reset_cache(root: Optional[Union["Project", "BaseSchema"]]) -> None:
         """
         Resets the entire cache for a given root object.
 
         Args:
             root: The root object whose cache will be cleared.
         """
+        if root is None:
+            return
+
         with Resolver.__CACHE_LOCK:
             root_id = Resolver.__get_root_id(root)
             if root_id in Resolver.__CACHE:
@@ -273,7 +289,7 @@ class Resolver:
         Raises:
             FileNotFoundError: If the resolved path does not exist.
         """
-        cache_path = Resolver.get_cache(self.__root, self.cache_id)
+        cache_path: Optional[str] = Resolver.get_cache(self.__root, self.cache_id)
         if cache_path:
             return cache_path
 
@@ -287,7 +303,7 @@ class Resolver:
             self.logger.info(f'Found {self.name} data at {path}')
 
         Resolver.set_cache(self.__root, self.cache_id, path)
-        return path
+        return str(path)
 
     def __resolve_env(self, path: str) -> str:
         """Expands environment variables and user home directory in a path."""
@@ -319,7 +335,10 @@ class RemoteResolver(Resolver):
     _CACHE_LOCKS = {}
     _CACHE_LOCK = threading.Lock()
 
-    def __init__(self, name: str, root: "Project", source: str, reference: Optional[str] = None):
+    def __init__(self, name: str,
+                 root: Optional[Union["Project", "BaseSchema"]],
+                 source: str,
+                 reference: Optional[str] = None):
         if reference is None:
             raise ValueError(f'A reference (e.g., version, commit) is required for {name}')
 
@@ -333,12 +352,12 @@ class RemoteResolver(Resolver):
         """The maximum time in seconds to wait for a lock."""
         return self.__max_lock_wait
 
-    def set_timeout(self, value: int):
+    def set_timeout(self, value: int) -> None:
         """Sets the maximum time in seconds to wait for a lock."""
         self.__max_lock_wait = value
 
     @staticmethod
-    def determine_cache_dir(root: "Project") -> Path:
+    def determine_cache_dir(root: Optional[Union["Project", "BaseSchema"]]) -> Path:
         """
         Determines the directory for the on-disk cache.
 
@@ -553,7 +572,10 @@ class FileResolver(Resolver):
 
     def resolve(self) -> str:
         """Returns the absolute path to the file."""
-        return os.path.abspath(self.urlpath)
+        path = self.urlpath
+        if path and path[0] == "$":
+            return path
+        return os.path.abspath(path)
 
 
 class PythonPathResolver(Resolver):
@@ -598,7 +620,7 @@ class PythonPathResolver(Resolver):
 
             provides = dist.read_text('top_level.txt')
             if provides:
-                for module in dist.read_text('top_level.txt').split():
+                for module in provides.split():
                     mapping.setdefault(module, []).append(dist_name)
 
         return mapping

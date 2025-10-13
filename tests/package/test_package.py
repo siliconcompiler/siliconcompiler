@@ -116,6 +116,7 @@ def test_file_env_var():
     resolver = FileResolver("test", None, "$THIS_PATH/hello")
     assert resolver.source == "file://$THIS_PATH/hello"
     assert resolver.urlpath == "$THIS_PATH/hello"
+    assert resolver.resolve() == "$THIS_PATH/hello"
 
 
 def test_file_env_var_cwd():
@@ -167,6 +168,7 @@ def test_file_env_var_start_with_root():
     resolver = FileResolver("test", Project(), "$THIS_PATH/hello")
     assert resolver.source == "file://$THIS_PATH/hello"
     assert resolver.urlpath == "$THIS_PATH/hello"
+    assert resolver.resolve() == "$THIS_PATH/hello"
 
 
 def test_file_env_var_brace_form():
@@ -436,7 +438,7 @@ def test_remote_resolve_cached_different_name():
         lock.assert_called_once()
         check_cache.assert_called_once()
         resolve_remote.assert_called_once()
-        assert resolver.get_path() == Path(os.path.abspath("thisname-ref-c7a4a1c3dfc3975e"))
+        assert resolver.get_path() == os.path.abspath("thisname-ref-c7a4a1c3dfc3975e")
 
     resolver = RemoteResolver("thisname1", project, "https://filepath", "ref")
     with patch("siliconcompiler.package.RemoteResolver.lock") as lock, \
@@ -444,7 +446,7 @@ def test_remote_resolve_cached_different_name():
          patch("siliconcompiler.package.RemoteResolver.resolve_remote") as resolve_remote:
         check_cache.return_value = False
         # This will use the same of the other resolver despite the name change
-        assert resolver.get_path() == Path(os.path.abspath("thisname-ref-c7a4a1c3dfc3975e"))
+        assert resolver.get_path() == os.path.abspath("thisname-ref-c7a4a1c3dfc3975e")
         lock.assert_not_called()
         check_cache.assert_not_called()
         resolve_remote.assert_not_called()
@@ -725,6 +727,12 @@ def test_get_cache():
     assert getattr(project, "__Resolver_cache_id")
 
 
+def test_get_cache_none():
+    with patch("siliconcompiler.package.Resolver._Resolver__get_root_id") as root:
+        assert Resolver.get_cache(None) is None
+        root.assert_not_called()
+
+
 def test_set_cache():
     project = Project("testproj")
     assert Resolver.get_cache(project) == {}
@@ -739,6 +747,12 @@ def test_set_cache():
         "test": "path",
         "test0": "path0",
     }
+
+
+def test_set_cache_none():
+    with patch("siliconcompiler.package.Resolver._Resolver__get_root_id") as root:
+        Resolver.set_cache(None, "test", "path")
+        root.assert_not_called()
 
 
 def test_set_cache_different_projects():
@@ -780,3 +794,9 @@ def test_reset_cache():
 
     Resolver.reset_cache(project)
     assert Resolver.get_cache(project) == {}
+
+
+def test_reset_cache_none():
+    with patch("siliconcompiler.package.Resolver._Resolver__get_root_id") as root:
+        Resolver.reset_cache(None)
+        root.assert_not_called()
