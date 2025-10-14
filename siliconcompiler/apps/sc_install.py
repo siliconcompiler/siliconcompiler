@@ -315,10 +315,6 @@ Tool groups:
         else:
             if not install_tool(tool, tools[tool], args.build_dir, args.prefix):
                 notstarted = set(args.tool) - tools_completed - tools_handled
-                try:
-                    notstarted.remove(tool)
-                except KeyError:
-                    pass
                 __print_summary(tools_completed, tool, notstarted)
                 return 1
             else:
