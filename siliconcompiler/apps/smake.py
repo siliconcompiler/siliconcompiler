@@ -11,9 +11,15 @@ This allows for creating simple, self-documenting build or task scripts in
 Python without the need for complex boilerplate code.
 """
 import argparse
-import importlib
 import sys
+
+import importlib.util
 import os.path
+
+from typing import Union, Tuple, Optional, Dict
+
+from pathlib import Path
+
 from inspect import getmembers, isfunction, getfullargspec
 
 from siliconcompiler._metadata import version
@@ -23,7 +29,7 @@ from siliconcompiler.schema import utils
 __default_source_file = "make.py"
 
 
-def __process_file(path):
+def __process_file(path: Union[Path, str]) -> Tuple[Dict, Optional[str], Optional[str]]:
     """
     Dynamically loads a Python module and inspects it for runnable targets.
 
@@ -99,7 +105,7 @@ def __process_file(path):
     return args, default_arg, module_help
 
 
-def main(source_file=None):
+def main(source_file: Optional[Union[str, Path]] = None) -> int:
     """
     The main entry point for the smake command-line application.
 
