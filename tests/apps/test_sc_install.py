@@ -74,6 +74,11 @@ def test_install_two_tools(call, monkeypatch, capfd):
 
 @pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
 def test_install_two_tools_onefail(monkeypatch, capfd):
+    """
+    Verify that installing two tools where one installation fails results in a nonzero exit and correct summary output.
+    
+    Mocks the available tools to "yosys" and "openroad", simulates a failure for "openroad", runs the installer for both tools, and asserts that sc_install.main() returns 1 and that stdout contains the installed and failed tool summaries.
+    """
     def return_os():
         return {
             "yosys": "yosys.sh",
@@ -98,6 +103,12 @@ def test_install_two_tools_onefail(monkeypatch, capfd):
 @pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
 def test_install_two_tools_onefailonepending(monkeypatch, capfd):
     def return_os():
+        """
+        Return a fixed mapping of tool names to their installer script filenames.
+        
+        Returns:
+            dict: Mapping of tool name (str) -> install script filename (str), e.g. {"yosys": "yosys.sh", "openroad": "openroad.sh", "yosys-test": "yosys-test.sh"}.
+        """
         return {
             "yosys": "yosys.sh",
             "openroad": "openroad.sh",
@@ -106,6 +117,18 @@ def test_install_two_tools_onefailonepending(monkeypatch, capfd):
     monkeypatch.setattr(sc_install, '_get_tools_list', return_os)
 
     def install_tool(tool, script, build_dir, prefix):
+        """
+        Decide whether installation of a given tool should be considered successful.
+        
+        Parameters:
+            tool (str): Name of the tool to install.
+            script (str): Path or command of the installation script for the tool.
+            build_dir (str): Directory used for building or temporary installation files.
+            prefix (str): Installation prefix path.
+        
+        Returns:
+            bool: `True` if installation is considered successful, `False` otherwise. This function returns `False` for the tool named "openroad" and `True` for other tool names.
+        """
         if tool == "openroad":
             return False
         return True
