@@ -149,7 +149,9 @@ def print_machine_info() -> None:
     print("Scripts:  ", _get_tool_script_dir())
 
 
-def __print_summary(successful: Optional[Set[str]], failed: Optional[str], notstarted: Optional[Set[str]]) -> None:
+def __print_summary(successful: Optional[Set[str]],
+                    failed: Optional[str],
+                    notstarted: Optional[Set[str]]) -> None:
     max_len = 64
     print("#"*max_len)
     if successful:
