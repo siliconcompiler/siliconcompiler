@@ -4,7 +4,7 @@ import sys
 
 import os.path
 
-from typing import Set, List
+from typing import Set, List, Optional, Union
 
 from siliconcompiler.schema import BaseSchema, EditableSchema, Parameter, Scope, PerNode
 from siliconcompiler.schema.utils import trim
@@ -25,9 +25,9 @@ class CommandLineSchema(BaseSchema):
                                   name: str,
                                   type: str,
                                   help: str,
-                                  switch: List[str] = None,
+                                  switch: Optional[Union[str, List[str]]] = None,
                                   defvalue=None,
-                                  **kwargs):
+                                  **kwargs) -> None:
         '''
         Adds a parameter to the commandline definition.
 
@@ -69,13 +69,13 @@ class CommandLineSchema(BaseSchema):
 
     @classmethod
     def create_cmdline(cls,
-                       progname: str = None,
-                       description: str = None,
-                       switchlist: Set[str] = None,
-                       version: str = None,
+                       progname: Optional[str] = None,
+                       description: Optional[str] = None,
+                       switchlist: Optional[Union[List[str], Set[str]]] = None,
+                       version: Optional[str] = None,
                        print_banner: bool = True,
                        use_cfg: bool = False,
-                       use_sources: bool = True):
+                       use_sources: bool = True) -> BaseSchema:
         """
         Creates an SC command line interface.
 
@@ -175,7 +175,7 @@ class CommandLineSchema(BaseSchema):
             if keypath == ("option", "cfg"):  # TODO: remove this when cfg is removed from schema
                 continue
 
-            param = keyschema.get(*keypath, field=None)
+            param: Parameter = keyschema.get(*keypath, field=None)
 
             dest, switches = param.add_commandline_arguments(
                 parser,

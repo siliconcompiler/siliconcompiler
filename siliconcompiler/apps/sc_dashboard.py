@@ -4,6 +4,8 @@ import shlex
 
 import os.path
 
+from typing import Union
+
 from siliconcompiler import Project
 from siliconcompiler.apps._common import pick_manifest
 from siliconcompiler.report.dashboard.web import WebDashboard
@@ -56,7 +58,7 @@ To include another project object to compare to:
             '-graph_cfg'],
         use_sources=False)
 
-    manifest = cli.get("cmdarg", "cfg")
+    manifest: Union[None, str] = cli.get("cmdarg", "cfg")
 
     # Attempt to load a manifest
     if not manifest:

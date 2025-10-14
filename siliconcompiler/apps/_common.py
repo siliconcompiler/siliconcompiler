@@ -90,7 +90,8 @@ def _get_manifests(cwd: str) -> Dict:
     return organized_manifest
 
 
-def pick_manifest_from_file(cliproject: Project, src_file: str, all_manifests: Dict):
+def pick_manifest_from_file(cliproject: Project, src_file: Optional[str], all_manifests: Dict) \
+        -> Optional[str]:
     """
     Tries to find a manifest located in the same directory as a given source file.
 
@@ -125,7 +126,7 @@ def pick_manifest_from_file(cliproject: Project, src_file: str, all_manifests: D
     return None
 
 
-def pick_manifest(cliproject: Project, src_file: Optional[str] = None):
+def pick_manifest(cliproject: Project, src_file: Optional[str] = None) -> Optional[str]:
     """
     Selects the most appropriate manifest based on the project's configuration.
 

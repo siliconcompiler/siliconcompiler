@@ -10,7 +10,7 @@ import re
 import shlex
 
 from enum import Enum
-from typing import Tuple, Optional, Union, List, Dict, Any
+from typing import Tuple, Optional, Union, List, Dict, Any, Set
 
 from .parametervalue import NodeValue, DirectoryNodeValue, FileNodeValue, NodeListValue, \
     NodeSetValue
@@ -805,7 +805,7 @@ class Parameter:
     def add_commandline_arguments(self,
                                   argparser: argparse.ArgumentParser,
                                   *keypath: str,
-                                  switchlist: Optional[Union[List[str], str]] = None) \
+                                  switchlist: Optional[Union[Set[str], List[str], str]] = None) \
             -> Tuple[Optional[str], Optional[List[str]]]:
         '''
         Adds commandline arguments for this parameter.
