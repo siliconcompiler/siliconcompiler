@@ -92,7 +92,7 @@ class ChoiceOptional(Container):
         return sorted(items)
 
 
-def install_tool(tool, script: str, build_dir: str, prefix: str) -> bool:
+def install_tool(tool: str, script: str, build_dir: str, prefix: str) -> bool:
     """
     Prepare a build directory, configure the environment, and execute an install script for a tool.
 
