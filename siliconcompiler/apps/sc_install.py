@@ -8,7 +8,7 @@ import sys
 
 import os.path
 
-from typing import Dict, Set, List
+from typing import Dict, List, Optional, Set
 
 from collections.abc import Container
 from pathlib import Path
@@ -19,16 +19,16 @@ from siliconcompiler.schema_support.record import RecordSchema
 from siliconcompiler.utils import get_plugins
 
 
-def get_install_groups() -> Dict[str, Set[str]]:
+def get_install_groups() -> Dict[str, List[str]]:
     """
     Entry point for app groups
     """
     return {
-        "asic": {"sv2v", "yosys", "yosys-slang", "openroad", "klayout"},
-        "asic-hls": {"bambu", "yosys", "yosys-slang", "openroad", "klayout"},
-        "fpga": {"sv2v", "yosys", "yosys-slang", "vpr", "yosys-wildebeest"},
-        "digital-simulation": {"verilator", "icarus", "surfer"},
-        "analog-simulation": {"xyce"}
+        "asic": ["sv2v", "yosys", "yosys-slang", "openroad", "klayout"],
+        "asic-hls": ["bambu", "yosys", "yosys-slang", "openroad", "klayout"],
+        "fpga": ["sv2v", "yosys", "yosys-slang", "vpr", "yosys-wildebeest"],
+        "digital-simulation": ["verilator", "icarus", "surfer"],
+        "analog-simulation": ["xyce"]
     }
 
 
@@ -66,16 +66,16 @@ class ChoiceOptional(Container):
     def __iter__(self):
         return self.__choices.__iter__()
 
-    def get_items(self, choices):
+    def get_items(self, choices: List[str]) -> List[str]:
         items = set(choices)
         return sorted(items)
 
 
-def install_tool(tool, script, build_dir, prefix):
+def install_tool(tool, script: str, build_dir: str, prefix: str) -> bool:
     # Ensure build dir is available
-    build_dir = Path(build_dir) / tool
-    shutil.rmtree(str(build_dir), ignore_errors=True)
-    build_dir.mkdir(parents=True, exist_ok=True)
+    build_path = Path(build_dir) / tool
+    shutil.rmtree(str(build_path), ignore_errors=True)
+    build_path.mkdir(parents=True, exist_ok=True)
 
     # setup environment
     env = os.environ.copy()
@@ -92,14 +92,14 @@ def install_tool(tool, script, build_dir, prefix):
         env["USE_SUDO_INSTALL"] = "yes"
 
     # run
-    ret = subprocess.call(script, env=env, cwd=build_dir)
+    ret = subprocess.call(script, env=env, cwd=build_path)
     if ret != 0:
         print(f"Error occurred while building/installing {tool}")
         return False
     return True
 
 
-def show_tool(tool, script):
+def show_tool(tool: str, script: str) -> None:
     def print_header(head):
         border_len = max(80, len(script) + 2)
         border = border_len*"#"
@@ -118,7 +118,7 @@ def show_tool(tool, script):
     print_header("end")
 
 
-def _get_os_name():
+def _get_os_name() -> Optional[str]:
     machine_info = RecordSchema.get_machine_information()
     system = machine_info.get('system', "").lower()
     if system == 'linux':
@@ -138,7 +138,7 @@ def _get_os_name():
     return None
 
 
-def print_machine_info():
+def print_machine_info() -> None:
     machine_info = RecordSchema.get_machine_information()
     mapped_os = _get_os_name()
 
@@ -149,7 +149,7 @@ def print_machine_info():
     print("Scripts:  ", _get_tool_script_dir())
 
 
-def __print_summary(successful, failed):
+def __print_summary(successful: Optional[Set[str]], failed: Optional[str], notstarted: Optional[Set[str]]) -> None:
     max_len = 64
     print("#"*max_len)
     if successful:
@@ -159,6 +159,11 @@ def __print_summary(successful, failed):
     if failed:
         msg = f"Failed to install: {failed}"
         print(f"# {msg}")
+
+    if notstarted:
+        msg = f"Pending: {', '.join(sorted(notstarted))}"
+        print(f"# {msg}")
+
     print("#"*max_len)
 
 
@@ -195,7 +200,7 @@ class HelpFormatter(argparse.ArgumentDefaultsHelpFormatter, argparse.RawDescript
     pass
 
 
-def main():
+def main() -> int:
     progname = "sc-install"
 
     tools = _get_tools_list()
@@ -307,13 +312,18 @@ Tool groups:
             show_tool(tool, tools[tool])
         else:
             if not install_tool(tool, tools[tool], args.build_dir, args.prefix):
-                __print_summary(tools_completed, tool)
+                notstarted = set(args.tool) - tools_completed - tools_handled
+                try:
+                    notstarted.remove(tool)
+                except KeyError:
+                    pass
+                __print_summary(tools_completed, tool, notstarted)
                 return 1
             else:
                 tools_completed.add(tool)
 
     if not args.show:
-        __print_summary(tools_completed, None)
+        __print_summary(tools_completed, None, None)
 
         msgs = []
         for env, path in (

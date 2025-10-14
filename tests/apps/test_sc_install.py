@@ -96,6 +96,31 @@ def test_install_two_tools_onefail(monkeypatch, capfd):
 
 
 @pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
+def test_install_two_tools_onefailonepending(monkeypatch, capfd):
+    def return_os():
+        return {
+            "yosys": "yosys.sh",
+            "openroad": "openroad.sh",
+            "yosys-test": "yosys-test.sh"
+        }
+    monkeypatch.setattr(sc_install, '_get_tools_list', return_os)
+
+    def install_tool(tool, script, build_dir, prefix):
+        if tool == "openroad":
+            return False
+        return True
+    monkeypatch.setattr(sc_install, 'install_tool', install_tool)
+
+    monkeypatch.setattr('sys.argv', ['sc-install', 'yosys', 'openroad', 'yosys-test'])
+    assert sc_install.main() == 1
+
+    stdout = capfd.readouterr().out
+    assert "# Installed: yosys" in stdout
+    assert "# Failed to install: openroad" in stdout
+    assert "# Pending: yosys-test" in stdout
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
 @mock.patch("subprocess.call")
 def test_install_group(call, monkeypatch):
     def return_os():
