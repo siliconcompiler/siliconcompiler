@@ -8,7 +8,7 @@ import sys
 
 import os.path
 
-from typing import Dict, Set, List
+from typing import Dict, List, Optional, Set
 
 from collections.abc import Container
 from pathlib import Path
@@ -19,16 +19,22 @@ from siliconcompiler.schema_support.record import RecordSchema
 from siliconcompiler.utils import get_plugins
 
 
-def get_install_groups() -> Dict[str, Set[str]]:
+def get_install_groups() -> Dict[str, List[str]]:
     """
-    Entry point for app groups
+    Provide recommended install tool groups for common workflows.
+
+    Each mapping key is a high-level group name and each value is an ordered list of tool
+    identifiers suitable for that group.
+
+    Returns:
+        dict: Mapping from group name (str) to a list of tool identifiers (List[str]).
     """
     return {
-        "asic": {"sv2v", "yosys", "yosys-slang", "openroad", "klayout"},
-        "asic-hls": {"bambu", "yosys", "yosys-slang", "openroad", "klayout"},
-        "fpga": {"sv2v", "yosys", "yosys-slang", "vpr", "yosys-wildebeest"},
-        "digital-simulation": {"verilator", "icarus", "surfer"},
-        "analog-simulation": {"xyce"}
+        "asic": ["sv2v", "yosys", "yosys-slang", "openroad", "klayout"],
+        "asic-hls": ["bambu", "yosys", "yosys-slang", "openroad", "klayout"],
+        "fpga": ["sv2v", "yosys", "yosys-slang", "vpr", "yosys-wildebeest"],
+        "digital-simulation": ["verilator", "icarus", "surfer"],
+        "analog-simulation": ["xyce"]
     }
 
 
@@ -64,18 +70,45 @@ class ChoiceOptional(Container):
         return item in self.__choices
 
     def __iter__(self):
+        """
+        Iterate over the stored choices.
+
+        Returns:
+            iterator: An iterator over the stored choice strings.
+        """
         return self.__choices.__iter__()
 
-    def get_items(self, choices):
+    def get_items(self, choices: List[str]) -> List[str]:
+        """
+        Return a sorted list of unique choice strings.
+
+        Parameters:
+            choices (List[str]): Iterable of choice strings which may contain duplicates.
+
+        Returns:
+            List[str]: Sorted list containing each unique choice from `choices`.
+        """
         items = set(choices)
         return sorted(items)
 
 
-def install_tool(tool, script, build_dir, prefix):
-    # Ensure build dir is available
-    build_dir = Path(build_dir) / tool
-    shutil.rmtree(str(build_dir), ignore_errors=True)
-    build_dir.mkdir(parents=True, exist_ok=True)
+def install_tool(tool: str, script: str, build_dir: str, prefix: str) -> bool:
+    """
+    Prepare a build directory, configure the environment, and execute an install script for a tool.
+
+    Parameters:
+        tool (str): Tool identifier used to create a per-tool build subdirectory under `build_dir`.
+        script (str): Path to the install script to execute.
+        build_dir (str): Base directory where a per-tool build directory will be created.
+        prefix (str): Installation prefix; added to PATH and used to determine whether
+                      sudo is required.
+
+    Returns:
+        bool: `True` if the install script exited with status 0, `False` otherwise.
+    """
+    build_path = Path(build_dir) / tool
+    shutil.rmtree(str(build_path), ignore_errors=True)
+    build_path.mkdir(parents=True, exist_ok=True)
 
     # setup environment
     env = os.environ.copy()
@@ -92,14 +125,22 @@ def install_tool(tool, script, build_dir, prefix):
         env["USE_SUDO_INSTALL"] = "yes"
 
     # run
-    ret = subprocess.call(script, env=env, cwd=build_dir)
+    ret = subprocess.call(script, env=env, cwd=build_path)
     if ret != 0:
         print(f"Error occurred while building/installing {tool}")
         return False
     return True
 
 
-def show_tool(tool, script):
+def show_tool(tool: str, script: str) -> None:
+    """
+    Print a bordered header, the contents of the given install script, and a
+    closing bordered footer.
+
+    Parameters:
+        tool (str): Tool identifier used in the printed header.
+        script (str): Path to the install script file whose contents will be displayed.
+    """
     def print_header(head):
         border_len = max(80, len(script) + 2)
         border = border_len*"#"
@@ -118,7 +159,19 @@ def show_tool(tool, script):
     print_header("end")
 
 
-def _get_os_name():
+def _get_os_name() -> Optional[str]:
+    """
+    Map recorded machine information to a short OS identifier used by the installer.
+
+    This inspects the machine information provided by RecordSchema and, for supported
+    Linux distributions, returns a compact identifier composed of the distro and
+    major version (for example, "ubuntu20" or "rhel8"). Returns None for
+    non-Linux systems or unrecognized distributions.
+
+    Returns:
+        os_name (Optional[str]): Mapped OS identifier (e.g., "ubuntu20", "rhel8") or
+        `None` if the OS cannot be mapped.
+    """
     machine_info = RecordSchema.get_machine_information()
     system = machine_info.get('system', "").lower()
     if system == 'linux':
@@ -138,7 +191,14 @@ def _get_os_name():
     return None
 
 
-def print_machine_info():
+def print_machine_info() -> None:
+    """
+    Prints detected machine and mapped OS information.
+
+    Prints the system name, distribution name, OS version, mapped OS identifier, and the path to
+    the install tools scripts directory as obtained from RecordSchema.get_machine_information()
+    and internal helpers.
+    """
     machine_info = RecordSchema.get_machine_information()
     mapped_os = _get_os_name()
 
@@ -149,7 +209,20 @@ def print_machine_info():
     print("Scripts:  ", _get_tool_script_dir())
 
 
-def __print_summary(successful, failed):
+def __print_summary(successful: Optional[Set[str]],
+                    failed: Optional[str],
+                    notstarted: Optional[Set[str]]) -> None:
+    """
+    Prints a fixed-width summary banner listing installed, failed, and pending tools.
+
+    Parameters:
+        successful (Optional[Set[str]]): Set of tool names that were installed; when provided,
+                                         they are shown under "Installed".
+        failed (Optional[str]): Name of a tool that failed to install; when provided, it is shown
+                                under "Failed to install".
+        notstarted (Optional[Set[str]]): Set of tool names that were not started or are pending;
+                                         when provided, they are shown under "Pending".
+    """
     max_len = 64
     print("#"*max_len)
     if successful:
@@ -159,6 +232,11 @@ def __print_summary(successful, failed):
     if failed:
         msg = f"Failed to install: {failed}"
         print(f"# {msg}")
+
+    if notstarted:
+        msg = f"Pending: {', '.join(sorted(notstarted))}"
+        print(f"# {msg}")
+
     print("#"*max_len)
 
 
@@ -195,7 +273,19 @@ class HelpFormatter(argparse.ArgumentDefaultsHelpFormatter, argparse.RawDescript
     pass
 
 
-def main():
+def main() -> int:
+    """
+    CLI entry point for installing tools, showing install scripts, or printing machine
+    debug information.
+
+    Parses command-line arguments, validates the host OS, expands tool groups, and either
+    displays install scripts (-show), prints machine info (-debug_machine), or runs install
+    scripts for the requested tools, then prints a summary and optional shell-path guidance.
+
+    Returns:
+        `0` on successful completion, `1` on failure (e.g., unsupported OS or
+        any tool installation failure).
+    """
     progname = "sc-install"
 
     tools = _get_tools_list()
@@ -307,13 +397,14 @@ Tool groups:
             show_tool(tool, tools[tool])
         else:
             if not install_tool(tool, tools[tool], args.build_dir, args.prefix):
-                __print_summary(tools_completed, tool)
+                notstarted = set(args.tool) - tools_completed - tools_handled
+                __print_summary(tools_completed, tool, notstarted)
                 return 1
             else:
                 tools_completed.add(tool)
 
     if not args.show:
-        __print_summary(tools_completed, None)
+        __print_summary(tools_completed, None, None)
 
         msgs = []
         for env, path in (
