@@ -1,8 +1,12 @@
+import functools
+import logging
 import multiprocessing
 import sys
 import time
 
 import os.path
+
+from typing import List, Dict, Tuple, Optional, Callable, Any, TYPE_CHECKING
 
 from logging.handlers import QueueListener
 
@@ -17,6 +21,12 @@ from siliconcompiler.utils.logging import SCBlankLoggerFormatter, SCBlankColorle
 from siliconcompiler.utils.multiprocessing import MPManager
 from siliconcompiler.scheduler import SCRuntimeError
 
+if TYPE_CHECKING:
+    from siliconcompiler import Flowgraph
+    from siliconcompiler.project import Project
+    from siliconcompiler.scheduler import SchedulerNode
+    from siliconcompiler.schema_support.record import RecordSchema
+
 
 class TaskScheduler:
     """A class for managing the execution of individual tasks in a flowgraph.
@@ -26,7 +36,7 @@ class TaskScheduler:
     dependency checking. It operates on a set of pending tasks defined by the
     main Scheduler and executes them in a loop until the flow is complete.
     """
-    __callbacks = {
+    __callbacks: Dict[str, Callable[["Project"], None]] = {
         "pre_run": lambda project: None,
         "pre_node": lambda project, step, index: None,
         "post_node": lambda project, step, index: None,
@@ -34,7 +44,7 @@ class TaskScheduler:
     }
 
     @staticmethod
-    def register_callback(hook, func):
+    def register_callback(hook: str, func: Callable[["Project"], None]) -> None:
         """Registers a callback function to be executed at a specific hook point.
 
         Valid hooks are 'pre_run', 'pre_node', 'post_node', and 'post_run'.
@@ -51,7 +61,7 @@ class TaskScheduler:
             raise ValueError(f"{hook} is not a valid callback")
         TaskScheduler.__callbacks[hook] = func
 
-    def __init__(self, project, tasks):
+    def __init__(self, project: "Project", tasks: Dict[Tuple[str, str], "SchedulerNode"]):
         """Initializes the TaskScheduler.
 
         Args:
@@ -63,14 +73,15 @@ class TaskScheduler:
         self.__logger = self.__project.logger
         self.__logger_console_handler = self.__project._logger_console
         self.__schema = self.__project
-        self.__flow = self.__schema.get("flowgraph", self.__project.get('option', 'flow'),
-                                        field="schema")
-        self.__record = self.__schema.get("record", field="schema")
+        self.__flow: "Flowgraph" = self.__schema.get("flowgraph",
+                                                     self.__project.get('option', 'flow'),
+                                                     field="schema")
+        self.__record: "RecordSchema" = self.__schema.get("record", field="schema")
         self.__dashboard = project._Project__dashboard
 
         self.__max_cores = utils.get_cores()
         self.__max_threads = utils.get_cores()
-        self.__max_parallel_run = self.__project.get('option', 'scheduler', 'maxnodes')
+        self.__max_parallel_run = self.__project.option.scheduler.get_maxnodes()
         if not self.__max_parallel_run:
             self.__max_parallel_run = utils.get_cores()
         # clip max parallel jobs to 1 <= jobs <= max_cores
@@ -78,19 +89,19 @@ class TaskScheduler:
 
         self.__runtime_flow = RuntimeFlowgraph(
             self.__flow,
-            from_steps=self.__project.get('option', 'from'),
-            to_steps=self.__project.get('option', 'to'),
-            prune_nodes=self.__project.get('option', 'prune'))
+            from_steps=self.__project.option.get_from(),
+            to_steps=self.__project.option.get_to(),
+            prune_nodes=self.__project.option.get_prune())
 
         self.__log_queue = MPManager.get_manager().Queue()
 
-        self.__nodes = {}
-        self.__startTimes = {}
-        self.__dwellTime = 0.1
+        self.__nodes: Dict[Tuple[str, str], Dict[str, Any]] = {}
+        self.__startTimes: Dict[Optional[Tuple[str, str]], float] = {}
+        self.__dwellTime: float = 0.1
 
         self.__create_nodes(tasks)
 
-    def __create_nodes(self, tasks):
+    def __create_nodes(self, tasks: Dict[Tuple[str, str], "SchedulerNode"]) -> None:
         """
         Private helper to prepare all pending tasks for execution.
 
@@ -104,7 +115,7 @@ class TaskScheduler:
         runtime = RuntimeFlowgraph(
             self.__flow,
             from_steps=set([step for step, _ in self.__flow.get_entry_nodes()]),
-            prune_nodes=self.__project.get('option', 'prune'))
+            prune_nodes=self.__project.option.get_prune())
 
         init_funcs = set()
 
@@ -141,7 +152,7 @@ class TaskScheduler:
         for init_func in init_funcs:
             init_func(self.__project)
 
-    def run(self, job_log_handler):
+    def run(self, job_log_handler: logging.Handler) -> None:
         """
         The main entry point for the task scheduling loop.
 
@@ -190,7 +201,7 @@ class TaskScheduler:
             job_log_handler.setFormatter(file_formatter)
             self.__logger.addHandler(job_log_handler)
 
-    def __run_loop(self):
+    def __run_loop(self) -> None:
         """
         The core execution loop of the scheduler.
 
@@ -223,39 +234,47 @@ class TaskScheduler:
                 # if there are more than 1, join the first with a timeout
                 self.__nodes[running_nodes[0]]["proc"].join(timeout=self.__dwellTime)
 
-    def get_nodes(self):
-        """Gets a sorted list of all nodes managed by this scheduler.
+    @functools.lru_cache(maxsize=1)
+    def get_nodes(self) -> List[Tuple[str, str]]:
+        """Gets an ordered list of all nodes managed by this scheduler.
 
         Returns:
             list: A list of (step, index) tuples for all nodes.
         """
-        return sorted(self.__nodes.keys())
+        nodes = []
+        for levelnodes in self.__runtime_flow.get_execution_order():
+            for node in levelnodes:
+                if node in self.__nodes:
+                    nodes.append(node)
+        return nodes
 
-    def get_running_nodes(self):
-        """Gets a sorted list of all nodes that are currently running.
+    def get_running_nodes(self) -> List[Tuple[str, str]]:
+        """Gets an ordered list of all nodes that are currently running.
 
         Returns:
             list: A list of (step, index) tuples for running nodes.
         """
         nodes = []
-        for node, info in self.__nodes.items():
+        for node in self.get_nodes():
+            info = self.__nodes[node]
             if info["running"]:
                 nodes.append(node)
         return sorted(nodes)
 
-    def get_nodes_waiting_to_run(self):
-        """Gets a sorted list of all nodes that are pending execution.
+    def get_nodes_waiting_to_run(self) -> List[Tuple[str, str]]:
+        """Gets an ordered list of all nodes that are pending execution.
 
         Returns:
             list: A list of (step, index) tuples for pending nodes.
         """
         nodes = []
-        for node, info in self.__nodes.items():
+        for node in self.get_nodes():
+            info = self.__nodes[node]
             if not info["running"] and info["proc"]:
                 nodes.append(node)
         return sorted(nodes)
 
-    def __process_completed_nodes(self):
+    def __process_completed_nodes(self) -> bool:
         """
         Private helper to check for and process completed nodes.
 
@@ -310,7 +329,7 @@ class TaskScheduler:
 
         return changed
 
-    def __allow_start(self, node):
+    def __allow_start(self, node: Tuple[str, str]) -> bool:
         """
         Private helper to check if a node is allowed to start based on resources.
 
@@ -344,7 +363,7 @@ class TaskScheduler:
         # allow
         return True
 
-    def __launch_nodes(self):
+    def __launch_nodes(self) -> bool:
         """
         Private helper to launch new nodes whose dependencies are met.
 
@@ -405,7 +424,7 @@ class TaskScheduler:
 
         return changed
 
-    def check(self):
+    def check(self) -> None:
         """
         Checks if the flow completed successfully.
 

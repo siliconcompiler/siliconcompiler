@@ -66,20 +66,24 @@ def make_tasks():
 def test_get_nodes(large_flow, make_tasks):
     scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
     assert scheduler.get_nodes() == [
-        ('joinone', '0'), ('jointhree', '0'), ('jointwo', '0'),
         ('stepone', '0'), ('stepone', '1'), ('stepone', '2'),
+        ('joinone', '0'),
+        ('steptwo', '0'), ('steptwo', '1'), ('steptwo', '2'),
+        ('jointwo', '0'),
         ('stepthree', '0'), ('stepthree', '1'), ('stepthree', '2'),
-        ('steptwo', '0'), ('steptwo', '1'), ('steptwo', '2')]
+        ('jointhree', '0')]
 
 
 def test_get_nodes_with_complete(large_flow, make_tasks):
     large_flow.set("record", "status", NodeStatus.SUCCESS, step="stepone", index="0")
     scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
     assert scheduler.get_nodes() == [
-        ('joinone', '0'), ('jointhree', '0'), ('jointwo', '0'),
         ('stepone', '1'), ('stepone', '2'),
+        ('joinone', '0'),
+        ('steptwo', '0'), ('steptwo', '1'), ('steptwo', '2'),
+        ('jointwo', '0'),
         ('stepthree', '0'), ('stepthree', '1'), ('stepthree', '2'),
-        ('steptwo', '0'), ('steptwo', '1'), ('steptwo', '2')]
+        ('jointhree', '0')]
 
 
 def test_register_callback_invalid():
