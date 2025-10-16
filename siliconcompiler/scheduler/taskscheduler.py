@@ -1,4 +1,3 @@
-import functools
 import logging
 import multiprocessing
 import sys
@@ -149,6 +148,13 @@ class TaskScheduler:
             init_funcs.add(task["node"].init)
             self.__nodes[(step, index)] = task
 
+        # Create ordered list of nodes
+        self.__ordered_nodes: List[Tuple[str, str]] = []
+        for levelnodes in self.__runtime_flow.get_execution_order():
+            for node in levelnodes:
+                if node in self.__nodes:
+                    self.__ordered_nodes.append(node)
+
         # Call preprocessing for schedulers
         for init_func in init_funcs:
             init_func(self.__project)
@@ -235,19 +241,13 @@ class TaskScheduler:
                 # if there are more than 1, join the first with a timeout
                 self.__nodes[running_nodes[0]]["proc"].join(timeout=self.__dwellTime)
 
-    @functools.lru_cache(maxsize=1)
     def get_nodes(self) -> List[Tuple[str, str]]:
         """Gets an ordered list of all nodes managed by this scheduler.
 
         Returns:
             list: A list of (step, index) tuples for all nodes.
         """
-        nodes = []
-        for levelnodes in self.__runtime_flow.get_execution_order():
-            for node in levelnodes:
-                if node in self.__nodes:
-                    nodes.append(node)
-        return nodes
+        return self.__ordered_nodes
 
     def get_running_nodes(self) -> List[Tuple[str, str]]:
         """Gets an ordered list of all nodes that are currently running.
