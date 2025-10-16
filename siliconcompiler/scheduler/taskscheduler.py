@@ -6,7 +6,7 @@ import time
 
 import os.path
 
-from typing import List, Dict, Tuple, Optional, Callable, Any, TYPE_CHECKING
+from typing import List, Dict, Tuple, Optional, Callable, ClassVar, Any, Literal, TYPE_CHECKING
 
 from logging.handlers import QueueListener
 
@@ -36,7 +36,7 @@ class TaskScheduler:
     dependency checking. It operates on a set of pending tasks defined by the
     main Scheduler and executes them in a loop until the flow is complete.
     """
-    __callbacks: Dict[str, Callable[["Project"], None]] = {
+    __callbacks: ClassVar[Dict[str, Callable[..., None]]] = {
         "pre_run": lambda project: None,
         "pre_node": lambda project, step, index: None,
         "post_node": lambda project, step, index: None,
@@ -44,7 +44,8 @@ class TaskScheduler:
     }
 
     @staticmethod
-    def register_callback(hook: str, func: Callable[["Project"], None]) -> None:
+    def register_callback(hook: Literal["pre_run", "pre_node", "post_node", "post_run"],
+                          func: Callable[..., None]) -> None:
         """Registers a callback function to be executed at a specific hook point.
 
         Valid hooks are 'pre_run', 'pre_node', 'post_node', and 'post_run'.
