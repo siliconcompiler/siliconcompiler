@@ -259,7 +259,7 @@ class TaskScheduler:
             info = self.__nodes[node]
             if info["running"]:
                 nodes.append(node)
-        return sorted(nodes)
+        return nodes
 
     def get_nodes_waiting_to_run(self) -> List[Tuple[str, str]]:
         """Gets an ordered list of all nodes that are pending execution.
@@ -272,7 +272,7 @@ class TaskScheduler:
             info = self.__nodes[node]
             if not info["running"] and info["proc"]:
                 nodes.append(node)
-        return sorted(nodes)
+        return nodes
 
     def __process_completed_nodes(self) -> bool:
         """
