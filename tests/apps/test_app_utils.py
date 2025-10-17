@@ -28,6 +28,7 @@ def gcd_nop_project_run(gcd_design):
     return project
 
 
+@pytest.mark.timeout(60)
 def test_summarize_cfg(monkeypatch, gcd_nop_project_run, capsys):
     '''Tests that sc summarizes a cfg.'''
 

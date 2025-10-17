@@ -19,6 +19,7 @@ def test_py_make_check():
     make.check()
 
 
+@pytest.mark.timeout(300)
 def test_py_make_lint():
     from heartbeat import make
     make.lint()
