@@ -10,6 +10,7 @@ from siliconcompiler.tools.ghdl import convert
 
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.timeout(300)
 def test_version(gcd_design):
     proj = Project(gcd_design)
     proj.add_fileset("rtl")
@@ -26,6 +27,7 @@ def test_version(gcd_design):
 
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.timeout(300)
 def test_ghdl(datadir):
     design = Design("adder")
     design.set_dataroot("root", datadir)

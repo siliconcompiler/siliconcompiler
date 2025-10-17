@@ -182,6 +182,7 @@ def test_sc_remote_check_progress(gcd_nop_project, monkeypatch, unused_tcp_port,
 
 
 ###########################
+@pytest.mark.timeout(60)
 def test_sc_remote_reconnect(gcd_nop_project, monkeypatch, unused_tcp_port, scserver_credential):
     '''Test that sc-remote can reconnect to a running job.
     '''

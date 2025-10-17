@@ -7,6 +7,7 @@ from siliconcompiler.tools.sv2v.convert import ConvertTask
 
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.timeout(300)
 def test_version(gcd_design):
     proj = Project(gcd_design)
     proj.add_fileset("rtl")

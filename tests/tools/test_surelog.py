@@ -9,6 +9,7 @@ from siliconcompiler.tools.surelog.parse import ElaborateTask
 
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.timeout(300)
 def test_version(gcd_design):
     proj = Project(gcd_design)
     proj.add_fileset("rtl")
@@ -25,6 +26,7 @@ def test_version(gcd_design):
 
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.timeout(300)
 def test_surelog(gcd_design):
     proj = Project(gcd_design)
     proj.add_fileset("rtl")
@@ -44,6 +46,7 @@ def test_surelog(gcd_design):
 
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.timeout(300)
 def test_surelog_preproc_regression(datadir):
     design = Design("testdesign")
     with design.active_fileset("rtl"):
@@ -71,6 +74,7 @@ def test_surelog_preproc_regression(datadir):
 
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.timeout(300)
 def test_github_issue_1789(datadir):
     design = Design("testdesign")
     with design.active_fileset("rtl"):

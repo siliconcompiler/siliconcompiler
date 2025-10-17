@@ -19,6 +19,7 @@ from siliconcompiler.utils import sc_open
 
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.timeout(300)
 def test_version(gcd_design):
     proj = ASIC(gcd_design)
     proj.add_fileset("rtl")
@@ -35,6 +36,7 @@ def test_version(gcd_design):
 
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.timeout(300)
 def test_yosys_lec(datadir):
     design = Design("testdesign")
     with design.active_fileset("rtl"):
@@ -61,6 +63,7 @@ def test_yosys_lec(datadir):
 
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.timeout(300)
 def test_yosys_lec_broken(datadir):
     design = Design("testdesign")
     with design.active_fileset("rtl"):
@@ -98,6 +101,7 @@ class TestYosysFPGA(YosysFPGA):
 
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.timeout(300)
 def test_wildebeest_is_run(heartbeat_design):
     proj = FPGA(heartbeat_design)
     proj.add_fileset('rtl')

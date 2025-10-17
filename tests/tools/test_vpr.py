@@ -15,6 +15,7 @@ from tools.inputimporter import ImporterTask
 
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.timeout(300)
 def test_version(gcd_design):
     proj = FPGA(gcd_design)
     proj.add_fileset("rtl")
@@ -31,6 +32,7 @@ def test_version(gcd_design):
 
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.timeout(300)
 def test_run(datadir):
     design = Design("adder")
     with design.active_fileset("rtl"):

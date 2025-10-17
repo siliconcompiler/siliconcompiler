@@ -29,6 +29,7 @@ def setup_pdk_test(monkeypatch, datadir):
 
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.timeout(300)
 def test_version(asic_gcd):
     flow = Flowgraph("testflow")
     flow.node("version", ExportTask())
@@ -42,6 +43,7 @@ def test_version(asic_gcd):
 
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.timeout(300)
 def test_export(datadir):
     lib = KLayoutLibrary()
     lib.set_name("heartbeat")
@@ -80,6 +82,7 @@ def test_export(datadir):
 
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.timeout(300)
 def test_klayout_operations(datadir):
     design = Design("heartbeat")
     with design.active_fileset("layout"):
@@ -158,6 +161,7 @@ def test_pdk(setup_pdk_test):
 
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.timeout(300)
 def test_drc_pass(setup_pdk_test, datadir):
     import klayout_pdk
 
@@ -187,6 +191,7 @@ def test_drc_pass(setup_pdk_test, datadir):
 
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.timeout(300)
 def test_drc_fail(setup_pdk_test, datadir):
     import klayout_pdk
 
@@ -216,6 +221,7 @@ def test_drc_fail(setup_pdk_test, datadir):
 
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.timeout(300)
 def test_convert_drc(setup_pdk_test, datadir):
     import klayout_pdk
 

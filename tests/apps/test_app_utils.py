@@ -91,6 +91,7 @@ def test_replay_cfg_help(monkeypatch, run_cli, gcd_nop_project_run):
 
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.timeout(300)
 @pytest.mark.skipif(sys.platform == "win32", reason="Not supported on windows")
 def test_replay_cfg_print_tools(monkeypatch, run_cli, asic_gcd):
     '''Tests that sc generates a replay script.'''
@@ -115,6 +116,7 @@ def test_replay_cfg_print_tools(monkeypatch, run_cli, asic_gcd):
 
 @pytest.mark.skipif(sys.platform == "win32", reason="Not supported on windows")
 @pytest.mark.skipif(sys.platform == "darwin", reason="realpath not available in bash on macos")
+@pytest.mark.timeout(30)
 def test_replay_cfg_setup(monkeypatch, run_cli, gcd_nop_project_run):
     '''Tests that sc generates a replay script.'''
 
