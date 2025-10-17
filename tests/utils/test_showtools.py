@@ -39,6 +39,7 @@ def exit_on_show(monkeypatch):
 
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.timeout(300)
 @pytest.mark.parametrize('task', [klayout_show.ShowTask, openroad_show.ShowTask],
                          ids=generate_id)
 @pytest.mark.parametrize('target, testfile',
@@ -59,6 +60,7 @@ def test_show_def(target, testfile, task, datadir, display):
 
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.timeout(300)
 @pytest.mark.parametrize('task', [klayout_screenshot.ScreenshotTask,
                                   openroad_screenshot.ScreenshotTask],
                          ids=generate_id)
@@ -81,6 +83,7 @@ def test_screenshot_def(target, testfile, task, datadir, display):
 
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.timeout(300)
 def test_show_lyp_tool_klayout(datadir, display):
     ''' Test sc-show with only a KLayout .lyp file for layer properties '''
     design = Design("heartbeat")
@@ -99,6 +102,7 @@ def test_show_lyp_tool_klayout(datadir, display):
 
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.timeout(300)
 def test_show_nopdk_tool_klayout(datadir, display):
     design = Design("heartbeat")
     with design.active_fileset("rtl"):
@@ -114,6 +118,7 @@ def test_show_nopdk_tool_klayout(datadir, display):
 
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.timeout(300)
 @pytest.mark.skip(reason='exit not supported until surfer release 0.4')
 def test_show_vcd_surfer(datadir, display, gcd_design):
     proj = Project(gcd_design)
@@ -127,6 +132,7 @@ def test_show_vcd_surfer(datadir, display, gcd_design):
 
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.timeout(300)
 def test_show_vcd_gtkwave(datadir, display, gcd_design):
     proj = Project(gcd_design)
     proj.add_fileset("rtl")
@@ -139,6 +145,7 @@ def test_show_vcd_gtkwave(datadir, display, gcd_design):
 
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.timeout(300)
 def test_screenshot_dot(datadir, gcd_design):
     proj = Project(gcd_design)
     proj.add_fileset("rtl")

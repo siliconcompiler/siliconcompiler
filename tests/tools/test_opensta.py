@@ -14,6 +14,7 @@ from siliconcompiler.tools import get_task
 
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.timeout(300)
 def test_opensta(datadir):
     design = Design("testdesign")
     design.set_dataroot("root", datadir)
@@ -40,6 +41,7 @@ def test_opensta(datadir):
 
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.timeout(300)
 def test_opensta_sdf(datadir):
     design = Design("testdesign")
     design.set_dataroot("root", datadir)

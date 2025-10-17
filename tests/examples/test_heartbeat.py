@@ -28,6 +28,7 @@ def test_py_make_lint():
 
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.timeout(300)
 @pytest.mark.parametrize("pdk", ("freepdk45", "asap7"))
 def test_py_make_syn(pdk):
     from heartbeat import make
@@ -50,6 +51,7 @@ def test_py_make_asic(pdk):
 
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.timeout(300)
 def test_py_make_sim_icarus():
     from heartbeat import make
     make.sim(tool="icarus")
@@ -60,6 +62,7 @@ def test_py_make_sim_icarus():
 
 @pytest.mark.eda
 @pytest.mark.quick
+@pytest.mark.timeout(300)
 def test_py_make_sim_verilator():
     from heartbeat import make
     make.sim()
