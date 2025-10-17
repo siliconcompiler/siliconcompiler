@@ -9,7 +9,12 @@ import tempfile
 
 import os.path
 
+from typing import Optional, List, TYPE_CHECKING
+
 from datetime import datetime, timezone
+
+import siliconcompiler
+
 from siliconcompiler.utils import get_file_template
 from siliconcompiler.utils.curation import collect
 from siliconcompiler.schema_support.record import RecordSchema
@@ -18,24 +23,26 @@ from siliconcompiler.schema import __version__ as schema_version
 from siliconcompiler import __version__ as sc_version
 from siliconcompiler.utils.paths import workdir, jobdir, collectiondir
 
+if TYPE_CHECKING:
+    from siliconcompiler.project import Project
+    from siliconcompiler import Task
 
-def generate_testcase(project,
-                      step,
-                      index,
-                      archive_name=None,
-                      archive_directory=None,
-                      include_pdks=True,
-                      include_specific_pdks=None,
-                      include_libraries=True,
-                      include_specific_libraries=None,
-                      hash_files=False,
-                      verbose_collect=True):
+
+def generate_testcase(project: "Project",
+                      step: str,
+                      index: str,
+                      archive_name: Optional[str] = None,
+                      archive_directory: Optional[str] = None,
+                      include_libraries: bool = True,
+                      include_specific_libraries: Optional[List[str]] = None,
+                      hash_files: bool = False,
+                      verbose_collect: bool = True):
     # Save original schema since it will be modified
     project = project.copy()
 
     issue_dir = tempfile.TemporaryDirectory(prefix='sc_issue_')
 
-    project.set('option', 'continue', True)
+    project.option.set_continue(True)
     if hash_files:
         for key in project.allkeys():
             if key[0] == 'history':
@@ -45,29 +52,28 @@ def generate_testcase(project,
                     continue
                 if key[-2] == 'option' and key[-1] == 'cachedir':
                     continue
-            sc_type = project.get(*key, field='type')
+            sc_type: str = project.get(*key, field='type')
             if 'file' not in sc_type and 'dir' not in sc_type:
                 continue
             for _, key_step, key_index in project.get(*key, field=None).getvalues():
                 project.hash_files(
                     *key,
                     check=False,
-                    allow_cache=True,
                     verbose=False,
-                    skip_missing=True,
+                    missing_ok=True,
                     step=key_step, index=key_index)
 
     manifest_path = os.path.join(issue_dir.name, 'orig_manifest.json')
     project.write_manifest(manifest_path)
 
-    flow = project.get('option', 'flow')
-    tool = project.get('flowgraph', flow, step, index, 'tool')
-    task = project.get('flowgraph', flow, step, index, 'task')
+    flow = project.option.get_flow()
+    tool: str = project.get('flowgraph', flow, step, index, 'tool')
+    task: str = project.get('flowgraph', flow, step, index, 'task')
 
-    task_requires = project.get('tool', tool, 'task', task, 'require',
-                                step=step, index=index)
+    task_requires: List[str] = project.get('tool', tool, 'task', task, 'require',
+                                           step=step, index=index)
 
-    def determine_copy(*keypath, in_require):
+    def determine_copy(*keypath: str, in_require: bool):
         copy = in_require
 
         if keypath[0] == 'library':
@@ -78,17 +84,8 @@ def generate_testcase(project,
                 copy = include_libraries
 
             copy = copy and determine_copy(*keypath[2:], in_require=in_require)
-        elif keypath[0] == 'pdk':
-            # only copy pdks if selected
-            if include_specific_pdks and keypath[1] in include_specific_pdks:
-                copy = True
-            else:
-                copy = include_pdks
         elif keypath[0] == 'history':
             # Skip history
-            copy = False
-        elif keypath[0] == 'package':
-            # Skip packages
             copy = False
         elif keypath[0] == 'tool':
             # Only grab tool / tasks
@@ -107,9 +104,6 @@ def generate_testcase(project,
             elif keypath[1] == 'cachedir':
                 # Avoid cache directory
                 copy = False
-            elif keypath[1] == 'cfg':
-                # Avoid all of cfg, since we are getting the manifest separately
-                copy = False
             elif keypath[1] == 'credentials':
                 # Exclude credentials file
                 copy = False
@@ -120,7 +114,7 @@ def generate_testcase(project,
         if 'default' in keypath:
             continue
 
-        sctype = project.get(*keypath, field='type')
+        sctype: str = project.get(*keypath, field='type')
         if 'file' not in sctype and 'dir' not in sctype:
             continue
 
@@ -133,10 +127,10 @@ def generate_testcase(project,
     # Collect files
     work_dir = workdir(project, step=step, index=index)
 
-    builddir = project.get('option', 'builddir')
+    builddir = project.option.get_builddir()
     if os.path.isabs(builddir):
         # If build is an abs path, grab last directory
-        project.set('option', 'builddir', os.path.basename(builddir))
+        project.option.set_builddir(os.path.basename(builddir))
 
     # Temporarily change current directory to appear to be issue_dir
     original_cwd = project._Project__cwd
@@ -161,20 +155,20 @@ def generate_testcase(project,
     current_work_dir = os.getcwd()
     os.chdir(new_work_dir)
 
-    flow = project.get('option', 'flow')
+    flow = project.option.get_flow()
 
-    task_class = project.get("tool", tool, "task", task, field="schema")
+    task_class: "Task" = project.get("tool", tool, "task", task, field="schema")
 
     with task_class.runtime(SchedulerNode(project, step, index), relpath=new_work_dir) as task_obj:
         # Rewrite replay.sh
-        prev_quiet = project.get('option', 'quiet', step=step, index=index)
-        project.set('option', 'quiet', True, step=step, index=index)
+        prev_quiet = project.option.get_quiet(step=step, index=index)
+        project.option.set_quiet(True, step=step, index=index)
         try:
             # Rerun pre_process
             task_obj.pre_process()
         except Exception:
             pass
-        project.set('option', 'quiet', prev_quiet, step=step, index=index)
+        project.option.set_quiet(prev_quiet, step=step, index=index)
 
         is_python_tool = task_obj.get_exe() is None
         if not is_python_tool:
@@ -193,7 +187,7 @@ def generate_testcase(project,
     git_data = {}
     try:
         # Check git information
-        repo = git.Repo(path=os.path.join(project.scroot, '..'))
+        repo = git.Repo(path=os.path.join(os.path.dirname(siliconcompiler.__file__), '..'))
         commit = repo.head.commit
         git_data['commit'] = commit.hexsha
         git_data['date'] = time.strftime('%Y-%m-%d %H:%M:%S',
@@ -201,7 +195,7 @@ def generate_testcase(project,
         git_data['author'] = f'{commit.author.name} <{commit.author.email}>'
         git_data['msg'] = commit.message
         # Count number of commits ahead of version
-        version_tag = repo.tag(f'v{project.scversion}')
+        version_tag = repo.tag(f'v{siliconcompiler.__version__}')
         count = 0
         for c in commit.iter_parents():
             count += 1
@@ -224,7 +218,6 @@ def generate_testcase(project,
     issue_information['run'] = {'step': step,
                                 'index': index,
                                 'libraries_included': include_libraries,
-                                'pdks_included': include_pdks,
                                 'tool': tool,
                                 'toolversion': project.get('record', 'toolversion',
                                                            step=step, index=index),
@@ -276,7 +269,7 @@ def generate_testcase(project,
         add_files = [manifest_path,
                      issue_path,
                      readme_path]
-        if not is_python_tool:
+        if not is_python_tool and run_path:
             add_files.append(run_path)
         for path in add_files:
             tar.add(os.path.abspath(path),

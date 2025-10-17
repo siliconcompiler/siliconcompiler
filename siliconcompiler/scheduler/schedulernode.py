@@ -1037,15 +1037,15 @@ class SchedulerNode:
         from siliconcompiler.utils.issue import generate_testcase
         import lambdapdk
 
+        foss_libraries = [*lambdapdk.get_pdk_names(), *lambdapdk.get_lib_names()]
+
         generate_testcase(
             self.__project,
             self.__step,
             self.__index,
             archive_directory=self.__jobworkdir,
-            include_pdks=False,
-            include_specific_pdks=lambdapdk.get_pdk_names(),
             include_libraries=False,
-            include_specific_libraries=lambdapdk.get_lib_names(),
+            include_specific_libraries=foss_libraries,
             hash_files=self.__hash,
             verbose_collect=False)
 

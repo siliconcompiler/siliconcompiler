@@ -5,6 +5,8 @@ import tarfile
 
 import os.path
 
+from typing import Optional
+
 from siliconcompiler import Project
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.utils.issue import generate_testcase
@@ -42,18 +44,12 @@ To run a testcase, use:
                                            "generating the manifest")
             self._add_commandline_argument("file", "file",
                                            "filename for the generated testcase")
-            self._add_commandline_argument("add_pdk", "[str]",
-                                           "pdk to include in the testcase, if not provided all "
-                                           "libraries will be added according to the "
-                                           "-exclude_pdks flag")
             self._add_commandline_argument("add_library", "[str]",
                                            "library to include in the testcase, if not "
                                            "provided all libraries will be added according to "
                                            "the -exclude_libraries flag")
             self._add_commandline_argument("exclude_libraries", "bool",
                                            "flag to ensure libraries are excluded in the testcase")
-            self._add_commandline_argument("exclude_pdks", "bool",
-                                           "flag to ensure pdks are excluded in the testcase")
 
             # TODO port add dep func
             # self._add_commandline_argument("add_dep", "[str]",
@@ -65,10 +61,8 @@ To run a testcase, use:
                   '-run',
                   '-hash_files',
                   '-file',
-                  '-add_pdk',
                   '-add_library',
-                  '-exclude_libraries',
-                  '-exclude_pdks']
+                  '-exclude_libraries']
 
     issue = IssueProject.create_cmdline(
         progname,
@@ -76,15 +70,15 @@ To run a testcase, use:
         switchlist=switchlist)
 
     if not issue.get("cmdarg", "run"):
-        project = Project.from_manifest(filepath=issue.get("cmdarg", "cfg"))
+        project: Project = Project.from_manifest(filepath=issue.get("cmdarg", "cfg"))
 
         if issue.get("arg", "step"):
             project.set("arg", "step", issue.get("arg", "step"))
         if issue.get("arg", "index"):
             project.set("arg", "index", issue.get("arg", "index"))
 
-        step = project.get('arg', 'step')
-        index = project.get('arg', 'index')
+        step: Optional[str] = project.get('arg', 'step')
+        index: Optional[str] = project.get('arg', 'index')
         if not step:
             project.logger.error('Unable to determine step from manifest')
         if not index:
@@ -97,15 +91,13 @@ To run a testcase, use:
                           step,
                           index,
                           issue.get("cmdarg", "file"),
-                          include_pdks=not issue.get("cmdarg", "exclude_pdks"),
-                          include_specific_pdks=issue.get("cmdarg", "add_pdk"),
                           include_libraries=not issue.get("cmdarg", "exclude_libraries"),
                           include_specific_libraries=issue.get("cmdarg", "add_library"),
                           hash_files=issue.get("cmdarg", "hash_files"))
 
         return 0
     else:
-        file = issue.get("cmdarg", "file")
+        file: Optional[str] = issue.get("cmdarg", "file")
         if not file:
             raise ValueError('-file must be provided')
 
@@ -143,7 +135,7 @@ To run a testcase, use:
 
         project.set('arg', 'step', step)
         project.set('arg', 'index', index)
-        flow = project.get("option", 'flow')
+        flow = project.option.get_flow()
         tool = project.get("flowgraph", flow, step, index, "tool")
         task = project.get("flowgraph", flow, step, index, "task")
         taskmod = project.get("flowgraph", flow, step, index, "taskmodule")

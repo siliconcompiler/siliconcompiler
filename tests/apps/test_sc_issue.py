@@ -5,7 +5,7 @@ import pytest
 import os.path
 
 from datetime import datetime, timezone
-from unittest.mock import patch
+from unittest.mock import patch, ANY
 
 from siliconcompiler.apps import sc_issue
 
@@ -57,6 +57,54 @@ def test_sc_issue_generate_success(flags,
         time.now.assert_called()
 
     assert os.path.isfile(outputfile)
+
+
+@pytest.mark.parametrize('flags,args', [
+    (['-cfg', 'build/heartbeat/job0/stepone/0/outputs/heartbeat.pkg.json'],
+     ("stepone", "0", None,
+      {"include_libraries": True, "include_specific_libraries": [], "hash_files": False})),
+    (['-cfg', 'build/heartbeat/job0/steptwo/0/outputs/heartbeat.pkg.json',
+      '-arg_step', 'stepone', '-arg_index', '0'],
+     ("stepone", "0", None,
+      {"include_libraries": True, "include_specific_libraries": [], "hash_files": False})),
+    (['-cfg', 'build/heartbeat/job0/stepone/0/outputs/heartbeat.pkg.json',
+      '-arg_step', 'stepone', '-arg_index', '0'],
+     ("stepone", "0", None,
+      {"include_libraries": True, "include_specific_libraries": [], "hash_files": False})),
+    (['-cfg', 'build/heartbeat/job0/heartbeat.pkg.json',
+      '-arg_step', 'steptwo', '-arg_index', '0'],
+     ("steptwo", "0", None,
+      {"include_libraries": True, "include_specific_libraries": [], "hash_files": False})),
+    (['-cfg', 'build/heartbeat/job0/heartbeat.pkg.json',
+      '-arg_step', 'steptwo', '-arg_index', '0', '-file', 'test.tar.gz'],
+     ("steptwo", "0", "test.tar.gz",
+      {"include_libraries": True, "include_specific_libraries": [], "hash_files": False})),
+    (['-cfg', 'build/heartbeat/job0/heartbeat.pkg.json',
+      '-arg_step', 'steptwo', '-arg_index', '0', '-hash_files'],
+     ("steptwo", "0", None,
+      {"include_libraries": True, "include_specific_libraries": [], "hash_files": True})),
+    (['-cfg', 'build/heartbeat/job0/heartbeat.pkg.json',
+      '-arg_step', 'steptwo', '-arg_index', '0', '-exclude_libraries'],
+     ("steptwo", "0", None,
+      {"include_libraries": False, "include_specific_libraries": [], "hash_files": False})),
+    (['-cfg', 'build/heartbeat/job0/heartbeat.pkg.json',
+      '-arg_step', 'steptwo', '-arg_index', '0', '-exclude_libraries',
+      '-add_library', 'test0', '-add_library', 'test1'],
+     ("steptwo", "0", None,
+      {"include_libraries": False, "include_specific_libraries": ["test0", "test1"],
+       "hash_files": False}))
+])
+def test_sc_issue_generate_call(flags,
+                                args,
+                                monkeypatch,
+                                project):
+    '''Test sc-issue app on a few sets of flags.'''
+
+    monkeypatch.setattr('sys.argv', ['sc-issue'] + flags)
+    with patch("siliconcompiler.apps.sc_issue.generate_testcase") as generate_testcase:
+        assert sc_issue.main() == 0
+        arg_step, arg_index, outfile, kwargs = args
+        generate_testcase.assert_called_once_with(ANY, arg_step, arg_index, outfile, **kwargs)
 
 
 def test_sc_issue_generate_fail_step(monkeypatch, project, capsys):

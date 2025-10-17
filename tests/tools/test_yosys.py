@@ -88,7 +88,7 @@ def test_yosys_lec_broken(datadir):
     assert proj.history("job0").get('metric', 'drvs', step='lec', index='0') == 2
 
 
-class TestYosysFPGA(YosysFPGA):
+class DummyYosysFPGA(YosysFPGA):
     def __init__(self):
         super().__init__()
         self.set_name("test_z1000")
@@ -112,7 +112,7 @@ def test_wildebeest_is_run(heartbeat_design):
     flow.edge('elaborate', 'synthesis')
     proj.set_flow(flow)
 
-    proj.set_fpga(TestYosysFPGA())
+    proj.set_fpga(DummyYosysFPGA())
     proj.run()
 
     node = SchedulerNode(proj, step='synthesis', index='0')
