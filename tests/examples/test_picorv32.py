@@ -3,11 +3,13 @@ import pytest
 import os.path
 
 
+@pytest.mark.timeout(60)
 def test_py_make_check():
     from picorv32 import make
     make.check()
 
 
+@pytest.mark.timeout(60)
 @pytest.mark.parametrize("fileset", ("rtl", "rtl.memory"))
 def test_py_make_lint(fileset):
     from picorv32 import make
