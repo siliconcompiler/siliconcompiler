@@ -8,6 +8,21 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.35.1 (2025-10-17)
+=========================================
+
+**Minor:**
+
+ * Added support for providing external tool install scripts and groups to sc-install.
+ * Fixed installation order in `sc-install` to use lists instead of sets, preserving the intended group ordering.
+ * Fixed path handling to correctly resolve paths when dataroot starts with an environment variable.
+ * Updated task scheduling to more reliably honor the node order defined in the flowgraph.
+
+ * Tools:
+
+  * opensta: reimplemented task skipping logic for FPGA timing analysis.
+
+
 SiliconCompiler 0.35.0 (2025-10-08)
 =========================================
 
