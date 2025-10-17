@@ -101,6 +101,7 @@ def test_register_callback():
     assert callbacks["pre_run"] is callback
 
 
+@pytest.mark.timeout(30)
 def test_run(large_flow, make_tasks):
     scheduler = TaskScheduler(large_flow, make_tasks(large_flow))
     scheduler.run(logging.NullHandler())
@@ -109,6 +110,7 @@ def test_run(large_flow, make_tasks):
         assert large_flow.get("record", "status", step=step, index=index) == NodeStatus.SUCCESS
 
 
+@pytest.mark.timeout(30)
 def test_run_callbacks(large_flow, make_tasks):
     class Callback:
         pre_run = 0
@@ -146,6 +148,7 @@ def test_run_callbacks(large_flow, make_tasks):
     assert Callback.post_run == 1
 
 
+@pytest.mark.timeout(30)
 def test_run_dashboard(large_flow, make_tasks, monkeypatch):
     class FakeDashboard:
         lock = Lock()
