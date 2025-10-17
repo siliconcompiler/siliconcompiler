@@ -6,6 +6,7 @@ from siliconcompiler import NodeStatus
 
 
 ###########################
+@pytest.mark.timeout(60)
 def test_server_authenticated(gcd_nop_project, scserver, scserver_users, scserver_credential):
     '''Basic sc-server test: Run a local instance of a server, and build the GCD
        example using loopback network calls to that server.
@@ -40,6 +41,7 @@ def test_server_authenticated(gcd_nop_project, scserver, scserver_users, scserve
 
 
 ###########################
+@pytest.mark.timeout(60)
 def test_server_not_authenticated(gcd_nop_project, scserver, scserver_users,
                                   scserver_credential):
     '''Basic sc-server test: Run a local instance of a server, and attempt to
@@ -71,6 +73,7 @@ def test_server_not_authenticated(gcd_nop_project, scserver, scserver_users,
         gcd_nop_project.run()
 
 
+@pytest.mark.timeout(60)
 def test_server(gcd_remote_test):
     '''Basic sc-server test: Run a local instance of a server, and build the GCD
        example using loopback network calls to that server.
@@ -94,6 +97,7 @@ def test_server(gcd_remote_test):
 
 
 ###########################
+@pytest.mark.timeout(60)
 def test_server_partial(gcd_remote_test):
     '''Basic sc-server test: Run a local instance of a server, and build the GCD
        example using loopback network calls to that server.
