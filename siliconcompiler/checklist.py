@@ -200,9 +200,9 @@ class Criteria(NamedSchema):
                 If False, appends to the existing list. Defaults to False.
         """
         if clobber:
-            self.set('waiver', metric, value=value)
+            self.set('waiver', metric, value)
         else:
-            self.add('waiver', metric, value=value)
+            self.add('waiver', metric, value)
 
     def get_ok(self) -> bool:
         """
