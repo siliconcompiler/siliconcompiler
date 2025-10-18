@@ -13,6 +13,14 @@ from siliconcompiler.checklist import Checklist, Criteria
 
 @pytest.fixture
 def project():
+    """
+    Create and return a test Project preconfigured with a simple flow and a successful step status.
+    
+    The returned Project subclass (TestProject) uses a Flowgraph subclass (TestFlow) that defines a single node named "teststep" backed by the builtin NOPTask. TestProject is initialized with Design("testdesign"), the TestFlow is set as the project's flow, and the step "teststep" at index "0" is recorded with status NodeStatus.SUCCESS. TestProject exposes a `logger` property that returns the standard Python logger.
+    
+    Returns:
+        TestProject: A Project instance ready for use in tests, with flow, design, and a recorded successful node status.
+    """
     class TestFlow(Flowgraph):
         def __init__(self):
             super().__init__("testflow")
@@ -177,6 +185,11 @@ def test_checklist_criteria_methods():
 
 def test_check_fail_unmet_spec(project, caplog):
     # Test won't work if file doesn't exist
+    """
+    Verifies that a Checklist item with an unmet numeric metric criterion fails and emits the expected log message.
+    
+    Sets up a report file and a project metric ('errors' == 1), creates a checklist item requiring `errors==0` for job0/teststep/0, runs the check, and asserts the check returns False and that the log contains the failure message identifying the job, step/index, task, and criterion.
+    """
     os.makedirs('build/testdesign/job0/teststep/0')
     with open('build/testdesign/job0/teststep/0/testtask.log', 'w') as f:
         f.write('test')

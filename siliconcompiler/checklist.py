@@ -18,6 +18,12 @@ class Criteria(NamedSchema):
     """
 
     def __init__(self, name: Optional[str] = None):
+        """
+        Initialize the Criteria schema with an optional name and attach standard checklist parameters.
+        
+        Parameters:
+        	name (Optional[str]): Identifier for this criteria item; if None, name is left unset.
+        """
         super().__init__()
         self.set_name(name)
         schema_checklist(self)
@@ -33,10 +39,10 @@ class Criteria(NamedSchema):
 
     def set_description(self, value: Optional[str]) -> None:
         """
-        Sets the short, one-line description for the checklist item.
-
-        Args:
-            value (Optional[str]): The description string to set.
+        Set the short, one-line description for the checklist item.
+        
+        Parameters:
+            value (Optional[str]): Description text to store; pass `None` to remove the description.
         """
         self.set('description', value)
 
@@ -52,10 +58,10 @@ class Criteria(NamedSchema):
 
     def set_requirement(self, value: Optional[str]) -> None:
         """
-        Sets the detailed requirement description for the checklist item.
-
-        Args:
-            value (Optional[str]): The requirement description to set.
+        Set the detailed requirement description for the checklist item.
+        
+        Parameters:
+            value (Optional[str]): Requirement text to store; use `None` to remove any existing requirement.
         """
         self.set('requirement', value)
 
@@ -71,30 +77,29 @@ class Criteria(NamedSchema):
 
     def set_dataformat(self, value: Optional[str]):
         """
-        Sets the description of acceptable data file formats for signoff.
-
-        Args:
-            value (Optional[str]): A free-text description of the data format.
+        Set the description of acceptable data file formats for this criteria.
+        
+        Parameters:
+            value (Optional[str]): Free-text description of allowed file formats (for example "CSV, JSON"); pass `None` to clear the field.
         """
         self.set('dataformat', value)
 
     def get_rationale(self) -> List[str]:
         """
-        Retrieves the rationale codes or descriptions for the checklist item.
-
+        Retrieve rationale codes or descriptions for this checklist item.
+        
         Returns:
-            List[str]: A list of rationale strings.
+            List[str]: The list of rationale strings associated with the item (may be empty).
         """
         return self.get('rationale')
 
     def add_rationale(self, value: Union[List[str], str], clobber: bool = False) -> None:
         """
-        Adds one or more rationale codes or descriptions to the checklist item.
-
-        Args:
-            value (Union[List[str], str]): A single rationale string or a list of strings.
-            clobber (bool): If True, replaces the existing list with the new value.
-                If False, appends to the existing list. Defaults to False.
+        Add one or more rationale strings to this criteria item.
+        
+        Parameters:
+            value (str | list[str]): A rationale string or a list of rationale strings to add.
+            clobber (bool): If True, replace the existing rationale list with `value`; if False, append `value` to the existing list.
         """
         if clobber:
             self.set('rationale', value)
@@ -115,12 +120,11 @@ class Criteria(NamedSchema):
 
     def add_criteria(self, value: Union[List[str], str], clobber: bool = False) -> None:
         """
-        Adds one or more signoff criteria to the checklist item.
-
-        Args:
-            value (Union[List[str], str]): A single criterion string or a list of strings.
-            clobber (bool): If True, replaces the existing list with the new value.
-                If False, appends to the existing list. Defaults to False.
+        Add one or more signoff criteria to this checklist item.
+        
+        Parameters:
+            value: A criterion string or a list of criterion strings (e.g., "metric >= 0.9").
+            clobber: If True, replace the existing criteria list with `value`; if False, append `value` to the existing list.
         """
         if clobber:
             self.set('criteria', value)
@@ -141,13 +145,12 @@ class Criteria(NamedSchema):
     def add_task(self, value: Union[List[Tuple[str, str, str]], Tuple[str, str, str]],
                  clobber: bool = False) -> None:
         """
-        Adds one or more flowgraph tasks to verify the checklist item.
-
-        Args:
-            value (Union[List[Tuple], Tuple]): A single task tuple or a list of tuples.
-            clobber (bool): If True, replaces the existing list with the new value.
-                If False, appends to the existing list. Defaults to False.
-        """
+                 Add one or more flowgraph tasks associated with this checklist item.
+                 
+                 Parameters:
+                     value: A single task tuple (job, step, index) or a list of such tuples identifying flowgraph tasks to verify this checklist item.
+                     clobber: If True, replace the existing task list with `value`; if False, append `value` to the existing task list.
+                 """
         if clobber:
             self.set('task', value)
         else:
@@ -155,21 +158,20 @@ class Criteria(NamedSchema):
 
     def get_report(self) -> List[str]:
         """
-        Retrieves the list of report filepaths documenting validation.
-
+        Return the list of report file paths associated with this criteria.
+        
         Returns:
-            List[str]: A list of filepaths.
+            List[str]: List of report file paths; empty list if no reports are set.
         """
         return self.get('report')
 
     def add_report(self, value: Union[List[str], str], clobber: bool = False) -> None:
         """
-        Adds one or more report filepaths to the checklist item.
-
-        Args:
-            value (Union[List[str], str]): A single filepath string or a list of strings.
-            clobber (bool): If True, replaces the existing list with the new value.
-                If False, appends to the existing list. Defaults to False.
+        Add one or more report file paths to the checklist item.
+        
+        Parameters:
+            value (Union[List[str], str]): A single file path or a list of file paths to add.
+            clobber (bool): If True, replace the existing report list with `value`; if False, append `value` to the existing list. Defaults to False.
         """
         if clobber:
             self.set('report', value)
@@ -178,27 +180,26 @@ class Criteria(NamedSchema):
 
     def get_waiver(self, metric: str) -> List[Union[Path, str]]:
         """
-        Retrieves waiver report files for a specific metric.
-
-        Args:
-            metric (str): The metric for which to retrieve waivers.
-
+        Return the list of waiver file paths associated with the given metric.
+        
+        Parameters:
+        	metric (str): Metric name whose waiver files should be returned.
+        
         Returns:
-            List[Union[Path, str]]: A list of filepaths for the specified metric's waivers.
+        	List[Union[Path, str]]: A list of file paths (as Path objects or strings) for waivers tied to `metric`. Empty list if no waivers are recorded.
         """
         return self.get('waiver', metric)
 
     def add_waiver(self, metric: str, value: Union[List[Union[Path, str]], Union[Path, str]],
                    clobber: bool = False) -> None:
         """
-        Adds one or more waiver reports for a specific metric.
-
-        Args:
-            metric (str): The metric to which the waiver applies.
-            value (Union[List, Path, str]): A single filepath or a list of filepaths.
-            clobber (bool): If True, replaces the existing list with the new value.
-                If False, appends to the existing list. Defaults to False.
-        """
+                   Attach one or more waiver report paths to the given metric for this Criteria.
+                   
+                   Parameters:
+                       metric (str): Metric name the waiver(s) apply to.
+                       value (Path | str | list[Path | str]): A single file path or a list of file paths pointing to waiver documents.
+                       clobber (bool): If True, replace any existing waivers for the metric with `value`; if False, append `value` to the existing list. Defaults to False.
+                   """
         if clobber:
             self.set('waiver', metric, value)
         else:
@@ -217,10 +218,10 @@ class Criteria(NamedSchema):
 
     def set_ok(self, value: bool) -> None:
         """
-        Sets the manual 'ok' status of the checklist item.
-
-        Args:
-            value (bool): The boolean status to set. True indicates approval.
+        Set the manual approval status for this checklist item.
+        
+        Parameters:
+            value (bool): `True` to mark the item as approved, `False` to mark it as not approved.
         """
         self.set('ok', value)
 
@@ -236,10 +237,10 @@ class Checklist(NamedSchema):
     """
     def __init__(self, name: Optional[str] = None):
         """
-        Initializes the Checklist object.
-
-        Args:
-            name (str, optional): The name of the checklist standard. Defaults to None.
+        Create a Checklist and insert a default Criteria item.
+        
+        Parameters:
+            name (Optional[str]): Name of the checklist standard; if None, the checklist is created without a specific name.
         """
         super().__init__()
         self.set_name(name)
@@ -264,21 +265,16 @@ class Checklist(NamedSchema):
 
     def get_criteria(self, name: Optional[str] = None) -> Union[Dict[str, Criteria], Criteria]:
         """
-        Retrieves one or all `Criteria` items from the checklist.
-
-        If a name is provided, it returns the specific `Criteria` object.
-        If no name is provided, it returns a dictionary of all `Criteria` objects.
-
-        Args:
-            name (Optional[str], optional): The name of the item to retrieve.
-                Defaults to None.
-
+        Retrieve a specific Criteria by name or all Criteria items when no name is provided.
+        
+        Parameters:
+            name (Optional[str]): Name of the criteria to retrieve. If omitted, returns all items.
+        
         Returns:
-            Union[Dict[str, Criteria], Criteria]: A single `Criteria` object
-            or a dictionary mapping names to `Criteria` objects.
-
+            Dict[str, Criteria] if `name` is omitted, otherwise the requested `Criteria`.
+        
         Raises:
-            ValueError: If a name is provided but is not found in the checklist.
+            ValueError: If the named criteria does not exist.
         """
         if name is None:
             criteria: Dict[str, Criteria] = {}
@@ -470,7 +466,10 @@ class Checklist(NamedSchema):
     @classmethod
     def _getdict_type(cls) -> str:
         """
-        Internal method to return the type name for dictionary representation.
+        Provide the dictionary type identifier for this class.
+        
+        Returns:
+            The string 'Checklist' representing the dictionary type name.
         """
         return Checklist.__name__
 
@@ -506,14 +505,15 @@ class Checklist(NamedSchema):
 ############################################
 def schema_checklist(schema: Criteria):
     """
-    Adds standard checklist parameters to a Criteria schema object.
-
-    This function defines the common set of parameters that make up a checklist
-    item, such as 'description', 'criteria', 'report', etc., and adds them to
-    the provided schema.
-
-    Args:
-        schema (Criteria): The Criteria schema object to modify.
+    Attach standard checklist parameters to a Criteria schema.
+    
+    Adds common checklist fields (description, requirement, dataformat, rationale,
+    criteria, task, report, waiver, and ok) to the provided Criteria object by
+    inserting Parameter definitions into an EditableSchema view of that object.
+    
+    Parameters:
+        schema (Criteria): Criteria schema object to be augmented in-place with the
+            standard checklist parameters.
     """
     edit = EditableSchema(schema)
 
