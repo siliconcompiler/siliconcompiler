@@ -281,10 +281,10 @@ class Checklist(NamedSchema):
             ValueError: If a name is provided but is not found in the checklist.
         """
         if name is None:
-            criterias: Dict[str, Criteria] = {}
+            criteria: Dict[str, Criteria] = {}
             for item in self.getkeys():
-                criterias[item] = self.get_criteria(item)
-            return criterias
+                criteria[item] = self.get_criteria(item)
+            return criteria
         if name not in self.getkeys():
             raise ValueError(f"{name} is not defined")
         return self.get(name, field="schema")
@@ -371,7 +371,8 @@ class Checklist(NamedSchema):
                             logger.error(f'{step}/{index} not found in flowgraph for {job}')
                         continue
 
-                    if job_data.get('record', 'status', step=step, index=index) == NodeStatus.SKIPPED:
+                    if job_data.get('record', 'status', step=step, index=index) == \
+                            NodeStatus.SKIPPED:
                         if logger:
                             logger.warning(f'{step}/{index} was skipped')
                         continue
@@ -400,7 +401,8 @@ class Checklist(NamedSchema):
 
                     value = job_data.get('metric', metric, step=step, index=index)
                     criteria_ok = utils.safecompare(value, op, goal)
-                    waivers = item_criteria.get_waiver(metric) if metric in item_criteria.getkeys("waiver") else []
+                    waivers = item_criteria.get_waiver(metric) \
+                        if metric in item_criteria.getkeys("waiver") else []
 
                     criteria_str = f'{metric}{op}{goal:{number_format}}'
                     compare_str = f'{value:{number_format}}{op}{goal:{number_format}}'
@@ -419,7 +421,8 @@ class Checklist(NamedSchema):
 
                     has_reports = (
                         job_data.valid('tool', tool, 'task', task, 'report', metric) and
-                        job_data.get('tool', tool, 'task', task, 'report', metric, step=step, index=index)
+                        job_data.get('tool', tool, 'task', task, 'report', metric,
+                                     step=step, index=index)
                     )
 
                     if allow_missing_reports and not has_reports:

@@ -2,7 +2,7 @@ import logging
 import os
 import pytest
 
-from pathlib import Path, PosixPath
+from pathlib import Path
 
 from siliconcompiler import Project, NodeStatus
 from siliconcompiler import Flowgraph, Design
@@ -90,8 +90,8 @@ def test_criteria_get_set_task():
     assert criteria.get_task() == [("job0", "syn", "0")]
     criteria.add_task([("job0", "place", "0"), ("job0", "cts", "0")])
     assert criteria.get_task() == [("job0", "syn", "0"),
-                                     ("job0", "place", "0"),
-                                     ("job0", "cts", "0")]
+                                   ("job0", "place", "0"),
+                                   ("job0", "cts", "0")]
     criteria.add_task(("job1", "route", "0"), clobber=True)
     assert criteria.get_task() == [("job1", "route", "0")]
 
