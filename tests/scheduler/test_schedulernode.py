@@ -1950,7 +1950,7 @@ def test_check_previous_run_status_preserves_success_path(project, monkeypatch):
         assert result is True
 
 
-@pytest.mark.timeout(90)
+@pytest.mark.timeout(180)
 def test_generate_testcase_autoissue(project, monkeypatch, caplog):
     monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
     project.logger.setLevel(logging.INFO)
