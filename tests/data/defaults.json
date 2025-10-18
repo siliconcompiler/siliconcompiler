@@ -319,7 +319,8 @@
             },
             "__meta__": {
               "name": null,
-              "class": "siliconcompiler.checklist/Criteria"
+              "class": "siliconcompiler.checklist/Criteria",
+              "sctype": "Criteria"
             }
           },
           "__meta__": {
@@ -3285,7 +3286,8 @@
             },
             "__meta__": {
               "name": null,
-              "class": "siliconcompiler.checklist/Criteria"
+              "class": "siliconcompiler.checklist/Criteria",
+              "sctype": "Criteria"
             }
           },
           "__meta__": {
@@ -7015,7 +7017,8 @@
             },
             "__meta__": {
               "name": null,
-              "class": "siliconcompiler.checklist/Criteria"
+              "class": "siliconcompiler.checklist/Criteria",
+              "sctype": "Criteria"
             }
           },
           "__meta__": {
@@ -11655,7 +11658,8 @@
             },
             "__meta__": {
               "name": null,
-              "class": "siliconcompiler.checklist/Criteria"
+              "class": "siliconcompiler.checklist/Criteria",
+              "sctype": "Criteria"
             }
           },
           "__meta__": {
@@ -14621,7 +14625,8 @@
             },
             "__meta__": {
               "name": null,
-              "class": "siliconcompiler.checklist/Criteria"
+              "class": "siliconcompiler.checklist/Criteria",
+              "sctype": "Criteria"
             }
           },
           "__meta__": {

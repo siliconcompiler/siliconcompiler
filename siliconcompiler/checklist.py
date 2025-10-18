@@ -224,6 +224,13 @@ class Criteria(NamedSchema):
         """
         self.set('ok', value)
 
+    @classmethod
+    def _getdict_type(cls) -> str:
+        """
+        Internal method to return the type name for dictionary representation.
+        """
+        return Criteria.__name__
+
 
 class Checklist(NamedSchema):
     """
