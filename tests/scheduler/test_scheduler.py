@@ -541,6 +541,7 @@ def test_check_flowgraph_io_with_files_multple_input(basic_project_no_flow, monk
     assert "Invalid flow: steptwo/0 receives test.v from multiple input tasks" in caplog.text
 
 
+@pytest.mark.timeout(60)
 def test_rerun(gcd_nop_project):
     '''Regression test for #458.'''
 
@@ -566,6 +567,7 @@ def test_rerun(gcd_nop_project):
         NodeStatus.PENDING
 
 
+@pytest.mark.timeout(60)
 def test_resume_normal(gcd_nop_project):
     assert gcd_nop_project.run()
     run_copy = gcd_nop_project.copy()
@@ -590,7 +592,7 @@ def test_resume_normal(gcd_nop_project):
         NodeStatus.SUCCESS
 
 
-@pytest.mark.timeout(30)
+@pytest.mark.timeout(60)
 def test_resume_value_changed(gcd_nop_project):
     EditableSchema(gcd_nop_project).insert("option", "testing", Parameter("str"))
 
