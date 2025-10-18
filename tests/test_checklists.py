@@ -2,11 +2,13 @@ import logging
 import os
 import pytest
 
+from pathlib import Path
+
 from siliconcompiler import Project, NodeStatus
 from siliconcompiler import Flowgraph, Design
 from siliconcompiler.schema import EditableSchema, Parameter, PerNode
 
-from siliconcompiler.checklist import Checklist
+from siliconcompiler.checklist import Checklist, Criteria
 
 
 @pytest.fixture
@@ -30,6 +32,147 @@ def project():
             return logging.getLogger()
 
     return TestProject()
+
+
+def test_criteria_get_set_description():
+    criteria = Criteria()
+    # Test description
+    assert criteria.get_description() is None
+    criteria.set_description("Test Description")
+    assert criteria.get_description() == "Test Description"
+
+
+def test_criteria_get_set_requirement():
+    criteria = Criteria()
+    # Test requirement
+    assert criteria.get_requirement() is None
+    criteria.set_requirement("Test Requirement")
+    assert criteria.get_requirement() == "Test Requirement"
+
+
+def test_criteria_get_set_dataformat():
+    criteria = Criteria()
+    # Test dataformat
+    assert criteria.get_dataformat() is None
+    criteria.set_dataformat("Test Dataformat")
+    assert criteria.get_dataformat() == "Test Dataformat"
+
+
+def test_criteria_get_set_rationale():
+    criteria = Criteria()
+    # Test rationale
+    assert criteria.get_rationale() == []
+    criteria.add_rationale("Rationale 1")
+    assert criteria.get_rationale() == ["Rationale 1"]
+    criteria.add_rationale(["Rationale 2", "Rationale 3"])
+    assert criteria.get_rationale() == ["Rationale 1", "Rationale 2", "Rationale 3"]
+    criteria.add_rationale("Rationale 4", clobber=True)
+    assert criteria.get_rationale() == ["Rationale 4"]
+
+
+def test_criteria_get_set_criteria():
+    criteria = Criteria()
+    # Test criteria
+    assert criteria.get_criteria() == []
+    criteria.add_criteria("errors == 0")
+    assert criteria.get_criteria() == ["errors == 0"]
+    criteria.add_criteria(["warnings == 0", "setup >= 0"])
+    assert criteria.get_criteria() == ["errors == 0", "warnings == 0", "setup >= 0"]
+    criteria.add_criteria("hold >= 0", clobber=True)
+    assert criteria.get_criteria() == ["hold >= 0"]
+
+
+def test_criteria_get_set_task():
+    criteria = Criteria()
+    # Test task
+    assert criteria.get_task() == []
+    criteria.add_task(("job0", "syn", "0"))
+    assert criteria.get_task() == [("job0", "syn", "0")]
+    criteria.add_task([("job0", "place", "0"), ("job0", "cts", "0")])
+    assert criteria.get_task() == [("job0", "syn", "0"),
+                                   ("job0", "place", "0"),
+                                   ("job0", "cts", "0")]
+    criteria.add_task(("job1", "route", "0"), clobber=True)
+    assert criteria.get_task() == [("job1", "route", "0")]
+
+
+def test_criteria_get_set_report():
+    criteria = Criteria()
+    # Test report
+    assert criteria.get_report() == []
+    criteria.add_report("report1.log")
+    assert criteria.get_report() == ["report1.log"]
+    criteria.add_report(["report2.log", "report3.json"])
+    assert criteria.get_report() == ["report1.log", "report2.log", "report3.json"]
+    criteria.add_report("final.rpt", clobber=True)
+    assert criteria.get_report() == ["final.rpt"]
+
+
+def test_criteria_get_set_waiver():
+    criteria = Criteria()
+    # Test waiver
+    assert criteria.get_waiver("errors") == []
+    waiver_path = Path("waiver1.txt")
+    criteria.add_waiver("errors", waiver_path)
+    assert criteria.get_waiver("errors") == ["waiver1.txt"]
+    criteria.add_waiver("errors", ["waiver2.txt", "waiver3.txt"])
+    assert criteria.get_waiver("errors") == ["waiver1.txt", "waiver2.txt", "waiver3.txt"]
+    criteria.add_waiver("errors", "final_waiver.txt", clobber=True)
+    assert criteria.get_waiver("errors") == ["final_waiver.txt"]
+
+
+def test_criteria_get_set_ok():
+    criteria = Criteria()
+    # Test ok
+    assert not criteria.get_ok()
+    criteria.set_ok(True)
+    assert criteria.get_ok()
+
+
+def test_checklist_criteria_methods_make():
+    checklist = Checklist()
+    # Test make_criteria
+    item1 = checklist.make_criteria("item1")
+    assert isinstance(item1, Criteria)
+    assert "item1" in checklist.getkeys()
+
+    # Test make_criteria raises error on duplicate
+    with pytest.raises(ValueError):
+        checklist.make_criteria("item1")
+
+
+def test_checklist_criteria_methods_get():
+    checklist = Checklist()
+    item1 = checklist.make_criteria("item1")
+
+    # Test get_criteria by name
+    retrieved_item1 = checklist.get_criteria("item1")
+    assert retrieved_item1 == item1
+
+
+def test_checklist_criteria_methods_fail():
+    checklist = Checklist()
+    # Test get_criteria raises error on not found
+    with pytest.raises(ValueError):
+        checklist.get_criteria("nonexistent_item")
+
+
+def test_checklist_criteria_methods():
+    checklist = Checklist()
+    checklist.make_criteria("item1")
+
+    # Test get_criteria to get all
+    all_criteria = checklist.get_criteria()
+    assert isinstance(all_criteria, dict)
+    assert "item1" in all_criteria
+    assert all(isinstance(c, Criteria) for c in all_criteria.values())
+    assert len(all_criteria) == 1
+
+    # Add another and get all again
+    checklist.make_criteria("item2")
+    all_criteria = checklist.get_criteria()
+    assert len(all_criteria) == 2
+    assert "item2" in all_criteria
 
 
 def test_check_fail_unmet_spec(project, caplog):

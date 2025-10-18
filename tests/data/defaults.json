@@ -191,7 +191,7 @@
                 "cli: -checklist_criteria 'ISO D000 errors==0'",
                 "api: check.set('checklist', 'ISO', 'D000', 'criteria', 'errors==0')"
               ],
-              "help": "Simple list of signoff criteria for checklist item which\nmust all be met for signoff. Each signoff criteria consists of\na metric, a relational operator, and a value in the form.\n'metric op value'.",
+              "help": "Simple list of signoff criteria for checklist item which\nmust all be met for signoff. Each signoff criteria consists of\na metric, a relational operator, and a value in the form\n'metric op value'.",
               "notes": null,
               "pernode": "never",
               "node": {
@@ -305,7 +305,7 @@
                 "cli: -checklist_ok 'ISO D000 true'",
                 "api: check.set('checklist', 'ISO', 'D000', 'ok', True)"
               ],
-              "help": "Boolean check mark for the checklist item. A value of\nTrue indicates a human has inspected the all item dictionary\nparameters check out.",
+              "help": "Boolean check mark for the checklist item. A value of\nTrue indicates a human has inspected the all item dictionary\nparameters and verified they check out.",
               "notes": null,
               "pernode": "never",
               "node": {
@@ -316,6 +316,11 @@
                   }
                 }
               }
+            },
+            "__meta__": {
+              "name": null,
+              "class": "siliconcompiler.checklist/Criteria",
+              "sctype": "Criteria"
             }
           },
           "__meta__": {
@@ -3153,7 +3158,7 @@
                 "cli: -checklist_criteria 'ISO D000 errors==0'",
                 "api: check.set('checklist', 'ISO', 'D000', 'criteria', 'errors==0')"
               ],
-              "help": "Simple list of signoff criteria for checklist item which\nmust all be met for signoff. Each signoff criteria consists of\na metric, a relational operator, and a value in the form.\n'metric op value'.",
+              "help": "Simple list of signoff criteria for checklist item which\nmust all be met for signoff. Each signoff criteria consists of\na metric, a relational operator, and a value in the form\n'metric op value'.",
               "notes": null,
               "pernode": "never",
               "node": {
@@ -3267,7 +3272,7 @@
                 "cli: -checklist_ok 'ISO D000 true'",
                 "api: check.set('checklist', 'ISO', 'D000', 'ok', True)"
               ],
-              "help": "Boolean check mark for the checklist item. A value of\nTrue indicates a human has inspected the all item dictionary\nparameters check out.",
+              "help": "Boolean check mark for the checklist item. A value of\nTrue indicates a human has inspected the all item dictionary\nparameters and verified they check out.",
               "notes": null,
               "pernode": "never",
               "node": {
@@ -3278,6 +3283,11 @@
                   }
                 }
               }
+            },
+            "__meta__": {
+              "name": null,
+              "class": "siliconcompiler.checklist/Criteria",
+              "sctype": "Criteria"
             }
           },
           "__meta__": {
@@ -6879,7 +6889,7 @@
                 "cli: -checklist_criteria 'ISO D000 errors==0'",
                 "api: check.set('checklist', 'ISO', 'D000', 'criteria', 'errors==0')"
               ],
-              "help": "Simple list of signoff criteria for checklist item which\nmust all be met for signoff. Each signoff criteria consists of\na metric, a relational operator, and a value in the form.\n'metric op value'.",
+              "help": "Simple list of signoff criteria for checklist item which\nmust all be met for signoff. Each signoff criteria consists of\na metric, a relational operator, and a value in the form\n'metric op value'.",
               "notes": null,
               "pernode": "never",
               "node": {
@@ -6993,7 +7003,7 @@
                 "cli: -checklist_ok 'ISO D000 true'",
                 "api: check.set('checklist', 'ISO', 'D000', 'ok', True)"
               ],
-              "help": "Boolean check mark for the checklist item. A value of\nTrue indicates a human has inspected the all item dictionary\nparameters check out.",
+              "help": "Boolean check mark for the checklist item. A value of\nTrue indicates a human has inspected the all item dictionary\nparameters and verified they check out.",
               "notes": null,
               "pernode": "never",
               "node": {
@@ -7004,6 +7014,11 @@
                   }
                 }
               }
+            },
+            "__meta__": {
+              "name": null,
+              "class": "siliconcompiler.checklist/Criteria",
+              "sctype": "Criteria"
             }
           },
           "__meta__": {
@@ -11515,7 +11530,7 @@
                 "cli: -checklist_criteria 'ISO D000 errors==0'",
                 "api: check.set('checklist', 'ISO', 'D000', 'criteria', 'errors==0')"
               ],
-              "help": "Simple list of signoff criteria for checklist item which\nmust all be met for signoff. Each signoff criteria consists of\na metric, a relational operator, and a value in the form.\n'metric op value'.",
+              "help": "Simple list of signoff criteria for checklist item which\nmust all be met for signoff. Each signoff criteria consists of\na metric, a relational operator, and a value in the form\n'metric op value'.",
               "notes": null,
               "pernode": "never",
               "node": {
@@ -11629,7 +11644,7 @@
                 "cli: -checklist_ok 'ISO D000 true'",
                 "api: check.set('checklist', 'ISO', 'D000', 'ok', True)"
               ],
-              "help": "Boolean check mark for the checklist item. A value of\nTrue indicates a human has inspected the all item dictionary\nparameters check out.",
+              "help": "Boolean check mark for the checklist item. A value of\nTrue indicates a human has inspected the all item dictionary\nparameters and verified they check out.",
               "notes": null,
               "pernode": "never",
               "node": {
@@ -11640,6 +11655,11 @@
                   }
                 }
               }
+            },
+            "__meta__": {
+              "name": null,
+              "class": "siliconcompiler.checklist/Criteria",
+              "sctype": "Criteria"
             }
           },
           "__meta__": {
@@ -14477,7 +14497,7 @@
                 "cli: -checklist_criteria 'ISO D000 errors==0'",
                 "api: check.set('checklist', 'ISO', 'D000', 'criteria', 'errors==0')"
               ],
-              "help": "Simple list of signoff criteria for checklist item which\nmust all be met for signoff. Each signoff criteria consists of\na metric, a relational operator, and a value in the form.\n'metric op value'.",
+              "help": "Simple list of signoff criteria for checklist item which\nmust all be met for signoff. Each signoff criteria consists of\na metric, a relational operator, and a value in the form\n'metric op value'.",
               "notes": null,
               "pernode": "never",
               "node": {
@@ -14591,7 +14611,7 @@
                 "cli: -checklist_ok 'ISO D000 true'",
                 "api: check.set('checklist', 'ISO', 'D000', 'ok', True)"
               ],
-              "help": "Boolean check mark for the checklist item. A value of\nTrue indicates a human has inspected the all item dictionary\nparameters check out.",
+              "help": "Boolean check mark for the checklist item. A value of\nTrue indicates a human has inspected the all item dictionary\nparameters and verified they check out.",
               "notes": null,
               "pernode": "never",
               "node": {
@@ -14602,6 +14622,11 @@
                   }
                 }
               }
+            },
+            "__meta__": {
+              "name": null,
+              "class": "siliconcompiler.checklist/Criteria",
+              "sctype": "Criteria"
             }
           },
           "__meta__": {

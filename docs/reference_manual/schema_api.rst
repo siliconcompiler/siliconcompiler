@@ -309,6 +309,10 @@ Supporting Classes
     :members:
     :show-inheritance:
 
+.. autoclass:: siliconcompiler.checklist.Criteria
+    :members:
+    :show-inheritance:
+
 .. autoclass:: siliconcompiler.library.LibrarySchema
     :members:
     :show-inheritance:
