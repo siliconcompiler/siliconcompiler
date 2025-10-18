@@ -1,70 +1,100 @@
 import re
-
 import os.path
-
 from pathlib import Path
-
 from typing import Tuple, List, Optional, Union, Dict, Iterable
 
-from siliconcompiler.schema import NamedSchema
-from siliconcompiler.schema import EditableSchema, Parameter, Scope, BaseSchema
+from siliconcompiler.schema import NamedSchema, EditableSchema, Parameter, Scope, BaseSchema
 from siliconcompiler.schema.utils import trim
-
 from siliconcompiler import NodeStatus, utils
 
 
 class Criteria(NamedSchema):
+    """
+    Schema for defining a single checklist item's criteria.
+
+    This class holds all the configurable parameters for a specific checklist
+    item, such as its description, requirements, validation criteria,
+    and associated reports or waivers.
+    """
+
     def __init__(self, name: Optional[str] = None):
         super().__init__()
         self.set_name(name)
-
         schema_checklist(self)
 
     def get_description(self) -> Optional[str]:
         """
-        Get the description for the criteria.
+        Retrieves the short, one-line description of the checklist item.
+
+        Returns:
+            Optional[str]: The description string, or None if not set.
         """
         return self.get('description')
 
     def set_description(self, value: Optional[str]) -> None:
         """
-        Set the description for the criteria.
+        Sets the short, one-line description for the checklist item.
+
+        Args:
+            value (Optional[str]): The description string to set.
         """
         self.set('description', value)
 
     def get_requirement(self) -> Optional[str]:
         """
-        Get the requirement for the criteria.
+        Retrieves the detailed requirement description for the checklist item.
+
+        Returns:
+            Optional[str]: The requirement description, which can be a
+            multi-line string, or None if not set.
         """
         return self.get('requirement')
 
     def set_requirement(self, value: Optional[str]) -> None:
         """
-        Set the requirement for the criteria.
+        Sets the detailed requirement description for the checklist item.
+
+        Args:
+            value (Optional[str]): The requirement description to set.
         """
         self.set('requirement', value)
 
     def get_dataformat(self) -> Optional[str]:
         """
-        Get the data format for the criteria.
+        Retrieves the description of acceptable data file formats.
+
+        Returns:
+            Optional[str]: A free-text description of the data format,
+            or None if not set.
         """
         return self.get('dataformat')
 
     def set_dataformat(self, value: Optional[str]):
         """
-        Set the data format for the criteria.
+        Sets the description of acceptable data file formats for signoff.
+
+        Args:
+            value (Optional[str]): A free-text description of the data format.
         """
         self.set('dataformat', value)
 
     def get_rationale(self) -> List[str]:
         """
-        Get the rationale list for the criteria.
+        Retrieves the rationale codes or descriptions for the checklist item.
+
+        Returns:
+            List[str]: A list of rationale strings.
         """
         return self.get('rationale')
 
     def add_rationale(self, value: Union[List[str], str], clobber: bool = False) -> None:
         """
-        Add one or more rationales to the criteria.
+        Adds one or more rationale codes or descriptions to the checklist item.
+
+        Args:
+            value (Union[List[str], str]): A single rationale string or a list of strings.
+            clobber (bool): If True, replaces the existing list with the new value.
+                If False, appends to the existing list. Defaults to False.
         """
         if clobber:
             self.set('rationale', value)
@@ -73,13 +103,24 @@ class Criteria(NamedSchema):
 
     def get_criteria(self) -> List[str]:
         """
-        Get the criteria list.
+        Retrieves the list of signoff criteria.
+
+        Each criterion is a string in the format 'metric op value'
+        (e.g., 'errors == 0').
+
+        Returns:
+            List[str]: A list of criteria strings.
         """
         return self.get('criteria')
 
     def add_criteria(self, value: Union[List[str], str], clobber: bool = False) -> None:
         """
-        Add one or more criteria strings.
+        Adds one or more signoff criteria to the checklist item.
+
+        Args:
+            value (Union[List[str], str]): A single criterion string or a list of strings.
+            clobber (bool): If True, replaces the existing list with the new value.
+                If False, appends to the existing list. Defaults to False.
         """
         if clobber:
             self.set('criteria', value)
@@ -88,14 +129,24 @@ class Criteria(NamedSchema):
 
     def get_task(self) -> List[Tuple[str, str, str]]:
         """
-        Get the associated tasks.
+        Retrieves the flowgraph tasks used to verify this checklist item.
+
+        Each task is represented as a tuple of (job, step, index).
+
+        Returns:
+            List[Tuple[str, str, str]]: A list of task tuples.
         """
         return self.get('task')
 
     def add_task(self, value: Union[List[Tuple[str, str, str]], Tuple[str, str, str]],
                  clobber: bool = False) -> None:
         """
-        Add one or more associated tasks.
+        Adds one or more flowgraph tasks to verify the checklist item.
+
+        Args:
+            value (Union[List[Tuple], Tuple]): A single task tuple or a list of tuples.
+            clobber (bool): If True, replaces the existing list with the new value.
+                If False, appends to the existing list. Defaults to False.
         """
         if clobber:
             self.set('task', value)
@@ -104,13 +155,21 @@ class Criteria(NamedSchema):
 
     def get_report(self) -> List[str]:
         """
-        Get the report file list.
+        Retrieves the list of report filepaths documenting validation.
+
+        Returns:
+            List[str]: A list of filepaths.
         """
         return self.get('report')
 
     def add_report(self, value: Union[List[str], str], clobber: bool = False) -> None:
         """
-        Add one or more report files.
+        Adds one or more report filepaths to the checklist item.
+
+        Args:
+            value (Union[List[str], str]): A single filepath string or a list of strings.
+            clobber (bool): If True, replaces the existing list with the new value.
+                If False, appends to the existing list. Defaults to False.
         """
         if clobber:
             self.set('report', value)
@@ -119,36 +178,61 @@ class Criteria(NamedSchema):
 
     def get_waiver(self, metric: str) -> List[Union[Path, str]]:
         """
-        Get waiver files for a given metric.
+        Retrieves waiver report files for a specific metric.
+
+        Args:
+            metric (str): The metric for which to retrieve waivers.
+
+        Returns:
+            List[Union[Path, str]]: A list of filepaths for the specified metric's waivers.
         """
         return self.get('waiver', metric)
 
     def add_waiver(self, metric: str, value: Union[List[Union[Path, str]], Union[Path, str]],
                    clobber: bool = False) -> None:
         """
-        Add one or more waiver files for a given metric.
+        Adds one or more waiver reports for a specific metric.
+
+        Args:
+            metric (str): The metric to which the waiver applies.
+            value (Union[List, Path, str]): A single filepath or a list of filepaths.
+            clobber (bool): If True, replaces the existing list with the new value.
+                If False, appends to the existing list. Defaults to False.
         """
         if clobber:
-            self.set('waiver', metric, value)
+            self.set('waiver', metric, value=value)
         else:
-            self.add('waiver', metric, value)
+            self.add('waiver', metric, value=value)
 
     def get_ok(self) -> bool:
         """
-        Get the 'ok' status.
+        Retrieves the manual 'ok' status of the checklist item.
+
+        A value of True indicates a human has reviewed and approved the item.
+
+        Returns:
+            bool: The boolean status, or False if not set.
         """
         return self.get('ok')
 
     def set_ok(self, value: bool) -> None:
         """
-        Set the 'ok' status.
+        Sets the manual 'ok' status of the checklist item.
+
+        Args:
+            value (bool): The boolean status to set. True indicates approval.
         """
         self.set('ok', value)
 
 
 class Checklist(NamedSchema):
     """
-    A class for managing design checklists and their verification.
+    A class for managing a collection of design checklist items and their verification.
+
+    This class acts as a container for multiple `Criteria` objects, each
+    representing an item in a design checklist (e.g., 'ISO D000'). It provides
+    methods to define, access, and automatically verify these items against
+    flow results.
     """
     def __init__(self, name: Optional[str] = None):
         """
@@ -159,15 +243,43 @@ class Checklist(NamedSchema):
         """
         super().__init__()
         self.set_name(name)
-
         EditableSchema(self).insert("default", Criteria())
 
     def make_criteria(self, name: str) -> Criteria:
+        """
+        Creates a new, named `Criteria` item within this checklist.
+
+        Args:
+            name (str): The unique name for the new checklist item.
+
+        Returns:
+            Criteria: The newly created `Criteria` object.
+
+        Raises:
+            ValueError: If a criteria item with the same name already exists.
+        """
         if name in self.getkeys():
             raise ValueError(f"{name} has already been defined")
         return self.get(name, field="schema")
 
     def get_criteria(self, name: Optional[str] = None) -> Union[Dict[str, Criteria], Criteria]:
+        """
+        Retrieves one or all `Criteria` items from the checklist.
+
+        If a name is provided, it returns the specific `Criteria` object.
+        If no name is provided, it returns a dictionary of all `Criteria` objects.
+
+        Args:
+            name (Optional[str], optional): The name of the item to retrieve.
+                Defaults to None.
+
+        Returns:
+            Union[Dict[str, Criteria], Criteria]: A single `Criteria` object
+            or a dictionary mapping names to `Criteria` objects.
+
+        Raises:
+            ValueError: If a name is provided but is not found in the checklist.
+        """
         if name is None:
             criterias: Dict[str, Criteria] = {}
             for item in self.getkeys():
@@ -180,37 +292,31 @@ class Checklist(NamedSchema):
     def check(self, items: Optional[Iterable[str]] = None,
               check_ok: bool = False,
               require_reports: bool = True) -> bool:
-        '''
-        Check items in a checklist.
+        """
+        Checks the status of items in a checklist against flow results.
 
-        Checks the status of items in a checklist for the standard provided. If
-        a specific list of items is unspecified, all items are checked.
+        This method validates checklist items by comparing their defined
+        criteria against metrics recorded in the chip's history. For an item
+        to pass, all its criteria must be met by the associated tasks,
+        considering any waivers.
 
-        All items have an associated 'task' parameter, which indicates which
-        tasks can be used to automatically validate the item. For an item to be
-        checked, all tasks must satisfy the item's criteria, unless waivers are
-        provided. In addition, that task must have generated EDA report files
-        for each metric in the criteria.
+        For items with automated checks (linked to a task), this method verifies
+        that metric values from the flow run satisfy the criteria (e.g., 'errors == 0').
+        It also ensures that corresponding EDA reports were generated.
 
-        For items without an associated task, the only requirement is that at
-        least one report has been added to that item.
-
-        When 'check_ok' is True, every item must also have its 'ok' parameter
-        set to True, indicating that a human has reviewed the item.
+        For items without a task, it only checks that a report has been manually added.
 
         Args:
-            items (list of str): Items to check from standard.
-            check_ok (bool): Whether to check item 'ok' parameter.
-            verbose (bool): Whether to print passing criteria.
-            require_reports (bool): Whether to assert the presence of reports.
+            items (Optional[Iterable[str]]): A list of item names to check. If None,
+                all items in the checklist are checked. Defaults to None.
+            check_ok (bool): If True, all checked items must also have their 'ok'
+                parameter set to True, indicating manual review. Defaults to False.
+            require_reports (bool): If True, asserts that report files exist for
+                all automated checks. Defaults to True.
 
         Returns:
-            Status of item check.
-
-        Examples:
-            >>> status = check.check_checklist('d000')
-            Returns status.
-        '''
+            bool: True if all specified checks pass, False otherwise.
+        """
         error = False
 
         schema_root = self._parent(root=True)
@@ -225,7 +331,7 @@ class Checklist(NamedSchema):
         if items is None:
             items = self.getkeys()
 
-        # these tasks are recorded by SC so there are no reports
+        # These metrics are recorded by SC internally, so they don't have reports.
         metrics_without_reports = (
             'tasktime',
             'totaltime',
@@ -240,10 +346,9 @@ class Checklist(NamedSchema):
                 continue
 
             allow_missing_reports = True
-
             has_check = False
-
             item_criteria: Criteria = self.get_criteria(item)
+
             for criteria in item_criteria.get_criteria():
                 m = re.match(r'^(\w+)\s*([\>\=\<]+)\s*([+\-]?\d+(\.\d+)?(e[+\-]?\d+)?)$',
                              criteria.strip())
@@ -258,7 +363,6 @@ class Checklist(NamedSchema):
 
                 for job, step, index in item_criteria.get_task():
                     job_data = schema_root.history(job)
-
                     flow = job_data.get("flowgraph", job_data.get('option', 'flow'), field="schema")
 
                     if (step, index) not in flow.get_nodes():
@@ -267,8 +371,7 @@ class Checklist(NamedSchema):
                             logger.error(f'{step}/{index} not found in flowgraph for {job}')
                         continue
 
-                    if job_data.get('record', 'status', step=step, index=index) == \
-                            NodeStatus.SKIPPED:
+                    if job_data.get('record', 'status', step=step, index=index) == NodeStatus.SKIPPED:
                         if logger:
                             logger.warning(f'{step}/{index} was skipped')
                         continue
@@ -282,15 +385,14 @@ class Checklist(NamedSchema):
                     if metric not in job_data.getkeys("metric"):
                         if logger:
                             logger.error(f"Criteria must use legal metrics only: {criteria}")
-                            error = True
-                            continue
+                        error = True
+                        continue
 
                     if job_data.get("metric", metric, field='type') == 'int':
                         goal = int(m.group(3))
                         number_format = 'd'
                     else:
                         goal = float(m.group(3))
-
                         if goal == 0.0 or (abs(goal) > 1e-3 and abs(goal) < 1e5):
                             number_format = '.3f'
                         else:
@@ -298,10 +400,7 @@ class Checklist(NamedSchema):
 
                     value = job_data.get('metric', metric, step=step, index=index)
                     criteria_ok = utils.safecompare(value, op, goal)
-                    if metric in item_criteria.getkeys("waiver"):
-                        waivers = item_criteria.get_waiver(metric)
-                    else:
-                        waivers = []
+                    waivers = item_criteria.get_waiver(metric) if metric in item_criteria.getkeys("waiver") else []
 
                     criteria_str = f'{metric}{op}{goal:{number_format}}'
                     compare_str = f'{value:{number_format}}{op}{goal:{number_format}}'
@@ -315,17 +414,15 @@ class Checklist(NamedSchema):
                             logger.error(f'{item} criteria {criteria_str} ({compare_str}) unmet '
                                          f'by {step_desc}.')
                         error = True
-                    elif criteria_ok:
-                        if logger:
-                            logger.info(f'{item} criteria {criteria_str} met by {step_desc}.')
+                    elif criteria_ok and logger:
+                        logger.info(f'{item} criteria {criteria_str} met by {step_desc}.')
 
-                    has_reports = \
-                        job_data.valid('tool', tool, 'task', task, 'report', metric) and \
-                        job_data.get('tool', tool, 'task', task, 'report', metric,
-                                     step=step, index=index)
+                    has_reports = (
+                        job_data.valid('tool', tool, 'task', task, 'report', metric) and
+                        job_data.get('tool', tool, 'task', task, 'report', metric, step=step, index=index)
+                    )
 
                     if allow_missing_reports and not has_reports:
-                        # No reports available and it is allowed
                         continue
 
                     reports = []
@@ -341,23 +438,18 @@ class Checklist(NamedSchema):
 
                     if require_reports and not reports:
                         if logger:
-                            logger.error(f'No reports generated for metric {metric} in '
-                                         f'{step_desc}')
+                            logger.error(f'No reports generated for metric {metric} in {step_desc}')
                         error = True
 
                     for report in reports:
                         if not report:
                             continue
-
-                        report = os.path.relpath(report, cwd)
-                        if report not in item_criteria.get_report():
-                            item_criteria.add_report(report)
+                        report_path = os.path.relpath(report, cwd)
+                        if report_path not in item_criteria.get_report():
+                            item_criteria.add_report(report_path)
 
             if has_check:
-                if require_reports and \
-                        not allow_missing_reports and \
-                        not item_criteria.get_report():
-                    # TODO: validate that report exists?
+                if require_reports and not allow_missing_reports and not item_criteria.get_report():
                     if logger:
                         logger.error(f'No report documenting item {item}')
                     error = True
@@ -375,15 +467,17 @@ class Checklist(NamedSchema):
     @classmethod
     def _getdict_type(cls) -> str:
         """
-        Returns the meta data for getdict
+        Internal method to return the type name for dictionary representation.
         """
-
         return Checklist.__name__
 
     def _generate_doc(self, doc,
                       ref_root: str = "",
                       key_offset: Optional[Tuple[str, ...]] = None,
                       detailed: bool = True):
+        """
+        Internal method to generate documentation for the checklist schema.
+        """
         from .schema.docs.utils import build_section
         settings = build_section('Configuration', f"{ref_root}-config")
 
@@ -405,14 +499,18 @@ class Checklist(NamedSchema):
 
 
 ############################################
-# Design Checklist
+# Design Checklist Schema Definition
 ############################################
 def schema_checklist(schema: Criteria):
     """
-    Adds checklist schema parameters to the given schema.
+    Adds standard checklist parameters to a Criteria schema object.
+
+    This function defines the common set of parameters that make up a checklist
+    item, such as 'description', 'criteria', 'report', etc., and adds them to
+    the provided schema.
 
     Args:
-        schema (EditableSchema): The schema to modify.
+        schema (Criteria): The Criteria schema object to modify.
     """
     edit = EditableSchema(schema)
 
@@ -487,7 +585,7 @@ def schema_checklist(schema: Criteria):
             help=trim("""
             Simple list of signoff criteria for checklist item which
             must all be met for signoff. Each signoff criteria consists of
-            a metric, a relational operator, and a value in the form.
+            a metric, a relational operator, and a value in the form
             'metric op value'.""")))
 
     edit.insert(
@@ -546,4 +644,4 @@ def schema_checklist(schema: Criteria):
             help=trim("""
             Boolean check mark for the checklist item. A value of
             True indicates a human has inspected the all item dictionary
-            parameters check out.""")))
+            parameters and verified they check out.""")))
