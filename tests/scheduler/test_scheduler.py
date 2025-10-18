@@ -590,6 +590,7 @@ def test_resume_normal(gcd_nop_project):
         NodeStatus.SUCCESS
 
 
+@pytest.mark.timeout(30)
 def test_resume_value_changed(gcd_nop_project):
     EditableSchema(gcd_nop_project).insert("option", "testing", Parameter("str"))
 
