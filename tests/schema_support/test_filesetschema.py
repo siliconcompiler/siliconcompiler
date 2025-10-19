@@ -42,10 +42,17 @@ def test_add_file_clobber():
     assert d.get('fileset', 'rtl', 'file', 'verilog') == ['two.v']
 
 
-def test_add_file():
+def test_add_file_list():
     d = FileSetSchema()
 
     assert d.add_file(['one.v', 'two.v'], 'rtl', filetype='verilog')
+    assert d.get('fileset', 'rtl', 'file', 'verilog') == ['one.v', 'two.v']
+
+
+def test_add_file_tuple():
+    d = FileSetSchema()
+
+    assert d.add_file(tuple(['one.v', 'two.v']), 'rtl', filetype='verilog')
     assert d.get('fileset', 'rtl', 'file', 'verilog') == ['one.v', 'two.v']
 
 

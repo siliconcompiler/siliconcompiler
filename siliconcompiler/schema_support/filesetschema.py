@@ -1,5 +1,7 @@
 import contextlib
 
+from pathlib import Path
+
 from typing import List, Tuple, Optional, Union, Iterable
 
 from siliconcompiler import utils
@@ -43,7 +45,7 @@ class FileSetSchema(PathSchema):
 
     ###############################################
     def add_file(self,
-                 filename: str,
+                 filename: Union[Iterable[Union[Path, str]], Union[Path, str]],
                  fileset: Optional[str] = None,
                  filetype: Optional[str] = None,
                  clobber: bool = False,
@@ -89,7 +91,7 @@ class FileSetSchema(PathSchema):
             raise ValueError("fileset key must be a string")
 
         # handle list inputs
-        if isinstance(filename, (list, tuple)):
+        if isinstance(filename, (list, set, tuple)):
             params = []
             for item in filename:
                 params.extend(
