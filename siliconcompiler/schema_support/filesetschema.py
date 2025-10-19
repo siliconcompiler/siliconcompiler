@@ -2,7 +2,7 @@ import contextlib
 
 from pathlib import Path
 
-from typing import List, Tuple, Optional, Union, Iterable
+from typing import List, Tuple, Optional, Union, Iterable, Set
 
 from siliconcompiler import utils
 
@@ -45,7 +45,8 @@ class FileSetSchema(PathSchema):
 
     ###############################################
     def add_file(self,
-                 filename: Union[Iterable[Union[Path, str]], Union[Path, str]],
+                 filename: Union[List[Union[Path, str]], Set[Union[Path, str]],
+                                 Tuple[Union[Path, str], ...], Path, str],
                  fileset: Optional[str] = None,
                  filetype: Optional[str] = None,
                  clobber: bool = False,
