@@ -1783,6 +1783,52 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         return super().find_files(*keypath, missing_ok=missing_ok,
                                   step=step, index=index)
 
+    @classmethod
+    def find_task(cls, project: "Project") -> Union[Set["Task"], "Task"]:
+        from siliconcompiler import Project
+        if not isinstance(project, Project):
+            raise TypeError("project must be a Project")
+
+        task_obj = cls()
+        tool, task = None, None
+        try:
+            tool = task_obj.tool()
+        except NotImplementedError:
+            pass
+        try:
+            task = task_obj.task()
+        except NotImplementedError:
+            pass
+
+        all_tasks: Set[Task] = set()
+        for tool_name in project.getkeys("tool"):
+            if tool and tool != tool_name:
+                continue
+            for task_name in project.getkeys("tool", tool_name, "task"):
+                if task and task != task_name:
+                    continue
+                all_tasks.add(project.get("tool", tool_name, "task", task_name, field="schema"))
+
+        tasks: Set[Task] = set()
+        for task_obj in all_tasks:
+            if not isinstance(task_obj, cls):
+                continue
+            tasks.add(task_obj)
+
+        if not tasks:
+            parts = []
+            if tool:
+                parts.append(f"tool='{tool}'")
+            if task:
+                parts.append(f"task='{task}'")
+            parts.append(f"class={cls.__name__}")
+            criteria = ", ".join(parts) if parts else "any criteria"
+            raise ValueError(f"No tasks found matching {criteria}")
+
+        if len(tasks) == 1:
+            return list(tasks)[0]
+        return tasks
+
     def _find_files_search_paths(self, key: str,
                                  step: Optional[str],
                                  index: Optional[Union[int, str]]) -> List[str]:

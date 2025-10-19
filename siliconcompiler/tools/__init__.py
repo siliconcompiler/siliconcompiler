@@ -36,6 +36,10 @@ def get_task(
         ValueError: If no tasks match the specified criteria.
         TypeError: If project is not a Project instance.
     """
+    if filter:
+        if inspect.isclass(filter):
+            return filter.find_task(project)
+
     from siliconcompiler import Project
     if not isinstance(project, Project):
         raise TypeError("project must be a Project")
@@ -52,10 +56,7 @@ def get_task(
         if task and task_obj.task() != task:
             continue
         if filter:
-            if inspect.isclass(filter):
-                if not isinstance(task_obj, filter):
-                    continue
-            elif callable(filter):
+            if callable(filter):
                 if not filter(task_obj):
                     continue
             else:
@@ -69,9 +70,7 @@ def get_task(
         if task:
             parts.append(f"task='{task}'")
         if filter:
-            if inspect.isclass(filter):
-                parts.append(f"filter={filter.__name__}")
-            elif callable(filter):
+            if callable(filter):
                 filter_name = getattr(filter, '__name__', repr(filter))
                 parts.append(f"filter={filter_name}")
         criteria = ", ".join(parts) if parts else "any criteria"
