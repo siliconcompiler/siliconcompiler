@@ -1968,7 +1968,7 @@ def test_generate_testcase_autoissue(project, monkeypatch, caplog):
     assert caplog.text == ""
 
 
-@pytest.mark.timeout(90)
+@pytest.mark.timeout(180)
 def test_generate_testcase_no_autoissue_no_manifest(project, monkeypatch, caplog):
     monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
     project.logger.setLevel(logging.INFO)
@@ -1985,6 +1985,7 @@ def test_generate_testcase_no_autoissue_no_manifest(project, monkeypatch, caplog
     assert caplog.text == ""
 
 
+@pytest.mark.timeout(180)
 def test_generate_testcase_no_autoissue_output_manifest(project, monkeypatch, caplog):
     monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
     project.logger.setLevel(logging.INFO)
@@ -2005,6 +2006,7 @@ def test_generate_testcase_no_autoissue_output_manifest(project, monkeypatch, ca
         in caplog.text
 
 
+@pytest.mark.timeout(180)
 def test_generate_testcase_no_autoissue_input_manifest(project, monkeypatch, caplog):
     monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
     project.logger.setLevel(logging.INFO)

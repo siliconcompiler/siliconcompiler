@@ -116,7 +116,7 @@ lint = [
 ]
 docs = [
     "Sphinx == 8.2.3",
-    "pip-licenses == 5.0.0",
+    "pip-licenses == 5.5.0",
     "pydata-sphinx-theme == 0.16.1",
     "sc-leflib >= 0.2.0"
 ]
