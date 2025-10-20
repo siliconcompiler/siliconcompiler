@@ -5,7 +5,7 @@ import uuid
 
 import os.path
 
-from typing import Union, List, Tuple, TextIO
+from typing import Union, List, Tuple, TextIO, Optional
 
 from siliconcompiler.schema import BaseSchema, NamedSchema, EditableSchema, Parameter, Scope, \
     __version__ as schema_version
@@ -32,7 +32,6 @@ from siliconcompiler.utils import get_file_ext
 from siliconcompiler.utils.multiprocessing import MPManager
 from siliconcompiler.utils.paths import jobdir, workdir
 from siliconcompiler.flows.showflow import ShowFlow
-from siliconcompiler.tools import get_task
 
 
 class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
@@ -43,7 +42,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
     and reporting.
     """
 
-    def __init__(self, design: Union[Design, str] = None):
+    def __init__(self, design: Optional[Union[Design, str]] = None):
         """
         Initializes a new Project instance.
 
@@ -1155,7 +1154,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         '''
         tool_cls = ScreenshotTask if screenshot else ShowTask
 
-        sc_jobname = self.get("option", "jobname")
+        sc_jobname = self.option.get_jobname()
         sc_step, sc_index = None, None
 
         has_filename = filename is not None
@@ -1220,7 +1219,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             return None
 
         # Create copy of project to avoid changing user project
-        proj = self.copy()
+        proj: Project = self.copy()
         proj.set_flow(ShowFlow(task))
 
         # Setup options:
@@ -1242,7 +1241,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         proj.set("option", "jobname", jobname)
 
         # Setup in task variables
-        task: ShowTask = get_task(proj, filter=task.__class__)
+        task: ShowTask = task.find_task(proj)
         task.set_showfilepath(filename)
         task.set_showfiletype(filetype)
         task.set_shownode(jobname=sc_jobname, step=sc_step, index=sc_index)

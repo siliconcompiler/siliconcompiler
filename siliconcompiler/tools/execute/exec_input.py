@@ -4,7 +4,6 @@ import stat
 import os.path
 
 from siliconcompiler import Task
-from siliconcompiler.tools import get_task
 
 
 class ExecInputTask(Task):
@@ -64,7 +63,7 @@ class ExecInputTask(Task):
         flow.set("<step>", "<index>", "args", "errors==0")
         proj.set_flow(flow)
 
-        get_task(proj, filter=NOPTask).add_output_file("<top>.exe", step="<in>", index="0")
+        NOPTask.find_task(proj).add_output_file("<top>.exe", step="<in>", index="0")
         node = SchedulerNode(proj, "<step>", "<index>")
         node.setup()
         return node.task

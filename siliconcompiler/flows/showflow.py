@@ -1,6 +1,5 @@
 from siliconcompiler import Flowgraph
 from siliconcompiler import ShowTask
-from siliconcompiler.tools import get_task
 
 
 class ShowFlow(Flowgraph):
@@ -31,5 +30,5 @@ class ShowFlow(Flowgraph):
 ##################################################
 if __name__ == "__main__":
     from siliconcompiler import ShowTask
-    flow = ShowFlow(get_task(ShowTask, "gds"))
+    flow = ShowFlow(ShowTask.get_task("gds"))
     flow.write_flowgraph(f"{flow.name}.png")
