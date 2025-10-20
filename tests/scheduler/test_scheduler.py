@@ -242,13 +242,16 @@ def test_clean_build_dir_full(basic_project):
 
     os.makedirs(jobdir(basic_project), exist_ok=True)
     os.makedirs(os.path.join(jobdir(basic_project), "rmthis"), exist_ok=True)
+    os.makedirs(os.path.join(jobdir(basic_project), "sc_keep_this"), exist_ok=True)
     with open(os.path.join(jobdir(basic_project), "job.log"), "w") as f:
         f.write("test")
 
     with patch("shutil.rmtree", autospec=True) as rmtree, \
             patch("os.remove") as remove:
         scheduler._Scheduler__clean_build_dir_full()
-        rmtree.assert_called_once()
+        assert rmtree.call_count == 2
+        rmtree.assert_any_call(os.path.join(jobdir(basic_project), "rmthis"))
+        rmtree.assert_any_call(os.path.join(jobdir(basic_project), "sc_keep_this"))
         remove.assert_called_once()
 
 
@@ -259,13 +262,14 @@ def test_clean_build_dir_full_keep_log(basic_project):
 
     os.makedirs(jobdir(basic_project), exist_ok=True)
     os.makedirs(os.path.join(jobdir(basic_project), "rmthis"), exist_ok=True)
+    os.makedirs(os.path.join(jobdir(basic_project), "sc_keep_this"), exist_ok=True)
     with open(os.path.join(jobdir(basic_project), "job.log"), "w") as f:
         f.write("test")
 
     with patch("shutil.rmtree", autospec=True) as rmtree, \
             patch("os.remove") as remove:
         scheduler._Scheduler__clean_build_dir_full(recheck=True)
-        rmtree.assert_called_once()
+        rmtree.assert_called_once_with(os.path.join(jobdir(basic_project), "rmthis"))
         remove.assert_not_called()
 
 
