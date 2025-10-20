@@ -869,6 +869,19 @@ class SchedulerNode:
         if self.__pipe:
             self.__pipe.send(Resolver.get_cache(self.__project))
 
+    def get_exe_path(self) -> Optional[str]:
+        return self.__task.get_exe()
+
+    def check_version(self, version: Optional[str] = None) -> Tuple[Optional[str], bool]:
+        if version is None:
+            version = self.__task.get_exe_version()
+        check = True
+
+        if not self.__project.get('option', 'novercheck', step=self.__step, index=self.__index):
+            check = self.__task.check_exe_version(version)
+
+        return version, check
+
     def execute(self) -> None:
         """
         Handles the core tool execution logic.
@@ -922,11 +935,10 @@ class SchedulerNode:
             os.environ.update(self.__task.get_runtime_environmental_variables())
 
             toolpath = self.__task.get_exe()
-            version = self.__task.get_exe_version()
+            version, version_pass = self.check_version()
 
-            if not self.__project.get('option', 'novercheck', step=self.__step, index=self.__index):
-                if not self.__task.check_exe_version(version):
-                    self.halt()
+            if not version_pass:
+                self.halt()
 
             if version:
                 self.__record.record_tool(self.__step, self.__index, version, RecordTool.VERSION)

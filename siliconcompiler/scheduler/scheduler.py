@@ -4,11 +4,12 @@ import os
 import re
 import shutil
 import sys
+import tempfile
 import traceback
 
 import os.path
 
-from typing import Union, TYPE_CHECKING
+from typing import Union, Dict, Optional, TYPE_CHECKING
 
 from siliconcompiler import NodeStatus
 from siliconcompiler.schema import Journal
@@ -18,6 +19,7 @@ from siliconcompiler.scheduler import SlurmSchedulerNode
 from siliconcompiler.scheduler import DockerSchedulerNode
 from siliconcompiler.scheduler import TaskScheduler
 from siliconcompiler.scheduler.schedulernode import SchedulerFlowReset
+from siliconcompiler.tool import TaskExecutableNotFound
 
 from siliconcompiler import utils
 from siliconcompiler.utils.logging import SCLoggerFormatter
@@ -260,6 +262,10 @@ class Scheduler:
 
             self.__run_setup()
             self.configure_nodes()
+
+            # Verify tool setups
+            if not self.__check_tool_versions():
+                raise SCRuntimeError("Tools did not meet version requirements")
 
             # Verify tool setups
             if not self.__check_tool_requirements():
@@ -740,3 +746,44 @@ class Scheduler:
             self.__project.set('option', 'jobname', f'{stem}{jobid + 1}')
             return True
         return False
+
+    def __check_tool_versions(self) -> bool:
+        error = False
+
+        cwd = os.getcwd()
+        try:
+            versions: Dict[str, Optional[str]] = {}
+
+            with tempfile.TemporaryDirectory(prefix="sc_tool_check") as d:
+                self.__logger.debug(f"Executing tool checks in: {d}")
+                os.chdir(d)
+                for (step, index) in self.__flow_runtime.get_nodes():
+                    if self.__project.option.scheduler.get_name(step=step, index=index) is not None:
+                        continue
+
+                    node = SchedulerNode(self.__project, step, index)
+                    with node.runtime():
+                        try:
+                            exe = node.get_exe_path()
+                        except TaskExecutableNotFound:
+                            exe = node.task.get("exe")
+                            self.__logger.error(f"Executable for {step}/{index} could not "
+                                                f"be found: {exe}")
+                            error = True
+                            continue
+
+                        try:
+                            if exe:
+                                version: Optional[str] = versions.get(exe, None)
+                                version, check = node.check_version(version)
+                                versions[exe] = version
+                                if not check:
+                                    self.__logger.error(f"Executable for {step}/{index} did not "
+                                                        "meet version checks")
+                                    error = True
+                        except NotImplementedError:
+                            self.__logger.error(f"Unable to process version for {step}/{index}")
+        finally:
+            os.chdir(cwd)
+
+        return not error
