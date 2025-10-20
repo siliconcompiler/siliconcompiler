@@ -24,6 +24,7 @@ def make_manifests():
     return impl
 
 
+@pytest.mark.timeout(90)
 @pytest.mark.parametrize('flags', [
     [],
     ['-design', 'gcd'],
@@ -45,6 +46,7 @@ def test_sc_show_design_only(flags, monkeypatch, make_manifests, asic_gcd):
         show.assert_called_once_with(None, extension=None, screenshot=False)
 
 
+@pytest.mark.timeout(90)
 @pytest.mark.parametrize('flags', [
     [],
     ['-design', 'gcd'],
