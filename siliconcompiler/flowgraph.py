@@ -89,7 +89,7 @@ class Flowgraph(NamedSchema, DocsSchema):
         '''
         from siliconcompiler import Task
 
-        if step in (Parameter.GLOBAL_KEY, 'default', 'sc_collected_files'):
+        if step in (Parameter.GLOBAL_KEY, 'default') or step.startswith("sc_"):
             raise ValueError(f"{step} is a reserved name")
 
         index = str(index)
