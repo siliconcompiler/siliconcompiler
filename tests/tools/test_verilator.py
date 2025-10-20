@@ -7,6 +7,7 @@ from siliconcompiler.tools.slang.elaborate import Elaborate
 from siliconcompiler.tools.verilator import lint, compile
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.tools import get_task
+from siliconcompiler import utils
 
 
 @pytest.mark.eda
@@ -206,7 +207,7 @@ def test_runtime_args(heartbeat_design):
             '-o', '../outputs/heartbeat.vexe']
 
 
-def test_runtime_args_trace(heartbeat_design):
+def test_runtime_args_trace(heartbeat_design, monkeypatch):
     proj = Project(heartbeat_design)
     heartbeat_design.set_param("N", "8", "rtl")
     proj.add_fileset("rtl")
@@ -215,6 +216,11 @@ def test_runtime_args_trace(heartbeat_design):
     flow.node("version", compile.CompileTask())
     proj.set_flow(flow)
     compile.CompileTask.find_task(proj).set("var", "trace", True)
+
+    def limit_cpu(*args, **kwargs):
+        return 2
+
+    monkeypatch.setattr(utils, 'get_cores', limit_cpu)
 
     node = SchedulerNode(proj, "version", "0")
     with node.runtime():
@@ -226,7 +232,7 @@ def test_runtime_args_trace(heartbeat_design):
             heartbeat_design.get_file("rtl", "verilog")[0],
             '--exe',
             '--build',
-            '-j', '32',
+            '-j', '2',
             '--cc',
             '-o', '../outputs/heartbeat.vexe',
             '--trace',
