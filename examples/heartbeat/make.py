@@ -10,6 +10,7 @@ from siliconcompiler.flows.dvflow import DVFlow
 from siliconcompiler.flows.fpgaflow import FPGAXilinxFlow
 
 from siliconcompiler.targets import asic_target
+from siliconcompiler.tools.verilator.compile import CompileTask
 
 
 class HeartbeatDesign(Design):
@@ -206,14 +207,25 @@ def sim(N: str = None, tool: str = "verilator"):
     if N is not None:
         hb.set_param("N", N, fileset=f"testbench.{tool}")
 
+    if tool == "verilator":
+        # Add trave to verilator
+        CompileTask.find_task(project).set("var", "trace", True)
+
     # Run the simulation.
     project.run()
     project.summary()
 
-    # Find the VCD (Value Change Dump) waveform file from the results.
-    vcd = project.find_result(step='simulate', index='0',
-                              directory="reports",
-                              filename="heartbeat_tb.vcd")
+    vcd = None
+    if tool == "icarus":
+        # Find the VCD (Value Change Dump) waveform file from the results.
+        vcd = project.find_result(step='simulate', index='0',
+                                  directory="reports",
+                                  filename="heartbeat_tb.vcd")
+    else:
+        # Find the VCD (Value Change Dump) waveform file from the results.
+        vcd = project.find_result(step='simulate', index='0',
+                                  directory="reports",
+                                  filename="heartbeat.vcd")
     # If a VCD file is found, open it with the default waveform viewer.
     if vcd:
         project.show(vcd)

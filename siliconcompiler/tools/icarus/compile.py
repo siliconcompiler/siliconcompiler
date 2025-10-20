@@ -103,6 +103,7 @@ class CompileTask(Task):
             options.append('-D' + define)
 
         # add siliconcompiler specific defines
+        options.append("-DSILICONCOMPILER_TRACE_DIR=\"reports\"")
         options.append(f"-DSILICONCOMPILER_TRACE_FILE=\"reports/{self.design_topmodule}.vcd\"")
 
         #######################

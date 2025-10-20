@@ -69,6 +69,7 @@ def test_py_make_sim_verilator():
     make.sim()
 
     assert os.path.isfile('build/heartbeat/job0/heartbeat.pkg.json')
+    assert os.path.isfile('build/heartbeat/job0/simulate/0/reports/heartbeat.vcd')
 
 
 @pytest.mark.eda
