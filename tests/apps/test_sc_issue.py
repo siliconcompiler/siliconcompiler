@@ -59,6 +59,7 @@ def test_sc_issue_generate_success(flags,
     assert os.path.isfile(outputfile)
 
 
+@pytest.mark.timeout(90)
 @pytest.mark.parametrize('flags,args', [
     (['-cfg', 'build/heartbeat/job0/stepone/0/outputs/heartbeat.pkg.json'],
      ("stepone", "0", None,
