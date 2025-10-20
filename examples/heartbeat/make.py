@@ -208,7 +208,7 @@ def sim(N: str = None, tool: str = "verilator"):
         hb.set_param("N", N, fileset=f"testbench.{tool}")
 
     if tool == "verilator":
-        # Add trave to verilator
+        # Add trace to verilator
         CompileTask.find_task(project).set("var", "trace", True)
 
     # Run the simulation.

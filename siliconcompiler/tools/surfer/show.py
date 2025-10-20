@@ -12,7 +12,7 @@ class ShowTask(ShowTask):
         return stdout.strip().split()[1]
 
     def get_supported_show_extentions(self):
-        return ["vcd"]
+        return ["vcd", "fst"]
 
     def setup(self):
         super().setup()
