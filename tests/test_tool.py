@@ -2143,3 +2143,87 @@ def test_show_get_supported_show_extentions(cls):
                        match="^get_supported_show_extentions must be "
                              "implemented by the child class$"):
         cls().get_supported_show_extentions() == {}
+
+
+@pytest.mark.parametrize("arg", [None, Design(), "string"])
+def test_find_task_notproject(arg):
+    with pytest.raises(TypeError, match=r"^project must be a Project$"):
+        Task.find_task(arg)
+
+
+def test_find_task():
+    class FauxTask(Task):
+        def tool(self):
+            return "faux"
+
+    class FauxTask0(FauxTask):
+        def task(self):
+            return "task0"
+
+    class FauxTask1(FauxTask):
+        def task(self):
+            return "task1"
+
+    class FauxTask2(Task):
+        def tool(self):
+            return "anotherfaux"
+
+        def task(self):
+            return "task1"
+
+    faux0 = FauxTask0()
+    faux1 = FauxTask1()
+    faux2 = FauxTask2()
+
+    proj = Project()
+    EditableSchema(proj).insert("tool", "faux", "task", "task0", faux0)
+    EditableSchema(proj).insert("tool", "faux", "task", "task1", faux1)
+    EditableSchema(proj).insert("tool", "anotherfaux", "task", "task1", faux2)
+
+    assert Task.find_task(proj) == set([faux0, faux1, faux2])
+    assert FauxTask.find_task(proj) == set([faux0, faux1])
+    assert FauxTask1.find_task(proj) is faux1
+    assert FauxTask2.find_task(proj) is faux2
+
+
+def test_find_task_missing_no_tooltask():
+    class FauxTask(Task):
+        pass
+
+    with pytest.raises(ValueError,
+                       match=r"^No tasks found matching class=FauxTask$"):
+        FauxTask.find_task(Project())
+
+
+def test_find_task_missing_no_tool():
+    class FauxTask(Task):
+        def task(self):
+            return "task0"
+
+    with pytest.raises(ValueError,
+                       match=r"^No tasks found matching task='task0', class=FauxTask$"):
+        FauxTask.find_task(Project())
+
+
+def test_find_task_missing_no_task():
+    class FauxTask(Task):
+        def tool(self):
+            return "tool0"
+
+    with pytest.raises(ValueError,
+                       match=r"^No tasks found matching tool='tool0', class=FauxTask$"):
+        FauxTask.find_task(Project())
+
+
+def test_find_task_missing():
+    class FauxTask(Task):
+        def tool(self):
+            return "tool0"
+
+        def task(self):
+            return "task0"
+
+    with pytest.raises(ValueError,
+                       match=r"^No tasks found matching tool='tool0', task='task0', "
+                             r"class=FauxTask$"):
+        FauxTask.find_task(Project())
