@@ -30,6 +30,7 @@ def project(heartbeat_design):
     return proj
 
 
+@pytest.mark.timeout(90)
 @pytest.mark.parametrize('flags,outputfile', [
     (['-cfg', 'build/heartbeat/job0/stepone/0/outputs/heartbeat.pkg.json'],
      'sc_issue_heartbeat_job0_stepone_0_20200311-141213.tar.gz'),
@@ -108,6 +109,7 @@ def test_sc_issue_generate_call(flags,
         generate_testcase.assert_called_once_with(ANY, arg_step, arg_index, outfile, **kwargs)
 
 
+@pytest.mark.timeout(90)
 def test_sc_issue_generate_fail_step(monkeypatch, project, capsys):
     '''Test sc-issue app on a few sets of flags.'''
 
@@ -116,6 +118,7 @@ def test_sc_issue_generate_fail_step(monkeypatch, project, capsys):
     assert "Unable to determine step from manifest" in capsys.readouterr().out
 
 
+@pytest.mark.timeout(90)
 def test_sc_issue_generate_fail_index(monkeypatch, project, capsys):
     '''Test sc-issue app on a few sets of flags.'''
 
@@ -125,6 +128,7 @@ def test_sc_issue_generate_fail_index(monkeypatch, project, capsys):
     assert "Unable to determine index from manifest" in capsys.readouterr().out
 
 
+@pytest.mark.timeout(90)
 def test_sc_issue_run(monkeypatch, project):
     '''Test sc-issue app on a few sets of flags.'''
 
