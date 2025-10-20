@@ -7,7 +7,7 @@ from siliconcompiler.tools import get_task
 
 @pytest.mark.parametrize("arg", [None, Design(), "string"])
 def test_get_task_notproject(arg):
-    with pytest.raises(TypeError, match="^project must be a Project$"):
+    with pytest.raises(TypeError, match=r"^project must be a Project$"):
         get_task(arg)
 
 

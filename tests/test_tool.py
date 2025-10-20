@@ -2147,7 +2147,7 @@ def test_show_get_supported_show_extentions(cls):
 
 @pytest.mark.parametrize("arg", [None, Design(), "string"])
 def test_find_task_notproject(arg):
-    with pytest.raises(TypeError, match="^project must be a Project$"):
+    with pytest.raises(TypeError, match=r"^project must be a Project$"):
         Task.find_task(arg)
 
 

@@ -1785,6 +1785,35 @@ class Task(NamedSchema, PathSchema, DocsSchema):
 
     @classmethod
     def find_task(cls, project: "Project") -> Union[Set["Task"], "Task"]:
+        """Finds registered task(s) in a project that match the calling class.
+
+        This method searches through all tasks configured in the provided `project`
+        and returns those that meet specific criteria derived from the class on
+        which this method is called. The filtering is based on three levels:
+
+        1.  **Class Type**: The primary filter ensures that any found task object
+            is an instance of the calling class (`cls`).
+        2.  **Tool Name**: If the calling class (`cls`) implements the `tool()`
+            method, the search is narrowed to tasks with that specific tool name.
+        3.  **Task Name**: If the calling class (`cls`) implements the `task()`
+            method, the search is further narrowed to tasks with that name.
+
+        The method conveniently returns a single object if only one match is
+        found, or a set of objects if multiple matches are found.
+
+        Args:
+            project (Project): The project instance to search within.
+
+        Returns:
+            Union[Task, Set[Task]]: A single Task instance if exactly one
+            match is found, otherwise a set of matching Task instances.
+
+        Raises:
+            TypeError: If the `project` argument is not a valid `Project` object.
+            ValueError: If no tasks matching the specified criteria are found in
+                the project.
+        """
+
         from siliconcompiler import Project
         if not isinstance(project, Project):
             raise TypeError("project must be a Project")
@@ -1826,7 +1855,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
             raise ValueError(f"No tasks found matching {criteria}")
 
         if len(tasks) == 1:
-            return list(tasks)[0]
+            return next(iter(tasks))
         return tasks
 
     def _find_files_search_paths(self, key: str,
