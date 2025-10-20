@@ -38,7 +38,7 @@ def get_task(
     """
     import warnings
     warnings.warn("This function is deprecated and will be removed in a future version, "
-                  "use cls.find_task instead", DeprecationWarning)
+                  "use cls.find_task instead", DeprecationWarning, stacklevel=2)
 
     if filter:
         if inspect.isclass(filter):
