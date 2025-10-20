@@ -8,7 +8,6 @@ from siliconcompiler.targets import ihp130_demo
 from siliconcompiler.flows.drcflow import DRCFlow
 # Import the KLayout DRC task to configure it.
 from siliconcompiler.tools.klayout.drc import DRCTask
-from siliconcompiler.tools import get_task
 
 
 def main():
@@ -74,7 +73,7 @@ def main():
 
     # Configure the DRC task. We specify that it should use the 'minimal'
     # DRC ruleset, which is defined by the IHP 130nm target.
-    get_task(project, filter=DRCTask).set("var", "drc_name", "minimal")
+    DRCTask.find_task(project).set("var", "drc_name", "minimal")
 
     # Set a new jobname for this run to keep the output directories separate.
     project.set("option", "jobname", "drc")

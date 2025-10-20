@@ -32,7 +32,7 @@ import os.path
 from packaging.version import Version, InvalidVersion
 from packaging.specifiers import SpecifierSet, InvalidSpecifier
 
-from typing import List, Dict, Tuple, Union, Optional, Set, TextIO, Type, TYPE_CHECKING
+from typing import List, Dict, Tuple, Union, Optional, Set, TextIO, Type, TypeVar, TYPE_CHECKING
 from pathlib import Path
 
 from siliconcompiler.schema import BaseSchema, NamedSchema, Journal, DocsSchema
@@ -52,6 +52,8 @@ from siliconcompiler.flowgraph import RuntimeFlowgraph
 if TYPE_CHECKING:
     from siliconcompiler.scheduler import SchedulerNode
     from siliconcompiler import Project
+
+TTask = TypeVar('TTask')
 
 
 class TaskError(Exception):
@@ -1784,7 +1786,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
                                   step=step, index=index)
 
     @classmethod
-    def find_task(cls, project: "Project") -> Union[Set["Task"], "Task"]:
+    def find_task(cls: Type[TTask], project: "Project") -> Union[Set[TTask], TTask]:
         """Finds registered task(s) in a project that match the calling class.
 
         This method searches through all tasks configured in the provided `project`

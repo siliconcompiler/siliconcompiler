@@ -46,7 +46,6 @@ Let's create a target for a generic ASIC design. This function will load a stand
   from siliconcompiler import ASIC
   from siliconcompiler.flows import asicflow
   from siliconcompiler.tools.yosys import syn_asic
-  from siliconcompiler.tools import get_task
 
   # It's common practice to import the PDK and library schemas
   # that your target will use.
@@ -84,7 +83,7 @@ Let's create a target for a generic ASIC design. This function will load a stand
       area.set_coremargin(1)
 
       # 3. Configure Tool Options
-      get_task(project, filter=syn_asic.ASICSynthesis).set_strategy("AREA3")
+      syn_asic.ASICSynthesis.find_task(project).set_strategy("AREA3")
 
 
 How to Use the Target

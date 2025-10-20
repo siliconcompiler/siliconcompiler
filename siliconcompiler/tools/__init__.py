@@ -36,6 +36,10 @@ def get_task(
         ValueError: If no tasks match the specified criteria.
         TypeError: If project is not a Project instance.
     """
+    import warnings
+    warnings.warn("This function is deprecated and will be removed in a future version, "
+                  "use cls.find_task instead", DeprecationWarning)
+
     if filter:
         if inspect.isclass(filter):
             return filter.find_task(project)
