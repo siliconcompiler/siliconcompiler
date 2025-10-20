@@ -1,4 +1,4 @@
-from typing import Union, List, Tuple, Callable
+from typing import Union, List, Tuple, Callable, Dict, Optional
 
 from siliconcompiler.schema import BaseSchema, EditableSchema, Parameter, Scope, PerNode
 from siliconcompiler.schema.utils import trim
@@ -189,7 +189,7 @@ class SchedulerSchema(BaseSchema):
                 Maximum number of threads for each task in a job. If not set this will default
                 to the number of cpu cores available."""))
 
-    def get_name(self, step: str = None, index: str = None) -> str:
+    def get_name(self, step: Optional[str] = None, index: Optional[str] = None) -> str:
         """Gets the scheduler platform name.
 
         Args:
@@ -201,7 +201,7 @@ class SchedulerSchema(BaseSchema):
         """
         return self.get('name', step=step, index=index)
 
-    def set_name(self, value: str, step: str = None, index: str = None):
+    def set_name(self, value: str, step: Optional[str] = None, index: Optional[str] = None):
         """Sets the scheduler platform name.
 
         Args:
@@ -211,7 +211,7 @@ class SchedulerSchema(BaseSchema):
         """
         self.set('name', value, step=step, index=index)
 
-    def get_cores(self, step: str = None, index: str = None) -> int:
+    def get_cores(self, step: Optional[str] = None, index: Optional[str] = None) -> int:
         """Gets the number of CPU cores required for the job.
 
         Args:
@@ -223,7 +223,7 @@ class SchedulerSchema(BaseSchema):
         """
         return self.get('cores', step=step, index=index)
 
-    def set_cores(self, value: int, step: str = None, index: str = None):
+    def set_cores(self, value: int, step: Optional[str] = None, index: Optional[str] = None):
         """Sets the number of CPU cores required for the job.
 
         Args:
@@ -233,7 +233,7 @@ class SchedulerSchema(BaseSchema):
         """
         self.set('cores', value, step=step, index=index)
 
-    def get_memory(self, step: str = None, index: str = None) -> int:
+    def get_memory(self, step: Optional[str] = None, index: Optional[str] = None) -> int:
         """Gets the memory required for the job in megabytes.
 
         Args:
@@ -245,7 +245,7 @@ class SchedulerSchema(BaseSchema):
         """
         return self.get('memory', step=step, index=index)
 
-    def set_memory(self, value: int, step: str = None, index: str = None):
+    def set_memory(self, value: int, step: Optional[str] = None, index: Optional[str] = None):
         """Sets the memory required for the job in megabytes.
 
         Args:
@@ -255,7 +255,7 @@ class SchedulerSchema(BaseSchema):
         """
         self.set('memory', value, step=step, index=index)
 
-    def get_queue(self, step: str = None, index: str = None) -> str:
+    def get_queue(self, step: Optional[str] = None, index: Optional[str] = None) -> str:
         """Gets the scheduler queue (or partition) for the job.
 
         Args:
@@ -267,7 +267,7 @@ class SchedulerSchema(BaseSchema):
         """
         return self.get('queue', step=step, index=index)
 
-    def set_queue(self, value: str, step: str = None, index: str = None):
+    def set_queue(self, value: str, step: Optional[str] = None, index: Optional[str] = None):
         """Sets the scheduler queue (or partition) for the job.
 
         Args:
@@ -277,7 +277,7 @@ class SchedulerSchema(BaseSchema):
         """
         self.set('queue', value, step=step, index=index)
 
-    def get_defer(self, step: str = None, index: str = None) -> str:
+    def get_defer(self, step: Optional[str] = None, index: Optional[str] = None) -> str:
         """Gets the deferred start time for the job.
 
         Args:
@@ -289,7 +289,7 @@ class SchedulerSchema(BaseSchema):
         """
         return self.get('defer', step=step, index=index)
 
-    def set_defer(self, value: str, step: str = None, index: str = None):
+    def set_defer(self, value: str, step: Optional[str] = None, index: Optional[str] = None):
         """Sets the deferred start time for the job.
 
         Args:
@@ -299,7 +299,7 @@ class SchedulerSchema(BaseSchema):
         """
         self.set('defer', value, step=step, index=index)
 
-    def get_options(self, step: str = None, index: str = None) -> List[str]:
+    def get_options(self, step: Optional[str] = None, index: Optional[str] = None) -> List[str]:
         """Gets the advanced pass-through options for the scheduler.
 
         Args:
@@ -311,7 +311,8 @@ class SchedulerSchema(BaseSchema):
         """
         return self.get('options', step=step, index=index)
 
-    def add_options(self, value: Union[List[str], str], step: str = None, index: str = None,
+    def add_options(self, value: Union[List[str], str],
+                    step: Optional[str] = None, index: Optional[str] = None,
                     clobber: bool = False):
         """Adds or sets advanced pass-through options for the scheduler.
 
@@ -327,7 +328,7 @@ class SchedulerSchema(BaseSchema):
         else:
             self.add('options', value, step=step, index=index)
 
-    def get_msgevent(self, step: str = None, index: str = None) -> List[str]:
+    def get_msgevent(self, step: Optional[str] = None, index: Optional[str] = None) -> List[str]:
         """Gets the event triggers for sending messages.
 
         Args:
@@ -339,7 +340,8 @@ class SchedulerSchema(BaseSchema):
         """
         return self.get('msgevent', step=step, index=index)
 
-    def add_msgevent(self, value: Union[List[str], str], step: str = None, index: str = None,
+    def add_msgevent(self, value: Union[List[str], str],
+                     step: Optional[str] = None, index: Optional[str] = None,
                      clobber: bool = False):
         """Adds or sets the event triggers for sending messages.
 
@@ -355,7 +357,7 @@ class SchedulerSchema(BaseSchema):
         else:
             self.add('msgevent', value, step=step, index=index)
 
-    def get_msgcontact(self, step: str = None, index: str = None) -> List[str]:
+    def get_msgcontact(self, step: Optional[str] = None, index: Optional[str] = None) -> List[str]:
         """Gets the contact list for scheduler event messages.
 
         Args:
@@ -367,7 +369,8 @@ class SchedulerSchema(BaseSchema):
         """
         return self.get('msgcontact', step=step, index=index)
 
-    def add_msgcontact(self, value: Union[List[str], str], step: str = None, index: str = None,
+    def add_msgcontact(self, value: Union[List[str], str],
+                       step: Optional[str] = None, index: Optional[str] = None,
                        clobber: bool = False):
         """Adds or sets the contact list for scheduler event messages.
 
@@ -428,7 +431,7 @@ class OptionSchema(BaseSchema):
         """Initializes the options schema and defines all its parameters."""
         super().__init__()
 
-        self.__callbacks = {}
+        self.__callbacks: Dict[str, Callable] = {}
 
         # Initialize schema
         schema = EditableSchema(self)
@@ -890,7 +893,7 @@ class OptionSchema(BaseSchema):
         """
         self.set('cachedir', value)
 
-    def get_nice(self, step: str = None, index: str = None) -> int:
+    def get_nice(self, step: Optional[str] = None, index: Optional[str] = None) -> int:
         """Gets the tool scheduling priority (nice level).
 
         Args:
@@ -902,7 +905,7 @@ class OptionSchema(BaseSchema):
         """
         return self.get('nice', step=step, index=index)
 
-    def set_nice(self, value: int, step: str = None, index: str = None):
+    def set_nice(self, value: int, step: Optional[str] = None, index: Optional[str] = None):
         """Sets the tool scheduling priority (nice level).
 
         Args:
@@ -928,7 +931,7 @@ class OptionSchema(BaseSchema):
         """
         self.set('flow', value)
 
-    def get_optmode(self, step: str = None, index: str = None) -> int:
+    def get_optmode(self, step: Optional[str] = None, index: Optional[str] = None) -> int:
         """Gets the optimization mode.
 
         Args:
@@ -940,7 +943,7 @@ class OptionSchema(BaseSchema):
         """
         return self.get('optmode', step=step, index=index)
 
-    def set_optmode(self, value: int, step: str = None, index: str = None):
+    def set_optmode(self, value: int, step: Optional[str] = None, index: Optional[str] = None):
         """Sets the optimization mode.
 
         Args:
@@ -1047,7 +1050,7 @@ class OptionSchema(BaseSchema):
         else:
             self.add('prune', value)
 
-    def get_breakpoint(self, step: str = None, index: str = None) -> bool:
+    def get_breakpoint(self, step: Optional[str] = None, index: Optional[str] = None) -> bool:
         """Checks if a breakpoint is set on a specific step.
 
         Args:
@@ -1059,7 +1062,7 @@ class OptionSchema(BaseSchema):
         """
         return self.get('breakpoint', step=step, index=index)
 
-    def set_breakpoint(self, value: bool, step: str = None, index: str = None):
+    def set_breakpoint(self, value: bool, step: Optional[str] = None, index: Optional[str] = None):
         """Sets a breakpoint on a specific step.
 
         Args:
@@ -1117,7 +1120,7 @@ class OptionSchema(BaseSchema):
         """
         self.set('nodisplay', value)
 
-    def get_quiet(self, step: str = None, index: str = None) -> bool:
+    def get_quiet(self, step: Optional[str] = None, index: Optional[str] = None) -> bool:
         """Gets the quiet execution flag for a step.
 
         Args:
@@ -1129,7 +1132,7 @@ class OptionSchema(BaseSchema):
         """
         return self.get('quiet', step=step, index=index)
 
-    def set_quiet(self, value: bool, step: str = None, index: str = None):
+    def set_quiet(self, value: bool, step: Optional[str] = None, index: Optional[str] = None):
         """Sets the quiet execution flag for a step.
 
         Args:
@@ -1155,7 +1158,7 @@ class OptionSchema(BaseSchema):
         """
         self.set('jobincr', value)
 
-    def get_novercheck(self, step: str = None, index: str = None) -> bool:
+    def get_novercheck(self, step: Optional[str] = None, index: Optional[str] = None) -> bool:
         """Gets the version checking disable flag for a step.
 
         Args:
@@ -1167,7 +1170,7 @@ class OptionSchema(BaseSchema):
         """
         return self.get('novercheck', step=step, index=index)
 
-    def set_novercheck(self, value: bool, step: str = None, index: str = None):
+    def set_novercheck(self, value: bool, step: Optional[str] = None, index: Optional[str] = None):
         """Sets the version checking disable flag for a step.
 
         Args:
@@ -1177,7 +1180,7 @@ class OptionSchema(BaseSchema):
         """
         self.set('novercheck', value, step=step, index=index)
 
-    def get_track(self, step: str = None, index: str = None) -> bool:
+    def get_track(self, step: Optional[str] = None, index: Optional[str] = None) -> bool:
         """Gets the provenance tracking flag for a step.
 
         Args:
@@ -1189,7 +1192,7 @@ class OptionSchema(BaseSchema):
         """
         return self.get('track', step=step, index=index)
 
-    def set_track(self, value: bool, step: str = None, index: str = None):
+    def set_track(self, value: bool, step: Optional[str] = None, index: Optional[str] = None):
         """Sets the provenance tracking flag for a step.
 
         Args:
@@ -1199,7 +1202,7 @@ class OptionSchema(BaseSchema):
         """
         self.set('track', value, step=step, index=index)
 
-    def get_continue(self, step: str = None, index: str = None) -> bool:
+    def get_continue(self, step: Optional[str] = None, index: Optional[str] = None) -> bool:
         """Gets the continue-on-error flag for a step.
 
         Args:
@@ -1211,7 +1214,7 @@ class OptionSchema(BaseSchema):
         """
         return self.get('continue', step=step, index=index)
 
-    def set_continue(self, value: bool, step: str = None, index: str = None):
+    def set_continue(self, value: bool, step: Optional[str] = None, index: Optional[str] = None):
         """Sets the continue-on-error flag for a step.
 
         Args:
@@ -1221,7 +1224,7 @@ class OptionSchema(BaseSchema):
         """
         self.set('continue', value, step=step, index=index)
 
-    def get_timeout(self, step: str = None, index: str = None) -> float:
+    def get_timeout(self, step: Optional[str] = None, index: Optional[str] = None) -> float:
         """Gets the timeout value for a step in seconds.
 
         Args:
@@ -1233,7 +1236,7 @@ class OptionSchema(BaseSchema):
         """
         return self.get('timeout', step=step, index=index)
 
-    def set_timeout(self, value: float, step: str = None, index: str = None):
+    def set_timeout(self, value: float, step: Optional[str] = None, index: Optional[str] = None):
         """Sets the timeout value for a step in seconds.
 
         Args:

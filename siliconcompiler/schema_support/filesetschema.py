@@ -1,6 +1,8 @@
 import contextlib
 
-from typing import List, Tuple, Optional, Union, Iterable
+from pathlib import Path
+
+from typing import List, Tuple, Optional, Union, Iterable, Set
 
 from siliconcompiler import utils
 
@@ -43,7 +45,8 @@ class FileSetSchema(PathSchema):
 
     ###############################################
     def add_file(self,
-                 filename: str,
+                 filename: Union[List[Union[Path, str]], Set[Union[Path, str]],
+                                 Tuple[Union[Path, str], ...], Path, str],
                  fileset: Optional[str] = None,
                  filetype: Optional[str] = None,
                  clobber: bool = False,
@@ -62,7 +65,8 @@ class FileSetSchema(PathSchema):
         * etc.
 
         Args:
-            filename (Path or list[Path]): File path or list of paths to add.
+            filename (Path, str, or collection): File path (Path or str), or a collection
+                (list, tuple, set) of file paths to add.
             fileset (str): Logical group to associate the file with.
             filetype (str, optional): Type of the file (e.g., 'verilog', 'sdc').
             clobber (bool, optional): If True, clears the list before adding the
@@ -89,7 +93,9 @@ class FileSetSchema(PathSchema):
             raise ValueError("fileset key must be a string")
 
         # handle list inputs
-        if isinstance(filename, (list, tuple)):
+        if isinstance(filename, (list, set, tuple)):
+            if isinstance(filename, set):
+                filename = sorted(filename)
             params = []
             for item in filename:
                 params.extend(
