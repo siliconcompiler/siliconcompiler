@@ -60,5 +60,6 @@ def test_runtime_args(heartbeat_design):
             '-o', 'outputs/heartbeat.vvp',
             '-s', 'heartbeat',
             '-Pheartbeat.N=8',
+            '-DSILICONCOMPILER_TRACE_DIR="reports"',
             '-DSILICONCOMPILER_TRACE_FILE="reports/heartbeat.vcd"',
             heartbeat_design.get_file("rtl", "verilog")[0]]
