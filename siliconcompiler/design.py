@@ -34,6 +34,11 @@ class Design(LibrarySchema, DependencySchema):
             name (str, optional): The name of the design. Defaults to None.
         '''
         super().__init__()
+
+        # Mark for copy to ensure proper remote processing
+        fs_file: Parameter = self.get("fileset", "default", "file", "default", field=None)
+        fs_file.set(True, field="copy")
+
         self.set_name(name)
 
         schema_design(self)
@@ -860,6 +865,7 @@ def schema_design(schema: Design):
         Parameter(
             ['dir'],
             scope=Scope.GLOBAL,
+            copy=True,
             shorthelp="Include file search paths",
             example=[
                 "api: design.set('fileset', 'rtl', 'idir', './rtl')",
@@ -899,6 +905,7 @@ def schema_design(schema: Design):
         Parameter(
             ['dir'],
             scope=Scope.GLOBAL,
+            copy=True,
             shorthelp="Library search paths",
             example=[
                 "api: design.set('fileset', 'rtl', 'libdir', '/usr/lib')"],
