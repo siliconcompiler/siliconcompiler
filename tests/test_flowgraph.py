@@ -115,15 +115,19 @@ def test_node_index():
     assert flow.get("teststep", "1", "taskmodule") == "siliconcompiler.tools.builtin.nop/NOPTask"
 
 
-@pytest.mark.parametrize("step", ["global", "global", "sc_collected_files"])
+@pytest.mark.parametrize("step", ["global", "default", "sc_collected_files", "sc_config", "sc_blah"])
 def test_node_reserved_step(step):
     flow = Flowgraph("testflow")
 
-    with pytest.raises(ValueError, match=f"^{step} is a reserved name$"):
+    with pytest.raises(ValueError, match=rf"^{step} is a reserved name$"):
         flow.node(step, "siliconcompiler.tools.builtin.nop/NOPTask")
 
 
-@pytest.mark.parametrize("index", ["global", "global"])
+def test_node_allow_step():
+    Flowgraph("testflow").node("scblah", "siliconcompiler.tools.builtin.nop/NOPTask")
+
+
+@pytest.mark.parametrize("index", ["global", "default"])
 def test_node_reserved_index(index):
     flow = Flowgraph("testflow")
 
