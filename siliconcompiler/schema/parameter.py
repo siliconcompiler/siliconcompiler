@@ -800,7 +800,14 @@ class Parameter:
         """
         Gets a copy of the default value.
         """
-        return self.__defvalue.copy()
+        return self._default.copy()
+
+    @property
+    def _default(self) -> Union[NodeValue, NodeSetValue, NodeListValue]:
+        """
+        Gets an editable version the default value.
+        """
+        return self.__defvalue
 
     def add_commandline_arguments(self,
                                   argparser: argparse.ArgumentParser,

@@ -1476,6 +1476,14 @@ def test_default():
     assert defval1 is not defval2
 
 
+def test_mutable_default():
+    param = Parameter("[str]", defvalue=["hello", "world"])
+    defval1 = param._default
+    defval2 = param._default
+
+    assert defval1 is defval2
+
+
 def test_add_commandline_arguments_none():
     param = Parameter("str", switch=None)
 

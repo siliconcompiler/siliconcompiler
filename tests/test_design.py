@@ -45,6 +45,17 @@ def test_design_keys():
     assert set(Design("test").allkeys()) == golden_keys
 
 
+@pytest.mark.parametrize("key", [
+    (("file", "default")),
+    (("idir",)),
+    (("libdir",)),
+])
+def test_copy_set(key):
+    design = Design("test")
+
+    assert design.get("fileset", "default", *key, field="copy") is True
+
+
 @pytest.mark.parametrize("arg,value", [
     (("topmodule",), "mytop"),
     (("file", "verilog"), ['one.v', 'two.v']),

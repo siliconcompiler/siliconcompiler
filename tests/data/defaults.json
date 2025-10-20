@@ -17374,7 +17374,7 @@
                 }
               },
               "hashalgo": "sha256",
-              "copy": false
+              "copy": true
             }
           },
           "topmodule": {
@@ -17425,7 +17425,7 @@
               }
             },
             "hashalgo": "sha256",
-            "copy": false
+            "copy": true
           },
           "define": {
             "type": "[str]",
@@ -17495,7 +17495,7 @@
               }
             },
             "hashalgo": "sha256",
-            "copy": false
+            "copy": true
           },
           "lib": {
             "type": "[str]",
