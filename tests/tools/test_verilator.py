@@ -180,3 +180,55 @@ def test_lintflow(heartbeat_design):
 
     assert proj.history("job0").get('metric', 'errors', step='lint', index='0') == 0
     assert proj.history("job0").get('metric', 'warnings', step='lint', index='0') == 0
+
+
+def test_runtime_args(heartbeat_design):
+    proj = Project(heartbeat_design)
+    heartbeat_design.set_param("N", "8", "rtl")
+    proj.add_fileset("rtl")
+
+    flow = Flowgraph("testflow")
+    flow.node("version", compile.CompileTask())
+    proj.set_flow(flow)
+
+    node = SchedulerNode(proj, "version", "0")
+    with node.runtime():
+        assert node.setup() is True
+        assert node.task.get_runtime_arguments() == [
+            '-sv',
+            '--top-module', 'heartbeat',
+            '-GN=8',
+            heartbeat_design.get_file("rtl", "verilog")[0],
+            '--exe',
+            '--build',
+            '-j', '32',
+            '--cc',
+            '-o', '../outputs/heartbeat.vexe']
+
+
+def test_runtime_args_trace(heartbeat_design):
+    proj = Project(heartbeat_design)
+    heartbeat_design.set_param("N", "8", "rtl")
+    proj.add_fileset("rtl")
+
+    flow = Flowgraph("testflow")
+    flow.node("version", compile.CompileTask())
+    proj.set_flow(flow)
+    compile.CompileTask.find_task(proj).set("var", "trace", True)
+
+    node = SchedulerNode(proj, "version", "0")
+    with node.runtime():
+        assert node.setup() is True
+        assert node.task.get_runtime_arguments() == [
+            '-sv',
+            '--top-module', 'heartbeat',
+            '-GN=8',
+            heartbeat_design.get_file("rtl", "verilog")[0],
+            '--exe',
+            '--build',
+            '-j', '32',
+            '--cc',
+            '-o', '../outputs/heartbeat.vexe',
+            '--trace',
+            '-CFLAGS', '\'-DSILICONCOMPILER_TRACE_DIR="reports"\' '
+                       '\'-DSILICONCOMPILER_TRACE_FILE="reports/heartbeat.vcd"\'']
