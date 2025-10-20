@@ -56,6 +56,13 @@ def test_add_file_tuple():
     assert d.get('fileset', 'rtl', 'file', 'verilog') == ['one.v', 'two.v']
 
 
+def test_add_file_tuple_set():
+    d = FileSetSchema()
+
+    assert d.add_file(set(['one.v', 'two.v', 'three.v']), 'rtl', filetype='verilog')
+    assert d.get('fileset', 'rtl', 'file', 'verilog') == ['one.v', 'three.v', 'two.v']
+
+
 def test_add_file_with_fileset():
     d = FileSetSchema()
 
