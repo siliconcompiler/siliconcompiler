@@ -4,11 +4,12 @@ import os
 import re
 import shutil
 import sys
+import tempfile
 import traceback
 
 import os.path
 
-from typing import Union, TYPE_CHECKING
+from typing import Union, Dict, Optional, TYPE_CHECKING
 
 from siliconcompiler import NodeStatus
 from siliconcompiler.schema import Journal
@@ -18,6 +19,7 @@ from siliconcompiler.scheduler import SlurmSchedulerNode
 from siliconcompiler.scheduler import DockerSchedulerNode
 from siliconcompiler.scheduler import TaskScheduler
 from siliconcompiler.scheduler.schedulernode import SchedulerFlowReset
+from siliconcompiler.tool import TaskExecutableNotFound, TaskExecutableNotReceived
 
 from siliconcompiler import utils
 from siliconcompiler.utils.logging import SCLoggerFormatter
@@ -260,6 +262,10 @@ class Scheduler:
 
             self.__run_setup()
             self.configure_nodes()
+
+            # Verify tool setups
+            if not self.__check_tool_versions():
+                raise SCRuntimeError("Tools did not meet version requirements")
 
             # Verify tool setups
             if not self.__check_tool_requirements():
@@ -740,3 +746,73 @@ class Scheduler:
             self.__project.set('option', 'jobname', f'{stem}{jobid + 1}')
             return True
         return False
+
+    def __check_tool_versions(self) -> bool:
+        """
+        Validates tool executables and versions for all local nodes.
+
+        This method iterates through all nodes defined in the flow runtime.
+        It performs checks only for nodes scheduled to run locally. Nodes
+        configured to run on a remote scheduler (e.g., LSF, Slurm) are
+        skipped. The entire check is also skipped if the project is
+        configured for remote execution.
+
+        For each local node, it:
+        1.  Runs from within a temporary directory to avoid conflicts.
+        2.  Enters the node's specific runtime context (e.g., sets env vars).
+        3.  Tries to resolve the executable path. Logs an error if not found.
+        4.  Calls `node.check_version()` to validate the tool version.
+        5.  Caches version results to avoid re-checking the same executable
+            for different nodes.
+
+        It logs an error for any node that fails validation (missing executable
+        or failed version check) and returns an overall status.
+
+        Returns:
+            bool: True if all local nodes pass validation or if checks
+                are skipped. False if any local node fails.
+        """
+        if self.__project.option.get_remote():
+            return True
+
+        error = False
+
+        cwd = os.getcwd()
+        with tempfile.TemporaryDirectory(prefix="sc_tool_check") as d:
+            try:
+                versions: Dict[str, Optional[str]] = {}
+
+                self.__logger.debug(f"Executing tool checks in: {d}")
+                os.chdir(d)
+                for (step, index) in self.__flow_runtime.get_nodes():
+                    if self.__project.option.scheduler.get_name(step=step, index=index) is not None:
+                        continue
+
+                    node = SchedulerNode(self.__project, step, index)
+                    with node.runtime():
+                        try:
+                            exe = node.get_exe_path()
+                        except TaskExecutableNotReceived:
+                            continue
+                        except TaskExecutableNotFound:
+                            exe = node.task.get("exe")
+                            self.__logger.error(f"Executable for {step}/{index} could not "
+                                                f"be found: {exe}")
+                            error = True
+                            continue
+
+                        try:
+                            if exe:
+                                version: Optional[str] = versions.get(exe, None)
+                                version, check = node.check_version(version)
+                                versions[exe] = version
+                                if not check:
+                                    self.__logger.error(f"Executable for {step}/{index} did not "
+                                                        "meet version checks")
+                                    error = True
+                        except NotImplementedError:
+                            self.__logger.error(f"Unable to process version for {step}/{index}")
+            finally:
+                os.chdir(cwd)
+
+        return not error

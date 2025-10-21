@@ -13,6 +13,7 @@ from siliconcompiler.schema import EditableSchema, Parameter
 
 from siliconcompiler.tools.builtin.nop import NOPTask
 from siliconcompiler.utils.paths import jobdir
+from siliconcompiler.tool import TaskExecutableNotReceived
 
 
 @pytest.fixture
@@ -345,6 +346,8 @@ def test_check_manifest_fail(basic_project):
                autospec=True) as check_manifest, \
             patch("siliconcompiler.scheduler.Scheduler._Scheduler__run_setup") as run_setup, \
             patch("siliconcompiler.scheduler.Scheduler.configure_nodes") as configure_nodes, \
+            patch("siliconcompiler.scheduler.Scheduler._Scheduler__check_tool_versions") \
+            as check_tool_versions, \
             patch("siliconcompiler.scheduler.Scheduler._Scheduler__check_tool_requirements") \
             as check_tool_requirements, \
             patch("siliconcompiler.scheduler.Scheduler._Scheduler__clean_build_dir_incr") \
@@ -357,6 +360,7 @@ def test_check_manifest_fail(basic_project):
         check_manifest.assert_called_once()
         run_setup.assert_not_called()
         configure_nodes.assert_not_called()
+        check_tool_versions.assert_not_called()
         check_tool_requirements.assert_not_called()
         clean_build_dir_incr.assert_not_called()
         check_flowgraph_io.assert_not_called()
@@ -368,6 +372,8 @@ def test_flowgraphio_fail(basic_project):
                autospec=True) as check_manifest, \
             patch("siliconcompiler.scheduler.Scheduler._Scheduler__run_setup") as run_setup, \
             patch("siliconcompiler.scheduler.Scheduler.configure_nodes") as configure_nodes, \
+            patch("siliconcompiler.scheduler.Scheduler._Scheduler__check_tool_versions") \
+            as check_tool_versions, \
             patch("siliconcompiler.scheduler.Scheduler._Scheduler__check_tool_requirements") \
             as check_tool_requirements, \
             patch("siliconcompiler.scheduler.Scheduler._Scheduler__clean_build_dir_incr") \
@@ -375,6 +381,7 @@ def test_flowgraphio_fail(basic_project):
             patch("siliconcompiler.scheduler.Scheduler._Scheduler__check_flowgraph_io") \
             as check_flowgraph_io:
         check_manifest.return_value = True
+        check_tool_versions.return_value = True
         check_tool_requirements.return_value = True
         check_flowgraph_io.return_value = False
         with pytest.raises(RuntimeError, match=r'^Flowgraph file IO constrains errors$'):
@@ -382,9 +389,37 @@ def test_flowgraphio_fail(basic_project):
         check_manifest.assert_called_once()
         run_setup.assert_called_once()
         configure_nodes.assert_called_once()
+        check_tool_versions.assert_called_once()
         check_tool_requirements.assert_called_once()
         clean_build_dir_incr.assert_called_once()
         check_flowgraph_io.assert_called_once()
+
+
+def test_toolversion_fail(basic_project):
+    scheduler = Scheduler(basic_project)
+    with patch("siliconcompiler.scheduler.Scheduler.check_manifest",
+               autospec=True) as check_manifest, \
+            patch("siliconcompiler.scheduler.Scheduler._Scheduler__run_setup") as run_setup, \
+            patch("siliconcompiler.scheduler.Scheduler.configure_nodes") as configure_nodes, \
+            patch("siliconcompiler.scheduler.Scheduler._Scheduler__check_tool_versions") \
+            as check_tool_versions, \
+            patch("siliconcompiler.scheduler.Scheduler._Scheduler__check_tool_requirements") \
+            as check_tool_requirements, \
+            patch("siliconcompiler.scheduler.Scheduler._Scheduler__clean_build_dir_incr") \
+            as clean_build_dir_incr, \
+            patch("siliconcompiler.scheduler.Scheduler._Scheduler__check_flowgraph_io") \
+            as check_flowgraph_io:
+        check_manifest.return_value = True
+        check_tool_versions.return_value = False
+        with pytest.raises(RuntimeError, match=r'^Tools did not meet version requirements$'):
+            scheduler.run()
+        check_manifest.assert_called_once()
+        run_setup.assert_called_once()
+        configure_nodes.assert_called_once()
+        check_tool_versions.assert_called_once()
+        check_tool_requirements.assert_not_called()
+        clean_build_dir_incr.assert_not_called()
+        check_flowgraph_io.assert_not_called()
 
 
 def test_toolrequirement_fail(basic_project):
@@ -393,6 +428,8 @@ def test_toolrequirement_fail(basic_project):
                autospec=True) as check_manifest, \
             patch("siliconcompiler.scheduler.Scheduler._Scheduler__run_setup") as run_setup, \
             patch("siliconcompiler.scheduler.Scheduler.configure_nodes") as configure_nodes, \
+            patch("siliconcompiler.scheduler.Scheduler._Scheduler__check_tool_versions") \
+            as check_tool_versions, \
             patch("siliconcompiler.scheduler.Scheduler._Scheduler__check_tool_requirements") \
             as check_tool_requirements, \
             patch("siliconcompiler.scheduler.Scheduler._Scheduler__clean_build_dir_incr") \
@@ -400,12 +437,14 @@ def test_toolrequirement_fail(basic_project):
             patch("siliconcompiler.scheduler.Scheduler._Scheduler__check_flowgraph_io") \
             as check_flowgraph_io:
         check_manifest.return_value = True
+        check_tool_versions.return_value = True
         check_tool_requirements.return_value = False
         with pytest.raises(RuntimeError, match=r'^Tools requirements not met$'):
             scheduler.run()
         check_manifest.assert_called_once()
         run_setup.assert_called_once()
         configure_nodes.assert_called_once()
+        check_tool_versions.assert_called_once()
         check_tool_requirements.assert_called_once()
         clean_build_dir_incr.assert_not_called()
         check_flowgraph_io.assert_not_called()
@@ -757,6 +796,7 @@ def test_install_file_logger(basic_project):
         assert f.read() == "existing log content"
 
 
+@pytest.mark.timeout(90)
 def test_install_file_logger_multiple_backups(basic_project):
     """Test that __install_file_logger handles multiple backup files."""
     scheduler = Scheduler(basic_project)
@@ -787,6 +827,7 @@ def test_install_file_logger_multiple_backups(basic_project):
         assert f.read() == "log 1"
 
 
+@pytest.mark.timeout(90)
 def test_install_file_logger_no_existing_log(basic_project):
     """Test that __install_file_logger works when no existing log file."""
     scheduler = Scheduler(basic_project)
@@ -821,3 +862,117 @@ def test_logfile_post_install(basic_project):
     scheduler._Scheduler__install_file_logger()
 
     assert scheduler.log == os.path.join(jobdir(basic_project), "job.log")
+
+
+def test_check_tool_versions_local_pass(gcd_nop_project, monkeypatch, caplog):
+    monkeypatch.setattr(gcd_nop_project, "_Project__logger", logging.getLogger())
+    gcd_nop_project.logger.setLevel(logging.INFO)
+
+    assert gcd_nop_project.set("tool", "builtin", "task", "nop", "exe", "this.exe")
+
+    with patch("siliconcompiler.scheduler.SchedulerNode.get_exe_path") as get_exe_path, \
+            patch("siliconcompiler.scheduler.SchedulerNode.check_version") as check_version:
+        get_exe_path.return_value = "exe"
+        check_version.return_value = ("version", True)
+        assert Scheduler(gcd_nop_project)._Scheduler__check_tool_versions() is True
+        assert get_exe_path.call_count == 4
+        assert check_version.call_count == 4
+
+    assert caplog.text == ""
+
+
+def test_check_tool_versions_local_pass_not_received(gcd_nop_project, monkeypatch, caplog):
+    monkeypatch.setattr(gcd_nop_project, "_Project__logger", logging.getLogger())
+    gcd_nop_project.logger.setLevel(logging.INFO)
+
+    assert gcd_nop_project.set("tool", "builtin", "task", "nop", "exe", "this.exe")
+
+    def fail(*args, **kwargs):
+        raise TaskExecutableNotReceived()
+
+    with patch("siliconcompiler.scheduler.SchedulerNode.get_exe_path") as get_exe_path, \
+            patch("siliconcompiler.scheduler.SchedulerNode.check_version") as check_version:
+        get_exe_path.side_effect = fail
+        assert Scheduler(gcd_nop_project)._Scheduler__check_tool_versions() is True
+        assert get_exe_path.call_count == 4
+        check_version.assert_not_called()
+
+    assert caplog.text == ""
+
+
+def test_check_tool_versions_remote(gcd_nop_project, monkeypatch, caplog):
+    monkeypatch.setattr(gcd_nop_project, "_Project__logger", logging.getLogger())
+    gcd_nop_project.logger.setLevel(logging.INFO)
+
+    gcd_nop_project.option.set_remote(True)
+
+    assert gcd_nop_project.set("tool", "builtin", "task", "nop", "exe", "this.exe")
+
+    with patch("siliconcompiler.scheduler.SchedulerNode.get_exe_path") as get_exe_path, \
+            patch("siliconcompiler.scheduler.SchedulerNode.check_version") as check_version:
+        assert Scheduler(gcd_nop_project)._Scheduler__check_tool_versions() is True
+        get_exe_path.assert_not_called()
+        check_version.assert_not_called()
+
+    assert caplog.text == ""
+
+
+def test_check_tool_versions_local_fail(gcd_nop_project, monkeypatch, caplog):
+    monkeypatch.setattr(gcd_nop_project, "_Project__logger", logging.getLogger())
+    gcd_nop_project.logger.setLevel(logging.INFO)
+
+    assert gcd_nop_project.set("tool", "builtin", "task", "nop", "exe", "this.exe")
+
+    with patch("siliconcompiler.scheduler.SchedulerNode.get_exe_path") as get_exe_path, \
+            patch("siliconcompiler.scheduler.SchedulerNode.check_version") as check_version:
+        get_exe_path.return_value = "exe"
+        check_version.return_value = ("version", False)
+        assert Scheduler(gcd_nop_project)._Scheduler__check_tool_versions() is False
+        assert get_exe_path.call_count == 4
+        assert check_version.call_count == 4
+
+    assert "Executable for stepfour/0 did not meet version checks" in caplog.text
+    assert "Executable for stepone/0 did not meet version checks" in caplog.text
+    assert "Executable for steptwo/0 did not meet version checks" in caplog.text
+    assert "Executable for stepthree/0 did not meet version checks" in caplog.text
+
+
+@pytest.mark.parametrize("scheduler", ("docker", "slurm"))
+def test_check_tool_versions_non_local_fail(gcd_nop_project, monkeypatch, caplog, scheduler):
+    monkeypatch.setattr(gcd_nop_project, "_Project__logger", logging.getLogger())
+    gcd_nop_project.logger.setLevel(logging.INFO)
+
+    assert gcd_nop_project.set("tool", "builtin", "task", "nop", "exe", "this.exe")
+    gcd_nop_project.option.scheduler.set_name(scheduler, step="stepone")
+    gcd_nop_project.option.scheduler.set_name(scheduler, step="stepthree")
+
+    with patch("siliconcompiler.scheduler.SchedulerNode.get_exe_path") as get_exe_path, \
+            patch("siliconcompiler.scheduler.SchedulerNode.check_version") as check_version:
+        get_exe_path.return_value = "exe"
+        check_version.return_value = ("version", False)
+        assert Scheduler(gcd_nop_project)._Scheduler__check_tool_versions() is False
+        assert get_exe_path.call_count == 2
+        assert check_version.call_count == 2
+
+    assert "Executable for stepfour/0 did not meet version checks" in caplog.text
+    assert "Executable for steptwo/0 did not meet version checks" in caplog.text
+
+
+@pytest.mark.parametrize("scheduler", ("docker", "slurm"))
+def test_check_tool_versions_non_local_pass(gcd_nop_project, monkeypatch, caplog, scheduler):
+    monkeypatch.setattr(gcd_nop_project, "_Project__logger", logging.getLogger())
+    gcd_nop_project.logger.setLevel(logging.INFO)
+
+    assert gcd_nop_project.set("tool", "builtin", "task", "nop", "exe", "this.exe")
+    gcd_nop_project.option.scheduler.set_name(scheduler, step="stepone")
+    gcd_nop_project.option.scheduler.set_name(scheduler, step="stepthree")
+
+    with patch("siliconcompiler.scheduler.SchedulerNode.get_exe_path") as get_exe_path, \
+            patch("siliconcompiler.scheduler.SchedulerNode.check_version") as check_version:
+        get_exe_path.return_value = "exe"
+        check_version.return_value = ("version", True)
+        assert Scheduler(gcd_nop_project)._Scheduler__check_tool_versions() is True
+        assert get_exe_path.call_count == 2
+        assert check_version.call_count == 2
+
+    assert caplog.text == ""

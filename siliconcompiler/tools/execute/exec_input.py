@@ -4,6 +4,7 @@ import stat
 import os.path
 
 from siliconcompiler import Task
+from siliconcompiler.tool import TaskExecutableNotReceived
 
 
 class ExecInputTask(Task):
@@ -40,7 +41,8 @@ class ExecInputTask(Task):
             break
 
         if not exec:
-            raise FileNotFoundError(f'{self.step}/{self.index} did not receive an executable file')
+            raise TaskExecutableNotReceived(f'{self.step}/{self.index} did not receive an '
+                                            'executable file')
 
         os.chmod(exec, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
 
