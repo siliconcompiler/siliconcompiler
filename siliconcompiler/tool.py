@@ -78,6 +78,10 @@ class TaskExecutableNotFound(TaskError):
     pass
 
 
+class TaskExecutableNotReceived(TaskExecutableNotFound):
+    pass
+
+
 class TaskSkip(TaskError):
     """
     Error raised to indicate that the current task should be skipped.

@@ -14,6 +14,7 @@ from siliconcompiler.schema import EditableSchema, Parameter
 from siliconcompiler.tools.builtin.nop import NOPTask
 from siliconcompiler.utils.paths import jobdir
 from siliconcompiler.tools import get_task
+from siliconcompiler.tool import TaskExecutableNotReceived
 
 
 @pytest.fixture
@@ -875,6 +876,25 @@ def test_check_tool_versions_local_pass(gcd_nop_project, monkeypatch, caplog):
         assert Scheduler(gcd_nop_project)._Scheduler__check_tool_versions() is True
         assert get_exe_path.call_count == 4
         assert check_version.call_count == 4
+
+    assert caplog.text == ""
+
+
+def test_check_tool_versions_local_pass_not_received(gcd_nop_project, monkeypatch, caplog):
+    monkeypatch.setattr(gcd_nop_project, "_Project__logger", logging.getLogger())
+    gcd_nop_project.logger.setLevel(logging.INFO)
+
+    assert gcd_nop_project.set("tool", "builtin", "task", "nop", "exe", "this.exe")
+
+    def fail(*args, **kwargs):
+        raise TaskExecutableNotReceived()
+
+    with patch("siliconcompiler.scheduler.SchedulerNode.get_exe_path") as get_exe_path, \
+            patch("siliconcompiler.scheduler.SchedulerNode.check_version") as check_version:
+        get_exe_path.side_effect = fail
+        assert Scheduler(gcd_nop_project)._Scheduler__check_tool_versions() is True
+        assert get_exe_path.call_count == 4
+        check_version.assert_not_called()
 
     assert caplog.text == ""
 

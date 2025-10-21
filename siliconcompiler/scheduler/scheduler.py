@@ -19,7 +19,7 @@ from siliconcompiler.scheduler import SlurmSchedulerNode
 from siliconcompiler.scheduler import DockerSchedulerNode
 from siliconcompiler.scheduler import TaskScheduler
 from siliconcompiler.scheduler.schedulernode import SchedulerFlowReset
-from siliconcompiler.tool import TaskExecutableNotFound
+from siliconcompiler.tool import TaskExecutableNotFound, TaskExecutableNotReceived
 
 from siliconcompiler import utils
 from siliconcompiler.utils.logging import SCLoggerFormatter
@@ -792,6 +792,8 @@ class Scheduler:
                     with node.runtime():
                         try:
                             exe = node.get_exe_path()
+                        except TaskExecutableNotReceived:
+                            continue
                         except TaskExecutableNotFound:
                             exe = node.task.get("exe")
                             self.__logger.error(f"Executable for {step}/{index} could not "
