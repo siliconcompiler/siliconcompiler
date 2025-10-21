@@ -919,14 +919,14 @@ class SchedulerNode:
                 - check_passed (bool): True if the version is compatible or
                   if the check was skipped, False otherwise.
         """
+        if self.__project.get('option', 'novercheck', step=self.__step, index=self.__index):
+            return version, True
+
         with self.__set_env():
-            check = True
+            if version is None:
+                version = self.__task.get_exe_version()
 
-            if not self.__project.get('option', 'novercheck', step=self.__step, index=self.__index):
-                if version is None:
-                    version = self.__task.get_exe_version()
-
-                check = self.__task.check_exe_version(version)
+            check = self.__task.check_exe_version(version)
 
             return version, check
 
