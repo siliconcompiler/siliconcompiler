@@ -526,7 +526,7 @@ def test_check_flowgraph_io_with_files_join_extra_files(basic_project_no_flow, m
 
     scheduler = Scheduler(basic_project_no_flow)
 
-    nop = get_task(basic_project_no_flow, filter=NOPTask)
+    nop = NOPTask.find_task(basic_project_no_flow)
     nop.add_output_file("a.v", step="stepone", index="0")
     nop.add_output_file("common.v", step="stepone", index="0")
     nop.add_output_file("b.v", step="steptwo", index="0")
