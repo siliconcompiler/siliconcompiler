@@ -155,7 +155,7 @@
     "docker-depends": "yosys",
     "auto-update": true
   },
-  "yosys-wildebeest": {
+  "wildebeest": {
     "git-url": "https://github.com/zeroasiccorp/wildebeest.git",
     "git-commit": "d79f06403b500b95b4cb33288f520e4e24fb9c47",
     "docker-depends": "yosys",
