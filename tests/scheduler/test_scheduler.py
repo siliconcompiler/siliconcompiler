@@ -860,3 +860,98 @@ def test_logfile_post_install(basic_project):
     scheduler._Scheduler__install_file_logger()
 
     assert scheduler.log == os.path.join(jobdir(basic_project), "job.log")
+
+
+def test_check_tool_versions_local_pass(gcd_nop_project, monkeypatch, caplog):
+    monkeypatch.setattr(gcd_nop_project, "_Project__logger", logging.getLogger())
+    gcd_nop_project.logger.setLevel(logging.INFO)
+
+    assert gcd_nop_project.set("tool", "builtin", "task", "nop", "exe", "this.exe")
+
+    with patch("siliconcompiler.scheduler.SchedulerNode.get_exe_path") as get_exe_path, \
+            patch("siliconcompiler.scheduler.SchedulerNode.check_version") as check_version:
+        get_exe_path.return_value = "exe"
+        check_version.return_value = ("version", True)
+        assert Scheduler(gcd_nop_project)._Scheduler__check_tool_versions() is True
+        assert get_exe_path.call_count == 4
+        assert check_version.call_count == 4
+
+    assert caplog.text == ""
+
+
+def test_check_tool_versions_remote(gcd_nop_project, monkeypatch, caplog):
+    monkeypatch.setattr(gcd_nop_project, "_Project__logger", logging.getLogger())
+    gcd_nop_project.logger.setLevel(logging.INFO)
+
+    gcd_nop_project.option.set_remote(True)
+
+    assert gcd_nop_project.set("tool", "builtin", "task", "nop", "exe", "this.exe")
+
+    with patch("siliconcompiler.scheduler.SchedulerNode.get_exe_path") as get_exe_path, \
+            patch("siliconcompiler.scheduler.SchedulerNode.check_version") as check_version:
+        assert Scheduler(gcd_nop_project)._Scheduler__check_tool_versions() is True
+        get_exe_path.assert_not_called()
+        check_version.assert_not_called()
+
+    assert caplog.text == ""
+
+
+def test_check_tool_versions_local_fail(gcd_nop_project, monkeypatch, caplog):
+    monkeypatch.setattr(gcd_nop_project, "_Project__logger", logging.getLogger())
+    gcd_nop_project.logger.setLevel(logging.INFO)
+
+    assert gcd_nop_project.set("tool", "builtin", "task", "nop", "exe", "this.exe")
+
+    with patch("siliconcompiler.scheduler.SchedulerNode.get_exe_path") as get_exe_path, \
+            patch("siliconcompiler.scheduler.SchedulerNode.check_version") as check_version:
+        get_exe_path.return_value = "exe"
+        check_version.return_value = ("version", False)
+        assert Scheduler(gcd_nop_project)._Scheduler__check_tool_versions() is False
+        assert get_exe_path.call_count == 4
+        assert check_version.call_count == 4
+
+    assert "Executable for stepfour/0 did not meet version checks" in caplog.text
+    assert "Executable for stepone/0 did not meet version checks" in caplog.text
+    assert "Executable for steptwo/0 did not meet version checks" in caplog.text
+    assert "Executable for stepthree/0 did not meet version checks" in caplog.text
+
+
+@pytest.mark.parametrize("scheduler", ("docker", "slurm"))
+def test_check_tool_versions_non_local_fail(gcd_nop_project, monkeypatch, caplog, scheduler):
+    monkeypatch.setattr(gcd_nop_project, "_Project__logger", logging.getLogger())
+    gcd_nop_project.logger.setLevel(logging.INFO)
+
+    assert gcd_nop_project.set("tool", "builtin", "task", "nop", "exe", "this.exe")
+    gcd_nop_project.option.scheduler.set_name(scheduler, step="stepone")
+    gcd_nop_project.option.scheduler.set_name(scheduler, step="stepthree")
+
+    with patch("siliconcompiler.scheduler.SchedulerNode.get_exe_path") as get_exe_path, \
+            patch("siliconcompiler.scheduler.SchedulerNode.check_version") as check_version:
+        get_exe_path.return_value = "exe"
+        check_version.return_value = ("version", False)
+        assert Scheduler(gcd_nop_project)._Scheduler__check_tool_versions() is False
+        assert get_exe_path.call_count == 2
+        assert check_version.call_count == 2
+
+    assert "Executable for stepfour/0 did not meet version checks" in caplog.text
+    assert "Executable for steptwo/0 did not meet version checks" in caplog.text
+
+
+@pytest.mark.parametrize("scheduler", ("docker", "slurm"))
+def test_check_tool_versions_non_local_pass(gcd_nop_project, monkeypatch, caplog, scheduler):
+    monkeypatch.setattr(gcd_nop_project, "_Project__logger", logging.getLogger())
+    gcd_nop_project.logger.setLevel(logging.INFO)
+
+    assert gcd_nop_project.set("tool", "builtin", "task", "nop", "exe", "this.exe")
+    gcd_nop_project.option.scheduler.set_name(scheduler, step="stepone")
+    gcd_nop_project.option.scheduler.set_name(scheduler, step="stepthree")
+
+    with patch("siliconcompiler.scheduler.SchedulerNode.get_exe_path") as get_exe_path, \
+            patch("siliconcompiler.scheduler.SchedulerNode.check_version") as check_version:
+        get_exe_path.return_value = "exe"
+        check_version.return_value = ("version", True)
+        assert Scheduler(gcd_nop_project)._Scheduler__check_tool_versions() is True
+        assert get_exe_path.call_count == 2
+        assert check_version.call_count == 2
+
+    assert caplog.text == ""

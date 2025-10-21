@@ -748,6 +748,33 @@ class Scheduler:
         return False
 
     def __check_tool_versions(self) -> bool:
+        """
+        Validates tool executables and versions for all local nodes.
+
+        This method iterates through all nodes defined in the flow runtime.
+        It performs checks only for nodes scheduled to run locally. Nodes
+        configured to run on a remote scheduler (e.g., LSF, Slurm) are
+        skipped. The entire check is also skipped if the project is
+        configured for remote execution.
+
+        For each local node, it:
+        1.  Runs from within a temporary directory to avoid conflicts.
+        2.  Enters the node's specific runtime context (e.g., sets env vars).
+        3.  Tries to resolve the executable path. Logs an error if not found.
+        4.  Calls `node.check_version()` to validate the tool version.
+        5.  Caches version results to avoid re-checking the same executable
+            for different nodes.
+
+        It logs an error for any node that fails validation (missing executable
+        or failed version check) and returns an overall status.
+
+        Returns:
+            bool: True if all local nodes pass validation or if checks
+                are skipped. False if any local node fails.
+        """
+        if self.__project.option.get_remote():
+            return True
+
         error = False
 
         cwd = os.getcwd()
