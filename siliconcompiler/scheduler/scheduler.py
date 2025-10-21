@@ -778,10 +778,10 @@ class Scheduler:
         error = False
 
         cwd = os.getcwd()
-        try:
-            versions: Dict[str, Optional[str]] = {}
+        with tempfile.TemporaryDirectory(prefix="sc_tool_check") as d:
+            try:
+                versions: Dict[str, Optional[str]] = {}
 
-            with tempfile.TemporaryDirectory(prefix="sc_tool_check") as d:
                 self.__logger.debug(f"Executing tool checks in: {d}")
                 os.chdir(d)
                 for (step, index) in self.__flow_runtime.get_nodes():
@@ -812,7 +812,7 @@ class Scheduler:
                                     error = True
                         except NotImplementedError:
                             self.__logger.error(f"Unable to process version for {step}/{index}")
-        finally:
-            os.chdir(cwd)
+            finally:
+                os.chdir(cwd)
 
         return not error
