@@ -10,7 +10,7 @@ from siliconcompiler import utils
 class FilterTask(Task):
     '''
     A task for filtering files based on specified glob patterns.
-    
+
     This task determines which files to "keep" from a given set of inputs,
     passing only those that match the criteria to the outputs.
     '''
