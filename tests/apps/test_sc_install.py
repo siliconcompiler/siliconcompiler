@@ -176,7 +176,7 @@ def test_install_groups(call, monkeypatch):
         return {
             "yosys": "yosys.sh",
             "yosys-slang": "yosys-slang.sh",
-            "yosys-wildebeest": "yosys-wildebeest.sh",
+            "wildebeest": "wildebeest.sh",
             "openroad": "openroad.sh",
             "sv2v": "sv2v.sh",
             "klayout": "klayout.sh",
@@ -482,7 +482,7 @@ def test_groups(monkeypatch):
     monkeypatch.setattr(sc_install, "get_plugins", get_plugins)
 
     tools_asic = ("sv2v", "yosys", "yosys-slang", "openroad", "klayout")
-    tools_fpga = ("sv2v", "yosys", "yosys-slang", "vpr", "yosys-wildebeest")
+    tools_fpga = ("sv2v", "yosys", "yosys-slang", "vpr", "wildebeest")
 
     recommend = sc_install._recommended_tool_groups(tools_asic)
     assert 'asic' in recommend
@@ -491,7 +491,7 @@ def test_groups(monkeypatch):
     assert 'fpga' in recommend
     assert recommend["fpga"] == "fpga group is not available for "\
         "<os> due to lack of support for the following tools: vpr"\
-        ", yosys-wildebeest"
+        ", wildebeest"
 
     recommend = sc_install._recommended_tool_groups(tools_fpga)
     assert 'fpga' in recommend
