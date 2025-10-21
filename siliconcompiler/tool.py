@@ -79,6 +79,11 @@ class TaskExecutableNotFound(TaskError):
 
 
 class TaskExecutableNotReceived(TaskExecutableNotFound):
+    '''Error indicating that the tool executable was not received from a previous step.
+
+    This exception is raised specifically when a task expects to receive an executable
+    from an upstream task but no executable file was provided.
+    '''
     pass
 
 
