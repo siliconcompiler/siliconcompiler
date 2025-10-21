@@ -40,8 +40,7 @@ def link_symlink_copy(srcfile, dstfile):
 
 
 def link_copy(srcfile, dstfile):
-    # first try hard linking, then symbolic linking,
-    # and finally just copy the file
+    # first try hard linking or just copy the file
     for method in [os.link, shutil.copy2]:
         try:
             # create link

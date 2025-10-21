@@ -1,5 +1,8 @@
 import logging
+import os
 import pytest
+
+import os.path
 
 from unittest.mock import patch
 
@@ -11,6 +14,7 @@ from siliconcompiler.tools.builtin.minimum import MinimumTask
 from siliconcompiler.tools.builtin.maximum import MaximumTask
 from siliconcompiler.tools.builtin.mux import MuxTask
 from siliconcompiler.tools.builtin.verify import VerifyTask
+from siliconcompiler.tools.builtin.importfiles import ImportFilesTask
 
 
 @pytest.fixture
@@ -46,6 +50,14 @@ def minmax_project(monkeypatch):
     return minmax
 
 
+@pytest.mark.parametrize("tool", [
+    NOPTask, JoinTask, MinimumTask, MaximumTask,
+    MuxTask, VerifyTask, ImportFilesTask
+])
+def test_tool_name(tool):
+    assert tool().tool() == "builtin"
+
+
 def test_nop_name():
     assert NOPTask().task() == "nop"
 
@@ -68,6 +80,10 @@ def test_mux_name():
 
 def test_verify_name():
     assert VerifyTask().task() == "verify"
+
+
+def test_importfiles_name():
+    assert ImportFilesTask().task() == "importfiles"
 
 
 def test_nop_select_inputs(monkeypatch, caplog):
@@ -449,3 +465,114 @@ def test_setup_copies_inputs_multiple(cls):
     assert proj.get("tool", "builtin", "task", task_name, "output", step="end", index="0") == [
         "other.out", "test.out"
     ]
+
+
+def test_importfiles_fail_inputs():
+    design = Design("testdesign")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+
+    flow = Flowgraph("test")
+    flow.node("start", NOPTask())
+    flow.node("end", ImportFilesTask())
+    flow.edge("start", "end")
+
+    proj = Project(design)
+    proj.add_fileset("rtl")
+    proj.set_flow(flow)
+
+    node = SchedulerNode(proj, "end", "0")
+    with node.runtime():
+        with pytest.raises(ValueError,
+                           match=r"^task must be an entry node$"):
+            node.setup()
+
+
+def test_importfiles_fail_no_inputs():
+    design = Design("testdesign")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+
+    flow = Flowgraph("test")
+    flow.node("task", ImportFilesTask())
+
+    proj = Project(design)
+    proj.add_fileset("rtl")
+    proj.set_flow(flow)
+
+    node = SchedulerNode(proj, "task", "0")
+    with node.runtime():
+        with pytest.raises(ValueError,
+                           match=r"^task requires files or directories to import$"):
+            node.setup()
+
+
+def test_importfiles_just_file(monkeypatch):
+    design = Design("testdesign")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+
+    flow = Flowgraph("test")
+    flow.node("task", ImportFilesTask())
+
+    proj = Project(design)
+    proj.add_fileset("rtl")
+    proj.set_flow(flow)
+
+    with open("thisfile.txt", "w") as f:
+        f.write("this")
+
+    os.makedirs('run', exist_ok=True)
+
+    ImportFilesTask.find_task(proj).add_import_file("thisfile.txt")
+
+    node = SchedulerNode(proj, "task", "0")
+    with node.runtime():
+        node.setup()
+        node.task.setup_work_directory("run")
+
+        assert node.task.get("require") == [
+            "tool,builtin,task,importfiles,var,file"]
+
+        monkeypatch.chdir("run")
+        node.task.run()
+    assert os.path.isfile("outputs/thisfile.txt")
+
+
+def test_importfiles(monkeypatch):
+    design = Design("testdesign")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+
+    flow = Flowgraph("test")
+    flow.node("task", ImportFilesTask())
+
+    proj = Project(design)
+    proj.add_fileset("rtl")
+    proj.set_flow(flow)
+
+    with open("thisfile.txt", "w") as f:
+        f.write("this")
+
+    os.makedirs("thisdir", exist_ok=True)
+    with open("thisdir/thatfile.txt", "w") as f:
+        f.write("this")
+
+    os.makedirs('run', exist_ok=True)
+
+    ImportFilesTask.find_task(proj).add_import_file("thisfile.txt")
+    ImportFilesTask.find_task(proj).add_import_dir("thisdir")
+
+    node = SchedulerNode(proj, "task", "0")
+    with node.runtime():
+        node.setup()
+        node.task.setup_work_directory("run")
+
+        assert node.task.get("require") == [
+            "tool,builtin,task,importfiles,var,file",
+            "tool,builtin,task,importfiles,var,dir"]
+
+        monkeypatch.chdir("run")
+        node.task.run()
+    assert os.path.isfile("outputs/thisfile.txt")
+    assert os.path.isfile("outputs/thisdir/thatfile.txt")

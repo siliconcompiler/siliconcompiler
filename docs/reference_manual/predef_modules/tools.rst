@@ -17,7 +17,7 @@ See the pre-built :ref:`targets <builtin_targets>` for examples on how these are
 
 .. sctool::
   :root: siliconcompiler.tools.builtin
-  :tasks: join/JoinTask maximum/MaximumTask minimum/MinimumTask mux/MuxTask nop/NOPTask verify/VerifyTask
+  :tasks: join/JoinTask maximum/MaximumTask minimum/MinimumTask mux/MuxTask nop/NOPTask verify/VerifyTask importfiles/ImportFilesTask
 
 .. sctool::
   :root: siliconcompiler.tools.chisel
