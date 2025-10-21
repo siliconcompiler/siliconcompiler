@@ -93,7 +93,6 @@ class FilterTask(Task):
         flow.node("<in>", NOPTask())
         flow.node("<step>", cls(), index="<index>")
         flow.edge("<in>", "<step>", head_index="<index>")
-        flow.set("<step>", "<index>", "args", "errors==0")
         proj.set_flow(flow)
 
         NOPTask.find_task(proj).add_output_file("<top>.v", step="<in>", index="0")
