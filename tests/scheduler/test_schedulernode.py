@@ -2109,4 +2109,4 @@ def test_check_version_nocheck(project):
             assert node.check_version() == (None, True)
         get_exe_version.assert_not_called()
         check_exe_version.assert_not_called()
-        set_env.assert_called_once()
+        set_env.assert_not_called()
