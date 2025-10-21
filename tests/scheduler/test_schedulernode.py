@@ -2025,3 +2025,88 @@ def test_generate_testcase_no_autoissue_input_manifest(project, monkeypatch, cap
     assert "To generate a testcase, run: sc-issue -cfg " \
         f"{os.path.relpath('build/testdesign/job0/stepone/0/inputs/testdesign.pkg.json', '.')}" \
         in caplog.text
+
+
+def test_set_env(project, monkeypatch):
+    project.set("tool", "builtin", "task", "nop", "env", "THIS", "TEST")
+    monkeypatch.delenv("THIS", raising=False)
+    assert "THIS" not in os.environ
+    node = SchedulerNode(project, "stepone", "0")
+    with node.runtime():
+        with node._SchedulerNode__set_env():
+            assert os.environ.get("THIS") == "TEST"
+    assert "THIS" not in os.environ
+
+
+def test_get_exe_path(project):
+    with patch("siliconcompiler.Task.get_exe") as get_exe, \
+            patch("siliconcompiler.scheduler.SchedulerNode._SchedulerNode__set_env") as set_env:
+        get_exe.return_value = "this/path"
+        node = SchedulerNode(project, "stepone", "0")
+        with node.runtime():
+            assert node.get_exe_path() == "this/path"
+        get_exe.assert_called_once()
+        set_env.assert_called_once()
+
+
+def test_check_version_pass(project):
+    project.option.set_novercheck(False, step="stepone", index="0")
+
+    with patch("siliconcompiler.Task.get_exe_version") as get_exe_version, \
+            patch("siliconcompiler.Task.check_exe_version") as check_exe_version, \
+            patch("siliconcompiler.scheduler.SchedulerNode._SchedulerNode__set_env") as set_env:
+        get_exe_version.return_value = "thisversion"
+        check_exe_version.return_value = True
+        node = SchedulerNode(project, "stepone", "0")
+        with node.runtime():
+            assert node.check_version() == ("thisversion", True)
+        get_exe_version.assert_called_once()
+        check_exe_version.assert_called_once_with("thisversion")
+        set_env.assert_called_once()
+
+
+def test_check_version_fail(project):
+    project.option.set_novercheck(False, step="stepone", index="0")
+
+    with patch("siliconcompiler.Task.get_exe_version") as get_exe_version, \
+            patch("siliconcompiler.Task.check_exe_version") as check_exe_version, \
+            patch("siliconcompiler.scheduler.SchedulerNode._SchedulerNode__set_env") as set_env:
+        get_exe_version.return_value = "thisversion"
+        check_exe_version.return_value = False
+        node = SchedulerNode(project, "stepone", "0")
+        with node.runtime():
+            assert node.check_version() == ("thisversion", False)
+        get_exe_version.assert_called_once()
+        check_exe_version.assert_called_once_with("thisversion")
+        set_env.assert_called_once()
+
+
+def test_check_version_with_version(project):
+    project.option.set_novercheck(False, step="stepone", index="0")
+
+    with patch("siliconcompiler.Task.get_exe_version") as get_exe_version, \
+            patch("siliconcompiler.Task.check_exe_version") as check_exe_version, \
+            patch("siliconcompiler.scheduler.SchedulerNode._SchedulerNode__set_env") as set_env:
+        check_exe_version.return_value = False
+        node = SchedulerNode(project, "stepone", "0")
+        with node.runtime():
+            assert node.check_version("thisversion") == ("thisversion", False)
+        get_exe_version.assert_not_called()
+        check_exe_version.assert_called_once_with("thisversion")
+        set_env.assert_called_once()
+
+
+def test_check_version_nocheck(project):
+    project.option.set_novercheck(True, step="stepone", index="0")
+
+    with patch("siliconcompiler.Task.get_exe_version") as get_exe_version, \
+            patch("siliconcompiler.Task.check_exe_version") as check_exe_version, \
+            patch("siliconcompiler.scheduler.SchedulerNode._SchedulerNode__set_env") as set_env:
+        get_exe_version.return_value = "thisversion"
+        check_exe_version.return_value = False
+        node = SchedulerNode(project, "stepone", "0")
+        with node.runtime():
+            assert node.check_version() == (None, True)
+        get_exe_version.assert_not_called()
+        check_exe_version.assert_not_called()
+        set_env.assert_called_once()

@@ -869,18 +869,66 @@ class SchedulerNode:
         if self.__pipe:
             self.__pipe.send(Resolver.get_cache(self.__project))
 
+    @contextlib.contextmanager
+    def __set_env(self):
+        """Temporarily sets task-specific environment variables.
+
+        This context manager saves the current `os.environ`, updates it
+        with the task's runtime variables, yields control, and then
+        restores the original environment upon exiting the context.
+        """
+        org_env = os.environ.copy()
+        try:
+            os.environ.update(self.__task.get_runtime_environmental_variables())
+            yield
+        finally:
+            os.environ.clear()
+            os.environ.update(org_env)
+
     def get_exe_path(self) -> Optional[str]:
-        return self.__task.get_exe()
+        """Gets the path to the requested executable for this task.
+
+        This method retrieves the executable path from the underlying task
+        object. It ensures that the task's specific runtime environment
+        variables are set before making the call.
+
+        Returns:
+            Optional[str]: The file path to the executable, or None if not found.
+        """
+        with self.__set_env():
+            return self.__task.get_exe()
 
     def check_version(self, version: Optional[str] = None) -> Tuple[Optional[str], bool]:
-        if version is None:
-            version = self.__task.get_exe_version()
-        check = True
+        """Checks the version of the tool for this task.
 
-        if not self.__project.get('option', 'novercheck', step=self.__step, index=self.__index):
-            check = self.__task.check_exe_version(version)
+        Compares a version string against the tool's requirements. This check
+        is performed within the task's specific runtime environment.
 
-        return version, check
+        If no `version` is provided, this method will attempt to get the
+        version from the task itself. The check can be skipped if the
+        project option 'novercheck' is set.
+
+        Args:
+            version: The version string to check. If None, the task's
+                configured version is fetched and used.
+
+        Returns:
+            A tuple (version_str, check_passed):
+                - version_str (Optional[str]): The version string that was
+                  evaluated.
+                - check_passed (bool): True if the version is compatible or
+                  if the check was skipped, False otherwise.
+        """
+        with self.__set_env():
+            check = True
+
+            if not self.__project.get('option', 'novercheck', step=self.__step, index=self.__index):
+                if version is None:
+                    version = self.__task.get_exe_version()
+
+                check = self.__task.check_exe_version(version)
+
+            return version, check
 
     def execute(self) -> None:
         """
@@ -931,37 +979,33 @@ class SchedulerNode:
 
             send_messages.send(self.__project, "skipped", self.__step, self.__index)
         else:
-            org_env = os.environ.copy()
-            os.environ.update(self.__task.get_runtime_environmental_variables())
+            with self.__set_env():
+                toolpath = self.__task.get_exe()
+                version, version_pass = self.check_version()
 
-            toolpath = self.__task.get_exe()
-            version, version_pass = self.check_version()
+                if not version_pass:
+                    self.halt()
 
-            if not version_pass:
-                self.halt()
+                if version:
+                    self.__record.record_tool(self.__step, self.__index, version,
+                                              RecordTool.VERSION)
 
-            if version:
-                self.__record.record_tool(self.__step, self.__index, version, RecordTool.VERSION)
+                if toolpath:
+                    self.__record.record_tool(self.__step, self.__index, toolpath, RecordTool.PATH)
 
-            if toolpath:
-                self.__record.record_tool(self.__step, self.__index, toolpath, RecordTool.PATH)
+                send_messages.send(self.__project, "begin", self.__step, self.__index)
 
-            send_messages.send(self.__project, "begin", self.__step, self.__index)
-
-            try:
-                if not self.__replay:
-                    self.__task.generate_replay_script(self.__replay_script, self.__workdir)
-                ret_code = self.__task.run_task(
-                    self.__workdir,
-                    self.__project.get('option', 'quiet', step=self.__step, index=self.__index),
-                    self.__breakpoint,
-                    self.__project.get('option', 'nice', step=self.__step, index=self.__index),
-                    self.__project.get('option', 'timeout', step=self.__step, index=self.__index))
-            except Exception as e:
-                raise e
-
-            os.environ.clear()
-            os.environ.update(org_env)
+                try:
+                    if not self.__replay:
+                        self.__task.generate_replay_script(self.__replay_script, self.__workdir)
+                    ret_code = self.__task.run_task(
+                        self.__workdir,
+                        self.__project.get('option', 'quiet', step=self.__step, index=self.__index),
+                        self.__breakpoint,
+                        self.__project.get('option', 'nice', step=self.__step, index=self.__index),
+                        self.__project.get('option', 'timeout', step=self.__step, index=self.__index))
+                except Exception as e:
+                    raise e
 
             if ret_code != 0:
                 msg = f'Command failed with code {ret_code}.'
