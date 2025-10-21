@@ -4,6 +4,8 @@ import shutil
 
 import os.path
 
+from typing import Optional
+
 from siliconcompiler.utils import sc_open
 
 from siliconcompiler import Task
@@ -16,6 +18,23 @@ class ConvertTask(ASICTask, Task):
 
         self.add_parameter("memorychannels", "int", "Number of memory channels available",
                            defvalue=1)
+
+    def set_bambu_memorychannels(self, channels: int,
+                                 step: Optional[str] = None, index: Optional[str] = None) -> None:
+        """Sets the number of memory channels for the Bambu synthesizer.
+
+        This method configures the 'memorychannels' variable within the Bambu
+        tool flow. It's used to specify the number of independent memory
+        channels the synthesized hardware should have.
+
+        Args:
+            channels: The number of memory channels to configure.
+            step: The specific synthesis step to which this setting applies.
+                  If None, it applies globally. Defaults to None.
+            index: The index for the step, used if a step can have multiple
+                   configurations. Defaults to None.
+        """
+        self.set("var", "memorychannels", channels, step=step, index=index)
 
     def tool(self):
         return "bambu"
