@@ -180,7 +180,8 @@ def test_install_groups(call, monkeypatch):
             "openroad": "openroad.sh",
             "sv2v": "sv2v.sh",
             "klayout": "klayout.sh",
-            "vpr": "vpr.sh"
+            "vpr": "vpr.sh",
+            "opensta": "opensta.sh"
         }
     monkeypatch.setattr(sc_install, '_get_tools_list', return_os)
 
@@ -188,7 +189,7 @@ def test_install_groups(call, monkeypatch):
 
     monkeypatch.setattr('sys.argv', ['sc-install', '-group', 'asic', 'fpga'])
     assert sc_install.main() == 0
-    assert call.call_count == 7
+    assert call.call_count == 8
 
 
 @pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
@@ -482,7 +483,7 @@ def test_groups(monkeypatch):
     monkeypatch.setattr(sc_install, "get_plugins", get_plugins)
 
     tools_asic = ("sv2v", "yosys", "yosys-slang", "openroad", "klayout")
-    tools_fpga = ("sv2v", "yosys", "yosys-slang", "vpr", "wildebeest")
+    tools_fpga = ("sv2v", "yosys", "yosys-slang", "vpr", "wildebeest", "opensta")
 
     recommend = sc_install._recommended_tool_groups(tools_asic)
     assert 'asic' in recommend
@@ -490,7 +491,7 @@ def test_groups(monkeypatch):
 
     assert 'fpga' in recommend
     assert recommend["fpga"] == "fpga group is not available for "\
-        "<os> due to lack of support for the following tools: vpr"\
+        "<os> due to lack of support for the following tools: opensta, vpr"\
         ", wildebeest"
 
     recommend = sc_install._recommended_tool_groups(tools_fpga)
