@@ -1000,10 +1000,13 @@ class SchedulerNode:
                         self.__task.generate_replay_script(self.__replay_script, self.__workdir)
                     ret_code = self.__task.run_task(
                         self.__workdir,
-                        self.__project.get('option', 'quiet', step=self.__step, index=self.__index),
+                        self.__project.get('option', 'quiet',
+                                           step=self.__step, index=self.__index),
                         self.__breakpoint,
-                        self.__project.get('option', 'nice', step=self.__step, index=self.__index),
-                        self.__project.get('option', 'timeout', step=self.__step, index=self.__index))
+                        self.__project.get('option', 'nice',
+                                           step=self.__step, index=self.__index),
+                        self.__project.get('option', 'timeout',
+                                           step=self.__step, index=self.__index))
                 except Exception as e:
                     raise e
 
