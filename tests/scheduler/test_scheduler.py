@@ -797,6 +797,7 @@ def test_install_file_logger(basic_project):
         assert f.read() == "existing log content"
 
 
+@pytest.mark.timeout(90)
 def test_install_file_logger_multiple_backups(basic_project):
     """Test that __install_file_logger handles multiple backup files."""
     scheduler = Scheduler(basic_project)
@@ -827,6 +828,7 @@ def test_install_file_logger_multiple_backups(basic_project):
         assert f.read() == "log 1"
 
 
+@pytest.mark.timeout(90)
 def test_install_file_logger_no_existing_log(basic_project):
     """Test that __install_file_logger works when no existing log file."""
     scheduler = Scheduler(basic_project)

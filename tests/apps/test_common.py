@@ -33,6 +33,7 @@ def test_manifest_switches():
         '-jobname'}
 
 
+@pytest.mark.timeout(90)
 def test_get_manifests_single_design(asic_gcd, make_manifests):
     make_manifests(asic_gcd)
 
@@ -48,6 +49,7 @@ def test_get_manifests_single_design(asic_gcd, make_manifests):
         assert os.path.dirname(manifest).endswith('outputs')
 
 
+@pytest.mark.timeout(90)
 def test_get_manifests_single_design_multiple_jobs(asic_gcd, make_manifests):
     make_manifests(asic_gcd)
     asic_gcd.set('option', 'jobname', 'job1')
@@ -71,6 +73,7 @@ def test_get_manifests_single_design_multiple_jobs(asic_gcd, make_manifests):
         assert os.path.dirname(manifest).endswith('outputs')
 
 
+@pytest.mark.timeout(90)
 def test_get_manifests_multiple_designs(asic_gcd, asic_heartbeat, make_manifests):
     make_manifests(asic_gcd)
     make_manifests(asic_heartbeat)
@@ -83,6 +86,7 @@ def test_get_manifests_multiple_designs(asic_gcd, asic_heartbeat, make_manifests
     assert len(manifests["heartbeat"]["job0"]) == 20
 
 
+@pytest.mark.timeout(90)
 def test_get_manifests_missingoutput(asic_gcd, make_manifests):
     make_manifests(asic_gcd)
 
