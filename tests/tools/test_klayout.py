@@ -18,7 +18,6 @@ from siliconcompiler.tools.klayout import KLayoutLibrary
 
 from tools.inputimporter import ImporterTask
 from siliconcompiler.utils.paths import workdir
-from siliconcompiler.tools import get_task
 
 
 @pytest.fixture
@@ -67,10 +66,10 @@ def test_export(datadir):
     flow.edge('import', 'export')
     proj.set_flow(flow)
 
-    get_task(proj, filter=ImporterTask).set("var", "input_files",
-                                            os.path.join(datadir, 'heartbeat_wrapper.def'))
+    ImporterTask.find_task(proj).set("var", "input_files",
+                                     os.path.join(datadir, 'heartbeat_wrapper.def'))
 
-    get_task(proj, filter=export.ExportTask).set("var", "timestamps", False)
+    export.ExportTask.find_task(proj).set("var", "timestamps", False)
 
     assert proj.run()
     result = proj.find_result('gds', 'export')
@@ -100,9 +99,9 @@ def test_klayout_operations(datadir):
     flow.edge('ops1', 'ops2')
     proj.set_flow(flow)
 
-    get_task(proj, filter=ImporterTask).set("var", "input_files",
-                                            os.path.join(datadir, 'heartbeat.gds'))
-    ops: operations.OperationsTask = get_task(proj, filter=operations.OperationsTask)
+    ImporterTask.find_task(proj).set("var", "input_files",
+                                     os.path.join(datadir, 'heartbeat.gds'))
+    ops: operations.OperationsTask = operations.OperationsTask.find_task(proj)
     ops.set("var", "timestamps", False)
 
     # Ops1
@@ -181,9 +180,9 @@ def test_drc_pass(setup_pdk_test, datadir):
     flow.edge('import', 'drc')
     proj.set_flow(flow)
 
-    get_task(proj, filter=ImporterTask).set(
+    ImporterTask.find_task(proj).set(
         "var", "input_files", os.path.join(datadir, "klayout_pdk", 'interposer.gds'))
-    get_task(proj, filter=drc.DRCTask).set("var", "drc_name", "drc")
+    drc.DRCTask.find_task(proj).set("var", "drc_name", "drc")
 
     assert proj.run()
     assert proj.history("job0").get('metric', 'drcs', step='drc', index='0') == 0
@@ -211,9 +210,9 @@ def test_drc_fail(setup_pdk_test, datadir):
     flow.edge('import', 'drc')
     proj.set_flow(flow)
 
-    get_task(proj, filter=ImporterTask).set(
+    ImporterTask.find_task(proj).set(
         "var", "input_files", os.path.join(datadir, "klayout_pdk", "withdrcs", 'interposer.gds'))
-    get_task(proj, filter=drc.DRCTask).set("var", "drc_name", "drc")
+    drc.DRCTask.find_task(proj).set("var", "drc_name", "drc")
 
     assert proj.run()
     assert proj.history("job0").get('metric', 'drcs', step='drc', index='0') == 12
@@ -243,9 +242,9 @@ def test_convert_drc(setup_pdk_test, datadir):
     flow.edge('drc', 'convert')
     proj.set_flow(flow)
 
-    get_task(proj, filter=ImporterTask).set(
+    ImporterTask.find_task(proj).set(
         "var", "input_files", os.path.join(datadir, "klayout_pdk", "withdrcs", 'interposer.gds'))
-    get_task(proj, filter=drc.DRCTask).set("var", "drc_name", "drc")
+    drc.DRCTask.find_task(proj).set("var", "drc_name", "drc")
 
     assert proj.run()
     assert proj.history("job0").get('metric', 'drcs', step='drc', index='0') == 12

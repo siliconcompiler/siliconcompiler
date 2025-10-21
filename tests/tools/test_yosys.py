@@ -7,7 +7,6 @@ from siliconcompiler.targets import freepdk45_demo
 from siliconcompiler import ASIC, Design, Flowgraph, FPGA
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.tools.yosys.lec_asic import ASICLECTask
-from siliconcompiler.tools import get_task
 from siliconcompiler.tools.slang import elaborate
 from siliconcompiler.tools.yosys import YosysFPGA
 from siliconcompiler.tools.yosys.syn_fpga import FPGASynthesis
@@ -52,10 +51,10 @@ def test_yosys_lec(datadir):
     flow.edge('import', 'lec')
     proj.set_flow(flow)
 
-    get_task(proj, filter=ImporterTask).add("var", "input_files",
-                                            os.path.join(datadir, 'lec', 'foo.v'))
-    get_task(proj, filter=ImporterTask).add("var", "input_files",
-                                            os.path.join(datadir, 'lec', 'foo.vg'))
+    ImporterTask.find_task(proj).add("var", "input_files",
+                                     os.path.join(datadir, 'lec', 'foo.v'))
+    ImporterTask.find_task(proj).add("var", "input_files",
+                                     os.path.join(datadir, 'lec', 'foo.vg'))
 
     assert proj.run()
     assert proj.history("job0").get('metric', 'drvs', step='lec', index='0') == 0
@@ -79,9 +78,9 @@ def test_yosys_lec_broken(datadir):
     flow.edge('import', 'lec')
     proj.set_flow(flow)
 
-    get_task(proj, filter=ImporterTask).add(
+    ImporterTask.find_task(proj).add(
         "var", "input_files", os.path.join(datadir, 'lec', 'broken', 'foo.v'))
-    get_task(proj, filter=ImporterTask).add(
+    ImporterTask.find_task(proj).add(
         "var", "input_files", os.path.join(datadir, 'lec', 'broken', 'foo.vg'))
 
     assert proj.run()

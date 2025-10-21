@@ -7,14 +7,13 @@ from siliconcompiler.flows.asicflow import ASICFlow
 from siliconcompiler.tools.openroad._apr import APRTask
 from siliconcompiler.tools.openroad import metrics
 from siliconcompiler.utils.paths import workdir
-from siliconcompiler.tools import get_task
 
 
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.timeout(300)
 def test_openroad_images(asic_gcd):
-    for task in get_task(asic_gcd, filter=APRTask):
+    for task in APRTask.find_task(asic_gcd):
         task.set('var', 'ord_enable_images', True)
 
     assert asic_gcd.run()

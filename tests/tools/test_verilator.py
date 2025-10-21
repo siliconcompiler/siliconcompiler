@@ -6,7 +6,6 @@ from siliconcompiler import Project, Flowgraph, Design
 from siliconcompiler.tools.slang.elaborate import Elaborate
 from siliconcompiler.tools.verilator import lint, compile
 from siliconcompiler.scheduler import SchedulerNode
-from siliconcompiler.tools import get_task
 from siliconcompiler import utils
 
 
@@ -46,8 +45,8 @@ def test_compile(heartbeat_design, datadir, run_cli):
     flow.edge("elaborate", "compile")
     proj.set_flow(flow)
 
-    assert get_task(proj, filter=compile.CompileTask).set("var", "cflags", '-DREQUIRED_FROM_USER')
-    assert get_task(proj, filter=compile.CompileTask).set(
+    assert compile.CompileTask.find_task(proj).set("var", "cflags", '-DREQUIRED_FROM_USER')
+    assert compile.CompileTask.find_task(proj).set(
         "var", "cincludes", os.path.join(datadir, 'verilator', 'include'))
 
     assert proj.run()
@@ -79,9 +78,9 @@ def test_assert(heartbeat_design, datadir, run_cli):
     flow.edge("elaborate", "compile")
     proj.set_flow(flow)
 
-    assert get_task(proj, filter=compile.CompileTask).set("var", "enable_assert", True)
-    assert get_task(proj, filter=compile.CompileTask).set("var", "cflags", '-DREQUIRED_FROM_USER')
-    assert get_task(proj, filter=compile.CompileTask).set(
+    assert compile.CompileTask.find_task(proj).set("var", "enable_assert", True)
+    assert compile.CompileTask.find_task(proj).set("var", "cflags", '-DREQUIRED_FROM_USER')
+    assert compile.CompileTask.find_task(proj).set(
         "var", "cincludes", os.path.join(datadir, 'verilator', 'include'))
 
     assert proj.run()
@@ -132,7 +131,7 @@ def test_random_reset(gcd_design):
     flow.node("compile", compile.CompileTask())
     proj.set_flow(flow)
 
-    assert get_task(proj, filter=compile.CompileTask).set("var", "initialize_random", True)
+    assert compile.CompileTask.find_task(proj).set("var", "initialize_random", True)
 
     node = SchedulerNode(proj, "compile", "0")
     with node.runtime():

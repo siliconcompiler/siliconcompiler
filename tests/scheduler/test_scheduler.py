@@ -13,7 +13,6 @@ from siliconcompiler.schema import EditableSchema, Parameter
 
 from siliconcompiler.tools.builtin.nop import NOPTask
 from siliconcompiler.utils.paths import jobdir
-from siliconcompiler.tools import get_task
 
 
 @pytest.fixture
@@ -434,7 +433,7 @@ def test_check_flowgraph_io_with_files(basic_project_no_flow, monkeypatch, caplo
 
     scheduler = Scheduler(basic_project_no_flow)
 
-    nop = get_task(basic_project_no_flow, filter=NOPTask)
+    nop = NOPTask.find_task(basic_project_no_flow)
     nop.add_output_file("test.v", step="stepone", index="0")
     nop.add_input_file("test.v", step="steptwo", index="0")
 
@@ -458,7 +457,7 @@ def test_check_flowgraph_io_with_files_join(basic_project_no_flow, monkeypatch, 
 
     scheduler = Scheduler(basic_project_no_flow)
 
-    nop = get_task(basic_project_no_flow, filter=NOPTask)
+    nop = NOPTask.find_task(basic_project_no_flow)
     nop.add_output_file("a.v", step="stepone", index="0")
     nop.add_output_file("b.v", step="steptwo", index="0")
     nop.add_input_file("a.v", step="dojoin", index="0")
@@ -513,7 +512,7 @@ def test_check_flowgraph_io_with_files_missing_input(basic_project_no_flow, monk
 
     scheduler = Scheduler(basic_project_no_flow)
 
-    nop = get_task(basic_project_no_flow, filter=NOPTask)
+    nop = NOPTask.find_task(basic_project_no_flow)
     nop.add_output_file("test.v", step="stepone", index="0")
     nop.add_input_file("test.v", step="steptwo", index="0")
     nop.add_input_file("missing.v", step="steptwo", index="0")
@@ -536,7 +535,7 @@ def test_check_flowgraph_io_with_files_multple_input(basic_project_no_flow, monk
 
     scheduler = Scheduler(basic_project_no_flow)
 
-    nop = get_task(basic_project_no_flow, filter=NOPTask)
+    nop = NOPTask.find_task(basic_project_no_flow)
     nop.add_output_file("test.v", step="stepone", index="0")
     nop.add_output_file("test.v", step="stepone", index="1")
     nop.add_input_file("test.v", step="steptwo", index="0")
