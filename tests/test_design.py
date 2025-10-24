@@ -1392,3 +1392,65 @@ def test_get_fileset_circular_dependency():
     # Should handle without infinite loop
     filesets = design.get_fileset("rtl")
     assert (design, "rtl") in filesets
+
+
+def test_check_filepaths(datadir):
+    datadir = Path(datadir)
+
+    class Increment(Design):
+        def __init__(self):
+            super().__init__('increment')
+
+            with self.active_fileset("rtl.increment"):
+                self.add_file(datadir / "increment.v")
+
+    incr_object = Increment()
+
+    class Heartbeat(Design):
+        def __init__(self):
+            super().__init__('heartbeat')
+
+            # dependencies
+            self.add_dep(incr_object)
+            with self.active_fileset("rtl"):
+                self.add_file(datadir / "heartbeat_increment.v")
+                self.add_depfileset("increment", "rtl.increment")
+
+            with self.active_fileset("testbench"):
+                self.add_file(datadir / "heartbeat_tb.v")
+                self.add_depfileset("increment", "rtl.increment")
+
+    dut = Heartbeat()
+
+    assert dut.check_filepaths() is True
+
+
+def test_check_filepaths_fail(datadir):
+    datadir = Path(datadir)
+
+    class Increment(Design):
+        def __init__(self):
+            super().__init__('increment')
+
+            with self.active_fileset("rtl.increment"):
+                self.add_file(datadir / "increment_not_found.v")
+
+    incr_object = Increment()
+
+    class Heartbeat(Design):
+        def __init__(self):
+            super().__init__('heartbeat')
+
+            # dependencies
+            self.add_dep(incr_object)
+            with self.active_fileset("rtl"):
+                self.add_file(datadir / "heartbeat_increment.v")
+                self.add_depfileset("increment", "rtl.increment")
+
+            with self.active_fileset("testbench"):
+                self.add_file(datadir / "heartbeat_tb.v")
+                self.add_depfileset("increment", "rtl.increment")
+
+    dut = Heartbeat()
+
+    assert dut.check_filepaths() is False
