@@ -1415,7 +1415,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
             return True
         return False
 
-    def set_refdir(self, dir: str, dataroot: Optional[str] = None,
+    def set_refdir(self, dir: Union[Path, str], dataroot: Optional[str] = None,
                    step: Optional[str] = None, index: Optional[Union[str, int]] = None,
                    clobber: bool = False):
         '''Sets the reference directory for tool scripts and auxiliary files.
@@ -1439,7 +1439,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         with self.active_dataroot(self._get_active_dataroot(dataroot)):
             return self.set("refdir", dir, step=step, index=index, clobber=clobber)
 
-    def set_script(self, script: str, dataroot: Optional[str] = ...,
+    def set_script(self, script: Union[Path, str], dataroot: Optional[str] = ...,
                    step: Optional[str] = None, index: Optional[Union[str, int]] = None,
                    clobber: bool = False):
         '''Sets the main entry script for a script-based tool (e.g., a TCL script).
@@ -1702,7 +1702,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
                 return self.add("sbom", version, sbom, step=step, index=index)
 
     def record_metric(self, metric: str, value: Union[int, float],
-                      source_file: Optional[Union[List[str], str]] = None,
+                      source_file: Optional[Union[List[Union[Path, str]], Path, str]] = None,
                       source_unit: Optional[str] = None,
                       quiet: bool = False):
         '''
