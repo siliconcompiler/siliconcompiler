@@ -572,7 +572,7 @@ def test_check_filepaths_depth_partial():
     dep.add_dep(TestDepth("testdepth1"))
     dut.add_dep(dep)
 
-    def cf_call(obj):
+    def cf_call(obj, ignore_keys=None):
         try:
             if obj.name == "testdepth1":
                 return False
