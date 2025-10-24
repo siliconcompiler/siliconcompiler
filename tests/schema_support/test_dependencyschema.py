@@ -7,6 +7,7 @@ from unittest.mock import patch
 
 from siliconcompiler.schema import NamedSchema, BaseSchema
 from siliconcompiler.schema_support.dependencyschema import DependencySchema
+from siliconcompiler.schema_support.pathschema import PathSchemaSimpleBase, PathSchema
 
 
 def test_init():
@@ -495,3 +496,91 @@ def test_populate_deps_already_populated():
     module_map = {obj.name: obj for obj in schema.get_dep()}
     check._populate_deps(module_map)
     assert check.get_dep() == [dep00, dep10]
+
+
+def test_check_filepaths_none():
+    assert DependencySchema().check_filepaths() is True
+
+
+@pytest.mark.parametrize("pcls", (PathSchemaSimpleBase, PathSchema))
+def test_check_filepaths_self(pcls):
+    class Test(DependencySchema, pcls):
+        pass
+
+    with patch("siliconcompiler.schema_support.pathschema.PathSchemaBase.check_filepaths") as cf:
+        cf.return_value = True
+        assert Test().check_filepaths() is True
+        cf.assert_called_once()
+
+
+@pytest.mark.parametrize("pcls", (PathSchemaSimpleBase, PathSchema))
+def test_check_filepaths_self_fail(pcls):
+    class Test(DependencySchema, pcls):
+        pass
+
+    with patch("siliconcompiler.schema_support.pathschema.PathSchemaBase.check_filepaths") as cf:
+        cf.return_value = False
+        assert Test().check_filepaths() is False
+        cf.assert_called_once()
+
+
+def test_check_filepaths_depth_fail():
+    class Test(DependencySchema, PathSchema):
+        pass
+
+    class TestDepth(NamedSchema, DependencySchema, PathSchema):
+        pass
+
+    dut = Test()
+    dep = TestDepth("testdepth0")
+    dep.add_dep(TestDepth("testdepth1"))
+    dut.add_dep(dep)
+
+    with patch("siliconcompiler.schema_support.pathschema.PathSchemaBase.check_filepaths") as cf:
+        cf.return_value = False
+        assert dut.check_filepaths() is False
+        assert cf.call_count == 3
+
+
+def test_check_filepaths_depth_pass():
+    class Test(DependencySchema, PathSchema):
+        pass
+
+    class TestDepth(NamedSchema, DependencySchema, PathSchema):
+        pass
+
+    dut = Test()
+    dep = TestDepth("testdepth0")
+    dep.add_dep(TestDepth("testdepth1"))
+    dut.add_dep(dep)
+
+    with patch("siliconcompiler.schema_support.pathschema.PathSchemaBase.check_filepaths") as cf:
+        cf.return_value = True
+        assert dut.check_filepaths() is True
+        assert cf.call_count == 3
+
+
+def test_check_filepaths_depth_partial():
+    class Test(DependencySchema, PathSchema):
+        pass
+
+    class TestDepth(NamedSchema, DependencySchema, PathSchema):
+        pass
+
+    dut = Test()
+    dep = TestDepth("testdepth0")
+    dep.add_dep(TestDepth("testdepth1"))
+    dut.add_dep(dep)
+
+    def cf_call(obj):
+        try:
+            if obj.name == "testdepth1":
+                return False
+        except:  # noqa E722
+            pass
+        return True
+
+    with patch("siliconcompiler.schema_support.pathschema.PathSchemaBase.check_filepaths") as cf:
+        cf.side_effect = cf_call
+        assert dut.check_filepaths() is False
+        assert cf.call_count == 3

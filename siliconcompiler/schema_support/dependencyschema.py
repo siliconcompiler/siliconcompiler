@@ -7,6 +7,8 @@ from siliconcompiler.schema.editableschema import EditableSchema
 from siliconcompiler.schema.parameter import Parameter, Scope
 from siliconcompiler.schema.namedschema import NamedSchema
 
+from siliconcompiler.schema_support.pathschema import PathSchemaBase
+
 
 class DependencySchema(BaseSchema):
     '''
@@ -289,3 +291,17 @@ class DependencySchema(BaseSchema):
     def _reset_deps(self) -> None:
         '''Resets the internal dependency dictionary.'''
         self.__deps = {}
+
+    def check_filepaths(self) -> bool:
+        '''
+        Verifies that paths to all files in manifest are valid.
+
+        Returns:
+            True if all file paths are valid, otherwise False.
+        '''
+        error = False
+        for obj in [self, *self.get_dep()]:
+            if not isinstance(obj, PathSchemaBase):
+                continue
+            error |= not PathSchemaBase.check_filepaths(obj)
+        return not error
