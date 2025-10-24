@@ -1710,6 +1710,45 @@ def test_check_filepaths_not_found_logger(caplog):
     assert "Parameter [directory] path test0 is invalid" in caplog.text
 
 
+def test_check_filepaths_not_found_logger_named(caplog):
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("[dir]")
+    edit.insert("directory", param)
+
+    assert schema.set("directory", "test0")
+
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+
+    # Add dummy name
+    schema.name = "thisname"
+
+    assert schema._check_filepaths(logger=logger) is False
+    assert "Parameter (thisname) [directory] path test0 is invalid" in caplog.text
+
+
+def test_check_filepaths_not_found_logger_nonamed(caplog):
+    schema0 = BaseSchema()
+    edit = EditableSchema(schema0)
+    param = Parameter("[dir]")
+    edit.insert("directory", param)
+
+    assert schema0.set("directory", "test0")
+
+    schema = BaseSchema()
+    EditableSchema(schema).insert("next", schema0)
+
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+
+    # Add dummy name
+    schema0.name = "thisname"
+
+    assert schema._check_filepaths(logger=logger) is False
+    assert "Parameter [next,directory] path test0 is invalid" in caplog.text
+
+
 def test_check_filepaths_not_found_logger_step_only(caplog):
     schema = BaseSchema()
     edit = EditableSchema(schema)

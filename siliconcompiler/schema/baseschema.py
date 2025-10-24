@@ -1035,7 +1035,12 @@ class BaseSchema:
                                 else:
                                     node_indicator = f" ({step}/{index})"
 
-                            logger.error(f"Parameter {self.__format_key(*keypath)}{node_indicator} "
+                            name = ""
+                            if self.__parent is self and hasattr(self, "name"):
+                                name = f"({self.name}) "
+
+                            logger.error(f"Parameter {name}"
+                                         f"{self.__format_key(*keypath)}{node_indicator} "
                                          f"path {check_file} is invalid")
 
         return not error
