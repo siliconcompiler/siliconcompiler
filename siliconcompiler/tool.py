@@ -1702,7 +1702,8 @@ class Task(NamedSchema, PathSchema, DocsSchema):
                 return self.add("sbom", version, sbom, step=step, index=index)
 
     def record_metric(self, metric: str, value: Union[int, float],
-                      source_file: Optional[str] = None, source_unit: Optional[str] = None,
+                      source_file: Optional[Union[List[str], str]] = None,
+                      source_unit: Optional[str] = None,
                       quiet: bool = False):
         '''
         Records a metric and associates the source file with it.
@@ -1829,7 +1830,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         if not isinstance(project, Project):
             raise TypeError("project must be a Project")
 
-        task_obj = cls()
+        task_obj: "Task" = cls()
         tool, task = None, None
         try:
             tool = task_obj.tool()
