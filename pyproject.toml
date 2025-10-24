@@ -115,7 +115,7 @@ lint = [
     "codespell == 2.4.1"
 ]
 docs = [
-    "Sphinx == 8.2.3",
+    "Sphinx >= 7.4, <8.3",
     "pip-licenses == 5.5.0",
     "pydata-sphinx-theme == 0.16.1",
     "sc-leflib >= 0.2.0"
