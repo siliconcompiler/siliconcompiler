@@ -196,7 +196,7 @@ class ToolLibrarySchema(LibrarySchema):
         return None
 
 
-class StdCellLibrary(ToolLibrarySchema, DependencySchema):
+class StdCellLibrary(DependencySchema, ToolLibrarySchema):
     """
     A class for managing standard cell library schemas.
     """

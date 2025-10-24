@@ -16,7 +16,7 @@ from siliconcompiler.schema.utils import trim
 
 
 ###########################################################################
-class Design(LibrarySchema, DependencySchema):
+class Design(DependencySchema, LibrarySchema):
     '''
     Schema for a 'design'.
 
