@@ -16,7 +16,6 @@ class ScreenshotTask(ScreenshotTask, ShowTask):
     def setup(self):
         super().setup()
 
-        self.unset("input")
         self.add_output_file(ext="png", clobber=True)
 
         self.set_script("sc_show.tcl")
