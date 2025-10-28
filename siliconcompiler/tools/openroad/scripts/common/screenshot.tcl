@@ -11,5 +11,5 @@ sc_save_image \
 gui::restore_display_controls
 
 if { [sc_cfg_tool_task_get var include_report_images] } {
-    source "${sc_refdir}/sc_write_images.tcl"
+    source "${sc_refdir}/common/write_images.tcl"
 }
