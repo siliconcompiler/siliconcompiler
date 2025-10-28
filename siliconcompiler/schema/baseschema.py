@@ -25,7 +25,7 @@ except ModuleNotFoundError:
 import os.path
 
 from functools import cache
-from typing import Dict, Type, Tuple, Union, Set, Callable, List, Optional, TextIO, Iterable
+from typing import Dict, Type, Tuple, Union, Set, Callable, List, Optional, TextIO, Iterable, Any
 
 from .parameter import Parameter, NodeValue
 from .journal import Journal
@@ -1122,30 +1122,18 @@ class BaseSchema:
             Sets the file to top.v and associates lambdalib as the dataroot.
         '''
 
-        # Collect child schemas
-        subkeys = set()
-        for key in self.allkeys():
-            for n in range(len(key)):
-                subkeys.add(key[:n])
-        subschemas = set()
-        subschemas.add(self)
-        for key in subkeys:
-            subschemas.add(self.get(*key, field="schema"))
+        if self.__active is None:
+            orig_active = None
+            self.__active = {}
+        else:
+            orig_active = self.__active.copy()
 
-        orig_active = {}
-        for schema in subschemas:
-            if schema.__active:
-                orig_active[schema] = schema.__active.copy()
-            else:
-                orig_active[schema] = None
-                schema.__active = {}
-            schema.__active.update(kwargs)
+        self.__active.update(kwargs)
 
         try:
             yield
         finally:
-            for schema, orig in orig_active.items():
-                schema.__active = orig
+            self.__active = orig_active
 
     def _get_active(self, field: str, defvalue=None):
         '''
@@ -1156,20 +1144,42 @@ class BaseSchema:
                          otherwise the value, if the field is not present, defvalue is returned.
             defvalue (any): value to return if the field is not present.
         '''
-        if self.__active is None:
+        actives = self.__get_active()
+        if actives is None:
             return defvalue
 
         if field is None:
-            return self.__active.copy()
+            return actives
 
-        return self.__active.get(field, defvalue)
+        return actives.get(field, defvalue)
+
+    def __get_active(self) -> Optional[Dict[str, Any]]:
+        '''
+        Get the actives this point in the schema
+        '''
+        schemas: List["BaseSchema"] = [self]
+
+        root = self._parent(root=True)
+        curr = schemas[-1]
+        while curr is not root:
+            schemas.append(curr._parent())
+            curr = schemas[-1]
+
+        active = {}
+        for schema in reversed(schemas):
+            if schema.__active:
+                active.update(schema.__active)
+        if not active:
+            return None
+        return active
 
     def __process_active(self, param: Parameter,
                          nodevalues: Optional[Union[List[NodeValue],
                                                     Set[NodeValue],
                                                     Tuple[NodeValue, ...],
                                                     NodeValue]]) -> None:
-        if not self.__active:
+        actives = self.__get_active()
+        if actives is None:
             return
 
         if not isinstance(nodevalues, (list, set, tuple)):
@@ -1184,7 +1194,7 @@ class BaseSchema:
 
         key_fields = ("copy", "lock")
 
-        for field, value in self.__active.items():
+        for field, value in actives.items():
             if field in key_fields:
                 param.set(value, field=field)
                 continue
