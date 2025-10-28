@@ -22,6 +22,14 @@ class ShowTask(ShowTask, APRTask, OpenROADSTAParameter):
         self.unset("input")
         self.unset("output")
 
+        # Add input file requirements
+        if f"{self.design_topmodule}.odb" in self.get_files_from_input_nodes():
+            self.add_input_file(ext="odb")
+        elif f"{self.design_topmodule}.def" in self.get_files_from_input_nodes():
+            self.add_input_file(ext="def")
+        else:
+            self.add_required_key("var", "showfilepath")
+
         self.set_script("sc_show.tcl")
 
         self.set("var", "showexit", False, clobber=False)
