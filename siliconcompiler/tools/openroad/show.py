@@ -29,6 +29,8 @@ class ShowTask(ShowTask, APRTask, OpenROADSTAParameter):
             self.add_input_file(ext="def")
         else:
             self.add_required_key("var", "showfilepath")
+        if f"{self.design_topmodule}.sdc" in self.get_files_from_input_nodes():
+            self.add_input_file(ext="sdc")
 
         self.set_script("sc_show.tcl")
 
