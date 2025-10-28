@@ -250,7 +250,7 @@ def main():
             sc_filename = schema.get('tool', 'klayout', 'task', task, 'var', 'showfilepath',
                                      step=step, index=index)
         else:
-            for ext in (f'{sc_fileext}.gz', sc_fileext):
+            for ext in (f'{sc_fileext}.gz', sc_fileext, 'gds.gz', "gds", 'oas.gz', 'oas'):
                 sc_filename = f"inputs/{design}.{ext}"
                 if os.path.exists(sc_filename):
                     break
