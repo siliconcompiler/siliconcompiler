@@ -8,6 +8,26 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.35.2 (2025-10-28)
+=========================================
+
+**Minor:**
+
+ * Corrected `sc-issue` handling of libraries to properly include pdk information.
+ * Added `.find_task` to `Task` class to replace `get_task` and deprecated this method.
+ * Restored missing copy flags in schema to ensure proper upload to remote runners.
+ * Added tool version check to start of `.run()` to allow for early version checking when possible.
+ * `.check_filepaths` now checks dependency filepaths too.
+
+ * Tools:
+
+  * builtin: added tasks for filtering files between nodes and entry node to copy files into the build directory.
+  * gtkwave: added fst to supported file extensions.
+  * openroad: fixed screenshot task to allow for insertion into flows and handling of timing information.
+  * surfer: added fst to supported file extensions.
+  * verilator: fixed path used for automatic VCD dump.
+
+
 SiliconCompiler 0.35.1 (2025-10-17)
 =========================================
 
