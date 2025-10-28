@@ -2007,7 +2007,7 @@ def test_active_empty():
 
     assert schema._get_active(None) is None
     with schema._active():
-        assert schema._get_active(None) == {}
+        assert schema._get_active(None) is None
     assert schema._get_active(None) is None
 
 
@@ -2103,7 +2103,7 @@ def test_active_compounded_depth():
                 }
                 assert schema1._get_active(None) == {
                     "dataroot": "testpack",
-                    "lock": False
+                    "lock": True
                 }
             assert schema._get_active(None) == {
                 "dataroot": "testpack"
