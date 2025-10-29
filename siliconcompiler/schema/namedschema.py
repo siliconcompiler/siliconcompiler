@@ -71,6 +71,12 @@ class NamedSchema(BaseSchema):
         info["name"] = self.name
         return info
 
+    @staticmethod
+    def __get_meta_name(cfg: Optional[Dict]) -> Optional[str]:
+        if not cfg:
+            return None
+        return cfg.get("__meta__", {}).get("name", None)
+
     @classmethod
     def from_manifest(cls,
                       filepath: Union[None, str] = None,
@@ -86,10 +92,15 @@ class NamedSchema(BaseSchema):
             cfg (dict): Initial configuration dictionary.
             name (str): name of the schema.
         '''
+        if filepath and not cfg:
+            cfg = BaseSchema._read_manifest(filepath)
 
-        schema = super().from_manifest(filepath=filepath, cfg=cfg)
+        meta_name = NamedSchema.__get_meta_name(cfg)
+        schema = super().from_manifest(filepath=None, cfg=cfg)
         if name:
             schema.__name = name
+        elif meta_name:
+            schema.__name = meta_name
 
         return schema
 
@@ -99,8 +110,8 @@ class NamedSchema(BaseSchema):
             -> Tuple[Set[Tuple[str, ...]], Set[Tuple[str, ...]]]:
         if keypath:
             self.__name = keypath[-1]
-        elif not self.__name and "__meta__" in manifest and "name" in manifest["__meta__"]:
-            self.__name = manifest["__meta__"]["name"]
+        elif not self.__name:
+            self.__name = NamedSchema.__get_meta_name(manifest)
 
         return super()._from_dict(manifest, keypath, version=version)
 

@@ -42,12 +42,12 @@ class BaseSchema:
     __version = tuple([int(v) for v in version.split('.')])
 
     def __init__(self):
-        self.__manifest = {}
-        self.__default = None
-        self.__journal = Journal()
-        self.__parent = self
-        self.__active = None
-        self.__key = None
+        self.__manifest: Dict[str, Union["BaseSchema", Parameter]] = {}
+        self.__default: Optional[Union["BaseSchema", Parameter]] = None
+        self.__journal: Journal = Journal()
+        self.__parent: "BaseSchema" = self
+        self.__active: Optional[Dict] = None
+        self.__key: Optional[str] = None
 
     @property
     def _keypath(self) -> Tuple[str, ...]:
@@ -146,7 +146,9 @@ class BaseSchema:
     def __extractversion(manifest: Dict) -> Optional[Tuple[int, ...]]:
         schema_version = manifest.get(BaseSchema._version_key, None)
         if schema_version:
-            param = Parameter.from_dict(schema_version, [BaseSchema._version_key], None)
+            param = Parameter.from_dict(schema_version,
+                                        tuple([BaseSchema._version_key]),
+                                        None)
             return tuple([int(v) for v in param.get().split('.')])
         return None
 
@@ -180,20 +182,20 @@ class BaseSchema:
             del manifest["__meta__"]
 
         if self.__default:
-            data = manifest.get("default", None)
+            data = manifest.pop("default", None)
             if data:
-                del manifest["default"]
-                self.__default._from_dict(data, list(keypath) + ["default"], version=version)
+                self.__default._from_dict(data, tuple([*keypath, "default"]), version=version)
                 handled.add("default")
 
         for key, data in manifest.items():
+            data_keypath = tuple([*keypath, key])
             obj = self.__manifest.get(key, None)
             if not obj and isinstance(data, dict) and "__meta__" in data:
                 # Lookup object, use class first, then type
                 cls = BaseSchema.__process_meta_section(data["__meta__"])
                 if cls is BaseSchema and self.__default:
                     # Use default when BaseSchema is the class
-                    obj = self.__default.copy(key=list(keypath) + [key])
+                    obj = self.__default.copy(key=data_keypath)
                     self.__manifest[key] = obj
                 elif cls:
                     # Create object and connect to schema
@@ -204,11 +206,11 @@ class BaseSchema:
 
             # Use default if it is available
             if not obj and self.__default:
-                obj = self.__default.copy(key=list(keypath) + [key])
+                obj = self.__default.copy(key=data_keypath)
                 self.__manifest[key] = obj
 
             if obj:
-                obj._from_dict(data, list(keypath) + [key], version=version)
+                obj._from_dict(data, data_keypath, version=version)
                 handled.add(key)
             else:
                 missing.add(key)
