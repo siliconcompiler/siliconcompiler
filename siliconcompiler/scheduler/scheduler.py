@@ -9,6 +9,8 @@ import traceback
 
 import os.path
 
+from datetime import datetime
+
 from typing import Union, Dict, Optional, TYPE_CHECKING
 
 from siliconcompiler import NodeStatus
@@ -131,7 +133,7 @@ class Scheduler:
         Args:
             header (str): A header message to print before the status list.
         """
-        self.__logger.debug(f"#### {header}")
+        self.__logger.debug(f"#### {header} : {datetime.now().strftime('%H:%M:%S')}")
         for step, index in self.__flow.get_nodes():
             self.__logger.debug(f"({step}, {index}) -> "
                                 f"{self.__record.get('status', step=step, index=index)}")
