@@ -5,10 +5,11 @@ import uuid
 
 import os.path
 
-from typing import Union, List, Tuple, TextIO, Optional
+from typing import Union, List, Tuple, TextIO, Optional, Dict, Set
 
 from siliconcompiler.schema import BaseSchema, NamedSchema, EditableSchema, Parameter, Scope, \
-    __version__ as schema_version
+    __version__ as schema_version, \
+    LazyLoad
 
 from siliconcompiler import Design
 from siliconcompiler import Flowgraph
@@ -308,7 +309,11 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             if isinstance(obj, DependencySchema):
                 obj._populate_deps(dep_map)
 
-    def _from_dict(self, manifest, keypath, version=None):
+    def _from_dict(self, manifest: Dict,
+                   keypath: Union[List[str], Tuple[str, ...]],
+                   version: Optional[Tuple[int, ...]] = None,
+                   lazyload: LazyLoad = LazyLoad.ON) \
+            -> Tuple[Set[Tuple[str, ...]], Set[Tuple[str, ...]]]:
         """
         Populates the project's schema from a dictionary representation.
 
@@ -325,15 +330,16 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         Returns:
             Any: The result of the superclass's `_from_dict` method.
         """
-        ret = super()._from_dict(manifest, keypath, version)
+        ret = super()._from_dict(manifest, keypath, version=version, lazyload=lazyload)
 
-        # Restore dependencies
-        self.__populate_deps()
+        if not lazyload.is_enforced:
+            # Restore dependencies
+            self.__populate_deps()
 
-        # Preserve logger in history
-        for history in self.getkeys("history"):
-            hist = self.get("history", history, field="schema")
-            hist.__logger = self.__logger
+            # Preserve logger in history
+            for history in self.getkeys("history"):
+                hist: "Project" = self.get("history", history, field="schema")
+                hist.__logger = self.__logger
 
         return ret
 

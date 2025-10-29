@@ -6,7 +6,7 @@ import os.path
 from pathlib import Path
 from unittest.mock import patch
 
-from siliconcompiler.schema import BaseSchema
+from siliconcompiler.schema import BaseSchema, LazyLoad
 from siliconcompiler.schema import EditableSchema
 from siliconcompiler.schema import Parameter, PerNode
 from siliconcompiler.schema import Journal
@@ -787,8 +787,6 @@ def test_getdict_from_dict_unmatched():
 
     edit.remove("test0")
 
-    print(check_schema.getdict())
-
     schemamissing, inmissing = schema._from_dict({
         'test0': {
             'default': {
@@ -807,7 +805,7 @@ def test_getdict_from_dict_unmatched():
                 },
             },
         },
-    }, [], None)
+    }, [], None, lazyload=LazyLoad.OFF)
     assert not inmissing
     assert schemamissing == set(["test0"])
 
@@ -2473,7 +2471,7 @@ def test_from_dict_composite_type_names():
                              'default': {'default': {'value': None, 'signature': None}}}
                 }
             }
-        }, [])
+        }, [], lazyload=LazyLoad.OFF)
         children.assert_called_once()
         load_schema_class.assert_not_called()
 
@@ -2566,7 +2564,7 @@ def test_from_dict_composite_nested():
                     }
                 }
             }
-        }, [])
+        }, [], lazyload=LazyLoad.OFF)
         assert children.call_count == 2
         load_schema_class.assert_not_called()
 
@@ -2658,7 +2656,7 @@ def test_from_dict_composite_type_names_use_default():
                              'default': {'default': {'value': None, 'signature': None}}}
                 }
             }
-        }, [])
+        }, [], lazyload=LazyLoad.OFF)
         children.assert_called_once()
         load_schema_class.assert_not_called()
 
@@ -2752,7 +2750,7 @@ def test_from_dict_composite_type_load_via_class_name():
                              'default': {'default': {'value': None, 'signature': None}}}
                 }
             }
-        }, [])
+        }, [], lazyload=LazyLoad.OFF)
         children.assert_called_once()
         load_schema_class.assert_called_once_with("test/DummySchema")
 
@@ -2845,7 +2843,7 @@ def test_from_dict_composite_using_cls_name():
                              'default': {'default': {'value': None, 'signature': None}}}
                 }
             }
-        }, [])
+        }, [], lazyload=LazyLoad.OFF)
         children.assert_called_once()
         load_schema_class.assert_not_called()
 

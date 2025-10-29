@@ -6,7 +6,7 @@
 
 from typing import Dict, Tuple, Optional, Set, Union, List
 
-from .baseschema import BaseSchema
+from .baseschema import BaseSchema, LazyLoad
 
 
 class NamedSchema(BaseSchema):
@@ -81,6 +81,7 @@ class NamedSchema(BaseSchema):
     def from_manifest(cls,
                       filepath: Union[None, str] = None,
                       cfg: Union[None, Dict] = None,
+                      lazyload: bool = True,
                       name: Optional[str] = None):
         '''
         Create a new schema based on the provided source files.
@@ -96,7 +97,7 @@ class NamedSchema(BaseSchema):
             cfg = BaseSchema._read_manifest(filepath)
 
         meta_name = NamedSchema.__get_meta_name(cfg)
-        schema = super().from_manifest(filepath=None, cfg=cfg)
+        schema = super().from_manifest(filepath=None, cfg=cfg, lazyload=lazyload)
         if name:
             schema.__name = name
         elif meta_name:
@@ -106,14 +107,15 @@ class NamedSchema(BaseSchema):
 
     def _from_dict(self, manifest: Dict,
                    keypath: Union[List[str], Tuple[str, ...]],
-                   version: Optional[Tuple[int, ...]] = None) \
+                   version: Optional[Tuple[int, ...]] = None,
+                   lazyload: LazyLoad = LazyLoad.ON) \
             -> Tuple[Set[Tuple[str, ...]], Set[Tuple[str, ...]]]:
         if keypath:
             self.__name = keypath[-1]
         elif not self.__name:
             self.__name = NamedSchema.__get_meta_name(manifest)
 
-        return super()._from_dict(manifest, keypath, version=version)
+        return super()._from_dict(manifest, keypath, version=version, lazyload=lazyload)
 
     def copy(self, key: Optional[Tuple[str, ...]] = None) -> "NamedSchema":
         copy: NamedSchema = super().copy(key=key)

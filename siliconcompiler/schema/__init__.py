@@ -4,7 +4,7 @@ from .parameter import Parameter, Scope, PerNode
 from .journal import Journal
 from .safeschema import SafeSchema
 from .editableschema import EditableSchema
-from .baseschema import BaseSchema
+from .baseschema import BaseSchema, LazyLoad
 from .namedschema import NamedSchema
 from .docschema import DocsSchema
 
@@ -17,7 +17,8 @@ __all__ = [
     "Scope",
     "PerNode",
     "Journal",
-    "DocsSchema"
+    "DocsSchema",
+    "LazyLoad"
 ]
 
 SCHEMA_VERSION = __version__

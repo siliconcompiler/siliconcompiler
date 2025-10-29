@@ -12,7 +12,7 @@ from typing import Dict, Union, List, Optional, Set, Tuple
 from datetime import datetime, timezone
 from enum import Enum
 
-from siliconcompiler.schema import BaseSchema
+from siliconcompiler.schema import BaseSchema, LazyLoad
 from siliconcompiler.schema import EditableSchema, Parameter, PerNode, Scope
 from siliconcompiler.schema.utils import trim
 
@@ -53,7 +53,8 @@ class RecordSchema(BaseSchema):
 
     def _from_dict(self, manifest: Dict,
                    keypath: Union[List[str], Tuple[str, ...]],
-                   version: Optional[Tuple[int, ...]] = None) \
+                   version: Optional[Tuple[int, ...]] = None,
+                   lazyload: LazyLoad = LazyLoad.ON) \
             -> Tuple[Set[Tuple[str, ...]], Set[Tuple[str, ...]]]:
         """
         Constructs a schema from a dictionary.
@@ -66,10 +67,10 @@ class RecordSchema(BaseSchema):
         Returns:
             dict: The constructed dictionary.
         """
-        ret = super()._from_dict(manifest, keypath, version)
+        ret = super()._from_dict(manifest, keypath, version=version, lazyload=lazyload)
 
         # Correct for change specification
-        if version and version < (0, 50, 4):
+        if not lazyload.is_enforced and version and version < (0, 50, 4):
             for timekey in RecordTime:
                 start_param = self.get(timekey.value, field=None)
                 for value, step, index in start_param.getvalues():

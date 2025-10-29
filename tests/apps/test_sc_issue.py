@@ -42,7 +42,9 @@ def project(heartbeat_design):
      'sc_issue_heartbeat_job0_stepone_0_20200311-141213.tar.gz'),
     (['-cfg', 'build/heartbeat/job0/heartbeat.pkg.json',
       '-arg_step', 'steptwo', '-arg_index', '0'],
-     'sc_issue_heartbeat_job0_steptwo_0_20200311-141213.tar.gz')
+     'sc_issue_heartbeat_job0_steptwo_0_20200311-141213.tar.gz'),
+    (['-cfg', 'build/heartbeat/job0/steptwo/0/outputs/heartbeat.pkg.json'],
+     'sc_issue_heartbeat_job0_steptwo_0_20200311-141213.tar.gz'),
 ])
 def test_sc_issue_generate_success(flags,
                                    outputfile,
