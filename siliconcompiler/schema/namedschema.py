@@ -87,15 +87,10 @@ class NamedSchema(BaseSchema):
             name (str): name of the schema.
         '''
 
-        if not filepath and cfg is None:
-            raise RuntimeError("filepath or dictionary is required")
+        schema = super().from_manifest(filepath=filepath, cfg=cfg)
+        if name:
+            schema.__name = name
 
-        schema = cls()
-        schema.set_name(name)
-        if filepath:
-            schema.read_manifest(filepath)
-        if cfg:
-            schema._from_dict(cfg, tuple())
         return schema
 
     def _from_dict(self, manifest: Dict,

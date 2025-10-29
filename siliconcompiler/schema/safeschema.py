@@ -63,7 +63,14 @@ class SafeSchema(BaseSchema):
         if filepath:
             cfg = BaseSchema._read_manifest(filepath)
 
-        if cfg and "__meta__" in cfg:
-            del cfg["__meta__"]
+        def rm_meta(manifest):
+            if not isinstance(manifest, dict):
+                return
+            if manifest and "__meta__" in manifest:
+                del manifest["__meta__"]
+            for section in manifest.values():
+                rm_meta(section)
+
+        rm_meta(cfg)
 
         return super().from_manifest(filepath=None, cfg=cfg)
