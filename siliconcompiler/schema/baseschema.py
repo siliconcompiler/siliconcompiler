@@ -54,7 +54,10 @@ class BaseSchema:
         '''
         Returns true if the object is the root of the schema
         '''
-        return self.__parent is None
+        try:
+            return self.__parent is None
+        except AttributeError:
+            return True
 
     @property
     def _keypath(self) -> Tuple[str, ...]:
@@ -63,7 +66,13 @@ class BaseSchema:
         '''
         if self.__is_root:
             return tuple()
-        return tuple([*self.__parent._keypath, self.__key])
+        try:
+            parentpath = self.__parent._keypath
+            key = self.__key
+        except AttributeError:
+            # Guard against partially setup parents during serialization
+            return tuple()
+        return tuple([*parentpath, key])
 
     @staticmethod
     @cache

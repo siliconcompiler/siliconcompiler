@@ -2303,6 +2303,17 @@ def test_find_files_custom_class_package_resolution():
     assert custom.calls == 2
 
 
+def test_is_root_bad_level_parent():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("test0", "test1", "test2", Parameter("str"))
+    assert schema._BaseSchema__is_root is True
+    middle = schema.get("test0", field="schema")
+    assert middle._BaseSchema__is_root is False
+    del middle._BaseSchema__parent
+    assert middle._BaseSchema__is_root is True
+
+
 def test_keypath_root():
     assert BaseSchema()._keypath == tuple()
 
@@ -2314,6 +2325,28 @@ def test_keypath_with_levels():
     assert schema._keypath == tuple()
     assert schema.get("test0", field="schema")._keypath == ("test0",)
     assert schema.get("test0", "test1", field="schema")._keypath == ("test0", "test1")
+
+
+def test_keypath_with_bad_level_parent():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("test0", "test1", "test2", Parameter("str"))
+    assert schema._keypath == tuple()
+    middle = schema.get("test0", field="schema")
+    del middle._BaseSchema__parent
+    assert middle._keypath == tuple()
+    assert schema.get("test0", "test1", field="schema")._keypath == ("test1",)
+
+
+def test_keypath_with_bad_level_key():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("test0", "test1", "test2", Parameter("str"))
+    assert schema._keypath == tuple()
+    middle = schema.get("test0", field="schema")
+    del middle._BaseSchema__key
+    assert middle._keypath == tuple()
+    assert schema.get("test0", "test1", field="schema")._keypath == ("test1",)
 
 
 def test_keypath_with_default_unset():
