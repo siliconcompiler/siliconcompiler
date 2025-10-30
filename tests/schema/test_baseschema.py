@@ -783,8 +783,6 @@ def test_getdict_from_dict_unmatched():
     edit = EditableSchema(schema)
     edit.insert("test0", "default", "test1", Parameter("str"))
 
-    check_schema = schema.copy()
-
     edit.remove("test0")
 
     schemamissing, inmissing = schema._from_dict({
@@ -1090,7 +1088,8 @@ def test_from_manifest_cfg_no_with_lazy_get():
         lazy_next = schema.getdict("test0")
         assert new_schema.get(field="schema") is new_schema
         assert new_schema._BaseSchema__lazy is None
-        assert new_schema._BaseSchema__manifest["test0"]._BaseSchema__lazy[0] == BaseSchema._BaseSchema__version
+        assert new_schema._BaseSchema__manifest["test0"]._BaseSchema__lazy[0] == \
+            BaseSchema._BaseSchema__version
         assert new_schema._BaseSchema__manifest["test0"]._BaseSchema__lazy[1] == lazy_next
 
     assert new_schema.getdict() == schema.getdict()

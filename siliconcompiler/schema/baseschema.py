@@ -245,7 +245,8 @@ class BaseSchema:
             data = manifest.pop("default", None)
             if data:
                 if isinstance(self.__default, BaseSchema):
-                    self.__default._from_dict(data, tuple([*keypath, "default"]), version=version, lazyload=lazyload.next)
+                    self.__default._from_dict(data, tuple([*keypath, "default"]), version=version,
+                                              lazyload=lazyload.next)
                 else:
                     self.__default._from_dict(data, tuple([*keypath, "default"]), version=version)
                 handled.add("default")
@@ -801,7 +802,8 @@ class BaseSchema:
                 key_param = self.__search(*keypath, require_leaf=False, elabrate_leaf=False)
 
                 if isinstance(key_param, Parameter):
-                    return key_param.getdict(include_default=include_default, values_only=values_only)
+                    return key_param.getdict(include_default=include_default,
+                                             values_only=values_only)
 
                 if key_param.__lazy:
                     return self.__lazy[1]
