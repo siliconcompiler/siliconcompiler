@@ -397,13 +397,13 @@ class BaseSchema:
                  use_default: bool = False,
                  require_leaf: bool = True,
                  complete_path: Optional[List[str]] = None,
-                 elabrate_leaf: bool = True) -> Union["BaseSchema", Parameter]:
+                 elaborate_leaf: bool = True) -> Union["BaseSchema", Parameter]:
 
         if len(keypath) == 0:
             if require_leaf:
                 raise KeyError
             else:
-                if elabrate_leaf:
+                if elaborate_leaf:
                     self.__ensure_lazy_elab()
                 return self
 
@@ -432,7 +432,7 @@ class BaseSchema:
                 if require_leaf:
                     raise KeyError
                 else:
-                    if elabrate_leaf:
+                    if elaborate_leaf:
                         key_param.__ensure_lazy_elab()
                     return key_param
             return key_param.__search(*keypath[1:],
@@ -799,7 +799,7 @@ class BaseSchema:
         """
         try:
             if not values_only and include_default:
-                key_param = self.__search(*keypath, require_leaf=False, elabrate_leaf=False)
+                key_param = self.__search(*keypath, require_leaf=False, elaborate_leaf=False)
 
                 if isinstance(key_param, Parameter):
                     return key_param.getdict(include_default=include_default,
