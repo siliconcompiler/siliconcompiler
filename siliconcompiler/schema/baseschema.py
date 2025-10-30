@@ -639,16 +639,13 @@ class BaseSchema:
             >>> keylist = schema.getkeys('pdk')
             Returns all keys for the [pdk] keypath.
         """
+        try:
+            key_param = self.__search(*keypath, require_leaf=False)
+        except KeyError:
+            raise KeyError(f"{self.__format_key(*keypath)} is not a valid keypath")
 
-        if keypath:
-            try:
-                key_param = self.__search(*keypath, require_leaf=False)
-            except KeyError:
-                raise KeyError(f"{self.__format_key(*keypath)} is not a valid keypath")
-            if isinstance(key_param, Parameter):
-                return tuple()
-        else:
-            key_param = self
+        if isinstance(key_param, Parameter):
+            return tuple()
 
         return tuple(sorted(key_param.__manifest.keys()))
 
@@ -660,14 +657,17 @@ class BaseSchema:
             keypath (list of str): Keypath prefix to search under. The
                 returned keypaths do not include the prefix.
         '''
+        try:
+            key_param = self.__search(*keypath, require_leaf=False)
+        except KeyError:
+            return set()
 
-        if keypath:
-            key_param = self.__manifest.get(keypath[0], None)
-            if not key_param or isinstance(key_param, Parameter):
-                return set()
-            return key_param.allkeys(*keypath[1:], include_default=include_default)
+        if isinstance(key_param, Parameter):
+            return set()
 
-        def add(keys, key, item):
+        def add(keys: List[Tuple[str, ...]],
+                key: str,
+                item: Union["BaseSchema", Parameter]) -> None:
             if isinstance(item, Parameter):
                 keys.append((key,))
             else:
@@ -675,9 +675,9 @@ class BaseSchema:
                     keys.append((key, *subkeypath))
 
         keys = []
-        if include_default and self.__default:
-            add(keys, "default", self.__default)
-        for key, item in self.__manifest.items():
+        if include_default and key_param.__default:
+            add(keys, "default", key_param.__default)
+        for key, item in key_param.__manifest.items():
             add(keys, key, item)
         return set(keys)
 

@@ -444,6 +444,14 @@ def test_allkeys():
     }
 
 
+def test_allkeys_invalid():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("test0", "test1", Parameter("str"))
+
+    assert schema.allkeys("notthis") == set()
+
+
 def test_allkeys_end_parameter():
     schema = BaseSchema()
     edit = EditableSchema(schema)
