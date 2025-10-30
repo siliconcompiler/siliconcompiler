@@ -767,7 +767,7 @@ class BaseSchema:
         """
 
         parent = self.__parent
-        self.__parent = None
+        self.__parent = self
         schema_copy = copy.deepcopy(self)
         self.__parent = parent
 
