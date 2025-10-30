@@ -34,12 +34,18 @@ from ._metadata import version
 
 
 class LazyLoad(Enum):
-    OFF = auto()
-    ON = auto()
-    FORWARD = auto()
+    """
+    Controls manifest loading
+    """
+    OFF = auto()  # load entire schema immediately
+    ON = auto()  # store schema but do not load it
+    FORWARD = auto()  # load the current section but no not load children
 
     @property
     def next(self) -> "LazyLoad":
+        """
+        Returns the next state for lazy loading
+        """
         if self == LazyLoad.ON:
             return LazyLoad.ON
         if self == LazyLoad.FORWARD:
@@ -48,6 +54,9 @@ class LazyLoad(Enum):
 
     @property
     def is_enforced(self) -> bool:
+        """
+        Returns true when the current section should not be loaded.
+        """
         return self == LazyLoad.ON
 
 
