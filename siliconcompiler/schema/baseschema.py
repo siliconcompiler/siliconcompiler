@@ -806,7 +806,7 @@ class BaseSchema:
                                              values_only=values_only)
 
                 if key_param.__lazy:
-                    return self.__lazy[1]
+                    return key_param.__lazy[1]
             else:
                 key_param = self.__search(*keypath, require_leaf=False)
         except KeyError:
