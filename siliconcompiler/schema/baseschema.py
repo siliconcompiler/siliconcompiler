@@ -45,16 +45,23 @@ class BaseSchema:
         self.__manifest: Dict[str, Union["BaseSchema", Parameter]] = {}
         self.__default: Optional[Union["BaseSchema", Parameter]] = None
         self.__journal: Journal = Journal()
-        self.__parent: "BaseSchema" = self
+        self.__parent: Optional["BaseSchema"] = None
         self.__active: Optional[Dict] = None
         self.__key: Optional[str] = None
+
+    @property
+    def __is_root(self) -> bool:
+        '''
+        Returns true if the object is the root of the schema
+        '''
+        return self.__parent is None
 
     @property
     def _keypath(self) -> Tuple[str, ...]:
         '''
         Returns the key to the current section of the schema
         '''
-        if self.__parent is self:
+        if self.__is_root:
             return tuple()
         return tuple([*self.__parent._keypath, self.__key])
 
@@ -767,14 +774,10 @@ class BaseSchema:
         """
 
         parent = self.__parent
-        self.__parent = self
+        self.__parent = None
         schema_copy = copy.deepcopy(self)
         self.__parent = parent
-
-        if self is not self.__parent:
-            schema_copy.__parent = self.__parent
-        else:
-            schema_copy.__parent = schema_copy
+        schema_copy.__parent = self.__parent
 
         if key:
             schema_copy.__key = key[-1]
@@ -801,7 +804,7 @@ class BaseSchema:
         Returns:
             dictionary of str to resolver mapping
         """
-        if self.__parent is self:
+        if self.__is_root:
             return {}
         return self.__parent._find_files_dataroot_resolvers()
 
@@ -1038,7 +1041,7 @@ class BaseSchema:
                                     node_indicator = f" ({step}/{index})"
 
                             name = ""
-                            if self.__parent is self and hasattr(self, "name"):
+                            if hasattr(self, "name"):
                                 name = f"({self.name}) "
 
                             logger.error(f"Parameter {name}"
@@ -1103,10 +1106,11 @@ class BaseSchema:
         Args:
             root (bool): if true, returns the root of the schemas.
         '''
+        if self.__is_root:
+            return self
+
         if not root:
             return self.__parent
-        if self.__parent is self:
-            return self
         return self.__parent._parent(root=root)
 
     @contextlib.contextmanager
