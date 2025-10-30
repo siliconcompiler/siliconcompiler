@@ -6,7 +6,7 @@ import os.path
 from pathlib import Path
 from unittest.mock import patch
 
-from siliconcompiler.schema import BaseSchema
+from siliconcompiler.schema import BaseSchema, LazyLoad
 from siliconcompiler.schema import EditableSchema
 from siliconcompiler.schema import Parameter, PerNode
 from siliconcompiler.schema import Journal
@@ -783,11 +783,7 @@ def test_getdict_from_dict_unmatched():
     edit = EditableSchema(schema)
     edit.insert("test0", "default", "test1", Parameter("str"))
 
-    check_schema = schema.copy()
-
     edit.remove("test0")
-
-    print(check_schema.getdict())
 
     schemamissing, inmissing = schema._from_dict({
         'test0': {
@@ -807,7 +803,7 @@ def test_getdict_from_dict_unmatched():
                 },
             },
         },
-    }, [], None)
+    }, [], None, lazyload=LazyLoad.OFF)
     assert not inmissing
     assert schemamissing == set(["test0"])
 
@@ -1011,6 +1007,159 @@ def test_from_manifest_cfg():
     assert new_schema.getdict() == schema.getdict()
 
 
+def test_from_manifest_cfg_no_lazy():
+    class NewSchema(BaseSchema):
+        def __init__(self):
+            super().__init__()
+            edit = EditableSchema(self)
+            edit.insert("test0", "test1", Parameter("str"))
+
+        @classmethod
+        def _getdict_type(cls):
+            return "NewSchema"
+
+    schema = NewSchema()
+    schema.set("test0", "test1", "testthis")
+
+    with patch("siliconcompiler.schema.BaseSchema._BaseSchema__get_child_classes") as children:
+        children.return_value = {
+            "BaseSchema": BaseSchema,
+            "NewSchema": NewSchema
+        }
+        new_schema = NewSchema.from_manifest(cfg=schema.getdict(), lazyload=False)
+        assert new_schema._BaseSchema__lazy is None
+        assert new_schema._BaseSchema__manifest["test0"]._BaseSchema__lazy is None
+
+    assert new_schema.getdict() == schema.getdict()
+
+
+def test_from_manifest_cfg_no_with_lazy():
+    class NewSchema(BaseSchema):
+        def __init__(self):
+            super().__init__()
+            edit = EditableSchema(self)
+            edit.insert("test0", "test1", Parameter("str"))
+
+        @classmethod
+        def _getdict_type(cls):
+            return "NewSchema"
+
+    schema = NewSchema()
+    schema.set("test0", "test1", "testthis")
+
+    with patch("siliconcompiler.schema.BaseSchema._BaseSchema__get_child_classes") as children:
+        children.return_value = {
+            "BaseSchema": BaseSchema,
+            "NewSchema": NewSchema
+        }
+        new_schema = NewSchema.from_manifest(cfg=schema.getdict(), lazyload=True)
+        assert new_schema._BaseSchema__lazy[0] == BaseSchema._BaseSchema__version
+        assert new_schema._BaseSchema__lazy[1] == schema.getdict()
+        assert new_schema._BaseSchema__manifest["test0"]._BaseSchema__lazy is None
+
+    assert new_schema.getdict() == schema.getdict()
+
+
+def test_from_manifest_cfg_no_with_lazy_get():
+    class NewSchema(BaseSchema):
+        def __init__(self):
+            super().__init__()
+            edit = EditableSchema(self)
+            edit.insert("test0", "test2", Parameter("str"))
+
+        @classmethod
+        def _getdict_type(cls):
+            return "NewSchema"
+
+    schema = NewSchema()
+    schema.set("test0", "test2", "testthis")
+
+    with patch("siliconcompiler.schema.BaseSchema._BaseSchema__get_child_classes") as children:
+        children.return_value = {
+            "BaseSchema": BaseSchema,
+            "NewSchema": NewSchema
+        }
+        new_schema = NewSchema.from_manifest(cfg=schema.getdict(), lazyload=True)
+        assert new_schema._BaseSchema__lazy[0] == BaseSchema._BaseSchema__version
+        assert new_schema._BaseSchema__lazy[1] == schema.getdict()
+        assert new_schema._BaseSchema__manifest["test0"]._BaseSchema__lazy is None
+
+        # Call to eval this level
+        lazy_next = schema.getdict("test0")
+        assert new_schema.get(field="schema") is new_schema
+        assert new_schema._BaseSchema__lazy is None
+        assert new_schema._BaseSchema__manifest["test0"]._BaseSchema__lazy[0] == \
+            BaseSchema._BaseSchema__version
+        assert new_schema._BaseSchema__manifest["test0"]._BaseSchema__lazy[1] == lazy_next
+
+    assert new_schema.getdict() == schema.getdict()
+
+
+def test_from_manifest_cfg_no_with_lazy_getdict():
+    class NewSchema(BaseSchema):
+        def __init__(self):
+            super().__init__()
+            edit = EditableSchema(self)
+            edit.insert("test0", "test2", Parameter("str"))
+
+        @classmethod
+        def _getdict_type(cls):
+            return "NewSchema"
+
+    schema = NewSchema()
+    schema.set("test0", "test2", "testthis")
+
+    with patch("siliconcompiler.schema.BaseSchema._BaseSchema__get_child_classes") as children:
+        children.return_value = {
+            "BaseSchema": BaseSchema,
+            "NewSchema": NewSchema
+        }
+        new_schema = NewSchema.from_manifest(cfg=schema.getdict(), lazyload=True)
+
+    assert new_schema.getdict() == schema.getdict()
+    assert new_schema._BaseSchema__lazy[0] == BaseSchema._BaseSchema__version
+    assert new_schema._BaseSchema__lazy[1] == schema.getdict()
+
+
+def test_from_manifest_cfg_no_with_lazy_getdict_with_journal():
+    class NewSchema(BaseSchema):
+        def __init__(self):
+            super().__init__()
+            edit = EditableSchema(self)
+            edit.insert("test0", "test2", Parameter("str"))
+
+        @classmethod
+        def _getdict_type(cls):
+            return "NewSchema"
+
+    schema = NewSchema()
+    journal = Journal.access(schema)
+    journal.start()
+    schema.set("test0", "test2", "testthis")
+
+    with patch("siliconcompiler.schema.BaseSchema._BaseSchema__get_child_classes") as children:
+        children.return_value = {
+            "BaseSchema": BaseSchema,
+            "NewSchema": NewSchema
+        }
+        new_schema = NewSchema.from_manifest(cfg=schema.getdict(), lazyload=True)
+
+        new_journal = Journal.access(new_schema)
+        assert new_journal.get() == journal.get()
+
+        assert new_schema.getdict() == schema.getdict()
+        assert new_schema._BaseSchema__lazy[0] == BaseSchema._BaseSchema__version
+        assert new_schema._BaseSchema__lazy[1] == schema.getdict()
+
+        new_schema.allkeys()
+
+        new_journal = Journal.access(new_schema)
+        assert new_journal.get() == journal.get()
+
+        assert new_schema.getdict() == schema.getdict()
+        assert new_schema._BaseSchema__lazy is None
+
+
 def test_from_manifest_cfg_no_meta():
     class NewSchema(BaseSchema):
         def __init__(self):
@@ -1038,7 +1187,7 @@ def test_from_manifest_cfg_no_meta():
                          'default': {'default': {'value': None, 'signature': None}}}
             }
         }
-    })
+    }, lazyload=False)
 
     assert new_schema.__class__ is NewSchema
     assert new_schema.getdict() == schema.getdict()
@@ -2473,7 +2622,108 @@ def test_from_dict_composite_type_names():
                              'default': {'default': {'value': None, 'signature': None}}}
                 }
             }
-        }, [])
+        }, [], lazyload=LazyLoad.OFF)
+        children.assert_called_once()
+        load_schema_class.assert_not_called()
+
+    assert schema.get("dummy", "default", field="schema").__class__ is BaseSchema
+    assert schema.get("dummy", "newdummy", field="schema").__class__ is DummySchema
+    assert schema.get("base", "default", field=None).__class__ is Parameter
+    assert schema.get("base", "newbase", field=None).__class__ is Parameter
+
+    assert schema.get("dummy", "newdummy", field="schema")._keypath == \
+        ("dummy", "newdummy")
+    assert schema.get("dummy", "default", field="schema")._keypath == \
+        ("dummy", "default")
+
+    assert schema.get("dummy", "newdummy", "string") == "teststring"
+    assert schema.get("base", "newbase") == "teststring"
+
+
+def test_from_dict_composite_type_names_lazy():
+    class DummySchema(BaseSchema):
+        def __init__(self):
+            super().__init__()
+
+            EditableSchema(self).insert("string", Parameter("str"))
+
+        @classmethod
+        def _getdict_type(cls):
+            return "dummy_schema"
+
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("dummy", "default", BaseSchema())
+    edit.insert("base", "default", Parameter("str"))
+
+    with patch("siliconcompiler.schema.BaseSchema._BaseSchema__get_child_classes") as children, \
+            patch("siliconcompiler.schema.BaseSchema._BaseSchema__load_schema_class") as \
+            load_schema_class:
+        children.return_value = {
+            "BaseSchema": BaseSchema,
+            "dummy_schema": DummySchema
+        }
+        schema._from_dict({
+            'dummy': {
+                'default': {},
+                'newdummy': {  # this has a different type than the default
+                    'string': {
+                        'type': 'str',
+                        'require': False,
+                        'scope': 'global',
+                        'lock': False,
+                        'switch': [],
+                        'shorthelp': None,
+                        'example': [],
+                        'help': None,
+                        'notes': None,
+                        'pernode': 'never',
+                        'node': {'global': {'global': {'value': 'teststring', 'signature': None}},
+                                 'default': {'default': {'value': None, 'signature': None}}}
+                    },
+                    '__meta__': {
+                        'sctype': 'dummy_schema'
+                    }
+                }
+            },
+            'base': {
+                'default': {
+                    'type': 'str',
+                    'require': False,
+                    'scope': 'global',
+                    'lock': False,
+                    'switch': [],
+                    'shorthelp': None,
+                    'example': [],
+                    'help': None,
+                    'notes': None,
+                    'pernode': 'never',
+                    'node': {'default': {'default': {'value': None, 'signature': None}}}
+                },
+                'newbase': {
+                    'type': 'str',
+                    'require': False,
+                    'scope': 'global',
+                    'lock': False,
+                    'switch': [],
+                    'shorthelp': None,
+                    'example': [],
+                    'help': None,
+                    'notes': None,
+                    'pernode': 'never',
+                    'node': {'global': {'global': {'value': 'teststring', 'signature': None}},
+                             'default': {'default': {'value': None, 'signature': None}}}
+                }
+            }
+        }, [], lazyload=LazyLoad.ON)
+        children.assert_not_called()
+        load_schema_class.assert_not_called()
+
+        # Ensure elaborated
+        assert schema.allkeys() == {
+            ('base', 'newbase'),
+            ('dummy', 'newdummy', 'string'),
+            ('base', 'default')}
         children.assert_called_once()
         load_schema_class.assert_not_called()
 
@@ -2566,7 +2816,7 @@ def test_from_dict_composite_nested():
                     }
                 }
             }
-        }, [])
+        }, [], lazyload=LazyLoad.OFF)
         assert children.call_count == 2
         load_schema_class.assert_not_called()
 
@@ -2658,7 +2908,7 @@ def test_from_dict_composite_type_names_use_default():
                              'default': {'default': {'value': None, 'signature': None}}}
                 }
             }
-        }, [])
+        }, [], lazyload=LazyLoad.OFF)
         children.assert_called_once()
         load_schema_class.assert_not_called()
 
@@ -2752,7 +3002,7 @@ def test_from_dict_composite_type_load_via_class_name():
                              'default': {'default': {'value': None, 'signature': None}}}
                 }
             }
-        }, [])
+        }, [], lazyload=LazyLoad.OFF)
         children.assert_called_once()
         load_schema_class.assert_called_once_with("test/DummySchema")
 
@@ -2845,7 +3095,7 @@ def test_from_dict_composite_using_cls_name():
                              'default': {'default': {'value': None, 'signature': None}}}
                 }
             }
-        }, [])
+        }, [], lazyload=LazyLoad.OFF)
         children.assert_called_once()
         load_schema_class.assert_not_called()
 
@@ -3560,3 +3810,21 @@ def test_generate_doc_not_detailed(sphinx_doc):
     assert len(doc) == 2
     assert isinstance(doc[0], tabular_col_spec)
     assert isinstance(doc[1], nodes.table)
+
+
+@pytest.mark.parametrize("curr,nxt", [
+    (LazyLoad.OFF, LazyLoad.OFF),
+    (LazyLoad.ON, LazyLoad.ON),
+    (LazyLoad.FORWARD, LazyLoad.ON)
+])
+def test_lazyload_next(curr, nxt):
+    assert curr.next == nxt
+
+
+@pytest.mark.parametrize("curr,check", [
+    (LazyLoad.OFF, False),
+    (LazyLoad.ON, True),
+    (LazyLoad.FORWARD, False)
+])
+def test_lazyload_enforce(curr, check):
+    assert curr.is_enforced is check

@@ -35,7 +35,7 @@ from packaging.specifiers import SpecifierSet, InvalidSpecifier
 from typing import List, Dict, Tuple, Union, Optional, Set, TextIO, Type, TypeVar, TYPE_CHECKING
 from pathlib import Path
 
-from siliconcompiler.schema import BaseSchema, NamedSchema, Journal, DocsSchema
+from siliconcompiler.schema import BaseSchema, NamedSchema, Journal, DocsSchema, LazyLoad
 from siliconcompiler.schema import EditableSchema, Parameter, PerNode, Scope
 from siliconcompiler.schema.parametertype import NodeType
 from siliconcompiler.schema.utils import trim
@@ -147,13 +147,14 @@ class Task(NamedSchema, PathSchema, DocsSchema):
 
     def _from_dict(self, manifest: Dict,
                    keypath: Union[List[str], Tuple[str, ...]],
-                   version: Optional[Tuple[int, ...]] = None) \
+                   version: Optional[Tuple[int, ...]] = None,
+                   lazyload: LazyLoad = LazyLoad.ON) \
             -> Tuple[Set[Tuple[str, ...]], Set[Tuple[str, ...]]]:
         """
         Populates the schema from a dictionary, dynamically adding 'var'
         parameters found in the manifest that are not already defined.
         """
-        if "var" in manifest:
+        if not lazyload.is_enforced and "var" in manifest:
             # Collect existing and manifest var keys
             var_keys = [k[0] for k in self.allkeys("var")]
             manifest_keys = set(manifest["var"].keys())
@@ -171,7 +172,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
             if not manifest["var"]:
                 del manifest["var"]
 
-        return super()._from_dict(manifest, keypath, version)
+        return super()._from_dict(manifest, keypath, version=version, lazyload=lazyload)
 
     @contextlib.contextmanager
     def runtime(self, node: "SchedulerNode",

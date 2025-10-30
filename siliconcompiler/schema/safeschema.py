@@ -7,7 +7,7 @@
 from typing import Dict, Tuple, Optional, Union, List, Set
 
 from .parameter import Parameter
-from .baseschema import BaseSchema
+from .baseschema import BaseSchema, LazyLoad
 
 
 class SafeSchema(BaseSchema):
@@ -35,7 +35,8 @@ class SafeSchema(BaseSchema):
 
     def _from_dict(self, manifest: Dict,
                    keypath: Union[List[str], Tuple[str, ...]],
-                   version: Optional[Tuple[int, ...]] = None) \
+                   version: Optional[Tuple[int, ...]] = None,
+                   lazyload: LazyLoad = LazyLoad.OFF) \
             -> Tuple[Set[Tuple[str, ...]], Set[Tuple[str, ...]]]:
         if not isinstance(manifest, dict):
             return set(), set()
@@ -43,11 +44,13 @@ class SafeSchema(BaseSchema):
         if "__meta__" in manifest:
             del manifest["__meta__"]
 
+        lazyload = LazyLoad.OFF
+
         for key, data in manifest.items():
             obj = SafeSchema.__is_dict_leaf(data, list(keypath) + [key], version)
             if not obj:
                 obj = SafeSchema()
-                obj._from_dict(data, list(keypath) + [key], version)
+                obj._from_dict(data, list(keypath) + [key], version=version, lazyload=lazyload)
 
             if key == "default":
                 self._BaseSchema__default = obj
@@ -59,7 +62,8 @@ class SafeSchema(BaseSchema):
     @classmethod
     def from_manifest(cls,
                       filepath: Union[None, str] = None,
-                      cfg: Union[None, Dict] = None) -> "SafeSchema":
+                      cfg: Union[None, Dict] = None,
+                      lazyload: bool = False) -> "SafeSchema":
         if filepath:
             cfg = BaseSchema._read_manifest(filepath)
 
@@ -73,4 +77,4 @@ class SafeSchema(BaseSchema):
 
         rm_meta(cfg)
 
-        return super().from_manifest(filepath=None, cfg=cfg)
+        return super().from_manifest(filepath=None, cfg=cfg, lazyload=False)

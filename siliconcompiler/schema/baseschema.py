@@ -24,12 +24,40 @@ except ModuleNotFoundError:
 
 import os.path
 
+from enum import Enum, auto
 from functools import cache
 from typing import Dict, Type, Tuple, Union, Set, Callable, List, Optional, TextIO, Iterable, Any
 
 from .parameter import Parameter, NodeValue
 from .journal import Journal
 from ._metadata import version
+
+
+class LazyLoad(Enum):
+    """
+    Controls manifest loading
+    """
+    OFF = auto()  # load entire schema immediately
+    ON = auto()  # store schema but do not load it
+    FORWARD = auto()  # load the current section but do not load children
+
+    @property
+    def next(self) -> "LazyLoad":
+        """
+        Returns the next state for lazy loading
+        """
+        if self == LazyLoad.ON:
+            return LazyLoad.ON
+        if self == LazyLoad.FORWARD:
+            return LazyLoad.ON
+        return LazyLoad.OFF
+
+    @property
+    def is_enforced(self) -> bool:
+        """
+        Returns true when the current section should not be loaded.
+        """
+        return self == LazyLoad.ON
 
 
 class BaseSchema:
@@ -48,6 +76,7 @@ class BaseSchema:
         self.__parent: Optional["BaseSchema"] = None
         self.__active: Optional[Dict] = None
         self.__key: Optional[str] = None
+        self.__lazy: Optional[Tuple[Optional[Tuple[int, ...]], Dict]] = None
 
     @property
     def __is_root(self) -> bool:
@@ -168,9 +197,19 @@ class BaseSchema:
             return tuple([int(v) for v in param.get().split('.')])
         return None
 
+    def __ensure_lazy_elab(self):
+        if not self.__lazy:
+            return
+
+        version, manifest = self.__lazy
+        self.__lazy = None
+
+        self._from_dict(manifest, self._keypath, version=version, lazyload=LazyLoad.FORWARD)
+
     def _from_dict(self, manifest: Dict,
                    keypath: Union[List[str], Tuple[str, ...]],
-                   version: Optional[Tuple[int, ...]] = None) \
+                   version: Optional[Tuple[int, ...]] = None,
+                   lazyload: LazyLoad = LazyLoad.ON) \
             -> Tuple[Set[Tuple[str, ...]], Set[Tuple[str, ...]]]:
         '''
         Decodes a dictionary into a schema object
@@ -192,7 +231,12 @@ class BaseSchema:
 
         if "__journal__" in manifest:
             self.__journal.from_dict(manifest["__journal__"])
-            del manifest["__journal__"]
+            if lazyload != LazyLoad.ON:
+                del manifest["__journal__"]
+
+        if lazyload == LazyLoad.ON:
+            self.__lazy = (version, manifest)
+            return set(), set()
 
         if "__meta__" in manifest:
             del manifest["__meta__"]
@@ -200,7 +244,11 @@ class BaseSchema:
         if self.__default:
             data = manifest.pop("default", None)
             if data:
-                self.__default._from_dict(data, tuple([*keypath, "default"]), version=version)
+                if isinstance(self.__default, BaseSchema):
+                    self.__default._from_dict(data, tuple([*keypath, "default"]), version=version,
+                                              lazyload=lazyload.next)
+                else:
+                    self.__default._from_dict(data, tuple([*keypath, "default"]), version=version)
                 handled.add("default")
 
         for key, data in manifest.items():
@@ -226,7 +274,10 @@ class BaseSchema:
                 self.__manifest[key] = obj
 
             if obj:
-                obj._from_dict(data, data_keypath, version=version)
+                if isinstance(obj, BaseSchema):
+                    obj._from_dict(data, data_keypath, version=version, lazyload=lazyload.next)
+                else:
+                    obj._from_dict(data, data_keypath, version=version)
                 handled.add(key)
             else:
                 missing.add(key)
@@ -237,7 +288,8 @@ class BaseSchema:
     @classmethod
     def from_manifest(cls,
                       filepath: Union[None, str] = None,
-                      cfg: Union[None, Dict] = None) -> "BaseSchema":
+                      cfg: Union[None, Dict] = None,
+                      lazyload: bool = True) -> "BaseSchema":
         '''
         Create a new schema based on the provided source files.
 
@@ -263,7 +315,12 @@ class BaseSchema:
         else:
             schema = cls()
 
-        schema._from_dict(cfg, tuple())
+        if lazyload:
+            do_lazyload = LazyLoad.ON
+        else:
+            do_lazyload = LazyLoad.OFF
+
+        schema._from_dict(cfg, tuple(), lazyload=do_lazyload)
 
         return schema
 
@@ -339,12 +396,18 @@ class BaseSchema:
                  insert_defaults: bool = False,
                  use_default: bool = False,
                  require_leaf: bool = True,
-                 complete_path: Optional[List[str]] = None) -> Union["BaseSchema", Parameter]:
+                 complete_path: Optional[List[str]] = None,
+                 elaborate_leaf: bool = True) -> Union["BaseSchema", Parameter]:
+
         if len(keypath) == 0:
             if require_leaf:
                 raise KeyError
             else:
+                if elaborate_leaf:
+                    self.__ensure_lazy_elab()
                 return self
+
+        self.__ensure_lazy_elab()
 
         if complete_path is None:
             complete_path = []
@@ -369,6 +432,8 @@ class BaseSchema:
                 if require_leaf:
                     raise KeyError
                 else:
+                    if elaborate_leaf:
+                        key_param.__ensure_lazy_elab()
                     return key_param
             return key_param.__search(*keypath[1:],
                                       insert_defaults=insert_defaults,
@@ -733,7 +798,17 @@ class BaseSchema:
             Returns the complete dictionary found for the keypath [pdk]
         """
         try:
-            key_param = self.__search(*keypath, require_leaf=False)
+            if not values_only and include_default:
+                key_param = self.__search(*keypath, require_leaf=False, elaborate_leaf=False)
+
+                if isinstance(key_param, Parameter):
+                    return key_param.getdict(include_default=include_default,
+                                             values_only=values_only)
+
+                if key_param.__lazy:
+                    return key_param.__lazy[1]
+            else:
+                key_param = self.__search(*keypath, require_leaf=False)
         except KeyError:
             return {}
 

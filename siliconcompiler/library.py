@@ -7,7 +7,7 @@ from siliconcompiler.schema_support.filesetschema import FileSetSchema
 from siliconcompiler.schema_support.pathschema import PathSchema
 from siliconcompiler.schema import NamedSchema, BaseSchema
 
-from siliconcompiler.schema import EditableSchema, Parameter, Scope, PerNode
+from siliconcompiler.schema import EditableSchema, Parameter, Scope, PerNode, LazyLoad
 from siliconcompiler.schema.utils import trim
 
 
@@ -99,7 +99,8 @@ class ToolLibrarySchema(LibrarySchema):
 
     def _from_dict(self, manifest: Dict,
                    keypath: Union[List[str], Tuple[str, ...]],
-                   version: Optional[Tuple[int, ...]] = None) \
+                   version: Optional[Tuple[int, ...]] = None,
+                   lazyload: LazyLoad = LazyLoad.ON) \
             -> Tuple[Set[Tuple[str, ...]], Set[Tuple[str, ...]]]:
         """
         Constructs a schema from a dictionary.
@@ -112,7 +113,7 @@ class ToolLibrarySchema(LibrarySchema):
         Returns:
             dict: The constructed dictionary.
         """
-        if "tool" in manifest:
+        if not lazyload.is_enforced and "tool" in manifest:
             # collect tool keys
             tool_keys = self.allkeys("tool")
 
@@ -136,7 +137,7 @@ class ToolLibrarySchema(LibrarySchema):
             if not manifest["tool"]:
                 del manifest["tool"]
 
-        return super()._from_dict(manifest, keypath, version)
+        return super()._from_dict(manifest, keypath, version=version, lazyload=lazyload)
 
     def _generate_doc(self, doc,
                       ref_root: str = "",

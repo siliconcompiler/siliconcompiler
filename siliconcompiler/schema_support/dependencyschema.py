@@ -2,7 +2,7 @@ import os.path
 
 from typing import Dict, Union, Tuple, List, Optional, Set
 
-from siliconcompiler.schema.baseschema import BaseSchema
+from siliconcompiler.schema.baseschema import BaseSchema, LazyLoad
 from siliconcompiler.schema.editableschema import EditableSchema
 from siliconcompiler.schema.parameter import Parameter, Scope
 from siliconcompiler.schema.namedschema import NamedSchema
@@ -33,7 +33,8 @@ class DependencySchema(BaseSchema):
 
     def _from_dict(self, manifest: Dict,
                    keypath: Union[List[str], Tuple[str, ...]],
-                   version: Optional[Tuple[int, ...]] = None) \
+                   version: Optional[Tuple[int, ...]] = None,
+                   lazyload: LazyLoad = LazyLoad.ON) \
             -> Tuple[Set[Tuple[str, ...]], Set[Tuple[str, ...]]]:
         '''
         Internal helper to load schema from a dictionary manifest.
@@ -50,7 +51,7 @@ class DependencySchema(BaseSchema):
             The result of the parent class's _from_dict method.
         '''
         self.set("deps", False, field="lock")
-        ret = super()._from_dict(manifest, keypath, version)
+        ret = super()._from_dict(manifest, keypath, version=version, lazyload=lazyload)
         self.set("deps", True, field="lock")
         return ret
 
