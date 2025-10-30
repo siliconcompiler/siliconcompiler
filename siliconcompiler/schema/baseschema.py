@@ -231,14 +231,15 @@ class BaseSchema:
 
         if "__journal__" in manifest:
             self.__journal.from_dict(manifest["__journal__"])
-            del manifest["__journal__"]
-
-        if "__meta__" in manifest:
-            del manifest["__meta__"]
+            if lazyload != LazyLoad.ON:
+                del manifest["__journal__"]
 
         if lazyload == LazyLoad.ON:
             self.__lazy = (version, manifest)
             return set(), set()
+
+        if "__meta__" in manifest:
+            del manifest["__meta__"]
 
         if self.__default:
             data = manifest.pop("default", None)
@@ -394,14 +395,18 @@ class BaseSchema:
                  insert_defaults: bool = False,
                  use_default: bool = False,
                  require_leaf: bool = True,
-                 complete_path: Optional[List[str]] = None) -> Union["BaseSchema", Parameter]:
-        self.__ensure_lazy_elab()
+                 complete_path: Optional[List[str]] = None,
+                 elabrate_leaf: bool = True) -> Union["BaseSchema", Parameter]:
 
         if len(keypath) == 0:
             if require_leaf:
                 raise KeyError
             else:
+                if elabrate_leaf:
+                    self.__ensure_lazy_elab()
                 return self
+
+        self.__ensure_lazy_elab()
 
         if complete_path is None:
             complete_path = []
@@ -426,7 +431,8 @@ class BaseSchema:
                 if require_leaf:
                     raise KeyError
                 else:
-                    key_param.__ensure_lazy_elab()
+                    if elabrate_leaf:
+                        key_param.__ensure_lazy_elab()
                     return key_param
             return key_param.__search(*keypath[1:],
                                       insert_defaults=insert_defaults,
@@ -791,7 +797,16 @@ class BaseSchema:
             Returns the complete dictionary found for the keypath [pdk]
         """
         try:
-            key_param = self.__search(*keypath, require_leaf=False)
+            if not values_only and include_default:
+                key_param = self.__search(*keypath, require_leaf=False, elabrate_leaf=False)
+
+                if isinstance(key_param, Parameter):
+                    return key_param.getdict(include_default=include_default, values_only=values_only)
+
+                if key_param.__lazy:
+                    return self.__lazy[1]
+            else:
+                key_param = self.__search(*keypath, require_leaf=False)
         except KeyError:
             return {}
 

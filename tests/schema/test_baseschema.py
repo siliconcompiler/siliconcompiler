@@ -1055,10 +1055,8 @@ def test_from_manifest_cfg_no_with_lazy():
             "NewSchema": NewSchema
         }
         new_schema = NewSchema.from_manifest(cfg=schema.getdict(), lazyload=True)
-        lazy = schema.getdict()
-        del lazy["__meta__"]
         assert new_schema._BaseSchema__lazy[0] == BaseSchema._BaseSchema__version
-        assert new_schema._BaseSchema__lazy[1] == lazy
+        assert new_schema._BaseSchema__lazy[1] == schema.getdict()
         assert new_schema._BaseSchema__manifest["test0"]._BaseSchema__lazy is None
 
     assert new_schema.getdict() == schema.getdict()
@@ -1084,10 +1082,8 @@ def test_from_manifest_cfg_no_with_lazy_get():
             "NewSchema": NewSchema
         }
         new_schema = NewSchema.from_manifest(cfg=schema.getdict(), lazyload=True)
-        lazy = schema.getdict()
-        del lazy["__meta__"]
         assert new_schema._BaseSchema__lazy[0] == BaseSchema._BaseSchema__version
-        assert new_schema._BaseSchema__lazy[1] == lazy
+        assert new_schema._BaseSchema__lazy[1] == schema.getdict()
         assert new_schema._BaseSchema__manifest["test0"]._BaseSchema__lazy is None
 
         # Call to eval this level
@@ -1098,6 +1094,71 @@ def test_from_manifest_cfg_no_with_lazy_get():
         assert new_schema._BaseSchema__manifest["test0"]._BaseSchema__lazy[1] == lazy_next
 
     assert new_schema.getdict() == schema.getdict()
+
+
+def test_from_manifest_cfg_no_with_lazy_getdict():
+    class NewSchema(BaseSchema):
+        def __init__(self):
+            super().__init__()
+            edit = EditableSchema(self)
+            edit.insert("test0", "test2", Parameter("str"))
+
+        @classmethod
+        def _getdict_type(cls):
+            return "NewSchema"
+
+    schema = NewSchema()
+    schema.set("test0", "test2", "testthis")
+
+    with patch("siliconcompiler.schema.BaseSchema._BaseSchema__get_child_classes") as children:
+        children.return_value = {
+            "BaseSchema": BaseSchema,
+            "NewSchema": NewSchema
+        }
+        new_schema = NewSchema.from_manifest(cfg=schema.getdict(), lazyload=True)
+
+    assert new_schema.getdict() == schema.getdict()
+    assert new_schema._BaseSchema__lazy[0] == BaseSchema._BaseSchema__version
+    assert new_schema._BaseSchema__lazy[1] == schema.getdict()
+
+
+def test_from_manifest_cfg_no_with_lazy_getdict_with_journal():
+    class NewSchema(BaseSchema):
+        def __init__(self):
+            super().__init__()
+            edit = EditableSchema(self)
+            edit.insert("test0", "test2", Parameter("str"))
+
+        @classmethod
+        def _getdict_type(cls):
+            return "NewSchema"
+
+    schema = NewSchema()
+    journal = Journal.access(schema)
+    journal.start()
+    schema.set("test0", "test2", "testthis")
+
+    with patch("siliconcompiler.schema.BaseSchema._BaseSchema__get_child_classes") as children:
+        children.return_value = {
+            "BaseSchema": BaseSchema,
+            "NewSchema": NewSchema
+        }
+        new_schema = NewSchema.from_manifest(cfg=schema.getdict(), lazyload=True)
+
+        new_journal = Journal.access(new_schema)
+        assert new_journal.get() == journal.get()
+
+        assert new_schema.getdict() == schema.getdict()
+        assert new_schema._BaseSchema__lazy[0] == BaseSchema._BaseSchema__version
+        assert new_schema._BaseSchema__lazy[1] == schema.getdict()
+
+        new_schema.allkeys()
+
+        new_journal = Journal.access(new_schema)
+        assert new_journal.get() == journal.get()
+
+        assert new_schema.getdict() == schema.getdict()
+        assert new_schema._BaseSchema__lazy is None
 
 
 def test_from_manifest_cfg_no_meta():
@@ -1127,7 +1188,7 @@ def test_from_manifest_cfg_no_meta():
                          'default': {'default': {'value': None, 'signature': None}}}
             }
         }
-    })
+    }, lazyload=False)
 
     assert new_schema.__class__ is NewSchema
     assert new_schema.getdict() == schema.getdict()
