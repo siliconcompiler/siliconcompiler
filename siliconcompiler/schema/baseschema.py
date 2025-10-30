@@ -660,7 +660,7 @@ class BaseSchema:
         try:
             key_param = self.__search(*keypath, require_leaf=False)
         except KeyError:
-            raise KeyError(f"{self.__format_key(*keypath)} is not a valid keypath")
+            return set()
 
         if isinstance(key_param, Parameter):
             return set()

@@ -449,8 +449,7 @@ def test_allkeys_invalid():
     edit = EditableSchema(schema)
     edit.insert("test0", "test1", Parameter("str"))
 
-    with pytest.raises(KeyError, match=r"^'\[notthis\] is not a valid keypath'$"):
-        schema.allkeys("notthis")
+    assert schema.allkeys("notthis") == set()
 
 
 def test_allkeys_end_parameter():
