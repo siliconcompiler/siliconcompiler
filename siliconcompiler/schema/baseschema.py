@@ -716,42 +716,42 @@ class BaseSchema:
             >>> pdk = schema.getdict('pdk')
             Returns the complete dictionary found for the keypath [pdk]
         """
+        try:
+            key_param = self.__search(*keypath, require_leaf=False)
+        except KeyError:
+            return {}
 
-        if keypath:
-            key_param = self.__manifest.get(keypath[0], None)
-            if not key_param:
-                return {}
-            return key_param.getdict(*keypath[1:],
-                                     include_default=include_default,
-                                     values_only=values_only)
+        if isinstance(key_param, Parameter):
+            return key_param.getdict(include_default=include_default, values_only=values_only)
 
         manifest = {}
-        if include_default and self.__default:
-            manifest_dict = self.__default.getdict(include_default=include_default,
-                                                   values_only=values_only)
+        if include_default and key_param.__default:
+            manifest_dict = key_param.__default.getdict(include_default=include_default,
+                                                        values_only=values_only)
             if manifest_dict or not values_only:
                 manifest["default"] = manifest_dict
-        for key, item in self.__manifest.items():
+        for key, item in key_param.__manifest.items():
             manifest_dict = item.getdict(include_default=include_default,
                                          values_only=values_only)
             if manifest_dict or not values_only:
                 manifest[key] = manifest_dict
 
-        if not values_only and self.__journal.has_journaling():
-            manifest["__journal__"] = self.__journal.get()
+        if not values_only and key_param.__journal.has_journaling():
+            manifest["__journal__"] = key_param.__journal.get()
 
-        if not values_only and self.__class__ is not BaseSchema:
+        if not values_only and key_param.__class__ is not BaseSchema:
             manifest["__meta__"] = {}
 
             try:
-                cls_meta = self._getdict_meta()
+                cls_meta = key_param._getdict_meta()
                 manifest["__meta__"].update(cls_meta)
             except NotImplementedError:
                 pass
 
-            manifest["__meta__"]["class"] = f"{self.__class__.__module__}/{self.__class__.__name__}"
+            manifest["__meta__"]["class"] = \
+                f"{key_param.__class__.__module__}/{key_param.__class__.__name__}"
             try:
-                manifest["__meta__"]["sctype"] = self._getdict_type()
+                manifest["__meta__"]["sctype"] = key_param._getdict_type()
             except NotImplementedError:
                 pass
 

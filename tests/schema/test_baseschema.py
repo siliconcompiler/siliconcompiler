@@ -689,6 +689,55 @@ def test_getdict_keypath():
     }
 
 
+def test_getdict_param_keypath():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("test0", "default", "test1", Parameter("str"))
+
+    schema.set("test0", "default", "test1", "thistest")
+
+    assert schema.getdict("test0", "default", "test1") == {
+        'example': [],
+        'help': None,
+        'lock': False,
+        'node': {
+            'default': {
+                'default': {
+                    'signature': None,
+                    'value': None,
+                },
+            },
+            'global': {
+                'global': {
+                    'signature': None,
+                    'value': "thistest",
+                },
+            },
+        },
+        'notes': None,
+        'pernode': 'never',
+        'require': False,
+        'scope': 'global',
+        'shorthelp': None,
+        'switch': [],
+        'type': 'str',
+    }
+
+
+def test_getdict_param_keypath_value_only():
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("test0", "default", "test1", Parameter("str"))
+
+    schema.set("test0", "default", "test1", "thistest")
+
+    assert schema.getdict("test0", "default", "test1", values_only=True) == {
+        None: {
+            None: "thistest"
+        },
+    }
+
+
 def test_getdict_keypath_unmatched():
     schema = BaseSchema()
     edit = EditableSchema(schema)
