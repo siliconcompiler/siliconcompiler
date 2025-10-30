@@ -39,7 +39,7 @@ class LazyLoad(Enum):
     """
     OFF = auto()  # load entire schema immediately
     ON = auto()  # store schema but do not load it
-    FORWARD = auto()  # load the current section but no not load children
+    FORWARD = auto()  # load the current section but do not load children
 
     @property
     def next(self) -> "LazyLoad":
