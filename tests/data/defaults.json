@@ -17,7 +17,7 @@
         "node": {
           "default": {
             "default": {
-              "value": "0.52.0",
+              "value": "0.52.1",
               "signature": null
             }
           }
@@ -330,7 +330,12 @@
           }
         }
       },
-      "library": {},
+      "library": {
+        "__meta__": {
+          "class": "siliconcompiler.project/_ProjectLibrary",
+          "sctype": "BaseSchema"
+        }
+      },
       "flowgraph": {
         "default": {
           "default": {
@@ -2984,7 +2989,7 @@
         "node": {
           "default": {
             "default": {
-              "value": "0.52.0",
+              "value": "0.52.1",
               "signature": null
             }
           }
@@ -3297,7 +3302,12 @@
           }
         }
       },
-      "library": {},
+      "library": {
+        "__meta__": {
+          "class": "siliconcompiler.project/_ProjectLibrary",
+          "sctype": "BaseSchema"
+        }
+      },
       "flowgraph": {
         "default": {
           "default": {
@@ -6715,7 +6725,7 @@
         "node": {
           "default": {
             "default": {
-              "value": "0.52.0",
+              "value": "0.52.1",
               "signature": null
             }
           }
@@ -7028,7 +7038,12 @@
           }
         }
       },
-      "library": {},
+      "library": {
+        "__meta__": {
+          "class": "siliconcompiler.project/_ProjectLibrary",
+          "sctype": "BaseSchema"
+        }
+      },
       "flowgraph": {
         "default": {
           "default": {
@@ -11356,7 +11371,7 @@
         "node": {
           "default": {
             "default": {
-              "value": "0.52.0",
+              "value": "0.52.1",
               "signature": null
             }
           }
@@ -11669,7 +11684,12 @@
           }
         }
       },
-      "library": {},
+      "library": {
+        "__meta__": {
+          "class": "siliconcompiler.project/_ProjectLibrary",
+          "sctype": "BaseSchema"
+        }
+      },
       "flowgraph": {
         "default": {
           "default": {
@@ -14323,7 +14343,7 @@
         "node": {
           "default": {
             "default": {
-              "value": "0.52.0",
+              "value": "0.52.1",
               "signature": null
             }
           }
@@ -14636,7 +14656,12 @@
           }
         }
       },
-      "library": {},
+      "library": {
+        "__meta__": {
+          "class": "siliconcompiler.project/_ProjectLibrary",
+          "sctype": "BaseSchema"
+        }
+      },
       "flowgraph": {
         "default": {
           "default": {
@@ -17276,26 +17301,6 @@
   },
   "library": {
     "design": {
-      "deps": {
-        "type": "[str]",
-        "require": false,
-        "scope": "global",
-        "lock": true,
-        "switch": [],
-        "shorthelp": "List of object dependencies",
-        "example": [],
-        "help": "List of named object dependencies included via add_dep().",
-        "notes": null,
-        "pernode": "never",
-        "node": {
-          "default": {
-            "default": {
-              "value": [],
-              "signature": []
-            }
-          }
-        }
-      },
       "dataroot": {
         "default": {
           "path": {
@@ -18031,6 +18036,26 @@
         "__meta__": {
           "class": "siliconcompiler.schema_support.packageschema/PackageSchema",
           "sctype": "PackageSchema"
+        }
+      },
+      "deps": {
+        "type": "[str]",
+        "require": false,
+        "scope": "global",
+        "lock": true,
+        "switch": [],
+        "shorthelp": "List of object dependencies",
+        "example": [],
+        "help": "List of named object dependencies included via add_dep().",
+        "notes": null,
+        "pernode": "never",
+        "node": {
+          "default": {
+            "default": {
+              "value": [],
+              "signature": []
+            }
+          }
         }
       },
       "__meta__": {
@@ -19844,26 +19869,6 @@
       }
     },
     "stdcelllibrary": {
-      "deps": {
-        "type": "[str]",
-        "require": false,
-        "scope": "global",
-        "lock": true,
-        "switch": [],
-        "shorthelp": "List of object dependencies",
-        "example": [],
-        "help": "List of named object dependencies included via add_dep().",
-        "notes": null,
-        "pernode": "never",
-        "node": {
-          "default": {
-            "default": {
-              "value": [],
-              "signature": []
-            }
-          }
-        }
-      },
       "dataroot": {
         "default": {
           "path": {
@@ -20411,6 +20416,26 @@
         "__meta__": {
           "class": "siliconcompiler.schema_support.packageschema/PackageSchema",
           "sctype": "PackageSchema"
+        }
+      },
+      "deps": {
+        "type": "[str]",
+        "require": false,
+        "scope": "global",
+        "lock": true,
+        "switch": [],
+        "shorthelp": "List of object dependencies",
+        "example": [],
+        "help": "List of named object dependencies included via add_dep().",
+        "notes": null,
+        "pernode": "never",
+        "node": {
+          "default": {
+            "default": {
+              "value": [],
+              "signature": []
+            }
+          }
         }
       },
       "asic": {

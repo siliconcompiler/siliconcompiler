@@ -108,7 +108,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                 is not intended for external use."""))
 
         schema.insert("checklist", "default", Checklist())
-        schema.insert("library", BaseSchema())
+        schema.insert("library", _ProjectLibrary())
         schema.insert("flowgraph", "default", Flowgraph())
         schema.insert("metric", MetricSchema())
         schema.insert("record", RecordSchema())
@@ -290,25 +290,6 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         """
         return Project.__name__
 
-    def __populate_deps(self, obj: DependencySchema = None):
-        """
-        Ensures that all loaded dependencies (like libraries) within the project
-        contain correct internal pointers back to the project's libraries.
-        This is crucial for maintaining a consistent and navigable schema graph.
-
-        Args:
-            obj (DependencySchema, optional): An optional dependency object to
-                reset and populate. If None, all existing library dependencies
-                in the project are processed. Defaults to None.
-        """
-        if obj:
-            obj._reset_deps()
-        dep_map = {name: self.get("library", name, field="schema")
-                   for name in self.getkeys("library")}
-        for obj in dep_map.values():
-            if isinstance(obj, DependencySchema):
-                obj._populate_deps(dep_map)
-
     def _from_dict(self, manifest: Dict,
                    keypath: Union[List[str], Tuple[str, ...]],
                    version: Optional[Tuple[int, ...]] = None,
@@ -333,9 +314,6 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         ret = super()._from_dict(manifest, keypath, version=version, lazyload=lazyload)
 
         if not lazyload.is_enforced:
-            # Restore dependencies
-            self.__populate_deps()
-
             # Preserve logger in history
             for history in self.getkeys("history"):
                 hist: "Project" = self.get("history", history, field="schema")
@@ -398,7 +376,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                 self.add_dep(dep)
 
             # Rebuild dependencies to ensure instances are correct
-            self.__populate_deps(obj)
+            self.get("library", field="schema")._populate_deps(obj)
 
     def __import_flow(self, flow: Flowgraph):
         """
@@ -1282,3 +1260,52 @@ class Lint(Project):
     @classmethod
     def _getdict_type(cls) -> str:
         return Lint.__name__
+
+
+class _ProjectLibrary(BaseSchema):
+    def _from_dict(self, manifest: Dict,
+                   keypath: Union[List[str], Tuple[str, ...]],
+                   version: Optional[Tuple[int, ...]] = None,
+                   lazyload: LazyLoad = LazyLoad.ON) \
+            -> Tuple[Set[Tuple[str, ...]], Set[Tuple[str, ...]]]:
+        """
+        Populates the project's schema from a dictionary representation.
+
+        This method is typically used during deserialization or when loading
+        a project state from a manifest. After loading the data, it ensures
+        that internal dependencies are correctly re-established.
+
+        Args:
+            manifest (dict): The dictionary containing the schema data.
+            keypath (list): The current keypath being processed (used internally
+                            for recursive loading).
+            version (str, optional): The schema version of the manifest. Defaults to None.
+
+        Returns:
+            Any: The result of the superclass's `_from_dict` method.
+        """
+        ret = super()._from_dict(manifest, keypath, version=version, lazyload=lazyload)
+
+        if not lazyload.is_enforced:
+            # Restore dependencies
+            self._populate_deps()
+
+        return ret
+
+    def _populate_deps(self, obj: Optional[DependencySchema] = None):
+        """
+        Ensures that all loaded dependencies (like libraries) within the project
+        contain correct internal pointers back to the project's libraries.
+        This is crucial for maintaining a consistent and navigable schema graph.
+
+        Args:
+            obj (DependencySchema, optional): An optional dependency object to
+                reset and populate. If None, all existing library dependencies
+                in the project are processed. Defaults to None.
+        """
+        if obj:
+            obj._reset_deps()
+        dep_map = {name: self.get(name, field="schema") for name in self.getkeys()}
+        for obj in dep_map.values():
+            if isinstance(obj, DependencySchema):
+                obj._populate_deps(dep_map)
