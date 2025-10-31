@@ -11,7 +11,7 @@ import os.path
 
 from datetime import datetime
 
-from typing import Union, Dict, Optional, TYPE_CHECKING
+from typing import Union, Dict, Optional, Tuple, List, TYPE_CHECKING
 
 from siliconcompiler import NodeStatus
 from siliconcompiler.schema import Journal
@@ -99,7 +99,7 @@ class Scheduler:
         self.__record: "RecordSchema" = self.__project.get("record", field="schema")
         self.__metrics: "MetricSchema" = self.__project.get("metric", field="schema")
 
-        self.__tasks = {}
+        self.__tasks: Dict[Tuple[str, str], SchedulerNode] = {}
 
         # Create dummy handler
         self.__joblog_handler = logging.NullHandler()
@@ -584,32 +584,23 @@ class Scheduler:
                 with self.__tasks[(step, index)].runtime():
                     self.__tasks[(step, index)].clean_directory()
 
-    def configure_nodes(self) -> None:
-        """
-        Prepare and configure all flow nodes before execution, including loading prior run state,
-        running per-node setup, and marking nodes that require rerun.
+    def __configure_collect_previous_information(self) -> Dict[Tuple[str, str], "Project"]:
+        """Collects information from previous runs for nodes that won't be re-executed.
 
-        This method:
-        - Loads available node manifests from previous jobs and uses them to populate setup data
-          where appropriate.
-        - Runs each node's setup routine to initialize tools and runtime state.
-        - For nodes whose parameters or inputs have changed, marks them and all downstream nodes
-          as pending so they will be re-executed.
-        - Replays preserved journaled results for nodes that remain valid to reuse previous outputs.
-        - On a SchedulerFlowReset, forces a full build-directory recheck and marks every node
-          as pending.
-        - Persists the resulting manifest for the current job before returning.
+        This method identifies nodes that are marked for loading (not cleaning) and
+        are not part of the current 'from' execution path. For each of these
+        nodes, it attempts to load its manifest from a previous run.
+
+        Returns:
+            Dict[Tuple[str, str], "Project"]: A dictionary mapping (step, index)
+                tuples to their corresponding loaded Project objects from
+                previous runs.
         """
         from siliconcompiler import Project
+        self.__print_status("Start - collect")
 
-        from_nodes = []
         extra_setup_nodes = {}
-
-        journal = Journal.access(self.__project)
-        journal.start()
-
-        self.__print_status("Start")
-
+        from_nodes = []
         if self.__project.get('option', 'clean'):
             if self.__project.get("option", "from"):
                 from_nodes = self.__flow_runtime.get_entry_nodes()
@@ -628,16 +619,37 @@ class Scheduler:
                 # Node will be run so no need to load
                 continue
 
-            manifest = os.path.join(workdir(self.__project, step=step, index=index),
-                                    'outputs',
-                                    f'{self.__name}.pkg.json')
+            manifest = self.__tasks[(step, index)].get_manifest()
             if os.path.exists(manifest):
                 # ensure we setup these nodes again
                 try:
                     extra_setup_nodes[(step, index)] = Project.from_manifest(filepath=manifest)
-                except Exception:
+                except Exception as e:
+                    self.__logger.debug(f"Reading {manifest} caused: {e}")
                     pass
 
+        self.__print_status("End - collect")
+
+        return extra_setup_nodes
+
+    def __configure_run_setup(self, extra_setup_nodes: Dict[Tuple[str, str], "Project"]) -> None:
+        """Runs the setup() method for all flow nodes and forwards previous status.
+
+        This method iterates through all nodes in execution order and calls
+        their respective `setup()` methods.
+
+        It also uses the `extra_setup_nodes` to:
+        1. Prune nodes from `extra_setup_nodes` if their `setup()` method
+           returns False (indicating the node is no longer valid).
+        2. Forward the 'status' from a valid, previously-run node (found in
+           `extra_setup_nodes`) into the current job's records.
+
+        Args:
+            extra_setup_nodes (Dict[Tuple[str, str], "Project"]): A dictionary
+                of loaded Project objects from previous runs. This dictionary
+                may be modified in-place (nodes may be removed).
+        """
+        self.__print_status("Start - setup")
         # Setup tools for all nodes to run
         for layer_nodes in self.__flow.get_execution_order():
             for step, index in layer_nodes:
@@ -657,28 +669,79 @@ class Scheduler:
                     if node_status:
                         # Forward old status
                         self.__record.set('status', node_status, step=step, index=index)
+        self.__print_status("End - setup")
 
-        self.__print_status("After setup")
+    def __configure_check_run_required(self) -> List[Tuple[str, str]]:
+        """Checks which nodes require a re-run and which can be replayed.
+
+        This method iterates through all nodes that are currently marked as
+        'SUCCESS' (typically from a previous run). It calls `requires_run()`
+        on each to determine if inputs, parameters, or other dependencies
+        have changed.
+
+        - If `requires_run()` is True, the node is marked as 'pending' (and
+          will be re-executed).
+        - If `requires_run()` is False, the node is added to the 'replay' list,
+          indicating its previous results can be reused.
+
+        Returns:
+            List[Tuple[str, str]]: A list of (step, index) tuples for nodes
+                that do *not* require a re-run and whose results can be
+                replayed from the journal.
+        """
+        self.__print_status("Start - check")
+
+        replay: List[Tuple[str, str]] = []
+
+        for layer_nodes in self.__flow.get_execution_order():
+            for step, index in layer_nodes:
+                # Only look at successful nodes
+                if self.__record.get("status", step=step, index=index) != NodeStatus.SUCCESS:
+                    continue
+
+                with self.__tasks[(step, index)].runtime():
+                    if self.__tasks[(step, index)].requires_run():
+                        # This node must be run
+                        self.__mark_pending(step, index)
+                    else:
+                        # import old information
+                        replay.append((step, index))
+
+        self.__print_status("End - check")
+
+        return replay
+
+    def configure_nodes(self) -> None:
+        """
+        Prepare and configure all flow nodes before execution, including loading prior run state,
+        running per-node setup, and marking nodes that require rerun.
+
+        This method:
+        - Loads available node manifests from previous jobs and uses them to populate setup data
+          where appropriate.
+        - Runs each node's setup routine to initialize tools and runtime state.
+        - For nodes whose parameters or inputs have changed, marks them and all downstream nodes
+          as pending so they will be re-executed.
+        - Replays preserved journaled results for nodes that remain valid to reuse previous outputs.
+        - On a SchedulerFlowReset, forces a full build-directory recheck and marks every node
+          as pending.
+        - Persists the resulting manifest for the current job before returning.
+        """
+        journal = Journal.access(self.__project)
+        journal.start()
+
+        extra_setup_nodes = self.__configure_collect_previous_information()
+
+        self.__configure_run_setup(extra_setup_nodes)
 
         # Check for modified information
         try:
-            replay = []
-            for layer_nodes in self.__flow.get_execution_order():
-                for step, index in layer_nodes:
-                    # Only look at successful nodes
-                    if self.__record.get("status", step=step, index=index) != NodeStatus.SUCCESS:
-                        continue
+            replay = self.__configure_check_run_required()
 
-                    with self.__tasks[(step, index)].runtime():
-                        if self.__tasks[(step, index)].requires_run():
-                            # This node must be run
-                            self.__mark_pending(step, index)
-                        elif (step, index) in extra_setup_nodes:
-                            # import old information
-                            replay.append((step, index))
             # Replay previous information
             for step, index in replay:
-                Journal.access(extra_setup_nodes[(step, index)]).replay(self.__project)
+                if (step, index) in extra_setup_nodes:
+                    Journal.access(extra_setup_nodes[(step, index)]).replay(self.__project)
         except SchedulerFlowReset:
             # Mark all nodes as pending
             self.__clean_build_dir_full(recheck=True)
@@ -686,7 +749,7 @@ class Scheduler:
             for step, index in self.__flow.get_nodes():
                 self.__mark_pending(step, index)
 
-        self.__print_status("After requires run")
+        self.__print_status("Before ensure")
 
         # Ensure all nodes are marked as pending if needed
         for layer_nodes in self.__flow_runtime.get_execution_order():
@@ -695,11 +758,13 @@ class Scheduler:
                 if NodeStatus.is_waiting(status) or NodeStatus.is_error(status):
                     self.__mark_pending(step, index)
 
-        self.__print_status("After ensure")
+        self.__print_status("FINAL")
 
+        # Write configured manifest
         os.makedirs(jobdir(self.__project), exist_ok=True)
         self.__project.write_manifest(os.path.join(jobdir(self.__project),
                                                    f"{self.__name}.pkg.json"))
+
         journal.stop()
 
     def __check_display(self) -> None:
