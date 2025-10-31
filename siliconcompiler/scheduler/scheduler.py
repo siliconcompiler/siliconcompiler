@@ -60,7 +60,7 @@ class Scheduler:
             SCRuntimeError: If the specified flow is not defined or fails validation.
         """
         self.__project = project
-        self.__logger: logging.Logger = project.logger
+        self.__logger: logging.Logger = project.logger.getChild("scheduler")
         self.__name = project.name
 
         flow = self.__project.get("option", "flow")
@@ -105,6 +105,13 @@ class Scheduler:
         self.__joblog_handler = logging.NullHandler()
         self.__org_job_name = self.__project.get("option", "jobname")
         self.__logfile = None
+
+    @property
+    def manifest(self) -> str:
+        """
+        Returns the path to the job manifest
+        """
+        return os.path.join(jobdir(self.__project), f"{self.__name}.pkg.json")
 
     @property
     def log(self) -> Union[None, str]:
@@ -286,8 +293,7 @@ class Scheduler:
             self.__project._record_history()
 
             # Record final manifest
-            filepath = os.path.join(jobdir(self.__project), f"{self.__name}.pkg.json")
-            self.__project.write_manifest(filepath)
+            self.__project.write_manifest(self.manifest)
 
             send_messages.send(self.__project, 'summary', None, None)
         finally:
@@ -374,6 +380,8 @@ class Scheduler:
         nodes = self.__flow_runtime.get_nodes()
         error = False
 
+        manifest_name = os.path.basename(self.manifest)
+
         for (step, index) in nodes:
             # Get files we receive from input nodes.
             in_nodes = self.__flow_runtime.get_node_inputs(step, index, record=self.__record)
@@ -398,9 +406,7 @@ class Scheduler:
                         inputs = []
                         continue
 
-                    design = self.__project.get("option", 'design')
-                    manifest = f'{design}.pkg.json'
-                    inputs = [inp for inp in os.listdir(in_step_out_dir) if inp != manifest]
+                    inputs = [inp for inp in os.listdir(in_step_out_dir) if inp != manifest_name]
                 else:
                     in_tool = self.__flow.get(in_step, in_index, "tool")
                     in_task = self.__flow.get(in_step, in_index, "task")
@@ -761,9 +767,8 @@ class Scheduler:
         self.__print_status("FINAL")
 
         # Write configured manifest
-        os.makedirs(jobdir(self.__project), exist_ok=True)
-        self.__project.write_manifest(os.path.join(jobdir(self.__project),
-                                                   f"{self.__name}.pkg.json"))
+        os.makedirs(os.path.dirname(self.manifest), exist_ok=True)
+        self.__project.write_manifest(self.manifest)
 
         journal.stop()
 
