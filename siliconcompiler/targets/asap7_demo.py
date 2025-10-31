@@ -3,7 +3,8 @@ from siliconcompiler import ASIC
 from siliconcompiler.flows import asicflow, synflow
 
 from lambdapdk.asap7.libs.asap7sc7p5t import ASAP7SC7p5RVT, ASAP7SC7p5SLVT, ASAP7SC7p5LVT
-from lambdapdk.asap7.libs.fakeram7 import FakeRAM7Lambdalib_SinglePort, FakeRAM7Lambdalib_DoublePort, \
+from lambdapdk.asap7.libs.fakeram7 import FakeRAM7Lambdalib_SinglePort, \
+    FakeRAM7Lambdalib_DoublePort, \
     FakeRAM7Lambdalib_TrueDoublePort
 from lambdapdk.asap7.libs.fakeio7 import FakeIO7Lambdalib_IO
 
