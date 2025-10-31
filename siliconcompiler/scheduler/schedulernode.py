@@ -120,10 +120,12 @@ class SchedulerNode:
         are directed to the correct task's schema.
         """
         prev_task = self.__task
-        with self.__task.runtime(self) as runtask:
-            self.__task = runtask
-            yield
-        self.__task = prev_task
+        try:
+            with self.__task.runtime(self) as runtask:
+                self.__task = runtask
+                yield
+        finally:
+            self.__task = prev_task
 
     @staticmethod
     def init(project: "Project") -> None:
