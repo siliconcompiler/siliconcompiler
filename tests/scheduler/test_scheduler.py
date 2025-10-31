@@ -976,3 +976,13 @@ def test_check_tool_versions_non_local_pass(gcd_nop_project, monkeypatch, caplog
         assert check_version.call_count == 2
 
     assert caplog.text == ""
+
+
+def test_manifest_path(basic_project):
+    assert Scheduler(basic_project).manifest == os.path.abspath(os.path.join(
+        "build", "testdesign", "job0", "testdesign.pkg.json"
+    ))
+
+
+def test_logger(basic_project):
+    assert Scheduler(basic_project)._Scheduler__logger is not basic_project.logger
