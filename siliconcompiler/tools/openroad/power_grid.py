@@ -19,7 +19,7 @@ class PowerGridTask(APRTask, OpenROADSTAParameter, OpenROADPSMParameter):
         self.add_parameter("psm_allow_missing_terminal_nets", "[str]",
                            "list of nets where a missing terminal is acceptable")
 
-        self.add_parameter("pdn_enable", "bool", "enable power grid generation", defvalue=True)
+        self.add_parameter("pdn_enable", "bool", "enable power grid generation", defvalue=False)
         self.add_parameter("pdn_fileset", "[(str,str)]", "power grid definition filesets")
 
     def add_openroad_powergridfileset(self, library, fileset, clobber=False):

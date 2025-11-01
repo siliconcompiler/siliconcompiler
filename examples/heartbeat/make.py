@@ -164,7 +164,7 @@ def asic(pdk: str = "freepdk45", N: str = None):
 
     # Add the necessary filesets.
     project.add_fileset("rtl")
-    project.add_fileset(f"sdc.{pdk}")
+    # project.add_fileset(f"sdc.{pdk}")
 
     # Optionally override the 'N' parameter.
     if N is not None:
@@ -172,6 +172,8 @@ def asic(pdk: str = "freepdk45", N: str = None):
 
     # Load the target, which automatically selects the default 'asicflow'.
     asic_target(project, pdk=pdk)
+
+    project.option.set_nodashboard(True)
 
     # Run the full place-and-route flow.
     project.run()
