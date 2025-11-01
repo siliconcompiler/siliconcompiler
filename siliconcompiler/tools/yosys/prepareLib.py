@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # Based on https://github.com/The-OpenROAD-Project/OpenROAD-flow-scripts/blob/84545863573a90bca3612298361adb35bf39e692/flow/util/markDontUse.py  # noqa E501
 
+import bz2
 import re
 import gzip
 import argparse  # argument parsing
@@ -12,10 +13,14 @@ def process_liberty_file(input_file, logger=None):
         logger.info(f"Opening file for replace: {input_file}")
     if input_file.endswith(".gz") or input_file.endswith(".GZ"):
         f = gzip.open(input_file, 'rt', encoding="utf-8")
+    elif input_file.endswith(".bz2") or input_file.endswith(".BZ2"):
+        f = bz2.open(input_file, 'rt', encoding="utf-8")
     else:
         f = open(input_file, encoding="utf-8")
-    content = f.read().encode("ascii", "ignore").decode("ascii")
-    f.close()
+    try:
+        content = f.read().encode("ascii", "ignore").decode("ascii")
+    finally:
+        f.close()
 
     # Yosys-abc throws an error if original_pin is found within the liberty file.
     # removing
