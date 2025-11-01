@@ -2,6 +2,7 @@ from .asap7_demo import asap7_demo
 from .freepdk45_demo import freepdk45_demo
 from .gf180_demo import gf180_demo
 from .ihp130_demo import ihp130_demo
+from .ics55_demo import ics55_demo
 from .skywater130_demo import skywater130_demo
 from .interposer_demo import interposer_demo
 
@@ -39,6 +40,8 @@ def asic_target(proj: ASIC, pdk: Optional[str] = None):
         ihp130_demo(proj)
     elif pdk == "skywater130":
         skywater130_demo(proj)
+    elif pdk == "ics55":
+        ics55_demo(proj)
     else:
         # If the PDK is not in the list of supported targets, raise an error.
         raise ValueError(f"pdk not supported: {pdk}")
