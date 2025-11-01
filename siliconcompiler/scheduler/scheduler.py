@@ -20,7 +20,7 @@ from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.scheduler import SlurmSchedulerNode
 from siliconcompiler.scheduler import DockerSchedulerNode
 from siliconcompiler.scheduler import TaskScheduler
-from siliconcompiler.scheduler.schedulernode import SchedulerFlowReset
+from siliconcompiler.scheduler.schedulernode import SchedulerFlowReset, SchedulerNodeReset
 from siliconcompiler.tool import TaskExecutableNotFound, TaskExecutableNotReceived
 
 from siliconcompiler import utils
@@ -706,12 +706,16 @@ class Scheduler:
                     continue
 
                 with self.__tasks[(step, index)].runtime():
-                    if self.__tasks[(step, index)].requires_run():
-                        # This node must be run
-                        self.__mark_pending(step, index)
-                    else:
+                    try:
+                        self.__tasks[(step, index)].requires_run()
+
                         # import old information
                         replay.append((step, index))
+                    except SchedulerNodeReset as e:
+                        if not e.silent():
+                            self.__logger.warning(e.msg)
+                        # This node must be run
+                        self.__mark_pending(step, index)
 
         self.__print_status("End - check")
 
