@@ -20,7 +20,8 @@ from siliconcompiler.tools.builtin.join import JoinTask
 from scheduler.tools.echo import EchoTask
 
 from siliconcompiler.scheduler import SchedulerNode
-from siliconcompiler.scheduler.schedulernode import SchedulerFlowReset
+from siliconcompiler.scheduler.schedulernode import SchedulerFlowReset, \
+    SchedulerNodeReset, SchedulerNodeResetSilent
 from siliconcompiler.utils.paths import jobdir, workdir
 
 
@@ -358,8 +359,8 @@ def test_check_values_changed_no_change(project):
 
     node = SchedulerNode(project, "steptwo", "0")
     with node.runtime():
-        assert node.check_values_changed(
-            node, [('library', 'testdesign', 'fileset', 'rtl', 'param', 'N')]) is False
+        node.check_values_changed(
+            node, [('library', 'testdesign', 'fileset', 'rtl', 'param', 'N')])
 
 
 def test_check_values_changed_change(project, monkeypatch, caplog):
@@ -375,10 +376,11 @@ def test_check_values_changed_change(project, monkeypatch, caplog):
     other = SchedulerNode(other_project, "steptwo", "0")
 
     with node.runtime(), other.runtime():
-        assert node.check_values_changed(
-            other, [('library', 'testdesign', 'fileset', 'rtl', 'param', 'N')]) is True
-    assert "[library,testdesign,fileset,rtl,param,N] in steptwo/0 has been modified from " \
-        "previous run" in caplog.text
+        with pytest.raises(SchedulerNodeReset,
+                           match=r"^\[library,testdesign,fileset,rtl,param,N\] in steptwo/0 "
+                                 r"has been modified from previous run$"):
+            node.check_values_changed(
+                other, [('library', 'testdesign', 'fileset', 'rtl', 'param', 'N')])
 
 
 def test_check_values_changed_change_missing(project, monkeypatch, caplog):
@@ -387,11 +389,13 @@ def test_check_values_changed_change_missing(project, monkeypatch, caplog):
 
     node = SchedulerNode(project, "steptwo", "0")
     with node.runtime():
-        assert node.check_values_changed(node, [("option", "params", "N")]) is True
-    assert "[option,params,N] in steptwo/0 has been modified from previous run" in caplog.text
+        with pytest.raises(SchedulerNodeReset,
+                           match=r"^\[option,params,N\] in steptwo/0 has been modified "
+                                 r"from previous run$"):
+            node.check_values_changed(node, [("option", "params", "N")])
 
 
-def test_check_previous_run_status_flow(project, monkeypatch):
+def test_check_previous_run_status_flow(project):
     node = SchedulerNode(project, "steptwo", "0")
     flow = Flowgraph("testflow0")
     flow.node("stepone", NOPTask())
@@ -403,13 +407,11 @@ def test_check_previous_run_status_flow(project, monkeypatch):
     node_other = SchedulerNode(project, "steptwo", "0")
     with node.runtime(), node_other.runtime():
         with pytest.raises(SchedulerFlowReset,
-                           match="^Flow name changed, require full reset$"):
+                           match=r"^Flow name changed, require full reset$"):
             node.check_previous_run_status(node_other)
 
 
-def test_check_previous_run_status_tool(project, monkeypatch, caplog):
-    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
-    project.logger.setLevel(logging.DEBUG)
+def test_check_previous_run_status_tool(project):
     node = SchedulerNode(project, "steptwo", "0")
     flow = Flowgraph("testflow")
     flow.node("stepone", NOPTask())
@@ -421,13 +423,12 @@ def test_check_previous_run_status_tool(project, monkeypatch, caplog):
     node_other = SchedulerNode(project, "steptwo", "0")
 
     with node.runtime(), node_other.runtime():
-        assert node.check_previous_run_status(node_other) is False
-    assert "Tool name changed" in caplog.text
+        with pytest.raises(SchedulerNodeResetSilent,
+                           match=r"^Tool name changed$"):
+            node.check_previous_run_status(node_other)
 
 
-def test_check_previous_run_status_task(project, monkeypatch, caplog):
-    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
-    project.logger.setLevel(logging.DEBUG)
+def test_check_previous_run_status_task(project):
     node = SchedulerNode(project, "steptwo", "0")
 
     flow = Flowgraph("testflow")
@@ -441,38 +442,32 @@ def test_check_previous_run_status_task(project, monkeypatch, caplog):
     node_other = SchedulerNode(project, "steptwo", "0")
 
     with node.runtime(), node_other.runtime():
-        assert node.check_previous_run_status(node_other) is False
-    assert "Task name changed" in caplog.text
+        with pytest.raises(SchedulerNodeResetSilent,
+                           match=r"^Task name changed$"):
+            node.check_previous_run_status(node_other)
 
 
-def test_check_previous_run_status_running(project, monkeypatch, caplog):
-    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
-    project.logger.setLevel(logging.DEBUG)
-
+def test_check_previous_run_status_running(project):
     project.set("record", "status", NodeStatus.RUNNING, step="steptwo", index="0")
 
     node = SchedulerNode(project, "steptwo", "0")
     with node.runtime():
-        assert node.check_previous_run_status(node) is False
-    assert "Previous step did not complete" in caplog.text
+        with pytest.raises(SchedulerNodeResetSilent,
+                           match=r"^Previous step did not complete$"):
+            node.check_previous_run_status(node)
 
 
-def test_check_previous_run_status_failed(project, monkeypatch, caplog):
-    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
-    project.logger.setLevel(logging.DEBUG)
-
+def test_check_previous_run_status_failed(project):
     project.set("record", "status", NodeStatus.ERROR, step="steptwo", index="0")
 
     node = SchedulerNode(project, "steptwo", "0")
     with node.runtime():
-        assert node.check_previous_run_status(node) is False
-    assert "Previous step was not successful" in caplog.text
+        with pytest.raises(SchedulerNodeResetSilent,
+                           match=r"^Previous step was not successful$"):
+            node.check_previous_run_status(node)
 
 
-def test_check_previous_run_status_inputs_changed(project, monkeypatch, caplog):
-    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
-    project.logger.setLevel(logging.INFO)
-
+def test_check_previous_run_status_inputs_changed(project, monkeypatch):
     project.set("record", "status", NodeStatus.SUCCESS, step="steptwo", index="0")
     project.set("record", "inputnode", [("stepone", "0")], step="steptwo", index="0")
 
@@ -483,8 +478,9 @@ def test_check_previous_run_status_inputs_changed(project, monkeypatch, caplog):
     monkeypatch.setattr(node.task, "select_input_nodes", dummy_select)
 
     with node.runtime():
-        assert node.check_previous_run_status(node) is False
-    assert "inputs to steptwo/0 has been modified from previous run" in caplog.text
+        with pytest.raises(SchedulerNodeReset,
+                           match=r"^inputs to steptwo/0 has been modified from previous run$"):
+            node.check_previous_run_status(node)
 
 
 def test_check_previous_run_status_no_change(project, monkeypatch):
@@ -497,7 +493,7 @@ def test_check_previous_run_status_no_change(project, monkeypatch):
     monkeypatch.setattr(node.task, "select_input_nodes", dummy_select)
 
     with node.runtime():
-        assert node.check_previous_run_status(node) is True
+        node.check_previous_run_status(node)
 
 
 def test_check_files_changed_timestamp_no_change(project):
@@ -509,14 +505,11 @@ def test_check_files_changed_timestamp_no_change(project):
 
     node = SchedulerNode(project, "steptwo", "0")
     with node.runtime():
-        assert node.check_files_changed(
-            node, now, [("library", "testdesign", "fileset", "rtl", "file", "verilog")]) is False
+        node.check_files_changed(
+            node, now, [("library", "testdesign", "fileset", "rtl", "file", "verilog")])
 
 
-def test_check_files_changed_timestamp(project, monkeypatch, caplog):
-    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
-    project.logger.setLevel(logging.INFO)
-
+def test_check_files_changed_timestamp(project):
     now = time.time() - 1
 
     with open("testfile.txt", "w") as f:
@@ -526,10 +519,11 @@ def test_check_files_changed_timestamp(project, monkeypatch, caplog):
 
     node = SchedulerNode(project, "steptwo", "0")
     with node.runtime():
-        assert node.check_files_changed(
-            node, now, [("library", "testdesign", "fileset", "rtl", "file", "verilog")]) is True
-    assert "[library,testdesign,fileset,rtl,file,verilog] (timestamp) in steptwo/0 has been " \
-        "modified from previous run" in caplog.text
+        with pytest.raises(SchedulerNodeReset,
+                           match=r"^\[library,testdesign,fileset,rtl,file,verilog\] \(timestamp\) "
+                                 r"in steptwo/0 has been modified from previous run$"):
+            node.check_files_changed(
+                node, now, [("library", "testdesign", "fileset", "rtl", "file", "verilog")])
 
 
 def test_check_files_changed_directory(project):
@@ -544,14 +538,11 @@ def test_check_files_changed_directory(project):
 
     node = SchedulerNode(project, "steptwo", "0")
     with node.runtime():
-        assert node.check_files_changed(
-            node, now, [("library", "testdesign", "fileset", "rtl", "idir")]) is False
+        node.check_files_changed(
+            node, now, [("library", "testdesign", "fileset", "rtl", "idir")])
 
 
-def test_check_files_changed_timestamp_directory(project, monkeypatch, caplog):
-    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
-    project.logger.setLevel(logging.INFO)
-
+def test_check_files_changed_timestamp_directory(project):
     now = time.time() - 1
 
     os.makedirs("testdir", exist_ok=True)
@@ -562,16 +553,14 @@ def test_check_files_changed_timestamp_directory(project, monkeypatch, caplog):
     project.set("library", "testdesign", "fileset", "rtl", "idir", "testdir")
     node = SchedulerNode(project, "steptwo", "0")
     with node.runtime():
-        assert node.check_files_changed(
-            node, now, [("library", "testdesign", "fileset", "rtl", "idir")]) is True
-    assert "[library,testdesign,fileset,rtl,idir] (timestamp) in steptwo/0 has been modified " \
-        "from previous run" in caplog.text
+        with pytest.raises(SchedulerNodeReset,
+                           match=r"^\[library,testdesign,fileset,rtl,idir\] \(timestamp\) "
+                                 r"in steptwo/0 has been modified from previous run$"):
+            node.check_files_changed(
+                node, now, [("library", "testdesign", "fileset", "rtl", "idir")])
 
 
-def test_check_files_changed_package(project, monkeypatch, caplog):
-    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
-    project.logger.setLevel(logging.INFO)
-
+def test_check_files_changed_package(project):
     now = time.time() - 1
 
     with open("testfile.txt", "w") as f:
@@ -587,17 +576,15 @@ def test_check_files_changed_package(project, monkeypatch, caplog):
         project.design.set("fileset", "rtl", "file", "verilog", "testfile.txt")
 
     with node.runtime(), node_other.runtime():
-        assert node.check_files_changed(
-            node_other, now,
-            [("library", "testdesign", "fileset", "rtl", "file", "verilog")]) is True
-    assert "[library,testdesign,fileset,rtl,file,verilog] (file dataroot) in steptwo/0 has " \
-        "been modified from previous run" in caplog.text
+        with pytest.raises(SchedulerNodeReset,
+                           match=r"^\[library,testdesign,fileset,rtl,file,verilog\] \(file "
+                                 r"dataroot\) in steptwo/0 has been modified from previous run$"):
+            node.check_files_changed(
+                node_other, now,
+                [("library", "testdesign", "fileset", "rtl", "file", "verilog")])
 
 
-def test_check_files_changed_timestamp_current_hash(project, monkeypatch, caplog):
-    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
-    project.logger.setLevel(logging.INFO)
-
+def test_check_files_changed_timestamp_current_hash(project):
     now = time.time() - 1
 
     with open("testfile.txt", "w") as f:
@@ -610,17 +597,15 @@ def test_check_files_changed_timestamp_current_hash(project, monkeypatch, caplog
     project.set("option", "hash", True)
     node = SchedulerNode(project, "steptwo", "0")
     with node.runtime(), node_other.runtime():
-        assert node.check_files_changed(
-            node_other, now,
-            [("library", "testdesign", "fileset", "rtl", "file", "verilog")]) is True
-    assert "[library,testdesign,fileset,rtl,file,verilog] (timestamp) in steptwo/0 has been " \
-        "modified from previous run" in caplog.text
+        with pytest.raises(SchedulerNodeReset,
+                           match=r"^\[library,testdesign,fileset,rtl,file,verilog\] \(timestamp\) "
+                                 r"in steptwo/0 has been modified from previous run$"):
+            node.check_files_changed(
+                node_other, now,
+                [("library", "testdesign", "fileset", "rtl", "file", "verilog")])
 
 
-def test_check_files_changed_timestamp_previous_hash(project, monkeypatch, caplog):
-    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
-    project.logger.setLevel(logging.INFO)
-
+def test_check_files_changed_timestamp_previous_hash(project):
     now = time.time() - 1
 
     with open("testfile.txt", "w") as f:
@@ -634,11 +619,12 @@ def test_check_files_changed_timestamp_previous_hash(project, monkeypatch, caplo
     node_other = SchedulerNode(project, "steptwo", "0")
 
     with node.runtime(), node_other.runtime():
-        assert node.check_files_changed(
-            node_other, now,
-            [("library", "testdesign", "fileset", "rtl", "file", "verilog")]) is True
-    assert "[library,testdesign,fileset,rtl,file,verilog] (timestamp) in steptwo/0 has been " \
-        "modified from previous run" in caplog.text
+        with pytest.raises(SchedulerNodeReset,
+                           match=r"^\[library,testdesign,fileset,rtl,file,verilog\] \(timestamp\) "
+                                 r"in steptwo/0 has been modified from previous run$"):
+            node.check_files_changed(
+                node_other, now,
+                [("library", "testdesign", "fileset", "rtl", "file", "verilog")])
 
 
 def test_check_files_changed_hash_no_change(project):
@@ -657,14 +643,11 @@ def test_check_files_changed_hash_no_change(project):
     node_other = SchedulerNode(other_project, "steptwo", "0")
 
     with node.runtime(), node_other.runtime():
-        assert node.check_files_changed(
-            node_other, now, [("library", "testdesign", "fileset", "rtl", "idir")]) is False
+        node.check_files_changed(
+            node_other, now, [("library", "testdesign", "fileset", "rtl", "idir")])
 
 
-def test_check_files_changed_hash_directory(project, monkeypatch, caplog):
-    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
-    project.logger.setLevel(logging.INFO)
-
+def test_check_files_changed_hash_directory(project):
     now = time.time() - 1
 
     os.makedirs("testdir", exist_ok=True)
@@ -685,47 +668,40 @@ def test_check_files_changed_hash_directory(project, monkeypatch, caplog):
     node_other = SchedulerNode(other_project, "steptwo", "0")
 
     with node.runtime(), node_other.runtime():
-        assert node.check_files_changed(
-            node_other, now, [("library", "testdesign", "fileset", "rtl", "idir")]) is True
-    assert "[library,testdesign,fileset,rtl,idir] (file hash) in steptwo/0 has been modified " \
-        "from previous run" in caplog.text
+        with pytest.raises(SchedulerNodeReset,
+                           match=r"^\[library,testdesign,fileset,rtl,idir\] \(file hash\) "
+                                 r"in steptwo/0 has been modified from previous run$"):
+            node.check_files_changed(
+                node_other, now, [("library", "testdesign", "fileset", "rtl", "idir")])
 
 
-def test_requires_run_breakpoint(project, monkeypatch, caplog):
-    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
-    project.logger.setLevel(logging.DEBUG)
-
+def test_requires_run_breakpoint(project):
     assert project.set("option", "breakpoint", True, step="steptwo")
 
     node = SchedulerNode(project, "steptwo", "0")
 
-    assert node.requires_run() is True
-    assert "Breakpoint is set" in caplog.text
+    with pytest.raises(SchedulerNodeResetSilent,
+                       match=r"^Breakpoint is set on steptwo/0$"):
+        node.requires_run()
 
 
-def test_requires_run_fail_input(project, monkeypatch, caplog):
-    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
-    project.logger.setLevel(logging.DEBUG)
-
+def test_requires_run_fail_input(project):
     node = SchedulerNode(project, "steptwo", "0")
 
-    assert node.requires_run() is True
-    assert "Previous run did not generate input manifest" in \
-        caplog.text
+    with pytest.raises(SchedulerNodeResetSilent,
+                       match=r"^Previous run did not generate input manifest$"):
+        node.requires_run()
 
 
-def test_requires_run_fail_output(project, monkeypatch, caplog):
-    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
-    project.logger.setLevel(logging.DEBUG)
-
+def test_requires_run_fail_output(project):
     node = SchedulerNode(project, "steptwo", "0")
 
     os.makedirs(os.path.dirname(node.get_manifest(input=True)))
     project.write_manifest(node.get_manifest(input=True))
 
-    assert node.requires_run() is True
-    assert "Previous run did not generate output manifest" in \
-        caplog.text
+    with pytest.raises(SchedulerNodeResetSilent,
+                       match=r"^Previous run did not generate output manifest$"):
+        node.requires_run()
 
 
 def test_requires_run_all_pass(project, monkeypatch):
@@ -744,7 +720,7 @@ def test_requires_run_all_pass(project, monkeypatch):
         return True
     monkeypatch.setattr(node, "check_previous_run_status", dummy_check_previous_run_status)
 
-    assert node.requires_run() is False
+    node.requires_run()
 
 
 def test_requires_run_all_input_corrupt(project, monkeypatch, caplog):
@@ -757,8 +733,9 @@ def test_requires_run_all_input_corrupt(project, monkeypatch, caplog):
     with open(node.get_manifest(input=True), "w") as f:
         f.write("this is not a json file")
 
-    assert node.requires_run() is True
-    assert "Input manifest failed to load" in caplog.text
+    with pytest.raises(SchedulerNodeResetSilent,
+                       match=r"^Input manifest failed to load$"):
+        node.requires_run()
 
 
 def test_requires_run_all_output_corrupt(project, monkeypatch, caplog):
@@ -774,33 +751,12 @@ def test_requires_run_all_output_corrupt(project, monkeypatch, caplog):
     with open(node.get_manifest(), "w") as f:
         f.write("this is not a json file")
 
-    assert node.requires_run() is True
-    assert "Output manifest failed to load" in caplog.text
+    with pytest.raises(SchedulerNodeResetSilent,
+                       match=r"^Output manifest failed to load$"):
+        node.requires_run()
 
 
-def test_requires_run_all_state_failed(project, monkeypatch, caplog):
-    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
-    project.logger.setLevel(logging.DEBUG)
-
-    node = SchedulerNode(project, "steptwo", "0")
-
-    os.makedirs(os.path.dirname(node.get_manifest(input=True)))
-    project.write_manifest(node.get_manifest(input=True))
-    os.makedirs(os.path.dirname(node.get_manifest()))
-    project.write_manifest(node.get_manifest())
-
-    def dummy_check_previous_run_status(*args):
-        return False
-    monkeypatch.setattr(node, "check_previous_run_status", dummy_check_previous_run_status)
-
-    assert node.requires_run() is True
-    assert "Previous run state failed" in caplog.text
-
-
-def test_requires_run_all_keys_failed(project, monkeypatch, caplog):
-    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
-    project.logger.setLevel(logging.DEBUG)
-
+def test_requires_run_all_keys_failed(project, monkeypatch):
     node = SchedulerNode(project, "steptwo", "0")
 
     os.makedirs(os.path.dirname(node.get_manifest(input=True)))
@@ -816,66 +772,8 @@ def test_requires_run_all_keys_failed(project, monkeypatch, caplog):
         raise KeyError
     monkeypatch.setattr(node, "get_check_changed_keys", dummy_get_check_changed_keys)
 
-    assert node.requires_run() is True
-    assert "Failed to acquire keys" in caplog.text
-
-
-def test_requires_run_all_values_changed(project, monkeypatch, caplog):
-    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
-    project.logger.setLevel(logging.DEBUG)
-
-    node = SchedulerNode(project, "steptwo", "0")
-
-    os.makedirs(os.path.dirname(node.get_manifest(input=True)))
-    project.write_manifest(node.get_manifest(input=True))
-    os.makedirs(os.path.dirname(node.get_manifest()))
-    project.write_manifest(node.get_manifest())
-
-    def dummy_check_previous_run_status(*args):
-        return True
-    monkeypatch.setattr(node, "check_previous_run_status", dummy_check_previous_run_status)
-
-    def dummy_get_check_changed_keys(*args):
-        return set(), set()
-    monkeypatch.setattr(node, "get_check_changed_keys", dummy_get_check_changed_keys)
-
-    def dummy_check_values_changed(*args):
-        return True
-    monkeypatch.setattr(node, "check_values_changed", dummy_check_values_changed)
-
-    assert node.requires_run() is True
-    assert "Key values changed" in caplog.text
-
-
-def test_requires_run_all_files_changed(project, monkeypatch, caplog):
-    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
-    project.logger.setLevel(logging.DEBUG)
-
-    node = SchedulerNode(project, "steptwo", "0")
-
-    os.makedirs(os.path.dirname(node.get_manifest(input=True)))
-    project.write_manifest(node.get_manifest(input=True))
-    os.makedirs(os.path.dirname(node.get_manifest()))
-    project.write_manifest(node.get_manifest())
-
-    def dummy_check_previous_run_status(*args):
-        return True
-    monkeypatch.setattr(node, "check_previous_run_status", dummy_check_previous_run_status)
-
-    def dummy_get_check_changed_keys(*args):
-        return set(), set()
-    monkeypatch.setattr(node, "get_check_changed_keys", dummy_get_check_changed_keys)
-
-    def dummy_check_values_changed(*args):
-        return False
-    monkeypatch.setattr(node, "check_values_changed", dummy_check_values_changed)
-
-    def dummy_check_files_changed(*args):
-        return True
-    monkeypatch.setattr(node, "check_files_changed", dummy_check_files_changed)
-
-    assert node.requires_run() is True
-    assert "Files changed" in caplog.text
+    with pytest.raises(SchedulerNodeResetSilent, match=r"^Failed to acquire keys$"):
+        node.requires_run()
 
 
 def test_check_logfile(project, datadir, monkeypatch, caplog):
@@ -1683,10 +1581,7 @@ def test_check_previous_run_status_same_flow_name_passes(project, monkeypatch):
 
     # Same flow should not raise SchedulerFlowReset
     with node.runtime():
-        result = node.check_previous_run_status(node)
-
-    # Should return True (no changes detected)
-    assert result is True
+        node.check_previous_run_status(node)
 
 
 def test_check_previous_run_status_flow_name_case_sensitive(project):
@@ -1729,47 +1624,34 @@ def test_check_previous_run_status_flow_name_with_special_chars(project):
             node.check_previous_run_status(node_other)
 
 
-def test_check_previous_run_status_preserves_other_error_paths(project, monkeypatch, caplog):
+def test_check_previous_run_status_preserves_other_error_paths(project):
     """Test that check_previous_run_status still returns False for non-flow errors."""
-    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
-    project.logger.setLevel(logging.DEBUG)
-
     # Set up node with RUNNING status (should still return False, not raise)
     project.set("record", "status", NodeStatus.RUNNING, step="steptwo", index="0")
 
     node = SchedulerNode(project, "steptwo", "0")
 
     with node.runtime():
-        result = node.check_previous_run_status(node)
-
-    # Should return False (not raise exception)
-    assert result is False
-    assert "Previous step did not complete" in caplog.text
+        with pytest.raises(SchedulerNodeResetSilent,
+                           match=r"^Previous step did not complete$"):
+            node.check_previous_run_status(node)
 
 
-def test_check_previous_run_status_error_status_returns_false(project, monkeypatch, caplog):
+def test_check_previous_run_status_error_status_returns_false(project):
     """Test that check_previous_run_status returns False for ERROR status."""
-    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
-    project.logger.setLevel(logging.DEBUG)
-
     # Set up node with ERROR status
     project.set("record", "status", NodeStatus.ERROR, step="steptwo", index="0")
 
     node = SchedulerNode(project, "steptwo", "0")
 
     with node.runtime():
-        result = node.check_previous_run_status(node)
-
-    # Should return False (not raise exception)
-    assert result is False
-    assert "Previous step was not successful" in caplog.text
+        with pytest.raises(SchedulerNodeResetSilent,
+                           match=r"^Previous step was not successful$"):
+            node.check_previous_run_status(node)
 
 
-def test_check_previous_run_status_tool_change_returns_false(project, monkeypatch, caplog):
+def test_check_previous_run_status_tool_change_returns_false(project):
     """Test that check_previous_run_status returns False when tool changes."""
-    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
-    project.logger.setLevel(logging.DEBUG)
-
     node = SchedulerNode(project, "steptwo", "0")
 
     # Create flow with different task (different tool)
@@ -1784,11 +1666,9 @@ def test_check_previous_run_status_tool_change_returns_false(project, monkeypatc
     node_other = SchedulerNode(other_project, "steptwo", "0")
 
     with node.runtime(), node_other.runtime():
-        result = node.check_previous_run_status(node_other)
-
-    # Should return False (not raise exception) since only tool changed
-    assert result is False
-    assert "Tool name changed" in caplog.text
+        with pytest.raises(SchedulerNodeResetSilent,
+                           match=r"^Tool name changed$"):
+            node.check_previous_run_status(node_other)
 
 
 def test_check_previous_run_status_combined_flow_and_tool_change(project):
@@ -1813,11 +1693,8 @@ def test_check_previous_run_status_combined_flow_and_tool_change(project):
             node.check_previous_run_status(node_other)
 
 
-def test_check_previous_run_status_input_nodes_change_returns_false(project, monkeypatch, caplog):
+def test_check_previous_run_status_input_nodes_change_returns_false(project, monkeypatch):
     """Test that check_previous_run_status returns False when input nodes change."""
-    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
-    project.logger.setLevel(logging.INFO)
-
     project.set("record", "status", NodeStatus.SUCCESS, step="steptwo", index="0")
     project.set("record", "inputnode", [("stepone", "0")], step="steptwo", index="0")
 
@@ -1829,11 +1706,9 @@ def test_check_previous_run_status_input_nodes_change_returns_false(project, mon
     monkeypatch.setattr(node.task, "select_input_nodes", dummy_select)
 
     with node.runtime():
-        result = node.check_previous_run_status(node)
-
-    # Should return False (not raise exception)
-    assert result is False
-    assert "inputs to steptwo/0 has been modified from previous run" in caplog.text
+        with pytest.raises(SchedulerNodeReset,
+                           match=r"^inputs to steptwo/0 has been modified from previous run$"):
+            node.check_previous_run_status(node)
 
 
 def test_scheduler_flow_reset_message_format():
@@ -1946,8 +1821,7 @@ def test_check_previous_run_status_preserves_success_path(project, monkeypatch):
 
     with node.runtime():
         # Should succeed without raising exception
-        result = node.check_previous_run_status(node)
-        assert result is True
+        node.check_previous_run_status(node)
 
 
 @pytest.mark.timeout(180)
@@ -2110,3 +1984,16 @@ def test_check_version_nocheck(project):
         get_exe_version.assert_not_called()
         check_exe_version.assert_not_called()
         set_env.assert_not_called()
+
+
+@pytest.mark.parametrize("reset", (SchedulerNodeReset, SchedulerNodeResetSilent))
+def test_scheduler_reset_except_msg(reset):
+    assert reset("this msg").msg == "this msg"
+
+
+def test_scheduler_reset_except():
+    assert SchedulerNodeReset("").silent() is False
+
+
+def test_scheduler_reset_silent_except():
+    assert SchedulerNodeResetSilent("").silent() is True
