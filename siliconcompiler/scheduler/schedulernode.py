@@ -34,6 +34,27 @@ class SchedulerFlowReset(Exception):
     pass
 
 
+class SchedulerNodeReset(Exception):
+    def __init__(self, msg: str, *args: object) -> None:
+        super().__init__(msg, *args)
+        self.__msg = msg
+
+    @property
+    def msg(self) -> str:
+        return self.__msg
+
+    def silent(self) -> bool:
+        return False
+
+
+class SchedulerNodeResetSilent(SchedulerNodeReset):
+    def __init__(self, msg: str, *args: object) -> None:
+        super().__init__(msg, *args)
+
+    def silent(self) -> bool:
+        return True
+
+
 class SchedulerNode:
     """
     A class for managing and executing a single node in the compilation flow graph.
@@ -384,7 +405,7 @@ class SchedulerNode:
 
             return True
 
-    def check_previous_run_status(self, previous_run: "SchedulerNode") -> bool:
+    def check_previous_run_status(self, previous_run: "SchedulerNode") -> None:
         """
         Determine whether a prior run is compatible and completed successfully for use as
         an incremental build starting point.
@@ -408,25 +429,19 @@ class SchedulerNode:
 
         # Tool name
         if self.__task.tool() != previous_run.__task.tool():
-            self.logger.debug("Tool name changed")
-            return False
+            raise SchedulerNodeResetSilent("Tool name changed")
 
         # Task name
         if self.__task.task() != previous_run.__task.task():
-            self.logger.debug("Task name changed")
-            return False
+            raise SchedulerNodeResetSilent("Task name changed")
 
         previous_status = previous_run.__project.get("record", "status",
                                                      step=self.__step, index=self.__index)
         if not NodeStatus.is_done(previous_status):
-            self.logger.debug("Previous step did not complete")
-            # Not complete
-            return False
+            raise SchedulerNodeResetSilent("Previous step did not complete")
 
         if not NodeStatus.is_success(previous_status):
-            self.logger.debug("Previous step was not successful")
-            # Not a success
-            return False
+            raise SchedulerNodeResetSilent("Previous step was not successful")
 
         # Check input nodes
         log_level = self.logger.level
@@ -435,16 +450,11 @@ class SchedulerNode:
         self.logger.setLevel(log_level)
         if set(previous_run.__project.get("record", "inputnode",
                                           step=self.__step, index=self.__index)) != set(sel_inputs):
-            self.logger.warning(f'inputs to {self.__step}/{self.__index} has been modified from '
-                                'previous run')
-            return False
-
-        # Check that all output files are present?
-
-        return True
+            raise SchedulerNodeReset(f'inputs to {self.__step}/{self.__index} has been modified from '
+                                     'previous run')
 
     def check_values_changed(self, previous_run: "SchedulerNode", keys: Set[Tuple[str, ...]]) \
-            -> bool:
+            -> None:
         """
         Checks if any specified schema parameter values have changed.
 
@@ -455,15 +465,14 @@ class SchedulerNode:
         Returns:
             bool: True if any value has changed, False otherwise.
         """
-        def print_warning(key):
-            self.logger.warning(f'[{",".join(key)}] in {self.__step}/{self.__index} has been '
-                                'modified from previous run')
+        def gen_reset(key):
+            raise SchedulerNodeReset(f'[{",".join(key)}] in {self.__step}/{self.__index} has been '
+                                     'modified from previous run')
 
         for key in sorted(keys):
             if not self.__project.valid(*key) or not previous_run.__project.valid(*key):
                 # Key is missing in either run
-                print_warning(key)
-                return True
+                gen_reset(key)
 
             param = self.__project.get(*key, field=None)
             step, index = self.__step, self.__index
@@ -474,13 +483,10 @@ class SchedulerNode:
             prev_val = previous_run.__project.get(*key, step=step, index=index)
 
             if check_val != prev_val:
-                print_warning(key)
-                return True
-
-        return False
+                gen_reset(key)
 
     def check_files_changed(self, previous_run: "SchedulerNode",
-                            previous_time: float, keys: Set[Tuple[str, ...]]) -> bool:
+                            previous_time: float, keys: Set[Tuple[str, ...]]) -> None:
         """
         Checks if any specified file-based parameters have changed.
 
@@ -496,9 +502,9 @@ class SchedulerNode:
         """
         use_hash = self.__hash and previous_run.__hash
 
-        def print_warning(key, reason):
-            self.logger.warning(f'[{",".join(key)}] ({reason}) in {self.__step}/{self.__index} has '
-                                'been modified from previous run')
+        def gen_warning(key, reason):
+            raise SchedulerNodeReset(f'[{",".join(key)}] ({reason}) in {self.__step}/{self.__index} has '
+                                     'been modified from previous run')
 
         def get_file_time(path):
             times = [os.path.getmtime(path)]
@@ -523,8 +529,7 @@ class SchedulerNode:
                                                        step=step, index=index)
 
                 if check_hash != prev_hash:
-                    print_warning(key, "file hash")
-                    return True
+                    gen_warning(key, "file hash")
             else:
                 # check package values
                 check_val = self.__project.get(*key, field='dataroot',
@@ -533,8 +538,7 @@ class SchedulerNode:
                                                       step=step, index=index)
 
                 if check_val != prev_val:
-                    print_warning(key, "file dataroot")
-                    return True
+                    gen_warning(key, "file dataroot")
 
                 files = self.__project.find_files(*key, step=step, index=index)
                 if not isinstance(files, (list, set, tuple)):
@@ -542,10 +546,7 @@ class SchedulerNode:
 
                 for check_file in files:
                     if get_file_time(check_file) > previous_time:
-                        print_warning(key, "timestamp")
-                        return True
-
-        return False
+                        gen_warning(key, "timestamp")
 
     def get_check_changed_keys(self) -> Tuple[Set[Tuple[str, ...]], Set[Tuple[str, ...]]]:
         """
@@ -587,7 +588,7 @@ class SchedulerNode:
 
         return value_keys, path_keys
 
-    def requires_run(self) -> bool:
+    def requires_run(self) -> None:
         """
         Determines if the node needs to be re-run.
 
@@ -603,8 +604,7 @@ class SchedulerNode:
 
         if self.__breakpoint:
             # Breakpoint is set to must run
-            self.logger.debug("Breakpoint is set")
-            return True
+            raise SchedulerNodeResetSilent(f"Breakpoint is set on {self.__step}/{self.__index}")
 
         # Load previous manifest
         previous_node = None
@@ -614,33 +614,27 @@ class SchedulerNode:
             try:
                 i_project: Project = Project.from_manifest(filepath=self.__manifests["input"])
             except:  # noqa E722
-                self.logger.debug("Input manifest failed to load")
-                return True
+                raise SchedulerNodeResetSilent("Input manifest failed to load")
             previous_node = SchedulerNode(i_project, self.__step, self.__index)
         else:
             # No manifest found so assume rerun is needed
-            self.logger.debug("Previous run did not generate input manifest")
-            return True
+            raise SchedulerNodeResetSilent("Previous run did not generate input manifest")
 
         previous_node_end = None
         if os.path.exists(self.__manifests["output"]):
             try:
                 o_project = Project.from_manifest(filepath=self.__manifests["output"])
             except:  # noqa E722
-                self.logger.debug("Output manifest failed to load")
-                return True
+                raise SchedulerNodeResetSilent("Output manifest failed to load")
             previous_node_end = SchedulerNode(o_project, self.__step, self.__index)
         else:
             # No manifest found so assume rerun is needed
-            self.logger.debug("Previous run did not generate output manifest")
-            return True
+            raise SchedulerNodeResetSilent("Previous run did not generate output manifest")
 
         with self.runtime():
             if previous_node_end:
                 with previous_node_end.runtime():
-                    if not self.check_previous_run_status(previous_node_end):
-                        self.logger.debug("Previous run state failed")
-                        return True
+                    self.check_previous_run_status(previous_node_end)
 
             if previous_node:
                 with previous_node.runtime():
@@ -652,18 +646,10 @@ class SchedulerNode:
                         value_keys.update(previous_value_keys)
                         path_keys.update(previous_path_keys)
                     except KeyError:
-                        self.logger.debug("Failed to acquire keys")
-                        return True
+                        raise SchedulerNodeResetSilent("Failed to acquire keys")
 
-                    if self.check_values_changed(previous_node, value_keys.union(path_keys)):
-                        self.logger.debug("Key values changed")
-                        return True
-
-                    if self.check_files_changed(previous_node, previous_node_time, path_keys):
-                        self.logger.debug("Files changed")
-                        return True
-
-        return False
+                    self.check_values_changed(previous_node, value_keys.union(path_keys))
+                    self.check_files_changed(previous_node, previous_node_time, path_keys)
 
     def setup_input_directory(self) -> None:
         """
