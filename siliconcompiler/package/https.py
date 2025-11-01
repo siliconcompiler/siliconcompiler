@@ -114,11 +114,16 @@ class HTTPResolver(RemoteResolver):
         except tarfile.ReadError:
             fileobj.seek(0)
             try:
-                with zipfile.ZipFile(fileobj) as zip_ref:
-                    zip_ref.extractall(path=self.cache_path)
-            except zipfile.BadZipFile:
-                raise TypeError(f"Could not extract file from {data_url}. "
-                                "File is not a valid tar.gz or zip archive.")
+                with tarfile.open(fileobj=fileobj, mode='r:bz2') as tar_ref:
+                    tar_ref.extractall(path=self.cache_path)
+            except tarfile.ReadError:
+                fileobj.seek(0)
+                try:
+                    with zipfile.ZipFile(fileobj) as zip_ref:
+                        zip_ref.extractall(path=self.cache_path)
+                except zipfile.BadZipFile:
+                    raise TypeError(f"Could not extract file from {data_url}. "
+                                    "File is not a valid tar.gz or zip archive.")
 
         # --- GitHub-specific directory flattening ---
         # GitHub archives often have a single top-level directory like 'repo-v1.0'.
