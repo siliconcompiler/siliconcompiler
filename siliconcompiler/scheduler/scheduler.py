@@ -679,7 +679,11 @@ class Scheduler:
         self.__print_status("End - setup")
 
     @staticmethod
-    def _configure_run_required(task: SchedulerNode) -> Optional[Union[SchedulerFlowReset, SchedulerNodeReset]]:
+    def _configure_run_required(task: SchedulerNode) \
+            -> Optional[Union[SchedulerFlowReset, SchedulerNodeReset]]:
+        """
+        Helper method to run requires_run() with threads.
+        """
         with task.runtime():
             try:
                 task.requires_run()

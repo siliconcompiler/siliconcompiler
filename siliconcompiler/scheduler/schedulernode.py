@@ -450,8 +450,8 @@ class SchedulerNode:
         self.logger.setLevel(log_level)
         if set(previous_run.__project.get("record", "inputnode",
                                           step=self.__step, index=self.__index)) != set(sel_inputs):
-            raise SchedulerNodeReset(f'inputs to {self.__step}/{self.__index} has been modified from '
-                                     'previous run')
+            raise SchedulerNodeReset(f'inputs to {self.__step}/{self.__index} has been '
+                                     'modified from previous run')
 
     def check_values_changed(self, previous_run: "SchedulerNode", keys: Set[Tuple[str, ...]]) \
             -> None:
@@ -503,8 +503,8 @@ class SchedulerNode:
         use_hash = self.__hash and previous_run.__hash
 
         def gen_warning(key, reason):
-            raise SchedulerNodeReset(f'[{",".join(key)}] ({reason}) in {self.__step}/{self.__index} has '
-                                     'been modified from previous run')
+            raise SchedulerNodeReset(f'[{",".join(key)}] ({reason}) in {self.__step}/'
+                                     f'{self.__index} has been modified from previous run')
 
         def get_file_time(path):
             times = [os.path.getmtime(path)]
