@@ -814,6 +814,10 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         schema = root.copy()
 
         for keypath in root.allkeys():
+            if keypath[0] == "history":
+                # Ignore history as this is not relevant to the task
+                continue
+
             paramtype: str = schema.get(*keypath, field='type')
             if 'file' not in paramtype and 'dir' not in paramtype:
                 continue
