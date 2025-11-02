@@ -755,7 +755,14 @@ class Scheduler:
                     break
 
                 tasks = [self.__tasks[(step, index)] for step, index in group]
-                runcheck = pool.map(Scheduler._configure_run_required, tasks)
+                # Suppress excess info messages during checks
+                cur_level = self.project.logger.level
+                self.project.logger.setLevel(logging.WARNING)
+                try:
+                    runcheck = pool.map(Scheduler._configure_run_required, tasks)
+                finally:
+                    self.project.logger.setLevel(cur_level)
+
                 for node, runrequired in zip(group, runcheck):
                     if self.__record.get("status", step=node[0], index=node[1]) != \
                             NodeStatus.SUCCESS:
