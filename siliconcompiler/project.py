@@ -1209,6 +1209,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         # Setup options:
         for option, value in [
                 ("track", False),
+                ("remote", False),
                 ("hash", False),
                 ("nodisplay", False),
                 ("continue", True),
