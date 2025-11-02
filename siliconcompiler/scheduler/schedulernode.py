@@ -30,11 +30,7 @@ if TYPE_CHECKING:
     from siliconcompiler.schema_support.metric import MetricSchema
 
 
-class SchedulerFlowReset(Exception):
-    pass
-
-
-class SchedulerNodeReset(Exception):
+class _SchedulerReset(Exception):
     def __init__(self, msg: str, *args: object) -> None:
         super().__init__(msg, *args)
         self.__msg = msg
@@ -43,16 +39,25 @@ class SchedulerNodeReset(Exception):
     def msg(self) -> str:
         return self.__msg
 
-    def silent(self) -> bool:
-        return False
+    def log(self, logger: logging.Logger) -> None:
+        logger.debug(self.msg)
+
+
+class SchedulerFlowReset(_SchedulerReset):
+    pass
+
+
+class SchedulerNodeReset(_SchedulerReset):
+    def log(self, logger: logging.Logger) -> None:
+        logger.warning(self.msg)
 
 
 class SchedulerNodeResetSilent(SchedulerNodeReset):
     def __init__(self, msg: str, *args: object) -> None:
         super().__init__(msg, *args)
 
-    def silent(self) -> bool:
-        return True
+    def log(self, logger: logging.Logger) -> None:
+        _SchedulerReset.log(self, logger)
 
 
 class SchedulerNode:

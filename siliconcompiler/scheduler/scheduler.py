@@ -764,11 +764,11 @@ class Scheduler:
                     self.__logger.debug(f"  Result: {node} -> {runrequired}")
 
                     if runrequired is not None:
+                        runrequired.log(self.__logger)
+
                         if isinstance(runrequired, SchedulerFlowReset):
                             raise runrequired from None
 
-                        if not runrequired.silent():
-                            self.__logger.warning(runrequired.msg)
                         # This node must be run
                         self.__mark_pending(*node)
                     else:

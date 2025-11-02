@@ -1517,10 +1517,8 @@ def test_scheduler_flow_reset_exception_can_be_raised():
     from siliconcompiler.scheduler.schedulernode import SchedulerFlowReset
 
     msg = "Flow changed"
-    with pytest.raises(SchedulerFlowReset) as exc_info:
+    with pytest.raises(SchedulerFlowReset, match=r"^Flow changed$"):
         raise SchedulerFlowReset(msg)
-
-    assert "Flow changed" in str(exc_info.value)
 
 
 def test_check_previous_run_status_flow_raises_scheduler_flow_reset(project):
@@ -1539,11 +1537,8 @@ def test_check_previous_run_status_flow_raises_scheduler_flow_reset(project):
     node_other = SchedulerNode(other_project, "steptwo", "0")
 
     with node.runtime(), node_other.runtime():
-        with pytest.raises(SchedulerFlowReset) as exc_info:
+        with pytest.raises(SchedulerFlowReset, match=r"^Flow name changed, require full reset$"):
             node.check_previous_run_status(node_other)
-
-    assert "Flow name changed" in str(exc_info.value)
-    assert "require full reset" in str(exc_info.value)
 
 
 def test_check_previous_run_status_flow_different_name_vs_original(project):
@@ -1564,7 +1559,7 @@ def test_check_previous_run_status_flow_different_name_vs_original(project):
 
     # Comparing nodes with different flow names should raise SchedulerFlowReset
     with node.runtime(), node_new.runtime():
-        with pytest.raises(SchedulerFlowReset, match="^Flow name changed, require full reset$"):
+        with pytest.raises(SchedulerFlowReset, match=r"^Flow name changed, require full reset$"):
             node.check_previous_run_status(node_new)
 
 
@@ -1600,7 +1595,7 @@ def test_check_previous_run_status_flow_name_case_sensitive(project):
     node_other = SchedulerNode(other_project, "steptwo", "0")
 
     with node.runtime(), node_other.runtime():
-        with pytest.raises(SchedulerFlowReset):
+        with pytest.raises(SchedulerFlowReset, match=r"^Flow name changed, require full reset$"):
             node.check_previous_run_status(node_other)
 
 
@@ -1620,7 +1615,7 @@ def test_check_previous_run_status_flow_name_with_special_chars(project):
     node_other = SchedulerNode(other_project, "steptwo", "0")
 
     with node.runtime(), node_other.runtime():
-        with pytest.raises(SchedulerFlowReset):
+        with pytest.raises(SchedulerFlowReset, match=r"^Flow name changed, require full reset$"):
             node.check_previous_run_status(node_other)
 
 
@@ -1689,7 +1684,7 @@ def test_check_previous_run_status_combined_flow_and_tool_change(project):
     with node.runtime(), node_other.runtime():
         # Flow name check happens first, so should raise SchedulerFlowReset
         # before checking tool
-        with pytest.raises(SchedulerFlowReset):
+        with pytest.raises(SchedulerFlowReset, match=r"^Flow name changed, require full reset$"):
             node.check_previous_run_status(node_other)
 
 
@@ -1741,7 +1736,7 @@ def test_check_previous_run_status_unicode_flow_name(project):
     node_other = SchedulerNode(other_project, "steptwo", "0")
 
     with node.runtime(), node_other.runtime():
-        with pytest.raises(SchedulerFlowReset):
+        with pytest.raises(SchedulerFlowReset, match=r"^Flow name changed, require full reset$"):
             node.check_previous_run_status(node_other)
 
 
@@ -1761,7 +1756,7 @@ def test_check_previous_run_status_whitespace_in_flow_name(project):
     node_other = SchedulerNode(other_project, "steptwo", "0")
 
     with node.runtime(), node_other.runtime():
-        with pytest.raises(SchedulerFlowReset):
+        with pytest.raises(SchedulerFlowReset, match=r"^Flow name changed, require full reset$"):
             node.check_previous_run_status(node_other)
 
 
@@ -1782,7 +1777,7 @@ def test_check_previous_run_status_long_flow_name(project):
     node_other = SchedulerNode(other_project, "steptwo", "0")
 
     with node.runtime(), node_other.runtime():
-        with pytest.raises(SchedulerFlowReset):
+        with pytest.raises(SchedulerFlowReset, match=r"^Flow name changed, require full reset$"):
             node.check_previous_run_status(node_other)
 
 
@@ -1802,7 +1797,7 @@ def test_check_previous_run_status_numeric_flow_name(project):
     node_other = SchedulerNode(other_project, "steptwo", "0")
 
     with node.runtime(), node_other.runtime():
-        with pytest.raises(SchedulerFlowReset):
+        with pytest.raises(SchedulerFlowReset, match=r"^Flow name changed, require full reset$"):
             node.check_previous_run_status(node_other)
 
 
@@ -1986,14 +1981,27 @@ def test_check_version_nocheck(project):
         set_env.assert_not_called()
 
 
-@pytest.mark.parametrize("reset", (SchedulerNodeReset, SchedulerNodeResetSilent))
+@pytest.mark.parametrize("reset",
+                         (SchedulerFlowReset, SchedulerNodeReset, SchedulerNodeResetSilent))
 def test_scheduler_reset_except_msg(reset):
     assert reset("this msg").msg == "this msg"
 
 
-def test_scheduler_reset_except():
-    assert SchedulerNodeReset("").silent() is False
+@pytest.mark.parametrize("reset",
+                         (SchedulerFlowReset, SchedulerNodeResetSilent))
+def test_scheduler_reset_debug(reset, caplog):
+    logger = logging.getLogger()
+    logger.setLevel(logging.DEBUG)
+    reset("this reason").log(logger)
+    record = caplog.get_records("call")[0]
+    assert record.message == "this reason"
+    assert record.levelname == "DEBUG"
 
 
-def test_scheduler_reset_silent_except():
-    assert SchedulerNodeResetSilent("").silent() is True
+def test_scheduler_reset_warn(caplog):
+    logger = logging.getLogger()
+    logger.setLevel(logging.DEBUG)
+    SchedulerNodeReset("that reason").log(logger)
+    record = caplog.get_records("call")[0]
+    assert record.message == "that reason"
+    assert record.levelname == "WARNING"
