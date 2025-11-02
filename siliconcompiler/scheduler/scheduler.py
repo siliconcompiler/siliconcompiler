@@ -687,7 +687,7 @@ class Scheduler:
         with task.runtime():
             try:
                 task.requires_run()
-            except (SchedulerNodeReset, SchedulerNodeReset) as e:
+            except (SchedulerFlowReset, SchedulerNodeReset) as e:
                 return e
         return None
 
