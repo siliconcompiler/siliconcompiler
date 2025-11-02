@@ -679,15 +679,13 @@ class Scheduler:
         self.__print_status("End - setup")
 
     @staticmethod
-    def _configure_run_required(task: SchedulerNode) -> Optional[str]:
+    def _configure_run_required(task: SchedulerNode) -> Optional[Union[SchedulerFlowReset, SchedulerNodeReset]]:
         with task.runtime():
             try:
                 task.requires_run()
-                return None
-            except SchedulerNodeReset as e:
-                if e.silent():
-                    return ""
-                return e.msg
+            except (SchedulerNodeReset, SchedulerNodeReset) as e:
+                return e
+        return None
 
     def __configure_check_run_required(self) -> List[Tuple[str, str]]:
         """Checks which nodes require a re-run and which can be replayed.
@@ -740,7 +738,7 @@ class Scheduler:
         # Call this in case this was invoked without __main__
         multiprocessing.freeze_support()
 
-        with multiprocessing.Pool(pool_size) as pool:
+        with multiprocessing.get_context("spawn").Pool(pool_size) as pool:
             while True:
                 # Filter nodes
                 filter_nodes(nodes)
@@ -762,8 +760,11 @@ class Scheduler:
                     self.__logger.debug(f"  Result: {node} -> {runrequired}")
 
                     if runrequired is not None:
-                        if runrequired != "":
-                            self.__logger.warning(runrequired)
+                        if isinstance(runrequired, SchedulerFlowReset):
+                            raise runrequired from None
+
+                        if not runrequired.silent():
+                            self.__logger.warning(runrequired.msg)
                         # This node must be run
                         self.__mark_pending(*node)
                     else:
