@@ -648,6 +648,9 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         # Pass along manager address
         state["__manager__"] = MPManager._get_manager_address()
 
+        # Pass along logger level
+        state["__loglevel__"] = self.logger.level
+
         return state
 
     def __setstate__(self, state):
@@ -660,6 +663,10 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         Args:
             state (dict): The deserialized state of the object.
         """
+        # Retrieve log level
+        loglevel = state["__loglevel__"]
+        del state["__loglevel__"]
+
         # Retrieve manager address
         MPManager._set_manager_address(state["__manager__"])
         del state["__manager__"]
@@ -668,6 +675,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
 
         # Reinitialize logger on restore
         self.__init_logger()
+        self.logger.setLevel(loglevel)
 
         # Restore callbacks
         self.__init_option_callbacks()
