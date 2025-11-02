@@ -1,5 +1,6 @@
 import io
 import logging
+import multiprocessing
 import os
 import re
 import shutil
@@ -20,7 +21,7 @@ from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.scheduler import SlurmSchedulerNode
 from siliconcompiler.scheduler import DockerSchedulerNode
 from siliconcompiler.scheduler import TaskScheduler
-from siliconcompiler.scheduler.schedulernode import SchedulerFlowReset
+from siliconcompiler.scheduler.schedulernode import SchedulerFlowReset, SchedulerNodeReset
 from siliconcompiler.tool import TaskExecutableNotFound, TaskExecutableNotReceived
 
 from siliconcompiler import utils
@@ -677,6 +678,19 @@ class Scheduler:
                         self.__record.set('status', node_status, step=step, index=index)
         self.__print_status("End - setup")
 
+    @staticmethod
+    def _configure_run_required(task: SchedulerNode) \
+            -> Optional[Union[SchedulerFlowReset, SchedulerNodeReset]]:
+        """
+        Helper method to run requires_run() with threads.
+        """
+        with task.runtime():
+            try:
+                task.requires_run()
+            except (SchedulerFlowReset, SchedulerNodeReset) as e:
+                return e
+        return None
+
     def __configure_check_run_required(self) -> List[Tuple[str, str]]:
         """Checks which nodes require a re-run and which can be replayed.
 
@@ -699,19 +713,67 @@ class Scheduler:
 
         replay: List[Tuple[str, str]] = []
 
-        for layer_nodes in self.__flow.get_execution_order():
-            for step, index in layer_nodes:
+        nodes: List[Tuple[str, str]] = []
+
+        def filter_nodes(nodes: List[Tuple[str, str]]) -> None:
+            for step, index in tuple(nodes):
                 # Only look at successful nodes
                 if self.__record.get("status", step=step, index=index) != NodeStatus.SUCCESS:
-                    continue
+                    nodes.remove((step, index))
 
-                with self.__tasks[(step, index)].runtime():
-                    if self.__tasks[(step, index)].requires_run():
+        def create_node_group(nodes: List[Tuple[str, str]], size: int) -> List[Tuple[str, str]]:
+            group = []
+            for _ in range(size):
+                if nodes:
+                    group.append(nodes.pop(0))
+            return group
+
+        # Collect initial list of nodes to process
+        for layer_nodes in self.__flow.get_execution_order():
+            nodes.extend(layer_nodes)
+
+        # Determine pool size
+        cores = utils.get_cores()
+        pool_size = self.project.option.scheduler.get_maxthreads() or cores
+        pool_size = max(1, min(cores, pool_size))
+
+        self.__logger.debug(f"Check pool size: {pool_size}")
+
+        # Call this in case this was invoked without __main__
+        multiprocessing.freeze_support()
+
+        with multiprocessing.get_context("spawn").Pool(pool_size) as pool:
+            while True:
+                # Filter nodes
+                filter_nodes(nodes)
+
+                # Generate a group of nodes to run
+                group = create_node_group(nodes, pool_size)
+                self.__logger.debug(f"Group to check: {group}")
+                if not group:
+                    # Group is empty
+                    break
+
+                tasks = [self.__tasks[(step, index)] for step, index in group]
+                runcheck = pool.map(Scheduler._configure_run_required, tasks)
+                for node, runrequired in zip(group, runcheck):
+                    if self.__record.get("status", step=node[0], index=node[1]) != \
+                            NodeStatus.SUCCESS:
+                        continue
+
+                    self.__logger.debug(f"  Result: {node} -> {runrequired}")
+
+                    if runrequired is not None:
+                        runrequired.log(self.__logger)
+
+                        if isinstance(runrequired, SchedulerFlowReset):
+                            raise runrequired from None
+
                         # This node must be run
-                        self.__mark_pending(step, index)
+                        self.__mark_pending(*node)
                     else:
                         # import old information
-                        replay.append((step, index))
+                        replay.append(node)
 
         self.__print_status("End - check")
 
