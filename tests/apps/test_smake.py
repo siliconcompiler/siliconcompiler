@@ -1,7 +1,14 @@
 import pytest
 import os
+import sys
 
 from siliconcompiler.apps import smake
+
+
+@pytest.fixture(autouse=True)
+def isolate_sys(monkeypatch):
+    monkeypatch.setattr(smake.sys, "path", sys.path.copy())
+    monkeypatch.setattr(smake.sys, "modules", sys.modules.copy())
 
 
 @pytest.mark.parametrize('target', ('asic', 'lint'))

@@ -12,8 +12,8 @@ Python without the need for complex boilerplate code.
 """
 import argparse
 import sys
+import tempfile
 
-import importlib.util
 import os.path
 
 from typing import Union, Tuple, Optional, Dict
@@ -29,7 +29,7 @@ from siliconcompiler.schema import utils
 __default_source_file = "make.py"
 
 
-def __process_file(path: Union[Path, str]) -> Tuple[Dict, Optional[str], Optional[str]]:
+def __process_file(path: Union[Path, str], dir: str) -> Tuple[Dict, Optional[str], Optional[str]]:
     """
     Dynamically loads a Python module and inspects it for runnable targets.
 
@@ -54,16 +54,18 @@ def __process_file(path: Union[Path, str]) -> Tuple[Dict, Optional[str], Optiona
     if not os.path.exists(path):
         return {}, None, None
 
+    mod_name, _ = os.path.splitext(os.path.basename(path))
+
     # Dynamically load the specified file as a Python module.
-    mod_name = 'scmake'
-    spec = importlib.util.spec_from_file_location(mod_name, path)
-    make = importlib.util.module_from_spec(spec)
-    sys.modules[mod_name] = make
-    # Temporarily add CWD to path to allow the makefile to import local modules.
-    syspath = sys.path.copy()
+    with open(os.path.join(dir, "sc_module_load.py"), "w") as f:
+        f.write(f"import {mod_name} as make\n")
+
     sys.path.insert(0, os.getcwd())
-    spec.loader.exec_module(make)
-    sys.path = syspath
+    sys.path.insert(0, os.path.dirname(path))
+
+    # Load newly created file
+    import sc_module_load
+    make = sc_module_load.make
 
     # Inspect the module for public functions to treat as targets.
     args = {}
@@ -172,100 +174,104 @@ To run a target with arguments, use:
         print(f"Error: Unable to change directory to {source_dir}")
         return 1
 
-    # --- Process the source file to discover targets ---
-    make_args, default_arg, module_help = __process_file(source_file) \
-        if source_file else ({}, None, None)
+    with tempfile.TemporaryDirectory(prefix="smake") as dir:
+        # Add temp dir to path
+        sys.path.insert(0, dir)
 
-    if module_help:
-        description += f"\n\n{module_help}\n\n"
-        description += "-----------------------------------------------------------"
+        # --- Process the source file to discover targets ---
+        make_args, default_arg, module_help = __process_file(source_file, dir) \
+            if source_file else ({}, None, None)
 
-    # --- Set up the main argument parser ---
-    parser = argparse.ArgumentParser(
-        progname,
-        description=description,
-        formatter_class=argparse.RawDescriptionHelpFormatter)
+        if module_help:
+            description += f"\n\n{module_help}\n\n"
+            description += "-----------------------------------------------------------"
 
-    parser.add_argument(
-        '--file', '-f',
-        metavar='<file>',
-        help=f'Use file as makefile, default is {__default_source_file}')
-    parser.add_argument(
-        '--directory', '-C',
-        metavar='<directory>',
-        help='Change to directory <directory> before reading the makefile.')
-    parser.add_argument(
-        '--version', '-v',
-        action='version',
-        version=f"%(prog)s {version}")
-
-    # --- Create subparsers for each discovered target ---
-    targetparsers = parser.add_subparsers(
-        dest='target',
-        metavar='<target>',
-        help='Target to execute')
-
-    for arg, info in make_args.items():
-        subparse = targetparsers.add_parser(
-            arg,
-            description=info['full_help'],
-            help=info['help'],
+        # --- Set up the main argument parser ---
+        parser = argparse.ArgumentParser(
+            progname,
+            description=description,
             formatter_class=argparse.RawDescriptionHelpFormatter)
 
-        # Add arguments for each parameter of the target function.
-        for subarg, subarg_info in info['args'].items():
-            add_args = {}
-            if "default" not in subarg_info:
-                add_args["required"] = True
+        parser.add_argument(
+            '--file', '-f',
+            metavar='<file>',
+            help=f'Use file as makefile, default is {__default_source_file}')
+        parser.add_argument(
+            '--directory', '-C',
+            metavar='<directory>',
+            help='Change to directory <directory> before reading the makefile.')
+        parser.add_argument(
+            '--version', '-v',
+            action='version',
+            version=f"%(prog)s {version}")
+
+        # --- Create subparsers for each discovered target ---
+        targetparsers = parser.add_subparsers(
+            dest='target',
+            metavar='<target>',
+            help='Target to execute')
+
+        for arg, info in make_args.items():
+            subparse = targetparsers.add_parser(
+                arg,
+                description=info['full_help'],
+                help=info['help'],
+                formatter_class=argparse.RawDescriptionHelpFormatter)
+
+            # Add arguments for each parameter of the target function.
+            for subarg, subarg_info in info['args'].items():
+                add_args = {}
+                if "default" not in subarg_info:
+                    add_args["required"] = True
+                else:
+                    add_args["default"] = subarg_info["default"]
+
+                # Handle boolean arguments correctly.
+                arg_type = subarg_info["type"]
+                if arg_type is bool:
+                    # Use a custom string-to-boolean converter.
+                    def str2bool(v):
+                        val = str(v).lower()
+                        if val in ('y', 'yes', 't', 'true', 'on', '1'):
+                            return True
+                        elif val in ('n', 'no', 'f', 'false', 'off', '0'):
+                            return False
+                        raise ValueError(f"invalid truth value {val!r}")
+                    arg_type = str2bool
+
+                subparse.add_argument(
+                    f'--{subarg}',
+                    dest=f'sub_{subarg}',
+                    metavar=f'<{subarg}>',
+                    type=arg_type,
+                    **add_args)
+
+        # --- Parse arguments and execute the target ---
+        args = parser.parse_args()
+        target = args.target or default_arg
+
+        if not target:
+            if make_args:
+                print("Error: No target specified and no default target found.")
+                parser.print_help()
             else:
-                add_args["default"] = subarg_info["default"]
+                print(f"Error: Unable to load makefile '{source_file}'.")
+            return 1
 
-            # Handle boolean arguments correctly.
-            arg_type = subarg_info["type"]
-            if arg_type is bool:
-                # Use a custom string-to-boolean converter.
-                def str2bool(v):
-                    val = str(v).lower()
-                    if val in ('y', 'yes', 't', 'true', 'on', '1'):
-                        return True
-                    elif val in ('n', 'no', 'f', 'false', 'off', '0'):
-                        return False
-                    raise ValueError(f"invalid truth value {val!r}")
-                arg_type = str2bool
+        if target not in make_args:
+            print(f"Error: Target '{target}' not found in '{source_file}'.")
+            return 1
 
-            subparse.add_argument(
-                f'--{subarg}',
-                dest=f'sub_{subarg}',
-                metavar=f'<{subarg}>',
-                type=arg_type,
-                **add_args)
+        # Prepare arguments to pass to the target function.
+        call_args = {}
+        args_vars = vars(args)
+        for arg in make_args[target]["args"]:
+            arg_key = f'sub_{arg}'
+            if arg_key in args_vars and args_vars[arg_key] is not None:
+                call_args[arg] = args_vars[arg_key]
 
-    # --- Parse arguments and execute the target ---
-    args = parser.parse_args()
-    target = args.target or default_arg
-
-    if not target:
-        if make_args:
-            print("Error: No target specified and no default target found.")
-            parser.print_help()
-        else:
-            print(f"Error: Unable to load makefile '{source_file}'.")
-        return 1
-
-    if target not in make_args:
-        print(f"Error: Target '{target}' not found in '{source_file}'.")
-        return 1
-
-    # Prepare arguments to pass to the target function.
-    call_args = {}
-    args_vars = vars(args)
-    for arg in make_args[target]["args"]:
-        arg_key = f'sub_{arg}'
-        if arg_key in args_vars and args_vars[arg_key] is not None:
-            call_args[arg] = args_vars[arg_key]
-
-    # Call the selected function with its arguments.
-    make_args[target]["function"](**call_args)
+        # Call the selected function with its arguments.
+        make_args[target]["function"](**call_args)
 
     return 0
 
