@@ -32,6 +32,18 @@ class _ASICTask(ASICTask, YosysTask):
         self.add_required_key("var", "synthesis_corner")
         self._determine_synthesis_corner()
 
+        self.add_required_key("asic", "delaymodel")
+        self.add_required_key("asic", "asiclib")
+
+        delaymodel = self.project.get("asic", "delaymodel")
+        for lib in self.project.get("asic", "asiclib"):
+            lib_obj = self.project.get("library", lib, field="schema")
+            for corner in self.get("var", "synthesis_corner"):
+                if lib_obj.get("asic", "libcornerfileset", corner, delaymodel):
+                    self.add_required_key(lib_obj, "asic", "libcornerfileset", corner, delaymodel)
+                    for fileset in lib_obj.get("asic", "libcornerfileset", corner, delaymodel):
+                        self.add_required_key(lib_obj, "fileset", fileset, "file", "liberty")
+
     def _determine_synthesis_corner(self):
         if self.get("var", "synthesis_corner"):
             return
@@ -294,8 +306,6 @@ class ASICSynthesis(_ASICTask, YosysTask):
         self.set_script("sc_synth_asic.tcl")
 
         self.add_required_key("asic", "mainlib")
-        self.add_required_key("asic", "asiclib")
-        self.add_required_key("asic", "delaymodel")
 
         design = self.project.design
         fileset = self.project.get("option", "fileset")[0]
@@ -330,6 +340,14 @@ class ASICSynthesis(_ASICTask, YosysTask):
                 self.add_required_key(mainlib, "tool", "yosys", "driver_cell")
                 self.add_required_key("var", "abc_constraint_driver")
                 self.set("var", "abc_constraint_driver", lib_driver)
+        if self.get("var", "abc_clock_period"):
+            self.add_required_key("var", "abc_clock_period")
+        else:
+            self.add_required_key(mainlib, "tool", "yosys", "abc_clock_multiplier")
+            self.add_required_key("var", "abc_clock_derating")
+            for lib, fileset in self.project.get_filesets():
+                if lib.has_file(fileset=fileset, filetype="sdc"):
+                    self.add_required_key(lib, "fileset", fileset, "file", "sdc")
 
         if mainlib.get("tool", "yosys", "tristatebuffermap"):
             self.add_required_key(mainlib, "tool", "yosys", "tristatebuffermap")
