@@ -11,6 +11,7 @@ from siliconcompiler.schema import BaseSchema
 from siliconcompiler.schema import EditableSchema, Parameter
 from siliconcompiler.schema_support.pathschema import PathSchemaBase, PathSchema, \
     PathSchemaSimpleBase
+from siliconcompiler.package import FileResolver
 
 
 def test_init():
@@ -701,6 +702,25 @@ def test_dataroot_section_above_active_at_leaf():
 
 def test_find_files_dataroot_resolvers_no_roots():
     schema = PathSchema()
-    EditableSchema(schema).remove("dataroot")
 
     assert schema._find_files_dataroot_resolvers() == {}
+
+
+def test_find_files_dataroot_resolvers_getresolvers():
+    schema = PathSchema()
+    schema.set_dataroot("test", "file://.")
+
+    resolvers = schema._find_files_dataroot_resolvers()
+    assert list(resolvers) == ["test"]
+    assert callable(resolvers["test"])
+    assert resolvers["test"]() == os.path.abspath(".")
+
+
+def test_find_files_dataroot_resolvers_getresolvers_as_resolver():
+    schema = PathSchema()
+    schema.set_dataroot("test", "file://.")
+
+    resolvers = schema._find_files_dataroot_resolvers(True)
+    assert list(resolvers) == ["test"]
+    assert isinstance(resolvers["test"], FileResolver)
+    assert resolvers["test"].source == "file://" + os.path.join(os.path.abspath("."), ".")

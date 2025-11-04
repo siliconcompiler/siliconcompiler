@@ -881,16 +881,20 @@ class BaseSchema:
         """
         return []
 
-    def _find_files_dataroot_resolvers(self) -> Dict[str, Union[str, Callable]]:
+    def _find_files_dataroot_resolvers(self, resolvers: bool = False) \
+            -> Dict[str, Union[str, Callable]]:
         """
         Returns a dictionary of path resolvers data directory handling for find_files
+
+        Args:
+            resolvers (bool, optional): Returns the resolvers instead of callables
 
         Returns:
             dictionary of str to resolver mapping
         """
         if self.__is_root:
             return {}
-        return self.__parent._find_files_dataroot_resolvers()
+        return self.__parent._find_files_dataroot_resolvers(resolvers=resolvers)
 
     def _find_files(self, *keypath: str, missing_ok: bool = False,
                     step: Optional[str] = None, index: Optional[Union[int, str]] = None,
@@ -1016,6 +1020,7 @@ class BaseSchema:
             search_paths = root_search_paths.copy()
 
             dataroot: Optional[str] = path.get(field="dataroot")
+            dataroot_except: Optional[Exception] = None
             if dataroot:
                 if dataroot not in dataroots:
                     raise ValueError(f"Resolver for {dataroot} not provided: "
@@ -1026,9 +1031,8 @@ class BaseSchema:
                 elif callable(dataroot_path):
                     try:
                         search_paths.append(dataroot_path())
-                    except FileNotFoundError as e:
-                        if not missing_ok:
-                            raise FileNotFoundError(f"Dataroot {dataroot} not found: {e}") from e
+                    except Exception as e:
+                        dataroot_except = e
                 else:
                     raise TypeError(f"Resolver for {dataroot} is not a recognized type: "
                                     f"{self.__format_key(*keypath)}")
@@ -1049,6 +1053,10 @@ class BaseSchema:
                 if not missing_ok:
                     report_paths = ", ".join(search_paths)
                     if dataroot:
+                        if dataroot_except:
+                            raise FileNotFoundError(
+                                f"Dataroot {dataroot} not found: {dataroot_except}") \
+                                    from dataroot_except
                         raise FileNotFoundError(
                             f'Could not find "{path.get()}" in {dataroot} '
                             f'{self.__format_key(*keypath)}: {report_paths}')

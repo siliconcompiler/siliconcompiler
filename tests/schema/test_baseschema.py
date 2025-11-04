@@ -1456,6 +1456,30 @@ def test_find_files_scalar_dataroot_not_found(monkeypatch):
         schema._find_files("file")
 
 
+def test_find_files_scalar_dataroot_not_found_collected(monkeypatch):
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("file")
+    edit.insert("file", param)
+
+    def call_dataroot():
+        raise FileNotFoundError("this is not found")
+
+    def dataroot():
+        return {"test": call_dataroot}
+    monkeypatch.setattr(schema, "_find_files_dataroot_resolvers", dataroot)
+
+    assert schema.set("file", "test.txt")
+    assert schema.set("file", "test", field="dataroot")
+
+    os.makedirs("collected", exist_ok=True)
+    with open("collected/test_6a073242867241e0a655d49d76a3f2e5c8cfea05.txt", "w") as f:
+        f.write("test")
+
+    assert schema._find_files("file", collection_dir="collected") == \
+        os.path.abspath("collected/test_6a073242867241e0a655d49d76a3f2e5c8cfea05.txt")
+
+
 def test_find_files_scalar_dataroot_not_found_allow(monkeypatch):
     schema = BaseSchema()
     edit = EditableSchema(schema)
@@ -2461,7 +2485,7 @@ def test_find_files_custom_class_package_resolution():
             EditableSchema(self).insert("level0", "level1", "unrootedfile", Parameter("file"))
             self.calls = 0
 
-        def _find_files_dataroot_resolvers(self):
+        def _find_files_dataroot_resolvers(self, resolvers=False):
             self.calls += 1
             return {
                 "thispackage": os.path.abspath("thisroot")

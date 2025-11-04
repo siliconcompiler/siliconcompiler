@@ -18,7 +18,8 @@ from siliconcompiler import NodeStatus as SCNodeStatus
 from siliconcompiler._metadata import default_server
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 from siliconcompiler.scheduler import Scheduler
-from siliconcompiler.schema import Journal
+from siliconcompiler.schema import Journal, Parameter
+from siliconcompiler.package import PythonPathResolver, FileResolver, KeyPathResolver
 
 from siliconcompiler.utils.logging import get_console_formatter
 from siliconcompiler.utils.curation import collect
@@ -573,19 +574,26 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
 
         # Ensure dataroots with python sources are copied
         for key in self.__project.allkeys():
-            key_type = self.__project.get(*key, field='type')
+            if key[0] == "history":
+                continue
+
+            param: Parameter = self.__project.get(*key, field=None)
+            key_type: str = param.get(field="type")
 
             if 'dir' in key_type or 'file' in key_type:
-                for _, step, index in self.__project.get(*key, field=None).getvalues(
+                schema_obj = self.__project.get(*key[:-1], field="schema")
+                dataroot_objs = schema_obj._find_files_dataroot_resolvers(True)
+
+                for _, step, index in param.getvalues(
                         return_defvalue=False):
-                    dataroots = self.__project.get(*key, field='dataroot', step=step, index=index)
+                    dataroots = param.get(field='dataroot', step=step, index=index)
                     if not isinstance(dataroots, list):
                         dataroots = [dataroots]
                     force_copy = False
                     for dataroot in dataroots:
-                        if not dataroot:
-                            continue
-                        if dataroot.startswith('python://'):
+                        dataroot_resolver = dataroot_objs.get(dataroot, None)
+                        if isinstance(dataroot_resolver,
+                                      (PythonPathResolver, FileResolver, KeyPathResolver)):
                             force_copy = True
                     if force_copy:
                         self.__project.set(*key, True, field='copy', step=step, index=index)
