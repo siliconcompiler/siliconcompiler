@@ -935,7 +935,11 @@ class BaseSchema:
                 if isinstance(dataroot_path, str):
                     search_paths.append(os.path.abspath(dataroot_path))
                 elif callable(dataroot_path):
-                    search_paths.append(dataroot_path())
+                    try:
+                        search_paths.append(dataroot_path())
+                    except FileNotFoundError as e:
+                        if not missing_ok:
+                            raise e from None
                 else:
                     raise TypeError(f"Resolver for {dataroot} is not a recognized type: "
                                     f"{self.__format_key(*keypath)}")
