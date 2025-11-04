@@ -1436,6 +1436,45 @@ def test_find_files_scalar_file_not_found():
         schema._find_files("file")
 
 
+def test_find_files_scalar_dataroot_not_found(monkeypatch):
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("file")
+    edit.insert("file", param)
+
+    def call_dataroot():
+        raise FileNotFoundError("this is not found")
+
+    def dataroot():
+        return {"test": call_dataroot}
+    monkeypatch.setattr(schema, "_find_files_dataroot_resolvers", dataroot)
+
+    assert schema.set("file", "test.txt")
+    assert schema.set("file", "test", field="dataroot")
+
+    with pytest.raises(FileNotFoundError, match=r"^Dataroot test not found: this is not found$"):
+        schema._find_files("file")
+
+
+def test_find_files_scalar_dataroot_not_found_allow(monkeypatch):
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    param = Parameter("file")
+    edit.insert("file", param)
+
+    def call_dataroot():
+        raise FileNotFoundError("this is not found")
+
+    def dataroot():
+        return {"test": call_dataroot}
+    monkeypatch.setattr(schema, "_find_files_dataroot_resolvers", dataroot)
+
+    assert schema.set("file", "test.txt")
+    assert schema.set("file", "test", field="dataroot")
+
+    assert schema._find_files("file", missing_ok=True) is None
+
+
 def test_find_files_scalar_file_not_found_multiple_search():
     class CustomFiles(BaseSchema):
         def __init__(self):
