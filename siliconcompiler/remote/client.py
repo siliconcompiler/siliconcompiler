@@ -577,16 +577,16 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
             if key[0] == "history":
                 continue
 
-            param: Parameter = self.__project.get(*key)
+            param: Parameter = self.__project.get(*key, field=None)
             key_type: str = param.get(field="type")
 
             if 'dir' in key_type or 'file' in key_type:
                 schema_obj = self.__project.get(*key[:-1], field="schema")
                 dataroot_objs = schema_obj._find_files_dataroot_resolvers(True)
 
-                for _, step, index in self.__project.get(*key, field=None).getvalues(
+                for _, step, index in param.getvalues(
                         return_defvalue=False):
-                    dataroots = self.__project.get(*key, field='dataroot', step=step, index=index)
+                    dataroots = param.get(field='dataroot', step=step, index=index)
                     if not isinstance(dataroots, list):
                         dataroots = [dataroots]
                     force_copy = False
