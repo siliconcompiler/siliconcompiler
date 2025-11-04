@@ -1297,11 +1297,11 @@ class _ProjectLibrary(BaseSchema):
 
         if not lazyload.is_enforced:
             # Restore dependencies
-            self._populate_deps()
+            self._populate_deps(complete=True)
 
         return ret
 
-    def _populate_deps(self, obj: Optional[DependencySchema] = None):
+    def _populate_deps(self, obj: Optional[DependencySchema] = None, complete: bool = False):
         """
         Ensures that all loaded dependencies (like libraries) within the project
         contain correct internal pointers back to the project's libraries.
@@ -1311,10 +1311,19 @@ class _ProjectLibrary(BaseSchema):
             obj (DependencySchema, optional): An optional dependency object to
                 reset and populate. If None, all existing library dependencies
                 in the project are processed. Defaults to None.
+            complete (bool, optional): If True, performs a full reset of all
+                DependencySchema objects before populating dependencies. This
+                ensures a clean state during manifest deserialization. Defaults to False.
         """
         if obj:
             obj._reset_deps()
         dep_map = {name: self.get(name, field="schema") for name in self.getkeys()}
+
+        if complete:
+            for obj in dep_map.values():
+                if isinstance(obj, DependencySchema):
+                    obj._reset_deps()
+
         for obj in dep_map.values():
             if isinstance(obj, DependencySchema):
                 obj._populate_deps(dep_map)
