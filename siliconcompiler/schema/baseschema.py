@@ -939,7 +939,7 @@ class BaseSchema:
                         search_paths.append(dataroot_path())
                     except FileNotFoundError as e:
                         if not missing_ok:
-                            raise e from None
+                            raise FileNotFoundError(f"Dataroot {dataroot} not found: {e}") from e
                 else:
                     raise TypeError(f"Resolver for {dataroot} is not a recognized type: "
                                     f"{self.__format_key(*keypath)}")
