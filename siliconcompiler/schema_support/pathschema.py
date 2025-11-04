@@ -392,7 +392,8 @@ class PathSchema(PathSchemaBase):
         resolver = Resolver.find_resolver(path)
         return resolver(name, schema._parent(root=True), path, tag).get_path()
 
-    def _find_files_dataroot_resolvers(self, resolvers: bool = False) -> Dict[str, Union[str, Callable]]:
+    def _find_files_dataroot_resolvers(self, resolvers: bool = False) \
+            -> Dict[str, Union[str, Callable]]:
         """
         Returns a dictionary of path resolvers data directory handling for find_files
 

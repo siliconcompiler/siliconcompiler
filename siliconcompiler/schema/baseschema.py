@@ -881,7 +881,8 @@ class BaseSchema:
         """
         return []
 
-    def _find_files_dataroot_resolvers(self, resolvers: bool = False) -> Dict[str, Union[str, Callable]]:
+    def _find_files_dataroot_resolvers(self, resolvers: bool = False) \
+            -> Dict[str, Union[str, Callable]]:
         """
         Returns a dictionary of path resolvers data directory handling for find_files
 
@@ -1053,7 +1054,9 @@ class BaseSchema:
                     report_paths = ", ".join(search_paths)
                     if dataroot:
                         if dataroot_except:
-                            raise FileNotFoundError(f"Dataroot {dataroot} not found: {dataroot_except}") from dataroot_except
+                            raise FileNotFoundError(
+                                f"Dataroot {dataroot} not found: {dataroot_except}") \
+                                    from dataroot_except
                         raise FileNotFoundError(
                             f'Could not find "{path.get()}" in {dataroot} '
                             f'{self.__format_key(*keypath)}: {report_paths}')
