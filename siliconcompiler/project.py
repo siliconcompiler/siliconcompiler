@@ -1311,6 +1311,9 @@ class _ProjectLibrary(BaseSchema):
             obj (DependencySchema, optional): An optional dependency object to
                 reset and populate. If None, all existing library dependencies
                 in the project are processed. Defaults to None.
+            complete (bool, optional): If True, performs a full reset of all
+                DependencySchema objects before populating dependencies. This
+                ensures a clean state during manifest deserialization. Defaults to False.
         """
         if obj:
             obj._reset_deps()
