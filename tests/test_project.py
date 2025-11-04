@@ -414,19 +414,20 @@ def test_add_dep_design_with_2level_dep_no_depschema():
         def _getdict_type(cls):
             return "dummy_schema"
 
-    dep = DummySchema()
     design = Design("test")
-    design.add_dep(dep)
+    design.add_dep(DummySchema())
 
     proj = Project()
     proj.add_dep(design)
 
+    BaseSchema._BaseSchema__get_child_classes.cache_clear()
+    BaseSchema._BaseSchema__load_schema_class.cache_clear()
+    classes = BaseSchema._BaseSchema__get_child_classes().copy()
+    classes["dummy_schema"] = DummySchema
+
     # Request restore from cfg
     with patch("siliconcompiler.schema.BaseSchema._BaseSchema__get_child_classes") as children:
-        children.return_value = {
-            "BaseSchema": BaseSchema,
-            "dummy_schema": DummySchema
-        }
+        children.return_value = classes
         new_proj = Project.from_manifest(cfg=proj.getdict())
 
     design = new_proj.get("library", "test", field="schema")
