@@ -737,6 +737,14 @@ class Scheduler:
         pool_size = self.project.option.scheduler.get_maxthreads() or cores
         pool_size = max(1, min(cores, pool_size))
 
+        # Limit based on number of nodes if less than number of cores
+        filter_nodes(nodes)
+        if not nodes:
+            # No nodes left so just return
+            return []
+
+        pool_size = min(pool_size, len(nodes))
+
         self.__logger.debug(f"Check pool size: {pool_size}")
 
         # Call this in case this was invoked without __main__
