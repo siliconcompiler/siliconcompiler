@@ -213,7 +213,7 @@ class MPManager(metaclass=_ManagerSingleton):
         if manager.__manager_server:
             # Shut down the multiprocessing manager
             MPManager.__address = None
-            manager.__manager.shutdown()
+        manager.__manager.shutdown()
 
         # Unregister cleanup function to prevent it from being called again
         atexit.unregister(MPManager.stop)
