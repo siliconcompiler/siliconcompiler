@@ -584,13 +584,16 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
                 schema_obj = self.__project.get(*key[:-1], field="schema")
                 dataroot_objs = schema_obj._find_files_dataroot_resolvers(True)
 
-                for _, step, index in param.getvalues(
-                        return_defvalue=False):
+                for value, step, index in param.getvalues():
+                    if not value:
+                        continue
                     dataroots = param.get(field='dataroot', step=step, index=index)
                     if not isinstance(dataroots, list):
                         dataroots = [dataroots]
                     force_copy = False
                     for dataroot in dataroots:
+                        if not dataroot:
+                            continue
                         dataroot_resolver = dataroot_objs.get(dataroot, None)
                         if isinstance(dataroot_resolver,
                                       (PythonPathResolver, FileResolver, KeyPathResolver)):
