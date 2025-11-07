@@ -348,12 +348,12 @@
                 "switch": [
                   "-flowgraph_input 'flow step index <(str,str)>'"
                 ],
-                "shorthelp": "Flowgraph: step input",
+                "shorthelp": "Flowgraph: Node inputs",
                 "example": [
                   "cli: -flowgraph_input 'asicflow cts 0 (place,0)'",
-                  "api: flow.set('flowgraph', 'asicflow', 'cts', '0', 'input', ('place', '0'))"
+                  "api: flow.add('flowgraph', 'asicflow', 'cts', '0', 'input', ('place', '0'))"
                 ],
-                "help": "A list of inputs for the current step and index, specified as a\n(step, index) tuple.",
+                "help": "A list of inputs for this flowgraph node, where each input is\nspecified as a (step, index) tuple. This defines the dependencies\nof this node.",
                 "notes": null,
                 "pernode": "never",
                 "node": {
@@ -374,12 +374,12 @@
                   "switch": [
                     "-flowgraph_weight 'flow step index metric <float>'"
                   ],
-                  "shorthelp": "Flowgraph: metric weights",
+                  "shorthelp": "Flowgraph: Metric weights",
                   "example": [
                     "cli: -flowgraph_weight 'asicflow cts 0 area_cells 1.0'",
                     "api: flow.set('flowgraph', 'asicflow', 'cts', '0', 'weight', 'area_cells', 1.0)"
                   ],
-                  "help": "Weights specified on a per step and per metric basis used to give\neffective \"goodness\" score for a step by calculating the sum all step\nreal metrics results by the corresponding per step weights.",
+                  "help": "Weights specified on a per-node and per-metric basis, used by\noptimization tasks (like 'minimum') to calculate a \"goodness\"\nscore for a run. The score is typically a weighted sum of\nmetric results.",
                   "notes": null,
                   "pernode": "never",
                   "node": {
@@ -401,12 +401,12 @@
                   "switch": [
                     "-flowgraph_goal 'flow step index metric <float>'"
                   ],
-                  "shorthelp": "Flowgraph: metric goals",
+                  "shorthelp": "Flowgraph: Metric goals",
                   "example": [
-                    "cli: -flowgraph_goal 'asicflow cts 0 area_cells 1.0'",
+                    "cli: -flowgraph_goal 'asicflow cts 0 errors 0'",
                     "api: flow.set('flowgraph', 'asicflow', 'cts', '0', 'goal', 'errors', 0)"
                   ],
-                  "help": "Goals specified on a per step and per metric basis used to\ndetermine whether a certain task can be considered when merging\nmultiple tasks at a minimum or maximum node. A task is considered\nfailing if the absolute value of any of its metrics are larger than\nthe goal for that metric, if set.",
+                  "help": "Goals specified on a per-node and per-metric basis used to\ndetermine whether a task run is considered successful. A task run\nmay be considered failing if the absolute value of any of its\nreported metrics is larger than the goal for that metric (if set).\nThis is often used for metrics like 'errors' or 'setupwns'\nwhere the goal is 0.",
                   "notes": null,
                   "pernode": "never",
                   "node": {
@@ -427,12 +427,12 @@
                 "switch": [
                   "-flowgraph_tool 'flow step index <str>'"
                 ],
-                "shorthelp": "Flowgraph: tool selection",
+                "shorthelp": "Flowgraph: Tool selection",
                 "example": [
                   "cli: -flowgraph_tool 'asicflow place 0 openroad'",
                   "api: flow.set('flowgraph', 'asicflow', 'place', '0', 'tool', 'openroad')"
                 ],
-                "help": "Name of the tool name used for task execution.",
+                "help": "Name of the tool (e.g., 'openroad', 'yosys', 'builtin') that\nthis node will execute.",
                 "notes": null,
                 "pernode": "never",
                 "node": {
@@ -452,12 +452,12 @@
                 "switch": [
                   "-flowgraph_task 'flow step index <str>'"
                 ],
-                "shorthelp": "Flowgraph: task selection",
+                "shorthelp": "Flowgraph: Task selection",
                 "example": [
                   "cli: -flowgraph_task 'asicflow myplace 0 place'",
                   "api: flow.set('flowgraph', 'asicflow', 'myplace', '0', 'task', 'place')"
                 ],
-                "help": "Name of the tool associated task used for step execution.",
+                "help": "Name of the task (e.g., 'place', 'syn', 'join') associated\nwith the node's tool.",
                 "notes": null,
                 "pernode": "never",
                 "node": {
@@ -477,12 +477,12 @@
                 "switch": [
                   "-flowgraph_taskmodule 'flow step index <str>'"
                 ],
-                "shorthelp": "Flowgraph: task module",
+                "shorthelp": "Flowgraph: Task module",
                 "example": [
-                  "cli: -flowgraph_taskmodule 'asicflow place 0 siliconcompiler.tools.openroad.place'",
-                  "api: flow.set('flowgraph', 'asicflow', 'place', '0', 'taskmodule', 'siliconcompiler.tools.openroad.place')"
+                  "cli: -flowgraph_taskmodule 'asicflow place 0 siliconcompiler.tools.openroad/Place'",
+                  "api: flow.set('flowgraph', 'asicflow', 'place', '0', 'taskmodule', 'siliconcompiler.tools.openroad/Place')"
                 ],
-                "help": "Full python module name of the task module used for task setup and execution.",
+                "help": "Full Python module path and class name of the task, formatted as\n'<full.module.path>/<ClassName>'. This is used to import and\ninstantiate the correct Task class for setup and execution.",
                 "notes": null,
                 "pernode": "never",
                 "node": {
@@ -502,12 +502,12 @@
                 "switch": [
                   "-flowgraph_args 'flow step index <str>'"
                 ],
-                "shorthelp": "Flowgraph: setup arguments",
+                "shorthelp": "Flowgraph: Node-specific arguments",
                 "example": [
-                  "cli: -flowgraph_args 'asicflow cts 0 0'",
-                  "api: flow.add('flowgraph', 'asicflow', 'cts', '0', 'args', '0')"
+                  "cli: -flowgraph_args 'asicflow cts 0 buffer_cells'",
+                  "api: flow.add('flowgraph', 'asicflow', 'cts', '0', 'args', 'buffer_cells')"
                 ],
-                "help": "User specified flowgraph string arguments specified on a per\nstep and per index basis.",
+                "help": "User-specified arguments passed to the task's `setup()` method.\nThis allows for customizing a specific node's behavior without\naffecting other nodes running the same task.",
                 "notes": null,
                 "pernode": "never",
                 "node": {
@@ -3320,12 +3320,12 @@
                 "switch": [
                   "-flowgraph_input 'flow step index <(str,str)>'"
                 ],
-                "shorthelp": "Flowgraph: step input",
+                "shorthelp": "Flowgraph: Node inputs",
                 "example": [
                   "cli: -flowgraph_input 'asicflow cts 0 (place,0)'",
-                  "api: flow.set('flowgraph', 'asicflow', 'cts', '0', 'input', ('place', '0'))"
+                  "api: flow.add('flowgraph', 'asicflow', 'cts', '0', 'input', ('place', '0'))"
                 ],
-                "help": "A list of inputs for the current step and index, specified as a\n(step, index) tuple.",
+                "help": "A list of inputs for this flowgraph node, where each input is\nspecified as a (step, index) tuple. This defines the dependencies\nof this node.",
                 "notes": null,
                 "pernode": "never",
                 "node": {
@@ -3346,12 +3346,12 @@
                   "switch": [
                     "-flowgraph_weight 'flow step index metric <float>'"
                   ],
-                  "shorthelp": "Flowgraph: metric weights",
+                  "shorthelp": "Flowgraph: Metric weights",
                   "example": [
                     "cli: -flowgraph_weight 'asicflow cts 0 area_cells 1.0'",
                     "api: flow.set('flowgraph', 'asicflow', 'cts', '0', 'weight', 'area_cells', 1.0)"
                   ],
-                  "help": "Weights specified on a per step and per metric basis used to give\neffective \"goodness\" score for a step by calculating the sum all step\nreal metrics results by the corresponding per step weights.",
+                  "help": "Weights specified on a per-node and per-metric basis, used by\noptimization tasks (like 'minimum') to calculate a \"goodness\"\nscore for a run. The score is typically a weighted sum of\nmetric results.",
                   "notes": null,
                   "pernode": "never",
                   "node": {
@@ -3373,12 +3373,12 @@
                   "switch": [
                     "-flowgraph_goal 'flow step index metric <float>'"
                   ],
-                  "shorthelp": "Flowgraph: metric goals",
+                  "shorthelp": "Flowgraph: Metric goals",
                   "example": [
-                    "cli: -flowgraph_goal 'asicflow cts 0 area_cells 1.0'",
+                    "cli: -flowgraph_goal 'asicflow cts 0 errors 0'",
                     "api: flow.set('flowgraph', 'asicflow', 'cts', '0', 'goal', 'errors', 0)"
                   ],
-                  "help": "Goals specified on a per step and per metric basis used to\ndetermine whether a certain task can be considered when merging\nmultiple tasks at a minimum or maximum node. A task is considered\nfailing if the absolute value of any of its metrics are larger than\nthe goal for that metric, if set.",
+                  "help": "Goals specified on a per-node and per-metric basis used to\ndetermine whether a task run is considered successful. A task run\nmay be considered failing if the absolute value of any of its\nreported metrics is larger than the goal for that metric (if set).\nThis is often used for metrics like 'errors' or 'setupwns'\nwhere the goal is 0.",
                   "notes": null,
                   "pernode": "never",
                   "node": {
@@ -3399,12 +3399,12 @@
                 "switch": [
                   "-flowgraph_tool 'flow step index <str>'"
                 ],
-                "shorthelp": "Flowgraph: tool selection",
+                "shorthelp": "Flowgraph: Tool selection",
                 "example": [
                   "cli: -flowgraph_tool 'asicflow place 0 openroad'",
                   "api: flow.set('flowgraph', 'asicflow', 'place', '0', 'tool', 'openroad')"
                 ],
-                "help": "Name of the tool name used for task execution.",
+                "help": "Name of the tool (e.g., 'openroad', 'yosys', 'builtin') that\nthis node will execute.",
                 "notes": null,
                 "pernode": "never",
                 "node": {
@@ -3424,12 +3424,12 @@
                 "switch": [
                   "-flowgraph_task 'flow step index <str>'"
                 ],
-                "shorthelp": "Flowgraph: task selection",
+                "shorthelp": "Flowgraph: Task selection",
                 "example": [
                   "cli: -flowgraph_task 'asicflow myplace 0 place'",
                   "api: flow.set('flowgraph', 'asicflow', 'myplace', '0', 'task', 'place')"
                 ],
-                "help": "Name of the tool associated task used for step execution.",
+                "help": "Name of the task (e.g., 'place', 'syn', 'join') associated\nwith the node's tool.",
                 "notes": null,
                 "pernode": "never",
                 "node": {
@@ -3449,12 +3449,12 @@
                 "switch": [
                   "-flowgraph_taskmodule 'flow step index <str>'"
                 ],
-                "shorthelp": "Flowgraph: task module",
+                "shorthelp": "Flowgraph: Task module",
                 "example": [
-                  "cli: -flowgraph_taskmodule 'asicflow place 0 siliconcompiler.tools.openroad.place'",
-                  "api: flow.set('flowgraph', 'asicflow', 'place', '0', 'taskmodule', 'siliconcompiler.tools.openroad.place')"
+                  "cli: -flowgraph_taskmodule 'asicflow place 0 siliconcompiler.tools.openroad/Place'",
+                  "api: flow.set('flowgraph', 'asicflow', 'place', '0', 'taskmodule', 'siliconcompiler.tools.openroad/Place')"
                 ],
-                "help": "Full python module name of the task module used for task setup and execution.",
+                "help": "Full Python module path and class name of the task, formatted as\n'<full.module.path>/<ClassName>'. This is used to import and\ninstantiate the correct Task class for setup and execution.",
                 "notes": null,
                 "pernode": "never",
                 "node": {
@@ -3474,12 +3474,12 @@
                 "switch": [
                   "-flowgraph_args 'flow step index <str>'"
                 ],
-                "shorthelp": "Flowgraph: setup arguments",
+                "shorthelp": "Flowgraph: Node-specific arguments",
                 "example": [
-                  "cli: -flowgraph_args 'asicflow cts 0 0'",
-                  "api: flow.add('flowgraph', 'asicflow', 'cts', '0', 'args', '0')"
+                  "cli: -flowgraph_args 'asicflow cts 0 buffer_cells'",
+                  "api: flow.add('flowgraph', 'asicflow', 'cts', '0', 'args', 'buffer_cells')"
                 ],
-                "help": "User specified flowgraph string arguments specified on a per\nstep and per index basis.",
+                "help": "User-specified arguments passed to the task's `setup()` method.\nThis allows for customizing a specific node's behavior without\naffecting other nodes running the same task.",
                 "notes": null,
                 "pernode": "never",
                 "node": {
@@ -7056,12 +7056,12 @@
                 "switch": [
                   "-flowgraph_input 'flow step index <(str,str)>'"
                 ],
-                "shorthelp": "Flowgraph: step input",
+                "shorthelp": "Flowgraph: Node inputs",
                 "example": [
                   "cli: -flowgraph_input 'asicflow cts 0 (place,0)'",
-                  "api: flow.set('flowgraph', 'asicflow', 'cts', '0', 'input', ('place', '0'))"
+                  "api: flow.add('flowgraph', 'asicflow', 'cts', '0', 'input', ('place', '0'))"
                 ],
-                "help": "A list of inputs for the current step and index, specified as a\n(step, index) tuple.",
+                "help": "A list of inputs for this flowgraph node, where each input is\nspecified as a (step, index) tuple. This defines the dependencies\nof this node.",
                 "notes": null,
                 "pernode": "never",
                 "node": {
@@ -7082,12 +7082,12 @@
                   "switch": [
                     "-flowgraph_weight 'flow step index metric <float>'"
                   ],
-                  "shorthelp": "Flowgraph: metric weights",
+                  "shorthelp": "Flowgraph: Metric weights",
                   "example": [
                     "cli: -flowgraph_weight 'asicflow cts 0 area_cells 1.0'",
                     "api: flow.set('flowgraph', 'asicflow', 'cts', '0', 'weight', 'area_cells', 1.0)"
                   ],
-                  "help": "Weights specified on a per step and per metric basis used to give\neffective \"goodness\" score for a step by calculating the sum all step\nreal metrics results by the corresponding per step weights.",
+                  "help": "Weights specified on a per-node and per-metric basis, used by\noptimization tasks (like 'minimum') to calculate a \"goodness\"\nscore for a run. The score is typically a weighted sum of\nmetric results.",
                   "notes": null,
                   "pernode": "never",
                   "node": {
@@ -7109,12 +7109,12 @@
                   "switch": [
                     "-flowgraph_goal 'flow step index metric <float>'"
                   ],
-                  "shorthelp": "Flowgraph: metric goals",
+                  "shorthelp": "Flowgraph: Metric goals",
                   "example": [
-                    "cli: -flowgraph_goal 'asicflow cts 0 area_cells 1.0'",
+                    "cli: -flowgraph_goal 'asicflow cts 0 errors 0'",
                     "api: flow.set('flowgraph', 'asicflow', 'cts', '0', 'goal', 'errors', 0)"
                   ],
-                  "help": "Goals specified on a per step and per metric basis used to\ndetermine whether a certain task can be considered when merging\nmultiple tasks at a minimum or maximum node. A task is considered\nfailing if the absolute value of any of its metrics are larger than\nthe goal for that metric, if set.",
+                  "help": "Goals specified on a per-node and per-metric basis used to\ndetermine whether a task run is considered successful. A task run\nmay be considered failing if the absolute value of any of its\nreported metrics is larger than the goal for that metric (if set).\nThis is often used for metrics like 'errors' or 'setupwns'\nwhere the goal is 0.",
                   "notes": null,
                   "pernode": "never",
                   "node": {
@@ -7135,12 +7135,12 @@
                 "switch": [
                   "-flowgraph_tool 'flow step index <str>'"
                 ],
-                "shorthelp": "Flowgraph: tool selection",
+                "shorthelp": "Flowgraph: Tool selection",
                 "example": [
                   "cli: -flowgraph_tool 'asicflow place 0 openroad'",
                   "api: flow.set('flowgraph', 'asicflow', 'place', '0', 'tool', 'openroad')"
                 ],
-                "help": "Name of the tool name used for task execution.",
+                "help": "Name of the tool (e.g., 'openroad', 'yosys', 'builtin') that\nthis node will execute.",
                 "notes": null,
                 "pernode": "never",
                 "node": {
@@ -7160,12 +7160,12 @@
                 "switch": [
                   "-flowgraph_task 'flow step index <str>'"
                 ],
-                "shorthelp": "Flowgraph: task selection",
+                "shorthelp": "Flowgraph: Task selection",
                 "example": [
                   "cli: -flowgraph_task 'asicflow myplace 0 place'",
                   "api: flow.set('flowgraph', 'asicflow', 'myplace', '0', 'task', 'place')"
                 ],
-                "help": "Name of the tool associated task used for step execution.",
+                "help": "Name of the task (e.g., 'place', 'syn', 'join') associated\nwith the node's tool.",
                 "notes": null,
                 "pernode": "never",
                 "node": {
@@ -7185,12 +7185,12 @@
                 "switch": [
                   "-flowgraph_taskmodule 'flow step index <str>'"
                 ],
-                "shorthelp": "Flowgraph: task module",
+                "shorthelp": "Flowgraph: Task module",
                 "example": [
-                  "cli: -flowgraph_taskmodule 'asicflow place 0 siliconcompiler.tools.openroad.place'",
-                  "api: flow.set('flowgraph', 'asicflow', 'place', '0', 'taskmodule', 'siliconcompiler.tools.openroad.place')"
+                  "cli: -flowgraph_taskmodule 'asicflow place 0 siliconcompiler.tools.openroad/Place'",
+                  "api: flow.set('flowgraph', 'asicflow', 'place', '0', 'taskmodule', 'siliconcompiler.tools.openroad/Place')"
                 ],
-                "help": "Full python module name of the task module used for task setup and execution.",
+                "help": "Full Python module path and class name of the task, formatted as\n'<full.module.path>/<ClassName>'. This is used to import and\ninstantiate the correct Task class for setup and execution.",
                 "notes": null,
                 "pernode": "never",
                 "node": {
@@ -7210,12 +7210,12 @@
                 "switch": [
                   "-flowgraph_args 'flow step index <str>'"
                 ],
-                "shorthelp": "Flowgraph: setup arguments",
+                "shorthelp": "Flowgraph: Node-specific arguments",
                 "example": [
-                  "cli: -flowgraph_args 'asicflow cts 0 0'",
-                  "api: flow.add('flowgraph', 'asicflow', 'cts', '0', 'args', '0')"
+                  "cli: -flowgraph_args 'asicflow cts 0 buffer_cells'",
+                  "api: flow.add('flowgraph', 'asicflow', 'cts', '0', 'args', 'buffer_cells')"
                 ],
-                "help": "User specified flowgraph string arguments specified on a per\nstep and per index basis.",
+                "help": "User-specified arguments passed to the task's `setup()` method.\nThis allows for customizing a specific node's behavior without\naffecting other nodes running the same task.",
                 "notes": null,
                 "pernode": "never",
                 "node": {
@@ -11702,12 +11702,12 @@
                 "switch": [
                   "-flowgraph_input 'flow step index <(str,str)>'"
                 ],
-                "shorthelp": "Flowgraph: step input",
+                "shorthelp": "Flowgraph: Node inputs",
                 "example": [
                   "cli: -flowgraph_input 'asicflow cts 0 (place,0)'",
-                  "api: flow.set('flowgraph', 'asicflow', 'cts', '0', 'input', ('place', '0'))"
+                  "api: flow.add('flowgraph', 'asicflow', 'cts', '0', 'input', ('place', '0'))"
                 ],
-                "help": "A list of inputs for the current step and index, specified as a\n(step, index) tuple.",
+                "help": "A list of inputs for this flowgraph node, where each input is\nspecified as a (step, index) tuple. This defines the dependencies\nof this node.",
                 "notes": null,
                 "pernode": "never",
                 "node": {
@@ -11728,12 +11728,12 @@
                   "switch": [
                     "-flowgraph_weight 'flow step index metric <float>'"
                   ],
-                  "shorthelp": "Flowgraph: metric weights",
+                  "shorthelp": "Flowgraph: Metric weights",
                   "example": [
                     "cli: -flowgraph_weight 'asicflow cts 0 area_cells 1.0'",
                     "api: flow.set('flowgraph', 'asicflow', 'cts', '0', 'weight', 'area_cells', 1.0)"
                   ],
-                  "help": "Weights specified on a per step and per metric basis used to give\neffective \"goodness\" score for a step by calculating the sum all step\nreal metrics results by the corresponding per step weights.",
+                  "help": "Weights specified on a per-node and per-metric basis, used by\noptimization tasks (like 'minimum') to calculate a \"goodness\"\nscore for a run. The score is typically a weighted sum of\nmetric results.",
                   "notes": null,
                   "pernode": "never",
                   "node": {
@@ -11755,12 +11755,12 @@
                   "switch": [
                     "-flowgraph_goal 'flow step index metric <float>'"
                   ],
-                  "shorthelp": "Flowgraph: metric goals",
+                  "shorthelp": "Flowgraph: Metric goals",
                   "example": [
-                    "cli: -flowgraph_goal 'asicflow cts 0 area_cells 1.0'",
+                    "cli: -flowgraph_goal 'asicflow cts 0 errors 0'",
                     "api: flow.set('flowgraph', 'asicflow', 'cts', '0', 'goal', 'errors', 0)"
                   ],
-                  "help": "Goals specified on a per step and per metric basis used to\ndetermine whether a certain task can be considered when merging\nmultiple tasks at a minimum or maximum node. A task is considered\nfailing if the absolute value of any of its metrics are larger than\nthe goal for that metric, if set.",
+                  "help": "Goals specified on a per-node and per-metric basis used to\ndetermine whether a task run is considered successful. A task run\nmay be considered failing if the absolute value of any of its\nreported metrics is larger than the goal for that metric (if set).\nThis is often used for metrics like 'errors' or 'setupwns'\nwhere the goal is 0.",
                   "notes": null,
                   "pernode": "never",
                   "node": {
@@ -11781,12 +11781,12 @@
                 "switch": [
                   "-flowgraph_tool 'flow step index <str>'"
                 ],
-                "shorthelp": "Flowgraph: tool selection",
+                "shorthelp": "Flowgraph: Tool selection",
                 "example": [
                   "cli: -flowgraph_tool 'asicflow place 0 openroad'",
                   "api: flow.set('flowgraph', 'asicflow', 'place', '0', 'tool', 'openroad')"
                 ],
-                "help": "Name of the tool name used for task execution.",
+                "help": "Name of the tool (e.g., 'openroad', 'yosys', 'builtin') that\nthis node will execute.",
                 "notes": null,
                 "pernode": "never",
                 "node": {
@@ -11806,12 +11806,12 @@
                 "switch": [
                   "-flowgraph_task 'flow step index <str>'"
                 ],
-                "shorthelp": "Flowgraph: task selection",
+                "shorthelp": "Flowgraph: Task selection",
                 "example": [
                   "cli: -flowgraph_task 'asicflow myplace 0 place'",
                   "api: flow.set('flowgraph', 'asicflow', 'myplace', '0', 'task', 'place')"
                 ],
-                "help": "Name of the tool associated task used for step execution.",
+                "help": "Name of the task (e.g., 'place', 'syn', 'join') associated\nwith the node's tool.",
                 "notes": null,
                 "pernode": "never",
                 "node": {
@@ -11831,12 +11831,12 @@
                 "switch": [
                   "-flowgraph_taskmodule 'flow step index <str>'"
                 ],
-                "shorthelp": "Flowgraph: task module",
+                "shorthelp": "Flowgraph: Task module",
                 "example": [
-                  "cli: -flowgraph_taskmodule 'asicflow place 0 siliconcompiler.tools.openroad.place'",
-                  "api: flow.set('flowgraph', 'asicflow', 'place', '0', 'taskmodule', 'siliconcompiler.tools.openroad.place')"
+                  "cli: -flowgraph_taskmodule 'asicflow place 0 siliconcompiler.tools.openroad/Place'",
+                  "api: flow.set('flowgraph', 'asicflow', 'place', '0', 'taskmodule', 'siliconcompiler.tools.openroad/Place')"
                 ],
-                "help": "Full python module name of the task module used for task setup and execution.",
+                "help": "Full Python module path and class name of the task, formatted as\n'<full.module.path>/<ClassName>'. This is used to import and\ninstantiate the correct Task class for setup and execution.",
                 "notes": null,
                 "pernode": "never",
                 "node": {
@@ -11856,12 +11856,12 @@
                 "switch": [
                   "-flowgraph_args 'flow step index <str>'"
                 ],
-                "shorthelp": "Flowgraph: setup arguments",
+                "shorthelp": "Flowgraph: Node-specific arguments",
                 "example": [
-                  "cli: -flowgraph_args 'asicflow cts 0 0'",
-                  "api: flow.add('flowgraph', 'asicflow', 'cts', '0', 'args', '0')"
+                  "cli: -flowgraph_args 'asicflow cts 0 buffer_cells'",
+                  "api: flow.add('flowgraph', 'asicflow', 'cts', '0', 'args', 'buffer_cells')"
                 ],
-                "help": "User specified flowgraph string arguments specified on a per\nstep and per index basis.",
+                "help": "User-specified arguments passed to the task's `setup()` method.\nThis allows for customizing a specific node's behavior without\naffecting other nodes running the same task.",
                 "notes": null,
                 "pernode": "never",
                 "node": {
@@ -14674,12 +14674,12 @@
                 "switch": [
                   "-flowgraph_input 'flow step index <(str,str)>'"
                 ],
-                "shorthelp": "Flowgraph: step input",
+                "shorthelp": "Flowgraph: Node inputs",
                 "example": [
                   "cli: -flowgraph_input 'asicflow cts 0 (place,0)'",
-                  "api: flow.set('flowgraph', 'asicflow', 'cts', '0', 'input', ('place', '0'))"
+                  "api: flow.add('flowgraph', 'asicflow', 'cts', '0', 'input', ('place', '0'))"
                 ],
-                "help": "A list of inputs for the current step and index, specified as a\n(step, index) tuple.",
+                "help": "A list of inputs for this flowgraph node, where each input is\nspecified as a (step, index) tuple. This defines the dependencies\nof this node.",
                 "notes": null,
                 "pernode": "never",
                 "node": {
@@ -14700,12 +14700,12 @@
                   "switch": [
                     "-flowgraph_weight 'flow step index metric <float>'"
                   ],
-                  "shorthelp": "Flowgraph: metric weights",
+                  "shorthelp": "Flowgraph: Metric weights",
                   "example": [
                     "cli: -flowgraph_weight 'asicflow cts 0 area_cells 1.0'",
                     "api: flow.set('flowgraph', 'asicflow', 'cts', '0', 'weight', 'area_cells', 1.0)"
                   ],
-                  "help": "Weights specified on a per step and per metric basis used to give\neffective \"goodness\" score for a step by calculating the sum all step\nreal metrics results by the corresponding per step weights.",
+                  "help": "Weights specified on a per-node and per-metric basis, used by\noptimization tasks (like 'minimum') to calculate a \"goodness\"\nscore for a run. The score is typically a weighted sum of\nmetric results.",
                   "notes": null,
                   "pernode": "never",
                   "node": {
@@ -14727,12 +14727,12 @@
                   "switch": [
                     "-flowgraph_goal 'flow step index metric <float>'"
                   ],
-                  "shorthelp": "Flowgraph: metric goals",
+                  "shorthelp": "Flowgraph: Metric goals",
                   "example": [
-                    "cli: -flowgraph_goal 'asicflow cts 0 area_cells 1.0'",
+                    "cli: -flowgraph_goal 'asicflow cts 0 errors 0'",
                     "api: flow.set('flowgraph', 'asicflow', 'cts', '0', 'goal', 'errors', 0)"
                   ],
-                  "help": "Goals specified on a per step and per metric basis used to\ndetermine whether a certain task can be considered when merging\nmultiple tasks at a minimum or maximum node. A task is considered\nfailing if the absolute value of any of its metrics are larger than\nthe goal for that metric, if set.",
+                  "help": "Goals specified on a per-node and per-metric basis used to\ndetermine whether a task run is considered successful. A task run\nmay be considered failing if the absolute value of any of its\nreported metrics is larger than the goal for that metric (if set).\nThis is often used for metrics like 'errors' or 'setupwns'\nwhere the goal is 0.",
                   "notes": null,
                   "pernode": "never",
                   "node": {
@@ -14753,12 +14753,12 @@
                 "switch": [
                   "-flowgraph_tool 'flow step index <str>'"
                 ],
-                "shorthelp": "Flowgraph: tool selection",
+                "shorthelp": "Flowgraph: Tool selection",
                 "example": [
                   "cli: -flowgraph_tool 'asicflow place 0 openroad'",
                   "api: flow.set('flowgraph', 'asicflow', 'place', '0', 'tool', 'openroad')"
                 ],
-                "help": "Name of the tool name used for task execution.",
+                "help": "Name of the tool (e.g., 'openroad', 'yosys', 'builtin') that\nthis node will execute.",
                 "notes": null,
                 "pernode": "never",
                 "node": {
@@ -14778,12 +14778,12 @@
                 "switch": [
                   "-flowgraph_task 'flow step index <str>'"
                 ],
-                "shorthelp": "Flowgraph: task selection",
+                "shorthelp": "Flowgraph: Task selection",
                 "example": [
                   "cli: -flowgraph_task 'asicflow myplace 0 place'",
                   "api: flow.set('flowgraph', 'asicflow', 'myplace', '0', 'task', 'place')"
                 ],
-                "help": "Name of the tool associated task used for step execution.",
+                "help": "Name of the task (e.g., 'place', 'syn', 'join') associated\nwith the node's tool.",
                 "notes": null,
                 "pernode": "never",
                 "node": {
@@ -14803,12 +14803,12 @@
                 "switch": [
                   "-flowgraph_taskmodule 'flow step index <str>'"
                 ],
-                "shorthelp": "Flowgraph: task module",
+                "shorthelp": "Flowgraph: Task module",
                 "example": [
-                  "cli: -flowgraph_taskmodule 'asicflow place 0 siliconcompiler.tools.openroad.place'",
-                  "api: flow.set('flowgraph', 'asicflow', 'place', '0', 'taskmodule', 'siliconcompiler.tools.openroad.place')"
+                  "cli: -flowgraph_taskmodule 'asicflow place 0 siliconcompiler.tools.openroad/Place'",
+                  "api: flow.set('flowgraph', 'asicflow', 'place', '0', 'taskmodule', 'siliconcompiler.tools.openroad/Place')"
                 ],
-                "help": "Full python module name of the task module used for task setup and execution.",
+                "help": "Full Python module path and class name of the task, formatted as\n'<full.module.path>/<ClassName>'. This is used to import and\ninstantiate the correct Task class for setup and execution.",
                 "notes": null,
                 "pernode": "never",
                 "node": {
@@ -14828,12 +14828,12 @@
                 "switch": [
                   "-flowgraph_args 'flow step index <str>'"
                 ],
-                "shorthelp": "Flowgraph: setup arguments",
+                "shorthelp": "Flowgraph: Node-specific arguments",
                 "example": [
-                  "cli: -flowgraph_args 'asicflow cts 0 0'",
-                  "api: flow.add('flowgraph', 'asicflow', 'cts', '0', 'args', '0')"
+                  "cli: -flowgraph_args 'asicflow cts 0 buffer_cells'",
+                  "api: flow.add('flowgraph', 'asicflow', 'cts', '0', 'args', 'buffer_cells')"
                 ],
-                "help": "User specified flowgraph string arguments specified on a per\nstep and per index basis.",
+                "help": "User-specified arguments passed to the task's `setup()` method.\nThis allows for customizing a specific node's behavior without\naffecting other nodes running the same task.",
                 "notes": null,
                 "pernode": "never",
                 "node": {

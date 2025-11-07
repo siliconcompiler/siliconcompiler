@@ -75,8 +75,8 @@ def test_node_str():
 def test_node_invalid_task():
     flow = Flowgraph("testflow")
 
-    with pytest.raises(ValueError, match=r"^12 is not a string or module and cannot be used to "
-                                         r"setup a task\.$"):
+    with pytest.raises(ValueError, match=r"^12 is not a string, Task class, or Task instance and "
+                                         r"cannot be used to setup a task\.$"):
         flow.node("teststep", 12)
 
 
@@ -521,10 +521,10 @@ def test_validate_missing_config(large_flow, caplog, item):
 def test_validate_loop(large_flow, caplog):
     large_flow.add("stepone", "2", "input", ("jointwo", "0"))
     assert not large_flow.validate(logger=logging.getLogger())
-    assert "stepone/0 -> joinone/0 -> steptwo/0 -> jointwo/0 -> stepone/2 -> joinone/0 forms " \
-        "a loop in testflow" in caplog.text
-    assert "stepone/1 -> joinone/0 -> steptwo/0 -> jointwo/0 -> stepone/2 -> joinone/0 forms " \
-        "a loop in testflow" in caplog.text
+    assert "Loop detected in testflow: stepone/0 -> joinone/0 -> steptwo/0 -> jointwo/0 -> " \
+        "stepone/2 -> joinone/0" in caplog.text
+    assert "Loop detected in testflow: stepone/1 -> joinone/0 -> steptwo/0 -> jointwo/0 -> " \
+        "stepone/2 -> joinone/0" in caplog.text
 
 
 def test_runtime_init():
@@ -1084,8 +1084,8 @@ def test_get_task_cls_not_found(large_flow):
 def test_get_task_formatting_error(large_flow):
     assert large_flow.set("joinone", "0", "taskmodule", "notvalid.module")
     with pytest.raises(ValueError,
-                       match=r"^task is not correctly formatted as "
-                             r"<module>/<class>: notvalid\.module$"):
+                       match=r"^Task module name is not correctly formatted as <full\.module\."
+                             r"path>/<ClassName>: notvalid\.module$"):
         large_flow.get_task_module("joinone", "0")
 
 
@@ -1102,11 +1102,13 @@ def test_write_flowgraph(large_flow, has_graphviz):
 
 def test_get_task_module_invalid_format():
     with pytest.raises(ValueError,
-                       match="^task is not correctly formatted as <module>/<class>: something$"):
+                       match=r"^Task module name is not correctly formatted as <full\.module\."
+                             r"path>/<ClassName>: something$"):
         Flowgraph()._Flowgraph__get_task_module("something")
 
 
 def test_get_task_module_invalid_type():
     with pytest.raises(ValueError,
-                       match="^task is not correctly formatted as <module>/<class>: None$"):
+                       match=r"^Task module name is not correctly formatted as <full\.module\."
+                             r"path>/<ClassName>: None$"):
         Flowgraph()._Flowgraph__get_task_module(None)

@@ -24,7 +24,6 @@ class Flowgraph(NamedSchema, DocsSchema):
 
     A flowgraph is a directed acyclic graph (DAG) that represents the
     compilation flow. Each node in the graph is a step/index pair that
-
     maps to a specific tool task, and edges represent dependencies between
     these tasks.
     '''
@@ -48,7 +47,9 @@ class Flowgraph(NamedSchema, DocsSchema):
         '''
         Clears the internal cache for memoized flowgraph properties.
 
-        This should be called any time the graph structure is modified.
+        This should be called any time the graph structure (nodes or edges)
+        is modified to ensure subsequent calls to graph traversal methods
+        (like get_nodes, get_execution_order, etc.) compute fresh results.
         '''
 
         self.__cache_nodes = None
@@ -63,29 +64,46 @@ class Flowgraph(NamedSchema, DocsSchema):
 
     def node(self, step: str, task: "Task", index: Optional[Union[str, int]] = 0) -> None:
         '''
-        Creates a flowgraph node.
+        Creates or updates a flowgraph node.
 
-        Creates a flowgraph node by binding a step to a tool-specific task.
-        A tool can be an external executable or one of the built-in functions
-        in the SiliconCompiler framework (e.g., minimum, maximum, join).
+        Creates a flowgraph node by binding a step/index pair to a specific
+        tool task. A tool can be an external executable or one of the built-in
+        functions in the SiliconCompiler framework (e.g., minimum, maximum, join).
 
-        The method modifies the following schema parameters:
+        If the node (step, index) already exists, its task and tool information
+        will be updated.
+
+        The method modifies the following schema parameters for the given
+        step and index:
 
         * `['<step>', '<index>', 'tool']`
         * `['<step>', '<index>', 'task']`
         * `['<step>', '<index>', 'taskmodule']`
 
         Args:
-            step (str): Step name for the node.
-            task (module or str): The task to associate with this node. Can be
-                a module object or a string in the format '<tool>.<task>'.
-            index (int or str): Index for the step. Defaults to 0.
+            step (str): Step name for the node. Must not contain '/'.
+            task (Task or str or Type[Task]): The task to associate with this
+                node. Can be a task instance, a string in the format
+                '<module_path>/<ClassName>', or a Task class type.
+            index (int or str, optional): Index for the step. Defaults to 0.
+                Must not contain '/'.
+
+        Raises:
+            ValueError: If 'step' or 'index' are reserved names (like
+                'default' or 'global') or contain invalid characters ('/').
+            ValueError: If 'task' is not a valid Task object, string, or class.
 
         Examples:
             >>> import siliconcompiler.tools.openroad as openroad
-            >>> flow.node('place', openroad.place, index=0)
-            # Creates a node for the 'place' task in the 'openroad' tool,
-            # identified by step='place' and index=0.
+            >>> # Using a Task class
+            >>> flow.node('place', openroad.Place, index=0)
+            >>>
+            >>> # Using a string identifier
+            >>> flow.node('cts', 'siliconcompiler.tools.openroad/Cts', index=0)
+            >>>
+            >>> # Using a Task instance
+            >>> from siliconcompiler.tools.builtin import Join
+            >>> flow.node('join', Join(), index=0)
         '''
         from siliconcompiler import Task
 
@@ -104,6 +122,7 @@ class Flowgraph(NamedSchema, DocsSchema):
         # Determine task name and module
         task_module = None
         if inspect.isclass(task) and issubclass(task, Task):
+            # Instantiate the task class
             task = task()
 
         if isinstance(task, str):
@@ -113,13 +132,14 @@ class Flowgraph(NamedSchema, DocsSchema):
         elif isinstance(task, Task):
             task_module = task.__class__.__module__ + "/" + task.__class__.__name__
         else:
-            raise ValueError(f"{task} is not a string or module and cannot be used to "
-                             "setup a task.")
+            raise ValueError(f"{task} is not a string, Task class, or Task instance and "
+                             "cannot be used to setup a task.")
 
         # bind tool to node
-        self.set(step, index, 'tool', task.tool())
-        self.set(step, index, 'task', task.task())
-        self.set(step, index, 'taskmodule', task_module)
+        graph_node: "FlowgraphNodeSchema" = self.get(step, index, field="schema")
+        graph_node.set('tool', task.tool())
+        graph_node.set('task', task.task())
+        graph_node.set('taskmodule', task_module)
 
         self.__clear_cache()
 
@@ -129,20 +149,31 @@ class Flowgraph(NamedSchema, DocsSchema):
         '''
         Creates a directed edge from a tail node to a head node.
 
-        Connects the output of a tail node with the input of a head node by
-        setting the 'input' field of the head node in the schema flowgraph.
+        Connects the output of a tail node (tail, tail_index) with the
+        input of a head node (head, head_index) by adding the tail node
+        to the 'input' list of the head node in the schema.
+
+        If the edge already exists, this method does nothing.
 
         The method modifies the following parameter:
 
         * `['<head>', '<head_index>', 'input']`
 
         Args:
-            tail (str): Step name of the tail node.
-            head (str): Step name of the head node.
-            tail_index (int or str): Index of the tail node. Defaults to 0.
-            head_index (int or str): Index of the head node. Defaults to 0.
+            tail (str): Step name of the tail node (source).
+            head (str): Step name of the head node (destination).
+            tail_index (int or str, optional): Index of the tail node.
+                Defaults to 0.
+            head_index (int or str, optional): Index of the head node.
+                Defaults to 0.
+
+        Raises:
+            ValueError: If either the head or tail node is not defined in
+                the flowgraph before calling this method.
 
         Examples:
+            >>> flow.node('place', 'openroad/Place')
+            >>> flow.node('cts', 'openroad/Cts')
             >>> flow.edge('place', 'cts')
             # Creates a directed edge from ('place', '0') to ('cts', '0').
         '''
@@ -153,11 +184,14 @@ class Flowgraph(NamedSchema, DocsSchema):
             if not self.valid(step, index):
                 raise ValueError(f"{step}/{index} is not a defined node in {self.name}.")
 
+        head_node = self.get_graph_node(head, head_index)
+
         tail_node = (tail, tail_index)
-        if tail_node in self.get(head, head_index, 'input'):
+        if tail_node in head_node.get_input():
+            # Edge already exists
             return
 
-        self.add(head, head_index, 'input', tail_node)
+        head_node.add('input', tail_node)
 
         self.__clear_cache()
 
@@ -165,42 +199,58 @@ class Flowgraph(NamedSchema, DocsSchema):
         '''
         Removes a flowgraph node and reconnects its inputs to its outputs.
 
+        This operation effectively "stitches" the graph back together by
+        creating new edges from all inputs of the removed node to all
+        outputs of the removed node.
+
+        If `index` is None, all nodes for the given `step` are removed.
+
         Args:
             step (str): Step name of the node to remove.
             index (int or str, optional): Index of the node to remove. If None,
                 all nodes for the given step are removed. Defaults to None.
+
+        Raises:
+            ValueError: If the specified `step` or `(step, index)` is not
+                a valid node in the flowgraph.
         '''
 
         if step not in self.getkeys():
             raise ValueError(f'{step} is not a valid step in {self.name}')
 
         if index is None:
-            # Iterate over all indexes
-            for index in self.getkeys(step):
-                self.remove_node(step, index)
+            # Iterate over all indexes for the step
+            for index_key in self.getkeys(step):
+                self.remove_node(step, index_key)
             return
 
         index = str(index)
         if index not in self.getkeys(step):
             raise ValueError(f'{index} is not a valid index for {step} in {self.name}')
 
-        # Save input edges
-        node = (step, index)
-        node_inputs = self.get(step, index, 'input')
+        # Save input edges of the node being removed
+        node_to_remove = (step, index)
+        node_inputs = self.get_graph_node(step, index).get_input()
 
-        # remove node
+        # Remove the node from the schema
         self.remove(step, index)
 
-        # remove step if all nodes a gone
+        # Remove the step if all its nodes are gone
         if len(self.getkeys(step)) == 0:
             self.remove(step)
 
+        # Re-wire: Find all nodes that had the removed node as an input
         for flow_step in self.getkeys():
             for flow_index in self.getkeys(flow_step):
-                inputs = self.get(flow_step, flow_index, 'input')
-                if node in inputs:
-                    inputs = [inode for inode in inputs if inode != node]
+                current_node = self.get_graph_node(flow_step, flow_index)
+                inputs = current_node.get_input()
+
+                if node_to_remove in inputs:
+                    # Remove the old edge
+                    inputs = [inode for inode in inputs if inode != node_to_remove]
+                    # Add new edges from the removed node's inputs
                     inputs.extend(node_inputs)
+                    # Set the new list of inputs, removing duplicates
                     self.set(flow_step, flow_index, 'input', sorted(set(inputs)))
 
         self.__clear_cache()
@@ -209,17 +259,25 @@ class Flowgraph(NamedSchema, DocsSchema):
                     index: Optional[Union[str, int]] = 0,
                     before_index: Optional[Union[str, int]] = 0) -> None:
         '''
-        Inserts a new node in the graph before a specified node.
+        Inserts a new node in the graph immediately before a specified node.
 
-        The new node is placed between the `before` node and all of its
-        original inputs.
+        The new node (`step`, `index`) is placed between the `before` node
+        (`before_step`, `before_index`) and all of the `before` node's
+        original inputs. The `before` node's inputs are cleared, and it
+        is given a single input: the new node. The new node inherits all
+        the original inputs of the `before` node.
 
         Args:
             step (str): Step name for the new node.
-            task (module or str): Task to associate with the new node.
+            task (Task or str or Type[Task]): Task to associate with the new node.
             before_step (str): Step name of the existing node to insert before.
-            index (int or str): Index for the new node. Defaults to 0.
-            before_index (int or str): Index of the existing node. Defaults to 0.
+            index (int or str, optional): Index for the new node. Defaults to 0.
+            before_index (int or str, optional): Index of the existing node.
+                Defaults to 0.
+
+        Raises:
+            ValueError: If the `before` node (`before_step`, `before_index`)
+                is not a valid node in the flowgraph.
         '''
 
         index = str(index)
@@ -246,6 +304,14 @@ class Flowgraph(NamedSchema, DocsSchema):
         '''
         Instantiates a sub-flowgraph within the current flowgraph.
 
+        This method copies all nodes and their internal connections from
+        `subflow` into the current flowgraph.
+
+        If `name` is provided, it is used as a prefix (e.g., "core.")
+        for all step names from the `subflow` to ensure they are unique
+        within the current flowgraph. This prefix is also applied to the
+        internal edges to maintain the sub-flowgraph's structure.
+
         Args:
             subflow (Flowgraph): The flowgraph to instantiate.
             name (str, optional): A prefix to add to the names of the
@@ -271,13 +337,14 @@ class Flowgraph(NamedSchema, DocsSchema):
             # forward information
             for keys in subflow.allkeys(step):
                 self.set(newstep, *keys, subflow.get(step, *keys))
+            self.__clear_cache()
 
             if name is None:
                 continue
 
             # rename inputs
             for index in self.getkeys(newstep):
-                all_inputs = self.get(newstep, index, 'input')
+                all_inputs = self.get_graph_node(newstep, index).get_input()
                 self.set(newstep, index, 'input', [])
                 for in_step, in_index in all_inputs:
                     newin = name + "." + in_step
@@ -289,10 +356,12 @@ class Flowgraph(NamedSchema, DocsSchema):
         '''
         Returns a sorted tuple of all nodes defined in this flowgraph.
 
-        A node is represented as a `(step, index)` tuple.
+        A node is represented as a `(step, index)` tuple. The result is
+        memoized for efficiency.
 
         Returns:
-            tuple[tuple(str,str)]: All nodes in the graph.
+            tuple[tuple(str,str)]: A sorted tuple of all (step, index)
+            nodes in the graph.
         '''
         if self.__cache_nodes is not None:
             return self.__cache_nodes
@@ -310,10 +379,12 @@ class Flowgraph(NamedSchema, DocsSchema):
         '''
         Collects all nodes that are entry points to the flowgraph.
 
-        Entry nodes are those with no inputs.
+        Entry nodes are those with no inputs defined. The result is
+        memoized.
 
         Returns:
-            tuple[tuple(str,str)]: All entry nodes in the graph.
+            tuple[tuple(str,str)]: A sorted tuple of all entry nodes
+            in the graph.
         '''
 
         if self.__cache_nodes_entry is not None:
@@ -321,7 +392,7 @@ class Flowgraph(NamedSchema, DocsSchema):
 
         nodes = []
         for step, index in self.get_nodes():
-            if not self.get(step, index, 'input'):
+            if not self.get_graph_node(step, index).has_input():
                 nodes.append((step, index))
 
         self.__cache_nodes_entry = tuple(sorted(set(nodes)))
@@ -332,10 +403,12 @@ class Flowgraph(NamedSchema, DocsSchema):
         '''
         Collects all nodes that are exit points of the flowgraph.
 
-        Exit nodes are those that are not inputs to any other node.
+        Exit nodes are those that are not inputs to any other node in
+        the graph. The result is memoized.
 
         Returns:
-            tuple[tuple(str,str)]: All exit nodes in the graph.
+            tuple[tuple(str,str)]: A sorted tuple of all exit nodes
+            in the graph.
         '''
 
         if self.__cache_nodes_exit is not None:
@@ -343,7 +416,7 @@ class Flowgraph(NamedSchema, DocsSchema):
 
         inputnodes = []
         for step, index in self.get_nodes():
-            inputnodes.extend(self.get(step, index, 'input'))
+            inputnodes.extend(self.get_graph_node(step, index).get_input())
         nodes = []
         for step, index in self.get_nodes():
             if (step, index) not in inputnodes:
@@ -358,13 +431,21 @@ class Flowgraph(NamedSchema, DocsSchema):
         '''
         Generates a topologically sorted list of nodes for execution.
 
+        This method performs a topological sort of the graph. The result is
+        a tuple of tuples, where each inner tuple represents a "level" of
+        nodes that can be executed in parallel (as their dependencies are
+        met).
+
+        The result is memoized for both forward and reverse orders.
+
         Args:
-            reverse (bool): If True, the order is reversed, from exit nodes
-                to entry nodes. Defaults to False.
+            reverse (bool, optional): If True, the order is reversed,
+                starting from the exit nodes and working backwards to the
+                entry nodes. Defaults to False.
 
         Returns:
             tuple[tuple[tuple(str,str)]]: A tuple of tuples, where each inner
-            tuple represents a level of nodes that can be executed in parallel.
+            tuple represents a level of nodes.
         '''
 
         if reverse:
@@ -377,7 +458,7 @@ class Flowgraph(NamedSchema, DocsSchema):
         # Generate execution edges lookup map
         ex_map = {}
         for step, index in self.get_nodes():
-            for istep, iindex in self.get(step, index, 'input'):
+            for istep, iindex in self.get_graph_node(step, index).get_input():
                 if reverse:
                     ex_map.setdefault((step, index), set()).add((istep, iindex))
                 else:
@@ -440,14 +521,21 @@ class Flowgraph(NamedSchema, DocsSchema):
 
     def get_node_outputs(self, step: str, index: Union[str, int]) -> Tuple[Tuple[str, str], ...]:
         '''
-        Returns the nodes that the given node provides input to.
+        Returns the nodes that the given node provides input to (its children).
+
+        This is the reverse of `get_graph_node(step, index).get_input()`.
+        The results are computed for all nodes and memoized on the first call.
 
         Args:
             step (str): Step name of the source node.
             index (str or int): Index of the source node.
 
         Returns:
-            tuple[tuple(str,str)]: A tuple of destination nodes.
+            tuple[tuple(str,str)]: A sorted tuple of destination nodes
+            (step, index) that take the given node as an input.
+
+        Raises:
+            ValueError: If the specified `(step, index)` is not a valid node.
         '''
 
         index = str(index)
@@ -462,7 +550,7 @@ class Flowgraph(NamedSchema, DocsSchema):
 
         input_map = {}
         for istep, iindex in self.get_nodes():
-            input_map[(istep, iindex)] = self.get(istep, iindex, 'input')
+            input_map[(istep, iindex)] = self.get_graph_node(istep, iindex).get_input()
             self.__cache_node_outputs[(istep, iindex)] = set()
 
         for src_node, dst_nodes in input_map.items():
@@ -471,6 +559,7 @@ class Flowgraph(NamedSchema, DocsSchema):
                     self.__cache_node_outputs[dst_node] = set()
                 self.__cache_node_outputs[dst_node].add(src_node)
 
+        # Convert sets to sorted tuples for consistent output
         self.__cache_node_outputs = {
             node: tuple(sorted(outputs)) for node, outputs in self.__cache_node_outputs.items()
         }
@@ -482,13 +571,19 @@ class Flowgraph(NamedSchema, DocsSchema):
         '''
         Internal helper to search for loops in the graph via depth-first search.
 
+        This method is used by `validate()`.
+
         Args:
-            step (str): Step name to start from.
-            index (str): Index name to start from.
-            path (list, optional): The path taken so far. Defaults to None.
+            step (str): Step name to start/continue from.
+            index (str): Index name to start/continue from.
+            path (list, optional): The current path (nodes in recursion stack).
+                Defaults to None.
+            visited (set, optional): All nodes visited so far (to avoid
+                re-checking branches). Defaults to None.
 
         Returns:
-            list: A list of nodes forming a loop, or None if no loop is found.
+            list[tuple(str,str)]: A list of nodes forming a loop, or
+            None if no loop is found from this path.
         '''
         if path is None:
             path = []
@@ -529,7 +624,7 @@ class Flowgraph(NamedSchema, DocsSchema):
         check_nodes = set()
         for step, index in self.get_nodes():
             check_nodes.add((step, index))
-            input_nodes = self.get(step, index, 'input')
+            input_nodes = self.get_graph_node(step, index).get_input()
             check_nodes.update(input_nodes)
 
             for node in set(input_nodes):
@@ -556,20 +651,33 @@ class Flowgraph(NamedSchema, DocsSchema):
                                      f'{self.name} flowgraph')
                     error = True
 
-        # detect loops
+        # Detect loops
         for start_step, start_index in self.get_entry_nodes():
             loop_path = self.__find_loops(start_step, start_index)
             if loop_path:
                 error = True
                 if logger:
-                    loop_path = [f"{step}/{index}" for step, index in loop_path]
-                    logger.error(f"{' -> '.join(loop_path)} forms a loop in {self.name}")
+                    loop_path_str = [f"{step}/{index}" for step, index in loop_path]
+                    logger.error(f"Loop detected in {self.name}: {' -> '.join(loop_path_str)}")
 
         return not error
 
     def __get_task_module(self, name: str) -> Type["Task"]:
         '''
         Internal helper to import and cache a task module by name.
+
+        The name is expected in the format '<full.module.path>/<ClassName>'.
+
+        Args:
+            name (str): The fully qualified task module name.
+
+        Returns:
+            Type[Task]: The imported Task class.
+
+        Raises:
+            ValueError: If the name is not in the expected format.
+            ImportError: If the module cannot be imported.
+            AttributeError: If the class is not found in the module.
         '''
         # Create cache
         if self.__cache_tasks is None:
@@ -581,7 +689,8 @@ class Flowgraph(NamedSchema, DocsSchema):
         try:
             module_name, cls = name.split("/")
         except (ValueError, AttributeError):
-            raise ValueError(f"task is not correctly formatted as <module>/<class>: {name}")
+            raise ValueError("Task module name is not correctly formatted as "
+                             f"<full.module.path>/<ClassName>: {name}")
         module = importlib.import_module(module_name)
 
         self.__cache_tasks[name] = getattr(module, cls)
@@ -589,29 +698,29 @@ class Flowgraph(NamedSchema, DocsSchema):
 
     def get_task_module(self, step: str, index: Union[str, int]) -> Type["Task"]:
         """
-        Returns the imported Python module for a given task node.
+        Returns the imported Python Task class for a given task node.
 
         Args:
             step (str): Step name of the node.
             index (int or str): Index of the node.
 
         Returns:
-            module: The imported task module.
+            Type[Task]: The imported Task class associated with the node.
+
+        Raises:
+            ValueError: If the node is not valid.
         """
-
         index = str(index)
-
         if (step, index) not in self.get_nodes():
             raise ValueError(f"{step}/{index} is not a valid node in {self.name}.")
-
-        return self.__get_task_module(self.get(step, index, 'taskmodule'))
+        return self.__get_task_module(self.get_graph_node(step, index).get_taskmodule())
 
     def get_all_tasks(self) -> Set[Type["Task"]]:
         '''
-        Returns all unique task modules used in this flowgraph.
+        Returns all unique task classes used in this flowgraph.
 
         Returns:
-            set[module]: A set of all imported task modules.
+            set[Type[Task]]: A set of all imported task classes.
         '''
         tasks = set()
         for step, index in self.get_nodes():
@@ -623,10 +732,18 @@ class Flowgraph(NamedSchema, DocsSchema):
         """
         Returns the metadata type for `getdict` serialization.
         """
-
         return Flowgraph.__name__
 
     def __get_graph_information(self):
+        '''
+        Internal helper to gather all node and edge info for graphviz.
+
+        Returns:
+            Tuple containing:
+                - set: All graph-level inputs (currently empty).
+                - dict: Information about each node.
+                - list: Information about each edge.
+        '''
         # Setup nodes
         node_exec_order = self.get_execution_order()
 
@@ -635,6 +752,7 @@ class Flowgraph(NamedSchema, DocsSchema):
             for step, index in rank_nodes:
                 node_rank[f'{step}/{index}'] = rank
 
+        # TODO: This appears to be unused, legacy from when files were nodes
         all_graph_inputs = set()
 
         exit_nodes = [f'{step}/{index}' for step, index in self.get_exit_nodes()]
@@ -653,8 +771,9 @@ class Flowgraph(NamedSchema, DocsSchema):
         runtime_flow = RuntimeFlowgraph(self)
 
         for step, index in all_nodes:
-            tool = self.get(step, index, "tool")
-            task = self.get(step, index, "task")
+            graph_node = self.get_graph_node(step, index)
+            tool = graph_node.get("tool")
+            task = graph_node.get("task")
 
             inputs = []
             outputs = []
@@ -684,7 +803,7 @@ class Flowgraph(NamedSchema, DocsSchema):
         for step, index in all_nodes:
             node = f'{step}/{index}'
             all_inputs = []
-            for in_step, in_index in self.get(step, index, 'input'):
+            for in_step, in_index in self.get_graph_node(step, index).get_input():
                 all_inputs.append(f'{in_step}/{in_index}')
             for item in all_inputs:
                 edges.append((item, node, 1 if node in exit_nodes else 2))
@@ -762,6 +881,7 @@ class Flowgraph(NamedSchema, DocsSchema):
         for node, info in nodes.items():
             subgraph_temp = subgraphs
 
+            # Create nested cluster subgraphs for steps like "a.b.c"
             for key in node.split(".")[0:-1]:
                 if key not in subgraph_temp["graphs"]:
                     subgraph_temp["graphs"][key] = {
@@ -770,6 +890,7 @@ class Flowgraph(NamedSchema, DocsSchema):
                     }
                 subgraph_temp = subgraph_temp["graphs"][key]
 
+            # Special cluster for input nodes
             if info['is_input']:
                 if "sc-inputs" not in subgraph_temp["graphs"]:
                     subgraph_temp["graphs"]["sc-inputs"] = {
@@ -792,6 +913,7 @@ class Flowgraph(NamedSchema, DocsSchema):
                     penwidth=penwidth, fillcolor=fillcolor, shape="box")
 
         def make_node(graph, node, prefix):
+            '''Helper function to create a node in the graphviz object.'''
             info = nodes[node]
 
             shape = "oval"
@@ -829,6 +951,7 @@ class Flowgraph(NamedSchema, DocsSchema):
                     if subgraph == "sc-inputs":
                         graph.attr(style='invis')
                     else:
+                        # Style the cluster box
                         graph.attr(color=fontcolor)
                         graph.attr(style='rounded')
                         graph.attr(shape='oval')
@@ -844,15 +967,32 @@ class Flowgraph(NamedSchema, DocsSchema):
                 if graph is not parent:
                     parent.subgraph(graph)
 
+            # Add all nodes at this level to the parent graph
             for subnode in graph_info["nodes"]:
                 make_node(parent, subnode, prefix)
 
+        # Start building the graph from the root
         build_graph(subgraphs, dot, "")
 
+        # Add all the edges
         for edge0, edge1, weight in edges:
             dot.edge(f'{edge0}{out_label_suffix}', f'{edge1}{in_label_suffix}', weight=str(weight))
 
         dot.render(filename=fileroot, cleanup=True)
+
+    def get_graph_node(self, step: str, index: Optional[Union[int, str]] = None) \
+            -> "FlowgraphNodeSchema":
+        """
+        Get the flowgraph node for this step and index
+        """
+        if index is None:
+            index = "0"
+        index = str(index)
+
+        if (step, index) not in self.get_nodes():
+            raise ValueError(f"{step}/{index} is not a valid node in {self.name}.")
+
+        return self.get(step, index, field="schema")
 
     def _generate_doc(self, doc,
                       ref_root: str = "",
@@ -883,7 +1023,7 @@ class Flowgraph(NamedSchema, DocsSchema):
                 sec = build_section(f"{step}/{index}",
                                     f"{ref_root}-flow-{self.name}-nodes-{step}-{index}")
                 sec += BaseSchema._generate_doc(
-                    self.get(step, index, field="schema"),
+                    self.get_graph_node(step, index),
                     doc,
                     ref_root=f"{ref_root}-flow-{self.name}-nodes-{step}-{index}",
                     key_offset=(*key_offset, "flowgraph", self.name),
@@ -898,10 +1038,10 @@ class RuntimeFlowgraph:
     '''
     A runtime representation of a flowgraph for a specific execution.
 
-    This class creates a "view" of a base flowgraph that considers runtime
-    options such as the start step (`-from`), end step (`-to`), and nodes to
-    exclude (`-prune`). It computes the precise subgraph of nodes that need
-    to be executed for a given run.
+    This class creates a "view" of a base `Flowgraph` that considers
+    runtime options such as the start step (`-from`), end step (`-to`),
+    and nodes to exclude (`-prune`). It computes the precise subgraph of
+    nodes that need to be executed for a given run.
     '''
 
     def __init__(self, base: Flowgraph,
@@ -1073,8 +1213,12 @@ class RuntimeFlowgraph:
         '''
         Returns the entry nodes for this runtime graph.
 
+        This includes user-defined `-from` nodes (if they are part of
+        the graph) and any nodes whose inputs are pruned or outside the
+        computed graph.
+
         Returns:
-            tuple[tuple(str,str)]: A tuple of all entry nodes.
+            tuple[tuple(str,str)]: A sorted tuple of all entry nodes.
         '''
         return self.__from
 
@@ -1282,6 +1426,9 @@ class RuntimeFlowgraph:
 class FlowgraphNodeSchema(BaseSchema):
     '''
     Schema definition for a single node within a flowgraph.
+
+    This class defines the parameters that can be set on a per-node
+    basis, such as inputs, weights, goals, and the task to execute.
     '''
 
     def __init__(self):
@@ -1289,7 +1436,6 @@ class FlowgraphNodeSchema(BaseSchema):
         Initializes a new FlowgraphNodeSchema.
         '''
         super().__init__()
-
         schema_flowgraph(self)
 
     @classmethod
@@ -1297,8 +1443,129 @@ class FlowgraphNodeSchema(BaseSchema):
         """
         Returns the metadata type for `getdict` serialization.
         """
-
         return FlowgraphNodeSchema.__name__
+
+    def add_args(self, arg: Union[List[str], str], clobber: bool = False):
+        '''
+        Adds command-line arguments specific to this node.
+
+        Args:
+            arg (list[str] or str): The argument or list of arguments to add.
+            clobber (bool, optional): If True, replaces all existing args
+                with the new ones. If False, appends. Defaults to False.
+        '''
+        if clobber:
+            self.set("args", arg)
+        else:
+            self.add("args", arg)
+
+    def get_args(self) -> List[str]:
+        '''
+        Gets the list of command-line arguments for this node.
+
+        Returns:
+            list[str]: The list of arguments.
+        '''
+        return self.get("args")
+
+    def add_weight(self, metric: str, weight: float):
+        '''
+        Sets a weight for a specific metric for this node.
+
+        Weights are used in optimization tasks to define the "cost" of a
+        particular metric.
+
+        Args:
+            metric (str): The name of the metric (e.g., 'errors', 'area').
+            weight (float): The weight value.
+        '''
+        self.set("weight", metric, weight)
+
+    def get_weight(self, metric: str) -> Optional[float]:
+        '''
+        Gets the weight for a specific metric for this node.
+
+        Args:
+            metric (str): The name of the metric.
+
+        Returns:
+            float or None: The weight value, or None if not set.
+        '''
+        if metric not in self.getkeys("weight"):
+            return None
+        return self.get("weight", metric)
+
+    def add_goal(self, metric: str, weight: float):
+        '''
+        Sets a goal for a specific metric for this node.
+
+        Goals are used to determine if a task run is acceptable.
+
+        Args:
+            metric (str): The name of the metric (e.g., 'errors', 'setupwns').
+            weight (float): The goal value (e.g., 0 for 'errors').
+        '''
+        self.set("goal", metric, weight)
+
+    def get_goal(self, metric: str) -> Optional[float]:
+        '''
+        Gets the goal for a specific metric for this node.
+
+        Args:
+            metric (str): The name of the metric.
+
+        Returns:
+            float or None: The goal value, or None if not set.
+        '''
+        if metric not in self.getkeys("goal"):
+            return None
+        return self.get("goal", metric)
+
+    def get_tool(self) -> str:
+        '''
+        Gets the tool associated with this node.
+
+        Returns:
+            str: The name of the tool (e.g., 'openroad').
+        '''
+        return self.get("tool")
+
+    def get_task(self) -> str:
+        '''
+        Gets the task associated with this node.
+
+        Returns:
+            str: The name of the task (e.g., 'place').
+        '''
+        return self.get("task")
+
+    def get_taskmodule(self) -> str:
+        '''
+        Gets the fully qualified Python module/class for this node's task.
+
+        Returns:
+            str: The task module string (e.g.,
+            'siliconcompiler.tools.openroad/Place').
+        '''
+        return self.get("taskmodule")
+
+    def get_input(self) -> List[Tuple[str, str]]:
+        '''
+        Gets the list of input nodes (dependencies) for this node.
+
+        Returns:
+            list[tuple(str,str)]: A list of (step, index) tuples.
+        '''
+        return self.get("input")
+
+    def has_input(self) -> bool:
+        '''
+        Checks if this node has any inputs.
+
+        Returns:
+            bool: True if the node has one or more inputs, False otherwise.
+        '''
+        return bool(self.get_input())
 
 
 ###############################################################################
@@ -1308,114 +1575,136 @@ def schema_flowgraph(schema: FlowgraphNodeSchema):
     '''
     Defines the schema parameters for a flowgraph node.
 
-    This function is called to populate a schema with parameters that
-    define a node's properties, such as its inputs, weights, goals, and the
-    tool/task it executes.
+    This function is called to populate a `FlowgraphNodeSchema` with
+    parameters that define a node's properties, such as its inputs,
+    weights, goals, and the tool/task it executes.
 
     Args:
-        schema (Schema): The schema object to configure.
+        schema (FlowgraphNodeSchema): The schema object to configure.
     '''
-    schema = EditableSchema(schema)
+    edit = EditableSchema(schema)
 
     # flowgraph input
-    schema.insert(
+    edit.insert(
         'input',
         Parameter(
             '[(str,str)]',
             scope=Scope.GLOBAL,
-            shorthelp="Flowgraph: step input",
+            shorthelp="Flowgraph: Node inputs",
             switch="-flowgraph_input 'flow step index <(str,str)>'",
             example=[
                 "cli: -flowgraph_input 'asicflow cts 0 (place,0)'",
-                "api: flow.set('flowgraph', 'asicflow', 'cts', '0', 'input', ('place', '0'))"],
-            help=trim("""A list of inputs for the current step and index, specified as a
-            (step, index) tuple.""")))
+                "api: flow.add('flowgraph', 'asicflow', 'cts', '0', 'input', ('place', '0'))"],
+            help=trim("""
+            A list of inputs for this flowgraph node, where each input is
+            specified as a (step, index) tuple. This defines the dependencies
+            of this node.
+            """)))
 
     # flowgraph metric weights
     metric = 'default'
-    schema.insert(
+    edit.insert(
         'weight', metric,
         Parameter(
             'float',
             scope=Scope.GLOBAL,
             defvalue=0.0,
-            shorthelp="Flowgraph: metric weights",
+            shorthelp="Flowgraph: Metric weights",
             switch="-flowgraph_weight 'flow step index metric <float>'",
             example=[
                 "cli: -flowgraph_weight 'asicflow cts 0 area_cells 1.0'",
                 "api: flow.set('flowgraph', 'asicflow', 'cts', '0', 'weight', 'area_cells', 1.0)"],
-            help=trim("""Weights specified on a per step and per metric basis used to give
-            effective "goodness" score for a step by calculating the sum all step
-            real metrics results by the corresponding per step weights.""")))
+            help=trim("""
+            Weights specified on a per-node and per-metric basis, used by
+            optimization tasks (like 'minimum') to calculate a "goodness"
+            score for a run. The score is typically a weighted sum of
+            metric results.
+            """)))
 
-    schema.insert(
+    # flowgraph metric goals
+    edit.insert(
         'goal', metric,
         Parameter(
             'float',
             scope=Scope.GLOBAL,
-            shorthelp="Flowgraph: metric goals",
+            shorthelp="Flowgraph: Metric goals",
             switch="-flowgraph_goal 'flow step index metric <float>'",
             example=[
-                "cli: -flowgraph_goal 'asicflow cts 0 area_cells 1.0'",
+                "cli: -flowgraph_goal 'asicflow cts 0 errors 0'",
                 "api: flow.set('flowgraph', 'asicflow', 'cts', '0', 'goal', 'errors', 0)"],
-            help=trim("""Goals specified on a per step and per metric basis used to
-            determine whether a certain task can be considered when merging
-            multiple tasks at a minimum or maximum node. A task is considered
-            failing if the absolute value of any of its metrics are larger than
-            the goal for that metric, if set.""")))
+            help=trim("""
+            Goals specified on a per-node and per-metric basis used to
+            determine whether a task run is considered successful. A task run
+            may be considered failing if the absolute value of any of its
+            reported metrics is larger than the goal for that metric (if set).
+            This is often used for metrics like 'errors' or 'setupwns'
+            where the goal is 0.
+            """)))
 
     # flowgraph tool
-    schema.insert(
+    edit.insert(
         'tool',
         Parameter(
             'str',
             scope=Scope.GLOBAL,
-            shorthelp="Flowgraph: tool selection",
+            shorthelp="Flowgraph: Tool selection",
             switch="-flowgraph_tool 'flow step index <str>'",
             example=[
                 "cli: -flowgraph_tool 'asicflow place 0 openroad'",
                 "api: flow.set('flowgraph', 'asicflow', 'place', '0', 'tool', 'openroad')"],
-            help=trim("""Name of the tool name used for task execution.""")))
+            help=trim("""
+            Name of the tool (e.g., 'openroad', 'yosys', 'builtin') that
+            this node will execute.
+            """)))
 
     # task (belonging to tool)
-    schema.insert(
+    edit.insert(
         'task',
         Parameter(
             'str',
             scope=Scope.GLOBAL,
-            shorthelp="Flowgraph: task selection",
+            shorthelp="Flowgraph: Task selection",
             switch="-flowgraph_task 'flow step index <str>'",
             example=[
                 "cli: -flowgraph_task 'asicflow myplace 0 place'",
                 "api: flow.set('flowgraph', 'asicflow', 'myplace', '0', 'task', 'place')"],
-            help=trim("""Name of the tool associated task used for step execution.""")))
+            help=trim("""
+            Name of the task (e.g., 'place', 'syn', 'join') associated
+            with the node's tool.
+            """)))
 
-    schema.insert(
+    # task module
+    edit.insert(
         'taskmodule',
         Parameter(
             'str',
             scope=Scope.GLOBAL,
-            shorthelp="Flowgraph: task module",
+            shorthelp="Flowgraph: Task module",
             switch="-flowgraph_taskmodule 'flow step index <str>'",
             example=[
                 "cli: -flowgraph_taskmodule 'asicflow place 0 "
-                "siliconcompiler.tools.openroad.place'",
+                "siliconcompiler.tools.openroad/Place'",
                 "api: flow.set('flowgraph', 'asicflow', 'place', '0', 'taskmodule', "
-                "'siliconcompiler.tools.openroad.place')"],
+                "'siliconcompiler.tools.openroad/Place')"],
             help=trim("""
-            Full python module name of the task module used for task setup and execution.
+            Full Python module path and class name of the task, formatted as
+            '<full.module.path>/<ClassName>'. This is used to import and
+            instantiate the correct Task class for setup and execution.
             """)))
 
     # flowgraph arguments
-    schema.insert(
+    edit.insert(
         'args',
         Parameter(
             '[str]',
             scope=Scope.GLOBAL,
-            shorthelp="Flowgraph: setup arguments",
+            shorthelp="Flowgraph: Node-specific arguments",
             switch="-flowgraph_args 'flow step index <str>'",
             example=[
-                "cli: -flowgraph_args 'asicflow cts 0 0'",
-                "api: flow.add('flowgraph', 'asicflow', 'cts', '0', 'args', '0')"],
-            help=trim("""User specified flowgraph string arguments specified on a per
-            step and per index basis.""")))
+                "cli: -flowgraph_args 'asicflow cts 0 buffer_cells'",
+                "api: flow.add('flowgraph', 'asicflow', 'cts', '0', 'args', 'buffer_cells')"],
+            help=trim("""
+            User-specified arguments passed to the task's `setup()` method.
+            This allows for customizing a specific node's behavior without
+            affecting other nodes running the same task.
+            """)))
