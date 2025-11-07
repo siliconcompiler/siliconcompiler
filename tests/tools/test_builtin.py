@@ -628,6 +628,32 @@ def test_filter_remove_all(monkeypatch, caplog):
     assert "Filters (nomatch) removed all incoming files" in caplog.text
 
 
+def test_filter_remove_all_from_args(monkeypatch, caplog):
+    design = Design("testdesign")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+
+    flow = Flowgraph("test")
+    flow.node("start", NOPTask())
+    flow.node("end", FilterTask())
+    flow.edge("start", "end")
+    flow.set("end", "0", "args", "nomatch")
+
+    proj = Project(design)
+    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    proj.logger.setLevel(logging.INFO)
+    proj.add_fileset("rtl")
+    proj.set_flow(flow)
+
+    NOPTask.find_task(proj).add_output_file("test.out", step="start", index="0")
+
+    node = SchedulerNode(proj, "end", "0")
+    with node.runtime():
+        node.setup()
+
+    assert "Filters (nomatch) removed all incoming files" in caplog.text
+
+
 def test_filter_remove_one():
     design = Design("testdesign")
     with design.active_fileset("rtl"):
@@ -647,6 +673,32 @@ def test_filter_remove_one():
     NOPTask.find_task(proj).add_output_file("test2.out", step="start", index="0")
     FilterTask.find_task(proj).add_filter_keep("test0*")
     FilterTask.find_task(proj).add_filter_keep("test2*")
+
+    node = SchedulerNode(proj, "end", "0")
+    with node.runtime():
+        node.setup()
+        assert node.task.get("output") == ['test0.out', 'test2.out']
+
+
+def test_filter_remove_one_from_args():
+    design = Design("testdesign")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+
+    flow = Flowgraph("test")
+    flow.node("start", NOPTask())
+    flow.node("end", FilterTask())
+    flow.edge("start", "end")
+    flow.set("end", "0", "args", "test0*")
+    flow.add("end", "0", "args", "test2*")
+
+    proj = Project(design)
+    proj.add_fileset("rtl")
+    proj.set_flow(flow)
+
+    NOPTask.find_task(proj).add_output_file("test0.out", step="start", index="0")
+    NOPTask.find_task(proj).add_output_file("test1.out", step="start", index="0")
+    NOPTask.find_task(proj).add_output_file("test2.out", step="start", index="0")
 
     node = SchedulerNode(proj, "end", "0")
     with node.runtime():
