@@ -51,17 +51,18 @@ class FilterTask(Task):
         super().setup()
 
         flow = self.project.get("flowgraph", self.project.option.get_flow(), field="schema")
+        graph_node = flow.get_graph_node(self.step, self.index)
 
         if self.get("var", "keep"):
             self.add_required_key("var", "keep")
-        elif flow.get(self.step, self.index, "args"):
-            self.add_required_key(self.step, self.index, "args")
+        elif graph_node.get_args():
+            self.add_required_key(graph_node, "args")
 
         files = sorted(list(self.get_files_from_input_nodes().keys()))
         if not files:
             raise ValueError("task receives no files")
 
-        filters: List[str] = self.get("var", "keep") or flow.get(self.step, self.index, "args")
+        filters: List[str] = self.get("var", "keep") or graph_node.get_args()
         if not filters:
             filters = ["*"]
 
