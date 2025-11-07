@@ -54,9 +54,8 @@ class FilterTask(Task):
 
         if self.get("var", "keep"):
             self.add_required_key("var", "keep")
-        else:
-            if flow.get(self.step, self.index, "args"):
-                self.add_required_key(self.step, self.index, "args")
+        elif flow.get(self.step, self.index, "args"):
+            self.add_required_key(self.step, self.index, "args")
 
         files = sorted(list(self.get_files_from_input_nodes().keys()))
         if not files:
