@@ -21,6 +21,8 @@ class BuiltinTask(Task):
 
         self._set_io_files()
 
+        self.set_threads(1)
+
     def _set_io_files(self):
         files = sorted(list(self.get_files_from_input_nodes().keys()))
         self.add_input_file(files)

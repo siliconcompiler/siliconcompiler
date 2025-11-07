@@ -50,6 +50,8 @@ class FilterTask(Task):
     def setup(self):
         super().setup()
 
+        self.set_threads(1)
+
         flow = self.project.get("flowgraph", self.project.option.get_flow(), field="schema")
         graph_node = flow.get_graph_node(self.step, self.index)
 

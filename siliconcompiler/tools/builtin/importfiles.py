@@ -92,6 +92,8 @@ class ImportFilesTask(Task):
         """
         super().setup()
 
+        self.set_threads(1)
+
         if (self.step, self.index) not in self.schema_flow.get_entry_nodes():
             raise ValueError("task must be an entry node")
 
