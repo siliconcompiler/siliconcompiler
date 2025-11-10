@@ -8,6 +8,23 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.35.3 (2025-11-10)
+=========================================
+
+**Minor:**
+
+ * Added support for downloading `.bz2` files as dataroots.
+ * Added new accessor methods to `Flowgraph`.
+ * Implemented lazy loading for the schema to significantly speed up loading from disk.
+ * Implemented multithreaded checks at the start of `.run()` to accelerate the determination of which nodes need to be re-run.
+ * Optimized runtime handling of `.active_*` attributes to avoid excessive copying.
+ * Corrected file upload behavior for the remote runner.
+
+ * Tools:
+
+  * klayout: Fixed the screenshot task to ensure it can be correctly inserted into a flowgraph.
+
+
 SiliconCompiler 0.35.2 (2025-10-28)
 =========================================
 
