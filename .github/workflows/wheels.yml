@@ -67,10 +67,12 @@ jobs:
         platform:
           - os: ubuntu-22.04
             arch: x86_64
-          - os: macos-13
+          - os: macos-latest
             arch: x86_64
           - os: windows-latest
             arch: x86_64
+        exclude:
+          - { python-version: "3.9", platform: {os: "macos-latest", arch: "x86_64"} }
 
     steps:
     - uses: actions/checkout@v5
@@ -101,7 +103,7 @@ jobs:
         xcopy /E klayout-${{ needs.klayout_cache.outputs.version }}-win64 "C:\Program Files (x86)\KLayout\"
 
     - name: Setup env (macOS)
-      if: matrix.platform.os == 'macos-13'
+      if: matrix.platform.os == 'macos-latest'
       run: |
         # || true is needed to avoid failure on brew link error with python3.12
         brew install graphviz || true
