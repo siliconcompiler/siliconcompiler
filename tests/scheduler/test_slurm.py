@@ -96,7 +96,9 @@ def test_slurm_show_nodelog(project, monkeypatch):
             patch("siliconcompiler.schema_support.record.RecordSchema.record_python_packages"):
         popen.return_value = DummyPOpen()
 
-        with pytest.raises(RuntimeError, match=r"Run failed: Could not run final steps: steptwo"):
+        with pytest.raises(RuntimeError,
+                           match=r"Run failed: Could not run final steps \(steptwo\) "
+                                 r"due to errors in: stepone/0"):
             project.run()
 
     assert os.path.isfile('build/testdesign/job0/testdesign.pkg.json')
