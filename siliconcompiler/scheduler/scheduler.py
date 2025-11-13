@@ -669,7 +669,7 @@ class Scheduler:
                     # remove from previous node data
                     del extra_setup_nodes[(step, index)]
 
-                # Copy in old status information, this will be overwriten if needed
+                # Copy in old status information, this will be overwritten if needed
                 if (step, index) in extra_setup_nodes:
                     schema = extra_setup_nodes[(step, index)]
                     node_status = None

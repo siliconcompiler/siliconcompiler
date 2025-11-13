@@ -710,7 +710,7 @@ def test_resume_afterskippped(gcd_design):
     DummyTask.find_task(project).set("var", "check", "this")
 
     assert project.run()
-    project.history("job0").get("record", "status", step="steptwo", index="0") == \
+    assert project.history("job0").get("record", "status", step="steptwo", index="0") == \
         NodeStatus.SKIPPED
     assert project.history("job0").get("record", "toolexitcode", step="steptwo", index="0") is None
     starttime = project.history("job0").get("record", "starttime", step="stepthree", index="0")
@@ -721,7 +721,7 @@ def test_resume_afterskippped(gcd_design):
     DummyTask.find_task(project).set("var", "check", "that", step="stepone")
 
     assert project.run()
-    project.history("job0").get("record", "status", step="steptwo", index="0") == \
+    assert project.history("job0").get("record", "status", step="steptwo", index="0") == \
         NodeStatus.SUCCESS
     assert project.history("job0").get("record", "toolexitcode", step="steptwo", index="0") == 0
     assert starttime != project.history("job0").get("record", "starttime",
@@ -747,7 +747,7 @@ def test_resume_afterskippped_at_setup(gcd_design):
     DummyTask.find_task(project).set("var", "check", "this")
 
     assert project.run()
-    project.history("job0").get("record", "status", step="steptwo", index="0") == \
+    assert project.history("job0").get("record", "status", step="steptwo", index="0") == \
         NodeStatus.SKIPPED
     assert project.history("job0").get("record", "toolexitcode", step="steptwo", index="0") is None
     starttime = project.history("job0").get("record", "starttime", step="stepthree", index="0")
@@ -757,7 +757,7 @@ def test_resume_afterskippped_at_setup(gcd_design):
     DummyTask.find_task(project).set("var", "check", "that", step="stepone")
 
     assert project.run()
-    project.history("job0").get("record", "status", step="steptwo", index="0") == \
+    assert project.history("job0").get("record", "status", step="steptwo", index="0") == \
         NodeStatus.SKIPPED
     assert project.history("job0").get("record", "toolexitcode", step="steptwo", index="0") is None
     assert starttime != project.history("job0").get("record", "starttime",
