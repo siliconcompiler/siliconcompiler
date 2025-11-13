@@ -11,7 +11,6 @@ from siliconcompiler.tools.builtin.nop import NOPTask
 
 from siliconcompiler.scheduler import SlurmSchedulerNode
 from siliconcompiler.utils.paths import jobdir
-from siliconcompiler.scheduler.slurm import shutil as dut_shutil
 
 
 @pytest.fixture
@@ -89,10 +88,9 @@ def test_slurm_show_nodelog(project, monkeypatch):
 
         returncode = 10
 
-    monkeypatch.setattr(dut_shutil, "which", lambda _: "sinfo")
-
     # Run the project's build process synchronously.
-    with patch("subprocess.Popen") as popen, \
+    with patch("siliconcompiler.scheduler.slurm.SlurmSchedulerNode.assert_slurm") as assert_slurm, \
+            patch("subprocess.Popen") as popen, \
             patch("siliconcompiler.schema_support.record.RecordSchema.record_python_packages"):
         popen.return_value = DummyPOpen()
 
@@ -100,6 +98,7 @@ def test_slurm_show_nodelog(project, monkeypatch):
                            match=r"Run failed: Could not run final steps \(steptwo\) "
                                  r"due to errors in: stepone/0"):
             project.run()
+        assert_slurm.assert_called_once()
 
     assert os.path.isfile('build/testdesign/job0/testdesign.pkg.json')
 

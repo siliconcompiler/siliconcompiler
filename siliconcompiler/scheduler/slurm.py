@@ -60,6 +60,8 @@ class SlurmSchedulerNode(SchedulerNode):
         Args:
             project (Project): The project object to perform pre-processing on.
         """
+        SlurmSchedulerNode.assert_slurm()
+
         if os.path.exists(collectiondir(project)):
             # nothing to do
             return
@@ -150,6 +152,14 @@ class SlurmSchedulerNode(SchedulerNode):
         # Return the first listed partition
         return sinfo['nodes'][0]['partitions'][0]
 
+    @staticmethod
+    def assert_slurm() -> None:
+        """
+        Check if slurm is installed and throw error when not installed.
+        """
+        if shutil.which('sinfo') is None:
+            raise RuntimeError('slurm is not available or installed on this machine')
+
     def run(self):
         """
         Runs the node's task as a job on a Slurm cluster.
@@ -160,9 +170,6 @@ class SlurmSchedulerNode(SchedulerNode):
         """
 
         self._init_run_logger()
-
-        if shutil.which('sinfo') is None:
-            raise RuntimeError('slurm is not available or installed on this machine')
 
         # Determine which cluster parititon to use.
         partition = self.project.get('option', 'scheduler', 'queue',
