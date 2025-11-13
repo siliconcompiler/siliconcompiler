@@ -1,6 +1,7 @@
 import logging
 import pytest
 import re
+import sys
 
 import os.path
 
@@ -74,7 +75,9 @@ def test_get_runtime_file_name():
         "hash_step_index.sh"
 
 
-def test_slurm_show_nodelog(project, monkeypatch):
+@pytest.mark.skipif(sys.platform != "linux",
+                    reason="only works on linux, due to issues with patching")
+def test_slurm_show_nodelog(project):
     # Inserting value into configuration
     project.option.scheduler.set_name("slurm")
     project.option.scheduler.set_queue("test_queue")
