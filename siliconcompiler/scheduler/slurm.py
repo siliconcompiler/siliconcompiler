@@ -231,5 +231,5 @@ class SlurmSchedulerNode(SchedulerNode):
         step_result.wait()
 
         if step_result.returncode != 0:
-            self.logger.error(f"Slurm existed with a non-zero code ({step_result.returncode}).")
+            self.logger.error(f"Slurm exited with a non-zero code ({step_result.returncode}).")
             self.logger.error(f"Node log file: {log_file}")

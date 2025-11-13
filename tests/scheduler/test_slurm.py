@@ -107,7 +107,7 @@ def test_slurm_show_nodelog(project, monkeypatch):
     with open("test.log") as f:
         caplog = f.read()
 
-    assert "Slurm existed with a non-zero code (10)." in caplog
+    assert "Slurm exited with a non-zero code (10)." in caplog
     assert re.search(r"Node log file: .*\/build\/testdesign\/job0\/sc_configs\/"
                      r"[0-9a-f]+_stepone_0\.log", caplog)
 
