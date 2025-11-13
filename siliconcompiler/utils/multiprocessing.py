@@ -8,7 +8,7 @@ import os.path
 from typing import Union, Optional
 
 from datetime import datetime
-from multiprocessing.managers import SyncManager
+from multiprocessing.managers import SyncManager, RemoteError
 
 from siliconcompiler.report.dashboard.cli.board import Board
 
@@ -205,7 +205,13 @@ class MPManager(metaclass=_ManagerSingleton):
 
         # Stop the dashboard service if it's running
         if manager.__board:
-            with manager.__board_lock:
+            try:
+                with manager.__board_lock:
+                    if manager.__board:
+                        manager.__board.stop()
+                        manager.__board = None
+            except RemoteError:
+                # Try without the lock
                 if manager.__board:
                     manager.__board.stop()
                     manager.__board = None
