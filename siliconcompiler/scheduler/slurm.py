@@ -217,6 +217,8 @@ class SlurmSchedulerNode(SchedulerNode):
 
         schedule_cmd.append(script_file)
 
+        self.logger.debug(f"Executing slurm command: {shlex.join(schedule_cmd)}")
+
         # Run the 'srun' command, and track its output.
         # TODO: output should be fed to log, and stdout if quiet = False
         step_result = subprocess.Popen(schedule_cmd,
@@ -227,3 +229,7 @@ class SlurmSchedulerNode(SchedulerNode):
         # as it has closed its output stream. But if we don't call '.wait()',
         # the '.returncode' value will not be set correctly.
         step_result.wait()
+
+        if step_result.returncode != 0:
+            self.logger.error(f"Slurm existed with a non-zero code ({step_result.returncode}).")
+            self.logger.error(f"Node log file: {log_file}")
