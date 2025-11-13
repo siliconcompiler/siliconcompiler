@@ -11,6 +11,7 @@ from siliconcompiler.tools.builtin.nop import NOPTask
 
 from siliconcompiler.scheduler import SlurmSchedulerNode
 from siliconcompiler.utils.paths import jobdir
+from siliconcompiler.scheduler.slurm import shutil as dut_shutil
 
 
 @pytest.fixture
@@ -74,7 +75,7 @@ def test_get_runtime_file_name():
         "hash_step_index.sh"
 
 
-def test_slurm_show_nodelog(project):
+def test_slurm_show_nodelog(project, monkeypatch):
     # Inserting value into configuration
     project.option.scheduler.set_name("slurm")
     project.option.scheduler.set_queue("test_queue")
@@ -88,11 +89,11 @@ def test_slurm_show_nodelog(project):
 
         returncode = 10
 
+    monkeypatch.setattr(dut_shutil, "which", lambda _: "sinfo")
+
     # Run the project's build process synchronously.
-    with patch("shutil.which") as which, \
-            patch("subprocess.Popen") as popen, \
+    with patch("subprocess.Popen") as popen, \
             patch("siliconcompiler.schema_support.record.RecordSchema.record_python_packages"):
-        which.return_value = "sinfo"
         popen.return_value = DummyPOpen()
 
         with pytest.raises(RuntimeError, match=r"Run failed: Could not run final steps: steptwo"):
