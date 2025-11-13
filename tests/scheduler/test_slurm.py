@@ -77,7 +77,7 @@ def test_get_runtime_file_name():
 
 @pytest.mark.skipif(sys.platform != "linux",
                     reason="only works on linux, due to issues with patching")
-def test_slurm_show_nodelog(project):
+def test_slurm_show_no_nodelog(project):
     # Inserting value into configuration
     project.option.scheduler.set_name("slurm")
     project.option.scheduler.set_queue("test_queue")
@@ -113,7 +113,60 @@ def test_slurm_show_nodelog(project):
 
     assert "Slurm exited with a non-zero code (10)." in caplog
     assert re.search(r"Node log file: .*\/build\/testdesign\/job0\/sc_configs\/"
-                     r"[0-9a-f]+_stepone_0\.log", caplog)
+                     r"[0-9a-f]+_stepone_0\.log", caplog) is None
+
+
+@pytest.mark.skipif(sys.platform != "linux",
+                    reason="only works on linux, due to issues with patching")
+def test_slurm_show_nodelog(project):
+    # Inserting value into configuration
+    project.option.scheduler.set_name("slurm")
+    project.option.scheduler.set_queue("test_queue")
+
+    # Add file handler to help
+    project.logger.addHandler(logging.FileHandler("test.log"))
+
+    class DummyPOpen:
+        def wait(self):
+            return
+
+        returncode = 10
+
+    def dummy_get_runtime_file_name(hash, step, index, ext):
+        return f"thisfile.{ext}"
+
+    # Run the project's build process synchronously.
+    with patch("siliconcompiler.scheduler.slurm.SlurmSchedulerNode.assert_slurm") as assert_slurm, \
+            patch("siliconcompiler.scheduler.slurm.SlurmSchedulerNode.get_runtime_file_name") \
+            as get_runtime_file_name, \
+            patch("siliconcompiler.scheduler.slurm.SlurmSchedulerNode."
+                  "get_configuration_directory") as get_configuration_directory, \
+            patch("subprocess.Popen") as popen, \
+            patch("siliconcompiler.schema_support.record.RecordSchema.record_python_packages"):
+        popen.return_value = DummyPOpen()
+        get_configuration_directory.return_value = "."
+        get_runtime_file_name.side_effect = dummy_get_runtime_file_name
+
+        with open("thisfile.log", "w") as f:
+            f.write("find this text in the log")
+
+        with pytest.raises(RuntimeError,
+                           match=r"Run failed: Could not run final steps \(steptwo\) "
+                                 r"due to errors in: stepone/0"):
+            project.run()
+        assert_slurm.assert_called_once()
+
+    assert os.path.isfile('build/testdesign/job0/testdesign.pkg.json')
+
+    project.logger.handlers.clear()
+
+    # Collect from test.log
+    with open("test.log") as f:
+        caplog = f.read()
+
+    assert "find this text in the log" in caplog
+    assert "Slurm exited with a non-zero code (10)." in caplog
+    assert "Node log file: ./thisfile.log" in caplog
 
 
 @pytest.mark.eda
