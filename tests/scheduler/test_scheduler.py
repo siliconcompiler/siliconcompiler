@@ -76,7 +76,6 @@ class SelectiveSkip(Task):
 class SetupSkip(Task):
     def __init__(self):
         super().__init__()
-        self.add_parameter("skip", "bool", "skip this")
 
     def tool(self) -> str:
         return "testtool"
@@ -691,7 +690,7 @@ def test_resume_normal(gcd_nop_project):
 
 
 @pytest.mark.timeout(60)
-def test_resume_afterskippped(gcd_design):
+def test_resume_afterskipped(gcd_design):
     project = Project(gcd_design)
     project.add_fileset("rtl")
     project.add_fileset("sdc")
@@ -729,7 +728,7 @@ def test_resume_afterskippped(gcd_design):
 
 
 @pytest.mark.timeout(60)
-def test_resume_afterskippped_at_setup(gcd_design):
+def test_resume_afterskipped_at_setup(gcd_design):
     project = Project(gcd_design)
     project.add_fileset("rtl")
     project.add_fileset("sdc")
