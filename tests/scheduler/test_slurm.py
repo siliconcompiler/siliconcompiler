@@ -1,4 +1,7 @@
+import logging
 import pytest
+import re
+import sys
 
 import os.path
 
@@ -70,6 +73,47 @@ def test_get_job_name():
 def test_get_runtime_file_name():
     assert SlurmSchedulerNode.get_runtime_file_name("hash", "step", "index", "sh") == \
         "hash_step_index.sh"
+
+
+@pytest.mark.skipif(sys.platform != "linux",
+                    reason="only works on linux, due to issues with patching")
+def test_slurm_show_nodelog(project):
+    # Inserting value into configuration
+    project.option.scheduler.set_name("slurm")
+    project.option.scheduler.set_queue("test_queue")
+
+    # Add file handler to help
+    project.logger.addHandler(logging.FileHandler("test.log"))
+
+    class DummyPOpen:
+        def wait(self):
+            return
+
+        returncode = 10
+
+    # Run the project's build process synchronously.
+    with patch("siliconcompiler.scheduler.slurm.SlurmSchedulerNode.assert_slurm") as assert_slurm, \
+            patch("subprocess.Popen") as popen, \
+            patch("siliconcompiler.schema_support.record.RecordSchema.record_python_packages"):
+        popen.return_value = DummyPOpen()
+
+        with pytest.raises(RuntimeError,
+                           match=r"Run failed: Could not run final steps \(steptwo\) "
+                                 r"due to errors in: stepone/0"):
+            project.run()
+        assert_slurm.assert_called_once()
+
+    assert os.path.isfile('build/testdesign/job0/testdesign.pkg.json')
+
+    project.logger.handlers.clear()
+
+    # Collect from test.log
+    with open("test.log") as f:
+        caplog = f.read()
+
+    assert "Slurm exited with a non-zero code (10)." in caplog
+    assert re.search(r"Node log file: .*\/build\/testdesign\/job0\/sc_configs\/"
+                     r"[0-9a-f]+_stepone_0\.log", caplog)
 
 
 @pytest.mark.eda
