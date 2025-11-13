@@ -13,7 +13,7 @@ from siliconcompiler.schema import EditableSchema, Parameter
 
 from siliconcompiler.tools.builtin.nop import NOPTask
 from siliconcompiler.utils.paths import jobdir
-from siliconcompiler.tool import TaskExecutableNotReceived
+from siliconcompiler.tool import TaskExecutableNotReceived, TaskSkip, Task
 
 
 @pytest.fixture
@@ -33,6 +33,61 @@ def gcd_nop_project(gcd_design):
     project.set_flow(flow)
 
     return project
+
+
+class DummyTask(Task):
+    def __init__(self):
+        super().__init__()
+        self.add_parameter("check", "str", "dummy require")
+
+    def tool(self) -> str:
+        return "testtool"
+
+    def task(self) -> str:
+        return "dummy"
+
+    def setup(self):
+        self.add_required_key("var", "check")
+
+    def run(self):
+        return 0
+
+
+class SelectiveSkip(Task):
+    def __init__(self):
+        super().__init__()
+        self.add_parameter("skip", "bool", "skip this")
+
+    def tool(self) -> str:
+        return "testtool"
+
+    def task(self) -> str:
+        return "skippable"
+
+    def run(self):
+        return 0
+
+    def pre_process(self) -> None:
+        super().pre_process()
+        if self.get("var", "skip"):
+            raise TaskSkip("skipped")
+
+
+class SetupSkip(Task):
+    def __init__(self):
+        super().__init__()
+
+    def tool(self) -> str:
+        return "testtool"
+
+    def task(self) -> str:
+        return "skippable"
+
+    def run(self):
+        return 1
+
+    def setup(self) -> None:
+        raise TaskSkip("skipped")
 
 
 @pytest.fixture
@@ -632,6 +687,80 @@ def test_resume_normal(gcd_nop_project):
         NodeStatus.SUCCESS
     assert gcd_nop_project.history("job0").get("record", "status", step="stepfour", index="0") == \
         NodeStatus.SUCCESS
+
+
+@pytest.mark.timeout(60)
+def test_resume_afterskipped(gcd_design):
+    project = Project(gcd_design)
+    project.add_fileset("rtl")
+    project.add_fileset("sdc")
+
+    flow = Flowgraph("skipflow")
+    flow.node("stepone", DummyTask())
+    flow.node("steptwo", SelectiveSkip())
+    flow.node("stepthree", DummyTask())
+    flow.node("stepfour", DummyTask())
+    flow.edge("stepone", "steptwo")
+    flow.edge("steptwo", "stepthree")
+    flow.edge("stepthree", "stepfour")
+    project.set_flow(flow)
+
+    SelectiveSkip.find_task(project).set("var", "skip", True)
+    DummyTask.find_task(project).set("var", "check", "this")
+
+    assert project.run()
+    assert project.history("job0").get("record", "status", step="steptwo", index="0") == \
+        NodeStatus.SKIPPED
+    assert project.history("job0").get("record", "toolexitcode", step="steptwo", index="0") is None
+    starttime = project.history("job0").get("record", "starttime", step="stepthree", index="0")
+
+    time.sleep(1)  # delay to ensure timestamps differ
+    SelectiveSkip.find_task(project).set("var", "skip", False)
+    DummyTask.find_task(project).set("var", "check", "this")
+    DummyTask.find_task(project).set("var", "check", "that", step="stepone")
+
+    assert project.run()
+    assert project.history("job0").get("record", "status", step="steptwo", index="0") == \
+        NodeStatus.SUCCESS
+    assert project.history("job0").get("record", "toolexitcode", step="steptwo", index="0") == 0
+    assert starttime != project.history("job0").get("record", "starttime",
+                                                    step="stepthree", index="0")
+
+
+@pytest.mark.timeout(60)
+def test_resume_afterskipped_at_setup(gcd_design):
+    project = Project(gcd_design)
+    project.add_fileset("rtl")
+    project.add_fileset("sdc")
+
+    flow = Flowgraph("skipflow")
+    flow.node("stepone", DummyTask())
+    flow.node("steptwo", SetupSkip())
+    flow.node("stepthree", DummyTask())
+    flow.node("stepfour", DummyTask())
+    flow.edge("stepone", "steptwo")
+    flow.edge("steptwo", "stepthree")
+    flow.edge("stepthree", "stepfour")
+    project.set_flow(flow)
+
+    DummyTask.find_task(project).set("var", "check", "this")
+
+    assert project.run()
+    assert project.history("job0").get("record", "status", step="steptwo", index="0") == \
+        NodeStatus.SKIPPED
+    assert project.history("job0").get("record", "toolexitcode", step="steptwo", index="0") is None
+    starttime = project.history("job0").get("record", "starttime", step="stepthree", index="0")
+
+    time.sleep(1)  # delay to ensure timestamps differ
+    DummyTask.find_task(project).set("var", "check", "this")
+    DummyTask.find_task(project).set("var", "check", "that", step="stepone")
+
+    assert project.run()
+    assert project.history("job0").get("record", "status", step="steptwo", index="0") == \
+        NodeStatus.SKIPPED
+    assert project.history("job0").get("record", "toolexitcode", step="steptwo", index="0") is None
+    assert starttime != project.history("job0").get("record", "starttime",
+                                                    step="stepthree", index="0")
 
 
 @pytest.mark.timeout(60)

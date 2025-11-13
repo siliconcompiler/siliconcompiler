@@ -12,7 +12,7 @@ import os.path
 
 from datetime import datetime
 
-from typing import Union, Dict, Optional, Tuple, List, TYPE_CHECKING
+from typing import Union, Dict, Optional, Tuple, List, Set, TYPE_CHECKING
 
 from siliconcompiler import NodeStatus
 from siliconcompiler.schema import Journal
@@ -101,6 +101,7 @@ class Scheduler:
         self.__metrics: "MetricSchema" = self.__project.get("metric", field="schema")
 
         self.__tasks: Dict[Tuple[str, str], SchedulerNode] = {}
+        self.__skippedtasks: Set[Tuple[str, str]] = set()
 
         # Create dummy handler
         self.__joblog_handler = logging.NullHandler()
@@ -455,7 +456,7 @@ class Scheduler:
 
         self.__record.set('status', NodeStatus.PENDING, step=step, index=index)
         for next_step, next_index in self.__flow_runtime.get_nodes_starting_at(step, index):
-            if self.__record.get('status', step=next_step, index=next_index) == NodeStatus.SKIPPED:
+            if (next_step, next_index) in self.__skippedtasks:
                 continue
 
             # Mark following steps as pending
@@ -662,10 +663,13 @@ class Scheduler:
             for step, index in layer_nodes:
                 with self.__tasks[(step, index)].runtime():
                     node_kept = self.__tasks[(step, index)].setup()
+                if not node_kept:
+                    self.__skippedtasks.add((step, index))
                 if not node_kept and (step, index) in extra_setup_nodes:
                     # remove from previous node data
                     del extra_setup_nodes[(step, index)]
 
+                # Copy in old status information, this will be overwritten if needed
                 if (step, index) in extra_setup_nodes:
                     schema = extra_setup_nodes[(step, index)]
                     node_status = None
