@@ -89,7 +89,9 @@ def test_slurm_show_nodelog(project):
         returncode = 10
 
     # Run the project's build process synchronously.
-    with patch("shutil.which") as which, patch("subprocess.Popen") as popen, patch("siliconcompiler.schema_support.record.RecordSchema.record_python_packages") as record_python_packages:
+    with patch("shutil.which") as which, \
+            patch("subprocess.Popen") as popen, \
+            patch("siliconcompiler.schema_support.record.RecordSchema.record_python_packages"):
         which.return_value = "sinfo"
         popen.return_value = DummyPOpen()
 
@@ -105,7 +107,8 @@ def test_slurm_show_nodelog(project):
         caplog = f.read()
 
     assert "Slurm existed with a non-zero code (10)." in caplog
-    assert re.search(r"Node log file: .*\/build\/testdesign\/job0\/sc_configs\/[0-9a-f]+_stepone_0\.log", caplog)
+    assert re.search(r"Node log file: .*\/build\/testdesign\/job0\/sc_configs\/"
+                     r"[0-9a-f]+_stepone_0\.log", caplog)
 
 
 @pytest.mark.eda
