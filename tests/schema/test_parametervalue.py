@@ -645,6 +645,20 @@ def test_nodelist_copy():
     assert param.getdict() == check_param.getdict()
 
 
+def test_nodelist_values():
+    value = NodeListValue(NodeValue("str", value="thisvalue"))
+    assert value.values[0].get() == "thisvalue"
+    value.set(["test"])
+    assert value.values[0].get() == "test"
+
+
+def test_nodelist_values_nodefault():
+    value = NodeListValue(NodeValue("str"))
+    assert value.values == []
+    value.set(["test"])
+    assert value.values[0].get() == "test"
+
+
 def test_nodelist_set_type():
     value = NodeListValue(NodeValue("str"))
     value.set(["test"])
@@ -1317,6 +1331,20 @@ def test_nodeset_copy():
 
     assert param is not check_param
     assert param.getdict() == check_param.getdict()
+
+
+def test_nodeset_values():
+    value = NodeSetValue(NodeValue("str", value="thisvalue"))
+    assert value.values[0].get() == "thisvalue"
+    value.set(["test"])
+    assert value.values[0].get() == "test"
+
+
+def test_nodeset_values_nodefault():
+    value = NodeSetValue(NodeValue("str"))
+    assert value.values == []
+    value.set(["test"])
+    assert value.values[0].get() == "test"
 
 
 def test_nodeset_set_type():

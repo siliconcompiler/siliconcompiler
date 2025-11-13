@@ -185,7 +185,13 @@ class NodeListValue:
         '''
         Returns a copy of the values stored in the list
         '''
-        return self.__values.copy()
+        if self.__values:
+            return self.__values.copy()
+        else:
+            if self.__base.has_value:
+                return [self.__base]
+            else:
+                return []
 
     def copy(self) -> "NodeListValue":
         """
@@ -385,7 +391,13 @@ class NodeSetValue:
         '''
         Returns a copy of the values stored in the list
         '''
-        return self.__values.copy()
+        if self.__values:
+            return self.__values.copy()
+        else:
+            if self.__base.has_value:
+                return [self.__base]
+            else:
+                return []
 
     def copy(self) -> "NodeSetValue":
         """
