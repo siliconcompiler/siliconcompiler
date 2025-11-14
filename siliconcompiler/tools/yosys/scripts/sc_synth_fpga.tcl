@@ -30,7 +30,16 @@ if { ![file exists $input_verilog] } {
     set input_verilog "inputs/$sc_topmodule.sv"
 }
 
-if { [sc_cfg_tool_task_get var use_slang] && [sc_load_plugin slang] } {
+set use_slang false
+if { [sc_cfg_tool_task_get var use_slang] } {
+    if { ![sc_load_plugin slang] } {
+        puts "WARNING: Unable to load slang plugin reverting back to yosys read_verilog"
+    } else {
+        set use_slang true
+    }
+}
+
+if { $use_slang } {
     # This needs some reordering of loaded to ensure blackboxes are handled
     # before this
     set slang_params []
@@ -73,9 +82,7 @@ set sc_syn_lut_size [sc_cfg_get library $sc_designlib fpga lutsize]
 # comment in syn_asic.tcl for longer explanation.
 yosys hierarchy -top $sc_topmodule
 
-if { [string match {ice*} $sc_partname] } {
-    yosys synth_ice40 -top $sc_topmodule
-} elseif {
+if {
     [sc_cfg_exists library $sc_designlib tool yosys fpga_config] &&
     [sc_cfg_get library $sc_designlib tool yosys fpga_config] != {} &&
     [sc_load_plugin wildebeest]
@@ -94,6 +101,8 @@ if { [string match {ice*} $sc_partname] } {
         -show_config \
         -top $sc_topmodule \
         {*}$synth_fpga_args
+} elseif { [string match {ice*} $sc_partname] } {
+    yosys synth_ice40 -top $sc_topmodule
 } else {
     set sc_syn_feature_set [sc_cfg_get library $sc_designlib tool yosys feature_set]
 

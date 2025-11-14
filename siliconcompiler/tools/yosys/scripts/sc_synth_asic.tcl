@@ -80,7 +80,16 @@ if { ![file exists $input_verilog] } {
     }
 }
 
-if { [sc_cfg_tool_task_get var use_slang] && [sc_load_plugin slang] } {
+set use_slang false
+if { [sc_cfg_tool_task_get var use_slang] } {
+    if { ![sc_load_plugin slang] } {
+        puts "WARNING: Unable to load slang plugin reverting back to yosys read_verilog"
+    } else {
+        set use_slang true
+    }
+}
+
+if { $use_slang } {
     # This needs some reordering of loaded to ensure blackboxes are handled
     # before this
     set slang_params []
