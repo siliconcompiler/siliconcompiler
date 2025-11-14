@@ -82,7 +82,7 @@ if { ![file exists $input_verilog] } {
 
 set use_slang false
 if { [sc_cfg_tool_task_get var use_slang] } {
-    if { ! [sc_load_plugin slang] } {
+    if { ![sc_load_plugin slang] } {
         puts "WARNING: Unable to load slang plugin reverting back to yosys read_verilog"
     } else {
         set use_slang true

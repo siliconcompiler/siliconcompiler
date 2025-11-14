@@ -32,7 +32,7 @@ if { ![file exists $input_verilog] } {
 
 set use_slang false
 if { [sc_cfg_tool_task_get var use_slang] } {
-    if { ! [sc_load_plugin slang] } {
+    if { ![sc_load_plugin slang] } {
         puts "WARNING: Unable to load slang plugin reverting back to yosys read_verilog"
     } else {
         set use_slang true
@@ -86,9 +86,7 @@ if {
     [sc_cfg_exists library $sc_designlib tool yosys fpga_config] &&
     [sc_cfg_get library $sc_designlib tool yosys fpga_config] != {} &&
     [sc_load_plugin wildebeest]
-} elseif { [string match {ice*} $sc_partname] } {
-    yosys synth_ice40 -top $sc_topmodule
-} else {
+} {
     set synth_fpga_args []
     if { [sc_cfg_tool_task_get var synth_opt_mode] != "none" } {
         lappend synth_fpga_args \
@@ -103,6 +101,8 @@ if {
         -show_config \
         -top $sc_topmodule \
         {*}$synth_fpga_args
+} elseif { [string match {ice*} $sc_partname] } {
+    yosys synth_ice40 -top $sc_topmodule
 } else {
     set sc_syn_feature_set [sc_cfg_get library $sc_designlib tool yosys feature_set]
 
