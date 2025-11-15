@@ -905,7 +905,7 @@ class OptionSchema(BaseSchema):
             except ValueError:
                 pass
 
-    def _write_defaults(self) -> None:
+    def write_defaults(self) -> None:
         """Saves all non-default settings to the configuration file.
 
         This method iterates through all parameters known to the system
