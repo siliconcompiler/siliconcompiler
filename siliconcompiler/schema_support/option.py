@@ -1,7 +1,15 @@
+import os.path
+
+from json import JSONDecodeError
+
 from typing import Union, List, Tuple, Callable, Dict, Optional
+
+from siliconcompiler import sc_open
+from siliconcompiler.utils import default_options_file
 
 from siliconcompiler.schema import BaseSchema, EditableSchema, Parameter, Scope, PerNode
 from siliconcompiler.schema.utils import trim
+from siliconcompiler.schema.baseschema import json
 
 
 class SchedulerSchema(BaseSchema):
@@ -843,6 +851,44 @@ class OptionSchema(BaseSchema):
                           if the specific node fails""")))
 
         schema.insert('scheduler', SchedulerSchema())
+
+        self.__load_defaults()
+
+    def __load_defaults(self) -> None:
+        file = default_options_file()
+        if not os.path.isfile(file):
+            # No file so nothing to do
+            return
+
+        options = None
+        try:
+            with sc_open(file) as fd:
+                try:
+                    options = json.loads(fd.read())
+                except JSONDecodeError:
+                    return
+        except OSError:
+            return
+
+        if not options:
+            return
+
+        allkeys = self.allkeys()
+        for option in options:
+            key = option.get("key", None)
+            if key is None:
+                continue
+            value = option.get("value", ...)
+            if value is ...:
+                continue
+
+            key = tuple(key)
+            if key not in allkeys:
+                continue
+            try:
+                self.set(*key, value)
+            except ValueError:
+                pass
 
     # Getters and Setters
     def get_remote(self) -> bool:

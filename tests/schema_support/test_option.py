@@ -1,3 +1,4 @@
+import json
 import pytest
 
 from unittest.mock import patch
@@ -410,3 +411,69 @@ def test_maxthreads():
     scheduler = OptionSchema().scheduler
     scheduler.set_maxthreads(8)
     assert scheduler.get_maxthreads() == 8
+
+
+def test_load_default_options():
+    with open("options.json", "w") as f:
+        json.dump([
+            {
+                "key": ["autoissue"],
+                "value": True
+            },
+            {
+                "key": ["scheduler", "maxthreads"],
+                "value": 5
+            }
+        ], f)
+
+    with patch("siliconcompiler.schema_support.option.default_options_file") as \
+            default_options_file:
+        default_options_file.return_value = "dne.json"
+        schema = OptionSchema()
+        default_options_file.assert_called_once()
+        assert schema.get_autoissue() is False
+        assert schema.scheduler.get_maxthreads() is None
+
+    with patch("siliconcompiler.schema_support.option.default_options_file") as \
+            default_options_file:
+        default_options_file.return_value = "options.json"
+
+        schema = OptionSchema()
+        default_options_file.assert_called_once()
+        assert schema.get_autoissue() is True
+        assert schema.scheduler.get_maxthreads() == 5
+
+
+def test_load_default_options_bad_json():
+    with open("options.json", "w") as f:
+        f.write("blah")
+
+    with patch("siliconcompiler.schema_support.option.default_options_file") as \
+            default_options_file:
+        default_options_file.return_value = "options.json"
+
+        OptionSchema()
+        default_options_file.assert_called_once()
+
+
+def test_load_default_options_bad_jsondata():
+    with open("options.json", "w") as f:
+        json.dump([
+            {
+                "key": ["doesnotexist"],
+                "value": True
+            },
+            {
+                "value": 5
+            },
+            {
+                "key": ["autoissue"]
+            }
+        ], f)
+
+    with patch("siliconcompiler.schema_support.option.default_options_file") as \
+            default_options_file:
+        default_options_file.return_value = "options.json"
+
+        OptionSchema()
+        default_options_file.assert_called_once()
