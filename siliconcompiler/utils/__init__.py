@@ -245,6 +245,10 @@ def default_cache_dir() -> str:
     return default_sc_path('cache')
 
 
+def default_options_file() -> str:
+    return os.path.join(default_sc_dir(), 'options.json')
+
+
 def default_email_credentials_file() -> str:
     """
     Returns the default path for the SiliconCompiler email credentials file.
