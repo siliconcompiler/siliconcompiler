@@ -175,22 +175,24 @@ def get_default_iomap() -> Dict[str, str]:
     return default_iomap
 
 
-def default_credentials_file() -> str:
-    cfg_file = os.path.join(Path.home(), '.sc', 'credentials')
+def default_sc_dir() -> str:
+    return os.path.join(Path.home(), '.sc')
 
-    return cfg_file
+
+def default_credentials_file() -> str:
+    return os.path.join(default_sc_dir(), 'credentials')
 
 
 def default_cache_dir() -> str:
-    cfg_file = os.path.join(Path.home(), '.sc', 'cache')
+    return os.path.join(default_sc_dir(), 'cache')
 
-    return cfg_file
+
+def default_options_file() -> str:
+    return os.path.join(default_sc_dir(), 'options.json')
 
 
 def default_email_credentials_file() -> str:
-    cfg_file = os.path.join(Path.home(), '.sc', 'email.json')
-
-    return cfg_file
+    return os.path.join(default_sc_dir(), 'email.json')
 
 
 @contextlib.contextmanager
