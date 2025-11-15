@@ -29,3 +29,4 @@ If you don't plan to build your own modules and just want to use SiliconCompiler
    metrics
    records
    remote_processing
+   options

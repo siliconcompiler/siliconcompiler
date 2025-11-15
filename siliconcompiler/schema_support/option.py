@@ -1,7 +1,8 @@
-from typing import Union, List, Tuple, Callable, Dict, Optional
+from typing import Union, List, Tuple, Callable, Dict, Optional, Final
 
 from siliconcompiler.schema import BaseSchema, EditableSchema, Parameter, Scope, PerNode
 from siliconcompiler.schema.utils import trim
+from siliconcompiler.utils.multiprocessing import MPManager
 
 
 class SchedulerSchema(BaseSchema):
@@ -427,6 +428,8 @@ class OptionSchema(BaseSchema):
     compiler's behavior, such as flow control, logging, build settings, and
     remote execution. It provides getter and setter methods for each parameter.
     """
+    __OPTIONS: Final[str] = "schema-options"
+
     def __init__(self):
         """Initializes the options schema and defines all its parameters."""
         super().__init__()
@@ -843,6 +846,83 @@ class OptionSchema(BaseSchema):
                           if the specific node fails""")))
 
         schema.insert('scheduler', SchedulerSchema())
+
+        self.__load_defaults()
+
+    def __load_defaults(self) -> None:
+        """Loads and applies settings from the default options file.
+
+        This method reads the configuration file specified by the settings
+        manager. It iterates through the list of option
+        objects in the file.
+
+        For each object, it checks for a "key" and a "value". If the key
+        is recognized (exists in `self.allkeys()`), it attempts to apply
+        the value using `self.set()`.
+
+        Errors during value setting (`ValueError`) are silently ignored.
+        """
+        options = MPManager.get_settings().get_category(OptionSchema.__OPTIONS)
+
+        if not options:
+            return
+
+        allkeys = self.allkeys()
+        for key, value in options.items():
+            if key is None:
+                continue
+
+            key = tuple(key.split(","))
+            if key not in allkeys:
+                continue
+
+            try:
+                self.set(*key, value)
+            except ValueError:
+                pass
+
+    def write_defaults(self) -> None:
+        """Saves all non-default settings to the configuration file.
+
+        This method iterates through all parameters known to the system
+        (via `self.allkeys()`). It compares the current value of each
+        parameter against its default value.
+
+        Any parameter whose current value differs from its default is
+        collected. This list of non-default settings is then
+        serialized as a JSON array to the file specified by
+        `default_options_file()`.
+
+        If all parameters are set to their default values, the list
+        will be empty, and no file will be written.
+        """
+        transientkeys = {
+            # Flow information
+            ("flow",),
+            ("from",),
+            ("to",),
+            ("prune",),
+
+            # Design information
+            ("design",),
+            ("alias",),
+            ("fileset",),
+        }
+
+        settings = MPManager.get_settings()
+
+        for key in self.allkeys():
+            if key in transientkeys:
+                continue
+
+            param: Parameter = self.get(*key, field=None)
+
+            value = param.get()
+            if value != param.default.get():
+                settings.set(OptionSchema.__OPTIONS, ",".join(key), value)
+
+        if settings.get_category(OptionSchema.__OPTIONS):
+            settings.save()
 
     # Getters and Setters
     def get_remote(self) -> bool:

@@ -135,3 +135,9 @@ How do I...
     .. code-block:: python
 
        design.set_dataroot('<name>', __file__)
+
+... preserve options, like scheduler information, across sessions?
+
+    .. code-block:: python
+
+       project.option.write_defaults()
