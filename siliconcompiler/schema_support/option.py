@@ -920,8 +920,23 @@ class OptionSchema(BaseSchema):
         If all parameters are set to their default values, the list
         will be empty, and no file will be written.
         """
+        transientkeys = {
+            # Flow information
+            ("flow",),
+            ("from",),
+            ("to",),
+            ("prune",),
+
+            # Design information
+            ("design",),
+            ("alias",),
+            ("fileset",),
+        }
         data = []
         for key in self.allkeys():
+            if key in transientkeys:
+                continue
+
             param: Parameter = self.get(*key, field=None)
 
             value = param.get()
