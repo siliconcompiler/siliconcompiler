@@ -491,7 +491,7 @@ def test_write_defaults_no_data():
         schema = OptionSchema()
         default_options_file.reset_mock()
 
-        schema._write_defaults()
+        schema.write_defaults()
         default_options_file.assert_not_called()
         assert not os.path.isfile("options.json")
 
@@ -508,7 +508,7 @@ def test_write_defaults_data():
         schema.scheduler.set_maxthreads(8)
 
         default_options_file.reset_mock()
-        schema._write_defaults()
+        schema.write_defaults()
 
         default_options_file.assert_called_once()
 
@@ -546,7 +546,7 @@ def test_write_defaults_data_not_transient():
         schema.scheduler.set_maxthreads(8)
 
         default_options_file.reset_mock()
-        schema._write_defaults()
+        schema.write_defaults()
 
         default_options_file.assert_called_once()
 
