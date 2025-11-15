@@ -525,3 +525,41 @@ def test_write_defaults_data():
             "value": 8
         }
     ]
+
+
+def test_write_defaults_data_not_transient():
+    with patch("siliconcompiler.schema_support.option.default_options_file") as \
+            default_options_file:
+        default_options_file.return_value = "options.json"
+
+        assert not os.path.isfile("options.json")
+
+        schema = OptionSchema()
+        schema.set_flow("this")
+        schema.add_from("is")
+        schema.add_to("not")
+        schema.add_prune(("recorded", "0"))
+        schema.set_design("in")
+        schema.add_alias(("op", "ti", "on", "s"))
+        schema.add_fileset("file")
+        schema.set_optmode(12)
+        schema.scheduler.set_maxthreads(8)
+
+        default_options_file.reset_mock()
+        schema._write_defaults()
+
+        default_options_file.assert_called_once()
+
+    assert os.path.isfile("options.json")
+    with open("options.json") as fd:
+        data = json.load(fd)
+    assert data == [
+        {
+            "key": ["optmode"],
+            "value": 12
+        },
+        {
+            "key": ["scheduler", "maxthreads"],
+            "value": 8
+        }
+    ]
