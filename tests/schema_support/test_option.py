@@ -1,6 +1,8 @@
 import json
 import pytest
 
+import os.path
+
 from unittest.mock import patch
 
 from siliconcompiler.schema import Scope
@@ -477,3 +479,49 @@ def test_load_default_options_bad_jsondata():
 
         OptionSchema()
         default_options_file.assert_called_once()
+
+
+def test_write_defaults_no_data():
+    with patch("siliconcompiler.schema_support.option.default_options_file") as \
+            default_options_file:
+        default_options_file.return_value = "options.json"
+
+        assert not os.path.isfile("options.json")
+
+        schema = OptionSchema()
+        default_options_file.reset_mock()
+
+        schema._write_defaults()
+        default_options_file.assert_not_called()
+        assert not os.path.isfile("options.json")
+
+
+def test_write_defaults_data():
+    with patch("siliconcompiler.schema_support.option.default_options_file") as \
+            default_options_file:
+        default_options_file.return_value = "options.json"
+
+        assert not os.path.isfile("options.json")
+
+        schema = OptionSchema()
+        schema.set_optmode(12)
+        schema.scheduler.set_maxthreads(8)
+
+        default_options_file.reset_mock()
+        schema._write_defaults()
+
+        default_options_file.assert_called_once()
+
+    assert os.path.isfile("options.json")
+    with open("options.json") as fd:
+        data = json.load(fd)
+    assert data == [
+        {
+            "key": ["optmode"],
+            "value": 12
+        },
+        {
+            "key": ["scheduler", "maxthreads"],
+            "value": 8
+        }
+    ]

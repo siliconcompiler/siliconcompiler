@@ -1,3 +1,5 @@
+import json as py_json
+
 import os.path
 
 from json import JSONDecodeError
@@ -855,6 +857,19 @@ class OptionSchema(BaseSchema):
         self.__load_defaults()
 
     def __load_defaults(self) -> None:
+        """Loads and applies settings from the default options file.
+
+        This method reads the JSON configuration file specified by
+        `default_options_file()`. It iterates through the list of option
+        objects in the file.
+
+        For each object, it checks for a "key" and a "value". If the key
+        is recognized (exists in `self.allkeys()`), it attempts to apply
+        the value using `self.set()`.
+
+        Errors during file I/O (`OSError`), JSON parsing (`JSONDecodeError`),
+        or value setting (`ValueError`) are silently ignored.
+        """
         file = default_options_file()
         if not os.path.isfile(file):
             # No file so nothing to do
@@ -889,6 +904,36 @@ class OptionSchema(BaseSchema):
                 self.set(*key, value)
             except ValueError:
                 pass
+
+    def _write_defaults(self) -> None:
+        """Saves all non-default settings to the configuration file.
+
+        This method iterates through all parameters known to the system
+        (via `self.allkeys()`). It compares the current value of each
+        parameter against its default value.
+
+        Any parameter whose current value differs from its default is
+        collected. This list of non-default settings is then
+        serialized as a JSON array to the file specified by
+        `default_options_file()`.
+
+        If all parameters are set to their default values, the list
+        will be empty, and no file will be written.
+        """
+        data = []
+        for key in self.allkeys():
+            param: Parameter = self.get(*key, field=None)
+
+            value = param.get()
+            if value != param.default.get():
+                data.append({
+                    "key": key,
+                    "value": value
+                })
+
+        if data:
+            with open(default_options_file(), "w") as fd:
+                py_json.dump(data, fd, indent=4, sort_keys=True)
 
     # Getters and Setters
     def get_remote(self) -> bool:
