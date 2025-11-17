@@ -306,6 +306,14 @@ def test_timing_constraint_copy_pinconstraint():
     assert schema.getkeys() == ("pin0", "pin1")
 
 
+def test_timing_constraint_copy_pinconstraint_samename():
+    schema = ASICPinConstraints()
+
+    schema.make_pinconstraint("pin0")
+    with pytest.raises(ValueError, match=r"^pin0 already exists$"):
+        schema.copy_pinconstraint("pin0", "pin0")
+
+
 def test_timing_constraint_copy_pinconstraint_no_insert():
     schema = ASICPinConstraints()
 

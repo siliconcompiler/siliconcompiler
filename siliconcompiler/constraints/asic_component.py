@@ -383,6 +383,8 @@ class ASICComponentConstraints(BaseSchema):
         constraint = EditableSchema(self.get_component(component)).copy()
         EditableSchema(constraint).rename(name)
         if insert:
+            if self.valid(name):
+                raise ValueError(f"{name} already exists")
             self.add_component(constraint)
         return constraint
 
