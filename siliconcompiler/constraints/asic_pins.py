@@ -129,7 +129,8 @@ class ASICPinConstraint(NamedSchema):
                 same order number, the actual order is at the discretion of the
                 tool."""))
 
-    def set_width(self, width: float, step: Optional[str] = None, index: Optional[Union[str, int]] = None):
+    def set_width(self, width: float,
+                  step: Optional[str] = None, index: Optional[Union[str, int]] = None):
         """
         Sets the width constraint for the pin.
 

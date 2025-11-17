@@ -450,7 +450,8 @@ class ASICAreaConstraint(BaseSchema):
         """
         return self.get("corearea", step=step, index=index)
 
-    def calc_diearea(self, step: Optional[str] = None, index: Optional[Union[str, int]] = None) -> float:
+    def calc_diearea(self, step: Optional[str] = None, index: Optional[Union[str, int]] = None) \
+            -> float:
         '''Calculates the area of a rectilinear die.
 
         Uses the shoelace formula to calculate the design area from the (x,y)
