@@ -9,7 +9,7 @@ import time
 
 import os.path
 
-from logging.handlers import QueueHandler
+from siliconcompiler.utils.multiprocessing import MPQueueHandler as QueueHandler
 
 from typing import List, Optional, Set, Tuple, TYPE_CHECKING
 
