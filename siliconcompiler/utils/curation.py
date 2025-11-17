@@ -5,9 +5,10 @@ import os.path
 
 from typing import List, Optional, TYPE_CHECKING
 
+from siliconcompiler.schema import BaseSchema, Parameter
 from siliconcompiler.schema.parametervalue import NodeListValue, NodeSetValue
 from siliconcompiler.utils import FilterDirectories
-from siliconcompiler.utils.paths import collectiondir
+from siliconcompiler.utils.paths import collectiondir, cwdir
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 
@@ -43,15 +44,41 @@ def collect(project: "Project",
 
     if not directory:
         directory = collectiondir(project)
+    if not directory:
+        raise ValueError("unable to determine collection directory")
+
     directory = os.path.abspath(directory)
 
-    # Remove existing directory
+    # Move existing directory
+    prev_dir = None
     if os.path.exists(directory):
-        shutil.rmtree(directory)
+        prev_dir = os.path.join(os.path.dirname(directory), "sc_previous_collection")
+        os.rename(directory, prev_dir)
     os.makedirs(directory)
 
     if verbose:
         project.logger.info(f'Collecting files to: {directory}')
+
+    cwd = cwdir(project)
+
+    def find_files(*key, step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Find the files in the filesystem, otherwise look in previous collection
+        """
+        e = None
+        try:
+            return BaseSchema._find_files(project, *key, step=step, index=index,
+                                          cwd=cwd,
+                                          collection_dir=directory)
+        except FileNotFoundError as err:
+            e = err
+        if prev_dir:
+            # Try previous location next
+            return BaseSchema._find_files(project, *key, step=step, index=index,
+                                          cwd=cwd,
+                                          collection_dir=prev_dir)
+        if e:
+            raise e from None
 
     dirs = {}
     files = {}
@@ -75,17 +102,18 @@ def collect(project: "Project",
             # skip flow files files from builds
             continue
 
-        leaftype = project.get(*key, field='type')
+        param: Parameter = project.get(*key, field=None)
+        leaftype: str = param.get(field='type')
         is_dir = "dir" in leaftype
         is_file = "file" in leaftype
 
         if not is_dir and not is_file:
             continue
 
-        if not project.get(*key, field='copy'):
+        if not param.get(field='copy'):
             continue
 
-        for values, step, index in project.get(*key, field=None).getvalues(return_values=False):
+        for values, step, index in param.getvalues(return_values=False):
             if not values.has_value:
                 continue
 
@@ -99,73 +127,78 @@ def collect(project: "Project",
             else:
                 files[(key, step, index)] = values
 
-    path_filter = FilterDirectories(project)
-    for key, step, index in sorted(dirs.keys()):
-        abs_paths = project.find_files(*key, step=step, index=index)
+    try:
+        path_filter = FilterDirectories(project)
+        for key, step, index in sorted(dirs.keys()):
+            abs_paths = find_files(*key, step=step, index=index)
 
-        new_paths = set()
+            new_paths = set()
 
-        if not isinstance(abs_paths, (list, tuple, set)):
-            abs_paths = [abs_paths]
+            if not isinstance(abs_paths, (list, tuple, set)):
+                abs_paths = [abs_paths]
 
-        abs_paths = zip(abs_paths, dirs[(key, step, index)])
-        abs_paths = sorted(abs_paths, key=lambda p: p[0])
+            abs_paths = zip(abs_paths, dirs[(key, step, index)])
+            abs_paths = sorted(abs_paths, key=lambda p: p[0])
 
-        for abs_path, value in abs_paths:
-            if not abs_path:
-                raise FileNotFoundError(f"{value.get()} could not be copied")
+            for abs_path, value in abs_paths:
+                if not abs_path:
+                    raise FileNotFoundError(f"{value.get()} could not be copied")
 
-            if abs_path.startswith(directory):
-                # File already imported in directory
-                continue
+                if abs_path.startswith(directory):
+                    # File already imported in directory
+                    continue
 
-            imported = False
-            for new_path in new_paths:
-                if abs_path.startwith(new_path):
-                    imported = True
-                    break
-            if imported:
-                continue
+                imported = False
+                for new_path in new_paths:
+                    if abs_path.startswith(new_path):
+                        imported = True
+                        break
+                if imported:
+                    continue
 
-            new_paths.add(abs_path)
+                new_paths.add(abs_path)
 
-            import_path = os.path.join(directory, value.get_hashed_filename())
-            if os.path.exists(import_path):
-                continue
+                import_path = os.path.join(directory, value.get_hashed_filename())
+                if os.path.exists(import_path):
+                    continue
 
-            if whitelist is not None and abs_path not in whitelist:
-                raise RuntimeError(f'{abs_path} is not on the approved collection list.')
+                if whitelist is not None and abs_path not in whitelist:
+                    raise RuntimeError(f'{abs_path} is not on the approved collection list.')
 
-            if verbose:
-                project.logger.info(f"  Collecting directory: {abs_path}")
-            path_filter.abspath = abs_path
-            shutil.copytree(abs_path, import_path, ignore=path_filter.filter)
-            path_filter.abspath = None
+                if verbose:
+                    project.logger.info(f"  Collecting directory: {abs_path}")
+                path_filter.abspath = abs_path
+                shutil.copytree(abs_path, import_path, ignore=path_filter.filter)
+                path_filter.abspath = None
 
-    for key, step, index in sorted(files.keys()):
-        abs_paths = project.find_files(*key, step=step, index=index)
+        for key, step, index in sorted(files.keys()):
+            abs_paths = find_files(*key, step=step, index=index)
 
-        if not isinstance(abs_paths, (list, tuple, set)):
-            abs_paths = [abs_paths]
+            if not isinstance(abs_paths, (list, tuple, set)):
+                abs_paths = [abs_paths]
 
-        abs_paths = zip(abs_paths, files[(key, step, index)])
-        abs_paths = sorted(abs_paths, key=lambda p: p[0])
+            abs_paths = zip(abs_paths, files[(key, step, index)])
+            abs_paths = sorted(abs_paths, key=lambda p: p[0])
 
-        for abs_path, value in abs_paths:
-            if not abs_path:
-                raise FileNotFoundError(f"{value.get()} could not be copied")
+            for abs_path, value in abs_paths:
+                if not abs_path:
+                    raise FileNotFoundError(f"{value.get()} could not be copied")
 
-            if abs_path.startswith(directory):
-                # File already imported in directory
-                continue
+                if abs_path.startswith(directory):
+                    # File already imported in directory
+                    continue
 
-            import_path = os.path.join(directory, value.get_hashed_filename())
-            if os.path.exists(import_path):
-                continue
+                import_path = os.path.join(directory, value.get_hashed_filename())
+                if os.path.exists(import_path):
+                    continue
 
-            if verbose:
-                project.logger.info(f"  Collecting file: {abs_path}")
-            shutil.copy2(abs_path, import_path)
+                if verbose:
+                    project.logger.info(f"  Collecting file: {abs_path}")
+                shutil.copy2(abs_path, import_path)
+    finally:
+        if prev_dir:
+            # Delete existing directory
+            shutil.rmtree(prev_dir)
 
 
 def archive(project: "Project",
