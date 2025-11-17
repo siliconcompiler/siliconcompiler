@@ -18059,7 +18059,7 @@
         }
       },
       "__meta__": {
-        "name": null,
+        "name": "design",
         "class": "siliconcompiler.design/Design",
         "sctype": "Design"
       }
@@ -19255,7 +19255,7 @@
         }
       },
       "__meta__": {
-        "name": null,
+        "name": "pdk",
         "class": "siliconcompiler.pdk/PDK",
         "sctype": "PDK"
       }
@@ -19863,7 +19863,7 @@
         }
       },
       "__meta__": {
-        "name": null,
+        "name": "fpgadevice",
         "class": "siliconcompiler.fpga/FPGADevice",
         "sctype": "FPGADevice"
       }
@@ -20823,7 +20823,7 @@
         }
       },
       "__meta__": {
-        "name": null,
+        "name": "stdcelllibrary",
         "class": "siliconcompiler.library/StdCellLibrary",
         "sctype": "StdCellLibrary"
       }

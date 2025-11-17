@@ -40,7 +40,10 @@ class EditableSchema:
                 value._BaseSchema__parent = self.__schema
                 value._BaseSchema__key = key
                 if isinstance(value, NamedSchema):
-                    value._NamedSchema__name = key
+                    if key == "default":
+                        value._NamedSchema__name = None
+                    else:
+                        value._NamedSchema__name = key
 
             if key == "default":
                 self.__schema._BaseSchema__default = value
