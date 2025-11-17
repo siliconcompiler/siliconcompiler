@@ -9,10 +9,8 @@ import uuid
 import os.path
 
 from siliconcompiler import utils, sc_open
-from siliconcompiler.utils.curation import collect
 from siliconcompiler.utils.paths import collectiondir, jobdir
 from siliconcompiler.package import RemoteResolver
-from siliconcompiler.flowgraph import RuntimeFlowgraph
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.utils.logging import SCBlankLoggerFormatter
 
@@ -66,23 +64,6 @@ class SlurmSchedulerNode(SchedulerNode):
         if os.path.exists(collectiondir(project)):
             # nothing to do
             return
-
-        do_collect = False
-        flow = project.get('option', 'flow')
-        entry_nodes = project.get("flowgraph", flow, field="schema").get_entry_nodes()
-
-        runtime = RuntimeFlowgraph(
-            project.get("flowgraph", flow, field='schema'),
-            from_steps=project.get('option', 'from'),
-            to_steps=project.get('option', 'to'),
-            prune_nodes=project.get('option', 'prune'))
-
-        for (step, index) in runtime.get_nodes():
-            if (step, index) in entry_nodes:
-                do_collect = True
-
-        if do_collect:
-            collect(project)
 
     @property
     def is_local(self):
@@ -160,6 +141,13 @@ class SlurmSchedulerNode(SchedulerNode):
         """
         if shutil.which('sinfo') is None:
             raise RuntimeError('slurm is not available or installed on this machine')
+
+    def mark_copy(self) -> bool:
+        do_collect = False
+        for key in self.get_required_path_keys():
+            self.project.set(*key, True, field='copy')
+            do_collect = True
+        return do_collect
 
     def run(self):
         """

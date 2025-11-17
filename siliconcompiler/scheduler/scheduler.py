@@ -29,6 +29,7 @@ from siliconcompiler.utils.logging import SCLoggerFormatter
 from siliconcompiler.utils.multiprocessing import MPManager
 from siliconcompiler.scheduler import send_messages, SCRuntimeError
 from siliconcompiler.utils.paths import collectiondir, jobdir, workdir
+from siliconcompiler.utils.curation import collect
 
 if TYPE_CHECKING:
     from siliconcompiler.project import Project
@@ -289,8 +290,9 @@ class Scheduler:
             if not self.__check_flowgraph_io():
                 raise SCRuntimeError("Flowgraph file IO constrains errors")
 
-            if not self.mark_copy():
-                raise SCRuntimeError("Failed to setup 'copy' field on files")
+            # Collect files for remote runs
+            if self.__check_collect_files():
+                collect(self.project)
 
             self.run_core()
 
@@ -973,24 +975,17 @@ class Scheduler:
 
         return not error
 
-    def mark_copy(self) -> bool:
+    def __check_collect_files(self) -> bool:
         """
-        Iterates through all tasks in the scheduler, retrieves the required
-        keys for each task, and marks those paths as "copy" in the project's
-        data structure.
+        Iterates through all tasks in the scheduler, and checks if the there
+        are files or directories that need to be collected
 
         Returns:
-            bool: True if the operation is successful, False otherwise.
+            bool: True if there is something to be collected, False otherwise.
         """
+        do_collect = False
+        for task in self.__tasks.values():
+            if task.mark_copy():
+                do_collect = True
 
-        try:
-            for _, task in self.__tasks.items():
-                keys = task.get_required_path_keys()
-
-                for key in keys:
-                    self.project.set(*key, True, field='copy')
-        except Exception as e:
-            self.__logger.error(f"Error while marking paths for copy: {e}")
-            return False
-
-        return True
+        return do_collect
