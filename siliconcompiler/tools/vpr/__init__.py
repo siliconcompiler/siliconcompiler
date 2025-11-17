@@ -272,8 +272,17 @@ class VPRTask(Task):
             if lib.has_file(fileset=fileset, filetype="sdc"):
                 self.add_required_key(lib, "fileset", fileset, "file", "sdc")
                 self.set("var", "enable_timing_analysis", True)
+
+        fpga = self.project.get("library", self.project.get("fpga", "device"), field="schema")
+        self.add_required_key(fpga, "tool", "vpr", "devicecode")
+        self.add_required_key(fpga, "tool", "vpr", "clock_model")
+        self.add_required_key(fpga, "tool", "vpr", "archfile")
+        self.add_required_key(fpga, "tool", "vpr", "graphfile")
+        self.add_required_key(fpga, "tool", "vpr", "channelwidth")
         if self.get("var", "router_lookahead"):
             self.add_required_key("var", "router_lookahead")
+        else:
+            self.add_required_key(fpga, "tool", "vpr", "router_lookahead")
 
     def runtime_options(self):
         options = super().runtime_options()
