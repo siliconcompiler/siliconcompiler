@@ -29,6 +29,7 @@ from siliconcompiler.utils.logging import SCLoggerFormatter
 from siliconcompiler.utils.multiprocessing import MPManager
 from siliconcompiler.scheduler import send_messages, SCRuntimeError
 from siliconcompiler.utils.paths import collectiondir, jobdir, workdir
+from siliconcompiler.utils.curation import collect
 
 if TYPE_CHECKING:
     from siliconcompiler.project import Project
@@ -288,6 +289,10 @@ class Scheduler:
             # Check validity of flowgraphs IO
             if not self.__check_flowgraph_io():
                 raise SCRuntimeError("Flowgraph file IO constrains errors")
+
+            # Collect files for remote runs
+            if self.__check_collect_files():
+                collect(self.project)
 
             self.run_core()
 
@@ -969,3 +974,18 @@ class Scheduler:
                 os.chdir(cwd)
 
         return not error
+
+    def __check_collect_files(self) -> bool:
+        """
+        Iterates through all tasks in the scheduler, and checks if the there
+        are files or directories that need to be collected
+
+        Returns:
+            bool: True if there is something to be collected, False otherwise.
+        """
+        do_collect = False
+        for task in self.__tasks.values():
+            if task.mark_copy():
+                do_collect = True
+
+        return do_collect

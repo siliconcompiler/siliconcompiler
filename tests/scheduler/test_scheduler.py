@@ -5,10 +5,12 @@ import time
 
 import os.path
 
+from pathlib import Path
+
 from unittest.mock import patch
 
 from siliconcompiler import Project, Flowgraph, Design, NodeStatus
-from siliconcompiler.scheduler import Scheduler, SCRuntimeError
+from siliconcompiler.scheduler import Scheduler, SCRuntimeError, SlurmSchedulerNode
 from siliconcompiler.schema import EditableSchema, Parameter
 
 from siliconcompiler.tools.builtin.nop import NOPTask
@@ -88,6 +90,60 @@ class SetupSkip(Task):
 
     def setup(self) -> None:
         raise TaskSkip("skipped")
+
+
+class AdditionalFiles(Task):
+    def __init__(self):
+        super().__init__()
+        self.add_parameter("files", "[file]", "extra files")
+        self.add_parameter("dirs", "[dir]", "extra directories")
+
+    def tool(self) -> str:
+        return "testtool"
+
+    def task(self) -> str:
+        return "additional_files"
+
+    def setup(self):
+        if self.get("var", "files"):
+            self.add_required_key("var", "files")
+        if self.get("var", "dirs"):
+            self.add_required_key("var", "dirs")
+
+    def run(self):
+        return 0
+
+
+@pytest.fixture
+def gcd_additional_files_project(gcd_design):
+    project = Project(gcd_design)
+    project.add_fileset("rtl")
+    project.add_fileset("sdc")
+
+    flow = Flowgraph("collectflow")
+    flow.node("node1", AdditionalFiles())
+    flow.node("node2", AdditionalFiles())
+    flow.edge("node1", "node2")
+    project.set_flow(flow)
+
+    dir1 = Path("node1_dir")
+    dir1.mkdir(exist_ok=True)
+
+    file1 = Path("node1_file")
+    file1.write_text("// file1 content")
+
+    AdditionalFiles.find_task(project).set("var", "files", [str(file1)], step="node1")
+    AdditionalFiles.find_task(project).set("var", "dirs", [str(dir1)], step="node1")
+
+    dir1 = Path("node2_dir")
+    dir1.mkdir(exist_ok=True)
+
+    file1 = Path("node2_file")
+    file1.write_text("// file1 content")
+    AdditionalFiles.find_task(project).set("var", "files", [str(file1)], step="node2")
+    AdditionalFiles.find_task(project).set("var", "dirs", [str(dir1)], step="node2")
+
+    return project
 
 
 @pytest.fixture
@@ -1115,3 +1171,47 @@ def test_manifest_path(basic_project):
 
 def test_logger(basic_project):
     assert Scheduler(basic_project)._Scheduler__logger is not basic_project.logger
+
+
+def test_collect_additional_files_slurm(gcd_additional_files_project, monkeypatch):
+    """This test ensures that when collecting files and directories in a
+    Slurm scheduled job, the files and directories are correctly copied to
+    the sc_collected_files directory within the job directory.
+    """
+    def mock_slurm_assert():
+        return True
+
+    def mock_run(self, project):
+        pass
+
+    monkeypatch.setattr(SlurmSchedulerNode, 'run', mock_run)
+    monkeypatch.setattr(SlurmSchedulerNode, 'assert_slurm', mock_slurm_assert)
+
+    gcd_additional_files_project.option.scheduler.set_name("slurm")
+    gcd_additional_files_project.option.scheduler.set_queue("dummyqueue")
+
+    # Expect this to fail because Slurm execution is mocked
+    try:
+        gcd_additional_files_project.run()
+    except Exception as e:
+        assert "Could not run final steps (node2)" in str(e)
+
+    rundir = Path(jobdir(gcd_additional_files_project))
+
+    assert (rundir / "sc_collected_files").exists()
+    assert any(f.name.startswith("node1_file_") for f in (rundir / "sc_collected_files").iterdir())
+    assert any(d.name.startswith("node1_dir_") for d in (rundir / "sc_collected_files").iterdir())
+    assert any(f.name.startswith("node2_file_") for f in (rundir / "sc_collected_files").iterdir())
+    assert any(d.name.startswith("node2_dir_") for d in (rundir / "sc_collected_files").iterdir())
+
+
+def test_skip_collect_additional_files_slurm(gcd_additional_files_project):
+    """This test makes sure that running tasks with additional files, on a local scheduler,
+    does not collect additional files into the sc_collected_files directory.
+    """
+
+    gcd_additional_files_project.run()
+
+    rundir = Path(jobdir(gcd_additional_files_project))
+
+    assert not (rundir / "sc_collected_files").exists()
