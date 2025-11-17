@@ -1,4 +1,4 @@
-from typing import Tuple, Union
+from typing import Tuple, Union, Optional
 
 from siliconcompiler.schema import BaseSchema, NamedSchema, EditableSchema, Parameter, \
     PerNode, Scope
@@ -13,7 +13,7 @@ class ASICComponentConstraint(NamedSchema):
     keepout halo, and rotation.
     """
 
-    def __init__(self, name: str = None):
+    def __init__(self, name: Optional[str] = None):
         super().__init__()
         self.set_name(name)
 
@@ -113,7 +113,8 @@ class ASICComponentConstraint(NamedSchema):
                     270 deg ccw
                     """))
 
-    def set_placement(self, x: float, y: float, step: str = None, index: Union[str, int] = None):
+    def set_placement(self, x: float, y: float,
+                      step: Optional[str] = None, index: Optional[Union[str, int]] = None):
         """
         Sets the placement constraint for the component.
 
@@ -134,7 +135,8 @@ class ASICComponentConstraint(NamedSchema):
             raise TypeError("y must be a number")
         return self.set("placement", (x, y), step=step, index=index)
 
-    def get_placement(self, step: str = None, index: Union[str, int] = None) -> Tuple[float, float]:
+    def get_placement(self, step: Optional[str] = None, index: Optional[Union[str, int]] = None) \
+            -> Tuple[float, float]:
         """
         Retrieves the current placement constraint of the component.
 
@@ -148,7 +150,8 @@ class ASICComponentConstraint(NamedSchema):
         """
         return self.get("placement", step=step, index=index)
 
-    def set_partname(self, name: str, step: str = None, index: Union[str, int] = None):
+    def set_partname(self, name: str,
+                     step: Optional[str] = None, index: Optional[Union[str, int]] = None):
         """
         Sets the part name (cell name) constraint for the component.
 
@@ -165,7 +168,8 @@ class ASICComponentConstraint(NamedSchema):
             raise ValueError("a partname is required")
         return self.set("partname", name, step=step, index=index)
 
-    def get_partname(self, step: str = None, index: Union[str, int] = None) -> str:
+    def get_partname(self, step: Optional[str] = None, index: Optional[Union[str, int]] = None) \
+            -> str:
         """
         Retrieves the current part name (cell name) constraint of the component.
 
@@ -178,7 +182,8 @@ class ASICComponentConstraint(NamedSchema):
         """
         return self.get("partname", step=step, index=index)
 
-    def set_halo(self, x: float, y: float, step: str = None, index: Union[str, int] = None):
+    def set_halo(self, x: float, y: float,
+                 step: Optional[str] = None, index: Optional[Union[str, int]] = None):
         """
         Sets the placement keepout halo constraint around the component.
 
@@ -204,7 +209,8 @@ class ASICComponentConstraint(NamedSchema):
             raise ValueError("y must be a positive number")
         return self.set("halo", (x, y), step=step, index=index)
 
-    def get_halo(self, step: str = None, index: Union[str, int] = None) -> Tuple[float, float]:
+    def get_halo(self, step: Optional[str] = None, index: Optional[Union[str, int]] = None) \
+            -> Tuple[float, float]:
         """
         Retrieves the current placement keepout halo constraint of the component.
 
@@ -218,7 +224,8 @@ class ASICComponentConstraint(NamedSchema):
         """
         return self.get("halo", step=step, index=index)
 
-    def set_rotation(self, rotation: str, step: str = None, index: Union[str, int] = None):
+    def set_rotation(self, rotation: str,
+                     step: Optional[str] = None, index: Optional[Union[str, int]] = None):
         """
         Sets the rotation constraint for the component.
 
@@ -231,7 +238,8 @@ class ASICComponentConstraint(NamedSchema):
         """
         return self.set("rotation", rotation, step=step, index=index)
 
-    def get_rotation(self, step: str = None, index: Union[str, int] = None) -> str:
+    def get_rotation(self, step: Optional[str] = None, index: Optional[Union[str, int]] = None) \
+            -> str:
         """
         Retrieves the current rotation constraint of the component.
 
@@ -286,7 +294,7 @@ class ASICComponentConstraints(BaseSchema):
 
         EditableSchema(self).insert(component.name, component, clobber=True)
 
-    def get_component(self, component: str = None):
+    def get_component(self, component: Optional[str] = None):
         """
         Retrieves one or all component constraints from the configuration.
 
