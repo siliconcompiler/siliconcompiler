@@ -165,7 +165,8 @@ class InitFloorplanTask(APRTask,
                 self.add_required_key(pin, "order")
 
         self.add_required_key(self.mainlib, "asic", "site")
-        if self.project.constraint.area.get_diearea(step=self.step, index=self.index) and self.project.constraint.area.get_corearea(step=self.step, index=self.index):
+        if self.project.constraint.area.get_diearea(step=self.step, index=self.index) and \
+                self.project.constraint.area.get_corearea(step=self.step, index=self.index):
             self.add_required_key(self.project.constraint.area, "diearea")
             self.add_required_key(self.project.constraint.area, "corearea")
         else:
