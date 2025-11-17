@@ -1370,3 +1370,20 @@ class SchedulerNode:
             for logfile in self.__logs.values():
                 if os.path.isfile(logfile):
                     tar.add(logfile, arcname=arcname(logfile))
+
+    def get_required_path_keys(self) -> Set[Tuple[str, ...]]:
+        """ This functions walks thourh the require keys and returns the
+        keys that are of type path (file/dir).
+        """
+        # keys = self.__task.get('require')
+        keys = self.project.get('tool', self.__task.tool(),
+                                'task', self.__task.task(),
+                                'require', step=self.step, index=self.index)
+
+        path_keys = set()
+        for key in keys:
+            keypath = tuple(key.split(","))
+            param_type = self.__project.get(*keypath, field="type")
+            if "file" in param_type or "dir" in param_type:
+                path_keys.add(keypath)
+        return path_keys

@@ -289,6 +289,9 @@ class Scheduler:
             if not self.__check_flowgraph_io():
                 raise SCRuntimeError("Flowgraph file IO constrains errors")
 
+            if not self.mark_copy():
+                raise SCRuntimeError("Failed to setup 'copy' field on files")
+
             self.run_core()
 
             # Store run in history
@@ -969,3 +972,25 @@ class Scheduler:
                 os.chdir(cwd)
 
         return not error
+
+    def mark_copy(self) -> bool:
+        """
+        Iterates through all tasks in the scheduler, retrieves the required
+        keys for each task, and marks those paths as "copy" in the project's
+        data structure.
+
+        Returns:
+            bool: True if the operation is successful, False otherwise.
+        """
+
+        try:
+            for _, task in self.__tasks.items():
+                keys = task.get_required_path_keys()
+
+                for key in keys:
+                    self.project.set(*key, True, field='copy')
+        except Exception as e:
+            self.__logger.error(f"Error while marking paths for copy: {e}")
+            return False
+
+        return True
