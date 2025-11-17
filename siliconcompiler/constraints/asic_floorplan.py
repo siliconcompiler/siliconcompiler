@@ -1,4 +1,4 @@
-from typing import Union, List, Tuple
+from typing import Union, List, Tuple, Optional
 
 from siliconcompiler.schema import BaseSchema, EditableSchema, Parameter, PerNode, Scope
 
@@ -99,9 +99,9 @@ class ASICAreaConstraint(BaseSchema):
 
     def set_density(self,
                     density: float,
-                    aspectratio: float = None,
-                    coremargin: float = None,
-                    step: str = None, index: Union[str, int] = None):
+                    aspectratio: Optional[float] = None,
+                    coremargin: Optional[float] = None,
+                    step: Optional[str] = None, index: Optional[Union[str, int]] = None):
         """
         Sets the target layout density.
 
@@ -145,7 +145,8 @@ class ASICAreaConstraint(BaseSchema):
             params.append(self.set_coremargin(coremargin, step=step, index=index))
         return params
 
-    def get_density(self, step: str = None, index: Union[str, int] = None) -> float:
+    def get_density(self, step: Optional[str] = None, index: Optional[Union[str, int]] = None) \
+            -> float:
         """
         Retrieves the current target layout density.
 
@@ -162,7 +163,7 @@ class ASICAreaConstraint(BaseSchema):
 
     def set_aspectratio(self,
                         aspectratio: float,
-                        step: str = None, index: Union[str, int] = None):
+                        step: Optional[str] = None, index: Optional[Union[str, int]] = None):
         """
         Sets the layout aspect ratio.
 
@@ -192,8 +193,8 @@ class ASICAreaConstraint(BaseSchema):
 
         return self.set("aspectratio", aspectratio, step=step, index=index)
 
-    def get_aspectratio(self,
-                        step: str = None, index: Union[str, int] = None) -> float:
+    def get_aspectratio(self, step: Optional[str] = None, index: Optional[Union[str, int]] = None) \
+            -> float:
         """
         Retrieves the current layout aspect ratio.
 
@@ -210,7 +211,7 @@ class ASICAreaConstraint(BaseSchema):
 
     def set_coremargin(self,
                        coremargin: float,
-                       step: str = None, index: Union[str, int] = None):
+                       step: Optional[str] = None, index: Optional[Union[str, int]] = None):
         """
         Sets the core margin.
 
@@ -240,8 +241,8 @@ class ASICAreaConstraint(BaseSchema):
 
         return self.set("coremargin", coremargin, step=step, index=index)
 
-    def get_coremargin(self,
-                       step: str = None, index: Union[str, int] = None) -> float:
+    def get_coremargin(self, step: Optional[str] = None, index: Optional[Union[str, int]] = None) \
+            -> float:
         """
         Retrieves the current core margin.
 
@@ -259,8 +260,8 @@ class ASICAreaConstraint(BaseSchema):
     def set_diearea_rectangle(self,
                               height: float,
                               width: float,
-                              coremargin: Union[float, Tuple[float, float]] = None,
-                              step: str = None, index: Union[str, int] = None):
+                              coremargin: Optional[Union[float, Tuple[float, float]]] = None,
+                              step: Optional[str] = None, index: Optional[Union[str, int]] = None):
         """
         Sets the die area as a rectangle with its bottom-left corner at (0,0).
 
@@ -311,7 +312,7 @@ class ASICAreaConstraint(BaseSchema):
                                dieheight: float,
                                diewidth: float,
                                coremargin: Union[float, Tuple[float, float]],
-                               step: str = None, index: Union[str, int] = None):
+                               step: Optional[str] = None, index: Optional[Union[str, int]] = None):
         """
         Sets the core area as a rectangle within a die area, based on margins.
 
@@ -378,7 +379,7 @@ class ASICAreaConstraint(BaseSchema):
 
     def set_diearea(self,
                     points: List[Tuple[float, float]],
-                    step: str = None, index: Union[str, int] = None):
+                    step: Optional[str] = None, index: Optional[Union[str, int]] = None):
         """
         Sets the die area using a list of points defining its boundary.
 
@@ -396,8 +397,8 @@ class ASICAreaConstraint(BaseSchema):
         """
         return self.set("diearea", points, step=step, index=index)
 
-    def get_diearea(self,
-                    step: str = None, index: Union[str, int] = None) -> List[Tuple[float, float]]:
+    def get_diearea(self, step: Optional[str] = None, index: Optional[Union[str, int]] = None) \
+            -> List[Tuple[float, float]]:
         """
         Retrieves the current die area definition.
 
@@ -415,7 +416,7 @@ class ASICAreaConstraint(BaseSchema):
 
     def set_corearea(self,
                      points: List[Tuple[float, float]],
-                     step: str = None, index: Union[str, int] = None):
+                     step: Optional[str] = None, index: Optional[Union[str, int]] = None):
         """
         Sets the core area using a list of points defining its boundary.
 
@@ -432,8 +433,8 @@ class ASICAreaConstraint(BaseSchema):
         """
         return self.set("corearea", points, step=step, index=index)
 
-    def get_corearea(self,
-                     step: str = None, index: Union[str, int] = None) -> List[Tuple[float, float]]:
+    def get_corearea(self, step: Optional[str] = None, index: Optional[Union[str, int]] = None) \
+            -> List[Tuple[float, float]]:
         """
         Retrieves the current core area definition.
 
@@ -449,7 +450,8 @@ class ASICAreaConstraint(BaseSchema):
         """
         return self.get("corearea", step=step, index=index)
 
-    def calc_diearea(self, step: str = None, index: str = None) -> float:
+    def calc_diearea(self, step: Optional[str] = None, index: Optional[Union[str, int]] = None) \
+            -> float:
         '''Calculates the area of a rectilinear die.
 
         Uses the shoelace formula to calculate the design area from the (x,y)

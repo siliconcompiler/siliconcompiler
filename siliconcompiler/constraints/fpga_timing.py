@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Union, Optional
 
 from siliconcompiler.schema import BaseSchema, NamedSchema, EditableSchema, Parameter, \
     PerNode, Scope
@@ -12,7 +12,7 @@ class FPGATimingScenarioSchema(NamedSchema):
     scenario and operating mode.
     """
 
-    def __init__(self, name: str = None):
+    def __init__(self, name: Optional[str] = None):
         super().__init__()
         self.set_name(name)
 
@@ -31,7 +31,7 @@ class FPGATimingScenarioSchema(NamedSchema):
 
     def set_mode(self,
                  mode: str,
-                 step: str = None, index: Union[str, int] = None):
+                 step: Optional[str] = None, index: Optional[Union[str, int]] = None):
         """
         Sets the operational mode for the design.
 
@@ -42,8 +42,7 @@ class FPGATimingScenarioSchema(NamedSchema):
         """
         return self.set("mode", mode, step=step, index=index)
 
-    def get_mode(self,
-                 step: str = None, index: Union[str, int] = None) -> str:
+    def get_mode(self, step: Optional[str] = None, index: Optional[Union[str, int]] = None) -> str:
         """
         Gets the operational mode currently set for the design.
 
@@ -98,7 +97,7 @@ class FPGATimingConstraintSchema(BaseSchema):
 
         EditableSchema(self).insert(scenario.name, scenario, clobber=True)
 
-    def get_scenario(self, scenario: str = None):
+    def get_scenario(self, scenario: Optional[str] = None):
         """
         Retrieves one or all timing scenarios from the configuration.
 

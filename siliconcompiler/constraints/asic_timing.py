@@ -1,4 +1,4 @@
-from typing import Union, Set, List, Tuple
+from typing import Union, Set, List, Tuple, Optional
 
 from siliconcompiler.schema import BaseSchema, NamedSchema, EditableSchema, Parameter, \
     PerNode, Scope
@@ -14,7 +14,7 @@ class ASICTimingScenarioSchema(NamedSchema):
     operating mode, SDC filesets, and timing checks to be performed.
     """
 
-    def __init__(self, name: str = None):
+    def __init__(self, name: Optional[str] = None):
         super().__init__()
         self.set_name(name)
 
@@ -126,7 +126,7 @@ class ASICTimingScenarioSchema(NamedSchema):
     def set_pin_voltage(self,
                         pin: str,
                         voltage: float,
-                        step: str = None, index: Union[str, int] = None):
+                        step: Optional[str] = None, index: Optional[Union[str, int]] = None):
         """
         Sets the voltage for a specified pin.
 
@@ -140,7 +140,8 @@ class ASICTimingScenarioSchema(NamedSchema):
 
     def get_pin_voltage(self,
                         pin: str,
-                        step: str = None, index: Union[str, int] = None) -> float:
+                        step: Optional[str] = None, index: Optional[Union[str, int]] = None) \
+            -> float:
         """
         Gets the voltage of a specified pin.
 
@@ -162,7 +163,7 @@ class ASICTimingScenarioSchema(NamedSchema):
     def add_libcorner(self,
                       libcorner: Union[List[str], str],
                       clobber: bool = False,
-                      step: str = None, index: Union[str, int] = None):
+                      step: Optional[str] = None, index: Optional[Union[str, int]] = None):
         """
         Adds a library corner to the design.
 
@@ -179,8 +180,8 @@ class ASICTimingScenarioSchema(NamedSchema):
         else:
             return self.add("libcorner", libcorner, step=step, index=index)
 
-    def get_libcorner(self,
-                      step: str = None, index: Union[str, int] = None) -> Set[str]:
+    def get_libcorner(self, step: Optional[str] = None, index: Optional[Union[str, int]] = None) \
+            -> Set[str]:
         """
         Gets the set of library corners.
 
@@ -195,7 +196,7 @@ class ASICTimingScenarioSchema(NamedSchema):
 
     def set_pexcorner(self,
                       pexcorner: str,
-                      step: str = None, index: Union[str, int] = None):
+                      step: Optional[str] = None, index: Optional[Union[str, int]] = None):
         """
         Sets the parasitic extraction (PEX) corner for the design.
 
@@ -207,7 +208,7 @@ class ASICTimingScenarioSchema(NamedSchema):
         return self.set("pexcorner", pexcorner, step=step, index=index)
 
     def get_pexcorner(self,
-                      step: str = None, index: Union[str, int] = None) -> str:
+                      step: Optional[str] = None, index: Optional[Union[str, int]] = None) -> str:
         """
         Gets the parasitic extraction (PEX) corner currently set for the design.
 
@@ -222,7 +223,7 @@ class ASICTimingScenarioSchema(NamedSchema):
 
     def set_mode(self,
                  mode: str,
-                 step: str = None, index: Union[str, int] = None):
+                 step: Optional[str] = None, index: Optional[Union[str, int]] = None):
         """
         Sets the operational mode for the design.
 
@@ -234,7 +235,7 @@ class ASICTimingScenarioSchema(NamedSchema):
         return self.set("mode", mode, step=step, index=index)
 
     def get_mode(self,
-                 step: str = None, index: Union[str, int] = None) -> str:
+                 step: Optional[str] = None, index: Optional[Union[str, int]] = None) -> str:
         """
         Gets the operational mode currently set for the design.
 
@@ -249,7 +250,7 @@ class ASICTimingScenarioSchema(NamedSchema):
 
     def set_opcond(self,
                    opcond: str,
-                   step: str = None, index: Union[str, int] = None):
+                   step: Optional[str] = None, index: Optional[Union[str, int]] = None):
         """
         Sets the operating condition for the design.
 
@@ -261,7 +262,7 @@ class ASICTimingScenarioSchema(NamedSchema):
         return self.set("opcond", opcond, step=step, index=index)
 
     def get_opcond(self,
-                   step: str = None, index: Union[str, int] = None) -> str:
+                   step: Optional[str] = None, index: Optional[Union[str, int]] = None) -> str:
         """
         Gets the operating condition currently set for the design.
 
@@ -276,7 +277,7 @@ class ASICTimingScenarioSchema(NamedSchema):
 
     def set_temperature(self,
                         temperature: float,
-                        step: str = None, index: Union[str, int] = None):
+                        step: Optional[str] = None, index: Optional[Union[str, int]] = None):
         """
         Sets the temperature for the design.
 
@@ -287,8 +288,8 @@ class ASICTimingScenarioSchema(NamedSchema):
         """
         return self.set("temperature", temperature, step=step, index=index)
 
-    def get_temperature(self,
-                        step: str = None, index: Union[str, int] = None) -> float:
+    def get_temperature(self, step: Optional[str] = None, index: Optional[Union[str, int]] = None) \
+            -> float:
         """
         Gets the temperature currently set for the design.
 
@@ -305,7 +306,7 @@ class ASICTimingScenarioSchema(NamedSchema):
                        design: Union[Design, str],
                        fileset: str,
                        clobber: bool = False,
-                       step: str = None, index: Union[str, int] = None):
+                       step: Optional[str] = None, index: Optional[Union[str, int]] = None):
         """
         Adds an SDC fileset for a given design.
 
@@ -337,8 +338,8 @@ class ASICTimingScenarioSchema(NamedSchema):
         else:
             return self.add("sdcfileset", (design, fileset), step=step, index=index)
 
-    def get_sdcfileset(self,
-                       step: str = None, index: Union[str, int] = None) -> List[Tuple[str, str]]:
+    def get_sdcfileset(self, step: Optional[str] = None, index: Optional[Union[str, int]] = None) \
+            -> List[Tuple[str, str]]:
         """
         Gets the list of SDC filesets.
 
@@ -354,7 +355,7 @@ class ASICTimingScenarioSchema(NamedSchema):
     def add_check(self,
                   check: Union[List[str], str],
                   clobber: bool = False,
-                  step: str = None, index: Union[str, int] = None):
+                  step: Optional[str] = None, index: Optional[Union[str, int]] = None):
         """
         Adds a check to the design process.
 
@@ -371,7 +372,8 @@ class ASICTimingScenarioSchema(NamedSchema):
         else:
             return self.add("check", check, step=step, index=index)
 
-    def get_check(self, step: str = None, index: Union[str, int] = None) -> Set[str]:
+    def get_check(self, step: Optional[str] = None, index: Optional[Union[str, int]] = None) \
+            -> Set[str]:
         """
         Gets the set of checks configured for the design process.
 
@@ -426,7 +428,7 @@ class ASICTimingConstraintSchema(BaseSchema):
 
         EditableSchema(self).insert(scenario.name, scenario, clobber=True)
 
-    def get_scenario(self, scenario: str = None):
+    def get_scenario(self, scenario: Optional[str] = None):
         """
         Retrieves one or all timing scenarios from the configuration.
 
@@ -489,6 +491,33 @@ class ASICTimingConstraintSchema(BaseSchema):
         scenarioobj = ASICTimingScenarioSchema(scenario)
         self.add_scenario(scenarioobj)
         return scenarioobj
+
+    def copy_scenario(self, scenario: str, name: str, insert: bool = True) \
+            -> ASICTimingScenarioSchema:
+        """
+        Copies an existing timing scenario, renames it, and optionally adds it to the design.
+
+        This method retrieves the scenario identified by ``scenario``, creates a
+        deep copy of it, and renames the copy to ``name``. If ``insert`` is True,
+        the new scenario is immediately added to the configuration.
+
+        Args:
+            scenario (str): The name of the existing scenario to be copied.
+            name (str): The name to assign to the new copied scenario.
+            insert (bool, optional): Whether to add the newly created scenario
+                to the configuration. Defaults to True.
+
+        Returns:
+            ASICTimingScenarioSchema: The newly created copy of the scenario.
+
+        Raises:
+            LookupError: If the source scenario specified by ``scenario`` does not exist.
+        """
+        constraint = EditableSchema(self.get_scenario(scenario)).copy()
+        EditableSchema(constraint).rename(name)
+        if insert:
+            self.add_scenario(constraint)
+        return constraint
 
     def remove_scenario(self, scenario: str) -> bool:
         """
