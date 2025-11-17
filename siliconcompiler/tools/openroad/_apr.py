@@ -1,7 +1,7 @@
 import os
 import json
 
-from typing import List
+from typing import List, Union, Optional
 
 from siliconcompiler import sc_open
 from siliconcompiler import utils
@@ -411,6 +411,14 @@ class OpenROADDRTParameter(_OpenROADDRTCommonParameter):
 
 
 class APRTask(OpenROADTask):
+    """
+    Base class for OpenROAD-based Automatic Place and Route (APR) tasks.
+
+    This task initializes specific configurations for OpenROAD, including
+    report filtering, image generation settings, heatmap binning, and
+    power analysis corners.
+    """
+
     def __init__(self):
         super().__init__()
 
@@ -456,11 +464,79 @@ class APRTask(OpenROADTask):
         self.add_parameter("global_connect_fileset", "[(str,str)]",
                            "list of libraries and filesets to generate connects from")
 
-    def add_openroad_globalconnectfileset(self, library, fileset, clobber=False):
+    def add_openroad_skipreport(self, report_type: Union[List[str], str],
+                                step: Optional[str] = None, index: Optional[str] = None,
+                                clobber: bool = False) -> None:
+        """
+        Adds or sets report types to be skipped during OpenROAD execution.
+
+        Args:
+            report_type: The name of the report(s) to skip (e.g., 'routing_congestion').
+            step: The specific step to apply this configuration to.
+            index: The specific index to apply this configuration to.
+            clobber: If True, overwrites the existing list of skipped reports.
+                     If False, appends to the existing list.
+        """
         if clobber:
-            self.set("var", "global_connect_fileset", (library, fileset))
+            self.set("var", "skip_reports", report_type, step=step, index=index)
         else:
-            self.add("var", "global_connect_fileset", (library, fileset))
+            self.add("var", "skip_reports", report_type, step=step, index=index)
+
+    def set_openroad_enableimages(self, enable: bool,
+                                  step: Optional[str] = None, index: Optional[str] = None) -> None:
+        """
+        Enables or disables the generation of design images at the end of the task.
+
+        Args:
+            enable: True to generate images, False to disable.
+            step: The specific step to apply this configuration to.
+            index: The specific index to apply this configuration to.
+        """
+        self.set("var", "ord_enable_images", enable, step=step, index=index)
+
+    def set_openroad_heatmapbins(self, x: int, y: int,
+                                 step: Optional[str] = None, index: Optional[str] = None) -> None:
+        """
+        Configures the resolution of the heatmap images.
+
+        Args:
+            x: The number of bins in the X direction.
+            y: The number of bins in the Y direction.
+            step: The specific step to apply this configuration to.
+            index: The specific index to apply this configuration to.
+        """
+        self.set("var", "ord_heatmap_bins", (x, y), step=step, index=index)
+
+    def set_openroad_powercorner(self, corner: str,
+                                 step: Optional[str] = None, index: Optional[str] = None) -> None:
+        """
+        Sets the specific process corner used for power analysis.
+
+        Args:
+            corner: The name of the timing/power corner.
+            step: The specific step to apply this configuration to.
+            index: The specific index to apply this configuration to.
+        """
+        self.set("var", "power_corner", corner, step=step, index=index)
+
+    def add_openroad_globalconnectfileset(self, library: str, fileset: str,
+                                          step: Optional[str] = None, index: Optional[str] = None,
+                                          clobber: bool = False):
+        """
+        Adds a library and fileset pair to the global connect configuration.
+
+        Args:
+            library: The name of the library.
+            fileset: The name of the fileset.
+            step: The specific step to apply this configuration to.
+            index: The specific index to apply this configuration to.
+            clobber: If True, overwrites the existing global connect settings.
+                     If False, appends to the existing settings.
+        """
+        if clobber:
+            self.set("var", "global_connect_fileset", (library, fileset), step=step, index=index)
+        else:
+            self.add("var", "global_connect_fileset", (library, fileset), step=step, index=index)
 
     def setup(self):
         """
