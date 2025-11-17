@@ -1,3 +1,5 @@
+from typing import Union, List, Optional
+
 from siliconcompiler.tools.openroad._apr import APRTask
 from siliconcompiler.tools.openroad._apr import OpenROADSTAParameter, OpenROADPPLParameter
 
@@ -5,9 +7,13 @@ from siliconcompiler.tools.openroad._apr import OpenROADSTAParameter, OpenROADPP
 class InitFloorplanTask(APRTask,
                         OpenROADSTAParameter,
                         OpenROADPPLParameter):
-    '''
-    Perform floorplanning and initial pin placements
-    '''
+    """
+    Perform floorplanning and initial pin placements.
+
+    This task handles the initialization of the floorplan, including macro placement
+    snapping strategies, cleaning up synthesis artifacts (buffers/dead logic),
+    and defining padring or bumpmap configurations.
+    """
     def __init__(self):
         super().__init__()
 
@@ -19,6 +25,79 @@ class InitFloorplanTask(APRTask,
                            "remove logic which does not drive a primary output", defvalue=True)
 
         self.add_parameter("padringfileset", "[str]", "filesets to generate a padring")
+        self.add_parameter("bumpmapfileset", "[str]", "filesets to generate a bumpmap")
+
+    def set_openroad_snapstrategy(self, snap: str,
+                                  step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Sets the snapping strategy for macro placement.
+
+        Args:
+            snap: The snapping mode. Options are typically 'none', 'site', or 'grid'.
+            step: The specific step to apply this configuration to.
+            index: The specific index to apply this configuration to.
+        """
+        self.set("var", "ifp_snap_strategy", snap, step=step, index=index)
+
+    def set_openroad_removebuffers(self, enable: bool,
+                                   step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Enables or disables the removal of buffers inserted during synthesis.
+
+        Args:
+            enable: True to remove synthesis buffers, False to keep them.
+            step: The specific step to apply this configuration to.
+            index: The specific index to apply this configuration to.
+        """
+        self.set("var", "remove_synth_buffers", enable, step=step, index=index)
+
+    def set_openroad_removedeadlogic(self, enable: bool,
+                                     step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Enables or disables the removal of logic that does not drive a primary output.
+
+        Args:
+            enable: True to remove dead logic, False to keep it.
+            step: The specific step to apply this configuration to.
+            index: The specific index to apply this configuration to.
+        """
+        self.set("var", "remove_dead_logic", enable, step=step, index=index)
+
+    def add_openroad_padringfileset(self, fileset: Union[str, List[str]],
+                                    step: Optional[str] = None, index: Optional[str] = None,
+                                    clobber: bool = False):
+        """
+        Adds fileset(s) used to generate the I/O pad ring.
+
+        Args:
+            fileset: A string name or list of names representing the padring filesets.
+            step: The specific step to apply this configuration to.
+            index: The specific index to apply this configuration to.
+            clobber: If True, overwrites the existing padring fileset list.
+                     If False, appends to the existing list.
+        """
+        if clobber:
+            self.set("var", "padringfileset", fileset, step=step, index=index)
+        else:
+            self.add("var", "padringfileset", fileset, step=step, index=index)
+
+    def add_openroad_bumpmapfileset(self, fileset: Union[str, List[str]],
+                                    step: Optional[str] = None, index: Optional[str] = None,
+                                    clobber: bool = False):
+        """
+        Adds fileset(s) used to generate the bump map for flip-chip or 3D designs.
+
+        Args:
+            fileset: A string name or list of names representing the bumpmap filesets.
+            step: The specific step to apply this configuration to.
+            index: The specific index to apply this configuration to.
+            clobber: If True, overwrites the existing bumpmap fileset list.
+                     If False, appends to the existing list.
+        """
+        if clobber:
+            self.set("var", "bumpmapfileset", fileset, step=step, index=index)
+        else:
+            self.add("var", "bumpmapfileset", fileset, step=step, index=index)
 
     def task(self):
         return "init_floorplan"
@@ -62,8 +141,38 @@ class InitFloorplanTask(APRTask,
             for fileset in self.get("var", "padringfileset"):
                 self.add_required_key(self.project.design, "fileset", fileset, "file", "tcl")
 
-    def add_openroad_padringfileset(self, fileset: str, clobber=False):
-        if clobber:
-            self.set("var", "padringfileset", fileset)
+        if self.get("var", "bumpmapfileset"):
+            self.add_required_key("var", "bumpmapfileset")
+
+            for fileset in self.get("var", "bumpmapfileset"):
+                self.add_required_key(self.project.design, "fileset", fileset, "file", "bmap")
+
+        # Mark requires for components, pin, and floorplan placements
+        for component in self.project.constraint.component.get_component().values():
+            self.add_required_key(component, "placement")
+            self.add_required_key(component, "rotation")
+            if component.get_partname(step=self.step, index=self.index):
+                self.add_required_key(component, "partname")
+
+        for pin in self.project.constraint.pin.get_pinconstraint().values():
+            if pin.get_placement(step=self.step, index=self.index) is not None:
+                self.add_required_key(pin, "placement")
+            if pin.get_layer(step=self.step, index=self.index) is not None:
+                self.add_required_key(pin, "layer")
+            if pin.get_side(step=self.step, index=self.index) is not None:
+                self.add_required_key(pin, "side")
+            if pin.get_order(step=self.step, index=self.index) is not None:
+                self.add_required_key(pin, "order")
+
+        self.add_required_key(self.mainlib, "asic", "site")
+        if self.project.constraint.area.get_diearea(step=self.step, index=self.index) and \
+                self.project.constraint.area.get_corearea(step=self.step, index=self.index):
+            self.add_required_key(self.project.constraint.area, "diearea")
+            self.add_required_key(self.project.constraint.area, "corearea")
         else:
-            self.add("var", "padringfileset", fileset)
+            self.add_required_key(self.project.constraint.area, "aspectratio")
+            self.add_required_key(self.project.constraint.area, "density")
+            self.add_required_key(self.project.constraint.area, "coremargin")
+
+        if self.mainlib.get("tool", "openroad", "tracks"):
+            self.add_required_key(self.mainlib, "tool", "openroad", "tracks")
