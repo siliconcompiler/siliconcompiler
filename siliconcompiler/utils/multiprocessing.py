@@ -8,6 +8,7 @@ import os.path
 from typing import Union, Optional
 
 from datetime import datetime
+from logging.handlers import QueueHandler
 from multiprocessing.managers import SyncManager, RemoteError
 
 from siliconcompiler.report.dashboard.cli.board import Board
@@ -298,3 +299,13 @@ class MPManager(metaclass=_ManagerSingleton):
         Get the address of the manager
         """
         return MPManager.__address
+
+
+class MPQueueHandler(QueueHandler):
+    def enqueue(self, record):
+        try:
+            super().enqueue(record)
+        except BrokenPipeError:
+            # The pipe is broken so fail silently as this is likely
+            # at exit
+            pass
