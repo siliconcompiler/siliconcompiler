@@ -299,7 +299,7 @@ def test_timing_constraint_copy_scenario_samename():
     schema = ASICTimingConstraintSchema()
 
     schema.make_scenario("slow")
-    with pytest.raises(ValueError, match=r"^slow is already in the defined$"):
+    with pytest.raises(ValueError, match=r"^slow already exists$"):
         schema.copy_scenario("slow", "slow")
 
 

@@ -234,7 +234,7 @@ def test_timing_constraint_copy_component_samename():
     schema = ASICComponentConstraints()
 
     schema.make_component("macro0")
-    with pytest.raises(ValueError, match=r"^macro0 is already in the defined$"):
+    with pytest.raises(ValueError, match=r"^macro0 already exists$"):
         schema.copy_component("macro0", "macro0")
 
 

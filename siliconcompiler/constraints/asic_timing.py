@@ -517,7 +517,7 @@ class ASICTimingConstraintSchema(BaseSchema):
         EditableSchema(constraint).rename(name)
         if insert:
             if self.valid(name):
-                raise ValueError(f"{name} is already in the defined")
+                raise ValueError(f"{name} already exists")
             self.add_scenario(constraint)
         return constraint
 
