@@ -295,6 +295,14 @@ def test_timing_constraint_copy_scenario():
     assert schema.getkeys() == ("fast", "slow")
 
 
+def test_timing_constraint_copy_scenario_samename():
+    schema = ASICTimingConstraintSchema()
+
+    schema.make_scenario("slow")
+    with pytest.raises(ValueError, match=r"^slow is already in the defined$"):
+        schema.copy_scenario("slow", "slow")
+
+
 def test_timing_constraint_copy_scenario_no_insert():
     schema = ASICTimingConstraintSchema()
 

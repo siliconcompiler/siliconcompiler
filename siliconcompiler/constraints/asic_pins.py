@@ -494,6 +494,8 @@ class ASICPinConstraints(BaseSchema):
         constraint = EditableSchema(self.get_pinconstraint(pin)).copy()
         EditableSchema(constraint).rename(name)
         if insert:
+            if self.valid(name):
+                raise ValueError(f"{name} is already in the defined")
             self.add_pinconstraint(constraint)
         return constraint
 

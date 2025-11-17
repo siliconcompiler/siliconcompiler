@@ -230,6 +230,14 @@ def test_timing_constraint_copy_component():
     assert schema.getkeys() == ("macro0", "macro1")
 
 
+def test_timing_constraint_copy_component_samename():
+    schema = ASICComponentConstraints()
+
+    schema.make_component("macro0")
+    with pytest.raises(ValueError, match=r"^macro0 is already in the defined$"):
+        schema.copy_component("macro0", "macro0")
+
+
 def test_timing_constraint_copy_component_no_insert():
     schema = ASICComponentConstraints()
 
