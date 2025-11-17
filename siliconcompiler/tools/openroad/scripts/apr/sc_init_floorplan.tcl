@@ -73,14 +73,35 @@ if { $sc_openroad_tracks != "" } {
     make_tracks
 }
 
-# TODO
+###############################
+# Bump Creation
+###############################
+
 set do_automatic_pins 1
+if { [llength [sc_cfg_tool_task_get var bumpmapfileset]] > 0 } {
+    set do_automatic_pins 0
+
+    set bmaps_read []
+    set bumpmapfileset [sc_cfg_tool_task_get var bumpmapfileset]
+    set bmapfiles [sc_cfg_get_fileset $sc_designlib $bumpmapfileset bmap]
+    foreach bmap_file $bmapfiles {
+        if { [lsearch -exact $bmaps_read $bmap_file] != -1 } {
+            continue
+        }
+        puts "Reading 3DBlox bump map: ${bmap_file}"
+        read_3dblox_bmap $bmap_file
+
+        lappend bmaps_read $bmap_file
+    }
+}
+
+###############################
+# Generate pad ring
+###############################
+
 if { [llength [sc_cfg_tool_task_get var padringfileset]] > 0 } {
     set do_automatic_pins 0
 
-    ###############################
-    # Generate pad ring
-    ###############################
     set padringfiles_read []
     set padringfileset [sc_cfg_tool_task_get var padringfileset]
     set padringfiles [sc_cfg_get_fileset $sc_designlib $padringfileset tcl]
