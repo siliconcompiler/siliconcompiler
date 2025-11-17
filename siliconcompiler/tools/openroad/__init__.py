@@ -10,7 +10,7 @@ Sources: https://github.com/The-OpenROAD-Project/OpenROAD
 
 Installation: https://github.com/The-OpenROAD-Project/OpenROAD
 '''
-from typing import List, Union
+from typing import List, Union, Optional
 
 from siliconcompiler import StdCellLibrary
 from siliconcompiler import PDK
@@ -346,11 +346,37 @@ class OpenROADStdCellLibrary(StdCellLibrary):
 
 
 class OpenROADTask(ASICTask):
+    """
+    Base class for tasks involving the OpenROAD EDA tool chain.
+
+    This class provides common functionality for configuring OpenROAD execution,
+    such as setting up debug levels for internal tools.
+    """
     def __init__(self):
         super().__init__()
 
         self.add_parameter("debug_level", "{(str,str,int)}",
                            'list of "tool key level" to enable debugging of OpenROAD')
+
+    def add_openroad_debuglevel(self, tool: str, category: str, level: int,
+                                step: Optional[str] = None, index: Optional[str] = None,
+                                clobber: bool = False) -> None:
+        """
+        Configures the debug logging level for a specific OpenROAD tool and category.
+
+        Args:
+            tool: The name of the OpenROAD tool (e.g., "GRT", "PSM").
+            category: The specific debug category or keyword within the tool.
+            level: The integer verbosity level for the debug output.
+            step: The specific step to apply this configuration to.
+            index: The specific index to apply this configuration to.
+            clobber: If True, overwrites the existing debug level configuration.
+                     If False, appends this configuration to the existing list.
+        """
+        if clobber:
+            self.set("var", "debug_level", (tool, category, level), step=step, index=index)
+        else:
+            self.add("var", "debug_level", (tool, category, level), step=step, index=index)
 
     def tool(self):
         return "openroad"
