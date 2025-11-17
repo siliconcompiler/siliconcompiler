@@ -150,7 +150,7 @@ def collect(project: "Project",
 
                 imported = False
                 for new_path in new_paths:
-                    if abs_path.startwith(new_path):
+                    if abs_path.startswith(new_path):
                         imported = True
                         break
                 if imported:
