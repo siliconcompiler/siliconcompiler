@@ -1,6 +1,6 @@
 import pytest
 
-from siliconcompiler.schema import BaseSchema
+from siliconcompiler.schema import BaseSchema, NamedSchema
 from siliconcompiler.schema import Parameter
 from siliconcompiler.schema import EditableSchema
 
@@ -339,3 +339,53 @@ def test_schema_keypath_with_insert_after_default():
 
     assert obj0._keypath == ("test0", "default", "test2", "test3")
     assert obj1._keypath == ("test0", "test1", "test2", "test4")
+
+
+def test_copy():
+    schema = BaseSchema()
+
+    assert len(schema.getkeys()) == 0
+
+    obj = BaseSchema()
+
+    edit = EditableSchema(schema)
+    edit.insert("test0", "default", "test2", "test3", obj)
+
+    assert obj._keypath == ("test0", "default", "test2", "test3")
+
+    copy = EditableSchema(obj).copy()
+    assert copy._keypath == tuple()
+
+
+def test_rename_in_schema():
+    schema = BaseSchema()
+
+    assert len(schema.getkeys()) == 0
+
+    obj = NamedSchema()
+
+    edit = EditableSchema(schema)
+    edit.insert("test0", "default", "test2", "test3", obj)
+
+    assert obj._keypath == ("test0", "default", "test2", "test3")
+
+    assert obj.name == "test3"
+
+    with pytest.raises(ValueError, match=r'^object is already in a schema$'):
+        EditableSchema(obj).rename("this")
+
+
+def test_rename():
+    obj = NamedSchema()
+    obj.set_name("that")
+
+    assert obj.name == "that"
+
+    EditableSchema(obj).rename("this")
+    assert obj.name == "this"
+
+
+def test_rename_bad_type():
+    obj = BaseSchema()
+    with pytest.raises(TypeError, match=r'^schema must be a named schema$'):
+        EditableSchema(obj).rename("this")

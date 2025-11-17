@@ -136,7 +136,7 @@ def test_inserting_name():
     edit = EditableSchema(schema)
     edit.insert("test0", "default", lower_schema)
 
-    assert schema.get("test0", "default", field="schema").name == "name"
+    assert schema.get("test0", "default", field="schema").name is None
 
     assert schema.set("test0", "checkname", "test2", "this")
     assert schema.get("test0", "checkname", field="schema").name == "checkname"
