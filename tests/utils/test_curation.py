@@ -82,7 +82,7 @@ def test_collect_file_update():
         f.write('fake')
 
     proj = Project(design)
-    collect(proj, )
+    collect(proj)
 
     filename = design.get_file(fileset="rtl", filetype="verilog")[0]
 
@@ -95,10 +95,45 @@ def test_collect_file_update():
         f.write('newfake')
 
     # Rerun collect
-    collect(proj, )
+    with patch("shutil.rmtree") as rmtree:
+        collect(proj)
+        rmtree.assert_called_once_with(os.path.join(os.path.dirname(collectiondir(proj)), "sc_previous_collection"))
+
     assert len(os.listdir(collectiondir(proj))) == 1
     with open(os.path.join(collectiondir(proj), os.path.basename(filename)), 'r') as f:
         assert f.readline() == 'newfake'
+
+
+def test_collect_file_incremental():
+    # Checks if collected files are properly updated after editing
+
+    # Create instance of design
+    design = Design("testdesign")
+    with design.active_fileset("rtl"):
+        with design._active(copy=True):
+            design.add_file("fake.v")
+
+    # Edit file
+    with open('fake.v', 'w') as f:
+        f.write('fake')
+
+    proj = Project(design)
+    collect(proj)
+
+    filename = design.get_file(fileset="rtl", filetype="verilog")[0]
+
+    assert len(os.listdir(collectiondir(proj))) == 1
+    with open(os.path.join(collectiondir(proj), os.path.basename(filename)), 'r') as f:
+        assert f.readline() == 'fake'
+
+    # Remove file, should still be findable in previous collection
+    os.remove('fake.v')
+
+    # Rerun collect
+    collect(proj)
+    assert len(os.listdir(collectiondir(proj))) == 1
+    with open(os.path.join(collectiondir(proj), os.path.basename(filename)), 'r') as f:
+        assert f.readline() == 'fake'
 
 
 def test_collect_directory():
@@ -115,7 +150,7 @@ def test_collect_directory():
         f.write('test')
 
     proj = Project(design)
-    collect(proj, )
+    collect(proj)
 
     assert len(os.listdir(collectiondir(proj))) == 1
 
@@ -164,7 +199,7 @@ def test_collect_file_with_false():
         f.write('fake')
 
     proj = Project(design)
-    collect(proj, )
+    collect(proj)
 
     # No files should have been collected
     assert len(os.listdir(collectiondir(proj))) == 0
@@ -188,7 +223,7 @@ def test_collect_file_home(monkeypatch):
         f.write("test")
 
     proj = Project(design)
-    collect(proj, )
+    collect(proj)
 
     # No files should have been collected
     assert len(os.listdir(collectiondir(proj))) == 1
@@ -209,7 +244,7 @@ def test_collect_file_build():
         f.write("test")
 
     proj = Project(design)
-    collect(proj, )
+    collect(proj)
 
     # No files should have been collected
     assert len(os.listdir(collectiondir(proj))) == 1
@@ -230,7 +265,7 @@ def test_collect_file_hidden_dir():
         f.write("test")
 
     proj = Project(design)
-    collect(proj, )
+    collect(proj)
 
     # No files should have been collected
     assert len(os.listdir(collectiondir(proj))) == 1
@@ -251,7 +286,7 @@ def test_collect_file_hidden_file():
         f.write("test")
 
     proj = Project(design)
-    collect(proj, )
+    collect(proj)
 
     # No files should have been collected
     assert len(os.listdir(collectiondir(proj))) == 1
