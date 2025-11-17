@@ -1190,7 +1190,7 @@ def test_collect_additional_files_slurm(gcd_additional_files_project, monkeypatc
     gcd_additional_files_project.option.scheduler.set_name("slurm")
     gcd_additional_files_project.option.scheduler.set_queue("dummyqueue")
 
-    # Expect this to fial because Slurm execution is mocked
+    # Expect this to fail because Slurm execution is mocked
     try:
         gcd_additional_files_project.run()
     except Exception as e:
