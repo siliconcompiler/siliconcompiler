@@ -67,8 +67,9 @@ class SchedulerNode:
     This class encapsulates the state and logic required to run a specific
     step and index, including setting up directories, handling file I/O,
     executing the associated tool, and recording results.
-
     """
+
+    __MAX_LOG_PRINT = 100  # Maximum number of warnings/error to print to log
 
     def __init__(self, project: "Project", step: str, index: str, replay: bool = False):
         """
@@ -1156,11 +1157,13 @@ class SchedulerNode:
         if 'errors' in checks:
             ordered_suffixes.append('errors')
 
+        print_paths = {}
         # Looping through patterns for each line
         with sc_open(self.__logs["exe"]) as f:
             line_count = sum(1 for _ in f)
             right_align = len(str(line_count))
             for suffix in ordered_suffixes:
+                print_paths[suffix] = False
                 # Start at the beginning of file again
                 f.seek(0)
                 for num, line in enumerate(f, start=1):
@@ -1177,10 +1180,20 @@ class SchedulerNode:
                         print(line_with_num, file=checks[suffix]['report'])
                         # selectively print to display
                         if checks[suffix]["display"]:
-                            checks[suffix]["display"](suffix, line_with_num)
+                            if matches[suffix] <= SchedulerNode.__MAX_LOG_PRINT:
+                                checks[suffix]["display"](suffix, line_with_num)
+                            else:
+                                if not print_paths[suffix]:
+                                    checks[suffix]["display"](suffix, "print limit reached")
+                                print_paths[suffix] = True
 
         for check in checks.values():
             check['report'].close()
+
+        for suffix in ordered_suffixes:
+            if print_paths[suffix]:
+                self.logger.info(f"All {suffix} can be viewed at: "
+                                 f"{os.path.abspath(f'{self.__step}.{suffix}')}")
 
         for metric in ("errors", "warnings"):
             if metric in matches:

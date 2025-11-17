@@ -816,6 +816,54 @@ def test_check_logfile(project, datadir, monkeypatch, caplog):
     assert project.get("metric", "warnings", step="stepone", index="0") == 1
 
 
+
+def test_check_logfile_capped(project, monkeypatch, caplog):
+    monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
+    project.logger.setLevel(logging.INFO)
+
+    # add regex
+    project.add('tool', 'builtin', 'task', 'nop', 'regex', 'errors', "ERROR")
+    project.add('tool', 'builtin', 'task', 'nop', 'regex', 'warnings', "WARNING")
+
+    log_file = "test.log"
+    with open(log_file, "w") as f:
+        for _ in range(200):
+            f.write("ERROR: this\n")
+            f.write("WARNING: that\n")
+    assert SchedulerNode._SchedulerNode__MAX_LOG_PRINT < 200
+
+    node = SchedulerNode(project, "stepone", "0")
+    assert project.get("metric", "errors", step="stepone", index="0") is None
+    assert project.get("metric", "warnings", step="stepone", index="0") is None
+
+    with node.runtime():
+        # check log
+        os.makedirs(node.workdir, exist_ok=True)
+        shutil.copy(log_file, node.get_log())
+        node.check_logfile()
+
+    assert project.get("metric", "errors", step="stepone", index="0") == 200
+    assert project.get("metric", "warnings", step="stepone", index="0") == 200
+
+    assert len(caplog.text.splitlines()) == 200 + 4
+
+    assert caplog.text.count(": ERROR: this") == 100
+    assert caplog.text.count(": WARNING: that") == 100
+    assert caplog.text.count("print limit reached") == 2
+    assert caplog.text.count("All warnings can be viewed at: ") == 1
+    assert caplog.text.count("All errors can be viewed at: ") == 1
+
+    errors_file = "stepone.errors"
+    assert os.path.isfile(errors_file)
+    with open(errors_file) as file:
+        assert len(file.read().splitlines()) == 200
+
+    warnings_file = "stepone.warnings"
+    assert os.path.isfile(warnings_file)
+    with open(warnings_file) as file:
+        assert len(file.read().splitlines()) == 200
+
+
 def test_check_logfile_with_extra_metrics(project, datadir, monkeypatch, caplog):
     monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
     project.logger.setLevel(logging.INFO)
