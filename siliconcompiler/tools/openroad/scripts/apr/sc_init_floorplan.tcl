@@ -79,6 +79,10 @@ if { $sc_openroad_tracks != "" } {
 
 set do_automatic_pins 1
 if { [llength [sc_cfg_tool_task_get var bumpmapfileset]] > 0 } {
+    if { [sc_check_version 26154] == 0 } {
+        utl::error FLW 1 "bmaps are not supported in this version of openroad"
+    }
+
     set do_automatic_pins 0
 
     set bmaps_read []
