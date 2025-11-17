@@ -23,6 +23,10 @@ def test_version(gcd_design):
     flow.node("version", PlaceTask())
     proj.set_flow(flow)
 
+    fpga = VPRFPGA()
+    fpga.set_name("testfpga")
+    proj.set_fpga(fpga)
+
     node = SchedulerNode(proj, "version", "0")
     with node.runtime():
         assert node.setup() is True

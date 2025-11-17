@@ -529,3 +529,22 @@ class VPRTask(Task):
                 if path.match(line):
                     count += 1
         return count
+
+    @classmethod
+    def make_docs(cls):
+        from siliconcompiler import Flowgraph, Design, FPGA
+        from siliconcompiler.scheduler import SchedulerNode
+        from siliconcompiler.demos.fpga_demo import Z1000
+        design = Design("<design>")
+        with design.active_fileset("docs"):
+            design.set_topmodule("top")
+        proj = FPGA(design)
+        proj.add_fileset("docs")
+        proj.set_fpga(Z1000())
+        flow = Flowgraph("docsflow")
+        flow.node("<step>", cls(), index="<index>")
+        proj.set_flow(flow)
+
+        node = SchedulerNode(proj, "<step>", "<index>")
+        node.setup()
+        return node.task
