@@ -816,7 +816,6 @@ def test_check_logfile(project, datadir, monkeypatch, caplog):
     assert project.get("metric", "warnings", step="stepone", index="0") == 1
 
 
-
 def test_check_logfile_capped(project, monkeypatch, caplog):
     monkeypatch.setattr(project, "_Project__logger", logging.getLogger())
     project.logger.setLevel(logging.INFO)
