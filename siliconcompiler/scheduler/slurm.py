@@ -51,19 +51,10 @@ class SlurmSchedulerNode(SchedulerNode):
         """
         A static pre-processing hook for the Slurm scheduler.
 
-        This method checks if the compilation flow starts from an entry node.
-        If so, it calls :meth:`.collect()` to gather all necessary source files
-        into a central location before any remote jobs are submitted. This
-        ensures that compute nodes have access to all required source files.
-
         Args:
             project (Project): The project object to perform pre-processing on.
         """
         SlurmSchedulerNode.assert_slurm()
-
-        if os.path.exists(collectiondir(project)):
-            # nothing to do
-            return
 
     @property
     def is_local(self):
