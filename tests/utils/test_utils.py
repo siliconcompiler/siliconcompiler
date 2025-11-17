@@ -1,8 +1,14 @@
 import pytest
 
+import os.path
+
+from unittest.mock import patch
+
 from siliconcompiler.utils import \
     truncate_text, safecompare, get_cores, \
-    get_plugins
+    get_plugins, \
+    default_sc_dir, default_credentials_file, default_cache_dir, \
+    default_email_credentials_file
 
 
 @pytest.mark.parametrize("text", (
@@ -151,3 +157,27 @@ def test_get_plugin():
     assert len(get_plugins("path_resolver")) > 0
 
     assert len(get_plugins("path_resolver", "https")) == 1
+
+
+def test_default_sc_dir():
+    with patch("pathlib.Path.home") as home:
+        home.return_value = "this"
+        assert default_sc_dir() == os.path.join("this", ".sc")
+
+
+def test_default_credentials_file():
+    with patch("pathlib.Path.home") as home:
+        home.return_value = "this"
+        assert default_credentials_file() == os.path.join("this", ".sc", "credentials")
+
+
+def test_default_cache_dir():
+    with patch("pathlib.Path.home") as home:
+        home.return_value = "this"
+        assert default_cache_dir() == os.path.join("this", ".sc", "cache")
+
+
+def test_default_email_credentials_file():
+    with patch("pathlib.Path.home") as home:
+        home.return_value = "this"
+        assert default_email_credentials_file() == os.path.join("this", ".sc", "email.json")
