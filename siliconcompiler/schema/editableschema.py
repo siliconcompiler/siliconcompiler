@@ -6,6 +6,7 @@
 
 from .parameter import Parameter
 from .baseschema import BaseSchema
+from .namedschema import NamedSchema
 
 from typing import Union, Tuple
 
@@ -38,6 +39,8 @@ class EditableSchema:
             if isinstance(value, BaseSchema):
                 value._BaseSchema__parent = self.__schema
                 value._BaseSchema__key = key
+                if isinstance(value, NamedSchema):
+                    value._NamedSchema__name = key
 
             if key == "default":
                 self.__schema._BaseSchema__default = value
@@ -146,3 +149,26 @@ class EditableSchema:
             raise ValueError("Keypath must only be strings")
 
         return self.__schema._BaseSchema__search(*keypath, require_leaf=False)
+
+    def copy(self) -> BaseSchema:
+        '''
+        Creates a copy of the schema object, disconnected from any parent schema
+        '''
+
+        new_schema = self.__schema.copy()
+        if new_schema._parent() is not new_schema:
+            new_schema._BaseSchema__parent = None
+        return new_schema
+
+    def rename(self, name: str):
+        '''
+        Renames a named schema
+        '''
+
+        if not isinstance(self.__schema, NamedSchema):
+            raise TypeError("schema must be a named schema")
+
+        if self.__schema._parent() is not self.__schema:
+            raise ValueError("object is already in a schema")
+
+        self.__schema._NamedSchema__name = name
