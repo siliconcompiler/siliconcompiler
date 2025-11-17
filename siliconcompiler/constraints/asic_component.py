@@ -358,6 +358,34 @@ class ASICComponentConstraints(BaseSchema):
         self.add_component(constraint)
         return constraint
 
+    def copy_component(self, component: str, name: str, insert: bool = True) \
+            -> ASICComponentConstraint:
+        """
+        Copies an existing component constraint, renames it, and optionally adds it to the design.
+
+        This method retrieves the component constraint identified by ``component``, creates a
+        deep copy of it, and renames the copy to ``name``. If ``insert`` is True,
+        the new constraint is immediately added to the configuration.
+
+        Args:
+            component (str): The name of the existing component constraint to be copied.
+            name (str): The name to assign to the new copied constraint.
+            insert (bool, optional): Whether to add the newly created constraint
+                to the configuration. Defaults to True.
+
+        Returns:
+            ASICComponentConstraint: The newly created copy of the component constraint.
+
+        Raises:
+            LookupError: If the source component constraint specified by ``component`` does not
+                         exist.
+        """
+        constraint = EditableSchema(self.get_component(component)).copy()
+        EditableSchema(constraint).rename(name)
+        if insert:
+            self.add_component(constraint)
+        return constraint
+
     def remove_component(self, component: str) -> bool:
         """
         Removes a component constraint from the design configuration.

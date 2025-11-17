@@ -295,3 +295,21 @@ def test_remove_pinconstraint(pin_constraints_collection):
         pin_constraints_collection.remove_pinconstraint("")
     with pytest.raises(ValueError, match="^pin name is required$"):
         pin_constraints_collection.remove_pinconstraint(None)
+
+
+def test_timing_constraint_copy_pinconstraint():
+    schema = ASICPinConstraints()
+
+    schema.make_pinconstraint("pin0")
+    new_obj = schema.copy_pinconstraint("pin0", "pin1")
+    assert new_obj.name == "pin1"
+    assert schema.getkeys() == ("pin0", "pin1")
+
+
+def test_timing_constraint_copy_pinconstraint_no_insert():
+    schema = ASICPinConstraints()
+
+    schema.make_pinconstraint("pin0")
+    new_obj = schema.copy_pinconstraint("pin0", "pin1", insert=False)
+    assert new_obj.name == "pin1"
+    assert schema.getkeys() == ("pin0",)

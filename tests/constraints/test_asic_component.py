@@ -219,3 +219,21 @@ def test_remove_component(component_constraints_collection):
         component_constraints_collection.remove_component("")
     with pytest.raises(ValueError, match="^component name is required$"):
         component_constraints_collection.remove_component(None)
+
+
+def test_timing_constraint_copy_component():
+    schema = ASICComponentConstraints()
+
+    schema.make_component("macro0")
+    new_obj = schema.copy_component("macro0", "macro1")
+    assert new_obj.name == "macro1"
+    assert schema.getkeys() == ("macro0", "macro1")
+
+
+def test_timing_constraint_copy_component_no_insert():
+    schema = ASICComponentConstraints()
+
+    schema.make_component("macro0")
+    new_obj = schema.copy_component("macro0", "macro1", insert=False)
+    assert new_obj.name == "macro1"
+    assert schema.getkeys() == ("macro0",)

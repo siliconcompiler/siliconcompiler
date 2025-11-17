@@ -470,6 +470,32 @@ class ASICPinConstraints(BaseSchema):
         self.add_pinconstraint(constraint)
         return constraint
 
+    def copy_pinconstraint(self, pin: str, name: str, insert: bool = True) -> ASICPinConstraint:
+        """
+        Copies an existing pin constraint, renames it, and optionally adds it to the design.
+
+        This method retrieves the pin constraint identified by ``pin``, creates a
+        deep copy of it, and renames the copy to ``name``. If ``insert`` is True,
+        the new constraint is immediately added to the configuration.
+
+        Args:
+            pin (str): The name of the existing pin constraint to be copied.
+            name (str): The name to assign to the new copied constraint.
+            insert (bool, optional): Whether to add the newly created constraint
+                to the configuration. Defaults to True.
+
+        Returns:
+            ASICPinConstraint: The newly created copy of the pin constraint.
+
+        Raises:
+            LookupError: If the source pin constraint specified by ``pin`` does not exist.
+        """
+        constraint = EditableSchema(self.get_pinconstraint(pin)).copy()
+        EditableSchema(constraint).rename(name)
+        if insert:
+            self.add_pinconstraint(constraint)
+        return constraint
+
     def remove_pinconstraint(self, pin: str) -> bool:
         """
         Removes a pin constraint from the design configuration.

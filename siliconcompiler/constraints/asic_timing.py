@@ -492,6 +492,33 @@ class ASICTimingConstraintSchema(BaseSchema):
         self.add_scenario(scenarioobj)
         return scenarioobj
 
+    def copy_scenario(self, scenario: str, name: str, insert: bool = True) \
+            -> ASICTimingScenarioSchema:
+        """
+        Copies an existing timing scenario, renames it, and optionally adds it to the design.
+
+        This method retrieves the scenario identified by ``scenario``, creates a
+        deep copy of it, and renames the copy to ``name``. If ``insert`` is True,
+        the new scenario is immediately added to the configuration.
+
+        Args:
+            scenario (str): The name of the existing scenario to be copied.
+            name (str): The name to assign to the new copied scenario.
+            insert (bool, optional): Whether to add the newly created scenario
+                to the configuration. Defaults to True.
+
+        Returns:
+            ASICTimingScenarioSchema: The newly created copy of the scenario.
+
+        Raises:
+            LookupError: If the source scenario specified by ``scenario`` does not exist.
+        """
+        constraint = EditableSchema(self.get_scenario(scenario)).copy()
+        EditableSchema(constraint).rename(name)
+        if insert:
+            self.add_scenario(constraint)
+        return constraint
+
     def remove_scenario(self, scenario: str) -> bool:
         """
         Removes a timing scenario from the design configuration.

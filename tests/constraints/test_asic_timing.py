@@ -284,3 +284,21 @@ def test_timing_constraint_remove_scenario():
     assert schema.getkeys() == ("slow",)
     assert schema.remove_scenario("slow") is True
     assert schema.getkeys() == tuple()
+
+
+def test_timing_constraint_copy_scenario():
+    schema = ASICTimingConstraintSchema()
+
+    schema.make_scenario("slow")
+    new_obj = schema.copy_scenario("slow", "fast")
+    assert new_obj.name == "fast"
+    assert schema.getkeys() == ("fast", "slow")
+
+
+def test_timing_constraint_copy_scenario_no_insert():
+    schema = ASICTimingConstraintSchema()
+
+    schema.make_scenario("slow")
+    new_obj = schema.copy_scenario("slow", "fast", insert=False)
+    assert new_obj.name == "fast"
+    assert schema.getkeys() == ("slow",)
