@@ -49,7 +49,7 @@ def collect(project: "Project",
 
     directory = os.path.abspath(directory)
 
-    # Move exisiting directory
+    # Move existing directory
     prev_dir = None
     if os.path.exists(directory):
         prev_dir = os.path.join(os.path.dirname(directory), "sc_previous_collection")
@@ -197,7 +197,7 @@ def collect(project: "Project",
                 shutil.copy2(abs_path, import_path)
     finally:
         if prev_dir:
-            # Delete exisiting directory
+            # Delete existing directory
             shutil.rmtree(prev_dir)
 
 

@@ -97,7 +97,8 @@ def test_collect_file_update():
     # Rerun collect
     with patch("shutil.rmtree") as rmtree:
         collect(proj)
-        rmtree.assert_called_once_with(os.path.join(os.path.dirname(collectiondir(proj)), "sc_previous_collection"))
+        rmtree.assert_called_once_with(os.path.join(os.path.dirname(collectiondir(proj)),
+                                                    "sc_previous_collection"))
 
     assert len(os.listdir(collectiondir(proj))) == 1
     with open(os.path.join(collectiondir(proj), os.path.basename(filename)), 'r') as f:
