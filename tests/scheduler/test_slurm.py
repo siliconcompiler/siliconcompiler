@@ -217,6 +217,80 @@ def test_mark_copy(project):
         assert sc_set.call_count == 2
 
 
+def test_mark_copy_with_shared_require_copy(project):
+    SlurmSchedulerNode._SlurmSchedulerNode__SYS_CONFIG = {
+        "sharedpaths": ["/nfs"]
+    }
+
+    project.set("tool", "builtin", "task", "nop", "require",
+                ["tool,builtin,task,nop,prescript", "tool,builtin,task,nop,refdir"],
+                step="steptwo", index="0")
+
+    node = SlurmSchedulerNode(project, "steptwo", "0")
+    with patch("siliconcompiler.schema.BaseSchema.set") as sc_set, patch("siliconcompiler.Project.find_files") as find_files:
+        find_files.return_value = ["/nfs/testdir", "/notshared"]
+        assert node.mark_copy() is True
+        sc_set.assert_called()
+        assert sc_set.call_count == 2
+
+
+def test_mark_copy_with_shared_require_no_copy(project):
+    SlurmSchedulerNode._SlurmSchedulerNode__SYS_CONFIG = {
+        "sharedpaths": ["/nfs", "/shared"]
+    }
+
+    project.set("tool", "builtin", "task", "nop", "require",
+                ["tool,builtin,task,nop,prescript", "tool,builtin,task,nop,refdir"],
+                step="steptwo", index="0")
+
+    node = SlurmSchedulerNode(project, "steptwo", "0")
+    with patch("siliconcompiler.schema.BaseSchema.set") as sc_set, patch("siliconcompiler.Project.find_files") as find_files:
+        find_files.return_value = ["/nfs/testdir", "/shared"]
+        assert node.mark_copy() is False
+        sc_set.assert_not_called()
+
+
+def test_mark_copy_with_shared_require_selective_copy(project):
+    SlurmSchedulerNode._SlurmSchedulerNode__SYS_CONFIG = {
+        "sharedpaths": ["/nfs", "/shared"]
+    }
+
+    project.set("tool", "builtin", "task", "nop", "require",
+                ["tool,builtin,task,nop,prescript", "tool,builtin,task,nop,refdir"],
+                step="steptwo", index="0")
+
+    def dummy_find(*key, **kwargs):
+        if key[-1] == "refdir":
+            return ["/nfs/testdir", "/shared"]
+        else:
+            return ["/nfs/testdir", "/notshared"]
+
+    node = SlurmSchedulerNode(project, "steptwo", "0")
+    with patch("siliconcompiler.schema.BaseSchema.set") as sc_set, \
+            patch("siliconcompiler.Project.find_files") as find_files:
+        find_files.side_effect = dummy_find
+        assert node.mark_copy() is True
+        sc_set.assert_called_once_with('tool', 'builtin', 'task', 'nop', 'prescript', True,
+                                       field='copy', clobber=True, step=None, index=None)
+
+
+def test_mark_copy_with_shared_covers_all(project):
+    SlurmSchedulerNode._SlurmSchedulerNode__SYS_CONFIG = {
+        "sharedpaths": ["/"]
+    }
+
+    project.set("tool", "builtin", "task", "nop", "require",
+                ["tool,builtin,task,nop,prescript", "tool,builtin,task,nop,refdir"],
+                step="steptwo", index="0")
+
+    node = SlurmSchedulerNode(project, "steptwo", "0")
+    with patch("siliconcompiler.schema.BaseSchema.set") as sc_set, \
+            patch("siliconcompiler.Project.find_files") as find_files:
+        assert node.mark_copy() is False
+        sc_set.assert_not_called()
+        find_files.assert_not_called()
+
+
 def test_user_config_path():
     with patch("pathlib.Path.home") as home:
         home.return_value = "this"

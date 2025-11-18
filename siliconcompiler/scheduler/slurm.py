@@ -199,10 +199,32 @@ class SlurmSchedulerNode(SchedulerNode):
             raise RuntimeError('slurm is not available or installed on this machine')
 
     def mark_copy(self) -> bool:
+        sharedprefix = SlurmSchedulerNode.__SYS_CONFIG.get("sharedpaths", [])
+
+        if "/" in sharedprefix:
+            # Entire filesystem is shared so no need to check
+            return False
+
         do_collect = False
         for key in self.get_required_path_keys():
-            self.project.set(*key, True, field='copy')
-            do_collect = True
+            mark_copy = True
+            if sharedprefix:
+                mark_copy = False
+
+                paths = self.project.find_files(*key, step=self.step, index=self.index)
+                if not isinstance(paths, list):
+                    paths = [paths]
+                paths = [str(path) for path in paths]
+
+                for path in paths:
+                    if not any([path.startswith(shared) for shared in sharedprefix]):
+                        # File exists outside shared paths and needs to be copied
+                        mark_copy = True
+                        break
+
+            if mark_copy:
+                self.project.set(*key, True, field='copy')
+                do_collect = True
         return do_collect
 
     def run(self):
