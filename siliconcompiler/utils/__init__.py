@@ -28,6 +28,14 @@ if TYPE_CHECKING:
 
 
 def link_symlink_copy(srcfile, dstfile):
+    """
+    Attempts to link a source file to a destination using hard link, symbolic link,
+    or copy, in that order.
+
+    Args:
+        srcfile (str): Path to the source file.
+        dstfile (str): Path to the destination file.
+    """
     # first try hard linking, then symbolic linking,
     # and finally just copy the file
     for method in [os.link, os.symlink, shutil.copy2]:
@@ -40,6 +48,14 @@ def link_symlink_copy(srcfile, dstfile):
 
 
 def link_copy(srcfile, dstfile):
+    """
+    Attempts to link a source file to a destination using hard link or copy,
+    in that order.
+
+    Args:
+        srcfile (str): Path to the source file.
+        dstfile (str): Path to the destination file.
+    """
     # first try hard linking or just copy the file
     for method in [os.link, shutil.copy2]:
         try:
@@ -51,7 +67,15 @@ def link_copy(srcfile, dstfile):
 
 
 def get_file_ext(filename: str) -> str:
-    '''Get base file extension for a given path, disregarding .gz.'''
+    """
+    Get base file extension for a given path, disregarding .gz.
+
+    Args:
+        filename (str): The filename to extract the extension from.
+
+    Returns:
+        str: The file extension (e.g., 'v', 'py') without the dot.
+    """
     if filename.lower().endswith('.gz'):
         filename = os.path.splitext(filename)[0]
     filetype = os.path.splitext(filename)[1].lower().lstrip('.')
@@ -60,7 +84,10 @@ def get_file_ext(filename: str) -> str:
 
 def get_default_iomap() -> Dict[str, str]:
     """
-    Default input file map for SC with filesets and extensions
+    Returns the default input file map for SC with filesets and extensions.
+
+    Returns:
+        Dict[str, str]: A dictionary mapping file extensions to their SiliconCompiler type.
     """
 
     # Record extensions:
@@ -176,27 +203,70 @@ def get_default_iomap() -> Dict[str, str]:
 
 
 def default_sc_dir() -> str:
+    """
+    Returns the default SiliconCompiler configuration directory.
+
+    Returns:
+        str: The absolute path to the .sc directory in the user's home folder.
+    """
     return os.path.join(Path.home(), '.sc')
 
 
 def default_sc_path(path: str) -> str:
+    """
+    Returns a path relative to the default SiliconCompiler configuration directory.
+
+    Args:
+        path (str): The relative path to append to the default SC directory.
+
+    Returns:
+        str: The absolute path joined with the default SC directory.
+    """
     return os.path.join(default_sc_dir(), path)
 
 
 def default_credentials_file() -> str:
+    """
+    Returns the default path for the SiliconCompiler credentials file.
+
+    Returns:
+        str: The absolute path to the credentials file.
+    """
     return default_sc_path('credentials')
 
 
 def default_cache_dir() -> str:
+    """
+    Returns the default path for the SiliconCompiler cache directory.
+
+    Returns:
+        str: The absolute path to the cache directory.
+    """
     return default_sc_path('cache')
 
 
 def default_email_credentials_file() -> str:
+    """
+    Returns the default path for the SiliconCompiler email credentials file.
+
+    Returns:
+        str: The absolute path to the email.json file.
+    """
     return default_sc_path('email.json')
 
 
 @contextlib.contextmanager
 def sc_open(path: str, *args, **kwargs):
+    """
+    A context manager for opening files with default settings convenient for SC.
+
+    Sets ``errors='ignore'`` and ``newline='\n'`` by default unless overridden.
+
+    Args:
+        path (str): The file path to open.
+        *args: Positional arguments passed to the builtin open().
+        **kwargs: Keyword arguments passed to the builtin open().
+    """
     if 'errors' not in kwargs:
         kwargs['errors'] = 'ignore'
     kwargs["newline"] = "\n"
@@ -214,6 +284,17 @@ def get_file_template(path: str,
                               os.path.dirname(os.path.abspath(__file__))),
                           'data',
                           'templates')) -> Template:
+    """
+    Retrieves a Jinja2 template object for the specified file.
+
+    Args:
+        path (str): The name of the template file or an absolute path to it.
+        root (str, optional): The root directory to search for templates if path
+            is relative. Defaults to the SiliconCompiler data/templates directory.
+
+    Returns:
+        Template: The loaded Jinja2 Template object.
+    """
     if os.path.isabs(path):
         root = os.path.dirname(path)
         path = os.path.basename(path)
@@ -227,6 +308,20 @@ def get_file_template(path: str,
 
 #######################################
 def safecompare(value: Union[int, float], op: str, goal: Union[int, float]) -> bool:
+    """
+    Compares a value against a goal using a string operator.
+
+    Args:
+        value (Union[int, float]): The value to compare.
+        op (str): The comparison operator ('>', '>=', '<', '<=', '==', '!=').
+        goal (Union[int, float]): The target value to compare against.
+
+    Returns:
+        bool: The result of the comparison.
+
+    Raises:
+        ValueError: If the provided operator is not supported.
+    """
     # supported relational operations
     # >, >=, <=, <. ==, !=
     if op == ">":
@@ -255,12 +350,12 @@ def grep(project: "Project", args: str, line: str) -> Union[None, str]:
     The function returns None if no match is found.
 
     Args:
-        arg (string): Command line arguments for grep command
-        line (string): Line to process
+        project (Project): The project instance (used for logging errors).
+        args (str): Command line arguments for grep command.
+        line (str): Line to process.
 
     Returns:
-        Result of grep command (string).
-
+        Union[None, str]: Result of grep command (string) or None if no match.
     """
 
     # Quick return if input is None
@@ -312,9 +407,15 @@ def grep(project: "Project", args: str, line: str) -> Union[None, str]:
 
 def get_plugins(system: str, name: Optional[str] = None) -> List[Callable]:
     '''
-    Search for python modules with a specific function
-    '''
+    Search for python modules with a specific function.
 
+    Args:
+        system (str): The system/group to search within (e.g. 'siliconcompiler.metrics').
+        name (str, optional): Specific plugin name to filter by.
+
+    Returns:
+        List[Callable]: A list of loaded plugin functions.
+    '''
     plugins = []
     discovered_plugins = entry_points(group=f'siliconcompiler.{system}')
     for plugin in discovered_plugins:
@@ -328,6 +429,19 @@ def get_plugins(system: str, name: Optional[str] = None) -> List[Callable]:
 
 
 def truncate_text(text: str, width: int) -> str:
+    """
+    Truncates text to a specific width, replacing the middle with '...'.
+
+    Attempts to preserve the end of the string if it appears to be a version number
+    or numeric index.
+
+    Args:
+        text (str): The text to truncate.
+        width (int): The maximum desired width of the text.
+
+    Returns:
+        str: The truncated text.
+    """
     width = max(width, 5)
 
     if len(text) <= width:
@@ -351,7 +465,10 @@ def get_cores(physical: bool = False) -> int:
     Get max number of cores for this machine.
 
     Args:
-        physical (boolean): if true, only count physical cores
+        physical (bool): if true, only count physical cores. Defaults to False.
+
+    Returns:
+        int: The number of available cores. Defaults to 1 if detection fails.
     '''
 
     cores = psutil.cpu_count(logical=not physical)
@@ -369,6 +486,13 @@ def get_cores(physical: bool = False) -> int:
 
 
 def print_traceback(logger: logging.Logger, exception: Exception):
+    """
+    Prints the full traceback of an exception to the provided logger.
+
+    Args:
+        logger (logging.Logger): The logger instance to write the traceback to.
+        exception (Exception): The exception to log.
+    """
     logger.error(f'{exception}')
     trace = StringIO()
     traceback.print_tb(exception.__traceback__, file=trace)
@@ -378,6 +502,13 @@ def print_traceback(logger: logging.Logger, exception: Exception):
 
 
 class FilterDirectories:
+    """
+    A helper class to filter directories and files during file collection.
+
+    This class prevents collecting files from the home directory, the build directory,
+    and hidden files (on Linux, Windows, and macOS). It also enforces a limit on the
+    number of files collected.
+    """
     def __init__(self, project: "Project"):
         self.file_count = 0
         self.directory_file_limit = None
@@ -393,6 +524,19 @@ class FilterDirectories:
         return builddir(self.project)
 
     def filter(self, path: str, files: List[str]) -> List[str]:
+        """
+        Filters a list of files based on the current directory path.
+
+        Args:
+            path (str): The current directory path being traversed.
+            files (List[str]): The list of filenames in that directory.
+
+        Returns:
+            List[str]: A list of filenames that should be excluded (i.e., hidden files)
+                or handled specifically. Note that despite the name returning 'hidden_files',
+                the logic is essentially identifying what to *exclude* from the main processing
+                loop in some contexts, or identifying hidden files to ignore.
+        """
         if pathlib.Path(path) == pathlib.Path.home():
             # refuse to collect home directory
             self.logger.error(f'Cannot collect user home directory: {path}')
