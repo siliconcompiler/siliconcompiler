@@ -101,7 +101,6 @@ class SchedulerNode:
             self.__project.get("option", "fileset")[0],
             "topmodule")
 
-        self.__job: str = self.__project.get('option', 'jobname')
         self.__record_user_info: bool = self.__project.get(
             "option", "track", step=self.__step, index=self.__index)
         self.__pipe = None
@@ -117,22 +116,12 @@ class SchedulerNode:
         self.__enforce_inputfiles = True
         self.__enforce_outputfiles = True
 
+        self._update_job()
+
         flow: str = self.__project.get('option', 'flow')
         self.__is_entry_node: bool = (self.__step, self.__index) in \
             self.__project.get("flowgraph", flow, field="schema").get_entry_nodes()
 
-        self.__cwd = cwdir(self.__project)
-        self.__jobworkdir = jobdir(self.__project)
-        self.__workdir = workdir(self.__project, step=self.__step, index=self.__index)
-        self.__manifests = {
-            "input": os.path.join(self.__workdir, "inputs", f"{self.__name}.pkg.json"),
-            "output": os.path.join(self.__workdir, "outputs", f"{self.__name}.pkg.json")
-        }
-        self.__logs = {
-            "sc": os.path.join(self.__workdir, f"sc_{self.__step}_{self.__index}.log"),
-            "exe": os.path.join(self.__workdir, f"{self.__step}.log")
-        }
-        self.__replay_script = os.path.join(self.__workdir, "replay.sh")
         self.__collection_path = collectiondir(self.__project)
 
         self.set_queue(None, None)
@@ -258,6 +247,21 @@ class SchedulerNode:
     def task(self) -> "Task":
         """Task: The task object associated with this node."""
         return self.__task
+
+    def _update_job(self):
+        self.__job: str = self.__project.get('option', 'jobname')
+        self.__cwd = cwdir(self.__project)
+        self.__jobworkdir = jobdir(self.__project)
+        self.__workdir = workdir(self.__project, step=self.__step, index=self.__index)
+        self.__manifests = {
+            "input": os.path.join(self.__workdir, "inputs", f"{self.__name}.pkg.json"),
+            "output": os.path.join(self.__workdir, "outputs", f"{self.__name}.pkg.json")
+        }
+        self.__logs = {
+            "sc": os.path.join(self.__workdir, f"sc_{self.__step}_{self.__index}.log"),
+            "exe": os.path.join(self.__workdir, f"{self.__step}.log")
+        }
+        self.__replay_script = os.path.join(self.__workdir, "replay.sh")
 
     def get_manifest(self, input: bool = False) -> str:
         """

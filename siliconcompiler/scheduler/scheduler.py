@@ -862,6 +862,8 @@ class Scheduler:
                 if m:
                     jobid = max(jobid, int(m.group(1)))
             self.__project.set('option', 'jobname', f'{stem}{jobid + 1}')
+            for task in self.__tasks.values():
+                task._update_job()
             return True
         return False
 

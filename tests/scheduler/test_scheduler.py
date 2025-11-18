@@ -312,6 +312,7 @@ def test_increment_job_name_default(basic_project):
     assert basic_project.get("option", "jobname") == "job0"
     assert scheduler._Scheduler__increment_job_name() is True
     assert basic_project.get("option", "jobname") == "job1"
+    assert scheduler._Scheduler__tasks[("stepone", "0")].jobname == "job1"
 
 
 def test_increment_job_name_default_no_dir(basic_project):
