@@ -8,7 +8,7 @@ from siliconcompiler.utils import \
     truncate_text, safecompare, get_cores, \
     get_plugins, \
     default_sc_dir, default_credentials_file, default_cache_dir, \
-    default_email_credentials_file
+    default_email_credentials_file, default_sc_path
 
 
 @pytest.mark.parametrize("text", (
@@ -181,3 +181,10 @@ def test_default_email_credentials_file():
     with patch("pathlib.Path.home") as home:
         home.return_value = "this"
         assert default_email_credentials_file() == os.path.join("this", ".sc", "email.json")
+
+
+@pytest.mark.parametrize("path", ["test0", "that", "this", "works"])
+def test_default_sc_path(path):
+    with patch("pathlib.Path.home") as home:
+        home.return_value = "this"
+        assert default_sc_path(path) == os.path.join("this", ".sc", path)
