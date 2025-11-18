@@ -13,6 +13,13 @@ def cwdir(project: "Project") -> str:
     return project._Project__cwd
 
 
+def cwdirsafe(project: "Project") -> str:
+    try:
+        return cwdir(project)
+    except TypeError:
+        return os.getcwd()
+
+
 def builddir(project: "Project") -> str:
     """
     Returns the absolute path to the project's build directory.

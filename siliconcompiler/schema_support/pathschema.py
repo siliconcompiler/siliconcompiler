@@ -11,7 +11,7 @@ from siliconcompiler.schema.parameter import Parameter, Scope
 from siliconcompiler.schema.utils import trim
 
 from siliconcompiler.package import Resolver
-from siliconcompiler.utils.paths import collectiondir
+from siliconcompiler.utils.paths import collectiondir, cwdirsafe
 
 
 class PathSchemaBase(BaseSchema):
@@ -51,14 +51,12 @@ class PathSchemaBase(BaseSchema):
             the schema.
         """
         schema_root = self._parent(root=True)
-        cwd = getattr(schema_root, "_Project__cwd", os.getcwd())
-        collection_dir = collectiondir(schema_root)
 
         return super()._find_files(*keypath,
                                    missing_ok=missing_ok,
                                    step=step, index=index,
-                                   collection_dir=collection_dir,
-                                   cwd=cwd)
+                                   collection_dir=collectiondir(schema_root),
+                                   cwd=cwdirsafe(schema_root))
 
     def check_filepaths(self, ignore_keys: Optional[List[Tuple[str, ...]]] = None) -> bool:
         '''
@@ -71,17 +69,15 @@ class PathSchemaBase(BaseSchema):
             True if all file paths are valid, otherwise False.
         '''
         schema_root = self._parent(root=True)
-        cwd = getattr(schema_root, "_Project__cwd", os.getcwd())
         logger = getattr(schema_root,
                          "logger",
                          logging.getLogger("siliconcompiler.check_filepaths"))
-        collection_dir = collectiondir(schema_root)
 
         return super()._check_filepaths(
             ignore_keys=ignore_keys,
             logger=logger,
-            collection_dir=collection_dir,
-            cwd=cwd)
+            collection_dir=collectiondir(schema_root),
+            cwd=cwdirsafe(schema_root))
 
     def hash_files(self, *keypath: str,
                    update: bool = True,
@@ -126,11 +122,9 @@ class PathSchemaBase(BaseSchema):
             Computes, stores, and returns hashes of files in :keypath:`input, rtl, verilog`.
         '''
         schema_root = self._parent(root=True)
-        cwd = getattr(schema_root, "_Project__cwd", os.getcwd())
         logger = getattr(schema_root,
                          "logger",
                          logging.getLogger("siliconcompiler.hash_files"))
-        collection_dir = collectiondir(schema_root)
 
         if verbose:
             logger.info(f"Computing hash value for [{','.join([*self._keypath, *keypath])}]")
@@ -138,8 +132,8 @@ class PathSchemaBase(BaseSchema):
         hashes = super()._hash_files(*keypath,
                                      missing_ok=missing_ok,
                                      step=step, index=index,
-                                     collection_dir=collection_dir,
-                                     cwd=cwd)
+                                     collection_dir=collectiondir(schema_root),
+                                     cwd=cwdirsafe(schema_root))
 
         if check:
             check_hashes = self.get(*keypath, field="filehash", step=step, index=index)

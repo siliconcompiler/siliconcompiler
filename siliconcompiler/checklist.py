@@ -6,6 +6,7 @@ from typing import Tuple, List, Optional, Union, Dict, Iterable
 from siliconcompiler.schema import NamedSchema, EditableSchema, Parameter, Scope, BaseSchema
 from siliconcompiler.schema.utils import trim
 from siliconcompiler import NodeStatus, utils
+from siliconcompiler.utils.paths import cwdirsafe
 
 
 class Criteria(NamedSchema):
@@ -328,7 +329,7 @@ class Checklist(NamedSchema):
 
         schema_root = self._parent(root=True)
         logger = getattr(schema_root, "logger", None)
-        cwd = getattr(schema_root, "_Project__cwd", os.getcwd())
+        cwd = cwdirsafe(schema_root)
 
         assert hasattr(schema_root, "history"), f"{schema_root}"
 
