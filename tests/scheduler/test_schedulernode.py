@@ -2052,3 +2052,18 @@ def test_scheduler_reset_warn(caplog):
     record = caplog.get_records("call")[0]
     assert record.message == "that reason"
     assert record.levelname == "WARNING"
+
+
+def test_get_required_path_keys_empty(project):
+    node = SchedulerNode(project, "steptwo", "0")
+    assert node.get_required_path_keys() == set()
+
+
+def test_get_required_path_keys(project):
+    project.set("tool", "builtin", "task", "nop", "require",
+                ["tool,builtin,task,nop,prescript", "tool,builtin,task,nop,refdir"],
+                step="steptwo", index="0")
+
+    node = SchedulerNode(project, "steptwo", "0")
+    assert node.get_required_path_keys() == {("tool", "builtin", "task", "nop", "prescript"),
+                                             ("tool", "builtin", "task", "nop", "refdir")}
