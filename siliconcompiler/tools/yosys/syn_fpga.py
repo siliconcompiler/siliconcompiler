@@ -1,5 +1,7 @@
 import json
 
+from typing import Optional
+
 from siliconcompiler import sc_open
 
 from siliconcompiler.tools.yosys import YosysTask
@@ -26,7 +28,8 @@ class FPGASynthesis(YosysTask):
             "perform buffer insertion",
             True)
 
-    def set_yosys_useslang(self, enable: bool, step: Optional[str] = None, index: Optional[str] = None):
+    def set_yosys_useslang(self, enable: bool,
+                           step: Optional[str] = None, index: Optional[str] = None):
         self.set("var", "use_slang", enable, step=step, index=index)
 
     def task(self):
