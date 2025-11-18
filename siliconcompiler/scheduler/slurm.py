@@ -8,6 +8,8 @@ import uuid
 
 import os.path
 
+from typing import Dict, List, Union
+
 from siliconcompiler import utils, sc_open
 from siliconcompiler.utils.paths import jobdir
 from siliconcompiler.package import RemoteResolver
@@ -23,6 +25,11 @@ class SlurmSchedulerNode(SchedulerNode):
     It prepares a run script, a manifest, and uses the 'srun' command
     to execute the step on a compute node.
     """
+    __SYS_CONFIG: Dict[str, Union[List[str], str]] = {
+        # Paths that are shared between this node and slurm nodes
+        # This is used during .mark_copy() to determine if files need to be collected
+        "sharedpaths": []
+    }
 
     def __init__(self, project, step, index, replay=False):
         """Initializes a SlurmSchedulerNode.
@@ -51,10 +58,68 @@ class SlurmSchedulerNode(SchedulerNode):
         """
         A static pre-processing hook for the Slurm scheduler.
 
+        This method ensures that the Slurm environment is available and loads
+        any existing user configuration for the scheduler.
+
         Args:
             project (Project): The project object to perform pre-processing on.
         """
         SlurmSchedulerNode.assert_slurm()
+        SlurmSchedulerNode.__load_user_config()
+
+    @staticmethod
+    def user_config_path() -> str:
+        """
+        Returns the absolute path to the Slurm scheduler user configuration file.
+
+        Returns:
+            str: The path to 'scheduler-slurm.json' located in the default
+            SiliconCompiler configuration directory.
+        """
+        return utils.default_sc_path("scheduler-slurm.json")
+
+    @staticmethod
+    def __load_user_config() -> None:
+        """
+        Loads the user configuration from the JSON file into the system config.
+
+        Reads the configuration file defined by :meth:`user_config_path`. If the
+        file exists, it populates the internal ``__SYS_CONFIG`` dictionary with
+        settings such as 'sharedpaths'.
+        """
+        path = SlurmSchedulerNode.user_config_path()
+        if not os.path.isfile(path):
+            return
+
+        with sc_open(path) as fd:
+            config = json.load(fd)
+
+        # Reset configs
+        SlurmSchedulerNode.__SYS_CONFIG.clear()
+
+        SlurmSchedulerNode.__SYS_CONFIG["sharedpaths"] = config.get("sharedpaths", [])
+
+    @staticmethod
+    def _set_user_config(tag: str, value: Union[List[str], str]) -> None:
+        """
+        Sets a specific value in the user configuration map.
+
+        Args:
+            tag (str): The configuration key to update.
+            value (Union[List[str], str]): The value to assign to the key.
+        """
+        SlurmSchedulerNode.__SYS_CONFIG[tag] = value
+
+    @staticmethod
+    def _write_user_config() -> None:
+        """
+        Writes the current system configuration to the user configuration file.
+
+        Serializes the internal ``__SYS_CONFIG`` dictionary to JSON and writes it
+        to the path specified by :meth:`user_config_path`.
+        """
+        with open(SlurmSchedulerNode.user_config_path(), "w") as fd:
+            json.dump(SlurmSchedulerNode.__SYS_CONFIG, fd, sort_keys=True, indent=4)
 
     @property
     def is_local(self):
