@@ -1465,8 +1465,8 @@ class SchedulerNode:
                 check_step, check_index = None, None
 
             abspath = self.__project.find_files(*key,
-                                                 missing_ok=True,
-                                                 step=check_step, index=check_index)
+                                                missing_ok=True,
+                                                step=check_step, index=check_index)
 
             unresolved_paths = param.get(step=check_step, index=check_index)
             if not isinstance(abspath, list):
