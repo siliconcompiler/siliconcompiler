@@ -122,8 +122,6 @@ class SchedulerNode:
         self.__is_entry_node: bool = (self.__step, self.__index) in \
             self.__project.get("flowgraph", flow, field="schema").get_entry_nodes()
 
-        self.__collection_path = collectiondir(self.__project)
-
         self.set_queue(None, None)
         self.__setup_schema_access()
 
@@ -262,6 +260,7 @@ class SchedulerNode:
             "exe": os.path.join(self.__workdir, f"{self.__step}.log")
         }
         self.__replay_script = os.path.join(self.__workdir, "replay.sh")
+        self.__collection_path = collectiondir(self.__project)
 
     def get_manifest(self, input: bool = False) -> str:
         """
