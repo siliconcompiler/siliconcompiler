@@ -179,16 +179,20 @@ def default_sc_dir() -> str:
     return os.path.join(Path.home(), '.sc')
 
 
+def default_sc_path(path: str) -> str:
+    return os.path.join(default_sc_dir(), path)
+
+
 def default_credentials_file() -> str:
-    return os.path.join(default_sc_dir(), 'credentials')
+    return default_sc_path('credentials')
 
 
 def default_cache_dir() -> str:
-    return os.path.join(default_sc_dir(), 'cache')
+    return default_sc_path('cache')
 
 
 def default_email_credentials_file() -> str:
-    return os.path.join(default_sc_dir(), 'email.json')
+    return default_sc_path('email.json')
 
 
 @contextlib.contextmanager
