@@ -9,7 +9,7 @@ import uuid
 import os.path
 
 from siliconcompiler import utils, sc_open
-from siliconcompiler.utils.paths import collectiondir, jobdir
+from siliconcompiler.utils.paths import jobdir
 from siliconcompiler.package import RemoteResolver
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.utils.logging import SCBlankLoggerFormatter
@@ -178,7 +178,7 @@ class SlurmSchedulerNode(SchedulerNode):
             with open(script_file, 'w') as sf:
                 sf.write(utils.get_file_template('slurm/run.sh').render(
                     cfg_file=shlex.quote(cfg_file),
-                    build_dir=shlex.quote(self.project.get("option", "builddir")),
+                    build_dir=shlex.quote(self.project.option.get_builddir()),
                     step=shlex.quote(self.step),
                     index=shlex.quote(self.index),
                     cachedir=shlex.quote(str(RemoteResolver.determine_cache_dir(self.project)))

@@ -33,7 +33,7 @@ def get_image(project, step, index) -> str:
     """
     from siliconcompiler import __version__
 
-    queue = project.get('option', 'scheduler', 'queue', step=step, index=index)
+    queue = project.option.scheduler.get_queue(step=step, index=index)
     if queue:
         return queue
 
@@ -229,7 +229,7 @@ class DockerSchedulerNode(SchedulerNode):
         email_file = default_email_credentials_file()
         if is_windows:
             # Hack to get around manifest merging
-            self.project.set('option', 'cachedir', None)
+            self.project.option.set_cachedir(None)
             cache_dir = '/sc_cache'
             cwd = '/sc_docker'
             builddir = f'{cwd}/build'
