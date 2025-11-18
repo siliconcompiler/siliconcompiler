@@ -2067,3 +2067,14 @@ def test_get_required_path_keys(project):
     node = SchedulerNode(project, "steptwo", "0")
     assert node.get_required_path_keys() == {("tool", "builtin", "task", "nop", "prescript"),
                                              ("tool", "builtin", "task", "nop", "refdir")}
+
+
+def test_mark_copy(project):
+    project.set("tool", "builtin", "task", "nop", "require",
+                ["tool,builtin,task,nop,prescript", "tool,builtin,task,nop,refdir"],
+                step="steptwo", index="0")
+
+    node = SchedulerNode(project, "steptwo", "0")
+    with patch("siliconcompiler.schema.BaseSchema.set") as sc_set:
+        assert node.mark_copy() is False
+        sc_set.assert_not_called()
