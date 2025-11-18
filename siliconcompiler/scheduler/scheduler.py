@@ -109,6 +109,20 @@ class Scheduler:
         self.__org_job_name = self.__project.get("option", "jobname")
         self.__logfile = None
 
+        # Create tasks
+        for step, index in self.__flow.get_nodes():
+            node_cls = SchedulerNode
+
+            node_scheduler = self.__project.get('option', 'scheduler', 'name',
+                                                step=step, index=index)
+            if node_scheduler == 'slurm':
+                node_cls = SlurmSchedulerNode
+            elif node_scheduler == 'docker':
+                node_cls = DockerSchedulerNode
+            self.__tasks[(step, index)] = node_cls(self.__project, step, index)
+            if self.__flow.get(step, index, "tool") == "builtin":
+                self.__tasks[(step, index)].set_builtin()
+
     @property
     def manifest(self) -> str:
         """
@@ -325,50 +339,10 @@ class Scheduler:
         error = False
 
         for (step, index) in self.__flow_runtime.get_nodes():
-            scheduler = self.__project.option.scheduler.get_name(step=step, index=index)
-            check_file_access = not self.__project.option.get_remote() and scheduler is None
+            node = self.__tasks[(step, index)]
 
-            node = SchedulerNode(self.__project, step, index)
-            requires = []
-            with node.runtime():
-                requires = node.task.get('require')
-
-            for item in sorted(set(requires)):
-                keypath = item.split(',')
-                if not self.__project.valid(*keypath):
-                    self.__logger.error(f'Cannot resolve required keypath [{",".join(keypath)}] '
-                                        f'for {step}/{index}.')
-                    error = True
-                    continue
-
-                param = self.__project.get(*keypath, field=None)
-                check_step, check_index = step, index
-                if param.get(field='pernode').is_never():
-                    check_step, check_index = None, None
-
-                if not param.has_value(step=check_step, index=check_index):
-                    self.__logger.error('No value set for required keypath '
-                                        f'[{",".join(keypath)}] for {step}/{index}.')
-                    error = True
-                    continue
-
-                paramtype = param.get(field='type')
-                if check_file_access and (('file' in paramtype) or ('dir' in paramtype)):
-                    abspath = self.__project.find_files(*keypath,
-                                                        missing_ok=True,
-                                                        step=check_step, index=check_index)
-
-                    unresolved_paths = param.get(step=check_step, index=check_index)
-                    if not isinstance(abspath, list):
-                        abspath = [abspath]
-                        unresolved_paths = [unresolved_paths]
-
-                    for path, setpath in zip(abspath, unresolved_paths):
-                        if path is None:
-                            self.__logger.error(f'Cannot resolve path {setpath} in '
-                                                f'required file keypath [{",".join(keypath)}] '
-                                                f'for {step}/{index}.')
-                            error = True
+            error |= not node.check_required_values()
+            error |= not node.check_required_paths()
 
         return not error
 
@@ -420,12 +394,10 @@ class Scheduler:
                     in_task_class = self.__project.get("tool", in_tool, "task", in_task,
                                                        field="schema")
 
-                    with in_task_class.runtime(SchedulerNode(self.__project,
-                                                             in_step, in_index)) as task:
+                    with in_task_class.runtime(self.__tasks[(in_step, in_index)]) as task:
                         inputs = task.get_output_files()
 
-                with task_class.runtime(SchedulerNode(self.__project,
-                                                      step, index)) as task:
+                with task_class.runtime(self.__tasks[(step, index)]) as task:
                     for inp in inputs:
                         node_inp = task.compute_input_file_node_name(inp, in_step, in_index)
                         if node_inp in requirements:
@@ -481,18 +453,6 @@ class Scheduler:
         copy_from_nodes = set(self.__flow_load_runtime.get_nodes()).difference(
             self.__flow_runtime.get_entry_nodes())
         for step, index in self.__flow.get_nodes():
-            node_cls = SchedulerNode
-
-            node_scheduler = self.__project.get('option', 'scheduler', 'name',
-                                                step=step, index=index)
-            if node_scheduler == 'slurm':
-                node_cls = SlurmSchedulerNode
-            elif node_scheduler == 'docker':
-                node_cls = DockerSchedulerNode
-            self.__tasks[(step, index)] = node_cls(self.__project, step, index)
-            if self.__flow.get(step, index, "tool") == "builtin":
-                self.__tasks[(step, index)].set_builtin()
-
             if self.__org_job_name and (step, index) in copy_from_nodes:
                 self.__tasks[(step, index)].copy_from(self.__org_job_name)
 
@@ -946,7 +906,7 @@ class Scheduler:
                     if self.__project.option.scheduler.get_name(step=step, index=index) is not None:
                         continue
 
-                    node = SchedulerNode(self.__project, step, index)
+                    node = self.__tasks[(step, index)]
                     with node.runtime():
                         try:
                             exe = node.get_exe_path()
