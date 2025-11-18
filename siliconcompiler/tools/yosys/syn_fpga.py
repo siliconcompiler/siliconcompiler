@@ -1,5 +1,7 @@
 import json
 
+from typing import Optional
+
 from siliconcompiler import sc_open
 
 from siliconcompiler.tools.yosys import YosysTask
@@ -25,6 +27,10 @@ class FPGASynthesis(YosysTask):
             "bool",
             "perform buffer insertion",
             True)
+
+    def set_yosys_useslang(self, enable: bool,
+                           step: Optional[str] = None, index: Optional[str] = None):
+        self.set("var", "use_slang", enable, step=step, index=index)
 
     def task(self):
         return "syn_fpga"
@@ -52,6 +58,8 @@ class FPGASynthesis(YosysTask):
         self.add_output_file(ext="vg")
         self.add_output_file(ext="netlist.json")
         self.add_output_file(ext="blif")
+
+        self.add_required_key("var", "use_slang")
 
     def post_process(self):
         super().post_process()
