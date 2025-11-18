@@ -5,6 +5,8 @@ import sys
 
 import os.path
 
+from unittest.mock import patch
+
 from siliconcompiler import Project, Flowgraph, Design
 from siliconcompiler.tools.builtin.nop import NOPTask
 
@@ -92,3 +94,28 @@ def test_docker_run(docker_image, project):
         NodeStatus.SUCCESS
     assert project.history("job0").get("record", "status", step="steptwo", index="0") == \
         NodeStatus.SUCCESS
+
+
+@patch('sys.platform', 'win32')
+def test_mark_copy_win32(project):
+    project.set("tool", "builtin", "task", "nop", "require",
+                ["tool,builtin,task,nop,prescript", "tool,builtin,task,nop,refdir"],
+                step="steptwo", index="0")
+
+    node = DockerSchedulerNode(project, "steptwo", "0")
+    with patch("siliconcompiler.schema.BaseSchema.set") as sc_set:
+        assert node.mark_copy() is True
+        sc_set.assert_called()
+        assert sc_set.call_count == 2
+
+
+@patch('sys.platform', 'linux')
+def test_mark_copy_non_win32(project):
+    project.set("tool", "builtin", "task", "nop", "require",
+                ["tool,builtin,task,nop,prescript", "tool,builtin,task,nop,refdir"],
+                step="steptwo", index="0")
+
+    node = DockerSchedulerNode(project, "steptwo", "0")
+    with patch("siliconcompiler.schema.BaseSchema.set") as sc_set:
+        assert node.mark_copy() is False
+        sc_set.assert_not_called()
