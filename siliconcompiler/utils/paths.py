@@ -14,6 +14,20 @@ def cwdir(project: "Project") -> str:
 
 
 def cwdirsafe(project: "Project") -> str:
+    """
+    Returns the current working directory for the project, with safe fallback.
+
+    This function attempts to retrieve the project's current working directory.
+    If the provided object is not a valid Project instance, it falls back to
+    the system's current working directory.
+
+    Args:
+        project (Project): The SiliconCompiler project object.
+
+    Returns:
+        str: The absolute path to the project's working directory, or the
+        system's current working directory if the project is invalid.
+    """
     try:
         return cwdir(project)
     except TypeError:
