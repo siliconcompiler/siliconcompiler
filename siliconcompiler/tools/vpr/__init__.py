@@ -272,8 +272,17 @@ class VPRTask(Task):
             if lib.has_file(fileset=fileset, filetype="sdc"):
                 self.add_required_key(lib, "fileset", fileset, "file", "sdc")
                 self.set("var", "enable_timing_analysis", True)
+
+        fpga = self.project.get("library", self.project.get("fpga", "device"), field="schema")
+        self.add_required_key(fpga, "tool", "vpr", "devicecode")
+        self.add_required_key(fpga, "tool", "vpr", "clock_model")
+        self.add_required_key(fpga, "tool", "vpr", "archfile")
+        self.add_required_key(fpga, "tool", "vpr", "graphfile")
+        self.add_required_key(fpga, "tool", "vpr", "channelwidth")
         if self.get("var", "router_lookahead"):
             self.add_required_key("var", "router_lookahead")
+        else:
+            self.add_required_key(fpga, "tool", "vpr", "router_lookahead")
 
     def runtime_options(self):
         options = super().runtime_options()
@@ -520,3 +529,22 @@ class VPRTask(Task):
                 if path.match(line):
                     count += 1
         return count
+
+    @classmethod
+    def make_docs(cls):
+        from siliconcompiler import Flowgraph, Design, FPGA
+        from siliconcompiler.scheduler import SchedulerNode
+        from siliconcompiler.demos.fpga_demo import Z1000
+        design = Design("<design>")
+        with design.active_fileset("docs"):
+            design.set_topmodule("top")
+        proj = FPGA(design)
+        proj.add_fileset("docs")
+        proj.set_fpga(Z1000())
+        flow = Flowgraph("docsflow")
+        flow.node("<step>", cls(), index="<index>")
+        proj.set_flow(flow)
+
+        node = SchedulerNode(proj, "<step>", "<index>")
+        node.setup()
+        return node.task
