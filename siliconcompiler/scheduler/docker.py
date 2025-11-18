@@ -3,6 +3,8 @@ import os
 import shlex
 import sys
 
+import docker.errors
+
 from pathlib import Path
 
 import siliconcompiler
@@ -11,10 +13,9 @@ from siliconcompiler.package import RemoteResolver
 from siliconcompiler.utils import default_email_credentials_file
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.utils.logging import SCBlankLoggerFormatter
-from siliconcompiler.utils.curation import collect
 
 
-def get_image(project, step, index):
+def get_image(project, step, index) -> str:
     """Determines the Docker image to use for a given node.
 
     The image is selected based on the following priority:
@@ -32,7 +33,7 @@ def get_image(project, step, index):
     """
     from siliconcompiler import __version__
 
-    queue = project.get('option', 'scheduler', 'queue', step=step, index=index)
+    queue = project.option.scheduler.get_queue(step=step, index=index)
     if queue:
         return queue
 
@@ -161,24 +162,24 @@ class DockerSchedulerNode(SchedulerNode):
         """
         A static pre-processing hook for the Docker scheduler.
 
-        On Windows, this method forces all file/directory parameters to be
-        copied rather than linked, which avoids issues with differing
-        filesystem types between the host and the Linux-based container.
-        It then triggers :meth:`.collect()` to ensure all files are staged.
-
         Args:
             project (Project): The project object to perform pre-processing on.
         """
-        if sys.platform == 'win32':
-            # this avoids the issue of different file system types
-            project.logger.error('Setting copy field to true for docker run on Windows')
-            for key in project.allkeys():
-                if key[0] == 'history':
-                    continue
-                sc_type = project.get(*key, field='type')
-                if 'dir' in sc_type or 'file' in sc_type:
-                    project.set(*key, True, field='copy')
-            collect(project)
+        try:
+            client = docker.from_env()
+            client.version()
+        except (docker.errors.DockerException, docker.errors.APIError):
+            raise RuntimeError('docker is not available or installed on this machine')
+
+    def mark_copy(self) -> bool:
+        if sys.platform != 'win32':
+            return False
+
+        do_collect = False
+        for key in self.get_required_path_keys():
+            self.project.set(*key, True, field='copy')
+            do_collect = True
+        return do_collect
 
     def run(self):
         """
@@ -196,12 +197,7 @@ class DockerSchedulerNode(SchedulerNode):
         """
         self._init_run_logger()
 
-        try:
-            client = docker.from_env()
-            client.version()
-        except (docker.errors.DockerException, docker.errors.APIError) as e:
-            self.logger.error(f'Unable to connect to docker: {e}')
-            self.halt()
+        client = docker.from_env()
 
         is_windows = sys.platform == 'win32'
 
@@ -233,7 +229,7 @@ class DockerSchedulerNode(SchedulerNode):
         email_file = default_email_credentials_file()
         if is_windows:
             # Hack to get around manifest merging
-            self.project.set('option', 'cachedir', None)
+            self.project.option.set_cachedir(None)
             cache_dir = '/sc_cache'
             cwd = '/sc_docker'
             builddir = f'{cwd}/build'

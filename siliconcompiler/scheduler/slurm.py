@@ -9,7 +9,7 @@ import uuid
 import os.path
 
 from siliconcompiler import utils, sc_open
-from siliconcompiler.utils.paths import collectiondir, jobdir
+from siliconcompiler.utils.paths import jobdir
 from siliconcompiler.package import RemoteResolver
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.utils.logging import SCBlankLoggerFormatter
@@ -51,19 +51,10 @@ class SlurmSchedulerNode(SchedulerNode):
         """
         A static pre-processing hook for the Slurm scheduler.
 
-        This method checks if the compilation flow starts from an entry node.
-        If so, it calls :meth:`.collect()` to gather all necessary source files
-        into a central location before any remote jobs are submitted. This
-        ensures that compute nodes have access to all required source files.
-
         Args:
             project (Project): The project object to perform pre-processing on.
         """
         SlurmSchedulerNode.assert_slurm()
-
-        if os.path.exists(collectiondir(project)):
-            # nothing to do
-            return
 
     @property
     def is_local(self):
@@ -187,7 +178,7 @@ class SlurmSchedulerNode(SchedulerNode):
             with open(script_file, 'w') as sf:
                 sf.write(utils.get_file_template('slurm/run.sh').render(
                     cfg_file=shlex.quote(cfg_file),
-                    build_dir=shlex.quote(self.project.get("option", "builddir")),
+                    build_dir=shlex.quote(self.project.option.get_builddir()),
                     step=shlex.quote(self.step),
                     index=shlex.quote(self.index),
                     cachedir=shlex.quote(str(RemoteResolver.determine_cache_dir(self.project)))
