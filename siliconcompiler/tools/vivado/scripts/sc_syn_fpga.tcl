@@ -3,11 +3,9 @@ create_project $sc_topmodule -force
 set_property part $sc_partname [current_project]
 set_property target_language Verilog [current_project]
 
-if { [sc_cfg_tool_task_exists prescript] } {
-    foreach sc_pre_script [sc_cfg_tool_task_get prescript] {
-        puts "Sourcing pre script: ${sc_pre_script}"
-        source $sc_pre_script
-    }
+foreach sc_pre_script [sc_cfg_tool_task_get prescript] {
+    puts "Sourcing pre script: ${sc_pre_script}"
+    source $sc_pre_script
 }
 
 # add imported files
@@ -36,9 +34,7 @@ synth_design -top $sc_topmodule {*}$synth_args
 
 opt_design
 
-if { [sc_cfg_tool_task_exists postscript] } {
-    foreach sc_post_script [sc_cfg_tool_task_get postscript] {
-        puts "Sourcing post script: ${sc_post_script}"
-        source $sc_post_script
-    }
+foreach sc_post_script [sc_cfg_tool_task_get postscript] {
+    puts "Sourcing post script: ${sc_post_script}"
+    source $sc_post_script
 }
