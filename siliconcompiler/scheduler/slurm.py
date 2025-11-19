@@ -25,6 +25,9 @@ class SlurmSchedulerNode(SchedulerNode):
     to execute the step on a compute node.
     """
 
+    _MAX_FS_DELAY = 2
+    _FS_DWELL = 0.1
+
     def __init__(self, project, step, index, replay=False):
         """Initializes a SlurmSchedulerNode.
 
@@ -245,9 +248,10 @@ class SlurmSchedulerNode(SchedulerNode):
         # Wait for manifest to propagate through network filesystem
         start = time.time()
         elapsed = 0
-        while not os.path.exists(self.get_manifest()) and elapsed <= 2:
+        manifest_path = self.get_manifest()
+        while not os.path.exists(manifest_path) and elapsed <= SlurmSchedulerNode._MAX_FS_DELAY:
+            os.listdir(os.path.dirname(manifest_path))
             elapsed = time.time() - start
-            time.sleep(0.5)
-        if not os.path.exists(self.get_manifest()):
-            self.logger.error(f"Manifest was not created on time: {self.get_manifest()}")
-            self.halt()
+            time.sleep(SlurmSchedulerNode._FS_DWELL)
+        if not os.path.exists(manifest_path):
+            self.logger.error(f"Manifest was not created on time: {manifest_path}")
