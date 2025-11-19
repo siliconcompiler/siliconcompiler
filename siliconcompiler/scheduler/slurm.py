@@ -244,7 +244,7 @@ class SlurmSchedulerNode(SchedulerNode):
             if os.path.exists(log_file):
                 self.logger.error(f"Node log file: {log_file}")
             self.halt()
-        
+
         # Wait for manifest to propagate through network filesystem
         start = time.time()
         elapsed = 0
