@@ -960,8 +960,8 @@ class Scheduler:
         Initialize scheduler
         """
         init_funcs = set()
-        for task in self.__tasks.values():
-            init_funcs.add(task.init)
+        for step, index in self.__flow_runtime.get_nodes():
+            init_funcs.add(self.__tasks[(step, index)].init)
 
         for init in sorted(init_funcs, key=lambda func: func.__qualname__):
             init(self.__project)
