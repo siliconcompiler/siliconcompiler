@@ -204,3 +204,11 @@ def test_mark_copy(project):
         assert node.mark_copy() is True
         sc_set.assert_called()
         assert sc_set.call_count == 2
+
+
+def test_check_required_paths(project):
+    project.set("tool", "builtin", "task", "nop", "require",
+                ["tool,builtin,task,nop,prescript", "tool,builtin,task,nop,refdir"],
+                step="steptwo", index="0")
+
+    assert SlurmSchedulerNode(project, "steptwo", "0").check_required_paths() is True
