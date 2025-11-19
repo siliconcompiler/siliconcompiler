@@ -957,11 +957,17 @@ class Scheduler:
 
     def __init_schedulers(self) -> None:
         """
-        Initialize scheduler
+        Collect and invoke unique initialization callbacks from all task schedulers.
+
+        This method gathers init functions from all SchedulerNode instances, deduplicates them
+        (since multiple tasks may share the same scheduler class), and invokes each once to
+        perform early validation (e.g., checking Docker/Slurm availability).
         """
+        self.__logger.debug("Collecting unique scheduler initialization callbacks")
         init_funcs = set()
         for step, index in self.__flow_runtime.get_nodes():
             init_funcs.add(self.__tasks[(step, index)].init)
 
         for init in sorted(init_funcs, key=lambda func: func.__qualname__):
+            self.__logger.debug(f"Initializing scheduler: {init.__qualname__}")
             init(self.__project)
