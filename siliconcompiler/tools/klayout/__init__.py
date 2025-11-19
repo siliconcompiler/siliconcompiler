@@ -185,6 +185,7 @@ class KLayoutTask(ASICTask):
         options = super().runtime_options()
         options.extend(['-rd', f'SC_KLAYOUT_ROOT={self.find_files("refdir")[0]}'])
         options.extend(['-rd', f'SC_TOOLS_ROOT={os.path.dirname(os.path.dirname(__file__))}'])
+        options.extend(['-rd', f'SC_ROOT={os.path.dirname(os.path.dirname(os.path.dirname(__file__)))}'])
         return options
 
     def post_process(self):
