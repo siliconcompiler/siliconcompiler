@@ -255,3 +255,6 @@ class SlurmSchedulerNode(SchedulerNode):
             time.sleep(SlurmSchedulerNode._FS_DWELL)
         if not os.path.exists(manifest_path):
             self.logger.error(f"Manifest was not created on time: {manifest_path}")
+
+    def check_required_paths(self) -> bool:
+        return True

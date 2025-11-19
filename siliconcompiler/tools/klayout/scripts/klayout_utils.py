@@ -1,7 +1,6 @@
 import pya
 import json
 import shutil
-import sys
 import os.path
 
 
@@ -129,8 +128,9 @@ def technology(design, schema):
             map_file = os.path.abspath(os.path.join(os.path.dirname(tech_file),
                                                     map_file))
     for s in get_streams(schema):
-        if schema.valid('library', sc_pdk, 'layermapfileset', 'klayout', 'def', s):
-            for fileset in schema.get('library', sc_pdk, 'layermapfileset', 'klayout', 'def', s):
+        if schema.valid('library', sc_pdk, 'pdk', 'layermapfileset', 'klayout', 'def', s):
+            for fileset in schema.get('library', sc_pdk, 'pdk', 'layermapfileset', 'klayout',
+                                      'def', s):
                 if schema.valid('library', sc_pdk, "fileset", fileset, "file", "layermap"):
                     map_file = schema.get('library', sc_pdk, "fileset", fileset, "file", "layermap")
                 if map_file:
@@ -170,7 +170,6 @@ def get_write_options(filename, timestamps):
 
 
 def get_schema(manifest):
-    sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
     from schema.safeschema import SafeSchema
     return SafeSchema.from_manifest(filepath=manifest)
 

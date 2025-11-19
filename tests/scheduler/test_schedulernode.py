@@ -2054,7 +2054,70 @@ def test_scheduler_reset_warn(caplog):
     assert record.levelname == "WARNING"
 
 
+def test_get_required_keys_empty(project):
+    node = SchedulerNode(project, "steptwo", "0")
+    assert node.get_required_keys() == set()
+
+
 def test_get_required_path_keys_empty(project):
+    node = SchedulerNode(project, "steptwo", "0")
+    assert node.get_required_path_keys() == set()
+
+
+def test_get_required_keys(project):
+    project.set("tool", "builtin", "task", "nop", "require",
+                ["tool,builtin,task,nop,prescript", "tool,builtin,task,nop,refdir"],
+                step="steptwo", index="0")
+
+    node = SchedulerNode(project, "steptwo", "0")
+    assert node.get_required_keys() == {("tool", "builtin", "task", "nop", "prescript"),
+                                        ("tool", "builtin", "task", "nop", "refdir")}
+
+
+@pytest.mark.parametrize("key", ("prescript", "postscript", "refdir", "script", "exe"))
+def test_get_required_keys_special(project, key):
+    project.set("tool", "builtin", "task", "nop", key,
+                "something",
+                step="steptwo", index="0")
+
+    node = SchedulerNode(project, "steptwo", "0")
+    assert node.get_required_keys() == {("tool", "builtin", "task", "nop", key)}
+
+
+def test_get_required_keys_non_files(project):
+    project.set("tool", "builtin", "task", "nop", "require",
+                ["tool,builtin,task,nop,threads", "tool,builtin,task,nop,refdir"],
+                step="steptwo", index="0")
+
+    node = SchedulerNode(project, "steptwo", "0")
+    assert node.get_required_keys() == {("tool", "builtin", "task", "nop", "threads"),
+                                        ("tool", "builtin", "task", "nop", "refdir")}
+
+
+def test_get_required_path_keys_files(project):
+    project.set("tool", "builtin", "task", "nop", "require",
+                ["tool,builtin,task,nop,threads", "tool,builtin,task,nop,refdir"],
+                step="steptwo", index="0")
+
+    node = SchedulerNode(project, "steptwo", "0")
+    assert node.get_required_path_keys() == {("tool", "builtin", "task", "nop", "refdir")}
+
+
+def test_get_required_keys_non_files_invalid(project):
+    project.set("tool", "builtin", "task", "nop", "require",
+                ["tool,builtin,task,nop,threads0", "tool,builtin,task,nop,refdir0"],
+                step="steptwo", index="0")
+
+    node = SchedulerNode(project, "steptwo", "0")
+    assert node.get_required_keys() == {("tool", "builtin", "task", "nop", "threads0"),
+                                        ("tool", "builtin", "task", "nop", "refdir0")}
+
+
+def test_get_required_path_keys_files_invalid(project):
+    project.set("tool", "builtin", "task", "nop", "require",
+                ["tool,builtin,task,nop,threads0", "tool,builtin,task,nop,refdir0"],
+                step="steptwo", index="0")
+
     node = SchedulerNode(project, "steptwo", "0")
     assert node.get_required_path_keys() == set()
 
