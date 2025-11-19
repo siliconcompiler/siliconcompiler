@@ -211,10 +211,15 @@ class SlurmSchedulerNode(SchedulerNode):
             if sharedprefix:
                 mark_copy = False
 
-                paths = self.project.find_files(*key, step=self.step, index=self.index)
+                check_step, check_index = self.step, self.index
+                if self.__project.get(*key, field='pernode').is_never():
+                    check_step, check_index = None, None
+
+                paths = self.project.find_files(*key, missing_ok=True,
+                                                step=check_step, index=check_index)
                 if not isinstance(paths, list):
                     paths = [paths]
-                paths = [str(path) for path in paths]
+                paths = [str(path) for path in paths if path]
 
                 for path in paths:
                     if not any([path.startswith(shared) for shared in sharedprefix]):
