@@ -286,6 +286,9 @@ class Scheduler:
             if not self.check_manifest():
                 raise SCRuntimeError("check_manifest() failed")
 
+            # Initialize schedulers
+            self.__init_schedulers()
+
             self.__run_setup()
             self.configure_nodes()
 
@@ -951,3 +954,14 @@ class Scheduler:
                 do_collect = True
 
         return do_collect
+
+    def __init_schedulers(self) -> None:
+        """
+        Initialize scheduler
+        """
+        init_funcs = set()
+        for task in self.__tasks.values():
+            init_funcs.add(task.init)
+
+        for init in sorted(init_funcs, key=lambda func: func.__qualname__):
+            init(self.__project)

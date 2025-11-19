@@ -117,8 +117,6 @@ class TaskScheduler:
             from_steps=set([step for step, _ in self.__flow.get_entry_nodes()]),
             prune_nodes=self.__project.option.get_prune())
 
-        init_funcs = set()
-
         for step, index in self.__runtime_flow.get_nodes():
             if self.__record.get('status', step=step, index=index) != NodeStatus.PENDING:
                 continue
@@ -145,7 +143,6 @@ class TaskScheduler:
             task["node"].set_queue(pipe, self.__log_queue)
 
             task["proc"] = multiprocessing.Process(target=task["node"].run)
-            init_funcs.add(task["node"].init)
             self.__nodes[(step, index)] = task
 
         # Create ordered list of nodes
@@ -154,10 +151,6 @@ class TaskScheduler:
             for node in levelnodes:
                 if node in self.__nodes:
                     self.__ordered_nodes.append(node)
-
-        # Call preprocessing for schedulers
-        for init_func in init_funcs:
-            init_func(self.__project)
 
     def run(self, job_log_handler: logging.Handler) -> None:
         """
