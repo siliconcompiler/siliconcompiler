@@ -13,4 +13,4 @@ def test_py_interposer():
     assert os.path.exists('build/interposer/job0/write_gds/0/outputs/interposer.gds')
     assert os.path.exists('build/interposer/job0/interposer.pkg.json')
 
-    assert project.history("job0").get('metric', 'drcs', step='drc', index='0') == 108
+    assert project.history("job0").get('metric', 'drcs', step='drc', index='0') == 0
