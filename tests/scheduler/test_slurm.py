@@ -21,7 +21,9 @@ def isolate_statics_in_testing():
     Isolate static instances for testing
     '''
 
-    with patch.dict(SlurmSchedulerNode._SlurmSchedulerNode__SYS_CONFIG):
+    with patch.dict(SlurmSchedulerNode._SlurmSchedulerNode__SYS_CONFIG,
+                    {'sharedpaths': []},
+                    clear=True):
         yield
 
 

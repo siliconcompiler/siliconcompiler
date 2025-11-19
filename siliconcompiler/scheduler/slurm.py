@@ -212,7 +212,7 @@ class SlurmSchedulerNode(SchedulerNode):
                 mark_copy = False
 
                 check_step, check_index = self.step, self.index
-                if self.__project.get(*key, field='pernode').is_never():
+                if self.project.get(*key, field='pernode').is_never():
                     check_step, check_index = None, None
 
                 paths = self.project.find_files(*key, missing_ok=True,
