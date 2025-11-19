@@ -1,7 +1,6 @@
 import pya
 import json
 import shutil
-import sys
 import os.path
 
 
