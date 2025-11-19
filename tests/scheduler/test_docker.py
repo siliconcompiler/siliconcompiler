@@ -119,3 +119,11 @@ def test_mark_copy_non_win32(project):
     with patch("siliconcompiler.schema.BaseSchema.set") as sc_set:
         assert node.mark_copy() is False
         sc_set.assert_not_called()
+
+
+def test_check_required_paths(project):
+    project.set("tool", "builtin", "task", "nop", "require",
+                ["tool,builtin,task,nop,prescript", "tool,builtin,task,nop,refdir"],
+                step="steptwo", index="0")
+
+    assert DockerSchedulerNode(project, "steptwo", "0").check_required_paths() is True

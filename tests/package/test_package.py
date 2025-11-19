@@ -119,27 +119,29 @@ def test_file_env_var():
     assert resolver.resolve() == "$THIS_PATH/hello"
 
 
-def test_file_env_var_cwd():
-    class Project:
-        __cwd = "thiscwd"
-
+def test_file_env_var_cwd(monkeypatch):
+    class TestProject(Project):
         def valid(*_args, **_kwargs):
             return False
 
-    resolver = FileResolver("test", Project(), "THIS_PATH/$hello")
+    project = TestProject()
+    monkeypatch.setattr(project, "_Project__cwd", "thiscwd")
+
+    resolver = FileResolver("test", project, "THIS_PATH/$hello")
     path = os.path.join("thiscwd", "THIS_PATH/$hello")
     assert resolver.source == f"file://{path}"
     assert resolver.urlpath == path
 
 
-def test_file_source_rel_cwd():
-    class Project:
-        __cwd = "thiscwd"
-
+def test_file_source_rel_cwd(monkeypatch):
+    class TestProject(Project):
         def valid(*_args, **_kwargs):
             return False
 
-    resolver = FileResolver("test", Project(), "THIS_PATH/hello")
+    project = TestProject()
+    monkeypatch.setattr(project, "_Project__cwd", "thiscwd")
+
+    resolver = FileResolver("test", project, "THIS_PATH/hello")
     path = os.path.join("thiscwd", "THIS_PATH/hello")
     assert resolver.source == f"file://{path}"
     assert resolver.urlpath == path

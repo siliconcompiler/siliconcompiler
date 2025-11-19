@@ -327,3 +327,6 @@ class SlurmSchedulerNode(SchedulerNode):
             if os.path.exists(log_file):
                 self.logger.error(f"Node log file: {log_file}")
             self.halt()
+
+    def check_required_paths(self) -> bool:
+        return True

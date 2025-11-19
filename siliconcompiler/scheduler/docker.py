@@ -343,3 +343,6 @@ class DockerSchedulerNode(SchedulerNode):
 
         # Restore working directory
         os.chdir(start_cwd)
+
+    def check_required_paths(self) -> bool:
+        return True

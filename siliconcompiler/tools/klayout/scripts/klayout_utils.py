@@ -1,7 +1,6 @@
 import pya
 import json
 import shutil
-import sys
 import os.path
 
 
@@ -170,7 +169,6 @@ def get_write_options(filename, timestamps):
 
 
 def get_schema(manifest):
-    sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
     from schema.safeschema import SafeSchema
     return SafeSchema.from_manifest(filepath=manifest)
 

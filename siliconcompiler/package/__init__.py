@@ -29,7 +29,8 @@ from importlib.metadata import distributions, distribution
 from pathlib import Path
 from urllib import parse as url_parse
 
-from siliconcompiler.utils import get_plugins
+from siliconcompiler.utils import get_plugins, default_cache_dir
+from siliconcompiler.utils.paths import cwdirsafe
 
 if TYPE_CHECKING:
     from siliconcompiler.project import Project
@@ -370,7 +371,7 @@ class RemoteResolver(Resolver):
         Returns:
             Path: The path to the cache directory.
         """
-        default_path = os.path.join(Path.home(), '.sc', 'cache')
+        default_path = default_cache_dir()
         if not root:
             return Path(default_path)
 
@@ -380,8 +381,7 @@ class RemoteResolver(Resolver):
             if path:
                 path = root.find_files('option', 'cachedir', missing_ok=True)
                 if not path:
-                    path = os.path.join(getattr(root, "_Project__cwd", os.getcwd()),
-                                        root.get('option', 'cachedir'))
+                    path = os.path.join(cwdirsafe(root), root.get('option', 'cachedir'))
         if not path:
             path = default_path
 
@@ -560,7 +560,7 @@ class FileResolver(Resolver):
         if source.startswith("file://"):
             source = source[7:]
         if source[0] != "$" and not os.path.isabs(source):
-            source = os.path.join(getattr(root, "_Project__cwd", os.getcwd()), source)
+            source = os.path.join(cwdirsafe(root), source)
 
         super().__init__(name, root, f"file://{source}", None)
 

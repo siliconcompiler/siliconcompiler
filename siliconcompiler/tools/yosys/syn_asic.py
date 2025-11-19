@@ -2,6 +2,8 @@ import json
 
 import os.path
 
+from typing import Optional
+
 from siliconcompiler.tools.yosys.prepareLib import process_liberty_file
 from siliconcompiler import sc_open
 from siliconcompiler import utils
@@ -297,6 +299,10 @@ class ASICSynthesis(_ASICTask, YosysTask):
             "str",
             "lock locking port name")
 
+    def set_yosys_useslang(self, enable: bool,
+                           step: Optional[str] = None, index: Optional[str] = None):
+        self.set("var", "use_slang", enable, step=step, index=index)
+
     def task(self):
         return "syn_asic"
 
@@ -374,6 +380,8 @@ class ASICSynthesis(_ASICTask, YosysTask):
         if self.get("var", "blackbox_modules"):
             self.add_required_key("var", "blackbox_modules")
 
+        self.add_required_key("var", "use_slang")
+        self.add_required_key("var", "add_buffers")
         self.add_required_key("var", "flatten")
         self.add_required_key("var", "auto_flatten")
         self.add_required_key("var", "hier_threshold")

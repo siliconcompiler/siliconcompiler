@@ -19,7 +19,7 @@ from siliconcompiler.utils.logging import get_console_formatter, SCInRunLoggerFo
 
 from siliconcompiler.package import Resolver
 from siliconcompiler.schema_support.record import RecordTime, RecordTool
-from siliconcompiler.schema import Journal
+from siliconcompiler.schema import Journal, Parameter
 from siliconcompiler.scheduler import send_messages
 from siliconcompiler.utils.paths import workdir, jobdir, collectiondir, cwdir
 
@@ -101,7 +101,6 @@ class SchedulerNode:
             self.__project.get("option", "fileset")[0],
             "topmodule")
 
-        self.__job: str = self.__project.get('option', 'jobname')
         self.__record_user_info: bool = self.__project.get(
             "option", "track", step=self.__step, index=self.__index)
         self.__pipe = None
@@ -117,23 +116,11 @@ class SchedulerNode:
         self.__enforce_inputfiles = True
         self.__enforce_outputfiles = True
 
+        self._update_job()
+
         flow: str = self.__project.get('option', 'flow')
         self.__is_entry_node: bool = (self.__step, self.__index) in \
             self.__project.get("flowgraph", flow, field="schema").get_entry_nodes()
-
-        self.__cwd = cwdir(self.__project)
-        self.__jobworkdir = jobdir(self.__project)
-        self.__workdir = workdir(self.__project, step=self.__step, index=self.__index)
-        self.__manifests = {
-            "input": os.path.join(self.__workdir, "inputs", f"{self.__name}.pkg.json"),
-            "output": os.path.join(self.__workdir, "outputs", f"{self.__name}.pkg.json")
-        }
-        self.__logs = {
-            "sc": os.path.join(self.__workdir, f"sc_{self.__step}_{self.__index}.log"),
-            "exe": os.path.join(self.__workdir, f"{self.__step}.log")
-        }
-        self.__replay_script = os.path.join(self.__workdir, "replay.sh")
-        self.__collection_path = collectiondir(self.__project)
 
         self.set_queue(None, None)
         self.__setup_schema_access()
@@ -258,6 +245,22 @@ class SchedulerNode:
     def task(self) -> "Task":
         """Task: The task object associated with this node."""
         return self.__task
+
+    def _update_job(self):
+        self.__job: str = self.__project.get('option', 'jobname')
+        self.__cwd = cwdir(self.__project)
+        self.__jobworkdir = jobdir(self.__project)
+        self.__workdir = workdir(self.__project, step=self.__step, index=self.__index)
+        self.__manifests = {
+            "input": os.path.join(self.__workdir, "inputs", f"{self.__name}.pkg.json"),
+            "output": os.path.join(self.__workdir, "outputs", f"{self.__name}.pkg.json")
+        }
+        self.__logs = {
+            "sc": os.path.join(self.__workdir, f"sc_{self.__step}_{self.__index}.log"),
+            "exe": os.path.join(self.__workdir, f"{self.__step}.log")
+        }
+        self.__replay_script = os.path.join(self.__workdir, "replay.sh")
+        self.__collection_path = collectiondir(self.__project)
 
     def get_manifest(self, input: bool = False) -> str:
         """
@@ -1384,22 +1387,99 @@ class SchedulerNode:
                 if os.path.isfile(logfile):
                     tar.add(logfile, arcname=arcname(logfile))
 
+    def get_required_keys(self) -> Set[Tuple[str, ...]]:
+        """
+        This function walks through the 'require' keys and returns the
+        keys.
+        """
+        path_keys = set()
+        with self.runtime():
+            task = self.task
+            for key in task.get('require'):
+                path_keys.add(tuple(key.split(",")))
+            if task.has_prescript():
+                path_keys.add((*task._keypath, "prescript"))
+            if task.has_postscript():
+                path_keys.add((*task._keypath, "postscript"))
+            if task.get("refdir"):
+                path_keys.add((*task._keypath, "refdir"))
+            if task.get("script"):
+                path_keys.add((*task._keypath, "script"))
+            if task.get("exe"):
+                path_keys.add((*task._keypath, "exe"))
+
+        return path_keys
+
     def get_required_path_keys(self) -> Set[Tuple[str, ...]]:
         """
         This function walks through the 'require' keys and returns the
         keys that are of type path (file/dir).
         """
-        keys = self.__task.get('require', step=self.step, index=self.index)
-
         path_keys = set()
-        for key in keys:
-            keypath = tuple(key.split(","))
-            param_type = self.__project.get(*keypath, field="type")
-            if "file" in param_type or "dir" in param_type:
-                path_keys.add(keypath)
+        for key in self.get_required_keys():
+            try:
+                param_type: str = self.__project.get(*key, field="type")
+                if "file" in param_type or "dir" in param_type:
+                    path_keys.add(key)
+            except KeyError:
+                # Key does not exist
+                pass
 
         return path_keys
 
     def mark_copy(self) -> bool:
         """Marks files from the 'require' path keys for copying."""
         return False
+
+    def check_required_values(self) -> bool:
+        requires = self.get_required_keys()
+
+        error = False
+        for key in sorted(requires):
+            if not self.__project.valid(*key):
+                self.logger.error(f'Cannot resolve required keypath [{",".join(key)}] '
+                                  f'for {self.step}/{self.index}.')
+                error = True
+                continue
+
+            param: Parameter = self.__project.get(*key, field=None)
+            check_step, check_index = self.step, self.index
+            if param.get(field='pernode').is_never():
+                check_step, check_index = None, None
+
+            if not param.has_value(step=check_step, index=check_index):
+                self.logger.error('No value set for required keypath '
+                                  f'[{",".join(key)}] for {self.step}/{self.index}.')
+                error = True
+                continue
+        return not error
+
+    def check_required_paths(self) -> bool:
+        if self.__project.option.get_remote():
+            return True
+
+        requires = self.get_required_path_keys()
+
+        error = False
+        for key in sorted(requires):
+            param: Parameter = self.__project.get(*key, field=None)
+            check_step, check_index = self.step, self.index
+            if param.get(field='pernode').is_never():
+                check_step, check_index = None, None
+
+            abspath = self.__project.find_files(*key,
+                                                missing_ok=True,
+                                                step=check_step, index=check_index)
+
+            unresolved_paths = param.get(step=check_step, index=check_index)
+            if not isinstance(abspath, list):
+                abspath = [abspath]
+                unresolved_paths = [unresolved_paths]
+
+            for path, setpath in zip(abspath, unresolved_paths):
+                if path is None:
+                    self.logger.error(f'Cannot resolve path {setpath} in '
+                                      f'required file keypath [{",".join(key)}] '
+                                      f'for {self.step}/{self.index}.')
+                    error = True
+        return not error

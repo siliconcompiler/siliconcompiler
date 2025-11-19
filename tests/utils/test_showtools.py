@@ -51,6 +51,7 @@ def test_show_def(target, testfile, task, datadir, display):
         design.set_topmodule("heartbeat")
     proj = ASIC(design)
     target(proj)
+    proj.add_fileset("rtl")
 
     ShowTask.register_task(task)
     assert isinstance(ShowTask.get_task("def"), task)
@@ -73,6 +74,7 @@ def test_screenshot_def(target, testfile, task, datadir, display):
         design.set_topmodule("heartbeat")
     proj = ASIC(design)
     target(proj)
+    proj.add_fileset("rtl")
 
     ScreenshotTask.register_task(task)
     assert isinstance(ScreenshotTask.get_task("def"), task)
@@ -91,6 +93,7 @@ def test_show_lyp_tool_klayout(datadir, display):
         design.set_topmodule("heartbeat")
     proj = ASIC(design)
     freepdk45_demo(proj)
+    proj.add_fileset("rtl")
     pdk: PDK = proj.get("library", "freepdk45", field="schema")
     pdk.set("pdk", "layermapfileset", "klayout", "def", "klayout", [], clobber=True)
 
@@ -109,6 +112,7 @@ def test_show_nopdk_tool_klayout(datadir, display):
         design.set_topmodule("heartbeat")
     proj = ASIC(design)
     freepdk45_demo(proj)
+    proj.add_fileset("rtl")
 
     assert isinstance(ShowTask.get_task("gds"), klayout_show.ShowTask)
     testfile = os.path.join(datadir, 'heartbeat.gds.gz')

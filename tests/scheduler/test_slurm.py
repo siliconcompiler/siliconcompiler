@@ -355,3 +355,11 @@ def test_write_user_config():
         data = json.load(fd)
 
     assert SlurmSchedulerNode._SlurmSchedulerNode__SYS_CONFIG == data
+
+
+def test_check_required_paths(project):
+    project.set("tool", "builtin", "task", "nop", "require",
+                ["tool,builtin,task,nop,prescript", "tool,builtin,task,nop,refdir"],
+                step="steptwo", index="0")
+
+    assert SlurmSchedulerNode(project, "steptwo", "0").check_required_paths() is True

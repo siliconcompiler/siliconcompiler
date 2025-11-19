@@ -6,11 +6,24 @@ from pathlib import Path
 
 from siliconcompiler import Project, Design
 
-from siliconcompiler.utils.paths import cwdir, builddir, jobdir, workdir, collectiondir
+from siliconcompiler.utils.paths import cwdir, cwdirsafe, builddir, jobdir, workdir, collectiondir
 
 
 def test_cwdir():
     assert cwdir(Project()) == os.path.abspath(".")
+
+
+def test_cwdir_not_project():
+    with pytest.raises(TypeError, match=r"^project must be a Project type$"):
+        cwdir(Design())
+
+
+def test_cwdirsafe():
+    assert cwdirsafe(Project()) == os.path.abspath(".")
+
+
+def test_cwdirsafe_not_project():
+    assert cwdirsafe(Design()) == os.path.abspath(".")
 
 
 def test_builddir():

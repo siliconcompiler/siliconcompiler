@@ -97,6 +97,19 @@ if { [llength [sc_cfg_tool_task_get var bumpmapfileset]] > 0 } {
 
         lappend bmaps_read $bmap_file
     }
+
+    # Check ports
+    set failed 0
+    foreach port [[ord::get_db_block] getBTerms] {
+        set placement [$port getFirstPinPlacementStatus]
+        if { $placement != "FIRM" } {
+            incr failed
+            utl::warn FLW 2 "Unplaced port: [$port getName]"
+        }
+    }
+    if { $failed > 0 } {
+        utl::warn FLW 3 "There are $failed unplaced ports in the design"
+    }
 }
 
 ###############################
