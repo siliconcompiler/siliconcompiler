@@ -5,6 +5,7 @@ import shutil
 import stat
 import subprocess
 import uuid
+import time
 
 import os.path
 
@@ -23,6 +24,9 @@ class SlurmSchedulerNode(SchedulerNode):
     It prepares a run script, a manifest, and uses the 'srun' command
     to execute the step on a compute node.
     """
+
+    _MAX_FS_DELAY = 2
+    _FS_DWELL = 0.1
 
     def __init__(self, project, step, index, replay=False):
         """Initializes a SlurmSchedulerNode.
@@ -240,6 +244,17 @@ class SlurmSchedulerNode(SchedulerNode):
             if os.path.exists(log_file):
                 self.logger.error(f"Node log file: {log_file}")
             self.halt()
+
+        # Wait for manifest to propagate through network filesystem
+        start = time.time()
+        elapsed = 0
+        manifest_path = self.get_manifest()
+        while not os.path.exists(manifest_path) and elapsed <= SlurmSchedulerNode._MAX_FS_DELAY:
+            os.listdir(os.path.dirname(manifest_path))
+            elapsed = time.time() - start
+            time.sleep(SlurmSchedulerNode._FS_DWELL)
+        if not os.path.exists(manifest_path):
+            self.logger.error(f"Manifest was not created on time: {manifest_path}")
 
     def check_required_paths(self) -> bool:
         return True
