@@ -449,7 +449,11 @@ yosys clean -purge
 # Recheck hierarchy to remove all unused modules
 yosys hierarchy -top $sc_topmodule
 
-yosys setundef -zero
+if { [sc_cfg_tool_task_get var tie_undef] == "high" } {
+    yosys setundef -one
+} elseif { [sc_cfg_tool_task_get var tie_undef] == "low" } {
+    yosys setundef -zero
+}
 
 yosys splitnets
 
