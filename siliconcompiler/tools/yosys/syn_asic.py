@@ -321,6 +321,10 @@ class ASICSynthesis(_ASICTask, YosysTask):
                               step: Optional[str] = None, index: Optional[str] = None):
         self.set("var", "add_tieoffs", enable, step=step, index=index)
 
+    def set_yosys_addbuffers(self, enable: bool,
+                             step: Optional[str] = None, index: Optional[str] = None):
+        self.set("var", "add_buffers", enable, step=step, index=index)
+
     def task(self):
         return "syn_asic"
 
