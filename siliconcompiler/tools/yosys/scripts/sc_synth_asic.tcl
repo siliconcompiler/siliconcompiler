@@ -466,7 +466,7 @@ if { [sc_has_tie_cell low] } {
 if { [sc_has_tie_cell high] } {
     lappend yosys_hilomap_args -hicell {*}[sc_get_tie_cell high]
 }
-if { [llength $yosys_hilomap_args] != 0 } {
+if { [sc_cfg_tool_task_get var add_tieoffs] && [llength $yosys_hilomap_args] != 0 } {
     yosys hilomap -singleton {*}$yosys_hilomap_args
 }
 
