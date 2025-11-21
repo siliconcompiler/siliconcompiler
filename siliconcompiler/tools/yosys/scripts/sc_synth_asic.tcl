@@ -281,7 +281,29 @@ if { !$flatten_design && [sc_cfg_tool_task_get var auto_flatten] } {
 }
 
 # Finish synthesis
-yosys synth {*}$synth_args -top $sc_topmodule -run fine:check
+# Unroll of synth -run fine:check
+set opt_args []
+if { [sc_cfg_tool_task_get var opt_undriven] } {
+    lappend opt_args -undriven
+}
+yosys opt -fast -mux_undef -mux_bool -fine {*}$opt_args
+yosys memory_map
+yosys opt -mux_undef -mux_bool -fine {*}$opt_args
+
+set tech_map_args []
+lappend tech_map_args "-map" "+/techmap.v"
+foreach extra_map [sc_cfg_tool_task_get var synth_extra_map] {
+    lappend tech_map_args "-map" $extra_map
+}
+yosys techmap {*}$tech_map_args
+
+yosys opt -fast
+yosys abc -fast
+yosys opt -fast
+
+yosys hierarchy -check
+yosys stat
+yosys check
 
 # Logic locking
 if { [sc_cfg_tool_task_get var lock_design] } {
