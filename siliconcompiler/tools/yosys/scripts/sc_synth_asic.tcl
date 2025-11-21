@@ -282,9 +282,13 @@ if { !$flatten_design && [sc_cfg_tool_task_get var auto_flatten] } {
 
 # Finish synthesis
 # Unroll of synth -run fine:check
-yosys opt -fast -mux_undef -mux_bool -fine ; # Removed -undriven
+set opt_args []
+if { [sc_cfg_tool_task_get var opt_undriven] } {
+    lappend opt_args -undriven
+}
+yosys opt -fast -mux_undef -mux_bool -fine {*}$opt_args
 yosys memory_map
-yosys opt -mux_undef -mux_bool -fine ; # Removed -undriven
+yosys opt -mux_undef -mux_bool -fine {*}$opt_args
 
 set tech_map_args []
 lappend tech_map_args "-map" "+/techmap.v"
