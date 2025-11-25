@@ -10,7 +10,7 @@ from siliconcompiler.schema import SafeSchema
 
 @pytest.fixture
 def schema():
-    class DummySchema(BaseSchema):
+    class DummySchema7(BaseSchema):
         def __init__(self):
             super().__init__()
 
@@ -18,14 +18,14 @@ def schema():
 
         @classmethod
         def _getdict_type(cls):
-            return "DummySchema"
+            return "DummySchema7"
 
     manifest = BaseSchema()
     EditableSchema(manifest).insert("test0", Parameter("str"))
     EditableSchema(manifest).insert("test1", "test2", Parameter("[str]"))
     EditableSchema(manifest).insert("test3", "default", Parameter("int"))
     EditableSchema(manifest).insert("test4", "test5", "test6", Parameter("str"))
-    EditableSchema(manifest).insert("dummy", DummySchema())
+    EditableSchema(manifest).insert("dummy", DummySchema7())
     return manifest
 
 

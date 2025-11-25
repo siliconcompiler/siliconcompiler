@@ -257,17 +257,17 @@ def test_search():
 
     assert len(schema.getkeys()) == 0
 
-    class TestSchema(BaseSchema):
+    class TestSchema0(BaseSchema):
         pass
 
     edit = EditableSchema(schema)
     edit.insert("test0", "test1", "test2", BaseSchema())
-    edit.insert("test0", "test1", "test3", TestSchema())
+    edit.insert("test0", "test1", "test3", TestSchema0())
 
     assert isinstance(edit.search("test0"), BaseSchema)
     assert isinstance(edit.search("test0", "test1"), BaseSchema)
     assert isinstance(edit.search("test0", "test1", "test2"), BaseSchema)
-    assert isinstance(edit.search("test0", "test1", "test3"), TestSchema)
+    assert isinstance(edit.search("test0", "test1", "test3"), TestSchema0)
 
 
 def test_schema_parent():
@@ -275,12 +275,12 @@ def test_schema_parent():
 
     assert len(schema.getkeys()) == 0
 
-    class TestSchema(BaseSchema):
+    class TestSchema1(BaseSchema):
         pass
 
     edit = EditableSchema(schema)
     edit.insert("test0", "test1", "test2", BaseSchema())
-    edit.insert("test0", "test1", "test3", TestSchema())
+    edit.insert("test0", "test1", "test3", TestSchema1())
 
     assert schema._parent() is schema
 
