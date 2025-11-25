@@ -559,6 +559,10 @@ class Scheduler:
             if NodeStatus.is_waiting(self.__record.get('status', step=step, index=index)):
                 with self.__tasks[(step, index)].runtime():
                     self.__tasks[(step, index)].clean_directory()
+                    parent_dir = os.path.dirname(self.__tasks[(step, index)].workdir)
+                    if len(os.listdir(parent_dir)) == 0:
+                        # Step directory is empty so safe to remove
+                        os.rmdir(parent_dir)
 
     def __configure_collect_previous_information(self) -> Dict[Tuple[str, str], "Project"]:
         """Collects information from previous runs for nodes that won't be re-executed.
