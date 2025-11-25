@@ -172,6 +172,7 @@ class KLayoutTask(ASICTask):
         with self.active_dataroot("refdir"):
             self.set_refdir("scripts")
 
+        self.set_environmentalvariable('PYTHONUNBUFFERED', '1')
         if self.project.get('option', 'nodisplay'):
             # Tells QT to use the offscreen platform if nodisplay is used
             self.set_environmentalvariable('QT_QPA_PLATFORM', 'offscreen')
