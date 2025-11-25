@@ -224,6 +224,62 @@ def test_get_path_new_data(monkeypatch, caplog):
     assert "Saved alwaysnew data to " in caplog.text
 
 
+@pytest.mark.parametrize("errorcls", (KeyboardInterrupt, IOError, SystemExit))
+def test_get_path_new_data_error(errorcls):
+    class AlwaysNew(RemoteResolver):
+        def check_cache(self):
+            return False
+
+        @property
+        def cache_path(self):
+            return os.path.abspath("path")
+
+        def resolve_remote(self):
+            raise errorcls("Match me")
+
+    os.makedirs("path", exist_ok=True)
+
+    proj = Project("testproj")
+
+    resolver = AlwaysNew("alwaysnew", proj, "notused", "notused")
+    with patch("shutil.rmtree") as rmtree:
+        with pytest.raises(errorcls, match=r"^Match me$"):
+            resolver.get_path()
+        rmtree.assert_called_once_with(os.path.abspath("path"))
+
+
+@pytest.mark.parametrize("errorcls", (KeyboardInterrupt, IOError, SystemExit))
+def test_get_path_new_data_error_failed_to_clean(errorcls, monkeypatch, caplog):
+    class AlwaysNew(RemoteResolver):
+        def check_cache(self):
+            return False
+
+        @property
+        def cache_path(self):
+            return os.path.abspath("path")
+
+        def resolve_remote(self):
+            raise KeyboardInterrupt("Match me")
+
+    os.makedirs("path", exist_ok=True)
+
+    proj = Project("testproj")
+    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    proj.logger.setLevel(logging.INFO)
+
+    def dummy_rm(tree):
+        raise errorcls("this error")
+
+    resolver = AlwaysNew("alwaysnew", proj, "notused", "notused")
+    with patch("shutil.rmtree") as rmtree:
+        rmtree.side_effect = dummy_rm
+        with pytest.raises(KeyboardInterrupt, match=r"^Match me$"):
+            resolver.get_path()
+        rmtree.assert_called_once_with(os.path.abspath("path"))
+
+    assert f"Exception occurred during cleanup: this error ({errorcls.__name__})" in caplog.text
+
+
 def test_get_path_old_data(monkeypatch, caplog):
     class AlwaysOld(RemoteResolver):
         def check_cache(self):
