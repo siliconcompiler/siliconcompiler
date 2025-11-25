@@ -560,7 +560,7 @@ class Scheduler:
                 with self.__tasks[(step, index)].runtime():
                     self.__tasks[(step, index)].clean_directory()
                     parent_dir = os.path.dirname(self.__tasks[(step, index)].workdir)
-                    if len(os.listdir(parent_dir)) == 0:
+                    if os.path.exists(parent_dir) and len(os.listdir(parent_dir)) == 0:
                         # Step directory is empty so safe to remove
                         os.rmdir(parent_dir)
 
