@@ -1,3 +1,4 @@
+import gc
 import logging
 import pytest
 
@@ -3260,9 +3261,12 @@ def test___get_child_classes_invalid_child(monkeypatch):
                            match=r"^Ambiguous schema type 'dummy_schema'\. "
                                  r"Candidates: test_baseschema/DummySchema0, "
                                  r"test_baseschema/DummySchema1$"):
-            BaseSchema._BaseSchema__get_child_classes.cache_clear()
             BaseSchema._BaseSchema__get_child_classes()
         subclasses.assert_called_once()
+
+    del DummySchema1
+    del DummySchema0
+    gc.collect()
 
 
 def test___get_child_classes_valid(monkeypatch):
