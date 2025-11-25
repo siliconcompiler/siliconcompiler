@@ -158,8 +158,8 @@ To run a testcase, use:
 
         # Modify run environment to point to extracted files
         builddir_key = ['option', 'builddir']
-        new_builddir = f"{test_dir}/{project.get(*builddir_key)}"
-        project.logger.info(f"Changing {builddir_key} to '{new_builddir}'")
+        new_builddir = os.path.abspath(os.path.join(test_dir, f"{os.path.basename(project.get(*builddir_key))}"))
+        project.logger.info(f"Changing [{','.join(builddir_key)}] to '{new_builddir}'")
         project.set(*builddir_key, new_builddir)
 
         # Run task
