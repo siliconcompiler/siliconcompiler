@@ -72,6 +72,19 @@ To run a testcase, use:
     if not issue.get("cmdarg", "run"):
         project: Project = Project.from_manifest(filepath=issue.get("cmdarg", "cfg"))
 
+        # Determine abs path for build dir
+        builddir = project.option.get_builddir()
+        if not os.path.isabs(builddir):
+            builddirname = os.path.basename(builddir)
+            fullpath = os.path.dirname(os.path.abspath(issue.get("cmdarg", "cfg")))
+            while os.path.basename(fullpath) != builddirname:
+                fullpath = os.path.dirname(fullpath)
+                if len(fullpath) < len(builddirname):
+                    fullpath = None
+                    break
+            if fullpath:
+                project.option.set_builddir(fullpath)
+
         if issue.get("arg", "step"):
             project.set("arg", "step", issue.get("arg", "step"))
         if issue.get("arg", "index"):
