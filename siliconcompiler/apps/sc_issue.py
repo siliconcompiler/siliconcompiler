@@ -74,16 +74,18 @@ To run a testcase, use:
 
         # Determine abs path for build dir
         builddir = project.option.get_builddir()
-        if not os.path.isabs(builddir):
+        if isinstance(builddir, str) and not os.path.isabs(builddir):
             builddirname = os.path.basename(builddir)
             fullpath = os.path.dirname(os.path.abspath(issue.get("cmdarg", "cfg")))
-            while os.path.basename(fullpath) != builddirname:
-                fullpath = os.path.dirname(fullpath)
-                if len(fullpath) < len(builddirname):
-                    fullpath = None
+            while True:
+                if os.path.basename(fullpath) == builddirname:
+                    project.option.set_builddir(fullpath)
                     break
-            if fullpath:
-                project.option.set_builddir(fullpath)
+                parent = os.path.dirname(fullpath)
+                if parent == fullpath:
+                    # Reached filesystem root without finding a match
+                    break
+                fullpath = parent
 
         if issue.get("arg", "step"):
             project.set("arg", "step", issue.get("arg", "step"))
