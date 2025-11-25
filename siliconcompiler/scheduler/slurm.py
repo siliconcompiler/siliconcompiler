@@ -122,7 +122,9 @@ class SlurmSchedulerNode(SchedulerNode):
         Serializes the internal ``__SYS_CONFIG`` dictionary to JSON and writes it
         to the path specified by :meth:`user_config_path`.
         """
-        with open(SlurmSchedulerNode.user_config_path(), "w") as fd:
+        config_path = SlurmSchedulerNode.user_config_path()
+        os.makedirs(os.path.dirname(config_path), exist_ok=True)
+        with open(config_path, "w") as fd:
             json.dump(SlurmSchedulerNode.__SYS_CONFIG, fd, sort_keys=True, indent=4)
 
     @property

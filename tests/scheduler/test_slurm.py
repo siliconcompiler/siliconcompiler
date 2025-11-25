@@ -220,16 +220,15 @@ def test_mark_copy(project):
 
 
 def test_mark_copy_with_shared_require_copy(project):
-    SlurmSchedulerNode._SlurmSchedulerNode__SYS_CONFIG = {
-        "sharedpaths": ["/nfs"]
-    }
+    SlurmSchedulerNode._set_user_config("sharedpaths", ["/nfs"])
 
     project.set("tool", "builtin", "task", "nop", "require",
                 ["tool,builtin,task,nop,prescript", "tool,builtin,task,nop,refdir"],
                 step="steptwo", index="0")
 
     node = SlurmSchedulerNode(project, "steptwo", "0")
-    with patch("siliconcompiler.schema.BaseSchema.set") as sc_set, patch("siliconcompiler.Project.find_files") as find_files:
+    with patch("siliconcompiler.schema.BaseSchema.set") as sc_set, \
+            patch("siliconcompiler.Project.find_files") as find_files:
         find_files.return_value = ["/nfs/testdir", "/notshared"]
         assert node.mark_copy() is True
         sc_set.assert_called()
@@ -237,25 +236,22 @@ def test_mark_copy_with_shared_require_copy(project):
 
 
 def test_mark_copy_with_shared_require_no_copy(project):
-    SlurmSchedulerNode._SlurmSchedulerNode__SYS_CONFIG = {
-        "sharedpaths": ["/nfs", "/shared"]
-    }
+    SlurmSchedulerNode._set_user_config("sharedpaths", ["/nfs", "/shared"])
 
     project.set("tool", "builtin", "task", "nop", "require",
                 ["tool,builtin,task,nop,prescript", "tool,builtin,task,nop,refdir"],
                 step="steptwo", index="0")
 
     node = SlurmSchedulerNode(project, "steptwo", "0")
-    with patch("siliconcompiler.schema.BaseSchema.set") as sc_set, patch("siliconcompiler.Project.find_files") as find_files:
+    with patch("siliconcompiler.schema.BaseSchema.set") as sc_set, \
+            patch("siliconcompiler.Project.find_files") as find_files:
         find_files.return_value = ["/nfs/testdir", "/shared"]
         assert node.mark_copy() is False
         sc_set.assert_not_called()
 
 
 def test_mark_copy_with_shared_require_selective_copy(project):
-    SlurmSchedulerNode._SlurmSchedulerNode__SYS_CONFIG = {
-        "sharedpaths": ["/nfs", "/shared"]
-    }
+    SlurmSchedulerNode._set_user_config("sharedpaths", ["/nfs", "/shared"])
 
     project.set("tool", "builtin", "task", "nop", "require",
                 ["tool,builtin,task,nop,prescript", "tool,builtin,task,nop,refdir"],
@@ -277,9 +273,7 @@ def test_mark_copy_with_shared_require_selective_copy(project):
 
 
 def test_mark_copy_with_shared_covers_all(project):
-    SlurmSchedulerNode._SlurmSchedulerNode__SYS_CONFIG = {
-        "sharedpaths": ["/"]
-    }
+    SlurmSchedulerNode._set_user_config("sharedpaths", ["/"])
 
     project.set("tool", "builtin", "task", "nop", "require",
                 ["tool,builtin,task,nop,prescript", "tool,builtin,task,nop,refdir"],
@@ -311,7 +305,7 @@ def test_init_calls_load():
 
 def test_load_user_config_no_config():
     with patch("siliconcompiler.scheduler.SlurmSchedulerNode.user_config_path") as user_config_path:
-        user_config_path.return_value = "dne.json"
+        user_config_path.return_value = os.path.abspath("doesnotexist.json")
         SlurmSchedulerNode._SlurmSchedulerNode__load_user_config()
 
 
@@ -326,7 +320,7 @@ def test_load_user_config_load_config():
         "sharedpaths": []
     }
     with patch("siliconcompiler.scheduler.SlurmSchedulerNode.user_config_path") as user_config_path:
-        user_config_path.return_value = "test.json"
+        user_config_path.return_value = os.path.abspath("test.json")
         SlurmSchedulerNode._SlurmSchedulerNode__load_user_config()
 
     assert SlurmSchedulerNode._SlurmSchedulerNode__SYS_CONFIG == {
@@ -349,7 +343,7 @@ def test_write_user_config():
         "sharedpaths": []
     }
     with patch("siliconcompiler.scheduler.SlurmSchedulerNode.user_config_path") as user_config_path:
-        user_config_path.return_value = "test.json"
+        user_config_path.return_value = os.path.abspath("test.json")
         SlurmSchedulerNode._write_user_config()
 
     assert os.path.isfile("test.json")
