@@ -1,4 +1,3 @@
-import gc
 import logging
 import pytest
 
@@ -3235,6 +3234,9 @@ def test_from_dict_composite_no_meta():
 
 
 def test___get_child_classes_invalid_child(monkeypatch):
+    subclasses = BaseSchema.__subclasses__()
+    monkeypatch.setattr(BaseSchema, "__subclasses__", lambda: subclasses)
+
     class DummySchema0(BaseSchema):
         def __init__(self):
             super().__init__()
@@ -3263,10 +3265,6 @@ def test___get_child_classes_invalid_child(monkeypatch):
                                  r"test_baseschema/DummySchema1$"):
             BaseSchema._BaseSchema__get_child_classes()
         subclasses.assert_called_once()
-
-    del DummySchema1
-    del DummySchema0
-    gc.collect()
 
 
 def test___get_child_classes_valid(monkeypatch):
