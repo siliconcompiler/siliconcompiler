@@ -24,6 +24,7 @@ from siliconcompiler.targets import freepdk45_demo
 from siliconcompiler.scheduler import TaskScheduler
 from siliconcompiler.utils.multiprocessing import _ManagerSingleton, MPManager
 from siliconcompiler.apps import sc_server
+from siliconcompiler.schema import BaseSchema
 
 
 def pytest_addoption(parser):
@@ -108,6 +109,9 @@ def isolate_statics_in_testing(monkeypatch):
 
     monkeypatch.setattr(MPManager, "_MPManager__ENABLE_LOGGER", False)
     monkeypatch.setattr(MPManager, "_MPManager__address", None)
+
+    BaseSchema._BaseSchema__get_child_classes.cache_clear()
+    BaseSchema._BaseSchema__load_schema_class.cache_clear()
 
     with patch.dict(TaskScheduler._TaskScheduler__callbacks), \
             patch.dict(_ManagerSingleton._instances, clear=True):
