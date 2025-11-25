@@ -3235,20 +3235,24 @@ def test_from_dict_composite_no_meta():
 
 def test___get_child_classes_invalid_child(monkeypatch):
     class DummySchema0(BaseSchema):
+        dict_type = "dummy_schema"
+
         def __init__(self):
             super().__init__()
 
         @classmethod
         def _getdict_type(cls):
-            return "dummy_schema"
+            return DummySchema0.dict_type
 
     class DummySchema1(BaseSchema):
+        dict_type = "dummy_schema"
+
         def __init__(self):
             super().__init__()
 
         @classmethod
         def _getdict_type(cls):
-            return "dummy_schema"
+            return DummySchema1.dict_type
 
     monkeypatch.setattr(DummySchema0, "__subclasses__", lambda: [])
     monkeypatch.setattr(DummySchema1, "__subclasses__", lambda: [])
@@ -3260,9 +3264,13 @@ def test___get_child_classes_invalid_child(monkeypatch):
                            match=r"^Ambiguous schema type 'dummy_schema'\. "
                                  r"Candidates: test_baseschema/DummySchema0, "
                                  r"test_baseschema/DummySchema1$"):
-            BaseSchema._BaseSchema__get_child_classes.cache_clear()
             BaseSchema._BaseSchema__get_child_classes()
         subclasses.assert_called_once()
+
+    DummySchema0.dict_type = "test_base_dummy_schema0"
+    DummySchema1.dict_type = "test_base_dummy_schema1"
+
+    assert DummySchema0._getdict_type() != DummySchema1._getdict_type()
 
 
 def test___get_child_classes_valid(monkeypatch):
