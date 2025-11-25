@@ -16,6 +16,7 @@ import logging
 import os
 import random
 import re
+import shutil
 import time
 import threading
 import uuid
@@ -543,7 +544,17 @@ class RemoteResolver(Resolver):
             if self.check_cache():
                 return self.cache_path
 
-            self.resolve_remote()
+            try:
+                self.resolve_remote()
+            except BaseException as e:
+                # Exception occurred, so need to cleanup
+                try:
+                    shutil.rmtree(self.cache_path)
+                except BaseException as cleane:
+                    self.logger.error(f"Exception occurred during cleanup: {cleane} "
+                                      f"({cleane.__class__.__name__})")
+                raise e from None
+
             self.set_changed()
             return self.cache_path
 
