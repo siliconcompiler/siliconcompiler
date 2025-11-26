@@ -17,7 +17,7 @@
   },
   "opensta": {
     "git-url": "https://github.com/parallaxsw/OpenSTA.git",
-    "git-commit": "4475f89024070dec335e4405ff9db63054c389c0",
+    "git-commit": "f79f442f1d63d24b7929bac77fccd31a9b5c2c5c",
     "auto-update": true
   },
   "netgen": {
