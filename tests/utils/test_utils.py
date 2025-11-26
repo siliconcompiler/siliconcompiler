@@ -1,3 +1,4 @@
+import logging
 import pytest
 
 import os.path
@@ -5,7 +6,7 @@ import os.path
 from unittest.mock import patch
 
 from siliconcompiler.utils import \
-    truncate_text, safecompare, get_cores, \
+    truncate_text, safecompare, get_cores, grep, \
     get_plugins, \
     default_sc_dir, default_credentials_file, default_cache_dir, \
     default_email_credentials_file, default_sc_path
@@ -188,3 +189,65 @@ def test_default_sc_path(path):
     with patch("pathlib.Path.home") as home:
         home.return_value = "this"
         assert default_sc_path(path) == os.path.join("this", ".sc", path)
+
+
+@pytest.mark.parametrize("args,line,expected", [
+    # T1: Basic Match
+    ("hello", "this is a hello world", "this is a hello world"),
+    # T2: Basic No Match
+    ("goodbye", "this is a hello world", None),
+    # T3: Input Line None
+    ("hello", None, None),
+    # T4: Empty Pattern
+    ("", "line", None),
+    # T5: Invert Match (-v, Match found -> returns None)
+    ("-v hello", "contains hello", None),
+    # T6: Invert No Match (-v, No match -> returns Line)
+    ("-v goodbye", "contains hello", "contains hello"),
+    # T7: Ignore Case (-i, No Match without flag)
+    ("hello", "HELLO world", None),
+    # T8: Ignore Case (-i, Match with flag)
+    ("-i hello", "HELLO world", "HELLO world"),
+    # T9: Whole Word (-w, Substring match -> fail)
+    ("-w cat", "The catalog is big.", None),
+    # T10: Whole Word (-w, Word match -> success)
+    ("-w cat", "The cat sat.", "The cat sat."),
+    # T11: Exact Line (-x, Partial match -> fail)
+    ("-x hello", "hello world", None),
+    # T12: Exact Line (-x, Exact match -> success)
+    ("-x hello", "hello", "hello"),
+    # T13: Only Match (-o)
+    ("-o hello", "Hello hello world", "hello"),
+    # T14: Combined (-vi, Invert + Ignore Case)
+    ("-vi HELLO", "This is hello world", None),
+    # T15: Combined (-o -i)
+    ("-o -i world", "Hello WORLD", "WORLD"),
+    # T16: Combined (-xw, Exact + Word)
+    ("-xw test", "test", "test"),
+    # T17: Combined (-xw, Partial Fail)
+    ("-xw testing", "testing is hard", None),
+    # T20: Pattern with -e (Treats -hello as pattern)
+    ("-e -hello world", "-hello world is great", "-hello world is great"),
+])
+def test_grep_logic(args, line, expected):
+    """Tests the core logic and return values of the grep function."""
+    assert grep(logging.getLogger(), args, line) == expected
+
+
+def test_unknown_switch_error(caplog):
+    # T18: Unknown Switch Error
+    grep(logging.getLogger(), "-q hello", "test")
+    assert "Unknown switch: -q" in caplog.text
+
+
+def test_concatenated_unknown_switch_error(caplog):
+    # T19: Concatenated Unknown Switch
+    grep(logging.getLogger(), "-vq hello", "test")
+    assert "Unknown switch: -q" in caplog.text
+
+
+def test_invalid_regex_error(caplog):
+    # T21: Invalid Regex Pattern
+    grep(logging.getLogger(), "*", "test")
+    # Check that we logged an error starting with our specific message
+    assert "Invalid regex pattern" in caplog.text
