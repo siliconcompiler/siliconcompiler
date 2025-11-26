@@ -1175,7 +1175,7 @@ class SchedulerNode:
                         if string is None:
                             break
                         else:
-                            string = utils.grep(self.__project, item, string)
+                            string = utils.grep(self.__project.logger, item, string)
                     if string is not None:
                         matches[suffix] += 1
                         # always print to file
