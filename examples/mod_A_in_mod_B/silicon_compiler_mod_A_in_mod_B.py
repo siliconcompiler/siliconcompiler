@@ -9,17 +9,23 @@
 # another module by:
 #
 # 1. Writing a simple verilog module **A**
+#
 # 2. Synthesizing, placing, and routing **A** using siliconCompiler
+#
 # 3. Packaging the resulting layout and timing models from **A** as a hard macro
+#
 # 4. Instantiating the hard macro **A** twice inside a second module **B**
+#
 # 5. Running the ASIC flow on module **B**
 #
-# All these steps are contained in the single python script detailed below.
+# All these steps are contained in the [python script](https://github.com/philiprbrenan/silicon_compiler_mod_A_in_mod_B/blob/main/silicon_compiler_mod_A_in_mod_B.py)  detailed below.
 #
-# To  run this script:
+# To  run this script:<br>
 #
 # ```
-# docker run --rm -v "$(pwd):/sc_work" ghcr.io/siliconcompiler/sc_runner:v0.35.3 python3 silicon_compiler_mod_A_in_mod_B.py
+# docker run --rm -v "$(pwd):/sc_work" \
+#   ghcr.io/siliconcompiler/sc_runner:v0.35.3 \
+#   python3 silicon_compiler_mod_A_in_mod_B.py
 # ```
 #
 # The output will appear in: ``./build/B/job0/write.gds/0/outputs/B.png``
@@ -30,9 +36,6 @@
 #
 
 if __name__ == "__main__":
-  import multiprocessing as mp
-  mp.set_start_method("fork")                                                   # Use fork instead of spawn
-
   import os
   from pathlib import Path
 
@@ -120,7 +123,9 @@ if __name__ == "__main__":
 # during the processing of module **A**.
 #
   class ModA(YosysStdCellLibrary, OpenROADStdCellLibrary, KLayoutLibrary):
+    '''Module A definition'''
     def __init__(self, modA):
+      '''Module A constructor'''
       super().__init__()
       self.set_name(f"mod{A}")
 
@@ -183,9 +188,6 @@ endmodule
   project_b.add_fileset(['verilog'])
   project_b.add_asiclib(ModA(project_a))                                        # Add the hard macro for module A
   skywater130_demo(project_b)                                                   # Technology being used
-
-  task = get_task(project_b, filter=WriteViewsTask)                             # Instance of the WriteViewsTask in the flowgraph
-  task.set("var", "ord_enable_images", False)                                   # Disable the image generation (including the gif) that is failing for the write.data step
 
   project_b.run()
   project_b.summary()
