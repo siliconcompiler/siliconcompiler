@@ -206,7 +206,7 @@ in the ``ASIC`` flow for **B**.
 ```
 
 
-Setting core and [die](http://perldoc.perl.org/functions/die.html) area correctly is crucial for successful macro placement.
+Setting core and die area correctly is crucial for successful macro placement.
 
 
 ```
