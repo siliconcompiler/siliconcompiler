@@ -19,7 +19,7 @@
 #
 # All these steps are contained in the [python script](https://github.com/philiprbrenan/silicon_compiler_mod_A_in_mod_B/blob/main/silicon_compiler_mod_A_in_mod_B.py)  detailed below.
 #
-# To  run this script:<br>
+# To run this script from its containing folder:<br>
 #
 # ```bash
 # docker run --rm -v "$(pwd):/sc_work" \
@@ -27,7 +27,7 @@
 #   python3 silicon_compiler_mod_A_in_mod_B.py
 # ```
 #
-# The output will appear in: ``./build/B/job0/write.gds/0/outputs/B.png``
+# The image output will appear in: ``./build/B/job0/write.gds/0/outputs/B.png``
 #
 # ## Environment Setup
 #
