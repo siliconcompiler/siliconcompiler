@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 # # Instantiating a hardened module **A** twice in a module **B**
 #
 # Hardened modules allow predictable timing, efficient placement, and scalable
@@ -22,7 +21,7 @@
 #
 # To  run this script:<br>
 #
-# ```
+# ```bash
 # docker run --rm -v "$(pwd):/sc_work" \
 #   ghcr.io/siliconcompiler/sc_runner:v0.35.3 \
 #   python3 silicon_compiler_mod_A_in_mod_B.py
@@ -69,7 +68,6 @@ if __name__ == "__main__":
   workdir  = "."
   file_a   = os.path.join(workdir, f"{A}.v")                                    # Verilog for module A
   file_b   = os.path.join(workdir, f"{B}.v")                                    # Verilog for module B
-  clk_file = os.path.join(workdir, "silicon_compiler_mod_A_in_mod_B.sdc")       # Clock definition
 #
 # ## Step 1: Create Verilog for module **A**
 #
@@ -91,9 +89,6 @@ if __name__ == "__main__":
 
   with open(file_a, "w") as f:
     f.write(verilog_a)
-
-  with open(clk_file, "w") as f:
-      f.write(f"create_clock -name clk -period 100 [get_ports clk]\n")
 #
 # ## Step 2: Synthesize, Place & Route module **A**
 #
