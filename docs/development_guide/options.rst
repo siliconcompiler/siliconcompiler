@@ -60,7 +60,7 @@ Because the Schema is hierarchical (e.g., :keypath:`option,scheduler,name`), the
 * Schema path: :keypath:`option,remote` :math:`\rightarrow` JSON key: ``"remote"``
 
 Workflow: Schema Defaults
--------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
 1. **Loading Defaults**:
    When you instantiate a project, SiliconCompiler automatically loads values from the settings file. These values act as the baseline defaults.
@@ -118,7 +118,7 @@ This optimization significantly reduces network traffic and disk usage for large
     }
 
 Workflow: Slurm Settings
-------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 Unlike standard schema options, scheduler-specific settings (like ``sharedpaths``) are stored in their own category.
 The :class:`.SlurmSchedulerNode` provides static helper methods to manage these configurations safely without needing to manually interact with the settings manager.
