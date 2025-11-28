@@ -136,7 +136,7 @@ How do I...
 
        design.set_dataroot('<name>', __file__)
 
-... preserve options, like scheduler information, across sessions?
+... preserve options, like scheduler information, :ref:`across sessions <user_settings>`?
 
     .. code-block:: python
 
