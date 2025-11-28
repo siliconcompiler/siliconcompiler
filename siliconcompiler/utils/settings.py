@@ -2,6 +2,8 @@ import json
 import os
 import logging
 
+from typing import Optional
+
 from fasteners import InterProcessLock
 
 from siliconcompiler import sc_open
@@ -120,12 +122,16 @@ class SettingsManager:
         """
         return self.__settings.get(category, {})
 
-    def delete(self, category: str, key: str):
+    def delete(self, category: str, key: Optional[str] = None):
         """
         Remove a setting.
         """
-        if category in self.__settings and key in self.__settings[category]:
-            del self.__settings[category][key]
-            # Clean up empty categories
-            if not self.__settings[category]:
+        if category in self.__settings:
+            if key:
+                if key in self.__settings[category]:
+                    del self.__settings[category][key]
+                    # Clean up empty categories
+                    if not self.__settings[category]:
+                        del self.__settings[category]
+            else:
                 del self.__settings[category]

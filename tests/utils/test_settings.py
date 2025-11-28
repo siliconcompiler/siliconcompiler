@@ -95,7 +95,19 @@ def test_delete_setting(settings_file):
 
     # Delete last key, category should be removed
     manager.delete('misc', 'keep')
-    assert 'misc' not in manager.settings
+    assert 'misc' not in manager._SettingsManager__settings
+
+
+def test_delete_setting_category(settings_file):
+    """Test deleting categories."""
+    manager = SettingsManager(settings_file, logging.getLogger())
+    manager.set('misc', 'temp', 1)
+    manager.set('misc', 'keep', 2)
+
+    # Delete category
+    manager.delete('misc')
+
+    assert 'misc' not in manager._SettingsManager__settings
 
 
 def test_save_creates_directories(tmp_path):
