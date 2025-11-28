@@ -11,6 +11,9 @@ from datetime import datetime
 from logging.handlers import QueueHandler
 from multiprocessing.managers import SyncManager, RemoteError
 
+from siliconcompiler.utils.settings import SettingsManager
+from siliconcompiler.utils import default_sc_path
+
 from siliconcompiler.report.dashboard.cli.board import Board
 
 
@@ -140,6 +143,9 @@ class MPManager(metaclass=_ManagerSingleton):
         self.__board_lock = self.__manager.Lock()
         self.__board = None
 
+        # Settings
+        self.__settings = SettingsManager(default_sc_path("settings.json"), self.__logger)
+
         # Register cleanup function to run at exit
         atexit.register(MPManager.stop)
 
@@ -255,6 +261,16 @@ class MPManager(metaclass=_ManagerSingleton):
             multiprocessing.Manager: The singleton manager instance.
         """
         return MPManager().__manager
+
+    @staticmethod
+    def get_settings() -> SettingsManager:
+        """
+        Provides access to the shared SettingsManager instance.
+
+        Returns:
+            SettingsManager: The singleton settings instance.
+        """
+        return MPManager().__settings
 
     @staticmethod
     def get_dashboard() -> Board:

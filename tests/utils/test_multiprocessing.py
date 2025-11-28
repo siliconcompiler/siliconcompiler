@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 from siliconcompiler.utils.multiprocessing import MPManager, _ManagerSingleton
 from siliconcompiler.report.dashboard.cli.board import Board
+from siliconcompiler.utils.settings import SettingsManager
 
 
 def test_init_singleton():
@@ -52,6 +53,14 @@ def test_get_dasboard():
 
     assert dash0 is dash1
     assert isinstance(dash0, Board)
+
+
+def test_get_settings():
+    sett0 = MPManager().get_settings()
+    sett1 = MPManager().get_settings()
+
+    assert sett0 is sett1
+    assert isinstance(sett0, SettingsManager)
 
 
 def test_logger(monkeypatch):
