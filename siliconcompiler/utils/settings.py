@@ -43,7 +43,8 @@ class SettingsManager:
                     data = json.load(f)
                 self.__lock.release()
             else:
-                self.__logger.error(f"Timeout acquiring lock for {self.__filepath}. Starting with empty settings.")
+                self.__logger.error(f"Timeout acquiring lock for {self.__filepath}. "
+                                    "Starting with empty settings.")
                 data = {}
 
             # Ensure the loaded data is actually a dictionary
