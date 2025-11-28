@@ -19,7 +19,7 @@ def settings_file(tmp_path):
 def test_load_non_existent_file(settings_file):
     """Test loading when file doesn't exist (should start empty)."""
     manager = SettingsManager(settings_file, logging.getLogger())
-    assert manager.settings == {}
+    assert manager._SettingsManager__settings == {}
 
 
 def test_basic_set_get_save_load(settings_file):

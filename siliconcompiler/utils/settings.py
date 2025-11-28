@@ -2,6 +2,8 @@ import json
 import os
 import logging
 
+import os.path
+
 from typing import Optional
 
 from fasteners import InterProcessLock
@@ -36,7 +38,7 @@ class SettingsManager:
         It handles missing files and malformed JSON gracefully.
         """
         if not os.path.exists(self.__filepath):
-            self.settings = {}
+            self.__settings = {}
             return
 
         try:
