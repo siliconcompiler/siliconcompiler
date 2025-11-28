@@ -8,6 +8,7 @@ This system allows you to define default behaviors—such as your preferred sche
 
 The settings are managed by a centralized :class:`.SettingsManager` which ensures thread-safe and process-safe access to the configuration file using file locking.
 This is particularly important in environments where multiple SiliconCompiler processes (e.g., parallel build steps) might attempt to read or write settings simultaneously.
+The user is not expected to directly interact with the :class:`.SettingsManager`, but instead should set and save the settings via the associated classes.
 
 Storage Format
 --------------
@@ -58,8 +59,8 @@ Because the Schema is hierarchical (e.g., :keypath:`option,scheduler,name`), the
 * Schema path: :keypath:`option,scheduler,name` :math:`\rightarrow` JSON key: ``"scheduler,name"``
 * Schema path: :keypath:`option,remote` :math:`\rightarrow` JSON key: ``"remote"``
 
-Workflow
---------
+Workflow: Schema Defaults
+-------------------------
 
 1. **Loading Defaults**:
    When you instantiate a project, SiliconCompiler automatically loads values from the settings file. These values act as the baseline defaults.
@@ -93,3 +94,43 @@ Workflow
 
        # Now, any future script you run will default to using Slurm on the 'priority_queue'
        # with quiet logging enabled.
+
+Slurm Scheduler Settings (The 'scheduler-slurm' Category)
+---------------------------------------------------------
+
+In addition to the standard schema options, specific schedulers may require their own configuration settings.
+For example, the Slurm scheduler uses the ``scheduler-slurm`` category to manage cluster-specific behaviors.
+
+**Shared Paths**
+
+One key setting for Slurm is ``sharedpaths``.
+This defines a list of directory prefixes that are available on all nodes in the cluster (e.g., via NFS or GPFS).
+When SiliconCompiler runs on a compute node, it checks if input files are located within these shared paths.
+If they are, the files are used directly; otherwise, they are copied to the build directory to ensure accessibility.
+This optimization significantly reduces network traffic and disk usage for large designs.
+
+.. code-block:: json
+
+    {
+        "scheduler-slurm": {
+            "sharedpaths": ["/nfs/tools", "/work/project"]
+        }
+    }
+
+Workflow: Slurm Settings
+------------------------
+
+Unlike standard schema options, scheduler-specific settings (like ``sharedpaths``) are stored in their own category.
+The :class:`.SlurmSchedulerNode` provides static helper methods to manage these configurations safely without needing to manually interact with the settings manager.
+
+.. code-block:: python
+
+    from siliconcompiler.scheduler.slurm import SlurmSchedulerNode
+
+    # 1. Set the shared paths
+    # These paths must be visible on all compute nodes.
+    SlurmSchedulerNode._set_user_config("sharedpaths", ["/nfs/tools", "/work/project"])
+
+    # 2. Persist changes to ~/.sc/settings.json
+    SlurmSchedulerNode._write_user_config()
+  

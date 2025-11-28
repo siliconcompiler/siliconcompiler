@@ -13,18 +13,7 @@ from siliconcompiler.tools.builtin.nop import NOPTask
 
 from siliconcompiler.scheduler import SlurmSchedulerNode
 from siliconcompiler.utils.paths import jobdir
-
-
-@pytest.fixture(autouse=True)
-def isolate_statics_in_testing():
-    '''
-    Isolate static instances for testing
-    '''
-
-    with patch.dict(SlurmSchedulerNode._SlurmSchedulerNode__SYS_CONFIG,
-                    {'sharedpaths': []},
-                    clear=True):
-        yield
+from siliconcompiler.utils.multiprocessing import MPManager
 
 
 @pytest.fixture
@@ -287,70 +276,55 @@ def test_mark_copy_with_shared_covers_all(project):
         find_files.assert_not_called()
 
 
-def test_user_config_path():
-    with patch("pathlib.Path.home") as home:
-        home.return_value = "this"
-        assert SlurmSchedulerNode.user_config_path() == \
-            os.path.join("this", ".sc", "scheduler-slurm.json")
-
-
-def test_init_calls_load():
-    with patch("siliconcompiler.scheduler.SlurmSchedulerNode.assert_slurm") as assert_slurm, \
-            patch("siliconcompiler.scheduler.SlurmSchedulerNode."
-                  "_SlurmSchedulerNode__load_user_config") as load_user_config:
+def test_init_calls_assert():
+    with patch("siliconcompiler.scheduler.SlurmSchedulerNode.assert_slurm") as assert_slurm:
         SlurmSchedulerNode.init(None)
         assert_slurm.assert_called_once()
-        load_user_config.assert_called_once()
 
 
-def test_load_user_config_no_config():
-    with patch("siliconcompiler.scheduler.SlurmSchedulerNode.user_config_path") as user_config_path:
-        user_config_path.return_value = os.path.abspath("doesnotexist.json")
-        SlurmSchedulerNode._SlurmSchedulerNode__load_user_config()
-
-
-def test_load_user_config_load_config():
-    with open("test.json", "w") as fd:
+def test_load_user_config_load_config(monkeypatch):
+    monkeypatch.setattr(MPManager.get_settings(), "_SettingsManager__filepath",
+                        os.path.abspath("options.json"))
+    with open("options.json", "w") as fd:
         json.dump({
-            "sharedpaths": ["/nfs", "/shared"],
-            "dummy_data": None
+            "scheduler-slurm": {
+                "sharedpaths": ["/nfs", "/shared"],
+                "dummy_data": None
+            }
         }, fd)
 
-    assert SlurmSchedulerNode._SlurmSchedulerNode__SYS_CONFIG == {
-        "sharedpaths": []
-    }
-    with patch("siliconcompiler.scheduler.SlurmSchedulerNode.user_config_path") as user_config_path:
-        user_config_path.return_value = os.path.abspath("test.json")
-        SlurmSchedulerNode._SlurmSchedulerNode__load_user_config()
-
-    assert SlurmSchedulerNode._SlurmSchedulerNode__SYS_CONFIG == {
-        "sharedpaths": ["/nfs", "/shared"]
+    assert MPManager.get_settings().get_category("scheduler-slurm") == {}
+    MPManager.get_settings()._load()
+    assert MPManager.get_settings().get_category("scheduler-slurm") == {
+        "sharedpaths": ["/nfs", "/shared"],
+        "dummy_data": None
     }
 
 
-def test_set_user_config():
-    assert SlurmSchedulerNode._SlurmSchedulerNode__SYS_CONFIG == {
-        "sharedpaths": []
-    }
+def test_set_user_config(monkeypatch):
+    monkeypatch.setattr(MPManager.get_settings(), "_SettingsManager__filepath",
+                        os.path.abspath("options.json"))
+
+    assert MPManager.get_settings().get_category("scheduler-slurm") == {}
     SlurmSchedulerNode._set_user_config("sharedpaths", ["/nfs", "/shared"])
-    assert SlurmSchedulerNode._SlurmSchedulerNode__SYS_CONFIG == {
+    assert MPManager.get_settings().get_category("scheduler-slurm") == {
         "sharedpaths": ["/nfs", "/shared"]
     }
 
 
-def test_write_user_config():
-    assert SlurmSchedulerNode._SlurmSchedulerNode__SYS_CONFIG == {
-        "sharedpaths": []
-    }
-    with patch("siliconcompiler.scheduler.SlurmSchedulerNode.user_config_path") as user_config_path:
-        user_config_path.return_value = os.path.abspath("test.json")
-        SlurmSchedulerNode._write_user_config()
+def test_write_user_config(monkeypatch):
+    monkeypatch.setattr(MPManager.get_settings(), "_SettingsManager__filepath",
+                        os.path.abspath("options.json"))
 
-    assert os.path.isfile("test.json")
-    with open("test.json") as fd:
+    assert MPManager.get_settings().get_category("scheduler-slurm") == {}
+    SlurmSchedulerNode._set_user_config("sharedprefix", [])
+    SlurmSchedulerNode._write_user_config()
+
+    assert os.path.isfile(os.path.abspath("options.json"))
+    with open(os.path.abspath("options.json")) as fd:
         data = json.load(fd)
 
-    assert SlurmSchedulerNode._SlurmSchedulerNode__SYS_CONFIG == data
+    assert data['scheduler-slurm'] == {'sharedprefix': []}
 
 
 def test_check_required_paths(project):
