@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 # # Instantiating a hardened module **A** twice in a module **B**
 #
 # Hardened modules allow predictable timing, efficient placement, and scalable
@@ -34,7 +36,7 @@
 # Import the tools to be used:
 #
 
-if __name__ == "__main__":
+def main():
   import os
   from pathlib import Path
 
@@ -198,3 +200,7 @@ endmodule
 #
 # This approach enables scalable chip design with reusable hardened blocks.
 #
+
+
+if __name__ == "__main__":
+    main()
