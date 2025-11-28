@@ -41,9 +41,11 @@ class SettingsManager:
 
         try:
             if self.__lock.acquire(timeout=self.__timeout):
-                with sc_open(self.__filepath, encoding='utf-8') as f:
-                    data = json.load(f)
-                self.__lock.release()
+                try:
+                    with sc_open(self.__filepath, encoding='utf-8') as f:
+                        data = json.load(f)
+                finally:
+                    self.__lock.release()
             else:
                 self.__logger.error(f"Timeout acquiring lock for {self.__filepath}. "
                                     "Starting with empty settings.")
