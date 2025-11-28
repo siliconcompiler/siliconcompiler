@@ -910,6 +910,7 @@ class OptionSchema(BaseSchema):
         }
 
         settings = MPManager.get_settings()
+        settings.delete(OptionSchema.__OPTIONS)
 
         for key in self.allkeys():
             if key in transientkeys:
