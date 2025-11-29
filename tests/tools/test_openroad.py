@@ -46,17 +46,11 @@ def test_openroad_images(asic_gcd):
 @pytest.mark.quick
 @pytest.mark.timeout(300)
 def test_metrics_task(asic_gcd):
-    class Flow(ASICFlow):
-        def __init__(self):
-            super().__init__()
-            # Hack
-            self._NamedSchema__name = None
-            self.set_name("testflow")
+    flow = ASICFlow("testflow")
+    flow.node("metrics", metrics.MetricsTask())
+    flow.edge('floorplan.init', 'metrics')
 
-            self.node("metrics", metrics.MetricsTask())
-            self.edge('floorplan.init', 'metrics')
-
-    asic_gcd.set_flow(Flow())
+    asic_gcd.set_flow(flow)
     asic_gcd.set('option', 'to', 'metrics')
     assert asic_gcd.run()
 
