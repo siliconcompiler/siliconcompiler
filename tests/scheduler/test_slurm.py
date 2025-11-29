@@ -79,6 +79,8 @@ def test_get_runtime_file_name():
 
 @pytest.mark.skipif(sys.platform != "linux",
                     reason="only works on linux, due to issues with patching")
+@pytest.mark.skipif(sys.version_info >= (3, 14),
+                    reason="change in 3.14 make patching in threads not work properly")
 def test_slurm_show_no_nodelog(project):
     # Inserting value into configuration
     project.option.scheduler.set_name("slurm")
@@ -120,6 +122,8 @@ def test_slurm_show_no_nodelog(project):
 
 @pytest.mark.skipif(sys.platform != "linux",
                     reason="only works on linux, due to issues with patching")
+@pytest.mark.skipif(sys.version_info >= (3, 14),
+                    reason="change in 3.14 make patching in threads not work properly")
 def test_slurm_show_nodelog(project):
     # Inserting value into configuration
     project.option.scheduler.set_name("slurm")
