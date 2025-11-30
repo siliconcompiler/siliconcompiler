@@ -33,6 +33,7 @@ You will also want to look at API References for details.
    Hardware design frontends <tutorials/hw_frontends>
    Using the dashboard <tutorials/dashboard_tutorial>
    Job status emails <tutorials/emails>
+   Instantiating a hardened module in a design <tutorials/hardened> 
 ..   Multi-job flows and automation <tutorials/multi_job_flows>
 ..   Parallel job execution <tutorials/parallel>
 ..   Building a simple SoC <tutorials/picorv32_ram>

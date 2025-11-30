@@ -92,6 +92,7 @@ def build_and() -> StdCellLibrary:
 
 
 def build_top(size: int = 300, margin: int = 10):
+    Top().write_depgraph("graph.png")
     project = ASIC(Top())
     project.add_fileset('rtl')
     project.add_alias(And(), "rtl", None, None)
