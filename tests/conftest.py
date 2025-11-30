@@ -398,3 +398,29 @@ def display():
         display.stop()
     else:
         yield False
+
+
+@pytest.fixture
+def disable_mp_process():
+    class FakeProc:
+        def __init__(self, target, args=()):
+            self.target = target
+            self.args = args
+            self.exitcode = None
+
+        def start(self):
+            try:
+                self.target(*self.args)
+                self.exitcode = 0
+            except SystemExit as e:
+                self.exitcode = e.code
+
+        def join(self):
+            return
+
+        def is_alive(self):
+            return False
+
+    with patch("multiprocessing.Process") as proc:
+        proc.side_effect = FakeProc
+        yield

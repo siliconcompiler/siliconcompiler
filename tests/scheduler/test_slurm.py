@@ -77,11 +77,7 @@ def test_get_runtime_file_name():
         "hash_step_index.sh"
 
 
-@pytest.mark.skipif(sys.platform != "linux",
-                    reason="only works on linux, due to issues with patching")
-@pytest.mark.skipif(sys.version_info >= (3, 14),
-                    reason="change in 3.14 make patching in threads not work properly")
-def test_slurm_show_no_nodelog(project):
+def test_slurm_show_no_nodelog(disable_mp_process, project):
     # Inserting value into configuration
     project.option.scheduler.set_name("slurm")
     project.option.scheduler.set_queue("test_queue")
@@ -120,11 +116,7 @@ def test_slurm_show_no_nodelog(project):
                      r"[0-9a-f]+_stepone_0\.log", caplog) is None
 
 
-@pytest.mark.skipif(sys.platform != "linux",
-                    reason="only works on linux, due to issues with patching")
-@pytest.mark.skipif(sys.version_info >= (3, 14),
-                    reason="change in 3.14 make patching in threads not work properly")
-def test_slurm_show_nodelog(project):
+def test_slurm_show_nodelog(disable_mp_process, project):
     # Inserting value into configuration
     project.option.scheduler.set_name("slurm")
     project.option.scheduler.set_queue("test_queue")
