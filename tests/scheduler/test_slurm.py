@@ -1,8 +1,6 @@
 import json
-import logging
 import pytest
 import re
-import sys
 
 import os.path
 
