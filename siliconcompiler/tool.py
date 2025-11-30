@@ -1066,18 +1066,18 @@ class Task(NamedSchema, PathSchema, DocsSchema):
                         raise TaskError(f"Unable to start {exe}: {str(e)}")
 
                     memory_warn_limit = Task.__MEMORY_WARN_LIMIT
-                    last_collection = None
+                    next_collection = None
                     try:
                         while proc.poll() is None:
                             curr_time = time.time()
 
                             # Monitor subprocess memory usage
-                            if last_collection is None or \
-                                    last_collection >= curr_time + Task.__MEM_POLL_INTERVAL:
+                            if next_collection is None or \
+                                    next_collection <= curr_time:
                                 proc_mem_bytes = self.__collect_memory(proc.pid)
                                 if proc_mem_bytes is not None:
                                     max_mem_bytes = max(max_mem_bytes, proc_mem_bytes)
-                                last_collection = curr_time
+                                next_collection = curr_time + Task.__MEM_POLL_INTERVAL
 
                                 memory_warn_limit = self.__check_memory_limit(memory_warn_limit)
 
