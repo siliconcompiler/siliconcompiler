@@ -157,7 +157,9 @@ filterwarnings = [
     'ignore:The distutils\.sysconfig module is deprecated, use sysconfig instead',
     'ignore:The distutils package is deprecated and slated for removal in Python 3\.12',
     'ignore:Creating a LegacyVersion has been deprecated and will be removed in the next major release',
-    'ignore:.* is multi-threaded, use of fork\(\) may lead to deadlocks in the child.:DeprecationWarning'
+    'ignore:.* is multi-threaded, use of fork\(\) may lead to deadlocks in the child.:DeprecationWarning',
+    'ignore:This function is deprecated and will be removed in a future version, use cls\.find_task instead:DeprecationWarning',
+    'ignore:Python 3\.14 will, by default, filter extracted tar archives and reject files or modify their metadata\. Use the filter argument to control this behavior\.:DeprecationWarning'
 ]
 
 [tool.tclint]

@@ -130,7 +130,8 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         r"^\s*" + __parse_version_check_str + r"\s*$",
         re.VERBOSE | re.IGNORECASE)
 
-    __POLL_INTERVAL: float = 0.1
+    __IO_POLL_INTERVAL: float = 0.1
+    __MEM_POLL_INTERVAL: float = 0.5
     __MEMORY_WARN_LIMIT: int = 90
 
     def __init__(self):
@@ -415,7 +416,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         cmdlist.extend(veropt)
 
         self.logger.debug(f'Running {self.tool()}/{self.task()} version check: '
-                          f'{" ".join(cmdlist)}')
+                          f'{shlex.join(cmdlist)}')
 
         proc = subprocess.run(cmdlist,
                               stdin=subprocess.DEVNULL,
@@ -900,6 +901,37 @@ class Task(NamedSchema, PathSchema, DocsSchema):
                                     f'{timeout} seconds. Terminating...')
                 terminate_process(proc.pid, timeout=timeout)
 
+    def __collect_memory(self, pid) -> Optional[int]:
+        try:
+            pproc = psutil.Process(pid)
+            proc_mem_bytes = pproc.memory_full_info().uss
+            for child in pproc.children(recursive=True):
+                proc_mem_bytes += child.memory_full_info().uss
+            return proc_mem_bytes
+        except psutil.Error:
+            # Process may have already terminated or been killed.
+            # Retain existing memory usage statistics in this case.
+            pass
+        except PermissionError:
+            # OS is preventing access to this information so it cannot
+            # be collected
+            pass
+        return None
+
+    def __check_memory_limit(self, warn_limit: int) -> int:
+        try:
+            memory_usage = psutil.virtual_memory()
+            if memory_usage.percent > warn_limit:
+                self.logger.warning(
+                    'Current system memory usage is '
+                    f'{memory_usage.percent:.1f}%')
+                return int(memory_usage.percent + 1)
+        except psutil.Error:
+            pass
+        except PermissionError:
+            pass
+        return warn_limit
+
     def run_task(self,
                  workdir: str,
                  quiet: bool,
@@ -1034,39 +1066,29 @@ class Task(NamedSchema, PathSchema, DocsSchema):
                         raise TaskError(f"Unable to start {exe}: {str(e)}")
 
                     memory_warn_limit = Task.__MEMORY_WARN_LIMIT
+                    last_collection = None
                     try:
                         while proc.poll() is None:
-                            # Monitor subprocess memory usage
-                            try:
-                                pproc = psutil.Process(proc.pid)
-                                proc_mem_bytes = pproc.memory_full_info().uss
-                                for child in pproc.children(recursive=True):
-                                    proc_mem_bytes += child.memory_full_info().uss
-                                max_mem_bytes = max(max_mem_bytes, proc_mem_bytes)
+                            curr_time = time.time()
 
-                                memory_usage = psutil.virtual_memory()
-                                if memory_usage.percent > memory_warn_limit:
-                                    self.logger.warning(
-                                        'Current system memory usage is '
-                                        f'{memory_usage.percent:.1f}%')
-                                    memory_warn_limit = int(memory_usage.percent + 1)
-                            except psutil.Error:
-                                # Process may have already terminated or been killed.
-                                # Retain existing memory usage statistics in this case.
-                                pass
-                            except PermissionError:
-                                # OS is preventing access to this information so it cannot
-                                # be collected
-                                pass
+                            # Monitor subprocess memory usage
+                            if last_collection is None or \
+                                    last_collection >= curr_time + Task.__MEM_POLL_INTERVAL:
+                                proc_mem_bytes = self.__collect_memory(proc.pid)
+                                if proc_mem_bytes is not None:
+                                    max_mem_bytes = max(max_mem_bytes, proc_mem_bytes)
+                                last_collection = curr_time
+
+                                memory_warn_limit = self.__check_memory_limit(memory_warn_limit)
 
                             read_stdio(stdout_reader, stderr_reader)
 
                             # Check for timeout
-                            duration = time.time() - cpu_start
+                            duration = curr_time - cpu_start
                             if timeout is not None and duration > timeout:
                                 raise TaskTimeout(timeout=duration)
 
-                            time.sleep(Task.__POLL_INTERVAL)
+                            time.sleep(Task.__IO_POLL_INTERVAL)
                     except KeyboardInterrupt:
                         self.logger.info("Received ctrl-c.")
                         self.__terminate_exe(proc)
