@@ -1,6 +1,5 @@
 # Copyright 2020 Silicon Compiler Authors. All Rights Reserved.
 import pytest
-import sys
 
 import os.path
 
@@ -138,9 +137,7 @@ def test_show_vcd_surfer(datadir, display, gcd_design):
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.timeout(300)
-@pytest.mark.skipif(sys.version_info >= (3, 14),
-                    reason="change in 3.14 make env patching not work properly")
-def test_show_vcd_gtkwave(datadir, display, gcd_design):
+def test_show_vcd_gtkwave(disable_mp_process, datadir, display, gcd_design):
     proj = Project(gcd_design)
     proj.add_fileset("rtl")
 

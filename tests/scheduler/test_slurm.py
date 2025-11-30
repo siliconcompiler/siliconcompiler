@@ -1,8 +1,6 @@
 import json
-import logging
 import pytest
 import re
-import sys
 
 import os.path
 
@@ -77,17 +75,10 @@ def test_get_runtime_file_name():
         "hash_step_index.sh"
 
 
-@pytest.mark.skipif(sys.platform != "linux",
-                    reason="only works on linux, due to issues with patching")
-@pytest.mark.skipif(sys.version_info >= (3, 14),
-                    reason="change in 3.14 make patching in threads not work properly")
-def test_slurm_show_no_nodelog(project):
+def test_slurm_show_no_nodelog(disable_mp_process, project):
     # Inserting value into configuration
     project.option.scheduler.set_name("slurm")
     project.option.scheduler.set_queue("test_queue")
-
-    # Add file handler to help
-    project.logger.addHandler(logging.FileHandler("test.log"))
 
     class DummyPOpen:
         def wait(self):
@@ -109,10 +100,8 @@ def test_slurm_show_no_nodelog(project):
 
     assert os.path.isfile('build/testdesign/job0/testdesign.pkg.json')
 
-    project.logger.handlers.clear()
-
-    # Collect from test.log
-    with open("test.log") as f:
+    # Collect from build/testdesign/job0/job.log
+    with open("build/testdesign/job0/job.log") as f:
         caplog = f.read()
 
     assert "Slurm exited with a non-zero code (10)." in caplog
@@ -120,17 +109,10 @@ def test_slurm_show_no_nodelog(project):
                      r"[0-9a-f]+_stepone_0\.log", caplog) is None
 
 
-@pytest.mark.skipif(sys.platform != "linux",
-                    reason="only works on linux, due to issues with patching")
-@pytest.mark.skipif(sys.version_info >= (3, 14),
-                    reason="change in 3.14 make patching in threads not work properly")
-def test_slurm_show_nodelog(project):
+def test_slurm_show_nodelog(disable_mp_process, project):
     # Inserting value into configuration
     project.option.scheduler.set_name("slurm")
     project.option.scheduler.set_queue("test_queue")
-
-    # Add file handler to help
-    project.logger.addHandler(logging.FileHandler("test.log"))
 
     class DummyPOpen:
         def wait(self):
@@ -164,15 +146,14 @@ def test_slurm_show_nodelog(project):
 
     assert os.path.isfile('build/testdesign/job0/testdesign.pkg.json')
 
-    project.logger.handlers.clear()
-
-    # Collect from test.log
-    with open("test.log") as f:
+    # Collect from build/testdesign/job0/job.log
+    with open("build/testdesign/job0/job.log") as f:
         caplog = f.read()
 
     assert "find this text in the log" in caplog
     assert "Slurm exited with a non-zero code (10)." in caplog
-    assert "Node log file: ./thisfile.log" in caplog
+    assert "Node log file: " in caplog
+    assert "thisfile.log" in caplog
 
 
 @pytest.mark.eda
