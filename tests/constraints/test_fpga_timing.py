@@ -250,3 +250,46 @@ def test_timing_constraint_copy_mode_no_insert():
     new_obj = schema.copy_mode("slow", "fast", insert=False)
     assert new_obj.name == "fast"
     assert schema.getkeys("mode") == ("slow",)
+
+
+def test_timing_constraint_schema_import_pre_0_53_0():
+    root = FPGATimingConstraintSchema()
+    root._from_dict(
+        {
+            "testscene": {
+                "mode": {
+                    "type": "str",
+                    "require": False,
+                    "scope": "global",
+                    "lock": False,
+                    "notes": None,
+                    "pernode": "optional",
+                    "node": {
+                        "global": {
+                            "global": {
+                                "value": "testmode",
+                                "signature": None
+                            }
+                        },
+                        "default": {
+                            "default": {
+                                "value": None,
+                                "signature": None
+                            }
+                        }
+                    }
+                },
+                "__meta__": {
+                    "name": "testscene",
+                    "class": "siliconcompiler.constraints.fpga_timing/FPGATimingScenarioSchema"
+                }
+            },
+            "__meta__": {
+                "class": "siliconcompiler.constraints.fpga_timing/FPGATimingConstraintSchema",
+                "sctype": "BaseSchema"
+            }
+        },
+        keypath=(),
+        version=(0, 52, 1))
+
+    assert root.getkeys("scenario") == ("testscene",)

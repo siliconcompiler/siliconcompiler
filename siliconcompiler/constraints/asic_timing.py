@@ -4,6 +4,7 @@ from siliconcompiler.schema import BaseSchema, NamedSchema, EditableSchema, Para
     PerNode, Scope
 from siliconcompiler import Design
 from siliconcompiler.constraints.timing_mode import TimingModeSchema
+from siliconcompiler.schema.baseschema import LazyLoad
 
 
 class ASICTimingScenarioSchema(NamedSchema):
@@ -389,6 +390,30 @@ class ASICTimingScenarioSchema(NamedSchema):
         """
         return self.get("check", step=step, index=index)
 
+    def _from_dict(self, manifest: Dict,
+                   keypath: Union[List[str], Tuple[str, ...]],
+                   version: Optional[Tuple[int, ...]] = None,
+                   lazyload: LazyLoad = LazyLoad.ON) \
+            -> Tuple[Set[Tuple[str, ...]], Set[Tuple[str, ...]]]:
+
+        sdcfileset = None
+        if version and version < (0, 53, 0):
+            sdcfileset = manifest.pop("sdcfileset", None)
+            lazyload = LazyLoad.OFF
+
+        ret = super()._from_dict(manifest, keypath, version, lazyload)
+
+        if sdcfileset:
+            param = Parameter.from_dict(sdcfileset, keypath=(*keypath, "sdcfileset"),
+                                        version=version)
+            for value, step, index in param.getvalues():
+                if self.get_mode(step=step, index=index) is None:
+                    self.set_mode("_importcreated_", step=step, index=index)
+                for design, fileset in value:
+                    self.add_sdcfileset(design, fileset, step=step, index=index)
+
+        return ret
+
 
 class ASICTimingConstraintSchema(BaseSchema):
     """
@@ -699,3 +724,18 @@ class ASICTimingConstraintSchema(BaseSchema):
 
         EditableSchema(self).remove("mode", mode)
         return True
+
+    def _from_dict(self, manifest: Dict,
+                   keypath: Union[List[str], Tuple[str, ...]],
+                   version: Optional[Tuple[int, ...]] = None,
+                   lazyload: LazyLoad = LazyLoad.ON) \
+            -> Tuple[Set[Tuple[str, ...]], Set[Tuple[str, ...]]]:
+        if version and version < (0, 53, 0):
+            manifest.pop("__meta__", None)
+            manifest = {
+                "scenario": manifest,
+                "mode": self.getdict("mode")
+            }
+            lazyload = LazyLoad.OFF
+
+        return super()._from_dict(manifest, keypath, version, lazyload)
