@@ -441,3 +441,201 @@ def test_timing_constraint_copy_mode_no_insert():
     new_obj = schema.copy_mode("slow", "fast", insert=False)
     assert new_obj.name == "fast"
     assert schema.getkeys("mode") == ("slow",)
+
+
+def test_timing_scenario_schema_import_pre_0_53_0():
+    root = ASICTimingConstraintSchema()
+    scene = root.make_scenario("testscenario")
+
+    scene._from_dict(
+        {
+            "mode": {
+                "type": "str",
+                "require": False,
+                "scope": "global",
+                "lock": False,
+                "notes": None,
+                "pernode": "optional",
+                "node": {
+                    "global": {
+                        "global": {
+                            "value": "testmode",
+                            "signature": None
+                        }
+                    },
+                    "default": {
+                        "default": {
+                            "value": None,
+                            "signature": None
+                        }
+                    }
+                }
+            },
+            "sdcfileset": {
+                "type": "[(str,str)]",
+                "require": False,
+                "scope": "global",
+                "lock": False,
+                "notes": None,
+                "pernode": "optional",
+                "node": {
+                    "global": {
+                        "global": {
+                            "value": [
+                                [
+                                    "testdesign",
+                                    "testfileset"
+                                ]
+                            ],
+                            "signature": [
+                                None
+                            ]
+                        }
+                    },
+                    "default": {
+                        "default": {
+                            "value": [],
+                            "signature": []
+                        }
+                    }
+                }
+            },
+            "__meta__": {
+                "name": "test",
+                "class": "siliconcompiler.constraints.asic_timing/ASICTimingScenarioSchema"
+            }
+        },
+        keypath=(),
+        version=(0, 52, 1))
+
+    assert root.get_mode("testmode").get_sdcfileset() == [("testdesign", "testfileset")]
+
+
+def test_timing_scenario_schema_import_no_mode_pre_0_53_0():
+    root = ASICTimingConstraintSchema()
+    scene = root.make_scenario("testscenario")
+
+    scene._from_dict(
+        {
+            "mode": {
+                "type": "str",
+                "require": False,
+                "scope": "global",
+                "lock": False,
+                "notes": None,
+                "pernode": "optional",
+                "node": {
+                    "default": {
+                        "default": {
+                            "value": None,
+                            "signature": None
+                        }
+                    }
+                }
+            },
+            "sdcfileset": {
+                "type": "[(str,str)]",
+                "require": False,
+                "scope": "global",
+                "lock": False,
+                "notes": None,
+                "pernode": "optional",
+                "node": {
+                    "global": {
+                        "global": {
+                            "value": [
+                                [
+                                    "testdesign",
+                                    "testfileset"
+                                ]
+                            ],
+                            "signature": [
+                                None
+                            ]
+                        }
+                    },
+                    "default": {
+                        "default": {
+                            "value": [],
+                            "signature": []
+                        }
+                    }
+                }
+            },
+            "__meta__": {
+                "name": "test",
+                "class": "siliconcompiler.constraints.asic_timing/ASICTimingScenarioSchema"
+            }
+        },
+        keypath=(),
+        version=(0, 52, 1))
+
+    assert root.get_mode("_importcreated_").get_sdcfileset() == [("testdesign", "testfileset")]
+    assert scene.get_mode() == "_importcreated_"
+
+
+def test_timing_constraint_schema_import_pre_0_53_0():
+    root = ASICTimingConstraintSchema()
+    root._from_dict(
+        {
+            "testscene": {
+                "mode": {
+                    "type": "str",
+                    "require": False,
+                    "scope": "global",
+                    "lock": False,
+                    "notes": None,
+                    "pernode": "optional",
+                    "node": {
+                        "global": {
+                            "global": {
+                                "value": "testmode",
+                                "signature": None
+                            }
+                        },
+                        "default": {
+                            "default": {
+                                "value": None,
+                                "signature": None
+                            }
+                        }
+                    }
+                },
+                "sdcfileset": {
+                    "type": "[(str,str)]",
+                    "require": False,
+                    "scope": "global",
+                    "lock": False,
+                    "notes": None,
+                    "pernode": "optional",
+                    "node": {
+                        "global": {
+                            "global": {
+                                "value": [["testdesign", "testfileset"]],
+                                "signature": []
+                            }
+                        },
+                        "default": {
+                            "default": {
+                                "value": [],
+                                "signature": []
+                            }
+                        }
+                    }
+                },
+                "__meta__": {
+                    "name": "testscene",
+                    "class": "siliconcompiler.constraints.asic_timing/ASICTimingScenarioSchema"
+                }
+            },
+            "__meta__": {
+                "class": "siliconcompiler.constraints.asic_timing/ASICTimingConstraintSchema",
+                "sctype": "BaseSchema"
+            }
+        },
+        keypath=(),
+        version=(0, 52, 1))
+
+    assert root.getkeys("scenario") == ("testscene",)
+    assert root.getkeys("mode") == ("testmode",)
+    assert root.get_mode("testmode").get_sdcfileset() == [("testdesign", "testfileset")]
