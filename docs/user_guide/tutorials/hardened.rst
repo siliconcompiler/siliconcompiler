@@ -115,6 +115,7 @@ Step 4: Running the ASIC flow on module **top**
 
 Finally, we configure the flow for the top module.
 Critical steps here include:
+
 1. **Blackboxing (Alias)**: We use add_alias to prevent the tool from synthesizing the RTL of And. We want to use the pre-hardened version, not re-synthesize it.
 2. **Library Injection**: We use add_asiclib to provide the LEF and LIB files we packaged in Step 3.
 

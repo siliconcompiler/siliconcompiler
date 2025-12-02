@@ -4,7 +4,7 @@ module top (
     input  wire [7:0] b1,
     input  wire [7:0] a2,
     input  wire [7:0] b2,
-    output reg  [7:0] y
+    output wire [7:0] y
 );
 
     wire [7:0] d1;
