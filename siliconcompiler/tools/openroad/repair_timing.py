@@ -37,6 +37,7 @@ class RepairTimingTask(APRTask, OpenROADSTAParameter, OpenROADDPLParameter,
             'power',
             'drv_violations',
             'fmax',
+            'report_buffers',
 
             # Images
             'placement_density',

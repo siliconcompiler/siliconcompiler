@@ -341,16 +341,12 @@ def safecompare(value: Union[int, float], op: str, goal: Union[int, float]) -> b
 
 
 ###########################################################################
-def grep(project: "Project", args: str, line: str) -> Union[None, str]:
+def grep(logger: logging.Logger, args: str, line: str) -> Union[None, str]:
     """
     Emulates the Unix grep command on a string.
 
-    Emulates the behavior of the Unix grep command that is etched into
-    our muscle memory. Partially implemented, not all features supported.
-    The function returns None if no match is found.
-
     Args:
-        project (Project): The project instance (used for logging errors).
+        logger (logging.Logger): used for logging errors.
         args (str): Command line arguments for grep command.
         line (str): Line to process.
 
@@ -362,47 +358,97 @@ def grep(project: "Project", args: str, line: str) -> Union[None, str]:
     if line is None:
         return None
 
-    # Partial list of supported grep options
+    # --- 1. Initialize Options and Parse Arguments ---
     options = {
         '-v': False,  # Invert the sense of matching
-        '-i': False,  # Ignore case distinctions in patterns and data
-        '-E': False,  # Interpret PATTERNS as extended regular expressions.
-        '-e': False,  # Safe interpretation of pattern starting with "-"
-        '-x': False,  # Select only matches that exactly match the whole line.
-        '-o': False,  # Print only the match parts of a matching line
-        '-w': False}  # Select only lines containing matches that form whole words.
+        '-i': False,  # Ignore case distinctions
+        '-E': False,  # Extended regular expressions (Python's 're' module is ERE by default)
+        '-e': False,  # Pattern starts with '-' (simplified logic)
+        '-x': False,  # Exact line match
+        '-o': False,  # Print only the match
+        '-w': False}  # Whole word match
 
-    # Split into repeating switches and everything else
-    match = re.match(r'\s*((?:\-\w\s)*)(.*)', args)
+    parts = args.split()
+    pattern = ""
+    pattern_start_index = -1
 
-    if not match:
-        return None
-
-    pattern = match.group(2)
-
-    # Split space separated switch string into list
-    switches = match.group(1).strip().split(' ')
-
-    # Find special -e switch update the pattern
-    for i in range(len(switches)):
-        if switches[i] == "-e":
-            if i != (len(switches)):
-                pattern = ' '.join(switches[i + 1:]) + " " + pattern
-                switches = switches[0:i + 1]
+    # Identify switches and the start of the pattern
+    for i, part in enumerate(parts):
+        # Check for switch starting with '-' and not just '-'
+        if part.startswith('-') and len(part) > 1 and part != '-e':
+            # Handle concatenated switches (e.g., -vi)
+            is_valid_switch_group = True
+            for char in part[1:]:
+                switch = f"-{char}"
+                if switch in options:
+                    options[switch] = True
+                else:
+                    logger.error(f"Unknown switch: {switch}")
+                    is_valid_switch_group = False
+                    break
+            if not is_valid_switch_group:
+                # If an invalid switch was found, the rest must be the pattern
+                pattern_start_index = i
                 break
-            options["-e"] = True
-        elif switches[i] in options.keys():
-            options[switches[i]] = True
-        elif switches[i] != '':
-            project.logger.error(switches[i])
+        elif part == '-e':
+            # The next part is the pattern, regardless of what it looks like
+            options['-e'] = True
+            if i + 1 < len(parts):
+                pattern_start_index = i + 1
+            break
+        elif not pattern.strip():
+            # First non-switch part is the start of the pattern
+            pattern_start_index = i
+            break
 
-    # REGEX
-    # TODO: add all the other optinos
-    match = re.search(rf"({pattern})", line)
-    if bool(match) == bool(options["-v"]):
+    # Assemble the pattern from the determined starting index
+    if pattern_start_index != -1:
+        pattern = " ".join(parts[pattern_start_index:])
+
+    if not pattern:
         return None
+
+    # --- 2. Prepare Regex Flags and Pattern Modifiers ---
+
+    regex_flags = 0
+    if options['-i']:
+        regex_flags |= re.IGNORECASE
+
+    # Apply Whole Word (-w)
+    pattern_to_search = pattern
+    if options['-w']:
+        # Apply word boundaries
+        pattern_to_search = rf"\b({pattern})\b"
+
+    # Apply Whole Line (-x)
+    if options['-x']:
+        # Exact line match, using the prepared pattern (which may have \b already)
+        pattern_to_search = rf"^{pattern_to_search}$"
+
+    # --- 3. Perform Search ---
+    try:
+        # re.search is used to find the pattern anywhere in the line
+        match = re.search(pattern_to_search, line, regex_flags)
+    except re.error as e:
+        # Handle cases where the pattern itself is invalid regex
+        logger.error(f"Invalid regex pattern '{pattern}': {e}")
+        return None
+
+    # --- 4. Handle Inversion (-v) and Final Return ---
+
+    # Check if a result should be returned: (Match found) XOR (Invert is on)
+    should_return = bool(match) != options["-v"]
+
+    if should_return:
+        if options['-o'] and match:
+            # Print only the match part (which is match.group(0))
+            return match.group(0)
+        else:
+            # Return the whole line (standard behavior)
+            return line
     else:
-        return line
+        # Match found AND inverted, OR Match NOT found AND not inverted
+        return None
 
 
 def get_plugins(system: str, name: Optional[str] = None) -> List[Callable]:

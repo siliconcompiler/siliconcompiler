@@ -179,6 +179,21 @@ class ASICSynthesis(_ASICTask, YosysTask):
             "bool",
             "true/false, flag to indicate whether to add buffers or not.",
             True)
+        self.add_parameter(
+            "tie_undef",
+            "<high,low,none>",
+            "Flag to indicate how to handle undefined signals in netlist",
+            "low")
+        self.add_parameter(
+            "add_tieoffs",
+            "bool",
+            "true/false, flag to indicate add tie high and tie low cells.",
+            True)
+        self.add_parameter(
+            "opt_undriven",
+            "bool",
+            "true/false, flag to indicate if optimizations should mark undriven nets",
+            True)
 
         self.__init_techmapping_parameter()
         self.__init_hierarchy_parameter()
@@ -303,6 +318,22 @@ class ASICSynthesis(_ASICTask, YosysTask):
                            step: Optional[str] = None, index: Optional[str] = None):
         self.set("var", "use_slang", enable, step=step, index=index)
 
+    def set_yosys_tieundefined(self, tie: str,
+                               step: Optional[str] = None, index: Optional[str] = None):
+        self.set("var", "tie_undef", tie, step=step, index=index)
+
+    def set_yosys_addtiecells(self, enable: bool,
+                              step: Optional[str] = None, index: Optional[str] = None):
+        self.set("var", "add_tieoffs", enable, step=step, index=index)
+
+    def set_yosys_addbuffers(self, enable: bool,
+                             step: Optional[str] = None, index: Optional[str] = None):
+        self.set("var", "add_buffers", enable, step=step, index=index)
+
+    def set_yosys_optundriven(self, enable: bool,
+                              step: Optional[str] = None, index: Optional[str] = None):
+        self.set("var", "opt_undriven", enable, step=step, index=index)
+
     def task(self):
         return "syn_asic"
 
@@ -382,6 +413,9 @@ class ASICSynthesis(_ASICTask, YosysTask):
 
         self.add_required_key("var", "use_slang")
         self.add_required_key("var", "add_buffers")
+        self.add_required_key("var", "tie_undef")
+        self.add_required_key("var", "add_tieoffs")
+        self.add_required_key("var", "opt_undriven")
         self.add_required_key("var", "flatten")
         self.add_required_key("var", "auto_flatten")
         self.add_required_key("var", "hier_threshold")

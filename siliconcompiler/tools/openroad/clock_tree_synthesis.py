@@ -26,6 +26,7 @@ class CTSTask(APRTask, OpenROADSTAParameter, OpenROADDPLParameter, OpenROADCTSPa
             'power',
             'drv_violations',
             'fmax',
+            'report_buffers',
 
             # Images
             'placement_density',

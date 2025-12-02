@@ -9,11 +9,14 @@ import time
 
 import os.path
 
+from typing import List, Union, Final
+
 from siliconcompiler import utils, sc_open
 from siliconcompiler.utils.paths import jobdir
 from siliconcompiler.package import RemoteResolver
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.utils.logging import SCBlankLoggerFormatter
+from siliconcompiler.utils.multiprocessing import MPManager
 
 
 class SlurmSchedulerNode(SchedulerNode):
@@ -24,6 +27,7 @@ class SlurmSchedulerNode(SchedulerNode):
     It prepares a run script, a manifest, and uses the 'srun' command
     to execute the step on a compute node.
     """
+    __OPTIONS: Final[str] = "scheduler-slurm"
 
     _MAX_FS_DELAY = 2
     _FS_DWELL = 0.1
@@ -55,10 +59,31 @@ class SlurmSchedulerNode(SchedulerNode):
         """
         A static pre-processing hook for the Slurm scheduler.
 
+        This method ensures that the Slurm environment is available and loads
+        any existing user configuration for the scheduler.
+
         Args:
             project (Project): The project object to perform pre-processing on.
         """
         SlurmSchedulerNode.assert_slurm()
+
+    @staticmethod
+    def _set_user_config(tag: str, value: Union[List[str], str]) -> None:
+        """
+        Sets a specific value in the user configuration map.
+
+        Args:
+            tag (str): The configuration key to update.
+            value (Union[List[str], str]): The value to assign to the key.
+        """
+        MPManager.get_settings().set(SlurmSchedulerNode.__OPTIONS, tag, value)
+
+    @staticmethod
+    def _write_user_config() -> None:
+        """
+        Writes the current system configuration to the user configuration file.
+        """
+        MPManager.get_settings().save()
 
     @property
     def is_local(self):
@@ -138,10 +163,38 @@ class SlurmSchedulerNode(SchedulerNode):
             raise RuntimeError('slurm is not available or installed on this machine')
 
     def mark_copy(self) -> bool:
+        sharedprefix: List[str] = MPManager.get_settings().get(
+            SlurmSchedulerNode.__OPTIONS, "sharedpaths", default=[])
+
+        if "/" in sharedprefix:
+            # Entire filesystem is shared so no need to check
+            return False
+
         do_collect = False
         for key in self.get_required_path_keys():
-            self.project.set(*key, True, field='copy')
-            do_collect = True
+            mark_copy = True
+            if sharedprefix:
+                mark_copy = False
+
+                check_step, check_index = self.step, self.index
+                if self.project.get(*key, field='pernode').is_never():
+                    check_step, check_index = None, None
+
+                paths = self.project.find_files(*key, missing_ok=True,
+                                                step=check_step, index=check_index)
+                if not isinstance(paths, list):
+                    paths = [paths]
+                paths = [str(path) for path in paths if path]
+
+                for path in paths:
+                    if not any([path.startswith(shared) for shared in sharedprefix]):
+                        # File exists outside shared paths and needs to be copied
+                        mark_copy = True
+                        break
+
+            if mark_copy:
+                self.project.set(*key, True, field='copy')
+                do_collect = True
         return do_collect
 
     def run(self):

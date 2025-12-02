@@ -37,7 +37,7 @@ class OpenSTATask(Task):
         self.set_threads()
 
         self.add_regex("warnings", r'^\[WARNING|^Warning')
-        self.add_regex("errors", r'^\[ERROR')
+        self.add_regex("errors", r'^\[ERROR|^Error')
 
     def runtime_options(self):
         options = super().runtime_options()

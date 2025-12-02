@@ -72,6 +72,21 @@ To run a testcase, use:
     if not issue.get("cmdarg", "run"):
         project: Project = Project.from_manifest(filepath=issue.get("cmdarg", "cfg"))
 
+        # Determine abs path for build dir
+        builddir = project.option.get_builddir()
+        if isinstance(builddir, str) and not os.path.isabs(builddir):
+            builddirname = os.path.basename(builddir)
+            fullpath = os.path.dirname(os.path.abspath(issue.get("cmdarg", "cfg")))
+            while True:
+                if os.path.basename(fullpath) == builddirname:
+                    project.option.set_builddir(fullpath)
+                    break
+                parent = os.path.dirname(fullpath)
+                if parent == fullpath:
+                    # Reached filesystem root without finding a match
+                    break
+                fullpath = parent
+
         if issue.get("arg", "step"):
             project.set("arg", "step", issue.get("arg", "step"))
         if issue.get("arg", "index"):
@@ -143,8 +158,9 @@ To run a testcase, use:
 
         # Modify run environment to point to extracted files
         builddir_key = ['option', 'builddir']
-        new_builddir = f"{test_dir}/{project.get(*builddir_key)}"
-        project.logger.info(f"Changing {builddir_key} to '{new_builddir}'")
+        new_builddir = os.path.abspath(
+            os.path.join(test_dir, f"{os.path.basename(project.get(*builddir_key))}"))
+        project.logger.info(f"Changing [{','.join(builddir_key)}] to '{new_builddir}'")
         project.set(*builddir_key, new_builddir)
 
         # Run task

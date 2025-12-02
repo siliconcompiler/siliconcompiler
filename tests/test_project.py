@@ -404,7 +404,7 @@ def test_add_dep_design_with_2level_dep():
 
 
 def test_add_dep_design_with_2level_dep_no_depschema():
-    class DummySchema(StdCellLibrary):
+    class DummySchema0(StdCellLibrary):
         def __init__(self):
             super().__init__("test0")
 
@@ -412,10 +412,10 @@ def test_add_dep_design_with_2level_dep_no_depschema():
 
         @classmethod
         def _getdict_type(cls):
-            return "dummy_schema"
+            return "dummy_schema0"
 
     design = Design("test")
-    design.add_dep(DummySchema())
+    design.add_dep(DummySchema0())
 
     proj = Project()
     proj.add_dep(design)
@@ -423,7 +423,7 @@ def test_add_dep_design_with_2level_dep_no_depschema():
     BaseSchema._BaseSchema__get_child_classes.cache_clear()
     BaseSchema._BaseSchema__load_schema_class.cache_clear()
     classes = BaseSchema._BaseSchema__get_child_classes().copy()
-    classes["dummy_schema"] = DummySchema
+    classes["dummy_schema0"] = DummySchema0
 
     # Request restore from cfg
     with patch("siliconcompiler.schema.BaseSchema._BaseSchema__get_child_classes") as children:

@@ -1,10 +1,14 @@
+import json
 import pytest
+
+import os.path
 
 from unittest.mock import patch
 
 from siliconcompiler.schema import Scope
 from siliconcompiler.schema_support.option import OptionSchema, SchedulerSchema
 from siliconcompiler.project import Project
+from siliconcompiler.utils.multiprocessing import MPManager
 
 
 def test_keys():
@@ -410,3 +414,86 @@ def test_maxthreads():
     scheduler = OptionSchema().scheduler
     scheduler.set_maxthreads(8)
     assert scheduler.get_maxthreads() == 8
+
+
+def test_load_default_options():
+    settings = MPManager.get_settings()
+    settings.delete("schema-options")
+
+    schema = OptionSchema()
+    assert schema.get_autoissue() is False
+    assert schema.scheduler.get_maxthreads() is None
+
+    settings.set("schema-options", "autoissue", True)
+    settings.set("schema-options", "scheduler,maxthreads", 5)
+
+    schema = OptionSchema()
+    assert schema.get_autoissue() is True
+    assert schema.scheduler.get_maxthreads() == 5
+
+
+def test_load_default_options_bad_jsondata():
+    settings = MPManager.get_settings()
+    settings.delete("schema-options")
+    settings.set("schema-options", "doesnotexist", True)
+    settings.set("schema-options", "", 5)
+
+    OptionSchema()
+
+
+def test_write_defaults_no_data(monkeypatch):
+    monkeypatch.setattr(MPManager.get_settings(), "_SettingsManager__filepath",
+                        os.path.abspath("options.json"))
+    assert not os.path.isfile(os.path.abspath("options.json"))
+
+    OptionSchema().write_defaults()
+    assert not os.path.isfile(os.path.abspath("options.json"))
+
+
+def test_write_defaults_data(monkeypatch):
+    monkeypatch.setattr(MPManager.get_settings(), "_SettingsManager__filepath",
+                        os.path.abspath("options.json"))
+
+    assert not os.path.isfile("options.json")
+
+    schema = OptionSchema()
+    schema.set_optmode(12)
+    schema.scheduler.set_maxthreads(8)
+
+    schema.write_defaults()
+
+    assert os.path.isfile("options.json")
+    with open("options.json") as fd:
+        data = json.load(fd)
+    assert data["schema-options"] == {
+        "optmode": 12,
+        "scheduler,maxthreads": 8
+    }
+
+
+def test_write_defaults_data_not_transient(monkeypatch):
+    monkeypatch.setattr(MPManager.get_settings(), "_SettingsManager__filepath",
+                        os.path.abspath("options.json"))
+
+    assert not os.path.isfile("options.json")
+
+    schema = OptionSchema()
+    schema.set_flow("this")
+    schema.add_from("is")
+    schema.add_to("not")
+    schema.add_prune(("recorded", "0"))
+    schema.set_design("in")
+    schema.add_alias(("op", "ti", "on", "s"))
+    schema.add_fileset("file")
+    schema.set_optmode(12)
+    schema.scheduler.set_maxthreads(8)
+
+    schema.write_defaults()
+
+    assert os.path.isfile("options.json")
+    with open("options.json") as fd:
+        data = json.load(fd)
+    assert data["schema-options"] == {
+        "optmode": 12,
+        "scheduler,maxthreads": 8
+    }

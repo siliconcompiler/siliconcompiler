@@ -25,7 +25,7 @@ jobs:
       version: ${{ steps.version.outputs.version }}
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: klayout version
         id: version
@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
     - uses: hynek/build-and-inspect-python-package@v2
 
   test_wheel:
@@ -63,7 +63,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13']
+        python-version: ['3.9', '3.10', '3.11', '3.12', '3.13', '3.14']
         platform:
           - os: ubuntu-22.04
             arch: x86_64
@@ -75,7 +75,7 @@ jobs:
           - { python-version: "3.9", platform: {os: "macos-latest", arch: "x86_64"} }
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
       with:
         path: sc
 

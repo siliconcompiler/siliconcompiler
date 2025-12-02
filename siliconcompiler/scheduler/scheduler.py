@@ -311,15 +311,19 @@ class Scheduler:
             if self.__check_collect_files():
                 collect(self.project)
 
-            self.run_core()
+            try:
+                self.run_core()
+            except SCRuntimeError as e:
+                raise e
 
-            # Store run in history
-            self.__project._record_history()
+            finally:
+                # Store run in history
+                self.__project._record_history()
 
-            # Record final manifest
-            self.__project.write_manifest(self.manifest)
+                # Record final manifest
+                self.__project.write_manifest(self.manifest)
 
-            send_messages.send(self.__project, 'summary', None, None)
+                send_messages.send(self.__project, 'summary', None, None)
         finally:
             if self.__joblog_handler is not None:
                 self.__logger.removeHandler(self.__joblog_handler)
@@ -559,6 +563,10 @@ class Scheduler:
             if NodeStatus.is_waiting(self.__record.get('status', step=step, index=index)):
                 with self.__tasks[(step, index)].runtime():
                     self.__tasks[(step, index)].clean_directory()
+                    parent_dir = os.path.dirname(self.__tasks[(step, index)].workdir)
+                    if os.path.exists(parent_dir) and len(os.listdir(parent_dir)) == 0:
+                        # Step directory is empty so safe to remove
+                        os.rmdir(parent_dir)
 
     def __configure_collect_previous_information(self) -> Dict[Tuple[str, str], "Project"]:
         """Collects information from previous runs for nodes that won't be re-executed.

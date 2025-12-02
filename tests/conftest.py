@@ -24,6 +24,7 @@ from siliconcompiler.targets import freepdk45_demo
 from siliconcompiler.scheduler import TaskScheduler
 from siliconcompiler.utils.multiprocessing import _ManagerSingleton, MPManager
 from siliconcompiler.apps import sc_server
+from siliconcompiler.schema import BaseSchema
 
 
 def pytest_addoption(parser):
@@ -108,6 +109,9 @@ def isolate_statics_in_testing(monkeypatch):
 
     monkeypatch.setattr(MPManager, "_MPManager__ENABLE_LOGGER", False)
     monkeypatch.setattr(MPManager, "_MPManager__address", None)
+
+    BaseSchema._BaseSchema__get_child_classes.cache_clear()
+    BaseSchema._BaseSchema__load_schema_class.cache_clear()
 
     with patch.dict(TaskScheduler._TaskScheduler__callbacks), \
             patch.dict(_ManagerSingleton._instances, clear=True):
@@ -394,3 +398,29 @@ def display():
         display.stop()
     else:
         yield False
+
+
+@pytest.fixture
+def disable_mp_process():
+    class FakeProc:
+        def __init__(self, target, args=()):
+            self.target = target
+            self.args = args
+            self.exitcode = None
+
+        def start(self):
+            try:
+                self.target(*self.args)
+                self.exitcode = 0
+            except SystemExit as e:
+                self.exitcode = e.code
+
+        def join(self):
+            return
+
+        def is_alive(self):
+            return False
+
+    with patch("multiprocessing.Process") as proc:
+        proc.side_effect = FakeProc
+        yield

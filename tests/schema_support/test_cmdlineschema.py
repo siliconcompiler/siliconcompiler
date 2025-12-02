@@ -208,17 +208,17 @@ def test_wrong_cfg_read_fail(schema, monkeypatch):
                         ['testprog',
                          '-cfg', "test.json"])
 
-    class TestSchema(BaseSchema):
+    class TestSchema2(BaseSchema):
         @classmethod
         def _getdict_type(cls):
-            return "testschema"
+            return "testschema2"
 
-    TestSchema().write_manifest("test.json")
+    TestSchema2().write_manifest("test.json")
 
     with patch("siliconcompiler.schema.BaseSchema._BaseSchema__get_child_classes") as children:
         children.return_value = {
             "BaseSchema": BaseSchema,
-            "testschema": TestSchema
+            "testschema2": TestSchema2
         }
         with pytest.raises(TypeError, match="^Schema is not a commandline class$"):
             schema.create_cmdline("testprog", use_cfg=True)
@@ -229,17 +229,17 @@ def test_wrong_cfg_read_okay(schema, monkeypatch):
                         ['testprog',
                          '-cfg', "test.json"])
 
-    class TestSchema(BaseSchema):
+    class TestSchema3(BaseSchema):
         @classmethod
         def _getdict_type(cls):
-            return "testschema"
+            return "testschema3"
 
-    TestSchema().write_manifest("test.json")
+    TestSchema3().write_manifest("test.json")
 
     with patch("siliconcompiler.schema.BaseSchema._BaseSchema__get_child_classes") as children:
         children.return_value = {
             "BaseSchema": BaseSchema,
-            "testschema": TestSchema
+            "testschema3": TestSchema3
         }
         check_schema = schema.create_cmdline("testprog", use_cfg=True, use_sources=False)
-    assert isinstance(check_schema, TestSchema)
+    assert isinstance(check_schema, TestSchema3)

@@ -137,7 +137,7 @@ def test_show_vcd_surfer(datadir, display, gcd_design):
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.timeout(300)
-def test_show_vcd_gtkwave(datadir, display, gcd_design):
+def test_show_vcd_gtkwave(disable_mp_process, datadir, display, gcd_design):
     proj = Project(gcd_design)
     proj.add_fileset("rtl")
 

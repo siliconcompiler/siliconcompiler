@@ -23,7 +23,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+        python: ["3.9", "3.10", "3.11", "3.12", "3.13", "3.14"]
         os: ["ubuntu-latest", "ubuntu-24.04-arm", "windows-latest", "macos-latest"]
         # Python 3.9 is not on macos-latest (macos-14-arm64)
         # https://github.com/actions/setup-python/issues/696#issuecomment-1637587760
@@ -31,7 +31,7 @@ jobs:
           - { python: "3.9", os: "macos-latest" }
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Install Dependencies (linux)
         if: runner.os == 'Linux'
@@ -116,7 +116,7 @@ jobs:
     name: 'Pure Python tests with docs'
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
 
       - name: Install Dependencies
         run: |

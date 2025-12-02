@@ -2611,7 +2611,7 @@ def test_getdict_meta_basecall():
 
 
 def test_from_dict_composite_type_names():
-    class DummySchema(BaseSchema):
+    class DummySchema1(BaseSchema):
         def __init__(self):
             super().__init__()
 
@@ -2619,7 +2619,7 @@ def test_from_dict_composite_type_names():
 
         @classmethod
         def _getdict_type(cls):
-            return "dummy_schema"
+            return "dummy_schema1"
 
     schema = BaseSchema()
     edit = EditableSchema(schema)
@@ -2631,7 +2631,7 @@ def test_from_dict_composite_type_names():
             load_schema_class:
         children.return_value = {
             "BaseSchema": BaseSchema,
-            "dummy_schema": DummySchema
+            "dummy_schema1": DummySchema1
         }
         schema._from_dict({
             'dummy': {
@@ -2652,7 +2652,7 @@ def test_from_dict_composite_type_names():
                                  'default': {'default': {'value': None, 'signature': None}}}
                     },
                     '__meta__': {
-                        'sctype': 'dummy_schema'
+                        'sctype': 'dummy_schema1'
                     }
                 }
             },
@@ -2690,7 +2690,7 @@ def test_from_dict_composite_type_names():
         load_schema_class.assert_not_called()
 
     assert schema.get("dummy", "default", field="schema").__class__ is BaseSchema
-    assert schema.get("dummy", "newdummy", field="schema").__class__ is DummySchema
+    assert schema.get("dummy", "newdummy", field="schema").__class__ is DummySchema1
     assert schema.get("base", "default", field=None).__class__ is Parameter
     assert schema.get("base", "newbase", field=None).__class__ is Parameter
 
@@ -2704,7 +2704,7 @@ def test_from_dict_composite_type_names():
 
 
 def test_from_dict_composite_type_names_lazy():
-    class DummySchema(BaseSchema):
+    class DummySchema2(BaseSchema):
         def __init__(self):
             super().__init__()
 
@@ -2712,7 +2712,7 @@ def test_from_dict_composite_type_names_lazy():
 
         @classmethod
         def _getdict_type(cls):
-            return "dummy_schema"
+            return "dummy_schema2"
 
     schema = BaseSchema()
     edit = EditableSchema(schema)
@@ -2724,7 +2724,7 @@ def test_from_dict_composite_type_names_lazy():
             load_schema_class:
         children.return_value = {
             "BaseSchema": BaseSchema,
-            "dummy_schema": DummySchema
+            "dummy_schema2": DummySchema2
         }
         schema._from_dict({
             'dummy': {
@@ -2745,7 +2745,7 @@ def test_from_dict_composite_type_names_lazy():
                                  'default': {'default': {'value': None, 'signature': None}}}
                     },
                     '__meta__': {
-                        'sctype': 'dummy_schema'
+                        'sctype': 'dummy_schema2'
                     }
                 }
             },
@@ -2791,7 +2791,7 @@ def test_from_dict_composite_type_names_lazy():
         load_schema_class.assert_not_called()
 
     assert schema.get("dummy", "default", field="schema").__class__ is BaseSchema
-    assert schema.get("dummy", "newdummy", field="schema").__class__ is DummySchema
+    assert schema.get("dummy", "newdummy", field="schema").__class__ is DummySchema2
     assert schema.get("base", "default", field=None).__class__ is Parameter
     assert schema.get("base", "newbase", field=None).__class__ is Parameter
 
@@ -2820,7 +2820,7 @@ def test_from_dict_composite_nested():
         def _getdict_type(cls):
             return "impl_low_schema"
 
-    class DummySchema(BaseSchema):
+    class DummySchema3(BaseSchema):
         def __init__(self):
             super().__init__()
 
@@ -2828,23 +2828,23 @@ def test_from_dict_composite_nested():
 
         @classmethod
         def _getdict_type(cls):
-            return "dummy_schema"
+            return "dummy_schema3"
 
-    class ImplDummySchema(DummySchema):
+    class ImplDummySchema(DummySchema3):
         @classmethod
         def _getdict_type(cls):
             return "impl_dummy_schema"
 
     schema = BaseSchema()
     edit = EditableSchema(schema)
-    edit.insert("dummy", "default", DummySchema())
+    edit.insert("dummy", "default", DummySchema3())
 
     with patch("siliconcompiler.schema.BaseSchema._BaseSchema__get_child_classes") as children, \
             patch("siliconcompiler.schema.BaseSchema._BaseSchema__load_schema_class") as \
             load_schema_class:
         children.return_value = {
             "BaseSchema": BaseSchema,
-            "dummy_schema": DummySchema,
+            "dummy_schema3": DummySchema3,
             "impl_dummy_schema": ImplDummySchema,
             "low_schema": LowSchema,
             "impl_low_schema": ImplLowSchema
@@ -2883,7 +2883,7 @@ def test_from_dict_composite_nested():
         assert children.call_count == 2
         load_schema_class.assert_not_called()
 
-    assert schema.get("dummy", "default", field="schema").__class__ is DummySchema
+    assert schema.get("dummy", "default", field="schema").__class__ is DummySchema3
     assert schema.get("dummy", "newdummy", field="schema").__class__ is ImplDummySchema
     assert schema.get("dummy", "newdummy", "test0", field="schema").__class__ is BaseSchema
     assert schema.get("dummy", "newdummy", "test0", "newlow", field="schema").__class__ is \
@@ -2898,7 +2898,7 @@ def test_from_dict_composite_nested():
 
 
 def test_from_dict_composite_type_names_use_default():
-    class DummySchema(BaseSchema):
+    class DummySchema4(BaseSchema):
         def __init__(self):
             super().__init__()
 
@@ -2906,11 +2906,11 @@ def test_from_dict_composite_type_names_use_default():
 
         @classmethod
         def _getdict_type(cls):
-            return "dummy_schema"
+            return "dummy_schema4"
 
     schema = BaseSchema()
     edit = EditableSchema(schema)
-    edit.insert("dummy", "default", DummySchema())
+    edit.insert("dummy", "default", DummySchema4())
     edit.insert("base", "default", Parameter("str"))
 
     with patch("siliconcompiler.schema.BaseSchema._BaseSchema__get_child_classes") as children, \
@@ -2918,7 +2918,7 @@ def test_from_dict_composite_type_names_use_default():
             load_schema_class:
         children.return_value = {
             "BaseSchema": BaseSchema,
-            "dummy_schema": DummySchema
+            "dummy_schema4": DummySchema4
         }
         schema._from_dict({
             'dummy': {
@@ -2975,8 +2975,8 @@ def test_from_dict_composite_type_names_use_default():
         children.assert_called_once()
         load_schema_class.assert_not_called()
 
-    assert schema.get("dummy", "default", field="schema").__class__ is DummySchema
-    assert schema.get("dummy", "newdummy", field="schema").__class__ is DummySchema
+    assert schema.get("dummy", "default", field="schema").__class__ is DummySchema4
+    assert schema.get("dummy", "newdummy", field="schema").__class__ is DummySchema4
     assert schema.get("base", "default", field=None).__class__ is Parameter
     assert schema.get("base", "newbase", field=None).__class__ is Parameter
 
@@ -2990,7 +2990,7 @@ def test_from_dict_composite_type_names_use_default():
 
 
 def test_from_dict_composite_type_load_via_class_name():
-    class DummySchema(BaseSchema):
+    class DummySchema5(BaseSchema):
         def __init__(self):
             super().__init__()
 
@@ -2998,7 +2998,7 @@ def test_from_dict_composite_type_load_via_class_name():
 
         @classmethod
         def _getdict_type(cls):
-            return "dummy_schema"
+            return "dummy_schema5"
 
     schema = BaseSchema()
     edit = EditableSchema(schema)
@@ -3010,9 +3010,9 @@ def test_from_dict_composite_type_load_via_class_name():
             load_schema_class:
         children.return_value = {
             "BaseSchema": BaseSchema,
-            "dummy_schema": DummySchema
+            "dummy_schema5": DummySchema5
         }
-        load_schema_class.return_value = DummySchema
+        load_schema_class.return_value = DummySchema5
         schema._from_dict({
             'dummy': {
                 'default': {},
@@ -3032,7 +3032,7 @@ def test_from_dict_composite_type_load_via_class_name():
                                  'default': {'default': {'value': None, 'signature': None}}}
                     },
                     '__meta__': {
-                        'class': 'test/DummySchema', 'sctype': 'dummy_schema'
+                        'class': 'test/DummySchema5', 'sctype': 'dummy_schema5'
                     }
                 }
             },
@@ -3067,10 +3067,10 @@ def test_from_dict_composite_type_load_via_class_name():
             }
         }, [], lazyload=LazyLoad.OFF)
         children.assert_called_once()
-        load_schema_class.assert_called_once_with("test/DummySchema")
+        load_schema_class.assert_called_once_with("test/DummySchema5")
 
     assert schema.get("dummy", "default", field="schema").__class__ is BaseSchema
-    assert schema.get("dummy", "newdummy", field="schema").__class__ is DummySchema
+    assert schema.get("dummy", "newdummy", field="schema").__class__ is DummySchema5
     assert schema.get("base", "default", field=None).__class__ is Parameter
     assert schema.get("base", "newbase", field=None).__class__ is Parameter
 
@@ -3084,7 +3084,7 @@ def test_from_dict_composite_type_load_via_class_name():
 
 
 def test_from_dict_composite_using_cls_name():
-    class DummySchema(BaseSchema):
+    class DummySchema6(BaseSchema):
         def __init__(self):
             super().__init__()
 
@@ -3092,7 +3092,7 @@ def test_from_dict_composite_using_cls_name():
 
         @classmethod
         def _getdict_type(cls):
-            return "dummy_schema"
+            return "dummy_schema7"
 
     schema = BaseSchema()
     edit = EditableSchema(schema)
@@ -3104,7 +3104,7 @@ def test_from_dict_composite_using_cls_name():
             load_schema_class:
         children.return_value = {
             "siliconcompiler.schema.baseschema/BaseSchema": BaseSchema,
-            "test/DummySchema": DummySchema
+            "test/DummySchema6": DummySchema6
         }
         schema._from_dict({
             'dummy': {
@@ -3125,7 +3125,7 @@ def test_from_dict_composite_using_cls_name():
                                  'default': {'default': {'value': None, 'signature': None}}}
                     },
                     '__meta__': {
-                        'class': 'test/DummySchema', 'sctype': 'dummy_schema'
+                        'class': 'test/DummySchema6', 'sctype': 'dummy_schema7'
                     }
                 }
             },
@@ -3163,7 +3163,7 @@ def test_from_dict_composite_using_cls_name():
         load_schema_class.assert_not_called()
 
     assert schema.get("dummy", "default", field="schema").__class__ is BaseSchema
-    assert schema.get("dummy", "newdummy", field="schema").__class__ is DummySchema
+    assert schema.get("dummy", "newdummy", field="schema").__class__ is DummySchema6
     assert schema.get("base", "default", field=None).__class__ is Parameter
     assert schema.get("base", "newbase", field=None).__class__ is Parameter
 
@@ -3235,20 +3235,24 @@ def test_from_dict_composite_no_meta():
 
 def test___get_child_classes_invalid_child(monkeypatch):
     class DummySchema0(BaseSchema):
+        dict_type = "dummy_schema"
+
         def __init__(self):
             super().__init__()
 
         @classmethod
         def _getdict_type(cls):
-            return "dummy_schema"
+            return DummySchema0.dict_type
 
     class DummySchema1(BaseSchema):
+        dict_type = "dummy_schema"
+
         def __init__(self):
             super().__init__()
 
         @classmethod
         def _getdict_type(cls):
-            return "dummy_schema"
+            return DummySchema1.dict_type
 
     monkeypatch.setattr(DummySchema0, "__subclasses__", lambda: [])
     monkeypatch.setattr(DummySchema1, "__subclasses__", lambda: [])
@@ -3260,9 +3264,13 @@ def test___get_child_classes_invalid_child(monkeypatch):
                            match=r"^Ambiguous schema type 'dummy_schema'\. "
                                  r"Candidates: test_baseschema/DummySchema0, "
                                  r"test_baseschema/DummySchema1$"):
-            BaseSchema._BaseSchema__get_child_classes.cache_clear()
             BaseSchema._BaseSchema__get_child_classes()
         subclasses.assert_called_once()
+
+    DummySchema0.dict_type = "test_base_dummy_schema0"
+    DummySchema1.dict_type = "test_base_dummy_schema1"
+
+    assert DummySchema0._getdict_type() != DummySchema1._getdict_type()
 
 
 def test___get_child_classes_valid(monkeypatch):
