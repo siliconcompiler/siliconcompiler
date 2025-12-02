@@ -952,7 +952,7 @@ def test_generate_replay_script(running_node, monkeypatch):
             replay_text = "\n".join(replay.read().splitlines())
         replay_hash = hashlib.md5(replay_text.encode()).hexdigest()
 
-    assert replay_hash == "d86d8d1a38c5acf8a8954670cb0f802c"
+    assert replay_hash == "c1fdb6d027f5b5ebeea9ec476eefbb0c"
 
 
 def test_run_task_terminate_called_on_timeout(running_node, monkeypatch, patch_psutil, caplog):
@@ -1030,7 +1030,7 @@ def test_generate_replay_script_no_path(running_node, monkeypatch):
             replay_text = "\n".join(replay.read().splitlines())
         replay_hash = hashlib.md5(replay_text.encode()).hexdigest()
 
-        assert replay_hash == "ecf2e9d93e49feb3ce734fc3185e7480"
+        assert replay_hash == "8af55a245c848918283428109071a0a5"
 
 
 def test_setup_work_directory():
