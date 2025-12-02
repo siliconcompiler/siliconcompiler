@@ -86,7 +86,7 @@ def build_and() -> StdCellLibrary:
     return library
 
 
-def build_top(size: int = 200, margin: int = 10):
+def build_top(size: int = 250, margin: int = 10):
     project = ASIC(Top())
     project.add_fileset('rtl')
 
@@ -99,6 +99,16 @@ def build_top(size: int = 200, margin: int = 10):
     # Setting core and die area correctly is crucial for successful macro placement.
     #
     project.constraint.area.set_diearea_rectangle(size, size, coremargin=margin)                   # Silicon area occupied by the design
+
+    project.run()
+    project.summary()
+    project.snapshot()
+
+
+def build_flat():
+    project = ASIC(Top())
+    project.add_fileset('rtl')
+    skywater130_demo(project)
 
     project.run()
     project.summary()
