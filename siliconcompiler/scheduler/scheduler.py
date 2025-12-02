@@ -311,7 +311,7 @@ class Scheduler:
             if self.__check_collect_files():
                 collect(self.project)
 
-            
+
             try:
                 self.run_core()
             except SCRuntimeError as e:
