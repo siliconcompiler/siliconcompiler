@@ -6,7 +6,7 @@ This script demonstrates a hierarchical ASIC design flow using SiliconCompiler.
 It performs the following steps:
 1. Defines a child module 'And'.
 2. Hardens 'And' into a macro (Synthesize -> Place -> Route -> GDS/LEF/LIB).
-3. Packages the results of 'And' into a reuseable StdCellLibrary object.
+3. Packages the results of 'And' into a reusable StdCellLibrary object.
 4. Defines a top-level module 'Top' that instantiates 'And' three times.
 5. Builds 'Top' using the hardened 'And' macro.
 

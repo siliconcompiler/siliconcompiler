@@ -5,8 +5,8 @@ module mod_and (
     output reg  [7:0] y
 );
 
-  always @(posedge clk) begin
-    y <= a & b;
-  end
+    always @(posedge clk) begin
+        y <= a & b;
+    end
 
 endmodule
