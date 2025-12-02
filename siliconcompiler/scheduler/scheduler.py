@@ -311,15 +311,20 @@ class Scheduler:
             if self.__check_collect_files():
                 collect(self.project)
 
-            self.run_core()
+            
+            try:
+                self.run_core()
+            except SCRuntimeError as e:
+                raise e
 
-            # Store run in history
-            self.__project._record_history()
+            finally:
+                # Store run in history
+                self.__project._record_history()
 
-            # Record final manifest
-            self.__project.write_manifest(self.manifest)
+                # Record final manifest
+                self.__project.write_manifest(self.manifest)
 
-            send_messages.send(self.__project, 'summary', None, None)
+                send_messages.send(self.__project, 'summary', None, None)
         finally:
             if self.__joblog_handler is not None:
                 self.__logger.removeHandler(self.__joblog_handler)
