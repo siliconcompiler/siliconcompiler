@@ -431,6 +431,7 @@ class APRTask(OpenROADTask):
             "fmax",
             "power",
             "check_setup",
+            "report_buffers",
             "placement_density",
             "routing_congestion",
             "power_density",
