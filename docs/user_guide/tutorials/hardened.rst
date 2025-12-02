@@ -37,7 +37,7 @@ Import the modules to be used:
 
 .. literalinclude:: examples/macro_reuse/make.py
     :language: python
-    :lines: 39-45
+    :lines: 19-20
 
 
 Files used
@@ -59,12 +59,12 @@ The following code will build module **mod_and** and **top** with the default :r
 .. literalinclude:: examples/macro_reuse/make.py
     :language: python
     :caption: Design setup for mod_and
-    :lines: 48-55
+    :lines: 23-33
 
 .. literalinclude:: examples/macro_reuse/make.py
     :language: python
     :caption: Design setup for top
-    :lines: 58-66
+    :lines: 36-48
 
 Dependency graph from **top**:
 
@@ -80,10 +80,11 @@ The following code will build module **mod_and** with the default :ref:`ASIC <sc
 
 .. literalinclude:: examples/macro_reuse/make.py
     :language: python
-    :lines: 69-76
+    :lines: 51-68
 
 .. figure:: _images/hardended/and.png
     :align: center
+    :scale: 50%
 
 Step 3: Packaging the resulting layout and timing models from **mod_and** as a hard macro
 -----------------------------------------------------------------------------------------
@@ -94,7 +95,7 @@ Define a class that inherits from the relevant tools and provides them with the 
 
 .. literalinclude:: examples/macro_reuse/make.py
     :language: python
-    :lines: 78-91
+    :lines: 70-93
 
 Step 4: Running the ASIC flow on module **top**
 -----------------------------------------------
@@ -103,16 +104,17 @@ Configure Silicon Compiler to treat ``modA`` as an available macro in the :ref:`
 
 .. literalinclude:: examples/macro_reuse/make.py
     :language: python
-    :lines: 94-107
+    :lines: 96-123
 
 Setting core and die area correctly is crucial for successful macro placement.
 
 .. literalinclude:: examples/macro_reuse/make.py
     :language: python
-    :lines: 103
+    :lines: 119
 
 .. figure:: _images/hardended/top.png
     :align: center
+    :scale: 50%
 
 Conclusion
 ----------
