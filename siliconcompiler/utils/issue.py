@@ -237,6 +237,10 @@ def generate_testcase(project: "Project",
     with open(issue_path, 'w') as fd:
         json.dump(issue_information, fd, indent=4, sort_keys=True)
 
+    gitignore_path = os.path.join(issue_dir.name, '.gitignore')
+    with open(gitignore_path, 'w') as fd:
+        fd.write("/*\n")
+
     readme_path = os.path.join(issue_dir.name, 'README.txt')
     with open(readme_path, 'w') as f:
         f.write(get_file_template('issue/README.txt').render(
@@ -268,7 +272,8 @@ def generate_testcase(project: "Project",
         # Add individual files
         add_files = [manifest_path,
                      issue_path,
-                     readme_path]
+                     readme_path,
+                     gitignore_path]
         if not is_python_tool and run_path:
             add_files.append(run_path)
         for path in add_files:

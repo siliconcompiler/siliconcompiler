@@ -4,10 +4,27 @@ if [ "${BASH_SOURCE[0]}" != "$0" ]; then
     return
 fi
 
+__print_help() {
+    # Print help information for this file
+    echo "Usage: $0"
+    echo "  Options:"
+    echo "    --which           print which executable would be used"
+    echo "    --version         print the version of the executable, if supported"
+    echo "    --directory       print the execution directory"
+    echo "    --command         print the execution command"
+    echo "    --skipcd          do not change directory into replay directory"
+    echo "    --skipexports     do not export environmental variables"
+    echo "    --cmdprefix <cmd> prefix to add to the replay command, such as gdb"
+    echo "    --cmdarg <args>   prefix to add to the replay command, such as -gui"
+    echo "    --node            execute entire node"
+    echo "    -h,--help         print this help"
+}
+
 # Parse replay arguments
 CD_WORK="{{ work_dir }}"
 PRINT=""
 CMDPREFIX=""
+CMDARGS=""
 SKIPEXPORT=0
 DONODE={{ node_only }}
 while [[ $# -gt 0 ]]; do
@@ -41,27 +58,22 @@ while [[ $# -gt 0 ]]; do
             shift
             shift
             ;;
-        --node)
-            DONODE=1
+        --cmdarg)
+            CMDARGS="$2"
             shift
             shift
             ;;
+        --node)
+            DONODE=1
+            shift
+            ;;
         -h|--help)
-            echo "Usage: $0"
-            echo "  Options:"
-            echo "    --which           print which executable would be used"
-            echo "    --version         print the version of the executable, if supported"
-            echo "    --directory       print the execution directory"
-            echo "    --command         print the execution command"
-            echo "    --skipcd          do not change directory into replay directory"
-            echo "    --skipexports     do not export environmental variables"
-            echo "    --cmdprefix <cmd> prefix to add to the replay command, such as dgb"
-            echo "    --node            execute entire node"
-            echo "    -h,--help         print this help"
+            __print_help
             exit 0
             ;;
         *)
             echo "Unknown option $1"
+            __print_help
             exit 1
             ;;
     esac
@@ -105,5 +117,6 @@ python3 -m siliconcompiler.scheduler.run_node \
 {% if cmds|length > 0 %}else
 # Command execution
 $CMDPREFIX \{% for cmd in cmds %}
-{% if not loop.first %}  {% endif %}{{ cmd }}{% if not loop.last %} \{% endif %}{% endfor %}
-{% endif %}fi
+{% if not loop.first %}  {% endif %}{{ cmd }} \{% endfor %}
+{% endif %}  ${CMDARGS}
+fi
