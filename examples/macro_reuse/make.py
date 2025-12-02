@@ -36,13 +36,8 @@
 # Import the tools to be used:
 #
 
-import os
-
 from siliconcompiler import Design, ASIC, StdCellLibrary
 from siliconcompiler.targets import skywater130_demo
-from siliconcompiler.tools.klayout import KLayoutLibrary
-from siliconcompiler.tools.openroad import OpenROADStdCellLibrary
-from siliconcompiler.tools.yosys import YosysStdCellLibrary
 
 
 class And(Design):
@@ -91,12 +86,14 @@ def build_and() -> StdCellLibrary:
     return library
 
 
-def build_top(size: int = 300, margin: int = 10):
-    Top().write_depgraph("graph.png")
+def build_top(size: int = 200, margin: int = 10):
     project = ASIC(Top())
     project.add_fileset('rtl')
+
+    # Replace verilog RTL for and with harded module
     project.add_alias(And(), "rtl", None, None)
-    project.add_asiclib(build_and())                                        # Add the hard macro for module A
+    project.add_asiclib(build_and())
+
     skywater130_demo(project)                                                   # Technology being used
     #
     # Setting core and die area correctly is crucial for successful macro placement.
