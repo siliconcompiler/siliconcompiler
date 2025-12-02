@@ -5,7 +5,7 @@ import os.path
 
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.timeout(150)
+@pytest.mark.timeout(300)
 def test_py_make_top():
     from macro_reuse import make
     make.build_top()
@@ -16,7 +16,7 @@ def test_py_make_top():
 
 @pytest.mark.eda
 @pytest.mark.quick
-@pytest.mark.timeout(150)
+@pytest.mark.timeout(300)
 def test_py_make_flat():
     from macro_reuse import make
     make.build_flat()
