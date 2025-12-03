@@ -12,7 +12,7 @@ set sc_topmodulelib [sc_cfg_get option design]
 set sc_filesets [sc_cfg_get option fileset]
 
 # APR Parameters
-set sc_timing_mode [lindex [sc_cfg_tool_task_get var timing_mode] 0]
+set sc_timing_mode [sc_cfg_tool_task_get var timing_mode]
 
 set sc_mainlib []
 set sc_logiclibs []
@@ -24,7 +24,10 @@ if { $opensta_timing_mode == "asic" } {
     set sc_delaymodel [sc_cfg_get asic delaymodel]
 
     foreach corner [dict keys [sc_cfg_get constraint timing]] {
-        if { [sc_cfg_get constraint timing $corner mode] == $sc_timing_mode } {
+        if {
+            $sc_timing_mode == {} ||
+            [sc_cfg_get constraint timing $corner mode] == $sc_timing_mode
+        } {
             lappend sc_scenarios $corner
         }
     }
@@ -111,14 +114,16 @@ if { [file exists "inputs/${sc_topmodule}.sdc"] } {
         lappend sdc_files $sdc
     }
 
-    set sdcfileset [sc_cfg_get constraint timing $corner sdcfileset]
-    foreach corner $sc_scenarios {
-        foreach sdc [sc_cfg_get_fileset $sc_topmodulelib $sdcfileset sdc] {
-            if { [lsearch -exact $sdc_files $sdc] == -1 } {
-                # read step constraint if exists
-                puts "Reading mode (${sc_timing_mode}) SDC: ${sdc}"
-                lappend sdc_files $sdc
-                read_sdc $sdc
+    if { $sc_timing_mode != {} } {
+        foreach corner $sc_scenarios {
+            set sdcfileset [sc_cfg_get constraint timing $corner sdcfileset]
+            foreach sdc [sc_cfg_get_fileset $sc_topmodulelib $sdcfileset sdc] {
+                if { [lsearch -exact $sdc_files $sdc] == -1 } {
+                    # read step constraint if exists
+                    puts "Reading mode (${sc_timing_mode}) SDC: ${sdc}"
+                    lappend sdc_files $sdc
+                    read_sdc $sdc
+                }
             }
         }
     }
@@ -137,7 +142,7 @@ if { [llength [sta::path_group_names]] == 0 } {
 
     if {
         [llength [all_clocks]] == 1 ||
-        [lindex [sc_cfg_tool_task_get var unique_path_groups_per_clock] 0] == "false"
+        ![sc_cfg_tool_task_get var unique_path_groups_per_clock]
     } {
         sc_path_group -name in2reg -from [all_inputs -no_clocks] -to [all_registers]
         sc_path_group -name reg2reg -from [all_registers] -to [all_registers]
@@ -195,7 +200,7 @@ if { $opensta_timing_mode == "asic" } {
 # Report Metrics
 ###############################
 
-set opensta_top_n_paths [lindex [sc_cfg_tool_task_get var top_n_paths] 0]
+set opensta_top_n_paths [sc_cfg_tool_task_get var top_n_paths]
 
 set fields "{capacitance slew input_pins hierarcial_pins net fanout}"
 set PREFIX "SC_METRIC:"

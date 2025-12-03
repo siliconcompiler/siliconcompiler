@@ -43,7 +43,7 @@ if { [file exists "inputs/$sc_design.v"] } {
     set file_type "vg"
 } elseif { [sc_cfg_tool_task_exists var show_filepath] } {
     yosys read_verilog -noblackbox -sv [sc_cfg_tool_task_get var show_filepath]
-    set file_type [lindex [sc_cfg_tool_task_get var show_filetype] 0]
+    set file_type [sc_cfg_tool_task_get var show_filetype]
 }
 
 ########################################################

@@ -14,7 +14,7 @@ proc sc_global_placement_density { args } {
 
     set density_args []
     if { ![info exists flags(-exclude_padding)] } {
-        set gpl_padding [lindex [sc_cfg_tool_task_get var pad_global_place] 0]
+        set gpl_padding [sc_cfg_tool_task_get var pad_global_place]
 
         lappend density_args -pad_left $gpl_padding
         lappend density_args -pad_right $gpl_padding

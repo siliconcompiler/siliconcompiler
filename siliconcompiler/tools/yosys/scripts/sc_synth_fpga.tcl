@@ -90,7 +90,7 @@ if {
     set synth_fpga_args []
     if { [sc_cfg_tool_task_get var synth_opt_mode] != "none" } {
         lappend synth_fpga_args \
-            -opt [lindex [sc_cfg_tool_task_get var synth_opt_mode] 0]
+            -opt [sc_cfg_tool_task_get var synth_opt_mode]
     }
     if { [sc_cfg_tool_task_get var synth_insert_buffers] } {
         lappend synth_fpga_args -insbuf
