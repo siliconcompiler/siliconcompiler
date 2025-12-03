@@ -52,7 +52,7 @@ sc_set_dont_use
 # Tie-off cell insertion
 ###############################
 
-set tie_separation [lindex [sc_cfg_tool_task_get {var} ifp_tie_separation] 0]
+set tie_separation [sc_cfg_tool_task_get {var} ifp_tie_separation]
 foreach tie_type "high low" {
     if { [sc_has_tie_cell $tie_type] } {
         repair_tie_fanout \
