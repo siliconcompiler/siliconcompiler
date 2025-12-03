@@ -24,7 +24,10 @@ if { $opensta_timing_mode == "asic" } {
     set sc_delaymodel [sc_cfg_get asic delaymodel]
 
     foreach corner [dict keys [sc_cfg_get constraint timing]] {
-        if { $sc_timing_mode == {} || [sc_cfg_get constraint timing $corner mode] == $sc_timing_mode } {
+        if {
+            $sc_timing_mode == {} ||
+            [sc_cfg_get constraint timing $corner mode] == $sc_timing_mode
+        } {
             lappend sc_scenarios $corner
         }
     }
