@@ -11,30 +11,6 @@ source ./sc_manifest.tcl
 set sc_refdir [sc_cfg_tool_task_get refdir]
 source "$sc_refdir/apr/preamble.tcl"
 
-proc save_irdrop_image { net prefix } {
-    gui::set_display_controls "Heat Maps/IR Drop" "visible" true
-    gui::set_heatmap "IRDrop" "Net" $net
-    gui::set_heatmap "IRDrop" "ShowLegend" 1
-    gui::set_heatmap "IRDrop" "LogScale" 1
-    gui::set_heatmap "IRDrop" "GridX" 10
-    gui::set_heatmap "IRDrop" "GridY" 10
-
-    foreach layer [[ord::get_db_tech] getLayers] {
-        if { [$layer getType] == "ROUTING" } {
-            gui::set_heatmap "IRDrop" "Layer" [$layer getName]
-            gui::set_heatmap "IRDrop" "rebuild"
-
-            gui::clear_labels
-            set label [add_label -position {3100 50} -anchor center -size 10 [$layer getName]]
-
-            save_image \
-                -area [ord::get_die_area] \
-                -resolution 3 \
-                "${prefix}-${net}-[$layer getName].png"
-        }
-    }
-}
-
 set nets []
 if { [llength [sc_cfg_tool_task_get var net]] > 0 } {
     set nets [sc_cfg_tool_task_get var net]
