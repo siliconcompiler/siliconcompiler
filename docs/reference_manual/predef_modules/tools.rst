@@ -73,7 +73,7 @@ See the pre-built :ref:`targets <builtin_targets>` for examples on how these are
 
 .. sctool::
   :root: siliconcompiler.tools.openroad
-  :tasks: clock_tree_synthesis/CTSTask detailed_placement/DetailedPlacementTask detailed_route/DetailedRouteTask endcap_tapcell_insertion/EndCapTapCellTask fillercell_insertion/FillCellTask fillmetal_insertion/FillMetalTask global_placement/GlobalPlacementTask global_route/GlobalRouteTask init_floorplan/InitFloorplanTask macro_placement/MacroPlacementTask metrics/MetricsTask pin_placement/PinPlacementTask power_grid/PowerGridTask rcx_bench/ORXBenchTask rcx_extract/ORXExtractTask rdlroute/RDLRouteTask repair_design/RepairDesignTask repair_timing/RepairTimingTask screenshot/ScreenshotTask show/ShowTask write_data/WriteViewsTask
+  :tasks: clock_tree_synthesis/CTSTask detailed_placement/DetailedPlacementTask detailed_route/DetailedRouteTask endcap_tapcell_insertion/EndCapTapCellTask fillercell_insertion/FillCellTask fillmetal_insertion/FillMetalTask global_placement/GlobalPlacementTask global_route/GlobalRouteTask init_floorplan/InitFloorplanTask macro_placement/MacroPlacementTask metrics/MetricsTask pin_placement/PinPlacementTask power_grid/PowerGridTask rcx_bench/ORXBenchTask rcx_extract/ORXExtractTask rdlroute/RDLRouteTask repair_design/RepairDesignTask repair_timing/RepairTimingTask screenshot/ScreenshotTask show/ShowTask write_data/WriteViewsTask power_grid_analysis/PowerGridAnalysisTask
 
 .. sctool::
   :root: siliconcompiler.tools.opensta

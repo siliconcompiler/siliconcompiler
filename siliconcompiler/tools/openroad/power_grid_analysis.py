@@ -17,7 +17,7 @@ class PowerGridAnalysisTask(APRTask, OpenROADPSMParameter, OpenROADSTAParameter)
         super().__init__()
 
         self.add_parameter("source_disconnection_rate", "float",
-                           "Fraction (0.0-1.0) of power source bumps to simulate "
+                           "Fraction (0.0-100.0) of power source bumps to simulate "
                            "disconnected/failing bumps.",
                            defvalue=0.0)
         self.add_parameter("source_disconnection_seed", "int",
@@ -42,7 +42,7 @@ class PowerGridAnalysisTask(APRTask, OpenROADPSMParameter, OpenROADSTAParameter)
         Sets the fraction of power pads/bumps to disconnect to simulate robustness.
 
         Args:
-            rate (float): A value between 0.0 and 1.0 representing the percentage to disconnect.
+            rate (float): A value between 0.0 and 100.0 representing the percentage to disconnect.
             step (str, optional): step name
             index (str, optional): index
         '''
