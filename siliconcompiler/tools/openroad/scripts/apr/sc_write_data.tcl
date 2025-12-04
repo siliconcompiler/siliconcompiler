@@ -60,7 +60,7 @@ if { [sc_cfg_tool_task_get var write_spef] } {
     if { [sc_cfg_tool_task_get var use_spef] } {
         set lib_pex [dict create]
         foreach scenario $sc_scenarios {
-            set pexcorner [sc_cfg_get constraint timing $scenario pexcorner]
+            set pexcorner [sc_cfg_get constraint timing scenario $scenario pexcorner]
 
             dict set lib_pex $scenario $pexcorner
         }
@@ -107,11 +107,11 @@ foreach corner $sc_scenarios {
 ###############################
 
 foreach corner $sc_scenarios {
-    if { [sc_cfg_exists constraint timing $corner voltage] } {
-        foreach net [dict keys [sc_cfg_get constraint timing $corner voltage]] {
+    if { [sc_cfg_exists constraint timing scenario $corner voltage] } {
+        foreach net [dict keys [sc_cfg_get constraint timing scenario $corner voltage]] {
             set_pdnsim_net_voltage -corner $corner \
                 -net $net \
-                -voltage [sc_cfg_get constraint timing $corner voltage $net]
+                -voltage [sc_cfg_get constraint timing scenario $corner voltage $net]
         }
     }
 }

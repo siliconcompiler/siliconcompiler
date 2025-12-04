@@ -640,8 +640,9 @@ class APRTask(OpenROADTask):
 
     def _get_pex_mapping(self):
         corners = {}
-        for constraint in self.project.getkeys('constraint', 'timing'):
-            pexcorner = self.project.get('constraint', 'timing', constraint, 'pexcorner',
+        for constraint in self.project.getkeys('constraint', 'timing', 'scenario'):
+            pexcorner = self.project.get('constraint', 'timing', 'scenario',
+                                         constraint, 'pexcorner',
                                          step=self.step, index=self.index)
             if pexcorner:
                 corners[constraint] = pexcorner
@@ -649,13 +650,14 @@ class APRTask(OpenROADTask):
         return corners
 
     def _get_constraint_by_check(self, check: str) -> str:
-        for constraint in self.project.getkeys('constraint', 'timing'):
-            if check in self.project.get('constraint', 'timing', constraint, 'check',
+        for constraint in self.project.getkeys('constraint', 'timing', 'scenario'):
+            if check in self.project.get('constraint', 'timing', 'scenario',
+                                         constraint, 'check',
                                          step=self.step, index=self.index):
                 return constraint
 
         # if not specified, just pick the first constraint available
-        return self.project.getkeys('constraint', 'timing')[0]
+        return self.project.getkeys('constraint', 'timing', 'scenario')[0]
 
     def _build_pex_estimation_file(self):
         corners = self._get_pex_mapping()
@@ -761,9 +763,9 @@ class APRTask(OpenROADTask):
             ],
             "peakpower": [
                 *[f"power/{corner}.rpt"
-                  for corner in self.project.getkeys('constraint', 'timing')],
+                  for corner in self.project.getkeys('constraint', 'timing', 'scenario')],
                 *[f"images/heatmap/power_density/{corner}.png"
-                    for corner in self.project.getkeys('constraint', 'timing')]
+                    for corner in self.project.getkeys('constraint', 'timing', 'scenario')]
             ],
             "drvs": [
                 "timing/drv_violators.rpt",

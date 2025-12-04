@@ -23,10 +23,10 @@ if { $opensta_timing_mode == "asic" } {
     set sc_logiclibs [sc_cfg_get asic asiclib]
     set sc_delaymodel [sc_cfg_get asic delaymodel]
 
-    foreach corner [dict keys [sc_cfg_get constraint timing]] {
+    foreach corner [dict keys [sc_cfg_get constraint timing scenario]] {
         if {
             $sc_timing_mode == {} ||
-            [sc_cfg_get constraint timing $corner mode] == $sc_timing_mode
+            [sc_cfg_get constraint timing scenario $corner mode] == $sc_timing_mode
         } {
             lappend sc_scenarios $corner
         }
@@ -56,7 +56,7 @@ if { $opensta_timing_mode == "asic" } {
     foreach corner $sc_scenarios {
         foreach lib $sc_logiclibs {
             set lib_filesets []
-            foreach libcorner [sc_cfg_get constraint timing $corner libcorner] {
+            foreach libcorner [sc_cfg_get constraint timing scenario $corner libcorner] {
                 if {
                     [sc_cfg_exists library $lib asic \
                         libcornerfileset $libcorner $sc_delaymodel]
@@ -115,15 +115,13 @@ if { [file exists "inputs/${sc_topmodule}.sdc"] } {
     }
 
     if { $sc_timing_mode != {} } {
-        foreach corner $sc_scenarios {
-            set sdcfileset [sc_cfg_get constraint timing $corner sdcfileset]
-            foreach sdc [sc_cfg_get_fileset $sc_topmodulelib $sdcfileset sdc] {
-                if { [lsearch -exact $sdc_files $sdc] == -1 } {
-                    # read step constraint if exists
-                    puts "Reading mode (${sc_timing_mode}) SDC: ${sdc}"
-                    lappend sdc_files $sdc
-                    read_sdc $sdc
-                }
+        set sdcfileset [sc_cfg_get constraint timing mode $sc_timing_mode sdcfileset]
+        foreach sdc [sc_cfg_get_fileset $sc_topmodulelib $sdcfileset sdc] {
+            if { [lsearch -exact $sdc_files $sdc] == -1 } {
+                # read step constraint if exists
+                puts "Reading mode (${sc_timing_mode}) SDC: ${sdc}"
+                lappend sdc_files $sdc
+                read_sdc $sdc
             }
         }
     }
@@ -168,7 +166,7 @@ puts "Timing path groups: [sta::path_group_names]"
 
 if { $opensta_timing_mode == "asic" } {
     foreach corner $sc_scenarios {
-        set pex_corner [sc_cfg_get constraint timing $corner pexcorner]
+        set pex_corner [sc_cfg_get constraint timing scenario $corner pexcorner]
 
         set spef_file "inputs/${sc_topmodule}.${pex_corner}.spef"
         if { [file exists $spef_file] } {
@@ -178,7 +176,7 @@ if { $opensta_timing_mode == "asic" } {
     }
 
     foreach corner $sc_scenarios {
-        set pex_corner [sc_cfg_get constraint timing $corner pexcorner]
+        set pex_corner [sc_cfg_get constraint timing scenario $corner pexcorner]
 
         set input_sdf_file "inputs/${sc_topmodule}.${pex_corner}.sdf"
         if { [file exists $input_sdf_file] } {
