@@ -65,11 +65,12 @@ if { [sc_cfg_tool_task_get var source_disconnection_rate] > 0 } {
 lassign [sc_cfg_tool_task_get var heatmap_grid] heatmap_x heatmap_y
 gui::save_display_controls
 
+sc_image_setup_default
+gui::set_display_controls "Shape Types/Pin*" visible false
+
 foreach net $nets {
     file mkdir reports/${net}
     foreach corner $sc_scenarios {
-        sc_image_setup_default
-
         analyze_power_grid -net $net -corner $corner -allow_reuse
 
         save_animated_gif -start "reports/${net}/${corner}.gif"
