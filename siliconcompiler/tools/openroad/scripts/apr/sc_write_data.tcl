@@ -33,12 +33,10 @@ write_abstract_lef {*}$lef_args "outputs/${sc_topmodule}.lef"
 if { [sc_cfg_tool_task_get var write_cdl] } {
     # Write CDL
     set sc_cdl_masters []
-    foreach lib "$sc_targetlibs $sc_macrolibs" {
-        #CDL files
-        if { [sc_cfg_exists library $lib output $sc_stackup cdl] } {
-            foreach cdl_file [sc_cfg_get library $lib output $sc_stackup cdl] {
-                lappend sc_cdl_masters $cdl_file
-            }
+    foreach lib $sc_logiclibs {
+        set filesets [sc_cfg_get library $lib asic aprfileset]
+        foreach cdl_file [sc_cfg_get_fileset $lib $filesets cdl] {
+            lappend sc_cdl_masters $cdl_file
         }
     }
     write_cdl -masters $sc_cdl_masters "outputs/${sc_topmodule}.cdl"
