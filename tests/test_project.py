@@ -50,6 +50,14 @@ class FauxTask2(Task):
         return "task2"
 
 
+class FauxTask3(Task):
+    def tool(self):
+        return "tool0"
+
+    def task(self):
+        return "task0"
+
+
 def test_key_groups():
     assert Project().getkeys() == (
         'arg',
@@ -450,6 +458,41 @@ def test_add_dep_flowgraph():
     proj.add_dep(flow)
     assert proj.getkeys("flowgraph") == ("test",)
     assert proj.get("flowgraph", "test", field="schema") is flow
+
+
+def test_add_dep_flowgraph_same_tasks():
+    flow = Flowgraph("test")
+    flow.node("test0", FauxTask0())
+    proj = Project()
+    proj.add_dep(flow)
+    assert proj.getkeys("flowgraph") == ("test",)
+    assert proj.get("flowgraph", "test", field="schema") is flow
+    assert isinstance(proj.get("tool", "tool0", "task", "task0", field="schema"), FauxTask0)
+
+    flow = Flowgraph("testother")
+    flow.node("test0", FauxTask0())
+    proj.add_dep(flow)
+    assert proj.getkeys("flowgraph") == ("test",  "testother")
+    assert proj.get("flowgraph", "testother", field="schema") is flow
+    assert isinstance(proj.get("tool", "tool0", "task", "task0", field="schema"), FauxTask0)
+
+
+def test_add_dep_flowgraph_conflict_tasks():
+    flow = Flowgraph("test")
+    flow.node("test0", FauxTask0())
+    proj = Project()
+    proj.add_dep(flow)
+    assert proj.getkeys("flowgraph") == ("test",)
+    assert proj.get("flowgraph", "test", field="schema") is flow
+    assert isinstance(proj.get("tool", "tool0", "task", "task0", field="schema"), FauxTask0)
+
+    flow = Flowgraph("testother")
+    flow.node("test", FauxTask3())
+    with pytest.raises(TypeError, match=r"^Task tool0/task0 already exists with different type "
+                                        r"FauxTask0, imported type is FauxTask3$"):
+        proj.add_dep(flow)
+    assert proj.getkeys("flowgraph") == ("test",)
+    assert isinstance(proj.get("tool", "tool0", "task", "task0", field="schema"), FauxTask0)
 
 
 def test_add_dep_checklist():
