@@ -394,13 +394,20 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             return
 
         edit_schema = EditableSchema(self)
-        edit_schema.insert("flowgraph", flow.name, flow)
 
         # Instantiate tasks
         for task_cls in flow.get_all_tasks():
             task = task_cls()
             if not self.valid("tool", task.tool(), "task", task.task()):
                 edit_schema.insert("tool", task.tool(), "task", task.task(), task)
+            else:
+                existing_task: Task = self.get("tool", task.tool(), "task", task.task(), field="schema")
+                if type(existing_task) != type(task):
+                    raise TypeError(f"Task {task.tool()}/{task.task()} already exists with "
+                                    f"different type {type(existing_task).__name__}, "
+                                    f"imported type is {type(task).__name__}")
+
+        edit_schema.insert("flowgraph", flow.name, flow)
 
     def check_manifest(self) -> bool:
         """
