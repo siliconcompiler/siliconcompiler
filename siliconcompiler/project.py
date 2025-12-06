@@ -401,8 +401,9 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             if not self.valid("tool", task.tool(), "task", task.task()):
                 edit_schema.insert("tool", task.tool(), "task", task.task(), task)
             else:
-                existing_task: Task = self.get("tool", task.tool(), "task", task.task(), field="schema")
-                if type(existing_task) != type(task):
+                existing_task: Task = self.get("tool", task.tool(), "task", task.task(),
+                                               field="schema")
+                if type(existing_task) is not type(task) and type(task) is not Task:
                     raise TypeError(f"Task {task.tool()}/{task.task()} already exists with "
                                     f"different type {type(existing_task).__name__}, "
                                     f"imported type is {type(task).__name__}")
