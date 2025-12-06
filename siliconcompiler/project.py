@@ -403,7 +403,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             else:
                 existing_task: Task = self.get("tool", task.tool(), "task", task.task(),
                                                field="schema")
-                if type(existing_task) is not type(task) and type(task) is not Task:
+                if type(existing_task) is not type(task):
                     raise TypeError(f"Task {task.tool()}/{task.task()} already exists with "
                                     f"different type {type(existing_task).__name__}, "
                                     f"imported type is {type(task).__name__}")
