@@ -84,7 +84,7 @@ class PowerGridAnalysisTask(APRTask, OpenROADPSMParameter, OpenROADSTAParameter)
                                         step: Optional[str] = None,
                                         index: Optional[Union[str, int]] = None):
         '''
-        Sets the external reisstance to be modeled in the power grid analysis.
+        Sets the external resistance to be modeled in the power grid analysis.
 
         Args:
             res (float): External resistance to add.
