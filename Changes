@@ -21,7 +21,7 @@ SiliconCompiler 0.35.4 (2025-12-08)
  * Added `copy_*` methods to timing constraints to better support building multiple modes.
  * Added support for flow to run collection if the specific node requires it.
  * Added check for conflicting flow tasks and generate an error if one is found.
- * Added python 3.14 to testing matrix.
+ * Added Python 3.14 to testing matrix.
  * Improved logging to help identify specific log files.
  * Ensured data is cleaned up when a failure occurs while downloading remote data.
  * Corrected missing history when failures occur in the flow.
