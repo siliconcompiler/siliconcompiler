@@ -8,6 +8,32 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.35.4 (2025-12-08)
+=========================================
+
+**Major:**
+
+ * Added support for `settings.json` to allow users to set defaults and persistent options and controls for slurm nodes.
+
+**Minor:**
+
+ * Added limit to the number of warnings/errors that will be printed to the terminal.
+ * Added `copy_*` methods to timing constraints to better support building multiple modes.
+ * Added support for flow to run collection if the specific node requires it.
+ * Added check for conflicting flow tasks and generate an error if one is found.
+ * Added python 3.14 to testing matrix.
+ * Improved logging to help identify specific log files.
+ * Ensured data is cleaned up when a failure occurs while downloading remote data.
+ * Corrected missing history when failures occur in the flow.
+ * Fixed bug causing skipped tasks to not get re-executed when restarting flow.
+
+ * Tools:
+
+  * yosys: added warning to indicate that slang was not found, added controls for undefined signals, and buffer insertion.
+  * openroad: added support for using bmaps to place bumps, added IR drop task to provide better "what-if" analysis.
+  * vivado: added support for pre/post scripts.
+
+
 SiliconCompiler 0.35.3 (2025-11-10)
 =========================================
 
