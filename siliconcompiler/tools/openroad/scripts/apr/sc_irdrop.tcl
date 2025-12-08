@@ -70,7 +70,7 @@ if { $res > 0 } {
     lappend source_args -external_resistance $res
 }
 
-if { [llength $source_args] != 0} {
+if { [llength $source_args] != 0 } {
     set_pdnsim_source_settings {*}$source_args
 }
 
