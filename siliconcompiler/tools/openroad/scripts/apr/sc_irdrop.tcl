@@ -59,6 +59,22 @@ if { [sc_cfg_tool_task_get var source_disconnection_rate] > 0 } {
 }
 
 ###############################
+# Setup power grid analysis
+###############################
+
+set source_args []
+
+set res [sc_cfg_tool_task_get var external_resistance]
+if { $res > 0 } {
+    puts "Setting external resistance to $res ohms"
+    lappend source_args -external_resistance $res
+}
+
+if { [llength $source_args] != 0 } {
+    set_pdnsim_source_settings {*}$source_args
+}
+
+###############################
 # Analyze nets
 ###############################
 
@@ -84,6 +100,7 @@ foreach net $nets {
             gui::set_heatmap IRDrop Net $net
             gui::set_heatmap IRDrop Corner $corner
             gui::set_heatmap IRDrop Layer $layer_name
+            gui::set_heatmap IRDrop LogScale 0
             gui::set_heatmap IRDrop ShowLegend 1
             gui::set_heatmap IRDrop GridX $heatmap_x
             gui::set_heatmap IRDrop GridY $heatmap_y
@@ -107,6 +124,14 @@ foreach net $nets {
                 "IR drop for $net on $layer_name for $corner heatmap" \
                 reports/${net}/${corner}.${layer_name}.png \
                 true
+
+            gui::set_heatmap IRDrop LogScale 1
+            gui::set_heatmap IRDrop rebuild
+
+            sc_save_image \
+                "IR drop for $net on $layer_name for $corner heatmap" \
+                reports/${net}/${corner}.${layer_name}_log.png \
+                false
 
             gui::set_display_controls "Heat Maps/IR Drop" visible false
 

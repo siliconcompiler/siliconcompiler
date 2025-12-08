@@ -35,6 +35,11 @@ class PowerGridAnalysisTask(APRTask, OpenROADPSMParameter, OpenROADSTAParameter)
                            "Resolution of the IR drop heatmap grid (x_step, y_step).",
                            defvalue=(10, 10), units="um")
 
+        self.add_parameter("external_resistance", "float",
+                           "Resistance value to add to the power grid model to account for "
+                           "external factors (e.g., package, PCB).",
+                           units="ohm")
+
     def set_openroad_disconnectrate(self, rate: float,
                                     step: Optional[str] = None,
                                     index: Optional[Union[str, int]] = None):
@@ -74,6 +79,19 @@ class PowerGridAnalysisTask(APRTask, OpenROADPSMParameter, OpenROADSTAParameter)
             index (str, optional): index
         '''
         self.set("var", "heatmap_grid", (x, y), step=step, index=index)
+
+    def set_openroad_externalresistance(self, res: float,
+                                        step: Optional[str] = None,
+                                        index: Optional[Union[str, int]] = None):
+        '''
+        Sets the external resistance to be modeled in the power grid analysis.
+
+        Args:
+            res (float): External resistance to add.
+            step (str, optional): step name
+            index (str, optional): index
+        '''
+        self.set("var", "external_resistance", res, step=step, index=index)
 
     def add_openroad_irdropnet(self, net: str,
                                step: Optional[str] = None, index: Optional[Union[str, int]] = None,
@@ -124,7 +142,7 @@ class PowerGridAnalysisTask(APRTask, OpenROADPSMParameter, OpenROADSTAParameter)
         super().setup()
         self.set_script("apr/sc_irdrop.tcl")
 
-        self.add_version(">=v2.0-26634", clobber=True)
+        self.add_version(">=v2.0-26750", clobber=True)
 
         # Output is not a standard design file, unset default expectation
         self.unset("output")
@@ -140,6 +158,8 @@ class PowerGridAnalysisTask(APRTask, OpenROADPSMParameter, OpenROADSTAParameter)
 
         if self.get("var", "net"):
             self.add_required_key("var", "net")
+        if self.get("var", "external_resistance") is not None:
+            self.add_required_key("var", "external_resistance")
 
     def runtime_options(self):
         '''
