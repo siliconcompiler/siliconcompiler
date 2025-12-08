@@ -49,6 +49,7 @@ if { $use_slang } {
             lappend slang_params -G "${key}=${value}"
         }
     }
+    yosys slang_version
     yosys read_slang \
         -D SYNTHESIS \
         --keep-hierarchy \
