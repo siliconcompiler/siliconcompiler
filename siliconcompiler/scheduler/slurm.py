@@ -261,10 +261,9 @@ class SlurmSchedulerNode(SchedulerNode):
 
         # Forward additional options
         options = self.project.get('option', 'scheduler', 'options',
-                                      step=self.step, index=self.index)
+                                   step=self.step, index=self.index)
         if options:
             schedule_cmd.extend(options)
-
 
         schedule_cmd.append(script_file)
 
