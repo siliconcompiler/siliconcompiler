@@ -259,6 +259,13 @@ class SlurmSchedulerNode(SchedulerNode):
         if defer_time:
             schedule_cmd.extend(['--begin', defer_time])
 
+        # Forward additional options
+        options = self.project.get('option', 'scheduler', 'options',
+                                      step=self.step, index=self.index)
+        if options:
+            schedule_cmd.extend(options)
+
+
         schedule_cmd.append(script_file)
 
         self.logger.debug(f"Executing slurm command: {shlex.join(schedule_cmd)}")
