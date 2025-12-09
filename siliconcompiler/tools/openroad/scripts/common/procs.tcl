@@ -238,10 +238,10 @@ proc sc_design_has_unplaced_macros { } {
 # Print macros placement
 ###########################
 
-proc sc_print_macro_information { } {
+proc sc_print_macro_information { { insts [] } } {
     set print_header "true"
     foreach inst [[ord::get_db_block] getInsts] {
-        if { [$inst isBlock] } {
+        if { [$inst isBlock] || [lsearch -exact $insts [$inst getName]] != -1 } {
             set master [$inst getMaster]
             set status [$inst getPlacementStatus]
 

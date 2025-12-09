@@ -299,6 +299,8 @@ if { [sc_cfg_exists constraint component] } {
     set x_grid [ord::dbu_to_microns $x_grid]
     set y_grid [ord::dbu_to_microns $y_grid]
 
+    set sc_placed_insts []
+
     dict for {name params} [sc_cfg_get constraint component] {
         set location [dict get $params placement]
         set rotation [sc_convert_rotation [dict get $params rotation]]
@@ -334,13 +336,14 @@ if { [sc_cfg_exists constraint component] } {
 
         place_inst \
             -name $name \
-            -location "$x_loc $y_loc" \
+            -origin "$x_loc $y_loc" \
             -orient $rotation \
             -status FIRM \
             {*}$place_inst_args
+        lappend sc_placed_insts $name
     }
 
-    sc_print_macro_information
+    sc_print_macro_information $sc_placed_insts
 }
 
 if { [sc_check_version 23008] } {
