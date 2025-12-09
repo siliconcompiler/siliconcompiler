@@ -209,8 +209,7 @@ class SlurmSchedulerNode(SchedulerNode):
         self._init_run_logger()
 
         # Determine which cluster parititon to use.
-        partition = self.project.get('option', 'scheduler', 'queue',
-                                     step=self.step, index=self.index)
+        partition = self.project.option.scheduler.get_queue(step=self.step, index=self.index)
         if not partition:
             partition = SlurmSchedulerNode.get_slurm_partition()
 
@@ -254,10 +253,14 @@ class SlurmSchedulerNode(SchedulerNode):
                         '--output', log_file]
 
         # Only delay the starting time if the 'defer' Schema option is specified.
-        defer_time = self.project.get('option', 'scheduler', 'defer',
-                                      step=self.step, index=self.index)
+        defer_time = self.project.option.scheduler.get_defer(step=self.step, index=self.index)
         if defer_time:
             schedule_cmd.extend(['--begin', defer_time])
+
+        # Forward additional user options
+        options = self.project.option.scheduler.get_options(step=self.step, index=self.index)
+        if options:
+            schedule_cmd.extend(options)
 
         schedule_cmd.append(script_file)
 
