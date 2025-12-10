@@ -25,7 +25,7 @@ def show(schema, tech, input_path, output_path, screenshot=False, report=None):
     layout_options.lefdef_config.produce_obstructions = True
 
     # Always use LEF geometry even when LEF file contains FOREIGN statement.
-    layout_options.lefdef_config.macro_resolution_mode = 1
+    layout_options.lefdef_config.macro_resolution_mode = 0
 
     tech.load_layout_options = layout_options
 

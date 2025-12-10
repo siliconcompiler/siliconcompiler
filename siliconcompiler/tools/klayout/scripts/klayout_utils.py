@@ -76,7 +76,7 @@ def technology(design, schema):
 
     layout_options = tech.load_layout_options
 
-    layout_options.lefdef_config.macro_resolution_mode = 1
+    layout_options.lefdef_config.macro_resolution_mode = 0
     layout_options.lefdef_config.via_cellname_prefix = "VIA_"
     pathed_files = set()
     for lef_file in layout_options.lefdef_config.lef_files:
@@ -97,6 +97,18 @@ def technology(design, schema):
 
     for lef_file in layout_options.lefdef_config.lef_files:
         print(f"[INFO] LEF file: {lef_file}")
+
+    in_files = layout_options.lefdef_config.macro_layout_files
+    for lib in schema.get("asic", "asiclib"):
+        libobj = schema.get("library", lib, field="schema")
+        for s in get_streams(schema):
+            for fileset in libobj.get("asic", "aprfileset"):
+                if libobj.valid("fileset", fileset, "file", s):
+                    in_files.extend(libobj.get("fileset", fileset, "file", s))
+                    break
+    layout_options.lefdef_config.macro_layout_files = in_files
+    for lef_file in layout_options.lefdef_config.macro_layout_files:
+        print(f"[INFO] Layout file: {lef_file}")
 
     # Set layer properties
     layer_properties = tech.layer_properties_file
