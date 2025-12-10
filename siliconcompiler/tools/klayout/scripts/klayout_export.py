@@ -39,24 +39,23 @@ import sys
 import fnmatch
 
 
-def gds_export(design_name, in_def, in_files, out_file, tech, allow_missing, config_file='',
-               seal_file='',
-               timestamps=True):
+def gds_export(design_name, in_def, out_file, tech, allow_missing, timestamps=True):
     from klayout_utils import get_write_options  # noqa E402
 
     # Load def file
     main_layout = pya.Layout()
     main_layout.technology_name = tech.name
-    main_layout.read(in_def, tech.load_layout_options)
+    layout_options = tech.load_layout_options
+    main_layout.read(in_def, layout_options)
 
     # List cells
     def_cells = []
-    for def_cell in main_layout.each_cell():
-        def_cells.append(def_cell.name)
+    for cell_idx in main_layout.cell(design_name).each_child_cell():
+        def_cells.append(main_layout.cell_name(cell_idx))
 
-    def_cells.remove(design_name)
     # Remove vias
-    def_cells = sorted([cell for cell in def_cells if not cell.startswith("VIA_")])
+    via_prefix = layout_options.lefdef_config.via_cellname_prefix
+    def_cells = sorted([cell for cell in def_cells if not cell.startswith(via_prefix)])
     print(f"[INFO] Read in {len(def_cells)} cells from DEF file")
     for cell in def_cells:
         print(f"  [INFO] DEF cell: {cell}")
@@ -65,16 +64,11 @@ def gds_export(design_name, in_def, in_files, out_file, tech, allow_missing, con
         def_cells.remove(f"{design_name}_DEF_FILL")
 
     # Load in the gds to merge
-    print("[INFO] Merging GDS/OAS files...")
-    for fil in in_files:
+    for fil in layout_options.lefdef_config.macro_layout_files:
         macro_layout = pya.Layout()
         macro_layout.read(fil)
-        print(f"[INFO] Read in {fil}")
         for cell in list(def_cells):
             if macro_layout.has_cell(cell):
-                subcell = main_layout.cell(cell)
-                print(f"  [INFO] Merging in {cell}")
-                subcell.copy_tree(macro_layout.cell(cell))
                 def_cells.remove(cell)
 
     # Copy the top level only to a new layout
@@ -100,18 +94,6 @@ def gds_export(design_name, in_def, in_files, out_file, tech, allow_missing, con
         if i.name != design_name and i.parent_cells() == 0:
             print("[ERROR] Found orphan cell '{0}'".format(i.name))
 
-    if seal_file:
-        top_cell = top_only_layout.top_cell()
-
-        print("[INFO] Reading seal GDS/OAS file...")
-        print("\t{0}".format(seal_file))
-        top_only_layout.read(seal_file)
-
-        for cell in top_only_layout.top_cells():
-            if cell != top_cell:
-                print("[INFO] Merging '{0}' as child of '{1}'".format(cell.name, top_cell.name))
-                top.insert(pya.CellInstArray(cell.cell_index(), pya.Trans()))
-
     # Write out the GDS
     print("[INFO] Writing out GDS/OAS '{0}'".format(out_file))
     top_only_layout.write(out_file, get_write_options(out_file, timestamps))
@@ -125,7 +107,6 @@ def main():
 
     from klayout_utils import (
         technology,
-        get_streams,
         save_technology,
         get_schema,
         generate_metrics
@@ -155,18 +136,8 @@ def main():
 
     out_file = os.path.join('outputs', f'{design}.{sc_stream}')
 
-    in_files = []
-    libs = schema.get("asic", "asiclib")
-    for lib in libs:
-        libobj = schema.get("library", lib, field="schema")
-        for s in get_streams(schema):
-            for fileset in libobj.get("asic", "aprfileset"):
-                if libobj.valid("fileset", fileset, "file", s):
-                    in_files.extend(libobj.get("fileset", fileset, "file", s))
-                    break
-
     allow_missing = []
-    for lib in libs:
+    for lib in schema.get("asic", "asiclib"):
         if schema.valid('library', lib, 'tool', 'klayout', 'allow_missing_cell'):
             patterns = [pattern for pattern in schema.get('library', lib, 'tool', 'klayout',
                                                           'allow_missing_cell') if pattern]
@@ -179,8 +150,7 @@ def main():
 
     sc_tech = technology(design, schema)
 
-    gds_export(design, in_def, in_files, out_file, sc_tech, allow_missing,
-               config_file='', seal_file='', timestamps=sc_timestamps)
+    gds_export(design, in_def, out_file, sc_tech, allow_missing, timestamps=sc_timestamps)
 
     if sc_screenshot:
         show(schema, sc_tech, out_file, f'outputs/{design}.png', screenshot=True)
