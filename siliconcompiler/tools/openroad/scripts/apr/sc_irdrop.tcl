@@ -89,7 +89,8 @@ foreach net $nets {
     foreach corner $sc_scenarios {
         analyze_power_grid -net $net -corner $corner -allow_reuse
 
-        save_animated_gif -start "reports/${net}/${corner}.gif"
+        set gif [save_animated_gif -start "reports/${net}/${corner}.gif"]
+        set gif_log [save_animated_gif -start "reports/${net}/${corner}_log.gif"]
 
         foreach layer [[ord::get_db_tech] getLayers] {
             if { [$layer getRoutingLevel] == 0 } {
@@ -123,7 +124,7 @@ foreach net $nets {
             sc_save_image \
                 "IR drop for $net on $layer_name for $corner heatmap" \
                 reports/${net}/${corner}.${layer_name}.png \
-                true
+                $gif
 
             gui::set_heatmap IRDrop LogScale 1
             gui::set_heatmap IRDrop rebuild
@@ -131,7 +132,7 @@ foreach net $nets {
             sc_save_image \
                 "IR drop for $net on $layer_name for $corner heatmap" \
                 reports/${net}/${corner}.${layer_name}_log.png \
-                false
+                $gif_log
 
             gui::set_display_controls "Heat Maps/IR Drop" visible false
 
@@ -139,7 +140,8 @@ foreach net $nets {
                 gui::delete_label $label
             }
         }
-        save_animated_gif -end
+        save_animated_gif -end -key $gif
+        save_animated_gif -end -key $gif_log
     }
 }
 

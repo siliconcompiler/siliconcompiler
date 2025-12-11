@@ -142,7 +142,7 @@ class PowerGridAnalysisTask(APRTask, OpenROADPSMParameter, OpenROADSTAParameter)
         super().setup()
         self.set_script("apr/sc_irdrop.tcl")
 
-        self.add_version(">=v2.0-26750", clobber=True)
+        self.add_version(">=v2.0-26866", clobber=True)
 
         # Output is not a standard design file, unset default expectation
         self.unset("output")

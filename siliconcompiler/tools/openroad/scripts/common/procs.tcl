@@ -388,17 +388,22 @@ proc sc_psm_check_nets { } {
 # Save an image
 ###########################
 
-proc sc_save_image { title path { gif false } { pixels 1000 } } {
+proc sc_save_image { title path { gif -1 } { pixels 1000 } } {
     utl::info FLW 1 "Saving \"$title\" to $path"
 
     save_image -resolution [sc_image_resolution $pixels] \
         -area [sc_image_area] \
         $path
 
-    if { $gif } {
+    if { $gif >= 0 } {
+        set gif_args []
+        if { [sc_check_version 26866] } {
+            lappend gif_args -key $gif
+        }
         save_animated_gif -add \
             -resolution [sc_image_resolution $pixels] \
-            -area [sc_image_area]
+            -area [sc_image_area] \
+            {*}$gif_args
     }
 }
 
