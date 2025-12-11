@@ -1,6 +1,6 @@
 # Adopted from https://github.com/The-OpenROAD-Project/OpenROAD-flow-scripts/blob/3f9740e6b3643835e918d78ae1d377d65af0f0fb/flow/scripts/save_images.tcl
 
-proc sc_image_heatmap { name ident image_name title { gif false } { allow_bin_adjust 1 } } {
+proc sc_image_heatmap { name ident image_name title { gif -1 } { allow_bin_adjust 1 } } {
     lassign [sc_cfg_tool_task_get var ord_heatmap_bins] ord_heatmap_bins_x ord_heatmap_bins_y
 
     file mkdir reports/images/heatmap
@@ -124,12 +124,12 @@ proc sc_image_irdrop { net corner } {
         return
     }
 
-    set gif false
+    set gif -1
     if { [sc_check_version 21574] } {
-        set gif true
-    }
-    if { $gif } {
-        save_animated_gif -start "reports/images/heatmap/irdrop/${net}.${corner}.gif"
+        set gif [save_animated_gif -start "reports/images/heatmap/irdrop/${net}.${corner}.gif"]
+        if { $gif == "" } {
+            set gif 0
+        }
     }
     foreach layer [[ord::get_db_tech] getLayers] {
         if { [$layer getRoutingLevel] == 0 } {
@@ -160,8 +160,12 @@ proc sc_image_irdrop { net corner } {
             gui::delete_label $label
         }
     }
-    if { $gif } {
-        save_animated_gif -end
+    if { $gif >= 0 } {
+        if { [sc_check_version 26866] } {
+            save_animated_gif -end -key $gif
+        } else {
+            save_animated_gif -end
+        }
     }
 }
 
@@ -176,7 +180,7 @@ proc sc_image_routing_congestion { } {
         "Routing" \
         "routing_congestion.png" \
         "routing congestion" \
-        0 \
+        -1 \
         0
 }
 
@@ -194,7 +198,7 @@ proc sc_image_estimated_routing_congestion { } {
             "RUDY" \
             "estimated_routing_congestion.png" \
             "estimated routing congestion" \
-            0 \
+            -1 \
             0
     } err
     unsuppress_message GRT 10
@@ -342,7 +346,7 @@ proc sc_image_timing_histograms { } {
 
     if { [sc_cfg_tool_task_check_in_list setup var reports] } {
         set path reports/images/timing/setup.histogram.png
-        utl::info FLW 1 "Saving setup timing histogram to $path"
+        utl::info FLW 1 "Saving \"setup timing histogram\" to $path"
         save_histogram_image $path \
             -mode setup \
             -width 500 \
@@ -350,7 +354,7 @@ proc sc_image_timing_histograms { } {
     }
     if { [sc_cfg_tool_task_check_in_list hold var reports] } {
         set path reports/images/timing/hold.histogram.png
-        utl::info FLW 1 "Saving hold timing histogram to $path"
+        utl::info FLW 1 "Saving \"hold timing histogram\" to $path"
         save_histogram_image $path \
             -mode hold \
             -width 500 \
