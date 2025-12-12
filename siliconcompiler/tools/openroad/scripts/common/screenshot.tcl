@@ -5,7 +5,7 @@ sc_image_setup_default
 sc_save_image \
     "screenshot" \
     "outputs/${sc_topmodule}.png" \
-    false \
+    -1 \
     [sc_cfg_tool_task_get var show_vertical_resolution]
 
 gui::restore_display_controls
