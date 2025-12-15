@@ -33,7 +33,7 @@ jobs:
         run: |
           echo "version=$(python3 siliconcompiler/toolscripts/_tools.py --tool klayout --field version)" >> $GITHUB_OUTPUT
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v5
         id: cache
         with:
           path: |
@@ -79,7 +79,7 @@ jobs:
       with:
         path: sc
 
-    - uses: actions/cache@v4
+    - uses: actions/cache@v5
       id: cache
       with:
         path: |
@@ -121,7 +121,7 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
-    - uses: actions/download-artifact@v6
+    - uses: actions/download-artifact@v7
       with:
         name: Packages
         path: dist
@@ -176,7 +176,7 @@ jobs:
       id-token: write
 
     steps:
-    - uses: actions/download-artifact@v6
+    - uses: actions/download-artifact@v7
       with:
         name: Packages
         path: dist

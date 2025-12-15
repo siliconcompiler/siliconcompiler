@@ -83,7 +83,7 @@ jobs:
           python3 setup/docker/builder.py --generate_files --registry ${{ env.REGISTRY }} --output_dir docker
 
       - name: Upload docker artifacts
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: tools
           path: docker/
@@ -123,7 +123,7 @@ jobs:
 
     steps:
       - name: Download docker artifacts
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: tools
 
@@ -160,7 +160,7 @@ jobs:
 
     steps:
       - name: Download docker artifacts
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: tools
 
@@ -193,7 +193,7 @@ jobs:
 
     steps:
       - name: Download docker artifacts
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: tools
 
@@ -234,7 +234,7 @@ jobs:
 
     steps:
     - name: Download docker artifacts
-      uses: actions/download-artifact@v6
+      uses: actions/download-artifact@v7
       with:
         name: tools
 
@@ -301,7 +301,7 @@ jobs:
           python3 .github/workflows/bin/generate_cache.py
 
       - name: Upload
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: scpackage-cache
           path: .sc/cache
@@ -335,7 +335,7 @@ jobs:
           python3 -m pip install -r ./examples/requirements.txt
 
       - name: Restore cache
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: scpackage-cache
           path: ${{ env.SCTESTCACHE }}
@@ -394,7 +394,7 @@ jobs:
           docker pull ${{ needs.build_tool_builder.outputs.sc_tools }}
 
       - name: Restore cache
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: scpackage-cache
           path: ${{ env.SCTESTCACHE }}
