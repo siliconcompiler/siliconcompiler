@@ -245,7 +245,6 @@ class SlurmSchedulerNode(SchedulerNode):
                  os.stat(script_file).st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
 
         schedule_cmd = ['srun',
-                        '--exclusive',
                         '--partition', partition,
                         '--chdir', self.project_cwd,
                         '--job-name', SlurmSchedulerNode.get_job_name(self.__job_hash,
