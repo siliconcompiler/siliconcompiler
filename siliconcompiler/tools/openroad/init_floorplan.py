@@ -149,8 +149,11 @@ class InitFloorplanTask(APRTask,
 
         # Mark requires for components, pin, and floorplan placements
         for component in self.project.constraint.component.get_component().values():
-            self.add_required_key(component, "placement")
-            self.add_required_key(component, "rotation")
+            if component.get_placement(step=self.step, index=self.index) is not None:
+                self.add_required_key(component, "placement")
+                self.add_required_key(component, "rotation")
+            if component.get_halo(step=self.step, index=self.index) is not None:
+                self.add_required_key(component, "halo")
             if component.get_partname(step=self.step, index=self.index):
                 self.add_required_key(component, "partname")
 
