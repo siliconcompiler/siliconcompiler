@@ -323,7 +323,7 @@ if { [sc_cfg_exists constraint component] } {
         } else {
             set inst "NULL"
         }
-        if { $inst == "NULL"} {
+        if { $inst == "NULL" } {
             set inst [[ord::get_db_block] findInst $name]
         }
         if { $inst == "NULL" } {
@@ -345,7 +345,7 @@ if { [sc_cfg_exists constraint component] } {
             lappend place_inst_args -cell $cell
         }
 
-        if { $inst != "NULL"} {
+        if { $inst != "NULL" } {
             set name [$inst getName]
         }
 
