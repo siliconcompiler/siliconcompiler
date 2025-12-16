@@ -314,7 +314,18 @@ if { [sc_cfg_exists constraint component] } {
             utl::warn FLW 1 "Halo is not supported in OpenROAD"
         }
 
-        set inst [[ord::get_db_block] findInst $name]
+        set stainst [get_cells -quiet $name]
+        if { $stainst != {} } {
+            if { [llength $stainst] > 1 } {
+                utl::error FLW 1 "Multiple cells found for instance $name"
+            }
+            set inst [sta::sta_to_db_inst $stainst]
+        } else {
+            set inst "NULL"
+        }
+        if { $inst == "NULL" } {
+            set inst [[ord::get_db_block] findInst $name]
+        }
         if { $inst == "NULL" } {
             utl::warn FLW 1 "Could not find instance: $name"
 
@@ -332,6 +343,10 @@ if { [sc_cfg_exists constraint component] } {
         set place_inst_args []
         if { $cell != "" } {
             lappend place_inst_args -cell $cell
+        }
+
+        if { $inst != "NULL" } {
+            set name [$inst getName]
         }
 
         place_inst \
