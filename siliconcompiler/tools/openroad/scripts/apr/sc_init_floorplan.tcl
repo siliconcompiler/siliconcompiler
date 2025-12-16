@@ -310,8 +310,13 @@ if { [sc_cfg_exists constraint component] } {
         } else {
             set cell ""
         }
+        set halo {}
         if { [llength [dict get $params halo]] != 0 } {
-            utl::warn FLW 1 "Halo is not supported in OpenROAD"
+            if { [llength [dict get $params halo]] == 2 } {
+                set halo [dict get $params halo]
+            } else {
+                utl::warn FLW 1 "Halo must be a list of 2 elements"
+            }
         }
 
         set stainst [get_cells -quiet $name]
@@ -337,24 +342,36 @@ if { [sc_cfg_exists constraint component] } {
             set cell ""
         }
 
-        set x_loc [expr { round([lindex $location 0] / $x_grid) * $x_grid }]
-        set y_loc [expr { round([lindex $location 1] / $y_grid) * $y_grid }]
-
-        set place_inst_args []
-        if { $cell != "" } {
-            lappend place_inst_args -cell $cell
-        }
-
         if { $inst != "NULL" } {
             set name [$inst getName]
         }
 
-        place_inst \
-            -name $name \
-            -origin "$x_loc $y_loc" \
-            -orient $rotation \
-            -status FIRM \
-            {*}$place_inst_args
+        if { [llength $location] == 2 } {
+            # Only place if location is specified
+            set x_loc [expr { round([lindex $location 0] / $x_grid) * $x_grid }]
+            set y_loc [expr { round([lindex $location 1] / $y_grid) * $y_grid }]
+
+            set place_inst_args []
+            if { $cell != "" } {
+                lappend place_inst_args -cell $cell
+            }
+
+            place_inst \
+                -name $name \
+                -origin "$x_loc $y_loc" \
+                -orient $rotation \
+                -status FIRM \
+                {*}$place_inst_args
+        }
+
+        if { $halo != {} } {
+            set inst [[ord::get_db_block] findInst $name]
+            odb::dbBox_create $inst \
+                [ord::microns_to_dbu [lindex $halo 0]] \
+                [ord::microns_to_dbu [lindex $halo 1]] \
+                [ord::microns_to_dbu [lindex $halo 0]] \
+                [ord::microns_to_dbu [lindex $halo 1]]
+        }
         lappend sc_placed_insts $name
     }
 
