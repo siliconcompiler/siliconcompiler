@@ -25,7 +25,7 @@ class TimingModeSchema(NamedSchema):
                 scope=Scope.GLOBAL,
                 shorthelp="Constraint: SDC files",
                 switch="-constraint_timing_file 'scenario <file>'",
-                example=["api: asic.set('constraint', 'timing', 'worst', 'file', 'hello.sdc')"],
+                example=["api: mode.set('constraint', 'timing', 'worst', 'file', 'hello.sdc')"],
                 help="""List of timing constraint sets files to use for the scenario. The
                 values are combined with any constraints specified by the design
                 'constraint' parameter. If no constraints are found, a default

@@ -6673,7 +6673,7 @@
                 ],
                 "shorthelp": "Constraint: SDC files",
                 "example": [
-                  "api: asic.set('constraint', 'timing', 'worst', 'file', 'hello.sdc')"
+                  "api: mode.set('constraint', 'timing', 'worst', 'file', 'hello.sdc')"
                 ],
                 "help": "List of timing constraint sets files to use for the scenario. The\n                values are combined with any constraints specified by the design\n                'constraint' parameter. If no constraints are found, a default\n                constraint file is used based on the clock definitions.",
                 "notes": null,
@@ -10823,7 +10823,7 @@
                 ],
                 "shorthelp": "Constraint: SDC files",
                 "example": [
-                  "api: asic.set('constraint', 'timing', 'worst', 'file', 'hello.sdc')"
+                  "api: mode.set('constraint', 'timing', 'worst', 'file', 'hello.sdc')"
                 ],
                 "help": "List of timing constraint sets files to use for the scenario. The\n                values are combined with any constraints specified by the design\n                'constraint' parameter. If no constraints are found, a default\n                constraint file is used based on the clock definitions.",
                 "notes": null,

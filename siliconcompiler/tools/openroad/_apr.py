@@ -657,7 +657,10 @@ class APRTask(OpenROADTask):
                 return constraint
 
         # if not specified, just pick the first constraint available
-        return self.project.getkeys('constraint', 'timing', 'scenario')[0]
+        scenarios = self.project.getkeys('constraint', 'timing', 'scenario')
+        if not scenarios:
+            raise ValueError("No timing scenarios defined in project constraints.")
+        return scenarios[0]
 
     def _build_pex_estimation_file(self):
         corners = self._get_pex_mapping()
