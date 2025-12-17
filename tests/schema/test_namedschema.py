@@ -26,7 +26,8 @@ def test_set_name_repeat():
     parent_schema = NamedSchema()
     edit = EditableSchema(parent_schema)
     edit.insert("test0", "myname", schema)
-    with pytest.raises(RuntimeError, match=r"^Cannot call set_name after it has been inserted into schema\.$"):
+    with pytest.raises(RuntimeError,
+                       match=r"^Cannot call set_name after it has been inserted into schema\.$"):
         schema.set_name("myname")
 
 
@@ -37,7 +38,8 @@ def test_set_name_with_name():
     parent_schema = NamedSchema()
     edit = EditableSchema(parent_schema)
     edit.insert("test0", "myname", schema)
-    with pytest.raises(RuntimeError, match=r"^Cannot call set_name after it has been inserted into schema\.$"):
+    with pytest.raises(RuntimeError,
+                       match=r"^Cannot call set_name after it has been inserted into schema\.$"):
         schema.set_name("myname")
 
 
