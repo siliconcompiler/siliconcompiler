@@ -44,8 +44,8 @@ class NamedSchema(BaseSchema):
         """
 
         try:
-            if self.__name is not None:
-                raise RuntimeError("Cannot call set_name more than once.")
+            if self._parent() is not self:
+                raise RuntimeError("Cannot call set_name after it has been inserted into schema.")
         except AttributeError:
             pass
         self.__name = name
