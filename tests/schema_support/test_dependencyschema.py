@@ -240,31 +240,8 @@ def test_get_dep_hier():
     assert schema.add_dep(dep00)
 
     assert schema.get_dep("level0-0") is dep00
-    assert schema.get_dep("level0-0.level0-1") is dep01
-    assert schema.get_dep("level0-0.level0-1.level0-2") is dep02
-
-
-def test_get_dep_hier_with_non_dep():
-    class Test(NamedSchema, DependencySchema):
-        def __init__(self, name):
-            super().__init__()
-            self.set_name(name)
-
-    schema = DependencySchema()
-
-    dep00 = Test("level0-0")
-    dep01 = NamedSchema("level0-1")
-
-    assert dep00.add_dep(dep01)
-
-    assert schema.add_dep(dep00)
-
-    assert schema.get_dep("level0-0") is dep00
-    assert schema.get_dep("level0-0.level0-1") is dep01
-
-    with pytest.raises(KeyError,
-                       match=r"^'level0-1\.notthis does not contain dependency information'$"):
-        schema.get_dep("level0-0.level0-1.notthis")
+    assert schema.get_dep("level0-0").get_dep("level0-1") is dep01
+    assert schema.get_dep("level0-0").get_dep("level0-1").get_dep("level0-2") is dep02
 
 
 def test_get_dep_circle():
