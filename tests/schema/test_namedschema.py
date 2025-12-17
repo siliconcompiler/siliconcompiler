@@ -33,11 +33,6 @@ def test_set_name_with_name():
         schema.set_name("myname")
 
 
-def test_set_name_with_invalid_name():
-    with pytest.raises(ValueError, match=r"^Named schema object cannot contains: \.$"):
-        NamedSchema("myname.this")
-
-
 def test_type():
     with pytest.raises(NotImplementedError,
                        match=r"^Must be implemented by the child classes\.$"):

@@ -48,8 +48,6 @@ class NamedSchema(BaseSchema):
                 raise RuntimeError("Cannot call set_name more than once.")
         except AttributeError:
             pass
-        if name is not None and "." in name:
-            raise ValueError("Named schema object cannot contains: .")
         self.__name = name
 
     def type(self) -> str:

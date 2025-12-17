@@ -210,12 +210,6 @@ class DependencySchema(BaseSchema):
 
         if name:
             if not self.has_dep(name):
-                if "." in name:
-                    name0, *name1 = name.split(".")
-                    subdep = self.get_dep(name0)
-                    if isinstance(subdep, DependencySchema):
-                        return subdep.get_dep(".".join(name1))
-                    raise KeyError(f"{name} does not contain dependency information")
                 raise KeyError(f"{name} is not an imported module")
 
             return self.__deps[name]
