@@ -266,7 +266,6 @@ class SlurmSchedulerNode(SchedulerNode):
         self.logger.debug(f"Executing slurm command: {shlex.join(schedule_cmd)}")
 
         # Run the 'srun' command, and track its output.
-        # TODO: output should be fed to log, and stdout if quiet = False
         step_result = subprocess.Popen(schedule_cmd,
                                        stdin=subprocess.DEVNULL,
                                        stdout=subprocess.PIPE,

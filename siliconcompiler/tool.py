@@ -35,7 +35,7 @@ from packaging.specifiers import SpecifierSet, InvalidSpecifier
 from typing import List, Dict, Tuple, Union, Optional, Set, TextIO, Type, TypeVar, TYPE_CHECKING
 from pathlib import Path
 
-from siliconcompiler.schema import BaseSchema, NamedSchema, Journal, DocsSchema, LazyLoad
+from siliconcompiler.schema import BaseSchema, NamedSchema, DocsSchema, LazyLoad
 from siliconcompiler.schema import EditableSchema, Parameter, PerNode, Scope
 from siliconcompiler.schema.parametertype import NodeType
 from siliconcompiler.schema.utils import trim
@@ -736,9 +736,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
             fout.write(template.render(manifest_dict='\n'.join(tcl_set_cmds),
                                        scroot=os.path.abspath(
                                            os.path.join(os.path.dirname(__file__))),
-                                       toolvars=self.get_tcl_variables(manifest),
-                                       record_access="get" in Journal.access(self).get_types(),
-                                       record_access_id="TODO"))
+                                       toolvars=self.get_tcl_variables(manifest)))
         else:
             for cmd in tcl_set_cmds:
                 fout.write(cmd + '\n')
@@ -2160,7 +2158,7 @@ class ShowTask(Task):
         classes = recurse(cls)
 
         # Support non-SC defined tasks from plugins
-        for plugin in utils.get_plugins('showtask'):  # TODO rename
+        for plugin in utils.get_plugins('showtask'):
             plugin()
 
         if not classes:
