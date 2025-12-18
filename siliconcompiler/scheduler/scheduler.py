@@ -14,7 +14,7 @@ from datetime import datetime
 
 from typing import Union, Dict, Optional, Tuple, List, Set, TYPE_CHECKING
 
-from siliconcompiler import NodeStatus
+from siliconcompiler import NodeStatus, Task
 from siliconcompiler.schema import Journal
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 from siliconcompiler.scheduler import SchedulerNode
@@ -292,6 +292,10 @@ class Scheduler:
             self.__run_setup()
             self.configure_nodes()
 
+            # Verify task classes
+            if not self.__check_task_classes():
+                raise SCRuntimeError("Task classes are missing")
+
             # Verify tool setups
             if not self.__check_tool_versions():
                 raise SCRuntimeError("Tools did not meet version requirements")
@@ -350,6 +354,33 @@ class Scheduler:
 
             error |= not node.check_required_values()
             error |= not node.check_required_paths()
+
+        return not error
+
+    def __check_task_classes(self) -> bool:
+        """
+        Verifies that all runtime nodes have loaded their specific Task implementation classes.
+
+        Iterates through all nodes in the execution flow and checks if the associated
+        task object is a generic instance of the base `Task` class. If so, it indicates
+        that the specific module for that tool/task was not loaded correctly.
+
+        Returns:
+            bool: `True` if all nodes are using specialized Task subclasses, `False` if any
+            node is using the base `Task` class.
+        """
+        nodes = self.__flow_runtime.get_nodes()
+        error = False
+
+        for (step, index) in nodes:
+            tool = self.__flow.get(step, index, "tool")
+            task = self.__flow.get(step, index, "task")
+
+            task_cls = self.project.get("tool", tool, "task", task, field="schema")
+            if type(task_cls) is Task:
+                self.__logger.error(f"Invalid task: {step}/{index} did not load "
+                                    "the correct class module")
+                error = True
 
         return not error
 

@@ -464,6 +464,8 @@ def test_check_manifest_fail(basic_project):
             as check_tool_requirements, \
             patch("siliconcompiler.scheduler.Scheduler._Scheduler__clean_build_dir_incr") \
             as clean_build_dir_incr, \
+            patch("siliconcompiler.scheduler.Scheduler._Scheduler__check_task_classes") \
+            as check_task_classes, \
             patch("siliconcompiler.scheduler.Scheduler._Scheduler__check_flowgraph_io") \
             as check_flowgraph_io:
         check_manifest.return_value = False
@@ -472,6 +474,7 @@ def test_check_manifest_fail(basic_project):
         check_manifest.assert_called_once()
         run_setup.assert_not_called()
         configure_nodes.assert_not_called()
+        check_task_classes.assert_not_called()
         check_tool_versions.assert_not_called()
         check_tool_requirements.assert_not_called()
         clean_build_dir_incr.assert_not_called()
@@ -490,9 +493,12 @@ def test_flowgraphio_fail(basic_project):
             as check_tool_requirements, \
             patch("siliconcompiler.scheduler.Scheduler._Scheduler__clean_build_dir_incr") \
             as clean_build_dir_incr, \
+            patch("siliconcompiler.scheduler.Scheduler._Scheduler__check_task_classes") \
+            as check_task_classes, \
             patch("siliconcompiler.scheduler.Scheduler._Scheduler__check_flowgraph_io") \
             as check_flowgraph_io:
         check_manifest.return_value = True
+        check_task_classes.return_value = True
         check_tool_versions.return_value = True
         check_tool_requirements.return_value = True
         check_flowgraph_io.return_value = False
@@ -501,6 +507,7 @@ def test_flowgraphio_fail(basic_project):
         check_manifest.assert_called_once()
         run_setup.assert_called_once()
         configure_nodes.assert_called_once()
+        check_task_classes.assert_called_once()
         check_tool_versions.assert_called_once()
         check_tool_requirements.assert_called_once()
         clean_build_dir_incr.assert_called_once()
@@ -519,15 +526,19 @@ def test_toolversion_fail(basic_project):
             as check_tool_requirements, \
             patch("siliconcompiler.scheduler.Scheduler._Scheduler__clean_build_dir_incr") \
             as clean_build_dir_incr, \
+            patch("siliconcompiler.scheduler.Scheduler._Scheduler__check_task_classes") \
+            as check_task_classes, \
             patch("siliconcompiler.scheduler.Scheduler._Scheduler__check_flowgraph_io") \
             as check_flowgraph_io:
         check_manifest.return_value = True
+        check_task_classes.return_value = True
         check_tool_versions.return_value = False
         with pytest.raises(RuntimeError, match=r'^Tools did not meet version requirements$'):
             scheduler.run()
         check_manifest.assert_called_once()
         run_setup.assert_called_once()
         configure_nodes.assert_called_once()
+        check_task_classes.assert_called_once()
         check_tool_versions.assert_called_once()
         check_tool_requirements.assert_not_called()
         clean_build_dir_incr.assert_not_called()
@@ -546,9 +557,12 @@ def test_toolrequirement_fail(basic_project):
             as check_tool_requirements, \
             patch("siliconcompiler.scheduler.Scheduler._Scheduler__clean_build_dir_incr") \
             as clean_build_dir_incr, \
+            patch("siliconcompiler.scheduler.Scheduler._Scheduler__check_task_classes") \
+            as check_task_classes, \
             patch("siliconcompiler.scheduler.Scheduler._Scheduler__check_flowgraph_io") \
             as check_flowgraph_io:
         check_manifest.return_value = True
+        check_task_classes.return_value = True
         check_tool_versions.return_value = True
         check_tool_requirements.return_value = False
         with pytest.raises(RuntimeError, match=r'^Tools requirements not met$'):
@@ -556,10 +570,63 @@ def test_toolrequirement_fail(basic_project):
         check_manifest.assert_called_once()
         run_setup.assert_called_once()
         configure_nodes.assert_called_once()
+        check_task_classes.assert_called_once()
         check_tool_versions.assert_called_once()
         check_tool_requirements.assert_called_once()
         clean_build_dir_incr.assert_not_called()
         check_flowgraph_io.assert_not_called()
+
+
+def test_classcheck_fail(basic_project):
+    scheduler = Scheduler(basic_project)
+    with patch("siliconcompiler.scheduler.Scheduler.check_manifest",
+               autospec=True) as check_manifest, \
+            patch("siliconcompiler.scheduler.Scheduler._Scheduler__run_setup") as run_setup, \
+            patch("siliconcompiler.scheduler.Scheduler.configure_nodes") as configure_nodes, \
+            patch("siliconcompiler.scheduler.Scheduler._Scheduler__check_tool_versions") \
+            as check_tool_versions, \
+            patch("siliconcompiler.scheduler.Scheduler._Scheduler__check_tool_requirements") \
+            as check_tool_requirements, \
+            patch("siliconcompiler.scheduler.Scheduler._Scheduler__clean_build_dir_incr") \
+            as clean_build_dir_incr, \
+            patch("siliconcompiler.scheduler.Scheduler._Scheduler__check_task_classes") \
+            as check_task_classes, \
+            patch("siliconcompiler.scheduler.Scheduler._Scheduler__check_flowgraph_io") \
+            as check_flowgraph_io:
+        check_manifest.return_value = True
+        check_task_classes.return_value = False
+        with pytest.raises(RuntimeError, match=r'^Task classes are missing$'):
+            scheduler.run()
+        check_manifest.assert_called_once()
+        run_setup.assert_called_once()
+        configure_nodes.assert_called_once()
+        check_task_classes.assert_called_once()
+        check_tool_versions.assert_not_called()
+        check_tool_requirements.assert_not_called()
+        clean_build_dir_incr.assert_not_called()
+        check_flowgraph_io.assert_not_called()
+
+
+def test_check_task_classes_fail(basic_project, monkeypatch, caplog):
+    monkeypatch.setattr(basic_project, "_Project__logger", logging.getLogger())
+    basic_project.logger.setLevel(logging.INFO)
+
+    EditableSchema(basic_project).insert("tool", "builtin", "task", "nop", Task(), clobber=True)
+
+    scheduler = Scheduler(basic_project)
+
+    assert scheduler._Scheduler__check_task_classes() is False
+    assert "Invalid task: stepone/0 did not load the correct class module" in caplog.text
+
+
+def test_check_task_classes_pass(basic_project, monkeypatch, caplog):
+    monkeypatch.setattr(basic_project, "_Project__logger", logging.getLogger())
+    basic_project.logger.setLevel(logging.INFO)
+
+    scheduler = Scheduler(basic_project)
+
+    assert scheduler._Scheduler__check_task_classes() is True
+    assert caplog.text == ""
 
 
 def test_check_flowgraph_io_basic(basic_project, monkeypatch, caplog):
