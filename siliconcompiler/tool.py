@@ -35,7 +35,7 @@ from packaging.specifiers import SpecifierSet, InvalidSpecifier
 from typing import List, Dict, Tuple, Union, Optional, Set, TextIO, Type, TypeVar, TYPE_CHECKING
 from pathlib import Path
 
-from siliconcompiler.schema import BaseSchema, NamedSchema, Journal, DocsSchema, LazyLoad
+from siliconcompiler.schema import BaseSchema, NamedSchema, DocsSchema, LazyLoad
 from siliconcompiler.schema import EditableSchema, Parameter, PerNode, Scope
 from siliconcompiler.schema.parametertype import NodeType
 from siliconcompiler.schema.utils import trim
