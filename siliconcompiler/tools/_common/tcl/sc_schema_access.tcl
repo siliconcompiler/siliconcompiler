@@ -1,11 +1,5 @@
-proc _sc_cfg_get_debug { args } {
-
-}
-
 # Shortcut to get values from configuration
 proc sc_cfg_get { args } {
-    _sc_cfg_get_debug $args
-
     # Refer to global sc_cfg dictionary
     global sc_cfg
 

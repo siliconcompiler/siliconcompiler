@@ -17,12 +17,6 @@ proc sc_root {} {
 
 {% include 'tools/_common/tcl/sc_schema_access.tcl' %}
 
-# Redefine
-proc _sc_cfg_get_debug { args } {
-    {% if record_access %}puts "{{ record_access_id }} [join $args ,]"{% endif %}
-}
-
-
 #############################################
 # Tool variables
 #############################################

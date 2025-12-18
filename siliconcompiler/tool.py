@@ -737,8 +737,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
                                        scroot=os.path.abspath(
                                            os.path.join(os.path.dirname(__file__))),
                                        toolvars=self.get_tcl_variables(manifest),
-                                       record_access="get" in Journal.access(self).get_types(),
-                                       record_access_id="TODO"))
+                                       record_access="get" in Journal.access(self).get_types()))
         else:
             for cmd in tcl_set_cmds:
                 fout.write(cmd + '\n')
@@ -2160,7 +2159,7 @@ class ShowTask(Task):
         classes = recurse(cls)
 
         # Support non-SC defined tasks from plugins
-        for plugin in utils.get_plugins('showtask'):  # TODO rename
+        for plugin in utils.get_plugins('showtask'):
             plugin()
 
         if not classes:
