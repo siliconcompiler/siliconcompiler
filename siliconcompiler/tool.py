@@ -736,8 +736,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
             fout.write(template.render(manifest_dict='\n'.join(tcl_set_cmds),
                                        scroot=os.path.abspath(
                                            os.path.join(os.path.dirname(__file__))),
-                                       toolvars=self.get_tcl_variables(manifest),
-                                       record_access="get" in Journal.access(self).get_types()))
+                                       toolvars=self.get_tcl_variables(manifest)))
         else:
             for cmd in tcl_set_cmds:
                 fout.write(cmd + '\n')
