@@ -463,6 +463,10 @@ proc sc_image_setup_default { } {
     gui::set_display_controls "Nets/*" visible true
     gui::set_display_controls "Instances/*" visible true
     gui::set_display_controls "Shape Types/*" visible true
+    if { [llength [[ord::get_db_block] getBTerms]] > 10000 } {
+        # Avoid performance issues with too many IOs
+        gui::set_display_controls "Shape Types/Pins" visible false
+    }
     gui::set_display_controls "Misc/Instances/*" visible true
     gui::set_display_controls "Misc/Instances/Pin Names" visible false
     gui::set_display_controls "Misc/Scale bar" visible true
