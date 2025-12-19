@@ -1273,14 +1273,18 @@ class RuntimeFlowgraph:
         if record is None:
             inputs = set()
             for in_step, in_index in self.__base.get(step, index, "input"):
-                if (in_step, in_index) not in self.get_nodes():
+                if (in_step, in_index) not in self.__base.get_nodes():
+                    continue
+                if (in_step, in_index) in self.__prune:
                     continue
                 inputs.add((in_step, in_index))
             return sorted(inputs)
 
         inputs = set()
         for in_step, in_index in self.__base.get(step, index, "input"):
-            if (in_step, in_index) not in self.get_nodes():
+            if (in_step, in_index) not in self.__base.get_nodes():
+                continue
+            if (in_step, in_index) in self.__prune:
                 continue
 
             if record.get("status", step=in_step, index=in_index) == NodeStatus.SKIPPED:
