@@ -1288,7 +1288,10 @@ class RuntimeFlowgraph:
                 continue
 
             if record.get("status", step=in_step, index=in_index) == NodeStatus.SKIPPED:
-                inputs.update(self.get_node_inputs(in_step, in_index, record=record))
+                if (in_step, in_index) not in self.get_nodes():
+                    inputs.update(self.__base.get(in_step, in_index, "input"))
+                else:
+                    inputs.update(self.get_node_inputs(in_step, in_index, record=record))
             else:
                 inputs.add((in_step, in_index))
         return sorted(inputs)
