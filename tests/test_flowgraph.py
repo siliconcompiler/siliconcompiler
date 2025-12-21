@@ -949,6 +949,13 @@ def test_get_node_inputs_no_record(large_flow):
     assert runtime.get_node_inputs("steptwo", "0") == [('joinone', '0')]
 
 
+def test_get_node_inputs_no_record_from(large_flow):
+    runtime = RuntimeFlowgraph(large_flow, from_steps=["jointwo"], prune_nodes=[
+        ("stepone", "0"), ("steptwo", "1"), ("stepthree", "2")])
+    assert runtime.get_node_inputs("jointwo", "0") == [('steptwo', '0'), ('steptwo', '2')]
+    assert runtime.get_node_inputs("stepthree", "0") == [('jointwo', '0')]
+
+
 def test_get_node_inputs_record_skipped(large_flow):
     runtime = RuntimeFlowgraph(large_flow, prune_nodes=[
         ("stepone", "0"), ("steptwo", "1"), ("stepthree", "2")])
@@ -959,6 +966,18 @@ def test_get_node_inputs_record_skipped(large_flow):
     assert runtime.get_node_inputs("stepone", "1", record=record) == []
     assert runtime.get_node_inputs("joinone", "0", record=record) == [('stepone', '2')]
     assert runtime.get_node_inputs("steptwo", "0", record=record) == [('joinone', '0')]
+
+
+def test_get_node_inputs_record_skipped_from(large_flow):
+    runtime = RuntimeFlowgraph(large_flow, from_steps=["jointwo"], prune_nodes=[
+        ("stepone", "0"), ("steptwo", "1"), ("stepthree", "2")])
+
+    record = RecordSchema()
+    record.set("status", NodeStatus.SKIPPED, step="steptwo", index="0")
+
+    assert runtime.get_node_inputs("jointwo", "0", record=record) == [
+        ('joinone', '0'), ('steptwo', '2')]
+    assert runtime.get_node_inputs("stepthree", "0", record=record) == [('jointwo', '0')]
 
 
 def test_get_node_inputs_invalid(large_flow):
