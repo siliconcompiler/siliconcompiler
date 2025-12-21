@@ -2176,7 +2176,7 @@ class ShowTask(Task):
         The method first checks the user's settings file (~/.sc/settings.json)
         under the 'showtask' category for a preferred tool. If no preference
         is found or the preferred tool is not available, it falls back to
-        autommatic discovery.
+        automatic discovery.
 
         Args:
             ext (str): The file extension to find a viewer for.
