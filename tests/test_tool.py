@@ -2151,12 +2151,11 @@ def test_show_register_task():
 def test_show_get_task():
     class Test(ShowTask):
         def get_supported_show_extentions(self):
-            return ["ext"]
-        pass
+            return ["ext_test"]
 
     with patch.dict("siliconcompiler.ShowTask._ShowTask__TASKS", clear=True), \
             patch("siliconcompiler.utils.showtools.showtasks") as showtasks:
-        assert ShowTask.get_task("ext").__class__ is Test
+        assert ShowTask.get_task("ext_test").__class__ is Test
         showtasks.assert_called_once()
 
 
@@ -2261,7 +2260,8 @@ def test_showtask_default_discovery():
         ShowTask.register_task(ToolB)
 
         # Ensure settings file doesn't exist or is empty
-        with patch('siliconcompiler.utils.multiprocessing.SettingsManager') as mock_settings_cls:
+        with patch('siliconcompiler.utils.multiprocessing.MPManager.get_settings') \
+                as mock_settings_cls:
             mock_settings = MagicMock()
             mock_settings.get.return_value = None  # No preference
             mock_settings_cls.return_value = mock_settings
@@ -2278,7 +2278,8 @@ def test_showtask_preference_lookup():
         ShowTask.register_task(ToolB)
 
         # Mock the SettingsManager to return 'toolb' for 'ext'
-        with patch('siliconcompiler.utils.multiprocessing.SettingsManager') as mock_settings_cls:
+        with patch('siliconcompiler.utils.multiprocessing.MPManager.get_settings') \
+                as mock_settings_cls:
             mock_settings = MagicMock()
 
             def get_side_effect(category, key, default=None):
@@ -2303,7 +2304,8 @@ def test_showtask_preference_fallback():
     with patch.dict("siliconcompiler.ShowTask._ShowTask__TASKS", clear=True):
         ShowTask.register_task(ToolA)
 
-        with patch('siliconcompiler.utils.multiprocessing.SettingsManager') as mock_settings_cls:
+        with patch('siliconcompiler.utils.multiprocessing.MPManager.get_settings') \
+                as mock_settings_cls:
             mock_settings = MagicMock()
 
             # Preference is 'toolc', which doesn't exist
@@ -2350,7 +2352,8 @@ def test_showtask_specific_task_preference():
         ShowTask.register_task(ToolCTask1)
         ShowTask.register_task(ToolCTask2)
 
-        with patch('siliconcompiler.utils.multiprocessing.SettingsManager') as mock_settings_cls:
+        with patch('siliconcompiler.utils.multiprocessing.MPManager.get_settings') \
+                as mock_settings_cls:
             mock_settings = MagicMock()
             # Prefer the second task mode
             mock_settings.get.return_value = "toolc/view_mode_2"
