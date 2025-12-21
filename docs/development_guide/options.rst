@@ -133,4 +133,31 @@ The :class:`.SlurmSchedulerNode` provides static helper methods to manage these 
 
     # 2. Persist changes to ~/.sc/settings.json
     SlurmSchedulerNode._write_user_config()
-  
+
+Show Task Preferences (The 'showtask' Category)
+-----------------------------------------------
+
+SiliconCompiler allows you to define preferred viewers for specific file extensions.
+This is useful when multiple tools are capable of opening a specific file type (e.g., both KLayout and OpenROAD can view ``.def`` files) and you want to enforce a specific default.
+
+This configuration is stored in the ``showtask`` category of your ``settings.json`` file. The key is the file extension (without the dot), and the value is the name of the tool (and optionally the task).
+
+**Example Configuration**
+
+.. code-block:: json
+
+    {
+        "showtask": {
+            "gds": "klayout",
+            "def": "openroad/show",
+            "vcd": "gtkwave"
+        }
+    }
+
+In this example:
+
+* ``.gds`` files will always open with KLayout.
+* ``.def`` files will always open with OpenROAD, specifically using the ``show`` task.
+* ``.vcd`` files will always open with GTKWave.
+
+If the preferred tool is not found or not registered, SiliconCompiler will fall back to its default discovery mechanism.
