@@ -1270,10 +1270,12 @@ class RuntimeFlowgraph:
         if (step, index) not in self.get_nodes():
             raise ValueError(f"{step}/{index} is not a valid node")
 
+        base_nodes = set(self.__base.get_nodes())
+
         if record is None:
             inputs = set()
             for in_step, in_index in self.__base.get(step, index, "input"):
-                if (in_step, in_index) not in self.__base.get_nodes():
+                if (in_step, in_index) not in base_nodes:
                     continue
                 if (in_step, in_index) in self.__prune:
                     continue
@@ -1282,7 +1284,7 @@ class RuntimeFlowgraph:
 
         inputs = set()
         for in_step, in_index in self.__base.get(step, index, "input"):
-            if (in_step, in_index) not in self.__base.get_nodes():
+            if (in_step, in_index) not in base_nodes:
                 continue
             if (in_step, in_index) in self.__prune:
                 continue
