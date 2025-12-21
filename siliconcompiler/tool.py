@@ -43,6 +43,7 @@ from siliconcompiler.schema.utils import trim
 from siliconcompiler import utils, NodeStatus, Flowgraph
 from siliconcompiler import sc_open
 from siliconcompiler.utils import paths
+from siliconcompiler.utils.multiprocessing import MPManager
 
 from siliconcompiler.schema_support.pathschema import PathSchema
 from siliconcompiler.schema_support.record import RecordTool, RecordSchema
@@ -2172,6 +2173,11 @@ class ShowTask(Task):
         """
         Retrieves a suitable show task instance for a given file extension.
 
+        The method first checks the user's settings file (~/.sc/settings.json)
+        under the 'showtask' category for a preferred tool. If no preference
+        is found or the preferred tool is not available, it falls back to
+        autommatic discovery.
+
         Args:
             ext (str): The file extension to find a viewer for.
 
@@ -2189,15 +2195,39 @@ class ShowTask(Task):
                 return None
             tasks = ShowTask.__TASKS[cls].copy()
 
-        # TODO: add user preference lookup (ext -> task)
-
         if ext is None:
             return tasks
 
-        for task in tasks:
+        # 1. Check User Settings for Preference
+        preference = MPManager.get_settings().get("showtask", ext)
+
+        if preference:
+            # Preference format: "tool" or "tool/task"
+            pref_parts = preference.split('/')
+            pref_tool = pref_parts[0]
+            pref_task = pref_parts[1] if len(pref_parts) > 1 else None
+            print(pref_tool, pref_task, tasks)
+
+            for task_cls in tasks:
+                try:
+                    task_inst = task_cls()
+                    # Check if this task matches the preference
+                    if task_inst.tool() == pref_tool:
+                        if pref_task and task_inst.task() != pref_task:
+                            continue
+
+                        # Verify the preferred tool actually supports the extension
+                        if ext in task_inst.get_supported_show_extentions():
+                            return task_inst
+                except NotImplementedError:
+                    continue
+
+        # 2. Fallback to Automatic Discovery
+        for task_cls in tasks:
             try:
-                if ext in task().get_supported_show_extentions():
-                    return task()
+                task_inst = task_cls()
+                if ext in task_inst.get_supported_show_extentions():
+                    return task_inst
             except NotImplementedError:
                 pass
 
