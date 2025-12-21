@@ -2206,7 +2206,6 @@ class ShowTask(Task):
             pref_parts = preference.split('/')
             pref_tool = pref_parts[0]
             pref_task = pref_parts[1] if len(pref_parts) > 1 else None
-            print(pref_tool, pref_task, tasks)
 
             for task_cls in tasks:
                 try:
