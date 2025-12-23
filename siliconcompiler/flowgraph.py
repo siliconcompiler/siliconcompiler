@@ -744,6 +744,7 @@ class Flowgraph(NamedSchema, DocsSchema):
                 - dict: Information about each node.
                 - list: Information about each edge.
         '''
+        from siliconcompiler import Project
         if landscape:
             out_label_suffix = ':e'
             in_label_suffix = ':w'
@@ -765,7 +766,6 @@ class Flowgraph(NamedSchema, DocsSchema):
         exit_nodes = [f'{step}/{index}' for step, index in self.get_exit_nodes()]
 
         nodes = {}
-        edges = []
 
         def clean_label(label):
             return label.replace("<", "").replace(">", "")
@@ -777,19 +777,34 @@ class Flowgraph(NamedSchema, DocsSchema):
 
         runtime_flow = RuntimeFlowgraph(self)
 
+        root = self._parent()._parent()  # Brittle since this replies on location
+        if not isinstance(root, Project):
+            root = None
+            has_io = False
+        else:
+            has_io = True
+
         for step, index in all_nodes:
             graph_node = self.get_graph_node(step, index)
-            tool = graph_node.get("tool")
-            task = graph_node.get("task")
+            tool: str = graph_node.get("tool")
+            task: str = graph_node.get("task")
 
             inputs = []
             outputs = []
+            if has_io and root:
+                try:
+                    inputs = root.get('tool', tool, 'task', task, 'input', step=step, index=index)
+                    outputs = root.get('tool', tool, 'task', task, 'output', step=step, index=index)
+                except KeyError:
+                    has_io = False
+                if not inputs and not outputs:
+                    has_io = False
 
             node = f'{step}/{index}'
 
             nodes[node] = {
                 "node": (step, index),
-                "file_inputs": inputs,
+                "file_inputs": set(inputs),
                 "inputs": {clean_text(f): f'input-{clean_label(f)}' for f in sorted(inputs)},
                 "outputs": {clean_text(f): f'output-{clean_label(f)}' for f in sorted(outputs)},
                 "task": f'{tool}/{task}' if tool != 'builtin' else task,
@@ -807,6 +822,13 @@ class Flowgraph(NamedSchema, DocsSchema):
                 rank_diff[in_node_name] = node_rank[node] - node_rank[in_node_name]
             nodes[node]["rank_diff"] = rank_diff
 
+        if not has_io:
+            for info in nodes.values():
+                info["inputs"] = []
+                info["outputs"] = []
+
+        edges = []
+        edges_io = []
         for step, index in all_nodes:
             node = f'{step}/{index}'
             all_inputs = []
@@ -816,8 +838,16 @@ class Flowgraph(NamedSchema, DocsSchema):
                 edges.append((f"{item}{out_label_suffix}",
                               f"{node}{in_label_suffix}",
                               1 if node in exit_nodes else 2))
+                if has_io:
+                    for infile in nodes[node]["inputs"]:
+                        if infile in nodes[item]["outputs"]:
+                            outlabel = f"{item}:output-{clean_label(infile)}"
+                            inlabel = f"{node}:input-{clean_label(infile)}"
+                            edges_io.append((f"{outlabel}{out_label_suffix}",
+                                             f"{inlabel}{in_label_suffix}",
+                                             1 if node in exit_nodes else 2))
 
-        return all_graph_inputs, nodes, edges
+        return all_graph_inputs, nodes, edges, edges_io, has_io
 
     def write_flowgraph(self, filename: str,
                         fillcolor: str = '#ffffff',
@@ -825,7 +855,8 @@ class Flowgraph(NamedSchema, DocsSchema):
                         background: str = 'transparent',
                         fontsize: Union[int, str] = 14,
                         border: bool = True,
-                        landscape: bool = False) -> None:
+                        landscape: bool = False,
+                        show_io: Optional[bool] = None) -> None:
         r'''
         Renders and saves the compilation flowgraph to a file.
 
@@ -846,6 +877,7 @@ class Flowgraph(NamedSchema, DocsSchema):
             fontsize (str): Node text font size
             border (bool): Enables node border if True
             landscape (bool): Renders graph in landscape layout if True
+            show_io (bool): Add file input/outputs to graph
 
         Examples:
             >>> flow.write_flowgraph('mydump.png')
@@ -870,11 +902,19 @@ class Flowgraph(NamedSchema, DocsSchema):
         else:
             rankdir = 'TB'
 
-        all_graph_inputs, nodes, edges = self.__get_graph_information(landscape)
+        all_graph_inputs, nodes, edges, edges_io, has_io = self.__get_graph_information(landscape)
+
+        if show_io is None:
+            show_io = has_io
+        elif not has_io:
+            show_io = False
 
         dot = graphviz.Digraph(format=fileformat)
         dot.graph_attr['rankdir'] = rankdir
         dot.attr(bgcolor=background)
+        if show_io:
+            dot.graph_attr['concentrate'] = 'true'
+            dot.graph_attr['ranksep'] = '0.75'
 
         subgraphs = {
             "graphs": {},
@@ -918,9 +958,21 @@ class Flowgraph(NamedSchema, DocsSchema):
             '''Helper function to create a node in the graphviz object.'''
             info = nodes[node]
 
-            shape = "oval"
+            shape = "oval" if not show_io else "Mrecord"
             task_label = f"\\n ({info['task']})" if info['task'] is not None else ""
-            labelname = f"{node.replace(prefix, '')}{task_label}"
+            if show_io:
+                input_labels = [f"<{ikey}> {ifile}" for ifile, ikey in info['inputs'].items()]
+                output_labels = [f"<{okey}> {ofile}" for ofile, okey in info['outputs'].items()]
+                center_text = f"\\n {node.replace(prefix, '')} {task_label} \\n\\n"
+                labelname = "{"
+                if input_labels:
+                    labelname += f"{{ {' | '.join(input_labels)} }} |"
+                labelname += center_text
+                if output_labels:
+                    labelname += f"| {{ {' | '.join(output_labels)} }}"
+                labelname += "}"
+            else:
+                labelname = f"{node.replace(prefix, '')}{task_label}"
 
             graph.node(node, label=labelname, bordercolor=fontcolor, style='filled',
                        fontcolor=fontcolor, fontsize=fontsize, ordering="in",
@@ -977,8 +1029,12 @@ class Flowgraph(NamedSchema, DocsSchema):
         build_graph(subgraphs, dot, "")
 
         # Add all the edges
-        for edge0, edge1, weight in edges:
-            dot.edge(edge0, edge1, weight=str(weight))
+        if show_io:
+            for edge0, edge1, weight in edges_io:
+                dot.edge(edge0, edge1, weight=str(weight))
+        else:
+            for edge0, edge1, weight in edges:
+                dot.edge(edge0, edge1, weight=str(weight))
 
         dot.render(filename=fileroot, cleanup=True)
 
