@@ -734,7 +734,7 @@ class Flowgraph(NamedSchema, DocsSchema):
         """
         return Flowgraph.__name__
 
-    def __get_graph_information(self):
+    def __get_graph_information(self, landscape):
         '''
         Internal helper to gather all node and edge info for graphviz.
 
@@ -744,6 +744,13 @@ class Flowgraph(NamedSchema, DocsSchema):
                 - dict: Information about each node.
                 - list: Information about each edge.
         '''
+        if landscape:
+            out_label_suffix = ':e'
+            in_label_suffix = ':w'
+        else:
+            out_label_suffix = ':s'
+            in_label_suffix = ':n'
+
         # Setup nodes
         node_exec_order = self.get_execution_order()
 
@@ -806,17 +813,19 @@ class Flowgraph(NamedSchema, DocsSchema):
             for in_step, in_index in self.get_graph_node(step, index).get_input():
                 all_inputs.append(f'{in_step}/{in_index}')
             for item in all_inputs:
-                edges.append((item, node, 1 if node in exit_nodes else 2))
+                edges.append((f"{item}{out_label_suffix}",
+                              f"{node}{in_label_suffix}",
+                              1 if node in exit_nodes else 2))
 
         return all_graph_inputs, nodes, edges
 
     def write_flowgraph(self, filename: str,
-                        fillcolor: Optional[str] = '#ffffff',
-                        fontcolor: Optional[str] = '#000000',
-                        background: Optional[str] = 'transparent',
-                        fontsize: Optional[Union[int, str]] = 14,
-                        border: Optional[bool] = True,
-                        landscape: Optional[bool] = False) -> None:
+                        fillcolor: str = '#ffffff',
+                        fontcolor: str = '#000000',
+                        background: str = 'transparent',
+                        fontsize: Union[int, str] = 14,
+                        border: bool = True,
+                        landscape: bool = False) -> None:
         r'''
         Renders and saves the compilation flowgraph to a file.
 
@@ -858,17 +867,10 @@ class Flowgraph(NamedSchema, DocsSchema):
         # controlling graph direction
         if landscape:
             rankdir = 'LR'
-            out_label_suffix = ':e'
-            in_label_suffix = ':w'
         else:
             rankdir = 'TB'
-            out_label_suffix = ':s'
-            in_label_suffix = ':n'
 
-        all_graph_inputs, nodes, edges = self.__get_graph_information()
-
-        out_label_suffix = ''
-        in_label_suffix = ''
+        all_graph_inputs, nodes, edges = self.__get_graph_information(landscape)
 
         dot = graphviz.Digraph(format=fileformat)
         dot.graph_attr['rankdir'] = rankdir
@@ -976,7 +978,7 @@ class Flowgraph(NamedSchema, DocsSchema):
 
         # Add all the edges
         for edge0, edge1, weight in edges:
-            dot.edge(f'{edge0}{out_label_suffix}', f'{edge1}{in_label_suffix}', weight=str(weight))
+            dot.edge(edge0, edge1, weight=str(weight))
 
         dot.render(filename=fileroot, cleanup=True)
 
