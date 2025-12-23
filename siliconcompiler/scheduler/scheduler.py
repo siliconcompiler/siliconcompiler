@@ -1,3 +1,4 @@
+import graphviz
 import io
 import logging
 import multiprocessing
@@ -314,6 +315,13 @@ class Scheduler:
             # Collect files for remote runs
             if self.__check_collect_files():
                 collect(self.project)
+
+            try:
+                self.__flow.write_flowgraph(
+                    os.path.join(jobdir(self.__project), f"{self.__flow.name}.png"),
+                    background="white")
+            except graphviz.ExecutableNotFound:
+                pass
 
             try:
                 self.run_core()
