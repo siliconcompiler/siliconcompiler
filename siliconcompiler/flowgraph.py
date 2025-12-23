@@ -777,7 +777,7 @@ class Flowgraph(NamedSchema, DocsSchema):
 
         runtime_flow = RuntimeFlowgraph(self)
 
-        root = self._parent()._parent()  # TODO hack
+        root = self._parent()._parent()  # Brittle since this replies on location
         if not isinstance(root, Project):
             root = None
             has_io = False
