@@ -373,6 +373,9 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         """
         if isinstance(obj, DependencySchema):
             for dep in obj.get_dep():
+                if isinstance(dep, (Design, LibrarySchema)):
+                    if self._has_library(dep.name):
+                        continue
                 self.add_dep(dep)
 
             # Rebuild dependencies to ensure instances are correct
