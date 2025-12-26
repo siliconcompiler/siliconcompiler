@@ -163,7 +163,7 @@
   },
   "surfer": {
     "git-url": "https://gitlab.com/surfer-project/surfer.git",
-    "git-commit": "v0.3.0",
+    "git-commit": "v0.4.0",
     "auto-update": false
   }
 }
