@@ -2,6 +2,8 @@ import re
 
 import os.path
 
+from typing import Optional
+
 from siliconcompiler import sc_open
 
 from siliconcompiler.tools.opensta import OpenSTATask
@@ -27,7 +29,7 @@ class TimingTaskBase(OpenSTATask):
                            defvalue="tools/_common/sdc/sc_constraints.sdc",
                            dataroot="siliconcompiler")
 
-    def set_timing_mode(self, mode: str, step: str = None, index: str = None):
+    def set_timing_mode(self, mode: str, step: Optional[str] = None, index: Optional[str] = None):
         return self.set("var", "timing_mode", mode, step=step, index=index)
 
     def setup(self):
@@ -40,6 +42,8 @@ class TimingTaskBase(OpenSTATask):
 
         if self.get("var", "timing_mode"):
             self.add_required_key("var", "timing_mode")
+            if self.get("var", "timing_mode") not in self.project.constraint.timing.get_modes():
+                raise LookupError(f'{self.get("var", "timing_mode")} is not a defined mode')
         self.add_required_key("var", "top_n_paths")
         self.add_required_key("var", "unique_path_groups_per_clock")
         self.add_required_key("var", "opensta_generic_sdc")
@@ -149,7 +153,7 @@ class TimingTaskBase(OpenSTATask):
             self.record_metric("drvs", drv_count, source_file=[drv_report])
 
     def __report_map(self, metric):
-        corners = self.project.getkeys('constraint', 'timing')
+        corners = self.project.getkeys('constraint', 'timing', 'scenario')
         mapping = {
             "power": [f"reports/power.{corner}.rpt" for corner in corners],
             "unconstrained": ["reports/unconstrained.rpt", "reports/unconstrained.topN.rpt"],

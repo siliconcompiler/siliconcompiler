@@ -17,7 +17,7 @@
         "node": {
           "default": {
             "default": {
-              "value": "0.52.1",
+              "value": "0.53.0",
               "signature": null
             }
           }
@@ -2989,7 +2989,7 @@
         "node": {
           "default": {
             "default": {
-              "value": "0.52.1",
+              "value": "0.53.0",
               "signature": null
             }
           }
@@ -6629,34 +6629,68 @@
       "history": {},
       "constraint": {
         "timing": {
-          "default": {
-            "mode": {
-              "type": "str",
-              "require": false,
-              "scope": "global",
-              "lock": false,
-              "switch": [
-                "-constraint_timing_mode 'scenario <str>'"
-              ],
-              "shorthelp": "Constraint: operating mode",
-              "example": [
-                "api: fpga.set('constraint', 'timing', 'worst', 'mode', 'test')"
-              ],
-              "help": "Operating mode for the scenario. Operating mode strings\n                can be values such as test, functional, standby.",
-              "notes": null,
-              "pernode": "optional",
-              "node": {
-                "default": {
+          "scenario": {
+            "default": {
+              "mode": {
+                "type": "str",
+                "require": false,
+                "scope": "global",
+                "lock": false,
+                "switch": [
+                  "-constraint_timing_mode 'scenario <str>'"
+                ],
+                "shorthelp": "Constraint: operating mode",
+                "example": [
+                  "api: fpga.set('constraint', 'timing', 'worst', 'mode', 'test')"
+                ],
+                "help": "Operating mode for the scenario. Operating mode strings\n                can be values such as test, functional, standby.",
+                "notes": null,
+                "pernode": "optional",
+                "node": {
                   "default": {
-                    "value": null,
-                    "signature": null
+                    "default": {
+                      "value": null,
+                      "signature": null
+                    }
                   }
                 }
+              },
+              "__meta__": {
+                "name": null,
+                "class": "siliconcompiler.constraints.fpga_timing/FPGATimingScenarioSchema"
               }
-            },
-            "__meta__": {
-              "name": null,
-              "class": "siliconcompiler.constraints.fpga_timing/FPGATimingScenarioSchema"
+            }
+          },
+          "mode": {
+            "default": {
+              "sdcfileset": {
+                "type": "[(str,str)]",
+                "require": false,
+                "scope": "global",
+                "lock": false,
+                "switch": [
+                  "-constraint_timing_file 'scenario <file>'"
+                ],
+                "shorthelp": "Constraint: SDC files",
+                "example": [
+                  "api: mode.set('constraint', 'timing', 'worst', 'file', 'hello.sdc')"
+                ],
+                "help": "List of timing constraint sets files to use for the scenario. The\n                values are combined with any constraints specified by the design\n                'constraint' parameter. If no constraints are found, a default\n                constraint file is used based on the clock definitions.",
+                "notes": null,
+                "pernode": "optional",
+                "node": {
+                  "default": {
+                    "default": {
+                      "value": [],
+                      "signature": []
+                    }
+                  }
+                }
+              },
+              "__meta__": {
+                "name": null,
+                "class": "siliconcompiler.constraints.timing_mode/TimingModeSchema"
+              }
             }
           },
           "__meta__": {
@@ -6725,7 +6759,7 @@
         "node": {
           "default": {
             "default": {
-              "value": "0.52.1",
+              "value": "0.53.0",
               "signature": null
             }
           }
@@ -10597,21 +10631,48 @@
       "history": {},
       "constraint": {
         "timing": {
-          "default": {
-            "voltage": {
-              "default": {
+          "scenario": {
+            "default": {
+              "voltage": {
+                "default": {
+                  "type": "float",
+                  "require": false,
+                  "scope": "global",
+                  "lock": false,
+                  "switch": [
+                    "-constraint_timing_voltage 'scenario pin <float>'"
+                  ],
+                  "shorthelp": "Constraint: pin voltage level",
+                  "example": [
+                    "api: asic.set('constraint', 'timing', 'worst', 'voltage', 'VDD', '0.9')"
+                  ],
+                  "help": "Operating voltage applied to a specific pin in the scenario.",
+                  "notes": null,
+                  "pernode": "optional",
+                  "node": {
+                    "default": {
+                      "default": {
+                        "value": null,
+                        "signature": null
+                      }
+                    }
+                  },
+                  "unit": "V"
+                }
+              },
+              "temperature": {
                 "type": "float",
                 "require": false,
                 "scope": "global",
                 "lock": false,
                 "switch": [
-                  "-constraint_timing_voltage 'scenario pin <float>'"
+                  "-constraint_timing_temperature 'scenario <float>'"
                 ],
-                "shorthelp": "Constraint: pin voltage level",
+                "shorthelp": "Constraint: temperature",
                 "example": [
-                  "api: asic.set('constraint', 'timing', 'worst', 'voltage', 'VDD', '0.9')"
+                  "api: asic.set('constraint', 'timing', 'worst', 'temperature', '125')"
                 ],
-                "help": "Operating voltage applied to a specific pin in the scenario.",
+                "help": "Chip temperature applied to the scenario specified in degrees C.",
                 "notes": null,
                 "pernode": "optional",
                 "node": {
@@ -10622,181 +10683,164 @@
                     }
                   }
                 },
-                "unit": "V"
-              }
-            },
-            "temperature": {
-              "type": "float",
-              "require": false,
-              "scope": "global",
-              "lock": false,
-              "switch": [
-                "-constraint_timing_temperature 'scenario <float>'"
-              ],
-              "shorthelp": "Constraint: temperature",
-              "example": [
-                "api: asic.set('constraint', 'timing', 'worst', 'temperature', '125')"
-              ],
-              "help": "Chip temperature applied to the scenario specified in degrees C.",
-              "notes": null,
-              "pernode": "optional",
-              "node": {
-                "default": {
+                "unit": "C"
+              },
+              "libcorner": {
+                "type": "{str}",
+                "require": false,
+                "scope": "global",
+                "lock": false,
+                "switch": [
+                  "-constraint_timing_libcorner 'scenario <str>'"
+                ],
+                "shorthelp": "Constraint: library corner",
+                "example": [
+                  "api: asic.set('constraint', 'timing', 'worst', 'libcorner', 'ttt')"
+                ],
+                "help": "List of characterization corners used to select\n                timing files for all logiclibs and macrolibs.",
+                "notes": null,
+                "pernode": "optional",
+                "node": {
                   "default": {
-                    "value": null,
-                    "signature": null
+                    "default": {
+                      "value": [],
+                      "signature": []
+                    }
                   }
                 }
               },
-              "unit": "C"
-            },
-            "libcorner": {
-              "type": "{str}",
-              "require": false,
-              "scope": "global",
-              "lock": false,
-              "switch": [
-                "-constraint_timing_libcorner 'scenario <str>'"
-              ],
-              "shorthelp": "Constraint: library corner",
-              "example": [
-                "api: asic.set('constraint', 'timing', 'worst', 'libcorner', 'ttt')"
-              ],
-              "help": "List of characterization corners used to select\n                timing files for all logiclibs and macrolibs.",
-              "notes": null,
-              "pernode": "optional",
-              "node": {
-                "default": {
+              "pexcorner": {
+                "type": "str",
+                "require": false,
+                "scope": "global",
+                "lock": false,
+                "switch": [
+                  "-constraint_timing_pexcorner 'scenario <str>'"
+                ],
+                "shorthelp": "Constraint: pex corner",
+                "example": [
+                  "api: asic.set('constraint', 'timing', 'worst', 'pexcorner', 'max')"
+                ],
+                "help": "Parasitic corner applied to the scenario. The\n                'pexcorner' string must match a corner found in\n                :keypath:`PDK,pdk,pexmodelfileset`.",
+                "notes": null,
+                "pernode": "optional",
+                "node": {
                   "default": {
-                    "value": [],
-                    "signature": []
+                    "default": {
+                      "value": null,
+                      "signature": null
+                    }
                   }
                 }
-              }
-            },
-            "pexcorner": {
-              "type": "str",
-              "require": false,
-              "scope": "global",
-              "lock": false,
-              "switch": [
-                "-constraint_timing_pexcorner 'scenario <str>'"
-              ],
-              "shorthelp": "Constraint: pex corner",
-              "example": [
-                "api: asic.set('constraint', 'timing', 'worst', 'pexcorner', 'max')"
-              ],
-              "help": "Parasitic corner applied to the scenario. The\n                'pexcorner' string must match a corner found in\n                :keypath:`PDK,pdk,pexmodelfileset`.",
-              "notes": null,
-              "pernode": "optional",
-              "node": {
-                "default": {
+              },
+              "opcond": {
+                "type": "str",
+                "require": false,
+                "scope": "global",
+                "lock": false,
+                "switch": [
+                  "-constraint_timing_opcond 'scenario <str>'"
+                ],
+                "shorthelp": "Constraint: operating condition",
+                "example": [
+                  "api: asic.set('constraint', 'timing', 'worst', 'opcond', 'typical_1.0')"
+                ],
+                "help": "Operating condition applied to the scenario. The value\n                can be used to access specific conditions within the library\n                timing models from the :keypath:`ASIC,asic,asiclib` timing models.",
+                "notes": null,
+                "pernode": "optional",
+                "node": {
                   "default": {
-                    "value": null,
-                    "signature": null
+                    "default": {
+                      "value": null,
+                      "signature": null
+                    }
                   }
                 }
-              }
-            },
-            "opcond": {
-              "type": "str",
-              "require": false,
-              "scope": "global",
-              "lock": false,
-              "switch": [
-                "-constraint_timing_opcond 'scenario <str>'"
-              ],
-              "shorthelp": "Constraint: operating condition",
-              "example": [
-                "api: asic.set('constraint', 'timing', 'worst', 'opcond', 'typical_1.0')"
-              ],
-              "help": "Operating condition applied to the scenario. The value\n                can be used to access specific conditions within the library\n                timing models from the :keypath:`ASIC,asic,asiclib` timing models.",
-              "notes": null,
-              "pernode": "optional",
-              "node": {
-                "default": {
+              },
+              "mode": {
+                "type": "str",
+                "require": false,
+                "scope": "global",
+                "lock": false,
+                "switch": [
+                  "-constraint_timing_mode 'scenario <str>'"
+                ],
+                "shorthelp": "Constraint: operating mode",
+                "example": [
+                  "api: asic.set('constraint', 'timing', 'worst', 'mode', 'test')"
+                ],
+                "help": "Operating mode for the scenario. Operating mode strings\n                can be values such as test, functional, standby.",
+                "notes": null,
+                "pernode": "optional",
+                "node": {
                   "default": {
-                    "value": null,
-                    "signature": null
+                    "default": {
+                      "value": null,
+                      "signature": null
+                    }
                   }
                 }
-              }
-            },
-            "mode": {
-              "type": "str",
-              "require": false,
-              "scope": "global",
-              "lock": false,
-              "switch": [
-                "-constraint_timing_mode 'scenario <str>'"
-              ],
-              "shorthelp": "Constraint: operating mode",
-              "example": [
-                "api: asic.set('constraint', 'timing', 'worst', 'mode', 'test')"
-              ],
-              "help": "Operating mode for the scenario. Operating mode strings\n                can be values such as test, functional, standby.",
-              "notes": null,
-              "pernode": "optional",
-              "node": {
-                "default": {
+              },
+              "check": {
+                "type": "{<dynamicpower,hold,leakagepower,maxcap,maxtran,mincap,power,setup,signalem>}",
+                "require": false,
+                "scope": "global",
+                "lock": false,
+                "switch": [
+                  "-constraint_timing_check 'scenario <str>'"
+                ],
+                "shorthelp": "Constraint: timing checks",
+                "example": [
+                  "api: asic.add('constraint', 'timing', 'worst', 'check', 'setup')"
+                ],
+                "help": "\n                List of checks for to perform for the scenario. The checks must\n                align with the capabilities of the EDA tools and flow being used.\n                Checks generally include objectives like meeting setup and hold goals\n                and minimize power. Standard check names include setup, hold, power,\n                noise, reliability.",
+                "notes": null,
+                "pernode": "optional",
+                "node": {
                   "default": {
-                    "value": null,
-                    "signature": null
+                    "default": {
+                      "value": [],
+                      "signature": []
+                    }
                   }
                 }
+              },
+              "__meta__": {
+                "name": null,
+                "class": "siliconcompiler.constraints.asic_timing/ASICTimingScenarioSchema"
               }
-            },
-            "sdcfileset": {
-              "type": "[(str,str)]",
-              "require": false,
-              "scope": "global",
-              "lock": false,
-              "switch": [
-                "-constraint_timing_file 'scenario <file>'"
-              ],
-              "shorthelp": "Constraint: SDC files",
-              "example": [
-                "api: asic.set('constraint', 'timing', 'worst', 'file', 'hello.sdc')"
-              ],
-              "help": "List of timing constraint sets files to use for the scenario. The\n                values are combined with any constraints specified by the design\n                'constraint' parameter. If no constraints are found, a default\n                constraint file is used based on the clock definitions.",
-              "notes": null,
-              "pernode": "optional",
-              "node": {
-                "default": {
+            }
+          },
+          "mode": {
+            "default": {
+              "sdcfileset": {
+                "type": "[(str,str)]",
+                "require": false,
+                "scope": "global",
+                "lock": false,
+                "switch": [
+                  "-constraint_timing_file 'scenario <file>'"
+                ],
+                "shorthelp": "Constraint: SDC files",
+                "example": [
+                  "api: mode.set('constraint', 'timing', 'worst', 'file', 'hello.sdc')"
+                ],
+                "help": "List of timing constraint sets files to use for the scenario. The\n                values are combined with any constraints specified by the design\n                'constraint' parameter. If no constraints are found, a default\n                constraint file is used based on the clock definitions.",
+                "notes": null,
+                "pernode": "optional",
+                "node": {
                   "default": {
-                    "value": [],
-                    "signature": []
+                    "default": {
+                      "value": [],
+                      "signature": []
+                    }
                   }
                 }
+              },
+              "__meta__": {
+                "name": null,
+                "class": "siliconcompiler.constraints.timing_mode/TimingModeSchema"
               }
-            },
-            "check": {
-              "type": "{<dynamicpower,hold,leakagepower,maxcap,maxtran,mincap,power,setup,signalem>}",
-              "require": false,
-              "scope": "global",
-              "lock": false,
-              "switch": [
-                "-constraint_timing_check 'scenario <str>'"
-              ],
-              "shorthelp": "Constraint: timing checks",
-              "example": [
-                "api: asic.add('constraint', 'timing', 'worst', 'check', 'setup')"
-              ],
-              "help": "\n                List of checks for to perform for the scenario. The checks must\n                align with the capabilities of the EDA tools and flow being used.\n                Checks generally include objectives like meeting setup and hold goals\n                and minimize power. Standard check names include setup, hold, power,\n                noise, reliability.",
-              "notes": null,
-              "pernode": "optional",
-              "node": {
-                "default": {
-                  "default": {
-                    "value": [],
-                    "signature": []
-                  }
-                }
-              }
-            },
-            "__meta__": {
-              "name": null,
-              "class": "siliconcompiler.constraints.asic_timing/ASICTimingScenarioSchema"
             }
           },
           "__meta__": {
@@ -11371,7 +11415,7 @@
         "node": {
           "default": {
             "default": {
-              "value": "0.52.1",
+              "value": "0.53.0",
               "signature": null
             }
           }
@@ -14343,7 +14387,7 @@
         "node": {
           "default": {
             "default": {
-              "value": "0.52.1",
+              "value": "0.53.0",
               "signature": null
             }
           }
