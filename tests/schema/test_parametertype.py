@@ -3,7 +3,7 @@ import pytest
 from pathlib import Path
 
 from siliconcompiler.schema.parametertype import \
-    NodeType, NodeEnumType
+    NodeType, NodeEnumType, NodeRangeType
 
 enum1 = NodeEnumType("one", "two", "three")
 enum2 = NodeEnumType("one", "two", "three", "four")
@@ -17,7 +17,7 @@ def test_node_enum_type_eq():
 
 
 def test_node_enum_type_empty():
-    with pytest.raises(ValueError, match="^enum cannot be empty set$"):
+    with pytest.raises(ValueError, match=r"^enum cannot be empty set$"):
         NodeEnumType()
 
 
@@ -73,6 +73,21 @@ def test_parse(type, expect):
     assert NodeType.parse(type) == expect
 
 
+def test_parse_invalid_int_range():
+    with pytest.raises(ValueError, match=r"^invalid literal for int\(\) with base 10: 'a'$"):
+        NodeType.parse("int<a,2,5-7>")
+
+
+def test_parse_invalid_float_range():
+    with pytest.raises(ValueError, match=r"^could not convert string to float: 'a'$"):
+        NodeType.parse("float<a,2,5-7>")
+
+
+def test_parse_invalid_base_range():
+    with pytest.raises(ValueError, match=r"^bool<a,2,5-7>$"):
+        NodeType.parse("bool<a,2,5-7>")
+
+
 @pytest.mark.parametrize(
     "type,expect", [
         ("str", "str"),
@@ -100,7 +115,7 @@ def test_encode(type, expect):
 
 
 def test_encode_invalid():
-    with pytest.raises(ValueError, match="^1 not a recognized type$"):
+    with pytest.raises(ValueError, match=r"^1 not a recognized type$"):
         NodeType.encode(1)
 
 
@@ -170,7 +185,14 @@ def test_encode_invalid():
         ("(str,int)", (1, 2), ("1", 2)),
         ("(str,float)", (1, 2.5), ("1", 2.5)),
         ("{(str,float)}", (1, 2.5), set([("1", 2.5)])),
-        (NodeType("(str,float)"), (1, 2.5), ("1", 2.5))
+        (NodeType("(str,float)"), (1, 2.5), ("1", 2.5)),
+        ("str<one,two,three>", "one", "one"),
+        ("int<0,2,5>", "2", 2),
+        ("int<0-5>", "2", 2),
+        ("int<0,2,5-9>", "8", 8),
+        ("float<0,2.1,5>", "2.1", 2.1),
+        ("float<0-5>", "2.5", 2.5),
+        ("float<0,2,5-9>", "8.7", 8.7),
     ])
 def test_normalize(type, value, expect):
     norm = NodeType.normalize(value, NodeType.parse(type))
@@ -189,6 +211,7 @@ def test_normalize(type, value, expect):
         ("str", "test$next[0]", "\"test\\$next\\[0]\""),
         ("str", "test\\next", "\"test\\\\next\""),
         ("int", 1, "1"),
+        ("int<0-5>", 1, "1"),
         ("float", 1e5, "100000"),
         ("float", 10.5e-6, "1.05e-05"),
         ("float", 100.555555555e-12, "1.00555556e-10"),
@@ -221,7 +244,7 @@ def test_to_tcl(type, value, expect):
 
 
 def test_to_tcl_unsupported():
-    with pytest.raises(TypeError, match="^invalid is not a supported type$"):
+    with pytest.raises(TypeError, match=r"^invalid is not a supported type$"):
         NodeType.to_tcl(12, "invalid")
 
 
@@ -231,11 +254,33 @@ def test_normalize_value_enum():
     assert NodeType.normalize("test1", enum) == "test1"
     assert NodeType.normalize("test2", enum) == "test2"
 
-    with pytest.raises(ValueError, match="^test3 is not a member of: test0, test1, test2$"):
+    with pytest.raises(ValueError, match=r"^test3 is not a member of: test0, test1, test2$"):
         NodeType.normalize("test3", enum)
 
-    with pytest.raises(ValueError, match="^enum must be a string, not a <class 'int'>$"):
+    with pytest.raises(ValueError, match=r"^enum must be a string, not a <class 'int'>$"):
         NodeType.normalize(1, enum)
+
+
+def test_normalize_value_int_range():
+    range = NodeRangeType("int", 0, 2, (5, 7))
+    assert NodeType.normalize("0", range) == 0
+    assert NodeType.normalize("2", range) == 2
+    assert NodeType.normalize("6", range) == 6
+    assert NodeType.normalize("7", range) == 7
+
+    with pytest.raises(ValueError, match=r"^8 is not in range: 0, 2, 5-7$"):
+        NodeType.normalize("8", range)
+
+
+def test_normalize_value_float_range():
+    range = NodeRangeType("float", 0, 2.2, (5, 7))
+    assert NodeType.normalize("0", range) == 0
+    assert NodeType.normalize("2.2", range) == 2.2
+    assert NodeType.normalize("6", range) == 6
+    assert NodeType.normalize("7", range) == 7
+
+    with pytest.raises(ValueError, match=r"^8\.0 is not in range: 0, 2\.2, 5-7$"):
+        NodeType.normalize("8", range)
 
 
 def test_normalize_value_file():
@@ -243,7 +288,7 @@ def test_normalize_value_file():
     assert NodeType.normalize("./test1", "file") == "test1"
     assert NodeType.normalize(Path("./test2"), "file") == "test2"
 
-    with pytest.raises(ValueError, match="^file must be a string or Path, not <class 'int'>$"):
+    with pytest.raises(ValueError, match=r"^file must be a string or Path, not <class 'int'>$"):
         NodeType.normalize(1, "file")
 
 
@@ -252,7 +297,7 @@ def test_normalize_value_dir():
     assert NodeType.normalize("./test1", "dir") == "test1"
     assert NodeType.normalize(Path("./test2"), "dir") == "test2"
 
-    with pytest.raises(ValueError, match="^dir must be a string or Path, not <class 'int'>$"):
+    with pytest.raises(ValueError, match=r"^dir must be a string or Path, not <class 'int'>$"):
         NodeType.normalize(1, "dir")
 
 
@@ -262,27 +307,27 @@ def test_normalize_value_nodetype():
 
 
 def test_normalize_invalid_type():
-    with pytest.raises(ValueError, match="^Invalid type specifier: invalid$"):
+    with pytest.raises(ValueError, match=r"^Invalid type specifier: invalid$"):
         NodeType.normalize('1235', 'invalid')
 
 
 def test_normalize_invalid_int():
-    with pytest.raises(ValueError, match="^\"a\" unable to convert to int$"):
+    with pytest.raises(ValueError, match=r"^\"a\" unable to convert to int$"):
         NodeType.normalize('a', 'int')
 
 
 def test_normalize_invalid_list_entry():
-    with pytest.raises(ValueError, match="^\"a\" unable to convert to int$"):
+    with pytest.raises(ValueError, match=r"^\"a\" unable to convert to int$"):
         NodeType.normalize(['a'], ['int'])
 
 
 def test_normalize_invalid_float():
-    with pytest.raises(ValueError, match="^\"a\" unable to convert to float$"):
+    with pytest.raises(ValueError, match=r"^\"a\" unable to convert to float$"):
         NodeType.normalize('a', 'float')
 
 
 def test_normalize_invalid_bool():
-    with pytest.raises(ValueError, match="^\"a\" unable to convert to boolean$"):
+    with pytest.raises(ValueError, match=r"^\"a\" unable to convert to boolean$"):
         NodeType.normalize('a', 'bool')
 
 
@@ -309,20 +354,33 @@ def test_normalize_invalid_str():
 @pytest.mark.parametrize("sctype", [
     "str",
     "bool",
+    "int<0,2,5>",
+    "int<0-5>",
     "[str]",
     "[int]",
     "(str,int)",
     "(str,int,bool,float,<hello,world>)",
     "[(str,int)]",
     "[<hello,world>]",
-    "{(str,int,int,str)}"
+    "[int<0,2,5-9>]",
+    "{(str,int,int,str)}",
 ])
 def test_str(sctype):
     assert str(NodeType(sctype)) == sctype
 
 
+def test_str_enum():
+    assert str(NodeType("str<hello,world>")) == "<hello,world>"
+    assert str(NodeType("[str<hello,world>]")) == "[<hello,world>]"
+
+
+def test_str_floatrange():
+    assert str(NodeType("float<0,2.1,5-9>")) == "float<0.0,2.1,5.0-9.0>"
+    assert str(NodeType("[float<0,2.1,5-9>]")) == "[float<0.0,2.1,5.0-9.0>]"
+
+
 def test_str_invalid():
-    with pytest.raises(ValueError, match="^<class 'int'> not a recognized type$"):
+    with pytest.raises(ValueError, match=r"^<class 'int'> not a recognized type$"):
         str(NodeType(int))
 
 
@@ -353,6 +411,7 @@ def test_str_invalid():
     ("{(str,int)}", set, True),
     ("{(str,int)}", "str", True),
     ("{(str,int)}", "int", True),
+    ("{(str,int<0-5>)}", "int", True),
     ("{(str,int)}", tuple, True),
     ("{(str,int)}", list, False),
     ("{(str,int)}", set, True),

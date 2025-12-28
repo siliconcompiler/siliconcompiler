@@ -14,7 +14,8 @@ class NodeType:
     __tuple = re.compile(r"^\((.*)\)$")
     __set = re.compile(r"^\{(.*)\}$")
     __enum = re.compile(r"^<(.*)>$")
-    __basetypes = re.compile(r"^(<(.*)>|int|float|str|bool|file|dir)$")
+    __range = re.compile(r"^(int|float|str)<(.*)>$")
+    __basetypes = re.compile(r"^(<(.*)>|int(<(.*)>)?|float(<(.*)>)?|str(<(.*)>)?|bool|file|dir)$")
 
     def __init__(self, sctype):
         if isinstance(sctype, NodeType):
@@ -46,6 +47,22 @@ class NodeType:
         if NodeType.__basetypes.match(sctype):
             if NodeType.__enum.match(sctype):
                 return NodeEnumType(*sctype[1:-1].split(","))
+            range_groups = NodeType.__range.match(sctype)
+            if range_groups:
+                basetype, rangespec = range_groups.groups()
+                if basetype == "str":
+                    return NodeEnumType(*rangespec.split(","))
+                if basetype not in ("int", "float"):
+                    raise ValueError(f"Invalid range base type: {basetype}")
+                range_parts = []
+                normlizer = int if basetype == "int" else float
+                for part in rangespec.split(","):
+                    if '-' in part:
+                        start, end = part.split('-')
+                        range_parts.append((normlizer(start), normlizer(end)))
+                    else:
+                        range_parts.append(normlizer(part))
+                return NodeRangeType(basetype, *range_parts)
             return sctype
         if NodeType.__list.match(sctype):
             return [NodeType.parse(sctype[1:-1])]
@@ -82,7 +99,7 @@ class NodeType:
         if isinstance(sctype, set):
             return f"{{{','.join([NodeType.encode(sct) for sct in sctype])}}}"
 
-        if isinstance(sctype, NodeEnumType):
+        if isinstance(sctype, (NodeEnumType, NodeRangeType)):
             return str(sctype)
 
         if isinstance(sctype, str):
@@ -95,7 +112,7 @@ class NodeType:
         """
         Check if the type contains a specific type.
         """
-        if check in (list, tuple, set, NodeEnumType):
+        if check in (list, tuple, set, NodeEnumType, NodeRangeType):
             if isinstance(value, check):
                 return True
         if isinstance(value, list):
@@ -104,6 +121,8 @@ class NodeType:
             return NodeType.contains(list(value)[0], check)
         if isinstance(value, tuple):
             return any([NodeType.contains(v, check) for v in value])
+        if isinstance(value, NodeRangeType):
+            return value.base == check
         return value == check
 
     @staticmethod
@@ -112,6 +131,9 @@ class NodeType:
         Recursive helper function for converting Python values to safe TCL
         values, based on the SC type string.
         '''
+
+        if isinstance(sctype, NodeRangeType):
+            sctype = sctype.base
 
         if isinstance(sctype, list):
             if value is None:
@@ -150,6 +172,7 @@ class NodeType:
                                 .replace('$', '\\$')    # escape '$' to avoid variable substitution
                                 .replace('"', '\\"'))   # escape '"' to avoid string terminating
             return '"' + escaped_val + '"'
+
         if sctype == 'bool':
             return 'true' if value else 'false'
 
@@ -287,6 +310,23 @@ class NodeType:
             else:
                 raise ValueError(f"enum must be a string, not a {type(value)}")
 
+        if isinstance(sctype, NodeRangeType):
+            value = NodeType.normalize(value, sctype.base)
+            for v in sctype.values:
+                if isinstance(v, tuple):
+                    if v[0] <= value <= v[1]:
+                        return value
+                else:
+                    if value == v:
+                        return value
+            valid = []
+            for v in sctype.values:
+                if isinstance(v, tuple):
+                    valid.append(f"{v[0]}-{v[1]}")
+                else:
+                    valid.append(f"{v}")
+            raise ValueError(f'{value} is not in range: {", ".join(valid)}')
+
         raise ValueError(f'Invalid type specifier: {sctype}')
 
 
@@ -321,5 +361,54 @@ class NodeEnumType:
     def values(self):
         '''
         Returns a set of the legal values for this enum.
+        '''
+        return self.__values
+
+
+class NodeRangeType:
+    """
+    Type for schema data type
+
+    Args:
+        values (list of str): list of legal values for this type.
+    """
+
+    def __init__(self, base, *values):
+        if not values:
+            raise ValueError("range cannot be empty set")
+        self.__base = base
+        self.__values = set(values)
+
+    def __eq__(self, other):
+        if isinstance(other, NodeRangeType):
+            return self.__values == other.__values
+        return False
+
+    def __str__(self):
+        values = []
+        for v in self.__values:
+            if isinstance(v, tuple):
+                values.append(f"{v[0]}-{v[1]}")
+            else:
+                values.append(f"{v}")
+        return f"{self.__base}<{','.join(sorted(values))}>"
+
+    def __repr__(self):
+        return str(self)
+
+    def __hash__(self):
+        return hash(tuple([self.__base, *self.__values]))
+
+    @property
+    def base(self):
+        '''
+        Returns the base for this range.
+        '''
+        return self.__base
+
+    @property
+    def values(self):
+        '''
+        Returns a set of the legal values for this range.
         '''
         return self.__values
