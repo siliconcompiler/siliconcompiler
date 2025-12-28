@@ -37,7 +37,7 @@ Parameter Fields
 
     pernode
         Enables/disables setting of value on a per node basis.
-        Allowed values are 'never', 'option', or 'required'.
+        Allowed values are 'never', 'optional', or 'required'.
 
     require
         Boolean value dictating whether the parameter is required for a run.
@@ -58,7 +58,9 @@ Parameter Fields
         Supported types include Python compatible types ('int', 'float', 'str', and 'bool') and two custom file types ('file' and 'dir').
         The 'file' and 'dir' type specify that the parameter is a 'regular' file or directory as described by Posix.
         Enums can be specified using the `<`  and `>` (eg. <input,output> specifies an enum that has the possible values of input and output.)
-        All types can be specified as a Python compatible list type by enclosing the type value in brackets. (ie. [str] specifies that the parameter is a list of strings).
+        Numeric types ('int' and 'float') can be restricted to a set of values or ranges using the `<` and `>` syntax (eg. `int<0-10>` specifies an integer that must be between 0 and 10 inclusive, `float<0.0-1.0,2.0>` specifies a float that is either between 0.0 and 1.0 or equal to 2.0).
+        All types can be specified as a Python compatible list type by enclosing the type value in brackets.
+        (ie. [str] specifies that the parameter is a list of strings).
         Types can also be specified as tuples, using the Python-like parentheses syntax (eg. [(float,float)] specifies a list of 2-float tuples).
         Additionally types can also be specified as sets, using the Python-like curly brackets syntax (eg. {str} specifies a set of strings).
         Input arguments and return values of the set/get/add core methods are encoded as native Python types.
