@@ -944,7 +944,6 @@ class Scheduler:
             versions: Dict[str, Optional[str]] = {}
 
             self.__logger.debug(f"Executing tool checks in: {d}")
-            os.chdir(d)
             for (step, index) in self.__flow_runtime.get_nodes():
                 if self.__project.option.scheduler.get_name(step=step, index=index) is not None:
                     continue
