@@ -302,7 +302,6 @@ class TaskScheduler:
                         pass
 
                 # Remove pipe
-                info["parent_pipe"].close()
                 info["parent_pipe"] = None
                 info["node"].set_queue(None, None)
 
