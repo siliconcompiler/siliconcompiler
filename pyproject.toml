@@ -122,7 +122,7 @@ docs = [
     "sc-leflib >= 0.2.0"
 ]
 optimizer = [
-    "google-vizier[jax] == 0.1.21; python_version >= '3.10'"
+    "optuna == 4.6.0"
 ]
 cocotb = [
     "cocotb >= 2.0.1, < 2.1.0; python_version >= '3.7' and python_version <= '3.13'"
