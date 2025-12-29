@@ -458,6 +458,35 @@ def test_get_exe_version(running_node, monkeypatch, caplog):
     assert "Tool 'exe' found with version '1.0.0' in directory 'found'" in caplog.text
 
 
+def test_get_exe_version_workdir(running_node, monkeypatch, caplog):
+    def parse_version(stdout):
+        assert stdout == "myversion"
+        return "1.0.0"
+    monkeypatch.setattr(running_node.task, 'parse_version', parse_version)
+
+    assert running_node.project.set('tool', 'builtin', 'task', 'nop', 'exe', 'testexe')
+    assert running_node.project.set('tool', 'builtin', 'task', 'nop', 'vswitch', '-version')
+
+    def dummy_get_exe(*args, **kwargs):
+        return "found/exe"
+    monkeypatch.setattr(running_node.task, 'get_exe', dummy_get_exe)
+
+    def dummy_run(cmdlist, **kwargs):
+        assert cmdlist == ['found/exe', '-version']
+        assert kwargs.get('cwd') == "thisdir"
+
+        class Ret:
+            returncode = 0
+            stdout = "myversion"
+
+        return Ret()
+    monkeypatch.setattr(imported_subprocess, 'run', dummy_run)
+
+    with running_node.task.runtime(running_node) as runtool:
+        assert runtool.get_exe_version(workdir="thisdir") == "1.0.0"
+    assert "Tool 'exe' found with version '1.0.0' in directory 'found'" in caplog.text
+
+
 def test_get_exe_version_not_implemented(running_node, monkeypatch):
     assert running_node.project.set('tool', 'builtin', 'task', 'nop', 'exe', 'testexe')
     assert running_node.project.set('tool', 'builtin', 'task', 'nop', 'vswitch', '-version')

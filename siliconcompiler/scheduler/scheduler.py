@@ -939,43 +939,39 @@ class Scheduler:
 
         error = False
 
-        cwd = os.getcwd()
-        with tempfile.TemporaryDirectory(prefix="sc_tool_check") as d:
-            try:
-                versions: Dict[str, Optional[str]] = {}
+        with tempfile.TemporaryDirectory(
+                prefix=f"sc_tool_check_{self.project.option.get_jobname()}_") as d:
+            versions: Dict[str, Optional[str]] = {}
 
-                self.__logger.debug(f"Executing tool checks in: {d}")
-                os.chdir(d)
-                for (step, index) in self.__flow_runtime.get_nodes():
-                    if self.__project.option.scheduler.get_name(step=step, index=index) is not None:
+            self.__logger.debug(f"Executing tool checks in: {d}")
+            for (step, index) in self.__flow_runtime.get_nodes():
+                if self.__project.option.scheduler.get_name(step=step, index=index) is not None:
+                    continue
+
+                node = self.__tasks[(step, index)]
+                with node.runtime():
+                    try:
+                        exe = node.get_exe_path()
+                    except TaskExecutableNotReceived:
+                        continue
+                    except TaskExecutableNotFound:
+                        exe = node.task.get("exe")
+                        self.__logger.error(f"Executable for {step}/{index} could not "
+                                            f"be found: {exe}")
+                        error = True
                         continue
 
-                    node = self.__tasks[(step, index)]
-                    with node.runtime():
-                        try:
-                            exe = node.get_exe_path()
-                        except TaskExecutableNotReceived:
-                            continue
-                        except TaskExecutableNotFound:
-                            exe = node.task.get("exe")
-                            self.__logger.error(f"Executable for {step}/{index} could not "
-                                                f"be found: {exe}")
-                            error = True
-                            continue
-
-                        try:
-                            if exe:
-                                version: Optional[str] = versions.get(exe, None)
-                                version, check = node.check_version(version)
-                                versions[exe] = version
-                                if not check:
-                                    self.__logger.error(f"Executable for {step}/{index} did not "
-                                                        "meet version checks")
-                                    error = True
-                        except NotImplementedError:
-                            self.__logger.error(f"Unable to process version for {step}/{index}")
-            finally:
-                os.chdir(cwd)
+                    try:
+                        if exe:
+                            version: Optional[str] = versions.get(exe, None)
+                            version, check = node.check_version(version, workdir=d)
+                            versions[exe] = version
+                            if not check:
+                                self.__logger.error(f"Executable for {step}/{index} did not "
+                                                    "meet version checks")
+                                error = True
+                    except NotImplementedError:
+                        self.__logger.error(f"Unable to process version for {step}/{index}")
 
         return not error
 

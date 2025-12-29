@@ -391,13 +391,17 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         if self.tool() in tools:
             self.logger.info(f"Missing tool can be installed via: \"sc-install {self.tool()}\"")
 
-    def get_exe_version(self) -> Optional[str]:
+    def get_exe_version(self, workdir: Optional[str] = None) -> Optional[str]:
         """
         Gets the version of the task's executable by running it with a version switch.
 
         Raises:
             TaskExecutableNotFound: If the executable is not found.
             NotImplementedError: If the `parse_version` method is not implemented.
+
+        Args:
+            workdir (str): The working directory to use for the version check. If None,
+                the current working directory is used.
 
         Returns:
             str: The parsed version string.
@@ -423,7 +427,8 @@ class Task(NamedSchema, PathSchema, DocsSchema):
                               stdin=subprocess.DEVNULL,
                               stdout=subprocess.PIPE,
                               stderr=subprocess.STDOUT,
-                              universal_newlines=True)
+                              universal_newlines=True,
+                              cwd=workdir)
 
         if proc.returncode != 0:
             self.logger.warning(f"Version check on '{exe_base}' ended with "

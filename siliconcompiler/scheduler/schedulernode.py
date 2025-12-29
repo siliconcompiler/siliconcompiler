@@ -895,7 +895,8 @@ class SchedulerNode:
         with self.__set_env():
             return self.__task.get_exe()
 
-    def check_version(self, version: Optional[str] = None) -> Tuple[Optional[str], bool]:
+    def check_version(self, version: Optional[str] = None,
+                      workdir: Optional[str] = None) -> Tuple[Optional[str], bool]:
         """Checks the version of the tool for this task.
 
         Compares a version string against the tool's requirements. This check
@@ -908,6 +909,8 @@ class SchedulerNode:
         Args:
             version: The version string to check. If None, the task's
                 configured version is fetched and used.
+            workdir: The working directory to use for the version check. If None,
+                the current working directory is used.
 
         Returns:
             A tuple (version_str, check_passed):
@@ -921,7 +924,7 @@ class SchedulerNode:
 
         with self.__set_env():
             if version is None:
-                version = self.__task.get_exe_version()
+                version = self.__task.get_exe_version(workdir=workdir)
 
             check = self.__task.check_exe_version(version)
 
