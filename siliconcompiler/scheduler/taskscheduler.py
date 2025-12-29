@@ -139,9 +139,6 @@ class TaskScheduler:
                 threads = self.__max_threads
             task["threads"] = max(1, min(threads, self.__max_threads))
 
-            task["parent_pipe"], pipe = multiprocessing.Pipe()
-            task["node"].set_queue(pipe, self.__log_queue)
-
             task["proc"] = multiprocessing.Process(target=task["node"].run)
             self.__nodes[(step, index)] = task
 
@@ -304,6 +301,11 @@ class TaskScheduler:
                     except:  # noqa E722
                         pass
 
+                # Remove pipe
+                info["parent_pipe"].close()
+                info["parent_pipe"] = None
+                info["node"].set_queue(None, None)
+
                 step, index = node
                 if info["proc"].exitcode > 0:
                     status = NodeStatus.ERROR
@@ -414,6 +416,8 @@ class TaskScheduler:
 
                 # Start the process
                 info["running"] = True
+                info["parent_pipe"], pipe = multiprocessing.Pipe()
+                info["node"].set_queue(pipe, self.__log_queue)
                 info["proc"].start()
 
         return changed
