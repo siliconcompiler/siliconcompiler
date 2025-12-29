@@ -262,7 +262,7 @@ def test_normalize_value_enum():
 
 
 def test_normalize_value_int_range():
-    range = NodeRangeType("int", 0, 2, (5, 7))
+    range = NodeRangeType("int", (0, 0), (2, 2), (5, 7))
     assert NodeType.normalize("0", range) == 0
     assert NodeType.normalize("2", range) == 2
     assert NodeType.normalize("6", range) == 6
@@ -272,8 +272,17 @@ def test_normalize_value_int_range():
         NodeType.normalize("8", range)
 
 
+@pytest.mark.parametrize("ranges,expect", [
+    ([(0, 0), (2, 2), (5, 7)], [(0, 0), (2, 2), (5, 7)]),
+    ([(5, 7), (2, 2), (0, 0)], [(0, 0), (2, 2), (5, 7)]),
+])
+def test_range_value_sorting(ranges, expect):
+    range = NodeRangeType("int", *ranges)
+    assert range.values == expect
+
+
 def test_normalize_value_float_range():
-    range = NodeRangeType("float", 0, 2.2, (5, 7))
+    range = NodeRangeType("float", (0, 0), (2.2, 2.2), (5, 7))
     assert NodeType.normalize("0", range) == 0
     assert NodeType.normalize("2.2", range) == 2.2
     assert NodeType.normalize("6", range) == 6
@@ -426,3 +435,44 @@ def test_str_invalid():
 ])
 def test_contains(sctype, check, expect):
     assert NodeType.contains(NodeType.parse(sctype), check) is expect
+
+
+def test_parse_negative_float_range():
+    # Range from -0.5 to 0.5
+    parsed = NodeType.parse("float<-0.5-0.5>")
+    assert isinstance(parsed, NodeRangeType)
+    assert parsed.base == "float"
+    assert parsed.values == [(-0.5, 0.5)]
+
+
+def test_parse_outoforder_float_range():
+    # Range from -0.5 to 0.5
+    parsed = NodeType.parse("float<0.5--0.5>")
+    assert isinstance(parsed, NodeRangeType)
+    assert parsed.base == "float"
+    assert parsed.values == [(-0.5, 0.5)]
+
+
+def test_parse_scientific_notation_range():
+    # Range from 1e-5 to 1e-2
+    parsed = NodeType.parse("float<1e-5-1e-2>")
+    assert isinstance(parsed, NodeRangeType)
+    assert parsed.base == "float"
+    assert parsed.values == [(1e-5, 1e-2)]
+    assert str(parsed) == "float<1e-05-0.01>"
+
+
+def test_parse_mixed_ranges_and_values():
+    # Mixed single values and ranges with negatives
+    parsed = NodeType.parse("int<-10,-5,0-5>")
+    assert isinstance(parsed, NodeRangeType)
+    assert parsed.values == [(-10, -10), (-5, -5), (0, 5)]
+
+
+def test_normalize_negative_range():
+    rnge = NodeType.parse("int<-10-10>")
+    assert NodeType.normalize("-5", rnge) == -5
+    assert NodeType.normalize("10", rnge) == 10
+    assert NodeType.normalize("-10", rnge) == -10
+    with pytest.raises(ValueError):
+        NodeType.normalize("-11", rnge)

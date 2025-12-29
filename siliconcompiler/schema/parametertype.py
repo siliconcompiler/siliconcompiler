@@ -14,7 +14,9 @@ class NodeType:
     __tuple = re.compile(r"^\((.*)\)$")
     __set = re.compile(r"^\{(.*)\}$")
     __enum = re.compile(r"^<(.*)>$")
-    __range = re.compile(r"^(int|float|str)<(.*)>$")
+    __rangetype = re.compile(r"^(int|float|str)<(.*)>$")
+    __rangenumber = r"[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?"
+    __rangevalues = re.compile(f"^({__rangenumber})-({__rangenumber})$")
     __basetypes = re.compile(r"^(<(.*)>|int(<(.*)>)?|float(<(.*)>)?|str(<(.*)>)?|bool|file|dir)$")
 
     def __init__(self, sctype):
@@ -47,7 +49,7 @@ class NodeType:
         if NodeType.__basetypes.match(sctype):
             if NodeType.__enum.match(sctype):
                 return NodeEnumType(*sctype[1:-1].split(","))
-            range_groups = NodeType.__range.match(sctype)
+            range_groups = NodeType.__rangetype.match(sctype)
             if range_groups:
                 basetype, rangespec = range_groups.groups()
                 if basetype == "str":
@@ -57,11 +59,13 @@ class NodeType:
                 range_parts = []
                 normlizer = int if basetype == "int" else float
                 for part in rangespec.split(","):
-                    if '-' in part:
-                        start, end = part.split('-')
+                    match = NodeType.__rangevalues.match(part.strip())
+                    if match:
+                        start, end = match.groups()
                         range_parts.append((normlizer(start), normlizer(end)))
                     else:
-                        range_parts.append(normlizer(part))
+                        part = normlizer(part)
+                        range_parts.append((part, part))
                 return NodeRangeType(basetype, *range_parts)
             return sctype
         if NodeType.__list.match(sctype):
@@ -312,19 +316,15 @@ class NodeType:
 
         if isinstance(sctype, NodeRangeType):
             value = NodeType.normalize(value, sctype.base)
-            for v in sctype.values:
-                if isinstance(v, tuple):
-                    if v[0] <= value <= v[1]:
-                        return value
-                else:
-                    if value == v:
-                        return value
+            for minval, maxval in sctype.values:
+                if minval <= value <= maxval:
+                    return value
             valid = []
-            for v in sctype.values:
-                if isinstance(v, tuple):
-                    valid.append(f"{v[0]}-{v[1]}")
+            for minval, maxval in sctype.values:
+                if minval != maxval:
+                    valid.append(f"{minval}-{maxval}")
                 else:
-                    valid.append(f"{v}")
+                    valid.append(f"{minval}")
             raise ValueError(f'{value} is not in range: {", ".join(valid)}')
 
         raise ValueError(f'Invalid type specifier: {sctype}')
@@ -377,7 +377,7 @@ class NodeRangeType:
         if not values:
             raise ValueError("range cannot be empty set")
         self.__base = base
-        self.__values = set(values)
+        self.__values = sorted((min(vs), max(vs)) for vs in set(values))
 
     def __eq__(self, other):
         if isinstance(other, NodeRangeType):
@@ -386,12 +386,12 @@ class NodeRangeType:
 
     def __str__(self):
         values = []
-        for v in self.__values:
-            if isinstance(v, tuple):
-                values.append(f"{v[0]}-{v[1]}")
+        for minval, maxval in self.__values:
+            if minval != maxval:
+                values.append(f"{minval}-{maxval}")
             else:
-                values.append(f"{v}")
-        return f"{self.__base}<{','.join(sorted(values))}>"
+                values.append(f"{minval}")
+        return f"{self.__base}<{','.join(values)}>"
 
     def __repr__(self):
         return str(self)
