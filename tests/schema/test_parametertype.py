@@ -476,3 +476,65 @@ def test_normalize_negative_range():
     assert NodeType.normalize("-10", rnge) == -10
     with pytest.raises(ValueError):
         NodeType.normalize("-11", rnge)
+
+
+def test_parse_open_range_high():
+    # int<0->
+    rnge = NodeType.parse("int<0->>")
+    assert isinstance(rnge, NodeRangeType)
+    assert rnge.values == [(0, None)]
+
+    assert NodeType.normalize(0, rnge) == 0
+    assert NodeType.normalize(100, rnge) == 100
+    with pytest.raises(ValueError):
+        NodeType.normalize(-1, rnge)
+
+
+def test_parse_open_negative_range_high():
+    # int<-10->
+    rnge = NodeType.parse("int<-10->>")
+    assert isinstance(rnge, NodeRangeType)
+    assert rnge.values == [(-10, None)]
+
+    assert NodeType.normalize(-10, rnge) == -10
+    assert NodeType.normalize(0, rnge) == 0
+    with pytest.raises(ValueError):
+        NodeType.normalize(-11, rnge)
+
+
+def test_parse_open_range_low():
+    # int<-5>
+    rnge = NodeType.parse("int<<--5>")
+    assert isinstance(rnge, NodeRangeType)
+    assert rnge.values == [(None, -5)]
+
+    assert NodeType.normalize(-5, rnge) == -5
+    assert NodeType.normalize(-100, rnge) == -100
+    with pytest.raises(ValueError):
+        NodeType.normalize(0, rnge)
+
+
+def test_parse_open_negative_range_low():
+    # int<--5>
+    rnge = NodeType.parse("int<<--5>")
+    assert isinstance(rnge, NodeRangeType)
+    assert rnge.values == [(None, -5)]
+
+    assert NodeType.normalize(-5, rnge) == -5
+    assert NodeType.normalize(-100, rnge) == -100
+    with pytest.raises(ValueError):
+        NodeType.normalize(0, rnge)
+
+
+def test_parse_negative_range():
+    # int<-10--5>
+    rnge = NodeType.parse("int<-10--5>")
+    assert isinstance(rnge, NodeRangeType)
+    assert rnge.values == [(-10, -5)]
+
+    assert NodeType.normalize(-10, rnge) == -10
+    assert NodeType.normalize(-7, rnge) == -7
+    with pytest.raises(ValueError):
+        NodeType.normalize(-11, rnge)
+    with pytest.raises(ValueError):
+        NodeType.normalize(-4, rnge)

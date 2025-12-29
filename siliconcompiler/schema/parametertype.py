@@ -16,7 +16,7 @@ class NodeType:
     __enum = re.compile(r"^<(.*)>$")
     __rangetype = re.compile(r"^(int|float|str)<(.*)>$")
     __rangenumber = r"[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][-+]?\d+)?"
-    __rangevalues = re.compile(f"^({__rangenumber})-({__rangenumber})$")
+    __rangevalues = re.compile(f"^({__rangenumber}|<)-({__rangenumber}|>)$")
     __basetypes = re.compile(r"^(<(.*)>|int(<(.*)>)?|float(<(.*)>)?|str(<(.*)>)?|bool|file|dir)$")
 
     def __init__(self, sctype):
@@ -59,10 +59,18 @@ class NodeType:
                 range_parts = []
                 normlizer = int if basetype == "int" else float
                 for part in rangespec.split(","):
-                    match = NodeType.__rangevalues.match(part.strip())
+                    match = NodeType.__rangevalues.match(part)
                     if match:
                         start, end = match.groups()
-                        range_parts.append((normlizer(start), normlizer(end)))
+                        if start == "<":
+                            start = None
+                        else:
+                            start = normlizer(start)
+                        if end == ">":
+                            end = None
+                        else:
+                            end = normlizer(end)
+                        range_parts.append((start, end))
                     else:
                         part = normlizer(part)
                         range_parts.append((part, part))
@@ -317,12 +325,18 @@ class NodeType:
         if isinstance(sctype, NodeRangeType):
             value = NodeType.normalize(value, sctype.base)
             for minval, maxval in sctype.values:
-                if minval <= value <= maxval:
+                if minval is None:
+                    if value <= maxval:
+                        return value
+                elif maxval is None:
+                    if value >= minval:
+                        return value
+                elif minval <= value <= maxval:
                     return value
             valid = []
             for minval, maxval in sctype.values:
                 if minval != maxval:
-                    valid.append(f"{minval}-{maxval}")
+                    valid.append(f"{minval if minval is not None else ''}-{maxval if maxval is not None else ''}")
                 else:
                     valid.append(f"{minval}")
             raise ValueError(f'{value} is not in range: {", ".join(valid)}')
@@ -377,7 +391,9 @@ class NodeRangeType:
         if not values:
             raise ValueError("range cannot be empty set")
         self.__base = base
-        self.__values = sorted((min(vs), max(vs)) for vs in set(values))
+        self.__values = sorted(
+            (min([v0, v1]), max([v0, v1])) if v0 is not None and v1 is not None else (v0, v1)
+            for v0, v1 in set(values))
 
     def __eq__(self, other):
         if isinstance(other, NodeRangeType):
@@ -388,7 +404,7 @@ class NodeRangeType:
         values = []
         for minval, maxval in self.__values:
             if minval != maxval:
-                values.append(f"{minval}-{maxval}")
+                values.append(f"{minval if minval is not None else ''}-{maxval if maxval is not None else ''}")
             else:
                 values.append(f"{minval}")
         return f"{self.__base}<{','.join(values)}>"
