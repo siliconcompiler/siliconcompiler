@@ -336,7 +336,8 @@ class NodeType:
             valid = []
             for minval, maxval in sctype.values:
                 if minval != maxval:
-                    valid.append(f"{minval if minval is not None else ''}-{maxval if maxval is not None else ''}")
+                    valid.append(f"{minval if minval is not None else ''}-"
+                                 f"{maxval if maxval is not None else ''}")
                 else:
                     valid.append(f"{minval}")
             raise ValueError(f'{value} is not in range: {", ".join(valid)}')
@@ -404,7 +405,8 @@ class NodeRangeType:
         values = []
         for minval, maxval in self.__values:
             if minval != maxval:
-                values.append(f"{minval if minval is not None else ''}-{maxval if maxval is not None else ''}")
+                values.append(f"{minval if minval is not None else ''}-"
+                              f"{maxval if maxval is not None else ''}")
             else:
                 values.append(f"{minval}")
         return f"{self.__base}<{','.join(values)}>"
