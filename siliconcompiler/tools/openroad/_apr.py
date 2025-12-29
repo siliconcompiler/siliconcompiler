@@ -284,8 +284,8 @@ class OpenROADGPLParameter(OpenROADTask):
                            "true/false, when true global placement will consider the routability "
                            "of the design", defvalue=True)
 
-        self.add_parameter("place_density", "float",
-                           "global placement density (0.0 - 1.0)")
+        self.add_parameter("place_density", "float<0.0-1.0>",
+                           "global placement density")
         self.add_parameter("pad_global_place", "int",
                            "global placement cell padding in number of sites", defvalue=0)
 
