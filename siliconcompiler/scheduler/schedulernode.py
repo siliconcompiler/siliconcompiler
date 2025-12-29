@@ -895,7 +895,8 @@ class SchedulerNode:
         with self.__set_env():
             return self.__task.get_exe()
 
-    def check_version(self, version: Optional[str] = None, workdir: Optional[str] = None) -> Tuple[Optional[str], bool]:
+    def check_version(self, version: Optional[str] = None,
+                      workdir: Optional[str] = None) -> Tuple[Optional[str], bool]:
         """Checks the version of the tool for this task.
 
         Compares a version string against the tool's requirements. This check
