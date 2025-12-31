@@ -6,7 +6,7 @@ from datetime import datetime
 
 from typing import Dict, Optional
 
-from .datastore import Parameter, Goal
+from siliconcompiler.optimizer.datastore import Parameter, Goal
 
 from siliconcompiler import Project
 
@@ -18,17 +18,19 @@ class ResultOptimizer:
     def __init__(self):
         self.__results = []
         self.__date = str(datetime.now())
-    
+        self.__logger = None
+
     @property
     def logger(self) -> logging.Logger:
         """
         Returns a configured logger for the optimizer.
         """
-        logger = logging.getLogger("siliconcompiler").getChild("optimizer")
-        if not logger.handlers:
-            logger.addHandler(logging.StreamHandler(stream=sys.stdout))
-            logger.setLevel(logging.INFO)
-        return logger
+        if not self.__logger:
+            self.__logger = logging.getLogger("siliconcompiler").getChild("optimizer")
+            if not self.__logger.handlers:
+                self.__logger.addHandler(logging.StreamHandler(stream=sys.stdout))
+                self.__logger.setLevel(logging.INFO)
+        return self.__logger
 
     def _clear_results(self):
         """
@@ -36,15 +38,18 @@ class ResultOptimizer:
         """
         self.__results.clear()
 
-    def _add_result(self, paraminfo: Dict[str, Parameter], parameters: Dict, measinfo: Dict[str, Goal], measurements: Dict):
+    def _add_result(self, paraminfo: Dict[str, Parameter], parameters: Dict,
+                    measinfo: Dict[str, Goal], measurements: Dict) -> None:
         """
         Adds a single optimization result to the storage.
 
         Args:
-            paraminfo (Dict[str, Parameter]): Dictionary mapping parameter names to Parameter objects.
+            paraminfo (Dict[str, Parameter]): Dictionary mapping parameter names to Parameter
+                objects.
             parameters (Dict): Dictionary mapping parameter names to their values in this result.
             measinfo (Dict[str, Goal]): Dictionary mapping measurement names to Goal objects.
-            measurements (Dict): Dictionary mapping measurement names to their values in this result.
+            measurements (Dict): Dictionary mapping measurement names to their values in this
+                result.
         """
         params = {}
         for name, value in parameters.items():
@@ -132,6 +137,7 @@ class ResultOptimizer:
         """
         if result >= len(self.__results):
             raise IndexError(f"{result} is out of bounds: 0 ... {len(self.__results) - 1}")
+
         for param in self.__results[result]["parameters"].values():
             project.logger.info(f'Setting {param["print"]} = {param["value"]}')
 

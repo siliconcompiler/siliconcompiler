@@ -72,7 +72,7 @@ class _OptProperty:
             name += f' ({node_name})'
 
         return name
-    
+
     def tojson(self) -> Dict:
         """
         Returns a dictionary representation of the property for JSON serialization.

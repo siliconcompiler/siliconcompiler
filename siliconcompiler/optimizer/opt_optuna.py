@@ -75,9 +75,6 @@ class OptunaOptimizer(AbstractOptimizer):
                 elif param_info.type == 'int':
                     param_value = trial.suggest_int(
                         param_name, param_info.values[0], param_info.values[1])
-                elif param_info.type == 'bool':
-                    param_value = trial.suggest_categorical(
-                        param_name, param_info.values)
                 elif param_info.type == 'enum':
                     param_value = trial.suggest_categorical(
                             param_name, param_info.values)
