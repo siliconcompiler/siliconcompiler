@@ -47,8 +47,6 @@ class VizierOptimizier(AbstractOptimizer):
                 search_space.add_float_param(param_name, param_info.values[0], param_info.values[1])
             elif param_info.type == 'int':
                 search_space.add_int_param(param_name, param_info.values[0], param_info.values[1])
-            elif param_info.type == 'bool':
-                search_space.add_discrete_param(param_name, param_info.values)
             elif param_info.type == 'enum':
                 if any([isinstance(v, str) for v in param_info.values]):
                     search_space.add_categorical_param(param_name, param_info.values)
