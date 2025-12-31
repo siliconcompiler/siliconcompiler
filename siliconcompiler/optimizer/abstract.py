@@ -7,8 +7,8 @@ from siliconcompiler import Project
 from siliconcompiler.schema import EditableSchema
 from siliconcompiler.schema.parametertype import NodeType, NodeEnumType, NodeRangeType
 
-from .datastore import Parameter, Goal, Assertion
-from .result import ResultOptimizer
+from siliconcompiler.optimizer.datastore import Parameter, Goal, Assertion
+from siliconcompiler.optimizer.result import ResultOptimizer
 
 
 class StopExperiment(Exception):
@@ -91,7 +91,7 @@ class AbstractOptimizer(ResultOptimizer):
         Validates that the key, step, and index exist in the project schema/flowgraph.
         """
         if not self.project.valid(*key):
-            raise KeyError(f"Invalid key: {key}")
+            raise KeyError(f"Invalid key: [{','.join(key)}]")
 
         flow = self.project.get("flowgraph", self.project.option.get_flow(), field="schema")
         nodes = flow.get_nodes()
@@ -147,6 +147,9 @@ class AbstractOptimizer(ResultOptimizer):
         if value_type not in ('float', 'int', 'bool', 'str'):
             raise TypeError(f"{value_type} is not supported")
 
+        if value_type == 'bool':
+            value_type = "enum"
+
         # Normalize values format
         if value_type in ('float', 'int'):
             if isinstance(values, dict):
@@ -157,14 +160,11 @@ class AbstractOptimizer(ResultOptimizer):
                 values = [values["min"], values["max"]]
             else:
                 value_type = 'enum'
-        elif value_type in ('enum', 'str', 'bool'):
+        elif value_type in ('enum', 'str'):
             if not isinstance(values, (tuple, list, set)):
                 raise ValueError("value must be a list")
             if value_type == 'str':
                 value_type = 'enum'
-
-        if value_type == 'bool' and not values:
-            values = [True, False]
 
         param = Parameter(key, values, value_type, step, index)
         self.__parameters[param.name] = param
@@ -189,16 +189,16 @@ class AbstractOptimizer(ResultOptimizer):
             step (str, optional): The step associated with this assertion.
             index (str, optional): The index associated with this assertion.
         """
-        self.__check_key_step(key, step, index)
-
         if not callable(criteria):
             raise ValueError('criteria must be a function')
 
-        if not step:
+        if step is None:
             raise ValueError('step is required')
 
-        if not index:
+        if index is None:
             raise ValueError('index is required')
+
+        self.__check_key_step(key, step, index)
 
         assertion = Assertion(key, criteria, step, index)
         self.__assertions[assertion.name] = assertion
@@ -224,20 +224,21 @@ class AbstractOptimizer(ResultOptimizer):
         Args:
             *key (str): The schema key for the metric to optimize.
             goal (str): The direction of optimization ('min' or 'max').
-            stop_goal (Union[float, int], optional): A target value. If reached, optimization may stop early.
+            stop_goal (Union[float, int], optional): A target value.
+                If reached, optimization may stop early.
             step (str, optional): The step associated with this goal.
             index (str, optional): The index associated with this goal.
         """
-        self.__check_key_step(key, step, index)
-
         if goal not in ('min', 'max'):
             raise ValueError(f"{goal} is not supported")
 
-        if not step:
+        if step is None:
             raise ValueError('step is required')
 
-        if not index:
+        if index is None:
             raise ValueError('index is required')
+
+        self.__check_key_step(key, step, index)
 
         g = Goal(key, goal, stop_goal, step, index)
         self.__goals[g.name] = g
@@ -346,6 +347,10 @@ class AbstractOptimizer(ResultOptimizer):
             return measurements
         except KeyboardInterrupt:
             raise KeyboardInterrupt
+        except StopExperiment:
+            raise StopExperiment
+        except RejectExperiment:
+            raise RejectExperiment
         except Exception as e:
             self.logger.error(f"Optimization trial failed: {e}")
             raise RejectExperiment
