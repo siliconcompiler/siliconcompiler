@@ -21,6 +21,7 @@ from siliconcompiler.schema.parameter import PerNode, Scope
 from siliconcompiler.tool import TaskExecutableNotFound, TaskError, TaskTimeout
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 from siliconcompiler.scheduler import SchedulerNode
+from siliconcompiler.utils.multiprocessing import MPManager
 
 from siliconcompiler.tools.builtin.nop import NOPTask
 
@@ -2169,12 +2170,11 @@ def test_show_register_task():
     class Test(ShowTask):
         pass
 
-    with patch.dict("siliconcompiler.ShowTask._ShowTask__TASKS", clear=True) \
-            as tasks:
-        assert len(tasks) == 0
-        ShowTask.register_task(Test)
-        assert len(tasks) == 1
-        assert tasks[ShowTask] == set([Test])
+    settings = MPManager.get_transient_settings()
+    assert len(settings.get_category("ShowTask")) == 0
+    ShowTask.register_task(Test)
+    assert len(settings.get_category("ShowTask")) == 1
+    assert settings.get_category("ShowTask")["test_show_register_task.<locals>.Test/Test"] is Test
 
 
 def test_show_get_task():
@@ -2182,8 +2182,7 @@ def test_show_get_task():
         def get_supported_show_extentions(self):
             return ["ext_test"]
 
-    with patch.dict("siliconcompiler.ShowTask._ShowTask__TASKS", clear=True), \
-            patch("siliconcompiler.utils.showtools.showtasks") as showtasks:
+    with patch("siliconcompiler.utils.showtools.showtasks") as showtasks:
         assert ShowTask.get_task("ext_test").__class__ is Test
         showtasks.assert_called_once()
 
@@ -2283,75 +2282,72 @@ def test_find_task_missing():
 def test_showtask_default_discovery():
     """Test that it picks a tool (order indeterminate but valid) when no setting exists."""
 
-    with patch.dict("siliconcompiler.ShowTask._ShowTask__TASKS", clear=True):
-        # Register our dummy tasks
-        ShowTask.register_task(ToolA)
-        ShowTask.register_task(ToolB)
+    # Register our dummy tasks
+    ShowTask.register_task(ToolA)
+    ShowTask.register_task(ToolB)
 
-        # Ensure settings file doesn't exist or is empty
-        with patch('siliconcompiler.utils.multiprocessing.MPManager.get_settings') \
-                as mock_settings_cls:
-            mock_settings = MagicMock()
-            mock_settings.get.return_value = None  # No preference
-            mock_settings_cls.return_value = mock_settings
+    # Ensure settings file doesn't exist or is empty
+    with patch('siliconcompiler.utils.multiprocessing.MPManager.get_settings') \
+            as mock_settings_cls:
+        mock_settings = MagicMock()
+        mock_settings.get.return_value = None  # No preference
+        mock_settings_cls.return_value = mock_settings
 
-            task = ShowTask.get_task("ext")
-            assert task is not None
-            assert task.tool() in ["toola", "toolb"]
+        task = ShowTask.get_task("ext")
+        assert task is not None
+        assert task.tool() in ["toola", "toolb"]
 
 
 def test_showtask_preference_lookup():
     """Test that settings correctly force the selection of ToolB."""
-    with patch.dict("siliconcompiler.ShowTask._ShowTask__TASKS", clear=True):
-        ShowTask.register_task(ToolA)
-        ShowTask.register_task(ToolB)
+    ShowTask.register_task(ToolA)
+    ShowTask.register_task(ToolB)
 
-        # Mock the SettingsManager to return 'toolb' for 'ext'
-        with patch('siliconcompiler.utils.multiprocessing.MPManager.get_settings') \
-                as mock_settings_cls:
-            mock_settings = MagicMock()
+    # Mock the SettingsManager to return 'toolb' for 'ext'
+    with patch('siliconcompiler.utils.multiprocessing.MPManager.get_settings') \
+            as mock_settings_cls:
+        mock_settings = MagicMock()
 
-            def get_side_effect(category, key, default=None):
-                if category == "showtask" and key == "ext":
-                    return "toolb"
-                return default
+        def get_side_effect(category, key, default=None):
+            if category == "showtask" and key == "ext":
+                return "toolb"
+            return default
 
-            mock_settings.get.side_effect = get_side_effect
-            mock_settings_cls.return_value = mock_settings
+        mock_settings.get.side_effect = get_side_effect
+        mock_settings_cls.return_value = mock_settings
 
-            # Action
-            task = ShowTask.get_task("ext")
+        # Action
+        task = ShowTask.get_task("ext")
 
-            # Assert
-            assert task is not None
-            assert task.tool() == "toolb"
-            assert isinstance(task, ToolB)
+        # Assert
+        assert task is not None
+        assert task.tool() == "toolb"
+        assert isinstance(task, ToolB)
 
 
 def test_showtask_preference_fallback():
     """Test that it falls back to default if preference is invalid."""
-    with patch.dict("siliconcompiler.ShowTask._ShowTask__TASKS", clear=True):
-        ShowTask.register_task(ToolA)
+    ShowTask.register_task(ToolA)
 
-        with patch('siliconcompiler.utils.multiprocessing.MPManager.get_settings') \
-                as mock_settings_cls:
-            mock_settings = MagicMock()
+    with patch('siliconcompiler.utils.multiprocessing.MPManager.get_settings') \
+            as mock_settings_cls:
+        mock_settings = MagicMock()
 
-            # Preference is 'toolc', which doesn't exist
-            def get_side_effect(category, key, default=None):
-                if category == "showtask" and key == "ext":
-                    return "toolc"
-                return default
+        # Preference is 'toolc', which doesn't exist
+        def get_side_effect(category, key, default=None):
+            if category == "showtask" and key == "ext":
+                return "toolc"
+            return default
 
-            mock_settings.get.side_effect = get_side_effect
-            mock_settings_cls.return_value = mock_settings
+        mock_settings.get.side_effect = get_side_effect
+        mock_settings_cls.return_value = mock_settings
 
-            # Action
-            task = ShowTask.get_task("ext")
+        # Action
+        task = ShowTask.get_task("ext")
 
-            # Assert: Should fall back to ToolA since ToolC isn't there
-            assert task is not None
-            assert task.tool() == "toola"
+        # Assert: Should fall back to ToolA since ToolC isn't there
+        assert task is not None
+        assert task.tool() == "toola"
 
 
 def test_showtask_specific_task_preference():
@@ -2377,20 +2373,19 @@ def test_showtask_specific_task_preference():
         def get_supported_show_extentions(self):
             return ["special"]
 
-    with patch.dict("siliconcompiler.ShowTask._ShowTask__TASKS", clear=True):
-        ShowTask.register_task(ToolCTask1)
-        ShowTask.register_task(ToolCTask2)
+    ShowTask.register_task(ToolCTask1)
+    ShowTask.register_task(ToolCTask2)
 
-        with patch('siliconcompiler.utils.multiprocessing.MPManager.get_settings') \
-                as mock_settings_cls:
-            mock_settings = MagicMock()
-            # Prefer the second task mode
-            mock_settings.get.return_value = "toolc/view_mode_2"
-            mock_settings_cls.return_value = mock_settings
+    with patch('siliconcompiler.utils.multiprocessing.MPManager.get_settings') \
+            as mock_settings_cls:
+        mock_settings = MagicMock()
+        # Prefer the second task mode
+        mock_settings.get.return_value = "toolc/view_mode_2"
+        mock_settings_cls.return_value = mock_settings
 
-            task = ShowTask.get_task("special")
+        task = ShowTask.get_task("special")
 
-            assert task is not None
-            assert task.tool() == "toolc"
-            assert task.task() == "view_mode_2"
-            assert isinstance(task, ToolCTask2)
+        assert task is not None
+        assert task.tool() == "toolc"
+        assert task.task() == "view_mode_2"
+        assert isinstance(task, ToolCTask2)

@@ -11,7 +11,6 @@ import shlex
 import shutil
 import subprocess
 import sys
-import threading
 import time
 import yaml
 
@@ -2088,9 +2087,6 @@ class ShowTask(Task):
     Subclasses should implement `get_supported_show_extentions` to declare
     which file types they can handle.
     """
-    __TASKS_LOCK = threading.Lock()
-    __TASKS = {}
-
     def __init__(self):
         """Initializes a ShowTask, adding specific parameters for show tasks."""
         super().__init__()
@@ -2137,8 +2133,10 @@ class ShowTask(Task):
         if not cls.__check_task(task):
             raise TypeError(f"task must be a subclass of {cls.__name__}")
 
-        with cls.__TASKS_LOCK:
-            cls.__TASKS.setdefault(cls, set()).add(task)
+        MPManager.get_transient_settings().set(
+            cls.__name__,
+            f"{task.__qualname__}/{task.__name__}",
+            task)
 
     @classmethod
     def __populate_tasks(cls) -> None:
@@ -2149,6 +2147,9 @@ class ShowTask(Task):
         any installed plugins.
         """
         cls.__check_task(None)
+
+        if MPManager.get_transient_settings().get_category(cls.__name__):
+            return  # Already populated
 
         def recurse(searchcls: Type["ShowTask"]):
             subclss = set()
@@ -2170,8 +2171,8 @@ class ShowTask(Task):
         if not classes:
             return
 
-        with ShowTask.__TASKS_LOCK:
-            ShowTask.__TASKS.setdefault(cls, set()).update(classes)
+        for c in classes:
+            cls.register_task(c)
 
     @classmethod
     def get_task(cls, ext: Optional[str]) -> Union[Optional["ShowTask"], Set[Type["ShowTask"]]]:
@@ -2191,14 +2192,12 @@ class ShowTask(Task):
             no suitable task is found.
         """
         cls.__check_task(None)
+        cls.__populate_tasks()
 
-        if cls not in ShowTask.__TASKS:
-            cls.__populate_tasks()
-
-        with ShowTask.__TASKS_LOCK:
-            if cls not in ShowTask.__TASKS:
-                return None
-            tasks = ShowTask.__TASKS[cls].copy()
+        settings = MPManager.get_transient_settings()
+        tasks = set(settings.get_category(cls.__name__).values())
+        if not tasks:
+            return None
 
         if ext is None:
             return tasks

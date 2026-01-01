@@ -33,8 +33,7 @@ def exit_on_show(monkeypatch):
 
     monkeypatch.setattr(ShowTask, "setup", mock_setup)
 
-    with patch.dict("siliconcompiler.ShowTask._ShowTask__TASKS", clear=True):
-        yield
+    yield
 
 
 @pytest.mark.eda
