@@ -15,6 +15,7 @@ from enum import Enum
 from siliconcompiler.schema import BaseSchema, LazyLoad
 from siliconcompiler.schema import EditableSchema, Parameter, PerNode, Scope
 from siliconcompiler.schema.utils import trim
+from siliconcompiler.utils.multiprocessing import MPManager
 
 from siliconcompiler import _metadata
 
@@ -138,9 +139,9 @@ class RecordSchema(BaseSchema):
             "region": str
             }
         '''
-        # TODO: add logic to figure out if we're running on a remote cluster and
-        # extract the region in a provider-specific way.
-        return {"region": "local"}
+
+        region = MPManager().get_settings().get("record", "region", default="local")
+        return {"region": region}
 
     @staticmethod
     def get_ip_information() -> Dict[str, Optional[str]]:

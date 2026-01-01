@@ -172,9 +172,6 @@ class CommandLineSchema(BaseSchema):
 
         # Iterate over all keys from an empty schema to add parser arguments
         for keypath in sorted(keyschema.allkeys()):
-            if keypath == ("option", "cfg"):  # TODO: remove this when cfg is removed from schema
-                continue
-
             param: Parameter = keyschema.get(*keypath, field=None)
 
             dest, switches = param.add_commandline_arguments(

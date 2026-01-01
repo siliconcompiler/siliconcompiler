@@ -23,7 +23,6 @@ def schema():
                                              pernode=PerNode.OPTIONAL))
             schema.insert("test4", Parameter("bool", switch=["-test_bool <bool>"],
                                              pernode=PerNode.OPTIONAL))
-            schema.insert("option", "cfg", Parameter("[file]", switch=["-cfg <file>"]))
             schema.insert("test5", Parameter(
                 "int",
                 switch=["-O<int>"]))
