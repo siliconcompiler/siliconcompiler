@@ -3,8 +3,6 @@ import pytest
 
 import os.path
 
-from unittest.mock import patch
-
 from siliconcompiler import Project, ASIC, Design, PDK
 from siliconcompiler import ShowTask, ScreenshotTask
 
