@@ -25,6 +25,9 @@ class SettingsManager:
 
         Args:
             filepath (str): The path to the JSON file where settings are stored.
+                If None, settings are kept in memory only.
+            logger (logging.Logger): Logger for logging errors and information.
+            timeout (float): Timeout in seconds for acquiring the file lock.
         """
         self.__filepath = filepath
         if self.__filepath is not None:
@@ -90,7 +93,8 @@ class SettingsManager:
 
             with self.__lock:
                 with open(self.__filepath, 'w', encoding='utf-8') as f:
-                    json.dump(self.__settings, f, indent=4)
+                    with self.__settings_lock:
+                        json.dump(self.__settings, f, indent=4)
         except Exception as e:
             self.__logger.error(f"Failed to save settings to {self.__filepath}: {e}")
             raise e
