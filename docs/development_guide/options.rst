@@ -161,3 +161,22 @@ In this example:
 * ``.vcd`` files will always open with GTKWave.
 
 If the preferred tool is not found or not registered, SiliconCompiler will fall back to its default discovery mechanism.
+
+Record Settings (The 'record' Category)
+---------------------------------------
+
+The ``record`` category allows you to define metadata about the execution environment, which is useful for tracking and aggregating results across different cloud regions or clusters.
+
+**Example Configuration**
+
+.. code-block:: json
+
+    {
+        "record": {
+            "region": "us-east-1"
+        }
+    }
+
+In this example, the ``region`` key specifies the cloud region.
+This information is retrieved by the schema support tools to tag records with the appropriate environment details.
+If omitted, the region defaults to ``local``.
