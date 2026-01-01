@@ -91,9 +91,9 @@ class SettingsManager:
             if directory and not os.path.exists(directory):
                 os.makedirs(directory)
 
-            with self.__lock:
-                with open(self.__filepath, 'w', encoding='utf-8') as f:
-                    with self.__settings_lock:
+            with self.__settings_lock:
+                with self.__lock:
+                    with open(self.__filepath, 'w', encoding='utf-8') as f:
                         json.dump(self.__settings, f, indent=4)
         except Exception as e:
             self.__logger.error(f"Failed to save settings to {self.__filepath}: {e}")
