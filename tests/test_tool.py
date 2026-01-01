@@ -2174,7 +2174,7 @@ def test_show_register_task():
     assert len(settings.get_category("ShowTask")) == 0
     ShowTask.register_task(Test)
     assert len(settings.get_category("ShowTask")) == 1
-    assert settings.get_category("ShowTask")["test_show_register_task.<locals>.Test/Test"] is Test
+    assert settings.get_category("ShowTask")["test_tool/Test"] is Test
 
 
 def test_show_get_task():

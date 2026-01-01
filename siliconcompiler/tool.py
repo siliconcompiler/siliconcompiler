@@ -2135,7 +2135,7 @@ class ShowTask(Task):
 
         MPManager.get_transient_settings().set(
             cls.__name__,
-            f"{task.__qualname__}/{task.__name__}",
+            f"{task.__module__}/{task.__name__}",
             task)
 
     @classmethod
