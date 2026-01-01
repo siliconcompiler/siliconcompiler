@@ -374,9 +374,12 @@ class OpenROADDRTParameter(_OpenROADDRTCommonParameter):
         self.add_parameter("drt_disable_via_gen", "bool",
                            "true/false, when true turns off via generation in detailed router "
                            "and only uses the specified tech vias", defvalue=False)
-        self.add_parameter("drt_via_in_pin_bottom_layer", "str", "TODO")
-        self.add_parameter("drt_via_in_pin_top_layer", "str", "TODO")
-        self.add_parameter("drt_repair_pdn_vias", "str", "TODO")
+        self.add_parameter("drt_via_in_pin_bottom_layer", "str",
+                           "bottom layer to allow vias inside pins")
+        self.add_parameter("drt_via_in_pin_top_layer", "str",
+                           "top layer to allow vias inside pins")
+        self.add_parameter("drt_repair_pdn_vias", "str",
+                           "layer to repair PDN vias on")
 
         self.add_parameter("drt_report_interval", "int",
                            "reporting interval in steps for generating a DRC report.", defvalue=5)
