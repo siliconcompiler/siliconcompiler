@@ -26,7 +26,8 @@ class SettingsManager:
             filepath (str): The path to the JSON file where settings are stored.
         """
         self.__filepath = filepath
-        self.__lock = InterProcessLock(self.__filepath + ".lock")
+        if self.__filepath is not None:
+            self.__lock = InterProcessLock(self.__filepath + ".lock")
         self.__timeout = timeout
         self.__logger = logger.getChild("settings")
         self.__settings = {}
@@ -37,7 +38,7 @@ class SettingsManager:
         Internal method to load settings from disk.
         It handles missing files and malformed JSON gracefully.
         """
-        if not os.path.exists(self.__filepath):
+        if self.__filepath is None or not os.path.exists(self.__filepath):
             self.__settings = {}
             return
 
@@ -75,6 +76,9 @@ class SettingsManager:
         """
         Save the current settings to the disk in JSON format.
         """
+        if self.__filepath is None:
+            return
+
         try:
             # Ensure directory exists
             directory = os.path.dirname(self.__filepath)

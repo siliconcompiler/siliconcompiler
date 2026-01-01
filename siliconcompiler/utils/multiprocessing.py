@@ -145,6 +145,7 @@ class MPManager(metaclass=_ManagerSingleton):
 
         # Settings
         self.__settings = SettingsManager(default_sc_path("settings.json"), self.__logger)
+        self.__transient_settings = SettingsManager(None, self.__logger)
 
         # Register cleanup function to run at exit
         atexit.register(MPManager.stop)
@@ -271,6 +272,16 @@ class MPManager(metaclass=_ManagerSingleton):
             SettingsManager: The singleton settings instance.
         """
         return MPManager().__settings
+
+    @staticmethod
+    def get_transient_settings() -> SettingsManager:
+        """
+        Provides access to the shared transient SettingsManager instance.
+
+        Returns:
+            SettingsManager: The singleton transient settings instance.
+        """
+        return MPManager().__transient_settings
 
     @staticmethod
     def get_dashboard() -> Board:
