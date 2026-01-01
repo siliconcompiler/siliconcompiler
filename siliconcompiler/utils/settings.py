@@ -128,7 +128,10 @@ class SettingsManager:
         Retrieve all settings for a specific category.
         Returns an empty dict if category does not exist.
         """
-        return self.__settings.get(category, {})
+        if category not in self.__settings:
+            self.__settings[category] = {}
+
+        return self.__settings.get(category)
 
     def delete(self, category: str, key: Optional[str] = None):
         """
