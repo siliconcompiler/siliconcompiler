@@ -113,8 +113,7 @@ def isolate_statics_in_testing(monkeypatch):
     BaseSchema._BaseSchema__get_child_classes.cache_clear()
     BaseSchema._BaseSchema__load_schema_class.cache_clear()
 
-    with patch.dict(TaskScheduler._TaskScheduler__callbacks), \
-            patch.dict(_ManagerSingleton._instances, clear=True):
+    with patch.dict(_ManagerSingleton._instances, clear=True):
         yield
 
         # Cleanup afterwards

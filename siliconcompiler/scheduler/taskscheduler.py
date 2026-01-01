@@ -5,7 +5,7 @@ import time
 
 import os.path
 
-from typing import List, Dict, Tuple, Optional, Callable, ClassVar, Any, Literal, TYPE_CHECKING
+from typing import List, Dict, Tuple, Optional, Callable, Any, Literal, TYPE_CHECKING
 
 from logging.handlers import QueueListener
 
@@ -35,12 +35,6 @@ class TaskScheduler:
     dependency checking. It operates on a set of pending tasks defined by the
     main Scheduler and executes them in a loop until the flow is complete.
     """
-    __callbacks: ClassVar[Dict[str, Callable[..., None]]] = {
-        "pre_run": lambda project: None,
-        "pre_node": lambda project, step, index: None,
-        "post_node": lambda project, step, index: None,
-        "post_run": lambda project: None,
-    }
 
     @staticmethod
     def register_callback(hook: Literal["pre_run", "pre_node", "post_node", "post_run"],
@@ -57,9 +51,9 @@ class TaskScheduler:
         Raises:
             ValueError: If the specified hook is not valid.
         """
-        if hook not in TaskScheduler.__callbacks:
+        if hook not in ('pre_run', 'pre_node', 'post_node', 'post_run'):
             raise ValueError(f"{hook} is not a valid callback")
-        TaskScheduler.__callbacks[hook] = func
+        MPManager.get_transient_settings().set('TaskScheduler', hook, func)
 
     def __init__(self, project: "Project", tasks: Dict[Tuple[str, str], "SchedulerNode"]):
         """Initializes the TaskScheduler.
@@ -178,11 +172,13 @@ class TaskScheduler:
         if self.__dashboard:
             self.__dashboard.update_manifest()
 
-        TaskScheduler.__callbacks["pre_run"](self.__project)
+        MPManager.get_transient_settings().get(
+            'TaskScheduler', 'pre_run', lambda project: None)(self.__project)
 
         try:
             self.__run_loop()
-            TaskScheduler.__callbacks["post_run"](self.__project)
+            MPManager.get_transient_settings().get(
+                'TaskScheduler', 'post_run', lambda project: None)(self.__project)
         except KeyboardInterrupt:
             # exit immediately
             log_listener.stop()
@@ -320,7 +316,9 @@ class TaskScheduler:
 
                 changed = True
 
-                TaskScheduler.__callbacks['post_node'](self.__project, step, index)
+                MPManager.get_transient_settings().get(
+                    'TaskScheduler', 'post_node',
+                    lambda project, step, index: None)(self.__project, step, index)
 
         return changed
 
@@ -407,7 +405,9 @@ class TaskScheduler:
             if ready and self.__allow_start(node):
                 self.__logger.debug(f'Launching {info["name"]}')
 
-                TaskScheduler.__callbacks['pre_node'](self.__project, step, index)
+                MPManager.get_transient_settings().get(
+                    'TaskScheduler', 'pre_node',
+                    lambda project, step, index: None)(self.__project, step, index)
 
                 self.__record.set('status', NodeStatus.RUNNING, step=step, index=index)
                 self.__startTimes[node] = time.time()
