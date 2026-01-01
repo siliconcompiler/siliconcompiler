@@ -136,9 +136,26 @@ class AbstractOptimizer(ResultOptimizer):
             elif isinstance(nodetype, NodeRangeType):
                 if nodetype.base not in ('int', 'float'):
                     raise TypeError(f"Range type with base type {nodetype.base} is not supported")
-                # TODO support muliple ranges
-                values = {'min': nodetype.values[0][0], 'max': nodetype.values[0][1]}
-                value_type = nodetype.base
+                candidatevals = []
+                userange = False
+                for minval, maxval in nodetype.values:
+                    if minval is None or maxval is None:
+                        continue
+                    if userange:
+                        self.logger.warning("Multiple ranges/values detected; only the first will be used")
+                        continue
+                    if minval == maxval:
+                        candidatevals.append(minval)
+                    else:
+                        userange = True
+                        candidatevals = (minval, maxval)
+
+                if userange:
+                    values = {'min': candidatevals[0], 'max': candidatevals[1]}
+                    value_type = nodetype.base
+                else:
+                    values = candidatevals
+                    value_type = "enum"
             elif nodetype == "bool":
                 values = [True, False]
         if not values:
