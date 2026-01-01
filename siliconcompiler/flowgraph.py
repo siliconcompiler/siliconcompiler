@@ -760,9 +760,6 @@ class Flowgraph(NamedSchema, DocsSchema):
             for step, index in rank_nodes:
                 node_rank[f'{step}/{index}'] = rank
 
-        # TODO: This appears to be unused, legacy from when files were nodes
-        all_graph_inputs = set()
-
         exit_nodes = [f'{step}/{index}' for step, index in self.get_exit_nodes()]
 
         nodes = {}
@@ -847,7 +844,7 @@ class Flowgraph(NamedSchema, DocsSchema):
                                              f"{inlabel}{in_label_suffix}",
                                              1 if node in exit_nodes else 2))
 
-        return all_graph_inputs, nodes, edges, edges_io, has_io
+        return nodes, edges, edges_io, has_io
 
     def write_flowgraph(self, filename: str,
                         fillcolor: str = '#ffffff',
@@ -902,7 +899,7 @@ class Flowgraph(NamedSchema, DocsSchema):
         else:
             rankdir = 'TB'
 
-        all_graph_inputs, nodes, edges, edges_io, has_io = self.__get_graph_information(landscape)
+        nodes, edges, edges_io, has_io = self.__get_graph_information(landscape)
 
         if show_io is None:
             show_io = has_io
@@ -942,17 +939,6 @@ class Flowgraph(NamedSchema, DocsSchema):
                 subgraph_temp = subgraph_temp["graphs"]["sc-inputs"]
 
             subgraph_temp["nodes"].append(node)
-
-        with dot.subgraph(name='inputs') as input_graph:
-            input_graph.graph_attr['cluster'] = 'true'
-            input_graph.graph_attr['color'] = background
-
-            # add inputs
-            for graph_input in sorted(all_graph_inputs):
-                input_graph.node(
-                    graph_input, label=graph_input, bordercolor=fontcolor, style='filled',
-                    fontcolor=fontcolor, fontsize=fontsize, ordering="in",
-                    penwidth=penwidth, fillcolor=fillcolor, shape="box")
 
         def make_node(graph, node, prefix):
             '''Helper function to create a node in the graphviz object.'''
