@@ -1,6 +1,7 @@
 import json
 import os
 import logging
+import threading
 
 import os.path
 
@@ -28,6 +29,7 @@ class SettingsManager:
         self.__filepath = filepath
         if self.__filepath is not None:
             self.__lock = InterProcessLock(self.__filepath + ".lock")
+        self.__settings_lock = threading.Lock()
         self.__timeout = timeout
         self.__logger = logger.getChild("settings")
         self.__settings = {}
@@ -42,35 +44,36 @@ class SettingsManager:
             self.__settings = {}
             return
 
-        try:
-            if self.__lock.acquire(timeout=self.__timeout):
-                try:
-                    with sc_open(self.__filepath, encoding='utf-8') as f:
-                        data = json.load(f)
-                finally:
-                    self.__lock.release()
-            else:
-                self.__logger.error(f"Timeout acquiring lock for {self.__filepath}. "
+        with self.__settings_lock:
+            try:
+                if self.__lock.acquire(timeout=self.__timeout):
+                    try:
+                        with sc_open(self.__filepath, encoding='utf-8') as f:
+                            data = json.load(f)
+                    finally:
+                        self.__lock.release()
+                else:
+                    self.__logger.error(f"Timeout acquiring lock for {self.__filepath}. "
+                                        "Starting with empty settings.")
+                    data = {}
+
+                # Ensure the loaded data is actually a dictionary
+                if isinstance(data, dict):
+                    self.__settings = data
+                else:
+                    # If valid JSON but not a dict (e.g. a list), reset to empty
+                    self.__logger.warning(f"File {self.__filepath} did not contain a JSON object. "
+                                          "Resetting.")
+                    self.__settings = {}
+
+            except json.JSONDecodeError:
+                self.__logger.error(f"File {self.__filepath} is malformed. "
                                     "Starting with empty settings.")
-                data = {}
-
-            # Ensure the loaded data is actually a dictionary
-            if isinstance(data, dict):
-                self.__settings = data
-            else:
-                # If valid JSON but not a dict (e.g. a list), reset to empty
-                self.__logger.warning(f"File {self.__filepath} did not contain a JSON object. "
-                                      "Resetting.")
                 self.__settings = {}
-
-        except json.JSONDecodeError:
-            self.__logger.error(f"File {self.__filepath} is malformed. "
-                                "Starting with empty settings.")
-            self.__settings = {}
-        except Exception as e:
-            # Catch-all for permission errors, etc., to ensure __init__ doesn't crash
-            self.__logger.error(f"Unexpected error loading settings: {e}")
-            self.__settings = {}
+            except Exception as e:
+                # Catch-all for permission errors, etc., to ensure __init__ doesn't crash
+                self.__logger.error(f"Unexpected error loading settings: {e}")
+                self.__settings = {}
 
     def save(self):
         """
@@ -101,10 +104,11 @@ class SettingsManager:
             key (str): The specific setting name.
             value: The value to store (must be JSON serializable).
         """
-        if category not in self.__settings:
-            self.__settings[category] = {}
+        with self.__settings_lock:
+            if category not in self.__settings:
+                self.__settings[category] = {}
 
-        self.__settings[category][key] = value
+            self.__settings[category][key] = value
 
     def get(self, category: str, key: str, default=None):
         """
@@ -118,31 +122,34 @@ class SettingsManager:
         Returns:
             The stored value or the default.
         """
-        if category not in self.__settings:
-            return default
+        with self.__settings_lock:
+            if category not in self.__settings:
+                return default
 
-        return self.__settings[category].get(key, default)
+            return self.__settings[category].get(key, default)
 
     def get_category(self, category: str):
         """
         Retrieve all settings for a specific category.
         Returns an empty dict if category does not exist.
         """
-        if category not in self.__settings:
-            self.__settings[category] = {}
+        with self.__settings_lock:
+            if category not in self.__settings:
+                self.__settings[category] = {}
 
-        return self.__settings.get(category)
+            return self.__settings.get(category).copy()
 
     def delete(self, category: str, key: Optional[str] = None):
         """
         Remove a setting.
         """
-        if category in self.__settings:
-            if key:
-                if key in self.__settings[category]:
-                    del self.__settings[category][key]
-                    # Clean up empty categories
-                    if not self.__settings[category]:
-                        del self.__settings[category]
-            else:
-                del self.__settings[category]
+        with self.__settings_lock:
+            if category in self.__settings:
+                if key:
+                    if key in self.__settings[category]:
+                        del self.__settings[category][key]
+                        # Clean up empty categories
+                        if not self.__settings[category]:
+                            del self.__settings[category]
+                else:
+                    del self.__settings[category]
