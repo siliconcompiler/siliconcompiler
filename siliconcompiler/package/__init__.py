@@ -96,8 +96,8 @@ class Resolver:
         settings.set("resolvers", "python", PythonPathResolver)
 
         for resolver in get_plugins("path_resolver"):
-            for scheme, resolver in resolver().items():
-                settings.set("resolvers", scheme, resolver)
+            for scheme, res in resolver().items():
+                settings.set("resolvers", scheme, res)
 
     @staticmethod
     def find_resolver(source: str) -> Type["Resolver"]:
