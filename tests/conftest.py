@@ -21,7 +21,6 @@ from siliconcompiler import utils, ASIC, Design, Project
 from siliconcompiler.tools.openroad._apr import APRTask
 from siliconcompiler.flows.asicflow import ASICFlow
 from siliconcompiler.targets import freepdk45_demo
-from siliconcompiler.scheduler import TaskScheduler
 from siliconcompiler.utils.multiprocessing import _ManagerSingleton, MPManager
 from siliconcompiler.apps import sc_server
 from siliconcompiler.schema import BaseSchema
