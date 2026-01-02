@@ -173,3 +173,18 @@ def test_timeout_during_load(settings_file, caplog):
 
     assert manager._SettingsManager__settings == {}
     assert "Timeout acquiring lock" in caplog.text
+
+
+def test_filepath_none():
+    """Test behavior when filepath is None (in-memory only)."""
+    manager = SettingsManager(None, logging.getLogger())
+
+    # Should start empty
+    assert manager._SettingsManager__settings == {}
+
+    # Set/Get should work in memory
+    manager.set('memory', 'test', 123)
+    assert manager.get('memory', 'test') == 123
+
+    # Save should be a safe no-op
+    manager.save()

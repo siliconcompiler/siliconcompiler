@@ -63,6 +63,21 @@ def test_get_settings():
     assert isinstance(sett0, SettingsManager)
 
 
+def test_get_transient_settings():
+    sett0 = MPManager().get_transient_settings()
+    sett1 = MPManager().get_transient_settings()
+
+    assert sett0 is sett1
+    assert isinstance(sett0, SettingsManager)
+
+
+def test_get_transient_settings_not_settings():
+    sett0 = MPManager().get_settings()
+    sett1 = MPManager().get_transient_settings()
+
+    assert sett0 is not sett1
+
+
 def test_logger(monkeypatch):
     monkeypatch.setattr(MPManager, "_MPManager__ENABLE_LOGGER", True)
 
