@@ -425,7 +425,7 @@ class RemoteResolver(Resolver):
         settings = MPManager().get_transient_settings()
         locks = settings.get_category("resolver-remote-cache-locks")
         if self.name not in locks:
-            settings.set("resolver-remote-cache-locks", self.name, threading.Lock())
+            settings.set("resolver-remote-cache-locks", self.name, threading.Lock(), keep=True)
         return settings.get("resolver-remote-cache-locks", self.name)
 
     @contextlib.contextmanager
