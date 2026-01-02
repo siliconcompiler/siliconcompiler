@@ -1,5 +1,7 @@
 from siliconcompiler.schema import BaseSchema
 
+from siliconcompiler.constraints.timing_mode import TimingModeSchema
+
 from siliconcompiler.constraints.asic_timing import \
     ASICTimingConstraintSchema, ASICTimingScenarioSchema
 from siliconcompiler.constraints.asic_floorplan import ASICAreaConstraint
@@ -29,5 +31,6 @@ __all__ = [
     "ASICComponentConstraint",
     "ASICComponentConstraints",
     "FPGATimingConstraintSchema",
-    "FPGATimingScenarioSchema"
+    "FPGATimingScenarioSchema",
+    "TimingModeSchema"
 ]
