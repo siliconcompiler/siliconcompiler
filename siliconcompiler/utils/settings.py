@@ -99,7 +99,7 @@ class SettingsManager:
             self.__logger.error(f"Failed to save settings to {self.__filepath}: {e}")
             raise e
 
-    def set(self, category: str, key: str, value):
+    def set(self, category: str, key: str, value, keep: bool = False):
         """
         Set a specific setting within a category.
 
@@ -107,11 +107,14 @@ class SettingsManager:
             category (str): The group name (e.g., 'showtools', 'options').
             key (str): The specific setting name.
             value: The value to store (must be JSON serializable).
+            keep (bool): If True, do not overwrite existing value.
         """
         with self.__settings_lock:
             if category not in self.__settings:
                 self.__settings[category] = {}
 
+            if keep and key in self.__settings[category]:
+                return
             self.__settings[category][key] = value
 
     def get(self, category: str, key: str, default=None):
