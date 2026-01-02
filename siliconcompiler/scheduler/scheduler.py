@@ -440,6 +440,8 @@ class Scheduler:
                         node_inp = task.compute_input_file_node_name(inp, in_step, in_index)
                         if node_inp in requirements:
                             inp = node_inp
+                        if inp not in requirements:
+                            continue
                         if inp in all_inputs:
                             self.__logger.error(f'Invalid flow: {step}/{index} '
                                                 f'receives {inp} from multiple input tasks')
