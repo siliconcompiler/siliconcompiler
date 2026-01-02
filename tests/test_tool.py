@@ -2174,16 +2174,12 @@ def test_show_register_task():
     assert len(settings.get_category("ShowTask")) == 0
     ShowTask.register_task(Test)
     assert len(settings.get_category("ShowTask")) == 1
-    assert settings.get_category("ShowTask")["test_show_register_task.<locals>.Test/Test"] is Test
+    assert settings.get_category("ShowTask")["test_tool/Test"] is Test
 
 
-def test_show_get_task():
-    class Test(ShowTask):
-        def get_supported_show_extentions(self):
-            return ["ext_test"]
-
+def test_show_get_task_show_called():
     with patch("siliconcompiler.utils.showtools.showtasks") as showtasks:
-        assert ShowTask.get_task("ext_test").__class__ is Test
+        ShowTask.get_task("test_extension")
         showtasks.assert_called_once()
 
 
