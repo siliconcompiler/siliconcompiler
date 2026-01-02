@@ -21,7 +21,6 @@ from siliconcompiler import utils, ASIC, Design, Project
 from siliconcompiler.tools.openroad._apr import APRTask
 from siliconcompiler.flows.asicflow import ASICFlow
 from siliconcompiler.targets import freepdk45_demo
-from siliconcompiler.scheduler import TaskScheduler
 from siliconcompiler.utils.multiprocessing import _ManagerSingleton, MPManager
 from siliconcompiler.apps import sc_server
 from siliconcompiler.schema import BaseSchema
@@ -113,8 +112,7 @@ def isolate_statics_in_testing(monkeypatch):
     BaseSchema._BaseSchema__get_child_classes.cache_clear()
     BaseSchema._BaseSchema__load_schema_class.cache_clear()
 
-    with patch.dict(TaskScheduler._TaskScheduler__callbacks), \
-            patch.dict(_ManagerSingleton._instances, clear=True):
+    with patch.dict(_ManagerSingleton._instances, clear=True):
         yield
 
         # Cleanup afterwards
