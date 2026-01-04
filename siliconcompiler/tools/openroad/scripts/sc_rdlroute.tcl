@@ -149,5 +149,7 @@ utl::pop_metrics_stage
 ###############################
 
 utl::push_metrics_stage "sc__write__{}"
-source "$sc_refdir/common/write_data_physical.tcl"
+write_db "outputs/${sc_topmodule}.odb"
+write_def "outputs/${sc_topmodule}.def"
+write_verilog -include_pwr_gnd "outputs/${sc_topmodule}.vg"
 utl::pop_metrics_stage
