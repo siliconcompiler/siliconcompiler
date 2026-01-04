@@ -638,8 +638,16 @@ class APRTask(OpenROADTask):
     def _add_pnr_outputs(self):
         self.add_output_file(ext="sdc")
         self.add_output_file(ext="vg")
+        self.add_output_file(ext="lec.vg")
         self.add_output_file(ext="def")
         self.add_output_file(ext="odb")
+
+        for lib in self.project.get("asic", "asiclib"):
+            libobj = self.project.get("library", lib, field="schema")
+            for celltype in ["decap", "tie", "filler", "tap", "endcap", "antenna"]:
+                if libobj.valid("asic", "cells", celltype) and \
+                        libobj.get("asic", "cells", celltype):
+                    self.add_required_key(libobj, "asic", "cells", celltype)
 
     def _get_pex_mapping(self):
         corners = {}
