@@ -540,6 +540,17 @@ def test_parse_negative_range():
         NodeType.normalize(-4, rnge)
 
 
+@pytest.mark.parametrize("range_str,expect", [
+    ("int<-10--5>", [(-10, -5)]),
+    ("int<-20--15,<--5>", [(None, -5), (-20, -15)]),
+    ("float<-2.5-1.5,<-0.5>", [(None, 0.5), (-2.5, 1.5)]),
+])
+def test_parse_range(range_str, expect):
+    rnge = NodeType.parse(range_str)
+    assert isinstance(rnge, NodeRangeType)
+    assert rnge.values == expect
+
+
 def test_range_eq():
     r0 = NodeType.parse("int<-10--5>")
     r1 = NodeType.parse("float<-10--5>")

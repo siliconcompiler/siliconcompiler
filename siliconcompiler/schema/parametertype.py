@@ -370,7 +370,7 @@ class NodeEnumType:
         return str(self)
 
     def __hash__(self):
-        return hash(tuple(self.__values))
+        return hash(tuple(sorted(self.__values)))
 
     @property
     def values(self):
@@ -392,9 +392,12 @@ class NodeRangeType:
         if not values:
             raise ValueError("range cannot be empty set")
         self.__base = base
-        self.__values = sorted(
+        values = [
             (min([v0, v1]), max([v0, v1])) if v0 is not None and v1 is not None else (v0, v1)
-            for v0, v1 in set(values))
+            for v0, v1 in set(values)]
+        self.__values = sorted(values,
+                               key=lambda v: (float('-inf') if v[0] is None else v[0],
+                                              float('inf') if v[1] is None else v[1]))
 
     def __eq__(self, other):
         if isinstance(other, NodeRangeType):
