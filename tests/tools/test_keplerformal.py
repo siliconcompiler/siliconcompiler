@@ -5,13 +5,10 @@ import os.path
 
 from siliconcompiler.targets import freepdk45_demo
 
-from siliconcompiler import ASIC, Design, Flowgraph, FPGA
-from siliconcompiler.scheduler import SchedulerNode
+from siliconcompiler import ASIC, Design, Flowgraph
 from siliconcompiler.tools.keplerformal.lec import LECTask
 
 from tools.inputimporter import ImporterTask
-
-from siliconcompiler.utils import sc_open
 
 
 @pytest.mark.eda
@@ -38,7 +35,6 @@ def test_keplerformal_lec(datadir):
     os.makedirs("b", exist_ok=True)
     shutil.copy(os.path.join(datadir, 'lec', 'foo.vg'), 'a/foo.lec.vg')
     shutil.copy(os.path.join(datadir, 'lec', 'foo.vg'), 'b/foo.lec.vg')
-
 
     ImporterTask.find_task(proj).add("var", "input_files",
                                      os.path.join('a', 'foo.lec.vg'), step='importa')
@@ -73,7 +69,6 @@ def test_keplerformal_lec_broken(datadir):
     os.makedirs("b", exist_ok=True)
     shutil.copy(os.path.join(datadir, 'lec', 'foo.vg'), 'a/foo.lec.vg')
     shutil.copy(os.path.join(datadir, 'lec', 'broken', 'foo.vg'), 'b/foo.lec.vg')
-
 
     ImporterTask.find_task(proj).add("var", "input_files",
                                      os.path.join('a', 'foo.lec.vg'), step='importa')
