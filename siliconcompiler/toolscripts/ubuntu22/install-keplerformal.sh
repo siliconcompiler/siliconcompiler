@@ -25,13 +25,13 @@ sudo apt-get install -y git
 mkdir -p deps
 cd deps
 
-python3 -m venv .kepler-formal --clear
-. .kepler-formal/bin/activate
+python3 -m venv .keplerformal --clear
+. .keplerformal/bin/activate
 python3 -m pip install cmake==3.31.6
 
-git clone $(python3 ${src_path}/_tools.py --tool kepler-formal --field git-url) kepler-formal
-cd kepler-formal
-git checkout $(python3 ${src_path}/_tools.py --tool kepler-formal --field git-commit)
+git clone $(python3 ${src_path}/_tools.py --tool keplerformal --field git-url) keplerformal
+cd keplerformal
+git checkout $(python3 ${src_path}/_tools.py --tool keplerformal --field git-commit)
 git submodule update --init --recursive
 
 git apply - <<EOF
