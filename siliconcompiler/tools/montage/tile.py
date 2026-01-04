@@ -1,4 +1,5 @@
-from siliconcompiler import Task
+from typing import Optional, Union
+from siliconcompiler import Task, TaskSkip
 
 
 class TileTask(Task):
@@ -23,6 +24,19 @@ class TileTask(Task):
         self.add_parameter("bins", "(int,int)", "Number of bins along the (x, y)-axis",
                            defvalue=(2, 2))
 
+    def set_montage_bins(self, xbins: int, ybins: int,
+                         step: Optional[str] = None, index: Optional[Union[str, int]] = None):
+        """
+        Set the number of bins for Montage tiling.
+
+        Args:
+            xbins (int): Number of bins along the x-axis.
+            ybins (int): Number of bins along the y-axis.
+            step (Optional[str]): Flow step to set the parameter for. Defaults to None.
+            index (Optional[Union[str, int]]): Index to set the parameter for. Defaults to None.
+        """
+        self.set("var", "bins", (xbins, ybins), step=step, index=index)
+
     def tool(self):
         return "montage"
 
@@ -40,6 +54,9 @@ class TileTask(Task):
         self.add_version(">=6.9.0")
 
         xbins, ybins = self.get("var", "bins")
+
+        if f"{self.design_topmodule}.png" in self.get_files_from_input_nodes():
+            raise TaskSkip("Input provides a single image; skipping tiling.")
 
         for x in range(xbins):
             for y in range(ybins):

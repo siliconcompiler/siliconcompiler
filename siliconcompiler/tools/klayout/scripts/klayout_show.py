@@ -118,9 +118,9 @@ def __screenshot_montage(schema, view, xbins, ybins):
 
     app.set_config("background-color", "#000000")  # Black
 
-    design = schema.get('option', 'entrypoint')
-    if not design:
-        design = schema.get('design')
+    design_name = schema.get('option', 'design')
+    fileset = schema.get("option", "fileset")[0]
+    design = schema.get("library", design_name, "fileset", fileset, "topmodule")
 
     horizontal_resolution, vertical_resolution = schema.get(
         'tool', 'klayout', 'task', task, 'var', 'show_resolution', step=step, index=index)

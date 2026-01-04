@@ -8,9 +8,12 @@ from siliconcompiler import ASIC, FPGA
 from siliconcompiler.flows.lintflow import LintFlow
 from siliconcompiler.flows.dvflow import DVFlow
 from siliconcompiler.flows.fpgaflow import FPGAXilinxFlow
+from siliconcompiler.flows.highresscreenshotflow import HighResScreenshotFlow
 
 from siliconcompiler.targets import asic_target
 from siliconcompiler.tools.verilator.compile import CompileTask
+from siliconcompiler.tools.builtin.importfiles import ImportFilesTask
+from siliconcompiler.tools.klayout.screenshot import ScreenshotTask
 
 
 class HeartbeatDesign(Design):
@@ -275,6 +278,42 @@ def check():
     referenced in the design schema actually exist.
     """
     assert HeartbeatDesign().check_filepaths()
+
+
+def screenshot(gds: str = "build/heartbeat/job0/write.gds/0/outputs/heartbeat.gds"):
+    """Generates a high-resolution screenshot of the Heartbeat design layout.
+
+    This function runs a specialized flow that imports the final GDSII layout,
+    prepares it for visualization, takes tiled screenshots, and merges them
+    into a single high-resolution image.
+    """
+    # Create a project instance for an ASIC flow.
+    project = ASIC()
+
+    # Instantiate and configure the design.
+    hb = HeartbeatDesign()
+    project.set_design(hb)
+
+    project.add_fileset("rtl")
+
+    # Load the target configuration for FreePDK45.
+    asic_target(project, pdk="freepdk45")
+
+    # Specify the high-resolution screenshot flow.
+    project.set_flow(HighResScreenshotFlow(add_prepare=False))
+
+    # Import the specified GDS file.
+    ImportFilesTask.find_task(project).add_import_file(gds)
+
+    # Configure KLayout screenshot parameters.
+    screenshot_task = ScreenshotTask.find_task(project)
+    screenshot_task.set_klayout_bins(2, 2)
+
+    project.option.set_jobname("screenshot")
+    project.option.set_nodashboard(True)
+
+    # Run the screenshot flow.
+    project.run()
 
 
 if __name__ == "__main__":

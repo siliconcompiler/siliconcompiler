@@ -80,3 +80,15 @@ def test_py_make_fpga():
     make.make()
 
     assert os.path.isfile('build/heartbeat/job0/bitstream/0/outputs/heartbeat.bit')
+
+
+@pytest.mark.eda
+@pytest.mark.quick
+@pytest.mark.timeout(300)
+def test_py_make_screenshot():
+    from heartbeat import make
+    make.asic()
+    assert os.path.exists('build/heartbeat/job0/write.gds/0/outputs/heartbeat.gds')
+    make.screenshot()
+
+    assert os.path.isfile('build/heartbeat/screenshot/merge/0/outputs/heartbeat.png')

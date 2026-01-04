@@ -205,7 +205,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         Returns:
             str: The name of the top-level design.
         """
-        return self.get("option", "design")
+        return self.option.get_design()
 
     @property
     def design(self) -> Design:

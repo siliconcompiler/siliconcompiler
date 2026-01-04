@@ -1,3 +1,5 @@
+from typing import Optional, Union
+
 from siliconcompiler import ScreenshotTask, Task
 from siliconcompiler.tools.klayout.show import ShowTask
 
@@ -20,7 +22,70 @@ class ScreenshotParams(Task):
         self.add_parameter("show_linewidth", "int",
                            "Width of lines in detailed screenshots", defvalue=0, unit="px")
         self.add_parameter("show_oversampling", "int",
-                           "Image oversampling used in detailed screenshots'", defvalue=2)
+                           "Image oversampling used in detailed screenshots", defvalue=2)
+
+    def set_klayout_bins(self, xbins: int, ybins: int,
+                         step: Optional[str] = None, index: Optional[Union[str, int]] = None):
+        """
+        Set the number of bins for KLayout screenshotting.
+
+        Args:
+            xbins (int): Number of bins along the x-axis.
+            ybins (int): Number of bins along the y-axis.
+            step (Optional[str]): Flow step to set the parameter for. Defaults to None.
+            index (Optional[Union[str, int]]): Index to set the parameter for. Defaults to None.
+        """
+        self.set("var", "show_bins", (xbins, ybins), step=step, index=index)
+
+    def set_klayout_margin(self, margin: float,
+                           step: Optional[str] = None, index: Optional[Union[str, int]] = None):
+        """
+        Set the margin for KLayout screenshotting.
+
+        Args:
+            margin (float): Margin around the design in microns.
+            step (Optional[str]): Flow step to set the parameter for. Defaults to None.
+            index (Optional[Union[str, int]]): Index to set the parameter for. Defaults to None.
+        """
+        self.set("var", "show_margin", margin, step=step, index=index)
+
+    def set_klayout_resolution(self, xres: int, yres: int,
+                               step: Optional[str] = None, index: Optional[Union[str, int]] = None):
+        """
+        Set the resolution for KLayout screenshotting.
+
+        Args:
+            xres (int): Horizontal resolution in pixels.
+            yres (int): Vertical resolution in pixels.
+            step (Optional[str]): Flow step to set the parameter for. Defaults to None.
+            index (Optional[Union[str, int]]): Index to set the parameter for. Defaults to None.
+        """
+        self.set("var", "show_resolution", (xres, yres), step=step, index=index)
+
+    def set_klayout_linewidth(self, linewidth: int,
+                              step: Optional[str] = None, index: Optional[Union[str, int]] = None):
+        """
+        Set the linewidth for KLayout screenshotting.
+
+        Args:
+            linewidth (int): Width of lines in detailed screenshots.
+            step (Optional[str]): Flow step to set the parameter for. Defaults to None.
+            index (Optional[Union[str, int]]): Index to set the parameter for. Defaults to None.
+        """
+        self.set("var", "show_linewidth", linewidth, step=step, index=index)
+
+    def set_klayout_oversampling(self, oversampling: int,
+                                 step: Optional[str] = None,
+                                 index: Optional[Union[str, int]] = None):
+        """
+        Set the oversampling for KLayout screenshotting.
+
+        Args:
+            oversampling (int): Image oversampling used in detailed screenshots.
+            step (Optional[str]): Flow step to set the parameter for. Defaults to None.
+            index (Optional[Union[str, int]]): Index to set the parameter for. Defaults to None.
+        """
+        self.set("var", "show_oversampling", oversampling, step=step, index=index)
 
     def setup(self):
         super().setup()
