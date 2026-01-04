@@ -398,6 +398,8 @@ class NodeRangeType:
 
     def __eq__(self, other):
         if isinstance(other, NodeRangeType):
+            if self.__base != other.__base:
+                return False
             return self.__values == other.__values
         return False
 

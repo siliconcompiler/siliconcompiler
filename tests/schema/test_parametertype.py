@@ -538,3 +538,11 @@ def test_parse_negative_range():
         NodeType.normalize(-11, rnge)
     with pytest.raises(ValueError):
         NodeType.normalize(-4, rnge)
+
+
+def test_range_eq():
+    r0 = NodeType.parse("int<-10--5>")
+    r1 = NodeType.parse("float<-10--5>")
+
+    assert r0 == NodeRangeType("int", (-10, -5))
+    assert r0 != r1
