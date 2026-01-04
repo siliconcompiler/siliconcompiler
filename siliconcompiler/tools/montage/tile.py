@@ -1,21 +1,13 @@
+import os.path
+
 from typing import Optional, Union
+
 from siliconcompiler import Task, TaskSkip
 
 
 class TileTask(Task):
     '''
     Tiles input images into a single output image.
-
-    Notes:
-        Need to make ensure that /etc/ImageMagick-6/policy.xml
-        <policy domain="resource" name="memory" value="8GiB"/>
-        <policy domain="resource" name="map" value="8GiB"/>
-        <policy domain="resource" name="width" value="32KP"/>
-        <policy domain="resource" name="height" value="32KP"/>
-        <policy domain="resource" name="area" value="1GP"/>
-        <policy domain="resource" name="disk" value="8GiB"/>
-        This ensures there are enough resources available to generate
-        the final image.
     '''
 
     def __init__(self):
@@ -63,6 +55,24 @@ class TileTask(Task):
                 self.add_input_file(f'{self.design_topmodule}_X{x}_Y{y}.png')
 
         self.add_output_file(ext="png")
+
+    def pre_process(self):
+        super().pre_process()
+
+        with open("policy.xml", "w") as f:
+            f.write('<policymap xmlns="">\n')
+            f.write('<policy domain="resource" name="memory" value="8GiB"/>\n')
+            f.write('<policy domain="resource" name="map" value="8GiB"/>\n')
+            f.write('<policy domain="resource" name="width" value="32KP"/>\n')
+            f.write('<policy domain="resource" name="height" value="32KP"/>\n')
+            f.write('<policy domain="resource" name="area" value="1GP"/>\n')
+            f.write('<policy domain="resource" name="disk" value="8GiB"/>\n')
+            f.write('</policymap>\n')
+
+    def get_runtime_environmental_variables(self, include_path = True):
+        envs = super().get_runtime_environmental_variables(include_path)
+        envs["MAGICK_CONFIGURE_PATH"] = os.path.abspath("policy.xml")
+        return envs
 
     def runtime_options(self):
         options = super().runtime_options()
