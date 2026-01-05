@@ -70,7 +70,7 @@ class TileTask(Task):
             f.write('<policy domain="resource" name="disk" value="8GiB"/>\n')
             f.write('</policymap>\n')
 
-    def get_runtime_environmental_variables(self, include_path = True):
+    def get_runtime_environmental_variables(self, include_path: bool = True):
         envs = super().get_runtime_environmental_variables(include_path)
         envs["MAGICK_CONFIGURE_PATH"] = os.path.abspath("magick")
         return envs
