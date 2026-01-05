@@ -3,6 +3,8 @@ import shutil
 
 import os.path
 
+from siliconcompiler import Project
+
 
 @pytest.mark.eda
 @pytest.mark.quick
@@ -80,3 +82,23 @@ def test_py_make_fpga():
     make.make()
 
     assert os.path.isfile('build/heartbeat/job0/bitstream/0/outputs/heartbeat.bit')
+
+
+@pytest.mark.eda
+@pytest.mark.quick
+@pytest.mark.timeout(300)
+def test_py_make_screenshot(monkeypatch):
+    from heartbeat import make
+    make.asic()
+    assert os.path.exists('build/heartbeat/job0/write.gds/0/outputs/heartbeat.gds')
+
+    org_init = Project._init_run
+
+    def limit_res(self):
+        org_init(self)
+        self.set("tool", "klayout", "task", "screenshot", "var", "show_resolution", (1024, 1024))
+
+    monkeypatch.setattr(Project, '_init_run', limit_res)
+    make.screenshot()
+
+    assert os.path.isfile('build/heartbeat/screenshot/merge/0/outputs/heartbeat.png')

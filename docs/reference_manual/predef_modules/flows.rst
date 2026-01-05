@@ -57,3 +57,6 @@ See the pre-built :ref:`targets <builtin_targets>` for examples on how these are
 
 .. schema::
   :root: siliconcompiler.flows.synflow/SynthesisFlow
+
+.. schema::
+  :root: siliconcompiler.flows.highresscreenshotflow/HighResScreenshotFlow
