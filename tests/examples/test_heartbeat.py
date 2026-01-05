@@ -93,6 +93,7 @@ def test_py_make_screenshot(monkeypatch):
     assert os.path.exists('build/heartbeat/job0/write.gds/0/outputs/heartbeat.gds')
 
     org_init = Project._init_run
+
     def limit_res(self):
         org_init(self)
         self.set("tool", "klayout", "task", "screenshot", "var", "show_resolution", (1024, 1024))
