@@ -1,5 +1,3 @@
-import os.path
-
 from typing import Optional, Union
 
 from siliconcompiler import Task, TaskSkip
