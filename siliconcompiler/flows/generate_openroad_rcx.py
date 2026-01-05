@@ -74,8 +74,8 @@ class GenerateOpenRCXFlow(Flowgraph):
     @classmethod
     def make_docs(cls):
         from siliconcompiler.tools.builtin.nop import NOPTask
-        return [GenerateOpenRCXFlow(NOPTask(), corners=3, serial_extraction=False),
-                GenerateOpenRCXFlow(NOPTask(), corners=3, serial_extraction=True)]
+        return [cls(NOPTask(), corners=3, serial_extraction=False),
+                cls(NOPTask(), corners=3, serial_extraction=True)]
 
 
 ##################################################

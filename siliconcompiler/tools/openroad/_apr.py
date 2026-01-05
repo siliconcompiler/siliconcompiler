@@ -374,9 +374,12 @@ class OpenROADDRTParameter(_OpenROADDRTCommonParameter):
         self.add_parameter("drt_disable_via_gen", "bool",
                            "true/false, when true turns off via generation in detailed router "
                            "and only uses the specified tech vias", defvalue=False)
-        self.add_parameter("drt_via_in_pin_bottom_layer", "str", "TODO")
-        self.add_parameter("drt_via_in_pin_top_layer", "str", "TODO")
-        self.add_parameter("drt_repair_pdn_vias", "str", "TODO")
+        self.add_parameter("drt_via_in_pin_bottom_layer", "str",
+                           "bottom layer to allow vias inside pins")
+        self.add_parameter("drt_via_in_pin_top_layer", "str",
+                           "top layer to allow vias inside pins")
+        self.add_parameter("drt_repair_pdn_vias", "str",
+                           "layer to repair PDN vias on")
 
         self.add_parameter("drt_report_interval", "int",
                            "reporting interval in steps for generating a DRC report.", defvalue=5)
@@ -635,13 +638,22 @@ class APRTask(OpenROADTask):
     def _add_pnr_outputs(self):
         self.add_output_file(ext="sdc")
         self.add_output_file(ext="vg")
+        self.add_output_file(ext="lec.vg")
         self.add_output_file(ext="def")
         self.add_output_file(ext="odb")
 
+        for lib in self.project.get("asic", "asiclib"):
+            libobj = self.project.get("library", lib, field="schema")
+            for celltype in ["decap", "tie", "filler", "tap", "endcap", "antenna"]:
+                if libobj.valid("asic", "cells", celltype) and \
+                        libobj.get("asic", "cells", celltype):
+                    self.add_required_key(libobj, "asic", "cells", celltype)
+
     def _get_pex_mapping(self):
         corners = {}
-        for constraint in self.project.getkeys('constraint', 'timing'):
-            pexcorner = self.project.get('constraint', 'timing', constraint, 'pexcorner',
+        for constraint in self.project.getkeys('constraint', 'timing', 'scenario'):
+            pexcorner = self.project.get('constraint', 'timing', 'scenario',
+                                         constraint, 'pexcorner',
                                          step=self.step, index=self.index)
             if pexcorner:
                 corners[constraint] = pexcorner
@@ -649,13 +661,17 @@ class APRTask(OpenROADTask):
         return corners
 
     def _get_constraint_by_check(self, check: str) -> str:
-        for constraint in self.project.getkeys('constraint', 'timing'):
-            if check in self.project.get('constraint', 'timing', constraint, 'check',
+        for constraint in self.project.getkeys('constraint', 'timing', 'scenario'):
+            if check in self.project.get('constraint', 'timing', 'scenario',
+                                         constraint, 'check',
                                          step=self.step, index=self.index):
                 return constraint
 
         # if not specified, just pick the first constraint available
-        return self.project.getkeys('constraint', 'timing')[0]
+        scenarios = self.project.getkeys('constraint', 'timing', 'scenario')
+        if not scenarios:
+            raise ValueError("No timing scenarios defined in project constraints.")
+        return scenarios[0]
 
     def _build_pex_estimation_file(self):
         corners = self._get_pex_mapping()
@@ -761,9 +777,9 @@ class APRTask(OpenROADTask):
             ],
             "peakpower": [
                 *[f"power/{corner}.rpt"
-                  for corner in self.project.getkeys('constraint', 'timing')],
+                  for corner in self.project.getkeys('constraint', 'timing', 'scenario')],
                 *[f"images/heatmap/power_density/{corner}.png"
-                    for corner in self.project.getkeys('constraint', 'timing')]
+                    for corner in self.project.getkeys('constraint', 'timing', 'scenario')]
             ],
             "drvs": [
                 "timing/drv_violators.rpt",

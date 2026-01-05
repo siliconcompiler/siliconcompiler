@@ -52,6 +52,10 @@ See the pre-built :ref:`targets <builtin_targets>` for examples on how these are
   :tasks: bitstream/BitstreamTask
 
 .. sctool::
+  :root: siliconcompiler.tools.keplerformal
+  :tasks: lec/LECTask
+
+.. sctool::
   :root: siliconcompiler.tools.klayout
   :tasks: convert_drc_db/ConvertDRCDBTask drc/DRCTask export/ExportTask operations/OperationsTask screenshot/ScreenshotTask show/ShowTask
 

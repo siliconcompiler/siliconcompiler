@@ -4,6 +4,7 @@ import pytest
 
 from threading import Lock
 
+from siliconcompiler.utils.multiprocessing import MPManager
 from siliconcompiler import NodeStatus
 from siliconcompiler import Project, Flowgraph, Design
 from siliconcompiler.scheduler import TaskScheduler
@@ -95,10 +96,10 @@ def test_register_callback():
     def callback(proj):
         pass
 
-    callbacks = TaskScheduler._TaskScheduler__callbacks
-    assert callbacks["pre_run"] is not callback
+    settings = MPManager().get_transient_settings()
+    assert "pre_run" not in settings.get_category('TaskScheduler')
     TaskScheduler.register_callback("pre_run", callback)
-    assert callbacks["pre_run"] is callback
+    assert settings.get('TaskScheduler', "pre_run") is callback
 
 
 @pytest.mark.timeout(180)

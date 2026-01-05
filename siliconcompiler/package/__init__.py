@@ -23,7 +23,7 @@ import uuid
 
 import os.path
 
-from typing import Optional, List, Dict, Type, Union, TYPE_CHECKING, ClassVar
+from typing import Optional, List, Dict, Type, Union, TYPE_CHECKING, Final
 
 from fasteners import InterProcessLock
 from importlib.metadata import distributions, distribution
@@ -32,6 +32,7 @@ from urllib import parse as url_parse
 
 from siliconcompiler.utils import get_plugins, default_cache_dir
 from siliconcompiler.utils.paths import cwdirsafe
+from siliconcompiler.utils.multiprocessing import MPManager
 
 if TYPE_CHECKING:
     from siliconcompiler.project import Project
@@ -54,12 +55,7 @@ class Resolver:
         source (str): The URI or path specifying the data source.
         reference (str): A version, commit hash, or tag for remote sources.
     """
-    _RESOLVERS_LOCK: ClassVar[threading.Lock] = threading.Lock()
-    _RESOLVERS: ClassVar[Dict[str, Type["Resolver"]]] = {}
-    __STORAGE: str = "__Resolver_cache_id"
-
-    __CACHE_LOCK: ClassVar[threading.Lock] = threading.Lock()
-    __CACHE: ClassVar[Dict[str, Dict[str, str]]] = {}
+    __STORAGE: Final[str] = "__Resolver_cache_id"
 
     def __init__(self, name: str,
                  root: Optional[Union["Project", "BaseSchema"]],
@@ -89,18 +85,19 @@ class Resolver:
         built-in resolvers (file, key, python) and any resolvers provided
         by external plugins.
         """
-        with Resolver._RESOLVERS_LOCK:
-            Resolver._RESOLVERS.clear()
+        settings = MPManager().get_transient_settings()
+        if settings.get_category("resolvers"):
+            # Already populated
+            return
 
-            Resolver._RESOLVERS.update({
-                "": FileResolver,
-                "file": FileResolver,
-                "key": KeyPathResolver,
-                "python": PythonPathResolver
-            })
+        settings.set("resolvers", "", FileResolver)
+        settings.set("resolvers", "file", FileResolver)
+        settings.set("resolvers", "key", KeyPathResolver)
+        settings.set("resolvers", "python", PythonPathResolver)
 
-            for resolver in get_plugins("path_resolver"):
-                Resolver._RESOLVERS.update(resolver())
+        for resolver in get_plugins("path_resolver"):
+            for scheme, res in resolver().items():
+                settings.set("resolvers", scheme, res)
 
     @staticmethod
     def find_resolver(source: str) -> Type["Resolver"]:
@@ -119,13 +116,13 @@ class Resolver:
         if os.path.isabs(source):
             return FileResolver
 
-        if not Resolver._RESOLVERS:
-            Resolver.populate_resolvers()
+        Resolver.populate_resolvers()
 
         url = url_parse.urlparse(source)
-        with Resolver._RESOLVERS_LOCK:
-            if url.scheme in Resolver._RESOLVERS:
-                return Resolver._RESOLVERS[url.scheme]
+        settings = MPManager().get_transient_settings()
+        resolver = settings.get("resolvers", url.scheme, None)
+        if resolver:
+            return resolver
 
         raise ValueError(f"Source URI '{source}' is not supported")
 
@@ -231,15 +228,14 @@ class Resolver:
         if root is None:
             return None
 
-        with Resolver.__CACHE_LOCK:
-            root_id = Resolver.__get_root_id(root)
-            if root_id not in Resolver.__CACHE:
-                Resolver.__CACHE[root_id] = {}
+        cache_id = f"resolver-cache-{Resolver.__get_root_id(root)}"
 
-            if name:
-                return Resolver.__CACHE[root_id].get(name, None)
+        settings = MPManager().get_transient_settings()
 
-            return Resolver.__CACHE[root_id].copy()
+        if name is not None:
+            return settings.get(cache_id, name, None)
+
+        return settings.get_category(cache_id)
 
     @staticmethod
     def set_cache(root: Optional[Union["Project", "BaseSchema"]],
@@ -256,11 +252,11 @@ class Resolver:
         if root is None:
             return
 
-        with Resolver.__CACHE_LOCK:
-            root_id = Resolver.__get_root_id(root)
-            if root_id not in Resolver.__CACHE:
-                Resolver.__CACHE[root_id] = {}
-            Resolver.__CACHE[root_id][name] = str(path)
+        cache_id = f"resolver-cache-{Resolver.__get_root_id(root)}"
+
+        settings = MPManager().get_transient_settings()
+
+        settings.set(cache_id, name, str(path))
 
     @staticmethod
     def reset_cache(root: Optional[Union["Project", "BaseSchema"]]) -> None:
@@ -272,11 +268,11 @@ class Resolver:
         """
         if root is None:
             return
+        cache_id = f"resolver-cache-{Resolver.__get_root_id(root)}"
 
-        with Resolver.__CACHE_LOCK:
-            root_id = Resolver.__get_root_id(root)
-            if root_id in Resolver.__CACHE:
-                del Resolver.__CACHE[root_id]
+        settings = MPManager().get_transient_settings()
+
+        settings.delete(cache_id)
 
     def get_path(self) -> str:
         """
@@ -334,9 +330,6 @@ class RemoteResolver(Resolver):
     both thread-safe and process-safe locking to prevent race conditions when
     multiple SC instances try to download the same resource simultaneously.
     """
-    _CACHE_LOCKS = {}
-    _CACHE_LOCK = threading.Lock()
-
     def __init__(self, name: str,
                  root: Optional[Union["Project", "BaseSchema"]],
                  source: str,
@@ -429,10 +422,11 @@ class RemoteResolver(Resolver):
 
     def thread_lock(self) -> threading.Lock:
         """Gets a threading.Lock specific to this resolver instance."""
-        with RemoteResolver._CACHE_LOCK:
-            if self.name not in RemoteResolver._CACHE_LOCKS:
-                RemoteResolver._CACHE_LOCKS[self.name] = threading.Lock()
-            return RemoteResolver._CACHE_LOCKS[self.name]
+        settings = MPManager().get_transient_settings()
+        locks = settings.get_category("resolver-remote-cache-locks")
+        if self.name not in locks:
+            settings.set("resolver-remote-cache-locks", self.name, threading.Lock(), keep=True)
+        return settings.get("resolver-remote-cache-locks", self.name)
 
     @contextlib.contextmanager
     def __thread_lock(self):

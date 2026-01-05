@@ -3,8 +3,6 @@ import pytest
 
 import os.path
 
-from unittest.mock import patch
-
 from siliconcompiler import Project, ASIC, Design, PDK
 from siliconcompiler import ShowTask, ScreenshotTask
 
@@ -33,8 +31,7 @@ def exit_on_show(monkeypatch):
 
     monkeypatch.setattr(ShowTask, "setup", mock_setup)
 
-    with patch.dict("siliconcompiler.ShowTask._ShowTask__TASKS", clear=True):
-        yield
+    yield
 
 
 @pytest.mark.eda

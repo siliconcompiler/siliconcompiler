@@ -36,8 +36,14 @@ def test_runtime_opts(gcd_design):
     with node.runtime():
         assert node.setup() is True
         arguments = node.task.get_runtime_arguments()
-        assert len(arguments) == 17
+        assert len(arguments) == 35
         assert arguments == [
+            '-limit', 'memory', '8GiB',
+            '-limit', 'map', '8GiB',
+            '-limit', 'disk', '8GiB',
+            '-limit', 'width', '32KP',
+            '-limit', 'height', '32KP',
+            '-limit', 'area', '1GP',
             'inputs/gcd_X0_Y0.png', 'inputs/gcd_X1_Y0.png',
             'inputs/gcd_X2_Y0.png', 'inputs/gcd_X3_Y0.png',
             'inputs/gcd_X0_Y1.png', 'inputs/gcd_X1_Y1.png',

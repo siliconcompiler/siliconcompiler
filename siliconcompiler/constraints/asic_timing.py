@@ -1,8 +1,10 @@
-from typing import Union, Set, List, Tuple, Optional
+from typing import Union, Set, List, Tuple, Optional, Dict
 
 from siliconcompiler.schema import BaseSchema, NamedSchema, EditableSchema, Parameter, \
     PerNode, Scope
 from siliconcompiler import Design
+from siliconcompiler.constraints.timing_mode import TimingModeSchema
+from siliconcompiler.schema.baseschema import LazyLoad
 
 
 class ASICTimingScenarioSchema(NamedSchema):
@@ -92,20 +94,6 @@ class ASICTimingScenarioSchema(NamedSchema):
                 example=["api: asic.set('constraint', 'timing', 'worst', 'mode', 'test')"],
                 help="""Operating mode for the scenario. Operating mode strings
                 can be values such as test, functional, standby."""))
-
-        schema.insert(
-            'sdcfileset',
-            Parameter(
-                '[(str,str)]',
-                pernode=PerNode.OPTIONAL,
-                scope=Scope.GLOBAL,
-                shorthelp="Constraint: SDC files",
-                switch="-constraint_timing_file 'scenario <file>'",
-                example=["api: asic.set('constraint', 'timing', 'worst', 'file', 'hello.sdc')"],
-                help="""List of timing constraint sets files to use for the scenario. The
-                values are combined with any constraints specified by the design
-                'constraint' parameter. If no constraints are found, a default
-                constraint file is used based on the clock definitions."""))
 
         schema.insert(
             'check',
@@ -324,19 +312,22 @@ class ASICTimingScenarioSchema(NamedSchema):
             TypeError: If `design` is not a Design object or a string, or if `fileset` is not
                 a string.
         """
-        if isinstance(design, Design):
-            design = design.name
+        import warnings
+        warnings.warn("This function is deprecated and will be removed in a future version, "
+                      "use TimingModeSchema instead", DeprecationWarning, stacklevel=2)
 
-        if not isinstance(design, str):
-            raise TypeError("design must be a design object or string")
+        mode = self.get_mode(step=step, index=index)
+        if mode is None:
+            raise ValueError("Mode not defined")
 
-        if not isinstance(fileset, str):
-            raise TypeError("fileset must be a string")
-
-        if clobber:
-            return self.set("sdcfileset", (design, fileset), step=step, index=index)
-        else:
-            return self.add("sdcfileset", (design, fileset), step=step, index=index)
+        timing_constraints: ASICTimingConstraintSchema = self._parent()._parent()
+        try:
+            modeobj = timing_constraints.get_mode(mode)
+        except LookupError:
+            modeobj = timing_constraints.make_mode(mode)
+        return modeobj.add_sdcfileset(design=design, fileset=fileset,
+                                      clobber=clobber,
+                                      step=step, index=index)
 
     def get_sdcfileset(self, step: Optional[str] = None, index: Optional[Union[str, int]] = None) \
             -> List[Tuple[str, str]]:
@@ -350,7 +341,20 @@ class ASICTimingScenarioSchema(NamedSchema):
         Returns:
             A list of tuples, where each tuple contains the design name and the SDC fileset name.
         """
-        return self.get("sdcfileset", step=step, index=index)
+        import warnings
+        warnings.warn("This function is deprecated and will be removed in a future version, "
+                      "use TimingModeSchema instead", DeprecationWarning, stacklevel=2)
+
+        mode = self.get_mode(step=step, index=index)
+        if mode is None:
+            raise ValueError("Mode not defined")
+
+        timing_constraints: ASICTimingConstraintSchema = self._parent()._parent()
+        try:
+            modeobj = timing_constraints.get_mode(mode)
+        except LookupError:
+            modeobj = timing_constraints.make_mode(mode)
+        return modeobj.get_sdcfileset(step=step, index=index)
 
     def add_check(self,
                   check: Union[List[str], str],
@@ -386,6 +390,30 @@ class ASICTimingScenarioSchema(NamedSchema):
         """
         return self.get("check", step=step, index=index)
 
+    def _from_dict(self, manifest: Dict,
+                   keypath: Union[List[str], Tuple[str, ...]],
+                   version: Optional[Tuple[int, ...]] = None,
+                   lazyload: LazyLoad = LazyLoad.ON) \
+            -> Tuple[Set[Tuple[str, ...]], Set[Tuple[str, ...]]]:
+
+        sdcfileset = None
+        if version and version < (0, 53, 0):
+            sdcfileset = manifest.pop("sdcfileset", None)
+            lazyload = LazyLoad.OFF
+
+        ret = super()._from_dict(manifest, keypath, version, lazyload)
+
+        if sdcfileset:
+            param = Parameter.from_dict(sdcfileset, keypath=(*keypath, "sdcfileset"),
+                                        version=version)
+            for value, step, index in param.getvalues():
+                if self.get_mode(step=step, index=index) is None:
+                    self.set_mode("_importcreated_", step=step, index=index)
+                for design, fileset in value:
+                    self.add_sdcfileset(design, fileset, step=step, index=index)
+
+        return ret
+
 
 class ASICTimingConstraintSchema(BaseSchema):
     """
@@ -400,7 +428,8 @@ class ASICTimingConstraintSchema(BaseSchema):
     def __init__(self):
         super().__init__()
 
-        EditableSchema(self).insert("default", ASICTimingScenarioSchema())
+        EditableSchema(self).insert("scenario", "default", ASICTimingScenarioSchema())
+        EditableSchema(self).insert("mode", "default", TimingModeSchema())
 
     def add_scenario(self, scenario: ASICTimingScenarioSchema):
         """
@@ -426,9 +455,10 @@ class ASICTimingConstraintSchema(BaseSchema):
         if scenario.name is None:
             raise ValueError("scenario must have a name")
 
-        EditableSchema(self).insert(scenario.name, scenario, clobber=True)
+        EditableSchema(self).insert("scenario", scenario.name, scenario, clobber=True)
 
-    def get_scenario(self, scenario: Optional[str] = None):
+    def get_scenario(self, scenario: Optional[str] = None) \
+            -> Union[ASICTimingScenarioSchema, Dict[str, ASICTimingScenarioSchema]]:
         """
         Retrieves one or all timing scenarios from the configuration.
 
@@ -452,13 +482,13 @@ class ASICTimingConstraintSchema(BaseSchema):
         """
         if scenario is None:
             scenarios = {}
-            for name in self.getkeys():
-                scenarios[name] = self.get(name, field="schema")
+            for name in self.getkeys("scenario"):
+                scenarios[name] = self.get("scenario", name, field="schema")
             return scenarios
 
-        if not self.valid(scenario):
+        if not self.valid("scenario", scenario):
             raise LookupError(f"{scenario} is not defined")
-        return self.get(scenario, field="schema")
+        return self.get("scenario", scenario, field="schema")
 
     def make_scenario(self, scenario: str) -> ASICTimingScenarioSchema:
         """
@@ -485,7 +515,7 @@ class ASICTimingConstraintSchema(BaseSchema):
         if not scenario:
             raise ValueError("scenario name is required")
 
-        if self.valid(scenario):
+        if self.valid("scenario", scenario):
             raise LookupError(f"{scenario} scenario already exists")
 
         scenarioobj = ASICTimingScenarioSchema(scenario)
@@ -516,7 +546,7 @@ class ASICTimingConstraintSchema(BaseSchema):
         constraint = EditableSchema(self.get_scenario(scenario)).copy()
         EditableSchema(constraint).rename(name)
         if insert:
-            if self.valid(name):
+            if self.valid("scenario", name):
                 raise ValueError(f"{name} already exists")
             self.add_scenario(constraint)
         return constraint
@@ -542,8 +572,170 @@ class ASICTimingConstraintSchema(BaseSchema):
         if not scenario:
             raise ValueError("scenario name is required")
 
-        if not self.valid(scenario):
+        if not self.valid("scenario", scenario):
             return False
 
-        EditableSchema(self).remove(scenario)
+        EditableSchema(self).remove("scenario", scenario)
         return True
+
+    def add_mode(self, mode: TimingModeSchema):
+        """
+        Adds a timing mode to the design configuration.
+
+        This method is responsible for incorporating a new or updated timing mode
+        into the system's configuration. If a mode with the same name already
+        exists, it will be overwritten (`clobber=True`).
+
+        Args:
+            mode: The :class:`TimingModeSchema` object representing the timing mode
+                  to add. This object must have a valid name defined via its `name()` method.
+
+        Raises:
+            TypeError: If the provided `mode` argument is not an instance of
+                       :class:`TimingModeSchema`.
+            ValueError: If the `mode` object's `name()` method returns None, indicating
+                        that the mode does not have a defined name.
+        """
+        if not isinstance(mode, TimingModeSchema):
+            raise TypeError("mode must be a timing mode object")
+
+        if mode.name is None:
+            raise ValueError("mode must have a name")
+
+        EditableSchema(self).insert("mode", mode.name, mode, clobber=True)
+
+    def get_mode(self, mode: Optional[str] = None) \
+            -> Union[TimingModeSchema, Dict[str, TimingModeSchema]]:
+        """
+        Retrieves one or all timing modes from the configuration.
+
+        This method provides flexibility to fetch either a specific timing mode
+        by its name or a collection of all currently defined modes.
+
+        Args:
+            mode (str, optional): The name (string) of the specific timing mode to retrieve.
+                                  If this argument is omitted or set to None, the method will
+                                  return a dictionary containing all available timing modes.
+
+        Returns:
+            If `mode` is provided: The :class:`TimingModeSchema` object corresponding
+                to the specified mode name.
+            If `mode` is None: A dictionary where keys are mode names (str) and
+                values are their respective :class:`TimingModeSchema` objects.
+
+        Raises:
+            LookupError: If a specific `mode` name is provided but no mode with
+                         that name is found in the configuration.
+        """
+        if mode is None:
+            modes = {}
+            for name in self.getkeys("mode"):
+                modes[name] = self.get("mode", name, field="schema")
+            return modes
+
+        if not self.valid("mode", mode):
+            raise LookupError(f"{mode} is not defined")
+        return self.get("mode", mode, field="schema")
+
+    def make_mode(self, mode: str) -> TimingModeSchema:
+        """
+        Creates and adds a new timing mode with the specified name.
+
+        This method initializes a new :class:`TimingModeSchema` object with the given
+        name and immediately adds it to the constraint configuration. It ensures that
+        a mode with the same name does not already exist, preventing accidental
+        overwrites.
+
+        Args:
+            mode (str): The name for the new timing mode. This name must be
+                        a non-empty string and unique within the current configuration.
+
+        Returns:
+            :class:`TimingModeSchema`: The newly created :class:`TimingModeSchema`
+                object.
+
+        Raises:
+            ValueError: If the provided `mode` name is empty or None.
+            LookupError: If a mode with the specified `mode` name already exists
+                         in the configuration.
+        """
+        if not mode:
+            raise ValueError("mode name is required")
+
+        if self.valid("mode", mode):
+            raise LookupError(f"{mode} mode already exists")
+
+        modeobj = TimingModeSchema(mode)
+        self.add_mode(modeobj)
+        return modeobj
+
+    def copy_mode(self, mode: str, name: str, insert: bool = True) \
+            -> TimingModeSchema:
+        """
+        Copies an existing timing mode, renames it, and optionally adds it to the design.
+
+        This method retrieves the mode identified by ``mode``, creates a
+        deep copy of it, and renames the copy to ``name``. If ``insert`` is True,
+        the new mode is immediately added to the configuration.
+
+        Args:
+            mode (str): The name of the existing mode to be copied.
+            name (str): The name to assign to the new copied mode.
+            insert (bool, optional): Whether to add the newly created mode
+                to the configuration. Defaults to True.
+
+        Returns:
+            TimingModeSchema: The newly created copy of the mode.
+
+        Raises:
+            LookupError: If the source mode specified by ``mode`` does not exist.
+        """
+        newmode = EditableSchema(self.get_mode(mode)).copy()
+        EditableSchema(newmode).rename(name)
+        if insert:
+            if self.valid("mode", name):
+                raise ValueError(f"{name} already exists")
+            self.add_mode(newmode)
+        return newmode
+
+    def remove_mode(self, mode: str) -> bool:
+        """
+        Removes a timing mode from the design configuration.
+
+        This method deletes the specified timing mode from the system's
+        configuration.
+
+        Args:
+            mode (str): The name of the timing mode to remove.
+                        This name must be a non-empty string.
+
+        Returns:
+            bool: True if the mode was successfully removed, False if no
+                  mode with the given name was found.
+
+        Raises:
+            ValueError: If the provided `mode` name is empty or None.
+        """
+        if not mode:
+            raise ValueError("mode name is required")
+
+        if not self.valid("mode", mode):
+            return False
+
+        EditableSchema(self).remove("mode", mode)
+        return True
+
+    def _from_dict(self, manifest: Dict,
+                   keypath: Union[List[str], Tuple[str, ...]],
+                   version: Optional[Tuple[int, ...]] = None,
+                   lazyload: LazyLoad = LazyLoad.ON) \
+            -> Tuple[Set[Tuple[str, ...]], Set[Tuple[str, ...]]]:
+        if version and version < (0, 53, 0):
+            manifest.pop("__meta__", None)
+            manifest = {
+                "scenario": manifest,
+                "mode": self.getdict("mode")
+            }
+            lazyload = LazyLoad.OFF
+
+        return super()._from_dict(manifest, keypath, version, lazyload)

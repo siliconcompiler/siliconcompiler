@@ -35,6 +35,23 @@ def test_basic_set_get_save_load(settings_file):
     assert new_manager.get('slurmconfig', 'nodes') == 4
 
 
+def test_set_keep_flag(settings_file):
+    """Test the keep flag behavior in set()."""
+    manager = SettingsManager(settings_file, logging.getLogger())
+
+    # Initial set
+    manager.set('test', 'key', 'initial')
+    assert manager.get('test', 'key') == 'initial'
+
+    # Try to overwrite with keep=True (should fail to overwrite)
+    manager.set('test', 'key', 'new', keep=True)
+    assert manager.get('test', 'key') == 'initial'
+
+    # Try to overwrite with keep=False (default) (should overwrite)
+    manager.set('test', 'key', 'new')
+    assert manager.get('test', 'key') == 'new'
+
+
 def test_get_defaults(settings_file):
     """Test getting missing keys returns default values."""
     manager = SettingsManager(settings_file, logging.getLogger())
@@ -173,3 +190,18 @@ def test_timeout_during_load(settings_file, caplog):
 
     assert manager._SettingsManager__settings == {}
     assert "Timeout acquiring lock" in caplog.text
+
+
+def test_filepath_none():
+    """Test behavior when filepath is None (in-memory only)."""
+    manager = SettingsManager(None, logging.getLogger())
+
+    # Should start empty
+    assert manager._SettingsManager__settings == {}
+
+    # Set/Get should work in memory
+    manager.set('memory', 'test', 123)
+    assert manager.get('memory', 'test') == 123
+
+    # Save should be a safe no-op
+    manager.save()

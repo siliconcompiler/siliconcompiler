@@ -159,6 +159,7 @@ filterwarnings = [
     'ignore:Creating a LegacyVersion has been deprecated and will be removed in the next major release',
     'ignore:.* is multi-threaded, use of fork\(\) may lead to deadlocks in the child.:DeprecationWarning',
     'ignore:This function is deprecated and will be removed in a future version, use cls\.find_task instead:DeprecationWarning',
+    'ignore:This function is deprecated and will be removed in a future version, use TimingModeSchema instead:DeprecationWarning',
     'ignore:Python 3\.14 will, by default, filter extracted tar archives and reject files or modify their metadata\. Use the filter argument to control this behavior\.:DeprecationWarning'
 ]
 
@@ -181,7 +182,7 @@ spaces-in-braces = true
 skip = '*/build/*,./docs/_build/*,*.json,*.xml,*.v,./siliconcompiler/data/templates/report/bootstrap.min.js,./tests/utils/test_utils.py,./tests/tools/data/klayout_pdk/interposer.drc'
 count = true
 quiet-level = 3
-ignore-words-list = 'synopsys,inout,subtile,FRAM,dffer,dffers'
+ignore-words-list = 'synopsys,inout,subtile,FRAM,dffer,dffers,thirdparty'
 
 [tool.check-wheel-contents]
 ignore = [
