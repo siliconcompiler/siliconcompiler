@@ -59,7 +59,8 @@ class TileTask(Task):
     def pre_process(self):
         super().pre_process()
 
-        with open("policy.xml", "w") as f:
+        os.makedirs("magick", exist_ok=True)
+        with open("magick/policy.xml", "w") as f:
             f.write('<policymap xmlns="">\n')
             f.write('<policy domain="resource" name="memory" value="8GiB"/>\n')
             f.write('<policy domain="resource" name="map" value="8GiB"/>\n')
@@ -71,7 +72,7 @@ class TileTask(Task):
 
     def get_runtime_environmental_variables(self, include_path = True):
         envs = super().get_runtime_environmental_variables(include_path)
-        envs["MAGICK_CONFIGURE_PATH"] = os.path.abspath("policy.xml")
+        envs["MAGICK_CONFIGURE_PATH"] = os.path.abspath("magick")
         return envs
 
     def runtime_options(self):
