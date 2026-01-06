@@ -17,7 +17,7 @@
         "node": {
           "default": {
             "default": {
-              "value": "0.53.0",
+              "value": "0.53.1",
               "signature": null
             }
           }
@@ -2989,7 +2989,7 @@
         "node": {
           "default": {
             "default": {
-              "value": "0.53.0",
+              "value": "0.53.1",
               "signature": null
             }
           }
@@ -6759,7 +6759,7 @@
         "node": {
           "default": {
             "default": {
-              "value": "0.53.0",
+              "value": "0.53.1",
               "signature": null
             }
           }
@@ -11415,7 +11415,7 @@
         "node": {
           "default": {
             "default": {
-              "value": "0.53.0",
+              "value": "0.53.1",
               "signature": null
             }
           }
@@ -14387,7 +14387,7 @@
         "node": {
           "default": {
             "default": {
-              "value": "0.53.0",
+              "value": "0.53.1",
               "signature": null
             }
           }
@@ -20829,6 +20829,28 @@
             "shorthelp": "ASIC: antenna cell list",
             "example": [
               "api: schema.set('asic', 'cells', 'antenna', '*eco*')"
+            ],
+            "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
+            "notes": null,
+            "pernode": "never",
+            "node": {
+              "default": {
+                "default": {
+                  "value": [],
+                  "signature": []
+                }
+              }
+            }
+          },
+          "physicalonly": {
+            "type": "[str]",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [],
+            "shorthelp": "ASIC: physicalonly cell list",
+            "example": [
+              "api: schema.set('asic', 'cells', 'physicalonly', '*eco*')"
             ],
             "help": "List of cells grouped by a property that can be accessed\ndirectly by the designer and tools. The example below shows how\nall cells containing the string 'eco' could be marked as dont use\nfor the tool.",
             "notes": null,

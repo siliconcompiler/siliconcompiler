@@ -644,7 +644,7 @@ class APRTask(OpenROADTask):
 
         for lib in self.project.get("asic", "asiclib"):
             libobj = self.project.get("library", lib, field="schema")
-            for celltype in ["decap", "tie", "filler", "tap", "endcap", "antenna"]:
+            for celltype in ["decap", "tie", "filler", "tap", "endcap", "antenna", "physicalonly"]:
                 if libobj.valid("asic", "cells", celltype) and \
                         libobj.get("asic", "cells", celltype):
                     self.add_required_key(libobj, "asic", "cells", celltype)
