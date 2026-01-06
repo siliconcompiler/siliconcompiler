@@ -149,7 +149,7 @@ set sc_hpinmetal [sc_get_layer_name [sc_cfg_tool_task_get var pin_layer_horizont
 set sc_vpinmetal [sc_get_layer_name [sc_cfg_tool_task_get var pin_layer_vertical]]
 
 if { [sc_cfg_exists constraint pin] } {
-    source "[sc_cfg_tool_task_get file sc_pin_constraint]"
+    source [sc_cfg_tool_task_get var sc_pin_constraints_tcl]
 
     proc sc_pin_print { arg } { utl::warn FLW 1 $arg }
     proc sc_pin_layer_select { pin } {

@@ -1,3 +1,5 @@
+import os.path
+
 from typing import Union, List, Optional
 
 from siliconcompiler.tools.openroad._apr import APRTask
@@ -26,6 +28,15 @@ class InitFloorplanTask(APRTask,
 
         self.add_parameter("padringfileset", "[str]", "filesets to generate a padring")
         self.add_parameter("bumpmapfileset", "[str]", "filesets to generate a bumpmap")
+
+        tools_root = os.path.dirname(os.path.dirname(__file__))
+        self.set_dataroot("sc-common", os.path.join(tools_root, "_common"))
+        self.add_parameter(
+            "sc_pin_constraints_tcl",
+            "file",
+            "TCL file defining pin constraints for use with OpenROAD.",
+            "tcl/sc_pin_constraints.tcl",
+            dataroot="sc-common")
 
     def set_openroad_snapstrategy(self, snap: str,
                                   step: Optional[str] = None, index: Optional[str] = None):
@@ -156,6 +167,9 @@ class InitFloorplanTask(APRTask,
                 self.add_required_key(component, "halo")
             if component.get_partname(step=self.step, index=self.index):
                 self.add_required_key(component, "partname")
+
+        if self.project.constraint.pin.get_pinconstraint():
+            self.add_required_key("var", "sc_pin_constraints_tcl")
 
         for pin in self.project.constraint.pin.get_pinconstraint().values():
             if pin.get_placement(step=self.step, index=self.index) is not None:
