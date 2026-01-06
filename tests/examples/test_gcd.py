@@ -68,37 +68,6 @@ def test_py_gcd_gf180():
 
 
 @pytest.mark.eda
-@pytest.mark.timeout(900)
-@pytest.mark.skip(reason="example not updated yet")
-def test_py_gcd_screenshot(monkeypatch):
-    from gcd import gcd
-    gcd.main()
-
-    manifest = 'build/gcd/job0/gcd.pkg.json'
-    assert os.path.isfile(manifest)
-
-    policy = os.path.abspath('policy.xml')
-
-    monkeypatch.setenv("MAGICK_CONFIGURE_PATH", os.path.dirname(policy))
-    with open(policy, 'w') as f:
-        f.write('<policy domain="resource" name="memory" value="8GiB"/>\n')
-        f.write('<policy domain="resource" name="map" value="8GiB"/>\n')
-        f.write('<policy domain="resource" name="width" value="32KP"/>\n')
-        f.write('<policy domain="resource" name="height" value="32KP"/>\n')
-        f.write('<policy domain="resource" name="area" value="1GP"/>\n')
-        f.write('<policy domain="resource" name="disk" value="8GiB"/>\n')
-
-    from gcd import gcd_screenshot
-    gcd_screenshot.main(manifest)
-
-    assert os.path.isfile('build/gcd/highres/screenshot/0/outputs/gcd_X0_Y0.png')
-    assert os.path.isfile('build/gcd/highres/screenshot/0/outputs/gcd_X0_Y1.png')
-    assert os.path.isfile('build/gcd/highres/screenshot/0/outputs/gcd_X1_Y0.png')
-    assert os.path.isfile('build/gcd/highres/screenshot/0/outputs/gcd_X1_Y1.png')
-    assert os.path.isfile('build/gcd/highres/merge/0/outputs/gcd.png')
-
-
-@pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.timeout(300)
 def test_py_gcd_ihp130():
