@@ -276,7 +276,8 @@ class StdCellLibrary(DependencySchema, ToolLibrarySchema):
                 'filler',
                 'tap',
                 'endcap',
-                'antenna']:
+                'antenna',
+                'physicalonly']:
             schema.insert(
                 'asic', 'cells', item,
                 Parameter(
