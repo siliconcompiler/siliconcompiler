@@ -58,3 +58,32 @@ def test_metrics_task(asic_gcd):
         None
     assert asic_gcd.history("job0").get('metric', 'totalarea', step='metrics', index='0') is not \
         None
+
+
+@pytest.mark.eda
+@pytest.mark.quick
+@pytest.mark.timeout(300)
+def test_openroad_pin_placement(asic_heartbeat):
+    clk = asic_heartbeat.constraint.pin.make_pinconstraint("clk")
+    clk.set_layer("metal4")
+    clk.set_order(1)
+    clk.set_side("top")
+    nreset = asic_heartbeat.constraint.pin.make_pinconstraint("nreset")
+    nreset.set_layer("metal4")
+    nreset.set_order(2)
+    nreset.set_side("top")
+    out = asic_heartbeat.constraint.pin.make_pinconstraint("out")
+    out.set_layer("metal2")
+    out.set_order(1)
+    out.set_side("bottom")
+
+    asic_heartbeat.option.add_to("floorplan.init")
+
+    job = asic_heartbeat.run()
+    assert job
+    report = job.find_result(step='floorplan.init', directory=".", filename="floorplan.init.log")
+    with open(report, 'r') as f:
+        log = f.read()
+    assert log.count("Pin clk placed at") == 1
+    assert log.count("Pin nreset placed at") == 1
+    assert log.count("Pin out placed at") == 1
