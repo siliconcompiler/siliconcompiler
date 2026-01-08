@@ -18,7 +18,8 @@ class ScreenshotTask(ScreenshotTask, ShowTask):
                            "true/false, include the images in reports/", defvalue=False)
 
     def set_openroad_verticalresolution(self, value: int,
-                                        step: Optional[str] = None, index: Optional[Union[int, str]] = None):
+                                        step: Optional[str] = None,
+                                        index: Optional[Union[int, str]] = None):
         """
         Set the vertical resolution for OpenROAD screenshots.
 
@@ -30,7 +31,8 @@ class ScreenshotTask(ScreenshotTask, ShowTask):
         self.set("var", "show_vertical_resolution", value, step=step, index=index)
 
     def set_openroad_includereportimages(self, value: bool,
-                                         step: Optional[str] = None, index: Optional[Union[int, str]] = None):
+                                         step: Optional[str] = None,
+                                         index: Optional[Union[int, str]] = None):
         """
         Set whether to include report images in the output.
 
