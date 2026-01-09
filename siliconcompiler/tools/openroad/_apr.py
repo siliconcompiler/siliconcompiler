@@ -389,6 +389,7 @@ class OpenROADDRTParameter(_OpenROADDRTCommonParameter):
     def setup(self):
         super().setup()
 
+        self.add_required_key("var", "drt_disable_via_gen")
         if not self.get("var", "drt_disable_via_gen"):
             if self.pdk.get("tool", "openroad", "drt_disable_via_gen"):
                 self.add_required_key(self.pdk, "tool", "openroad", "drt_disable_via_gen")
@@ -401,7 +402,17 @@ class OpenROADDRTParameter(_OpenROADDRTCommonParameter):
                 self.set("var", "drt_repair_pdn_vias",
                          self.pdk.get("tool", "openroad", "drt_repair_pdn_vias"))
 
-        self.add_required_key("var", "drt_disable_via_gen")
+        bottom_via_layer = self.get("var", "drt_via_in_pin_bottom_layer")
+        top_via_layer = self.get("var", "drt_via_in_pin_top_layer")
+        if not bottom_via_layer or not top_via_layer:
+            pdk_via_layers = self.pdk.get("tool", "openroad", "drt_via_in_pin_layers")
+            if pdk_via_layers:
+                self.add_required_key(self.pdk, "tool", "openroad", "drt_via_in_pin_layers")
+                if not bottom_via_layer:
+                    self.set("var", "drt_via_in_pin_bottom_layer", pdk_via_layers[0])
+                if not top_via_layer:
+                    self.set("var", "drt_via_in_pin_top_layer", pdk_via_layers[1])
+
         if self.get("var", "drt_via_in_pin_bottom_layer"):
             self.add_required_key("var", "drt_via_in_pin_bottom_layer")
         if self.get("var", "drt_via_in_pin_top_layer"):
