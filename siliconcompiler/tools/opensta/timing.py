@@ -183,6 +183,20 @@ class TimingTask(TimingTaskBase):
     def __init__(self):
         super().__init__()
 
+        self.add_parameter(
+            "write_sdf",
+            "bool",
+            "if true will write sdf for every corner",
+            defvalue=False,
+            )
+
+        self.add_parameter(
+            "write_liberty",
+            "bool",
+            "if true will write liberty for every corner",
+            defvalue=False,
+        )
+
     def task(self):
         return "timing"
 
@@ -232,6 +246,12 @@ class TimingTask(TimingTaskBase):
                 if f"{self.design_topmodule}.{scenario.get('pexcorner')}.sdf" in \
                         self.get_files_from_input_nodes():
                     self.add_input_file(ext=f"{scenario.get('pexcorner')}.sdf")
+
+        if self.project.get("write_sdf"):
+            self.add_output_file(ext="sdf")
+
+        if self.project.get("write_liberty"):
+            self.add_output_file(ext="lib")
 
 
 class FPGATimingTask(TimingTaskBase):
