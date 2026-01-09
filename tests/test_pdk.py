@@ -41,6 +41,7 @@ def test_asic_keys():
 def test_keys():
     assert PDK().getkeys() == (
         'dataroot',
+        'deps',
         'fileset',
         'package',
         'pdk'

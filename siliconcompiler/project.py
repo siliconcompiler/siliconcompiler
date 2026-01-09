@@ -19,7 +19,6 @@ from siliconcompiler.schema_support.metric import MetricSchema
 from siliconcompiler import Task
 from siliconcompiler import ShowTask, ScreenshotTask
 from siliconcompiler.schema_support.option import OptionSchema
-from siliconcompiler.library import LibrarySchema
 
 from siliconcompiler.schema_support.cmdlineschema import CommandLineSchema
 from siliconcompiler.schema_support.dependencyschema import DependencySchema
@@ -317,7 +316,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
 
     def add_dep(self, obj):
         """
-        Adds a dependency object (e.g., a Design, Flowgraph, LibrarySchema,
+        Adds a dependency object (e.g., a Design, Flowgraph,
         or Checklist) to the project.
 
         This method intelligently adds various types of schema objects to the
@@ -325,7 +324,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         dependencies if the added object itself is a `DependencySchema`.
 
         Args:
-            obj (Union[Design, Flowgraph, LibrarySchema, Checklist, List, Set, Tuple]):
+            obj (Union[Design, Flowgraph, Checklist, List, Set, Tuple]):
                 The dependency object(s) to add. Can be a single schema object
                 or a collection (list, set, tuple) of schema objects.
 
@@ -342,9 +341,6 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                 EditableSchema(self).insert("library", obj.name, obj)
         elif isinstance(obj, Flowgraph):
             self.__import_flow(obj)
-        elif isinstance(obj, LibrarySchema):
-            if not self._has_library(obj.name):
-                EditableSchema(self).insert("library", obj.name, obj)
         elif isinstance(obj, Checklist):
             if obj.name not in self.getkeys("checklist"):
                 EditableSchema(self).insert("checklist", obj.name, obj)
@@ -367,7 +363,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         """
         if isinstance(obj, DependencySchema):
             for dep in obj.get_dep():
-                if isinstance(dep, (Design, LibrarySchema)):
+                if isinstance(dep, Design):
                     if self._has_library(dep.name):
                         continue
                 self.add_dep(dep)

@@ -9,15 +9,13 @@ from PIL import Image
 
 from unittest.mock import patch
 
-from siliconcompiler import Project, PDK, StdCellLibrary
+from siliconcompiler import Project
 from siliconcompiler import Lint, Sim
 from siliconcompiler import Design, Flowgraph, Checklist
 from siliconcompiler import Task
-from siliconcompiler.library import LibrarySchema
 
-from siliconcompiler.schema import NamedSchema, EditableSchema, Parameter, Scope, BaseSchema
+from siliconcompiler.schema import NamedSchema, EditableSchema, Parameter, Scope
 from siliconcompiler.schema_support.option import OptionSchema
-from siliconcompiler.schema_support.dependencyschema import DependencySchema
 
 from siliconcompiler.utils.logging import SCColorLoggerFormatter, SCLoggerFormatter
 from siliconcompiler.utils.paths import jobdir
@@ -410,47 +408,6 @@ def test_add_dep_design_with_2level_dep():
     assert design.get_dep("test1") is design_test1
 
 
-def test_add_dep_design_with_2level_dep_no_depschema():
-    class DummySchema0(StdCellLibrary):
-        def __init__(self):
-            super().__init__("test0")
-
-            self.add_dep(PDK("test1"))
-
-        @classmethod
-        def _getdict_type(cls):
-            return "dummy_schema0"
-
-    design = Design("test")
-    design.add_dep(DummySchema0())
-
-    proj = Project()
-    proj.add_dep(design)
-
-    BaseSchema._BaseSchema__get_child_classes.cache_clear()
-    BaseSchema._BaseSchema__load_schema_class.cache_clear()
-    classes = BaseSchema._BaseSchema__get_child_classes().copy()
-    classes["dummy_schema0"] = DummySchema0
-
-    # Request restore from cfg
-    with patch("siliconcompiler.schema.BaseSchema._BaseSchema__get_child_classes") as children:
-        children.return_value = classes
-        new_proj = Project.from_manifest(cfg=proj.getdict())
-
-    design = new_proj.get("library", "test", field="schema")
-    dep = design.get_dep("test0")
-    pdk_dep = dep.get_dep("test1")
-    assert not isinstance(pdk_dep, DependencySchema)
-
-    assert new_proj.getkeys("library") == ("test", "test0", "test1")
-    assert new_proj.get("library", "test", field="schema") is design
-    assert new_proj.get("library", "test0", field="schema") is dep
-    assert new_proj.get("library", "test1", field="schema") is pdk_dep
-    assert design._parent(root=True) is new_proj
-    assert dep._parent(root=True) is new_proj
-    assert pdk_dep._parent(root=True) is new_proj
-
-
 def test_add_dep_flowgraph():
     flow = Flowgraph("test")
     proj = Project()
@@ -500,14 +457,6 @@ def test_add_dep_checklist():
     proj.add_dep(checklist)
     assert proj.getkeys("checklist") == ("test",)
     assert proj.get("checklist", "test", field="schema") is checklist
-
-
-def test_add_dep_library():
-    lib = LibrarySchema("test")
-    proj = Project()
-    proj.add_dep(lib)
-    assert proj.getkeys("library") == ("test",)
-    assert proj.get("library", "test", field="schema") is lib
 
 
 def test_get_filesets_empty():
@@ -857,7 +806,7 @@ def test_get_library_not_found():
 
 def test_get_library_success():
     proj = Project()
-    lib = StdCellLibrary("testlib")
+    lib = Design("testlib")
     proj.add_dep(lib)
     assert proj.get_library("testlib") is lib
 

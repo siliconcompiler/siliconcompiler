@@ -17,7 +17,7 @@
         "node": {
           "default": {
             "default": {
-              "value": "0.53.1",
+              "value": "0.54.0",
               "signature": null
             }
           }
@@ -2989,7 +2989,7 @@
         "node": {
           "default": {
             "default": {
-              "value": "0.53.1",
+              "value": "0.54.0",
               "signature": null
             }
           }
@@ -6759,7 +6759,7 @@
         "node": {
           "default": {
             "default": {
-              "value": "0.53.1",
+              "value": "0.54.0",
               "signature": null
             }
           }
@@ -11415,7 +11415,7 @@
         "node": {
           "default": {
             "default": {
-              "value": "0.53.1",
+              "value": "0.54.0",
               "signature": null
             }
           }
@@ -14387,7 +14387,7 @@
         "node": {
           "default": {
             "default": {
-              "value": "0.53.1",
+              "value": "0.54.0",
               "signature": null
             }
           }
@@ -17616,6 +17616,26 @@
           }
         }
       },
+      "deps": {
+        "type": "[str]",
+        "require": false,
+        "scope": "global",
+        "lock": true,
+        "switch": [],
+        "shorthelp": "List of object dependencies",
+        "example": [],
+        "help": "List of named object dependencies included via add_dep().",
+        "notes": null,
+        "pernode": "never",
+        "node": {
+          "default": {
+            "default": {
+              "value": [],
+              "signature": []
+            }
+          }
+        }
+      },
       "package": {
         "version": {
           "type": "str",
@@ -18082,26 +18102,6 @@
           "sctype": "PackageSchema"
         }
       },
-      "deps": {
-        "type": "[str]",
-        "require": false,
-        "scope": "global",
-        "lock": true,
-        "switch": [],
-        "shorthelp": "List of object dependencies",
-        "example": [],
-        "help": "List of named object dependencies included via add_dep().",
-        "notes": null,
-        "pernode": "never",
-        "node": {
-          "default": {
-            "default": {
-              "value": [],
-              "signature": []
-            }
-          }
-        }
-      },
       "__meta__": {
         "name": "design",
         "class": "siliconcompiler.design/Design",
@@ -18187,7 +18187,215 @@
                 }
               },
               "hashalgo": "sha256",
-              "copy": false
+              "copy": true
+            }
+          },
+          "topmodule": {
+            "type": "str",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [],
+            "shorthelp": "Top module name",
+            "example": [
+              "api: design.set('fileset', 'rtl', 'topmodule', 'mytop')",
+              "api: design.set('fileset', 'testbench', 'topmodule', 'tb')"
+            ],
+            "help": "Name of top module specified on a per fileset basis.",
+            "notes": null,
+            "pernode": "never",
+            "node": {
+              "default": {
+                "default": {
+                  "value": null,
+                  "signature": null
+                }
+              }
+            }
+          },
+          "idir": {
+            "type": "[dir]",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [],
+            "shorthelp": "Include file search paths",
+            "example": [
+              "api: design.set('fileset', 'rtl', 'idir', './rtl')",
+              "api: design.set('fileset', 'testbench', 'idir', '/testbench')"
+            ],
+            "help": "Include paths specify directories to scan for header files during\ncompilation. If multiple paths are provided, they are searched\nin the order given.",
+            "notes": null,
+            "pernode": "never",
+            "node": {
+              "default": {
+                "default": {
+                  "value": [],
+                  "signature": [],
+                  "filehash": [],
+                  "dataroot": []
+                }
+              }
+            },
+            "hashalgo": "sha256",
+            "copy": true
+          },
+          "define": {
+            "type": "[str]",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [],
+            "shorthelp": "Preprocessor macro definitions",
+            "example": [
+              "api: design.set('fileset', 'rtl', 'define', 'CFG_TARGET=FPGA')"
+            ],
+            "help": "Defines macros at compile time for design languages that support\npreprocessing, such as Verilog, C, and C++. The macro format is\nis `MACRONAME[=value]`, where [=value] is optional.",
+            "notes": null,
+            "pernode": "never",
+            "node": {
+              "default": {
+                "default": {
+                  "value": [],
+                  "signature": []
+                }
+              }
+            }
+          },
+          "undefine": {
+            "type": "[str]",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [],
+            "shorthelp": "Preprocessor macro undefine",
+            "example": [
+              "api: design.set('fileset', 'rtl', 'undefine', 'CFG_TARGET')"
+            ],
+            "help": "Undefines a macro that may have been previously defined via the\ncompiler, options, or header files.",
+            "notes": null,
+            "pernode": "never",
+            "node": {
+              "default": {
+                "default": {
+                  "value": [],
+                  "signature": []
+                }
+              }
+            }
+          },
+          "libdir": {
+            "type": "[dir]",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [],
+            "shorthelp": "Library search paths",
+            "example": [
+              "api: design.set('fileset', 'rtl', 'libdir', '/usr/lib')"
+            ],
+            "help": "Specifies directories to scan for libraries provided with the\n:keypath:`Design,fileset,<fileset>,lib` parameter. If multiple paths are provided,\nthey are searched based on the order of the libdir list.",
+            "notes": null,
+            "pernode": "never",
+            "node": {
+              "default": {
+                "default": {
+                  "value": [],
+                  "signature": [],
+                  "filehash": [],
+                  "dataroot": []
+                }
+              }
+            },
+            "hashalgo": "sha256",
+            "copy": true
+          },
+          "lib": {
+            "type": "[str]",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [],
+            "shorthelp": "Design libraries to include",
+            "example": [
+              "api: design.set('fileset', 'rtl', 'lib', 'mylib')"
+            ],
+            "help": "Specifies libraries to use during compilation. The compiler searches for\nlibrary in the compiler standard library paths and in the\npaths specified by :keypath:`Design,fileset,<fileset>,libdir` parameter.",
+            "notes": null,
+            "pernode": "never",
+            "node": {
+              "default": {
+                "default": {
+                  "value": [],
+                  "signature": []
+                }
+              }
+            }
+          },
+          "param": {
+            "default": {
+              "type": "str",
+              "require": false,
+              "scope": "global",
+              "lock": false,
+              "switch": [],
+              "shorthelp": "Design parameters",
+              "example": [
+                "api: design.set('fileset', 'rtl', 'param', 'N', '64')"
+              ],
+              "help": "Sets a named parameter to a string value. The value is limited to basic\ndata literals. The types of parameters and values supported is tightly\ncoupled to tools being used. For example, in Verilog only integer\nliterals (64'h4, 2'b0, 4) and strings are supported.",
+              "notes": null,
+              "pernode": "never",
+              "node": {
+                "default": {
+                  "default": {
+                    "value": null,
+                    "signature": null
+                  }
+                }
+              }
+            }
+          },
+          "depfileset": {
+            "type": "[(str,str)]",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [],
+            "shorthelp": "Design dependency fileset",
+            "example": [
+              "api: design.set('fileset', 'rtl', 'depfileset', ('lambdalib', 'rtl'))"
+            ],
+            "help": "Sets the mapping for dependency filesets.",
+            "notes": null,
+            "pernode": "never",
+            "node": {
+              "default": {
+                "default": {
+                  "value": [],
+                  "signature": []
+                }
+              }
+            }
+          }
+        }
+      },
+      "deps": {
+        "type": "[str]",
+        "require": false,
+        "scope": "global",
+        "lock": true,
+        "switch": [],
+        "shorthelp": "List of object dependencies",
+        "example": [],
+        "help": "List of named object dependencies included via add_dep().",
+        "notes": null,
+        "pernode": "never",
+        "node": {
+          "default": {
+            "default": {
+              "value": [],
+              "signature": []
             }
           }
         }
@@ -19383,7 +19591,215 @@
                 }
               },
               "hashalgo": "sha256",
-              "copy": false
+              "copy": true
+            }
+          },
+          "topmodule": {
+            "type": "str",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [],
+            "shorthelp": "Top module name",
+            "example": [
+              "api: design.set('fileset', 'rtl', 'topmodule', 'mytop')",
+              "api: design.set('fileset', 'testbench', 'topmodule', 'tb')"
+            ],
+            "help": "Name of top module specified on a per fileset basis.",
+            "notes": null,
+            "pernode": "never",
+            "node": {
+              "default": {
+                "default": {
+                  "value": null,
+                  "signature": null
+                }
+              }
+            }
+          },
+          "idir": {
+            "type": "[dir]",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [],
+            "shorthelp": "Include file search paths",
+            "example": [
+              "api: design.set('fileset', 'rtl', 'idir', './rtl')",
+              "api: design.set('fileset', 'testbench', 'idir', '/testbench')"
+            ],
+            "help": "Include paths specify directories to scan for header files during\ncompilation. If multiple paths are provided, they are searched\nin the order given.",
+            "notes": null,
+            "pernode": "never",
+            "node": {
+              "default": {
+                "default": {
+                  "value": [],
+                  "signature": [],
+                  "filehash": [],
+                  "dataroot": []
+                }
+              }
+            },
+            "hashalgo": "sha256",
+            "copy": true
+          },
+          "define": {
+            "type": "[str]",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [],
+            "shorthelp": "Preprocessor macro definitions",
+            "example": [
+              "api: design.set('fileset', 'rtl', 'define', 'CFG_TARGET=FPGA')"
+            ],
+            "help": "Defines macros at compile time for design languages that support\npreprocessing, such as Verilog, C, and C++. The macro format is\nis `MACRONAME[=value]`, where [=value] is optional.",
+            "notes": null,
+            "pernode": "never",
+            "node": {
+              "default": {
+                "default": {
+                  "value": [],
+                  "signature": []
+                }
+              }
+            }
+          },
+          "undefine": {
+            "type": "[str]",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [],
+            "shorthelp": "Preprocessor macro undefine",
+            "example": [
+              "api: design.set('fileset', 'rtl', 'undefine', 'CFG_TARGET')"
+            ],
+            "help": "Undefines a macro that may have been previously defined via the\ncompiler, options, or header files.",
+            "notes": null,
+            "pernode": "never",
+            "node": {
+              "default": {
+                "default": {
+                  "value": [],
+                  "signature": []
+                }
+              }
+            }
+          },
+          "libdir": {
+            "type": "[dir]",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [],
+            "shorthelp": "Library search paths",
+            "example": [
+              "api: design.set('fileset', 'rtl', 'libdir', '/usr/lib')"
+            ],
+            "help": "Specifies directories to scan for libraries provided with the\n:keypath:`Design,fileset,<fileset>,lib` parameter. If multiple paths are provided,\nthey are searched based on the order of the libdir list.",
+            "notes": null,
+            "pernode": "never",
+            "node": {
+              "default": {
+                "default": {
+                  "value": [],
+                  "signature": [],
+                  "filehash": [],
+                  "dataroot": []
+                }
+              }
+            },
+            "hashalgo": "sha256",
+            "copy": true
+          },
+          "lib": {
+            "type": "[str]",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [],
+            "shorthelp": "Design libraries to include",
+            "example": [
+              "api: design.set('fileset', 'rtl', 'lib', 'mylib')"
+            ],
+            "help": "Specifies libraries to use during compilation. The compiler searches for\nlibrary in the compiler standard library paths and in the\npaths specified by :keypath:`Design,fileset,<fileset>,libdir` parameter.",
+            "notes": null,
+            "pernode": "never",
+            "node": {
+              "default": {
+                "default": {
+                  "value": [],
+                  "signature": []
+                }
+              }
+            }
+          },
+          "param": {
+            "default": {
+              "type": "str",
+              "require": false,
+              "scope": "global",
+              "lock": false,
+              "switch": [],
+              "shorthelp": "Design parameters",
+              "example": [
+                "api: design.set('fileset', 'rtl', 'param', 'N', '64')"
+              ],
+              "help": "Sets a named parameter to a string value. The value is limited to basic\ndata literals. The types of parameters and values supported is tightly\ncoupled to tools being used. For example, in Verilog only integer\nliterals (64'h4, 2'b0, 4) and strings are supported.",
+              "notes": null,
+              "pernode": "never",
+              "node": {
+                "default": {
+                  "default": {
+                    "value": null,
+                    "signature": null
+                  }
+                }
+              }
+            }
+          },
+          "depfileset": {
+            "type": "[(str,str)]",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [],
+            "shorthelp": "Design dependency fileset",
+            "example": [
+              "api: design.set('fileset', 'rtl', 'depfileset', ('lambdalib', 'rtl'))"
+            ],
+            "help": "Sets the mapping for dependency filesets.",
+            "notes": null,
+            "pernode": "never",
+            "node": {
+              "default": {
+                "default": {
+                  "value": [],
+                  "signature": []
+                }
+              }
+            }
+          }
+        }
+      },
+      "deps": {
+        "type": "[str]",
+        "require": false,
+        "scope": "global",
+        "lock": true,
+        "switch": [],
+        "shorthelp": "List of object dependencies",
+        "example": [],
+        "help": "List of named object dependencies included via add_dep().",
+        "notes": null,
+        "pernode": "never",
+        "node": {
+          "default": {
+            "default": {
+              "value": [],
+              "signature": []
             }
           }
         }
@@ -19991,7 +20407,215 @@
                 }
               },
               "hashalgo": "sha256",
-              "copy": false
+              "copy": true
+            }
+          },
+          "topmodule": {
+            "type": "str",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [],
+            "shorthelp": "Top module name",
+            "example": [
+              "api: design.set('fileset', 'rtl', 'topmodule', 'mytop')",
+              "api: design.set('fileset', 'testbench', 'topmodule', 'tb')"
+            ],
+            "help": "Name of top module specified on a per fileset basis.",
+            "notes": null,
+            "pernode": "never",
+            "node": {
+              "default": {
+                "default": {
+                  "value": null,
+                  "signature": null
+                }
+              }
+            }
+          },
+          "idir": {
+            "type": "[dir]",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [],
+            "shorthelp": "Include file search paths",
+            "example": [
+              "api: design.set('fileset', 'rtl', 'idir', './rtl')",
+              "api: design.set('fileset', 'testbench', 'idir', '/testbench')"
+            ],
+            "help": "Include paths specify directories to scan for header files during\ncompilation. If multiple paths are provided, they are searched\nin the order given.",
+            "notes": null,
+            "pernode": "never",
+            "node": {
+              "default": {
+                "default": {
+                  "value": [],
+                  "signature": [],
+                  "filehash": [],
+                  "dataroot": []
+                }
+              }
+            },
+            "hashalgo": "sha256",
+            "copy": true
+          },
+          "define": {
+            "type": "[str]",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [],
+            "shorthelp": "Preprocessor macro definitions",
+            "example": [
+              "api: design.set('fileset', 'rtl', 'define', 'CFG_TARGET=FPGA')"
+            ],
+            "help": "Defines macros at compile time for design languages that support\npreprocessing, such as Verilog, C, and C++. The macro format is\nis `MACRONAME[=value]`, where [=value] is optional.",
+            "notes": null,
+            "pernode": "never",
+            "node": {
+              "default": {
+                "default": {
+                  "value": [],
+                  "signature": []
+                }
+              }
+            }
+          },
+          "undefine": {
+            "type": "[str]",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [],
+            "shorthelp": "Preprocessor macro undefine",
+            "example": [
+              "api: design.set('fileset', 'rtl', 'undefine', 'CFG_TARGET')"
+            ],
+            "help": "Undefines a macro that may have been previously defined via the\ncompiler, options, or header files.",
+            "notes": null,
+            "pernode": "never",
+            "node": {
+              "default": {
+                "default": {
+                  "value": [],
+                  "signature": []
+                }
+              }
+            }
+          },
+          "libdir": {
+            "type": "[dir]",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [],
+            "shorthelp": "Library search paths",
+            "example": [
+              "api: design.set('fileset', 'rtl', 'libdir', '/usr/lib')"
+            ],
+            "help": "Specifies directories to scan for libraries provided with the\n:keypath:`Design,fileset,<fileset>,lib` parameter. If multiple paths are provided,\nthey are searched based on the order of the libdir list.",
+            "notes": null,
+            "pernode": "never",
+            "node": {
+              "default": {
+                "default": {
+                  "value": [],
+                  "signature": [],
+                  "filehash": [],
+                  "dataroot": []
+                }
+              }
+            },
+            "hashalgo": "sha256",
+            "copy": true
+          },
+          "lib": {
+            "type": "[str]",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [],
+            "shorthelp": "Design libraries to include",
+            "example": [
+              "api: design.set('fileset', 'rtl', 'lib', 'mylib')"
+            ],
+            "help": "Specifies libraries to use during compilation. The compiler searches for\nlibrary in the compiler standard library paths and in the\npaths specified by :keypath:`Design,fileset,<fileset>,libdir` parameter.",
+            "notes": null,
+            "pernode": "never",
+            "node": {
+              "default": {
+                "default": {
+                  "value": [],
+                  "signature": []
+                }
+              }
+            }
+          },
+          "param": {
+            "default": {
+              "type": "str",
+              "require": false,
+              "scope": "global",
+              "lock": false,
+              "switch": [],
+              "shorthelp": "Design parameters",
+              "example": [
+                "api: design.set('fileset', 'rtl', 'param', 'N', '64')"
+              ],
+              "help": "Sets a named parameter to a string value. The value is limited to basic\ndata literals. The types of parameters and values supported is tightly\ncoupled to tools being used. For example, in Verilog only integer\nliterals (64'h4, 2'b0, 4) and strings are supported.",
+              "notes": null,
+              "pernode": "never",
+              "node": {
+                "default": {
+                  "default": {
+                    "value": null,
+                    "signature": null
+                  }
+                }
+              }
+            }
+          },
+          "depfileset": {
+            "type": "[(str,str)]",
+            "require": false,
+            "scope": "global",
+            "lock": false,
+            "switch": [],
+            "shorthelp": "Design dependency fileset",
+            "example": [
+              "api: design.set('fileset', 'rtl', 'depfileset', ('lambdalib', 'rtl'))"
+            ],
+            "help": "Sets the mapping for dependency filesets.",
+            "notes": null,
+            "pernode": "never",
+            "node": {
+              "default": {
+                "default": {
+                  "value": [],
+                  "signature": []
+                }
+              }
+            }
+          }
+        }
+      },
+      "deps": {
+        "type": "[str]",
+        "require": false,
+        "scope": "global",
+        "lock": true,
+        "switch": [],
+        "shorthelp": "List of object dependencies",
+        "example": [],
+        "help": "List of named object dependencies included via add_dep().",
+        "notes": null,
+        "pernode": "never",
+        "node": {
+          "default": {
+            "default": {
+              "value": [],
+              "signature": []
             }
           }
         }
@@ -20460,26 +21084,6 @@
         "__meta__": {
           "class": "siliconcompiler.schema_support.packageschema/PackageSchema",
           "sctype": "PackageSchema"
-        }
-      },
-      "deps": {
-        "type": "[str]",
-        "require": false,
-        "scope": "global",
-        "lock": true,
-        "switch": [],
-        "shorthelp": "List of object dependencies",
-        "example": [],
-        "help": "List of named object dependencies included via add_dep().",
-        "notes": null,
-        "pernode": "never",
-        "node": {
-          "default": {
-            "default": {
-              "value": [],
-              "signature": []
-            }
-          }
         }
       },
       "asic": {
