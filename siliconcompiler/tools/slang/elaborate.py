@@ -21,7 +21,8 @@ class Elaborate(SlangTask):
             True)
 
     def set_slang_includesourcepaths(self, enable: bool,
-                                     step: Optional[str] = None, index: Optional[Union[int, str]] = None):
+                                     step: Optional[str] = None,
+                                     index: Optional[Union[int, str]] = None):
         """
         Enables or disables adding source file path information to the output.
 
