@@ -24,6 +24,66 @@ class GlobalPlacementTask(APRTask, OpenROADSTAParameter, OpenROADGPLParameter,
                            "true/false, when true multibit clustering will be performed.",
                            defvalue=False)
 
+    def set_openroad_enablescanchains(self, enable: bool,
+                                      step: str = None, index: str = None):
+        """
+        Enables or disables scan chain insertion.
+
+        Args:
+            enable (bool): True to enable, False to disable.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "enable_scan_chains", enable, step=step, index=index)
+
+    def set_openroad_scanenableportpattern(self, pattern: str,
+                                           step: str = None, index: str = None):
+        """
+        Sets the pattern for the scan chain enable port.
+
+        Args:
+            pattern (str): The port pattern.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "scan_enable_port_pattern", pattern, step=step, index=index)
+
+    def set_openroad_scaninportpattern(self, pattern: str,
+                                       step: str = None, index: str = None):
+        """
+        Sets the pattern for the scan chain input port.
+
+        Args:
+            pattern (str): The port pattern.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "scan_in_port_pattern", pattern, step=step, index=index)
+
+    def set_openroad_scanoutportpattern(self, pattern: str,
+                                        step: str = None, index: str = None):
+        """
+        Sets the pattern for the scan chain output port.
+
+        Args:
+            pattern (str): The port pattern.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "scan_out_port_pattern", pattern, step=step, index=index)
+
+    def set_openroad_enablemultibitclustering(self, enable: bool,
+                                              step: str = None, index: str = None):
+        """
+        Enables or disables multibit clustering.
+
+        Args:
+            enable (bool): True to enable, False to disable.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "enable_multibit_clustering", enable, step=step, index=index)
+
     def task(self):
         return "global_placement"
 

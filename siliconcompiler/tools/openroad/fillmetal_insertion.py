@@ -15,6 +15,18 @@ class FillMetalTask(APRTask, OpenROADSTAParameter):
                            "true/false, when true enables adding fill, "
                            "if enabled by the PDK, to the design", defvalue=True)
 
+    def set_openroad_addfill(self, enable: bool,
+                             step: str = None, index: str = None):
+        """
+        Enables or disables adding fill to the design.
+
+        Args:
+            enable (bool): True to enable fill, False to disable.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "fin_add_fill", enable, step=step, index=index)
+
     def task(self):
         return "fillmetal_insertion"
 

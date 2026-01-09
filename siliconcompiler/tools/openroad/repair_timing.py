@@ -21,6 +21,54 @@ class RepairTimingTask(APRTask, OpenROADSTAParameter, OpenROADDPLParameter,
         self.add_parameter("rsz_skip_recover_power", "bool", "skip power recovery",
                            defvalue=False)
 
+    def set_openroad_skipdrvrepair(self, skip: bool,
+                                   step: str = None, index: str = None):
+        """
+        Enables or disables skipping design rule violation repair.
+
+        Args:
+            skip (bool): True to skip repair, False to perform it.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "rsz_skip_drv_repair", skip, step=step, index=index)
+
+    def set_openroad_skipsetuprepair(self, skip: bool,
+                                     step: str = None, index: str = None):
+        """
+        Enables or disables skipping setup timing repair.
+
+        Args:
+            skip (bool): True to skip repair, False to perform it.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "rsz_skip_setup_repair", skip, step=step, index=index)
+
+    def set_openroad_skipholdrepair(self, skip: bool,
+                                    step: str = None, index: str = None):
+        """
+        Enables or disables skipping hold timing repair.
+
+        Args:
+            skip (bool): True to skip repair, False to perform it.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "rsz_skip_hold_repair", skip, step=step, index=index)
+
+    def set_openroad_skiprecoverpower(self, skip: bool,
+                                      step: str = None, index: str = None):
+        """
+        Enables or disables skipping power recovery.
+
+        Args:
+            skip (bool): True to skip recovery, False to perform it.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "rsz_skip_recover_power", skip, step=step, index=index)
+
     def task(self):
         return "repair_timing"
 

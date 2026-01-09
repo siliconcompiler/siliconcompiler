@@ -19,6 +19,30 @@ class AntennaRepairTask(APRTask, OpenROADSTAParameter, OpenROADGRTParameter, Ope
                            "true/false, flag to indicate whether to repair antenna violations",
                            defvalue=True)
 
+    def set_openroad_antcheck(self, enable: bool,
+                              step: str = None, index: str = None):
+        """
+        Enables or disables checking for antenna violations.
+
+        Args:
+            enable (bool): True to check, False to skip.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "ant_check", enable, step=step, index=index)
+
+    def set_openroad_antrepair(self, enable: bool,
+                               step: str = None, index: str = None):
+        """
+        Enables or disables repairing antenna violations.
+
+        Args:
+            enable (bool): True to repair, False to skip.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "ant_repair", enable, step=step, index=index)
+
     def task(self):
         return "antenna_repair"
 

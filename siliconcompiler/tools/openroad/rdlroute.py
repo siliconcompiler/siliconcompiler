@@ -1,3 +1,5 @@
+from typing import Optional
+
 from siliconcompiler.tools.openroad import OpenROADTask
 
 
@@ -20,6 +22,18 @@ class RDLRouteTask(OpenROADTask):
                 self.set("var", "rdlroute", file, step=step, index=index)
             else:
                 self.add("var", "rdlroute", file, step=step, index=index)
+
+    def set_openroad_addfill(self, enable: bool,
+                             step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Enables or disables adding fill to the design.
+
+        Args:
+            enable (bool): True to enable fill, False to disable.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "fin_add_fill", enable, step=step, index=index)
 
     def task(self):
         return "rdlroute"

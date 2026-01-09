@@ -1,3 +1,5 @@
+from typing import Union, List, Optional
+
 from siliconcompiler.tools.openroad._apr import APRTask
 from siliconcompiler.tools.openroad._apr import OpenROADSTAParameter, OpenROADPSMParameter
 
@@ -31,6 +33,107 @@ class WriteViewsTask(APRTask, OpenROADSTAParameter, OpenROADPSMParameter):
                            "design", defvalue=True)
 
         self.add_parameter("pex_corners", "{str}", "set of pex corners to perform extraction on")
+
+    def set_openroad_abstractlefbloatlayers(self, enable: bool,
+                                            step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Enables or disables filling all layers when writing the abstract LEF.
+
+        Args:
+            enable (bool): True to enable, False to disable.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "ord_abstract_lef_bloat_layers", enable, step=step, index=index)
+
+    def set_openroad_abstractlefbloatfactor(self, factor: int,
+                                            step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Sets the bloat factor to apply when writing the abstract LEF.
+
+        Args:
+            factor (int): The bloat factor.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "ord_abstract_lef_bloat_factor", factor, step=step, index=index)
+
+    def set_openroad_writecdl(self, enable: bool,
+                              step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Enables or disables writing the CDL file.
+
+        Args:
+            enable (bool): True to enable, False to disable.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "write_cdl", enable, step=step, index=index)
+
+    def set_openroad_writespef(self, enable: bool,
+                               step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Enables or disables writing the SPEF file.
+
+        Args:
+            enable (bool): True to enable, False to disable.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "write_spef", enable, step=step, index=index)
+
+    def set_openroad_usespef(self, enable: bool,
+                             step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Enables or disables reading in SPEF files.
+
+        Args:
+            enable (bool): True to enable, False to disable.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "use_spef", enable, step=step, index=index)
+
+    def set_openroad_writeliberty(self, enable: bool,
+                                  step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Enables or disables writing the Liberty timing model.
+
+        Args:
+            enable (bool): True to enable, False to disable.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "write_liberty", enable, step=step, index=index)
+
+    def set_openroad_writesdf(self, enable: bool,
+                              step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Enables or disables writing the SDF timing model.
+
+        Args:
+            enable (bool): True to enable, False to disable.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "write_sdf", enable, step=step, index=index)
+
+    def add_openroad_pexcorners(self, corners: Union[str, List[str]],
+                                step: Optional[str] = None, index: Optional[str] = None,
+                                clobber: bool = False):
+        """
+        Adds PEX corners to perform extraction on.
+
+        Args:
+            corners (Union[str, List[str]]): The corner(s) to add.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+            clobber (bool, optional): If True, overwrites the existing list. Defaults to False.
+        """
+        if clobber:
+            self.set("var", "pex_corners", corners, step=step, index=index)
+        else:
+            self.add("var", "pex_corners", corners, step=step, index=index)
 
     def task(self):
         return "write_data"

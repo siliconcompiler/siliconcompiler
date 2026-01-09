@@ -20,6 +20,42 @@ class RepairDesignTask(APRTask, OpenROADSTAParameter, OpenROADRSZDRVParameter):
                            "true/false, when true enables adding buffers to the output ports",
                            defvalue=False)
 
+    def set_openroad_tieseparation(self, separation: float,
+                                   step: str = None, index: str = None):
+        """
+        Sets the maximum distance between tie high/low cells.
+
+        Args:
+            separation (float): The separation distance in microns.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "ifp_tie_separation", separation, step=step, index=index)
+
+    def set_openroad_bufferinputs(self, enable: bool,
+                                  step: str = None, index: str = None):
+        """
+        Enables or disables adding buffers to the input ports.
+
+        Args:
+            enable (bool): True to enable, False to disable.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "rsz_buffer_inputs", enable, step=step, index=index)
+
+    def set_openroad_bufferoutputs(self, enable: bool,
+                                   step: str = None, index: str = None):
+        """
+        Enables or disables adding buffers to the output ports.
+
+        Args:
+            enable (bool): True to enable, False to disable.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "rsz_buffer_outputs", enable, step=step, index=index)
+
     def task(self):
         return "repair_design"
 
