@@ -84,18 +84,6 @@ class WriteViewsTask(APRTask, OpenROADSTAParameter, OpenROADPSMParameter):
         """
         self.set("var", "write_spef", enable, step=step, index=index)
 
-    def set_openroad_usespef(self, enable: bool,
-                             step: Optional[str] = None, index: Optional[str] = None):
-        """
-        Enables or disables reading in SPEF files.
-
-        Args:
-            enable (bool): True to enable, False to disable.
-            step (str, optional): The specific step to apply this configuration to.
-            index (str, optional): The specific index to apply this configuration to.
-        """
-        self.set("var", "use_spef", enable, step=step, index=index)
-
     def set_openroad_writeliberty(self, enable: bool,
                                   step: Optional[str] = None, index: Optional[str] = None):
         """
@@ -119,23 +107,6 @@ class WriteViewsTask(APRTask, OpenROADSTAParameter, OpenROADPSMParameter):
             index (str, optional): The specific index to apply this configuration to.
         """
         self.set("var", "write_sdf", enable, step=step, index=index)
-
-    def add_openroad_pexcorners(self, corners: Union[str, List[str]],
-                                step: Optional[str] = None, index: Optional[str] = None,
-                                clobber: bool = False):
-        """
-        Adds PEX corners to perform extraction on.
-
-        Args:
-            corners (Union[str, List[str]]): The corner(s) to add.
-            step (str, optional): The specific step to apply this configuration to.
-            index (str, optional): The specific index to apply this configuration to.
-            clobber (bool, optional): If True, overwrites the existing list. Defaults to False.
-        """
-        if clobber:
-            self.set("var", "pex_corners", corners, step=step, index=index)
-        else:
-            self.add("var", "pex_corners", corners, step=step, index=index)
 
     def task(self):
         return "write_data"
