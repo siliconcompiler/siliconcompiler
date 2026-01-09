@@ -9,6 +9,7 @@ from pathlib import Path
 
 from siliconcompiler import Design
 from siliconcompiler.schema import BaseSchema
+from siliconcompiler.schema_support.packageschema import PackageSchema
 
 
 def test_design_keys():
@@ -44,6 +45,12 @@ def test_design_keys():
     ])
 
     assert set(Design("test").allkeys()) == golden_keys
+
+
+def test_package_access():
+    lib = Design()
+    assert lib.get("package", field="schema") is lib.package
+    assert isinstance(lib.package, PackageSchema)
 
 
 @pytest.mark.parametrize("key", [
