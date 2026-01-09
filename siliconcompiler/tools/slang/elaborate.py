@@ -1,6 +1,8 @@
-import os.path
-from siliconcompiler.tools.slang import pyslang
+from typing import Optional, Union
 
+import os.path
+
+from siliconcompiler.tools.slang import pyslang
 
 from siliconcompiler.tools.slang import SlangTask
 
@@ -17,6 +19,18 @@ class Elaborate(SlangTask):
             "bool",
             "true/false, if true add the source file path information",
             True)
+
+    def set_slang_includesourcepaths(self, enable: bool,
+                                     step: Optional[str] = None, index: Optional[Union[int, str]] = None):
+        """
+        Enables or disables adding source file path information to the output.
+
+        Args:
+            enable (bool): True to include source paths, False to exclude.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "include_source_paths", enable, step=step, index=index)
 
     def task(self):
         return "elaborate"
