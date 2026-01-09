@@ -366,6 +366,10 @@ if { [sc_cfg_exists constraint component] } {
 
         if { $halo != {} } {
             set inst [[ord::get_db_block] findInst $name]
+            set halo_box [$inst getHalo]
+            if { $halo_box != "NULL" } {
+                odb::dbBox_destroy $halo_box
+            }
             odb::dbBox_create $inst \
                 [ord::microns_to_dbu [lindex $halo 0]] \
                 [ord::microns_to_dbu [lindex $halo 1]] \
