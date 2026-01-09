@@ -92,3 +92,11 @@ tee -file reports/global_connections.start.rpt {report_global_connect}
 if { [sc_cfg_tool_task_check_in_list report_buffers var reports] && [sc_check_version 23264] } {
     tee -quiet -file reports/report_buffers.rpt {report_buffers -filtered}
 }
+tee -quiet -file reports/report_units.rpt {report_units}
+
+tee -quiet -file reports/report_layer_rc.rpt {report_layer_rc}
+foreach corner [sta::corners] {
+    set corner_name [$corner name]
+    tee -quiet -append -file reports/report_layer_rc.rpt "puts \"Corner: $corner_name\""
+    tee -quiet -append -file reports/report_layer_rc.rpt "report_layer_rc -corner $corner_name"
+}
