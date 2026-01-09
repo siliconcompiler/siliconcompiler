@@ -137,7 +137,8 @@ class _ASICTask(ASICTask, YosysTask):
         warnings.warn(
             "add_synthesis_corner is deprecated. "
             "Please use add_yosys_synthesiscorner instead.",
-            DeprecationWarning
+            DeprecationWarning,
+            stacklevel=2
         )
         self.add_yosys_synthesiscorner(corner, step=step, index=index, clobber=clobber)
 
