@@ -83,7 +83,8 @@ class OpenROADSTAParameter(OpenROADTask):
         self.set("var", "sta_define_path_groups", enable, step=step, index=index)
 
     def set_openroad_uniquepathgroupsperclock(self, enable: bool,
-                                              step: Optional[str] = None, index: Optional[str] = None):
+                                              step: Optional[str] = None,
+                                              index: Optional[str] = None):
         """
         Enables or disables the generation of separate path groups per clock.
 
@@ -313,7 +314,8 @@ class OpenROADGPLParameter(OpenROADTask):
         self.set("var", "gpl_enable_skip_initial_place", enable, step=step, index=index)
 
     def set_openroad_gpluniformplacementadjustment(self, adjustment: float,
-                                                   step: Optional[str] = None, index: Optional[str] = None):
+                                                   step: Optional[str] = None,
+                                                   index: Optional[str] = None):
         """
         Sets the uniform placement adjustment factor.
 
@@ -681,7 +683,8 @@ class OpenROADCTSParameter(OpenROADTask):
                            "make clock tree synthesis aware of obstructions", defvalue=True)
 
     def set_openroad_ctsdistancebetweenbuffers(self, distance: float,
-                                               step: Optional[str] = None, index: Optional[str] = None):
+                                               step: Optional[str] = None,
+                                               index: Optional[str] = None):
         """
         Sets the maximum distance between buffers during CTS.
 
@@ -970,7 +973,8 @@ class _OpenROADDRTCommonParameter(OpenROADTask):
         self.set("var", "drt_process_node", node, step=step, index=index)
 
     def add_openroad_detailedroutedefaultvia(self, vias: Union[str, List[str]],
-                                             step: Optional[str] = None, index: Optional[str] = None,
+                                             step: Optional[str] = None,
+                                             index: Optional[str] = None,
                                              clobber: bool = False):
         """
         Adds default vias to use for detailed routing.
@@ -987,7 +991,8 @@ class _OpenROADDRTCommonParameter(OpenROADTask):
             self.add("var", "detailed_route_default_via", vias, step=step, index=index)
 
     def add_openroad_detailedrouteunidirectionallayer(self, layers: Union[str, List[str]],
-                                                      step: Optional[str] = None, index: Optional[str] = None,
+                                                      step: Optional[str] = None,
+                                                      index: Optional[str] = None,
                                                       clobber: bool = False):
         """
         Adds layers to treat as unidirectional during detailed routing.
@@ -1063,7 +1068,8 @@ class OpenROADDRTParameter(_OpenROADDRTCommonParameter):
         self.set("var", "drt_disable_via_gen", disable, step=step, index=index)
 
     def set_openroad_drtviainpinbottomlayer(self, layer: str,
-                                            step: Optional[str] = None, index: Optional[str] = None):
+                                            step: Optional[str] = None,
+                                            index: Optional[str] = None):
         """
         Sets the bottom layer to allow vias inside pins.
 
