@@ -2,7 +2,7 @@ import json
 
 import os.path
 
-from typing import Optional
+from typing import Optional, Union, List
 
 from siliconcompiler.tools.yosys.prepareLib import process_liberty_file
 from siliconcompiler import sc_open
@@ -56,14 +56,14 @@ class _ASICTask(ASICTask, YosysTask):
             if not scenario.get_libcorner():
                 continue
             if "setup" in scenario.get_check():
-                self.add_synthesis_corner(scenario.get_libcorner())
+                self.add_yosys_synthesiscorner(scenario.get_libcorner())
                 return
 
         if scenarios:
             # try getting it from first constraint with a valid libcorner
             for scenario in scenarios.get_scenario().values():
                 if scenario.get_libcorner():
-                    self.add_synthesis_corner(scenario.get_libcorner())
+                    self.add_yosys_synthesiscorner(scenario.get_libcorner())
                     return
 
     def pre_process(self):
@@ -132,6 +132,27 @@ class _ASICTask(ASICTask, YosysTask):
                 self.add("var", 'synthesis_libraries', output_file)
 
     def add_synthesis_corner(self, corner, step=None, index=None, clobber=True):
+        """Deprecated"""
+        import warnings
+        warnings.warn(
+            "add_synthesis_corner is deprecated. "
+            "Please use add_yosys_synthesiscorner instead.",
+            DeprecationWarning
+        )
+        self.add_yosys_synthesiscorner(corner, step=step, index=index, clobber=clobber)
+
+    def add_yosys_synthesiscorner(self, corner: str,
+                                  step: Optional[str] = None, index: Optional[str] = None,
+                                  clobber: bool = False):
+        """
+        Adds a timing corner to use for synthesis.
+
+        Args:
+            corner (str): The name of the corner.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+            clobber (bool, optional): If True, overwrites the existing list. Defaults to False.
+        """
         if clobber:
             self.set("var", "synthesis_corner", corner, step=step, index=index)
         else:
@@ -316,23 +337,330 @@ class ASICSynthesis(_ASICTask, YosysTask):
 
     def set_yosys_useslang(self, enable: bool,
                            step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Enables or disables using the slang frontend.
+
+        Args:
+            enable (bool): True to enable, False to disable.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
         self.set("var", "use_slang", enable, step=step, index=index)
+
+    def set_yosys_autoname(self, enable: bool,
+                           step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Enables or disables renaming wires based on registers.
+
+        Args:
+            enable (bool): True to enable, False to disable.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "autoname", enable, step=step, index=index)
 
     def set_yosys_tieundefined(self, tie: str,
                                step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Sets how to handle undefined signals in the netlist.
+
+        Args:
+            tie (str): The tie strategy ('high', 'low', 'none').
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
         self.set("var", "tie_undef", tie, step=step, index=index)
 
     def set_yosys_addtiecells(self, enable: bool,
                               step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Enables or disables adding tie high and tie low cells.
+
+        Args:
+            enable (bool): True to enable, False to disable.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
         self.set("var", "add_tieoffs", enable, step=step, index=index)
 
     def set_yosys_addbuffers(self, enable: bool,
                              step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Enables or disables adding buffers.
+
+        Args:
+            enable (bool): True to enable, False to disable.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
         self.set("var", "add_buffers", enable, step=step, index=index)
 
     def set_yosys_optundriven(self, enable: bool,
                               step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Enables or disables marking undriven nets during optimization.
+
+        Args:
+            enable (bool): True to enable, False to disable.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
         self.set("var", "opt_undriven", enable, step=step, index=index)
+
+    def set_yosys_mapadders(self, enable: bool,
+                            step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Enables or disables techmapping adders in Yosys.
+
+        Args:
+            enable (bool): True to enable, False to disable.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "map_adders", enable, step=step, index=index)
+
+    def set_yosys_memorylibmap(self, file: str,
+                               step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Sets the file used to map memories with Yosys.
+
+        Args:
+            file (str): The path to the library map file.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "memory_libmap", file, step=step, index=index)
+
+    def set_yosys_memorytechmap(self, file: str,
+                                step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Sets the file used to techmap memories with Yosys.
+
+        Args:
+            file (str): The path to the technology map file.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "memory_techmap", file, step=step, index=index)
+
+    def add_yosys_synthextramap(self, map: Union[str, List[str]],
+                                step: Optional[str] = None, index: Optional[str] = None,
+                                clobber: bool = False):
+        """
+        Adds files used in synthesis to perform additional techmapping.
+
+        Args:
+            map (Union[str, List[str]]): The map file(s) to add.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+            clobber (bool, optional): If True, overwrites the existing list. Defaults to False.
+        """
+        if clobber:
+            self.set("var", "synth_extra_map", map, step=step, index=index)
+        else:
+            self.add("var", "synth_extra_map", map, step=step, index=index)
+
+    def add_yosys_preservemodules(self, modules: Union[str, List[str]],
+                                  step: Optional[str] = None, index: Optional[str] = None,
+                                  clobber: bool = False):
+        """
+        Adds modules to prevent flattening.
+
+        Args:
+            modules (Union[str, List[str]]): The module name(s) to preserve.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+            clobber (bool, optional): If True, overwrites the existing list. Defaults to False.
+        """
+        if clobber:
+            self.set("var", "preserve_modules", modules, step=step, index=index)
+        else:
+            self.add("var", "preserve_modules", modules, step=step, index=index)
+
+    def add_yosys_blackboxmodules(self, modules: Union[str, List[str]],
+                                  step: Optional[str] = None, index: Optional[str] = None,
+                                  clobber: bool = False):
+        """
+        Adds modules to exclude from synthesis by replacing them with empty blackboxes.
+
+        Args:
+            modules (Union[str, List[str]]): The module name(s) to blackbox.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+            clobber (bool, optional): If True, overwrites the existing list. Defaults to False.
+        """
+        if clobber:
+            self.set("var", "blackbox_modules", modules, step=step, index=index)
+        else:
+            self.add("var", "blackbox_modules", modules, step=step, index=index)
+
+    def set_yosys_flatten(self, enable: bool,
+                          step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Enables or disables invoking synth with the -flatten option.
+
+        Args:
+            enable (bool): True to enable, False to disable.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "flatten", enable, step=step, index=index)
+
+    def set_yosys_autoflatten(self, enable: bool,
+                              step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Enables or disables attempting to determine how to flatten the design.
+
+        Args:
+            enable (bool): True to enable, False to disable.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "auto_flatten", enable, step=step, index=index)
+
+    def set_yosys_hierthreshold(self, threshold: int,
+                                step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Sets the instance limit for the number of cells in a module to preserve.
+
+        Args:
+            threshold (int): The instance limit.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "hier_threshold", threshold, step=step, index=index)
+
+    def set_yosys_hierarchyseparator(self, separator: str,
+                                     step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Sets the hierarchy separator used during design flattening.
+
+        Args:
+            separator (str): The separator character.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "hierarchy_separator", separator, step=step, index=index)
+
+    def set_yosys_strategy(self, strategy: str,
+                           step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Sets the ABC synthesis strategy.
+
+        Args:
+            strategy (str): The strategy name (e.g., 'DELAY1', 'AREA2').
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "strategy", strategy, step=step, index=index)
+
+    def set_yosys_abcconstraintdriver(self, driver: str,
+                                      step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Sets the buffer that drives the ABC techmapping.
+
+        Args:
+            driver (str): The driver cell name.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "abc_constraint_driver", driver, step=step, index=index)
+
+    def set_yosys_abcclockperiod(self, period: float,
+                                 step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Sets the clock period to use for synthesis.
+
+        Args:
+            period (float): The clock period in ps.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "abc_clock_period", period, step=step, index=index)
+
+    def set_yosys_abcconstraintload(self, load: float,
+                                    step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Sets the capacitive load for the ABC techmapping.
+
+        Args:
+            load (float): The load in fF.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "abc_constraint_load", load, step=step, index=index)
+
+    def set_yosys_abcclockderating(self, derating: float,
+                                   step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Sets the derating to apply to the clock period for ABC synthesis.
+
+        Args:
+            derating (float): The derating factor.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "abc_clock_derating", derating, step=step, index=index)
+
+    def set_yosys_mapclockgates(self, enable: bool,
+                                step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Enables or disables mapping clockgates during synthesis.
+
+        Args:
+            enable (bool): True to enable, False to disable.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "map_clockgates", enable, step=step, index=index)
+
+    def set_yosys_minclockgatefanout(self, fanout: int,
+                                     step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Sets the minimum clockgate fanout.
+
+        Args:
+            fanout (int): The minimum fanout.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "min_clockgate_fanout", fanout, step=step, index=index)
+
+    def set_yosys_lockdesign(self, enable: bool,
+                             step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Enables or disables attempting to lock the design with moosic.
+
+        Args:
+            enable (bool): True to enable, False to disable.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "lock_design", enable, step=step, index=index)
+
+    def set_yosys_lockdesignkey(self, key: str,
+                                step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Sets the lock locking key.
+
+        Args:
+            key (str): The key.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "lock_design_key", key, step=step, index=index)
+
+    def set_yosys_lockdesignport(self, port: str,
+                                 step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Sets the lock locking port name.
+
+        Args:
+            port (str): The port name.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "lock_design_port", port, step=step, index=index)
 
     def task(self):
         return "syn_asic"
