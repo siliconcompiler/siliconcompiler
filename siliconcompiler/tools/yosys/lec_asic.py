@@ -1,4 +1,5 @@
 import re
+from typing import Optional
 
 from siliconcompiler import sc_open
 
@@ -14,6 +15,18 @@ class ASICLECTask(_ASICTask):
 
         self.add_parameter("induction_steps", "int",
                            "Number of induction steps for yosys equivalence checking", defvalue=10)
+
+    def set_yosys_inductionsteps(self, steps: int,
+                                 step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Sets the number of induction steps for yosys equivalence checking.
+
+        Args:
+            steps (int): The number of steps.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "induction_steps", steps, step=step, index=index)
 
     def task(self):
         return "lec_asic"

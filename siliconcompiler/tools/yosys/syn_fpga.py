@@ -30,7 +30,39 @@ class FPGASynthesis(YosysTask):
 
     def set_yosys_useslang(self, enable: bool,
                            step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Enables or disables using the slang frontend.
+
+        Args:
+            enable (bool): True to enable, False to disable.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
         self.set("var", "use_slang", enable, step=step, index=index)
+
+    def set_yosys_synthoptmode(self, mode: str,
+                               step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Sets the optimization mode for synthesis.
+
+        Args:
+            mode (str): The optimization mode ('none', 'delay', 'area').
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "synth_opt_mode", mode, step=step, index=index)
+
+    def set_yosys_synthinsertbuffers(self, enable: bool,
+                                     step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Enables or disables buffer insertion during synthesis.
+
+        Args:
+            enable (bool): True to enable, False to disable.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "synth_insert_buffers", enable, step=step, index=index)
 
     def task(self):
         return "syn_fpga"
