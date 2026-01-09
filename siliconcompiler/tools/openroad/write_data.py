@@ -1,4 +1,4 @@
-from typing import Union, List, Optional
+from typing import Optional
 
 from siliconcompiler.tools.openroad._apr import APRTask
 from siliconcompiler.tools.openroad._apr import OpenROADSTAParameter, OpenROADPSMParameter
