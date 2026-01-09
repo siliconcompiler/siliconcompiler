@@ -35,7 +35,8 @@ class WriteViewsTask(APRTask, OpenROADSTAParameter, OpenROADPSMParameter):
         self.add_parameter("pex_corners", "{str}", "set of pex corners to perform extraction on")
 
     def set_openroad_abstractlefbloatlayers(self, enable: bool,
-                                            step: Optional[str] = None, index: Optional[str] = None):
+                                            step: Optional[str] = None,
+                                            index: Optional[str] = None):
         """
         Enables or disables filling all layers when writing the abstract LEF.
 
@@ -47,7 +48,8 @@ class WriteViewsTask(APRTask, OpenROADSTAParameter, OpenROADPSMParameter):
         self.set("var", "ord_abstract_lef_bloat_layers", enable, step=step, index=index)
 
     def set_openroad_abstractlefbloatfactor(self, factor: int,
-                                            step: Optional[str] = None, index: Optional[str] = None):
+                                            step: Optional[str] = None,
+                                            index: Optional[str] = None):
         """
         Sets the bloat factor to apply when writing the abstract LEF.
 

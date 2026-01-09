@@ -1,3 +1,5 @@
+from typing import Optional, Union
+
 from siliconcompiler import TaskSkip
 from siliconcompiler.tools.openroad._apr import APRTask
 from siliconcompiler.tools.openroad._apr import OpenROADSTAParameter, OpenROADGRTParameter, \
@@ -20,7 +22,7 @@ class AntennaRepairTask(APRTask, OpenROADSTAParameter, OpenROADGRTParameter, Ope
                            defvalue=True)
 
     def set_openroad_antcheck(self, enable: bool,
-                              step: str = None, index: str = None):
+                              step: Optional[str] = None, index: Optional[Union[int, str]] = None):
         """
         Enables or disables checking for antenna violations.
 
@@ -32,7 +34,7 @@ class AntennaRepairTask(APRTask, OpenROADSTAParameter, OpenROADGRTParameter, Ope
         self.set("var", "ant_check", enable, step=step, index=index)
 
     def set_openroad_antrepair(self, enable: bool,
-                               step: str = None, index: str = None):
+                               step: Optional[str] = None, index: Optional[Union[int, str]] = None):
         """
         Enables or disables repairing antenna violations.
 

@@ -1,3 +1,5 @@
+from typing import Optional, Union
+
 from siliconcompiler.tools.openroad._apr import APRTask
 from siliconcompiler.tools.openroad._apr import OpenROADSTAParameter
 
@@ -16,7 +18,7 @@ class FillMetalTask(APRTask, OpenROADSTAParameter):
                            "if enabled by the PDK, to the design", defvalue=True)
 
     def set_openroad_addfill(self, enable: bool,
-                             step: str = None, index: str = None):
+                             step: Optional[str] = None, index: Optional[Union[int, str]] = None):
         """
         Enables or disables adding fill to the design.
 

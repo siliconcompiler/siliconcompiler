@@ -1,3 +1,5 @@
+from typing import Optional, Union
+
 from siliconcompiler.tools.openroad._apr import APRTask
 from siliconcompiler.tools.openroad._apr import OpenROADSTAParameter, OpenROADGRTParameter, \
     OpenROADDRTPinAccessParameter
@@ -16,7 +18,8 @@ class GlobalRouteTask(APRTask, OpenROADSTAParameter, OpenROADGRTParameter,
                            defvalue=False)
 
     def set_openroad_usepinaccess(self, enable: bool,
-                                  step: str = None, index: str = None):
+                                  step: Optional[str] = None,
+                                  index: Optional[Union[int, str]] = None):
         """
         Enables or disables performing pin access before global routing.
 

@@ -1,3 +1,5 @@
+from typing import Optional, Union
+
 from siliconcompiler.tools.openroad._apr import APRTask
 from siliconcompiler.tools.openroad._apr import OpenROADSTAParameter, OpenROADGPLParameter, \
     OpenROADGRTGeneralParameter, OpenROADPPLParameter
@@ -25,7 +27,8 @@ class GlobalPlacementTask(APRTask, OpenROADSTAParameter, OpenROADGPLParameter,
                            defvalue=False)
 
     def set_openroad_enablescanchains(self, enable: bool,
-                                      step: str = None, index: str = None):
+                                      step: Optional[str] = None,
+                                      index: Optional[Union[int, str]] = None):
         """
         Enables or disables scan chain insertion.
 
@@ -37,7 +40,8 @@ class GlobalPlacementTask(APRTask, OpenROADSTAParameter, OpenROADGPLParameter,
         self.set("var", "enable_scan_chains", enable, step=step, index=index)
 
     def set_openroad_scanenableportpattern(self, pattern: str,
-                                           step: str = None, index: str = None):
+                                           step: Optional[str] = None,
+                                           index: Optional[Union[int, str]] = None):
         """
         Sets the pattern for the scan chain enable port.
 
@@ -49,7 +53,8 @@ class GlobalPlacementTask(APRTask, OpenROADSTAParameter, OpenROADGPLParameter,
         self.set("var", "scan_enable_port_pattern", pattern, step=step, index=index)
 
     def set_openroad_scaninportpattern(self, pattern: str,
-                                       step: str = None, index: str = None):
+                                       step: Optional[str] = None,
+                                       index: Optional[Union[int, str]] = None):
         """
         Sets the pattern for the scan chain input port.
 
@@ -61,7 +66,8 @@ class GlobalPlacementTask(APRTask, OpenROADSTAParameter, OpenROADGPLParameter,
         self.set("var", "scan_in_port_pattern", pattern, step=step, index=index)
 
     def set_openroad_scanoutportpattern(self, pattern: str,
-                                        step: str = None, index: str = None):
+                                        step: Optional[str] = None,
+                                        index: Optional[Union[int, str]] = None):
         """
         Sets the pattern for the scan chain output port.
 
@@ -73,7 +79,8 @@ class GlobalPlacementTask(APRTask, OpenROADSTAParameter, OpenROADGPLParameter,
         self.set("var", "scan_out_port_pattern", pattern, step=step, index=index)
 
     def set_openroad_enablemultibitclustering(self, enable: bool,
-                                              step: str = None, index: str = None):
+                                              step: Optional[str] = None,
+                                              index: Optional[Union[int, str]] = None):
         """
         Enables or disables multibit clustering.
 

@@ -1,3 +1,5 @@
+from typing import Optional, Union
+
 from siliconcompiler.tools.openroad import OpenROADTask
 
 
@@ -13,7 +15,8 @@ class ORXBenchTask(OpenROADTask):
                            defvalue=100, units="um")
 
     def set_openroad_benchmaxlayer(self, layer: str,
-                                   step: str = None, index: str = None):
+                                   step: Optional[str] = None,
+                                   index: Optional[Union[int, str]] = None):
         """
         Sets the maximum layer to generate the extraction bench for.
 
@@ -25,7 +28,8 @@ class ORXBenchTask(OpenROADTask):
         self.set("var", "max_layer", layer, step=step, index=index)
 
     def set_openroad_benchlength(self, length: float,
-                                 step: str = None, index: str = None):
+                                 step: Optional[str] = None,
+                                 index: Optional[Union[int, str]] = None):
         """
         Sets the length of bench wires.
 

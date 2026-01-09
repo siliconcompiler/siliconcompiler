@@ -1,3 +1,5 @@
+from typing import Optional, Union
+
 from siliconcompiler.tools.openroad._apr import APRTask
 from siliconcompiler.tools.openroad._apr import OpenROADSTAParameter, OpenROADDPLParameter, \
     OpenROADRSZDRVParameter, OpenROADRSZTimingParameter, OpenROADFillCellsParameter
@@ -22,7 +24,8 @@ class RepairTimingTask(APRTask, OpenROADSTAParameter, OpenROADDPLParameter,
                            defvalue=False)
 
     def set_openroad_skipdrvrepair(self, skip: bool,
-                                   step: str = None, index: str = None):
+                                   step: Optional[str] = None,
+                                   index: Optional[Union[int, str]] = None):
         """
         Enables or disables skipping design rule violation repair.
 
@@ -34,7 +37,8 @@ class RepairTimingTask(APRTask, OpenROADSTAParameter, OpenROADDPLParameter,
         self.set("var", "rsz_skip_drv_repair", skip, step=step, index=index)
 
     def set_openroad_skipsetuprepair(self, skip: bool,
-                                     step: str = None, index: str = None):
+                                     step: Optional[str] = None,
+                                     index: Optional[Union[int, str]] = None):
         """
         Enables or disables skipping setup timing repair.
 
@@ -46,7 +50,8 @@ class RepairTimingTask(APRTask, OpenROADSTAParameter, OpenROADDPLParameter,
         self.set("var", "rsz_skip_setup_repair", skip, step=step, index=index)
 
     def set_openroad_skipholdrepair(self, skip: bool,
-                                    step: str = None, index: str = None):
+                                    step: Optional[str] = None,
+                                    index: Optional[Union[int, str]] = None):
         """
         Enables or disables skipping hold timing repair.
 
@@ -58,7 +63,8 @@ class RepairTimingTask(APRTask, OpenROADSTAParameter, OpenROADDPLParameter,
         self.set("var", "rsz_skip_hold_repair", skip, step=step, index=index)
 
     def set_openroad_skiprecoverpower(self, skip: bool,
-                                      step: str = None, index: str = None):
+                                      step: Optional[str] = None,
+                                      index: Optional[Union[int, str]] = None):
         """
         Enables or disables skipping power recovery.
 

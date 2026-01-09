@@ -1,3 +1,5 @@
+from typing import Optional, Union
+
 from siliconcompiler.tools.openroad._apr import APRTask
 from siliconcompiler.tools.openroad._apr import OpenROADSTAParameter, OpenROADRSZDRVParameter
 
@@ -21,7 +23,8 @@ class RepairDesignTask(APRTask, OpenROADSTAParameter, OpenROADRSZDRVParameter):
                            defvalue=False)
 
     def set_openroad_tieseparation(self, separation: float,
-                                   step: str = None, index: str = None):
+                                   step: Optional[str] = None,
+                                   index: Optional[Union[int, str]] = None):
         """
         Sets the maximum distance between tie high/low cells.
 
@@ -33,7 +36,8 @@ class RepairDesignTask(APRTask, OpenROADSTAParameter, OpenROADRSZDRVParameter):
         self.set("var", "ifp_tie_separation", separation, step=step, index=index)
 
     def set_openroad_bufferinputs(self, enable: bool,
-                                  step: str = None, index: str = None):
+                                  step: Optional[str] = None,
+                                  index: Optional[Union[int, str]] = None):
         """
         Enables or disables adding buffers to the input ports.
 
@@ -45,7 +49,8 @@ class RepairDesignTask(APRTask, OpenROADSTAParameter, OpenROADRSZDRVParameter):
         self.set("var", "rsz_buffer_inputs", enable, step=step, index=index)
 
     def set_openroad_bufferoutputs(self, enable: bool,
-                                   step: str = None, index: str = None):
+                                   step: Optional[str] = None,
+                                   index: Optional[Union[int, str]] = None):
         """
         Enables or disables adding buffers to the output ports.
 

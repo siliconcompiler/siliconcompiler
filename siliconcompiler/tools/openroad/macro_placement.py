@@ -307,7 +307,8 @@ class MacroPlacementTask(APRTask, OpenROADSTAParameter, OpenROADGPLParameter):
         self.set("var", "mpl_notch_weight", weight, step=step, index=index)
 
     def set_openroad_mplmacroblockageweight(self, weight: float,
-                                            step: Optional[str] = None, index: Optional[str] = None):
+                                            step: Optional[str] = None,
+                                            index: Optional[str] = None):
         """
         Sets the weight for macro blockage cost.
 
