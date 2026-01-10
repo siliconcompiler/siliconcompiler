@@ -8,6 +8,18 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.36.1 (2026-01-10)
+=========================================
+
+**Minor:**
+
+ * Expanded parameter setters for tasks.
+
+ * Tools:
+
+  * openroad: fixed pin constraints handling, added support for editing halos.
+
+
 SiliconCompiler 0.36.0 (2026-01-06)
 =========================================
 
