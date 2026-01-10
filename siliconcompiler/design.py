@@ -694,7 +694,12 @@ class Design(DependencySchema, LibrarySchema):
         if dataroot is ...:
             dataroot = None
         else:
-            dataroot = self._get_active_dataroot(dataroot)
+            if option in ['idir', 'libdir']:
+                try:
+                    dataroot = self._get_active_dataroot(dataroot)
+                except ValueError as e:
+                    if any(not os.path.isabs(v) for v in value):
+                        raise e
 
         with self.active_dataroot(dataroot):
             if list in typelist and not clobber:

@@ -96,6 +96,51 @@ def test_add_file_with_fileset_with_dataroot_passed():
     assert d.get('fileset', 'rtl', 'file', 'verilog', field='dataroot') == ['test', 'test']
 
 
+def test_add_file_abspath_without_dataroot_passed():
+    d = FileSetSchema()
+
+    d.set_dataroot("root", __file__)
+    d.set_dataroot("test", __file__)
+
+    abs_one = os.path.abspath("one.v")
+    abs_two = os.path.abspath("two.v")
+
+    with d.active_fileset("rtl"):
+        assert d.add_file([abs_one, abs_two], filetype='verilog')
+    assert d.get('fileset', 'rtl', 'file', 'verilog') == [abs_one, abs_two]
+    assert d.get('fileset', 'rtl', 'file', 'verilog', field='dataroot') == [None, None]
+
+
+def test_add_file_abspath_with_dataroot_passed():
+    d = FileSetSchema()
+
+    d.set_dataroot("root", __file__)
+    d.set_dataroot("test", __file__)
+
+    abs_one = os.path.abspath("one.v")
+    abs_two = os.path.abspath("two.v")
+
+    with d.active_fileset("rtl"), d.active_dataroot("root"):
+        assert d.add_file([abs_one, abs_two], filetype='verilog')
+    assert d.get('fileset', 'rtl', 'file', 'verilog') == [abs_one, abs_two]
+    assert d.get('fileset', 'rtl', 'file', 'verilog', field='dataroot') == ["root", "root"]
+
+
+def test_add_file_abspath_without_dataroot_passed_one_abs():
+    d = FileSetSchema()
+
+    d.set_dataroot("root", __file__)
+    d.set_dataroot("test", __file__)
+
+    abs_one = os.path.abspath("one.v")
+    abs_two = "two.v"
+
+    with d.active_fileset("rtl"):
+        with pytest.raises(ValueError,
+                           match=r"^dataroot must be specified, multiple are defined: root, test$"):
+            d.add_file([abs_one, abs_two])
+
+
 def test_add_file_with_filetype():
     d = FileSetSchema()
 

@@ -144,6 +144,52 @@ def test_options_idir_with_fileset():
     assert d.get_idir('rtl') == [os.path.abspath("incdir1"), os.path.abspath("incdir2")]
 
 
+def test_options_idir_abspath_without_dataroot():
+    d = Design("test")
+
+    d.set_dataroot("root0", __file__)
+    d.set_dataroot("root1", __file__)
+
+    idir0 = os.path.abspath("incdir0")
+    idir1 = os.path.abspath("incdir1")
+
+    with d.active_fileset("rtl"):
+        assert d.add_idir([idir0, idir1])
+    assert d.get("fileset", "rtl", "idir") == [idir0, idir1]
+    assert d.get("fileset", "rtl", "idir", field="dataroot") == [None, None]
+
+
+def test_options_idir_abspath_with_dataroot():
+    d = Design("test")
+
+    d.set_dataroot("root0", __file__)
+    d.set_dataroot("root1", __file__)
+
+    idir0 = os.path.abspath("incdir0")
+    idir1 = os.path.abspath("incdir1")
+
+    with d.active_fileset("rtl"), d.active_dataroot("root0"):
+        assert d.add_idir([idir0, idir1])
+    assert d.get("fileset", "rtl", "idir") == [idir0, idir1]
+    assert d.get("fileset", "rtl", "idir", field="dataroot") == ["root0", "root0"]
+
+
+def test_options_idir_abspath_without_dataroot_one_abs():
+    d = Design("test")
+
+    d.set_dataroot("root0", __file__)
+    d.set_dataroot("root1", __file__)
+
+    idir0 = os.path.abspath("incdir0")
+    idir1 = "incdir1"
+
+    with d.active_fileset("rtl"):
+        with pytest.raises(ValueError,
+                           match=r"^dataroot must be specified, multiple are defined: "
+                                 r"root0, root1$"):
+            d.add_idir([idir0, idir1])
+
+
 def test_options_idir_with_none():
     with pytest.raises(ValueError, match="^value must be of type string$"):
         Design("test").add_idir(None, 'rtl')
@@ -176,6 +222,52 @@ def test_options_libdir():
     assert d.get_libdir('rtl') == [os.path.abspath("lib1"), os.path.abspath("lib2")]
     assert d.has_libdir('rtl0') is False
     assert d.has_libdir('rtl') is True
+
+
+def test_options_libdir_abspath_without_dataroot():
+    d = Design("test")
+
+    d.set_dataroot("root0", __file__)
+    d.set_dataroot("root1", __file__)
+
+    libdir0 = os.path.abspath("libdir0")
+    libdir1 = os.path.abspath("libdir1")
+
+    with d.active_fileset("rtl"):
+        assert d.add_libdir([libdir0, libdir1])
+    assert d.get("fileset", "rtl", "libdir") == [libdir0, libdir1]
+    assert d.get("fileset", "rtl", "libdir", field="dataroot") == [None, None]
+
+
+def test_options_libdir_abspath_with_dataroot():
+    d = Design("test")
+
+    d.set_dataroot("root0", __file__)
+    d.set_dataroot("root1", __file__)
+
+    libdir0 = os.path.abspath("libdir0")
+    libdir1 = os.path.abspath("libdir1")
+
+    with d.active_fileset("rtl"), d.active_dataroot("root0"):
+        assert d.add_libdir([libdir0, libdir1])
+    assert d.get("fileset", "rtl", "libdir") == [libdir0, libdir1]
+    assert d.get("fileset", "rtl", "libdir", field="dataroot") == ["root0", "root0"]
+
+
+def test_options_libdir_abspath_without_dataroot_one_abs():
+    d = Design("test")
+
+    d.set_dataroot("root0", __file__)
+    d.set_dataroot("root1", __file__)
+
+    libdir0 = os.path.abspath("libdir0")
+    libdir1 = "libdir1"
+
+    with d.active_fileset("rtl"):
+        with pytest.raises(ValueError,
+                           match=r"^dataroot must be specified, multiple are defined: "
+                                 r"root0, root1$"):
+            d.add_libdir([libdir0, libdir1])
 
 
 def test_options_libdir_with_none():
