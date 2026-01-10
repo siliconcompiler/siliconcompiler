@@ -1,3 +1,4 @@
+import pathlib
 import pytest
 
 import os.path
@@ -107,7 +108,8 @@ def test_add_file_abspath_without_dataroot_passed():
 
     with d.active_fileset("rtl"):
         assert d.add_file([abs_one, abs_two], filetype='verilog')
-    assert d.get('fileset', 'rtl', 'file', 'verilog') == [abs_one, abs_two]
+    assert d.get('fileset', 'rtl', 'file', 'verilog') == \
+        [pathlib.PureWindowsPath(abs_one).as_posix(), pathlib.PureWindowsPath(abs_two).as_posix()]
     assert d.get('fileset', 'rtl', 'file', 'verilog', field='dataroot') == [None, None]
 
 
@@ -122,7 +124,8 @@ def test_add_file_abspath_with_dataroot_passed():
 
     with d.active_fileset("rtl"), d.active_dataroot("root"):
         assert d.add_file([abs_one, abs_two], filetype='verilog')
-    assert d.get('fileset', 'rtl', 'file', 'verilog') == [abs_one, abs_two]
+    assert d.get('fileset', 'rtl', 'file', 'verilog') == \
+        [pathlib.PureWindowsPath(abs_one).as_posix(), pathlib.PureWindowsPath(abs_two).as_posix()]
     assert d.get('fileset', 'rtl', 'file', 'verilog', field='dataroot') == ["root", "root"]
 
 

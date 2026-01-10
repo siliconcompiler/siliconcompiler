@@ -1,3 +1,4 @@
+import pathlib
 import pytest
 import re
 import shutil
@@ -155,7 +156,8 @@ def test_options_idir_abspath_without_dataroot():
 
     with d.active_fileset("rtl"):
         assert d.add_idir([idir0, idir1])
-    assert d.get("fileset", "rtl", "idir") == [idir0, idir1]
+    assert d.get("fileset", "rtl", "idir") == \
+        [pathlib.PureWindowsPath(idir0).as_posix(), pathlib.PureWindowsPath(idir1).as_posix()]
     assert d.get("fileset", "rtl", "idir", field="dataroot") == [None, None]
 
 
@@ -170,7 +172,8 @@ def test_options_idir_abspath_with_dataroot():
 
     with d.active_fileset("rtl"), d.active_dataroot("root0"):
         assert d.add_idir([idir0, idir1])
-    assert d.get("fileset", "rtl", "idir") == [idir0, idir1]
+    assert d.get("fileset", "rtl", "idir") == \
+        [pathlib.PureWindowsPath(idir0).as_posix(), pathlib.PureWindowsPath(idir1).as_posix()]
     assert d.get("fileset", "rtl", "idir", field="dataroot") == ["root0", "root0"]
 
 
@@ -235,7 +238,8 @@ def test_options_libdir_abspath_without_dataroot():
 
     with d.active_fileset("rtl"):
         assert d.add_libdir([libdir0, libdir1])
-    assert d.get("fileset", "rtl", "libdir") == [libdir0, libdir1]
+    assert d.get("fileset", "rtl", "libdir") == [pathlib.PureWindowsPath(libdir0).as_posix(),
+                                                 pathlib.PureWindowsPath(libdir1).as_posix()]
     assert d.get("fileset", "rtl", "libdir", field="dataroot") == [None, None]
 
 
@@ -250,7 +254,8 @@ def test_options_libdir_abspath_with_dataroot():
 
     with d.active_fileset("rtl"), d.active_dataroot("root0"):
         assert d.add_libdir([libdir0, libdir1])
-    assert d.get("fileset", "rtl", "libdir") == [libdir0, libdir1]
+    assert d.get("fileset", "rtl", "libdir") == [pathlib.PureWindowsPath(libdir0).as_posix(),
+                                                 pathlib.PureWindowsPath(libdir1).as_posix()]
     assert d.get("fileset", "rtl", "libdir", field="dataroot") == ["root0", "root0"]
 
 
