@@ -271,3 +271,74 @@ def test_convert_drc(setup_pdk_test, datadir):
 
     assert hashlib.sha1(json.dumps(data, sort_keys=True).encode()).hexdigest() == \
         '6ee3d048a257ccb7f2c0e86333b2044d0173c5c0'
+
+
+def test_klayout_parameter_operations():
+    task = operations.OperationsTask()
+    task.set_klayout_operations([('merge', 'a.gds'), ('rotate', '')])
+    assert task.get("var", "operations") == [('merge', 'a.gds'), ('rotate', '')]
+    task.set_klayout_operations([('add', 'b.gds')], step='op', index='1')
+    assert task.get("var", "operations", step='op', index='1') == [('add', 'b.gds')]
+    assert task.get("var", "operations") == [('merge', 'a.gds'), ('rotate', '')]
+
+
+def test_klayout_add_operation():
+    task = operations.OperationsTask()
+    task.add_operation('merge', 'a.gds')
+    assert task.get("var", "operations") == [('merge', 'a.gds')]
+    task.add_operation('rotate', '')
+    assert task.get("var", "operations") == [('merge', 'a.gds'), ('rotate', '')]
+
+
+def test_klayout_parameter_stream():
+    task = operations.OperationsTask()
+    task.set_klayout_stream('oas')
+    assert task.get("var", "stream") == 'oas'
+    task.set_klayout_stream('gds', step='op', index='1')
+    assert task.get("var", "stream", step='op', index='1') == 'gds'
+    assert task.get("var", "stream") == 'oas'
+
+
+def test_klayout_parameter_timestamps():
+    task = operations.OperationsTask()
+    task.set_klayout_timestamps(False)
+    assert task.get("var", "timestamps") is False
+    task.set_klayout_timestamps(True, step='op', index='1')
+    assert task.get("var", "timestamps", step='op', index='1') is True
+    assert task.get("var", "timestamps") is False
+
+
+def test_klayout_export_parameter_stream():
+    task = export.ExportTask()
+    task.set_klayout_stream('oas')
+    assert task.get("var", "stream") == 'oas'
+    task.set_klayout_stream('gds', step='export', index='1')
+    assert task.get("var", "stream", step='export', index='1') == 'gds'
+    assert task.get("var", "stream") == 'oas'
+
+
+def test_klayout_export_parameter_timestamps():
+    task = export.ExportTask()
+    task.set_klayout_timestamps(False)
+    assert task.get("var", "timestamps") is False
+    task.set_klayout_timestamps(True, step='export', index='1')
+    assert task.get("var", "timestamps", step='export', index='1') is True
+    assert task.get("var", "timestamps") is False
+
+
+def test_klayout_export_parameter_screenshot():
+    task = export.ExportTask()
+    task.set_klayout_screenshot(False)
+    assert task.get("var", "screenshot") is False
+    task.set_klayout_screenshot(True, step='export', index='1')
+    assert task.get("var", "screenshot", step='export', index='1') is True
+    assert task.get("var", "screenshot") is False
+
+
+def test_klayout_drc_parameter_drcname():
+    task = drc.DRCTask()
+    task.set_klayout_drcname('test1')
+    assert task.get("var", "drc_name") == 'test1'
+    task.set_klayout_drcname('test2', step='drc', index='1')
+    assert task.get("var", "drc_name", step='drc', index='1') == 'test2'
+    assert task.get("var", "drc_name") == 'test1'

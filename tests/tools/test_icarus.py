@@ -63,3 +63,12 @@ def test_runtime_args(heartbeat_design):
             '-DSILICONCOMPILER_TRACE_DIR="reports"',
             '-DSILICONCOMPILER_TRACE_FILE="reports/heartbeat.vcd"',
             heartbeat_design.get_file("rtl", "verilog")[0]]
+
+
+def test_icarus_parameter_verilog_generation():
+    task = compile.CompileTask()
+    task.set_icarus_veriloggeneration('2005-sv')
+    assert task.get("var", "verilog_generation") == '2005-sv'
+    task.set_icarus_veriloggeneration('2012', step='compile', index='1')
+    assert task.get("var", "verilog_generation", step='compile', index='1') == '2012'
+    assert task.get("var", "verilog_generation") == '2005-sv'

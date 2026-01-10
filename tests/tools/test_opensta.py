@@ -68,3 +68,30 @@ def test_opensta_sdf(datadir):
     # Check that the setup and hold slacks are the expected values.
     assert proj.history("job0").get('metric', 'setupslack', step='opensta', index='0') == -0.890
     assert proj.history("job0").get('metric', 'holdslack', step='opensta', index='0') == 0.020
+
+
+def test_opensta_parameter_top_n_paths():
+    task = timing.TimingTask()
+    task.set_opensta_topnpaths(5)
+    assert task.get("var", "top_n_paths") == 5
+    task.set_opensta_topnpaths(10, step='timing', index='1')
+    assert task.get("var", "top_n_paths", step='timing', index='1') == 10
+    assert task.get("var", "top_n_paths") == 5
+
+
+def test_opensta_parameter_unique_path_groups_per_clock():
+    task = timing.TimingTask()
+    task.set_opensta_uniquepathgroupsperclock(True)
+    assert task.get("var", "unique_path_groups_per_clock") is True
+    task.set_opensta_uniquepathgroupsperclock(False, step='timing', index='1')
+    assert task.get("var", "unique_path_groups_per_clock", step='timing', index='1') is False
+    assert task.get("var", "unique_path_groups_per_clock") is True
+
+
+def test_opensta_parameter_timing_mode():
+    task = timing.TimingTask()
+    task.set_opensta_timingmode('min')
+    assert task.get("var", "timing_mode") == 'min'
+    task.set_opensta_timingmode('max', step='timing', index='1')
+    assert task.get("var", "timing_mode", step='timing', index='1') == 'max'
+    assert task.get("var", "timing_mode") == 'min'

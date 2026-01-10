@@ -46,3 +46,12 @@ def test_bambu(datadir):
     # check that compilation succeeded
     assert proj.find_result('v', step='convert') == \
         os.path.abspath("build/gcd/job0/convert/0/outputs/gcd.v")
+
+
+def test_parameter_memorychannels():
+    task = convert.ConvertTask()
+    task.set_bambu_memorychannels(2)
+    assert task.get("var", "memorychannels") == 2
+    task.set_bambu_memorychannels(4, step='convert', index='1')
+    assert task.get("var", "memorychannels", step='convert', index='1') == 4
+    assert task.get("var", "memorychannels") == 2

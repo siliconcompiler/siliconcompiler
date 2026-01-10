@@ -47,3 +47,21 @@ def test_ghdl(datadir):
     # check that compilation succeeded
     assert proj.find_result('v', step='convert') == \
         os.path.abspath("build/adder/job0/convert/0/outputs/adder.v")
+
+
+def test_ghdl_parameter_use_fsynopsys():
+    task = convert.ConvertTask()
+    task.set_ghdl_usefsynopsys(True)
+    assert task.get("var", "use_fsynopsys") is True
+    task.set_ghdl_usefsynopsys(False, step='convert', index='1')
+    assert task.get("var", "use_fsynopsys", step='convert', index='1') is False
+    assert task.get("var", "use_fsynopsys") is True
+
+
+def test_ghdl_parameter_use_latches():
+    task = convert.ConvertTask()
+    task.set_ghdl_uselatches(True)
+    assert task.get("var", "use_latches") is True
+    task.set_ghdl_uselatches(False, step='convert', index='1')
+    assert task.get("var", "use_latches", step='convert', index='1') is False
+    assert task.get("var", "use_latches") is True
