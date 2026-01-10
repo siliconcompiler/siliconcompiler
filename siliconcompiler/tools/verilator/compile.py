@@ -1,4 +1,5 @@
 import shlex
+from typing import Optional, List, Union
 
 from siliconcompiler.tools.verilator import VerilatorTask
 
@@ -34,6 +35,125 @@ class CompileTask(VerilatorTask):
 
         self.add_parameter("initialize_random", "bool",
                            "true/false, when true registers will reset with a random value")
+
+    def set_verilator_mode(self, mode: str,
+                           step: Optional[str] = None,
+                           index: Optional[str] = None):
+        """
+        Sets the compilation mode for Verilator.
+
+        Args:
+            mode (str): The compilation mode.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "mode", mode, step=step, index=index)
+
+    def set_verilator_trace(self, enable: bool,
+                            step: Optional[str] = None,
+                            index: Optional[str] = None):
+        """
+        Enables or disables trace generation.
+
+        Args:
+            enable (bool): Whether to enable trace generation.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "trace", enable, step=step, index=index)
+
+    def set_verilator_tracetype(self, trace_type: str,
+                                step: Optional[str] = None,
+                                index: Optional[str] = None):
+        """
+        Sets the type of wave file to create when trace is enabled.
+
+        Args:
+            trace_type (str): The trace type.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "trace_type", trace_type, step=step, index=index)
+
+    def add_verilator_cincludes(self, include: Union[str, List[str]],
+                                step: Optional[str] = None,
+                                index: Optional[str] = None,
+                                clobber: bool = False):
+        """
+        Adds include directories for the C++ compiler.
+
+        Args:
+            include (Union[str, List[str]]): The include directory/directories to add.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+            clobber (bool, optional): If True, overwrites the existing list. Defaults to False.
+        """
+        if clobber:
+            self.set("var", "cincludes", include, step=step, index=index)
+        else:
+            self.add("var", "cincludes", include, step=step, index=index)
+
+    def add_verilator_cflags(self, flag: Union[str, List[str]],
+                             step: Optional[str] = None,
+                             index: Optional[str] = None,
+                             clobber: bool = False):
+        """
+        Adds flags for the C++ compiler.
+
+        Args:
+            flag (Union[str, List[str]]): The flag(s) to add.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+            clobber (bool, optional): If True, overwrites the existing list. Defaults to False.
+        """
+        if clobber:
+            self.set("var", "cflags", flag, step=step, index=index)
+        else:
+            self.add("var", "cflags", flag, step=step, index=index)
+
+    def add_verilator_ldflags(self, flag: Union[str, List[str]],
+                              step: Optional[str] = None,
+                              index: Optional[str] = None,
+                              clobber: bool = False):
+        """
+        Adds flags for the linker.
+
+        Args:
+            flag (Union[str, List[str]]): The flag(s) to add.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+            clobber (bool, optional): If True, overwrites the existing list. Defaults to False.
+        """
+        if clobber:
+            self.set("var", "ldflags", flag, step=step, index=index)
+        else:
+            self.add("var", "ldflags", flag, step=step, index=index)
+
+    def set_verilator_pinsbv(self, width: int,
+                             step: Optional[str] = None,
+                             index: Optional[str] = None):
+        """
+        Sets the datatype width for SystemC inputs/outputs.
+
+        Args:
+            width (int): The bit width.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "pins_bv", width, step=step, index=index)
+
+    def set_verilator_initializerandom(self, enable: bool,
+                                       step: Optional[str] = None,
+                                       index: Optional[str] = None):
+        """
+        Enables or disables random initialization of registers.
+
+        Args:
+            enable (bool): Whether to enable random initialization.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "initialize_random", enable, step=step, index=index)
 
     def task(self):
         return "compile"

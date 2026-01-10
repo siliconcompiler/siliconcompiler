@@ -1,3 +1,4 @@
+from typing import Optional
 from siliconcompiler import Task
 
 
@@ -13,6 +14,19 @@ class CompileTask(Task):
                            '"1995", "2001", "2001-noconfig", "2005", "2005-sv", "2009", or "2012". '
                            'See the corresponding "-g" flags in the Icarus manual for more "'
                            '"information.')
+
+    def set_icarus_veriloggeneration(self, gen: str,
+                                     step: Optional[str] = None,
+                                     index: Optional[str] = None):
+        """
+        Sets the Verilog language generation for Icarus.
+
+        Args:
+            gen (str): The Verilog generation to use.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "verilog_generation", gen, step=step, index=index)
 
     def tool(self):
         return "icarus"

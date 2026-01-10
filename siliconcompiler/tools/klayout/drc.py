@@ -2,6 +2,7 @@ import shlex
 
 import os.path
 
+from typing import Optional
 from xml.etree import ElementTree
 
 from siliconcompiler.tools.klayout import KLayoutTask
@@ -13,6 +14,19 @@ class DRCTask(KLayoutTask):
         super().__init__()
 
         self.add_parameter("drc_name", "str", "name of the DRC deck to run")
+
+    def set_klayout_drcname(self, name: str,
+                            step: Optional[str] = None,
+                            index: Optional[str] = None):
+        """
+        Sets the name of the DRC deck to run.
+
+        Args:
+            name (str): The name of the DRC deck.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "drc_name", name, step=step, index=index)
 
     def task(self):
         return "drc"
