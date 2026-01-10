@@ -3,6 +3,8 @@ import sys
 
 import os.path
 
+from typing import Optional
+
 from siliconcompiler import sc_open
 from siliconcompiler import utils
 
@@ -22,6 +24,58 @@ class ElaborateTask(Task):
                            "true/false, when true instructs Surelog to not log infos.")
         self.add_parameter("disable_note", "bool",
                            "true/false, when true instructs Surelog to not log notes.")
+
+    def set_surelog_enablelowmem(self, enable: bool,
+                                 step: Optional[str] = None,
+                                 index: Optional[str] = None):
+        """
+        Enables or disables low memory mode.
+
+        Args:
+            enable (bool): Whether to enable low memory mode.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "enable_lowmem", enable, step=step, index=index)
+
+    def set_surelog_disablewritecache(self, disable: bool,
+                                      step: Optional[str] = None,
+                                      index: Optional[str] = None):
+        """
+        Disables or enables writing to the cache.
+
+        Args:
+            disable (bool): Whether to disable writing to the cache.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "disable_write_cache", disable, step=step, index=index)
+
+    def set_surelog_disableinfo(self, disable: bool,
+                                step: Optional[str] = None,
+                                index: Optional[str] = None):
+        """
+        Disables or enables logging info messages.
+
+        Args:
+            disable (bool): Whether to disable logging info messages.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "disable_info", disable, step=step, index=index)
+
+    def set_surelog_disablenote(self, disable: bool,
+                                step: Optional[str] = None,
+                                index: Optional[str] = None):
+        """
+        Disables or enables logging note messages.
+
+        Args:
+            disable (bool): Whether to disable logging note messages.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "disable_note", disable, step=step, index=index)
 
     def tool(self):
         return "surelog"
