@@ -1,5 +1,7 @@
 import os.path
 
+from typing import Union, Optional
+
 from siliconcompiler import Task
 
 
@@ -10,6 +12,30 @@ class SimulateTask(Task):
         self.add_parameter("trace", "bool", "true/false, enable dumping all signals")
         self.add_parameter("trace_format", "<ASCII,binary>", "Format to use for traces.",
                            defvalue="ASCII")
+
+    def set_xyce_trace(self, enable: bool,
+                       step: Optional[str] = None, index: Optional[Union[int, str]] = None):
+        """
+        Enables or disables dumping all signals.
+
+        Args:
+            enable (bool): True to enable, False to disable.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set('var', 'trace', enable, step=step, index=index)
+
+    def set_xyce_traceformat(self, trace_format: str,
+                             step: Optional[str] = None, index: Optional[Union[int, str]] = None):
+        """
+        Sets the format to use for traces.
+
+        Args:
+            trace_format (str): The format to use for traces.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set('var', 'trace_format', trace_format, step=step, index=index)
 
     def tool(self):
         return "xyce"

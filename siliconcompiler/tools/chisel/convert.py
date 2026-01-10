@@ -4,6 +4,8 @@ import glob
 
 import os.path
 
+from typing import Optional, List, Union
+
 from siliconcompiler import sc_open
 
 from siliconcompiler import Task
@@ -17,6 +19,48 @@ class ConvertTask(Task):
         self.add_parameter("argument", "[str]", "Arguments for the chisel build")
         self.add_parameter("targetdir", "str", "Output target directory name",
                            defvalue="chisel-output")
+
+    def set_chisel_application(self, application: str,
+                               step: Optional[str] = None, index: Optional[str] = None) -> None:
+        """
+        Sets the application name of the chisel program.
+
+        Args:
+            application (str): The application name.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "application", application, step=step, index=index)
+
+    def add_chisel_argument(self, argument: Union[str, List[str]],
+                            step: Optional[str] = None, index: Optional[str] = None,
+                            clobber: bool = False) -> None:
+        """
+        Adds arguments for the chisel build.
+
+        Args:
+            argument (Union[str, List[str]]): The argument(s) to add.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+            clobber (bool, optional): If True, overwrites the existing list. Defaults to False.
+        """
+        if clobber:
+            self.set("var", "argument", argument, step=step, index=index)
+        else:
+            self.add("var", "argument", argument, step=step, index=index)
+
+    def set_chisel_targetdir(self, targetdir: str,
+                             step: Optional[str] = None,
+                             index: Optional[str] = None) -> None:
+        """
+        Sets the output target directory name.
+
+        Args:
+            targetdir (str): The target directory name.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "targetdir", targetdir, step=step, index=index)
 
     def tool(self):
         return "chisel"

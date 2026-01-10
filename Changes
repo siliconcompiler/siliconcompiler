@@ -8,6 +8,27 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.36.0 (2026-01-06)
+=========================================
+
+**Major:**
+
+ * Changed schema to better handle timing constraints, by splitting out mode specific information from the scenarios.
+
+**Minor:**
+
+ * Reimplemented flowgraph rendering with file IO information.
+ * Fixed tool version checking to support threaded runs.
+ * Reworked use of pipes during execution to avoid creating more pipes than needed.
+ * Fixed flowgraph IO checks to only check required files.
+
+ * Tools:
+
+  * klayout: fixed handling of GDS generation when foreign is specified in lef.
+  * openroad: added support for halo constraints.
+  * kelper-formal: added initial support for LEC with kepler-formal.
+
+
 SiliconCompiler 0.35.4 (2025-12-08)
 =========================================
 

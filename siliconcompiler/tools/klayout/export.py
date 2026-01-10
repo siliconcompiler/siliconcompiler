@@ -1,3 +1,4 @@
+from typing import Optional
 from siliconcompiler.tools.klayout import KLayoutTask
 from siliconcompiler.tools.klayout.screenshot import ScreenshotParams
 
@@ -12,6 +13,45 @@ class ExportTask(KLayoutTask, ScreenshotParams):
         self.add_parameter("screenshot", "bool",
                            "true/false: true will cause KLayout to generate a screenshot of "
                            "the layout", defvalue=True)
+
+    def set_klayout_stream(self, stream: str,
+                           step: Optional[str] = None,
+                           index: Optional[str] = None):
+        """
+        Sets the stream format for generation.
+
+        Args:
+            stream (str): The stream format to use.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "stream", stream, step=step, index=index)
+
+    def set_klayout_timestamps(self, enable: bool,
+                               step: Optional[str] = None,
+                               index: Optional[str] = None):
+        """
+        Enables or disables exporting GDSII with timestamps.
+
+        Args:
+            enable (bool): Whether to enable timestamps.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "timestamps", enable, step=step, index=index)
+
+    def set_klayout_screenshot(self, enable: bool,
+                               step: Optional[str] = None,
+                               index: Optional[str] = None):
+        """
+        Enables or disables generating a screenshot of the layout.
+
+        Args:
+            enable (bool): Whether to generate a screenshot.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "screenshot", enable, step=step, index=index)
 
     def task(self):
         return "export"

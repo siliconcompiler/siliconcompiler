@@ -51,6 +51,8 @@ class OpenROADPDK(PDK):
                                    "router and only uses the specified tech vias")
         self.define_tool_parameter("openroad", "drt_repair_pdn_vias", "str",
                                    "Via layer to repair after detailed routing")
+        self.define_tool_parameter("openroad", "drt_via_in_pin_layers", "(str,str)",
+                                   "Tuple of layers for vias in pin layers")
 
     def set_openroad_rclayers(self, signal: str = None, clock: str = None):
         """
@@ -154,6 +156,15 @@ class OpenROADPDK(PDK):
             layer (str): The name of the via layer to repair.
         """
         self.set("tool", "openroad", "drt_repair_pdn_vias", layer)
+
+    def set_openroad_detailedrouteviainpinlayers(self, layer1: str, layer2: str):
+        """Sets the via layers used in pin layers during detailed routing.
+
+        Args:
+            layer1 (str): The first layer for vias in pin layers.
+            layer2 (str): The second layer for vias in pin layers.
+        """
+        self.set("tool", "openroad", "drt_via_in_pin_layers", (layer1, layer2))
 
 
 class OpenROADStdCellLibrary(StdCellLibrary):

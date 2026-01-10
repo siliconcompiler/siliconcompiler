@@ -1,7 +1,7 @@
 {
   "openroad": {
     "git-url": "https://github.com/The-OpenROAD-Project/OpenROAD.git",
-    "git-commit": "d7c1dfb47ca5c16881918740b10cc63000899eff",
+    "git-commit": "e1bff8e2ed250d15b57007259a5a1d46cb1b3909",
     "docker-cmds": [
       "# Remove OR-Tools files",
       "RUN rm -f $SC_PREFIX/Makefile $SC_PREFIX/README.md",
@@ -17,7 +17,7 @@
   },
   "opensta": {
     "git-url": "https://github.com/parallaxsw/OpenSTA.git",
-    "git-commit": "4afa443892bcba34f7c6a54b8e58ae2920dec9b5",
+    "git-commit": "128ea3cf283ba2ac0af699543c8e037cc9bfc0a5",
     "auto-update": true
   },
   "netgen": {
@@ -168,7 +168,7 @@
   },
   "keplerformal": {
     "git-url": "https://github.com/keplertech/kepler-formal.git",
-    "git-commit": "ea6b0ce62f6f8fd2327e79913a07c74a3210551d",
+    "git-commit": "c1edd4a196536385255f4c882e4001d534d4638b",
     "auto-update": false
   }
 }

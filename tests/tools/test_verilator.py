@@ -242,3 +242,87 @@ def test_runtime_args_trace(heartbeat_design, monkeypatch):
             '--trace',
             '-CFLAGS', '\'-DSILICONCOMPILER_TRACE_DIR="reports"\' '
                        '\'-DSILICONCOMPILER_TRACE_FILE="reports/heartbeat.vcd"\'']
+
+
+def test_verilator_parameter_mode():
+    task = compile.CompileTask()
+    task.set_verilator_mode('systemc')
+    assert task.get("var", "mode") == 'systemc'
+    task.set_verilator_mode('cc', step='compile', index='1')
+    assert task.get("var", "mode", step='compile', index='1') == 'cc'
+    assert task.get("var", "mode") == 'systemc'
+
+
+def test_verilator_parameter_trace():
+    task = compile.CompileTask()
+    task.set_verilator_trace(True)
+    assert task.get("var", "trace") is True
+    task.set_verilator_trace(False, step='compile', index='1')
+    assert task.get("var", "trace", step='compile', index='1') is False
+    assert task.get("var", "trace") is True
+
+
+def test_verilator_parameter_trace_type():
+    task = compile.CompileTask()
+    task.set_verilator_tracetype('fst')
+    assert task.get("var", "trace_type") == 'fst'
+    task.set_verilator_tracetype('vcd', step='compile', index='1')
+    assert task.get("var", "trace_type", step='compile', index='1') == 'vcd'
+    assert task.get("var", "trace_type") == 'fst'
+
+
+def test_verilator_parameter_cincludes():
+    task = compile.CompileTask()
+    task.add_verilator_cincludes('include_dir')
+    assert task.get("var", "cincludes") == ['include_dir']
+    task.add_verilator_cincludes('another_dir')
+    assert task.get("var", "cincludes") == ['include_dir', 'another_dir']
+    task.add_verilator_cincludes('other_dir', step='compile', index='1')
+    assert task.get("var", "cincludes", step='compile', index='1') == ['other_dir']
+    assert task.get("var", "cincludes") == ['include_dir', 'another_dir']
+    task.add_verilator_cincludes(['new_dir1', 'new_dir2'], clobber=True)
+    assert task.get("var", "cincludes") == ['new_dir1', 'new_dir2']
+
+
+def test_verilator_parameter_cflags():
+    task = compile.CompileTask()
+    task.add_verilator_cflags('-g')
+    assert task.get("var", "cflags") == ['-g']
+    task.add_verilator_cflags('-O2')
+    assert task.get("var", "cflags") == ['-g', '-O2']
+    task.add_verilator_cflags('-O3', step='compile', index='1')
+    assert task.get("var", "cflags", step='compile', index='1') == ['-O3']
+    assert task.get("var", "cflags") == ['-g', '-O2']
+    task.add_verilator_cflags(['-Wall', '-Wextra'], clobber=True)
+    assert task.get("var", "cflags") == ['-Wall', '-Wextra']
+
+
+def test_verilator_parameter_ldflags():
+    task = compile.CompileTask()
+    task.add_verilator_ldflags('-lm')
+    assert task.get("var", "ldflags") == ['-lm']
+    task.add_verilator_ldflags('-lrt')
+    assert task.get("var", "ldflags") == ['-lm', '-lrt']
+    task.add_verilator_ldflags('-lpthread', step='compile', index='1')
+    assert task.get("var", "ldflags", step='compile', index='1') == ['-lpthread']
+    assert task.get("var", "ldflags") == ['-lm', '-lrt']
+    task.add_verilator_ldflags(['-lstdc++', '-lz'], clobber=True)
+    assert task.get("var", "ldflags") == ['-lstdc++', '-lz']
+
+
+def test_verilator_parameter_pins_bv():
+    task = compile.CompileTask()
+    task.set_verilator_pinsbv(8)
+    assert task.get("var", "pins_bv") == 8
+    task.set_verilator_pinsbv(16, step='compile', index='1')
+    assert task.get("var", "pins_bv", step='compile', index='1') == 16
+    assert task.get("var", "pins_bv") == 8
+
+
+def test_verilator_parameter_initialize_random():
+    task = compile.CompileTask()
+    task.set_verilator_initializerandom(True)
+    assert task.get("var", "initialize_random") is True
+    task.set_verilator_initializerandom(False, step='compile', index='1')
+    assert task.get("var", "initialize_random", step='compile', index='1') is False
+    assert task.get("var", "initialize_random") is True

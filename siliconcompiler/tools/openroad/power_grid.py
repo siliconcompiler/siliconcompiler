@@ -1,3 +1,5 @@
+from typing import Union, List, Optional
+
 from siliconcompiler.tools.openroad._apr import APRTask
 from siliconcompiler.tools.openroad._apr import OpenROADSTAParameter, OpenROADPSMParameter
 
@@ -25,6 +27,47 @@ class PowerGridTask(APRTask, OpenROADSTAParameter, OpenROADPSMParameter):
             self.set("var", "pdn_fileset", (library, fileset))
         else:
             self.add("var", "pdn_fileset", (library, fileset))
+
+    def set_openroad_fixedpinkeepout(self, keepout: float,
+                                     step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Sets the blockage multiplier for fixed pins to ensure routing room.
+
+        Args:
+            keepout (float): Blockage in multiples of routing pitch.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "fixed_pin_keepout", keepout, step=step, index=index)
+
+    def add_openroad_missingterminalnets(self, nets: Union[str, List[str]],
+                                         step: Optional[str] = None, index: Optional[str] = None,
+                                         clobber: bool = False):
+        """
+        Adds nets where missing terminals are acceptable.
+
+        Args:
+            nets (Union[str, List[str]]): The net(s) to add.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+            clobber (bool, optional): If True, overwrites the existing list. Defaults to False.
+        """
+        if clobber:
+            self.set("var", "psm_allow_missing_terminal_nets", nets, step=step, index=index)
+        else:
+            self.add("var", "psm_allow_missing_terminal_nets", nets, step=step, index=index)
+
+    def set_openroad_pdnenable(self, enable: bool,
+                               step: Optional[str] = None, index: Optional[str] = None):
+        """
+        Enables or disables power grid generation.
+
+        Args:
+            enable (bool): True to enable, False to disable.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "pdn_enable", enable, step=step, index=index)
 
     def task(self):
         return "power_grid"

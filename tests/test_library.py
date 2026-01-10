@@ -291,6 +291,7 @@ def test_stdlib_asic_keys():
         ('cells', 'hold',),
         ('cells', 'tap',),
         ('cells', 'tie',),
+        ('cells', 'physicalonly',),
         ('libcornerfileset', 'default', 'default'),
         ('pexcornerfileset', 'default'),
         ('aprfileset',),
