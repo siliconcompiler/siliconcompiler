@@ -276,3 +276,30 @@ def test_vpr_gen_post_implementation_netlist(gcd_design):
             '--gen_post_implementation_sdc', 'on',
             '--post_synth_netlist_unconn_inputs', 'nets',
             '--post_synth_netlist_module_parameters', 'off']
+
+
+def test_vpr_parameter_max_router_iterations():
+    task = RouteTask()
+    task.set_vpr_maxrouteriterations(100)
+    assert task.get("var", "max_router_iterations") == 100
+    task.set_vpr_maxrouteriterations(200, step='route', index='1')
+    assert task.get("var", "max_router_iterations", step='route', index='1') == 200
+    assert task.get("var", "max_router_iterations") == 100
+
+
+def test_vpr_parameter_gen_post_implementation_netlist():
+    task = RouteTask()
+    task.set_vpr_genpostimplementationnetlist(True)
+    assert task.get("var", "gen_post_implementation_netlist") is True
+    task.set_vpr_genpostimplementationnetlist(False, step='route', index='1')
+    assert task.get("var", "gen_post_implementation_netlist", step='route', index='1') is False
+    assert task.get("var", "gen_post_implementation_netlist") is True
+
+
+def test_vpr_parameter_timing_corner():
+    task = RouteTask()
+    task.set_vpr_timingcorner('fast')
+    assert task.get("var", "timing_corner") == 'fast'
+    task.set_vpr_timingcorner('slow', step='route', index='1')
+    assert task.get("var", "timing_corner", step='route', index='1') == 'slow'
+    assert task.get("var", "timing_corner") == 'fast'

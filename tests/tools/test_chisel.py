@@ -46,3 +46,34 @@ def test_chisel(datadir):
     # check that compilation succeeded
     assert proj.find_result('v', step='convert') == \
         os.path.abspath("build/gcd/job0/convert/0/outputs/GCD.v")
+
+
+def test_chisel_parameter_application():
+    task = convert.ConvertTask()
+    task.set_chisel_application('test_app')
+    assert task.get("var", "application") == 'test_app'
+    task.set_chisel_application('other_app', step='convert', index='1')
+    assert task.get("var", "application", step='convert', index='1') == 'other_app'
+    assert task.get("var", "application") == 'test_app'
+
+
+def test_chisel_parameter_argument():
+    task = convert.ConvertTask()
+    task.add_chisel_argument('--threads 2')
+    assert task.get("var", "argument") == ['--threads 2']
+    task.add_chisel_argument('--no-mem-init')
+    assert task.get("var", "argument") == ['--threads 2', '--no-mem-init']
+    task.add_chisel_argument('--no-check-comb-loops', step='convert', index='1')
+    assert task.get("var", "argument", step='convert', index='1') == ['--no-check-comb-loops']
+    assert task.get("var", "argument") == ['--threads 2', '--no-mem-init']
+    task.add_chisel_argument(['--no-reset'], clobber=True)
+    assert task.get("var", "argument") == ['--no-reset']
+
+
+def test_chisel_parameter_targetdir():
+    task = convert.ConvertTask()
+    task.set_chisel_targetdir('build')
+    assert task.get("var", "targetdir") == 'build'
+    task.set_chisel_targetdir('gen', step='convert', index='1')
+    assert task.get("var", "targetdir", step='convert', index='1') == 'gen'
+    assert task.get("var", "targetdir") == 'build'
