@@ -1,0 +1,4 @@
+coverage:
+  ignore:
+    - "tests/**"                         # Ignore tests directory
+    - "docs/user_guide/examples/**"      # Ignore docs user guide examples directory
