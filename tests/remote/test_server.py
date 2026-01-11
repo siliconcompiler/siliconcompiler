@@ -183,7 +183,7 @@ def test_server_nfs_mount_property():
 
     # Should return absolute path
     result = server.nfs_mount
-    assert result == os.path.join(os.getcwd(), 'relative/path')
+    assert result == os.path.abspath('relative/path')
 
 
 def test_server_checkinterval_property():
