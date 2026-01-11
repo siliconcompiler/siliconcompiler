@@ -184,8 +184,7 @@ def test_server_nfs_mount_property():
     
     # Should return absolute path
     result = server.nfs_mount
-    assert os.path.isabs(result)
-    assert 'relative/path' in result
+    assert result == os.path.join(os.getcwd(), 'relative/path')
 
 
 def test_server_checkinterval_property():
@@ -271,12 +270,18 @@ async def test_handle_check_server_basic():
     # Verify response
     assert response.status == 200
     data = json.loads(response.body)
-    assert data['status'] == 'ready'
-    assert 'versions' in data
-    assert 'sc' in data['versions']
-    assert 'sc_schema' in data['versions']
-    assert 'sc_server' in data['versions']
-    assert data['progress_interval'] == 10
+    from siliconcompiler._metadata import version as sc_version
+    from siliconcompiler.schema import __version__ as sc_schema_version
+    from siliconcompiler.remote.server import Server as ServerClass
+    assert data == {
+        'status': 'ready',
+        'versions': {
+            'sc': sc_version,
+            'sc_schema': sc_schema_version,
+            'sc_server': ServerClass.__version__,
+        },
+        'progress_interval': 10
+    }
 
 
 @pytest.mark.asyncio
@@ -301,9 +306,22 @@ async def test_handle_check_server_with_user():
     # Verify response includes user info
     assert response.status == 200
     data = json.loads(response.body)
-    assert 'user_info' in data
-    assert data['user_info']['compute_time'] == 100
-    assert data['user_info']['bandwidth_kb'] == 200
+    from siliconcompiler._metadata import version as sc_version
+    from siliconcompiler.schema import __version__ as sc_schema_version
+    from siliconcompiler.remote.server import Server as ServerClass
+    assert data == {
+        'status': 'ready',
+        'versions': {
+            'sc': sc_version,
+            'sc_schema': sc_schema_version,
+            'sc_server': ServerClass.__version__,
+        },
+        'progress_interval': 5,
+        'user_info': {
+            'compute_time': 100,
+            'bandwidth_kb': 200
+        }
+    }
 
 
 @pytest.mark.asyncio
@@ -335,8 +353,10 @@ async def test_handle_check_progress_running():
     # Verify response
     assert response.status == 200
     data = json.loads(response.body)
-    assert data['status'] == JobStatus.RUNNING
-    assert 'message' in data
+    assert data == {
+        'status': JobStatus.RUNNING,
+        'message': server.sc_jobs['testuser_12345678901234567890123456789012']
+    }
 
 
 @pytest.mark.asyncio
@@ -361,8 +381,10 @@ async def test_handle_check_progress_completed():
     # Verify response
     assert response.status == 200
     data = json.loads(response.body)
-    assert data['status'] == JobStatus.COMPLETED
-    assert 'message' in data
+    assert data == {
+        'status': JobStatus.COMPLETED,
+        'message': 'Job has no running steps.'
+    }
 
 
 @pytest.mark.asyncio
@@ -384,7 +406,9 @@ async def test_handle_get_results_not_found():
     # Verify response
     assert response.status == 404
     data = json.loads(response.body)
-    assert 'Could not find results' in data['message']
+    assert data == {
+        'message': 'Could not find results for the requested job/node.'
+    }
 
 
 @pytest.mark.asyncio
@@ -445,7 +469,9 @@ async def test_handle_delete_job_running():
     # Verify error response
     assert response.status == 400
     data = json.loads(response.body)
-    assert 'still running' in data['message']
+    assert data == {
+        'message': 'Error: job is still running.'
+    }
 
 
 @pytest.mark.asyncio
@@ -530,7 +556,10 @@ async def test_check_request_missing_auth():
     # Verify error response
     assert response is not None
     assert response.status == 400
-    assert 'authentication parameters are missing' in json.loads(response.body)['message']
+    data = json.loads(response.body)
+    assert data == {
+        'message': 'Error: some authentication parameters are missing.'
+    }
 
 
 @pytest.mark.asyncio
@@ -557,7 +586,10 @@ async def test_check_request_invalid_auth():
     # Verify error response
     assert response is not None
     assert response.status == 403
-    assert 'Authentication error' in json.loads(response.body)['message']
+    data = json.loads(response.body)
+    assert data == {
+        'message': 'Authentication error.'
+    }
 
 
 @pytest.mark.asyncio
@@ -584,8 +616,11 @@ async def test_check_request_valid_auth():
     
     # Verify success
     assert response is None
-    assert params['username'] == 'testuser'
-    assert 'other' in params
+    assert params == {
+        'username': 'testuser',
+        'key': 'correct_pass',
+        'other': 'data'
+    }
 
 
 @pytest.mark.asyncio
@@ -603,7 +638,10 @@ async def test_check_request_no_auth_adds_username():
     
     # Verify username is added as None
     assert response is None
-    assert params['username'] is None
+    assert params == {
+        'some': 'data',
+        'username': None
+    }
 
 
 def test_handle_get_results_none_node():
@@ -690,8 +728,10 @@ def test_check_request_valid_without_username():
     
     # Verify username is added as None
     assert response is None
-    assert params['username'] is None
-    assert params['job_hash'] == 'test123'
+    assert params == {
+        'job_hash': 'test123',
+        'username': None
+    }
 
 
 def test_check_request_empty():
@@ -708,7 +748,9 @@ def test_check_request_empty():
     
     # Verify username is added as None
     assert response is None
-    assert params['username'] is None
+    assert params == {
+        'username': None
+    }
 
 
 def test_handle_check_progress_without_auth():
@@ -735,7 +777,10 @@ def test_handle_check_progress_without_auth():
         # Verify response
         assert response.status == 200
         data = json.loads(response.body)
-        assert data['status'] == JobStatus.COMPLETED
+        assert data == {
+            'status': JobStatus.COMPLETED,
+            'message': 'Job has no running steps.'
+        }
     
     asyncio.run(async_test())
 
@@ -772,27 +817,17 @@ def test_server_callbacks():
         'step10': {'status': RemoteNodeStatus.PENDING}
     }
     
-    # Test __run_start
-    try:
+    # Test __run_start - will fail due to missing files but exercises the code path
+    with pytest.raises(Exception):
         server._Server__run_start(project)
-        # If it runs without error, the callback works
-        assert True
-    except Exception as e:
-        # Expected to potentially fail due to missing files, but coverage counts
-        pass
     
     # Test __node_start
     server._Server__node_start(project, 'step1', '0')
     # Verify status was updated (note: step1 may not be in sc_jobs)
     
-    # Test __node_end
-    try:
+    # Test __node_end - will fail due to missing files but exercises the code path
+    with pytest.raises(Exception):
         server._Server__node_end(project, 'step1', '0')
-        # If it runs without error, the callback works
-        assert True
-    except Exception as e:
-        # Expected to potentially fail due to missing files, but coverage counts
-        pass
 
 
 def test_handle_check_server_schema_error():
@@ -878,8 +913,8 @@ def test_handle_get_results_invalid_job_hash():
         # Call handler - should fail validation
         response = await server.handle_get_results(mock_request)
         
-        # Verify it returns 404 (file not found) or 400 (validation error)
-        assert response.status in [400, 404]
+        # Verify it returns 404 (file not found)
+        assert response.status == 404
     
     asyncio.run(async_test())
 
