@@ -115,6 +115,24 @@ def test_github_issue_1789(datadir):
     assert i_file_data == o_file_data
 
 
+def test_runtime_args(gcd_design):
+    proj = Project(gcd_design)
+    proj.add_fileset("rtl")
+
+    flow = Flowgraph("testflow")
+    flow.node("elaborate", ElaborateTask())
+    proj.set_flow(flow)
+
+    node = SchedulerNode(proj, "elaborate", "0")
+    with node.runtime():
+        assert node.setup() is True
+        arguments = node.task.get_runtime_arguments()
+        # Verify key arguments are present
+        assert any('gcd.sv' in arg for arg in arguments)
+        assert '-top' in arguments
+        assert 'gcd' in arguments
+
+
 def test_surelog_parameter_enable_lowmem():
     task = ElaborateTask()
     task.set_surelog_enablelowmem(True)

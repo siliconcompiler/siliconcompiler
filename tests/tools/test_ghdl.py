@@ -49,6 +49,30 @@ def test_ghdl(datadir):
         os.path.abspath("build/adder/job0/convert/0/outputs/adder.v")
 
 
+def test_runtime_args(datadir):
+    design = Design("adder")
+    design.set_dataroot("root", datadir)
+    with design.active_dataroot("root"), design.active_fileset("rtl"):
+        design.set_topmodule("adder")
+        design.add_file("adder.vhdl")
+
+    proj = Project(design)
+    proj.add_fileset("rtl")
+
+    flow = Flowgraph("testflow")
+    flow.node("convert", convert.ConvertTask())
+    proj.set_flow(flow)
+
+    node = SchedulerNode(proj, "convert", "0")
+    with node.runtime():
+        assert node.setup() is True
+        arguments = node.task.get_runtime_arguments()
+        # Verify key arguments are present
+        assert any('adder.vhdl' in arg for arg in arguments)
+        assert '--synth' in arguments
+        assert any(arg.startswith('--out=') for arg in arguments)
+
+
 def test_ghdl_parameter_use_fsynopsys():
     task = convert.ConvertTask()
     task.set_ghdl_usefsynopsys(True)

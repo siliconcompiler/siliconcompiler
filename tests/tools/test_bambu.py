@@ -48,6 +48,30 @@ def test_bambu(datadir):
         os.path.abspath("build/gcd/job0/convert/0/outputs/gcd.v")
 
 
+def test_runtime_args(gcd_design, datadir):
+    design = Design("gcd")
+    design.set_dataroot("root", datadir)
+    with design.active_dataroot("root"), design.active_fileset("rtl"):
+        design.set_topmodule("gcd")
+        design.add_file("gcd.c")
+
+    proj = Project(design)
+    proj.add_fileset("rtl")
+
+    flow = Flowgraph("testflow")
+    flow.node("convert", convert.ConvertTask())
+    proj.set_flow(flow)
+
+    node = SchedulerNode(proj, "convert", "0")
+    with node.runtime():
+        assert node.setup() is True
+        arguments = node.task.get_runtime_arguments()
+        # Verify key arguments are present
+        assert 'inputs/gcd.c' in arguments
+        assert '--compiler=I386_GCC8' in arguments
+        assert '--top-fname=gcd' in arguments
+
+
 def test_parameter_memorychannels():
     task = convert.ConvertTask()
     task.set_bambu_memorychannels(2)

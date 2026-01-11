@@ -48,6 +48,29 @@ def test_chisel(datadir):
         os.path.abspath("build/gcd/job0/convert/0/outputs/GCD.v")
 
 
+def test_runtime_args(datadir):
+    design = Design("gcd")
+    design.set_dataroot("root", datadir)
+    with design.active_dataroot("root"), design.active_fileset("rtl"):
+        design.set_topmodule("GCD")
+        design.add_file("GCD.scala")
+
+    proj = Project(design)
+    proj.add_fileset("rtl")
+
+    flow = Flowgraph("testflow")
+    flow.node("convert", convert.ConvertTask())
+    proj.set_flow(flow)
+
+    node = SchedulerNode(proj, "convert", "0")
+    with node.runtime():
+        assert node.setup() is True
+        arguments = node.task.get_runtime_arguments()
+        # Verify key arguments are present
+        assert any('GCD.scala' in arg for arg in arguments)
+        assert any('--target-dir' in arg for arg in arguments)
+
+
 def test_chisel_parameter_application():
     task = convert.ConvertTask()
     task.set_chisel_application('test_app')
