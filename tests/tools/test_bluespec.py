@@ -47,3 +47,38 @@ def test_bluespec(datadir):
     # check that compilation succeeded
     assert proj.find_result('v', step='convert') == \
         os.path.abspath("build/dotproduct/job0/convert/0/outputs/mkDotProduct_nt_Int32.v")
+
+
+def test_runtime_args(datadir):
+    design = Design("dotproduct")
+    design.set_dataroot("root", os.path.join(datadir, "dotproduct"))
+    with design.active_dataroot("root"), design.active_fileset("rtl"):
+        design.set_topmodule("mkDotProduct_nt_Int32")
+        design.add_file("DotProduct_nt_Int32.bsv")
+        design.add_idir(".")
+
+    proj = Project(design)
+    proj.add_fileset("rtl")
+
+    flow = Flowgraph("testflow")
+    flow.node("convert", convert.ConvertTask())
+    proj.set_flow(flow)
+
+    node = SchedulerNode(proj, "convert", "0")
+    with node.runtime():
+        assert node.setup() is True
+        arguments = node.task.get_runtime_arguments()
+        assert arguments == [
+            '-verilog',
+            '-vdir', 'verilog',
+            '-bdir', 'bluespec',
+            '-info-dir', 'reports',
+            '-u',
+            '-v',
+            '-show-module-use',
+            '-sched-dot',
+            '-g', 'mkDotProduct_nt_Int32',
+            '-p', f'{os.path.join(datadir, "dotproduct")}:%/Libraries',
+            '-I', os.path.join(datadir, "dotproduct"),
+            os.path.abspath(os.path.join(datadir, 'dotproduct', 'DotProduct_nt_Int32.bsv'))
+        ]
