@@ -3,6 +3,7 @@ import pytest
 from siliconcompiler import FPGA, Flowgraph
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.tools.genfasm.bitstream import BitstreamTask
+from siliconcompiler.tools.vpr import VPRFPGA
 
 
 @pytest.mark.eda
@@ -15,6 +16,10 @@ def test_version(gcd_design):
     flow = Flowgraph("testflow")
     flow.node("version", BitstreamTask())
     proj.set_flow(flow)
+
+    fpga = VPRFPGA()
+    fpga.set_name("testfpga")
+    proj.set_fpga(fpga)
 
     node = SchedulerNode(proj, "version", "0")
     with node.runtime():
@@ -29,6 +34,10 @@ def test_runtime_args(gcd_design):
     flow = Flowgraph("testflow")
     flow.node("bitstream", BitstreamTask())
     proj.set_flow(flow)
+
+    fpga = VPRFPGA()
+    fpga.set_name("testfpga")
+    proj.set_fpga(fpga)
 
     node = SchedulerNode(proj, "bitstream", "0")
     with node.runtime():

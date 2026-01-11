@@ -30,7 +30,7 @@ def test_extspice_version(gcd_design):
     proj.add_fileset("rtl")
 
     flow = Flowgraph("testflow")
-    flow.node("version", extspice.ExtractSpiceTask())
+    flow.node("version", extspice.ExtractTask())
     proj.set_flow(flow)
 
     node = SchedulerNode(proj, "version", "0")
