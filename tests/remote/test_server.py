@@ -1113,3 +1113,30 @@ def test_handle_remote_run_missing_manifest():
 
 
 
+
+
+@pytest.mark.asyncio
+async def test_handle_get_results_with_auth_error():
+    '''Test handle_get_results with authentication error'''
+    server = Server()
+    server.set('option', 'auth', True)
+    server.set('option', 'nfsmount', tempfile.mkdtemp())
+    
+    # Setup user keys
+    server.user_keys = {
+        'testuser': {'password': 'correct_pass', 'compute_time': 0, 'bandwidth': 0}
+    }
+    
+    # Create mock request with wrong password
+    mock_request = Mock()
+    mock_request.json = AsyncMock(return_value={
+        'username': 'testuser',
+        'key': 'wrong_password'
+    })
+    mock_request.match_info = {'job_hash': '00000000000000000000000000000000'}
+    
+    # Call handler
+    response = await server.handle_get_results(mock_request)
+    
+    # Verify authentication error
+    assert response.status == 403
