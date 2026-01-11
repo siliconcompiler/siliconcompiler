@@ -1,4 +1,7 @@
+from unittest.mock import patch
 import pytest
+
+import os.path
 
 from siliconcompiler import FPGA, Flowgraph
 from siliconcompiler.scheduler import SchedulerNode
@@ -37,14 +40,47 @@ def test_runtime_args(gcd_design):
 
     fpga = VPRFPGA()
     fpga.set_name("testfpga")
+    fpga.set_vpr_archfile("arch.xml")
+    fpga.set_vpr_graphfile("graph.xml")
+    fpga.set_vpr_devicecode("devicecode")
+    fpga.set_vpr_router_lookahead("map")
+    fpga.set_vpr_clockmodel("ideal")
+    fpga.set_vpr_channelwidth(128)
     proj.set_fpga(fpga)
+
+    with open("arch.xml", "w") as f:
+        f.write("<arch></arch>")
+    with open("graph.xml", "w") as f:
+        f.write("<graph></graph>")
 
     node = SchedulerNode(proj, "bitstream", "0")
     with node.runtime():
-        assert node.setup() is True
+        with patch("siliconcompiler.utils.get_cores") as get_cores:
+            get_cores.return_value = 2
+            assert node.setup() is True
+            get_cores.assert_called_once()
         arguments = node.task.get_runtime_arguments()
-        # genfasm takes blif and various other files
-        assert 'inputs/gcd.blif' in arguments
-        assert '--net_file' in arguments
-        assert '--place_file' in arguments
-        assert '--route_file' in arguments
+        assert arguments == [
+            '--device', 'devicecode',
+            '--verify_file_digests', 'off',
+            '--write_block_usage', 'reports/block_usage.json',
+            '--outfile_prefix', 'outputs/',
+            os.path.abspath("arch.xml"),
+            '--num_workers', '2',
+            '--constant_net_method', 'route',
+            '--const_gen_inference', 'none',
+            '--sweep_dangling_primary_ios', 'off',
+            '--sweep_dangling_nets', 'off',
+            '--allow_dangling_combinational_nodes', 'on',
+            '--sweep_constant_primary_outputs', 'off',
+            '--sweep_dangling_blocks', 'off',
+            '--clock_modeling', 'ideal',
+            '--router_lookahead', 'map',
+            '--timing_analysis', 'off',
+            '--read_rr_graph', os.path.abspath("graph.xml"),
+            '--route_chan_width', '128',
+            'inputs/gcd.blif',
+            '--net_file', 'inputs/gcd.net',
+            '--place_file', 'inputs/gcd.place',
+            '--route_file', 'inputs/gcd.route'
+        ]

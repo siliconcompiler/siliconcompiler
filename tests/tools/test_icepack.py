@@ -36,7 +36,7 @@ def test_runtime_args(gcd_design):
     with node.runtime():
         assert node.setup() is True
         arguments = node.task.get_runtime_arguments()
-        # icepack just takes input and output files
-        assert len(arguments) == 2
-        assert arguments[0] == 'inputs/gcd.asc'
-        assert arguments[1] == 'outputs/gcd.bit'
+        assert arguments == [
+            'inputs/gcd.asc',
+            'outputs/gcd.bit'
+        ]

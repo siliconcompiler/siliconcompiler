@@ -68,7 +68,17 @@ def test_runtime_args(datadir):
     with node.runtime():
         assert node.setup() is True
         arguments = node.task.get_runtime_arguments()
-        # Verify key arguments are present
-        assert '-g' in arguments
-        assert 'mkDotProduct_nt_Int32' in arguments
-        assert any('DotProduct_nt_Int32.bsv' in arg for arg in arguments)
+        assert arguments == [
+            '-verilog',
+            '-vdir', 'verilog',
+            '-bdir', 'bluespec',
+            '-info-dir', 'reports',
+            '-u',
+            '-v',
+            '-show-module-use',
+            '-sched-dot',
+            '-g', 'mkDotProduct_nt_Int32',
+            '-p', f'{os.path.join(datadir, "dotproduct")}:%/Libraries',
+            '-I', os.path.join(datadir, "dotproduct"),
+            os.path.abspath(os.path.join(datadir, 'dotproduct', 'DotProduct_nt_Int32.bsv'))
+        ]

@@ -67,10 +67,14 @@ def test_runtime_args(datadir):
     with node.runtime():
         assert node.setup() is True
         arguments = node.task.get_runtime_arguments()
-        # Verify key arguments are present
-        assert any('adder.vhdl' in arg for arg in arguments)
-        assert '--synth' in arguments
-        assert any(arg.startswith('--out=') for arg in arguments)
+        assert arguments == [
+            '--synth',
+            '--std=08',
+            '--out=verilog',
+            '--no-formal',
+            os.path.abspath(os.path.join(datadir, 'adder.vhdl')),
+            '-e', 'adder'
+        ]
 
 
 def test_ghdl_parameter_use_fsynopsys():
