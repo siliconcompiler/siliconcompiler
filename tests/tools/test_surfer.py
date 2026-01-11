@@ -1,5 +1,7 @@
 import pytest
 
+import os.path
+
 from siliconcompiler import Project, Flowgraph
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.tools.surfer.show import ShowTask
@@ -30,12 +32,13 @@ def test_runtime_args(gcd_design):
     flow.node("show", ShowTask())
     proj.set_flow(flow)
 
-    # Surfer expects a spice file as input
-    ShowTask.find_task(proj).set("var", "showfilepath", "test.spice")
+    # Surfer expects a vcd file as input
+    ShowTask.find_task(proj).set("var", "showfilepath", "test.vcd")
+    with open("test.vcd", "w") as f:
+        f.write("test\n")
 
     node = SchedulerNode(proj, "show", "0")
     with node.runtime():
         assert node.setup() is True
         arguments = node.task.get_runtime_arguments()
-        # Surfer takes the spice file as input
-        assert 'test.spice' in arguments
+        assert arguments == [os.path.abspath("test.vcd")]

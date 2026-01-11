@@ -5,6 +5,16 @@ from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.tools.vivado import syn_fpga, place, route, bitstream
 
 
+@pytest.fixture(autouse=True)
+def check_vivado(request):
+    if 'eda' not in request.keywords:
+        return
+
+    import shutil
+    if shutil.which('vivado') is None:
+        pytest.skip("Vivado not found, skipping tests")
+
+
 @pytest.mark.eda
 @pytest.mark.quick
 @pytest.mark.timeout(300)

@@ -1,3 +1,4 @@
+from unittest.mock import patch
 import pytest
 
 import os.path
@@ -125,12 +126,20 @@ def test_runtime_args(gcd_design):
 
     node = SchedulerNode(proj, "elaborate", "0")
     with node.runtime():
-        assert node.setup() is True
+        with patch("siliconcompiler.utils.get_cores") as get_cores:
+            get_cores.return_value = 2
+            assert node.setup() is True
+            get_cores.assert_called_once()
         arguments = node.task.get_runtime_arguments()
-        # Verify key arguments are present
-        assert any('gcd.sv' in arg for arg in arguments)
-        assert '-top' in arguments
-        assert 'gcd' in arguments
+        assert arguments == [
+            '-nocache',
+            '--threads', '2',
+            '-parse',
+            '-nouhdm',
+            '+libext+.sv+.v',
+            *gcd_design.get_file("rtl", "verilog"),
+            '-top', 'gcd'
+        ]
 
 
 def test_surelog_parameter_enable_lowmem():

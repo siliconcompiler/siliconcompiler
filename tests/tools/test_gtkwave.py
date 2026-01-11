@@ -1,5 +1,9 @@
 import pytest
 
+import os.path
+
+from unittest.mock import patch
+
 from siliconcompiler import Project, Flowgraph
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.tools.gtkwave import show
@@ -32,10 +36,18 @@ def test_runtime_args(gcd_design):
 
     # GTKWave expects a VCD or similar file as input
     show.ShowTask.find_task(proj).set("var", "showfilepath", "test.vcd")
+    with open("test.vcd", "w") as f:
+        f.write("test\n")
 
     node = SchedulerNode(proj, "show", "0")
     with node.runtime():
-        assert node.setup() is True
+        with patch("siliconcompiler.utils.get_cores") as get_cores:
+            get_cores.return_value = 2
+            assert node.setup() is True
+            get_cores.assert_called_once()
         arguments = node.task.get_runtime_arguments()
-        # GTKWave takes the waveform file as input
-        assert 'test.vcd' in arguments
+        assert arguments == [
+            '--cpu=2',
+            f'--script={node.task.find_files("script")[0]}',
+            f'--dump={os.path.abspath("test.vcd")}'
+        ]

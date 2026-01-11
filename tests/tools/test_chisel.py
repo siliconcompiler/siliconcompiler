@@ -66,9 +66,11 @@ def test_runtime_args(datadir):
     with node.runtime():
         assert node.setup() is True
         arguments = node.task.get_runtime_arguments()
-        # Verify key arguments are present
-        assert any('GCD.scala' in arg for arg in arguments)
-        assert any('--target-dir' in arg for arg in arguments)
+        assert arguments == [
+            '-batch',
+            '--no-share',
+            '--no-global',
+            'runMain SCDriver --module GCD --output-file ../outputs/GCD.v']
 
 
 def test_chisel_parameter_application():

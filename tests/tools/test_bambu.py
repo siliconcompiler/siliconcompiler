@@ -66,10 +66,14 @@ def test_runtime_args(gcd_design, datadir):
     with node.runtime():
         assert node.setup() is True
         arguments = node.task.get_runtime_arguments()
-        # Verify key arguments are present
-        assert 'inputs/gcd.c' in arguments
-        assert '--compiler=I386_GCC8' in arguments
-        assert '--top-fname=gcd' in arguments
+        assert arguments == [
+            os.path.abspath(os.path.join(datadir, 'gcd.c')),
+            '--soft-float',
+            '--memory-allocation-policy=NO_BRAM',
+            '--channels-number=1',
+            '--disable-function-proxy',
+            '--top-fname=gcd'
+        ]
 
 
 def test_parameter_memorychannels():
