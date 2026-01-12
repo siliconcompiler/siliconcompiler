@@ -1370,8 +1370,9 @@ class APRTask(OpenROADTask):
             mode = scenario.get_mode(self.step, self.index)
             if mode:
                 self.add_required_key(scenario, "mode")
-                mode_obj = self.project.constraint.timing.get_mode(mode)
-                self.add_required_key(mode_obj, "sdcfileset")
+                if self.get("var", "load_sdcs"):
+                    mode_obj = self.project.constraint.timing.get_mode(mode)
+                    self.add_required_key(mode_obj, "sdcfileset")
 
         delay_model = self.project.get("asic", "delaymodel")
         for asiclib in self.project.get("asic", "asiclib"):
