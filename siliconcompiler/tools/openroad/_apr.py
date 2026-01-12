@@ -1218,6 +1218,10 @@ class APRTask(OpenROADTask):
                            "used to indicate if global routing information should be loaded",
                            defvalue=False)
 
+        self.add_parameter("load_sdcs", "bool",
+                           "used to indicate if SDC files should be loaded before APR",
+                           defvalue=True)
+
         self.add_parameter("global_connect_fileset", "[(str,str)]",
                            "list of libraries and filesets to generate connects from")
 
@@ -1263,6 +1267,18 @@ class APRTask(OpenROADTask):
             index: The specific index to apply this configuration to.
         """
         self.set("var", "ord_heatmap_bins", (x, y), step=step, index=index)
+
+    def set_openroad_loadsdcs(self, enable: bool,
+                              step: Optional[str] = None, index: Optional[str] = None) -> None:
+        """
+        Enables or disables loading SDC files before APR.
+
+        Args:
+            enable: True to load SDC files, False to disable.
+            step: The specific step to apply this configuration to.
+            index: The specific index to apply this configuration to.
+        """
+        self.set("var", "load_sdcs", enable, step=step, index=index)
 
     def set_openroad_powercorner(self, corner: str,
                                  step: Optional[str] = None, index: Optional[str] = None) -> None:
@@ -1334,6 +1350,7 @@ class APRTask(OpenROADTask):
         self.add_required_key("var", "ord_enable_images")
         self.add_required_key("var", "ord_heatmap_bins")
         self.add_required_key("var", "load_grt_setup")
+        self.add_required_key("var", "load_sdcs")
 
         if not self.get("var", "global_connect_fileset"):
             self.__import_globalconnect_filesets()
@@ -1346,6 +1363,17 @@ class APRTask(OpenROADTask):
         libcorners = set()
         for scenario in self.project.constraint.timing.get_scenario().values():
             libcorners.update(scenario.get_libcorner(self.step, self.index))
+            self.add_required_key(scenario, "pexcorner")
+            self.add_required_key(scenario, "libcorner")
+            if scenario.get_check(self.step, self.index):
+                self.add_required_key(scenario, "check")
+            mode = scenario.get_mode(self.step, self.index)
+            if mode:
+                self.add_required_key(scenario, "mode")
+                if self.get("var", "load_sdcs"):
+                    mode_obj = self.project.constraint.timing.get_mode(mode)
+                    self.add_required_key(mode_obj, "sdcfileset")
+
         delay_model = self.project.get("asic", "delaymodel")
         for asiclib in self.project.get("asic", "asiclib"):
             lib = self.project.get("library", asiclib, field="schema")
@@ -1368,18 +1396,47 @@ class APRTask(OpenROADTask):
                     self.add_openroad_globalconnectfileset(lib, fileset)
 
     def _set_reports(self, task_reports: List[str]):
-        self.set("var", "reports", set(task_reports).difference(self.get("var", "skip_reports")))
+        skip_reports = set(self.get("var", "skip_reports"))
+
+        if not self.get("var", "load_sdcs"):
+            skip_reports.update((
+                "setup",
+                "hold",
+                "unconstrained",
+                "clock_skew",
+                "fmax",
+                "check_setup",
+                "clock_placement",
+                "clock_trees"))
+
+        self.set("var", "reports", set(task_reports).difference(skip_reports))
 
         if "power" in self.get("var", "reports"):
             self.add_required_key("var", "power_corner")
 
     def _add_pnr_inputs(self):
-        if f"{self.design_topmodule}.sdc" in self.get_files_from_input_nodes():
-            self.add_input_file(ext="sdc")
-        else:
-            for lib, fileset in self.project.get_filesets():
-                if lib.has_file(fileset=fileset, filetype="sdc"):
-                    self.add_required_key(lib, "fileset", fileset, "file", "sdc")
+        if self.get("var", "load_sdcs"):
+            if f"{self.design_topmodule}.sdc" in self.get_files_from_input_nodes():
+                self.add_input_file(ext="sdc")
+            else:
+                for lib, fileset in self.project.get_filesets():
+                    if lib.has_file(fileset=fileset, filetype="sdc"):
+                        self.add_required_key(lib, "fileset", fileset, "file", "sdc")
+
+                modes = set()
+                for scenario in self.project.constraint.timing.get_scenario().values():
+                    mode = scenario.get_mode(self.step, self.index)
+                    if mode:
+                        modes.add(mode)
+                        self.add_required_key(scenario, "mode")
+                        mode_obj = self.project.constraint.timing.get_mode(mode)
+                        self.add_required_key(mode_obj, "sdcfileset")
+
+                for mode in modes:
+                    mode_obj = self.project.constraint.timing.get_mode(mode)
+                    for lib, fileset in mode_obj.get_sdcfileset():
+                        libobj = self.project.get("library", lib, field="schema")
+                        self.add_required_key(libobj, "fileset", fileset, "file", "sdc")
 
         if f"{self.design_topmodule}.odb" in self.get_files_from_input_nodes():
             self.add_input_file(ext="odb")
@@ -1389,7 +1446,8 @@ class APRTask(OpenROADTask):
             pass
 
     def _add_pnr_outputs(self):
-        self.add_output_file(ext="sdc")
+        if self.get("var", "load_sdcs"):
+            self.add_output_file(ext="sdc")
         self.add_output_file(ext="vg")
         self.add_output_file(ext="lec.vg")
         self.add_output_file(ext="def")
