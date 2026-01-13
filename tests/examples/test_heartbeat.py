@@ -4,6 +4,7 @@ import shutil
 import os.path
 
 from siliconcompiler import Project
+from siliconcompiler.tools.klayout.screenshot import ScreenshotTask
 
 
 @pytest.mark.eda
@@ -96,7 +97,7 @@ def test_py_make_screenshot(monkeypatch):
 
     def limit_res(self):
         org_init(self)
-        self.set("tool", "klayout", "task", "screenshot", "var", "show_resolution", (1024, 1024))
+        ScreenshotTask.find_task(self).set_klayout_resolution(1024, 1024)
 
     monkeypatch.setattr(Project, '_init_run', limit_res)
     make.screenshot()
