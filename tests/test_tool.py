@@ -2,6 +2,8 @@ import copy
 import hashlib
 import logging
 import pathlib
+import re
+import sys
 import pytest
 import os
 import time
@@ -31,6 +33,35 @@ from siliconcompiler.tool import subprocess as imported_subprocess
 from siliconcompiler.tool import os as imported_os
 from siliconcompiler.tool import psutil as imported_psutil
 from siliconcompiler.tool import resource as imported_resource
+
+
+# Define a custom task that prints to stdout and stderr
+class PythonOnlyTask(Task):
+    def tool(self):
+        return "testtool"
+
+    def task(self):
+        return "testtask"
+
+    def run(self):
+        print("STDOUT_MESSAGE")
+        print("STDERR_MESSAGE", file=sys.stderr)
+        return 0
+
+
+# Define a custom task that prints to logger
+class PythonOnlyTaskLogger(Task):
+    def tool(self):
+        return "testtool"
+
+    def task(self):
+        return "testtasklogger"
+
+    def run(self):
+        self.logger.info("INFO_MESSAGE")
+        self.logger.warning("WARNING_MESSAGE")
+        self.logger.error("ERROR_MESSAGE")
+        return 0
 
 
 @pytest.fixture
@@ -2385,3 +2416,195 @@ def test_showtask_specific_task_preference():
         assert task.tool() == "toolc"
         assert task.task() == "view_mode_2"
         assert isinstance(task, ToolCTask2)
+
+
+def test_task_py_logging_output_different_files(gcd_design):
+    # Create a project instance
+    project = Project(gcd_design)
+    project.add_fileset("rtl")
+
+    # Define a simple flow with one step
+    flow = Flowgraph('testflow')
+    flow.node('step', PythonOnlyTask)
+
+    project.set_flow(flow)
+
+    PythonOnlyTask.find_task(project).set_logdestination("stdout", "log", "out")
+    PythonOnlyTask.find_task(project).set_logdestination("stderr", "log", "err")
+
+    # Run the flow
+    project.run()
+
+    # Verify the log file content
+    # Path: build/test/job0/step/0/sc_step_0.log
+    log_file = pathlib.Path("build/gcd/job0/step/0/sc_step_0.log")
+
+    assert log_file.exists()
+    content = log_file.read_text()
+
+    # Check for expected log messages
+    assert content.count("STDOUT_MESSAGE") == 1
+    assert content.count("STDERR_MESSAGE") == 1
+    assert re.match(r"^\| INFO .* \| STDOUT_MESSAGE$", content.splitlines()[-3])
+    assert re.match(r"^\| ERROR .* \| STDERR_MESSAGE$", content.splitlines()[-2])
+
+    assert pathlib.Path("build/gcd/job0/step/0/step.out").read_text() == "STDOUT_MESSAGE\n"
+    assert pathlib.Path("build/gcd/job0/step/0/step.err").read_text() == "STDERR_MESSAGE\n"
+
+
+def test_task_py_logging_output_same_files(gcd_design):
+    # Create a project instance
+    project = Project(gcd_design)
+    project.add_fileset("rtl")
+
+    # Define a simple flow with one step
+    flow = Flowgraph('testflow')
+    flow.node('step', PythonOnlyTask)
+
+    project.set_flow(flow)
+
+    PythonOnlyTask.find_task(project).set_logdestination("stdout", "log", "out")
+    PythonOnlyTask.find_task(project).set_logdestination("stderr", "log", "out")
+
+    # Run the flow
+    project.run()
+
+    # Verify the log file content
+    # Path: build/test/job0/step/0/sc_step_0.log
+    log_file = pathlib.Path("build/gcd/job0/step/0/sc_step_0.log")
+
+    assert log_file.exists()
+    content = log_file.read_text()
+
+    # Check for expected log messages
+    assert content.count("STDOUT_MESSAGE") == 1
+    assert content.count("STDERR_MESSAGE") == 1
+    assert re.match(r"^\| INFO .* \| STDOUT_MESSAGE$", content.splitlines()[-3])
+    assert re.match(r"^\| INFO .* \| STDERR_MESSAGE$", content.splitlines()[-2])
+
+    assert pathlib.Path("build/gcd/job0/step/0/step.out").read_text() == "STDOUT_MESSAGE\nSTDERR_MESSAGE\n"
+
+
+def test_task_py_logging_output_different_files_output(gcd_design):
+    # Create a project instance
+    project = Project(gcd_design)
+    project.add_fileset("rtl")
+
+    # Define a simple flow with one step
+    flow = Flowgraph('testflow')
+    flow.node('step', PythonOnlyTask)
+
+    project.set_flow(flow)
+
+    PythonOnlyTask.find_task(project).set_logdestination("stdout", "output", "out")
+    PythonOnlyTask.find_task(project).set_logdestination("stderr", "output", "err")
+    PythonOnlyTask.find_task(project).add_output_file("gcd.out", step="step", index="0")
+    PythonOnlyTask.find_task(project).add_output_file("gcd.err", step="step", index="0")
+
+    # Run the flow
+    project.run()
+
+    # Verify the log file content
+    # Path: build/test/job0/step/0/sc_step_0.log
+    log_file = pathlib.Path("build/gcd/job0/step/0/sc_step_0.log")
+
+    assert log_file.exists()
+    content = log_file.read_text()
+
+    # Check for expected log messages
+    assert content.count("STDOUT_MESSAGE") == 0
+    assert content.count("STDERR_MESSAGE") == 0
+
+    assert pathlib.Path("build/gcd/job0/step/0/outputs/gcd.out").read_text() == "STDOUT_MESSAGE\n"
+    assert pathlib.Path("build/gcd/job0/step/0/outputs/gcd.err").read_text() == "STDERR_MESSAGE\n"
+
+
+def test_task_py_logging_output_same_files_output(gcd_design):
+    # Create a project instance
+    project = Project(gcd_design)
+    project.add_fileset("rtl")
+
+    # Define a simple flow with one step
+    flow = Flowgraph('testflow')
+    flow.node('step', PythonOnlyTask)
+
+    project.set_flow(flow)
+
+    PythonOnlyTask.find_task(project).set_logdestination("stdout", "output", "out")
+    PythonOnlyTask.find_task(project).set_logdestination("stderr", "output", "out")
+    PythonOnlyTask.find_task(project).add_output_file("gcd.out", step="step", index="0")
+
+    # Run the flow
+    project.run()
+
+    # Verify the log file content
+    # Path: build/test/job0/step/0/sc_step_0.log
+    log_file = pathlib.Path("build/gcd/job0/step/0/sc_step_0.log")
+
+    assert log_file.exists()
+    content = log_file.read_text()
+
+    # Check for expected log messages
+    assert content.count("STDOUT_MESSAGE") == 0
+    assert content.count("STDERR_MESSAGE") == 0
+
+    assert pathlib.Path("build/gcd/job0/step/0/outputs/gcd.out").read_text() == "STDOUT_MESSAGE\nSTDERR_MESSAGE\n"
+
+
+def test_task_py_logging_output_none_files(gcd_design):
+    # Create a project instance
+    project = Project(gcd_design)
+    project.add_fileset("rtl")
+
+    # Define a simple flow with one step
+    flow = Flowgraph('testflow')
+    flow.node('step', PythonOnlyTask)
+
+    project.set_flow(flow)
+
+    PythonOnlyTask.find_task(project).set_logdestination("stdout", "none")
+    PythonOnlyTask.find_task(project).set_logdestination("stderr", "none")
+
+    # Run the flow
+    project.run()
+
+    # Verify the log file content
+    # Path: build/test/job0/step/0/sc_step_0.log
+    log_file = pathlib.Path("build/gcd/job0/step/0/sc_step_0.log")
+
+    assert log_file.exists()
+    content = log_file.read_text()
+
+    # Check for expected log messages
+    assert content.count("STDOUT_MESSAGE") == 0
+    assert content.count("STDERR_MESSAGE") == 0
+
+
+def test_task_py_logging_output_tologger(gcd_design):
+    # Create a project instance
+    project = Project(gcd_design)
+    project.add_fileset("rtl")
+
+    # Define a simple flow with one step
+    flow = Flowgraph('testflow')
+    flow.node('step', PythonOnlyTaskLogger)
+
+    project.set_flow(flow)
+
+    # Run the flow
+    project.run()
+
+    # Verify the log file content
+    # Path: build/test/job0/step/0/sc_step_0.log
+    log_file = pathlib.Path("build/gcd/job0/step/0/sc_step_0.log")
+
+    assert log_file.exists()
+    content = log_file.read_text()
+
+    # Check for expected log messages
+    assert content.count("INFO_MESSAGE") == 1
+    assert content.count("WARNING_MESSAGE") == 1
+    assert content.count("ERROR_MESSAGE") == 1
+    assert re.match(r"^\| INFO .* \| INFO_MESSAGE$", content.splitlines()[-4])
+    assert re.match(r"^\| WARNING .* \| WARNING_MESSAGE$", content.splitlines()[-3])
+    assert re.match(r"^\| ERROR .* \| ERROR_MESSAGE$", content.splitlines()[-2])

@@ -997,7 +997,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
                      open(stderr_file, 'w') as stderr_writer:
                     if stderr_file == stdout_file:
                         stderr_writer.close()
-                        stderr_writer = sys.stdout
+                        stderr_writer = stdout_writer
 
                     with contextlib.redirect_stderr(stderr_writer), \
                          contextlib.redirect_stdout(stdout_writer):
@@ -1009,6 +1009,8 @@ class Task(NamedSchema, PathSchema, DocsSchema):
             finally:
                 with sc_open(stdout_file) as stdout_reader, \
                      sc_open(stderr_file) as stderr_reader:
+                    if stdout_file == stderr_file:
+                        stderr_reader = None
                     read_stdio(stdout_reader, stderr_reader)
 
                 if resource:
