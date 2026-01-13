@@ -78,7 +78,7 @@ def test_py_gcd_ihp130():
     assert os.path.isfile('build/gcd/drc/drc/0/outputs/gcd.lyrdb')
 
     proj = Project.from_manifest('build/gcd/drc/gcd.pkg.json')
-    assert proj.get("metric", "drcs", step="drc", index="0") == 13
+    assert proj.get("metric", "drcs", step="drc", index="0") == 0
 
 
 @pytest.mark.eda
