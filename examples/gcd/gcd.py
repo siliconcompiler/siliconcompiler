@@ -3,6 +3,7 @@
 
 from siliconcompiler import ASIC, Design
 from siliconcompiler.targets import freepdk45_demo
+from siliconcompiler.tools.openroad._apr import APRTask
 
 
 def main():
@@ -43,6 +44,9 @@ def main():
     # This configures the project with the correct PDK, standard cell libraries,
     # and tool flow for this technology.
     freepdk45_demo(project)
+
+    for task in APRTask.find_task(project):
+        task.set_openroad_loadsdcs(False)
 
     # --- Execution & Analysis ---
     # Execute the complete ASIC compilation flow (synthesis, place, route, etc.).

@@ -1,8 +1,14 @@
 import logging
 import re
 import sys
+from enum import IntEnum
 
 from siliconcompiler import utils
+
+
+class LogLevel(IntEnum):
+    LOG = 21
+    LOGERROR = 41
 
 
 class SCBlankLoggerFormatter(logging.Formatter):

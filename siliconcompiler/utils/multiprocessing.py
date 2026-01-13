@@ -13,6 +13,7 @@ from multiprocessing.managers import SyncManager, RemoteError
 
 from siliconcompiler.utils.settings import SettingsManager
 from siliconcompiler.utils import default_sc_path
+from siliconcompiler.utils.logging import LogLevel
 
 from siliconcompiler.report.dashboard.cli.board import Board
 
@@ -162,6 +163,9 @@ class MPManager(metaclass=_ManagerSingleton):
         # Root logger for the application
         self.__logger = logging.getLogger("siliconcompiler")
         self.__logger.propagate = False
+
+        logging.addLevelName(LogLevel.LOG, "LOG")
+        logging.addLevelName(LogLevel.LOGERROR, "LOGERROR")
 
         if self.__ENABLE_LOGGER:
             self.__logger.setLevel(logging.INFO)

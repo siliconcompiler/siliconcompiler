@@ -40,10 +40,10 @@ from siliconcompiler.schema.parametertype import NodeType
 from siliconcompiler.schema.utils import trim
 
 from siliconcompiler import utils, NodeStatus, Flowgraph
+from siliconcompiler.utils.logging import LogLevel
 from siliconcompiler import sc_open
 from siliconcompiler.utils import paths
 from siliconcompiler.utils.multiprocessing import MPManager
-
 from siliconcompiler.schema_support.pathschema import PathSchema
 from siliconcompiler.schema_support.record import RecordTool, RecordSchema
 from siliconcompiler.schema_support.metric import MetricSchema
@@ -972,8 +972,8 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         stdout_file, is_stdout_log = self.__get_io_file("stdout")
         stderr_file, is_stderr_log = self.__get_io_file("stderr")
 
-        stdout_print = self.logger.info
-        stderr_print = self.logger.error
+        stdout_print = lambda msg: self.logger.log(LogLevel.LOG, msg)
+        stderr_print = lambda msg: self.logger.log(LogLevel.LOGERROR, msg)
 
         def read_stdio(stdout_reader, stderr_reader):
             """Helper to read and print stdout/stderr streams."""
