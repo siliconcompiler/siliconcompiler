@@ -2482,7 +2482,8 @@ def test_task_py_logging_output_same_files(gcd_design):
     assert re.match(r"^\| INFO .* \| STDOUT_MESSAGE$", content.splitlines()[-3])
     assert re.match(r"^\| INFO .* \| STDERR_MESSAGE$", content.splitlines()[-2])
 
-    assert pathlib.Path("build/gcd/job0/step/0/step.out").read_text() == "STDOUT_MESSAGE\nSTDERR_MESSAGE\n"
+    assert pathlib.Path("build/gcd/job0/step/0/step.out").read_text() == \
+        "STDOUT_MESSAGE\nSTDERR_MESSAGE\n"
 
 
 def test_task_py_logging_output_different_files_output(gcd_design):
@@ -2548,7 +2549,8 @@ def test_task_py_logging_output_same_files_output(gcd_design):
     assert content.count("STDOUT_MESSAGE") == 0
     assert content.count("STDERR_MESSAGE") == 0
 
-    assert pathlib.Path("build/gcd/job0/step/0/outputs/gcd.out").read_text() == "STDOUT_MESSAGE\nSTDERR_MESSAGE\n"
+    assert pathlib.Path("build/gcd/job0/step/0/outputs/gcd.out").read_text() == \
+        "STDOUT_MESSAGE\nSTDERR_MESSAGE\n"
 
 
 def test_task_py_logging_output_none_files(gcd_design):
