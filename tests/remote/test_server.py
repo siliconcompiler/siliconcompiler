@@ -7,7 +7,7 @@ import tempfile
 import os.path
 
 from aiohttp import web
-from unittest.mock import Mock, AsyncMock
+from unittest.mock import Mock, AsyncMock, patch
 from siliconcompiler import NodeStatus
 from siliconcompiler.remote.server import Server
 from siliconcompiler.remote import JobStatus, NodeStatus as RemoteNodeStatus
@@ -931,23 +931,12 @@ def test_server_run_nfs_creation():
     # Verify directory doesn't exist
     assert not os.path.exists(test_mount)
 
-    # Use threading to run server briefly then stop it
-    import threading
-    import time
-
-    def run_server():
+    with patch("aiohttp.web.run_app") as mock_run_app:
         server.run()
+        mock_run_app.assert_called_once()
 
-    # Start server in thread
-    server_thread = threading.Thread(target=run_server, daemon=True)
-    server_thread.start()
-
-    # Give it a moment to create directory
-    time.sleep(0.5)
-
-    # Verify directory was created (even if server failed to fully start)
-    # The run() method creates the directory before starting the web server
-    # So we can't easily test the full run() without starting a server
+    # Verify directory doesn't exist
+    assert os.path.exists(test_mount)
 
 
 def test_server_run_creates_gitignore():

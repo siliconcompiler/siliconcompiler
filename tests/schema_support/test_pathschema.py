@@ -324,11 +324,13 @@ def test_check_filepaths_not_found_logger(caplog):
 
     assert schema.set("directory", "test0")
 
-    logger = logging.getLogger()
-    logger.setLevel(logging.INFO)
-    schema.logger = logger
+    with patch("logging.Logger.getChild") as child_logger:
+        logger = logging.getLogger()
+        child_logger.return_value = logger
+        logger.setLevel(logging.INFO)
 
-    assert schema.check_filepaths() is False
+        assert schema.check_filepaths() is False
+    child_logger.assert_called()
     assert "Parameter [directory] path test0 is invalid" in caplog.text
 
 

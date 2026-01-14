@@ -1,5 +1,6 @@
 import contextlib
 import logging
+import sys
 
 import os.path
 
@@ -12,12 +13,22 @@ from siliconcompiler.schema.utils import trim
 
 from siliconcompiler.package import Resolver
 from siliconcompiler.utils.paths import collectiondir, cwdirsafe
+from siliconcompiler.utils.multiprocessing import MPManager
 
 
 class PathSchemaBase(BaseSchema):
     '''
     Schema extension to add simpler find_files and check_filepaths
     '''
+
+    def __getlogger(self, logger_name: str) -> logging.Logger:
+        schema_root = self._parent(root=True)
+        root_logger = getattr(schema_root, "logger", MPManager.logger())
+        logger = root_logger.getChild(logger_name)
+        if not logger.handlers:
+            logger.addHandler(logging.StreamHandler(stream=sys.stdout))
+            logger.setLevel(logging.INFO)
+        return logger
 
     def find_files(self, *keypath: str,
                    missing_ok: bool = False,
@@ -69,13 +80,10 @@ class PathSchemaBase(BaseSchema):
             True if all file paths are valid, otherwise False.
         '''
         schema_root = self._parent(root=True)
-        logger = getattr(schema_root,
-                         "logger",
-                         logging.getLogger("siliconcompiler.check_filepaths"))
 
         return super()._check_filepaths(
             ignore_keys=ignore_keys,
-            logger=logger,
+            logger=self.__getlogger("check_filepaths"),
             collection_dir=collectiondir(schema_root),
             cwd=cwdirsafe(schema_root))
 
@@ -121,13 +129,11 @@ class PathSchemaBase(BaseSchema):
             >>> hashlist = hash_files('input', 'rtl', 'verilog')
             Computes, stores, and returns hashes of files in :keypath:`input, rtl, verilog`.
         '''
-        schema_root = self._parent(root=True)
-        logger = getattr(schema_root,
-                         "logger",
-                         logging.getLogger("siliconcompiler.hash_files"))
-
         if verbose:
-            logger.info(f"Computing hash value for [{','.join([*self._keypath, *keypath])}]")
+            self.__getlogger("hash_files").info(
+                f"Computing hash value for [{','.join([*self._keypath, *keypath])}]")
+
+        schema_root = self._parent(root=True)
 
         hashes = super()._hash_files(*keypath,
                                      missing_ok=missing_ok,
