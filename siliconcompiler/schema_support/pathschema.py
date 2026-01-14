@@ -12,6 +12,7 @@ from siliconcompiler.schema.parameter import Parameter, Scope
 from siliconcompiler.schema.utils import trim
 
 from siliconcompiler.package import Resolver
+from siliconcompiler.utils.logging import get_stream_handler
 from siliconcompiler.utils.paths import collectiondir, cwdirsafe
 from siliconcompiler.utils.multiprocessing import MPManager
 
@@ -26,7 +27,7 @@ class PathSchemaBase(BaseSchema):
         root_logger = getattr(schema_root, "logger", MPManager.logger())
         logger = root_logger.getChild(logger_name)
         if not logger.handlers:
-            logger.addHandler(logging.StreamHandler(stream=sys.stdout))
+            logger.addHandler(get_stream_handler(schema_root, in_run=False, step=None, index=None))
             logger.setLevel(logging.INFO)
         return logger
 

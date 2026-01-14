@@ -28,7 +28,7 @@ from siliconcompiler.schema_support.pathschema import PathSchemaBase
 
 from siliconcompiler.report.dashboard.cli import CliDashboard
 from siliconcompiler.scheduler import Scheduler, SCRuntimeError
-from siliconcompiler.utils.logging import SCColorLoggerFormatter, SCLoggerFormatter
+from siliconcompiler.utils.logging import get_stream_handler
 from siliconcompiler.utils import get_file_ext
 from siliconcompiler.utils.multiprocessing import MPManager
 from siliconcompiler.utils.paths import jobdir, workdir
@@ -143,12 +143,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         self.__logger = MPManager.logger().getChild(f"project_{uuid.uuid4().hex}")
         self.__logger.setLevel(logging.INFO)
 
-        self._logger_console = logging.StreamHandler(stream=sys.stdout)
-        if SCColorLoggerFormatter.supports_color(sys.stdout):
-            self._logger_console.setFormatter(SCColorLoggerFormatter(SCLoggerFormatter()))
-        else:
-            self._logger_console.setFormatter(SCLoggerFormatter())
-
+        self._logger_console = get_stream_handler(self, in_run=False, step=None, index=None)
         self.__logger.addHandler(self._logger_console)
 
     def __init_dashboard(self):
