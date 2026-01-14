@@ -98,7 +98,7 @@ class FPGASynthesis(YosysTask):
 
         self._synthesis_post_process()
 
-        fpga = self.project.get("fpga", "device")
+        fpga = self.project.get_library(self.project.get("fpga", "device"))
 
         with sc_open("reports/stat.json") as f:
             metrics = json.load(f)
@@ -113,15 +113,14 @@ class FPGASynthesis(YosysTask):
                 return
 
             dff_cells = []
-            if self.project.valid("library", fpga, "tool", "yosys", "registers"):
-                dff_cells = self.project.get("library", fpga, "tool", "yosys", "registers")
+            if fpga.valid("tool", "yosys", "registers"):
+                dff_cells = fpga.get("tool", "yosys", "registers")
             brams_cells = []
-            if self.project.valid("library", fpga, "tool", "yosys", "brams"):
-                brams_cells = self.project.get("library", fpga, "tool", "yosys", "brams")
+            if fpga.valid("tool", "yosys", "brams"):
+                brams_cells = fpga.get("tool", "yosys", "brams")
             dsps_cells = []
-            if self.project.valid("library", fpga, "tool", "yosys", "dsps"):
-                dsps_cells = self.project.get("library", fpga, "tool", "yosys", "dsps")
-
+            if fpga.valid("tool", "yosys", "dsps"):
+                dsps_cells = fpga.get("tool", "yosys", "dsps")
             data = {
                 "registers": 0,
                 "luts": 0,
