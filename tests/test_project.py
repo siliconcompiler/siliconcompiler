@@ -844,6 +844,25 @@ def test_has_library_not_found_with_object():
     assert proj._has_library(design) is True
 
 
+def test_get_library_invalid_type():
+    proj = Project()
+    with pytest.raises(TypeError, match=r"^library must be a string$"):
+        proj.get_library(123)
+
+
+def test_get_library_not_found():
+    proj = Project()
+    with pytest.raises(KeyError, match=r"^'testlib is not a valid library'$"):
+        proj.get_library("testlib")
+
+
+def test_get_library_success():
+    proj = Project()
+    lib = StdCellLibrary("testlib")
+    proj.add_dep(lib)
+    assert proj.get_library("testlib") is lib
+
+
 def test_summary_headers():
     proj = Project(Design("testdesign"))
     assert proj._summary_headers() == [
