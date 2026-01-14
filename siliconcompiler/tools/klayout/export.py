@@ -98,7 +98,7 @@ class ExportTask(KLayoutTask, ScreenshotParams):
                 lib_requires_stream = False
 
             req_set = False
-            libobj = self.project.get("library", lib, field="schema")
+            libobj = self.project.get_library(lib)
             for s in sc_stream_order:
                 for fileset in libobj.get("asic", "aprfileset"):
                     if libobj.valid("fileset", fileset, "file", s):

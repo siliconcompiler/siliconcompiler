@@ -1376,7 +1376,7 @@ class APRTask(OpenROADTask):
 
         delay_model = self.project.get("asic", "delaymodel")
         for asiclib in self.project.get("asic", "asiclib"):
-            lib = self.project.get("library", asiclib, field="schema")
+            lib = self.project.get_library(asiclib)
             for corner in libcorners:
                 if not lib.valid("asic", "libcornerfileset", corner, delay_model):
                     continue
@@ -1390,7 +1390,7 @@ class APRTask(OpenROADTask):
 
     def __import_globalconnect_filesets(self):
         for lib in self.project.get("asic", "asiclib"):
-            libobj = self.project.get("library", lib, field="schema")
+            libobj = self.project.get_library(lib)
             if libobj.valid("tool", "openroad", "global_connect_fileset"):
                 for fileset in libobj.get("tool", "openroad", "global_connect_fileset"):
                     self.add_openroad_globalconnectfileset(lib, fileset)
@@ -1435,7 +1435,7 @@ class APRTask(OpenROADTask):
                 for mode in modes:
                     mode_obj = self.project.constraint.timing.get_mode(mode)
                     for lib, fileset in mode_obj.get_sdcfileset():
-                        libobj = self.project.get("library", lib, field="schema")
+                        libobj = self.project.get_library(lib)
                         self.add_required_key(libobj, "fileset", fileset, "file", "sdc")
 
         if f"{self.design_topmodule}.odb" in self.get_files_from_input_nodes():
@@ -1454,7 +1454,7 @@ class APRTask(OpenROADTask):
         self.add_output_file(ext="odb")
 
         for lib in self.project.get("asic", "asiclib"):
-            libobj = self.project.get("library", lib, field="schema")
+            libobj = self.project.get_library(lib)
             for celltype in ["decap", "tie", "filler", "tap", "endcap", "antenna", "physicalonly"]:
                 if libobj.valid("asic", "cells", celltype) and \
                         libobj.get("asic", "cells", celltype):
