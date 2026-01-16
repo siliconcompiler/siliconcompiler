@@ -493,6 +493,86 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                 error = True
                 continue
 
+        # Check patches in enabled filesets
+        if design and filesets:
+            for design_obj, fileset in self.get_filesets():
+                if not isinstance(design_obj, Design):
+                    continue
+                
+                patch_keys = design_obj.getkeys("fileset", fileset, "patch")
+                for patch_key in patch_keys:
+                    patch_obj = design_obj.get("fileset", fileset, "patch", patch_key, field="schema")
+                    if not patch_obj:
+                        continue
+                    
+                    patch_file = patch_obj.get('file')
+                    patch_diff = patch_obj.get('diff')
+                    patch_dataroot = patch_obj.get('dataroot')
+                    
+                    # Check that file field is set
+                    if not patch_file:
+                        self.logger.error(f"Patch {design_obj.name}/{fileset}/{patch_key} "
+                                          "does not have 'file' field set")
+                        error = True
+                        continue
+                    
+                    # Check that diff field is set
+                    if not patch_diff:
+                        self.logger.error(f"Patch {design_obj.name}/{fileset}/{patch_key} "
+                                          "does not have 'diff' field set")
+                        error = True
+                        continue
+                    
+                    # Check if patch dataroot exists (if specified)
+                    if patch_dataroot:
+                        available_dataroots = design_obj.getkeys('dataroot')
+                        if patch_dataroot not in available_dataroots:
+                            self.logger.error(f"Patch {design_obj.name}/{fileset}/{patch_key} "
+                                              f"references dataroot '{patch_dataroot}' which does not exist")
+                            error = True
+                            continue
+                    
+                    # Find the file in the fileset and verify dataroot matches
+                    file_found = False
+                    filetypes = design_obj.getkeys('fileset', fileset, 'file')
+                    for filetype in filetypes:
+                        files = design_obj.get('fileset', fileset, 'file', filetype)
+                        if not files:
+                            continue
+                        
+                        if patch_file in files:
+                            # Get datароots for this filetype
+                            file_dataroots = design_obj.get('fileset', fileset, 'file', filetype,
+                                                            field='dataroot')
+                            
+                            # Find the index of the patch file
+                            file_index = files.index(patch_file)
+                            
+                            # Get the dataroot for this specific file
+                            file_dataroot = file_dataroots[file_index] if file_dataroots else None
+                            
+                            # If patch specifies a dataroot, it must match the file's dataroot
+                            if patch_dataroot:
+                                if file_dataroot != patch_dataroot:
+                                    self.logger.error(
+                                        f"Patch {design_obj.name}/{fileset}/{patch_key} "
+                                        f"specifies dataroot '{patch_dataroot}' but file "
+                                        f"'{patch_file}' has dataroot '{file_dataroot}'"
+                                    )
+                                    error = True
+                                    continue
+                            # If patch doesn't specify dataroot but file has one, that's acceptable
+                            # (patch will use the file's dataroot)
+                            
+                            file_found = True
+                            break
+                    
+                    if not file_found:
+                        self.logger.error(f"Patch {design_obj.name}/{fileset}/{patch_key} "
+                                          f"references file '{patch_file}' which is not in "
+                                          f"fileset '{fileset}'")
+                        error = True
+
         # Check flowgraph tasks (runtime checks happen later)
 
         return not error
@@ -955,6 +1035,15 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
 
         filesets = self.get("option", "fileset")
 
+        # Collect patches from enabled filesets
+        patches = []
+        if filesets:
+            for design_obj, fileset in self.get_filesets():
+                if isinstance(design_obj, Design):
+                    patch_keys = design_obj.getkeys("fileset", fileset, "patch")
+                    for patch_key in patch_keys:
+                        patches.append(f"{design_obj.name}/{fileset}/{patch_key}")
+
         headers = [
             ("design", self.get("option", "design"))
         ]
@@ -962,6 +1051,8 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             headers.append(("filesets", ", ".join(filesets)))
         if alias:
             headers.append(("alias", ", ".join(alias)))
+        if patches:
+            headers.append(("patches", ", ".join(patches)))
         headers.append(("jobdir", jobdir(self)))
 
         return headers
