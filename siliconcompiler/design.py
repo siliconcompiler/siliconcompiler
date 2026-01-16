@@ -10,6 +10,7 @@ from siliconcompiler import utils
 from siliconcompiler.library import LibrarySchema
 
 from siliconcompiler.schema_support.dependencyschema import DependencySchema
+from siliconcompiler.schema_support.patch import Patch
 from siliconcompiler.schema import NamedSchema
 from siliconcompiler.schema import EditableSchema, Parameter, Scope
 from siliconcompiler.schema.utils import trim
@@ -956,3 +957,5 @@ def schema_design(schema: Design):
             example=[
                 "api: design.set('fileset', 'rtl', 'depfileset', ('lambdalib', 'rtl'))"],
             help=trim("""Sets the mapping for dependency filesets.""")))
+
+    edit.insert('fileset', fileset, 'patch', 'default', Patch())
