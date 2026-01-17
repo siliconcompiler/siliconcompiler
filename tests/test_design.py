@@ -1573,7 +1573,7 @@ def test_add_patch_to_fileset():
         # Get the patch schema and configure it
         patch = design.get("fileset", "rtl", "patch", "mypatch", field="schema")
         patch.set('file', 'test.v')
-        patch.set('diff', '  line 1\n- line 2\n+ line two\n')
+        patch.set('diff', '--- a/test.v\n+++ b/test.v\n@@ -1,2 +1,2 @@\n line 1\n-line 2\n+line two\n')
     
     # Verify the patch was added
     patch_keys = design.getkeys("fileset", "rtl", "patch")
@@ -1582,7 +1582,7 @@ def test_add_patch_to_fileset():
     # Verify we can retrieve the patch
     retrieved_patch = design.get("fileset", "rtl", "patch", "mypatch", field="schema")
     assert retrieved_patch.get('file') == 'test.v'
-    assert retrieved_patch.get('diff') == '  line 1\n- line 2\n+ line two\n'
+    assert retrieved_patch.get('diff') == '--- a/test.v\n+++ b/test.v\n@@ -1,2 +1,2 @@\n line 1\n-line 2\n+line two\n'
 
 
 def test_multiple_patches_in_fileset():
@@ -1593,12 +1593,12 @@ def test_multiple_patches_in_fileset():
         # Add first patch
         patch1 = design.get("fileset", "rtl", "patch", "patch1", field="schema")
         patch1.set('file', 'module1.v')
-        patch1.set('diff', '  line 1\n- old\n+ new\n')
+        patch1.set('diff', '--- a/module1.v\n+++ b/module1.v\n@@ -1,2 +1,2 @@\n line 1\n-old\n+new\n')
         
         # Add second patch
         patch2 = design.get("fileset", "rtl", "patch", "patch2", field="schema")
         patch2.set('file', 'module2.v')
-        patch2.set('diff', '  line 1\n- old2\n+ new2\n')
+        patch2.set('diff', '--- a/module2.v\n+++ b/module2.v\n@@ -1,2 +1,2 @@\n line 1\n-old2\n+new2\n')
     
     # Verify both patches exist
     patch_keys = design.getkeys("fileset", "rtl", "patch")
@@ -1637,7 +1637,7 @@ def test_patch_with_dataroot():
         patch = design.get("fileset", "rtl", "patch", "mypatch", field="schema")
         patch.set('file', 'test.v')
         patch.set('dataroot', '/path/to/fileset')
-        patch.set('diff', '  line 1\n- old\n+ new\n')
+        patch.set('diff', '--- a/test.v\n+++ b/test.v\n@@ -1,2 +1,2 @@\n line 1\n-old\n+new\n')
     
     retrieved_patch = design.get("fileset", "rtl", "patch", "mypatch", field="schema")
     assert retrieved_patch.get('dataroot') == '/path/to/fileset'
@@ -1650,7 +1650,7 @@ def test_empty_patch_name():
     with design.active_fileset("rtl"):
         patch = design.get("fileset", "rtl", "patch", "unnamed", field="schema")
         patch.set('file', 'test.v')
-        patch.set('diff', '  line 1\n- old\n+ new\n')
+        patch.set('diff', '--- a/test.v\n+++ b/test.v\n@@ -1,2 +1,2 @@\n line 1\n-old\n+new\n')
     
     # Should still be retrievable
     retrieved_patch = design.get("fileset", "rtl", "patch", "unnamed", field="schema")
@@ -1664,7 +1664,7 @@ def test_copy_fileset_with_patches():
     with design.active_fileset("rtl"):
         patch = design.get("fileset", "rtl", "patch", "mypatch", field="schema")
         patch.set('file', 'test.v')
-        patch.set('diff', '  line 1\n- old\n+ new\n')
+        patch.set('diff', '--- a/test.v\n+++ b/test.v\n@@ -1,2 +1,2 @@\n line 1\n-old\n+new\n')
     
     # Copy the fileset
     design.copy_fileset("rtl", "rtl_copy")
@@ -1676,7 +1676,7 @@ def test_copy_fileset_with_patches():
     # Verify the copied patch has the same data
     copied_patch = design.get("fileset", "rtl_copy", "patch", "mypatch", field="schema")
     assert copied_patch.get('file') == 'test.v'
-    assert copied_patch.get('diff') == '  line 1\n- old\n+ new\n'
+    assert copied_patch.get('diff') == '--- a/test.v\n+++ b/test.v\n@@ -1,2 +1,2 @@\n line 1\n-old\n+new\n'
 
 
 def test_patch_in_dependency():
@@ -1685,7 +1685,7 @@ def test_patch_in_dependency():
     with dep.active_fileset("rtl"):
         patch = dep.get("fileset", "rtl", "patch", "dep_patch", field="schema")
         patch.set('file', 'dep.v')
-        patch.set('diff', '  line 1\n- old\n+ new\n')
+        patch.set('diff', '--- a/dep.v\n+++ b/dep.v\n@@ -1,2 +1,2 @@\n line 1\n-old\n+new\n')
     
     design = Design("main")
     design.add_dep(dep)

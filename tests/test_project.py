@@ -2268,7 +2268,7 @@ def test_check_manifest_patch_missing_file():
         
         # Create patch without file field
         patch = design.get("fileset", "rtl", "patch", "fix1", field="schema")
-        patch.set('diff', '  line 1\n- old\n+ new\n')
+        patch.set('diff', '--- a/file.txt\n+++ b/file.txt\n@@ -1,2 +1,2 @@\n line 1\n-old\n+new\n')
     
     proj = Project(design)
     proj.set_flow(Flowgraph("test"))
@@ -2314,7 +2314,7 @@ def test_check_manifest_patch_file_not_in_fileset(tmp_path):
         # Create patch for file not in fileset
         patch = design.get("fileset", "rtl", "patch", "fix1", field="schema")
         patch.set('file', 'nonexistent.v')
-        patch.set('diff', '  line 1\n- old\n+ new\n')
+        patch.set('diff', '--- a/nonexistent.v\n+++ b/nonexistent.v\n@@ -1,2 +1,2 @@\n line 1\n-old\n+new\n')
     
     proj = Project(design)
     proj.set_flow(Flowgraph("test"))
@@ -2344,7 +2344,7 @@ def test_check_manifest_patch_file_in_different_fileset(tmp_path):
             # Create patch for file in different fileset
             patch = design.get("fileset", "rtl", "patch", "fix1", field="schema")
             patch.set('file', 'tb.v')
-            patch.set('diff', '  line 1\n- old\n+ new\n')
+            patch.set('diff', '--- a/tb.v\n+++ b/tb.v\n@@ -1,2 +1,2 @@\n line 1\n-old\n+new\n')
         
         with design.active_fileset("testbench"):
             design.set_topmodule("tb")
@@ -2375,7 +2375,7 @@ def test_check_manifest_patch_with_dataroot(tmp_path):
         # Create valid patch
         patch = design.get("fileset", "rtl", "patch", "fix1", field="schema")
         patch.set('file', 'module.v')
-        patch.set('diff', '  line 1\n- old\n+ new\n')
+        patch.set('diff', '--- a/module.v\n+++ b/module.v\n@@ -1,2 +1,2 @@\n line 1\n-old\n+new\n')
     
     proj = Project(design)
     proj.set_flow(Flowgraph("test"))
@@ -2402,7 +2402,7 @@ def test_check_manifest_patch_valid(tmp_path):
         # Create valid patch
         patch = design.get("fileset", "rtl", "patch", "fix1", field="schema")
         patch.set('file', 'module.v')
-        patch.set('diff', '  line 1\n- old\n+ new\n')
+        patch.set('diff', '--- a/module.v\n+++ b/module.v\n@@ -1,2 +1,2 @@\n line 1\n-old\n+new\n')
     
     proj = Project(design)
     proj.set_flow(Flowgraph("test"))
@@ -2526,7 +2526,7 @@ def test_check_manifest_patch_wrong_dataroot(tmp_path):
         patch = design.get("fileset", "rtl", "patch", "fix1", field="schema")
         patch.set('file', 'module.v')
         patch.set('dataroot', 'dataroot2')  # File has dataroot1
-        patch.set('diff', '  line 1\n- old\n+ new\n')
+        patch.set('diff', '--- a/module.v\n+++ b/module.v\n@@ -1,2 +1,2 @@\n line 1\n-old\n+new\n')
     
     proj = Project(design)
     proj.set_flow(Flowgraph("test"))
@@ -2553,7 +2553,7 @@ def test_check_manifest_patch_nonexistent_dataroot(tmp_path):
         patch = design.get("fileset", "rtl", "patch", "fix1", field="schema")
         patch.set('file', 'module.v')
         patch.set('dataroot', 'nonexistent')
-        patch.set('diff', '  line 1\n- old\n+ new\n')
+        patch.set('diff', '--- a/module.v\n+++ b/module.v\n@@ -1,2 +1,2 @@\n line 1\n-old\n+new\n')
     
     proj = Project(design)
     proj.set_flow(Flowgraph("test"))
@@ -2580,7 +2580,7 @@ def test_check_manifest_patch_matching_dataroot(tmp_path):
         patch = design.get("fileset", "rtl", "patch", "fix1", field="schema")
         patch.set('file', 'module.v')
         patch.set('dataroot', 'test')
-        patch.set('diff', '  line 1\n- old\n+ new\n')
+        patch.set('diff', '--- a/module.v\n+++ b/module.v\n@@ -1,2 +1,2 @@\n line 1\n-old\n+new\n')
     
     proj = Project(design)
     proj.set_flow(Flowgraph("test"))
@@ -2606,7 +2606,7 @@ def test_check_manifest_patch_no_dataroot_with_file_dataroot(tmp_path):
         # Create patch without specifying dataroot (should inherit from file)
         patch = design.get("fileset", "rtl", "patch", "fix1", field="schema")
         patch.set('file', 'module.v')
-        patch.set('diff', '  line 1\n- old\n+ new\n')
+        patch.set('diff', '--- a/module.v\n+++ b/module.v\n@@ -1,2 +1,2 @@\n line 1\n-old\n+new\n')
     
     proj = Project(design)
     proj.set_flow(Flowgraph("test"))
@@ -2626,7 +2626,7 @@ def test_check_manifest_patch_file_no_dataroot(tmp_path):
         # Create patch without dataroot
         patch = design.get("fileset", "rtl", "patch", "fix1", field="schema")
         patch.set('file', 'module.v')
-        patch.set('diff', '  line 1\n- old\n+ new\n')
+        patch.set('diff', '--- a/module.v\n+++ b/module.v\n@@ -1,2 +1,2 @@\n line 1\n-old\n+new\n')
     
     proj = Project(design)
     proj.set_flow(Flowgraph("test"))
@@ -2659,7 +2659,7 @@ def test_summary_headers_single_patch():
         design.set_topmodule("top")
         patch = design.get("fileset", "rtl", "patch", "fix1", field="schema")
         patch.set('file', 'module.v')
-        patch.set('diff', '  line 1\n- old\n+ new\n')
+        patch.set('diff', '--- a/module.v\n+++ b/module.v\n@@ -1,2 +1,2 @@\n line 1\n-old\n+new\n')
     
     proj = Project(design)
     proj.add_fileset("rtl")
@@ -2795,7 +2795,7 @@ def test_summary_headers_order():
         design.set_topmodule("top")
         patch = design.get("fileset", "rtl", "patch", "fix1", field="schema")
         patch.set('file', 'module.v')
-        patch.set('diff', '  line 1\n- old\n+ new\n')
+        patch.set('diff', '--- a/module.v\n+++ b/module.v\n@@ -1,2 +1,2 @@\n line 1\n-old\n+new\n')
     
     proj = Project(design)
     proj.add_fileset("rtl")

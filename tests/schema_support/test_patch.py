@@ -36,8 +36,8 @@ def test_apply_patch_success(tmpdir):
     with open(file_to_patch, "w") as f:
         f.write(file_content)
 
-    # Create a diff using ndiff format
-    diff_text = "  line 1\n- line 2\n+ line two\n  line 3\n"
+    # Create a diff using unified_diff format
+    diff_text = "--- a/test.txt\n+++ b/test.txt\n@@ -1,3 +1,3 @@\n line 1\n-line 2\n+line two\n line 3\n"
 
     # Create a Patch object and set the diff
     patch = Patch('testpatch')
@@ -73,7 +73,7 @@ def test_apply_patch_no_diff():
 def test_apply_patch_file_not_found():
     """Test patch application when file doesn't exist."""
     patch = Patch('testpatch')
-    patch.set('diff', "  line 1\n- line 2\n+ line two\n")
+    patch.set('diff', "--- a/file.txt\n+++ b/file.txt\n@@ -1,2 +1,2 @@\n line 1\n-line 2\n+line two\n")
     
     # File doesn't exist, should raise FileNotFoundError
     with pytest.raises(FileNotFoundError, match="File to patch does not exist"):
@@ -88,7 +88,7 @@ def test_apply_patch_backup_failure(tmpdir, monkeypatch):
         f.write("line 1\nline 2\n")
     
     patch = Patch('testpatch')
-    patch.set('diff', "  line 1\n- line 2\n+ line two\n")
+    patch.set('diff', "--- a/test.txt\n+++ b/test.txt\n@@ -1,2 +1,2 @@\n line 1\n-line 2\n+line two\n")
     
     # Mock shutil.copy to raise an exception
     import shutil
@@ -111,7 +111,7 @@ def test_apply_patch_write_failure(tmpdir, monkeypatch):
         f.write("line 1\nline 2\n")
     
     patch = Patch('testpatch')
-    patch.set('diff', "  line 1\n- line 2\n+ line two\n")
+    patch.set('diff', "--- a/test.txt\n+++ b/test.txt\n@@ -1,2 +1,2 @@\n line 1\n-line 2\n+line two\n")
     
     # Mock the file write to fail - we need to let backup succeed but file write fail
     original_open = open
@@ -151,10 +151,10 @@ def test_create_from_files(tmpdir):
     
     # Verify diff was set and contains expected markers
     diff_text = patch.get('diff')
-    assert "  line 1" in diff_text
-    assert "- line 2" in diff_text
-    assert "+ line two" in diff_text
-    assert "  line 3" in diff_text
+    assert " line 1" in diff_text
+    assert "-line 2" in diff_text
+    assert "+line two" in diff_text
+    assert " line 3" in diff_text
 
 
 def test_create_from_files_and_apply(tmpdir):
@@ -198,7 +198,7 @@ def test_apply_patch_multiline_change(tmpdir):
         f.write(file_content)
 
     # Create a diff with multiple changes
-    diff_text = "  line 1\n- line 2\n- line 3\n+ line two and three\n  line 4\n  line 5\n"
+    diff_text = "--- a/test.txt\n+++ b/test.txt\n@@ -1,5 +1,4 @@\n line 1\n-line 2\n-line 3\n+line two and three\n line 4\n line 5\n"
 
     patch = Patch('testpatch')
     patch.set('diff', diff_text)
@@ -220,7 +220,7 @@ def test_apply_patch_empty_file(tmpdir):
         f.write("")
 
     # Create a diff adding content
-    diff_text = "+ new line\n"
+    diff_text = "--- a/empty.txt\n+++ b/empty.txt\n@@ -0,0 +1 @@\n+new line\n"
 
     patch = Patch('testpatch')
     patch.set('diff', diff_text)
@@ -231,3 +231,219 @@ def test_apply_patch_empty_file(tmpdir):
         patched_content = f.read()
 
     assert patched_content == "new line\n"
+
+
+def test_patch_spi_file(tmpdir):
+    """Test applying a patch to the SPI Verilog file - real bug fix."""
+    import difflib
+    
+    # Create a copy of the buggy SPI file
+    spi_content_buggy = """module spi(
+  input clk,
+  input rst,
+  input ss,
+  input mosi,
+  output miso,
+  input sck,
+  output [7:0] dout,
+  output done
+);
+ 
+  reg ss_d, ss_q;
+  reg mosi_d, mosi_q;
+  reg sck_d, sck_q;
+  reg sck_old_d, sck_old_q;
+  reg [7:0] data_d, data_q;
+  reg done_d, done_q;
+  reg [2:0] bit_ct_d, bit_ct_q;
+  reg [7:0] dout_d, dout_q;
+  reg miso_d, miso_q;
+ 
+  assign miso = miso_q;
+  assign done = ~done_q; // This should have been done_q
+  assign dout = dout_q;
+ 
+  always @(*) begin
+    ss_d = ss;
+  end
+endmodule
+"""
+    
+    spi_content_fixed = """module spi(
+  input clk,
+  input rst,
+  input ss,
+  input mosi,
+  output miso,
+  input sck,
+  output [7:0] dout,
+  output done
+);
+ 
+  reg ss_d, ss_q;
+  reg mosi_d, mosi_q;
+  reg sck_d, sck_q;
+  reg sck_old_d, sck_old_q;
+  reg [7:0] data_d, data_q;
+  reg done_d, done_q;
+  reg [2:0] bit_ct_d, bit_ct_q;
+  reg [7:0] dout_d, dout_q;
+  reg miso_d, miso_q;
+ 
+  assign miso = miso_q;
+  assign done = done_q;
+  assign dout = dout_q;
+ 
+  always @(*) begin
+    ss_d = ss;
+  end
+endmodule
+"""
+    
+    spi_file = os.path.join(tmpdir, "spi.v")
+    with open(spi_file, "w") as f:
+        f.write(spi_content_buggy)
+    
+    # Generate the patch using difflib to ensure correct format
+    patch_text = ''.join(difflib.unified_diff(
+        spi_content_buggy.splitlines(keepends=True),
+        spi_content_fixed.splitlines(keepends=True),
+        fromfile='spi.v',
+        tofile='spi.v'
+    ))
+    
+    patch = Patch('spi_fix')
+    patch.set('diff', patch_text)
+    
+    # Apply the patch
+    patch.apply(spi_file)
+    
+    # Verify the patch was applied
+    with open(spi_file, "r") as f:
+        patched_content = f.read()
+    
+    # Check that the bug fix was applied
+    assert "assign done = done_q;" in patched_content
+    assert "assign done = ~done_q;" not in patched_content
+    # The comment should be removed
+    assert "// This should have been done_q" not in patched_content
+
+
+def test_patch_with_tabs(tmpdir):
+    """Test that patches handle tabs in the header correctly."""
+    original_content = "line1\nline2\nline3\n"
+    
+    test_file = os.path.join(tmpdir, "test.txt")
+    with open(test_file, "w") as f:
+        f.write(original_content)
+    
+    # Patch with tab character in header (like from diff command)
+    patch_text = "--- test.txt\t2026-01-17 10:12:34\n+++ test_new.txt\t2026-01-17 10:12:49\n@@ -1,3 +1,3 @@\n line1\n-line2\n+line TWO\n line3\n"
+    
+    patch = Patch('tab_test')
+    patch.set('diff', patch_text)
+    patch.apply(test_file)
+    
+    with open(test_file, "r") as f:
+        result = f.read()
+    
+    assert result == "line1\nline TWO\nline3\n"
+
+
+def test_patch_multiline_context(tmpdir):
+    """Test patch with multiple lines of context."""
+    original_content = """line 1
+line 2
+line 3
+line 4
+line 5
+line 6
+line 7
+"""
+    
+    test_file = os.path.join(tmpdir, "test.txt")
+    with open(test_file, "w") as f:
+        f.write(original_content)
+    
+    # Patch with more context
+    patch_text = """--- test.txt
++++ test.txt
+@@ -2,5 +2,5 @@
+ line 2
+ line 3
+-line 4
++line FOUR
+ line 5
+ line 6
+"""
+    
+    patch = Patch('context_test')
+    patch.set('diff', patch_text)
+    patch.apply(test_file)
+    
+    with open(test_file, "r") as f:
+        result = f.read()
+    
+    expected = """line 1
+line 2
+line 3
+line FOUR
+line 5
+line 6
+line 7
+"""
+    assert result == expected
+
+
+def test_patch_multiple_hunks(tmpdir):
+    """Test patch with multiple separate hunks."""
+    original_content = """line 1
+line 2
+line 3
+line 4
+line 5
+line 6
+line 7
+line 8
+line 9
+line 10
+"""
+    
+    test_file = os.path.join(tmpdir, "test.txt")
+    with open(test_file, "w") as f:
+        f.write(original_content)
+    
+    # Patch with two separate hunks
+    patch_text = """--- test.txt
++++ test.txt
+@@ -1,3 +1,3 @@
+ line 1
+-line 2
++line TWO
+ line 3
+@@ -8,3 +8,3 @@
+ line 8
+-line 9
++line NINE
+ line 10
+"""
+    
+    patch = Patch('multi_hunk')
+    patch.set('diff', patch_text)
+    patch.apply(test_file)
+    
+    with open(test_file, "r") as f:
+        result = f.read()
+    
+    expected = """line 1
+line TWO
+line 3
+line 4
+line 5
+line 6
+line 7
+line 8
+line NINE
+line 10
+"""
+    assert result == expected
