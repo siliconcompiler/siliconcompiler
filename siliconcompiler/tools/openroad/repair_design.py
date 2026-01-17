@@ -11,7 +11,7 @@ class RepairDesignTask(APRTask, OpenROADSTAParameter, OpenROADRSZDRVParameter):
     def __init__(self):
         super().__init__()
 
-        self.add_parameter("ifp_tie_separation", "float",
+        self.add_parameter("ifp_tie_separation", "float<0.0->>",
                            "maximum distance between tie high/low cells in microns",
                            defvalue=0, unit="um")
 

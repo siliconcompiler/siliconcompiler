@@ -11,7 +11,7 @@ class RouteTask(VPRTask):
     def __init__(self):
         super().__init__()
 
-        self.add_parameter("max_router_iterations", "int",
+        self.add_parameter("max_router_iterations", "int<1->>",
                            "set maximum number of routing iterations", defvalue=50)
         self.add_parameter("gen_post_implementation_netlist", "bool",
                            "set to true to have VPR generate a post-implementation netlist",
