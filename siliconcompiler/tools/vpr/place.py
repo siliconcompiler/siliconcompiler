@@ -48,8 +48,7 @@ class PlaceTask(VPRTask):
             if files:
                 pcf_file = files[0]
 
-                fpga = self.project.get("library", self.project.get("fpga", "device"),
-                                        field="schema")
+                fpga = self.project.get_library(self.project.get("fpga", "device"))
                 map_file = fpga.find_files("tool", "vpr", "constraintsmap")
 
                 constraints_map = load_constraints_map(map_file)

@@ -37,7 +37,7 @@ class LECTask(Task):
         libcorners = scenario.get_libcorner(self.step, self.index)
         delay_model = self.project.get("asic", "delaymodel")
         for asiclib in self.project.get("asic", "asiclib"):
-            lib = self.project.get("library", asiclib, field="schema")
+            lib = self.project.get_library(asiclib)
             for corner in libcorners:
                 if not lib.valid("asic", "libcornerfileset", corner, delay_model):
                     continue
@@ -64,7 +64,7 @@ class LECTask(Task):
             libcorners = scenario.get_libcorner(self.step, self.index)
             delay_model = self.project.get("asic", "delaymodel")
             for asiclib in self.project.get("asic", "asiclib"):
-                lib = self.project.get("library", asiclib, field="schema")
+                lib = self.project.get_library(asiclib)
                 for corner in libcorners:
                     if not lib.valid("asic", "libcornerfileset", corner, delay_model):
                         continue

@@ -244,7 +244,7 @@ class ASIC(Project):
             if pdk not in self.getkeys("library"):
                 error = True
                 self.logger.error(f"{pdk} library has not been loaded")
-            elif not isinstance(self.get("library", pdk, field="schema"), PDK):
+            elif not isinstance(self.get_library(pdk), PDK):
                 error = True
                 self.logger.error(f"{pdk} must be a PDK")
 
@@ -432,7 +432,7 @@ class ASIC(Project):
         if not self.get("asic", "pdk") and self.get("asic", "mainlib"):
             mainlib = None
             if self._has_library(self.get("asic", "mainlib")):
-                mainlib = self.get("library", self.get("asic", "mainlib"), field="schema")
+                mainlib = self.get_library(self.get("asic", "mainlib"))
             if mainlib:
                 mainlib_pdk = mainlib.get("asic", "pdk")
                 if mainlib_pdk:
@@ -530,7 +530,7 @@ class ASICTask(Task):
             raise ValueError("mainlib has not been defined in [asic,mainlib]")
         if mainlib not in self.project.getkeys("library"):
             raise LookupError(f"{mainlib} has not been loaded")
-        return self.project.get("library", mainlib, field="schema")
+        return self.project.get_library(mainlib)
 
     @property
     def pdk(self) -> PDK:
@@ -540,7 +540,7 @@ class ASICTask(Task):
             raise ValueError("pdk has not been defined in [asic,pdk]")
         if pdk not in self.project.getkeys("library"):
             raise LookupError(f"{pdk} has not been loaded")
-        return self.project.get("library", pdk, field="schema")
+        return self.project.get_library(pdk)
 
     def set_asic_var(self,
                      key: str,

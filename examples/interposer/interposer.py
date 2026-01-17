@@ -83,7 +83,7 @@ def main():
 
     # 2. Configure the DRC tool (KLayout).
     # Get the DRC task object and set a variable to specify which DRC deck to use.
-    DRCTask.find_task(project).set("var", "drc_name", "drc")
+    DRCTask.find_task(project).set_klayout_drcname("drc")
 
     # --- Execution & Analysis ---
     # Run the entire composite flow.

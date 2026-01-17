@@ -72,9 +72,10 @@ class Resolver:
         self.__cacheid = None
 
         if self.__root and hasattr(self.__root, "logger"):
-            self.__logger = self.__root.logger.getChild(f"resolver-{self.name}")
+            rootlogger = self.__root.logger
         else:
-            self.__logger = logging.getLogger(f"resolver-{self.name}")
+            rootlogger = MPManager.logger()
+        self.__logger = rootlogger.getChild(f"resolver-{self.name}")
 
     @staticmethod
     def populate_resolvers() -> None:

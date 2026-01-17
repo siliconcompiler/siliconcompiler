@@ -22,7 +22,6 @@ from siliconcompiler.schema_support.dependencyschema import DependencySchema
 from siliconcompiler.utils.logging import SCColorLoggerFormatter, SCLoggerFormatter
 from siliconcompiler.utils.paths import jobdir
 
-from siliconcompiler.project import SCColorLoggerFormatter as dut_sc_color_logger
 from siliconcompiler.scheduler import SCRuntimeError
 
 
@@ -84,7 +83,7 @@ def test_option():
 
 
 def test_init_logger(monkeypatch):
-    monkeypatch.setattr(dut_sc_color_logger, "supports_color", lambda _: True)
+    monkeypatch.setattr(SCColorLoggerFormatter, "supports_color", lambda _: True)
 
     project = Project()
     assert isinstance(project.logger, logging.Logger)
@@ -96,7 +95,7 @@ def test_init_logger(monkeypatch):
 
 
 def test_init_logger_no_color(monkeypatch):
-    monkeypatch.setattr(dut_sc_color_logger, "supports_color", lambda _: False)
+    monkeypatch.setattr(SCColorLoggerFormatter, "supports_color", lambda _: False)
 
     project = Project()
     assert isinstance(project.logger, logging.Logger)
@@ -185,7 +184,7 @@ def test_set_flow_obj():
 
 
 def test_pickling(monkeypatch):
-    monkeypatch.setattr(dut_sc_color_logger, "supports_color", lambda _: True)
+    monkeypatch.setattr(SCColorLoggerFormatter, "supports_color", lambda _: True)
 
     org_prj = Project()
     new_prj = pickle.loads(pickle.dumps(org_prj))
@@ -842,6 +841,25 @@ def test_has_library_not_found_with_object():
     proj.add_dep(design)
     assert proj._has_library("notfound") is False
     assert proj._has_library(design) is True
+
+
+def test_get_library_invalid_type():
+    proj = Project()
+    with pytest.raises(TypeError, match=r"^library must be a string$"):
+        proj.get_library(123)
+
+
+def test_get_library_not_found():
+    proj = Project()
+    with pytest.raises(KeyError, match=r"^'testlib is not a valid library'$"):
+        proj.get_library("testlib")
+
+
+def test_get_library_success():
+    proj = Project()
+    lib = StdCellLibrary("testlib")
+    proj.add_dep(lib)
+    assert proj.get_library("testlib") is lib
 
 
 def test_summary_headers():
