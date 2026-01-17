@@ -75,18 +75,15 @@ def generate_class_hierarchy(classes, output_file="class_hierarchy"):
                     dot.node(cls.__name__, fillcolor=color)
                 added_nodes.add(cls.__name__)
     edges = []
-    for cls in classes:
-        mro = [c for c in inspect.getmro(cls) if 'siliconcompiler' in c.__module__ or c is cls]
-        for i in range(len(mro) - 1):
-            parent = mro[i+1]
-            child = mro[i]
-
-            if (parent.__name__, child.__name__) in edges:
+    for cls in all_mro_classes:
+        for base in cls.__bases__:
+            if 'siliconcompiler' not in base.__module__:
                 continue
-            edges.append((parent.__name__, child.__name__))
+            if (base.__name__, cls.__name__) in edges:
+                continue
+            edges.append((base.__name__, cls.__name__))
             # Add edge
-            dot.edge(f"{parent.__name__}:w", f"{child.__name__}:e")
-
+            dot.edge(f"{base.__name__}:w", f"{cls.__name__}:e")
     # Save the dot file and render a PNG
     try:
         dot.render(output_file, view=False, format='png', cleanup=True)
