@@ -12,8 +12,9 @@ from datetime import datetime
 
 from typing import Union, Dict, Optional, Tuple, List, Set, TYPE_CHECKING
 
-from siliconcompiler import NodeStatus, Task
+from siliconcompiler import NodeStatus, Task, Design
 from siliconcompiler.schema import Journal
+from siliconcompiler.schema.parametervalue import NodeListValue
 from siliconcompiler.flowgraph import RuntimeFlowgraph
 from siliconcompiler.scheduler import SchedulerNode
 from siliconcompiler.scheduler import SlurmSchedulerNode
@@ -27,7 +28,7 @@ from siliconcompiler.utils.logging import SCLoggerFormatter
 from siliconcompiler.utils.multiprocessing import MPManager
 from siliconcompiler.scheduler import send_messages, SCRuntimeError
 from siliconcompiler.utils.paths import collectiondir, jobdir, workdir
-from siliconcompiler.utils.curation import collect
+from siliconcompiler.utils.curation import collect, collectiondir
 
 if TYPE_CHECKING:
     from siliconcompiler.project import Project
@@ -977,11 +978,6 @@ class Scheduler:
         Returns:
             bool: True if any files were marked for collection, False otherwise.
         """
-        from siliconcompiler.design import Design
-        from siliconcompiler.utils.paths import collectiondir
-        import os
-        import shutil
-        
         self.__logger.info("Marking patch files for collection")
         
         # Get collection directory to restore .orig files
@@ -1093,11 +1089,6 @@ class Scheduler:
         - Always apply patches to .orig to produce the final file
         - Collection system handles updating .orig if source file changes
         """
-        from siliconcompiler.design import Design
-        from siliconcompiler.utils.paths import collectiondir
-        import os
-        import shutil
-        
         collection_dir = collectiondir(self.__project)
         if not collection_dir or not os.path.exists(collection_dir):
             return
@@ -1142,7 +1133,6 @@ class Scheduler:
                     param = design_obj.get('fileset', fileset, 'file', filetype, field=None)
                     for node_val, _, _ in param.getvalues(return_values=False):
                         # Get list of NodeValue objects
-                        from siliconcompiler.schema.parametervalue import NodeListValue
                         if isinstance(node_val, NodeListValue):
                             values_list = node_val.values
                         else:
