@@ -5,9 +5,10 @@ from argparse import ArgumentParser
 
 try:
     import graphviz
-except ImportError:
-    print("Graphviz is not installed. Please install it with 'pip install graphviz'")
-    exit(1)
+    _has_graphviz = True
+except ModuleNotFoundError:
+    _has_graphviz = False
+
 
 # Import all the classes
 from siliconcompiler import (Project, ASIC, FPGA, Lint, Sim, Design, PDK,
@@ -26,6 +27,10 @@ def generate_class_hierarchy(classes, output_file="class_hierarchy"):
     """
     Generates a class inheritance graph using graphviz.
     """
+    if not _has_graphviz:
+        raise RuntimeError("Graphviz is not installed."
+                           " Please install it to generate class hierarchy graphs.")
+
     dot = graphviz.Digraph('SiliconCompiler Class Hierarchy',
                            comment='SiliconCompiler Class Hierarchy')
     dot.attr('graph', rankdir='RL', concentrate='true')
@@ -86,7 +91,7 @@ def generate_class_hierarchy(classes, output_file="class_hierarchy"):
     try:
         dot.render(output_file, view=False, format='png', cleanup=True)
         print(f"Generated class hierarchy graph at {output_file}.png")
-    except graphviz.backend.ExecutableNotFound:
+    except graphviz.ExecutableNotFound:
         print("Graphviz executable not found. Please install it and add it to your PATH.")
         print("On Debian/Ubuntu: sudo apt-get install graphviz")
         print("On macOS (with Homebrew): brew install graphviz")
