@@ -37,7 +37,7 @@ class MetricSchema(BaseSchema):
             schema.insert(
                 item,
                 Parameter(
-                    'int',
+                    'int<0->>',
                     scope=Scope.JOB,
                     shorthelp=f"Metric: total {item}",
                     switch=f"-metric_{item} 'step index <int>'",
@@ -51,7 +51,7 @@ class MetricSchema(BaseSchema):
         schema.insert(
             'memory',
             Parameter(
-                'float',
+                'float<0.0->>',
                 unit='B',
                 scope=Scope.JOB,
                 shorthelp="Metric: memory",
@@ -67,7 +67,7 @@ class MetricSchema(BaseSchema):
         schema.insert(
             'exetime',
             Parameter(
-                'float',
+                'float<0.0->>',
                 unit='s',
                 scope=Scope.JOB,
                 shorthelp="Metric: exetime",
@@ -86,7 +86,7 @@ class MetricSchema(BaseSchema):
         schema.insert(
             'tasktime',
             Parameter(
-                'float',
+                'float<0.0->>',
                 unit='s',
                 scope=Scope.JOB,
                 shorthelp="Metric: tasktime",
@@ -103,7 +103,7 @@ class MetricSchema(BaseSchema):
         schema.insert(
             'totaltime',
             Parameter(
-                'float',
+                'float<0.0->>',
                 unit='s',
                 scope=Scope.JOB,
                 shorthelp="Metric: totaltime",

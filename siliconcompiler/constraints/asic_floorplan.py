@@ -68,7 +68,7 @@ class ASICAreaConstraint(BaseSchema):
 
         schema.insert(
             'density', Parameter(
-                'float',
+                'float<0.0-100.0>',
                 pernode=PerNode.OPTIONAL,
                 scope=Scope.GLOBAL,
                 shorthelp="Constraint: layout density",
@@ -83,7 +83,7 @@ class ASICAreaConstraint(BaseSchema):
 
         schema.insert(
             'aspectratio', Parameter(
-                'float',
+                'float<0.0->>',
                 pernode=PerNode.OPTIONAL,
                 defvalue=1.0,
                 scope=Scope.GLOBAL,
