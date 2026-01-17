@@ -494,6 +494,112 @@ class SchedulerNode:
             if check_val != prev_val:
                 gen_reset(key)
 
+    def check_patches_changed(self, previous_run: "SchedulerNode", 
+                              path_keys: Set[Tuple[str, ...]]) -> None:
+        """
+        Checks if any patches affecting this node's required files have been added, 
+        removed, or modified.
+
+        Args:
+            previous_run (SchedulerNode): The node object from a previous run.
+            path_keys (set of tuples): Set of file/dir keypaths required by this node.
+
+        Raises:
+            SchedulerNodeReset: If patches affecting required files have changed.
+        """
+        # Get current and previous filesets
+        fileset = self.__project.get("option", "fileset")[0]
+        
+        # Check if fileset exists in both current and previous
+        if not self.__project.design.has_fileset(fileset):
+            return
+        
+        if not previous_run.__project.design.has_fileset(fileset):
+            return
+        
+        # Extract the set of files needed by this node from path_keys
+        required_files = set()
+        for key in path_keys:
+            # Check if this is a fileset file reference
+            # Key could be ('library', '<name>', 'fileset', '<fileset>', 'file', '<type>')
+            # or ('fileset', '<fileset>', 'file', '<type>')
+            if 'fileset' in key and 'file' in key:
+                try:
+                    # Find the fileset name in the key
+                    fileset_idx = key.index('fileset')
+                    if fileset_idx + 1 < len(key) and key[fileset_idx + 1] == fileset:
+                        # Get the actual files for this key
+                        step, index = self.__step, self.__index
+                        param = self.__project.get(*key, field=None)
+                        if param.get(field='pernode').is_never():
+                            step, index = None, None
+                        
+                        files = self.__project.get(*key, step=step, index=index)
+                        if isinstance(files, str):
+                            files = [files]
+                        if files:
+                            # Extract just the filename without path
+                            required_files.update(os.path.basename(f) for f in files)
+                except (KeyError, TypeError, ValueError):
+                    pass
+        
+        # If we have no required files from the fileset, no patches can affect this node
+        if len(required_files) == 0:
+            return
+        
+        # Get patch keys from both runs
+        current_patches = set()
+        if self.__project.design.has_fileset(fileset):
+            current_patches = set(self.__project.design.getkeys("fileset", fileset, "patch"))
+        
+        previous_patches = set()
+        if previous_run.__project.design.has_fileset(fileset):
+            previous_patches = set(previous_run.__project.design.getkeys("fileset", fileset, "patch"))
+        
+        # Check for added patches
+        added = current_patches - previous_patches
+        for patch_name in added:
+            patch = self.__project.design.get("fileset", fileset, "patch", patch_name, 
+                                             field="schema")
+            patch_file = patch.get('file')
+            if patch_file in required_files:
+                raise SchedulerNodeReset(f'Patch {fileset}/{patch_name} added '
+                                       f'(affects required file {patch_file})')
+        
+        # Check for removed patches
+        removed = previous_patches - current_patches
+        for patch_name in removed:
+            patch = previous_run.__project.design.get("fileset", fileset, "patch", patch_name,
+                                                      field="schema")
+            patch_file = patch.get('file')
+            if patch_file in required_files:
+                raise SchedulerNodeReset(f'Patch {fileset}/{patch_name} removed '
+                                       f'(affects required file {patch_file})')
+        
+        # Check for modified patches
+        for patch_name in current_patches:
+            current_patch = self.__project.design.get("fileset", fileset, "patch", patch_name, 
+                                                      field="schema")
+            previous_patch = previous_run.__project.design.get("fileset", fileset, "patch", 
+                                                               patch_name, field="schema")
+            
+            # Get the files affected (current and previous, in case 'file' field changed)
+            current_file = current_patch.get('file')
+            previous_file = previous_patch.get('file')
+            
+            # Only check if this patch affects required files
+            if current_file not in required_files and previous_file not in required_files:
+                continue
+            
+            # Check if patch fields have changed
+            for field in ('file', 'dataroot', 'diff'):
+                current_val = current_patch.get(field)
+                previous_val = previous_patch.get(field)
+                
+                if current_val != previous_val:
+                    raise SchedulerNodeReset(f'Patch {fileset}/{patch_name} field '
+                                           f'"{field}" modified (affects required file {current_file})')
+
     def check_files_changed(self, previous_run: "SchedulerNode",
                             previous_time: float, keys: Set[Tuple[str, ...]]) -> None:
         """
@@ -574,7 +680,7 @@ class SchedulerNode:
         """
         all_keys = set()
 
-        all_keys.update(self.__task.get('require'))
+        all_keys.update(self.__task.get('require', step=self.__step, index=self.__index))
 
         tool_task_prefix = ('tool', self.__task.tool(), 'task', self.__task.task())
         for key in ('option', 'threads', 'prescript', 'postscript', 'refdir', 'script',):
@@ -659,6 +765,7 @@ class SchedulerNode:
 
                     self.check_values_changed(previous_node, value_keys.union(path_keys))
                     self.check_files_changed(previous_node, previous_node_time, path_keys)
+                    self.check_patches_changed(previous_node, path_keys)
 
     def setup_input_directory(self) -> None:
         """
