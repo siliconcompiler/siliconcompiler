@@ -30,11 +30,31 @@ class LibrarySchema(Design):
         )
         super().__init__(name)
 
+        # Disable fileset copying by default
+        self.set("fileset", "default", "file", "default", False, field="copy")
+        self.set("fileset", "default", "idir", False, field="copy")
+        self.set("fileset", "default", "libdir", False, field="copy")
+
 
 class ToolLibrarySchema(Design):
     """
     A class for managing tool-related library schemas.
     """
+    def __init__(self, name: Optional[str] = None):
+        """
+        Initializes a ToolLibrarySchema object.
+
+        Args:
+            name (str, optional): The name of the tool library. Defaults to None.
+        """
+        super().__init__()
+        self.set_name(name)
+
+        # Disable fileset copying by default
+        self.set("fileset", "default", "file", "default", False, field="copy")
+        self.set("fileset", "default", "idir", False, field="copy")
+        self.set("fileset", "default", "libdir", False, field="copy")
+
     @final
     def define_tool_parameter(self, tool: str, name: str, type: str, help: str, **kwargs):
         """
