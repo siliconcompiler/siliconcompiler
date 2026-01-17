@@ -36,12 +36,12 @@ def design_with_patches(tmp_path):
         patch1 = design.get("fileset", "rtl", "patch", "fix1", field="schema")
         patch1.set('file', 'module1.v')
         patch1.set('dataroot', 'src')
-        patch1.set('diff', '  module test1;\n-   wire a;\n+   wire a, c;\n  endmodule\n')
+        patch1.set('diff', '--- a/module1.v\n+++ b/module1.v\n@@ -1,3 +1,3 @@\n module test1;\n-  wire a;\n+  wire a, c;\n endmodule\n')
         
         patch2 = design.get("fileset", "rtl", "patch", "fix2", field="schema")
         patch2.set('file', 'module2.v')
         patch2.set('dataroot', 'src')
-        patch2.set('diff', '  module test2;\n-   wire b;\n+   wire b, d;\n  endmodule\n')
+        patch2.set('diff', '--- a/module2.v\n+++ b/module2.v\n@@ -1,3 +1,3 @@\n module test2;\n-  wire b;\n+  wire b, d;\n endmodule\n')
     
     return design
 
@@ -153,7 +153,7 @@ def test_patch_without_dataroot_collected(tmp_path):
         # Create patch without dataroot
         patch = design.get("fileset", "rtl", "patch", "fix1", field="schema")
         patch.set('file', 'module.v')
-        patch.set('diff', '  line1\n-   old\n+   new\n')
+        patch.set('diff', '--- a/module.v\n+++ b/module.v\n@@ -1,1 +1,1 @@\n-old\n+new\n')
     
     flow = Flowgraph("testflow")
     flow.node("step1", NOPTask())
@@ -204,7 +204,7 @@ def test_patch_only_marks_matching_dataroot(tmp_path):
         patch = design.get("fileset", "rtl", "patch", "fix1", field="schema")
         patch.set('file', 'file1.v')
         patch.set('dataroot', 'root1')
-        patch.set('diff', '  line1\n')
+        patch.set('diff', '--- a/file1.v\n+++ b/file1.v\n@@ -1,1 +1,1 @@\n line1\n')
     
     flow = Flowgraph("testflow")
     flow.node("step1", NOPTask())
@@ -242,11 +242,11 @@ def test_multiple_patches_same_file(tmp_path):
         # Create multiple patches for same file
         patch1 = design.get("fileset", "rtl", "patch", "fix1", field="schema")
         patch1.set('file', 'module.v')
-        patch1.set('diff', '  module test;\n+   wire a;\n  endmodule\n')
+        patch1.set('diff', '--- a/module.v\n+++ b/module.v\n@@ -1,2 +1,3 @@\n module test;\n+  wire a;\n endmodule\n')
         
         patch2 = design.get("fileset", "rtl", "patch", "fix2", field="schema")
         patch2.set('file', 'module.v')
-        patch2.set('diff', '  module test;\n+   wire b;\n  endmodule\n')
+        patch2.set('diff', '--- a/module.v\n+++ b/module.v\n@@ -1,2 +1,3 @@\n module test;\n+  wire b;\n endmodule\n')
     
     flow = Flowgraph("testflow")
     flow.node("step1", NOPTask())
@@ -389,7 +389,7 @@ def test_patch_diff_change_applied_correctly(design_with_patches, tmp_path, monk
         
         # Change the patch diff
         patch1 = design.get("fileset", "rtl", "patch", "fix1", field="schema")
-        patch1.set('diff', '  module test1;\n-   wire a;\n+   wire a, e;\n  endmodule\n')
+        patch1.set('diff', '--- a/module1.v\n+++ b/module1.v\n@@ -1,3 +1,3 @@\n module test1;\n-  wire a;\n+  wire a, e;\n endmodule\n')
         
         # Run collection and patching again with new diff
         scheduler._Scheduler__mark_patch_files_for_collection()
@@ -427,7 +427,7 @@ def test_source_file_change_handled_correctly(tmp_path, monkeypatch):
         patch = design.get("fileset", "rtl", "patch", "fix1", field="schema")
         patch.set('file', 'module.v')
         patch.set('dataroot', 'src')
-        patch.set('diff', '  module test;\n-   wire a;\n+   wire a, c;\n  endmodule\n')
+        patch.set('diff', '--- a/module.v\n+++ b/module.v\n@@ -1,3 +1,3 @@\n module test;\n-  wire a;\n+  wire a, c;\n endmodule\n')
     
     flow = Flowgraph("testflow")
     flow.node("step1", NOPTask())
@@ -478,7 +478,7 @@ def test_source_file_change_handled_correctly(tmp_path, monkeypatch):
         
         # Update the patch to match new source
         patch = design.get("fileset", "rtl", "patch", "fix1", field="schema")
-        patch.set('diff', '  module test;\n-   wire a, b;\n+   wire a, b, c;\n  endmodule\n')
+        patch.set('diff', '--- a/module.v\n+++ b/module.v\n@@ -1,3 +1,3 @@\n module test;\n-  wire a, b;\n+  wire a, b, c;\n endmodule\n')
         
         # Run collection and patching again
         # Mark restores .orig files, collection sees changed source and updates files
@@ -623,7 +623,7 @@ def test_timestamp_preservation_prevents_recollection(design_with_patches, tmp_p
         
         # Change the patch diff (but source file stays same)
         patch1 = design.get("fileset", "rtl", "patch", "fix1", field="schema")
-        patch1.set('diff', '  module test1;\n-   wire a;\n+   wire a, d;\n  endmodule\n')
+        patch1.set('diff', '--- a/module1.v\n+++ b/module1.v\n@@ -1,3 +1,3 @@\n module test1;\n-  wire a;\n+  wire a, d;\n endmodule\n')
         
         # Run mark, collect, and patch again
         scheduler._Scheduler__mark_patch_files_for_collection()
@@ -673,7 +673,7 @@ def test_timestamp_updated_when_source_changes(tmp_path, monkeypatch):
         patch = design.get("fileset", "rtl", "patch", "fix1", field="schema")
         patch.set('file', 'module.v')
         patch.set('dataroot', 'src')
-        patch.set('diff', '  module test;\n-   wire a;\n+   wire a, c;\n  endmodule\n')
+        patch.set('diff', '--- a/module.v\n+++ b/module.v\n@@ -1,3 +1,3 @@\n module test;\n-  wire a;\n+  wire a, c;\n endmodule\n')
     
     flow = Flowgraph("testflow")
     flow.node("step1", NOPTask())
@@ -727,7 +727,7 @@ def test_timestamp_updated_when_source_changes(tmp_path, monkeypatch):
         
         # Update the patch to match new source
         patch = design.get("fileset", "rtl", "patch", "fix1", field="schema")
-        patch.set('diff', '  module test;\n-   wire a, b;\n+   wire a, b, c;\n  endmodule\n')
+        patch.set('diff', '--- a/module.v\n+++ b/module.v\n@@ -1,3 +1,3 @@\n module test;\n-  wire a, b;\n+  wire a, b, c;\n endmodule\n')
         
         # Mark restores .orig, collection detects source change and updates files
         scheduler._Scheduler__mark_patch_files_for_collection()
@@ -830,7 +830,7 @@ def test_multiple_patches_timestamp_consistency(design_with_patches, tmp_path, m
         patch3 = design.get("fileset", "rtl", "patch", "fix3", field="schema")
         patch3.set('file', 'module1.v')
         patch3.set('dataroot', 'src')
-        patch3.set('diff', '  module test1;\n-   wire a, c;\n+   wire a, c, e;\n  endmodule\n')
+        patch3.set('diff', '--- a/module1.v\n+++ b/module1.v\n@@ -1,3 +1,3 @@\n module test1;\n-  wire a, c;\n+  wire a, c, e;\n endmodule\n')
     
     flow = Flowgraph("testflow")
     flow.node("step1", NOPTask())
