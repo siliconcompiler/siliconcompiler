@@ -54,7 +54,7 @@ def test_dashboard_graph_cfg_file_not_found(monkeypatch):
     monkeypatch.setattr('sys.argv', [
         'sc-dashboard', '-cfg', 'test.json', '-graph_cfg', 'testing.json'])
 
-    with pytest.raises(ValueError, match="^not a valid file path: testing.json$"):
+    with pytest.raises(ValueError, match=r"^not a valid file path: testing.json$"):
         sc_dashboard.main()
 
 
