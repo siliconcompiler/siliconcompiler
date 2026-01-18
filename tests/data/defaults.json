@@ -18187,7 +18187,7 @@
                 }
               },
               "hashalgo": "sha256",
-              "copy": true
+              "copy": false
             }
           },
           "topmodule": {
@@ -18238,7 +18238,7 @@
               }
             },
             "hashalgo": "sha256",
-            "copy": true
+            "copy": false
           },
           "define": {
             "type": "[str]",
@@ -18308,7 +18308,7 @@
               }
             },
             "hashalgo": "sha256",
-            "copy": true
+            "copy": false
           },
           "lib": {
             "type": "[str]",
@@ -19591,7 +19591,7 @@
                 }
               },
               "hashalgo": "sha256",
-              "copy": true
+              "copy": false
             }
           },
           "topmodule": {
@@ -19642,7 +19642,7 @@
               }
             },
             "hashalgo": "sha256",
-            "copy": true
+            "copy": false
           },
           "define": {
             "type": "[str]",
@@ -19712,7 +19712,7 @@
               }
             },
             "hashalgo": "sha256",
-            "copy": true
+            "copy": false
           },
           "lib": {
             "type": "[str]",
@@ -20407,7 +20407,7 @@
                 }
               },
               "hashalgo": "sha256",
-              "copy": true
+              "copy": false
             }
           },
           "topmodule": {
@@ -20458,7 +20458,7 @@
               }
             },
             "hashalgo": "sha256",
-            "copy": true
+            "copy": false
           },
           "define": {
             "type": "[str]",
@@ -20528,7 +20528,7 @@
               }
             },
             "hashalgo": "sha256",
-            "copy": true
+            "copy": false
           },
           "lib": {
             "type": "[str]",
