@@ -87,7 +87,7 @@ def test_node_step_name():
     flow.node("teststep", NOPTask())
 
     # Invalid step
-    with pytest.raises(ValueError, match="^teststep/ is not a valid step, it cannot contain '/'$"):
+    with pytest.raises(ValueError, match=r"^teststep/ is not a valid step, it cannot contain '/'$"):
         flow.node("teststep/", NOPTask())
 
 
@@ -98,7 +98,7 @@ def test_node_index_name():
     flow.node("teststep", NOPTask(), index="index")
 
     # Invalid index
-    with pytest.raises(ValueError, match="^index/ is not a valid index, it cannot contain '/'$"):
+    with pytest.raises(ValueError, match=r"^index/ is not a valid index, it cannot contain '/'$"):
         flow.node("teststep", NOPTask(), index="index/")
 
 
@@ -120,7 +120,7 @@ def test_node_index():
 def test_node_reserved_step(step):
     flow = Flowgraph("testflow")
 
-    with pytest.raises(ValueError, match=f"^{step} is a reserved name$"):
+    with pytest.raises(ValueError, match=rf"^{step} is a reserved name$"):
         flow.node(step, "siliconcompiler.tools.builtin.nop/NOPTask")
 
 
@@ -132,7 +132,7 @@ def test_node_allow_step():
 def test_node_reserved_index(index):
     flow = Flowgraph("testflow")
 
-    with pytest.raises(ValueError, match=f"^{index} is a reserved name$"):
+    with pytest.raises(ValueError, match=rf"^{index} is a reserved name$"):
         flow.node("teststep", "siliconcompiler.tools.builtin.nop/NOPTask", index=index)
 
 
@@ -263,7 +263,7 @@ def test_insert_node_branch(large_flow):
 
 
 def test_insert_node_invalid(large_flow):
-    with pytest.raises(ValueError, match="^invalid/0 is not a valid node in testflow$"):
+    with pytest.raises(ValueError, match=r"^invalid/0 is not a valid node in testflow$"):
         large_flow.insert_node(
             "newnode", "siliconcompiler.tools.builtin.nop/NOPTask", before_step="invalid"
         )
@@ -374,7 +374,7 @@ def test_get_node_outputs(large_flow):
 
 
 def test_get_node_outputs_invalid(large_flow):
-    with pytest.raises(ValueError, match="^testnode/0 is not a valid node$"):
+    with pytest.raises(ValueError, match=r"^testnode/0 is not a valid node$"):
         large_flow.get_node_outputs("testnode", "0")
 
 
@@ -476,7 +476,7 @@ def test_graph_overlapping_names():
     flow = Flowgraph("composite")
     flow.graph(rtl_flow)
 
-    with pytest.raises(ValueError, match="^import is already defined$"):
+    with pytest.raises(ValueError, match=r"^import is already defined$"):
         flow.graph(apr_flow)
 
 
@@ -640,7 +640,7 @@ def test_runtime_get_entry_nodes_prune_from(large_flow):
 def test_runtime_get_nodes_starting_at_invalid(large_flow):
     runtime = RuntimeFlowgraph(large_flow, prune_nodes=[
         ("stepone", "0"), ("steptwo", "1"), ("stepthree", "2")])
-    with pytest.raises(ValueError, match="^stepone/0 is not a valid node$"):
+    with pytest.raises(ValueError, match=r"^stepone/0 is not a valid node$"):
         runtime.get_nodes_starting_at("stepone", "0")
 
 
@@ -984,7 +984,7 @@ def test_get_node_inputs_invalid(large_flow):
     runtime = RuntimeFlowgraph(large_flow, prune_nodes=[
         ("stepone", "0"), ("steptwo", "1"), ("stepthree", "2")])
 
-    with pytest.raises(ValueError, match="^stepone/0 is not a valid node$"):
+    with pytest.raises(ValueError, match=r"^stepone/0 is not a valid node$"):
         runtime.get_node_inputs("stepone", "0")
 
 
@@ -1089,14 +1089,14 @@ def test_get_task_module_ensure_cache(large_flow):
 
 def test_get_task_module_error(large_flow):
     assert large_flow.set("joinone", "0", "taskmodule", "notvalid.module/cls")
-    with pytest.raises(ModuleNotFoundError, match="^No module named 'notvalid'$"):
+    with pytest.raises(ModuleNotFoundError, match=r"^No module named 'notvalid'$"):
         large_flow.get_task_module("joinone", "0")
 
 
 def test_get_task_cls_not_found(large_flow):
     assert large_flow.set("joinone", "0", "taskmodule", "siliconcompiler/notaclass")
     with pytest.raises(AttributeError,
-                       match="^module 'siliconcompiler' has no attribute 'notaclass'$"):
+                       match=r"^module 'siliconcompiler' has no attribute 'notaclass'$"):
         large_flow.get_task_module("joinone", "0")
 
 

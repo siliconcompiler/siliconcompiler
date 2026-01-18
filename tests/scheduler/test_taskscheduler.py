@@ -88,7 +88,7 @@ def test_get_nodes_with_complete(large_flow, make_tasks):
 
 
 def test_register_callback_invalid():
-    with pytest.raises(ValueError, match="^pre_run0 is not a valid callback$"):
+    with pytest.raises(ValueError, match=r"^pre_run0 is not a valid callback$"):
         TaskScheduler.register_callback("pre_run0", lambda: None)
 
 

@@ -82,13 +82,13 @@ def test_init_with_env_project():
 
 def test_resolve():
     resolver = Resolver("testpath", Project("testproj"), "source://this")
-    with pytest.raises(NotImplementedError, match="^child class must implement this$"):
+    with pytest.raises(NotImplementedError, match=r"^child class must implement this$"):
         resolver.resolve()
 
 
 def test_find_resolver_not_found():
     with pytest.raises(ValueError,
-                       match="^Source URI 'nosupport://help.me/file' is not supported$"):
+                       match=r"^Source URI 'nosupport://help.me/file' is not supported$"):
         Resolver.find_resolver("nosupport://help.me/file")
 
 
@@ -344,7 +344,7 @@ def test_get_path_not_found():
     proj = Project("testproj")
 
     resolver = AlwaysOld("alwaysmissing", proj, "notused", "notused")
-    with pytest.raises(FileNotFoundError, match="^Unable to locate 'alwaysmissing' at .*path$"):
+    with pytest.raises(FileNotFoundError, match=r"^Unable to locate 'alwaysmissing' at .*path$"):
         resolver.get_path()
 
 
@@ -368,10 +368,10 @@ def test_remote_init_no_ref():
 def test_remote_child_impl():
     resolver = RemoteResolver("thisname", Project("testproj"), "https://filepath", "ref")
 
-    with pytest.raises(NotImplementedError, match="^child class must implement this$"):
+    with pytest.raises(NotImplementedError, match=r"^child class must implement this$"):
         resolver.resolve_remote()
 
-    with pytest.raises(NotImplementedError, match="^child class must implement this$"):
+    with pytest.raises(NotImplementedError, match=r"^child class must implement this$"):
         resolver.check_cache()
 
 
@@ -775,7 +775,7 @@ def test_keypath_resolver():
 def test_keypath_resolver_no_root():
     resolver = KeyPathResolver("thisname", None, "key://option,dir,testdir")
     with pytest.raises(RuntimeError,
-                       match="^A root schema has not been defined for 'thisname'$"):
+                       match=r"^A root schema has not been defined for 'thisname'$"):
         resolver.resolve()
 
 

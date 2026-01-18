@@ -250,7 +250,7 @@ def test_get_dataroot():
 
 def test_get_dataroot_not_found():
     schema = PathSchema()
-    with pytest.raises(ValueError, match="^testsource is not a recognized source$"):
+    with pytest.raises(ValueError, match=r"^testsource is not a recognized source$"):
         schema.get_dataroot("testsource")
 
 
@@ -394,7 +394,7 @@ def test_active_dataroot_missing():
     schema = PathSchema()
 
     assert schema._get_active(None) is None
-    with pytest.raises(ValueError, match="^testpack is not a recognized dataroot$"):
+    with pytest.raises(ValueError, match=r"^testpack is not a recognized dataroot$"):
         with schema.active_dataroot("testpack"):
             pass
     assert schema._get_active(None) is None
@@ -405,7 +405,7 @@ def test_active_dataroot_no_root():
     EditableSchema(schema).remove("dataroot")
 
     assert schema._get_active(None) is None
-    with pytest.raises(ValueError, match="^testpack is not a recognized dataroot$"):
+    with pytest.raises(ValueError, match=r"^testpack is not a recognized dataroot$"):
         with schema.active_dataroot("testpack"):
             pass
     assert schema._get_active(None) is None
@@ -646,7 +646,7 @@ def test_get_active_dataroot_multiple_defined():
     schema.set_dataroot("defined1", "file://")
 
     with pytest.raises(ValueError,
-                       match="^dataroot must be specified, multiple are defined: "
+                       match=r"^dataroot must be specified, multiple are defined: "
                              "defined0, defined1$"):
         schema._get_active_dataroot(None)
 
