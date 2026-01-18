@@ -15,7 +15,7 @@ class FPGAMetricsSchema(MetricSchema):
             schema.insert(
                 item,
                 Parameter(
-                    'int',
+                    'int<0->>',
                     scope=Scope.JOB,
                     shorthelp=f"Metric: total {item}",
                     switch=f"-metric_{item} 'step index <int>'",
@@ -33,7 +33,7 @@ class FPGAMetricsSchema(MetricSchema):
             schema.insert(
                 item,
                 Parameter(
-                    'int',
+                    'int<0->>',
                     scope=Scope.JOB,
                     shorthelp=f"Metric: {description}",
                     switch=f"-metric_{item} 'step index <int>'",
@@ -49,7 +49,7 @@ class FPGAMetricsSchema(MetricSchema):
                     device families.""")))
 
         schema.insert(
-            'utilization',
+            'utilization<0.0->>',
             Parameter(
                 'float',
                 unit='%',

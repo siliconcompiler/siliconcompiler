@@ -910,7 +910,8 @@ class OpenROADANTParameter(OpenROADTask):
         self.add_parameter("ant_iterations", "int<1->>",
                            "maximum number of repair iterations to use during antenna repairs",
                            defvalue=3)
-        self.add_parameter("ant_margin", "float<0.0-100.0>", "adds a margin to the antenna ratios (0 - 100)",
+        self.add_parameter("ant_margin", "float<0.0-100.0>",
+                           "adds a margin to the antenna ratios (0 - 100)",
                            defvalue=0)
 
     def set_openroad_antiterations(self, iterations: int,
