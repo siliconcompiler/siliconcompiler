@@ -293,7 +293,7 @@ def test_write_depgraph_no_graphviz_exe():
 
         with pytest.raises(RuntimeError,
                            match=r"^Unable to save flowgraph: failed to execute 'a', make sure the "
-                                 "Graphviz executables are on your systems' PATH$"):
+                                 r"Graphviz executables are on your systems' PATH$"):
             schema.write_depgraph("test.png")
         render.assert_called_once()
 

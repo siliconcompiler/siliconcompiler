@@ -2218,7 +2218,7 @@ def test_show_get_task_show_called():
 def test_show_get_supported_show_extentions(cls):
     with pytest.raises(NotImplementedError,
                        match=r"^get_supported_show_extentions must be "
-                             "implemented by the child class$"):
+                             r"implemented by the child class$"):
         cls().get_supported_show_extentions() == {}
 
 

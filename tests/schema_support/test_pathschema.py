@@ -647,7 +647,7 @@ def test_get_active_dataroot_multiple_defined():
 
     with pytest.raises(ValueError,
                        match=r"^dataroot must be specified, multiple are defined: "
-                             "defined0, defined1$"):
+                             r"defined0, defined1$"):
         schema._get_active_dataroot(None)
 
 
