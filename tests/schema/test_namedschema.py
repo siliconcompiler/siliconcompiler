@@ -148,7 +148,7 @@ def test_inserting_name():
 
 
 def test_from_manifest_no_args():
-    with pytest.raises(RuntimeError, match="^filepath or dictionary is required$"):
+    with pytest.raises(RuntimeError, match=r"^filepath or dictionary is required$"):
         NamedSchema.from_manifest(name="name")
 
 

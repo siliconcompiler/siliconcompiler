@@ -840,7 +840,7 @@ def test_getkeys_unmatched():
 
 
 def test_from_manifest_no_args():
-    with pytest.raises(RuntimeError, match="^filepath or dictionary is required$"):
+    with pytest.raises(RuntimeError, match=r"^filepath or dictionary is required$"):
         BaseSchema.from_manifest()
 
 
@@ -897,7 +897,7 @@ def test_write_manifest_gz_no_gzip(monkeypatch):
     edit.insert("test0", "test1", Parameter("str"))
 
     assert not os.path.isfile("test.json.gz")
-    with pytest.raises(RuntimeError, match="^gzip is not available$"):
+    with pytest.raises(RuntimeError, match=r"^gzip is not available$"):
         schema.write_manifest("test.json.gz")
     assert not os.path.isfile("test.json.gz")
 
@@ -3330,7 +3330,7 @@ def test___load_schema_class_forward_import_fails(error):
         import_module.side_effect = raises
 
         BaseSchema._BaseSchema__load_schema_class.cache_clear()
-        with pytest.raises(error, match="^match this$"):
+        with pytest.raises(error, match=r"^match this$"):
             BaseSchema._BaseSchema__load_schema_class("test/Class")
         import_module.assert_called_once()
 
@@ -3356,7 +3356,7 @@ def test___load_schema_class_class_invalid_class_type():
         import_module.return_value = Test
 
         BaseSchema._BaseSchema__load_schema_class.cache_clear()
-        with pytest.raises(TypeError, match="^Class must be a BaseSchema type$"):
+        with pytest.raises(TypeError, match=r"^Class must be a BaseSchema type$"):
             BaseSchema._BaseSchema__load_schema_class("test/Class")
         import_module.assert_called_once_with("test")
 

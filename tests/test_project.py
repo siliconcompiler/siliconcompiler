@@ -126,12 +126,12 @@ def test_name_set_from_set_design():
 
 
 def test_design_not_set():
-    with pytest.raises(ValueError, match="^design name is not set$"):
+    with pytest.raises(ValueError, match=r"^design name is not set$"):
         Project().design
 
 
 def test_design_not_imported():
-    with pytest.raises(KeyError, match="^'testname design has not been loaded'$"):
+    with pytest.raises(KeyError, match=r"^'testname design has not been loaded'$"):
         Project("testname").design
 
 
@@ -150,7 +150,7 @@ def test_set_design_str():
 
 
 def test_set_design_not_valid():
-    with pytest.raises(TypeError, match="^design must be a string or a Design object$"):
+    with pytest.raises(TypeError, match=r"^design must be a string or a Design object$"):
         Project().set_design(2)
 
 
@@ -171,7 +171,7 @@ def test_set_flow_str():
 
 
 def test_set_flow_not_valid():
-    with pytest.raises(TypeError, match="^flow must be a string or a Flowgraph object$"):
+    with pytest.raises(TypeError, match=r"^flow must be a string or a Flowgraph object$"):
         Project().set_flow(2)
 
 
@@ -238,7 +238,7 @@ def test_history():
 
 
 def test_history_missing():
-    with pytest.raises(KeyError, match="^'job0 is not a valid job'$"):
+    with pytest.raises(KeyError, match=r"^'job0 is not a valid job'$"):
         Project().history("job0")
 
 
@@ -270,7 +270,7 @@ def test_add_fileset_list_invalid():
     design = Design("test")
     proj = Project(design)
     with pytest.raises(TypeError,
-                       match="^fileset must be a string or a list/tuple/set of strings$"):
+                       match=r"^fileset must be a string or a list/tuple/set of strings$"):
         proj.add_fileset(["rtl", 1])
 
 
@@ -291,14 +291,14 @@ def test_add_fileset_invalid_type():
     design = Design("test")
     proj = Project(design)
     with pytest.raises(TypeError,
-                       match="^fileset must be a string or a list/tuple/set of strings$"):
+                       match=r"^fileset must be a string or a list/tuple/set of strings$"):
         proj.add_fileset(1)
 
 
 def test_add_fileset_invalid():
     design = Design("test")
     proj = Project(design)
-    with pytest.raises(ValueError, match="^rtl is not a valid fileset in test$"):
+    with pytest.raises(ValueError, match=r"^rtl is not a valid fileset in test$"):
         proj.add_fileset("rtl")
 
 
@@ -325,7 +325,7 @@ def test_convert():
 
 
 def test_convert_invalid():
-    with pytest.raises(TypeError, match="^source object must be a Project$"):
+    with pytest.raises(TypeError, match=r"^source object must be a Project$"):
         Project.convert("this")
 
 
@@ -361,7 +361,7 @@ def test_add_dep_self_reference():
 
 
 def test_add_dep_invalid():
-    with pytest.raises(NotImplementedError, match="^$"):
+    with pytest.raises(NotImplementedError, match=r"^$"):
         Project().add_dep(str("this"))
 
 
@@ -548,7 +548,7 @@ def test_get_filesets_with_deps():
 
 def test_add_alias_invalid_src_type():
     proj = Project()
-    with pytest.raises(TypeError, match="^source dep is not a valid type$"):
+    with pytest.raises(TypeError, match=r"^source dep is not a valid type$"):
         proj.add_alias(1, "rtl", 2, "rtl")
 
 
@@ -587,7 +587,7 @@ def test_add_alias_src_invalid_fileset():
     design = Design("test")
 
     proj = Project(design)
-    with pytest.raises(ValueError, match="^test does not have rtl as a fileset$"):
+    with pytest.raises(ValueError, match=r"^test does not have rtl as a fileset$"):
         proj.add_alias(design, "rtl", 2, "rtl")
 
 
@@ -598,7 +598,7 @@ def test_add_alias_src_name_type():
 
     proj = Project(design)
     EditableSchema(proj).insert("library", "test0", NamedSchema())
-    with pytest.raises(TypeError, match="^source dep is not a valid type$"):
+    with pytest.raises(TypeError, match=r"^source dep is not a valid type$"):
         proj.add_alias("test0", "rtl", 2, "rtl")
 
 
@@ -608,7 +608,7 @@ def test_add_alias_invalid_dst_type():
         design.set_topmodule("top")
 
     proj = Project(design)
-    with pytest.raises(TypeError, match="^alias dep is not a valid type$"):
+    with pytest.raises(TypeError, match=r"^alias dep is not a valid type$"):
         proj.add_alias("test", "rtl", 2, "rtl")
 
 
@@ -618,7 +618,7 @@ def test_add_alias_dst_name_not_loaded():
         design.set_topmodule("top")
 
     proj = Project(design)
-    with pytest.raises(KeyError, match="^'test0 has not been loaded'$"):
+    with pytest.raises(KeyError, match=r"^'test0 has not been loaded'$"):
         proj.add_alias("test", "rtl", "test0", "rtl")
 
 
@@ -631,7 +631,7 @@ def test_add_alias_dst_invalid_fileset():
         alias.set_topmodule("top")
 
     proj = Project(design)
-    with pytest.raises(ValueError, match="^alias does not have rtl2 as a fileset$"):
+    with pytest.raises(ValueError, match=r"^alias does not have rtl2 as a fileset$"):
         proj.add_alias("test", "rtl", alias, "rtl2")
 
 
@@ -641,7 +641,7 @@ def test_add_alias_dst_name_type():
         design.set_topmodule("top")
 
     proj = Project(design)
-    with pytest.raises(TypeError, match="^alias dep is not a valid type$"):
+    with pytest.raises(TypeError, match=r"^alias dep is not a valid type$"):
         proj.add_alias("test", "rtl", 2, "rtl")
 
 
@@ -652,7 +652,7 @@ def test_add_alias_dst_by_name_type():
 
     proj = Project(design)
     EditableSchema(proj).insert("library", "test0", NamedSchema())
-    with pytest.raises(TypeError, match="^alias dep is not a valid type$"):
+    with pytest.raises(TypeError, match=r"^alias dep is not a valid type$"):
         proj.add_alias("test", "rtl", "test0", "rtl")
 
 
@@ -820,7 +820,7 @@ def test_get_filesets_with_alias_missing():
     assert proj.add_fileset("rtl")
     assert proj.set("option", "alias", ("test", "rtl", "test1", "rtl"))
 
-    with pytest.raises(KeyError, match="^'test1 is not a loaded library'$"):
+    with pytest.raises(KeyError, match=r"^'test1 is not a loaded library'$"):
         proj.get_filesets()
 
 
@@ -929,7 +929,7 @@ def test_summary_headers_alias_with_delete_dst():
 
 
 def test_summary_no_jobs():
-    with pytest.raises(ValueError, match="^no history to summarize$"):
+    with pytest.raises(ValueError, match=r"^no history to summarize$"):
         Project().summary()
 
 
@@ -1055,7 +1055,7 @@ def test_find_result_no_design():
 def test_find_result_no_step():
     proj = Project()
 
-    with pytest.raises(ValueError, match="^step is required$"):
+    with pytest.raises(ValueError, match=r"^step is required$"):
         proj.find_result(filename="balh")
 
 
@@ -1149,7 +1149,7 @@ def test_snapshot(monkeypatch, caplog):
 
 
 def test_snapshot_no_jobs():
-    with pytest.raises(ValueError, match="^no history to snapshot$"):
+    with pytest.raises(ValueError, match=r"^no history to snapshot$"):
         Project().snapshot()
 
 
@@ -2171,7 +2171,7 @@ def test_get_filesets_with_nonexistent_depfileset():
     proj.add_fileset("rtl")
 
     # Should raise error for missing dependency
-    with pytest.raises(KeyError, match="^'ghost is not an imported module'$"):
+    with pytest.raises(KeyError, match=r"^'ghost is not an imported module'$"):
         proj.get_filesets()
 
 

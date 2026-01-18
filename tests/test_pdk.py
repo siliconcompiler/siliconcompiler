@@ -335,7 +335,7 @@ def test_calc_yield_wrong_model():
     pdk = PDK()
     pdk.set("pdk", "d0", 1.0)
 
-    with pytest.raises(ValueError, match="^Unknown yield model: unknown$"):
+    with pytest.raises(ValueError, match=r"^Unknown yield model: unknown$"):
         pdk.calc_yield(1.0, model="unknown")
 
 

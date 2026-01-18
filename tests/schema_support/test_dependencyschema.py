@@ -87,14 +87,14 @@ def test_add_dep_no_clobber():
 def test_add_dep_unnamed():
     schema = DependencySchema()
 
-    with pytest.raises(ValueError, match="^Cannot add an unnamed dependency$"):
+    with pytest.raises(ValueError, match=r"^Cannot add an unnamed dependency$"):
         schema.add_dep(NamedSchema())
 
 
 def test_get_dep_not_found():
     schema = DependencySchema()
 
-    with pytest.raises(KeyError, match="^'notthere is not an imported module'$"):
+    with pytest.raises(KeyError, match=r"^'notthere is not an imported module'$"):
         schema.get_dep("notthere")
 
 
@@ -292,8 +292,8 @@ def test_write_depgraph_no_graphviz_exe():
         render.side_effect = raise_error
 
         with pytest.raises(RuntimeError,
-                           match="^Unable to save flowgraph: failed to execute 'a', make sure the "
-                                 "Graphviz executables are on your systems' PATH$"):
+                           match=r"^Unable to save flowgraph: failed to execute 'a', make sure the "
+                                 r"Graphviz executables are on your systems' PATH$"):
             schema.write_depgraph("test.png")
         render.assert_called_once()
 
@@ -443,7 +443,7 @@ def test_populate_deps_missing():
     assert schema.add_dep(dep01)
 
     check = Test.from_manifest(name="test", cfg=schema.getdict())
-    with pytest.raises(ValueError, match="^level0-0 not available in map$"):
+    with pytest.raises(ValueError, match=r"^level0-0 not available in map$"):
         check._populate_deps({})
 
 

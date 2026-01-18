@@ -364,7 +364,7 @@ def test_check_criteria_formatting_float_fail(project, criteria):
     project.add_dep(checklist)
     project._record_history()
 
-    with pytest.raises(ValueError, match="^Illegal checklist criteria: fmax==.*$"):
+    with pytest.raises(ValueError, match=r"^Illegal checklist criteria: fmax==.*$"):
         checklist.check()
 
 

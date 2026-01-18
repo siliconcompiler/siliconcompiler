@@ -30,7 +30,7 @@ def test_add_file_single():
 def test_add_file_none():
     d = FileSetSchema()
 
-    with pytest.raises(ValueError, match="^add_file cannot process None$"):
+    with pytest.raises(ValueError, match=r"^add_file cannot process None$"):
         d.add_file(None, "rtl")
 
 
@@ -161,7 +161,7 @@ def test_add_file_default_to_ext():
 def test_add_file_invalid_fileset():
     d = FileSetSchema()
 
-    with pytest.raises(ValueError, match="^fileset key must be a string$"):
+    with pytest.raises(ValueError, match=r"^fileset key must be a string$"):
         d.add_file('tb.ver', 3)
 
 
@@ -228,18 +228,18 @@ def test_get_file_filetype_vhdl():
 
 
 def test_get_file_one_invalid_fileset():
-    with pytest.raises(ValueError, match="^fileset key must be a string$"):
+    with pytest.raises(ValueError, match=r"^fileset key must be a string$"):
         FileSetSchema().get_file(fileset=4)
 
 
 def test_active_fileset_invalid_none():
-    with pytest.raises(TypeError, match="^fileset must a string$"):
+    with pytest.raises(TypeError, match=r"^fileset must a string$"):
         with FileSetSchema().active_fileset(None):
             pass
 
 
 def test_active_fileset_invalid_empty():
-    with pytest.raises(ValueError, match="^fileset cannot be an empty string$"):
+    with pytest.raises(ValueError, match=r"^fileset cannot be an empty string$"):
         with FileSetSchema().active_fileset(""):
             pass
 
@@ -298,7 +298,7 @@ def test_copy_fileset_fail_overwrite():
     with schema.active_fileset("rtl"):
         assert schema.add_file("top.v")
 
-    with pytest.raises(ValueError, match="^rtl already exists$"):
+    with pytest.raises(ValueError, match=r"^rtl already exists$"):
         schema.copy_fileset("rtl", "rtl")
 
 
@@ -344,12 +344,12 @@ def test_assert_fileset_fail_list():
 
     with schema.active_fileset("rtl"):
         assert schema.add_file("top.v")
-    with pytest.raises(LookupError, match="^rtl2 is not defined$"):
+    with pytest.raises(LookupError, match=r"^rtl2 is not defined$"):
         schema._assert_fileset(["rtl", "rtl2"])
 
 
 def test_assert_fileset_fail():
-    with pytest.raises(LookupError, match="^rtl is not defined$"):
+    with pytest.raises(LookupError, match=r"^rtl is not defined$"):
         FileSetSchema()._assert_fileset("rtl")
 
 
@@ -359,17 +359,17 @@ def test_assert_fileset_failwith_name():
             super().__init__()
             self.set_name("thisname")
 
-    with pytest.raises(LookupError, match="^rtl is not defined in thisname$"):
+    with pytest.raises(LookupError, match=r"^rtl is not defined in thisname$"):
         Test()._assert_fileset("rtl")
 
 
 def test_assert_fileset_with_none():
-    with pytest.raises(TypeError, match="^fileset must be a string$"):
+    with pytest.raises(TypeError, match=r"^fileset must be a string$"):
         FileSetSchema()._assert_fileset(None)
 
 
 def test_assert_fileset_with_int():
-    with pytest.raises(TypeError, match="^fileset must be a string$"):
+    with pytest.raises(TypeError, match=r"^fileset must be a string$"):
         FileSetSchema()._assert_fileset(1)
 
 
@@ -452,5 +452,5 @@ def test_has_file_filetype_vhdl():
 
 
 def test_has_file_one_invalid_fileset():
-    with pytest.raises(ValueError, match="^fileset key must be a string$"):
+    with pytest.raises(ValueError, match=r"^fileset key must be a string$"):
         FileSetSchema().has_file(fileset=4)
