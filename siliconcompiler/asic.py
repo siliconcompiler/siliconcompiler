@@ -192,7 +192,7 @@ class ASIC(Project):
         Args:
             obj (Union[
                 StdCellLibrary, PDK, Design, Flowgraph,
-                LibrarySchema, Checklist, List, Set, Tuple
+                Checklist, List, Set, Tuple
             ]):
                 The dependency object(s) to add.
         """
