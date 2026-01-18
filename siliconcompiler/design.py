@@ -20,10 +20,11 @@ class Design(DependencySchema, FileSetSchema, NamedSchema):
     '''
     Schema for a 'design'.
 
-    This class inherits from :class:`~siliconcompiler.LibrarySchema` and
-    :class:`~siliconcompiler.DependencySchema`, and adds parameters and methods
-    specific to describing a design, such as its top module, source filesets,
-    and compilation settings.
+    This class inherits from
+    :class:`~siliconcompiler.schema_support.dependencyschema.DependencySchema` and
+    :class:`~siliconcompiler.schema_support.filesetschema.FileSetSchema`, adds
+    parameters and methods specific to describing a design, such as its top module,
+    source filesets, and compilation settings.
     '''
 
     def __init__(self, name: Optional[str] = None):
