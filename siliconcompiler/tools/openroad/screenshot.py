@@ -11,7 +11,7 @@ class ScreenshotTask(ScreenshotTask, ShowTask):
     def __init__(self):
         super().__init__()
 
-        self.add_parameter("show_vertical_resolution", "int",
+        self.add_parameter("show_vertical_resolution", "int<1->>",
                            "Vertical resolution of the screenshot image",
                            defvalue=1024)
         self.add_parameter("include_report_images", "bool",

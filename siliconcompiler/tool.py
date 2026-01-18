@@ -2799,7 +2799,7 @@ def schema_task(schema):
     schema.insert(
         'threads',
         Parameter(
-            'int',
+            'int<1->>',
             scope=Scope.JOB,
             pernode=PerNode.OPTIONAL,
             shorthelp="Task: thread parallelism",
