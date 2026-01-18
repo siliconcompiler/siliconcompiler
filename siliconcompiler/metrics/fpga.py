@@ -49,9 +49,9 @@ class FPGAMetricsSchema(MetricSchema):
                     device families.""")))
 
         schema.insert(
-            'utilization<0.0->>',
+            'utilization',
             Parameter(
-                'float',
+                'float<0.0->>',
                 unit='%',
                 scope=Scope.JOB,
                 shorthelp="Metric: area utilization",
@@ -67,7 +67,7 @@ class FPGAMetricsSchema(MetricSchema):
         schema.insert(
             'logicdepth',
             Parameter(
-                'int',
+                'int<0->>',
                 scope=Scope.JOB,
                 shorthelp="Metric: logic depth",
                 switch="-metric_logicdepth 'step index <int>'",
@@ -112,7 +112,7 @@ class FPGAMetricsSchema(MetricSchema):
             schema.insert(
                 item,
                 Parameter(
-                    'int',
+                    'int<0->>',
                     scope=Scope.JOB,
                     shorthelp=f"Metric: {item}",
                     switch=f"-metric_{item} 'step index <int>'",
@@ -153,7 +153,7 @@ class FPGAMetricsSchema(MetricSchema):
             schema.insert(
                 item,
                 Parameter(
-                    'float',
+                    'float<0->>',
                     unit='Hz',
                     scope=Scope.JOB,
                     shorthelp=f"Metric: {item}",
@@ -174,7 +174,7 @@ class FPGAMetricsSchema(MetricSchema):
             schema.insert(
                 item,
                 Parameter(
-                    'int',
+                    'int<0->>',
                     scope=Scope.JOB,
                     shorthelp=f"Metric: {item}",
                     switch=f"-metric_{item} 'step index <int>'",
@@ -189,7 +189,7 @@ class FPGAMetricsSchema(MetricSchema):
         schema.insert(
             'wirelength',
             Parameter(
-                'float',
+                'float<0->>',
                 scope=Scope.JOB,
                 shorthelp="Metric: wirelength",
                 switch="-metric_wirelength 'step index <float>'",
