@@ -961,118 +961,62 @@ class Scheduler:
 
         return do_collect
 
+    def __restore_removed_patches(self) -> bool:
+        """
+        Restores files that had patches but no longer do by restoring from .orig backup.
+
+        This method delegates to the Patch class static method which detects patches
+        that were previously applied but have been removed from the design, and
+        restores the original files from their .orig backups if they exist. This
+        enables patch removal to trigger rebuilds.
+
+        Returns:
+            bool: True if any files were restored, False otherwise.
+        """
+        from siliconcompiler.schema_support.patch import Patch
+        
+        collection_dir = collectiondir(self.__project)
+        if not collection_dir or not os.path.exists(collection_dir):
+            return False
+
+        restored_any = False
+        for design_obj, fileset in self.__project.get_filesets():
+            if not isinstance(design_obj, Design):
+                continue
+
+            if Patch.restore_removed_patches(design_obj, fileset, collection_dir, self.__logger):
+                restored_any = True
+        
+        return restored_any
+
     def __mark_patch_files_for_collection(self) -> bool:
         """
         Marks files targeted by patches in enabled filesets for collection.
 
-        This method iterates through all enabled filesets (including dependencies)
-        and identifies files that have associated patches. It then marks both the
-        files and their containing directories for collection by setting the 'copy'
-        field to True in the schema. This ensures patches can be applied after
-        collection.
-        
-        Before marking files, this method restores any .orig files back to the main
-        file location. This allows the collection system to properly detect if the
-        source file has changed based on its hash.
+        This method iterates through all enabled filesets and delegates to the
+        Patch class to mark files for collection. It also restores any files
+        whose patches were removed.
         
         Returns:
-            bool: True if any files were marked for collection, False otherwise.
+            bool: True if any files were marked for collection or restored, False otherwise.
         """
+        from siliconcompiler.schema_support.patch import Patch
+        
         self.__logger.info("Marking patch files for collection")
         
-        # Get collection directory to restore .orig files
-        collection_dir = collectiondir(self.__project)
-        if collection_dir and os.path.exists(collection_dir):
-            # Restore all .orig files before collection
-            for filename in os.listdir(collection_dir):
-                if filename.endswith('.orig'):
-                    orig_path = os.path.join(collection_dir, filename)
-                    target_path = os.path.join(collection_dir, filename[:-5])  # Remove .orig
-                    if os.path.exists(target_path):
-                        shutil.copy2(orig_path, target_path)
-                        self.__logger.debug(f"Restored {filename} to unpatched state")
-        
         marked_any = False
+        
+        # First, restore any files that had patches but no longer do
+        if self.__restore_removed_patches():
+            marked_any = True
+        
+        # Mark files with current patches for collection
         for design_obj, fileset in self.__project.get_filesets():
             if not isinstance(design_obj, Design):
                 continue
             
-            # Get all patches in this fileset
-            patch_keys = design_obj.getkeys("fileset", fileset, "patch")
-            for patch_key in patch_keys:
-                patch_obj = design_obj.get("fileset", fileset, "patch", patch_key, field="schema")
-                if not patch_obj:
-                    continue
-                
-                patch_file = patch_obj.get('file')
-                patch_dataroot = patch_obj.get('dataroot')
-                
-                if not patch_file:
-                    continue
-                
-                # Track if we found and marked the file
-                file_found = False
-                
-                # First, check if file is directly listed in file parameters
-                filetypes = design_obj.getkeys('fileset', fileset, 'file')
-                for filetype in filetypes:
-                    files = design_obj.get('fileset', fileset, 'file', filetype)
-                    if not files or patch_file not in files:
-                        continue
-                    
-                    file_dataroots = design_obj.get('fileset', fileset, 'file', filetype,
-                                                    field='dataroot')
-                    file_index = files.index(patch_file)
-                    file_dataroot = file_dataroots[file_index] if file_dataroots else None
-                    
-                    # Skip if patch dataroot specified doesn't match file's dataroot
-                    if patch_dataroot and file_dataroot != patch_dataroot:
-                        continue
-                    
-                    # Mark the file type for collection (marks all files of this type)
-                    design_obj.set('fileset', fileset, 'file', filetype, True,
-                                  field='copy')
-                    
-                    marked_any = True
-                    file_found = True
-                    self.__logger.debug(f"Marked {design_obj.name}/{fileset}/{patch_file} "
-                                       f"for collection (dataroot: {file_dataroot or 'none'})")
-                    break
-                
-                # If not found in files, check idir and libdir
-                if not file_found:
-                    for dir_param in ['idir', 'libdir']:
-                        if not design_obj.valid('fileset', fileset, dir_param):
-                            continue
-                        
-                        dirs = design_obj.get('fileset', fileset, dir_param)
-                        if not dirs:
-                            continue
-                        
-                        dir_dataroots = design_obj.get('fileset', fileset, dir_param,
-                                                      field='dataroot')
-                        
-                        # Check each directory to see if it could contain the patch file
-                        for dir_index, dir_path in enumerate(dirs):
-                            dir_dataroot = dir_dataroots[dir_index] if dir_dataroots else None
-                            
-                            # Skip if patch dataroot specified doesn't match directory's dataroot
-                            if patch_dataroot and dir_dataroot != patch_dataroot:
-                                continue
-                            
-                            # Mark the directory for collection (file might be inside it)
-                            design_obj.set('fileset', fileset, dir_param, True,
-                                          field='copy')
-                            
-                            marked_any = True
-                            file_found = True
-                            self.__logger.debug(f"Marked {design_obj.name}/{fileset}/{dir_param} "
-                                               f"for collection (patch file {patch_file} may be inside, "
-                                               f"dataroot: {dir_dataroot or 'none'})")
-                            break
-                        
-                        if file_found:
-                            break
+            if Patch.mark_patches_for_collection(design_obj, fileset, self.__logger):
+                marked_any = True
         
         return marked_any
 
@@ -1080,15 +1024,13 @@ class Scheduler:
         """
         Applies all patches to their target files in the collection directory.
 
-        This method iterates through all enabled filesets and applies each patch
-        to its corresponding file in the collection directory. It resolves file
-        paths using the collection directory and handles dataroot resolution.
-        
-        Patch approach:
-        - Keep .orig as the unpatched version (copied from collected file on first patch)
-        - Always apply patches to .orig to produce the final file
-        - Collection system handles updating .orig if source file changes
+        This method delegates to the Patch class to apply all patches. It iterates
+        through all enabled filesets and calls Patch.apply_all_patches() which
+        handles file lookup, backup creation, and patch application with timestamp
+        preservation.
         """
+        from siliconcompiler.schema_support.patch import Patch
+        
         collection_dir = collectiondir(self.__project)
         if not collection_dir or not os.path.exists(collection_dir):
             return
@@ -1099,89 +1041,10 @@ class Scheduler:
             if not isinstance(design_obj, Design):
                 continue
             
-            # Get all patches in this fileset
-            patch_keys = design_obj.getkeys("fileset", fileset, "patch")
-            for patch_key in patch_keys:
-                patch_obj = design_obj.get("fileset", fileset, "patch", patch_key, field="schema")
-                if not patch_obj:
-                    continue
-                
-                patch_file = patch_obj.get('file')
-                patch_dataroot = patch_obj.get('dataroot')
-                patch_diff = patch_obj.get('diff')
-                
-                if not patch_file or not patch_diff:
-                    continue
-                
-                # Find the file in the fileset to get its hashed filename
-                filetypes = design_obj.getkeys('fileset', fileset, 'file')
-                for filetype in filetypes:
-                    files = design_obj.get('fileset', fileset, 'file', filetype)
-                    if not files or patch_file not in files:
-                        continue
-                    
-                    file_dataroots = design_obj.get('fileset', fileset, 'file', filetype,
-                                                    field='dataroot')
-                    file_index = files.index(patch_file)
-                    file_dataroot = file_dataroots[file_index] if file_dataroots else None
-                    
-                    # Skip if patch dataroot specified doesn't match file's dataroot
-                    if patch_dataroot and file_dataroot != patch_dataroot:
-                        continue
-                    
-                    # Get the parameter to access individual file values
-                    param = design_obj.get('fileset', fileset, 'file', filetype, field=None)
-                    for node_val, _, _ in param.getvalues(return_values=False):
-                        # Get list of NodeValue objects
-                        if isinstance(node_val, NodeListValue):
-                            values_list = node_val.values
-                        else:
-                            values_list = [node_val]
-                        
-                        if file_index >= len(values_list):
-                            continue
-                        
-                        value = values_list[file_index]
-                        hashed_filename = value.get_hashed_filename()
-                        file_path = os.path.join(collection_dir, hashed_filename)
-                        
-                        if not os.path.exists(file_path):
-                            self.__logger.warning(f"Patch target file not found in collection: "
-                                                f"{file_path}")
-                            continue
-                        
-                        # Create .orig as unpatched version if it doesn't exist
-                        orig_path = f"{file_path}.orig"
-                        if not os.path.exists(orig_path):
-                            shutil.copy2(file_path, orig_path)
-                            self.__logger.debug(f"Created unpatched backup: {orig_path}")
-                        
-                        # Always apply patch to .orig to produce the final file
-                        # This handles both new patches and changed patch diffs cleanly
-                        try:
-                            # Save the .orig timestamp before patching
-                            # (Patch.apply() will create/overwrite .orig, losing timestamp)
-                            orig_stat = os.stat(orig_path)
-                            
-                            # Copy .orig to target location (preserves timestamp)
-                            shutil.copy2(orig_path, file_path)
-                            # Apply patch to the target
-                            patch_obj.apply(file_path)
-                            
-                            # Restore original timestamp on .orig file (apply() overwrites it)
-                            os.utime(orig_path, (orig_stat.st_atime, orig_stat.st_mtime))
-                            # Restore original timestamp on patched file to avoid interfering
-                            # with collection timestamp checking
-                            shutil.copystat(orig_path, file_path)
-                            
-                            self.__logger.info(f"Applied patch {design_obj.name}/{fileset}/{patch_key} "
-                                            f"to {patch_file}")
-                        except Exception as e:
-                            self.__logger.error(f"Failed to apply patch {design_obj.name}/{fileset}/"
-                                              f"{patch_key}: {e}")
-                        
-                        break  # Found and applied patch
-                    break
+            try:
+                Patch.apply_all_patches(design_obj, fileset, collection_dir, self.__logger)
+            except Exception as e:
+                self.__logger.error(f"Failed to apply patches to {design_obj.name}/{fileset}: {e}")
 
     def __init_schedulers(self) -> None:
         """
