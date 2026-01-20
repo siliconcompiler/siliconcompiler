@@ -2,6 +2,7 @@ from typing import Optional, Union
 
 from siliconcompiler.tools.klayout import KLayoutTask
 
+
 class Merge(KLayoutTask):
     """
     Klayout task to merge multiple GDS files and provide prefixing for cell names.
@@ -9,8 +10,10 @@ class Merge(KLayoutTask):
     def __init__(self):
         super().__init__()
 
-        self.add_parameter("reference", "(<fs,input>,str,str)", "Reference fileset or input node for merge operation")
-        self.add_parameter("merge", "[(<fs,input>,str,str,str)]", "Fileset or input node to be merge with prefix")
+        self.add_parameter("reference", "(<fs,input>,str,str)",
+                           "Reference fileset or input node for merge operation")
+        self.add_parameter("merge", "[(<fs,input>,str,str,str)]",
+                           "Fileset or input node to be merge with prefix")
 
     def set_klayout_reference(self, type: str, source0: str, source1: str,
                               step: Optional[str] = None,
@@ -61,7 +64,9 @@ class Merge(KLayoutTask):
             ref_type, ref_source0, ref_source1 = self.get("var", "reference")
             if ref_type == 'input':
                 step, index = ref_source0, ref_source1
-                self.add_input_file(self.compute_input_file_node_name(f"{self.design_topmodule}.gds", step, index))
+                self.add_input_file(
+                    self.compute_input_file_node_name(f"{self.design_topmodule}.gds",
+                                                      step, index))
             else:
                 lib_name, fileset = ref_source0, ref_source1
                 self.add_required_key("library", lib_name, "fileset", fileset, "file", "gds")
@@ -69,7 +74,9 @@ class Merge(KLayoutTask):
             merge_type, merge_source0, merge_source1, _ = merge_entry
             if merge_type == 'input':
                 step, index = merge_source0, merge_source1
-                self.add_input_file(self.compute_input_file_node_name(f"{self.design_topmodule}.gds", step, index))
+                self.add_input_file(
+                    self.compute_input_file_node_name(f"{self.design_topmodule}.gds",
+                                                      step, index))
             else:
                 lib_name, fileset = merge_source0, merge_source1
                 self.add_required_key("library", lib_name, "fileset", fileset, "file", "gds")

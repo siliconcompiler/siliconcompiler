@@ -12,7 +12,6 @@ if __name__ == "__main__":
 
     from klayout_utils import (
         technology,
-        get_streams,
         get_schema,
         generate_metrics
     )
@@ -34,7 +33,9 @@ if __name__ == "__main__":
     fileset = schema.get("option", "fileset")[0]
     design = schema.get("library", design_name, "fileset", fileset, "topmodule")
 
-    ref_type, ref_source0, ref_source1 = schema.get("tool", sc_tool, "task", sc_task, "var", "reference", step=sc_step, index=sc_index)
+    ref_type, ref_source0, ref_source1 = schema.get("tool", sc_tool, "task", sc_task,
+                                                    "var", "reference",
+                                                    step=sc_step, index=sc_index)
     if ref_type == 'input':
         step, index = ref_source0, ref_source1
         input_file = os.path.join('inputs', f"{design}.{ref_source0}{ref_source1}.gds")
@@ -42,11 +43,14 @@ if __name__ == "__main__":
         input_file = schema.get("library", ref_source0, "fileset", ref_source1, "file", "gds")[0]
 
     merge_files = []
-    for merge_type, merge_source0, merge_source1, prefix in schema.get("tool", sc_tool, "task", sc_task, "var", "merge", step=sc_step, index=sc_index):
+    for merge_type, merge_source0, merge_source1, prefix in \
+            schema.get("tool", sc_tool, "task", sc_task, "var", "merge",
+                       step=sc_step, index=sc_index):
         if merge_type == 'input':
             merge_file = os.path.join('inputs', f"{design}.{merge_source0}{merge_source1}.gds")
         else:
-            merge_file = schema.get("library", merge_source0, "fileset", merge_source1, "file", "gds")[0]
+            merge_file = schema.get("library", merge_source0, "fileset", merge_source1,
+                                    "file", "gds")[0]
         merge_files.append((prefix, merge_file))
 
     tech = technology(design, schema)
