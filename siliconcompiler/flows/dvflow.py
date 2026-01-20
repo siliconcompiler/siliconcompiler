@@ -1,4 +1,5 @@
 from siliconcompiler.tools.icarus import compile as icarus_compile
+from siliconcompiler.tools.icarus import cocotb as icarus_cocotb
 from siliconcompiler.tools.verilator import compile as verilator_compile
 from siliconcompiler.tools.execute import exec_input
 from siliconcompiler.tools.xyce import simulate as xyce_simulate
@@ -24,6 +25,7 @@ class DVFlow(Flowgraph):
     Supported tools are:
 
         * 'icarus': Compiles and simulates with the Icarus Verilog simulator.
+        * 'icarus-cocotb': Compiles with Icarus and runs cocotb Python testbenches.
         * 'verilator': Compiles and simulates with Verilator.
         * 'xyce': Simulates a netlist with the Xyce circuit simulator.
         * 'xdm-xyce': Converts a design to a Xyce-compatible format and simulates.
@@ -49,6 +51,10 @@ class DVFlow(Flowgraph):
         if tool == "icarus":
             self.node("compile", icarus_compile.CompileTask())
             sim_task = exec_input.ExecInputTask()
+            com_name = "compile"
+        elif tool == "icarus-cocotb":
+            self.node("compile", icarus_compile.CompileTask())
+            sim_task = icarus_cocotb.CocotbTask()
             com_name = "compile"
         elif tool == "verilator":
             self.node("compile", verilator_compile.CompileTask())
