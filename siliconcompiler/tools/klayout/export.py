@@ -79,8 +79,6 @@ class ExportTask(KLayoutTask, ScreenshotParams):
         self.add_output_file(ext="lyt")
         self.add_output_file(ext="lyp")
 
-        self.add_required_key("var", "stream")
-
         sc_stream_order = [default_stream, *[s for s in ("gds", "oas") if s != default_stream]]
         req_set = False
         for s in sc_stream_order:
