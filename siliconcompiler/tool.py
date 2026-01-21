@@ -2179,7 +2179,7 @@ class ShowTask(Task):
 
     @classmethod
     def get_task(cls: Type[TShowTask], ext: Optional[str]) -> \
-            Union[Optional[Type[TShowTask]], Set[Type[TShowTask]]]:
+            Union[Optional[TShowTask], Set[Type[TShowTask]]]:
         """
         Retrieves a suitable show task instance for a given file extension.
 
