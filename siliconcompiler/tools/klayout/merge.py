@@ -11,9 +11,17 @@ class Merge(KLayoutTask):
         super().__init__()
 
         self.add_parameter("reference", "(<fs,input>,str,str)",
-                           "Reference fileset or input node for merge operation")
+                           "Reference fileset or input node for merge operation, structured as "
+                           "(fs, library name, fileset) or (input, step, index)")
         self.add_parameter("merge", "[(<fs,input>,str,str,str)]",
-                           "Fileset or input node to be merge with prefix")
+                           "Fileset or input node to be merge with prefix, structured as "
+                           "(fs, library name, fileset) or (input, step, index) along with prefix "
+                           "string")
+
+    def __fix_type(self, type: str) -> str:
+        if type == "fileset":
+            return "fs"
+        return type
 
     def set_klayout_reference(self, type: str, source0: str, source1: str,
                               step: Optional[str] = None,
@@ -27,7 +35,8 @@ class Merge(KLayoutTask):
             step (Optional[str]): The specific step to apply this configuration to.
             index (Optional[Union[str, int]]): The specific index to apply this configuration to.
         """
-        self.set("var", "reference", (type, source0, source1), step=step, index=index)
+        self.set("var", "reference", (self.__fix_type(type), source0, source1),
+                 step=step, index=index)
 
     def add_klayout_merge(self, type: str, source0: str, source1: str, prefix: str,
                           step: Optional[str] = None,
@@ -45,9 +54,11 @@ class Merge(KLayoutTask):
                                       If False, appends to the list. Defaults to False.
         """
         if clobber:
-            self.set("var", "merge", (type, source0, source1, prefix), step=step, index=index)
+            self.set("var", "merge", (self.__fix_type(type), source0, source1, prefix),
+                     step=step, index=index)
         else:
-            self.add("var", "merge", (type, source0, source1, prefix), step=step, index=index)
+            self.add("var", "merge", (self.__fix_type(type), source0, source1, prefix),
+                     step=step, index=index)
 
     def task(self) -> str:
         return 'merge'
