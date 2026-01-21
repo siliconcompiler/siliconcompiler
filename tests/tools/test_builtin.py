@@ -391,7 +391,8 @@ def test_verify_input_fail(minmax_project):
             node.task.setup()
 
 
-@pytest.mark.parametrize("cls", [NOPTask, JoinTask, MinimumTask, MaximumTask, MuxTask, VerifyTask, Wait])
+@pytest.mark.parametrize("cls", [NOPTask, JoinTask, MinimumTask, MaximumTask, MuxTask,
+                                 VerifyTask, Wait])
 def test_run(cls):
     design = Design("testdesign")
     with design.active_fileset("rtl"):
@@ -409,7 +410,8 @@ def test_run(cls):
         assert node.task.run() == 0
 
 
-@pytest.mark.parametrize("cls", [NOPTask, JoinTask, MinimumTask, MaximumTask, MuxTask, VerifyTask, Wait])
+@pytest.mark.parametrize("cls", [NOPTask, JoinTask, MinimumTask, MaximumTask, MuxTask,
+                                 VerifyTask, Wait])
 def test_post_process(cls):
     design = Design("testdesign")
     with design.active_fileset("rtl"):
