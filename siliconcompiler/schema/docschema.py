@@ -1,6 +1,6 @@
-from typing import Union, List
+from typing import Type, Union, List
 
-from .baseschema import BaseSchema
+from .baseschema import BaseSchema, TSchema
 
 
 class DocsSchema(BaseSchema):
@@ -11,7 +11,7 @@ class DocsSchema(BaseSchema):
     """
 
     @classmethod
-    def make_docs(cls) -> Union[BaseSchema, List[BaseSchema]]:
+    def make_docs(cls: Type[TSchema]) -> Union[TSchema, List[TSchema]]:
         """Generate the documentation representation for this schema.
 
         By default, this method returns a standard instance of the class itself.
