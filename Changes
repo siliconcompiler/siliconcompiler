@@ -8,6 +8,18 @@ The changes in each SiliconCompiler release version are described below. Commit
 version shown in (). Where applicable, the contributors that suggested a given
 feature are shown in [].
 
+SiliconCompiler 0.36.3 (2026-01-21)
+=========================================
+
+**Minor:**
+
+ * Tools:
+
+  * builtin: added wait task to better handle stalling flow progress
+  * klayout: added merge task to provide a simple interface for merging multiple GDSs
+  * pyslang: updated to v10.0.0
+
+
 SiliconCompiler 0.36.2 (2026-01-16)
 =========================================
 
