@@ -12,6 +12,8 @@ from siliconcompiler import Design, Sim
 from siliconcompiler.flows.dvflow import DVFlow
 from siliconcompiler.tools.icarus.compile import CompileTask
 from siliconcompiler.tools.icarus.cocotb import CocotbTask
+from siliconcompiler.tools.verilator.cocotb_compile import CocotbCompileTask as VerilatorCocotbCompileTask
+from siliconcompiler.tools.verilator.cocotb import CocotbTask as VerilatorCocotbTask
 
 
 class AdderDesign(Design):
@@ -97,6 +99,68 @@ def sim(seed: int = None):
     )
     if vcd:
         print(f"Waveform file: {vcd}")
+
+
+def sim_verilator(seed: int = None, trace_type: str = "vcd"):
+    """Runs a cocotb simulation of the Adder design using Verilator.
+
+    Args:
+        seed (int, optional): Random seed for test reproducibility.
+            If not set, cocotb will generate a random seed.
+        trace_type (str): Waveform format - 'vcd' (default) or 'fst'.
+            FST is a compressed format that produces smaller files.
+    """
+    # Create a project instance tailored for simulation
+    project = Sim()
+
+    # Instantiate and configure the design
+    adder = AdderDesign()
+    project.set_design(adder)
+
+    # Add the cocotb testbench and the RTL design files
+    project.add_fileset("testbench.cocotb")
+    project.add_fileset("rtl")
+
+    # Set the cocotb design verification flow with Verilator
+    project.set_flow(DVFlow(tool="verilator-cocotb"))
+
+    # Enable waveform tracing (must be enabled on both compile and simulate tasks)
+    compile_task = VerilatorCocotbCompileTask.find_task(project)
+    compile_task.set_verilator_trace(True)
+    compile_task.set_verilator_tracetype(trace_type)
+
+    cocotb_task = VerilatorCocotbTask.find_task(project)
+    cocotb_task.set_trace_enabled(True)
+    cocotb_task.set_trace_type(trace_type)
+
+    # Optionally set a random seed for reproducibility
+    if seed is not None:
+        cocotb_task.set_cocotb_random_seed(seed)
+
+    # Run the simulation
+    project.run()
+    project.summary()
+
+    # Find and display the results file
+    results = project.find_result(
+        step='simulate',
+        index='0',
+        directory="outputs",
+        filename="results.xml"
+    )
+    if results:
+        print(f"\nCocotb results file: {results}")
+
+    # Find and display the waveform file
+    wave_ext = trace_type if trace_type in ("vcd", "fst") else "vcd"
+    wave = project.find_result(
+        step='simulate',
+        index='0',
+        directory="reports",
+        filename=f"adder.{wave_ext}"
+    )
+    if wave:
+        print(f"Waveform file: {wave}")
 
 
 def check():
