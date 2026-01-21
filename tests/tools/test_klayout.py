@@ -8,6 +8,7 @@ from siliconcompiler.tools.klayout import export
 from siliconcompiler.tools.klayout import operations
 from siliconcompiler.tools.klayout import drc
 from siliconcompiler.tools.klayout import convert_drc_db
+from siliconcompiler.tools.klayout import merge
 
 from siliconcompiler.targets import freepdk45_demo
 
@@ -342,3 +343,38 @@ def test_klayout_drc_parameter_drcname():
     task.set_klayout_drcname('test2', step='drc', index='1')
     assert task.get("var", "drc_name", step='drc', index='1') == 'test2'
     assert task.get("var", "drc_name") == 'test1'
+
+
+def test_klayout_merge_parameter_reference():
+    task = merge.Merge()
+    task.set_klayout_reference('fs', 'lib1', 'fileset1')
+    assert task.get("var", "reference") == ('fs', 'lib1', 'fileset1')
+    task.set_klayout_reference('input', 'step1', '0', step='merge', index='1')
+    assert task.get("var", "reference", step='merge', index='1') == ('input', 'step1', '0')
+    assert task.get("var", "reference") == ('fs', 'lib1', 'fileset1')
+
+
+def test_klayout_merge_parameter_reference_fileset_conversion():
+    task = merge.Merge()
+    task.set_klayout_reference('fileset', 'lib1', 'fileset1')
+    # Should convert 'fileset' to 'fs'
+    assert task.get("var", "reference") == ('fs', 'lib1', 'fileset1')
+
+
+def test_klayout_merge_parameter_add_merge():
+    task = merge.Merge()
+    task.add_klayout_merge('fs', 'lib1', 'fileset1', 'prefix1')
+    assert task.get("var", "merge") == [('fs', 'lib1', 'fileset1', 'prefix1')]
+    task.add_klayout_merge('input', 'step1', '0', 'prefix2', step='merge', index='1')
+    assert task.get("var", "merge", step='merge', index='1') == \
+        [('input', 'step1', '0', 'prefix2')]
+    assert task.get("var", "merge") == [('fs', 'lib1', 'fileset1', 'prefix1')]
+    task.add_klayout_merge('fs', 'lib2', 'fileset2', 'prefix3', clobber=True)
+    assert task.get("var", "merge") == [('fs', 'lib2', 'fileset2', 'prefix3')]
+
+
+def test_klayout_merge_parameter_add_merge_fileset_conversion():
+    task = merge.Merge()
+    task.add_klayout_merge('fileset', 'lib1', 'fileset1', 'prefix1')
+    # Should convert 'fileset' to 'fs'
+    assert task.get("var", "merge") == [('fs', 'lib1', 'fileset1', 'prefix1')]
