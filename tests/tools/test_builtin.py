@@ -16,6 +16,7 @@ from siliconcompiler.tools.builtin.mux import MuxTask
 from siliconcompiler.tools.builtin.verify import VerifyTask
 from siliconcompiler.tools.builtin.importfiles import ImportFilesTask
 from siliconcompiler.tools.builtin.filter import FilterTask
+from siliconcompiler.tools.builtin.wait import Wait
 
 
 @pytest.fixture
@@ -53,7 +54,7 @@ def minmax_project(monkeypatch):
 
 @pytest.mark.parametrize("tool", [
     NOPTask, JoinTask, MinimumTask, MaximumTask,
-    MuxTask, VerifyTask, ImportFilesTask, FilterTask
+    MuxTask, VerifyTask, ImportFilesTask, FilterTask, Wait
 ])
 def test_tool_name(tool):
     assert tool().tool() == "builtin"
@@ -89,6 +90,10 @@ def test_importfiles_name():
 
 def test_filter_name():
     assert FilterTask().task() == "filter"
+
+
+def test_wait_name():
+    assert Wait().task() == "wait"
 
 
 def test_nop_select_inputs(monkeypatch, caplog):
@@ -137,6 +142,60 @@ def test_join_select_inputs(monkeypatch, caplog):
         assert node.task.select_input_nodes() == [('start', '0')]
 
     assert "Running builtin task 'join'" in caplog.text
+
+
+def test_wait_select_inputs(monkeypatch, caplog):
+    design = Design("testdesign")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+
+    flow = Flowgraph("test")
+    flow.node("start", NOPTask())
+    flow.node("end", Wait())
+    flow.edge("start", "end")
+
+    proj = Project(design)
+    monkeypatch.setattr(proj, "_Project__logger", logging.getLogger())
+    proj.logger.setLevel(logging.INFO)
+    proj.add_fileset("rtl")
+    proj.set_flow(flow)
+    NOPTask.find_task(proj).add_output_file("test.out", step="start", index="0")
+
+    node = SchedulerNode(proj, "end", "0")
+    with node.runtime():
+        assert node.task.select_input_nodes() == [('start', '0')]
+
+    assert "Running builtin task 'wait'" in caplog.text
+
+
+def test_wait_no_io_files():
+    """Test that Wait task doesn't set up input/output files (unlike other builtin tasks)"""
+    design = Design("testdesign")
+    with design.active_fileset("rtl"):
+        design.set_topmodule("top")
+
+    task_name = Wait().task()
+
+    flow = Flowgraph("test")
+    flow.node("start", NOPTask())
+    flow.node("end", Wait())
+    flow.edge("start", "end")
+
+    proj = Project(design)
+    proj.add_fileset("rtl")
+    proj.set_flow(flow)
+    NOPTask.find_task(proj).add_output_file("test.out", step="start", index="0")
+
+    assert proj.get("tool", "builtin", "task", task_name, "input", step="end", index="0") == []
+    assert proj.get("tool", "builtin", "task", task_name, "output", step="end", index="0") == []
+
+    node = SchedulerNode(proj, "end", "0")
+    with node.runtime():
+        node.setup()
+
+    # Wait task should NOT copy inputs to outputs
+    assert proj.get("tool", "builtin", "task", task_name, "input", step="end", index="0") == []
+    assert proj.get("tool", "builtin", "task", task_name, "output", step="end", index="0") == []
 
 
 def test_minimum(minmax_project, caplog):
@@ -332,8 +391,9 @@ def test_verify_input_fail(minmax_project):
             node.task.setup()
 
 
-@pytest.mark.parametrize("cls", [NOPTask, JoinTask, MinimumTask, MaximumTask, MuxTask, VerifyTask])
-def tets_run(cls):
+@pytest.mark.parametrize("cls", [NOPTask, JoinTask, MinimumTask, MaximumTask, MuxTask,
+                                 VerifyTask, Wait])
+def test_run(cls):
     design = Design("testdesign")
     with design.active_fileset("rtl"):
         design.set_topmodule("top")
@@ -350,7 +410,8 @@ def tets_run(cls):
         assert node.task.run() == 0
 
 
-@pytest.mark.parametrize("cls", [NOPTask, JoinTask, MinimumTask, MaximumTask, MuxTask, VerifyTask])
+@pytest.mark.parametrize("cls", [NOPTask, JoinTask, MinimumTask, MaximumTask, MuxTask,
+                                 VerifyTask, Wait])
 def test_post_process(cls):
     design = Design("testdesign")
     with design.active_fileset("rtl"):
