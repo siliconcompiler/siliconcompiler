@@ -4,7 +4,7 @@ import uuid
 
 import os.path
 
-from typing import Union, List, Tuple, TextIO, Optional, Dict, Set
+from typing import Type, Union, List, Tuple, TextIO, Optional, Dict, Set, TypeVar
 
 from siliconcompiler.schema import BaseSchema, NamedSchema, EditableSchema, Parameter, Scope, \
     __version__ as schema_version, \
@@ -31,6 +31,8 @@ from siliconcompiler.utils import get_file_ext
 from siliconcompiler.utils.multiprocessing import MPManager
 from siliconcompiler.utils.paths import jobdir, workdir
 from siliconcompiler.flows.showflow import ShowFlow
+
+TProject = TypeVar("TProject", bound="Project")
 
 
 class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
@@ -235,7 +237,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         return self.get("option", field="schema")
 
     @classmethod
-    def convert(cls, obj: "Project") -> "Project":
+    def convert(cls: Type[TProject], obj: "Project") -> TProject:
         """
         Converts a project from one type to another (e.g., Project to Sim).
 
@@ -522,7 +524,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                                  f"{', '.join([f'{step}/{index}' for step, index in breakpoints])}")
                 self.__dashboard.stop()
 
-    def run(self) -> "Project":
+    def run(self) -> TProject:
         '''
         Executes the compilation flow defined in the project's flowgraph.
 
@@ -1234,7 +1236,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             return None
 
         # Create copy of project to avoid changing user project
-        proj: Project = self.copy()
+        proj = self.copy()
         proj.set_flow(ShowFlow(task))
 
         # Setup options:

@@ -26,11 +26,14 @@ import os.path
 
 from enum import Enum, auto
 from functools import cache
-from typing import Dict, Type, Tuple, Union, Set, Callable, List, Optional, TextIO, Iterable, Any
+from typing import Dict, Type, Tuple, TypeVar, Union, Set, Callable, List, Optional, \
+    TextIO, Iterable, Any
 
 from .parameter import Parameter, NodeValue
 from .journal import Journal
 from ._metadata import version
+
+TSchema = TypeVar('TSchema', bound='BaseSchema')
 
 
 class LazyLoad(Enum):
@@ -286,10 +289,10 @@ class BaseSchema:
 
     # Manifest methods
     @classmethod
-    def from_manifest(cls,
+    def from_manifest(cls: Type[TSchema],
                       filepath: Union[None, str] = None,
                       cfg: Union[None, Dict] = None,
-                      lazyload: bool = True) -> "BaseSchema":
+                      lazyload: bool = True) -> TSchema:
         '''
         Create a new schema based on the provided source files.
 
@@ -849,7 +852,7 @@ class BaseSchema:
         return manifest
 
     # Utility functions
-    def copy(self, key: Optional[Tuple[str, ...]] = None) -> "BaseSchema":
+    def copy(self: TSchema, key: Optional[Tuple[str, ...]] = None) -> TSchema:
         """
         Returns a copy of this schema.
 

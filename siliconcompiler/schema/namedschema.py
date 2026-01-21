@@ -4,9 +4,9 @@
 # SC dependencies outside of its directory, since it may be used by tool drivers
 # that have isolated Python environments.
 
-from typing import Dict, Tuple, Optional, Set, Union, List
+from typing import Dict, Tuple, Optional, Set, Type, Union, List
 
-from .baseschema import BaseSchema, LazyLoad
+from .baseschema import BaseSchema, LazyLoad, TSchema
 
 
 class NamedSchema(BaseSchema):
@@ -76,11 +76,11 @@ class NamedSchema(BaseSchema):
         return cfg.get("__meta__", {}).get("name", None)
 
     @classmethod
-    def from_manifest(cls,
+    def from_manifest(cls: Type[TSchema],
                       filepath: Union[None, str] = None,
                       cfg: Union[None, Dict] = None,
                       lazyload: bool = True,
-                      name: Optional[str] = None):
+                      name: Optional[str] = None) -> TSchema:
         '''
         Create a new schema based on the provided source files.
 
@@ -115,8 +115,8 @@ class NamedSchema(BaseSchema):
 
         return super()._from_dict(manifest, keypath, version=version, lazyload=lazyload)
 
-    def copy(self, key: Optional[Tuple[str, ...]] = None) -> "NamedSchema":
-        copy: NamedSchema = super().copy(key=key)
+    def copy(self: TSchema, key: Optional[Tuple[str, ...]] = None) -> TSchema:
+        copy = super().copy(key=key)
 
         if key and key[-1] != "default":
             copy.__name = key[-1]
