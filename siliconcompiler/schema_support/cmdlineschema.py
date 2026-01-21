@@ -4,11 +4,13 @@ import sys
 
 import os.path
 
-from typing import Set, List, Optional, Union
+from typing import Set, List, Optional, Type, Union, TypeVar
 
 from siliconcompiler.schema import BaseSchema, EditableSchema, Parameter, Scope, PerNode
 from siliconcompiler.schema.utils import trim
 from siliconcompiler import _metadata
+
+TCmdSchema = TypeVar("TCmdSchema", bound="CommandLineSchema")
 
 
 class CommandLineSchema(BaseSchema):
@@ -68,14 +70,14 @@ class CommandLineSchema(BaseSchema):
         EditableSchema(self).insert("cmdarg", name, Parameter(type, **kwargs))
 
     @classmethod
-    def create_cmdline(cls,
+    def create_cmdline(cls: Type[TCmdSchema],
                        progname: Optional[str] = None,
                        description: Optional[str] = None,
                        switchlist: Optional[Union[List[str], Set[str]]] = None,
                        version: Optional[str] = None,
                        print_banner: bool = True,
                        use_cfg: bool = False,
-                       use_sources: bool = True) -> BaseSchema:
+                       use_sources: bool = True) -> TCmdSchema:
         """
         Creates an SC command line interface.
 
