@@ -17,7 +17,7 @@ class ASICMetricsSchema(MetricSchema):
             schema.insert(
                 item,
                 Parameter(
-                    'int',
+                    'int<0->>',
                     scope=Scope.JOB,
                     shorthelp=f"Metric: total {item}",
                     switch=f"-metric_{item} 'step index <int>'",
@@ -37,7 +37,7 @@ class ASICMetricsSchema(MetricSchema):
             schema.insert(
                 item,
                 Parameter(
-                    'float',
+                    'float<0.0->>',
                     unit='um^2',
                     scope=Scope.JOB,
                     shorthelp=f"Metric: {item}",
@@ -52,7 +52,7 @@ class ASICMetricsSchema(MetricSchema):
         schema.insert(
             'utilization',
             Parameter(
-                'float',
+                'float<0.0->>',
                 unit='%',
                 scope=Scope.JOB,
                 shorthelp="Metric: area utilization",
@@ -68,7 +68,7 @@ class ASICMetricsSchema(MetricSchema):
         schema.insert(
             'logicdepth',
             Parameter(
-                'int',
+                'int<0->>',
                 scope=Scope.JOB,
                 shorthelp="Metric: logic depth",
                 switch="-metric_logicdepth 'step index <int>'",
@@ -132,7 +132,7 @@ class ASICMetricsSchema(MetricSchema):
             schema.insert(
                 item,
                 Parameter(
-                    'int',
+                    'int<0->>',
                     scope=Scope.JOB,
                     shorthelp=f"Metric: {item}",
                     switch=f"-metric_{item} 'step index <int>'",
@@ -173,7 +173,7 @@ class ASICMetricsSchema(MetricSchema):
             schema.insert(
                 item,
                 Parameter(
-                    'float',
+                    'float<0.0->>',
                     unit='Hz',
                     scope=Scope.JOB,
                     shorthelp=f"Metric: {item}",
@@ -198,7 +198,7 @@ class ASICMetricsSchema(MetricSchema):
             schema.insert(
                 item,
                 Parameter(
-                    'int',
+                    'int<0->>',
                     scope=Scope.JOB,
                     shorthelp=f"Metric: {item}",
                     switch=f"-metric_{item} 'step index <int>'",
@@ -213,7 +213,7 @@ class ASICMetricsSchema(MetricSchema):
         schema.insert(
             'wirelength',
             Parameter(
-                'float',
+                'float<0.0->>',
                 unit='um',
                 scope=Scope.JOB,
                 shorthelp="Metric: wirelength",
