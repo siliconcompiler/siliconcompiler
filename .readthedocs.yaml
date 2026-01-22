@@ -28,3 +28,4 @@ python:
         - lint
         - docs
         - optimizer
+        - dashboard

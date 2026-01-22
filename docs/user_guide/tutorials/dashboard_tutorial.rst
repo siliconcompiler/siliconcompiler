@@ -2,9 +2,15 @@
 Dashboard Tutorial
 ==================
 
-At this point, you should have built a project on your computer.
+To start, ensure you install the dashboard dependencies by running:
 
-To start, run the command:
+.. code-block:: bash
+
+    pip install siliconcompiler[dashboard]
+
+At this point, you should have the dashboard in your environment.
+
+Then, run the command:
 
 .. code-block:: bash
 
