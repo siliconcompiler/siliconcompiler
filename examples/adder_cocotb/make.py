@@ -11,9 +11,9 @@ to run Python-based cocotb testbenches against an Icarus Verilog simulation.
 from siliconcompiler import Design, Sim
 from siliconcompiler.flows.dvflow import DVFlow
 from siliconcompiler.tools.icarus.compile import CompileTask
-from siliconcompiler.tools.icarus.cocotb import CocotbTask
+from siliconcompiler.tools.icarus.cocotb_exec import CocotbExecTask
 from siliconcompiler.tools.verilator.cocotb_compile import CocotbCompileTask as VerilatorCocotbCompileTask
-from siliconcompiler.tools.verilator.cocotb import CocotbTask as VerilatorCocotbTask
+from siliconcompiler.tools.verilator.cocotb_exec import CocotbExecTask as CocotbExecTask
 
 
 class AdderDesign(Design):
@@ -129,9 +129,11 @@ def sim_verilator(seed: int = None, trace_type: str = "vcd"):
     compile_task.set_verilator_trace(True)
     compile_task.set_verilator_tracetype(trace_type)
 
-    cocotb_task = VerilatorCocotbTask.find_task(project)
-    cocotb_task.set_trace_enabled(True)
-    cocotb_task.set_trace_type(trace_type)
+    cocotb_task = CocotbExecTask.find_task(project)
+    cocotb_task.set_traceconfig(
+        enable=True,
+        trace_type=trace_type
+    )
 
     # Optionally set a random seed for reproducibility
     if seed is not None:
