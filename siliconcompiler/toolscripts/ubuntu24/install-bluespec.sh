@@ -28,7 +28,7 @@ cd bluespec
 git checkout $(python3 ${src_path}/_tools.py --tool bluespec --field git-commit)
 git submodule update --init --recursive
 
-make -j$(nproc) install-src
+make -j${NPROC:-$(nproc)} install-src
 
 if [ -z ${PREFIX} ]; then
     # install

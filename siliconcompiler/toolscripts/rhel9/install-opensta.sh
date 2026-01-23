@@ -40,7 +40,7 @@ cd eigen
 mkdir build
 cd build
 cmake $cmake_args ..
-make -j$(nproc)
+make -j${NPROC:-$(nproc)}
 $SUDO_INSTALL make install
 
 cd ../../..
@@ -51,7 +51,7 @@ git clone --depth=1 -b 3.0.0 https://github.com/The-OpenROAD-Project/cudd.git
 cd cudd
 autoreconf
 ./configure $config_prefix
-make -j$(nproc)
+make -j${NPROC:-$(nproc)}
 $SUDO_INSTALL make install
 
 cd ../..
@@ -65,8 +65,8 @@ wget https://github.com/PCRE2Project/pcre2/releases/download/pcre2-10.42/pcre2-1
 
 ./autogen.sh
 ./configure $config_prefix
-make -j$(nproc)
-$SUDO_INSTALL make -j$(nproc) install
+make -j${NPROC:-$(nproc)}
+$SUDO_INSTALL make -j${NPROC:-$(nproc)} install
 
 cd ../..
 # opensta
@@ -78,7 +78,7 @@ git submodule update --init --recursive
 mkdir -p build
 cd build
 cmake .. $cmake_args
-make -j$(nproc)
+make -j${NPROC:-$(nproc)}
 $SUDO_INSTALL make install
 
 cd -

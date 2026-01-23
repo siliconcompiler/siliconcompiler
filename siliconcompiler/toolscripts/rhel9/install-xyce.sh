@@ -51,7 +51,7 @@ cmake \
     -D TPL_AMD_INCLUDE_DIRS="/usr/include/suitesparse" \
     -C "../cmake/trilinos/trilinos-base.cmake" \
     ..
-cmake --build . -j$(nproc)
+cmake --build . -j${NPROC:-$(nproc)}
 $SUDO_INSTALL make install
 cd ../..
 
@@ -64,7 +64,7 @@ cmake \
     -D Trilinos_ROOT=$PREFIX/trilinos \
     -D BUILD_SHARED_LIBS=ON \
     ..
-cmake --build . -j$(nproc)
-cmake --build . -j$(nproc) --target xycecinterface
+cmake --build . -j${NPROC:-$(nproc)}
+cmake --build . -j${NPROC:-$(nproc)} --target xycecinterface
 $SUDO_INSTALL make install
 cd -

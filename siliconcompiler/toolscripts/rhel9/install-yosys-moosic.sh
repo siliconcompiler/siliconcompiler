@@ -21,6 +21,6 @@ git clone $(python3 ${src_path}/_tools.py --tool yosys-moosic --field git-url) y
 cd yosys-moosic
 git checkout $(python3 ${src_path}/_tools.py --tool yosys-moosic --field git-commit)
 
-make -j$(nproc)
+make -j${NPROC:-$(nproc)}
 $SUDO_INSTALL make install
 cd -
