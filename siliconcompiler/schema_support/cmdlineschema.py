@@ -143,7 +143,7 @@ class CommandLineSchema(BaseSchema):
             # Grab config from argv
             try:
                 cfg_index = sys.argv.index("-cfg", 1)
-                if cfg_index < len(sys.argv):
+                if cfg_index + 1 < len(sys.argv):
                     cfg_file = sys.argv[cfg_index + 1]
             except ValueError:
                 pass
@@ -161,7 +161,8 @@ class CommandLineSchema(BaseSchema):
             # Add commandline key for input files
             if not isinstance(schema, CommandLineSchema):
                 raise TypeError("Schema is not a commandline class")
-            if "cmdarg" not in schema.getkeys() or "file" not in schema.getkeys("cmdarg"):
+
+            if not schema.valid("cmdarg", "input"):
                 schema._add_commandline_argument("input", "[file]", "input files", ...)
                 keyschema._add_commandline_argument("input", "[file]", "input files", ...)
 
