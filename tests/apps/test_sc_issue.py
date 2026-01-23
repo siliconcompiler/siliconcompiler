@@ -1,5 +1,4 @@
 import os
-import sys
 
 import pytest
 
@@ -65,7 +64,8 @@ def test_sc_issue_generate_success(flags,
 
 @pytest.mark.timeout(90)
 def test_sc_issue_fail_on_no_cfg(monkeypatch, project):
-    monkeypatch.setattr('sys.argv', ['sc-issue', 'build/heartbeat/job0/steptwo/0/outputs/heartbeat.pkg.json'])
+    monkeypatch.setattr('sys.argv', ['sc-issue',
+                                     'build/heartbeat/job0/steptwo/0/outputs/heartbeat.pkg.json'])
     assert sc_issue.main() == 1
 
 

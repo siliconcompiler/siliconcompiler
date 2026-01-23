@@ -381,7 +381,7 @@ def test_use_sources_when_schema_getkeys_fails(monkeypatch):
     class BrokenSchema(CommandLineSchema, BaseSchema):
         def __init__(self):
             super().__init__()
-        
+
         def getkeys(self, *keypath):
             # Simulate a broken getkeys that raises KeyError
             raise KeyError("Simulated error")
