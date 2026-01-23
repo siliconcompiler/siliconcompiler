@@ -407,6 +407,9 @@ Tool groups:
 
     tools_handled = set()
     tools_completed = set()
+    if args.jobs is not None and args.jobs < 1:
+        print("Error: -jobs must be a positive integer", file=sys.stderr)
+        return 1
     for tool in args.tool:
         if tool in tools_handled:
             continue

@@ -711,24 +711,19 @@ def test_jobs_invalid_type(monkeypatch):
 
 
 @pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
-@mock.patch("subprocess.call")
-def test_jobs_zero(call, monkeypatch):
-    """Test that -jobs 0 is accepted and passed through."""
+def test_jobs_zero(monkeypatch, capfd):
+    """Test that -jobs 0 generates an error."""
     def return_os():
         return {
             "yosys": "yosys.sh"
         }
     monkeypatch.setattr(sc_install, '_get_tools_list', return_os)
 
-    call.return_value = 0
-
     monkeypatch.setattr('sys.argv', ['sc-install', 'yosys', '-jobs', '0'])
-    assert sc_install.main() == 0
+    assert sc_install.main() == 1
 
-    call.assert_called_once()
-    call_kwargs = call.call_args.kwargs
-    assert 'env' in call_kwargs
-    assert call_kwargs['env']['NPROC'] == '0'
+    stderr = capfd.readouterr().err
+    assert "Error: -jobs must be a positive integer" in stderr
 
 
 @pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
@@ -815,3 +810,35 @@ def test_jobs_with_prefix_and_build_dir(monkeypatch, datadir, capfd):
     output = capfd.readouterr().out
     assert f"ECHO NPROC: {jobs_count}" in output
     assert f"PREFIX: {prefix_path}" in output
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
+def test_jobs_zero_error(monkeypatch, capfd):
+    """Test that -jobs 0 generates an error."""
+    def return_os():
+        return {
+            "yosys": "yosys.sh"
+        }
+    monkeypatch.setattr(sc_install, '_get_tools_list', return_os)
+
+    monkeypatch.setattr('sys.argv', ['sc-install', 'yosys', '-jobs', '0'])
+    assert sc_install.main() == 1
+
+    stderr = capfd.readouterr().err
+    assert "Error: -jobs must be a positive integer" in stderr
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
+def test_jobs_negative_error(monkeypatch, capfd):
+    """Test that negative -jobs values generate an error."""
+    def return_os():
+        return {
+            "yosys": "yosys.sh"
+        }
+    monkeypatch.setattr(sc_install, '_get_tools_list', return_os)
+
+    monkeypatch.setattr('sys.argv', ['sc-install', 'yosys', '-jobs', '-5'])
+    assert sc_install.main() == 1
+
+    stderr = capfd.readouterr().err
+    assert "Error: -jobs must be a positive integer" in stderr
