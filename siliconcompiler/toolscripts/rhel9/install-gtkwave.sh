@@ -32,7 +32,7 @@ wget http://ftp.gnu.org/pub/gnu/gperf/gperf-3.1.tar.gz
 tar xvf gperf-3.1.tar.gz
 cd gperf-3.1
 ./configure $args
-make -j$(nproc)
+make -j${NPROC:-$(nproc)}
 $SUDO_INSTALL make install
 cd ..
 
@@ -44,5 +44,5 @@ cd gtkwave3-gtk3
 
 ./autogen.sh
 LDFLAGS="-ltcl -ltk" ./configure --enable-gtk3 $args
-make -j$(nproc)
+make -j${NPROC:-$(nproc)}
 $SUDO_INSTALL make install

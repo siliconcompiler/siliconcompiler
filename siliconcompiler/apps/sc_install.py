@@ -92,7 +92,8 @@ class ChoiceOptional(Container):
         return sorted(items)
 
 
-def install_tool(tool: str, script: str, build_dir: str, prefix: str) -> bool:
+def install_tool(tool: str, script: str, build_dir: str, prefix: str,
+                 jobs: Optional[int] = None) -> bool:
     """
     Prepare a build directory, configure the environment, and execute an install script for a tool.
 
@@ -102,6 +103,8 @@ def install_tool(tool: str, script: str, build_dir: str, prefix: str) -> bool:
         build_dir (str): Base directory where a per-tool build directory will be created.
         prefix (str): Installation prefix; added to PATH and used to determine whether
                       sudo is required.
+        jobs (Optional[int]): Maximum number of parallel jobs to use during build. If None,
+                             defaults to the number of CPU cores.
 
     Returns:
         bool: `True` if the install script exited with status 0, `False` otherwise.
@@ -117,6 +120,8 @@ def install_tool(tool: str, script: str, build_dir: str, prefix: str) -> bool:
     env["PATH"] = ":".join(path)
     env["PREFIX"] = prefix
     env["USE_SUDO_INSTALL"] = "no"
+    if jobs is not None:
+        env["NPROC"] = str(jobs)
     try:
         os.makedirs(prefix, exist_ok=True)
     except PermissionError:
@@ -312,6 +317,12 @@ To install tools in a different location:
 To build tools in a different location:
     sc-install -build_dir /tmp yosys
 
+To limit parallel build jobs (useful for memory-constrained systems):
+    sc-install yosys -jobs 4
+
+To combine options (custom location with limited parallelism):
+    sc-install -prefix /opt/tools -jobs 8 openroad yosys
+
 To show the install script:
     sc-install -show openroad
 
@@ -360,6 +371,13 @@ Tool groups:
         metavar="<path>")
 
     parser.add_argument(
+        "-jobs",
+        type=int,
+        default=None,
+        help="Maximum number of parallel build jobs (default: number of CPU cores)",
+        metavar="<int>")
+
+    parser.add_argument(
         "-show",
         action="store_true",
         help="Show the install script and exit")
@@ -396,7 +414,7 @@ Tool groups:
         if args.show:
             show_tool(tool, tools[tool])
         else:
-            if not install_tool(tool, tools[tool], args.build_dir, args.prefix):
+            if not install_tool(tool, tools[tool], args.build_dir, args.prefix, args.jobs):
                 notstarted = set(args.tool) - tools_completed - tools_handled
                 __print_summary(tools_completed, tool, notstarted)
                 return 1

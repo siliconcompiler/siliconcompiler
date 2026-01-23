@@ -31,7 +31,7 @@ git clone $(python3 ${src_path}/_tools.py --tool sv2v --field git-url) sv2v
 cd sv2v
 git checkout $(python3 ${src_path}/_tools.py --tool sv2v --field git-commit)
 
-make -j$(nproc)
+make -j${NPROC:-$(nproc)}
 
 if [ ! -z ${PREFIX} ]; then
     $SUDO_INSTALL mkdir -p ${PREFIX}/bin/

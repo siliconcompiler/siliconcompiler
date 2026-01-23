@@ -28,7 +28,7 @@ git checkout $(python3 ${src_path}/_tools.py --tool surfer --field git-commit)
 git submodule update --init
 
 cargo fetch --locked
-cargo build -j $(nproc) --frozen --release
+cargo build -j ${NPROC:-$(nproc)} --frozen --release
 
 if [ ! -z ${PREFIX} ]; then
     $SUDO_INSTALL install -Dm00755 target/release/surfer -t ${PREFIX}/bin

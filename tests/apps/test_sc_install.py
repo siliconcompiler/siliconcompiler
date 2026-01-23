@@ -89,7 +89,7 @@ def test_install_two_tools_onefail(monkeypatch, capfd):
         }
     monkeypatch.setattr(sc_install, '_get_tools_list', return_os)
 
-    def install_tool(tool, script, build_dir, prefix):
+    def install_tool(tool, script, build_dir, prefix, jobs=None):
         if tool == "openroad":
             return False
         return True
@@ -120,7 +120,7 @@ def test_install_two_tools_onefailonepending(monkeypatch, capfd):
         }
     monkeypatch.setattr(sc_install, '_get_tools_list', return_os)
 
-    def install_tool(tool, script, build_dir, prefix):
+    def install_tool(tool, script, build_dir, prefix, jobs=None):
         """
         Decide whether installation of a given tool should be considered successful.
 
@@ -129,6 +129,7 @@ def test_install_two_tools_onefailonepending(monkeypatch, capfd):
             script (str): Path or command of the installation script for the tool.
             build_dir (str): Directory used for building or temporary installation files.
             prefix (str): Installation prefix path.
+            jobs (Optional[int]): Maximum number of parallel jobs.
 
         Returns:
             bool: `True` if installation is considered successful, `False` otherwise.
@@ -202,7 +203,7 @@ def test_prefix(monkeypatch):
 
     prefix_path = os.path.abspath('testing123')
 
-    def tool_install(tool, script, build_dir, prefix):
+    def tool_install(tool, script, build_dir, prefix, jobs=None):
         assert prefix == prefix_path
         return True
     monkeypatch.setattr(sc_install, 'install_tool', tool_install)
@@ -221,7 +222,7 @@ def test_ld_library_path_msg_set(monkeypatch, capfd):
 
     prefix_path = os.path.abspath('testing123')
 
-    def tool_install(tool, script, build_dir, prefix):
+    def tool_install(tool, script, build_dir, prefix, jobs=None):
         assert prefix == prefix_path
         return True
     monkeypatch.setattr(sc_install, 'install_tool', tool_install)
@@ -241,7 +242,7 @@ def test_ld_library_path_msg_set_env(monkeypatch, capfd):
         }
     monkeypatch.setattr(sc_install, '_get_tools_list', return_os)
 
-    def tool_install(tool, script, build_dir, prefix):
+    def tool_install(tool, script, build_dir, prefix, jobs=None):
         return True
     monkeypatch.setattr(sc_install, 'install_tool', tool_install)
 
@@ -265,7 +266,7 @@ def test_ld_library_path_msg_not_set(monkeypatch, capfd):
 
     prefix_path = os.path.abspath('testing123')
 
-    def tool_install(tool, script, build_dir, prefix):
+    def tool_install(tool, script, build_dir, prefix, jobs=None):
         assert prefix == prefix_path
         return True
     monkeypatch.setattr(sc_install, 'install_tool', tool_install)
@@ -547,3 +548,270 @@ def test_get_tools_list(monkeypatch):
         "tool2": "script2.sh",
         "tool3": "script3.sh"
     }
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
+def test_jobs_argument(monkeypatch, datadir):
+    """Test that -jobs argument sets NPROC environment variable."""
+    def return_os():
+        return {
+            "echo": os.path.join(datadir, "echo_nproc.sh")
+        }
+    monkeypatch.setattr(sc_install, '_get_tools_list', return_os)
+
+    jobs_count = 4
+    nproc_value = None
+
+    def install_tool_mock(tool, script, build_dir, prefix, jobs=None):
+        nonlocal nproc_value
+        nproc_value = jobs
+        return True
+
+    monkeypatch.setattr(sc_install, 'install_tool', install_tool_mock)
+    monkeypatch.setattr('sys.argv', ['sc-install', 'echo', '-jobs', str(jobs_count)])
+
+    assert sc_install.main() == 0
+    assert nproc_value == jobs_count
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
+def test_jobs_default_none(monkeypatch, datadir):
+    """Test that when -jobs is not specified, jobs parameter is None."""
+    def return_os():
+        return {
+            "echo": os.path.join(datadir, "echo_nproc.sh")
+        }
+    monkeypatch.setattr(sc_install, '_get_tools_list', return_os)
+
+    nproc_value = "not_set"
+
+    def install_tool_mock(tool, script, build_dir, prefix, jobs=None):
+        nonlocal nproc_value
+        nproc_value = jobs
+        return True
+
+    monkeypatch.setattr(sc_install, 'install_tool', install_tool_mock)
+    monkeypatch.setattr('sys.argv', ['sc-install', 'echo'])
+
+    assert sc_install.main() == 0
+    assert nproc_value is None
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
+@mock.patch("subprocess.call")
+def test_jobs_env_variable_set(call, monkeypatch):
+    """Test that NPROC environment variable is set correctly when -jobs is used."""
+    def return_os():
+        return {
+            "yosys": "yosys.sh"
+        }
+    monkeypatch.setattr(sc_install, '_get_tools_list', return_os)
+
+    call.return_value = 0
+    jobs_count = 8
+
+    monkeypatch.setattr('sys.argv', ['sc-install', 'yosys', '-jobs', str(jobs_count)])
+    assert sc_install.main() == 0
+
+    call.assert_called_once()
+    # Check that NPROC was set in the environment passed to subprocess.call
+    call_kwargs = call.call_args.kwargs
+    assert 'env' in call_kwargs
+    assert call_kwargs['env']['NPROC'] == str(jobs_count)
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
+@mock.patch("subprocess.call")
+def test_jobs_env_variable_not_set(call, monkeypatch):
+    """Test that NPROC environment variable is not set when -jobs is not used."""
+    def return_os():
+        return {
+            "yosys": "yosys.sh"
+        }
+    monkeypatch.setattr(sc_install, '_get_tools_list', return_os)
+
+    call.return_value = 0
+
+    monkeypatch.setattr('sys.argv', ['sc-install', 'yosys'])
+    assert sc_install.main() == 0
+
+    call.assert_called_once()
+    # Check that NPROC was not set in the environment passed to subprocess.call
+    call_kwargs = call.call_args.kwargs
+    assert 'env' in call_kwargs
+    assert 'NPROC' not in call_kwargs['env']
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
+@mock.patch("subprocess.call")
+def test_jobs_multiple_tools(call, monkeypatch):
+    """Test that -jobs argument works with multiple tools."""
+    def return_os():
+        return {
+            "yosys": "yosys.sh",
+            "openroad": "openroad.sh"
+        }
+    monkeypatch.setattr(sc_install, '_get_tools_list', return_os)
+
+    call.return_value = 0
+    jobs_count = 2
+
+    monkeypatch.setattr('sys.argv', ['sc-install', 'yosys', 'openroad', '-jobs', str(jobs_count)])
+    assert sc_install.main() == 0
+
+    assert call.call_count == 2
+    # Check that NPROC was set in all calls
+    for call_arg in call.call_args_list:
+        call_kwargs = call_arg.kwargs
+        assert 'env' in call_kwargs
+        assert call_kwargs['env']['NPROC'] == str(jobs_count)
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
+@mock.patch("subprocess.call")
+def test_jobs_with_group(call, monkeypatch):
+    """Test that -jobs argument works with tool groups."""
+    def return_os():
+        return {
+            "yosys": "yosys.sh",
+            "yosys-slang": "yosys-slang.sh",
+            "openroad": "openroad.sh",
+            "sv2v": "sv2v.sh",
+            "klayout": "klayout.sh"
+        }
+    monkeypatch.setattr(sc_install, '_get_tools_list', return_os)
+
+    call.return_value = 0
+    jobs_count = 3
+
+    monkeypatch.setattr('sys.argv', ['sc-install', '-group', 'asic', '-jobs', str(jobs_count)])
+    assert sc_install.main() == 0
+
+    assert call.call_count == 5
+    # Check that NPROC was set in all calls
+    for call_arg in call.call_args_list:
+        call_kwargs = call_arg.kwargs
+        assert 'env' in call_kwargs
+        assert call_kwargs['env']['NPROC'] == str(jobs_count)
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
+def test_jobs_invalid_type(monkeypatch):
+    """Test that invalid -jobs argument type is rejected."""
+    def return_os():
+        return {
+            "yosys": "yosys.sh"
+        }
+    monkeypatch.setattr(sc_install, '_get_tools_list', return_os)
+
+    monkeypatch.setattr('sys.argv', ['sc-install', 'yosys', '-jobs', 'invalid'])
+
+    with pytest.raises(SystemExit):
+        sc_install.main()
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
+@mock.patch("subprocess.call")
+def test_jobs_zero(call, monkeypatch):
+    """Test that -jobs 0 is accepted and passed through."""
+    def return_os():
+        return {
+            "yosys": "yosys.sh"
+        }
+    monkeypatch.setattr(sc_install, '_get_tools_list', return_os)
+
+    call.return_value = 0
+
+    monkeypatch.setattr('sys.argv', ['sc-install', 'yosys', '-jobs', '0'])
+    assert sc_install.main() == 0
+
+    call.assert_called_once()
+    call_kwargs = call.call_args.kwargs
+    assert 'env' in call_kwargs
+    assert call_kwargs['env']['NPROC'] == '0'
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
+@mock.patch("subprocess.call")
+def test_jobs_large_number(call, monkeypatch):
+    """Test that large -jobs values are handled correctly."""
+    def return_os():
+        return {
+            "yosys": "yosys.sh"
+        }
+    monkeypatch.setattr(sc_install, '_get_tools_list', return_os)
+
+    call.return_value = 0
+    jobs_count = 128
+
+    monkeypatch.setattr('sys.argv', ['sc-install', 'yosys', '-jobs', str(jobs_count)])
+    assert sc_install.main() == 0
+
+    call.assert_called_once()
+    call_kwargs = call.call_args.kwargs
+    assert 'env' in call_kwargs
+    assert call_kwargs['env']['NPROC'] == str(jobs_count)
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
+def test_nproc_script_with_jobs(monkeypatch, datadir, capfd):
+    """Test that NPROC environment variable is used correctly in scripts."""
+    def return_os():
+        return {
+            "echo": os.path.join(datadir, "echo_nproc.sh")
+        }
+    monkeypatch.setattr(sc_install, '_get_tools_list', return_os)
+
+    jobs_count = 6
+
+    monkeypatch.setattr('sys.argv', ['sc-install', 'echo', '-jobs', str(jobs_count)])
+    assert sc_install.main() == 0
+
+    output = capfd.readouterr().out
+    assert f"ECHO NPROC: {jobs_count}" in output
+    assert "USE_SUDO_INSTALL: no" in output
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
+def test_nproc_script_without_jobs(monkeypatch, datadir, capfd):
+    """Test that script uses nproc command when NPROC is not set."""
+    def return_os():
+        return {
+            "echo": os.path.join(datadir, "echo_nproc.sh")
+        }
+    monkeypatch.setattr(sc_install, '_get_tools_list', return_os)
+
+    monkeypatch.setattr('sys.argv', ['sc-install', 'echo'])
+    assert sc_install.main() == 0
+
+    output = capfd.readouterr().out
+    # Should contain ECHO NPROC: <some number>, but we can't predict the exact value
+    # since it depends on the system. Just verify the script ran and output exists.
+    assert "ECHO NPROC:" in output
+    assert "USE_SUDO_INSTALL: no" in output
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="only works on linux")
+def test_jobs_with_prefix_and_build_dir(monkeypatch, datadir, capfd):
+    """Test that -jobs works correctly with -prefix and -build_dir."""
+    def return_os():
+        return {
+            "echo": os.path.join(datadir, "echo_nproc.sh")
+        }
+    monkeypatch.setattr(sc_install, '_get_tools_list', return_os)
+
+    prefix_path = os.path.abspath('testing_prefix')
+    build_path = os.path.abspath('testing_build')
+    jobs_count = 10
+
+    monkeypatch.setattr('sys.argv', [
+        'sc-install', 'echo',
+        '-prefix', prefix_path,
+        '-build_dir', build_path,
+        '-jobs', str(jobs_count)
+    ])
+    assert sc_install.main() == 0
+
+    output = capfd.readouterr().out
+    assert f"ECHO NPROC: {jobs_count}" in output
+    assert f"PREFIX: {prefix_path}" in output
