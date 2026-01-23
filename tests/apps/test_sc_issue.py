@@ -1,4 +1,5 @@
 import os
+import sys
 
 import pytest
 
@@ -60,6 +61,12 @@ def test_sc_issue_generate_success(flags,
         time.now.assert_called()
 
     assert os.path.isfile(outputfile)
+
+
+@pytest.mark.timeout(90)
+def test_sc_issue_fail_on_no_cfg(monkeypatch, project):
+    monkeypatch.setattr('sys.argv', ['sc-issue', 'build/heartbeat/job0/steptwo/0/outputs/heartbeat.pkg.json'])
+    assert sc_issue.main() == 1
 
 
 @pytest.mark.timeout(90)
@@ -144,3 +151,97 @@ def test_sc_issue_run(monkeypatch, project):
 
     monkeypatch.setattr('sys.argv', ['sc-issue', '-run', '-file', 'sc_issue.tar.gz'])
     assert sc_issue.main() == 0
+
+
+@pytest.mark.timeout(90)
+def test_sc_issue_run_without_file(monkeypatch, project):
+    '''Test sc-issue app fails when -run is used without -file.'''
+
+    monkeypatch.setattr('sys.argv', ['sc-issue', '-run'])
+    with pytest.raises(ValueError, match=r'-file must be provided'):
+        sc_issue.main()
+
+
+@pytest.mark.timeout(90)
+def test_sc_issue_builddir_not_found(monkeypatch, tmp_path, project):
+    '''Test sc-issue when builddir is not found in the path.'''
+    import shutil
+
+    # Copy the manifest to a completely different path
+    manifest_path = 'build/heartbeat/job0/stepone/0/outputs/heartbeat.pkg.json'
+    new_manifest_path = tmp_path / 'heartbeat.pkg.json'
+    shutil.copy(manifest_path, new_manifest_path)
+
+    monkeypatch.setattr('sys.argv', ['sc-issue', '-cfg', str(new_manifest_path),
+                                     '-arg_step', 'stepone', '-arg_index', '0'])
+    # The builddir won't be found so it will keep the original relative path
+    # But the testcase should still be generated
+    with patch("siliconcompiler.utils.issue.datetime") as time:
+        time.fromtimestamp = datetime.fromtimestamp
+        time.now.return_value = datetime(2020, 3, 11, 14, 12, 13, tzinfo=timezone.utc)
+        assert sc_issue.main() == 0
+
+
+@pytest.mark.timeout(90)
+def test_sc_issue_as_main(monkeypatch, project):
+    '''Test sc-issue app entry point - simply verify the function works.'''
+    monkeypatch.setattr('sys.argv', ['sc-issue',
+                                     '-cfg',
+                                     'build/heartbeat/job0/stepone/0/outputs/heartbeat.pkg.json'])
+    with patch("siliconcompiler.utils.issue.datetime") as time:
+        time.fromtimestamp = datetime.fromtimestamp
+        time.now.return_value = datetime(2020, 3, 11, 14, 12, 13, tzinfo=timezone.utc)
+        # Test that main runs successfully
+        retval = sc_issue.main()
+        assert retval == 0
+
+
+@pytest.mark.timeout(90)
+def test_sc_issue_run_with_git_installed_version(monkeypatch, project):
+    '''Test sc-issue run when the version doesn't have git commit info (installed version).'''
+    import json
+    import tarfile
+    import shutil
+    import os
+
+    # First generate a testcase
+    monkeypatch.setattr('sys.argv', ['sc-issue',
+                                     '-cfg',
+                                     'build/heartbeat/job0/stepone/0/outputs/heartbeat.pkg.json',
+                                     '-file',
+                                     'test_issue_orig.tar.gz'])
+    with patch("siliconcompiler.utils.issue.datetime") as time:
+        time.fromtimestamp = datetime.fromtimestamp
+        time.now.return_value = datetime(2020, 3, 11, 14, 12, 13, tzinfo=timezone.utc)
+        assert sc_issue.main() == 0
+
+    # Extract and modify the issue.json to remove git commit
+    test_dir = 'test_issue_orig'
+    with tarfile.open('test_issue_orig.tar.gz', 'r:gz') as f:
+        f.extractall(path='.')
+
+    with open(f'{test_dir}/issue.json', 'r') as f:
+        issue_info = json.load(f)
+
+    # Remove the 'commit' key to test the else branch
+    if 'commit' in issue_info['version']['git']:
+        del issue_info['version']['git']['commit']
+
+    with open(f'{test_dir}/issue.json', 'w') as f:
+        json.dump(issue_info, f)
+
+    # Create a new tarball with the modified data
+    # The tarball name needs to match the expected directory structure
+    new_tarball = 'test_issue_orig.tar.gz'
+    if os.path.exists(new_tarball):
+        os.remove(new_tarball)
+
+    with tarfile.open(new_tarball, 'w:gz') as tar:
+        tar.add(test_dir, arcname=test_dir)
+
+    # Now run the modified testcase
+    monkeypatch.setattr('sys.argv', ['sc-issue', '-run', '-file', new_tarball])
+    assert sc_issue.main() == 0
+
+    # Cleanup
+    shutil.rmtree(test_dir, ignore_errors=True)
