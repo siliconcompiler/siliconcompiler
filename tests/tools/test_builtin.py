@@ -979,7 +979,8 @@ def test_wait_serialize_tool_tasks_complex_diamond():
         for node in level:
             level_map[node] = level_idx
     # All place nodes should be at different levels (serialized)
-    assert level_map[('place1', '0')] < level_map[('place2', '0')] < level_map[('place3', '0')] < level_map[('place4', '0')]
+    assert level_map[('place1', '0')] < level_map[('place2', '0')] < level_map[('place3', '0')] \
+        < level_map[('place4', '0')]
 
     # Graph should be valid
     assert flow.validate()
@@ -1460,8 +1461,7 @@ def test_wait_serialize_tool_tasks_four_parallel_nodes():
 
     for i in range(1, 4):
         inputs = flow.get("place", str(i), "input")
-        expected_wait = f"place.wait"
-        has_expected_wait = any(expected_wait in inp[0] for inp in inputs)
+        has_expected_wait = any("place.wait" in inp[0] for inp in inputs)
         assert has_expected_wait, \
             f"place/{i} should have a place.wait node as input to ensure serial " \
             f"execution, got {inputs}"
