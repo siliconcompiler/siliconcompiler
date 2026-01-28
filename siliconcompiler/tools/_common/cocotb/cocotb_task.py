@@ -8,97 +8,94 @@ from siliconcompiler import Task
 
 try:
     import cocotb_tools.config
-    import cocotb_tools.runner
+    from cocotb_tools.runner import Runner
     _has_cocotb = True
 except ModuleNotFoundError:
     _has_cocotb = False
+    Runner = object
 
 
-if _has_cocotb:
-    def get_cocotb_config(sim="icarus"):
-        libs_dir = cocotb_tools.config.libs_dir
-        lib_name = cocotb_tools.config.lib_name("vpi", sim)
-        share_dir = cocotb_tools.config.share_dir
-
-        return libs_dir, lib_name, share_dir
-
-    class CocotbRunnerDummy(cocotb_tools.runner.Runner):
-        """
-        A minimal Runner subclass used solely to retrieve the libpython path.
-
-        This class provides access to the libpython shared library location
-        without adding ``find_libpython`` as a direct dependency. It leverages
-        cocotb's existing Runner infrastructure, which handles libpython
-        discovery internally via the ``_set_env()`` method.
-
-        The abstract methods required by the Runner base class are implemented
-        as no-ops or raise NotImplementedError, as they are not intended to be
-        called. This class should only be instantiated to call
-        ``get_libpython_path()``.
-
-        Example:
-            >>> libpython = CocotbRunnerDummy().get_libpython_path()
-            >>> print(libpython)
-            /usr/lib/x86_64-linux-gnu/libpython3.10.so
-        """
-
-        def __init__(self):
-            super().__init__()
-            # These attributes are required by _set_env() which uses them to
-            # populate environment variables.
-            self.sim_hdl_toplevel = ""
-            self.test_module = ""
-            self.hdl_toplevel_lang = ""
-
-        def _simulator_in_path(self):
-            # No-op: This dummy class doesn't require any simulator executable.
-            pass
-
-        def _build_command(self):
-            raise NotImplementedError(
-                "CocotbRunnerDummy is not intended for building HDL sources")
-
-        def _test_command(self):
-            raise NotImplementedError(
-                "CocotbRunnerDummy is not intended for running tests")
-
-        def _get_define_options(self, defines):
-            raise NotImplementedError(
-                "CocotbRunnerDummy is not intended for HDL compilation")
-
-        def _get_include_options(self, includes):
-            raise NotImplementedError(
-                "CocotbRunnerDummy is not intended for HDL compilation")
-
-        def _get_parameter_options(self, parameters):
-            raise NotImplementedError(
-                "CocotbRunnerDummy is not intended for HDL compilation")
-
-        def get_libpython_path(self):
-            """
-            Retrieve the path to the libpython shared library.
-
-            This method uses cocotb's ``Runner._set_env()`` which internally
-            calls ``find_libpython.find_libpython()`` to locate the library.
-
-            Returns:
-                str: Absolute path to the libpython shared library.
-
-            Raises:
-                ValueError: If libpython cannot be found.
-            """
-            self._set_env()
-            return self.env["LIBPYTHON_LOC"]
-else:
-    def get_cocotb_config(sim="icarus"):
+def get_cocotb_config(sim="icarus"):
+    if not _has_cocotb:
         raise NotImplementedError("COCOTB must be installed to use get_cocotb_config")
 
-    class CocotbRunnerDummy():
-        def __init__():
-            raise NotImplementedError("COCOTB must be installed")
+    libs_dir = cocotb_tools.config.libs_dir
+    lib_name = cocotb_tools.config.lib_name("vpi", sim)
+    share_dir = cocotb_tools.config.share_dir
 
-        def get_libpython_path(self):
-            raise NotImplementedError("COCOTB must be installed")
+    return libs_dir, lib_name, share_dir
+
+
+class CocotbRunnerDummy(Runner):
+    """
+    A minimal Runner subclass used solely to retrieve the libpython path.
+
+    This class provides access to the libpython shared library location
+    without adding ``find_libpython`` as a direct dependency. It leverages
+    cocotb's existing Runner infrastructure, which handles libpython
+    discovery internally via the ``_set_env()`` method.
+
+    The abstract methods required by the Runner base class are implemented
+    as no-ops or raise NotImplementedError, as they are not intended to be
+    called. This class should only be instantiated to call
+    ``get_libpython_path()``.
+
+    Example:
+        >>> libpython = CocotbRunnerDummy().get_libpython_path()
+        >>> print(libpython)
+        /usr/lib/x86_64-linux-gnu/libpython3.10.so
+    """
+
+    def __init__(self):
+        if not _has_cocotb:
+            raise NotImplementedError("COCOTB must be installed to use get_cocotb_config")
+
+        super().__init__()
+        # These attributes are required by _set_env() which uses them to
+        # populate environment variables.
+        self.sim_hdl_toplevel = ""
+        self.test_module = ""
+        self.hdl_toplevel_lang = ""
+
+    def _simulator_in_path(self):
+        # No-op: This dummy class doesn't require any simulator executable.
+        pass
+
+    def _build_command(self):
+        raise NotImplementedError(
+            "CocotbRunnerDummy is not intended for building HDL sources")
+
+    def _test_command(self):
+        raise NotImplementedError(
+            "CocotbRunnerDummy is not intended for running tests")
+
+    def _get_define_options(self, defines):
+        raise NotImplementedError(
+            "CocotbRunnerDummy is not intended for HDL compilation")
+
+    def _get_include_options(self, includes):
+        raise NotImplementedError(
+            "CocotbRunnerDummy is not intended for HDL compilation")
+
+    def _get_parameter_options(self, parameters):
+        raise NotImplementedError(
+            "CocotbRunnerDummy is not intended for HDL compilation")
+
+    def get_libpython_path(self):
+        """
+        Retrieve the path to the libpython shared library.
+
+        This method uses cocotb's ``Runner._set_env()`` which internally
+        calls ``find_libpython.find_libpython()`` to locate the library.
+
+        Returns:
+            str: Absolute path to the libpython shared library.
+
+        Raises:
+            ValueError: If libpython cannot be found.
+        """
+        self._set_env()
+        return self.env["LIBPYTHON_LOC"]
 
 
 class CocotbTask(Task):
