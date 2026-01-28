@@ -89,6 +89,16 @@ if _has_cocotb:
             """
             self._set_env()
             return self.env["LIBPYTHON_LOC"]
+else:
+    def get_cocotb_config(sim="icarus"):
+        raise NotImplementedError("COCOTB must be installed to use get_cocotb_config")
+
+    class CocotbRunnerDummy():
+        def __init__():
+            raise NotImplementedError("COCOTB must be installed")
+
+        def get_libpython_path(self):
+            raise NotImplementedError("COCOTB must be installed")
 
 
 class CocotbTask(Task):
