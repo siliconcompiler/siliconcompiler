@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Union
 from siliconcompiler import Task
 
 
@@ -15,6 +15,11 @@ class CompileTask(Task):
                            'See the corresponding "-g" flags in the Icarus manual for more "'
                            '"information.')
 
+        self.add_parameter("trace", "bool",
+                           'Enable waveform tracing. When enabled, a VCD dump module is '
+                           'auto-generated and compiled with the design to capture all signals.',
+                           defvalue=False)
+
     def set_icarus_veriloggeneration(self, gen: str,
                                      step: Optional[str] = None,
                                      index: Optional[str] = None):
@@ -27,6 +32,22 @@ class CompileTask(Task):
             index (str, optional): The specific index to apply this configuration to.
         """
         self.set("var", "verilog_generation", gen, step=step, index=index)
+
+    def set_trace_enabled(self, enabled: bool = True,
+                          step: Optional[str] = None,
+                          index: Optional[Union[str, int]] = None):
+        """
+        Enables or disables waveform tracing.
+
+        When enabled, a VCD dump module is auto-generated and compiled with
+        the design. The waveform file will be written to reports/<topmodule>.vcd.
+
+        Args:
+            enabled (bool): Whether to enable tracing. Defaults to True.
+            step (str, optional): The specific step to apply this configuration to.
+            index (str, optional): The specific index to apply this configuration to.
+        """
+        self.set("var", "trace", enabled, step=step, index=index)
 
     def tool(self):
         return "icarus"
@@ -73,6 +94,26 @@ class CompileTask(Task):
 
         if self.get("var", "verilog_generation"):
             self.add_required_key("var", "verilog_generation")
+
+    def pre_process(self):
+        super().pre_process()
+
+        # Generate VCD dump module if tracing is enabled
+        if self.get("var", "trace"):
+            self._generate_trace_module()
+
+    def _generate_trace_module(self):
+        trace_file = f"reports/{self.design_topmodule}.vcd"
+        dump_module = f"""// Auto-generated waveform dump module
+module sc_trace_dump();
+initial begin
+    $dumpfile("{trace_file}");
+    $dumpvars(0, {self.design_topmodule});
+end
+endmodule
+"""
+        with open("sc_trace_dump.v", "w") as f:
+            f.write(dump_module)
 
     def runtime_options(self):
         options = super().runtime_options()
@@ -136,5 +177,10 @@ class CompileTask(Task):
         for lib, fileset in filesets:
             for value in lib.get_file(fileset=fileset, filetype="verilog"):
                 options.append(value)
+
+        # Add trace dump module if tracing is enabled
+        if self.get("var", "trace"):
+            options.append("sc_trace_dump.v")
+            options.extend(["-s", "sc_trace_dump"])
 
         return options
