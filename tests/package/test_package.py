@@ -831,14 +831,13 @@ def test_python_path_resolver_is_module_editable_standard_lib():
     result = PythonPathResolver.is_python_module_editable("json")
     # json is a standard library module, so should be False
     # It might not be in the distribution mapping at all
-    assert isinstance(result, bool)
+    assert result is False
 
 
 def test_python_path_resolver_is_module_editable_installed():
     """Test is_python_module_editable with installed package."""
     # pytest should be installed
     result = PythonPathResolver.is_python_module_editable("pytest")
-    assert isinstance(result, bool)
     # pytest is typically not installed in editable mode
     assert result is False
 
