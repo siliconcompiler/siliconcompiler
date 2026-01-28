@@ -30,6 +30,7 @@ def test_fpga_keys():
 def test_keys():
     assert FPGADevice().getkeys() == (
         'dataroot',
+        'deps',
         'fileset',
         'fpga',
         'package'
