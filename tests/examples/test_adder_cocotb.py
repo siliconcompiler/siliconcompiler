@@ -11,7 +11,7 @@ def test_py_make_sim_icarus_no_trace():
     make.sim_icarus(trace=True)
 
     assert os.path.isfile('build/adder/job0/adder.pkg.json')
-    assert os.path.isfile('build/adder/job0/simulate/0/reports/adder.vcd')
+    assert not os.path.isfile('build/adder/job0/simulate/0/reports/adder.vcd')
 
 
 @pytest.mark.eda
@@ -22,7 +22,7 @@ def test_py_make_sim_icarus_vcd():
     make.sim_icarus(trace=True)
 
     assert os.path.isfile('build/adder/job0/adder.pkg.json')
-    assert not os.path.isfile('build/adder/job0/simulate/0/reports/adder.vcd')
+    assert os.path.isfile('build/adder/job0/simulate/0/reports/adder.vcd')
 
 
 @pytest.mark.eda
