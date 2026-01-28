@@ -16,6 +16,7 @@ import logging
 import os
 import random
 import re
+import site
 import shutil
 import time
 import threading
@@ -647,21 +648,26 @@ class PythonPathResolver(Resolver):
             return False
         dist_name = dist_map[module_name][0]
 
-        is_editable = False
         dist_obj = distribution(dist_name)
-        if not dist_obj or not dist_obj.files:
+        if not dist_obj:
             return False
 
-        for f in dist_obj.files:
-            if f.name == 'direct_url.json':
-                info = None
-                with open(f.locate(), 'r') as fp:
-                    info = json.load(fp)
+        direct_url_content = dist_obj.read_text('direct_url.json')
+        if direct_url_content:
+            direct_url = json.loads(direct_url_content)
+            return direct_url.get('dir_info', {}).get('editable', False)
 
-                if "dir_info" in info:
-                    is_editable = info["dir_info"].get("editable", False)
+        dist_loc = dist_obj.locate_file('')
+        site_paths = set(site.getsitepackages() + [site.getusersitepackages()])
+        if not dist_loc or not site_paths:
+            return False
 
-        return is_editable
+        for site_path in site_paths:
+            if os.path.commonpath([dist_loc, site_path]) == site_path:
+                # installed in site-packages, so not editable
+                return False
+
+        return True
 
     @staticmethod
     def set_dataroot(root: "PathSchema",

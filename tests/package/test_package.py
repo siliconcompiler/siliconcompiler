@@ -761,6 +761,207 @@ def test_python_path_resolver():
     assert resolver.resolve() == os.path.dirname(siliconcompiler.__file__)
 
 
+def test_python_path_resolver_with_urlpath():
+    """Test that PythonPathResolver correctly extracts module name from source."""
+    resolver = PythonPathResolver("test_module", None, "python://json")
+    assert resolver.urlpath == "json"
+    assert resolver.resolve() is not None
+
+
+def test_python_path_resolver_with_nested_module():
+    """Test PythonPathResolver with nested module."""
+    resolver = PythonPathResolver("test_nested", None, "python://xml.etree")
+    resolved = resolver.resolve()
+    assert resolved is not None
+    assert os.path.exists(resolved)
+
+
+def test_python_path_resolver_reference_ignored():
+    """Test that PythonPathResolver ignores the reference parameter."""
+    resolver = PythonPathResolver("thisname", None, "python://siliconcompiler", reference="v1.0")
+    # Reference should be ignored for Python modules
+    assert resolver.reference is None
+    assert resolver.resolve() == os.path.dirname(siliconcompiler.__file__)
+
+
+def test_python_path_resolver_not_found():
+    """Test that PythonPathResolver raises error for non-existent module."""
+    resolver = PythonPathResolver("test_missing", None, "python://nonexistent_module_xyz")
+    with pytest.raises(ModuleNotFoundError):
+        resolver.resolve()
+
+
+def test_python_path_resolver_absolute_path():
+    """Test that resolved path is absolute."""
+    resolver = PythonPathResolver("thisname", None, "python://siliconcompiler")
+    resolved = resolver.resolve()
+    assert os.path.isabs(resolved)
+
+
+def test_python_path_resolver_get_python_module_mapping():
+    """Test get_python_module_mapping returns a valid dictionary."""
+    mapping = PythonPathResolver.get_python_module_mapping()
+    assert isinstance(mapping, dict)
+    # Should contain some common modules or siliconcompiler
+    assert len(mapping) > 0
+    # Each key should be a module name, each value should be a list of distribution names
+    for module_name, dist_names in mapping.items():
+        assert isinstance(module_name, str)
+        assert isinstance(dist_names, list)
+        assert all(isinstance(dn, str) for dn in dist_names)
+
+
+def test_python_path_resolver_get_python_module_mapping_cached():
+    """Test that get_python_module_mapping uses LRU cache."""
+    # Call it twice and ensure it returns the same object (cached)
+    mapping1 = PythonPathResolver.get_python_module_mapping()
+    mapping2 = PythonPathResolver.get_python_module_mapping()
+    assert mapping1 is mapping2
+
+
+def test_python_path_resolver_is_module_editable_not_found():
+    """Test is_python_module_editable returns False for non-existent module."""
+    result = PythonPathResolver.is_python_module_editable("nonexistent_module_xyz_123")
+    assert result is False
+
+
+def test_python_path_resolver_is_module_editable_standard_lib():
+    """Test is_python_module_editable with standard library modules."""
+    # Standard library modules should not be editable
+    result = PythonPathResolver.is_python_module_editable("json")
+    # json is a standard library module, so should be False
+    # It might not be in the distribution mapping at all
+    assert isinstance(result, bool)
+
+
+def test_python_path_resolver_is_module_editable_installed():
+    """Test is_python_module_editable with installed package."""
+    # pytest should be installed
+    result = PythonPathResolver.is_python_module_editable("pytest")
+    assert isinstance(result, bool)
+    # pytest is typically not installed in editable mode
+    assert result is False
+
+
+def test_python_path_resolver_is_module_editable_siliconcompiler():
+    """Test is_python_module_editable with siliconcompiler."""
+    result = PythonPathResolver.is_python_module_editable("siliconcompiler")
+    assert isinstance(result, bool)
+    # siliconcompiler could be editable during development, or not
+
+
+def test_python_path_resolver_set_dataroot_editable_module():
+    """Test set_dataroot with an editable module."""
+    from siliconcompiler.schema_support.pathschema import PathSchema
+
+    schema = PathSchema()
+
+    # Mock is_python_module_editable to return True
+    with patch.object(PythonPathResolver, "is_python_module_editable", return_value=True):
+        PythonPathResolver.set_dataroot(
+            schema,
+            "test_data",
+            "siliconcompiler",
+            "fallback/path",
+            "v1.0"
+        )
+
+        # Check that dataroot was set with python:// source
+        assert schema.get("dataroot", "test_data", "path") == "python://siliconcompiler"
+        assert schema.get("dataroot", "test_data", "tag") is None
+
+
+def test_python_path_resolver_set_dataroot_non_editable_module():
+    """Test set_dataroot with a non-editable module."""
+    from siliconcompiler.schema_support.pathschema import PathSchema
+
+    schema = PathSchema()
+
+    # Mock is_python_module_editable to return False
+    with patch.object(PythonPathResolver, "is_python_module_editable", return_value=False):
+        PythonPathResolver.set_dataroot(
+            schema,
+            "test_data",
+            "some_module",
+            "fallback/path",
+            "v1.0"
+        )
+
+        # Check that dataroot was set with fallback path
+        assert schema.get("dataroot", "test_data", "path") == "fallback/path"
+        assert schema.get("dataroot", "test_data", "tag") == "v1.0"
+
+
+def test_python_path_resolver_set_dataroot_with_path_append():
+    """Test set_dataroot with path appending for editable module."""
+    from siliconcompiler.schema_support.pathschema import PathSchema
+
+    schema = PathSchema()
+
+    # Mock is_python_module_editable to return True
+    with patch.object(PythonPathResolver, "is_python_module_editable", return_value=True):
+        with patch.object(PythonPathResolver, "__init__", return_value=None):
+            # We need to mock the constructor and resolve separately
+            with patch("siliconcompiler.package.PythonPathResolver.resolve") as mock_resolve:
+                # Mock the resolve method to return a test path
+                mock_resolve.return_value = "/path/to/module"
+
+                PythonPathResolver.set_dataroot(
+                    schema,
+                    "test_data",
+                    "siliconcompiler",
+                    "fallback/path",
+                    python_module_path_append="subdir"
+                )
+
+                # Check that path was appended correctly
+                expected_path = os.path.abspath(os.path.join("/path/to/module", "subdir"))
+                assert schema.get("dataroot", "test_data", "path") == expected_path
+
+
+def test_python_path_resolver_set_dataroot_no_path_append():
+    """Test set_dataroot with editable module but no path appending."""
+    from siliconcompiler.schema_support.pathschema import PathSchema
+
+    schema = PathSchema()
+
+    # Mock is_python_module_editable to return True
+    with patch.object(PythonPathResolver, "is_python_module_editable", return_value=True):
+        PythonPathResolver.set_dataroot(
+            schema,
+            "test_data",
+            "siliconcompiler",
+            "fallback/path",
+            python_module_path_append=None
+        )
+
+        # Check that dataroot was set with python:// source
+        assert schema.get("dataroot", "test_data", "path") == "python://siliconcompiler"
+
+
+def test_python_path_resolver_get_path_integration():
+    """Test the full get_path flow for PythonPathResolver."""
+    resolver = PythonPathResolver("test_module", None, "python://siliconcompiler")
+    path = resolver.get_path()
+
+    assert isinstance(path, str)
+    assert os.path.exists(path)
+    assert os.path.isabs(path)
+    assert path == os.path.dirname(siliconcompiler.__file__)
+
+
+def test_python_path_resolver_cache_id():
+    """Test that cache IDs are consistent and different for different sources."""
+    resolver1 = PythonPathResolver("test1", None, "python://siliconcompiler")
+    resolver2 = PythonPathResolver("test2", None, "python://siliconcompiler")
+    resolver3 = PythonPathResolver("test3", None, "python://json")
+
+    # Same source should have same cache ID (regardless of name)
+    assert resolver1.cache_id == resolver2.cache_id
+    # Different sources should have different cache IDs
+    assert resolver1.cache_id != resolver3.cache_id
+
+
 def test_keypath_resolver():
     design = Design("testdesign")
     with design.active_fileset("rtl"):
