@@ -1,13 +1,14 @@
 import os
-import subprocess
 import sys
 from pathlib import Path
 from typing import Optional, Union, Dict
+import xml.etree.ElementTree as ET
 
 from siliconcompiler import Task
 
 try:
     import cocotb_tools.config
+    import cocotb_tools.runner
     _has_cocotb = True
 except ModuleNotFoundError:
     _has_cocotb = False
@@ -21,6 +22,74 @@ if _has_cocotb:
 
         return libs_dir, lib_name, share_dir
 
+    class CocotbRunnerDummy(cocotb_tools.runner.Runner):
+        """
+        A minimal Runner subclass used solely to retrieve the libpython path.
+
+        This class provides access to the libpython shared library location
+        without adding ``find_libpython`` as a direct dependency. It leverages
+        cocotb's existing Runner infrastructure, which handles libpython
+        discovery internally via the ``_set_env()`` method.
+
+        The abstract methods required by the Runner base class are implemented
+        as no-ops or raise NotImplementedError, as they are not intended to be
+        called. This class should only be instantiated to call
+        ``get_libpython_path()``.
+
+        Example:
+            >>> libpython = CocotbRunnerDummy().get_libpython_path()
+            >>> print(libpython)
+            /usr/lib/x86_64-linux-gnu/libpython3.10.so
+        """
+
+        def __init__(self):
+            super().__init__()
+            # These attributes are required by _set_env() which uses them to
+            # populate environment variables.
+            self.sim_hdl_toplevel = ""
+            self.test_module = ""
+            self.hdl_toplevel_lang = ""
+
+        def _simulator_in_path(self):
+            # No-op: This dummy class doesn't require any simulator executable.
+            pass
+
+        def _build_command(self):
+            raise NotImplementedError(
+                "CocotbRunnerDummy is not intended for building HDL sources")
+
+        def _test_command(self):
+            raise NotImplementedError(
+                "CocotbRunnerDummy is not intended for running tests")
+
+        def _get_define_options(self, defines):
+            raise NotImplementedError(
+                "CocotbRunnerDummy is not intended for HDL compilation")
+
+        def _get_include_options(self, includes):
+            raise NotImplementedError(
+                "CocotbRunnerDummy is not intended for HDL compilation")
+
+        def _get_parameter_options(self, parameters):
+            raise NotImplementedError(
+                "CocotbRunnerDummy is not intended for HDL compilation")
+
+        def get_libpython_path(self):
+            """
+            Retrieve the path to the libpython shared library.
+
+            This method uses cocotb's ``Runner._set_env()`` which internally
+            calls ``find_libpython.find_libpython()`` to locate the library.
+
+            Returns:
+                str: Absolute path to the libpython shared library.
+
+            Raises:
+                ValueError: If libpython cannot be found.
+            """
+            self._set_env()
+            return self.env["LIBPYTHON_LOC"]
+
 
 class CocotbTask(Task):
 
@@ -31,16 +100,7 @@ class CocotbTask(Task):
                            'Random seed for cocotb test reproducibility. '
                            'If not set, cocotb will generate a random seed.')
 
-        self.add_parameter("trace", "bool",
-                           'Enable waveform tracing. The simulation must have been '
-                           'compiled with trace support enabled.',
-                           defvalue=False)
-
-        self.add_parameter("trace_type", "<vcd,fst>",
-                           'Specifies type of wave file to create when [trace] is set.',
-                           defvalue="vcd")
-
-    def set_randomseed(
+    def set_cocotb_randomseed(
         self, seed: int,
         step: Optional[str] = None,
         index: Optional[Union[str, int]] = None
@@ -55,27 +115,8 @@ class CocotbTask(Task):
         """
         self.set("var", "cocotb_random_seed", seed, step=step, index=index)
 
-    def set_traceconfig(
-        self,
-        enable: bool = True,
-        trace_type: str = "vcd",
-        step: Optional[str] = None,
-        index: Optional[Union[str, int]] = None
-    ):
-        self.set("var", "trace", enable, step=step, index=index)
-        self.set("var", "trace_type", trace_type, step=step, index=index)
-
     def task(self):
         return "exec_cocotb"
-
-    def _get_libpython_path(self):
-        result = subprocess.run(
-            ['cocotb-config', '--libpython'],
-            capture_output=True,
-            text=True,
-            check=True
-        )
-        return result.stdout.strip()
 
     def _get_test_modules(self):
         """
@@ -121,27 +162,33 @@ class CocotbTask(Task):
         """
 
         test_modules, _ = self._get_test_modules()
-        libpython_path = self._get_libpython_path()
+        libpython_path = CocotbRunnerDummy().get_libpython_path()
 
         # LIBPYTHON_LOC: path to libpython shared library
         self.set_environmentalvariable("LIBPYTHON_LOC", libpython_path)
+        self.add_required_key("env", "LIBPYTHON_LOC")
 
         # COCOTB_TOPLEVEL: the HDL toplevel module name
         self.set_environmentalvariable("COCOTB_TOPLEVEL", self.design_topmodule)
+        self.add_required_key("env", "COCOTB_TOPLEVEL")
 
         # COCOTB_TEST_MODULES: comma-separated list of Python test modules
         self.set_environmentalvariable("COCOTB_TEST_MODULES", test_modules)
+        self.add_required_key("env", "COCOTB_TEST_MODULES")
 
         # TOPLEVEL_LANG: HDL language of the toplevel
         self.set_environmentalvariable("TOPLEVEL_LANG", self._get_toplevel_lang())
+        self.add_required_key("env", "TOPLEVEL_LANG")
 
         # COCOTB_RESULTS_FILE: path to xUnit XML results
         self.set_environmentalvariable("COCOTB_RESULTS_FILE", "outputs/results.xml")
+        self.add_required_key("env", "COCOTB_RESULTS_FILE")
 
         # COCOTB_RANDOM_SEED: optional random seed for reproducibility
         random_seed = self.get("var", "cocotb_random_seed")
-        if random_seed:
+        if random_seed is not None:
             self.set_environmentalvariable("COCOTB_RANDOM_SEED", str(random_seed))
+            self.add_required_key("env", "COCOTB_RANDOM_SEED")
 
     def setup(self):
         super().setup()
@@ -162,11 +209,8 @@ class CocotbTask(Task):
             if lib.has_file(fileset=fileset, filetype="python"):
                 self.add_required_key(lib, "fileset", fileset, "file", "python")
 
-        if self.get("var", "cocotb_random_seed"):
+        if self.get("var", "cocotb_random_seed") is not None:
             self.add_required_key("var", "cocotb_random_seed")
-
-        self.add_required_key("var", "trace")
-        self.add_required_key("var", "trace_type")
 
         # Set up cocotb environment variables
         self._setup_cocotb_environment()
@@ -200,8 +244,6 @@ class CocotbTask(Task):
             results_file: Path to the results.xml file.
         """
         try:
-            import xml.etree.ElementTree as ET
-
             tree = ET.parse(results_file)
             root = tree.getroot()
 

@@ -10,10 +10,12 @@ to run Python-based cocotb testbenches against an Icarus Verilog simulation.
 
 from siliconcompiler import Design, Sim
 from siliconcompiler.flows.dvflow import DVFlow
-from siliconcompiler.tools.icarus.compile import CompileTask
-from siliconcompiler.tools.icarus.cocotb_exec import CocotbExecTask
-from siliconcompiler.tools.verilator.cocotb_compile import CocotbCompileTask as VerilatorCocotbCompileTask
-from siliconcompiler.tools.verilator.cocotb_exec import CocotbExecTask as CocotbExecTask
+
+from siliconcompiler.tools.icarus.compile import CompileTask as IcarusCompileTask
+from siliconcompiler.tools.icarus.cocotb_exec import CocotbExecTask as IcarusCocotbExecTask
+
+from siliconcompiler.tools.verilator.cocotb_compile import CocotbCompileTask as VerilatorCompileTask
+from siliconcompiler.tools.verilator.cocotb_exec import CocotbExecTask as VerilatorCocotbExecTask
 
 
 class AdderDesign(Design):
@@ -44,11 +46,11 @@ class AdderDesign(Design):
             # Cocotb testbench
             with self.active_fileset("testbench.cocotb"):
                 self.set_topmodule("adder")
-                self.add_file("test_adder.py", filetype="python")
+                self.add_file("cocotb_adder.py", filetype="python")
                 self.set_param("WIDTH", "8")
 
 
-def sim(seed: int = None):
+def sim_icarus(seed: int = None, trace: bool = True):
     """Runs a cocotb simulation of the Adder design.
 
     Args:
@@ -70,11 +72,11 @@ def sim(seed: int = None):
     project.set_flow(DVFlow(tool="icarus-cocotb"))
 
     # Enable waveform tracing
-    CompileTask.find_task(project).set_trace_enabled(True)
+    IcarusCompileTask.find_task(project).set_trace_enabled(trace)
 
     # Optionally set a random seed for reproducibility
     if seed is not None:
-        CocotbTask.find_task(project).set_cocotb_random_seed(seed)
+        IcarusCocotbExecTask.find_task(project).set_cocotb_randomseed(seed)
 
     # Run the simulation
     project.run()
@@ -101,7 +103,7 @@ def sim(seed: int = None):
         print(f"Waveform file: {vcd}")
 
 
-def sim_verilator(seed: int = None, trace_type: str = "vcd"):
+def sim_verilator(seed: int = None, trace: bool = True, trace_type: str = "vcd"):
     """Runs a cocotb simulation of the Adder design using Verilator.
 
     Args:
@@ -125,19 +127,19 @@ def sim_verilator(seed: int = None, trace_type: str = "vcd"):
     project.set_flow(DVFlow(tool="verilator-cocotb"))
 
     # Enable waveform tracing (must be enabled on both compile and simulate tasks)
-    compile_task = VerilatorCocotbCompileTask.find_task(project)
-    compile_task.set_verilator_trace(True)
+    compile_task = VerilatorCompileTask.find_task(project)
+    compile_task.set_verilator_trace(trace)
     compile_task.set_verilator_tracetype(trace_type)
 
-    cocotb_task = CocotbExecTask.find_task(project)
-    cocotb_task.set_traceconfig(
-        enable=True,
+    cocotb_task = VerilatorCocotbExecTask.find_task(project)
+    cocotb_task.set_cocotb_trace(
+        enable=trace,
         trace_type=trace_type
     )
 
     # Optionally set a random seed for reproducibility
     if seed is not None:
-        cocotb_task.set_cocotb_random_seed(seed)
+        cocotb_task.set_cocotb_randomseed(seed)
 
     # Run the simulation
     project.run()

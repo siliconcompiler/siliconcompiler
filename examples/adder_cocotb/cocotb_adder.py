@@ -5,7 +5,7 @@ from cocotb.triggers import Timer
 
 
 @cocotb.test()
-async def test_adder_basic(dut):
+async def adder_basic_test(dut):
     """Test basic addition operations."""
     # Test 0 + 0 = 0
     dut.a.value = 0
@@ -27,7 +27,7 @@ async def test_adder_basic(dut):
 
 
 @cocotb.test()
-async def test_adder_overflow(dut):
+async def adder_overflow_test(dut):
     """Test addition with overflow (result uses extra bit)."""
     # Test 255 + 1 = 256 (overflow into 9th bit)
     dut.a.value = 255
@@ -43,7 +43,7 @@ async def test_adder_overflow(dut):
 
 
 @cocotb.test()
-async def test_adder_random(dut):
+async def adder_random_test(dut):
     """Test addition with random values."""
     import random
 
