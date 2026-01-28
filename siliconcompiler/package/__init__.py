@@ -28,7 +28,7 @@ from typing import Optional, List, Dict, Type, Union, TYPE_CHECKING, Final
 
 from fasteners import InterProcessLock
 from importlib.metadata import distributions, distribution
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from urllib import parse as url_parse
 
 from siliconcompiler.utils import get_plugins, default_cache_dir
@@ -658,16 +658,15 @@ class PythonPathResolver(Resolver):
             return direct_url.get('dir_info', {}).get('editable', False)
 
         dist_loc = dist_obj.locate_file('')
-        site_paths = set(site.getsitepackages() + [site.getusersitepackages()])
+        site_paths = site.getsitepackages()
+        user_site_path = site.getusersitepackages()
+        if user_site_path:
+            site_paths.append(user_site_path)
         if not dist_loc or not site_paths:
             return False
 
-        for site_path in site_paths:
-            if os.path.commonpath([dist_loc, site_path]) == site_path:
-                # installed in site-packages, so not editable
-                return False
-
-        return True
+        dist_loc = PureWindowsPath(dist_loc).as_posix()
+        return dist_loc not in [PureWindowsPath(site_path).as_posix() for site_path in site_paths]
 
     @staticmethod
     def set_dataroot(root: "PathSchema",
