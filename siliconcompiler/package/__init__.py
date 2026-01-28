@@ -16,6 +16,7 @@ import logging
 import os
 import random
 import re
+import site
 import shutil
 import time
 import threading
@@ -27,7 +28,7 @@ from typing import Optional, List, Dict, Type, Union, TYPE_CHECKING, Final
 
 from fasteners import InterProcessLock
 from importlib.metadata import distributions, distribution
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from urllib import parse as url_parse
 
 from siliconcompiler.utils import get_plugins, default_cache_dir
@@ -647,21 +648,25 @@ class PythonPathResolver(Resolver):
             return False
         dist_name = dist_map[module_name][0]
 
-        is_editable = False
         dist_obj = distribution(dist_name)
-        if not dist_obj or not dist_obj.files:
+        if not dist_obj:
             return False
 
-        for f in dist_obj.files:
-            if f.name == 'direct_url.json':
-                info = None
-                with open(f.locate(), 'r') as fp:
-                    info = json.load(fp)
+        direct_url_content = dist_obj.read_text('direct_url.json')
+        if direct_url_content:
+            direct_url = json.loads(direct_url_content)
+            return direct_url.get('dir_info', {}).get('editable', False)
 
-                if "dir_info" in info:
-                    is_editable = info["dir_info"].get("editable", False)
+        dist_loc = dist_obj.locate_file('')
+        site_paths = site.getsitepackages()
+        user_site_path = site.getusersitepackages()
+        if user_site_path:
+            site_paths.append(user_site_path)
+        if not dist_loc or not site_paths:
+            return False
 
-        return is_editable
+        dist_loc = PureWindowsPath(dist_loc).as_posix()
+        return dist_loc not in [PureWindowsPath(site_path).as_posix() for site_path in site_paths]
 
     @staticmethod
     def set_dataroot(root: "PathSchema",
