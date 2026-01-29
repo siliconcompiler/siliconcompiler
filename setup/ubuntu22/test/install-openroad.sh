@@ -1,0 +1,44 @@
+#!/bin/sh
+
+set -ex
+
+src_path=$(cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P)/..
+
+USE_SUDO_INSTALL="${USE_SUDO_INSTALL:-yes}"
+if [ "${USE_SUDO_INSTALL:-yes}" = "yes" ]; then
+    SUDO_INSTALL="sudo -E PATH=$PATH"
+else
+    SUDO_INSTALL=""
+fi
+
+sudo apt-get update
+
+sudo apt-get install -y git
+
+mkdir -p deps
+cd deps
+
+git clone https://github.com/gadfort/OpenROAD.git openroad
+cd openroad
+git checkout c6e44dca65dc36eeb1818461d4fd406b378041ad
+git submodule update --init --recursive
+
+deps_args=""
+if [ ! -z ${PREFIX} ]; then
+    deps_args="-prefix=$PREFIX"
+fi
+sudo ./etc/DependencyInstaller.sh -base
+sudo rm -f etc/openroad_deps_prefixes.txt
+$SUDO_INSTALL ./etc/DependencyInstaller.sh -common $deps_args
+
+cmake_args="-DENABLE_TESTS=OFF"
+if [ ! -z ${PREFIX} ]; then
+    cmake_args="$cmake_args -DCMAKE_INSTALL_PREFIX=$PREFIX"
+fi
+
+./etc/Build.sh -cmake="$cmake_args" -threads=${NPROC:-$(nproc)}
+
+cd build
+$SUDO_INSTALL make install
+
+cd -
