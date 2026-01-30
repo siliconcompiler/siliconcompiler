@@ -29,10 +29,14 @@ class CocotbCompileTask(CompileTask):
         # lib_name is like "libcocotbvpi_verilator.so", but -l expects "cocotbvpi_verilator"
         # Strip "lib" prefix and ".so" suffix
         link_name = lib_name
+
         if link_name.startswith('lib'):
             link_name = link_name[3:]
-        elif link_name.endswith('.so'):
+
+        if link_name.endswith('.so'):
             link_name = link_name[:-3]
+        elif link_name.endswith('.dylib'):
+            link_name = link_name[:-6]
         else:
             raise RuntimeError
 
