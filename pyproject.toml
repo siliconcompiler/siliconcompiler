@@ -125,7 +125,7 @@ optimizer = [
     "google-vizier[jax] == 0.1.21; python_version >= '3.10'"
 ]
 cocotb = [
-    "cocotb >= 2.0.1, < 2.1.0"
+    "cocotb >= 2.0.1, < 2.1.0; python_version >= '3.7' and python_version <= '3.13'"
 ]
 
 [tool.setuptools]
