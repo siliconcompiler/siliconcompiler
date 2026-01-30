@@ -124,6 +124,9 @@ docs = [
 optimizer = [
     "google-vizier[jax] == 0.1.21; python_version >= '3.10'"
 ]
+cocotb = [
+    "cocotb >= 2.0.1, < 2.1.0"
+]
 
 [tool.setuptools]
 include-package-data = true

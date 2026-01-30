@@ -873,6 +873,43 @@ def test_write_manifest_stdjson(monkeypatch):
     assert os.path.isfile("test.json")
 
 
+def test_write_manifest_path():
+    from siliconcompiler.schema.baseschema import _has_orjson
+    assert _has_orjson
+
+    class PathSchema0(BaseSchema):
+        def _getdict_meta(self):
+            return {
+                "junk": Path("/some/path")
+            }
+
+    schema = PathSchema0()
+
+    assert not os.path.isfile("test.json")
+    schema.write_manifest("test.json")
+    assert os.path.isfile("test.json")
+
+
+def test_write_manifest_stdjson_path(monkeypatch):
+    import json
+    from siliconcompiler.schema import baseschema
+    monkeypatch.setattr(baseschema, 'json', json)
+    monkeypatch.setattr(baseschema, '_has_orjson', False)
+    assert not baseschema._has_orjson
+
+    class PathSchema1(BaseSchema):
+        def _getdict_meta(self):
+            return {
+                "junk": Path("/some/path")
+            }
+
+    schema = PathSchema1()
+
+    assert not os.path.isfile("test.json")
+    schema.write_manifest("test.json")
+    assert os.path.isfile("test.json")
+
+
 def test_write_manifest_gz():
     from siliconcompiler.schema.baseschema import _has_orjson
     assert _has_orjson

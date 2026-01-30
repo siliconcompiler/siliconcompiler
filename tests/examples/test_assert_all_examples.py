@@ -39,6 +39,7 @@ def test_all_examples_have_defs(scroot):
     ex_dir = os.path.join(scroot, 'examples')
 
     exempt = {
+        "adder_cocotb": ["cocotb_adder.py"]
     }
 
     tests = {}
