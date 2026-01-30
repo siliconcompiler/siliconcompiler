@@ -45,8 +45,6 @@ class CocotbExecTask(CocotbTask, ExecInputTask):
             options.append("--trace")
 
             ext = self.get("var", "trace_type")
-            if ext not in ["vcd", "fst"]:
-                raise RuntimeError(f"Unsupported trace type {ext}")
 
             trace_file = f"reports/{self.design_topmodule}.{ext}"
             options.extend(["--trace-file", trace_file])
