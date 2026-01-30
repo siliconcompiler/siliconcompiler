@@ -135,7 +135,8 @@ class CocotbTask(Task):
                    directories containing the modules.
         """
         module_names = []
-        module_dirs = set()
+        module_dirs = []
+        seen_dirs = set()
 
         for lib, fileset in self.project.get_filesets():
             for pyfile in lib.get_file(fileset=fileset, filetype="python"):
@@ -144,9 +145,12 @@ class CocotbTask(Task):
                 module_name = path.stem
                 module_names.append(module_name)
                 # Track the directory for PYTHONPATH
-                module_dirs.add(str(path.parent.resolve()))
+                dir_path = str(path.parent.resolve())
+                if dir_path not in seen_dirs:
+                    seen_dirs.add(dir_path)
+                    module_dirs.append(dir_path)
 
-        return ",".join(module_names), list(module_dirs)
+        return ",".join(module_names), module_dirs
 
     def _get_toplevel_lang(self):
         """
@@ -163,7 +167,7 @@ class CocotbTask(Task):
         # cocotb uses "verilog" for both Verilog and SystemVerilog
         return "verilog"
 
-    def _setup_cocotb_environment(self):
+    def __setup_cocotb_environment(self):
         """
         Set up all required environment variables for cocotb execution.
         """
@@ -220,7 +224,7 @@ class CocotbTask(Task):
             self.add_required_key("var", "cocotb_random_seed")
 
         # Set up cocotb environment variables
-        self._setup_cocotb_environment()
+        self.__setup_cocotb_environment()
 
     def get_runtime_environmental_variables(self, include_path: bool = True) -> Dict[str, str]:
         envs = super().get_runtime_environmental_variables(include_path)
@@ -267,6 +271,8 @@ class CocotbTask(Task):
                 self.logger.warning(f"Cocotb: {failures} test(s) failed")
             if errors > 0:
                 self.logger.warning(f"Cocotb: {errors} test(s) had errors")
+
+            self.record_metric("errors", errors + failures, source_file=results_file)
 
         except Exception as e:
             self.logger.warning(f"Failed to parse cocotb results: {e}")

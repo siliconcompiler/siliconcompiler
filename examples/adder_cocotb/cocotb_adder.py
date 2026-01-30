@@ -1,5 +1,7 @@
 """Cocotb testbench for the adder module."""
 
+import random
+
 import cocotb
 from cocotb.triggers import Timer
 
@@ -45,7 +47,6 @@ async def adder_overflow_test(dut):
 @cocotb.test()
 async def adder_random_test(dut):
     """Test addition with random values."""
-    import random
 
     for _ in range(10):
         a = random.randint(0, 255)

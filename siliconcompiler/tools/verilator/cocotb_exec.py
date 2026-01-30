@@ -31,14 +31,11 @@ class CocotbExecTask(CocotbTask, ExecInputTask):
     def tool(self):
         return "verilator"
 
-    def task(self):
-        return super().task()
-
     def setup(self):
         super().setup()
 
-        self.add_required_key("var", "trace")
-        self.add_required_key("var", "trace_type")
+        if self.get("var", "trace"):
+            self.add_required_key("var", "trace_type")
 
     def runtime_options(self):
         options = super().runtime_options()
@@ -47,18 +44,11 @@ class CocotbExecTask(CocotbTask, ExecInputTask):
         if self.get("var", "trace"):
             options.append("--trace")
 
-            trace_type = self.get("var", "trace_type")
-            if trace_type == "vcd":
-                ext = "vcd"
-            elif trace_type == "fst":
-                ext = "fst"
-            else:
-                ext = "vcd"  # Default to VCD
+            ext = self.get("var", "trace_type")
+            if ext not in ["vcd", "fst"]:
+                raise RuntimeError(f"Unsupported trace type {ext}")
 
             trace_file = f"reports/{self.design_topmodule}.{ext}"
             options.extend(["--trace-file", trace_file])
 
         return options
-
-    def post_process(self):
-        super().post_process()

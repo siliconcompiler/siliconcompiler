@@ -17,14 +17,8 @@ class CocotbExecTask(CocotbTask):
     the "python" filetype.
     '''
 
-    def __init__(self):
-        super().__init__()
-
     def tool(self):
         return "icarus"
-
-    def task(self):
-        return super().task()
 
     def parse_version(self, stdout):
         # vvp version output: "Icarus Verilog runtime version 13.0 (devel) ..."
@@ -57,6 +51,3 @@ class CocotbExecTask(CocotbTask):
         options.append(f"inputs/{self.design_topmodule}.vvp")
 
         return options
-
-    def post_process(self):
-        super().post_process()

@@ -8,17 +8,8 @@ from siliconcompiler.tools._common.cocotb.cocotb_task import (
 
 class CocotbCompileTask(CompileTask):
 
-    def __init__(self):
-        super().__init__()
-
     def task(self):
         return "cocotb_compile"
-
-    def tool(self):
-        return super().tool()
-
-    def setup(self):
-        super().setup()
 
     def _setup_c_file_requirement(self):
         pass
@@ -40,8 +31,10 @@ class CocotbCompileTask(CompileTask):
         link_name = lib_name
         if link_name.startswith('lib'):
             link_name = link_name[3:]
-        if link_name.endswith('.so'):
+        elif link_name.endswith('.so'):
             link_name = link_name[:-3]
+        else:
+            raise RuntimeError
 
         cocotb_flags = [
             f'-Wl,-rpath,{libs_dir}',

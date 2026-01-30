@@ -56,6 +56,8 @@ def sim_icarus(seed: int = None, trace: bool = True):
     Args:
         seed (int, optional): Random seed for test reproducibility.
             If not set, cocotb will generate a random seed.
+        trace (bool, optional): Enable waveform tracing. Defaults to True.
+            When enabled, generates a VCD file for waveform viewing.
     """
     # Create a project instance tailored for simulation
     project = Sim()
@@ -109,7 +111,9 @@ def sim_verilator(seed: int = None, trace: bool = True, trace_type: str = "vcd")
     Args:
         seed (int, optional): Random seed for test reproducibility.
             If not set, cocotb will generate a random seed.
-        trace_type (str): Waveform format - 'vcd' (default) or 'fst'.
+        trace (bool, optional): Enable waveform tracing. Defaults to True.
+            When enabled, generates a waveform file for viewing.
+        trace_type (str, optional): Waveform format - 'vcd' (default) or 'fst'.
             FST is a compressed format that produces smaller files.
     """
     # Create a project instance tailored for simulation
