@@ -53,7 +53,8 @@ if TYPE_CHECKING:
     from siliconcompiler.scheduler import SchedulerNode
     from siliconcompiler import Project
 
-TTask = TypeVar('TTask')
+TTask = TypeVar('TTask', bound='Task')
+TShowTask = TypeVar('TShowTask', bound='ShowTask')
 
 
 class TaskError(Exception):
@@ -2177,7 +2178,8 @@ class ShowTask(Task):
             cls.register_task(c)
 
     @classmethod
-    def get_task(cls, ext: Optional[str]) -> Union[Optional["ShowTask"], Set[Type["ShowTask"]]]:
+    def get_task(cls: Type[TShowTask], ext: Optional[str]) -> \
+            Union[Optional[TShowTask], Set[Type[TShowTask]]]:
         """
         Retrieves a suitable show task instance for a given file extension.
 

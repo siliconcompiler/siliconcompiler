@@ -4,11 +4,13 @@ import sys
 
 import os.path
 
-from typing import Set, List, Optional, Union
+from typing import Set, List, Optional, Type, Union, TypeVar
 
 from siliconcompiler.schema import BaseSchema, EditableSchema, Parameter, Scope, PerNode
 from siliconcompiler.schema.utils import trim
 from siliconcompiler import _metadata
+
+TCmdSchema = TypeVar("TCmdSchema", bound="CommandLineSchema")
 
 
 class CommandLineSchema(BaseSchema):
@@ -68,14 +70,14 @@ class CommandLineSchema(BaseSchema):
         EditableSchema(self).insert("cmdarg", name, Parameter(type, **kwargs))
 
     @classmethod
-    def create_cmdline(cls,
+    def create_cmdline(cls: Type[TCmdSchema],
                        progname: Optional[str] = None,
                        description: Optional[str] = None,
                        switchlist: Optional[Union[List[str], Set[str]]] = None,
                        version: Optional[str] = None,
                        print_banner: bool = True,
                        use_cfg: bool = False,
-                       use_sources: bool = True) -> BaseSchema:
+                       use_sources: bool = True) -> TCmdSchema:
         """
         Creates an SC command line interface.
 
@@ -141,7 +143,7 @@ class CommandLineSchema(BaseSchema):
             # Grab config from argv
             try:
                 cfg_index = sys.argv.index("-cfg", 1)
-                if cfg_index < len(sys.argv):
+                if cfg_index + 1 < len(sys.argv):
                     cfg_file = sys.argv[cfg_index + 1]
             except ValueError:
                 pass
@@ -159,7 +161,8 @@ class CommandLineSchema(BaseSchema):
             # Add commandline key for input files
             if not isinstance(schema, CommandLineSchema):
                 raise TypeError("Schema is not a commandline class")
-            if "cmdarg" not in schema.getkeys() or "file" not in schema.getkeys("cmdarg"):
+
+            if not schema.valid("cmdarg", "input"):
                 schema._add_commandline_argument("input", "[file]", "input files", ...)
                 keyschema._add_commandline_argument("input", "[file]", "input files", ...)
 

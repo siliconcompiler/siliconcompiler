@@ -31,7 +31,7 @@ if [ ! -z ${PREFIX} ]; then
 fi
 
 cmake -S . -B build -DARCH=ice40 $args
-cmake --build build
+cmake --build build -j${NPROC:-$(nproc)}
 
 USE_SUDO_INSTALL="${USE_SUDO_INSTALL:-yes}"
 if [ "${USE_SUDO_INSTALL:-yes}" = "yes" ]; then

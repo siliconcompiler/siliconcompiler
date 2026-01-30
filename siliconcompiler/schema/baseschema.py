@@ -8,6 +8,7 @@ import contextlib
 import copy
 import importlib
 import logging
+import pathlib
 
 try:
     import gzip
@@ -26,11 +27,14 @@ import os.path
 
 from enum import Enum, auto
 from functools import cache
-from typing import Dict, Type, Tuple, Union, Set, Callable, List, Optional, TextIO, Iterable, Any
+from typing import Dict, Type, Tuple, TypeVar, Union, Set, Callable, List, Optional, \
+    TextIO, Iterable, Any
 
 from .parameter import Parameter, NodeValue
 from .journal import Journal
 from ._metadata import version
+
+TSchema = TypeVar('TSchema', bound='BaseSchema')
 
 
 class LazyLoad(Enum):
@@ -286,10 +290,10 @@ class BaseSchema:
 
     # Manifest methods
     @classmethod
-    def from_manifest(cls,
+    def from_manifest(cls: Type[TSchema],
                       filepath: Union[None, str] = None,
                       cfg: Union[None, Dict] = None,
-                      lazyload: bool = True) -> "BaseSchema":
+                      lazyload: bool = True) -> TSchema:
         '''
         Create a new schema based on the provided source files.
 
@@ -382,10 +386,18 @@ class BaseSchema:
         fout = BaseSchema.__open_file(filepath, is_read=False)
 
         try:
+            def default(obj: Any) -> Any:
+                if isinstance(obj, pathlib.PurePath):
+                    # Cast everything to a windows path and convert to posix.
+                    # https://stackoverflow.com/questions/73682260
+                    return pathlib.PureWindowsPath(obj).as_posix()
+                raise TypeError
+
             if _has_orjson:
-                manifest_str = json.dumps(self.getdict(), option=json.OPT_INDENT_2).decode()
+                manifest_str = json.dumps(self.getdict(), option=json.OPT_INDENT_2,
+                                          default=default).decode()
             else:
-                manifest_str = json.dumps(self.getdict(), indent=2)
+                manifest_str = json.dumps(self.getdict(), indent=2, default=default)
             fout.write(manifest_str)
         finally:
             fout.close()
@@ -849,7 +861,7 @@ class BaseSchema:
         return manifest
 
     # Utility functions
-    def copy(self, key: Optional[Tuple[str, ...]] = None) -> "BaseSchema":
+    def copy(self: TSchema, key: Optional[Tuple[str, ...]] = None) -> TSchema:
         """
         Returns a copy of this schema.
 

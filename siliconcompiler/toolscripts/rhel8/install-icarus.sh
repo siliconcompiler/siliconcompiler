@@ -27,7 +27,7 @@ wget http://ftp.gnu.org/pub/gnu/gperf/gperf-3.1.tar.gz
 tar xvf gperf-3.1.tar.gz
 cd gperf-3.1
 ./configure $args
-make -j$(nproc)
+make -j${NPROC:-$(nproc)}
 $SUDO_INSTALL make install
 cd ..
 
@@ -42,7 +42,7 @@ git checkout $(python3 ${src_path}/_tools.py --tool icarus --field git-commit)
 
 sh autoconf.sh
 ./configure $args
-make -j$(nproc)
+make -j${NPROC:-$(nproc)}
 $SUDO_INSTALL make install
 
 cd -

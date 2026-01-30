@@ -20,7 +20,7 @@ cd wildebeest
 git checkout $(python3 ${src_path}/_tools.py --tool wildebeest --field git-commit)
 
 cmake -S . -B build
-cmake --build build
+cmake --build build -j${NPROC:-$(nproc)}
 
 USE_SUDO_INSTALL="${USE_SUDO_INSTALL:-yes}"
 if [ "${USE_SUDO_INSTALL:-yes}" = "yes" ]; then
