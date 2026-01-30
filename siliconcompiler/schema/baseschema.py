@@ -8,6 +8,7 @@ import contextlib
 import copy
 import importlib
 import logging
+import pathlib
 
 try:
     import gzip
@@ -385,10 +386,17 @@ class BaseSchema:
         fout = BaseSchema.__open_file(filepath, is_read=False)
 
         try:
+            def default(obj: Any) -> Any:
+                if isinstance(obj, pathlib.PurePath):
+                    # Cast everything to a windows path and convert to posix.
+                    # https://stackoverflow.com/questions/73682260
+                    return pathlib.PureWindowsPath(obj).as_posix()
+                raise TypeError
+
             if _has_orjson:
-                manifest_str = json.dumps(self.getdict(), option=json.OPT_INDENT_2).decode()
+                manifest_str = json.dumps(self.getdict(), option=json.OPT_INDENT_2, default=default).decode()
             else:
-                manifest_str = json.dumps(self.getdict(), indent=2)
+                manifest_str = json.dumps(self.getdict(), indent=2, default=default)
             fout.write(manifest_str)
         finally:
             fout.close()
