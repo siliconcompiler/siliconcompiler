@@ -394,7 +394,8 @@ class BaseSchema:
                 raise TypeError
 
             if _has_orjson:
-                manifest_str = json.dumps(self.getdict(), option=json.OPT_INDENT_2, default=default).decode()
+                manifest_str = json.dumps(self.getdict(), option=json.OPT_INDENT_2,
+                                          default=default).decode()
             else:
                 manifest_str = json.dumps(self.getdict(), indent=2, default=default)
             fout.write(manifest_str)
