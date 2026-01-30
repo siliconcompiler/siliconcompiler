@@ -3,7 +3,7 @@ import pytest
 
 import os.path
 
-from pathlib import Path
+from pathlib import Path, PosixPath
 from unittest.mock import patch
 
 from siliconcompiler.schema import BaseSchema, LazyLoad
@@ -867,6 +867,39 @@ def test_write_manifest_stdjson(monkeypatch):
     schema = BaseSchema()
     edit = EditableSchema(schema)
     edit.insert("test0", "test1", Parameter("str"))
+
+    assert not os.path.isfile("test.json")
+    schema.write_manifest("test.json")
+    assert os.path.isfile("test.json")
+
+
+def test_write_manifest_path():
+    from siliconcompiler.schema.baseschema import _has_orjson
+    assert _has_orjson
+
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("test0", "test1", Parameter("[file]"))
+    schema.set("test0", "test1", PosixPath("somepath.txt"))
+
+    assert not os.path.isfile("test.json")
+    schema.write_manifest("test.json")
+    assert os.path.isfile("test.json")
+    print(os.path.abspath("test.json"))
+    assert False
+
+
+def test_write_manifest_stdjson_path(monkeypatch):
+    import json
+    from siliconcompiler.schema import baseschema
+    monkeypatch.setattr(baseschema, 'json', json)
+    monkeypatch.setattr(baseschema, '_has_orjson', False)
+    assert not baseschema._has_orjson
+
+    schema = BaseSchema()
+    edit = EditableSchema(schema)
+    edit.insert("test0", "test1", Parameter("file"))
+    schema.set("test0", "test1", PosixPath("somepath.txt"))
 
     assert not os.path.isfile("test.json")
     schema.write_manifest("test.json")

@@ -8,6 +8,7 @@ import contextlib
 import copy
 import importlib
 import logging
+from pathlib import PurePath
 
 try:
     import gzip
@@ -385,10 +386,18 @@ class BaseSchema:
         fout = BaseSchema.__open_file(filepath, is_read=False)
 
         try:
+            def json_encoder(obj):
+                print("HERE, obj=", obj)
+                if isinstance(obj, PurePath):
+                    return str(obj)
+                raise TypeError
+
             if _has_orjson:
-                manifest_str = json.dumps(self.getdict(), option=json.OPT_INDENT_2).decode()
+                print("EHRE")
+                manifest_str = json.dumps(self.getdict(), option=json.OPT_INDENT_2, default=json_encoder).decode()
             else:
-                manifest_str = json.dumps(self.getdict(), indent=2)
+                print("THERE")
+                manifest_str = json.dumps(self.getdict(), indent=2, default=json_encoder)
             fout.write(manifest_str)
         finally:
             fout.close()
