@@ -272,7 +272,7 @@ class CocotbTask(Task):
             if errors > 0:
                 self.logger.warning(f"Cocotb: {errors} test(s) had errors")
 
-            self.record_metric("errors", errors + failures, source_file=str(results_file))
+            self.record_metric("errors", errors + failures, source_file=results_file)
 
         except Exception as e:
             self.logger.warning(f"Failed to parse cocotb results: {e}")
