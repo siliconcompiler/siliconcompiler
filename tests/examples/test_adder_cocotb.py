@@ -7,6 +7,9 @@ import os.path
 @pytest.mark.quick
 @pytest.mark.timeout(300)
 def test_py_make_sim_icarus_no_trace():
+    pytest.importorskip("cocotb", reason="Cocotb is required for this test")
+    pytest.importorskip("cocotb_tools", reason="Cocotb tools are required for this test")
+
     from adder_cocotb import make
     make.sim_icarus(trace=False)
 
@@ -18,6 +21,9 @@ def test_py_make_sim_icarus_no_trace():
 @pytest.mark.quick
 @pytest.mark.timeout(300)
 def test_py_make_sim_icarus_vcd():
+    pytest.importorskip("cocotb", reason="Cocotb is required for this test")
+    pytest.importorskip("cocotb_tools", reason="Cocotb tools are required for this test")
+
     from adder_cocotb import make
     make.sim_icarus(trace=True)
 
@@ -29,6 +35,9 @@ def test_py_make_sim_icarus_vcd():
 @pytest.mark.quick
 @pytest.mark.timeout(300)
 def test_py_make_sim_verilator_no_trace():
+    pytest.importorskip("cocotb", reason="Cocotb is required for this test")
+    pytest.importorskip("cocotb_tools", reason="Cocotb tools are required for this test")
+
     from adder_cocotb import make
     make.sim_verilator(trace=False, trace_type="vcd")
 
@@ -40,6 +49,9 @@ def test_py_make_sim_verilator_no_trace():
 @pytest.mark.quick
 @pytest.mark.timeout(300)
 def test_py_make_sim_verilator_vcd():
+    pytest.importorskip("cocotb", reason="Cocotb is required for this test")
+    pytest.importorskip("cocotb_tools", reason="Cocotb tools are required for this test")
+
     from adder_cocotb import make
     make.sim_verilator(trace=True, trace_type="vcd")
 
@@ -51,6 +63,9 @@ def test_py_make_sim_verilator_vcd():
 @pytest.mark.quick
 @pytest.mark.timeout(300)
 def test_py_make_sim_verilator_fst():
+    pytest.importorskip("cocotb", reason="Cocotb is required for this test")
+    pytest.importorskip("cocotb_tools", reason="Cocotb tools are required for this test")
+
     from adder_cocotb import make
     make.sim_verilator(trace=True, trace_type="fst")
 
