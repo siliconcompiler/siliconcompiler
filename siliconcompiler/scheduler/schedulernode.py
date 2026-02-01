@@ -410,7 +410,7 @@ class SchedulerNode:
             except Exception as e:
                 self.logger.error(f'Failed to run setup() for {self.__step}/{self.__index} '
                                   f'with {task.tool()}/{task.task()}')
-                raise e
+                raise
 
             return True
 
@@ -951,7 +951,7 @@ class SchedulerNode:
             self.logger.error(
                 f"Pre-processing failed for {self.__task.tool()}/{self.__task.task()}")
             utils.print_traceback(self.logger, e)
-            raise e
+            raise
 
         if self.__record.get('status', step=self.__step, index=self.__index) == NodeStatus.SKIPPED:
             # copy inputs to outputs and skip execution
@@ -1008,7 +1008,7 @@ class SchedulerNode:
                         self.__project.get('option', 'timeout',
                                            step=self.__step, index=self.__index))
                 except Exception as e:
-                    raise e
+                    raise
 
             if ret_code != 0:
                 msg = f'Command failed with code {ret_code}.'

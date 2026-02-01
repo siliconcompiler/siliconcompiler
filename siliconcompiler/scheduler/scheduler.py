@@ -1,4 +1,3 @@
-import io
 import logging
 import multiprocessing
 import os
@@ -6,7 +5,6 @@ import re
 import shutil
 import sys
 import tempfile
-import traceback
 
 import os.path
 
@@ -22,7 +20,7 @@ from siliconcompiler.scheduler import SlurmSchedulerNode
 from siliconcompiler.scheduler import DockerSchedulerNode
 from siliconcompiler.scheduler import TaskScheduler
 from siliconcompiler.scheduler.schedulernode import SchedulerFlowReset, SchedulerNodeReset
-from siliconcompiler.tool import TaskExecutableNotFound, TaskExecutableNotReceived
+from siliconcompiler.tool import TaskError, TaskExecutableNotFound, TaskExecutableNotReceived
 
 from siliconcompiler import utils
 from siliconcompiler.utils.logging import SCLoggerFormatter
@@ -186,47 +184,6 @@ class Scheduler:
         task_scheduler.run(self.__joblog_handler)
         task_scheduler.check()
 
-    def __excepthook(self, exc_type, exc_value, exc_traceback):
-        """
-        Handle uncaught exceptions by recording them to the job log, emitting a full traceback,
-        stopping any running dashboard, and notifying the multiprocessing manager.
-
-        Logs a concise exception summary and the full traceback to the scheduler's job logger,
-        forwards KeyboardInterrupt to the default system excepthook, invokes the
-        project's dashboard stop method when present, and signals an uncaught exception
-        to the multiprocessing manager.
-
-        Parameters:
-            exc_type (Type[BaseException]): Exception class of the uncaught exception.
-            exc_value (BaseException): Exception instance (may contain the message).
-            exc_traceback (types.TracebackType): Traceback object for the exception.
-        """
-        if issubclass(exc_type, KeyboardInterrupt):
-            sys.__excepthook__(exc_type, exc_value, exc_traceback)
-            return
-
-        # Print a summary of the exception
-        except_msg = f"Exception raised: {exc_type.__name__}"
-        exc_value = str(exc_value).strip()
-        if exc_value:
-            except_msg += f" / {exc_value}"
-        self.__logger.error(except_msg)
-
-        trace = io.StringIO()
-
-        # Print the full traceback for debugging
-        self.__logger.error("Traceback (most recent call last):")
-        traceback.print_tb(exc_traceback, file=trace)
-        for line in trace.getvalue().splitlines():
-            self.__logger.error(line)
-
-        # Ensure dashboard receives a stop if running
-        if self.__project._Project__dashboard:
-            self.__project._Project__dashboard.stop()
-
-        # Mark error to keep logfile
-        MPManager.error("uncaught exception")
-
     def __install_file_logger(self) -> None:
         """
         Set up a per-job file logger for the current project and attach it to the
@@ -256,26 +213,23 @@ class Scheduler:
         The main entry point to start the compilation flow.
 
         This method orchestrates the entire run, including:
-        - Setting up a custom exception hook for logging.
+        - Performing robust error handling and logging.
         - Initializing the job directory and log files.
         - Configuring and setting up all nodes in the flow.
         - Validating the manifest.
         - Executing the core run loop.
         - Recording the final results and history.
         """
-        # Install hook to ensure exception is logged
-        org_excepthook = sys.excepthook
-        sys.excepthook = self.__excepthook
+
+        # Determine job name first so we can create a log
+        if not self.__increment_job_name():
+            # No need to copy, no remove org job name
+            self.__org_job_name = None
+
+        # Clean the directory early if needed
+        self.__clean_build_dir_full()
 
         try:
-            # Determine job name first so we can create a log
-            if not self.__increment_job_name():
-                # No need to copy, no remove org job name
-                self.__org_job_name = None
-
-            # Clean the directory early if needed
-            self.__clean_build_dir_full()
-
             # Install job file logger
             self.__install_file_logger()
 
@@ -317,9 +271,6 @@ class Scheduler:
 
             try:
                 self.run_core()
-            except SCRuntimeError as e:
-                raise e
-
             finally:
                 # Store run in history
                 self.__project._record_history()
@@ -328,13 +279,24 @@ class Scheduler:
                 self.__project.write_manifest(self.manifest)
 
                 send_messages.send(self.__project, 'summary', None, None)
+        except KeyboardInterrupt:
+            pass
+        except SCRuntimeError:
+            raise
+        except Exception as e:
+            utils.print_traceback(self.__logger, e)
+
+            if self.__project._Project__dashboard:
+                self.__project._Project__dashboard.stop()
+
+            MPManager.error(str(e) or "uncaught exception")
+
+            raise SCRuntimeError(str(e))
         finally:
             if self.__joblog_handler is not None:
                 self.__logger.removeHandler(self.__joblog_handler)
                 self.__joblog_handler.close()
                 self.__joblog_handler = logging.NullHandler()
-            # Restore hook
-            sys.excepthook = org_excepthook
 
     def __check_tool_requirements(self) -> bool:
         """
@@ -795,7 +757,7 @@ class Scheduler:
                         runrequired.log(self.__logger)
 
                         if isinstance(runrequired, SchedulerFlowReset):
-                            raise runrequired from None
+                            raise runrequired
 
                         # This node must be run
                         self.__mark_pending(*node)

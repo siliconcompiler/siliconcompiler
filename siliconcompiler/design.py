@@ -699,7 +699,7 @@ class Design(DependencySchema, LibrarySchema):
                     dataroot = self._get_active_dataroot(dataroot)
                 except ValueError as e:
                     if any(not os.path.isabs(v) for v in value):
-                        raise e
+                        raise
 
         with self.active_dataroot(dataroot):
             if list in typelist and not clobber:

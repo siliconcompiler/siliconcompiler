@@ -549,7 +549,7 @@ class RemoteResolver(Resolver):
                 except BaseException as cleane:
                     self.logger.error(f"Exception occurred during cleanup: {cleane} "
                                       f"({cleane.__class__.__name__})")
-                raise e from None
+                raise
 
             self.set_changed()
             return self.cache_path

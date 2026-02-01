@@ -442,7 +442,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         except Exception as e:
             self.logger.error(f'{self.tool()}/{self.task()} failed to parse version string: '
                               f'{proc.stdout}')
-            raise e from None
+            raise
 
         self.logger.info(f"Tool '{exe_base}' found with version '{version}' "
                          f"in directory '{exe_path}'")
@@ -486,7 +486,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
             except Exception as e:
                 self.logger.error(f'Unable to normalize version for {self.tool()}/{self.task()}: '
                                   f'{reported_version}')
-                raise e from None
+                raise
 
             try:
                 version = Version(normalized_version)
@@ -503,7 +503,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
                 self.logger.error(f'Unable to normalize versions for '
                                   f'{self.tool()}/{self.task()}: '
                                   f'{",".join([f"{op}{ver}" for op, ver in specs_list])}')
-                raise e from None
+                raise
 
             try:
                 spec_set = SpecifierSet(normalized_specs)
@@ -595,7 +595,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
             cmdargs.extend(args)
         except Exception as e:
             self.logger.error(f'Failed to get runtime options for {self.tool()}/{self.task()}')
-            raise e from None
+            raise
 
         # Cleanup args
         cmdargs = [str(arg).strip() for arg in cmdargs]
@@ -1006,7 +1006,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
             except Exception as e:
                 self.logger.error(f'Failed in run() for {self.tool()}/{self.task()}: {e}')
                 utils.print_traceback(self.logger, e)
-                raise e
+                raise
             finally:
                 with sc_open(stdout_file) as stdout_reader, \
                      sc_open(stderr_file) as stderr_reader:
@@ -1102,7 +1102,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
                     except TaskTimeout as e:
                         self.logger.error(f'Task timed out after {e.timeout:.1f} seconds')
                         self.__terminate_exe(proc)
-                        raise e from None
+                        raise
 
                     # Read any remaining I/O
                     read_stdio(stdout_reader, stderr_reader)

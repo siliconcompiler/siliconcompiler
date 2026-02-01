@@ -570,7 +570,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             self.logger.error(f"Run failed: {e.msg}")
             if scheduler and scheduler.log:
                 self.logger.error(f"Job log: {os.path.abspath(scheduler.log)}")
-            raise RuntimeError(f"Run failed: {e.msg}")
+            raise RuntimeError(f"Run failed: {e.msg}") from None
         finally:
             if self.__dashboard:
                 # Update dashboard

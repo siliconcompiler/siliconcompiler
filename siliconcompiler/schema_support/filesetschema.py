@@ -124,7 +124,7 @@ class FileSetSchema(PathSchema):
             dataroot = self._get_active_dataroot(dataroot)
         except ValueError as e:
             if not os.path.isabs(filename):
-                raise e
+                raise
 
         # adding files to dictionary
         with self.active_dataroot(dataroot):
