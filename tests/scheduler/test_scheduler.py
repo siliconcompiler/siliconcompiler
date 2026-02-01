@@ -1302,30 +1302,21 @@ def test_scruntime_error_init_invalid_flow(basic_project):
         Scheduler(basic_project)
 
 
-def test_scruntime_error_run_manifest_check(basic_project, caplog):
+def test_scruntime_error_run_manifest_check(basic_project):
     """Verify check_manifest failure raises SCRuntimeError during run"""
     scheduler = Scheduler(basic_project)
-    caplog.set_level(logging.ERROR)
 
     with patch.object(scheduler, "check_manifest", return_value=False):
         with pytest.raises(SCRuntimeError, match="check_manifest"):
             try:
                 scheduler.run()
             finally:
-                # caplog captures to stderr/stdout too
                 pass
 
-    # Exception message should be in the error being raised
-    try:
-        scheduler.run()
-    except SCRuntimeError as e:
-        assert "check_manifest" in str(e)
 
-
-def test_scruntime_error_run_task_classes(basic_project, caplog):
+def test_scruntime_error_run_task_classes(basic_project):
     """Verify task class validation failure raises SCRuntimeError"""
     scheduler = Scheduler(basic_project)
-    caplog.set_level(logging.ERROR)
 
     with patch.object(scheduler, "check_manifest", return_value=True), \
             patch.object(scheduler, "_Scheduler__init_schedulers"), \
