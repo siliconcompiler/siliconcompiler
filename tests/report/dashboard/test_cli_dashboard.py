@@ -3,6 +3,7 @@ import logging
 import pytest
 import queue
 import random
+import sys
 import threading
 
 from rich.console import Console, Group
@@ -501,6 +502,8 @@ def test_render_log_basic(mock_running_job_lg, dashboard_medium):
 def test_render_log_basic_eol(mock_running_job_lg, dashboard_medium):
     dashboard = dashboard_medium._dashboard
     dashboard._console.width = 20
+    if sys.platform == "win32":
+        dashboard._console.width += 1  # Adjust for Windows extra character in line endings
 
     with patch.object(Board, "_get_job") as mock_job_data:
         mock_job_data.return_value = mock_running_job_lg
