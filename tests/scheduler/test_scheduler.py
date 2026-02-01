@@ -7,7 +7,7 @@ import os.path
 
 from pathlib import Path
 
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 from siliconcompiler import Project, Flowgraph, Design, NodeStatus
 from siliconcompiler.scheduler import Scheduler, SCRuntimeError, SlurmSchedulerNode
@@ -16,6 +16,7 @@ from siliconcompiler.schema import EditableSchema, Parameter
 from siliconcompiler.tools.builtin.nop import NOPTask
 from siliconcompiler.utils.paths import jobdir
 from siliconcompiler.tool import TaskExecutableNotReceived, TaskSkip, Task
+from siliconcompiler.utils.multiprocessing import MPManager
 
 
 @pytest.fixture
@@ -1283,3 +1284,256 @@ def test_skip_collect_additional_files_slurm(gcd_additional_files_project):
     rundir = Path(jobdir(gcd_additional_files_project))
 
     assert not (rundir / "sc_collected_files").exists()
+
+
+def test_scruntime_error_init_no_flow():
+    """Verify SCRuntimeError is raised during init when flow is not specified"""
+    proj = Project(Design("testdesign"))
+
+    with pytest.raises(SCRuntimeError, match="flow must be specified"):
+        Scheduler(proj)
+
+
+def test_scruntime_error_init_invalid_flow(basic_project):
+    """Verify SCRuntimeError is raised when flow doesn't exist"""
+    basic_project.set("option", "flow", "nonexistent")
+
+    with pytest.raises(SCRuntimeError, match="flow is not defined"):
+        Scheduler(basic_project)
+
+
+def test_scruntime_error_run_manifest_check(basic_project, caplog):
+    """Verify check_manifest failure raises SCRuntimeError during run"""
+    scheduler = Scheduler(basic_project)
+    caplog.set_level(logging.ERROR)
+
+    with patch.object(scheduler, "check_manifest", return_value=False):
+        with pytest.raises(SCRuntimeError, match="check_manifest"):
+            try:
+                scheduler.run()
+            finally:
+                # caplog captures to stderr/stdout too
+                pass
+
+    # Exception message should be in the error being raised
+    try:
+        scheduler.run()
+    except SCRuntimeError as e:
+        assert "check_manifest" in str(e)
+
+
+def test_scruntime_error_run_task_classes(basic_project, caplog):
+    """Verify task class validation failure raises SCRuntimeError"""
+    scheduler = Scheduler(basic_project)
+    caplog.set_level(logging.ERROR)
+
+    with patch.object(scheduler, "check_manifest", return_value=True), \
+            patch.object(scheduler, "_Scheduler__init_schedulers"), \
+            patch.object(scheduler, "_Scheduler__run_setup"), \
+            patch.object(scheduler, "configure_nodes"), \
+            patch.object(scheduler, "_Scheduler__check_task_classes", return_value=False):
+        with pytest.raises(SCRuntimeError, match="Task classes are missing"):
+            scheduler.run()
+
+
+def test_scruntime_error_dashboard_stopped(basic_project):
+    """Verify dashboard.stop() is called when unexpected exceptions occur during run"""
+    scheduler = Scheduler(basic_project)
+    mock_dashboard = MagicMock()
+    basic_project._Project__dashboard = mock_dashboard
+
+    # Dashboard is stopped when an unexpected exception (ValueError) is converted to SCRuntimeError
+    with patch.object(scheduler, "check_manifest", return_value=True), \
+            patch.object(scheduler, "_Scheduler__init_schedulers"), \
+            patch.object(scheduler, "_Scheduler__run_setup"), \
+            patch.object(scheduler, "configure_nodes"), \
+            patch.object(scheduler, "_Scheduler__check_task_classes", return_value=True), \
+            patch.object(scheduler, "_Scheduler__check_tool_versions", return_value=True), \
+            patch.object(scheduler, "_Scheduler__check_tool_requirements", return_value=True), \
+            patch.object(scheduler, "_Scheduler__clean_build_dir_incr"), \
+            patch.object(scheduler, "_Scheduler__check_flowgraph_io", return_value=True), \
+            patch.object(scheduler, "run_core", side_effect=ValueError("Unexpected")):
+        with pytest.raises(SCRuntimeError):
+            scheduler.run()
+
+    # Dashboard should be stopped when exception occurs
+    mock_dashboard.stop.assert_called()
+
+
+def test_scruntime_error_mpmanager_notified(basic_project):
+    """Verify MPManager.error() is called on unexpected exceptions during run"""
+    scheduler = Scheduler(basic_project)
+
+    # MPManager is notified when an unexpected exception occurs
+    with patch.object(scheduler, "check_manifest", return_value=True), \
+            patch.object(scheduler, "_Scheduler__init_schedulers"), \
+            patch.object(scheduler, "_Scheduler__run_setup"), \
+            patch.object(scheduler, "configure_nodes"), \
+            patch.object(scheduler, "_Scheduler__check_task_classes", return_value=True), \
+            patch.object(scheduler, "_Scheduler__check_tool_versions", return_value=True), \
+            patch.object(scheduler, "_Scheduler__check_tool_requirements", return_value=True), \
+            patch.object(scheduler, "_Scheduler__clean_build_dir_incr"), \
+            patch.object(scheduler, "_Scheduler__check_flowgraph_io", return_value=True), \
+            patch.object(scheduler, "run_core", side_effect=RuntimeError("Test error")), \
+            patch.object(MPManager, "error") as mock_error:
+        with pytest.raises(SCRuntimeError):
+            scheduler.run()
+
+    # MPManager should be notified of error
+    mock_error.assert_called()
+
+
+def test_unexpected_exception_converted_to_scruntime_error(basic_project):
+    """Verify unexpected exceptions are converted to SCRuntimeError"""
+    scheduler = Scheduler(basic_project)
+    unexpected_error = ValueError("Something unexpected")
+
+    with patch.object(scheduler, "check_manifest", return_value=True), \
+            patch.object(scheduler, "_Scheduler__init_schedulers"), \
+            patch.object(scheduler, "_Scheduler__run_setup"), \
+            patch.object(scheduler, "configure_nodes"), \
+            patch.object(scheduler, "_Scheduler__check_task_classes", return_value=True), \
+            patch.object(scheduler, "_Scheduler__check_tool_versions", return_value=True), \
+            patch.object(scheduler, "_Scheduler__check_tool_requirements", return_value=True), \
+            patch.object(scheduler, "_Scheduler__clean_build_dir_incr"), \
+            patch.object(scheduler, "_Scheduler__check_flowgraph_io", return_value=True), \
+            patch.object(scheduler, "run_core", side_effect=unexpected_error):
+
+        with pytest.raises(SCRuntimeError):
+            scheduler.run()
+
+
+def test_unexpected_exception_logged(basic_project):
+    """Verify unexpected exceptions are logged with traceback"""
+    scheduler = Scheduler(basic_project)
+    unexpected_error = ValueError("Something unexpected")
+
+    with patch.object(scheduler, "check_manifest", return_value=True), \
+            patch.object(scheduler, "_Scheduler__init_schedulers"), \
+            patch.object(scheduler, "_Scheduler__run_setup"), \
+            patch.object(scheduler, "configure_nodes"), \
+            patch.object(scheduler, "_Scheduler__check_task_classes", return_value=True), \
+            patch.object(scheduler, "_Scheduler__check_tool_versions", return_value=True), \
+            patch.object(scheduler, "_Scheduler__check_tool_requirements", return_value=True), \
+            patch.object(scheduler, "_Scheduler__clean_build_dir_incr"), \
+            patch.object(scheduler, "_Scheduler__check_flowgraph_io", return_value=True), \
+            patch.object(scheduler, "run_core", side_effect=unexpected_error):
+
+        # Exception should be logged and converted to SCRuntimeError
+        with pytest.raises(SCRuntimeError, match="Something unexpected"):
+            scheduler.run()
+
+
+def test_unexpected_exception_dashboard_stopped(basic_project):
+    """Verify dashboard.stop() is called on unexpected exceptions"""
+    scheduler = Scheduler(basic_project)
+    mock_dashboard = MagicMock()
+    basic_project._Project__dashboard = mock_dashboard
+    unexpected_error = ValueError("Something unexpected")
+
+    with patch.object(scheduler, "check_manifest", return_value=True), \
+            patch.object(scheduler, "_Scheduler__init_schedulers"), \
+            patch.object(scheduler, "_Scheduler__run_setup"), \
+            patch.object(scheduler, "configure_nodes"), \
+            patch.object(scheduler, "_Scheduler__check_task_classes", return_value=True), \
+            patch.object(scheduler, "_Scheduler__check_tool_versions", return_value=True), \
+            patch.object(scheduler, "_Scheduler__check_tool_requirements", return_value=True), \
+            patch.object(scheduler, "_Scheduler__clean_build_dir_incr"), \
+            patch.object(scheduler, "_Scheduler__check_flowgraph_io", return_value=True), \
+            patch.object(scheduler, "run_core", side_effect=unexpected_error):
+
+        with pytest.raises(SCRuntimeError):
+            scheduler.run()
+
+    mock_dashboard.stop.assert_called()
+
+
+def test_keyboard_interrupt_handled(basic_project):
+    """Verify KeyboardInterrupt is handled gracefully"""
+    scheduler = Scheduler(basic_project)
+
+    with patch.object(scheduler, "check_manifest", return_value=True), \
+            patch.object(scheduler, "_Scheduler__init_schedulers"), \
+            patch.object(scheduler, "_Scheduler__run_setup"), \
+            patch.object(scheduler, "configure_nodes"), \
+            patch.object(scheduler, "_Scheduler__check_task_classes", return_value=True), \
+            patch.object(scheduler, "_Scheduler__check_tool_versions", return_value=True), \
+            patch.object(scheduler, "_Scheduler__check_tool_requirements", return_value=True), \
+            patch.object(scheduler, "_Scheduler__clean_build_dir_incr"), \
+            patch.object(scheduler, "_Scheduler__check_flowgraph_io", return_value=True), \
+            patch.object(scheduler, "run_core", side_effect=KeyboardInterrupt()):
+
+        # KeyboardInterrupt should be caught and handled without re-raising
+        scheduler.run()
+
+
+def test_keyboard_interrupt_logger_cleanup(basic_project):
+    """Verify logger is cleaned up even on KeyboardInterrupt"""
+    scheduler = Scheduler(basic_project)
+
+    with patch.object(scheduler, "check_manifest", return_value=True), \
+            patch.object(scheduler, "_Scheduler__init_schedulers"), \
+            patch.object(scheduler, "_Scheduler__run_setup"), \
+            patch.object(scheduler, "configure_nodes"), \
+            patch.object(scheduler, "_Scheduler__check_task_classes", return_value=True), \
+            patch.object(scheduler, "_Scheduler__check_tool_versions", return_value=True), \
+            patch.object(scheduler, "_Scheduler__check_tool_requirements", return_value=True), \
+            patch.object(scheduler, "_Scheduler__clean_build_dir_incr"), \
+            patch.object(scheduler, "_Scheduler__check_flowgraph_io", return_value=True), \
+            patch.object(scheduler, "run_core", side_effect=KeyboardInterrupt()):
+
+        scheduler.run()
+
+    # Handler should be cleaned up
+    assert isinstance(scheduler._Scheduler__joblog_handler, logging.NullHandler)
+
+
+def test_logger_cleanup_on_manifest_error(basic_project):
+    """Verify logger handler is cleaned up after manifest check error"""
+    scheduler = Scheduler(basic_project)
+
+    with patch.object(scheduler, "check_manifest", return_value=False):
+        try:
+            scheduler.run()
+        except SCRuntimeError:
+            pass
+
+    # Handler should be reset to NullHandler
+    assert isinstance(scheduler._Scheduler__joblog_handler, logging.NullHandler)
+
+
+def test_logger_cleanup_on_unexpected_exception(basic_project):
+    """Verify logger handler is cleaned up even on unexpected exceptions"""
+    scheduler = Scheduler(basic_project)
+
+    with patch.object(scheduler, "check_manifest", return_value=True), \
+            patch.object(scheduler, "_Scheduler__init_schedulers"), \
+            patch.object(scheduler, "_Scheduler__run_setup"), \
+            patch.object(scheduler, "configure_nodes"), \
+            patch.object(scheduler, "_Scheduler__check_task_classes", return_value=True), \
+            patch.object(scheduler, "_Scheduler__check_tool_versions", return_value=True), \
+            patch.object(scheduler, "_Scheduler__check_tool_requirements", return_value=True), \
+            patch.object(scheduler, "_Scheduler__clean_build_dir_incr"), \
+            patch.object(scheduler, "_Scheduler__check_flowgraph_io", return_value=True), \
+            patch.object(scheduler, "run_core", side_effect=RuntimeError("Test")):
+        try:
+            scheduler.run()
+        except (SCRuntimeError, RuntimeError):
+            pass
+
+    # Handler should be reset to NullHandler even after exception
+    assert isinstance(scheduler._Scheduler__joblog_handler, logging.NullHandler)
+
+
+def test_logger_cleanup_on_manifest_exception(basic_project):
+    """Verify logger is cleaned up even when manifest check raises exception"""
+    scheduler = Scheduler(basic_project)
+
+    with patch.object(scheduler, "check_manifest", side_effect=RuntimeError("Manifest error")):
+        try:
+            scheduler.run()
+        except (SCRuntimeError, RuntimeError):
+            pass
+
+    # Handler should be cleaned up
+    assert isinstance(scheduler._Scheduler__joblog_handler, logging.NullHandler)

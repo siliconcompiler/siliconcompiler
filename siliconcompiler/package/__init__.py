@@ -542,7 +542,7 @@ class RemoteResolver(Resolver):
 
             try:
                 self.resolve_remote()
-            except BaseException as e:
+            except BaseException:
                 # Exception occurred, so need to cleanup
                 try:
                     shutil.rmtree(self.cache_path)

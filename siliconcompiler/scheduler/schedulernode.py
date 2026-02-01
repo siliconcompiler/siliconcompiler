@@ -407,7 +407,7 @@ class SchedulerNode:
                 self.__record.set('status', NodeStatus.SKIPPED,
                                   step=self.__step, index=self.__index)
                 return False
-            except Exception as e:
+            except Exception:
                 self.logger.error(f'Failed to run setup() for {self.__step}/{self.__index} '
                                   f'with {task.tool()}/{task.task()}')
                 raise
@@ -1007,7 +1007,7 @@ class SchedulerNode:
                                            step=self.__step, index=self.__index),
                         self.__project.get('option', 'timeout',
                                            step=self.__step, index=self.__index))
-                except Exception as e:
+                except Exception:
                     raise
 
             if ret_code != 0:

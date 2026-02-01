@@ -439,7 +439,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
         except NotImplementedError:
             raise NotImplementedError(f'{self.tool()}/{self.task()} does not implement '
                                       'parse_version()')
-        except Exception as e:
+        except Exception:
             self.logger.error(f'{self.tool()}/{self.task()} failed to parse version string: '
                               f'{proc.stdout}')
             raise
@@ -483,7 +483,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
 
             try:
                 normalized_version = self.normalize_version(reported_version)
-            except Exception as e:
+            except Exception:
                 self.logger.error(f'Unable to normalize version for {self.tool()}/{self.task()}: '
                                   f'{reported_version}')
                 raise
@@ -499,7 +499,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
                 normalized_spec_list = [
                     f'{op}{self.normalize_version(ver)}' for op, ver in specs_list]
                 normalized_specs = ','.join(normalized_spec_list)
-            except Exception as e:
+            except Exception:
                 self.logger.error(f'Unable to normalize versions for '
                                   f'{self.tool()}/{self.task()}: '
                                   f'{",".join([f"{op}{ver}" for op, ver in specs_list])}')
@@ -593,7 +593,7 @@ class Task(NamedSchema, PathSchema, DocsSchema):
                 args = usr_args
 
             cmdargs.extend(args)
-        except Exception as e:
+        except Exception:
             self.logger.error(f'Failed to get runtime options for {self.tool()}/{self.task()}')
             raise
 

@@ -615,7 +615,7 @@ service, provided by SiliconCompiler, is not intended to process proprietary IP.
         # Wrapper to allow for capturing of Ctrl+C
         try:
             self.__run_loop()
-        except KeyboardInterrupt as e:
+        except KeyboardInterrupt:
             manifest_path = self.remote_manifest()
             reconnect_cmd = f'sc-remote -cfg {manifest_path} -reconnect'
             cancel_cmd = f'sc-remote -cfg {manifest_path} -cancel'

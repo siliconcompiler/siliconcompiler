@@ -20,7 +20,7 @@ from siliconcompiler.scheduler import SlurmSchedulerNode
 from siliconcompiler.scheduler import DockerSchedulerNode
 from siliconcompiler.scheduler import TaskScheduler
 from siliconcompiler.scheduler.schedulernode import SchedulerFlowReset, SchedulerNodeReset
-from siliconcompiler.tool import TaskError, TaskExecutableNotFound, TaskExecutableNotReceived
+from siliconcompiler.tool import TaskExecutableNotFound, TaskExecutableNotReceived
 
 from siliconcompiler import utils
 from siliconcompiler.utils.logging import SCLoggerFormatter
