@@ -530,8 +530,8 @@ def test_render_log_basic_eol(mock_running_job_lg, dashboard_medium):
 
     consoleprint = io_file.getvalue().splitlines()
     assert len(consoleprint) == 16
-    assert consoleprint[0].rstrip() == " \x1b[37m| INFO     | firs…\x1b[0m"
-    assert consoleprint[1].rstrip() == " \x1b[37m| INFO     | seco…\x1b[0m"
+    assert consoleprint[0].rstrip() == " \x1b[37m| INFO     | firs…\x1b[0m"  # codespell:ignore firs
+    assert consoleprint[1].rstrip() == " \x1b[37m| INFO     | seco…\x1b[0m"  # codespell:ignore seco
     for n in range(2, 16):
         assert consoleprint[n].strip() == ""  # padding
 
