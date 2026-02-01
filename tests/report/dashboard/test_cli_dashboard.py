@@ -527,7 +527,7 @@ def test_render_log_basic_eol(mock_running_job_lg, dashboard_medium):
     assert log.renderables[0].row_count == 15
 
     # Capture the output
-    io_file = io.StringIO()
+    io_file = io.StringIO(newline="\n")
     console = Console(file=io_file, width=120)
     console.print(log)
 
