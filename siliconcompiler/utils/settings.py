@@ -97,7 +97,7 @@ class SettingsManager:
                         json.dump(self.__settings, f, indent=4)
         except Exception as e:
             self.__logger.error(f"Failed to save settings to {self.__filepath}: {e}")
-            raise e
+            raise
 
     def set(self, category: str, key: str, value, keep: bool = False):
         """

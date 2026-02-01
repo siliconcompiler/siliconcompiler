@@ -512,7 +512,7 @@ class BaseSchema:
         except Exception as e:
             new_msg = f"error while accessing {self.__format_key(*keypath)}: {e.args[0]}"
             e.args = (new_msg, *e.args[1:])
-            raise e
+            raise
 
     def set(self, *args, field: str = 'value', clobber: bool = True,
             step: Optional[str] = None, index: Optional[Union[int, str]] = None) \
@@ -559,7 +559,7 @@ class BaseSchema:
         except Exception as e:
             new_msg = f"error while setting {self.__format_key(*keypath)}: {e.args[0]}"
             e.args = (new_msg, *e.args[1:])
-            raise e
+            raise
 
     def add(self, *args, field: str = 'value',
             step: Optional[str] = None, index: Optional[Union[int, str]] = None) \
@@ -604,7 +604,7 @@ class BaseSchema:
         except Exception as e:
             new_msg = f"error while adding to {self.__format_key(*keypath)}: {e.args[0]}"
             e.args = (new_msg, *e.args[1:])
-            raise e
+            raise
 
     def unset(self, *keypath: str,
               step: Optional[str] = None,
@@ -645,7 +645,7 @@ class BaseSchema:
         except Exception as e:
             new_msg = f"error while unsetting {self.__format_key(*keypath)}: {e.args[0]}"
             e.args = (new_msg, *e.args[1:])
-            raise e
+            raise
 
     def remove(self, *keypath: str):
         '''

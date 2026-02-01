@@ -161,4 +161,4 @@ class GitResolver(RemoteResolver):
                                        'via GITHUB_TOKEN or use an SSH URL.')
             else:
                 # Re-raise other Git errors
-                raise e
+                raise
