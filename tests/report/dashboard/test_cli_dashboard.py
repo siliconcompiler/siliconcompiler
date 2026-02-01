@@ -503,7 +503,7 @@ def test_render_log_basic_eol(mock_running_job_lg, dashboard_medium):
     dashboard = dashboard_medium._dashboard
     dashboard._console.width = 20
     if sys.platform == "win32":
-        dashboard._console.width += 1  # Adjust for Windows extra character in line endings
+        dashboard._console.width += 2  # Adjust for Windows extra character in line endings
 
     with patch.object(Board, "_get_job") as mock_job_data:
         mock_job_data.return_value = mock_running_job_lg
