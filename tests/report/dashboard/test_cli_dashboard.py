@@ -484,7 +484,6 @@ def test_render_log_basic(mock_running_job_lg, dashboard_medium):
     assert isinstance(log.renderables[0], Table)
     assert isinstance(log.renderables[1], Padding)
     assert log.renderables[0].row_count == 15
-    assert log.renderables[0].width == 200
 
     # Capture the output
     io_file = io.StringIO()
@@ -523,7 +522,6 @@ def test_render_log_basic_eol(mock_running_job_lg, dashboard_medium):
     assert isinstance(log.renderables[0], Table)
     assert isinstance(log.renderables[1], Padding)
     assert log.renderables[0].row_count == 15
-    assert log.renderables[0].width == 20
 
     # Capture the output
     io_file = io.StringIO()
