@@ -51,10 +51,10 @@ class Design(DependencySchema, FileSetSchema, NamedSchema):
     @property
     def package(self) -> PackageSchema:
         """
-        Gets the package schema for the library.
+        Gets the package schema for the design.
 
         Returns:
-            PackageSchema: The package schema associated with this library.
+            PackageSchema: The package schema associated with this design.
         """
         return self.get("package", field="schema")
 
