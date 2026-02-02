@@ -66,7 +66,7 @@ cmake .. -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_EXE_LINKER_FLAGS="-flto" \
 	-DCMAKE_INSTALL_RPATH_USE_LINK_PATH=TRUE \
     $cmake_args
-make -j$(nproc)
+make -j${NPROC:-$(nproc)}
 $SUDO_INSTALL make install
 
 cd -

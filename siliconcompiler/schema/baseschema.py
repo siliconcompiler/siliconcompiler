@@ -8,6 +8,7 @@ import contextlib
 import copy
 import importlib
 import logging
+import pathlib
 
 try:
     import gzip
@@ -385,10 +386,18 @@ class BaseSchema:
         fout = BaseSchema.__open_file(filepath, is_read=False)
 
         try:
+            def default(obj: Any) -> Any:
+                if isinstance(obj, pathlib.PurePath):
+                    # Cast everything to a windows path and convert to posix.
+                    # https://stackoverflow.com/questions/73682260
+                    return pathlib.PureWindowsPath(obj).as_posix()
+                raise TypeError
+
             if _has_orjson:
-                manifest_str = json.dumps(self.getdict(), option=json.OPT_INDENT_2).decode()
+                manifest_str = json.dumps(self.getdict(), option=json.OPT_INDENT_2,
+                                          default=default).decode()
             else:
-                manifest_str = json.dumps(self.getdict(), indent=2)
+                manifest_str = json.dumps(self.getdict(), indent=2, default=default)
             fout.write(manifest_str)
         finally:
             fout.close()
@@ -503,7 +512,7 @@ class BaseSchema:
         except Exception as e:
             new_msg = f"error while accessing {self.__format_key(*keypath)}: {e.args[0]}"
             e.args = (new_msg, *e.args[1:])
-            raise e
+            raise
 
     def set(self, *args, field: str = 'value', clobber: bool = True,
             step: Optional[str] = None, index: Optional[Union[int, str]] = None) \
@@ -550,7 +559,7 @@ class BaseSchema:
         except Exception as e:
             new_msg = f"error while setting {self.__format_key(*keypath)}: {e.args[0]}"
             e.args = (new_msg, *e.args[1:])
-            raise e
+            raise
 
     def add(self, *args, field: str = 'value',
             step: Optional[str] = None, index: Optional[Union[int, str]] = None) \
@@ -595,7 +604,7 @@ class BaseSchema:
         except Exception as e:
             new_msg = f"error while adding to {self.__format_key(*keypath)}: {e.args[0]}"
             e.args = (new_msg, *e.args[1:])
-            raise e
+            raise
 
     def unset(self, *keypath: str,
               step: Optional[str] = None,
@@ -636,7 +645,7 @@ class BaseSchema:
         except Exception as e:
             new_msg = f"error while unsetting {self.__format_key(*keypath)}: {e.args[0]}"
             e.args = (new_msg, *e.args[1:])
-            raise e
+            raise
 
     def remove(self, *keypath: str):
         '''

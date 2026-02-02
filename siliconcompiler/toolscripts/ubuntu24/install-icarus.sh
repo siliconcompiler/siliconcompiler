@@ -33,5 +33,5 @@ fi
 
 sh autoconf.sh
 ./configure $args
-make -j$(nproc)
+make -j${NPROC:-$(nproc)}
 $SUDO_INSTALL make install

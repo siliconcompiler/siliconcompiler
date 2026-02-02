@@ -461,7 +461,7 @@ foreach group "dontuse hold clkbuf clkgate clklogic" {
     }
 }
 
-yosys abc {*}$abc_args {*}$abc_dont_use
+yosys abc -showtmp {*}$abc_args {*}$abc_dont_use
 
 ########################################################
 # Cleanup

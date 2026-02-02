@@ -28,6 +28,6 @@ git clone $(python3 ${src_path}/_tools.py --tool icepack --field git-url) icepac
 cd icepack
 git checkout $(python3 ${src_path}/_tools.py --tool icepack --field git-commit)
 
-make -j$(nproc)
+make -j${NPROC:-$(nproc)}
 $SUDO_INSTALL make install PREFIX="$PREFIX"
 cd -
