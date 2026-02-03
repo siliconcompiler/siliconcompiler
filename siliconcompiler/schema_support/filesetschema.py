@@ -349,7 +349,8 @@ class FileSetSchema(NamedSchema, PathSchemaBase):
         try:
             dataroot = self.__design._get_active_dataroot(dataroot)
         except ValueError:
-            if any(not os.path.isabs(v) for v in value):
+            values = value if isinstance(value, (list, tuple, set)) else [value]
+            if any(not os.path.isabs(v) for v in values):
                 raise
 
         if value is None:
@@ -451,7 +452,8 @@ class FileSetSchema(NamedSchema, PathSchemaBase):
         try:
             dataroot = self.__design._get_active_dataroot(dataroot)
         except ValueError:
-            if any(not os.path.isabs(v) for v in value):
+            values = value if isinstance(value, (list, tuple, set)) else [value]
+            if any(not os.path.isabs(v) for v in values):
                 raise
 
         if value is None:
