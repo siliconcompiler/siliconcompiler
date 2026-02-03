@@ -17393,6 +17393,26 @@
           }
         }
       },
+      "deps": {
+        "type": "[str]",
+        "require": false,
+        "scope": "global",
+        "lock": true,
+        "switch": [],
+        "shorthelp": "List of object dependencies",
+        "example": [],
+        "help": "List of named object dependencies included via add_dep().",
+        "notes": null,
+        "pernode": "never",
+        "node": {
+          "default": {
+            "default": {
+              "value": [],
+              "signature": []
+            }
+          }
+        }
+      },
       "fileset": {
         "default": {
           "file": {
@@ -17613,26 +17633,11 @@
                 }
               }
             }
-          }
-        }
-      },
-      "deps": {
-        "type": "[str]",
-        "require": false,
-        "scope": "global",
-        "lock": true,
-        "switch": [],
-        "shorthelp": "List of object dependencies",
-        "example": [],
-        "help": "List of named object dependencies included via add_dep().",
-        "notes": null,
-        "pernode": "never",
-        "node": {
-          "default": {
-            "default": {
-              "value": [],
-              "signature": []
-            }
+          },
+          "__meta__": {
+            "name": null,
+            "class": "siliconcompiler.schema_support.filesetschema/FileSetSchema",
+            "sctype": "FileSetSchema"
           }
         }
       },
@@ -18157,6 +18162,26 @@
           }
         }
       },
+      "deps": {
+        "type": "[str]",
+        "require": false,
+        "scope": "global",
+        "lock": true,
+        "switch": [],
+        "shorthelp": "List of object dependencies",
+        "example": [],
+        "help": "List of named object dependencies included via add_dep().",
+        "notes": null,
+        "pernode": "never",
+        "node": {
+          "default": {
+            "default": {
+              "value": [],
+              "signature": []
+            }
+          }
+        }
+      },
       "fileset": {
         "default": {
           "file": {
@@ -18377,26 +18402,11 @@
                 }
               }
             }
-          }
-        }
-      },
-      "deps": {
-        "type": "[str]",
-        "require": false,
-        "scope": "global",
-        "lock": true,
-        "switch": [],
-        "shorthelp": "List of object dependencies",
-        "example": [],
-        "help": "List of named object dependencies included via add_dep().",
-        "notes": null,
-        "pernode": "never",
-        "node": {
-          "default": {
-            "default": {
-              "value": [],
-              "signature": []
-            }
+          },
+          "__meta__": {
+            "name": null,
+            "class": "siliconcompiler.schema_support.filesetschema/FileSetSchema",
+            "sctype": "FileSetSchema"
           }
         }
       },
@@ -19561,6 +19571,26 @@
           }
         }
       },
+      "deps": {
+        "type": "[str]",
+        "require": false,
+        "scope": "global",
+        "lock": true,
+        "switch": [],
+        "shorthelp": "List of object dependencies",
+        "example": [],
+        "help": "List of named object dependencies included via add_dep().",
+        "notes": null,
+        "pernode": "never",
+        "node": {
+          "default": {
+            "default": {
+              "value": [],
+              "signature": []
+            }
+          }
+        }
+      },
       "fileset": {
         "default": {
           "file": {
@@ -19781,26 +19811,11 @@
                 }
               }
             }
-          }
-        }
-      },
-      "deps": {
-        "type": "[str]",
-        "require": false,
-        "scope": "global",
-        "lock": true,
-        "switch": [],
-        "shorthelp": "List of object dependencies",
-        "example": [],
-        "help": "List of named object dependencies included via add_dep().",
-        "notes": null,
-        "pernode": "never",
-        "node": {
-          "default": {
-            "default": {
-              "value": [],
-              "signature": []
-            }
+          },
+          "__meta__": {
+            "name": null,
+            "class": "siliconcompiler.schema_support.filesetschema/FileSetSchema",
+            "sctype": "FileSetSchema"
           }
         }
       },
@@ -20377,6 +20392,26 @@
           }
         }
       },
+      "deps": {
+        "type": "[str]",
+        "require": false,
+        "scope": "global",
+        "lock": true,
+        "switch": [],
+        "shorthelp": "List of object dependencies",
+        "example": [],
+        "help": "List of named object dependencies included via add_dep().",
+        "notes": null,
+        "pernode": "never",
+        "node": {
+          "default": {
+            "default": {
+              "value": [],
+              "signature": []
+            }
+          }
+        }
+      },
       "fileset": {
         "default": {
           "file": {
@@ -20597,26 +20632,11 @@
                 }
               }
             }
-          }
-        }
-      },
-      "deps": {
-        "type": "[str]",
-        "require": false,
-        "scope": "global",
-        "lock": true,
-        "switch": [],
-        "shorthelp": "List of object dependencies",
-        "example": [],
-        "help": "List of named object dependencies included via add_dep().",
-        "notes": null,
-        "pernode": "never",
-        "node": {
-          "default": {
-            "default": {
-              "value": [],
-              "signature": []
-            }
+          },
+          "__meta__": {
+            "name": null,
+            "class": "siliconcompiler.schema_support.filesetschema/FileSetSchema",
+            "sctype": "FileSetSchema"
           }
         }
       },
