@@ -11,7 +11,6 @@ from siliconcompiler.schema_support.filesetschema import FileSetSchema
 from siliconcompiler.schema_support.packageschema import PackageSchema
 from siliconcompiler.schema_support.pathschema import PathSchema
 from siliconcompiler.schema_support.dependencyschema import DependencySchema
-from siliconcompiler.schema_support.patch import Patch
 from siliconcompiler.schema import NamedSchema
 from siliconcompiler.schema import EditableSchema
 
