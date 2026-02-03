@@ -311,14 +311,14 @@ def test_add_idir_single_path(design_with_tmpdir):
 def test_add_idir_multiple(design_with_tmpdir):
     """Test adding multiple include directories."""
     d = design_with_tmpdir
-    Path('/tmp/includes1').mkdir(exist_ok=True)
-    Path('/tmp/includes2').mkdir(exist_ok=True)
+    Path('includes1').mkdir(exist_ok=True)
+    Path('includes2').mkdir(exist_ok=True)
     with d.active_fileset('rtl'):
-        d.add_idir('/tmp/includes1')
-        d.add_idir('/tmp/includes2')
+        d.add_idir('includes1')
+        d.add_idir('includes2')
         idirs = [str(i) for i in d.get_idir()]
-        assert any('/tmp/includes1' in str(i) for i in idirs)
-        assert any('/tmp/includes2' in str(i) for i in idirs)
+        assert any('includes1' in str(i) for i in idirs)
+        assert any('includes2' in str(i) for i in idirs)
 
 
 def test_add_idir_with_clobber(design_with_tmpdir):
