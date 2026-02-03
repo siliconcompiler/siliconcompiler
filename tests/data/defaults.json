@@ -17,7 +17,7 @@
         "node": {
           "default": {
             "default": {
-              "value": "0.54.0",
+              "value": "0.55.0",
               "signature": null
             }
           }
@@ -2989,7 +2989,7 @@
         "node": {
           "default": {
             "default": {
-              "value": "0.54.0",
+              "value": "0.55.0",
               "signature": null
             }
           }
@@ -6759,7 +6759,7 @@
         "node": {
           "default": {
             "default": {
-              "value": "0.54.0",
+              "value": "0.55.0",
               "signature": null
             }
           }
@@ -11415,7 +11415,7 @@
         "node": {
           "default": {
             "default": {
-              "value": "0.54.0",
+              "value": "0.55.0",
               "signature": null
             }
           }
@@ -14387,7 +14387,7 @@
         "node": {
           "default": {
             "default": {
-              "value": "0.54.0",
+              "value": "0.55.0",
               "signature": null
             }
           }
