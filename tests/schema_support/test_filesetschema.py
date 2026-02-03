@@ -1,15 +1,11 @@
-import pathlib
 import pytest
 import os
 import tempfile
-
-import os.path
 
 from pathlib import Path
 
 from siliconcompiler import Design
 from siliconcompiler.schema_support.filesetschema import FileSetSchema
-from siliconcompiler.schema import NamedSchema
 
 
 @pytest.fixture
@@ -82,7 +78,7 @@ def test_set_topmodule_valid_identifier(design_with_tmpdir):
     """Test setting topmodule with valid Verilog identifier."""
     d = design_with_tmpdir
     with d.active_fileset('rtl'):
-        result = d.set_topmodule('mytop')
+        d.set_topmodule('mytop')
         assert d.get_topmodule() == 'mytop'
 
 
@@ -219,7 +215,6 @@ def test_add_define_with_clobber(design_with_tmpdir):
     with d.active_fileset('rtl'):
         d.add_define('MACRO1')
         d.add_define('MACRO2')
-        initial_len = len(d.get_define())
         d.add_define('MACRO3', clobber=True)
         defines = d.get_define()
         assert defines == ['MACRO3']
