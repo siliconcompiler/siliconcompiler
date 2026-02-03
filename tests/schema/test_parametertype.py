@@ -3,7 +3,7 @@ import pytest
 from pathlib import Path
 
 from siliconcompiler.schema.parametertype import \
-    NodeType, NodeEnumType
+    NodeType, NodeEnumType, NodeRangeType
 
 enum1 = NodeEnumType("one", "two", "three")
 enum2 = NodeEnumType("one", "two", "three", "four")
@@ -71,6 +71,21 @@ def test_init_with_obj():
     ])
 def test_parse(type, expect):
     assert NodeType.parse(type) == expect
+
+
+def test_parse_invalid_int_range():
+    with pytest.raises(ValueError, match=r"^invalid literal for int\(\) with base 10: 'a'$"):
+        NodeType.parse("int<a,2,5-7>")
+
+
+def test_parse_invalid_float_range():
+    with pytest.raises(ValueError, match=r"^could not convert string to float: 'a'$"):
+        NodeType.parse("float<a,2,5-7>")
+
+
+def test_parse_invalid_base_range():
+    with pytest.raises(ValueError, match=r"^bool<a,2,5-7>$"):
+        NodeType.parse("bool<a,2,5-7>")
 
 
 @pytest.mark.parametrize(
@@ -170,7 +185,14 @@ def test_encode_invalid():
         ("(str,int)", (1, 2), ("1", 2)),
         ("(str,float)", (1, 2.5), ("1", 2.5)),
         ("{(str,float)}", (1, 2.5), set([("1", 2.5)])),
-        (NodeType("(str,float)"), (1, 2.5), ("1", 2.5))
+        (NodeType("(str,float)"), (1, 2.5), ("1", 2.5)),
+        ("str<one,two,three>", "one", "one"),
+        ("int<0,2,5>", "2", 2),
+        ("int<0-5>", "2", 2),
+        ("int<0,2,5-9>", "8", 8),
+        ("float<0,2.1,5>", "2.1", 2.1),
+        ("float<0-5>", "2.5", 2.5),
+        ("float<0,2,5-9>", "8.7", 8.7),
     ])
 def test_normalize(type, value, expect):
     norm = NodeType.normalize(value, NodeType.parse(type))
@@ -189,6 +211,7 @@ def test_normalize(type, value, expect):
         ("str", "test$next[0]", "\"test\\$next\\[0]\""),
         ("str", "test\\next", "\"test\\\\next\""),
         ("int", 1, "1"),
+        ("int<0-5>", 1, "1"),
         ("float", 1e5, "100000"),
         ("float", 10.5e-6, "1.05e-05"),
         ("float", 100.555555555e-12, "1.00555556e-10"),
@@ -236,6 +259,37 @@ def test_normalize_value_enum():
 
     with pytest.raises(ValueError, match=r"^enum must be a string, not a <class 'int'>$"):
         NodeType.normalize(1, enum)
+
+
+def test_normalize_value_int_range():
+    range = NodeRangeType("int", (0, 0), (2, 2), (5, 7))
+    assert NodeType.normalize("0", range) == 0
+    assert NodeType.normalize("2", range) == 2
+    assert NodeType.normalize("6", range) == 6
+    assert NodeType.normalize("7", range) == 7
+
+    with pytest.raises(ValueError, match=r"^8 is not in range: 0, 2, 5-7$"):
+        NodeType.normalize("8", range)
+
+
+@pytest.mark.parametrize("ranges,expect", [
+    ([(0, 0), (2, 2), (5, 7)], [(0, 0), (2, 2), (5, 7)]),
+    ([(5, 7), (2, 2), (0, 0)], [(0, 0), (2, 2), (5, 7)]),
+])
+def test_range_value_sorting(ranges, expect):
+    range = NodeRangeType("int", *ranges)
+    assert range.values == expect
+
+
+def test_normalize_value_float_range():
+    range = NodeRangeType("float", (0, 0), (2.2, 2.2), (5, 7))
+    assert NodeType.normalize("0", range) == 0
+    assert NodeType.normalize("2.2", range) == 2.2
+    assert NodeType.normalize("6", range) == 6
+    assert NodeType.normalize("7", range) == 7
+
+    with pytest.raises(ValueError, match=r"^8\.0 is not in range: 0, 2\.2, 5-7$"):
+        NodeType.normalize("8", range)
 
 
 def test_normalize_value_file():
@@ -309,16 +363,33 @@ def test_normalize_invalid_str():
 @pytest.mark.parametrize("sctype", [
     "str",
     "bool",
+    "int<0,2,5>",
+    "int<0-5>",
+    "int<<-5>",
+    "int<-5->>",
+    "int<<--5,5->>",
+    "float<<--5.0,5.0->>",
     "[str]",
     "[int]",
     "(str,int)",
     "(str,int,bool,float,<hello,world>)",
     "[(str,int)]",
     "[<hello,world>]",
-    "{(str,int,int,str)}"
+    "[int<0,2,5-9>]",
+    "{(str,int,int,str)}",
 ])
 def test_str(sctype):
     assert str(NodeType(sctype)) == sctype
+
+
+def test_str_enum():
+    assert str(NodeType("str<hello,world>")) == "<hello,world>"
+    assert str(NodeType("[str<hello,world>]")) == "[<hello,world>]"
+
+
+def test_str_floatrange():
+    assert str(NodeType("float<0,2.1,5-9>")) == "float<0.0,2.1,5.0-9.0>"
+    assert str(NodeType("[float<0,2.1,5-9>]")) == "[float<0.0,2.1,5.0-9.0>]"
 
 
 def test_str_invalid():
@@ -353,6 +424,7 @@ def test_str_invalid():
     ("{(str,int)}", set, True),
     ("{(str,int)}", "str", True),
     ("{(str,int)}", "int", True),
+    ("{(str,int<0-5>)}", "int", True),
     ("{(str,int)}", tuple, True),
     ("{(str,int)}", list, False),
     ("{(str,int)}", set, True),
@@ -367,3 +439,125 @@ def test_str_invalid():
 ])
 def test_contains(sctype, check, expect):
     assert NodeType.contains(NodeType.parse(sctype), check) is expect
+
+
+def test_parse_negative_float_range():
+    # Range from -0.5 to 0.5
+    parsed = NodeType.parse("float<-0.5-0.5>")
+    assert isinstance(parsed, NodeRangeType)
+    assert parsed.base == "float"
+    assert parsed.values == [(-0.5, 0.5)]
+
+
+def test_parse_outoforder_float_range():
+    # Range from -0.5 to 0.5
+    parsed = NodeType.parse("float<0.5--0.5>")
+    assert isinstance(parsed, NodeRangeType)
+    assert parsed.base == "float"
+    assert parsed.values == [(-0.5, 0.5)]
+
+
+def test_parse_scientific_notation_range():
+    # Range from 1e-5 to 1e-2
+    parsed = NodeType.parse("float<1e-5-1e-2>")
+    assert isinstance(parsed, NodeRangeType)
+    assert parsed.base == "float"
+    assert parsed.values == [(1e-5, 1e-2)]
+    assert str(parsed) == "float<1e-05-0.01>"
+
+
+def test_parse_mixed_ranges_and_values():
+    # Mixed single values and ranges with negatives
+    parsed = NodeType.parse("int<-10,-5,0-5>")
+    assert isinstance(parsed, NodeRangeType)
+    assert parsed.values == [(-10, -10), (-5, -5), (0, 5)]
+
+
+def test_normalize_negative_range():
+    rnge = NodeType.parse("int<-10-10>")
+    assert NodeType.normalize("-5", rnge) == -5
+    assert NodeType.normalize("10", rnge) == 10
+    assert NodeType.normalize("-10", rnge) == -10
+    with pytest.raises(ValueError):
+        NodeType.normalize("-11", rnge)
+
+
+def test_parse_open_range_high():
+    # int<0->
+    rnge = NodeType.parse("int<0->>")
+    assert isinstance(rnge, NodeRangeType)
+    assert rnge.values == [(0, None)]
+
+    assert NodeType.normalize(0, rnge) == 0
+    assert NodeType.normalize(100, rnge) == 100
+    with pytest.raises(ValueError):
+        NodeType.normalize(-1, rnge)
+
+
+def test_parse_open_negative_range_high():
+    # int<-10->
+    rnge = NodeType.parse("int<-10->>")
+    assert isinstance(rnge, NodeRangeType)
+    assert rnge.values == [(-10, None)]
+
+    assert NodeType.normalize(-10, rnge) == -10
+    assert NodeType.normalize(0, rnge) == 0
+    with pytest.raises(ValueError):
+        NodeType.normalize(-11, rnge)
+
+
+def test_parse_open_range_low():
+    # int<-5>
+    rnge = NodeType.parse("int<<--5>")
+    assert isinstance(rnge, NodeRangeType)
+    assert rnge.values == [(None, -5)]
+
+    assert NodeType.normalize(-5, rnge) == -5
+    assert NodeType.normalize(-100, rnge) == -100
+    with pytest.raises(ValueError):
+        NodeType.normalize(0, rnge)
+
+
+def test_parse_open_negative_range_low():
+    # int<--5>
+    rnge = NodeType.parse("int<<--5>")
+    assert isinstance(rnge, NodeRangeType)
+    assert rnge.values == [(None, -5)]
+
+    assert NodeType.normalize(-5, rnge) == -5
+    assert NodeType.normalize(-100, rnge) == -100
+    with pytest.raises(ValueError):
+        NodeType.normalize(0, rnge)
+
+
+def test_parse_negative_range():
+    # int<-10--5>
+    rnge = NodeType.parse("int<-10--5>")
+    assert isinstance(rnge, NodeRangeType)
+    assert rnge.values == [(-10, -5)]
+
+    assert NodeType.normalize(-10, rnge) == -10
+    assert NodeType.normalize(-7, rnge) == -7
+    with pytest.raises(ValueError):
+        NodeType.normalize(-11, rnge)
+    with pytest.raises(ValueError):
+        NodeType.normalize(-4, rnge)
+
+
+@pytest.mark.parametrize("range_str,expect", [
+    ("int<-10--5>", [(-10, -5)]),
+    ("int<-20--15,<--5>", [(None, -5), (-20, -15)]),
+    ("float<-2.5-1.5,<-0.5>", [(None, 0.5), (-2.5, 1.5)]),
+])
+def test_parse_range(range_str, expect):
+    rnge = NodeType.parse(range_str)
+    assert isinstance(rnge, NodeRangeType)
+    assert rnge.values == expect
+
+
+def test_range_eq():
+    r0 = NodeType.parse("int<-10--5>")
+    r1 = NodeType.parse("float<-10--5>")
+
+    assert r0 == NodeRangeType("int", (-10, -5))
+    assert r0 != r1
