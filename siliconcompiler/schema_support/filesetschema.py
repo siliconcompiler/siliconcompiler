@@ -11,6 +11,7 @@ from siliconcompiler import utils
 from siliconcompiler.schema_support.pathschema import PathSchemaBase
 from siliconcompiler.schema import EditableSchema, Parameter, Scope, BaseSchema, NamedSchema
 from siliconcompiler.schema.utils import trim
+from siliconcompiler.schema_support.patch import Patch
 
 if TYPE_CHECKING:
     from siliconcompiler import Design
@@ -152,6 +153,8 @@ class FileSetSchema(NamedSchema, PathSchemaBase):
                 example=[
                     "api: design.set('fileset', 'rtl', 'depfileset', ('lambdalib', 'rtl'))"],
                 help=trim("""Sets the mapping for dependency filesets.""")))
+
+        schema.insert('patch', 'default', Patch())
 
     @classmethod
     def _getdict_type(cls) -> str:
