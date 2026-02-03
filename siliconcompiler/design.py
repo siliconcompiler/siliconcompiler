@@ -7,8 +7,8 @@ from typing import List, Union, Tuple, Dict, Optional, Iterable, Type
 
 from siliconcompiler import utils
 
-from siliconcompiler.library import LibrarySchema
-
+from siliconcompiler.schema_support.packageschema import PackageSchema
+from siliconcompiler.schema_support.filesetschema import FileSetSchema
 from siliconcompiler.schema_support.dependencyschema import DependencySchema
 from siliconcompiler.schema import NamedSchema
 from siliconcompiler.schema import EditableSchema, Parameter, Scope
@@ -16,14 +16,15 @@ from siliconcompiler.schema.utils import trim
 
 
 ###########################################################################
-class Design(DependencySchema, LibrarySchema):
+class Design(DependencySchema, FileSetSchema, NamedSchema):
     '''
     Schema for a 'design'.
 
-    This class inherits from :class:`~siliconcompiler.LibrarySchema` and
-    :class:`~siliconcompiler.DependencySchema`, and adds parameters and methods
-    specific to describing a design, such as its top module, source filesets,
-    and compilation settings.
+    This class inherits from
+    :class:`~siliconcompiler.schema_support.dependencyschema.DependencySchema` and
+    :class:`~siliconcompiler.schema_support.filesetschema.FileSetSchema`, adds
+    parameters and methods specific to describing a design, such as its top module,
+    source filesets, and compilation settings.
     '''
 
     def __init__(self, name: Optional[str] = None):
@@ -42,6 +43,20 @@ class Design(DependencySchema, LibrarySchema):
         self.set_name(name)
 
         schema_design(self)
+
+        package = PackageSchema()
+        EditableSchema(package).remove("dataroot")
+        EditableSchema(self).insert("package", package)
+
+    @property
+    def package(self) -> PackageSchema:
+        """
+        Gets the package schema for the design.
+
+        Returns:
+            PackageSchema: The package schema associated with this design.
+        """
+        return self.get("package", field="schema")
 
     def add_dep(self, obj: NamedSchema, clobber: bool = True) -> bool:
         '''

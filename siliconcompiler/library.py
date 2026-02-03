@@ -1,11 +1,10 @@
 from typing import final, Union, List, Tuple, Optional, Dict, Set, TYPE_CHECKING
 
-from siliconcompiler.schema_support.packageschema import PackageSchema
+from siliconcompiler import Design
 
-from siliconcompiler.schema_support.dependencyschema import DependencySchema
 from siliconcompiler.schema_support.filesetschema import FileSetSchema
 from siliconcompiler.schema_support.pathschema import PathSchema
-from siliconcompiler.schema import NamedSchema, BaseSchema
+from siliconcompiler.schema import BaseSchema
 
 from siliconcompiler.schema import EditableSchema, Parameter, Scope, PerNode, LazyLoad
 from siliconcompiler.schema.utils import trim
@@ -15,47 +14,47 @@ if TYPE_CHECKING:
     from siliconcompiler import PDK
 
 
-class LibrarySchema(FileSetSchema, NamedSchema):
+class LibrarySchema(Design):
     """
     A class for managing library schemas.
     """
     def __init__(self, name: Optional[str] = None):
         """
-        Initializes a LibrarySchema object.
+        Deprecated.
+        """
+        import warnings
+        warnings.warn(
+            "LibrarySchema is deprecated. Please use Design instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
+        super().__init__(name)
+
+        # Disable fileset copying by default
+        self.set("fileset", "default", "file", "default", False, field="copy")
+        self.set("fileset", "default", "idir", False, field="copy")
+        self.set("fileset", "default", "libdir", False, field="copy")
+
+
+class ToolLibrarySchema(Design):
+    """
+    A class for managing tool-related library schemas.
+    """
+    def __init__(self, name: Optional[str] = None):
+        """
+        Initializes a ToolLibrarySchema object.
 
         Args:
-            name (str, optional): The name of the library. Defaults to None.
+            name (str, optional): The name of the tool library. Defaults to None.
         """
         super().__init__()
         self.set_name(name)
 
-        package = PackageSchema()
-        EditableSchema(package).remove("dataroot")
-        EditableSchema(self).insert("package", package)
+        # Disable fileset copying by default
+        self.set("fileset", "default", "file", "default", False, field="copy")
+        self.set("fileset", "default", "idir", False, field="copy")
+        self.set("fileset", "default", "libdir", False, field="copy")
 
-    @property
-    def package(self) -> PackageSchema:
-        """
-        Gets the package schema for the library.
-
-        Returns:
-            PackageSchema: The package schema associated with this library.
-        """
-        return self.get("package", field="schema")
-
-    @classmethod
-    def _getdict_type(cls) -> str:
-        """
-        Returns the meta data for getdict.
-        """
-
-        return LibrarySchema.__name__
-
-
-class ToolLibrarySchema(LibrarySchema):
-    """
-    A class for managing tool-related library schemas.
-    """
     @final
     def define_tool_parameter(self, tool: str, name: str, type: str, help: str, **kwargs):
         """
@@ -197,7 +196,7 @@ class ToolLibrarySchema(LibrarySchema):
         return None
 
 
-class StdCellLibrary(DependencySchema, ToolLibrarySchema):
+class StdCellLibrary(ToolLibrarySchema):
     """
     A class for managing standard cell library schemas.
     """
