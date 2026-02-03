@@ -141,11 +141,6 @@ General
   :ref_root: Design
 
 .. schema::
-  :root: siliconcompiler.library/LibrarySchema
-  :schema_only:
-  :ref_root: LibrarySchema
-
-.. schema::
   :root: siliconcompiler/Schematic
   :schema_only:
   :ref_root: Schematic

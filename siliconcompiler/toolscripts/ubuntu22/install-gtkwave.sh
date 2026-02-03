@@ -35,5 +35,5 @@ cd gtkwave3-gtk3
 
 ./autogen.sh
 ./configure --enable-gtk3 $args
-make -j$(nproc)
+make -j${NPROC:-$(nproc)}
 $SUDO_INSTALL make install

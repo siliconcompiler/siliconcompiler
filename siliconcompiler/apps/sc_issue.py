@@ -70,6 +70,10 @@ To run a testcase, use:
         switchlist=switchlist)
 
     if not issue.get("cmdarg", "run"):
+        if not issue.get("cmdarg", "cfg"):
+            issue.logger.error('-cfg must be provided')
+            return 1
+
         project: Project = Project.from_manifest(filepath=issue.get("cmdarg", "cfg"))
 
         # Determine abs path for build dir

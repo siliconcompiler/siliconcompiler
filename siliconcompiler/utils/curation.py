@@ -78,7 +78,7 @@ def collect(project: "Project",
                                           cwd=cwd,
                                           collection_dir=prev_dir)
         if e:
-            raise e from None
+            raise e
 
     dirs = {}
     files = {}

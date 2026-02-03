@@ -3,6 +3,7 @@ import logging
 import pytest
 import queue
 import random
+import sys
 import threading
 
 from rich.console import Console, Group
@@ -490,10 +491,50 @@ def test_render_log_basic(mock_running_job_lg, dashboard_medium):
     console = Console(file=io_file, width=120)
     console.print(log)
 
-    consoleprint = console.file.getvalue().splitlines()
+    consoleprint = io_file.getvalue().splitlines()
     assert len(consoleprint) == 16
-    assert consoleprint[0] == " \x1b[37m| INFO     | first row\x1b[0m  "
-    assert consoleprint[1] == " \x1b[37m| INFO     | second row\x1b[0m "
+    assert consoleprint[0].rstrip() == " \x1b[37m| INFO     | first row\x1b[0m"
+    assert consoleprint[1].rstrip() == " \x1b[37m| INFO     | second row\x1b[0m"
+    for n in range(2, 16):
+        assert consoleprint[n].strip() == ""  # padding
+
+
+def test_render_log_basic_eol(mock_running_job_lg, dashboard_medium):
+    dashboard = dashboard_medium._dashboard
+    dashboard._console.width = 20
+    if sys.platform == "win32":
+        dashboard._console.width += 2  # Adjust for Windows extra character in line endings
+
+    with patch.object(Board, "_get_job") as mock_job_data:
+        mock_job_data.return_value = mock_running_job_lg
+        dashboard._update_render_data(dashboard_medium._project)
+
+    dashboard._update_rendable_data()
+    dashboard._update_layout()
+
+    logger = logging.getLogger("test")
+    logger.setLevel(logging.INFO)
+
+    dashboard_medium.set_logger(logger)
+
+    # Basic Test
+    logger.log(logging.INFO, "first row")
+    logger.log(logging.INFO, "second row")
+
+    log = dashboard._render_log(dashboard._layout)
+    assert isinstance(log.renderables[0], Table)
+    assert isinstance(log.renderables[1], Padding)
+    assert log.renderables[0].row_count == 15
+
+    # Capture the output
+    io_file = io.StringIO()
+    console = Console(file=io_file, width=120)
+    console.print(log)
+
+    consoleprint = io_file.getvalue().splitlines()
+    assert len(consoleprint) == 16
+    assert consoleprint[0].rstrip() == " \x1b[37m| INFO     | firs…\x1b[0m"  # codespell:ignore firs
+    assert consoleprint[1].rstrip() == " \x1b[37m| INFO     | seco…\x1b[0m"  # codespell:ignore seco
     for n in range(2, 16):
         assert consoleprint[n].strip() == ""  # padding
 

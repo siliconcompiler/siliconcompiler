@@ -36,7 +36,7 @@ if [ ! -z ${PREFIX} ]; then
     cmake_args="$cmake_args -DCMAKE_INSTALL_PREFIX=$PREFIX"
 fi
 
-./etc/Build.sh -cmake="$cmake_args"
+./etc/Build.sh -cmake="$cmake_args" -threads=${NPROC:-$(nproc)}
 
 cd build
 $SUDO_INSTALL make install

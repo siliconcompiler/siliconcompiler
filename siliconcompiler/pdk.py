@@ -7,7 +7,7 @@ from siliconcompiler.schema.utils import trim
 
 from siliconcompiler.library import ToolLibrarySchema
 from siliconcompiler.schema_support.pathschema import PathSchema
-from siliconcompiler.schema_support.filesetschema import FileSetSchema
+from siliconcompiler import Design
 
 
 class PDK(ToolLibrarySchema):
@@ -735,7 +735,7 @@ class PDK(ToolLibrarySchema):
             docs.append(package)
 
         # Show filesets
-        fileset = FileSetSchema._generate_doc(self, doc, ref_root=ref_root, key_offset=key_offset)
+        fileset = Design._generate_doc(self, doc, ref_root=ref_root, key_offset=key_offset)
         if fileset:
             docs.append(fileset)
 

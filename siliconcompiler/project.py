@@ -4,7 +4,7 @@ import uuid
 
 import os.path
 
-from typing import Union, List, Tuple, TextIO, Optional, Dict, Set
+from typing import Type, Union, List, Tuple, TextIO, Optional, Dict, Set, TypeVar
 
 from siliconcompiler.schema import BaseSchema, NamedSchema, EditableSchema, Parameter, Scope, \
     __version__ as schema_version, \
@@ -19,7 +19,6 @@ from siliconcompiler.schema_support.metric import MetricSchema
 from siliconcompiler import Task
 from siliconcompiler import ShowTask, ScreenshotTask
 from siliconcompiler.schema_support.option import OptionSchema
-from siliconcompiler.library import LibrarySchema
 
 from siliconcompiler.schema_support.cmdlineschema import CommandLineSchema
 from siliconcompiler.schema_support.dependencyschema import DependencySchema
@@ -32,6 +31,8 @@ from siliconcompiler.utils import get_file_ext
 from siliconcompiler.utils.multiprocessing import MPManager
 from siliconcompiler.utils.paths import jobdir, workdir
 from siliconcompiler.flows.showflow import ShowFlow
+
+TProject = TypeVar("TProject", bound="Project")
 
 
 class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
@@ -236,7 +237,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         return self.get("option", field="schema")
 
     @classmethod
-    def convert(cls, obj: "Project") -> "Project":
+    def convert(cls: Type[TProject], obj: "Project") -> TProject:
         """
         Converts a project from one type to another (e.g., Project to Sim).
 
@@ -317,7 +318,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
 
     def add_dep(self, obj):
         """
-        Adds a dependency object (e.g., a Design, Flowgraph, LibrarySchema,
+        Adds a dependency object (e.g., a Design, Flowgraph,
         or Checklist) to the project.
 
         This method intelligently adds various types of schema objects to the
@@ -325,7 +326,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         dependencies if the added object itself is a `DependencySchema`.
 
         Args:
-            obj (Union[Design, Flowgraph, LibrarySchema, Checklist, List, Set, Tuple]):
+            obj (Union[Design, Flowgraph, Checklist, List, Set, Tuple]):
                 The dependency object(s) to add. Can be a single schema object
                 or a collection (list, set, tuple) of schema objects.
 
@@ -342,9 +343,6 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                 EditableSchema(self).insert("library", obj.name, obj)
         elif isinstance(obj, Flowgraph):
             self.__import_flow(obj)
-        elif isinstance(obj, LibrarySchema):
-            if not self._has_library(obj.name):
-                EditableSchema(self).insert("library", obj.name, obj)
         elif isinstance(obj, Checklist):
             if obj.name not in self.getkeys("checklist"):
                 EditableSchema(self).insert("checklist", obj.name, obj)
@@ -367,7 +365,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
         """
         if isinstance(obj, DependencySchema):
             for dep in obj.get_dep():
-                if isinstance(dep, (Design, LibrarySchema)):
+                if isinstance(dep, Design):
                     if self._has_library(dep.name):
                         continue
                 self.add_dep(dep)
@@ -526,7 +524,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
                                  f"{', '.join([f'{step}/{index}' for step, index in breakpoints])}")
                 self.__dashboard.stop()
 
-    def run(self) -> "Project":
+    def run(self) -> TProject:
         '''
         Executes the compilation flow defined in the project's flowgraph.
 
@@ -568,7 +566,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             self.logger.error(f"Run failed: {e.msg}")
             if scheduler and scheduler.log:
                 self.logger.error(f"Job log: {os.path.abspath(scheduler.log)}")
-            raise RuntimeError(f"Run failed: {e.msg}")
+            raise RuntimeError(f"Run failed: {e.msg}") from None
         finally:
             if self.__dashboard:
                 # Update dashboard
@@ -1238,7 +1236,7 @@ class Project(PathSchemaBase, CommandLineSchema, BaseSchema):
             return None
 
         # Create copy of project to avoid changing user project
-        proj: Project = self.copy()
+        proj = self.copy()
         proj.set_flow(ShowFlow(task))
 
         # Setup options:

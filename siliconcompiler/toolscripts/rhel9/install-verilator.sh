@@ -28,7 +28,7 @@ tar xvf help2man-1.43.3.tar.gz
 cd help2man-1.43.3
 
 ./configure $args
-make -j$(nproc)
+make -j${NPROC:-$(nproc)}
 $SUDO_INSTALL make install
 
 cd ..
@@ -42,7 +42,7 @@ git checkout $(python3 ${src_path}/_tools.py --tool verilator --field git-commit
 autoconf
 
 ./configure $args
-make -j$(nproc)
+make -j${NPROC:-$(nproc)}
 $SUDO_INSTALL make install
 
 cd -

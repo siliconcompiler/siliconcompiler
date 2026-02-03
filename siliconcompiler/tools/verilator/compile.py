@@ -158,6 +158,17 @@ class CompileTask(VerilatorTask):
     def task(self):
         return "compile"
 
+    def _setup_c_file_requirement(self):
+        """Set up the C file requirement. Override in subclasses to customize."""
+        added_key = False
+        for lib, fileset in self.project.get_filesets():
+            if lib.has_file(fileset=fileset, filetype="c"):
+                self.add_required_key(lib, "fileset", fileset, "file", "c")
+                added_key = True
+        if not added_key:
+            self.add_required_key(self.project.design, "fileset",
+                                  self.project.get("option", "fileset")[0], "file", "c")
+
     def setup(self):
         super().setup()
         self.set_threads()
@@ -170,14 +181,7 @@ class CompileTask(VerilatorTask):
         self.add_required_key("var", "trace_type")
         self.add_required_key("var", "initialize_random")
 
-        added_key = False
-        for lib, fileset in self.project.get_filesets():
-            if lib.has_file(fileset=fileset, filetype="c"):
-                self.add_required_key(lib, "fileset", fileset, "file", "c")
-                added_key = True
-        if not added_key:
-            self.add_required_key(self.project.design, "fileset",
-                                  self.project.get("option", "fileset")[0], "file", "c")
+        self._setup_c_file_requirement()
 
         if self.get("var", "cincludes"):
             self.add_required_key("var", "cincludes")

@@ -151,7 +151,8 @@ class GitResolver(RemoteResolver):
             for submodule in repo.submodules:
                 submodule.update(recursive=True, init=True, force=True)
         except GitCommandError as e:
-            if 'Permission denied' in repr(e) or 'could not read Username' in repr(e):
+            error_msg = str(e)
+            if 'Permission denied' in error_msg or 'could not read Username' in error_msg:
                 if self.urlscheme in ('ssh', 'git+ssh'):
                     raise RuntimeError('Failed to authenticate with Git. Please ensure your SSH '
                                        'keys are set up correctly.')
@@ -160,4 +161,4 @@ class GitResolver(RemoteResolver):
                                        'via GITHUB_TOKEN or use an SSH URL.')
             else:
                 # Re-raise other Git errors
-                raise e
+                raise

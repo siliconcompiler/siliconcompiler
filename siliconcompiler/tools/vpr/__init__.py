@@ -258,7 +258,7 @@ class VPRTask(Task):
         super().setup()
 
         self.set_exe("vpr", vswitch="--version")
-        self.add_version(">=v8.0.0-12677")
+        self.add_version(">=v8.0.0-15021")
 
         self.add_regex("warnings", "^Warning")
         self.add_regex("errors", "^Error")

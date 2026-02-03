@@ -50,7 +50,7 @@ mkdir obj
 cd obj
 
 CC=$(which gcc-11) CXX=$(which g++-11) ../configure --enable-release --disable-flopoco --with-opt-level=2 $args
-make -j$(nproc)
+make -j${NPROC:-$(nproc)}
 $SUDO_INSTALL make install
 
 cd -

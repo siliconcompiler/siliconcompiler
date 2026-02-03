@@ -52,7 +52,7 @@ dependencies = [
     "psutil >= 5.8.0",
     "Jinja2 >= 2.11.3",
 
-    "pyslang == 9.1.0",
+    "pyslang == 10.0.0",
 
     "importlib_metadata; python_version < '3.10'",
 
@@ -117,12 +117,15 @@ lint = [
 ]
 docs = [
     "Sphinx >= 7.4, <8.3",
-    "pip-licenses == 5.5.0",
+    "pip-licenses == 5.5.1",
     "pydata-sphinx-theme == 0.16.1",
     "sc-leflib >= 0.2.0"
 ]
 optimizer = [
     "google-vizier[jax] == 0.1.21; python_version >= '3.10'"
+]
+cocotb = [
+    "cocotb >= 2.0.1, < 2.1.0; python_version >= '3.7' and python_version <= '3.13'"
 ]
 
 [tool.setuptools]

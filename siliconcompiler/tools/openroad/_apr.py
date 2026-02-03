@@ -1439,12 +1439,25 @@ class APRTask(OpenROADTask):
                         libobj = self.project.get_library(lib)
                         self.add_required_key(libobj, "fileset", fileset, "file", "sdc")
 
+        load_tech = True
         if f"{self.design_topmodule}.odb" in self.get_files_from_input_nodes():
             self.add_input_file(ext="odb")
+            load_tech = False
         elif f"{self.design_topmodule}.def" in self.get_files_from_input_nodes():
             self.add_input_file(ext="def")
         else:
             pass
+
+        if load_tech:
+            pdk = self.project.get_library(self.project.get("asic", "pdk"))
+            for fs in pdk.get("pdk", "aprtechfileset", "openroad"):
+                if pdk.has_file(fileset=fs, filetype="lef"):
+                    self.add_required_key(pdk, "fileset", fs, "file", "lef")
+            for asiclib in self.project.get("asic", "asiclib"):
+                lib = self.project.get_library(asiclib)
+                for fs in lib.get("asic", "aprfileset"):
+                    if lib.has_file(fileset=fs, filetype="lef"):
+                        self.add_required_key(lib, "fileset", fs, "file", "lef")
 
     def _add_pnr_outputs(self):
         if self.get("var", "load_sdcs"):

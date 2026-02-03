@@ -1,29 +1,30 @@
+import contextlib
 import io
-import re
 import os.path
 from pathlib import Path
 
-from typing import List, Union, Tuple, Dict, Optional, Iterable, Type
+from typing import List, Set, Union, Tuple, Dict, Optional, Iterable
 
 from siliconcompiler import utils
 
-from siliconcompiler.library import LibrarySchema
-
+from siliconcompiler.schema_support.filesetschema import FileSetSchema
+from siliconcompiler.schema_support.packageschema import PackageSchema
+from siliconcompiler.schema_support.pathschema import PathSchema
 from siliconcompiler.schema_support.dependencyschema import DependencySchema
 from siliconcompiler.schema import NamedSchema
-from siliconcompiler.schema import EditableSchema, Parameter, Scope
-from siliconcompiler.schema.utils import trim
+from siliconcompiler.schema import EditableSchema
 
 
 ###########################################################################
-class Design(DependencySchema, LibrarySchema):
+class Design(DependencySchema, PathSchema, NamedSchema):
     '''
     Schema for a 'design'.
 
-    This class inherits from :class:`~siliconcompiler.LibrarySchema` and
-    :class:`~siliconcompiler.DependencySchema`, and adds parameters and methods
-    specific to describing a design, such as its top module, source filesets,
-    and compilation settings.
+    This class inherits from
+    :class:`~siliconcompiler.schema_support.dependencyschema.DependencySchema` and
+    :class:`~siliconcompiler.schema_support.filesetschema.FileSetSchema`, adds
+    parameters and methods specific to describing a design, such as its top module,
+    source filesets, and compilation settings.
     '''
 
     def __init__(self, name: Optional[str] = None):
@@ -35,13 +36,25 @@ class Design(DependencySchema, LibrarySchema):
         '''
         super().__init__()
 
-        # Mark for copy to ensure proper remote processing
-        fs_file: Parameter = self.get("fileset", "default", "file", "default", field=None)
-        fs_file.set(True, field="copy")
-
         self.set_name(name)
 
-        schema_design(self)
+        edit = EditableSchema(self)
+
+        edit.insert("fileset", "default", FileSetSchema())
+
+        package = PackageSchema()
+        EditableSchema(package).remove("dataroot")
+        edit.insert("package", package)
+
+    @property
+    def package(self) -> PackageSchema:
+        """
+        Gets the package schema for the design.
+
+        Returns:
+            PackageSchema: The package schema associated with this design.
+        """
+        return self.get("package", field="schema")
 
     def add_dep(self, obj: NamedSchema, clobber: bool = True) -> bool:
         '''
@@ -70,6 +83,218 @@ class Design(DependencySchema, LibrarySchema):
 
         return super().add_dep(obj, clobber=clobber)
 
+    ###############################################
+    def add_file(self,
+                 filename: Union[List[Union[Path, str]], Set[Union[Path, str]],
+                                 Tuple[Union[Path, str], ...], Path, str],
+                 fileset: Optional[str] = None,
+                 filetype: Optional[str] = None,
+                 clobber: bool = False,
+                 dataroot: Optional[str] = None) -> List[str]:
+        """
+        Adds files to a fileset.
+
+        Based on the file's extension, this method can often infer the correct
+        fileset and filetype. For example:
+
+        * .v -> (source, verilog)
+        * .vhd -> (source, vhdl)
+        * .sdc -> (constraint, sdc)
+        * .lef -> (input, lef)
+        * .def -> (input, def)
+        * etc.
+
+        Args:
+            filename (Path, str, or collection): File path (Path or str), or a collection
+                (list, tuple, set) of file paths to add.
+            fileset (str): Logical group to associate the file with.
+            filetype (str, optional): Type of the file (e.g., 'verilog', 'sdc').
+            clobber (bool, optional): If True, clears the list before adding the
+                item. Defaults to False.
+            dataroot (str, optional): Data directory reference name.
+
+        Raises:
+            ValueError: If `fileset` or `filetype` cannot be inferred from
+                the file extension.
+
+        Returns:
+           list[str]: A list of the file paths that were added.
+
+        Notes:
+           * This method normalizes `filename` to a string for consistency.
+           * If `filetype` is not specified, it is inferred from the
+               file extension.
+        """
+        fs = self.__get_filesetobj(fileset)
+        return fs.add_file(filename=filename, filetype=filetype, clobber=clobber, dataroot=dataroot)
+
+    ###############################################
+    def get_file(self,
+                 fileset: Optional[str] = None,
+                 filetype: Optional[str] = None) -> List[str]:
+        """Returns a list of files from one or more filesets.
+
+        Args:
+            fileset (str or list[str]): Fileset(s) to query. If not provided,
+                the active fileset is used.
+            filetype (str or list[str], optional): File type(s) to filter by
+                (e.g., 'verilog'). If not provided, all filetypes in the
+                fileset are returned.
+
+        Returns:
+            list[str]: A list of resolved file paths.
+        """
+
+        if fileset is None:
+            fileset = self._get_active("fileset")
+
+        if not isinstance(fileset, list):
+            fileset = [fileset]
+
+        if filetype and not isinstance(filetype, list):
+            filetype = [filetype]
+
+        filelist = []
+        for fs in fileset:
+            if not isinstance(fs, str):
+                raise ValueError("fileset key must be a string")
+            fsobj = self.__get_filesetobj(fs)
+            filelist.extend(fsobj.get_file(filetype))
+
+        return filelist
+
+    ###############################################
+    def has_file(self, fileset: Optional[str] = None, filetype: Optional[str] = None) -> bool:
+        """Returns true if the fileset contains files.
+
+        Args:
+            fileset (str or list[str]): Fileset(s) to query. If not provided,
+                the active fileset is used.
+            filetype (str or list[str], optional): File type(s) to filter by
+                (e.g., 'verilog'). If not provided, all filetypes in the
+                fileset are returned.
+
+        Returns:
+            bool: True if the fileset contains files.
+        """
+
+        if fileset is None:
+            fileset = self._get_active("fileset")
+
+        if not isinstance(fileset, list):
+            fileset = [fileset]
+
+        if filetype and not isinstance(filetype, list):
+            filetype = [filetype]
+
+        for fs in fileset:
+            if not isinstance(fs, str):
+                raise ValueError("fileset key must be a string")
+            if not self.has_fileset(fs):
+                continue
+            fsobj = self.__get_filesetobj(fs)
+            if fsobj.has_file(filetype):
+                return True
+
+        return False
+
+    def __get_filesetobj(self, fileset: Optional[str]) -> FileSetSchema:
+        if fileset is None:
+            fileset = self._get_active("fileset")
+
+        if not isinstance(fileset, str):
+            raise ValueError("fileset key must be a string")
+
+        return self.get("fileset", fileset, field="schema")
+
+    @contextlib.contextmanager
+    def active_fileset(self, fileset: str):
+        """
+        Provides a context to temporarily set an active design fileset.
+
+        This is useful for applying a set of configurations to a specific
+        fileset without repeatedly passing its name.
+
+        Raises:
+            TypeError: If `fileset` is not a string.
+            ValueError: If `fileset` is an empty string.
+
+        Args:
+            fileset (str): The name of the fileset to activate.
+
+        Example:
+            >>> with design.active_fileset("rtl"):
+            ...     design.set_topmodule("top")
+            # This sets the top module for the 'rtl' fileset to 'top'.
+        """
+        if not isinstance(fileset, str):
+            raise TypeError("fileset must a string")
+        if not fileset:
+            raise ValueError("fileset cannot be an empty string")
+
+        with self._active(fileset=fileset):
+            yield
+
+    def copy_fileset(self, src_fileset: str, dst_fileset: str, clobber: bool = False) -> None:
+        """
+        Creates a new copy of a source fileset.
+
+        The entire configuration of the source fileset is duplicated and stored
+        under the destination fileset's name.
+
+        Args:
+            src_fileset (str): The name of the source fileset to copy.
+            dst_fileset (str): The name of the new destination fileset.
+            clobber (bool): If True, an existing destination fileset will be
+                overwritten. Defaults to False.
+
+        Raises:
+            ValueError: If the destination fileset already exists and `clobber`
+                is False.
+        """
+        if not clobber and self.has_fileset(dst_fileset):
+            raise ValueError(f"{dst_fileset} already exists")
+
+        new_fs = self.__get_filesetobj(src_fileset).copy()
+        EditableSchema(self).insert("fileset", dst_fileset, new_fs, clobber=True)
+
+    def _assert_fileset(self, fileset: Union[None, Iterable[str], str]) -> None:
+        """
+        Raises an error if the specified fileset does not exist.
+
+        Raises:
+            TypeError: If `fileset` is not a string.
+            LookupError: If the fileset is not found.
+        """
+
+        if isinstance(fileset, (list, set, tuple)):
+            for fs in fileset:
+                self._assert_fileset(fs)
+            return
+
+        if not isinstance(fileset, str):
+            raise TypeError("fileset must be a string")
+
+        if not self.has_fileset(fileset):
+            name = getattr(self, "name", None)
+            if name:
+                raise LookupError(f"{fileset} is not defined in {name}")
+            else:
+                raise LookupError(f"{fileset} is not defined")
+
+    def has_fileset(self, fileset: str) -> bool:
+        """
+        Checks if a fileset exists in the schema.
+
+        Args:
+            fileset (str): The name of the fileset to check.
+
+        Returns:
+            bool: True if the fileset exists, False otherwise.
+        """
+
+        return fileset in self.getkeys("fileset")
+
     ############################################
     def set_topmodule(self,
                       value: str,
@@ -88,13 +313,8 @@ class Design(DependencySchema, LibrarySchema):
             - first character must be letter or underscore
             - remaining characters can be letters, digits, or underscores
         """
-
-        # topmodule safety check
-        if (value is not None) and isinstance(value, str):
-            if not re.match(r'^[_a-zA-Z]\w*$', value):
-                raise ValueError(f"{value} is not a legal topmodule string")
-
-        return self.__set_add(fileset, 'topmodule', value, typelist=[str])
+        fs = self.__get_filesetobj(fileset)
+        return fs.set_topmodule(value)
 
     def get_topmodule(self, fileset: Optional[str] = None) -> str:
         """Returns the topmodule of a fileset.
@@ -106,7 +326,8 @@ class Design(DependencySchema, LibrarySchema):
         Returns:
            str: Topmodule name
         """
-        return self.__get(fileset, 'topmodule')
+        fs = self.__get_filesetobj(fileset)
+        return fs.get_topmodule()
 
     ##############################################
     def add_idir(self,
@@ -126,9 +347,8 @@ class Design(DependencySchema, LibrarySchema):
         Returns:
            list[str]: List of include directories
         """
-        return self.__set_add(fileset, 'idir', value, clobber,
-                              typelist=[str, list, Path],
-                              dataroot=dataroot)
+        fs = self.__get_filesetobj(fileset)
+        return fs.add_idir(value, clobber=clobber, dataroot=dataroot)
 
     def get_idir(self, fileset: Optional[str] = None) -> List[str]:
         """Returns include directories for a fileset.
@@ -140,7 +360,8 @@ class Design(DependencySchema, LibrarySchema):
         Returns:
            list[str]: List of include directories
         """
-        return self.__get(fileset, 'idir', is_file=True)
+        fs = self.__get_filesetobj(fileset)
+        return fs.get_idir()
 
     def has_idir(self, fileset: Optional[str] = None) -> bool:
         """Returns true if idirs are defined for the fileset
@@ -152,7 +373,7 @@ class Design(DependencySchema, LibrarySchema):
         Returns:
             bool: True if the fileset contains directories.
         """
-        return bool(self.__get(fileset, 'idir', is_file=False))
+        return self.__get_filesetobj(fileset).has_idir()
 
     ##############################################
     def add_define(self,
@@ -171,7 +392,8 @@ class Design(DependencySchema, LibrarySchema):
            list[str]: List of macro definitions
 
         """
-        return self.__set_add(fileset, 'define', value, clobber, typelist=[str, list])
+        fs = self.__get_filesetobj(fileset)
+        return fs.add_define(value, clobber=clobber)
 
     def get_define(self, fileset: Optional[str] = None) -> List[str]:
         """Returns defined macros for a fileset.
@@ -183,7 +405,8 @@ class Design(DependencySchema, LibrarySchema):
         Returns:
            list[str]: List of macro definitions
         """
-        return self.__get(fileset, 'define')
+        fs = self.__get_filesetobj(fileset)
+        return fs.get_define()
 
     ##############################################
     def add_undefine(self,
@@ -201,7 +424,8 @@ class Design(DependencySchema, LibrarySchema):
         Returns:
            list[str]: List of macro (un)definitions
         """
-        return self.__set_add(fileset, 'undefine', value, clobber, typelist=[str, list])
+        fs = self.__get_filesetobj(fileset)
+        return fs.add_undefine(value, clobber=clobber)
 
     def get_undefine(self, fileset: Optional[str] = None) -> List[str]:
         """Returns undefined macros for a fileset.
@@ -214,7 +438,8 @@ class Design(DependencySchema, LibrarySchema):
            list[str]: List of macro (un)definitions
 
         """
-        return self.__get(fileset, 'undefine')
+        fs = self.__get_filesetobj(fileset)
+        return fs.get_undefine()
 
     ###############################################
     def add_libdir(self,
@@ -234,9 +459,8 @@ class Design(DependencySchema, LibrarySchema):
         Returns:
            list[str]: List of library directories.
         """
-        return self.__set_add(fileset, 'libdir', value, clobber,
-                              typelist=[str, list, Path],
-                              dataroot=dataroot)
+        fs = self.__get_filesetobj(fileset)
+        return fs.add_libdir(value, clobber=clobber, dataroot=dataroot)
 
     def get_libdir(self, fileset: Optional[str] = None) -> List[str]:
         """Returns dynamic library directories for a fileset.
@@ -248,7 +472,8 @@ class Design(DependencySchema, LibrarySchema):
         Returns:
            list[str]: List of library directories.
         """
-        return self.__get(fileset, 'libdir', is_file=True)
+        fs = self.__get_filesetobj(fileset)
+        return fs.get_libdir()
 
     def has_libdir(self, fileset: Optional[str] = None) -> bool:
         """Returns true if library directories are defined for the fileset
@@ -260,7 +485,7 @@ class Design(DependencySchema, LibrarySchema):
         Returns:
             bool: True if the fileset contains directories.
         """
-        return bool(self.__get(fileset, 'libdir', is_file=False))
+        return self.__get_filesetobj(fileset).has_libdir()
 
     ###############################################
     def add_lib(self,
@@ -278,7 +503,8 @@ class Design(DependencySchema, LibrarySchema):
         Returns:
            list[str]: List of libraries.
         """
-        return self.__set_add(fileset, 'lib', value, clobber, typelist=[str, list])
+        fs = self.__get_filesetobj(fileset)
+        return fs.add_lib(value, clobber=clobber)
 
     def get_lib(self, fileset: Optional[str] = None) -> List[str]:
         """Returns list of dynamic libraries for a fileset.
@@ -290,7 +516,8 @@ class Design(DependencySchema, LibrarySchema):
         Returns:
            list[str]: List of libraries.
         """
-        return self.__get(fileset, 'lib')
+        fs = self.__get_filesetobj(fileset)
+        return fs.get_lib()
 
     ###############################################
     def set_param(self,
@@ -308,17 +535,8 @@ class Design(DependencySchema, LibrarySchema):
         Returns:
             str: Parameter value
         """
-
-        if fileset is None:
-            fileset = self._get_active("fileset")
-
-        if not isinstance(fileset, str):
-            raise ValueError("fileset key must be a string")
-
-        if not isinstance(value, str) or value is None:
-            raise ValueError("param value must be a string")
-
-        return self.set('fileset', fileset, 'param', name, value)
+        fs = self.__get_filesetobj(fileset)
+        return fs.set_param(name, value)
 
     def get_param(self,
                   name: str,
@@ -333,12 +551,8 @@ class Design(DependencySchema, LibrarySchema):
         Returns:
             str: Parameter value
         """
-        if fileset is None:
-            fileset = self._get_active("fileset")
-
-        if not isinstance(fileset, str):
-            raise ValueError("fileset key must be a string")
-        return self.get('fileset', fileset, 'param', name)
+        fs = self.__get_filesetobj(fileset)
+        return fs.get_param(name)
 
     ###############################################
     def add_depfileset(self, dep: Union["Design", str],
@@ -356,42 +570,8 @@ class Design(DependencySchema, LibrarySchema):
             used.
 
         """
-        if fileset is None:
-            fileset = self._get_active("fileset")
-
-        if not isinstance(fileset, str):
-            raise ValueError("fileset key must be a string")
-
-        if isinstance(dep, str):
-            dep_name = dep
-            if dep_name != self.name:
-                dep = self.get_dep(dep_name)
-            else:
-                dep = self
-        elif isinstance(dep, Design):
-            dep_name = dep.name
-            if dep is not self:
-                self.add_dep(dep, clobber=True)
-        else:
-            raise TypeError(f"dep is not a valid type: {dep}")
-
-        if not isinstance(dep, Design):
-            raise ValueError(f"cannot associate fileset ({depfileset}) with {dep.name}")
-
-        if depfileset is None:
-            if dep.has_fileset(fileset):
-                depfileset = fileset
-            else:
-                filesets = dep.getkeys("fileset")
-                if len(filesets) == 1:
-                    depfileset = filesets[0]
-                else:
-                    raise ValueError(f"depfileset must be specified for {dep.name}")
-
-        if not dep.has_fileset(depfileset):
-            raise ValueError(f"{dep.name} does not have {depfileset} as a fileset")
-
-        return self.add("fileset", fileset, "depfileset", (dep_name, depfileset))
+        fs = self.__get_filesetobj(fileset)
+        return fs.add_depfileset(dep, depfileset)
 
     def get_depfileset(self, fileset: Optional[str] = None):
         """
@@ -404,13 +584,8 @@ class Design(DependencySchema, LibrarySchema):
         Returns:
            list[tuple(str, str)]: List of dependencies and filesets.
         """
-        if fileset is None:
-            fileset = self._get_active("fileset")
-
-        if not isinstance(fileset, str):
-            raise ValueError("fileset key must be a string")
-
-        return self.get("fileset", fileset, "depfileset")
+        fs = self.__get_filesetobj(fileset)
+        return fs.get_depfileset()
 
     def __write_flist(self,
                       filename: str,
@@ -643,94 +818,6 @@ class Design(DependencySchema, LibrarySchema):
         else:
             raise ValueError(f"{fileformat} is not a supported filetype")
 
-    ################################################
-    # Helper Functions
-    ################################################
-    def __set_add(self,
-                  fileset: str,
-                  option: str,
-                  value: Union[List[str], str],
-                  clobber: bool = False,
-                  typelist: Optional[List[Union[Type[str], Type[List], Type[Path]]]] = None,
-                  dataroot: Optional[str] = ...):
-        '''
-        Internal helper to set or add a parameter value in the schema.
-
-        This function handles common tasks for setters like `add_idir` and
-        `add_define`, such as resolving the active fileset, checking value
-        types, and calling the underlying schema `set()` or `add()` methods.
-
-        Args:
-            fileset (str): The fileset to modify.
-            option (str): The parameter key to modify.
-            value: The value to set or add.
-            clobber (bool): If True, overwrite the existing value.
-            typelist (list): A list of allowed types for the value.
-            dataroot (str): The dataroot to associate with the value.
-        '''
-
-        if fileset is None:
-            fileset = self._get_active("fileset")
-
-        # check for a legal fileset
-        if not fileset or not isinstance(fileset, str):
-            raise ValueError("fileset key must be a string")
-
-        # Check for legal types
-        legalval = False
-        for item in typelist:
-            if isinstance(value, item) and not isinstance(value, tuple):
-                legalval = True
-        if not legalval:
-            raise ValueError("value must be of type string")
-
-        # None is illegal for all setters
-        if value is None:
-            raise ValueError(f"None is an illegal {option} value")
-
-        # Handling string like objects (like Path)
-        value = [str(x) for x in value] if isinstance(value, list) else [str(value)]
-
-        if dataroot is ...:
-            dataroot = None
-        else:
-            if option in ['idir', 'libdir']:
-                try:
-                    dataroot = self._get_active_dataroot(dataroot)
-                except ValueError as e:
-                    if any(not os.path.isabs(v) for v in value):
-                        raise e
-
-        with self.active_dataroot(dataroot):
-            if list in typelist and not clobber:
-                params = self.add('fileset', fileset, option, value)
-            else:
-                params = self.set('fileset', fileset, option, value)
-
-        return params
-
-    def __get(self, fileset: Optional[str], option: str, is_file: bool = False) -> List[str]:
-        '''
-        Internal helper to get a parameter value from the schema.
-
-        This function handles common tasks for getters, such as resolving the
-        active fileset and optionally resolving file paths.
-
-        Args:
-            fileset (str): The fileset to query.
-            option (str): The parameter key to retrieve.
-            is_file (bool): If True, treat the value as a file path and
-                resolve it using `find_files`.
-        '''
-        if fileset is None:
-            fileset = self._get_active("fileset")
-
-        if not isinstance(fileset, str):
-            raise ValueError("fileset key must be a string")
-        if is_file:
-            return self.find_files('fileset', fileset, option)
-        return self.get('fileset', fileset, option)
-
     @classmethod
     def _getdict_type(cls) -> str:
         """
@@ -829,130 +916,25 @@ class Design(DependencySchema, LibrarySchema):
 
         return self.__get_fileset(filesets, alias, [])
 
+    def _generate_doc(self, doc,
+                      ref_root: str = "",
+                      key_offset: Optional[Tuple[str, ...]] = None,
+                      detailed: bool = True):
+        from .schema.docs.utils import build_section
 
-###########################################################################
-# Schema
-###########################################################################
-def schema_design(schema: Design):
-    '''
-    Defines the schema parameters specific to a design.
+        filesets_sec = build_section("Filesets", f"{ref_root}-filesets")
+        filesets_added = False
+        for fileset in self.getkeys("fileset"):
+            fs = self.__get_filesetobj(fileset)
+            fileset_sec = fs._generate_doc(doc,
+                                           ref_root=ref_root,
+                                           key_offset=key_offset,
+                                           detailed=detailed)
+            if fileset_sec:
+                filesets_sec += fileset_sec
+                filesets_added = True
 
-    This function is called by the `Design` constructor to set up
-    its unique schema elements, such as `topmodule`, `idir`, `define`, etc.,
-    under the `fileset` key.
+        if not filesets_added:
+            return None
 
-    Args:
-        schema (Design): The schema object to configure.
-    '''
-
-    edit = EditableSchema(schema)
-
-    fileset = 'default'
-
-    ###########################
-    # Options
-    ###########################
-
-    edit.insert(
-        'fileset', fileset, 'topmodule',
-        Parameter(
-            'str',
-            scope=Scope.GLOBAL,
-            shorthelp="Top module name",
-            example=[
-                "api: design.set('fileset', 'rtl', 'topmodule', 'mytop')",
-                "api: design.set('fileset', 'testbench', 'topmodule', 'tb')"],
-            help=trim("""
-            Name of top module specified on a per fileset basis.""")))
-
-    edit.insert(
-        'fileset', fileset, 'idir',
-        Parameter(
-            ['dir'],
-            scope=Scope.GLOBAL,
-            copy=True,
-            shorthelp="Include file search paths",
-            example=[
-                "api: design.set('fileset', 'rtl', 'idir', './rtl')",
-                "api: design.set('fileset', 'testbench', 'idir', '/testbench')"],
-            help=trim("""
-            Include paths specify directories to scan for header files during
-            compilation. If multiple paths are provided, they are searched
-            in the order given.""")))
-
-    edit.insert(
-        'fileset', fileset, 'define',
-        Parameter(
-            ['str'],
-            scope=Scope.GLOBAL,
-            shorthelp="Preprocessor macro definitions",
-            example=[
-                "api: design.set('fileset', 'rtl', 'define', 'CFG_TARGET=FPGA')"],
-            help=trim("""
-            Defines macros at compile time for design languages that support
-            preprocessing, such as Verilog, C, and C++. The macro format is
-            is `MACRONAME[=value]`, where [=value] is optional.""")))
-
-    edit.insert(
-        'fileset', fileset, 'undefine',
-        Parameter(
-            ['str'],
-            scope=Scope.GLOBAL,
-            shorthelp="Preprocessor macro undefine",
-            example=[
-                "api: design.set('fileset', 'rtl', 'undefine', 'CFG_TARGET')"],
-            help=trim("""
-            Undefines a macro that may have been previously defined via the
-            compiler, options, or header files.""")))
-
-    edit.insert(
-        'fileset', fileset, 'libdir',
-        Parameter(
-            ['dir'],
-            scope=Scope.GLOBAL,
-            copy=True,
-            shorthelp="Library search paths",
-            example=[
-                "api: design.set('fileset', 'rtl', 'libdir', '/usr/lib')"],
-            help=trim("""
-            Specifies directories to scan for libraries provided with the
-            :keypath:`Design,fileset,<fileset>,lib` parameter. If multiple paths are provided,
-            they are searched based on the order of the libdir list.""")))
-
-    edit.insert(
-        'fileset', fileset, 'lib',
-        Parameter(
-            ['str'],
-            scope=Scope.GLOBAL,
-            shorthelp="Design libraries to include",
-            example=[
-                "api: design.set('fileset', 'rtl', 'lib', 'mylib')"],
-            help=trim("""
-            Specifies libraries to use during compilation. The compiler searches for
-            library in the compiler standard library paths and in the
-            paths specified by :keypath:`Design,fileset,<fileset>,libdir` parameter.""")))
-
-    name = 'default'
-    edit.insert(
-        'fileset', fileset, 'param', name,
-        Parameter(
-            'str',
-            scope=Scope.GLOBAL,
-            shorthelp="Design parameters",
-            example=[
-                "api: design.set('fileset', 'rtl', 'param', 'N', '64')"],
-            help=trim("""
-            Sets a named parameter to a string value. The value is limited to basic
-            data literals. The types of parameters and values supported is tightly
-            coupled to tools being used. For example, in Verilog only integer
-            literals (64'h4, 2'b0, 4) and strings are supported.""")))
-
-    edit.insert(
-        'fileset', fileset, 'depfileset',
-        Parameter(
-            '[(str,str)]',
-            scope=Scope.GLOBAL,
-            shorthelp="Design dependency fileset",
-            example=[
-                "api: design.set('fileset', 'rtl', 'depfileset', ('lambdalib', 'rtl'))"],
-            help=trim("""Sets the mapping for dependency filesets.""")))
+        return filesets_sec
