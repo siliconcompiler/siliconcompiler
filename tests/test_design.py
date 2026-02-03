@@ -109,12 +109,12 @@ def test_options_topmodule_fileset_error():
 def test_options_topmodule_value_error():
     d = Design("test")
 
-    with pytest.raises(ValueError, match=r"^value must be of type string$"):
+    with pytest.raises(ValueError, match=r"^topmodule must be a string$"):
         d.set_topmodule(4, "rtl")
 
 
 def test_options_topmodule_with_none():
-    with pytest.raises(ValueError, match=r"^value must be of type string$"):
+    with pytest.raises(ValueError, match=r"^set_topmodule cannot process None$"):
         Design("test").set_topmodule(None, 'rtl')
 
 
@@ -201,7 +201,7 @@ def test_options_idir_abspath_without_dataroot_one_abs():
 
 
 def test_options_idir_with_none():
-    with pytest.raises(ValueError, match=r"^value must be of type string$"):
+    with pytest.raises(ValueError, match=r"^add_idir cannot process None$"):
         Design("test").add_idir(None, 'rtl')
 
 
@@ -217,7 +217,9 @@ def test_options_idir_fileset_error():
 def test_options_idir_value_error():
     d = Design("test")
 
-    with pytest.raises(ValueError, match=r"^value must be of type string$"):
+    with pytest.raises(ValueError,
+                       match=r"^error while adding to \[fileset,rtl,idir\]: dir must be a "
+                             r"string or Path, not <class 'int'>$"):
         d.add_idir(4, "rtl")
 
 
@@ -283,7 +285,7 @@ def test_options_libdir_abspath_without_dataroot_one_abs():
 
 
 def test_options_libdir_with_none():
-    with pytest.raises(ValueError, match=r"^value must be of type string$"):
+    with pytest.raises(ValueError, match=r"^add_libdir cannot process None$"):
         Design("test").add_libdir(None, 'rtl')
 
 
@@ -309,7 +311,7 @@ def test_options_lib():
 
 
 def test_options_lib_with_none():
-    with pytest.raises(ValueError, match=r"^value must be of type string$"):
+    with pytest.raises(ValueError, match=r"^add_lib cannot process None$"):
         Design("test").add_lib(None, 'rtl')
 
 
@@ -332,7 +334,7 @@ def test_options_define():
 
 
 def test_options_define_with_none():
-    with pytest.raises(ValueError, match=r"^value must be of type string$"):
+    with pytest.raises(ValueError, match=r"^add_define cannot process None$"):
         Design("test").add_define(None, 'rtl')
 
 
@@ -355,7 +357,7 @@ def test_options_undefine():
 
 
 def test_options_undefine_with_none():
-    with pytest.raises(ValueError, match=r"^value must be of type string$"):
+    with pytest.raises(ValueError, match=r"^add_undefine cannot process None$"):
         Design("test").add_undefine(None, 'rtl')
 
 

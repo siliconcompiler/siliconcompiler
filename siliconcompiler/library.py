@@ -2,7 +2,6 @@ from typing import final, Union, List, Tuple, Optional, Dict, Set, TYPE_CHECKING
 
 from siliconcompiler import Design
 
-from siliconcompiler.schema_support.filesetschema import FileSetSchema
 from siliconcompiler.schema_support.pathschema import PathSchema
 from siliconcompiler.schema import BaseSchema
 
@@ -435,7 +434,7 @@ class StdCellLibrary(ToolLibrarySchema):
             docs.append(package)
 
         # Show filesets
-        fileset = FileSetSchema._generate_doc(self, doc, ref_root=ref_root, key_offset=key_offset)
+        fileset = Design._generate_doc(self, doc, ref_root=ref_root, key_offset=key_offset)
         if fileset:
             docs.append(fileset)
 

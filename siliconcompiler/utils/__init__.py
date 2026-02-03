@@ -66,7 +66,7 @@ def link_copy(srcfile, dstfile):
             pass
 
 
-def get_file_ext(filename: str) -> str:
+def get_file_ext(filename: Union[Path, str]) -> str:
     """
     Get base file extension for a given path, disregarding .gz.
 
@@ -76,6 +76,7 @@ def get_file_ext(filename: str) -> str:
     Returns:
         str: The file extension (e.g., 'v', 'py') without the dot.
     """
+    filename = str(filename)
     if filename.lower().endswith('.gz'):
         filename = os.path.splitext(filename)[0]
     filetype = os.path.splitext(filename)[1].lower().lstrip('.')
