@@ -733,16 +733,18 @@ proc sc_insert_fillers { } {
     global sc_logiclibs
 
     set fillers []
-    foreach lib $sc_logiclibs {
-        lappend fillers {*}[sc_cfg_get library $lib asic cells filler]
-    }
-
     if { [sc_cfg_tool_task_get var dpl_use_decap_fillers] } {
         foreach lib $sc_logiclibs {
             lappend fillers {*}[sc_cfg_get library $lib asic cells decap]
         }
     }
+
+    foreach lib $sc_logiclibs {
+        lappend fillers {*}[sc_cfg_get library $lib asic cells filler]
+    }
+
     if { $fillers != "" } {
+        puts "Inserting filler cells: $fillers"
         filler_placement -verbose $fillers
     }
 
