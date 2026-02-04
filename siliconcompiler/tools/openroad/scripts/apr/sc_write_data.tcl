@@ -47,9 +47,7 @@ if { [sc_cfg_tool_task_get var write_cdl] } {
 ###############################
 set remove_cells []
 foreach lib [sc_cfg_get asic asiclib] {
-    foreach celltype "decap tie filler tap endcap antenna physicalonly" {
-        lappend remove_cells {*}[sc_cfg_get library $lib asic cells $celltype]
-    }
+    lappend remove_cells {*}[sc_cfg_get library $lib asic cells physicalonly]
 }
 write_verilog -include_pwr_gnd -remove_cells $remove_cells "outputs/${sc_topmodule}.lvs.vg"
 
