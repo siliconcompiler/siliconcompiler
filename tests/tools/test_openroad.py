@@ -2,7 +2,7 @@
 import os
 import pytest
 
-from siliconcompiler import ASIC, Flowgraph
+from siliconcompiler import Flowgraph
 
 from siliconcompiler.flows.asicflow import ASICFlow
 
