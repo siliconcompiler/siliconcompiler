@@ -141,6 +141,7 @@ class WriteViewsTask(APRTask, OpenROADSTAParameter, OpenROADPSMParameter):
 
         # Setup outputs
         self.add_output_file(ext="lef")
+        self.add_output_file(ext="lvs.vg")
 
         if self.get("var", "write_cdl"):
             self.add_output_file(ext="cdl")
